@@ -1,9 +1,9 @@
-using ProsimCompanion.Gsx.Sync;
+using ProsimCompanion.Core.Aircraft;
 using Xunit;
 
-namespace ProsimCompanion.Core.Tests.Gsx;
+namespace ProsimCompanion.Core.Tests.Aircraft;
 
-public sealed class GsxSyncMathTests
+public sealed class LoadMathTests
 {
     /// <summary>The A322-style four-zone cabin from the predecessors' fallback capacities.</summary>
     private static readonly int[] Capacities = [24, 30, 36, 42];
@@ -12,7 +12,7 @@ public sealed class GsxSyncMathTests
     public void DistributePax_PartialLoad_FillsEveryZoneToTheSameLoadFactor()
     {
         // The owner-reported realism bug: 99 of 132 pax must NOT front-fill (CG shift).
-        var zones = GsxSyncMath.DistributePax(99, Capacities);
+        var zones = LoadMath.DistributePax(99, Capacities);
 
         Assert.Equal(99, zones.Sum());
         for (var i = 0; i < zones.Length; i++)
@@ -24,14 +24,14 @@ public sealed class GsxSyncMathTests
 
     [Fact]
     public void DistributePax_FullLoad_MatchesCapacities()
-        => Assert.Equal(Capacities, GsxSyncMath.DistributePax(132, Capacities));
+        => Assert.Equal(Capacities, LoadMath.DistributePax(132, Capacities));
 
     [Fact]
     public void DistributePax_SumAlwaysExact_ForEveryLoad()
     {
         for (var pax = 0; pax <= 132; pax++)
         {
-            var zones = GsxSyncMath.DistributePax(pax, Capacities);
+            var zones = LoadMath.DistributePax(pax, Capacities);
             Assert.Equal(pax, zones.Sum());
             for (var i = 0; i < zones.Length; i++)
             {
@@ -42,16 +42,16 @@ public sealed class GsxSyncMathTests
 
     [Fact]
     public void DistributePax_OverCapacity_ClampsToTotalCapacity()
-        => Assert.Equal(132, GsxSyncMath.DistributePax(200, Capacities).Sum());
+        => Assert.Equal(132, LoadMath.DistributePax(200, Capacities).Sum());
 
     [Fact]
     public void DistributePax_NoCapacityData_ReturnsZeros()
-        => Assert.All(GsxSyncMath.DistributePax(99, [0, 0, 0, 0]), zone => Assert.Equal(0, zone));
+        => Assert.All(LoadMath.DistributePax(99, [0, 0, 0, 0]), zone => Assert.Equal(0, zone));
 
     [Fact]
     public void SplitCargo_ProportionalToCapacity()
     {
-        var (forward, aft) = GsxSyncMath.SplitCargo(3000, 3402, 6033);
+        var (forward, aft) = LoadMath.SplitCargo(3000, 3402, 6033);
 
         Assert.Equal(3000, forward + aft, precision: 3);
         Assert.True(aft > forward);
@@ -60,7 +60,7 @@ public sealed class GsxSyncMathTests
 
     [Fact]
     public void SplitCargo_NoCapacityData_EverythingAft()
-        => Assert.Equal((0, 1500), GsxSyncMath.SplitCargo(1500, 0, 0));
+        => Assert.Equal((0, 1500), LoadMath.SplitCargo(1500, 0, 0));
 
     [Theory]
     [InlineData(1000, 5000, 25, 1025)]     // filling
@@ -69,5 +69,7 @@ public sealed class GsxSyncMathTests
     [InlineData(5000, 5000, 25, 5000)]     // at target stays
     [InlineData(1000, 5000, 0, 1000)]      // zero rate is a no-op
     public void NextFuelStep_MovesTowardTargetWithoutOvershoot(double current, double target, double rate, double expected)
-        => Assert.Equal(expected, GsxSyncMath.NextFuelStep(current, target, rate), precision: 3);
+        => Assert.Equal(expected, LoadMath.NextFuelStep(current, target, rate), precision: 3);
 }
+
+

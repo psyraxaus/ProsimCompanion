@@ -161,7 +161,7 @@ public sealed class GsxRefuelSync : IDisposable
                 return;
             }
 
-            var next = GsxSyncMath.NextFuelStep(current, target, _options.CurrentValue.RefuelRateKgPerSec);
+            var next = LoadMath.NextFuelStep(current, target, _options.CurrentValue.RefuelRateKgPerSec);
             if (Math.Abs(next - current) < 0.01)
             {
                 await SetPumpAsync(false).ConfigureAwait(false);
@@ -232,3 +232,4 @@ public sealed class GsxRefuelSync : IDisposable
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, action, reason));
     }
 }
+

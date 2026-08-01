@@ -16,136 +16,164 @@ public sealed class DepartureSequencerTests
             e => new GsxServiceInfo(e.Id, e.Id, null, e.State, e.CanTrigger, false, null, null),
             StringComparer.OrdinalIgnoreCase);
 
-    [Fact]
-    public void FirstCallableTriggerable_IsTriggered()
-    {
-        var decision = DepartureSequencer.Next(
-            Order,
-            Services(("Refueling", GsxServiceState.Callable, true)),
-            _ => false,
-            flightPlanAvailable: true,
-            requireOfp: true);
+    private static DeparturePlan Next(
+        Dictionary<string, GsxServiceInfo> services,
+        Func<string, bool>? completed = null,
+        bool plan = true,
+        bool requireOfp = true,
+        bool concurrent = true,
+        List<string>? boardingAfter = null,
+        List<string>? order = null)
+        => DepartureSequencer.Next(
+            order ?? Order,
+            services,
+            completed ?? (_ => false),
+            plan,
+            requireOfp,
+            concurrent,
+            boardingAfter ?? []);
 
-        Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
-        Assert.Equal("Refueling", decision.ServiceId);
+    [Fact]
+    public void Concurrent_TriggersEveryCallableNonBoardingService()
+    {
+        var plan = Next(Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true),
+            ("Boarding", GsxServiceState.Callable, true)));
+
+        Assert.Equal(["Refueling", "Catering"], plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Boarding");
     }
 
     [Fact]
-    public void OfpGatedService_HeldUntilOfpImported()
+    public void Sequential_TriggersOnlyTheFirst()
     {
-        var decision = DepartureSequencer.Next(
-            Order,
-            Services(("Refueling", GsxServiceState.Callable, true)),
-            _ => false,
-            flightPlanAvailable: false,
-            requireOfp: true);
+        var plan = Next(Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true)),
+            concurrent: false);
 
-        Assert.Equal(DepartureDecisionKind.Hold, decision.Kind);
-        Assert.Contains("flight plan", decision.Reason, StringComparison.Ordinal);
+        Assert.Equal(["Refueling"], plan.Trigger);
     }
 
     [Fact]
-    public void OfpGate_Disabled_TriggersWithoutOfp()
+    public void Sequential_InProgressServiceBlocksTheRest()
     {
-        var decision = DepartureSequencer.Next(
-            Order,
-            Services(("Refueling", GsxServiceState.Callable, true)),
-            _ => false,
-            flightPlanAvailable: false,
-            requireOfp: false);
+        var plan = Next(Services(
+            ("Refueling", GsxServiceState.Active, false),
+            ("Catering", GsxServiceState.Callable, true)),
+            concurrent: false);
 
-        Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
+        Assert.Empty(plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason == "in progress");
     }
 
     [Fact]
-    public void NonOfpGatedService_NotHeldByOfp()
+    public void Concurrent_InProgressServiceDoesNotBlockOthers()
     {
-        var decision = DepartureSequencer.Next(
-            ["Catering"],
-            Services(("Catering", GsxServiceState.Callable, true)),
-            _ => false,
-            flightPlanAvailable: false,
-            requireOfp: true);
+        var plan = Next(Services(
+            ("Refueling", GsxServiceState.Active, false),
+            ("Catering", GsxServiceState.Callable, true)));
 
-        Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
-        Assert.Equal("Catering", decision.ServiceId);
+        Assert.Equal(["Catering"], plan.Trigger);
     }
 
     [Fact]
-    public void InProgressService_HoldsTheSequence()
+    public void PlanGate_HoldsRefuelingAndBoardingButNotCatering()
     {
-        var decision = DepartureSequencer.Next(
-            Order,
+        var plan = Next(Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true),
+            ("Boarding", GsxServiceState.Callable, true)),
+            plan: false);
+
+        Assert.Equal(["Catering"], plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason.Contains("flight plan", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Boarding_WaitsForAllOtherServicesByDefault()
+    {
+        var plan = Next(
+            Services(("Boarding", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
+            completed: id => id == "Refueling");
+
+        Assert.DoesNotContain("Boarding", plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Boarding" && h.Reason.Contains("Catering", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Boarding_TriggersWhenAllPrerequisitesComplete()
+    {
+        var plan = Next(
+            Services(("Boarding", GsxServiceState.Callable, true)),
+            completed: id => id is "Refueling" or "Catering");
+
+        Assert.Equal(["Boarding"], plan.Trigger);
+    }
+
+    [Fact]
+    public void Boarding_SelectedPrerequisites_OnlyThoseGate()
+    {
+        // Catering still callable, but boarding only waits for Refueling (Prosim2GSX-style).
+        var plan = Next(
+            Services(("Boarding", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
+            completed: id => id == "Refueling",
+            boardingAfter: ["Refueling"]);
+
+        Assert.Contains("Boarding", plan.Trigger);
+    }
+
+    [Fact]
+    public void Boarding_UnavailablePrerequisiteCountsAsSatisfied()
+    {
+        var plan = Next(
             Services(
-                ("Refueling", GsxServiceState.Active, false),
-                ("Catering", GsxServiceState.Callable, true)),
-            _ => false,
-            flightPlanAvailable: true,
-            requireOfp: true);
-
-        Assert.Equal(DepartureDecisionKind.Hold, decision.Kind);
-        Assert.Equal("Refueling", decision.ServiceId);
-    }
-
-    [Fact]
-    public void CompletedService_AdvancesToNext()
-    {
-        var decision = DepartureSequencer.Next(
-            Order,
-            Services(
-                ("Refueling", GsxServiceState.Callable, true),
-                ("Catering", GsxServiceState.Callable, true)),
-            id => id == "Refueling",
-            flightPlanAvailable: true,
-            requireOfp: true);
-
-        Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
-        Assert.Equal("Catering", decision.ServiceId);
-    }
-
-    [Fact]
-    public void UnavailableAndMissingServices_AreSkippedWithReasons()
-    {
-        var decision = DepartureSequencer.Next(
-            Order,
-            Services(
-                ("Refueling", GsxServiceState.NotAvailable, false),
+                ("Catering", GsxServiceState.NotAvailable, false),
                 ("Boarding", GsxServiceState.Callable, true)),
-            _ => false,
-            flightPlanAvailable: true,
-            requireOfp: true);
+            completed: id => id == "Refueling");
 
-        Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
-        Assert.Equal("Boarding", decision.ServiceId);
-        Assert.Equal(2, decision.Skipped.Count);
-        Assert.Contains(decision.Skipped, s => s.ServiceId == "Refueling" && s.Reason == "unavailable");
-        Assert.Contains(decision.Skipped, s => s.ServiceId == "Catering");
+        Assert.Contains("Boarding", plan.Trigger);
+    }
+
+    [Fact]
+    public void MissingAndUnavailableServices_AreSkippedWithReasons()
+    {
+        var plan = Next(Services(
+            ("Refueling", GsxServiceState.NotAvailable, false),
+            ("Boarding", GsxServiceState.Callable, true)));
+
+        Assert.Contains(plan.Skipped, s => s.ServiceId == "Refueling" && s.Reason == "unavailable");
+        Assert.Contains(plan.Skipped, s => s.ServiceId == "Catering");
+        Assert.Contains("Boarding", plan.Trigger); // both prereqs skippable ⇒ satisfied
     }
 
     [Fact]
     public void CallableButNotTriggerable_Holds()
     {
-        var decision = DepartureSequencer.Next(
-            ["Catering"],
-            Services(("Catering", GsxServiceState.Callable, false)),
-            _ => false,
-            flightPlanAvailable: true,
-            requireOfp: true);
+        var plan = Next(Services(("Catering", GsxServiceState.Callable, false)), order: ["Catering"]);
 
-        Assert.Equal(DepartureDecisionKind.Hold, decision.Kind);
+        Assert.Empty(plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Catering");
     }
 
     [Fact]
     public void EverythingCompletedOrSkipped_IsAllDone()
     {
-        var decision = DepartureSequencer.Next(
-            Order,
+        var plan = Next(
             Services(("Catering", GsxServiceState.Bypassed, false)),
-            id => id is "Refueling" or "Boarding",
-            flightPlanAvailable: true,
-            requireOfp: true);
+            completed: id => id is "Refueling" or "Boarding");
 
-        Assert.Equal(DepartureDecisionKind.AllDone, decision.Kind);
+        Assert.True(plan.AllDone);
+    }
+
+    [Fact]
+    public void InProgressService_IsNotAllDone()
+    {
+        var plan = Next(
+            Services(("Boarding", GsxServiceState.Active, false)),
+            completed: id => id is "Refueling" or "Catering");
+
+        Assert.False(plan.AllDone);
     }
 }
-

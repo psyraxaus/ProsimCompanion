@@ -37,10 +37,13 @@ public sealed class GsxAutomationService : IDisposable
     private readonly IDataRefSubscription _fmsDestination;
     private readonly Timer _pumpTimer;
     private readonly SemaphoreSlim _pumpLock = new(1, 1);
+    private readonly Dictionary<string, string> _lastReasonByAction = new(StringComparer.Ordinal);
     private volatile bool _departureStarted;
     private volatile bool _departureComplete;
-    private string? _lastDecisionSummary;
     private string? _autoSelectArmedKey;
+    private DateTimeOffset _lastImportAttempt = DateTimeOffset.MinValue;
+
+    private readonly ISimbriefImporter _simbrief;
 
     public GsxAutomationService(
         IGsxRemoteApi api,
@@ -49,6 +52,7 @@ public sealed class GsxAutomationService : IDisposable
         Sync.GsxGroundPrepCoordinator groundPrep,
         FlightStateEngine flightState,
         IProsimDataRefs prosim,
+        ISimbriefImporter simbrief,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         JsonlEventLog eventLog,
@@ -58,7 +62,9 @@ public sealed class GsxAutomationService : IDisposable
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(gateSelection);
         ArgumentNullException.ThrowIfNull(groundPrep);
+        ArgumentNullException.ThrowIfNull(simbrief);
         ArgumentNullException.ThrowIfNull(flightState);
+        _simbrief = simbrief;
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -206,13 +212,18 @@ public sealed class GsxAutomationService : IDisposable
             }
 
             // Flight plan = SimBrief OFP imported into the EFB, OR a plan in the MCDU (origin +
-            // destination set) — the SimBrief auto-fetch arrives with Phase 3; until then the
-            // MCDU plan is the operative signal (owner-confirmed workflow, 2026-08-02).
+            // destination set). When neither exists, the SimBrief importer is invoked (60 s
+            // cooldown) — the predecessors' aircraft-loading mechanism, which also supplies the
+            // booked seat map and planned fuel/cargo.
             var ofpImported = _ofpImported.GetValue(false);
             var fmsOrigin = _fmsOrigin.GetValue<string?>(null);
             var fmsDestination = _fmsDestination.GetValue<string?>(null);
             var flightPlanAvailable = ofpImported
                 || (!string.IsNullOrWhiteSpace(fmsOrigin) && !string.IsNullOrWhiteSpace(fmsDestination));
+            if (!ofpImported && options.RequireOfpBeforeDeparture)
+            {
+                TryStartSimbriefImport();
+            }
             if (!flightPlanAvailable && options.RequireOfpBeforeDeparture)
             {
                 // Diagnostic (owner report: detection did not fire): show the raw values.
@@ -221,35 +232,37 @@ public sealed class GsxAutomationService : IDisposable
                     $"none detected — simbriefImported={ofpImported}, fmsOrigin='{fmsOrigin ?? ""}', fmsDestination='{fmsDestination ?? ""}'");
             }
 
-            var decision = DepartureSequencer.Next(
+            var plan = DepartureSequencer.Next(
                 options.DepartureServiceOrder,
                 _api.Mirror.Services,
                 _lifecycle.IsCompleted,
                 flightPlanAvailable,
-                options.RequireOfpBeforeDeparture);
+                options.RequireOfpBeforeDeparture,
+                options.ConcurrentServices,
+                options.BoardingAfter);
 
-            foreach (var (serviceId, reason) in decision.Skipped)
+            foreach (var (serviceId, reason) in plan.Skipped)
             {
                 RecordDecisionOnce($"skip {serviceId}", reason);
             }
 
-            switch (decision.Kind)
+            foreach (var (serviceId, reason) in plan.Holds)
             {
-                case DepartureDecisionKind.Trigger:
-                    RecordDecision($"trigger {decision.ServiceId}", decision.Reason);
-                    _lifecycle.MarkCalled(decision.ServiceId!);
-                    _ = TriggerServiceAsync(decision.ServiceId!);
-                    break;
+                RecordDecisionOnce($"hold {serviceId}", reason);
+            }
 
-                case DepartureDecisionKind.Hold:
-                    RecordDecisionOnce($"hold {decision.ServiceId}", decision.Reason);
-                    break;
+            foreach (var serviceId in plan.Trigger)
+            {
+                RecordDecision($"trigger {serviceId}", options.ConcurrentServices ? "callable (concurrent mode)" : "next in departure order");
+                _lifecycle.MarkCalled(serviceId);
+                _ = TriggerServiceAsync(serviceId);
+            }
 
-                case DepartureDecisionKind.AllDone:
-                    _departureComplete = true;
-                    RecordDecision("departure sequence", decision.Reason);
-                    _eventLog.Record("gsx-departure-complete");
-                    break;
+            if (plan.AllDone)
+            {
+                _departureComplete = true;
+                RecordDecision("departure sequence", "all departure services completed or skipped");
+                _eventLog.Record("gsx-departure-complete");
             }
         }
         catch (Exception ex)
@@ -331,22 +344,57 @@ public sealed class GsxAutomationService : IDisposable
         }
     }
 
+    /// <summary>Fires the SimBrief import in the background with a 60 s cooldown; the importer
+    /// itself decision-logs its progress, and a success re-pumps the sequencer.</summary>
+    private void TryStartSimbriefImport()
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastImportAttempt < TimeSpan.FromSeconds(60))
+        {
+            return;
+        }
+        _lastImportAttempt = now;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var outcome = await _simbrief.TryImportAsync().ConfigureAwait(false);
+                if (outcome == SimbriefImportOutcome.Imported)
+                {
+                    Pump();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "SimBrief import attempt failed");
+            }
+        });
+    }
+
     private void RecordDecision(string action, string reason)
     {
-        _lastDecisionSummary = $"{action}|{reason}";
+        lock (_lastReasonByAction)
+        {
+            _lastReasonByAction[action] = reason;
+        }
         _logger.LogInformation("GSX automation: {Action} — {Reason}", action, reason);
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, action, reason));
         _eventLog.Record("gsx-decision", new { action, reason });
     }
 
-    /// <summary>Deduplicated variant for steady-state holds/skips: records only when the
-    /// (action, reason) pair changes, so a stable hold does not flood the log.</summary>
+    /// <summary>Deduplicated per action: records only when that action's reason changes, so a
+    /// stable hold never floods the log (smoke-test find: a single shared last-summary let
+    /// alternating actions defeat the dedupe).</summary>
     private void RecordDecisionOnce(string action, string reason)
     {
-        var summary = $"{action}|{reason}";
-        if (string.Equals(summary, _lastDecisionSummary, StringComparison.Ordinal))
+        lock (_lastReasonByAction)
         {
-            return;
+            if (_lastReasonByAction.TryGetValue(action, out var last)
+                && string.Equals(last, reason, StringComparison.Ordinal))
+            {
+                return;
+            }
         }
         RecordDecision(action, reason);
     }

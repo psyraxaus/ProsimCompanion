@@ -1,4 +1,4 @@
-namespace ProsimCompanion.Gsx.Sync;
+namespace ProsimCompanion.Core.Aircraft;
 
 /// <summary>
 /// Pure seat-map operations for progressive boarding (the predecessors' proven model): the
@@ -7,7 +7,7 @@ namespace ProsimCompanion.Gsx.Sync;
 /// boarded map is written back to <c>aircraft.passengers.seatOccupation.string</c>, from which
 /// ProSim itself derives zone loads and CG.
 /// </summary>
-public static class GsxSeatMap
+public static class SeatMap
 {
     /// <summary>Parses a comma-separated "true,false,…" seat string; empty/null → empty map.</summary>
     public static bool[] Parse(string? seatString)
@@ -31,6 +31,30 @@ public static class GsxSeatMap
     {
         ArgumentNullException.ThrowIfNull(map);
         return string.Join(',', map.Select(seat => seat ? "true" : "false"));
+    }
+
+    /// <summary>
+    /// Synthesizes a booked map when no OFP-derived one exists: passengers spread across the
+    /// zones capacity-proportionally (equal load factor front-to-back — the CG-realistic
+    /// distribution), filling each zone's forward seats first. Seat indices run forward → aft,
+    /// sliced by zone capacity.
+    /// </summary>
+    public static bool[] SynthesizeBooked(int paxCount, IReadOnlyList<int> zoneCapacities)
+    {
+        ArgumentNullException.ThrowIfNull(zoneCapacities);
+
+        var perZone = LoadMath.DistributePax(paxCount, zoneCapacities);
+        var map = new bool[zoneCapacities.Sum()];
+        var offset = 0;
+        for (var zone = 0; zone < zoneCapacities.Count; zone++)
+        {
+            for (var i = 0; i < perZone[zone]; i++)
+            {
+                map[offset + i] = true;
+            }
+            offset += zoneCapacities[zone];
+        }
+        return map;
     }
 
     /// <summary>
@@ -63,3 +87,4 @@ public static class GsxSeatMap
         return seated;
     }
 }
+

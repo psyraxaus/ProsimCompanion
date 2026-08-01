@@ -22,6 +22,7 @@ public static class ProsimServiceCollectionExtensions
         services.AddSingleton<ProsimDataRefService>();
         services.AddSingleton<IProsimDataRefs>(provider => provider.GetRequiredService<ProsimDataRefService>());
         services.AddSingleton<IProsimGateway, ProsimGatewayClient>();
+        services.AddSingleton<ISimbriefImporter, Simbrief.SimbriefImportService>();
         services.AddSingleton<IFlightDataSource, ProsimFlightDataSource>();
         services.AddHostedService<ProsimConnectionService>();
 

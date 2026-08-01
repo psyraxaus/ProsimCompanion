@@ -34,6 +34,9 @@ public static class ProsimWriteGate
         // Boarding state (EFB UI tracks it; double "efb." is the real path)
         "efb.efb.boardingStatus",
 
+        // SimBrief import flag (written by the OFP importer)
+        "efb.simbriefPlanImported",
+
         // Planning / pax
         "efb.plannedfuel",
         "efb.plannedCargoKg",

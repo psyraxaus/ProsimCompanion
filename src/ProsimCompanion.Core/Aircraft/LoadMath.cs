@@ -1,7 +1,8 @@
-namespace ProsimCompanion.Gsx.Sync;
+namespace ProsimCompanion.Core.Aircraft;
 
-/// <summary>Pure arithmetic for the ProSim sync modules — fully unit-tested.</summary>
-public static class GsxSyncMath
+/// <summary>Pure load/fuel arithmetic shared by the GSX sync modules and the SimBrief
+/// importer — fully unit-tested.</summary>
+public static class LoadMath
 {
     /// <summary>
     /// Distributes boarded passengers across zones proportionally to zone capacity using the

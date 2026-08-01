@@ -148,19 +148,52 @@ public sealed class GsxBoardingSync : IDisposable
         _boardingActive = true;
         _lastWrittenBoarded = -1;
         _lastWrittenCargoPct = -1;
+        _seatMapMode = false;
+        _plannedMap = [];
+        _boardedMap = [];
 
-        // Seat-map mode: fill the booked seats progressively so people actually appear in
-        // their seats (the predecessors' model). Zone fallback only without a booked map.
-        _plannedMap = GsxSeatMap.Parse(_bookedSeatString.GetValue<string?>(null));
-        _boardedMap = new bool[_plannedMap.Length];
-        _seatMapMode = _plannedMap.Any(seat => seat);
-
-        RecordDecision(
-            "boarding sync",
-            _seatMapMode
-                ? $"activated — seat-map mode, {_plannedMap.Count(s => s)} booked seats, GSX planned {_plannedTotalLvar.GetValue(0.0):F0}"
-                : $"activated — no booked seat map, zone-fallback mode, GSX planned {_plannedTotalLvar.GetValue(0.0):F0}");
+        RecordDecision("boarding sync", $"activated — GSX planned {_plannedTotalLvar.GetValue(0.0):F0} pax");
         _ = _writer.WriteAsync(ProsimDataRefNames.EfbBoardingStatus, "inProg");
+    }
+
+    /// <summary>
+    /// Establishes the planned seat map: the OFP-derived booked string when present, otherwise a
+    /// synthesized capacity-proportional map from GSX's planned count (written back to the
+    /// booked dataref so ProSim's manifest agrees). Zone-amount writes are gone for good — those
+    /// datarefs are read-only (owner-verified CanWrite=False); the seat-occupation string is the
+    /// only real loading path, exactly as the predecessor did it.
+    /// </summary>
+    private async Task<bool> EnsureMapsAsync()
+    {
+        if (_seatMapMode)
+        {
+            return true;
+        }
+
+        var booked = SeatMap.Parse(_bookedSeatString.GetValue<string?>(null));
+        if (booked.Any(seat => seat))
+        {
+            _plannedMap = booked;
+            _boardedMap = new bool[booked.Length];
+            _seatMapMode = true;
+            RecordDecision("boarding sync", $"seat-map mode — {booked.Count(s => s)} booked seats from the EFB manifest");
+            return true;
+        }
+
+        var planned = (int)_plannedTotalLvar.GetValue(0.0);
+        var capacities = _zoneCapacities.Select(zone => zone.GetValue(0)).ToArray();
+        if (planned <= 0 || capacities.Sum() <= 0)
+        {
+            RecordDecision("boarding sync", "waiting for pax data (no booked map, GSX planned count/zone capacities not ready)");
+            return false;
+        }
+
+        _plannedMap = SeatMap.SynthesizeBooked(planned, capacities);
+        _boardedMap = new bool[_plannedMap.Length];
+        _seatMapMode = true;
+        RecordDecision("boarding sync", $"seat-map mode — synthesized {planned} booked seats (capacity-proportional; no OFP manifest)");
+        _ = await _writer.WriteAsync(ProsimDataRefNames.PaxBookedString, SeatMap.Build(_plannedMap)).ConfigureAwait(false);
+        return true;
     }
 
     private async Task TickAsync()
@@ -175,7 +208,7 @@ public sealed class GsxBoardingSync : IDisposable
             if (_boardingActive && Enabled)
             {
                 var boarded = (int)_boardedLvar.GetValue(0.0);
-                if (boarded != _lastWrittenBoarded && boarded >= 0)
+                if (boarded != _lastWrittenBoarded && boarded >= 0 && await EnsureMapsAsync().ConfigureAwait(false))
                 {
                     await WriteBoardedAsync(boarded).ConfigureAwait(false);
                 }
@@ -213,7 +246,10 @@ public sealed class GsxBoardingSync : IDisposable
     private async Task FinalizeBoardingAsync()
     {
         var planned = (int)_plannedTotalLvar.GetValue(0.0);
-        await WriteBoardedAsync(Math.Max(planned, _lastWrittenBoarded)).ConfigureAwait(false);
+        if (await EnsureMapsAsync().ConfigureAwait(false))
+        {
+            await WriteBoardedAsync(Math.Max(planned, _lastWrittenBoarded)).ConfigureAwait(false);
+        }
         await WriteCargoAsync(100).ConfigureAwait(false);
         await _writer.WriteAsync(ProsimDataRefNames.EfbBoardingStatus, "completed").ConfigureAwait(false);
         RecordDecision("boarding sync", $"completed — reconciled at {planned} pax, cargo 100%");
@@ -221,47 +257,22 @@ public sealed class GsxBoardingSync : IDisposable
 
     private async Task WriteBoardedAsync(int boardedCount)
     {
-        if (_seatMapMode)
+        var seated = SeatMap.FillBoarded(_plannedMap, _boardedMap, boardedCount);
+        if (seated > 0 || boardedCount != _lastWrittenBoarded)
         {
-            var seated = GsxSeatMap.FillBoarded(_plannedMap, _boardedMap, boardedCount);
-            if (seated > 0 || boardedCount != _lastWrittenBoarded)
+            var ok = await _writer.WriteAsync(
+                ProsimDataRefNames.PaxSeatOccupationString,
+                SeatMap.Build(_boardedMap)).ConfigureAwait(false);
+            if (ok)
             {
-                var ok = await _writer.WriteAsync(
-                    ProsimDataRefNames.PaxSeatOccupationString,
-                    GsxSeatMap.Build(_boardedMap)).ConfigureAwait(false);
-                if (ok)
-                {
-                    _lastWrittenBoarded = boardedCount;
-                }
-                _logger.LogDebug(
-                    "Boarding: {Boarded} aboard, +{Seated} seated this update (written {Ok})",
-                    boardedCount,
-                    seated,
-                    ok);
+                _lastWrittenBoarded = boardedCount;
             }
-            return;
+            _logger.LogDebug(
+                "Boarding: {Boarded} aboard, +{Seated} seated this update (written {Ok})",
+                boardedCount,
+                seated,
+                ok);
         }
-
-        // Zone fallback: capacity-proportional distribution (equal load factor front-to-back).
-        var capacities = _zoneCapacities.Select(zone => zone.GetValue(0)).ToArray();
-        if (capacities.Sum() <= 0)
-        {
-            RecordDecision("boarding sync", "zone capacities not available yet — holding pax writes");
-            return;
-        }
-
-        var distribution = GsxSyncMath.DistributePax(boardedCount, capacities);
-        var zonesOk = await _writer.WriteAsync(ProsimDataRefNames.PaxZone1Amount, distribution[0]).ConfigureAwait(false)
-            & await _writer.WriteAsync(ProsimDataRefNames.PaxZone2Amount, distribution[1]).ConfigureAwait(false)
-            & await _writer.WriteAsync(ProsimDataRefNames.PaxZone3Amount, distribution[2]).ConfigureAwait(false)
-            & await _writer.WriteAsync(ProsimDataRefNames.PaxZone4Amount, distribution[3]).ConfigureAwait(false);
-        if (zonesOk)
-        {
-            _lastWrittenBoarded = boardedCount;
-        }
-        _logger.LogDebug(
-            "Boarding (zone fallback): {Pax} pax -> [{Z1}, {Z2}, {Z3}, {Z4}] (written {Ok})",
-            boardedCount, distribution[0], distribution[1], distribution[2], distribution[3], zonesOk);
     }
 
     private async Task WriteCargoAsync(double percent)
@@ -273,7 +284,7 @@ public sealed class GsxBoardingSync : IDisposable
         }
 
         var loaded = planned * Math.Clamp(percent, 0, 100) / 100.0;
-        var (forward, aft) = GsxSyncMath.SplitCargo(
+        var (forward, aft) = LoadMath.SplitCargo(
             loaded,
             _cargoFwdCapacity.GetValue(0.0),
             _cargoAftCapacity.GetValue(0.0));
@@ -292,3 +303,5 @@ public sealed class GsxBoardingSync : IDisposable
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, action, reason));
     }
 }
+
+
