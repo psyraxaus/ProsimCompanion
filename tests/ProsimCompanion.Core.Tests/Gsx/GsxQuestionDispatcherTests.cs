@@ -4,9 +4,11 @@ using Xunit;
 
 namespace ProsimCompanion.Core.Tests.Gsx;
 
-public sealed class GsxQuestionDispatcherTests
+public sealed class GsxQuestionDispatcherTests : IDisposable
 {
     private readonly GsxQuestionDispatcher _dispatcher = new(NullLogger<GsxQuestionDispatcher>.Instance);
+
+    public void Dispose() => _dispatcher.Dispose();
 
     [Fact]
     public async Task RisingEdge_DispatchesOncePerTitleAppearance()
