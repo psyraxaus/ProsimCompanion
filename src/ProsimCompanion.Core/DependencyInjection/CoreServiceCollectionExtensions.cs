@@ -34,6 +34,7 @@ public static class CoreServiceCollectionExtensions
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         services.AddSingleton<ConnectionStatusStore>();
+        services.AddSingleton<GsxDiagnosticsStore>();
 
         services.AddSingleton(provider => new JsonlEventLog(
             Path.Combine(

@@ -1,0 +1,112 @@
+@page "/gsx"
+@using ProsimCompanion.Core.State
+@implements IDisposable
+@inject GsxDiagnosticsStore Diagnostics
+
+<h1>GSX diagnostics</h1>
+
+<p>
+    Readiness: <span class="badge @ReadinessClass(_view.Readiness)">@_view.Readiness</span>
+    &nbsp;·&nbsp; Capabilities: @(_view.Capabilities.Count == 0 ? "—" : string.Join(", ", _view.Capabilities))
+</p>
+<p>
+    Airport: <strong>@(_view.AirportIcao ?? "—")</strong>
+    &nbsp;·&nbsp; Gate context: <strong>@(_view.GateContextKey ?? "—")</strong>
+    &nbsp;·&nbsp; Session: <code>@(_view.StartupSid ?? "—")</code>
+</p>
+
+<h2>Services</h2>
+@if (_view.Services.Count == 0)
+{
+    <p class="hint">No services mirrored yet (GSX not connected, or no aircraft/gate context).</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Service</th><th>Wire state</th><th>Mapped</th><th>Triggerable</th><th>Progress</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var service in _view.Services.OrderBy(s => s.Id))
+            {
+                <tr>
+                    <td>@service.DisplayName</td>
+                    <td><code>@(service.SemanticState ?? "—")</code>@(service.Waiting ? " (waiting)" : "")</td>
+                    <td>@service.MappedState</td>
+                    <td>@(service.CanTrigger ? "yes" : "no")</td>
+                    <td>@(service.ProgressText ?? "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h2>Menu</h2>
+@if (!_view.MenuShown)
+{
+    <p class="hint">No menu shown (menuShown = false).</p>
+}
+else
+{
+    <p><strong>@_view.MenuTitle</strong></p>
+    <ol start="0">
+        @foreach (var entry in _view.MenuEntries)
+        {
+            <li><code>@entry</code></li>
+        }
+    </ol>
+}
+
+<h2>Recent commands</h2>
+@if (_view.RecentCommands.Count == 0)
+{
+    <p class="hint">No commands sent this session.</p>
+}
+else
+{
+    <table style="font-family:Consolas, monospace; font-size:0.85rem;">
+        <thead>
+            <tr><th>Time</th><th>Verb</th><th>Args</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var command in _view.RecentCommands)
+            {
+                <tr>
+                    <td style="white-space:nowrap;">@command.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</td>
+                    <td>@command.Verb</td>
+                    <td>@command.Args</td>
+                    <td><span class="badge @(command.Ok ? "connected" : "disconnected")">@command.Code</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<p class="hint">
+    Full wire frames are captured when <code>logging.wireTrace</code> is enabled — see
+    <code>ProsimCompanion-wire-*.log</code> (CMTrace format) next to the main log.
+</p>
+
+@code {
+    private GsxDiagnosticsSnapshot _view = GsxDiagnosticsSnapshot.Empty;
+    private Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        _view = Diagnostics.Snapshot();
+        _timer = new Timer(_ => _ = InvokeAsync(() =>
+        {
+            _view = Diagnostics.Snapshot();
+            StateHasChanged();
+        }), null, TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(500));
+    }
+
+    public void Dispose() => _timer?.Dispose();
+
+    private static string ReadinessClass(string readiness) => readiness switch
+    {
+        "Ready" => "connected",
+        "ConnectedGsxNotRunning" => "connecting",
+        _ => "disconnected",
+    };
+}

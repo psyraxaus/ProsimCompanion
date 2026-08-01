@@ -76,6 +76,13 @@ public sealed class GsxRemoteApiClient : BackgroundService, IGsxRemoteApi
     /// <summary>Raised on readiness transitions, on the receive thread.</summary>
     public event Action<GsxReadiness>? ReadinessChanged;
 
+    /// <summary>Raised after every command completes (server or synthetic result) — feeds the
+    /// diagnostics page's recent-commands view.</summary>
+    public event Action<GsxCommandView>? CommandCompleted;
+
+    /// <summary>Capability tokens from the current session's hello.</summary>
+    public IReadOnlyCollection<string> Capabilities => _capabilities;
+
     /// <summary>True when the hello advertised the capability (case-insensitive).</summary>
     public bool HasCapability(string token) => _capabilities.Contains(token);
 
@@ -87,16 +94,17 @@ public sealed class GsxRemoteApiClient : BackgroundService, IGsxRemoteApi
     public async Task<GsxCommandResult> SendCommandAsync(string verb, JsonObject? args, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(verb);
+        var argsText = args?.ToJsonString() ?? "";
 
         var socket = _socket;
         if (socket is null || socket.State != WebSocketState.Open)
         {
-            return GsxCommandResult.Synthetic("not_connected");
+            return Complete(verb, argsText, GsxCommandResult.Synthetic("not_connected"));
         }
 
         if (Readiness != GsxReadiness.Ready)
         {
-            return GsxCommandResult.Synthetic("gsx_not_running");
+            return Complete(verb, argsText, GsxCommandResult.Synthetic("gsx_not_running"));
         }
 
         var id = $"{VerbPrefix(verb)}-{Interlocked.Increment(ref _commandCounter)}";
@@ -112,20 +120,35 @@ public sealed class GsxRemoteApiClient : BackgroundService, IGsxRemoteApi
         {
             _pending.TryRemove(id, out _);
             _logger.LogWarning("Sending {Verb} failed: {Message}", verb, ex.Message);
-            return GsxCommandResult.Synthetic("not_connected");
+            return Complete(verb, argsText, GsxCommandResult.Synthetic("not_connected"));
         }
 
         try
         {
             var timeout = TimeSpan.FromMilliseconds(_options.CurrentValue.CommandTimeoutMs);
-            return await waiter.Task.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+            var result = await waiter.Task.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+            return Complete(verb, argsText, result);
         }
         catch (TimeoutException)
         {
             _pending.TryRemove(id, out _);
             _logger.LogWarning("Command {Verb} ({Id}) timed out", verb, id);
-            return GsxCommandResult.Synthetic("timeout");
+            return Complete(verb, argsText, GsxCommandResult.Synthetic("timeout"));
         }
+    }
+
+    /// <summary>One compact CMTrace-friendly summary line per command + diagnostics feed; the
+    /// wire trace carries the full frames.</summary>
+    private GsxCommandResult Complete(string verb, string argsText, GsxCommandResult result)
+    {
+        _logger.LogInformation(
+            "GSX command {Verb} {Args} -> {Outcome} ({Code})",
+            verb,
+            argsText,
+            result.Ok ? "ok" : "failed",
+            result.Code);
+        CommandCompleted?.Invoke(new GsxCommandView(DateTimeOffset.UtcNow, verb, argsText, result.Ok, result.Code));
+        return result;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

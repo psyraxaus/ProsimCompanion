@@ -16,6 +16,10 @@ public sealed class GsxStateMirror
     /// <summary>Raised after any state key is applied, with the key name (receive thread).</summary>
     public event Action<string>? Updated;
 
+    /// <summary>Raised for state keys this mirror does not consume (excluding the known
+    /// diagnostics-only "message" key) — first-flight telemetry for protocol additions.</summary>
+    public event Action<string>? UnknownKeySeen;
+
     /// <summary>Raised when startup.sid changes between two non-empty values — the Couatl engine
     /// restarted; all cached context (airport, gate, menus, prepared gate) is invalid.</summary>
     public event Action<string?, string?>? SidChanged;
@@ -69,8 +73,13 @@ public sealed class GsxStateMirror
             case "startup":
                 ApplyStartup(value as JsonObject);
                 break;
+            case "message":
+                // Known but diagnostics-only — deliberately not consumed.
+                return;
             default:
-                // Unknown keys (incl. "message" — diagnostics only) are ignored, additively.
+                // Unknown keys are ignored (protocol-1 additive rules) but surfaced for the
+                // first-flight log so protocol additions are noticed.
+                UnknownKeySeen?.Invoke(key);
                 return;
         }
 

@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Menu;
+using ProsimCompanion.Gsx.Protocol;
 using ProsimCompanion.Gsx.Services;
 
 namespace ProsimCompanion.Gsx;
@@ -18,26 +20,32 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
     private readonly GsxRemoteApiClient _client;
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxQuestionDispatcher _questions;
+    private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxBootstrapService> _logger;
+    private readonly HashSet<string> _reportedUnknownKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _reportedUnknownStates = new(StringComparer.OrdinalIgnoreCase);
     private Timer? _reconcileTimer;
 
     public GsxBootstrapService(
         GsxRemoteApiClient client,
         GsxServiceLifecycleTracker lifecycle,
         GsxQuestionDispatcher questions,
+        GsxDiagnosticsStore diagnostics,
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(questions);
+        ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
         _client = client;
         _lifecycle = lifecycle;
         _questions = questions;
+        _diagnostics = diagnostics;
         _eventLog = eventLog;
         _logger = logger;
     }
@@ -46,6 +54,9 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
     {
         _client.Mirror.Updated += OnMirrorUpdated;
         _client.Mirror.SidChanged += OnSidChanged;
+        _client.Mirror.UnknownKeySeen += OnUnknownKey;
+        _client.ReadinessChanged += OnReadinessChanged;
+        _client.CommandCompleted += _diagnostics.RecordCommand;
         _lifecycle.ServiceEvent += OnServiceEvent;
 
         _reconcileTimer = new Timer(
@@ -61,6 +72,9 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
     {
         _client.Mirror.Updated -= OnMirrorUpdated;
         _client.Mirror.SidChanged -= OnSidChanged;
+        _client.Mirror.UnknownKeySeen -= OnUnknownKey;
+        _client.ReadinessChanged -= OnReadinessChanged;
+        _client.CommandCompleted -= _diagnostics.RecordCommand;
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _reconcileTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         return Task.CompletedTask;
@@ -73,12 +87,83 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         if (string.Equals(key, "services", StringComparison.OrdinalIgnoreCase))
         {
             _lifecycle.Process(_client.Mirror.Services);
+            ReportUnknownSemanticStates();
         }
         else if (key is "menu" or "menuShown")
         {
             // Fire-and-forget is safe: the dispatcher contains all its own failures.
             _ = _questions.OnMenuUpdatedAsync(_client.Mirror.MenuShown, _client.Mirror.Menu?.Title);
         }
+
+        PublishDiagnostics();
+    }
+
+    private void OnReadinessChanged(GsxReadiness readiness)
+    {
+        _eventLog.Record("gsx-readiness", new { readiness = readiness.ToString(), capabilities = _client.Capabilities });
+        PublishDiagnostics();
+    }
+
+    /// <summary>First-flight telemetry: a state key the mirror does not consume, reported once
+    /// per key so a protocol addition is noticed in the smoke-test log.</summary>
+    private void OnUnknownKey(string key)
+    {
+        lock (_reportedUnknownKeys)
+        {
+            if (!_reportedUnknownKeys.Add(key))
+            {
+                return;
+            }
+        }
+        _logger.LogWarning("GSX state model carries key '{Key}' this client does not consume — protocol addition?", key);
+    }
+
+    /// <summary>First-flight telemetry: semantic state strings outside the documented set,
+    /// reported once per value.</summary>
+    private void ReportUnknownSemanticStates()
+    {
+        foreach (var service in _client.Mirror.Services.Values)
+        {
+            if (service.State != GsxServiceState.Unknown || string.IsNullOrEmpty(service.SemanticState))
+            {
+                continue;
+            }
+
+            lock (_reportedUnknownStates)
+            {
+                if (!_reportedUnknownStates.Add(service.SemanticState))
+                {
+                    continue;
+                }
+            }
+            _logger.LogWarning(
+                "GSX service {Service} reports undocumented semantic state '{State}'",
+                service.Id,
+                service.SemanticState);
+        }
+    }
+
+    private void PublishDiagnostics()
+    {
+        var mirror = _client.Mirror;
+        _diagnostics.Update(new GsxDiagnosticsSnapshot(
+            _client.Readiness.ToString(),
+            [.. _client.Capabilities],
+            mirror.AirportIcao,
+            mirror.GateContextKey,
+            mirror.StartupSid,
+            mirror.MenuShown,
+            mirror.Menu?.Title,
+            mirror.Menu?.Entries ?? [],
+            [.. mirror.Services.Values.Select(service => new GsxServiceView(
+                service.Id,
+                service.DisplayName,
+                service.SemanticState,
+                service.State.ToString(),
+                service.CanTrigger,
+                service.Waiting,
+                service.ProgressText))],
+            []));
     }
 
     private void OnSidChanged(string? oldSid, string? newSid)
