@@ -36,13 +36,22 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         GsxQuestionCatalog questionCatalog,
         GsxDiagnosticsStore diagnostics,
         Gate.GsxGateSelectionService gateSelection,
-        Automation.GsxAutomationService automation, // injected to activate its event wiring
+        Automation.GsxAutomationService automation,
+        // The sync modules are injected purely to activate their event wiring at startup.
+        Sync.GsxRefuelSync refuelSync,
+        Sync.GsxBoardingSync boardingSync,
+        Sync.GsxGroundEquipmentService groundEquipment,
+        Sync.ProsimNativeGsxGuard nativeGsxGuard,
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
     {
         ArgumentNullException.ThrowIfNull(questionCatalog);
         ArgumentNullException.ThrowIfNull(gateSelection);
         ArgumentNullException.ThrowIfNull(automation);
+        ArgumentNullException.ThrowIfNull(refuelSync);
+        ArgumentNullException.ThrowIfNull(boardingSync);
+        ArgumentNullException.ThrowIfNull(groundEquipment);
+        ArgumentNullException.ThrowIfNull(nativeGsxGuard);
         ArgumentNullException.ThrowIfNull(client);
         _gateSelection = gateSelection;
         _automation = automation;

@@ -122,7 +122,36 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             var dataRef = GetOrCreateWriteRef(name);
-            dataRef.value = value;
+
+            // A freshly-registered ref reports Initializing until the server validates it —
+            // writing in that window throws InvalidData. Wait briefly for Valid.
+            var deadline = Environment.TickCount64 + 1500;
+            while (dataRef.DataRefState == DataRefStateEnum.Initializing
+                && Environment.TickCount64 < deadline)
+            {
+                Thread.Sleep(50);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            if (dataRef.DataRefState == DataRefStateEnum.Error)
+            {
+                throw new InvalidOperationException(
+                    $"ProSim does not recognize dataref '{name}' — write refused (server-side validation failed).");
+            }
+
+            try
+            {
+                dataRef.value = value;
+            }
+            catch (InvalidData) when (value is bool boolValue)
+            {
+                // Some refs are numerically typed even for on/off semantics; retry as 0/1
+                // (the predecessors wrote these via the gateway's writeBool, so the SDK-side
+                // type is not always boolean).
+                dataRef.value = boolValue ? 1 : 0;
+                _logger.LogDebug("Dataref {DataRef} rejected bool; coerced to int", name);
+            }
+
             _logger.LogDebug("Wrote {Value} to dataref {DataRef}", value, name);
         }, cancellationToken);
     }

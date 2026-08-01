@@ -83,10 +83,18 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       policies and constraints (hub/non-hub, turnaround-only)
 - [ ] Departure services: refuel (rate/time-target/panel methods), catering, water, lavatory,
       cleaning, boarding — configurable order and activation
-- [ ] Refuel sync (GSX hose ↔ ProSim fuel datarefs, FOB save/restore per registration)
-- [ ] Boarding/deboarding pax + cargo sync (seat-map reconciliation, no-show randomization)
-- [ ] Door automation + GSX door-message suppression
-- [ ] Jetway/stairs, GPU/PCA/chocks with safety interlocks; beacon-orchestrated pushback sequence
+- [x] Refuel sync — hose-gated fuel stepping toward the EFB target with pause/resume
+      (FOB save/restore per registration still to come)
+- [x] Boarding sync — capacity-proportional zone distribution (equal load factor front-to-back,
+      fixing the predecessors' front-fill CG shift) + cargo percent split by hold capacity.
+      Deboarding is observe-only until live counter semantics are confirmed; seat-map
+      reconciliation + no-show randomization follow later
+- [x] GPU/chocks/PCA placement at preparation + removal on the beacon edge (chocks interlocked
+      on park brake); ProSim native efb.gsx.* auto-flags disabled per connection (verified live
+      via the gateway write path)
+- [ ] Door automation + GSX door-message suppression (ProSim autoDoor left active meanwhile)
+- [ ] Jetway/stairs handling; full beacon-orchestrated pushback sequence with LVAR timing gates
+      (pushback currently relies on GSX's own flow + the confirm/question answers)
 - [ ] De-icing, operator selection, skip-questions, walkaround skip (MSFS2024)
 - [ ] Arrival: stable-parked detection, gate assignment (GSX `gate.select` retry ladder + SayIntentions)
 - [ ] OFP gating of departure services

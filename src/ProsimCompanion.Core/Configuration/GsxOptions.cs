@@ -73,4 +73,26 @@ public sealed class GsxOptions
     /// <summary>Arrival gate to arm automatically when reaching flight (e.g. "B12"); empty ⇒
     /// none (a gate can still be armed from the GSX diagnostics page).</summary>
     public string ArrivalGate { get; set; } = "";
+
+    // ---- ProSim sync modules ----
+
+    /// <summary>Step ProSim fuel toward the target while the GSX hose is connected.</summary>
+    public bool RefuelSyncEnabled { get; set; } = true;
+
+    /// <summary>Fuel transfer rate in kg per second.</summary>
+    public double RefuelRateKgPerSec { get; set; } = 25;
+
+    /// <summary>Mirror GSX boarding counters into ProSim pax zones and cargo holds.</summary>
+    public bool BoardingSyncEnabled { get; set; } = true;
+
+    /// <summary>Place GPU + chocks (+ PCA per <see cref="AutoPca"/>) at session start on the
+    /// ground, and remove them when the beacon comes on.</summary>
+    public bool AutoGroundEquipment { get; set; } = true;
+
+    /// <summary>Also place/remove preconditioned air with the ground equipment.</summary>
+    public bool AutoPca { get; set; }
+
+    /// <summary>Turn off ProSim's own GSX auto-integration flags (efb.gsx.*) while this
+    /// application drives GSX — prevents the two automations fighting each other.</summary>
+    public bool DisableProsimNativeGsx { get; set; } = true;
 }

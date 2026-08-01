@@ -25,6 +25,10 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Gate.GsxGateSelectionService>();
         services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
         services.AddSingleton<Automation.GsxAutomationService>();
+        services.AddSingleton<Sync.GsxRefuelSync>();
+        services.AddSingleton<Sync.GsxBoardingSync>();
+        services.AddSingleton<Sync.GsxGroundEquipmentService>();
+        services.AddSingleton<Sync.ProsimNativeGsxGuard>();
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

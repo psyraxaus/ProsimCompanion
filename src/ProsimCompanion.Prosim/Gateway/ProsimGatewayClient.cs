@@ -58,6 +58,9 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
     /// <inheritdoc />
     public async Task<bool> WriteDataRefAsync(string name, object value, CancellationToken cancellationToken = default)
     {
+        // Same write gate as the SDK path — the transport must never widen the write surface.
+        DataRefs.ProsimWriteGate.EnsureAllowed(name);
+
         var body = GraphQlMessages.BuildWriteMutation(name, value);
         _wire.Trace("Gateway", ">>", body);
         var response = await SendAsync(
