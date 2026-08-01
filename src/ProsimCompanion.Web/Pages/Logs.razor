@@ -1,7 +1,11 @@
 @page "/logs"
+@using Microsoft.Extensions.Options
+@using ProsimCompanion.Core.Configuration
 @using ProsimCompanion.Core.Logging
 @implements IDisposable
 @inject LogBufferStore Buffer
+@inject IOptionsMonitor<LoggingOptions> LoggingMonitor
+@inject JsonSettingsFile SettingsFile
 
 <h1>Logs</h1>
 
@@ -11,9 +15,30 @@
     live viewing in CMTrace.
 </p>
 
+<div style="border:1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius:8px; padding:0.8rem 1rem; margin-bottom:1rem;">
+    <strong>Capture</strong> — what gets recorded (applies live, no restart).
+    Current: <code>@LoggingMonitor.CurrentValue.DefaultLevel</code>,
+    wire trace <code>@(LoggingMonitor.CurrentValue.WireTrace ? "on" : "off")</code>
+    <div style="display:flex; gap:1.2rem; align-items:center; flex-wrap:wrap; margin-top:0.5rem;">
+        <label style="margin:0;">
+            Capture level
+            <select value="@LoggingMonitor.CurrentValue.DefaultLevel" @onchange="SetCaptureLevel" style="margin-left:0.4rem;">
+                <option>Verbose</option>
+                <option>Debug</option>
+                <option>Information</option>
+                <option>Warning</option>
+            </select>
+        </label>
+        <label style="margin:0;">
+            <input type="checkbox" checked="@LoggingMonitor.CurrentValue.WireTrace" @onchange="SetWireTrace" />
+            Wire trace (raw GSX/gateway frames)
+        </label>
+    </div>
+</div>
+
 <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-bottom:0.8rem;">
     <label style="margin:0;">
-        Min level
+        View filter (of captured entries)
         <select @bind="_minLevel" style="margin-left:0.4rem;">
             <option>Verbose</option>
             <option>Debug</option>
@@ -23,7 +48,7 @@
         </select>
     </label>
     <label style="margin:0;">
-        Filter
+        Text
         <input @bind="_filter" @bind:event="oninput" placeholder="text or source…" style="margin-left:0.4rem; width:220px;" />
     </label>
     <label style="margin:0;">
@@ -74,6 +99,25 @@
     private string _filter = "";
     private bool _paused;
     private Timer? _timer;
+
+    private void SetCaptureLevel(ChangeEventArgs e)
+    {
+        var level = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(level))
+        {
+            SettingsFile.Update(root =>
+                JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName)["defaultLevel"] = level);
+        }
+    }
+
+    private void SetWireTrace(ChangeEventArgs e)
+    {
+        if (e.Value is bool enabled)
+        {
+            SettingsFile.Update(root =>
+                JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName)["wireTrace"] = enabled);
+        }
+    }
 
     protected override void OnInitialized()
     {

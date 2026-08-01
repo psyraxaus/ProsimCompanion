@@ -35,18 +35,29 @@ public sealed class GsxStateMirror
         }
     }
 
+    private string? _topLevelAirportIcao;
+    private string? _handlerAirportIcao;
+    private string? _parkingName;
+    private string? _handlerGateKey;
+
     public GsxMenuInfo? Menu { get; private set; }
 
     /// <summary>Authoritative menu open/closed flag — trust this, never a client-side view.</summary>
     public bool MenuShown { get; private set; }
 
-    public string? AirportIcao { get; private set; }
+    /// <summary>Loaded airport ICAO. Live GSX 4 pushes it as the top-level <c>/airport</c> key
+    /// (smoke-test verified); the handlerData shape remains a fallback.</summary>
+    public string? AirportIcao => _topLevelAirportIcao ?? _handlerAirportIcao;
+
+    /// <summary>Airport display name from <c>/airport</c> (e.g. "Heathrow").</summary>
+    public string? AirportName { get; private set; }
 
     public IReadOnlyList<GsxParking> Parkings { get; private set; } = [];
 
-    /// <summary>Stable key for the loaded gate context, or null when none
-    /// (uiName ?? bglName ?? number ?? "loaded").</summary>
-    public string? GateContextKey { get; private set; }
+    /// <summary>Stable key for the loaded gate context, or null when none. Live GSX 4 pushes the
+    /// current parking as the top-level <c>/parking</c> string
+    /// (e.g. "Terminal 5B (531-548)|Stand 546R"); handlerData.gate remains a fallback.</summary>
+    public string? GateContextKey => _parkingName ?? _handlerGateKey;
 
     public string? StartupSid { get; private set; }
 
@@ -69,6 +80,14 @@ public sealed class GsxStateMirror
                 break;
             case "handlerdata":
                 ApplyHandlerData(value as JsonObject);
+                break;
+            case "airport":
+                var airport = value as JsonObject;
+                _topLevelAirportIcao = GsxFrame.ReadString(airport?["icao"]);
+                AirportName = GsxFrame.ReadString(airport?["name"]);
+                break;
+            case "parking":
+                _parkingName = GsxFrame.ReadString(value);
                 break;
             case "startup":
                 ApplyStartup(value as JsonObject);
@@ -155,14 +174,14 @@ public sealed class GsxStateMirror
     {
         if (handlerData is null)
         {
-            AirportIcao = null;
+            _handlerAirportIcao = null;
             Parkings = [];
-            GateContextKey = null;
+            _handlerGateKey = null;
             return;
         }
 
         var airport = handlerData["airport"] as JsonObject;
-        AirportIcao = GsxFrame.ReadString(airport?["icao"]);
+        _handlerAirportIcao = GsxFrame.ReadString(airport?["icao"]);
 
         var parkings = new List<GsxParking>();
         if (airport?["parkings"] is JsonArray parkingArray)
@@ -187,7 +206,7 @@ public sealed class GsxStateMirror
         Parkings = parkings;
 
         var gate = handlerData["gate"] as JsonObject;
-        GateContextKey = gate is null
+        _handlerGateKey = gate is null
             ? null
             : GsxFrame.ReadString(gate["uiName"])
                 ?? GsxFrame.ReadString(gate["bglName"])

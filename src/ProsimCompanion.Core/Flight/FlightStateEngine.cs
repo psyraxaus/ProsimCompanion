@@ -45,6 +45,9 @@ public sealed class FlightStateEngine : IDisposable
     /// <summary>The committed phase.</summary>
     public FlightPhase CurrentPhase { get; private set; } = FlightPhase.Unknown;
 
+    /// <summary>The most recent sample — diagnostics surface for the Status page.</summary>
+    public FlightDataSnapshot? LastSnapshot { get; private set; }
+
     /// <summary>Raised after a committed transition, on the timer thread.</summary>
     public event EventHandler<FlightPhaseChangedEventArgs>? PhaseChanged;
 
@@ -55,6 +58,7 @@ public sealed class FlightStateEngine : IDisposable
     public void ProcessTick(FlightDataSnapshot snapshot, DateTimeOffset nowUtc)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        LastSnapshot = snapshot;
 
         var target = FlightPhaseEvaluator.Evaluate(snapshot, CurrentPhase);
         if (target == CurrentPhase)

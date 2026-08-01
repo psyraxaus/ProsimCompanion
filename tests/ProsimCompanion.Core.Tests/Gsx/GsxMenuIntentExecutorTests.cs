@@ -168,6 +168,38 @@ public sealed class GsxMenuIntentExecutorTests
     }
 
     [Fact]
+    public async Task PositionalIntent_PicksTheFixedIndex()
+    {
+        ShowMenu("Select Position at Gate D57", "Position North", "Position South");
+        int? picked = null;
+        _api.OnCommand = (verb, args) =>
+        {
+            if (verb == "menu.pick")
+            {
+                picked = (int?)args?["index"];
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(false));
+            }
+            return new GsxCommandResult(true, "ok", null, null);
+        };
+
+        var result = await _executor.ExecuteAsync(Intent("Select Position at") with { EntryIndex = 1 });
+
+        Assert.Equal(GsxIntentOutcome.Success, result.Outcome);
+        Assert.Equal(1, picked);
+    }
+
+    [Fact]
+    public async Task PositionalIntent_IndexOutOfRange_ItemNotAvailable()
+    {
+        ShowMenu("Select Position at Gate D57", "Only entry");
+
+        var result = await _executor.ExecuteAsync(Intent("Select Position at") with { EntryIndex = 5 });
+
+        Assert.Equal(GsxIntentOutcome.ItemNotAvailable, result.Outcome);
+        Assert.DoesNotContain(_api.Commands, c => c.Verb == "menu.pick");
+    }
+
+    [Fact]
     public async Task NavigationOnlyIntent_SucceedsOnTitleMatch()
     {
         ShowMenu("Activate Services at Gate D57", "Refuel");

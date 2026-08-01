@@ -41,6 +41,8 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         Sync.GsxRefuelSync refuelSync,
         Sync.GsxBoardingSync boardingSync,
         Sync.GsxGroundEquipmentService groundEquipment,
+        Sync.GsxJetwayStairsService jetwayStairs,
+        Sync.GsxRepositionService reposition,
         Sync.ProsimNativeGsxGuard nativeGsxGuard,
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
@@ -51,6 +53,8 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         ArgumentNullException.ThrowIfNull(refuelSync);
         ArgumentNullException.ThrowIfNull(boardingSync);
         ArgumentNullException.ThrowIfNull(groundEquipment);
+        ArgumentNullException.ThrowIfNull(jetwayStairs);
+        ArgumentNullException.ThrowIfNull(reposition);
         ArgumentNullException.ThrowIfNull(nativeGsxGuard);
         ArgumentNullException.ThrowIfNull(client);
         _gateSelection = gateSelection;
@@ -126,6 +130,15 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         PublishDiagnostics();
     }
 
+    /// <summary>Keys confirmed present in live GSX 4 sessions (2026-08-02) that this client
+    /// deliberately does not consume — logged at Debug, not Warning.</summary>
+    private static readonly HashSet<string> KnownIgnoredKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "state", "stateText", "airline", "commandIcons", "commandIconsSvg", "simbrief",
+        "statusHtml", "settings", "search", "gateProperties", "operators", "receipt",
+        "billing", "prompts",
+    };
+
     /// <summary>First-flight telemetry: a state key the mirror does not consume, reported once
     /// per key so a protocol addition is noticed in the smoke-test log.</summary>
     private void OnUnknownKey(string key)
@@ -137,7 +150,15 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
                 return;
             }
         }
-        _logger.LogWarning("GSX state model carries key '{Key}' this client does not consume — protocol addition?", key);
+
+        if (KnownIgnoredKeys.Contains(key))
+        {
+            _logger.LogDebug("GSX state key '{Key}' present (known, deliberately unconsumed)", key);
+        }
+        else
+        {
+            _logger.LogWarning("GSX state model carries key '{Key}' this client does not consume — protocol addition?", key);
+        }
     }
 
     /// <summary>First-flight telemetry: semantic state strings outside the documented set,

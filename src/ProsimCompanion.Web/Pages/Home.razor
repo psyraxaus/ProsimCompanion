@@ -63,6 +63,31 @@ else
     feature pillar consumes. Shows “—” until ProSim connects and pushes a value.
 </p>
 
+<details style="margin-top:1rem;">
+    <summary style="cursor:pointer; font-weight:600;">Flight data diagnostics (raw snapshot)</summary>
+    @if (FlightState.LastSnapshot is not { } snap)
+    {
+        <p class="hint">No snapshot sampled yet.</p>
+    }
+    else
+    {
+        <table style="font-family:Consolas, monospace; font-size:0.85rem; margin-top:0.5rem;">
+            <tbody>
+                <tr><td>IsValid</td><td>@snap.IsValid</td><td>OnGround</td><td>@snap.OnGround</td></tr>
+                <tr><td>IAS kt</td><td>@snap.IndicatedAirspeedKt.ToString("F1")</td><td>GS kt</td><td>@snap.GroundSpeedKt.ToString("F1")</td></tr>
+                <tr><td>Alt ft</td><td>@snap.AltitudeFt.ToString("F0")</td><td>RA ft</td><td>@snap.RadioAltitudeFt.ToString("F0")</td></tr>
+                <tr><td>VS fpm</td><td>@snap.VerticalSpeedFpm.ToString("F0")</td><td>Powered</td><td>@snap.AircraftPowered</td></tr>
+                <tr><td>AnyEngineRunning</td><td>@snap.AnyEngineRunning</td><td>EngineStarting</td><td>@snap.EngineStarting</td></tr>
+                <tr><td>Engine1 state</td><td>@(snap.RawEngine1State ?? "—")</td><td>Engine2 state</td><td>@(snap.RawEngine2State ?? "—")</td></tr>
+                <tr><td>Max N1 %</td><td>@snap.MaxN1Percent.ToString("F1")</td><td>TakeoffThrustSet</td><td>@snap.TakeoffThrustSet</td></tr>
+                <tr><td>PushbackActive</td><td>@snap.PushbackActive</td><td>Raw pushback</td><td>@snap.RawPushbackState</td></tr>
+                <tr><td>ParkBrakeSet</td><td>@snap.ParkBrakeSet</td><td>GearDown</td><td>@snap.GearDown</td></tr>
+            </tbody>
+        </table>
+        <p class="hint">Raw values feeding the phase engine — for diagnosing phase misbehaviour.</p>
+    }
+</details>
+
 @code {
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _snapshot = [];
     private readonly List<Sample> _samples = [];

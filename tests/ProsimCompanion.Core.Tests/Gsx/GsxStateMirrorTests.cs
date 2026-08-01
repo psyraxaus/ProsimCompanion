@@ -98,6 +98,37 @@ public sealed class GsxStateMirrorTests
     }
 
     [Fact]
+    public void ApplyAirport_TopLevelKey_SetsIcaoAndName()
+    {
+        // Live GSX 4 pushes /airport top-level (smoke-test verified), not under handlerData.
+        _mirror.ApplyState("airport", JsonNode.Parse(
+            """{ "icao": "EGLL", "name": "Heathrow", "country": "United Kingdom" }"""));
+
+        Assert.Equal("EGLL", _mirror.AirportIcao);
+        Assert.Equal("Heathrow", _mirror.AirportName);
+    }
+
+    [Fact]
+    public void ApplyParking_TopLevelString_IsTheGateContextKey()
+    {
+        _mirror.ApplyState("parking", JsonNode.Parse("\"Terminal 5B (531-548)|Stand 546R\""));
+
+        Assert.Equal("Terminal 5B (531-548)|Stand 546R", _mirror.GateContextKey);
+
+        _mirror.ApplyState("parking", null);
+        Assert.Null(_mirror.GateContextKey);
+    }
+
+    [Fact]
+    public void Parking_TakesPrecedenceOverHandlerDataGate()
+    {
+        _mirror.ApplyState("handlerData", JsonNode.Parse("""{ "gate": { "uiName": "OldKey" } }"""));
+        _mirror.ApplyState("parking", JsonNode.Parse("\"Stand 12\""));
+
+        Assert.Equal("Stand 12", _mirror.GateContextKey);
+    }
+
+    [Fact]
     public void ApplyState_UnknownKey_IsIgnoredWithoutEvent()
     {
         var updates = 0;

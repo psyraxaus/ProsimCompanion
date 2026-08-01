@@ -72,10 +72,14 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             AircraftPowered = Get(DcBatteryBusPowered, false),
             AnyEngineRunning = anyRunning,
             EngineStarting = engine1 == EngineReadState.Starting || engine2 == EngineReadState.Starting,
-            PushbackActive = Get(Pushback, 0) != 0,
+            PushbackActive = Get(Pushback, 0) > 0,
             ParkBrakeSet = Get(ParkBrake, 0) != 0,
             GearDown = Get(GearDown, true),
             TakeoffThrustSet = anyRunning && maxN1 >= TakeoffThrustN1Threshold,
+            RawPushbackState = Get(Pushback, 0),
+            RawEngine1State = Get(Engine1State, ""),
+            RawEngine2State = Get(Engine2State, ""),
+            MaxN1Percent = maxN1,
         };
     }
 

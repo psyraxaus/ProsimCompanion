@@ -31,11 +31,42 @@ public sealed class FlightPhaseEvaluatorTests
         => Assert.Equal(FlightPhase.Preflight, FlightPhaseEvaluator.Evaluate(Ground(), FlightPhase.ColdAndDark));
 
     [Fact]
-    public void Pushback_IsPushbackAndStart()
+    public void Pushback_WithBrakeReleased_IsPushbackAndStart()
     {
-        var snapshot = Ground() with { PushbackActive = true };
+        var snapshot = Ground() with { PushbackActive = true, ParkBrakeSet = false };
 
         Assert.Equal(FlightPhase.PushbackAndStart, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Preflight));
+    }
+
+    [Fact]
+    public void PushbackFlag_WithBrakeSet_StaysPreflight()
+    {
+        // Smoke-test find: a noisy pushback flag on a parked aircraft must not fake a pushback.
+        var snapshot = Ground() with { PushbackActive = true };
+
+        Assert.Equal(FlightPhase.Preflight, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Preflight));
+    }
+
+    [Fact]
+    public void EngineStart_AtGateWithBrakeSet_IsPushbackAndStart()
+    {
+        var snapshot = Ground() with { EngineStarting = true };
+
+        Assert.Equal(FlightPhase.PushbackAndStart, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Preflight));
+    }
+
+    [Theory]
+    [InlineData(FlightPhase.Cruise)]
+    [InlineData(FlightPhase.InitialClimb)]
+    [InlineData(FlightPhase.Climb)]
+    public void SpawnRecovery_FlightPhaseOnGroundEnginesOffStationary_IsPreflight(FlightPhase current)
+    {
+        // Smoke-test find: ProSim reports airborne defaults while MSFS loads; once the aircraft
+        // materializes at the gate, the engine must recover to Preflight — never fall into
+        // pushback/rollout logic from a stale flight phase.
+        var snapshot = Ground() with { PushbackActive = true, ParkBrakeSet = false };
+
+        Assert.Equal(FlightPhase.Preflight, FlightPhaseEvaluator.Evaluate(snapshot, current));
     }
 
     [Fact]
@@ -184,7 +215,7 @@ public sealed class FlightPhaseEvaluatorTests
 
         Step(Ground(powered: false), FlightPhase.ColdAndDark);
         Step(Ground(), FlightPhase.Preflight);
-        Step(Ground() with { PushbackActive = true, EngineStarting = true }, FlightPhase.PushbackAndStart);
+        Step(Ground() with { PushbackActive = true, EngineStarting = true, ParkBrakeSet = false }, FlightPhase.PushbackAndStart);
         Step(Ground() with { AnyEngineRunning = true, GroundSpeedKt = 15, ParkBrakeSet = false }, FlightPhase.TaxiOut);
         Step(Ground() with { AnyEngineRunning = true, TakeoffThrustSet = true, ParkBrakeSet = false, IndicatedAirspeedKt = 80 }, FlightPhase.TakeoffRoll);
         Step(new FlightDataSnapshot { IsValid = true, OnGround = false, AircraftPowered = true, AnyEngineRunning = true, RadioAltitudeFt = 500, VerticalSpeedFpm = 2500 }, FlightPhase.InitialClimb);

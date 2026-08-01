@@ -103,7 +103,7 @@ public sealed class GsxMenuIntentExecutor
         }
 
         // Navigation-only intents are done once the target menu is up.
-        if (intent.EntryPattern is null)
+        if (intent.EntryPattern is null && intent.EntryIndex is null)
         {
             return new(GsxIntentOutcome.Success, "navigated");
         }
@@ -174,6 +174,22 @@ public sealed class GsxMenuIntentExecutor
 
     private static (bool Succeeded, int Index, GsxIntentResult? Result) Resolve(GsxMenuIntent intent, GsxMenuInfo menu)
     {
+        // Positional intent: bounds + disabled checks; TOCTOU still re-validates before pick.
+        if (intent.EntryPattern is null && intent.EntryIndex is { } fixedIndex)
+        {
+            if (fixedIndex < 0 || fixedIndex >= menu.Entries.Count)
+            {
+                return (false, -1, new(GsxIntentOutcome.ItemNotAvailable, $"index {fixedIndex} out of range on '{menu.Title}' ({menu.Entries.Count} entries)"));
+            }
+
+            if (fixedIndex < menu.Disabled.Count && menu.Disabled[fixedIndex])
+            {
+                return (false, -1, new(GsxIntentOutcome.ItemNotAvailable, $"entry '{menu.Entries[fixedIndex]}' is disabled"));
+            }
+
+            return (true, fixedIndex, null);
+        }
+
         var matches = new List<int>();
         for (var i = 0; i < menu.Entries.Count; i++)
         {

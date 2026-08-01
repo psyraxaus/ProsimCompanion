@@ -46,8 +46,12 @@ public sealed class GsxOptions
 
     public bool SkipFollowMe { get; set; } = true;
 
-    /// <summary>Answer "board crew"/"deboard crew" questions with yes.</summary>
+    /// <summary>Answer "board crew"/"deboard crew" questions automatically.</summary>
     public bool AnswerCrewQuestions { get; set; } = true;
+
+    /// <summary>GSX 4's crew menu offers "Nobody" | "Crew" | "Pilots" | "Both" (smoke-test
+    /// verified — it is no longer yes/no). This exact entry is picked.</summary>
+    public string CrewBoardingAnswer { get; set; } = "Both";
 
     /// <summary>Answer the "Do you want to request …" pushback confirmation with yes.</summary>
     public bool ConfirmPushbackRequest { get; set; } = true;
@@ -91,6 +95,13 @@ public sealed class GsxOptions
 
     /// <summary>Also place/remove preconditioned air with the ground equipment.</summary>
     public bool AutoPca { get; set; }
+
+    /// <summary>Operate the jetway (or call stairs at jetway-less gates) automatically once per
+    /// gate session, after checking they are not already connected.</summary>
+    public bool AutoConnectJetwayOrStairs { get; set; } = true;
+
+    /// <summary>Run GSX's "Reposition Aircraft" once at session start on the ground.</summary>
+    public bool AutoReposition { get; set; } = true;
 
     /// <summary>Turn off ProSim's own GSX auto-integration flags (efb.gsx.*) while this
     /// application drives GSX — prevents the two automations fighting each other.</summary>

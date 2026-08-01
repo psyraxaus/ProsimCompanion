@@ -23,7 +23,7 @@ public sealed class GsxBoardingSync : IDisposable
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(1);
 
-    private readonly IProsimDataRefs _prosim;
+    private readonly GsxProsimWriter _writer;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxBoardingSync> _logger;
@@ -48,6 +48,7 @@ public sealed class GsxBoardingSync : IDisposable
         GsxServiceLifecycleTracker lifecycle,
         IProsimDataRefs prosim,
         ISimVars simVars,
+        GsxProsimWriter writer,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxBoardingSync> logger)
@@ -55,11 +56,12 @@ public sealed class GsxBoardingSync : IDisposable
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _prosim = prosim;
+        _writer = writer;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -121,12 +123,7 @@ public sealed class GsxBoardingSync : IDisposable
                     _boardingActive = false;
                     // Final reconciliation: everyone aboard, all cargo loaded.
                     var total = (int)_boardingTotal.GetValue(0.0);
-                    if (total > 0)
-                    {
-                        WritePaxZones(total);
-                    }
-                    WriteCargo(100);
-                    RecordDecision("boarding sync", $"completed — reconciled at {total} pax, cargo 100%");
+                    _ = FinalizeBoardingAsync(total);
                     break;
             }
         }
@@ -145,7 +142,9 @@ public sealed class GsxBoardingSync : IDisposable
         }
     }
 
-    private void Tick()
+    private void Tick() => _ = TickAsync();
+
+    private async Task TickAsync()
     {
         if (Interlocked.Exchange(ref _ticking, 1) == 1)
         {
@@ -159,13 +158,13 @@ public sealed class GsxBoardingSync : IDisposable
                 var pax = (int)_numPax.GetValue(0.0);
                 if (pax != _lastWrittenPax && pax >= 0)
                 {
-                    WritePaxZones(pax);
+                    await WritePaxZonesAsync(pax).ConfigureAwait(false);
                 }
 
                 var cargoPct = _cargoPercent.GetValue(0.0);
                 if (Math.Abs(cargoPct - _lastWrittenCargoPct) >= 1)
                 {
-                    WriteCargo(cargoPct);
+                    await WriteCargoAsync(cargoPct).ConfigureAwait(false);
                 }
             }
 
@@ -192,7 +191,17 @@ public sealed class GsxBoardingSync : IDisposable
         }
     }
 
-    private void WritePaxZones(int totalPax)
+    private async Task FinalizeBoardingAsync(int total)
+    {
+        if (total > 0)
+        {
+            await WritePaxZonesAsync(total).ConfigureAwait(false);
+        }
+        await WriteCargoAsync(100).ConfigureAwait(false);
+        RecordDecision("boarding sync", $"completed — reconciled at {total} pax, cargo 100%");
+    }
+
+    private async Task WritePaxZonesAsync(int totalPax)
     {
         var capacities = _zoneCapacities.Select(zone => zone.GetValue(0)).ToArray();
         if (capacities.Sum() <= 0)
@@ -202,23 +211,28 @@ public sealed class GsxBoardingSync : IDisposable
         }
 
         // Capacity-proportional: every zone fills to the same load factor, keeping the CG
-        // representative for partial loads instead of front-filling.
+        // representative for partial loads instead of front-filling. Writes go via the gateway
+        // (predecessor-proven for pax datarefs) and every outcome is logged.
         var distribution = GsxSyncMath.DistributePax(totalPax, capacities);
-        _ = _prosim.WriteAsync(ProsimDataRefNames.PaxZone1Amount, distribution[0]);
-        _ = _prosim.WriteAsync(ProsimDataRefNames.PaxZone2Amount, distribution[1]);
-        _ = _prosim.WriteAsync(ProsimDataRefNames.PaxZone3Amount, distribution[2]);
-        _ = _prosim.WriteAsync(ProsimDataRefNames.PaxZone4Amount, distribution[3]);
-        _lastWrittenPax = totalPax;
+        var ok = await _writer.WriteAsync(ProsimDataRefNames.PaxZone1Amount, distribution[0]).ConfigureAwait(false)
+            & await _writer.WriteAsync(ProsimDataRefNames.PaxZone2Amount, distribution[1]).ConfigureAwait(false)
+            & await _writer.WriteAsync(ProsimDataRefNames.PaxZone3Amount, distribution[2]).ConfigureAwait(false)
+            & await _writer.WriteAsync(ProsimDataRefNames.PaxZone4Amount, distribution[3]).ConfigureAwait(false);
+        if (ok)
+        {
+            _lastWrittenPax = totalPax;
+        }
         _logger.LogDebug(
-            "Boarding: {Pax} pax -> zones [{Z1}, {Z2}, {Z3}, {Z4}]",
+            "Boarding: {Pax} pax -> zones [{Z1}, {Z2}, {Z3}, {Z4}] (written {Ok})",
             totalPax,
             distribution[0],
             distribution[1],
             distribution[2],
-            distribution[3]);
+            distribution[3],
+            ok);
     }
 
-    private void WriteCargo(double percent)
+    private async Task WriteCargoAsync(double percent)
     {
         var planned = _plannedCargo.GetValue(0.0);
         if (planned <= 0)
@@ -231,10 +245,13 @@ public sealed class GsxBoardingSync : IDisposable
             loaded,
             _cargoFwdCapacity.GetValue(0.0),
             _cargoAftCapacity.GetValue(0.0));
-        _ = _prosim.WriteAsync(ProsimDataRefNames.CargoForwardAmount, forward);
-        _ = _prosim.WriteAsync(ProsimDataRefNames.CargoAftAmount, aft);
-        _lastWrittenCargoPct = percent;
-        _logger.LogDebug("Boarding cargo {Percent}% -> fwd {Fwd:F0} kg, aft {Aft:F0} kg", percent, forward, aft);
+        var ok = await _writer.WriteAsync(ProsimDataRefNames.CargoForwardAmount, forward).ConfigureAwait(false)
+            & await _writer.WriteAsync(ProsimDataRefNames.CargoAftAmount, aft).ConfigureAwait(false);
+        if (ok)
+        {
+            _lastWrittenCargoPct = percent;
+        }
+        _logger.LogDebug("Boarding cargo {Percent}% -> fwd {Fwd:F0} kg, aft {Aft:F0} kg (written {Ok})", percent, forward, aft, ok);
     }
 
     private void RecordDecision(string action, string reason)

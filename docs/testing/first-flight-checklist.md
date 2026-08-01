@@ -15,6 +15,22 @@ time, and capture enough telemetry that anything wrong is diagnosable afterwards
 4. Open `http://localhost:5320` — Status page should show ProSim **and** SimConnect Connected,
    a real aircraft title, and a sensible flight phase (ColdAndDark/Preflight on the ground).
 
+## Round-2 changes (2026-08-02 fixes — what differs from the first smoke test)
+
+- Phase engine recovers to **Preflight** after spawn (no more stuck PushbackAndStart) — verify
+  on the Status page, and open *Flight data diagnostics* there to see the raw values.
+- **Reposition** runs automatically once at the gate (`gsx.autoReposition`, default on).
+- **Jetway/stairs** connect automatically per gate after a connected-state check
+  (`gsx.autoConnectJetwayOrStairs`, default on).
+- GPU/chocks placement is state-based now (works even if the app starts late).
+- Refuel targets **efb.plannedfuel** (the 2232 kg defuel bug is fixed); activation logs both
+  raw values.
+- Pax/cargo/ground-equipment writes go via the gateway and **every failure appears in the
+  decision log** ("write failed …").
+- Crew question answers with **Both** (`gsx.crewBoardingAnswer`).
+- Capture level + wire trace are now controls at the top of the **Logs page** — no file edit
+  needed.
+
 ## Test sequence (watch the /gsx page throughout)
 
 1. **First contact**: GSX readiness should reach **Ready** with capabilities listed; airport

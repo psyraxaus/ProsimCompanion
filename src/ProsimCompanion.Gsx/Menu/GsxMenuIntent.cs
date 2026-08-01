@@ -15,9 +15,16 @@ public sealed record GsxMenuIntent
     /// before any pick is attempted.</summary>
     public required IReadOnlyList<string> TitlePrefixes { get; init; }
 
-    /// <summary>Matches the entry line to pick. Null makes this a navigation-only intent:
-    /// success is reaching a shown menu with a matching title (no pick).</summary>
+    /// <summary>Matches the entry line to pick. Null (with <see cref="EntryIndex"/> also null)
+    /// makes this a navigation-only intent: success is reaching a shown menu with a matching
+    /// title (no pick).</summary>
     public Regex? EntryPattern { get; init; }
+
+    /// <summary>Positional pick for menus whose lines carry no stable keyword (e.g. GSX's
+    /// "Select Position at …" list). Guarded by the title check, bounds and disabled checks,
+    /// and the TOCTOU re-validation like any other pick. Ignored when
+    /// <see cref="EntryPattern"/> is set.</summary>
+    public int? EntryIndex { get; init; }
 
     /// <summary>When set, this menu is reached by executing the parent intent first — the
     /// parent's pick opens this submenu.</summary>

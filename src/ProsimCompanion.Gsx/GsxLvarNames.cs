@@ -12,6 +12,13 @@ public static class GsxLvarNames
     public const string SetGateNumber = "L:FSDT_GSX_SetGate_Number";
     public const string SetGateSuffix = "L:FSDT_GSX_SetGate_Suffix";
 
+    // Jetway/stairs raw state (semantics under live observation; the OPERATE* pair is the
+    // known-unreliable one with the 30 s grace rule).
+    public const string Jetway = "L:FSDT_GSX_JETWAY";
+    public const string Stairs = "L:FSDT_GSX_STAIRS";
+    public const string OperateJetwaysState = "L:FSDT_GSX_OPERATEJETWAYS_STATE";
+    public const string OperateStairsState = "L:FSDT_GSX_OPERATESTAIRS_STATE";
+
     // Refuel: physical hose state drives the fuel transfer start/stop.
     public const string FuelHoseConnected = "L:FSDT_GSX_FUELHOSE_CONNECTED";
 

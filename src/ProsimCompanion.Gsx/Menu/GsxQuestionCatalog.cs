@@ -59,11 +59,13 @@ public sealed class GsxQuestionCatalog
             closeAfter: true,
             ct));
 
+        // GSX 4's crew menus offer Nobody/Crew/Pilots/Both — the configured entry is picked
+        // exactly (pattern built at dispatch time so setting changes hot-apply).
         dispatcher.Register("Do you want to board crew", ct => AnswerIfAsync(
             () => _options.CurrentValue.AnswerCrewQuestions,
             "board-crew question",
             "Do you want to board crew",
-            "^yes",
+            $"^{Regex.Escape(_options.CurrentValue.CrewBoardingAnswer)}$",
             closeAfter: true,
             ct));
 
@@ -71,7 +73,7 @@ public sealed class GsxQuestionCatalog
             () => _options.CurrentValue.AnswerCrewQuestions,
             "deboard-crew question",
             "Do you want to deboard crew",
-            "^yes",
+            $"^{Regex.Escape(_options.CurrentValue.CrewBoardingAnswer)}$",
             closeAfter: true,
             ct));
 

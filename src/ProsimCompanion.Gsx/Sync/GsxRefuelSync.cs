@@ -20,6 +20,7 @@ public sealed class GsxRefuelSync : IDisposable
     private const double CompletionToleranceKg = 1.0;
 
     private readonly IProsimDataRefs _prosim;
+    private readonly GsxProsimWriter _writer;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxRefuelSync> _logger;
@@ -36,6 +37,7 @@ public sealed class GsxRefuelSync : IDisposable
         GsxServiceLifecycleTracker lifecycle,
         IProsimDataRefs prosim,
         ISimVars simVars,
+        GsxProsimWriter writer,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxRefuelSync> logger)
@@ -43,11 +45,13 @@ public sealed class GsxRefuelSync : IDisposable
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
         _prosim = prosim;
+        _writer = writer;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -82,7 +86,12 @@ public sealed class GsxRefuelSync : IDisposable
             case GsxServiceLifecycleEvent.Active when Enabled:
                 _transferActive = true;
                 _hoseWasConnected = false;
-                RecordDecision("refuel sync", $"activated — target {TargetKg():F0} kg, current {_fuelTotal.GetValue(0.0):F0} kg");
+                // Smoke-test find 2026-08-02: aircraft.refuel.fuelTarget.kg is the TRANSFER
+                // amount, not the final total — targeting it defueled 9576 kg down to 2232 kg.
+                // The target total is efb.plannedfuel; both raw values are logged for diagnosis.
+                RecordDecision(
+                    "refuel sync",
+                    $"activated — target {TargetKg():F0} kg (efb.plannedfuel; EFB transfer value {_fuelTargetKg.GetValue(0.0):F0} kg), current {_fuelTotal.GetValue(0.0):F0} kg");
                 _ = SetRefuelPowerAsync(true);
                 break;
 
@@ -96,13 +105,13 @@ public sealed class GsxRefuelSync : IDisposable
 
     private bool Enabled => _options.CurrentValue.AutomationEnabled && _options.CurrentValue.RefuelSyncEnabled;
 
-    private double TargetKg()
-    {
-        var target = _fuelTargetKg.GetValue(0.0);
-        return target > 0 ? target : _plannedFuel.GetValue(0.0);
-    }
+    /// <summary>The target TOTAL is efb.plannedfuel. aircraft.refuel.fuelTarget.kg is a transfer
+    /// amount (smoke-test verified) and must never be used as a total.</summary>
+    private double TargetKg() => _plannedFuel.GetValue(0.0);
 
-    private void Tick()
+    private void Tick() => _ = TickAsync();
+
+    private async Task TickAsync()
     {
         if (!_transferActive || !Enabled || Interlocked.Exchange(ref _ticking, 1) == 1)
         {
@@ -126,7 +135,7 @@ public sealed class GsxRefuelSync : IDisposable
             var target = TargetKg();
             if (target <= 0)
             {
-                RecordDecision("refuel sync", "no fuel target available — waiting");
+                RecordDecision("refuel sync", "no planned fuel available — waiting");
                 return;
             }
 
@@ -137,7 +146,17 @@ public sealed class GsxRefuelSync : IDisposable
                 return;
             }
 
-            _ = _prosim.WriteAsync(ProsimDataRefNames.FuelTotal, next);
+            try
+            {
+                // Fuel quantity goes via the SDK (verified live) — but the outcome is awaited
+                // and any failure is visible, never fire-and-forget.
+                await _prosim.WriteAsync(ProsimDataRefNames.FuelTotal, next).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                RecordDecision("refuel sync", $"fuel write failed: {ex.Message}");
+                return;
+            }
 
             if (Math.Abs(next - target) <= CompletionToleranceKg)
             {
@@ -156,17 +175,9 @@ public sealed class GsxRefuelSync : IDisposable
         }
     }
 
-    private async Task SetRefuelPowerAsync(bool on)
-    {
-        try
-        {
-            await _prosim.WriteAsync(ProsimDataRefNames.RefuelPower, on).ConfigureAwait(false);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Refuel power write skipped: {Message}", ex.Message);
-        }
-    }
+    private Task<bool> SetRefuelPowerAsync(bool on)
+        // Refuel power is an EFB-domain toggle — gateway path, outcome logged by the writer.
+        => _writer.WriteAsync(ProsimDataRefNames.RefuelPower, on);
 
     private void RecordDecision(string action, string reason)
     {

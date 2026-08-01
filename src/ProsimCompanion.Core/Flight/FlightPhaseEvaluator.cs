@@ -36,6 +36,18 @@ public static class FlightPhaseEvaluator
             return FlightPhase.ColdAndDark;
         }
 
+        // Recovery rule (smoke-test find 2026-08-02): landing on the ground from a *flight*
+        // phase with engines off and no motion is a session restore / spawn at the gate — go to
+        // Preflight, never into pushback/rollout logic. Without this, spawn-time flight-phase
+        // misreads (ProSim reports airborne defaults while MSFS loads) cascade into a stuck
+        // PushbackAndStart that blocks the entire ground automation.
+        var cameFromFlight = current is FlightPhase.InitialClimb or FlightPhase.Climb
+            or FlightPhase.Cruise or FlightPhase.Descent or FlightPhase.Approach;
+        if (cameFromFlight && !s.AnyEngineRunning && s.GroundSpeedKt < 5 && s.IndicatedAirspeedKt < 30)
+        {
+            return FlightPhase.Preflight;
+        }
+
         // Arrival context: rolling out after touchdown until decelerated, then taxi in, then
         // shutdown once the engines are cut.
         var arrivalContext = current is FlightPhase.Approach or FlightPhase.Descent
@@ -72,7 +84,9 @@ public static class FlightPhaseEvaluator
             return FlightPhase.TakeoffRoll;
         }
 
-        if (s.PushbackActive || s.EngineStarting)
+        // Pushback requires the park brake released (a parked aircraft with a noisy pushback
+        // flag must stay Preflight); an engine start counts regardless of the brake.
+        if (s.EngineStarting || (s.PushbackActive && !s.ParkBrakeSet))
         {
             return FlightPhase.PushbackAndStart;
         }

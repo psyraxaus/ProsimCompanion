@@ -29,6 +29,20 @@ public sealed record FlightDataSnapshot
 
     /// <summary>Take-off thrust (FLEX/TOGA) commanded.</summary>
     public bool TakeoffThrustSet { get; init; }
+
+    // ---- Raw diagnostics fields (shown on the Status page; never used for phase logic) ----
+
+    /// <summary>Raw groundservice.pushback value — multi-state; semantics under live verification.</summary>
+    public int RawPushbackState { get; init; }
+
+    /// <summary>Raw aircraft.systems.engines.1.state string.</summary>
+    public string? RawEngine1State { get; init; }
+
+    /// <summary>Raw aircraft.systems.engines.2.state string.</summary>
+    public string? RawEngine2State { get; init; }
+
+    /// <summary>Max engine N1 (%) — feeds the takeoff-thrust heuristic.</summary>
+    public double MaxN1Percent { get; init; }
 }
 
 /// <summary>
