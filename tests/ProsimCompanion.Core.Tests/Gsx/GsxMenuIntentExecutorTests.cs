@@ -208,6 +208,10 @@ public sealed class GsxMenuIntentExecutorTests
 
     private sealed class FakeGsxApi : IGsxRemoteApi
     {
+#pragma warning disable CS0067 // raised by the real client; not needed by these scenarios
+        public event Action<GsxReadiness>? ReadinessChanged;
+#pragma warning restore CS0067
+
         public GsxReadiness Readiness { get; set; } = GsxReadiness.Ready;
         public GsxStateMirror Mirror { get; } = new();
         public List<(string Verb, JsonObject? Args)> Commands { get; } = [];

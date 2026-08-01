@@ -11,6 +11,9 @@ public interface IGsxRemoteApi
 {
     GsxReadiness Readiness { get; }
 
+    /// <summary>Raised on readiness transitions, on the receive thread.</summary>
+    event Action<GsxReadiness>? ReadinessChanged;
+
     GsxStateMirror Mirror { get; }
 
     /// <summary>True when the hello advertised the capability (case-insensitive).</summary>

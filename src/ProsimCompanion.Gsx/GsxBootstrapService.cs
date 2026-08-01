@@ -32,9 +32,11 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         GsxServiceLifecycleTracker lifecycle,
         GsxQuestionDispatcher questions,
         GsxDiagnosticsStore diagnostics,
+        Gate.GsxGateSelectionService gateSelection, // injected to activate its event wiring
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
     {
+        ArgumentNullException.ThrowIfNull(gateSelection);
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(questions);

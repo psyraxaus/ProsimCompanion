@@ -1,0 +1,146 @@
+using System.Globalization;
+using System.Text;
+using System.Text.Json.Nodes;
+using ProsimCompanion.Gsx.Mirror;
+using ProsimCompanion.Gsx.Protocol;
+
+namespace ProsimCompanion.Gsx.Gate;
+
+/// <summary>A gate reference as it appears in gate.select payloads/candidates.</summary>
+public sealed record GsxGateRef(string? UiName, string? Gate, int? Number, string? BglName)
+{
+    /// <summary>The token to resend on the disambiguation retry (bglName preferred).</summary>
+    public string? ResendToken => BglName ?? UiName ?? Gate;
+
+    public static GsxGateRef Parse(JsonObject node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        return new GsxGateRef(
+            GsxFrame.ReadString(node["uiName"]),
+            GsxFrame.ReadString(node["gate"]),
+            GsxFrame.ReadInt(node["number"]),
+            GsxFrame.ReadString(node["bglName"]));
+    }
+}
+
+/// <summary>
+/// Pure gate-selection logic: normalization, disambiguation candidate picking, the SetGate_*
+/// readback letter map, and nearest-name suggestions. See docs/integrations/gsx-remote-api.md §6.
+/// </summary>
+public static class GsxGateResolver
+{
+    /// <summary>Strip non-alphanumerics, uppercase — the comparison form for all gate tokens.</summary>
+    public static string Normalize(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return "";
+        }
+
+        var builder = new StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                builder.Append(char.ToUpperInvariant(c));
+            }
+        }
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Picks the single unambiguous candidate for a disambiguation retry: exact normalized match
+    /// on uiName or gate first; else a unique normalized suffix match on gate (falling back to
+    /// uiName). Null when no unique candidate exists (fail with the candidate list).
+    /// </summary>
+    public static GsxGateRef? PickUniqueCandidate(IReadOnlyList<GsxGateRef> candidates, string requestedGate)
+    {
+        ArgumentNullException.ThrowIfNull(candidates);
+        var requested = Normalize(requestedGate);
+        if (requested.Length == 0)
+        {
+            return null;
+        }
+
+        var exact = candidates
+            .Where(c => Normalize(c.UiName) == requested || Normalize(c.Gate) == requested)
+            .ToList();
+        if (exact.Count == 1)
+        {
+            return exact[0];
+        }
+        if (exact.Count > 1)
+        {
+            return null;
+        }
+
+        var suffix = candidates
+            .Where(c =>
+            {
+                var token = Normalize(c.Gate);
+                if (token.Length == 0)
+                {
+                    token = Normalize(c.UiName);
+                }
+                return token.Length > 0 && token.EndsWith(requested, StringComparison.Ordinal);
+            })
+            .ToList();
+        return suffix.Count == 1 ? suffix[0] : null;
+    }
+
+    /// <summary>
+    /// Formats the SetGate_* readback LVARs into a display gate, or null when unassigned.
+    /// Letter map: Name 0 = NONE; 10 = "Gate {n}"; 12..37 = A..Z → "{Letter}{n}";
+    /// Suffix −1 = unassigned sentinel; anything else unassigned.
+    /// </summary>
+    public static string? FormatReadback(int name, int number, int suffix)
+    {
+        if (suffix == -1 || name == 0)
+        {
+            return null;
+        }
+
+        if (name == 10)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"Gate {number}");
+        }
+
+        if (name is >= 12 and <= 37)
+        {
+            var letter = (char)('A' + (name - 12));
+            return string.Create(CultureInfo.InvariantCulture, $"{letter}{number}");
+        }
+
+        return null;
+    }
+
+    /// <summary>Nearest-name suggestions for a not_found failure: exact → suffix → contains,
+    /// max 3, drawn from the mirrored parkings.</summary>
+    public static IReadOnlyList<string> NearestNames(IReadOnlyList<GsxParking> parkings, string requestedGate)
+    {
+        ArgumentNullException.ThrowIfNull(parkings);
+        var requested = Normalize(requestedGate);
+        if (requested.Length == 0)
+        {
+            return [];
+        }
+
+        var names = parkings
+            .Select(p => p.UiGateName ?? p.UiName ?? p.BglName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        List<string> ranked =
+        [
+            .. names.Where(n => Normalize(n) == requested),
+            .. names.Where(n => Normalize(n).EndsWith(requested, StringComparison.Ordinal) && Normalize(n) != requested),
+            .. names.Where(n => Normalize(n).Contains(requested, StringComparison.Ordinal)
+                && !Normalize(n).EndsWith(requested, StringComparison.Ordinal)
+                && Normalize(n) != requested),
+        ];
+
+        return [.. ranked.Take(3)];
+    }
+}
