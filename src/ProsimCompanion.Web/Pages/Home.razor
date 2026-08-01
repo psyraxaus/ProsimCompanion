@@ -1,0 +1,54 @@
+@page "/"
+@implements IDisposable
+@inject ConnectionStatusStore Status
+
+<h1>Status</h1>
+
+@if (_snapshot.Count == 0)
+{
+    <p class="hint">No subsystems have reported yet.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Subsystem</th><th>State</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var (subsystem, state) in _snapshot)
+            {
+                <tr>
+                    <td>@subsystem</td>
+                    <td><span class="badge @state.ToString().ToLowerInvariant()">@state</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<p class="hint">
+    Live subsystem connections. The ProSim, SimConnect and GSX layers arrive with roadmap
+    Phases 1–2 — until then they report as disconnected placeholders.
+</p>
+
+@code {
+    private IReadOnlyList<KeyValuePair<string, ConnectionState>> _snapshot = [];
+
+    protected override void OnInitialized()
+    {
+        _snapshot = Status.Snapshot();
+        Status.Changed += OnStatusChanged;
+    }
+
+    private void OnStatusChanged(object? sender, EventArgs e)
+    {
+        // Store events fire on the writer's thread; marshal into the circuit.
+        _ = InvokeAsync(() =>
+        {
+            _snapshot = Status.Snapshot();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose() => Status.Changed -= OnStatusChanged;
+}

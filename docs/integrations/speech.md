@@ -1,0 +1,48 @@
+# Speech / AI stack reference (voice FO pillar, Phase 5)
+
+From Prosim2FO. All endpoints are user-hosted or cloud; every provider is optional with fallback
+chains — "local only" hard mode must exist.
+
+## TTS (router order: Kokoro → Google → WinRT → SAPI5)
+
+- **Kokoro** (kokoro-fastapi, local neural): OpenAI-compatible `POST {base}/v1/audio/speech` (WAV)
+  and `GET {base}/v1/audio/voices`. Default `http://192.168.1.50:8880`, model `kokoro`, voice
+  `bm_george`, 1500 ms timeout, per-voice disk cache.
+- **Google Cloud TTS Chirp 3 HD**: service-account JSON key, LINEAR16; disk cache keyed by
+  text+voice+format; prewarm checklist phrases; monthly usage counter (`cache/tts/usage.json`)
+  against the 1M-char free tier.
+- Playback: NAudio, device selection, intercom band-pass filter + listening tone.
+
+## Recognition (chain: LAN → WinRT → offline System.Speech)
+
+- **LAN ASR** (faster-whisper wrapper, docker-compose in Prosim2FO `deploy/`): `GET /health`,
+  `POST /transcribe` (multipart WAV 16 kHz) → `text`, `duration`, `confidence`, `avg_logprob`,
+  `no_speech_prob`, word timestamps; biasing fields `initial_prompt`/`hotwords`/`vad_filter`.
+  Default `http://192.168.1.50:8000`; readiness polling + optional wake-on-LAN (MAC/broadcast/port 9).
+- Push-to-talk via keyboard hook or joystick; continuous mode optional; ATC-mute binding.
+- Phonetic snapping (Double Metaphone hybrid); optional context-aware utterance interpreter with a
+  confidence ladder.
+
+## LLM (briefings/debrief composition)
+
+- Any OpenAI-compatible endpoint; default `http://localhost:3000/api` (Open-WebUI/Ollama). Optional
+  custom CA / allow-invalid-cert.
+- **Every number in LLM output is verified against source facts** (`NumberVerifier`); deterministic
+  template fallback when the LLM is unavailable or fails verification.
+
+## Other data sources
+
+- **Navigraph DFD**: user-supplied SQLite db (`navData.dfdPath`), read via Microsoft.Data.Sqlite for
+  SID/STAR/approach/ILS/missed-approach legs. Pin SQLitePCLRaw.lib.e_sqlite3 ≥ 3.53.3 in every
+  project (security pin GHSA-2m69-gcr7-jv3q); pin `RuntimeIdentifier win-x64` to avoid multi-RID
+  native bloat.
+- **ActiveSky**: `http://{host}:19285/ActiveSky/API/GetMetarInfoAt?ICAO=` with file-snapshot
+  fallback; composed with SayIntentions getWX behind a `IWxProvider` abstraction.
+
+## Architecture notes to preserve
+
+- **SpeechArbiter**: single priority queue (Low/Normal/High/Critical) with pre-emption and pluggable
+  suppression rules (sterile cockpit below 10,000 ft suppresses Low, defers Normal). All speech goes
+  through one facade — no direct TTS calls from features.
+- Humanized key timing for FCU/MCDU presses (randomized hold/gap, think pauses).
+- MCDU actuation gates: arm switch + FO-is-PF + announced/verified/abortable.

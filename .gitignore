@@ -1,0 +1,28 @@
+# Build output
+bin/
+obj/
+artifacts/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Test / coverage
+TestResults/
+*.trx
+coverage*.json
+coverage*.xml
+
+# Logs and local runtime data
+*.log
+logs/
+
+# NuGet
+*.nupkg
+packages/
+
+# Never commit third-party SDK binaries
+ProSimSDK.dll
+VoicemeeterRemote64.dll

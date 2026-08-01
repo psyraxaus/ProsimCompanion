@@ -1,0 +1,65 @@
+@page "/settings"
+@using System.Text.Json.Nodes
+@using Microsoft.Extensions.Options
+@inject IOptionsMonitor<ProsimOptions> ProsimMonitor
+@inject IOptionsMonitor<WebUiOptions> WebUiMonitor
+@inject JsonSettingsFile SettingsFile
+
+<h1>Settings</h1>
+
+<EditForm Model="this" OnValidSubmit="Save" FormName="settings">
+    <h2>ProSim</h2>
+
+    <label for="prosim-host">Host</label>
+    <InputText id="prosim-host" @bind-Value="ProsimHost" />
+    <div class="hint">Hostname or IP of the machine running ProSim System.</div>
+
+    <label for="prosim-sdk">SDK path</label>
+    <InputText id="prosim-sdk" @bind-Value="ProsimSdkPath" />
+    <div class="hint">Folder containing ProSimSDK.dll (loaded at runtime, never bundled).</div>
+
+    <h2>Web UI</h2>
+
+    <label for="web-port">Port</label>
+    <InputNumber id="web-port" @bind-Value="WebPort" />
+    <div class="hint">Takes effect after restarting the application.</div>
+
+    <button type="submit">Save</button>
+
+    @if (_saved)
+    {
+        <p role="status">Settings saved to @SettingsFile.Path</p>
+    }
+</EditForm>
+
+@code {
+    private bool _saved;
+
+    public string ProsimHost { get; set; } = "";
+
+    public string ProsimSdkPath { get; set; } = "";
+
+    public int WebPort { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var prosim = ProsimMonitor.CurrentValue;
+        ProsimHost = prosim.Host;
+        ProsimSdkPath = prosim.SdkPath;
+        WebPort = WebUiMonitor.CurrentValue.Port;
+    }
+
+    private void Save()
+    {
+        SettingsFile.Update(root =>
+        {
+            var prosim = JsonSettingsFile.GetOrCreateSection(root, ProsimOptions.SectionName);
+            prosim["host"] = ProsimHost;
+            prosim["sdkPath"] = ProsimSdkPath;
+
+            var webUi = JsonSettingsFile.GetOrCreateSection(root, WebUiOptions.SectionName);
+            webUi["port"] = WebPort;
+        });
+        _saved = true;
+    }
+}

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ProsimCompanion.App/ProsimCompanion.App.csproj" />
+    <Project Path="src/ProsimCompanion.Core/ProsimCompanion.Core.csproj" />
+    <Project Path="src/ProsimCompanion.Gsx/ProsimCompanion.Gsx.csproj" />
+    <Project Path="src/ProsimCompanion.Prosim/ProsimCompanion.Prosim.csproj" />
+    <Project Path="src/ProsimCompanion.Sim/ProsimCompanion.Sim.csproj" />
+    <Project Path="src/ProsimCompanion.Web/ProsimCompanion.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ProsimCompanion.Core.Tests/ProsimCompanion.Core.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>ProsimCompanion</AssemblyName>
+    <RootNamespace>ProsimCompanion.App</RootNamespace>
+    <!-- App.xaml is compiled as a plain Page (below) so WPF does not generate a competing
+         entry point / parameterless App construction; Program.cs owns startup. -->
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <StartupObject>ProsimCompanion.App.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Embedded Kestrel + Blazor host inside the WPF process (ADR-0001/0002). -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
+    <ProjectReference Include="..\ProsimCompanion.Gsx\ProsimCompanion.Gsx.csproj" />
+    <ProjectReference Include="..\ProsimCompanion.Prosim\ProsimCompanion.Prosim.csproj" />
+    <ProjectReference Include="..\ProsimCompanion.Sim\ProsimCompanion.Sim.csproj" />
+    <ProjectReference Include="..\ProsimCompanion.Web\ProsimCompanion.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PreserveNewest so user edits to the deployed copy survive rebuilds. -->
+    <Content Include="config\settings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
