@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ProsimCompanion.Gsx.Services;
 
 namespace ProsimCompanion.Gsx;
 
@@ -16,6 +17,8 @@ public static class GsxServiceCollectionExtensions
 
         services.AddSingleton<GsxRemoteApiClient>();
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
+        services.AddSingleton<GsxServiceLifecycleTracker>();
+        services.AddHostedService<GsxBootstrapService>();
 
         return services;
     }

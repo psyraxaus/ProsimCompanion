@@ -1,0 +1,103 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using ProsimCompanion.Gsx.Mirror;
+using ProsimCompanion.Gsx.Protocol;
+using ProsimCompanion.Gsx.Services;
+using Xunit;
+
+namespace ProsimCompanion.Core.Tests.Gsx;
+
+public sealed class GsxServiceLifecycleTrackerTests
+{
+    private readonly GsxServiceLifecycleTracker _tracker = new(NullLogger<GsxServiceLifecycleTracker>.Instance);
+    private readonly List<(string Id, GsxServiceLifecycleEvent Event)> _events = [];
+
+    public GsxServiceLifecycleTrackerTests()
+        => _tracker.ServiceEvent += (id, lifecycleEvent) => _events.Add((id, lifecycleEvent));
+
+    private static Dictionary<string, GsxServiceInfo> Services(params (string Id, GsxServiceState State)[] entries)
+        => entries.ToDictionary(
+            entry => entry.Id,
+            entry => new GsxServiceInfo(entry.Id, entry.Id, null, entry.State, false, false, null, null),
+            StringComparer.OrdinalIgnoreCase);
+
+    [Fact]
+    public void NormalFlow_FiresEachEventOnce()
+    {
+        _tracker.Process(Services(("Refueling", GsxServiceState.Callable)));
+        _tracker.Process(Services(("Refueling", GsxServiceState.Requested)));
+        _tracker.Process(Services(("Refueling", GsxServiceState.Requested)));   // repeat — no refire
+        _tracker.Process(Services(("Refueling", GsxServiceState.Active)));
+        _tracker.Process(Services(("Refueling", GsxServiceState.Active)));      // reconcile tick replay
+        _tracker.Process(Services(("Refueling", GsxServiceState.Completed)));
+        _tracker.Process(Services(("Refueling", GsxServiceState.Completed)));
+
+        Assert.Equal(
+            [("Refueling", GsxServiceLifecycleEvent.Requested),
+             ("Refueling", GsxServiceLifecycleEvent.Active),
+             ("Refueling", GsxServiceLifecycleEvent.Completed)],
+            _events);
+        Assert.True(_tracker.IsCompleted("refueling"));
+    }
+
+    [Fact]
+    public void QuickService_ReturnToAvailableAfterActive_CountsAsCompleted()
+    {
+        _tracker.Process(Services(("Water", GsxServiceState.Active)));
+        _tracker.Process(Services(("Water", GsxServiceState.Callable)));
+
+        Assert.Equal(
+            [("Water", GsxServiceLifecycleEvent.Active),
+             ("Water", GsxServiceLifecycleEvent.Completed)],
+            _events);
+    }
+
+    [Fact]
+    public void CallableWithoutPriorActive_DoesNotComplete()
+    {
+        _tracker.Process(Services(("Water", GsxServiceState.Callable)));
+        _tracker.Process(Services(("Water", GsxServiceState.Callable)));
+
+        Assert.Empty(_events);
+        Assert.False(_tracker.IsCompleted("Water"));
+    }
+
+    [Fact]
+    public void CompletedWithMissedActiveEdge_StillCompletes()
+    {
+        _tracker.Process(Services(("Boarding", GsxServiceState.Completed)));
+
+        Assert.Equal([("Boarding", GsxServiceLifecycleEvent.Completed)], _events);
+    }
+
+    [Fact]
+    public void ResetCycle_AllowsEventsToFireAgain()
+    {
+        _tracker.Process(Services(("Refueling", GsxServiceState.Completed)));
+        _tracker.ResetCycle();
+        _tracker.Process(Services(("Refueling", GsxServiceState.Completed)));
+
+        Assert.Equal(2, _events.Count(e => e.Event == GsxServiceLifecycleEvent.Completed));
+    }
+
+    [Fact]
+    public void ServiceVanishing_ResetsItsCycle()
+    {
+        _tracker.Process(Services(("GPU", GsxServiceState.Active)));
+        _tracker.Process(Services(("Boarding", GsxServiceState.Callable)));     // GPU gone
+        _tracker.Process(Services(("GPU", GsxServiceState.Active)));            // fresh cycle
+
+        Assert.Equal(2, _events.Count(e => e.Id == "GPU" && e.Event == GsxServiceLifecycleEvent.Active));
+    }
+
+    [Fact]
+    public void SubscriberThrowing_DoesNotBreakOtherNotifications()
+    {
+        _tracker.ServiceEvent += (_, _) => throw new InvalidOperationException("boom");
+
+        _tracker.Process(Services(
+            ("Refueling", GsxServiceState.Active),
+            ("Catering", GsxServiceState.Active)));
+
+        Assert.Equal(2, _events.Count);
+    }
+}
