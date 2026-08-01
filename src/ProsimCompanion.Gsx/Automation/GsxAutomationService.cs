@@ -32,6 +32,8 @@ public sealed class GsxAutomationService : IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxAutomationService> _logger;
     private readonly IDataRefSubscription _ofpImported;
+    private readonly IDataRefSubscription _fmsOrigin;
+    private readonly IDataRefSubscription _fmsDestination;
     private readonly Timer _pumpTimer;
     private readonly SemaphoreSlim _pumpLock = new(1, 1);
     private volatile bool _departureStarted;
@@ -70,6 +72,8 @@ public sealed class GsxAutomationService : IDisposable
         _logger = logger;
 
         _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
+        _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
+        _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
 
         _flightState.PhaseChanged += OnFlightPhaseChanged;
         _lifecycle.ServiceEvent += OnServiceEvent;
@@ -104,6 +108,8 @@ public sealed class GsxAutomationService : IDisposable
         _api.Mirror.Updated -= OnMirrorUpdated;
         _pumpTimer.Dispose();
         _ofpImported.Dispose();
+        _fmsOrigin.Dispose();
+        _fmsDestination.Dispose();
         _pumpLock.Dispose();
     }
 
@@ -187,11 +193,18 @@ public sealed class GsxAutomationService : IDisposable
                 return;
             }
 
+            // Flight plan = SimBrief OFP imported into the EFB, OR a plan in the MCDU (origin +
+            // destination set) — the SimBrief auto-fetch arrives with Phase 3; until then the
+            // MCDU plan is the operative signal (owner-confirmed workflow, 2026-08-02).
+            var flightPlanAvailable = _ofpImported.GetValue(false)
+                || (!string.IsNullOrWhiteSpace(_fmsOrigin.GetValue<string?>(null))
+                    && !string.IsNullOrWhiteSpace(_fmsDestination.GetValue<string?>(null)));
+
             var decision = DepartureSequencer.Next(
                 options.DepartureServiceOrder,
                 _api.Mirror.Services,
                 _lifecycle.IsCompleted,
-                _ofpImported.GetValue(false),
+                flightPlanAvailable,
                 options.RequireOfpBeforeDeparture);
 
             foreach (var (serviceId, reason) in decision.Skipped)

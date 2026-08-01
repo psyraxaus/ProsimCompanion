@@ -23,7 +23,7 @@ public sealed class DepartureSequencerTests
             Order,
             Services(("Refueling", GsxServiceState.Callable, true)),
             _ => false,
-            ofpImported: true,
+            flightPlanAvailable: true,
             requireOfp: true);
 
         Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
@@ -37,11 +37,11 @@ public sealed class DepartureSequencerTests
             Order,
             Services(("Refueling", GsxServiceState.Callable, true)),
             _ => false,
-            ofpImported: false,
+            flightPlanAvailable: false,
             requireOfp: true);
 
         Assert.Equal(DepartureDecisionKind.Hold, decision.Kind);
-        Assert.Contains("OFP", decision.Reason, StringComparison.Ordinal);
+        Assert.Contains("flight plan", decision.Reason, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class DepartureSequencerTests
             Order,
             Services(("Refueling", GsxServiceState.Callable, true)),
             _ => false,
-            ofpImported: false,
+            flightPlanAvailable: false,
             requireOfp: false);
 
         Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
@@ -64,7 +64,7 @@ public sealed class DepartureSequencerTests
             ["Catering"],
             Services(("Catering", GsxServiceState.Callable, true)),
             _ => false,
-            ofpImported: false,
+            flightPlanAvailable: false,
             requireOfp: true);
 
         Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
@@ -80,7 +80,7 @@ public sealed class DepartureSequencerTests
                 ("Refueling", GsxServiceState.Active, false),
                 ("Catering", GsxServiceState.Callable, true)),
             _ => false,
-            ofpImported: true,
+            flightPlanAvailable: true,
             requireOfp: true);
 
         Assert.Equal(DepartureDecisionKind.Hold, decision.Kind);
@@ -96,7 +96,7 @@ public sealed class DepartureSequencerTests
                 ("Refueling", GsxServiceState.Callable, true),
                 ("Catering", GsxServiceState.Callable, true)),
             id => id == "Refueling",
-            ofpImported: true,
+            flightPlanAvailable: true,
             requireOfp: true);
 
         Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
@@ -112,7 +112,7 @@ public sealed class DepartureSequencerTests
                 ("Refueling", GsxServiceState.NotAvailable, false),
                 ("Boarding", GsxServiceState.Callable, true)),
             _ => false,
-            ofpImported: true,
+            flightPlanAvailable: true,
             requireOfp: true);
 
         Assert.Equal(DepartureDecisionKind.Trigger, decision.Kind);
@@ -129,7 +129,7 @@ public sealed class DepartureSequencerTests
             ["Catering"],
             Services(("Catering", GsxServiceState.Callable, false)),
             _ => false,
-            ofpImported: true,
+            flightPlanAvailable: true,
             requireOfp: true);
 
         Assert.Equal(DepartureDecisionKind.Hold, decision.Kind);
@@ -142,9 +142,10 @@ public sealed class DepartureSequencerTests
             Order,
             Services(("Catering", GsxServiceState.Bypassed, false)),
             id => id is "Refueling" or "Boarding",
-            ofpImported: true,
+            flightPlanAvailable: true,
             requireOfp: true);
 
         Assert.Equal(DepartureDecisionKind.AllDone, decision.Kind);
     }
 }
+

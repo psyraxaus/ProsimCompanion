@@ -43,6 +43,7 @@ public static class Program
         var settingsFile = new JsonSettingsFile(settingsPath);
         EnsureAccessToken(settingsFile);
         var previousVersion = SettingsMigrator.Migrate(settingsFile);
+        var defaultsAdded = SettingsDefaultsWriter.EnsureDefaults(settingsFile);
 
         // The level switches and buffer exist before the logger so every line — including
         // startup — flows through them; settings changes retune the switches live.
@@ -61,6 +62,11 @@ public static class Program
                     "Settings migrated from version {From} to {To}",
                     previousVersion,
                     SettingsMigrator.CurrentVersion);
+            }
+
+            if (defaultsAdded)
+            {
+                Log.Information("Settings file updated with newly available option defaults");
             }
 
             var web = BuildWebHost(args, settingsPath, settingsFile, levels, logBuffer, wireTrace);

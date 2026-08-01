@@ -38,7 +38,7 @@ public static class DepartureSequencer
         IReadOnlyList<string> order,
         IReadOnlyDictionary<string, GsxServiceInfo> services,
         Func<string, bool> isCompleted,
-        bool ofpImported,
+        bool flightPlanAvailable,
         bool requireOfp)
     {
         ArgumentNullException.ThrowIfNull(order);
@@ -74,9 +74,9 @@ public static class DepartureSequencer
                     return new(DepartureDecisionKind.Hold, serviceId, "in progress", skipped);
 
                 case GsxServiceState.Callable:
-                    if (requireOfp && !ofpImported && OfpGatedServices.Contains(serviceId))
+                    if (requireOfp && !flightPlanAvailable && OfpGatedServices.Contains(serviceId))
                     {
-                        return new(DepartureDecisionKind.Hold, serviceId, "waiting for SimBrief OFP import", skipped);
+                        return new(DepartureDecisionKind.Hold, serviceId, "waiting for a flight plan (SimBrief OFP import or MCDU FMS plan)", skipped);
                     }
 
                     if (!service.CanTrigger)

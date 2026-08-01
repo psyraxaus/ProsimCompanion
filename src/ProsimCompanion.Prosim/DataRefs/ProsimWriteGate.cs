@@ -31,6 +31,9 @@ public static class ProsimWriteGate
         "efb.autoJetway",
         "efb.autoDoor",
 
+        // Boarding state (EFB UI tracks it; double "efb." is the real path)
+        "efb.efb.boardingStatus",
+
         // Planning / pax
         "efb.plannedfuel",
         "efb.plannedCargoKg",

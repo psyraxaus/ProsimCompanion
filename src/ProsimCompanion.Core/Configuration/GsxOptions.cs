@@ -86,6 +86,11 @@ public sealed class GsxOptions
     /// <summary>Fuel transfer rate in kg per second.</summary>
     public double RefuelRateKgPerSec { get; set; } = 25;
 
+    /// <summary>Allow the sync to pump fuel DOWN when the target is below the current quantity.
+    /// Off by default: ProSim's fuel-target datarefs have twice exposed transfer amounts instead
+    /// of totals, and an erroneous low target must hold (decision-logged), never defuel.</summary>
+    public bool AllowDefuel { get; set; }
+
     /// <summary>Mirror GSX boarding counters into ProSim pax zones and cargo holds.</summary>
     public bool BoardingSyncEnabled { get; set; } = true;
 

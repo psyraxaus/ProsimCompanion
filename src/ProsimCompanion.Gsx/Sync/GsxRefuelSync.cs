@@ -25,12 +25,15 @@ public sealed class GsxRefuelSync : IDisposable
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxRefuelSync> _logger;
     private readonly IDataRefSubscription _fuelTotal;
+    private readonly IDataRefSubscription _fuelTarget;
     private readonly IDataRefSubscription _fuelTargetKg;
     private readonly IDataRefSubscription _plannedFuel;
     private readonly IDataRefSubscription _hoseConnected;
     private readonly Timer _timer;
     private volatile bool _transferActive;
     private bool _hoseWasConnected;
+    private bool _pumpPowerOn;
+    private string? _lastHoldReason;
     private int _ticking;
 
     public GsxRefuelSync(
@@ -57,6 +60,7 @@ public sealed class GsxRefuelSync : IDisposable
         _logger = logger;
 
         _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal, DataRefTier.Normal);
+        _fuelTarget = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTarget, DataRefTier.Infrequent);
         _fuelTargetKg = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTargetKg, DataRefTier.Infrequent);
         _plannedFuel = prosim.Subscribe(ProsimDataRefNames.EfbPlannedFuel, DataRefTier.Infrequent);
         _hoseConnected = simVars.Subscribe(GsxLvarNames.FuelHoseConnected, "number", DataRefTier.Normal);
@@ -69,6 +73,7 @@ public sealed class GsxRefuelSync : IDisposable
     {
         _timer.Dispose();
         _fuelTotal.Dispose();
+        _fuelTarget.Dispose();
         _fuelTargetKg.Dispose();
         _plannedFuel.Dispose();
         _hoseConnected.Dispose();
@@ -86,13 +91,14 @@ public sealed class GsxRefuelSync : IDisposable
             case GsxServiceLifecycleEvent.Active when Enabled:
                 _transferActive = true;
                 _hoseWasConnected = false;
-                // Smoke-test find 2026-08-02: aircraft.refuel.fuelTarget.kg is the TRANSFER
-                // amount, not the final total — targeting it defueled 9576 kg down to 2232 kg.
-                // The target total is efb.plannedfuel; both raw values are logged for diagnosis.
+                _lastHoldReason = null;
+                // All three fuel-target candidates logged raw: both fuelTarget.kg and
+                // plannedfuel have been observed carrying the TRANSFER amount instead of the
+                // total (defuel-to-2232 incidents, 2026-08-02). Power stays OFF until the hose
+                // actually connects and a sane transfer is possible.
                 RecordDecision(
                     "refuel sync",
-                    $"activated — target {TargetKg():F0} kg (efb.plannedfuel; EFB transfer value {_fuelTargetKg.GetValue(0.0):F0} kg), current {_fuelTotal.GetValue(0.0):F0} kg");
-                _ = SetRefuelPowerAsync(true);
+                    $"activated — current {_fuelTotal.GetValue(0.0):F0} kg; candidates: fuelTarget {_fuelTarget.GetValue(0.0):F0}, fuelTarget.kg {_fuelTargetKg.GetValue(0.0):F0}, plannedfuel {_plannedFuel.GetValue(0.0):F0}");
                 break;
 
             case GsxServiceLifecycleEvent.Completed when _transferActive:
@@ -105,9 +111,14 @@ public sealed class GsxRefuelSync : IDisposable
 
     private bool Enabled => _options.CurrentValue.AutomationEnabled && _options.CurrentValue.RefuelSyncEnabled;
 
-    /// <summary>The target TOTAL is efb.plannedfuel. aircraft.refuel.fuelTarget.kg is a transfer
-    /// amount (smoke-test verified) and must never be used as a total.</summary>
-    private double TargetKg() => _plannedFuel.GetValue(0.0);
+    /// <summary>The intended TOTAL: aircraft.refuel.fuelTarget (the EFB fuel page's figure),
+    /// falling back to efb.plannedfuel. The .kg variant has proven to be a transfer amount and
+    /// is logged for diagnosis only.</summary>
+    private double TargetKg()
+    {
+        var target = _fuelTarget.GetValue(0.0);
+        return target > 0 ? target : _plannedFuel.GetValue(0.0);
+    }
 
     private void Tick() => _ = TickAsync();
 
@@ -124,32 +135,45 @@ public sealed class GsxRefuelSync : IDisposable
             if (hose != _hoseWasConnected)
             {
                 _hoseWasConnected = hose;
-                RecordDecision("refuel sync", hose ? "hose connected — transferring" : "hose disconnected — paused");
+                RecordDecision("refuel sync", hose ? "hose connected" : "hose disconnected — paused");
             }
 
             if (!hose)
             {
-                return;
-            }
-
-            var target = TargetKg();
-            if (target <= 0)
-            {
-                RecordDecision("refuel sync", "no planned fuel available — waiting");
+                await SetPumpAsync(false).ConfigureAwait(false);
                 return;
             }
 
             var current = _fuelTotal.GetValue(0.0);
-            var next = GsxSyncMath.NextFuelStep(current, target, _options.CurrentValue.RefuelRateKgPerSec);
-            if (Math.Abs(next - current) < 0.01)
+            var target = TargetKg();
+            if (target <= 0)
             {
+                HoldOnce("no fuel target available — waiting");
                 return;
             }
 
+            // Defuel guard: fuel-target datarefs have twice exposed transfer amounts instead of
+            // totals. A target below current holds (never pumps down) unless explicitly allowed.
+            if (target < current - CompletionToleranceKg && !_options.CurrentValue.AllowDefuel)
+            {
+                HoldOnce($"target {target:F0} kg is below current {current:F0} kg — defuel disabled (gsx.allowDefuel)");
+                await SetPumpAsync(false).ConfigureAwait(false);
+                return;
+            }
+
+            var next = GsxSyncMath.NextFuelStep(current, target, _options.CurrentValue.RefuelRateKgPerSec);
+            if (Math.Abs(next - current) < 0.01)
+            {
+                await SetPumpAsync(false).ConfigureAwait(false);
+                return;
+            }
+
+            // Fuel is actually about to move: refuel power reflects real pumping only.
+            await SetPumpAsync(true).ConfigureAwait(false);
+
             try
             {
-                // Fuel quantity goes via the SDK (verified live) — but the outcome is awaited
-                // and any failure is visible, never fire-and-forget.
+                // Fuel quantity goes via the SDK (verified live) — awaited, never fire-and-forget.
                 await _prosim.WriteAsync(ProsimDataRefNames.FuelTotal, next).ConfigureAwait(false);
             }
             catch (InvalidOperationException ex)
@@ -173,6 +197,29 @@ public sealed class GsxRefuelSync : IDisposable
         {
             Interlocked.Exchange(ref _ticking, 0);
         }
+    }
+
+    /// <summary>Idempotent pump-power switch: only writes on actual transitions, so refuel
+    /// power is on exactly while fuel is moving.</summary>
+    private async Task SetPumpAsync(bool on)
+    {
+        if (_pumpPowerOn == on)
+        {
+            return;
+        }
+        _pumpPowerOn = on;
+        RecordDecision("refuel sync", on ? "pump on — fuel transferring" : "pump off");
+        await SetRefuelPowerAsync(on).ConfigureAwait(false);
+    }
+
+    private void HoldOnce(string reason)
+    {
+        if (string.Equals(reason, _lastHoldReason, StringComparison.Ordinal))
+        {
+            return;
+        }
+        _lastHoldReason = reason;
+        RecordDecision("refuel sync", reason);
     }
 
     private Task<bool> SetRefuelPowerAsync(bool on)

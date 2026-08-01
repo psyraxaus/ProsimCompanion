@@ -34,7 +34,16 @@ public sealed class GsxJetwayStairsService : IDisposable
     private readonly IDataRefSubscription _operateStairsState;
     private readonly Timer _timer;
     private string? _handledGateKey;
+    private string? _currentGateKey;
+    private string? _pendingServiceId;
+    private DateTimeOffset _pendingDeadline;
+    private bool _fallbackTried;
     private int _checking;
+
+    /// <summary>L:FSDT_GSX_JETWAY value meaning "no jetway exists at this position" — live GSX 4
+    /// session 2026-08-02: a remote stand read jetway=2 while the mirror still offered a
+    /// (non-functional) OperateJetways service.</summary>
+    private const int JetwayLvarNotPresent = 2;
 
     public GsxJetwayStairsService(
         IGsxRemoteApi api,
@@ -96,8 +105,27 @@ public sealed class GsxJetwayStairsService : IDisposable
                 || !options.AutoConnectJetwayOrStairs
                 || _api.Readiness != GsxReadiness.Ready
                 || gateKey is null
-                || string.Equals(gateKey, _handledGateKey, StringComparison.Ordinal)
                 || _flightState.CurrentPhase is not (FlightPhase.Preflight or FlightPhase.ColdAndDark))
+            {
+                return;
+            }
+
+            // Fresh gate context resets the whole cycle.
+            if (!string.Equals(gateKey, _currentGateKey, StringComparison.Ordinal))
+            {
+                _currentGateKey = gateKey;
+                _handledGateKey = null;
+                _pendingServiceId = null;
+                _fallbackTried = false;
+            }
+
+            if (_pendingServiceId is not null)
+            {
+                VerifyPendingTrigger(gateKey);
+                return;
+            }
+
+            if (string.Equals(gateKey, _handledGateKey, StringComparison.Ordinal))
             {
                 return;
             }
@@ -108,19 +136,23 @@ public sealed class GsxJetwayStairsService : IDisposable
                 return; // mirror not populated yet — try again next tick
             }
 
-            // Prefer the jetway when the gate offers one; stairs otherwise.
-            var hasJetway = services.TryGetValue(JetwayServiceId, out var jetway);
-            var target = hasJetway ? jetway : services.GetValueOrDefault(StairsServiceId);
-            var targetId = hasJetway ? JetwayServiceId : StairsServiceId;
-            if (target is null)
+            // Live GSX 4 lists OperateJetways even at jetway-less stands (and acks a trigger
+            // that does nothing) — the jetway LVAR is the truth: 2 = no jetway here.
+            var jetwayLvar = (int)_jetwayLvar.GetValue(0.0);
+            var jetwayExists = services.ContainsKey(JetwayServiceId) && jetwayLvar != JetwayLvarNotPresent;
+            var targetId = jetwayExists ? JetwayServiceId
+                : services.ContainsKey(StairsServiceId) ? StairsServiceId
+                : null;
+            if (targetId is null)
             {
                 _handledGateKey = gateKey;
-                RecordDecision("jetway/stairs", $"no jetway or stairs service offered at {gateKey}");
+                RecordDecision("jetway/stairs", $"nothing to connect at {gateKey} (jetway LVAR={jetwayLvar}, no stairs service)");
                 return;
             }
 
+            var target = services[targetId];
             var lvarDetail =
-                $"LVARs jetway={_jetwayLvar.GetValue(0.0):F0} stairs={_stairsLvar.GetValue(0.0):F0} " +
+                $"LVARs jetway={jetwayLvar} stairs={_stairsLvar.GetValue(0.0):F0} " +
                 $"opJetways={_operateJetwaysState.GetValue(0.0):F0} opStairs={_operateStairsState.GetValue(0.0):F0}";
 
             // Connected check: a docked jetway/stairs mirrors as Active or Completed (spec §4.3
@@ -134,7 +166,6 @@ public sealed class GsxJetwayStairsService : IDisposable
 
             if (target.State != GsxServiceState.Callable || !target.CanTrigger)
             {
-                // Not ready yet — keep waiting (no gate latch), the next tick re-checks.
                 _logger.LogDebug(
                     "Jetway/stairs waiting: {Service} state {State} canTrigger {CanTrigger}",
                     targetId,
@@ -143,10 +174,10 @@ public sealed class GsxJetwayStairsService : IDisposable
                 return;
             }
 
-            _handledGateKey = gateKey;
-            RecordDecision("jetway/stairs", $"connecting {targetId} at {gateKey}; {lvarDetail}");
-            _lifecycle.MarkCalled(targetId);
-            _ = TriggerAsync(targetId);
+            RecordDecision(
+                "jetway/stairs",
+                $"connecting {targetId} at {gateKey}{(jetwayExists ? "" : " (jetway LVAR=2 — no jetway at this stand)")}; {lvarDetail}");
+            StartTrigger(targetId);
         }
         catch (Exception ex)
         {
@@ -158,6 +189,50 @@ public sealed class GsxJetwayStairsService : IDisposable
         }
     }
 
+    /// <summary>A trigger is only trusted once the service shows a Requested/Active/Completed
+    /// edge — GSX has been observed acking OperateJetways at a jetway-less stand and doing
+    /// nothing. No edge within the deadline ⇒ fall back to the other service once.</summary>
+    private void VerifyPendingTrigger(string gateKey)
+    {
+        var pending = _pendingServiceId!;
+        var state = _api.Mirror.Services.GetValueOrDefault(pending)?.State;
+        if (state is GsxServiceState.Requested or GsxServiceState.Active or GsxServiceState.Completed)
+        {
+            _pendingServiceId = null;
+            _handledGateKey = gateKey;
+            RecordDecision("jetway/stairs", $"{pending} responding ({state})");
+            return;
+        }
+
+        if (DateTimeOffset.UtcNow < _pendingDeadline)
+        {
+            return;
+        }
+
+        _pendingServiceId = null;
+        var fallbackId = pending == JetwayServiceId ? StairsServiceId : JetwayServiceId;
+        if (!_fallbackTried && _api.Mirror.Services.TryGetValue(fallbackId, out var fallback)
+            && fallback.State == GsxServiceState.Callable && fallback.CanTrigger)
+        {
+            _fallbackTried = true;
+            RecordDecision("jetway/stairs", $"{pending} showed no response — falling back to {fallbackId}");
+            StartTrigger(fallbackId);
+        }
+        else
+        {
+            _handledGateKey = gateKey;
+            RecordDecision("jetway/stairs", $"{pending} showed no response and no usable fallback — giving up for this gate");
+        }
+    }
+
+    private void StartTrigger(string serviceId)
+    {
+        _pendingServiceId = serviceId;
+        _pendingDeadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(20);
+        _lifecycle.MarkCalled(serviceId);
+        _ = TriggerAsync(serviceId);
+    }
+
     private async Task TriggerAsync(string serviceId)
     {
         var result = await _api.SendCommandAsync(
@@ -165,7 +240,7 @@ public sealed class GsxJetwayStairsService : IDisposable
             new JsonObject { ["service"] = serviceId }).ConfigureAwait(false);
         if (!result.Ok)
         {
-            _handledGateKey = null; // allow a retry on the next tick
+            // Let the pending verification time out into the fallback path.
             RecordDecision("jetway/stairs", $"{serviceId} trigger rejected ({result.Code})");
         }
     }
