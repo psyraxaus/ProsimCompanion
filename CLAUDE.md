@@ -49,10 +49,12 @@ dotnet test ProsimCompanion.slnx
 dotnet run --project src/ProsimCompanion.App
 ```
 
-Requires .NET 10 SDK on Windows. `ProSimSDK.dll` is **never** referenced at build time and never
-redistributed — it is loaded at runtime from the user's ProSim install (default
-`C:\prosim\prosim-system`), resolved via `SetDllDirectory` + assembly resolver. The app must start and
-remain usable (degraded mode) when the SDK, ProSim, MSFS, or GSX are absent.
+Requires .NET 10 SDK on Windows. `ProSimSDK.dll` is compiled against with `Private=false`
+(build-time location via the `ProSimSdkDir` MSBuild property — a dev-machine concern only) and is
+**never** copied to output or redistributed. At runtime it is loaded from the directory the user
+configured in `config/settings.json` (written by the installer or the web Settings page — the app
+never assumes install paths), resolved via `SetDllDirectory` + assembly resolver. The app must
+start and remain usable (degraded mode) when the SDK, ProSim, MSFS, or GSX are absent.
 
 ## Conventions
 

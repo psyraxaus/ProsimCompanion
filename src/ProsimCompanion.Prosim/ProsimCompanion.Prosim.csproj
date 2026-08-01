@@ -1,14 +1,40 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Windows TFM: this project will load ProSimSDK.dll (runtime resolve, never redistributed)
-         and its WCF shims once Phase 1 lands. -->
     <TargetFramework>net10.0-windows</TargetFramework>
   </PropertyGroup>
+
+  <!-- Build-time-only SDK location for typed compilation against ProSimSDK. End users never
+       depend on these paths: at runtime the SDK is loaded from the directory configured in
+       config/settings.json (written by the installer or the web Settings page). Override on
+       other dev machines with -p:ProSimSdkDir=<dir>. -->
+  <PropertyGroup>
+    <ProSimSdkDir Condition="'$(ProSimSdkDir)' == '' and Exists('C:\prosim\prosim-system\ProSimSDK.dll')">C:\prosim\prosim-system</ProSimSdkDir>
+    <ProSimSdkDir Condition="'$(ProSimSdkDir)' == '' and Exists('$(USERPROFILE)\Downloads\ProSimA322-System\ProSimSDK.dll')">$(USERPROFILE)\Downloads\ProSimA322-System</ProSimSdkDir>
+  </PropertyGroup>
+
+  <Target Name="EnsureProSimSdkLocated" BeforeTargets="CoreCompile" Condition="'$(ProSimSdkDir)' == ''">
+    <Error Text="ProSimSDK.dll was not found for compilation. Pass -p:ProSimSdkDir=&lt;directory containing ProSimSDK.dll&gt;." />
+  </Target>
+
+  <ItemGroup>
+    <Reference Include="ProSimSDK">
+      <HintPath>$(ProSimSdkDir)\ProSimSDK.dll</HintPath>
+      <!-- Never copied to output, never redistributed: loaded at runtime from the user's
+           ProSim installation via SdkAssemblyResolver. -->
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <!-- WCF shims ProSimSDK.dll requires on modern .NET. -->
+    <PackageReference Include="System.Security.Cryptography.Xml" />
+    <PackageReference Include="System.ServiceModel.Http" />
+    <PackageReference Include="System.ServiceModel.NetTcp" />
+    <PackageReference Include="System.ServiceModel.Primitives" />
   </ItemGroup>
 
   <ItemGroup>

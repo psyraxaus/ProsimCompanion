@@ -12,10 +12,21 @@ public sealed class ProsimOptions
     public string Host { get; set; } = "localhost";
 
     /// <summary>
-    /// Directory containing ProSimSDK.dll. Defaults to the standard ProSim install location.
+    /// Directory containing ProSimSDK.dll (a full dll path is also accepted). No default on
+    /// purpose: the installer prompts for it and writes it here; it can also be set on the web
+    /// Settings page. While empty the ProSim subsystem stays disabled with guidance in the log.
     /// </summary>
-    public string SdkPath { get; set; } = @"C:\prosim\prosim-system";
+    public string SdkPath { get; set; } = "";
+
+    /// <summary>Optional SDK API key (newer ProSim builds); null/empty when not used.</summary>
+    public string? ApiKey { get; set; }
 
     /// <summary>Delay between reconnect attempts when the connection is lost.</summary>
     public int ReconnectIntervalMs { get; set; } = 2000;
+
+    /// <summary>Hold time for a momentary switch press (write 1 → hold → write 0).</summary>
+    public int MomentaryPressHoldMs { get; set; } = 150;
+
+    /// <summary>Minimum gap between serialized momentary presses.</summary>
+    public int MomentaryPressGapMs { get; set; } = 120;
 }

@@ -1,6 +1,8 @@
 @page "/"
+@using ProsimCompanion.Core.Aircraft
 @implements IDisposable
 @inject ConnectionStatusStore Status
+@inject IProsimDataRefs DataRefs
 
 <h1>Status</h1>
 
@@ -26,18 +28,48 @@ else
     </table>
 }
 
+<h2>Live aircraft data</h2>
+<table>
+    <thead>
+        <tr><th>Dataref</th><th>Value</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var sample in _samples)
+        {
+            <tr>
+                <td>@sample.Label</td>
+                <td>@sample.Display()@(sample.Subscription.IsStale ? " (stale)" : "")</td>
+            </tr>
+        }
+    </tbody>
+</table>
 <p class="hint">
-    Live subsystem connections. The ProSim, SimConnect and GSX layers arrive with roadmap
-    Phases 1–2 — until then they report as disconnected placeholders.
+    Pushed live from ProSim through the register-once cached read model — the same seam every
+    feature pillar consumes. Shows “—” until ProSim connects and pushes a value.
 </p>
 
 @code {
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _snapshot = [];
+    private readonly List<Sample> _samples = [];
 
     protected override void OnInitialized()
     {
         _snapshot = Status.Snapshot();
         Status.Changed += OnStatusChanged;
+
+        AddSample("Indicated airspeed (kt)", "aircraft.speed.ias", DataRefTier.Frequent,
+            subscription => subscription.GetValue(double.NaN) is var v && double.IsNaN(v) ? "—" : v.ToString("F0"));
+        AddSample("Fuel on board (kg)", "aircraft.fuel.total.amount.kg", DataRefTier.Normal,
+            subscription => subscription.GetValue(double.NaN) is var v && double.IsNaN(v) ? "—" : v.ToString("F0"));
+        AddSample("Gear down", "aircraft.gearDown", DataRefTier.Normal,
+            subscription => subscription.RawValue is null ? "—" : subscription.GetValue(false) ? "yes" : "no");
+    }
+
+    private void AddSample(string label, string name, DataRefTier tier, Func<IDataRefSubscription, string> display)
+    {
+        var subscription = DataRefs.Subscribe(name, tier);
+        subscription.ValueChanged += OnDataChanged;
+        _samples.Add(new Sample(label, subscription, display));
     }
 
     private void OnStatusChanged(object? sender, EventArgs e)
@@ -50,5 +82,21 @@ else
         });
     }
 
-    public void Dispose() => Status.Changed -= OnStatusChanged;
+    private void OnDataChanged(object? sender, EventArgs e)
+        => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Status.Changed -= OnStatusChanged;
+        foreach (var sample in _samples)
+        {
+            sample.Subscription.ValueChanged -= OnDataChanged;
+            sample.Subscription.Dispose();
+        }
+    }
+
+    private sealed record Sample(string Label, IDataRefSubscription Subscription, Func<IDataRefSubscription, string> Format)
+    {
+        public string Display() => Format(Subscription);
+    }
 }

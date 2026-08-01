@@ -1,11 +1,12 @@
 {
+  "configVersion": 1,
   "webUi": {
     "port": 5320,
     "bindToAllInterfaces": false
   },
   "prosim": {
     "host": "localhost",
-    "sdkPath": "C:\\prosim\\prosim-system",
+    "sdkPath": "",
     "reconnectIntervalMs": 2000
   },
   "gsx": {

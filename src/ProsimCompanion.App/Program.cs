@@ -52,6 +52,11 @@ public static class Program
             var exitCode = app.Run();
 
             web.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+
+            // ProSimSDK owns a foreground thread that cannot be joined; without an explicit exit
+            // the process would linger after the UI closes (known from the predecessor apps).
+            Log.CloseAndFlush();
+            Environment.Exit(exitCode);
             return exitCode;
         }
         catch (Exception ex)
@@ -71,9 +76,20 @@ public static class Program
         {
             Args = args,
             ContentRootPath = AppContext.BaseDirectory,
+            WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot"),
         });
 
         var settingsPath = Path.Combine(AppContext.BaseDirectory, "config", "settings.json");
+        var settingsFile = new JsonSettingsFile(settingsPath);
+        var previousVersion = SettingsMigrator.Migrate(settingsFile);
+        if (previousVersion < SettingsMigrator.CurrentVersion)
+        {
+            Log.Information(
+                "Settings migrated from version {From} to {To}",
+                previousVersion,
+                SettingsMigrator.CurrentVersion);
+        }
+
         builder.Configuration.AddJsonFile(settingsPath, optional: true, reloadOnChange: true);
 
         builder.Services.AddSerilog();
@@ -89,6 +105,11 @@ public static class Program
         builder.WebHost.UseUrls($"http://{host}:{webUi.Port}");
 
         var web = builder.Build();
+
+        // Serves wwwroot, including the blazor.web.js copied there at build (see csproj) — a
+        // WinExe host has no static-web-assets pipeline to provide it.
+        web.UseStaticFiles();
+
         web.UseAntiforgery();
         web.MapRazorComponents<Web.App>().AddInteractiveServerRenderMode();
         return web;

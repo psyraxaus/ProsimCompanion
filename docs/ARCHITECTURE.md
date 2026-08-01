@@ -64,6 +64,12 @@ circular dependency.
 
 - `config/settings.json` beside the exe; camelCase; per-feature options classes registered via
   `IOptionsMonitor<T>`; every property has a safe default so partial files work.
+- `configVersion` stamp + stepwise `SettingsMigrator` (runs at startup, before binding). Additive
+  settings never need migration; the ladder exists for breaking changes only (renames,
+  restructures) — the model that served Prosim2GSX through 33 config versions.
+- External component locations (ProSimSDK.dll, Virtuali directory, VoiceMeeter) are captured by
+  the installer or the web Settings page and stored in config. The app never assumes install
+  paths; an unset path degrades that subsystem with guidance in the log/UI.
 - Hot reload: file watcher with ~300 ms debounce; saves are debounced (~750 ms) and flushed on exit.
 - Aircraft profiles carry per-aircraft feature settings, matched on aircraft title/airline.
 - Content packs (checklists, SOPs, abnormals, themes) are separate user-editable JSON directories,

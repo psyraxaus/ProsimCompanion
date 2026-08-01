@@ -8,10 +8,13 @@ with polling tiers) is the canonical curated list to port verbatim.
 
 ## 1. ProSim SDK (ProSimSDK.dll)
 
-**Loading** — never referenced at build time, never redistributed. Runtime resolution order:
-configured install path → folder of configured SDK path → default `C:\prosim\prosim-system` →
-manual browse. Requires `SetDllDirectory` (native deps), WCF shim packages
-(`System.ServiceModel.Primitives/Http/NetTcp`) and `System.Security.Cryptography.Xml` on modern .NET.
+**Loading** — compiled against with `Private=false` (typed access; build-time path via the
+`ProSimSdkDir` MSBuild property), never copied to output or redistributed. At runtime the dll is
+loaded from the **user-configured** directory (`prosim.sdkPath` in config — written by the
+installer or web Settings; no assumed install path). Requires `SetDllDirectory` (native deps), WCF
+shim packages (`System.ServiceModel.Primitives/Http/NetTcp` 10.0.652802) and
+`System.Security.Cryptography.Xml` 10.0.10 on modern .NET. The SDK's XML API doc ships beside the
+dll (`ProSimSDK.xml` in the ProSim System install image).
 
 **Connecting** — two API shapes exist; probe by reflection:
 - legacy: parameterless ctor + `Connect(host)`
@@ -24,6 +27,8 @@ process must end with `Environment.Exit` after orderly teardown.
 **Read model (critical)** — `ReadDataRef(name)` is a synchronous network round-trip; polling it
 stalls the app. Correct pattern: create `DataRef(name, interval, connection, autoRegister: false)`,
 attach `onDataChange` **before** calling `dr.Register()`, then read the cached `.value` locally.
+Note: `Register()` is an instance method on `DataRef` — the SDK's XML doc claims
+`ProSimConnect.Register(DataRef)` but no such method exists in the binary (verified v1.1.1.0).
 The 3-arg `DataRef` ctor auto-registers (leak hazard if allocated per write). Cadence tiers used
 historically: Critical 100 ms / Frequent 250 ms / Normal 500 ms / Infrequent 2000 ms.
 On reconnect, re-register every subscription (fixes delayed-ProSim-start bugs). On disconnect, flag

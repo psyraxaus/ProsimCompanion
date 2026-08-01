@@ -18,11 +18,16 @@ every phase ends with a usable, shippable application. Feature parity checklists
 The plumbing every pillar depends on. Exit criteria: app connects to ProSim and MSFS, shows live
 aircraft state in the browser, and survives any of them being absent or restarting.
 
-- [ ] **ProSim SDK access** (`ProsimCompanion.Prosim`)
-  - [ ] Runtime SDK loading (assembly resolver, `SetDllDirectory`, dual legacy/beta `Connect` shapes, API key)
-  - [ ] Push subscription read model (register-once cached DataRefs, tiered 100/250/500/2000 ms)
-  - [ ] Reconnect watchdog with re-registration; stale-flagging on disconnect
-  - [ ] Write path with code-level allow-lists; serialized momentary-press channel
+- [x] **ProSim SDK access** (`ProsimCompanion.Prosim`) — verified live against ProSim 2026-08-01
+  - [x] SDK loading: typed compile-time reference (`Private=false`), runtime load from the
+        **user-configured** path (installer/web Settings; no assumed install location), assembly
+        resolver + `SetDllDirectory`, optional API key. Targets the current SDK only — the old
+        dual legacy/beta reflection probing is deliberately dropped.
+  - [x] Push subscription read model (register-once cached DataRefs, tiered 100/250/500/2000 ms,
+        shared registrations at the fastest requested tier)
+  - [x] Reconnect: SDK self-retrying async connect + single re-armed Connect after an established
+        connection drops; registrations replayed on reconnect; stale-flagging on disconnect
+  - [x] Write path with code-level allow-list (`ProsimWriteGate`); serialized momentary-press channel
   - [ ] Dataref catalog (port `ProsimConstants` names verbatim; keep `ProsimDataref.csv` as reference)
 - [ ] **ProSim EFB gateway client** (GraphQL dataref read/write, EFB tasks, perf calc, runways, METAR)
 - [ ] **SimConnect layer** (`ProsimCompanion.Sim`) — clean-room: connection lifecycle, SimVars,
@@ -99,8 +104,10 @@ from Phase 1 — this phase adds the speech stack and features on top.
 
 ## Phase 7 — Distribution & polish
 
-- [ ] Installer (Inno Setup; installs GSX aircraft profiles to `%APPDATA%\Virtuali\Airplanes`;
-      verifies ProSimSDK.dll never ships)
+- [ ] Installer (Inno Setup) — prompts for external component locations and writes them into
+      `config/settings.json`: ProSimSDK.dll path, Virtuali directory (then installs the GSX
+      aircraft profiles/handler there), VoiceMeeter directory. Verifies ProSimSDK.dll never ships.
+      The app itself never assumes these paths — unset paths degrade the subsystem with guidance.
 - [ ] System tray icon + minimize-to-tray; single-instance mutex
 - [ ] Themes (airline JSON themes in the web UI), light/dark
 - [ ] Config migration importers from Prosim2GSX `AppConfig.json` and Prosim2FO `settings.json`

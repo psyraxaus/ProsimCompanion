@@ -18,9 +18,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Assets-only: supplies _framework/blazor.web.js (copied below); nothing is compiled in. -->
+    <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" GeneratePathProperty="true" ExcludeAssets="all" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- A WinExe host has no static-web-assets pipeline, so the Blazor interactivity script is
+         copied from its source package and served as an ordinary static file. Without it, pages
+         render but the interactive circuit never connects. -->
+    <None Include="$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\_framework\blazor.web.js"
+          Link="wwwroot\_framework\blazor.web.js"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
