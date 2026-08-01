@@ -1,26 +1,22 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using ProsimCompanion.Core.Hosting;
-using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.Aircraft;
 
 namespace ProsimCompanion.Sim;
 
 public static class SimServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers MSFS/SimConnect connectivity. Phase 1 replaces the placeholder with the real
-    /// clean-room SimConnect + LVAR layer (ADR-0003; LVAR strategy per docs/integrations/gsx.md §5).
+    /// Registers MSFS connectivity: the SimVar read model (<see cref="ISimVars"/>) and the
+    /// SimConnect session lifecycle. LVAR transport is a Phase 2 work item
+    /// (docs/integrations/gsx.md §5).
     /// </summary>
     public static IServiceCollection AddSimServices(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IHostedService>(provider => new PlaceholderSubsystemService(
-            provider.GetRequiredService<ConnectionStatusStore>(),
-            provider.GetRequiredService<ILogger<PlaceholderSubsystemService>>(),
-            Subsystems.SimConnect,
-            "Phase 1"));
+        services.AddSingleton<SimVarService>();
+        services.AddSingleton<ISimVars>(provider => provider.GetRequiredService<SimVarService>());
+        services.AddHostedService<SimConnectService>();
 
         return services;
     }

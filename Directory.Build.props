@@ -7,6 +7,9 @@
     <Version>0.1.0</Version>
     <Company>Protovision</Company>
     <Product>ProsimCompanion</Product>
+    <!-- Native SimConnect.dll is x64-only; pin the whole solution so it can never be loaded
+         into a 32-bit process. -->
+    <PlatformTarget>x64</PlatformTarget>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <!-- CA1848/CA1873: LoggerMessage source-gen delegates are not worth the ceremony at this

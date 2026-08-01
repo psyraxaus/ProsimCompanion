@@ -1,6 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Aircraft.Gateway;
+using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Prosim.DataRefs;
+using ProsimCompanion.Prosim.Flight;
+using ProsimCompanion.Prosim.Gateway;
 
 namespace ProsimCompanion.Prosim;
 
@@ -17,6 +21,8 @@ public static class ProsimServiceCollectionExtensions
 
         services.AddSingleton<ProsimDataRefService>();
         services.AddSingleton<IProsimDataRefs>(provider => provider.GetRequiredService<ProsimDataRefService>());
+        services.AddSingleton<IProsimGateway, ProsimGatewayClient>();
+        services.AddSingleton<IFlightDataSource, ProsimFlightDataSource>();
         services.AddHostedService<ProsimConnectionService>();
 
         return services;

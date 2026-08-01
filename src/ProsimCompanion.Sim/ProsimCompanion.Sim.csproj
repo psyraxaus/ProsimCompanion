@@ -1,10 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Windows TFM: this project will reference the native SimConnect SDK once Phase 1 lands
-         (clean-room SimConnect + LVAR layer, ADR-0003). -->
     <TargetFramework>net10.0-windows</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MSFS SDK managed wrapper + native SimConnect.dll (redistributable; bundled in libs/).
+         The native dll must sit next to the exe and requires a 64-bit process. -->
+    <Reference Include="Microsoft.FlightSimulator.SimConnect">
+      <HintPath>..\..\libs\SimConnect\Microsoft.FlightSimulator.SimConnect.dll</HintPath>
+    </Reference>
+    <None Include="..\..\libs\SimConnect\SimConnect.dll" Link="SimConnect.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />

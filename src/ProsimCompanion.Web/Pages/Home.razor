@@ -1,10 +1,14 @@
 @page "/"
 @using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Flight
 @implements IDisposable
 @inject ConnectionStatusStore Status
 @inject IProsimDataRefs DataRefs
+@inject FlightStateEngine FlightState
 
 <h1>Status</h1>
+
+<p>Flight phase: <strong>@FlightState.CurrentPhase</strong></p>
 
 @if (_snapshot.Count == 0)
 {
@@ -56,6 +60,7 @@ else
     {
         _snapshot = Status.Snapshot();
         Status.Changed += OnStatusChanged;
+        FlightState.PhaseChanged += OnPhaseChanged;
 
         AddSample("Indicated airspeed (kt)", "aircraft.speed.ias", DataRefTier.Frequent,
             subscription => subscription.GetValue(double.NaN) is var v && double.IsNaN(v) ? "—" : v.ToString("F0"));
@@ -85,9 +90,13 @@ else
     private void OnDataChanged(object? sender, EventArgs e)
         => _ = InvokeAsync(StateHasChanged);
 
+    private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
+        => _ = InvokeAsync(StateHasChanged);
+
     public void Dispose()
     {
         Status.Changed -= OnStatusChanged;
+        FlightState.PhaseChanged -= OnPhaseChanged;
         foreach (var sample in _samples)
         {
             sample.Subscription.ValueChanged -= OnDataChanged;

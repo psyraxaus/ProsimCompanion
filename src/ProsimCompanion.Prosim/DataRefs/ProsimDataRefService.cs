@@ -22,6 +22,7 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
     private readonly Task _pressWorker;
     private volatile IDataRefBackend? _backend;
 
+    // DataRefSubscriptionTable lives in Core (shared with the SimConnect layer).
     public ProsimDataRefService(IOptionsMonitor<ProsimOptions> options, ILogger<ProsimDataRefService> logger)
     {
         ArgumentNullException.ThrowIfNull(options);

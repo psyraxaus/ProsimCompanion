@@ -1,12 +1,11 @@
-using ProsimCompanion.Core.Aircraft;
-
-namespace ProsimCompanion.Prosim.DataRefs;
+namespace ProsimCompanion.Core.Aircraft;
 
 /// <summary>
-/// Pure bookkeeping for dataref subscriptions — no SDK types, fully unit-testable. Tracks which
-/// names are subscribed at which cadence (multiple subscribers share one registration at the
-/// fastest requested tier), caches pushed values, and flags them stale on disconnect instead of
-/// clearing ("valid or hold previous decision").
+/// Pure bookkeeping for push subscriptions (ProSim datarefs, SimConnect SimVars — anything
+/// name-keyed) — no SDK types, fully unit-testable. Tracks which names are subscribed at which
+/// cadence (multiple subscribers share one registration at the fastest requested tier), caches
+/// pushed values, and flags them stale on disconnect instead of clearing ("valid or hold
+/// previous decision").
 /// </summary>
 public sealed class DataRefSubscriptionTable
 {

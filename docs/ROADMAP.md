@@ -28,15 +28,21 @@ aircraft state in the browser, and survives any of them being absent or restarti
   - [x] Reconnect: SDK self-retrying async connect + single re-armed Connect after an established
         connection drops; registrations replayed on reconnect; stale-flagging on disconnect
   - [x] Write path with code-level allow-list (`ProsimWriteGate`); serialized momentary-press channel
-  - [ ] Dataref catalog (port `ProsimConstants` names verbatim; keep `ProsimDataref.csv` as reference)
-- [ ] **ProSim EFB gateway client** (GraphQL dataref read/write, EFB tasks, perf calc, runways, METAR)
-- [ ] **SimConnect layer** (`ProsimCompanion.Sim`) — clean-room: connection lifecycle, SimVars,
-      LVAR read/write, sim events, reconnect; self-degrading when MSFS absent
-- [ ] **Flight phase engine** — single 14-phase state machine (ColdAndDark→…→Shutdown) fed by a
-      `FlightDataSnapshot` seam; per-transition debounce; all features consume `PhaseChanged`
-- [ ] **State stores** — observable, UI-agnostic stores consumed identically by Blazor circuits and
-      any future surface (pattern proven in Prosim2GSX)
-- [ ] **JSONL event log** — structured session record + replay data source (pattern from Prosim2FO)
+  - [x] Dataref catalog — `ProsimDataRefNames` (717 wire identifiers ported verbatim from
+        `ProsimConstants`, set-diff verified; `ProsimDataref.csv` at repo root as full reference)
+- [x] **ProSim EFB gateway client** (GraphQL dataref read/write with exact predecessor wire
+      format, cancelBoarding, vspeeds/ldr calc, runways, METAR with 204-no-retry, failures)
+- [x] **SimConnect layer** (`ProsimCompanion.Sim`) — clean-room: headless event-handle pump,
+      retry loop, SimVar read model behind `ISimVars`, self-degrading when MSFS absent.
+      **LVAR transport deliberately deferred to the start of Phase 2** (investigate how
+      CFIT.SimConnectLib reads LVARs without MobiFlight before choosing; gsx.md §5)
+- [x] **Flight phase engine** — 14-phase model (matches Prosim2FO), pure
+      `FlightPhaseEvaluator` + debounced `FlightStateEngine`, `FlightDataSnapshot` seam with
+      live ProSim source; verified live 2026-08-01
+- [ ] **State stores** — ConnectionStatusStore exists; feature stores (flight status, OFP, W&B…)
+      arrive with their features
+- [x] **JSONL event log** — structured session record (sessions/, retain 20, non-blocking
+      writer); replay data source still to come with the replay harness
 - [ ] **Web shell** — layout/nav, connection status page, settings pages, LAN access with bearer
       token + QR onboarding, WPF-resident web server settings (lockout prevention)
 - [ ] **Aircraft profiles** — profile matching on title/airline; per-profile feature settings
