@@ -21,5 +21,6 @@ the SimConnect + LVAR layer in-repo against the raw Microsoft SimConnect SDK.
   the *behavioural* knowledge (which LVARs, encodings, timing quirks) is preserved in
   `docs/integrations/gsx.md` — only transport code is rewritten. CFIT.SimConnectLib and the
   MobiFlight WASM pattern in Prosim2FO's `Sim` project remain readable references next door.
-- LVAR access strategy must be decided in Phase 1: MSFS 2024+ SimConnect exposes LVARs natively;
-  fall back to a MobiFlight-WASM-style client-data channel only if needed for MSFS 2020.
+- LVAR access strategy (resolved at Phase 2 start, 2026-08-01): native SimConnect LVAR support
+  (MSFS 2020 SU12+ and 2024, identical mechanism — `"L:Name"` straight into data definitions).
+  No WASM/MobiFlight component needed; details in docs/integrations/gsx.md §5.

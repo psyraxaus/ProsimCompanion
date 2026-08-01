@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Prosim\ProsimCompanion.Prosim.csproj" />
+    <ProjectReference Include="..\..\src\ProsimCompanion.Sim\ProsimCompanion.Sim.csproj" />
   </ItemGroup>
 
 </Project>

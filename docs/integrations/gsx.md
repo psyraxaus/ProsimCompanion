@@ -83,6 +83,12 @@ triggered for VDGS data.
 ## 5. MSFS-version specifics
 
 - Walkaround skip is MSFS 2024 only.
-- LVAR access: MSFS 2024 SimConnect can expose LVARs natively; MSFS 2020 needs a
-  MobiFlight-WASM-style client-data channel (`MobiFlight.Command`/`.Response`/`.LVars`,
-  `MF.SimVars.Add.(L:var)`) — decide strategy in Phase 1 (see ADR-0003).
+- **LVAR access (RESOLVED 2026-08-01)**: native SimConnect handles LVARs directly on both MSFS
+  2020 (SU12+) and 2024 — pass the full `"L:Name"` into `AddToDataDefinition` with unit
+  `"number"` (FLOAT64), request with `SIM_FRAME` + `CHANGED`, write via `SetDataOnSimObject`.
+  No WASM module, no MobiFlight, no version branching (verified from CFIT.SimConnectLib source —
+  this is why Prosim2GSX's installer *removes* MobiFlight). Caveats: the sim silently
+  auto-creates unknown LVAR names as 0 (typos fail invisibly — keep names centralized in
+  `ProsimDataRefNames.Lvars`); after a write, the sim echoes the value on the next frame —
+  treat the echo as authoritative, don't suppress it.
+- Full Remote API wire protocol: see [gsx-remote-api.md](gsx-remote-api.md).

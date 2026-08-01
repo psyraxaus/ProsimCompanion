@@ -55,10 +55,14 @@ aircraft state in the browser, and survives any of them being absent or restarti
 
 ## Phase 2 — GSX ground automation (first feature pillar)
 
-Port of the Prosim2GSX pillar onto the new foundation. Primary reference:
-`docs/integrations/gsx.md` and Prosim2GSX `docs/00-shared-context.md` (locked Remote API decisions).
+Port of the Prosim2GSX pillar onto the new foundation. Primary references:
+`docs/integrations/gsx.md` and **`docs/integrations/gsx-remote-api.md`** (full wire spec,
+extracted 2026-08-01, incl. the locked decisions carried verbatim).
 
-- [ ] Couatl Remote API v2 WebSocket client (hello/capabilities, state mirror, patches)
+- [x] LVAR transport decision — native SimConnect on both sims, no WASM (gsx.md §5); LVAR
+      write path + write gate in `ProsimCompanion.Sim`
+- [ ] Couatl Remote API v2 WebSocket client (hello/capabilities, subscribe, state mirror,
+      coarse patches, engine events, readiness model, wire-trace every frame)
 - [ ] Menu intent framework (text/regex match, verify-outcome, safe-fail "leave menu for user")
 - [ ] Timing-critical LVAR reads (pushback, fuel hose, pax/cargo counters, de-ice, gate readback)
 - [ ] Ground automation state machine (SessionStart→…→TurnAround) with per-service activation

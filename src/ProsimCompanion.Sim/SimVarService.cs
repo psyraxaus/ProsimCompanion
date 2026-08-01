@@ -65,6 +65,27 @@ public sealed class SimVarService : ISimVars
         return _table.Subscribe(simVarName, tier);
     }
 
+    /// <inheritdoc />
+    public async Task WriteAsync(string simVarName, double value, CancellationToken cancellationToken = default)
+    {
+        SimWriteGate.EnsureAllowed(simVarName);
+
+        ISimVarBackend? backend;
+        lock (_gate)
+        {
+            backend = _backend;
+        }
+
+        if (backend is null)
+        {
+            throw new InvalidOperationException(
+                "MSFS is not connected — the SimVar write cannot be delivered. Callers should " +
+                "treat this as transient and retry once SimConnect reports Connected.");
+        }
+
+        await backend.WriteValueAsync(simVarName, value, cancellationToken).ConfigureAwait(false);
+    }
+
     internal void AttachBackend(ISimVarBackend backend)
     {
         ArgumentNullException.ThrowIfNull(backend);
@@ -106,4 +127,7 @@ internal interface ISimVarBackend
 {
     void EnsureRegistered(string simVarName, string unit, int intervalMs);
     void Unregister(string simVarName);
+
+    /// <summary>Writes a FLOAT64 value. Called only after the write gate has passed.</summary>
+    Task WriteValueAsync(string simVarName, double value, CancellationToken cancellationToken);
 }

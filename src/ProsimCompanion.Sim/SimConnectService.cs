@@ -117,6 +117,45 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         }
     }
 
+    Task ISimVarBackend.WriteValueAsync(string simVarName, double value, CancellationToken cancellationToken)
+    {
+        // SetDataOnSimObject needs an existing data definition; writes register on demand at a
+        // relaxed cadence (the write echo arrives through the subscription stream regardless).
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            RegisteredVar entry;
+            SimConnect? simConnect;
+            lock (_gate)
+            {
+                if (!_registered.TryGetValue(simVarName, out entry!))
+                {
+                    entry = new RegisteredVar(_nextDefinitionId++, simVarName, "number", 2000);
+                    _registered[simVarName] = entry;
+                    if (_connected && _simConnect is not null)
+                    {
+                        RegisterWithSim(entry);
+                    }
+                }
+
+                simConnect = _connected ? _simConnect : null;
+            }
+
+            if (simConnect is null)
+            {
+                throw new InvalidOperationException("MSFS is not connected — the SimVar write cannot be delivered.");
+            }
+
+            simConnect.SetDataOnSimObject(
+                (DefinitionId)entry.Id,
+                SimConnect.SIMCONNECT_OBJECT_ID_USER,
+                SIMCONNECT_DATA_SET_FLAG.DEFAULT,
+                new DoubleValue { Value = value });
+            _logger.LogDebug("Wrote {Value} to SimVar {SimVar}", value, simVarName);
+        }, cancellationToken);
+    }
+
     void ISimVarBackend.Unregister(string simVarName)
     {
         lock (_gate)
