@@ -16,4 +16,11 @@ public sealed class GsxOptions
 
     /// <summary>How long to await a command result before synthesizing a timeout.</summary>
     public int CommandTimeoutMs { get; set; } = 10_000;
+
+    /// <summary>How long to wait for a menu to appear (menuShown + matching title).</summary>
+    public int MenuOpenTimeoutMs { get; set; } = 5000;
+
+    /// <summary>Default budget for verifying a menu pick's observable effect (per-intent
+    /// overridable — the reposition submenu is known to exceed 5 s).</summary>
+    public int IntentVerifyTimeoutMs { get; set; } = 5000;
 }

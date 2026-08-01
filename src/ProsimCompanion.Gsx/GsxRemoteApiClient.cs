@@ -29,7 +29,7 @@ public enum GsxReadiness
 /// mirror. Every frame in both directions goes through the wire trace. Locked decision 3:
 /// actions dispatch off this receive path — there is no tick-loop command queue.
 /// </summary>
-public sealed class GsxRemoteApiClient : BackgroundService
+public sealed class GsxRemoteApiClient : BackgroundService, IGsxRemoteApi
 {
     private const string WireChannel = "GsxRemoteApi";
     private const int RequiredProtocol = 1;

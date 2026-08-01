@@ -16,8 +16,11 @@ public static class GsxServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<GsxRemoteApiClient>();
+        services.AddSingleton<IGsxRemoteApi>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
         services.AddSingleton<GsxServiceLifecycleTracker>();
+        services.AddSingleton<Menu.GsxMenuIntentExecutor>();
+        services.AddSingleton<Menu.GsxQuestionDispatcher>();
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

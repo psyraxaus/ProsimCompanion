@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Gsx.Menu;
 using ProsimCompanion.Gsx.Services;
 
 namespace ProsimCompanion.Gsx;
@@ -16,6 +17,7 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
 
     private readonly GsxRemoteApiClient _client;
     private readonly GsxServiceLifecycleTracker _lifecycle;
+    private readonly GsxQuestionDispatcher _questions;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxBootstrapService> _logger;
     private Timer? _reconcileTimer;
@@ -23,16 +25,19 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
     public GsxBootstrapService(
         GsxRemoteApiClient client,
         GsxServiceLifecycleTracker lifecycle,
+        GsxQuestionDispatcher questions,
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(lifecycle);
+        ArgumentNullException.ThrowIfNull(questions);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
         _client = client;
         _lifecycle = lifecycle;
+        _questions = questions;
         _eventLog = eventLog;
         _logger = logger;
     }
@@ -68,6 +73,11 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         if (string.Equals(key, "services", StringComparison.OrdinalIgnoreCase))
         {
             _lifecycle.Process(_client.Mirror.Services);
+        }
+        else if (key is "menu" or "menuShown")
+        {
+            // Fire-and-forget is safe: the dispatcher contains all its own failures.
+            _ = _questions.OnMenuUpdatedAsync(_client.Mirror.MenuShown, _client.Mirror.Menu?.Title);
         }
     }
 
