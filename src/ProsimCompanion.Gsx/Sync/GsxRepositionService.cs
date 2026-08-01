@@ -23,7 +23,6 @@ public sealed class GsxRepositionService : IDisposable
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxRepositionService> _logger;
-    private readonly Timer _timer;
     private string? _handledGateKey;
     private int _running;
 
@@ -50,22 +49,20 @@ public sealed class GsxRepositionService : IDisposable
         _logger = logger;
 
         _api.Mirror.SidChanged += OnSidChanged;
-        _timer = new Timer(_ => _ = CheckAsync(), null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
     }
 
-    public void Dispose()
-    {
-        _api.Mirror.SidChanged -= OnSidChanged;
-        _timer.Dispose();
-    }
+    public void Dispose() => _api.Mirror.SidChanged -= OnSidChanged;
 
     private void OnSidChanged(string? oldSid, string? newSid) => _handledGateKey = null;
 
-    private async Task CheckAsync()
+    /// <summary>One coordinator-driven attempt. Returns Done when repositioned, disabled, or
+    /// already handled for this gate; Waiting while preconditions (stationary, engines off)
+    /// are not met. Driven by <see cref="GsxGroundPrepCoordinator"/> — step 1 of ground prep.</summary>
+    public async Task<GsxPrepStatus> RunStepAsync()
     {
         if (Interlocked.Exchange(ref _running, 1) == 1)
         {
-            return;
+            return GsxPrepStatus.Pending;
         }
 
         try
@@ -74,17 +71,17 @@ public sealed class GsxRepositionService : IDisposable
             var gateKey = _api.Mirror.GateContextKey;
             var snapshot = _flightState.LastSnapshot;
 
-            if (!options.AutomationEnabled
-                || !options.AutoReposition
-                || _api.Readiness != GsxReadiness.Ready
-                || gateKey is null
-                || string.Equals(gateKey, _handledGateKey, StringComparison.Ordinal)
-                || _flightState.CurrentPhase is not (FlightPhase.Preflight or FlightPhase.ColdAndDark)
+            if (!options.AutoReposition || string.Equals(gateKey, _handledGateKey, StringComparison.Ordinal))
+            {
+                return GsxPrepStatus.Done;
+            }
+
+            if (gateKey is null
                 || snapshot is null
                 || snapshot.AnyEngineRunning
                 || snapshot.GroundSpeedKt > 1)
             {
-                return;
+                return GsxPrepStatus.Waiting;
             }
 
             // Latch first: even a failed attempt must not loop the reposition menu forever —
@@ -114,10 +111,12 @@ public sealed class GsxRepositionService : IDisposable
             RecordDecision(
                 "reposition",
                 result.Succeeded ? $"completed: {result.Detail}" : $"{result.Outcome}: {result.Detail} — menu left for the user");
+            return GsxPrepStatus.Done;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Reposition check failed");
+            _logger.LogError(ex, "Reposition step failed");
+            return GsxPrepStatus.Done; // never block the rest of the prep chain
         }
         finally
         {

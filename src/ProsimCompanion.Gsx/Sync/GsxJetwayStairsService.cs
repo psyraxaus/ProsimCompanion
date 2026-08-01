@@ -24,7 +24,6 @@ public sealed class GsxJetwayStairsService : IDisposable
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxServiceLifecycleTracker _lifecycle;
-    private readonly FlightStateEngine _flightState;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxJetwayStairsService> _logger;
@@ -32,7 +31,6 @@ public sealed class GsxJetwayStairsService : IDisposable
     private readonly IDataRefSubscription _stairsLvar;
     private readonly IDataRefSubscription _operateJetwaysState;
     private readonly IDataRefSubscription _operateStairsState;
-    private readonly Timer _timer;
     private string? _handledGateKey;
     private string? _currentGateKey;
     private string? _pendingServiceId;
@@ -48,7 +46,6 @@ public sealed class GsxJetwayStairsService : IDisposable
     public GsxJetwayStairsService(
         IGsxRemoteApi api,
         GsxServiceLifecycleTracker lifecycle,
-        FlightStateEngine flightState,
         ISimVars simVars,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
@@ -56,7 +53,6 @@ public sealed class GsxJetwayStairsService : IDisposable
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
-        ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -64,7 +60,6 @@ public sealed class GsxJetwayStairsService : IDisposable
 
         _api = api;
         _lifecycle = lifecycle;
-        _flightState = flightState;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -75,13 +70,11 @@ public sealed class GsxJetwayStairsService : IDisposable
         _operateStairsState = simVars.Subscribe(GsxLvarNames.OperateStairsState, "number", DataRefTier.Normal);
 
         _api.Mirror.SidChanged += OnSidChanged;
-        _timer = new Timer(_ => Check(), null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
 
     public void Dispose()
     {
         _api.Mirror.SidChanged -= OnSidChanged;
-        _timer.Dispose();
         _jetwayLvar.Dispose();
         _stairsLvar.Dispose();
         _operateJetwaysState.Dispose();
@@ -90,24 +83,28 @@ public sealed class GsxJetwayStairsService : IDisposable
 
     private void OnSidChanged(string? oldSid, string? newSid) => _handledGateKey = null;
 
-    private void Check()
+    /// <summary>One coordinator-driven attempt — step 4 of ground prep (after GPU/chocks).
+    /// Done when connected, disabled, given up, or nothing to connect; Pending while a trigger
+    /// awaits its Requested/Active edge; Waiting otherwise.</summary>
+    public GsxPrepStatus RunStep()
     {
         if (Interlocked.Exchange(ref _checking, 1) == 1)
         {
-            return;
+            return GsxPrepStatus.Pending;
         }
 
         try
         {
             var options = _options.CurrentValue;
             var gateKey = _api.Mirror.GateContextKey;
-            if (!options.AutomationEnabled
-                || !options.AutoConnectJetwayOrStairs
-                || _api.Readiness != GsxReadiness.Ready
-                || gateKey is null
-                || _flightState.CurrentPhase is not (FlightPhase.Preflight or FlightPhase.ColdAndDark))
+            if (!options.AutoConnectJetwayOrStairs)
             {
-                return;
+                return GsxPrepStatus.Done;
+            }
+
+            if (gateKey is null)
+            {
+                return GsxPrepStatus.Waiting;
             }
 
             // Fresh gate context resets the whole cycle.
@@ -122,18 +119,20 @@ public sealed class GsxJetwayStairsService : IDisposable
             if (_pendingServiceId is not null)
             {
                 VerifyPendingTrigger(gateKey);
-                return;
+                return _pendingServiceId is null && _handledGateKey is not null
+                    ? GsxPrepStatus.Done
+                    : GsxPrepStatus.Pending;
             }
 
             if (string.Equals(gateKey, _handledGateKey, StringComparison.Ordinal))
             {
-                return;
+                return GsxPrepStatus.Done;
             }
 
             var services = _api.Mirror.Services;
             if (services.Count == 0)
             {
-                return; // mirror not populated yet — try again next tick
+                return GsxPrepStatus.Waiting; // mirror not populated yet — try again next cycle
             }
 
             // Live GSX 4 lists OperateJetways even at jetway-less stands (and acks a trigger
@@ -147,7 +146,7 @@ public sealed class GsxJetwayStairsService : IDisposable
             {
                 _handledGateKey = gateKey;
                 RecordDecision("jetway/stairs", $"nothing to connect at {gateKey} (jetway LVAR={jetwayLvar}, no stairs service)");
-                return;
+                return GsxPrepStatus.Done;
             }
 
             var target = services[targetId];
@@ -161,7 +160,7 @@ public sealed class GsxJetwayStairsService : IDisposable
             {
                 _handledGateKey = gateKey;
                 RecordDecision("jetway/stairs", $"{targetId} already connected ({target.SemanticState}); {lvarDetail}");
-                return;
+                return GsxPrepStatus.Done;
             }
 
             if (target.State != GsxServiceState.Callable || !target.CanTrigger)
@@ -171,17 +170,19 @@ public sealed class GsxJetwayStairsService : IDisposable
                     targetId,
                     target.SemanticState,
                     target.CanTrigger);
-                return;
+                return GsxPrepStatus.Waiting;
             }
 
             RecordDecision(
                 "jetway/stairs",
                 $"connecting {targetId} at {gateKey}{(jetwayExists ? "" : " (jetway LVAR=2 — no jetway at this stand)")}; {lvarDetail}");
             StartTrigger(targetId);
+            return GsxPrepStatus.Pending;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Jetway/stairs check failed");
+            _logger.LogError(ex, "Jetway/stairs step failed");
+            return GsxPrepStatus.Waiting;
         }
         finally
         {

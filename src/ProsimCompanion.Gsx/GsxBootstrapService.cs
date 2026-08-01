@@ -43,6 +43,7 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         Sync.GsxGroundEquipmentService groundEquipment,
         Sync.GsxJetwayStairsService jetwayStairs,
         Sync.GsxRepositionService reposition,
+        Sync.GsxGroundPrepCoordinator groundPrep,
         Sync.ProsimNativeGsxGuard nativeGsxGuard,
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
@@ -55,6 +56,7 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         ArgumentNullException.ThrowIfNull(groundEquipment);
         ArgumentNullException.ThrowIfNull(jetwayStairs);
         ArgumentNullException.ThrowIfNull(reposition);
+        ArgumentNullException.ThrowIfNull(groundPrep);
         ArgumentNullException.ThrowIfNull(nativeGsxGuard);
         ArgumentNullException.ThrowIfNull(client);
         _gateSelection = gateSelection;

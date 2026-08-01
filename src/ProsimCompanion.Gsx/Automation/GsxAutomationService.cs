@@ -26,6 +26,7 @@ public sealed class GsxAutomationService : IDisposable
     private readonly IGsxRemoteApi _api;
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxGateSelectionService _gateSelection;
+    private readonly Sync.GsxGroundPrepCoordinator _groundPrep;
     private readonly FlightStateEngine _flightState;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
@@ -45,6 +46,7 @@ public sealed class GsxAutomationService : IDisposable
         IGsxRemoteApi api,
         GsxServiceLifecycleTracker lifecycle,
         GsxGateSelectionService gateSelection,
+        Sync.GsxGroundPrepCoordinator groundPrep,
         FlightStateEngine flightState,
         IProsimDataRefs prosim,
         IOptionsMonitor<GsxOptions> options,
@@ -55,6 +57,7 @@ public sealed class GsxAutomationService : IDisposable
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(gateSelection);
+        ArgumentNullException.ThrowIfNull(groundPrep);
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(options);
@@ -65,6 +68,7 @@ public sealed class GsxAutomationService : IDisposable
         _api = api;
         _lifecycle = lifecycle;
         _gateSelection = gateSelection;
+        _groundPrep = groundPrep;
         _flightState = flightState;
         _options = options;
         _diagnostics = diagnostics;
@@ -193,12 +197,29 @@ public sealed class GsxAutomationService : IDisposable
                 return;
             }
 
+            // Order (owner-specified): reposition → GPU/chocks → jetway/stairs must all finish
+            // before any departure service is called.
+            if (!_groundPrep.PrepComplete)
+            {
+                RecordDecisionOnce("hold departure services", "waiting for ground preparation (reposition/equipment/jetway) to complete");
+                return;
+            }
+
             // Flight plan = SimBrief OFP imported into the EFB, OR a plan in the MCDU (origin +
             // destination set) — the SimBrief auto-fetch arrives with Phase 3; until then the
             // MCDU plan is the operative signal (owner-confirmed workflow, 2026-08-02).
-            var flightPlanAvailable = _ofpImported.GetValue(false)
-                || (!string.IsNullOrWhiteSpace(_fmsOrigin.GetValue<string?>(null))
-                    && !string.IsNullOrWhiteSpace(_fmsDestination.GetValue<string?>(null)));
+            var ofpImported = _ofpImported.GetValue(false);
+            var fmsOrigin = _fmsOrigin.GetValue<string?>(null);
+            var fmsDestination = _fmsDestination.GetValue<string?>(null);
+            var flightPlanAvailable = ofpImported
+                || (!string.IsNullOrWhiteSpace(fmsOrigin) && !string.IsNullOrWhiteSpace(fmsDestination));
+            if (!flightPlanAvailable && options.RequireOfpBeforeDeparture)
+            {
+                // Diagnostic (owner report: detection did not fire): show the raw values.
+                RecordDecisionOnce(
+                    "flight plan detection",
+                    $"none detected — simbriefImported={ofpImported}, fmsOrigin='{fmsOrigin ?? ""}', fmsDestination='{fmsDestination ?? ""}'");
+            }
 
             var decision = DepartureSequencer.Next(
                 options.DepartureServiceOrder,

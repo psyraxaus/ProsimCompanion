@@ -22,7 +22,6 @@ public sealed class GsxGroundEquipmentService : IDisposable
     private readonly ILogger<GsxGroundEquipmentService> _logger;
     private readonly IDataRefSubscription _beacon;
     private readonly IDataRefSubscription _parkBrake;
-    private readonly Timer _stateCheckTimer;
     private bool _placedThisSession;
     private bool _removedThisSession;
     private bool _beaconWasOn;
@@ -53,47 +52,41 @@ public sealed class GsxGroundEquipmentService : IDisposable
 
         _flightState.PhaseChanged += OnPhaseChanged;
         _beacon.ValueChanged += OnBeaconChanged;
-
-        // State-based check as well as the transition edge: if the app starts (or ProSim
-        // connects) while the aircraft is already in Preflight, placement must still happen
-        // (smoke-test find: edge-only wiring missed the whole session).
-        _stateCheckTimer = new Timer(_ => CheckPlacement(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
     }
 
     public void Dispose()
     {
         _flightState.PhaseChanged -= OnPhaseChanged;
         _beacon.ValueChanged -= OnBeaconChanged;
-        _stateCheckTimer.Dispose();
         _beacon.Dispose();
         _parkBrake.Dispose();
     }
 
-    private void CheckPlacement()
+    /// <summary>One coordinator-driven placement attempt — step 3 of ground prep (after
+    /// reposition settles). Returns Done when placed, already placed, or disabled; Waiting
+    /// when the writes failed (retried next cycle).</summary>
+    public async Task<GsxPrepStatus> RunPlacementStepAsync()
     {
-        if (Enabled && !_placedThisSession && _flightState.CurrentPhase == FlightPhase.Preflight)
+        if (!Enabled || _placedThisSession)
         {
-            _placedThisSession = true;
-            _ = PlaceEquipmentAsync();
+            return GsxPrepStatus.Done;
         }
+
+        _placedThisSession = true;
+        await PlaceEquipmentAsync().ConfigureAwait(false);
+        return _placedThisSession ? GsxPrepStatus.Done : GsxPrepStatus.Waiting;
     }
 
     private bool Enabled => _options.CurrentValue.AutomationEnabled && _options.CurrentValue.AutoGroundEquipment;
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
     {
-        switch (e.Current)
+        // Placement is driven by the ground-prep coordinator (after reposition); this handler
+        // only resets the session on arrival so the next turnaround places again.
+        if (e.Current == FlightPhase.Shutdown)
         {
-            case FlightPhase.Preflight when Enabled && !_placedThisSession:
-                _placedThisSession = true;
-                _ = PlaceEquipmentAsync();
-                break;
-
-            case FlightPhase.Shutdown:
-                // Arrived: next ground session may place equipment again.
-                _placedThisSession = false;
-                _removedThisSession = false;
-                break;
+            _placedThisSession = false;
+            _removedThisSession = false;
         }
     }
 
