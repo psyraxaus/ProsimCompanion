@@ -25,6 +25,30 @@
     <button @onclick="GateControl.Cancel" style="background:#57606a;">Cancel</button>
 </div>
 
+<h2>Departure status board</h2>
+@if (_view.ServiceBoard.Count == 0)
+{
+    <p class="hint">No departure sequence evaluated yet.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Service</th><th>Status</th><th>Detail</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var row in _view.ServiceBoard)
+            {
+                <tr>
+                    <td>@row.ServiceId</td>
+                    <td><span class="badge @StageClass(row.Stage)">@StageLabel(row.Stage)</span></td>
+                    <td>@(row.Detail ?? "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
 <h2>Services</h2>
 @if (_view.Services.Count == 0)
 {
@@ -151,5 +175,24 @@ else
         "Ready" => "connected",
         "ConnectedGsxNotRunning" => "connecting",
         _ => "disconnected",
+    };
+
+    public static string StageLabel(GsxServiceStage stage) => stage switch
+    {
+        GsxServiceStage.Waiting => "Waiting",
+        GsxServiceStage.Held => "Holding",
+        GsxServiceStage.Skipped => "Skipped",
+        GsxServiceStage.Called => "Called",
+        GsxServiceStage.Requested => "Requested",
+        GsxServiceStage.Active => "Active",
+        GsxServiceStage.Completed => "Completed",
+        _ => stage.ToString(),
+    };
+
+    public static string StageClass(GsxServiceStage stage) => stage switch
+    {
+        GsxServiceStage.Completed => "connected",
+        GsxServiceStage.Active or GsxServiceStage.Requested or GsxServiceStage.Called => "connecting",
+        _ => "disabled",
     };
 }

@@ -64,6 +64,39 @@ public sealed class GsxServiceLifecycleTracker
         }
     }
 
+    /// <summary>True when the automation has called this service and its cycle has not yet
+    /// completed — the sequencer must not re-trigger it (GSX keeps quick services "callable"
+    /// while they run, so callable alone means nothing once called).</summary>
+    public bool IsPending(string serviceId)
+    {
+        lock (_gate)
+        {
+            return _cycles.TryGetValue(serviceId, out var cycle)
+                && cycle.WasCalled
+                && !cycle.CompletedNotified;
+        }
+    }
+
+    /// <summary>Point-in-time cycle flags for one service (status-board surface).</summary>
+    public readonly record struct ServiceCycleSnapshot(
+        bool Called, bool Requested, bool Active, bool Completed);
+
+    /// <summary>Cycle flags for every service seen this turnaround, keyed by service id.</summary>
+    public IReadOnlyDictionary<string, ServiceCycleSnapshot> SnapshotCycles()
+    {
+        lock (_gate)
+        {
+            return _cycles.ToDictionary(
+                pair => pair.Key,
+                pair => new ServiceCycleSnapshot(
+                    pair.Value.WasCalled,
+                    pair.Value.RequestedNotified,
+                    pair.Value.WasActive,
+                    pair.Value.CompletedNotified),
+                StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
     /// <summary>Processes the current mirror services. Call on every mirror services update AND
     /// from the periodic reconcile tick (idempotent by design).</summary>
     public void Process(IReadOnlyDictionary<string, GsxServiceInfo> services)
@@ -109,8 +142,13 @@ public sealed class GsxServiceLifecycleTracker
                         break;
 
                     case GsxServiceState.Callable
-                        when cycle.WasActive && !cycle.CompletedNotified:
-                        // Return-to-available = completed (quick services skip the completed edge).
+                        when (cycle.WasActive || (cycle.WasCalled && cycle.RequestedNotified))
+                            && !cycle.CompletedNotified:
+                        // Return-to-available = completed (quick services skip the completed
+                        // edge). A service we called that reached at least Requested and came
+                        // back to available also completed — Water never shows an Active edge,
+                        // and without this it re-triggers forever (round-4 smoke test).
+                        cycle.WasActive = true;
                         cycle.CompletedNotified = true;
                         toFire.Add((info.Id, GsxServiceLifecycleEvent.Completed));
                         break;

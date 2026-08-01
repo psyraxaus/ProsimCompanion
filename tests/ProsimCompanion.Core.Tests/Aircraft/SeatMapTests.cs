@@ -70,5 +70,67 @@ public sealed class SeatMapTests
 
         Assert.Equal([false, true, false], boarded);
     }
+
+    [Fact]
+    public void SynthesizeBooked_KeepsCapacityProportionalZoneCounts()
+    {
+        int[] capacities = [24, 30, 36, 42];
+
+        var map = SeatMap.SynthesizeBooked(99, capacities, new Random(42));
+
+        Assert.Equal(132, map.Length);
+        Assert.Equal(99, map.Count(seat => seat));
+        // Zone counts must exactly match the largest-remainder distribution (CG realism).
+        var expected = LoadMath.DistributePax(99, capacities);
+        var offset = 0;
+        for (var zone = 0; zone < capacities.Length; zone++)
+        {
+            Assert.Equal(expected[zone], map.Skip(offset).Take(capacities[zone]).Count(seat => seat));
+            offset += capacities[zone];
+        }
+    }
+
+    [Fact]
+    public void SynthesizeBooked_ScattersSeatsWithinEachZone()
+    {
+        int[] capacities = [24, 30, 36, 42];
+
+        var map = SeatMap.SynthesizeBooked(99, capacities, new Random(42));
+
+        // Owner requirement (round 4): occupancy must not be the first N seats of each zone,
+        // leaving every zone's back rows empty. With 99/132 booked, at least one zone must
+        // have an empty seat before its last occupied seat.
+        var frontFilled = true;
+        var offset = 0;
+        var expected = LoadMath.DistributePax(99, capacities);
+        for (var zone = 0; zone < capacities.Length; zone++)
+        {
+            for (var i = 0; i < expected[zone]; i++)
+            {
+                frontFilled &= map[offset + i];
+            }
+            offset += capacities[zone];
+        }
+        Assert.False(frontFilled);
+    }
+
+    [Fact]
+    public void SynthesizeBooked_IsDeterministicForASeed()
+    {
+        int[] capacities = [24, 30, 36, 42];
+
+        var first = SeatMap.SynthesizeBooked(99, capacities, new Random(7));
+        var second = SeatMap.SynthesizeBooked(99, capacities, new Random(7));
+
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public void SynthesizeBooked_FullLoad_FillsEverySeat()
+    {
+        var map = SeatMap.SynthesizeBooked(10, [4, 6], new Random(1));
+
+        Assert.All(map, Assert.True);
+    }
 }
 

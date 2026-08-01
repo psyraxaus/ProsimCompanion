@@ -28,7 +28,19 @@ public static class CoreServiceCollectionExtensions
 
         services.Configure<WebUiOptions>(configuration.GetSection(WebUiOptions.SectionName));
         services.Configure<ProsimOptions>(configuration.GetSection(ProsimOptions.SectionName));
+        // The config binder APPENDS array items to a list the options class already initialized
+        // (round-4 smoke test: the departure order arrived doubled and every service triggered
+        // twice). Clear list defaults before the file binds; restore them after when the file
+        // omitted the key entirely.
+        services.Configure<GsxOptions>(o => o.DepartureServiceOrder.Clear());
         services.Configure<GsxOptions>(configuration.GetSection(GsxOptions.SectionName));
+        services.PostConfigure<GsxOptions>(o =>
+        {
+            if (o.DepartureServiceOrder.Count == 0)
+            {
+                o.DepartureServiceOrder.AddRange(GsxOptions.DefaultDepartureServiceOrder);
+            }
+        });
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
         services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
 

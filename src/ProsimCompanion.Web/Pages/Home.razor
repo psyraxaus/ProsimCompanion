@@ -8,6 +8,7 @@
 @inject FlightStateEngine FlightState
 @inject AircraftProfileService Profiles
 @inject ProsimCompanion.Core.Logging.LogBufferStore LogBuffer
+@inject ProsimCompanion.Core.State.GsxDiagnosticsStore GsxDiagnosticsStore
 
 <h1>Status</h1>
 
@@ -41,6 +42,24 @@ else
             }
         </tbody>
     </table>
+}
+
+@if (_serviceBoard.Count > 0)
+{
+    <h2>Departure services</h2>
+    <table>
+        <tbody>
+            @foreach (var row in _serviceBoard)
+            {
+                <tr>
+                    <td>@row.ServiceId</td>
+                    <td><span class="badge @GsxDiagnostics.StageClass(row.Stage)">@GsxDiagnostics.StageLabel(row.Stage)</span></td>
+                    <td class="hint">@(row.Detail ?? "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p class="hint">Live turnaround status — full detail on the <a href="gsx">GSX page</a>.</p>
 }
 
 <h2>Live aircraft data</h2>
@@ -90,7 +109,9 @@ else
 
 @code {
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _snapshot = [];
+    private IReadOnlyList<ProsimCompanion.Core.State.GsxServiceBoardRow> _serviceBoard = [];
     private readonly List<Sample> _samples = [];
+    private Timer? _boardTimer;
 
     protected override void OnInitialized()
     {
@@ -98,6 +119,17 @@ else
         Status.Changed += OnStatusChanged;
         FlightState.PhaseChanged += OnPhaseChanged;
         Profiles.Changed += OnDataChanged;
+
+        _serviceBoard = GsxDiagnosticsStore.Snapshot().ServiceBoard;
+        _boardTimer = new Timer(_ => _ = InvokeAsync(() =>
+        {
+            var board = GsxDiagnosticsStore.Snapshot().ServiceBoard;
+            if (!ReferenceEquals(board, _serviceBoard))
+            {
+                _serviceBoard = board;
+                StateHasChanged();
+            }
+        }), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         AddSample("Indicated airspeed (kt)", "aircraft.speed.ias", DataRefTier.Frequent,
             subscription => subscription.GetValue(double.NaN) is var v && double.IsNaN(v) ? "—" : v.ToString("F0"));
@@ -132,6 +164,7 @@ else
 
     public void Dispose()
     {
+        _boardTimer?.Dispose();
         Status.Changed -= OnStatusChanged;
         FlightState.PhaseChanged -= OnPhaseChanged;
         Profiles.Changed -= OnDataChanged;

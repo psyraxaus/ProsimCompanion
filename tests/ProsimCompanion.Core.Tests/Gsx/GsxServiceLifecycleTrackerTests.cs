@@ -62,6 +62,49 @@ public sealed class GsxServiceLifecycleTrackerTests
     }
 
     [Fact]
+    public void CalledService_ReturnToAvailableAfterRequested_CountsAsCompleted()
+    {
+        // Water never shows an Active edge in GSX 4: called → requested → back to callable.
+        // Round-4 smoke test: without this rule the sequencer re-called Water forever.
+        _tracker.MarkCalled("Water");
+        _tracker.Process(Services(("Water", GsxServiceState.Requested)));
+        _tracker.Process(Services(("Water", GsxServiceState.Callable)));
+
+        Assert.Equal(
+            [("Water", GsxServiceLifecycleEvent.Requested),
+             ("Water", GsxServiceLifecycleEvent.Completed)],
+            _events);
+        Assert.True(_tracker.IsCompleted("Water"));
+        Assert.False(_tracker.IsPending("Water"));
+    }
+
+    [Fact]
+    public void CalledService_StillCallableBeforeGsxReacts_IsPendingNotCompleted()
+    {
+        // Immediately after the trigger GSX has not processed it yet — the service must read
+        // as pending (never re-trigger) but NOT completed (its cycle has not even started).
+        _tracker.MarkCalled("Water");
+        _tracker.Process(Services(("Water", GsxServiceState.Callable)));
+
+        Assert.Empty(_events);
+        Assert.False(_tracker.IsCompleted("Water"));
+        Assert.True(_tracker.IsPending("Water"));
+    }
+
+    [Fact]
+    public void SnapshotCycles_ReflectsCalledAndCompletedFlags()
+    {
+        _tracker.MarkCalled("Water");
+        _tracker.Process(Services(("Water", GsxServiceState.Requested)));
+        _tracker.Process(Services(("Water", GsxServiceState.Callable)));
+
+        var cycles = _tracker.SnapshotCycles();
+        Assert.True(cycles["Water"].Called);
+        Assert.True(cycles["Water"].Requested);
+        Assert.True(cycles["Water"].Completed);
+    }
+
+    [Fact]
     public void CompletedWithMissedActiveEdge_StillCompletes()
     {
         _tracker.Process(Services(("Boarding", GsxServiceState.Completed)));

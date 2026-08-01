@@ -34,10 +34,14 @@ public sealed class GsxOptions
     /// (off by default — <c>StartDepartureServices</c> can always be invoked explicitly).</summary>
     public bool AutoStartDepartureServices { get; set; }
 
+    /// <summary>The out-of-the-box departure order, used both as the property default (for the
+    /// settings-defaults writer) and to restore the list when the settings file omits it.</summary>
+    public static IReadOnlyList<string> DefaultDepartureServiceOrder { get; } =
+        ["Refueling", "Catering", "Water", "Lavatory", "Cleaning", "Boarding"];
+
     /// <summary>Departure services in trigger order (canonical Remote API ids). Remove entries
     /// to disable a service.</summary>
-    public List<string> DepartureServiceOrder { get; set; } =
-        ["Refueling", "Catering", "Water", "Lavatory", "Cleaning", "Boarding"];
+    public List<string> DepartureServiceOrder { get; set; } = [.. DefaultDepartureServiceOrder];
 
     /// <summary>Run non-boarding departure services concurrently (refuel + catering + … all
     /// called as soon as each is callable). Off = strict one-at-a-time in order.</summary>

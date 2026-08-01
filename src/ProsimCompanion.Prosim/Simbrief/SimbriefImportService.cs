@@ -174,7 +174,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         }
 
         // Booked seat map: capacity-proportional (equal load factor per zone — CG-realistic),
-        // deliberately NOT the predecessor's front-fill.
+        // randomized within each zone so empty seats scatter naturally.
         var bookedMap = SeatMap.SynthesizeBooked(paxCount, capacities);
         var perZone = LoadMath.DistributePax(paxCount, capacities);
         var statistics = JsonSerializer.Serialize(new

@@ -18,6 +18,35 @@ public sealed record GsxCommandView(
 
 public sealed record GsxDecisionView(DateTimeOffset Timestamp, string Action, string Reason);
 
+/// <summary>One departure-service row on the status board (the Prosim2GSX-style at-a-glance
+/// view): where the service is in its cycle and, when held/skipped, why.</summary>
+public sealed record GsxServiceBoardRow(string ServiceId, GsxServiceStage Stage, string? Detail);
+
+/// <summary>Departure-service progression for the status board, in display priority order.</summary>
+public enum GsxServiceStage
+{
+    /// <summary>Not yet eligible (sequence not started, ground prep running, or plan gate).</summary>
+    Waiting,
+
+    /// <summary>Eligible but holding — <see cref="GsxServiceBoardRow.Detail"/> carries the reason.</summary>
+    Held,
+
+    /// <summary>Not offered / unavailable / bypassed this turnaround.</summary>
+    Skipped,
+
+    /// <summary>Trigger sent; GSX has not yet picked it up.</summary>
+    Called,
+
+    /// <summary>GSX accepted the request (crew en route).</summary>
+    Requested,
+
+    /// <summary>Service running.</summary>
+    Active,
+
+    /// <summary>Cycle finished.</summary>
+    Completed,
+}
+
 public sealed record GsxDiagnosticsSnapshot(
     string Readiness,
     IReadOnlyList<string> Capabilities,
@@ -41,6 +70,10 @@ public sealed record GsxDiagnosticsSnapshot(
 
     /// <summary>Automation decisions, newest first (filled in by Snapshot()).</summary>
     public IReadOnlyList<GsxDecisionView> RecentDecisions { get; init; } = [];
+
+    /// <summary>Departure-service status board rows in configured order (filled in by
+    /// Snapshot(); pushed by the automation layer on every sequencing evaluation).</summary>
+    public IReadOnlyList<GsxServiceBoardRow> ServiceBoard { get; init; } = [];
 }
 
 /// <summary>Arms/cancels arrival-gate requests from UI surfaces (implemented by the GSX layer;
@@ -66,6 +99,7 @@ public sealed class GsxDiagnosticsStore
     private readonly object _gate = new();
     private readonly Queue<GsxCommandView> _commands = new();
     private readonly Queue<GsxDecisionView> _decisions = new();
+    private IReadOnlyList<GsxServiceBoardRow> _serviceBoard = [];
     private GsxDiagnosticsSnapshot _current = GsxDiagnosticsSnapshot.Empty;
 
     /// <summary>Point-in-time diagnostics view (recent commands/decisions newest-first).</summary>
@@ -77,7 +111,18 @@ public sealed class GsxDiagnosticsStore
             {
                 RecentCommands = [.. _commands.Reverse()],
                 RecentDecisions = [.. _decisions.Reverse()],
+                ServiceBoard = _serviceBoard,
             };
+        }
+    }
+
+    /// <summary>Replaces the departure-service status board (automation layer, every pump).</summary>
+    public void UpdateServiceBoard(IReadOnlyList<GsxServiceBoardRow> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        lock (_gate)
+        {
+            _serviceBoard = rows;
         }
     }
 

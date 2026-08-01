@@ -16,19 +16,22 @@ public sealed record DeparturePlan(
 /// triggered as soon as it is callable — refuel and catering side by side) or strict
 /// one-at-a-time in order. Boarding always waits for its prerequisites: the configured
 /// <c>boardingAfter</c> services, or every other ordered service when unset (the classic
-/// board-last). Refueling and Boarding additionally hold until a flight plan is available.
+/// board-last). No service is called before a flight plan exists (when required), and a
+/// service that has already been called holds until its cycle completes — GSX keeps quick
+/// services "callable" while they run, so without that guard they re-trigger forever
+/// (round-4 smoke test: Water called on every pump).
 /// </summary>
 public static class DepartureSequencer
 {
     private const string BoardingId = "Boarding";
-
-    private static readonly HashSet<string> PlanGatedServices =
-        new(StringComparer.OrdinalIgnoreCase) { "Refueling", BoardingId };
+    private const string PlanHoldReason = "waiting for a flight plan (SimBrief OFP import or MCDU FMS plan)";
+    private const string PendingHoldReason = "already called — waiting for GSX to run it";
 
     public static DeparturePlan Next(
         IReadOnlyList<string> order,
         IReadOnlyDictionary<string, GsxServiceInfo> services,
         Func<string, bool> isCompleted,
+        Func<string, bool> isPending,
         bool flightPlanAvailable,
         bool requireOfp,
         bool concurrentServices,
@@ -37,7 +40,11 @@ public static class DepartureSequencer
         ArgumentNullException.ThrowIfNull(order);
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(isCompleted);
+        ArgumentNullException.ThrowIfNull(isPending);
         ArgumentNullException.ThrowIfNull(boardingAfter);
+
+        // Defensive: a duplicated order (mis-merged settings) must never double-trigger.
+        order = order.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         var trigger = new List<string>();
         var holds = new List<(string, string)>();
@@ -62,7 +69,7 @@ public static class DepartureSequencer
                 continue; // sequential mode: an earlier service owns the turn
             }
 
-            var reason = EvaluateService(serviceId, services[serviceId], flightPlanAvailable, requireOfp);
+            var reason = EvaluateService(services[serviceId], isPending(serviceId), flightPlanAvailable, requireOfp);
             if (reason is null)
             {
                 trigger.Add(serviceId);
@@ -81,7 +88,7 @@ public static class DepartureSequencer
             }
         }
 
-        EvaluateBoarding(order, services, isCompleted, flightPlanAvailable, requireOfp, boardingAfter, trigger, holds, skipped);
+        EvaluateBoarding(order, services, isCompleted, isPending, flightPlanAvailable, requireOfp, boardingAfter, trigger, holds, skipped);
 
         var allDone = order.All(id =>
             isCompleted(id) || IsSkippable(id, services, out _));
@@ -91,16 +98,16 @@ public static class DepartureSequencer
 
     /// <summary>Null = triggerable now; otherwise the hold reason.</summary>
     private static string? EvaluateService(
-        string serviceId,
         GsxServiceInfo service,
+        bool pending,
         bool flightPlanAvailable,
         bool requireOfp)
     {
         return service.State switch
         {
             GsxServiceState.Requested or GsxServiceState.Active => "in progress",
-            GsxServiceState.Callable when requireOfp && !flightPlanAvailable && PlanGatedServices.Contains(serviceId)
-                => "waiting for a flight plan (SimBrief OFP import or MCDU FMS plan)",
+            GsxServiceState.Callable when requireOfp && !flightPlanAvailable => PlanHoldReason,
+            GsxServiceState.Callable when pending => PendingHoldReason,
             GsxServiceState.Callable when !service.CanTrigger => "callable but not triggerable yet",
             GsxServiceState.Callable => null,
             _ => $"state {service.State} — waiting",
@@ -111,6 +118,7 @@ public static class DepartureSequencer
         IReadOnlyList<string> order,
         IReadOnlyDictionary<string, GsxServiceInfo> services,
         Func<string, bool> isCompleted,
+        Func<string, bool> isPending,
         bool flightPlanAvailable,
         bool requireOfp,
         IReadOnlyList<string> boardingAfter,
@@ -132,7 +140,7 @@ public static class DepartureSequencer
         // Prerequisites: the configured list, or every other ordered service. A prerequisite
         // that is itself skippable (unavailable/not offered) counts as satisfied.
         IReadOnlyList<string> prerequisites = boardingAfter.Count > 0
-            ? boardingAfter
+            ? boardingAfter.Distinct(StringComparer.OrdinalIgnoreCase).ToList()
             : [.. order.Where(id => !id.Equals(BoardingId, StringComparison.OrdinalIgnoreCase))];
         var outstanding = prerequisites
             .Where(id => !isCompleted(id) && !IsSkippable(id, services, out _))
@@ -143,7 +151,7 @@ public static class DepartureSequencer
             return;
         }
 
-        var reason = EvaluateService(BoardingId, services[BoardingId], flightPlanAvailable, requireOfp);
+        var reason = EvaluateService(services[BoardingId], isPending(BoardingId), flightPlanAvailable, requireOfp);
         if (reason is null)
         {
             trigger.Add(BoardingId);

@@ -19,6 +19,7 @@ public sealed class DepartureSequencerTests
     private static DeparturePlan Next(
         Dictionary<string, GsxServiceInfo> services,
         Func<string, bool>? completed = null,
+        Func<string, bool>? pending = null,
         bool plan = true,
         bool requireOfp = true,
         bool concurrent = true,
@@ -28,6 +29,7 @@ public sealed class DepartureSequencerTests
             order ?? Order,
             services,
             completed ?? (_ => false),
+            pending ?? (_ => false),
             plan,
             requireOfp,
             concurrent,
@@ -79,16 +81,55 @@ public sealed class DepartureSequencerTests
     }
 
     [Fact]
-    public void PlanGate_HoldsRefuelingAndBoardingButNotCatering()
+    public void PlanGate_HoldsEveryServiceUntilFlightPlanExists()
     {
+        // Owner requirement (round 4): NO service is called before the OFP/FMS plan exists.
         var plan = Next(Services(
             ("Refueling", GsxServiceState.Callable, true),
             ("Catering", GsxServiceState.Callable, true),
             ("Boarding", GsxServiceState.Callable, true)),
             plan: false);
 
-        Assert.Equal(["Catering"], plan.Trigger);
+        Assert.Empty(plan.Trigger);
         Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason.Contains("flight plan", StringComparison.Ordinal));
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Catering" && h.Reason.Contains("flight plan", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PlanGate_NotAppliedWhenOfpNotRequired()
+    {
+        var plan = Next(
+            Services(("Catering", GsxServiceState.Callable, true)),
+            plan: false,
+            requireOfp: false,
+            order: ["Catering"]);
+
+        Assert.Equal(["Catering"], plan.Trigger);
+    }
+
+    [Fact]
+    public void PendingService_HoldsInsteadOfRetriggering()
+    {
+        // GSX keeps quick services (Water) "callable" while they run — a called service must
+        // never be triggered again until its cycle completes.
+        var plan = Next(
+            Services(("Water", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
+            pending: id => id == "Water",
+            order: ["Water", "Catering"]);
+
+        Assert.Equal(["Catering"], plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Water" && h.Reason.Contains("already called", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DuplicatedOrder_TriggersEachServiceOnce()
+    {
+        // A mis-merged settings file once doubled the order list; the sequencer dedupes.
+        var plan = Next(
+            Services(("Catering", GsxServiceState.Callable, true)),
+            order: ["Catering", "Catering"]);
+
+        Assert.Equal(["Catering"], plan.Trigger);
     }
 
     [Fact]

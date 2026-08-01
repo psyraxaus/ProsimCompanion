@@ -191,7 +191,7 @@ public sealed class GsxBoardingSync : IDisposable
         _plannedMap = SeatMap.SynthesizeBooked(planned, capacities);
         _boardedMap = new bool[_plannedMap.Length];
         _seatMapMode = true;
-        RecordDecision("boarding sync", $"seat-map mode — synthesized {planned} booked seats (capacity-proportional; no OFP manifest)");
+        RecordDecision("boarding sync", $"seat-map mode — synthesized {planned} booked seats (capacity-proportional, randomized within zones; no OFP manifest)");
         _ = await _writer.WriteAsync(ProsimDataRefNames.PaxBookedString, SeatMap.Build(_plannedMap)).ConfigureAwait(false);
         return true;
     }

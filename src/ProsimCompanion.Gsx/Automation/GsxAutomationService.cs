@@ -200,6 +200,10 @@ public sealed class GsxAutomationService : IDisposable
             if (!_departureStarted || _departureComplete
                 || Phase is not (GsxAutomationPhase.Preparation or GsxAutomationPhase.SessionStart))
             {
+                if (!_departureComplete)
+                {
+                    PublishWaitingBoard("departure sequence not started");
+                }
                 return;
             }
 
@@ -208,6 +212,7 @@ public sealed class GsxAutomationService : IDisposable
             if (!_groundPrep.PrepComplete)
             {
                 RecordDecisionOnce("hold departure services", "waiting for ground preparation (reposition/equipment/jetway) to complete");
+                PublishWaitingBoard("ground preparation running");
                 return;
             }
 
@@ -236,10 +241,13 @@ public sealed class GsxAutomationService : IDisposable
                 options.DepartureServiceOrder,
                 _api.Mirror.Services,
                 _lifecycle.IsCompleted,
+                _lifecycle.IsPending,
                 flightPlanAvailable,
                 options.RequireOfpBeforeDeparture,
                 options.ConcurrentServices,
                 options.BoardingAfter);
+
+            PublishBoard(options.DepartureServiceOrder, plan);
 
             foreach (var (serviceId, reason) in plan.Skipped)
             {
@@ -370,6 +378,45 @@ public sealed class GsxAutomationService : IDisposable
                 _logger.LogError(ex, "SimBrief import attempt failed");
             }
         });
+    }
+
+    /// <summary>Publishes the Prosim2GSX-style departure status board from the current plan,
+    /// mirror states and lifecycle cycles, in configured service order.</summary>
+    private void PublishBoard(IReadOnlyList<string> order, DeparturePlan plan)
+    {
+        var holds = plan.Holds.ToDictionary(h => h.ServiceId, h => h.Reason, StringComparer.OrdinalIgnoreCase);
+        var skips = plan.Skipped.ToDictionary(s => s.ServiceId, s => s.Reason, StringComparer.OrdinalIgnoreCase);
+        var triggered = new HashSet<string>(plan.Trigger, StringComparer.OrdinalIgnoreCase);
+        var services = _api.Mirror.Services;
+
+        var rows = new List<GsxServiceBoardRow>();
+        foreach (var id in order.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            services.TryGetValue(id, out var info);
+            var row = _lifecycle.IsCompleted(id) ? new GsxServiceBoardRow(id, GsxServiceStage.Completed, null)
+                : info?.State == Protocol.GsxServiceState.Active ? new GsxServiceBoardRow(id, GsxServiceStage.Active, info.ProgressText)
+                : info?.State == Protocol.GsxServiceState.Requested ? new GsxServiceBoardRow(id, GsxServiceStage.Requested, null)
+                : triggered.Contains(id) || _lifecycle.IsPending(id) ? new GsxServiceBoardRow(id, GsxServiceStage.Called, null)
+                : skips.TryGetValue(id, out var skipReason) ? new GsxServiceBoardRow(id, GsxServiceStage.Skipped, skipReason)
+                : holds.TryGetValue(id, out var holdReason) ? new GsxServiceBoardRow(id, GsxServiceStage.Held, holdReason)
+                : new GsxServiceBoardRow(id, GsxServiceStage.Waiting, null);
+            rows.Add(row);
+        }
+
+        _diagnostics.UpdateServiceBoard(rows);
+    }
+
+    /// <summary>Board shown before sequencing runs: every non-completed service Waiting with
+    /// one shared reason (sequence not started / ground prep).</summary>
+    private void PublishWaitingBoard(string reason)
+    {
+        var rows = _options.CurrentValue.DepartureServiceOrder
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(id => _lifecycle.IsCompleted(id)
+                ? new GsxServiceBoardRow(id, GsxServiceStage.Completed, null)
+                : new GsxServiceBoardRow(id, GsxServiceStage.Waiting, reason))
+            .ToList();
+        _diagnostics.UpdateServiceBoard(rows);
     }
 
     private void RecordDecision(string action, string reason)

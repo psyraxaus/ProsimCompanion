@@ -36,23 +36,31 @@ public static class SeatMap
     /// <summary>
     /// Synthesizes a booked map when no OFP-derived one exists: passengers spread across the
     /// zones capacity-proportionally (equal load factor front-to-back — the CG-realistic
-    /// distribution), filling each zone's forward seats first. Seat indices run forward → aft,
-    /// sliced by zone capacity.
+    /// distribution), occupying random seats within each zone so empty seats scatter naturally
+    /// instead of clustering at the back of every section. Seat indices run forward → aft,
+    /// sliced by zone capacity. Pass a seeded <paramref name="random"/> for reproducible maps.
     /// </summary>
-    public static bool[] SynthesizeBooked(int paxCount, IReadOnlyList<int> zoneCapacities)
+    public static bool[] SynthesizeBooked(int paxCount, IReadOnlyList<int> zoneCapacities, Random? random = null)
     {
         ArgumentNullException.ThrowIfNull(zoneCapacities);
+        random ??= Random.Shared;
 
         var perZone = LoadMath.DistributePax(paxCount, zoneCapacities);
         var map = new bool[zoneCapacities.Sum()];
         var offset = 0;
         for (var zone = 0; zone < zoneCapacities.Count; zone++)
         {
+            var capacity = zoneCapacities[zone];
+            // Partial Fisher–Yates: the first perZone[zone] entries end up a uniform random
+            // subset of the zone's seats.
+            var seats = Enumerable.Range(offset, capacity).ToArray();
             for (var i = 0; i < perZone[zone]; i++)
             {
-                map[offset + i] = true;
+                var pick = random.Next(i, capacity);
+                (seats[i], seats[pick]) = (seats[pick], seats[i]);
+                map[seats[i]] = true;
             }
-            offset += zoneCapacities[zone];
+            offset += capacity;
         }
         return map;
     }

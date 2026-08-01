@@ -34,6 +34,8 @@ public sealed class GsxRefuelSync : IDisposable
     private bool _hoseWasConnected;
     private bool _pumpPowerOn;
     private string? _lastHoldReason;
+    private double _latchedTargetKg;
+    private bool _divergenceLogged;
     private int _ticking;
 
     public GsxRefuelSync(
@@ -92,19 +94,22 @@ public sealed class GsxRefuelSync : IDisposable
                 _transferActive = true;
                 _hoseWasConnected = false;
                 _lastHoldReason = null;
-                // All three fuel-target candidates logged raw: both fuelTarget.kg and
-                // plannedfuel have been observed carrying the TRANSFER amount instead of the
-                // total (defuel-to-2232 incidents, 2026-08-02). Power stays OFF until the hose
-                // actually connects and a sane transfer is possible.
+                _divergenceLogged = false;
+                _pumpPowerOn = false;
+                // The target is LATCHED once at activation and never re-read while pumping:
+                // ProSim rewrites aircraft.refuel.fuelTarget to the current FOB the moment its
+                // refuel session engages (round-4 smoke test: 7317 collapsed to 2500 one tick
+                // after pump-on, ending the transfer immediately). Power stays OFF until the
+                // hose actually connects and a sane transfer is possible.
+                _latchedTargetKg = ReadTargetKg();
                 RecordDecision(
                     "refuel sync",
-                    $"activated — current {_fuelTotal.GetValue(0.0):F0} kg; candidates: fuelTarget {_fuelTarget.GetValue(0.0):F0}, fuelTarget.kg {_fuelTargetKg.GetValue(0.0):F0}, plannedfuel {_plannedFuel.GetValue(0.0):F0}");
+                    $"activated — current {_fuelTotal.GetValue(0.0):F0} kg; latched target {_latchedTargetKg:F0} kg (candidates: fuelTarget {_fuelTarget.GetValue(0.0):F0}, fuelTarget.kg {_fuelTargetKg.GetValue(0.0):F0}, plannedfuel {_plannedFuel.GetValue(0.0):F0})");
                 break;
 
             case GsxServiceLifecycleEvent.Completed when _transferActive:
                 _transferActive = false;
-                RecordDecision("refuel sync", $"GSX reports refuel complete at {_fuelTotal.GetValue(0.0):F0} kg");
-                _ = SetRefuelPowerAsync(false);
+                _ = FinishOnGsxCompleteAsync();
                 break;
         }
     }
@@ -113,8 +118,8 @@ public sealed class GsxRefuelSync : IDisposable
 
     /// <summary>The intended TOTAL: aircraft.refuel.fuelTarget (the EFB fuel page's figure),
     /// falling back to efb.plannedfuel. The .kg variant has proven to be a transfer amount and
-    /// is logged for diagnosis only.</summary>
-    private double TargetKg()
+    /// is logged for diagnosis only. Used only to latch — never trusted mid-transfer.</summary>
+    private double ReadTargetKg()
     {
         var target = _fuelTarget.GetValue(0.0);
         return target > 0 ? target : _plannedFuel.GetValue(0.0);
@@ -145,11 +150,27 @@ public sealed class GsxRefuelSync : IDisposable
             }
 
             var current = _fuelTotal.GetValue(0.0);
-            var target = TargetKg();
-            if (target <= 0)
+            if (_latchedTargetKg <= 0)
             {
-                HoldOnce("no fuel target available — waiting");
-                return;
+                // Not latched at activation (target not yet written) — keep trying until a
+                // real figure appears, but only before any pumping has started.
+                _latchedTargetKg = ReadTargetKg();
+                if (_latchedTargetKg <= 0)
+                {
+                    HoldOnce("no fuel target available — waiting");
+                    return;
+                }
+                RecordDecision("refuel sync", $"latched target {_latchedTargetKg:F0} kg");
+            }
+
+            var target = _latchedTargetKg;
+            var liveTarget = ReadTargetKg();
+            if (!_divergenceLogged && Math.Abs(liveTarget - target) > CompletionToleranceKg)
+            {
+                _divergenceLogged = true;
+                RecordDecision(
+                    "refuel sync",
+                    $"live fuelTarget changed to {liveTarget:F0} kg mid-transfer — keeping latched {target:F0} kg (ProSim rewrites the target while refueling)");
             }
 
             // Defuel guard: fuel-target datarefs have twice exposed transfer amounts instead of
@@ -185,8 +206,9 @@ public sealed class GsxRefuelSync : IDisposable
             if (Math.Abs(next - target) <= CompletionToleranceKg)
             {
                 _transferActive = false;
+                _pumpPowerOn = false;
                 RecordDecision("refuel sync", $"target reached at {target:F0} kg");
-                _ = SetRefuelPowerAsync(false);
+                await SetRefuelPowerAsync(false).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -196,6 +218,35 @@ public sealed class GsxRefuelSync : IDisposable
         finally
         {
             Interlocked.Exchange(ref _ticking, 0);
+        }
+    }
+
+    /// <summary>GSX finished the refuel cycle. If the transfer fell short of the latched target
+    /// (hose pulled early, pauses), snap the FOB to the target — the predecessor's proven
+    /// reconciliation — then drop refuel power.</summary>
+    private async Task FinishOnGsxCompleteAsync()
+    {
+        try
+        {
+            var current = _fuelTotal.GetValue(0.0);
+            var target = _latchedTargetKg;
+            if (target > 0 && current < target - CompletionToleranceKg)
+            {
+                await _prosim.WriteAsync(ProsimDataRefNames.FuelTotal, target).ConfigureAwait(false);
+                RecordDecision("refuel sync", $"GSX reports refuel complete at {current:F0} kg — snapped to latched target {target:F0} kg");
+            }
+            else
+            {
+                RecordDecision("refuel sync", $"GSX reports refuel complete at {current:F0} kg");
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            RecordDecision("refuel sync", $"completion snap failed: {ex.Message}");
+        }
+        finally
+        {
+            await SetRefuelPowerAsync(false).ConfigureAwait(false);
         }
     }
 
