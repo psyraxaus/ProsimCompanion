@@ -47,11 +47,11 @@ aircraft state in the browser, and survives any of them being absent or restarti
       page, LAN access with auto-generated bearer token (loopback always exempt; cookie after
       QR/link onboarding; verified 401/token/cookie paths live), QR onboarding + web-server
       settings card in the WPF shell (lockout prevention)
-- [ ] **Aircraft profiles** — model/matcher/persistence done; per-profile feature settings arrive
-      with the pillars. **Known issue (owner report): profile detection never worked reliably in
-      the predecessors** — live detection via `simulator.aircraft.title` must be explicitly
-      verified on the sim PC (does the dataref populate? when? does re-matching fire on aircraft
-      change?) and fixed before Phase 2 depends on it
+- [x] **Aircraft profiles** — model/matcher/persistence done; per-profile feature settings arrive
+      with the pillars. Detection (broken in the predecessors) largely verified live 2026-08-01:
+      the loaded livery/title was picked up correctly with MSFS running (`simulator.aircraft.title`
+      only populates while the sim is up). Remaining check when Phase 2 first consumes
+      `ActiveProfile`: a real configured profile matching end-to-end + re-match on aircraft change
 
 ## Phase 2 — GSX ground automation (first feature pillar)
 

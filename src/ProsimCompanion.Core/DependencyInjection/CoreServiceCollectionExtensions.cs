@@ -30,6 +30,7 @@ public static class CoreServiceCollectionExtensions
         services.Configure<ProsimOptions>(configuration.GetSection(ProsimOptions.SectionName));
         services.Configure<GsxOptions>(configuration.GetSection(GsxOptions.SectionName));
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
+        services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         services.AddSingleton<ConnectionStatusStore>();

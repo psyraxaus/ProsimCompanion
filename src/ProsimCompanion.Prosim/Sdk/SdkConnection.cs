@@ -89,6 +89,7 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
                 dataRef.onDataChange += OnDataChange;
                 dataRef.Register();
                 _subscriptionRefs[name] = dataRef;
+                _logger.LogDebug("Registered dataref {DataRef} at {Interval} ms", name, intervalMs);
             }
         }
         catch (DataRefNotFoundException)
@@ -122,6 +123,7 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             var dataRef = GetOrCreateWriteRef(name);
             dataRef.value = value;
+            _logger.LogDebug("Wrote {Value} to dataref {DataRef}", value, name);
         }, cancellationToken);
     }
 

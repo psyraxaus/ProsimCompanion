@@ -241,6 +241,11 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
                 0,
                 0,
                 0);
+            _logger.LogDebug(
+                "Registered SimVar {SimVar} ({Unit}) at {Period}",
+                entry.Name,
+                entry.Unit,
+                period);
         }
         catch (COMException ex)
         {

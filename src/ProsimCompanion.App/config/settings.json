@@ -11,5 +11,10 @@
   },
   "gsx": {
     "enabled": true
+  },
+  "logging": {
+    "defaultLevel": "Information",
+    "overrides": {},
+    "wireTrace": false
   }
 }

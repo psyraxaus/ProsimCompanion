@@ -1,12 +1,17 @@
 using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using ProsimCompanion.App.Hosting;
+using ProsimCompanion.App.Logging;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.DependencyInjection;
+using ProsimCompanion.Core.Logging;
 using ProsimCompanion.Gsx;
 using ProsimCompanion.Prosim;
 using ProsimCompanion.Sim;
@@ -21,6 +26,11 @@ namespace ProsimCompanion.App;
 /// </summary>
 public static class Program
 {
+    private static readonly JsonSerializerOptions SettingsReadOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     [STAThread]
     public static int Main(string[] args)
     {
@@ -29,19 +39,43 @@ public static class Program
             "ProsimCompanion",
             "logs");
 
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
-            .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
-            .WriteTo.File(
-                Path.Combine(logDirectory, "ProsimCompanion-.log"),
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 14,
-                formatProvider: CultureInfo.InvariantCulture)
-            .CreateLogger();
+        var settingsPath = Path.Combine(AppContext.BaseDirectory, "config", "settings.json");
+        var settingsFile = new JsonSettingsFile(settingsPath);
+        EnsureAccessToken(settingsFile);
+        var previousVersion = SettingsMigrator.Migrate(settingsFile);
+
+        // The level switches and buffer exist before the logger so every line — including
+        // startup — flows through them; settings changes retune the switches live.
+        var levels = new LoggingLevels();
+        levels.Apply(ReadLoggingOptions(settingsFile));
+        var logBuffer = new LogBufferStore();
+        Log.Logger = BuildLogger(levels, logBuffer, logDirectory);
+
+        using var wireTrace = new WireTraceService(levels, logDirectory);
 
         try
         {
-            var web = BuildWebHost(args);
+            if (previousVersion < SettingsMigrator.CurrentVersion)
+            {
+                Log.Information(
+                    "Settings migrated from version {From} to {To}",
+                    previousVersion,
+                    SettingsMigrator.CurrentVersion);
+            }
+
+            var web = BuildWebHost(args, settingsPath, settingsFile, levels, logBuffer, wireTrace);
+
+            // Retune log levels / wire trace whenever settings change (web UI or file edit).
+            var loggingMonitor = web.Services.GetRequiredService<IOptionsMonitor<LoggingOptions>>();
+            using var levelSubscription = loggingMonitor.OnChange(options =>
+            {
+                levels.Apply(options);
+                Log.Information(
+                    "Logging levels reloaded (default {Default}, wire trace {WireTrace})",
+                    options.DefaultLevel,
+                    options.WireTrace);
+            });
+
             web.Start();
 
             var url = DisplayUrl(web.Services);
@@ -70,7 +104,37 @@ public static class Program
         }
     }
 
-    private static WebApplication BuildWebHost(string[] args)
+    private static Serilog.Core.Logger BuildLogger(
+        LoggingLevels levels,
+        LogBufferStore logBuffer,
+        string logDirectory)
+    {
+        var configuration = new LoggerConfiguration()
+            .MinimumLevel.ControlledBy(levels.DefaultLevel)
+            .Enrich.WithThreadId()
+            .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
+            .WriteTo.File(
+                new CmTraceTextFormatter(),
+                Path.Combine(logDirectory, "ProsimCompanion-.log"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 14)
+            .WriteTo.Sink(new LogBufferSink(logBuffer));
+
+        foreach (var (source, levelSwitch) in levels.SourceSwitches)
+        {
+            configuration.MinimumLevel.Override(source, levelSwitch);
+        }
+
+        return configuration.CreateLogger();
+    }
+
+    private static WebApplication BuildWebHost(
+        string[] args,
+        string settingsPath,
+        JsonSettingsFile settingsFile,
+        LoggingLevels levels,
+        LogBufferStore logBuffer,
+        WireTraceService wireTrace)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -78,18 +142,6 @@ public static class Program
             ContentRootPath = AppContext.BaseDirectory,
             WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot"),
         });
-
-        var settingsPath = Path.Combine(AppContext.BaseDirectory, "config", "settings.json");
-        var settingsFile = new JsonSettingsFile(settingsPath);
-        EnsureAccessToken(settingsFile);
-        var previousVersion = SettingsMigrator.Migrate(settingsFile);
-        if (previousVersion < SettingsMigrator.CurrentVersion)
-        {
-            Log.Information(
-                "Settings migrated from version {From} to {To}",
-                previousVersion,
-                SettingsMigrator.CurrentVersion);
-        }
 
         builder.Configuration.AddJsonFile(settingsPath, optional: true, reloadOnChange: true);
 
@@ -100,6 +152,10 @@ public static class Program
         builder.Services.AddSimServices();
         builder.Services.AddGsxServices();
 
+        builder.Services.AddSingleton(levels);
+        builder.Services.AddSingleton(logBuffer);
+        builder.Services.AddSingleton<IWireTrace>(wireTrace);
+
         var webUi = builder.Configuration.GetSection(WebUiOptions.SectionName).Get<WebUiOptions>()
             ?? new WebUiOptions();
         var host = webUi.BindToAllInterfaces ? "0.0.0.0" : "localhost";
@@ -108,7 +164,7 @@ public static class Program
         var web = builder.Build();
 
         // LAN clients authenticate with the access token (QR onboarding); loopback always passes.
-        web.UseMiddleware<Hosting.LanTokenMiddleware>();
+        web.UseMiddleware<LanTokenMiddleware>();
 
         // Serves wwwroot, including the blazor.web.js copied there at build (see csproj) — a
         // WinExe host has no static-web-assets pipeline to provide it.
@@ -123,6 +179,19 @@ public static class Program
     {
         var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<WebUiOptions>>();
         return $"http://localhost:{options.Value.Port}";
+    }
+
+    private static LoggingOptions ReadLoggingOptions(JsonSettingsFile settingsFile)
+    {
+        try
+        {
+            var section = settingsFile.Read()[LoggingOptions.SectionName];
+            return section?.Deserialize<LoggingOptions>(SettingsReadOptions) ?? new LoggingOptions();
+        }
+        catch (JsonException)
+        {
+            return new LoggingOptions();
+        }
     }
 
     /// <summary>Generates the LAN access token on first start so enabling LAN access later never

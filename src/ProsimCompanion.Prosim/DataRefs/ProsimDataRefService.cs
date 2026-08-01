@@ -121,6 +121,7 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
             var options = _options.CurrentValue;
             try
             {
+                _logger.LogDebug("Momentary press on {DataRef}", request.Name);
                 var backend = RequireBackend();
                 await backend.WriteValueAsync(request.Name, 1, shutdownToken).ConfigureAwait(false);
                 await Task.Delay(options.MomentaryPressHoldMs, shutdownToken).ConfigureAwait(false);

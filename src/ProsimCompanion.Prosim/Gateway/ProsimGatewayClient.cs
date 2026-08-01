@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft.Gateway;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Logging;
 
 namespace ProsimCompanion.Prosim.Gateway;
 
@@ -28,15 +30,21 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
 
     private readonly IOptionsMonitor<ProsimOptions> _options;
     private readonly ILogger<ProsimGatewayClient> _logger;
+    private readonly IWireTrace _wire;
     private readonly HttpClient _http;
 
-    public ProsimGatewayClient(IOptionsMonitor<ProsimOptions> options, ILogger<ProsimGatewayClient> logger)
+    public ProsimGatewayClient(
+        IOptionsMonitor<ProsimOptions> options,
+        ILogger<ProsimGatewayClient> logger,
+        IWireTrace wire)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(wire);
 
         _options = options;
         _logger = logger;
+        _wire = wire;
         _http = new HttpClient(new SocketsHttpHandler { UseProxy = false })
         {
             Timeout = TimeSpan.FromSeconds(30),
@@ -51,6 +59,7 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
     public async Task<bool> WriteDataRefAsync(string name, object value, CancellationToken cancellationToken = default)
     {
         var body = GraphQlMessages.BuildWriteMutation(name, value);
+        _wire.Trace("Gateway", ">>", body);
         var response = await SendAsync(
             () => new HttpRequestMessage(HttpMethod.Post, GraphQlUri)
             {
@@ -80,6 +89,7 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
         try
         {
             var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            _wire.Trace("Gateway", "<<", text);
             return JsonNode.Parse(text)?["data"]?["dataRef"]?["queryResult"]?["value"]?.ToString();
         }
         catch (JsonException ex)
@@ -224,9 +234,15 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
             try
             {
                 using var request = requestFactory();
+                var stopwatch = Stopwatch.StartNew();
                 var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NoContent)
                 {
+                    _logger.LogDebug(
+                        "Gateway {Operation} -> {StatusCode} in {Elapsed} ms",
+                        operation,
+                        (int)response.StatusCode,
+                        stopwatch.ElapsedMilliseconds);
                     return response;
                 }
 

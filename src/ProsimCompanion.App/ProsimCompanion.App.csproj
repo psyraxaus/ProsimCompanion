@@ -21,6 +21,7 @@
     <!-- Assets-only: supplies _framework/blazor.web.js (copied below); nothing is compiled in. -->
     <PackageReference Include="Microsoft.AspNetCore.App.Internal.Assets" GeneratePathProperty="true" ExcludeAssets="all" />
     <PackageReference Include="QRCoder" />
+    <PackageReference Include="Serilog.Enrichers.Thread" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="Serilog.Sinks.File" />

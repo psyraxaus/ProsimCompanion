@@ -7,6 +7,7 @@
 @inject IProsimDataRefs DataRefs
 @inject FlightStateEngine FlightState
 @inject AircraftProfileService Profiles
+@inject ProsimCompanion.Core.Logging.LogBufferStore LogBuffer
 
 <h1>Status</h1>
 
@@ -14,6 +15,10 @@
 <p>
     Aircraft: <strong>@(Profiles.AircraftTitle ?? "—")</strong>
     &nbsp;·&nbsp; Profile: <strong>@(Profiles.ActiveProfile?.Name ?? "none")</strong>
+</p>
+<p class="hint">
+    This session: @LogBuffer.WarningCount warnings, @LogBuffer.ErrorCount errors —
+    <a href="logs">view logs</a>
 </p>
 
 @if (_snapshot.Count == 0)

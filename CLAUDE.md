@@ -59,7 +59,12 @@ start and remain usable (degraded mode) when the SDK, ProSim, MSFS, or GSX are a
 ## Conventions
 
 - **Logging**: inject `Microsoft.Extensions.Logging.ILogger<T>`; Serilog is the sink, configured only
-  in the composition root. Structured placeholders, never interpolation.
+  in the composition root. Structured placeholders, never interpolation. The rolling file is
+  **CMTrace format** (watch live with CMTrace); levels are hot-reloadable per subsystem via the
+  `logging` settings section; the in-memory `LogBufferStore` feeds the web Logs page; raw protocol
+  frames go through `IWireTrace` (separate CMTrace file, `logging.wireTrace` flag), guarded by
+  `Enabled` checks before building payload strings. Every line is thread-id enriched.
+  **Never log**: the web access token, API keys, or credentials of any kind.
 - **DI**: constructor injection, `ArgumentNullException.ThrowIfNull` for required collaborators,
   narrow `I`-prefixed interfaces. Per-project `IServiceCollection` extension methods
   (`AddProsimServices()` etc.) keep the composition root thin — no god-object composition root.

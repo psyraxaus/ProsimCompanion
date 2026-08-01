@@ -1,0 +1,123 @@
+@page "/logs"
+@using ProsimCompanion.Core.Logging
+@implements IDisposable
+@inject LogBufferStore Buffer
+
+<h1>Logs</h1>
+
+<p class="hint">
+    Session totals — warnings: @Buffer.WarningCount · errors: @Buffer.ErrorCount.
+    The rolling files in <code>%LOCALAPPDATA%\ProsimCompanion\logs</code> are CMTrace format for
+    live viewing in CMTrace.
+</p>
+
+<div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-bottom:0.8rem;">
+    <label style="margin:0;">
+        Min level
+        <select @bind="_minLevel" style="margin-left:0.4rem;">
+            <option>Verbose</option>
+            <option>Debug</option>
+            <option>Information</option>
+            <option>Warning</option>
+            <option>Error</option>
+        </select>
+    </label>
+    <label style="margin:0;">
+        Filter
+        <input @bind="_filter" @bind:event="oninput" placeholder="text or source…" style="margin-left:0.4rem; width:220px;" />
+    </label>
+    <label style="margin:0;">
+        <input type="checkbox" @bind="_paused" /> Pause
+    </label>
+</div>
+
+<div style="overflow-x:auto;">
+    <table style="font-size:0.85rem; font-family:Consolas, monospace;">
+        <thead>
+            <tr><th>Time</th><th>Level</th><th>Source</th><th>Message</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var entry in _visible)
+            {
+                <tr>
+                    <td style="white-space:nowrap;">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</td>
+                    <td><span class="badge @LevelClass(entry.Level)">@entry.Level</span></td>
+                    <td style="white-space:nowrap;">@ShortSource(entry.Source)</td>
+                    <td>
+                        @entry.Message
+                        @if (entry.Exception is not null)
+                        {
+                            <pre style="white-space:pre-wrap; margin:0.3rem 0 0 0; opacity:0.8;">@entry.Exception</pre>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private const int MaxRows = 300;
+
+    private static readonly Dictionary<string, int> LevelRank = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Verbose"] = 0,
+        ["Debug"] = 1,
+        ["Information"] = 2,
+        ["Warning"] = 3,
+        ["Error"] = 4,
+        ["Fatal"] = 5,
+    };
+
+    private IReadOnlyList<LogEntry> _visible = [];
+    private string _minLevel = "Information";
+    private string _filter = "";
+    private bool _paused;
+    private Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new Timer(_ =>
+        {
+            if (!_paused)
+            {
+                _ = InvokeAsync(() =>
+                {
+                    Refresh();
+                    StateHasChanged();
+                });
+            }
+        }, null, TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(500));
+    }
+
+    public void Dispose() => _timer?.Dispose();
+
+    private void Refresh()
+    {
+        var minRank = LevelRank.GetValueOrDefault(_minLevel, 2);
+        var filter = _filter.Trim();
+
+        _visible = Buffer.Snapshot()
+            .Where(entry => LevelRank.GetValueOrDefault(entry.Level, 2) >= minRank)
+            .Where(entry => filter.Length == 0
+                || entry.Message.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || entry.Source.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            .Take(MaxRows)
+            .ToList();
+    }
+
+    private static string ShortSource(string source)
+    {
+        var lastDot = source.LastIndexOf('.');
+        return lastDot >= 0 && lastDot < source.Length - 1 ? source[(lastDot + 1)..] : source;
+    }
+
+    private static string LevelClass(string level) => level switch
+    {
+        "Warning" => "connecting",
+        "Error" or "Fatal" => "disconnected",
+        "Information" => "connected",
+        _ => "disabled",
+    };
+}
