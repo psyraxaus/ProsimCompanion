@@ -43,9 +43,15 @@ aircraft state in the browser, and survives any of them being absent or restarti
       arrive with their features
 - [x] **JSONL event log** — structured session record (sessions/, retain 20, non-blocking
       writer); replay data source still to come with the replay harness
-- [ ] **Web shell** — layout/nav, connection status page, settings pages, LAN access with bearer
-      token + QR onboarding, WPF-resident web server settings (lockout prevention)
-- [ ] **Aircraft profiles** — profile matching on title/airline; per-profile feature settings
+- [x] **Web shell** — layout/nav, connection status page (live data, phase, profile), settings
+      page, LAN access with auto-generated bearer token (loopback always exempt; cookie after
+      QR/link onboarding; verified 401/token/cookie paths live), QR onboarding + web-server
+      settings card in the WPF shell (lockout prevention)
+- [ ] **Aircraft profiles** — model/matcher/persistence done; per-profile feature settings arrive
+      with the pillars. **Known issue (owner report): profile detection never worked reliably in
+      the predecessors** — live detection via `simulator.aircraft.title` must be explicitly
+      verified on the sim PC (does the dataref populate? when? does re-matching fire on aircraft
+      change?) and fixed before Phase 2 depends on it
 
 ## Phase 2 — GSX ground automation (first feature pillar)
 

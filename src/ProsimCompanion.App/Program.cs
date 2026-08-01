@@ -81,6 +81,7 @@ public static class Program
 
         var settingsPath = Path.Combine(AppContext.BaseDirectory, "config", "settings.json");
         var settingsFile = new JsonSettingsFile(settingsPath);
+        EnsureAccessToken(settingsFile);
         var previousVersion = SettingsMigrator.Migrate(settingsFile);
         if (previousVersion < SettingsMigrator.CurrentVersion)
         {
@@ -106,6 +107,9 @@ public static class Program
 
         var web = builder.Build();
 
+        // LAN clients authenticate with the access token (QR onboarding); loopback always passes.
+        web.UseMiddleware<Hosting.LanTokenMiddleware>();
+
         // Serves wwwroot, including the blazor.web.js copied there at build (see csproj) — a
         // WinExe host has no static-web-assets pipeline to provide it.
         web.UseStaticFiles();
@@ -119,5 +123,20 @@ public static class Program
     {
         var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<WebUiOptions>>();
         return $"http://localhost:{options.Value.Port}";
+    }
+
+    /// <summary>Generates the LAN access token on first start so enabling LAN access later never
+    /// finds an empty token.</summary>
+    private static void EnsureAccessToken(JsonSettingsFile settingsFile)
+    {
+        var webUi = settingsFile.Read()[WebUiOptions.SectionName];
+        if (!string.IsNullOrEmpty((string?)webUi?["accessToken"]))
+        {
+            return;
+        }
+
+        var token = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+        settingsFile.Update(root =>
+            JsonSettingsFile.GetOrCreateSection(root, WebUiOptions.SectionName)["accessToken"] = token);
     }
 }

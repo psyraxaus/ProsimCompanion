@@ -19,4 +19,11 @@ public sealed class WebUiOptions
     /// other LAN devices (tablets, second PC) can reach the UI.
     /// </summary>
     public bool BindToAllInterfaces { get; set; }
+
+    /// <summary>
+    /// Bearer token required from non-loopback clients (delivered via the QR code / onboarding
+    /// link, then held in a cookie). Generated automatically on first start; loopback requests
+    /// never need it, so the local UI can never be locked out.
+    /// </summary>
+    public string? AccessToken { get; set; }
 }

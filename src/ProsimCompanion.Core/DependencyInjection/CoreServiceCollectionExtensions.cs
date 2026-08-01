@@ -5,6 +5,7 @@ using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Hosting;
+using ProsimCompanion.Core.Profiles;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.DependencyInjection;
@@ -28,6 +29,7 @@ public static class CoreServiceCollectionExtensions
         services.Configure<WebUiOptions>(configuration.GetSection(WebUiOptions.SectionName));
         services.Configure<ProsimOptions>(configuration.GetSection(ProsimOptions.SectionName));
         services.Configure<GsxOptions>(configuration.GetSection(GsxOptions.SectionName));
+        services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         services.AddSingleton<ConnectionStatusStore>();
@@ -39,8 +41,9 @@ public static class CoreServiceCollectionExtensions
                 "sessions"),
             provider.GetRequiredService<ILogger<JsonlEventLog>>()));
 
-        // IFlightDataSource comes from the Prosim project's registrations.
+        // IFlightDataSource and IProsimDataRefs come from the Prosim project's registrations.
         services.AddSingleton<FlightStateEngine>();
+        services.AddSingleton<AircraftProfileService>();
         services.AddHostedService<CoreBootstrapService>();
 
         return services;

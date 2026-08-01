@@ -1,5 +1,7 @@
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.App;
@@ -26,7 +28,11 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        var window = new MainWindow(_services.GetRequiredService<ConnectionStatusStore>(), _webUrl);
+        var window = new MainWindow(
+            _services.GetRequiredService<ConnectionStatusStore>(),
+            _services.GetRequiredService<JsonSettingsFile>(),
+            _services.GetRequiredService<IOptionsMonitor<WebUiOptions>>().CurrentValue,
+            _webUrl);
         MainWindow = window;
         window.Show();
     }

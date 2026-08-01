@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.Profiles;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Hosting;
@@ -14,19 +15,23 @@ public sealed class CoreBootstrapService : IHostedService
     private readonly FlightStateEngine _flightState;
     private readonly ConnectionStatusStore _status;
     private readonly JsonlEventLog _eventLog;
+    private readonly AircraftProfileService _profiles;
 
     public CoreBootstrapService(
         FlightStateEngine flightState,
         ConnectionStatusStore status,
-        JsonlEventLog eventLog)
+        JsonlEventLog eventLog,
+        AircraftProfileService profiles)
     {
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(eventLog);
+        ArgumentNullException.ThrowIfNull(profiles);
 
         _flightState = flightState;
         _status = status;
         _eventLog = eventLog;
+        _profiles = profiles;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -34,6 +39,7 @@ public sealed class CoreBootstrapService : IHostedService
         _eventLog.Record("session-started");
         _flightState.PhaseChanged += OnPhaseChanged;
         _status.Changed += OnStatusChanged;
+        _profiles.Changed += OnProfileChanged;
         _flightState.Start();
         return Task.CompletedTask;
     }
@@ -42,12 +48,20 @@ public sealed class CoreBootstrapService : IHostedService
     {
         _flightState.PhaseChanged -= OnPhaseChanged;
         _status.Changed -= OnStatusChanged;
+        _profiles.Changed -= OnProfileChanged;
         _eventLog.Record("session-ended");
         return Task.CompletedTask;
     }
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
         => _eventLog.Record("phase-changed", new { previous = e.Previous.ToString(), current = e.Current.ToString() });
+
+    private void OnProfileChanged(object? sender, EventArgs e)
+        => _eventLog.Record("profile-changed", new
+        {
+            profile = _profiles.ActiveProfile?.Name,
+            title = _profiles.AircraftTitle,
+        });
 
     private void OnStatusChanged(object? sender, EventArgs e)
         => _eventLog.Record(
