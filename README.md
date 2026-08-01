@@ -31,4 +31,4 @@ installation and is never bundled.
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture decision records](docs/decisions/)
 - [Integration references](docs/integrations/) — ProSim, GSX, SimBrief, SayIntentions, audio,
-  FS2Crew, speech/AI
+  speech/AI

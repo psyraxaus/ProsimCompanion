@@ -4,7 +4,7 @@ A single Windows companion application for the ProSim A320 (A322) in MSFS 2020/2
 predecessor projects into one codebase:
 
 - **Prosim2GSX** — GSX Pro ground-services automation, loadsheets, audio control, web EFB
-- **ProsimInterface** — ProSim connectivity library (SDK + gateway), W&B/ACARS pipeline, FS2Crew bridge
+- **ProsimInterface** — ProSim connectivity library (SDK + gateway), W&B/ACARS pipeline
 - **Prosim2FO** — voice First Officer (checklists, callouts, briefings, speech, immersion)
 
 The predecessors live as siblings at `C:\Users\johncarlo\git\{Prosim2GSX,ProsimInterface,Prosim2FO}`.

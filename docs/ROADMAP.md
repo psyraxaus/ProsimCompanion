@@ -94,7 +94,6 @@ from Phase 1 — this phase adds the speech stack and features on top.
 
 - [ ] Cabin crew simulation, company/ACARS channel, chimes
 - [ ] Tech log & MEL, pilot logbook, post-flight debrief, company day mode
-- [ ] FS2Crew LVAR bridge (dataref↔LVAR maps ported verbatim)
 - [ ] StreamDeck support via the named-command registry (single command seam: web/API/StreamDeck)
 - [ ] SayIntentions extras (ATIS/METAR, CPDLC station), ActiveSky weather provider
 

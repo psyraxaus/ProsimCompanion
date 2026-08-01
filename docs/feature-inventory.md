@@ -75,7 +75,6 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 ## Bridges & extras
 
-- [ ] FS2Crew Fenix-profile bridge (both directions, verbatim maps)
 - [ ] SayIntentions extras (ATIS/METAR/wind, CPDLC station)
 - [ ] ActiveSky weather provider
 - [ ] StreamDeck plugin via command registry
@@ -85,6 +84,7 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 ## Deliberately not carried forward
 
+- FS2Crew Fenix-profile bridge — superseded by the built-in voice First Officer (ADR-0005)
 - The Prosim2GSX↔ProsimInterface hot-swap DLL discipline (obsolete in a single solution)
 - Dual SimBrief clients; dual ad-hoc dataref write paths (consolidated by design)
 - CFIT.AppFramework service-locator hosting (ADR-0003)

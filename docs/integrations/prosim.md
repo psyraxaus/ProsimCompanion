@@ -98,6 +98,9 @@ keys are **lowercase**: `{type, header, id, accept, content}`.
 ACP audio `system.analog.A_ASP{1|2|3}_*_VOLUME` (0–1024) and
 `system.switches.S_ASP*_*_REC_LATCH`.
 
+**Baro sync ProSim→MSFS** (initial EFIS sync at connect): SimConnect event `KOHLSMAN_SET`,
+value = hPa × 16, index 0 = captain.
+
 **Quirks**:
 - Park brake: read `system.switches.S_MIP_PARKING_BRAKE`; the hydraulic gate
   `B_HYD_PARKING_BRAKE_SET` reads **inverted on the A322** (found 2026-05-02).
