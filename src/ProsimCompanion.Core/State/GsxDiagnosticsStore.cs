@@ -16,6 +16,8 @@ public sealed record GsxCommandView(
     bool Ok,
     string Code);
 
+public sealed record GsxDecisionView(DateTimeOffset Timestamp, string Action, string Reason);
+
 public sealed record GsxDiagnosticsSnapshot(
     string Readiness,
     IReadOnlyList<string> Capabilities,
@@ -30,6 +32,24 @@ public sealed record GsxDiagnosticsSnapshot(
 {
     public static GsxDiagnosticsSnapshot Empty { get; } =
         new("Disconnected", [], null, null, null, false, null, [], [], []);
+
+    /// <summary>Automation phase label (set by the GSX layer alongside Update).</summary>
+    public string AutomationPhase { get; init; } = "Inactive";
+
+    /// <summary>Armed/last gate request summary, e.g. "B12: Confirmed — confirmed as B12".</summary>
+    public string? GateRequest { get; init; }
+
+    /// <summary>Automation decisions, newest first (filled in by Snapshot()).</summary>
+    public IReadOnlyList<GsxDecisionView> RecentDecisions { get; init; } = [];
+}
+
+/// <summary>Arms/cancels arrival-gate requests from UI surfaces (implemented by the GSX layer;
+/// status is visible through <see cref="GsxDiagnosticsStore"/>).</summary>
+public interface IGsxGateControl
+{
+    void RequestGate(string gate);
+
+    void Cancel();
 }
 
 /// <summary>
@@ -41,17 +61,23 @@ public sealed record GsxDiagnosticsSnapshot(
 public sealed class GsxDiagnosticsStore
 {
     public const int RecentCommandLimit = 25;
+    public const int RecentDecisionLimit = 50;
 
     private readonly object _gate = new();
     private readonly Queue<GsxCommandView> _commands = new();
+    private readonly Queue<GsxDecisionView> _decisions = new();
     private GsxDiagnosticsSnapshot _current = GsxDiagnosticsSnapshot.Empty;
 
-    /// <summary>Point-in-time diagnostics view (recent commands newest-first).</summary>
+    /// <summary>Point-in-time diagnostics view (recent commands/decisions newest-first).</summary>
     public GsxDiagnosticsSnapshot Snapshot()
     {
         lock (_gate)
         {
-            return _current with { RecentCommands = [.. _commands.Reverse()] };
+            return _current with
+            {
+                RecentCommands = [.. _commands.Reverse()],
+                RecentDecisions = [.. _decisions.Reverse()],
+            };
         }
     }
 
@@ -75,6 +101,21 @@ public sealed class GsxDiagnosticsStore
             while (_commands.Count > RecentCommandLimit)
             {
                 _ = _commands.Dequeue();
+            }
+        }
+    }
+
+    /// <summary>Appends an automation decision ("what happened and why") to the bounded ring —
+    /// the primary smoke-test evaluation surface for the automation layer.</summary>
+    public void RecordDecision(GsxDecisionView decision)
+    {
+        ArgumentNullException.ThrowIfNull(decision);
+        lock (_gate)
+        {
+            _decisions.Enqueue(decision);
+            while (_decisions.Count > RecentDecisionLimit)
+            {
+                _ = _decisions.Dequeue();
             }
         }
     }

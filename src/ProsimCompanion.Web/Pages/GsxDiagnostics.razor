@@ -2,11 +2,13 @@
 @using ProsimCompanion.Core.State
 @implements IDisposable
 @inject GsxDiagnosticsStore Diagnostics
+@inject IGsxGateControl GateControl
 
 <h1>GSX diagnostics</h1>
 
 <p>
     Readiness: <span class="badge @ReadinessClass(_view.Readiness)">@_view.Readiness</span>
+    &nbsp;·&nbsp; Automation phase: <strong>@_view.AutomationPhase</strong>
     &nbsp;·&nbsp; Capabilities: @(_view.Capabilities.Count == 0 ? "—" : string.Join(", ", _view.Capabilities))
 </p>
 <p>
@@ -14,6 +16,14 @@
     &nbsp;·&nbsp; Gate context: <strong>@(_view.GateContextKey ?? "—")</strong>
     &nbsp;·&nbsp; Session: <code>@(_view.StartupSid ?? "—")</code>
 </p>
+
+<h2>Arrival gate</h2>
+<p>@(_view.GateRequest ?? "No gate request armed.")</p>
+<div style="display:flex; gap:0.6rem; align-items:center;">
+    <input @bind="_gateInput" placeholder="e.g. B12" style="width:120px;" />
+    <button @onclick="ArmGate">Arm gate</button>
+    <button @onclick="GateControl.Cancel" style="background:#57606a;">Cancel</button>
+</div>
 
 <h2>Services</h2>
 @if (_view.Services.Count == 0)
@@ -57,6 +67,30 @@ else
     </ol>
 }
 
+<h2>Automation decisions</h2>
+@if (_view.RecentDecisions.Count == 0)
+{
+    <p class="hint">No automation decisions yet.</p>
+}
+else
+{
+    <table style="font-size:0.85rem;">
+        <thead>
+            <tr><th>Time</th><th>Action</th><th>Reason</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var decision in _view.RecentDecisions)
+            {
+                <tr>
+                    <td style="white-space:nowrap;">@decision.Timestamp.ToLocalTime().ToString("HH:mm:ss")</td>
+                    <td style="white-space:nowrap;">@decision.Action</td>
+                    <td>@decision.Reason</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
 <h2>Recent commands</h2>
 @if (_view.RecentCommands.Count == 0)
 {
@@ -90,6 +124,15 @@ else
 @code {
     private GsxDiagnosticsSnapshot _view = GsxDiagnosticsSnapshot.Empty;
     private Timer? _timer;
+    private string _gateInput = "";
+
+    private void ArmGate()
+    {
+        if (!string.IsNullOrWhiteSpace(_gateInput))
+        {
+            GateControl.RequestGate(_gateInput);
+        }
+    }
 
     protected override void OnInitialized()
     {

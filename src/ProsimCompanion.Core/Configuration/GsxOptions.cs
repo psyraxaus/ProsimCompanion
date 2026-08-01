@@ -23,4 +23,54 @@ public sealed class GsxOptions
     /// <summary>Default budget for verifying a menu pick's observable effect (per-intent
     /// overridable — the reposition submenu is known to exceed 5 s).</summary>
     public int IntentVerifyTimeoutMs { get; set; } = 5000;
+
+    // ---- Ground automation ----
+
+    /// <summary>Master switch for the automation layer (question answering + service
+    /// sequencing). The Remote API client/diagnostics run regardless.</summary>
+    public bool AutomationEnabled { get; set; } = true;
+
+    /// <summary>Start the departure service sequence automatically once preconditions hold
+    /// (off by default — <c>StartDepartureServices</c> can always be invoked explicitly).</summary>
+    public bool AutoStartDepartureServices { get; set; }
+
+    /// <summary>Departure services in trigger order (canonical Remote API ids). Remove entries
+    /// to disable a service.</summary>
+    public List<string> DepartureServiceOrder { get; set; } =
+        ["Refueling", "Catering", "Water", "Lavatory", "Cleaning", "Boarding"];
+
+    /// <summary>Hold Refueling/Boarding until the SimBrief OFP is imported into ProSim.</summary>
+    public bool RequireOfpBeforeDeparture { get; set; } = true;
+
+    // ---- Question answering ----
+
+    public bool SkipFollowMe { get; set; } = true;
+
+    /// <summary>Answer "board crew"/"deboard crew" questions with yes.</summary>
+    public bool AnswerCrewQuestions { get; set; } = true;
+
+    /// <summary>Answer the "Do you want to request …" pushback confirmation with yes.</summary>
+    public bool ConfirmPushbackRequest { get; set; } = true;
+
+    /// <summary>Accept the de-icing offer and select fluid automatically.</summary>
+    public bool AutoDeIce { get; set; }
+
+    /// <summary>"Type I" | "Type II" | "Type IV" — matched as a token in the fluid menu entry.</summary>
+    public string DeIceFluidType { get; set; } = "Type IV";
+
+    /// <summary>"75" | "100" — concentration token matched in the fluid menu entry.</summary>
+    public string DeIceConcentration { get; set; } = "75";
+
+    /// <summary>Ordered operator keywords for handling/catering operator menus; the
+    /// "[GSX choice]" token is always an accepted fallback. Empty list ⇒ menus are left for
+    /// the user unless <see cref="AutoSelectOperator"/> suppresses them.</summary>
+    public List<string> OperatorPreferences { get; set; } = [];
+
+    /// <summary>Write handler.set autoSelectOperator once per gate session so the operator
+    /// popup never surfaces (falls back to the operator menu handler when unsupported).</summary>
+    public bool AutoSelectOperator { get; set; } = true;
+
+    /// <summary>Arrival gate to arm automatically when reaching flight (e.g. "B12"); empty ⇒
+    /// none (a gate can still be armed from the GSX diagnostics page).</summary>
+    public string ArrivalGate { get; set; } = "";
 }

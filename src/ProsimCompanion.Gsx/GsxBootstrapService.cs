@@ -21,6 +21,8 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxQuestionDispatcher _questions;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly Gate.GsxGateSelectionService _gateSelection;
+    private readonly Automation.GsxAutomationService _automation;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxBootstrapService> _logger;
     private readonly HashSet<string> _reportedUnknownKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -31,13 +33,20 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         GsxRemoteApiClient client,
         GsxServiceLifecycleTracker lifecycle,
         GsxQuestionDispatcher questions,
+        GsxQuestionCatalog questionCatalog,
         GsxDiagnosticsStore diagnostics,
-        Gate.GsxGateSelectionService gateSelection, // injected to activate its event wiring
+        Gate.GsxGateSelectionService gateSelection,
+        Automation.GsxAutomationService automation, // injected to activate its event wiring
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
     {
+        ArgumentNullException.ThrowIfNull(questionCatalog);
         ArgumentNullException.ThrowIfNull(gateSelection);
+        ArgumentNullException.ThrowIfNull(automation);
         ArgumentNullException.ThrowIfNull(client);
+        _gateSelection = gateSelection;
+        _automation = automation;
+        questionCatalog.RegisterAll(questions);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(questions);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -59,6 +68,7 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         _client.Mirror.UnknownKeySeen += OnUnknownKey;
         _client.ReadinessChanged += OnReadinessChanged;
         _client.CommandCompleted += _diagnostics.RecordCommand;
+        _gateSelection.Changed += PublishDiagnostics;
         _lifecycle.ServiceEvent += OnServiceEvent;
 
         _reconcileTimer = new Timer(
@@ -77,6 +87,7 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         _client.Mirror.UnknownKeySeen -= OnUnknownKey;
         _client.ReadinessChanged -= OnReadinessChanged;
         _client.CommandCompleted -= _diagnostics.RecordCommand;
+        _gateSelection.Changed -= PublishDiagnostics;
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _reconcileTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         return Task.CompletedTask;
@@ -165,7 +176,13 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
                 service.CanTrigger,
                 service.Waiting,
                 service.ProgressText))],
-            []));
+            [])
+        {
+            AutomationPhase = _automation.Phase.ToString(),
+            GateRequest = _gateSelection.RequestedGate is null
+                ? null
+                : $"{_gateSelection.RequestedGate}: {_gateSelection.Status} — {_gateSelection.StatusDetail}",
+        });
     }
 
     private void OnSidChanged(string? oldSid, string? newSid)

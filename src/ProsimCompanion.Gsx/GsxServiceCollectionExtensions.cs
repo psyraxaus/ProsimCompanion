@@ -21,7 +21,10 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<GsxServiceLifecycleTracker>();
         services.AddSingleton<Menu.GsxMenuIntentExecutor>();
         services.AddSingleton<Menu.GsxQuestionDispatcher>();
+        services.AddSingleton<Menu.GsxQuestionCatalog>();
         services.AddSingleton<Gate.GsxGateSelectionService>();
+        services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
+        services.AddSingleton<Automation.GsxAutomationService>();
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

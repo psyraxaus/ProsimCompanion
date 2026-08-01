@@ -61,8 +61,22 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
 
 - [x] LVAR transport decision — native SimConnect on both sims, no WASM (gsx.md §5); LVAR
       write path + write gate in `ProsimCompanion.Sim`
-- [ ] Couatl Remote API v2 WebSocket client (hello/capabilities, subscribe, state mirror,
+- [x] Couatl Remote API v2 WebSocket client (hello/capabilities, subscribe, state mirror,
       coarse patches, engine events, readiness model, wire-trace every frame)
+- [x] Service lifecycle tracker (once-per-cycle events, return-to-available rule, reconcile)
+- [x] Menu intent framework (safe-fail pipeline, TOCTOU re-resolve, disabled guards) +
+      rising-edge question dispatcher
+- [x] Question/answer catalogue (FollowMe, crew, pushback confirm, de-ice offer + fluid
+      selection, operator preference matching with [GSX choice] fallback) — every answer and
+      every "left for user" decision-logged
+- [x] Gate selection (arm/dispatch, single-retry ladder, SetGate readback confirmation) +
+      manual arm/cancel from the /gsx page
+- [x] Automation coordinator: phase mapping from the flight state engine, one-at-a-time
+      departure sequencing with OFP gating, auto/manual start, autoSelectOperator per gate
+      session, arrival-gate arming at flight, turnaround cycle reset
+- [x] First-flight diagnostics: /gsx page (readiness, services wire-vs-mapped, menu, commands,
+      decision log, gate control), unknown-key/unknown-state telemetry, command summaries
+      — **all UNVERIFIED against live GSX; first sim session evaluates them**
 - [ ] Menu intent framework (text/regex match, verify-outcome, safe-fail "leave menu for user")
 - [ ] Timing-critical LVAR reads (pushback, fuel hose, pax/cargo counters, de-ice, gate readback)
 - [ ] Ground automation state machine (SessionStart→…→TurnAround) with per-service activation
