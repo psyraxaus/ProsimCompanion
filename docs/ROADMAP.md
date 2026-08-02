@@ -112,12 +112,27 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       via the gateway write path)
 - [x] Jetway/stairs handling: LVAR-truth selection (jetway=2 ⇒ stairs), 20 s verification with
       one fallback, pre-existing-connection detection
-- [ ] Door automation + GSX door-message suppression (ProSim autoDoor left active meanwhile)
-- [ ] Full beacon-orchestrated pushback sequence with LVAR timing gates
-      (pushback currently relies on GSX's own flow + the confirm/question answers)
-- [ ] De-icing, operator selection preferences beyond the menu catalogue, walkaround skip (MSFS2024)
-- [ ] Arrival: stable-parked detection, deboarding writes, FOB save/restore per registration
-- [ ] Per-service activation policies (hub/non-hub, turnaround-only), pax no-show randomization
+- [x] Door automation + GSX door-message suppression: cargo doors follow boarding/deboarding
+      and the per-hold loader-finished LVARs (crew-realism close delay), catering doors follow
+      GSX's service toggles, entry doors open when stairs dock (L1 only at jetway-less stands),
+      `DISABLE_DOORS_MSG` re-asserted across Couatl restarts — ProSim door state authoritative
+      throughout. **Unverified live — first bulk test evaluates**
+- [x] Beacon-orchestrated pushback sequence (pure `PushbackSequencer` + shell): beacon on →
+      wait APU → close doors → retract jetway/stairs → clear ground equipment → call pushback,
+      randomized crew delays, beacon-off pause, tug/bypass-pin LVAR progress decision-logged.
+      **Unverified live**
+- [x] Arrival: stable-parked detection (on ground, engines off, brake set, beacon off,
+      stationary, held N s) → FOB saved per aircraft, GSX pax counter re-armed with the boarded
+      count, Deboarding auto-called; deboarding sync empties seats front-first from
+      `DEBOARDING_TOTAL` and drains cargo by unload %. **Unverified live — counters
+      double-logged for semantics confirmation**
+- [x] FOB save/restore per aircraft title (`gsx.fuelFobSaved` in settings.json; restore at
+      preparation before any plan exists, predecessor guard)
+- [x] GSX pax-target arming (`NUMPASSENGERS` ← booked manifest before services) + optional
+      crew-question LVAR suppression + opt-in pax no-show/extra randomization with bag-weight
+      cargo adjustment (`gsx.randomizePaxNoShows`)
+- [ ] De-icing beyond the question catalogue (auto-request policy), walkaround skip (MSFS2024
+      keystroke — deferred), per-service activation policies (hub/non-hub, turnaround-only)
 
 ## Phase 3 — Flight data & EFB
 

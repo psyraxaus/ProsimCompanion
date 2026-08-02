@@ -3,8 +3,10 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Aircraft.Gateway;
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Prosim.Simbrief;
@@ -23,6 +25,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
     private static readonly int[] FallbackZoneCapacities = [24, 30, 36, 42];
 
     private readonly IProsimGateway _gateway;
+    private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<SimbriefImportService> _logger;
     private readonly IDataRefSubscription _pilotId;
@@ -34,15 +37,18 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
     public SimbriefImportService(
         IProsimDataRefs prosim,
         IProsimGateway gateway,
+        IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<SimbriefImportService> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(gateway);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
         _gateway = gateway;
+        _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
 
@@ -180,7 +186,25 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         // Booked seat map: capacity-proportional (equal load factor per zone — CG-realistic),
         // randomized within each zone so empty seats scatter naturally.
         var bookedMap = SeatMap.SynthesizeBooked(paxCount, capacities);
-        var perZone = LoadMath.DistributePax(paxCount, capacities);
+
+        // Optional no-show/extra randomization (predecessor feature): seats flip with the
+        // configured chance, cargo tracks the pax delta by the checked-bag weight.
+        var gsxOptions = _options.CurrentValue;
+        if (gsxOptions.RandomizePaxNoShows)
+        {
+            var delta = SeatMap.ApplyNoShowRandomization(bookedMap, gsxOptions.NoShowChancePerSeat);
+            if (delta != 0)
+            {
+                paxCount += delta;
+                cargo = Math.Max(0, cargo + (delta * gsxOptions.WeightPerBagKg));
+                RecordDecision(
+                    "simbrief import",
+                    $"pax randomization: {(delta > 0 ? "+" : "")}{delta} vs OFP ({paxCount} boarding); cargo adjusted by {delta * gsxOptions.WeightPerBagKg:F0} kg");
+            }
+        }
+
+        // Statistics always derive from the actual map so ProSim's manifest agrees seat-for-seat.
+        var perZone = SeatMap.CountPerZone(bookedMap, capacities);
         var statistics = JsonSerializer.Serialize(new
         {
             NumOfPaxInBusiness = perZone[0],

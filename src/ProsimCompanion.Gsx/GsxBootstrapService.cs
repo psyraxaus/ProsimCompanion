@@ -45,9 +45,15 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         Sync.GsxRepositionService reposition,
         Sync.GsxGroundPrepCoordinator groundPrep,
         Sync.ProsimNativeGsxGuard nativeGsxGuard,
+        Sync.GsxDoorService doors,
+        Sync.GsxPushbackSequenceService pushbackSequence,
+        Sync.GsxArrivalService arrival,
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
     {
+        ArgumentNullException.ThrowIfNull(doors);
+        ArgumentNullException.ThrowIfNull(pushbackSequence);
+        ArgumentNullException.ThrowIfNull(arrival);
         ArgumentNullException.ThrowIfNull(questionCatalog);
         ArgumentNullException.ThrowIfNull(gateSelection);
         ArgumentNullException.ThrowIfNull(automation);

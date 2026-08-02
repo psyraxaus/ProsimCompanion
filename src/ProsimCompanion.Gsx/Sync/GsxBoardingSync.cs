@@ -15,7 +15,12 @@ namespace ProsimCompanion.Gsx.Sync;
 /// string is written back — ProSim derives zone loads and CG from it, so partial loads stay
 /// CG-realistic by construction. Cargo follows GSX's percentage against the planned cargo
 /// weight. Falls back to capacity-proportional zone amounts when no booked seat map exists.
-/// EFB boarding status is kept in step ("inProg"/"completed"). Deboarding remains observe-only.
+/// EFB boarding status is kept in step ("inProg"/"completed").
+///
+/// Deboarding mirrors in reverse (predecessor semantics: DEBOARDING_TOTAL counts UP as pax
+/// leave): seats empty from the FRONT of the cabin, cargo drains by GSX's unload percentage,
+/// and completion reconciles to an empty aircraft. The raw counters stay decision-logged so
+/// live sessions keep teaching us their shape.
 /// </summary>
 public sealed class GsxBoardingSync : IDisposable
 {
@@ -31,6 +36,7 @@ public sealed class GsxBoardingSync : IDisposable
     private readonly IDataRefSubscription _deboardTotal;
     private readonly IDataRefSubscription _deboardCargoPercent;
     private readonly IDataRefSubscription _bookedSeatString;
+    private readonly IDataRefSubscription _seatOccupationString;
     private readonly IDataRefSubscription[] _zoneCapacities;
     private readonly IDataRefSubscription _plannedCargo;
     private readonly IDataRefSubscription _cargoFwdCapacity;
@@ -43,7 +49,10 @@ public sealed class GsxBoardingSync : IDisposable
     private bool _seatMapMode;
     private int _lastWrittenBoarded = -1;
     private double _lastWrittenCargoPct = -1;
-    private int _lastLoggedDeboard = -1;
+    private bool[] _deboardMap = [];
+    private int _deboardStartCount;
+    private int _lastWrittenDeboard = -1;
+    private double _lastWrittenDeboardCargoPct = -1;
     private int _ticking;
 
     public GsxBoardingSync(
@@ -77,6 +86,7 @@ public sealed class GsxBoardingSync : IDisposable
         _deboardCargoPercent = simVars.Subscribe(GsxLvarNames.DeboardingCargoPercent, "number", DataRefTier.Normal);
 
         _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
+        _seatOccupationString = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString, DataRefTier.Infrequent);
         _zoneCapacities =
         [
             prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity, DataRefTier.Infrequent),
@@ -101,6 +111,7 @@ public sealed class GsxBoardingSync : IDisposable
         _deboardTotal.Dispose();
         _deboardCargoPercent.Dispose();
         _bookedSeatString.Dispose();
+        _seatOccupationString.Dispose();
         foreach (var zone in _zoneCapacities)
         {
             zone.Dispose();
@@ -130,17 +141,32 @@ public sealed class GsxBoardingSync : IDisposable
         }
         else if (serviceId.Equals("Deboarding", StringComparison.OrdinalIgnoreCase))
         {
-            _deboardingActive = lifecycleEvent switch
+            switch (lifecycleEvent)
             {
-                GsxServiceLifecycleEvent.Active => true,
-                GsxServiceLifecycleEvent.Completed => false,
-                _ => _deboardingActive,
-            };
-            if (lifecycleEvent == GsxServiceLifecycleEvent.Active)
-            {
-                RecordDecision("deboarding", "observe mode — counters logged, no writes until live semantics confirmed");
+                case GsxServiceLifecycleEvent.Active when DeboardEnabled:
+                    StartDeboarding();
+                    break;
+
+                case GsxServiceLifecycleEvent.Completed when _deboardingActive:
+                    _deboardingActive = false;
+                    _ = FinalizeDeboardingAsync();
+                    break;
             }
         }
+    }
+
+    private bool DeboardEnabled => Enabled && _options.CurrentValue.DeboardingSyncEnabled;
+
+    /// <summary>The deboard map starts from the CURRENT occupation (what actually boarded),
+    /// and drains from the front as GSX's up-counting DEBOARDING_TOTAL rises.</summary>
+    private void StartDeboarding()
+    {
+        _deboardMap = SeatMap.Parse(_seatOccupationString.GetValue<string?>(null));
+        _deboardStartCount = _deboardMap.Count(seat => seat);
+        _lastWrittenDeboard = -1;
+        _lastWrittenDeboardCargoPct = -1;
+        _deboardingActive = true;
+        RecordDecision("deboarding sync", $"activated — {_deboardStartCount} pax aboard to deboard");
     }
 
     private void StartBoarding()
@@ -220,16 +246,26 @@ public sealed class GsxBoardingSync : IDisposable
                 }
             }
 
-            if (_deboardingActive)
+            if (_deboardingActive && DeboardEnabled)
             {
-                // Observe mode: log the counters so live sessions teach us their shape.
                 var deboarded = (int)_deboardTotal.GetValue(0.0);
-                if (deboarded != _lastLoggedDeboard)
+                if (deboarded != _lastWrittenDeboard && deboarded >= 0 && _deboardMap.Length > 0)
                 {
-                    _lastLoggedDeboard = deboarded;
-                    RecordDecision(
-                        "deboarding observe",
-                        $"NUMPASSENGERS={_plannedTotalLvar.GetValue(0.0):F0}, DEBOARD_TOTAL={deboarded}, CARGO%={_deboardCargoPercent.GetValue(0.0):F0}");
+                    // Raw counters stay visible for semantics verification (first live run).
+                    _logger.LogDebug(
+                        "Deboarding counters: NUMPASSENGERS={Planned}, DEBOARD_TOTAL={Deboarded}, CARGO%={CargoPct}",
+                        _plannedTotalLvar.GetValue(0.0),
+                        deboarded,
+                        _deboardCargoPercent.GetValue(0.0));
+                    await WriteDeboardedAsync(deboarded).ConfigureAwait(false);
+                }
+
+                var unloadPct = _deboardCargoPercent.GetValue(0.0);
+                if (Math.Abs(unloadPct - _lastWrittenDeboardCargoPct) >= 1)
+                {
+                    _lastWrittenDeboardCargoPct = unloadPct;
+                    // DEBOARDING_CARGO_PERCENT counts unload progress up: remaining = 100 - pct.
+                    await WriteCargoAsync(100 - Math.Clamp(unloadPct, 0, 100)).ConfigureAwait(false);
                 }
             }
         }
@@ -253,6 +289,43 @@ public sealed class GsxBoardingSync : IDisposable
         await WriteCargoAsync(100).ConfigureAwait(false);
         await _writer.WriteAsync(ProsimDataRefNames.EfbBoardingStatus, "completed").ConfigureAwait(false);
         RecordDecision("boarding sync", $"completed — reconciled at {planned} pax, cargo 100%");
+    }
+
+    /// <summary>Empties seats front-first until remaining = start − deboarded, writing the
+    /// occupation string back so ProSim's zone loads and CG track the deboard.</summary>
+    private async Task WriteDeboardedAsync(int deboardedCount)
+    {
+        var targetRemaining = Math.Max(0, _deboardStartCount - deboardedCount);
+        var unseated = SeatMap.DrainBoarded(_deboardMap, targetRemaining);
+        if (unseated > 0 || deboardedCount != _lastWrittenDeboard)
+        {
+            var ok = await _writer.WriteAsync(
+                ProsimDataRefNames.PaxSeatOccupationString,
+                SeatMap.Build(_deboardMap)).ConfigureAwait(false);
+            if (ok)
+            {
+                _lastWrittenDeboard = deboardedCount;
+            }
+            _logger.LogDebug(
+                "Deboarding: {Deboarded} off, {Remaining} remain (-{Unseated} this update, written {Ok})",
+                deboardedCount,
+                targetRemaining,
+                unseated,
+                ok);
+        }
+    }
+
+    private async Task FinalizeDeboardingAsync()
+    {
+        if (_deboardMap.Length > 0)
+        {
+            Array.Clear(_deboardMap);
+            await _writer.WriteAsync(
+                ProsimDataRefNames.PaxSeatOccupationString,
+                SeatMap.Build(_deboardMap)).ConfigureAwait(false);
+        }
+        await WriteCargoAsync(0).ConfigureAwait(false);
+        RecordDecision("deboarding sync", "completed — aircraft empty (pax 0, cargo 0)");
     }
 
     private async Task WriteBoardedAsync(int boardedCount)

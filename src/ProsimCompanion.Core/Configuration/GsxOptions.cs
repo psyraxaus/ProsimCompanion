@@ -66,6 +66,11 @@ public sealed class GsxOptions
     /// verified — it is no longer yes/no). This exact entry is picked.</summary>
     public string CrewBoardingAnswer { get; set; } = "Both";
 
+    /// <summary>Write the CREW/PILOTS_NOT_(DE)BOARDING LVARs so GSX never asks the crew
+    /// question at all (the predecessor's SkipCrewQuestion). Off by default — the menu answer
+    /// above already handles it; turn this on to skip crew boarding entirely.</summary>
+    public bool SkipCrewBoardingQuestion { get; set; }
+
     /// <summary>Answer the "Do you want to request …" pushback confirmation with yes.</summary>
     public bool ConfirmPushbackRequest { get; set; } = true;
 
@@ -124,4 +129,90 @@ public sealed class GsxOptions
     /// <summary>Turn off ProSim's own GSX auto-integration flags (efb.gsx.*) while this
     /// application drives GSX — prevents the two automations fighting each other.</summary>
     public bool DisableProsimNativeGsx { get; set; } = true;
+
+    // ---- Door automation ----
+
+    /// <summary>Drive ProSim aircraft doors from GSX activity: cargo doors open for
+    /// boarding/deboarding and close when loading finishes, catering (service) door toggles
+    /// follow GSX's requests, and entry doors open when stairs dock at jetway-less stands.</summary>
+    public bool DoorAutomationEnabled { get; set; } = true;
+
+    /// <summary>Write L:FSDT_GSX_DISABLE_DOORS_MSG so GSX never shows "waiting for your action"
+    /// door prompts while this application drives the doors. Re-asserted after Couatl restarts
+    /// (the LVAR resets to 0).</summary>
+    public bool SuppressGsxDoorMessages { get; set; } = true;
+
+    /// <summary>Delay before the cargo doors open once boarding/deboarding begins.</summary>
+    public int CargoDoorOpenDelaySec { get; set; } = 2;
+
+    /// <summary>Delay before a cargo door closes after its GSX loader finishes.</summary>
+    public int CargoDoorCloseDelaySec { get; set; } = 16;
+
+    /// <summary>Leave the cargo doors open after deboarding completes (ground crew realism
+    /// option; default closes them).</summary>
+    public bool KeepCargoDoorsOpenAfterUnload { get; set; }
+
+    // ---- Beacon-orchestrated pushback sequence ----
+
+    /// <summary>Beacon on (with departure services complete) starts the orchestrated pushback
+    /// prep: wait for APU → close doors → retract jetway/stairs → clear ground equipment →
+    /// pushback, each step after a randomized crew-realism delay. Beacon off pauses.</summary>
+    public bool BeaconPushbackSequenceEnabled { get; set; } = true;
+
+    /// <summary>Call the GSX Pushback service automatically when the sequence reaches
+    /// ready-for-push (off = the sequence prepares everything and leaves the call to you).</summary>
+    public bool CallPushbackOnBeacon { get; set; } = true;
+
+    /// <summary>Randomized delay bounds (seconds) before the doors close.</summary>
+    public int SeqDoorsCloseDelayMinSec { get; set; } = 10;
+    public int SeqDoorsCloseDelayMaxSec { get; set; } = 20;
+
+    /// <summary>Randomized delay bounds (seconds) before the jetway/stairs retract.</summary>
+    public int SeqJetwayRetractDelayMinSec { get; set; } = 10;
+    public int SeqJetwayRetractDelayMaxSec { get; set; } = 25;
+
+    /// <summary>Randomized delay bounds (seconds) before ground equipment is cleared.</summary>
+    public int SeqGpuDisconnectDelayMinSec { get; set; } = 10;
+    public int SeqGpuDisconnectDelayMaxSec { get; set; } = 20;
+
+    // ---- Arrival / deboarding ----
+
+    /// <summary>Mirror GSX deboarding counters into ProSim: seats empty front-first as pax
+    /// leave, cargo drains by GSX's unload percentage.</summary>
+    public bool DeboardingSyncEnabled { get; set; } = true;
+
+    /// <summary>Call the GSX Deboarding service automatically once stably parked on arrival.</summary>
+    public bool AutoCallDeboardOnArrival { get; set; } = true;
+
+    /// <summary>How long the stable-parked condition (on ground, engines off, park brake set,
+    /// beacon off, stationary) must hold before arrival actions fire.</summary>
+    public int ArrivalStableSeconds { get; set; } = 10;
+
+    // ---- Fuel-on-board persistence ----
+
+    /// <summary>Restore the saved FOB for this aircraft at preparation (before a plan is
+    /// loaded) and save the FOB when stably parked on arrival — so the next session starts
+    /// with the fuel you landed with.</summary>
+    public bool FuelSaveLoadFob { get; set; } = true;
+
+    /// <summary>FOB written at preparation when no value has been saved for this aircraft yet.</summary>
+    public double FuelResetDefaultKg { get; set; } = 3000;
+
+    /// <summary>Saved FOB per aircraft title — maintained by the app at arrival; not intended
+    /// for hand editing (but harmless to edit).</summary>
+    public Dictionary<string, double> FuelFobSaved { get; set; } = [];
+
+    // ---- Passenger randomization ----
+
+    /// <summary>Randomize the booked pax against the OFP: each seat flips with
+    /// <see cref="NoShowChancePerSeat"/> (booked→empty = no-show, empty→booked = walk-up
+    /// extra), with cargo adjusted by <see cref="WeightPerBagKg"/> per passenger delta.
+    /// Off by default — the load then matches the OFP exactly.</summary>
+    public bool RandomizePaxNoShows { get; set; }
+
+    /// <summary>Per-seat flip probability when <see cref="RandomizePaxNoShows"/> is on.</summary>
+    public double NoShowChancePerSeat { get; set; } = 0.03;
+
+    /// <summary>Checked-bag weight used to adjust cargo for no-shows/extras.</summary>
+    public double WeightPerBagKg { get; set; } = 15;
 }

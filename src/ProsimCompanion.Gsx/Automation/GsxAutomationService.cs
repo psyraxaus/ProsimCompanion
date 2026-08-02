@@ -32,14 +32,17 @@ public sealed class GsxAutomationService : IDisposable
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxAutomationService> _logger;
+    private readonly ISimVars _simVars;
     private readonly IDataRefSubscription _ofpImported;
     private readonly IDataRefSubscription _fmsOrigin;
     private readonly IDataRefSubscription _fmsDestination;
+    private readonly IDataRefSubscription _bookedSeatString;
     private readonly Timer _pumpTimer;
     private readonly SemaphoreSlim _pumpLock = new(1, 1);
     private readonly Dictionary<string, string> _lastReasonByAction = new(StringComparer.Ordinal);
     private volatile bool _departureStarted;
     private volatile bool _departureComplete;
+    private bool _paxTargetArmed;
     private string? _autoSelectArmedKey;
     private DateTimeOffset _lastImportAttempt = DateTimeOffset.MinValue;
 
@@ -52,6 +55,7 @@ public sealed class GsxAutomationService : IDisposable
         Sync.GsxGroundPrepCoordinator groundPrep,
         FlightStateEngine flightState,
         IProsimDataRefs prosim,
+        ISimVars simVars,
         ISimbriefImporter simbrief,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
@@ -64,7 +68,9 @@ public sealed class GsxAutomationService : IDisposable
         ArgumentNullException.ThrowIfNull(groundPrep);
         ArgumentNullException.ThrowIfNull(simbrief);
         ArgumentNullException.ThrowIfNull(flightState);
+        ArgumentNullException.ThrowIfNull(simVars);
         _simbrief = simbrief;
+        _simVars = simVars;
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -84,6 +90,7 @@ public sealed class GsxAutomationService : IDisposable
         _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
         _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
         _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
+        _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
 
         _flightState.PhaseChanged += OnFlightPhaseChanged;
         _lifecycle.ServiceEvent += OnServiceEvent;
@@ -96,6 +103,10 @@ public sealed class GsxAutomationService : IDisposable
 
     /// <summary>True once the departure sequence has been started (manually or automatically).</summary>
     public bool DepartureStarted => _departureStarted;
+
+    /// <summary>True once every departure service completed or was skipped — the
+    /// beacon-orchestrated pushback sequence arms on this.</summary>
+    public bool DepartureComplete => _departureComplete;
 
     /// <summary>Starts the departure service sequence (idempotent).</summary>
     public void StartDepartureServices()
@@ -120,6 +131,7 @@ public sealed class GsxAutomationService : IDisposable
         _ofpImported.Dispose();
         _fmsOrigin.Dispose();
         _fmsDestination.Dispose();
+        _bookedSeatString.Dispose();
         _pumpLock.Dispose();
     }
 
@@ -146,6 +158,7 @@ public sealed class GsxAutomationService : IDisposable
                 _lifecycle.ResetCycle();
                 _departureStarted = false;
                 _departureComplete = false;
+                _paxTargetArmed = false;
                 RecordDecision("turnaround", "service cycles reset after arrival");
                 break;
         }
@@ -237,6 +250,11 @@ public sealed class GsxAutomationService : IDisposable
                 RecordDecisionOnce(
                     "flight plan detection",
                     $"none detected — simbriefImported={ofpImported}, fmsOrigin='{fmsOrigin ?? ""}', fmsDestination='{fmsDestination ?? ""}'");
+            }
+
+            if (flightPlanAvailable)
+            {
+                ArmGsxPaxTarget();
             }
 
             var plan = DepartureSequencer.Next(
@@ -351,6 +369,52 @@ public sealed class GsxAutomationService : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "autoSelectOperator arming failed");
+        }
+    }
+
+    /// <summary>Arms GSX's pax counter (L:FSDT_GSX_NUMPASSENGERS) with the booked count once
+    /// per departure — GSX then boards OUR manifest (incl. any no-show randomization) instead
+    /// of its own SimBrief figure (predecessor: SetPaxTarget before services). Optionally also
+    /// writes the crew/pilot skip flags so GSX never asks the crew question.</summary>
+    private void ArmGsxPaxTarget()
+    {
+        if (_paxTargetArmed)
+        {
+            return;
+        }
+
+        var booked = ProsimCompanion.Core.Aircraft.SeatMap
+            .Parse(_bookedSeatString.GetValue<string?>(null))
+            .Count(seat => seat);
+        if (booked <= 0)
+        {
+            return; // booked map not written yet — retry on a later pump
+        }
+
+        _paxTargetArmed = true;
+        _ = ArmGsxPaxTargetAsync(booked);
+    }
+
+    private async Task ArmGsxPaxTargetAsync(int booked)
+    {
+        try
+        {
+            await _simVars.WriteAsync(GsxLvarNames.NumPassengers, booked).ConfigureAwait(false);
+            RecordDecision("pax target", $"armed GSX with {booked} passengers (booked manifest)");
+
+            if (_options.CurrentValue.SkipCrewBoardingQuestion)
+            {
+                await _simVars.WriteAsync(GsxLvarNames.CrewNotBoarding, 1).ConfigureAwait(false);
+                await _simVars.WriteAsync(GsxLvarNames.PilotsNotBoarding, 1).ConfigureAwait(false);
+                await _simVars.WriteAsync(GsxLvarNames.CrewNotDeboarding, 1).ConfigureAwait(false);
+                await _simVars.WriteAsync(GsxLvarNames.PilotsNotDeboarding, 1).ConfigureAwait(false);
+                RecordDecision("pax target", "crew/pilot boarding questions suppressed via LVARs");
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            _paxTargetArmed = false; // MSFS not connected yet — retry on a later pump
+            _logger.LogDebug("Pax target arming deferred: {Reason}", ex.Message);
         }
     }
 

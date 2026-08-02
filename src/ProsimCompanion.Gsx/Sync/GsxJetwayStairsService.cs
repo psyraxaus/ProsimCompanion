@@ -226,6 +226,28 @@ public sealed class GsxJetwayStairsService : IDisposable
         }
     }
 
+    /// <summary>Retracts whatever is connected (the departure-sequence jetway step). The
+    /// operate services are toggles, so this triggers only a service currently reading
+    /// Active/Completed — never one that is retracted (that would CONNECT it).</summary>
+    public async Task RequestRemovalAsync()
+    {
+        var removedAny = false;
+        foreach (var serviceId in new[] { JetwayServiceId, StairsServiceId })
+        {
+            var service = _api.Mirror.Services.GetValueOrDefault(serviceId);
+            if (service?.State is GsxServiceState.Active or GsxServiceState.Completed)
+            {
+                removedAny = true;
+                RecordDecision("jetway/stairs", $"departure — retracting {serviceId}");
+                await TriggerAsync(serviceId).ConfigureAwait(false);
+            }
+        }
+        if (!removedAny)
+        {
+            RecordDecision("jetway/stairs", "departure — nothing connected to retract");
+        }
+    }
+
     private void StartTrigger(string serviceId)
     {
         _pendingServiceId = serviceId;

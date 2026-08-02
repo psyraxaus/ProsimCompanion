@@ -101,12 +101,31 @@ public sealed class GsxGroundEquipmentService : IDisposable
             return;
         }
 
+        // When the beacon-orchestrated pushback sequence is on, IT owns removal timing
+        // (doors → jetway → equipment with crew-realism delays) via RemoveForDepartureAsync.
+        if (_options.CurrentValue.BeaconPushbackSequenceEnabled)
+        {
+            return;
+        }
+
         // Beacon-on before departure = crew signals readiness: clear the ground equipment.
         if (_flightState.CurrentPhase is FlightPhase.Preflight or FlightPhase.ColdAndDark or FlightPhase.PushbackAndStart)
         {
             _removedThisSession = true;
             _ = RemoveEquipmentAsync();
         }
+    }
+
+    /// <summary>Departure-sequence equipment step: clears PCA + GPU + chocks (park-brake
+    /// interlocked) once; safe to call repeatedly.</summary>
+    public async Task RemoveForDepartureAsync()
+    {
+        if (!Enabled || _removedThisSession)
+        {
+            return;
+        }
+        _removedThisSession = true;
+        await RemoveEquipmentAsync().ConfigureAwait(false);
     }
 
     private async Task PlaceEquipmentAsync()

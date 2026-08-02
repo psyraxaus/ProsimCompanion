@@ -33,6 +33,9 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Sync.GsxRepositionService>();
         services.AddSingleton<Sync.GsxGroundPrepCoordinator>();
         services.AddSingleton<Sync.ProsimNativeGsxGuard>();
+        services.AddSingleton<Sync.GsxDoorService>();
+        services.AddSingleton<Sync.GsxPushbackSequenceService>();
+        services.AddSingleton<Sync.GsxArrivalService>();
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

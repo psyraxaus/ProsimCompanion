@@ -132,5 +132,67 @@ public sealed class SeatMapTests
 
         Assert.All(map, Assert.True);
     }
+
+    [Fact]
+    public void DrainBoarded_UnseatsFromTheFront()
+    {
+        bool[] boarded = [true, false, true, true, true];
+
+        var unseated = SeatMap.DrainBoarded(boarded, 2);
+
+        Assert.Equal(2, unseated);
+        // Front-most occupied seats empty first (front rows deboard first).
+        Assert.Equal([false, false, false, true, true], boarded);
+    }
+
+    [Fact]
+    public void DrainBoarded_TargetAtOrAboveCurrent_NoChange()
+    {
+        bool[] boarded = [true, true, false];
+
+        Assert.Equal(0, SeatMap.DrainBoarded(boarded, 2));
+        Assert.Equal(0, SeatMap.DrainBoarded(boarded, 5));
+        Assert.Equal([true, true, false], boarded);
+    }
+
+    [Fact]
+    public void DrainBoarded_TargetZero_EmptiesEveryone()
+    {
+        bool[] boarded = [true, true, true];
+
+        Assert.Equal(3, SeatMap.DrainBoarded(boarded, 0));
+        Assert.All(boarded, seat => Assert.False(seat));
+    }
+
+    [Fact]
+    public void ApplyNoShowRandomization_DeltaMatchesTheMap()
+    {
+        var map = SeatMap.SynthesizeBooked(99, [24, 30, 36, 42], new Random(3));
+        var before = map.Count(seat => seat);
+
+        var delta = SeatMap.ApplyNoShowRandomization(map, 0.05, new Random(9));
+
+        Assert.Equal(before + delta, map.Count(seat => seat));
+    }
+
+    [Fact]
+    public void ApplyNoShowRandomization_ZeroChance_NoChange()
+    {
+        bool[] map = [true, false, true];
+
+        var delta = SeatMap.ApplyNoShowRandomization(map, 0, new Random(1));
+
+        Assert.Equal(0, delta);
+        Assert.Equal([true, false, true], map);
+    }
+
+    [Fact]
+    public void CountPerZone_SlicesByCapacity()
+    {
+        //             |-- zone 1 --|  |---- zone 2 ----|
+        bool[] map = [true, false, true, true, true, false];
+
+        Assert.Equal([2, 2], SeatMap.CountPerZone(map, [3, 3]));
+    }
 }
 

@@ -66,6 +66,80 @@ public static class SeatMap
     }
 
     /// <summary>
+    /// Unseats passengers from the FRONT of the cabin until the boarded count drops to
+    /// <paramref name="targetRemainingCount"/> (front rows deboard first — the predecessor's
+    /// deboarding model). Never seats anyone. Returns the number unseated.
+    /// </summary>
+    public static int DrainBoarded(bool[] boarded, int targetRemainingCount)
+    {
+        ArgumentNullException.ThrowIfNull(boarded);
+
+        var currentlyBoarded = boarded.Count(seat => seat);
+        var toUnseat = currentlyBoarded - Math.Max(0, targetRemainingCount);
+        var unseated = 0;
+        for (var i = 0; i < boarded.Length && unseated < toUnseat; i++)
+        {
+            if (boarded[i])
+            {
+                boarded[i] = false;
+                unseated++;
+            }
+        }
+        return unseated;
+    }
+
+    /// <summary>
+    /// Flips each seat's booked state with the given per-seat chance (the predecessor's
+    /// no-show/extra randomization): a booked seat flipping off is a no-show, an empty seat
+    /// flipping on is a walk-up extra. Mutates the map; returns the net passenger delta
+    /// (negative = fewer than planned). Pass a seeded <paramref name="random"/> for
+    /// reproducible results.
+    /// </summary>
+    public static int ApplyNoShowRandomization(bool[] booked, double chancePerSeat, Random? random = null)
+    {
+        ArgumentNullException.ThrowIfNull(booked);
+        random ??= Random.Shared;
+
+        if (chancePerSeat <= 0)
+        {
+            return 0;
+        }
+
+        var delta = 0;
+        for (var i = 0; i < booked.Length; i++)
+        {
+            if (random.NextDouble() < chancePerSeat)
+            {
+                booked[i] = !booked[i];
+                delta += booked[i] ? 1 : -1;
+            }
+        }
+        return delta;
+    }
+
+    /// <summary>Occupied-seat count per zone, slicing the map by zone capacities in order.</summary>
+    public static int[] CountPerZone(IReadOnlyList<bool> map, IReadOnlyList<int> zoneCapacities)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(zoneCapacities);
+
+        var counts = new int[zoneCapacities.Count];
+        var offset = 0;
+        for (var zone = 0; zone < zoneCapacities.Count; zone++)
+        {
+            for (var i = 0; i < zoneCapacities[zone] && offset + i < map.Count; i++)
+            {
+                if (map[offset + i])
+                {
+                    counts[zone]++;
+                }
+            }
+            offset += zoneCapacities[zone];
+        }
+        return counts;
+    }
+
+    /// <summary>
     /// Seats passengers until the boarded count reaches <paramref name="targetBoardedCount"/>
     /// (clamped to the planned count): planned-but-empty seats fill in seat order. Never
     /// unseats. Returns the number of newly seated passengers.
