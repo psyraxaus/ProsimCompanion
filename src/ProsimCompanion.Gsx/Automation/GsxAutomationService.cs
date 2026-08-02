@@ -216,16 +216,18 @@ public sealed class GsxAutomationService : IDisposable
                 return;
             }
 
-            // Flight plan = SimBrief OFP imported into the EFB, OR a plan in the MCDU (origin +
-            // destination set). When neither exists, the SimBrief importer is invoked (60 s
-            // cooldown) — the predecessors' aircraft-loading mechanism, which also supplies the
-            // booked seat map and planned fuel/cargo.
+            // Flight plan = SimBrief OFP imported into the EFB, OR a plan the PILOT loaded in
+            // the MCDU (valid origin + destination ICAOs). The SimBrief importer — which
+            // supplies the booked seat map and planned fuel/cargo — only runs AFTER the MCDU
+            // plan is detected (the predecessor's trigger, 60 s cooldown). It must never run
+            // on its own: round-5 smoke test showed the auto-import satisfying the plan gate
+            // two seconds after ground prep, before the pilot had loaded anything.
             var ofpImported = _ofpImported.GetValue(false);
             var fmsOrigin = _fmsOrigin.GetValue<string?>(null);
             var fmsDestination = _fmsDestination.GetValue<string?>(null);
-            var flightPlanAvailable = ofpImported
-                || (!string.IsNullOrWhiteSpace(fmsOrigin) && !string.IsNullOrWhiteSpace(fmsDestination));
-            if (!ofpImported && options.RequireOfpBeforeDeparture)
+            var fmsPlanPresent = IsValidIcao(fmsOrigin) && IsValidIcao(fmsDestination);
+            var flightPlanAvailable = ofpImported || fmsPlanPresent;
+            if (fmsPlanPresent && !ofpImported && options.RequireOfpBeforeDeparture)
             {
                 TryStartSimbriefImport();
             }
@@ -352,8 +354,17 @@ public sealed class GsxAutomationService : IDisposable
         }
     }
 
+    /// <summary>The MCDU FMS origin/destination datarefs carry a valid 4-char ICAO once the
+    /// pilot loads a plan — but read "----" before that, and have been observed returning the
+    /// literal string "Null" (predecessor archaeology, TakeoffPerfService).</summary>
+    private static bool IsValidIcao(string? value)
+        => value is { Length: 4 }
+            && value != "----"
+            && !value.Equals("Null", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Fires the SimBrief import in the background with a 60 s cooldown; the importer
-    /// itself decision-logs its progress, and a success re-pumps the sequencer.</summary>
+    /// itself decision-logs its progress, and a success re-pumps the sequencer. Only invoked
+    /// once the pilot's MCDU plan is detected — never preemptively.</summary>
     private void TryStartSimbriefImport()
     {
         var now = DateTimeOffset.UtcNow;
