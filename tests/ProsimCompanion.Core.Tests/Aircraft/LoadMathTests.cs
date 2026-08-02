@@ -70,6 +70,16 @@ public sealed class LoadMathTests
     [InlineData(1000, 5000, 0, 1000)]      // zero rate is a no-op
     public void NextFuelStep_MovesTowardTargetWithoutOvershoot(double current, double target, double rate, double expected)
         => Assert.Equal(expected, LoadMath.NextFuelStep(current, target, rate), precision: 3);
+
+    [Theory]
+    [InlineData(7317, 7400)]    // SimBrief plan_ramp rounds up to the fuel-order increment
+    [InlineData(7301, 7400)]
+    [InlineData(7400, 7400)]    // already round — unchanged
+    [InlineData(50, 100)]
+    [InlineData(0, 0)]          // 0 means "no target" and must stay 0
+    [InlineData(-5, -5)]        // never invents fuel from a bogus reading
+    public void RoundFuelUpToHundredKg_MatchesFuelOrderIncrements(double kg, double expected)
+        => Assert.Equal(expected, LoadMath.RoundFuelUpToHundredKg(kg), precision: 3);
 }
 
 

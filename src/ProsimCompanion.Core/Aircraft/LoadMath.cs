@@ -70,6 +70,12 @@ public static class LoadMath
         return (forward, totalKg - forward);
     }
 
+    /// <summary>Rounds a fuel figure UP to the next 100 kg — real-world ops order block fuel
+    /// in 100 kg increments, never below the planned figure. Non-positive values pass
+    /// through unchanged (0 means "no target").</summary>
+    public static double RoundFuelUpToHundredKg(double kg)
+        => kg <= 0 ? kg : Math.Ceiling(kg / 100.0) * 100.0;
+
     /// <summary>Next fuel quantity after one transfer tick, clamped so the target is reached
     /// exactly and never overshot (works in both directions — GSX can also defuel).</summary>
     public static double NextFuelStep(double currentKg, double targetKg, double stepKg)

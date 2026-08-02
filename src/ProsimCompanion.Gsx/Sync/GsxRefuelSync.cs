@@ -117,12 +117,14 @@ public sealed class GsxRefuelSync : IDisposable
     private bool Enabled => _options.CurrentValue.AutomationEnabled && _options.CurrentValue.RefuelSyncEnabled;
 
     /// <summary>The intended TOTAL: aircraft.refuel.fuelTarget (the EFB fuel page's figure),
-    /// falling back to efb.plannedfuel. The .kg variant has proven to be a transfer amount and
-    /// is logged for diagnosis only. Used only to latch — never trusted mid-transfer.</summary>
+    /// falling back to efb.plannedfuel, rounded UP to the next 100 kg (real-world fuel-order
+    /// increments — also covers targets typed into the EFB by hand). The .kg variant has
+    /// proven to be a transfer amount and is logged for diagnosis only. Used only to latch —
+    /// never trusted mid-transfer.</summary>
     private double ReadTargetKg()
     {
         var target = _fuelTarget.GetValue(0.0);
-        return target > 0 ? target : _plannedFuel.GetValue(0.0);
+        return LoadMath.RoundFuelUpToHundredKg(target > 0 ? target : _plannedFuel.GetValue(0.0));
     }
 
     private void Tick() => _ = TickAsync();

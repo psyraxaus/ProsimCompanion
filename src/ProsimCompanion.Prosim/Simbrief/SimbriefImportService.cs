@@ -151,6 +151,10 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             cargo /= LbsPerKg;
         }
 
+        // Real-world ops: block fuel is ordered in 100 kg increments, rounded up so the
+        // uplift is never below plan (owner requirement, round 6).
+        fuelRamp = LoadMath.RoundFuelUpToHundredKg(fuelRamp);
+
         if (fuelRamp <= 0 && paxCount <= 0)
         {
             RecordDecision("simbrief import", "OFP carries no usable fuel/pax data — aborting import");
