@@ -92,3 +92,17 @@ start and remain usable (degraded mode) when the SDK, ProSim, MSFS, or GSX are a
 | ProsimCompanion web UI | `http://localhost:5320` (default; avoids 5000/5001/8730 used by neighbours) |
 | User config | `config/settings.json` beside the exe |
 | Logs | `%LOCALAPPDATA%\ProsimCompanion\logs\` |
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked as GitHub Issues on `psyraxaus/ProsimCompanion` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` (created lazily) + ADRs in `docs/decisions/` (this repo's convention, not `docs/adr/`). See `docs/agents/domain.md`.
