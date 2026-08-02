@@ -32,13 +32,13 @@ public static class CoreServiceCollectionExtensions
         // (round-4 smoke test: the departure order arrived doubled and every service triggered
         // twice). Clear list defaults before the file binds; restore them after when the file
         // omitted the key entirely.
-        services.Configure<GsxOptions>(o => o.DepartureServiceOrder.Clear());
+        services.Configure<GsxOptions>(o => o.DepartureServices.Clear());
         services.Configure<GsxOptions>(configuration.GetSection(GsxOptions.SectionName));
         services.PostConfigure<GsxOptions>(o =>
         {
-            if (o.DepartureServiceOrder.Count == 0)
+            if (o.DepartureServices.Count == 0)
             {
-                o.DepartureServiceOrder.AddRange(GsxOptions.DefaultDepartureServiceOrder);
+                o.DepartureServices.AddRange(GsxOptions.DefaultDepartureServices);
             }
         });
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));

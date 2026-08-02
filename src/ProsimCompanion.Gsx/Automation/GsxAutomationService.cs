@@ -7,21 +7,28 @@ using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Gate;
+using ProsimCompanion.Gsx.Protocol;
 using ProsimCompanion.Gsx.Services;
 
 namespace ProsimCompanion.Gsx.Automation;
 
 /// <summary>
 /// The ground-automation coordinator: tracks the automation phase from the central flight state
-/// engine, runs the one-at-a-time departure service sequence (OFP-gated), arms the configured
-/// arrival gate when reaching flight, writes handler.set autoSelectOperator once per gate
-/// session, and resets service cycles on arrival. Every decision — including holds and skips —
-/// is recorded with its reason (decision log + session event log), deduplicated so a stable
-/// state does not spam.
+/// engine, runs the departure service sequence (OFP-gated, cursor + per-service activation
+/// rules — see <see cref="DepartureSequencer"/>), arms the configured arrival gate when
+/// reaching flight, writes handler.set autoSelectOperator once per gate session, and resets
+/// service cycles on arrival. Trigger dispatch is strictly one call in flight at a time,
+/// confirmed against the state mirror before the next goes out — the trigger ack proves
+/// nothing, and GSX silently drops rapid-fire requests (round-7 smoke test: five simultaneous
+/// triggers, only the last service ran while the board showed the rest "Called" forever).
+/// Every decision — including holds and skips — is recorded with its reason (decision log +
+/// session event log), deduplicated so a stable state does not spam.
 /// </summary>
-public sealed class GsxAutomationService : IDisposable
+public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
 {
     private static readonly TimeSpan PumpInterval = TimeSpan.FromSeconds(3);
+
+    private sealed record InFlightTrigger(string ServiceId, DateTimeOffset SentAt);
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxServiceLifecycleTracker _lifecycle;
@@ -37,11 +44,17 @@ public sealed class GsxAutomationService : IDisposable
     private readonly IDataRefSubscription _fmsOrigin;
     private readonly IDataRefSubscription _fmsDestination;
     private readonly IDataRefSubscription _bookedSeatString;
+    private readonly IDataRefSubscription _intRadCpt;
+    private readonly IDataRefSubscription _intRadFo;
     private readonly Timer _pumpTimer;
     private readonly SemaphoreSlim _pumpLock = new(1, 1);
     private readonly Dictionary<string, string> _lastReasonByAction = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _triggerAttempts = new(StringComparer.OrdinalIgnoreCase);
     private volatile bool _departureStarted;
     private volatile bool _departureComplete;
+    private volatile bool _forceNext;
+    private volatile bool _isTurnaround;
+    private volatile InFlightTrigger? _inFlight;
     private bool _paxTargetArmed;
     private string? _autoSelectArmedKey;
     private DateTimeOffset _lastImportAttempt = DateTimeOffset.MinValue;
@@ -91,6 +104,12 @@ public sealed class GsxAutomationService : IDisposable
         _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
         _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
         _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
+        // The INT/RAD switches on both ACPs are the cockpit "smart button" (predecessor
+        // semantics): flicking to INT (value 0) force-calls the next departure service.
+        _intRadCpt = prosim.Subscribe(ProsimDataRefNames.IntRadCpt, DataRefTier.Frequent);
+        _intRadFo = prosim.Subscribe(ProsimDataRefNames.IntRadFo, DataRefTier.Frequent);
+        _intRadCpt.ValueChanged += OnIntRadChanged;
+        _intRadFo.ValueChanged += OnIntRadChanged;
 
         _flightState.PhaseChanged += OnFlightPhaseChanged;
         _lifecycle.ServiceEvent += OnServiceEvent;
@@ -108,6 +127,14 @@ public sealed class GsxAutomationService : IDisposable
     /// beacon-orchestrated pushback sequence arms on this.</summary>
     public bool DepartureComplete => _departureComplete;
 
+    bool IGsxDepartureControl.Started => _departureStarted;
+
+    bool IGsxDepartureControl.Complete => _departureComplete;
+
+    void IGsxDepartureControl.Start() => StartDepartureServices();
+
+    void IGsxDepartureControl.ForceNext() => ForceNextService("web");
+
     /// <summary>Starts the departure service sequence (idempotent).</summary>
     public void StartDepartureServices()
     {
@@ -122,17 +149,56 @@ public sealed class GsxAutomationService : IDisposable
         Pump();
     }
 
+    /// <summary>Single-shot force-next (INT/RAD / web button): the next evaluation bypasses the
+    /// current step's activation rule — including Manual. Consumed by that evaluation whether or
+    /// not anything could be called; the flight-plan gate is never bypassed.</summary>
+    public void ForceNextService(string source)
+    {
+        if (!_departureStarted || _departureComplete)
+        {
+            RecordDecision("force next service", $"{source}: ignored — departure sequence not running");
+            return;
+        }
+
+        _forceNext = true;
+        RecordDecision("force next service", $"requested by {source}");
+        Pump();
+    }
+
     public void Dispose()
     {
         _flightState.PhaseChanged -= OnFlightPhaseChanged;
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _api.Mirror.Updated -= OnMirrorUpdated;
+        _intRadCpt.ValueChanged -= OnIntRadChanged;
+        _intRadFo.ValueChanged -= OnIntRadChanged;
         _pumpTimer.Dispose();
         _ofpImported.Dispose();
         _fmsOrigin.Dispose();
         _fmsDestination.Dispose();
         _bookedSeatString.Dispose();
+        _intRadCpt.Dispose();
+        _intRadFo.Dispose();
         _pumpLock.Dispose();
+    }
+
+    /// <summary>Fires on every INT/RAD movement; value 0 = INT (pressed). Only consumed while
+    /// the departure sequence is running on the ground — the switch is a real radio control in
+    /// every other phase.</summary>
+    private void OnIntRadChanged(object? sender, EventArgs e)
+    {
+        var subscription = (IDataRefSubscription)sender!;
+        if (subscription.GetValue(1) != 0)
+        {
+            return;
+        }
+
+        if (Phase is GsxAutomationPhase.Preparation or GsxAutomationPhase.SessionStart
+            && _departureStarted
+            && !_departureComplete)
+        {
+            ForceNextService("INT/RAD");
+        }
     }
 
     private void OnFlightPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
@@ -154,11 +220,20 @@ public sealed class GsxAutomationService : IDisposable
                 break;
 
             case GsxAutomationPhase.Arrival:
-                // New turnaround coming: fresh service cycles, fresh departure sequence.
+                // New turnaround coming: fresh service cycles, fresh departure sequence. From
+                // here on this session's departures are turnarounds (TurnAround-constrained
+                // services like Cleaning/Lavatory arm; FirstLeg-constrained ones stop).
                 _lifecycle.ResetCycle();
                 _departureStarted = false;
                 _departureComplete = false;
                 _paxTargetArmed = false;
+                _isTurnaround = true;
+                _forceNext = false;
+                _inFlight = null;
+                lock (_triggerAttempts)
+                {
+                    _triggerAttempts.Clear();
+                }
                 RecordDecision("turnaround", "service cycles reset after arrival");
                 break;
         }
@@ -168,10 +243,9 @@ public sealed class GsxAutomationService : IDisposable
 
     private void OnServiceEvent(string serviceId, GsxServiceLifecycleEvent lifecycleEvent)
     {
-        if (lifecycleEvent == GsxServiceLifecycleEvent.Completed)
-        {
-            Pump();
-        }
+        // Every edge matters now: Requested/Active confirm an in-flight trigger (unblocking the
+        // next dispatch), Completed advances the sequence.
+        Pump();
     }
 
     private void OnMirrorUpdated(string key)
@@ -257,17 +331,41 @@ public sealed class GsxAutomationService : IDisposable
                 ArmGsxPaxTarget();
             }
 
+            // Resolve the in-flight trigger BEFORE sequencing: confirmed (mirror/cycle shows
+            // GSX picked it up) → mark called, next dispatch may go out; timed out → the call
+            // was silently dropped, clear it so the sequencer offers the service again.
+            ResolveInFlightTrigger(options.TriggerConfirmTimeoutMs);
+
+            var cycles = _lifecycle.SnapshotCycles();
+            DepartureCycleView Cycle(string id)
+            {
+                cycles.TryGetValue(id, out var c);
+                return new DepartureCycleView(
+                    Called: c.Called,
+                    ReachedRequested: c.Requested || c.Active || c.Completed,
+                    ReachedActive: c.Active || c.Completed,
+                    Completed: c.Completed);
+            }
+
+            var forced = _forceNext;
             var plan = DepartureSequencer.Next(
-                options.DepartureServiceOrder,
+                options.DepartureServices,
                 _api.Mirror.Services,
-                _lifecycle.IsCompleted,
-                _lifecycle.IsPending,
+                Cycle,
+                _inFlight?.ServiceId,
                 flightPlanAvailable,
                 options.RequireOfpBeforeDeparture,
-                options.ConcurrentServices,
-                options.BoardingAfter);
+                _isTurnaround,
+                forced);
+            if (forced)
+            {
+                _forceNext = false; // single-shot, consumed by this evaluation
+                RecordDecision(
+                    "force next service",
+                    plan.Trigger is not null ? $"calling {plan.Trigger}" : "nothing eligible to force right now");
+            }
 
-            PublishBoard(options.DepartureServiceOrder, plan);
+            PublishBoard(options.DepartureServices, plan);
 
             foreach (var (serviceId, reason) in plan.Skipped)
             {
@@ -279,11 +377,18 @@ public sealed class GsxAutomationService : IDisposable
                 RecordDecisionOnce($"hold {serviceId}", reason);
             }
 
-            foreach (var serviceId in plan.Trigger)
+            if (plan.Trigger is { } trigger && _inFlight is null)
             {
-                RecordDecision($"trigger {serviceId}", options.ConcurrentServices ? "callable (concurrent mode)" : "next in departure order");
-                _lifecycle.MarkCalled(serviceId);
-                _ = TriggerServiceAsync(serviceId);
+                int attempt;
+                lock (_triggerAttempts)
+                {
+                    attempt = _triggerAttempts[trigger] = _triggerAttempts.GetValueOrDefault(trigger) + 1;
+                }
+                _inFlight = new InFlightTrigger(trigger, DateTimeOffset.UtcNow);
+                RecordDecision(
+                    $"trigger {trigger}",
+                    attempt == 1 ? plan.TriggerReason ?? "next in departure order" : $"{plan.TriggerReason} (attempt {attempt})");
+                _ = TriggerServiceAsync(trigger);
             }
 
             if (plan.AllDone)
@@ -303,6 +408,38 @@ public sealed class GsxAutomationService : IDisposable
         }
     }
 
+    /// <summary>Confirms or times out the one in-flight service.trigger. The command ack proves
+    /// nothing — confirmation is the mirror (or a latched lifecycle edge, for quick services
+    /// that bounce straight back to available) showing GSX picked the request up. Only then is
+    /// the cycle marked called and the next dispatch allowed out.</summary>
+    private void ResolveInFlightTrigger(int confirmTimeoutMs)
+    {
+        if (_inFlight is not { } inFlight)
+        {
+            return;
+        }
+
+        var cycles = _lifecycle.SnapshotCycles();
+        cycles.TryGetValue(inFlight.ServiceId, out var cycle);
+        var mirrorState = _api.Mirror.Services.TryGetValue(inFlight.ServiceId, out var info) ? info.State : (GsxServiceState?)null;
+        var confirmed = cycle.Requested || cycle.Active || cycle.Completed
+            || mirrorState is GsxServiceState.Requested or GsxServiceState.Active or GsxServiceState.Completed;
+
+        if (confirmed)
+        {
+            _lifecycle.MarkCalled(inFlight.ServiceId);
+            _inFlight = null;
+            RecordDecision($"trigger {inFlight.ServiceId}", $"confirmed by GSX ({mirrorState?.ToString() ?? "lifecycle edge"})");
+        }
+        else if (DateTimeOffset.UtcNow - inFlight.SentAt > TimeSpan.FromMilliseconds(confirmTimeoutMs))
+        {
+            _inFlight = null;
+            RecordDecision(
+                $"trigger {inFlight.ServiceId}",
+                $"not picked up by GSX within {confirmTimeoutMs / 1000} s — the call was dropped; retrying");
+        }
+    }
+
     private async Task TriggerServiceAsync(string serviceId)
     {
         var result = await _api.SendCommandAsync(
@@ -310,7 +447,14 @@ public sealed class GsxAutomationService : IDisposable
             new JsonObject { ["service"] = serviceId }).ConfigureAwait(false);
         if (!result.Ok)
         {
+            // Definitive rejection — no point waiting out the confirm window; free the
+            // dispatch slot so the next pump retries (or moves on).
+            if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _inFlight = null;
+            }
             RecordDecision($"trigger {serviceId}", $"rejected ({result.Code})");
+            Pump();
         }
     }
 
@@ -456,22 +600,26 @@ public sealed class GsxAutomationService : IDisposable
     }
 
     /// <summary>Publishes the Prosim2GSX-style departure status board from the current plan,
-    /// mirror states and lifecycle cycles, in configured service order.</summary>
-    private void PublishBoard(IReadOnlyList<string> order, DeparturePlan plan)
+    /// mirror states and lifecycle cycles, in configured step order. "Called" is truthful now:
+    /// it means a trigger is in flight or GSX confirmed the call — never a dropped request.</summary>
+    private void PublishBoard(IReadOnlyList<DepartureServiceStep> steps, DeparturePlan plan)
     {
         var holds = plan.Holds.ToDictionary(h => h.ServiceId, h => h.Reason, StringComparer.OrdinalIgnoreCase);
         var skips = plan.Skipped.ToDictionary(s => s.ServiceId, s => s.Reason, StringComparer.OrdinalIgnoreCase);
-        var triggered = new HashSet<string>(plan.Trigger, StringComparer.OrdinalIgnoreCase);
         var services = _api.Mirror.Services;
+        var inFlight = _inFlight?.ServiceId;
 
         var rows = new List<GsxServiceBoardRow>();
-        foreach (var id in order.Distinct(StringComparer.OrdinalIgnoreCase))
+        foreach (var id in DistinctServiceIds(steps))
         {
             services.TryGetValue(id, out var info);
+            var called = _lifecycle.IsPending(id)
+                || string.Equals(id, plan.Trigger, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(id, inFlight, StringComparison.OrdinalIgnoreCase);
             var row = _lifecycle.IsCompleted(id) ? new GsxServiceBoardRow(id, GsxServiceStage.Completed, null)
-                : info?.State == Protocol.GsxServiceState.Active ? new GsxServiceBoardRow(id, GsxServiceStage.Active, info.ProgressText)
-                : info?.State == Protocol.GsxServiceState.Requested ? new GsxServiceBoardRow(id, GsxServiceStage.Requested, null)
-                : triggered.Contains(id) || _lifecycle.IsPending(id) ? new GsxServiceBoardRow(id, GsxServiceStage.Called, null)
+                : info?.State == GsxServiceState.Active ? new GsxServiceBoardRow(id, GsxServiceStage.Active, info.ProgressText)
+                : info?.State == GsxServiceState.Requested ? new GsxServiceBoardRow(id, GsxServiceStage.Requested, null)
+                : called ? new GsxServiceBoardRow(id, GsxServiceStage.Called, holds.GetValueOrDefault(id))
                 : skips.TryGetValue(id, out var skipReason) ? new GsxServiceBoardRow(id, GsxServiceStage.Skipped, skipReason)
                 : holds.TryGetValue(id, out var holdReason) ? new GsxServiceBoardRow(id, GsxServiceStage.Held, holdReason)
                 : new GsxServiceBoardRow(id, GsxServiceStage.Waiting, null);
@@ -485,14 +633,19 @@ public sealed class GsxAutomationService : IDisposable
     /// one shared reason (sequence not started / ground prep).</summary>
     private void PublishWaitingBoard(string reason)
     {
-        var rows = _options.CurrentValue.DepartureServiceOrder
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        var rows = DistinctServiceIds(_options.CurrentValue.DepartureServices)
             .Select(id => _lifecycle.IsCompleted(id)
                 ? new GsxServiceBoardRow(id, GsxServiceStage.Completed, null)
                 : new GsxServiceBoardRow(id, GsxServiceStage.Waiting, reason))
             .ToList();
         _diagnostics.UpdateServiceBoard(rows);
     }
+
+    private static IEnumerable<string> DistinctServiceIds(IReadOnlyList<DepartureServiceStep> steps)
+        => steps
+            .Select(step => step.Service)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
     private void RecordDecision(string action, string reason)
     {

@@ -9,7 +9,7 @@ namespace ProsimCompanion.Core.Tests.Configuration;
 
 /// <summary>
 /// Round-4 regression: the config binder APPENDS array items to a list the options class
-/// already initialized, so a settings file containing the default departure order produced a
+/// already initialized, so a settings file containing the default departure list produced a
 /// doubled list — and every departure service was triggered twice per pump.
 /// </summary>
 public sealed class GsxOptionsBindingTests
@@ -24,36 +24,50 @@ public sealed class GsxOptionsBindingTests
     }
 
     [Fact]
-    public void FileContainingTheDefaultOrder_DoesNotDoubleTheList()
+    public void FileContainingTheDefaultSteps_DoesNotDoubleTheList()
     {
+        var defaults = GsxOptions.DefaultDepartureServices;
         var settings = new Dictionary<string, string?>();
-        for (var i = 0; i < GsxOptions.DefaultDepartureServiceOrder.Count; i++)
+        for (var i = 0; i < defaults.Count; i++)
         {
-            settings[$"gsx:departureServiceOrder:{i}"] = GsxOptions.DefaultDepartureServiceOrder[i];
+            settings[$"gsx:departureServices:{i}:service"] = defaults[i].Service;
+            settings[$"gsx:departureServices:{i}:activation"] = defaults[i].Activation.ToString();
+            settings[$"gsx:departureServices:{i}:constraint"] = defaults[i].Constraint.ToString();
         }
 
         var options = Bind(settings);
 
-        Assert.Equal(GsxOptions.DefaultDepartureServiceOrder, options.DepartureServiceOrder);
+        Assert.Equal(defaults.Count, options.DepartureServices.Count);
+        Assert.Equal(defaults.Select(s => s.Service), options.DepartureServices.Select(s => s.Service));
     }
 
     [Fact]
-    public void FileWithCustomOrder_WinsExactly()
+    public void FileWithCustomSteps_WinsExactly_AndParsesCamelCaseEnums()
     {
         var options = Bind(new Dictionary<string, string?>
         {
-            ["gsx:departureServiceOrder:0"] = "Catering",
-            ["gsx:departureServiceOrder:1"] = "Boarding",
+            ["gsx:departureServices:0:service"] = "Catering",
+            ["gsx:departureServices:0:activation"] = "afterPrevCompleted",
+            ["gsx:departureServices:0:constraint"] = "turnAround",
+            ["gsx:departureServices:1:service"] = "Boarding",
+            ["gsx:departureServices:1:activation"] = "manual",
         });
 
-        Assert.Equal(["Catering", "Boarding"], options.DepartureServiceOrder);
+        Assert.Equal(2, options.DepartureServices.Count);
+        Assert.Equal("Catering", options.DepartureServices[0].Service);
+        Assert.Equal(GsxServiceActivation.AfterPrevCompleted, options.DepartureServices[0].Activation);
+        Assert.Equal(GsxServiceConstraint.TurnAround, options.DepartureServices[0].Constraint);
+        Assert.Equal(GsxServiceActivation.Manual, options.DepartureServices[1].Activation);
+        Assert.Equal(GsxServiceConstraint.Always, options.DepartureServices[1].Constraint);
     }
 
     [Fact]
-    public void FileOmittingTheOrder_RestoresDefaults()
+    public void FileOmittingTheSteps_RestoresDefaults()
     {
         var options = Bind([]);
 
-        Assert.Equal(GsxOptions.DefaultDepartureServiceOrder, options.DepartureServiceOrder);
+        Assert.Equal(
+            GsxOptions.DefaultDepartureServices.Select(s => (s.Service, s.Activation, s.Constraint)),
+            options.DepartureServices.Select(s => (s.Service, s.Activation, s.Constraint)));
     }
 }

@@ -3,6 +3,7 @@
 @implements IDisposable
 @inject GsxDiagnosticsStore Diagnostics
 @inject IGsxGateControl GateControl
+@inject IGsxDepartureControl DepartureControl
 
 <h1>GSX diagnostics</h1>
 
@@ -26,6 +27,17 @@
 </div>
 
 <h2>Departure status board</h2>
+<div style="display:flex; gap:0.6rem; align-items:center; margin:0.4rem 0 0.8rem;">
+    <button @onclick="DepartureControl.Start" disabled="@DepartureControl.Started" style="margin-top:0;">
+        @(DepartureControl.Complete ? "Departure complete" : DepartureControl.Started ? "Departure running" : "Start departure services")
+    </button>
+    <button @onclick="DepartureControl.ForceNext"
+            disabled="@(!DepartureControl.Started || DepartureControl.Complete)"
+            style="margin-top:0; background:#9a6700;"
+            title="Call the next departure service now, bypassing its activation rule — the INT/RAD smart button. Works on Manual entries too.">
+        Call next service now
+    </button>
+</div>
 @if (_view.ServiceBoard.Count == 0)
 {
     <p class="hint">No departure sequence evaluated yet.</p>

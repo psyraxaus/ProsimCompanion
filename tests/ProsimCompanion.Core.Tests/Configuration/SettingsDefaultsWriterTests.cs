@@ -46,7 +46,7 @@ public sealed class SettingsDefaultsWriterTests : IDisposable
         Assert.Equal(false, (bool?)root["gsx"]?["enabled"]);
         Assert.Equal(40, (double?)root["gsx"]?["refuelRateKgPerSec"]);
         // New keys still added alongside the preserved ones.
-        Assert.NotNull(root["gsx"]?["departureServiceOrder"]);
+        Assert.NotNull(root["gsx"]?["departureServices"]);
     }
 
     [Fact]

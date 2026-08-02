@@ -85,6 +85,26 @@ public interface IGsxGateControl
     void Cancel();
 }
 
+/// <summary>Drives the departure service sequence from UI surfaces (implemented by the GSX
+/// automation layer). <see cref="ForceNext"/> is the INT/RAD "smart button": call the next
+/// departure service now, bypassing its activation rule — including Manual entries (the classic
+/// "start Boarding while Refueling runs").</summary>
+public interface IGsxDepartureControl
+{
+    /// <summary>True once the departure sequence has been started (manually or automatically).</summary>
+    bool Started { get; }
+
+    /// <summary>True once every departure service completed or was skipped.</summary>
+    bool Complete { get; }
+
+    /// <summary>Starts the departure service sequence (idempotent).</summary>
+    void Start();
+
+    /// <summary>Single-shot: the next sequencing evaluation treats the current step's
+    /// activation rule as satisfied. The flight-plan gate still applies.</summary>
+    void ForceNext();
+}
+
 /// <summary>
 /// Live GSX diagnostics for the web UI — the browser-side twin of the wire trace, built for
 /// evaluating sim smoke tests at a glance. The GSX layer pushes updates; readers poll

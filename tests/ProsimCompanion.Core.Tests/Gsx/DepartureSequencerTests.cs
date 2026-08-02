@@ -1,3 +1,4 @@
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Gsx.Automation;
 using ProsimCompanion.Gsx.Mirror;
 using ProsimCompanion.Gsx.Protocol;
@@ -7,7 +8,16 @@ namespace ProsimCompanion.Core.Tests.Gsx;
 
 public sealed class DepartureSequencerTests
 {
-    private static readonly List<string> Order = ["Refueling", "Catering", "Boarding"];
+    private static readonly DepartureCycleView CalledOnly = new(true, false, false, false);
+    private static readonly DepartureCycleView CalledRequested = new(true, true, false, false);
+    private static readonly DepartureCycleView CalledActive = new(true, true, true, false);
+    private static readonly DepartureCycleView Done = new(true, true, true, true);
+
+    private static DepartureServiceStep Step(
+        string id,
+        GsxServiceActivation activation = GsxServiceActivation.AfterCalled,
+        GsxServiceConstraint constraint = GsxServiceConstraint.Always)
+        => new(id, activation, constraint);
 
     private static Dictionary<string, GsxServiceInfo> Services(
         params (string Id, GsxServiceState State, bool CanTrigger)[] entries)
@@ -17,203 +27,336 @@ public sealed class DepartureSequencerTests
             StringComparer.OrdinalIgnoreCase);
 
     private static DeparturePlan Next(
+        IReadOnlyList<DepartureServiceStep> steps,
         Dictionary<string, GsxServiceInfo> services,
-        Func<string, bool>? completed = null,
-        Func<string, bool>? pending = null,
+        Dictionary<string, DepartureCycleView>? cycles = null,
+        string? awaitingConfirmation = null,
         bool plan = true,
         bool requireOfp = true,
-        bool concurrent = true,
-        List<string>? boardingAfter = null,
-        List<string>? order = null)
+        bool turnaround = false,
+        bool force = false)
         => DepartureSequencer.Next(
-            order ?? Order,
+            steps,
             services,
-            completed ?? (_ => false),
-            pending ?? (_ => false),
+            id => cycles?.GetValueOrDefault(id) ?? default,
+            awaitingConfirmation,
             plan,
             requireOfp,
-            concurrent,
-            boardingAfter ?? []);
+            turnaround,
+            force);
+
+    // ---- Single-dispatch discipline (the round-7 regression: rapid-fire triggers) ----
 
     [Fact]
-    public void Concurrent_TriggersEveryCallableNonBoardingService()
+    public void AfterCalledChain_TriggersOnlyTheFirstService()
     {
-        var plan = Next(Services(
+        // Both callable, nothing called yet: ONE trigger comes out, never a burst.
+        var plan = Next(
+            [Step("Refueling"), Step("Catering")],
+            Services(("Refueling", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)));
+
+        Assert.Equal("Refueling", plan.Trigger);
+    }
+
+    [Fact]
+    public void AfterCalledChain_NextTriggersOnceThePreviousCallIsConfirmed()
+    {
+        // Refueling confirmed-called (still callable in the mirror — quick-service quirk):
+        // the cursor moves past it and Catering goes out. Effective concurrency, serial dispatch.
+        var plan = Next(
+            [Step("Refueling"), Step("Catering")],
+            Services(("Refueling", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
+            cycles: new() { ["Refueling"] = CalledOnly });
+
+        Assert.Equal("Catering", plan.Trigger);
+    }
+
+    [Fact]
+    public void AwaitingConfirmation_HoldsTheCursorAndTriggersNothing()
+    {
+        var plan = Next(
+            [Step("Refueling"), Step("Catering")],
+            Services(("Refueling", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
+            awaitingConfirmation: "Refueling");
+
+        Assert.Null(plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason.Contains("waiting for GSX to confirm", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CalledPendingService_IsNeverRetriggered()
+    {
+        // GSX keeps quick services "callable" while they run (round-4 smoke test: Water
+        // re-triggered on every pump). A confirmed call must not fire again.
+        var plan = Next(
+            [Step("Water")],
+            Services(("Water", GsxServiceState.Callable, true)),
+            cycles: new() { ["Water"] = CalledRequested });
+
+        Assert.Null(plan.Trigger);
+    }
+
+    // ---- Activation rules ----
+
+    [Fact]
+    public void AfterRequested_WaitsUntilThePreviousServiceIsRequested()
+    {
+        var services = Services(("Catering", GsxServiceState.Callable, true), ("Water", GsxServiceState.Callable, true));
+        var steps = new[] { Step("Catering"), Step("Water", GsxServiceActivation.AfterRequested) };
+
+        var waiting = Next(steps, services, cycles: new() { ["Catering"] = CalledOnly });
+        Assert.Null(waiting.Trigger);
+        Assert.Contains(waiting.Holds, h => h.ServiceId == "Water" && h.Reason.Contains("requested", StringComparison.Ordinal));
+
+        var satisfied = Next(steps, services, cycles: new() { ["Catering"] = CalledRequested });
+        Assert.Equal("Water", satisfied.Trigger);
+    }
+
+    [Fact]
+    public void AfterRequested_MirrorStateCountsAsRequested()
+    {
+        // The previous service shows requested in the mirror (e.g. called externally).
+        var plan = Next(
+            [Step("Catering"), Step("Water", GsxServiceActivation.AfterRequested)],
+            Services(("Catering", GsxServiceState.Requested, false), ("Water", GsxServiceState.Callable, true)));
+
+        Assert.Equal("Water", plan.Trigger);
+    }
+
+    [Fact]
+    public void AfterActive_WaitsUntilThePreviousServiceIsActive()
+    {
+        var steps = new[] { Step("Refueling"), Step("Catering", GsxServiceActivation.AfterActive) };
+
+        var waiting = Next(
+            steps,
+            Services(("Refueling", GsxServiceState.Requested, false), ("Catering", GsxServiceState.Callable, true)));
+        Assert.Null(waiting.Trigger);
+
+        var satisfied = Next(
+            steps,
+            Services(("Refueling", GsxServiceState.Active, false), ("Catering", GsxServiceState.Callable, true)));
+        Assert.Equal("Catering", satisfied.Trigger);
+    }
+
+    [Fact]
+    public void AfterPrevCompleted_IsAStrictChain()
+    {
+        var steps = new[] { Step("Refueling"), Step("Catering", GsxServiceActivation.AfterPrevCompleted) };
+
+        var waiting = Next(
+            steps,
+            Services(("Refueling", GsxServiceState.Active, false), ("Catering", GsxServiceState.Callable, true)));
+        Assert.Null(waiting.Trigger);
+        Assert.Contains(waiting.Holds, h => h.ServiceId == "Catering" && h.Reason.Contains("complete", StringComparison.Ordinal));
+
+        var satisfied = Next(
+            steps,
+            Services(("Refueling", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
+            cycles: new() { ["Refueling"] = Done });
+        Assert.Equal("Catering", satisfied.Trigger);
+    }
+
+    [Fact]
+    public void AfterAllCompleted_WaitsForEveryEarlierService()
+    {
+        var steps = new[] { Step("Refueling"), Step("Catering"), Step("Boarding", GsxServiceActivation.AfterAllCompleted) };
+        var services = Services(
             ("Refueling", GsxServiceState.Callable, true),
             ("Catering", GsxServiceState.Callable, true),
-            ("Boarding", GsxServiceState.Callable, true)));
+            ("Boarding", GsxServiceState.Callable, true));
 
-        Assert.Equal(["Refueling", "Catering"], plan.Trigger);
-        Assert.Contains(plan.Holds, h => h.ServiceId == "Boarding");
+        // Refueling done, Catering still running: boarding holds (and nothing else triggers).
+        var waiting = Next(steps, services, cycles: new() { ["Refueling"] = Done, ["Catering"] = CalledRequested });
+        Assert.Null(waiting.Trigger);
+        Assert.Contains(waiting.Holds, h => h.ServiceId == "Boarding" && h.Reason.Contains("all earlier", StringComparison.Ordinal));
+
+        var satisfied = Next(steps, services, cycles: new() { ["Refueling"] = Done, ["Catering"] = Done });
+        Assert.Equal("Boarding", satisfied.Trigger);
     }
 
     [Fact]
-    public void Sequential_TriggersOnlyTheFirst()
+    public void AfterAllCompleted_SkippedEarlierServicesCountAsSatisfied()
     {
-        var plan = Next(Services(
-            ("Refueling", GsxServiceState.Callable, true),
-            ("Catering", GsxServiceState.Callable, true)),
-            concurrent: false);
+        // Refueling not offered at this gate, Catering unavailable: both skip, boarding goes.
+        var plan = Next(
+            [Step("Refueling"), Step("Catering"), Step("Boarding", GsxServiceActivation.AfterAllCompleted)],
+            Services(("Catering", GsxServiceState.NotAvailable, false), ("Boarding", GsxServiceState.Callable, true)));
 
-        Assert.Equal(["Refueling"], plan.Trigger);
+        Assert.Equal("Boarding", plan.Trigger);
     }
 
     [Fact]
-    public void Sequential_InProgressServiceBlocksTheRest()
+    public void FirstStep_HasNoPreviousService_AndAlwaysActivates()
     {
-        var plan = Next(Services(
-            ("Refueling", GsxServiceState.Active, false),
-            ("Catering", GsxServiceState.Callable, true)),
-            concurrent: false);
+        var plan = Next(
+            [Step("Water", GsxServiceActivation.AfterPrevCompleted)],
+            Services(("Water", GsxServiceState.Callable, true)));
 
-        Assert.Empty(plan.Trigger);
-        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason == "in progress");
+        Assert.Equal("Water", plan.Trigger);
+    }
+
+    // ---- Manual + force-next (INT/RAD) ----
+
+    [Fact]
+    public void Manual_ParksTheCursor_AndBlocksLaterSteps()
+    {
+        var plan = Next(
+            [Step("Refueling", GsxServiceActivation.Manual), Step("Catering")],
+            Services(("Refueling", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)));
+
+        Assert.Null(plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason.Contains("manual", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
-    public void Concurrent_InProgressServiceDoesNotBlockOthers()
+    public void Manual_CalledExternally_UnblocksTheSequence()
     {
-        var plan = Next(Services(
-            ("Refueling", GsxServiceState.Active, false),
-            ("Catering", GsxServiceState.Callable, true)));
+        // The user requested refueling from the GSX menu: mirror shows it running, the cursor
+        // moves on and Catering (AfterRequested) activates.
+        var plan = Next(
+            [Step("Refueling", GsxServiceActivation.Manual), Step("Catering", GsxServiceActivation.AfterRequested)],
+            Services(("Refueling", GsxServiceState.Active, false), ("Catering", GsxServiceState.Callable, true)));
 
-        Assert.Equal(["Catering"], plan.Trigger);
+        Assert.Equal("Catering", plan.Trigger);
     }
 
     [Fact]
-    public void PlanGate_HoldsEveryServiceUntilFlightPlanExists()
+    public void ForceNext_CallsAManualStep()
     {
-        // Owner requirement (round 4): NO service is called before the OFP/FMS plan exists.
-        var plan = Next(Services(
-            ("Refueling", GsxServiceState.Callable, true),
-            ("Catering", GsxServiceState.Callable, true),
-            ("Boarding", GsxServiceState.Callable, true)),
+        var plan = Next(
+            [Step("Refueling", GsxServiceActivation.Manual)],
+            Services(("Refueling", GsxServiceState.Callable, true)),
+            force: true);
+
+        Assert.Equal("Refueling", plan.Trigger);
+        Assert.Contains("forced", plan.TriggerReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ForceNext_BypassesTheBarrier_NotThePlanGate()
+    {
+        // Boarding early while refueling runs — the classic INT/RAD move.
+        var steps = new[] { Step("Refueling"), Step("Boarding", GsxServiceActivation.AfterAllCompleted) };
+        var services = Services(("Refueling", GsxServiceState.Active, false), ("Boarding", GsxServiceState.Callable, true));
+
+        var forced = Next(steps, services, force: true);
+        Assert.Equal("Boarding", forced.Trigger);
+
+        // But no force ever calls a service before a flight plan exists.
+        var noPlan = Next(steps, services, plan: false, force: true);
+        Assert.Null(noPlan.Trigger);
+        Assert.Contains(noPlan.Holds, h => h.ServiceId == "Boarding" && h.Reason.Contains("flight plan", StringComparison.Ordinal));
+    }
+
+    // ---- Constraints ----
+
+    [Fact]
+    public void TurnAroundConstraint_SkipsOnTheFirstLeg_RunsOnTurnarounds()
+    {
+        var steps = new[] { Step("Cleaning", constraint: GsxServiceConstraint.TurnAround), Step("Refueling") };
+        var services = Services(("Cleaning", GsxServiceState.Callable, true), ("Refueling", GsxServiceState.Callable, true));
+
+        var firstLeg = Next(steps, services, turnaround: false);
+        Assert.Equal("Refueling", firstLeg.Trigger);
+        Assert.Contains(firstLeg.Skipped, s => s.ServiceId == "Cleaning" && s.Reason.Contains("turnaround only", StringComparison.Ordinal));
+
+        var turnaround = Next(steps, services, turnaround: true);
+        Assert.Equal("Cleaning", turnaround.Trigger);
+    }
+
+    [Fact]
+    public void FirstLegConstraint_SkipsOnTurnarounds()
+    {
+        var plan = Next(
+            [Step("Water", constraint: GsxServiceConstraint.FirstLeg)],
+            Services(("Water", GsxServiceState.Callable, true)),
+            turnaround: true);
+
+        Assert.Null(plan.Trigger);
+        Assert.Contains(plan.Skipped, s => s.ServiceId == "Water" && s.Reason.Contains("first-leg only", StringComparison.Ordinal));
+    }
+
+    // ---- Gates and skips ----
+
+    [Fact]
+    public void PlanGate_HoldsTheCursorUntilAFlightPlanExists()
+    {
+        var plan = Next(
+            [Step("Refueling"), Step("Catering")],
+            Services(("Refueling", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
             plan: false);
 
-        Assert.Empty(plan.Trigger);
+        Assert.Null(plan.Trigger);
         Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason.Contains("flight plan", StringComparison.Ordinal));
-        Assert.Contains(plan.Holds, h => h.ServiceId == "Catering" && h.Reason.Contains("flight plan", StringComparison.Ordinal));
     }
 
     [Fact]
     public void PlanGate_NotAppliedWhenOfpNotRequired()
     {
         var plan = Next(
+            [Step("Catering")],
             Services(("Catering", GsxServiceState.Callable, true)),
             plan: false,
-            requireOfp: false,
-            order: ["Catering"]);
+            requireOfp: false);
 
-        Assert.Equal(["Catering"], plan.Trigger);
+        Assert.Equal("Catering", plan.Trigger);
     }
 
     [Fact]
-    public void PendingService_HoldsInsteadOfRetriggering()
-    {
-        // GSX keeps quick services (Water) "callable" while they run — a called service must
-        // never be triggered again until its cycle completes.
-        var plan = Next(
-            Services(("Water", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
-            pending: id => id == "Water",
-            order: ["Water", "Catering"]);
-
-        Assert.Equal(["Catering"], plan.Trigger);
-        Assert.Contains(plan.Holds, h => h.ServiceId == "Water" && h.Reason.Contains("already called", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void DuplicatedOrder_TriggersEachServiceOnce()
-    {
-        // A mis-merged settings file once doubled the order list; the sequencer dedupes.
-        var plan = Next(
-            Services(("Catering", GsxServiceState.Callable, true)),
-            order: ["Catering", "Catering"]);
-
-        Assert.Equal(["Catering"], plan.Trigger);
-    }
-
-    [Fact]
-    public void Boarding_WaitsForAllOtherServicesByDefault()
+    public void SkipActivation_MissingAndUnavailableServices_AreSkippedWithReasons()
     {
         var plan = Next(
-            Services(("Boarding", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
-            completed: id => id == "Refueling");
+            [Step("Cleaning", GsxServiceActivation.Skip), Step("Refueling"), Step("Lavatory"), Step("Water")],
+            Services(("Cleaning", GsxServiceState.Callable, true), ("Refueling", GsxServiceState.NotAvailable, false), ("Water", GsxServiceState.Callable, true)));
 
-        Assert.DoesNotContain("Boarding", plan.Trigger);
-        Assert.Contains(plan.Holds, h => h.ServiceId == "Boarding" && h.Reason.Contains("Catering", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Boarding_TriggersWhenAllPrerequisitesComplete()
-    {
-        var plan = Next(
-            Services(("Boarding", GsxServiceState.Callable, true)),
-            completed: id => id is "Refueling" or "Catering");
-
-        Assert.Equal(["Boarding"], plan.Trigger);
-    }
-
-    [Fact]
-    public void Boarding_SelectedPrerequisites_OnlyThoseGate()
-    {
-        // Catering still callable, but boarding only waits for Refueling (Prosim2GSX-style).
-        var plan = Next(
-            Services(("Boarding", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true)),
-            completed: id => id == "Refueling",
-            boardingAfter: ["Refueling"]);
-
-        Assert.Contains("Boarding", plan.Trigger);
-    }
-
-    [Fact]
-    public void Boarding_UnavailablePrerequisiteCountsAsSatisfied()
-    {
-        var plan = Next(
-            Services(
-                ("Catering", GsxServiceState.NotAvailable, false),
-                ("Boarding", GsxServiceState.Callable, true)),
-            completed: id => id == "Refueling");
-
-        Assert.Contains("Boarding", plan.Trigger);
-    }
-
-    [Fact]
-    public void MissingAndUnavailableServices_AreSkippedWithReasons()
-    {
-        var plan = Next(Services(
-            ("Refueling", GsxServiceState.NotAvailable, false),
-            ("Boarding", GsxServiceState.Callable, true)));
-
+        Assert.Contains(plan.Skipped, s => s.ServiceId == "Cleaning" && s.Reason.Contains("Skip", StringComparison.Ordinal));
         Assert.Contains(plan.Skipped, s => s.ServiceId == "Refueling" && s.Reason == "unavailable");
-        Assert.Contains(plan.Skipped, s => s.ServiceId == "Catering");
-        Assert.Contains("Boarding", plan.Trigger); // both prereqs skippable ⇒ satisfied
+        Assert.Contains(plan.Skipped, s => s.ServiceId == "Lavatory" && s.Reason.Contains("not offered", StringComparison.Ordinal));
+        Assert.Equal("Water", plan.Trigger); // skipped steps are transparent — Water is first callable
     }
 
     [Fact]
     public void CallableButNotTriggerable_Holds()
     {
-        var plan = Next(Services(("Catering", GsxServiceState.Callable, false)), order: ["Catering"]);
+        var plan = Next(
+            [Step("Catering")],
+            Services(("Catering", GsxServiceState.Callable, false)));
 
-        Assert.Empty(plan.Trigger);
-        Assert.Contains(plan.Holds, h => h.ServiceId == "Catering");
+        Assert.Null(plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Catering" && h.Reason.Contains("not triggerable", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void DuplicatedSteps_EvaluateOnce()
+    {
+        var plan = Next(
+            [Step("Catering"), Step("Catering")],
+            Services(("Catering", GsxServiceState.Callable, true)),
+            cycles: new() { ["Catering"] = Done });
+
+        Assert.True(plan.AllDone);
+    }
+
+    // ---- Completion ----
 
     [Fact]
     public void EverythingCompletedOrSkipped_IsAllDone()
     {
         var plan = Next(
-            Services(("Catering", GsxServiceState.Bypassed, false)),
-            completed: id => id is "Refueling" or "Boarding");
+            [Step("Refueling"), Step("Catering"), Step("Boarding", GsxServiceActivation.AfterAllCompleted)],
+            Services(("Catering", GsxServiceState.Bypassed, false), ("Boarding", GsxServiceState.Callable, true), ("Refueling", GsxServiceState.Callable, true)),
+            cycles: new() { ["Refueling"] = Done, ["Boarding"] = Done });
 
         Assert.True(plan.AllDone);
     }
 
     [Fact]
-    public void InProgressService_IsNotAllDone()
+    public void RunningService_IsNotAllDone()
     {
         var plan = Next(
-            Services(("Boarding", GsxServiceState.Active, false)),
-            completed: id => id is "Refueling" or "Catering");
+            [Step("Boarding")],
+            Services(("Boarding", GsxServiceState.Active, false)));
 
         Assert.False(plan.AllDone);
     }

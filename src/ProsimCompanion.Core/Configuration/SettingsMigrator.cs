@@ -14,7 +14,7 @@ namespace ProsimCompanion.Core.Configuration;
 public static class SettingsMigrator
 {
     /// <summary>Version written by this build. Bump only alongside a new migration step.</summary>
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     private const string VersionKey = "configVersion";
 
@@ -38,13 +38,13 @@ public static class SettingsMigrator
             var version = ReadVersion(root);
 
             // Stepwise migration ladder. Each step upgrades exactly one version and must be
-            // safe to run on a partial file. Example shape for the future:
-            //
-            // if (version < 2)
-            // {
-            //     RenameSection(root, "oldName", "newName");
-            //     version = 2;
-            // }
+            // safe to run on a partial file.
+
+            if (version < 2)
+            {
+                MigrateDepartureServicesToSteps(root);
+                version = 2;
+            }
 
             _ = version;
             root[VersionKey] = CurrentVersion;
@@ -55,4 +55,53 @@ public static class SettingsMigrator
 
     private static int ReadVersion(JsonObject root)
         => root[VersionKey] is JsonValue value && value.TryGetValue<int>(out var version) ? version : 0;
+
+    /// <summary>
+    /// v1 → v2: <c>gsx.departureServiceOrder</c> + <c>concurrentServices</c> + <c>boardingAfter</c>
+    /// become the ordered <c>gsx.departureServices</c> step list (per-service activation, the
+    /// Prosim2GSX model). Order is preserved; concurrent maps to AfterCalled, sequential to
+    /// AfterPrevCompleted, and Boarding always becomes AfterAllCompleted — a non-empty
+    /// boardingAfter list has no exact equivalent (the old semantics "board once just these
+    /// finish") and maps to the conservative board-after-all.
+    /// </summary>
+    private static void MigrateDepartureServicesToSteps(JsonObject root)
+    {
+        if (root["gsx"] is not JsonObject gsx)
+        {
+            return;
+        }
+
+        var order = gsx["departureServiceOrder"] as JsonArray;
+        var concurrent = gsx["concurrentServices"] is JsonValue c && c.TryGetValue<bool>(out var flag) ? flag : true;
+
+        if (gsx["departureServices"] is null && order is { Count: > 0 })
+        {
+            var steps = new JsonArray();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in order)
+            {
+                var id = (string?)entry;
+                if (string.IsNullOrWhiteSpace(id) || !seen.Add(id))
+                {
+                    continue;
+                }
+
+                var activation = id.Equals("Boarding", StringComparison.OrdinalIgnoreCase)
+                    ? "afterAllCompleted"
+                    : concurrent ? "afterCalled" : "afterPrevCompleted";
+                steps.Add(new JsonObject
+                {
+                    ["service"] = id,
+                    ["activation"] = activation,
+                    ["constraint"] = "always",
+                });
+            }
+
+            gsx["departureServices"] = steps;
+        }
+
+        gsx.Remove("departureServiceOrder");
+        gsx.Remove("concurrentServices");
+        gsx.Remove("boardingAfter");
+    }
 }

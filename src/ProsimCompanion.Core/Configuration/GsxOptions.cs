@@ -34,23 +34,30 @@ public sealed class GsxOptions
     /// (off by default — <c>StartDepartureServices</c> can always be invoked explicitly).</summary>
     public bool AutoStartDepartureServices { get; set; }
 
-    /// <summary>The out-of-the-box departure order, used both as the property default (for the
-    /// settings-defaults writer) and to restore the list when the settings file omits it.</summary>
-    public static IReadOnlyList<string> DefaultDepartureServiceOrder { get; } =
-        ["Refueling", "Catering", "Water", "Lavatory", "Cleaning", "Boarding"];
+    /// <summary>The out-of-the-box departure queue (fresh instances per call — the steps are
+    /// mutable). Legacy Prosim2GSX defaults: Cleaning + Lavatory on turnarounds only, Refuel +
+    /// Catering side by side, Water once catering is requested, board last. Used both as the
+    /// property default (for the settings-defaults writer) and to restore the list when the
+    /// settings file omits it.</summary>
+    public static IReadOnlyList<DepartureServiceStep> DefaultDepartureServices =>
+    [
+        new("Cleaning", GsxServiceActivation.AfterCalled, GsxServiceConstraint.TurnAround),
+        new("Lavatory", GsxServiceActivation.AfterCalled, GsxServiceConstraint.TurnAround),
+        new("Refueling", GsxServiceActivation.AfterCalled),
+        new("Catering", GsxServiceActivation.AfterCalled),
+        new("Water", GsxServiceActivation.AfterRequested),
+        new("Boarding", GsxServiceActivation.AfterAllCompleted),
+    ];
 
-    /// <summary>Departure services in trigger order (canonical Remote API ids). Remove entries
-    /// to disable a service.</summary>
-    public List<string> DepartureServiceOrder { get; set; } = [.. DefaultDepartureServiceOrder];
+    /// <summary>The ordered departure-service queue: list position is call order; each entry's
+    /// activation gates it on the previous entry's observed GSX state (Prosim2GSX model).
+    /// Remove an entry (or set activation Skip) to disable a service.</summary>
+    public List<DepartureServiceStep> DepartureServices { get; set; } = [.. DefaultDepartureServices];
 
-    /// <summary>Run non-boarding departure services concurrently (refuel + catering + … all
-    /// called as soon as each is callable). Off = strict one-at-a-time in order.</summary>
-    public bool ConcurrentServices { get; set; } = true;
-
-    /// <summary>Services that must complete before Boarding is called. Empty (default) = all
-    /// other services in <see cref="DepartureServiceOrder"/> (the classic "board last"); name
-    /// specific services (e.g. ["Refueling"]) to board once just those are done.</summary>
-    public List<string> BoardingAfter { get; set; } = [];
+    /// <summary>How long a sent service.trigger may wait for GSX to visibly pick the service up
+    /// (mirror shows requested/active) before the call is considered dropped and retried. The
+    /// trigger ack alone proves nothing — GSX drops rapid-fire requests silently.</summary>
+    public int TriggerConfirmTimeoutMs { get; set; } = 10_000;
 
     /// <summary>Hold Refueling/Boarding until the SimBrief OFP is imported into ProSim.</summary>
     public bool RequireOfpBeforeDeparture { get; set; } = true;

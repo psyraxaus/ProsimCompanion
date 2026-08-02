@@ -87,6 +87,16 @@ service present in mirror; skip if already requested/performing/completing/compl
 (idempotent); require `canTrigger == true`. Jetway/stairs trigger is a **toggle**; retract via
 trigger when `canTrigger`, else via the gate-menu `^operate jetway|stairs` intent.
 
+**One trigger in flight at a time — confirm before the next.** GSX silently drops rapid-fire
+triggers: five sent in the same instant left only the LAST one running while every ack came
+back ok (round-7 smoke test, 2026-08-02 — only Cleaning ran of
+Refueling/Catering/Water/Lavatory/Cleaning). A call counts as taken only when the mirror (or a
+latched lifecycle edge — quick services can bounce straight back to `available`) shows the
+service requested/active/completed; until then no further trigger goes out, and an unconfirmed
+call times out (~10 s) and is re-sent. Concurrency is GSX's job, not the sender's: request one
+at a time and GSX runs the accepted services side by side (legacy Prosim2GSX called at most one
+service per 500 ms tick and verified `IsCalled` from state before advancing).
+
 ### menu.pick
 `args: { "index": 2 }` — **0-based** into the mirrored `menu.entries`; always re-resolve against
 the latest menu immediately before picking (TOCTOU). Refusal code `disabled` = greyed entry —

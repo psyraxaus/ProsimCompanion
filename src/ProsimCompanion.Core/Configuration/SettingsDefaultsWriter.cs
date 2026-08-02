@@ -17,6 +17,9 @@ public static class SettingsDefaultsWriter
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // Enums (e.g. departure-service activations) as camelCase strings — the file is
+        // hand-editable and the config binder parses enum names case-insensitively.
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     /// <summary>Adds any missing option keys with their defaults. Returns true when the file was

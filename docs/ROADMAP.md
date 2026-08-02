@@ -86,11 +86,20 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       with their features
 - [x] Ground-prep coordinator: deterministic reposition → settle → GPU/chocks → jetway/stairs
       before any departure service (owner-specified order, live-verified)
-- [x] Departure services: refuel, catering, water, lavatory, cleaning, boarding — configurable
-      order (`gsx.departureServiceOrder`), concurrent or strict-sequential
-      (`gsx.concurrentServices`), board-after-all or board-after-selected (`gsx.boardingAfter`),
-      once-per-cycle re-trigger guard. Per-service activation policies (hub/non-hub,
-      turnaround-only) still to come
+- [x] Departure services — Prosim2GSX ordering system (`gsx.departureServices`, replacing the
+      round-1 order/concurrent/boardingAfter keys via settings migration v2): ordered steps
+      with per-service activation (Skip / Manual / AfterCalled / AfterRequested / AfterActive /
+      AfterPrevCompleted / AfterAllCompleted) and leg constraints (always / first-leg-only /
+      turnaround-only), cursor semantics, once-per-cycle re-trigger guard, reorderable editor
+      on /settings. **Unverified live — round-8 smoke test evaluates**
+- [x] Trigger dispatch discipline: one `service.trigger` in flight at a time, confirmed against
+      the mirror before the next goes out, ~10 s timeout + retry, truthful "Called" on the
+      status board (round-7 smoke-test fix: GSX silently dropped 4 of 5 simultaneous triggers
+      and the board wedged on "Called"). **Unverified live**
+- [x] INT/RAD force-next (the predecessor's smart button, `S_ASP(2)_INTRAD` = 0 during the
+      departure phase) + "Call next service now" button on /gsx: calls the current step ahead
+      of its activation rule, including Manual entries; never bypasses the OFP gate.
+      **Unverified live**
 - [x] OFP gating of departure services: NO service is called until the pilot imports the OFP in
       the ProSim EFB or loads the MCDU plan (which auto-triggers the SimBrief import with the
       predecessor's valid-ICAO detection) — live-verified 2026-08-02
@@ -132,7 +141,8 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       crew-question LVAR suppression + opt-in pax no-show/extra randomization with bag-weight
       cargo adjustment (`gsx.randomizePaxNoShows`)
 - [ ] De-icing beyond the question catalogue (auto-request policy), walkaround skip (MSFS2024
-      keystroke — deferred), per-service activation policies (hub/non-hub, turnaround-only)
+      keystroke — deferred), company-hub service constraints + per-service minimum flight
+      duration (deferred from the ordering system — needs hub lists and OFP duration plumbing)
 
 ## Phase 3 — Flight data & EFB
 
