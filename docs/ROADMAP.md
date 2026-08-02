@@ -75,33 +75,54 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       departure sequencing with OFP gating, auto/manual start, autoSelectOperator per gate
       session, arrival-gate arming at flight, turnaround cycle reset
 - [x] First-flight diagnostics: /gsx page (readiness, services wire-vs-mapped, menu, commands,
-      decision log, gate control), unknown-key/unknown-state telemetry, command summaries
-      — **all UNVERIFIED against live GSX; first sim session evaluates them**
-- [ ] Menu intent framework (text/regex match, verify-outcome, safe-fail "leave menu for user")
-- [ ] Timing-critical LVAR reads (pushback, fuel hose, pax/cargo counters, de-ice, gate readback)
-- [ ] Ground automation state machine (SessionStart→…→TurnAround) with per-service activation
-      policies and constraints (hub/non-hub, turnaround-only)
-- [ ] Departure services: refuel (rate/time-target/panel methods), catering, water, lavatory,
-      cleaning, boarding — configurable order and activation
-- [x] Refuel sync — hose-gated fuel stepping toward the EFB target with pause/resume
-      (FOB save/restore per registration still to come)
-- [x] Boarding sync — capacity-proportional zone distribution (equal load factor front-to-back,
-      fixing the predecessors' front-fill CG shift) + cargo percent split by hold capacity.
-      Deboarding is observe-only until live counter semantics are confirmed; seat-map
-      reconciliation + no-show randomization follow later
+      decision log, gate control), unknown-key/unknown-state telemetry, command summaries —
+      verified across five live sim sessions 2026-08-02; every issue found was diagnosable
+      from the logs alone
+- [x] Prosim2GSX-style departure status board (per-service lifecycle stage + hold/skip reason)
+      on /gsx and the Home page
+- [x] Timing-critical LVAR reads: fuel hose, live boarding counter
+      (`NUMPASSENGERS_BOARDING_TOTAL` vs planned — live-verified), jetway-absent truth
+      (`FSDT_GSX_JETWAY=2`, mirror lies). Pushback + de-ice LVAR timing gates still to come
+      with their features
+- [x] Ground-prep coordinator: deterministic reposition → settle → GPU/chocks → jetway/stairs
+      before any departure service (owner-specified order, live-verified)
+- [x] Departure services: refuel, catering, water, lavatory, cleaning, boarding — configurable
+      order (`gsx.departureServiceOrder`), concurrent or strict-sequential
+      (`gsx.concurrentServices`), board-after-all or board-after-selected (`gsx.boardingAfter`),
+      once-per-cycle re-trigger guard. Per-service activation policies (hub/non-hub,
+      turnaround-only) still to come
+- [x] OFP gating of departure services: NO service is called until the pilot imports the OFP in
+      the ProSim EFB or loads the MCDU plan (which auto-triggers the SimBrief import with the
+      predecessor's valid-ICAO detection) — live-verified 2026-08-02
+- [x] SimBrief OFP import (pulled forward from Phase 3 — it is the aircraft-loading enabler):
+      fetch by `efb.simbrief.id`, lbs→kg, pax clamp, booked seat map + passengerStatistics +
+      planned fuel (rounded up to 100 kg fuel-order increments) + cargo written via gateway
+- [x] Refuel sync — hose-gated fuel stepping toward the latched EFB target with pause/resume,
+      defuel guard, completion snap; target latched once per cycle because ProSim rewrites
+      `aircraft.refuel.fuelTarget` mid-refuel (live-verified). FOB save/restore per
+      registration still to come
+- [x] Boarding sync — seat-map progressive boarding (the predecessors' proven mechanism; zone
+      `amount` datarefs are read-only): booked map from the EFB manifest or synthesized
+      capacity-proportional + randomized within zones, boarded seats written to
+      `aircraft.passengers.seatOccupation.string`, cargo split by hold capacity, boarding
+      status flag. Deboarding is observe-only until live counter semantics are confirmed;
+      no-show randomization follows later
 - [x] GPU/chocks/PCA placement at preparation + removal on the beacon edge (chocks interlocked
       on park brake); ProSim native efb.gsx.* auto-flags disabled per connection (verified live
       via the gateway write path)
+- [x] Jetway/stairs handling: LVAR-truth selection (jetway=2 ⇒ stairs), 20 s verification with
+      one fallback, pre-existing-connection detection
 - [ ] Door automation + GSX door-message suppression (ProSim autoDoor left active meanwhile)
-- [ ] Jetway/stairs handling; full beacon-orchestrated pushback sequence with LVAR timing gates
+- [ ] Full beacon-orchestrated pushback sequence with LVAR timing gates
       (pushback currently relies on GSX's own flow + the confirm/question answers)
-- [ ] De-icing, operator selection, skip-questions, walkaround skip (MSFS2024)
-- [ ] Arrival: stable-parked detection, gate assignment (GSX `gate.select` retry ladder + SayIntentions)
-- [ ] OFP gating of departure services
+- [ ] De-icing, operator selection preferences beyond the menu catalogue, walkaround skip (MSFS2024)
+- [ ] Arrival: stable-parked detection, deboarding writes, FOB save/restore per registration
+- [ ] Per-service activation policies (hub/non-hub, turnaround-only), pax no-show randomization
 
 ## Phase 3 — Flight data & EFB
 
-- [ ] SimBrief OFP fetch (MCDU-triggered + manual; identity from `efb.simbrief.id`) — one typed client
+- [x] SimBrief OFP fetch (MCDU-triggered; identity from `efb.simbrief.id`) — delivered early in
+      Phase 2. Manual fetch button + typed OFP model for loadsheets/EFB pages still to come
 - [ ] EFB INIT page with per-field overrides + sync to FMS
 - [ ] In-house W&B/loadsheet pipeline (prelim + final, ACARS uplink, EDNO/REVISIONS — port the
       bit-exact ProSim formulas, see `docs/integrations/prosim.md`)
