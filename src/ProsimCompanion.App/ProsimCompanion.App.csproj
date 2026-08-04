@@ -34,6 +34,12 @@
     <None Include="$(PkgMicrosoft_AspNetCore_App_Internal_Assets)\_framework\blazor.web.js"
           Link="wwwroot\_framework\blazor.web.js"
           CopyToOutputDirectory="PreserveNewest" />
+    <!-- Same reason for the Web project's static assets (stylesheet, split-flap JS, favicon):
+         no static-web-assets pipeline means no _content/ mapping, so they are copied into the
+         host's wwwroot and served as ordinary static files. -->
+    <None Include="..\ProsimCompanion.Web\wwwroot\**\*"
+          Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

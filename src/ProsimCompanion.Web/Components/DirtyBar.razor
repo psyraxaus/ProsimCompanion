@@ -1,0 +1,45 @@
+@* Fixed bottom save/discard bar that slides in while a settings draft is dirty (or while a
+   status message is showing). The page owns the draft/dirty logic; this is presentation. *@
+<div class="dirtybar @(Visible ? "visible" : null)">
+    <div class="dirtybar-inner">
+        <span class="dirtybar-message @ToneClass">@Message</span>
+        <span class="dirtybar-actions">
+            <button type="button" class="btn secondary" disabled="@Saving" @onclick="OnDiscard">Discard</button>
+            <button type="button" class="btn primary" disabled="@(Saving || !CanSave)" @onclick="OnSave">
+                @(Saving ? "Saving…" : "Save")
+            </button>
+        </span>
+    </div>
+</div>
+
+@code {
+    public enum MessageTone { Unsaved, Error, Info }
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public string Message { get; set; } = "You have unsaved changes";
+
+    [Parameter]
+    public MessageTone Tone { get; set; } = MessageTone.Unsaved;
+
+    [Parameter]
+    public bool Saving { get; set; }
+
+    [Parameter]
+    public bool CanSave { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnDiscard { get; set; }
+
+    private string ToneClass => Tone switch
+    {
+        MessageTone.Error => "error",
+        MessageTone.Info => "info",
+        _ => "unsaved",
+    };
+}

@@ -15,6 +15,7 @@ using ProsimCompanion.Core.Logging;
 using ProsimCompanion.Gsx;
 using ProsimCompanion.Prosim;
 using ProsimCompanion.Sim;
+using ProsimCompanion.Web;
 using Serilog;
 
 namespace ProsimCompanion.App;
@@ -157,6 +158,8 @@ public static class Program
         builder.Services.AddProsimServices();
         builder.Services.AddSimServices();
         builder.Services.AddGsxServices();
+        builder.Services.AddWebServices(
+            Path.Combine(AppContext.BaseDirectory, "config", "themes"));
 
         builder.Services.AddSingleton(levels);
         builder.Services.AddSingleton(logBuffer);

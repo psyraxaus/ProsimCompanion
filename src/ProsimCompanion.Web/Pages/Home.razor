@@ -1,134 +1,232 @@
 @page "/"
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Flight
+@using ProsimCompanion.Core.Logging
 @using ProsimCompanion.Core.Profiles
 @implements IDisposable
 @inject ConnectionStatusStore Status
 @inject IProsimDataRefs DataRefs
 @inject FlightStateEngine FlightState
 @inject AircraftProfileService Profiles
-@inject ProsimCompanion.Core.Logging.LogBufferStore LogBuffer
-@inject ProsimCompanion.Core.State.GsxDiagnosticsStore GsxDiagnosticsStore
+@inject LogBufferStore LogBuffer
+@inject GsxDiagnosticsStore Diagnostics
+@inject IGsxDepartureControl DepartureControl
 
-<h1>Status</h1>
+<PageTitle>Flight Status — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Flight Status</h1>
 
-<p>Flight phase: <strong>@FlightState.CurrentPhase</strong></p>
-<p>
-    Aircraft: <strong>@(Profiles.AircraftTitle ?? "—")</strong>
-    &nbsp;·&nbsp; Profile: <strong>@(Profiles.ActiveProfile?.Name ?? "none")</strong>
-</p>
-<p class="hint">
-    This session: @LogBuffer.WarningCount warnings, @LogBuffer.ErrorCount errors —
-    <a href="logs">view logs</a>
-</p>
+<div class="status-panel">
 
-@if (_snapshot.Count == 0)
-{
-    <p class="hint">No subsystems have reported yet.</p>
-}
-else
-{
-    <table>
-        <thead>
-            <tr><th>Subsystem</th><th>State</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var (subsystem, state) in _snapshot)
+    @* Flight phase — full-width card with the 7-block progress bar. The DEPARTURE block is
+       the departure-services phase (a GSX concept layered over the Preflight flight phase),
+       mirroring the predecessor's monitor view. *@
+    <section class="status-section status-span">
+        <div class="phase-body">
+            <div class="phase-label">@PhaseDisplay</div>
+            <div class="phase-grid">
+                @for (var i = 0; i < BlockLabels.Length; i++)
+                {
+                    <div class="phase-block @(i == ActiveBlock ? "active" : null)"></div>
+                }
+                @foreach (var label in BlockLabels)
+                {
+                    <div class="phase-block-label">@label</div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Connections</h3>
+        <div class="section-body">
+            @if (_connections.Count == 0)
             {
-                <tr>
-                    <td>@subsystem</td>
-                    <td><span class="badge @state.ToString().ToLowerInvariant()">@state</span></td>
-                </tr>
+                <div class="empty">No subsystems have reported yet.</div>
             }
-        </tbody>
-    </table>
-}
-
-@if (_serviceBoard.Count > 0)
-{
-    <h2>Departure services</h2>
-    <table>
-        <tbody>
-            @foreach (var row in _serviceBoard)
+            @foreach (var (subsystem, state) in _connections)
             {
-                <tr>
-                    <td>@row.ServiceId</td>
-                    <td><span class="badge @GsxDiagnostics.StageClass(row.Stage)">@GsxDiagnostics.StageLabel(row.Stage)</span></td>
-                    <td class="hint">@(row.Detail ?? "")</td>
-                </tr>
+                <div class="row">
+                    <span class="row-label">@subsystem</span>
+                    <span class="dot @GsxPresentation.ConnectionDot(state)"></span>
+                    <span class="row-value">@state</span>
+                </div>
             }
-        </tbody>
-    </table>
-    <p class="hint">Live turnaround status — full detail on the <a href="gsx">GSX page</a>.</p>
-}
+            <div class="row">
+                <span class="row-label">Aircraft</span>
+                <span class="row-value-mono">@(Profiles.AircraftTitle ?? "—")</span>
+            </div>
+            <div class="row">
+                <span class="row-label">Profile</span>
+                <span class="row-value-mono">@(Profiles.ActiveProfile?.Name ?? "none")</span>
+            </div>
+        </div>
+    </section>
 
-<h2>Live aircraft data</h2>
-<table>
-    <thead>
-        <tr><th>Dataref</th><th>Value</th></tr>
-    </thead>
-    <tbody>
-        @foreach (var sample in _samples)
-        {
-            <tr>
-                <td>@sample.Label</td>
-                <td>@sample.Display()@(sample.Subscription.IsStale ? " (stale)" : "")</td>
-            </tr>
-        }
-    </tbody>
-</table>
-<p class="hint">
-    Pushed live from ProSim through the register-once cached read model — the same seam every
-    feature pillar consumes. Shows “—” until ProSim connects and pushes a value.
-</p>
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">GSX</h3>
+        <div class="section-body">
+            <div class="row">
+                <span class="row-label">Readiness</span>
+                <span class="pill @GsxPresentation.ReadinessTone(_gsx.Readiness)">@_gsx.Readiness</span>
+            </div>
+            <div class="row">
+                <span class="row-label">Automation phase</span>
+                <span class="row-value-mono">@_gsx.AutomationPhase</span>
+            </div>
+            <div class="row">
+                <span class="row-label">Airport</span>
+                <span class="row-value-mono">@(_gsx.AirportIcao ?? "—")</span>
+            </div>
+            <div class="row">
+                <span class="row-label">Arrival gate</span>
+                <span class="row-value-mono">@(_gsx.GateRequest ?? "—")</span>
+            </div>
+            <div class="row">
+                <span class="row-label">Departure sequence</span>
+                <span class="row-value-mono">@DepartureSummary</span>
+            </div>
+            <div class="row">
+                <span class="row-label"></span>
+                <span class="row-value-mono"><a href="gsx">GSX page →</a></span>
+            </div>
+        </div>
+    </section>
 
-<details style="margin-top:1rem;">
-    <summary style="cursor:pointer; font-weight:600;">Flight data diagnostics (raw snapshot)</summary>
-    @if (FlightState.LastSnapshot is not { } snap)
-    {
-        <p class="hint">No snapshot sampled yet.</p>
-    }
-    else
-    {
-        <table style="font-family:Consolas, monospace; font-size:0.85rem; margin-top:0.5rem;">
-            <tbody>
-                <tr><td>IsValid</td><td>@snap.IsValid</td><td>OnGround</td><td>@snap.OnGround</td></tr>
-                <tr><td>IAS kt</td><td>@snap.IndicatedAirspeedKt.ToString("F1")</td><td>GS kt</td><td>@snap.GroundSpeedKt.ToString("F1")</td></tr>
-                <tr><td>Alt ft</td><td>@snap.AltitudeFt.ToString("F0")</td><td>RA ft</td><td>@snap.RadioAltitudeFt.ToString("F0")</td></tr>
-                <tr><td>VS fpm</td><td>@snap.VerticalSpeedFpm.ToString("F0")</td><td>Powered</td><td>@snap.AircraftPowered</td></tr>
-                <tr><td>AnyEngineRunning</td><td>@snap.AnyEngineRunning</td><td>EngineStarting</td><td>@snap.EngineStarting</td></tr>
-                <tr><td>Engine1 state</td><td>@(snap.RawEngine1State ?? "—")</td><td>Engine2 state</td><td>@(snap.RawEngine2State ?? "—")</td></tr>
-                <tr><td>Max N1 %</td><td>@snap.MaxN1Percent.ToString("F1")</td><td>TakeoffThrustSet</td><td>@snap.TakeoffThrustSet</td></tr>
-                <tr><td>PushbackActive</td><td>@snap.PushbackActive</td><td>Raw pushback</td><td>@snap.RawPushbackState</td></tr>
-                <tr><td>ParkBrakeSet</td><td>@snap.ParkBrakeSet</td><td>GearDown</td><td>@snap.GearDown</td></tr>
-            </tbody>
-        </table>
-        <p class="hint">Raw values feeding the phase engine — for diagnosing phase misbehaviour.</p>
-    }
-</details>
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Departure Services</h3>
+        <div class="section-body">
+            @if (_gsx.ServiceBoard.Count == 0)
+            {
+                <div class="empty">No departure sequence evaluated yet.</div>
+            }
+            @foreach (var row in _gsx.ServiceBoard)
+            {
+                <div class="row" title="@row.Detail">
+                    <span class="row-label">@row.ServiceId</span>
+                    <span class="pill @GsxPresentation.StageTone(row.Stage)">@GsxPresentation.StageLabel(row.Stage)</span>
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Live Aircraft Data</h3>
+        <div class="section-body">
+            @foreach (var sample in _samples)
+            {
+                <div class="row">
+                    <span class="row-label">@sample.Label</span>
+                    <span class="row-value-mono">@sample.Display()@(sample.Subscription.IsStale ? " (stale)" : "")</span>
+                </div>
+            }
+            <div class="row">
+                <span class="row-label field-hint" style="font-size:10px;">
+                    Pushed live from ProSim; shows — until a value arrives.
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <section class="status-section status-span">
+        <div class="section-header">
+            <h3 class="section-title">Log</h3>
+            <span class="section-hint">
+                session: @LogBuffer.WarningCount warnings · @LogBuffer.ErrorCount errors —
+                <a href="logs">view all</a>
+            </span>
+        </div>
+        <div class="section-body">
+            <div class="log-box">
+                @if (_logTail.Count == 0)
+                {
+                    <div class="log-empty">No log entries yet.</div>
+                }
+                @foreach (var entry in _logTail)
+                {
+                    <div class="log-line">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss") [@entry.Level] @ShortSource(entry.Source): @entry.Message</div>
+                }
+            </div>
+            <details style="margin-top:10px;">
+                <summary style="cursor:pointer; font-size:12px; color:var(--text-secondary);">
+                    Flight data diagnostics (raw snapshot feeding the phase engine)
+                </summary>
+                @if (FlightState.LastSnapshot is not { } snap)
+                {
+                    <div class="empty">No snapshot sampled yet.</div>
+                }
+                else
+                {
+                    <div class="table-scroll">
+                        <table class="data-table" style="margin-top:6px;">
+                            <tbody>
+                                <tr><td>IsValid</td><td class="mono">@snap.IsValid</td><td>OnGround</td><td class="mono">@snap.OnGround</td></tr>
+                                <tr><td>IAS kt</td><td class="mono">@snap.IndicatedAirspeedKt.ToString("F1")</td><td>GS kt</td><td class="mono">@snap.GroundSpeedKt.ToString("F1")</td></tr>
+                                <tr><td>Alt ft</td><td class="mono">@snap.AltitudeFt.ToString("F0")</td><td>RA ft</td><td class="mono">@snap.RadioAltitudeFt.ToString("F0")</td></tr>
+                                <tr><td>VS fpm</td><td class="mono">@snap.VerticalSpeedFpm.ToString("F0")</td><td>Powered</td><td class="mono">@snap.AircraftPowered</td></tr>
+                                <tr><td>AnyEngineRunning</td><td class="mono">@snap.AnyEngineRunning</td><td>EngineStarting</td><td class="mono">@snap.EngineStarting</td></tr>
+                                <tr><td>Engine1 state</td><td class="mono">@(snap.RawEngine1State ?? "—")</td><td>Engine2 state</td><td class="mono">@(snap.RawEngine2State ?? "—")</td></tr>
+                                <tr><td>Max N1 %</td><td class="mono">@snap.MaxN1Percent.ToString("F1")</td><td>TakeoffThrustSet</td><td class="mono">@snap.TakeoffThrustSet</td></tr>
+                                <tr><td>PushbackActive</td><td class="mono">@snap.PushbackActive</td><td>Raw pushback</td><td class="mono">@snap.RawPushbackState</td></tr>
+                                <tr><td>ParkBrakeSet</td><td class="mono">@snap.ParkBrakeSet</td><td>GearDown</td><td class="mono">@snap.GearDown</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </details>
+        </div>
+    </section>
+
+</div>
 
 @code {
-    private IReadOnlyList<KeyValuePair<string, ConnectionState>> _snapshot = [];
-    private IReadOnlyList<ProsimCompanion.Core.State.GsxServiceBoardRow> _serviceBoard = [];
+    private static readonly string[] BlockLabels =
+        ["PREFLIGHT", "DEPARTURE", "PUSHBACK", "TAXI OUT", "FLIGHT", "TAXI IN", "ARRIVAL"];
+
+    private const int LogTailLength = 12;
+
+    private IReadOnlyList<KeyValuePair<string, ConnectionState>> _connections = [];
+    private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
+    private IReadOnlyList<LogEntry> _logTail = [];
     private readonly List<Sample> _samples = [];
-    private Timer? _boardTimer;
+    private Timer? _logTimer;
+
+    private int ActiveBlock => FlightState.CurrentPhase switch
+    {
+        FlightPhase.Unknown or FlightPhase.ColdAndDark or FlightPhase.Preflight =>
+            DepartureControl.Started && !DepartureControl.Complete ? 1 : 0,
+        FlightPhase.PushbackAndStart => 2,
+        FlightPhase.TaxiOut or FlightPhase.TakeoffRoll => 3,
+        FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise
+            or FlightPhase.Descent or FlightPhase.Approach => 4,
+        FlightPhase.LandingRollout or FlightPhase.TaxiIn => 5,
+        FlightPhase.Shutdown => 6,
+        _ => 0,
+    };
+
+    private string PhaseDisplay => ToSpacedUpper(FlightState.CurrentPhase.ToString());
+
+    private string DepartureSummary =>
+        DepartureControl.Complete ? "Complete"
+        : DepartureControl.Started ? "Running"
+        : "Not started";
 
     protected override void OnInitialized()
     {
-        _snapshot = Status.Snapshot();
+        _connections = Status.Snapshot();
+        _gsx = Diagnostics.Snapshot();
+        _logTail = TailLogs();
+
         Status.Changed += OnStatusChanged;
+        Diagnostics.Changed += OnDiagnosticsChanged;
         FlightState.PhaseChanged += OnPhaseChanged;
         Profiles.Changed += OnDataChanged;
 
-        _serviceBoard = GsxDiagnosticsStore.Snapshot().ServiceBoard;
-        _boardTimer = new Timer(_ => _ = InvokeAsync(() =>
+        // The log buffer intentionally has no per-event fan-out (logging must stay cheap),
+        // so the tail refreshes on a slow timer instead of an event.
+        _logTimer = new Timer(_ => _ = InvokeAsync(() =>
         {
-            var board = GsxDiagnosticsStore.Snapshot().ServiceBoard;
-            if (!ReferenceEquals(board, _serviceBoard))
-            {
-                _serviceBoard = board;
-                StateHasChanged();
-            }
+            _logTail = TailLogs();
+            StateHasChanged();
         }), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         AddSample("Indicated airspeed (kt)", "aircraft.speed.ias", DataRefTier.Frequent,
@@ -139,6 +237,10 @@ else
             subscription => subscription.RawValue is null ? "—" : subscription.GetValue(false) ? "yes" : "no");
     }
 
+    private IReadOnlyList<LogEntry> TailLogs()
+        // Snapshot is newest-first; the log box reads top-down oldest-first.
+        => LogBuffer.Snapshot().Take(LogTailLength).Reverse().ToList();
+
     private void AddSample(string label, string name, DataRefTier tier, Func<IDataRefSubscription, string> display)
     {
         var subscription = DataRefs.Subscribe(name, tier);
@@ -146,15 +248,40 @@ else
         _samples.Add(new Sample(label, subscription, display));
     }
 
-    private void OnStatusChanged(object? sender, EventArgs e)
+    private static string ShortSource(string source)
     {
-        // Store events fire on the writer's thread; marshal into the circuit.
-        _ = InvokeAsync(() =>
+        var lastDot = source.LastIndexOf('.');
+        return lastDot >= 0 && lastDot < source.Length - 1 ? source[(lastDot + 1)..] : source;
+    }
+
+    private static string ToSpacedUpper(string pascal)
+    {
+        var result = new System.Text.StringBuilder(pascal.Length + 4);
+        foreach (var ch in pascal)
         {
-            _snapshot = Status.Snapshot();
+            if (char.IsUpper(ch) && result.Length > 0)
+            {
+                result.Append(' ');
+            }
+            result.Append(char.ToUpperInvariant(ch));
+        }
+        return result.ToString();
+    }
+
+    private void OnStatusChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _connections = Status.Snapshot();
             StateHasChanged();
         });
-    }
+
+    private void OnDiagnosticsChanged(object? sender, EventArgs e)
+        => _ = InvokeAsync(() =>
+        {
+            _gsx = Diagnostics.Snapshot();
+            StateHasChanged();
+        });
 
     private void OnDataChanged(object? sender, EventArgs e)
         => _ = InvokeAsync(StateHasChanged);
@@ -164,8 +291,9 @@ else
 
     public void Dispose()
     {
-        _boardTimer?.Dispose();
+        _logTimer?.Dispose();
         Status.Changed -= OnStatusChanged;
+        Diagnostics.Changed -= OnDiagnosticsChanged;
         FlightState.PhaseChanged -= OnPhaseChanged;
         Profiles.Changed -= OnDataChanged;
         foreach (var sample in _samples)

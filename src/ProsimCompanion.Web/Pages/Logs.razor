@@ -1,88 +1,94 @@
 @page "/logs"
-@using Microsoft.Extensions.Options
-@using ProsimCompanion.Core.Configuration
 @using ProsimCompanion.Core.Logging
 @implements IDisposable
 @inject LogBufferStore Buffer
 @inject IOptionsMonitor<LoggingOptions> LoggingMonitor
 @inject JsonSettingsFile SettingsFile
 
-<h1>Logs</h1>
+<PageTitle>Logs — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Logs</h1>
 
-<p class="hint">
-    Session totals — warnings: @Buffer.WarningCount · errors: @Buffer.ErrorCount.
-    The rolling files in <code>%LOCALAPPDATA%\ProsimCompanion\logs</code> are CMTrace format for
-    live viewing in CMTrace.
-</p>
+<div class="panel">
 
-<div style="border:1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius:8px; padding:0.8rem 1rem; margin-bottom:1rem;">
-    <strong>Capture</strong> — what gets recorded (applies live, no restart).
-    Current: <code>@LoggingMonitor.CurrentValue.DefaultLevel</code>,
-    wire trace <code>@(LoggingMonitor.CurrentValue.WireTrace ? "on" : "off")</code>
-    <div style="display:flex; gap:1.2rem; align-items:center; flex-wrap:wrap; margin-top:0.5rem;">
-        <label style="margin:0;">
-            Capture level
-            <select value="@LoggingMonitor.CurrentValue.DefaultLevel" @onchange="SetCaptureLevel" style="margin-left:0.4rem;">
-                <option>Verbose</option>
-                <option>Debug</option>
-                <option>Information</option>
-                <option>Warning</option>
-            </select>
-        </label>
-        <label style="margin:0;">
-            <input type="checkbox" checked="@LoggingMonitor.CurrentValue.WireTrace" @onchange="SetWireTrace" />
-            Wire trace (raw GSX/gateway frames)
-        </label>
-    </div>
-</div>
+    <Section Title="Capture" Hint="What gets recorded — applies live, no restart">
+        <SelectField Label="Capture level"
+                     Options="LevelOptions"
+                     Value="@LoggingMonitor.CurrentValue.DefaultLevel"
+                     ValueChanged="SetCaptureLevel" />
+        <BoolField Label="Wire trace"
+                   Hint="Raw GSX / gateway frames to a separate CMTrace file"
+                   Value="@LoggingMonitor.CurrentValue.WireTrace"
+                   ValueChanged="SetWireTrace" />
+        <div class="field-hint" style="margin-top:4px;">
+            Session totals — warnings: @Buffer.WarningCount · errors: @Buffer.ErrorCount.
+            The rolling files in <code>%LOCALAPPDATA%\ProsimCompanion\logs</code> are CMTrace
+            format for live viewing in CMTrace.
+        </div>
+    </Section>
 
-<div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-bottom:0.8rem;">
-    <label style="margin:0;">
-        View filter (of captured entries)
-        <select @bind="_minLevel" style="margin-left:0.4rem;">
-            <option>Verbose</option>
-            <option>Debug</option>
-            <option>Information</option>
-            <option>Warning</option>
-            <option>Error</option>
-        </select>
-    </label>
-    <label style="margin:0;">
-        Text
-        <input @bind="_filter" @bind:event="oninput" placeholder="text or source…" style="margin-left:0.4rem; width:220px;" />
-    </label>
-    <label style="margin:0;">
-        <input type="checkbox" @bind="_paused" /> Pause
-    </label>
-</div>
+    <Section Title="Log" Hint="View filter of captured entries">
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary);">
+                Min level
+                <select class="select" style="max-width:140px;" @bind="_minLevel">
+                    <option>Verbose</option>
+                    <option>Debug</option>
+                    <option>Information</option>
+                    <option>Warning</option>
+                    <option>Error</option>
+                </select>
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary);">
+                Text
+                <input type="text" class="text-input" style="width:220px;" placeholder="text or source…"
+                       autocomplete="off" spellcheck="false"
+                       @bind="_filter" @bind:event="oninput" />
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary);">
+                <input type="checkbox" class="checkbox" @bind="_paused" /> Pause
+            </label>
+        </div>
 
-<div style="overflow-x:auto;">
-    <table style="font-size:0.85rem; font-family:Consolas, monospace;">
-        <thead>
-            <tr><th>Time</th><th>Level</th><th>Source</th><th>Message</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var entry in _visible)
-            {
-                <tr>
-                    <td style="white-space:nowrap;">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</td>
-                    <td><span class="badge @LevelClass(entry.Level)">@entry.Level</span></td>
-                    <td style="white-space:nowrap;">@ShortSource(entry.Source)</td>
-                    <td>
-                        @entry.Message
-                        @if (entry.Exception is not null)
-                        {
-                            <pre style="white-space:pre-wrap; margin:0.3rem 0 0 0; opacity:0.8;">@entry.Exception</pre>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Time</th><th>Level</th><th>Source</th><th>Message</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in _visible)
+                    {
+                        <tr>
+                            <td class="mono" style="white-space:nowrap;">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</td>
+                            <td><span class="pill @LevelTone(entry.Level)">@entry.Level</span></td>
+                            <td class="mono" style="white-space:nowrap;">@ShortSource(entry.Source)</td>
+                            <td class="mono">
+                                @entry.Message
+                                @if (entry.Exception is not null)
+                                {
+                                    <pre style="white-space:pre-wrap; margin:4px 0 0 0; opacity:0.8;">@entry.Exception</pre>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </Section>
+
 </div>
 
 @code {
     private const int MaxRows = 300;
+
+    private static readonly IReadOnlyList<(string, string)> LevelOptions =
+    [
+        ("Verbose", "Verbose"),
+        ("Debug", "Debug"),
+        ("Information", "Information"),
+        ("Warning", "Warning"),
+        ("Error", "Error"),
+        ("Fatal", "Fatal"),
+    ];
 
     private static readonly Dictionary<string, int> LevelRank = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -100,9 +106,8 @@
     private bool _paused;
     private Timer? _timer;
 
-    private void SetCaptureLevel(ChangeEventArgs e)
+    private void SetCaptureLevel(string level)
     {
-        var level = e.Value?.ToString();
         if (!string.IsNullOrWhiteSpace(level))
         {
             SettingsFile.Update(root =>
@@ -110,18 +115,15 @@
         }
     }
 
-    private void SetWireTrace(ChangeEventArgs e)
-    {
-        if (e.Value is bool enabled)
-        {
-            SettingsFile.Update(root =>
-                JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName)["wireTrace"] = enabled);
-        }
-    }
+    private void SetWireTrace(bool enabled)
+        => SettingsFile.Update(root =>
+            JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName)["wireTrace"] = enabled);
 
     protected override void OnInitialized()
     {
         Refresh();
+        // The log buffer intentionally has no per-event fan-out (logging must stay cheap),
+        // so this page polls — the only page that still does.
         _timer = new Timer(_ =>
         {
             if (!_paused)
@@ -157,11 +159,11 @@
         return lastDot >= 0 && lastDot < source.Length - 1 ? source[(lastDot + 1)..] : source;
     }
 
-    private static string LevelClass(string level) => level switch
+    private static string LevelTone(string level) => level switch
     {
-        "Warning" => "connecting",
-        "Error" or "Fatal" => "disconnected",
-        "Information" => "connected",
-        _ => "disabled",
+        "Warning" => "tone-warn",
+        "Error" or "Fatal" => "tone-bad",
+        "Information" => "tone-ok",
+        _ => "tone-neutral",
     };
 }

@@ -26,4 +26,11 @@ public sealed class WebUiOptions
     /// never need it, so the local UI can never be locked out.
     /// </summary>
     public string? AccessToken { get; set; }
+
+    /// <summary>
+    /// Web UI theme: a built-in name (Default, Dark, Light, Delta, Finnair, Lufthansa, Qantas)
+    /// or the name of a user theme JSON in <c>config/themes</c> (Prosim2GSX theme format).
+    /// Unknown names fall back to Default.
+    /// </summary>
+    public string Theme { get; set; } = "Default";
 }

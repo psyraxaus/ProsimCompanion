@@ -1,0 +1,37 @@
+@* Injects the current theme's CSS custom-property overrides into the document head. The
+   :root defaults in app.css are the Default theme, so this only changes anything when the
+   user picked another theme — and updates live when webUi.theme changes in settings. *@
+@using Microsoft.Extensions.Options
+@using ProsimCompanion.Web.Theming
+@implements IDisposable
+@inject IOptionsMonitor<WebUiOptions> WebUiMonitor
+@inject ThemeCatalog Themes
+
+<HeadContent>
+    <style>
+        :root {
+        @((MarkupString)_declarations)
+        }
+    </style>
+</HeadContent>
+
+@code {
+    private string _declarations = "";
+    private IDisposable? _subscription;
+
+    protected override void OnInitialized()
+    {
+        Rebuild(WebUiMonitor.CurrentValue);
+        // OnChange fires on the configuration-reload thread; marshal into the circuit.
+        _subscription = WebUiMonitor.OnChange(options => _ = InvokeAsync(() =>
+        {
+            Rebuild(options);
+            StateHasChanged();
+        }));
+    }
+
+    private void Rebuild(WebUiOptions options)
+        => _declarations = ThemeCssBuilder.BuildDeclarations(Themes.Get(options.Theme).Colors);
+
+    public void Dispose() => _subscription?.Dispose();
+}

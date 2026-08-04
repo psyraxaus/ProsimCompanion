@@ -1,0 +1,16 @@
+{
+  "name": "Default",
+  "description": "ProsimCompanion navy EFB palette (the web UI's native look)",
+  "colors": {
+    "primaryColor": "#2196F3",
+    "secondaryColor": "#1976D2",
+    "accentColor": "#FF6A33",
+    "headerBackground": "#1F2540",
+    "tabBarBackground": "#1F2540",
+    "contentBackground": "#1A2035",
+    "sectionBackground": "#232A47",
+    "headerText": "#FFFFFF",
+    "contentText": "#FFFFFF",
+    "categoryText": "#5AABFF"
+  }
+}

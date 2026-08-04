@@ -1,0 +1,72 @@
+@* Numeric field row with optional unit suffix. Generic over the numeric type so int and
+   double settings bind without casts; a value the browser lets through that fails to parse
+   re-renders the previous value rather than corrupting the draft. Supports @bind-Value. *@
+@typeparam TValue
+@using System.Globalization
+
+<div class="field">
+    <label class="field-label" for="@_id">
+        @Label
+        @if (!string.IsNullOrEmpty(Hint))
+        {
+            <span class="field-hint">@Hint</span>
+        }
+    </label>
+    <div class="field-control">
+        <span class="number-row">
+            <input id="@_id" type="number" class="number-input" inputmode="decimal"
+                   step="@(Step ?? "any")" min="@Min" max="@Max"
+                   value="@BindConverter.FormatValue(Value, CultureInfo.InvariantCulture)"
+                   disabled="@Disabled" @onchange="OnChangedAsync" />
+            @if (!string.IsNullOrEmpty(Suffix))
+            {
+                <span class="suffix">@Suffix</span>
+            }
+        </span>
+    </div>
+</div>
+
+@code {
+    private readonly string _id = $"f{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public TValue Value { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<TValue> ValueChanged { get; set; }
+
+    [Parameter]
+    public string? Suffix { get; set; }
+
+    [Parameter]
+    public string? Step { get; set; }
+
+    [Parameter]
+    public string? Min { get; set; }
+
+    [Parameter]
+    public string? Max { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private async Task OnChangedAsync(ChangeEventArgs e)
+    {
+        if (BindConverter.TryConvertTo<TValue>(e.Value?.ToString(), CultureInfo.InvariantCulture, out var parsed)
+            && parsed is not null)
+        {
+            await ValueChanged.InvokeAsync(parsed);
+        }
+        else
+        {
+            // Revert the input to the last good value.
+            StateHasChanged();
+        }
+    }
+}

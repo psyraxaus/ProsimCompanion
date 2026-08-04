@@ -1,0 +1,166 @@
+@page "/settings/app"
+@using ProsimCompanion.Web.Theming
+@implements IDisposable
+@inject IOptionsMonitor<ProsimOptions> ProsimMonitor
+@inject IOptionsMonitor<WebUiOptions> WebUiMonitor
+@inject IOptionsMonitor<LoggingOptions> LoggingMonitor
+@inject JsonSettingsFile SettingsFile
+@inject ThemeCatalog Themes
+
+<PageTitle>App Settings — ProsimCompanion</PageTitle>
+<h1 class="sr-only">App Settings</h1>
+
+<div class="panel" style="padding-bottom:96px;">
+
+    <Section Title="Theme" Hint="Applies live on save">
+        <SelectField Label="UI theme" Options="_themeOptions"
+                     Hint="Built-in airline themes, plus any JSON in config/themes (Prosim2GSX theme format)"
+                     @bind-Value="_theme" />
+    </Section>
+
+    <Section Title="ProSim">
+        <TextField Label="Host" Placeholder="localhost"
+                   Hint="Hostname or IP of the machine running ProSim System"
+                   @bind-Value="_prosimHost" />
+        <TextField Label="SDK path"
+                   Hint="Folder containing ProSimSDK.dll (loaded at runtime, never bundled). Empty = ProSim subsystem disabled"
+                   @bind-Value="_prosimSdkPath" />
+        <TextField Label="API key" Password="true"
+                   Hint="Optional — newer ProSim builds only; leave empty when not used"
+                   @bind-Value="_prosimApiKey" />
+        <NumberField Label="Reconnect interval" Suffix="ms" Min="500"
+                     @bind-Value="_prosimReconnectMs" />
+    </Section>
+
+    <Section Title="Web Interface" Hint="Bind/port also editable in the desktop app (lockout prevention)">
+        <NumberField Label="Port" Min="1024" Max="65535"
+                     Hint="Takes effect after restarting the application"
+                     @bind-Value="_webPort" />
+        <BoolField Label="Expose to LAN"
+                   Hint="Bind all interfaces so tablets / a second PC can connect. Non-local devices authenticate via the QR code in the desktop app"
+                   @bind-Value="_webLan" />
+        <div class="field-hint" style="max-width:560px;">
+            The access token and onboarding QR code live in the desktop app's web-server card —
+            they are deliberately not shown here.
+        </div>
+    </Section>
+
+    <Section Title="Logging" Hint="Applies live, no restart">
+        <SelectField Label="Capture level" Options="LevelOptions"
+                     Hint="Minimum level recorded to the log file and the Logs page"
+                     @bind-Value="_logLevel" />
+        <BoolField Label="Wire trace"
+                   Hint="Raw GSX / gateway frames to a separate CMTrace file — verbose by design"
+                   @bind-Value="_wireTrace" />
+    </Section>
+
+</div>
+
+<DirtyBar Visible="@(IsDirty || _barMessage is not null)"
+          Message="@(_barMessage ?? "You have unsaved changes")"
+          Tone="_barTone"
+          OnSave="Save"
+          OnDiscard="LoadDraft" />
+
+@code {
+    private static readonly IReadOnlyList<(string, string)> LevelOptions =
+    [
+        ("Verbose", "Verbose"),
+        ("Debug", "Debug"),
+        ("Information", "Information"),
+        ("Warning", "Warning"),
+        ("Error", "Error"),
+        ("Fatal", "Fatal"),
+    ];
+
+    private IReadOnlyList<(string, string)> _themeOptions = [];
+
+    private string _theme = "Default";
+    private string _prosimHost = "";
+    private string _prosimSdkPath = "";
+    private string _prosimApiKey = "";
+    private int _prosimReconnectMs;
+    private int _webPort;
+    private bool _webLan;
+    private string _logLevel = "Information";
+    private bool _wireTrace;
+
+    private (string, string, string, string, int, int, bool, string, bool) _baseline;
+    private string? _barMessage;
+    private DirtyBar.MessageTone _barTone = DirtyBar.MessageTone.Unsaved;
+    private Timer? _savedMessageTimer;
+
+    private bool IsDirty => Snapshot() != _baseline;
+
+    private (string, string, string, string, int, int, bool, string, bool) Snapshot() =>
+        (_theme, _prosimHost, _prosimSdkPath, _prosimApiKey, _prosimReconnectMs,
+         _webPort, _webLan, _logLevel, _wireTrace);
+
+    protected override void OnInitialized()
+    {
+        _themeOptions = Themes.ListNames().Select(name => (name, name)).ToList();
+        LoadDraft();
+    }
+
+    private void LoadDraft()
+    {
+        var prosim = ProsimMonitor.CurrentValue;
+        var webUi = WebUiMonitor.CurrentValue;
+        var logging = LoggingMonitor.CurrentValue;
+
+        _theme = webUi.Theme;
+        _prosimHost = prosim.Host;
+        _prosimSdkPath = prosim.SdkPath;
+        _prosimApiKey = prosim.ApiKey ?? "";
+        _prosimReconnectMs = prosim.ReconnectIntervalMs;
+        _webPort = webUi.Port;
+        _webLan = webUi.BindToAllInterfaces;
+        _logLevel = logging.DefaultLevel;
+        _wireTrace = logging.WireTrace;
+
+        _baseline = Snapshot();
+        _barMessage = null;
+    }
+
+    private void Save()
+    {
+        try
+        {
+            SettingsFile.Update(root =>
+            {
+                var prosim = JsonSettingsFile.GetOrCreateSection(root, ProsimOptions.SectionName);
+                prosim["host"] = _prosimHost.Trim();
+                prosim["sdkPath"] = _prosimSdkPath.Trim();
+                prosim["apiKey"] = _prosimApiKey.Length == 0 ? null : _prosimApiKey;
+                prosim["reconnectIntervalMs"] = _prosimReconnectMs;
+
+                var webUi = JsonSettingsFile.GetOrCreateSection(root, WebUiOptions.SectionName);
+                webUi["port"] = _webPort;
+                webUi["bindToAllInterfaces"] = _webLan;
+                webUi["theme"] = _theme;
+
+                var logging = JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName);
+                logging["defaultLevel"] = _logLevel;
+                logging["wireTrace"] = _wireTrace;
+            });
+
+            _baseline = Snapshot();
+            _barMessage = "Saved.";
+            _barTone = DirtyBar.MessageTone.Info;
+            _savedMessageTimer?.Dispose();
+            _savedMessageTimer = new Timer(_ => _ = InvokeAsync(() =>
+            {
+                _barMessage = null;
+                _barTone = DirtyBar.MessageTone.Unsaved;
+                StateHasChanged();
+            }), null, TimeSpan.FromSeconds(1.5), Timeout.InfiniteTimeSpan);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _barMessage = $"Save failed: {ex.Message}";
+            _barTone = DirtyBar.MessageTone.Error;
+        }
+    }
+
+    public void Dispose() => _savedMessageTimer?.Dispose();
+}

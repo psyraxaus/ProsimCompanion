@@ -1,0 +1,37 @@
+@* Label-left / checkbox-right field row. Plain checkbox by design (matches the predecessor —
+   no toggle switches anywhere in the language). Supports @bind-Value. *@
+<div class="field">
+    <label class="field-label" for="@_id">
+        @Label
+        @if (!string.IsNullOrEmpty(Hint))
+        {
+            <span class="field-hint">@Hint</span>
+        }
+    </label>
+    <div class="field-control">
+        <input id="@_id" type="checkbox" class="checkbox" checked="@Value"
+               disabled="@Disabled" @onchange="OnChangedAsync" />
+    </div>
+</div>
+
+@code {
+    private readonly string _id = $"f{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Value { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private Task OnChangedAsync(ChangeEventArgs e)
+        => ValueChanged.InvokeAsync(e.Value is bool b && b);
+}

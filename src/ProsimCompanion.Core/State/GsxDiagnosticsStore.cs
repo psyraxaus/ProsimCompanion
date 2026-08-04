@@ -107,9 +107,9 @@ public interface IGsxDepartureControl
 
 /// <summary>
 /// Live GSX diagnostics for the web UI — the browser-side twin of the wire trace, built for
-/// evaluating sim smoke tests at a glance. The GSX layer pushes updates; readers poll
-/// <see cref="Snapshot"/>. Kept in Core so the Web project (which references only Core) can
-/// render it.
+/// evaluating sim smoke tests at a glance. The GSX layer pushes updates; readers subscribe to
+/// <see cref="Changed"/> and read <see cref="Snapshot"/> (no per-reader polling). Kept in Core
+/// so the Web project (which references only Core) can render it.
 /// </summary>
 public sealed class GsxDiagnosticsStore
 {
@@ -121,6 +121,10 @@ public sealed class GsxDiagnosticsStore
     private readonly Queue<GsxDecisionView> _decisions = new();
     private IReadOnlyList<GsxServiceBoardRow> _serviceBoard = [];
     private GsxDiagnosticsSnapshot _current = GsxDiagnosticsSnapshot.Empty;
+
+    /// <summary>Raised after any update, on the writer's thread — consumers marshal to their
+    /// own context (<c>InvokeAsync</c> in Blazor components).</summary>
+    public event EventHandler? Changed;
 
     /// <summary>Point-in-time diagnostics view (recent commands/decisions newest-first).</summary>
     public GsxDiagnosticsSnapshot Snapshot()
@@ -144,6 +148,8 @@ public sealed class GsxDiagnosticsStore
         {
             _serviceBoard = rows;
         }
+
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Replaces the connection/mirror-derived portion of the view.</summary>
@@ -154,6 +160,8 @@ public sealed class GsxDiagnosticsStore
         {
             _current = snapshot;
         }
+
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Appends a command outcome to the bounded recent-commands ring.</summary>
@@ -168,6 +176,8 @@ public sealed class GsxDiagnosticsStore
                 _ = _commands.Dequeue();
             }
         }
+
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Appends an automation decision ("what happened and why") to the bounded ring —
@@ -183,5 +193,7 @@ public sealed class GsxDiagnosticsStore
                 _ = _decisions.Dequeue();
             }
         }
+
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 }

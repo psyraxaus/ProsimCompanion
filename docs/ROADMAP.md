@@ -144,6 +144,38 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       keystroke — deferred), company-hub service constraints + per-service minimum flight
       duration (deferred from the ordering system — needs hub lists and OFP duration plumbing)
 
+## Phase 2.5 — Web UI foundation (pulled forward from Phase 7)
+
+Recreates the Prosim2GSX web EFB design language in Blazor before Phase 3 adds more pages, so
+migrating Prosim2GSX users land in a familiar UI and every later page is built into the final
+frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.Web` React app
+(design tokens in `src/styles/theme.css`, derivation rules in `src/theme/applyTheme.ts`).
+
+- [x] Design-token stylesheet (`wwwroot/css/app.css` in the Web RCL, copied to the App output —
+      no static-web-assets pipeline in a WinExe host) with the Prosim2GSX token set and the
+      default navy EFB palette
+- [x] Airline JSON themes (Dark/Light/Delta/Finnair/Lufthansa/Qantas + `config/themes/*.json`
+      user themes), C# port of the `applyTheme` derivation rules (input/button surface shifts,
+      alpha borders, `--text-on-dark` split), live theme switch from settings — Qantas
+      light-theme derivation verified against a running instance 2026-08-02
+- [x] Component library: Section card, Bool/Number/Text/Select field rows, buttons, status
+      pills, indicator dots, DirtyBar (save/discard), split-flap display (client-side JS custom
+      element — nothing animates over the circuit), section left-rail nav
+- [x] Layout: Prosim2GSX-style header (wordmark + WEB badge, split-flap FLT NO/UTC/DATE,
+      connection dot) + horizontal top tab bar replacing the sidebar; responsive breakpoints
+      (540/720 px); styled circuit-reconnect overlay; favicon. NOTE: no catch-all 404 page on
+      purpose — a Blazor catch-all route match makes endpoint-aware `UseStaticFiles` skip every
+      static file (blazor.web.js served as HTML)
+- [x] Flight Status dashboard (phase card with 7-block progress bar, connection/GSX dot cards,
+      per-service pills, live log box) replacing the placeholder Home page
+- [x] GSX Settings page: left-rail sections in the Prosim2GSX arrangement, full `GsxOptions`
+      coverage (every implemented property — ends hand-editing settings.json), draft/baseline
+      dirty tracking with DirtyBar
+- [x] App Settings page (ProSim connection/SDK, web server, theme picker, logging)
+- [x] Restyle /gsx diagnostics + /logs with the shared components
+- [x] `GsxDiagnosticsStore.Changed` event — retired the GSX polling timers (Logs still polls:
+      the log buffer deliberately has no per-event fan-out)
+
 ## Phase 3 — Flight data & EFB
 
 - [x] SimBrief OFP fetch (MCDU-triggered; identity from `efb.simbrief.id`) — delivered early in
@@ -193,6 +225,6 @@ from Phase 1 — this phase adds the speech stack and features on top.
       aircraft profiles/handler there), VoiceMeeter directory. Verifies ProSimSDK.dll never ships.
       The app itself never assumes these paths — unset paths degrade the subsystem with guidance.
 - [ ] System tray icon + minimize-to-tray; single-instance mutex
-- [ ] Themes (airline JSON themes in the web UI), light/dark
+- [x] Themes (airline JSON themes in the web UI), light/dark — delivered in Phase 2.5
 - [ ] Config migration importers from Prosim2GSX `AppConfig.json` and Prosim2FO `settings.json`
 - [ ] Docs site / user manual

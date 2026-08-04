@@ -1,0 +1,25 @@
+@* Card with an uppercase category-coloured title and optional right-aligned hint — the
+   basic content container of the design language. *@
+<section class="section">
+    <div class="section-header">
+        <h3 class="section-title">@Title</h3>
+        @if (!string.IsNullOrEmpty(Hint))
+        {
+            <span class="section-hint">@Hint</span>
+        }
+    </div>
+    <div class="section-body">
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

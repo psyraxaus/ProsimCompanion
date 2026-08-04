@@ -1,0 +1,44 @@
+@* Text field row (monospace input per the design language). Supports @bind-Value. *@
+<div class="field">
+    <label class="field-label" for="@_id">
+        @Label
+        @if (!string.IsNullOrEmpty(Hint))
+        {
+            <span class="field-hint">@Hint</span>
+        }
+    </label>
+    <div class="field-control">
+        <input id="@_id" type="@(Password ? "password" : "text")" class="text-input" value="@Value"
+               placeholder="@Placeholder" disabled="@Disabled"
+               autocomplete="off" autocapitalize="off" spellcheck="false"
+               @onchange="OnChangedAsync" />
+    </div>
+</div>
+
+@code {
+    private readonly string _id = $"f{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter]
+    public bool Password { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private Task OnChangedAsync(ChangeEventArgs e)
+        => ValueChanged.InvokeAsync(e.Value?.ToString() ?? "");
+}

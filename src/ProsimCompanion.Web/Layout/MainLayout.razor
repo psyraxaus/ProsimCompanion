@@ -1,14 +1,90 @@
 @inherits LayoutComponentBase
+@using ProsimCompanion.Core.Aircraft
+@implements IDisposable
+@inject ConnectionStatusStore Status
+@inject IProsimDataRefs DataRefs
 
-<div class="shell">
-    <nav class="sidebar">
-        <div class="brand">ProsimCompanion</div>
-        <NavLink href="" Match="NavLinkMatch.All" ActiveClass="active">Status</NavLink>
-        <NavLink href="gsx" ActiveClass="active">GSX</NavLink>
-        <NavLink href="logs" ActiveClass="active">Logs</NavLink>
-        <NavLink href="settings" ActiveClass="active">Settings</NavLink>
-    </nav>
-    <main>
+<ThemeStyle />
+
+<div class="app">
+    <header class="header">
+        <div class="brand">
+            <span class="brand-name">PROSIMCOMPANION</span>
+            <span class="brand-tag">WEB</span>
+        </div>
+        <div class="flap-center">
+            <split-flap text="@_flightNumber" count="8"></split-flap>
+            <span class="flap-label">FLT NO</span>
+        </div>
+        <div class="flap-right">
+            <div class="flap-block">
+                <split-flap mode="utc-time" count="6"></split-flap>
+                <span class="flap-label">UTC</span>
+            </div>
+            <div class="flap-block">
+                <split-flap mode="utc-date" count="5"></split-flap>
+                <span class="flap-label">DATE</span>
+            </div>
+            <span class="conn-indicator" title="ProSim connection">
+                <span class="conn-dot @ProsimDotClass"></span>
+                <span class="conn-label">ProSim</span>
+            </span>
+        </div>
+    </header>
+
+    <div class="tabbar-wrap">
+        <button type="button" class="chevron chevron-left" aria-label="Scroll tabs left">‹</button>
+        <nav class="tabbar">
+            <NavLink class="tab" href="" Match="NavLinkMatch.All">Flight Status</NavLink>
+            <NavLink class="tab" href="gsx">GSX</NavLink>
+            <NavLink class="tab" href="settings/gsx">GSX Settings</NavLink>
+            <NavLink class="tab" href="settings/app">App Settings</NavLink>
+            <NavLink class="tab" href="logs">Logs</NavLink>
+        </nav>
+        <button type="button" class="chevron chevron-right" aria-label="Scroll tabs right">›</button>
+    </div>
+
+    <main class="main">
         @Body
     </main>
 </div>
+
+@code {
+    private IDataRefSubscription? _flightNumberSub;
+    private string _flightNumber = "";
+
+    private string ProsimDotClass => Status.Snapshot()
+        .FirstOrDefault(pair => pair.Key == Subsystems.Prosim).Value switch
+    {
+        ConnectionState.Connected => "open",
+        ConnectionState.Connecting => "reconnecting",
+        ConnectionState.Disabled => "connecting",
+        _ => "closed",
+    };
+
+    protected override void OnInitialized()
+    {
+        Status.Changed += OnChanged;
+        _flightNumberSub = DataRefs.Subscribe("efb.cids.flightNumber", DataRefTier.Infrequent);
+        _flightNumberSub.ValueChanged += OnChanged;
+        _flightNumber = _flightNumberSub.GetValue("");
+    }
+
+    private void OnChanged(object? sender, EventArgs e)
+        // Store/SDK events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _flightNumber = _flightNumberSub?.GetValue("") ?? "";
+            StateHasChanged();
+        });
+
+    public void Dispose()
+    {
+        Status.Changed -= OnChanged;
+        if (_flightNumberSub is not null)
+        {
+            _flightNumberSub.ValueChanged -= OnChanged;
+            _flightNumberSub.Dispose();
+        }
+    }
+}

@@ -6,10 +6,17 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Built-in themes ride inside the assembly; user themes live in config/themes. -->
+    <EmbeddedResource Include="Themes\*.json" />
   </ItemGroup>
 
 </Project>
