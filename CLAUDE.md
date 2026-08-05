@@ -26,28 +26,11 @@ before re-deriving any protocol, dataref, or LVAR detail.
 
 ## Solution layout
 
-```
-src/ProsimCompanion.App      WPF shell + composition root; hosts Kestrel + Blazor
-src/ProsimCompanion.Core     Domain: config, flight phases, state stores. No UI, no I/O frameworks.
-src/ProsimCompanion.Prosim   ProSim access: SDK (push datarefs) + EFB gateway (GraphQL/REST :5000)
-src/ProsimCompanion.Sim      SimConnect + LVAR access (clean-room, raw SimConnect SDK)
-src/ProsimCompanion.Gsx      GSX Couatl Remote API v2 client + ground-ops automation
-src/ProsimCompanion.Web      Blazor UI (Razor class library) — pages, layouts, components
-tests/ProsimCompanion.Core.Tests   xunit + Moq
-docs/                        Roadmap, architecture, ADRs, integration references
-```
-
 Dependencies point inward: App → everything; Web → Core; Prosim/Sim/Gsx → Core; Core → nothing.
 Feature projects never reference each other — cross-feature communication goes through Core
 abstractions/state stores.
 
 ## Build & test
-
-```
-dotnet build ProsimCompanion.slnx
-dotnet test ProsimCompanion.slnx
-dotnet run --project src/ProsimCompanion.App
-```
 
 Requires .NET 10 SDK on Windows. `ProSimSDK.dll` is compiled against with `Private=false`
 (build-time location via the `ProSimSdkDir` MSBuild property — a dev-machine concern only) and is
