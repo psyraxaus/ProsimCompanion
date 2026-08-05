@@ -59,6 +59,12 @@ Port of the Prosim2GSX pillar onto the new foundation. Primary references:
 `docs/integrations/gsx.md` and **`docs/integrations/gsx-remote-api.md`** (full wire spec,
 extracted 2026-08-01, incl. the locked decisions carried verbatim).
 
+> **Round-8 smoke test: provisionally passed** (owner-run quick session ~2026-08-03, reported
+> working; logs not yet reviewed). The "Unverified live" markers below are downgraded to
+> *provisionally verified* — if issues surface in later sessions they are diagnosed from the
+> decision log / CMTrace logs as usual. Deboarding counter semantics (double-logged) remain
+> unconfirmed until a log review.
+
 - [x] LVAR transport decision — native SimConnect on both sims, no WASM (gsx.md §5); LVAR
       write path + write gate in `ProsimCompanion.Sim`
 - [x] Couatl Remote API v2 WebSocket client (hello/capabilities, subscribe, state mirror,
@@ -179,10 +185,19 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
 ## Phase 3 — Flight data & EFB
 
 - [x] SimBrief OFP fetch (MCDU-triggered; identity from `efb.simbrief.id`) — delivered early in
-      Phase 2. Manual fetch button + typed OFP model for loadsheets/EFB pages still to come
-- [ ] EFB INIT page with per-field overrides + sync to FMS
-- [ ] In-house W&B/loadsheet pipeline (prelim + final, ACARS uplink, EDNO/REVISIONS — port the
-      bit-exact ProSim formulas, see `docs/integrations/prosim.md`)
+      Phase 2. Typed OFP model (`OfpData`/`OfpStore`), fetch retry, polymorphic-alternate parse
+      and the manual force-fetch button on /flight added with the loadsheet pipeline
+- [x] In-house W&B/loadsheet pipeline (bit-exact ProSim formulas per
+      `docs/integrations/prosim.md` §4): prelim on GSX refuel-active (via `GroundOpsSignals`),
+      final after boarding-complete + 90–150 s dispatcher delay, EDNO increments/inheritance,
+      REVISIONS/COMPLIANCE title with `//` flags, CG plausibility gate, JSON envelope to
+      `efb.{prelim|final}Loadsheet` (3 s settle) then ACARS uplink to slots 01/02, cycle reset
+      on turnaround, manual generate/resend on /flight. **Unverified live**
+- [x] FMS INIT B sync (`aircraft.fms.init.{zfw,zfwcg,block}`, tonnes conversion, source
+      resolution final→prelim→live, optional auto-sync on final) — /flight button.
+      **Unverified live**
+- [ ] EFB INIT page with per-field overrides (zfw/fuel/cargo/pax → dataref writes; sync-to-FMS
+      button exists on /flight)
 - [ ] Live W&B page (CG envelope, silhouette), per-tank fuel page
 - [ ] Takeoff/landing performance (gateway `/efb/calculate/*`, FMS uplink)
 - [ ] Interactive ECAM-style checklists (visual; JSON-authorable, gating/retreat/freeze semantics)

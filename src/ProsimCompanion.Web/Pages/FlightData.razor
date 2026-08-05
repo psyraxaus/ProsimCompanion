@@ -1,0 +1,218 @@
+@page "/flight"
+@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Aircraft.Ofp
+@implements IDisposable
+@inject OfpStore Ofp
+@inject LoadsheetStore Loadsheets
+@inject ILoadsheetControl LoadsheetControl
+@inject ISimbriefImporter Simbrief
+@inject IFmsInitSync FmsSync
+
+<PageTitle>Flight Data — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Flight Data</h1>
+
+<div class="status-panel">
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">SimBrief OFP</h3>
+        <div class="section-body">
+            @if (_ofp is null)
+            {
+                <div class="empty">No OFP imported yet. It imports automatically when the MCDU flight plan is loaded, or fetch manually below.</div>
+            }
+            else
+            {
+                <div class="row"><span class="row-label">Flight</span><span class="row-value-mono">@_ofp.Callsign (@_ofp.Ident)</span></div>
+                <div class="row"><span class="row-label">Route</span><span class="row-value-mono">@_ofp.OriginIcao → @_ofp.DestinationIcao@(string.IsNullOrEmpty(_ofp.AlternateIcao) ? "" : $" (ALTN {_ofp.AlternateIcao})")</span></div>
+                <div class="row"><span class="row-label">Aircraft</span><span class="row-value-mono">@_ofp.AircraftReg @_ofp.AircraftIcaoType</span></div>
+                <div class="row"><span class="row-label">STD</span><span class="row-value-mono">@(_ofp.ScheduledOutUtc?.ToString("HH:mm 'Z' ddMMMyy") ?? "—")</span></div>
+                <div class="row"><span class="row-label">Passengers</span><span class="row-value-mono">@_ofp.PaxCount</span></div>
+                <div class="row"><span class="row-label">Cargo</span><span class="row-value-mono">@($"{_ofp.CargoKg:F0} kg")</span></div>
+                <div class="row"><span class="row-label">Block fuel</span><span class="row-value-mono">@($"{_ofp.FuelPlanRampKg:F0} kg")</span></div>
+                <div class="row"><span class="row-label">Est ZFW / TOW</span><span class="row-value-mono">@($"{_ofp.EstZfwKg:F0} / {_ofp.EstTowKg:F0} kg")</span></div>
+                <div class="row"><span class="row-label">Fetched</span><span class="row-value-mono">@_ofp.FetchedAtUtc.ToString("HH:mm:ss 'Z'")</span></div>
+            }
+            <div class="row">
+                <button type="button" class="btn primary" disabled="@_fetching" @onclick="FetchOfp">
+                    @(_fetching ? "Fetching…" : "Fetch from SimBrief")
+                </button>
+                @if (_fetchResult is not null)
+                {
+                    <span class="row-value">@_fetchResult</span>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">MCDU INIT B Sync</h3>
+        <div class="section-body">
+            <div class="row">
+                <span class="row-label">Pushes ZFW / ZFWCG / block fuel</span>
+                <button type="button" class="btn primary" disabled="@_syncing" @onclick="SyncFms">
+                    @(_syncing ? "Syncing…" : "Sync to FMS")
+                </button>
+            </div>
+            <div class="row">
+                <span class="row-label">Last sync</span>
+                <span class="row-value-mono">@(_syncResult ?? "—")</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="status-section status-span">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Loadsheets</h3>
+        <div class="section-body">
+            @foreach (var (label, slot, generate, busy) in Slots())
+            {
+                <div class="row">
+                    <span class="row-label">@label</span>
+                    <span class="pill @SlotTone(slot.Status)">@SlotLabel(slot.Status)</span>
+                    <span class="row-value-mono">
+                        @if (slot.Status is LoadsheetSlotStatus.Sent or LoadsheetSlotStatus.Generating)
+                        {
+                            @($"EDNO {slot.EditionNumber} · ZFW {slot.ZfwKg:F0} ({slot.MacZfw:F1}%) · TOW {slot.TowKg:F0} ({slot.MacTow:F1}%) · {slot.Pax} pax · fuel {slot.FuelKg:F0} kg")
+                            @(slot.SentAtUtc is { } sent ? $" · {sent:HH:mm:ss}Z" : "")
+                        }
+                        else if (slot.Error is not null)
+                        {
+                            @slot.Error
+                        }
+                        else
+                        {
+                            @("—")
+                        }
+                    </span>
+                    <button type="button" class="btn secondary" disabled="@busy" @onclick="generate">
+                        @(slot.Status == LoadsheetSlotStatus.Sent ? "Resend" : "Generate")
+                    </button>
+                </div>
+            }
+            <div class="row">
+                <span class="row-label"></span>
+                <span class="row-value">Prelim goes out automatically when GSX refueling starts; the final follows boarding completion after a short dispatcher delay. Manual generation increments the edition number.</span>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+@code {
+    private OfpData? _ofp;
+    private LoadsheetSnapshot _loadsheets = LoadsheetSnapshot.Empty;
+    private bool _fetching;
+    private bool _prelimBusy;
+    private bool _finalBusy;
+    private bool _syncing;
+    private string? _fetchResult;
+    private string? _syncResult;
+
+    protected override void OnInitialized()
+    {
+        Ofp.Changed += OnStoreChanged;
+        Loadsheets.Changed += OnStoreChanged;
+        _ofp = Ofp.Current;
+        _loadsheets = Loadsheets.Snapshot();
+    }
+
+    public void Dispose()
+    {
+        Ofp.Changed -= OnStoreChanged;
+        Loadsheets.Changed -= OnStoreChanged;
+    }
+
+    private void OnStoreChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _ofp = Ofp.Current;
+            _loadsheets = Loadsheets.Snapshot();
+            StateHasChanged();
+        });
+
+    private IEnumerable<(string Label, LoadsheetSlotView Slot, EventCallback Generate, bool Busy)> Slots()
+    {
+        yield return ("Preliminary", _loadsheets.Prelim, EventCallback.Factory.Create(this, GeneratePrelim), _prelimBusy);
+        yield return ("Final", _loadsheets.Final, EventCallback.Factory.Create(this, GenerateFinal), _finalBusy);
+    }
+
+    private static string SlotTone(LoadsheetSlotStatus status) => status switch
+    {
+        LoadsheetSlotStatus.Sent => "tone-ok",
+        LoadsheetSlotStatus.Generating => "tone-active",
+        LoadsheetSlotStatus.Failed => "tone-bad",
+        _ => "tone-neutral",
+    };
+
+    private static string SlotLabel(LoadsheetSlotStatus status) => status switch
+    {
+        LoadsheetSlotStatus.Sent => "SENT",
+        LoadsheetSlotStatus.Generating => "GENERATING",
+        LoadsheetSlotStatus.Failed => "FAILED",
+        _ => "NONE",
+    };
+
+    private async Task FetchOfp()
+    {
+        _fetching = true;
+        _fetchResult = null;
+        try
+        {
+            var outcome = await Simbrief.TryImportAsync(force: true);
+            _fetchResult = outcome switch
+            {
+                SimbriefImportOutcome.Imported => "OFP imported.",
+                SimbriefImportOutcome.NoPilotId => "No SimBrief pilot id in ProSim — set it in the ProSim EFB.",
+                SimbriefImportOutcome.FetchFailed => "Fetch failed — is an OFP generated on SimBrief?",
+                SimbriefImportOutcome.ImportFailed => "Fetched, but the EFB import failed — see logs.",
+                _ => outcome.ToString(),
+            };
+        }
+        finally
+        {
+            _fetching = false;
+        }
+    }
+
+    private async Task GeneratePrelim()
+    {
+        _prelimBusy = true;
+        try
+        {
+            await LoadsheetControl.GeneratePreliminaryAsync();
+        }
+        finally
+        {
+            _prelimBusy = false;
+        }
+    }
+
+    private async Task GenerateFinal()
+    {
+        _finalBusy = true;
+        try
+        {
+            await LoadsheetControl.GenerateFinalAsync();
+        }
+        finally
+        {
+            _finalBusy = false;
+        }
+    }
+
+    private async Task SyncFms()
+    {
+        _syncing = true;
+        try
+        {
+            var result = await FmsSync.SyncAsync();
+            _syncResult = result is null
+                ? "Sync failed — see logs."
+                : $"ZFW {result.ZfwTonnes:F1} t · ZFWCG {result.ZfwCgPercent:F1}% · block {result.BlockTonnes:F1} t (from {result.Source})";
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+}

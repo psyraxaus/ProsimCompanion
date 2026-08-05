@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Aircraft.Gateway;
+using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
 
@@ -18,14 +19,19 @@ namespace ProsimCompanion.Prosim.Simbrief;
 /// owner's CG-realism requirement), the passenger statistics JSON, planned fuel (into BOTH
 /// <c>aircraft.refuel.fuelTarget</c> — the refuel target total — and <c>efb.plannedfuel</c>),
 /// planned cargo, and finally <c>efb.simbriefPlanImported</c>. Everything decision-logged.
+/// Phase 3: the parsed OFP is also published as a typed <see cref="OfpData"/> to the
+/// <see cref="OfpStore"/> for the loadsheet pipeline, FMS sync and web pages.
 /// </summary>
 public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
 {
     private const double LbsPerKg = 2.20462;
     private static readonly int[] FallbackZoneCapacities = [24, 30, 36, 42];
+    private static readonly TimeSpan FetchRetryDelay = TimeSpan.FromSeconds(2);
 
     private readonly IProsimGateway _gateway;
     private readonly IOptionsMonitor<GsxOptions> _options;
+    private readonly IOptionsMonitor<FlightDataOptions> _flightDataOptions;
+    private readonly OfpStore _ofpStore;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<SimbriefImportService> _logger;
     private readonly IDataRefSubscription _pilotId;
@@ -38,17 +44,23 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         IProsimDataRefs prosim,
         IProsimGateway gateway,
         IOptionsMonitor<GsxOptions> options,
+        IOptionsMonitor<FlightDataOptions> flightDataOptions,
+        OfpStore ofpStore,
         GsxDiagnosticsStore diagnostics,
         ILogger<SimbriefImportService> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(gateway);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(flightDataOptions);
+        ArgumentNullException.ThrowIfNull(ofpStore);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
         _gateway = gateway;
         _options = options;
+        _flightDataOptions = flightDataOptions;
+        _ofpStore = ofpStore;
         _diagnostics = diagnostics;
         _logger = logger;
 
@@ -80,7 +92,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         _importLock.Dispose();
     }
 
-    public async Task<SimbriefImportOutcome> TryImportAsync(CancellationToken cancellationToken = default)
+    public async Task<SimbriefImportOutcome> TryImportAsync(bool force = false, CancellationToken cancellationToken = default)
     {
         if (!await _importLock.WaitAsync(0, cancellationToken).ConfigureAwait(false))
         {
@@ -89,7 +101,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
 
         try
         {
-            if (_planImported.GetValue(false))
+            if (!force && _planImported.GetValue(false))
             {
                 return SimbriefImportOutcome.AlreadyImported;
             }
@@ -121,45 +133,55 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
     {
         var idParameter = pilotId.All(char.IsDigit) ? "userid" : "username";
         var url = $"https://www.simbrief.com/api/xml.fetcher.php?json=1&{idParameter}={Uri.EscapeDataString(pilotId)}";
+        var attempts = Math.Max(1, _flightDataOptions.CurrentValue.SimbriefFetchAttempts);
 
-        try
+        for (var attempt = 1; attempt <= attempts; attempt++)
         {
-            using var response = await _http.GetAsync(url, cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                RecordDecision("simbrief import", $"fetch failed ({(int)response.StatusCode}) — is an OFP generated on SimBrief?");
-                return null;
+                using var response = await _http.GetAsync(url, cancellationToken).ConfigureAwait(false);
+                if (response.IsSuccessStatusCode)
+                {
+                    var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                    if (JsonNode.Parse(text) is JsonObject ofp)
+                    {
+                        return ofp;
+                    }
+                    RecordDecision("simbrief import", "fetch returned malformed JSON");
+                }
+                else
+                {
+                    RecordDecision(
+                        "simbrief import",
+                        $"fetch failed ({(int)response.StatusCode}, attempt {attempt}/{attempts}) — is an OFP generated on SimBrief?");
+                    // A 4xx means "no OFP / bad id" — retrying won't change the answer.
+                    if ((int)response.StatusCode is >= 400 and < 500)
+                    {
+                        return null;
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException
+                || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+            {
+                RecordDecision("simbrief import", $"fetch failed (attempt {attempt}/{attempts}): {ex.Message}");
             }
 
-            var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            return JsonNode.Parse(text) as JsonObject;
+            if (attempt < attempts)
+            {
+                await Task.Delay(FetchRetryDelay, cancellationToken).ConfigureAwait(false);
+            }
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            RecordDecision("simbrief import", $"fetch failed: {ex.Message}");
-            return null;
-        }
+
+        return null;
     }
 
     private async Task<bool> ImportAsync(JsonObject ofp, CancellationToken cancellationToken)
     {
-        // Values arrive as strings in SimBrief's JSON; parse leniently.
-        var fuelRamp = ReadDouble(ofp["fuel"]?["plan_ramp"]);
-        var cargo = ReadDouble(ofp["weights"]?["cargo"]);
-        var paxCount = (int)ReadDouble(ofp["weights"]?["pax_count"]);
-        var units = ReadString(ofp["params"]?["units"]) ?? "kgs";
-        var origin = ReadString(ofp["origin"]?["icao_code"]);
-        var destination = ReadString(ofp["destination"]?["icao_code"]);
-
-        if (string.Equals(units, "lbs", StringComparison.OrdinalIgnoreCase))
-        {
-            fuelRamp /= LbsPerKg;
-            cargo /= LbsPerKg;
-        }
-
-        // Real-world ops: block fuel is ordered in 100 kg increments, rounded up so the
-        // uplift is never below plan (owner requirement, round 6).
-        fuelRamp = LoadMath.RoundFuelUpToHundredKg(fuelRamp);
+        var parsed = ParseOfp(ofp);
+        var fuelRamp = parsed.FuelPlanRampKg;
+        var cargo = parsed.CargoKg;
+        var paxCount = parsed.PaxCount;
 
         if (fuelRamp <= 0 && paxCount <= 0)
         {
@@ -228,11 +250,67 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             return false;
         }
 
+        // Publish the typed OFP (post-randomization pax/cargo, so downstream consumers agree
+        // with what was actually written to ProSim).
+        _ofpStore.Set(parsed with { PaxCount = paxCount, CargoKg = cargo });
+
         RecordDecision(
             "simbrief import",
-            $"imported {origin}->{destination}: {paxCount} pax (zones {string.Join("/", perZone)}), fuel {fuelRamp:F0} kg, cargo {cargo:F0} kg");
+            $"imported {parsed.OriginIcao}->{parsed.DestinationIcao}: {paxCount} pax (zones {string.Join("/", perZone)}), fuel {fuelRamp:F0} kg, cargo {cargo:F0} kg");
         return true;
     }
+
+    /// <summary>Builds the typed OFP snapshot. Weights convert lbs→kg per params.units; block
+    /// fuel is rounded up to the next 100 kg (fuel-order increments, owner requirement).</summary>
+    private static OfpData ParseOfp(JsonObject ofp)
+    {
+        var units = ReadString(ofp["params"]?["units"]) ?? "kgs";
+        var isLbs = string.Equals(units, "lbs", StringComparison.OrdinalIgnoreCase);
+        double Kg(JsonNode? node) => isLbs ? ReadDouble(node) / LbsPerKg : ReadDouble(node);
+
+        var requestId = ReadString(ofp["params"]?["request_id"]) ?? "";
+        var schedOut = ReadDouble(ofp["times"]?["sched_out"]);
+        var enrouteSeconds = ReadDouble(ofp["times"]?["est_time_enroute"]);
+
+        return new OfpData
+        {
+            RequestId = requestId,
+            Ident = requestId.Length >= 4 ? requestId[..4] : requestId,
+            Callsign = ReadString(ofp["atc"]?["callsign"]) ?? "",
+            OriginIcao = ReadString(ofp["origin"]?["icao_code"]) ?? "",
+            OriginIata = ReadString(ofp["origin"]?["iata_code"]) ?? "",
+            DestinationIcao = ReadString(ofp["destination"]?["icao_code"]) ?? "",
+            DestinationIata = ReadString(ofp["destination"]?["iata_code"]) ?? "",
+            AlternateIcao = ReadAlternateIcao(ofp["alternate"]),
+            AircraftReg = ReadString(ofp["aircraft"]?["reg"]) ?? "",
+            AircraftIcaoType = ReadString(ofp["aircraft"]?["icaocode"]) ?? "",
+            PaxCount = (int)ReadDouble(ofp["weights"]?["pax_count"]),
+            CargoKg = Kg(ofp["weights"]?["cargo"]),
+            FuelPlanRampKg = LoadMath.RoundFuelUpToHundredKg(Kg(ofp["fuel"]?["plan_ramp"])),
+            FuelPlanLandingKg = Kg(ofp["fuel"]?["plan_landing"]),
+            FuelTaxiKg = Kg(ofp["fuel"]?["taxi"]),
+            EstZfwKg = Kg(ofp["weights"]?["est_zfw"]),
+            EstTowKg = Kg(ofp["weights"]?["est_tow"]),
+            EstLdwKg = Kg(ofp["weights"]?["est_ldw"]),
+            MaxZfwKg = Kg(ofp["weights"]?["max_zfw"]),
+            MaxTowKg = Kg(ofp["weights"]?["max_tow"]),
+            MaxLdwKg = Kg(ofp["weights"]?["max_ldw"]),
+            ScheduledOutUtc = schedOut > 0
+                ? DateTimeOffset.FromUnixTimeSeconds((long)schedOut)
+                : null,
+            EstimatedEnroute = enrouteSeconds > 0 ? TimeSpan.FromSeconds(enrouteSeconds) : null,
+            FetchedAtUtc = DateTimeOffset.UtcNow,
+        };
+    }
+
+    /// <summary>The SimBrief alternate node is polymorphic: object, array of objects, or empty
+    /// string. First alternate wins; anything unparseable is "no alternate".</summary>
+    private static string ReadAlternateIcao(JsonNode? alternate) => alternate switch
+    {
+        JsonObject obj => ReadString(obj["icao_code"]) ?? "",
+        JsonArray { Count: > 0 } arr when arr[0] is JsonObject first => ReadString(first["icao_code"]) ?? "",
+        _ => "",
+    };
 
     private static double ReadDouble(JsonNode? node)
     {

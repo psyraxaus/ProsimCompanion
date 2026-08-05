@@ -37,6 +37,7 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Sync.GsxDoorService>();
         services.AddSingleton<Sync.GsxPushbackSequenceService>();
         services.AddSingleton<Sync.GsxArrivalService>();
+        services.AddSingleton<Sync.GsxGroundOpsSignalRelay>();
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

@@ -43,6 +43,16 @@ public static class ProsimWriteGate
         "efb.passengers.booked.string",
         "efb.passengerStatistics",
         "aircraft.passengers.seatOccupation.string",
+
+        // Loadsheet pipeline (Phase 3): the EFB display slots + the ACARS uplink envelope
+        "efb.prelimLoadsheet",
+        "efb.finalLoadsheet",
+        "efb.aoc.message.uplink",
+
+        // MCDU INIT B sync (values in TONNES for zfw/block; zfwcg is %MAC)
+        "aircraft.fms.init.block",
+        "aircraft.fms.init.zfw",
+        "aircraft.fms.init.zfwcg",
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly string[] AllowedPrefixes =

@@ -60,6 +60,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private DateTimeOffset _lastImportAttempt = DateTimeOffset.MinValue;
 
     private readonly ISimbriefImporter _simbrief;
+    private readonly GroundOpsSignals _groundOpsSignals;
 
     public GsxAutomationService(
         IGsxRemoteApi api,
@@ -72,6 +73,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         ISimbriefImporter simbrief,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
+        GroundOpsSignals groundOpsSignals,
         JsonlEventLog eventLog,
         ILogger<GsxAutomationService> logger)
     {
@@ -82,8 +84,10 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         ArgumentNullException.ThrowIfNull(simbrief);
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(groundOpsSignals);
         _simbrief = simbrief;
         _simVars = simVars;
+        _groundOpsSignals = groundOpsSignals;
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
@@ -234,6 +238,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 {
                     _triggerAttempts.Clear();
                 }
+                // Cross-feature cycle boundary: loadsheet caches/edition counters reset here.
+                _groundOpsSignals.RaiseFlightCycleReset();
                 RecordDecision("turnaround", "service cycles reset after arrival");
                 break;
         }

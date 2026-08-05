@@ -26,6 +26,14 @@ public static class ProsimServiceCollectionExtensions
         services.AddSingleton<IFlightDataSource, ProsimFlightDataSource>();
         services.AddHostedService<ProsimConnectionService>();
 
+        // Flight-data pillar (Phase 3): in-house loadsheets + ACARS + MCDU INIT B sync.
+        services.AddSingleton<Acars.AcarsUplink>();
+        services.AddSingleton<Loadsheet.FmsInitSyncService>();
+        services.AddSingleton<Core.State.IFmsInitSync>(provider => provider.GetRequiredService<Loadsheet.FmsInitSyncService>());
+        services.AddSingleton<Loadsheet.LoadsheetService>();
+        services.AddSingleton<Core.State.ILoadsheetControl>(provider => provider.GetRequiredService<Loadsheet.LoadsheetService>());
+        services.AddHostedService<Loadsheet.FlightDataBootstrapService>();
+
         return services;
     }
 }

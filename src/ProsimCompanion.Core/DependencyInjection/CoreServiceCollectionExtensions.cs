@@ -43,10 +43,14 @@ public static class CoreServiceCollectionExtensions
         });
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
         services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
+        services.Configure<FlightDataOptions>(configuration.GetSection(FlightDataOptions.SectionName));
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         services.AddSingleton<ConnectionStatusStore>();
         services.AddSingleton<GsxDiagnosticsStore>();
+        services.AddSingleton<Aircraft.Ofp.OfpStore>();
+        services.AddSingleton<LoadsheetStore>();
+        services.AddSingleton<GroundOpsSignals>();
 
         services.AddSingleton(provider => new JsonlEventLog(
             Path.Combine(

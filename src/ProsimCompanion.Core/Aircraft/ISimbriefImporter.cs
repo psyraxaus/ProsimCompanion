@@ -20,5 +20,7 @@ public enum SimbriefImportOutcome
 /// </summary>
 public interface ISimbriefImporter
 {
-    Task<SimbriefImportOutcome> TryImportAsync(CancellationToken cancellationToken = default);
+    /// <param name="force">Re-fetch and re-import even when ProSim already reports the plan
+    /// imported (the web UI's manual fetch button — picks up an OFP regenerated on SimBrief).</param>
+    Task<SimbriefImportOutcome> TryImportAsync(bool force = false, CancellationToken cancellationToken = default);
 }
