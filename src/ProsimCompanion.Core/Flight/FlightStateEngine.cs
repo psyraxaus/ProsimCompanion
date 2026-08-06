@@ -2,13 +2,24 @@ using Microsoft.Extensions.Logging;
 
 namespace ProsimCompanion.Core.Flight;
 
+/// <summary>Read-only view of the committed flight phase — the narrow seam consumers (callout
+/// engines, monitors) depend on so tests can drive phases directly.</summary>
+public interface IFlightPhaseSource
+{
+    /// <summary>The committed phase.</summary>
+    FlightPhase CurrentPhase { get; }
+
+    /// <summary>Raised after a committed transition, on the engine's timer thread.</summary>
+    event EventHandler<FlightPhaseChangedEventArgs>? PhaseChanged;
+}
+
 /// <summary>
 /// Central flight-phase state machine: samples the <see cref="IFlightDataSource"/> every
 /// 250 ms, derives the target phase via <see cref="FlightPhaseEvaluator"/>, and commits a
 /// transition only after the target has persisted for that transition's debounce interval.
 /// <see cref="PhaseChanged"/> fires on the timer thread — consumers marshal themselves.
 /// </summary>
-public sealed class FlightStateEngine : IDisposable
+public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
 {
     /// <summary>Sampling cadence.</summary>
     public static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(250);

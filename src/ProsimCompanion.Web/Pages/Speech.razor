@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject SpeechStatusStore Status
 @inject ISpeechControl SpeechControl
+@inject ArrivalMinimaStore Minima
 
 <PageTitle>Speech — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Speech</h1>
@@ -51,6 +52,33 @@
         </div>
     </Section>
 
+    <Section Title="Arrival Minima" Hint="No DH/MDA dataref exists — enter the briefed minima to arm the minimums callouts">
+        @if (_minima is { } set)
+        {
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <span class="pill tone-ok">@KindLabel(set.Kind) @set.AltitudeFt.ToString("F0") ft</span>
+                <button type="button" class="btn secondary" @onclick="ClearMinima">Clear</button>
+            </div>
+        }
+        else
+        {
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <select class="cell-select" @bind="_minimaKind">
+                    <option value="@ArrivalMinimumKind.DecisionAltitude">DA (baro, ft MSL)</option>
+                    <option value="@ArrivalMinimumKind.DecisionHeight">DH (radio, ft)</option>
+                    <option value="@ArrivalMinimumKind.MinimumDescentAltitude">MDA (baro, ft MSL)</option>
+                </select>
+                <input class="cell-input" style="width:110px;" type="number" min="0" max="20000"
+                       placeholder="Altitude ft" @bind="_minimaAltitude" />
+                <button type="button" class="btn" disabled="@(_minimaAltitude <= 0)"
+                        @onclick="SetMinima">Set</button>
+            </div>
+            <div class="field-hint" style="margin-top:8px;">
+                Until set, "one hundred above"/"minimums" stay disabled (logged once per flight).
+            </div>
+        }
+    </Section>
+
     <Section Title="Speak Test" Hint="Runs the full arbiter → TTS → playback path at Normal priority">
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <input class="cell-input" style="flex:1 1 280px;" placeholder="Something for the FO to say"
@@ -94,12 +122,41 @@
 @code {
     private SpeechStatusSnapshot _view = SpeechStatusSnapshot.Empty;
     private string _testText = "";
+    private ArrivalMinima? _minima;
+    private ArrivalMinimumKind _minimaKind = ArrivalMinimumKind.DecisionAltitude;
+    private double _minimaAltitude;
 
     protected override void OnInitialized()
     {
         _view = Status.Snapshot();
+        _minima = Minima.Current;
         Status.Changed += OnChanged;
+        Minima.Changed += OnMinimaChanged;
     }
+
+    private void OnMinimaChanged(object? sender, EventArgs e)
+        => _ = InvokeAsync(() =>
+        {
+            _minima = Minima.Current;
+            StateHasChanged();
+        });
+
+    private void SetMinima()
+    {
+        if (_minimaAltitude > 0)
+        {
+            Minima.Set(new ArrivalMinima(_minimaKind, _minimaAltitude));
+        }
+    }
+
+    private void ClearMinima() => Minima.Clear();
+
+    private static string KindLabel(ArrivalMinimumKind kind) => kind switch
+    {
+        ArrivalMinimumKind.DecisionAltitude => "DA",
+        ArrivalMinimumKind.DecisionHeight => "DH",
+        _ => "MDA",
+    };
 
     private void OnChanged(object? sender, EventArgs e)
         // Store events fire on the writer's thread; marshal into the circuit.
@@ -133,5 +190,9 @@
         _ => "tone-neutral",
     };
 
-    public void Dispose() => Status.Changed -= OnChanged;
+    public void Dispose()
+    {
+        Status.Changed -= OnChanged;
+        Minima.Changed -= OnMinimaChanged;
+    }
 }

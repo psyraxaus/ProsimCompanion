@@ -226,7 +226,10 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         {
             renderCts.Token.ThrowIfCancellationRequested();
 
-            var audio = await _router.SynthesizeAsync(request.Text, renderCts.Token).ConfigureAwait(false);
+            // Normalized BEFORE synthesis so the TTS cache key matches prewarmed phrases and
+            // "FL350" is never read as "Florida 350".
+            var spoken = Callouts.AviationSpeech.Normalize(request.Text);
+            var audio = await _router.SynthesizeAsync(spoken, renderCts.Token).ConfigureAwait(false);
             if (audio is not null)
             {
                 await _playback.PlayAsync(audio.WavBytes, renderCts.Token).ConfigureAwait(false);

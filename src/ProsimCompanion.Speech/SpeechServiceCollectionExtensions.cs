@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
+using ProsimCompanion.Speech.Callouts;
+using ProsimCompanion.Speech.Monitoring;
 using ProsimCompanion.Speech.Playback;
 using ProsimCompanion.Speech.Tts;
 
@@ -26,6 +28,8 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<SpeechArbiterService>();
         services.AddSingleton<ISpeechArbiter>(p => p.GetRequiredService<SpeechArbiterService>());
         services.AddSingleton<ISpeechControl>(p => p.GetRequiredService<SpeechArbiterService>());
+        services.AddSingleton<CalloutsEngine>();
+        services.AddSingleton<StabilizedApproachMonitor>();
         services.AddHostedService<SpeechBootstrapService>();
 
         return services;

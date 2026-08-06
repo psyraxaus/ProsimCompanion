@@ -43,6 +43,41 @@ public sealed record FlightDataSnapshot
 
     /// <summary>Max engine N1 (%) — feeds the takeoff-thrust heuristic.</summary>
     public double MaxN1Percent { get; init; }
+
+    // ---- Callout/monitoring fields (Phase 5; datarefs confirmed in Prosim2FO) ----
+
+    /// <summary>Average of both engines' N1 (%) — thrust-set callout and stabilized-thrust gate.</summary>
+    public double AverageN1Percent { get; init; }
+
+    /// <summary>FLEX N1 target (%) from aircraft.engines.limits.flex; 0 when no FLEX set.</summary>
+    public double FlexN1Target { get; init; }
+
+    /// <summary>TOGA N1 target (%) from aircraft.engines.limits.toga.</summary>
+    public double TogaN1Target { get; init; }
+
+    /// <summary>FMS V1/VR/V2 in knots — ProSim types these Int32; 0 means "not entered".</summary>
+    public int V1Kt { get; init; }
+    public int VrKt { get; init; }
+    public int V2Kt { get; init; }
+
+    /// <summary>VLS from aircraft.FAC1.VLS — the approach-speed reference (there is no VAPP
+    /// dataref); 0/absent means unknown.</summary>
+    public double VlsKt { get; init; }
+
+    /// <summary>Flap handle position from aircraft.flap.positionHandle:
+    /// 0=Up 1=F1 2=F1+F 3=F2 4=F3 5=F4. NOT the S_FC_FLAPS scale — handle 2 is 1+F, not 2.</summary>
+    public int FlapHandle { get; init; }
+
+    /// <summary>FCU selected altitude (ft) from system.analog.A_FCU_ALTITUDE.</summary>
+    public double FcuAltitudeFt { get; init; }
+
+    /// <summary>Ground spoilers deployed — only readable via debug.groundSpoilersDeployd
+    /// (the trailing typo is ProSim's, not ours).</summary>
+    public bool GroundSpoilersDeployed { get; init; }
+
+    /// <summary>Both thrust levers in the max-reverse detent
+    /// (S_FC_THROTTLE_{LEFT,RIGHT}_MAX_REVERSE) — the "reverse green" trigger.</summary>
+    public bool ReversersMaxBoth { get; init; }
 }
 
 /// <summary>

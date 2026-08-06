@@ -35,6 +35,7 @@ public static class SettingsDefaultsWriter
             (GsxOptions.SectionName, new GsxOptions()),
             (AudioOptions.SectionName, new AudioOptions()),
             (SpeechOptions.SectionName, new SpeechOptions()),
+            (SopOptions.SectionName, new SopOptions()),
             (FlightDataOptions.SectionName, new FlightDataOptions()),
             (LoggingOptions.SectionName, new LoggingOptions()),
             (AircraftProfilesOptions.SectionName, new AircraftProfilesOptions()),

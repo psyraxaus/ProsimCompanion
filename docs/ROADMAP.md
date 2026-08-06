@@ -272,14 +272,26 @@ from Phase 1 — this phase adds the speech stack and features on top.
       budget now actually ENFORCED (predecessor only tracked; same usage.json format), WASAPI
       playback with intercom band-pass + client-side volume (fixes the predecessor's dead
       volume setting for Kokoro/Google), wedge-safe cancellation, /speech status page +
-      /settings/speech. Aviation text normalization ("FL" ≠ Florida) deliberately deferred to
-      the spoken-checklists slice — its arrival re-keys the TTS cache once (harmless).
-      **Unverified live**
+      /settings/speech. **Unverified live**
 - [ ] Recognition: LAN faster-whisper → WinRT → offline System.Speech fallback chain; PTT
       (keyboard/joystick), phonetic snapping, utterance interpreter
 - [ ] Spoken checklists (verify-against-dataref, challenge on mismatch, global commands)
 - [ ] Flight-control check (captain sweep callout + FO sweep with neutral-on-cancel safety)
-- [ ] SOP callouts (V1/rotate/RA/minimums/…), stabilized-approach gates, flow monitor advisories
+- [x] SOP callouts + stabilized-approach gates (Prosim2FO semantics; flow-monitor advisories
+      deferred to a later slice): thrust set / one hundred / V1 (Critical) / rotate / V2(off) /
+      positive climb (multi-condition), 10,000 ft crossing + optional transition-altitude
+      entry, "one thousand to go" vs the FCU altitude with 200 ft re-arm hysteresis, 1000/500
+      on final, "one hundred above"/"minimums" (Critical; DA/MDA→baro, DH→radio) armed ONLY by
+      crew-entered minima on /speech (no DH/MDA dataref — never guessed), rollout
+      spoilers/reverse green/seventy knots, flap/gear placard advisories with 15 s cooldown and
+      re-sampling validity. Stabilized gates at 1000/500 ft RA: VLS band (no VAPP dataref) +
+      sink + gear + flaps (+ optional thrust), "unstable, go around" Critical / "stabilized"
+      on the 1000 gate, indeterminate-when-no-VLS stays silent, every gate event-logged.
+      Aviation TTS normalizer ported verbatim ("FL350" ≠ Florida; niner/decimal digits),
+      applied before the cache key. Config in `sop` settings section (predecessor profile
+      defaults; SOP profile files may supersede later). Deliberately NO GPWS/RA-countdown
+      calls — those remain ProSim's own. New snapshot fields live at 100 ms tier.
+      **Unverified live**
 - [ ] Voice FCU/MCDU actions (humanized key timing, armed/verified/abortable actuation gates)
 - [ ] Briefings (Navigraph DFD + weather + LLM composition with number verification)
 - [ ] ECAM abnormals + memory drills (detect-and-report only)

@@ -61,6 +61,31 @@ public static class CoreServiceCollectionExtensions
             }
         });
         services.Configure<SpeechOptions>(configuration.GetSection(SpeechOptions.SectionName));
+        // Same binder-appends-to-defaults trap for the SOP lists.
+        services.Configure<SopOptions>(o =>
+        {
+            o.AltitudeCallouts.Clear();
+            o.FlapPlacards.Clear();
+            o.ApproachGates.Clear();
+        });
+        services.Configure<SopOptions>(configuration.GetSection(SopOptions.SectionName));
+        services.PostConfigure<SopOptions>(o =>
+        {
+            if (o.AltitudeCallouts.Count == 0)
+            {
+                o.AltitudeCallouts.AddRange(SopOptions.DefaultAltitudeCallouts);
+            }
+
+            if (o.FlapPlacards.Count == 0)
+            {
+                o.FlapPlacards.AddRange(SopOptions.DefaultFlapPlacards);
+            }
+
+            if (o.ApproachGates.Count == 0)
+            {
+                o.ApproachGates.AddRange(SopOptions.DefaultApproachGates);
+            }
+        });
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
         services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
         services.Configure<FlightDataOptions>(configuration.GetSection(FlightDataOptions.SectionName));
@@ -70,6 +95,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<GsxDiagnosticsStore>();
         services.AddSingleton<AudioStatusStore>();
         services.AddSingleton<SpeechStatusStore>();
+        services.AddSingleton<ArrivalMinimaStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();
         services.AddSingleton<GroundOpsSignals>();
@@ -86,6 +112,7 @@ public static class CoreServiceCollectionExtensions
 
         // IFlightDataSource and IProsimDataRefs come from the Prosim project's registrations.
         services.AddSingleton<FlightStateEngine>();
+        services.AddSingleton<IFlightPhaseSource>(p => p.GetRequiredService<FlightStateEngine>());
         services.AddSingleton<AircraftProfileService>();
         services.AddHostedService<CoreBootstrapService>();
 
