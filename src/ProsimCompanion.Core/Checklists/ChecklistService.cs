@@ -64,6 +64,16 @@ public sealed class ChecklistService : IDisposable
         }
     }
 
+    /// <summary>Snapshot of the loaded definitions — the TTS prewarm reads spoken phrases
+    /// from them. The list is a copy; the definitions themselves are not mutated after load.</summary>
+    public IReadOnlyList<ChecklistDefinition> Definitions()
+    {
+        lock (_lock)
+        {
+            return [.. _definitions];
+        }
+    }
+
     public ChecklistView? ActiveView()
     {
         lock (_lock)

@@ -273,6 +273,12 @@ from Phase 1 — this phase adds the speech stack and features on top.
       playback with intercom band-pass + client-side volume (fixes the predecessor's dead
       volume setting for Kokoro/Google), wedge-safe cancellation, /speech status page +
       /settings/speech. **Unverified live**
+- [x] TTS prewarm: checklist reads + every SOP callout/advisory text synthesized into the disk
+      cache at startup and on checklist reload (debounced, fingerprinted), normalized exactly
+      as the render path so cache keys match; warms DIRECTLY via the first configured caching
+      provider (Kokoro, else Google when not local-only) — never through the router, so a
+      briefly-down Kokoro can't warm the library through paid Google; aborts after 3
+      consecutive provider failures. Live-token phrases ({v1}…) skipped. **Unverified live**
 - [ ] Recognition: LAN faster-whisper → WinRT → offline System.Speech fallback chain; PTT
       (keyboard/joystick), phonetic snapping, utterance interpreter
 - [ ] Spoken checklists (verify-against-dataref, challenge on mismatch, global commands)

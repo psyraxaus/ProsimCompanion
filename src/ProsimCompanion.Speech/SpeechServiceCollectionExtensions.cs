@@ -31,6 +31,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<CalloutsEngine>();
         services.AddSingleton<StabilizedApproachMonitor>();
         services.AddSingleton<FlowMonitor>();
+        services.AddSingleton<TtsPrewarmService>();
         services.AddHostedService<SpeechBootstrapService>();
 
         return services;
