@@ -29,6 +29,9 @@ public sealed class ChecklistDefinition
     /// <summary>Ascending display/next-checklist order; absent sorts last.</summary>
     public int? Order { get; set; }
 
+    /// <summary>Voice trigger phrases; absent defaults to "{name} checklist".</summary>
+    public List<string>? StartPhrases { get; set; }
+
     public List<ChecklistItemDefinition> Items { get; set; } = [];
 }
 
@@ -56,6 +59,78 @@ public sealed class ChecklistItemDefinition
     /// <summary>True when the item completes itself from a dataref condition.</summary>
     [JsonIgnore]
     public bool IsAuto => Verify is not null;
+
+    // ---- Voice-engine fields (Prosim2FO schema; ignored by the visual engine) ----
+
+    /// <summary>Pilot replies that satisfy this item (exact/whole-word matched; NOT the
+    /// display-only <see cref="ExpectedResponse"/>).</summary>
+    public List<string> AcceptedPhrases { get; set; } = [];
+
+    /// <summary>What the FO says after the item completes.</summary>
+    public string? ConfirmCallout { get; set; }
+
+    /// <summary>Verify-mismatch retries before the "still not set" escape line (default 3).</summary>
+    public int? MaxRetries { get; set; }
+
+    /// <summary>"none" | "number" — number items accept any spoken number.</summary>
+    public string Expects { get; set; } = "none";
+
+    /// <summary>When set with Expects=number: the spoken number is compared to this dataref
+    /// within <see cref="ReadbackTolerance"/> (default 0.5).</summary>
+    public string? ReadbackDataref { get; set; }
+    public double? ReadbackTolerance { get; set; }
+
+    // ---- monitorControls fields ----
+
+    /// <summary>"monitorOnly" | "sweepOnly" | "monitorThenSweep" (default).</summary>
+    public string? Composition { get; set; }
+
+    /// <summary>"reactive" (any order, default) | "sequenced".</summary>
+    public string? Mode { get; set; }
+
+    public int? DwellMs { get; set; }
+    public double? FullThreshold { get; set; }
+    public double? NeutralThreshold { get; set; }
+
+    /// <summary>Captain-side axes to monitor, keyed "pitch"/"roll"/"rudder".</summary>
+    public Dictionary<string, ControlAxisDefinition>? Axes { get; set; }
+
+    /// <summary>The FO's own sweep sequence (writes to the FO-side analog datarefs only).</summary>
+    public ControlActionDefinition? Action { get; set; }
+}
+
+/// <summary>One monitored captain-control axis (read-only datarefs).</summary>
+public sealed class ControlAxisDefinition
+{
+    public string Dataref { get; set; } = "";
+
+    /// <summary>Which physical direction the positive sign means ("down", "right") — doc
+    /// only; the callouts below carry the actual wording.</summary>
+    public string? Positive { get; set; }
+
+    [JsonPropertyName("full+")]
+    public string FullPositive { get; set; } = "";
+
+    [JsonPropertyName("full-")]
+    public string FullNegative { get; set; } = "";
+
+    public string Neutral { get; set; } = "Neutral";
+}
+
+/// <summary>A scripted control sweep (the FO's flight-control check).</summary>
+public sealed class ControlActionDefinition
+{
+    public List<ControlSweepStep> Steps { get; set; } = [];
+}
+
+/// <summary>One ramp-to-target step. Normalized −1..0..+1 maps to ProSim analog 0..512..1024
+/// at write time.</summary>
+public sealed class ControlSweepStep
+{
+    public string Dataref { get; set; } = "";
+    public double To { get; set; }
+    public int RampMs { get; set; } = 700;
+    public int HoldMs { get; set; }
 }
 
 public enum ComparisonOp

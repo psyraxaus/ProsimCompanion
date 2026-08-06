@@ -75,6 +75,11 @@ public static class ProsimWriteGate
         // drives the Windows sessions (ProsimNativeAudioGuard). PA is deliberately never
         // written — the guard's own exclusion, not the gate's job to enforce.
         "aircraft.communication.windows.",
+
+        // Voice FO flight-control check: the FO-side sidestick/rudder analogs ONLY
+        // (0..512..1024). The captain-side A_FC_CAPT_* refs are deliberately NOT listed —
+        // the FO must never move the captain's controls.
+        "system.analog.A_FC_FO_",
     ];
 
     /// <summary>True when the dataref may be written by this application.</summary>

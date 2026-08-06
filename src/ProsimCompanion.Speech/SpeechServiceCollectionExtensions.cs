@@ -2,8 +2,10 @@ using Microsoft.Extensions.DependencyInjection;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Callouts;
+using ProsimCompanion.Speech.Checklists;
 using ProsimCompanion.Speech.Monitoring;
 using ProsimCompanion.Speech.Playback;
+using ProsimCompanion.Speech.Recognition;
 using ProsimCompanion.Speech.Tts;
 
 namespace ProsimCompanion.Speech;
@@ -32,6 +34,12 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<StabilizedApproachMonitor>();
         services.AddSingleton<FlowMonitor>();
         services.AddSingleton<TtsPrewarmService>();
+        services.AddSingleton<PushToTalkService>();
+        services.AddSingleton<RecognitionController>();
+        services.AddSingleton<UtteranceInterpreter>();
+        services.AddSingleton<ControlMonitor>();
+        services.AddSingleton<ControlSweepService>();
+        services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 
         return services;

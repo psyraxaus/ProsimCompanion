@@ -98,6 +98,53 @@ public sealed class SpeechOptions
     /// <summary>Preferred SAPI5 (System.Speech) voice name; empty picks the system default.</summary>
     public string SapiVoice { get; set; } = "";
 
+    // ---- Recognition (chain: LAN faster-whisper → WinRT → System.Speech) ----
+
+    /// <summary>Base URL of the LAN faster-whisper wrapper (docs/integrations/speech.md);
+    /// empty disables the LAN engine.</summary>
+    public string AsrBaseUrl { get; set; } = "";
+
+    /// <summary>Transcription request timeout.</summary>
+    public int AsrTimeoutMs { get; set; } = 8000;
+
+    /// <summary>Capture device product-name (prefix match); empty uses the default mic.</summary>
+    public string InputDevice { get; set; } = "";
+
+    /// <summary>Push-to-talk key: a virtual-key name ("F12", "RightCtrl", "Space", a letter)
+    /// or a decimal VK code; empty disables keyboard PTT.</summary>
+    public string PttKey { get; set; } = "";
+
+    /// <summary>Joystick PTT: winmm joystick id (0–15) and button index (0–31); either null
+    /// disables joystick PTT.</summary>
+    public int? PttJoystickDevice { get; set; }
+    public int? PttJoystickButton { get; set; }
+
+    /// <summary>ATC push-to-talk key — while held, the FO stops listening (a suppression, not
+    /// a mode change); empty disables.</summary>
+    public string AtcMuteKey { get; set; } = "";
+
+    /// <summary>"pushToTalk" (default) or "continuous" — continuous listens whenever a window
+    /// is open, no PTT needed.</summary>
+    public string RecognitionMode { get; set; } = "pushToTalk";
+
+    /// <summary>Minimum engine confidence for offline recognizers.</summary>
+    public double RecognitionConfidenceThreshold { get; set; } = 0.6;
+
+    /// <summary>Phonetic snapping: 0.5·Levenshtein + 0.5·DoubleMetaphone must clear this.</summary>
+    public double SnappingThreshold { get; set; } = 0.7;
+
+    /// <summary>Interpreter acoustic gates (command windows only): reject when no_speech_prob
+    /// is at/above the ceiling, or acoustic confidence below the floor (0 disables).</summary>
+    public double NoSpeechCeiling { get; set; } = 0.6;
+    public double ConfidenceFloor { get; set; } = 0.5;
+
+    /// <summary>Snapped command scores in [threshold, this) trigger a "did you mean …?"
+    /// confirmation instead of firing.</summary>
+    public double ConfirmBelowScore { get; set; } = 0.85;
+
+    /// <summary>Play the short listening cue tone when a window opens for a reply.</summary>
+    public bool ListeningTone { get; set; } = true;
+
     // ---- Playback ----
 
     /// <summary>Output device friendly name (exact match); empty uses the system default

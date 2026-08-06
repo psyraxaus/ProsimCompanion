@@ -30,6 +30,45 @@ public static class Aviation
 
         return string.Join(" ", parts);
     }
+
+    /// <summary>Words a closed digit grammar accepts (digit words + decimal/point).</summary>
+    public static IReadOnlyList<string> NumberGrammarWords { get; } =
+        [.. DigitWords, "decimal", "point"];
+
+    /// <summary>"one zero one three" → 1013; "two niner decimal niner two" → 29.92. Strict:
+    /// the WHOLE utterance must be a number (use NumberExtractor for embedded numbers).</summary>
+    public static bool TryParseSpoken(string spoken, out double value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(spoken))
+        {
+            return false;
+        }
+
+        var digits = new System.Text.StringBuilder();
+        foreach (var word in spoken.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var index = Array.IndexOf(DigitWords, word.ToLowerInvariant());
+            if (index >= 0)
+            {
+                digits.Append((char)('0' + index));
+                continue;
+            }
+
+            if (word.Equals("decimal", StringComparison.OrdinalIgnoreCase)
+                || word.Equals("point", StringComparison.OrdinalIgnoreCase))
+            {
+                digits.Append('.');
+                continue;
+            }
+
+            return false; // a non-number word → not a pure number
+        }
+
+        return digits.Length > 0 && double.TryParse(
+            digits.ToString(), System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out value);
+    }
 }
 
 /// <summary>

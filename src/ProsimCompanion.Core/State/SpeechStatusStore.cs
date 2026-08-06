@@ -34,7 +34,11 @@ public sealed record SpeechStatusSnapshot(
     int QueueDepth,
     string? NowPlaying,
     IReadOnlyList<TtsProviderView> Providers,
-    IReadOnlyList<UtteranceView> RecentUtterances)
+    IReadOnlyList<UtteranceView> RecentUtterances,
+    bool Listening = false,
+    string LastHeard = "",
+    string SpokenChecklist = "",
+    string SpokenChecklistItem = "")
 {
     public static SpeechStatusSnapshot Empty { get; } = new(
         Enabled: false,

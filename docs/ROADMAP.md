@@ -279,7 +279,25 @@ from Phase 1 — this phase adds the speech stack and features on top.
       provider (Kokoro, else Google when not local-only) — never through the router, so a
       briefly-down Kokoro can't warm the library through paid Google; aborts after 3
       consecutive provider failures. Live-token phrases ({v1}…) skipped. **Unverified live**
-- [ ] Recognition: LAN faster-whisper → WinRT → offline System.Speech fallback chain; PTT
+- [x] Recognition + spoken checklists + flight-control check (Prosim2FO semantics, with its
+      own port-notes applied — the legacy non-interpreter path deliberately dropped, input
+      device selection actually wired, whisper hotword biasing sent): LAN faster-whisper
+      (WaveInEvent 16 kHz + RMS VAD 500/700 ms/300 ms/15 s, multipart POST, 120 s readiness
+      probe with one-way swap to offline) → System.Speech (Choices grammar + 1–6-word digit
+      grammar); WinRT recognition deferred. PTT: global low-level keyboard hook (own
+      message-pump thread, never swallows keys) + winmm joystick (16×32 @ 25 ms), ATC-mute
+      suppression, continuous mode. Interpreter ladder: acoustic gates (command windows only)
+      → exact → hybrid Levenshtein+DoubleMetaphone snap @0.7 with a [0.7,0.85) gray band →
+      raw pass-through for awaiting items. Spoken checklist engine: strictly-sequential runs
+      beside the visual runner, challenge → indefinite listen → AcceptedPhrases matching
+      (exact/whole-word/number-extract; ExpectedResponse is display-only), verify backstop
+      with "are you sure" retries + never-give-up escape line, global commands
+      (skip/say again/cancel/restart/start phrases), flight-control check (captain-sweep
+      monitor 30 Hz dwell 400 ms + FO sweep on the A_FC_FO_* analogs with neutral-on-cancel;
+      write gate widened to the FO side ONLY). captureMinima degrades to acknowledge until
+      the briefing flow lands. **Unverified live**
+- [ ] Recognition leftovers: WinRT engine, wake-on-LAN, gray-band confirm sub-dialogue,
+      hold/resume commands, config/phrases.json override, per-checklist FlightMonitor prompts
       (keyboard/joystick), phonetic snapping, utterance interpreter
 - [ ] Spoken checklists (verify-against-dataref, challenge on mismatch, global commands)
 - [ ] Flight-control check (captain sweep callout + FO sweep with neutral-on-cancel safety)

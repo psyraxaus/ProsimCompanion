@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Hosting;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Callouts;
+using ProsimCompanion.Speech.Checklists;
 using ProsimCompanion.Speech.Monitoring;
+using ProsimCompanion.Speech.Recognition;
 using ProsimCompanion.Speech.Tts;
 
 namespace ProsimCompanion.Speech;
@@ -19,25 +21,33 @@ public sealed class SpeechBootstrapService : IHostedService
     private readonly StabilizedApproachMonitor _stabilized;
     private readonly FlowMonitor _flow;
     private readonly TtsPrewarmService _prewarm;
+    private readonly PushToTalkService _ptt;
+    private readonly SpokenChecklistEngine _spokenChecklists;
 
     public SpeechBootstrapService(
         SpeechArbiterService arbiter,
         CalloutsEngine callouts,
         StabilizedApproachMonitor stabilized,
         FlowMonitor flow,
-        TtsPrewarmService prewarm)
+        TtsPrewarmService prewarm,
+        PushToTalkService ptt,
+        SpokenChecklistEngine spokenChecklists)
     {
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(callouts);
         ArgumentNullException.ThrowIfNull(stabilized);
         ArgumentNullException.ThrowIfNull(flow);
         ArgumentNullException.ThrowIfNull(prewarm);
+        ArgumentNullException.ThrowIfNull(ptt);
+        ArgumentNullException.ThrowIfNull(spokenChecklists);
 
         _arbiter = arbiter;
         _callouts = callouts;
         _stabilized = stabilized;
         _flow = flow;
         _prewarm = prewarm;
+        _ptt = ptt;
+        _spokenChecklists = spokenChecklists;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -46,11 +56,15 @@ public sealed class SpeechBootstrapService : IHostedService
         _stabilized.Start();
         _flow.Start();
         _prewarm.Start();
+        _ptt.Start();
+        _spokenChecklists.Start();
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
+        _spokenChecklists.Dispose();
+        _ptt.Dispose();
         _prewarm.Dispose();
         _callouts.Dispose();
         _stabilized.Dispose();
