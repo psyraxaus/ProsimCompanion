@@ -53,6 +53,8 @@
   <ItemGroup>
     <!-- PreserveNewest so user edits to the deployed copy survive rebuilds. -->
     <Content Include="config\settings.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Shipped default checklists (Prosim2FO-compatible JSON; user-editable, hot-reloaded). -->
+    <Content Include="config\checklists\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

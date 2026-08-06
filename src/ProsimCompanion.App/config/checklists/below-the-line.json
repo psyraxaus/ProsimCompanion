@@ -1,0 +1,11 @@
+{
+  "checklist": "Below the Line",
+  "order": 30,
+  "startPhrases": [ "below the line", "below the line checklist" ],
+  "items": [
+    { "behavior": "acknowledge", "say": "Windows and Doors", "expectedResponse": "CLOSED", "acceptedPhrases": [ "closed" ], "verify": null, "confirmCallout": "Windows and doors, closed" },
+    { "behavior": "verify", "say": "Beacon", "expectedResponse": "ON", "acceptedPhrases": [ "on", "set" ], "verify": { "dataref": "system.switches.S_OH_EXT_LT_BEACON", "op": "equals", "value": 1 }, "confirmCallout": "Beacon, on" },
+    { "behavior": "acknowledge", "say": "Thrust Levers", "expectedResponse": "IDLE", "acceptedPhrases": [ "idle", "set" ], "verify": null, "confirmCallout": "Thrust levers, idle" },
+    { "behavior": "verify", "say": "Parking Brake", "expectedResponse": "SET", "acceptedPhrases": [ "set", "on" ], "verify": { "dataref": "system.switches.S_MIP_PARKING_BRAKE", "op": "equals", "value": 1 }, "confirmCallout": "Parking brake, set" }
+  ]
+}

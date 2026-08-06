@@ -196,12 +196,32 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
 - [x] FMS INIT B sync (`aircraft.fms.init.{zfw,zfwcg,block}`, tonnes conversion, source
       resolution final→prelim→live, optional auto-sync on final) — /flight button.
       **Unverified live**
-- [ ] EFB INIT page with per-field overrides (zfw/fuel/cargo/pax → dataref writes; sync-to-FMS
-      button exists on /flight)
-- [ ] Live W&B page (CG envelope, silhouette), per-tank fuel page
-- [ ] Takeoff/landing performance (gateway `/efb/calculate/*`, FMS uplink)
-- [ ] Interactive ECAM-style checklists (visual; JSON-authorable, gating/retreat/freeze semantics)
-- [ ] Deice holdover-time card; passenger manifest generator
+- [x] EFB INIT page (/init): per-field overrides with the predecessor's exact writable set
+      (zfwKg → fms.init.zfw in tonnes, fuelRampKg → fms.init.block rounded-up/tonnes, cargoKg →
+      efb.plannedCargoKg, passengerCount → re-synthesized booked seat map + statistics), set
+      writes immediately, clear restores the OFP figure, overrides reset on new OFP/turnaround;
+      display-only OFP reference card. **Unverified live**
+- [x] Live W&B page (/wnb): live weights/CG/zones/cargo + loadsheet echo, SVG CG envelope
+      (indicative A320-family outline; ZFW/GW points with fuel-travel connector, out-of-envelope
+      status colour), per-tank fuel bars (5 tanks, granular `aircraft.systems.fuel.*` refs),
+      collapsible passenger manifest. **Unverified live**
+- [x] Takeoff/landing performance (/perf): gateway `/efb/calculate/*` with the predecessor's
+      exact wire scales (TOW tens-of-kg, MAC ×10, Break* misspellings, LdgW tonnes, 3600 m TORA
+      cap, VRB→reciprocal on landing), runway+intersection pick, METAR autofill, LDR/LDR+15%/LDA
+      margin with displaced threshold, FMS PERF TO uplink (flaps/flex/V-speeds/THS sign/shift
+      rounded to 100 in the cockpit's display unit). **Unverified live**
+- [x] Interactive ECAM-style checklists (/checklists): Prosim2FO-compatible JSON (the 16 shipped
+      checklists carried over verbatim to config/checklists, hot-reload on save), exact
+      condition-evaluator semantics (epsilon equals, inclusive between, and/or trees,
+      fail-closed), NEW visual semantics — strict in-order gating with auto-complete cascade,
+      retreat (a regressed condition reopens its line until the checklist completes), freeze
+      (per-item `freeze: true`, manual lines always, completed checklists wholesale).
+      **Unverified live**
+- [x] Deice holdover-time card (Flight Data page): predecessor HOT matrix verbatim (sim-immersion
+      figures, not certified), armed by the GSX deice-complete edge with fluid type from
+      `FSDT_GSX_DEICING_TYPE` + configured concentration, crew-entered precip/OAT, live
+      countdown, expiry alarm. Passenger manifest generator (W&B page): predecessor name pools,
+      deterministic per booked map. **Unverified live**
 
 ## Phase 4 — Audio control
 

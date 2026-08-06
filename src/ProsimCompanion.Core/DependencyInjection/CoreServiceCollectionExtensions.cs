@@ -51,6 +51,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();
         services.AddSingleton<GroundOpsSignals>();
+        services.AddSingleton<Checklists.ChecklistService>();
+        services.AddSingleton<Deice.DeiceHoldoverService>();
+        services.AddSingleton<Aircraft.PassengerManifestService>();
 
         services.AddSingleton(provider => new JsonlEventLog(
             Path.Combine(

@@ -1,0 +1,38 @@
+{
+  "checklist": "Before Start",
+  "order": 20,
+  "items": [
+    { "behavior": "acknowledge", "say": "Cockpit Preparation", "expectedResponse": "COMPLETED", "acceptedPhrases": [ "complete", "completed" ], "verify": null, "confirmCallout": "Cockpit preparation, completed" },
+    { "behavior": "acknowledge", "say": "Gear Pins and Covers", "expectedResponse": "REMOVED", "acceptedPhrases": [ "removed" ], "verify": null, "confirmCallout": "Gear pins and covers, removed" },
+    {
+      "behavior": "verify", "say": "Signs", "expectedResponse": "ON", "acceptedPhrases": [ "on", "set" ],
+      "verify": {
+        "logic": "and",
+        "conditions": [
+          { "dataref": "system.switches.S_OH_SIGNS", "op": "oneOf", "values": [ 0, 1 ] },
+          { "dataref": "system.switches.S_OH_SIGNS_SMOKING", "op": "oneOf", "values": [ 0, 1 ] }
+        ]
+      },
+      "confirmCallout": "Signs, on"
+    },
+    {
+      "behavior": "verify", "say": "A D I R S", "expectedResponse": "NAV", "acceptedPhrases": [ "nav", "set" ],
+      "verify": {
+        "logic": "and",
+        "conditions": [
+          { "dataref": "system.switches.S_OH_NAV_IR1_MODE", "op": "equals", "value": 1 },
+          { "dataref": "system.switches.S_OH_NAV_IR2_MODE", "op": "equals", "value": 1 },
+          { "dataref": "system.switches.S_OH_NAV_IR3_MODE", "op": "equals", "value": 1 }
+        ]
+      },
+      "confirmCallout": "ADIRS, nav"
+    },
+    { "behavior": "acknowledge", "say": "Fuel Quantity", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "Fuel quantity, checked" },
+    { "behavior": "acknowledge", "say": "Takeoff Data", "expectedResponse": "SET", "acceptedPhrases": [ "set" ], "verify": null, "confirmCallout": "Takeoff data, set" },
+    {
+      "behavior": "verify", "say": "Baro Reference", "expectedResponse": "SET", "acceptedPhrases": [ "set" ],
+      "expects": "number", "readbackDataref": "system.numerical.N_FCU_EFIS2_BARO_HPA", "readbackTolerance": 1,
+      "verify": null, "confirmCallout": "Baro reference, {altimeter}, set"
+    }
+  ]
+}

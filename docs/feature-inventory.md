@@ -5,39 +5,54 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 ## GSX ground automation (Prosim2GSX → Phase 2)
 
-- [ ] Auto reposition on startup
-- [ ] Departure service sequencing (refuel/catering/water/lavatory/cleaning/boarding; configurable order, activation policies, hub/turnaround constraints)
-- [ ] Refuel sync — fixed-rate / time-target / refuel-panel methods; hose-driven; FOB save/restore per registration; round-up-100
-- [ ] Boarding/deboarding pax sync (seat map, zone amounts, reconciliation, no-show randomization)
-- [ ] Cargo sync (progressive %/sec, fwd/aft distribution, bulk folded into aft)
-- [ ] Door automation (pax/cargo/catering doors, open-on-board, timed close, keep-open, GSX door-message suppression)
-- [ ] Jetway/stairs call + retract; remove ProSim native stairs
-- [ ] GPU / PCA / chocks placement & removal with safety interlocks; beacon interception
-- [ ] Beacon-orchestrated pushback sequence (randomized delays, INT/RAD skip, pause/resume)
+- [x] Auto reposition on startup (ground-prep coordinator: reposition → settle → equipment)
+- [x] Departure service sequencing (ordered steps, per-service activation policies, leg
+      constraints; company-hub constraints + per-service minimum duration still deferred)
+- [x] Refuel sync — fixed-rate hose-driven with pause/resume, FOB save/restore per aircraft
+      title, round-up-100 (time-target / refuel-panel methods deliberately not ported)
+- [x] Boarding/deboarding pax sync (seat-map model; zone-amount writes dropped — datarefs are
+      read-only; reconciliation + no-show randomization ported)
+- [x] Cargo sync (progressive %, fwd/aft capacity split, bulk folded into aft)
+- [x] Door automation (cargo/catering/entry doors, loader-finished LVARs, crew-realism delays,
+      GSX door-message suppression across Couatl restarts)
+- [x] Jetway/stairs call + retract (LVAR-truth selection, verification + fallback)
+- [x] GPU / PCA / chocks placement & removal with interlocks; beacon-edge removal
+- [x] Beacon-orchestrated pushback sequence (randomized delays, beacon-off pause; INT/RAD
+      force-next covers the skip)
 - [ ] Pushback direction preselect (Korry buttons, per profile)
 - [ ] Auto engine-start confirmation
-- [ ] De-icing auto-answer + fluid/concentration selection
-- [ ] Operator auto-selection with preference list; company hubs
-- [ ] Skip GSX questions (crew, tug, follow-me, cabin calls); walkaround skip (MSFS2024)
+- [x] De-icing auto-answer + fluid/concentration selection (question catalogue)
+- [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs deferred)
+- [x] Skip GSX questions (crew, tug, follow-me, pushback confirm); walkaround skip deferred
+      (MSFS2024 keystroke)
 - [ ] GSX SimBrief reload for VDGS; VDGS event feed via in-sim handler
 - [ ] GSX restart on taxi-in (optional)
-- [ ] Arrival gate assignment (GSX retry ladder + SayIntentions), auto at cruise; stable-parked detection
-- [ ] INT/RAD switch as universal service trigger ("smart button")
+- [x] Arrival gate assignment (retry ladder, armed at flight phase; SayIntentions source is
+      Phase 6); stable-parked detection
+- [x] INT/RAD switch as universal service trigger ("smart button") + web force-next button
 - [ ] Headless remote-control mode (experimental)
 - [ ] Cabin call auto-answer (ground/air, delays); MECH call; cabin dings
 
 ## Flight data / EFB (Prosim2GSX + ProsimInterface → Phase 3)
 
-- [ ] SimBrief OFP fetch (MCDU-triggered + manual) and EFB import; OFP gating of services
-- [ ] EFB INIT page with overrides + SYNC TO FMS; FMS init sync (ZFW/ZFWCG/block)
-- [ ] Preliminary + final loadsheets (in-house W&B, EDNO/REVISIONS, ACARS uplink, timing notifications T-30/STD/boarding-complete)
-- [ ] Live W&B (CG envelope, MACTOW, silhouette with seats/doors); per-tank fuel page
-- [ ] Takeoff perf (V1/VR/V2/FLEX/THS, FMS uplink) and landing perf (LDR)
-- [ ] Deice holdover-time countdown
-- [ ] Passenger-simulation manifest generator
-- [ ] Interactive ECAM-style visual checklists (JSON-authorable, gating/retreat/freeze, momentary-switch support)
+- [x] SimBrief OFP fetch (MCDU-triggered + manual force-fetch, typed model, retry) and EFB
+      import; OFP gating of services
+- [x] EFB INIT page with overrides (zfw/block/cargo/pax) + SYNC TO FMS; FMS init sync
+      (ZFW/ZFWCG/block, tonnes conversion, final→prelim→live source resolution)
+- [x] Preliminary + final loadsheets (in-house bit-exact W&B, EDNO/REVISIONS, ACARS uplink to
+      slots 01/02; STD/T-30 timing notifications not ported — the status board covers it)
+- [x] Live W&B (SVG CG envelope, MACTOW, per-tank fuel bars; seat/door silhouette not ported —
+      candidate for a later polish pass)
+- [x] Takeoff perf (V1/VR/V2/FLEX/THS/shift, FMS uplink) and landing perf (LDR, LDR+15%, LDA
+      margin with displaced threshold)
+- [x] Deice holdover-time countdown (representative HOT matrix, GSX deice-complete armed)
+- [x] Passenger manifest generator (read-only from the booked map; the predecessor's
+      simulate-cabin dataref write deliberately dropped — GSX boarding owns occupation)
+- [x] Interactive ECAM-style visual checklists (Prosim2FO-compatible JSON, hot reload,
+      gating/retreat/freeze; momentary-switch sweep support is a voice-FO concern → Phase 5)
 - [ ] EFB reset flows (full/soft); OOOI flight timestamps
-- [ ] Web EFB parity: 13 pages, QR onboarding, bearer token, live updates
+- [ ] Web EFB parity: 13 pages, QR onboarding, bearer token, live updates (QR/token/live done
+      in Phase 1/2.5; remaining predecessor pages tracked by the rows above)
 
 ## Audio (Prosim2GSX → Phase 4)
 

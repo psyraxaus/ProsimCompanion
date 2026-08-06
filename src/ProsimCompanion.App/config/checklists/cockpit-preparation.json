@@ -1,0 +1,46 @@
+{
+  "checklist": "Cockpit Preparation",
+  "order": 10,
+  "items": [
+    { "behavior": "acknowledge", "say": "Gear Pins and Covers", "expectedResponse": "REMOVED", "acceptedPhrases": [ "removed" ], "verify": null, "confirmCallout": "Gear pins and covers, removed" },
+    { "behavior": "acknowledge", "say": "Fuel Quantity", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "Fuel quantity, checked" },
+    {
+      "behavior": "verify",
+      "say": "Signs",
+      "expectedResponse": "ON",
+      "acceptedPhrases": [ "on", "set" ],
+      "comment": "Compound: seat-belt signs AND no-smoking, each accepting ON or AUTO (oneOf [0:Auto,1:On]).",
+      "verify": {
+        "logic": "and",
+        "conditions": [
+          { "dataref": "system.switches.S_OH_SIGNS", "op": "oneOf", "values": [ 0, 1 ] },
+          { "dataref": "system.switches.S_OH_SIGNS_SMOKING", "op": "oneOf", "values": [ 0, 1 ] }
+        ]
+      },
+      "confirmCallout": "Signs, on"
+    },
+    {
+      "behavior": "verify",
+      "say": "A D I R S",
+      "expectedResponse": "NAV",
+      "acceptedPhrases": [ "nav", "set" ],
+      "comment": "Compound: all three IR mode selectors in NAV (1). For 'any one in NAV', change logic to 'or'.",
+      "verify": {
+        "logic": "and",
+        "conditions": [
+          { "dataref": "system.switches.S_OH_NAV_IR1_MODE", "op": "equals", "value": 1 },
+          { "dataref": "system.switches.S_OH_NAV_IR2_MODE", "op": "equals", "value": 1 },
+          { "dataref": "system.switches.S_OH_NAV_IR3_MODE", "op": "equals", "value": 1 }
+        ]
+      },
+      "confirmCallout": "ADIRS, nav"
+    },
+    {
+      "behavior": "verify", "say": "Baro Reference", "expectedResponse": "SET", "acceptedPhrases": [ "set" ],
+      "comment": "Readback: say the QNH ('one zero one three') and the FO verifies it against the F/O FCU baro; or just say 'set'.",
+      "expects": "number", "readbackDataref": "system.numerical.N_FCU_EFIS2_BARO_HPA", "readbackTolerance": 1,
+      "verify": null, "confirmCallout": "Baro reference, {altimeter}, set"
+    },
+    { "behavior": "acknowledge", "say": "Cockpit Preparation", "expectedResponse": "COMPLETED", "acceptedPhrases": [ "complete", "completed" ], "verify": null, "confirmCallout": "Cockpit preparation, completed" }
+  ]
+}

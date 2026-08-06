@@ -1,0 +1,12 @@
+{
+  "checklist": "Approach",
+  "order": 110,
+  "items": [
+    { "behavior": "acknowledge", "say": "Briefing", "expectedResponse": "CONFIRMED", "acceptedPhrases": [ "confirmed", "confirm" ], "verify": null, "confirmCallout": "Briefing, confirmed" },
+    { "behavior": "acknowledge", "say": "E CAM Status", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "ECAM status, checked" },
+    { "behavior": "verify", "say": "Seat Belts", "expectedResponse": "ON", "acceptedPhrases": [ "on", "set" ], "verify": { "dataref": "system.switches.S_OH_SIGNS", "op": "equals", "value": 1 }, "confirmCallout": "Seat belts, on" },
+    { "behavior": "acknowledge", "say": "Baro Reference", "expectedResponse": "SET", "acceptedPhrases": [ "set" ], "verify": null, "confirmCallout": "Baro reference, {altimeter}, set" },
+    { "behavior": "captureMinima", "say": "Minimum", "expectedResponse": "BRIEFED", "acceptedPhrases": [], "verify": null, "confirmCallout": "Minimum, set" },
+    { "behavior": "acknowledge", "say": "Engine Mode Selector", "expectedResponse": "AS REQUIRED", "acceptedPhrases": [ "as required", "norm", "normal", "set" ], "verify": null, "confirmCallout": "Engine mode selector, as required" }
+  ]
+}

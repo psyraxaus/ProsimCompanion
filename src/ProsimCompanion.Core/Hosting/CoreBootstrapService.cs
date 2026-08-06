@@ -21,12 +21,16 @@ public sealed class CoreBootstrapService : IHostedService
         FlightStateEngine flightState,
         ConnectionStatusStore status,
         JsonlEventLog eventLog,
-        AircraftProfileService profiles)
+        AircraftProfileService profiles,
+        // Injected purely to activate their event wiring at startup (deice card arms from a
+        // GSX edge that can fire before any web page has resolved it).
+        Deice.DeiceHoldoverService deiceHoldover)
     {
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(profiles);
+        ArgumentNullException.ThrowIfNull(deiceHoldover);
 
         _flightState = flightState;
         _status = status;

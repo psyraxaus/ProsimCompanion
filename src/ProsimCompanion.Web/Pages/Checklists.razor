@@ -1,0 +1,128 @@
+@page "/checklists"
+@using ProsimCompanion.Core.Checklists
+@implements IDisposable
+@inject ChecklistService Engine
+
+<PageTitle>Checklists — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Checklists</h1>
+
+<div class="status-panel">
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Checklists</h3>
+        <div class="section-body">
+            @if (_catalog.Count == 0)
+            {
+                <div class="empty">No checklist files found in config/checklists. Drop Prosim2FO-compatible JSON files there — they hot-reload.</div>
+            }
+            @foreach (var entry in _catalog)
+            {
+                var isActive = _view?.Name == entry.Name;
+                <div class="row">
+                    <span class="row-label" style="@(isActive ? "color:var(--accent);font-weight:600" : "")">@entry.Name</span>
+                    <span class="row-value-mono">@entry.ItemCount items</span>
+                    <button type="button" class="btn secondary" @onclick="() => Engine.Select(entry.Name)">
+                        @(isActive ? "Restart…" : "Open")
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="status-section status-span">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">
+            @(_view?.Name ?? "No checklist open")
+        </h3>
+        <div class="section-body">
+            @if (_view is null)
+            {
+                <div class="empty">Open a checklist from the list. Dataref-verified lines tick themselves as you set the cockpit; plain lines take a manual tick. A regressed condition reopens its line until the checklist is complete.</div>
+            }
+            else
+            {
+                <div class="ecam-list" role="list">
+                    @for (var i = 0; i < _view.Items.Count; i++)
+                    {
+                        var item = _view.Items[i];
+                        var rowClass = item.Status switch
+                        {
+                            ChecklistItemStatus.Done => "ecam-done",
+                            ChecklistItemStatus.Active => "ecam-active",
+                            ChecklistItemStatus.Skipped => "ecam-skipped",
+                            _ => "ecam-pending",
+                        };
+                        <div class="ecam-item @rowClass" role="listitem">
+                            <span class="ecam-dot">@StatusGlyph(item.Status)</span>
+                            <span class="ecam-label">@item.Label</span>
+                            <span class="ecam-dots"></span>
+                            <span class="ecam-response">@item.Response</span>
+                            @if (item.Status == ChecklistItemStatus.Active)
+                            {
+                                @if (item.IsAuto)
+                                {
+                                    <span class="ecam-hint">@(item.ConditionSatisfied ? "…" : "waiting for cockpit")</span>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn primary ecam-btn" @onclick="() => Engine.Check(_view.ActiveIndex)">Tick</button>
+                                }
+                                <button type="button" class="btn secondary ecam-btn" @onclick="() => Engine.Skip(_view.ActiveIndex)">Skip</button>
+                            }
+                        </div>
+                    }
+                </div>
+                @if (_view.IsComplete)
+                {
+                    <div class="row" style="margin-top:8px;">
+                        <span class="pill tone-ok">@_view.Name.ToUpperInvariant() CHECKLIST COMPLETE</span>
+                        @if (_next is not null)
+                        {
+                            <button type="button" class="btn primary" @onclick="() => Engine.Select(_next)">Next: @_next</button>
+                        }
+                    </div>
+                }
+                <div class="row" style="margin-top:6px;">
+                    <button type="button" class="btn secondary" @onclick="Engine.Restart">Restart</button>
+                    <button type="button" class="btn secondary" @onclick="Engine.Deselect">Close</button>
+                </div>
+            }
+        </div>
+    </section>
+
+</div>
+
+@code {
+    private IReadOnlyList<ChecklistCatalogEntry> _catalog = [];
+    private ChecklistView? _view;
+    private string? _next;
+
+    protected override void OnInitialized()
+    {
+        Engine.Changed += OnChanged;
+        Refresh();
+    }
+
+    public void Dispose() => Engine.Changed -= OnChanged;
+
+    private void OnChanged(object? sender, EventArgs e)
+        => _ = InvokeAsync(() =>
+        {
+            Refresh();
+            StateHasChanged();
+        });
+
+    private void Refresh()
+    {
+        _catalog = Engine.Catalog();
+        _view = Engine.ActiveView();
+        _next = Engine.NextChecklistName();
+    }
+
+    private static string StatusGlyph(ChecklistItemStatus status) => status switch
+    {
+        ChecklistItemStatus.Done => "✓",
+        ChecklistItemStatus.Skipped => "–",
+        ChecklistItemStatus.Active => "▶",
+        _ => "○",
+    };
+}

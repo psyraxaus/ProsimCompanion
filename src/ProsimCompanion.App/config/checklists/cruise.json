@@ -1,0 +1,9 @@
+{
+  "checklist": "Cruise",
+  "order": 90,
+  "items": [
+    { "behavior": "acknowledge", "say": "E CAM Status", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "ECAM status, checked" },
+    { "behavior": "acknowledge", "say": "Cruise Flight Level", "expectedResponse": "SET", "acceptedPhrases": [ "set", "checked" ], "verify": null, "confirmCallout": "Cruise flight level, set" },
+    { "behavior": "acknowledge", "say": "Fuel", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "Fuel, checked" }
+  ]
+}

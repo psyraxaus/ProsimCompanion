@@ -1,0 +1,10 @@
+{
+  "checklist": "After Takeoff",
+  "order": 80,
+  "items": [
+    { "behavior": "verify", "say": "Landing Gear", "expectedResponse": "UP", "acceptedPhrases": [ "up", "retracted" ], "verify": { "dataref": "system.switches.S_MIP_GEAR", "op": "equals", "value": 1 }, "confirmCallout": "Landing gear, up" },
+    { "behavior": "verify", "say": "Flaps", "expectedResponse": "RETRACTED", "acceptedPhrases": [ "retracted", "up", "zero" ], "verify": { "dataref": "system.switches.S_FC_FLAPS", "op": "equals", "value": 0 }, "confirmCallout": "Flaps, retracted" },
+    { "behavior": "acknowledge", "say": "Packs", "expectedResponse": "ON", "acceptedPhrases": [ "on", "set" ], "verify": null, "confirmCallout": "Packs, on" },
+    { "behavior": "acknowledge", "say": "Baro Reference", "expectedResponse": "SET", "acceptedPhrases": [ "set", "standard" ], "verify": null, "confirmCallout": "Baro reference, set" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "checklist": "Landing",
+  "order": 120,
+  "items": [
+    { "behavior": "acknowledge", "say": "Cabin", "expectedResponse": "READY", "acceptedPhrases": [ "ready" ], "verify": null, "confirmCallout": "Cabin, ready" },
+    { "behavior": "acknowledge", "say": "Auto Thrust", "expectedResponse": "SPEED", "acceptedPhrases": [ "speed", "set", "off" ], "verify": null, "confirmCallout": "Auto thrust, speed" },
+    { "behavior": "acknowledge", "say": "Auto Brake", "expectedResponse": "AS REQUIRED", "acceptedPhrases": [ "as required", "set", "medium", "low", "max" ], "verify": null, "confirmCallout": "Auto brake, as required" },
+    { "behavior": "verify", "say": "Landing Gear", "expectedResponse": "DOWN", "acceptedPhrases": [ "down" ], "verify": { "dataref": "system.switches.S_MIP_GEAR", "op": "equals", "value": 0 }, "confirmCallout": "Landing gear, down" },
+    { "behavior": "verify", "say": "Spoilers", "expectedResponse": "ARMED", "acceptedPhrases": [ "armed" ], "verify": { "dataref": "system.switches.S_FC_SPEEDBRAKE_ARMED", "op": "equals", "value": 1 }, "confirmCallout": "Spoilers, armed" },
+    { "behavior": "acknowledge", "say": "Flaps", "expectedResponse": "SET", "acceptedPhrases": [ "set", "full", "three" ], "verify": null, "confirmCallout": "Flaps, set" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "checklist": "After Landing",
+  "order": 130,
+  "items": [
+    { "behavior": "verify", "say": "Flaps", "expectedResponse": "RETRACTED", "acceptedPhrases": [ "retracted", "up", "zero" ], "verify": { "dataref": "system.switches.S_FC_FLAPS", "op": "equals", "value": 0 }, "confirmCallout": "Flaps, retracted" },
+    { "behavior": "verify", "say": "Spoilers", "expectedResponse": "DISARMED", "acceptedPhrases": [ "disarmed", "retracted" ], "verify": { "dataref": "system.switches.S_FC_SPEEDBRAKE_ARMED", "op": "equals", "value": 0 }, "confirmCallout": "Spoilers, disarmed" },
+    { "behavior": "acknowledge", "say": "Radar and Predictive Wind Shear", "expectedResponse": "OFF", "acceptedPhrases": [ "off" ], "verify": null, "confirmCallout": "Radar and PWS, off" },
+    { "behavior": "verify", "say": "T CAS", "expectedResponse": "STANDBY", "acceptedPhrases": [ "standby", "stby", "set", "off" ], "verify": { "dataref": "system.switches.S_XPDR_MODE", "op": "equals", "value": 0 }, "confirmCallout": "TCAS, standby" },
+    { "behavior": "verify", "say": "Engine Mode Selector", "expectedResponse": "NORMAL", "acceptedPhrases": [ "norm", "normal", "set" ], "verify": { "dataref": "system.switches.S_ENG_MODE", "op": "equals", "value": 1 }, "confirmCallout": "Engine mode selector, normal" },
+    { "behavior": "verify", "say": "Strobe", "expectedResponse": "AUTO", "acceptedPhrases": [ "auto", "off", "set" ], "verify": { "dataref": "system.switches.S_OH_EXT_LT_STROBE", "op": "equals", "value": 0 }, "confirmCallout": "Strobe, auto" }
+  ]
+}

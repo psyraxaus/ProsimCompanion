@@ -30,6 +30,10 @@ public static class ProsimServiceCollectionExtensions
         services.AddSingleton<Acars.AcarsUplink>();
         services.AddSingleton<Loadsheet.FmsInitSyncService>();
         services.AddSingleton<Core.State.IFmsInitSync>(provider => provider.GetRequiredService<Loadsheet.FmsInitSyncService>());
+        services.AddSingleton<Loadsheet.FmsPerfUplinkService>();
+        services.AddSingleton<Core.State.IFmsPerfUplink>(provider => provider.GetRequiredService<Loadsheet.FmsPerfUplinkService>());
+        services.AddSingleton<Loadsheet.EfbInitOverridesService>();
+        services.AddSingleton<Core.Aircraft.IEfbInitOverrides>(provider => provider.GetRequiredService<Loadsheet.EfbInitOverridesService>());
         services.AddSingleton<Loadsheet.LoadsheetService>();
         services.AddSingleton<Core.State.ILoadsheetControl>(provider => provider.GetRequiredService<Loadsheet.LoadsheetService>());
         services.AddHostedService<Loadsheet.FlightDataBootstrapService>();

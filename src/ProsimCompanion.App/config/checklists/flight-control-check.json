@@ -1,0 +1,38 @@
+{
+  "checklist": "Flight Control Check",
+  "order": 50,
+  "startPhrases": [ "flight control check", "flight control check checklist" ],
+  "items": [
+    {
+      "behavior": "monitorControls",
+      "say": "Flight Controls",
+      "comment": "PM (FO) calls out the captain's control check, THEN the copilot performs its own sweep. CALIBRATE the signs with the Status-tab live readout: move each control to a stop and check the value sign; if 'Full up' should be spoken when the value is negative, swap full+/full- for that axis. Thresholds assume normalized ~-1..+1.",
+      "mode": "reactive",
+      "composition": "monitorThenSweep",
+      "dwellMs": 400,
+      "fullThreshold": 0.95,
+      "neutralThreshold": 0.05,
+      "axes": {
+        "pitch":  { "dataref": "aircraft.flightControls.input.pitch.captain", "positive": "down",  "full+": "Full down",  "full-": "Full up",          "neutral": "Neutral" },
+        "roll":   { "dataref": "aircraft.flightControls.input.roll.captain",  "positive": "right", "full+": "Full right", "full-": "Full left",        "neutral": "Neutral" },
+        "rudder": { "dataref": "aircraft.flightControls.input.yaw",           "positive": "right", "full+": "Full right", "full-": "Rudder full left", "neutral": "Neutral" }
+      },
+      "action": {
+        "type": "sequence",
+        "comment": "Copilot (F/O) self-sweep after the monitor phase. Normalized -1..0..+1 -> ProSim analog 0..512..1024 at write time.",
+        "steps": [
+          { "dataref": "system.analog.A_FC_FO_PITCH",  "to": -1.0, "rampMs": 700,  "holdMs": 250 },
+          { "dataref": "system.analog.A_FC_FO_PITCH",  "to":  1.0, "rampMs": 1400, "holdMs": 250 },
+          { "dataref": "system.analog.A_FC_FO_PITCH",  "to":  0.0, "rampMs": 700 },
+          { "dataref": "system.analog.A_FC_FO_ROLL",   "to": -1.0, "rampMs": 700,  "holdMs": 250 },
+          { "dataref": "system.analog.A_FC_FO_ROLL",   "to":  1.0, "rampMs": 1400, "holdMs": 250 },
+          { "dataref": "system.analog.A_FC_FO_ROLL",   "to":  0.0, "rampMs": 700 },
+          { "dataref": "system.analog.A_FC_FO_RUDDER", "to": -1.0, "rampMs": 700,  "holdMs": 250 },
+          { "dataref": "system.analog.A_FC_FO_RUDDER", "to":  1.0, "rampMs": 1400, "holdMs": 250 },
+          { "dataref": "system.analog.A_FC_FO_RUDDER", "to":  0.0, "rampMs": 700 }
+        ]
+      },
+      "confirmCallout": "Flight Controls, checked"
+    }
+  ]
+}

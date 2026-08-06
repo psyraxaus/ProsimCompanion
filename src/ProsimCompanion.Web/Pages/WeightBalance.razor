@@ -1,0 +1,200 @@
+@page "/wnb"
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft
+@implements IDisposable
+@inject IProsimDataRefs DataRefs
+@inject LoadsheetStore Loadsheets
+@inject PassengerManifestService ManifestService
+
+<PageTitle>Weight &amp; Balance — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Weight and Balance</h1>
+
+<div class="status-panel">
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Live weights</h3>
+        <div class="section-body">
+            <div class="row"><span class="row-label">ZFW</span><span class="row-value-mono">@Kg(_zfw) / max @Kg(_zfwMax)</span></div>
+            <div class="row"><span class="row-label">Gross weight</span><span class="row-value-mono">@Kg(_gross) / max @Kg(_grossMax)</span></div>
+            <div class="row"><span class="row-label">Fuel on board</span><span class="row-value-mono">@Kg(_fuelTotal)</span></div>
+            <div class="row"><span class="row-label">CG (gross)</span><span class="row-value-mono">@Mac(_cg)</span></div>
+            <div class="row"><span class="row-label">CG (ZFW)</span><span class="row-value-mono">@Mac(_zfwcg)</span></div>
+            <div class="row"><span class="row-label">Pax zones 1–4</span><span class="row-value-mono">@_zone1.GetValue(0) / @_zone2.GetValue(0) / @_zone3.GetValue(0) / @_zone4.GetValue(0)</span></div>
+            <div class="row"><span class="row-label">Cargo fwd / aft</span><span class="row-value-mono">@Kg(_cargoFwd) / @Kg(_cargoAft)</span></div>
+            @{
+                var sheets = Loadsheets.Snapshot();
+            }
+            @if (sheets.Prelim.Status == LoadsheetSlotStatus.Sent)
+            {
+                <div class="row"><span class="row-label">Prelim loadsheet</span><span class="row-value-mono">ZFW @($"{sheets.Prelim.ZfwKg:F0}") (@($"{sheets.Prelim.MacZfw:F1}")%) · TOW @($"{sheets.Prelim.TowKg:F0}") (@($"{sheets.Prelim.MacTow:F1}")%)</span></div>
+            }
+            @if (sheets.Final.Status == LoadsheetSlotStatus.Sent)
+            {
+                <div class="row"><span class="row-label">Final loadsheet</span><span class="row-value-mono">ZFW @($"{sheets.Final.ZfwKg:F0}") (@($"{sheets.Final.MacZfw:F1}")%) · TOW @($"{sheets.Final.TowKg:F0}") (@($"{sheets.Final.MacTow:F1}")%)</span></div>
+            }
+        </div>
+    </section>
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">CG envelope</h3>
+        <div class="section-body">
+            <CgEnvelope GrossWeightKg="@_gross.GetValue(0.0)"
+                        GrossCgMac="@_cg.GetValue(0.0)"
+                        ZfwKg="@_zfw.GetValue(0.0)"
+                        ZfwCgMac="@_zfwcg.GetValue(0.0)" />
+        </div>
+    </section>
+
+    <section class="status-section status-span">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Fuel tanks</h3>
+        <div class="section-body">
+            @foreach (var tank in Tanks())
+            {
+                <div class="row">
+                    <span class="row-label">@tank.Name</span>
+                    <span class="fuel-bar" role="img" aria-label="@tank.Name @($"{tank.AmountKg:F0}") of @($"{tank.CapacityKg:F0}") kg">
+                        <span class="fuel-bar-fill" style="width:@(tank.Percent.ToString("F1", CultureInfo.InvariantCulture))%"></span>
+                    </span>
+                    <span class="row-value-mono">@($"{tank.AmountKg:F0}") / @($"{tank.CapacityKg:F0}") kg</span>
+                </div>
+            }
+            <div class="row">
+                <span class="row-label">Total</span>
+                <span class="row-value-mono">@Kg(_fuelTotal)</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="status-section status-span">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Passenger Manifest</h3>
+        <div class="section-body">
+            @{
+                var manifest = _showManifest ? ManifestService.Manifest() : [];
+            }
+            <div class="row">
+                <button type="button" class="btn secondary" @onclick="() => _showManifest = !_showManifest">
+                    @(_showManifest ? "▾ Hide manifest" : $"▸ Manifest ({ManifestService.Manifest().Count})")
+                </button>
+                <span class="row-value">Generated from the booked seat map; the same flight keeps the same names.</span>
+            </div>
+            @if (_showManifest)
+            {
+                @if (manifest.Count == 0)
+                {
+                    <div class="empty">No booked passengers yet — import an OFP first.</div>
+                }
+                else
+                {
+                    <div class="manifest-grid">
+                        <span class="manifest-head">SEAT</span><span class="manifest-head">NAME</span><span class="manifest-head">ZONE</span>
+                        @foreach (var pax in manifest)
+                        {
+                            <span class="row-value-mono">@pax.SeatNumber</span>
+                            <span class="row-value-mono">@pax.FirstName @pax.LastName</span>
+                            <span class="row-value-mono">Z@(pax.Zone)</span>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </section>
+
+</div>
+
+@code {
+    private IDataRefSubscription _zfw = default!;
+    private IDataRefSubscription _zfwMax = default!;
+    private IDataRefSubscription _gross = default!;
+    private IDataRefSubscription _grossMax = default!;
+    private IDataRefSubscription _cg = default!;
+    private IDataRefSubscription _zfwcg = default!;
+    private IDataRefSubscription _fuelTotal = default!;
+    private IDataRefSubscription _zone1 = default!;
+    private IDataRefSubscription _zone2 = default!;
+    private IDataRefSubscription _zone3 = default!;
+    private IDataRefSubscription _zone4 = default!;
+    private IDataRefSubscription _cargoFwd = default!;
+    private IDataRefSubscription _cargoAft = default!;
+    private IDataRefSubscription _fuelCenter = default!;
+    private IDataRefSubscription _fuelCenterCap = default!;
+    private IDataRefSubscription _fuelLeftInner = default!;
+    private IDataRefSubscription _fuelLeftInnerCap = default!;
+    private IDataRefSubscription _fuelLeftOuter = default!;
+    private IDataRefSubscription _fuelLeftOuterCap = default!;
+    private IDataRefSubscription _fuelRightInner = default!;
+    private IDataRefSubscription _fuelRightInnerCap = default!;
+    private IDataRefSubscription _fuelRightOuter = default!;
+    private IDataRefSubscription _fuelRightOuterCap = default!;
+    private Timer? _refresh;
+    private bool _showManifest;
+
+    private sealed record TankRow(string Name, double AmountKg, double CapacityKg)
+    {
+        public double Percent => CapacityKg > 0 ? Math.Clamp(AmountKg / CapacityKg * 100.0, 0, 100) : 0;
+    }
+
+    protected override void OnInitialized()
+    {
+        _zfw = DataRefs.Subscribe(ProsimDataRefNames.WeightZfw, DataRefTier.Normal);
+        _zfwMax = DataRefs.Subscribe(ProsimDataRefNames.WeightZfwMax, DataRefTier.Infrequent);
+        _gross = DataRefs.Subscribe(ProsimDataRefNames.WeightGross, DataRefTier.Normal);
+        _grossMax = DataRefs.Subscribe(ProsimDataRefNames.WeightGrossMax, DataRefTier.Infrequent);
+        _cg = DataRefs.Subscribe(ProsimDataRefNames.CenterOfGravity, DataRefTier.Normal);
+        _zfwcg = DataRefs.Subscribe(ProsimDataRefNames.Zfwcg, DataRefTier.Normal);
+        _fuelTotal = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal, DataRefTier.Normal);
+        _zone1 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone1Amount, DataRefTier.Normal);
+        _zone2 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone2Amount, DataRefTier.Normal);
+        _zone3 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone3Amount, DataRefTier.Normal);
+        _zone4 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone4Amount, DataRefTier.Normal);
+        _cargoFwd = DataRefs.Subscribe(ProsimDataRefNames.CargoForwardAmount, DataRefTier.Normal);
+        _cargoAft = DataRefs.Subscribe(ProsimDataRefNames.CargoAftAmount, DataRefTier.Normal);
+        _fuelCenter = DataRefs.Subscribe(ProsimDataRefNames.FuelCenter, DataRefTier.Normal);
+        _fuelCenterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelCenterCapacity, DataRefTier.Infrequent);
+        _fuelLeftInner = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftInner, DataRefTier.Normal);
+        _fuelLeftInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftInnerCapacity, DataRefTier.Infrequent);
+        _fuelLeftOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftOuter, DataRefTier.Normal);
+        _fuelLeftOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftOuterCapacity, DataRefTier.Infrequent);
+        _fuelRightInner = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInner, DataRefTier.Normal);
+        _fuelRightInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInnerCapacity, DataRefTier.Infrequent);
+        _fuelRightOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuter, DataRefTier.Normal);
+        _fuelRightOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuterCapacity, DataRefTier.Infrequent);
+
+        // Live instrument view — a 1 s repaint is simpler and cheaper than wiring 24
+        // ValueChanged handlers, and matches the datarefs' Normal cadence.
+        _refresh = new Timer(_ => _ = InvokeAsync(StateHasChanged), null,
+            TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    public void Dispose()
+    {
+        _refresh?.Dispose();
+        foreach (var sub in new[]
+        {
+            _zfw, _zfwMax, _gross, _grossMax, _cg, _zfwcg, _fuelTotal,
+            _zone1, _zone2, _zone3, _zone4, _cargoFwd, _cargoAft,
+            _fuelCenter, _fuelCenterCap, _fuelLeftInner, _fuelLeftInnerCap, _fuelLeftOuter, _fuelLeftOuterCap,
+            _fuelRightInner, _fuelRightInnerCap, _fuelRightOuter, _fuelRightOuterCap,
+        })
+        {
+            sub.Dispose();
+        }
+    }
+
+    private IEnumerable<TankRow> Tanks()
+    {
+        yield return new TankRow("Left outer", _fuelLeftOuter.GetValue(0.0), _fuelLeftOuterCap.GetValue(0.0));
+        yield return new TankRow("Left inner", _fuelLeftInner.GetValue(0.0), _fuelLeftInnerCap.GetValue(0.0));
+        yield return new TankRow("Center", _fuelCenter.GetValue(0.0), _fuelCenterCap.GetValue(0.0));
+        yield return new TankRow("Right inner", _fuelRightInner.GetValue(0.0), _fuelRightInnerCap.GetValue(0.0));
+        yield return new TankRow("Right outer", _fuelRightOuter.GetValue(0.0), _fuelRightOuterCap.GetValue(0.0));
+    }
+
+    private static string Kg(IDataRefSubscription sub)
+        => $"{sub.GetValue(0.0):F0} kg";
+
+    private string Mac(IDataRefSubscription sub)
+    {
+        var value = sub.GetValue(0.0);
+        return value == 0 ? "—" : $"{value:F1} %MAC";
+    }
+}

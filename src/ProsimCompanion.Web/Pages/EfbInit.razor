@@ -1,0 +1,189 @@
+@page "/init"
+@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Aircraft.Ofp
+@implements IDisposable
+@inject OfpStore Ofp
+@inject IEfbInitOverrides Overrides
+@inject IFmsInitSync FmsSync
+
+<PageTitle>EFB INIT — ProsimCompanion</PageTitle>
+<h1 class="sr-only">EFB INIT</h1>
+
+<div class="status-panel">
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">INIT — plan figures</h3>
+        <div class="section-body">
+            @if (_ofp is null)
+            {
+                <div class="empty">No OFP imported. Fetch one on the Flight Data page first — overrides need a baseline.</div>
+            }
+            else
+            {
+                @foreach (var field in WritableFields)
+                {
+                    var overridden = _overrides.TryGetValue(field.Key, out var overrideValue);
+                    <div class="row">
+                        <span class="row-label">@field.Label</span>
+                        <span class="row-value-mono">@field.OfpDisplay(_ofp)@(overridden ? $" → {overrideValue:F0}" : "")</span>
+                        <input class="number-input" type="number" placeholder="override" @bind="_drafts[field.Key]" />
+                        <button type="button" class="btn secondary" disabled="@_busy" @onclick="() => Apply(field.Key)">Set</button>
+                        @if (overridden)
+                        {
+                            <button type="button" class="btn secondary" disabled="@_busy" @onclick="() => Clear(field.Key)">Clear</button>
+                        }
+                    </div>
+                }
+                <div class="row">
+                    <span class="row-label"></span>
+                    <span class="row-value">Set writes the value to the aircraft immediately; Clear restores the OFP figure. Overrides reset on a new OFP or turnaround.</span>
+                </div>
+                <div class="row">
+                    <button type="button" class="btn secondary" disabled="@(_busy || _overrides.Count == 0)" @onclick="ClearAll">Clear all overrides</button>
+                    <button type="button" class="btn primary" disabled="@_busy" @onclick="SyncFms">Sync ZFW/ZFWCG/Block to FMS</button>
+                    @if (_status is not null)
+                    {
+                        <span class="row-value">@_status</span>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">OFP reference (display only)</h3>
+        <div class="section-body">
+            @if (_ofp is null)
+            {
+                <div class="empty">—</div>
+            }
+            else
+            {
+                <div class="row"><span class="row-label">Route</span><span class="row-value-mono">@_ofp.OriginIcao → @_ofp.DestinationIcao@(string.IsNullOrEmpty(_ofp.AlternateIcao) ? "" : $" / {_ofp.AlternateIcao}")</span></div>
+                <div class="row"><span class="row-label">Trip fuel</span><span class="row-value-mono">@($"{Math.Max(0, _ofp.FuelPlanRampKg - _ofp.FuelTaxiKg - _ofp.FuelPlanLandingKg):F0} kg")</span></div>
+                <div class="row"><span class="row-label">Taxi fuel</span><span class="row-value-mono">@($"{_ofp.FuelTaxiKg:F0} kg")</span></div>
+                <div class="row"><span class="row-label">Planned landing fuel</span><span class="row-value-mono">@($"{_ofp.FuelPlanLandingKg:F0} kg")</span></div>
+                <div class="row"><span class="row-label">Est TOW / LDW</span><span class="row-value-mono">@($"{_ofp.EstTowKg:F0} / {_ofp.EstLdwKg:F0} kg")</span></div>
+                <div class="row"><span class="row-label">Max ZFW / TOW / LDW</span><span class="row-value-mono">@($"{_ofp.MaxZfwKg:F0} / {_ofp.MaxTowKg:F0} / {_ofp.MaxLdwKg:F0} kg")</span></div>
+                <div class="row"><span class="row-label">Enroute time</span><span class="row-value-mono">@(_ofp.EstimatedEnroute is { } enroute ? $"{(int)enroute.TotalHours}:{enroute.Minutes:D2}" : "—")</span></div>
+            }
+        </div>
+    </section>
+
+</div>
+
+@code {
+    private sealed record FieldRow(string Key, string Label, Func<OfpData, string> OfpDisplay);
+
+    private static readonly FieldRow[] WritableFields =
+    [
+        new(IEfbInitOverrides.ZfwKg, "ZFW (kg)", ofp => ofp.EstZfwKg > 0 ? $"{ofp.EstZfwKg:F0}" : "—"),
+        new(IEfbInitOverrides.FuelRampKg, "Block fuel (kg)", ofp => $"{ofp.FuelPlanRampKg:F0}"),
+        new(IEfbInitOverrides.CargoKg, "Cargo (kg)", ofp => $"{ofp.CargoKg:F0}"),
+        new(IEfbInitOverrides.PassengerCount, "Passengers", ofp => $"{ofp.PaxCount}"),
+    ];
+
+    private OfpData? _ofp;
+    private IReadOnlyDictionary<string, double> _overrides = new Dictionary<string, double>();
+    private readonly Dictionary<string, double?> _drafts = new();
+    private bool _busy;
+    private string? _status;
+
+    protected override void OnInitialized()
+    {
+        foreach (var field in WritableFields)
+        {
+            _drafts[field.Key] = null;
+        }
+        Ofp.Changed += OnChanged;
+        Overrides.Changed += OnChanged;
+        _ofp = Ofp.Current;
+        _overrides = Overrides.Snapshot();
+    }
+
+    public void Dispose()
+    {
+        Ofp.Changed -= OnChanged;
+        Overrides.Changed -= OnChanged;
+    }
+
+    private void OnChanged(object? sender, EventArgs e)
+        => _ = InvokeAsync(() =>
+        {
+            _ofp = Ofp.Current;
+            _overrides = Overrides.Snapshot();
+            StateHasChanged();
+        });
+
+    private async Task Apply(string field)
+    {
+        if (_drafts[field] is not { } value)
+        {
+            return;
+        }
+
+        _busy = true;
+        _status = null;
+        try
+        {
+            var ok = await Overrides.SetAsync(field, value);
+            _status = ok ? $"{field} override applied." : $"{field} write failed — see logs.";
+            _overrides = Overrides.Snapshot();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Clear(string field)
+    {
+        _busy = true;
+        _status = null;
+        try
+        {
+            await Overrides.ClearAsync(field);
+            _drafts[field] = null;
+            _overrides = Overrides.Snapshot();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ClearAll()
+    {
+        _busy = true;
+        _status = null;
+        try
+        {
+            await Overrides.ClearAllAsync();
+            foreach (var field in WritableFields)
+            {
+                _drafts[field.Key] = null;
+            }
+            _overrides = Overrides.Snapshot();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SyncFms()
+    {
+        _busy = true;
+        try
+        {
+            var result = await FmsSync.SyncAsync();
+            _status = result is null
+                ? "FMS sync failed — see logs."
+                : $"Synced: ZFW {result.ZfwTonnes:F1} t, ZFWCG {result.ZfwCgPercent:F1}%, block {result.BlockTonnes:F1} t ({result.Source}).";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

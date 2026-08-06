@@ -1,0 +1,134 @@
+@using System.Globalization
+
+@* CG envelope diagram: %MAC across, weight up. The envelope outline is an INDICATIVE
+   A320-family operational envelope for situational display — the authoritative limit check is
+   ProSim's own W&B (and the loadsheet pipeline's plausibility gates), not this drawing.
+   Points: ZFW (outline marker) and GW (filled marker), direct-labeled — identity is never
+   color-alone. A point outside the drawn envelope turns the status color. *@
+
+<svg viewBox="0 0 380 270" style="width:100%; max-width:460px; height:auto; display:block;"
+     role="img" aria-label="Center of gravity envelope; gross weight @($"{GrossWeightKg:F0}") kg at @($"{GrossCgMac:F1}") percent MAC">
+    @* Grid — recessive *@
+    @foreach (var mac in MacGrid)
+    {
+        <line x1="@Sx(mac)" y1="@Sy(MinWeightT)" x2="@Sx(mac)" y2="@Sy(MaxWeightT)"
+              stroke="var(--border)" stroke-width="1" />
+        @SvgText(Sx(mac), Sy(MinWeightT) + 14, "middle", "var(--text-muted)", mac.ToString(CultureInfo.InvariantCulture), 9)
+    }
+    @foreach (var tonnes in WeightGrid)
+    {
+        <line x1="@Sx(MinMac)" y1="@Sy(tonnes)" x2="@Sx(MaxMac)" y2="@Sy(tonnes)"
+              stroke="var(--border)" stroke-width="1" />
+        @SvgText(Sx(MinMac) - 4, Sy(tonnes) + 3, "end", "var(--text-muted)", $"{tonnes} t", 9)
+    }
+    @SvgText(Sx((MinMac + MaxMac) / 2), 266, "middle", "var(--text-muted)", "%MAC", 9)
+
+    @* Envelope *@
+    <polygon points="@EnvelopePoints()" fill="var(--accent)" fill-opacity="0.08"
+             stroke="var(--accent)" stroke-opacity="0.55" stroke-width="1.5" />
+
+    @* ZFW→GW connector shows the fuel-load CG travel *@
+    @if (HasZfw && HasGw)
+    {
+        <line x1="@Px(ZfwCgMac)" y1="@Py(ZfwKg)" x2="@Px(GrossCgMac)" y2="@Py(GrossWeightKg)"
+              stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="3 3" />
+    }
+
+    @if (HasZfw)
+    {
+        <circle cx="@Px(ZfwCgMac)" cy="@Py(ZfwKg)" r="5" fill="var(--bg-panel, transparent)"
+                stroke="@PointColor(ZfwCgMac, ZfwKg)" stroke-width="2" />
+        @SvgText(Px(ZfwCgMac) + 9, Py(ZfwKg) + 3, "start", "var(--text-secondary)", "ZFW", 10)
+    }
+    @if (HasGw)
+    {
+        <circle cx="@Px(GrossCgMac)" cy="@Py(GrossWeightKg)" r="5" fill="@PointColor(GrossCgMac, GrossWeightKg)" />
+        @SvgText(Px(GrossCgMac) + 9, Py(GrossWeightKg) + 3, "start", "var(--text-secondary)", "GW", 10)
+    }
+    @if (!HasZfw && !HasGw)
+    {
+        @SvgText(190, 130, "middle", "var(--text-muted)", "No CG data (ProSim not connected)", 11)
+    }
+</svg>
+
+@code {
+    [Parameter] public double GrossWeightKg { get; set; }
+    [Parameter] public double GrossCgMac { get; set; }
+    [Parameter] public double ZfwKg { get; set; }
+    [Parameter] public double ZfwCgMac { get; set; }
+
+    // Plot window and grids.
+    private const double MinMac = 10, MaxMac = 45;
+    private const double MinWeightT = 35, MaxWeightT = 80;
+    private static readonly int[] MacGrid = [15, 20, 25, 30, 35, 40];
+    private static readonly int[] WeightGrid = [40, 50, 60, 70, 80];
+
+    // Indicative operational envelope, (weight tonnes, fwd %MAC, aft %MAC) bottom-up. The
+    // 10.5–45 %MAC band matches the predecessors' MACTOW validity range; the taper toward
+    // MTOW reflects the A320-family shape.
+    private static readonly (double T, double Fwd, double Aft)[] Envelope =
+    [
+        (37, 14.0, 40.0),
+        (55, 14.0, 40.0),
+        (64, 16.0, 40.0),
+        (73, 19.5, 39.5),
+        (79, 24.0, 37.5),
+    ];
+
+    // Chart area inside the viewBox.
+    private const double PlotLeft = 36, PlotRight = 372, PlotTop = 10, PlotBottom = 246;
+
+    private bool HasZfw => ZfwKg > 1000 && ZfwCgMac is > 1 and < 60;
+    private bool HasGw => GrossWeightKg > 1000 && GrossCgMac is > 1 and < 60;
+
+    private static double Sx(double mac)
+        => PlotLeft + (mac - MinMac) / (MaxMac - MinMac) * (PlotRight - PlotLeft);
+
+    private static double Sy(double tonnes)
+        => PlotBottom - (tonnes - MinWeightT) / (MaxWeightT - MinWeightT) * (PlotBottom - PlotTop);
+
+    private static double Px(double mac) => Sx(Math.Clamp(mac, MinMac, MaxMac));
+
+    private static double Py(double kg) => Sy(Math.Clamp(kg / 1000.0, MinWeightT, MaxWeightT));
+
+    private static string EnvelopePoints()
+    {
+        var forward = Envelope.Select(point => $"{Sx(point.Fwd).ToString("F1", CultureInfo.InvariantCulture)},{Sy(point.T).ToString("F1", CultureInfo.InvariantCulture)}");
+        var aft = Envelope.Reverse().Select(point => $"{Sx(point.Aft).ToString("F1", CultureInfo.InvariantCulture)},{Sy(point.T).ToString("F1", CultureInfo.InvariantCulture)}");
+        return string.Join(" ", forward.Concat(aft));
+    }
+
+    /// <summary>Status color only when the point falls outside the drawn envelope.</summary>
+    private static string PointColor(double mac, double kg)
+        => InsideEnvelope(mac, kg / 1000.0) ? "var(--accent)" : "var(--danger)";
+
+    /// <summary>Razor reserves &lt;text&gt; as its transition tag, so SVG text nodes are emitted
+    /// as markup strings.</summary>
+    private static MarkupString SvgText(double x, double y, string anchor, string fill, string content, int size)
+        => new(
+            $"<text x=\"{x.ToString("F1", CultureInfo.InvariantCulture)}\" " +
+            $"y=\"{y.ToString("F1", CultureInfo.InvariantCulture)}\" text-anchor=\"{anchor}\" " +
+            $"font-size=\"{size}\" fill=\"{fill}\">{System.Net.WebUtility.HtmlEncode(content)}</text>");
+
+    private static bool InsideEnvelope(double mac, double tonnes)
+    {
+        if (tonnes < Envelope[0].T || tonnes > Envelope[^1].T)
+        {
+            return false;
+        }
+        for (var i = 1; i < Envelope.Length; i++)
+        {
+            if (tonnes > Envelope[i].T)
+            {
+                continue;
+            }
+            var (t0, fwd0, aft0) = Envelope[i - 1];
+            var (t1, fwd1, aft1) = Envelope[i];
+            var f = (tonnes - t0) / (t1 - t0);
+            var fwd = fwd0 + f * (fwd1 - fwd0);
+            var aft = aft0 + f * (aft1 - aft0);
+            return mac >= fwd && mac <= aft;
+        }
+        return false;
+    }
+}

@@ -1,0 +1,10 @@
+{
+  "checklist": "After Start",
+  "order": 40,
+  "items": [
+    { "behavior": "acknowledge", "say": "Anti Ice", "expectedResponse": "AS REQUIRED", "acceptedPhrases": [ "as required", "set", "checked" ], "verify": null, "confirmCallout": "Anti ice, as required" },
+    { "behavior": "acknowledge", "say": "E CAM Status", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "ECAM status, checked" },
+    { "behavior": "acknowledge", "say": "Pitch Trim", "expectedResponse": "SET", "acceptedPhrases": [ "set" ], "verify": null, "confirmCallout": "Pitch trim, set" },
+    { "behavior": "acknowledge", "say": "Rudder Trim", "expectedResponse": "ZERO", "acceptedPhrases": [ "zero", "set" ], "verify": null, "confirmCallout": "Rudder trim, zero" }
+  ]
+}

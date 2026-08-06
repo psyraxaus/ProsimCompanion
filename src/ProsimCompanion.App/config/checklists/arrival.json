@@ -1,0 +1,10 @@
+{
+  "checklist": "Arrival",
+  "order": 150,
+  "items": [
+    { "behavior": "verify", "say": "Parking Brake", "expectedResponse": "SET", "acceptedPhrases": [ "set", "on" ], "verify": { "dataref": "system.switches.S_MIP_PARKING_BRAKE", "op": "equals", "value": 1 }, "confirmCallout": "Parking brake, set" },
+    { "behavior": "acknowledge", "say": "A T C", "expectedResponse": "NOTIFIED", "acceptedPhrases": [ "notified", "set" ], "verify": null, "confirmCallout": "ATC, notified" },
+    { "behavior": "acknowledge", "say": "Chocks", "expectedResponse": "AS REQUIRED", "acceptedPhrases": [ "as required", "in", "set" ], "verify": null, "confirmCallout": "Chocks, as required" },
+    { "behavior": "verify", "say": "Seat Belts", "expectedResponse": "OFF", "acceptedPhrases": [ "off" ], "verify": { "dataref": "system.switches.S_OH_SIGNS", "op": "equals", "value": 2 }, "confirmCallout": "Seat belts, off" }
+  ]
+}

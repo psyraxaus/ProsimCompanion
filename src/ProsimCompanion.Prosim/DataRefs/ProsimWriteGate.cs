@@ -53,6 +53,15 @@ public static class ProsimWriteGate
         "aircraft.fms.init.block",
         "aircraft.fms.init.zfw",
         "aircraft.fms.init.zfwcg",
+
+        // FMS PERF TO uplink (Phase 3 performance page)
+        "aircraft.fms.perf.takeOff.flaps",
+        "aircraft.fms.perf.takeOff.flexTemp",
+        "aircraft.fms.perf.takeOff.v1",
+        "aircraft.fms.perf.takeOff.vr",
+        "aircraft.fms.perf.takeOff.v2",
+        "aircraft.fms.perf.takeOff.ths",
+        "aircraft.fms.perf.takeOff.shift",
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly string[] AllowedPrefixes =

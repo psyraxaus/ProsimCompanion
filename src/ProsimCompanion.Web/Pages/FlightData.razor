@@ -1,12 +1,14 @@
 @page "/flight"
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Deice
 @implements IDisposable
 @inject OfpStore Ofp
 @inject LoadsheetStore Loadsheets
 @inject ILoadsheetControl LoadsheetControl
 @inject ISimbriefImporter Simbrief
 @inject IFmsInitSync FmsSync
+@inject DeiceHoldoverService Deice
 
 <PageTitle>Flight Data — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Flight Data</h1>
@@ -60,6 +62,45 @@
         </div>
     </section>
 
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Deice Holdover (HOT)</h3>
+        <div class="section-body">
+            <div class="row">
+                <span class="row-label">Precipitation</span>
+                <select class="select" style="max-width:220px" value="@_deice.Precip" @onchange="OnPrecipChanged">
+                    <option value="@HotPrecip.None">No precipitation</option>
+                    <option value="@HotPrecip.ActiveFrost">Active frost</option>
+                    <option value="@HotPrecip.FreezingFog">Freezing fog</option>
+                    <option value="@HotPrecip.Snow">Snow / snow grains</option>
+                    <option value="@HotPrecip.FreezingDrizzleLight">Freezing drizzle (light)</option>
+                    <option value="@HotPrecip.FreezingDrizzleModerate">Freezing drizzle (moderate)</option>
+                    <option value="@HotPrecip.LightFreezingRain">Light freezing rain</option>
+                    <option value="@HotPrecip.RainOnColdSoakedWing">Rain on cold-soaked wing</option>
+                </select>
+            </div>
+            <div class="row">
+                <span class="row-label">OAT °C</span>
+                <input class="number-input" type="number" step="0.5" value="@_deiceOat" @onchange="OnOatChanged" />
+            </div>
+            <div class="row"><span class="row-label">Fluid</span><span class="row-value-mono">@(_deice.Active || _deice.Expired ? _deice.FluidLabel : "—")</span></div>
+            @if (_deice.Active && _deice.RemainingHighSeconds > 0)
+            {
+                <div class="row">
+                    <span class="row-label">Holdover remaining</span>
+                    <span class="row-value-mono">@($"{_deice.RemainingLowSeconds / 60}:{_deice.RemainingLowSeconds % 60:D2} – {_deice.RemainingHighSeconds / 60}:{_deice.RemainingHighSeconds % 60:D2}")</span>
+                </div>
+            }
+            <div class="row">
+                <span class="row-label">Status</span>
+                <span class="row-value" style="@(_deice.Expired ? "color:var(--danger);font-weight:600" : "")">@_deice.Status</span>
+            </div>
+            <div class="row">
+                <span class="row-label"></span>
+                <span class="row-value">Representative HOT figures for simulation immersion only — not a certified table. Do not use for real-world dispatch.</span>
+            </div>
+        </div>
+    </section>
+
     <section class="status-section status-span">
         <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Loadsheets</h3>
         <div class="section-body">
@@ -100,6 +141,8 @@
 @code {
     private OfpData? _ofp;
     private LoadsheetSnapshot _loadsheets = LoadsheetSnapshot.Empty;
+    private DeiceHoldoverSnapshot _deice = new(false, false, "", HotPrecip.None, 0, 0, 0, "Awaiting GSX deicing…");
+    private double _deiceOat;
     private bool _fetching;
     private bool _prelimBusy;
     private bool _finalBusy;
@@ -111,14 +154,18 @@
     {
         Ofp.Changed += OnStoreChanged;
         Loadsheets.Changed += OnStoreChanged;
+        Deice.Changed += OnStoreChanged;
         _ofp = Ofp.Current;
         _loadsheets = Loadsheets.Snapshot();
+        _deice = Deice.Snapshot();
+        _deiceOat = _deice.OatC;
     }
 
     public void Dispose()
     {
         Ofp.Changed -= OnStoreChanged;
         Loadsheets.Changed -= OnStoreChanged;
+        Deice.Changed -= OnStoreChanged;
     }
 
     private void OnStoreChanged(object? sender, EventArgs e)
@@ -127,8 +174,26 @@
         {
             _ofp = Ofp.Current;
             _loadsheets = Loadsheets.Snapshot();
+            _deice = Deice.Snapshot();
             StateHasChanged();
         });
+
+    private void OnPrecipChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<HotPrecip>(e.Value?.ToString(), out var precip))
+        {
+            Deice.SetPrecip(precip);
+        }
+    }
+
+    private void OnOatChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var oat))
+        {
+            _deiceOat = oat;
+            Deice.SetOat(oat);
+        }
+    }
 
     private IEnumerable<(string Label, LoadsheetSlotView Slot, EventCallback Generate, bool Busy)> Slots()
     {

@@ -19,9 +19,16 @@ public sealed class GroundOpsSignals
     /// reset). Loadsheet caches/edition counters reset here.</summary>
     public event Action? FlightCycleReset;
 
+    /// <summary>GSX de-icing completed; the argument is the applied fluid type from
+    /// <c>L:FSDT_GSX_DEICING_TYPE</c> (1=Type I … 4=Type IV, 0 = unknown). Arms the holdover
+    /// card.</summary>
+    public event Action<int>? DeiceCompleted;
+
     public void RaiseRefuelServiceActive() => RefuelServiceActive?.Invoke();
 
     public void RaiseBoardingCompleted() => BoardingCompleted?.Invoke();
 
     public void RaiseFlightCycleReset() => FlightCycleReset?.Invoke();
+
+    public void RaiseDeiceCompleted(int fluidType) => DeiceCompleted?.Invoke(fluidType);
 }

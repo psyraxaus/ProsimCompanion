@@ -1,0 +1,12 @@
+{
+  "checklist": "Parking",
+  "order": 160,
+  "items": [
+    { "behavior": "acknowledge", "say": "A P U Bleed", "expectedResponse": "AS REQUIRED", "acceptedPhrases": [ "as required", "on", "set" ], "verify": null, "confirmCallout": "APU bleed, as required" },
+    { "behavior": "acknowledge", "say": "Engines", "expectedResponse": "OFF", "acceptedPhrases": [ "off" ], "verify": null, "confirmCallout": "Engines, off" },
+    { "behavior": "verify", "say": "Seat Belts", "expectedResponse": "OFF", "acceptedPhrases": [ "off" ], "verify": { "dataref": "system.switches.S_OH_SIGNS", "op": "equals", "value": 2 }, "confirmCallout": "Seat belts, off" },
+    { "behavior": "acknowledge", "say": "Exterior Lights", "expectedResponse": "AS REQUIRED", "acceptedPhrases": [ "as required", "off", "set" ], "verify": null, "confirmCallout": "Exterior lights, as required" },
+    { "behavior": "acknowledge", "say": "Fuel Pumps", "expectedResponse": "OFF", "acceptedPhrases": [ "off" ], "verify": null, "confirmCallout": "Fuel pumps, off" },
+    { "behavior": "verify", "say": "Parking Brake and Chocks", "expectedResponse": "SET", "acceptedPhrases": [ "set", "on" ], "verify": { "dataref": "system.switches.S_MIP_PARKING_BRAKE", "op": "equals", "value": 1 }, "confirmCallout": "Parking brake and chocks, set" }
+  ]
+}
