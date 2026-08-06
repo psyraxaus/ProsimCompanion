@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\ProsimCompanion.Audio\ProsimCompanion.Audio.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Gsx\ProsimCompanion.Gsx.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Prosim\ProsimCompanion.Prosim.csproj" />

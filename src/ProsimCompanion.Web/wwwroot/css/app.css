@@ -751,6 +751,37 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   align-items: center;
 }
 
+/* -------------------------------------------------------- audio mapping editors */
+
+.audio-map-header,
+.audio-map-row {
+  display: grid;
+  grid-template-columns: 90px 1.2fr 1.2fr 60px 60px 32px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.audio-vm-header,
+.audio-vm-row {
+  display: grid;
+  grid-template-columns: 90px 1.4fr 60px 32px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.audio-map-header,
+.audio-vm-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.audio-cell-check { justify-self: center; }
+
 /* -------------------------------------------------------------- data tables */
 
 .table-scroll { overflow-x: auto; }
@@ -851,6 +882,16 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
     border-bottom: 1px dashed var(--border);
   }
   .service-actions { justify-content: flex-end; }
+
+  .audio-map-header, .audio-vm-header { display: none; }
+  .audio-map-row, .audio-vm-row {
+    grid-template-columns: 1fr;
+    grid-auto-flow: row;
+    gap: 6px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .audio-cell-check { justify-self: start; }
 }
 
 @media (max-width: 540px) {

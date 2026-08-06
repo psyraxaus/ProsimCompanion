@@ -33,6 +33,7 @@ public static class SettingsDefaultsWriter
             (WebUiOptions.SectionName, new WebUiOptions()),
             (ProsimOptions.SectionName, new ProsimOptions()),
             (GsxOptions.SectionName, new GsxOptions()),
+            (AudioOptions.SectionName, new AudioOptions()),
             (FlightDataOptions.SectionName, new FlightDataOptions()),
             (LoggingOptions.SectionName, new LoggingOptions()),
             (AircraftProfilesOptions.SectionName, new AircraftProfilesOptions()),

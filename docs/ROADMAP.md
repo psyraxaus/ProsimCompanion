@@ -225,9 +225,22 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
 
 ## Phase 4 — Audio control
 
-- [ ] ACP knob/latch → Windows per-app volume (CoreAudio) with multi-ACP power gating
-- [ ] VoiceMeeter backend (strips/buses, runtime-loaded VoicemeeterRemote64.dll), live backend switch
-- [ ] Device blacklist, elevated-process detection
+- [x] ACP knob/latch → Windows per-app volume (CoreAudio via NAudio.Wasapi) with per-ACP power
+      gating: shared `AcpChannelFeed` (knob analogs 0–1024 + REC latches @ 250 ms), the full
+      three-bus + audio-switching gate applied to BOTH backends (the predecessor gated CoreAudio
+      on DC ESS at startup only), events suppressed while unpowered with re-emit on power
+      restore, per-mapping coalesced writes (latest-value-wins), session volume save/restore,
+      process-handle hygiene, /audio status + /settings/audio pages. **Unverified live**
+- [x] VoiceMeeter backend: runtime-loaded VoicemeeterRemote64.dll (NativeLibrary +
+      GetDelegateForFunctionPointer, user-configured path), idempotent login, strips/buses with
+      −60…+12 dB mapping, live backend switch (suspend-not-logout; neutral 0 dB reset runs
+      BEFORE unbind — fixing the predecessor's dead-code ordering), mapping validation
+      (duplicate channel per ACP / duplicate target across ACPs) with Captain-only session
+      fallback that never modifies the config. **Unverified live**
+- [x] Device blacklist (device-name-prefix match), elevated-process detection (MainModule probe;
+      flagged on /audio with run-as-admin guidance), ProSim native audio guard
+      (aircraft.communication.windows.* cleared once per connection; PA deliberately untouched,
+      predecessor parity). **Unverified live**
 
 ## Phase 5 — Voice First Officer
 

@@ -56,9 +56,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 ## Audio (Prosim2GSX → Phase 4)
 
-- [ ] ACP knob/latch → CoreAudio per-app volumes (multi-ACP with power gating)
-- [ ] VoiceMeeter strips/buses backend; live backend switch
-- [ ] Device blacklist; elevated-process detection
+- [x] ACP knob/latch → CoreAudio per-app volumes (multi-ACP with power gating) — all 8 channels
+      × 3 ACPs; CoreAudio listens to one configurable ACP, VoiceMeeter to any combination
+- [x] VoiceMeeter strips/buses backend; live backend switch
+- [x] Device blacklist; elevated-process detection
 
 ## Voice First Officer (Prosim2FO → Phase 5)
 

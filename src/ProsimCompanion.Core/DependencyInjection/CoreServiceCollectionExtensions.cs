@@ -41,6 +41,25 @@ public static class CoreServiceCollectionExtensions
                 o.DepartureServices.AddRange(GsxOptions.DefaultDepartureServices);
             }
         });
+        // Same binder-appends-to-defaults trap for the audio lists.
+        services.Configure<AudioOptions>(o =>
+        {
+            o.AppMappings.Clear();
+            o.ActiveAcps.Clear();
+        });
+        services.Configure<AudioOptions>(configuration.GetSection(AudioOptions.SectionName));
+        services.PostConfigure<AudioOptions>(o =>
+        {
+            if (o.AppMappings.Count == 0)
+            {
+                o.AppMappings.AddRange(AudioOptions.DefaultAppMappings);
+            }
+
+            if (o.ActiveAcps.Count == 0)
+            {
+                o.ActiveAcps.Add(AcpSide.Captain);
+            }
+        });
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
         services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
         services.Configure<FlightDataOptions>(configuration.GetSection(FlightDataOptions.SectionName));
@@ -48,6 +67,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         services.AddSingleton<ConnectionStatusStore>();
         services.AddSingleton<GsxDiagnosticsStore>();
+        services.AddSingleton<AudioStatusStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();
         services.AddSingleton<GroundOpsSignals>();

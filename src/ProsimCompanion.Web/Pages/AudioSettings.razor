@@ -1,0 +1,456 @@
+@page "/settings/audio"
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using System.Text.Json.Serialization
+@implements IDisposable
+@inject IOptionsMonitor<AudioOptions> AudioMonitor
+@inject JsonSettingsFile SettingsFile
+@inject IAudioControl AudioControl
+
+<PageTitle>Audio Settings — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Audio Settings</h1>
+
+<div class="settings-panel" style="padding-bottom:96px;">
+    <div class="settings-body">
+        <div class="rail-column">
+            <div class="rail-header"><span class="rail-header-context">Audio</span></div>
+            <nav class="rail-nav sticky-rail">
+                @foreach (var (key, label) in Sections)
+                {
+                    <button type="button" class="rail-item @(_section == key ? "active" : null)"
+                            @onclick="() => _section = key">@label</button>
+                }
+            </nav>
+        </div>
+        <div class="settings-content">
+
+            @if (_section == "general")
+            {
+                <Section Title="Volume Control" Hint="ACP knobs and REC latches drive app volumes">
+                    <BoolField Label="Enabled"
+                               Hint="Master switch for the audio pillar — knobs, latches, and the ProSim native-audio guard"
+                               @bind-Value="_draft.Enabled" />
+                    <SelectField Label="Backend" Options="BackendOptions"
+                                 Hint="Switching applies live: CoreAudio session volumes are restored, VoiceMeeter targets reset to 0 dB"
+                                 @bind-Value="BackendKey" />
+                    <BoolField Label="Disable ProSim native audio control"
+                               Hint="Clears ProSim's aircraft.communication.windows.* bindings once per connection so both apps never fight over the same sessions"
+                               @bind-Value="_draft.DisableProsimNativeAudio" />
+                </Section>
+            }
+            else if (_section == "coreaudio")
+            {
+                <Section Title="CoreAudio" Hint="Windows per-app session volumes">
+                    <SelectField Label="ACP" Options="AcpOptions"
+                                 Hint="Which Audio Control Panel the app mappings listen to"
+                                 @bind-Value="CoreAudioAcpKey" />
+                </Section>
+
+                <Section Title="App Mappings" Hint="A channel may drive several processes">
+                    @if (_draft.AppMappings.Count == 0)
+                    {
+                        <div class="empty">No app mappings configured.</div>
+                    }
+                    else
+                    {
+                        <div class="audio-map-header">
+                            <span>Channel</span><span>Process</span><span>Device</span>
+                            <span>Latch</span><span>Active</span><span></span>
+                        </div>
+                        @for (var i = 0; i < _draft.AppMappings.Count; i++)
+                        {
+                            var index = i;
+                            var row = _draft.AppMappings[index];
+                            <div class="audio-map-row">
+                                <select class="cell-select" @bind="row.Channel">
+                                    @foreach (var channel in Enum.GetValues<AudioChannel>())
+                                    {
+                                        <option value="@channel">@AudioPresentation.ChannelLabel(channel)</option>
+                                    }
+                                </select>
+                                <input class="cell-input" placeholder="Process name (no .exe)" @bind="row.Binary" />
+                                <input class="cell-input" placeholder="All devices" @bind="row.Device" />
+                                <input type="checkbox" class="audio-cell-check" title="Drive mute from the REC latch"
+                                       @bind="row.UseLatch" />
+                                <input type="checkbox" class="audio-cell-check" title="Only control active sessions"
+                                       @bind="row.OnlyActive" />
+                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                        @onclick="() => _draft.AppMappings.RemoveAt(index)">×</button>
+                            </div>
+                        }
+                    }
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn secondary"
+                                @onclick="() => _draft.AppMappings.Add(new AudioAppMapping())">Add mapping</button>
+                    </div>
+                    <div class="field-hint" style="margin-top:8px; max-width:640px;">
+                        Process name without extension (e.g. "vPilot"). When the latch box is off,
+                        mute is never written — an app muted elsewhere stays muted. Apps running
+                        elevated (as administrator) cannot be controlled unless ProsimCompanion
+                        also runs elevated; the Audio page flags them.
+                    </div>
+                </Section>
+
+                <Section Title="Device Blacklist" Hint="Matched on the START of the device name">
+                    <div class="list-editor">
+                        @for (var i = 0; i < _draft.DeviceBlacklist.Count; i++)
+                        {
+                            var index = i;
+                            <div class="list-row">
+                                <input class="cell-input" placeholder="Device friendly name prefix"
+                                       @bind="_draft.DeviceBlacklist[index]" />
+                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                        @onclick="() => _draft.DeviceBlacklist.RemoveAt(index)">×</button>
+                            </div>
+                        }
+                    </div>
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn secondary"
+                                @onclick="() => _draft.DeviceBlacklist.Add(string.Empty)">Add device</button>
+                    </div>
+                </Section>
+            }
+            else if (_section == "voicemeeter")
+            {
+                <Section Title="VoiceMeeter" Hint="Strips/buses via VoicemeeterRemote64.dll">
+                    <TextField Label="VoicemeeterRemote64.dll path"
+                               Hint="Typically C:\Program Files (x86)\VB\Voicemeeter\VoicemeeterRemote64.dll — never bundled, loaded at runtime"
+                               @bind-Value="_draft.VoiceMeeterDllPath" />
+                    <div style="margin:8px 0;">
+                        <button type="button" class="btn secondary" @onclick="ReloadTargets">Reload strips</button>
+                        <span class="field-hint" style="margin-left:8px;">
+                            @(_vmTargets.Count > 0
+                                ? $"{_vmTargets.Count(t => !t.IsBus)} strips / {_vmTargets.Count(t => t.IsBus)} buses found"
+                                : "VoiceMeeter not reachable — generic strip/bus numbers shown")
+                        </span>
+                    </div>
+                </Section>
+
+                @foreach (var acp in Enum.GetValues<AcpSide>())
+                {
+                    <Section Title="@($"{AudioPresentation.AcpLabel(acp)} Mappings")">
+                        <BoolField Label="@($"Drive targets from the {AudioPresentation.AcpLabel(acp)} ACP")"
+                                   Value="_draft.ActiveAcps.Contains(acp)"
+                                   ValueChanged="active => SetAcpActive(acp, active)" />
+                        @{ var list = VmList(acp); }
+                        @if (list.Count > 0)
+                        {
+                            <div class="audio-vm-header">
+                                <span>Channel</span><span>Target</span><span>Latch</span><span></span>
+                            </div>
+                            @for (var i = 0; i < list.Count; i++)
+                            {
+                                var index = i;
+                                var row = list[index];
+                                <div class="audio-vm-row">
+                                    <select class="cell-select" @bind="row.Channel">
+                                        @foreach (var channel in Enum.GetValues<AudioChannel>())
+                                        {
+                                            <option value="@channel">@AudioPresentation.ChannelLabel(channel)</option>
+                                        }
+                                    </select>
+                                    <select class="cell-select" value="@TargetKey(row)"
+                                            @onchange="e => SetTarget(row, e.Value as string)">
+                                        @foreach (var (key, label) in TargetOptions())
+                                        {
+                                            <option value="@key">@label</option>
+                                        }
+                                    </select>
+                                    <input type="checkbox" class="audio-cell-check"
+                                           title="Drive mute from the REC latch" @bind="row.UseLatch" />
+                                    <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                            @onclick="() => list.RemoveAt(index)">×</button>
+                                </div>
+                            }
+                        }
+                        <div style="margin-top:8px;">
+                            <button type="button" class="btn secondary"
+                                    @onclick="() => VmList(acp).Add(new VoiceMeeterTargetMapping())">Add mapping</button>
+                        </div>
+                    </Section>
+                }
+
+                <div class="field-hint" style="max-width:640px;">
+                    A channel may appear once per ACP, and a strip/bus may be driven by only one
+                    ACP. Conflicting saves fall back to CPT-only until fixed (the Audio page shows
+                    the reason). Knob travel maps to −60 dB … +12 dB; 0 dB sits around 83 %.
+                </div>
+            }
+            else
+            {
+                <Section Title="Housekeeping" Hint="Predecessor-proven cadences — rarely need changing">
+                    <NumberField Label="Run interval" Suffix="ms" Min="250"
+                                 Hint="Main housekeeping tick. Takes effect after restarting the application"
+                                 @bind-Value="_draft.RunIntervalMs" />
+                    <NumberField Label="Process check interval" Suffix="ms" Min="500"
+                                 @bind-Value="_draft.ProcessCheckIntervalMs" />
+                    <NumberField Label="Process startup grace" Suffix="ms" Min="0"
+                                 Hint="Wait after a mapped app starts before looking for its audio session"
+                                 @bind-Value="_draft.ProcessStartupDelayMs" />
+                    <NumberField Label="Device rescan interval" Suffix="ms" Min="5000"
+                                 @bind-Value="_draft.DeviceCheckIntervalMs" />
+                    <NumberField Label="Max session searches" Min="1"
+                                 Hint="Failed lookups for a running process before a forced device rescan"
+                                 @bind-Value="_draft.ProcessMaxSearchCount" />
+                </Section>
+            }
+
+        </div>
+    </div>
+</div>
+
+<DirtyBar Visible="@(IsDirty || _barMessage is not null)"
+          Message="@(_barMessage ?? "You have unsaved changes")"
+          Tone="_barTone"
+          OnSave="Save"
+          OnDiscard="Discard" />
+
+@code {
+    private static readonly (string Key, string Label)[] Sections =
+    [
+        ("general", "General"),
+        ("coreaudio", "CoreAudio"),
+        ("voicemeeter", "VoiceMeeter"),
+        ("advanced", "Advanced"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> BackendOptions =
+    [
+        ("coreAudio", "CoreAudio (Windows app volumes)"),
+        ("voiceMeeter", "VoiceMeeter (strips/buses)"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> AcpOptions =
+    [
+        ("captain", "Captain (ACP1)"),
+        ("firstOfficer", "First Officer (ACP2)"),
+        ("observer", "Observer (ACP3)"),
+    ];
+
+    private static readonly JsonSerializerOptions DraftJson = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+    };
+
+    private string _section = "general";
+    private AudioOptions _draft = new();
+    private string _baseline = "";
+    private IReadOnlyList<VoiceMeeterTargetView> _vmTargets = [];
+    private string? _barMessage;
+    private DirtyBar.MessageTone _barTone = DirtyBar.MessageTone.Unsaved;
+    private Timer? _savedMessageTimer;
+
+    private bool IsDirty => Serialize(_draft) != _baseline;
+
+    private string BackendKey
+    {
+        get => JsonNamingPolicy.CamelCase.ConvertName(_draft.Backend.ToString());
+        set => _draft.Backend = Enum.TryParse<AudioBackend>(value, ignoreCase: true, out var parsed)
+            ? parsed : AudioBackend.CoreAudio;
+    }
+
+    private string CoreAudioAcpKey
+    {
+        get => JsonNamingPolicy.CamelCase.ConvertName(_draft.CoreAudioAcp.ToString());
+        set => _draft.CoreAudioAcp = Enum.TryParse<AcpSide>(value, ignoreCase: true, out var parsed)
+            ? parsed : AcpSide.Captain;
+    }
+
+    protected override void OnInitialized()
+    {
+        LoadDraft();
+        ReloadTargets();
+    }
+
+    private void LoadDraft()
+    {
+        // JSON round-trip clone — the options instance is shared with the running service
+        // and must never be edited in place.
+        _draft = JsonSerializer.Deserialize<AudioOptions>(
+            JsonSerializer.Serialize(AudioMonitor.CurrentValue, DraftJson), DraftJson) ?? new AudioOptions();
+
+        // Normalize dictionary keys to the canonical camelCase ACP names so the editor and
+        // the save path address the same buckets regardless of hand-edited key casing.
+        var normalized = new Dictionary<string, List<VoiceMeeterTargetMapping>>();
+        foreach (var (key, mappings) in _draft.VoiceMeeterMappings)
+        {
+            if (Enum.TryParse<AcpSide>(key, ignoreCase: true, out var acp))
+            {
+                normalized[AcpKey(acp)] = mappings;
+            }
+        }
+        _draft.VoiceMeeterMappings = normalized;
+
+        _baseline = Serialize(_draft);
+    }
+
+    private static string Serialize(AudioOptions options) => JsonSerializer.Serialize(options, DraftJson);
+
+    private static string AcpKey(AcpSide acp) => JsonNamingPolicy.CamelCase.ConvertName(acp.ToString());
+
+    private List<VoiceMeeterTargetMapping> VmList(AcpSide acp)
+    {
+        var key = AcpKey(acp);
+        if (!_draft.VoiceMeeterMappings.TryGetValue(key, out var list))
+        {
+            list = [];
+            _draft.VoiceMeeterMappings[key] = list;
+        }
+        return list;
+    }
+
+    private void SetAcpActive(AcpSide acp, bool active)
+    {
+        _draft.ActiveAcps.Remove(acp);
+        if (active)
+        {
+            _draft.ActiveAcps.Add(acp);
+        }
+    }
+
+    private void ReloadTargets()
+    {
+        try
+        {
+            _vmTargets = AudioControl.GetVoiceMeeterTargets();
+        }
+        catch (Exception)
+        {
+            _vmTargets = [];
+        }
+    }
+
+    private static string TargetKey(VoiceMeeterTargetMapping mapping) =>
+        $"{(mapping.IsBus ? "bus" : "strip")}:{mapping.StripIndex}";
+
+    private static void SetTarget(VoiceMeeterTargetMapping mapping, string? key)
+    {
+        var parts = (key ?? "").Split(':');
+        if (parts.Length == 2 && int.TryParse(parts[1], out var index))
+        {
+            mapping.IsBus = parts[0] == "bus";
+            mapping.StripIndex = index;
+        }
+    }
+
+    private IReadOnlyList<(string Key, string Label)> TargetOptions()
+    {
+        var options = new List<(string, string)>();
+        if (_vmTargets.Count > 0)
+        {
+            foreach (var target in _vmTargets)
+            {
+                var kind = target.IsBus ? "Bus" : "Strip";
+                var label = string.IsNullOrWhiteSpace(target.Label) ? "" : $" — {target.Label}";
+                options.Add(($"{(target.IsBus ? "bus" : "strip")}:{target.Index}", $"{kind} {target.Index + 1}{label}"));
+            }
+            return options;
+        }
+
+        // VoiceMeeter unreachable: offer the Potato-sized generic range (8 strips / 8 buses).
+        for (var i = 0; i < 8; i++)
+        {
+            options.Add(($"strip:{i}", $"Strip {i + 1}"));
+        }
+        for (var i = 0; i < 8; i++)
+        {
+            options.Add(($"bus:{i}", $"Bus {i + 1}"));
+        }
+        return options;
+    }
+
+    private void Discard()
+    {
+        LoadDraft();
+        _barMessage = null;
+    }
+
+    private void Save()
+    {
+        try
+        {
+            var draft = _draft;
+            SettingsFile.Update(root =>
+            {
+                var audio = JsonSettingsFile.GetOrCreateSection(root, AudioOptions.SectionName);
+
+                audio["enabled"] = draft.Enabled;
+                audio["backend"] = JsonNamingPolicy.CamelCase.ConvertName(draft.Backend.ToString());
+                audio["disableProsimNativeAudio"] = draft.DisableProsimNativeAudio;
+
+                audio["coreAudioAcp"] = JsonNamingPolicy.CamelCase.ConvertName(draft.CoreAudioAcp.ToString());
+                var mappings = new JsonArray();
+                foreach (var mapping in draft.AppMappings.Where(m => !string.IsNullOrWhiteSpace(m.Binary)))
+                {
+                    mappings.Add(new JsonObject
+                    {
+                        ["channel"] = JsonNamingPolicy.CamelCase.ConvertName(mapping.Channel.ToString()),
+                        ["binary"] = mapping.Binary.Trim(),
+                        ["device"] = mapping.Device.Trim(),
+                        ["useLatch"] = mapping.UseLatch,
+                        ["onlyActive"] = mapping.OnlyActive,
+                    });
+                }
+                audio["appMappings"] = mappings;
+
+                var blacklist = new JsonArray();
+                foreach (var entry in draft.DeviceBlacklist.Where(d => !string.IsNullOrWhiteSpace(d)))
+                {
+                    blacklist.Add(entry.Trim());
+                }
+                audio["deviceBlacklist"] = blacklist;
+
+                audio["voiceMeeterDllPath"] = draft.VoiceMeeterDllPath.Trim();
+                var activeAcps = new JsonArray();
+                foreach (var acp in draft.ActiveAcps.Distinct())
+                {
+                    activeAcps.Add(AcpKey(acp));
+                }
+                audio["activeAcps"] = activeAcps;
+
+                var vmMappings = new JsonObject();
+                foreach (var (key, list) in draft.VoiceMeeterMappings)
+                {
+                    var rows = new JsonArray();
+                    foreach (var mapping in list)
+                    {
+                        rows.Add(new JsonObject
+                        {
+                            ["channel"] = JsonNamingPolicy.CamelCase.ConvertName(mapping.Channel.ToString()),
+                            ["stripIndex"] = mapping.StripIndex,
+                            ["isBus"] = mapping.IsBus,
+                            ["useLatch"] = mapping.UseLatch,
+                        });
+                    }
+                    vmMappings[key] = rows;
+                }
+                audio["voiceMeeterMappings"] = vmMappings;
+
+                audio["runIntervalMs"] = draft.RunIntervalMs;
+                audio["processCheckIntervalMs"] = draft.ProcessCheckIntervalMs;
+                audio["processStartupDelayMs"] = draft.ProcessStartupDelayMs;
+                audio["deviceCheckIntervalMs"] = draft.DeviceCheckIntervalMs;
+                audio["processMaxSearchCount"] = draft.ProcessMaxSearchCount;
+            });
+
+            _baseline = Serialize(_draft);
+            _barMessage = "Saved.";
+            _barTone = DirtyBar.MessageTone.Info;
+            _savedMessageTimer?.Dispose();
+            _savedMessageTimer = new Timer(_ => _ = InvokeAsync(() =>
+            {
+                _barMessage = null;
+                _barTone = DirtyBar.MessageTone.Unsaved;
+                StateHasChanged();
+            }), null, TimeSpan.FromSeconds(1.5), Timeout.InfiniteTimeSpan);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _barMessage = $"Save failed: {ex.Message}";
+            _barTone = DirtyBar.MessageTone.Error;
+        }
+    }
+
+    public void Dispose() => _savedMessageTimer?.Dispose();
+}
