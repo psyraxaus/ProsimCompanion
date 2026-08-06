@@ -24,6 +24,7 @@ public sealed class SpeechBootstrapService : IHostedService
     private readonly PushToTalkService _ptt;
     private readonly SpokenChecklistEngine _spokenChecklists;
     private readonly Abnormals.FailureMonitor _failures;
+    private readonly SayIntentions.SayIntentionsService _sayIntentions;
 
     public SpeechBootstrapService(
         SpeechArbiterService arbiter,
@@ -33,10 +34,13 @@ public sealed class SpeechBootstrapService : IHostedService
         TtsPrewarmService prewarm,
         PushToTalkService ptt,
         SpokenChecklistEngine spokenChecklists,
-        Abnormals.FailureMonitor failures)
+        Abnormals.FailureMonitor failures,
+        SayIntentions.SayIntentionsService sayIntentions)
     {
         ArgumentNullException.ThrowIfNull(failures);
+        ArgumentNullException.ThrowIfNull(sayIntentions);
         _failures = failures;
+        _sayIntentions = sayIntentions;
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(callouts);
         ArgumentNullException.ThrowIfNull(stabilized);
@@ -62,6 +66,7 @@ public sealed class SpeechBootstrapService : IHostedService
         _prewarm.Start();
         _ptt.Start();
         _failures.Start();
+        _sayIntentions.Start();
         _spokenChecklists.Start();
         return Task.CompletedTask;
     }
@@ -69,6 +74,7 @@ public sealed class SpeechBootstrapService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _spokenChecklists.Dispose();
+        _sayIntentions.Dispose();
         _failures.Dispose();
         _ptt.Dispose();
         _prewarm.Dispose();

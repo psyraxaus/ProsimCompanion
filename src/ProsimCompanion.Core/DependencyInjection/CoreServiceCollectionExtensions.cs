@@ -61,6 +61,8 @@ public static class CoreServiceCollectionExtensions
             }
         });
         services.Configure<SpeechOptions>(configuration.GetSection(SpeechOptions.SectionName));
+        services.Configure<BriefingOptions>(configuration.GetSection(BriefingOptions.SectionName));
+        services.Configure<SayIntentionsOptions>(configuration.GetSection(SayIntentionsOptions.SectionName));
         // Same binder-appends-to-defaults trap for the SOP lists.
         services.Configure<SopOptions>(o =>
         {

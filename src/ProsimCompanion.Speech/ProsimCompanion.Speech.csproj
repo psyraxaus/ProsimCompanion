@@ -11,7 +11,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Google.Cloud.TextToSpeech.V1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="NAudio" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" />
     <PackageReference Include="System.Speech" />
   </ItemGroup>
 

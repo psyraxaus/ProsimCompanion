@@ -62,6 +62,8 @@
     <Content Include="config\checklists\*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Shipped abnormal procedures + memory drills (Prosim2FO-compatible; user-editable). -->
     <Content Include="config\abnormals\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- SayIntentions ATC request phrasebook (user-editable). -->
+    <Content Include="config\atc-requests.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

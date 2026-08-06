@@ -1,0 +1,46 @@
+{
+  "//": "SayIntentions ATC requests. Each is spoken on COM1 via sayAs (SayIntentions voices it). Placeholders: {callsign} {gate} {runway} {airport} {origin} from flight.json. commType matches the getWX comms 'type' for auto-tune. Only active when sayIntentions.enabled = true. Add more requests freely.",
+
+  "requests": [
+    {
+      "phrases": [ "request atc clearance", "request clearance" ],
+      "station": "Clearance Delivery",
+      "commType": "CLEARANCE",
+      "isDeparture": false,
+      "icao": "Delivery, {callsign}, request clearance",
+      "faa": "Clearance Delivery, {callsign}, request IFR clearance"
+    },
+    {
+      "phrases": [ "request start clearance", "request start" ],
+      "station": "Ground",
+      "commType": "GROUND",
+      "isDeparture": false,
+      "icao": "Ground, {callsign}, stand {gate}, request start up",
+      "faa": "Ground, {callsign}, gate {gate}, request engine start"
+    },
+    {
+      "phrases": [ "request push and start clearance", "request push and start" ],
+      "station": "Ground",
+      "commType": "GROUND",
+      "isDeparture": false,
+      "icao": "Ground, {callsign}, stand {gate}, request push and start",
+      "faa": "Ground, {callsign}, gate {gate}, request push and start"
+    },
+    {
+      "phrases": [ "request taxi clearance", "request taxi" ],
+      "station": "Ground",
+      "commType": "GROUND",
+      "isDeparture": false,
+      "icao": "Ground, {callsign}, stand {gate}, request taxi",
+      "faa": "Ground, {callsign}, gate {gate}, ready to taxi"
+    },
+    {
+      "phrases": [ "request takeoff clearance", "request departure" ],
+      "station": "Tower",
+      "commType": "TOWER",
+      "isDeparture": true,
+      "icao": "Tower, {callsign}, holding short runway {runway}, ready for departure",
+      "faa": "Tower, {callsign}, holding short runway {runway}, ready for departure"
+    }
+  ]
+}

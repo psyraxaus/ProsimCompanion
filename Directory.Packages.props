@@ -23,6 +23,9 @@
     <!-- Speech pillar (Phase 5): Google Chirp 3 HD TTS + SAPI5 last-resort synth. -->
     <PackageVersion Include="Google.Cloud.TextToSpeech.V1" Version="3.18.0" />
     <PackageVersion Include="System.Speech" Version="10.0.10" />
+    <!-- Navigraph DFD SQLite (briefings). lib.e_sqlite3 pinned >= 3.53.3: GHSA-2m69-gcr7-jv3q. -->
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
     <PackageVersion Include="QRCoder" Version="1.6.0" />
     <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
     <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />

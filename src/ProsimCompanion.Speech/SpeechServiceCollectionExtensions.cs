@@ -48,6 +48,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Radios.RadioExecutor>());
         services.AddSingleton<Fcu.FcuExecutor>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Fcu.FcuExecutor>());
+        services.AddSingleton<Briefings.DfdNavDataProvider>();
+        services.AddSingleton<Briefings.BriefingService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Briefings.BriefingService>());
+        services.AddSingleton<SayIntentions.SayIntentionsService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<SayIntentions.SayIntentionsService>());
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

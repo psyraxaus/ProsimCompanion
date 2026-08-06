@@ -339,7 +339,16 @@ from Phase 1 — this phase adds the speech stack and features on top.
       deterministic 118–136.99 parser with 8.33/25 kHz channel validation, backoff/unable
       inhibits. MCDU voice actions (RAD NAV tune, arrival change) deferred — they need the
       display de-flicker reader. **Unverified live**
-- [ ] Briefings (Navigraph DFD + weather + LLM composition with number verification)
+- [x] Briefings: departure/arrival composed from FMS-first procedure resolution
+      (aircraft.fms.flightPlanXml, manual-settings fallback), Navigraph DFD facts (both
+      schema generations auto-detected, per-field defensive queries, user-supplied db —
+      SQLitePCLRaw pinned per GHSA-2m69-gcr7-jv3q), FMS V-speeds, gateway METAR wind/QNH,
+      crew-entered minima echoed last. Optional OpenAI-compatible LLM behind the
+      predecessor's number verifier (significant tokens vs facts within 0.06, one re-ask
+      with the allowed set, template on any failure) — the deterministic template (exact
+      predecessor clause structure) is always the floor. Voice: "brief the departure/
+      arrival". Interactive minima capture + missed-approach re-brief deferred (minima come
+      from the /speech card). **Unverified live**
 - [x] ECAM abnormals + memory drills (detect-and-report only): the 30 Prosim2FO definitions
       carried verbatim (config/abnormals/*.json, user-editable) — E/WD text primary trigger,
       per-system dataref corroborating/fallback, optional master/ECAM light gate, ≥0.5 s
@@ -349,7 +358,21 @@ from Phase 1 — this phase adds the speech stack and features on top.
       refs and are voice-invocable as rehearsals; rapid items at 350 ms, spoken verbatim.
       Interactive per-line ECAM dialogue (confirm/verify/branch) deferred with the
       recognition leftovers. **Unverified live**
-- [ ] SayIntentions ATC requests, departure comms gating, radio management
+- [x] SayIntentions: flight.json polled 1 Hz for the active-flight context, data-driven ATC
+      requests (config/atc-requests.json carried verbatim, {callsign}/{gate}/{runway}
+      templating, ICAO/FAA phraseology) spoken via sayAs on COM1 (255-char cap), optional
+      getWX comms auto-tune via setFreq, departure-comms gate (SI copilot owns comms on the
+      ground; ≤0.3 nm to the runway takes them back + tunes Tower; the takeoff request
+      restores). SIAI L:var radio-clear gate replaced by the predecessor's own no-SimVars
+      400 ms fallback for now. Radio management delivered in slice 7. Disabled by default.
+      **Unverified live**
+- [ ] Phase 5 leftovers (post-verification): WinRT recognition engine, wake-on-LAN,
+      gray-band confirm sub-dialogue, hold/resume voice commands, interactive minima capture
+      + missed-approach re-brief, interactive per-line ECAM dialogue, MCDU voice actions
+      (RAD NAV tune / arrival change — need the display de-flicker reader), persona styling,
+      Purser/Company voices + chimes, web settings UI for the new sections (sop/briefing/
+      sayIntentions are hand-editable in settings.json with written defaults), SIAI L:var
+      radio-clear gate via ISimVars
 
 ## Phase 6 — Immersion & remaining integrations
 
