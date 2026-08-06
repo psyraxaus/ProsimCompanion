@@ -80,6 +80,15 @@ public static class ProsimWriteGate
         // (0..512..1024). The captain-side A_FC_CAPT_* refs are deliberately NOT listed —
         // the FO must never move the captain's controls.
         "system.analog.A_FC_FO_",
+
+        // Voice FCU actions: value analogs (A_FCU_HEADING/ALTITUDE/SPEED/VS) + push/pull and
+        // engagement switches. FcuControls further narrows to its fixed 15-entry list.
+        "system.analog.A_FCU_",
+        "system.switches.S_FCU_",
+
+        // Voice radio management: COM1/COM2 active+standby kHz analogs. RadioControls
+        // enforces the standby-then-swap rule (active only ever written during a swap).
+        "system.analog.R_COM",
     ];
 
     /// <summary>True when the dataref may be written by this application.</summary>

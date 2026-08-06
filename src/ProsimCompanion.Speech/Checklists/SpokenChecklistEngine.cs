@@ -45,6 +45,7 @@ public sealed class SpokenChecklistEngine : IDisposable
     private readonly ControlMonitor _monitor;
     private readonly ControlSweepService _sweep;
     private readonly FailureMonitor _failures;
+    private readonly IReadOnlyList<IVoiceFeature> _features;
     private readonly SpeechStatusStore _store;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SpokenChecklistEngine> _logger;
@@ -68,12 +69,15 @@ public sealed class SpokenChecklistEngine : IDisposable
         ControlMonitor monitor,
         ControlSweepService sweep,
         FailureMonitor failures,
+        IEnumerable<IVoiceFeature> features,
         SpeechStatusStore store,
         JsonlEventLog eventLog,
         ILogger<SpokenChecklistEngine> logger)
     {
         ArgumentNullException.ThrowIfNull(failures);
+        ArgumentNullException.ThrowIfNull(features);
         _failures = failures;
+        _features = [.. features];
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(recognition);
@@ -519,6 +523,19 @@ public sealed class SpokenChecklistEngine : IDisposable
             awaiting = _awaitingItem;
         }
 
+        // Value-parsing features (FCU, radios) get the RAW transcription first so numbers
+        // survive — skipped while an item is awaiting an answer.
+        if (awaiting is null)
+        {
+            foreach (var feature in _features.Where(f => f.ValueParse))
+            {
+                if (feature.TryHandle(e.Text))
+                {
+                    return;
+                }
+            }
+        }
+
         var grammar = BuildRouteVocabulary(awaiting);
         var interpretation = _interpreter.Interpret(
             e.Text, grammar, new InterpretContext(awaiting is not null, e.AcousticConfidence, e.NoSpeechProb));
@@ -585,7 +602,16 @@ public sealed class SpokenChecklistEngine : IDisposable
             return;
         }
 
-        // Idle window: a memory-drill rehearsal phrase?
+        // Idle window: a voice feature (roles, FCU engagements, radios)?
+        foreach (var feature in _features)
+        {
+            if (feature.TryHandle(text))
+            {
+                return;
+            }
+        }
+
+        // A memory-drill rehearsal phrase?
         if (_failures.TryRunDrillByPhrase(text))
         {
             return;
@@ -623,6 +649,10 @@ public sealed class SpokenChecklistEngine : IDisposable
             }
 
             vocabulary.AddRange(_failures.DrillPhrases);
+            foreach (var feature in _features)
+            {
+                vocabulary.AddRange(feature.Phrases);
+            }
         }
 
         return vocabulary;

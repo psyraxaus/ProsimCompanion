@@ -40,6 +40,14 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<ControlMonitor>();
         services.AddSingleton<ControlSweepService>();
         services.AddSingleton<Abnormals.FailureMonitor>();
+        // Voice features — registration order is dispatch precedence (roles first so a
+        // handover is never mis-parsed as an instruction).
+        services.AddSingleton<Roles.RoleManager>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Roles.RoleManager>());
+        services.AddSingleton<Radios.RadioExecutor>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Radios.RadioExecutor>());
+        services.AddSingleton<Fcu.FcuExecutor>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Fcu.FcuExecutor>());
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

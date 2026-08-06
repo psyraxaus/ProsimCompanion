@@ -325,7 +325,20 @@ from Phase 1 — this phase adds the speech stack and features on top.
       defaults; SOP profile files may supersede later). Deliberately NO GPWS/RA-countdown
       calls — those remain ProSim's own. New snapshot fields live at 100 ms tier.
       **Unverified live**
-- [ ] Voice FCU/MCDU actions (humanized key timing, armed/verified/abortable actuation gates)
+- [x] Voice FCU actions + radio management + PF/PM roles (Prosim2FO gate semantics): keyword
+      classification in the proven order (QNH excluded, conditionals relayed-never-actioned,
+      engagements, managed/selected, value fields), hard range checks that ask instead of
+      clamping, spoken numbers (digits for heading/FL, magnitude for alt/speed/VS,
+      homophone-tolerant) + the Arabic-numeral backstop the predecessor never closed. Gates:
+      FO-is-PF (voice handover; take-back instant and ungated), announce → 3 s cancel window
+      ("negative/disregard/cancel/belay that") → knob-movement back-off → write+verify with
+      one retry → advisory-only inhibit until next handover. Values written to the A_FCU_*
+      analogs + knob pulled; altitude value-only (vertical mode stays an explicit command,
+      now voice-reachable — "open descent"/"managed descent" fixed from dead phrases). V/S
+      managed-verify bug fixed (no heading indicator read). Radios: standby-then-swap only,
+      deterministic 118–136.99 parser with 8.33/25 kHz channel validation, backoff/unable
+      inhibits. MCDU voice actions (RAD NAV tune, arrival change) deferred — they need the
+      display de-flicker reader. **Unverified live**
 - [ ] Briefings (Navigraph DFD + weather + LLM composition with number verification)
 - [x] ECAM abnormals + memory drills (detect-and-report only): the 30 Prosim2FO definitions
       carried verbatim (config/abnormals/*.json, user-editable) — E/WD text primary trigger,
