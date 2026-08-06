@@ -15,9 +15,14 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
-    <!-- WASAPI per-app session volumes for the audio pillar; Phase 5 speech playback reuses
-         the same stack (docs/integrations/speech.md). -->
-    <PackageVersion Include="NAudio.Wasapi" Version="2.2.1" />
+    <!-- WASAPI per-app session volumes for the audio pillar; the speech pillar plays TTS
+         through the same stack (docs/integrations/speech.md). Versions proven in Prosim2FO;
+         keep the NAudio family aligned. -->
+    <PackageVersion Include="NAudio" Version="2.3.0" />
+    <PackageVersion Include="NAudio.Wasapi" Version="2.3.0" />
+    <!-- Speech pillar (Phase 5): Google Chirp 3 HD TTS + SAPI5 last-resort synth. -->
+    <PackageVersion Include="Google.Cloud.TextToSpeech.V1" Version="3.18.0" />
+    <PackageVersion Include="System.Speech" Version="10.0.10" />
     <PackageVersion Include="QRCoder" Version="1.6.0" />
     <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
     <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />

@@ -70,6 +70,11 @@ public static class ProsimWriteGate
         "aircraft.cargo.",            // forward/aft amounts (bulk is not settable in ProSim)
         "doors.",                     // door automation
         "efb.gsx.",                   // disable ProSim's native GSX integration
+
+        // Audio pillar: clear ProSim's native per-window volume bindings while this app
+        // drives the Windows sessions (ProsimNativeAudioGuard). PA is deliberately never
+        // written — the guard's own exclusion, not the gate's job to enforce.
+        "aircraft.communication.windows.",
     ];
 
     /// <summary>True when the dataref may be written by this application.</summary>

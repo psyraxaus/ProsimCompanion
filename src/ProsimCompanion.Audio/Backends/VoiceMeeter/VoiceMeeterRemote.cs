@@ -7,7 +7,9 @@ namespace ProsimCompanion.Audio.Backends.VoiceMeeter;
 /// <summary>
 /// Runtime-loaded wrapper around VoicemeeterRemote64.dll (never redistributed; the path is
 /// user-configured). Loaded via NativeLibrary + GetDelegateForFunctionPointer — not DllImport —
-/// so the path can change without an app restart. Login is idempotent per process: repeated
+/// so a wrong configured path degrades instead of crashing at process start. Once loaded the
+/// DLL stays loaded: a changed VoiceMeeterDllPath takes effect on the next app restart.
+/// Login is idempotent per process: repeated
 /// VBVMR_Login on the same process is flaky on some VoiceMeeter versions, so backend switches
 /// suspend writes instead of logging out; VBVMR_Logout happens only at service shutdown.
 /// </summary>

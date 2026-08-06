@@ -20,6 +20,10 @@ public sealed class AppSessionBinding
     private readonly object _writeLock = new();
     private readonly object _stateLock = new();
 
+    /// <summary>Serializes the drain worker's COM writes against restore-on-release, so a
+    /// knob event racing a backend switch/shutdown cannot overwrite the restored volumes.</summary>
+    private readonly object _comGate = new();
+
     private List<Process> _processes = [];
     private List<SessionHandle> _sessions = [];
     private readonly Dictionary<string, (float Volume, bool Mute)> _saved = [];
@@ -223,6 +227,21 @@ public sealed class AppSessionBinding
     /// sessions concurrently, so its restore can lose the race.</summary>
     public void RestoreAndClearSessions()
     {
+        lock (_comGate)
+        {
+            // Discard queued knob values first — nothing may write after the restore.
+            lock (_writeLock)
+            {
+                _pendingVolume = null;
+                _pendingMute = null;
+            }
+
+            RestoreUnderComGate();
+        }
+    }
+
+    private void RestoreUnderComGate()
+    {
         lock (_stateLock)
         {
             foreach (var session in _sessions)
@@ -364,35 +383,41 @@ public sealed class AppSessionBinding
                 }
             }
 
-            List<SessionHandle> sessions;
-            lock (_stateLock)
+            // The session list is re-read INSIDE the COM gate: if a restore-on-release ran
+            // while this drain was pending, the list is already empty here and the stale
+            // knob value is never written over the restored volumes.
+            lock (_comGate)
             {
-                sessions = _sessions;
-            }
-
-            foreach (var session in sessions)
-            {
-                try
+                List<SessionHandle> sessions;
+                lock (_stateLock)
                 {
-                    if (volume is { } v)
-                    {
-                        session.Control.SimpleAudioVolume.Volume = v;
-                    }
-
-                    if (mute is { } m && Mapping.UseLatch)
-                    {
-                        session.Control.SimpleAudioVolume.Mute = m;
-                    }
+                    sessions = _sessions;
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Session write failed for {Binary} — will re-search", Mapping.Binary);
-                    lock (_stateLock)
-                    {
-                        _sessions = [];
-                    }
 
-                    break;
+                foreach (var session in sessions)
+                {
+                    try
+                    {
+                        if (volume is { } v)
+                        {
+                            session.Control.SimpleAudioVolume.Volume = v;
+                        }
+
+                        if (mute is { } m && Mapping.UseLatch)
+                        {
+                            session.Control.SimpleAudioVolume.Mute = m;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Session write failed for {Binary} — will re-search", Mapping.Binary);
+                        lock (_stateLock)
+                        {
+                            _sessions = [];
+                        }
+
+                        break;
+                    }
                 }
             }
         }

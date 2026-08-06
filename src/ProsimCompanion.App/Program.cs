@@ -16,6 +16,7 @@ using ProsimCompanion.Core.Logging;
 using ProsimCompanion.Gsx;
 using ProsimCompanion.Prosim;
 using ProsimCompanion.Sim;
+using ProsimCompanion.Speech;
 using ProsimCompanion.Web;
 using Serilog;
 
@@ -160,6 +161,7 @@ public static class Program
         builder.Services.AddSimServices();
         builder.Services.AddGsxServices();
         builder.Services.AddAudioServices();
+        builder.Services.AddSpeechServices();
         builder.Services.AddWebServices(
             Path.Combine(AppContext.BaseDirectory, "config", "themes"));
 

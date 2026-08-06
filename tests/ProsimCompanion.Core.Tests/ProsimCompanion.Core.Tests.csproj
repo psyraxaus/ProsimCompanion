@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- net10.0-windows so the Windows-targeted ProsimCompanion.Prosim project is referenceable. -->
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- windows10 TFM so the WinRT-consuming ProsimCompanion.Speech project is referenceable
+         (plain net10.0-windows suffices for the rest). -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <!-- CA1707: Method_Name_Underscores is the xunit naming convention. -->
     <NoWarn>$(NoWarn);CA1707</NoWarn>
@@ -24,6 +25,7 @@
     <ProjectReference Include="..\..\src\ProsimCompanion.Gsx\ProsimCompanion.Gsx.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Prosim\ProsimCompanion.Prosim.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Sim\ProsimCompanion.Sim.csproj" />
+    <ProjectReference Include="..\..\src\ProsimCompanion.Speech\ProsimCompanion.Speech.csproj" />
   </ItemGroup>
 
 </Project>

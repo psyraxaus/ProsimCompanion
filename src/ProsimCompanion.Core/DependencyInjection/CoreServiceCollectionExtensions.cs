@@ -60,6 +60,7 @@ public static class CoreServiceCollectionExtensions
                 o.ActiveAcps.Add(AcpSide.Captain);
             }
         });
+        services.Configure<SpeechOptions>(configuration.GetSection(SpeechOptions.SectionName));
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
         services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
         services.Configure<FlightDataOptions>(configuration.GetSection(FlightDataOptions.SectionName));
@@ -68,6 +69,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<ConnectionStatusStore>();
         services.AddSingleton<GsxDiagnosticsStore>();
         services.AddSingleton<AudioStatusStore>();
+        services.AddSingleton<SpeechStatusStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();
         services.AddSingleton<GroundOpsSignals>();

@@ -1,0 +1,137 @@
+@page "/speech"
+@implements IDisposable
+@inject SpeechStatusStore Status
+@inject ISpeechControl SpeechControl
+
+<PageTitle>Speech — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Speech</h1>
+
+<div class="panel">
+
+    <Section Title="Voice First Officer" Hint="Arbiter, TTS chain and playback status">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <span class="pill @(_view.Enabled ? "tone-ok" : "tone-neutral")">
+                @(_view.Enabled ? "Enabled" : "Disabled")
+            </span>
+            <span class="pill @(_view.SterileCockpit ? "tone-warn" : "tone-neutral")"
+                  title="Below the sterile ceiling in a workload phase, Low speech is dropped and Normal follows the configured policy">
+                @(_view.SterileCockpit ? "Sterile cockpit" : "Not sterile")
+            </span>
+            <span class="pill tone-active">Queue @_view.QueueDepth</span>
+            @if (_view.NowPlaying is { } playing)
+            {
+                <span class="pill tone-ok" title="@playing">Speaking</span>
+            }
+        </div>
+        @if (_view.NowPlaying is { } text)
+        {
+            <div class="field-hint" style="margin-top:8px;">“@text”</div>
+        }
+    </Section>
+
+    <Section Title="TTS Providers" Hint="Tried in order; a failed provider cools down 60 s">
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr><th>#</th><th>Provider</th><th>State</th><th>Detail</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var (provider, index) in _view.Providers.Select((p, i) => (p, i)))
+                    {
+                        var (tone, label) = HealthPill(provider.Health);
+                        <tr>
+                            <td>@(index + 1)</td>
+                            <td class="mono">@provider.Name</td>
+                            <td><span class="pill @tone">@label</span></td>
+                            <td>@provider.Detail</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </Section>
+
+    <Section Title="Speak Test" Hint="Runs the full arbiter → TTS → playback path at Normal priority">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input class="cell-input" style="flex:1 1 280px;" placeholder="Something for the FO to say"
+                   @bind="_testText" @bind:event="oninput" />
+            <button type="button" class="btn" disabled="@string.IsNullOrWhiteSpace(_testText)"
+                    @onclick="SpeakTest">Speak</button>
+        </div>
+    </Section>
+
+    <Section Title="Recent Utterances" Hint="Latest first — full history in the session event log">
+        @if (_view.RecentUtterances.Count == 0)
+        {
+            <div class="empty">Nothing spoken yet.</div>
+        }
+        else
+        {
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Time (UTC)</th><th>Outcome</th><th>Priority</th><th>Tag</th><th>Text</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var utterance in _view.RecentUtterances)
+                        {
+                            <tr>
+                                <td class="mono">@utterance.TimestampUtc.ToString("HH:mm:ss")</td>
+                                <td><span class="pill @OutcomeTone(utterance.Outcome)">@utterance.Outcome</span></td>
+                                <td>@utterance.Priority</td>
+                                <td class="mono">@utterance.Source</td>
+                                <td>@utterance.Text</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </Section>
+
+</div>
+
+@code {
+    private SpeechStatusSnapshot _view = SpeechStatusSnapshot.Empty;
+    private string _testText = "";
+
+    protected override void OnInitialized()
+    {
+        _view = Status.Snapshot();
+        Status.Changed += OnChanged;
+    }
+
+    private void OnChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _view = Status.Snapshot();
+            StateHasChanged();
+        });
+
+    private void SpeakTest()
+    {
+        if (!string.IsNullOrWhiteSpace(_testText))
+        {
+            SpeechControl.SpeakTest(_testText.Trim());
+        }
+    }
+
+    private static (string Tone, string Label) HealthPill(TtsProviderHealth health) => health switch
+    {
+        TtsProviderHealth.Healthy => ("tone-ok", "Healthy"),
+        TtsProviderHealth.Failed => ("tone-warn", "Cooling down"),
+        TtsProviderHealth.Disabled => ("tone-neutral", "Disabled"),
+        _ => ("tone-neutral", "Untried"),
+    };
+
+    private static string OutcomeTone(string outcome) => outcome switch
+    {
+        "Spoken" => "tone-ok",
+        "Failed" => "tone-warn",
+        "Suppressed" or "Deferred" => "tone-active",
+        _ => "tone-neutral",
+    };
+
+    public void Dispose() => Status.Changed -= OnChanged;
+}

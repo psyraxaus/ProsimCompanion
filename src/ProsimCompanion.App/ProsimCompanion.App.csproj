@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- windows10 TFM (not plain net10.0-windows): the speech pillar consumes WinRT
+         Windows.Media.SpeechSynthesis, and the host's TargetPlatformVersion must be >= the
+         library's. Proven combination in Prosim2FO. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <AssemblyName>ProsimCompanion</AssemblyName>
     <RootNamespace>ProsimCompanion.App</RootNamespace>
@@ -48,6 +51,7 @@
     <ProjectReference Include="..\ProsimCompanion.Gsx\ProsimCompanion.Gsx.csproj" />
     <ProjectReference Include="..\ProsimCompanion.Prosim\ProsimCompanion.Prosim.csproj" />
     <ProjectReference Include="..\ProsimCompanion.Sim\ProsimCompanion.Sim.csproj" />
+    <ProjectReference Include="..\ProsimCompanion.Speech\ProsimCompanion.Speech.csproj" />
     <ProjectReference Include="..\ProsimCompanion.Web\ProsimCompanion.Web.csproj" />
   </ItemGroup>
 

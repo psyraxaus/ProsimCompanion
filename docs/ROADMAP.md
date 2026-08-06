@@ -225,6 +225,14 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
 
 ## Phase 4 — Audio control
 
+> **Static verification passed 2026-08-06** (full code review against the claims below; build
+> clean, all tests green). Three review finds fixed the same day: the ProSim native-audio
+> guard's datarefs were missing from the write allow-list (the guard was dead on arrival —
+> now allow-listed + regression-tested), a knob-write racing restore-on-release could leave an
+> app at cockpit volume after a backend switch (now serialized behind a COM-write gate), and
+> knob events could stall the shared SDK push thread behind device rescans (now lock-free via
+> a route snapshot). Live verification remains for the weekend run.
+
 - [x] ACP knob/latch → Windows per-app volume (CoreAudio via NAudio.Wasapi) with per-ACP power
       gating: shared `AcpChannelFeed` (knob analogs 0–1024 + REC latches @ 250 ms), the full
       three-bus + audio-switching gate applied to BOTH backends (the predecessor gated CoreAudio
@@ -247,8 +255,26 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
 The Prosim2FO pillar. Its three foundations (phase engine, speech arbiter, event log) already exist
 from Phase 1 — this phase adds the speech stack and features on top.
 
-- [ ] Speech arbiter (priority queue, pre-emption, sterile-cockpit suppression rules)
-- [ ] TTS router: Kokoro local neural → Google Chirp 3 HD (cached, usage-tracked) → WinRT → SAPI5
+- [x] Speech arbiter — Prosim2FO semantics carried verbatim into a pure core + pump shell:
+      four strict-priority FIFO queues (Low/Normal/High/Critical), Critical-only pre-emption
+      with the dequeue→render race close, pre-empted Normal restarts from the queue head
+      (High/Low superseded), suppression judged at dequeue (Suppress > Defer > Allow, throwing
+      rules ignored), deferred items readmitted to the tail on a 500 ms poll, TTL + validity
+      predicates, per-item caller-cancel, awaitable `SpeechOutcome`, no dedup (callers own
+      latches). Sterile cockpit: InitialClimb/Climb/Descent/Approach below 10,000 ft MSL only
+      (cruise/ground never sterile; zero altitude = no data), Low dropped, Normal policy
+      default Allow, `cabin.*` tag exemption. Every event JSONL-logged (`speech.*`).
+      **Unverified live**
+- [x] TTS router: Kokoro local neural → Google Chirp 3 HD (cached, usage-tracked) → WinRT →
+      SAPI5, with per-provider 60 s failure cooldown (new — the predecessor re-paid a dead
+      Kokoro's timeout on every phrase), hard local-only mode, per-provider/per-voice disk
+      cache with the streaming-WAV header repair (incl. heal-on-read), Google monthly char
+      budget now actually ENFORCED (predecessor only tracked; same usage.json format), WASAPI
+      playback with intercom band-pass + client-side volume (fixes the predecessor's dead
+      volume setting for Kokoro/Google), wedge-safe cancellation, /speech status page +
+      /settings/speech. Aviation text normalization ("FL" ≠ Florida) deliberately deferred to
+      the spoken-checklists slice — its arrival re-keys the TTS cache once (harmless).
+      **Unverified live**
 - [ ] Recognition: LAN faster-whisper → WinRT → offline System.Speech fallback chain; PTT
       (keyboard/joystick), phonetic snapping, utterance interpreter
 - [ ] Spoken checklists (verify-against-dataref, challenge on mismatch, global commands)

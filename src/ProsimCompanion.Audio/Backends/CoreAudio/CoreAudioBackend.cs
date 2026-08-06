@@ -23,6 +23,14 @@ public sealed class CoreAudioBackend : IAcpVolumeSink, IDisposable
 
     private List<AppSessionBinding> _bindings = [];
     private AcpSide _acp = AcpSide.Captain;
+
+    /// <summary>Immutable snapshot of (ACP, bindings) for the knob/latch path. OnVolume/OnMute
+    /// run on the ProSim SDK push thread and must never wait on <see cref="_gate"/> — Tick
+    /// holds it across device rescans (100 ms+ of COM), which would stall every dataref
+    /// subscriber app-wide (Phase 4 review find).</summary>
+    private volatile Route _route = new(AcpSide.Captain, []);
+
+    private sealed record Route(AcpSide Acp, AppSessionBinding[] Bindings);
     private DateTimeOffset _nextProcessCheck = DateTimeOffset.MinValue;
     private DateTimeOffset _nextDeviceScan = DateTimeOffset.MinValue;
     private DateTimeOffset _nextInactiveCheck = DateTimeOffset.MinValue;
@@ -60,6 +68,7 @@ public sealed class CoreAudioBackend : IAcpVolumeSink, IDisposable
                 .Select(m => new AppSessionBinding(m, _logger))];
             _nextProcessCheck = DateTimeOffset.MinValue;
             _forceRescan = true;
+            _route = new Route(acp, [.. _bindings]);
             _logger.LogInformation("CoreAudio bound: {Count} app mappings on {Acp}", _bindings.Count, acp);
             PublishLocked();
             return [.. _bindings.Select(b => (acp, b.Mapping.Channel)).Distinct()];
@@ -79,19 +88,15 @@ public sealed class CoreAudioBackend : IAcpVolumeSink, IDisposable
 
     public void OnVolume(AcpSide acp, AudioChannel channel, float normalized)
     {
-        // The feed only carries the bound ACP's keys, but re-check against races around rebind.
-        List<AppSessionBinding> bindings;
-        lock (_gate)
+        // Lock-free: reads the route snapshot only. The feed only carries the bound ACP's
+        // keys, but re-check against races around rebind.
+        var route = _route;
+        if (acp != route.Acp)
         {
-            if (acp != _acp)
-            {
-                return;
-            }
-
-            bindings = _bindings;
+            return;
         }
 
-        foreach (var binding in bindings)
+        foreach (var binding in route.Bindings)
         {
             if (binding.Mapping.Channel == channel)
             {
@@ -99,23 +104,18 @@ public sealed class CoreAudioBackend : IAcpVolumeSink, IDisposable
             }
         }
 
-        Publish();
+        PublishRoute(route);
     }
 
     public void OnMute(AcpSide acp, AudioChannel channel, bool muted)
     {
-        List<AppSessionBinding> bindings;
-        lock (_gate)
+        var route = _route;
+        if (acp != route.Acp)
         {
-            if (acp != _acp)
-            {
-                return;
-            }
-
-            bindings = _bindings;
+            return;
         }
 
-        foreach (var binding in bindings)
+        foreach (var binding in route.Bindings)
         {
             if (binding.Mapping.Channel == channel)
             {
@@ -123,7 +123,7 @@ public sealed class CoreAudioBackend : IAcpVolumeSink, IDisposable
             }
         }
 
-        Publish();
+        PublishRoute(route);
     }
 
     /// <summary>One housekeeping step; the orchestrator calls this every run interval.</summary>
@@ -265,14 +265,15 @@ public sealed class CoreAudioBackend : IAcpVolumeSink, IDisposable
         }
 
         _bindings = [];
+        _route = new Route(_acp, []);
     }
 
-    private void Publish()
+    /// <summary>Publishes mapping views from a route snapshot without touching
+    /// <see cref="_gate"/> — safe from the SDK push thread.</summary>
+    private void PublishRoute(Route route)
     {
-        lock (_gate)
-        {
-            PublishLocked();
-        }
+        var views = route.Bindings.Select(b => b.ToView()).ToList();
+        _status.Update(s => s with { Mappings = views });
     }
 
     private void PublishLocked()

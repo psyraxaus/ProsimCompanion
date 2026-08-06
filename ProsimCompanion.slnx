@@ -6,6 +6,7 @@
     <Project Path="src/ProsimCompanion.Gsx/ProsimCompanion.Gsx.csproj" />
     <Project Path="src/ProsimCompanion.Prosim/ProsimCompanion.Prosim.csproj" />
     <Project Path="src/ProsimCompanion.Sim/ProsimCompanion.Sim.csproj" />
+    <Project Path="src/ProsimCompanion.Speech/ProsimCompanion.Speech.csproj" />
     <Project Path="src/ProsimCompanion.Web/ProsimCompanion.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">

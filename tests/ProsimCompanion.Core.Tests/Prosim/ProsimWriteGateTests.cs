@@ -13,6 +13,8 @@ public sealed class ProsimWriteGateTests
     [InlineData("aircraft.cargo.forward.amount")]
     [InlineData("doors.entry.left.fwd")]
     [InlineData("efb.gsx.refuel")]
+    [InlineData("aircraft.communication.windows.vhf1")]   // native-audio guard (Phase 4 review find)
+    [InlineData("aircraft.communication.windows.cab")]
     public void IsAllowed_AllowListedNames_ReturnTrue(string name)
         => Assert.True(ProsimWriteGate.IsAllowed(name));
 
