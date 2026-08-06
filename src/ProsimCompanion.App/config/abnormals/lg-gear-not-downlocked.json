@@ -1,0 +1,58 @@
+{
+  "id": "lg-gear-not-downlocked",
+  "title": "L/G GEAR NOT DOWNLOCKED",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [ "Approach" ],
+  "trigger": {
+    "ewdText": [ "L/G GEAR NOT DOWNLOCKED", "GEAR NOT DOWN", "L/G GEAR NOT DOWN" ],
+    "condition": {
+      "logic": "and",
+      "conditions": [
+        { "dataref": "aircraft.gearDown", "op": "equals", "value": 1 },
+        { "logic": "or", "conditions": [
+          { "dataref": "aircraft.gear.Left.Gear", "op": "lessThan", "value": 0.99 },
+          { "dataref": "aircraft.gear.Nose.Gear", "op": "lessThan", "value": 0.99 },
+          { "dataref": "aircraft.gear.Right.Gear", "op": "lessThan", "value": 0.99 }
+        ] }
+      ]
+    },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_WHEEL",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, landing gear not downlocked.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Do not continue the approach to landing until three greens are confirmed.",
+      "confirm": [ "roger", "go around", "will not land", "wilco" ]
+    },
+    {
+      "kind": "action",
+      "say": "Recycle the landing gear once; if still not locked, use the gravity extension per the Q.R.H.",
+      "confirm": [ "recycled", "gravity extension", "roger", "wilco" ]
+    },
+    {
+      "kind": "action",
+      "say": "Confirm three green down-and-locked indications before landing.",
+      "confirm": [ "three greens", "confirmed", "down and locked", "roger" ],
+      "verify": {
+        "logic": "and",
+        "conditions": [
+          { "dataref": "aircraft.gear.Left.Gear", "op": "greaterThan", "value": 0.99 },
+          { "dataref": "aircraft.gear.Nose.Gear", "op": "greaterThan", "value": 0.99 },
+          { "dataref": "aircraft.gear.Right.Gear", "op": "greaterThan", "value": 0.99 }
+        ]
+      },
+      "ack": "Three greens, gear down and locked.",
+      "discrepancy": "I do not yet show all three gears down and locked."
+    }
+  ],
+  "status": [
+    "Status. Landing gear abnormal; confirm the gear position before landing.",
+    "Brief for a possible go-around and for an abnormal-gear landing.",
+    "Expect a longer landing distance and reduced braking if a gear is not locked."
+  ],
+  "contextFlags": [ "gearAbnormal", "abnormalLanding" ]
+}

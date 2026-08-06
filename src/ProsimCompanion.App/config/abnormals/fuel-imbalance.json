@@ -1,0 +1,43 @@
+{
+  "id": "fuel-imbalance",
+  "title": "FUEL WING TK IMBALANCE",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [ "Climb", "Cruise", "Descent" ],
+  "_note": "Text-triggered: an inter-tank delta can't be expressed with the single-dataref condition tree. A left/right-delta trigger form is a candidate schema extension (see docs).",
+  "trigger": {
+    "ewdText": [ "FUEL L-R WING TK IMBALANCE", "WING TK IMBALANCE", "FUEL IMBALANCE" ],
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_FUEL",
+    "debounceSeconds": 5.0
+  },
+  "announce": "ECAM, fuel, wing tank imbalance.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Confirm the imbalance is real and not a gauging fault; identify the heavier tank.",
+      "confirm": [ "confirmed", "identified", "heavier tank identified", "roger" ]
+    },
+    {
+      "kind": "action",
+      "say": "Crossfeed valve, open.",
+      "confirm": [ "open", "crossfeed open", "valve open", "confirmed open" ]
+    },
+    {
+      "kind": "action",
+      "say": "On the lower tank, both pumps, off, so the heavier tank feeds both engines.",
+      "confirm": [ "pumps off", "off", "low side pumps off", "confirmed off" ]
+    },
+    {
+      "kind": "action",
+      "say": "Monitor, and when the balance is restored, pumps on and crossfeed closed.",
+      "confirm": [ "monitoring", "roger", "will restore", "wilco" ]
+    }
+  ],
+  "status": [
+    "Status. Fuel imbalance being corrected by crossfeed.",
+    "Observe the maximum permitted imbalance for landing in the Q.R.H.",
+    "Do not forget to close the crossfeed and restore the pumps once balanced."
+  ],
+  "contextFlags": [ "fuelImbalance" ]
+}

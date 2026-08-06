@@ -1,0 +1,36 @@
+{
+  "id": "elec-apu-gen-fault",
+  "title": "ELEC APU GEN FAULT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "APU GEN FAULT", "ELEC APU GEN FAULT" ],
+    "condition": { "dataref": "system.indicators.I_OH_ELEC_APU_GENERATOR_U", "op": "greaterThan", "value": 0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_ELEC",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, electrical, A.P.U. generator fault.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "A.P.U. generator, off, then on. Attempt a reset.",
+      "confirm": [ "off then on", "reset", "cycled", "apu gen reset" ],
+      "ack": "A.P.U. generator reset."
+    },
+    {
+      "kind": "action",
+      "say": "If the fault persists, A.P.U. generator, off. The engine generators supply the network.",
+      "confirm": [ "off", "apu gen off", "generator off", "confirmed off" ],
+      "condition": { "dataref": "system.indicators.I_OH_ELEC_APU_GENERATOR_U", "op": "greaterThan", "value": 0 },
+      "ack": "A.P.U. generator off."
+    }
+  ],
+  "status": [
+    "Status. A.P.U. generator lost; the engine generators are supplying the network.",
+    "No electrical limitation with both engine generators on line.",
+    "The A.P.U. itself may remain available for bleed air."
+  ],
+  "contextFlags": [ "apuGenFault" ]
+}

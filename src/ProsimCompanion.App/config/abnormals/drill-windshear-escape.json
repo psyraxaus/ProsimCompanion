@@ -1,0 +1,28 @@
+{
+  "id": "drill-windshear-escape",
+  "title": "WINDSHEAR ESCAPE",
+  "class": "memoryDrill",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [ "TakeoffRoll", "InitialClimb", "Climb", "Approach" ],
+  "voiceTriggers": [ "windshear escape", "windshear drill", "memory items windshear" ],
+  "trigger": {
+    "condition": {
+      "logic": "or",
+      "conditions": [
+        { "dataref": "aircraft.FAC1.windshear", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.Windshear", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.Go_around_windshear", "op": "greaterThan", "value": 0 }
+      ]
+    },
+    "debounceSeconds": 0.5
+  },
+  "announce": "Windshear, escape!",
+  "actions": [
+    { "say": "TOGA thrust." },
+    { "say": "Pitch up, follow SRS." },
+    { "say": "Wings level." },
+    { "say": "Do not change configuration." }
+  ],
+  "status": [ "Monitor the flight path until clear of windshear." ]
+}

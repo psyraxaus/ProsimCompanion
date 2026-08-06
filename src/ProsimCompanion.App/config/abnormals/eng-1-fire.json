@@ -1,0 +1,68 @@
+{
+  "id": "eng-1-fire",
+  "title": "ENG 1 FIRE",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "ENG 1 FIRE" ],
+    "condition": { "dataref": "system.indicators.I_ENG_FIRE_1", "op": "greaterThan", "value": 0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_MIP_MASTER_WARNING_FO",
+    "debounceSeconds": 1.0
+  },
+  "announce": "ECAM, engine 1 fire.",
+  "actions": [
+    {
+      "kind": "memory",
+      "say": "Thrust lever 1, idle.",
+      "confirm": [ "idle", "thrust lever idle", "lever one idle", "set idle" ],
+      "verify": { "dataref": "aircraft.engines.1.n1", "op": "lessThan", "value": 40 },
+      "ack": "Thrust lever 1 idle.",
+      "discrepancy": "I still show thrust on engine 1."
+    },
+    {
+      "kind": "memory",
+      "say": "Engine master 1, confirm, off.",
+      "confirm": [ "off", "master off", "engine master off", "confirmed off" ],
+      "verify": { "dataref": "system.switches.S_ENG_MASTER_1", "op": "equals", "value": 0 },
+      "ack": "Engine master 1 off.",
+      "discrepancy": "Engine master 1 still shows on."
+    },
+    {
+      "kind": "memory",
+      "say": "Engine 1 fire pushbutton, confirm, push.",
+      "confirm": [ "push", "pushed", "fire pushbutton pushed", "confirmed push" ],
+      "verify": { "dataref": "aircraft.systems.hydraulic.green.engines.1.FIRE_SHUTOFF_VALVE", "op": "equals", "value": 0 },
+      "ack": "Fire pushbutton 1 released, fuel and hydraulics shut off.",
+      "discrepancy": "The engine 1 fire valve still shows open."
+    },
+    {
+      "kind": "action",
+      "say": "After ten seconds, if the fire warning persists, agent 1, discharge.",
+      "confirm": [ "agent one discharged", "agent discharged", "discharged", "agent one disch" ],
+      "condition": { "dataref": "system.indicators.I_ENG_FIRE_1", "op": "greaterThan", "value": 0 },
+      "ack": "Agent 1 discharged."
+    },
+    {
+      "kind": "action",
+      "say": "If after thirty seconds the fire warning still persists, agent 2, discharge.",
+      "confirm": [ "agent two discharged", "agent discharged", "discharged", "agent two disch" ],
+      "condition": { "dataref": "system.indicators.I_ENG_FIRE_1", "op": "greaterThan", "value": 0 },
+      "ack": "Agent 2 discharged."
+    },
+    {
+      "kind": "action",
+      "say": "A.T.C., notify.",
+      "confirm": [ "notified", "roger", "wilco", "will advise" ]
+    }
+  ],
+  "status": [
+    "Status. Engine 1 shut down and secured.",
+    "Single engine. Maximum flight level per the single-engine ceiling.",
+    "Divert to the nearest suitable airport.",
+    "Brief for a single-engine approach and landing."
+  ],
+  "contextFlags": [ "engine1Out", "singleEngine", "abnormalLanding" ],
+  "clearedWhen": { "dataref": "system.indicators.I_ENG_FIRE_1", "op": "equals", "value": 0 }
+}

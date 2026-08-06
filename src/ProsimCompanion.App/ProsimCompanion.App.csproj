@@ -60,6 +60,8 @@
     <Content Include="config\settings.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Shipped default checklists (Prosim2FO-compatible JSON; user-editable, hot-reloaded). -->
     <Content Include="config\checklists\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Shipped abnormal procedures + memory drills (Prosim2FO-compatible; user-editable). -->
+    <Content Include="config\abnormals\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

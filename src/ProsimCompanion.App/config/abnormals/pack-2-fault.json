@@ -1,0 +1,35 @@
+{
+  "id": "pack-2-fault",
+  "title": "AIR PACK 2 FAULT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "AIR PACK 2 FAULT", "PACK 2 FAULT", "PACK 2 OVHT" ],
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_BLEED",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, air, pack 2 fault.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Pack 2, off.",
+      "confirm": [ "off", "pack off", "pack 2 off", "confirmed off" ],
+      "verify": { "dataref": "aircraft.systems.aircon.valve.packs.2.PACK_FLOW_CONTROL_VALVE", "op": "equals", "value": 0 },
+      "ack": "Pack 2 off.",
+      "discrepancy": "The pack 2 flow control valve still shows open."
+    },
+    {
+      "kind": "action",
+      "say": "If the fault was an overheat, wait for it to cool before any reset attempt.",
+      "confirm": [ "roger", "copy", "understood", "wilco" ]
+    }
+  ],
+  "status": [
+    "Status. Pack 2 off; pack 1 is supplying conditioned air.",
+    "Expect a reduced total air flow and a slower cabin temperature response.",
+    "If both packs are lost, a maximum flight level limitation applies; refer to the Q.R.H."
+  ],
+  "contextFlags": [ "pack2Fault" ]
+}

@@ -1,0 +1,37 @@
+{
+  "id": "nav-ir-3-fault",
+  "title": "NAV IR 3 FAULT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "NAV IR 3 FAULT", "IR 3 FAULT" ],
+    "condition": { "dataref": "system.indicators.I_OH_NAV_IR3_FAULT", "op": "greaterThan", "value": 0 },
+    "logic": "any",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, navigation, inertial reference 3 fault.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Inertial reference 3 is the backup unit. Confirm both onside inertial references remain normal.",
+      "confirm": [ "confirmed", "both normal", "onside normal", "roger" ]
+    },
+    {
+      "kind": "action",
+      "say": "Leave both attitude and heading selectors in the normal position.",
+      "confirm": [ "normal", "selectors normal", "confirmed", "roger" ]
+    },
+    {
+      "kind": "action",
+      "say": "Cross-check attitude and heading against the standby instruments.",
+      "confirm": [ "cross-checked", "checked", "agrees", "roger" ]
+    }
+  ],
+  "status": [
+    "Status. Inertial reference 3 lost; it was the standby unit only.",
+    "Both pilots' displays remain on their normal inertial references, with no switching required.",
+    "No autopilot limitation; monitor the remaining inertial references."
+  ],
+  "contextFlags": [ "ir3Fault" ]
+}

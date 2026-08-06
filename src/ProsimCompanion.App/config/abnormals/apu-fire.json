@@ -1,0 +1,43 @@
+{
+  "id": "apu-fire",
+  "title": "APU FIRE",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "APU FIRE" ],
+    "condition": { "dataref": "system.indicators.I_OH_FIRE_APU_BUTTON", "op": "greaterThan", "value": 0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_MIP_MASTER_WARNING_FO",
+    "debounceSeconds": 1.0
+  },
+  "announce": "ECAM, A.P.U. fire.",
+  "actions": [
+    {
+      "kind": "memory",
+      "say": "A.P.U. fire pushbutton, push.",
+      "confirm": [ "push", "pushed", "apu fire pushbutton pushed", "confirmed push" ],
+      "ack": "A.P.U. fire pushbutton pushed."
+    },
+    {
+      "kind": "action",
+      "say": "After ten seconds, if the fire warning persists, agent, discharge.",
+      "confirm": [ "agent discharged", "discharged", "agent disch" ],
+      "condition": { "dataref": "system.indicators.I_OH_FIRE_APU_BUTTON", "op": "greaterThan", "value": 0 },
+      "ack": "A.P.U. agent discharged."
+    },
+    {
+      "kind": "action",
+      "say": "A.P.U. master switch, off.",
+      "confirm": [ "off", "master off", "apu master off", "confirmed off" ],
+      "ack": "A.P.U. master switch off."
+    }
+  ],
+  "status": [
+    "Status. A.P.U. shut down and isolated.",
+    "A.P.U. bleed and A.P.U. generator lost.",
+    "If on the ground with the fire persisting, consider ground evacuation."
+  ],
+  "contextFlags": [ "apuOut" ],
+  "clearedWhen": { "dataref": "system.indicators.I_OH_FIRE_APU_BUTTON", "op": "equals", "value": 0 }
+}

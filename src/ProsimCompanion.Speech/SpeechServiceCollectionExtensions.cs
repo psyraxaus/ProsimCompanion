@@ -39,6 +39,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<UtteranceInterpreter>();
         services.AddSingleton<ControlMonitor>();
         services.AddSingleton<ControlSweepService>();
+        services.AddSingleton<Abnormals.FailureMonitor>();
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

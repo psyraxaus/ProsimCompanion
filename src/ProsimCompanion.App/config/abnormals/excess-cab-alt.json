@@ -1,0 +1,47 @@
+{
+  "id": "excess-cab-alt",
+  "title": "CAB PR EXCESS CAB ALT",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [ "Climb", "Cruise", "Descent" ],
+  "trigger": {
+    "ewdText": [ "EXCESS CAB ALT", "CAB PR EXCESS CAB ALT" ],
+    "condition": { "dataref": "aircraft.pneumatic.cpc_1.cabinAlt", "op": "greaterThan", "value": 9550 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_CAB_PRESS",
+    "debounceSeconds": 1.0
+  },
+  "announce": "ECAM, cabin pressure, excess cabin altitude.",
+  "actions": [
+    {
+      "kind": "memory",
+      "say": "Crew oxygen masks, on, one hundred percent, and establish communication.",
+      "confirm": [ "masks on", "on", "oxygen on", "established" ],
+      "ack": "Crew oxygen masks on."
+    },
+    {
+      "kind": "memory",
+      "say": "Signs, on.",
+      "confirm": [ "on", "signs on", "confirmed on" ],
+      "ack": "Signs on."
+    },
+    {
+      "kind": "memory",
+      "say": "If the cabin altitude is uncontrollable, initiate an emergency descent.",
+      "confirm": [ "emergency descent", "descending", "initiated", "roger" ],
+      "ack": "Emergency descent."
+    },
+    {
+      "kind": "action",
+      "say": "If the cabin altitude climbs above fourteen thousand feet, passenger oxygen masks, manually on.",
+      "confirm": [ "masks deployed", "manually on", "pax masks on", "on" ],
+      "condition": { "dataref": "aircraft.pneumatic.cpc_1.cabinAlt", "op": "greaterThan", "value": 14000 }
+    }
+  ],
+  "status": [
+    "Status. Cabin altitude excessive; pressurisation is being managed.",
+    "Target ten thousand feet or the minimum safe altitude, whichever is higher.",
+    "A.T.C., declare an emergency and advise intentions."
+  ],
+  "contextFlags": [ "cabinAltHigh", "emergencyDescent" ]
+}

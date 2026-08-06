@@ -1,0 +1,21 @@
+{
+  "id": "drill-stall-recovery",
+  "title": "STALL RECOVERY",
+  "class": "memoryDrill",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [ "TakeoffRoll", "InitialClimb", "Climb", "Cruise", "Descent", "Approach" ],
+  "voiceTriggers": [ "stall recovery", "stall drill", "memory items stall" ],
+  "trigger": {
+    "condition": { "dataref": "system.audio.Stall", "op": "greaterThan", "value": 0 },
+    "debounceSeconds": 0.5
+  },
+  "announce": "Stall!",
+  "actions": [
+    { "say": "Nose down, reduce angle of attack." },
+    { "say": "Wings level." },
+    { "say": "Thrust as required." },
+    { "say": "Speedbrakes, check retracted." }
+  ],
+  "status": [ "Recover smoothly. Watch for a secondary stall." ]
+}

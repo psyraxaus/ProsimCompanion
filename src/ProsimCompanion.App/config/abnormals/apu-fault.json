@@ -1,0 +1,34 @@
+{
+  "id": "apu-fault",
+  "title": "APU FAULT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "APU FAULT", "APU AUTO SHUT DOWN" ],
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_APU",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, A.P.U. fault.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "A.P.U. bleed, off.",
+      "confirm": [ "off", "bleed off", "apu bleed off", "confirmed off" ],
+      "ack": "A.P.U. bleed off."
+    },
+    {
+      "kind": "action",
+      "say": "A.P.U. master switch, off.",
+      "confirm": [ "off", "master off", "apu master off", "confirmed off" ],
+      "ack": "A.P.U. master switch off."
+    }
+  ],
+  "status": [
+    "Status. A.P.U. shut down; A.P.U. bleed and A.P.U. generator lost.",
+    "If in flight, the engine generators and bleeds are supplying the aircraft.",
+    "No dispatch of the A.P.U. until it has been inspected."
+  ],
+  "contextFlags": [ "apuFault" ]
+}

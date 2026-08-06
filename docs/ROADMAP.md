@@ -327,7 +327,15 @@ from Phase 1 — this phase adds the speech stack and features on top.
       **Unverified live**
 - [ ] Voice FCU/MCDU actions (humanized key timing, armed/verified/abortable actuation gates)
 - [ ] Briefings (Navigraph DFD + weather + LLM composition with number verification)
-- [ ] ECAM abnormals + memory drills (detect-and-report only)
+- [x] ECAM abnormals + memory drills (detect-and-report only): the 30 Prosim2FO definitions
+      carried verbatim (config/abnormals/*.json, user-editable) — E/WD text primary trigger,
+      per-system dataref corroborating/fallback, optional master/ECAM light gate, ≥0.5 s
+      debounce, fired-latch until cleared, phase gating; warnings/drills Critical (pre-empt),
+      cautions High, "Master warning/caution." prefix when the light is lit. The four memory
+      drills (stall, EGPWS pull-up, windshear, TCAS RA) auto-fire from their system.audio.*
+      refs and are voice-invocable as rehearsals; rapid items at 350 ms, spoken verbatim.
+      Interactive per-line ECAM dialogue (confirm/verify/branch) deferred with the
+      recognition leftovers. **Unverified live**
 - [ ] SayIntentions ATC requests, departure comms gating, radio management
 
 ## Phase 6 — Immersion & remaining integrations

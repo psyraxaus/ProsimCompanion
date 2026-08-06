@@ -1,0 +1,58 @@
+{
+  "id": "eng-2-fail",
+  "title": "ENG 2 FAIL",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [ "Climb", "Cruise", "Descent", "Approach" ],
+  "trigger": {
+    "ewdText": [ "ENG 2 FAIL", "ENG 2 FLAME OUT" ],
+    "condition": {
+      "logic": "and",
+      "conditions": [
+        { "dataref": "aircraft.engines.2.running", "op": "equals", "value": 0 },
+        { "dataref": "aircraft.engines.2.n2", "op": "lessThan", "value": 50 }
+      ]
+    },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ENG_FAULT_2",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, engine 2 failure.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Thrust lever 2, confirm idle.",
+      "confirm": [ "idle", "thrust lever idle", "lever two idle", "set idle" ],
+      "verify": { "dataref": "aircraft.engines.2.n1", "op": "lessThan", "value": 40 },
+      "ack": "Thrust lever 2 idle.",
+      "discrepancy": "I still show thrust on engine 2."
+    },
+    {
+      "kind": "action",
+      "say": "Engine 2 parameters, monitor. Confirm no relight.",
+      "confirm": [ "no relight", "confirmed", "monitored", "roger" ]
+    },
+    {
+      "kind": "action",
+      "say": "If a relight is not achieved within the envelope, engine master 2, confirm, off.",
+      "confirm": [ "off", "master off", "engine master off", "confirmed off" ],
+      "condition": { "dataref": "aircraft.engines.2.running", "op": "equals", "value": 0 },
+      "verify": { "dataref": "system.switches.S_ENG_MASTER_2", "op": "equals", "value": 0 },
+      "ack": "Engine master 2 off.",
+      "discrepancy": "Engine master 2 still shows on."
+    },
+    {
+      "kind": "action",
+      "say": "A.T.C., notify and request a lower level.",
+      "confirm": [ "notified", "roger", "wilco", "will advise" ]
+    }
+  ],
+  "status": [
+    "Status. Engine 2 out.",
+    "Single engine. Observe the maximum flight level and the drift-down as required.",
+    "Refer to the Q.R.H. for the in-flight relight envelope.",
+    "Consider a diversion and brief for a single-engine landing."
+  ],
+  "contextFlags": [ "engine2Out", "singleEngine", "abnormalLanding" ],
+  "clearedWhen": { "dataref": "aircraft.engines.2.running", "op": "equals", "value": 1 }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "hyd-blue-rsvr-lo-lvl",
+  "title": "HYD B RSVR LO LVL",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "HYD B RSVR LO LVL", "HYD B RSVR LO", "BLUE RSVR LO LVL" ],
+    "condition": { "dataref": "aircraft.hydraulics.blue.quantity", "op": "lessThan", "value": 3.0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_HYD",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, hydraulic, blue reservoir low level.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Hydraulic, blue electric pump, off.",
+      "confirm": [ "off", "blue pump off", "electric pump off", "pump off" ],
+      "verify": { "dataref": "aircraft.hydraulics.blue.elec.running", "op": "equals", "value": 0 },
+      "ack": "Blue electric pump off.",
+      "discrepancy": "I still show the blue electric pump running."
+    }
+  ],
+  "status": [
+    "Status. Blue hydraulic system: low level, anticipate loss of the blue system.",
+    "Blue services affected: the emergency generator drive, one spoiler pair, and standby rudder.",
+    "The R.A.T. remains available for emergency electrical and blue pressure; brief accordingly."
+  ],
+  "contextFlags": [ "blueHydLo" ]
+}

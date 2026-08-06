@@ -23,6 +23,7 @@ public sealed class SpeechBootstrapService : IHostedService
     private readonly TtsPrewarmService _prewarm;
     private readonly PushToTalkService _ptt;
     private readonly SpokenChecklistEngine _spokenChecklists;
+    private readonly Abnormals.FailureMonitor _failures;
 
     public SpeechBootstrapService(
         SpeechArbiterService arbiter,
@@ -31,8 +32,11 @@ public sealed class SpeechBootstrapService : IHostedService
         FlowMonitor flow,
         TtsPrewarmService prewarm,
         PushToTalkService ptt,
-        SpokenChecklistEngine spokenChecklists)
+        SpokenChecklistEngine spokenChecklists,
+        Abnormals.FailureMonitor failures)
     {
+        ArgumentNullException.ThrowIfNull(failures);
+        _failures = failures;
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(callouts);
         ArgumentNullException.ThrowIfNull(stabilized);
@@ -57,6 +61,7 @@ public sealed class SpeechBootstrapService : IHostedService
         _flow.Start();
         _prewarm.Start();
         _ptt.Start();
+        _failures.Start();
         _spokenChecklists.Start();
         return Task.CompletedTask;
     }
@@ -64,6 +69,7 @@ public sealed class SpeechBootstrapService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _spokenChecklists.Dispose();
+        _failures.Dispose();
         _ptt.Dispose();
         _prewarm.Dispose();
         _callouts.Dispose();

@@ -1,0 +1,36 @@
+{
+  "id": "eng-1-bleed-fault",
+  "title": "ENG 1 BLEED FAULT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "ENG 1 BLEED FAULT", "BLEED 1 FAULT", "ENG 1 BLEED" ],
+    "condition": { "dataref": "aircraft.systems.pneumatic.valve.engines.1.BLEED_VALVE", "op": "equals", "value": 0 },
+    "logic": "all",
+    "corroborate": "system.indicators.I_ECAM_BLEED",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, engine 1 bleed fault.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Engine 1 bleed, off.",
+      "confirm": [ "off", "bleed off", "engine 1 bleed off", "confirmed off" ],
+      "verify": { "dataref": "aircraft.systems.pneumatic.valve.engines.1.BLEED_VALVE", "op": "equals", "value": 0 },
+      "ack": "Engine 1 bleed off.",
+      "discrepancy": "The engine 1 bleed valve still shows open."
+    },
+    {
+      "kind": "action",
+      "say": "Crossbleed valve, as required, to keep pack 1 supplied.",
+      "confirm": [ "as required", "crossbleed open", "roger", "set" ]
+    }
+  ],
+  "status": [
+    "Status. Engine 1 bleed off.",
+    "Pack 1 is supplied through the crossbleed from engine 2 if the crossbleed is open.",
+    "Expect a possible cabin temperature and pressurisation effect; monitor the air page."
+  ],
+  "contextFlags": [ "eng1BleedFault" ]
+}

@@ -1,0 +1,36 @@
+{
+  "id": "hyd-green-rsvr-lo-lvl",
+  "title": "HYD G RSVR LO LVL",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "HYD G RSVR LO LVL", "HYD G RSVR LO", "GREEN RSVR LO LVL" ],
+    "condition": { "dataref": "aircraft.hydraulics.green.quantity", "op": "lessThan", "value": 3.0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_HYD",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, hydraulic, green reservoir low level.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Hydraulic, green engine 1 pump, off.",
+      "confirm": [ "off", "green pump off", "engine 1 pump off", "pump off" ],
+      "verify": { "dataref": "aircraft.hydraulics.green.edp.running", "op": "equals", "value": 0 },
+      "ack": "Green engine 1 pump off.",
+      "discrepancy": "I still show the green engine 1 pump running."
+    },
+    {
+      "kind": "action",
+      "say": "P.T.U., monitor. Expect the P.T.U. to pressurise the green system from yellow.",
+      "confirm": [ "monitored", "roger", "checked", "ptu running" ]
+    }
+  ],
+  "status": [
+    "Status. Green hydraulic system: low level, anticipate loss of the green system.",
+    "Green services affected: normal braking, nose-wheel steering, and one spoiler pair.",
+    "For landing, expect the P.T.U. to maintain green; apply the Q.R.H. landing distance factor."
+  ],
+  "contextFlags": [ "greenHydLo" ]
+}

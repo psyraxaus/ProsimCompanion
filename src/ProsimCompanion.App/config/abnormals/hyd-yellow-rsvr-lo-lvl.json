@@ -1,0 +1,39 @@
+{
+  "id": "hyd-yellow-rsvr-lo-lvl",
+  "title": "HYD Y RSVR LO LVL",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "HYD Y RSVR LO LVL", "HYD Y RSVR LO", "YELLOW RSVR LO LVL" ],
+    "condition": { "dataref": "aircraft.hydraulics.yellow.quantity", "op": "lessThan", "value": 3.0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_HYD",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, hydraulic, yellow reservoir low level.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Hydraulic, yellow engine 2 pump, off.",
+      "confirm": [ "off", "yellow pump off", "engine 2 pump off", "pump off" ],
+      "verify": { "dataref": "aircraft.hydraulics.yellow.edp.running", "op": "equals", "value": 0 },
+      "ack": "Yellow engine 2 pump off.",
+      "discrepancy": "I still show the yellow engine 2 pump running."
+    },
+    {
+      "kind": "action",
+      "say": "Yellow electric pump, off.",
+      "confirm": [ "off", "electric pump off", "elec pump off", "pump off" ],
+      "verify": { "dataref": "aircraft.hydraulics.yellow.elec.running", "op": "equals", "value": 0 },
+      "ack": "Yellow electric pump off.",
+      "discrepancy": "I still show the yellow electric pump running."
+    }
+  ],
+  "status": [
+    "Status. Yellow hydraulic system: low level, anticipate loss of the yellow system.",
+    "Yellow services affected: normal brakes accumulator, cargo doors, and one spoiler pair.",
+    "Alternate braking with accumulator pressure may be required; apply the Q.R.H. landing distance factor."
+  ],
+  "contextFlags": [ "yellowHydLo" ]
+}

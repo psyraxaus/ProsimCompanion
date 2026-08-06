@@ -1,0 +1,39 @@
+{
+  "id": "elec-gen-2-fault",
+  "title": "ELEC GEN 2 FAULT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "ELEC GEN 2 FAULT", "GEN 2 FAULT" ],
+    "condition": { "dataref": "aircraft.electrical.relay.Gen2Line", "op": "equals", "value": 0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_ELEC",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, electrical, generator 2 fault.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Electrical, generator 2, off, then on. Attempt a reset.",
+      "confirm": [ "off then on", "reset", "cycled", "generator reset" ],
+      "verify": { "dataref": "aircraft.electrical.relay.Gen2Line", "op": "equals", "value": 1 },
+      "ack": "Generator 2 back on line.",
+      "discrepancy": "Generator 2 has not come back on line."
+    },
+    {
+      "kind": "action",
+      "say": "If the fault persists, generator 2, off.",
+      "confirm": [ "off", "generator off", "gen two off", "confirmed off" ],
+      "condition": { "dataref": "aircraft.electrical.relay.Gen2Line", "op": "equals", "value": 0 },
+      "ack": "Generator 2 off."
+    }
+  ],
+  "status": [
+    "Status. Generator 2 lost; the associated bus tie is supplying the network.",
+    "Consider starting the A.P.U. and its generator to restore full electrical redundancy.",
+    "No immediate operational limitation; monitor the electrical page."
+  ],
+  "contextFlags": [ "gen2Fault" ],
+  "clearedWhen": { "dataref": "aircraft.electrical.relay.Gen2Line", "op": "equals", "value": 1 }
+}

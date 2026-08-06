@@ -5,6 +5,7 @@ using ProsimCompanion.Core.Checklists;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Speech.Abnormals;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -43,6 +44,7 @@ public sealed class SpokenChecklistEngine : IDisposable
     private readonly IProsimDataRefs _dataRefs;
     private readonly ControlMonitor _monitor;
     private readonly ControlSweepService _sweep;
+    private readonly FailureMonitor _failures;
     private readonly SpeechStatusStore _store;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SpokenChecklistEngine> _logger;
@@ -65,10 +67,13 @@ public sealed class SpokenChecklistEngine : IDisposable
         IProsimDataRefs dataRefs,
         ControlMonitor monitor,
         ControlSweepService sweep,
+        FailureMonitor failures,
         SpeechStatusStore store,
         JsonlEventLog eventLog,
         ILogger<SpokenChecklistEngine> logger)
     {
+        ArgumentNullException.ThrowIfNull(failures);
+        _failures = failures;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(recognition);
@@ -580,7 +585,13 @@ public sealed class SpokenChecklistEngine : IDisposable
             return;
         }
 
-        // Idle window: a checklist start phrase?
+        // Idle window: a memory-drill rehearsal phrase?
+        if (_failures.TryRunDrillByPhrase(text))
+        {
+            return;
+        }
+
+        // A checklist start phrase?
         foreach (var definition in _checklists.Definitions())
         {
             var startPhrases = definition.StartPhrases is { Count: > 0 }
@@ -610,6 +621,8 @@ public sealed class SpokenChecklistEngine : IDisposable
                     ? definition.StartPhrases
                     : [$"{definition.Checklist} checklist"]);
             }
+
+            vocabulary.AddRange(_failures.DrillPhrases);
         }
 
         return vocabulary;

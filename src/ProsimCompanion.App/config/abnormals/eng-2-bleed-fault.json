@@ -1,0 +1,33 @@
+{
+  "id": "eng-2-bleed-fault",
+  "title": "ENG 2 BLEED FAULT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "ENG 2 BLEED FAULT", "BLEED 2 FAULT", "ENG 2 BLEED" ],
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_BLEED",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, engine 2 bleed fault.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Engine 2 bleed, off.",
+      "confirm": [ "off", "bleed off", "engine 2 bleed off", "confirmed off" ],
+      "ack": "Engine 2 bleed off."
+    },
+    {
+      "kind": "action",
+      "say": "Crossbleed valve, as required, to keep pack 2 supplied.",
+      "confirm": [ "as required", "crossbleed open", "roger", "set" ]
+    }
+  ],
+  "status": [
+    "Status. Engine 2 bleed off.",
+    "Pack 2 is supplied through the crossbleed from engine 1 if the crossbleed is open.",
+    "Expect a possible cabin temperature and pressurisation effect; monitor the air page."
+  ],
+  "contextFlags": [ "eng2BleedFault" ]
+}

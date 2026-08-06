@@ -1,0 +1,38 @@
+{
+  "id": "nav-ir-1-fault",
+  "title": "NAV IR 1 FAULT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "NAV IR 1 FAULT", "IR 1 FAULT" ],
+    "condition": { "dataref": "system.indicators.I_OH_NAV_IR1_FAULT", "op": "greaterThan", "value": 0 },
+    "logic": "any",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, navigation, inertial reference 1 fault.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Attitude and heading switching, captain side, select to the number 3 inertial reference.",
+      "confirm": [ "selected", "capt three", "att hdg on three", "confirmed" ],
+      "ack": "Captain attitude and heading on inertial reference 3."
+    },
+    {
+      "kind": "action",
+      "say": "Cross-check attitude, heading, and navigation against the standby instruments and the opposite side.",
+      "confirm": [ "cross-checked", "checked", "agrees", "roger" ]
+    },
+    {
+      "kind": "action",
+      "say": "Expect a possible loss of one autopilot and flight director; select the remaining side.",
+      "confirm": [ "roger", "copy", "understood", "wilco" ]
+    }
+  ],
+  "status": [
+    "Status. Inertial reference 1 lost; the captain is displaying inertial reference 3.",
+    "Autopilot 1 may be unavailable; use autopilot 2.",
+    "Navigation accuracy is preserved on the remaining inertial references; monitor for any drift."
+  ],
+  "contextFlags": [ "ir1Fault" ]
+}

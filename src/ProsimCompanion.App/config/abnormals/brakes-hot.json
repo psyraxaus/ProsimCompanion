@@ -1,0 +1,38 @@
+{
+  "id": "brakes-hot",
+  "title": "BRAKES HOT",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "BRAKES HOT", "WHEEL BRAKES HOT", "HOT BRAKES" ],
+    "condition": { "dataref": "aircraft.brakes.brakeTempFactor", "op": "greaterThan", "value": 2.0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_WHEEL",
+    "debounceSeconds": 3.0
+  },
+  "announce": "ECAM, brakes hot.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "If on the ground, delay the take-off and allow the brakes to cool.",
+      "confirm": [ "roger", "will delay", "cooling", "wilco" ]
+    },
+    {
+      "kind": "action",
+      "say": "Leave the landing gear extended after take-off to aid cooling, gear up not before the appropriate time.",
+      "confirm": [ "roger", "gear extended", "copy", "wilco" ]
+    },
+    {
+      "kind": "action",
+      "say": "Monitor the brake temperatures on the wheel page and avoid parking with the parking brake if very hot.",
+      "confirm": [ "monitoring", "roger", "checked", "wilco" ]
+    }
+  ],
+  "status": [
+    "Status. Brake temperatures high; observe the maximum brake temperature for take-off.",
+    "Expect an extended gear period after take-off for cooling.",
+    "If a tyre or brake fire is suspected on the ground, apply the appropriate procedure and consider evacuation."
+  ],
+  "contextFlags": [ "brakesHot" ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "drill-egpws-pull-up",
+  "title": "EGPWS PULL UP",
+  "class": "memoryDrill",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [ "InitialClimb", "Climb", "Cruise", "Descent", "Approach" ],
+  "voiceTriggers": [ "pull up drill", "terrain escape", "egpws pull up" ],
+  "trigger": {
+    "condition": {
+      "logic": "or",
+      "conditions": [
+        { "dataref": "system.audio.Pullup", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.Terrain_ahead_pullup", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.Obstacle_ahead_pullup", "op": "greaterThan", "value": 0 }
+      ]
+    },
+    "debounceSeconds": 0.5
+  },
+  "announce": "Pull up!",
+  "actions": [
+    { "say": "TOGA thrust." },
+    { "say": "Pitch up, full back stick." },
+    { "say": "Wings level." },
+    { "say": "Speedbrakes, check retracted." }
+  ],
+  "status": [ "Climb until clear of terrain and the warning stops." ]
+}

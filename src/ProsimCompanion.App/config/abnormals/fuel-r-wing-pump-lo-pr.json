@@ -1,0 +1,40 @@
+{
+  "id": "fuel-r-wing-pump-lo-pr",
+  "title": "FUEL R WING TK PUMP LO PR",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "FUEL R WING TK PUMP", "R WING TK PUMP LO PR", "R TK PUMP LO PR" ],
+    "condition": {
+      "logic": "or",
+      "conditions": [
+        { "dataref": "aircraft.fuel.pump.right.1.running", "op": "equals", "value": 0 },
+        { "dataref": "aircraft.fuel.pump.right.2.running", "op": "equals", "value": 0 }
+      ]
+    },
+    "logic": "all",
+    "corroborate": "system.indicators.I_ECAM_FUEL",
+    "debounceSeconds": 3.0
+  },
+  "announce": "ECAM, fuel, right wing tank pump, low pressure.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Affected right wing tank pump, off.",
+      "confirm": [ "off", "pump off", "right pump off", "confirmed off" ],
+      "ack": "Right wing tank pump off."
+    },
+    {
+      "kind": "action",
+      "say": "Confirm the remaining right tank pump is on and feeding.",
+      "confirm": [ "confirmed", "feeding", "pump on", "roger" ]
+    }
+  ],
+  "status": [
+    "Status. One right wing tank pump lost; the tank still feeds on the remaining pump or by gravity.",
+    "No fuel is trapped; monitor the fuel page and the right engine feed.",
+    "Consider the crossfeed if a further pump is lost."
+  ],
+  "contextFlags": [ "fuelRightPumpLo" ]
+}

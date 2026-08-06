@@ -1,0 +1,38 @@
+{
+  "id": "fctl-altn-law",
+  "title": "F/CTL ALTN LAW",
+  "severity": "caution",
+  "enabled": true,
+  "phases": [],
+  "trigger": {
+    "ewdText": [ "F/CTL ALTN LAW", "ALTN LAW", "ALTERNATE LAW", "PROT LOST" ],
+    "condition": { "dataref": "aircraft.controlLaw.numerical", "op": "notEquals", "value": 0 },
+    "logic": "any",
+    "corroborate": "system.indicators.I_ECAM_FCTL",
+    "debounceSeconds": 2.0
+  },
+  "announce": "ECAM, flight controls, alternate law.",
+  "actions": [
+    {
+      "kind": "action",
+      "say": "Flight controls are in alternate law. Flight envelope protections are lost; handle the aircraft smoothly.",
+      "confirm": [ "roger", "copy", "alternate law", "understood" ]
+    },
+    {
+      "kind": "action",
+      "say": "Maximum speed and manoeuvring, respect the limits. No high-speed or high-angle-of-attack protection.",
+      "confirm": [ "roger", "copy", "understood", "wilco" ]
+    },
+    {
+      "kind": "action",
+      "say": "Pitch trim may be manual. Use the trim wheel as required.",
+      "confirm": [ "roger", "copy", "manual trim", "understood" ]
+    }
+  ],
+  "status": [
+    "Status. Alternate law: protections lost, and normal law will not be recovered in flight.",
+    "For approach, keep the speedbrake use moderate and expect a firmer, direct-law feel in the flare.",
+    "Plan a flap full landing and add the Q.R.H. approach speed correction; ground spoilers and autobrake remain available."
+  ],
+  "contextFlags": [ "altnLaw", "abnormalLanding" ]
+}

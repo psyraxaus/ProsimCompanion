@@ -1,0 +1,34 @@
+{
+  "id": "drill-tcas-ra",
+  "title": "TCAS RA",
+  "class": "memoryDrill",
+  "severity": "warning",
+  "enabled": true,
+  "phases": [ "Climb", "Cruise", "Descent", "Approach" ],
+  "voiceTriggers": [ "tcas ra", "resolution advisory", "tcas drill" ],
+  "trigger": {
+    "condition": {
+      "logic": "or",
+      "conditions": [
+        { "dataref": "system.audio.TCAS_Climb", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_Descend", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_Climb_now", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_Descend_now", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_increase_climb", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_increase_descend", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_Crossing_Climb", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_Crossing_Descend", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_Level_off", "op": "greaterThan", "value": 0 },
+        { "dataref": "system.audio.TCAS_monitor_vertical_speed", "op": "greaterThan", "value": 0 }
+      ]
+    },
+    "debounceSeconds": 0.5
+  },
+  "announce": "T-CAS, resolution advisory.",
+  "actions": [
+    { "say": "Autopilot, off." },
+    { "say": "Follow the R.A., fly the green." },
+    { "say": "Do not manoeuvre opposite the R.A." }
+  ],
+  "status": [ "On clear of conflict, return to your cleared level and advise A.T.C." ]
+}
