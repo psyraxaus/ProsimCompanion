@@ -92,6 +92,91 @@ public sealed class PlacardAdvisoryOptions
     public string GearExceededText { get; set; } = "speed, gear limit";
 }
 
+/// <summary>One flow-monitor advisory: enabled + wording + priority (no thresholds here —
+/// shared thresholds live on <see cref="FlowMonitorOptions"/>/<see cref="WeatherOptions"/>).</summary>
+public sealed class FlowCheckSetting
+{
+    public FlowCheckSetting()
+    {
+    }
+
+    public FlowCheckSetting(string text, string priority, bool enabled = true)
+    {
+        Text = text;
+        Priority = priority;
+        Enabled = enabled;
+    }
+
+    public bool Enabled { get; set; } = true;
+    public string Text { get; set; } = "";
+
+    /// <summary>SpeechPriority name: low / normal / high / critical (unparseable → high).</summary>
+    public string Priority { get; set; } = "high";
+}
+
+/// <summary>Silent-flow anomaly advisories. Each is individually toggleable with its own
+/// wording + priority (predecessor defaults; the opt-in extras ship disabled).</summary>
+public sealed class FlowMonitorOptions
+{
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Minimum seconds between repeats of the same advisory (never nags).</summary>
+    public double RateLimitSeconds { get; set; } = 60;
+
+    public FlowCheckSetting LandingLightsAboveCeiling { get; set; } = new("landing lights still on", "low");
+    public FlowCheckSetting LandingLightsBelowCeiling { get; set; } = new("landing lights", "low", enabled: false);
+    public FlowCheckSetting FlapsNotRetracted { get; set; } = new("flaps still extended", "high");
+    public FlowCheckSetting GearStillDown { get; set; } = new("gear still down", "high");
+    public FlowCheckSetting ParkingBrakeWithThrust { get; set; } = new("parking brake still set", "high");
+    public FlowCheckSetting SeatbeltSignsOff { get; set; } = new("seatbelt signs off", "low", enabled: false);
+
+    // Opt-in extras (disabled by default).
+    public FlowCheckSetting BeaconOffEngineRunning { get; set; } = new("beacon", "high", enabled: false);
+    public FlowCheckSetting SpoilersNotArmed { get; set; } = new("spoilers not armed", "high", enabled: false);
+    public FlowCheckSetting TransponderNotSet { get; set; } = new("transponder", "high", enabled: false);
+
+    /// <summary>AGL (ft) above which flaps should be retracted after takeoff.</summary>
+    public double FlapsCleanAboveAglFt { get; set; } = 3000;
+
+    /// <summary>AGL (ft) above which the gear should be up in the climb.</summary>
+    public double GearUpAboveAglFt { get; set; } = 1000;
+}
+
+/// <summary>Weather-awareness advisories (icing, anti-ice hygiene, ISA deviation).</summary>
+public sealed class WeatherOptions
+{
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>In icing conditions with engine anti-ice off.</summary>
+    public FlowCheckSetting IcingConditions { get; set; } = new("Icing conditions. Consider engine anti-ice.", "high");
+
+    /// <summary>Anti-ice left on well clear of icing (fuel/perf penalty).</summary>
+    public FlowCheckSetting AntiIceLeftOn { get; set; } = new("Anti-ice is still on, and we're clear of icing.", "low");
+
+    /// <summary>Top-of-climb ISA-deviation note — its Text is IGNORED (built dynamically with
+    /// the value); only Enabled/Priority are read.</summary>
+    public FlowCheckSetting IsaDeviation { get; set; } = new("", "low");
+
+    /// <summary>TAT (°C) at or below which icing is possible (with visible moisture).</summary>
+    public double IcingTatMaxC { get; set; } = 10;
+
+    /// <summary>Require visible moisture (in cloud, or visibility below the threshold).</summary>
+    public bool RequireVisibleMoisture { get; set; } = true;
+
+    /// <summary>Visibility (m) at or below which counts as visible moisture (fog/mist).</summary>
+    public double MoistureVisibilityM { get; set; } = 1500;
+
+    /// <summary>TAT (°C) above which anti-ice on is clearly outside the icing envelope.</summary>
+    public double AntiIceClearC { get; set; } = 15;
+
+    /// <summary>Seconds the anti-ice-left-on condition must hold before advising (avoids
+    /// brief warm layers).</summary>
+    public double AntiIceDwellSeconds { get; set; } = 120;
+
+    /// <summary>|ISA deviation| (°C) at or above which the top-of-climb note is made.</summary>
+    public double IsaDeviationThresholdC { get; set; } = 10;
+}
+
 /// <summary>Stabilized-approach announcement config.</summary>
 public sealed class StabilizedOptions
 {
@@ -184,6 +269,10 @@ public sealed class SopOptions
     public int GearMaxKt { get; set; } = 280;
 
     public PlacardAdvisoryOptions PlacardAdvisory { get; set; } = new();
+
+    // ---- Flow monitor + weather advisories ----
+    public FlowMonitorOptions FlowMonitor { get; set; } = new();
+    public WeatherOptions Weather { get; set; } = new();
 
     // ---- Stabilized approach ----
     public StabilizedOptions Stabilized { get; set; } = new();

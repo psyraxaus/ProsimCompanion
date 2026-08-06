@@ -16,25 +16,30 @@ public sealed class SpeechBootstrapService : IHostedService
     private readonly SpeechArbiterService _arbiter;
     private readonly CalloutsEngine _callouts;
     private readonly StabilizedApproachMonitor _stabilized;
+    private readonly FlowMonitor _flow;
 
     public SpeechBootstrapService(
         SpeechArbiterService arbiter,
         CalloutsEngine callouts,
-        StabilizedApproachMonitor stabilized)
+        StabilizedApproachMonitor stabilized,
+        FlowMonitor flow)
     {
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(callouts);
         ArgumentNullException.ThrowIfNull(stabilized);
+        ArgumentNullException.ThrowIfNull(flow);
 
         _arbiter = arbiter;
         _callouts = callouts;
         _stabilized = stabilized;
+        _flow = flow;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _callouts.Start();
         _stabilized.Start();
+        _flow.Start();
         return Task.CompletedTask;
     }
 
@@ -42,6 +47,7 @@ public sealed class SpeechBootstrapService : IHostedService
     {
         _callouts.Dispose();
         _stabilized.Dispose();
+        _flow.Dispose();
         _arbiter.Dispose();
         return Task.CompletedTask;
     }

@@ -277,8 +277,17 @@ from Phase 1 — this phase adds the speech stack and features on top.
       (keyboard/joystick), phonetic snapping, utterance interpreter
 - [ ] Spoken checklists (verify-against-dataref, challenge on mismatch, global commands)
 - [ ] Flight-control check (captain sweep callout + FO sweep with neutral-on-cancel safety)
-- [x] SOP callouts + stabilized-approach gates (Prosim2FO semantics; flow-monitor advisories
-      deferred to a later slice): thrust set / one hundred / V1 (Critical) / rotate / V2(off) /
+- [x] Flow-monitor advisories (Prosim2FO semantics): edge-triggered checks spoken once when a
+      condition appears, cleared on resolve, 60 s per-key rate limit stamped on speak —
+      landing lights above/below the ceiling, flaps > 3000 ft AGL, gear > 1000 ft AGL, parking
+      brake with thrust, seatbelt signs, plus opt-in beacon/spoilers-armed/transponder checks
+      (ship disabled). Weather: icing-conditions advisory (TAT ≤ 10 °C + visible moisture,
+      engine anti-ice off), anti-ice-left-on with a 120 s sustain dwell, once-per-cruise ISA
+      deviation note (re-arms on step climb). Live re-sampling validity predicates, 10 s TTLs,
+      flow.advisory/flow.resolved JSONL events. Persona styling layer not ported yet — the
+      deterministic texts speak directly. Benign weather defaults so a missing dataref never
+      reads as icing. **Unverified live**
+- [x] SOP callouts + stabilized-approach gates (Prosim2FO semantics): thrust set / one hundred / V1 (Critical) / rotate / V2(off) /
       positive climb (multi-condition), 10,000 ft crossing + optional transition-altitude
       entry, "one thousand to go" vs the FCU altitude with 200 ft re-arm hysteresis, 1000/500
       on final, "one hundred above"/"minimums" (Critical; DA/MDA→baro, DH→radio) armed ONLY by

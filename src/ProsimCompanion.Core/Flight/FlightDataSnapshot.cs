@@ -78,6 +78,54 @@ public sealed record FlightDataSnapshot
     /// <summary>Both thrust levers in the max-reverse detent
     /// (S_FC_THROTTLE_{LEFT,RIGHT}_MAX_REVERSE) — the "reverse green" trigger.</summary>
     public bool ReversersMaxBoth { get; init; }
+
+    // ---- Flow-monitor fields. RadioAltitudeFt saturates at the radio altimeter ceiling;
+    //      this AGL (aircraft.altitude.aboveGround) does not, so flow thresholds use it. ----
+
+    /// <summary>Non-saturating height above ground, ft.</summary>
+    public double AltitudeAglFt { get; init; }
+
+    /// <summary>Either landing light on (S_OH_EXT_LT_LANDING_L/R).</summary>
+    public bool AnyLandingLightOn { get; init; }
+
+    /// <summary>Seatbelt signs selector (S_OH_SIGNS): 0=Auto 1=On 2=Off.</summary>
+    public int SeatbeltSignsMode { get; init; }
+
+    /// <summary>Beacon switch on (S_OH_EXT_LT_BEACON).</summary>
+    public bool BeaconOn { get; init; }
+
+    /// <summary>Speedbrake lever armed (S_FC_SPEEDBRAKE_ARMED).</summary>
+    public bool SpeedbrakeArmed { get; init; }
+
+    /// <summary>Transponder mode (S_XPDR_MODE): 0=Standby 1=TA 2=TA/RA.</summary>
+    public int XpdrMode { get; init; }
+
+    // Benign weather defaults — an unconstructed/unread sample must never look like icing
+    // conditions (TAT 0 °C in 0 m visibility). The live source overwrites all three.
+
+    /// <summary>Total air temperature, °C.</summary>
+    public double TatC { get; init; } = 15;
+
+    /// <summary>Outside air temperature, °C.</summary>
+    public double OatC { get; init; } = 15;
+
+    /// <summary>Aircraft is inside cloud (environment.ambientInCloud).</summary>
+    public bool InCloud { get; init; }
+
+    /// <summary>Ambient visibility, metres (environment.ambientVisibility).</summary>
+    public double VisibilityM { get; init; } = double.MaxValue;
+
+    /// <summary>Engine anti-ice switches (S_OH_PNEUMATIC_ENG{1,2}_ANTI_ICE).</summary>
+    public bool EngineAntiIce1On { get; init; }
+    public bool EngineAntiIce2On { get; init; }
+
+    /// <summary>Wing anti-ice switch (S_OH_PNEUMATIC_WING_ANTI_ICE).</summary>
+    public bool WingAntiIceOn { get; init; }
+
+    /// <summary>Either aircraft.engines.N.running LITERAL boolean — can disagree with the
+    /// state-string-derived <see cref="AnyEngineRunning"/> during a start; the beacon flow
+    /// check deliberately uses this so a spooling engine counts as running.</summary>
+    public bool AnyEngineRunningRaw { get; init; }
 }
 
 /// <summary>

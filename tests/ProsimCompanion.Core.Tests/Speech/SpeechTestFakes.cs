@@ -77,6 +77,13 @@ internal static class SpeechTestSupport
         return monitor.Object;
     }
 
+    public static IOptionsMonitor<SpeechOptions> SpeechMonitor(SpeechOptions options)
+    {
+        var monitor = new Mock<IOptionsMonitor<SpeechOptions>>();
+        monitor.SetupGet(m => m.CurrentValue).Returns(() => options);
+        return monitor.Object;
+    }
+
     /// <summary>A real event log writing to a throwaway temp directory.</summary>
     public static JsonlEventLog TempEventLog()
         => new(Directory.CreateTempSubdirectory("pc-tests-").FullName, NullLogger<JsonlEventLog>.Instance);

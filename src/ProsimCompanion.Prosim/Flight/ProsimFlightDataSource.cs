@@ -43,6 +43,23 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     private const string ReverseLeftMax = "system.switches.S_FC_THROTTLE_LEFT_MAX_REVERSE";
     private const string ReverseRightMax = "system.switches.S_FC_THROTTLE_RIGHT_MAX_REVERSE";
 
+    // Flow-monitor refs. aboveGround is the non-saturating AGL (altitude.radio caps at the
+    // radio altimeter ceiling).
+    private const string AltitudeAgl = "aircraft.altitude.aboveGround";
+    private const string LandingLightL = "system.switches.S_OH_EXT_LT_LANDING_L";
+    private const string LandingLightR = "system.switches.S_OH_EXT_LT_LANDING_R";
+    private const string SeatbeltSigns = "system.switches.S_OH_SIGNS";      // 0=Auto 1=On 2=Off
+    private const string Beacon = "system.switches.S_OH_EXT_LT_BEACON";     // 0=Off 1=On
+    private const string SpeedbrakeArmed = "system.switches.S_FC_SPEEDBRAKE_ARMED";
+    private const string XpdrMode = "system.switches.S_XPDR_MODE";          // 0=Stdby 1=TA 2=TA/RA
+    private const string Tat = "aircraft.temperature.tat";
+    private const string Oat = "aircraft.temperature.oat";
+    private const string InCloud = "environment.ambientInCloud";
+    private const string Visibility = "environment.ambientVisibility";
+    private const string EngAntiIce1 = "system.switches.S_OH_PNEUMATIC_ENG1_ANTI_ICE";
+    private const string EngAntiIce2 = "system.switches.S_OH_PNEUMATIC_ENG2_ANTI_ICE";
+    private const string WingAntiIce = "system.switches.S_OH_PNEUMATIC_WING_ANTI_ICE";
+
     /// <summary>N1 (%) above which take-off thrust is considered set while on the ground.</summary>
     private const double TakeoffThrustN1Threshold = 75;
 
@@ -105,6 +122,21 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             FcuAltitudeFt = Get(FcuAltitude, 0.0),
             GroundSpoilersDeployed = Get(GroundSpoilers, false),
             ReversersMaxBoth = Get(ReverseLeftMax, 0) != 0 && Get(ReverseRightMax, 0) != 0,
+            AltitudeAglFt = Get(AltitudeAgl, 0.0),
+            AnyLandingLightOn = Get(LandingLightL, 0) == 1 || Get(LandingLightR, 0) == 1,
+            SeatbeltSignsMode = Get(SeatbeltSigns, 0),
+            BeaconOn = Get(Beacon, 0) != 0,
+            SpeedbrakeArmed = Get(SpeedbrakeArmed, 0) != 0,
+            XpdrMode = Get(XpdrMode, 0),
+            TatC = Get(Tat, 15.0),   // benign fallbacks: a missing temperature dataref must
+            OatC = Get(Oat, 15.0),   // never read as icing conditions
+
+            InCloud = Get(InCloud, false),
+            VisibilityM = Get(Visibility, double.MaxValue),
+            EngineAntiIce1On = Get(EngAntiIce1, 0) != 0,
+            EngineAntiIce2On = Get(EngAntiIce2, 0) != 0,
+            WingAntiIceOn = Get(WingAntiIce, 0) != 0,
+            AnyEngineRunningRaw = Get(Engine1Running, false) || Get(Engine2Running, false),
         };
     }
 
@@ -148,6 +180,21 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         yield return (GroundSpoilers, DataRefTier.Frequent);
         yield return (ReverseLeftMax, DataRefTier.Frequent);
         yield return (ReverseRightMax, DataRefTier.Frequent);
+        // Flow monitor ticks at 1 Hz — Normal/Infrequent tiers suffice.
+        yield return (AltitudeAgl, DataRefTier.Normal);
+        yield return (LandingLightL, DataRefTier.Normal);
+        yield return (LandingLightR, DataRefTier.Normal);
+        yield return (SeatbeltSigns, DataRefTier.Normal);
+        yield return (Beacon, DataRefTier.Normal);
+        yield return (SpeedbrakeArmed, DataRefTier.Normal);
+        yield return (XpdrMode, DataRefTier.Normal);
+        yield return (Tat, DataRefTier.Infrequent);
+        yield return (Oat, DataRefTier.Infrequent);
+        yield return (InCloud, DataRefTier.Infrequent);
+        yield return (Visibility, DataRefTier.Infrequent);
+        yield return (EngAntiIce1, DataRefTier.Normal);
+        yield return (EngAntiIce2, DataRefTier.Normal);
+        yield return (WingAntiIce, DataRefTier.Normal);
     }
 
     /// <summary>Prefers the descriptive state string ("off"/"starting"/"running"); falls back to

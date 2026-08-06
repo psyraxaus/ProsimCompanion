@@ -30,6 +30,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<ISpeechControl>(p => p.GetRequiredService<SpeechArbiterService>());
         services.AddSingleton<CalloutsEngine>();
         services.AddSingleton<StabilizedApproachMonitor>();
+        services.AddSingleton<FlowMonitor>();
         services.AddHostedService<SpeechBootstrapService>();
 
         return services;
