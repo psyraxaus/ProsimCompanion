@@ -66,6 +66,7 @@ public static class CoreServiceCollectionExtensions
         services.Configure<CabinOptions>(configuration.GetSection(CabinOptions.SectionName));
         services.Configure<CompanyOptions>(configuration.GetSection(CompanyOptions.SectionName));
         services.Configure<VoicesOptions>(configuration.GetSection(VoicesOptions.SectionName));
+        services.Configure<DayOptions>(configuration.GetSection(DayOptions.SectionName));
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
         services.Configure<TechLogOptions>(configuration.GetSection(TechLogOptions.SectionName));
         services.Configure<LogbookOptions>(configuration.GetSection(LogbookOptions.SectionName));
@@ -133,6 +134,12 @@ public static class CoreServiceCollectionExtensions
                 "ProsimCompanion",
                 "sessions"),
             provider.GetRequiredService<ILogger<JsonlEventLog>>()));
+
+        // Company day mode: persisted state, live view store and the summary composer (the
+        // day service itself lives in the Speech project — it speaks).
+        services.AddSingleton<Day.DayStateFile>();
+        services.AddSingleton<Day.DayStatusStore>();
+        services.AddSingleton<Day.IDaySummaryComposer, Day.DaySummaryComposer>();
 
         // Post-flight bookkeeping pillar: tech log & MEL, pilot logbook, session finalizer.
         // Finalization steps run in explicit Order (debrief 10 → logbook 20 → techlog 30),

@@ -156,7 +156,8 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
 
         _ = _arbiter.EnqueueAsync(new SpeechRequest(
             text, SpeechPriority.Low, Tag: "company.day",
-            Chime: _options.CurrentValue.Chime ? "company" : null));
+            Chime: _options.CurrentValue.Chime ? "company" : null,
+            Role: SpeechRole.Company));
         _eventLog.Record("company.message", new { text, pushed = true });
     }
 

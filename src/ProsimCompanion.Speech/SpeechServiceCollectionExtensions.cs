@@ -57,6 +57,15 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Briefings.BriefingService>());
         services.AddSingleton<Company.CompanyChannelService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Company.CompanyChannelService>());
+        services.AddSingleton<Company.ICompanyChannel>(p => p.GetRequiredService<Company.CompanyChannelService>());
+        // Company day mode: voice start/end, leg tracking (finalizer Order 40), turnaround +
+        // end-of-day summaries. Off by default (day.enabled).
+        services.AddSingleton<Day.CompanyDayService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Day.CompanyDayService>());
+        services.AddSingleton<Core.Sessions.ISessionFinalizationStep>(
+            p => p.GetRequiredService<Day.CompanyDayService>());
+        services.AddSingleton<Core.Day.IDayControl>(p => p.GetRequiredService<Day.CompanyDayService>());
+        services.AddHostedService<Day.DayBootstrapService>();
         services.AddSingleton<SayIntentions.SayIntentionsService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<SayIntentions.SayIntentionsService>());
         // Weather/CPDLC pulls are on-demand only (web Weather page) — no bootstrap Start,

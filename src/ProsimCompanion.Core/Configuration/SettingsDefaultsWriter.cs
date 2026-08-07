@@ -41,6 +41,7 @@ public static class SettingsDefaultsWriter
             (CabinOptions.SectionName, new CabinOptions()),
             (CompanyOptions.SectionName, new CompanyOptions()),
             (VoicesOptions.SectionName, new VoicesOptions()),
+            (DayOptions.SectionName, new DayOptions()),
             (WeatherOptions.SectionName, new WeatherOptions()),
             (CommandApiOptions.SectionName, new CommandApiOptions()),
             (TechLogOptions.SectionName, new TechLogOptions()),

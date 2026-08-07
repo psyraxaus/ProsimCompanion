@@ -35,6 +35,7 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
     private readonly JsonlEventLog _eventLog;
     private readonly IOptionsMonitor<DebriefOptions> _options;
     private readonly OpenAiChatClient _llm;
+    private readonly Core.Day.DayStatusStore? _dayStore;
     private readonly ILogger<DebriefService> _logger;
     private readonly object _gate = new();
 
@@ -50,7 +51,8 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         IOptionsMonitor<DebriefOptions> options,
         IOptionsMonitor<BriefingOptions> briefingOptions,
         ILogger<DebriefService> logger,
-        OpenAiChatClient? llm = null)
+        OpenAiChatClient? llm = null,
+        Core.Day.DayStatusStore? dayStore = null)
     {
         ArgumentNullException.ThrowIfNull(extractor);
         ArgumentNullException.ThrowIfNull(logbook);
@@ -61,6 +63,7 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         ArgumentNullException.ThrowIfNull(briefingOptions);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _dayStore = dayStore;
         _extractor = extractor;
         _logbook = logbook;
         _arbiter = arbiter;
@@ -196,6 +199,14 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
             // One notable, fact-locked logbook line. Excludes this session so the count is
             // right whether or not the logbook fold has already run. Appended AFTER styling —
             // its numbers are deterministic and must never be paraphrased.
+            // Day-mode context ("Leg 2 of 4 complete.") — deterministic, appended after
+            // styling like the comparison so LLM output can never rewrite it.
+            var dayLine = _dayStore?.Snapshot().DebriefContextLine;
+            if (!string.IsNullOrWhiteSpace(dayLine))
+            {
+                text = text.TrimEnd() + " " + dayLine;
+            }
+
             var comparison = _logbook.DescribeComparison(
                 facts, Path.GetFileNameWithoutExtension(sessionPath));
             if (!string.IsNullOrWhiteSpace(comparison))
