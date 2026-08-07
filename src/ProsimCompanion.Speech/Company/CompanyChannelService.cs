@@ -12,6 +12,17 @@ using ProsimCompanion.Speech.Recognition;
 
 namespace ProsimCompanion.Speech.Company;
 
+/// <summary>The push seam other features (company day mode's next-sector and deviation
+/// messages) use to deliver a message over the company channel without owning chime/repeat
+/// mechanics themselves.</summary>
+public interface ICompanyChannel
+{
+    /// <summary>Delivers <paramref name="text"/> as an inbound company message: spoken at Low
+    /// with the company chime (per options), and set as the repeat-last message. No busy or
+    /// enabled gate — a pushed message is an explicit request; blank text no-ops.</summary>
+    void DeliverMessage(string text);
+}
+
 /// <summary>
 /// Company / ACARS-style channel (Prosim2FO semantics): a spoken loadsheet from real
 /// weight/pax/CG datarefs — numbers locked, invariant-culture formatted, delivered in the FO
@@ -21,7 +32,7 @@ namespace ProsimCompanion.Speech.Company;
 /// "Read last company message" repeats the most recent message (the loadsheet deliberately
 /// does not set it — predecessor parity). PDC/clearance readout stays out of scope.
 /// </summary>
-public sealed class CompanyChannelService : IVoiceFeature, IDisposable
+public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDisposable
 {
     private const string Zfw = "aircraft.weight.zfw";
     private const string Gross = "aircraft.weight.gross";
@@ -129,6 +140,25 @@ public sealed class CompanyChannelService : IVoiceFeature, IDisposable
 
     /// <summary>The web page's "request loadsheet" button — same path as the voice command.</summary>
     public void RequestLoadsheet() => _ = DeliverLoadsheetAsync(manual: true);
+
+    /// <inheritdoc />
+    public void DeliverMessage(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            _lastMessage = text; // "read last company message" repeats it — a pushed message counts
+        }
+
+        _ = _arbiter.EnqueueAsync(new SpeechRequest(
+            text, SpeechPriority.Low, Tag: "company.day",
+            Chime: _options.CurrentValue.Chime ? "company" : null));
+        _eventLog.Record("company.message", new { text, pushed = true });
+    }
 
     /// <summary>Composes the spoken loadsheet. Tonnes to 1 dp, invariant culture — a European
     /// locale must never emit "62,3". Pure and static for tests.</summary>

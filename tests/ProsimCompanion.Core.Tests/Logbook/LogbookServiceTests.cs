@@ -239,4 +239,40 @@ public sealed class LogbookServiceTests : IDisposable
 
         Assert.Equal(0, service.Backfill()); // idempotent re-run
     }
+
+    // ---- duty days (company day mode) ----
+
+    [Fact]
+    public void RecordDay_IsIdempotentByDayId_ReplacingWithTheLatestFacts()
+    {
+        var service = Create();
+        service.RecordDay(new LogbookDay { DayId = "2026-08-08-A", Legs = 1, BlockMinutes = 80 });
+        service.RecordDay(new LogbookDay { DayId = "2026-08-08-a", Legs = 2, BlockMinutes = 165 }); // case-insensitive re-run
+
+        var day = Assert.Single(service.Days);
+        Assert.Equal(2, day.Legs);
+        Assert.Equal(165, day.BlockMinutes);
+
+        service.RecordDay(new LogbookDay { DayId = "2026-08-09-A", Legs = 3 });
+        Assert.Equal(2, service.Days.Count);
+    }
+
+    [Fact]
+    public void RecordDay_PersistsAcrossRestartsAndSkipsBlankOrDisabled()
+    {
+        var service = Create();
+        service.RecordDay(new LogbookDay { DayId = "" }); // no id — nothing to key on
+        Assert.Empty(service.Days);
+
+        service.RecordDay(new LogbookDay { DayId = "day-1", Legs = 2, DutyMinutes = 360 });
+
+        var reloaded = Create(); // fresh instance over the same store file
+        var day = Assert.Single(reloaded.Days);
+        Assert.Equal("day-1", day.DayId);
+        Assert.Equal(360, day.DutyMinutes);
+
+        _options.Enabled = false;
+        reloaded.RecordDay(new LogbookDay { DayId = "day-2" });
+        Assert.Single(reloaded.Days);
+    }
 }
