@@ -137,7 +137,7 @@ public sealed class FlowMonitor : IDisposable
     }
 
     private void RunWeatherChecks(
-        WeatherOptions w, long rateLimitMs, long nowMs, FlightDataSnapshot s,
+        SopWeatherOptions w, long rateLimitMs, long nowMs, FlightDataSnapshot s,
         FlightPhase phase, bool airborne)
     {
         // Keep the once-per-cruise ISA note re-armable across cruise segments — a step climb

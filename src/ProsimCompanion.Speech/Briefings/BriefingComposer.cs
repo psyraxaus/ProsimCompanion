@@ -6,7 +6,10 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Speech.Briefings;
 
-/// <summary>Everything a briefing may speak — null fields are simply omitted.</summary>
+/// <summary>Everything a briefing may speak — null fields are simply omitted. ATIS letter and
+/// active runway (SayIntentions-sourced, via the composite weather provider) feed the LLM
+/// fact block only; the deterministic template deliberately ignores them so its clause
+/// structure stays byte-stable.</summary>
 public sealed record BriefingFacts(
     bool IsDeparture,
     string? Airport,
@@ -21,7 +24,9 @@ public sealed record BriefingFacts(
     int? WindDirDeg,
     int? WindSpeedKt,
     int? QnhHpa,
-    ArrivalMinima? Minima);
+    ArrivalMinima? Minima,
+    string? AtisLetter = null,
+    string? ActiveRunway = null);
 
 /// <summary>
 /// The deterministic briefing template (Prosim2FO's exact clause structure) plus the number
@@ -152,6 +157,7 @@ public static class BriefingComposer
         }
 
         AddDigits(f.Runway);
+        AddDigits(f.ActiveRunway);
         AddDigits(f.Sid);
         AddDigits(f.Star);
         AddDigits(f.Approach);
@@ -231,6 +237,8 @@ public static class BriefingComposer
         }
 
         Line("QNH (hPa)", f.QnhHpa);
+        Line("ATIS information", f.AtisLetter);
+        Line("Active runway (per ATC)", f.ActiveRunway);
         if (!f.IsDeparture)
         {
             Line("Minimums", f.Minima is { } m ? MinimaCallout(m) : "NOT BRIEFED");

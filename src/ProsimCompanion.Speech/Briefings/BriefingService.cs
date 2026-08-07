@@ -4,10 +4,10 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
-using ProsimCompanion.Core.Aircraft.Gateway;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.Weather;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -16,8 +16,10 @@ namespace ProsimCompanion.Speech.Briefings;
 /// <summary>
 /// Voice departure/arrival briefings: procedure identifiers resolved FMS-first
 /// (aircraft.fms.flightPlanXml) with manual-settings fallback, nav facts from the Navigraph
-/// DFD, V-speeds from the FMS, weather from the ProSim EFB gateway METAR (wind + QNH parsed
-/// from the raw METAR), minima echoed from the crew-entered store. Composition: optional
+/// DFD, V-speeds from the FMS, weather from the composite <see cref="IWxProvider"/> chain
+/// (ActiveSky → ProSim gateway METAR → SayIntentions cache — so the briefing speaks the
+/// weather actually injected into the sim when ActiveSky is present), minima echoed from the
+/// crew-entered store. Composition: optional
 /// OpenAI-compatible LLM behind the number verifier (one re-ask with the allowed set; any
 /// failure falls back), else the deterministic template — the template is always the floor.
 /// </summary>
@@ -41,7 +43,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly IOptionsMonitor<BriefingOptions> _options;
     private readonly DfdNavDataProvider _navData;
     private readonly IProsimDataRefs _dataRefs;
-    private readonly IProsimGateway _gateway;
+    private readonly IWxProvider _weather;
     private readonly ArrivalMinimaStore _minima;
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
@@ -52,7 +54,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         IOptionsMonitor<BriefingOptions> options,
         DfdNavDataProvider navData,
         IProsimDataRefs dataRefs,
-        IProsimGateway gateway,
+        IWxProvider weather,
         ArrivalMinimaStore minima,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
@@ -61,7 +63,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(navData);
         ArgumentNullException.ThrowIfNull(dataRefs);
-        ArgumentNullException.ThrowIfNull(gateway);
+        ArgumentNullException.ThrowIfNull(weather);
         ArgumentNullException.ThrowIfNull(minima);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(eventLog);
@@ -70,7 +72,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         _options = options;
         _navData = navData;
         _dataRefs = dataRefs;
-        _gateway = gateway;
+        _weather = weather;
         _minima = minima;
         _arbiter = arbiter;
         _eventLog = eventLog;
@@ -154,15 +156,21 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         }
 
         int? windDir = null, windSpeed = null, qnh = null;
+        string? atisLetter = null, activeRunway = null;
         if (airport is not null)
         {
-            var metar = await FetchMetarAsync(airport).ConfigureAwait(false);
-            (windDir, windSpeed, qnh) = ParseMetarBasics(metar);
+            var wx = await FetchWeatherAsync(airport).ConfigureAwait(false);
+            windDir = wx.WindDirDeg;
+            windSpeed = wx.WindSpeedKt;
+            qnh = wx.QnhHpa is { } hpa ? (int)Math.Round(hpa) : null;
+            atisLetter = wx.AtisLetter;
+            activeRunway = wx.ActiveRunway;
         }
 
         return new BriefingFacts(
             departure, airport, runway, sid, star, approach, nav, v1, vr, v2,
-            windDir, windSpeed, qnh, departure ? null : _minima.Current);
+            windDir, windSpeed, qnh, departure ? null : _minima.Current,
+            atisLetter, activeRunway);
     }
 
     private async Task<string> ComposeAsync(BriefingFacts facts)
@@ -248,21 +256,24 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             .GetProperty("content").GetString();
     }
 
-    private async Task<string?> FetchMetarAsync(string icao)
+    private async Task<WxFacts> FetchWeatherAsync(string icao)
     {
         try
         {
-            var metar = await _gateway.GetMetarAsync(icao).ConfigureAwait(false);
-            return metar?.MetarText;
+            // The composite provider (ActiveSky → gateway → SI cache) promises not to throw,
+            // but a missing briefing must never take the whole briefing down either way.
+            return await _weather.GetAsync(icao).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "METAR fetch failed for {Icao}", icao);
-            return null;
+            _logger.LogDebug(ex, "Weather fetch failed for {Icao}", icao);
+            return WxFacts.None;
         }
     }
 
-    /// <summary>Minimal METAR body parse: wind dddss(Ggg)KT + QNH (Q hPa or A inHg).</summary>
+    /// <summary>Minimal METAR body parse: wind dddss(Ggg)KT + QNH (Q hPa or A inHg). Superseded
+    /// by <see cref="MetarParser"/> for the briefing itself; kept public because callers/tests
+    /// may still rely on the historical two-field behaviour.</summary>
     public static (int? WindDir, int? WindSpeed, int? QnhHpa) ParseMetarBasics(string? metar)
     {
         if (string.IsNullOrWhiteSpace(metar))

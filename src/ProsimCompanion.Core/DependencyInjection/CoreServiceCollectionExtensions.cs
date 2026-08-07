@@ -65,6 +65,7 @@ public static class CoreServiceCollectionExtensions
         services.Configure<SayIntentionsOptions>(configuration.GetSection(SayIntentionsOptions.SectionName));
         services.Configure<CabinOptions>(configuration.GetSection(CabinOptions.SectionName));
         services.Configure<CompanyOptions>(configuration.GetSection(CompanyOptions.SectionName));
+        services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
         // Same binder-appends-to-defaults trap for the SOP lists.
         services.Configure<SopOptions>(o =>
         {
@@ -95,6 +96,21 @@ public static class CoreServiceCollectionExtensions
         services.Configure<FlightDataOptions>(configuration.GetSection(FlightDataOptions.SectionName));
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
+        services.AddSingleton<WeatherStore>();
+        // Weather-provider chain — registration order of the array IS the tier order:
+        // ActiveSky (file → API, the injected sim weather wins) → ProSim gateway METAR →
+        // the SayIntentions store cache (never a network call).
+        services.AddSingleton<Weather.ActiveSkyWxProvider>();
+        services.AddSingleton<Weather.GatewayWxProvider>();
+        services.AddSingleton<Weather.SayIntentionsStoreWxProvider>();
+        services.AddSingleton<Weather.IWxProvider>(p => new Weather.CompositeWxProvider(
+            [
+                p.GetRequiredService<Weather.ActiveSkyWxProvider>(),
+                p.GetRequiredService<Weather.GatewayWxProvider>(),
+                p.GetRequiredService<Weather.SayIntentionsStoreWxProvider>(),
+            ],
+            p.GetRequiredService<WeatherStore>(),
+            p.GetRequiredService<ILogger<Weather.CompositeWxProvider>>()));
         services.AddSingleton<ConnectionStatusStore>();
         services.AddSingleton<GsxDiagnosticsStore>();
         services.AddSingleton<AudioStatusStore>();

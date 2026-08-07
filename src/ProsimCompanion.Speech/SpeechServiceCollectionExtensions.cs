@@ -55,6 +55,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Company.CompanyChannelService>());
         services.AddSingleton<SayIntentions.SayIntentionsService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<SayIntentions.SayIntentionsService>());
+        // Weather/CPDLC pulls are on-demand only (web Weather page) — no bootstrap Start,
+        // and deliberately NOT an IVoiceFeature.
+        services.AddSingleton<SayIntentions.SayIntentionsWeatherService>();
+        services.AddSingleton<Core.State.IWeatherControl>(
+            p => p.GetRequiredService<SayIntentions.SayIntentionsWeatherService>());
         services.AddSingleton<Cabin.CabinCrewService>();
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();

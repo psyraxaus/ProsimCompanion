@@ -93,7 +93,7 @@ public sealed class PlacardAdvisoryOptions
 }
 
 /// <summary>One flow-monitor advisory: enabled + wording + priority (no thresholds here —
-/// shared thresholds live on <see cref="FlowMonitorOptions"/>/<see cref="WeatherOptions"/>).</summary>
+/// shared thresholds live on <see cref="FlowMonitorOptions"/>/<see cref="SopWeatherOptions"/>).</summary>
 public sealed class FlowCheckSetting
 {
     public FlowCheckSetting()
@@ -142,8 +142,10 @@ public sealed class FlowMonitorOptions
     public double GearUpAboveAglFt { get; set; } = 1000;
 }
 
-/// <summary>Weather-awareness advisories (icing, anti-ice hygiene, ISA deviation).</summary>
-public sealed class WeatherOptions
+/// <summary>Weather-awareness advisories (icing, anti-ice hygiene, ISA deviation). Named
+/// "Sop…" to leave the plain <c>WeatherOptions</c> name to the weather-source section — the
+/// bound JSON is unaffected (the <c>sop.weather</c> key comes from the property name).</summary>
+public sealed class SopWeatherOptions
 {
     public bool Enabled { get; set; } = true;
 
@@ -272,7 +274,7 @@ public sealed class SopOptions
 
     // ---- Flow monitor + weather advisories ----
     public FlowMonitorOptions FlowMonitor { get; set; } = new();
-    public WeatherOptions Weather { get; set; } = new();
+    public SopWeatherOptions Weather { get; set; } = new();
 
     // ---- Stabilized approach ----
     public StabilizedOptions Stabilized { get; set; } = new();

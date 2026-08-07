@@ -28,4 +28,19 @@ public sealed class SayIntentionsOptions
 
     /// <summary>"icao" or "faa" request phraseology.</summary>
     public string Phraseology { get; set; } = "icao";
+
+    // ---- Batch weather (ATIS/METAR/TAF) + CPDLC station ----
+    // These need only the API key, NOT an active flight — a parked cockpit can still pull
+    // weather while SayIntentions itself is between flights.
+
+    /// <summary>Fetch ATIS/METAR/TAF + the CPDLC logon for the OFP airports (web Weather page,
+    /// composite weather-provider backfill).</summary>
+    public bool WeatherEnabled { get; set; } = true;
+
+    /// <summary>Cache TTL — entries younger than this are served without touching the API.</summary>
+    public int WeatherCacheMinutes { get; set; } = 10;
+
+    /// <summary>Forced-refresh debounce — protects the API from button-spam and concurrent
+    /// browser clients (predecessor-proven policy).</summary>
+    public int WeatherRefreshDebounceSeconds { get; set; } = 30;
 }
