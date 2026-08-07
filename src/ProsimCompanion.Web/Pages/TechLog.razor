@@ -1,0 +1,208 @@
+@page "/techlog"
+@using Microsoft.Extensions.DependencyInjection
+@using ProsimCompanion.Core.TechLog
+@implements IDisposable
+@inject IServiceProvider Services
+
+<PageTitle>Tech Log — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Tech Log</h1>
+
+<div class="status-panel">
+
+    <section class="status-section status-span">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Tech Log &amp; MEL</h3>
+        <div class="section-body">
+            @if (_techLog is null)
+            {
+                <div class="empty">The tech log service is not wired into this build (see WIRING-TECHLOG.md).</div>
+            }
+            else
+            {
+                <div class="row">
+                    <span class="row-label">Status</span>
+                    <span class="row-value-mono">
+                        @(_techLog.IsEnabled
+                            ? $"{_open.Count} open item(s), {_defects.Count} total"
+                            : "switched off (techLog.enabled)")
+                    </span>
+                </div>
+                @if (_defects.Count == 0)
+                {
+                    <div class="empty">Tech log is clean — no defects on file.</div>
+                }
+                @foreach (var defect in _defects)
+                {
+                    var overdue = _techLog.IsOverdue(defect);
+                    <div class="row" style="align-items:flex-start;">
+                        <span class="row-label">
+                            @defect.Title
+                            @if (!string.IsNullOrWhiteSpace(defect.Placard))
+                            {
+                                <br /><span class="pill">@defect.Placard</span>
+                            }
+                        </span>
+                        <span class="row-value-mono">
+                            @defect.MelReference · CAT @defect.Category · @defect.Status
+                            @if (defect.IsOpen)
+                            {
+                                <br />
+                                @if (overdue)
+                                {
+                                    <span class="pill tone-bad">OVERDUE — @_techLog.DaysPhrase(defect)</span>
+                                }
+                                else
+                                {
+                                    <span>@_techLog.DaysPhrase(defect)</span>
+                                }
+                                <span> · @defect.SectorsCarried sector(s) carried</span>
+                            }
+                        </span>
+                        @if (defect.IsOpen)
+                        {
+                            <button type="button" class="btn primary" @onclick="() => Rectify(defect.Id)">Rectify</button>
+                        }
+                        <button type="button" class="btn secondary" @onclick="() => Remove(defect.Id)">Remove</button>
+                    </div>
+                }
+                <div class="empty" style="margin-top:6px;">
+                    An overdue MEL item is advisory only — the app never grounds the aircraft; whether to fly is
+                    your call. MEL references are simulated, never real citations.
+                </div>
+            }
+        </div>
+    </section>
+
+    @if (_techLog is not null)
+    {
+        <section class="status-section">
+            <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Raise a defect</h3>
+            <div class="section-body">
+                <div class="row">
+                    <span class="row-label">Title</span>
+                    <input class="input" @bind="_title" placeholder="e.g. APU inoperative" />
+                </div>
+                <div class="row">
+                    <span class="row-label">MEL category</span>
+                    <select class="input" @bind="_category">
+                        <option value="A">A — @_techLog.RepairDaysForCategory(MelCategory.A) days</option>
+                        <option value="B">B — @_techLog.RepairDaysForCategory(MelCategory.B) days</option>
+                        <option value="C">C — @_techLog.RepairDaysForCategory(MelCategory.C) days</option>
+                        <option value="D">D — @_techLog.RepairDaysForCategory(MelCategory.D) days</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <span class="row-label">MEL reference</span>
+                    <input class="input" @bind="_melReference" placeholder="blank = simulated default" />
+                </div>
+                <div class="row">
+                    <span class="row-label">Implications</span>
+                    <input class="input" @bind="_implications" placeholder="spoken in the preflight brief" />
+                </div>
+                <div class="row">
+                    <span class="row-label">Placard</span>
+                    <input class="input" @bind="_placard" placeholder="optional, e.g. APU INOP" />
+                </div>
+                <div class="row">
+                    <button type="button" class="btn primary" disabled="@string.IsNullOrWhiteSpace(_title)" @onclick="Raise">
+                        Enter in tech log
+                    </button>
+                </div>
+            </div>
+        </section>
+    }
+
+</div>
+
+@code {
+    private ITechLogService? _techLog;
+    private IReadOnlyList<TechLogDefect> _defects = [];
+    private IReadOnlyList<TechLogDefect> _open = [];
+
+    private string _title = "";
+    private string _category = "C";
+    private string _melReference = "";
+    private string _implications = "";
+    private string _placard = "";
+
+    protected override void OnInitialized()
+    {
+        // Optional resolution: the page renders a friendly notice (instead of a DI crash)
+        // in builds where the tech log is not yet wired — degrade, not fail.
+        _techLog = Services.GetService<ITechLogService>();
+        if (_techLog is not null)
+        {
+            _techLog.Changed += OnChanged;
+            Refresh();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_techLog is not null)
+        {
+            _techLog.Changed -= OnChanged;
+        }
+    }
+
+    private void OnChanged()
+        // Store events fire on the mutating thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            Refresh();
+            StateHasChanged();
+        });
+
+    private void Refresh()
+    {
+        if (_techLog is null)
+        {
+            return;
+        }
+
+        _defects = _techLog.Defects;
+        _open = _techLog.OpenDefects;
+    }
+
+    private void Raise()
+    {
+        if (_techLog is null || string.IsNullOrWhiteSpace(_title))
+        {
+            return;
+        }
+
+        var category = _category switch
+        {
+            "A" => MelCategory.A,
+            "B" => MelCategory.B,
+            "D" => MelCategory.D,
+            _ => MelCategory.C,
+        };
+        var draft = _techLog.NewDraft("manual", _title, category);
+        if (!string.IsNullOrWhiteSpace(_melReference))
+        {
+            draft.MelReference = _melReference.Trim();
+        }
+
+        draft.OperationalImplications = _implications.Trim();
+        draft.Placard = string.IsNullOrWhiteSpace(_placard) ? null : _placard.Trim();
+        _techLog.RaiseDefect(draft);
+
+        _title = "";
+        _melReference = "";
+        _implications = "";
+        _placard = "";
+        Refresh();
+    }
+
+    private void Rectify(string id)
+    {
+        _techLog?.RectifyDefect(id);
+        Refresh();
+    }
+
+    private void Remove(string id)
+    {
+        _techLog?.RemoveDefect(id);
+        Refresh();
+    }
+}

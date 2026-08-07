@@ -58,7 +58,22 @@ public sealed class CoreBootstrapService : IHostedService
     }
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
-        => _eventLog.Record("phase-changed", new { previous = e.Previous.ToString(), current = e.Current.ToString() });
+    {
+        // The snapshot rides along so the post-flight debrief can recover lift-off IAS and
+        // touchdown ground speed from the transition record alone (Prosim2FO's phase.changed
+        // carried the same data; without it those facts are unrecoverable after the fact).
+        var snapshot = _flightState.LastSnapshot;
+        _eventLog.Record("phase-changed", new
+        {
+            previous = e.Previous.ToString(),
+            current = e.Current.ToString(),
+            snapshot = snapshot is null ? null : new
+            {
+                iasKt = Math.Round(snapshot.IndicatedAirspeedKt, 1),
+                groundSpeedKt = Math.Round(snapshot.GroundSpeedKt, 1),
+            },
+        });
+    }
 
     private void OnProfileChanged(object? sender, EventArgs e)
         => _eventLog.Record("profile-changed", new
