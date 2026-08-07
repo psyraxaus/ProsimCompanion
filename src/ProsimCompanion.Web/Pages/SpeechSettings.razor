@@ -45,6 +45,33 @@
                                @bind-Value="_draft.IntercomFilter" />
                 </Section>
             }
+            else if (_section == "recognition")
+            {
+                <Section Title="Recognition & Push-to-Talk"
+                         Hint="How the FO listens. On a network (VATSIM/IVAO/SayIntentions) bind YOUR transmit key as the ATC-mute key so the FO never hears what you say to ATC">
+                    <SelectField Label="Listening mode" Options="RecognitionModeOptions"
+                                 Hint="Push-to-talk: the FO listens only while the FO PTT is held — use a DIFFERENT key/button than your ATC transmit. Continuous: the FO listens whenever a command window is open, except while the ATC-mute key is held"
+                                 @bind-Value="_draft.RecognitionMode" />
+                    <TextField Label="FO push-to-talk key"
+                               Hint="Key name (e.g. capslock, F13, rightctrl) or decimal VK code; empty = unbound. Never your ATC PTT — this one talks to the First Officer"
+                               @bind-Value="_draft.PttKey" />
+                    <TextField Label="ATC-mute key"
+                               Hint="Bind the SAME key you transmit to ATC with — while held, the FO ignores everything it hears (works in both modes)"
+                               @bind-Value="_draft.AtcMuteKey" />
+                    <NumberField Label="FO PTT joystick device" Min="-1" Max="15"
+                                 Hint="winmm joystick id 0–15; −1 = unbound"
+                                 @bind-Value="PttJoystickDeviceDraft" />
+                    <NumberField Label="FO PTT joystick button" Min="-1" Max="31"
+                                 Hint="Button index 0–31 on that device; −1 = unbound"
+                                 @bind-Value="PttJoystickButtonDraft" />
+                    <TextField Label="LAN faster-whisper URL"
+                               Hint="e.g. http://192.168.1.50:8000 — empty uses the offline System.Speech engine"
+                               @bind-Value="_draft.AsrBaseUrl" />
+                    <TextField Label="Input device"
+                               Hint="Microphone name prefix; empty uses the default capture device"
+                               @bind-Value="_draft.InputDevice" />
+                </Section>
+            }
             else if (_section == "sterile")
             {
                 <Section Title="Sterile Cockpit" Hint="Workload phases below the ceiling gate non-essential speech">
@@ -125,11 +152,18 @@
     private static readonly (string Key, string Label)[] Sections =
     [
         ("general", "General"),
+        ("recognition", "Recognition & PTT"),
         ("sterile", "Sterile Cockpit"),
         ("kokoro", "Kokoro"),
         ("google", "Google"),
         ("windows", "Windows Voices"),
         ("advanced", "Advanced"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> RecognitionModeOptions =
+    [
+        ("pushToTalk", "Push-to-talk (dedicated FO key)"),
+        ("continuous", "Continuous (ATC-mute while transmitting)"),
     ];
 
     private static readonly IReadOnlyList<(string, string)> NormalPolicyOptions =
@@ -153,6 +187,18 @@
     private Timer? _savedMessageTimer;
 
     private bool IsDirty => Serialize(_draft) != _baseline;
+
+    private int PttJoystickDeviceDraft
+    {
+        get => _draft.PttJoystickDevice ?? -1;
+        set => _draft.PttJoystickDevice = value < 0 ? null : value;
+    }
+
+    private int PttJoystickButtonDraft
+    {
+        get => _draft.PttJoystickButton ?? -1;
+        set => _draft.PttJoystickButton = value < 0 ? null : value;
+    }
 
     private string NormalPolicyKey
     {
@@ -191,6 +237,14 @@
 
                 speech["enabled"] = draft.Enabled;
                 speech["localOnly"] = draft.LocalOnly;
+
+                speech["recognitionMode"] = draft.RecognitionMode.Trim();
+                speech["pttKey"] = draft.PttKey.Trim();
+                speech["atcMuteKey"] = draft.AtcMuteKey.Trim();
+                speech["pttJoystickDevice"] = draft.PttJoystickDevice;
+                speech["pttJoystickButton"] = draft.PttJoystickButton;
+                speech["asrBaseUrl"] = draft.AsrBaseUrl.Trim();
+                speech["inputDevice"] = draft.InputDevice.Trim();
 
                 speech["sterileEnabled"] = draft.SterileEnabled;
                 speech["sterileCockpitCeilingFt"] = draft.SterileCockpitCeilingFt;

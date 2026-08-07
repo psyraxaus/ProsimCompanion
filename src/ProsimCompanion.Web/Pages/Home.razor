@@ -103,14 +103,23 @@
             {
                 <div class="row" title="@row.Detail">
                     <span class="row-label">@row.ServiceId</span>
-                    <span class="pill @GsxPresentation.StageTone(row.Stage)">@GsxPresentation.StageLabel(row.Stage)</span>
+                    <span class="@GsxPresentation.StageLamp(row.Stage)"></span>
+                    <span class="row-value">@GsxPresentation.StageLabel(row.Stage)</span>
                 </div>
             }
         </div>
     </section>
 
     <section class="status-section">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Live Aircraft Data</h3>
+        <div class="section-header">
+            <h3 class="section-title">Live Aircraft Data</h3>
+            <span class="section-hint">
+                @* The log box that lived here moved to its own page — the header keeps a
+                   one-line health pointer so problems are still visible at a glance. *@
+                log: @LogBuffer.WarningCount warn · @LogBuffer.ErrorCount err —
+                <a href="logs">open</a>
+            </span>
+        </div>
         <div class="section-body">
             @foreach (var sample in _samples)
             {
@@ -123,28 +132,6 @@
                 <span class="row-label field-hint" style="font-size:10px;">
                     Pushed live from ProSim; shows — until a value arrives.
                 </span>
-            </div>
-        </div>
-    </section>
-
-    <section class="status-section status-span">
-        <div class="section-header">
-            <h3 class="section-title">Log</h3>
-            <span class="section-hint">
-                session: @LogBuffer.WarningCount warnings · @LogBuffer.ErrorCount errors —
-                <a href="logs">view all</a>
-            </span>
-        </div>
-        <div class="section-body">
-            <div class="log-box">
-                @if (_logTail.Count == 0)
-                {
-                    <div class="log-empty">No log entries yet.</div>
-                }
-                @foreach (var entry in _logTail)
-                {
-                    <div class="log-line">@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss") [@entry.Level] @ShortSource(entry.Source): @entry.Message</div>
-                }
             </div>
             <details style="margin-top:10px;">
                 <summary style="cursor:pointer; font-size:12px; color:var(--text-secondary);">
@@ -182,13 +169,10 @@
     private static readonly string[] BlockLabels =
         ["PREFLIGHT", "DEPARTURE", "PUSHBACK", "TAXI OUT", "FLIGHT", "TAXI IN", "ARRIVAL"];
 
-    private const int LogTailLength = 12;
-
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _connections = [];
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
-    private IReadOnlyList<LogEntry> _logTail = [];
     private readonly List<Sample> _samples = [];
-    private Timer? _logTimer;
+    private Timer? _headerTimer;
 
     private int ActiveBlock => FlightState.CurrentPhase switch
     {
@@ -214,7 +198,6 @@
     {
         _connections = Status.Snapshot();
         _gsx = Diagnostics.Snapshot();
-        _logTail = TailLogs();
 
         Status.Changed += OnStatusChanged;
         Diagnostics.Changed += OnDiagnosticsChanged;
@@ -222,12 +205,9 @@
         Profiles.Changed += OnDataChanged;
 
         // The log buffer intentionally has no per-event fan-out (logging must stay cheap),
-        // so the tail refreshes on a slow timer instead of an event.
-        _logTimer = new Timer(_ => _ = InvokeAsync(() =>
-        {
-            _logTail = TailLogs();
-            StateHasChanged();
-        }), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        // so the warn/err header counts refresh on a slow timer.
+        _headerTimer = new Timer(_ => _ = InvokeAsync(StateHasChanged),
+            null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
 
         AddSample("Indicated airspeed (kt)", "aircraft.speed.ias", DataRefTier.Frequent,
             subscription => subscription.GetValue(double.NaN) is var v && double.IsNaN(v) ? "—" : v.ToString("F0"));
@@ -237,21 +217,11 @@
             subscription => subscription.RawValue is null ? "—" : subscription.GetValue(false) ? "yes" : "no");
     }
 
-    private IReadOnlyList<LogEntry> TailLogs()
-        // Snapshot is newest-first; the log box reads top-down oldest-first.
-        => LogBuffer.Snapshot().Take(LogTailLength).Reverse().ToList();
-
     private void AddSample(string label, string name, DataRefTier tier, Func<IDataRefSubscription, string> display)
     {
         var subscription = DataRefs.Subscribe(name, tier);
         subscription.ValueChanged += OnDataChanged;
         _samples.Add(new Sample(label, subscription, display));
-    }
-
-    private static string ShortSource(string source)
-    {
-        var lastDot = source.LastIndexOf('.');
-        return lastDot >= 0 && lastDot < source.Length - 1 ? source[(lastDot + 1)..] : source;
     }
 
     private static string ToSpacedUpper(string pascal)
@@ -291,7 +261,7 @@
 
     public void Dispose()
     {
-        _logTimer?.Dispose();
+        _headerTimer?.Dispose();
         Status.Changed -= OnStatusChanged;
         Diagnostics.Changed -= OnDiagnosticsChanged;
         FlightState.PhaseChanged -= OnPhaseChanged;

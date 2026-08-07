@@ -71,7 +71,8 @@
         {
             <div class="row">
                 <span class="row-label">@row.ServiceId</span>
-                <span class="pill @GsxPresentation.StageTone(row.Stage)">@GsxPresentation.StageLabel(row.Stage)</span>
+                <span class="@GsxPresentation.StageLamp(row.Stage)"></span>
+                <span class="row-value">@GsxPresentation.StageLabel(row.Stage)</span>
                 <span class="row-value-mono" style="grid-column:auto;">@(row.Detail ?? "")</span>
             </div>
         }

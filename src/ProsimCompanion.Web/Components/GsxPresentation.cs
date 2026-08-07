@@ -28,6 +28,19 @@ public static class GsxPresentation
         _ => "tone-neutral",
     };
 
+    /// <summary>Annunciator-lamp class per stage: off while waiting, amber for held, pulsing
+    /// amber while called/requested (in motion), pulsing green while active, steady green when
+    /// completed, dark for skipped.</summary>
+    public static string StageLamp(GsxServiceStage stage) => stage switch
+    {
+        GsxServiceStage.Completed => "lamp lamp-green",
+        GsxServiceStage.Active => "lamp lamp-green lamp-pulse",
+        GsxServiceStage.Called or GsxServiceStage.Requested => "lamp lamp-amber lamp-pulse",
+        GsxServiceStage.Held => "lamp lamp-amber",
+        GsxServiceStage.Skipped => "lamp lamp-dark",
+        _ => "lamp lamp-off",
+    };
+
     public static string ReadinessTone(string readiness) => readiness switch
     {
         "Ready" => "tone-ok",
