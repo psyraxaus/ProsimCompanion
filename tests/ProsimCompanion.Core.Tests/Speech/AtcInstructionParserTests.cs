@@ -83,12 +83,49 @@ public sealed class AtcInstructionParserTests
             AtcInstructionParser.Parse("resume own navigation").Type);
     }
 
+    [Fact]
+    public void Altitude_LeadingTo_IsNotADigit()
+    {
+        // "to" maps to 2 for digit strings ("one to tree" = 123) but must not join a
+        // magnitude run: this used to parse as (2+3)*1000 = 5000.
+        var i = AtcInstructionParser.Parse("descend to three thousand feet");
+        Assert.Equal(FcuField.Altitude, i.Field);
+        Assert.Equal(3000, i.Value);
+    }
+
+    [Fact]
+    public void Altitude_TrailingFor_IsNotADigit()
+    {
+        // Used to parse as 2000 + 4 = 2004 feet.
+        var i = AtcInstructionParser.Parse("descend two thousand for traffic");
+        Assert.Equal(FcuField.Altitude, i.Field);
+        Assert.Equal(2000, i.Value);
+    }
+
+    [Fact]
+    public void Heading_InteriorFor_StillADigit()
+    {
+        var i = AtcInstructionParser.Parse("fly heading two for zero");
+        Assert.Equal(FcuField.Heading, i.Field);
+        Assert.Equal(240, i.Value);
+    }
+
     [Theory]
     [InlineData("tune box one 121.5", 121_500)]
     [InlineData("set standby one one eight decimal one zero", 118_100)]
     [InlineData("tune standby 136.975", 136_975)]
     public void FrequencyParser_ValidChannels(string utterance, int expectedKhz)
         => Assert.Equal(expectedKhz, FrequencyParser.Parse(utterance));
+
+    [Theory]
+    [InlineData("set box standby one one eight decimal one zero", 118_100)]
+    [InlineData("tune box 121.5", 121_500)]
+    public void FrequencyParser_BoxStrippedForm_Parses(string utterance, int expectedKhz)
+    {
+        // RadioExecutor strips "box one"/"box two" before parsing — the box digit must not
+        // become the "first number run" and shadow the spoken frequency.
+        Assert.Equal(expectedKhz, FrequencyParser.Parse(utterance));
+    }
 
     [Theory]
     [InlineData("tune box one 117.5")]    // below band

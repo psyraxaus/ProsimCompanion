@@ -97,6 +97,13 @@ public static class SpokenNumber
         return any;
     }
 
+    /// <summary>"to"/"too"/"for" are digits only in digit-string speech ("one to tree" = 123).
+    /// In magnitude speech they are almost always the English words — "descend to two thousand"
+    /// must not become 5000, nor "two thousand for traffic" 2004 — so magnitude parsing trims
+    /// them off the run's ends.</summary>
+    private static readonly HashSet<string> AmbiguousHomophones =
+        new(StringComparer.OrdinalIgnoreCase) { "to", "too", "for" };
+
     /// <summary>Auto-selects magnitude vs digits by vocabulary present.</summary>
     public static bool TryParse(IReadOnlyList<string> words, out int value)
     {
@@ -104,7 +111,26 @@ public static class SpokenNumber
         var magnitude = words.Any(w => TensTeens.ContainsKey(w)
             || w.Equals("hundred", StringComparison.OrdinalIgnoreCase)
             || w.Equals("thousand", StringComparison.OrdinalIgnoreCase));
-        return magnitude ? TryMagnitude(words, out value) : TryDigits(words, out value);
+        return magnitude
+            ? TryMagnitude(TrimAmbiguousEnds(words), out value)
+            : TryDigits(words, out value);
+    }
+
+    private static IReadOnlyList<string> TrimAmbiguousEnds(IReadOnlyList<string> words)
+    {
+        var start = 0;
+        var end = words.Count;
+        while (start < end && AmbiguousHomophones.Contains(words[start]))
+        {
+            start++;
+        }
+
+        while (end > start && AmbiguousHomophones.Contains(words[end - 1]))
+        {
+            end--;
+        }
+
+        return start == 0 && end == words.Count ? words : [.. words.Skip(start).Take(end - start)];
     }
 
     /// <summary>Takes the first contiguous run of number words from an utterance;

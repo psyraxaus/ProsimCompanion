@@ -15,6 +15,9 @@ public sealed class ProsimWriteGateTests
     [InlineData("efb.gsx.refuel")]
     [InlineData("aircraft.communication.windows.vhf1")]   // native-audio guard (Phase 4 review find)
     [InlineData("aircraft.communication.windows.cab")]
+    [InlineData("system.analog.A_FC_FO_ROLL")]             // FO sweep side of the flight-control check
+    [InlineData("system.analog.A_FC_FO_PITCH")]
+    [InlineData("system.analog.A_FC_FO_RUDDER")]
     public void IsAllowed_AllowListedNames_ReturnTrue(string name)
         => Assert.True(ProsimWriteGate.IsAllowed(name));
 
@@ -22,6 +25,9 @@ public sealed class ProsimWriteGateTests
     [InlineData("system.switches.S_MIP_PARKING_BRAKE")]   // cockpit switch — dataref-first rule
     [InlineData("efb.simbrief.id")]                        // identity, read-only for us
     [InlineData("aircraft.speed.ias")]                     // flight dynamics are never written
+    [InlineData("system.analog.A_FC_CAPT_ROLL")]           // captain's controls are NEVER writable
+    [InlineData("system.analog.A_FC_CAPT_PITCH")]
+    [InlineData("system.analog.A_FC_CAPT_RUDDER")]
     [InlineData("")]
     public void IsAllowed_UnlistedNames_ReturnFalse(string name)
         => Assert.False(ProsimWriteGate.IsAllowed(name));

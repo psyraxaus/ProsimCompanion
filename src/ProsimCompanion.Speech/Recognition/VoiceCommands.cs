@@ -16,9 +16,12 @@ public static class VoiceCommands
     public const string Skip = "skip";
     public const string SkipItem = "skip item";
 
+    // Hold/Standby/Resume/Continue are declared for the hold/resume feature (a tracked Phase 5
+    // leftover) but stay OUT of the grammar until routed: a biased-toward phrase with no
+    // handler turns "continue" into a failed item answer and a "Didn't catch that." loop.
     public static readonly IReadOnlyList<string> All =
     [
-        Restart, Cancel, Hold, Standby, Resume, Continue, SayAgain, Repeat, Skip, SkipItem,
+        Restart, Cancel, SayAgain, Repeat, Skip, SkipItem,
     ];
 }
 

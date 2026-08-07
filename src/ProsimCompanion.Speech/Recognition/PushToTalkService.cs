@@ -8,8 +8,11 @@ namespace ProsimCompanion.Speech.Recognition;
 /// <summary>
 /// Push-to-talk input: a global low-level keyboard hook (installed on a dedicated
 /// message-pump thread — never swallows keys, so PTT still reaches the sim) plus a winmm
-/// joystick poller (16 devices × 32 buttons at 25 ms; legacy API, HOTAS with more buttons can
-/// come later via RawInput). Raises edge events only. Bindings are re-read live from options.
+/// joystick poller (the configured device id 0–15 / button 0–31 at 25 ms; legacy API, HOTAS
+/// with more buttons can come later via RawInput). Raises edge events only. Bindings are
+/// re-read live from options. The hook callback only updates key state and queues the edge
+/// evaluation to the thread pool — Windows silently removes low-level hooks whose callbacks
+/// exceed LowLevelHooksTimeout, so recognition start/stop must never run on the hook thread.
 /// </summary>
 public sealed class PushToTalkService : IDisposable
 {
@@ -79,6 +82,7 @@ public sealed class PushToTalkService : IDisposable
     private readonly ILogger<PushToTalkService> _logger;
     private readonly HookProc _hookProc; // held so the GC never collects the callback
     private readonly HashSet<int> _keysDown = [];
+    private readonly object _recomputeGate = new(); // serializes edge detection (pool + timer threads)
 
     private Thread? _hookThread;
     private uint _hookThreadId;
@@ -177,19 +181,27 @@ public sealed class PushToTalkService : IDisposable
         {
             var vk = Marshal.ReadInt32(lParam); // KBDLLHOOKSTRUCT.vkCode is the first field
             var message = (int)(long)wParam;
+            var changed = false;
             if (message is WmKeydown or WmSyskeydown)
             {
-                if (_keysDown.Add(vk)) // de-dupe key auto-repeat
+                lock (_keysDown)
                 {
-                    Recompute();
+                    changed = _keysDown.Add(vk); // de-dupe key auto-repeat
                 }
             }
             else if (message is WmKeyup or WmSyskeyup)
             {
-                if (_keysDown.Remove(vk))
+                lock (_keysDown)
                 {
-                    Recompute();
+                    changed = _keysDown.Remove(vk);
                 }
+            }
+
+            if (changed)
+            {
+                // Off the hook thread — Recompute reaches into recognition start/stop, which
+                // is far beyond the hook timeout budget.
+                ThreadPool.QueueUserWorkItem(static state => ((PushToTalkService)state!).Recompute(), this);
             }
         }
 
@@ -217,50 +229,55 @@ public sealed class PushToTalkService : IDisposable
 
     private void Recompute(int joystickButtons = -1, int joystickButton = -1)
     {
-        var options = _options.CurrentValue;
-        var ownKey = ParseKey(options.PttKey);
-        var atcKey = ParseKey(options.AtcMuteKey);
+        // Serialized: a queued keyboard edge and the joystick timer may arrive concurrently,
+        // and the press/release edge pair must reach handlers in order.
+        lock (_recomputeGate)
+        {
+            var options = _options.CurrentValue;
+            var ownKey = ParseKey(options.PttKey);
+            var atcKey = ParseKey(options.AtcMuteKey);
 
-        bool own;
-        bool atc;
-        lock (_keysDown)
-        {
-            own = ownKey != 0 && _keysDown.Contains(ownKey);
-            atc = atcKey != 0 && _keysDown.Contains(atcKey);
-        }
-
-        if (joystickButtons >= 0 && joystickButton >= 0)
-        {
-            own |= (joystickButtons & (1 << joystickButton)) != 0;
-        }
-        else if (options.PttJoystickDevice is not null && options.PttJoystickButton is { } jb)
-        {
-            own |= (_previousButtons & (1 << jb)) != 0;
-        }
-
-        if (own != _ownPressed)
-        {
-            _ownPressed = own;
-            try
+            bool own;
+            bool atc;
+            lock (_keysDown)
             {
-                OwnPttChanged?.Invoke(own);
+                own = ownKey != 0 && _keysDown.Contains(ownKey);
+                atc = atcKey != 0 && _keysDown.Contains(atcKey);
             }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "PTT handler threw");
-            }
-        }
 
-        if (atc != _atcPressed)
-        {
-            _atcPressed = atc;
-            try
+            if (joystickButtons >= 0 && joystickButton >= 0)
             {
-                AtcPttChanged?.Invoke(atc);
+                own |= (joystickButtons & (1 << joystickButton)) != 0;
             }
-            catch (Exception ex)
+            else if (options.PttJoystickDevice is not null && options.PttJoystickButton is { } jb)
             {
-                _logger.LogDebug(ex, "ATC PTT handler threw");
+                own |= (_previousButtons & (1 << jb)) != 0;
+            }
+
+            if (own != _ownPressed)
+            {
+                _ownPressed = own;
+                try
+                {
+                    OwnPttChanged?.Invoke(own);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "PTT handler threw");
+                }
+            }
+
+            if (atc != _atcPressed)
+            {
+                _atcPressed = atc;
+                try
+                {
+                    AtcPttChanged?.Invoke(atc);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "ATC PTT handler threw");
+                }
             }
         }
     }

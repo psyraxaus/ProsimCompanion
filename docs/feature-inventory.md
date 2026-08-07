@@ -64,21 +64,35 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 ## Voice First Officer (Prosim2FO → Phase 5)
 
-- [ ] 16 spoken Airbus checklists (verify/acknowledge/number-readback; dataref verification with challenge; global commands; next-checklist preselect; hot reload)
-- [ ] Flight-control check (captain sweep callouts + FO-side sweep with neutral safety)
-- [ ] Voice FCU/MCDU actions (humanized timing); FCU executor from spoken instructions
-- [ ] Read-backs: altimeter, V-speeds, runway, minimums
-- [ ] SOP callouts (thrust set, 100kt, V1, rotate, V2, positive climb, RA gates, minimums, spoilers, reverse, decel; altitude callouts; 1000-to-go)
-- [ ] Stabilized-approach gates (1000/500 ft); go-around advisory
-- [ ] Flow monitor advisories (lights, flaps, gear, brake, seatbelts, beacon, spoilers, XPDR; placard speeds)
-- [ ] Sterile cockpit suppression; periodic fuel checks; takeoff-perf gross-error check; destination weather watch; missed-approach auto re-brief
-- [ ] ECAM abnormals (30 procedures, EWD cross-check, interactive dialogue, status review); memory drills (stall, TCAS RA, windshear, EGPWS)
-- [ ] Speech: LAN whisper → WinRT → offline recognition chain; PTT keyboard/joystick; phonetic snapping; utterance interpreter
-- [ ] TTS: Kokoro → Google Chirp 3 HD (cached, usage-tracked) → WinRT → SAPI5; intercom filter
-- [ ] Briefings (departure/arrival; Navigraph DFD facts; LLM-composed with number verification; interactive minimums capture; self-check diagnostics)
-- [ ] SayIntentions ATC requests + departure comms gating + radio management (standby-then-swap)
-- [ ] MCDU reader ("read the MCDU") + gated MCDU actuation (RAD NAV tune, arrival runway/approach change)
-- [ ] PF/PM role manager with duty swap
+- [x] 16 spoken Airbus checklists (verify/acknowledge/number-readback; dataref verification
+      with challenge; global commands — hold/resume deferred with a leftover; hot reload;
+      next-checklist preselect not ported)
+- [x] Flight-control check (captain sweep callouts + FO-side sweep with neutral safety;
+      write gate FO-side only)
+- [x] Voice FCU actions (announce → cancel window → knob-back-off → write+verify; humanized
+      by the gate flow); MCDU actions deferred (need the display de-flicker reader)
+- [ ] Read-backs: altimeter, V-speeds, runway, minimums (number-readback inside checklists
+      is delivered; standalone read-backs not ported yet)
+- [x] SOP callouts (thrust set, 100kt, V1, rotate, V2, positive climb, RA gates, minimums,
+      spoilers, reverse, decel; altitude callouts; 1000-to-go)
+- [x] Stabilized-approach gates (1000/500 ft); go-around advisory
+- [x] Flow monitor advisories (lights, flaps, gear, brake, seatbelts, beacon, spoilers, XPDR;
+      placard speeds) + icing/anti-ice/ISA weather advisories
+- [ ] Sterile cockpit suppression ✔ delivered; periodic fuel checks, takeoff-perf gross-error
+      check, destination weather watch, missed-approach auto re-brief still open
+- [x] ECAM abnormals (30 procedures, EWD cross-check; interactive per-line dialogue + status
+      review deferred); memory drills (stall, TCAS RA, windshear, EGPWS)
+- [x] Speech: LAN whisper → System.Speech offline chain (WinRT engine deferred); PTT
+      keyboard/joystick; phonetic snapping; utterance interpreter
+- [x] TTS: Kokoro → Google Chirp 3 HD (cached, usage-tracked, budget-enforced) → WinRT →
+      SAPI5; intercom filter; prewarm cache
+- [x] Briefings (departure/arrival; Navigraph DFD facts; LLM-composed with number
+      verification; interactive minimums capture deferred — /speech card instead)
+- [x] SayIntentions ATC requests + departure comms gating + radio management
+      (standby-then-swap)
+- [ ] MCDU reader ("read the MCDU") + gated MCDU actuation (RAD NAV tune, arrival
+      runway/approach change)
+- [x] PF/PM role manager with duty swap (voice handover, instant take-back)
 
 ## Immersion & company (Prosim2FO → Phase 6)
 

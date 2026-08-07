@@ -150,7 +150,15 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
             return false; // "set heading two seven zero" must never be grabbed
         }
 
-        var khz = FrequencyParser.Parse(utterance);
+        // The box specifier must not reach the number extractor — in "set box one standby one
+        // one eight decimal one zero" the first digit-word run would otherwise start (and end)
+        // at the box digit.
+        var frequencyText = text
+            .Replace(" box one ", " box ", StringComparison.Ordinal)
+            .Replace(" box two ", " box ", StringComparison.Ordinal)
+            .Replace(" box 1 ", " box ", StringComparison.Ordinal)
+            .Replace(" box 2 ", " box ", StringComparison.Ordinal);
+        var khz = FrequencyParser.Parse(frequencyText);
         if (khz is null)
         {
             _ = _arbiter.SpeakAsync("Say again the frequency.", SpeechPriority.Normal);
@@ -177,6 +185,7 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
 
     private async Task TuneStandbyAsync(int box, int khz)
     {
+        CancellationTokenSource cts;
         lock (_gate)
         {
             if (_inhibitedBoxes.Contains(box))
@@ -186,10 +195,12 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
             }
 
             _pending?.Cancel();
-            _pending = new CancellationTokenSource();
+            // Captured under the lock — reading _pending afterwards could hand this task a
+            // concurrent second tune's CTS and cross their cancellation semantics.
+            cts = new CancellationTokenSource();
+            _pending = cts;
         }
 
-        var cts = _pending!;
         var standbyRef = box == 2 ? RadioControls.Com2Standby : RadioControls.Com1Standby;
         var spoken = SpeakFrequency(khz);
         try
@@ -240,6 +251,17 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
 
     private async Task SwapAsync(int box)
     {
+        lock (_gate)
+        {
+            // "Unable"/backoff put the whole box advisory-only — a swap moves the ACTIVE
+            // frequency, so it must respect the inhibit at least as much as a standby tune.
+            if (_inhibitedBoxes.Contains(box))
+            {
+                _ = _arbiter.SpeakAsync("Radios are yours.", SpeechPriority.Normal);
+                return;
+            }
+        }
+
         var activeRef = box == 2 ? RadioControls.Com2Active : RadioControls.Com1Active;
         var standbyRef = box == 2 ? RadioControls.Com2Standby : RadioControls.Com1Standby;
         try
@@ -261,6 +283,14 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
                 await _arbiter.EnqueueAsync(new SpeechRequest(
                     $"{SpeakFrequency(standby)} active.", SpeechPriority.High, Tag: "radio")).ConfigureAwait(false);
                 _eventLog.Record("radio.swapped", new { box, khz = standby });
+            }
+            else
+            {
+                // Silence here would leave the pilot believing the swap took.
+                await _arbiter.EnqueueAsync(new SpeechRequest(
+                    $"Check VHF {(box == 2 ? "two" : "one")} — the swap may not have taken.",
+                    SpeechPriority.High, Tag: "radio")).ConfigureAwait(false);
+                _eventLog.Record("radio.swapUnverified", new { box, khz = standby });
             }
         }
         catch (Exception ex)

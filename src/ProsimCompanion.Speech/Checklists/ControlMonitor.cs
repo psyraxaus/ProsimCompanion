@@ -121,22 +121,26 @@ public sealed class ControlMonitor
                     lastActivity = Environment.TickCount64;
                     reprompted = false;
 
+                    // Callouts are fire-and-forget: awaiting to playback-complete would stall
+                    // sampling for the utterance duration, and a brisk captain sweep can pass
+                    // a full stop in well under "Full up" airtime. The arbiter's FIFO keeps
+                    // the callouts in order regardless.
                     switch (zone)
                     {
                         case Zone.FullPositive when !axisState.HasPositive:
                             axisState.HasPositive = true;
-                            await speakAsync(axis.FullPositiveCallout).ConfigureAwait(false);
+                            _ = speakAsync(axis.FullPositiveCallout);
                             break;
 
                         case Zone.FullNegative when !axisState.HasNegative:
                             axisState.HasNegative = true;
-                            await speakAsync(axis.FullNegativeCallout).ConfigureAwait(false);
+                            _ = speakAsync(axis.FullNegativeCallout);
                             break;
 
                         case Zone.Neutral when axisState.HasPositive && axisState.HasNegative
                             && !axisState.IsComplete:
                             axisState.IsComplete = true;
-                            await speakAsync(axis.NeutralCallout).ConfigureAwait(false);
+                            _ = speakAsync(axis.NeutralCallout);
                             break;
                     }
                 }
@@ -151,7 +155,7 @@ public sealed class ControlMonitor
                             return true;
                         }
 
-                        await speakAsync(spec.Axes[sequenceIndex].Display).ConfigureAwait(false);
+                        _ = speakAsync(spec.Axes[sequenceIndex].Display);
                     }
                 }
                 else if (state.Values.All(s => s.IsComplete))
@@ -162,8 +166,7 @@ public sealed class ControlMonitor
                 if (!reprompted && Environment.TickCount64 - lastActivity > IdleRepromptMs)
                 {
                     reprompted = true;
-                    await speakAsync("Flight controls — move the controls to the stops, or say skip.")
-                        .ConfigureAwait(false);
+                    _ = speakAsync("Flight controls — move the controls to the stops, or say skip.");
                 }
 
                 await Task.Delay(SampleIntervalMs, cancellationToken).ConfigureAwait(false);

@@ -70,7 +70,7 @@ public sealed class FailureMonitor : IDisposable
         Load(AbnormalLoader.LoadFolder(Path.Combine(AppContext.BaseDirectory, "config", "abnormals")));
         _logger.LogInformation("Loaded {Count} abnormal definitions ({Drills} drills)",
             _definitions.Count, _definitions.Count(d => d.IsDrill));
-        _timer = new Timer(_ => Tick(), null, 1000, 500); // 2 Hz (abnormals.detectionRateHz default)
+        _timer = new Timer(_ => Tick(), null, 1000, 500); // 2 Hz, fixed (the predecessor's detectionRateHz default; no config knob here yet)
     }
 
     /// <summary>Replaces the definition set — exposed for tests (Start loads from disk).</summary>

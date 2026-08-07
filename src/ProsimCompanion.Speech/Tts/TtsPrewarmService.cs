@@ -32,6 +32,7 @@ public sealed class TtsPrewarmService : IDisposable
     private CancellationTokenSource? _run;
     private Timer? _debounce;
     private string _lastWarmedFingerprint = "";
+    private bool _disposed;
 
     public TtsPrewarmService(
         IOptionsMonitor<SpeechOptions> speech,
@@ -64,9 +65,12 @@ public sealed class TtsPrewarmService : IDisposable
     public void Dispose()
     {
         _checklists.Changed -= OnChecklistsChanged;
-        _debounce?.Dispose();
         lock (_gate)
         {
+            // The flag stops a debounce callback (or Changed event) already in flight from
+            // arming a fresh warm after shutdown — StartWarm checks it under this gate.
+            _disposed = true;
+            _debounce?.Dispose();
             _run?.Cancel();
         }
     }
@@ -119,8 +123,16 @@ public sealed class TtsPrewarmService : IDisposable
 
     private void OnChecklistsChanged(object? sender, EventArgs e)
     {
-        _debounce?.Dispose();
-        _debounce = new Timer(_ => StartWarm(), null, ChecklistChangeDebounce, Timeout.InfiniteTimeSpan);
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _debounce?.Dispose();
+            _debounce = new Timer(_ => StartWarm(), null, ChecklistChangeDebounce, Timeout.InfiniteTimeSpan);
+        }
     }
 
     private void StartWarm()
@@ -128,6 +140,11 @@ public sealed class TtsPrewarmService : IDisposable
         CancellationTokenSource run;
         lock (_gate)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             _run?.Cancel();
             _run = new CancellationTokenSource();
             run = _run;
@@ -154,6 +171,7 @@ public sealed class TtsPrewarmService : IDisposable
             }
 
             var cached = 0;
+            var failed = 0;
             var consecutiveFailures = 0;
             foreach (var phrase in phrases)
             {
@@ -171,6 +189,7 @@ public sealed class TtsPrewarmService : IDisposable
                 catch (Exception ex)
                 {
                     _logger.LogDebug(ex, "Pre-warm failed for a phrase via {Provider}", provider.Name);
+                    failed++;
                     if (++consecutiveFailures >= ConsecutiveFailureAbort)
                     {
                         _logger.LogWarning(
@@ -181,9 +200,15 @@ public sealed class TtsPrewarmService : IDisposable
                 }
             }
 
-            _lastWarmedFingerprint = fingerprint;
-            _logger.LogInformation("TTS pre-warm complete: {Cached}/{Total} via {Provider}",
-                cached, phrases.Count, provider.Name);
+            // A partially-failed run must stay retryable: recording the fingerprint would
+            // freeze the cold phrases until the config or provider next changes.
+            if (failed == 0)
+            {
+                _lastWarmedFingerprint = fingerprint;
+            }
+
+            _logger.LogInformation("TTS pre-warm complete: {Cached}/{Total} via {Provider} ({Failed} failed)",
+                cached, phrases.Count, provider.Name, failed);
         }
         catch (OperationCanceledException)
         {

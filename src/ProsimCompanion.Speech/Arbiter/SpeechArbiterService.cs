@@ -91,6 +91,15 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         bool preempt;
         lock (_gate)
         {
+            // Re-checked under the lock: Dispose drains the core under the same lock after
+            // setting the flag, so an item admitted here is either processed or drained —
+            // never stranded with an unresolved Completion.
+            if (_disposed == 1)
+            {
+                Raise(SpeechEventKind.Dropped, request.Priority, request.Tag, request.Text, "shutdown");
+                return Task.FromResult(SpeechOutcome.Dropped);
+            }
+
             item = _core.Enqueue(request, DateTimeOffset.UtcNow, cancellationToken, out preempt);
             if (preempt)
             {
@@ -99,7 +108,14 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         }
 
         Raise(SpeechEventKind.Enqueued, request.Priority, request.Tag, request.Text, null);
-        _signal.Release();
+        try
+        {
+            _signal.Release();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Shutdown raced the enqueue; the item was drained and resolved by Dispose.
+        }
         PublishStatus();
         return item.Completion.Task;
     }

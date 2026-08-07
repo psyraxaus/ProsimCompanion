@@ -255,6 +255,18 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
 The Prosim2FO pillar. Its three foundations (phase engine, speech arbiter, event log) already exist
 from Phase 1 — this phase adds the speech stack and features on top.
 
+> **Phase 5 complete — static verification passed 2026-08-08** (four-agent code review of every
+> claim below against the implementation; build clean, all tests green). Review finds fixed the
+> same day: an enqueue-after-dispose race in the speech arbiter, TTS prewarm partial-failure
+> fingerprinting + a shutdown race, heavy work on the low-level keyboard-hook thread (Windows
+> silently removes slow hooks — PTT would die) plus a key-state data race, unhandled
+> hold/resume phrases removed from the grammar, flight-control-check callouts no longer stall
+> the 30 Hz sampler, a ProSim drop mid-check no longer logs as pilot-skipped, magnitude number
+> parsing no longer counts "to"/"for" homophones as digits ("descend to three thousand" parsed
+> as 5000), radio swap now honours the unable/backoff inhibit and reports verify failures, a
+> box-digit no longer shadows a spoken frequency, and a tune-CTS race. Live verification is
+> the weekend run.
+
 - [x] Speech arbiter — Prosim2FO semantics carried verbatim into a pure core + pump shell:
       four strict-priority FIFO queues (Low/Normal/High/Critical), Critical-only pre-emption
       with the dequeue→render race close, pre-empted Normal restarts from the queue head
@@ -281,11 +293,12 @@ from Phase 1 — this phase adds the speech stack and features on top.
       consecutive provider failures. Live-token phrases ({v1}…) skipped. **Unverified live**
 - [x] Recognition + spoken checklists + flight-control check (Prosim2FO semantics, with its
       own port-notes applied — the legacy non-interpreter path deliberately dropped, input
-      device selection actually wired, whisper hotword biasing sent): LAN faster-whisper
+      device selection actually wired, whisper hotword biasing sent on ≤50-phrase windows): LAN faster-whisper
       (WaveInEvent 16 kHz + RMS VAD 500/700 ms/300 ms/15 s, multipart POST, 120 s readiness
       probe with one-way swap to offline) → System.Speech (Choices grammar + 1–6-word digit
       grammar); WinRT recognition deferred. PTT: global low-level keyboard hook (own
-      message-pump thread, never swallows keys) + winmm joystick (16×32 @ 25 ms), ATC-mute
+      message-pump thread, never swallows keys, edge evaluation off-thread) + winmm joystick
+      (configured device 0–15 / button 0–31 @ 25 ms), ATC-mute
       suppression, continuous mode. Interpreter ladder: acoustic gates (command windows only)
       → exact → hybrid Levenshtein+DoubleMetaphone snap @0.7 with a [0.7,0.85) gray band →
       raw pass-through for awaiting items. Spoken checklist engine: strictly-sequential runs
@@ -296,11 +309,6 @@ from Phase 1 — this phase adds the speech stack and features on top.
       monitor 30 Hz dwell 400 ms + FO sweep on the A_FC_FO_* analogs with neutral-on-cancel;
       write gate widened to the FO side ONLY). captureMinima degrades to acknowledge until
       the briefing flow lands. **Unverified live**
-- [ ] Recognition leftovers: WinRT engine, wake-on-LAN, gray-band confirm sub-dialogue,
-      hold/resume commands, config/phrases.json override, per-checklist FlightMonitor prompts
-      (keyboard/joystick), phonetic snapping, utterance interpreter
-- [ ] Spoken checklists (verify-against-dataref, challenge on mismatch, global commands)
-- [ ] Flight-control check (captain sweep callout + FO sweep with neutral-on-cancel safety)
 - [x] Flow-monitor advisories (Prosim2FO semantics): edge-triggered checks spoken once when a
       condition appears, cleared on resolve, 60 s per-key rate limit stamped on speak —
       landing lights above/below the ceiling, flaps > 3000 ft AGL, gear > 1000 ft AGL, parking
@@ -323,8 +331,9 @@ from Phase 1 — this phase adds the speech stack and features on top.
       Aviation TTS normalizer ported verbatim ("FL350" ≠ Florida; niner/decimal digits),
       applied before the cache key. Config in `sop` settings section (predecessor profile
       defaults; SOP profile files may supersede later). Deliberately NO GPWS/RA-countdown
-      calls — those remain ProSim's own. New snapshot fields live at 100 ms tier.
-      **Unverified live**
+      calls — those remain ProSim's own. The crossing refs (IAS/altitude/RA/VS) were promoted
+      to the 100 ms tier; the genuinely new callout fields sample at 250 ms and slower per
+      volatility. **Unverified live**
 - [x] Voice FCU actions + radio management + PF/PM roles (Prosim2FO gate semantics): keyword
       classification in the proven order (QNH excluded, conditionals relayed-never-actioned,
       engagements, managed/selected, value fields), hard range checks that ask instead of
@@ -367,11 +376,13 @@ from Phase 1 — this phase adds the speech stack and features on top.
       400 ms fallback for now. Radio management delivered in slice 7. Disabled by default.
       **Unverified live**
 - [ ] Phase 5 leftovers (post-verification): WinRT recognition engine, wake-on-LAN,
-      gray-band confirm sub-dialogue, hold/resume voice commands, interactive minima capture
-      + missed-approach re-brief, interactive per-line ECAM dialogue, MCDU voice actions
-      (RAD NAV tune / arrival change — need the display de-flicker reader), persona styling,
-      Purser/Company voices + chimes, web settings UI for the new sections (sop/briefing/
-      sayIntentions are hand-editable in settings.json with written defaults), SIAI L:var
+      gray-band confirm sub-dialogue, hold/resume voice commands (phrases declared but kept
+      out of the grammar until routed), interactive minima capture + missed-approach re-brief,
+      interactive per-line ECAM dialogue, MCDU voice actions (RAD NAV tune / arrival change —
+      need the display de-flicker reader), persona styling + config/phrases.json override,
+      per-checklist FlightMonitor prompts (keyboard/joystick), Purser/Company voices + chimes,
+      web settings UI for the new sections (sop/briefing/sayIntentions and the recognition
+      bindings are hand-editable in settings.json with written defaults), SIAI L:var
       radio-clear gate via ISimVars
 
 ## Phase 6 — Immersion & remaining integrations

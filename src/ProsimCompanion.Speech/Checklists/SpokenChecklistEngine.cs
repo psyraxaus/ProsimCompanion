@@ -284,10 +284,18 @@ public sealed class SpokenChecklistEngine : IDisposable
         var composition = (item.Composition ?? "monitorThenSweep").ToLowerInvariant();
         if (composition != "sweeponly")
         {
-            var skipped = await MonitorPhaseAsync(item, ct).ConfigureAwait(false);
-            if (skipped)
+            var outcome = await MonitorPhaseAsync(item, ct).ConfigureAwait(false);
+            if (outcome == MonitorOutcome.Skipped)
             {
                 await Speak("Flight controls check, skipped.").ConfigureAwait(false);
+                return false;
+            }
+
+            if (outcome == MonitorOutcome.Aborted)
+            {
+                // ProSim dropped mid-check — saying "skipped" here would log a pilot decision
+                // that never happened.
+                await Speak("Flight controls check aborted — connection lost.").ConfigureAwait(false);
                 return false;
             }
         }
@@ -301,9 +309,18 @@ public sealed class SpokenChecklistEngine : IDisposable
         return true;
     }
 
+    private enum MonitorOutcome
+    {
+        Completed,
+        Skipped,
+
+        /// <summary>ProSim dropped mid-check — not a pilot decision.</summary>
+        Aborted,
+    }
+
     /// <summary>Runs the captain-sweep watch with a command-only window open so skip/cancel
-    /// still work. Returns true when the pilot skipped.</summary>
-    private async Task<bool> MonitorPhaseAsync(ChecklistItemDefinition item, CancellationToken ct)
+    /// still work.</summary>
+    private async Task<MonitorOutcome> MonitorPhaseAsync(ChecklistItemDefinition item, CancellationToken ct)
     {
         var axes = new List<MonitorAxisSpec>();
         foreach (var (name, axis) in item.Axes ?? [])
@@ -321,7 +338,7 @@ public sealed class SpokenChecklistEngine : IDisposable
 
         if (axes.Count == 0)
         {
-            return false;
+            return MonitorOutcome.Completed;
         }
 
         var spec = new MonitorSpec(
@@ -342,11 +359,11 @@ public sealed class SpokenChecklistEngine : IDisposable
         {
             var completed = await _monitor.RunAsync(
                 spec, text => Speak(text), () => false, skip.Token).ConfigureAwait(false);
-            return !completed && !ct.IsCancellationRequested;
+            return completed ? MonitorOutcome.Completed : MonitorOutcome.Aborted;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            return true; // skip cancelled the monitor, not the run
+            return MonitorOutcome.Skipped; // skip cancelled the monitor, not the run
         }
         finally
         {
