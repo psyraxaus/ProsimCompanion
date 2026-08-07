@@ -405,8 +405,28 @@ from Phase 1 — this phase adds the speech stack and features on top.
       Cruise-query ambient + response window deferred with the mic-ownership seam.
       **Unverified live**
 - [ ] Tech log & MEL, pilot logbook, post-flight debrief, company day mode
-- [ ] StreamDeck support via the named-command registry (single command seam: web/API/StreamDeck)
-- [ ] SayIntentions extras (ATIS/METAR, CPDLC station), ActiveSky weather provider
+- [x] Named-command registry + HTTP command API — the single command seam for
+      web/API/StreamDeck (docs/integrations/command-api.md): typed CommandRegistry
+      (duplicate-registration throws; no WPF marshalling), 18 commands over existing seams
+      (gsx start/force-next/gate, checklists select/check/skip/restart/advanceNext, loadsheet
+      prelim/final/reset, fms.syncInit, ofp.fetch, minima set/clear, speech.speakTest), every
+      response outcome+reason (Success/AlreadySatisfied→200, PhaseMismatch/Precondition→409,
+      Unavailable→503, Failed→500), `GET /api/commands` + `POST /api/command/{name}`. Opt-in
+      (`commandApi.enabled`, default off) and token-gated EVEN on loopback — it is a write
+      surface. Absent pillars answer "unavailable" so the API shape is stable. The Elgato
+      Node plugin itself is future work (Prosim2GSX's complete plugin lives on its unmerged
+      StreamDeckIntegration branch as the reference). **Unverified live**
+- [x] SayIntentions extras + ActiveSky weather provider: Core weather seam (WxFacts, full
+      deterministic MetarParser port — metric/statute visibility, lowest ceiling, precip
+      priority, Q/A QNH, RMK confinement — ATIS-letter extraction with the phonetic table),
+      ActiveSky provider (current_wx_snapshot.txt with FileShare.ReadWrite + '*' sentinel +
+      4-path HiFi auto-probe, then the local HTTP API on :19285 which returns raw METAR with
+      an empty Content-Type — live-verified in the predecessor), composite chain ActiveSky →
+      gateway METAR → SayIntentions cache (first real METAR wins; ATIS/runway backfilled from
+      cache only; briefings now consume the composite). SI weather: getWX multi-ICAO batch
+      (ATIS/METAR/TAF/active runway/winds) + getCurrentFrequencies CPDLC station, gated on
+      the API key only (weather needs no active flight — predecessor-documented), 10 min
+      TTL / 30 s debounce / semaphore dedupe, /weather page. **Unverified live**
 
 ## Phase 7 — Distribution & polish
 

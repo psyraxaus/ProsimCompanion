@@ -97,8 +97,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 ## Immersion & company (Prosim2FO → Phase 6)
 
 - [ ] FO persona (name, chattiness, styles, small talk)
-- [ ] Cabin crew simulation (purser reports via ACP CAB, cabin secure/ready, ambient events)
-- [ ] Company/ACARS channel (loadsheet readout, cruise messages, chime)
+- [x] Cabin crew simulation (purser reports gated on any ACP CAB latch, cabin secure/ready,
+      opt-in boarding-delay ambient; cruise-query + distinct purser voice deferred)
+- [x] Company/ACARS channel (loadsheet readout with session persistence, opt-in deterministic
+      cruise messages, ACARS chime; LLM styling deferred)
 - [ ] Tech log & MEL (persistent defects, A–D due dates, wear pool, rectification dialogues)
 - [ ] Pilot logbook (voice queries, debrief line)
 - [ ] Post-flight debrief (event log → facts → LLM → verified → spoken)
@@ -106,11 +108,13 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 ## Bridges & extras
 
-- [ ] SayIntentions extras (ATIS/METAR/wind, CPDLC station)
-- [ ] ActiveSky weather provider
-- [ ] StreamDeck plugin via command registry
-- [ ] Airline themes (JSON), light/dark
-- [ ] Session event log (JSONL) + replay harness
+- [x] SayIntentions extras (ATIS/METAR/TAF/wind batch, CPDLC station, /weather page)
+- [x] ActiveSky weather provider (snapshot file + local API, composite chain with gateway
+      METAR and SayIntentions fallback; briefings consume it)
+- [x] Command registry + HTTP command API (18 commands, opt-in, token even on loopback) —
+      the Elgato plugin itself is future work
+- [x] Airline themes (JSON), light/dark
+- [ ] Session event log (JSONL) ✔ delivered in Phase 1; replay harness still open
 - [ ] Config importers from Prosim2GSX `AppConfig.json` and Prosim2FO `settings.json`
 
 ## Deliberately not carried forward
