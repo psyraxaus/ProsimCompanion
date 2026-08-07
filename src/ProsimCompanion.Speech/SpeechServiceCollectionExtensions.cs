@@ -36,6 +36,10 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<TtsPrewarmService>();
         services.AddSingleton<PushToTalkService>();
         services.AddSingleton<RecognitionController>();
+        // The controller's listening-window surface + the exclusive-mic seam over it (guided
+        // dialogues borrow the mic; normal routing stands down while borrowed).
+        services.AddSingleton<IRecognitionWindow>(p => p.GetRequiredService<RecognitionController>());
+        services.AddSingleton<IMicOwnership, MicOwnership>();
         services.AddSingleton<UtteranceInterpreter>();
         services.AddSingleton<ControlMonitor>();
         services.AddSingleton<ControlSweepService>();
@@ -66,6 +70,11 @@ public static class SpeechServiceCollectionExtensions
         // first session-finalization step (Order 10).
         services.AddSingleton<TechLog.TechLogVoiceService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<TechLog.TechLogVoiceService>());
+        // Guided raise/rectify dialogues + the post-abnormal shutdown offer (finalizer Order 40).
+        services.AddSingleton<TechLog.TechLogDialogueService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<TechLog.TechLogDialogueService>());
+        services.AddSingleton<Core.Sessions.ISessionFinalizationStep>(
+            p => p.GetRequiredService<TechLog.TechLogDialogueService>());
         services.AddSingleton<Debrief.DebriefService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Debrief.DebriefService>());
         services.AddSingleton<Core.Sessions.ISessionFinalizationStep>(
