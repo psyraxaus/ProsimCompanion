@@ -14,10 +14,9 @@ namespace ProsimCompanion.Speech.TechLog;
 /// The tech log's voice: the once-per-flight preflight brief (only when open items exist —
 /// a clean log never speaks unsolicited), the on-command brief, and the random-wear
 /// announcement. The store and lifecycle live in Core (<see cref="ITechLogService"/>) so the
-/// web page shares them without Web referencing Speech. The guided raise/rectify voice
-/// dialogues are deferred with the free-form capture seam; per-flight abnormals are already
-/// remembered here (<see cref="FiredAbnormals"/>) so the deferred post-abnormal offer can
-/// build on this slice without re-deriving them.
+/// web page shares them without Web referencing Speech. The guided raise/rectify dialogues and
+/// the post-abnormal shutdown offer live in <see cref="TechLogDialogueService"/>, which reads
+/// the per-flight abnormal memory kept here (<see cref="FiredAbnormals"/>).
 /// </summary>
 public sealed class TechLogVoiceService : IVoiceFeature, IDisposable
 {
