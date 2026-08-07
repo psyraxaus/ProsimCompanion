@@ -51,8 +51,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Briefings.DfdNavDataProvider>();
         services.AddSingleton<Briefings.BriefingService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Briefings.BriefingService>());
+        services.AddSingleton<Company.CompanyChannelService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Company.CompanyChannelService>());
         services.AddSingleton<SayIntentions.SayIntentionsService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<SayIntentions.SayIntentionsService>());
+        services.AddSingleton<Cabin.CabinCrewService>();
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

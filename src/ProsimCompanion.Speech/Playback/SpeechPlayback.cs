@@ -16,6 +16,11 @@ public interface ISpeechPlayback
     /// retries, and the next utterance re-enumerates from scratch, which is what makes
     /// recovery automatic. Only cancellation propagates.</summary>
     Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken);
+
+    /// <summary>Plays a short programmatic cue chime by id ("cabin" interphone ding-dong,
+    /// "company"/"acars" data beep). Unknown ids and any failure are a quiet no-op — a chime
+    /// never breaks speech. The intercom filter is never applied (a chime is not voice).</summary>
+    Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -38,7 +43,18 @@ public sealed class SpeechPlayback : ISpeechPlayback
         _logger = logger;
     }
 
-    public async Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken)
+    public Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken)
+        => PlayCoreAsync(wavBytes, applyIntercomFilter: true, cancellationToken);
+
+    public Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken)
+    {
+        var wav = ChimeSynth.Build(chimeId);
+        return wav is null
+            ? Task.CompletedTask
+            : PlayCoreAsync(wav, applyIntercomFilter: false, cancellationToken);
+    }
+
+    private async Task PlayCoreAsync(byte[] wavBytes, bool applyIntercomFilter, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(wavBytes);
         cancellationToken.ThrowIfCancellationRequested();
@@ -56,7 +72,7 @@ public sealed class SpeechPlayback : ISpeechPlayback
             }
 
             using var reader = new WaveFileReader(new MemoryStream(wavBytes, writable: false));
-            var chain = BuildChain(reader.ToSampleProvider(), device, options);
+            var chain = BuildChain(reader.ToSampleProvider(), device, options, applyIntercomFilter);
 
             output = new WasapiOut(device, AudioClientShareMode.Shared, useEventSync: true, latency: 100);
             output.Init(chain.ToWaveProvider());
@@ -99,9 +115,10 @@ public sealed class SpeechPlayback : ISpeechPlayback
         }
     }
 
-    private static ISampleProvider BuildChain(ISampleProvider sample, MMDevice device, SpeechOptions options)
+    private static ISampleProvider BuildChain(
+        ISampleProvider sample, MMDevice device, SpeechOptions options, bool applyIntercomFilter)
     {
-        if (options.IntercomFilter)
+        if (applyIntercomFilter && options.IntercomFilter)
         {
             sample = new IntercomFilterProvider(sample);
         }

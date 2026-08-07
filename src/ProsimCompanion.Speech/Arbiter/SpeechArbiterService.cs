@@ -248,6 +248,25 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
             var audio = await _router.SynthesizeAsync(spoken, renderCts.Token).ConfigureAwait(false);
             if (audio is not null)
             {
+                // Chime then speech, back-to-back in this one slot — synthesized FIRST so the
+                // chime never leads a synth stall, and skipped entirely when there is no voice
+                // to follow it. A failed chime never blocks the utterance.
+                if (!string.IsNullOrWhiteSpace(request.Chime))
+                {
+                    try
+                    {
+                        await _playback.PlayChimeAsync(request.Chime!, renderCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Chime {Chime} failed", request.Chime);
+                    }
+                }
+
                 await _playback.PlayAsync(audio.WavBytes, renderCts.Token).ConfigureAwait(false);
             }
 

@@ -31,12 +31,15 @@ public enum SpeechPriority
 /// deferral; false discards the item ("gear down" must not play after gear up).</param>
 /// <param name="Tag">Short label for logs/events, and a semantic key for suppression rules
 /// (the sterile rule exempts <c>cabin.*</c> tags).</param>
+/// <param name="Chime">Optional cue-chime id ("cabin", "company") played back-to-back before
+/// the utterance in the same arbiter slot — pre-emption cancels both. Unknown ids no-op.</param>
 public sealed record SpeechRequest(
     string Text,
     SpeechPriority Priority = SpeechPriority.Normal,
     TimeSpan? Ttl = null,
     Func<bool>? IsStillValid = null,
-    string? Tag = null);
+    string? Tag = null,
+    string? Chime = null);
 
 /// <summary>Terminal fate of a submitted request — what the caller's awaited task resolves to.
 /// Arbitration never throws at callers; it reports one of these instead.</summary>

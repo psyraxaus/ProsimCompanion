@@ -9,6 +9,14 @@
 
 <div class="panel">
 
+    @if (_view.CabinCalling)
+    {
+        <div class="pill tone-warn" style="display:block; text-align:center; padding:10px; margin-bottom:12px;"
+             title="The real ACP CAB-CALL light is read-only in the SDK — this banner is the flash substitute">
+            CABIN CALLING — select CAB on the audio panel
+        </div>
+    }
+
     <Section Title="Voice First Officer" Hint="Arbiter, TTS chain and playback status">
         <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
             <span class="pill @(_view.Enabled ? "tone-ok" : "tone-neutral")">

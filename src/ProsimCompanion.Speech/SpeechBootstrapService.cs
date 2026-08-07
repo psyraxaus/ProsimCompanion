@@ -25,6 +25,8 @@ public sealed class SpeechBootstrapService : IHostedService
     private readonly SpokenChecklistEngine _spokenChecklists;
     private readonly Abnormals.FailureMonitor _failures;
     private readonly SayIntentions.SayIntentionsService _sayIntentions;
+    private readonly Cabin.CabinCrewService _cabin;
+    private readonly Company.CompanyChannelService _company;
 
     public SpeechBootstrapService(
         SpeechArbiterService arbiter,
@@ -35,12 +37,18 @@ public sealed class SpeechBootstrapService : IHostedService
         PushToTalkService ptt,
         SpokenChecklistEngine spokenChecklists,
         Abnormals.FailureMonitor failures,
-        SayIntentions.SayIntentionsService sayIntentions)
+        SayIntentions.SayIntentionsService sayIntentions,
+        Cabin.CabinCrewService cabin,
+        Company.CompanyChannelService company)
     {
         ArgumentNullException.ThrowIfNull(failures);
         ArgumentNullException.ThrowIfNull(sayIntentions);
+        ArgumentNullException.ThrowIfNull(cabin);
+        ArgumentNullException.ThrowIfNull(company);
         _failures = failures;
         _sayIntentions = sayIntentions;
+        _cabin = cabin;
+        _company = company;
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(callouts);
         ArgumentNullException.ThrowIfNull(stabilized);
@@ -67,6 +75,8 @@ public sealed class SpeechBootstrapService : IHostedService
         _ptt.Start();
         _failures.Start();
         _sayIntentions.Start();
+        _cabin.Start();
+        _company.Start();
         _spokenChecklists.Start();
         return Task.CompletedTask;
     }
@@ -74,6 +84,8 @@ public sealed class SpeechBootstrapService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _spokenChecklists.Dispose();
+        _company.Dispose();
+        _cabin.Dispose();
         _sayIntentions.Dispose();
         _failures.Dispose();
         _ptt.Dispose();

@@ -38,7 +38,8 @@ public sealed record SpeechStatusSnapshot(
     bool Listening = false,
     string LastHeard = "",
     string SpokenChecklist = "",
-    string SpokenChecklistItem = "")
+    string SpokenChecklistItem = "",
+    bool CabinCalling = false)
 {
     public static SpeechStatusSnapshot Empty { get; } = new(
         Enabled: false,

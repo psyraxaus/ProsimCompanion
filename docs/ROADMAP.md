@@ -387,7 +387,23 @@ from Phase 1 — this phase adds the speech stack and features on top.
 
 ## Phase 6 — Immersion & remaining integrations
 
-- [ ] Cabin crew simulation, company/ACARS channel, chimes
+- [x] Cabin crew simulation + company/ACARS channel + chimes (Prosim2FO "Prompt F" semantics,
+      predecessor bugs fixed in the port): purser reports (cabin secure on doors+beacon at
+      pushback/taxi-out; cabin ready below 10,000 ft with signs ON in descent/approach) gated
+      on ANY of the three ACP CAB receive latches (predecessor watched only the captain's) with
+      chime + 25 s grace, "CABIN CALLING" banner on /speech (the real CAB-CALL light is
+      SDK-read-only), FO acknowledgements, once-per-flight latches re-armed at ColdAndDark AND
+      turnaround Preflight (predecessor missed turnarounds), opt-in ambient boarding-delay
+      call. Company channel: spoken loadsheet from live ZFW/GW/FOB/CG/zone datarefs
+      (invariant-culture tonnes; persisted beside the session JSONL with the raw EFB
+      loadsheet), "request loadsheet"/"read last company message" voice commands, opt-in
+      deterministic cruise message (template floor — predecessor was LLM-only-or-silent).
+      Chimes are programmatic WAV (interphone ding-dong E5→C5, ACARS double-beep C6, exact
+      predecessor tone specs), played chime-then-speech in one arbiter slot, never
+      intercom-filtered; one chime toggle per channel (collapses the predecessor's dead
+      voices.*Chime keys). Purser/company distinct voices still deferred (all FO voice).
+      Cruise-query ambient + response window deferred with the mic-ownership seam.
+      **Unverified live**
 - [ ] Tech log & MEL, pilot logbook, post-flight debrief, company day mode
 - [ ] StreamDeck support via the named-command registry (single command seam: web/API/StreamDeck)
 - [ ] SayIntentions extras (ATIS/METAR, CPDLC station), ActiveSky weather provider
