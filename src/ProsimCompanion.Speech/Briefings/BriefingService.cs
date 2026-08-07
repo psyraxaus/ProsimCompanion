@@ -106,6 +106,19 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         {
             var facts = await BuildFactsAsync(departure).ConfigureAwait(false);
             var narrative = await ComposeAsync(facts).ConfigureAwait(false);
+            // Route breadcrumb for the logbook/debrief extractor: the briefing is the one place
+            // the resolved airport + runway exist as facts (Prosim2FO emitted flight.route from
+            // the same spot). A flight flown without a briefing simply has no route on record.
+            if (!string.IsNullOrWhiteSpace(facts.Airport))
+            {
+                _eventLog.Record("flight.route", new
+                {
+                    role = departure ? "departure" : "arrival",
+                    airport = facts.Airport,
+                    runway = facts.Runway,
+                });
+            }
+
             _eventLog.Record("briefing.spoken", new { departure, narrative });
             await _arbiter.EnqueueAsync(new SpeechRequest(
                 narrative, SpeechPriority.Normal, Tag: departure ? "briefing.departure" : "briefing.arrival"))

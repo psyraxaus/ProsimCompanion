@@ -65,6 +65,11 @@ public sealed class FailureMonitor : IDisposable
     public IReadOnlyList<string> DrillPhrases
         => [.. _definitions.Where(d => d.IsDrill).SelectMany(d => d.VoiceTriggers)];
 
+    /// <summary>Raised (id, title) when a real abnormal fires — the seam the tech log uses to
+    /// remember which abnormals happened this flight (for the deferred post-abnormal offer)
+    /// without re-parsing the event log. Fires on the monitor's tick thread.</summary>
+    public event Action<string, string>? FailureDetected;
+
     public void Start()
     {
         Load(AbnormalLoader.LoadFolder(Path.Combine(AppContext.BaseDirectory, "config", "abnormals")));
@@ -164,6 +169,14 @@ public sealed class FailureMonitor : IDisposable
     private void Fire(AbnormalDefinition definition)
     {
         _eventLog.Record("failure.detected", new { id = definition.Id, title = definition.Title });
+        try
+        {
+            FailureDetected?.Invoke(definition.Id, definition.Title);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "FailureDetected subscriber threw for {Id}", definition.Id);
+        }
         if (definition.IsDrill)
         {
             _ = SpeakDrillAsync(definition, selfAnnounced: true);

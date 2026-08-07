@@ -1,0 +1,54 @@
+{
+  "//": "Random-wear pool (OFF by default; techLog.randomWear). Purely PROCEDURAL, benign cabin/cosmetic defects — nothing here affects aircraft behaviour or any dataref. At most one appears at shutdown, at a small probability, so a tech log accrues character over a career. MEL references are SIMULATED. Review/curate freely.",
+  "entries": [
+    {
+      "title": "Cabin reading light unserviceable, seat 24C",
+      "category": "D",
+      "melReference": "MEL (SIM) 33-20",
+      "implications": "cabin crew advised, no operational effect",
+      "placard": "24C READING LIGHT INOP"
+    },
+    {
+      "title": "Forward galley oven 2 inoperative",
+      "category": "C",
+      "melReference": "MEL (SIM) 25-30",
+      "implications": "reduced hot service, catering advised",
+      "placard": "FWD OVEN 2 INOP"
+    },
+    {
+      "title": "Passenger seat 18F recline inoperative",
+      "category": "D",
+      "melReference": "MEL (SIM) 25-20",
+      "implications": "seat may be blocked or reassigned",
+      "placard": "18F RECLINE INOP"
+    },
+    {
+      "title": "Aft lavatory door lock indicator intermittent",
+      "category": "C",
+      "melReference": "MEL (SIM) 38-40",
+      "implications": "cabin crew to monitor occupancy",
+      "placard": "AFT LAV LOCK IND"
+    },
+    {
+      "title": "Overhead bin latch stiff, row 12 left",
+      "category": "D",
+      "melReference": "MEL (SIM) 25-50",
+      "implications": "cabin crew advised",
+      "placard": "12L BIN LATCH"
+    },
+    {
+      "title": "Cabin interphone handset 2L crackle",
+      "category": "C",
+      "melReference": "MEL (SIM) 23-30",
+      "implications": "use the alternate handset",
+      "placard": "2L INTERPHONE"
+    },
+    {
+      "title": "Reading light row 7A intermittent",
+      "category": "D",
+      "melReference": "MEL (SIM) 33-20",
+      "implications": "cabin crew advised, no operational effect",
+      "placard": "7A READING LIGHT"
+    }
+  ]
+}
