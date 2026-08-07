@@ -1,0 +1,204 @@
+@page "/day"
+@using Microsoft.Extensions.DependencyInjection
+@using ProsimCompanion.Core.Day
+@implements IDisposable
+@inject IServiceProvider Services
+
+<PageTitle>Duty Day — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Duty Day</h1>
+
+<div class="status-panel">
+
+    <section class="status-section status-span">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Company Day Mode</h3>
+        <div class="section-body">
+            @if (_store is null)
+            {
+                <div class="empty">Company day mode is not wired into this build (see WIRING-DAY.md).</div>
+            }
+            else if (_snapshot.View is not { } view)
+            {
+                <div class="row">
+                    <span class="row-label">Status</span>
+                    <span class="row-value-mono">no duty day</span>
+                </div>
+                <div class="row">
+                    <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="StartDay">
+                        Start duty day
+                    </button>
+                </div>
+                <div class="empty">
+                    Say "start duty day", or press the button. With day mode enabled and auto-start on,
+                    a day also begins at the first Preflight. Drop a rotations/*.json file for a planned day.
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    <span class="row-label">State</span>
+                    <span class="row-value-mono">
+                        <span class="pill @(view.Active ? "" : "tone-bad")">@view.State</span>
+                    </span>
+                </div>
+                <div class="row">
+                    <span class="row-label">Leg</span>
+                    <span class="row-value-mono">@view.LegIndex of @view.LegCount (@view.LegsCompleted completed)</span>
+                </div>
+                <div class="row">
+                    <span class="row-label">Route</span>
+                    <span class="row-value-mono">@(view.From ?? "?") &rarr; @(view.To ?? "?")</span>
+                </div>
+                <div class="row">
+                    <span class="row-label">Block</span>
+                    <span class="row-value-mono">@DayMath.FormatHoursMinutes(view.BlockMinutes)</span>
+                </div>
+                <div class="row">
+                    <span class="row-label">Duty</span>
+                    <span class="row-value-mono">@DayMath.FormatHoursMinutes(view.DutyMinutes)</span>
+                </div>
+                @if (view.DelayMinutes is { } delay)
+                {
+                    <div class="row">
+                        <span class="row-label">Schedule</span>
+                        <span class="row-value-mono">
+                            @if (delay > 0)
+                            {
+                                <span class="pill tone-bad">@delay min behind</span>
+                            }
+                            else if (delay < 0)
+                            {
+                                <span class="pill">@(-delay) min ahead</span>
+                            }
+                            else
+                            {
+                                <span class="pill">on schedule</span>
+                            }
+                        </span>
+                    </div>
+                }
+                <div class="row">
+                    @if (view.Active)
+                    {
+                        <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="EndDay">
+                            End duty day
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="StartDay">
+                            Start duty day
+                        </button>
+                    }
+                </div>
+                <div class="empty">
+                    Block and duty figures are convenience tracking of what was flown — not a
+                    flight-time-limitations calculation.
+                </div>
+            }
+        </div>
+    </section>
+
+    @if (_store is not null && _snapshot.Legs.Count > 0)
+    {
+        <section class="status-section status-span">
+            <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Legs</h3>
+            <div class="section-body">
+                @foreach (var leg in _snapshot.Legs)
+                {
+                    <div class="row" style="align-items:flex-start;">
+                        <span class="row-label">
+                            Leg @leg.Index
+                            @if (!string.IsNullOrWhiteSpace(leg.FlightNo))
+                            {
+                                <br /><span class="pill">@leg.FlightNo</span>
+                            }
+                        </span>
+                        <span class="row-value-mono">
+                            @(leg.From ?? "?") &rarr; @(leg.To ?? "?")
+                            @if (leg.BlockMinutes is { } block)
+                            {
+                                <span> · @block min block</span>
+                            }
+                            @if (leg.Completed)
+                            {
+                                <span> · @(leg.Landed ? "landed" : "no landing")</span>
+                            }
+                            @if (leg.Stabilized is { } stab)
+                            {
+                                <br />
+                                @if (stab)
+                                {
+                                    <span class="pill">stabilized</span>
+                                }
+                                else
+                                {
+                                    <span class="pill tone-bad">unstable</span>
+                                }
+                            }
+                            @if (!string.IsNullOrWhiteSpace(leg.Deviation))
+                            {
+                                <br /><span class="pill tone-bad">@leg.Deviation</span>
+                            }
+                        </span>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+</div>
+
+@code {
+    private DayStatusStore? _store;
+    private IDayControl? _control;
+    private DaySnapshot _snapshot = DaySnapshot.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Optional resolution: the page renders a friendly notice (instead of a DI crash)
+        // in builds where day mode is not yet wired — degrade, not fail.
+        _store = Services.GetService<DayStatusStore>();
+        _control = Services.GetService<IDayControl>();
+        if (_store is not null)
+        {
+            _store.Changed += OnChanged;
+            _snapshot = _store.Snapshot();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_store is not null)
+        {
+            _store.Changed -= OnChanged;
+        }
+    }
+
+    private void OnChanged(object? sender, EventArgs e)
+        // Store events fire on the mutating thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _snapshot = _store?.Snapshot() ?? DaySnapshot.Empty;
+            StateHasChanged();
+        });
+
+    private void StartDay()
+    {
+        _control?.StartDay();
+        RefreshNow();
+    }
+
+    private void EndDay()
+    {
+        _control?.EndDay();
+        RefreshNow();
+    }
+
+    private void RefreshNow()
+    {
+        if (_store is not null)
+        {
+            _snapshot = _store.Snapshot();
+        }
+    }
+}

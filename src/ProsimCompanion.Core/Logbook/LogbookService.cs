@@ -21,9 +21,17 @@ public interface ILogbookService
     /// <summary>Recorded flights, oldest first (append order).</summary>
     IReadOnlyList<LogbookFlight> Flights { get; }
 
+    /// <summary>Recorded duty days, oldest first (append order).</summary>
+    IReadOnlyList<LogbookDay> Days { get; }
+
     /// <summary>Folds one session log into the store. Idempotent — keyed by session id, and a
     /// session with nothing meaningful (no landing, block time or route) is skipped.</summary>
     void FoldSession(string sessionPath);
+
+    /// <summary>Folds one duty day's record into the store — idempotent by DayId: recording
+    /// the same day again replaces the earlier entry (a re-run with fuller facts wins), never
+    /// duplicates it. Never throws.</summary>
+    void RecordDay(LogbookDay day);
 
     /// <summary>Folds every <c>session-*.jsonl</c> in the sessions folder except the
     /// in-progress one. Returns the number of flights added; safe to re-run.</summary>
@@ -112,11 +120,58 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
         }
     }
 
+    public IReadOnlyList<LogbookDay> Days
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _store.Days.ToList();
+            }
+        }
+    }
+
     Task ISessionFinalizationStep.RunAsync(SessionFinalizationContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         FoldSession(context.SessionPath);
         return Task.CompletedTask;
+    }
+
+    public void RecordDay(LogbookDay day)
+    {
+        try
+        {
+            if (day is null || string.IsNullOrWhiteSpace(day.DayId) || !_options.CurrentValue.Enabled)
+            {
+                return;
+            }
+
+            lock (_gate)
+            {
+                // Idempotent by DayId: replace-in-place so an end-of-day re-run (or a resumed
+                // day ended twice) updates the record instead of duplicating it.
+                var existing = _store.Days.FindIndex(
+                    d => string.Equals(d.DayId, day.DayId, StringComparison.OrdinalIgnoreCase));
+                if (existing >= 0)
+                {
+                    _store.Days[existing] = day;
+                }
+                else
+                {
+                    _store.Days.Add(day);
+                }
+
+                Save();
+            }
+
+            _eventLog.Record("logbook.day-recorded", new { dayId = day.DayId, legs = day.Legs });
+            _logger.LogInformation("Logbook: recorded duty day {DayId} ({Legs} leg(s))", day.DayId, day.Legs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Logbook day record failed for {DayId}", day?.DayId);
+        }
     }
 
     // ---- folding ----

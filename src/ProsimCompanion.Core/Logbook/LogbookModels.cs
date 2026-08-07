@@ -43,8 +43,9 @@ public sealed class LogbookFlight
     public int DefectsCarried { get; set; }
 }
 
-/// <summary>One duty day's record. Company day mode is deferred — the shape ships now so the
-/// store's schema doesn't need a version bump when it arrives; <c>Days</c> stays empty.</summary>
+/// <summary>One duty day's record, folded by company day mode at end of day (idempotent by
+/// <see cref="DayId"/>). The figures are convenience tracking of what was flown — not an FTL
+/// calculation.</summary>
 public sealed class LogbookDay
 {
     public string DayId { get; set; } = "";
@@ -58,6 +59,22 @@ public sealed class LogbookDay
     public int? BlockMinutes { get; set; }
 
     public int? DutyMinutes { get; set; }
+
+    /// <summary>Actual vs. scheduled on-blocks of the last scheduled leg (positive = behind);
+    /// null when the day had no schedule to compare against.</summary>
+    public int? DelayMinutes { get; set; }
+
+    public int StabilizedApproaches { get; set; }
+
+    public int JudgedApproaches { get; set; }
+
+    public int Abnormals { get; set; }
+
+    public int MemoryDrills { get; set; }
+
+    public int DefectsRaised { get; set; }
+
+    public int DefectsRectified { get; set; }
 }
 
 /// <summary>The persisted logbook file shape (<c>logbook.json</c>).</summary>
