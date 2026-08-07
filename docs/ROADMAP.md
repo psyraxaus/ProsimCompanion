@@ -404,7 +404,21 @@ from Phase 1 — this phase adds the speech stack and features on top.
       voices.*Chime keys). Purser/company distinct voices still deferred (all FO voice).
       Cruise-query ambient + response window deferred with the mic-ownership seam.
       **Unverified live**
-- [ ] Tech log & MEL, pilot logbook, post-flight debrief, company day mode
+- [x] Tech log & MEL + pilot logbook + post-flight debrief (Prosim2FO semantics; company day
+      mode deferred): file-backed stores in %LOCALAPPDATA%\ProsimCompanion (atomic
+      temp-then-move, corrupt-aside-and-rebuild, idempotent by id/session), MEL categories
+      A–D with representative due dates, /techlog page (raise/rectify/remove, OVERDUE badge,
+      sectors carried), voice tech-log brief + once-per-flight Preflight auto-brief, opt-in
+      random wear from the shipped benign pool; logbook folds each flight at shutdown
+      (meaningful-flight rule, aggregates computed on read, fastest/slowest touchdown-GS
+      semantics FIXED from the predecessor's inversion) with Backfill(); deterministic spoken
+      debrief at shutdown from the session JSONL (single-pass extractor with the real event
+      map, first-wins Shutdown fixes the predecessor's block-time stretch) + "debrief" voice
+      phrases + .debrief.txt persistence + the "landing number N into X" line. The
+      predecessor's fragile 750/1200/1500 ms shutdown delay chain replaced by ONE ordered
+      SessionFinalizer (debrief → logbook → techlog, failure-isolated). Deferred: raise/
+      rectify voice dialogues, post-abnormal offer (FiredAbnormals seam ships), LLM debrief
+      styling, procedural hooks, logbook voice queries, company day mode. **Unverified live**
 - [x] Named-command registry + HTTP command API — the single command seam for
       web/API/StreamDeck (docs/integrations/command-api.md): typed CommandRegistry
       (duplicate-registration throws; no WPF marshalling), 18 commands over existing seams

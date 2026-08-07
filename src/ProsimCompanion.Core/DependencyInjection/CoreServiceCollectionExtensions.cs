@@ -66,6 +66,9 @@ public static class CoreServiceCollectionExtensions
         services.Configure<CabinOptions>(configuration.GetSection(CabinOptions.SectionName));
         services.Configure<CompanyOptions>(configuration.GetSection(CompanyOptions.SectionName));
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
+        services.Configure<TechLogOptions>(configuration.GetSection(TechLogOptions.SectionName));
+        services.Configure<LogbookOptions>(configuration.GetSection(LogbookOptions.SectionName));
+        services.Configure<DebriefOptions>(configuration.GetSection(DebriefOptions.SectionName));
         // Same binder-appends-to-defaults trap for the SOP lists.
         services.Configure<SopOptions>(o =>
         {
@@ -129,6 +132,19 @@ public static class CoreServiceCollectionExtensions
                 "ProsimCompanion",
                 "sessions"),
             provider.GetRequiredService<ILogger<JsonlEventLog>>()));
+
+        // Post-flight bookkeeping pillar: tech log & MEL, pilot logbook, session finalizer.
+        // Finalization steps run in explicit Order (debrief 10 → logbook 20 → techlog 30),
+        // so registration order here does not matter.
+        services.AddSingleton<TechLog.TechLogService>();
+        services.AddSingleton<TechLog.ITechLogService>(p => p.GetRequiredService<TechLog.TechLogService>());
+        services.AddSingleton<Debrief.IDebriefFactExtractor, Debrief.DebriefFactExtractor>();
+        services.AddSingleton<Logbook.LogbookService>();
+        services.AddSingleton<Logbook.ILogbookService>(p => p.GetRequiredService<Logbook.LogbookService>());
+        services.AddSingleton<Sessions.ISessionFinalizationStep>(p => p.GetRequiredService<Logbook.LogbookService>());
+        services.AddSingleton<Sessions.ISessionFinalizationStep>(p => p.GetRequiredService<TechLog.TechLogService>());
+        services.AddSingleton<Sessions.SessionFinalizer>();
+        services.AddHostedService<Hosting.PostFlightBootstrapService>();
 
         // IFlightDataSource and IProsimDataRefs come from the Prosim project's registrations.
         services.AddSingleton<FlightStateEngine>();

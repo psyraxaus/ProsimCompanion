@@ -61,6 +61,16 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Core.State.IWeatherControl>(
             p => p.GetRequiredService<SayIntentions.SayIntentionsWeatherService>());
         services.AddSingleton<Cabin.CabinCrewService>();
+        // Post-flight voice: tech-log brief + spoken debrief (deterministic template). Exact-
+        // match phrases, so last in the dispatch order is fine. The debrief doubles as the
+        // first session-finalization step (Order 10).
+        services.AddSingleton<TechLog.TechLogVoiceService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<TechLog.TechLogVoiceService>());
+        services.AddSingleton<Debrief.DebriefService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Debrief.DebriefService>());
+        services.AddSingleton<Core.Sessions.ISessionFinalizationStep>(
+            p => p.GetRequiredService<Debrief.DebriefService>());
+        services.AddHostedService<PostFlightVoiceBootstrapService>();
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

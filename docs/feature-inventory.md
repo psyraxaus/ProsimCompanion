@@ -101,9 +101,12 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       opt-in boarding-delay ambient; cruise-query + distinct purser voice deferred)
 - [x] Company/ACARS channel (loadsheet readout with session persistence, opt-in deterministic
       cruise messages, ACARS chime; LLM styling deferred)
-- [ ] Tech log & MEL (persistent defects, A–D due dates, wear pool, rectification dialogues)
-- [ ] Pilot logbook (voice queries, debrief line)
-- [ ] Post-flight debrief (event log → facts → LLM → verified → spoken)
+- [x] Tech log & MEL (persistent defects, A–D due dates, wear pool, web raise/rectify +
+      voice brief; rectification voice dialogues + procedural hooks deferred)
+- [x] Pilot logbook (shutdown fold, aggregates, backfill, debrief comparison line; voice
+      queries + web page deferred)
+- [x] Post-flight debrief (event log → facts → deterministic template → spoken; LLM styling
+      + number verifier deferred)
 - [ ] Company day mode (multi-sector duties, turnaround summaries)
 
 ## Bridges & extras
