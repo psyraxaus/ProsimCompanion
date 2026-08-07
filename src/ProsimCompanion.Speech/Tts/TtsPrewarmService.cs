@@ -9,7 +9,9 @@ namespace ProsimCompanion.Speech.Tts;
 /// <summary>
 /// Warms the TTS disk cache with every phrase the FO can speak from static config — checklist
 /// reads and SOP callout/advisory texts — so time-critical calls ("V one") play from cache
-/// instead of paying first-synthesis latency mid-takeoff (pattern proven in Prosim2FO).
+/// instead of paying first-synthesis latency mid-takeoff (pattern proven in Prosim2FO). The
+/// speaker-role voices (purser cabin reports, the company loadsheet lead-in) are warmed too,
+/// with the actual configured wording (see <see cref="CollectRolePhrases"/>).
 ///
 /// Phrases are normalized with <see cref="AviationSpeech.Normalize"/> exactly as the render
 /// path does, so the warmed cache keys match at runtime. Synthesis goes DIRECTLY to the first
@@ -24,6 +26,8 @@ public sealed class TtsPrewarmService : IDisposable
 
     private readonly IOptionsMonitor<SpeechOptions> _speech;
     private readonly IOptionsMonitor<SopOptions> _sop;
+    private readonly IOptionsMonitor<CabinOptions> _cabin;
+    private readonly IOptionsMonitor<VoicesOptions> _voices;
     private readonly IReadOnlyList<ITtsProvider> _providers;
     private readonly ChecklistService _checklists;
     private readonly ILogger<TtsPrewarmService> _logger;
@@ -37,18 +41,24 @@ public sealed class TtsPrewarmService : IDisposable
     public TtsPrewarmService(
         IOptionsMonitor<SpeechOptions> speech,
         IOptionsMonitor<SopOptions> sop,
+        IOptionsMonitor<CabinOptions> cabin,
+        IOptionsMonitor<VoicesOptions> voices,
         IEnumerable<ITtsProvider> providers,
         ChecklistService checklists,
         ILogger<TtsPrewarmService> logger)
     {
         ArgumentNullException.ThrowIfNull(speech);
         ArgumentNullException.ThrowIfNull(sop);
+        ArgumentNullException.ThrowIfNull(cabin);
+        ArgumentNullException.ThrowIfNull(voices);
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(checklists);
         ArgumentNullException.ThrowIfNull(logger);
 
         _speech = speech;
         _sop = sop;
+        _cabin = cabin;
+        _voices = voices;
         _providers = [.. providers];
         _checklists = checklists;
         _logger = logger;
@@ -121,6 +131,42 @@ public sealed class TtsPrewarmService : IDisposable
             .Distinct(StringComparer.Ordinal)];
     }
 
+    /// <summary>
+    /// Warmable role-voiced phrases as (voice id, normalized phrase) pairs: the purser role
+    /// warms the ACTUAL configured cabin report wording (not a canned copy — the predecessor
+    /// warmed phrases its cabin service never spoke) and the company role warms the fixed
+    /// "Loadsheet." lead-in (the rest of a loadsheet is live numbers and cannot be warmed).
+    /// A role is skipped when its voice is blank (it would render in the FO voice — already
+    /// warmed) or equal to <paramref name="foVoice"/> (same cache namespace — already warmed).
+    /// Static so tests exercise it without providers.
+    /// </summary>
+    public static IReadOnlyList<(string Voice, string Phrase)> CollectRolePhrases(
+        CabinOptions cabin, VoicesOptions voices, string foVoice)
+    {
+        ArgumentNullException.ThrowIfNull(cabin);
+        ArgumentNullException.ThrowIfNull(voices);
+
+        var pairs = new List<(string Voice, string Phrase)>();
+
+        void AddRole(string voice, IEnumerable<string> phrases)
+        {
+            if (string.IsNullOrWhiteSpace(voice) || string.Equals(voice, foVoice, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            pairs.AddRange(phrases
+                .Where(p => !string.IsNullOrWhiteSpace(p) && !p.Contains('{', StringComparison.Ordinal))
+                .Select(AviationSpeech.Normalize)
+                .Distinct(StringComparer.Ordinal)
+                .Select(p => (voice, p)));
+        }
+
+        AddRole(voices.Purser, [cabin.CabinSecureText, cabin.CabinReadyText, cabin.BoardingDelayText]);
+        AddRole(voices.Company, ["Loadsheet."]);
+        return pairs;
+    }
+
     private void OnChecklistsChanged(object? sender, EventArgs e)
     {
         lock (_gate)
@@ -164,7 +210,19 @@ public sealed class TtsPrewarmService : IDisposable
             }
 
             var phrases = CollectPhrases(_sop.CurrentValue, _checklists.Definitions());
-            var fingerprint = provider.Name + "\n" + string.Join("\n", phrases);
+
+            // Role voices are warmed on the same provider with an override — the provider's
+            // per-voice cache namespacing keeps them isolated from the FO phrases above.
+            var foVoice = provider.Name == "google"
+                ? _speech.CurrentValue.GoogleVoice
+                : _speech.CurrentValue.KokoroVoice;
+            var work = phrases.Select(p => (Voice: (string?)null, Phrase: p))
+                .Concat(CollectRolePhrases(_cabin.CurrentValue, _voices.CurrentValue, foVoice)
+                    .Select(rp => (Voice: (string?)rp.Voice, Phrase: rp.Phrase)))
+                .ToList();
+
+            var fingerprint = provider.Name + "\n"
+                + string.Join("\n", work.Select(w => (w.Voice is null ? "" : w.Voice + "|") + w.Phrase));
             if (fingerprint == _lastWarmedFingerprint)
             {
                 return; // Nothing changed since the last successful warm.
@@ -173,12 +231,12 @@ public sealed class TtsPrewarmService : IDisposable
             var cached = 0;
             var failed = 0;
             var consecutiveFailures = 0;
-            foreach (var phrase in phrases)
+            foreach (var (voice, phrase) in work)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    await provider.SynthesizeAsync(phrase, cancellationToken).ConfigureAwait(false);
+                    await provider.SynthesizeAsync(phrase, cancellationToken, voice).ConfigureAwait(false);
                     cached++;
                     consecutiveFailures = 0;
                 }
@@ -208,7 +266,7 @@ public sealed class TtsPrewarmService : IDisposable
             }
 
             _logger.LogInformation("TTS pre-warm complete: {Cached}/{Total} via {Provider} ({Failed} failed)",
-                cached, phrases.Count, provider.Name, failed);
+                cached, work.Count, provider.Name, failed);
         }
         catch (OperationCanceledException)
         {

@@ -7,16 +7,19 @@ using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Logbook;
 using ProsimCompanion.Core.Sessions;
 using ProsimCompanion.Speech.Arbiter;
+using ProsimCompanion.Speech.Llm;
 using ProsimCompanion.Speech.Recognition;
 
 namespace ProsimCompanion.Speech.Debrief;
 
 /// <summary>
-/// The post-flight debrief: extracts the session's facts, builds the deterministic template
-/// (LLM styling deferred), appends the logbook comparison line, persists the text beside the
-/// session log, and speaks it at Low priority so any late safety speech outranks it. Runs as
-/// the FIRST session-finalization step (order 10) — it reads the session log before the
-/// logbook/tech-log folds mutate their stores — plus on voice command or the web button.
+/// The post-flight debrief: extracts the session's facts, composes the spoken text — optional
+/// LLM styling behind the number verifier (one strict re-ask, then the deterministic template
+/// on ANY failure; same pattern as the briefing), else the template directly — appends the
+/// logbook comparison line, persists the text beside the session log, and speaks it at Low
+/// priority so any late safety speech outranks it. Runs as the FIRST session-finalization step
+/// (order 10) — it reads the session log before the logbook/tech-log folds mutate their stores
+/// — plus on voice command or the web button.
 /// </summary>
 public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, IDisposable
 {
@@ -31,6 +34,7 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
     private readonly IFlightPhaseSource _flight;
     private readonly JsonlEventLog _eventLog;
     private readonly IOptionsMonitor<DebriefOptions> _options;
+    private readonly OpenAiChatClient _llm;
     private readonly ILogger<DebriefService> _logger;
     private readonly object _gate = new();
 
@@ -44,7 +48,9 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         IFlightPhaseSource flight,
         JsonlEventLog eventLog,
         IOptionsMonitor<DebriefOptions> options,
-        ILogger<DebriefService> logger)
+        IOptionsMonitor<BriefingOptions> briefingOptions,
+        ILogger<DebriefService> logger,
+        OpenAiChatClient? llm = null)
     {
         ArgumentNullException.ThrowIfNull(extractor);
         ArgumentNullException.ThrowIfNull(logbook);
@@ -52,6 +58,7 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(briefingOptions);
         ArgumentNullException.ThrowIfNull(logger);
 
         _extractor = extractor;
@@ -60,6 +67,9 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         _flight = flight;
         _eventLog = eventLog;
         _options = options;
+        // Optional so DI needs no extra registration (the LLM endpoint settings live in the
+        // briefing section); a test passes a client over a fake HTTP handler here.
+        _llm = llm ?? new OpenAiChatClient(briefingOptions);
         _logger = logger;
     }
 
@@ -91,8 +101,9 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
 
     /// <summary>Compose + speak now (web button / test), bypassing the once-per-flight guard.
     /// The session log is read as-is — no flush delay, so a mid-flight trigger simply debriefs
-    /// what has happened so far.</summary>
-    public void TriggerNow() => Run(manual: true);
+    /// what has happened so far. Fire-and-forget: any LLM latency happens off the caller, and
+    /// RunAsync never throws.</summary>
+    public void TriggerNow() => _ = RunAsync(manual: true, CancellationToken.None);
 
     public bool TryHandle(string utterance)
     {
@@ -125,8 +136,7 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
             _doneThisFlight = true;
         }
 
-        Run(manual: false);
-        return Task.CompletedTask;
+        return RunAsync(manual: false, cancellationToken);
     }
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
@@ -141,10 +151,10 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         }
     }
 
-    /// <summary>Synchronous on purpose: extraction is a local file read and the speech enqueue
-    /// is fire-and-forget, so there is nothing to await — callers (finalizer thread, voice
-    /// dispatch, web button) all tolerate the file-read latency.</summary>
-    private void Run(bool manual)
+    /// <summary>Extraction is a local file read and the speech enqueue is fire-and-forget —
+    /// the only await inside is the optional LLM styling, so with the LLM disabled this
+    /// completes synchronously (which keeps the voice/web callers instant).</summary>
+    private async Task RunAsync(bool manual, CancellationToken cancellationToken)
     {
         try
         {
@@ -167,8 +177,25 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
                 : DebriefVerbosity.Full;
             var text = DebriefTemplate.Build(facts, verbosity);
 
+            // Optional LLM styling behind the number verifier; ANY failure keeps the template.
+            var attemptLlm = options.UseLlm && _llm.IsConfigured;
+            string? styled = null;
+            if (attemptLlm)
+            {
+                styled = await StyleWithLlmAsync(facts, verbosity, cancellationToken).ConfigureAwait(false);
+            }
+
+            // llm = the styled path was attempted; verified = its output passed the number
+            // check and is what gets spoken.
+            _eventLog.Record("debrief.styled", new { llm = attemptLlm, verified = styled is not null });
+            if (styled is not null)
+            {
+                text = styled;
+            }
+
             // One notable, fact-locked logbook line. Excludes this session so the count is
-            // right whether or not the logbook fold has already run.
+            // right whether or not the logbook fold has already run. Appended AFTER styling —
+            // its numbers are deterministic and must never be paraphrased.
             var comparison = _logbook.DescribeComparison(
                 facts, Path.GetFileNameWithoutExtension(sessionPath));
             if (!string.IsNullOrWhiteSpace(comparison))
@@ -179,14 +206,16 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
             Persist(sessionPath, text);
 
             // Low priority with a validity window: the debrief expires unspoken if a new
-            // flight is already underway by the time the queue reaches it.
+            // flight is already underway by the time the queue reaches it. Deliberately NOT
+            // the finalizer's token — once composed, the debrief lives or dies by its own
+            // TTL/validity, not by finalization ending.
             _ = _arbiter.EnqueueAsync(new SpeechRequest(
                 text,
                 SpeechPriority.Low,
                 Ttl: TimeSpan.FromMinutes(10),
                 IsStillValid: () => _flight.CurrentPhase
                     is FlightPhase.Shutdown or FlightPhase.ColdAndDark or FlightPhase.TaxiIn,
-                Tag: "debrief"));
+                Tag: "debrief"), CancellationToken.None);
 
             _eventLog.Record("debrief.spoken", new
             {
@@ -201,6 +230,64 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         {
             _logger.LogWarning(ex, "Debrief failed");
         }
+    }
+
+    /// <summary>The LLM ask → verify → ONE strict re-ask → verify chain. Returns the verified
+    /// styled text, or null on any miss (blank reply, unverified numbers twice, HTTP/timeout
+    /// failure) — null means "speak the template". Each call inside carries its own timeout
+    /// budget (see <see cref="OpenAiChatClient"/>); the predecessor shared one expiring window
+    /// across both calls, which starved the re-ask.</summary>
+    private async Task<string?> StyleWithLlmAsync(
+        DebriefFacts facts, DebriefVerbosity verbosity, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var system = DebriefLlm.SystemPrompt(verbosity);
+            var factBlock = DebriefLlm.FactBlock(facts);
+            var allowed = DebriefLlm.AllowedNumbers(facts);
+
+            var narrative = await _llm.CompleteAsync(
+                system, factBlock + "\n\nWrite the spoken debrief now.", cancellationToken)
+                .ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(narrative))
+            {
+                _logger.LogWarning("LLM returned no debrief text — using the template");
+                return null;
+            }
+
+            narrative = narrative.Trim();
+            var check = NumberVerifier.Check(narrative, allowed);
+            if (check.Ok)
+            {
+                return narrative;
+            }
+
+            _logger.LogWarning("Debrief number verification failed — unverified: {Tokens}",
+                string.Join(", ", check.Offending));
+
+            var retry = await _llm.CompleteAsync(
+                system,
+                factBlock + "\n\nUse ONLY these numbers, exactly as written, and no others: "
+                    + NumberVerifier.DescribeAllowed(allowed)
+                    + "\nWrite the spoken debrief now.",
+                cancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(retry))
+            {
+                retry = retry.Trim();
+                if (NumberVerifier.Check(retry, allowed).Ok)
+                {
+                    return retry;
+                }
+            }
+
+            _logger.LogWarning("Debrief re-ask still unverified — using the template");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "LLM debrief styling failed — using the template");
+        }
+
+        return null;
     }
 
     private void Persist(string sessionPath, string text)

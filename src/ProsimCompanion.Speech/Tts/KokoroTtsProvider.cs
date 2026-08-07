@@ -42,12 +42,14 @@ public sealed class KokoroTtsProvider : ITtsProvider
 
     public bool IsNetworkProvider => true;
 
-    public async Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken)
+    public async Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         var options = _options.CurrentValue;
-        var voice = options.KokoroVoice;
+        // The EFFECTIVE voice keys the disk cache below, so role voices can never collide
+        // with (or evict past) the FO voice's entries.
+        var voice = string.IsNullOrWhiteSpace(voiceOverride) ? options.KokoroVoice : voiceOverride;
         var root = SpeechPaths.CacheRoot(options);
 
         var cached = await _cache.GetAsync(root, Name, voice, text).ConfigureAwait(false);

@@ -51,4 +51,57 @@ public sealed class TtsPrewarmTests
         Assert.DoesNotContain(phrases, p => p.Contains('{', StringComparison.Ordinal));
         Assert.DoesNotContain("", phrases);
     }
+
+    [Fact]
+    public void CollectRolePhrases_WarmsConfiguredCabinWording_AndLoadsheetLeadIn()
+    {
+        // The ACTUAL configured wording must be warmed — not a canned copy (the predecessor
+        // warmed phrases its cabin service never spoke).
+        var cabin = new CabinOptions { CabinSecureText = "Flight deck, QNH 1013 checked." };
+
+        var pairs = TtsPrewarmService.CollectRolePhrases(cabin, new VoicesOptions(), "bm_george");
+
+        Assert.Contains(("af_heart", "Flight deck, Q N H one zero one three checked."), pairs); // normalized
+        Assert.Contains(("af_heart", cabin.CabinReadyText), pairs);
+        Assert.Contains(("af_heart", cabin.BoardingDelayText), pairs);
+        Assert.Contains(("am_onyx", "Loadsheet."), pairs);
+        Assert.DoesNotContain(pairs, p => p.Phrase.Contains("QNH 1013", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CollectRolePhrases_SkipsBlankVoices()
+    {
+        // A blank role voice renders in the FO voice, whose phrases the main warm covers.
+        var pairs = TtsPrewarmService.CollectRolePhrases(
+            new CabinOptions(), new VoicesOptions { Purser = "" }, "bm_george");
+
+        Assert.DoesNotContain(pairs, p => p.Phrase.Contains("cabin", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(("am_onyx", "Loadsheet."), pairs); // company still warmed
+    }
+
+    [Fact]
+    public void CollectRolePhrases_SkipsVoicesEqualToTheFoVoice()
+    {
+        // Same voice = same cache namespace — warming again would be pure waste.
+        var pairs = TtsPrewarmService.CollectRolePhrases(
+            new CabinOptions(), new VoicesOptions { Purser = "bm_george", Company = "bm_george" }, "bm_george");
+
+        Assert.Empty(pairs);
+    }
+
+    [Fact]
+    public void CollectRolePhrases_SkipsBlankAndLiveTokenWording()
+    {
+        var cabin = new CabinOptions
+        {
+            CabinSecureText = "",
+            CabinReadyText = "Cabin ready, {pax} on board.", // live token — cannot be warmed
+        };
+
+        var pairs = TtsPrewarmService.CollectRolePhrases(cabin, new VoicesOptions(), "bm_george");
+
+        Assert.Equal(
+            [("af_heart", cabin.BoardingDelayText), ("am_onyx", "Loadsheet.")],
+            pairs);
+    }
 }

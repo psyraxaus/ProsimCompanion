@@ -18,6 +18,21 @@ public enum SpeechPriority
     Critical = 3,
 }
 
+/// <summary>Who is speaking. Governs the TTS voice and the intercom-filter decision (via
+/// <c>VoicesOptions</c>) — not queue behaviour; priority/suppression are role-blind.</summary>
+public enum SpeechRole
+{
+    /// <summary>The First Officer — the default; uses each provider's configured voice and
+    /// the options-driven intercom filter.</summary>
+    FirstOfficer = 0,
+
+    /// <summary>The cabin purser (interphone reports).</summary>
+    Purser,
+
+    /// <summary>Company / dispatch (ACARS-style readouts).</summary>
+    Company,
+}
+
 /// <summary>
 /// One utterance submitted to the arbiter. Features never call TTS directly — this is the only
 /// way speech happens. There is deliberately no dedup here: repeat-prone callers own their own
@@ -33,13 +48,16 @@ public enum SpeechPriority
 /// (the sterile rule exempts <c>cabin.*</c> tags).</param>
 /// <param name="Chime">Optional cue-chime id ("cabin", "company") played back-to-back before
 /// the utterance in the same arbiter slot — pre-emption cancels both. Unknown ids no-op.</param>
+/// <param name="Role">Speaker role; selects the TTS voice and intercom filtering. Defaults to
+/// <see cref="SpeechRole.FirstOfficer"/> so existing callers are unchanged.</param>
 public sealed record SpeechRequest(
     string Text,
     SpeechPriority Priority = SpeechPriority.Normal,
     TimeSpan? Ttl = null,
     Func<bool>? IsStillValid = null,
     string? Tag = null,
-    string? Chime = null);
+    string? Chime = null,
+    SpeechRole Role = SpeechRole.FirstOfficer);
 
 /// <summary>Terminal fate of a submitted request — what the caller's awaited task resolves to.
 /// Arbitration never throws at callers; it reports one of these instead.</summary>

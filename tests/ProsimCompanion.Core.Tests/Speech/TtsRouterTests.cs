@@ -24,7 +24,7 @@ public sealed class TtsRouterTests
         public int Calls { get; private set; }
         public Func<CancellationToken, TtsAudio>? OnSynthesize { get; set; }
 
-        public Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken)
+        public Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
         {
             Calls++;
             return Task.FromResult(

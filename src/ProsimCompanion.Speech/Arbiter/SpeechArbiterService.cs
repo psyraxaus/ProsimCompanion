@@ -23,6 +23,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     private const int RecentUtterancesKept = 30;
 
     private readonly IOptionsMonitor<SpeechOptions> _options;
+    private readonly IOptionsMonitor<VoicesOptions> _voices;
     private readonly TtsRouter _router;
     private readonly ISpeechPlayback _playback;
     private readonly FlightStateEngine _flight;
@@ -39,8 +40,13 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     private CancellationTokenSource? _renderCts;
     private int _disposed;
 
+    // Pump-thread only (RenderOneAsync is serialized): which roles have already logged their
+    // blank-voice fallback, so the log line appears once per role, not per utterance.
+    private readonly HashSet<SpeechRole> _roleFallbackLogged = [];
+
     public SpeechArbiterService(
         IOptionsMonitor<SpeechOptions> options,
+        IOptionsMonitor<VoicesOptions> voices,
         TtsRouter router,
         ISpeechPlayback playback,
         FlightStateEngine flight,
@@ -49,6 +55,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         ILogger<SpeechArbiterService> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(voices);
         ArgumentNullException.ThrowIfNull(router);
         ArgumentNullException.ThrowIfNull(playback);
         ArgumentNullException.ThrowIfNull(flight);
@@ -57,6 +64,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
+        _voices = voices;
         _router = router;
         _playback = playback;
         _flight = flight;
@@ -245,7 +253,19 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
             // Normalized BEFORE synthesis so the TTS cache key matches prewarmed phrases and
             // "FL350" is never read as "Florida 350".
             var spoken = Callouts.AviationSpeech.Normalize(request.Text);
-            var audio = await _router.SynthesizeAsync(spoken, renderCts.Token).ConfigureAwait(false);
+
+            // Speaker role → (voice, intercom decision). A role with no configured voice
+            // falls back to the FO voice, announced once per role rather than per utterance.
+            var roleVoice = RoleVoiceResolver.Resolve(request.Role, _voices.CurrentValue);
+            if (roleVoice.FellBackToFoVoice && _roleFallbackLogged.Add(request.Role))
+            {
+                _logger.LogInformation(
+                    "No voice configured for role {Role} — using the First Officer voice",
+                    request.Role);
+            }
+
+            var audio = await _router.SynthesizeAsync(spoken, renderCts.Token, roleVoice.VoiceOverride)
+                .ConfigureAwait(false);
             if (audio is not null)
             {
                 // Chime then speech, back-to-back in this one slot — synthesized FIRST so the
@@ -267,7 +287,8 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
                     }
                 }
 
-                await _playback.PlayAsync(audio.WavBytes, renderCts.Token).ConfigureAwait(false);
+                await _playback.PlayAsync(audio.WavBytes, renderCts.Token, roleVoice.IntercomOverride)
+                    .ConfigureAwait(false);
             }
 
             // Total synthesis failure means silence, not an error — the utterance is done

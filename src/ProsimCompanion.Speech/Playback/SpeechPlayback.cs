@@ -14,8 +14,11 @@ public interface ISpeechPlayback
     /// <summary>Plays the clip to completion (or cancellation). Playback problems are logged
     /// and swallowed — a missing/vanished output device yields silence, not an error; nothing
     /// retries, and the next utterance re-enumerates from scratch, which is what makes
-    /// recovery automatic. Only cancellation propagates.</summary>
-    Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken);
+    /// recovery automatic. Only cancellation propagates.
+    /// <paramref name="overrideIntercomFilter"/> is the per-call (speaker-role) intercom
+    /// decision: null keeps the options-driven default, true forces the band-pass (purser on
+    /// the interphone), false bypasses it (company readout) even when the FO filter is on.</summary>
+    Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken, bool? overrideIntercomFilter = null);
 
     /// <summary>Plays a short programmatic cue chime by id ("cabin" interphone ding-dong,
     /// "company"/"acars" data beep). Unknown ids and any failure are a quiet no-op — a chime
@@ -43,8 +46,12 @@ public sealed class SpeechPlayback : ISpeechPlayback
         _logger = logger;
     }
 
-    public Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken)
-        => PlayCoreAsync(wavBytes, applyIntercomFilter: true, cancellationToken);
+    public Task PlayAsync(byte[] wavBytes, CancellationToken cancellationToken, bool? overrideIntercomFilter = null)
+        => PlayCoreAsync(
+            wavBytes,
+            // null = the FO's own setting; a role decision (purser/company) wins outright.
+            overrideIntercomFilter ?? _options.CurrentValue.IntercomFilter,
+            cancellationToken);
 
     public Task PlayChimeAsync(string chimeId, CancellationToken cancellationToken)
     {
@@ -118,7 +125,9 @@ public sealed class SpeechPlayback : ISpeechPlayback
     private static ISampleProvider BuildChain(
         ISampleProvider sample, MMDevice device, SpeechOptions options, bool applyIntercomFilter)
     {
-        if (applyIntercomFilter && options.IntercomFilter)
+        // The decision is fully resolved by the callers (role override, FO setting, or the
+        // chime's hard false) — no second look at options here.
+        if (applyIntercomFilter)
         {
             sample = new IntercomFilterProvider(sample);
         }

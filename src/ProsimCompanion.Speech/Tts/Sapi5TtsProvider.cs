@@ -13,6 +13,7 @@ public sealed class Sapi5TtsProvider : ITtsProvider
 {
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ILogger<Sapi5TtsProvider> _logger;
+    private int _overrideIgnoredLogged;
 
     public Sapi5TtsProvider(IOptionsMonitor<SpeechOptions> options, ILogger<Sapi5TtsProvider> logger)
     {
@@ -29,9 +30,16 @@ public sealed class Sapi5TtsProvider : ITtsProvider
 
     public bool IsNetworkProvider => false;
 
-    public Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken)
+    public Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+        // Role voice ids are Kokoro/Google vocabulary — meaningless to SAPI5, so the override
+        // is ignored here (once-logged, not per utterance).
+        if (voiceOverride is not null && Interlocked.Exchange(ref _overrideIgnoredLogged, 1) == 0)
+        {
+            _logger.LogDebug("SAPI5 TTS has no per-role voices — role voice overrides are ignored");
+        }
 
         return Task.Run(() =>
         {

@@ -99,35 +99,17 @@ public static class BriefingComposer
         return $"{kind} {Callouts.Aviation.ToDigits(minima.AltitudeFt.ToString("F0", CultureInfo.InvariantCulture))} feet";
     }
 
-    /// <summary>Checks a narrative's significant numbers against the allowed fact values.
-    /// Returns the offending tokens (empty = verified) and the allowed set for the retry
-    /// prompt.</summary>
+    /// <summary>Checks a narrative's significant numbers against the allowed fact values
+    /// (delegating to the shared <see cref="Llm.NumberVerifier"/>). Returns the offending
+    /// tokens (empty = verified) and the allowed set for the retry prompt.</summary>
     public static (IReadOnlyList<string> Offending, IReadOnlyList<double> Allowed) VerifyNumbers(
         string narrative, BriefingFacts f)
     {
         ArgumentNullException.ThrowIfNull(narrative);
         ArgumentNullException.ThrowIfNull(f);
 
-        var allowed = BuildAllowed(f);
-        var offending = new List<string>();
-        foreach (Match match in Regex.Matches(narrative, @"\d+(?:\.\d+)?"))
-        {
-            var token = match.Value;
-            var significant = token.Contains('.', StringComparison.Ordinal)
-                || token.Replace(".", "", StringComparison.Ordinal).Length >= 3;
-            if (!significant)
-            {
-                continue;
-            }
-
-            var value = double.Parse(token, CultureInfo.InvariantCulture);
-            if (!allowed.Any(a => Math.Abs(a - value) <= 0.06))
-            {
-                offending.Add(token);
-            }
-        }
-
-        return (offending, allowed);
+        var check = Llm.NumberVerifier.Check(narrative, BuildAllowed(f));
+        return (check.Offending, check.Allowed);
     }
 
     private static List<double> BuildAllowed(BriefingFacts f)
