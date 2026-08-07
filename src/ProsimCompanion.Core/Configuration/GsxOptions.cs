@@ -62,6 +62,13 @@ public sealed class GsxOptions
     /// <summary>Hold Refueling/Boarding until the SimBrief OFP is imported into ProSim.</summary>
     public bool RequireOfpBeforeDeparture { get; set; } = true;
 
+    // ---- Voice control ----
+
+    /// <summary>Voice phrases for GSX ground services ("request boarding", "cockpit to
+    /// ground", …) routed through the same named commands the web UI and Stream Deck use.
+    /// On by default; the speech pillar itself must also be running.</summary>
+    public bool VoiceControlEnabled { get; set; } = true;
+
     // ---- Question answering ----
 
     public bool SkipFollowMe { get; set; } = true;

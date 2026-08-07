@@ -123,6 +123,21 @@ public sealed class GsxBoardingSync : IDisposable
 
     private bool Enabled => _options.CurrentValue.AutomationEnabled && _options.CurrentValue.BoardingSyncEnabled;
 
+    /// <summary>Planned pax total from GSX's counter LVAR (armed by the automation with the
+    /// booked manifest); null while unarmed. Cached reads only — added for the status API.</summary>
+    public int? PaxTotal
+    {
+        get
+        {
+            var total = (int)_plannedTotalLvar.GetValue(0.0);
+            return total > 0 ? total : null;
+        }
+    }
+
+    /// <summary>Pax boarded so far per GSX's live boarding counter; null while the planned
+    /// total is unknown (the counter alone means nothing).</summary>
+    public int? PaxBoarded => PaxTotal is null ? null : (int)_boardedLvar.GetValue(0.0);
+
     private void OnServiceEvent(string serviceId, GsxServiceLifecycleEvent lifecycleEvent)
     {
         if (serviceId.Equals("Boarding", StringComparison.OrdinalIgnoreCase))

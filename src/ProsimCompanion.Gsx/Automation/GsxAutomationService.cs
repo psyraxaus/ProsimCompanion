@@ -24,7 +24,7 @@ namespace ProsimCompanion.Gsx.Automation;
 /// Every decision — including holds and skips — is recorded with its reason (decision log +
 /// session event log), deduplicated so a stable state does not spam.
 /// </summary>
-public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
+public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IGsxTriggerDispatcher
 {
     private static readonly TimeSpan PumpInterval = TimeSpan.FromSeconds(3);
 
@@ -167,6 +167,113 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _forceNext = true;
         RecordDecision("force next service", $"requested by {source}");
         Pump();
+    }
+
+    /// <summary>
+    /// On-demand dispatch through the SAME single in-flight slot the departure sequencer uses
+    /// (<see cref="IGsxTriggerDispatcher"/>). The slot is reserved under the pump lock so a
+    /// concurrent sequencing evaluation can never dispatch alongside; a private watcher then
+    /// confirms/times out the trigger against the mirror even in phases where the departure
+    /// pump does not run its own resolve (e.g. a Deboarding call at arrival).
+    /// </summary>
+    public async Task<GsxTriggerDispatch> TryDispatchServiceTriggerAsync(
+        string serviceId,
+        string source,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(serviceId);
+
+        // Reserve under the pump lock — the sequencer checks the slot under the same lock, so
+        // there is exactly one writer. A held lock means an evaluation is mid-flight; briefly
+        // waiting is cheaper (and friendlier) than refusing.
+        if (!await _pumpLock.WaitAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false))
+        {
+            return new(GsxTriggerDispatchStatus.Busy, _inFlight?.ServiceId);
+        }
+
+        try
+        {
+            if (_inFlight is { } inFlight)
+            {
+                return new(GsxTriggerDispatchStatus.Busy, inFlight.ServiceId);
+            }
+
+            _inFlight = new InFlightTrigger(serviceId, DateTimeOffset.UtcNow);
+        }
+        finally
+        {
+            _pumpLock.Release();
+        }
+
+        RecordDecision($"trigger {serviceId}", $"requested by {source}");
+        var result = await _api.SendCommandAsync(
+            "service.trigger",
+            new JsonObject { ["service"] = serviceId },
+            cancellationToken).ConfigureAwait(false);
+        if (!result.Ok)
+        {
+            if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _inFlight = null;
+            }
+            RecordDecision($"trigger {serviceId}", $"rejected ({result.Code})");
+            return new(GsxTriggerDispatchStatus.Rejected, RejectCode: result.Code);
+        }
+
+        _ = WatchOnDemandTriggerAsync(serviceId);
+        return new(GsxTriggerDispatchStatus.Dispatched);
+    }
+
+    /// <summary>Confirm-or-timeout watcher for on-demand triggers, mirroring
+    /// <see cref="ResolveInFlightTrigger"/> semantics. Exits early when the departure pump's
+    /// own resolve got there first (the slot no longer carries this service).</summary>
+    private async Task WatchOnDemandTriggerAsync(string serviceId)
+    {
+        try
+        {
+            var deadline = DateTimeOffset.UtcNow
+                + TimeSpan.FromMilliseconds(_options.CurrentValue.TriggerConfirmTimeoutMs);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) != true)
+                {
+                    return; // resolved (or replaced) by the departure pump — nothing left to own
+                }
+
+                var cycles = _lifecycle.SnapshotCycles();
+                cycles.TryGetValue(serviceId, out var cycle);
+                var mirrorState = _api.Mirror.Services.TryGetValue(serviceId, out var info)
+                    ? info.State
+                    : (GsxServiceState?)null;
+                if (cycle.Requested || cycle.Active || cycle.Completed
+                    || mirrorState is GsxServiceState.Requested or GsxServiceState.Active or GsxServiceState.Completed)
+                {
+                    _lifecycle.MarkCalled(serviceId);
+                    if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        _inFlight = null;
+                    }
+                    RecordDecision(
+                        $"trigger {serviceId}",
+                        $"confirmed by GSX ({mirrorState?.ToString() ?? "lifecycle edge"})");
+                    return;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
+            }
+
+            if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _inFlight = null;
+                RecordDecision(
+                    $"trigger {serviceId}",
+                    "not picked up by GSX within the confirm window — the call was dropped; the slot is free again");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "On-demand trigger watcher for {Service} failed", serviceId);
+        }
     }
 
     public void Dispose()

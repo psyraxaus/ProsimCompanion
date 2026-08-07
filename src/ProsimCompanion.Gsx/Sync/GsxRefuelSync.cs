@@ -116,6 +116,24 @@ public sealed class GsxRefuelSync : IDisposable
 
     private bool Enabled => _options.CurrentValue.AutomationEnabled && _options.CurrentValue.RefuelSyncEnabled;
 
+    /// <summary>Transfer progress (0–100, current FOB against the latched target) while a
+    /// transfer is active; null otherwise. Cached reads only — added for the status API.</summary>
+    public double? ProgressPercent
+    {
+        get
+        {
+            if (!_transferActive)
+            {
+                return null;
+            }
+
+            var target = _latchedTargetKg;
+            return target <= 0
+                ? 0.0
+                : Math.Clamp(_fuelTotal.GetValue(0.0) / target * 100.0, 0.0, 100.0);
+        }
+    }
+
     /// <summary>The intended TOTAL: aircraft.refuel.fuelTarget (the EFB fuel page's figure),
     /// falling back to efb.plannedfuel, rounded UP to the next 100 kg (real-world fuel-order
     /// increments — also covers targets typed into the EFB by hand). The .kg variant has
