@@ -26,6 +26,11 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
         services.AddSingleton<Automation.GsxAutomationService>();
         services.AddSingleton<Core.State.IGsxDepartureControl>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
+        services.AddSingleton<Automation.IGsxTriggerDispatcher>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
+        // On-demand per-service calls (gsx.request*/gsx.retract* commands, voice) — routed
+        // through the automation's single serialized trigger slot, never a second writer.
+        services.AddSingleton<GsxServiceControl>();
+        services.AddSingleton<Core.State.IGsxServiceControl>(provider => provider.GetRequiredService<GsxServiceControl>());
         services.AddSingleton<Sync.GsxProsimWriter>();
         services.AddSingleton<Sync.GsxRefuelSync>();
         services.AddSingleton<Sync.GsxBoardingSync>();
@@ -33,6 +38,7 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Sync.GsxJetwayStairsService>();
         services.AddSingleton<Sync.GsxRepositionService>();
         services.AddSingleton<Sync.GsxGroundPrepCoordinator>();
+        services.AddSingleton<Sync.IGsxGroundPrepStatus>(provider => provider.GetRequiredService<Sync.GsxGroundPrepCoordinator>());
         services.AddSingleton<Sync.ProsimNativeGsxGuard>();
         services.AddSingleton<Sync.GsxDoorService>();
         services.AddSingleton<Sync.GsxPushbackSequenceService>();

@@ -19,6 +19,15 @@ public enum GsxPrepStatus
     Done,
 }
 
+/// <summary>Read-only view of the ground-preparation progress — a narrow seam so consumers
+/// (e.g. the on-demand service control) can test against a mock instead of constructing the
+/// full coordinator.</summary>
+public interface IGsxGroundPrepStatus
+{
+    /// <summary>True once the whole preparation chain has run for this gate session.</summary>
+    bool PrepComplete { get; }
+}
+
 /// <summary>
 /// Enforces the ground-preparation order (owner-specified): <b>reposition → settle → GPU +
 /// chocks → jetway/stairs → departure services</b>. The individual modules keep their own
@@ -26,7 +35,7 @@ public enum GsxPrepStatus
 /// gates the departure sequencer until preparation is complete. Resets for a new session on
 /// gate change, Couatl restart, or returning to preparation after flight.
 /// </summary>
-public sealed class GsxGroundPrepCoordinator : IDisposable
+public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 {
     private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan RepositionSettleTime = TimeSpan.FromSeconds(12);

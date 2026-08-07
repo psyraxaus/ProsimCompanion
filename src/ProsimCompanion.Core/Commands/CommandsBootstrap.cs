@@ -28,6 +28,7 @@ public static class CommandsBootstrap
             registry,
             services.GetService<IGsxDepartureControl>(),
             services.GetService<IGsxGateControl>());
+        GsxServiceCommandHandlers.Register(registry, services.GetService<IGsxServiceControl>());
         ChecklistCommandHandlers.Register(registry, services.GetService<ChecklistService>());
         LoadsheetCommandHandlers.Register(
             registry,
