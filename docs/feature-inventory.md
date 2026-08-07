@@ -98,24 +98,31 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 - [ ] FO persona (name, chattiness, styles, small talk)
 - [x] Cabin crew simulation (purser reports gated on any ACP CAB latch, cabin secure/ready,
-      opt-in boarding-delay ambient; cruise-query + distinct purser voice deferred)
+      opt-in boarding-delay ambient, distinct purser voice + interphone filter;
+      cruise-query ambient deferred)
 - [x] Company/ACARS channel (loadsheet readout with session persistence, opt-in deterministic
-      cruise messages, ACARS chime; LLM styling deferred)
-- [x] Tech log & MEL (persistent defects, A–D due dates, wear pool, web raise/rectify +
-      voice brief; rectification voice dialogues + procedural hooks deferred)
-- [x] Pilot logbook (shutdown fold, aggregates, backfill, debrief comparison line; voice
-      queries + web page deferred)
-- [x] Post-flight debrief (event log → facts → deterministic template → spoken; LLM styling
-      + number verifier deferred)
-- [ ] Company day mode (multi-sector duties, turnaround summaries)
+      cruise messages, ACARS chime, distinct company voice, push seam for day mode)
+- [x] Tech log & MEL (persistent defects, A–D due dates, wear pool, web raise/rectify,
+      voice brief + guided raise/rectify dialogues + post-abnormal offer; procedural hooks
+      deferred)
+- [x] Pilot logbook (shutdown fold, aggregates, backfill, debrief comparison line, duty-day
+      records; voice queries + web page deferred)
+- [x] Post-flight debrief (event log → facts → LLM behind the number verifier → verified →
+      spoken, deterministic template floor)
+- [x] Company day mode (multi-sector duties, per-leg session rotation, planned rotations,
+      turnaround + end-of-day summaries, /day page; off by default)
 
 ## Bridges & extras
 
 - [x] SayIntentions extras (ATIS/METAR/TAF/wind batch, CPDLC station, /weather page)
 - [x] ActiveSky weather provider (snapshot file + local API, composite chain with gateway
       METAR and SayIntentions fallback; briefings consume it)
-- [x] Command registry + HTTP command API (18 commands, opt-in, token even on loopback) —
-      the Elgato plugin itself is future work
+- [x] Command registry + HTTP command API (29 commands incl. per-service GSX requests through
+      the single-writer trigger path, opt-in, token even on loopback) + GET /api/status
+- [x] StreamDeck plugin (streamdeck/ — five actions, REST poll, pair-via-URL; build with
+      npm run build / pack per streamdeck/README.md)
+- [x] GSX voice control ("cockpit to ground", "request boarding", "cabin crew start
+      boarding", …) via the command registry (gsx.voiceControlEnabled)
 - [x] Airline themes (JSON), light/dark
 - [ ] Session event log (JSONL) ✔ delivered in Phase 1; replay harness still open
 - [ ] Config importers from Prosim2GSX `AppConfig.json` and Prosim2FO `settings.json`

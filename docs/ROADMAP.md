@@ -387,6 +387,21 @@ from Phase 1 — this phase adds the speech stack and features on top.
 
 ## Phase 6 — Immersion & remaining integrations
 
+> **Phase 6 complete 2026-08-08** (every item below delivered; all **Unverified live** until
+> the next sim session). Same-day completion batch: speaker-role voices (purser af_heart /
+> company am_onyx via per-request voice override through Kokoro/Google with per-voice cache
+> isolation; per-role intercom-filter decision), LLM debrief styling behind the shared
+> NumberVerifier (one strict re-ask, template floor, per-call timeout budgets), tech-log
+> raise/rectify voice dialogues + post-abnormal shutdown offer over a new mic-ownership seam
+> (routing stands down while a guided dialogue owns the mic), company day mode (multi-leg
+> duty tracking with per-leg session rotation, planned rotations, turnaround + end-of-day
+> summaries, /day page; off by default), GSX per-service commands through the single-writer
+> trigger path + voice control ("cockpit to ground", "request boarding", …) + GET /api/status,
+> and the ProsimCompanion Elgato Stream Deck plugin (streamdeck/, five actions, REST poll,
+> built with Node 22). Web polish: two-tier nav (FLIGHT/EFB/GSX/FO/AUDIO/SYSTEM), GSX
+> annunciator lamps, Home log card retired in favour of /logs, Recognition & PTT settings
+> card (dedicated FO PTT vs ATC-mute key for network flying).
+
 - [x] Cabin crew simulation + company/ACARS channel + chimes (Prosim2FO "Prompt F" semantics,
       predecessor bugs fixed in the port): purser reports (cabin secure on doors+beacon at
       pushback/taxi-out; cabin ready below 10,000 ft with signs ON in descent/approach) gated
@@ -404,8 +419,8 @@ from Phase 1 — this phase adds the speech stack and features on top.
       voices.*Chime keys). Purser/company distinct voices still deferred (all FO voice).
       Cruise-query ambient + response window deferred with the mic-ownership seam.
       **Unverified live**
-- [x] Tech log & MEL + pilot logbook + post-flight debrief (Prosim2FO semantics; company day
-      mode deferred): file-backed stores in %LOCALAPPDATA%\ProsimCompanion (atomic
+- [x] Tech log & MEL + pilot logbook + post-flight debrief (Prosim2FO semantics):
+      file-backed stores in %LOCALAPPDATA%\ProsimCompanion (atomic
       temp-then-move, corrupt-aside-and-rebuild, idempotent by id/session), MEL categories
       A–D with representative due dates, /techlog page (raise/rectify/remove, OVERDUE badge,
       sectors carried), voice tech-log brief + once-per-flight Preflight auto-brief, opt-in
@@ -416,9 +431,10 @@ from Phase 1 — this phase adds the speech stack and features on top.
       map, first-wins Shutdown fixes the predecessor's block-time stretch) + "debrief" voice
       phrases + .debrief.txt persistence + the "landing number N into X" line. The
       predecessor's fragile 750/1200/1500 ms shutdown delay chain replaced by ONE ordered
-      SessionFinalizer (debrief → logbook → techlog, failure-isolated). Deferred: raise/
-      rectify voice dialogues, post-abnormal offer (FiredAbnormals seam ships), LLM debrief
-      styling, procedural hooks, logbook voice queries, company day mode. **Unverified live**
+      SessionFinalizer (debrief → logbook → techlog → day, failure-isolated). The completion
+      batch delivered the raise/rectify voice dialogues, the post-abnormal offer, LLM debrief
+      styling and company day mode (see the Phase 6 banner); still open: procedural hooks,
+      logbook voice queries. **Unverified live**
 - [x] Named-command registry + HTTP command API — the single command seam for
       web/API/StreamDeck (docs/integrations/command-api.md): typed CommandRegistry
       (duplicate-registration throws; no WPF marshalling), 18 commands over existing seams
@@ -427,9 +443,10 @@ from Phase 1 — this phase adds the speech stack and features on top.
       response outcome+reason (Success/AlreadySatisfied→200, PhaseMismatch/Precondition→409,
       Unavailable→503, Failed→500), `GET /api/commands` + `POST /api/command/{name}`. Opt-in
       (`commandApi.enabled`, default off) and token-gated EVEN on loopback — it is a write
-      surface. Absent pillars answer "unavailable" so the API shape is stable. The Elgato
-      Node plugin itself is future work (Prosim2GSX's complete plugin lives on its unmerged
-      StreamDeckIntegration branch as the reference). **Unverified live**
+      surface. Absent pillars answer "unavailable" so the API shape is stable. The completion
+      batch added 11 per-service GSX commands (single-writer trigger path), GET /api/status
+      and the Elgato plugin in streamdeck/ (docs/integrations/streamdeck.md).
+      **Unverified live**
 - [x] SayIntentions extras + ActiveSky weather provider: Core weather seam (WxFacts, full
       deterministic MetarParser port — metric/statute visibility, lowest ceiling, precip
       priority, Q/A QNH, RMK confinement — ATIS-letter extraction with the phonetic table),
