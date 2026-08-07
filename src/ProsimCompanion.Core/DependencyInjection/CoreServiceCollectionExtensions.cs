@@ -65,6 +65,7 @@ public static class CoreServiceCollectionExtensions
         services.Configure<SayIntentionsOptions>(configuration.GetSection(SayIntentionsOptions.SectionName));
         services.Configure<CabinOptions>(configuration.GetSection(CabinOptions.SectionName));
         services.Configure<CompanyOptions>(configuration.GetSection(CompanyOptions.SectionName));
+        services.Configure<VoicesOptions>(configuration.GetSection(VoicesOptions.SectionName));
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
         services.Configure<TechLogOptions>(configuration.GetSection(TechLogOptions.SectionName));
         services.Configure<LogbookOptions>(configuration.GetSection(LogbookOptions.SectionName));

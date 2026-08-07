@@ -40,6 +40,7 @@ public static class SettingsDefaultsWriter
             (SayIntentionsOptions.SectionName, new SayIntentionsOptions()),
             (CabinOptions.SectionName, new CabinOptions()),
             (CompanyOptions.SectionName, new CompanyOptions()),
+            (VoicesOptions.SectionName, new VoicesOptions()),
             (WeatherOptions.SectionName, new WeatherOptions()),
             (CommandApiOptions.SectionName, new CommandApiOptions()),
             (TechLogOptions.SectionName, new TechLogOptions()),

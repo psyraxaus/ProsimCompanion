@@ -168,9 +168,11 @@ public sealed class CabinCrewService : IDisposable
             await RingAndWaitAsync().ConfigureAwait(false);
 
             // Awaited to the terminal outcome so the FO acknowledgement can never overtake
-            // the report it acknowledges.
+            // the report it acknowledges. The report is the purser speaking; the ack below
+            // stays role-less (that's the FO).
             await _arbiter.EnqueueAsync(new SpeechRequest(
-                purserText, SpeechPriority.Normal, Ttl: ttl, Tag: tag)).ConfigureAwait(false);
+                purserText, SpeechPriority.Normal, Ttl: ttl, Tag: tag,
+                Role: SpeechRole.Purser)).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(foAckText))
             {
                 await _arbiter.EnqueueAsync(new SpeechRequest(

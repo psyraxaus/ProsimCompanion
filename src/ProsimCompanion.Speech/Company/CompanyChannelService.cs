@@ -270,7 +270,8 @@ public sealed class CompanyChannelService : IVoiceFeature, IDisposable
             var options = _options.CurrentValue;
             await _arbiter.EnqueueAsync(new SpeechRequest(
                 spoken, SpeechPriority.Normal, Tag: "company.loadsheet",
-                Chime: options.Chime ? "company" : null)).ConfigureAwait(false);
+                Chime: options.Chime ? "company" : null,
+                Role: SpeechRole.Company)).ConfigureAwait(false);
             _eventLog.Record("company.loadsheet", new { text = spoken, manual });
         }
         catch (Exception ex)
@@ -307,7 +308,8 @@ public sealed class CompanyChannelService : IVoiceFeature, IDisposable
                 text, SpeechPriority.Low, Ttl: TimeSpan.FromSeconds(60),
                 IsStillValid: () => _flight.CurrentPhase == FlightPhase.Cruise,
                 Tag: "company.message",
-                Chime: _options.CurrentValue.Chime ? "company" : null)).ConfigureAwait(false);
+                Chime: _options.CurrentValue.Chime ? "company" : null,
+                Role: SpeechRole.Company)).ConfigureAwait(false);
             _eventLog.Record("company.message", new { text });
         }
         catch (Exception ex)
@@ -332,9 +334,12 @@ public sealed class CompanyChannelService : IVoiceFeature, IDisposable
             return;
         }
 
+        // Replaying company content keeps the company voice; the "no messages" line above
+        // stays role-less (the FO answering).
         await _arbiter.EnqueueAsync(new SpeechRequest(
             last, SpeechPriority.Normal, Tag: "company.repeat",
-            Chime: _options.CurrentValue.Chime ? "company" : null)).ConfigureAwait(false);
+            Chime: _options.CurrentValue.Chime ? "company" : null,
+            Role: SpeechRole.Company)).ConfigureAwait(false);
     }
 
     /// <summary>Spelled ICAO for TTS ("EGCC" → "E G C C").</summary>
