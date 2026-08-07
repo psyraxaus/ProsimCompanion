@@ -242,6 +242,10 @@ a { color: var(--accent); }
 /* Second-tier nav row (the active group's pages) — same bar, quieter and shorter, so the
    primary groups stay the dominant visual line. */
 .subtabs {
+  /* .tabbar's flex: 1 1 auto is for filling the chevron wrapper horizontally; as a direct
+     child of the .app COLUMN it would grow vertically and swallow the main row (the
+     floating-underline bug) — this row must never flex. */
+  flex: 0 0 auto;
   background: rgba(0, 0, 0, 0.18);
   border-bottom: 1px solid var(--border);
   padding-left: 34px; /* aligns roughly under the first primary tab (past the chevron) */
