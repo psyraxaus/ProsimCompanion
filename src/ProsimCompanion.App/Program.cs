@@ -169,6 +169,11 @@ public static class Program
         builder.Services.AddSingleton(logBuffer);
         builder.Services.AddSingleton<IWireTrace>(wireTrace);
 
+        // Gate options for the HTTP command API (the endpoints themselves are mapped below;
+        // the registry + handler wiring is the composition root's call — see WIRING-COMMANDS.md).
+        builder.Services.Configure<CommandApiOptions>(
+            builder.Configuration.GetSection(CommandApiOptions.SectionName));
+
         var webUi = builder.Configuration.GetSection(WebUiOptions.SectionName).Get<WebUiOptions>()
             ?? new WebUiOptions();
         var host = webUi.BindToAllInterfaces ? "0.0.0.0" : "localhost";
@@ -184,6 +189,10 @@ public static class Program
         web.UseStaticFiles();
 
         web.UseAntiforgery();
+
+        // HTTP command API (opt-in via the commandApi settings section; 404 while disabled).
+        web.MapCommandApi();
+
         web.MapRazorComponents<Web.App>().AddInteractiveServerRenderMode();
         return web;
     }
