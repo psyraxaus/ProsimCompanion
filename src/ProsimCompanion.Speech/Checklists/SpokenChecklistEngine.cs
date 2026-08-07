@@ -38,7 +38,8 @@ public sealed class SpokenChecklistEngine : IDisposable
 
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ISpeechArbiter _arbiter;
-    private readonly RecognitionController _recognition;
+    private readonly IRecognitionWindow _recognition;
+    private readonly IMicOwnership _micOwnership;
     private readonly UtteranceInterpreter _interpreter;
     private readonly ChecklistService _checklists;
     private readonly IProsimDataRefs _dataRefs;
@@ -62,7 +63,8 @@ public sealed class SpokenChecklistEngine : IDisposable
     public SpokenChecklistEngine(
         IOptionsMonitor<SpeechOptions> options,
         ISpeechArbiter arbiter,
-        RecognitionController recognition,
+        IRecognitionWindow recognition,
+        IMicOwnership micOwnership,
         UtteranceInterpreter interpreter,
         ChecklistService checklists,
         IProsimDataRefs dataRefs,
@@ -81,6 +83,7 @@ public sealed class SpokenChecklistEngine : IDisposable
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(recognition);
+        ArgumentNullException.ThrowIfNull(micOwnership);
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -93,6 +96,7 @@ public sealed class SpokenChecklistEngine : IDisposable
         _options = options;
         _arbiter = arbiter;
         _recognition = recognition;
+        _micOwnership = micOwnership;
         _interpreter = interpreter;
         _checklists = checklists;
         _dataRefs = dataRefs;
@@ -513,6 +517,15 @@ public sealed class SpokenChecklistEngine : IDisposable
 
     private void OnRecognized(object? sender, RecognizedEventArgs e)
     {
+        // A borrowed mic means a guided dialogue (tech-log raise/rectify, shutdown offer) owns
+        // recognition: normal routing — feature dispatch AND checklist answers — stands down.
+        // A pending item's response source stays pending, so the checklist holds and resumes
+        // when the borrow's disposal replays this engine's window.
+        if (_micOwnership.IsBorrowed)
+        {
+            return;
+        }
+
         try
         {
             RouteUtterance(e);
@@ -525,6 +538,11 @@ public sealed class SpokenChecklistEngine : IDisposable
 
     private void OnRejected(object? sender, RecognizedEventArgs e)
     {
+        if (_micOwnership.IsBorrowed)
+        {
+            return; // a dialogue owns the mic — its own listens handle rejection by timeout
+        }
+
         // Empty-text rejections (silent PTT tap, timeout) are swallowed by design.
         if (!string.IsNullOrWhiteSpace(e.Text))
         {

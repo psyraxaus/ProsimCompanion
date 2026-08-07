@@ -22,6 +22,11 @@ public sealed class TechLogOptions
     /// character. Off by default.</summary>
     public bool RandomWear { get; set; }
 
+    /// <summary>After shutdown, offer by voice to enter each abnormal handled this flight into
+    /// the tech log (affirm raises a category C entry). On by default — it only ever speaks
+    /// when an abnormal actually fired, so a normal flight stays silent.</summary>
+    public bool OfferFromAbnormalAtShutdown { get; set; } = true;
+
     /// <summary>Store path override; blank = <c>%LOCALAPPDATA%\ProsimCompanion\techlog.json</c>.</summary>
     public string Path { get; set; } = "";
 

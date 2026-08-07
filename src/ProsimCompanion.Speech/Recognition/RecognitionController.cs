@@ -14,7 +14,7 @@ namespace ProsimCompanion.Speech.Recognition;
 /// Consumers open/close grammar windows and subscribe to the Recognized events; engine
 /// identity is stable across the swap.
 /// </summary>
-public sealed class RecognitionController : IDisposable
+public sealed class RecognitionController : IRecognitionWindow, IDisposable
 {
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly PushToTalkService _ptt;
@@ -65,6 +65,28 @@ public sealed class RecognitionController : IDisposable
     public event EventHandler<RecognizedEventArgs>? Rejected;
 
     public string EngineName => _recognizer is LanAsrRecognizer ? "whisper" : "systemSpeech";
+
+    public bool WindowOpen
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _windowOpen;
+            }
+        }
+    }
+
+    public IReadOnlyList<string> CurrentGrammar
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _grammar;
+            }
+        }
+    }
 
     public void OpenListeningWindow(IReadOnlyList<string> grammar)
     {
