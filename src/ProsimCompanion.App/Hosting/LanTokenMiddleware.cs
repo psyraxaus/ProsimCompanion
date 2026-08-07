@@ -15,7 +15,9 @@ namespace ProsimCompanion.App.Hosting;
 /// </summary>
 public sealed class LanTokenMiddleware
 {
-    private const string CookieName = "prosimcompanion-token";
+    /// <summary>Shared with <see cref="CommandApiEndpoints"/> so an onboarded browser session's
+    /// cookie also authorises command-API calls.</summary>
+    internal const string CookieName = "prosimcompanion-token";
     private const string QueryName = "token";
 
     private readonly RequestDelegate _next;
