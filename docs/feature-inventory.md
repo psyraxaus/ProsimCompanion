@@ -23,8 +23,9 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [ ] Auto engine-start confirmation
 - [x] De-icing auto-answer + fluid/concentration selection (question catalogue)
 - [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs deferred)
-- [x] Skip GSX questions (crew, tug, follow-me, pushback confirm); walkaround skip deferred
-      (MSFS2024 keystroke)
+- [x] Skip GSX questions (crew, follow-me, pushback confirm; tug questions are caught by the
+      generic "Do you want to request…" prefix handler, not a tug-specific entry); walkaround
+      skip deferred (MSFS2024 keystroke)
 - [ ] GSX SimBrief reload for VDGS; VDGS event feed via in-sim handler
 - [ ] GSX restart on taxi-in (optional)
 - [x] Arrival gate assignment (retry ladder, armed at flight phase; SayIntentions source is
