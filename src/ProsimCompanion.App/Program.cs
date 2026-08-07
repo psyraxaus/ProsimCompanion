@@ -74,6 +74,13 @@ public static class Program
 
             var web = BuildWebHost(args, settingsPath, settingsFile, levels, logBuffer, wireTrace);
 
+            // Populate the named-command registry (web/API/StreamDeck seam). RegisterAll
+            // resolves seams with GetService so an absent pillar's commands still exist and
+            // answer "unavailable" — startup can never fail here.
+            ProsimCompanion.Core.Commands.CommandsBootstrap.RegisterAll(
+                web.Services.GetRequiredService<ProsimCompanion.Core.Commands.CommandRegistry>(),
+                web.Services);
+
             // Retune log levels / wire trace whenever settings change (web UI or file edit).
             var loggingMonitor = web.Services.GetRequiredService<IOptionsMonitor<LoggingOptions>>();
             using var levelSubscription = loggingMonitor.OnChange(options =>
@@ -169,10 +176,11 @@ public static class Program
         builder.Services.AddSingleton(logBuffer);
         builder.Services.AddSingleton<IWireTrace>(wireTrace);
 
-        // Gate options for the HTTP command API (the endpoints themselves are mapped below;
-        // the registry + handler wiring is the composition root's call — see WIRING-COMMANDS.md).
+        // HTTP command API: gate options + the registry itself (populated in Main after the
+        // host is built — CommandsBootstrap needs the built provider to resolve seams).
         builder.Services.Configure<CommandApiOptions>(
             builder.Configuration.GetSection(CommandApiOptions.SectionName));
+        builder.Services.AddSingleton<ProsimCompanion.Core.Commands.CommandRegistry>();
 
         var webUi = builder.Configuration.GetSection(WebUiOptions.SectionName).Get<WebUiOptions>()
             ?? new WebUiOptions();

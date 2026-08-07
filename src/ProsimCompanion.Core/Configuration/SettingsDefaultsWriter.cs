@@ -41,6 +41,7 @@ public static class SettingsDefaultsWriter
             (CabinOptions.SectionName, new CabinOptions()),
             (CompanyOptions.SectionName, new CompanyOptions()),
             (WeatherOptions.SectionName, new WeatherOptions()),
+            (CommandApiOptions.SectionName, new CommandApiOptions()),
             (FlightDataOptions.SectionName, new FlightDataOptions()),
             (LoggingOptions.SectionName, new LoggingOptions()),
             (AircraftProfilesOptions.SectionName, new AircraftProfilesOptions()),
