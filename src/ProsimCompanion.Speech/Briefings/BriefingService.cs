@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,6 +8,7 @@ using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Core.Weather;
 using ProsimCompanion.Speech.Arbiter;
+using ProsimCompanion.Speech.Llm;
 using ProsimCompanion.Speech.Recognition;
 
 namespace ProsimCompanion.Speech.Briefings;
@@ -38,9 +38,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         "approach briefing", "run the arrival brief", "run the arrival briefing",
     ];
 
-    private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan };
-
     private readonly IOptionsMonitor<BriefingOptions> _options;
+    private readonly OpenAiChatClient _llm;
     private readonly DfdNavDataProvider _navData;
     private readonly IProsimDataRefs _dataRefs;
     private readonly IWxProvider _weather;
@@ -58,7 +57,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         ArrivalMinimaStore minima,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<BriefingService> logger)
+        ILogger<BriefingService> logger,
+        OpenAiChatClient? llm = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(navData);
@@ -70,6 +70,9 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
+        // Optional so DI needs no extra registration; a test passes a client over a fake
+        // HTTP handler here.
+        _llm = llm ?? new OpenAiChatClient(options);
         _navData = navData;
         _dataRefs = dataRefs;
         _weather = weather;
@@ -190,7 +193,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     {
         var template = BriefingComposer.Template(facts);
         var options = _options.CurrentValue;
-        if (!options.LlmEnabled || string.IsNullOrWhiteSpace(options.LlmModel))
+        if (!_llm.IsConfigured)
         {
             return template;
         }
@@ -198,7 +201,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         try
         {
             var factBlock = BriefingComposer.FactBlock(facts);
-            var narrative = await CompleteAsync(
+            var narrative = await _llm.CompleteAsync(
                 BriefingComposer.SystemPrompt(facts.IsDeparture),
                 factBlock + "\n\nWrite the spoken briefing now.").ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(narrative))
@@ -219,10 +222,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
 
             _logger.LogWarning("Briefing number verification failed — unverified: {Tokens}",
                 string.Join(", ", offending));
-            var retry = await CompleteAsync(
+            var retry = await _llm.CompleteAsync(
                 BriefingComposer.SystemPrompt(facts.IsDeparture),
                 factBlock + "\n\nUse ONLY these numbers, exactly as written, and no others: "
-                    + string.Join(", ", allowed.Select(a => a.ToString("0.##", CultureInfo.InvariantCulture)).Distinct())
+                    + NumberVerifier.DescribeAllowed(allowed)
                     + "\nWrite the spoken briefing now.").ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(retry)
                 && BriefingComposer.VerifyNumbers(retry, facts).Offending.Count == 0)
@@ -236,37 +239,6 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         }
 
         return template;
-    }
-
-    private async Task<string?> CompleteAsync(string system, string user)
-    {
-        var options = _options.CurrentValue;
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(5, options.LlmTimeoutSeconds)));
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post, options.LlmBaseUrl.TrimEnd('/') + "/chat/completions");
-        if (!string.IsNullOrWhiteSpace(options.LlmApiKey))
-        {
-            request.Headers.Authorization = new("Bearer", options.LlmApiKey);
-        }
-
-        request.Content = System.Net.Http.Json.JsonContent.Create(new
-        {
-            model = options.LlmModel,
-            messages = new[]
-            {
-                new { role = "system", content = system },
-                new { role = "user", content = user },
-            },
-            max_tokens = options.LlmMaxTokens,
-            stream = false,
-        });
-
-        using var response = await Http.SendAsync(request, cts.Token).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-        using var doc = JsonDocument.Parse(
-            await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false));
-        return doc.RootElement.GetProperty("choices")[0].GetProperty("message")
-            .GetProperty("content").GetString();
     }
 
     private async Task<WxFacts> FetchWeatherAsync(string icao)

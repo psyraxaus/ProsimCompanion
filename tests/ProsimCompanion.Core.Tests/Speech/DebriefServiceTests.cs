@@ -56,6 +56,7 @@ public sealed class DebriefServiceTests : IDisposable
             _phases,
             eventLog,
             OptionsSupport.Monitor(_options),
+            OptionsSupport.Monitor(new BriefingOptions()),
             NullLogger<DebriefService>.Instance);
         service.Start();
         return (service, sessionPath);

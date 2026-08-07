@@ -4,8 +4,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// Cabin-crew simulation (Prosim2FO "Prompt F" semantics): purser reports gated on the ACP CAB
 /// receive channel, plus optional ambient events. The report wording lives here too (the
 /// predecessor kept it in the SOP profile; this app's convention is one options class per
-/// feature). Reports are spoken verbatim — never persona-styled. All speech is currently the
-/// FO voice; distinct purser/company voices are a tracked Phase 5/6 leftover.
+/// feature). Reports are spoken verbatim — never persona-styled. The distinct purser voice
+/// lives in <see cref="VoicesOptions"/>; reports carry the Purser speech role once the
+/// call-site wiring lands (WIRING-VOICES.md).
 /// </summary>
 public sealed class CabinOptions
 {

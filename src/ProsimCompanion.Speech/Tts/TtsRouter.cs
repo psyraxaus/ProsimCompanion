@@ -46,8 +46,10 @@ public sealed class TtsRouter
     /// Synthesizes via the first willing provider. Returns null only when every provider is
     /// unavailable or failed — the caller logs the utterance as lost; nothing throws out.
     /// Cancellation (pre-emption) aborts without penalizing the provider in flight.
+    /// <paramref name="voiceOverride"/> (speaker-role voice) is handed to every provider tried
+    /// — a provider without configurable voices ignores it rather than failing the chain.
     /// </summary>
-    public async Task<TtsAudio?> SynthesizeAsync(string text, CancellationToken cancellationToken)
+    public async Task<TtsAudio?> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
@@ -71,7 +73,7 @@ public sealed class TtsRouter
 
             try
             {
-                var audio = await provider.SynthesizeAsync(text, cancellationToken).ConfigureAwait(false);
+                var audio = await provider.SynthesizeAsync(text, cancellationToken, voiceOverride).ConfigureAwait(false);
                 lock (_gate)
                 {
                     _cooldownUntil.Remove(provider.Name);

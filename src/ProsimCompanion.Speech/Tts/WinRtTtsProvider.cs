@@ -15,6 +15,7 @@ public sealed class WinRtTtsProvider : ITtsProvider
 {
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ILogger<WinRtTtsProvider> _logger;
+    private int _overrideIgnoredLogged;
 
     public WinRtTtsProvider(IOptionsMonitor<SpeechOptions> options, ILogger<WinRtTtsProvider> logger)
     {
@@ -31,10 +32,17 @@ public sealed class WinRtTtsProvider : ITtsProvider
 
     public bool IsNetworkProvider => false;
 
-    public async Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken)
+    public async Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Role voice ids are Kokoro/Google vocabulary — meaningless to Windows voices, so the
+        // override is ignored here (once-logged, not per utterance).
+        if (voiceOverride is not null && Interlocked.Exchange(ref _overrideIgnoredLogged, 1) == 0)
+        {
+            _logger.LogDebug("WinRT TTS has no per-role voices — role voice overrides are ignored");
+        }
 
         using var synthesizer = new SpeechSynthesizer();
 

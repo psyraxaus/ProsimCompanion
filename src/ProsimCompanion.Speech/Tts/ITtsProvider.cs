@@ -22,6 +22,10 @@ public interface ITtsProvider
     bool IsNetworkProvider { get; }
 
     /// <summary>Synthesizes the text, honouring the token promptly — pre-emption cancels
-    /// synthesis in flight.</summary>
-    Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken);
+    /// synthesis in flight. <paramref name="voiceOverride"/> selects a speaker-role voice for
+    /// this one call (id in the provider's own vocabulary); null means the provider's
+    /// configured First Officer voice. Providers with per-voice caches MUST namespace on the
+    /// effective voice; providers without configurable voices may ignore the override (logged,
+    /// not an error).</summary>
+    Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null);
 }

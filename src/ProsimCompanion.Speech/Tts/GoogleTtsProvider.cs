@@ -53,12 +53,15 @@ public sealed class GoogleTtsProvider : ITtsProvider, IDisposable
 
     public bool IsNetworkProvider => true;
 
-    public async Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken)
+    public async Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         var options = _options.CurrentValue;
-        var voice = options.GoogleVoice;
+        // The EFFECTIVE voice keys the disk cache below — role caches stay isolated from the
+        // FO voice's paid audio. Note a role id must be a Google voice name here; the language
+        // code is derived from the same effective id.
+        var voice = string.IsNullOrWhiteSpace(voiceOverride) ? options.GoogleVoice : voiceOverride;
         var root = SpeechPaths.CacheRoot(options);
 
         var cached = await _cache.GetAsync(root, Name, voice, text).ConfigureAwait(false);
