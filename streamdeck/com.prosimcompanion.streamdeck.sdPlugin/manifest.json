@@ -1,0 +1,103 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"Name": "ProsimCompanion",
+	"Version": "0.1.0.0",
+	"Author": "ProsimCompanion",
+	"Description": "Fire GSX/checklist commands and show live status from ProsimCompanion over its embedded web server. Requires the command API enabled in ProsimCompanion.",
+	"Category": "ProsimCompanion",
+	"CategoryIcon": "imgs/plugin/category",
+	"Icon": "imgs/plugin/marketplace",
+	"URL": "https://github.com/psyraxaus/ProsimCompanion",
+	"SDKVersion": 2,
+	"CodePath": "bin/plugin.js",
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"Software": {
+		"MinimumVersion": "6.5"
+	},
+	"OS": [
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Actions": [
+		{
+			"Name": "GSX Service",
+			"UUID": "com.prosimcompanion.streamdeck.gsxservice",
+			"Icon": "imgs/actions/gsxservice/icon",
+			"Tooltip": "Request (or retract) a GSX ground service and show its live state. Pick the service in the Property Inspector.",
+			"PropertyInspectorPath": "ui/gsx-service.html",
+			"Controllers": ["Keypad"],
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/actions/gsxservice/icon",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
+			"Name": "Next Service",
+			"UUID": "com.prosimcompanion.streamdeck.nextservice",
+			"Icon": "imgs/actions/nextservice/icon",
+			"Tooltip": "Shows the ground automation's next planned service; press forces it to run now.",
+			"PropertyInspectorPath": "ui/connection.html",
+			"Controllers": ["Keypad"],
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/actions/nextservice/icon",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
+			"Name": "Checklist",
+			"UUID": "com.prosimcompanion.streamdeck.checklist",
+			"Icon": "imgs/actions/checklist/icon",
+			"Tooltip": "Shows the active checklist and current item. Pick Advance or Restart in the Property Inspector.",
+			"PropertyInspectorPath": "ui/checklist.html",
+			"Controllers": ["Keypad"],
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/actions/checklist/icon",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
+			"Name": "Flight Phase",
+			"UUID": "com.prosimcompanion.streamdeck.flightphase",
+			"Icon": "imgs/actions/flightphase/icon",
+			"Tooltip": "Displays the current ProsimCompanion flight phase (display only).",
+			"PropertyInspectorPath": "ui/connection.html",
+			"Controllers": ["Keypad"],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/flightphase/icon",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Connection Health",
+			"UUID": "com.prosimcompanion.streamdeck.health",
+			"Icon": "imgs/actions/health/icon",
+			"Tooltip": "ProSim / MSFS / GSX connection dots, plus pairing and command-API problems (display only).",
+			"PropertyInspectorPath": "ui/connection.html",
+			"Controllers": ["Keypad"],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/health/icon",
+					"TitleAlignment": "middle"
+				}
+			]
+		}
+	]
+}
