@@ -65,6 +65,10 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Core.State.IWeatherControl>(
             p => p.GetRequiredService<SayIntentions.SayIntentionsWeatherService>());
         services.AddSingleton<Cabin.CabinCrewService>();
+        // GSX voice control ("cockpit to ground", "request boarding", …) — dispatches through
+        // the named-command registry so voice/web/API/StreamDeck share one seam.
+        services.AddSingleton<Gsx.GsxVoiceService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Gsx.GsxVoiceService>());
         // Post-flight voice: tech-log brief + spoken debrief (deterministic template). Exact-
         // match phrases, so last in the dispatch order is fine. The debrief doubles as the
         // first session-finalization step (Order 10).

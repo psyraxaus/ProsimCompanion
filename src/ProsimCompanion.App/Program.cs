@@ -198,8 +198,10 @@ public static class Program
 
         web.UseAntiforgery();
 
-        // HTTP command API (opt-in via the commandApi settings section; 404 while disabled).
+        // HTTP command API + read-only status feed (both opt-in via the commandApi settings
+        // section; 404 while disabled). The status feed is what the Stream Deck plugin polls.
         web.MapCommandApi();
+        web.MapStatusApi();
 
         web.MapRazorComponents<Web.App>().AddInteractiveServerRenderMode();
         return web;
