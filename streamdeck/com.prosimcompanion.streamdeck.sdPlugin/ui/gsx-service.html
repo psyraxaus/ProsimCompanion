@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="pi-style.css" />
+	</head>
+	<body>
+		<div class="group">
+			<div class="title">Service</div>
+			<label for="service">GSX service</label>
+			<select id="service">
+				<option value="refuel">Refuel</option>
+				<option value="catering">Catering</option>
+				<option value="boarding">Boarding</option>
+				<option value="deboarding">Deboarding</option>
+				<option value="jetway">Jetway — connect</option>
+				<option value="jetwayRetract">Jetway — retract</option>
+				<option value="stairs">Stairs — connect</option>
+				<option value="stairsRetract">Stairs — retract</option>
+				<option value="gpu">GPU</option>
+				<option value="deice">De-ice</option>
+				<option value="pushback">Pushback</option>
+				<option value="departure">Departure services (auto)</option>
+			</select>
+		</div>
+
+		<div id="connection"></div>
+
+		<script src="pi.js"></script>
+		<script src="pi-connection.js"></script>
+		<script>
+			renderConnectionForm(document.getElementById("connection"));
+			const sel = document.getElementById("service");
+			function apply(s) {
+				sel.value = (s && s.service) || "refuel";
+			}
+			window.PI.onReady(apply);
+			window.PI.onSettings(apply);
+			sel.addEventListener("change", function () {
+				window.PI.setSettings({ service: sel.value });
+			});
+		</script>
+	</body>
+</html>

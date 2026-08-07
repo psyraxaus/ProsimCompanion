@@ -1,0 +1,29 @@
+{
+  "name": "prosimcompanion-streamdeck",
+  "version": "0.1.0",
+  "description": "Stream Deck plugin for ProsimCompanion — fire GSX/checklist commands and show live status over the embedded web server.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.prosimcompanion.streamdeck\"",
+    "pack": "npm run build && streamdeck pack com.prosimcompanion.streamdeck.sdPlugin --output dist --force",
+    "validate": "streamdeck validate com.prosimcompanion.streamdeck.sdPlugin"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^1.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^12.1.0",
+    "@types/node": "^22.0.0",
+    "rollup": "^4.24.0",
+    "tslib": "^2.7.0",
+    "typescript": "^5.6.0"
+  }
+}

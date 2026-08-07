@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="pi-style.css" />
+	</head>
+	<body>
+		<div class="group">
+			<div class="title">Checklist</div>
+			<label for="fn">Function</label>
+			<select id="fn">
+				<option value="advance">Advance — next item</option>
+				<option value="restart">Restart checklist</option>
+			</select>
+		</div>
+
+		<div id="connection"></div>
+
+		<script src="pi.js"></script>
+		<script src="pi-connection.js"></script>
+		<script>
+			renderConnectionForm(document.getElementById("connection"));
+			const sel = document.getElementById("fn");
+			function apply(s) {
+				sel.value = (s && s.fn) || "advance";
+			}
+			window.PI.onReady(apply);
+			window.PI.onSettings(apply);
+			sel.addEventListener("change", function () {
+				window.PI.setSettings({ fn: sel.value });
+			});
+		</script>
+	</body>
+</html>
