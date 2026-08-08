@@ -49,6 +49,7 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         Sync.GsxPushbackSequenceService pushbackSequence,
         Sync.GsxArrivalService arrival,
         Sync.GsxGroundOpsSignalRelay groundOpsRelay,
+        Sync.GsxStartupResyncService startupResync,
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
     {
@@ -56,6 +57,7 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         ArgumentNullException.ThrowIfNull(pushbackSequence);
         ArgumentNullException.ThrowIfNull(arrival);
         ArgumentNullException.ThrowIfNull(groundOpsRelay);
+        ArgumentNullException.ThrowIfNull(startupResync);
         ArgumentNullException.ThrowIfNull(questionCatalog);
         ArgumentNullException.ThrowIfNull(gateSelection);
         ArgumentNullException.ThrowIfNull(automation);

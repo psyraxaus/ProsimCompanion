@@ -37,6 +37,8 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     private readonly IFmsInitSync _fmsSync;
     private readonly IOptionsMonitor<FlightDataOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly GsxResyncState _resyncState;
+    private readonly ISimVars _simVars;
     private readonly ILogger<LoadsheetService> _logger;
 
     private readonly IDataRefSubscription[] _zoneAmounts;
@@ -66,6 +68,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     private int _nextEditionNumber = 1;
     private CancellationTokenSource? _pendingFinal;
     private ConnectionState _lastProsimState = ConnectionState.Disconnected;
+    private bool _restoredOrPrimedThisConnect;
 
     public LoadsheetService(
         IProsimDataRefs prosim,
@@ -78,6 +81,8 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         IFmsInitSync fmsSync,
         IOptionsMonitor<FlightDataOptions> options,
         GsxDiagnosticsStore diagnostics,
+        GsxResyncState resyncState,
+        ISimVars simVars,
         ILogger<LoadsheetService> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
@@ -90,7 +95,11 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         ArgumentNullException.ThrowIfNull(fmsSync);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(resyncState);
+        ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(logger);
+        _resyncState = resyncState;
+        _simVars = simVars;
 
         _gateway = gateway;
         _acars = acars;
@@ -136,6 +145,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _signals.BoardingCompleted += OnBoardingCompleted;
         _signals.FlightCycleReset += ResetCycle;
         _connections.Changed += OnConnectionChanged;
+        _resyncState.Assessed += OnResyncAssessed;
 
         // STD-offset trigger (Prosim2GSX's timing model, opt-in): a slow poll rather than a
         // scheduled one-shot because the STD source can change at any time (new OFP import,
@@ -150,6 +160,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _signals.BoardingCompleted -= OnBoardingCompleted;
         _signals.FlightCycleReset -= ResetCycle;
         _connections.Changed -= OnConnectionChanged;
+        _resyncState.Assessed -= OnResyncAssessed;
         _pendingFinal?.Cancel();
         _pendingFinal?.Dispose();
 
@@ -283,9 +294,11 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         });
     }
 
-    /// <summary>Primes the loadsheet datarefs with empty strings on every ProSim connect —
-    /// they only exist after a first write, and last session's loadsheet must not appear on
-    /// this session's W&amp;B page (predecessor behaviour, re-fires on reconnect).</summary>
+    /// <summary>On every ProSim connect the loadsheet datarefs are either RESTORED or primed
+    /// empty — decided by the startup resync (issue #30). The predecessor always primed empty,
+    /// which erased the loadsheet the crew already had after a mid-turnaround app restart.
+    /// Restore/prime waits for BOTH the connect and the resync assessment (either may come
+    /// first), and runs once per connect.</summary>
     private void OnConnectionChanged(object? sender, EventArgs e)
     {
         var state = _connections.Snapshot().FirstOrDefault(pair => pair.Key == Subsystems.Prosim).Value;
@@ -296,15 +309,94 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _lastProsimState = state;
         if (state != ConnectionState.Connected)
         {
+            _restoredOrPrimedThisConnect = false;
             return;
         }
 
-        _ = Task.Run(async () =>
+        TryRestoreOrPrime();
+    }
+
+    private void OnResyncAssessed() => TryRestoreOrPrime();
+
+    private void TryRestoreOrPrime()
+    {
+        if (_restoredOrPrimedThisConnect
+            || !_resyncState.IsAssessed
+            || _lastProsimState != ConnectionState.Connected)
         {
+            return;
+        }
+
+        _restoredOrPrimedThisConnect = true;
+        _ = Task.Run(RestoreOrPrimeAsync);
+    }
+
+    private async Task RestoreOrPrimeAsync()
+    {
+        try
+        {
+            if (_resyncState.LoadsheetPrelimEdition > 0 && await TryRestoreAsync().ConfigureAwait(false))
+            {
+                return;
+            }
+
+            // Fresh cycle (or unrecoverable content): last session's loadsheet must not appear
+            // on this session's W&B page — the datarefs only exist after a first write.
             var ok = await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPrelimLoadsheet, "").ConfigureAwait(false)
                 & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbFinalLoadsheet, "").ConfigureAwait(false);
             _logger.LogInformation("Loadsheet datarefs primed with empty placeholders (ok={Ok})", ok);
-        });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Loadsheet restore-or-prime failed");
+        }
+    }
+
+    /// <summary>Reads the prelim envelope back from the EFB dataref and restores the cycle
+    /// state the previous process held in memory: cached prelim (final generation needs its
+    /// trip fuel and CHK baselines), edition counter, final-sent flag and the store slots.
+    /// When boarding is proven complete and the final has not gone out yet, the automatic
+    /// final is re-armed exactly as a live boarding-complete would have.</summary>
+    private async Task<bool> TryRestoreAsync()
+    {
+        var prelimJson = await _gateway.QueryDataRefAsync(ProsimDataRefNames.EfbPrelimLoadsheet).ConfigureAwait(false);
+        if (!LoadsheetEnvelope.TryParse(prelimJson, out _, out var prelimData, out var prelimCtx))
+        {
+            RecordDecision(
+                $"tracking LVARs promised prelim EDNO {_resyncState.LoadsheetPrelimEdition} but the EFB dataref "
+                + "held no parseable loadsheet — starting the cycle fresh");
+            return false;
+        }
+
+        lock (_stateLock)
+        {
+            _cachedPrelim = prelimData;
+            _cachedPrelimContext = prelimCtx;
+            _finalSent = _resyncState.LoadsheetFinalSent;
+            _nextEditionNumber = prelimCtx.EditionNumber + 1;
+        }
+
+        _store.SetPrelim(LoadsheetStore.SlotFrom(
+            LoadsheetSlotStatus.Sent, prelimCtx.EditionNumber, prelimData, new DateTimeOffset(prelimCtx.Time, TimeSpan.Zero)));
+        RecordDecision($"restored prelim EDNO {prelimCtx.EditionNumber} from the EFB dataref after restart");
+
+        if (_resyncState.LoadsheetFinalSent)
+        {
+            var finalJson = await _gateway.QueryDataRefAsync(ProsimDataRefNames.EfbFinalLoadsheet).ConfigureAwait(false);
+            if (LoadsheetEnvelope.TryParse(finalJson, out var isFinal, out var finalData, out var finalCtx) && isFinal)
+            {
+                _store.SetFinal(LoadsheetStore.SlotFrom(
+                    LoadsheetSlotStatus.Sent, finalCtx.EditionNumber, finalData, new DateTimeOffset(finalCtx.Time, TimeSpan.Zero)));
+                RecordDecision($"restored final EDNO {finalCtx.EditionNumber} from the EFB dataref after restart");
+            }
+        }
+        else if (_resyncState.BoardingProven)
+        {
+            RecordDecision("boarding already complete at restart and no final sent — re-arming the automatic final");
+            OnBoardingCompleted();
+        }
+
+        return true;
     }
 
     // ── ILoadsheetControl ────────────────────────────────────────────────────────────────
@@ -387,6 +479,9 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             _cachedPrelim = data;
             _cachedPrelimContext = ctx;
         }
+
+        // Tracking LVAR (issue #30): a restart can now tell a prelim already exists this cycle.
+        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition, ctx.EditionNumber);
 
         _store.SetPrelim(LoadsheetStore.SlotFrom(
             sent ? LoadsheetSlotStatus.Sent : LoadsheetSlotStatus.Failed,
@@ -518,6 +613,8 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             _finalSent = true;
         }
 
+        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetFinalSent, 1);
+
         _store.SetFinal(LoadsheetStore.SlotFrom(
             sent ? LoadsheetSlotStatus.Sent : LoadsheetSlotStatus.Failed,
             ctx.EditionNumber, data, DateTimeOffset.UtcNow,
@@ -551,7 +648,26 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             _nextEditionNumber = 1;
         }
         _store.Reset();
+        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition, 0);
+        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetFinalSent, 0);
         RecordDecision("loadsheet state reset for new flight cycle");
+    }
+
+    /// <summary>Best-effort tracking-LVAR write — MSFS may be absent (degrade, not fail).</summary>
+    private async Task WriteTrackingLvarAsync(string name, double value)
+    {
+        try
+        {
+            await _simVars.WriteAsync(name, value).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogDebug("Tracking LVAR write {Name}={Value} skipped: {Reason}", name, value, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tracking LVAR write {Name}={Value} failed", name, value);
+        }
     }
 
     // ── Internals ────────────────────────────────────────────────────────────────────────

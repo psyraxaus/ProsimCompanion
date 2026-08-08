@@ -13,6 +13,9 @@ public static class SimWriteGate
         // GSX menu interaction and external-control flags (docs/integrations/gsx.md,
         // gsx-remote-api.md §8 — the write LVARs deliberately kept alongside the Remote API).
         "L:FSDT_GSX_",
+        // The companion's own turnaround-progress tracking LVARs (issue #30) — must match
+        // Core.Aircraft.CompanionLvarNames.Prefix.
+        "L:PROSIMCOMPANION_",
     ];
 
     /// <summary>True when the name may be written by this application.</summary>

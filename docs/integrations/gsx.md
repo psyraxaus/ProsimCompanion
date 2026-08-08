@@ -92,3 +92,29 @@ triggered for VDGS data.
   `ProsimDataRefNames.Lvars`); after a write, the sim echoes the value on the next frame —
   treat the echo as authoritative, don't suppress it.
 - Full Remote API wire protocol: see [gsx-remote-api.md](gsx-remote-api.md).
+
+## 6. Companion tracking LVARs (issue #30 — startup resync)
+
+ProsimCompanion writes its OWN LVARs (prefix `L:PROSIMCOMPANION_`, names centralized in
+`Core.Aircraft.CompanionLvarNames`, allow-listed in `SimWriteGate`) to make turnaround progress
+survive an app restart. Chosen over a progress file deliberately: LVAR lifetime matches GSX's
+own state — they survive an app restart but vanish with the sim session, exactly when GSX's
+ground state resets too, so the resync can never consume stale carried-over state.
+
+| LVAR | Meaning | Written by |
+|---|---|---|
+| `..._SVC_DONE_<ID>` | one-shot service completed this cycle | lifecycle Completed edge |
+| `..._TURNAROUND` | an arrival happened this sim session | FlightCycleReset (set 1) |
+| `..._PREP_DONE` | ground-prep chain completed | resync tick latch |
+| `..._LOADSHEET_PRELIM_EDNO` | prelim edition sent (0 = none) | LoadsheetService |
+| `..._LOADSHEET_FINAL_SENT` | final sent | LoadsheetService |
+
+All service/loadsheet/prep LVARs reset to 0 (and TURNAROUND to 1) at the arrival
+FlightCycleReset. At startup `GsxStartupResyncService` assesses ONCE (Ready + populated mirror,
+90 s timeout): dataref evidence first (FOB vs `aircraft.refuel.fuelTarget[.kg]` within 100 kg,
+booked vs occupied seat strings, `efb.efb.boardingStatus`), then the LVARs. Policy: **never
+re-call** — once departure progress is proven, unproven one-shots are assumed done (manual
+calls stay available). Deboarding and GPU proofs are exempt from that trigger (arrival/prep
+flow — they must not skip a fresh leg 2). The departure sequencer holds until the assessment
+lands; the loadsheet service restores the prelim/final from the EFB datarefs
+(`LoadsheetEnvelope.TryParse`) instead of wiping them on reconnect.

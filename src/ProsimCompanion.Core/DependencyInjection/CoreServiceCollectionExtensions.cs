@@ -128,6 +128,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();
         services.AddSingleton<GroundOpsSignals>();
+        services.AddSingleton<GsxResyncState>();
         services.AddSingleton<DisplayUnitService>();
         // Per-profile GSX settings (Prosim2GSX model): the active profile's stored block is
         // written over the live gsx section on activation.

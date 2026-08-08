@@ -63,6 +63,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
     private readonly ISimbriefImporter _simbrief;
     private readonly GroundOpsSignals _groundOpsSignals;
     private readonly OfpStore _ofpStore;
+    private readonly GsxResyncState _resyncState;
 
     public GsxAutomationService(
         IGsxRemoteApi api,
@@ -77,6 +78,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         GroundOpsSignals groundOpsSignals,
+        GsxResyncState resyncState,
         JsonlEventLog eventLog,
         ILogger<GsxAutomationService> logger)
     {
@@ -88,6 +90,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(groundOpsSignals);
+        ArgumentNullException.ThrowIfNull(resyncState);
+        _resyncState = resyncState;
         ArgumentNullException.ThrowIfNull(ofpStore);
         _ofpStore = ofpStore;
         _simbrief = simbrief;
@@ -123,7 +127,21 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _flightState.PhaseChanged += OnFlightPhaseChanged;
         _lifecycle.ServiceEvent += OnServiceEvent;
         _api.Mirror.Updated += OnMirrorUpdated;
+        _resyncState.Assessed += OnResyncAssessed;
         _pumpTimer = new Timer(_ => Pump(), null, PumpInterval, PumpInterval);
+    }
+
+    /// <summary>The startup resync finished: adopt the recovered turnaround flag (the
+    /// in-memory one only rises on an in-session arrival) and let the held sequencer run.</summary>
+    private void OnResyncAssessed()
+    {
+        if (_resyncState.TurnaroundDetected && !_isTurnaround)
+        {
+            _isTurnaround = true;
+            RecordDecision("turnaround", "recovered from tracking LVARs by the startup resync");
+        }
+
+        Pump();
     }
 
     /// <summary>Current automation phase (derived, never re-computed by features).</summary>
@@ -286,6 +304,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _flightState.PhaseChanged -= OnFlightPhaseChanged;
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _api.Mirror.Updated -= OnMirrorUpdated;
+        _resyncState.Assessed -= OnResyncAssessed;
         _intRadCpt.ValueChanged -= OnIntRadChanged;
         _intRadFo.ValueChanged -= OnIntRadChanged;
         _pumpTimer.Dispose();
@@ -391,6 +410,15 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             var options = _options.CurrentValue;
             if (!options.AutomationEnabled || _api.Readiness != GsxReadiness.Ready)
             {
+                return;
+            }
+
+            // Never sequence before the startup resync has assessed prior progress (#30) —
+            // the assessment is terminal (it times out if GSX/ProSim never come up), so this
+            // hold is bounded.
+            if (!_resyncState.IsAssessed)
+            {
+                PublishWaitingBoard("waiting for the startup state resync");
                 return;
             }
 

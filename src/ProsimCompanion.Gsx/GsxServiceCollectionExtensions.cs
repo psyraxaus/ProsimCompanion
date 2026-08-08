@@ -44,6 +44,9 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Sync.GsxPushbackSequenceService>();
         services.AddSingleton<Sync.GsxArrivalService>();
         services.AddSingleton<Sync.GsxGroundOpsSignalRelay>();
+        // Startup resync (issue #30): tracking LVARs + dataref evidence seed the lifecycle
+        // latches after an app restart mid-turnaround; the sequencer holds until assessed.
+        services.AddSingleton<Sync.GsxStartupResyncService>();
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

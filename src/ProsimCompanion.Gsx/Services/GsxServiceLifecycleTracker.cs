@@ -171,6 +171,30 @@ public sealed class GsxServiceLifecycleTracker
         }
     }
 
+    /// <summary>
+    /// Seeds a service's cycle as already completed — the startup resync path (issue #30):
+    /// after an app restart mid-turnaround the in-memory latches are gone while the work is
+    /// done in the world. Deliberately fires NO lifecycle events: a seeded completion is
+    /// history, and replaying the Completed edge would re-trigger downstream actions (final
+    /// loadsheet, de-ice holdover) that already ran in the previous process. All notified
+    /// flags are set so later mirror readings of the same cycle stay silent too.
+    /// </summary>
+    public void SeedCompleted(string serviceId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(serviceId);
+        lock (_gate)
+        {
+            var cycle = GetCycle(serviceId);
+            cycle.WasCalled = true;
+            cycle.WasActive = true;
+            cycle.RequestedNotified = true;
+            cycle.ActiveNotified = true;
+            cycle.CompletedNotified = true;
+        }
+
+        _logger.LogInformation("GSX service {Service}: seeded completed (startup resync)", serviceId);
+    }
+
     /// <summary>Starts a fresh cycle for every service (new turnaround / departure), so the
     /// lifecycle events fire again.</summary>
     public void ResetCycle()

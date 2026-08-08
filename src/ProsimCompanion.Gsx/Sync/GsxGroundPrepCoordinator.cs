@@ -107,6 +107,21 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
     private void OnSidChanged(string? oldSid, string? newSid) => Reset("Couatl engine restart");
 
+    /// <summary>Startup resync (issue #30): the tracking LVARs say this gate session's
+    /// preparation already ran before the app restarted — jump straight to Complete so the
+    /// reposition/GPU/jetway chain is not re-driven. A later gate change or Couatl restart
+    /// still resets the chain normally.</summary>
+    public void SeedComplete(string reason)
+    {
+        if (_stage == Stage.Complete)
+        {
+            return;
+        }
+
+        _sessionGateKey ??= _api.Mirror.GateContextKey;
+        Advance(Stage.Complete, $"seeded by startup resync — {reason}");
+    }
+
     private void Reset(string reason)
     {
         if (_stage != Stage.Reposition || _sessionGateKey is not null)
