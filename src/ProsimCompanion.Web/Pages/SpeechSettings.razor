@@ -155,12 +155,37 @@
             else if (_section == "briefing")
             {
                 <Section Title="Briefings" Hint="Departure/arrival briefings composed from nav data + weather; the deterministic template is always the floor">
+                    <SelectField Label="Procedure source" Options="ProcedureSourceOptions"
+                                 Hint="Auto walks FMS plan → SayIntentions flight.json → the manual entries below, per field"
+                                 @bind-Value="ProcedureSourceKey" />
                     <BoolField Label="Verify numbers in LLM output"
                                Hint="Every figure the LLM writes is checked against the source facts; a failed retry falls back to the template"
                                @bind-Value="_briefingDraft.VerifyNumbers" />
                     <div class="field-hint" style="max-width:640px;">
                         The Navigraph DFD database path lives on App Settings → Nav Data.
                     </div>
+                </Section>
+
+                <Section Title="Manual Procedure Overrides" Hint="Used when the FMS/flight.json tiers can't resolve a field (or always, in Manual mode)">
+                    <TextField Label="Departure airport" Hint="ICAO, e.g. YSSY" @bind-Value="_briefingDraft.DepartureAirport" />
+                    <TextField Label="Departure runway" Hint="e.g. 16R" @bind-Value="_briefingDraft.DepartureRunway" />
+                    <TextField Label="SID" Hint="Identifier, e.g. FISHA1" @bind-Value="_briefingDraft.DepartureSid" />
+                    <TextField Label="Arrival airport" Hint="ICAO, e.g. YMML" @bind-Value="_briefingDraft.ArrivalAirport" />
+                    <TextField Label="Arrival runway" Hint="e.g. 34" @bind-Value="_briefingDraft.ArrivalRunway" />
+                    <TextField Label="STAR" Hint="Identifier, e.g. RAZZI4" @bind-Value="_briefingDraft.ArrivalStar" />
+                    <TextField Label="Approach" Hint="DFD identifier, e.g. I16R. Empty auto-fills the top-ranked published approach (ILS first); ask the FO &quot;which approach&quot; to hear the candidates"
+                               @bind-Value="_briefingDraft.ArrivalApproach" />
+                </Section>
+
+                <Section Title="Missed-Approach Re-brief" Hint="After a go-around, the FO speaks the published missed-approach legs">
+                    <BoolField Label="Enabled"
+                               Hint="Waits for the delay AND gear-up (the crew flies first); degrades to a prompt when the DFD has no legs"
+                               @bind-Value="_briefingDraft.MissedApproachRebriefEnabled" />
+                    <NumberField Label="Delay" Suffix="s" Min="0"
+                                 @bind-Value="_briefingDraft.MissedApproachDelaySeconds" />
+                    <NumberField Label="Hard ceiling" Suffix="s" Min="0"
+                                 Hint="Speaks at this point even if gear-up is never seen"
+                                 @bind-Value="_briefingDraft.MissedApproachHardCeilingSeconds" />
                 </Section>
 
                 <Section Title="LLM Styling" Hint="One OpenAI-compatible endpoint for the whole app (briefing and debrief prose)">
@@ -235,6 +260,13 @@
     [
         ("pushToTalk", "Push-to-talk (dedicated FO key)"),
         ("continuous", "Continuous (ATC-mute while transmitting)"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> ProcedureSourceOptions =
+    [
+        ("auto", "Auto (FMS → flight.json → manual)"),
+        ("manual", "Manual entries only"),
+        ("flightJson", "SayIntentions flight.json only"),
     ];
 
     private static readonly IReadOnlyList<(string, string)> NormalPolicyOptions =
@@ -403,6 +435,13 @@
         set => _draft.PttJoystickButton = value < 0 ? null : value;
     }
 
+    private string ProcedureSourceKey
+    {
+        get => JsonNamingPolicy.CamelCase.ConvertName(_briefingDraft.ProcedureSource.ToString());
+        set => _briefingDraft.ProcedureSource = Enum.TryParse<ProcedureSourceMode>(value, ignoreCase: true, out var parsed)
+            ? parsed : ProcedureSourceMode.Auto;
+    }
+
     private string NormalPolicyKey
     {
         get => JsonNamingPolicy.CamelCase.ConvertName(_draft.SterileNormalPolicy.ToString());
@@ -449,7 +488,18 @@
                 var briefing = JsonSettingsFile.GetOrCreateSection(root, BriefingOptions.SectionName);
                 // dfdPath deliberately not written here — App Settings → Nav Data owns it,
                 // and a stale draft on this page must not clobber a save made there.
+                briefing["procedureSource"] = JsonNamingPolicy.CamelCase.ConvertName(briefingDraft.ProcedureSource.ToString());
                 briefing["verifyNumbers"] = briefingDraft.VerifyNumbers;
+                briefing["departureAirport"] = briefingDraft.DepartureAirport.Trim().ToUpperInvariant();
+                briefing["departureRunway"] = briefingDraft.DepartureRunway.Trim().ToUpperInvariant();
+                briefing["departureSid"] = briefingDraft.DepartureSid.Trim().ToUpperInvariant();
+                briefing["arrivalAirport"] = briefingDraft.ArrivalAirport.Trim().ToUpperInvariant();
+                briefing["arrivalRunway"] = briefingDraft.ArrivalRunway.Trim().ToUpperInvariant();
+                briefing["arrivalStar"] = briefingDraft.ArrivalStar.Trim().ToUpperInvariant();
+                briefing["arrivalApproach"] = briefingDraft.ArrivalApproach.Trim().ToUpperInvariant();
+                briefing["missedApproachRebriefEnabled"] = briefingDraft.MissedApproachRebriefEnabled;
+                briefing["missedApproachDelaySeconds"] = briefingDraft.MissedApproachDelaySeconds;
+                briefing["missedApproachHardCeilingSeconds"] = briefingDraft.MissedApproachHardCeilingSeconds;
                 briefing["llmEnabled"] = briefingDraft.LlmEnabled;
                 briefing["llmBaseUrl"] = briefingDraft.LlmBaseUrl.Trim();
                 briefing["llmApiKey"] = briefingDraft.LlmApiKey.Trim();

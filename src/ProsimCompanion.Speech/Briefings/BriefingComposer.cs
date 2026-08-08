@@ -26,7 +26,10 @@ public sealed record BriefingFacts(
     int? QnhHpa,
     ArrivalMinima? Minima,
     string? AtisLetter = null,
-    string? ActiveRunway = null);
+    string? ActiveRunway = null,
+    int? FlexTempC = null,
+    int? VisibilityM = null,
+    int? TemperatureC = null);
 
 /// <summary>
 /// The deterministic briefing template (Prosim2FO's exact clause structure) plus the number
@@ -158,6 +161,9 @@ public static class BriefingComposer
         AddValue(f.V1);
         AddValue(f.Vr);
         AddValue(f.V2);
+        AddValue(f.FlexTempC);
+        AddValue(f.VisibilityM);
+        AddValue(f.TemperatureC);
         AddValue(f.Minima?.AltitudeFt);
         return allowed;
     }
@@ -206,11 +212,13 @@ public static class BriefingComposer
         Line("Glideslope (deg)", f.Nav.GlideSlopeAngle?.ToString("0.0", CultureInfo.InvariantCulture));
         Line("Transition altitude (ft)", f.Nav.TransitionAltitudeFt?.ToString("0", CultureInfo.InvariantCulture));
         Line("Transition level", f.Nav.TransitionLevel?.ToString("0", CultureInfo.InvariantCulture));
+        Line("Runway elevation (ft)", f.Nav.RunwayElevationFt?.ToString("0", CultureInfo.InvariantCulture));
         if (f.IsDeparture)
         {
             Line("V1 (kt)", f.V1);
             Line("VR (kt)", f.Vr);
             Line("V2 (kt)", f.V2);
+            Line("Flex temp (C)", f.FlexTempC);
         }
 
         if (f is { WindDirDeg: not null, WindSpeedKt: not null })
@@ -218,6 +226,8 @@ public static class BriefingComposer
             Line("Wind", $"{f.WindDirDeg:000} at {f.WindSpeedKt} kt");
         }
 
+        Line("Visibility (m)", f.VisibilityM);
+        Line("Temperature (C)", f.TemperatureC);
         Line("QNH (hPa)", f.QnhHpa);
         Line("ATIS information", f.AtisLetter);
         Line("Active runway (per ATC)", f.ActiveRunway);

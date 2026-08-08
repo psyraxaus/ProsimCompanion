@@ -27,6 +27,7 @@ public sealed class SpeechBootstrapService : IHostedService
     private readonly SayIntentions.SayIntentionsService _sayIntentions;
     private readonly Cabin.CabinCrewService _cabin;
     private readonly Company.CompanyChannelService _company;
+    private readonly Briefings.MissedApproachRebrief _missedApproach;
 
     public SpeechBootstrapService(
         SpeechArbiterService arbiter,
@@ -39,8 +40,11 @@ public sealed class SpeechBootstrapService : IHostedService
         Abnormals.FailureMonitor failures,
         SayIntentions.SayIntentionsService sayIntentions,
         Cabin.CabinCrewService cabin,
-        Company.CompanyChannelService company)
+        Company.CompanyChannelService company,
+        Briefings.MissedApproachRebrief missedApproach)
     {
+        ArgumentNullException.ThrowIfNull(missedApproach);
+        _missedApproach = missedApproach;
         ArgumentNullException.ThrowIfNull(failures);
         ArgumentNullException.ThrowIfNull(sayIntentions);
         ArgumentNullException.ThrowIfNull(cabin);
@@ -78,6 +82,7 @@ public sealed class SpeechBootstrapService : IHostedService
         _cabin.Start();
         _company.Start();
         _spokenChecklists.Start();
+        _missedApproach.Start();
         return Task.CompletedTask;
     }
 

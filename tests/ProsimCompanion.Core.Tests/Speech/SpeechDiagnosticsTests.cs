@@ -21,8 +21,10 @@ public sealed class SpeechDiagnosticsTests
         speech.SetupGet(m => m.CurrentValue).Returns(() => _speechOptions);
         var briefing = new Mock<IOptionsMonitor<BriefingOptions>>();
         briefing.SetupGet(m => m.CurrentValue).Returns(() => _briefingOptions);
+        var navData = new ProsimCompanion.Speech.Briefings.DfdNavDataProvider(
+            briefing.Object, NullLogger<ProsimCompanion.Speech.Briefings.DfdNavDataProvider>.Instance);
         return new SpeechDiagnosticsService(
-            providers, _playback.Object, speech.Object, briefing.Object,
+            providers, _playback.Object, speech.Object, briefing.Object, navData,
             NullLogger<SpeechDiagnosticsService>.Instance);
     }
 
@@ -103,5 +105,12 @@ public sealed class SpeechDiagnosticsTests
         // Defaults: LlmEnabled=false, no model — the diagnostic must say why, not fail.
         var result = await Service().TestLlmAsync(CancellationToken.None);
         Assert.Contains("disabled", result);
+    }
+
+    [Fact]
+    public async Task NavDataTest_NoDfdConfigured_PointsAtTheSetting()
+    {
+        var result = await Service().TestNavDataAsync(CancellationToken.None);
+        Assert.Contains("Nav Data", result);
     }
 }

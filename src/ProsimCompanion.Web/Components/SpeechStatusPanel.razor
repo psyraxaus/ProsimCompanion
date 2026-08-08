@@ -68,7 +68,7 @@
     }
 </Section>
 
-<Section Title="Component Tests" Hint="Verify the LLM endpoint and the microphone without flying a sector">
+<Section Title="Component Tests" Hint="Verify the LLM endpoint, microphone and nav database without flying a sector">
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                 @onclick="TestLlmAsync">
@@ -78,6 +78,10 @@
                 @onclick="TestMicAsync">
             @(_runningTest == "mic" ? "Listening… speak now" : "Test microphone")
         </button>
+        <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
+                @onclick="TestNavDataAsync">
+            @(_runningTest == "navdata" ? "Testing…" : "Test nav data")
+        </button>
     </div>
     @if (_llmTestResult is not null)
     {
@@ -86,6 +90,10 @@
     @if (_micTestResult is not null)
     {
         <div class="field-hint" style="margin-top:8px;">Microphone: @_micTestResult</div>
+    }
+    @if (_navDataTestResult is not null)
+    {
+        <div class="field-hint" style="margin-top:8px;">Nav data: @_navDataTestResult</div>
     }
 </Section>
 
@@ -165,6 +173,7 @@
     private string? _ttsTestResult;
     private string? _llmTestResult;
     private string? _micTestResult;
+    private string? _navDataTestResult;
 
     protected override void OnInitialized()
     {
@@ -228,6 +237,9 @@
 
     private Task TestMicAsync() => RunTestAsync(
         "mic", () => Diagnostics.TestMicrophoneAsync(CancellationToken.None), result => _micTestResult = result);
+
+    private Task TestNavDataAsync() => RunTestAsync(
+        "navdata", () => Diagnostics.TestNavDataAsync(CancellationToken.None), result => _navDataTestResult = result);
 
     private async Task RunTestAsync(string key, Func<Task<string>> test, Action<string> report)
     {

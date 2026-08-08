@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using NAudio.Wave;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Speech.Briefings;
 using ProsimCompanion.Speech.Llm;
 using ProsimCompanion.Speech.Playback;
 using ProsimCompanion.Speech.Recognition;
@@ -26,6 +27,7 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
     private readonly IEnumerable<ITtsProvider> _providers;
     private readonly ISpeechPlayback _playback;
     private readonly IOptionsMonitor<SpeechOptions> _options;
+    private readonly DfdNavDataProvider _navData;
     private readonly OpenAiChatClient _llm;
     private readonly ILogger<SpeechDiagnosticsService> _logger;
 
@@ -34,6 +36,7 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         ISpeechPlayback playback,
         IOptionsMonitor<SpeechOptions> options,
         IOptionsMonitor<BriefingOptions> briefingOptions,
+        DfdNavDataProvider navData,
         ILogger<SpeechDiagnosticsService> logger,
         OpenAiChatClient? llm = null)
     {
@@ -41,13 +44,38 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         ArgumentNullException.ThrowIfNull(playback);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(briefingOptions);
+        ArgumentNullException.ThrowIfNull(navData);
         ArgumentNullException.ThrowIfNull(logger);
 
         _providers = providers;
         _playback = playback;
         _options = options;
+        _navData = navData;
         _logger = logger;
         _llm = llm ?? new OpenAiChatClient(briefingOptions);
+    }
+
+    public Task<string> TestNavDataAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!_navData.IsConfigured)
+            {
+                return Task.FromResult(
+                    "No DFD database configured — set the path on App Settings → Nav Data. "
+                    + "Briefings will speak without nav facts until then.");
+            }
+
+            var cycle = _navData.AiracCycle;
+            return Task.FromResult(cycle is null
+                ? "DFD file present but the AIRAC header could not be read — wrong file or an unsupported schema."
+                : $"DFD readable — AIRAC cycle {cycle}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Nav-data test failed");
+            return Task.FromResult($"Nav-data test failed: {ex.Message}");
+        }
     }
 
     public async Task<string> TestTtsProviderAsync(

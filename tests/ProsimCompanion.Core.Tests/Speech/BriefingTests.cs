@@ -71,20 +71,54 @@ public sealed class BriefingTests
     }
 
     [Fact]
-    public void FmsPlan_ParsesActiveRoute()
+    public void FmsPlan_ParsesElementFormRoute()
+    {
+        // Real ProSim payloads carry the route fields as child ELEMENTS, and the LNAV string
+        // uses IDENT.TRANSITION notation with the destination as the final token.
+        const string xml = """
+            <fms><route type="act">
+                <origin>YSSY</origin><destination>YMML</destination>
+                <originRunway>16R</originRunway><destinationRunway>34</destinationRunway>
+                <flightplan>YSSY FISHA1.FISHA WOL H65 RAZZI RAZZI4.RAZZI YMML</flightplan>
+                <legs>
+                    <leg><type>EndOfFlightPlan</type></leg>
+                    <leg><type>Destination</type><displayString>YSCB</displayString></leg>
+                </legs>
+            </route></fms>
+            """;
+
+        var plan = FmsPlanParser.Parse(xml);
+        Assert.Equal("YSSY", plan.Origin);
+        Assert.Equal("YMML", plan.Destination);
+        Assert.Equal("16R", plan.OriginRunway);
+        Assert.Equal("34", plan.DestinationRunway);
+        Assert.Equal("FISHA1", plan.Sid);
+        // The identifier is the part BEFORE the dot — the part after is the transition,
+        // which no DFD procedure lookup would ever match.
+        Assert.Equal("RAZZI4", plan.Star);
+        Assert.Equal("YSCB", plan.Alternate);
+    }
+
+    [Fact]
+    public void FmsPlan_AttributeFormStillParses()
     {
         const string xml = """
             <fms><route type="act" origin="YSSY" destination="YMML"
                  originRunway="16R" destinationRunway="34"
-                 flightplan="YSSY FISHA1.FISHA WOL H65 RAZZI RAZZI4.YMML" /></fms>
+                 flightplan="YSSY FISHA1.FISHA WOL H65 RAZZI RAZZI4.RAZZI YMML" /></fms>
             """;
 
         var plan = BriefingService.ParseFmsPlan(xml);
         Assert.Equal("YSSY", plan.Origin);
-        Assert.Equal("YMML", plan.Destination);
         Assert.Equal("16R", plan.OriginRunway);
         Assert.Equal("FISHA1", plan.Sid);
+        Assert.Equal("RAZZI4", plan.Star);
     }
+
+    [Fact]
+    public void FmsPlan_NonDottedTokens_YieldNoProcedures()
+        // Airways / DCT / plain waypoints have no dot — no false positives.
+        => Assert.Equal((null, null), FmsPlanParser.ParseSidStar("YSSY WOL H65 RAZZI YMML"));
 
     [Theory]
     [InlineData("16R", "RW16R")]
@@ -93,4 +127,38 @@ public sealed class BriefingTests
     [InlineData("", null)]
     public void RunwayNormalization(string input, string? expected)
         => Assert.Equal(expected, DfdNavDataProvider.NormalizeRunway(input));
+
+    [Fact]
+    public void ApproachIdentifiers_DecodeAndRankIlsFirst()
+    {
+        Assert.True(DfdNavDataProvider.TryDecodeApproachIdentifier("I04LY", "04L", out var ils, out var ilsRank));
+        Assert.Equal("ILS", ils.Kind);
+        Assert.Equal("ILS Yankee", ils.Spoken);
+
+        Assert.True(DfdNavDataProvider.TryDecodeApproachIdentifier("R04LA", "04L", out var rnav, out var rnavRank));
+        Assert.Equal("RNAV", rnav.Kind);
+        Assert.True(ilsRank < rnavRank);
+
+        // Exact side match: an 04R approach never serves 04L, and side-less runways only
+        // match side-less identifiers.
+        Assert.False(DfdNavDataProvider.TryDecodeApproachIdentifier("I04RY", "04L", out _, out _));
+        Assert.False(DfdNavDataProvider.TryDecodeApproachIdentifier("I04LY", "04", out _, out _));
+    }
+
+    [Fact]
+    public void MissedApproachLegs_DescribeCommonTypes()
+    {
+        Assert.Equal("heading zero four zero, climb to 600 feet",
+            DfdNavDataProvider.DescribeLeg("CA", null, 40, 600, null));
+        Assert.Equal("left turn, direct SOSIJ, climb to 3000 feet",
+            DfdNavDataProvider.DescribeLeg("DF", "SOSIJ", null, 3000, 'L'));
+        Assert.Equal("hold at TESAT", DfdNavDataProvider.DescribeLeg("HM", "TESAT", 90, null, null));
+    }
+
+    [Fact]
+    public void RunwaySpoken_DigitsAndSideWord()
+    {
+        Assert.Equal("one six right", BriefingService.RunwaySpoken("16R"));
+        Assert.Equal("zero four left", BriefingService.RunwaySpoken("RW04L"));
+    }
 }

@@ -1,5 +1,34 @@
 namespace ProsimCompanion.Core.Configuration;
 
+/// <summary>Where briefing procedure identifiers (runway/SID/STAR/approach) are resolved from
+/// (Prosim2FO semantics).</summary>
+public enum ProcedureSourceMode
+{
+    /// <summary>Per-field walk: FMS (flightPlanXml, then configured datarefs) → SayIntentions
+    /// flight.json → the manual entries.</summary>
+    Auto,
+
+    /// <summary>Use only the manual entries.</summary>
+    Manual,
+
+    /// <summary>Use only SayIntentions flight.json.</summary>
+    FlightJson,
+}
+
+/// <summary>Optional ProSim FMS dataref names for the per-field FMS procedure tier — blank
+/// means that field is unavailable from a dedicated dataref (the flightPlanXml parse still
+/// applies). Kept configurable because these names vary across ProSim builds.</summary>
+public sealed class BriefingFmsDatarefs
+{
+    public string OriginIcao { get; set; } = "";
+    public string DestinationIcao { get; set; } = "";
+    public string DepartureRunway { get; set; } = "";
+    public string Sid { get; set; } = "";
+    public string ArrivalRunway { get; set; } = "";
+    public string Star { get; set; } = "";
+    public string Approach { get; set; } = "";
+}
+
 /// <summary>
 /// Voice briefing settings (departure/arrival composition from Navigraph DFD + weather, with
 /// optional LLM styling behind the number verifier). Every source is optional — missing DFD,
@@ -14,6 +43,13 @@ public sealed class BriefingOptions
     /// nav-data facts (never redistributed).</summary>
     public string DfdPath { get; set; } = "";
 
+    /// <summary>How procedure identifiers are resolved (Auto = FMS → flight.json → manual,
+    /// with per-field provenance logging).</summary>
+    public ProcedureSourceMode ProcedureSource { get; set; } = ProcedureSourceMode.Auto;
+
+    /// <summary>Per-field FMS dataref names for the FMS tier (all optional).</summary>
+    public BriefingFmsDatarefs FmsDatarefs { get; set; } = new();
+
     /// <summary>Manual procedure overrides used when the FMS plan doesn't resolve a field.</summary>
     public string DepartureAirport { get; set; } = "";
     public string DepartureRunway { get; set; } = "";
@@ -22,6 +58,18 @@ public sealed class BriefingOptions
     public string ArrivalRunway { get; set; } = "";
     public string ArrivalStar { get; set; } = "";
     public string ArrivalApproach { get; set; } = "";
+
+    // ---- Missed-approach re-brief (Prosim2FO parity; safety content, never persona-styled) ----
+
+    /// <summary>Speak the published missed-approach legs automatically after a go-around.</summary>
+    public bool MissedApproachRebriefEnabled { get; set; } = true;
+
+    /// <summary>Seconds after the go-around before the re-brief may speak (workload guard);
+    /// it additionally waits for gear-up.</summary>
+    public int MissedApproachDelaySeconds { get; set; } = 15;
+
+    /// <summary>Hard backstop: speak at this many seconds even if gear-up is never seen.</summary>
+    public int MissedApproachHardCeilingSeconds { get; set; } = 30;
 
     /// <summary>Verify every number in LLM output against the source facts; a failed retry
     /// falls back to the deterministic template.</summary>

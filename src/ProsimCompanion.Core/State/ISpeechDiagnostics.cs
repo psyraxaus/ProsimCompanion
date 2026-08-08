@@ -21,4 +21,9 @@ public interface ISpeechDiagnostics
     /// <summary>Captures a couple of seconds from the configured input device and reports the
     /// peak level heard — the pre-flight "can the FO hear me at all" check.</summary>
     Task<string> TestMicrophoneAsync(CancellationToken cancellationToken);
+
+    /// <summary>Verifies the Navigraph DFD is present and readable (AIRAC header) — the DFD
+    /// nulls out silently on a wrong path or schema, so this is the cheap pre-flight check
+    /// that briefings will actually have nav facts.</summary>
+    Task<string> TestNavDataAsync(CancellationToken cancellationToken);
 }

@@ -56,8 +56,13 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Fcu.FcuExecutor>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Fcu.FcuExecutor>());
         services.AddSingleton<Briefings.DfdNavDataProvider>();
+        services.AddSingleton<Briefings.ProcedureSource>();
+        services.AddSingleton<Briefings.MissedApproachRebrief>();
         services.AddSingleton<Briefings.BriefingService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Briefings.BriefingService>());
+        // The missed-approach voice phrases dispatch through their own small feature so the
+        // re-brief gate logic stays out of BriefingService.
+        services.AddSingleton<IVoiceFeature, Briefings.MissedApproachVoiceFeature>();
         services.AddSingleton<Company.CompanyChannelService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Company.CompanyChannelService>());
         services.AddSingleton<Company.ICompanyChannel>(p => p.GetRequiredService<Company.CompanyChannelService>());

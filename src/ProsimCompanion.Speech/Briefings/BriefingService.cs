@@ -14,17 +14,20 @@ using ProsimCompanion.Speech.Recognition;
 namespace ProsimCompanion.Speech.Briefings;
 
 /// <summary>
-/// Voice departure/arrival briefings: procedure identifiers resolved FMS-first
-/// (aircraft.fms.flightPlanXml) with manual-settings fallback, nav facts from the Navigraph
-/// DFD, V-speeds from the FMS, weather from the composite <see cref="IWxProvider"/> chain
-/// (ActiveSky → ProSim gateway METAR → SayIntentions cache — so the briefing speaks the
-/// weather actually injected into the sim when ActiveSky is present), minima echoed from the
-/// crew-entered store. Composition: optional
+/// Voice departure/arrival briefings: procedure identifiers resolved by
+/// <see cref="ProcedureSource"/> (FMS → flight.json → manual, with a DFD approach auto-fill),
+/// nav facts from the Navigraph DFD, V-speeds + flex from the FMS, weather from the composite
+/// <see cref="IWxProvider"/> chain (ActiveSky → ProSim gateway METAR → SayIntentions cache —
+/// so the briefing speaks the weather actually injected into the sim when ActiveSky is
+/// present), minima echoed from the crew-entered store. Composition: optional
 /// OpenAI-compatible LLM behind the number verifier (one re-ask with the allowed set; any
 /// failure falls back), else the deterministic template — the template is always the floor.
+/// Also answers "which approach" with the DFD's ranked candidates, because the FMS route
+/// never carries the approach.
 /// </summary>
 public sealed class BriefingService : IVoiceFeature, IDisposable
 {
+    // Voice phrases deliberately mirror the predecessor's set (which mirrored its GUI labels).
     private static readonly string[] DeparturePhrases =
     [
         "brief departure", "departure briefing", "brief the departure", "departure brief",
@@ -35,12 +38,19 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private static readonly string[] ArrivalPhrases =
     [
         "brief arrival", "arrival briefing", "brief the arrival", "arrival brief",
-        "approach briefing", "run the arrival brief", "run the arrival briefing",
+        "run arrival brief", "run the arrival brief", "run the arrival briefing",
+        "do the arrival briefing", "approach briefing",
+    ];
+
+    private static readonly string[] ApproachOptionPhrases =
+    [
+        "which approach", "approach options", "confirm approach", "what approach for landing",
     ];
 
     private readonly IOptionsMonitor<BriefingOptions> _options;
     private readonly OpenAiChatClient _llm;
     private readonly DfdNavDataProvider _navData;
+    private readonly ProcedureSource _procedures;
     private readonly IProsimDataRefs _dataRefs;
     private readonly IWxProvider _weather;
     private readonly ArrivalMinimaStore _minima;
@@ -52,6 +62,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     public BriefingService(
         IOptionsMonitor<BriefingOptions> options,
         DfdNavDataProvider navData,
+        ProcedureSource procedures,
         IProsimDataRefs dataRefs,
         IWxProvider weather,
         ArrivalMinimaStore minima,
@@ -62,6 +73,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(navData);
+        ArgumentNullException.ThrowIfNull(procedures);
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(weather);
         ArgumentNullException.ThrowIfNull(minima);
@@ -74,6 +86,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         // HTTP handler here.
         _llm = llm ?? new OpenAiChatClient(options);
         _navData = navData;
+        _procedures = procedures;
         _dataRefs = dataRefs;
         _weather = weather;
         _minima = minima;
@@ -82,7 +95,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         _logger = logger;
     }
 
-    public IEnumerable<string> Phrases => [.. DeparturePhrases, .. ArrivalPhrases];
+    public IEnumerable<string> Phrases => [.. DeparturePhrases, .. ArrivalPhrases, .. ApproachOptionPhrases];
 
     public bool ValueParse => false;
 
@@ -98,6 +111,12 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         if (ArrivalPhrases.Contains(text))
         {
             _ = RunAsync(departure: false);
+            return true;
+        }
+
+        if (ApproachOptionPhrases.Contains(text))
+        {
+            _ = AnnounceApproachOptionsAsync();
             return true;
         }
 
@@ -136,6 +155,58 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         }
     }
 
+    /// <summary>Speaks the DFD's ranked approach candidates for the arrival runway — ILS
+    /// variants preferred when present (the ranked list is ILS-first anyway).</summary>
+    public async Task AnnounceApproachOptionsAsync()
+    {
+        try
+        {
+            var ids = _procedures.Resolve(departure: false);
+            if (string.IsNullOrWhiteSpace(ids.Runway))
+            {
+                await _arbiter.SpeakAsync("No arrival runway is set yet.", SpeechPriority.Normal)
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            var options = _navData.ApproachesForRunway(ids.Airport, ids.Runway);
+            var runwaySpoken = RunwaySpoken(ids.Runway);
+            if (options.Count == 0)
+            {
+                await _arbiter.SpeakAsync(
+                    $"No published approach found for runway {runwaySpoken}.", SpeechPriority.Normal)
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            var ils = options.Where(o => o.Kind == "ILS").ToList();
+            var offer = (ils.Count > 0 ? ils : options).Take(3).ToList();
+            var list = string.Join(", or ", offer.Select(o => o.Spoken));
+            await _arbiter.SpeakAsync($"For runway {runwaySpoken}, {list}.", SpeechPriority.Normal)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Approach options failed");
+        }
+    }
+
+    /// <summary>"04L" → "zero four left" (aviation digits + side word).</summary>
+    public static string RunwaySpoken(string runway)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(runway);
+        var s = runway.Trim().ToUpperInvariant();
+        if (s.StartsWith("RW", StringComparison.Ordinal))
+        {
+            s = s[2..];
+        }
+
+        var digits = new string(s.TakeWhile(char.IsAsciiDigit).ToArray());
+        var side = s.SkipWhile(char.IsAsciiDigit).FirstOrDefault();
+        var sideWord = side switch { 'L' => " left", 'R' => " right", 'C' => " center", _ => "" };
+        return (digits.Length > 0 ? Callouts.Aviation.ToDigits(digits) : s) + sideWord;
+    }
+
     public void Dispose()
     {
         foreach (var read in _reads.Values)
@@ -146,47 +217,38 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
 
     private async Task<BriefingFacts> BuildFactsAsync(bool departure)
     {
-        var options = _options.CurrentValue;
-        var plan = ParseFmsPlan(Read<string>("aircraft.fms.flightPlanXml"));
+        var ids = _procedures.Resolve(departure);
+        var nav = ids.Airport is null
+            ? NavDataFacts.None
+            : _navData.Lookup(ids.Airport, ids.Runway, ids.Sid, ids.Star, ids.Approach);
 
-        var airport = FirstNonEmpty(
-            departure ? plan.Origin : plan.Destination,
-            departure ? options.DepartureAirport : options.ArrivalAirport);
-        var runway = FirstNonEmpty(
-            departure ? plan.OriginRunway : plan.DestinationRunway,
-            departure ? options.DepartureRunway : options.ArrivalRunway);
-        var sid = departure ? FirstNonEmpty(plan.Sid, options.DepartureSid) : null;
-        var star = departure ? null : FirstNonEmpty(plan.Star, options.ArrivalStar);
-        var approach = departure ? null : NullIfEmpty(options.ArrivalApproach);
-
-        var nav = airport is null
-            ? new NavDataFacts(null, null, null, null, null, null, null, null, null)
-            : _navData.Lookup(airport, runway);
-
-        int? v1 = null, vr = null, v2 = null;
+        int? v1 = null, vr = null, v2 = null, flexTemp = null;
         if (departure)
         {
             v1 = PositiveOrNull(Read<int>("aircraft.fms.perf.takeOff.v1"));
             vr = PositiveOrNull(Read<int>("aircraft.fms.perf.takeOff.vr"));
             v2 = PositiveOrNull(Read<int>("aircraft.fms.perf.takeOff.v2"));
+            flexTemp = PositiveOrNull(Read<int>("aircraft.fms.perf.takeOff.flexTemp"));
         }
 
-        int? windDir = null, windSpeed = null, qnh = null;
+        int? windDir = null, windSpeed = null, qnh = null, visibility = null, temperature = null;
         string? atisLetter = null, activeRunway = null;
-        if (airport is not null)
+        if (ids.Airport is not null)
         {
-            var wx = await FetchWeatherAsync(airport).ConfigureAwait(false);
+            var wx = await FetchWeatherAsync(ids.Airport).ConfigureAwait(false);
             windDir = wx.WindDirDeg;
             windSpeed = wx.WindSpeedKt;
             qnh = wx.QnhHpa is { } hpa ? (int)Math.Round(hpa) : null;
+            visibility = wx.VisibilityMeters;
+            temperature = wx.TemperatureC;
             atisLetter = wx.AtisLetter;
             activeRunway = wx.ActiveRunway;
         }
 
         return new BriefingFacts(
-            departure, airport, runway, sid, star, approach, nav, v1, vr, v2,
+            departure, ids.Airport, ids.Runway, ids.Sid, ids.Star, ids.Approach, nav, v1, vr, v2,
             windDir, windSpeed, qnh, departure ? null : _minima.Current,
-            atisLetter, activeRunway);
+            atisLetter, activeRunway, flexTemp, visibility, temperature);
     }
 
     private async Task<string> ComposeAsync(BriefingFacts facts)
@@ -246,7 +308,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         try
         {
             // The composite provider (ActiveSky → gateway → SI cache) promises not to throw,
-            // but a missing briefing must never take the whole briefing down either way.
+            // but a missing observation must never take the whole briefing down either way.
             return await _weather.GetAsync(icao).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -294,59 +356,13 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         return (dir, speed, qnh);
     }
 
-    /// <summary>Parses the FMS active route: origin/destination (+runways) from attributes,
-    /// SID/STAR from the dotted LNAV flight-plan string.</summary>
+    /// <summary>Historic entry point over <see cref="FmsPlanParser"/> (element-first parse with
+    /// attribute fallback) — kept for callers/tests of the original tuple shape.</summary>
     public static (string? Origin, string? Destination, string? OriginRunway,
         string? DestinationRunway, string? Sid, string? Star) ParseFmsPlan(string? xml)
     {
-        if (string.IsNullOrWhiteSpace(xml))
-        {
-            return (null, null, null, null, null, null);
-        }
-
-        try
-        {
-            var doc = System.Xml.Linq.XDocument.Parse(xml);
-            var route = doc.Descendants("route")
-                .FirstOrDefault(r => (string?)r.Attribute("type") == "act")
-                ?? doc.Descendants("route").FirstOrDefault();
-            if (route is null)
-            {
-                return (null, null, null, null, null, null);
-            }
-
-            var origin = (string?)route.Attribute("origin");
-            var destination = (string?)route.Attribute("destination");
-            var originRunway = (string?)route.Attribute("originRunway");
-            var destinationRunway = (string?)route.Attribute("destinationRunway");
-
-            string? sid = null, star = null;
-            var lnav = (string?)route.Attribute("flightplan") ?? route.Element("flightplan")?.Value;
-            if (!string.IsNullOrWhiteSpace(lnav) && origin is not null && destination is not null)
-            {
-                var tokens = lnav.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                var afterOrigin = Array.FindIndex(tokens, t =>
-                    t.StartsWith(origin, StringComparison.OrdinalIgnoreCase));
-                if (afterOrigin >= 0 && afterOrigin + 1 < tokens.Length
-                    && tokens[afterOrigin + 1].Contains('.', StringComparison.Ordinal))
-                {
-                    sid = tokens[afterOrigin + 1].Split('.')[0];
-                }
-
-                var beforeDest = Array.FindIndex(tokens, t =>
-                    t.StartsWith(destination, StringComparison.OrdinalIgnoreCase));
-                if (beforeDest > 0 && tokens[beforeDest - 1].Contains('.', StringComparison.Ordinal))
-                {
-                    star = tokens[beforeDest - 1].Split('.')[^1];
-                }
-            }
-
-            return (origin, destination, originRunway, destinationRunway, sid, star);
-        }
-        catch
-        {
-            return (null, null, null, null, null, null);
-        }
+        var plan = FmsPlanParser.Parse(xml);
+        return (plan.Origin, plan.Destination, plan.OriginRunway, plan.DestinationRunway, plan.Sid, plan.Star);
     }
 
     private T? Read<T>(string dataref)
@@ -361,10 +377,4 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     }
 
     private static int? PositiveOrNull(int? value) => value is > 0 ? value : null;
-
-    private static string? FirstNonEmpty(params string?[] values)
-        => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
-
-    private static string? NullIfEmpty(string value)
-        => string.IsNullOrWhiteSpace(value) ? null : value;
 }
