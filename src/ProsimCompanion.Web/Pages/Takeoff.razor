@@ -1,3 +1,5 @@
+@page "/performance"
+@page "/performance/takeoff"
 @page "/takeoff"
 @using System.Globalization
 @using ProsimCompanion.Core.Aircraft
@@ -13,6 +15,13 @@
 
 <PageTitle>Takeoff Performance — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Takeoff Performance</h1>
+
+@* Each perf page renders the shared sub-tab strip with its own link marked active —
+   static per page, so no NavLink match rules are needed for the /performance default. *@
+<nav class="perf-subtabs" aria-label="Performance pages">
+    <a class="perf-subtab active" href="performance/takeoff">TAKEOFF</a>
+    <a class="perf-subtab" href="performance/landing">LANDING</a>
+</nav>
 
 <div class="perf-panel">
     <div class="perf-header">

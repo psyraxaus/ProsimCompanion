@@ -75,6 +75,9 @@
 @code {
     // One tab per pillar: GSX / Audio / First Officer carry their status as the default
     // rail section (#18); the old /gsx, /audio and /speech routes still resolve there.
+    // 2026-08-08 (owner decision): the Weather tab is gone (the OFP page carries the same
+    // cards, TAF included) and Takeoff/Landing live under one Performance tab with sub-tabs
+    // (old /takeoff and /landing routes still resolve).
     private static readonly (string Label, string Href)[] Tabs =
     [
         ("Flight Status", ""),
@@ -83,8 +86,7 @@
         ("Loadsheet", "loadsheet"),
         ("W&B", "wnb"),
         ("Fuel", "fuel"),
-        ("Takeoff", "takeoff"),
-        ("Landing", "landing"),
+        ("Performance", "performance"),
         ("Checklists", "checklists"),
         ("GSX", "settings/gsx"),
         ("Aircraft Profiles", "profiles"),
@@ -93,7 +95,6 @@
         ("First Officer", "settings/speech"),
         ("Tech Log", "techlog"),
         ("Duty Day", "day"),
-        ("Weather", "weather"),
         ("Logs", "logs"),
     ];
 

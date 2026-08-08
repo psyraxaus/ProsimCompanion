@@ -141,6 +141,13 @@
                             <div class="field-hint" style="margin-top:8px;">METAR</div>
                             <div class="mono" style="white-space:pre-wrap; overflow-wrap:anywhere;">@wx.Metar</div>
                         }
+                        @* TAF moved here from the removed Weather tab (owner decision) so no
+                           information was lost merging the two surfaces. *@
+                        @if (wx.Taf.Length > 0)
+                        {
+                            <div class="field-hint" style="margin-top:8px;">TAF</div>
+                            <div class="mono" style="white-space:pre-wrap; overflow-wrap:anywhere;">@wx.Taf</div>
+                        }
                         @if (wx.Atis.Length > 0)
                         {
                             <div class="field-hint" style="margin-top:8px;">ATIS</div>

@@ -179,37 +179,39 @@
 
     private RenderFragment ServiceRow(string label, string serviceId)
     {
-        var state = ServiceState(serviceId);
-        var tone = state switch
+        var view = ServiceView(serviceId);
+        // Tone keys off the MAPPED protocol state: the semantic string is GSX's raw display
+        // text ("available", "active (5)", …) and never matched the enum names, so the pills
+        // stayed neutral forever. The semantic text is still what the pill SHOWS.
+        var tone = view?.MappedState.ToLowerInvariant() switch
         {
-            "Completed" => "tone-ok",
-            "Active" => "tone-active",
-            "Requested" => "tone-warn",
-            "Unknown" or null => "tone-neutral",
+            "completed" => "tone-ok",
+            "active" => "tone-active",
+            "requested" => "tone-warn",
             _ => "tone-neutral",
         };
+        var text = view is null ? null : view.SemanticState ?? view.MappedState;
         return @<div class="row">
             <span class="row-label">@label</span>
-            <span class="pill @tone">@(state ?? "—")</span>
+            <span class="pill @tone">@(text ?? "—")</span>
         </div>;
     }
 
     private RenderFragment ConnectedRow(string label, string serviceId)
     {
-        // The mirror keeps jetway/stairs docked state in the service's mapped state text.
-        var state = ServiceState(serviceId);
-        var connected = string.Equals(state, "Active", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(state, "Completed", StringComparison.OrdinalIgnoreCase);
+        // Docked = the operate service mirrors Active or Completed — judged on the mapped
+        // state for the same reason as ServiceRow.
+        var view = ServiceView(serviceId);
+        var connected = view?.MappedState.ToLowerInvariant() is "active" or "completed";
         return @<div class="row">
             <span class="row-label">@label</span>
             <span class="pill @(connected ? "tone-ok" : "tone-neutral")">@(connected ? "Connected" : "—")</span>
         </div>;
     }
 
-    private string? ServiceState(string serviceId)
+    private GsxServiceView? ServiceView(string serviceId)
         => _gsx.Services.FirstOrDefault(service =>
-            string.Equals(service.Id, serviceId, StringComparison.OrdinalIgnoreCase))
-            is { } view ? view.SemanticState ?? view.MappedState : null;
+            string.Equals(service.Id, serviceId, StringComparison.OrdinalIgnoreCase));
 
     private static string ToSpacedUpper(string pascal)
     {
