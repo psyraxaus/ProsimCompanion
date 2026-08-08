@@ -28,6 +28,8 @@ public sealed class SpeechBootstrapService : IHostedService
     private readonly Cabin.CabinCrewService _cabin;
     private readonly Company.CompanyChannelService _company;
     private readonly Briefings.MissedApproachRebrief _missedApproach;
+    private readonly Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.BriefingOptions> _briefingOptions;
+    private readonly Microsoft.Extensions.Logging.ILogger<SpeechBootstrapService> _logger;
 
     public SpeechBootstrapService(
         SpeechArbiterService arbiter,
@@ -41,10 +43,16 @@ public sealed class SpeechBootstrapService : IHostedService
         SayIntentions.SayIntentionsService sayIntentions,
         Cabin.CabinCrewService cabin,
         Company.CompanyChannelService company,
-        Briefings.MissedApproachRebrief missedApproach)
+        Briefings.MissedApproachRebrief missedApproach,
+        Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.BriefingOptions> briefingOptions,
+        Microsoft.Extensions.Logging.ILogger<SpeechBootstrapService> logger)
     {
         ArgumentNullException.ThrowIfNull(missedApproach);
+        ArgumentNullException.ThrowIfNull(briefingOptions);
+        ArgumentNullException.ThrowIfNull(logger);
         _missedApproach = missedApproach;
+        _briefingOptions = briefingOptions;
+        _logger = logger;
         ArgumentNullException.ThrowIfNull(failures);
         ArgumentNullException.ThrowIfNull(sayIntentions);
         ArgumentNullException.ThrowIfNull(cabin);
@@ -83,6 +91,15 @@ public sealed class SpeechBootstrapService : IHostedService
         _company.Start();
         _spokenChecklists.Start();
         _missedApproach.Start();
+
+        // Wake the LLM host at startup (fire-and-forget; readiness is confirmed by actually
+        // reaching the endpoint, never by the send).
+        var wol = _briefingOptions.CurrentValue.LlmWakeOnLan;
+        if (wol.Enabled)
+        {
+            Llm.WakeOnLan.Send(wol.MacAddress, wol.BroadcastAddress, wol.Port, _logger);
+        }
+
         return Task.CompletedTask;
     }
 

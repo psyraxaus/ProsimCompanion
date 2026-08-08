@@ -113,4 +113,21 @@ public sealed class SpeechDiagnosticsTests
         var result = await Service().TestNavDataAsync(CancellationToken.None);
         Assert.Contains("Nav Data", result);
     }
+
+    [Fact]
+    public async Task WakeLlm_NoMacConfigured_PointsAtTheSetting()
+    {
+        var result = await Service().WakeLlmServerAsync(CancellationToken.None);
+        Assert.Contains("MAC", result);
+    }
+
+    [Theory]
+    [InlineData("AA:BB:CC:DD:EE:FF", true)]
+    [InlineData("aa-bb-cc-dd-ee-ff", true)]
+    [InlineData("AABBCCDDEEFF", true)]
+    [InlineData("AA:BB:CC:DD:EE", false)] // 5 pairs
+    [InlineData("not a mac", false)]
+    [InlineData("", false)]
+    public void WakeOnLan_MacParsing(string mac, bool valid)
+        => Assert.Equal(valid, ProsimCompanion.Speech.Llm.WakeOnLan.TryParseMac(mac, out _));
 }

@@ -15,6 +15,25 @@ public enum ProcedureSourceMode
     FlightJson,
 }
 
+/// <summary>Wake-on-LAN for the self-hosted LLM box (Prosim2FO parity). The app can only
+/// SEND the magic packet — WoL must already be enabled in the target's BIOS/UEFI and NIC
+/// driver (one-time manual setup), and the target needs wired Ethernet on this subnet
+/// (directed broadcasts don't cross routers; WoL over WiFi is unreliable).</summary>
+public sealed class WakeOnLanOptions
+{
+    /// <summary>Send a magic packet at startup to power on the host.</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>Target NIC MAC address; ':' or '-' separators (or none).</summary>
+    public string MacAddress { get; set; } = "";
+
+    /// <summary>"255.255.255.255" or the subnet broadcast, e.g. "192.168.1.255".</summary>
+    public string BroadcastAddress { get; set; } = "255.255.255.255";
+
+    /// <summary>UDP port for the magic packet (conventionally 9, the discard port).</summary>
+    public int Port { get; set; } = 9;
+}
+
 /// <summary>Optional ProSim FMS dataref names for the per-field FMS procedure tier — blank
 /// means that field is unavailable from a dedicated dataref (the flightPlanXml parse still
 /// applies). Kept configurable because these names vary across ProSim builds.</summary>
@@ -70,6 +89,10 @@ public sealed class BriefingOptions
 
     /// <summary>Hard backstop: speak at this many seconds even if gear-up is never seen.</summary>
     public int MissedApproachHardCeilingSeconds { get; set; } = 30;
+
+    /// <summary>Wake-on-LAN for the LLM host: magic packet at startup (fire-and-forget —
+    /// readiness is confirmed by reaching the endpoint, never by the send).</summary>
+    public WakeOnLanOptions LlmWakeOnLan { get; set; } = new();
 
     // ---- Interactive minima capture (arrival-brief sub-dialogue) ----
 

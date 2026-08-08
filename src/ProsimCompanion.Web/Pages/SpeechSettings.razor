@@ -1,6 +1,7 @@
 @page "/settings/speech"
 @page "/speech"
 @using System.Text.Json
+@using System.Text.Json.Nodes
 @using System.Text.Json.Serialization
 @implements IDisposable
 @inject IOptionsMonitor<SpeechOptions> SpeechMonitor
@@ -218,8 +219,27 @@
                                  Hint="Per call — a styled composition may make two (ask + strict re-ask)"
                                  @bind-Value="_briefingDraft.LlmTimeoutSeconds" />
                     <div class="field-hint" style="max-width:640px;">
-                        Save, then use "Test LLM connection" on the Speech page to verify the
-                        endpoint round-trips.
+                        Save, then use "Test LLM connection" on the Status section to verify
+                        the endpoint round-trips.
+                    </div>
+                </Section>
+
+                <Section Title="LLM Wake-on-LAN" Hint="Magic packet at startup so the self-hosted LLM box powers itself on">
+                    <BoolField Label="Enabled"
+                               Hint="Requires WoL enabled in the host's BIOS/UEFI and NIC driver (one-time manual setup), wired Ethernet, same subnet"
+                               @bind-Value="_briefingDraft.LlmWakeOnLan.Enabled" />
+                    <TextField Label="MAC address"
+                               Hint="Target NIC MAC, e.g. AA:BB:CC:DD:EE:FF (':' or '-' separators, or none)"
+                               @bind-Value="_briefingDraft.LlmWakeOnLan.MacAddress" />
+                    <TextField Label="Broadcast address"
+                               Hint="255.255.255.255 or the subnet broadcast, e.g. 192.168.1.255"
+                               @bind-Value="_briefingDraft.LlmWakeOnLan.BroadcastAddress" />
+                    <NumberField Label="Port" Min="1" Max="65535"
+                                 Hint="Conventionally 9 (the discard port)"
+                                 @bind-Value="_briefingDraft.LlmWakeOnLan.Port" />
+                    <div class="field-hint" style="max-width:640px;">
+                        The send is fire-and-forget — use "Wake LLM server" then "Test LLM
+                        connection" on the Status section to confirm the host came up.
                     </div>
                 </Section>
             }
@@ -508,6 +528,13 @@
                 briefing["arrivalRunway"] = briefingDraft.ArrivalRunway.Trim().ToUpperInvariant();
                 briefing["arrivalStar"] = briefingDraft.ArrivalStar.Trim().ToUpperInvariant();
                 briefing["arrivalApproach"] = briefingDraft.ArrivalApproach.Trim().ToUpperInvariant();
+                briefing["llmWakeOnLan"] = new JsonObject
+                {
+                    ["enabled"] = briefingDraft.LlmWakeOnLan.Enabled,
+                    ["macAddress"] = briefingDraft.LlmWakeOnLan.MacAddress.Trim(),
+                    ["broadcastAddress"] = briefingDraft.LlmWakeOnLan.BroadcastAddress.Trim(),
+                    ["port"] = briefingDraft.LlmWakeOnLan.Port,
+                };
                 briefing["minimaCaptureEnabled"] = briefingDraft.MinimaCaptureEnabled;
                 briefing["minimaListenTimeoutSeconds"] = briefingDraft.MinimaListenTimeoutSeconds;
                 briefing["minimaMaxRetries"] = briefingDraft.MinimaMaxRetries;

@@ -27,6 +27,7 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
     private readonly IEnumerable<ITtsProvider> _providers;
     private readonly ISpeechPlayback _playback;
     private readonly IOptionsMonitor<SpeechOptions> _options;
+    private readonly IOptionsMonitor<BriefingOptions> _briefingOptions;
     private readonly DfdNavDataProvider _navData;
     private readonly OpenAiChatClient _llm;
     private readonly ILogger<SpeechDiagnosticsService> _logger;
@@ -50,9 +51,22 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         _providers = providers;
         _playback = playback;
         _options = options;
+        _briefingOptions = briefingOptions;
         _navData = navData;
         _logger = logger;
         _llm = llm ?? new OpenAiChatClient(briefingOptions);
+    }
+
+    public Task<string> WakeLlmServerAsync(CancellationToken cancellationToken)
+    {
+        var wol = _briefingOptions.CurrentValue.LlmWakeOnLan;
+        if (string.IsNullOrWhiteSpace(wol.MacAddress))
+        {
+            return Task.FromResult(
+                "No MAC address configured — set it under First Officer → Briefings & LLM → Wake-on-LAN.");
+        }
+
+        return Task.FromResult(WakeOnLan.Send(wol.MacAddress, wol.BroadcastAddress, wol.Port, _logger));
     }
 
     public Task<string> TestNavDataAsync(CancellationToken cancellationToken)

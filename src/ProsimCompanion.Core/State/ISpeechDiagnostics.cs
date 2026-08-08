@@ -26,4 +26,9 @@ public interface ISpeechDiagnostics
     /// nulls out silently on a wrong path or schema, so this is the cheap pre-flight check
     /// that briefings will actually have nav facts.</summary>
     Task<string> TestNavDataAsync(CancellationToken cancellationToken);
+
+    /// <summary>Sends the Wake-on-LAN magic packet to the configured LLM host (manual wake
+    /// mid-session; the startup send happens automatically when enabled). Fire-and-forget —
+    /// confirm readiness with the LLM connection test afterwards.</summary>
+    Task<string> WakeLlmServerAsync(CancellationToken cancellationToken);
 }

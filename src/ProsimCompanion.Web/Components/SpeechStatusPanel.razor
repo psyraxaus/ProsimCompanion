@@ -82,6 +82,11 @@
                 @onclick="TestNavDataAsync">
             @(_runningTest == "navdata" ? "Testing…" : "Test nav data")
         </button>
+        <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
+                @onclick="WakeLlmAsync"
+                title="Sends the Wake-on-LAN magic packet to the configured LLM host — then verify with Test LLM connection">
+            @(_runningTest == "wol" ? "Sending…" : "Wake LLM server")
+        </button>
     </div>
     @if (_llmTestResult is not null)
     {
@@ -94,6 +99,10 @@
     @if (_navDataTestResult is not null)
     {
         <div class="field-hint" style="margin-top:8px;">Nav data: @_navDataTestResult</div>
+    }
+    @if (_wakeResult is not null)
+    {
+        <div class="field-hint" style="margin-top:8px;">Wake-on-LAN: @_wakeResult</div>
     }
 </Section>
 
@@ -174,6 +183,7 @@
     private string? _llmTestResult;
     private string? _micTestResult;
     private string? _navDataTestResult;
+    private string? _wakeResult;
 
     protected override void OnInitialized()
     {
@@ -240,6 +250,9 @@
 
     private Task TestNavDataAsync() => RunTestAsync(
         "navdata", () => Diagnostics.TestNavDataAsync(CancellationToken.None), result => _navDataTestResult = result);
+
+    private Task WakeLlmAsync() => RunTestAsync(
+        "wol", () => Diagnostics.WakeLlmServerAsync(CancellationToken.None), result => _wakeResult = result);
 
     private async Task RunTestAsync(string key, Func<Task<string>> test, Action<string> report)
     {
