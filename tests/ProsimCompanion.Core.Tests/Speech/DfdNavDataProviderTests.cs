@@ -53,11 +53,15 @@ public sealed class DfdNavDataProviderTests : IDisposable
         SqliteConnection.ClearAllPools();
     }
 
+    private readonly ProsimOptions _prosimOptions = new();
+
     private DfdNavDataProvider Provider()
     {
         var monitor = new Mock<IOptionsMonitor<BriefingOptions>>();
         monitor.SetupGet(m => m.CurrentValue).Returns(() => _options);
-        return new DfdNavDataProvider(monitor.Object, NullLogger<DfdNavDataProvider>.Instance);
+        var prosim = new Mock<IOptionsMonitor<ProsimOptions>>();
+        prosim.SetupGet(m => m.CurrentValue).Returns(() => _prosimOptions);
+        return new DfdNavDataProvider(monitor.Object, prosim.Object, NullLogger<DfdNavDataProvider>.Instance);
     }
 
     [Fact]
@@ -99,6 +103,62 @@ public sealed class DfdNavDataProviderTests : IDisposable
         Assert.Equal(2, procedure.Legs.Count);
         Assert.Equal("heading one six three, climb to 600 feet", procedure.Legs[0].Phrase);
         Assert.Equal("left turn, direct SOSIJ, climb to 3000 feet", procedure.Legs[1].Phrase);
+    }
+
+    [Fact]
+    public void FolderPath_DiscoversTheDfdFile_SkippingNonDfdDecoys()
+    {
+        // ProSim's Navdata folder holds nd.db3 (its own display database, no DFD tables) and
+        // NavData.dat beside the DFD export — discovery must schema-validate, not just glob.
+        var folder = Path.Combine(Path.GetTempPath(), $"navdata-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        try
+        {
+            File.Copy(_dbPath, Path.Combine(folder, "ng_jeppesen_prosim.s3db"));
+            using (var decoy = new SqliteConnection($"Data Source={Path.Combine(folder, "aa_decoy.s3db")}"))
+            {
+                decoy.Open();
+                using var cmd = decoy.CreateCommand();
+                cmd.CommandText = "CREATE TABLE not_navdata (x TEXT);";
+                cmd.ExecuteNonQuery();
+            }
+
+            File.WriteAllText(Path.Combine(folder, "NavData.dat"), "binary junk");
+            SqliteConnection.ClearAllPools();
+
+            _options.DfdPath = folder;
+            var provider = Provider();
+            Assert.Equal("ng_jeppesen_prosim.s3db", Path.GetFileName(provider.ResolvedPath));
+            Assert.Equal("2508", provider.AiracCycle);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void EmptyPath_ProbesProsimSdkNavdataFolder()
+    {
+        var sdkRoot = Path.Combine(Path.GetTempPath(), $"prosim-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(sdkRoot, "Navdata"));
+        try
+        {
+            File.Copy(_dbPath, Path.Combine(sdkRoot, "Navdata", "ng_jeppesen_prosim.s3db"));
+            SqliteConnection.ClearAllPools();
+
+            _options.DfdPath = "";
+            _prosimOptions.SdkPath = sdkRoot;
+            var provider = Provider();
+            Assert.NotNull(provider.ResolvedPath);
+            Assert.Equal("2508", provider.AiracCycle);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(sdkRoot, recursive: true);
+        }
     }
 
     [Fact]

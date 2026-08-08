@@ -75,24 +75,22 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         {
             // Always echo the exact path the app resolved — "set but not working" is nearly
             // always a path the app can't see (typo, unsaved edit, quotes, network drive).
-            var path = _navData.ConfiguredPath;
-            if (path.Length == 0)
+            var configured = _navData.ConfiguredPath;
+            var resolved = _navData.ResolvedPath;
+            if (resolved is null)
             {
-                return Task.FromResult(
-                    "No DFD database configured — set the path on App Settings → Nav Data and SAVE. "
-                    + "Briefings will speak without nav facts until then.");
-            }
-
-            if (!_navData.IsConfigured)
-            {
-                return Task.FromResult(
-                    $"No file found at \"{path}\" — check the path on App Settings → Nav Data.");
+                return Task.FromResult(configured.Length == 0
+                    ? "No DFD database found — set a file OR folder path on App Settings → Nav Data "
+                        + "and SAVE (a folder is searched for the DFD database, e.g. ProSim's Navdata "
+                        + "directory with ng_jeppesen_prosim.s3db)."
+                    : $"No DFD database found at \"{configured}\" — a file must exist, or a folder "
+                        + "must contain a DFD-schema database (ProSim's own nd.db3 is not one).");
             }
 
             var cycle = _navData.AiracCycle;
             return Task.FromResult(cycle is null
-                ? $"File found at \"{path}\" but the AIRAC header could not be read — wrong file or an unsupported schema."
-                : $"DFD readable at \"{path}\" — AIRAC cycle {cycle}.");
+                ? $"Database found at \"{resolved}\" but the AIRAC header could not be read — wrong file or an unsupported schema."
+                : $"DFD readable — \"{resolved}\", AIRAC cycle {cycle}.");
         }
         catch (Exception ex)
         {

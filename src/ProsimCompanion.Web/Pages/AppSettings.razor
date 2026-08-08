@@ -60,7 +60,7 @@
 
     <Section Title="Nav Data" Hint="Navigraph DFD database for SID/STAR/approach lookups (briefings and other nav-data consumers)">
         <TextField Label="DFD database path"
-                   Hint="Path to your Navigraph DFD SQLite file (.s3db / .sqlite cycle export) — user-supplied, never redistributed. Empty = no nav-data facts in briefings"
+                   Hint="The Navigraph DFD SQLite file (e.g. ng_jeppesen_prosim.s3db) OR the folder containing it — ProSim's Navdata directory works as-is. Empty auto-probes {ProSim SDK path}\Navdata. User-supplied, never redistributed"
                    @bind-Value="_dfdPath" />
     </Section>
 

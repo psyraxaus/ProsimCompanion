@@ -21,8 +21,11 @@ public sealed class SpeechDiagnosticsTests
         speech.SetupGet(m => m.CurrentValue).Returns(() => _speechOptions);
         var briefing = new Mock<IOptionsMonitor<BriefingOptions>>();
         briefing.SetupGet(m => m.CurrentValue).Returns(() => _briefingOptions);
+        var prosim = new Mock<IOptionsMonitor<ProsimOptions>>();
+        prosim.SetupGet(m => m.CurrentValue).Returns(new ProsimOptions());
         var navData = new ProsimCompanion.Speech.Briefings.DfdNavDataProvider(
-            briefing.Object, NullLogger<ProsimCompanion.Speech.Briefings.DfdNavDataProvider>.Instance);
+            briefing.Object, prosim.Object,
+            NullLogger<ProsimCompanion.Speech.Briefings.DfdNavDataProvider>.Instance);
         return new SpeechDiagnosticsService(
             providers, _playback.Object, speech.Object, briefing.Object, navData,
             NullLogger<SpeechDiagnosticsService>.Instance);

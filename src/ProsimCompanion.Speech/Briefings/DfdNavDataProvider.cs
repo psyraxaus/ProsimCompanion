@@ -94,22 +94,139 @@ public sealed class DfdNavDataProvider
     private static readonly Regex ApproachIdPattern = new(@"^([A-Z])(\d{2})([LRC]?)(.*)$", RegexOptions.Compiled);
 
     private readonly IOptionsMonitor<BriefingOptions> _options;
+    private readonly IOptionsMonitor<ProsimOptions> _prosimOptions;
     private readonly ILogger<DfdNavDataProvider> _logger;
+    private readonly object _resolveGate = new();
 
-    public DfdNavDataProvider(IOptionsMonitor<BriefingOptions> options, ILogger<DfdNavDataProvider> logger)
+    private (string Key, string? File)? _resolved;
+
+    public DfdNavDataProvider(
+        IOptionsMonitor<BriefingOptions> options,
+        IOptionsMonitor<ProsimOptions> prosimOptions,
+        ILogger<DfdNavDataProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(prosimOptions);
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
+        _prosimOptions = prosimOptions;
         _logger = logger;
     }
 
     /// <summary>The configured DFD path with whitespace and Explorer "Copy as path" quotes
-    /// stripped — what every open actually uses.</summary>
+    /// stripped — the input to resolution.</summary>
     public string ConfiguredPath => _options.CurrentValue.DfdPath.Trim().Trim('"');
 
-    public bool IsConfigured => ConfiguredPath.Length > 0 && File.Exists(ConfiguredPath);
+    /// <summary>The actual database file every open uses, or null when none can be found.
+    /// Prosim2FO used a native file-browse dialog so the user always ended up on the exact
+    /// file; the web UI can't, so resolution accepts more: a FILE is used directly; a FOLDER
+    /// (e.g. ProSim's Navdata directory) is searched for the DFD database with SCHEMA
+    /// validation — the same folder also holds ProSim's own nd.db3 display database and
+    /// NavData.dat, which are not DFD files and must be skipped; an EMPTY path probes
+    /// {prosim.sdkPath}\Navdata, since the Navigraph ProSim export installs there. Cached per
+    /// configuration; re-resolved when the file disappears.</summary>
+    public string? ResolvedPath
+    {
+        get
+        {
+            var configured = ConfiguredPath;
+            var sdkPath = _prosimOptions.CurrentValue.SdkPath.Trim();
+            var key = configured + "|" + sdkPath;
+            lock (_resolveGate)
+            {
+                if (_resolved is { } cached && cached.Key == key
+                    && (cached.File is null || File.Exists(cached.File)))
+                {
+                    return cached.File;
+                }
+
+                var resolved = Resolve(configured, sdkPath);
+                _resolved = (key, resolved);
+                return resolved;
+            }
+        }
+    }
+
+    public bool IsConfigured => ResolvedPath is not null;
+
+    private string? Resolve(string configured, string sdkPath)
+    {
+        if (configured.Length > 0)
+        {
+            if (File.Exists(configured))
+            {
+                return configured;
+            }
+
+            if (Directory.Exists(configured))
+            {
+                return DiscoverInFolder(configured);
+            }
+
+            return null;
+        }
+
+        // Nothing configured: the Navigraph ProSim export installs into the ProSim system
+        // folder's Navdata directory, and sdkPath IS that folder (it holds ProSimSDK.dll).
+        if (sdkPath.Length > 0)
+        {
+            var navdata = Path.Combine(sdkPath, "Navdata");
+            if (Directory.Exists(navdata))
+            {
+                return DiscoverInFolder(navdata);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Picks the DFD database out of a navdata folder: candidates by extension
+    /// preference (*.s3db — the Navigraph ProSim export's ng_jeppesen_prosim.s3db — then
+    /// *.sqlite, then *.db/*.db3), first one whose schema actually looks like a DFD wins.</summary>
+    private string? DiscoverInFolder(string folder)
+    {
+        try
+        {
+            var candidates = new[] { "*.s3db", "*.sqlite", "*.db", "*.db3" }
+                .SelectMany(pattern => Directory.EnumerateFiles(folder, pattern))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            foreach (var candidate in candidates)
+            {
+                if (LooksLikeDfd(candidate))
+                {
+                    _logger.LogInformation("DFD database discovered in {Folder}: {File}",
+                        folder, Path.GetFileName(candidate));
+                    return candidate;
+                }
+            }
+
+            _logger.LogWarning("No DFD-schema database found in {Folder}", folder);
+            return null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex, "Navdata folder scan failed for {Folder}", folder);
+            return null;
+        }
+    }
+
+    /// <summary>Cheap schema sniff: a DFD file (either generation) has an airports table;
+    /// ProSim's own nd.db3 does not.</summary>
+    private bool LooksLikeDfd(string file)
+    {
+        try
+        {
+            using var connection = new SqliteConnection($"Data Source={file};Mode=ReadOnly;Cache=Shared");
+            connection.Open();
+            return TableExists(connection, "tbl_pa_airports") || TableExists(connection, "tbl_airports");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Not a readable SQLite database: {File}", file);
+            return false;
+        }
+    }
 
     /// <summary>AIRAC cycle from the DFD header — the cheap "is this database usable"
     /// diagnostic. Null when absent/unreadable.</summary>
@@ -453,8 +570,8 @@ public sealed class DfdNavDataProvider
 
     private SqliteConnection? Open()
     {
-        var path = ConfiguredPath;
-        if (path.Length == 0 || !File.Exists(path))
+        var path = ResolvedPath;
+        if (path is null || !File.Exists(path))
         {
             return null;
         }
