@@ -72,4 +72,42 @@ public sealed class AircraftProfileMatcherTests
 
         Assert.Null(AircraftProfileMatcher.Match(profiles, "ProSim A320"));
     }
+
+    // ---- Prosim2GSX priority order: title > airline > default ----
+
+    [Fact]
+    public void TitleContains_BeatsAirlineAndDefault()
+    {
+        var profiles = new[]
+        {
+            Profile("Fallback", ProfileMatchType.Default, ""),
+            Profile("BA", ProfileMatchType.Airline, "BAW"),
+            Profile("Neo", ProfileMatchType.TitleContains, "A320neo"),
+        };
+
+        var match = AircraftProfileMatcher.Match(profiles, "FBW A320neo", "BAW");
+
+        Assert.Equal("Neo", match?.Name);
+    }
+
+    [Fact]
+    public void Airline_MatchesCallsignPrefix_AndBeatsDefault()
+    {
+        var profiles = new[]
+        {
+            Profile("Fallback", ProfileMatchType.Default, ""),
+            Profile("BA", ProfileMatchType.Airline, "BAW"),
+        };
+
+        Assert.Equal("BA", AircraftProfileMatcher.Match(profiles, "Some Other Livery", "BAW")?.Name);
+        Assert.Equal("Fallback", AircraftProfileMatcher.Match(profiles, "Some Other Livery", "DLH")?.Name);
+    }
+
+    [Fact]
+    public void Default_AppliesEvenWithoutTitleOrAirline()
+    {
+        var profiles = new[] { Profile("Fallback", ProfileMatchType.Default, "") };
+
+        Assert.Equal("Fallback", AircraftProfileMatcher.Match(profiles, null, null)?.Name);
+    }
 }

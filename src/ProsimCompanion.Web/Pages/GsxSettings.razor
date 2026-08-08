@@ -521,6 +521,27 @@
                 gsx["randomizePaxNoShows"] = draft.RandomizePaxNoShows;
                 gsx["noShowChancePerSeat"] = draft.NoShowChancePerSeat;
                 gsx["weightPerBagKg"] = draft.WeightPerBagKg;
+
+                // Per-profile GSX settings (Prosim2GSX model): saving while a profile is
+                // active also captures the whole gsx block into that profile, so the block
+                // travels with the aircraft and re-applies on the next match. fuelFobSaved
+                // stays out — it is app state, preserved by ProfileGsxApplier on switches.
+                if (Profiles.ActiveProfile is { } activeProfile
+                    && JsonSettingsFile.GetOrCreateSection(root, Core.Profiles.AircraftProfilesOptions.SectionName)
+                        is { } profilesSection
+                    && profilesSection["profiles"] is JsonArray profileArray)
+                {
+                    foreach (var entry in profileArray.OfType<JsonObject>())
+                    {
+                        if (entry["id"]?.GetValue<string>() == activeProfile.Id)
+                        {
+                            var mirrored = gsx.DeepClone().AsObject();
+                            mirrored.Remove("fuelFobSaved");
+                            entry["gsxSettings"] = mirrored;
+                            break;
+                        }
+                    }
+                }
             });
 
             _baseline = Serialize(_draft);

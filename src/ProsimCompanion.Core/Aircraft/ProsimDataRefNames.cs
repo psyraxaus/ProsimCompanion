@@ -230,6 +230,10 @@ public static class ProsimDataRefNames
     /// </summary>
     public const string ConfigEngineType = "system.config.Config.EPR";
 
+    /// <summary>ProSim's configured weight unit — "LBS" for pounds, otherwise kilograms
+    /// (predecessor's empirically-established rule; drives the "aircraft" unit source).</summary>
+    public const string ConfigWeightUnit = "system.config.Units.Weight";
+
     /// <summary>
     /// Display-unit selector for the runway-shift value written to
     /// aircraft.fms.perf.takeOff.shift. Values: "Meters" | "Feet". Read this before

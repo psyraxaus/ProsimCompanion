@@ -23,6 +23,12 @@
     </Section>
 
     <Section Title="Display">
+        <SelectField Label="Unit source" Options="UnitSourceOptions"
+                     Hint="App = the fixed default below; Aircraft = follow ProSim's configured weight unit"
+                     @bind-Value="_unitSource" />
+        <SelectField Label="Default unit" Options="UnitOptions"
+                     Hint="Weights display in this unit (storage stays kg)"
+                     @bind-Value="_unit" />
         <BoolField Label="Solari animation"
                    Hint="Animate the split-flap header displays; off snaps characters instantly"
                    @bind-Value="_solari" />
@@ -119,6 +125,12 @@
         ("Fatal", "Fatal"),
     ];
 
+    private static readonly IReadOnlyList<(string, string)> UnitSourceOptions =
+        [("app", "App"), ("aircraft", "Aircraft")];
+
+    private static readonly IReadOnlyList<(string, string)> UnitOptions =
+        [("kg", "kg"), ("lb", "lb")];
+
     private IReadOnlyList<(string, string)> _themeOptions = [];
 
     private string _theme = "Default";
@@ -139,6 +151,8 @@
     private bool _autoPrelimAtStd;
     private int _prelimStdOffset;
     private bool _solari;
+    private string _unitSource = "app";
+    private string _unit = "kg";
     private bool _dingStartup;
     private bool _dingFinal;
     private bool _allowChecklistOverride;
@@ -155,7 +169,8 @@
         _theme, _prosimHost, _prosimSdkPath, _prosimApiKey, _prosimReconnectMs,
         _webPort, _webLan, _logLevel, _wireTrace,
         _sayIntentions, _autoPrelim, _autoFinal, _finalDelayMin, _finalDelayMax, _autoSyncFms,
-        _autoPrelimAtStd, _prelimStdOffset, _solari, _dingStartup, _dingFinal, _allowChecklistOverride);
+        _autoPrelimAtStd, _prelimStdOffset, _solari, _unitSource, _unit,
+        _dingStartup, _dingFinal, _allowChecklistOverride);
 
     protected override void OnInitialized()
     {
@@ -190,6 +205,8 @@
         _autoPrelimAtStd = flightData.AutoPrelimAtStd;
         _prelimStdOffset = flightData.PrelimStdOffsetMinutes;
         _solari = WebUiMonitor.CurrentValue.SolariAnimation;
+        _unitSource = WebUiMonitor.CurrentValue.UnitSource;
+        _unit = WebUiMonitor.CurrentValue.Unit;
         var cabin = CabinMonitor.CurrentValue;
         _dingStartup = cabin.DingOnStartup;
         _dingFinal = cabin.DingOnFinal;
@@ -216,6 +233,8 @@
                 webUi["bindToAllInterfaces"] = _webLan;
                 webUi["theme"] = _theme;
                 webUi["solariAnimation"] = _solari;
+                webUi["unitSource"] = _unitSource;
+                webUi["unit"] = _unit;
 
                 var logging = JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName);
                 logging["defaultLevel"] = _logLevel;

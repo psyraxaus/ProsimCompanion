@@ -12,6 +12,7 @@
 @inject WeatherStore Weather
 @inject IWeatherControl WeatherControl
 @inject DeiceHoldoverService Deice
+@inject DisplayUnitService Units
 
 <PageTitle>OFP — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Operational Flight Plan</h1>
@@ -42,10 +43,10 @@
                 <div>
                     <div class="ofpfp-kv"><span class="ofpfp-label">STD</span><span class="ofpfp-value">@(_ofp.ScheduledOutUtc?.ToString("HH:mm'Z'") ?? "—")</span></div>
                     <div class="ofpfp-kv"><span class="ofpfp-label">ETA</span><span class="ofpfp-value">@(_ofp.ScheduledOutUtc is { } std && _ofp.EstimatedEnroute is { } enroute ? (std + enroute).ToString("HH:mm'Z'") : "—")</span></div>
-                    <div class="ofpfp-kv"><span class="ofpfp-label">ZFW</span><span class="ofpfp-value">@($"{_ofp.EstZfwKg:N0} kg")</span></div>
-                    <div class="ofpfp-kv"><span class="ofpfp-label">BLOCK FUEL</span><span class="ofpfp-value">@($"{_ofp.FuelPlanRampKg:N0} kg")</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">ZFW</span><span class="ofpfp-value">@Units.Format(_ofp.EstZfwKg)</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">BLOCK FUEL</span><span class="ofpfp-value">@Units.Format(_ofp.FuelPlanRampKg)</span></div>
                     <div class="ofpfp-kv"><span class="ofpfp-label">PAX</span><span class="ofpfp-value">@_ofp.PaxCount</span></div>
-                    <div class="ofpfp-kv"><span class="ofpfp-label">CARGO</span><span class="ofpfp-value">@($"{_ofp.CargoKg:N0} kg")</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">CARGO</span><span class="ofpfp-value">@Units.Format(_ofp.CargoKg)</span></div>
                 </div>
             </div>
 
@@ -200,6 +201,7 @@
         GateCoordinator.Changed += OnChanged;
         Weather.Changed += OnChanged;
         Deice.Changed += OnChanged;
+        Units.Changed += OnUnitsChanged;
         _ofp = Ofp.Current;
         _gsx = GsxStore.Snapshot();
         _gateAssignment = GateCoordinator.Snapshot();
@@ -215,7 +217,11 @@
         GateCoordinator.Changed -= OnChanged;
         Weather.Changed -= OnChanged;
         Deice.Changed -= OnChanged;
+        Units.Changed -= OnUnitsChanged;
     }
+
+    // Units.Changed fires on arbitrary threads — marshal into the circuit.
+    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     private void OnChanged(object? sender, EventArgs e)
         // Store events fire on the writer's thread; marshal into the circuit.

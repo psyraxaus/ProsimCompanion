@@ -9,6 +9,7 @@
 @inject OfpStore Ofp
 @inject LoadsheetStore Loadsheets
 @inject IFmsPerfUplink PerfUplink
+@inject DisplayUnitService Units
 
 <PageTitle>Takeoff Performance — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Takeoff Performance</h1>
@@ -145,8 +146,8 @@
                 <span class="perf-field-value">
                     <span class="perf-kbd">
                         <input type="number" min="0" style="width:7ch" aria-label="TOW"
-                               @bind="_towKg" @bind:after="ClampInputs" />
-                        <span class="perf-unit">kg</span>
+                               @bind="TowDisplay" @bind:after="ClampInputs" />
+                        <span class="perf-unit">@Units.UnitLabel</span>
                     </span>
                 </span>
             </div>
@@ -193,7 +194,7 @@
                 <span class="perf-field-label">TOPL</span>
                 <span class="perf-field-value">
                     <span class="@(_result?.ToplLimited == true ? "perf-mcdu-value-amber" : _result is not null ? "perf-mcdu-value" : "perf-mcdu-value-dim")">
-                        @(_result is not null ? $"{Math.Round(_result.Topl)} kg" : "----")
+                        @(_result is not null ? Units.Format(_result.Topl) : "----")
                     </span>
                 </span>
             </div>
@@ -311,6 +312,15 @@
 
     private bool IsBusy => _loading || _calculating || _uplinking;
 
+    /// <summary>TOW input bridge: the field displays and accepts the active display unit while
+    /// <c>_towKg</c> stays kilograms — CalcVSpeedRequest's tens-of-kg wire scale below must
+    /// always be fed kg.</summary>
+    private double TowDisplay
+    {
+        get => Math.Round(Units.FromKg(_towKg));
+        set => _towKg = Units.ToKg(value);
+    }
+
     private bool CanCalculate => SelectedRunway() is not null && _towKg > 0 && _macTow > 0 && !IsBusy;
 
     private bool CanUplink =>
@@ -324,6 +334,7 @@
         _grossSub = DataRefs.Subscribe(ProsimDataRefNames.WeightGross, DataRefTier.Normal);
         _cgSub = DataRefs.Subscribe(ProsimDataRefNames.CenterOfGravity, DataRefTier.Normal);
         _engineSub = DataRefs.Subscribe(ProsimDataRefNames.ConfigEngineType, DataRefTier.Infrequent);
+        Units.Changed += OnUnitsChanged;
 
         _uplinkFlashTimer = new System.Threading.Timer(
             _ => _ = InvokeAsync(() => { _uplinkFlashActive = false; StateHasChanged(); }),
@@ -348,12 +359,16 @@
 
     public void Dispose()
     {
+        Units.Changed -= OnUnitsChanged;
         _grossSub?.Dispose();
         _cgSub?.Dispose();
         _engineSub?.Dispose();
         _uplinkFlashTimer?.Dispose();
         _resetArmTimer?.Dispose();
     }
+
+    // Units.Changed fires on arbitrary threads — marshal into the circuit.
+    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     /// <summary>Seeds inputs from the flight context: origin from the OFP, weights from the best
     /// loadsheet (final > prelim), falling back to live datarefs.</summary>

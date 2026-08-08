@@ -8,6 +8,7 @@
 @inject IFmsInitSync FmsSync
 @inject ISimbriefImporter Simbrief
 @inject ILoadsheetControl LoadsheetControl
+@inject DisplayUnitService Units
 
 <PageTitle>EFB INIT — ProsimCompanion</PageTitle>
 <h1 class="sr-only">EFB INIT</h1>
@@ -165,6 +166,7 @@
     {
         Ofp.Changed += OnChanged;
         Overrides.Changed += OnChanged;
+        Units.Changed += OnUnitsChanged;
         _ofp = Ofp.Current;
         _overrides = Overrides.Snapshot();
     }
@@ -173,10 +175,14 @@
     {
         Ofp.Changed -= OnChanged;
         Overrides.Changed -= OnChanged;
+        Units.Changed -= OnUnitsChanged;
         _phaseTimer?.Dispose();
         _resetDisarmTimer?.Dispose();
         _editErrorTimer?.Dispose();
     }
+
+    // Units.Changed fires on arbitrary threads — marshal into the circuit.
+    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     // Store Changed events fire on writer threads — marshal onto the renderer.
     private void OnChanged(object? sender, EventArgs e)
@@ -253,6 +259,11 @@
                            value="@_editValue"
                            @oninput="e => _editValue = e.Value?.ToString() ?? string.Empty"
                            @onkeydown="OnEditKeyDown" />
+                    @if (field != IEfbInitOverrides.PassengerCount)
+                    {
+                        @* Entry is always kg (MCDU convention), even when the display unit is lb. *@
+                        <span class="init-label">KG</span>
+                    }
                     <button type="button" class="init-editor-key init-editor-key-ent"
                             title="Commit override (Enter)" @onclick="CommitEdit">ENT</button>
                     <button type="button" class="init-editor-key init-editor-key-clr"
@@ -511,8 +522,12 @@
         return trimmed.Length > 0 ? trimmed : "—";
     }
 
-    private static string FormatKg(double kg)
-        => kg > 0 ? $"{Math.Round(kg).ToString("N0", CultureInfo.InvariantCulture)} KG" : "—";
+    // Display conversion only — the OFP values, overrides and range validation
+    // all stay kg (MCDU convention: entry is always kg regardless of display unit).
+    private string FormatKg(double kg)
+        => kg > 0
+            ? $"{Math.Round(Units.FromKg(kg)).ToString("N0", CultureInfo.InvariantCulture)} {Units.UnitLabel.ToUpperInvariant()}"
+            : "—";
 
     private static string FormatPax(double count)
         => count > 0 ? Math.Round(count).ToString("0", CultureInfo.InvariantCulture) : "—";

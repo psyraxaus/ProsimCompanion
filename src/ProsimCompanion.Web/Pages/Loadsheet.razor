@@ -5,6 +5,7 @@
 @inject LoadsheetStore Loadsheets
 @inject ILoadsheetControl LoadsheetControl
 @inject OfpStore Ofp
+@inject DisplayUnitService Units
 
 @* Markup and styling ported from Prosim2GSX's web LoadsheetPanel
    (LoadsheetPanel.tsx / LoadsheetPanel.module.css); the store/control seams
@@ -78,7 +79,8 @@
                         <div class="ls-kv-label">MacTow</div>
                         <div class="ls-kv-value @(macError ? "ls-kv-value-bad" : "")">@($"{slot.MacTow:F1} %")</div>
                         <div class="ls-kv-label">TOW</div>
-                        <div class="ls-kv-value">@($"{slot.TowKg / 1000.0:F1} t")</div>
+                        @* P2GSX behaviour: metric shows tonnes; pounds shows plain lb. *@
+                        <div class="ls-kv-value">@(Units.IsPounds ? Units.Format(slot.TowKg) : $"{slot.TowKg / 1000.0:F1} t")</div>
                         <div class="ls-kv-label">Ident</div>
                         <div class="ls-kv-value">EDNO @slot.EditionNumber</div>
                         <div class="ls-kv-label">Received</div>
@@ -146,6 +148,7 @@
     {
         Loadsheets.Changed += OnStoreChanged;
         Ofp.Changed += OnStoreChanged;
+        Units.Changed += OnUnitsChanged;
         _loadsheets = Loadsheets.Snapshot();
     }
 
@@ -153,7 +156,11 @@
     {
         Loadsheets.Changed -= OnStoreChanged;
         Ofp.Changed -= OnStoreChanged;
+        Units.Changed -= OnUnitsChanged;
     }
+
+    // Units.Changed fires on arbitrary threads — marshal into the circuit.
+    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     private void OnStoreChanged(object? sender, EventArgs e)
         // Store events fire on the writer's thread; marshal into the circuit.

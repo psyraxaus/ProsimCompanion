@@ -6,6 +6,7 @@
 @implements IDisposable
 @inject IProsimGateway Gateway
 @inject OfpStore Ofp
+@inject DisplayUnitService Units
 
 <PageTitle>Landing Performance — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Landing Performance</h1>
@@ -111,9 +112,10 @@
                 <span class="perf-field-label">Ldg weight</span>
                 <span class="perf-field-value">
                     <span class="perf-kbd">
-                        <input type="number" min="0" step="0.1" style="width:5ch" aria-label="Landing weight"
-                               @bind="_ldgWeightTons" @bind:after="OnInputChanged" />
-                        <span class="perf-unit">t</span>
+                        <input type="number" min="0" step="@(Units.IsPounds ? "100" : "0.1")"
+                               style="width:@(Units.IsPounds ? "7ch" : "5ch")" aria-label="Landing weight"
+                               @bind="LdgWeightDisplay" @bind:after="OnInputChanged" />
+                        <span class="perf-unit">@(Units.IsPounds ? "lb" : "t")</span>
                     </span>
                 </span>
             </div>
@@ -308,6 +310,15 @@
 
     private bool IsBusy => _loading || _calculating;
 
+    /// <summary>Ldg-weight input bridge: metric shows tonnes (the panel's native scale), pounds
+    /// shows whole lb; <c>_ldgWeightTons</c> stays tonnes-of-kg because CalcLdrRequest.LdgW
+    /// rides the tonnes wire scale below.</summary>
+    private double LdgWeightDisplay
+    {
+        get => Units.IsPounds ? Math.Round(Units.FromKg(_ldgWeightTons * 1000.0)) : _ldgWeightTons;
+        set => _ldgWeightTons = Units.IsPounds ? Units.ToKg(value) / 1000.0 : value;
+    }
+
     private bool ShowResult => _hasResult && !_isNoData && !_retreatFlap;
 
     protected override void OnInitialized()
@@ -323,8 +334,13 @@
             _ => _ = InvokeAsync(() => { _resetArmed = false; StateHasChanged(); }),
             null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
 
+        Units.Changed += OnUnitsChanged;
+
         SeedFromContext();
     }
+
+    // Units.Changed fires on arbitrary threads — marshal into the circuit.
+    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -340,6 +356,7 @@
 
     public void Dispose()
     {
+        Units.Changed -= OnUnitsChanged;
         _recalcTimer?.Dispose();
         _resetArmTimer?.Dispose();
     }

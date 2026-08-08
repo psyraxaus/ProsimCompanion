@@ -24,6 +24,14 @@ public sealed class WebUiOptions
     /// instantly (Prosim2GSX's SolariAnimationEnabled).</summary>
     public bool SolariAnimation { get; set; } = true;
 
+    /// <summary>Weight unit source: "app" (the fixed <see cref="Unit"/> below) or "aircraft"
+    /// (follow ProSim's configured weight unit) — Prosim2GSX's DisplayUnitSource.</summary>
+    public string UnitSource { get; set; } = "app";
+
+    /// <summary>Default weight display unit, "kg" or "lb" (Prosim2GSX's DisplayUnitDefault).
+    /// Storage and all protocols stay kg — this affects display only.</summary>
+    public string Unit { get; set; } = "kg";
+
     /// <summary>
     /// Bearer token required from non-loopback clients (delivered via the QR code / onboarding
     /// link, then held in a cookie). Generated automatically on first start; loopback requests

@@ -14,7 +14,23 @@
     <Section Title="Current Aircraft"
              Hint="@(ProfileService.AircraftTitle is null ? "Sim not connected — profile matching will use defaults" : null)">
         <div class="row"><span class="row-label">Title / Livery</span><span class="row-value-mono">@(ProfileService.AircraftTitle ?? "—")</span></div>
-        <div class="row"><span class="row-label">Active Profile</span><span class="row-value-mono">@(ProfileService.ActiveProfile?.Name ?? "— (defaults)")</span></div>
+        <div class="row"><span class="row-label">Airline</span><span class="row-value-mono">@(ProfileService.AirlineIcao ?? "—")</span></div>
+        <div class="row">
+            <span class="row-label">Active Profile</span>
+            <span class="row-value-mono">@(ProfileService.ActiveProfile?.Name ?? "— (defaults)")</span>
+            @if (ProfileService.ManualProfileId is not null)
+            {
+                <span class="pill tone-warn">MANUAL</span>
+            }
+        </div>
+        @if (ProfileService.ManualProfileId is not null)
+        {
+            <div class="row">
+                <button type="button" class="btn secondary" @onclick="() => ProfileService.SetManualActive(null)">
+                    Return to automatic matching
+                </button>
+            </div>
+        }
     </Section>
 
     <Section Title="Profiles"
@@ -33,6 +49,15 @@
                     {
                         <span class="pill tone-ok">ACTIVE</span>
                     }
+                    @if (profile.MatchType == ProfileMatchType.Default)
+                    {
+                        <span class="pill tone-neutral">DEFAULT</span>
+                    }
+                    @if (!isActive)
+                    {
+                        <button type="button" class="btn secondary"
+                                @onclick="() => ProfileService.SetManualActive(profile.Id)">Set Active</button>
+                    }
                     <button type="button" class="btn secondary" @onclick="() => Clone(index)">Clone</button>
                     <button type="button" class="btn danger" @onclick="() => _draft.RemoveAt(index)">Delete</button>
                 </div>
@@ -43,6 +68,8 @@
                             @onchange="e => profile.MatchType = Enum.Parse<ProfileMatchType>(e.Value?.ToString() ?? nameof(ProfileMatchType.TitleContains))">
                         <option value="@ProfileMatchType.TitleContains">Title / livery (contains)</option>
                         <option value="@ProfileMatchType.TitleEquals">Title / livery (exact)</option>
+                        <option value="@ProfileMatchType.Airline">Airline (ICAO prefix)</option>
+                        <option value="@ProfileMatchType.Default">Default (fallback)</option>
                     </select>
                     <input type="text" class="cell-input" style="flex:1; min-width:220px;"
                            placeholder="Aircraft title fragment" value="@profile.MatchString"
@@ -138,13 +165,22 @@
                 var profiles = new JsonArray();
                 foreach (var profile in draft.Where(p => !string.IsNullOrWhiteSpace(p.Name)))
                 {
-                    profiles.Add(new JsonObject
+                    var entry = new JsonObject
                     {
                         ["id"] = profile.Id,
                         ["name"] = profile.Name.Trim(),
                         ["matchType"] = System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(profile.MatchType.ToString()),
                         ["matchString"] = profile.MatchString.Trim(),
-                    });
+                    };
+                    // The per-profile GSX block is edited on the GSX Settings page, not here —
+                    // carry it through so a profile-list save never strips it.
+                    if (profile.GsxSettings is not null)
+                    {
+                        entry["gsxSettings"] = System.Text.Json.JsonSerializer.SerializeToNode(
+                            profile.GsxSettings,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+                    }
+                    profiles.Add(entry);
                 }
                 section["profiles"] = profiles;
             });

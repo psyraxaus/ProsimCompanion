@@ -1,40 +1,50 @@
 namespace ProsimCompanion.Core.Profiles;
 
-/// <summary>Pure profile-matching logic: exact title matches beat substring matches; within the
-/// same match type, list order decides (first wins).</summary>
+/// <summary>Pure profile-matching core. Prosim2GSX's priority order: exact title, then title
+/// substring, then airline prefix, then the Default fallback profile. Title matches need a
+/// known aircraft title; airline matches need a known airline; Default always applies.</summary>
 public static class AircraftProfileMatcher
 {
-    public static AircraftProfile? Match(IReadOnlyList<AircraftProfile> profiles, string? aircraftTitle)
+    public static AircraftProfile? Match(
+        IReadOnlyList<AircraftProfile> profiles,
+        string? aircraftTitle,
+        string? airlineIcao = null)
     {
         ArgumentNullException.ThrowIfNull(profiles);
 
-        if (string.IsNullOrWhiteSpace(aircraftTitle))
-        {
-            return null;
-        }
-
         AircraftProfile? containsMatch = null;
+        AircraftProfile? airlineMatch = null;
+        AircraftProfile? defaultMatch = null;
+
         foreach (var profile in profiles)
         {
-            if (string.IsNullOrWhiteSpace(profile.MatchString))
-            {
-                continue;
-            }
-
             switch (profile.MatchType)
             {
                 case ProfileMatchType.TitleEquals
-                    when aircraftTitle.Equals(profile.MatchString, StringComparison.OrdinalIgnoreCase):
+                    when !string.IsNullOrWhiteSpace(profile.MatchString)
+                        && aircraftTitle?.Equals(profile.MatchString, StringComparison.OrdinalIgnoreCase) == true:
                     return profile;
 
                 case ProfileMatchType.TitleContains
                     when containsMatch is null
-                        && aircraftTitle.Contains(profile.MatchString, StringComparison.OrdinalIgnoreCase):
+                        && !string.IsNullOrWhiteSpace(profile.MatchString)
+                        && aircraftTitle?.Contains(profile.MatchString, StringComparison.OrdinalIgnoreCase) == true:
                     containsMatch = profile;
+                    break;
+
+                case ProfileMatchType.Airline
+                    when airlineMatch is null
+                        && !string.IsNullOrWhiteSpace(profile.MatchString)
+                        && airlineIcao?.StartsWith(profile.MatchString.Trim(), StringComparison.OrdinalIgnoreCase) == true:
+                    airlineMatch = profile;
+                    break;
+
+                case ProfileMatchType.Default when defaultMatch is null:
+                    defaultMatch = profile;
                     break;
             }
         }
 
-        return containsMatch;
+        return containsMatch ?? airlineMatch ?? defaultMatch;
     }
 }

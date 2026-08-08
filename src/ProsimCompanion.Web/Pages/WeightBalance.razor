@@ -10,6 +10,7 @@
 @inject OfpStore Ofp
 @inject IFmsInitSync FmsSync
 @inject IServiceProvider Services
+@inject DisplayUnitService Units
 
 <PageTitle>Weight &amp; Balance — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Weight and Balance</h1>
@@ -33,17 +34,17 @@
             }
             <div class="manifest-grid" style="margin-top:10px; grid-template-columns:auto repeat(4, 1fr);">
                 <span class="manifest-head"></span>
-                <span class="manifest-head">ZFW (KG)</span><span class="manifest-head">MACZFW (%)</span>
-                <span class="manifest-head">GW (KG)</span><span class="manifest-head">MACGW (%)</span>
+                <span class="manifest-head">ZFW (@Units.UnitLabel.ToUpperInvariant())</span><span class="manifest-head">MACZFW (%)</span>
+                <span class="manifest-head">GW (@Units.UnitLabel.ToUpperInvariant())</span><span class="manifest-head">MACGW (%)</span>
                 <span class="manifest-head">LIVE</span>
-                <span class="row-value-mono">@($"{_zfw.GetValue(0.0):F0}")</span>
+                <span class="row-value-mono">@W0(_zfw.GetValue(0.0))</span>
                 <span class="row-value-mono">@($"{_zfwcg.GetValue(0.0):F1}")</span>
-                <span class="row-value-mono">@($"{_gross.GetValue(0.0):F0}")</span>
+                <span class="row-value-mono">@W0(_gross.GetValue(0.0))</span>
                 <span class="row-value-mono">@($"{_cg.GetValue(0.0):F1}")</span>
                 <span class="manifest-head">L/S @(bestTag is null ? "" : $"({bestTag})")</span>
-                <span class="row-value-mono">@(best is null ? "—" : $"{best.ZfwKg:F0}")</span>
+                <span class="row-value-mono">@(best is null ? "—" : W0(best.ZfwKg))</span>
                 <span class="row-value-mono">@(best is null ? "—" : $"{best.MacZfw:F1}")</span>
-                <span class="row-value-mono">@(best is null ? "—" : $"{best.TowKg:F0}")</span>
+                <span class="row-value-mono">@(best is null ? "—" : W0(best.TowKg))</span>
                 <span class="row-value-mono">@(best is null ? "—" : $"{best.MacTow:F1}")</span>
             </div>
             <div class="row" style="margin-top:6px;">
@@ -114,16 +115,16 @@
             }
             <div class="row">
                 <span class="row-label">Cargo capacity</span>
-                <span class="row-value-mono">@($"{_cargoFwdCap.GetValue(0.0):F0}") KG FWD, @($"{_cargoAftCap.GetValue(0.0):F0}") KG AFT@(_cargoBulkCap.GetValue(0.0) > 0 ? $", {_cargoBulkCap.GetValue(0.0):F0} KG BULK" : "")</span>
+                <span class="row-value-mono">@W0(_cargoFwdCap.GetValue(0.0)) @UnitU FWD, @W0(_cargoAftCap.GetValue(0.0)) @UnitU AFT@(_cargoBulkCap.GetValue(0.0) > 0 ? $", {W0(_cargoBulkCap.GetValue(0.0))} {UnitU} BULK" : "")</span>
             </div>
             <div class="row">
                 <span class="row-label">Cargo</span>
-                <span class="row-value-mono">PLANNED @(ofp is null ? "—" : $"{ofp.CargoKg:F0}") · LOADED @($"{cargoLoaded:F0}") KG</span>
+                <span class="row-value-mono">PLANNED @(ofp is null ? "—" : W0(ofp.CargoKg)) · LOADED @W0(cargoLoaded) @UnitU</span>
             </div>
-            <div class="row"><span class="row-label">FWD / AFT</span><span class="row-value-mono">@($"{_cargoFwd.GetValue(0.0):F0}") / @($"{_cargoAft.GetValue(0.0):F0}") KG</span></div>
-            <div class="row"><span class="row-label">Fuel</span><span class="row-value-mono">PLANNED @(ofp is null ? "—" : $"{ofp.FuelPlanRampKg:F0}") · IN TANKS @($"{_fuelTotal.GetValue(0.0):F0}") KG</span></div>
-            <div class="row"><span class="row-label">ZFW</span><span class="row-value-mono">@Kg(_zfw) / max @Kg(_zfwMax)</span></div>
-            <div class="row"><span class="row-label">Gross weight</span><span class="row-value-mono">@Kg(_gross) / max @Kg(_grossMax)</span></div>
+            <div class="row"><span class="row-label">FWD / AFT</span><span class="row-value-mono">@W0(_cargoFwd.GetValue(0.0)) / @W0(_cargoAft.GetValue(0.0)) @UnitU</span></div>
+            <div class="row"><span class="row-label">Fuel</span><span class="row-value-mono">PLANNED @(ofp is null ? "—" : W0(ofp.FuelPlanRampKg)) · IN TANKS @W0(_fuelTotal.GetValue(0.0)) @UnitU</span></div>
+            <div class="row"><span class="row-label">ZFW</span><span class="row-value-mono">@Wt(_zfw) / max @Wt(_zfwMax)</span></div>
+            <div class="row"><span class="row-label">Gross weight</span><span class="row-value-mono">@Wt(_gross) / max @Wt(_grossMax)</span></div>
         </div>
     </section>
 
@@ -237,6 +238,8 @@
         // pillar (its owner) is not wired — degrade, not fail.
         _paxSim = Services.GetService<IPassengerSimulation>();
 
+        Units.Changed += OnUnitsChanged;
+
         _zfw = DataRefs.Subscribe(ProsimDataRefNames.WeightZfw, DataRefTier.Normal);
         _zfwMax = DataRefs.Subscribe(ProsimDataRefNames.WeightZfwMax, DataRefTier.Infrequent);
         _gross = DataRefs.Subscribe(ProsimDataRefNames.WeightGross, DataRefTier.Normal);
@@ -278,6 +281,7 @@
 
     public void Dispose()
     {
+        Units.Changed -= OnUnitsChanged;
         _refresh?.Dispose();
         foreach (var sub in new[]
         {
@@ -294,6 +298,15 @@
 
     private static bool DoorOpen(IDataRefSubscription sub) => sub.GetValue(0.0) > 0.5;
 
+    // Units.Changed fires on arbitrary threads — marshal into the circuit.
+    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    // Uppercase unit label for the panel's all-caps typography ("KG" / "LB").
+    private string UnitU => Units.UnitLabel.ToUpperInvariant();
+
+    /// <summary>Bare converted figure, no unit label (grid cells carry the unit in the header).</summary>
+    private string W0(double kg) => Units.FromKg(kg).ToString("F0", CultureInfo.InvariantCulture);
+
     /// <summary>ProSim's seatOccupation string is comma-separated "true,false,…" (legacy
     /// producers used "1"/"0"); anything unparseable reads as an empty cabin.</summary>
     private static IReadOnlyList<bool> ParseSeatOccupation(string raw)
@@ -305,8 +318,8 @@
                 return value.Equals("true", StringComparison.OrdinalIgnoreCase) || value == "1";
             }).ToArray();
 
-    private static string Kg(IDataRefSubscription sub)
-        => $"{sub.GetValue(0.0):F0} kg";
+    private string Wt(IDataRefSubscription sub)
+        => $"{W0(sub.GetValue(0.0))} {Units.UnitLabel}";
 
     private void CloseSimulate()
     {
