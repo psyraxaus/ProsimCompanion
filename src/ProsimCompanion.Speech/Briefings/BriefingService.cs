@@ -54,6 +54,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly IProsimDataRefs _dataRefs;
     private readonly IWxProvider _weather;
     private readonly ArrivalMinimaStore _minima;
+    private readonly MinimaCaptureDialogue _minimaCapture;
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<BriefingService> _logger;
@@ -66,6 +67,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         IProsimDataRefs dataRefs,
         IWxProvider weather,
         ArrivalMinimaStore minima,
+        MinimaCaptureDialogue minimaCapture,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<BriefingService> logger,
@@ -77,6 +79,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(weather);
         ArgumentNullException.ThrowIfNull(minima);
+        ArgumentNullException.ThrowIfNull(minimaCapture);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
@@ -90,6 +93,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         _dataRefs = dataRefs;
         _weather = weather;
         _minima = minima;
+        _minimaCapture = minimaCapture;
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
@@ -128,6 +132,14 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     {
         try
         {
+            if (!departure)
+            {
+                // Interactive minima sub-dialogue: capture → read back → confirm. Never
+                // proceed past minima on an unconfirmed value — confirmed or "not briefed"
+                // only; the confirmed value lands in the store BuildFactsAsync reads.
+                await _minimaCapture.RunAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+
             var facts = await BuildFactsAsync(departure).ConfigureAwait(false);
             var narrative = await ComposeAsync(facts).ConfigureAwait(false);
             // Route breadcrumb for the logbook/debrief extractor: the briefing is the one place

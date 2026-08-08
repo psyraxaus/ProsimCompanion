@@ -71,6 +71,19 @@ public sealed class BriefingOptions
     /// <summary>Hard backstop: speak at this many seconds even if gear-up is never seen.</summary>
     public int MissedApproachHardCeilingSeconds { get; set; } = 30;
 
+    // ---- Interactive minima capture (arrival-brief sub-dialogue) ----
+
+    /// <summary>Capture the minima by voice during the arrival brief (prompt → read-back →
+    /// confirm). A value already entered on the web page skips the dialogue; disabled means
+    /// the brief just echoes whatever the store holds.</summary>
+    public bool MinimaCaptureEnabled { get; set; } = true;
+
+    /// <summary>Listening window per capture attempt.</summary>
+    public int MinimaListenTimeoutSeconds { get; set; } = 15;
+
+    /// <summary>Failed/unconfirmed attempts before the brief proceeds "not briefed".</summary>
+    public int MinimaMaxRetries { get; set; } = 2;
+
     /// <summary>Verify every number in LLM output against the source facts; a failed retry
     /// falls back to the deterministic template.</summary>
     public bool VerifyNumbers { get; set; } = true;

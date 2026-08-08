@@ -57,6 +57,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Fcu.FcuExecutor>());
         services.AddSingleton<Briefings.DfdNavDataProvider>();
         services.AddSingleton<Briefings.ProcedureSource>();
+        services.AddSingleton<Briefings.MinimaCaptureDialogue>();
         services.AddSingleton<Briefings.MissedApproachRebrief>();
         services.AddSingleton<Briefings.BriefingService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Briefings.BriefingService>());

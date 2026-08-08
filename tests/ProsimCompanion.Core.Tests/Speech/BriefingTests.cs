@@ -161,4 +161,26 @@ public sealed class BriefingTests
         Assert.Equal("one six right", BriefingService.RunwaySpoken("16R"));
         Assert.Equal("zero four left", BriefingService.RunwaySpoken("RW04L"));
     }
+
+    [Theory]
+    [InlineData("decision altitude three two zero", ArrivalMinimumKind.DecisionAltitude, 320)]
+    [InlineData("decision height 200 feet", ArrivalMinimumKind.DecisionHeight, 200)]
+    [InlineData("minimum descent altitude 650", ArrivalMinimumKind.MinimumDescentAltitude, 650)]
+    [InlineData("minimums 320", ArrivalMinimumKind.DecisionAltitude, 320)] // kind defaults to DA
+    public void MinimaParser_KindAndValue(string utterance, ArrivalMinimumKind kind, double feet)
+    {
+        var minima = MinimaParser.TryParse(utterance);
+        Assert.NotNull(minima);
+        Assert.Equal(kind, minima.Kind);
+        Assert.Equal(feet, minima.AltitudeFt);
+    }
+
+    [Fact]
+    public void MinimaParser_RejectsGarbage_AndRecognizesNotBriefed()
+    {
+        Assert.Null(MinimaParser.TryParse("cabin crew seats for landing"));
+        Assert.Null(MinimaParser.TryParse("minimums zero")); // 0 is not a plausible minimum
+        Assert.True(MinimaParser.IsNotBriefed("minimums not briefed"));
+        Assert.False(MinimaParser.IsNotBriefed("decision altitude 320"));
+    }
 }
