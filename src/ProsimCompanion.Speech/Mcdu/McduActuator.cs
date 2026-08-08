@@ -109,6 +109,9 @@ public sealed class McduActuator : IMcduActuator, IDisposable
         try
         {
             await PressRawAsync(suffix, cancellationToken).ConfigureAwait(false);
+            // Human pacing (Prosim2FO): a scan/think gap after the press, longer and more
+            // likely after page-changing keys — without it sequences fire at wire speed.
+            await Task.Delay(HumanGap(InterKeyPauseMs, suffix), cancellationToken).ConfigureAwait(false);
             return true;
         }
         finally
@@ -116,6 +119,14 @@ public sealed class McduActuator : IMcduActuator, IDisposable
             _gate.Release();
         }
     }
+
+    /// <summary>Humanized inter-key gap for one pressed suffix.</summary>
+    private int HumanGap(int baseDelayMs, string suffix)
+        => Commands.HumanTiming.Gap(
+            _speech?.CurrentValue.Humanize ?? new HumanizeOptions(),
+            baseDelayMs,
+            Commands.HumanTiming.IsPageKey("CDU_KEY_" + suffix),
+            Random.Shared);
 
     public Task<bool> PressLskAsync(int row, bool right, CancellationToken cancellationToken = default)
         => row is < 1 or > 6
@@ -142,7 +153,7 @@ public sealed class McduActuator : IMcduActuator, IDisposable
                 }
 
                 await PressRawAsync(key, cancellationToken).ConfigureAwait(false);
-                await Task.Delay(InterKeyPauseMs, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(HumanGap(InterKeyPauseMs, key), cancellationToken).ConfigureAwait(false);
             }
         }
         finally

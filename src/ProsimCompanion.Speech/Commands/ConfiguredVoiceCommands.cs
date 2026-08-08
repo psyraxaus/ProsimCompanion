@@ -314,16 +314,23 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
                             $"Dataref '{step.Dataref}' is not on the loaded voice-command write allow-list.");
                     }
 
+                    // Human pacing (Prosim2FO's Humanize): jittered hold, and a jittered
+                    // gap with occasional think pauses below — configured times are the
+                    // functional minimums and are never undercut.
+                    var humanize = _speech?.CurrentValue.Humanize ?? new HumanizeOptions();
                     await _dataRefs.WriteAsync(Side(step.Dataref), step.Press).ConfigureAwait(false);
                     if (step.Restore is { } restore)
                     {
-                        await Task.Delay(step.HoldMs > 0 ? step.HoldMs : 150).ConfigureAwait(false);
+                        await Task.Delay(HumanTiming.Hold(humanize, step.HoldMs > 0 ? step.HoldMs : 150, Random.Shared))
+                            .ConfigureAwait(false);
                         await _dataRefs.WriteAsync(Side(step.Dataref), restore).ConfigureAwait(false);
                     }
 
                     if (step.DelayMs > 0)
                     {
-                        await Task.Delay(step.DelayMs).ConfigureAwait(false);
+                        await Task.Delay(HumanTiming.Gap(
+                            humanize, step.DelayMs, HumanTiming.IsPageKey(step.Dataref), Random.Shared))
+                            .ConfigureAwait(false);
                     }
                 }
 

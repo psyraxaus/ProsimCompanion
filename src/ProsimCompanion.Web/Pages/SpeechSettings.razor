@@ -46,6 +46,15 @@
                                  @bind-Value="_draft.PilotSeat" />
                 </Section>
 
+                <Section Title="Human Pacing" Hint="Button pushing at a human tempo — jittered gaps with occasional scan pauses after page-changing keys">
+                    <BoolField Label="Humanize button timing"
+                               Hint="Off = the configured minimum delays only (wire-speed sequences)"
+                               @bind-Value="_draft.Humanize.Enabled" />
+                    <NumberField Label="Tempo" Step="0.1" Min="0.25" Max="4"
+                                 Hint="Overall pacing multiplier: 1.0 = normal, 2.0 = twice as slow. Jitter details (gap/hold/think pauses) are tunable in settings.json"
+                                 @bind-Value="_draft.Humanize.Tempo" />
+                </Section>
+
                 <Section Title="Playback">
                     <SelectField Label="Output device"
                                  Options="OutputDeviceOptions()"
@@ -634,6 +643,16 @@
                 speech["enabled"] = draft.Enabled;
                 speech["localOnly"] = draft.LocalOnly;
                 speech["pilotSeat"] = draft.PilotSeat.Trim().ToLowerInvariant();
+                speech["humanize"] = new JsonObject
+                {
+                    ["enabled"] = draft.Humanize.Enabled,
+                    ["tempo"] = draft.Humanize.Tempo,
+                    ["gapJitter"] = draft.Humanize.GapJitter,
+                    ["holdJitter"] = draft.Humanize.HoldJitter,
+                    ["thinkPauseChance"] = draft.Humanize.ThinkPauseChance,
+                    ["thinkPauseMinMs"] = draft.Humanize.ThinkPauseMinMs,
+                    ["thinkPauseMaxMs"] = draft.Humanize.ThinkPauseMaxMs,
+                };
 
                 speech["recognitionMode"] = draft.RecognitionMode.Trim();
                 speech["pttBinding"] = BindingJson(draft.PttBinding);

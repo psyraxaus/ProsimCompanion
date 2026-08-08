@@ -164,4 +164,34 @@ public sealed class RecognitionTests
     public void PilotSeat_LeftSeat_IsIdentity()
         => Assert.Equal("system.analog.A_FC_FO_PITCH",
             PilotSeatMap.Map("system.analog.A_FC_FO_PITCH", humanIsRightSeat: false));
+
+    [Fact]
+    public void HumanTiming_Disabled_IsIdentity()
+    {
+        var off = new HumanizeOptions { Enabled = false };
+        Assert.Equal(150, ProsimCompanion.Speech.Commands.HumanTiming.Hold(off, 150, new Random(1)));
+        Assert.Equal(120, ProsimCompanion.Speech.Commands.HumanTiming.Gap(off, 120, afterPageKey: true, new Random(1)));
+    }
+
+    [Fact]
+    public void HumanTiming_NeverUndercutsTheConfiguredDelay()
+    {
+        // The configured delay is a functional minimum (MCDU page-change time).
+        var options = new HumanizeOptions();
+        var rng = new Random(42);
+        for (var i = 0; i < 200; i++)
+        {
+            Assert.True(ProsimCompanion.Speech.Commands.HumanTiming.Gap(options, 300, i % 2 == 0, rng) >= 300);
+            Assert.True(ProsimCompanion.Speech.Commands.HumanTiming.Hold(options, 150, rng) >= 40);
+        }
+    }
+
+    [Theory]
+    [InlineData("system.switches.S_CDU2_KEY_FPLN", true)]   // page key — scan pause likely
+    [InlineData("CDU_KEY_PERF", true)]
+    [InlineData("system.switches.S_CDU2_KEY_LSK3L", false)] // in-flow
+    [InlineData("system.switches.S_CDU1_KEY_CLEAR", false)]
+    [InlineData("system.switches.S_FCU_AP1", false)]        // not a CDU key at all
+    public void HumanTiming_PageKeyDetection(string dataref, bool isPageKey)
+        => Assert.Equal(isPageKey, ProsimCompanion.Speech.Commands.HumanTiming.IsPageKey(dataref));
 }

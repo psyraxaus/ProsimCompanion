@@ -35,6 +35,30 @@ public sealed class PttBindingOptions
     public bool IsSet => Kind.Length > 0;
 }
 
+/// <summary>Human pacing for the virtual pilot's button pushing (Prosim2FO's Humanize):
+/// inter-key gaps are randomized with occasional longer "scan" pauses biased toward keys
+/// that change the MCDU page. Configured step delays are functional minimums (page-change
+/// time) — humanization only ever ADDS time, never undercuts them.</summary>
+public sealed class HumanizeOptions
+{
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Overall pacing multiplier for inter-key gaps (1.0 = normal, 2.0 = twice as slow).</summary>
+    public double Tempo { get; set; } = 1.0;
+
+    /// <summary>Max random stretch of each inter-key gap (0.8 = 1.0–1.8× the configured delay).</summary>
+    public double GapJitter { get; set; } = 0.8;
+
+    /// <summary>± fraction applied to each key's hold time (0.35 = 0.65–1.35× holdMs).</summary>
+    public double HoldJitter { get; set; } = 0.35;
+
+    /// <summary>Chance of an extra "scan/think" pause after a key (tripled after page keys).</summary>
+    public double ThinkPauseChance { get; set; } = 0.15;
+
+    public int ThinkPauseMinMs { get; set; } = 300;
+    public int ThinkPauseMaxMs { get; set; } = 1200;
+}
+
 /// <summary>
 /// Settings for the voice First Officer pillar's speech foundations: the arbiter, the TTS
 /// provider chain (fixed order Kokoro → Google → WinRT → SAPI5, docs/integrations/speech.md)
@@ -55,6 +79,9 @@ public sealed class SpeechOptions
     /// captain-side controls, EFIS1). The safety rule is seat-relative — the virtual pilot
     /// never moves the human's controls.</summary>
     public string PilotSeat { get; set; } = "left";
+
+    /// <summary>Human-like pacing for MCDU/FCU button sequences.</summary>
+    public HumanizeOptions Humanize { get; set; } = new();
 
     /// <summary>Hard "local only" mode: network TTS providers (Kokoro, Google) are excluded
     /// regardless of their own configuration.</summary>
