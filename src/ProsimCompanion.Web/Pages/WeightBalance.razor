@@ -3,6 +3,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Aircraft.WeightAndBalance
 @implements IDisposable
 @inject IProsimDataRefs DataRefs
 @inject LoadsheetStore Loadsheets
@@ -47,9 +48,25 @@
                 <span class="row-value-mono">@(best is null ? "—" : W0(best.TowKg))</span>
                 <span class="row-value-mono">@(best is null ? "—" : $"{best.MacTow:F1}")</span>
             </div>
+            @{
+                // Weight-dependent envelope limits (A320TrimEnvelope, digitized from this
+                // chart's own artwork) — the Prosim2GSX "VALID RANGE" line, per live weight.
+                var (zfwMin, zfwMax) = A320TrimEnvelope.ZeroFuelLimits(_zfw.GetValue(0.0));
+                var (gwMin, gwMax) = A320TrimEnvelope.GrossWeightLimits(_gross.GetValue(0.0));
+                var zfwCgBad = _zfwcg.GetValue(0.0) is var liveZfwCg and > 0 && (liveZfwCg < zfwMin || liveZfwCg > zfwMax);
+                var gwCgBad = _cg.GetValue(0.0) is var liveGwCg and > 0 && (liveGwCg < gwMin || liveGwCg > gwMax);
+            }
+            <div class="row" style="margin-top:6px;">
+                <span class="row-label">VALID RANGE</span>
+                <span class="row-value-mono">
+                    <span style="@(zfwCgBad ? "color:var(--danger);font-weight:600" : "")">MACZFW @($"{zfwMin:F1}–{zfwMax:F1} %")</span>
+                    ·
+                    <span style="@(gwCgBad ? "color:var(--danger);font-weight:600" : "")">MACGW @($"{gwMin:F1}–{gwMax:F1} %")</span>
+                </span>
+            </div>
             <div class="row" style="margin-top:6px;">
                 <span class="row-label"></span>
-                <span class="row-value">LIVE reads aircraft datarefs each tick. L/S mirrors the latest loadsheet (final preferred, prelim fallback).</span>
+                <span class="row-value">LIVE reads aircraft datarefs each tick. L/S mirrors the latest loadsheet (final preferred, prelim fallback). Valid ranges interpolate the trim envelope at the live weights.</span>
             </div>
             <div class="row">
                 <button type="button" class="btn primary" disabled="@_syncing" @onclick="SyncFms">

@@ -1,6 +1,7 @@
 @page "/loadsheet"
 @using System.Globalization
 @using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Aircraft.WeightAndBalance
 @implements IDisposable
 @inject LoadsheetStore Loadsheets
 @inject ILoadsheetControl LoadsheetControl
@@ -54,7 +55,10 @@
         })
         {
             var showData = slot.Status == LoadsheetSlotStatus.Sent;
-            var macError = IsMacError(slot.MacTow);
+            // Weight-dependent envelope limits (A320TrimEnvelope, digitized from the CG chart
+            // artwork) — each card brackets against its OWN TOW instead of a fixed window.
+            var (macMin, macMax) = A320TrimEnvelope.GrossWeightLimits(slot.TowKg);
+            var macError = slot.MacTow < macMin || slot.MacTow > macMax;
             // Final card highlights with a red border when the MAC is out of
             // window; the prelim card just colours the value cell.
             var errBorder = finalErrorBorder && macError && showData;
@@ -93,14 +97,14 @@
                        can see WHICH way it's out (high-side vs low-side). *@
                     <div class="ls-range">
                         <div class="ls-range-labels">
-                            <span>@MacMin.ToString("F1", CultureInfo.InvariantCulture)</span>
+                            <span>@macMin.ToString("F1", CultureInfo.InvariantCulture)</span>
                             <span class="ls-range-mid">MAC%</span>
-                            <span>@MacMax.ToString("F1", CultureInfo.InvariantCulture)</span>
+                            <span>@macMax.ToString("F1", CultureInfo.InvariantCulture)</span>
                         </div>
                         <div class="ls-range-bar" role="img"
-                             aria-label="@($"MACTOW {slot.MacTow:F1} percent on a {MacMin:F0} to {MacMax:F0} percent scale")">
+                             aria-label="@($"MACTOW {slot.MacTow:F1} percent on a {macMin:F1} to {macMax:F1} percent scale")">
                             <div class="ls-range-marker @(macError ? "ls-range-marker-bad" : "")"
-                                 style="left:@MacPercentCss(slot.MacTow)"></div>
+                                 style="left:@MacPercentCss(slot.MacTow, macMin, macMax)"></div>
                         </div>
                     </div>
                 }
@@ -110,12 +114,6 @@
 </div>
 
 @code {
-    // Placeholder MAC window matching the envelope chart's 21–38 %MAC span.
-    // Real per-weight envelope limits arrive with the perf data — until then
-    // any MACTOW outside this fixed window renders red.
-    private const double MacMin = 21.0;
-    private const double MacMax = 38.0;
-
     private enum Busy { Resend, Reset }
 
     private LoadsheetSnapshot _loadsheets = LoadsheetSnapshot.Empty;
@@ -170,8 +168,6 @@
             StateHasChanged();
         });
 
-    private static bool IsMacError(double macTow) => macTow < MacMin || macTow > MacMax;
-
     private static string BadgeClass(LoadsheetSlotStatus status) => status switch
     {
         LoadsheetSlotStatus.Sent => "ls-badge-ok",
@@ -186,10 +182,10 @@
         _ => "PENDING",
     };
 
-    /// <summary>Marker position on the MAC window, clamped to the bar edges.</summary>
-    private static string MacPercentCss(double mac)
+    /// <summary>Marker position on the card's MAC window, clamped to the bar edges.</summary>
+    private static string MacPercentCss(double mac, double macMin, double macMax)
     {
-        var fraction = Math.Clamp((mac - MacMin) / (MacMax - MacMin), 0, 1) * 100.0;
+        var fraction = Math.Clamp((mac - macMin) / (macMax - macMin), 0, 1) * 100.0;
         return fraction.ToString("F1", CultureInfo.InvariantCulture) + "%";
     }
 
