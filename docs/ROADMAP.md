@@ -379,7 +379,8 @@ from Phase 1 — this phase adds the speech stack and features on top.
       gray-band confirm sub-dialogue, hold/resume voice commands (phrases declared but kept
       out of the grammar until routed), interactive minima capture + missed-approach re-brief,
       interactive per-line ECAM dialogue, MCDU voice actions (RAD NAV tune / arrival change —
-      need the display de-flicker reader), persona styling + config/phrases.json override,
+      need the display de-flicker reader), ~~persona styling + config/phrases.json override~~
+      (delivered with Phase 7, 2026-08-08),
       per-checklist FlightMonitor prompts (keyboard/joystick), Purser/Company voices + chimes,
       web settings UI for the new sections (sop/briefing/sayIntentions and the recognition
       bindings are hand-editable in settings.json with written defaults), SIAI L:var
@@ -461,11 +462,24 @@ from Phase 1 — this phase adds the speech stack and features on top.
 
 ## Phase 7 — Distribution & polish
 
-- [ ] Installer (Inno Setup) — prompts for external component locations and writes them into
-      `config/settings.json`: ProSimSDK.dll path, Virtuali directory (then installs the GSX
-      aircraft profiles/handler there), VoiceMeeter directory. Verifies ProSimSDK.dll never ships.
-      The app itself never assumes these paths — unset paths degrade the subsystem with guidance.
-- [ ] System tray icon + minimize-to-tray; single-instance mutex
+> **Phase 7 delivered 2026-08-08** (all items below; installer compile + install run still to
+> be exercised on a machine with Inno Setup 6). Same batch: program icon (generated
+> multi-resolution .ico), versioning pattern (docs/VERSIONING.md — `<Version>` in
+> Directory.Build.props is the single source; tag v<Version> + GitHub release feeds the
+> update banner), and the FO persona (Phase 5 leftover — persona styling + phrases.json).
+
+- [x] Installer (Inno Setup) — `installer/ProsimCompanion.iss` + `build-installer.ps1`:
+      prompts for ProSimSDK.dll / VoiceMeeter DLL / Virtuali directory, writes them into
+      `config/settings.json` (surgical on update), installs the GSX aircraft profiles
+      (kept-unless-overwrite) AND the ported gsx_handler.py (always refreshed; the app now
+      serves /api/gsxmenu events + flight-info for it and syncs its port line at startup).
+      The build script FAILS if ProSimSDK.dll ever appears in the payload. Unset paths
+      degrade the subsystem with guidance.
+- [x] System tray icon + minimize-to-tray; single-instance mutex (named mutex + show-window
+      event — a second launch activates the running instance, fixing the predecessor's
+      process-name-count check)
 - [x] Themes (airline JSON themes in the web UI), light/dark — delivered in Phase 2.5
-- [ ] Config migration importers from Prosim2GSX `AppConfig.json` and Prosim2FO `settings.json`
-- [ ] Docs site / user manual
+- [x] Config migration importers from Prosim2GSX `AppConfig.json` and Prosim2FO
+      `settings.json` (marker-guarded first-run; PredecessorConfigImporter)
+- [x] Docs site / user manual — `docs/manual/` (installation, using the app, voice FO,
+      settings reference, troubleshooting)

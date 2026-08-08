@@ -12,9 +12,10 @@
 ;   * prompts for the VoiceMeeter Remote DLL (optional) -> audio.voiceMeeterDllPath
 ;   * prompts for the Virtuali directory and installs the GSX aircraft profiles (gsx.cfg for
 ;     the three ProSim A322 SimObject folders) into <Virtuali>\Airplanes — existing profiles
-;     are kept unless the overwrite box is ticked (Prosim2GSX semantics). The predecessor's
-;     gsx_handler.py is deliberately NOT shipped: it phones a Prosim2GSX-only REST endpoint
-;     (/api/gsxmenu) this app does not expose; ship it again only once those endpoints exist.
+;     are kept unless the overwrite box is ticked (Prosim2GSX semantics). gsx_handler.py (the
+;     in-sim event bridge + VDGS display) is copied into every profile directory and ALWAYS
+;     refreshed — it is an app-owned runtime file, and the app serves its /api/gsxmenu
+;     endpoints and keeps the script's port line in sync at startup.
 ;   * every path is optional — the app degrades the subsystem with guidance when unset.
 ;
 ; Uninstall removes {app} only. Virtuali profiles (sim-side config the user may have edited)
@@ -68,6 +69,11 @@ Source: "{#PublishDir}\*"; DestDir: "{app}"; Excludes: "ProSimSDK.dll"; \
 Source: "GSXProfiles\prosim-a322-cfm\gsx.cfg"; DestDir: "{tmp}\GSXProfiles\prosim-a322-cfm"; Flags: dontcopy
 Source: "GSXProfiles\prosim-a322-iae\gsx.cfg"; DestDir: "{tmp}\GSXProfiles\prosim-a322-iae"; Flags: dontcopy
 Source: "GSXProfiles\Prosim-a322-neo\gsx.cfg"; DestDir: "{tmp}\GSXProfiles\Prosim-a322-neo"; Flags: dontcopy
+; The in-sim handler script (event bridge + VDGS). One shared source; copied into every
+; profile directory and ALWAYS refreshed on update regardless of the overwrite choice —
+; it is a ProsimCompanion-owned runtime file, not user-editable sim config (predecessor
+; rule). The app rewrites its port line at startup when the web port differs.
+Source: "GSXProfiles\gsx_handler.py"; DestDir: "{tmp}\GSXProfiles"; Flags: dontcopy
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\ProsimCompanion.exe"
@@ -284,19 +290,35 @@ begin
     Copied := Copied + 1;
 end;
 
+{ The handler is refreshed into EVERY profile dir that exists — even when the user chose to
+  keep their gsx.cfg edits. It is a ProsimCompanion-owned runtime file and must track the
+  app version (predecessor WorkerGSXHandler rule). }
+procedure InstallGsxHandler(const ProfileName: String);
+var
+  TargetDir: String;
+begin
+  TargetDir := AddBackslash(VirtualiPage.Values[0]) + 'Airplanes\' + ProfileName;
+  if DirExists(TargetDir) then
+    FileCopy(ExpandConstant('{tmp}\GSXProfiles\gsx_handler.py'), TargetDir + '\gsx_handler.py', False);
+end;
+
 procedure InstallGsxProfiles();
 var
   Copied, Skipped: Integer;
 begin
-  if not ProfilesCheckPage.Values[0] then
-    exit;
   ExtractTemporaryFiles('{tmp}\GSXProfiles\*');
-  Copied := 0;
-  Skipped := 0;
-  InstallGsxProfile('prosim-a322-cfm', Copied, Skipped);
-  InstallGsxProfile('prosim-a322-iae', Copied, Skipped);
-  InstallGsxProfile('Prosim-a322-neo', Copied, Skipped);
-  Log(Format('GSX profiles: %d copied, %d kept (already present)', [Copied, Skipped]));
+  if ProfilesCheckPage.Values[0] then
+  begin
+    Copied := 0;
+    Skipped := 0;
+    InstallGsxProfile('prosim-a322-cfm', Copied, Skipped);
+    InstallGsxProfile('prosim-a322-iae', Copied, Skipped);
+    InstallGsxProfile('Prosim-a322-neo', Copied, Skipped);
+    Log(Format('GSX profiles: %d copied, %d kept (already present)', [Copied, Skipped]));
+  end;
+  InstallGsxHandler('prosim-a322-cfm');
+  InstallGsxHandler('prosim-a322-iae');
+  InstallGsxHandler('Prosim-a322-neo');
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

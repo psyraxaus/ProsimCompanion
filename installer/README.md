@@ -30,10 +30,13 @@ overwrite box is ticked (your `gsx.cfg` edits survive updates).
   (data files: door positions/LVAR bindings `L:A320_door_N`, service points, `refueling = 0`
   so this app drives fuel). The directory name is GSX's match key — it must equal the
   SimObject folder name.
-- Prosim2GSX's `gsx_handler.py` is **deliberately not shipped**: it pushes events to a
-  Prosim2GSX-only REST endpoint (`/api/gsxmenu`) and drives the VDGS from it. Ship it again
-  only if/when those endpoints are ported (and reimplement the predecessor's port-rewrite
-  sync — the script hardcodes the app's web port).
+- `GSXProfiles/gsx_handler.py` is the in-sim handler (GSX Pro v4 tier-3, ported from
+  Prosim2GSX): it pushes lifecycle events to the app's `/api/gsxmenu/events` endpoint (feeds
+  the Flight Status "Last Handler Event" row + session log) and renders the flight number /
+  route on the gate's VDGS from `/api/gsxmenu/flight-info`. One shared source, copied into
+  every profile directory and **always refreshed on update** regardless of the
+  overwrite-profiles choice (it is app-owned, not user sim config). The app rewrites the
+  script's `PROSIMCOMPANION_PORT` line at startup so a non-default web port keeps working.
 
 ## Prerequisites & uninstall
 

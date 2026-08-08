@@ -115,6 +115,15 @@ public static class Program
             var url = DisplayUrl(web.Services);
             Log.Information("Web UI available at {Url}", url);
 
+            // Keep any deployed gsx_handler.py scripts pointed at our actual port (the
+            // predecessor's GsxHandlerSync rule — a changed port silently kills the bridge).
+            using (var syncLoggerFactory = new Serilog.Extensions.Logging.SerilogLoggerFactory(Log.Logger))
+            {
+                GsxHandlerEndpoints.SyncHandlerPort(
+                    web.Services.GetRequiredService<IOptionsMonitor<WebUiOptions>>().CurrentValue.Port,
+                    syncLoggerFactory.CreateLogger("GsxHandlerSync"));
+            }
+
             var app = new App(web.Services, url, singleInstance);
             app.InitializeComponent();
             var exitCode = app.Run();
@@ -220,6 +229,10 @@ public static class Program
         // section; 404 while disabled). The status feed is what the Stream Deck plugin polls.
         web.MapCommandApi();
         web.MapStatusApi();
+
+        // In-sim GSX handler bridge (gsx_handler.py): event push + VDGS flight info. Always
+        // on — the script targets loopback, which the token middleware exempts.
+        web.MapGsxHandlerApi();
 
         web.MapRazorComponents<Web.App>().AddInteractiveServerRenderMode();
         return web;

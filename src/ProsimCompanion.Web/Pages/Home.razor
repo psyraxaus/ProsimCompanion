@@ -149,8 +149,10 @@
     private static string FormatPercent(double? value)
         => value is { } pct ? $"{pct:F0}%" : "—";
 
+    // Two producers share this row: service lifecycle edges ("Boarding: Active") and the
+    // in-sim handler script's events ("boardingRequested", "gateReset: user_changed").
     private string HandlerEvent => _gsx.LastHandlerEvent is { } evt
-        ? $"{evt.Timestamp.ToLocalTime():HH:mm:ss} {evt.Service}: {evt.Event}"
+        ? $"{evt.Timestamp.ToLocalTime():HH:mm:ss} {evt.Service}{(evt.Event.Length > 0 ? $": {evt.Event}" : "")}"
         : "—";
 
     private string DepartureSummary =>
