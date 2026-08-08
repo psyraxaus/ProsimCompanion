@@ -3,7 +3,10 @@
 The Elgato Stream Deck plugin lives in **`streamdeck/`** at the repo root — a
 self-contained TypeScript Node plugin (`com.prosimcompanion.streamdeck`), built
 with rollup against `@elgato/streamdeck` v1. Build/install/pairing instructions
-are in [`streamdeck/README.md`](../../streamdeck/README.md).
+are in [`streamdeck/README.md`](../../streamdeck/README.md). The installer builds
+and ships it: an optional task installs it into the Elgato plugins folder, and the
+packed `.streamDeckPlugin` lands in `{app}\streamdeck\` for manual installs
+(`installer/README.md`).
 
 ## API contract (what the plugin consumes)
 

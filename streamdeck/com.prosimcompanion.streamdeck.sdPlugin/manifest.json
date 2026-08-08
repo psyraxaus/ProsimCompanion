@@ -1,6 +1,7 @@
 {
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"Name": "ProsimCompanion",
+	"UUID": "com.prosimcompanion.streamdeck",
 	"Version": "0.1.0.0",
 	"Author": "ProsimCompanion",
 	"Description": "Fire GSX/checklist commands and show live status from ProsimCompanion over its embedded web server. Requires the command API enabled in ProsimCompanion.",
@@ -30,7 +31,9 @@
 			"Icon": "imgs/actions/gsxservice/icon",
 			"Tooltip": "Request (or retract) a GSX ground service and show its live state. Pick the service in the Property Inspector.",
 			"PropertyInspectorPath": "ui/gsx-service.html",
-			"Controllers": ["Keypad"],
+			"Controllers": [
+				"Keypad"
+			],
 			"SupportedInMultiActions": true,
 			"States": [
 				{
@@ -45,7 +48,9 @@
 			"Icon": "imgs/actions/nextservice/icon",
 			"Tooltip": "Shows the ground automation's next planned service; press forces it to run now.",
 			"PropertyInspectorPath": "ui/connection.html",
-			"Controllers": ["Keypad"],
+			"Controllers": [
+				"Keypad"
+			],
 			"SupportedInMultiActions": true,
 			"States": [
 				{
@@ -60,7 +65,9 @@
 			"Icon": "imgs/actions/checklist/icon",
 			"Tooltip": "Shows the active checklist and current item. Pick Advance or Restart in the Property Inspector.",
 			"PropertyInspectorPath": "ui/checklist.html",
-			"Controllers": ["Keypad"],
+			"Controllers": [
+				"Keypad"
+			],
 			"SupportedInMultiActions": true,
 			"States": [
 				{
@@ -75,7 +82,9 @@
 			"Icon": "imgs/actions/flightphase/icon",
 			"Tooltip": "Displays the current ProsimCompanion flight phase (display only).",
 			"PropertyInspectorPath": "ui/connection.html",
-			"Controllers": ["Keypad"],
+			"Controllers": [
+				"Keypad"
+			],
 			"SupportedInMultiActions": false,
 			"States": [
 				{
@@ -90,7 +99,9 @@
 			"Icon": "imgs/actions/health/icon",
 			"Tooltip": "ProSim / MSFS / GSX connection dots, plus pairing and command-API problems (display only).",
 			"PropertyInspectorPath": "ui/connection.html",
-			"Controllers": ["Keypad"],
+			"Controllers": [
+				"Keypad"
+			],
 			"SupportedInMultiActions": false,
 			"States": [
 				{

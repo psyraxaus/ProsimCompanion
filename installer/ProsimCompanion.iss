@@ -17,9 +17,16 @@
 ;     refreshed — it is an app-owned runtime file, and the app serves its /api/gsxmenu
 ;     endpoints and keeps the script's port line in sync at startup.
 ;   * every path is optional — the app degrades the subsystem with guidance when unset.
+;   * optional task (shown only when the Elgato Stream Deck app is detected): installs the
+;     ProsimCompanion Stream Deck plugin into %APPDATA%\Elgato\StreamDeck\Plugins, restarting
+;     the Stream Deck app when it was running so the new/updated plugin is picked up. The
+;     packed .streamDeckPlugin also ships to {app}\streamdeck for manual installs (e.g. when
+;     Stream Deck is installed after ProsimCompanion). Compile with /DNoStreamDeck (build
+;     script: -SkipStreamDeck) to omit the plugin from the payload entirely.
 ;
-; Uninstall removes {app} only. Virtuali profiles (sim-side config the user may have edited)
-; and %LOCALAPPDATA%\ProsimCompanion (logs, sessions, logbook, tech log) are left in place.
+; Uninstall removes {app} plus the Stream Deck plugin (app-owned, dead without the app).
+; Virtuali profiles (sim-side config the user may have edited) and
+; %LOCALAPPDATA%\ProsimCompanion (logs, sessions, logbook, tech log) are left in place.
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -58,6 +65,12 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+#ifndef NoStreamDeck
+; Only offered when the Elgato Stream Deck app is present on this machine. The plugin talks
+; to the app's loopback web server, so the sim PC is where it belongs.
+Name: "streamdeckplugin"; Description: "Install the ProsimCompanion Stream Deck plugin (restarts the Stream Deck app)"; \
+    GroupDescription: "Stream Deck:"; Check: StreamDeckDetected
+#endif
 
 [Files]
 ; The published application. ProSimSDK.dll is excluded belt-and-braces — the build script has
@@ -74,6 +87,20 @@ Source: "GSXProfiles\Prosim-a322-neo\gsx.cfg"; DestDir: "{tmp}\GSXProfiles\Prosi
 ; it is a ProsimCompanion-owned runtime file, not user-editable sim config (predecessor
 ; rule). The app rewrites its port line at startup when the web port differs.
 Source: "GSXProfiles\gsx_handler.py"; DestDir: "{tmp}\GSXProfiles"; Flags: dontcopy
+#ifndef NoStreamDeck
+; Stream Deck plugin, pre-built by build-installer.ps1 (which fails if bin\plugin.js is
+; missing). Installed straight into the Elgato plugins folder — always refreshed on update
+; (app-owned runtime files, same rule as gsx_handler.py). StopStreamDeckApp runs before the
+; copy so no plugin file is locked by a running Stream Deck app.
+Source: "..\streamdeck\com.prosimcompanion.streamdeck.sdPlugin\*"; \
+    DestDir: "{userappdata}\Elgato\StreamDeck\Plugins\com.prosimcompanion.streamdeck.sdPlugin"; \
+    Tasks: streamdeckplugin; BeforeInstall: StopStreamDeckApp; \
+    Flags: recursesubdirs createallsubdirs ignoreversion
+; The packed plugin always ships beside the app so it can be installed manually later
+; (double-click) — e.g. when the Stream Deck app was not present at install time.
+Source: "..\streamdeck\dist\com.prosimcompanion.streamdeck.streamDeckPlugin"; \
+    DestDir: "{app}\streamdeck"; Flags: ignoreversion
+#endif
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\ProsimCompanion.exe"
@@ -83,12 +110,19 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\ProsimCompanion.exe"; Tasks: 
 Filename: "{app}\ProsimCompanion.exe"; Description: "{cm:LaunchProgram,{#AppName}}"; \
     Flags: nowait postinstall skipifsilent
 
+[UninstallDelete]
+; The Stream Deck plugin is app-owned and useless without the app. Deleted even on builds
+; compiled with /DNoStreamDeck — a previous installer version may have put it there.
+Type: filesandordirs; Name: "{userappdata}\Elgato\StreamDeck\Plugins\com.prosimcompanion.streamdeck.sdPlugin"
+
 [Code]
 var
   SdkPage: TInputFileWizardPage;
   VoiceMeeterPage: TInputFileWizardPage;
   VirtualiPage: TInputDirWizardPage;
   ProfilesCheckPage: TInputOptionWizardPage;
+  StreamDeckStopAttempted: Boolean;
+  StreamDeckWasRunning: Boolean;
 
 { ---- auto-detection --------------------------------------------------------------------- }
 
@@ -109,6 +143,65 @@ begin
       Result := Candidates[I];
       exit;
     end;
+end;
+
+{ True when the Elgato Stream Deck app has ever run for this user (its profile dir exists) —
+  gates the plugin task so it is only offered where it can do something. }
+function StreamDeckDetected(): Boolean;
+begin
+  Result := DirExists(ExpandConstant('{userappdata}\Elgato\StreamDeck'));
+end;
+
+function FindStreamDeckExe(): String;
+var
+  Candidates: array[0..1] of String;
+  I: Integer;
+begin
+  Result := '';
+  Candidates[0] := ExpandConstant('{commonpf64}\Elgato\StreamDeck\StreamDeck.exe');
+  Candidates[1] := ExpandConstant('{commonpf32}\Elgato\StreamDeck\StreamDeck.exe');
+  for I := 0 to 1 do
+    if FileExists(Candidates[I]) then
+    begin
+      Result := Candidates[I];
+      exit;
+    end;
+end;
+
+{ BeforeInstall on the plugin [Files] entry — Inno calls it once per file, hence the
+  once-guard. Stopping the Stream Deck app releases any lock on the previous plugin version;
+  taskkill needs no elevation because both installer and Stream Deck run as the same user.
+  Exit code 0 = a process was killed (so it was running and we should restart it afterwards);
+  128 = no such process. }
+procedure StopStreamDeckApp();
+var
+  ResultCode: Integer;
+begin
+  if StreamDeckStopAttempted then
+    exit;
+  StreamDeckStopAttempted := True;
+  if Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM StreamDeck.exe', '', SW_HIDE,
+      ewWaitUntilTerminated, ResultCode) then
+    StreamDeckWasRunning := (ResultCode = 0);
+  if StreamDeckWasRunning then
+  begin
+    Log('Stream Deck app stopped for plugin install; will restart after.');
+    Sleep(1500); { let child plugin processes exit and release file handles }
+  end;
+end;
+
+procedure RestartStreamDeckApp();
+var
+  Exe: String;
+  ResultCode: Integer;
+begin
+  if not StreamDeckWasRunning then
+    exit;
+  Exe := FindStreamDeckExe();
+  if Exe <> '' then
+    Exec(Exe, '', '', SW_SHOWMINNOACTIVE, ewNoWait, ResultCode)
+  else
+    Log('Stream Deck app was stopped but StreamDeck.exe was not found to restart it.');
 end;
 
 function DetectVoiceMeeter(): String;
@@ -331,5 +424,6 @@ begin
   begin
     WriteSettings();
     InstallGsxProfiles();
+    RestartStreamDeckApp();
   end;
 end;

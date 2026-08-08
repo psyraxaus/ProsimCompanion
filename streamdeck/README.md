@@ -23,6 +23,11 @@ never touches raw GSX menu ordinals or LVARs — those stay inside the app.
 
 ## Build & install
 
+> **End users don't need any of this:** the ProsimCompanion installer offers a "Stream Deck
+> plugin" task (shown when the Elgato app is detected) that installs/updates the plugin
+> directly, and also ships the packed `.streamDeckPlugin` to `{app}\streamdeck\` for manual
+> double-click installs. The steps below are for development.
+
 ```bash
 cd streamdeck
 npm install
@@ -33,11 +38,12 @@ npm run pack       # build + emit dist/com.prosimcompanion.streamdeck.streamDeck
 Double-click the emitted `.streamDeckPlugin` to install it, or during development
 use `streamdeck link com.prosimcompanion.streamdeck.sdPlugin` then `npm run watch`.
 
-> **Icon assets:** the manifest references SVG icons under `imgs/`. Current
-> Stream Deck builds accept SVG; if `streamdeck pack`/`validate` rejects them on
-> your version, convert the SVGs to PNG (same paths, `.png`). The live **key
-> faces are drawn at runtime** as SVG via `setImage`, so only the static
-> manifest/list icons are affected.
+> **Icon assets:** action/category icons are SVG under `imgs/` (accepted by the
+> current `streamdeck validate`), but the plugin's marketplace `Icon` must be
+> PNG — `imgs/plugin/marketplace.png` (+`@2x`) are rasterized from
+> `marketplace.svg` (e.g. `npx sharp-cli -i marketplace.svg -o . -f png resize
+> 144 144`); regenerate them if you edit the SVG. The live **key faces are drawn
+> at runtime** as SVG via `setImage`, so they are unaffected.
 
 ## Pairing
 
