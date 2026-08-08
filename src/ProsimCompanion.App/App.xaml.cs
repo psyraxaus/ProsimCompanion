@@ -14,14 +14,18 @@ public partial class App : Application
 {
     private readonly IServiceProvider _services;
     private readonly string _webUrl;
+    private readonly SingleInstanceGuard _singleInstance;
+    private TrayIcon? _trayIcon;
 
-    public App(IServiceProvider services, string webUrl)
+    public App(IServiceProvider services, string webUrl, SingleInstanceGuard singleInstance)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(webUrl);
+        ArgumentNullException.ThrowIfNull(singleInstance);
 
         _services = services;
         _webUrl = webUrl;
+        _singleInstance = singleInstance;
     }
 
     protected override void OnStartup(StartupEventArgs e)
@@ -34,6 +38,15 @@ public partial class App : Application
             _services.GetRequiredService<IOptionsMonitor<WebUiOptions>>().CurrentValue,
             _webUrl);
         MainWindow = window;
+        _trayIcon = new TrayIcon(window, _webUrl);
+        // A second launch pokes the show-window event instead of starting twice.
+        _singleInstance.OnShowRequested(() => TrayIcon.Restore(window));
         window.Show();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _trayIcon?.Dispose();
+        base.OnExit(e);
     }
 }

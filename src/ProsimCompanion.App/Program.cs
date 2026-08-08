@@ -37,6 +37,15 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // Single instance (roadmap Phase 7): a second launch activates the running window
+        // and exits — two instances would fight over the web port and the SDK connection.
+        using var singleInstance = SingleInstanceGuard.TryAcquire();
+        if (singleInstance is null)
+        {
+            SingleInstanceGuard.SignalExistingInstance();
+            return 0;
+        }
+
         var logDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ProsimCompanion",
@@ -97,7 +106,7 @@ public static class Program
             var url = DisplayUrl(web.Services);
             Log.Information("Web UI available at {Url}", url);
 
-            var app = new App(web.Services, url);
+            var app = new App(web.Services, url, singleInstance);
             app.InitializeComponent();
             var exitCode = app.Run();
 
