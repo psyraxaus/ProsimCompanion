@@ -38,8 +38,13 @@ On update, an existing `settings.json` is **never overwritten**: the shipped tem
 installed `onlyifdoesntexist` (fresh installs only) and excluded from the bulk file copy, the
 SDK/VoiceMeeter wizard pages are skipped entirely, and nothing in the file is modified —
 everything the user configured (access token, GSX tuning, the lot) is untouched. Both paths
-remain editable on the web Settings page. Existing GSX profiles are kept unless the
-overwrite box is ticked (your `gsx.cfg` edits survive updates).
+remain editable on the web Settings page.
+
+GSX profiles update three-way: a profile identical to the shipped one is left alone; a
+profile the user **never edited** is auto-updated when a new version changes it (tracked via
+a `gsx.cfg.prosimcompanion.sha1` sidecar holding the hash of the last-installed version); a
+**user-edited** profile is kept unless the overwrite box is ticked. Pre-sidecar installs are
+treated as user-edited until the profile is next written.
 
 ## GSX payload notes
 

@@ -14,8 +14,10 @@
 ;     write it into {app}\config\settings.json (prosim.sdkPath)
 ;   * fresh installs prompt for the VoiceMeeter Remote DLL (optional) -> audio.voiceMeeterDllPath
 ;   * prompts for the Virtuali directory and installs the GSX aircraft profiles (gsx.cfg for
-;     the three ProSim A322 SimObject folders) into <Virtuali>\Airplanes — existing profiles
-;     are kept unless the overwrite box is ticked (Prosim2GSX semantics). gsx_handler.py (the
+;     the three ProSim A322 SimObject folders) into <Virtuali>\Airplanes — profiles the user
+;     never edited auto-update when the shipped content changes (tracked via a sidecar hash
+;     of the last-installed version); user-edited profiles are kept unless the overwrite box
+;     is ticked. gsx_handler.py (the
 ;     in-sim event bridge + VDGS display) is copied into every profile directory and ALWAYS
 ;     refreshed — it is an app-owned runtime file, and the app serves its /api/gsxmenu
 ;     endpoints and keeps the script's port line in sync at startup.
@@ -260,11 +262,12 @@ begin
   ProfilesCheckPage := CreateInputOptionPage(VirtualiPage.ID,
     'GSX aircraft profiles',
     'Install the ProSim A322 GSX profiles?',
-    'Profiles for prosim-a322-cfm, prosim-a322-iae and Prosim-a322-neo. Existing profiles ' +
-    'are kept unless you tick the overwrite option (your own gsx.cfg edits survive updates).',
+    'Profiles for prosim-a322-cfm, prosim-a322-iae and Prosim-a322-neo. Profiles you have ' +
+    'not edited update automatically when a new version changes them; your own gsx.cfg ' +
+    'edits are kept unless you tick the overwrite option.',
     False, False);
   ProfilesCheckPage.Add('Install GSX aircraft profiles');
-  ProfilesCheckPage.Add('Overwrite existing profiles');
+  ProfilesCheckPage.Add('Overwrite profiles I have edited myself');
   ProfilesCheckPage.Values[0] := True;
   ProfilesCheckPage.Values[1] := False;
 end;
@@ -399,21 +402,53 @@ end;
 
 { ---- GSX profiles ----------------------------------------------------------------------- }
 
-procedure InstallGsxProfile(const ProfileName: String; var Copied, Skipped: Integer);
+{ Per-profile decision, three-way: unchanged -> no-op; shipped content changed and the user
+  never edited their copy -> auto-update; user-edited -> keep unless the overwrite box is
+  ticked. "User-edited" is detected via a sidecar (gsx.cfg.prosimcompanion.sha1) holding the
+  hash of the profile as last installed: target != sidecar means the user touched it. Legacy
+  installs without a sidecar are treated as user-edited (conservative — the pre-sidecar
+  behaviour) and gain the sidecar the first time the profile is written or found current. }
+procedure InstallGsxProfile(const ProfileName: String; var Copied, Unchanged, Kept: Integer);
 var
-  TargetDir, TargetFile: String;
+  SourceFile, TargetDir, TargetFile, SidecarFile: String;
+  SourceHash, TargetHash: String;
+  InstalledRaw: AnsiString;
+  UserEdited: Boolean;
 begin
+  (* The whole GSXProfiles tree was staged to the temp dir by InstallGsxProfiles. *)
+  SourceFile := ExpandConstant('{tmp}\GSXProfiles\' + ProfileName + '\gsx.cfg');
   TargetDir := AddBackslash(VirtualiPage.Values[0]) + 'Airplanes\' + ProfileName;
   TargetFile := TargetDir + '\gsx.cfg';
-  if FileExists(TargetFile) and not ProfilesCheckPage.Values[1] then
+  SidecarFile := TargetFile + '.prosimcompanion.sha1';
+  SourceHash := GetSHA1OfFile(SourceFile);
+
+  if FileExists(TargetFile) then
   begin
-    Skipped := Skipped + 1;
-    exit;
+    TargetHash := GetSHA1OfFile(TargetFile);
+    if CompareText(TargetHash, SourceHash) = 0 then
+    begin
+      { Already current. Ensure the sidecar exists so a legacy unedited install starts
+        receiving automatic updates from here on. }
+      SaveStringToFile(SidecarFile, AnsiString(SourceHash), False);
+      Unchanged := Unchanged + 1;
+      exit;
+    end;
+    UserEdited := True;
+    if LoadStringFromFile(SidecarFile, InstalledRaw) then
+      UserEdited := CompareText(Trim(String(InstalledRaw)), TargetHash) <> 0;
+    if UserEdited and not ProfilesCheckPage.Values[1] then
+    begin
+      Kept := Kept + 1;
+      exit;
+    end;
   end;
+
   ForceDirectories(TargetDir);
-  (* The whole GSXProfiles tree was staged to the temp dir by InstallGsxProfiles. *)
-  if CopyFile(ExpandConstant('{tmp}\GSXProfiles\' + ProfileName + '\gsx.cfg'), TargetFile, False) then
+  if CopyFile(SourceFile, TargetFile, False) then
+  begin
+    SaveStringToFile(SidecarFile, AnsiString(SourceHash), False);
     Copied := Copied + 1;
+  end;
 end;
 
 { The handler is refreshed into EVERY profile dir that exists — even when the user chose to
@@ -430,17 +465,19 @@ end;
 
 procedure InstallGsxProfiles();
 var
-  Copied, Skipped: Integer;
+  Copied, Unchanged, Kept: Integer;
 begin
   ExtractTemporaryFiles('{tmp}\GSXProfiles\*');
   if ProfilesCheckPage.Values[0] then
   begin
     Copied := 0;
-    Skipped := 0;
-    InstallGsxProfile('prosim-a322-cfm', Copied, Skipped);
-    InstallGsxProfile('prosim-a322-iae', Copied, Skipped);
-    InstallGsxProfile('Prosim-a322-neo', Copied, Skipped);
-    Log(Format('GSX profiles: %d copied, %d kept (already present)', [Copied, Skipped]));
+    Unchanged := 0;
+    Kept := 0;
+    InstallGsxProfile('prosim-a322-cfm', Copied, Unchanged, Kept);
+    InstallGsxProfile('prosim-a322-iae', Copied, Unchanged, Kept);
+    InstallGsxProfile('Prosim-a322-neo', Copied, Unchanged, Kept);
+    { A continuation line must not start with '[' — Inno's section parser runs before Pascal. }
+    Log(Format('GSX profiles: %d installed/updated, %d already current, %d kept (user-edited)', [Copied, Unchanged, Kept]));
   end;
   InstallGsxHandler('prosim-a322-cfm');
   InstallGsxHandler('prosim-a322-iae');

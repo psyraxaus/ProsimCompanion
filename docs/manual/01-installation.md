@@ -17,16 +17,17 @@ run it elevated). The wizard asks for:
 
 1. **ProSimSDK.dll location** — auto-detected from the usual ProSim install locations. Leave
    empty if unsure: the ProSim connection stays disabled with guidance until you set it on
-   the web Settings page.
+   the web Settings page. *Fresh installs only — updates skip this page.*
 2. **VoicemeeterRemote64.dll** — only if you want the VoiceMeeter audio backend. Optional.
+   *Fresh installs only.*
 3. **Virtuali directory** (default `%APPDATA%\Virtuali`) and whether to install the **GSX
    aircraft profiles** for the ProSim A322 (`prosim-a322-cfm`, `prosim-a322-iae`,
    `Prosim-a322-neo`). These profiles give GSX the door positions and the door-LVAR contract
-   it needs. Existing profiles are kept unless you tick *overwrite* — your own `gsx.cfg`
-   edits survive updates.
+   it needs. Profiles you never edited update automatically when a new version changes them;
+   your own `gsx.cfg` edits are kept unless you tick *overwrite*.
 
-Everything the wizard collects lands in `config\settings.json` beside the app — on updates
-only those specific keys are touched, never the rest of your configuration.
+Everything the wizard collects lands in `config\settings.json` beside the app — updates never
+modify an existing `settings.json` or re-ask for the paths already in it.
 
 ## First run
 
