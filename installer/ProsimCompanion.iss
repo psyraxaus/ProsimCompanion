@@ -7,6 +7,8 @@
 ; /DAppVersion=... /DPublishDir=...
 ;
 ; What this installer does beyond a plain file copy:
+;   * NEVER overwrites an existing {app}\config\settings.json — the template ships
+;     onlyifdoesntexist and updates only surgically edit the two installer-owned keys
 ;   * prompts for the ProSimSDK.dll location (auto-detected where possible) and writes it
 ;     into {app}\config\settings.json (prosim.sdkPath)
 ;   * prompts for the VoiceMeeter Remote DLL (optional) -> audio.voiceMeeterDllPath
@@ -74,9 +76,16 @@ Name: "streamdeckplugin"; Description: "Install the ProsimCompanion Stream Deck 
 
 [Files]
 ; The published application. ProSimSDK.dll is excluded belt-and-braces — the build script has
-; already failed the build if it ever appears in the publish folder.
-Source: "{#PublishDir}\*"; DestDir: "{app}"; Excludes: "ProSimSDK.dll"; \
+; already failed the build if it ever appears in the publish folder. settings.json is excluded
+; from the bulk copy because the publish payload carries the template: letting ignoreversion
+; copy it would clobber the user's entire configuration (access token, GSX tuning, everything)
+; on every update. It is installed separately below, fresh installs only.
+Source: "{#PublishDir}\*"; DestDir: "{app}"; Excludes: "ProSimSDK.dll,\config\settings.json"; \
     Flags: recursesubdirs createallsubdirs ignoreversion
+; The settings template, FRESH INSTALLS ONLY (onlyifdoesntexist): on update the user's
+; settings.json is never touched by [Files]; WriteSettings() surgically edits just the two
+; installer-owned path keys. SettingsDefaultsWriter fills every other default on first start.
+Source: "{#PublishDir}\config\settings.json"; DestDir: "{app}\config"; Flags: onlyifdoesntexist
 ; GSX aircraft profiles are extracted to temp and copied by [Code] so the keep-vs-overwrite
 ; choice can be honoured per profile.
 Source: "GSXProfiles\prosim-a322-cfm\gsx.cfg"; DestDir: "{tmp}\GSXProfiles\prosim-a322-cfm"; Flags: dontcopy

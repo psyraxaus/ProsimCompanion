@@ -34,8 +34,10 @@ reads the version from `Directory.Build.props`, and compiles `ProsimCompanion.is
   (requires `commandApi.enabled: true` and the web access token).
 - Uninstall removes the plugin from the Elgato plugins folder (it is dead without the app).
 
-On update, an existing `settings.json` is only surgically edited for the two path keys —
-everything else the user configured is untouched. Existing GSX profiles are kept unless the
+On update, an existing `settings.json` is **never overwritten**: the shipped template is
+installed `onlyifdoesntexist` (fresh installs only) and excluded from the bulk file copy, and
+the wizard only surgically edits the two path keys — everything else the user configured
+(access token, GSX tuning, the lot) is untouched. Existing GSX profiles are kept unless the
 overwrite box is ticked (your `gsx.cfg` edits survive updates).
 
 ## GSX payload notes
