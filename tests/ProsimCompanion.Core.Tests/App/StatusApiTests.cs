@@ -99,7 +99,9 @@ public sealed class StatusApiTests
                 ("Water", StatusServiceState.Requested, ""),
                 ("Cleaning", StatusServiceState.Skipped, "first leg"),
                 ("Boarding", StatusServiceState.Callable, "waiting for refuel"),
-                ("Lavatory", StatusServiceState.NotAvailable, ""),
+                // Waiting = not yet reached in the sequence, still manually callable —
+                // notAvailable would dim its Stream Deck key.
+                ("Lavatory", StatusServiceState.Callable, ""),
             },
             gsx.Services.Select(row => (row.Type, row.State, row.Detail)).ToArray());
     }
@@ -142,8 +144,8 @@ public sealed class StatusApiTests
         {
             Services =
             [
-                new GsxServiceView("Refueling", "Refueling", "available", "Callable", true, false, null),
-                new GsxServiceView("Pushback", "Pushback", "unavailable", "NotAvailable", false, false, null),
+                new GsxServiceView("Refueling", "Refueling", "available", "Callable", true, false, null, GsxServiceStage.Waiting),
+                new GsxServiceView("Departure", "Departure", "unavailable", "NotAvailable", false, false, null, GsxServiceStage.Skipped),
             ],
         };
 
@@ -153,7 +155,41 @@ public sealed class StatusApiTests
             new[]
             {
                 ("Refueling", StatusServiceState.Callable),
-                ("Pushback", StatusServiceState.NotAvailable),
+                ("Departure", StatusServiceState.Skipped),
+            },
+            gsx.Services.Select(row => (row.Type, row.State)).ToArray());
+    }
+
+    [Fact]
+    public void Board_IsUnionedWithUncoveredMirrorServices()
+    {
+        // Board-else-mirror used to hide jetway/stairs/GPU whenever automation had published a
+        // board (they are never configured departure services) — the union keeps them, and the
+        // mirror rows carry the LATCHED stage so completed quick services stay completed.
+        var snapshot = GsxDiagnosticsSnapshot.Empty with
+        {
+            ServiceBoard =
+            [
+                new GsxServiceBoardRow("Refueling", GsxServiceStage.Completed, null),
+                new GsxServiceBoardRow("Boarding", GsxServiceStage.Active, null),
+            ],
+            Services =
+            [
+                new GsxServiceView("Refueling", "Refueling", "available", "Callable", true, false, null, GsxServiceStage.Completed),
+                new GsxServiceView("OperateJetways", "Operate Jetways", "completed", "Completed", true, false, null, GsxServiceStage.Completed),
+                new GsxServiceView("GPU", "GPU", "available", "Callable", true, false, null, GsxServiceStage.Waiting),
+            ],
+        };
+
+        var gsx = Build(departure: Departure(true), snapshot: snapshot).Gsx!;
+
+        Assert.Equal(
+            new[]
+            {
+                ("Refueling", StatusServiceState.Completed),
+                ("Boarding", StatusServiceState.Active),
+                ("OperateJetways", StatusServiceState.Completed),
+                ("GPU", StatusServiceState.Callable),
             },
             gsx.Services.Select(row => (row.Type, row.State)).ToArray());
     }

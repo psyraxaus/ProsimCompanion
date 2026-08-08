@@ -26,8 +26,8 @@ namespace ProsimCompanion.Gsx.Services;
 /// </summary>
 public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
 {
-    private const string JetwayServiceId = "OperateJetways";
-    private const string StairsServiceId = "OperateStairs";
+    private const string JetwayServiceId = GsxServiceIds.OperateJetways;
+    private const string StairsServiceId = GsxServiceIds.OperateStairs;
 
     /// <summary>L:FSDT_GSX_JETWAY value meaning "no jetway exists at this position" — see the
     /// 2026-08-02 live-session archaeology in <see cref="GsxJetwayStairsService"/>.</summary>
@@ -279,14 +279,14 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
 
     private static string ServiceIdFor(GsxServiceAction action) => action switch
     {
-        GsxServiceAction.RequestRefuel => "Refueling",
-        GsxServiceAction.RequestCatering => "Catering",
-        GsxServiceAction.RequestBoarding => "Boarding",
-        GsxServiceAction.RequestDeboarding => "Deboarding",
+        GsxServiceAction.RequestRefuel => GsxServiceIds.Refueling,
+        GsxServiceAction.RequestCatering => GsxServiceIds.Catering,
+        GsxServiceAction.RequestBoarding => GsxServiceIds.Boarding,
+        GsxServiceAction.RequestDeboarding => GsxServiceIds.Deboarding,
         GsxServiceAction.RequestJetway => JetwayServiceId,
         GsxServiceAction.RequestStairs => StairsServiceId,
-        GsxServiceAction.RequestGpu => "GPU",
-        GsxServiceAction.RequestDeice => "DeIce",
+        GsxServiceAction.RequestGpu => GsxServiceIds.Gpu,
+        GsxServiceAction.RequestDeice => GsxServiceIds.DeIce,
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, "No direct service id."),
     };
 

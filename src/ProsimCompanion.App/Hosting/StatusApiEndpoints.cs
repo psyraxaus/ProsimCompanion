@@ -166,8 +166,11 @@ public static class StatusApiEndpoints
             string.Equals(pair.Key, subsystem, StringComparison.OrdinalIgnoreCase)
             && pair.Value == ConnectionState.Connected);
 
-    /// <summary>Departure board rows (configured order). Falls back to the raw mirror service
-    /// list when the automation has not published a board yet.</summary>
+    /// <summary>Departure board rows (configured order) first, then every mirrored service the
+    /// board does not cover. The board only carries configured departure services, so
+    /// board-else-mirror dropped jetway/stairs/GPU/deice from the payload entirely once
+    /// automation published a board — blanking their Stream Deck keys (issue #31). Mirror rows
+    /// use the latched Stage, so a finished quick service stays completed (issue #29).</summary>
     private static IReadOnlyList<StatusServiceRow> ServiceRows(GsxDiagnosticsSnapshot? snapshot)
     {
         if (snapshot is null)
@@ -175,18 +178,23 @@ public static class StatusApiEndpoints
             return [];
         }
 
-        if (snapshot.ServiceBoard.Count > 0)
-        {
-            return [.. snapshot.ServiceBoard.Select(row => new StatusServiceRow(
+        var rows = new List<StatusServiceRow>(
+            snapshot.ServiceBoard.Select(row => new StatusServiceRow(
                 row.ServiceId,
                 MapStage(row.Stage),
-                row.Detail ?? ""))];
-        }
+                row.Detail ?? "")));
 
-        return [.. snapshot.Services.Select(service => new StatusServiceRow(
-            service.Id,
-            MapMirrorState(service.MappedState),
-            service.ProgressText ?? ""))];
+        var seen = new HashSet<string>(
+            snapshot.ServiceBoard.Select(row => row.ServiceId),
+            StringComparer.OrdinalIgnoreCase);
+        rows.AddRange(snapshot.Services
+            .Where(service => seen.Add(service.Id))
+            .Select(service => new StatusServiceRow(
+                service.Id,
+                MapStage(service.Stage),
+                service.ProgressText ?? "")));
+
+        return rows;
     }
 
     /// <summary>The next service the sequencer would call: the first board row still waiting
@@ -196,24 +204,18 @@ public static class StatusApiEndpoints
             .FirstOrDefault(row => row.Stage is GsxServiceStage.Waiting or GsxServiceStage.Held)
             ?.ServiceId;
 
+    /// <summary>Waiting maps to callable, not notAvailable: a service the sequencer has not
+    /// reached (or GSX simply offers outside the board) is still manually callable, and
+    /// notAvailable dims its Stream Deck key.</summary>
     private static StatusServiceState MapStage(GsxServiceStage stage) => stage switch
     {
+        GsxServiceStage.Waiting => StatusServiceState.Callable,
         GsxServiceStage.Held => StatusServiceState.Callable,
         GsxServiceStage.Called => StatusServiceState.Requested,
         GsxServiceStage.Requested => StatusServiceState.Requested,
         GsxServiceStage.Active => StatusServiceState.Active,
         GsxServiceStage.Completed => StatusServiceState.Completed,
         GsxServiceStage.Skipped => StatusServiceState.Skipped,
-        _ => StatusServiceState.NotAvailable,
-    };
-
-    private static StatusServiceState MapMirrorState(string mappedState) => mappedState.ToUpperInvariant() switch
-    {
-        "CALLABLE" => StatusServiceState.Callable,
-        "REQUESTED" => StatusServiceState.Requested,
-        "ACTIVE" => StatusServiceState.Active,
-        "COMPLETED" => StatusServiceState.Completed,
-        "BYPASSED" => StatusServiceState.Skipped,
         _ => StatusServiceState.NotAvailable,
     };
 

@@ -199,6 +199,9 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
     private void PublishDiagnostics()
     {
         var mirror = _client.Mirror;
+        // Stage carries the lifecycle latch — the raw mirror state regresses to "available"
+        // after quick services finish, and status surfaces must not (issue #29).
+        var cycles = _lifecycle.SnapshotCycles();
         _diagnostics.Update(new GsxDiagnosticsSnapshot(
             _client.Readiness.ToString(),
             [.. _client.Capabilities],
@@ -215,7 +218,10 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
                 service.State.ToString(),
                 service.CanTrigger,
                 service.Waiting,
-                service.ProgressText))],
+                service.ProgressText,
+                GsxServiceStageProjector.Project(
+                    service,
+                    cycles.TryGetValue(service.Id, out var cycle) ? cycle : default)))],
             [])
         {
             AutomationPhase = _automation.Phase.ToString(),

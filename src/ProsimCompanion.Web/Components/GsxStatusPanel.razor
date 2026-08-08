@@ -85,7 +85,7 @@
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
-                    <tr><th>Service</th><th>Wire state</th><th>Mapped</th><th>Triggerable</th><th>Progress</th></tr>
+                    <tr><th>Service</th><th>Wire state</th><th>Mapped</th><th>Stage</th><th>Triggerable</th><th>Progress</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var service in _view.Services.OrderBy(s => s.Id))
@@ -94,6 +94,9 @@
                             <td>@service.DisplayName</td>
                             <td class="mono">@(service.SemanticState ?? "—")@(service.Waiting ? " (waiting)" : "")</td>
                             <td>@service.MappedState</td>
+                            @* Stage is the latched view — diverging from Mapped after a quick
+                               service finishes is the latch doing its job (issue #29). *@
+                            <td>@GsxPresentation.StageLabel(service.Stage)</td>
                             <td>@(service.CanTrigger ? "yes" : "no")</td>
                             <td>@(service.ProgressText ?? "")</td>
                         </tr>

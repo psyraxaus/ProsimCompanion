@@ -22,33 +22,37 @@ function inProgress(s: ServiceState | undefined): boolean {
 	return s === "requested" || s === "active";
 }
 
+// statusType values are the CANONICAL GSX Remote API service ids (GsxServiceIds in the app,
+// docs/integrations/gsx-remote-api.md §3) — `gsx.services[].type` carries those verbatim.
+// Short names ("refuel", "jetway") match nothing and leave the key permanently dim (#31).
 const SERVICES: Record<string, ServiceDef> = {
 	refuel: {
 		heading: "REFUEL",
 		command: "gsx.requestRefuel",
-		statusType: "refuel",
+		statusType: "Refueling",
 		getValue: (g, s) => (inProgress(s) ? `${Math.round(g.refuelPercent ?? 0)}%` : undefined),
 	},
-	catering: { heading: "CATERING", command: "gsx.requestCatering", statusType: "catering" },
+	catering: { heading: "CATERING", command: "gsx.requestCatering", statusType: "Catering" },
 	boarding: {
 		heading: "BOARDING",
 		command: "gsx.requestBoarding",
-		statusType: "boarding",
+		statusType: "Boarding",
 		getValue: (g, s) => (inProgress(s) ? `${g.paxBoarded ?? 0}/${g.paxTotal ?? 0}` : undefined),
 	},
 	deboarding: {
 		heading: "DEBOARD",
 		command: "gsx.requestDeboarding",
-		statusType: "deboarding",
+		statusType: "Deboarding",
 		getValue: (g, s) => (inProgress(s) ? `${g.paxBoarded ?? 0}/${g.paxTotal ?? 0}` : undefined),
 	},
-	jetway: { heading: "JETWAY", command: "gsx.requestJetway", statusType: "jetway" },
-	jetwayRetract: { heading: "JETWAY ▲", command: "gsx.retractJetway", statusType: "jetway" },
-	stairs: { heading: "STAIRS", command: "gsx.requestStairs", statusType: "stairs" },
-	stairsRetract: { heading: "STAIRS ▲", command: "gsx.retractStairs", statusType: "stairs" },
-	gpu: { heading: "GPU", command: "gsx.requestGpu", statusType: "gpu" },
-	deice: { heading: "DE-ICE", command: "gsx.requestDeice", statusType: "deice" },
-	pushback: { heading: "PUSHBACK", command: "gsx.requestPushback", statusType: "pushback" },
+	jetway: { heading: "JETWAY", command: "gsx.requestJetway", statusType: "OperateJetways" },
+	jetwayRetract: { heading: "JETWAY ▲", command: "gsx.retractJetway", statusType: "OperateJetways" },
+	stairs: { heading: "STAIRS", command: "gsx.requestStairs", statusType: "OperateStairs" },
+	stairsRetract: { heading: "STAIRS ▲", command: "gsx.retractStairs", statusType: "OperateStairs" },
+	gpu: { heading: "GPU", command: "gsx.requestGpu", statusType: "GPU" },
+	deice: { heading: "DE-ICE", command: "gsx.requestDeice", statusType: "DeIce" },
+	// GSX names the pushback request service "Departure".
+	pushback: { heading: "PUSHBACK", command: "gsx.requestPushback", statusType: "Departure" },
 	departure: { heading: "AUTO DEP", command: "gsx.startDepartureServices" },
 };
 

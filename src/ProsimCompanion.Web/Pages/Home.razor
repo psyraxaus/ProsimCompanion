@@ -89,20 +89,24 @@
     <section class="status-section">
         <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Services</h3>
         <div class="section-body">
+            @* Service ids MUST be the canonical GsxServiceIds strings — the mirror never
+               carries "Jetway"/"Stairs"/"Pushback", so home-grown names render "—" forever
+               (issue #31). Reposition has no Remote API service (menu-driven) and stays an
+               untracked "—" row for layout parity. *@
             @ServiceRow("Reposition", "Reposition")
-            @ServiceRow("Refuel", "Refueling")
-            @ServiceRow("Catering", "Catering")
-            @ServiceRow("Lavatory", "Lavatory")
-            @ServiceRow("Water", "Water")
-            @ServiceRow("Cleaning", "Cleaning")
-            @ServiceRow("GPU", "GPU")
-            @ServiceRow("Boarding", "Boarding")
-            @ServiceRow("Deboarding", "Deboarding")
-            @ServiceRow("Pushback", "Pushback")
-            @ServiceRow("Jetway", "Jetway")
-            @ConnectedRow("Jetway Connected", "Jetway")
-            @ServiceRow("Stairs", "Stairs")
-            @ConnectedRow("Stairs Connected", "Stairs")
+            @ServiceRow("Refuel", GsxServiceIds.Refueling)
+            @ServiceRow("Catering", GsxServiceIds.Catering)
+            @ServiceRow("Lavatory", GsxServiceIds.Lavatory)
+            @ServiceRow("Water", GsxServiceIds.Water)
+            @ServiceRow("Cleaning", GsxServiceIds.Cleaning)
+            @ServiceRow("GPU", GsxServiceIds.Gpu)
+            @ServiceRow("Boarding", GsxServiceIds.Boarding)
+            @ServiceRow("Deboarding", GsxServiceIds.Deboarding)
+            @ServiceRow("Pushback", GsxServiceIds.Departure)
+            @ServiceRow("Jetway", GsxServiceIds.OperateJetways)
+            @ConnectedRow("Jetway Connected", GsxServiceIds.OperateJetways)
+            @ServiceRow("Stairs", GsxServiceIds.OperateStairs)
+            @ConnectedRow("Stairs Connected", GsxServiceIds.OperateStairs)
         </div>
     </section>
 
@@ -182,17 +186,20 @@
     private RenderFragment ServiceRow(string label, string serviceId)
     {
         var view = ServiceView(serviceId);
-        // Tone keys off the MAPPED protocol state: the semantic string is GSX's raw display
-        // text ("available", "active (5)", …) and never matched the enum names, so the pills
-        // stayed neutral forever. The semantic text is still what the pill SHOWS.
-        var tone = view?.MappedState.ToLowerInvariant() switch
+        // Tone and text key off the LATCHED stage, not the raw mirror: GSX flips finished
+        // quick services (and refuel) back to "available", which read as never-run while the
+        // departure board said Completed (issue #29). The raw semantic text still shows for
+        // the in-between stages.
+        var tone = view?.Stage switch
         {
-            "completed" => "tone-ok",
-            "active" => "tone-active",
-            "requested" => "tone-warn",
+            GsxServiceStage.Completed => "tone-ok",
+            GsxServiceStage.Active => "tone-active",
+            GsxServiceStage.Requested or GsxServiceStage.Called => "tone-warn",
             _ => "tone-neutral",
         };
-        var text = view is null ? null : view.SemanticState ?? view.MappedState;
+        var text = view is null ? null
+            : view.Stage == GsxServiceStage.Completed ? "completed"
+            : view.SemanticState ?? view.MappedState;
         return @<div class="row">
             <span class="row-label">@label</span>
             <span class="pill @tone">@(text ?? "—")</span>
@@ -201,10 +208,12 @@
 
     private RenderFragment ConnectedRow(string label, string serviceId)
     {
-        // Docked = the operate service mirrors Active or Completed — judged on the mapped
-        // state for the same reason as ServiceRow.
+        // Docked = the operate service reads Active or Completed. The toggles never latch
+        // (their stage IS the positional mirror state), so retraction drops this back to "—".
+        // Refinement tracked in #30: LVAR-authoritative connect state with the 30 s
+        // stale-Active grace, once the operate LVARs are surfaced to the store.
         var view = ServiceView(serviceId);
-        var connected = view?.MappedState.ToLowerInvariant() is "active" or "completed";
+        var connected = view?.Stage is GsxServiceStage.Active or GsxServiceStage.Completed;
         return @<div class="row">
             <span class="row-label">@label</span>
             <span class="pill @(connected ? "tone-ok" : "tone-neutral")">@(connected ? "Connected" : "—")</span>

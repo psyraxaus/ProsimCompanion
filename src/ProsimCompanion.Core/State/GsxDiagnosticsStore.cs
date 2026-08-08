@@ -1,5 +1,9 @@
 namespace ProsimCompanion.Core.State;
 
+/// <summary><see cref="Stage"/> is the LATCHED lifecycle stage and is what status surfaces
+/// must render: the raw mirror has no memory, so GSX flipping a finished quick service (or
+/// refuel) back to "available" would otherwise read as never-run (issue #29). The raw
+/// semantic/mapped states stay for diagnostics.</summary>
 public sealed record GsxServiceView(
     string Id,
     string DisplayName,
@@ -7,7 +11,8 @@ public sealed record GsxServiceView(
     string MappedState,
     bool CanTrigger,
     bool Waiting,
-    string? ProgressText);
+    string? ProgressText,
+    GsxServiceStage Stage = GsxServiceStage.Waiting);
 
 public sealed record GsxCommandView(
     DateTimeOffset Timestamp,

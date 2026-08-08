@@ -19,8 +19,8 @@ namespace ProsimCompanion.Gsx.Sync;
 /// </summary>
 public sealed class GsxJetwayStairsService : IDisposable
 {
-    private const string JetwayServiceId = "OperateJetways";
-    private const string StairsServiceId = "OperateStairs";
+    private const string JetwayServiceId = GsxServiceIds.OperateJetways;
+    private const string StairsServiceId = GsxServiceIds.OperateStairs;
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxServiceLifecycleTracker _lifecycle;
