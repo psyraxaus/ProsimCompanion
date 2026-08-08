@@ -81,6 +81,15 @@ public static class Program
                 Log.Information("Settings file updated with newly available option defaults");
             }
 
+            // One-shot predecessor config import (Prosim2GSX AppConfig.json, Prosim2FO
+            // settings.json) — marker-guarded, before the host binds the settings file.
+            using (var importLoggerFactory = new Serilog.Extensions.Logging.SerilogLoggerFactory(Log.Logger))
+            {
+                PredecessorConfigImporter.TryImportOnFirstRun(
+                    settingsFile,
+                    importLoggerFactory.CreateLogger("PredecessorImport"));
+            }
+
             var web = BuildWebHost(args, settingsPath, settingsFile, levels, logBuffer, wireTrace);
 
             // Populate the named-command registry (web/API/StreamDeck seam). RegisterAll
