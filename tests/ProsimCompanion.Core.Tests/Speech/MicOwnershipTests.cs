@@ -228,7 +228,14 @@ public sealed class MicOwnershipTests
             [probe],
             new SpeechStatusStore(),
             eventLog,
-            NullLogger<SpokenChecklistEngine>.Instance);
+            NullLogger<SpokenChecklistEngine>.Instance,
+            new ProsimCompanion.Speech.Briefings.MinimaCaptureDialogue(
+                SpeechTestSupport.BriefingMonitor(new BriefingOptions()),
+                _mic,
+                new ArrivalMinimaStore(),
+                arbiter,
+                eventLog,
+                NullLogger<ProsimCompanion.Speech.Briefings.MinimaCaptureDialogue>.Instance));
         engine.Start();
 
         _window.Hear("test phrase");

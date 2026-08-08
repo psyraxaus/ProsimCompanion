@@ -1,0 +1,114 @@
+{
+  "//": "Voice commands = FO actions performed by dataref writes. Active anytime the app is listening. Each step is a momentary 'press' (write press -> hold -> write restore). Step datarefs form the command write allow-list (bounded in code to FCU push-buttons and MCDU keys). FCU buttons and MCDU keys are momentary [0:Normal,1:Pushed]; pressing again toggles for FCU. MCDU keys = the F/O CDU (CDU2). delayMs gives the MCDU time to change pages between keys. Spoken-query tokens: {altimeter} {qnh} {v1} {vr} {v2} {flex} {runway}.",
+
+  "commands": [
+    {
+      "phrases": [ "autopilot one", "autopilot one on", "autopilot on" ],
+      "say": "Autopilot one",
+      "steps": [ { "dataref": "system.switches.S_FCU_AP1", "press": 1, "restore": 0, "holdMs": 150 } ]
+    },
+    {
+      "phrases": [ "autopilot two", "autopilot two on" ],
+      "say": "Autopilot two",
+      "steps": [ { "dataref": "system.switches.S_FCU_AP2", "press": 1, "restore": 0, "holdMs": 150 } ]
+    },
+    {
+      "phrases": [ "auto thrust", "autothrust" ],
+      "say": "Auto thrust",
+      "steps": [ { "dataref": "system.switches.S_FCU_ATHR", "press": 1, "restore": 0, "holdMs": 150 } ]
+    },
+    {
+      "phrases": [ "approach mode", "arm approach" ],
+      "say": "Approach",
+      "steps": [ { "dataref": "system.switches.S_FCU_APPR", "press": 1, "restore": 0, "holdMs": 150 } ]
+    },
+    {
+      "phrases": [ "localizer", "arm localizer" ],
+      "say": "Localizer",
+      "steps": [ { "dataref": "system.switches.S_FCU_LOC", "press": 1, "restore": 0, "holdMs": 150 } ]
+    },
+    {
+      "phrases": [ "flight directors off", "flight director off" ],
+      "say": "Flight directors off",
+      "//": "Presses the F/O flight director button (toggle). Add a step for system.switches.S_FCU_EFIS1_FD to also toggle the captain FD.",
+      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_FD", "press": 1, "restore": 0, "holdMs": 150 } ]
+    },
+    {
+      "//": "Read-only callout: copilot reads back the F/O FCU altimeter setting ({altimeter} = aviation digits, follows hPa/inHg, says 'standard' on STD). No steps = no dataref writes.",
+      "phrases": [ "altimeter check", "say altimeter", "check altimeter" ],
+      "say": "Altimeter, {altimeter}.",
+      "steps": []
+    },
+    {
+      "//": "Read-only: copilot reads back the MCDU take-off V-speeds.",
+      "phrases": [ "say v speeds", "v speeds", "speed check" ],
+      "say": "V one {v1}, rotate {vr}, V two {v2}.",
+      "steps": []
+    },
+    {
+      "//": "Read-only: copilot confirms the departure runway (SayIntentions flight.json, else the briefing manual setting).",
+      "phrases": [ "confirm departure runway", "departure runway", "say departure runway" ],
+      "say": "Departure runway {runway}.",
+      "steps": []
+    },
+
+    {
+      "//": "MCDU: activate approach phase — PERF page, then LSK6L twice (ACTIVATE APPR PHASE + confirm).",
+      "phrases": [ "activate approach phase", "activate approach" ],
+      "say": "Approach phase activated",
+      "steps": [
+        { "dataref": "system.switches.S_CDU2_KEY_PERF",  "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK6L", "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK6L", "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 }
+      ]
+    },
+    {
+      "//": "MCDU: clear rad nav — RAD NAV page, CLR each field (1L,2L,3L,5L,1R,2R,5R), then back via PERF/FPLN.",
+      "phrases": [ "clear rad nav", "clear radio nav" ],
+      "say": "Rad nav cleared",
+      "steps": [
+        { "dataref": "system.switches.S_CDU2_KEY_RAD_NAV", "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_CLEAR",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK1L",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_CLEAR",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK2L",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_CLEAR",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK3L",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_CLEAR",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK5L",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_CLEAR",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK1R",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_CLEAR",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK2R",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_CLEAR",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 200 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK5R",   "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_PERF",    "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_FPLN",    "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 }
+      ]
+    },
+    {
+      "//": "MCDU: page-cycle / check sequence carried from the predecessor's FS2Crew script. Rename or remove the phrase as you like.",
+      "phrases": [ "check the box" ],
+      "say": "Checked",
+      "steps": [
+        { "dataref": "system.switches.S_CDU2_KEY_DATA",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_INIT",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_FPLN",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_SEC_FPLN",    "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_RAD_NAV",     "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_ARROW_RIGHT", "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_PERF",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_FPLN",        "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 }
+      ]
+    },
+    {
+      "//": "MCDU: copy active to secondary — SEC F-PLN page, then LSK1L (COPY ACTIVE).",
+      "phrases": [ "copy active to secondary" ],
+      "say": "Active copied to secondary",
+      "steps": [
+        { "dataref": "system.switches.S_CDU2_KEY_SEC_FPLN", "press": 1, "restore": 0, "holdMs": 120, "delayMs": 250 },
+        { "dataref": "system.switches.S_CDU2_KEY_LSK1L",    "press": 1, "restore": 0, "holdMs": 120 }
+      ]
+    }
+  ]
+}

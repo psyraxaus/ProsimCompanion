@@ -55,6 +55,20 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Radios.RadioExecutor>());
         services.AddSingleton<Fcu.FcuExecutor>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Fcu.FcuExecutor>());
+        // File-driven commands.json AFTER the FCU executor: the gated FCU path keeps
+        // precedence on overlapping phrases ("arm approach").
+        services.AddSingleton<Commands.ConfiguredVoiceCommands>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Commands.ConfiguredVoiceCommands>());
+        // MCDU trio (predecessor dispatch position: after fcu, before briefings). Reader is
+        // read-only; tuner/arrival changer arm only via mcdu.allowActuation.
+        services.AddSingleton<Mcdu.McduReader>();
+        services.AddSingleton<Mcdu.IMcduReader>(p => p.GetRequiredService<Mcdu.McduReader>());
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Mcdu.McduReader>());
+        services.AddSingleton<Mcdu.IMcduActuator, Mcdu.McduActuator>();
+        services.AddSingleton<Mcdu.McduRadNavTuner>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Mcdu.McduRadNavTuner>());
+        services.AddSingleton<Mcdu.McduArrivalChanger>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Mcdu.McduArrivalChanger>());
         services.AddSingleton<Briefings.DfdNavDataProvider>();
         services.AddSingleton<Briefings.ProcedureSource>();
         services.AddSingleton<Briefings.MinimaCaptureDialogue>();
@@ -64,6 +78,8 @@ public static class SpeechServiceCollectionExtensions
         // The missed-approach voice phrases dispatch through their own small feature so the
         // re-brief gate logic stays out of BriefingService.
         services.AddSingleton<IVoiceFeature, Briefings.MissedApproachVoiceFeature>();
+        // Minima recall query — after BriefingService so full-briefing phrases keep precedence.
+        services.AddSingleton<IVoiceFeature, Briefings.MinimaQueryVoiceFeature>();
         services.AddSingleton<Company.CompanyChannelService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Company.CompanyChannelService>());
         services.AddSingleton<Company.ICompanyChannel>(p => p.GetRequiredService<Company.CompanyChannelService>());
@@ -100,6 +116,8 @@ public static class SpeechServiceCollectionExtensions
         // first session-finalization step (Order 10).
         services.AddSingleton<TechLog.TechLogVoiceService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<TechLog.TechLogVoiceService>());
+        // Logbook spoken queries — exact/prefix matcher, no phrase overlap with the tech log.
+        services.AddSingleton<IVoiceFeature, Logbook.LogbookVoiceService>();
         // Guided raise/rectify dialogues + the post-abnormal shutdown offer (finalizer Order 40).
         services.AddSingleton<TechLog.TechLogDialogueService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<TechLog.TechLogDialogueService>());
@@ -110,6 +128,10 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Core.Sessions.ISessionFinalizationStep>(
             p => p.GetRequiredService<Debrief.DebriefService>());
         services.AddHostedService<PostFlightVoiceBootstrapService>();
+        // "Quiet please" latch + its Low-band suppression rule (consumed by the arbiter);
+        // the small-talk feature itself dispatches last — exact phrases only.
+        services.AddSingleton<Persona.QuietState>();
+        services.AddSingleton<IVoiceFeature, Persona.SmallTalkService>();
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

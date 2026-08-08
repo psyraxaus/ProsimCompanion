@@ -52,7 +52,8 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         FlightStateEngine flight,
         SpeechStatusStore store,
         JsonlEventLog eventLog,
-        ILogger<SpeechArbiterService> logger)
+        ILogger<SpeechArbiterService> logger,
+        Persona.QuietState quietState)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(voices);
@@ -62,6 +63,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(quietState);
 
         _options = options;
         _voices = voices;
@@ -72,7 +74,12 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         _eventLog = eventLog;
         _logger = logger;
 
-        _core = new SpeechArbiterCore([new SterileCockpitRule(() => options.CurrentValue)]);
+        _core = new SpeechArbiterCore(
+        [
+            new SterileCockpitRule(() => options.CurrentValue),
+            // "quiet please": drops the Low band while the session latch is engaged.
+            new Persona.QuietCockpitRule(quietState),
+        ]);
         _store.Update(s => s with { Enabled = options.CurrentValue.Enabled });
         _pump = Task.Run(PumpAsync);
     }

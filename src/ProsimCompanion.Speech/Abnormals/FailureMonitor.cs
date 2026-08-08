@@ -7,6 +7,7 @@ using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
+using ProsimCompanion.Speech.Recognition;
 
 namespace ProsimCompanion.Speech.Abnormals;
 
@@ -17,9 +18,13 @@ namespace ProsimCompanion.Speech.Abnormals;
 /// debounce filters transients, and a fired latch blocks re-announcement until the trigger
 /// clears. Warnings and drills speak Critical (pre-empting); cautions High. A triggered drill
 /// additionally speaks its rapid memory items (350 ms gaps) and closing status verbatim —
-/// never persona-styled, never actuating anything.
+/// never persona-styled, never actuating anything. A triggered ECAM procedure with action
+/// lines follows its announcement with the interactive per-line dialogue
+/// (<see cref="EcamDialogueCore"/>) under an exclusive mic borrow — one dialogue at a time,
+/// FIFO, skipped if the failure clears before its turn, and disabled entirely (announce-only)
+/// when no <see cref="IMicOwnership"/> was supplied.
 /// </summary>
-public sealed class FailureMonitor : IDisposable
+public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
 {
     private const string EwdLeft = "aircraft.fwc.content.left.str";
     private const string MasterWarning = "system.indicators.I_MIP_MASTER_WARNING_FO";
@@ -31,6 +36,10 @@ public sealed class FailureMonitor : IDisposable
     private readonly IFlightPhaseSource _flight;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FailureMonitor> _logger;
+    private readonly IMicOwnership? _mic;
+    private readonly EcamDialogueCore _ecamDialogue;
+    private readonly SemaphoreSlim _oneDialogue = new(1, 1);
+    private readonly CancellationTokenSource _dialogueCts = new();
     private readonly object _lock = new();
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, TriggerState> _states = [];
@@ -40,12 +49,16 @@ public sealed class FailureMonitor : IDisposable
     private int _ticking;
     private bool _ewdWarned;
 
+    /// <summary>Optional <paramref name="micOwnership"/>: DI injects the registered seam, so
+    /// live ECAM procedures run the interactive dialogue; without it (degraded mode, and the
+    /// pre-existing detection tests) procedures are announce-only and drills are unaffected.</summary>
     public FailureMonitor(
         ISpeechArbiter arbiter,
         IProsimDataRefs dataRefs,
         IFlightPhaseSource flight,
         JsonlEventLog eventLog,
-        ILogger<FailureMonitor> logger)
+        ILogger<FailureMonitor> logger,
+        IMicOwnership? micOwnership = null)
     {
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -58,6 +71,8 @@ public sealed class FailureMonitor : IDisposable
         _flight = flight;
         _eventLog = eventLog;
         _logger = logger;
+        _mic = micOwnership;
+        _ecamDialogue = new EcamDialogueCore(this, eventLog);
     }
 
     /// <summary>Drill voice phrases for the recognition idle grammar (drills are also
@@ -96,11 +111,15 @@ public sealed class FailureMonitor : IDisposable
 
     public void Dispose()
     {
+        _dialogueCts.Cancel(); // stops a running/queued ECAM dialogue mid-line
         _timer?.Dispose();
         foreach (var read in _reads.Values)
         {
             read.Dispose();
         }
+
+        _dialogueCts.Dispose();
+        _oneDialogue.Dispose();
     }
 
     /// <summary>Runs a drill by voice phrase (ground rehearsal). Returns false when no drill
@@ -189,6 +208,135 @@ public sealed class FailureMonitor : IDisposable
             : SpeechPriority.High;
         _ = _arbiter.EnqueueAsync(new SpeechRequest(
             announcement, priority, Tag: $"abnormal:{definition.Id}"));
+
+        // The announcement always plays; the interactive per-line dialogue follows only when
+        // there are action lines to work and a mic seam to hold them on.
+        if (_mic is not null && definition.Actions.Count > 0)
+        {
+            _ = Task.Run(() => RunEcamDialogueAsync(definition));
+        }
+    }
+
+    /// <summary>
+    /// One ECAM dialogue at a time (FIFO by semaphore turn — the severity pre-emption of
+    /// Prosim2FO's engine is not ported; a later Critical announcement still jumps the audio
+    /// queue). When its turn comes, a detection that has already cleared is skipped, matching
+    /// the predecessor. The mic borrow's using-disposal restores normal routing on every path.
+    /// </summary>
+    private async Task RunEcamDialogueAsync(AbnormalDefinition definition)
+    {
+        var token = _dialogueCts.Token;
+        try
+        {
+            await _oneDialogue.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                lock (_lock)
+                {
+                    if (_states.TryGetValue(definition.Id, out var state) && !state.Fired)
+                    {
+                        _eventLog.Record("abnormal.skipped",
+                            new { id = definition.Id, reason = "cleared-before-run" });
+                        _logger.LogInformation(
+                            "Skipping ECAM dialogue for {Id} — already cleared", definition.Id);
+                        return;
+                    }
+                }
+
+                using (await BorrowMicAsync("abnormal:" + definition.Id, token).ConfigureAwait(false))
+                {
+                    await _ecamDialogue.RunAsync(definition, token).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                try
+                {
+                    _oneDialogue.Release();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Disposed while this dialogue was finishing — nothing left to release to.
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutting down — the dialogue just stops.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed while waiting our turn — same as cancellation.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ECAM dialogue failed for {Id}", definition.Id);
+        }
+    }
+
+    /// <summary>Waits for the mic if another guided dialogue (tech log, minima capture) holds
+    /// it — an abnormal is urgent but Borrow throws on overlap by design, so we poll rather
+    /// than crash either dialogue.</summary>
+    private async Task<IDisposable> BorrowMicAsync(string owner, CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!_mic!.IsBorrowed)
+            {
+                try
+                {
+                    return _mic.Borrow(owner);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Lost the race to another dialogue — keep waiting.
+                }
+            }
+
+            await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    // ---- IEcamDialogueIo (the dialogue core's speak/listen/verify seam) ----
+
+    Task IEcamDialogueIo.SpeakAsync(string text, CancellationToken cancellationToken)
+        => string.IsNullOrWhiteSpace(text)
+            ? Task.CompletedTask
+            : _arbiter.EnqueueAsync(
+                new SpeechRequest(text, SpeechPriority.High, Tag: "abnormal"), cancellationToken);
+
+    Task<string?> IEcamDialogueIo.ListenAsync(
+        IReadOnlyList<string> grammar, TimeSpan timeout, CancellationToken cancellationToken)
+        => _mic!.ListenAsync(grammar, timeout, cancellationToken);
+
+    /// <summary>Null (→ ask the pilot) when any leaf dataref has no pushed value yet or went
+    /// stale on a connection drop — the analogue of Prosim2FO's "not connected → Ask", since
+    /// <see cref="ConditionEvaluator"/> itself is fail-closed and never throws.</summary>
+    bool? IEcamDialogueIo.TryEvaluate(VerifyCondition condition)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+
+        lock (_lock)
+        {
+            return AnyLeafUnreadable(condition) ? null : ConditionEvaluator.Evaluate(condition, Read);
+        }
+    }
+
+    private bool AnyLeafUnreadable(VerifyCondition condition)
+    {
+        if (condition.IsCompound)
+        {
+            return condition.Conditions!.Any(AnyLeafUnreadable);
+        }
+
+        if (string.IsNullOrWhiteSpace(condition.Dataref))
+        {
+            return false; // malformed leaf — let the evaluator fail it closed
+        }
+
+        var subscription = Subscription(condition.Dataref);
+        return subscription.RawValue is null || subscription.IsStale;
     }
 
     private string BuildAnnouncement(AbnormalDefinition definition)

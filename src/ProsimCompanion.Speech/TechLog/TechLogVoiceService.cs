@@ -22,8 +22,8 @@ public sealed class TechLogVoiceService : IVoiceFeature, IDisposable
 {
     private static readonly string[] BriefPhrases =
     [
-        "tech log", "read the tech log", "tech log brief", "brief the tech log",
-        "any open items", "open items",
+        "tech log", "read the tech log", "tech log brief", "brief tech log",
+        "brief the tech log", "any open items", "open items",
     ];
 
     private readonly ITechLogService _techLog;

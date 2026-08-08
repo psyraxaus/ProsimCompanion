@@ -81,6 +81,10 @@ public static class ProsimWriteGate
         // the FO must never move the captain's controls.
         "system.analog.A_FC_FO_",
 
+        // File-driven voice commands (commands.json): MCDU key presses. The commands
+        // engine's own VoiceCommandWriteGate narrows further to S_CDU1_KEY_/S_CDU2_KEY_.
+        "system.switches.S_CDU",
+
         // Voice FCU actions: value analogs (A_FCU_HEADING/ALTITUDE/SPEED/VS) + push/pull and
         // engagement switches. FcuControls further narrows to its fixed 15-entry list.
         "system.analog.A_FCU_",

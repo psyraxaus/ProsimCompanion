@@ -38,6 +38,7 @@ public static class SettingsDefaultsWriter
             (ChecklistOptions.SectionName, new ChecklistOptions()),
             (SopOptions.SectionName, new SopOptions()),
             (BriefingOptions.SectionName, new BriefingOptions()),
+            (McduOptions.SectionName, new McduOptions()),
             (SayIntentionsOptions.SectionName, new SayIntentionsOptions()),
             (CabinOptions.SectionName, new CabinOptions()),
             (CompanyOptions.SectionName, new CompanyOptions()),

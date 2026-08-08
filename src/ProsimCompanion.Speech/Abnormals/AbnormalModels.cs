@@ -5,9 +5,10 @@ namespace ProsimCompanion.Speech.Abnormals;
 
 /// <summary>One abnormal procedure or memory drill — file-compatible with Prosim2FO's
 /// abnormals/*.json (the shipped 30 are carried verbatim). This pillar is detect-and-report
-/// only: it never actuates a switch and never injects a failure. The interactive per-line
-/// ECAM dialogue (actions[]/confirm) is deserialized but deferred — detection announces, and
-/// drills speak their rapid memory items.</summary>
+/// only: it never actuates a switch and never injects a failure. Detection announces; drills
+/// speak their rapid memory items straight through; an ECAM procedure with action lines then
+/// runs the interactive per-line dialogue (<see cref="EcamDialogueCore"/>), each line gated on
+/// the pilot's confirm phrases.</summary>
 public sealed class AbnormalDefinition
 {
     public string Id { get; set; } = "";

@@ -16,13 +16,14 @@ public static class VoiceCommands
     public const string Skip = "skip";
     public const string SkipItem = "skip item";
 
-    // Hold/Standby/Resume/Continue are declared for the hold/resume feature (a tracked Phase 5
-    // leftover) but stay OUT of the grammar until routed: a biased-toward phrase with no
-    // handler turns "continue" into a failed item answer and a "Didn't catch that." loop.
     public static readonly IReadOnlyList<string> All =
     [
-        Restart, Cancel, SayAgain, Repeat, Skip, SkipItem,
+        Restart, Cancel, SayAgain, Repeat, Skip, SkipItem, Hold, Standby, Resume, Continue,
     ];
+
+    /// <summary>The words that resume a held checklist — the hold window listens for exactly
+    /// these (plus cancel/restart) so an unrelated remark can't accidentally resume.</summary>
+    public static readonly IReadOnlyList<string> ResumeWords = [Resume, Continue];
 }
 
 /// <summary>Yes/no confirmation vocabulary for gray-band "did you mean …?" dialogues.</summary>

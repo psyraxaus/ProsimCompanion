@@ -32,6 +32,7 @@ public sealed class SpokenChecklistEngine : IDisposable
         Skip,
         SayAgain,
         NotCaught,
+        Hold,
     }
 
     private sealed record EngineResponse(ResponseKind Kind, string Text);
@@ -51,6 +52,7 @@ public sealed class SpokenChecklistEngine : IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SpokenChecklistEngine> _logger;
     private readonly PhraseBank _phrases = new();
+    private readonly Briefings.MinimaCaptureDialogue _minimaCapture = null!;
     private readonly object _gate = new();
     private readonly Dictionary<string, IDataRefSubscription> _verifyReads = new(StringComparer.Ordinal);
 
@@ -74,12 +76,15 @@ public sealed class SpokenChecklistEngine : IDisposable
         IEnumerable<IVoiceFeature> features,
         SpeechStatusStore store,
         JsonlEventLog eventLog,
-        ILogger<SpokenChecklistEngine> logger)
+        ILogger<SpokenChecklistEngine> logger,
+        Briefings.MinimaCaptureDialogue minimaCapture)
     {
         ArgumentNullException.ThrowIfNull(failures);
         ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(minimaCapture);
         _failures = failures;
         _features = [.. features];
+        _minimaCapture = minimaCapture;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(recognition);
@@ -194,7 +199,7 @@ public sealed class SpokenChecklistEngine : IDisposable
                     "verify" => await RunVerifyAsync(item, ct).ConfigureAwait(false),
                     "action" => await RunActionAsync(item, ct).ConfigureAwait(false),
                     "monitorcontrols" => await RunMonitorControlsAsync(item, ct).ConfigureAwait(false),
-                    // captureMinima degrades to acknowledge until the briefing flow owns it.
+                    "captureminima" => await RunCaptureMinimaAsync(item, ct).ConfigureAwait(false),
                     _ => await RunAcknowledgeAsync(item, ct).ConfigureAwait(false),
                 };
                 if (completed)
@@ -233,11 +238,40 @@ public sealed class SpokenChecklistEngine : IDisposable
 
     private async Task<bool> RunAcknowledgeAsync(ChecklistItemDefinition item, CancellationToken ct)
     {
+        // An acknowledge/verify item that can never be answered (no accepted phrases, no
+        // number) would loop "didn't catch that" forever — surface it instead of shipping it
+        // silently (the predecessor validated this at load).
+        if (item.AcceptedPhrases.Count == 0
+            && !item.Expects.Equals("number", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Checklist item \"{Item}\" has no accepted phrases — auto-acknowledged", item.Say);
+            await Speak(item.Say).ConfigureAwait(false);
+            await SpeakConfirm(item).ConfigureAwait(false);
+            return true;
+        }
+
         await Speak(item.Say).ConfigureAwait(false);
         var answer = await AwaitAcceptedAsync(item, ct).ConfigureAwait(false);
         if (answer is null)
         {
             return false;
+        }
+
+        await SpeakConfirm(item).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>The approach checklist's "Minimum" line: runs the interactive capture →
+    /// read-back → confirm dialogue (Prosim2FO semantics — never proceed past minima on an
+    /// unconfirmed value). A "not briefed" decision still completes the line; the answer IS
+    /// the decision.</summary>
+    private async Task<bool> RunCaptureMinimaAsync(ChecklistItemDefinition item, CancellationToken ct)
+    {
+        await Speak(item.Say).ConfigureAwait(false);
+        var minima = await _minimaCapture.RunAsync(ct).ConfigureAwait(false);
+        if (minima is null)
+        {
+            await Speak("Minimums not briefed.").ConfigureAwait(false);
         }
 
         await SpeakConfirm(item).ConfigureAwait(false);
@@ -373,7 +407,15 @@ public sealed class SpokenChecklistEngine : IDisposable
             _monitorSkip = skip;
         }
 
-        _recognition.OpenListeningWindow(VoiceCommands.All);
+        // Commands + feature phrases (reference semantics) — skip/cancel work and so does a
+        // mid-check handover or radio call.
+        var monitorGrammar = new List<string>(VoiceCommands.All);
+        foreach (var feature in _features)
+        {
+            monitorGrammar.AddRange(feature.Phrases);
+        }
+
+        _recognition.OpenListeningWindow(monitorGrammar);
         try
         {
             var completed = await _monitor.RunAsync(
@@ -453,6 +495,11 @@ public sealed class SpokenChecklistEngine : IDisposable
                     await Speak(_phrases.NextDidNotCatch()).ConfigureAwait(false);
                     continue;
 
+                case ResponseKind.Hold:
+                    await HoldUntilResumedAsync(ct).ConfigureAwait(false);
+                    await Speak(item.Say).ConfigureAwait(false); // re-challenge after the hold
+                    continue;
+
                 default:
                     if (IsAccepted(item, result.Text))
                     {
@@ -461,6 +508,60 @@ public sealed class SpokenChecklistEngine : IDisposable
 
                     await Speak(_phrases.NextDidNotCatch()).ConfigureAwait(false);
                     continue;
+            }
+        }
+    }
+
+    /// <summary>"hold the checklist" / "standby": acknowledge, then listen ONLY for the
+    /// resume words (plus cancel/restart, which still route normally) so unrelated cockpit
+    /// chatter can't accidentally resume. The item is re-challenged on resume.</summary>
+    private async Task HoldUntilResumedAsync(CancellationToken ct)
+    {
+        await Speak("Holding the checklist. Say resume checklist when ready.").ConfigureAwait(false);
+        _eventLog.Record("checklist.voice", new { phase = "hold" });
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            var grammar = new List<string>(VoiceCommands.ResumeWords)
+            {
+                VoiceCommands.Cancel,
+                VoiceCommands.Restart,
+            };
+            var response = new TaskCompletionSource<EngineResponse>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (_gate)
+            {
+                _response = response;
+            }
+
+            _recognition.OpenListeningWindow(grammar);
+            EngineResponse result;
+            try
+            {
+                using (ct.Register(() => response.TrySetCanceled()))
+                {
+                    result = await response.Task.ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                lock (_gate)
+                {
+                    _response = null;
+                }
+
+                _recognition.CloseListeningWindow();
+            }
+
+            // Cancel/restart complete the run elsewhere; any resume word ends the hold. The
+            // hold window routes non-answers here as Phrase responses.
+            if (result.Kind is ResponseKind.Phrase
+                && VoiceCommands.ResumeWords.Any(w => CommandMatcher.Normalize(result.Text)
+                    .Equals(CommandMatcher.Normalize(w), StringComparison.Ordinal)))
+            {
+                _eventLog.Record("checklist.voice", new { phase = "resume" });
+                await Speak("Resuming.").ConfigureAwait(false);
+                return;
             }
         }
     }
@@ -601,18 +702,22 @@ public sealed class SpokenChecklistEngine : IDisposable
                 return;
 
             case InterpretKind.Confirm:
-                // Gray band: without a dedicated confirm sub-dialogue yet, treat as not
-                // caught — the pilot repeats. (The predecessor asked "did you mean …?".)
-                CompleteResponse(new EngineResponse(ResponseKind.NotCaught, ""));
+                // Gray band (score 0.70–0.85, command windows only): "did you mean …?" — the
+                // predecessor's affirm-gated recovery instead of silently discarding it.
+                _ = ConfirmAndRouteAsync(interpretation.Text);
                 return;
         }
 
-        var text = interpretation.Text;
+        RouteText(interpretation.Text, awaiting);
+    }
 
-        // An awaiting item's accepted phrase outranks the identically-named global command.
-        if (awaiting is not null && IsAccepted(awaiting, text)
-            && awaiting.AcceptedPhrases.Any(p => CommandMatcher.Normalize(p)
-                .Equals(CommandMatcher.Normalize(text), StringComparison.Ordinal)))
+    /// <summary>Post-interpretation routing (Prosim2FO's Route): an awaiting item's ACCEPTED
+    /// answer outranks the identically-named global command; a non-answer falls through to
+    /// the global commands and then the voice features, so "my aircraft" or "tune the ils"
+    /// still works while a checklist line is pending.</summary>
+    private void RouteText(string text, ChecklistItemDefinition? awaiting)
+    {
+        if (awaiting is not null && IsAccepted(awaiting, text))
         {
             CompleteResponse(new EngineResponse(ResponseKind.Phrase, text));
             return;
@@ -637,6 +742,17 @@ public sealed class SpokenChecklistEngine : IDisposable
                 CompleteResponse(new EngineResponse(ResponseKind.SayAgain, ""));
                 return;
 
+            case "hold the checklist" or "standby":
+                CompleteResponse(new EngineResponse(ResponseKind.Hold, ""));
+                return;
+
+            case "resume checklist" or "continue":
+                // The hold loop owns the pending response while holding; outside a hold this
+                // completes into an item answer that fails IsAccepted (didn't-catch) or
+                // no-ops when nothing is pending.
+                CompleteResponse(new EngineResponse(ResponseKind.Phrase, text));
+                return;
+
             case "cancel checklist":
                 Cancel();
                 return;
@@ -646,19 +762,22 @@ public sealed class SpokenChecklistEngine : IDisposable
                 return;
         }
 
-        if (awaiting is not null)
-        {
-            CompleteResponse(new EngineResponse(ResponseKind.Phrase, text));
-            return;
-        }
-
-        // Idle window: a voice feature (roles, FCU engagements, radios)?
+        // Voice features stay reachable while an item is pending (reference semantics) — a
+        // handover or radio call must not become a failed checklist answer.
         foreach (var feature in _features)
         {
             if (feature.TryHandle(text))
             {
                 return;
             }
+        }
+
+        if (awaiting is not null)
+        {
+            // Not a command, not a feature — treat as the item answer (IsAccepted already
+            // failed above, so this lands in the "didn't catch that" flow).
+            CompleteResponse(new EngineResponse(ResponseKind.Phrase, text));
+            return;
         }
 
         // A memory-drill rehearsal phrase?
@@ -682,12 +801,63 @@ public sealed class SpokenChecklistEngine : IDisposable
         }
     }
 
+    /// <summary>The gray-band recovery (Prosim2FO's ConfirmAndRouteAsync): borrow the mic,
+    /// ask "did you mean {candidate}?", listen 8 s on the confirm vocabulary, and route the
+    /// candidate only on an affirmative. Anything else (negative, timeout, mic busy) drops it
+    /// — the borrow's disposal replays the previous window either way.</summary>
+    private async Task ConfirmAndRouteAsync(string candidate)
+    {
+        try
+        {
+            IDisposable scope;
+            try
+            {
+                scope = _micOwnership.Borrow("confirmCommand");
+            }
+            catch (InvalidOperationException)
+            {
+                return; // another dialogue owns the mic — let the pilot just repeat
+            }
+
+            string? answer;
+            using (scope)
+            {
+                await Speak($"Say again — did you mean {candidate}?").ConfigureAwait(false);
+                answer = await _micOwnership.ListenAsync(
+                    ConfirmVocabulary.All, TimeSpan.FromSeconds(8), CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+
+            if (answer is not null
+                && ConfirmVocabulary.Affirm.Any(a => answer.Contains(a, StringComparison.OrdinalIgnoreCase)))
+            {
+                ChecklistItemDefinition? awaiting;
+                lock (_gate)
+                {
+                    awaiting = _awaitingItem;
+                }
+
+                RouteText(candidate, awaiting);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Confirm dialogue failed for {Candidate}", candidate);
+        }
+    }
+
     private List<string> BuildRouteVocabulary(ChecklistItemDefinition? awaiting)
     {
         var vocabulary = new List<string>(VoiceCommands.All);
         if (awaiting is not null)
         {
             vocabulary.AddRange(awaiting.AcceptedPhrases);
+            // Feature phrases stay in the item window (reference semantics): a handover or
+            // radio call while a line is pending must snap and dispatch, not fail the item.
+            foreach (var feature in _features)
+            {
+                vocabulary.AddRange(feature.Phrases);
+            }
         }
         else
         {

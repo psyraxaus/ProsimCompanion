@@ -63,6 +63,7 @@ public static class CoreServiceCollectionExtensions
         services.Configure<SpeechOptions>(configuration.GetSection(SpeechOptions.SectionName));
         services.Configure<ChecklistOptions>(configuration.GetSection(ChecklistOptions.SectionName));
         services.Configure<BriefingOptions>(configuration.GetSection(BriefingOptions.SectionName));
+        services.Configure<McduOptions>(configuration.GetSection(McduOptions.SectionName));
         services.Configure<SayIntentionsOptions>(configuration.GetSection(SayIntentionsOptions.SectionName));
         services.Configure<CabinOptions>(configuration.GetSection(CabinOptions.SectionName));
         services.Configure<CompanyOptions>(configuration.GetSection(CompanyOptions.SectionName));
