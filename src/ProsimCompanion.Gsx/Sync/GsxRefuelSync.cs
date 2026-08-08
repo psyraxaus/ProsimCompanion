@@ -19,6 +19,10 @@ public sealed class GsxRefuelSync : IDisposable
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(1);
     private const double CompletionToleranceKg = 1.0;
 
+    /// <summary>Predecessor FuelCompareVariance: FOB within this of the plan counts as "already
+    /// fueled" for the tankering skip.</summary>
+    private const double TankeringToleranceKg = 25.0;
+
     private readonly IProsimDataRefs _prosim;
     private readonly GsxProsimWriter _writer;
     private readonly IOptionsMonitor<GsxOptions> _options;
@@ -35,6 +39,7 @@ public sealed class GsxRefuelSync : IDisposable
     private bool _pumpPowerOn;
     private string? _lastHoldReason;
     private double _latchedTargetKg;
+    private double _dynamicRateKgPerSec;
     private bool _divergenceLogged;
     private int _ticking;
 
@@ -96,6 +101,7 @@ public sealed class GsxRefuelSync : IDisposable
                 _lastHoldReason = null;
                 _divergenceLogged = false;
                 _pumpPowerOn = false;
+                _dynamicRateKgPerSec = 0;
                 // The target is LATCHED once at activation and never re-read while pumping:
                 // ProSim rewrites aircraft.refuel.fuelTarget to the current FOB the moment its
                 // refuel session engages (round-4 smoke test: 7317 collapsed to 2500 one tick
@@ -105,6 +111,10 @@ public sealed class GsxRefuelSync : IDisposable
                 RecordDecision(
                     "refuel sync",
                     $"activated — current {_fuelTotal.GetValue(0.0):F0} kg; latched target {_latchedTargetKg:F0} kg (candidates: fuelTarget {_fuelTarget.GetValue(0.0):F0}, fuelTarget.kg {_fuelTargetKg.GetValue(0.0):F0}, plannedfuel {_plannedFuel.GetValue(0.0):F0})");
+                if (TrySkipForTankering(_fuelTotal.GetValue(0.0), _latchedTargetKg))
+                {
+                    return;
+                }
                 break;
 
             case GsxServiceLifecycleEvent.Completed when _transferActive:
@@ -160,6 +170,19 @@ public sealed class GsxRefuelSync : IDisposable
             if (hose != _hoseWasConnected)
             {
                 _hoseWasConnected = hose;
+
+                // Hose pulled mid-transfer: optionally finish instantly at the latched target
+                // (predecessor RefuelFinishOnHose) instead of pausing until it reconnects.
+                if (!hose && _options.CurrentValue.RefuelFinishOnHose && _latchedTargetKg > 0)
+                {
+                    RecordDecision("refuel sync", $"hose disconnected — finishing instantly at {_latchedTargetKg:F0} kg (refuelFinishOnHose)");
+                    _transferActive = false;
+                    _pumpPowerOn = false;
+                    await _prosim.WriteAsync(ProsimDataRefNames.FuelTotal, _latchedTargetKg).ConfigureAwait(false);
+                    await SetRefuelPowerAsync(false).ConfigureAwait(false);
+                    return;
+                }
+
                 RecordDecision("refuel sync", hose ? "hose connected" : "hose disconnected — paused");
             }
 
@@ -181,6 +204,10 @@ public sealed class GsxRefuelSync : IDisposable
                     return;
                 }
                 RecordDecision("refuel sync", $"latched target {_latchedTargetKg:F0} kg");
+                if (TrySkipForTankering(current, _latchedTargetKg))
+                {
+                    return;
+                }
             }
 
             var target = _latchedTargetKg;
@@ -202,7 +229,7 @@ public sealed class GsxRefuelSync : IDisposable
                 return;
             }
 
-            var next = LoadMath.NextFuelStep(current, target, _options.CurrentValue.RefuelRateKgPerSec);
+            var next = LoadMath.NextFuelStep(current, target, GetRateKgPerSec(current, target));
             if (Math.Abs(next - current) < 0.01)
             {
                 await SetPumpAsync(false).ConfigureAwait(false);
@@ -239,6 +266,52 @@ public sealed class GsxRefuelSync : IDisposable
         {
             Interlocked.Exchange(ref _ticking, 0);
         }
+    }
+
+    /// <summary>Tankering skip (predecessor SkipFuelOnTankering): with the FOB already at or
+    /// above the plan (within tolerance) the whole transfer is skipped — the GSX crew still
+    /// runs its animation, but no fuel moves and refuel power never comes on.</summary>
+    private bool TrySkipForTankering(double currentKg, double targetKg)
+    {
+        if (!_options.CurrentValue.SkipRefuelOnTankering
+            || targetKg <= 0
+            || currentKg < targetKg - TankeringToleranceKg)
+        {
+            return false;
+        }
+
+        _transferActive = false;
+        RecordDecision(
+            "refuel sync",
+            $"skipped — FOB {currentKg:F0} kg already meets planned {targetKg:F0} kg (tankering)");
+        return true;
+    }
+
+    /// <summary>Per-tick rate. Dynamic method computes it once per transfer from the FIRST
+    /// tick's remaining amount over the time target, so the fill takes ~the configured duration
+    /// regardless of the ordered quantity; a nonsensical result falls back to the fixed rate.</summary>
+    private double GetRateKgPerSec(double currentKg, double targetKg)
+    {
+        var options = _options.CurrentValue;
+        if (!string.Equals(options.RefuelMethod, "dynamicRate", StringComparison.OrdinalIgnoreCase))
+        {
+            return options.RefuelRateKgPerSec;
+        }
+
+        if (_dynamicRateKgPerSec <= 0)
+        {
+            var seconds = Math.Max(1, options.RefuelTimeTargetSeconds);
+            _dynamicRateKgPerSec = (targetKg - currentKg) / seconds;
+            if (_dynamicRateKgPerSec <= 0)
+            {
+                _dynamicRateKgPerSec = options.RefuelRateKgPerSec;
+            }
+            RecordDecision(
+                "refuel sync",
+                $"dynamic rate {_dynamicRateKgPerSec:F1} kg/s ({targetKg - currentKg:F0} kg over ~{seconds} s)");
+        }
+
+        return _dynamicRateKgPerSec;
     }
 
     /// <summary>GSX finished the refuel cycle. If the transfer fell short of the latched target

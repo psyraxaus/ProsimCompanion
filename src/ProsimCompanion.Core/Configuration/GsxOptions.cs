@@ -127,6 +127,22 @@ public sealed class GsxOptions
     /// <summary>Fuel transfer rate in kg per second.</summary>
     public double RefuelRateKgPerSec { get; set; } = 25;
 
+    /// <summary>Rate model: "fixedRate" pumps at <see cref="RefuelRateKgPerSec"/>;
+    /// "dynamicRate" computes the rate once per transfer so the fill takes about
+    /// <see cref="RefuelTimeTargetSeconds"/> regardless of the ordered amount.</summary>
+    public string RefuelMethod { get; set; } = "fixedRate";
+
+    /// <summary>Target fill duration in seconds for the dynamic rate method.</summary>
+    public int RefuelTimeTargetSeconds { get; set; } = 300;
+
+    /// <summary>Skip the fuel transfer when FOB already meets the planned figure (tankering) —
+    /// predecessor default on, 25 kg tolerance.</summary>
+    public bool SkipRefuelOnTankering { get; set; } = true;
+
+    /// <summary>Snap the FOB to the target when the GSX fuel hose disconnects mid-transfer,
+    /// instead of pausing and waiting for it to reconnect.</summary>
+    public bool RefuelFinishOnHose { get; set; }
+
     /// <summary>Allow the sync to pump fuel DOWN when the target is below the current quantity.
     /// Off by default: ProSim's fuel-target datarefs have twice exposed transfer amounts instead
     /// of totals, and an erroneous low target must hold (decision-logged), never defuel.</summary>

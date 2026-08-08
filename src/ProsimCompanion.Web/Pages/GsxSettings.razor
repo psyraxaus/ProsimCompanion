@@ -158,8 +158,25 @@
                     <BoolField Label="Refuel sync"
                                Hint="Step ProSim fuel toward the target while the GSX hose is connected"
                                @bind-Value="_draft.RefuelSyncEnabled" />
-                    <NumberField Label="Refuel rate" Suffix="kg/s" Step="0.5" Min="1"
-                                 @bind-Value="_draft.RefuelRateKgPerSec" />
+                    <SelectField Label="Refuel method" Options="RefuelMethodOptions"
+                                 Hint="Dynamic: rate is computed so the fill takes the time target regardless of amount"
+                                 @bind-Value="_draft.RefuelMethod" />
+                    @if (string.Equals(_draft.RefuelMethod, "dynamicRate", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <NumberField Label="Time target" Suffix="s" Min="30"
+                                     @bind-Value="_draft.RefuelTimeTargetSeconds" />
+                    }
+                    else
+                    {
+                        <NumberField Label="Refuel rate" Suffix="kg/s" Step="0.5" Min="1"
+                                     @bind-Value="_draft.RefuelRateKgPerSec" />
+                    }
+                    <BoolField Label="Skip refuel when FOB exceeds plan"
+                               Hint="Tankering: no fuel moves when the aircraft already carries the planned figure"
+                               @bind-Value="_draft.SkipRefuelOnTankering" />
+                    <BoolField Label="Finish refuel on hose disconnect"
+                               Hint="Snap to the planned fuel instantly when the GSX hose disconnects mid-transfer"
+                               @bind-Value="_draft.RefuelFinishOnHose" />
                     <BoolField Label="Allow defuel"
                                Hint="Off by default: an erroneous low target holds, never defuels"
                                @bind-Value="_draft.AllowDefuel" />
@@ -382,6 +399,9 @@
         (GsxServiceConstraint.NonCompanyHub, "Non-hub airports only"),
     ];
 
+    private static readonly IReadOnlyList<(string, string)> RefuelMethodOptions =
+        [("fixedRate", "Fixed rate"), ("dynamicRate", "Dynamic rate")];
+
     private static readonly IReadOnlyList<(string, string)> DeIceFluidOptions =
         [("Type I", "Type I"), ("Type II", "Type II"), ("Type IV", "Type IV")];
 
@@ -497,6 +517,10 @@
 
                 gsx["refuelSyncEnabled"] = draft.RefuelSyncEnabled;
                 gsx["refuelRateKgPerSec"] = draft.RefuelRateKgPerSec;
+                gsx["refuelMethod"] = draft.RefuelMethod;
+                gsx["refuelTimeTargetSeconds"] = draft.RefuelTimeTargetSeconds;
+                gsx["skipRefuelOnTankering"] = draft.SkipRefuelOnTankering;
+                gsx["refuelFinishOnHose"] = draft.RefuelFinishOnHose;
                 gsx["allowDefuel"] = draft.AllowDefuel;
                 gsx["boardingSyncEnabled"] = draft.BoardingSyncEnabled;
 
