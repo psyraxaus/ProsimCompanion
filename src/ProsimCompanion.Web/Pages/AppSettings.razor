@@ -8,6 +8,7 @@
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
 @inject IOptionsMonitor<CabinOptions> CabinMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
+@inject IOptionsMonitor<BriefingOptions> BriefingMonitor
 @inject JsonSettingsFile SettingsFile
 @inject ThemeCatalog Themes
 
@@ -55,6 +56,12 @@
                    @bind-Value="_prosimApiKey" />
         <NumberField Label="Reconnect interval" Suffix="ms" Min="500"
                      @bind-Value="_prosimReconnectMs" />
+    </Section>
+
+    <Section Title="Nav Data" Hint="Navigraph DFD database for SID/STAR/approach lookups (briefings and other nav-data consumers)">
+        <TextField Label="DFD database path"
+                   Hint="Path to your Navigraph DFD SQLite file (.s3db / .sqlite cycle export) — user-supplied, never redistributed. Empty = no nav-data facts in briefings"
+                   @bind-Value="_dfdPath" />
     </Section>
 
     <Section Title="Web Interface" Hint="Bind/port also editable in the desktop app (lockout prevention)">
@@ -156,6 +163,7 @@
     private bool _dingStartup;
     private bool _dingFinal;
     private bool _allowChecklistOverride;
+    private string _dfdPath = "";
 
     // The draft grew past tuple sanity — a joined string is an adequate dirty fingerprint.
     private string _baseline = "";
@@ -170,7 +178,7 @@
         _webPort, _webLan, _logLevel, _wireTrace,
         _sayIntentions, _autoPrelim, _autoFinal, _finalDelayMin, _finalDelayMax, _autoSyncFms,
         _autoPrelimAtStd, _prelimStdOffset, _solari, _unitSource, _unit,
-        _dingStartup, _dingFinal, _allowChecklistOverride);
+        _dingStartup, _dingFinal, _allowChecklistOverride, _dfdPath);
 
     protected override void OnInitialized()
     {
@@ -211,6 +219,7 @@
         _dingStartup = cabin.DingOnStartup;
         _dingFinal = cabin.DingOnFinal;
         _allowChecklistOverride = ChecklistMonitor.CurrentValue.AllowManualOverride;
+        _dfdPath = BriefingMonitor.CurrentValue.DfdPath;
 
         _baseline = Snapshot();
         _barMessage = null;
@@ -258,6 +267,9 @@
 
                 var checklists = JsonSettingsFile.GetOrCreateSection(root, ChecklistOptions.SectionName);
                 checklists["allowManualOverride"] = _allowChecklistOverride;
+
+                var briefing = JsonSettingsFile.GetOrCreateSection(root, BriefingOptions.SectionName);
+                briefing["dfdPath"] = _dfdPath.Trim();
             });
 
             _baseline = Snapshot();

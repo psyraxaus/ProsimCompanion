@@ -155,12 +155,12 @@
             else if (_section == "briefing")
             {
                 <Section Title="Briefings" Hint="Departure/arrival briefings composed from nav data + weather; the deterministic template is always the floor">
-                    <TextField Label="Navigraph DFD database"
-                               Hint="Path to your DFD SQLite file — user-supplied, never redistributed. Empty just thins the briefing (no nav-data facts)"
-                               @bind-Value="_briefingDraft.DfdPath" />
                     <BoolField Label="Verify numbers in LLM output"
                                Hint="Every figure the LLM writes is checked against the source facts; a failed retry falls back to the template"
                                @bind-Value="_briefingDraft.VerifyNumbers" />
+                    <div class="field-hint" style="max-width:640px;">
+                        The Navigraph DFD database path lives on App Settings → Nav Data.
+                    </div>
                 </Section>
 
                 <Section Title="LLM Styling" Hint="One OpenAI-compatible endpoint for the whole app (briefing and debrief prose)">
@@ -447,7 +447,8 @@
             SettingsFile.Update(root =>
             {
                 var briefing = JsonSettingsFile.GetOrCreateSection(root, BriefingOptions.SectionName);
-                briefing["dfdPath"] = briefingDraft.DfdPath.Trim();
+                // dfdPath deliberately not written here — App Settings → Nav Data owns it,
+                // and a stale draft on this page must not clobber a save made there.
                 briefing["verifyNumbers"] = briefingDraft.VerifyNumbers;
                 briefing["llmEnabled"] = briefingDraft.LlmEnabled;
                 briefing["llmBaseUrl"] = briefingDraft.LlmBaseUrl.Trim();
