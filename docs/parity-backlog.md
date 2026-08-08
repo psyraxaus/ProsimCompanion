@@ -5,6 +5,12 @@ Each entry records what Prosim2GSX does, what ProsimCompanion needs to match it,
 Reassess priorities after the 2026-08-08/09 flight test — its results (pushback menu entry
 texts, profile matching, SayIntentions assignGate, seatOccupation format) may reorder items.
 
+**Status 2026-08-08 (second pass)**: items 1–10 are implemented (GitHub issues #1–#10, one
+commit per issue, all relabelled ready-for-human) and await the flight-test verification.
+Only items 11 (cabin-call — write-safety review first, #11) and 12 (skip walkaround, #12)
+remain unimplemented, plus the walkaround-stairs sliver of item 10 (needs Sim-pillar
+CAMERA STATE / IS AVATAR reads, shared with item 12).
+
 ## Agreed differences — NOT backlog
 
 Decided with the project owner during the parity planning pass; do not "fix" without a new decision:
