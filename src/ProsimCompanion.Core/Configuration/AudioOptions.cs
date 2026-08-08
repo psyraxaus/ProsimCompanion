@@ -44,6 +44,15 @@ public sealed class AudioOptions
     /// belong here.</summary>
     public List<string> DeviceBlacklist { get; set; } = [];
 
+    /// <summary>CoreAudio enumeration DataFlow scope: "render" | "capture" | "all".
+    /// Troubleshooting only (predecessor Device-Filter DataFlow) — change as advised.</summary>
+    public string DeviceFilterFlow { get; set; } = "render";
+
+    /// <summary>CoreAudio enumeration DeviceState filter: "active" | "disabled" |
+    /// "notPresent" | "unplugged" | "all". Troubleshooting only (predecessor
+    /// Device-Filter State).</summary>
+    public string DeviceFilterState { get; set; } = "active";
+
     // ---- VoiceMeeter backend ----
 
     /// <summary>Full path to VoicemeeterRemote64.dll (never redistributed — typically

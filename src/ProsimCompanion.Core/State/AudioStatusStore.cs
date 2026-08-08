@@ -104,4 +104,10 @@ public interface IAudioControl
     /// <summary>Queries a running VoiceMeeter for its strip/bus inventory — empty when the
     /// DLL is not loaded or VoiceMeeter is not running. Synchronous and sub-ms.</summary>
     IReadOnlyList<VoiceMeeterTargetView> GetVoiceMeeterTargets();
+
+    /// <summary>Writes a mapping/process/device/session snapshot to AudioDebug.txt in the
+    /// logs folder (predecessor "Write Debug Info"). Returns the file path, or null when the
+    /// dump could not be written. Each dump section degrades independently — an enumeration
+    /// failure is recorded inside the dump instead of aborting it.</summary>
+    Task<string?> WriteDebugDumpAsync(CancellationToken cancellationToken = default);
 }

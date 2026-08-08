@@ -147,6 +147,116 @@ public sealed class AudioControlService : IAudioControl, IDisposable
         return result;
     }
 
+    /// <summary>Predecessor "Write Debug Info": mappings → process resolution → device/session
+    /// walk, each block independently guarded so a failure is written INTO the dump (the
+    /// predecessor silently discarded the dump when enumeration failed — the one case it was
+    /// wanted). Runs on a worker thread with its own enumerator (COM apartment safety).</summary>
+    public Task<string?> WriteDebugDumpAsync(CancellationToken cancellationToken = default)
+        => Task.Run<string?>(() =>
+        {
+            var options = _options.CurrentValue;
+            var dump = new System.Text.StringBuilder();
+            dump.AppendLine($"ProsimCompanion audio debug dump — {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
+            dump.AppendLine($"Backend: {options.Backend}; Enabled: {options.Enabled}");
+            dump.AppendLine();
+
+            try
+            {
+                dump.AppendLine($"Configured app mappings: {options.AppMappings.Count}");
+                var index = 0;
+                foreach (var mapping in options.AppMappings)
+                {
+                    dump.AppendLine($"\t#{index++} channel={mapping.Channel} binary='{mapping.Binary}' device='{mapping.Device}' useLatch={mapping.UseLatch} onlyActive={mapping.OnlyActive}");
+                }
+            }
+            catch (Exception ex)
+            {
+                dump.AppendLine($"Mapping enumeration failed: {ex.GetType().Name} — {ex.Message}");
+            }
+
+            dump.AppendLine();
+            try
+            {
+                dump.AppendLine("Process resolution:");
+                foreach (var mapping in options.AppMappings)
+                {
+                    var processes = System.Diagnostics.Process.GetProcessesByName(mapping.Binary);
+                    dump.AppendLine($"\t'{mapping.Binary}': running={processes.Length > 0} ids=[{string.Join(", ", processes.Select(p => p.Id))}]");
+                    foreach (var process in processes)
+                    {
+                        process.Dispose();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                dump.AppendLine($"Process enumeration failed: {ex.GetType().Name} — {ex.Message}");
+            }
+
+            dump.AppendLine();
+            try
+            {
+                var flow = CoreAudioDeviceRegistry.ParseFlow(options.DeviceFilterFlow);
+                var state = CoreAudioDeviceRegistry.ParseState(options.DeviceFilterState);
+                using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+                var devices = enumerator.EnumerateAudioEndPoints(flow, state);
+                dump.AppendLine($"EnumerateAudioEndPoints: {devices.Count} devices (flow={flow}, state={state})");
+                foreach (var device in devices)
+                {
+                    try
+                    {
+                        var name = device.FriendlyName;
+                        var manager = device.AudioSessionManager;
+                        manager.RefreshSessions();
+                        var sessions = manager.Sessions;
+                        dump.AppendLine($"\tDevice '{name}' (sessions={sessions.Count}, blacklisted={CoreAudioDeviceRegistry.IsBlacklisted(name, options.DeviceBlacklist)})");
+                        for (var i = 0; i < sessions.Count; i++)
+                        {
+                            try
+                            {
+                                var session = sessions[i];
+                                dump.AppendLine($"\t\tSession #{i + 1}: name='{session.DisplayName}' pid={session.GetProcessID} state={session.State} instance='{session.GetSessionInstanceIdentifier}'");
+                            }
+                            catch (Exception ex)
+                            {
+                                dump.AppendLine($"\t\tSession #{i + 1}: probe failed — {ex.GetType().Name}: {ex.Message}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        dump.AppendLine($"\tDevice probe failed — {ex.GetType().Name}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        device.Dispose();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                dump.AppendLine($"Device enumeration failed: {ex.GetType().Name} — {ex.Message}");
+            }
+
+            try
+            {
+                var directory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "ProsimCompanion",
+                    "logs");
+                Directory.CreateDirectory(directory);
+                var path = Path.Combine(directory, "AudioDebug.txt");
+                File.WriteAllText(path, dump.ToString());
+                _logger.LogInformation("Audio debug dump written to {Path}", path);
+                return path;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Audio debug dump could not be written");
+                return null;
+            }
+        }, cancellationToken);
+
     public void Dispose()
     {
         _timer.Dispose();

@@ -170,7 +170,10 @@ public sealed class CoreAudioBackend : IAcpVolumeSink, IDisposable
             if (!_deviceScanDone || scanDue || _forceRescan || searchExhausted)
             {
                 _nextDeviceScan = now.AddMilliseconds(Math.Max(5000, options.DeviceCheckIntervalMs));
-                var devicesChanged = _devices.Rescan(options.DeviceBlacklist);
+                var devicesChanged = _devices.Rescan(
+                    options.DeviceBlacklist,
+                    CoreAudioDeviceRegistry.ParseFlow(options.DeviceFilterFlow),
+                    CoreAudioDeviceRegistry.ParseState(options.DeviceFilterState));
                 _deviceScanDone = true;
                 if (searchExhausted)
                 {

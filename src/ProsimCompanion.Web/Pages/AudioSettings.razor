@@ -50,6 +50,21 @@
                     <SelectField Label="ACP" Options="AcpOptions"
                                  Hint="Which Audio Control Panel the app mappings listen to"
                                  @bind-Value="CoreAudioAcpKey" />
+                    <SelectField Label="Device-filter DataFlow" Options="DeviceFlowOptions"
+                                 Hint="Only for troubleshooting — change as advised"
+                                 @bind-Value="_draft.DeviceFilterFlow" />
+                    <SelectField Label="Device-filter State" Options="DeviceStateOptions"
+                                 Hint="Only for troubleshooting — change as advised"
+                                 @bind-Value="_draft.DeviceFilterState" />
+                    <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <button type="button" class="btn secondary" disabled="@_debugDumpBusy" @onclick="WriteDebugDump">
+                            @(_debugDumpBusy ? "Writing…" : "Write Debug Info")
+                        </button>
+                        @if (_debugDumpResult is not null)
+                        {
+                            <span class="field-hint">@_debugDumpResult</span>
+                        }
+                    </div>
                 </Section>
 
                 <Section Title="App Mappings" Hint="A channel may drive several processes">
@@ -251,6 +266,40 @@
         ("firstOfficer", "First Officer (ACP2)"),
         ("observer", "Observer (ACP3)"),
     ];
+
+    private static readonly IReadOnlyList<(string, string)> DeviceFlowOptions =
+    [
+        ("render", "Render"),
+        ("capture", "Capture"),
+        ("all", "All"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> DeviceStateOptions =
+    [
+        ("active", "Active"),
+        ("disabled", "Disabled"),
+        ("notPresent", "Not present"),
+        ("unplugged", "Unplugged"),
+        ("all", "All (mask all)"),
+    ];
+
+    private bool _debugDumpBusy;
+    private string? _debugDumpResult;
+
+    private async Task WriteDebugDump()
+    {
+        _debugDumpBusy = true;
+        _debugDumpResult = null;
+        try
+        {
+            var path = await AudioControl.WriteDebugDumpAsync();
+            _debugDumpResult = path is not null ? $"Written to {path}" : "Dump failed — see the app log";
+        }
+        finally
+        {
+            _debugDumpBusy = false;
+        }
+    }
 
     private static readonly JsonSerializerOptions DraftJson = new()
     {
@@ -459,6 +508,8 @@
                     blacklist.Add(entry.Trim());
                 }
                 audio["deviceBlacklist"] = blacklist;
+                audio["deviceFilterFlow"] = draft.DeviceFilterFlow;
+                audio["deviceFilterState"] = draft.DeviceFilterState;
 
                 audio["voiceMeeterDllPath"] = draft.VoiceMeeterDllPath.Trim();
                 var activeAcps = new JsonArray();

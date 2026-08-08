@@ -28,6 +28,26 @@ public sealed class CoreAudioDeviceRegistry : IDisposable
         _logger = logger;
     }
 
+    /// <summary>Maps the audio.deviceFilterFlow setting to NAudio's DataFlow; unknown values
+    /// fall back to Render (the safe default — session volume control targets outputs).</summary>
+    public static DataFlow ParseFlow(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "capture" => DataFlow.Capture,
+        "all" => DataFlow.All,
+        _ => DataFlow.Render,
+    };
+
+    /// <summary>Maps the audio.deviceFilterState setting to NAudio's DeviceState mask;
+    /// unknown values fall back to Active. "all" is the predecessor's MaskAll.</summary>
+    public static DeviceState ParseState(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "disabled" => DeviceState.Disabled,
+        "notpresent" => DeviceState.NotPresent,
+        "unplugged" => DeviceState.Unplugged,
+        "all" => DeviceState.All,
+        _ => DeviceState.Active,
+    };
+
     /// <summary>Blacklist semantics: an entry suppresses every device whose friendly name
     /// STARTS WITH it (case-insensitive) — one entry covers "Speakers (Realtek…)" across
     /// driver-suffix variations.</summary>
@@ -51,9 +71,10 @@ public sealed class CoreAudioDeviceRegistry : IDisposable
         }
     }
 
-    /// <summary>Re-enumerates active render devices. Returns true when the device set changed
-    /// (new/removed devices ⇒ sessions must be re-searched).</summary>
-    public bool Rescan(IReadOnlyList<string> blacklist)
+    /// <summary>Re-enumerates devices in the configured DataFlow/DeviceState scope (defaults:
+    /// active render). Returns true when the device set changed (new/removed devices ⇒
+    /// sessions must be re-searched).</summary>
+    public bool Rescan(IReadOnlyList<string> blacklist, DataFlow flow = DataFlow.Render, DeviceState state = DeviceState.Active)
     {
         ArgumentNullException.ThrowIfNull(blacklist);
 
@@ -71,7 +92,7 @@ public sealed class CoreAudioDeviceRegistry : IDisposable
 
             try
             {
-                foreach (var device in _enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                foreach (var device in _enumerator.EnumerateAudioEndPoints(flow, state))
                 {
                     string name;
                     try

@@ -81,6 +81,22 @@ public sealed class AudioOptionsBindingTests
     }
 
     [Fact]
+    public void DeviceFilter_DefaultsToActiveRender_AndBindsOverrides()
+    {
+        var defaults = Bind([]);
+        Assert.Equal("render", defaults.DeviceFilterFlow);
+        Assert.Equal("active", defaults.DeviceFilterState);
+
+        var options = Bind(new Dictionary<string, string?>
+        {
+            ["audio:deviceFilterFlow"] = "all",
+            ["audio:deviceFilterState"] = "unplugged",
+        });
+        Assert.Equal("all", options.DeviceFilterFlow);
+        Assert.Equal("unplugged", options.DeviceFilterState);
+    }
+
+    [Fact]
     public void DefaultMappings_CoverTheDocumentedChannels()
     {
         var defaults = AudioOptions.DefaultAppMappings;
