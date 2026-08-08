@@ -385,7 +385,7 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
 
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            using var doc = JsonDocument.Parse(FlightJsonFile.ReadAllText(path));
             var root = doc.RootElement.TryGetProperty("flight_details", out var details)
                 ? details
                 : doc.RootElement;

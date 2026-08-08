@@ -141,7 +141,7 @@ public sealed class SayIntentionsGateAssignService : ISayIntentionsGateAssign
                 return null;
             }
 
-            var root = JsonNode.Parse(File.ReadAllText(path));
+            var root = JsonNode.Parse(FlightJsonFile.ReadAllText(path));
             var key = (root?["flight_details"] ?? root)?["api_key"]?.GetValue<string>();
             return string.IsNullOrWhiteSpace(key) ? null : key;
         }
