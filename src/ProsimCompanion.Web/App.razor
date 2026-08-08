@@ -28,12 +28,13 @@
     <Routes @rendermode="InteractiveServer" />
 
     @* Custom circuit-reconnect overlay: blazor.web.js adopts this element (by id) instead of
-       its default dialog and toggles the components-reconnect-* classes on it. *@
+       its default dialog and toggles the components-reconnect-* classes on it. app.js watches
+       those classes and recovers automatically (retry / reload) — the links are a fallback. *@
     <div id="components-reconnect-modal" class="components-reconnect-hide">
         <div>
             <div class="reconnect-showing">Connection to ProsimCompanion lost — reconnecting…</div>
-            <div class="reconnect-failed">Reconnection failed. <a href="">Reload the page</a></div>
-            <div class="reconnect-rejected">Session expired. <a href="">Reload the page</a></div>
+            <div class="reconnect-failed">Server unreachable — retrying automatically… <a href="">Reload now</a></div>
+            <div class="reconnect-rejected">Session expired — reloading…</div>
         </div>
     </div>
 

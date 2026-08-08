@@ -4,6 +4,8 @@
 //      SplitFlapCharacterControl (same drum, min-flip count, deceleration zone, per-tick
 //      squeeze). Blazor only sets the `text` attribute; UTC clock modes self-update.
 //   2. Tab bar overflow chevrons + keeping the active tab scrolled into view.
+//   3. Circuit auto-recovery — remote tablets (iPad Safari) drop the SignalR WebSocket on
+//      screen lock / app switch; recover without user action instead of sitting stale.
 
 (function () {
   "use strict";
@@ -219,4 +221,66 @@
   } else {
     scan();
   }
+
+  // ------------------------------------------------------ circuit auto-recovery (#27)
+  // iOS Safari freezes the page and kills the circuit's WebSocket when the tab backgrounds
+  // or the iPad locks. blazor.web.js surfaces the outcome as classes on the reconnect
+  // overlay:
+  //   components-reconnect-failed   — retries exhausted (server may be back by now)
+  //   components-reconnect-rejected — server reached but the circuit is gone
+  // Left alone, both states wait forever behind a manual "reload" link, so a returning
+  // remote client just sees a stale page. Recover automatically instead: keep retrying the
+  // failed state (immediately on wake, then on a timer) and hard-reload the rejected state —
+  // every store is a server-side singleton, so a reload fully restores the view.
+
+  const RECONNECT_RETRY_MS = 4000;
+
+  function initCircuitRecovery() {
+    const modal = document.getElementById("components-reconnect-modal");
+    if (!modal) return;
+
+    let retryTimer = null;
+
+    function state() {
+      if (modal.classList.contains("components-reconnect-rejected")) return "rejected";
+      if (modal.classList.contains("components-reconnect-failed")) return "failed";
+      return "other";
+    }
+
+    async function attempt() {
+      retryTimer = null;
+      const s = state();
+      if (s === "rejected") { location.reload(); return; }
+      if (s !== "failed") return;
+      try {
+        // Resolves false when the server answered but refused the circuit — reload is the
+        // only way forward. Success flips the overlay classes and recovery goes dormant.
+        const reconnected = await Blazor.reconnect();
+        if (reconnected === false) location.reload();
+      } catch {
+        schedule(RECONNECT_RETRY_MS); // Server unreachable — keep trying.
+      }
+    }
+
+    function schedule(delayMs) {
+      if (retryTimer === null) retryTimer = setTimeout(attempt, delayMs);
+    }
+
+    new MutationObserver(() => {
+      const s = state();
+      if (s === "rejected") location.reload();
+      else if (s === "failed") schedule(RECONNECT_RETRY_MS);
+    }).observe(modal, { attributes: true, attributeFilter: ["class"] });
+
+    // The instant Safari thaws the page (or the network returns), try immediately rather
+    // than waiting out the timer.
+    const onWake = () => { if (state() !== "other") attempt(); };
+    window.addEventListener("pageshow", onWake);
+    window.addEventListener("online", onWake);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") onWake();
+    });
+  }
+
+  initCircuitRecovery();
 })();

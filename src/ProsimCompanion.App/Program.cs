@@ -189,7 +189,15 @@ public static class Program
         builder.Configuration.AddJsonFile(settingsPath, optional: true, reloadOnChange: true);
 
         builder.Services.AddSerilog();
-        builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+        builder.Services.AddRazorComponents().AddInteractiveServerComponents(circuit =>
+        {
+            // Remote tablets (iPad Safari especially) freeze the page and drop the circuit's
+            // WebSocket whenever the tab backgrounds or the screen locks — routine in cockpit
+            // use. Retain disconnected circuits well past the 3-minute default so a woken
+            // client reconnects to its live session (unsaved drafts intact) instead of being
+            // rejected and forced through a reload (#27).
+            circuit.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(15);
+        });
         builder.Services.AddCoreServices(builder.Configuration, settingsPath);
         builder.Services.AddProsimServices();
         builder.Services.AddSimServices();

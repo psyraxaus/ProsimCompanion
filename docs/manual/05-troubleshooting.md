@@ -27,6 +27,7 @@
 | FO voice robotic / silent | Kokoro endpoint reachable? Local-only mode blocks Google fallback by design. Provider failures cool down 60 s then retry. |
 | No update banner | The check needs internet + a published GitHub release; it fails silently offline (by design, `updateCheck` section). |
 | Web UI unreachable from phone | LAN binding enabled + restart? Token in the URL (scan the QR again after regenerating)? Windows Firewall may prompt on first LAN bind. |
+| Remote page (iPad) stops updating | Mobile Safari drops the live connection on screen lock/app switch. The page recovers by itself: it reconnects to the session (kept 15 min) or reloads automatically — "Session expired — reloading…" flashing briefly is normal. If it ever sits stale, pull-to-refresh and report it. |
 | Two instances / port conflict | Starting the app twice just activates the running window — if a stale process is stuck, end it in Task Manager. |
 
 ## Resetting things
