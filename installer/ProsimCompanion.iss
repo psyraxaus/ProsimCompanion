@@ -22,8 +22,9 @@
 ;     refreshed — it is an app-owned runtime file, and the app serves its /api/gsxmenu
 ;     endpoints and keeps the script's port line in sync at startup.
 ;   * every path is optional — the app degrades the subsystem with guidance when unset.
-;   * optional task (shown only when the Elgato Stream Deck app is detected): installs the
-;     ProsimCompanion Stream Deck plugin into %APPDATA%\Elgato\StreamDeck\Plugins, restarting
+;   * optional task (shown only when the Elgato Stream Deck app is detected AND the plugin is
+;     missing or outdated — fingerprint compare, see StreamDeckPluginNeedsInstall): installs
+;     the ProsimCompanion Stream Deck plugin into %APPDATA%\Elgato\StreamDeck\Plugins, restarting
 ;     the Stream Deck app when it was running so the new/updated plugin is picked up. The
 ;     packed .streamDeckPlugin also ships to {app}\streamdeck for manual installs (e.g. when
 ;     Stream Deck is installed after ProsimCompanion). Compile with /DNoStreamDeck (build
@@ -71,10 +72,11 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 #ifndef NoStreamDeck
-; Only offered when the Elgato Stream Deck app is present on this machine. The plugin talks
-; to the app's loopback web server, so the sim PC is where it belongs.
+; Only offered when the Elgato Stream Deck app is present on this machine (the plugin talks
+; to the app's loopback web server, so the sim PC is where it belongs) AND the plugin is
+; missing or older than the shipped one — an installed, current plugin hides the task.
 Name: "streamdeckplugin"; Description: "Install the ProsimCompanion Stream Deck plugin (restarts the Stream Deck app)"; \
-    GroupDescription: "Stream Deck:"; Check: StreamDeckDetected
+    GroupDescription: "Stream Deck:"; Check: StreamDeckPluginNeedsInstall
 #endif
 
 [Files]
@@ -112,6 +114,12 @@ Source: "..\streamdeck\com.prosimcompanion.streamdeck.sdPlugin\*"; \
 ; (double-click) — e.g. when the Stream Deck app was not present at install time.
 Source: "..\streamdeck\dist\com.prosimcompanion.streamdeck.streamDeckPlugin"; \
     DestDir: "{app}\streamdeck"; Flags: ignoreversion
+; Fingerprint files for the tasks-page check (plugin missing or outdated?). dontcopy:
+; extracted to {tmp} by StreamDeckPluginNeedsInstall, never installed anywhere.
+Source: "..\streamdeck\com.prosimcompanion.streamdeck.sdPlugin\manifest.json"; \
+    DestDir: "{tmp}\StreamDeckCheck"; Flags: dontcopy
+Source: "..\streamdeck\com.prosimcompanion.streamdeck.sdPlugin\bin\plugin.js"; \
+    DestDir: "{tmp}\StreamDeckCheck\bin"; Flags: dontcopy
 #endif
 
 [Icons]
@@ -135,6 +143,8 @@ var
   ProfilesCheckPage: TInputOptionWizardPage;
   StreamDeckStopAttempted: Boolean;
   StreamDeckWasRunning: Boolean;
+  StreamDeckCheckDone: Boolean;
+  StreamDeckCheckResult: Boolean;
 
 { ---- auto-detection --------------------------------------------------------------------- }
 
@@ -162,6 +172,46 @@ end;
 function StreamDeckDetected(): Boolean;
 begin
   Result := DirExists(ExpandConstant('{userappdata}\Elgato\StreamDeck'));
+end;
+
+function FilesDiffer(const A, B: String): Boolean;
+begin
+  Result := CompareText(GetSHA1OfFile(A), GetSHA1OfFile(B)) <> 0;
+end;
+
+{ Task gate: offer the plugin only when the Stream Deck app is present AND the plugin is
+  missing or older than the shipped one. "Older" is a fingerprint compare of manifest.json
+  and bin\plugin.js — any code change lands in the rollup bundle and any action/version
+  change in the manifest, so together they track every meaningful update (a change ONLY to
+  ui/imgs assets must bump the manifest Version to be picked up). Cached because Inno
+  re-evaluates Check functions on every page transition. }
+function StreamDeckPluginNeedsInstall(): Boolean;
+var
+  Installed: String;
+begin
+  if not StreamDeckCheckDone then
+  begin
+    StreamDeckCheckDone := True;
+    StreamDeckCheckResult := False;
+    if StreamDeckDetected() then
+    begin
+      Installed := ExpandConstant(
+        '{userappdata}\Elgato\StreamDeck\Plugins\com.prosimcompanion.streamdeck.sdPlugin');
+      if not FileExists(Installed + '\manifest.json')
+        or not FileExists(Installed + '\bin\plugin.js') then
+        StreamDeckCheckResult := True
+      else
+      begin
+        ExtractTemporaryFiles('{tmp}\StreamDeckCheck\*');
+        StreamDeckCheckResult :=
+          FilesDiffer(ExpandConstant('{tmp}\StreamDeckCheck\manifest.json'),
+            Installed + '\manifest.json')
+          or FilesDiffer(ExpandConstant('{tmp}\StreamDeckCheck\bin\plugin.js'),
+            Installed + '\bin\plugin.js');
+      end;
+    end;
+  end;
+  Result := StreamDeckCheckResult;
 end;
 
 function FindStreamDeckExe(): String;

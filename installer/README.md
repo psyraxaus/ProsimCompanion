@@ -20,14 +20,16 @@ reads the version from `Directory.Build.props`, and compiles `ProsimCompanion.is
 | `ProSimSDK.dll` location (auto-detected; **fresh installs only** — updates skip the page) | `config/settings.json` → `prosim.sdkPath` | yes — ProSim stays disabled with guidance until set on the web Settings page |
 | `VoicemeeterRemote64.dll` (auto-detected; **fresh installs only**) | `audio.voiceMeeterDllPath` | yes |
 | Virtuali directory (default `%APPDATA%\Virtuali`) + install/overwrite GSX profiles | `<Virtuali>\Airplanes\{prosim-a322-cfm, prosim-a322-iae, Prosim-a322-neo}\gsx.cfg` | yes |
-| Stream Deck plugin task (shown only when the Elgato Stream Deck app is detected) | `%APPDATA%\Elgato\StreamDeck\Plugins\com.prosimcompanion.streamdeck.sdPlugin` | yes |
+| Stream Deck plugin task (shown only when the Elgato Stream Deck app is detected **and** the plugin is missing or outdated) | `%APPDATA%\Elgato\StreamDeck\Plugins\com.prosimcompanion.streamdeck.sdPlugin` | yes |
 
 ## Stream Deck plugin notes
 
 - The plugin task copies the pre-built `.sdPlugin` into the Elgato plugins folder, stopping a
   running Stream Deck app first (file locks) and restarting it afterwards so the new version
-  is loaded. It is **always refreshed on update** — app-owned runtime files, same rule as
-  `gsx_handler.py`.
+  is loaded. The task only appears when there is something to do: plugin not installed, or
+  its `manifest.json` / `bin\plugin.js` fingerprints differ from the shipped build (a change
+  only to `ui/` or `imgs/` assets must bump the manifest `Version` to be detected). An
+  installed, current plugin ⇒ no task, no Stream Deck restart.
 - The packed `streamdeck/dist/com.prosimcompanion.streamdeck.streamDeckPlugin` also ships to
   `{app}\streamdeck\` so users who install the Stream Deck app later can double-click it.
 - After installing, pair the keys with the app: see [`streamdeck/README.md`](../streamdeck/README.md)
