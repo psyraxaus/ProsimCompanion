@@ -3,6 +3,7 @@
 @using System.Text.Json.Serialization
 @implements IDisposable
 @inject IOptionsMonitor<SpeechOptions> SpeechMonitor
+@inject IOptionsMonitor<BriefingOptions> BriefingMonitor
 @inject JsonSettingsFile SettingsFile
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
@@ -146,6 +147,41 @@
                                  @bind-Value="_draft.GoogleMonthlyCharBudget" />
                 </Section>
             }
+            else if (_section == "briefing")
+            {
+                <Section Title="Briefings" Hint="Departure/arrival briefings composed from nav data + weather; the deterministic template is always the floor">
+                    <TextField Label="Navigraph DFD database"
+                               Hint="Path to your DFD SQLite file — user-supplied, never redistributed. Empty just thins the briefing (no nav-data facts)"
+                               @bind-Value="_briefingDraft.DfdPath" />
+                    <BoolField Label="Verify numbers in LLM output"
+                               Hint="Every figure the LLM writes is checked against the source facts; a failed retry falls back to the template"
+                               @bind-Value="_briefingDraft.VerifyNumbers" />
+                </Section>
+
+                <Section Title="LLM Styling" Hint="One OpenAI-compatible endpoint for the whole app (briefing and debrief prose)">
+                    <BoolField Label="Enabled"
+                               Hint="Off = deterministic templates only, nothing leaves this machine"
+                               @bind-Value="_briefingDraft.LlmEnabled" />
+                    <TextField Label="Base URL"
+                               Hint="OpenAI-compatible API root, e.g. http://localhost:3000/api or https://api.openai.com/v1"
+                               @bind-Value="_briefingDraft.LlmBaseUrl" />
+                    <TextField Label="API key"
+                               Hint="Stored in config/settings.json, never logged; empty for keyless local servers"
+                               @bind-Value="_briefingDraft.LlmApiKey" />
+                    <TextField Label="Model"
+                               Hint="Model name the endpoint expects (e.g. gpt-4o-mini, llama3.1). Empty disables LLM styling even when enabled"
+                               @bind-Value="_briefingDraft.LlmModel" />
+                    <NumberField Label="Max tokens" Min="64"
+                                 @bind-Value="_briefingDraft.LlmMaxTokens" />
+                    <NumberField Label="Timeout" Suffix="s" Min="5"
+                                 Hint="Per call — a styled composition may make two (ask + strict re-ask)"
+                                 @bind-Value="_briefingDraft.LlmTimeoutSeconds" />
+                    <div class="field-hint" style="max-width:640px;">
+                        Save, then use "Test LLM connection" on the Speech page to verify the
+                        endpoint round-trips.
+                    </div>
+                </Section>
+            }
             else if (_section == "windows")
             {
                 <Section Title="Windows Voices" Hint="Offline fallbacks — always available">
@@ -184,6 +220,7 @@
         ("sterile", "Sterile Cockpit"),
         ("kokoro", "Kokoro"),
         ("google", "Google"),
+        ("briefing", "Briefings & LLM"),
         ("windows", "Windows Voices"),
         ("advanced", "Advanced"),
     ];
@@ -209,12 +246,15 @@
 
     private string _section = "general";
     private SpeechOptions _draft = new();
+    private BriefingOptions _briefingDraft = new();
     private string _baseline = "";
+    private string _briefingBaseline = "";
     private string? _barMessage;
     private DirtyBar.MessageTone _barTone = DirtyBar.MessageTone.Unsaved;
     private Timer? _savedMessageTimer;
 
-    private bool IsDirty => Serialize(_draft) != _baseline;
+    private bool IsDirty => Serialize(_draft) != _baseline
+        || JsonSerializer.Serialize(_briefingDraft, DraftJson) != _briefingBaseline;
 
     private IReadOnlyList<string> _captureDevices = [];
     private IReadOnlyList<string> _renderDevices = [];
@@ -379,6 +419,9 @@
         _draft = JsonSerializer.Deserialize<SpeechOptions>(
             JsonSerializer.Serialize(SpeechMonitor.CurrentValue, DraftJson), DraftJson) ?? new SpeechOptions();
         _baseline = Serialize(_draft);
+        _briefingDraft = JsonSerializer.Deserialize<BriefingOptions>(
+            JsonSerializer.Serialize(BriefingMonitor.CurrentValue, DraftJson), DraftJson) ?? new BriefingOptions();
+        _briefingBaseline = JsonSerializer.Serialize(_briefingDraft, DraftJson);
     }
 
     private static string Serialize(SpeechOptions options) => JsonSerializer.Serialize(options, DraftJson);
@@ -394,8 +437,19 @@
         try
         {
             var draft = _draft;
+            var briefingDraft = _briefingDraft;
             SettingsFile.Update(root =>
             {
+                var briefing = JsonSettingsFile.GetOrCreateSection(root, BriefingOptions.SectionName);
+                briefing["dfdPath"] = briefingDraft.DfdPath.Trim();
+                briefing["verifyNumbers"] = briefingDraft.VerifyNumbers;
+                briefing["llmEnabled"] = briefingDraft.LlmEnabled;
+                briefing["llmBaseUrl"] = briefingDraft.LlmBaseUrl.Trim();
+                briefing["llmApiKey"] = briefingDraft.LlmApiKey.Trim();
+                briefing["llmModel"] = briefingDraft.LlmModel.Trim();
+                briefing["llmMaxTokens"] = briefingDraft.LlmMaxTokens;
+                briefing["llmTimeoutSeconds"] = briefingDraft.LlmTimeoutSeconds;
+
                 var speech = JsonSettingsFile.GetOrCreateSection(root, SpeechOptions.SectionName);
 
                 speech["enabled"] = draft.Enabled;
@@ -439,6 +493,7 @@
             });
 
             _baseline = Serialize(_draft);
+            _briefingBaseline = JsonSerializer.Serialize(_briefingDraft, DraftJson);
             _barMessage = "Saved.";
             _barTone = DirtyBar.MessageTone.Info;
             _savedMessageTimer?.Dispose();
