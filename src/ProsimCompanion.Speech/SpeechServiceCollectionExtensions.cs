@@ -132,6 +132,13 @@ public static class SpeechServiceCollectionExtensions
         // the small-talk feature itself dispatches last — exact phrases only.
         services.AddSingleton<Persona.QuietState>();
         services.AddSingleton<IVoiceFeature, Persona.SmallTalkService>();
+        // FO persona: phrase bank (config/phrases.json), the persona itself (prompt fragment
+        // + ack variation) and the LLM restyle path for advisories.
+        services.AddSingleton(p => new Persona.PhraseBank(
+            System.IO.Path.Combine(AppContext.BaseDirectory, "config"),
+            p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Persona.PhraseBank>>()));
+        services.AddSingleton<Persona.PersonaService>();
+        services.AddSingleton<Persona.StyledSpeechService>();
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

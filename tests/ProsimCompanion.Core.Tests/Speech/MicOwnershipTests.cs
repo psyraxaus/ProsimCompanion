@@ -235,7 +235,9 @@ public sealed class MicOwnershipTests
                 new ArrivalMinimaStore(),
                 arbiter,
                 eventLog,
-                NullLogger<ProsimCompanion.Speech.Briefings.MinimaCaptureDialogue>.Instance));
+                NullLogger<ProsimCompanion.Speech.Briefings.MinimaCaptureDialogue>.Instance),
+            SpeechTestSupport.PhraseBank(),
+            SpeechTestSupport.Persona());
         engine.Start();
 
         _window.Hear("test phrase");

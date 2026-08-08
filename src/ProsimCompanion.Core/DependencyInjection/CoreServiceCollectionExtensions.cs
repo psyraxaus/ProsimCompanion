@@ -99,6 +99,7 @@ public static class CoreServiceCollectionExtensions
             }
         });
         services.Configure<UpdateCheckOptions>(configuration.GetSection(UpdateCheckOptions.SectionName));
+        services.Configure<PersonaOptions>(configuration.GetSection(PersonaOptions.SectionName));
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
         services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
         services.Configure<FlightDataOptions>(configuration.GetSection(FlightDataOptions.SectionName));

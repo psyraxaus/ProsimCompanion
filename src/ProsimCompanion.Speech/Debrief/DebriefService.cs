@@ -38,6 +38,7 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
     private readonly Core.Day.DayStatusStore? _dayStore;
     private readonly ILogger<DebriefService> _logger;
     private readonly object _gate = new();
+    private readonly Persona.PersonaService? _persona;
 
     private bool _started;
     private bool _doneThisFlight;
@@ -52,8 +53,10 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         IOptionsMonitor<BriefingOptions> briefingOptions,
         ILogger<DebriefService> logger,
         OpenAiChatClient? llm = null,
-        Core.Day.DayStatusStore? dayStore = null)
+        Core.Day.DayStatusStore? dayStore = null,
+        Persona.PersonaService? persona = null)
     {
+        _persona = persona;
         ArgumentNullException.ThrowIfNull(extractor);
         ArgumentNullException.ThrowIfNull(logbook);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -253,7 +256,10 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
     {
         try
         {
-            var system = DebriefLlm.SystemPrompt(verbosity);
+            // Persona fragment (empty when off) colours tone only; the debrief prompt still
+            // locks the operational content and the number verifier backs it up.
+            var system = (_persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Debrief) ?? "")
+                + DebriefLlm.SystemPrompt(verbosity);
             var factBlock = DebriefLlm.FactBlock(facts);
             var allowed = DebriefLlm.AllowedNumbers(facts);
 

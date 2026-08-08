@@ -76,6 +76,9 @@
     <Content Include="config\atc-requests.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- File-driven voice commands (Prosim2FO-compatible; user-editable, hot-reloaded). -->
     <Content Include="config\commands.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Acknowledgement phrase pools (Prosim2FO format; user-editable, hot-reloaded — the
+         persona layer draws from the same pools). -->
+    <Content Include="config\phrases.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Random-wear pool for the tech log (benign, purely procedural; techLog.randomWear). -->
     <Content Include="config\techlog\wear-pool.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

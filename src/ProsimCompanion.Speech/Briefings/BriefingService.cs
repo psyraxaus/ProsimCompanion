@@ -58,6 +58,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<BriefingService> _logger;
+    private readonly Persona.PersonaService? _persona;
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
 
     public BriefingService(
@@ -71,8 +72,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<BriefingService> logger,
-        OpenAiChatClient? llm = null)
+        OpenAiChatClient? llm = null,
+        Persona.PersonaService? persona = null)
     {
+        _persona = persona;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(navData);
         ArgumentNullException.ThrowIfNull(procedures);
@@ -274,9 +277,12 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
 
         try
         {
+            // Persona fragment (empty when the persona or its briefing toggle is off) colours
+            // tone only — the composer's own prompt still locks the operational content.
+            var personaFragment = _persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Briefing) ?? "";
             var factBlock = BriefingComposer.FactBlock(facts);
             var narrative = await _llm.CompleteAsync(
-                BriefingComposer.SystemPrompt(facts.IsDeparture),
+                personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture),
                 factBlock + "\n\nWrite the spoken briefing now.").ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(narrative))
             {
@@ -297,7 +303,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             _logger.LogWarning("Briefing number verification failed — unverified: {Tokens}",
                 string.Join(", ", offending));
             var retry = await _llm.CompleteAsync(
-                BriefingComposer.SystemPrompt(facts.IsDeparture),
+                personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture),
                 factBlock + "\n\nUse ONLY these numbers, exactly as written, and no others: "
                     + NumberVerifier.DescribeAllowed(allowed)
                     + "\nWrite the spoken briefing now.").ConfigureAwait(false);

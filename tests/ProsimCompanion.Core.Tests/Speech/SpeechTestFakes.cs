@@ -101,4 +101,23 @@ internal static class SpeechTestSupport
     /// <summary>A real event log writing to a throwaway temp directory.</summary>
     public static JsonlEventLog TempEventLog()
         => new(Directory.CreateTempSubdirectory("pc-tests-").FullName, NullLogger<JsonlEventLog>.Instance);
+
+    /// <summary>A phrase bank over a throwaway directory — no phrases.json, so the shipped
+    /// default pools apply.</summary>
+    public static ProsimCompanion.Speech.Persona.PhraseBank PhraseBank()
+        => new(
+            Directory.CreateTempSubdirectory("pc-tests-phrases-").FullName,
+            NullLogger<ProsimCompanion.Speech.Persona.PhraseBank>.Instance);
+
+    /// <summary>A persona service over the given options (defaults = persona off).</summary>
+    public static ProsimCompanion.Speech.Persona.PersonaService Persona(PersonaOptions? options = null)
+    {
+        var monitor = new Mock<IOptionsMonitor<PersonaOptions>>();
+        var value = options ?? new PersonaOptions();
+        monitor.SetupGet(m => m.CurrentValue).Returns(() => value);
+        return new ProsimCompanion.Speech.Persona.PersonaService(
+            monitor.Object,
+            PhraseBank(),
+            new ProsimCompanion.Speech.Persona.QuietState());
+    }
 }

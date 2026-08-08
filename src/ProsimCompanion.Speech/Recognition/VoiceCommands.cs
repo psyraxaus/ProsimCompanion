@@ -40,21 +40,5 @@ public static class ConfirmVocabulary
     public static IReadOnlyList<string> All { get; } = [.. Affirm, .. Negative, .. SayAgain];
 }
 
-/// <summary>Round-robin acknowledgement phrase pools (shipped phrases; a config/phrases.json
-/// override can arrive later with the persona layer).</summary>
-public sealed class PhraseBank
-{
-    private readonly string[] _areYouSure =
-        ["Are you sure?", "Confirm that?", "Double-check that one?", "Say again — that doesn't look set."];
-
-    private readonly string[] _didNotCatch = ["Say again?", "Didn't catch that.", "Repeat please."];
-
-    private int _areYouSureIndex;
-    private int _didNotCatchIndex;
-
-    public string NextAreYouSure()
-        => _areYouSure[Interlocked.Increment(ref _areYouSureIndex) % _areYouSure.Length];
-
-    public string NextDidNotCatch()
-        => _didNotCatch[Interlocked.Increment(ref _didNotCatchIndex) % _didNotCatch.Length];
-}
+// PhraseBank moved to Persona/PhraseBank.cs — file-backed by config/phrases.json with the
+// persona layer drawing from the same pools.

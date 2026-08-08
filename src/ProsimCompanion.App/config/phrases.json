@@ -1,0 +1,13 @@
+{
+  "areYouSure": [
+    "Are you sure?",
+    "Confirm that?",
+    "Double-check that one?",
+    "Say again — that doesn't look set."
+  ],
+  "didNotCatch": [
+    "Say again?",
+    "Didn't catch that.",
+    "Repeat please."
+  ]
+}

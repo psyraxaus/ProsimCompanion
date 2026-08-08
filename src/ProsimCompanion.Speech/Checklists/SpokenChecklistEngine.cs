@@ -51,7 +51,8 @@ public sealed class SpokenChecklistEngine : IDisposable
     private readonly SpeechStatusStore _store;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SpokenChecklistEngine> _logger;
-    private readonly PhraseBank _phrases = new();
+    private readonly Persona.PhraseBank _phrases;
+    private readonly Persona.PersonaService _persona;
     private readonly Briefings.MinimaCaptureDialogue _minimaCapture = null!;
     private readonly object _gate = new();
     private readonly Dictionary<string, IDataRefSubscription> _verifyReads = new(StringComparer.Ordinal);
@@ -77,14 +78,20 @@ public sealed class SpokenChecklistEngine : IDisposable
         SpeechStatusStore store,
         JsonlEventLog eventLog,
         ILogger<SpokenChecklistEngine> logger,
-        Briefings.MinimaCaptureDialogue minimaCapture)
+        Briefings.MinimaCaptureDialogue minimaCapture,
+        Persona.PhraseBank phrases,
+        Persona.PersonaService persona)
     {
         ArgumentNullException.ThrowIfNull(failures);
         ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(minimaCapture);
+        ArgumentNullException.ThrowIfNull(phrases);
+        ArgumentNullException.ThrowIfNull(persona);
         _failures = failures;
         _features = [.. features];
         _minimaCapture = minimaCapture;
+        _phrases = phrases;
+        _persona = persona;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(recognition);
@@ -300,7 +307,8 @@ public sealed class SpokenChecklistEngine : IDisposable
             retries++;
             if (retries <= max)
             {
-                await Speak(_phrases.NextAreYouSure()).ConfigureAwait(false);
+                await Speak(_persona.Acknowledge(Persona.AckKind.AreYouSure, _phrases.NextAreYouSure()))
+                    .ConfigureAwait(false);
             }
             else
             {
@@ -497,7 +505,7 @@ public sealed class SpokenChecklistEngine : IDisposable
                     continue;
 
                 case ResponseKind.NotCaught:
-                    await Speak(_phrases.NextDidNotCatch()).ConfigureAwait(false);
+                    await Speak(_persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch())).ConfigureAwait(false);
                     continue;
 
                 case ResponseKind.Hold:
@@ -511,7 +519,7 @@ public sealed class SpokenChecklistEngine : IDisposable
                         return result.Text;
                     }
 
-                    await Speak(_phrases.NextDidNotCatch()).ConfigureAwait(false);
+                    await Speak(_persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch())).ConfigureAwait(false);
                     continue;
             }
         }

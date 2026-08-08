@@ -32,6 +32,7 @@ public sealed class FlowMonitor : IDisposable
     private readonly IFlightPhaseSource _flight;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FlowMonitor> _logger;
+    private readonly Persona.StyledSpeechService? _styledSpeech;
     private readonly object _lock = new();
 
     private readonly HashSet<string> _active = [];
@@ -49,7 +50,8 @@ public sealed class FlowMonitor : IDisposable
         IFlightDataSource source,
         IFlightPhaseSource flight,
         JsonlEventLog eventLog,
-        ILogger<FlowMonitor> logger)
+        ILogger<FlowMonitor> logger,
+        Persona.StyledSpeechService? styledSpeech = null)
     {
         ArgumentNullException.ThrowIfNull(sop);
         ArgumentNullException.ThrowIfNull(speech);
@@ -59,6 +61,7 @@ public sealed class FlowMonitor : IDisposable
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _styledSpeech = styledSpeech;
         _sop = sop;
         _speech = speech;
         _arbiter = arbiter;
@@ -183,9 +186,8 @@ public sealed class FlowMonitor : IDisposable
                     priority = priority.ToString().ToLowerInvariant(),
                     spoken = true,
                 });
-                _ = _arbiter.EnqueueAsync(new SpeechRequest(
-                    text, priority, TimeSpan.FromSeconds(AdvisoryTtlSec),
-                    () => _flight.CurrentPhase == FlightPhase.Cruise, Tag: "isaDeviation"));
+                _ = StyleAndEnqueueAsync(
+                    "isaDeviation", text, priority, () => _flight.CurrentPhase == FlightPhase.Cruise);
             }
         }
     }
@@ -234,8 +236,7 @@ public sealed class FlowMonitor : IDisposable
                     priority = priority.ToString().ToLowerInvariant(),
                     spoken = true,
                 });
-                _ = _arbiter.EnqueueAsync(new SpeechRequest(
-                    fc.Text, priority, TimeSpan.FromSeconds(AdvisoryTtlSec), Live, Tag: key));
+                _ = StyleAndEnqueueAsync(key, fc.Text, priority, Live);
             }
             else
             {
@@ -248,6 +249,24 @@ public sealed class FlowMonitor : IDisposable
             _active.Remove(key);
             _eventLog.Record("flow.resolved", new { id = key });
         }
+    }
+
+    /// <summary>Persona restyle (Advisory category) then enqueue. Without the styling service
+    /// — or with persona off — the deterministic text speaks unchanged; the restyle is bounded
+    /// by the persona timeout and the TTL/validity still gate at dequeue, so a slow LLM only
+    /// delays the advisory, never wedges it.</summary>
+    private async Task StyleAndEnqueueAsync(string key, string text, SpeechPriority priority, Func<bool> live)
+    {
+        var spoken = text;
+        if (_styledSpeech is not null)
+        {
+            spoken = await _styledSpeech
+                .StyleAsync(text, Persona.PersonaStyleCategory.Advisory, key)
+                .ConfigureAwait(false);
+        }
+
+        _ = _arbiter.EnqueueAsync(new SpeechRequest(
+            spoken, priority, TimeSpan.FromSeconds(AdvisoryTtlSec), live, Tag: key));
     }
 
     /// <summary>True once <paramref name="now"/> has held for the dwell window. Never
