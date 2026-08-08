@@ -8,10 +8,11 @@
 ;
 ; What this installer does beyond a plain file copy:
 ;   * NEVER overwrites an existing {app}\config\settings.json — the template ships
-;     onlyifdoesntexist and updates only surgically edit the two installer-owned keys
-;   * prompts for the ProSimSDK.dll location (auto-detected where possible) and writes it
-;     into {app}\config\settings.json (prosim.sdkPath)
-;   * prompts for the VoiceMeeter Remote DLL (optional) -> audio.voiceMeeterDllPath
+;     onlyifdoesntexist, and updates skip the path prompts entirely (both paths are already
+;     configured there and editable on the web Settings page)
+;   * fresh installs prompt for the ProSimSDK.dll location (auto-detected where possible) and
+;     write it into {app}\config\settings.json (prosim.sdkPath)
+;   * fresh installs prompt for the VoiceMeeter Remote DLL (optional) -> audio.voiceMeeterDllPath
 ;   * prompts for the Virtuali directory and installs the GSX aircraft profiles (gsx.cfg for
 ;     the three ProSim A322 SimObject folders) into <Virtuali>\Airplanes — existing profiles
 ;     are kept unless the overwrite box is ticked (Prosim2GSX semantics). gsx_handler.py (the
@@ -266,6 +267,25 @@ begin
   ProfilesCheckPage.Add('Overwrite existing profiles');
   ProfilesCheckPage.Values[0] := True;
   ProfilesCheckPage.Values[1] := False;
+end;
+
+{ Update installs skip the path prompts entirely: an existing settings.json already carries
+  (or deliberately omits) sdkPath / voiceMeeterDllPath, and both are editable any time on the
+  web Settings page. The page values are cleared so WriteSettings leaves the existing keys
+  untouched — otherwise the auto-detected defaults would silently overwrite the user's
+  configuration. WizardDirValue is final here: both pages sit after wpSelectDir. }
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if (PageID = SdkPage.ID) or (PageID = VoiceMeeterPage.ID) then
+    if FileExists(AddBackslash(WizardDirValue) + 'config\settings.json') then
+    begin
+      Result := True;
+      if PageID = SdkPage.ID then
+        SdkPage.Values[0] := '';
+      if PageID = VoiceMeeterPage.ID then
+        VoiceMeeterPage.Values[0] := '';
+    end;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;

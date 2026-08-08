@@ -17,8 +17,8 @@ reads the version from `Directory.Build.props`, and compiles `ProsimCompanion.is
 
 | Prompt | Written to | Optional |
 |---|---|---|
-| `ProSimSDK.dll` location (auto-detected) | `config/settings.json` → `prosim.sdkPath` | yes — ProSim stays disabled with guidance until set on the web Settings page |
-| `VoicemeeterRemote64.dll` (auto-detected) | `audio.voiceMeeterDllPath` | yes |
+| `ProSimSDK.dll` location (auto-detected; **fresh installs only** — updates skip the page) | `config/settings.json` → `prosim.sdkPath` | yes — ProSim stays disabled with guidance until set on the web Settings page |
+| `VoicemeeterRemote64.dll` (auto-detected; **fresh installs only**) | `audio.voiceMeeterDllPath` | yes |
 | Virtuali directory (default `%APPDATA%\Virtuali`) + install/overwrite GSX profiles | `<Virtuali>\Airplanes\{prosim-a322-cfm, prosim-a322-iae, Prosim-a322-neo}\gsx.cfg` | yes |
 | Stream Deck plugin task (shown only when the Elgato Stream Deck app is detected) | `%APPDATA%\Elgato\StreamDeck\Plugins\com.prosimcompanion.streamdeck.sdPlugin` | yes |
 
@@ -35,9 +35,10 @@ reads the version from `Directory.Build.props`, and compiles `ProsimCompanion.is
 - Uninstall removes the plugin from the Elgato plugins folder (it is dead without the app).
 
 On update, an existing `settings.json` is **never overwritten**: the shipped template is
-installed `onlyifdoesntexist` (fresh installs only) and excluded from the bulk file copy, and
-the wizard only surgically edits the two path keys — everything else the user configured
-(access token, GSX tuning, the lot) is untouched. Existing GSX profiles are kept unless the
+installed `onlyifdoesntexist` (fresh installs only) and excluded from the bulk file copy, the
+SDK/VoiceMeeter wizard pages are skipped entirely, and nothing in the file is modified —
+everything the user configured (access token, GSX tuning, the lot) is untouched. Both paths
+remain editable on the web Settings page. Existing GSX profiles are kept unless the
 overwrite box is ticked (your `gsx.cfg` edits survive updates).
 
 ## GSX payload notes
