@@ -96,4 +96,28 @@ public sealed class RecognitionTests
     [InlineData("", 0)]
     public void PushToTalk_ParsesKeyNames(string key, int expected)
         => Assert.Equal(expected, PushToTalkService.ParseKey(key));
+
+    [Theory]
+    [InlineData(0x41, "A")]        // letter
+    [InlineData(0x37, "7")]        // digit
+    [InlineData(0x7B, "F12")]      // function key
+    [InlineData(0x87, "F24")]      // top of the F range
+    [InlineData(0xA3, "rightctrl")]
+    [InlineData(0x14, "capslock")]
+    [InlineData(0xB3, "179")]      // media key — no name, decimal code
+    public void PushToTalk_FormatsCapturedKeys(int vk, string expected)
+        => Assert.Equal(expected, PushToTalkService.FormatKey(vk));
+
+    [Theory]
+    [InlineData(0x41)]
+    [InlineData(0x30)]
+    [InlineData(0x70)]
+    [InlineData(0x87)]
+    [InlineData(0x20)]
+    [InlineData(0xA0)]
+    [InlineData(0xA5)]
+    [InlineData(0x91)]
+    [InlineData(0xB3)]
+    public void PushToTalk_CapturedKeyNames_RoundTripThroughParseKey(int vk)
+        => Assert.Equal(vk, PushToTalkService.ParseKey(PushToTalkService.FormatKey(vk)));
 }

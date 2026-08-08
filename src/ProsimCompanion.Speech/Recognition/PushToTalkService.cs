@@ -1,7 +1,9 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Speech.Recognition;
 
@@ -13,9 +15,12 @@ namespace ProsimCompanion.Speech.Recognition;
 /// re-read live from options. The hook callback only updates key state and queues the edge
 /// evaluation to the thread pool — Windows silently removes low-level hooks whose callbacks
 /// exceed LowLevelHooksTimeout, so recognition start/stop must never run on the hook thread.
+/// Doubles as <see cref="IPttInputCapture"/> for the settings page's press-to-detect binding
+/// (it already owns the key state and the joystick API).
 /// </summary>
-public sealed class PushToTalkService : IDisposable
+public sealed class PushToTalkService : IDisposable, IPttInputCapture
 {
+    private const int MaxJoysticks = 16;
     private const int WhKeyboardLl = 13;
     private const int WmKeydown = 0x0100;
     private const int WmSyskeydown = 0x0104;
@@ -67,6 +72,23 @@ public sealed class PushToTalkService : IDisposable
 
     [DllImport("winmm.dll")]
     private static extern int joyGetPosEx(int uJoyID, ref JoyInfoEx pji);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct JoyCaps
+    {
+        public ushort Mid, Pid;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string ProductName;
+        public uint XMin, XMax, YMin, YMax, ZMin, ZMax;
+        public uint NumButtons;
+        public uint PeriodMin, PeriodMax;
+        public uint RMin, RMax, UMin, UMax, VMin, VMax;
+        public uint Caps, MaxAxes, NumAxes, MaxButtons;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string RegKey;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string OemVxD;
+    }
+
+    [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
+    private static extern int joyGetDevCapsW(IntPtr uJoyID, ref JoyCaps pjc, int cbjc);
 
     private static readonly Dictionary<string, int> KeyNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -155,6 +177,117 @@ public sealed class PushToTalkService : IDisposable
         }
 
         return int.TryParse(k, out var code) && code is > 0 and < 256 ? code : 0;
+    }
+
+    /// <summary>One canonical name per VK for captured keys (KeyNames also carries aliases).
+    /// Every output round-trips through <see cref="ParseKey"/> — unknown VKs fall back to the
+    /// decimal code, which the parser also accepts.</summary>
+    private static readonly Dictionary<int, string> CanonicalKeyNames = new()
+    {
+        [0x20] = "space", [0x09] = "tab", [0x0D] = "enter", [0x13] = "pause",
+        [0x14] = "capslock", [0x1B] = "escape", [0x2D] = "insert", [0x2E] = "delete",
+        [0x24] = "home", [0x23] = "end", [0x21] = "pageup", [0x22] = "pagedown",
+        [0xA0] = "leftshift", [0xA1] = "rightshift", [0xA2] = "leftctrl", [0xA3] = "rightctrl",
+        [0xA4] = "leftalt", [0xA5] = "rightalt", [0x91] = "scrolllock", [0x90] = "numlock",
+    };
+
+    /// <summary>Formats a VK code as a settings-file key name (inverse of
+    /// <see cref="ParseKey"/>).</summary>
+    public static string FormatKey(int vk) =>
+        vk is (>= 'A' and <= 'Z') or (>= '0' and <= '9') ? ((char)vk).ToString()
+        : vk is >= 0x70 and <= 0x87 ? $"F{vk - 0x70 + 1}"
+        : CanonicalKeyNames.TryGetValue(vk, out var name) ? name
+        : vk.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    public IReadOnlyList<JoystickDeviceView> GetJoysticks()
+    {
+        var result = new List<JoystickDeviceView>();
+        for (var id = 0; id < MaxJoysticks; id++)
+        {
+            if (ReadButtons(id) is null)
+            {
+                continue; // not connected
+            }
+
+            var caps = new JoyCaps();
+            var name = joyGetDevCapsW((IntPtr)id, ref caps, Marshal.SizeOf<JoyCaps>()) == 0
+                && !string.IsNullOrWhiteSpace(caps.ProductName)
+                ? caps.ProductName
+                : $"Joystick {id}";
+            result.Add(new JoystickDeviceView(id, name));
+        }
+
+        return result;
+    }
+
+    public async Task<PttInputCaptureResult?> CaptureAsync(
+        bool includeJoysticks, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        // Baselines: anything already down when the capture starts never binds. Released
+        // inputs are dropped from the baseline each poll, so press-release-press still
+        // captures within the window.
+        HashSet<int> baselineKeys;
+        lock (_keysDown)
+        {
+            baselineKeys = [.. _keysDown];
+        }
+
+        var baselineButtons = new int[MaxJoysticks];
+        if (includeJoysticks)
+        {
+            for (var id = 0; id < MaxJoysticks; id++)
+            {
+                baselineButtons[id] = ReadButtons(id) ?? 0;
+            }
+        }
+
+        var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
+        while (Environment.TickCount64 < deadline)
+        {
+            await Task.Delay(25, cancellationToken).ConfigureAwait(false);
+
+            lock (_keysDown)
+            {
+                baselineKeys.IntersectWith(_keysDown);
+                foreach (var vk in _keysDown)
+                {
+                    if (!baselineKeys.Contains(vk))
+                    {
+                        return new PttInputCaptureResult(FormatKey(vk), null, null);
+                    }
+                }
+            }
+
+            if (!includeJoysticks)
+            {
+                continue;
+            }
+
+            for (var id = 0; id < MaxJoysticks; id++)
+            {
+                if (ReadButtons(id) is not { } buttons)
+                {
+                    continue;
+                }
+
+                baselineButtons[id] &= buttons;
+                var fresh = buttons & ~baselineButtons[id];
+                if (fresh != 0)
+                {
+                    return new PttInputCaptureResult(null, id, BitOperations.TrailingZeroCount((uint)fresh));
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Button bitmask for a winmm device, or null when the id has no connected
+    /// device.</summary>
+    private static int? ReadButtons(int id)
+    {
+        var info = new JoyInfoEx { Size = Marshal.SizeOf<JoyInfoEx>(), Flags = 0x80 /*JOY_RETURNBUTTONS*/ };
+        return joyGetPosEx(id, ref info) == 0 ? info.Buttons : null;
     }
 
     private void HookThreadMain()

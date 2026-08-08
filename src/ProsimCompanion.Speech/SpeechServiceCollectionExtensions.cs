@@ -36,6 +36,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<FlowMonitor>();
         services.AddSingleton<TtsPrewarmService>();
         services.AddSingleton<PushToTalkService>();
+        services.AddSingleton<IPttInputCapture>(p => p.GetRequiredService<PushToTalkService>());
         services.AddSingleton<RecognitionController>();
         // The controller's listening-window surface + the exclusive-mic seam over it (guided
         // dialogues borrow the mic; normal routing stands down while borrowed).

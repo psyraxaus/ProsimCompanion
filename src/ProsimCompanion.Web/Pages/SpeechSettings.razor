@@ -5,6 +5,7 @@
 @inject IOptionsMonitor<SpeechOptions> SpeechMonitor
 @inject JsonSettingsFile SettingsFile
 @inject IAudioDeviceCatalog DeviceCatalog
+@inject IPttInputCapture PttCapture
 
 <PageTitle>Speech Settings — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Speech Settings</h1>
@@ -60,12 +61,30 @@
                     <TextField Label="ATC-mute key"
                                Hint="Bind the SAME key you transmit to ATC with — while held, the FO ignores everything it hears (works in both modes)"
                                @bind-Value="_draft.AtcMuteKey" />
-                    <NumberField Label="FO PTT joystick device" Min="-1" Max="15"
-                                 Hint="winmm joystick id 0–15; −1 = unbound"
-                                 @bind-Value="PttJoystickDeviceDraft" />
+                    <SelectField Label="FO PTT joystick device" Options="JoystickOptions()"
+                                 Hint="Controllers detected on this machine (sticks, yokes, HOTAS)"
+                                 @bind-Value="JoystickDeviceKey" />
                     <NumberField Label="FO PTT joystick button" Min="-1" Max="31"
-                                 Hint="Button index 0–31 on that device; −1 = unbound"
+                                 Hint="Button index 0–31 on that device; −1 = unbound. Detect below fills this for you"
                                  @bind-Value="PttJoystickButtonDraft" />
+                    <div style="margin:8px 0;">
+                        <button type="button" class="btn secondary" disabled="@(_capturing is not null)"
+                                @onclick='() => DetectAsync("fo")'>
+                            @(_capturing == "fo" ? "Press the key or button now…" : "Detect FO PTT")
+                        </button>
+                        <button type="button" class="btn secondary" disabled="@(_capturing is not null)"
+                                @onclick='() => DetectAsync("atc")'>
+                            @(_capturing == "atc" ? "Press the key now…" : "Detect ATC-mute key")
+                        </button>
+                        @if (_captureMessage is not null)
+                        {
+                            <span class="field-hint" style="margin-left:8px;">@_captureMessage</span>
+                        }
+                    </div>
+                    <div class="field-hint" style="max-width:640px;">
+                        Detect listens for ten seconds and binds whatever you press — a keyboard
+                        key or (for FO PTT) any joystick button. Remember to save afterwards.
+                    </div>
                     <TextField Label="LAN faster-whisper URL"
                                Hint="e.g. http://192.168.1.50:8000 — empty uses the offline System.Speech engine"
                                @bind-Value="_draft.AsrBaseUrl" />
@@ -221,10 +240,72 @@
         return options;
     }
 
-    private int PttJoystickDeviceDraft
+    private IReadOnlyList<JoystickDeviceView> _joysticks = [];
+    private string? _capturing;
+    private string? _captureMessage;
+
+    private string JoystickDeviceKey
     {
-        get => _draft.PttJoystickDevice ?? -1;
-        set => _draft.PttJoystickDevice = value < 0 ? null : value;
+        get => (_draft.PttJoystickDevice ?? -1).ToString();
+        set => _draft.PttJoystickDevice = int.TryParse(value, out var id) && id >= 0 ? id : null;
+    }
+
+    private IReadOnlyList<(string, string)> JoystickOptions()
+    {
+        var options = new List<(string, string)> { ("-1", "Unbound") };
+        foreach (var joystick in _joysticks)
+        {
+            options.Add((joystick.Id.ToString(), $"{joystick.Id}: {joystick.Name}"));
+        }
+
+        if (_draft.PttJoystickDevice is { } current && _joysticks.All(j => j.Id != current))
+        {
+            options.Add((current.ToString(), $"{current}: (not currently connected)"));
+        }
+
+        return options;
+    }
+
+    private async Task DetectAsync(string target)
+    {
+        _capturing = target;
+        _captureMessage = null;
+        try
+        {
+            var result = await PttCapture.CaptureAsync(
+                includeJoysticks: target == "fo", TimeSpan.FromSeconds(10), CancellationToken.None);
+            if (result is null)
+            {
+                _captureMessage = "Nothing pressed within ten seconds.";
+            }
+            else if (target == "atc")
+            {
+                _draft.AtcMuteKey = result.KeyName ?? "";
+                _captureMessage = $"ATC-mute key set to \"{result.KeyName}\".";
+            }
+            else if (result.IsJoystick)
+            {
+                _draft.PttJoystickDevice = result.JoystickId;
+                _draft.PttJoystickButton = result.JoystickButton;
+                _joysticks = PttCapture.GetJoysticks(); // the pressed device is connected — relist
+                var name = _joysticks.FirstOrDefault(j => j.Id == result.JoystickId)?.Name
+                    ?? $"Joystick {result.JoystickId}";
+                _captureMessage = $"FO PTT bound to {name}, button {result.JoystickButton}.";
+            }
+            else
+            {
+                _draft.PttKey = result.KeyName ?? "";
+                _captureMessage = $"FO PTT key set to \"{result.KeyName}\".";
+            }
+        }
+        catch (Exception)
+        {
+            _captureMessage = "Detection failed — see the Logs page.";
+        }
+        finally
+        {
+            _capturing = null;
+        }
     }
 
     private int PttJoystickButtonDraft
@@ -245,6 +326,7 @@
         LoadDraft();
         _captureDevices = DeviceCatalog.GetCaptureDeviceNames();
         _renderDevices = DeviceCatalog.GetRenderDeviceNames();
+        _joysticks = PttCapture.GetJoysticks();
     }
 
     private void LoadDraft()
