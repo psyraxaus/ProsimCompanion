@@ -149,4 +149,19 @@ public sealed class RecognitionTests
         Assert.Equal(1, PushToTalkService.ResolveJoystickId("Thrustmaster", 1, JoystickName));
         Assert.Equal(-1, PushToTalkService.ResolveJoystickId("Thrustmaster", null, JoystickName));
     }
+
+    [Theory]
+    [InlineData("system.analog.A_FC_FO_PITCH", "system.analog.A_FC_CAPT_PITCH")]
+    [InlineData("system.analog.A_FC_CAPT_ROLL", "system.analog.A_FC_FO_ROLL")] // involution
+    [InlineData("system.switches.S_CDU2_KEY_FPLN", "system.switches.S_CDU1_KEY_FPLN")]
+    [InlineData("aircraft.mcdu2.display", "aircraft.mcdu1.display")]
+    [InlineData("system.gates.B_FCU_EFIS2_BARO_STD", "system.gates.B_FCU_EFIS1_BARO_STD")]
+    [InlineData("aircraft.fms.perf.takeOff.v1", "aircraft.fms.perf.takeOff.v1")] // side-independent
+    public void PilotSeat_RightSeat_SwapsSideDependentDatarefs(string authored, string mapped)
+        => Assert.Equal(mapped, PilotSeatMap.Map(authored, humanIsRightSeat: true));
+
+    [Fact]
+    public void PilotSeat_LeftSeat_IsIdentity()
+        => Assert.Equal("system.analog.A_FC_FO_PITCH",
+            PilotSeatMap.Map("system.analog.A_FC_FO_PITCH", humanIsRightSeat: false));
 }

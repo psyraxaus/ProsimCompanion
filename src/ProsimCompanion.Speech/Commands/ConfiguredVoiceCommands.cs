@@ -51,12 +51,15 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
     private Timer? _debounce;
     private bool _initialized;
 
+    private readonly IOptionsMonitor<SpeechOptions>? _speech;
+
     public ConfiguredVoiceCommands(
         IProsimDataRefs dataRefs,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         IOptionsMonitor<BriefingOptions> briefingOptions,
-        ILogger<ConfiguredVoiceCommands> logger)
+        ILogger<ConfiguredVoiceCommands> logger,
+        IOptionsMonitor<SpeechOptions>? speech = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -69,7 +72,15 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
         _eventLog = eventLog;
         _briefingOptions = briefingOptions;
         _logger = logger;
+        _speech = speech;
     }
+
+    /// <summary>Seat-relative side of a commands.json dataref (authored for the default
+    /// left-seat-human geometry: CDU2 keys, EFIS2 baro). Allow-list checks stay on the
+    /// authored name; only the executed side flips.</summary>
+    private string Side(string dataref)
+        => Recognition.PilotSeatMap.Map(dataref,
+            _speech is not null && Recognition.PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue));
 
     private static string CommandsPath
         => Path.Combine(AppContext.BaseDirectory, "config", "commands.json");
@@ -303,11 +314,11 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
                             $"Dataref '{step.Dataref}' is not on the loaded voice-command write allow-list.");
                     }
 
-                    await _dataRefs.WriteAsync(step.Dataref, step.Press).ConfigureAwait(false);
+                    await _dataRefs.WriteAsync(Side(step.Dataref), step.Press).ConfigureAwait(false);
                     if (step.Restore is { } restore)
                     {
                         await Task.Delay(step.HoldMs > 0 ? step.HoldMs : 150).ConfigureAwait(false);
-                        await _dataRefs.WriteAsync(step.Dataref, restore).ConfigureAwait(false);
+                        await _dataRefs.WriteAsync(Side(step.Dataref), restore).ConfigureAwait(false);
                     }
 
                     if (step.DelayMs > 0)
@@ -393,6 +404,9 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
     {
         lock (_reads)
         {
+            // Seat-relative reads (EFIS baro etc.); cached under the MAPPED name so a seat
+            // change picks up the other side on the next new subscription.
+            dataref = Side(dataref);
             if (!_reads.TryGetValue(dataref, out var read))
             {
                 read = _dataRefs.Subscribe(dataref, tier);

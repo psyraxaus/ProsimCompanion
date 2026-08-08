@@ -65,12 +65,15 @@ public sealed class McduActuator : IMcduActuator, IDisposable
     private readonly ILogger<McduActuator> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1); // one key sequence at a time
 
+    private readonly IOptionsMonitor<SpeechOptions>? _speech;
+
     public McduActuator(
         IProsimDataRefs dataRefs,
         IMcduReader reader,
         IOptionsMonitor<McduOptions> options,
         JsonlEventLog eventLog,
-        ILogger<McduActuator> logger)
+        ILogger<McduActuator> logger,
+        IOptionsMonitor<SpeechOptions>? speech = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(reader);
@@ -83,6 +86,7 @@ public sealed class McduActuator : IMcduActuator, IDisposable
         _options = options;
         _eventLog = eventLog;
         _logger = logger;
+        _speech = speech;
     }
 
     public bool IsArmed
@@ -215,6 +219,11 @@ public sealed class McduActuator : IMcduActuator, IDisposable
     private Task PressRawAsync(string suffix, CancellationToken cancellationToken)
     {
         _logger.LogDebug("MCDU key {Suffix}", suffix);
-        return _dataRefs.PressMomentaryAsync(McduControls.Key(suffix), cancellationToken);
+        // Seat-relative: the code-level allow-list validates the AUTHORED (CDU2) name; with
+        // the human in the right seat, the press lands on the virtual pilot's CDU1 instead.
+        return _dataRefs.PressMomentaryAsync(
+            Recognition.PilotSeatMap.Map(McduControls.Key(suffix),
+                _speech is not null && Recognition.PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue)),
+            cancellationToken);
     }
 }

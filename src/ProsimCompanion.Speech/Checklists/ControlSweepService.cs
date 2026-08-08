@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Checklists;
+using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Speech.Recognition;
 
 namespace ProsimCompanion.Speech.Checklists;
 
@@ -37,16 +40,29 @@ public sealed class ControlSweepService
 
     private readonly IProsimDataRefs _dataRefs;
     private readonly ILogger<ControlSweepService> _logger;
+    private readonly IOptionsMonitor<SpeechOptions>? _speech;
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
 
-    public ControlSweepService(IProsimDataRefs dataRefs, ILogger<ControlSweepService> logger)
+    public ControlSweepService(
+        IProsimDataRefs dataRefs,
+        ILogger<ControlSweepService> logger,
+        IOptionsMonitor<SpeechOptions>? speech = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(logger);
 
         _dataRefs = dataRefs;
         _logger = logger;
+        _speech = speech;
     }
+
+    /// <summary>Seat-relative target: checklist JSON is authored FO-side; with the human in
+    /// the right seat the virtual pilot sweeps the captain-side analogs instead. The
+    /// allow-list check stays on the AUTHORED name — the map only changes which side of an
+    /// already-approved axis is written.</summary>
+    private string Side(string dataref)
+        => PilotSeatMap.Map(dataref,
+            _speech is not null && PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue));
 
     /// <summary>Runs the sweep to completion. Cancellation forces neutral, then rethrows.</summary>
     public async Task ExecuteAsync(ControlActionDefinition action, CancellationToken cancellationToken)
@@ -87,7 +103,7 @@ public sealed class ControlSweepService
         {
             try
             {
-                await _dataRefs.WriteAsync(dataref, CopilotControls.NeutralRaw).ConfigureAwait(false);
+                await _dataRefs.WriteAsync(Side(dataref), CopilotControls.NeutralRaw).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -98,12 +114,13 @@ public sealed class ControlSweepService
 
     private async Task RampAsync(ControlSweepStep step, CancellationToken cancellationToken)
     {
+        var dataref = Side(step.Dataref);
         var target = CopilotControls.NormalizedToRaw(step.To);
-        var current = ReadCurrent(step.Dataref);
+        var current = ReadCurrent(dataref);
 
         if (step.RampMs <= 0 || current == target)
         {
-            await _dataRefs.WriteAsync(step.Dataref, target, cancellationToken).ConfigureAwait(false);
+            await _dataRefs.WriteAsync(dataref, target, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -113,12 +130,12 @@ public sealed class ControlSweepService
         {
             cancellationToken.ThrowIfCancellationRequested();
             var value = (int)Math.Round(current + (target - current) * (frame / (double)frames));
-            await _dataRefs.WriteAsync(step.Dataref, value, cancellationToken).ConfigureAwait(false);
+            await _dataRefs.WriteAsync(dataref, value, cancellationToken).ConfigureAwait(false);
             await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
         }
 
         // Land exactly on target regardless of rounding.
-        await _dataRefs.WriteAsync(step.Dataref, target, cancellationToken).ConfigureAwait(false);
+        await _dataRefs.WriteAsync(dataref, target, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Reads the axis's current raw value via a cached subscription (registered on

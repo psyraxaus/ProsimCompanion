@@ -142,12 +142,17 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
             return true;
         }
 
+        // A radio VERB is required — a bare "box" mention must not claim the utterance
+        // ("check the box" is an MCDU command; it used to land here and answer "Say again
+        // the frequency"). "set" only counts together with "box" so FCU "set heading two
+        // seven zero" is never grabbed either.
         var hasRadioVerb = text.Contains(" standby ", StringComparison.Ordinal)
             || text.Contains(" tune ", StringComparison.Ordinal)
-            || text.Contains(" box ", StringComparison.Ordinal);
+            || (text.Contains(" set ", StringComparison.Ordinal)
+                && text.Contains(" box ", StringComparison.Ordinal));
         if (!hasRadioVerb)
         {
-            return false; // "set heading two seven zero" must never be grabbed
+            return false;
         }
 
         // The box specifier must not reach the number extractor — in "set box one standby one

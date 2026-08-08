@@ -6,6 +6,7 @@
 @implements IDisposable
 @inject IOptionsMonitor<SpeechOptions> SpeechMonitor
 @inject IOptionsMonitor<BriefingOptions> BriefingMonitor
+@inject IOptionsMonitor<McduOptions> McduMonitor
 @inject JsonSettingsFile SettingsFile
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
@@ -40,6 +41,9 @@
                     <BoolField Label="Local only"
                                Hint="Hard mode: network providers (Kokoro, Google) are excluded from every path — synthesis never leaves this machine"
                                @bind-Value="_draft.LocalOnly" />
+                    <SelectField Label="Your seat" Options="PilotSeatOptions"
+                                 Hint="The virtual pilot operates the OPPOSITE side: left (default) = FO on CDU2/right-side controls/EFIS2; right = the virtual pilot uses CDU1/captain-side controls/EFIS1. The MCDU display side applies after an app restart"
+                                 @bind-Value="_draft.PilotSeat" />
                 </Section>
 
                 <Section Title="Playback">
@@ -162,6 +166,20 @@
                     <NumberField Label="Monthly character budget" Min="0"
                                  Hint="Synthesis stops for the month at this figure and falls through to offline voices (free tier is 1,000,000). 0 disables enforcement"
                                  @bind-Value="_draft.GoogleMonthlyCharBudget" />
+                </Section>
+            }
+            else if (_section == "mcdu")
+            {
+                <Section Title="MCDU" Hint="Voice MCDU: read-back always works; key presses need deliberate arming">
+                    <BoolField Label="Enabled"
+                               Hint="Master switch for the MCDU voice features (read the mcdu, tune the ils, change arrival runway)"
+                               @bind-Value="_mcduDraft.Enabled" />
+                    <BoolField Label="Allow actuation"
+                               Hint="Lets the virtual pilot PRESS MCDU keys (RAD NAV tuning, arrival changes). Off = read-only; commands answer that actuation is disabled"
+                               @bind-Value="_mcduDraft.AllowActuation" />
+                    <NumberField Label="Verify pause" Suffix="s" Min="0"
+                                 Hint="Announce-then-pause cancel window before an MCDU change is inserted"
+                                 @bind-Value="_mcduDraft.VerifyPauseSeconds" />
                 </Section>
             }
             else if (_section == "briefing")
@@ -293,6 +311,7 @@
         ("sterile", "Sterile Cockpit"),
         ("kokoro", "Kokoro"),
         ("google", "Google"),
+        ("mcdu", "MCDU"),
         ("briefing", "Briefings & LLM"),
         ("windows", "Windows Voices"),
         ("advanced", "Advanced"),
@@ -302,6 +321,12 @@
     [
         ("pushToTalk", "Push-to-talk (dedicated FO key)"),
         ("continuous", "Continuous (ATC-mute while transmitting)"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> PilotSeatOptions =
+    [
+        ("left", "Left seat (FO operates the right side)"),
+        ("right", "Right seat (virtual pilot operates the left side)"),
     ];
 
     private static readonly IReadOnlyList<(string, string)> ProcedureSourceOptions =
@@ -327,14 +352,17 @@
     private string _section = "status";
     private SpeechOptions _draft = new();
     private BriefingOptions _briefingDraft = new();
+    private McduOptions _mcduDraft = new();
     private string _baseline = "";
     private string _briefingBaseline = "";
+    private string _mcduBaseline = "";
     private string? _barMessage;
     private DirtyBar.MessageTone _barTone = DirtyBar.MessageTone.Unsaved;
     private Timer? _savedMessageTimer;
 
     private bool IsDirty => Serialize(_draft) != _baseline
-        || JsonSerializer.Serialize(_briefingDraft, DraftJson) != _briefingBaseline;
+        || JsonSerializer.Serialize(_briefingDraft, DraftJson) != _briefingBaseline
+        || JsonSerializer.Serialize(_mcduDraft, DraftJson) != _mcduBaseline;
 
     private IReadOnlyList<string> _captureDevices = [];
     private IReadOnlyList<string> _renderDevices = [];
@@ -542,6 +570,9 @@
         _briefingDraft = JsonSerializer.Deserialize<BriefingOptions>(
             JsonSerializer.Serialize(BriefingMonitor.CurrentValue, DraftJson), DraftJson) ?? new BriefingOptions();
         _briefingBaseline = JsonSerializer.Serialize(_briefingDraft, DraftJson);
+        _mcduDraft = JsonSerializer.Deserialize<McduOptions>(
+            JsonSerializer.Serialize(McduMonitor.CurrentValue, DraftJson), DraftJson) ?? new McduOptions();
+        _mcduBaseline = JsonSerializer.Serialize(_mcduDraft, DraftJson);
     }
 
     private static string Serialize(SpeechOptions options) => JsonSerializer.Serialize(options, DraftJson);
@@ -558,8 +589,14 @@
         {
             var draft = _draft;
             var briefingDraft = _briefingDraft;
+            var mcduDraft = _mcduDraft;
             SettingsFile.Update(root =>
             {
+                var mcdu = JsonSettingsFile.GetOrCreateSection(root, McduOptions.SectionName);
+                mcdu["enabled"] = mcduDraft.Enabled;
+                mcdu["allowActuation"] = mcduDraft.AllowActuation;
+                mcdu["verifyPauseSeconds"] = mcduDraft.VerifyPauseSeconds;
+
                 var briefing = JsonSettingsFile.GetOrCreateSection(root, BriefingOptions.SectionName);
                 // dfdPath deliberately not written here — App Settings → Nav Data owns it,
                 // and a stale draft on this page must not clobber a save made there.
@@ -596,6 +633,7 @@
 
                 speech["enabled"] = draft.Enabled;
                 speech["localOnly"] = draft.LocalOnly;
+                speech["pilotSeat"] = draft.PilotSeat.Trim().ToLowerInvariant();
 
                 speech["recognitionMode"] = draft.RecognitionMode.Trim();
                 speech["pttBinding"] = BindingJson(draft.PttBinding);
@@ -640,6 +678,7 @@
 
             _baseline = Serialize(_draft);
             _briefingBaseline = JsonSerializer.Serialize(_briefingDraft, DraftJson);
+            _mcduBaseline = JsonSerializer.Serialize(_mcduDraft, DraftJson);
             _barMessage = "Saved.";
             _barTone = DirtyBar.MessageTone.Info;
             _savedMessageTimer?.Dispose();

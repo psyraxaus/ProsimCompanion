@@ -375,6 +375,10 @@ public sealed class SpokenChecklistEngine : IDisposable
     /// still work.</summary>
     private async Task<MonitorOutcome> MonitorPhaseAsync(ChecklistItemDefinition item, CancellationToken ct)
     {
+        // Checklist JSON authors the WATCHED axes captain-side (the human's controls in the
+        // default geometry); with the human in the right seat the watch swaps to the FO-side
+        // analogs — the monitor always watches the HUMAN, the sweep always drives the FO.
+        var humanRight = PilotSeatMap.HumanIsRightSeat(_options.CurrentValue);
         var axes = new List<MonitorAxisSpec>();
         foreach (var (name, axis) in item.Axes ?? [])
         {
@@ -386,7 +390,8 @@ public sealed class SpokenChecklistEngine : IDisposable
                 _ => name,
             };
             axes.Add(new MonitorAxisSpec(
-                name, display, axis.Dataref, axis.FullPositive, axis.FullNegative, axis.Neutral));
+                name, display, PilotSeatMap.Map(axis.Dataref, humanRight),
+                axis.FullPositive, axis.FullNegative, axis.Neutral));
         }
 
         if (axes.Count == 0)

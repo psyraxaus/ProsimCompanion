@@ -85,6 +85,11 @@ public static class ProsimWriteGate
         // engine's own VoiceCommandWriteGate narrows further to S_CDU1_KEY_/S_CDU2_KEY_.
         "system.switches.S_CDU",
 
+        // Pilot-seat flip (speech.pilotSeat = "right"): the virtual pilot then flies the
+        // LEFT side, so its control sweep writes the captain-side analogs. ControlSweepService
+        // enforces the seat check — with the default left seat these are never written.
+        "system.analog.A_FC_CAPT_",
+
         // Voice FCU actions: value analogs (A_FCU_HEADING/ALTITUDE/SPEED/VS) + push/pull and
         // engagement switches. FcuControls further narrows to its fixed 15-entry list.
         "system.analog.A_FCU_",

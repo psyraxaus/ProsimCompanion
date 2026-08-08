@@ -49,6 +49,13 @@ public sealed class SpeechOptions
     /// <summary>Master switch for the speech pillar.</summary>
     public bool Enabled { get; set; } = true;
 
+    /// <summary>Which seat the HUMAN flies from ("left" or "right"). The virtual pilot
+    /// operates the opposite side: with the default "left", the FO uses CDU2 / the FO-side
+    /// flight controls / EFIS2; "right" flips every side-dependent surface (CDU1, the
+    /// captain-side controls, EFIS1). The safety rule is seat-relative — the virtual pilot
+    /// never moves the human's controls.</summary>
+    public string PilotSeat { get; set; } = "left";
+
     /// <summary>Hard "local only" mode: network TTS providers (Kokoro, Google) are excluded
     /// regardless of their own configuration.</summary>
     public bool LocalOnly { get; set; }

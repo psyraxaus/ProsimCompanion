@@ -55,12 +55,15 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
 
     private IDataRefSubscription? _display;
 
+    private readonly IOptionsMonitor<SpeechOptions>? _speech;
+
     public McduReader(
         IProsimDataRefs dataRefs,
         IOptionsMonitor<McduOptions> options,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<McduReader> logger)
+        ILogger<McduReader> logger,
+        IOptionsMonitor<SpeechOptions>? speech = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(options);
@@ -73,6 +76,7 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _speech = speech;
     }
 
     public IEnumerable<string> Phrases => [.. ReadPhrases, .. ScratchpadPhrases];
@@ -202,7 +206,12 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
         {
             // Frequent (250 ms) so the actuator's two-identical-reads settle check converges
             // inside its timeout. Registered once and cached — never re-read per call.
-            return _display ??= _dataRefs.Subscribe(McduControls.Display, DataRefTier.Frequent);
+            // Seat-relative side chosen at FIRST use — a pilot-seat change needs an app
+            // restart to re-subscribe the other CDU's display.
+            return _display ??= _dataRefs.Subscribe(
+                Recognition.PilotSeatMap.Map(McduControls.Display,
+                    _speech is not null && Recognition.PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue)),
+                DataRefTier.Frequent);
         }
     }
 
