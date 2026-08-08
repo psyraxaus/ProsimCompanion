@@ -231,23 +231,27 @@ end;
 procedure WriteSettings();
 var
   SettingsPath, Text: String;
+  Raw: AnsiString;
   Lines: TStringList;
   Changed: Boolean;
 begin
   SettingsPath := ExpandConstant('{app}\config\settings.json');
   ForceDirectories(ExtractFileDir(SettingsPath));
 
-  if LoadStringFromFile(SettingsPath, Text) then
+  { LoadStringFromFile is AnsiString-only; the file is the app's own camelCase JSON (paths,
+    tokens — effectively ASCII), so the boundary conversion is safe here. }
+  if LoadStringFromFile(SettingsPath, Raw) then
   begin
     { Existing file (update, or the shipped template): surgically update the two keys the
       installer owns; anything else stays exactly as the user configured it. }
+    Text := String(Raw);
     Changed := False;
     if SdkPage.Values[0] <> '' then
       Changed := TryReplaceJsonString(Text, 'sdkPath', SdkPage.Values[0]) or Changed;
     if VoiceMeeterPage.Values[0] <> '' then
       Changed := TryReplaceJsonString(Text, 'voiceMeeterDllPath', VoiceMeeterPage.Values[0]) or Changed;
     if Changed then
-      SaveStringToFile(SettingsPath, Text, False);
+      SaveStringToFile(SettingsPath, AnsiString(Text), False);
     { A key the replace missed (fresh sections) is fine: the app's Settings page can set it,
       and the SDK path is also importable from a predecessor config on first run. }
     exit;
@@ -285,8 +289,8 @@ begin
     exit;
   end;
   ForceDirectories(TargetDir);
-  { The whole GSXProfiles tree was staged to {tmp} by InstallGsxProfiles. }
-  if FileCopy(ExpandConstant('{tmp}\GSXProfiles\' + ProfileName + '\gsx.cfg'), TargetFile, False) then
+  (* The whole GSXProfiles tree was staged to the temp dir by InstallGsxProfiles. *)
+  if CopyFile(ExpandConstant('{tmp}\GSXProfiles\' + ProfileName + '\gsx.cfg'), TargetFile, False) then
     Copied := Copied + 1;
 end;
 
@@ -299,7 +303,7 @@ var
 begin
   TargetDir := AddBackslash(VirtualiPage.Values[0]) + 'Airplanes\' + ProfileName;
   if DirExists(TargetDir) then
-    FileCopy(ExpandConstant('{tmp}\GSXProfiles\gsx_handler.py'), TargetDir + '\gsx_handler.py', False);
+    CopyFile(ExpandConstant('{tmp}\GSXProfiles\gsx_handler.py'), TargetDir + '\gsx_handler.py', False);
 end;
 
 procedure InstallGsxProfiles();
