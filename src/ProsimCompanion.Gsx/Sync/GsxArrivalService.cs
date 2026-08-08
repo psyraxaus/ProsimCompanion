@@ -46,6 +46,7 @@ public sealed class GsxArrivalService : IDisposable
     private readonly IDataRefSubscription _seatOccupation;
     private readonly IDataRefSubscription _ofpImported;
     private readonly GsxGroundEquipmentService _groundEquipment;
+    private readonly GsxJetwayStairsService _jetwayStairs;
     private readonly Timer _timer;
     private int _stableSeconds;
     private bool _arrivalHandled;
@@ -65,12 +66,15 @@ public sealed class GsxArrivalService : IDisposable
         JsonSettingsFile settings,
         AircraftProfileService profiles,
         GsxGroundEquipmentService groundEquipment,
+        GsxJetwayStairsService jetwayStairs,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxArrivalService> logger)
     {
         ArgumentNullException.ThrowIfNull(groundEquipment);
+        ArgumentNullException.ThrowIfNull(jetwayStairs);
         _groundEquipment = groundEquipment;
+        _jetwayStairs = jetwayStairs;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(automation);
@@ -175,7 +179,9 @@ public sealed class GsxArrivalService : IDisposable
 
         if (_arrivalHandled)
         {
-            // Deboarding may not have been callable the second we parked — keep trying.
+            // Jetway/stairs first (predecessor order: gate path before pax leave), then
+            // deboarding — both keep retrying until they succeed or give up.
+            _ = _jetwayStairs.RunArrivalStep();
             if (!_deboardCalled && _options.CurrentValue.AutoCallDeboardOnArrival)
             {
                 TryCallDeboarding();

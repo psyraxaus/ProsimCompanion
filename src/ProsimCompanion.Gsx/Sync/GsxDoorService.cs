@@ -62,7 +62,10 @@ public sealed class GsxDoorService : IDisposable
     private double _lastCargoExit1;
     private bool _stairsWereActive;
     private bool _stairsOpenedL1;
-    private volatile bool _loadingActive; // boarding OR deboarding running
+
+    private enum Loading { None, Boarding, Deboarding }
+
+    private volatile Loading _loading = Loading.None;
 
     public GsxDoorService(
         IProsimDataRefs prosim,
@@ -195,16 +198,24 @@ public sealed class GsxDoorService : IDisposable
             return;
         }
 
+        var options = _options.CurrentValue;
         switch (lifecycleEvent)
         {
             case GsxServiceLifecycleEvent.Active:
-                _loadingActive = true;
-                _ = OpenCargoDoorsDelayedAsync(isBoarding ? "boarding" : "deboarding");
+                _loading = isBoarding ? Loading.Boarding : Loading.Deboarding;
+                if (options.DoorCargoHandling && options.DoorOpenOnBoardingActive)
+                {
+                    _ = OpenCargoDoorsDelayedAsync(isBoarding ? "boarding" : "deboarding");
+                }
                 break;
 
             case GsxServiceLifecycleEvent.Completed:
-                _loadingActive = false;
-                if (isDeboarding && _options.CurrentValue.KeepCargoDoorsOpenAfterUnload)
+                _loading = Loading.None;
+                if (!options.DoorCargoHandling)
+                {
+                    break;
+                }
+                if (isDeboarding && options.KeepCargoDoorsOpenAfterUnload)
                 {
                     RecordDecision("doors", "deboarding complete — cargo doors kept open (configured)");
                     break;
@@ -258,19 +269,31 @@ public sealed class GsxDoorService : IDisposable
                 return;
             }
 
-            HandleToggle(_toggleCargo1, ref _lastToggleCargo1, () =>
-                OpenIfClosedAsync(_cargoFwd, ProsimDataRefNames.DoorCargoForward, "cargo fwd", "GSX cargo-1 toggle"));
-            HandleToggle(_toggleCargo2, ref _lastToggleCargo2, () =>
-                OpenIfClosedAsync(_cargoAft, ProsimDataRefNames.DoorCargoAft, "cargo aft", "GSX cargo-2 toggle"));
-            HandleToggle(_toggleService1, ref _lastToggleService1, () =>
-                ToggleDoorAsync(_door1R, ProsimDataRefNames.Door1R, "1R", "GSX service-1 toggle"));
-            HandleToggle(_toggleService2, ref _lastToggleService2, () =>
-                ToggleDoorAsync(_door4R, ProsimDataRefNames.Door4R, "4R", "GSX service-2 toggle"));
+            // Per-door-class gates (predecessor Gate & Doors sub-tab): each class of rule can
+            // be turned off independently under the master door-automation switch.
+            var options = _options.CurrentValue;
+            if (options.DoorCargoHandling)
+            {
+                HandleToggle(_toggleCargo1, ref _lastToggleCargo1, () =>
+                    OpenIfClosedAsync(_cargoFwd, ProsimDataRefNames.DoorCargoForward, "cargo fwd", "GSX cargo-1 toggle"));
+                HandleToggle(_toggleCargo2, ref _lastToggleCargo2, () =>
+                    OpenIfClosedAsync(_cargoAft, ProsimDataRefNames.DoorCargoAft, "cargo aft", "GSX cargo-2 toggle"));
+                HandleCargoExit(_cargoExit0, ref _lastCargoExit0, _cargoFwd, ProsimDataRefNames.DoorCargoForward, "cargo fwd");
+                HandleCargoExit(_cargoExit1, ref _lastCargoExit1, _cargoAft, ProsimDataRefNames.DoorCargoAft, "cargo aft");
+            }
 
-            HandleCargoExit(_cargoExit0, ref _lastCargoExit0, _cargoFwd, ProsimDataRefNames.DoorCargoForward, "cargo fwd");
-            HandleCargoExit(_cargoExit1, ref _lastCargoExit1, _cargoAft, ProsimDataRefNames.DoorCargoAft, "cargo aft");
+            if (options.DoorCateringHandling)
+            {
+                HandleToggle(_toggleService1, ref _lastToggleService1, () =>
+                    ToggleDoorAsync(_door1R, ProsimDataRefNames.Door1R, "1R", "GSX service-1 toggle"));
+                HandleToggle(_toggleService2, ref _lastToggleService2, () =>
+                    ToggleDoorAsync(_door4R, ProsimDataRefNames.Door4R, "4R", "GSX service-2 toggle"));
+            }
 
-            HandleStairs();
+            if (options.DoorStairHandling)
+            {
+                HandleStairs();
+            }
         }
         catch (Exception ex)
         {
@@ -290,7 +313,9 @@ public sealed class GsxDoorService : IDisposable
     }
 
     /// <summary>A loader LVAR dropping back to 0 after working means that hold is done — close
-    /// its door after the crew-realism delay (predecessor: 16 s).</summary>
+    /// its door after the crew-realism delay (predecessor: 16 s). The keep-open options skip
+    /// this per direction (boarding = KeepCargoDoorsOpenAfterLoad, deboarding =
+    /// KeepCargoDoorsOpenAfterUnload); the service-completed close still applies.</summary>
     private void HandleCargoExit(
         IDataRefSubscription exit,
         ref double last,
@@ -301,7 +326,18 @@ public sealed class GsxDoorService : IDisposable
         var value = exit.GetValue(0.0);
         var finished = value == 0 && last != 0;
         last = value;
-        if (finished && _loadingActive && door.GetValue(false))
+        var keepOpen = _loading switch
+        {
+            Loading.Boarding => _options.CurrentValue.KeepCargoDoorsOpenAfterLoad,
+            Loading.Deboarding => _options.CurrentValue.KeepCargoDoorsOpenAfterUnload,
+            _ => false,
+        };
+        if (finished && keepOpen)
+        {
+            RecordDecision("doors", $"{label} loader finished — door kept open (configured)");
+            return;
+        }
+        if (finished && _loading != Loading.None && door.GetValue(false))
         {
             var delay = Math.Max(0, _options.CurrentValue.CargoDoorCloseDelaySec);
             RecordDecision("doors", $"{label} loader finished — closing in {delay}s");

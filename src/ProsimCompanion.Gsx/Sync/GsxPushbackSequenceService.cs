@@ -45,6 +45,9 @@ public sealed class GsxPushbackSequenceService : IDisposable
     private double _lastBypassPin;
     private bool _tugAttachedDuringBoarding;
     private bool _tugPushbackCalled;
+    private bool _stairsRemovedAfterDeparture;
+    private bool _doorsClosedOnFinal;
+    private bool _jetwayRemovedOnFinal;
     private int _ticking;
 
     public GsxPushbackSequenceService(
@@ -128,6 +131,9 @@ public sealed class GsxPushbackSequenceService : IDisposable
                 _lastResetPhase = phase;
                 _tugAttachedDuringBoarding = false;
                 _tugPushbackCalled = false;
+                _stairsRemovedAfterDeparture = false;
+                _doorsClosedOnFinal = false;
+                _jetwayRemovedOnFinal = false;
                 if (_sequencer.Step != PushbackSequenceStep.Idle)
                 {
                     _sequencer.Reset();
@@ -141,6 +147,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
             {
                 DetectTugDuringBoarding();
                 TryCallPushbackForAttachedTug();
+                RunDeparturePhaseHooks();
             }
 
             // Gradual equipment removal belongs to the NON-sequence flow (the beacon sequence
@@ -225,6 +232,53 @@ public sealed class GsxPushbackSequenceService : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Pushback sequence action {Action} failed", action);
+        }
+    }
+
+    /// <summary>The Prosim2GSX departure phase-point hooks (#9), driven by this shell's 1 Hz
+    /// tick because they need a ticker and this shell already samples everything involved:
+    /// jetway/stairs connect when departure services start, stairs removal when they complete,
+    /// and doors-close + jetway-removal on the final loadsheet (the on-final pair yields to
+    /// the beacon sequence, which owns that timing when enabled — predecessor rule).</summary>
+    private void RunDeparturePhaseHooks()
+    {
+        var options = _options.CurrentValue;
+
+        if (options.CallJetwayStairsDuringDeparture
+            && _automation.DepartureStarted
+            && !_automation.DepartureComplete)
+        {
+            _ = _jetwayStairs.RunDepartureStep();
+        }
+
+        if (!_stairsRemovedAfterDeparture
+            && _automation.DepartureComplete
+            && !string.Equals(options.RemoveStairsAfterDeparture, "never", StringComparison.OrdinalIgnoreCase))
+        {
+            _stairsRemovedAfterDeparture = true;
+            _ = _jetwayStairs.RemoveStairsAfterDepartureAsync(options.RemoveStairsAfterDeparture);
+        }
+
+        // On-final hooks: fire once the final loadsheet is SENT and boarding has completed.
+        if (options.BeaconPushbackSequenceEnabled
+            || _loadsheets.Snapshot().Final.Status != LoadsheetSlotStatus.Sent
+            || !_lifecycle.IsCompleted("Boarding"))
+        {
+            return;
+        }
+
+        if (options.CloseDoorsOnFinal && !_doorsClosedOnFinal)
+        {
+            _doorsClosedOnFinal = true;
+            RecordDecision("departure", "final loadsheet sent — closing doors");
+            _ = _doors.CloseAllDoorsAsync();
+        }
+
+        if (options.RemoveJetwayStairsOnFinal && !_jetwayRemovedOnFinal)
+        {
+            _jetwayRemovedOnFinal = true;
+            RecordDecision("departure", "final loadsheet sent — removing jetway/stairs");
+            _ = _jetwayStairs.RequestRemovalAsync();
         }
     }
 

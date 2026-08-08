@@ -87,6 +87,19 @@ public sealed class GsxJetwayStairsService : IDisposable
     /// Done when connected, disabled, given up, or nothing to connect; Pending while a trigger
     /// awaits its Requested/Active edge; Waiting otherwise.</summary>
     public GsxPrepStatus RunStep()
+        => RunConnectStep(_options.CurrentValue.AutoConnectJetwayOrStairs);
+
+    /// <summary>Departure-services-start connect (predecessor CallJetwayStairsDuringDeparture)
+    /// — same once-per-gate core, so a jetway the prep step already connected is a no-op.</summary>
+    public GsxPrepStatus RunDepartureStep()
+        => RunConnectStep(_options.CurrentValue.CallJetwayStairsDuringDeparture);
+
+    /// <summary>Arrival connect once stably parked (predecessor CallJetwayStairsOnArrival).
+    /// The arrival gate has a fresh gate-context key, which resets the once-per-gate cycle.</summary>
+    public GsxPrepStatus RunArrivalStep()
+        => RunConnectStep(_options.CurrentValue.CallJetwayStairsOnArrival);
+
+    private GsxPrepStatus RunConnectStep(bool optionEnabled)
     {
         if (Interlocked.Exchange(ref _checking, 1) == 1)
         {
@@ -95,9 +108,8 @@ public sealed class GsxJetwayStairsService : IDisposable
 
         try
         {
-            var options = _options.CurrentValue;
             var gateKey = _api.Mirror.GateContextKey;
-            if (!options.AutoConnectJetwayOrStairs)
+            if (!optionEnabled)
             {
                 return GsxPrepStatus.Done;
             }
@@ -224,6 +236,36 @@ public sealed class GsxJetwayStairsService : IDisposable
             _handledGateKey = gateKey;
             RecordDecision("jetway/stairs", $"{pending} showed no response and no usable fallback — giving up for this gate");
         }
+    }
+
+    /// <summary>Removes the stairs after the departure services complete (predecessor
+    /// RemoveStairsAfterDepature): "always", or "onlyJetway" when a jetway also reads
+    /// connected (the pax doors stay served). "never"/unknown does nothing.</summary>
+    public async Task RemoveStairsAfterDepartureAsync(string mode)
+    {
+        var stairs = _api.Mirror.Services.GetValueOrDefault(StairsServiceId);
+        if (stairs?.State is not (GsxServiceState.Active or GsxServiceState.Completed))
+        {
+            return; // stairs not connected — nothing to remove
+        }
+
+        var jetwayConnected = _api.Mirror.Services.GetValueOrDefault(JetwayServiceId)?.State
+            is GsxServiceState.Active or GsxServiceState.Completed;
+        var due = mode.ToLowerInvariant() switch
+        {
+            "always" => true,
+            "onlyjetway" => jetwayConnected,
+            _ => false,
+        };
+        if (!due)
+        {
+            return;
+        }
+
+        RecordDecision(
+            "jetway/stairs",
+            $"departure services complete — removing stairs ({mode}{(jetwayConnected ? ", jetway stays" : "")})");
+        await TriggerAsync(StairsServiceId).ConfigureAwait(false);
     }
 
     /// <summary>Retracts whatever is connected (the departure-sequence jetway step). The

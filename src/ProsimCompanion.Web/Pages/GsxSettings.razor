@@ -41,25 +41,55 @@
             {
                 <Section Title="Doors">
                     <BoolField Label="Door automation"
-                               Hint="Cargo doors follow boarding/deboarding, catering doors follow GSX, entry doors open when stairs dock"
+                               Hint="Master switch — the per-class rules below only apply while this is on"
                                @bind-Value="_draft.DoorAutomationEnabled" />
-                    <BoolField Label="Suppress GSX door messages"
-                               Hint="Writes DISABLE_DOORS_MSG so GSX never shows door prompts while this app drives the doors"
-                               @bind-Value="_draft.SuppressGsxDoorMessages" />
+                    <BoolField Label="Passenger doors follow stairs"
+                               Hint="L4 opens when GSX stairs dock (L1 too at jetway-less stands) and closes when they leave"
+                               @bind-Value="_draft.DoorStairHandling" />
+                    <BoolField Label="Service doors follow catering"
+                               Hint="1R/4R toggle on GSX's catering door requests"
+                               @bind-Value="_draft.DoorCateringHandling" />
+                    <BoolField Label="Cargo doors follow loading"
+                               Hint="Open on GSX's cargo requests, close when each loader finishes"
+                               @bind-Value="_draft.DoorCargoHandling" />
+                    <BoolField Label="Open cargo doors on boarding active"
+                               Hint="Both cargo doors open shortly after boarding/deboarding starts"
+                               @bind-Value="_draft.DoorOpenOnBoardingActive" />
                     <NumberField Label="Cargo door open delay" Suffix="s" Min="0"
                                  Hint="After boarding/deboarding begins"
                                  @bind-Value="_draft.CargoDoorOpenDelaySec" />
                     <NumberField Label="Cargo door close delay" Suffix="s" Min="0"
                                  Hint="After the hold's GSX loader finishes"
                                  @bind-Value="_draft.CargoDoorCloseDelaySec" />
+                    <BoolField Label="Keep cargo doors open after loading"
+                               Hint="Skip the loader-finished close during boarding (still closed when boarding completes)"
+                               @bind-Value="_draft.KeepCargoDoorsOpenAfterLoad" />
                     <BoolField Label="Keep cargo doors open after unload"
                                Hint="Ground-crew realism option; default closes them"
                                @bind-Value="_draft.KeepCargoDoorsOpenAfterUnload" />
+                    <BoolField Label="Close doors on final loadsheet"
+                               Hint="All doors close once the final loadsheet is transmitted (beacon sequence off only)"
+                               @bind-Value="_draft.CloseDoorsOnFinal" />
+                    <BoolField Label="Suppress GSX door messages"
+                               Hint="Writes DISABLE_DOORS_MSG so GSX never shows door prompts while this app drives the doors"
+                               @bind-Value="_draft.SuppressGsxDoorMessages" />
                 </Section>
                 <Section Title="Jetway / Stairs">
-                    <BoolField Label="Connect jetway or stairs"
+                    <BoolField Label="Connect at session start"
                                Hint="Once per gate session; LVAR truth decides jetway vs stairs at this stand"
                                @bind-Value="_draft.AutoConnectJetwayOrStairs" />
+                    <BoolField Label="Connect when departure services start"
+                               Hint="For sessions where the session-start connect is off"
+                               @bind-Value="_draft.CallJetwayStairsDuringDeparture" />
+                    <SelectField Label="Remove stairs after departure services" Options="RemoveStairsOptions"
+                                 Hint="Only jetway = only when a jetway still serves the pax doors"
+                                 @bind-Value="_draft.RemoveStairsAfterDeparture" />
+                    <BoolField Label="Remove jetway/stairs on final loadsheet"
+                               Hint="Retract both once the final loadsheet is transmitted (beacon sequence off only)"
+                               @bind-Value="_draft.RemoveJetwayStairsOnFinal" />
+                    <BoolField Label="Connect on arrival"
+                               Hint="Jetway or stairs connect once stably parked, before deboarding"
+                               @bind-Value="_draft.CallJetwayStairsOnArrival" />
                 </Section>
             }
             else if (_section == "groundEquipment")
@@ -431,6 +461,9 @@
     private static readonly IReadOnlyList<(string, string)> CrewAnswerOptions =
         [("Nobody", "Nobody"), ("Crew", "Crew"), ("Pilots", "Pilots"), ("Both", "Both")];
 
+    private static readonly IReadOnlyList<(string, string)> RemoveStairsOptions =
+        [("never", "Never"), ("always", "Always"), ("onlyJetway", "Only jetway stands")];
+
     private static readonly IReadOnlyList<(string, string)> PcaModeOptions =
         [("never", "Never"), ("always", "Always"), ("onlyJetway", "Only jetway stands")];
 
@@ -574,14 +607,24 @@
                 gsx["chockDelayMinSec"] = draft.ChockDelayMinSec;
                 gsx["chockDelayMaxSec"] = draft.ChockDelayMaxSec;
                 gsx["autoConnectJetwayOrStairs"] = draft.AutoConnectJetwayOrStairs;
+                gsx["callJetwayStairsDuringDeparture"] = draft.CallJetwayStairsDuringDeparture;
+                gsx["removeStairsAfterDeparture"] = draft.RemoveStairsAfterDeparture;
+                gsx["removeJetwayStairsOnFinal"] = draft.RemoveJetwayStairsOnFinal;
+                gsx["callJetwayStairsOnArrival"] = draft.CallJetwayStairsOnArrival;
                 gsx["autoReposition"] = draft.AutoReposition;
                 gsx["disableProsimNativeGsx"] = draft.DisableProsimNativeGsx;
 
                 gsx["doorAutomationEnabled"] = draft.DoorAutomationEnabled;
+                gsx["doorStairHandling"] = draft.DoorStairHandling;
+                gsx["doorCateringHandling"] = draft.DoorCateringHandling;
+                gsx["doorCargoHandling"] = draft.DoorCargoHandling;
+                gsx["doorOpenOnBoardingActive"] = draft.DoorOpenOnBoardingActive;
                 gsx["suppressGsxDoorMessages"] = draft.SuppressGsxDoorMessages;
                 gsx["cargoDoorOpenDelaySec"] = draft.CargoDoorOpenDelaySec;
                 gsx["cargoDoorCloseDelaySec"] = draft.CargoDoorCloseDelaySec;
+                gsx["keepCargoDoorsOpenAfterLoad"] = draft.KeepCargoDoorsOpenAfterLoad;
                 gsx["keepCargoDoorsOpenAfterUnload"] = draft.KeepCargoDoorsOpenAfterUnload;
+                gsx["closeDoorsOnFinal"] = draft.CloseDoorsOnFinal;
 
                 gsx["beaconPushbackSequenceEnabled"] = draft.BeaconPushbackSequenceEnabled;
                 gsx["callPushbackOnBeacon"] = draft.CallPushbackOnBeacon;

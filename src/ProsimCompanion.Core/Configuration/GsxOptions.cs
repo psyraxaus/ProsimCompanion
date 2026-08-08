@@ -195,8 +195,25 @@ public sealed class GsxOptions
     public int ChockDelayMaxSec { get; set; } = 20;
 
     /// <summary>Operate the jetway (or call stairs at jetway-less gates) automatically once per
-    /// gate session, after checking they are not already connected.</summary>
+    /// gate session at SESSION START, after checking they are not already connected
+    /// (predecessor CallJetwayStairsOnPrep).</summary>
     public bool AutoConnectJetwayOrStairs { get; set; } = true;
+
+    /// <summary>Connect the jetway/stairs when the departure services start, for sessions
+    /// where the session-start connect is off (predecessor CallJetwayStairsDuringDeparture).</summary>
+    public bool CallJetwayStairsDuringDeparture { get; set; }
+
+    /// <summary>Remove the stairs once every departure service completed: "never" | "always" |
+    /// "onlyJetway" (only when a jetway also serves the pax doors — predecessor default).</summary>
+    public string RemoveStairsAfterDeparture { get; set; } = "onlyJetway";
+
+    /// <summary>Retract jetway AND stairs when the final loadsheet is transmitted (predecessor
+    /// RemoveJetwayStairsOnFinal; ignored while the beacon sequence owns removal timing).</summary>
+    public bool RemoveJetwayStairsOnFinal { get; set; } = true;
+
+    /// <summary>Connect the jetway/stairs on arrival once stably parked (predecessor
+    /// CallJetwayStairsOnArrival).</summary>
+    public bool CallJetwayStairsOnArrival { get; set; } = true;
 
     /// <summary>Run GSX's "Reposition Aircraft" once at session start on the ground.</summary>
     public bool AutoReposition { get; set; } = true;
@@ -226,6 +243,31 @@ public sealed class GsxOptions
     /// <summary>Leave the cargo doors open after deboarding completes (ground crew realism
     /// option; default closes them).</summary>
     public bool KeepCargoDoorsOpenAfterUnload { get; set; }
+
+    /// <summary>Pax doors follow GSX stairs docking/leaving (predecessor DoorStairHandling —
+    /// L4 always, L1 only at jetway-less stands).</summary>
+    public bool DoorStairHandling { get; set; } = true;
+
+    /// <summary>Starboard service doors follow GSX catering requests (predecessor
+    /// DoorCateringHandling — the SERVICE_n toggles).</summary>
+    public bool DoorCateringHandling { get; set; } = true;
+
+    /// <summary>Cargo doors follow GSX boarding/deboarding (predecessor DoorCargoHandling —
+    /// the CARGO_n toggles plus loader-finished closes).</summary>
+    public bool DoorCargoHandling { get; set; } = true;
+
+    /// <summary>Open both cargo doors when boarding/deboarding becomes active (predecessor
+    /// DoorOpenBoardActive; the open delay is <see cref="CargoDoorOpenDelaySec"/>).</summary>
+    public bool DoorOpenOnBoardingActive { get; set; } = true;
+
+    /// <summary>Skip the loader-finished cargo-door close during BOARDING (predecessor
+    /// DoorsCargoKeepOpenOnLoaded) — the doors still close when boarding completes.</summary>
+    public bool KeepCargoDoorsOpenAfterLoad { get; set; }
+
+    /// <summary>Close every open door once the final loadsheet is transmitted and boarding has
+    /// completed (predecessor CloseDoorsOnFinal; ignored while the beacon sequence owns door
+    /// timing).</summary>
+    public bool CloseDoorsOnFinal { get; set; } = true;
 
     // ---- Beacon-orchestrated pushback sequence ----
 
