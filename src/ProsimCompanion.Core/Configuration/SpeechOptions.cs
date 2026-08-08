@@ -15,6 +15,26 @@ public enum SterileNormalPolicy
     Suppress,
 }
 
+/// <summary>One push-to-talk input binding (Prosim2FO's InputBinding shape): a keyboard key
+/// OR a joystick button, never both — capture assigns whichever the user presses first.
+/// The joystick device is bound by product name (ids shuffle on re-plug); the numeric id is
+/// kept as display key and fallback.</summary>
+public sealed class PttBindingOptions
+{
+    /// <summary>"keyboard", "joystickButton", or "" for unset.</summary>
+    public string Kind { get; set; } = "";
+
+    /// <summary>Keyboard kind: key name/VK code in the PTT parser's vocabulary.</summary>
+    public string Key { get; set; } = "";
+
+    /// <summary>Joystick kind: winmm id (fallback), product name (authoritative), button.</summary>
+    public int? JoystickDevice { get; set; }
+    public string JoystickDeviceName { get; set; } = "";
+    public int? Button { get; set; }
+
+    public bool IsSet => Kind.Length > 0;
+}
+
 /// <summary>
 /// Settings for the voice First Officer pillar's speech foundations: the arbiter, the TTS
 /// provider chain (fixed order Kokoro → Google → WinRT → SAPI5, docs/integrations/speech.md)
@@ -110,8 +130,17 @@ public sealed class SpeechOptions
     /// <summary>Capture device product-name (prefix match); empty uses the default mic.</summary>
     public string InputDevice { get; set; } = "";
 
-    /// <summary>Push-to-talk key: a virtual-key name ("F12", "RightCtrl", "Space", a letter)
-    /// or a decimal VK code; empty disables keyboard PTT.</summary>
+    /// <summary>FO push-to-talk binding (key OR joystick button, Prosim2FO process). When
+    /// unset, the legacy flat fields below still apply, so pre-binding configs migrate
+    /// silently.</summary>
+    public PttBindingOptions PttBinding { get; set; } = new();
+
+    /// <summary>ATC-mute binding — same shape; while held the FO ignores everything.</summary>
+    public PttBindingOptions AtcMuteBinding { get; set; } = new();
+
+    /// <summary>LEGACY push-to-talk key (pre-binding configs): a virtual-key name ("F12",
+    /// "RightCtrl", "Space", a letter) or a decimal VK code; empty disables keyboard PTT.
+    /// Ignored once <see cref="PttBinding"/> is set.</summary>
     public string PttKey { get; set; } = "";
 
     /// <summary>Joystick PTT: winmm joystick id (0–15) and button index (0–31); a null button

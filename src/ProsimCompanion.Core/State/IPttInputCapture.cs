@@ -30,4 +30,13 @@ public interface IPttInputCapture
     /// are ignored — only a fresh press binds.</summary>
     Task<PttInputCaptureResult?> CaptureAsync(
         bool includeJoysticks, TimeSpan timeout, CancellationToken cancellationToken);
+
+    /// <summary>Live pressed state of the two bindings — the settings card's indicator lamps
+    /// (Prosim2FO parity: press the bound input, watch the light).</summary>
+    bool OwnPttPressed { get; }
+    bool AtcMutePressed { get; }
+
+    /// <summary>Raised on any pressed-state edge, on the service's worker thread — Blazor
+    /// consumers marshal with InvokeAsync.</summary>
+    event EventHandler? PressedChanged;
 }

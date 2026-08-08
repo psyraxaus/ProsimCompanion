@@ -8,20 +8,24 @@ using ProsimCompanion.Core.State;
 namespace ProsimCompanion.Speech.Recognition;
 
 /// <summary>
-/// Push-to-talk input: a global low-level keyboard hook (installed on a dedicated
-/// message-pump thread — never swallows keys, so PTT still reaches the sim) plus a winmm
-/// joystick poller at 25 ms for the FO PTT and ATC-mute bindings (device matched by product
-/// name first, numeric id as fallback; legacy API, HOTAS with more than 32 buttons can come
-/// later via RawInput). Raises edge events only. Bindings are
-/// re-read live from options. The hook callback only updates key state and queues the edge
-/// evaluation to the thread pool — Windows silently removes low-level hooks whose callbacks
-/// exceed LowLevelHooksTimeout, so recognition start/stop must never run on the hook thread.
-/// Doubles as <see cref="IPttInputCapture"/> for the settings page's press-to-detect binding
-/// (it already owns the key state and the joystick API).
+/// Push-to-talk input (Prosim2FO process): a global low-level keyboard hook (installed on a
+/// dedicated message-pump thread — never swallows keys, so PTT still reaches the sim) plus a
+/// winmm poller that tracks the pressed buttons of EVERY connected joystick as a
+/// (device, button) set. The FO PTT and ATC-mute functions each carry one
+/// <see cref="PttBindingOptions"/> — a keyboard key OR a joystick button — matched against
+/// those sets; the legacy flat key/device/button fields still apply while a binding is unset,
+/// so pre-binding configs migrate silently. Joystick devices are matched by product name
+/// first (winmm ids shuffle on re-plug), numeric id as fallback; more than 32 buttons per
+/// device can come later via RawInput. Raises edge events only. The hook callback only
+/// updates key state and queues the edge evaluation to the thread pool — Windows silently
+/// removes low-level hooks whose callbacks exceed LowLevelHooksTimeout, so recognition
+/// start/stop must never run on the hook thread. Doubles as <see cref="IPttInputCapture"/>
+/// for the settings card's Set-button capture and pressed-state lamps.
 /// </summary>
 public sealed class PushToTalkService : IDisposable, IPttInputCapture
 {
     private const int MaxJoysticks = 16;
+
     private const int WhKeyboardLl = 13;
     private const int WmKeydown = 0x0100;
     private const int WmSyskeydown = 0x0104;
@@ -101,32 +105,33 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
         ["leftalt"] = 0xA4, ["rightalt"] = 0xA5, ["scrolllock"] = 0x91, ["numlock"] = 0x90,
     };
 
+    /// <summary>One canonical name per VK for captured keys (KeyNames also carries aliases).
+    /// Every output round-trips through <see cref="ParseKey"/> — unknown VKs fall back to the
+    /// decimal code, which the parser also accepts.</summary>
+    private static readonly Dictionary<int, string> CanonicalKeyNames = new()
+    {
+        [0x20] = "space", [0x09] = "tab", [0x0D] = "enter", [0x13] = "pause",
+        [0x14] = "capslock", [0x1B] = "escape", [0x2D] = "insert", [0x2E] = "delete",
+        [0x24] = "home", [0x23] = "end", [0x21] = "pageup", [0x22] = "pagedown",
+        [0xA0] = "leftshift", [0xA1] = "rightshift", [0xA2] = "leftctrl", [0xA3] = "rightctrl",
+        [0xA4] = "leftalt", [0xA5] = "rightalt", [0x91] = "scrolllock", [0x90] = "numlock",
+    };
+
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ILogger<PushToTalkService> _logger;
     private readonly HookProc _hookProc; // held so the GC never collects the callback
     private readonly HashSet<int> _keysDown = [];
+    private readonly HashSet<(int Dev, int Btn)> _buttonsDown = [];
+    private readonly Dictionary<int, int> _deviceMasks = []; // per winmm id: previous buttons
+    private readonly Dictionary<(string Name, int? Id), int> _resolvedIds = [];
     private readonly object _recomputeGate = new(); // serializes edge detection (pool + timer threads)
 
     private Thread? _hookThread;
     private uint _hookThreadId;
     private IntPtr _hook;
     private Timer? _joystickTimer;
-    private readonly JoystickBinding _ownJoystick = new();
-    private readonly JoystickBinding _atcJoystick = new();
     private bool _ownPressed;
     private bool _atcPressed;
-
-    /// <summary>Live state of one configured joystick binding (FO PTT or ATC mute). The
-    /// resolved winmm id is cached and re-resolved when the configuration changes or the
-    /// device stops answering (re-plugged devices shuffle ids).</summary>
-    private sealed class JoystickBinding
-    {
-        public (string Name, int? Id, int? Button) Config;
-        public int ResolvedId = -1;
-        public int PreviousButtons;
-
-        public bool Pressed => Config.Button is { } button && (PreviousButtons & (1 << button)) != 0;
-    }
 
     public PushToTalkService(IOptionsMonitor<SpeechOptions> options, ILogger<PushToTalkService> logger)
     {
@@ -143,16 +148,21 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
 
     public event Action<bool>? AtcPttChanged;
 
+    /// <summary>Any pressed-state edge — the settings card's lamps re-render on this.</summary>
+    public event EventHandler? PressedChanged;
+
     public bool OwnPttPressed => _ownPressed;
 
     public bool AtcPttPressed => _atcPressed;
+
+    bool IPttInputCapture.AtcMutePressed => _atcPressed;
 
     public void Start()
     {
         _hookThread = new Thread(HookThreadMain) { IsBackground = true, Name = "ptt-hook" };
         _hookThread.SetApartmentState(ApartmentState.STA);
         _hookThread.Start();
-        _joystickTimer = new Timer(_ => PollJoystick(), null, 1000, 25);
+        _joystickTimer = new Timer(_ => PollJoysticks(), null, 1000, 25);
     }
 
     public void Dispose()
@@ -193,18 +203,6 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
         return int.TryParse(k, out var code) && code is > 0 and < 256 ? code : 0;
     }
 
-    /// <summary>One canonical name per VK for captured keys (KeyNames also carries aliases).
-    /// Every output round-trips through <see cref="ParseKey"/> — unknown VKs fall back to the
-    /// decimal code, which the parser also accepts.</summary>
-    private static readonly Dictionary<int, string> CanonicalKeyNames = new()
-    {
-        [0x20] = "space", [0x09] = "tab", [0x0D] = "enter", [0x13] = "pause",
-        [0x14] = "capslock", [0x1B] = "escape", [0x2D] = "insert", [0x2E] = "delete",
-        [0x24] = "home", [0x23] = "end", [0x21] = "pageup", [0x22] = "pagedown",
-        [0xA0] = "leftshift", [0xA1] = "rightshift", [0xA2] = "leftctrl", [0xA3] = "rightctrl",
-        [0xA4] = "leftalt", [0xA5] = "rightalt", [0x91] = "scrolllock", [0x90] = "numlock",
-    };
-
     /// <summary>Formats a VK code as a settings-file key name (inverse of
     /// <see cref="ParseKey"/>).</summary>
     public static string FormatKey(int vk) =>
@@ -234,18 +232,15 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
         // inputs are dropped from the baseline each poll, so press-release-press still
         // captures within the window.
         HashSet<int> baselineKeys;
-        lock (_keysDown)
+        HashSet<(int Dev, int Btn)> baselineButtons;
+        lock (_recomputeGate)
         {
-            baselineKeys = [.. _keysDown];
-        }
-
-        var baselineButtons = new int[MaxJoysticks];
-        if (includeJoysticks)
-        {
-            for (var id = 0; id < MaxJoysticks; id++)
+            lock (_keysDown)
             {
-                baselineButtons[id] = ReadButtons(id) ?? 0;
+                baselineKeys = [.. _keysDown];
             }
+
+            baselineButtons = [.. _buttonsDown];
         }
 
         var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
@@ -270,18 +265,15 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
                 continue;
             }
 
-            for (var id = 0; id < MaxJoysticks; id++)
+            lock (_recomputeGate)
             {
-                if (ReadButtons(id) is not { } buttons)
+                baselineButtons.IntersectWith(_buttonsDown);
+                foreach (var (dev, btn) in _buttonsDown)
                 {
-                    continue;
-                }
-
-                baselineButtons[id] &= buttons;
-                var fresh = buttons & ~baselineButtons[id];
-                if (fresh != 0)
-                {
-                    return new PttInputCaptureResult(null, id, BitOperations.TrailingZeroCount((uint)fresh));
+                    if (!baselineButtons.Contains((dev, btn)))
+                    {
+                        return new PttInputCaptureResult(null, dev, btn);
+                    }
                 }
             }
         }
@@ -289,12 +281,41 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
         return null;
     }
 
-    /// <summary>Button bitmask for a winmm device, or null when the id has no connected
+    /// <summary>The id a binding should poll: a non-empty product name wins (prefix-matched
+    /// both ways, winmm truncates to 31 chars), the stored numeric id is the fallback, −1 is
+    /// unbound. <paramref name="productNameOf"/> returns null for ids with no connected
     /// device.</summary>
-    private static int? ReadButtons(int id)
+    public static int ResolveJoystickId(string name, int? configuredId, Func<int, string?> productNameOf)
     {
-        var info = new JoyInfoEx { Size = Marshal.SizeOf<JoyInfoEx>(), Flags = 0x80 /*JOY_RETURNBUTTONS*/ };
-        return joyGetPosEx(id, ref info) == 0 ? info.Buttons : null;
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            for (var id = 0; id < MaxJoysticks; id++)
+            {
+                var product = productNameOf(id);
+                if (product is not null
+                    && (product.StartsWith(name, StringComparison.OrdinalIgnoreCase)
+                        || name.StartsWith(product, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return id;
+                }
+            }
+        }
+
+        return configuredId ?? -1;
+    }
+
+    private static string? ProductNameOf(int id)
+    {
+        if (ReadButtons(id) is null)
+        {
+            return null;
+        }
+
+        var caps = new JoyCaps();
+        return joyGetDevCapsW((IntPtr)id, ref caps, Marshal.SizeOf<JoyCaps>()) == 0
+            && !string.IsNullOrWhiteSpace(caps.ProductName)
+            ? caps.ProductName
+            : $"Joystick {id}";
     }
 
     private void HookThreadMain()
@@ -348,95 +369,58 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
         return CallNextHookEx(_hook, code, wParam, lParam);
     }
 
-    private void PollJoystick()
+    /// <summary>Maintains the (device, button) pressed set across every connected winmm
+    /// device (Prosim2FO's JoystickMonitor, poll-based).</summary>
+    private void PollJoysticks()
     {
-        var options = _options.CurrentValue;
-        // Same lock as Recompute (reentrant) — binding state must not move under an edge
-        // evaluation that is already in flight on another thread.
         lock (_recomputeGate)
         {
-            var changed = PollBinding(
-                _ownJoystick, options.PttJoystickDeviceName, options.PttJoystickDevice, options.PttJoystickButton);
-            changed |= PollBinding(
-                _atcJoystick, options.AtcMuteJoystickDeviceName, options.AtcMuteJoystickDevice,
-                options.AtcMuteJoystickButton);
+            var changed = false;
+            for (var id = 0; id < MaxJoysticks; id++)
+            {
+                var buttons = ReadButtons(id);
+                if (buttons is null)
+                {
+                    // Device gone — drop its state so a stale held button can't latch PTT.
+                    if (_deviceMasks.Remove(id, out var stale) && stale != 0)
+                    {
+                        _buttonsDown.RemoveWhere(x => x.Dev == id);
+                        changed = true;
+                    }
+
+                    continue;
+                }
+
+                _deviceMasks.TryGetValue(id, out var previous);
+                if (buttons == previous)
+                {
+                    continue;
+                }
+
+                _deviceMasks[id] = buttons.Value;
+                var delta = buttons.Value ^ previous;
+                while (delta != 0)
+                {
+                    var bit = BitOperations.TrailingZeroCount((uint)delta);
+                    delta &= ~(1 << bit);
+                    if ((buttons.Value & (1 << bit)) != 0)
+                    {
+                        _buttonsDown.Add((id, bit));
+                    }
+                    else
+                    {
+                        _buttonsDown.Remove((id, bit));
+                    }
+                }
+
+                changed = true;
+            }
+
             if (changed)
             {
                 Recompute();
             }
         }
-    }
-
-    /// <summary>Refreshes one binding's button mask; returns true when it changed. Re-resolves
-    /// the device by name when the configuration changed or the cached id stopped answering.</summary>
-    private static bool PollBinding(JoystickBinding binding, string name, int? id, int? button)
-    {
-        var config = (name ?? "", id, button);
-        if (binding.Config != config)
-        {
-            binding.Config = config;
-            binding.ResolvedId = ResolveJoystickId(config.Item1, id, ProductNameOf);
-            binding.PreviousButtons = 0;
-        }
-
-        if (button is null || binding.ResolvedId < 0)
-        {
-            return false;
-        }
-
-        var buttons = ReadButtons(binding.ResolvedId);
-        if (buttons is null)
-        {
-            // Device vanished (or ids shuffled on a re-plug) — try the name again next poll.
-            binding.ResolvedId = ResolveJoystickId(config.Item1, id, ProductNameOf);
-            buttons = binding.ResolvedId >= 0 ? ReadButtons(binding.ResolvedId) : null;
-        }
-
-        var mask = buttons ?? 0;
-        if (mask == binding.PreviousButtons)
-        {
-            return false;
-        }
-
-        binding.PreviousButtons = mask;
-        return true;
-    }
-
-    /// <summary>The id a binding should poll: a non-empty product name wins (prefix-matched
-    /// both ways, winmm truncates to 31 chars), the stored numeric id is the fallback, −1 is
-    /// unbound. <paramref name="productNameOf"/> returns null for ids with no connected
-    /// device.</summary>
-    public static int ResolveJoystickId(string name, int? configuredId, Func<int, string?> productNameOf)
-    {
-        if (!string.IsNullOrWhiteSpace(name))
-        {
-            for (var id = 0; id < MaxJoysticks; id++)
-            {
-                var product = productNameOf(id);
-                if (product is not null
-                    && (product.StartsWith(name, StringComparison.OrdinalIgnoreCase)
-                        || name.StartsWith(product, StringComparison.OrdinalIgnoreCase)))
-                {
-                    return id;
-                }
-            }
-        }
-
-        return configuredId ?? -1;
-    }
-
-    private static string? ProductNameOf(int id)
-    {
-        if (ReadButtons(id) is null)
-        {
-            return null;
-        }
-
-        var caps = new JoyCaps();
-        return joyGetDevCapsW((IntPtr)id, ref caps, Marshal.SizeOf<JoyCaps>()) == 0
-            && !string.IsNullOrWhiteSpace(caps.ProductName)
-            ? caps.ProductName
-            : $"Joystick {id}";
     }
 
     private void Recompute()
@@ -446,20 +430,12 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
         lock (_recomputeGate)
         {
             var options = _options.CurrentValue;
-            var ownKey = ParseKey(options.PttKey);
-            var atcKey = ParseKey(options.AtcMuteKey);
+            var own = Matches(options.PttBinding, options.PttKey,
+                options.PttJoystickDeviceName, options.PttJoystickDevice, options.PttJoystickButton);
+            var atc = Matches(options.AtcMuteBinding, options.AtcMuteKey,
+                options.AtcMuteJoystickDeviceName, options.AtcMuteJoystickDevice, options.AtcMuteJoystickButton);
 
-            bool own;
-            bool atc;
-            lock (_keysDown)
-            {
-                own = ownKey != 0 && _keysDown.Contains(ownKey);
-                atc = atcKey != 0 && _keysDown.Contains(atcKey);
-            }
-
-            own |= _ownJoystick.Pressed;
-            atc |= _atcJoystick.Pressed;
-
+            var pressedEdge = own != _ownPressed || atc != _atcPressed;
             if (own != _ownPressed)
             {
                 _ownPressed = own;
@@ -485,6 +461,72 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
                     _logger.LogDebug(ex, "ATC PTT handler threw");
                 }
             }
+
+            if (pressedEdge)
+            {
+                try
+                {
+                    PressedChanged?.Invoke(this, EventArgs.Empty);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Pressed-state handler threw");
+                }
+            }
         }
+    }
+
+    /// <summary>Prosim2FO's Matches(): the binding wins when set; unset falls back to the
+    /// legacy flat fields (key AND joystick both apply there, preserving old configs).</summary>
+    private bool Matches(PttBindingOptions binding, string legacyKey,
+        string legacyName, int? legacyDevice, int? legacyButton)
+    {
+        if (binding.IsSet)
+        {
+            return binding.Kind.Equals("keyboard", StringComparison.OrdinalIgnoreCase)
+                ? KeyDown(binding.Key)
+                : ButtonDown(binding.JoystickDeviceName, binding.JoystickDevice, binding.Button);
+        }
+
+        return KeyDown(legacyKey) || ButtonDown(legacyName, legacyDevice, legacyButton);
+    }
+
+    private bool KeyDown(string key)
+    {
+        var vk = ParseKey(key);
+        if (vk == 0)
+        {
+            return false;
+        }
+
+        lock (_keysDown)
+        {
+            return _keysDown.Contains(vk);
+        }
+    }
+
+    private bool ButtonDown(string name, int? configuredId, int? button)
+    {
+        if (button is not { } btn || (string.IsNullOrWhiteSpace(name) && configuredId is null))
+        {
+            return false;
+        }
+
+        var key = (name ?? "", configuredId);
+        // Cached resolution; re-resolve when the resolved device stops answering (re-plugged
+        // devices shuffle winmm ids).
+        if (!_resolvedIds.TryGetValue(key, out var resolved) || !_deviceMasks.ContainsKey(resolved))
+        {
+            resolved = ResolveJoystickId(key.Item1, configuredId, ProductNameOf);
+            _resolvedIds[key] = resolved;
+        }
+
+        return resolved >= 0 && _buttonsDown.Contains((resolved, btn));
+    }
+
+    private static int? ReadButtons(int id)
+    {
+        var info = new JoyInfoEx { Size = Marshal.SizeOf<JoyInfoEx>(), Flags = 0x80 /*JOY_RETURNBUTTONS*/ };
+        return joyGetPosEx(id, ref info) == 0 ? info.Buttons : null;
     }
 }
