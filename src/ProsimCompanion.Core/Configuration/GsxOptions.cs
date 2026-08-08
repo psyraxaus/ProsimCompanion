@@ -161,12 +161,38 @@ public sealed class GsxOptions
     /// <summary>Mirror GSX boarding counters into ProSim pax zones and cargo holds.</summary>
     public bool BoardingSyncEnabled { get; set; } = true;
 
-    /// <summary>Place GPU + chocks (+ PCA per <see cref="AutoPca"/>) at session start on the
+    /// <summary>Place GPU + chocks (+ PCA per <see cref="PcaMode"/>) at session start on the
     /// ground, and remove them when the beacon comes on.</summary>
     public bool AutoGroundEquipment { get; set; } = true;
 
-    /// <summary>Also place/remove preconditioned air with the ground equipment.</summary>
+    /// <summary>Also place/remove preconditioned air with the ground equipment (legacy bool —
+    /// superseded by <see cref="PcaMode"/> and only consulted when that is empty).</summary>
     public bool AutoPca { get; set; }
+
+    /// <summary>PCA tri-state (predecessor ConnectPca): "never" | "always" | "onlyJetway"
+    /// (place only at jetway stands, detected from GSX's jetway availability). Empty falls
+    /// back to the legacy <see cref="AutoPca"/> bool.</summary>
+    public string PcaMode { get; set; } = "";
+
+    /// <summary>Disconnect PCA at session start when it is connected (e.g. from a saved panel
+    /// state) but not allowed by <see cref="PcaMode"/> (predecessor PcaOverride).</summary>
+    public bool PcaOverride { get; set; } = true;
+
+    /// <summary>Connect the GPU at session start even when the APU is already running; off
+    /// skips the GPU on APU power (predecessor ConnectGpuWithApuRunning).</summary>
+    public bool ConnectGpuWithApuRunning { get; set; } = true;
+
+    /// <summary>Condition-driven equipment removal during the pushback phase (predecessor
+    /// GradualGroundEquipRemoval): the GPU clears as soon as external power is off the buses,
+    /// the chocks once the park brake is set and the GPU is gone. Only meaningful with the
+    /// beacon-orchestrated sequence OFF (the sequence owns its own timed removal).</summary>
+    public bool GradualGroundEquipRemoval { get; set; }
+
+    /// <summary>Randomized delay before chocks are placed after arriving stably parked
+    /// (predecessor ChockDelayMin/Max), seconds.</summary>
+    public int ChockDelayMinSec { get; set; } = 10;
+
+    public int ChockDelayMaxSec { get; set; } = 20;
 
     /// <summary>Operate the jetway (or call stairs at jetway-less gates) automatically once per
     /// gate session, after checking they are not already connected.</summary>

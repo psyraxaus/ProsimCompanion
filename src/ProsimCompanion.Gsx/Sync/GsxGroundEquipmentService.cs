@@ -8,13 +8,21 @@ using ProsimCompanion.Core.State;
 namespace ProsimCompanion.Gsx.Sync;
 
 /// <summary>
-/// Ground equipment automation: places GPU + chocks (+ PCA when configured) once per ground
+/// Ground equipment automation: places GPU + chocks (+ PCA per the tri-state) once per ground
 /// session when preparation begins, and removes them on the beacon-on edge before pushback.
-/// Safety interlocks from the predecessors: chocks are never removed with the park brake off
-/// (the aircraft would roll), and everything is decision-logged.
+/// Predecessor extras (#10): GPU is skipped at placement when the APU already runs and
+/// gsx.connectGpuWithApuRunning is off; PCA is a Never/Always/OnlyJetway tri-state (jetway
+/// stands detected from L:FSDT_GSX_JETWAY ≠ 2) with an override that disconnects a
+/// not-allowed PCA; gradual removal clears the GPU on external-power-off and the chocks on
+/// park-brake-set during the pushback phase. Safety interlocks from the predecessors: chocks
+/// are never removed with the park brake off, and everything is decision-logged.
 /// </summary>
 public sealed class GsxGroundEquipmentService : IDisposable
 {
+    /// <summary>L:FSDT_GSX_JETWAY value meaning "no jetway at this stand" (GsxServiceState
+    /// NotAvailable — the same predicate Prosim2GSX used for "only on jetway stand").</summary>
+    private const int JetwayNotAvailable = 2;
+
     private readonly GsxProsimWriter _writer;
     private readonly FlightStateEngine _flightState;
     private readonly IOptionsMonitor<GsxOptions> _options;
@@ -22,12 +30,19 @@ public sealed class GsxGroundEquipmentService : IDisposable
     private readonly ILogger<GsxGroundEquipmentService> _logger;
     private readonly IDataRefSubscription _beacon;
     private readonly IDataRefSubscription _parkBrake;
+    private readonly IDataRefSubscription _apuRunning;
+    private readonly IDataRefSubscription _externalPowerConnected;
+    private readonly IDataRefSubscription _pcaConnected;
+    private readonly IDataRefSubscription _gpuConnected;
+    private readonly IDataRefSubscription _chocksPlaced;
+    private readonly IDataRefSubscription _jetwayState;
     private bool _placedThisSession;
     private bool _removedThisSession;
     private bool _beaconWasOn;
 
     public GsxGroundEquipmentService(
         IProsimDataRefs prosim,
+        ISimVars simVars,
         GsxProsimWriter writer,
         FlightStateEngine flightState,
         IOptionsMonitor<GsxOptions> options,
@@ -35,6 +50,7 @@ public sealed class GsxGroundEquipmentService : IDisposable
         ILogger<GsxGroundEquipmentService> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
+        ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(options);
@@ -49,6 +65,12 @@ public sealed class GsxGroundEquipmentService : IDisposable
 
         _beacon = prosim.Subscribe(ProsimDataRefNames.OhExtLtBeacon, DataRefTier.Normal);
         _parkBrake = prosim.Subscribe(ProsimDataRefNames.MipParkingBrake, DataRefTier.Normal);
+        _apuRunning = prosim.Subscribe(ProsimDataRefNames.ApuRunning, DataRefTier.Normal);
+        _externalPowerConnected = prosim.Subscribe(ProsimDataRefNames.ElecExternalConnect, DataRefTier.Normal);
+        _pcaConnected = prosim.Subscribe(ProsimDataRefNames.GroundPreconditionedAir, DataRefTier.Infrequent);
+        _gpuConnected = prosim.Subscribe(ProsimDataRefNames.GroundPower, DataRefTier.Infrequent);
+        _chocksPlaced = prosim.Subscribe(ProsimDataRefNames.Chocks, DataRefTier.Infrequent);
+        _jetwayState = simVars.Subscribe(GsxLvarNames.Jetway, "number", DataRefTier.Normal);
 
         _flightState.PhaseChanged += OnPhaseChanged;
         _beacon.ValueChanged += OnBeaconChanged;
@@ -60,7 +82,34 @@ public sealed class GsxGroundEquipmentService : IDisposable
         _beacon.ValueChanged -= OnBeaconChanged;
         _beacon.Dispose();
         _parkBrake.Dispose();
+        _apuRunning.Dispose();
+        _externalPowerConnected.Dispose();
+        _pcaConnected.Dispose();
+        _gpuConnected.Dispose();
+        _chocksPlaced.Dispose();
+        _jetwayState.Dispose();
     }
+
+    /// <summary>Effective PCA tri-state: pcaMode when set, else the legacy autoPca bool.</summary>
+    private string EffectivePcaMode
+    {
+        get
+        {
+            var options = _options.CurrentValue;
+            return !string.IsNullOrWhiteSpace(options.PcaMode)
+                ? options.PcaMode
+                : options.AutoPca ? "always" : "never";
+        }
+    }
+
+    /// <summary>True when PCA placement is allowed here — "always", or "onlyJetway" at a
+    /// stand whose jetway GSX reports as existing.</summary>
+    public bool PcaAllowedHere => EffectivePcaMode.ToLowerInvariant() switch
+    {
+        "always" => true,
+        "onlyjetway" => (int)_jetwayState.GetValue((double)JetwayNotAvailable) != JetwayNotAvailable,
+        _ => false,
+    };
 
     /// <summary>One coordinator-driven placement attempt — step 3 of ground prep (after
     /// reposition settles). Returns Done when placed, already placed, or disabled; Waiting
@@ -128,14 +177,80 @@ public sealed class GsxGroundEquipmentService : IDisposable
         await RemoveEquipmentAsync().ConfigureAwait(false);
     }
 
+    /// <summary>Condition-driven gradual removal (predecessor GradualGroundEquipRemoval),
+    /// called at 1 Hz from the pushback shell while in a departure ground phase and the
+    /// beacon sequence is off: the GPU clears once external power is no longer feeding the
+    /// buses, the chocks once the park brake is set AND the GPU is already gone. Cached
+    /// reads only; each write happens at most once per state change (idempotent writes to
+    /// an already-false dataref are skipped via the mirror reads).</summary>
+    public async Task TickGradualRemovalAsync()
+    {
+        if (!Enabled || _removedThisSession || !_options.CurrentValue.GradualGroundEquipRemoval)
+        {
+            return;
+        }
+
+        if (_gpuConnected.GetValue(false) && _externalPowerConnected.GetValue(0) == 0)
+        {
+            RecordDecision("ground equipment", "gradual removal — GPU off (external power disconnected)");
+            await _writer.WriteAsync(ProsimDataRefNames.GroundPower, false).ConfigureAwait(false);
+        }
+
+        if (_chocksPlaced.GetValue(false) && _parkBrake.GetValue(0) != 0 && !_gpuConnected.GetValue(false))
+        {
+            RecordDecision("ground equipment", "gradual removal — chocks out (park brake set, GPU gone)");
+            await _writer.WriteAsync(ProsimDataRefNames.Chocks, false).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Places chocks (+ PCA when allowed) on arrival — called by the arrival service
+    /// after its randomized chock delay elapses.</summary>
+    public async Task PlaceArrivalEquipmentAsync()
+    {
+        if (!Enabled)
+        {
+            return;
+        }
+
+        var withPca = PcaAllowedHere;
+        RecordDecision("ground equipment", "arrival — placing chocks" + (withPca ? " + PCA" : ""));
+        await _writer.WriteAsync(ProsimDataRefNames.Chocks, true).ConfigureAwait(false);
+        if (withPca)
+        {
+            await _writer.WriteAsync(ProsimDataRefNames.GroundPreconditionedAir, true).ConfigureAwait(false);
+        }
+    }
+
     private async Task PlaceEquipmentAsync()
     {
-        RecordDecision("ground equipment", "placing GPU + chocks" + (_options.CurrentValue.AutoPca ? " + PCA" : ""));
-        var ok = await _writer.WriteAsync(ProsimDataRefNames.Chocks, true).ConfigureAwait(false)
-            & await _writer.WriteAsync(ProsimDataRefNames.GroundPower, true).ConfigureAwait(false);
-        if (_options.CurrentValue.AutoPca)
+        var options = _options.CurrentValue;
+
+        // GPU-with-APU rule: the crew already runs the APU — skip the GPU when configured.
+        var skipGpuForApu = !options.ConnectGpuWithApuRunning && _apuRunning.GetValue(false);
+        var withPca = PcaAllowedHere;
+
+        RecordDecision(
+            "ground equipment",
+            "placing chocks"
+                + (skipGpuForApu ? " (GPU skipped — APU running)" : " + GPU")
+                + (withPca ? " + PCA" : $" (PCA {EffectivePcaMode})"));
+
+        var ok = await _writer.WriteAsync(ProsimDataRefNames.Chocks, true).ConfigureAwait(false);
+        if (!skipGpuForApu)
+        {
+            ok &= await _writer.WriteAsync(ProsimDataRefNames.GroundPower, true).ConfigureAwait(false);
+        }
+
+        if (withPca)
         {
             ok &= await _writer.WriteAsync(ProsimDataRefNames.GroundPreconditionedAir, true).ConfigureAwait(false);
+        }
+        else if (options.PcaOverride && _pcaConnected.GetValue(false))
+        {
+            // Predecessor PcaOverride: a PCA connected by a saved panel state gets removed
+            // when the configuration does not allow it here.
+            RecordDecision("ground equipment", "disconnecting PCA (connected but not allowed here)");
+            ok &= await _writer.WriteAsync(ProsimDataRefNames.GroundPreconditionedAir, false).ConfigureAwait(false);
         }
 
         if (!ok)

@@ -45,12 +45,14 @@ public sealed class GsxArrivalService : IDisposable
     private readonly IDataRefSubscription _fuelTotal;
     private readonly IDataRefSubscription _seatOccupation;
     private readonly IDataRefSubscription _ofpImported;
+    private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly Timer _timer;
     private int _stableSeconds;
     private bool _arrivalHandled;
     private bool _deboardCalled;
     private bool _fobRestored;
     private bool _wasInArrivalPhases;
+    private int _chockCountdown = -1;
     private int _ticking;
 
     public GsxArrivalService(
@@ -62,10 +64,13 @@ public sealed class GsxArrivalService : IDisposable
         ISimVars simVars,
         JsonSettingsFile settings,
         AircraftProfileService profiles,
+        GsxGroundEquipmentService groundEquipment,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxArrivalService> logger)
     {
+        ArgumentNullException.ThrowIfNull(groundEquipment);
+        _groundEquipment = groundEquipment;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(automation);
@@ -132,6 +137,7 @@ public sealed class GsxArrivalService : IDisposable
                 _stableSeconds = 0;
                 _arrivalHandled = false;
                 _deboardCalled = false;
+                _chockCountdown = -1;
             }
 
             // The phase engine flips Shutdown -> Preflight quickly once parked (turnaround);
@@ -174,6 +180,8 @@ public sealed class GsxArrivalService : IDisposable
             {
                 TryCallDeboarding();
             }
+
+            TickChockCountdown(stable);
             return;
         }
 
@@ -190,6 +198,41 @@ public sealed class GsxArrivalService : IDisposable
         if (_options.CurrentValue.AutoCallDeboardOnArrival)
         {
             TryCallDeboarding();
+        }
+
+        // Randomized chock delay (predecessor ChockDelayMin/Max): the ground crew takes a
+        // human moment to walk the chocks out after shutdown.
+        var options = _options.CurrentValue;
+        if (options.AutoGroundEquipment)
+        {
+            var lo = Math.Max(0, options.ChockDelayMinSec);
+            var hi = Math.Max(lo + 1, options.ChockDelayMaxSec);
+            _chockCountdown = Random.Shared.Next(lo, hi);
+            RecordDecision("arrival", $"placing chocks in {_chockCountdown}s");
+        }
+    }
+
+    /// <summary>Counts the arrival chock delay down one tick at a time — only while the
+    /// aircraft stays stably parked. Movement mid-countdown aborts the placement outright
+    /// (predecessor rule: "parked state no longer stable").</summary>
+    private void TickChockCountdown(bool stable)
+    {
+        if (_chockCountdown < 0)
+        {
+            return;
+        }
+
+        if (!stable)
+        {
+            _chockCountdown = -1;
+            RecordDecision("arrival", "chock placement aborted — parked state no longer stable");
+            return;
+        }
+
+        if (--_chockCountdown <= 0)
+        {
+            _chockCountdown = -1;
+            _ = _groundEquipment.PlaceArrivalEquipmentAsync();
         }
     }
 

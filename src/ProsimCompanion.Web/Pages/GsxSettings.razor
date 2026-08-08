@@ -68,9 +68,23 @@
                     <BoolField Label="Place ground equipment"
                                Hint="GPU + chocks at session start on the ground; removed when the beacon comes on"
                                @bind-Value="_draft.AutoGroundEquipment" />
-                    <BoolField Label="Connect PCA"
-                               Hint="Also place/remove preconditioned air with the ground equipment"
-                               @bind-Value="_draft.AutoPca" />
+                    <BoolField Label="Connect GPU with APU running"
+                               Hint="Off skips the GPU at session start when the APU already powers the aircraft"
+                               @bind-Value="_draft.ConnectGpuWithApuRunning" />
+                    <SelectField Label="Connect PCA" Options="PcaModeOptions"
+                                 Hint="Preconditioned air at session start &amp; arrival; Only jetway uses GSX's jetway availability"
+                                 @bind-Value="PcaModeKey" />
+                    <BoolField Label="Override PCA state"
+                               Hint="Disconnect PCA when a saved panel state left it connected but the setting above disallows it"
+                               @bind-Value="_draft.PcaOverride" />
+                    <BoolField Label="Gradual removal during pushback"
+                               Hint="GPU clears on external-power disconnect, chocks on park brake set (beacon sequence off only)"
+                               @bind-Value="_draft.GradualGroundEquipRemoval" />
+                    <NumberField Label="Arrival chock delay min" Suffix="s" Min="0"
+                                 @bind-Value="_draft.ChockDelayMinSec" />
+                    <NumberField Label="Arrival chock delay max" Suffix="s" Min="0"
+                                 Hint="Random delay after stable parking before the chocks go in"
+                                 @bind-Value="_draft.ChockDelayMaxSec" />
                     <BoolField Label="Reposition at startup"
                                Hint="Run GSX's Reposition Aircraft once at session start on the ground"
                                @bind-Value="_draft.AutoReposition" />
@@ -417,6 +431,19 @@
     private static readonly IReadOnlyList<(string, string)> CrewAnswerOptions =
         [("Nobody", "Nobody"), ("Crew", "Crew"), ("Pilots", "Pilots"), ("Both", "Both")];
 
+    private static readonly IReadOnlyList<(string, string)> PcaModeOptions =
+        [("never", "Never"), ("always", "Always"), ("onlyJetway", "Only jetway stands")];
+
+    // pcaMode falls back to the legacy autoPca bool while unset — the select shows the
+    // effective value and writes the tri-state key from then on.
+    private string PcaModeKey
+    {
+        get => !string.IsNullOrWhiteSpace(_draft.PcaMode)
+            ? _draft.PcaMode
+            : _draft.AutoPca ? "always" : "never";
+        set => _draft.PcaMode = value;
+    }
+
     private static readonly IReadOnlyList<(string, string)> TugAnswerOptions =
         [("ignore", "Don't answer"), ("no", "No"), ("yes", "Yes")];
 
@@ -540,6 +567,12 @@
 
                 gsx["autoGroundEquipment"] = draft.AutoGroundEquipment;
                 gsx["autoPca"] = draft.AutoPca;
+                gsx["pcaMode"] = draft.PcaMode;
+                gsx["pcaOverride"] = draft.PcaOverride;
+                gsx["connectGpuWithApuRunning"] = draft.ConnectGpuWithApuRunning;
+                gsx["gradualGroundEquipRemoval"] = draft.GradualGroundEquipRemoval;
+                gsx["chockDelayMinSec"] = draft.ChockDelayMinSec;
+                gsx["chockDelayMaxSec"] = draft.ChockDelayMaxSec;
                 gsx["autoConnectJetwayOrStairs"] = draft.AutoConnectJetwayOrStairs;
                 gsx["autoReposition"] = draft.AutoReposition;
                 gsx["disableProsimNativeGsx"] = draft.DisableProsimNativeGsx;
