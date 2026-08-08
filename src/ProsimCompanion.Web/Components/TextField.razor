@@ -1,4 +1,7 @@
-@* Text field row (monospace input per the design language). Supports @bind-Value. *@
+@* Text field row (monospace input per the design language). Supports @bind-Value. Binds on
+   INPUT (per keystroke), not change: with blur-bound fields, type-then-click-Save could lose
+   the value — the blur-triggered re-render races the DirtyBar click (observed live with the
+   DFD path, #20). *@
 <div class="field">
     <label class="field-label" for="@_id">
         @Label
@@ -11,7 +14,7 @@
         <input id="@_id" type="@(Password ? "password" : "text")" class="text-input" value="@Value"
                placeholder="@Placeholder" disabled="@Disabled"
                autocomplete="off" autocapitalize="off" spellcheck="false"
-               @onchange="OnChangedAsync" />
+               @oninput="OnChangedAsync" />
     </div>
 </div>
 

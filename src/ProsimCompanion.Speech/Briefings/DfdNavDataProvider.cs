@@ -105,7 +105,11 @@ public sealed class DfdNavDataProvider
         _logger = logger;
     }
 
-    public bool IsConfigured => File.Exists(_options.CurrentValue.DfdPath);
+    /// <summary>The configured DFD path with whitespace and Explorer "Copy as path" quotes
+    /// stripped — what every open actually uses.</summary>
+    public string ConfiguredPath => _options.CurrentValue.DfdPath.Trim().Trim('"');
+
+    public bool IsConfigured => ConfiguredPath.Length > 0 && File.Exists(ConfiguredPath);
 
     /// <summary>AIRAC cycle from the DFD header — the cheap "is this database usable"
     /// diagnostic. Null when absent/unreadable.</summary>
@@ -449,8 +453,8 @@ public sealed class DfdNavDataProvider
 
     private SqliteConnection? Open()
     {
-        var path = _options.CurrentValue.DfdPath;
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        var path = ConfiguredPath;
+        if (path.Length == 0 || !File.Exists(path))
         {
             return null;
         }

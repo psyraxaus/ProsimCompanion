@@ -269,7 +269,8 @@
                 checklists["allowManualOverride"] = _allowChecklistOverride;
 
                 var briefing = JsonSettingsFile.GetOrCreateSection(root, BriefingOptions.SectionName);
-                briefing["dfdPath"] = _dfdPath.Trim();
+                // Trim quotes too — Explorer's "Copy as path" wraps the path in them.
+                briefing["dfdPath"] = _dfdPath.Trim().Trim('"');
             });
 
             _baseline = Snapshot();

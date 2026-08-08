@@ -59,17 +59,26 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
     {
         try
         {
+            // Always echo the exact path the app resolved — "set but not working" is nearly
+            // always a path the app can't see (typo, unsaved edit, quotes, network drive).
+            var path = _navData.ConfiguredPath;
+            if (path.Length == 0)
+            {
+                return Task.FromResult(
+                    "No DFD database configured — set the path on App Settings → Nav Data and SAVE. "
+                    + "Briefings will speak without nav facts until then.");
+            }
+
             if (!_navData.IsConfigured)
             {
                 return Task.FromResult(
-                    "No DFD database configured — set the path on App Settings → Nav Data. "
-                    + "Briefings will speak without nav facts until then.");
+                    $"No file found at \"{path}\" — check the path on App Settings → Nav Data.");
             }
 
             var cycle = _navData.AiracCycle;
             return Task.FromResult(cycle is null
-                ? "DFD file present but the AIRAC header could not be read — wrong file or an unsupported schema."
-                : $"DFD readable — AIRAC cycle {cycle}.");
+                ? $"File found at \"{path}\" but the AIRAC header could not be read — wrong file or an unsupported schema."
+                : $"DFD readable at \"{path}\" — AIRAC cycle {cycle}.");
         }
         catch (Exception ex)
         {
