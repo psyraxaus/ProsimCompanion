@@ -98,6 +98,7 @@ public static class CoreServiceCollectionExtensions
                 o.ApproachGates.AddRange(SopOptions.DefaultApproachGates);
             }
         });
+        services.Configure<UpdateCheckOptions>(configuration.GetSection(UpdateCheckOptions.SectionName));
         services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
         services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
         services.Configure<FlightDataOptions>(configuration.GetSection(FlightDataOptions.SectionName));
@@ -174,6 +175,10 @@ public static class CoreServiceCollectionExtensions
             p.GetRequiredService<ILogger<Gate.ArrivalGateCoordinator>>()));
         services.AddSingleton<AircraftProfileService>();
         services.AddHostedService<CoreBootstrapService>();
+
+        // Update-available banner: GitHub releases check, silent offline, never blocks startup.
+        services.AddSingleton<UpdateStore>();
+        services.AddHostedService<Updates.UpdateCheckService>();
 
         return services;
     }

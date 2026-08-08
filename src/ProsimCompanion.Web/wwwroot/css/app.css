@@ -183,6 +183,33 @@ a { color: var(--accent); }
 
 .conn-label { white-space: nowrap; }
 
+/* ----------------------------------------------------------- update banner */
+
+.update-banner {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--accent-soft, var(--bg-secondary));
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+}
+.update-banner a { color: var(--accent); font-weight: 600; }
+
+.update-banner-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.update-banner-close:hover { color: var(--text-primary); }
+
 /* ------------------------------------------------------------------- tab bar */
 
 .tabbar-wrap {

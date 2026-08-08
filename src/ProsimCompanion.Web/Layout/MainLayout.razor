@@ -5,6 +5,7 @@
 @inject ConnectionStatusStore Status
 @inject IProsimDataRefs DataRefs
 @inject IOptionsMonitor<WebUiOptions> WebUi
+@inject UpdateStore Updates
 
 <ThemeStyle />
 
@@ -33,6 +34,21 @@
             </span>
         </div>
     </header>
+
+    @* Update-available banner (Prosim2GSX parity, #6): between header and tab strip,
+       dismissible for the run; re-announces only for a NEWER release. *@
+    @if (_update.UpdateAvailable && !_update.Dismissed)
+    {
+        <div class="update-banner" role="status">
+            <span>
+                New Stable Version
+                <a href="@_update.ReleaseUrl" target="_blank" rel="noopener">@_update.LatestVersion</a>
+                available! (running @_update.CurrentVersion)
+            </span>
+            <button type="button" class="update-banner-close" aria-label="Dismiss update notice"
+                    @onclick="Updates.Dismiss">×</button>
+        </div>
+    }
 
     @* Single flat tab strip. Originally mirrored Prosim2GSX's web EFB order verbatim;
        superseded 2026-08-08 (owner decision, #18): each pillar's status page is merged
@@ -83,6 +99,7 @@
 
     private IDataRefSubscription? _flightNumberSub;
     private string _flightNumber = "";
+    private UpdateSnapshot _update = UpdateSnapshot.Empty;
 
     private string? SolariMode => WebUi.CurrentValue.SolariAnimation ? null : "off";
 
@@ -98,9 +115,11 @@
     protected override void OnInitialized()
     {
         Status.Changed += OnChanged;
+        Updates.Changed += OnChanged;
         _flightNumberSub = DataRefs.Subscribe("efb.cids.flightNumber", DataRefTier.Infrequent);
         _flightNumberSub.ValueChanged += OnChanged;
         _flightNumber = _flightNumberSub.GetValue("");
+        _update = Updates.Snapshot();
     }
 
     private void OnChanged(object? sender, EventArgs e)
@@ -108,12 +127,14 @@
         => _ = InvokeAsync(() =>
         {
             _flightNumber = _flightNumberSub?.GetValue("") ?? "";
+            _update = Updates.Snapshot();
             StateHasChanged();
         });
 
     public void Dispose()
     {
         Status.Changed -= OnChanged;
+        Updates.Changed -= OnChanged;
         if (_flightNumberSub is not null)
         {
             _flightNumberSub.ValueChanged -= OnChanged;
