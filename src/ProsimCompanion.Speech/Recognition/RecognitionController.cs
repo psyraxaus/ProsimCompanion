@@ -21,6 +21,7 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
     private readonly SpeechStatusStore _store;
     private readonly ILogger<RecognitionController> _logger;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IDisposable? _optionsSubscription;
     private readonly object _gate = new();
 
     private IVoiceRecognizer _recognizer;
@@ -29,11 +30,14 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
     private bool _listening;
     private bool _swapped;
 
+    /// <param name="recognizerFactory">Test seam: overrides the engine chain so the listen
+    /// decision is testable without a Windows speech engine; DI leaves it null.</param>
     public RecognitionController(
         IOptionsMonitor<SpeechOptions> options,
         PushToTalkService ptt,
         SpeechStatusStore store,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        Func<IVoiceRecognizer>? recognizerFactory = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(ptt);
@@ -46,11 +50,18 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<RecognitionController>();
 
-        _recognizer = BuildRecognizer();
+        _recognizer = recognizerFactory?.Invoke() ?? BuildRecognizer();
         _recognizer.Accepted += OnAccepted;
         _recognizer.Rejected += OnRejected;
         _ptt.OwnPttChanged += _ => Evaluate();
         _ptt.AtcPttChanged += _ => Evaluate();
+
+        // Settings hot-reload: a listening-mode flip (pushToTalk ↔ continuous) must take
+        // effect immediately — the idle window stays open for hours, so without this the
+        // new mode waited for the next window or PTT edge (i.e. an app restart in practice).
+        // Evaluate() no-ops when the decision is unchanged, so duplicate reload
+        // notifications are harmless.
+        _optionsSubscription = _options.OnChange(_ => Evaluate());
 
         if (_recognizer is LanAsrRecognizer)
         {
@@ -112,7 +123,11 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
         Evaluate();
     }
 
-    public void Dispose() => _recognizer.Dispose();
+    public void Dispose()
+    {
+        _optionsSubscription?.Dispose();
+        _recognizer.Dispose();
+    }
 
     private void Evaluate()
     {

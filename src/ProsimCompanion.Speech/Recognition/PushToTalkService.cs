@@ -130,6 +130,7 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
     private uint _hookThreadId;
     private IntPtr _hook;
     private Timer? _joystickTimer;
+    private IDisposable? _optionsSubscription;
     private bool _ownPressed;
     private bool _atcPressed;
 
@@ -163,10 +164,17 @@ public sealed class PushToTalkService : IDisposable, IPttInputCapture
         _hookThread.SetApartmentState(ApartmentState.STA);
         _hookThread.Start();
         _joystickTimer = new Timer(_ => PollJoysticks(), null, 1000, 25);
+
+        // Settings hot-reload: re-match pressed state against the NEW bindings immediately.
+        // Without this a saved binding change (or a mode flip's cleared binding) only took
+        // effect on the next physical input edge — a stuck "pressed" ATC-mute would silence
+        // recognition until then.
+        _optionsSubscription = _options.OnChange(_ => Recompute());
     }
 
     public void Dispose()
     {
+        _optionsSubscription?.Dispose();
         _joystickTimer?.Dispose();
         if (_hookThreadId != 0)
         {
