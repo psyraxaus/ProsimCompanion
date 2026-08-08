@@ -4,6 +4,9 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- THE version: single source of truth (docs/VERSIONING.md). The update banner, the
+         installer build and the release tag all derive from this value — bump it here,
+         nowhere else, then tag v<Version> and publish the GitHub release. -->
     <Version>0.1.0</Version>
     <Company>Protovision</Company>
     <Product>ProsimCompanion</Product>
