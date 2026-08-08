@@ -88,6 +88,16 @@ public sealed class GsxOptions
     /// <summary>Answer the "Do you want to request …" pushback confirmation with yes.</summary>
     public bool ConfirmPushbackRequest { get; set; } = true;
 
+    /// <summary>Answer to GSX's "Attach Pushback Tug" question during boarding: "ignore"
+    /// leaves the menu for the user; "no" | "yes" pick positionally (predecessor rule:
+    /// yes = entry 1, no = entry 2 — the menu is not literal yes/no text).</summary>
+    public string TugQuestionAnswer { get; set; } = "no";
+
+    /// <summary>When the tug attached during boarding (answered "yes" above or attached by
+    /// hand), auto-call Pushback: "never" | "afterDepartureServices" | "afterFinalLoadsheet"
+    /// (predecessor default).</summary>
+    public string CallPushbackWhenTugAttached { get; set; } = "afterFinalLoadsheet";
+
     /// <summary>Direction auto-picked when GSX raises the "Select pushback direction" menu:
     /// "straight" | "tailLeft" | "tailRight" (Prosim2GSX's tri-state, set from the OFP page's
     /// Korry buttons). Matching is by entry text; no match leaves the menu for the user.</summary>

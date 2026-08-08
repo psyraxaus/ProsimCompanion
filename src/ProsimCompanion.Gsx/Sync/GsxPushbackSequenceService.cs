@@ -31,6 +31,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
     private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly LoadsheetStore _loadsheets;
     private readonly ILogger<GsxPushbackSequenceService> _logger;
     private readonly IDataRefSubscription _beacon;
     private readonly IDataRefSubscription _apuRunning;
@@ -42,6 +43,8 @@ public sealed class GsxPushbackSequenceService : IDisposable
     private GsxAutomationPhase _lastResetPhase = GsxAutomationPhase.SessionStart;
     private int _lastVehicleState = -1;
     private double _lastBypassPin;
+    private bool _tugAttachedDuringBoarding;
+    private bool _tugPushbackCalled;
     private int _ticking;
 
     public GsxPushbackSequenceService(
@@ -55,8 +58,11 @@ public sealed class GsxPushbackSequenceService : IDisposable
         ISimVars simVars,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
+        LoadsheetStore loadsheets,
         ILogger<GsxPushbackSequenceService> logger)
     {
+        ArgumentNullException.ThrowIfNull(loadsheets);
+        _loadsheets = loadsheets;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(automation);
@@ -120,11 +126,21 @@ public sealed class GsxPushbackSequenceService : IDisposable
                 && _lastResetPhase != phase)
             {
                 _lastResetPhase = phase;
+                _tugAttachedDuringBoarding = false;
+                _tugPushbackCalled = false;
                 if (_sequencer.Step != PushbackSequenceStep.Idle)
                 {
                     _sequencer.Reset();
                     RecordDecision("pushback sequence", "reset (new flight segment)");
                 }
+            }
+
+            // Tug-attached-during-boarding rule runs independently of the beacon sequence
+            // (predecessor semantics — it exists precisely for the early-pushback-call flow).
+            if (_options.CurrentValue.AutomationEnabled && _api.Readiness == GsxReadiness.Ready)
+            {
+                DetectTugDuringBoarding();
+                TryCallPushbackForAttachedTug();
             }
 
             if (!Enabled || _api.Readiness != GsxReadiness.Ready)
@@ -201,6 +217,58 @@ public sealed class GsxPushbackSequenceService : IDisposable
         {
             _logger.LogError(ex, "Pushback sequence action {Action} failed", action);
         }
+    }
+
+    /// <summary>Predecessor OnPushChange rule: PUSHBACK_STATUS going nonzero while Boarding is
+    /// Requested/Active means the tug attached during boarding (the pilot answered the tug
+    /// question with yes, or attached it by hand). Latched until the next flight segment.</summary>
+    private void DetectTugDuringBoarding()
+    {
+        if (_tugAttachedDuringBoarding || _pushbackStatus.GetValue(0.0) <= 0)
+        {
+            return;
+        }
+
+        var boarding = _api.Mirror.Services.GetValueOrDefault("Boarding");
+        if (boarding is { State: GsxServiceState.Requested or GsxServiceState.Active })
+        {
+            _tugAttachedDuringBoarding = true;
+            RecordDecision("pushback tug", "tug attached during boarding — pushback auto-call armed");
+        }
+    }
+
+    /// <summary>Predecessor CallPushbackWhenTugAttached: with the tug already attached, call
+    /// Pushback once after departure services complete or after the final loadsheet is sent.</summary>
+    private void TryCallPushbackForAttachedTug()
+    {
+        if (!_tugAttachedDuringBoarding || _tugPushbackCalled)
+        {
+            return;
+        }
+
+        var mode = _options.CurrentValue.CallPushbackWhenTugAttached;
+        var due = mode.ToLowerInvariant() switch
+        {
+            "afterdepartureservices" => _automation.DepartureComplete,
+            "afterfinalloadsheet" => _loadsheets.Snapshot().Final.Status == LoadsheetSlotStatus.Sent,
+            _ => false, // "never"
+        };
+        if (!due)
+        {
+            return;
+        }
+
+        var pushback = _api.Mirror.Services.GetValueOrDefault(PushbackServiceId);
+        if (pushback is not { State: GsxServiceState.Callable, CanTrigger: true }
+            || _lifecycle.IsPending(PushbackServiceId)
+            || _lifecycle.IsCompleted(PushbackServiceId))
+        {
+            return;
+        }
+
+        _tugPushbackCalled = true;
+        RecordDecision("pushback tug", $"calling pushback — tug attached and {mode} condition met");
+        _ = ExecuteAsync(PushbackAction.CallPushback);
     }
 
     /// <summary>Surfaces raw tug/pin progress in the decision log — this is how the state-12

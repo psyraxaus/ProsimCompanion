@@ -93,6 +93,9 @@ public sealed class GsxQuestionCatalog
             closeAfter: false,
             ct));
 
+        // Menu title from Prosim2GSX GsxConstants.MenuTugAttach — verified constant, not guessed.
+        dispatcher.Register("Attach Pushback Tug", HandleTugQuestionAsync);
+
         dispatcher.Register("Select pushback direction", HandlePushbackDirectionAsync);
         dispatcher.Register("Select de-icing type", HandleDeIceTypeAsync);
         dispatcher.Register("Select handling operator", ct => HandleOperatorMenuAsync("handling operator", ct));
@@ -127,6 +130,58 @@ public sealed class GsxQuestionCatalog
         if (result.Succeeded && closeAfter)
         {
             // GSX does not reliably dismiss question prompts after a pick — close explicitly.
+            _ = await _api.SendCommandAsync("menu.close", null, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>GSX's "Attach Pushback Tug" question raised during boarding. The predecessor
+    /// answered POSITIONALLY — yes = entry 1, no = entry 2 (its DispatchTug; the entries are
+    /// not literal yes/no text) — so the entry text is taken from the live menu at that index
+    /// and re-found exactly (TOCTOU-safe, same pattern as the operator menus).</summary>
+    private async Task HandleTugQuestionAsync(CancellationToken cancellationToken)
+    {
+        var options = _options.CurrentValue;
+        var answer = options.TugQuestionAnswer;
+        if (!options.AutomationEnabled
+            || string.Equals(answer, "ignore", StringComparison.OrdinalIgnoreCase))
+        {
+            RecordDecision("tug question", "left for the user (gsx.tugQuestionAnswer)");
+            return;
+        }
+
+        var menu = _api.Mirror.Menu;
+        if (menu is null || !_api.Mirror.MenuShown)
+        {
+            return;
+        }
+
+        var index = string.Equals(answer, "yes", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+        if (index >= menu.Entries.Count)
+        {
+            RecordDecision(
+                "tug question",
+                $"left for the user (menu shows {menu.Entries.Count} entries — expected at least {index + 1})");
+            return;
+        }
+
+        var entry = menu.Entries[index];
+        var result = await _executor.ExecuteAsync(
+            new GsxMenuIntent
+            {
+                Name = "tug question answer",
+                TitlePrefixes = ["Attach Pushback Tug"],
+                EntryPattern = new Regex($"^{Regex.Escape(entry)}$"),
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        RecordDecision(
+            "tug question",
+            result.Succeeded ? $"answered '{answer}' — picked '{entry}'" : $"{result.Outcome}: {result.Detail}");
+
+        // Predecessor force-closed this prompt only when crew questions are skipped (the crew
+        // question follows it in the same menu flow — closing early would eat that prompt).
+        if (result.Succeeded && options.SkipCrewBoardingQuestion)
+        {
             _ = await _api.SendCommandAsync("menu.close", null, cancellationToken).ConfigureAwait(false);
         }
     }
