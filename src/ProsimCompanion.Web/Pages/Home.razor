@@ -77,14 +77,12 @@
             @Indicator("Couatl Vars", _gsx.Readiness == "Ready")
             @Kv("Couatl Started", _gsx.StartupSid ?? "—")
             @Kv("Menu State", _gsx.MenuShown ? (_gsx.MenuTitle ?? "shown") : "closed")
-            @* Pax/cargo boarding counters are not surfaced by the diagnostics store yet —
-               placeholders keep the Prosim2GSX row set intact. *@
-            @Kv("Pax Target", "—")
-            @Kv("Pax Total (B|D)", "—")
-            @Kv("Cargo (B|D)", "—")
+            @Kv("Pax Target", _gsx.BoardingCounters?.PaxTarget?.ToString() ?? "—")
+            @Kv("Pax Total (B|D)", PaxTotals)
+            @Kv("Cargo (B|D)", CargoTotals)
             @Kv("Departure Services", DepartureSummary)
             @Kv("Assigned Gate", _gsx.GateRequest ?? "—")
-            @Kv("Last Handler Event", "—")
+            @Kv("Last Handler Event", HandlerEvent)
         </div>
     </section>
 
@@ -138,6 +136,22 @@
     };
 
     private string PhaseDisplay => ToSpacedUpper(FlightState.CurrentPhase.ToString());
+
+    // Prosim2GSX row shapes: "boarded | deboarded" pax and "board% | deboard%" cargo.
+    private string PaxTotals => _gsx.BoardingCounters is { } pax
+        ? $"{pax.PaxBoarded?.ToString() ?? "—"} | {pax.PaxDeboarded?.ToString() ?? "—"}"
+        : "—";
+
+    private string CargoTotals => _gsx.BoardingCounters is { } cargo
+        ? $"{FormatPercent(cargo.CargoBoardedPercent)} | {FormatPercent(cargo.CargoDeboardedPercent)}"
+        : "—";
+
+    private static string FormatPercent(double? value)
+        => value is { } pct ? $"{pct:F0}%" : "—";
+
+    private string HandlerEvent => _gsx.LastHandlerEvent is { } evt
+        ? $"{evt.Timestamp.ToLocalTime():HH:mm:ss} {evt.Service}: {evt.Event}"
+        : "—";
 
     private string DepartureSummary =>
         DepartureControl.Complete ? "Complete"

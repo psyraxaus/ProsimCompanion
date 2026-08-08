@@ -234,5 +234,9 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
     }
 
     private void OnServiceEvent(string serviceId, GsxServiceLifecycleEvent lifecycleEvent)
-        => _eventLog.Record("gsx-service", new { service = serviceId, @event = lifecycleEvent.ToString() });
+    {
+        _eventLog.Record("gsx-service", new { service = serviceId, @event = lifecycleEvent.ToString() });
+        _diagnostics.RecordHandlerEvent(
+            new GsxHandlerEventView(DateTimeOffset.UtcNow, serviceId, lifecycleEvent.ToString()));
+    }
 }

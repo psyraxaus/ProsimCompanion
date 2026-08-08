@@ -18,6 +18,19 @@ public sealed record GsxCommandView(
 
 public sealed record GsxDecisionView(DateTimeOffset Timestamp, string Action, string Reason);
 
+/// <summary>GSX boarding/deboarding progress counters for the Flight Status page. Null fields
+/// mean "not known yet" (GSX absent or no pax session armed) and render as "—", matching the
+/// Prosim2GSX rows Pax Target / Pax Total (B|D) / Cargo (B|D).</summary>
+public sealed record GsxBoardingCountersView(
+    int? PaxTarget,
+    int? PaxBoarded,
+    int? PaxDeboarded,
+    double? CargoBoardedPercent,
+    double? CargoDeboardedPercent);
+
+/// <summary>Most recent GSX service lifecycle edge ("handler event" in Prosim2GSX terms).</summary>
+public sealed record GsxHandlerEventView(DateTimeOffset Timestamp, string Service, string Event);
+
 /// <summary>One departure-service row on the status board (the Prosim2GSX-style at-a-glance
 /// view): where the service is in its cycle and, when held/skipped, why.</summary>
 public sealed record GsxServiceBoardRow(string ServiceId, GsxServiceStage Stage, string? Detail);
@@ -74,6 +87,13 @@ public sealed record GsxDiagnosticsSnapshot(
     /// <summary>Departure-service status board rows in configured order (filled in by
     /// Snapshot(); pushed by the automation layer on every sequencing evaluation).</summary>
     public IReadOnlyList<GsxServiceBoardRow> ServiceBoard { get; init; } = [];
+
+    /// <summary>Boarding/deboarding counters (filled in by Snapshot(); pushed by the boarding
+    /// sync at most once per second). Null until GSX reports any pax/cargo activity.</summary>
+    public GsxBoardingCountersView? BoardingCounters { get; init; }
+
+    /// <summary>Last service lifecycle edge (filled in by Snapshot()).</summary>
+    public GsxHandlerEventView? LastHandlerEvent { get; init; }
 }
 
 /// <summary>Arms/cancels arrival-gate requests from UI surfaces (implemented by the GSX layer;
@@ -120,6 +140,8 @@ public sealed class GsxDiagnosticsStore
     private readonly Queue<GsxCommandView> _commands = new();
     private readonly Queue<GsxDecisionView> _decisions = new();
     private IReadOnlyList<GsxServiceBoardRow> _serviceBoard = [];
+    private GsxBoardingCountersView? _boardingCounters;
+    private GsxHandlerEventView? _lastHandlerEvent;
     private GsxDiagnosticsSnapshot _current = GsxDiagnosticsSnapshot.Empty;
 
     /// <summary>Raised after any update, on the writer's thread — consumers marshal to their
@@ -136,6 +158,8 @@ public sealed class GsxDiagnosticsStore
                 RecentCommands = [.. _commands.Reverse()],
                 RecentDecisions = [.. _decisions.Reverse()],
                 ServiceBoard = _serviceBoard,
+                BoardingCounters = _boardingCounters,
+                LastHandlerEvent = _lastHandlerEvent,
             };
         }
     }
@@ -147,6 +171,30 @@ public sealed class GsxDiagnosticsStore
         lock (_gate)
         {
             _serviceBoard = rows;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Replaces the boarding/deboarding counters (boarding sync, at most 1 Hz —
+    /// callers only push on change).</summary>
+    public void UpdateBoardingCounters(GsxBoardingCountersView? counters)
+    {
+        lock (_gate)
+        {
+            _boardingCounters = counters;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Records the most recent service lifecycle edge for the Flight Status row.</summary>
+    public void RecordHandlerEvent(GsxHandlerEventView handlerEvent)
+    {
+        ArgumentNullException.ThrowIfNull(handlerEvent);
+        lock (_gate)
+        {
+            _lastHandlerEvent = handlerEvent;
         }
 
         Changed?.Invoke(this, EventArgs.Empty);

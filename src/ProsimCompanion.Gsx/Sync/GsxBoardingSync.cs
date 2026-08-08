@@ -53,6 +53,7 @@ public sealed class GsxBoardingSync : IDisposable
     private int _deboardStartCount;
     private int _lastWrittenDeboard = -1;
     private double _lastWrittenDeboardCargoPct = -1;
+    private GsxBoardingCountersView? _lastPublishedCounters;
     private int _ticking;
 
     public GsxBoardingSync(
@@ -283,6 +284,8 @@ public sealed class GsxBoardingSync : IDisposable
                     await WriteCargoAsync(100 - Math.Clamp(unloadPct, 0, 100)).ConfigureAwait(false);
                 }
             }
+
+            PublishCounters();
         }
         catch (Exception ex)
         {
@@ -383,6 +386,27 @@ public sealed class GsxBoardingSync : IDisposable
             _lastWrittenCargoPct = percent;
         }
         _logger.LogDebug("Boarding cargo {Percent}% -> fwd {Fwd:F0} kg, aft {Aft:F0} kg (written {Ok})", percent, forward, aft, ok);
+    }
+
+    /// <summary>Pushes the pax/cargo counters to the diagnostics store (Flight Status rows).
+    /// All reads are cached; publishes only on change, so the idle cost is one record compare
+    /// per tick. Null until GSX reports a planned pax total — the page renders "—".</summary>
+    private void PublishCounters()
+    {
+        var target = (int)_plannedTotalLvar.GetValue(0.0);
+        var view = target <= 0
+            ? null
+            : new GsxBoardingCountersView(
+                target,
+                (int)_boardedLvar.GetValue(0.0),
+                (int)_deboardTotal.GetValue(0.0),
+                Math.Round(_cargoPercent.GetValue(0.0)),
+                Math.Round(_deboardCargoPercent.GetValue(0.0)));
+        if (!Equals(view, _lastPublishedCounters))
+        {
+            _lastPublishedCounters = view;
+            _diagnostics.UpdateBoardingCounters(view);
+        }
     }
 
     private void RecordDecision(string action, string reason)
