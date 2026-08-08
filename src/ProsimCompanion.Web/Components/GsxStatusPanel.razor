@@ -1,0 +1,210 @@
+@* Live GSX status + controls, shown as the landing section of the GSX tab (#18 — the former
+   standalone /gsx page): readiness, arrival gate, departure board, services mirror, menu
+   snapshot, automation decisions and recent commands. *@
+@implements IDisposable
+@inject GsxDiagnosticsStore Diagnostics
+@inject IGsxGateControl GateControl
+@inject IGsxDepartureControl DepartureControl
+
+<Section Title="Status">
+    <div class="row">
+        <span class="row-label">Readiness</span>
+        <span class="pill @GsxPresentation.ReadinessTone(_view.Readiness)">@_view.Readiness</span>
+    </div>
+    <div class="row">
+        <span class="row-label">Automation phase</span>
+        <span class="row-value-mono">@_view.AutomationPhase</span>
+    </div>
+    <div class="row">
+        <span class="row-label">Capabilities</span>
+        <span class="row-value-mono">@(_view.Capabilities.Count == 0 ? "—" : string.Join(", ", _view.Capabilities))</span>
+    </div>
+    <div class="row">
+        <span class="row-label">Airport</span>
+        <span class="row-value-mono">@(_view.AirportIcao ?? "—")</span>
+    </div>
+    <div class="row">
+        <span class="row-label">Gate context</span>
+        <span class="row-value-mono">@(_view.GateContextKey ?? "—")</span>
+    </div>
+    <div class="row">
+        <span class="row-label">Session</span>
+        <span class="row-value-mono">@(_view.StartupSid ?? "—")</span>
+    </div>
+</Section>
+
+<Section Title="Arrival Gate">
+    <div class="row">
+        <span class="row-label">Request</span>
+        <span class="row-value-mono">@(_view.GateRequest ?? "No gate request armed.")</span>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+        <input type="text" class="text-input" style="max-width:120px;" placeholder="e.g. B12"
+               autocomplete="off" autocapitalize="characters" spellcheck="false"
+               @bind="_gateInput" />
+        <button type="button" class="btn primary" @onclick="ArmGate">Arm gate</button>
+        <button type="button" class="btn secondary" @onclick="GateControl.Cancel">Cancel</button>
+    </div>
+</Section>
+
+<Section Title="Departure Status Board">
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+        <button type="button" class="btn primary" @onclick="DepartureControl.Start"
+                disabled="@DepartureControl.Started">
+            @(DepartureControl.Complete ? "Departure complete"
+                : DepartureControl.Started ? "Departure running" : "Start departure services")
+        </button>
+        <button type="button" class="btn secondary" @onclick="DepartureControl.ForceNext"
+                disabled="@(!DepartureControl.Started || DepartureControl.Complete)"
+                title="Call the next departure service now, bypassing its activation rule — the INT/RAD smart button. Works on Manual entries too.">
+            Call next service now
+        </button>
+    </div>
+    @if (_view.ServiceBoard.Count == 0)
+    {
+        <div class="empty">No departure sequence evaluated yet.</div>
+    }
+    @foreach (var row in _view.ServiceBoard)
+    {
+        <div class="row">
+            <span class="row-label">@row.ServiceId</span>
+            <span class="@GsxPresentation.StageLamp(row.Stage)"></span>
+            <span class="row-value">@GsxPresentation.StageLabel(row.Stage)</span>
+            <span class="row-value-mono" style="grid-column:auto;">@(row.Detail ?? "")</span>
+        </div>
+    }
+</Section>
+
+<Section Title="Services" Hint="Wire state vs mapped state from the Remote API mirror">
+    @if (_view.Services.Count == 0)
+    {
+        <div class="empty">No services mirrored yet (GSX not connected, or no aircraft/gate context).</div>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Service</th><th>Wire state</th><th>Mapped</th><th>Triggerable</th><th>Progress</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var service in _view.Services.OrderBy(s => s.Id))
+                    {
+                        <tr>
+                            <td>@service.DisplayName</td>
+                            <td class="mono">@(service.SemanticState ?? "—")@(service.Waiting ? " (waiting)" : "")</td>
+                            <td>@service.MappedState</td>
+                            <td>@(service.CanTrigger ? "yes" : "no")</td>
+                            <td>@(service.ProgressText ?? "")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</Section>
+
+<Section Title="Menu">
+    @if (!_view.MenuShown)
+    {
+        <div class="empty">No menu shown (menuShown = false).</div>
+    }
+    else
+    {
+        <div class="row-value" style="padding:4px 0; font-weight:600;">@_view.MenuTitle</div>
+        <ol start="0" style="margin:4px 0; padding-left:24px; font-family:var(--font-mono); font-size:12px;">
+            @foreach (var entry in _view.MenuEntries)
+            {
+                <li>@entry</li>
+            }
+        </ol>
+    }
+</Section>
+
+<Section Title="Automation Decisions" Hint="What happened and why — newest first">
+    @if (_view.RecentDecisions.Count == 0)
+    {
+        <div class="empty">No automation decisions yet.</div>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Time</th><th>Action</th><th>Reason</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var decision in _view.RecentDecisions)
+                    {
+                        <tr>
+                            <td class="mono" style="white-space:nowrap;">@decision.Timestamp.ToLocalTime().ToString("HH:mm:ss")</td>
+                            <td style="white-space:nowrap;">@decision.Action</td>
+                            <td>@decision.Reason</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</Section>
+
+<Section Title="Recent Commands">
+    @if (_view.RecentCommands.Count == 0)
+    {
+        <div class="empty">No commands sent this session.</div>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Time</th><th>Verb</th><th>Args</th><th>Result</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var command in _view.RecentCommands)
+                    {
+                        <tr>
+                            <td class="mono" style="white-space:nowrap;">@command.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</td>
+                            <td class="mono">@command.Verb</td>
+                            <td class="mono">@command.Args</td>
+                            <td><span class="pill @(command.Ok ? "tone-ok" : "tone-bad")">@command.Code</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    <div class="field-hint" style="margin-top:8px;">
+        Full wire frames are captured when <code>logging.wireTrace</code> is enabled — see
+        <code>ProsimCompanion-wire-*.log</code> (CMTrace format) next to the main log.
+    </div>
+</Section>
+
+@code {
+    private GsxDiagnosticsSnapshot _view = GsxDiagnosticsSnapshot.Empty;
+    private string _gateInput = "";
+
+    private void ArmGate()
+    {
+        if (!string.IsNullOrWhiteSpace(_gateInput))
+        {
+            GateControl.RequestGate(_gateInput);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _view = Diagnostics.Snapshot();
+        Diagnostics.Changed += OnDiagnosticsChanged;
+    }
+
+    private void OnDiagnosticsChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _view = Diagnostics.Snapshot();
+            StateHasChanged();
+        });
+
+    public void Dispose() => Diagnostics.Changed -= OnDiagnosticsChanged;
+}

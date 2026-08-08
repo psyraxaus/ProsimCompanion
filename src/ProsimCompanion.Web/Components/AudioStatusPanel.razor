@@ -1,0 +1,143 @@
+@* Live audio-pillar status, shown as the landing section of the Audio tab (#18 — the
+   former standalone /audio page). *@
+@implements IDisposable
+@inject AudioStatusStore Status
+
+<Section Title="Volume Control" Hint="ACP knobs / REC latches → app volumes">
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <span class="pill @(_view.Enabled ? "tone-ok" : "tone-neutral")">
+            @(_view.Enabled ? "Enabled" : "Disabled")
+        </span>
+        <span class="pill tone-active">
+            @(_view.ActiveBackend == AudioBackend.VoiceMeeter ? "VoiceMeeter" : "CoreAudio")
+        </span>
+        @if (_view.ActiveBackend == AudioBackend.VoiceMeeter)
+        {
+            <span class="pill @(_view.VoiceMeeterAvailable ? "tone-ok" : "tone-warn")">
+                @(_view.VoiceMeeterAvailable ? "VoiceMeeter linked" : "VoiceMeeter not reachable")
+            </span>
+        }
+        @foreach (var acp in Enum.GetValues<AcpSide>())
+        {
+            var powered = _view.AcpPowered.TryGetValue(acp, out var p) && p;
+            <span class="pill @(powered ? "tone-ok" : "tone-neutral")"
+                  title="@(powered ? "Powered — knob changes apply" : "Unpowered — knob changes held")">
+                @AudioPresentation.AcpLabel(acp) @(powered ? "PWR" : "OFF")
+            </span>
+        }
+    </div>
+    @if (_view.VoiceMeeterFallbackReason.Length > 0)
+    {
+        <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">
+            Mapping conflict: @_view.VoiceMeeterFallbackReason
+        </div>
+    }
+    @if (_elevatedBinaries.Count > 0)
+    {
+        <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">
+            Elevated process(es) detected: @string.Join(", ", _elevatedBinaries).
+            Run ProsimCompanion as administrator to control these apps — until then those
+            mappings stay inactive.
+        </div>
+    }
+</Section>
+
+@if (_view.ActiveBackend == AudioBackend.CoreAudio)
+{
+    <Section Title="App Mappings" Hint="Live session state per mapped process">
+        @if (_view.Mappings.Count == 0)
+        {
+            <div class="empty">No app mappings configured — add them in the CoreAudio section.</div>
+        }
+        else
+        {
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Process</th><th>Channel</th><th>Device</th>
+                            <th>State</th><th>Sessions</th><th>Volume</th><th>Muted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var mapping in _view.Mappings)
+                        {
+                            var (tone, label) = AudioPresentation.MappingState(mapping.State);
+                            <tr>
+                                <td class="mono">@mapping.Binary</td>
+                                <td>@AudioPresentation.ChannelLabel(mapping.Channel)</td>
+                                <td>@(mapping.Device.Length == 0 ? "All" : mapping.Device)</td>
+                                <td><span class="pill @tone">@label</span></td>
+                                <td>@mapping.SessionCount</td>
+                                <td class="mono">@(mapping.Volume is { } v ? $"{v * 100:F0} %" : "—")</td>
+                                <td>@(mapping.Muted is { } m ? (m ? "Yes" : "No") : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </Section>
+}
+else
+{
+    <Section Title="VoiceMeeter Targets" Hint="Live strip/bus state per bound channel">
+        @if (_view.VoiceMeeterBindings.Count == 0)
+        {
+            <div class="empty">No targets bound — configure mappings in the VoiceMeeter section.</div>
+        }
+        else
+        {
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ACP</th><th>Channel</th><th>Target</th><th>Gain</th><th>Muted</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var binding in _view.VoiceMeeterBindings)
+                        {
+                            <tr>
+                                <td>@AudioPresentation.AcpLabel(binding.Acp)</td>
+                                <td>@AudioPresentation.ChannelLabel(binding.Channel)</td>
+                                <td>@($"{(binding.IsBus ? "Bus" : "Strip")} {binding.StripIndex + 1}")</td>
+                                <td class="mono">@(binding.GainDb is { } g ? $"{g:F1} dB" : "—")</td>
+                                <td>@(binding.Muted is { } m ? (m ? "Yes" : "No") : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </Section>
+}
+
+@code {
+    private AudioStatusSnapshot _view = AudioStatusSnapshot.Empty;
+
+    private List<string> _elevatedBinaries = [];
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        Status.Changed += OnChanged;
+    }
+
+    private void OnChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            Refresh();
+            StateHasChanged();
+        });
+
+    private void Refresh()
+    {
+        _view = Status.Snapshot();
+        _elevatedBinaries = _view.Mappings
+            .Where(m => m.State == AudioMappingState.Elevated)
+            .Select(m => m.Binary)
+            .ToList();
+    }
+
+    public void Dispose() => Status.Changed -= OnChanged;
+}

@@ -34,10 +34,11 @@
         </div>
     </header>
 
-    @* Single flat tab strip mirroring Prosim2GSX's web EFB: the first 13 tabs match its
-       order exactly so migrating users land in a familiar layout; ProsimCompanion-only
-       pages (voice FO, tech log, duty day, diagnostics) follow after. Overflow scrolls
-       with the chevron buttons wired up in app.js. *@
+    @* Single flat tab strip. Originally mirrored Prosim2GSX's web EFB order verbatim;
+       superseded 2026-08-08 (owner decision, #18): each pillar's status page is merged
+       into its settings tab (GSX / Audio / First Officer) as a default-selected Status
+       section, so the strip carries one tab per pillar. Overflow scrolls with the
+       chevron buttons wired up in app.js. *@
     <div class="tabbar-wrap">
         <button type="button" class="chevron chevron-left" aria-label="Scroll tabs left">‹</button>
         <nav class="tabbar">
@@ -56,7 +57,8 @@
 </div>
 
 @code {
-    // Prosim2GSX web EFB tab order (13, verbatim) followed by ProsimCompanion-only pages.
+    // One tab per pillar: GSX / Audio / First Officer carry their status as the default
+    // rail section (#18); the old /gsx, /audio and /speech routes still resolve there.
     private static readonly (string Label, string Href)[] Tabs =
     [
         ("Flight Status", ""),
@@ -68,17 +70,14 @@
         ("Takeoff", "takeoff"),
         ("Landing", "landing"),
         ("Checklists", "checklists"),
-        ("GSX Settings", "settings/gsx"),
+        ("GSX", "settings/gsx"),
         ("Aircraft Profiles", "profiles"),
-        ("Audio Settings", "settings/audio"),
+        ("Audio", "settings/audio"),
         ("App Settings", "settings/app"),
-        ("Speech", "speech"),
-        ("FO Settings", "settings/speech"),
+        ("First Officer", "settings/speech"),
         ("Tech Log", "techlog"),
         ("Duty Day", "day"),
         ("Weather", "weather"),
-        ("GSX Status", "gsx"),
-        ("Audio Status", "audio"),
         ("Logs", "logs"),
     ];
 

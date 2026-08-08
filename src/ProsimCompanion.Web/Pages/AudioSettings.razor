@@ -1,4 +1,5 @@
 @page "/settings/audio"
+@page "/audio"
 @using System.Text.Json
 @using System.Text.Json.Nodes
 @using System.Text.Json.Serialization
@@ -8,8 +9,8 @@
 @inject IAudioControl AudioControl
 @inject IAudioDeviceCatalog DeviceCatalog
 
-<PageTitle>Audio Settings — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Audio Settings</h1>
+<PageTitle>Audio — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Audio</h1>
 
 <div class="settings-panel" style="padding-bottom:96px;">
     <div class="settings-body">
@@ -25,7 +26,11 @@
         </div>
         <div class="settings-content">
 
-            @if (_section == "general")
+            @if (_section == "status")
+            {
+                <AudioStatusPanel />
+            }
+            else if (_section == "general")
             {
                 <Section Title="Volume Control" Hint="ACP knobs and REC latches drive app volumes">
                     <BoolField Label="Enabled"
@@ -227,6 +232,7 @@
 @code {
     private static readonly (string Key, string Label)[] Sections =
     [
+        ("status", "Status"),
         ("general", "General"),
         ("coreaudio", "CoreAudio"),
         ("voicemeeter", "VoiceMeeter"),
@@ -252,7 +258,7 @@
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
-    private string _section = "general";
+    private string _section = "status";
     private AudioOptions _draft = new();
     private string _baseline = "";
     private IReadOnlyList<VoiceMeeterTargetView> _vmTargets = [];

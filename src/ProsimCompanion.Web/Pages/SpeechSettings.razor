@@ -1,4 +1,5 @@
 @page "/settings/speech"
+@page "/speech"
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @implements IDisposable
@@ -8,13 +9,13 @@
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
 
-<PageTitle>Speech Settings — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Speech Settings</h1>
+<PageTitle>First Officer — ProsimCompanion</PageTitle>
+<h1 class="sr-only">First Officer</h1>
 
 <div class="settings-panel" style="padding-bottom:96px;">
     <div class="settings-body">
         <div class="rail-column">
-            <div class="rail-header"><span class="rail-header-context">Speech</span></div>
+            <div class="rail-header"><span class="rail-header-context">First Officer</span></div>
             <nav class="rail-nav sticky-rail">
                 @foreach (var (key, label) in Sections)
                 {
@@ -25,7 +26,11 @@
         </div>
         <div class="settings-content">
 
-            @if (_section == "general")
+            @if (_section == "status")
+            {
+                <SpeechStatusPanel />
+            }
+            else if (_section == "general")
             {
                 <Section Title="Voice First Officer" Hint="TTS chain: Kokoro → Google → WinRT → SAPI5">
                     <BoolField Label="Enabled"
@@ -215,6 +220,7 @@
 @code {
     private static readonly (string Key, string Label)[] Sections =
     [
+        ("status", "Status"),
         ("general", "General"),
         ("recognition", "Recognition & PTT"),
         ("sterile", "Sterile Cockpit"),
@@ -244,7 +250,7 @@
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
-    private string _section = "general";
+    private string _section = "status";
     private SpeechOptions _draft = new();
     private BriefingOptions _briefingDraft = new();
     private string _baseline = "";

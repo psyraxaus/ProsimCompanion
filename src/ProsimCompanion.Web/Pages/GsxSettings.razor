@@ -1,5 +1,6 @@
 @page "/settings/gsx"
 @page "/settings"
+@page "/gsx"
 @using System.Text.Json
 @using System.Text.Json.Nodes
 @using ProsimCompanion.Core.Profiles
@@ -8,15 +9,15 @@
 @inject JsonSettingsFile SettingsFile
 @inject AircraftProfileService Profiles
 
-<PageTitle>GSX Settings — ProsimCompanion</PageTitle>
-<h1 class="sr-only">GSX Settings</h1>
+<PageTitle>GSX — ProsimCompanion</PageTitle>
+<h1 class="sr-only">GSX</h1>
 
 <div class="settings-panel">
     <div class="settings-body">
         <div class="rail-column">
             <div class="sticky-rail">
                 <div class="rail-header">
-                    <span class="rail-header-label">GSX Settings</span>
+                    <span class="rail-header-label">GSX</span>
                     <span class="rail-header-context">@(Profiles.ActiveProfile?.Name ?? "Default")</span>
                 </div>
                 <nav class="rail-nav">
@@ -32,7 +33,11 @@
         </div>
 
         <div class="settings-content">
-            @if (_section == "gateDoors")
+            @if (_section == "status")
+            {
+                <GsxStatusPanel />
+            }
+            else if (_section == "gateDoors")
             {
                 <Section Title="Doors">
                     <BoolField Label="Door automation"
@@ -339,6 +344,7 @@
 @code {
     private static readonly (string Key, string Label)[] Sections =
     [
+        ("status", "Status"),
         ("gateDoors", "Gate & Doors"),
         ("groundEquipment", "Ground Equipment"),
         ("services", "GSX Services"),
@@ -383,7 +389,7 @@
 
     private static readonly JsonSerializerOptions DraftJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    private string _section = "gateDoors";
+    private string _section = "status";
     private GsxOptions _draft = new();
     private string _baseline = "";
     private string? _barMessage;
