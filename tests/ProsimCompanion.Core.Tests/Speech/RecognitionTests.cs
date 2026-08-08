@@ -120,4 +120,33 @@ public sealed class RecognitionTests
     [InlineData(0xB3)]
     public void PushToTalk_CapturedKeyNames_RoundTripThroughParseKey(int vk)
         => Assert.Equal(vk, PushToTalkService.ParseKey(PushToTalkService.FormatKey(vk)));
+
+    // Device 0 = pedals, device 3 = the stick; null = not connected.
+    private static string? JoystickName(int id) => id switch
+    {
+        0 => "MFG Crosswind V2",
+        3 => "VIRPIL Constellation ALPHA-R",
+        _ => null,
+    };
+
+    [Fact]
+    public void PushToTalk_JoystickNameMatch_WinsOverStaleId()
+        // The stick moved from id 1 to id 3 after a re-plug; the stored name still finds it.
+        => Assert.Equal(3, PushToTalkService.ResolveJoystickId("VIRPIL Constellation", 1, JoystickName));
+
+    [Fact]
+    public void PushToTalk_JoystickNamePrefixMatchesBothWays()
+        // The configured name may be LONGER than winmm's 31-char truncated product name.
+        => Assert.Equal(0, PushToTalkService.ResolveJoystickId("MFG Crosswind V2 rudder pedals", null, JoystickName));
+
+    [Fact]
+    public void PushToTalk_JoystickNoNameConfigured_FallsBackToNumericId()
+        => Assert.Equal(1, PushToTalkService.ResolveJoystickId("", 1, JoystickName));
+
+    [Fact]
+    public void PushToTalk_JoystickNameNotFound_FallsBackToNumericId_ThenUnbound()
+    {
+        Assert.Equal(1, PushToTalkService.ResolveJoystickId("Thrustmaster", 1, JoystickName));
+        Assert.Equal(-1, PushToTalkService.ResolveJoystickId("Thrustmaster", null, JoystickName));
+    }
 }

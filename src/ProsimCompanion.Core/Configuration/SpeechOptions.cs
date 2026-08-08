@@ -114,14 +114,26 @@ public sealed class SpeechOptions
     /// or a decimal VK code; empty disables keyboard PTT.</summary>
     public string PttKey { get; set; } = "";
 
-    /// <summary>Joystick PTT: winmm joystick id (0–15) and button index (0–31); either null
-    /// disables joystick PTT.</summary>
+    /// <summary>Joystick PTT: winmm joystick id (0–15) and button index (0–31); a null button
+    /// (or no device) disables joystick PTT.</summary>
     public int? PttJoystickDevice { get; set; }
     public int? PttJoystickButton { get; set; }
+
+    /// <summary>Product name of the FO PTT joystick. When set it wins over the numeric id —
+    /// winmm ids shuffle when devices are re-plugged, product names don't. Matched on prefix
+    /// both ways (winmm truncates names to 31 chars).</summary>
+    public string PttJoystickDeviceName { get; set; } = "";
 
     /// <summary>ATC push-to-talk key — while held, the FO stops listening (a suppression, not
     /// a mode change); empty disables.</summary>
     public string AtcMuteKey { get; set; } = "";
+
+    /// <summary>ATC-mute joystick binding — for pilots whose ATC transmit is a stick/yoke
+    /// button rather than a key. Same semantics as the key: while the button is held the FO
+    /// ignores everything it hears. Same id/name/button rules as the FO PTT binding.</summary>
+    public int? AtcMuteJoystickDevice { get; set; }
+    public int? AtcMuteJoystickButton { get; set; }
+    public string AtcMuteJoystickDeviceName { get; set; } = "";
 
     /// <summary>"pushToTalk" (default) or "continuous" — continuous listens whenever a window
     /// is open, no PTT needed.</summary>

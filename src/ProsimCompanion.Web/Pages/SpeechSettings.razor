@@ -58,15 +58,21 @@
                     <TextField Label="FO push-to-talk key"
                                Hint="Key name (e.g. capslock, F13, rightctrl) or decimal VK code; empty = unbound. Never your ATC PTT — this one talks to the First Officer"
                                @bind-Value="_draft.PttKey" />
-                    <TextField Label="ATC-mute key"
-                               Hint="Bind the SAME key you transmit to ATC with — while held, the FO ignores everything it hears (works in both modes)"
-                               @bind-Value="_draft.AtcMuteKey" />
-                    <SelectField Label="FO PTT joystick device" Options="JoystickOptions()"
-                                 Hint="Controllers detected on this machine (sticks, yokes, HOTAS)"
-                                 @bind-Value="JoystickDeviceKey" />
+                    <SelectField Label="FO PTT joystick device" Options="@JoystickOptions(_draft.PttJoystickDevice, _draft.PttJoystickDeviceName)"
+                                 Hint="Controllers detected on this machine (sticks, yokes, HOTAS) — bound by device name, so re-plugged hardware keeps working"
+                                 @bind-Value="FoJoystickDeviceKey" />
                     <NumberField Label="FO PTT joystick button" Min="-1" Max="31"
                                  Hint="Button index 0–31 on that device; −1 = unbound. Detect below fills this for you"
                                  @bind-Value="PttJoystickButtonDraft" />
+                    <TextField Label="ATC-mute key"
+                               Hint="Bind the SAME key you transmit to ATC with — while held, the FO ignores everything it hears (works in both modes)"
+                               @bind-Value="_draft.AtcMuteKey" />
+                    <SelectField Label="ATC-mute joystick device" Options="@JoystickOptions(_draft.AtcMuteJoystickDevice, _draft.AtcMuteJoystickDeviceName)"
+                                 Hint="If you transmit to ATC with a stick/yoke button instead of a key, bind that button here"
+                                 @bind-Value="AtcJoystickDeviceKey" />
+                    <NumberField Label="ATC-mute joystick button" Min="-1" Max="31"
+                                 Hint="Button index 0–31 on that device; −1 = unbound"
+                                 @bind-Value="AtcMuteJoystickButtonDraft" />
                     <div style="margin:8px 0;">
                         <button type="button" class="btn secondary" disabled="@(_capturing is not null)"
                                 @onclick='() => DetectAsync("fo")'>
@@ -74,7 +80,7 @@
                         </button>
                         <button type="button" class="btn secondary" disabled="@(_capturing is not null)"
                                 @onclick='() => DetectAsync("atc")'>
-                            @(_capturing == "atc" ? "Press the key now…" : "Detect ATC-mute key")
+                            @(_capturing == "atc" ? "Press the key or button now…" : "Detect ATC-mute")
                         </button>
                         @if (_captureMessage is not null)
                         {
@@ -83,7 +89,7 @@
                     </div>
                     <div class="field-hint" style="max-width:640px;">
                         Detect listens for ten seconds and binds whatever you press — a keyboard
-                        key or (for FO PTT) any joystick button. Remember to save afterwards.
+                        key or any joystick button, for either binding. Remember to save afterwards.
                     </div>
                     <TextField Label="LAN faster-whisper URL"
                                Hint="e.g. http://192.168.1.50:8000 — empty uses the offline System.Speech engine"
@@ -244,13 +250,31 @@
     private string? _capturing;
     private string? _captureMessage;
 
-    private string JoystickDeviceKey
+    private string FoJoystickDeviceKey
     {
         get => (_draft.PttJoystickDevice ?? -1).ToString();
-        set => _draft.PttJoystickDevice = int.TryParse(value, out var id) && id >= 0 ? id : null;
+        set => (_draft.PttJoystickDevice, _draft.PttJoystickDeviceName) = ParseJoystickSelection(value);
     }
 
-    private IReadOnlyList<(string, string)> JoystickOptions()
+    private string AtcJoystickDeviceKey
+    {
+        get => (_draft.AtcMuteJoystickDevice ?? -1).ToString();
+        set => (_draft.AtcMuteJoystickDevice, _draft.AtcMuteJoystickDeviceName) = ParseJoystickSelection(value);
+    }
+
+    /// <summary>Selection → (id, product name). The name is what actually binds at runtime
+    /// (ids shuffle on re-plug); the id is kept as display key and fallback.</summary>
+    private (int?, string) ParseJoystickSelection(string value)
+    {
+        if (!int.TryParse(value, out var id) || id < 0)
+        {
+            return (null, "");
+        }
+
+        return (id, _joysticks.FirstOrDefault(j => j.Id == id)?.Name ?? "");
+    }
+
+    private IReadOnlyList<(string, string)> JoystickOptions(int? currentId, string currentName)
     {
         var options = new List<(string, string)> { ("-1", "Unbound") };
         foreach (var joystick in _joysticks)
@@ -258,9 +282,10 @@
             options.Add((joystick.Id.ToString(), $"{joystick.Id}: {joystick.Name}"));
         }
 
-        if (_draft.PttJoystickDevice is { } current && _joysticks.All(j => j.Id != current))
+        if (currentId is { } current && _joysticks.All(j => j.Id != current))
         {
-            options.Add((current.ToString(), $"{current}: (not currently connected)"));
+            var label = string.IsNullOrWhiteSpace(currentName) ? $"Joystick {current}" : currentName;
+            options.Add((current.ToString(), $"{current}: {label} (not currently connected)"));
         }
 
         return options;
@@ -273,24 +298,36 @@
         try
         {
             var result = await PttCapture.CaptureAsync(
-                includeJoysticks: target == "fo", TimeSpan.FromSeconds(10), CancellationToken.None);
+                includeJoysticks: true, TimeSpan.FromSeconds(10), CancellationToken.None);
+            var label = target == "atc" ? "ATC-mute" : "FO PTT";
             if (result is null)
             {
                 _captureMessage = "Nothing pressed within ten seconds.";
+            }
+            else if (result.IsJoystick)
+            {
+                _joysticks = PttCapture.GetJoysticks(); // the pressed device is connected — relist
+                var name = _joysticks.FirstOrDefault(j => j.Id == result.JoystickId)?.Name ?? "";
+                if (target == "atc")
+                {
+                    _draft.AtcMuteJoystickDevice = result.JoystickId;
+                    _draft.AtcMuteJoystickButton = result.JoystickButton;
+                    _draft.AtcMuteJoystickDeviceName = name;
+                }
+                else
+                {
+                    _draft.PttJoystickDevice = result.JoystickId;
+                    _draft.PttJoystickButton = result.JoystickButton;
+                    _draft.PttJoystickDeviceName = name;
+                }
+
+                var shown = string.IsNullOrWhiteSpace(name) ? $"joystick {result.JoystickId}" : name;
+                _captureMessage = $"{label} bound to {shown}, button {result.JoystickButton}.";
             }
             else if (target == "atc")
             {
                 _draft.AtcMuteKey = result.KeyName ?? "";
                 _captureMessage = $"ATC-mute key set to \"{result.KeyName}\".";
-            }
-            else if (result.IsJoystick)
-            {
-                _draft.PttJoystickDevice = result.JoystickId;
-                _draft.PttJoystickButton = result.JoystickButton;
-                _joysticks = PttCapture.GetJoysticks(); // the pressed device is connected — relist
-                var name = _joysticks.FirstOrDefault(j => j.Id == result.JoystickId)?.Name
-                    ?? $"Joystick {result.JoystickId}";
-                _captureMessage = $"FO PTT bound to {name}, button {result.JoystickButton}.";
             }
             else
             {
@@ -306,6 +343,12 @@
         {
             _capturing = null;
         }
+    }
+
+    private int AtcMuteJoystickButtonDraft
+    {
+        get => _draft.AtcMuteJoystickButton ?? -1;
+        set => _draft.AtcMuteJoystickButton = value < 0 ? null : value;
     }
 
     private int PttJoystickButtonDraft
@@ -363,6 +406,10 @@
                 speech["atcMuteKey"] = draft.AtcMuteKey.Trim();
                 speech["pttJoystickDevice"] = draft.PttJoystickDevice;
                 speech["pttJoystickButton"] = draft.PttJoystickButton;
+                speech["pttJoystickDeviceName"] = draft.PttJoystickDeviceName.Trim();
+                speech["atcMuteJoystickDevice"] = draft.AtcMuteJoystickDevice;
+                speech["atcMuteJoystickButton"] = draft.AtcMuteJoystickButton;
+                speech["atcMuteJoystickDeviceName"] = draft.AtcMuteJoystickDeviceName.Trim();
                 speech["asrBaseUrl"] = draft.AsrBaseUrl.Trim();
                 speech["inputDevice"] = draft.InputDevice.Trim();
 
