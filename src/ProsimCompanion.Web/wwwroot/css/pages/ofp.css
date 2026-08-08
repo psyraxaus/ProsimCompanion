@@ -1,0 +1,60 @@
+/* OFP page — Flight Plan block only, ported from Prosim2GSX
+   Prosim2GSX.Web/src/panels/OfpPanel.module.css ("Flight info grid")
+   (classes prefixed ofpfp- because Blazor has no CSS-module scoping).
+   The Korry / gate / weather / deice sections keep their app.css styling. */
+
+.ofpfp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 18px;
+}
+
+.ofpfp-kv {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.ofpfp-label {
+  color: var(--text-secondary);
+}
+
+.ofpfp-value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 540px) {
+  .ofpfp-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Footer strip: fetched-at stamp left, page-navigation hint right. */
+.ofpfp-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.ofpfp-fetched {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.ofpfp-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+}

@@ -1,0 +1,64 @@
+@* Cockpit Korry pushbutton — pixel-faithful port of Prosim2GSX's KorryPushbackButton
+   (WPF KorryPushbackButton.xaml → web KorryPushbackButton.tsx). Layout: 90×82 bevelled
+   body (rounded 5px, 2px border, lit when active), a 54px icon zone with the SVG arrow
+   (green for tail directions, amber for straight), a 1px separator, a legend strip that
+   lights blue (tail) / amber (straight) when on, and the subtitle below the body. SVG
+   path coordinates and every colour token are copied verbatim from the source. *@
+
+<div class="korry-wrap">
+    <button type="button" title="@Title" aria-pressed="@IsActive" disabled="@Disabled"
+            class="korry-body @ToneClass @(IsActive ? "active" : null)"
+            @onclick="OnClick">
+        <div class="korry-icon-zone">
+            @if (Arrow == "tailLeft")
+            {
+                <svg viewBox="0 0 56 44" class="korry-arrow" aria-hidden="true">
+                    <path d="M 42 3 L 42 21 Q 42 37 28 37 L 20 37" class="korry-arrow-stroke"
+                          stroke-width="4" stroke-linecap="round" fill="none" />
+                    <polygon points="7,37 19,30 19,44" class="korry-arrow-fill" />
+                </svg>
+            }
+            else if (Arrow == "straight")
+            {
+                <svg viewBox="0 0 56 44" class="korry-arrow" aria-hidden="true">
+                    <line x1="28" y1="3" x2="28" y2="34" class="korry-arrow-stroke"
+                          stroke-width="4" stroke-linecap="round" />
+                    <polygon points="28,43 18,30 38,30" class="korry-arrow-fill" />
+                </svg>
+            }
+            else
+            {
+                <svg viewBox="0 0 56 44" class="korry-arrow" aria-hidden="true">
+                    <path d="M 14 3 L 14 21 Q 14 37 28 37 L 36 37" class="korry-arrow-stroke"
+                          stroke-width="4" stroke-linecap="round" fill="none" />
+                    <polygon points="49,37 37,30 37,44" class="korry-arrow-fill" />
+                </svg>
+            }
+        </div>
+        <div class="korry-separator"></div>
+        <div class="korry-legend-strip">
+            <span class="korry-legend-text">@Label</span>
+        </div>
+    </button>
+    <div class="korry-subtitle">@Subtitle</div>
+</div>
+
+@code {
+    /// <summary>"tailLeft" | "straight" | "tailRight" — selects the arrow drawing and the
+    /// green/amber tone (straight is the amber "auto" button, tails are green).</summary>
+    [Parameter, EditorRequired] public string Arrow { get; set; } = "straight";
+
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Subtitle { get; set; } = "";
+
+    [Parameter] public bool IsActive { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string ToneClass => Arrow == "straight" ? "korry-amber" : "korry-green";
+}

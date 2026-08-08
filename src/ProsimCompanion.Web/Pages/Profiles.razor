@@ -1,0 +1,163 @@
+@page "/profiles"
+@using System.Text.Json.Nodes
+@using ProsimCompanion.Core.Profiles
+@implements IDisposable
+@inject AircraftProfileService ProfileService
+@inject IOptionsMonitor<AircraftProfilesOptions> Options
+@inject JsonSettingsFile SettingsFile
+
+<PageTitle>Aircraft Profiles — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Aircraft Profiles</h1>
+
+<div class="panel">
+
+    <Section Title="Current Aircraft"
+             Hint="@(ProfileService.AircraftTitle is null ? "Sim not connected — profile matching will use defaults" : null)">
+        <div class="row"><span class="row-label">Title / Livery</span><span class="row-value-mono">@(ProfileService.AircraftTitle ?? "—")</span></div>
+        <div class="row"><span class="row-label">Active Profile</span><span class="row-value-mono">@(ProfileService.ActiveProfile?.Name ?? "— (defaults)")</span></div>
+    </Section>
+
+    <Section Title="Profiles"
+             Hint="Matched automatically against the sim's aircraft title — exact matches win over contains; no match falls back to defaults">
+        @for (var i = 0; i < _draft.Count; i++)
+        {
+            var index = i;
+            var profile = _draft[index];
+            var isActive = ProfileService.ActiveProfile?.Id == profile.Id;
+            <div class="wx-card" style="margin-bottom:10px;">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <input type="text" class="cell-input" style="flex:1; min-width:180px;"
+                           placeholder="Profile name" value="@profile.Name"
+                           @onchange="e => profile.Name = e.Value?.ToString() ?? string.Empty" />
+                    @if (isActive)
+                    {
+                        <span class="pill tone-ok">ACTIVE</span>
+                    }
+                    <button type="button" class="btn secondary" @onclick="() => Clone(index)">Clone</button>
+                    <button type="button" class="btn danger" @onclick="() => _draft.RemoveAt(index)">Delete</button>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+                    <span class="field-hint">Match</span>
+                    <select class="select" style="max-width:220px"
+                            value="@profile.MatchType"
+                            @onchange="e => profile.MatchType = Enum.Parse<ProfileMatchType>(e.Value?.ToString() ?? nameof(ProfileMatchType.TitleContains))">
+                        <option value="@ProfileMatchType.TitleContains">Title / livery (contains)</option>
+                        <option value="@ProfileMatchType.TitleEquals">Title / livery (exact)</option>
+                    </select>
+                    <input type="text" class="cell-input" style="flex:1; min-width:220px;"
+                           placeholder="Aircraft title fragment" value="@profile.MatchString"
+                           @onchange="e => profile.MatchString = e.Value?.ToString() ?? string.Empty" />
+                    @if (ProfileService.AircraftTitle is { } title && Matches(profile, title))
+                    {
+                        <span class="pill tone-active">matches current</span>
+                    }
+                </div>
+            </div>
+        }
+        @if (_draft.Count == 0)
+        {
+            <div class="empty">No profiles — every aircraft uses the default settings.</div>
+        }
+        <button type="button" class="btn secondary" @onclick="Add">Add profile</button>
+    </Section>
+
+</div>
+
+<DirtyBar Visible="@(IsDirty || _barMessage is not null)"
+          Message="@(_barMessage ?? "You have unsaved changes")"
+          Tone="_barTone"
+          OnSave="Save"
+          OnDiscard="Discard" />
+
+@code {
+    private List<AircraftProfile> _draft = [];
+    private string _baseline = "";
+    private string? _barMessage;
+    private DirtyBar.MessageTone _barTone = DirtyBar.MessageTone.Unsaved;
+    private IDisposable? _optionsSubscription;
+
+    private bool IsDirty => Serialize(_draft) != _baseline;
+
+    protected override void OnInitialized()
+    {
+        ProfileService.Changed += OnServiceChanged;
+        _optionsSubscription = Options.OnChange(options => { _ = InvokeAsync(StateHasChanged); });
+        LoadDraft();
+    }
+
+    public void Dispose()
+    {
+        ProfileService.Changed -= OnServiceChanged;
+        _optionsSubscription?.Dispose();
+    }
+
+    private void OnServiceChanged(object? sender, EventArgs e)
+        // Service events fire on arbitrary threads; marshal into the circuit.
+        => _ = InvokeAsync(StateHasChanged);
+
+    private void LoadDraft()
+    {
+        // JSON round-trip clone so edits never mutate the bound options instance.
+        _draft = System.Text.Json.JsonSerializer.Deserialize<List<AircraftProfile>>(
+            Serialize(Options.CurrentValue.Profiles)) ?? [];
+        _baseline = Serialize(_draft);
+        _barMessage = null;
+    }
+
+    private static string Serialize(List<AircraftProfile> profiles)
+        => System.Text.Json.JsonSerializer.Serialize(profiles);
+
+    private static bool Matches(AircraftProfile profile, string title)
+        => profile.MatchString.Length > 0 && profile.MatchType switch
+        {
+            ProfileMatchType.TitleEquals => title.Equals(profile.MatchString, StringComparison.OrdinalIgnoreCase),
+            _ => title.Contains(profile.MatchString, StringComparison.OrdinalIgnoreCase),
+        };
+
+    private void Add() => _draft.Add(new AircraftProfile { Name = $"Profile {_draft.Count + 1}" });
+
+    private void Clone(int index)
+    {
+        var source = _draft[index];
+        _draft.Insert(index + 1, new AircraftProfile
+        {
+            Name = $"Clone of {source.Name}",
+            MatchType = source.MatchType,
+            MatchString = source.MatchString,
+        });
+    }
+
+    private void Save()
+    {
+        try
+        {
+            var draft = _draft;
+            SettingsFile.Update(root =>
+            {
+                var section = JsonSettingsFile.GetOrCreateSection(root, AircraftProfilesOptions.SectionName);
+                var profiles = new JsonArray();
+                foreach (var profile in draft.Where(p => !string.IsNullOrWhiteSpace(p.Name)))
+                {
+                    profiles.Add(new JsonObject
+                    {
+                        ["id"] = profile.Id,
+                        ["name"] = profile.Name.Trim(),
+                        ["matchType"] = System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(profile.MatchType.ToString()),
+                        ["matchString"] = profile.MatchString.Trim(),
+                    });
+                }
+                section["profiles"] = profiles;
+            });
+            _baseline = Serialize(_draft);
+            _barMessage = "Saved.";
+            _barTone = DirtyBar.MessageTone.Info;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _barMessage = $"Save failed: {ex.Message}";
+            _barTone = DirtyBar.MessageTone.Error;
+        }
+    }
+
+    private void Discard() => LoadDraft();
+}

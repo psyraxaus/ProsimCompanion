@@ -34,7 +34,8 @@ public sealed class DepartureSequencerTests
         bool plan = true,
         bool requireOfp = true,
         bool turnaround = false,
-        bool force = false)
+        bool force = false,
+        bool companyHub = false)
         => DepartureSequencer.Next(
             steps,
             services,
@@ -43,7 +44,38 @@ public sealed class DepartureSequencerTests
             plan,
             requireOfp,
             turnaround,
-            force);
+            force,
+            companyHub);
+
+    // ---- Company-hub constraints (Prosim2GSX parity) ----
+
+    [Fact]
+    public void CompanyHubConstraint_SkipsAwayFromHub_AndRunsAtHub()
+    {
+        var steps = new[] { Step("Catering", constraint: GsxServiceConstraint.CompanyHub), Step("Refueling") };
+        var services = Services(
+            ("Catering", GsxServiceState.Callable, true), ("Refueling", GsxServiceState.Callable, true));
+
+        var awayPlan = Next(steps, services, companyHub: false);
+        Assert.Equal("Refueling", awayPlan.Trigger); // Catering skipped transparently
+
+        var hubPlan = Next(steps, services, companyHub: true);
+        Assert.Equal("Catering", hubPlan.Trigger);
+    }
+
+    [Fact]
+    public void NonCompanyHubConstraint_SkipsAtHub()
+    {
+        var steps = new[] { Step("Catering", constraint: GsxServiceConstraint.NonCompanyHub), Step("Refueling") };
+        var services = Services(
+            ("Catering", GsxServiceState.Callable, true), ("Refueling", GsxServiceState.Callable, true));
+
+        var hubPlan = Next(steps, services, companyHub: true);
+        Assert.Equal("Refueling", hubPlan.Trigger);
+
+        var awayPlan = Next(steps, services, companyHub: false);
+        Assert.Equal("Catering", awayPlan.Trigger);
+    }
 
     // ---- Single-dispatch discipline (the round-7 regression: rapid-fire triggers) ----
 

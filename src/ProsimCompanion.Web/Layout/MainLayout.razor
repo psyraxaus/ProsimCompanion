@@ -32,30 +32,21 @@
         </div>
     </header>
 
-    @* Two-tier nav (declutter pass): six primary groups; the second row appears only for
-       groups with more than one page. The active group is derived from the current URL so
-       deep links land with the right rows lit. *@
+    @* Single flat tab strip mirroring Prosim2GSX's web EFB: the first 13 tabs match its
+       order exactly so migrating users land in a familiar layout; ProsimCompanion-only
+       pages (voice FO, tech log, duty day, diagnostics) follow after. Overflow scrolls
+       with the chevron buttons wired up in app.js. *@
     <div class="tabbar-wrap">
         <button type="button" class="chevron chevron-left" aria-label="Scroll tabs left">‹</button>
         <nav class="tabbar">
-            @foreach (var group in Groups)
-            {
-                <a class="tab @(group == ActiveGroup ? "active" : null)"
-                   href="@group.Items[0].Href">@group.Name</a>
-            }
-        </nav>
-        <button type="button" class="chevron chevron-right" aria-label="Scroll tabs right">›</button>
-    </div>
-    @if (ActiveGroup is { Items.Count: > 1 } active)
-    {
-        <nav class="tabbar subtabs">
-            @foreach (var (label, href) in active.Items)
+            @foreach (var (label, href) in Tabs)
             {
                 <NavLink class="tab" href="@href"
                          Match="@(href.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix)">@label</NavLink>
             }
         </nav>
-    }
+        <button type="button" class="chevron chevron-right" aria-label="Scroll tabs right">›</button>
+    </div>
 
     <main class="main">
         @Body
@@ -63,46 +54,31 @@
 </div>
 
 @code {
-    private sealed record NavGroup(string Name, IReadOnlyList<(string Label, string Href)> Items);
-
-    private static readonly NavGroup[] Groups =
+    // Prosim2GSX web EFB tab order (13, verbatim) followed by ProsimCompanion-only pages.
+    private static readonly (string Label, string Href)[] Tabs =
     [
-        new("FLIGHT", [("Flight Status", "")]),
-        new("EFB", [("Flight Data", "flight"), ("INIT", "init"), ("Performance", "perf"),
-            ("W&B", "wnb"), ("Weather", "weather")]),
-        new("GSX", [("Status", "gsx"), ("Settings", "settings/gsx")]),
-        new("FO", [("Speech", "speech"), ("Checklists", "checklists"), ("Tech Log", "techlog"),
-            ("Duty Day", "day"), ("Settings", "settings/speech")]),
-        new("AUDIO", [("Status", "audio"), ("Settings", "settings/audio")]),
-        new("SYSTEM", [("Logs", "logs"), ("App Settings", "settings/app")]),
+        ("Flight Status", ""),
+        ("INIT", "init"),
+        ("OFP", "ofp"),
+        ("Loadsheet", "loadsheet"),
+        ("W&B", "wnb"),
+        ("Fuel", "fuel"),
+        ("Takeoff", "takeoff"),
+        ("Landing", "landing"),
+        ("Checklists", "checklists"),
+        ("GSX Settings", "settings/gsx"),
+        ("Aircraft Profiles", "profiles"),
+        ("Audio Settings", "settings/audio"),
+        ("App Settings", "settings/app"),
+        ("Speech", "speech"),
+        ("FO Settings", "settings/speech"),
+        ("Tech Log", "techlog"),
+        ("Duty Day", "day"),
+        ("Weather", "weather"),
+        ("GSX Status", "gsx"),
+        ("Audio Status", "audio"),
+        ("Logs", "logs"),
     ];
-
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
-
-    private NavGroup ActiveGroup
-    {
-        get
-        {
-            var path = Navigation.ToBaseRelativePath(Navigation.Uri);
-            var query = path.IndexOf('?');
-            if (query >= 0)
-            {
-                path = path[..query];
-            }
-
-            path = path.TrimEnd('/');
-            // Longest matching href wins so "settings/gsx" beats "" and lands in GSX, not FLIGHT.
-            return Groups
-                .SelectMany(g => g.Items.Select(i => (Group: g, i.Href)))
-                .Where(x => x.Href.Length == 0
-                    ? path.Length == 0
-                    : path.Equals(x.Href, StringComparison.OrdinalIgnoreCase)
-                        || path.StartsWith(x.Href + "/", StringComparison.OrdinalIgnoreCase))
-                .OrderByDescending(x => x.Href.Length)
-                .Select(x => x.Group)
-                .FirstOrDefault() ?? Groups[0];
-        }
-    }
 
     private IDataRefSubscription? _flightNumberSub;
     private string _flightNumber = "";
@@ -119,14 +95,10 @@
     protected override void OnInitialized()
     {
         Status.Changed += OnChanged;
-        Navigation.LocationChanged += OnLocationChanged;
         _flightNumberSub = DataRefs.Subscribe("efb.cids.flightNumber", DataRefTier.Infrequent);
         _flightNumberSub.ValueChanged += OnChanged;
         _flightNumber = _flightNumberSub.GetValue("");
     }
-
-    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
-        => _ = InvokeAsync(StateHasChanged);
 
     private void OnChanged(object? sender, EventArgs e)
         // Store/SDK events fire on the writer's thread; marshal into the circuit.
@@ -139,7 +111,6 @@
     public void Dispose()
     {
         Status.Changed -= OnChanged;
-        Navigation.LocationChanged -= OnLocationChanged;
         if (_flightNumberSub is not null)
         {
             _flightNumberSub.ValueChanged -= OnChanged;

@@ -4,6 +4,8 @@
 @inject IOptionsMonitor<ProsimOptions> ProsimMonitor
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
 @inject IOptionsMonitor<LoggingOptions> LoggingMonitor
+@inject IOptionsMonitor<SayIntentionsOptions> SayIntentionsMonitor
+@inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
 @inject JsonSettingsFile SettingsFile
 @inject ThemeCatalog Themes
 
@@ -45,6 +47,25 @@
         </div>
     </Section>
 
+    <Section Title="Integrations">
+        <BoolField Label="Use SayIntentions"
+                   Hint="ATIS/METAR/TAF weather, CPDLC station display, and arrival-gate send"
+                   @bind-Value="_sayIntentions" />
+        <BoolField Label="Auto prelim loadsheet on refuel"
+                   Hint="Generate + send the preliminary loadsheet when GSX refueling starts"
+                   @bind-Value="_autoPrelim" />
+        <BoolField Label="Auto final loadsheet on boarding complete"
+                   @bind-Value="_autoFinal" />
+        <NumberField Label="Final loadsheet delay min" Suffix="s" Min="0"
+                     Hint="Randomized dispatcher delay before the final goes out"
+                     @bind-Value="_finalDelayMin" />
+        <NumberField Label="Final loadsheet delay max" Suffix="s" Min="0"
+                     @bind-Value="_finalDelayMax" />
+        <BoolField Label="Auto-sync FMS on final loadsheet"
+                   Hint="Push ZFW/ZFWCG/block into the MCDU INIT B when the final is produced"
+                   @bind-Value="_autoSyncFms" />
+    </Section>
+
     <Section Title="Logging" Hint="Applies live, no restart">
         <SelectField Label="Capture level" Options="LevelOptions"
                      Hint="Minimum level recorded to the log file and the Logs page"
@@ -84,17 +105,24 @@
     private bool _webLan;
     private string _logLevel = "Information";
     private bool _wireTrace;
+    private bool _sayIntentions;
+    private bool _autoPrelim;
+    private bool _autoFinal;
+    private int _finalDelayMin;
+    private int _finalDelayMax;
+    private bool _autoSyncFms;
 
-    private (string, string, string, string, int, int, bool, string, bool) _baseline;
+    private (string, string, string, string, int, int, bool, string, bool, bool, bool, bool, int, int, bool) _baseline;
     private string? _barMessage;
     private DirtyBar.MessageTone _barTone = DirtyBar.MessageTone.Unsaved;
     private Timer? _savedMessageTimer;
 
     private bool IsDirty => Snapshot() != _baseline;
 
-    private (string, string, string, string, int, int, bool, string, bool) Snapshot() =>
+    private (string, string, string, string, int, int, bool, string, bool, bool, bool, bool, int, int, bool) Snapshot() =>
         (_theme, _prosimHost, _prosimSdkPath, _prosimApiKey, _prosimReconnectMs,
-         _webPort, _webLan, _logLevel, _wireTrace);
+         _webPort, _webLan, _logLevel, _wireTrace,
+         _sayIntentions, _autoPrelim, _autoFinal, _finalDelayMin, _finalDelayMax, _autoSyncFms);
 
     protected override void OnInitialized()
     {
@@ -117,6 +145,15 @@
         _webLan = webUi.BindToAllInterfaces;
         _logLevel = logging.DefaultLevel;
         _wireTrace = logging.WireTrace;
+
+        var sayIntentions = SayIntentionsMonitor.CurrentValue;
+        var flightData = FlightDataMonitor.CurrentValue;
+        _sayIntentions = sayIntentions.Enabled;
+        _autoPrelim = flightData.AutoPrelimOnRefuel;
+        _autoFinal = flightData.AutoFinalOnBoardingComplete;
+        _finalDelayMin = flightData.FinalDelayMinSeconds;
+        _finalDelayMax = flightData.FinalDelayMaxSeconds;
+        _autoSyncFms = flightData.AutoSyncFmsOnFinal;
 
         _baseline = Snapshot();
         _barMessage = null;
@@ -142,6 +179,16 @@
                 var logging = JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName);
                 logging["defaultLevel"] = _logLevel;
                 logging["wireTrace"] = _wireTrace;
+
+                var sayIntentions = JsonSettingsFile.GetOrCreateSection(root, SayIntentionsOptions.SectionName);
+                sayIntentions["enabled"] = _sayIntentions;
+
+                var flightData = JsonSettingsFile.GetOrCreateSection(root, FlightDataOptions.SectionName);
+                flightData["autoPrelimOnRefuel"] = _autoPrelim;
+                flightData["autoFinalOnBoardingComplete"] = _autoFinal;
+                flightData["finalDelayMinSeconds"] = _finalDelayMin;
+                flightData["finalDelayMaxSeconds"] = _finalDelayMax;
+                flightData["autoSyncFmsOnFinal"] = _autoSyncFms;
             });
 
             _baseline = Snapshot();

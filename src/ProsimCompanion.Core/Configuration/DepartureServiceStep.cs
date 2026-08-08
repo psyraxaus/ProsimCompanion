@@ -45,6 +45,13 @@ public enum GsxServiceConstraint
 
     /// <summary>Only on turnarounds (e.g. Cleaning/Lavatory after a completed leg).</summary>
     TurnAround = 2,
+
+    /// <summary>Only at company-hub airports (<c>gsx.companyHubs</c> ICAO prefixes) — e.g.
+    /// full catering at base only. Unknown airport counts as non-hub.</summary>
+    CompanyHub = 3,
+
+    /// <summary>Only away from company hubs (e.g. outstation-only services).</summary>
+    NonCompanyHub = 4,
 }
 
 /// <summary>

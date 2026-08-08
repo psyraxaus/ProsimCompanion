@@ -238,6 +238,34 @@
                     </div>
                 </Section>
             }
+            else if (_section == "hubs")
+            {
+                <Section Title="Company Hubs"
+                         Hint="ICAO prefixes (1–4 letters) identifying company-hub airports for the hub departure-service constraints">
+                    <div class="list-editor">
+                        @for (var i = 0; i < _draft.CompanyHubs.Count; i++)
+                        {
+                            var index = i;
+                            <div class="list-row">
+                                <input type="text" class="cell-input" value="@_draft.CompanyHubs[index]"
+                                       placeholder="ICAO prefix" maxlength="4" autocomplete="off" spellcheck="false"
+                                       style="text-transform:uppercase"
+                                       @onchange="e => _draft.CompanyHubs[index] = (e.Value?.ToString() ?? string.Empty).ToUpperInvariant()" />
+                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                        @onclick="() => _draft.CompanyHubs.RemoveAt(index)">×</button>
+                            </div>
+                        }
+                        @if (_draft.CompanyHubs.Count == 0)
+                        {
+                            <div class="empty">No hubs configured — hub-constrained services never run.</div>
+                        }
+                        <div style="margin-top:8px;">
+                            <button type="button" class="btn secondary"
+                                    @onclick='() => _draft.CompanyHubs.Add("")'>Add hub</button>
+                        </div>
+                    </div>
+                </Section>
+            }
             else if (_section == "questions")
             {
                 <Section Title="Skip Questions / Pop-ups">
@@ -315,6 +343,7 @@
         ("groundEquipment", "Ground Equipment"),
         ("services", "GSX Services"),
         ("operators", "Operator Selection"),
+        ("hubs", "Company Hubs"),
         ("questions", "Skip Questions / Pop-ups"),
         ("aircraft", "Aircraft & OFP Options"),
         ("advanced", "Connection & Timeouts"),
@@ -339,6 +368,8 @@
         (GsxServiceConstraint.Always, "Every leg"),
         (GsxServiceConstraint.FirstLeg, "First leg only"),
         (GsxServiceConstraint.TurnAround, "Turnarounds only"),
+        (GsxServiceConstraint.CompanyHub, "Company hubs only"),
+        (GsxServiceConstraint.NonCompanyHub, "Non-hub airports only"),
     ];
 
     private static readonly IReadOnlyList<(string, string)> DeIceFluidOptions =
@@ -443,6 +474,13 @@
                     operators.Add(preference.Trim());
                 }
                 gsx["operatorPreferences"] = operators;
+
+                var hubs = new JsonArray();
+                foreach (var hub in draft.CompanyHubs.Where(h => !string.IsNullOrWhiteSpace(h)))
+                {
+                    hubs.Add(hub.Trim().ToUpperInvariant());
+                }
+                gsx["companyHubs"] = hubs;
                 gsx["autoSelectOperator"] = draft.AutoSelectOperator;
                 gsx["arrivalGate"] = draft.ArrivalGate.Trim();
 

@@ -47,7 +47,8 @@ public static class DepartureSequencer
         bool flightPlanAvailable,
         bool requireOfp,
         bool isTurnaround,
-        bool forceNext)
+        bool forceNext,
+        bool isCompanyHub = false)
     {
         ArgumentNullException.ThrowIfNull(steps);
         ArgumentNullException.ThrowIfNull(services);
@@ -92,6 +93,20 @@ public static class DepartureSequencer
             if (step.Constraint == GsxServiceConstraint.TurnAround && !isTurnaround)
             {
                 skipped.Add((id, "turnaround only (this is the first leg)"));
+                settled++;
+                continue;
+            }
+
+            if (step.Constraint == GsxServiceConstraint.CompanyHub && !isCompanyHub)
+            {
+                skipped.Add((id, "company-hub only (this airport is not a configured hub)"));
+                settled++;
+                continue;
+            }
+
+            if (step.Constraint == GsxServiceConstraint.NonCompanyHub && isCompanyHub)
+            {
+                skipped.Add((id, "non-hub only (this airport is a configured hub)"));
                 settled++;
                 continue;
             }

@@ -1,0 +1,453 @@
+/*
+ * Takeoff / Landing performance pages — pixel port of Prosim2GSX's
+ * TakeoffPerfPanel / LandingPerfPanel + perf-shared EFB styling.
+ *
+ * Tokens: chrome aliases ride on the app theme variables (app.css) so the
+ * perf pages recolour with the theme; the instrument-readout + state
+ * colours are deliberately FIXED — they convey instrument state, not theme.
+ */
+
+.perf-panel {
+  /* Theme-aware chrome */
+  --efb-bg: var(--bg-card);
+  --efb-bg-soft: var(--bg-input);
+  --efb-border: var(--accent);
+  --efb-border-dim: var(--border);
+  --efb-text: var(--text-primary);
+  --efb-text-dim: var(--text-secondary);
+  --efb-heading: var(--category-text);
+
+  /* Fixed instrument-readout + state colours (NOT themed) */
+  --efb-amber: #ffb84d;
+  --efb-cyan: #00e0ff;
+  --efb-green: #67d97b;
+  --efb-red: #ff5b62;
+  --efb-red-soft: #2a0d10;
+  --efb-amber-soft: #2a1d0a;
+
+  /* Standard padded panel frame — same outer margin as the other pages. */
+  padding: 16px 18px;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: var(--efb-text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+.perf-header {
+  padding: 0 0 10px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.perf-title {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--efb-heading);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.perf-flightinfo {
+  margin-left: auto;
+  color: var(--efb-text-dim);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+/* ── Body: 3-column EFB grid ──────────────────────────────────────── */
+.perf-body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .perf-body {
+    grid-template-columns: 1fr;
+  }
+}
+.perf-column {
+  background: var(--efb-bg);
+  border: 1px solid var(--efb-border-dim);
+  border-radius: var(--radius-md, 6px);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.perf-column-title {
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--efb-heading);
+  border-bottom: 1px dashed var(--efb-border-dim);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+}
+.perf-column-title.perf-sub {
+  margin-top: 12px;
+}
+
+/* ── Field rows ───────────────────────────────────────────────────── */
+.perf-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.perf-field-label {
+  font-size: 0.78rem;
+  color: var(--efb-text-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.perf-field-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── ICAO input ───────────────────────────────────────────────────── */
+.perf-icao-input {
+  background: var(--efb-bg-soft);
+  color: var(--efb-text);
+  border: 1px solid var(--efb-border-dim);
+  padding: 6px 10px;
+  font: inherit;
+  width: 10ch;
+  text-align: center;
+  text-transform: uppercase;
+}
+.perf-icao-input:focus {
+  outline: 1px solid var(--efb-border);
+  outline-offset: -1px;
+}
+
+/* ── Runway dropdown (+ intersection) ─────────────────────────────── */
+.perf-runway-dropdown {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.perf-runway-dropdown select {
+  background: var(--efb-bg-soft);
+  color: var(--efb-text);
+  border: 1px solid var(--efb-border-dim);
+  padding: 6px 10px;
+  font: inherit;
+  min-width: 110px;
+}
+.perf-runway-dropdown select:focus {
+  outline: 1px solid var(--efb-border);
+  outline-offset: -1px;
+}
+
+/* ── Toggle strips ────────────────────────────────────────────────── */
+.perf-toggle-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.perf-toggle-btn {
+  background: var(--efb-bg-soft);
+  color: var(--efb-text);
+  border: 1px solid var(--efb-border-dim);
+  padding: 4px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.perf-toggle-btn.active {
+  background: var(--efb-border);
+  color: #000;
+  border-color: var(--efb-border);
+}
+.perf-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.perf-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Runway-condition strip (landing) — Dry(6) → Poor(1) ─────────── */
+.perf-surface-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.perf-surface-btn {
+  background: var(--efb-bg-soft);
+  color: var(--efb-text);
+  border: 1px solid var(--efb-border-dim);
+  padding: 6px 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+.perf-surface-btn.active {
+  background: var(--efb-border);
+  color: #000;
+  border-color: var(--efb-border);
+}
+
+/* ── Keyboard number input (shared) ───────────────────────────────── */
+.perf-kbd {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--efb-bg-soft);
+  border: 1px solid var(--efb-border-dim);
+  height: 28px;
+}
+.perf-kbd:focus-within {
+  border-color: var(--efb-border);
+}
+.perf-kbd input {
+  background: transparent;
+  color: var(--efb-text);
+  border: 0;
+  padding: 0 8px;
+  width: 5ch;
+  font: inherit;
+  text-align: right;
+}
+.perf-kbd input:focus {
+  outline: none;
+}
+.perf-kbd .perf-unit {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--efb-bg);
+  color: var(--efb-text-dim);
+  border-left: 1px solid var(--efb-border-dim);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Wind dir/speed pair ──────────────────────────────────────────── */
+.perf-wind-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.perf-wind-row input[type="text"] {
+  background: var(--efb-bg-soft);
+  color: var(--efb-text);
+  border: 1px solid var(--efb-border-dim);
+  padding: 4px 8px;
+  width: 5ch;
+  font: inherit;
+  text-align: center;
+}
+.perf-wind-sep {
+  color: var(--efb-text-dim);
+}
+
+/* ── MCDU output frame (takeoff) ──────────────────────────────────── */
+.perf-mcdu-frame {
+  background: #000;
+  border: 1px solid var(--efb-border);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  color: var(--efb-cyan);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.perf-mcdu-title {
+  color: var(--efb-amber);
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  text-align: center;
+  border-bottom: 1px dashed var(--efb-border-dim);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+.perf-mcdu-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.perf-mcdu-label {
+  color: var(--efb-text-dim);
+  text-transform: uppercase;
+}
+.perf-mcdu-value {
+  color: #00ff00;
+  font-weight: 600;
+}
+.perf-mcdu-value-amber {
+  color: var(--efb-amber);
+}
+.perf-mcdu-value-dim {
+  color: var(--efb-text-dim);
+}
+
+/* ── Output frame (landing) ───────────────────────────────────────── */
+.perf-out-frame {
+  background: #000;
+  border: 1px solid var(--efb-border);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.perf-out-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.perf-out-label {
+  color: var(--efb-text-dim);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+.perf-out-value {
+  color: #00ff00;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.perf-out-value-big {
+  font-size: 1.5rem;
+}
+.perf-out-unit {
+  color: var(--efb-text-dim);
+  font-size: 0.72rem;
+  margin-left: 4px;
+}
+
+/* Landing distance / wind state colours. */
+.perf-val-normal {
+  color: #00ff00;
+}
+.perf-val-red {
+  color: var(--efb-red);
+}
+.perf-val-red-margin {
+  color: var(--efb-amber);
+}
+
+/* ── METAR strip (shared) ─────────────────────────────────────────── */
+.perf-metar-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--efb-bg-soft);
+  border-left: 3px solid var(--efb-border);
+  font-family: var(--font-mono);
+  color: var(--efb-text);
+}
+.perf-metar-header {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 0.75rem;
+  color: var(--efb-text-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.perf-metar-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.35;
+}
+.perf-metar-missing {
+  color: var(--efb-text-dim);
+  font-style: italic;
+}
+
+/* ── Footer / banners / actions ───────────────────────────────────── */
+.perf-footer {
+  margin-top: 14px;
+  padding: 14px 0 0 0;
+  border-top: 1px solid var(--efb-border-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.perf-banner {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  padding: 6px 12px;
+}
+.perf-banner-warn {
+  background: var(--efb-amber-soft);
+  color: var(--efb-amber);
+  border: 1px solid var(--efb-amber);
+}
+.perf-banner-error {
+  background: var(--efb-red-soft);
+  color: var(--efb-red);
+  border: 1px solid var(--efb-red);
+}
+
+.perf-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.perf-action-btn {
+  background: var(--efb-bg-soft);
+  color: var(--efb-text);
+  border: 1px solid var(--efb-border-dim);
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.perf-action-btn:hover {
+  border-color: var(--efb-border);
+}
+.perf-action-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--efb-border-dim);
+}
+.perf-action-primary {
+  background: var(--efb-border);
+  color: #000;
+  border-color: var(--efb-border);
+}
+.perf-action-primary:hover {
+  filter: brightness(1.1);
+}
+.perf-action-sent {
+  background: var(--efb-green);
+  color: #000;
+  border-color: var(--efb-green);
+}
+.perf-action-flex {
+  margin-left: auto;
+}
+
+.perf-busy {
+  font-size: 0.8rem;
+  color: var(--efb-text-dim);
+}
+.perf-error-row {
+  color: var(--efb-red);
+  font-size: 0.85rem;
+  padding: 4px 0;
+}

@@ -6,95 +6,133 @@
 <PageTitle>Checklists — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Checklists</h1>
 
-<div class="status-panel">
+@*
+    ECAM-style checklist surface, ported from Prosim2GSX's ChecklistsPanel
+    (which mirrors the WPF ViewChecklist): checklist-set dropdown, section
+    dropdown, black instrument screen with dotted-leader rows, and the
+    RESET / C/L MENU / MSG LIST / C/L COMPLETE footer. The voice First
+    Officer drives the same engine, so this page just re-renders on
+    Engine.Changed.
+*@
+<div class="ecamcl-panel">
 
-    <section class="status-section">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Checklists</h3>
-        <div class="section-body">
+    <div class="ecamcl-header">
+        <span class="ecamcl-cl-label">C/L</span>
+        @* One checklist set today; more arrive later, so keep a real select. *@
+        <select class="ecamcl-select" aria-label="Checklist set">
+            <option selected>A320 (ProsimCompanion)</option>
+        </select>
+    </div>
+
+    <div class="ecamcl-sectionbar">
+        <select class="ecamcl-select" aria-label="Checklist section"
+                @ref="_sectionSelect"
+                value="@(_view?.Name ?? string.Empty)"
+                @onchange="OnSectionChanged">
             @if (_catalog.Count == 0)
             {
-                <div class="empty">No checklist files found in config/checklists. Drop Prosim2FO-compatible JSON files there — they hot-reload.</div>
-            }
-            @foreach (var entry in _catalog)
-            {
-                var isActive = _view?.Name == entry.Name;
-                <div class="row">
-                    <span class="row-label" style="@(isActive ? "color:var(--accent);font-weight:600" : "")">@entry.Name</span>
-                    <span class="row-value-mono">@entry.ItemCount items</span>
-                    <button type="button" class="btn secondary" @onclick="() => Engine.Select(entry.Name)">
-                        @(isActive ? "Restart…" : "Open")
-                    </button>
-                </div>
-            }
-        </div>
-    </section>
-
-    <section class="status-section status-span">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">
-            @(_view?.Name ?? "No checklist open")
-        </h3>
-        <div class="section-body">
-            @if (_view is null)
-            {
-                <div class="empty">Open a checklist from the list. Dataref-verified lines tick themselves as you set the cockpit; plain lines take a manual tick. A regressed condition reopens its line until the checklist is complete.</div>
+                <option value="">(none available)</option>
             }
             else
             {
-                <div class="ecam-list" role="list">
-                    @for (var i = 0; i < _view.Items.Count; i++)
-                    {
-                        var item = _view.Items[i];
-                        var rowClass = item.Status switch
-                        {
-                            ChecklistItemStatus.Done => "ecam-done",
-                            ChecklistItemStatus.Active => "ecam-active",
-                            ChecklistItemStatus.Skipped => "ecam-skipped",
-                            _ => "ecam-pending",
-                        };
-                        <div class="ecam-item @rowClass" role="listitem">
-                            <span class="ecam-dot">@StatusGlyph(item.Status)</span>
-                            <span class="ecam-label">@item.Label</span>
-                            <span class="ecam-dots"></span>
-                            <span class="ecam-response">@item.Response</span>
-                            @if (item.Status == ChecklistItemStatus.Active)
-                            {
-                                @if (item.IsAuto)
-                                {
-                                    <span class="ecam-hint">@(item.ConditionSatisfied ? "…" : "waiting for cockpit")</span>
-                                }
-                                else
-                                {
-                                    <button type="button" class="btn primary ecam-btn" @onclick="() => Engine.Check(_view.ActiveIndex)">Tick</button>
-                                }
-                                <button type="button" class="btn secondary ecam-btn" @onclick="() => Engine.Skip(_view.ActiveIndex)">Skip</button>
-                            }
-                        </div>
-                    }
-                </div>
-                @if (_view.IsComplete)
+                @* selected must be explicit: browsers skip disabled options when defaulting,
+                   so the prerendered frame would otherwise display the first checklist name. *@
+                <option value="" disabled selected="@(_view is null)">(select checklist)</option>
+                @foreach (var entry in _catalog)
                 {
-                    <div class="row" style="margin-top:8px;">
-                        <span class="pill tone-ok">@_view.Name.ToUpperInvariant() CHECKLIST COMPLETE</span>
-                        @if (_next is not null)
-                        {
-                            <button type="button" class="btn primary" @onclick="() => Engine.Select(_next)">Next: @_next</button>
-                        }
-                    </div>
+                    <option value="@entry.Name">@entry.Name</option>
                 }
-                <div class="row" style="margin-top:6px;">
-                    <button type="button" class="btn secondary" @onclick="Engine.Restart">Restart</button>
-                    <button type="button" class="btn secondary" @onclick="Engine.Deselect">Close</button>
-                </div>
             }
-        </div>
-    </section>
+        </select>
+    </div>
+
+    <div class="ecamcl-body" role="list">
+        @if (_view is null)
+        {
+            <div class="ecamcl-empty">
+                @(_catalog.Count == 0
+                    ? "NO CHECKLIST FILES FOUND IN config/checklists"
+                    : "NO C/L SELECTED — SELECT VIA C/L MENU")
+            </div>
+        }
+        else
+        {
+            @foreach (var item in _view.Items)
+            {
+                @switch (item.Status)
+                {
+                    case ChecklistItemStatus.Done:
+                        <div class="ecamcl-item ecamcl-checked" role="listitem">
+                            <span class="ecamcl-check">✓</span>
+                            <span>@item.Label</span>
+                            <span class="ecamcl-dots">@Dots</span>
+                            <span>@item.Response</span>
+                        </div>
+                        break;
+
+                    case ChecklistItemStatus.Active:
+                        <div class="ecamcl-item ecamcl-current @(item.IsAuto ? "" : "ecamcl-clickable")"
+                             role="listitem"
+                             @onclick="() => OnCurrentRowClick(item)">
+                            <span class="ecamcl-check">□</span>
+                            <span>@item.Label</span>
+                            <span class="ecamcl-dots">@Dots</span>
+                            <span>@item.Response</span>
+                            <span class="ecamcl-aside">
+                                @if (item.IsAuto && !item.ConditionSatisfied)
+                                {
+                                    <span class="ecamcl-hint">waiting for cockpit</span>
+                                }
+                                <button type="button" class="ecamcl-skip" title="Skip this line"
+                                        @onclick="SkipCurrent" @onclick:stopPropagation>skip</button>
+                            </span>
+                        </div>
+                        break;
+
+                    case ChecklistItemStatus.Skipped:
+                        <div class="ecamcl-item ecamcl-skipped" role="listitem">
+                            <span class="ecamcl-check">–</span>
+                            <span>@item.Label</span>
+                            <span class="ecamcl-dots">@Dots</span>
+                            <span>@item.Response</span>
+                        </div>
+                        break;
+
+                    default:
+                        <div class="ecamcl-item ecamcl-pending" role="listitem">
+                            <span></span>
+                            <span>@item.Label</span>
+                            <span class="ecamcl-dots">@Dots</span>
+                            <span>@item.Response</span>
+                        </div>
+                        break;
+                }
+            }
+        }
+    </div>
+
+    <div class="ecamcl-footer">
+        <button type="button" class="ecamcl-btn" @onclick="ResetClicked">RESET</button>
+        <button type="button" class="ecamcl-btn" @onclick="MenuClicked">C/L MENU</button>
+        <button type="button" class="ecamcl-btn" disabled>MSG LIST</button>
+        <button type="button"
+                class="ecamcl-btn @(_view?.IsComplete == true ? "ecamcl-btn-complete" : "")"
+                @onclick="CompleteClicked">
+            C/L COMPLETE
+        </button>
+    </div>
 
 </div>
 
 @code {
+    // Fixed-length dotted leader; the 1fr grid column clips it, so every
+    // row's dots stay aligned regardless of label/value width (same trick
+    // as the WPF template's CharacterEllipsis-trimmed TextBlock).
+    private const string Dots = "....................................................................................................";
+
     private IReadOnlyList<ChecklistCatalogEntry> _catalog = [];
     private ChecklistView? _view;
-    private string? _next;
+    private ElementReference _sectionSelect;
 
     protected override void OnInitialized()
     {
@@ -104,6 +142,7 @@
 
     public void Dispose() => Engine.Changed -= OnChanged;
 
+    // Engine.Changed fires on a writer thread — marshal onto the renderer.
     private void OnChanged(object? sender, EventArgs e)
         => _ = InvokeAsync(() =>
         {
@@ -115,14 +154,60 @@
     {
         _catalog = Engine.Catalog();
         _view = Engine.ActiveView();
-        _next = Engine.NextChecklistName();
     }
 
-    private static string StatusGlyph(ChecklistItemStatus status) => status switch
+    private void OnSectionChanged(ChangeEventArgs e)
     {
-        ChecklistItemStatus.Done => "✓",
-        ChecklistItemStatus.Skipped => "–",
-        ChecklistItemStatus.Active => "▶",
-        _ => "○",
-    };
+        var name = e.Value?.ToString();
+        if (string.IsNullOrEmpty(name) || name == _view?.Name)
+        {
+            return;
+        }
+        Engine.Select(name);
+    }
+
+    private void OnCurrentRowClick(ChecklistItemView item)
+    {
+        // Phase B: allowManualChecklistOverride — a settings-gated hand-tick
+        // for auto items. Until then the engine refuses hand-ticks on
+        // dataref-verified lines; the row shows "waiting for cockpit" instead.
+        if (_view is null || item.IsAuto)
+        {
+            return;
+        }
+        Engine.Check(_view.ActiveIndex);
+    }
+
+    private void SkipCurrent()
+    {
+        if (_view is not null)
+        {
+            Engine.Skip(_view.ActiveIndex);
+        }
+    }
+
+    private void ResetClicked()
+    {
+        if (_view is not null)
+        {
+            Engine.Restart();
+        }
+    }
+
+    private async Task MenuClicked() => await _sectionSelect.FocusAsync();
+
+    private void CompleteClicked()
+    {
+        // Only acts when the open checklist is fully checked; then advances
+        // to the next checklist in catalog order (if any).
+        if (_view is not { IsComplete: true })
+        {
+            return;
+        }
+        var next = Engine.NextChecklistName();
+        if (next is not null)
+        {
+            Engine.Select(next);
+        }
+    }
 }

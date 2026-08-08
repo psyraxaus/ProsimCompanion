@@ -1,0 +1,196 @@
+@page "/fuel"
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Aircraft.Ofp
+@implements IDisposable
+@inject IProsimDataRefs DataRefs
+@inject OfpStore Ofp
+
+@* Markup and styling ported from Prosim2GSX's web FuelPanel (FuelPanel.tsx /
+   FuelPanel.module.css); dataref plumbing is ProsimCompanion's own. *@
+
+<PageTitle>Fuel — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Fuel</h1>
+
+@{
+    var inTanks = _fuelTotal.GetValue(0.0);
+    var planned = Ofp.Current?.FuelPlanRampKg ?? 0;
+    var capacity = TotalCapacityKg();
+    var delta = inTanks - planned;
+}
+
+<div class="fuel-panel">
+
+    @* ── FUEL SUMMARY ───────────────────────────────────────── *@
+    <h2 class="fuel-col-heading">Fuel Summary</h2>
+    <div class="fuel-data-card">
+        <div class="fuel-capacity">
+            CAPACITY USABLE @FmtKg(capacity) KG — SG: @SpecificGravity.ToString("F2", CultureInfo.InvariantCulture)
+        </div>
+
+        <div class="fuel-capacity-bar" role="img" aria-label="@($"{inTanks:F0} of {capacity:F0} kg")">
+            <div class="fuel-capacity-fill @CapacityClass(delta, planned)"
+                 style="width:@PercentCss(inTanks, capacity)"></div>
+            <span class="fuel-capacity-label">@FmtKg(inTanks) / @FmtKg(capacity) KG</span>
+        </div>
+
+        <div class="fuel-summary-grid">
+            <div class="fuel-summary-header">PLANNED (KG)</div>
+            <div class="fuel-summary-header">IN TANKS (KG)</div>
+            <div class="fuel-summary-value">@FmtKg(planned)</div>
+            <div class="fuel-summary-value">@FmtKg(inTanks)</div>
+
+            <div class="fuel-summary-header">PLANNED (L)</div>
+            <div class="fuel-summary-header">IN TANKS (L)</div>
+            <div class="fuel-summary-value">@FmtKg(planned / SpecificGravity)</div>
+            <div class="fuel-summary-value">@FmtKg(inTanks / SpecificGravity)</div>
+        </div>
+
+        <div class="fuel-delta-row @DeltaClass(delta, planned)">
+            <span class="fuel-delta-label">DELTA:</span>
+            <span class="fuel-delta-value">
+                @(planned > 0 ? $"{(delta >= 0 ? "+" : "")}{FmtKg(delta)} KG" : "— (no flight plan)")
+            </span>
+            @if (planned > 0)
+            {
+                <span class="fuel-delta-tag">@DeltaTag(delta)</span>
+            }
+        </div>
+    </div>
+
+    @* ── TANK BREAKDOWN ─────────────────────────────────────── *@
+    @* Order matches the airframe layout (left to right, looking from behind
+       the aircraft): outer wing → inner wing → centre → inner → outer.
+       Rendered top-to-bottom for readability. *@
+    <h2 class="fuel-col-heading">Tank Breakdown</h2>
+    <div class="fuel-data-card">
+        @foreach (var tank in Tanks())
+        {
+            <div class="fuel-tank-row">
+                <div class="fuel-tank-label">@tank.Name</div>
+                <div class="fuel-tank-bar" role="img"
+                     aria-label="@($"{tank.Name} {tank.AmountKg:F0} of {tank.CapacityKg:F0} kg")">
+                    <div class="fuel-tank-fill"
+                         style="width:@(tank.Percent.ToString("F1", CultureInfo.InvariantCulture))%"></div>
+                </div>
+                <div class="fuel-tank-value">@FmtKg(tank.AmountKg) / @FmtKg(tank.CapacityKg) KG</div>
+            </div>
+        }
+    </div>
+
+    <p class="fuel-note">NOTE: THE ABOVE FIGURES ARE LIVE.</p>
+
+</div>
+
+@code {
+    // Prosim2GSX's Fuel tab convention: litres derived at SG 0.80.
+    private const double SpecificGravity = 0.80;
+
+    // Capacity-bar colour bands (Prosim2GSX FuelPanel). Wider tolerance than
+    // the delta indicator because the bar shows physical fuel quantity
+    // (100 kg over plan is fine to look "green"); the delta indicator is the
+    // operator-facing alert.
+    private const double CapacityOverAmberKg = 200;
+    private const double CapacityUnderRedKg = 100;
+
+    // Delta-indicator colour bands. Tighter — any overage above the spec's
+    // 100 kg threshold flips the indicator amber so the operator catches it.
+    private const double DeltaAmberKg = 100;
+    private const double DeltaRedKg = 100;
+
+    private IDataRefSubscription _fuelTotal = default!;
+    private IDataRefSubscription _fuelCenter = default!;
+    private IDataRefSubscription _fuelCenterCap = default!;
+    private IDataRefSubscription _fuelLeftInner = default!;
+    private IDataRefSubscription _fuelLeftInnerCap = default!;
+    private IDataRefSubscription _fuelLeftOuter = default!;
+    private IDataRefSubscription _fuelLeftOuterCap = default!;
+    private IDataRefSubscription _fuelRightInner = default!;
+    private IDataRefSubscription _fuelRightInnerCap = default!;
+    private IDataRefSubscription _fuelRightOuter = default!;
+    private IDataRefSubscription _fuelRightOuterCap = default!;
+    private Timer? _refresh;
+
+    private sealed record TankRow(string Name, double AmountKg, double CapacityKg)
+    {
+        public double Percent => CapacityKg > 0 ? Math.Clamp(AmountKg / CapacityKg * 100.0, 0, 100) : 0;
+    }
+
+    protected override void OnInitialized()
+    {
+        _fuelTotal = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal, DataRefTier.Normal);
+        _fuelCenter = DataRefs.Subscribe(ProsimDataRefNames.FuelCenter, DataRefTier.Normal);
+        _fuelCenterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelCenterCapacity, DataRefTier.Infrequent);
+        _fuelLeftInner = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftInner, DataRefTier.Normal);
+        _fuelLeftInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftInnerCapacity, DataRefTier.Infrequent);
+        _fuelLeftOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftOuter, DataRefTier.Normal);
+        _fuelLeftOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftOuterCapacity, DataRefTier.Infrequent);
+        _fuelRightInner = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInner, DataRefTier.Normal);
+        _fuelRightInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInnerCapacity, DataRefTier.Infrequent);
+        _fuelRightOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuter, DataRefTier.Normal);
+        _fuelRightOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuterCapacity, DataRefTier.Infrequent);
+
+        // Live instrument view — a 1 s repaint matches the datarefs' Normal cadence.
+        _refresh = new Timer(_ => _ = InvokeAsync(StateHasChanged), null,
+            TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    public void Dispose()
+    {
+        _refresh?.Dispose();
+        foreach (var sub in new[]
+        {
+            _fuelTotal, _fuelCenter, _fuelCenterCap, _fuelLeftInner, _fuelLeftInnerCap,
+            _fuelLeftOuter, _fuelLeftOuterCap, _fuelRightInner, _fuelRightInnerCap,
+            _fuelRightOuter, _fuelRightOuterCap,
+        })
+        {
+            sub.Dispose();
+        }
+    }
+
+    private double TotalCapacityKg()
+        => _fuelCenterCap.GetValue(0.0)
+            + _fuelLeftInnerCap.GetValue(0.0) + _fuelLeftOuterCap.GetValue(0.0)
+            + _fuelRightInnerCap.GetValue(0.0) + _fuelRightOuterCap.GetValue(0.0);
+
+    private IEnumerable<TankRow> Tanks()
+    {
+        // Airframe order, matching Prosim2GSX's Fuel tab.
+        yield return new TankRow("LEFT OUTER", _fuelLeftOuter.GetValue(0.0), _fuelLeftOuterCap.GetValue(0.0));
+        yield return new TankRow("LEFT INNER", _fuelLeftInner.GetValue(0.0), _fuelLeftInnerCap.GetValue(0.0));
+        yield return new TankRow("CENTRE", _fuelCenter.GetValue(0.0), _fuelCenterCap.GetValue(0.0));
+        yield return new TankRow("RIGHT INNER", _fuelRightInner.GetValue(0.0), _fuelRightInnerCap.GetValue(0.0));
+        yield return new TankRow("RIGHT OUTER", _fuelRightOuter.GetValue(0.0), _fuelRightOuterCap.GetValue(0.0));
+    }
+
+    // Prosim2GSX's fmtKg: locale-grouped, no decimals.
+    private static string FmtKg(double n) => n.ToString("N0", CultureInfo.InvariantCulture);
+
+    private static string PercentCss(double amount, double capacity)
+        // Clamped — if the dataref ever overshoots capacity (refuel target
+        // above usable, simulator quirk), the bar caps at 100% rather than
+        // blowing the layout.
+        => (capacity > 0 ? Math.Clamp(amount / capacity * 100.0, 0, 100) : 0)
+            .ToString("F1", CultureInfo.InvariantCulture) + "%";
+
+    // Capacity-bar colour. Only meaningful when a plan exists; with no plan
+    // the bar stays neutral (slate-blue) so the panel doesn't mislead by
+    // showing red/amber for a deliberately empty aircraft.
+    private static string CapacityClass(double delta, double planned) => planned <= 0
+        ? "fuel-capacity-fill-neutral"
+        : delta > CapacityOverAmberKg ? "fuel-capacity-fill-amber"
+        : delta < -CapacityUnderRedKg ? "fuel-capacity-fill-red"
+        : "fuel-capacity-fill-green";
+
+    // Delta-row colour. Same suppression rule — no plan means no delta to
+    // colour-code.
+    private static string DeltaClass(double delta, double planned) => planned <= 0
+        ? "fuel-delta-neutral"
+        : delta > DeltaAmberKg ? "fuel-delta-amber"
+        : delta < -DeltaRedKg ? "fuel-delta-red"
+        : "fuel-delta-green";
+
+    private static string DeltaTag(double delta) =>
+        delta > DeltaAmberKg ? "OVER" : delta < -DeltaRedKg ? "UNDER" : "OK";
+}

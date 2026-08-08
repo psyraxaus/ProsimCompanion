@@ -129,6 +129,64 @@ public sealed class ChecklistRunnerTests
         Assert.False(runner.IsComplete);
         Assert.Equal(ChecklistItemStatus.Active, runner.Snapshot().Items[0].Status);
     }
+
+    // ---- Voice FO seams: the spoken run drives the visual page ----
+
+    [Fact]
+    public void VoiceComplete_CompletesAutoItems_UnlikeCheck()
+    {
+        // The FO verified the item by readback — the runner accepts it even though the
+        // condition reads unsatisfied (ProSim absent, values all 0).
+        var runner = new ChecklistRunner(Definition(Auto("beacon", "beacon", 1), Manual("doors")));
+        runner.Evaluate(Reads([]));
+
+        Assert.False(runner.Check(0)); // hand-tick still refused
+        Assert.True(runner.VoiceComplete(0));
+        runner.Evaluate(Reads([]));
+        Assert.Equal(ChecklistItemStatus.Done, runner.Snapshot().Items[0].Status);
+        Assert.Equal(ChecklistItemStatus.Active, runner.Snapshot().Items[1].Status);
+    }
+
+    [Fact]
+    public void VoiceComplete_FreezesTheLineAgainstRetreat()
+    {
+        var runner = new ChecklistRunner(Definition(Auto("beacon", "beacon", 1), Manual("doors")));
+        var values = new Dictionary<string, double> { ["beacon"] = 1 };
+        runner.Evaluate(Reads(values));            // auto item completes itself
+        runner.VoiceComplete(0);                   // FO also spoke it (idempotent — already done)
+
+        var fresh = new ChecklistRunner(Definition(Auto("beacon", "beacon", 1), Manual("doors")));
+        fresh.Evaluate(Reads([]));
+        fresh.VoiceComplete(0);                    // voice-completed while condition unsatisfied
+        fresh.Evaluate(Reads([]));                 // retreat pass must NOT reopen the line
+        Assert.Equal(ChecklistItemStatus.Done, fresh.Snapshot().Items[0].Status);
+    }
+
+    [Fact]
+    public void VoiceComplete_IsByIndex_NotActiveLineGated()
+    {
+        // Visual gating sits on the unsatisfied auto line 0, but the spoken run has moved
+        // past it (never-give-up escape) and completes line 1 directly.
+        var runner = new ChecklistRunner(Definition(Auto("beacon", "beacon", 1), Manual("doors")));
+        runner.Evaluate(Reads([]));
+
+        Assert.True(runner.VoiceComplete(1));
+        Assert.Equal(ChecklistItemStatus.Done, runner.Snapshot().Items[1].Status);
+        Assert.False(runner.VoiceComplete(1)); // already settled → no-op
+    }
+
+    [Fact]
+    public void VoiceSkip_MarksSkipped_AndChecklistCompletes()
+    {
+        var runner = new ChecklistRunner(Definition(Manual("a"), Manual("b")));
+        runner.Evaluate(Reads([]));
+        runner.VoiceComplete(0);
+        runner.VoiceSkip(1);
+        runner.Evaluate(Reads([]));
+
+        Assert.True(runner.IsComplete);
+        Assert.Equal(ChecklistItemStatus.Skipped, runner.Snapshot().Items[1].Status);
+    }
 }
 
 public sealed class ConditionEvaluatorTests

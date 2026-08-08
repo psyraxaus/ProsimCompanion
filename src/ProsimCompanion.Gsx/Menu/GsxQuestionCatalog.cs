@@ -93,6 +93,7 @@ public sealed class GsxQuestionCatalog
             closeAfter: false,
             ct));
 
+        dispatcher.Register("Select pushback direction", HandlePushbackDirectionAsync);
         dispatcher.Register("Select de-icing type", HandleDeIceTypeAsync);
         dispatcher.Register("Select handling operator", ct => HandleOperatorMenuAsync("handling operator", ct));
         dispatcher.Register("Select catering operator", ct => HandleOperatorMenuAsync("catering operator", ct));
@@ -128,6 +129,38 @@ public sealed class GsxQuestionCatalog
             // GSX does not reliably dismiss question prompts after a pick — close explicitly.
             _ = await _api.SendCommandAsync("menu.close", null, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private async Task HandlePushbackDirectionAsync(CancellationToken cancellationToken)
+    {
+        var options = _options.CurrentValue;
+        if (!options.AutomationEnabled)
+        {
+            RecordDecision("pushback direction menu", "left for the user (automation off)");
+            return;
+        }
+
+        // Entry texts observed in GSX 4 (ported from Prosim2GSX): "Straight pushback",
+        // "Tail Left", "Tail Right". Safe-fail matching leaves the menu open on no match.
+        var token = options.PushbackPreference switch
+        {
+            "tailLeft" => "Tail Left",
+            "tailRight" => "Tail Right",
+            _ => "Straight",
+        };
+
+        var result = await _executor.ExecuteAsync(
+            new GsxMenuIntent
+            {
+                Name = "pushback direction selection",
+                TitlePrefixes = ["Select pushback direction"],
+                EntryPattern = new Regex(Regex.Escape(token), RegexOptions.IgnoreCase),
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        RecordDecision(
+            "pushback direction menu",
+            result.Succeeded ? $"picked '{token}'" : $"{result.Outcome}: {result.Detail}");
     }
 
     private async Task HandleDeIceTypeAsync(CancellationToken cancellationToken)

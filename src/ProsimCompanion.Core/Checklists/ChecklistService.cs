@@ -129,6 +129,17 @@ public sealed class ChecklistService : IDisposable
 
     public void Skip(int index) => Mutate(runner => runner.Skip(index));
 
+    /// <summary>Voice FO seam: complete/skip a line by index with voice-freeze semantics (see
+    /// <see cref="ChecklistRunner.VoiceComplete"/>). No-ops when the named checklist is not the
+    /// active one — the user may have opened a different checklist on the web page mid-run, and
+    /// the spoken run must never scribble on it.</summary>
+    public void VoiceComplete(string checklist, int index)
+        => MutateIfActive(checklist, runner => runner.VoiceComplete(index));
+
+    /// <summary>Voice FO seam: skip a line by index (see <see cref="VoiceComplete"/>).</summary>
+    public void VoiceSkip(string checklist, int index)
+        => MutateIfActive(checklist, runner => runner.VoiceSkip(index));
+
     public void Restart() => Mutate(runner =>
     {
         runner.Restart();
@@ -136,6 +147,28 @@ public sealed class ChecklistService : IDisposable
     });
 
     // ── Internals ────────────────────────────────────────────────────────────────────────
+
+    private void MutateIfActive(string checklist, Func<ChecklistRunner, bool> action)
+    {
+        bool changed;
+        lock (_lock)
+        {
+            if (_active is null
+                || !string.Equals(_active.Name, checklist, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            changed = action(_active);
+            if (changed)
+            {
+                EvaluateActive();
+            }
+        }
+        if (changed)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     private void Mutate(Func<ChecklistRunner, bool> action)
     {

@@ -173,12 +173,18 @@ public sealed class SpokenChecklistEngine : IDisposable
     {
         _store.Update(s => s with { SpokenChecklist = definition.Checklist, SpokenChecklistItem = "" });
         _eventLog.Record("checklist.voice", new { name = definition.Checklist, phase = "start" });
+
+        // Drive the visual /checklists page alongside the spoken run: open the same checklist
+        // there, then mark each line as the dialogue completes it (voice-freeze semantics, so
+        // the visual runner's retreat pass can't un-check what the crew already read out).
+        _checklists.Select(definition.Checklist);
         try
         {
             await Speak($"{definition.Checklist} checklist.").ConfigureAwait(false);
 
-            foreach (var item in definition.Items)
+            for (var index = 0; index < definition.Items.Count; index++)
             {
+                var item = definition.Items[index];
                 ct.ThrowIfCancellationRequested();
                 _store.Update(s => s with { SpokenChecklistItem = item.Say });
 
@@ -190,6 +196,14 @@ public sealed class SpokenChecklistEngine : IDisposable
                     // captureMinima degrades to acknowledge until the briefing flow owns it.
                     _ => await RunAcknowledgeAsync(item, ct).ConfigureAwait(false),
                 };
+                if (completed)
+                {
+                    _checklists.VoiceComplete(definition.Checklist, index);
+                }
+                else
+                {
+                    _checklists.VoiceSkip(definition.Checklist, index);
+                }
                 _eventLog.Record("checklist.voice.item", new
                 {
                     name = definition.Checklist,

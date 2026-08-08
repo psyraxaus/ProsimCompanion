@@ -1,0 +1,337 @@
+/* EFB INIT page — pixel port of Prosim2GSX's web EFB InitPanel.module.css.
+ * Airbus FMS look: monospace, uppercase, letter-spaced readouts in a sharp
+ * two-column layout. Chrome (section backgrounds, borders, buttons) rides on
+ * the app theme tokens so the page recolours with the theme; the FMS readout
+ * and state colours below are deliberately FIXED — they convey FMS state,
+ * not theme (same rationale as the predecessor's perf-tab instrument
+ * readouts). */
+
+.init-panel {
+  /* Theme-aware chrome */
+  --init-bg-section: var(--bg-card);
+  --init-btn-bg:     var(--bg-button);
+  --init-btn-border: var(--border);
+  --init-grey:       var(--border);
+  --init-white:      var(--text-primary);
+  --init-heading:    var(--category-text);
+
+  /* Fixed FMS readout / state colours (NOT themed) */
+  --init-cyan:     #00d4e8;
+  --init-green:    #39ff6e;
+  --init-amber:    #ffaa00;
+  --init-override: #ff8c00;
+  --init-warn:     #ff4444;
+  --init-font:     'Courier New', 'Lucida Console', monospace;
+
+  color: var(--text-primary);
+  font-family: var(--init-font);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 18px;
+  max-width: 1100px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.init-inner {
+  min-width: 0;
+}
+
+.init-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Stack columns on narrow viewports (phones / split-screen browsers). */
+@media (max-width: 760px) {
+  .init-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.init-column {
+  background: var(--init-bg-section);
+  border: 1px solid var(--init-grey);
+  border-radius: var(--radius-md, 6px);
+  padding: 14px 16px;
+  min-width: 0; /* allow column to shrink inside the grid */
+}
+
+.init-title {
+  color: var(--init-heading);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  margin: 0 0 8px 0;
+}
+
+.init-separator {
+  height: 1px;
+  background: var(--init-grey);
+  opacity: 0.4;
+  margin: 8px 0;
+}
+
+.init-row {
+  display: grid;
+  grid-template-columns: 110px auto;
+  gap: 12px;
+  margin: 4px 0;
+  align-items: center;
+}
+
+.init-row-split {
+  display: grid;
+  grid-template-columns: 60px 80px 40px 80px 50px 80px;
+  gap: 8px;
+  margin: 4px 0;
+  align-items: center;
+  justify-content: start;
+}
+
+.init-row-fuel {
+  /* Flex with explicit widths so the row keeps its shape regardless of the
+   * parent column's size (a grid 1fr track would stretch the value cell). */
+  display: flex;
+  align-items: center;
+  margin: 3px 0;
+}
+
+.init-row-fuel .init-label {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.init-row-fuel .init-value-right {
+  width: 160px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.init-label {
+  color: var(--init-white);
+  font-size: 11px;
+}
+
+.init-value {
+  color: var(--init-green);
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.init-value-right {
+  color: var(--init-green);
+  font-weight: bold;
+  font-size: 13px;
+  text-align: right;
+}
+
+.init-value-overridden {
+  color: var(--init-override);
+}
+
+/* Pending / empty (no OFP loaded yet) — a row of individual amber-outlined
+ * boxes, mimicking a real Airbus FMS INIT page where each character slot has
+ * its own square box awaiting an entry. Inline-flex so the boxes sit
+ * side-by-side without the wrapper expanding to fill its grid cell. */
+.init-pending {
+  display: inline-flex;
+  gap: 1px;
+  width: max-content;
+  justify-self: start;
+  flex: 0 0 auto;
+}
+
+.init-pending-box {
+  display: inline-block;
+  width: 0.62em;
+  height: 1em;
+  border: 1px solid var(--init-amber);
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* When a pending block sits in a fuel row (display: flex), push it to the
+ * right edge so it lines up with where the green value normally lives. */
+.init-pending-fuel {
+  margin-left: auto;
+}
+
+/* Editor — inline input + ENT / CLR keys for the four writable rows. */
+.init-editor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.init-editor-input {
+  background: var(--init-btn-bg);
+  border: 1px solid var(--init-cyan);
+  color: var(--init-green);
+  font-family: var(--init-font);
+  font-size: 13px;
+  font-weight: bold;
+  padding: 2px 6px;
+  width: 90px;
+  text-align: right;
+  outline: none;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.init-editor-input:focus {
+  border-color: var(--init-green);
+}
+
+.init-editor-key {
+  background: var(--init-btn-bg);
+  border: 1px solid var(--init-btn-border);
+  color: var(--init-white);
+  border-radius: 0;
+  padding: 2px 6px;
+  font-family: var(--init-font);
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+
+.init-editor-key:hover {
+  border-color: var(--init-cyan);
+  color: var(--init-cyan);
+}
+
+.init-editor-key-ent {
+  border-color: var(--init-cyan);
+  color: var(--init-cyan);
+}
+
+.init-editor-key-clr {
+  border-color: var(--init-warn);
+  color: var(--init-warn);
+}
+
+/* Editable rows are click targets. Subtle hover hint so the pilot knows
+ * they can edit. */
+.init-row-fuel-editable {
+  cursor: pointer;
+}
+
+.init-row-fuel-editable:hover .init-value-right {
+  border-bottom: 1px dashed var(--init-cyan);
+  margin-bottom: -1px; /* keep layout stable */
+}
+
+/* "OUT OF RANGE" / "INVALID" / "WRITE FAILED" — red, sits to the right of
+ * the editor keys; cleared after ~2s by the page's flash timer. */
+.init-editor-error {
+  color: var(--init-warn);
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  margin-left: 6px;
+}
+
+/* MOD chip for overridden rows. */
+.init-mod-chip {
+  color: var(--init-override);
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: 6px;
+  letter-spacing: 0.05em;
+}
+
+/* Fetch-phase text at the bottom of the left panel. Cycles
+ * "CONTACTING SIMBRIEF..." → "PARSING OFP..." → "WRITING TO FMS..." while a
+ * fetch is in flight; cleared when the fetch finishes. */
+.init-fetch-phase {
+  color: var(--init-cyan);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-top: 6px;
+  min-height: 1em;
+}
+
+.init-status-row {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  margin: 4px 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.init-status-dot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+}
+
+.init-status-dot-green { background: var(--init-green); }
+.init-status-dot-amber { background: var(--init-amber); }
+.init-status-dot-warn  { background: var(--init-warn);  }
+.init-status-dot-cyan  { background: var(--init-cyan);  }
+
+.init-error-line {
+  color: var(--init-warn);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.init-fetched-at {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.init-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.init-btn {
+  background: var(--init-btn-bg);
+  border: 1px solid var(--init-btn-border);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm, 4px);
+  padding: 6px 14px;
+  font-family: var(--init-font);
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color 100ms, color 100ms;
+}
+
+.init-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.init-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.init-btn-primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.init-btn-amber {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.init-btn-warn {
+  border-color: var(--danger);
+  color: var(--danger);
+}

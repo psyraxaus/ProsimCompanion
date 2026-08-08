@@ -469,7 +469,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 flightPlanAvailable,
                 options.RequireOfpBeforeDeparture,
                 _isTurnaround,
-                forced);
+                forced,
+                IsCompanyHub(options));
             if (forced)
             {
                 _forceNext = false; // single-shot, consumed by this evaluation
@@ -759,6 +760,21 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             .Select(step => step.Service)
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .Distinct(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Whether the currently loaded airport matches a configured company-hub ICAO
+    /// prefix (case-insensitive). Unknown airport ⇒ non-hub, so hub-only services simply hold
+    /// off rather than firing at an unidentified field.</summary>
+    private bool IsCompanyHub(GsxOptions options)
+    {
+        var icao = _api.Mirror.AirportIcao;
+        if (string.IsNullOrWhiteSpace(icao) || options.CompanyHubs.Count == 0)
+        {
+            return false;
+        }
+        return options.CompanyHubs.Any(prefix =>
+            !string.IsNullOrWhiteSpace(prefix)
+            && icao.StartsWith(prefix.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
 
     private void RecordDecision(string action, string reason)
     {

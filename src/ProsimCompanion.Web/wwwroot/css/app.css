@@ -231,31 +231,12 @@ a { color: var(--accent); }
   font-weight: 500;
   letter-spacing: 0.04em;
   text-decoration: none;
-  text-transform: uppercase;
   transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
   white-space: nowrap;
 }
 
 .tab:hover { color: var(--text-on-dark); background: rgba(255, 255, 255, 0.06); }
 .tab.active { color: var(--text-on-dark); border-bottom-color: var(--accent); }
-
-/* Second-tier nav row (the active group's pages) — same bar, quieter and shorter, so the
-   primary groups stay the dominant visual line. */
-.subtabs {
-  /* .tabbar's flex: 1 1 auto is for filling the chevron wrapper horizontally; as a direct
-     child of the .app COLUMN it would grow vertically and swallow the main row (the
-     floating-underline bug) — this row must never flex. */
-  flex: 0 0 auto;
-  background: rgba(0, 0, 0, 0.18);
-  border-bottom: 1px solid var(--border);
-  padding-left: 34px; /* aligns roughly under the first primary tab (past the chevron) */
-}
-.subtabs .tab {
-  padding: 8px 14px;
-  font-size: 11.5px;
-  text-transform: none;
-  letter-spacing: 0.02em;
-}
 
 /* -------------------------------------------------------------- split-flap
    Mirrors the predecessor's WPF SplitFlapCharacterControl: 14x20 cells, dark gradient
@@ -1007,4 +988,173 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   letter-spacing: 0.08em;
   border-bottom: 1px solid var(--border);
   padding-bottom: 3px;
+}
+
+/* ── OFP page (Prosim2GSX parity) ─────────────────────────────────────────── */
+
+/* Two-column MCDU-style label/value grid for the flight-plan block. */
+.ofp-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 6px 14px;
+  align-items: baseline;
+}
+.ofp-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+@media (max-width: 700px) {
+  .ofp-grid { grid-template-columns: auto 1fr; }
+}
+
+/* Cockpit Korry pushbutton — colour tokens and geometry copied verbatim from Prosim2GSX's
+   KorryPushbackButton.module.css / KorryPushbackButton.xaml. Tokens are local to .korry-wrap
+   so the cockpit palette never leaks into the EFB styling. */
+.korry-group {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.korry-wrap {
+  --korry-body-bg: #111111;
+  --korry-body-border: #333333;
+  --korry-body-border-active: #555555;
+  --korry-separator: #222222;
+  --korry-arrow-inactive: #2A2A2A;
+  --korry-arrow-green: #00DD55;
+  --korry-auto-inactive: #666666;
+  --korry-auto-active: #FFC200;
+  --korry-legend-text-inactive: #333333;
+  --korry-legend-bg-green: #050510;
+  --korry-legend-text-green: #1A8FFF;
+  --korry-legend-bg-amber: #1A1200;
+  --korry-legend-text-amber: #FFC200;
+  --korry-icon-zone-active-green: #051A05;
+  --korry-icon-zone-active-amber: #26200A;
+  --korry-subtitle: #777777;
+
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.korry-body {
+  width: 90px;
+  height: 82px;
+  padding: 0;
+  border: 2px solid var(--korry-body-border);
+  border-radius: 5px;
+  background: var(--korry-body-bg);
+  cursor: pointer;
+  display: grid;
+  grid-template-rows: 54px 1px 1fr;
+  overflow: hidden;
+  transition: transform 60ms ease, border-color 120ms ease;
+  appearance: none;
+}
+.korry-body:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Press transform mirrors the WPF PressTransform Y translation. */
+.korry-body:active:not(:disabled) { transform: translateY(2px); }
+.korry-body:disabled { opacity: 0.5; cursor: not-allowed; }
+.korry-body.active { border-color: var(--korry-body-border-active); }
+
+.korry-icon-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--korry-body-bg);
+  transition: background 120ms ease;
+}
+.korry-green.active .korry-icon-zone { background: var(--korry-icon-zone-active-green); }
+.korry-amber.active .korry-icon-zone { background: var(--korry-icon-zone-active-amber); }
+
+.korry-arrow { width: 56px; height: 44px; display: block; }
+
+/* Inactive greys: dark for tail (green) buttons, lighter "auto" grey for straight (amber). */
+.korry-green .korry-arrow-stroke { stroke: var(--korry-arrow-inactive); }
+.korry-green .korry-arrow-fill   { fill:   var(--korry-arrow-inactive); }
+.korry-amber .korry-arrow-stroke { stroke: var(--korry-auto-inactive); }
+.korry-amber .korry-arrow-fill   { fill:   var(--korry-auto-inactive); }
+.korry-green.active .korry-arrow-stroke { stroke: var(--korry-arrow-green); }
+.korry-green.active .korry-arrow-fill   { fill:   var(--korry-arrow-green); }
+.korry-amber.active .korry-arrow-stroke { stroke: var(--korry-auto-active); }
+.korry-amber.active .korry-arrow-fill   { fill:   var(--korry-auto-active); }
+
+.korry-separator { background: var(--korry-separator); height: 1px; }
+
+.korry-legend-strip {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 3px 6px;
+}
+.korry-legend-text {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--korry-legend-text-inactive);
+  border-radius: 2px;
+  padding: 1px 0;
+  background: transparent;
+  text-shadow: none;
+  transition: background 120ms ease, color 120ms ease, text-shadow 120ms ease;
+}
+.korry-green.active .korry-legend-text {
+  background: var(--korry-legend-bg-green);
+  color: var(--korry-legend-text-green);
+  text-shadow: 0 0 6px rgba(26, 143, 255, 0.6);
+}
+.korry-amber.active .korry-legend-text {
+  background: var(--korry-legend-bg-amber);
+  color: var(--korry-legend-text-amber);
+  text-shadow: 0 0 6px rgba(255, 194, 0, 0.5);
+}
+
+.korry-subtitle {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--korry-subtitle);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Departure/arrival weather cards — Prosim2GSX OfpPanel weatherGrid/weatherCard/weatherTitle. */
+.wx-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+@media (max-width: 720px) {
+  .wx-cards { grid-template-columns: 1fr; }
+}
+.wx-card {
+  /* Sub-card sitting inside a Section card — bg-input reads as a raised surface on both
+     dark and light themes. */
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+.wx-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
 }

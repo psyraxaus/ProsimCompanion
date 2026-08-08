@@ -1,0 +1,201 @@
+@page "/loadsheet"
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft.Ofp
+@implements IDisposable
+@inject LoadsheetStore Loadsheets
+@inject ILoadsheetControl LoadsheetControl
+@inject OfpStore Ofp
+
+@* Markup and styling ported from Prosim2GSX's web LoadsheetPanel
+   (LoadsheetPanel.tsx / LoadsheetPanel.module.css); the store/control seams
+   are ProsimCompanion's own. *@
+
+<PageTitle>Loadsheet — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Loadsheet</h1>
+
+<div class="ls-panel">
+    <div class="ls-header">
+        <h2 class="ls-title">LOADSHEET</h2>
+        <div class="ls-actions">
+            <button type="button" class="ls-btn" disabled="@(_busy is not null)" @onclick="ResendAsync">
+                @(_busy == Busy.Resend ? "RESENDING…" : "RESEND")
+            </button>
+            <button type="button" class="ls-btn ls-btn-danger" disabled="@(_busy is not null)" @onclick="Reset">
+                @(_busy == Busy.Reset ? "RESETTING…" : _armReset ? "CONFIRM RESET" : "RESET")
+            </button>
+        </div>
+    </div>
+
+    @* Phase B: manual STD (time picker fallback when no OFP is loaded). *@
+    <div class="ls-std-row">
+        <span class="ls-std-label">STD (UTC)</span>
+        <span class="ls-std-value">@(Ofp.Current?.ScheduledOutUtc?.ToString("HH:mm") is { } std ? std + "Z" : "—")</span>
+        <span class="ls-std-source">@(Ofp.Current?.ScheduledOutUtc is null ? "not set" : "from OFP")</span>
+    </div>
+
+    <div class="ls-cards">
+        @foreach (var (label, slot, finalErrorBorder) in new[]
+        {
+            ("PRELIM", _loadsheets.Prelim, false),
+            ("FINAL", _loadsheets.Final, true),
+        })
+        {
+            var showData = slot.Status == LoadsheetSlotStatus.Sent;
+            var macError = IsMacError(slot.MacTow);
+            // Final card highlights with a red border when the MAC is out of
+            // window; the prelim card just colours the value cell.
+            var errBorder = finalErrorBorder && macError && showData;
+
+            <section class="ls-card @(errBorder ? "ls-card-error" : "")">
+                <div class="ls-card-head">
+                    <div class="ls-card-label">@label</div>
+                    <span class="ls-badge @BadgeClass(slot.Status)">@BadgeText(slot.Status)</span>
+                </div>
+
+                @if (!showData)
+                {
+                    <div class="ls-empty">
+                        @(slot.Status == LoadsheetSlotStatus.Failed
+                            ? (slot.Error ?? "Loadsheet generation failed. See log.")
+                            : "Awaiting loadsheet from Dispatch.")
+                    </div>
+                }
+                else
+                {
+                    <div class="ls-kv-grid">
+                        <div class="ls-kv-label">MacTow</div>
+                        <div class="ls-kv-value @(macError ? "ls-kv-value-bad" : "")">@($"{slot.MacTow:F1} %")</div>
+                        <div class="ls-kv-label">TOW</div>
+                        <div class="ls-kv-value">@($"{slot.TowKg / 1000.0:F1} t")</div>
+                        <div class="ls-kv-label">Ident</div>
+                        <div class="ls-kv-value">EDNO @slot.EditionNumber</div>
+                        <div class="ls-kv-label">Received</div>
+                        <div class="ls-kv-value">@(slot.SentAtUtc?.ToLocalTime().ToString("HH:mm:ss") ?? "—")</div>
+                    </div>
+
+                    @* Range bar — min and max bracket the bar; the marker dot sits at
+                       (value − min) / (max − min). When the value is out of range the
+                       dot renders at the clamped edge but flags red so the operator
+                       can see WHICH way it's out (high-side vs low-side). *@
+                    <div class="ls-range">
+                        <div class="ls-range-labels">
+                            <span>@MacMin.ToString("F1", CultureInfo.InvariantCulture)</span>
+                            <span class="ls-range-mid">MAC%</span>
+                            <span>@MacMax.ToString("F1", CultureInfo.InvariantCulture)</span>
+                        </div>
+                        <div class="ls-range-bar" role="img"
+                             aria-label="@($"MACTOW {slot.MacTow:F1} percent on a {MacMin:F0} to {MacMax:F0} percent scale")">
+                            <div class="ls-range-marker @(macError ? "ls-range-marker-bad" : "")"
+                                 style="left:@MacPercentCss(slot.MacTow)"></div>
+                        </div>
+                    </div>
+                }
+            </section>
+        }
+    </div>
+</div>
+
+@code {
+    // Placeholder MAC window matching the envelope chart's 21–38 %MAC span.
+    // Real per-weight envelope limits arrive with the perf data — until then
+    // any MACTOW outside this fixed window renders red.
+    private const double MacMin = 21.0;
+    private const double MacMax = 38.0;
+
+    private enum Busy { Resend, Reset }
+
+    private LoadsheetSnapshot _loadsheets = LoadsheetSnapshot.Empty;
+    private Busy? _busy;
+    private bool _armReset;
+
+    protected override void OnInitialized()
+    {
+        Loadsheets.Changed += OnStoreChanged;
+        Ofp.Changed += OnStoreChanged;
+        _loadsheets = Loadsheets.Snapshot();
+    }
+
+    public void Dispose()
+    {
+        Loadsheets.Changed -= OnStoreChanged;
+        Ofp.Changed -= OnStoreChanged;
+    }
+
+    private void OnStoreChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _loadsheets = Loadsheets.Snapshot();
+            StateHasChanged();
+        });
+
+    private static bool IsMacError(double macTow) => macTow < MacMin || macTow > MacMax;
+
+    private static string BadgeClass(LoadsheetSlotStatus status) => status switch
+    {
+        LoadsheetSlotStatus.Sent => "ls-badge-ok",
+        LoadsheetSlotStatus.Failed => "ls-badge-bad",
+        _ => "ls-badge-warn",
+    };
+
+    private static string BadgeText(LoadsheetSlotStatus status) => status switch
+    {
+        LoadsheetSlotStatus.Sent => "RECEIVED",
+        LoadsheetSlotStatus.Failed => "ERROR",
+        _ => "PENDING",
+    };
+
+    /// <summary>Marker position on the MAC window, clamped to the bar edges.</summary>
+    private static string MacPercentCss(double mac)
+    {
+        var fraction = Math.Clamp((mac - MacMin) / (MacMax - MacMin), 0, 1) * 100.0;
+        return fraction.ToString("F1", CultureInfo.InvariantCulture) + "%";
+    }
+
+    // Resend the most-recent slot. Once the final has been sent, the
+    // operationally meaningful action is to resend FINAL (it's the latest
+    // authoritative loadsheet); otherwise we resend PRELIM. Mirrors
+    // Prosim2GSX's OnResend logic.
+    private async Task ResendAsync()
+    {
+        _armReset = false;
+        _busy = Busy.Resend;
+        try
+        {
+            if (_loadsheets.Final.Status == LoadsheetSlotStatus.Sent)
+            {
+                await LoadsheetControl.GenerateFinalAsync();
+            }
+            else
+            {
+                await LoadsheetControl.GeneratePreliminaryAsync();
+            }
+        }
+        finally
+        {
+            _busy = null;
+        }
+    }
+
+    private void Reset()
+    {
+        // Two-click arm mirrors Prosim2GSX's destructive-action pattern (no
+        // browser confirm dialogs in Blazor Server without JS interop).
+        if (!_armReset)
+        {
+            _armReset = true;
+            return;
+        }
+
+        _busy = Busy.Reset;
+        try
+        {
+            LoadsheetControl.ResetCycle();
+        }
+        finally
+        {
+            _busy = null;
+            _armReset = false;
+        }
+    }
+}

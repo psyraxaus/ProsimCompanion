@@ -20,6 +20,7 @@ public sealed class ChecklistRunner
     private readonly ChecklistDefinition _definition;
     private readonly ChecklistItemStatus[] _statuses;
     private readonly bool[] _conditionSatisfied;
+    private readonly bool[] _voiceFrozen;
 
     public ChecklistRunner(ChecklistDefinition definition)
     {
@@ -27,6 +28,7 @@ public sealed class ChecklistRunner
         _definition = definition;
         _statuses = new ChecklistItemStatus[definition.Items.Count];
         _conditionSatisfied = new bool[definition.Items.Count];
+        _voiceFrozen = new bool[definition.Items.Count];
     }
 
     public string Name => _definition.Checklist;
@@ -65,7 +67,8 @@ public sealed class ChecklistRunner
         for (var i = 0; i < _definition.Items.Count; i++)
         {
             var item = _definition.Items[i];
-            if (_statuses[i] == ChecklistItemStatus.Done && item.IsAuto && !item.Freeze && !_conditionSatisfied[i])
+            if (_statuses[i] == ChecklistItemStatus.Done && item.IsAuto && !item.Freeze
+                && !_voiceFrozen[i] && !_conditionSatisfied[i])
             {
                 _statuses[i] = ChecklistItemStatus.Pending;
                 changed = true;
@@ -130,9 +133,42 @@ public sealed class ChecklistRunner
         return true;
     }
 
+    /// <summary>Completes a line on the voice First Officer's authority. Unlike
+    /// <see cref="Check"/> this may complete auto items — the FO already verified them by
+    /// readback or dataref — and is by-index rather than active-line-gated, because the spoken
+    /// run advances strictly linearly while the visual gating may sit behind on an unsatisfied
+    /// auto item. The line voice-freezes so the retreat pass never un-checks something the crew
+    /// already read out loud.</summary>
+    public bool VoiceComplete(int index)
+    {
+        if (IsComplete || index >= _definition.Items.Count
+            || _statuses[index] is ChecklistItemStatus.Done or ChecklistItemStatus.Skipped)
+        {
+            return false;
+        }
+        _statuses[index] = ChecklistItemStatus.Done;
+        _voiceFrozen[index] = true;
+        return true;
+    }
+
+    /// <summary>Skips a line on the voice First Officer's authority (by-index, see
+    /// <see cref="VoiceComplete"/>).</summary>
+    public bool VoiceSkip(int index)
+    {
+        if (IsComplete || index >= _definition.Items.Count
+            || _statuses[index] is ChecklistItemStatus.Done or ChecklistItemStatus.Skipped)
+        {
+            return false;
+        }
+        _statuses[index] = ChecklistItemStatus.Skipped;
+        _voiceFrozen[index] = true;
+        return true;
+    }
+
     public void Restart()
     {
         Array.Fill(_statuses, ChecklistItemStatus.Pending);
+        Array.Fill(_voiceFrozen, false);
         IsComplete = false;
         ActiveIndex = 0;
     }

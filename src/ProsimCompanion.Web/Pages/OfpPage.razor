@@ -1,0 +1,246 @@
+@page "/ofp"
+@using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Deice
+@using ProsimCompanion.Core.Weather
+@implements IDisposable
+@inject OfpStore Ofp
+@inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
+@inject JsonSettingsFile SettingsFile
+@inject IGsxGateControl GateControl
+@inject GsxDiagnosticsStore GsxStore
+@inject WeatherStore Weather
+@inject IWeatherControl WeatherControl
+@inject DeiceHoldoverService Deice
+
+<PageTitle>OFP — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Operational Flight Plan</h1>
+
+<div class="panel">
+
+    <Section Title="Flight Plan">
+        @if (_ofp is null)
+        {
+            <div class="empty">No flight plan loaded — enter origin/destination on the MCDU, or fetch an OFP from the INIT page.</div>
+        }
+        else
+        {
+            <div class="ofpfp-grid">
+                @* Left column — routing / airframe. *@
+                <div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">FLT NBR</span><span class="ofpfp-value">@_ofp.Ident</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">CALLSIGN</span><span class="ofpfp-value">@_ofp.Callsign</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">FROM/TO</span><span class="ofpfp-value">@_ofp.OriginIcao → @_ofp.DestinationIcao@(string.IsNullOrEmpty(_ofp.AlternateIcao) ? "" : $"  ALTN {_ofp.AlternateIcao}")</span></div>
+                    @* OfpData carries no planned-runway fields yet — render "—" until the fetcher surfaces them. *@
+                    <div class="ofpfp-kv"><span class="ofpfp-label">RWY OUT/IN</span><span class="ofpfp-value">—</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">ACFT</span><span class="ofpfp-value">@_ofp.AircraftIcaoType  REG @_ofp.AircraftReg</span></div>
+                    @* OfpData carries no cruise-altitude field yet — render "—" until the fetcher surfaces it. *@
+                    <div class="ofpfp-kv"><span class="ofpfp-label">CRZ FL</span><span class="ofpfp-value">—</span></div>
+                </div>
+
+                @* Right column — times / weights. *@
+                <div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">STD</span><span class="ofpfp-value">@(_ofp.ScheduledOutUtc?.ToString("HH:mm'Z'") ?? "—")</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">ETA</span><span class="ofpfp-value">@(_ofp.ScheduledOutUtc is { } std && _ofp.EstimatedEnroute is { } enroute ? (std + enroute).ToString("HH:mm'Z'") : "—")</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">ZFW</span><span class="ofpfp-value">@($"{_ofp.EstZfwKg:N0} kg")</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">BLOCK FUEL</span><span class="ofpfp-value">@($"{_ofp.FuelPlanRampKg:N0} kg")</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">PAX</span><span class="ofpfp-value">@_ofp.PaxCount</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">CARGO</span><span class="ofpfp-value">@($"{_ofp.CargoKg:N0} kg")</span></div>
+                </div>
+            </div>
+
+            <div class="ofpfp-footer">
+                <span class="ofpfp-fetched">Fetched @_ofp.FetchedAtUtc.ToString("HH:mm:ss'Z'")</span>
+                <span class="ofpfp-hint">Fetch &amp; overrides on the INIT page</span>
+            </div>
+        }
+    </Section>
+
+    <Section Title="Pushback Direction" Hint="Auto-answers GSX's direction menu; persisted in gsx.pushbackPreference">
+        <div class="korry-group" role="group" aria-label="Pushback direction">
+            <KorryPushbackButton Arrow="tailLeft" Label="TAIL LEFT" Subtitle="NOSE RIGHT"
+                                 IsActive="@(CurrentPreference == "tailLeft")"
+                                 Title="Auto-select 'Nose Right / Tail Left' when GSX shows the direction menu."
+                                 OnClick="@(() => SetPreference("tailLeft"))" />
+            <KorryPushbackButton Arrow="straight" Label="STRAIGHT" Subtitle="STRAIGHT BACK"
+                                 IsActive="@(CurrentPreference == "straight")"
+                                 Title="Auto-select 'Straight pushback' when GSX shows the direction menu."
+                                 OnClick="@(() => SetPreference("straight"))" />
+            <KorryPushbackButton Arrow="tailRight" Label="TAIL RIGHT" Subtitle="NOSE LEFT"
+                                 IsActive="@(CurrentPreference == "tailRight")"
+                                 Title="Auto-select 'Nose Left / Tail Right' when GSX shows the direction menu."
+                                 OnClick="@(() => SetPreference("tailRight"))" />
+        </div>
+    </Section>
+
+    <Section Title="Arrival Gate Assignment" Hint="Armed now; dispatched when GSX has the destination airport loaded">
+        @if (_ofp is null)
+        {
+            <div class="empty">Load an OFP to enable gate assignment.</div>
+        }
+        else
+        {
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                <span class="mono">@_ofp.DestinationIcao</span>
+                <input class="text-input" style="max-width:120px; text-transform:uppercase"
+                       placeholder="GATE" @bind="_gate" />
+                <button type="button" class="btn primary" disabled="@(_gate.Trim().Length == 0)" @onclick="ArmGate">Confirm</button>
+                <button type="button" class="btn secondary" @onclick="CancelGate">Cancel</button>
+            </div>
+            @if (_gsx.GateRequest is { } request)
+            {
+                <div class="field-hint" style="margin-top:8px;">GSX: @request</div>
+            }
+        }
+    </Section>
+
+    <Section Title="Weather" Hint="SayIntentions ATIS / METAR / TAF — cached 10 min">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <button type="button" class="btn" disabled="@_weather.IsRefreshing" @onclick="RefreshWeather">
+                @(_weather.IsRefreshing ? "Refreshing…" : "Refresh Weather")
+            </button>
+            <span class="pill @(_weather.CpdlcStation.Length > 0 ? "tone-ok" : "tone-neutral")">
+                CPDLC @(_weather.CpdlcStation.Length > 0 ? _weather.CpdlcStation : "—")
+            </span>
+            @if (!string.IsNullOrEmpty(_weather.Status))
+            {
+                <span class="field-hint">@_weather.Status</span>
+            }
+        </div>
+        <div class="wx-cards">
+            @foreach (var (title, wx) in new[] { ("Departure", _weather.Departure), ("Arrival", _weather.Arrival) })
+            {
+                <div class="wx-card">
+                    <div class="wx-title">@title @(wx?.Airport ?? "")</div>
+                    @if (wx is null)
+                    {
+                        <div class="empty">No data.</div>
+                    }
+                    else
+                    {
+                        @if (wx.ActiveRunway.Length > 0 || wx is { WindDirection: not null, WindSpeed: not null })
+                        {
+                            <div class="mono">RWY @wx.ActiveRunway  Wind @(wx.WindDirection?.ToString("000") ?? "—")° / @(wx.WindSpeed?.ToString() ?? "—") kt</div>
+                        }
+                        @if (wx.Metar.Length > 0)
+                        {
+                            <div class="field-hint" style="margin-top:8px;">METAR</div>
+                            <div class="mono" style="white-space:pre-wrap; overflow-wrap:anywhere;">@wx.Metar</div>
+                        }
+                        @if (wx.Atis.Length > 0)
+                        {
+                            <div class="field-hint" style="margin-top:8px;">ATIS</div>
+                            <div style="white-space:pre-wrap; overflow-wrap:anywhere;">@wx.Atis</div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </Section>
+
+    <Section Title="Deice Holdover (HOT)" Hint="Representative figures for immersion only — not for real-world dispatch">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <select class="select" style="max-width:220px" value="@_deice.Precip" @onchange="OnPrecipChanged">
+                <option value="@HotPrecip.None">No precipitation</option>
+                <option value="@HotPrecip.ActiveFrost">Active frost</option>
+                <option value="@HotPrecip.FreezingFog">Freezing fog</option>
+                <option value="@HotPrecip.Snow">Snow / snow grains</option>
+                <option value="@HotPrecip.FreezingDrizzleLight">Freezing drizzle (light)</option>
+                <option value="@HotPrecip.FreezingDrizzleModerate">Freezing drizzle (moderate)</option>
+                <option value="@HotPrecip.LightFreezingRain">Light freezing rain</option>
+                <option value="@HotPrecip.RainOnColdSoakedWing">Rain on cold-soaked wing</option>
+            </select>
+            <span class="field-hint">OAT °C</span>
+            <input class="number-input" type="number" step="0.5" value="@_deiceOat" @onchange="OnOatChanged" />
+        </div>
+        <div class="field-hint" style="margin-top:8px;">
+            Fluid: <span class="mono">@(_deice.Active || _deice.Expired ? _deice.FluidLabel : "—")</span>
+            @if (_deice.Active && _deice.RemainingHighSeconds > 0)
+            {
+                <span> · Holdover remaining <span class="mono">@($"{_deice.RemainingLowSeconds / 60}:{_deice.RemainingLowSeconds % 60:D2} – {_deice.RemainingHighSeconds / 60}:{_deice.RemainingHighSeconds % 60:D2}")</span></span>
+            }
+            <span style="@(_deice.Expired ? "color:var(--danger);font-weight:600" : "")"> · @_deice.Status</span>
+        </div>
+    </Section>
+
+</div>
+
+@code {
+    private OfpData? _ofp;
+    private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
+    private WeatherSnapshot _weather = WeatherSnapshot.Empty;
+    private DeiceHoldoverSnapshot _deice = new(false, false, "", HotPrecip.None, 0, 0, 0, "Awaiting GSX deicing…");
+    private double _deiceOat;
+    private string _gate = "";
+
+    private string CurrentPreference => GsxOptionsMonitor.CurrentValue.PushbackPreference;
+
+    protected override void OnInitialized()
+    {
+        Ofp.Changed += OnChanged;
+        GsxStore.Changed += OnChanged;
+        Weather.Changed += OnChanged;
+        Deice.Changed += OnChanged;
+        _ofp = Ofp.Current;
+        _gsx = GsxStore.Snapshot();
+        _weather = Weather.Snapshot();
+        _deice = Deice.Snapshot();
+        _deiceOat = _deice.OatC;
+    }
+
+    public void Dispose()
+    {
+        Ofp.Changed -= OnChanged;
+        GsxStore.Changed -= OnChanged;
+        Weather.Changed -= OnChanged;
+        Deice.Changed -= OnChanged;
+    }
+
+    private void OnChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _ofp = Ofp.Current;
+            _gsx = GsxStore.Snapshot();
+            _weather = Weather.Snapshot();
+            _deice = Deice.Snapshot();
+            StateHasChanged();
+        });
+
+    private void SetPreference(string key)
+        // Korry buttons persist immediately (Prosim2GSX behaviour) — no dirty bar.
+        => SettingsFile.Update(root =>
+        {
+            var gsx = JsonSettingsFile.GetOrCreateSection(root, GsxOptions.SectionName);
+            gsx["pushbackPreference"] = key;
+        });
+
+    private void ArmGate()
+    {
+        var gate = _gate.Trim().ToUpperInvariant();
+        if (gate.Length > 0)
+        {
+            GateControl.RequestGate(gate);
+        }
+    }
+
+    private void CancelGate() => GateControl.Cancel();
+
+    private async Task RefreshWeather() => await WeatherControl.RefreshAsync();
+
+    private void OnPrecipChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<HotPrecip>(e.Value?.ToString(), out var precip))
+        {
+            Deice.SetPrecip(precip);
+        }
+    }
+
+    private void OnOatChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var oat))
+        {
+            _deiceOat = oat;
+            Deice.SetOat(oat);
+        }
+    }
+}

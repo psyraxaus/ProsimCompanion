@@ -1,0 +1,686 @@
+@page "/takeoff"
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Aircraft.Gateway
+@using ProsimCompanion.Core.Aircraft.Ofp
+@implements IDisposable
+@inject IProsimGateway Gateway
+@inject IProsimDataRefs DataRefs
+@inject OfpStore Ofp
+@inject LoadsheetStore Loadsheets
+@inject IFmsPerfUplink PerfUplink
+
+<PageTitle>Takeoff Performance — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Takeoff Performance</h1>
+
+<div class="perf-panel">
+    <div class="perf-header">
+        <span class="perf-title">TAKEOFF PERFORMANCE</span>
+        <span class="perf-flightinfo">ENG @_engine · @(_icao is { Length: > 0 } ? _icao : "----")</span>
+    </div>
+
+    <div class="perf-body">
+        @* ─── Column 1: Airport + Surface ─────────────────────────────── *@
+        <div class="perf-column">
+            <div class="perf-column-title">Airport / Runway</div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">ICAO</span>
+                <span class="perf-field-value">
+                    <input type="text" class="perf-icao-input" maxlength="4"
+                           @bind="_icao" @bind:after="OnIcaoCommitAsync" />
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Runway</span>
+                <span class="perf-field-value">
+                    <span class="perf-runway-dropdown">
+                        <select aria-label="Runway"
+                                disabled="@(_runways is null || _runways.Count == 0)"
+                                @bind="_runwayId" @bind:after="OnRunwayChanged">
+                            @if (_runways is null || _runways.Count == 0)
+                            {
+                                <option value="">—</option>
+                            }
+                            else
+                            {
+                                @foreach (var runway in _runways)
+                                {
+                                    <option value="@runway.RunwayId">RWY @runway.RunwayId@(runway.LengthFt is > 0 ? $" · {runway.LengthFt} ft" : "")</option>
+                                }
+                            }
+                        </select>
+                        @if (SelectedRunway()?.Intersections is { Length: > 0 } intersections)
+                        {
+                            <select aria-label="Intersection" @bind="_intersection">
+                                <option value="">Full length</option>
+                                @foreach (var intersection in intersections)
+                                {
+                                    <option value="@intersection.Name">@intersection.Name · @intersection.ToraFt ft</option>
+                                }
+                            </select>
+                        }
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Surface</span>
+                <span class="perf-field-value">@Toggle(SurfaceOptions, _surf, v => _surf = v)</span>
+            </div>
+
+            <div class="perf-column-title perf-sub">Wind / Weather</div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Wind</span>
+                <span class="perf-field-value">
+                    <span class="perf-wind-row">
+                        <input type="text" maxlength="3" aria-label="Wind direction"
+                               @bind="_windDir" @bind:after="ClampInputs" />
+                        <span class="perf-wind-sep">/</span>
+                        <span class="perf-kbd">
+                            <input type="number" min="0" style="width:3ch" aria-label="Wind speed"
+                                   @bind="_windKt" @bind:after="ClampInputs" />
+                            <span class="perf-unit">kt</span>
+                        </span>
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">OAT</span>
+                <span class="perf-field-value">
+                    <span class="perf-kbd">
+                        <input type="number" style="width:4ch" aria-label="OAT" @bind="_oat" />
+                        <span class="perf-unit">°C</span>
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">QNH</span>
+                <span class="perf-field-value">
+                    <span class="perf-kbd">
+                        <input type="number" min="900" max="1100" style="width:5ch" aria-label="QNH"
+                               @bind="_qnh" @bind:after="ClampInputs" />
+                        <span class="perf-unit">hPa</span>
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        @* ─── Column 2: Aircraft configuration ────────────────────────── *@
+        <div class="perf-column">
+            <div class="perf-column-title">Aircraft Config</div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Flap</span>
+                <span class="perf-field-value">@Toggle(FlapOptions, _flapVal, v => _flapVal = v)</span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Anti-ice</span>
+                <span class="perf-field-value">@Toggle(AntiIceOptions, _iceVal, v => _iceVal = v)</span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Packs</span>
+                <span class="perf-field-value">@Toggle(PacksOptions, _packsVal, v => _packsVal = v)</span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Force TOGA</span>
+                <span class="perf-field-value">
+                    <label class="perf-check-row">
+                        <input type="checkbox" @bind="_forceToga" />
+                    </label>
+                </span>
+            </div>
+
+            <div class="perf-column-title perf-sub">Weights</div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">TOW</span>
+                <span class="perf-field-value">
+                    <span class="perf-kbd">
+                        <input type="number" min="0" style="width:7ch" aria-label="TOW"
+                               @bind="_towKg" @bind:after="ClampInputs" />
+                        <span class="perf-unit">kg</span>
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">MAC TOW</span>
+                <span class="perf-field-value">
+                    <span class="perf-kbd">
+                        <input type="number" min="0" step="0.1" style="width:5ch" aria-label="MAC TOW"
+                               @bind="_macTow" @bind:after="ClampInputs" />
+                        <span class="perf-unit">%</span>
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        @* ─── Column 3: Output / MCDU display ─────────────────────────── *@
+        <div class="perf-column">
+            <div class="perf-column-title">Output</div>
+
+            <div class="perf-mcdu-frame">
+                <div class="perf-mcdu-title">FMGC TAKE OFF</div>
+                @McduRow("V1", _result?.VSpeed is { } v1 ? Math.Round(v1.V1).ToString(CultureInfo.InvariantCulture) : null)
+                @McduRow("VR", _result?.VSpeed is { } vr ? Math.Round(vr.VR).ToString(CultureInfo.InvariantCulture) : null)
+                @McduRow("V2", _result?.VSpeed is { } v2 ? Math.Round(v2.V2).ToString(CultureInfo.InvariantCulture) : null)
+                @McduRow("FLAPS", _result is not null ? ConfLabel(_result.FlapSettings) : null)
+                @McduRow("FLEX", _result is not null ? (ForceTogaResult ? "TOGA" : $"{_result.FlexOutput}°") : null, _result is not null && ForceTogaResult)
+                @McduRow("THS", ThsDisplay())
+                @McduRow("SHIFT", _result is not null ? ((int)Math.Round(Tora().ShiftMeters)).ToString(CultureInfo.InvariantCulture) : null)
+            </div>
+
+            <div class="perf-column-title perf-sub">Limits</div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">@(_result?.HwComp < 0 ? "TW" : "HW") component</span>
+                <span class="perf-field-value">
+                    <span class="@(_result is not null ? "perf-mcdu-value" : "perf-mcdu-value-dim")">
+                        @(_result is not null ? $"{Math.Abs(_result.HwComp)} kt" : "----")
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">TOPL</span>
+                <span class="perf-field-value">
+                    <span class="@(_result?.ToplLimited == true ? "perf-mcdu-value-amber" : _result is not null ? "perf-mcdu-value" : "perf-mcdu-value-dim")">
+                        @(_result is not null ? $"{Math.Round(_result.Topl)} kg" : "----")
+                    </span>
+                </span>
+            </div>
+
+            @if (_result?.GreenDot is { } greenDot)
+            {
+                <div class="perf-field-row">
+                    <span class="perf-field-label">Green dot</span>
+                    <span class="perf-field-value"><span class="perf-mcdu-value">@greenDot kt</span></span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="perf-footer">
+        <div class="perf-metar-strip">
+            <div class="perf-metar-header">
+                <span>METAR @(_icao is { Length: > 0 } ? _icao : "----")</span>
+                @if (_metarFetchedAt is { } fetched)
+                {
+                    <span>· @fetched.ToString("HH:mm", CultureInfo.InvariantCulture)Z</span>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_metarText))
+            {
+                <div class="perf-metar-text">@_metarText.Trim()</div>
+            }
+            else
+            {
+                <div class="perf-metar-missing">No METAR available</div>
+            }
+        </div>
+
+        @if (_calcError is not null)
+        {
+            <div class="perf-banner perf-banner-error">@_calcError</div>
+        }
+        @if (_lastError is not null)
+        {
+            <div class="perf-error-row">@_lastError</div>
+        }
+        @if (_result?.ToplLimited == true)
+        {
+            <div class="perf-banner perf-banner-warn">*** TOPL LIMITED ***</div>
+        }
+        @if (_result is not null && ForceTogaResult)
+        {
+            <div class="perf-banner perf-banner-warn">*** TOGA REQUIRED ***</div>
+        }
+
+        <div class="perf-actions">
+            @if (BestLoadsheet() is not null)
+            {
+                <button type="button" class="perf-action-btn" disabled="@IsBusy" @onclick="SyncLoadsheet">Sync Loadsheet</button>
+            }
+            <button type="button" class="perf-action-btn perf-action-primary" disabled="@(!CanCalculate)" @onclick="CalculateAsync">Calculate</button>
+            <button type="button" class="perf-action-btn @(_uplinkFlashActive ? "perf-action-sent" : "")"
+                    disabled="@(!CanUplink || _uplinkFlashActive)" @onclick="UplinkAsync">
+                @(_uplinkFlashActive ? "Uplink Sent" : "Send Uplink")
+            </button>
+            <button type="button" class="perf-action-btn perf-action-flex" disabled="@IsBusy" @onclick="OnResetClick">
+                @(_resetArmed ? "Confirm Reset?" : "Reset")
+            </button>
+            @if (IsBusy)
+            {
+                <span class="perf-busy">Working…</span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private const double MetersPerFoot = 0.3048;
+
+    private static readonly string[] SurfaceOptions = ["DRY", "WET"];
+    private static readonly string[] FlapOptions = ["opt", "1+F", "2", "3"];
+    private static readonly string[] AntiIceOptions = ["OFF", "ENG", "ENG+WING"];
+    private static readonly string[] PacksOptions = ["OFF", "ON"];
+
+    private IDataRefSubscription? _grossSub;
+    private IDataRefSubscription? _cgSub;
+    private IDataRefSubscription? _engineSub;
+
+    private string _icao = "";
+    private IReadOnlyList<RunwayResponse>? _runways;
+    private string? _runwayId;
+    private string _intersection = "";
+    private int _oat;
+    private int _qnh = 1013;
+    private string _windDir = "0";
+    private int _windKt;
+    private double _towKg;
+    private double _macTow;
+    private string _engine = "CFM";
+    private string _flapVal = "opt";
+    private string _surf = "DRY";
+    private string _iceVal = "OFF";
+    private string _packsVal = "ON";
+    private bool _forceToga;
+    private bool _loading;
+    private bool _calculating;
+    private bool _uplinking;
+    private string? _lastError;
+    private string? _calcError;
+    private CalcVSpeedResult? _result;
+    private string? _metarText;
+    private DateTime? _metarFetchedAt;
+
+    // "Uplink Sent" flashes for 5 s after a successful uplink; the Reset
+    // button uses a two-click arm (no window.confirm without JS interop).
+    private bool _uplinkFlashActive;
+    private bool _resetArmed;
+    private System.Threading.Timer? _uplinkFlashTimer;
+    private System.Threading.Timer? _resetArmTimer;
+
+    private bool IsBusy => _loading || _calculating || _uplinking;
+
+    private bool CanCalculate => SelectedRunway() is not null && _towKg > 0 && _macTow > 0 && !IsBusy;
+
+    private bool CanUplink =>
+        _result?.VSpeed is { } vspeed && vspeed.V1 > 0 && vspeed.VR > 0 && vspeed.V2 > 0 && !IsBusy;
+
+    /// <summary>Mirrors the predecessor rule: FLEX 0 (or server-forced) means TOGA thrust.</summary>
+    private bool ForceTogaResult => _result is not null && (_result.ForceToga || (_result.FlexOutput ?? 0) <= 0);
+
+    protected override void OnInitialized()
+    {
+        _grossSub = DataRefs.Subscribe(ProsimDataRefNames.WeightGross, DataRefTier.Normal);
+        _cgSub = DataRefs.Subscribe(ProsimDataRefNames.CenterOfGravity, DataRefTier.Normal);
+        _engineSub = DataRefs.Subscribe(ProsimDataRefNames.ConfigEngineType, DataRefTier.Infrequent);
+
+        _uplinkFlashTimer = new System.Threading.Timer(
+            _ => _ = InvokeAsync(() => { _uplinkFlashActive = false; StateHasChanged(); }),
+            null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+        _resetArmTimer = new System.Threading.Timer(
+            _ => _ = InvokeAsync(() => { _resetArmed = false; StateHasChanged(); }),
+            null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+
+        SeedFromContext();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // A seeded 4-letter origin loads runways + METAR immediately, matching
+        // the ICAO-commit path.
+        if (firstRender && _icao.Length == 4)
+        {
+            await LoadAirportAsync();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _grossSub?.Dispose();
+        _cgSub?.Dispose();
+        _engineSub?.Dispose();
+        _uplinkFlashTimer?.Dispose();
+        _resetArmTimer?.Dispose();
+    }
+
+    /// <summary>Seeds inputs from the flight context: origin from the OFP, weights from the best
+    /// loadsheet (final > prelim), falling back to live datarefs.</summary>
+    private void SeedFromContext()
+    {
+        _icao = Ofp.Current?.OriginIcao ?? "";
+        var best = BestLoadsheet();
+        _towKg = best?.TowKg > 0 ? best.TowKg : _grossSub!.GetValue(0.0);
+        _macTow = best?.MacTow > 0 ? best.MacTow : _cgSub!.GetValue(0.0);
+
+        // "CFM-Leap" shares the CFM lookup tables — only two wire buckets exist.
+        var engine = _engineSub!.GetValue("CFM");
+        _engine = engine.Contains("IAE", StringComparison.OrdinalIgnoreCase) ? "IAE" : "CFM";
+    }
+
+    private LoadsheetSlotView? BestLoadsheet()
+    {
+        var sheets = Loadsheets.Snapshot();
+        return sheets.Final.Status == LoadsheetSlotStatus.Sent ? sheets.Final
+            : sheets.Prelim.Status == LoadsheetSlotStatus.Sent ? sheets.Prelim
+            : null;
+    }
+
+    private void SyncLoadsheet()
+    {
+        if (BestLoadsheet() is { } best)
+        {
+            _towKg = best.TowKg;
+            _macTow = best.MacTow;
+        }
+    }
+
+    private RunwayResponse? SelectedRunway()
+        => _runways?.FirstOrDefault(runway => runway.RunwayId == _runwayId);
+
+    private void OnRunwayChanged() => _intersection = "";
+
+    private void ClampInputs()
+    {
+        _windDir = (_windDir ?? "").Trim().ToUpperInvariant();
+        if (_windDir.Length > 3)
+        {
+            _windDir = _windDir[..3];
+        }
+        if (_windKt < 0) _windKt = 0;
+        if (_qnh < 900) _qnh = 900;
+        else if (_qnh > 1100) _qnh = 1100;
+        if (_towKg < 0) _towKg = 0;
+        if (_macTow < 0) _macTow = 0;
+    }
+
+    private static string ConfLabel(int flapSettings) => flapSettings switch
+    {
+        1 => "1+F",
+        2 => "2",
+        3 => "3",
+        _ => "—",
+    };
+
+    private string? ThsDisplay()
+    {
+        if (_result is null)
+        {
+            return null;
+        }
+
+        // THS dataref value = (TrimDir=="DN" ? −1 : +1) × TrimOutput; the display shows
+        // direction word + magnitude ("UP 1.5").
+        var ths = (_result.TrimDir == "DN" ? -1 : 1) * (_result.TrimOutput ?? 0);
+        var dir = !string.IsNullOrEmpty(_result.TrimDir) ? _result.TrimDir : (ths >= 0 ? "UP" : "DN");
+        return $"{dir} {Math.Abs(_result.TrimOutput ?? 0).ToString("F1", CultureInfo.InvariantCulture)}";
+    }
+
+    /// <summary>Runway ident → numeric QDM: "27L" → 270 (the request wants heading, not the
+    /// surveyed true heading).</summary>
+    private static int RunwayQdm(string? runwayId)
+    {
+        var digits = new string((runwayId ?? "").TakeWhile(char.IsDigit).ToArray());
+        return int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            ? number * 10
+            : 0;
+    }
+
+    private static int ParseFeet(string? text)
+        => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
+
+    private async Task OnIcaoCommitAsync()
+    {
+        var icao = (_icao ?? "").Trim().ToUpperInvariant();
+        if (icao.Length > 4)
+        {
+            icao = icao[..4];
+        }
+        _icao = icao;
+        _runways = null;
+        _runwayId = null;
+        _intersection = "";
+        _result = null;
+        _calcError = null;
+        if (icao.Length == 4)
+        {
+            await LoadAirportAsync();
+        }
+    }
+
+    private async Task LoadAirportAsync()
+    {
+        _loading = true;
+        _lastError = null;
+        try
+        {
+            var icao = _icao.Trim().ToUpperInvariant();
+            var runways = await Gateway.GetRunwaysAsync(icao, includeIntersections: true);
+            if (runways is null || runways.Count == 0)
+            {
+                _lastError = "No runway data for that airport.";
+                return;
+            }
+            _runways = runways;
+            _runwayId = runways[0].RunwayId;
+            _intersection = "";
+            ApplyMetar(await Gateway.GetMetarAsync(icao));
+        }
+        catch (Exception ex)
+        {
+            // Degrade, not fail: a dead gateway surfaces as an error row, not a circuit crash.
+            _lastError = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ApplyMetar(Metar? metar)
+    {
+        if (metar is null)
+        {
+            _metarText = null;
+            _metarFetchedAt = null;
+            return;
+        }
+
+        _metarText = metar.MetarText;
+        _metarFetchedAt = DateTime.UtcNow;
+
+        // Altim rides the gateway's ×100 hPa convention when large; plain hPa otherwise.
+        var qnh = metar.Altim > 10000 ? (int)Math.Round(metar.Altim / 100.0) : metar.Altim;
+        _oat = metar.Temperature;
+        if (qnh > 0)
+        {
+            _qnh = qnh;
+        }
+        _windDir = string.IsNullOrWhiteSpace(metar.WindDir) ? "0" : metar.WindDir.Trim();
+        _ = int.TryParse(metar.WindSpeed?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var windKt);
+        _windKt = windKt;
+    }
+
+    /// <summary>TORA in metres for the selected runway/intersection; full length when no
+    /// intersection is picked.</summary>
+    private (int ToraMeters, double ShiftMeters) Tora()
+    {
+        var runway = SelectedRunway();
+        var fullFt = runway?.LengthFt ?? 0;
+        var toraFt = fullFt;
+        if (_intersection is not "" && runway?.Intersections is not null)
+        {
+            toraFt = runway.Intersections.FirstOrDefault(candidate => candidate.Name == _intersection)?.ToraFt ?? fullFt;
+        }
+
+        // Gateway caps TORA at 3600 m server-side; matching here keeps requests honest.
+        var toraMeters = Math.Min(3600, (int)Math.Round(toraFt * MetersPerFoot));
+        return (toraMeters, Math.Max(0, (fullFt - toraFt) * MetersPerFoot));
+    }
+
+    private async Task CalculateAsync()
+    {
+        _calculating = true;
+        _lastError = null;
+        _calcError = null;
+        _result = null;
+        try
+        {
+            var runway = SelectedRunway();
+            if (runway is null)
+            {
+                _lastError = "Load an airport and pick a runway first.";
+                return;
+            }
+
+            var (toraMeters, _) = Tora();
+            var request = new CalcVSpeedRequest
+            {
+                EngineVariant = _engine,
+                Tow = (int)Math.Round(_towKg / 100.0),      // tens-of-kg wire scale (70.5 t → 705)
+                Mactow = (int)Math.Round(_macTow * 10.0),   // %MAC × 10
+                RwyLen = toraMeters,
+                RwyQDM = RunwayQdm(runway.RunwayId),
+                FlapVal = _flapVal,
+                Surf = _surf,
+                IceVal = _iceVal,
+                PacksVal = _packsVal,
+                TogaVal = _forceToga ? "YES" : "NO",
+                Elev = ParseFeet(runway.ElevationFt),
+                Temp = _oat,
+                QnhVal = _qnh.ToString(CultureInfo.InvariantCulture),
+                WindDir = _windDir,
+                WindMag = _windKt,
+            };
+
+            var result = await Gateway.CalculateVSpeedsAsync(request);
+            if (result is null)
+            {
+                _lastError = "Calculation request failed — is ProSim running?";
+            }
+            else if (!string.IsNullOrEmpty(result.CalculationError))
+            {
+                _calcError = result.CalculationError;
+            }
+            else
+            {
+                _result = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            _lastError = ex.Message;
+        }
+        finally
+        {
+            _calculating = false;
+        }
+    }
+
+    private async Task UplinkAsync()
+    {
+        if (_result?.VSpeed is not { } vspeed)
+        {
+            return;
+        }
+
+        _uplinking = true;
+        _lastError = null;
+        try
+        {
+            var (_, shiftMeters) = Tora();
+            var ths = (_result.TrimDir == "DN" ? -1 : 1) * (_result.TrimOutput ?? 0);
+            var ok = await PerfUplink.UplinkTakeoffAsync(new TakeoffPerfUplink(
+                _result.FlapSettings,
+                _result.ForceToga ? 0 : _result.FlexOutput ?? 0,
+                (int)Math.Round(vspeed.V1),
+                (int)Math.Round(vspeed.VR),
+                (int)Math.Round(vspeed.V2),
+                ths,
+                shiftMeters));
+            if (ok)
+            {
+                _uplinkFlashActive = true;
+                _uplinkFlashTimer?.Change(5000, System.Threading.Timeout.Infinite);
+            }
+            else
+            {
+                _lastError = "Uplink failed — see logs.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _lastError = ex.Message;
+        }
+        finally
+        {
+            _uplinking = false;
+        }
+    }
+
+    private void OnResetClick()
+    {
+        if (!_resetArmed)
+        {
+            _resetArmed = true;
+            _resetArmTimer?.Change(3000, System.Threading.Timeout.Infinite);
+            return;
+        }
+
+        _resetArmed = false;
+        _resetArmTimer?.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+        DoReset();
+    }
+
+    private void DoReset()
+    {
+        _runways = null;
+        _runwayId = null;
+        _intersection = "";
+        _oat = 0;
+        _qnh = 1013;
+        _windDir = "0";
+        _windKt = 0;
+        _flapVal = "opt";
+        _surf = "DRY";
+        _iceVal = "OFF";
+        _packsVal = "ON";
+        _forceToga = false;
+        _result = null;
+        _lastError = null;
+        _calcError = null;
+        _metarText = null;
+        _metarFetchedAt = null;
+        _uplinkFlashActive = false;
+        SeedFromContext();
+    }
+
+    // ── Small render helpers (port of the panel-local React components) ──
+
+    private RenderFragment Toggle(string[] options, string current, Action<string> onSet) =>
+        @<span class="perf-toggle-row">
+            @foreach (var opt in options)
+            {
+                var value = opt;
+                <button type="button" class="perf-toggle-btn @(value == current ? "active" : "")"
+                        @onclick="() => onSet(value)">@value</button>
+            }
+        </span>;
+
+    private static RenderFragment McduRow(string label, string? value, bool amber = false) =>
+        @<div class="perf-mcdu-row">
+            <span class="perf-mcdu-label">@label</span>
+            <span class="@(value is null ? "perf-mcdu-value-dim" : amber ? "perf-mcdu-value-amber" : "perf-mcdu-value")">@(value ?? "----")</span>
+        </div>;
+}

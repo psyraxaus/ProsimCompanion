@@ -1,26 +1,29 @@
 @page "/"
-@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Configuration
 @using ProsimCompanion.Core.Flight
-@using ProsimCompanion.Core.Logging
 @using ProsimCompanion.Core.Profiles
 @implements IDisposable
 @inject ConnectionStatusStore Status
-@inject IProsimDataRefs DataRefs
 @inject FlightStateEngine FlightState
 @inject AircraftProfileService Profiles
-@inject LogBufferStore LogBuffer
 @inject GsxDiagnosticsStore Diagnostics
 @inject IGsxDepartureControl DepartureControl
+@inject AudioStatusStore Audio
+@inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
+
+@* Prosim2GSX FlightStatusPanel clone: Flight Phase span card, then Sim / App / GSX /
+   Services cards with the same rows in the same order. The log tail card is deliberately
+   omitted (decision: the Logs tab owns log viewing); the departure-services board lives on
+   the GSX Status page. Signals our architecture does not track yet render as neutral "—"
+   rather than being dropped, so the layout stays identical. *@
 
 <PageTitle>Flight Status — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Flight Status</h1>
 
 <div class="status-panel">
 
-    @* Flight phase — full-width card with the 7-block progress bar. The DEPARTURE block is
-       the departure-services phase (a GSX concept layered over the Preflight flight phase),
-       mirroring the predecessor's monitor view. *@
     <section class="status-section status-span">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Flight Phase</h3>
         <div class="phase-body">
             <div class="phase-label">@PhaseDisplay</div>
             <div class="phase-grid">
@@ -37,129 +40,71 @@
     </section>
 
     <section class="status-section">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Connections</h3>
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Sim</h3>
         <div class="section-body">
-            @if (_connections.Count == 0)
-            {
-                <div class="empty">No subsystems have reported yet.</div>
-            }
-            @foreach (var (subsystem, state) in _connections)
-            {
-                <div class="row">
-                    <span class="row-label">@subsystem</span>
-                    <span class="dot @GsxPresentation.ConnectionDot(state)"></span>
-                    <span class="row-value">@state</span>
-                </div>
-            }
-            <div class="row">
-                <span class="row-label">Aircraft</span>
-                <span class="row-value-mono">@(Profiles.AircraftTitle ?? "—")</span>
-            </div>
-            <div class="row">
-                <span class="row-label">Profile</span>
-                <span class="row-value-mono">@(Profiles.ActiveProfile?.Name ?? "none")</span>
-            </div>
+            @Indicator("Sim Running", SimConnected)
+            @Indicator("Sim Connected", SimConnected)
+            @Indicator("Sim Session", FlightState.LastSnapshot?.IsValid == true)
+            @UntrackedIndicator("Sim Paused")
+            @UntrackedIndicator("Walkaround")
+            @Kv("Camera State", "—")
+            @Kv("Sim Version", "—")
+            @Kv("Aircraft", Profiles.AircraftTitle ?? "—")
+        </div>
+    </section>
+
+    <section class="status-section">
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">App</h3>
+        <div class="section-body">
+            @Indicator("GSX Controller", GsxConnected)
+            @Indicator("ProSim Binary", ProsimConnected)
+            @Indicator("Aircraft Interface", ProsimConnected)
+            @Indicator("ProSim SDK Connected", ProsimConnected)
+            @Indicator("Automation Controller", GsxOptionsMonitor.CurrentValue.AutomationEnabled)
+            @Indicator("Audio Controller", Audio.Snapshot().Enabled)
+            @Kv("Profile", Profiles.ActiveProfile?.Name ?? "—")
+            @Kv("Aircraft", Profiles.AircraftTitle ?? "—")
+            @Kv("On Ground", (FlightState.LastSnapshot?.OnGround)?.ToString() ?? "—")
+            @Kv("Engines Running", (FlightState.LastSnapshot?.AnyEngineRunning)?.ToString() ?? "—")
+            @Kv("In Motion", FlightState.LastSnapshot is { } motion ? (motion.GroundSpeedKt > 0.5).ToString() : "—")
         </div>
     </section>
 
     <section class="status-section">
         <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">GSX</h3>
         <div class="section-body">
-            <div class="row">
-                <span class="row-label">Readiness</span>
-                <span class="pill @GsxPresentation.ReadinessTone(_gsx.Readiness)">@_gsx.Readiness</span>
-            </div>
-            <div class="row">
-                <span class="row-label">Automation phase</span>
-                <span class="row-value-mono">@_gsx.AutomationPhase</span>
-            </div>
-            <div class="row">
-                <span class="row-label">Airport</span>
-                <span class="row-value-mono">@(_gsx.AirportIcao ?? "—")</span>
-            </div>
-            <div class="row">
-                <span class="row-label">Arrival gate</span>
-                <span class="row-value-mono">@(_gsx.GateRequest ?? "—")</span>
-            </div>
-            <div class="row">
-                <span class="row-label">Departure sequence</span>
-                <span class="row-value-mono">@DepartureSummary</span>
-            </div>
-            <div class="row">
-                <span class="row-label"></span>
-                <span class="row-value-mono"><a href="gsx">GSX page →</a></span>
-            </div>
+            @Indicator("GSX Running", GsxConnected)
+            @Indicator("Couatl Vars", _gsx.Readiness == "Ready")
+            @Kv("Couatl Started", _gsx.StartupSid ?? "—")
+            @Kv("Menu State", _gsx.MenuShown ? (_gsx.MenuTitle ?? "shown") : "closed")
+            @* Pax/cargo boarding counters are not surfaced by the diagnostics store yet —
+               placeholders keep the Prosim2GSX row set intact. *@
+            @Kv("Pax Target", "—")
+            @Kv("Pax Total (B|D)", "—")
+            @Kv("Cargo (B|D)", "—")
+            @Kv("Departure Services", DepartureSummary)
+            @Kv("Assigned Gate", _gsx.GateRequest ?? "—")
+            @Kv("Last Handler Event", "—")
         </div>
     </section>
 
     <section class="status-section">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Departure Services</h3>
+        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Services</h3>
         <div class="section-body">
-            @if (_gsx.ServiceBoard.Count == 0)
-            {
-                <div class="empty">No departure sequence evaluated yet.</div>
-            }
-            @foreach (var row in _gsx.ServiceBoard)
-            {
-                <div class="row" title="@row.Detail">
-                    <span class="row-label">@row.ServiceId</span>
-                    <span class="@GsxPresentation.StageLamp(row.Stage)"></span>
-                    <span class="row-value">@GsxPresentation.StageLabel(row.Stage)</span>
-                </div>
-            }
-        </div>
-    </section>
-
-    <section class="status-section">
-        <div class="section-header">
-            <h3 class="section-title">Live Aircraft Data</h3>
-            <span class="section-hint">
-                @* The log box that lived here moved to its own page — the header keeps a
-                   one-line health pointer so problems are still visible at a glance. *@
-                log: @LogBuffer.WarningCount warn · @LogBuffer.ErrorCount err —
-                <a href="logs">open</a>
-            </span>
-        </div>
-        <div class="section-body">
-            @foreach (var sample in _samples)
-            {
-                <div class="row">
-                    <span class="row-label">@sample.Label</span>
-                    <span class="row-value-mono">@sample.Display()@(sample.Subscription.IsStale ? " (stale)" : "")</span>
-                </div>
-            }
-            <div class="row">
-                <span class="row-label field-hint" style="font-size:10px;">
-                    Pushed live from ProSim; shows — until a value arrives.
-                </span>
-            </div>
-            <details style="margin-top:10px;">
-                <summary style="cursor:pointer; font-size:12px; color:var(--text-secondary);">
-                    Flight data diagnostics (raw snapshot feeding the phase engine)
-                </summary>
-                @if (FlightState.LastSnapshot is not { } snap)
-                {
-                    <div class="empty">No snapshot sampled yet.</div>
-                }
-                else
-                {
-                    <div class="table-scroll">
-                        <table class="data-table" style="margin-top:6px;">
-                            <tbody>
-                                <tr><td>IsValid</td><td class="mono">@snap.IsValid</td><td>OnGround</td><td class="mono">@snap.OnGround</td></tr>
-                                <tr><td>IAS kt</td><td class="mono">@snap.IndicatedAirspeedKt.ToString("F1")</td><td>GS kt</td><td class="mono">@snap.GroundSpeedKt.ToString("F1")</td></tr>
-                                <tr><td>Alt ft</td><td class="mono">@snap.AltitudeFt.ToString("F0")</td><td>RA ft</td><td class="mono">@snap.RadioAltitudeFt.ToString("F0")</td></tr>
-                                <tr><td>VS fpm</td><td class="mono">@snap.VerticalSpeedFpm.ToString("F0")</td><td>Powered</td><td class="mono">@snap.AircraftPowered</td></tr>
-                                <tr><td>AnyEngineRunning</td><td class="mono">@snap.AnyEngineRunning</td><td>EngineStarting</td><td class="mono">@snap.EngineStarting</td></tr>
-                                <tr><td>Engine1 state</td><td class="mono">@(snap.RawEngine1State ?? "—")</td><td>Engine2 state</td><td class="mono">@(snap.RawEngine2State ?? "—")</td></tr>
-                                <tr><td>Max N1 %</td><td class="mono">@snap.MaxN1Percent.ToString("F1")</td><td>TakeoffThrustSet</td><td class="mono">@snap.TakeoffThrustSet</td></tr>
-                                <tr><td>PushbackActive</td><td class="mono">@snap.PushbackActive</td><td>Raw pushback</td><td class="mono">@snap.RawPushbackState</td></tr>
-                                <tr><td>ParkBrakeSet</td><td class="mono">@snap.ParkBrakeSet</td><td>GearDown</td><td class="mono">@snap.GearDown</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </details>
+            @ServiceRow("Reposition", "Reposition")
+            @ServiceRow("Refuel", "Refueling")
+            @ServiceRow("Catering", "Catering")
+            @ServiceRow("Lavatory", "Lavatory")
+            @ServiceRow("Water", "Water")
+            @ServiceRow("Cleaning", "Cleaning")
+            @ServiceRow("GPU", "GPU")
+            @ServiceRow("Boarding", "Boarding")
+            @ServiceRow("Deboarding", "Deboarding")
+            @ServiceRow("Pushback", "Pushback")
+            @ServiceRow("Jetway", "Jetway")
+            @ConnectedRow("Jetway Connected", "Jetway")
+            @ServiceRow("Stairs", "Stairs")
+            @ConnectedRow("Stairs Connected", "Stairs")
         </div>
     </section>
 
@@ -171,8 +116,13 @@
 
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _connections = [];
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
-    private readonly List<Sample> _samples = [];
-    private Timer? _headerTimer;
+
+    private bool SimConnected => StateOf(Subsystems.SimConnect) == ConnectionState.Connected;
+    private bool ProsimConnected => StateOf(Subsystems.Prosim) == ConnectionState.Connected;
+    private bool GsxConnected => StateOf(Subsystems.Gsx) == ConnectionState.Connected;
+
+    private ConnectionState StateOf(string subsystem)
+        => _connections.FirstOrDefault(pair => pair.Key == subsystem).Value;
 
     private int ActiveBlock => FlightState.CurrentPhase switch
     {
@@ -194,35 +144,58 @@
         : DepartureControl.Started ? "Running"
         : "Not started";
 
-    protected override void OnInitialized()
+    // ── Row renderers (mirror Prosim2GSX's Indicator / KV / ServiceRow components) ──
+
+    private static RenderFragment Indicator(string label, bool ok) => @<div class="row">
+        <span class="row-label">@label</span>
+        <span class="dot @(ok ? "dot-ok" : "dot-bad")" aria-hidden="true"></span>
+        <span class="row-value">@(ok ? "OK" : "—")</span>
+    </div>;
+
+    private static RenderFragment UntrackedIndicator(string label) => @<div class="row">
+        <span class="row-label">@label</span>
+        <span class="dot dot-neutral" aria-hidden="true"></span>
+        <span class="row-value">—</span>
+    </div>;
+
+    private static RenderFragment Kv(string label, string value) => @<div class="row">
+        <span class="row-label">@label</span>
+        <span class="row-value-mono">@value</span>
+    </div>;
+
+    private RenderFragment ServiceRow(string label, string serviceId)
     {
-        _connections = Status.Snapshot();
-        _gsx = Diagnostics.Snapshot();
-
-        Status.Changed += OnStatusChanged;
-        Diagnostics.Changed += OnDiagnosticsChanged;
-        FlightState.PhaseChanged += OnPhaseChanged;
-        Profiles.Changed += OnDataChanged;
-
-        // The log buffer intentionally has no per-event fan-out (logging must stay cheap),
-        // so the warn/err header counts refresh on a slow timer.
-        _headerTimer = new Timer(_ => _ = InvokeAsync(StateHasChanged),
-            null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
-
-        AddSample("Indicated airspeed (kt)", "aircraft.speed.ias", DataRefTier.Frequent,
-            subscription => subscription.GetValue(double.NaN) is var v && double.IsNaN(v) ? "—" : v.ToString("F0"));
-        AddSample("Fuel on board (kg)", "aircraft.fuel.total.amount.kg", DataRefTier.Normal,
-            subscription => subscription.GetValue(double.NaN) is var v && double.IsNaN(v) ? "—" : v.ToString("F0"));
-        AddSample("Gear down", "aircraft.gearDown", DataRefTier.Normal,
-            subscription => subscription.RawValue is null ? "—" : subscription.GetValue(false) ? "yes" : "no");
+        var state = ServiceState(serviceId);
+        var tone = state switch
+        {
+            "Completed" => "tone-ok",
+            "Active" => "tone-active",
+            "Requested" => "tone-warn",
+            "Unknown" or null => "tone-neutral",
+            _ => "tone-neutral",
+        };
+        return @<div class="row">
+            <span class="row-label">@label</span>
+            <span class="pill @tone">@(state ?? "—")</span>
+        </div>;
     }
 
-    private void AddSample(string label, string name, DataRefTier tier, Func<IDataRefSubscription, string> display)
+    private RenderFragment ConnectedRow(string label, string serviceId)
     {
-        var subscription = DataRefs.Subscribe(name, tier);
-        subscription.ValueChanged += OnDataChanged;
-        _samples.Add(new Sample(label, subscription, display));
+        // The mirror keeps jetway/stairs docked state in the service's mapped state text.
+        var state = ServiceState(serviceId);
+        var connected = string.Equals(state, "Active", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(state, "Completed", StringComparison.OrdinalIgnoreCase);
+        return @<div class="row">
+            <span class="row-label">@label</span>
+            <span class="pill @(connected ? "tone-ok" : "tone-neutral")">@(connected ? "Connected" : "—")</span>
+        </div>;
     }
+
+    private string? ServiceState(string serviceId)
+        => _gsx.Services.FirstOrDefault(service =>
+            string.Equals(service.Id, serviceId, StringComparison.OrdinalIgnoreCase))
+            is { } view ? view.SemanticState ?? view.MappedState : null;
 
     private static string ToSpacedUpper(string pascal)
     {
@@ -236,6 +209,18 @@
             result.Append(char.ToUpperInvariant(ch));
         }
         return result.ToString();
+    }
+
+    protected override void OnInitialized()
+    {
+        _connections = Status.Snapshot();
+        _gsx = Diagnostics.Snapshot();
+
+        Status.Changed += OnStatusChanged;
+        Diagnostics.Changed += OnDiagnosticsChanged;
+        FlightState.PhaseChanged += OnPhaseChanged;
+        Profiles.Changed += OnDataChanged;
+        Audio.Changed += OnDataChanged;
     }
 
     private void OnStatusChanged(object? sender, EventArgs e)
@@ -261,20 +246,10 @@
 
     public void Dispose()
     {
-        _headerTimer?.Dispose();
         Status.Changed -= OnStatusChanged;
         Diagnostics.Changed -= OnDiagnosticsChanged;
         FlightState.PhaseChanged -= OnPhaseChanged;
         Profiles.Changed -= OnDataChanged;
-        foreach (var sample in _samples)
-        {
-            sample.Subscription.ValueChanged -= OnDataChanged;
-            sample.Subscription.Dispose();
-        }
-    }
-
-    private sealed record Sample(string Label, IDataRefSubscription Subscription, Func<IDataRefSubscription, string> Format)
-    {
-        public string Display() => Format(Subscription);
+        Audio.Changed -= OnDataChanged;
     }
 }

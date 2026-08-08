@@ -88,6 +88,11 @@ public sealed class GsxOptions
     /// <summary>Answer the "Do you want to request …" pushback confirmation with yes.</summary>
     public bool ConfirmPushbackRequest { get; set; } = true;
 
+    /// <summary>Direction auto-picked when GSX raises the "Select pushback direction" menu:
+    /// "straight" | "tailLeft" | "tailRight" (Prosim2GSX's tri-state, set from the OFP page's
+    /// Korry buttons). Matching is by entry text; no match leaves the menu for the user.</summary>
+    public string PushbackPreference { get; set; } = "straight";
+
     /// <summary>Accept the de-icing offer and select fluid automatically.</summary>
     public bool AutoDeIce { get; set; }
 
@@ -109,6 +114,10 @@ public sealed class GsxOptions
     /// <summary>Arrival gate to arm automatically when reaching flight (e.g. "B12"); empty ⇒
     /// none (a gate can still be armed from the GSX diagnostics page).</summary>
     public string ArrivalGate { get; set; } = "";
+
+    /// <summary>ICAO prefixes (1–4 letters) identifying company-hub airports, matched against
+    /// the loaded airport for the CompanyHub/NonCompanyHub departure-service constraints.</summary>
+    public List<string> CompanyHubs { get; set; } = [];
 
     // ---- ProSim sync modules ----
 

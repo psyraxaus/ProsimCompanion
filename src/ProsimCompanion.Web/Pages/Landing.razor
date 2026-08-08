@@ -1,0 +1,665 @@
+@page "/landing"
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Aircraft.Gateway
+@using ProsimCompanion.Core.Aircraft.Ofp
+@implements IDisposable
+@inject IProsimGateway Gateway
+@inject OfpStore Ofp
+
+<PageTitle>Landing Performance — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Landing Performance</h1>
+
+<div class="perf-panel">
+    <div class="perf-header">
+        <span class="perf-title">LANDING PERFORMANCE</span>
+        <span class="perf-flightinfo">@(_icao is { Length: > 0 } ? _icao : "----")</span>
+    </div>
+
+    <div class="perf-body">
+        @* ─── Column 1: Airport + runway-condition picker ─────────────── *@
+        <div class="perf-column">
+            <div class="perf-column-title">Airport / Runway</div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">ICAO</span>
+                <span class="perf-field-value">
+                    <input type="text" class="perf-icao-input" maxlength="4"
+                           @bind="_icao" @bind:after="OnIcaoCommitAsync" />
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Runway</span>
+                <span class="perf-field-value">
+                    <span class="perf-runway-dropdown">
+                        <select aria-label="Runway"
+                                disabled="@(_runways is null || _runways.Count == 0)"
+                                @bind="_runwayId" @bind:after="ScheduleRecalc">
+                            @if (_runways is null || _runways.Count == 0)
+                            {
+                                <option value="">—</option>
+                            }
+                            else
+                            {
+                                @foreach (var runway in _runways)
+                                {
+                                    <option value="@runway.RunwayId">RWY @runway.RunwayId@(runway.LengthFt is > 0 ? $" · {runway.LengthFt} ft" : "")</option>
+                                }
+                            }
+                        </select>
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-column-title perf-sub">Runway Condition</div>
+            <div class="perf-surface-strip">
+                @foreach (var option in SurfaceOptions)
+                {
+                    var code = option.Code;
+                    <button type="button" class="perf-surface-btn @(code == _rwySurfaceCode ? "active" : "")"
+                            @onclick="() => SetInput(() => _rwySurfaceCode = code)">@option.Label</button>
+                }
+            </div>
+
+            <div class="perf-column-title perf-sub">Wind / Weather</div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Wind</span>
+                <span class="perf-field-value">
+                    <span class="perf-wind-row">
+                        <input type="text" maxlength="3" aria-label="Wind direction"
+                               @bind="_windDir" @bind:after="OnInputChanged" />
+                        <span class="perf-wind-sep">/</span>
+                        <span class="perf-kbd">
+                            <input type="number" min="0" style="width:3ch" aria-label="Wind speed"
+                                   @bind="_windKt" @bind:after="OnInputChanged" />
+                            <span class="perf-unit">kt</span>
+                        </span>
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">OAT</span>
+                <span class="perf-field-value">
+                    <span class="perf-kbd">
+                        <input type="number" style="width:4ch" aria-label="OAT"
+                               @bind="_oat" @bind:after="OnInputChanged" />
+                        <span class="perf-unit">°C</span>
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">QNH</span>
+                <span class="perf-field-value">
+                    <span class="perf-kbd">
+                        <input type="number" min="900" max="1100" style="width:5ch" aria-label="QNH"
+                               @bind="_qnh" @bind:after="OnInputChanged" />
+                        <span class="perf-unit">hPa</span>
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        @* ─── Column 2: Aircraft config ───────────────────────────────── *@
+        <div class="perf-column">
+            <div class="perf-column-title">Aircraft Config</div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Ldg weight</span>
+                <span class="perf-field-value">
+                    <span class="perf-kbd">
+                        <input type="number" min="0" step="0.1" style="width:5ch" aria-label="Landing weight"
+                               @bind="_ldgWeightTons" @bind:after="OnInputChanged" />
+                        <span class="perf-unit">t</span>
+                    </span>
+                </span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Flap</span>
+                <span class="perf-field-value">@Toggle(FlapOptions, _flapConfig, v => SetInput(() => _flapConfig = v))</span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Brake</span>
+                <span class="perf-field-value">@Toggle(BrakeOptions, _brakeMode, v => SetInput(() => _brakeMode = v))</span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Reverse</span>
+                <span class="perf-field-value">@Toggle(RevOptions, _revMode, v => SetInput(() => _revMode = v))</span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">Autoland</span>
+                <span class="perf-field-value">@Toggle(AutolandOptions, _autolandMode, v => SetInput(() => _autolandMode = v))</span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">A/THR</span>
+                <span class="perf-field-value">@Toggle(AthrOptions, _athr, v => SetInput(() => _athr = v))</span>
+            </div>
+
+            <div class="perf-field-row">
+                <span class="perf-field-label">VAPP override</span>
+                <span class="perf-field-value">
+                    <span class="perf-kbd">
+                        <input type="number" min="0" style="width:4ch" aria-label="VAPP override"
+                               @bind="_vappOverride" @bind:after="OnInputChanged" />
+                        <span class="perf-unit">kt</span>
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        @* ─── Column 3: Output ────────────────────────────────────────── *@
+        <div class="perf-column">
+            <div class="perf-column-title">Output</div>
+
+            @if (_isNoData)
+            {
+                <div class="perf-banner perf-banner-warn">NO PERFORMANCE DATA</div>
+            }
+            @if (_retreatFlap)
+            {
+                <div class="perf-banner perf-banner-warn">RETREAT FLAP CONFIG</div>
+            }
+
+            <div class="perf-out-frame">
+                <div class="perf-out-row">
+                    <span class="perf-out-label">LDR</span>
+                    <span>
+                        <span class="perf-out-value perf-out-value-big @ValClass(_visualDistClass)">@(ShowResult ? _ldrM.ToString(CultureInfo.InvariantCulture) : "----")</span>
+                        <span class="perf-out-unit">m</span>
+                    </span>
+                </div>
+                <div class="perf-out-row">
+                    <span class="perf-out-label">LDR + 15%</span>
+                    <span>
+                        <span class="perf-out-value @ValClass(_visualDistClass)">@(ShowResult ? _ldr15M.ToString(CultureInfo.InvariantCulture) : "----")</span>
+                        <span class="perf-out-unit">m</span>
+                    </span>
+                </div>
+                <div class="perf-out-row">
+                    <span class="perf-out-label">LDA</span>
+                    <span>
+                        <span class="perf-out-value @ValClass(_visualDistClass)">@(_ldaM > 0 ? Math.Round(_ldaM).ToString(CultureInfo.InvariantCulture) : "----")</span>
+                        <span class="perf-out-unit">m</span>
+                    </span>
+                </div>
+                <div class="perf-out-row">
+                    <span class="perf-out-label">@(_hwKt < 0 ? "TW (KT)" : "HW (KT)")</span>
+                    <span class="perf-out-value @ValClass(_hwClass)">@(ShowResult ? Math.Round(Math.Abs(_hwKt)).ToString(CultureInfo.InvariantCulture) : "----")</span>
+                </div>
+                <div class="perf-out-row">
+                    <span class="perf-out-label">XW (KT)</span>
+                    <span class="perf-out-value @ValClass(_xwClass)">@(ShowResult ? Math.Round(Math.Abs(_xwKt)).ToString(CultureInfo.InvariantCulture) : "----")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="perf-footer">
+        <div class="perf-metar-strip">
+            <div class="perf-metar-header">
+                <span>METAR @(_icao is { Length: > 0 } ? _icao : "----")</span>
+                @if (_metarFetchedAt is { } fetched)
+                {
+                    <span>· @fetched.ToString("HH:mm", CultureInfo.InvariantCulture)Z</span>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_metarText))
+            {
+                <div class="perf-metar-text">@_metarText.Trim()</div>
+            }
+            else
+            {
+                <div class="perf-metar-missing">No METAR available</div>
+            }
+        </div>
+
+        @if (_lastError is not null)
+        {
+            <div class="perf-error-row">@_lastError</div>
+        }
+
+        <div class="perf-actions">
+            @* v2 placeholder — failure cases arrive in a future release. *@
+            <button type="button" class="perf-action-btn" disabled
+                    title="Failure cases arrive in a future release">Failures…</button>
+            <button type="button" class="perf-action-btn perf-action-flex" disabled="@IsBusy" @onclick="OnResetClick">
+                @(_resetArmed ? "Confirm Reset?" : "Reset")
+            </button>
+            @if (IsBusy)
+            {
+                <span class="perf-busy">Working…</span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly string[] FlapOptions = ["FULL", "3"];
+    private static readonly string[] BrakeOptions = ["LOW", "MED", "MAX"];
+    private static readonly string[] RevOptions = ["idle", "max"];
+    private static readonly string[] AutolandOptions = ["manual", "auto"];
+    private static readonly string[] AthrOptions = ["0", "1"];
+
+    // Runway-condition strip. Codes are fixed by the gateway: 6=Dry … 1=Poor.
+    // Displayed Dry → Poor (descending code) to match the EFB.
+    private static readonly (int Code, string Label)[] SurfaceOptions =
+    [
+        (6, "Dry"),
+        (5, "Good"),
+        (4, "G/M"),
+        (3, "Med"),
+        (2, "M/P"),
+        (1, "Poor"),
+    ];
+
+    // Autoland crosswind limits (kt) indexed by runway condition code 1–6
+    // (6=Dry … 1=Poor). Sourced from the EFB JS landing calculator — do NOT
+    // collapse the duplicate 38s, they're real (codes 5 and 6 both pin to 38).
+    private static readonly int[] CrosswindLimitKt = [15, 20, 25, 29, 38, 38];
+
+    private string _icao = "";
+    private IReadOnlyList<RunwayResponse>? _runways;
+    private string? _runwayId;
+    private int _rwySurfaceCode = 6;
+    private int _oat;
+    private int _qnh = 1013;
+    private string _windDir = "0";
+    private int _windKt;
+    private double _ldgWeightTons;
+    private string _flapConfig = "FULL";
+    private string _brakeMode = "MED";
+    private string _revMode = "idle";
+    private string _autolandMode = "manual";
+    private string _athr = "1";
+    private int _vappOverride;
+    private bool _loading;
+    private bool _calculating;
+    private string? _lastError;
+    private string? _metarText;
+    private DateTime? _metarFetchedAt;
+
+    // Result state (client-side ApplyResult port of the predecessor's
+    // LandingPerfService — LDA / HW / XW / colour classes).
+    private bool _hasResult;
+    private bool _isNoData;
+    private bool _retreatFlap;
+    private int _ldrM;
+    private int _ldr15M;
+    private double _ldaM;
+    private double _hwKt;
+    private double _xwKt;
+    private string _hwClass = "normal";
+    private string _xwClass = "normal";
+    private string _visualDistClass = "normal";
+
+    // Landing auto-recalculates: input changes debounce 500 ms, then recalc.
+    // Reset uses a two-click arm (no window.confirm without JS interop).
+    private System.Threading.Timer? _recalcTimer;
+    private System.Threading.Timer? _resetArmTimer;
+    private bool _resetArmed;
+
+    private bool IsBusy => _loading || _calculating;
+
+    private bool ShowResult => _hasResult && !_isNoData && !_retreatFlap;
+
+    protected override void OnInitialized()
+    {
+        _recalcTimer = new System.Threading.Timer(
+            _ => _ = InvokeAsync(async () =>
+            {
+                await CalculateAsync();
+                StateHasChanged();
+            }),
+            null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+        _resetArmTimer = new System.Threading.Timer(
+            _ => _ = InvokeAsync(() => { _resetArmed = false; StateHasChanged(); }),
+            null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+
+        SeedFromContext();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // A seeded 4-letter destination loads runways + METAR and calculates
+        // immediately, matching the ICAO-commit path.
+        if (firstRender && _icao.Length == 4)
+        {
+            await LoadAirportAsync();
+            await CalculateAsync();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _recalcTimer?.Dispose();
+        _resetArmTimer?.Dispose();
+    }
+
+    private void SeedFromContext()
+    {
+        var ofp = Ofp.Current;
+        _icao = ofp?.DestinationIcao ?? "";
+        _ldgWeightTons = ofp?.EstLdwKg > 0 ? ofp.EstLdwKg / 1000.0 : 0;  // tonnes wire scale
+    }
+
+    private RunwayResponse? SelectedRunway()
+        => _runways?.FirstOrDefault(runway => runway.RunwayId == _runwayId);
+
+    private void SetInput(Action apply)
+    {
+        apply();
+        ScheduleRecalc();
+    }
+
+    private void OnInputChanged()
+    {
+        _windDir = (_windDir ?? "").Trim().ToUpperInvariant();
+        if (_windDir.Length > 3)
+        {
+            _windDir = _windDir[..3];
+        }
+        if (_windKt < 0) _windKt = 0;
+        if (_qnh < 900) _qnh = 900;
+        else if (_qnh > 1100) _qnh = 1100;
+        if (_ldgWeightTons < 0) _ldgWeightTons = 0;
+        if (_vappOverride < 0) _vappOverride = 0;
+        ScheduleRecalc();
+    }
+
+    private void ScheduleRecalc() => _recalcTimer?.Change(500, System.Threading.Timeout.Infinite);
+
+    /// <summary>Runway ident → numeric QDM: "27L" → 270 (the request wants heading, not the
+    /// surveyed true heading).</summary>
+    private static int RunwayQdm(string? runwayId)
+    {
+        var digits = new string((runwayId ?? "").TakeWhile(char.IsDigit).ToArray());
+        return int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            ? number * 10
+            : 0;
+    }
+
+    private static int ParseFeet(string? text)
+        => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
+
+    private static string ValClass(string code) => code switch
+    {
+        "red" => "perf-val-red",
+        "red-margin" => "perf-val-red-margin",
+        _ => "perf-val-normal",
+    };
+
+    private async Task OnIcaoCommitAsync()
+    {
+        var icao = (_icao ?? "").Trim().ToUpperInvariant();
+        if (icao.Length > 4)
+        {
+            icao = icao[..4];
+        }
+        _icao = icao;
+        _runways = null;
+        _runwayId = null;
+        _hasResult = false;
+        _isNoData = false;
+        _retreatFlap = false;
+        if (icao.Length == 4)
+        {
+            await LoadAirportAsync();
+            await CalculateAsync();
+        }
+    }
+
+    private async Task LoadAirportAsync()
+    {
+        _loading = true;
+        _lastError = null;
+        try
+        {
+            var icao = _icao.Trim().ToUpperInvariant();
+            var runways = await Gateway.GetRunwaysAsync(icao, includeIntersections: false);
+            if (runways is null || runways.Count == 0)
+            {
+                _lastError = "No runway data for that airport.";
+                return;
+            }
+            _runways = runways;
+            _runwayId = runways[0].RunwayId;
+            ApplyMetar(await Gateway.GetMetarAsync(icao));
+        }
+        catch (Exception ex)
+        {
+            // Degrade, not fail: a dead gateway surfaces as an error row, not a circuit crash.
+            _lastError = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ApplyMetar(Metar? metar)
+    {
+        if (metar is null)
+        {
+            _metarText = null;
+            _metarFetchedAt = null;
+            return;
+        }
+
+        _metarText = metar.MetarText;
+        _metarFetchedAt = DateTime.UtcNow;
+
+        // Altim rides the gateway's ×100 hPa convention when large; plain hPa otherwise.
+        var qnh = metar.Altim > 10000 ? (int)Math.Round(metar.Altim / 100.0) : metar.Altim;
+        _oat = metar.Temperature;
+        if (qnh > 0)
+        {
+            _qnh = qnh;
+        }
+        _windDir = string.IsNullOrWhiteSpace(metar.WindDir) ? "0" : metar.WindDir.Trim();
+        _ = int.TryParse(metar.WindSpeed?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var windKt);
+        _windKt = windKt;
+    }
+
+    private async Task CalculateAsync()
+    {
+        var runway = SelectedRunway();
+        if (runway is null || _ldgWeightTons <= 0)
+        {
+            // Auto-recalc fires on every input; missing prerequisites just leave
+            // the output dashed rather than spamming errors.
+            return;
+        }
+
+        _calculating = true;
+        _lastError = null;
+        try
+        {
+            // Predecessor rule: a VRB wind goes to the LDR calc as the runway's reciprocal
+            // heading — a conservative direct-tailwind assumption. The same effective heading
+            // feeds the client-side HW/XW derivation.
+            var qdm = RunwayQdm(runway.RunwayId);
+            string wireWindDir;
+            double effectiveWindDeg;
+            if (string.Equals(_windDir.Trim(), "VRB", StringComparison.OrdinalIgnoreCase))
+            {
+                var reciprocal = qdm > 180 ? qdm - 180 : qdm + 180;
+                effectiveWindDeg = reciprocal;
+                wireWindDir = reciprocal.ToString(CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                effectiveWindDeg = double.TryParse(_windDir, NumberStyles.Float, CultureInfo.InvariantCulture, out var deg) ? deg : 0;
+                wireWindDir = _windDir;
+            }
+
+            var request = new CalcLdrRequest
+            {
+                Qdm = qdm,
+                Elev = ParseFeet(runway.ElevationFt),
+                WindDir = wireWindDir,
+                WindSpeed = _windKt,
+                Oat = _oat,
+                Slp = _qnh,
+                BreakAction = _rwySurfaceCode,
+                AircraftSpeed = _vappOverride > 0 ? _vappOverride : null,
+                LdgW = (float)_ldgWeightTons,               // tonnes wire scale
+                BreakMode = _brakeMode,
+                Rev = _revMode,
+                Autoland = string.Equals(_autolandMode, "auto", StringComparison.OrdinalIgnoreCase) ? "1" : "0",
+                FlapConfig = _flapConfig,
+                Athr = _athr,
+            };
+
+            var result = await Gateway.CalculateLandingDistanceAsync(request);
+            if (result is null)
+            {
+                _lastError = "Calculation request failed — is ProSim running?";
+                _hasResult = false;
+            }
+            else
+            {
+                ApplyResult(result, runway, effectiveWindDeg, qdm);
+            }
+        }
+        catch (Exception ex)
+        {
+            _lastError = ex.Message;
+            _hasResult = false;
+        }
+        finally
+        {
+            _calculating = false;
+        }
+    }
+
+    /// <summary>Port of the predecessor's ApplyResult: LDA subtracts the displaced threshold;
+    /// HW/XW are perpendicular wind components against the runway QDM; the colour classes
+    /// replicate the EFB's red / red-margin thresholds exactly.</summary>
+    private void ApplyResult(CalcLdrResponse result, RunwayResponse runway, double windDeg, int qdm)
+    {
+        _hasResult = true;
+        _isNoData = result.Ldr == 0;
+        _retreatFlap = result.Ldr == -2;       // A320 path doesn't emit it — defensive
+
+        if (_isNoData || _retreatFlap)
+        {
+            _ldrM = 0;
+            _ldr15M = 0;
+        }
+        else
+        {
+            _ldrM = result.Ldr;
+            _ldr15M = (int)Math.Round(1.15 * result.Ldr);
+        }
+
+        // LDA: usable landing distance after subtracting the displaced threshold (metres).
+        var displacedFt = ParseFeet(runway.Dt);
+        _ldaM = ((runway.LengthFt ?? 0) - displacedFt) / 3.28084;
+
+        // Head/cross wind. Signed: positive HW = headwind, negative HW = tailwind.
+        var diffDeg = Math.Abs(qdm - windDeg);
+        var rad = diffDeg * Math.PI / 180.0;
+        _hwKt = Math.Cos(rad) * _windKt;
+        _xwKt = Math.Sin(rad) * _windKt;
+
+        var autoland = string.Equals(_autolandMode, "auto", StringComparison.OrdinalIgnoreCase);
+        // HW: red if tailwind > 10 kt, or (autoland AND headwind > 30 kt).
+        _hwClass = (_hwKt < -10 || (_hwKt > 30 && autoland)) ? "red" : "normal";
+
+        var absXw = (int)Math.Round(Math.Abs(_xwKt));
+        if (autoland)
+        {
+            var code = Math.Clamp(_rwySurfaceCode, 1, 6);
+            _xwClass = absXw > CrosswindLimitKt[code - 1] ? "red" : "normal";
+        }
+        else
+        {
+            _xwClass = absXw > 20 ? "red" : "normal";
+        }
+
+        if (_isNoData || _retreatFlap)
+        {
+            _visualDistClass = "normal";
+        }
+        else if (_ldaM < result.Ldr)
+        {
+            _visualDistClass = "red";
+        }
+        else if (_ldaM < 1.15 * result.Ldr)
+        {
+            _visualDistClass = "red-margin";
+        }
+        else
+        {
+            _visualDistClass = "normal";
+        }
+    }
+
+    private void OnResetClick()
+    {
+        if (!_resetArmed)
+        {
+            _resetArmed = true;
+            _resetArmTimer?.Change(3000, System.Threading.Timeout.Infinite);
+            return;
+        }
+
+        _resetArmed = false;
+        _resetArmTimer?.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+        DoReset();
+    }
+
+    private void DoReset()
+    {
+        _recalcTimer?.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+        _runways = null;
+        _runwayId = null;
+        _rwySurfaceCode = 6;
+        _oat = 0;
+        _qnh = 1013;
+        _windDir = "0";
+        _windKt = 0;
+        _flapConfig = "FULL";
+        _brakeMode = "MED";
+        _revMode = "idle";
+        _autolandMode = "manual";
+        _athr = "1";
+        _vappOverride = 0;
+        _lastError = null;
+        _metarText = null;
+        _metarFetchedAt = null;
+        _hasResult = false;
+        _isNoData = false;
+        _retreatFlap = false;
+        _ldrM = 0;
+        _ldr15M = 0;
+        _ldaM = 0;
+        _hwKt = 0;
+        _xwKt = 0;
+        _hwClass = "normal";
+        _xwClass = "normal";
+        _visualDistClass = "normal";
+        SeedFromContext();
+    }
+
+    // ── Small render helper (port of the panel-local React ToggleGroup) ──
+
+    private RenderFragment Toggle(string[] options, string current, Action<string> onSet) =>
+        @<span class="perf-toggle-row">
+            @foreach (var opt in options)
+            {
+                var value = opt;
+                <button type="button" class="perf-toggle-btn @(value == current ? "active" : "")"
+                        @onclick="() => onSet(value)">@value</button>
+            }
+        </span>;
+}

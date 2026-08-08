@@ -1,100 +1,168 @@
 @page "/init"
+@using System.Globalization
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
 @implements IDisposable
 @inject OfpStore Ofp
 @inject IEfbInitOverrides Overrides
 @inject IFmsInitSync FmsSync
+@inject ISimbriefImporter Simbrief
+@inject ILoadsheetControl LoadsheetControl
 
 <PageTitle>EFB INIT — ProsimCompanion</PageTitle>
 <h1 class="sr-only">EFB INIT</h1>
 
-<div class="status-panel">
+@* Airbus FMS-style INIT page — pixel port of Prosim2GSX's web EFB InitPanel.
+   Two MCDU-like columns (ACTIVE / INIT + DATA / STATUS) over a full-width
+   action row. The four writable rows (ZFW / FUEL RAMP / PAX / CARGO) are
+   click-to-edit: the value cell swaps for an inline input with ENT / CLR
+   keys, range-validated against FieldRanges below; out-of-range commits
+   flash a red hint and reject without writing. *@
 
-    <section class="status-section">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">INIT — plan figures</h3>
-        <div class="section-body">
-            @if (_ofp is null)
-            {
-                <div class="empty">No OFP imported. Fetch one on the Flight Data page first — overrides need a baseline.</div>
-            }
-            else
-            {
-                @foreach (var field in WritableFields)
+<div class="init-panel">
+    <div class="init-inner">
+        <div class="init-columns">
+
+            @* LEFT — ACTIVE / INIT *@
+            <div class="init-column">
+                <div class="init-title">ACTIVE / INIT</div>
+                <div class="init-separator"></div>
+
+                @Row("FLT NBR", FlightNumber, 6)
+
+                <div class="init-row-split">
+                    <span class="init-label">FROM</span>
+                    @ValueCell(_ofp?.OriginIcao, 4)
+                    <span class="init-label">TO</span>
+                    @ValueCell(_ofp?.DestinationIcao, 4)
+                    <span class="init-label">ALTN</span>
+                    @ValueCell(_ofp?.AlternateIcao, 4)
+                </div>
+
+                @Row("RWY OUT/IN", RwyOutIn, 5)
+                @Row("CALLSIGN", _ofp?.Callsign, 6)
+
+                <div class="init-separator"></div>
+
+                @Row("CRZ FL", CruiseFl, 5)
+                @Row("CI", CostIndex, 3)
+                @Row("CPNY RTE", CompanyRoute, 10)
+
+                <div class="init-separator"></div>
+
+                @Row("STD", FormatZulu(_ofp?.ScheduledOutUtc), 4)
+                @Row("ETA", FormatZulu(Eta), 4)
+
+                <div class="init-separator"></div>
+
+                <div class="init-status-row">
+                    <span class="init-status-dot @Status.Dot"></span>
+                    <span class="init-value">@Status.Label</span>
+                    <span class="init-label">@SourceLabel</span>
+                </div>
+                @if (_lastFetchError is not null)
                 {
-                    var overridden = _overrides.TryGetValue(field.Key, out var overrideValue);
-                    <div class="row">
-                        <span class="row-label">@field.Label</span>
-                        <span class="row-value-mono">@field.OfpDisplay(_ofp)@(overridden ? $" → {overrideValue:F0}" : "")</span>
-                        <input class="number-input" type="number" placeholder="override" @bind="_drafts[field.Key]" />
-                        <button type="button" class="btn secondary" disabled="@_busy" @onclick="() => Apply(field.Key)">Set</button>
-                        @if (overridden)
-                        {
-                            <button type="button" class="btn secondary" disabled="@_busy" @onclick="() => Clear(field.Key)">Clear</button>
-                        }
-                    </div>
+                    <div class="init-error-line">@_lastFetchError</div>
                 }
-                <div class="row">
-                    <span class="row-label"></span>
-                    <span class="row-value">Set writes the value to the aircraft immediately; Clear restores the OFP figure. Overrides reset on a new OFP or turnaround.</span>
-                </div>
-                <div class="row">
-                    <button type="button" class="btn secondary" disabled="@(_busy || _overrides.Count == 0)" @onclick="ClearAll">Clear all overrides</button>
-                    <button type="button" class="btn primary" disabled="@_busy" @onclick="SyncFms">Sync ZFW/ZFWCG/Block to FMS</button>
-                    @if (_status is not null)
-                    {
-                        <span class="row-value">@_status</span>
-                    }
-                </div>
-            }
-        </div>
-    </section>
+                @if (_fetchPhase.Length > 0)
+                {
+                    <div class="init-fetch-phase">@_fetchPhase</div>
+                }
+            </div>
 
-    <section class="status-section">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">OFP reference (display only)</h3>
-        <div class="section-body">
-            @if (_ofp is null)
-            {
-                <div class="empty">—</div>
-            }
-            else
-            {
-                <div class="row"><span class="row-label">Route</span><span class="row-value-mono">@_ofp.OriginIcao → @_ofp.DestinationIcao@(string.IsNullOrEmpty(_ofp.AlternateIcao) ? "" : $" / {_ofp.AlternateIcao}")</span></div>
-                <div class="row"><span class="row-label">Trip fuel</span><span class="row-value-mono">@($"{Math.Max(0, _ofp.FuelPlanRampKg - _ofp.FuelTaxiKg - _ofp.FuelPlanLandingKg):F0} kg")</span></div>
-                <div class="row"><span class="row-label">Taxi fuel</span><span class="row-value-mono">@($"{_ofp.FuelTaxiKg:F0} kg")</span></div>
-                <div class="row"><span class="row-label">Planned landing fuel</span><span class="row-value-mono">@($"{_ofp.FuelPlanLandingKg:F0} kg")</span></div>
-                <div class="row"><span class="row-label">Est TOW / LDW</span><span class="row-value-mono">@($"{_ofp.EstTowKg:F0} / {_ofp.EstLdwKg:F0} kg")</span></div>
-                <div class="row"><span class="row-label">Max ZFW / TOW / LDW</span><span class="row-value-mono">@($"{_ofp.MaxZfwKg:F0} / {_ofp.MaxTowKg:F0} / {_ofp.MaxLdwKg:F0} kg")</span></div>
-                <div class="row"><span class="row-label">Enroute time</span><span class="row-value-mono">@(_ofp.EstimatedEnroute is { } enroute ? $"{(int)enroute.TotalHours}:{enroute.Minutes:D2}" : "—")</span></div>
-            }
-        </div>
-    </section>
+            @* RIGHT — DATA / STATUS *@
+            <div class="init-column">
+                <div class="init-title">DATA / STATUS</div>
+                <div class="init-separator"></div>
 
+                @Row("ACFT", _ofp?.AircraftIcaoType, 8)
+                @Row("REG", _ofp?.AircraftReg, 6)
+
+                <div class="init-separator"></div>
+
+                @EditableRow("ZFW", IEfbInitOverrides.ZfwKg, _ofp?.EstZfwKg ?? 0, FormatKg)
+                @FuelRow("OEW", Oew)
+                @EditableRow("FUEL RAMP", IEfbInitOverrides.FuelRampKg, _ofp?.FuelPlanRampKg ?? 0, FormatKg)
+                @FuelRow("FUEL TRIP", FuelTrip)
+                @FuelRow("FUEL MIN", FuelMin)
+                @FuelRow("FUEL EXTRA", FuelExtra)
+                @EditableRow("PAX", IEfbInitOverrides.PassengerCount, _ofp?.PaxCount ?? 0, FormatPax)
+                @EditableRow("CARGO", IEfbInitOverrides.CargoKg, _ofp?.CargoKg ?? 0, FormatKg)
+
+                <div class="init-separator"></div>
+                <div class="init-fetched-at">@FetchedAt</div>
+            </div>
+        </div>
+
+        @* ACTIONS — full-width row spanning both columns *@
+        <div class="init-actions">
+            <button type="button" class="init-btn init-btn-primary"
+                    disabled="@(_busy is not null)" @onclick="FetchOfp">
+                @(_busy == "fetch" ? "FETCHING…" : "FETCH OFP")
+            </button>
+            <button type="button" class="init-btn init-btn-primary"
+                    disabled="@(_busy is not null || _ofp is null)" @onclick="SyncFms">
+                @(_busy == "sync" ? "SYNCING…" : "SYNC TO FMS")
+            </button>
+            <button type="button" class="init-btn init-btn-amber"
+                    disabled="@(_busy is not null || _overrides.Count == 0)" @onclick="ClearOverrides">
+                @(_busy == "clear" ? "CLEARING…" : "CLEAR OVERRIDES")
+            </button>
+            <button type="button" class="init-btn init-btn-warn"
+                    disabled="@(_busy is not null)" @onclick="ResetFlight">
+                @(_busy == "reset" ? "RESETTING…" : _resetArmed ? "CONFIRM RESET" : "RESET FLIGHT")
+            </button>
+        </div>
+    </div>
 </div>
 
 @code {
-    private sealed record FieldRow(string Key, string Label, Func<OfpData, string> OfpDisplay);
+    // Sensible per-field bounds for override validation — same values as the
+    // predecessor. Loose enough for non-A320 airframes, tight enough to catch
+    // typos like an extra digit.
+    private sealed record FieldRange(double Min, double Max, bool Integer = false);
 
-    private static readonly FieldRow[] WritableFields =
+    private static readonly Dictionary<string, FieldRange> FieldRanges = new()
+    {
+        [IEfbInitOverrides.ZfwKg] = new(30_000, 70_000),
+        [IEfbInitOverrides.FuelRampKg] = new(0, 25_000),
+        [IEfbInitOverrides.PassengerCount] = new(0, 220, Integer: true),
+        [IEfbInitOverrides.CargoKg] = new(0, 8_000),
+    };
+
+    // Fake-phased fetch indicator — the import is one awaited call, but the
+    // predecessor cycles this text (~700 ms per step, matching the actual
+    // server-side sequence) so the user sees something happening.
+    private static readonly string[] FetchPhases =
     [
-        new(IEfbInitOverrides.ZfwKg, "ZFW (kg)", ofp => ofp.EstZfwKg > 0 ? $"{ofp.EstZfwKg:F0}" : "—"),
-        new(IEfbInitOverrides.FuelRampKg, "Block fuel (kg)", ofp => $"{ofp.FuelPlanRampKg:F0}"),
-        new(IEfbInitOverrides.CargoKg, "Cargo (kg)", ofp => $"{ofp.CargoKg:F0}"),
-        new(IEfbInitOverrides.PassengerCount, "Passengers", ofp => $"{ofp.PaxCount}"),
+        "CONTACTING SIMBRIEF...",
+        "PARSING OFP...",
+        "WRITING TO FMS...",
     ];
 
     private OfpData? _ofp;
     private IReadOnlyDictionary<string, double> _overrides = new Dictionary<string, double>();
-    private readonly Dictionary<string, double?> _drafts = new();
-    private bool _busy;
-    private string? _status;
+
+    private string? _busy; // "fetch" | "sync" | "clear" | "reset" | null
+    private string? _lastFetchError;
+    private bool _resetArmed;
+
+    // Inline-editor state. Only one row is ever in edit mode at a time.
+    private string? _editingField;
+    private string _editValue = "";
+    private string? _editError;
+    private ElementReference _editInput;
+    private bool _focusEditor;
+
+    private string _fetchPhase = "";
+    private int _phaseIndex;
+
+    private Timer? _phaseTimer;
+    private Timer? _resetDisarmTimer;
+    private Timer? _editErrorTimer;
 
     protected override void OnInitialized()
     {
-        foreach (var field in WritableFields)
-        {
-            _drafts[field.Key] = null;
-        }
         Ofp.Changed += OnChanged;
         Overrides.Changed += OnChanged;
         _ofp = Ofp.Current;
@@ -105,8 +173,12 @@
     {
         Ofp.Changed -= OnChanged;
         Overrides.Changed -= OnChanged;
+        _phaseTimer?.Dispose();
+        _resetDisarmTimer?.Dispose();
+        _editErrorTimer?.Dispose();
     }
 
+    // Store Changed events fire on writer threads — marshal onto the renderer.
     private void OnChanged(object? sender, EventArgs e)
         => _ = InvokeAsync(() =>
         {
@@ -115,75 +187,336 @@
             StateHasChanged();
         });
 
-    private async Task Apply(string field)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_drafts[field] is not { } value)
+        if (_focusEditor)
+        {
+            _focusEditor = false;
+            try
+            {
+                await _editInput.FocusAsync();
+            }
+            catch
+            {
+                // Element gone (row re-rendered) — focus is cosmetic only.
+            }
+        }
+    }
+
+    // ── Row templates ──────────────────────────────────────────────────────
+
+    private RenderFragment Row(string label, string? value, int pendLen) =>
+        @<div class="init-row">
+            <span class="init-label">@label</span>
+            @ValueCell(value, pendLen)
+        </div>;
+
+    // Green value, or a run of amber pending boxes while no OFP is loaded.
+    // An OFP-loaded panel with one missing field still shows "—" green (data
+    // is there, the field just isn't populated) — predecessor behaviour.
+    private RenderFragment ValueCell(string? value, int pendLen) =>
+        @<span class="@(_ofp is null ? "init-pending" : "init-value")">@if (_ofp is null)
+            {@PendingBoxes(pendLen)}
+            else
+            {@Dash(value)}</span>;
+
+    private RenderFragment FuelRow(string label, string? value) =>
+        @<div class="init-row-fuel">
+            <span class="init-label">@label</span>
+            @if (_ofp is null)
+            {
+                <span class="init-pending init-pending-fuel">@PendingBoxes(5)</span>
+            }
+            else
+            {
+                <span class="init-value-right">@Dash(value)</span>
+            }
+        </div>;
+
+    // Click-to-edit row for the four writable fields. Display mode shows the
+    // effective (override-aware) value with an optional MOD chip; click flips
+    // to edit mode with an inline input + ENT / CLR keys. The error message
+    // sits next to the keys for ~2 s when a commit is rejected.
+    private RenderFragment EditableRow(string label, string field, double ofpValue, Func<double, string> format) =>
+        @<div class="init-row-fuel @(EditableNow(field) ? "init-row-fuel-editable" : "")"
+              title="@(EditableNow(field) ? "Click to override" : null)"
+              @onclick="() => StartEdit(field, Effective(field, ofpValue))">
+            <span class="init-label">@label</span>
+            @if (_ofp is null)
+            {
+                <span class="init-pending init-pending-fuel">@PendingBoxes(5)</span>
+            }
+            else if (_editingField == field)
+            {
+                <div class="init-editor" @onclick:stopPropagation>
+                    <input @ref="_editInput" class="init-editor-input" type="number" inputmode="numeric"
+                           value="@_editValue"
+                           @oninput="e => _editValue = e.Value?.ToString() ?? string.Empty"
+                           @onkeydown="OnEditKeyDown" />
+                    <button type="button" class="init-editor-key init-editor-key-ent"
+                            title="Commit override (Enter)" @onclick="CommitEdit">ENT</button>
+                    <button type="button" class="init-editor-key init-editor-key-clr"
+                            title="Cancel (Esc)" @onclick="CancelEdit">CLR</button>
+                    @if (_editError is not null)
+                    {
+                        <span class="init-editor-error">@_editError</span>
+                    }
+                </div>
+            }
+            else
+            {
+                var overridden = _overrides.ContainsKey(field);
+                <span class="init-value-right @(overridden ? "init-value-overridden" : "")">@format(Effective(field, ofpValue))</span>
+                @if (overridden)
+                {
+                    <span class="init-mod-chip">MOD</span>
+                }
+            }
+        </div>;
+
+    // Row of amber-outlined empty boxes — one per character slot, mimicking a
+    // real FMS INIT page awaiting entries. Static (no blink), per predecessor.
+    private static MarkupString PendingBoxes(int count)
+        => new(string.Concat(Enumerable.Repeat("<span class=\"init-pending-box\"></span>", Math.Max(1, count))));
+
+    private bool EditableNow(string field) => _ofp is not null && _editingField != field;
+
+    // ── Inline editor ──────────────────────────────────────────────────────
+
+    private void StartEdit(string field, double currentValue)
+    {
+        if (_ofp is null || _editingField == field)
         {
             return;
         }
 
-        _busy = true;
-        _status = null;
-        try
+        _editingField = field;
+        _editValue = currentValue > 0 ? Math.Round(currentValue).ToString(CultureInfo.InvariantCulture) : "";
+        _editError = null;
+        _focusEditor = true;
+    }
+
+    private void CancelEdit()
+    {
+        _editingField = null;
+        _editValue = "";
+        _editError = null;
+    }
+
+    private async Task OnEditKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
         {
-            var ok = await Overrides.SetAsync(field, value);
-            _status = ok ? $"{field} override applied." : $"{field} write failed — see logs.";
-            _overrides = Overrides.Snapshot();
+            await CommitEdit();
         }
-        finally
+        else if (e.Key == "Escape")
         {
-            _busy = false;
+            CancelEdit();
         }
     }
 
-    private async Task Clear(string field)
+    private async Task CommitEdit()
     {
-        _busy = true;
-        _status = null;
-        try
+        if (_editingField is not { } field)
         {
-            await Overrides.ClearAsync(field);
-            _drafts[field] = null;
-            _overrides = Overrides.Snapshot();
+            return;
         }
-        finally
+
+        if (!FieldRanges.TryGetValue(field, out var range))
         {
-            _busy = false;
+            CancelEdit();
+            return;
         }
+
+        if (!double.TryParse(_editValue.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var num)
+            || !double.IsFinite(num))
+        {
+            FlashEditError("INVALID");
+            return;
+        }
+
+        if (num < range.Min || num > range.Max)
+        {
+            FlashEditError("OUT OF RANGE");
+            return;
+        }
+
+        var value = range.Integer ? Math.Round(num) : num;
+        var ok = await Overrides.SetAsync(field, value);
+        if (!ok)
+        {
+            FlashEditError("WRITE FAILED");
+            return;
+        }
+
+        _overrides = Overrides.Snapshot();
+        CancelEdit();
     }
 
-    private async Task ClearAll()
+    private void FlashEditError(string message)
     {
-        _busy = true;
-        _status = null;
-        try
+        _editError = message;
+        _editErrorTimer?.Dispose();
+        _editErrorTimer = new Timer(_ => _ = InvokeAsync(() =>
         {
-            await Overrides.ClearAllAsync();
-            foreach (var field in WritableFields)
+            if (_editError == message)
             {
-                _drafts[field.Key] = null;
+                _editError = null;
+                StateHasChanged();
             }
-            _overrides = Overrides.Snapshot();
+        }), null, 2000, Timeout.Infinite);
+    }
+
+    // ── Actions ────────────────────────────────────────────────────────────
+
+    private async Task FetchOfp()
+    {
+        _busy = "fetch";
+        _lastFetchError = null;
+        _phaseIndex = 0;
+        _fetchPhase = FetchPhases[0];
+        _phaseTimer?.Dispose();
+        _phaseTimer = new Timer(_ => _ = InvokeAsync(() =>
+        {
+            _phaseIndex = (_phaseIndex + 1) % FetchPhases.Length;
+            _fetchPhase = FetchPhases[_phaseIndex];
+            StateHasChanged();
+        }), null, 700, 700);
+
+        try
+        {
+            var outcome = await Simbrief.TryImportAsync(force: true);
+            _lastFetchError = outcome switch
+            {
+                SimbriefImportOutcome.Imported => null,
+                SimbriefImportOutcome.AlreadyImported => null,
+                SimbriefImportOutcome.NoPilotId => "NO SIMBRIEF PILOT ID IN PROSIM — SET IT IN THE PROSIM EFB",
+                SimbriefImportOutcome.FetchFailed => "NO OFP — IS ONE GENERATED ON SIMBRIEF?",
+                SimbriefImportOutcome.ImportFailed => "FETCHED, BUT THE EFB IMPORT FAILED — SEE LOGS",
+                _ => outcome.ToString(),
+            };
         }
         finally
         {
-            _busy = false;
+            _phaseTimer?.Dispose();
+            _phaseTimer = null;
+            _fetchPhase = "";
+            _busy = null;
         }
     }
 
     private async Task SyncFms()
     {
-        _busy = true;
+        _busy = "sync";
         try
         {
             var result = await FmsSync.SyncAsync();
-            _status = result is null
-                ? "FMS sync failed — see logs."
-                : $"Synced: ZFW {result.ZfwTonnes:F1} t, ZFWCG {result.ZfwCgPercent:F1}%, block {result.BlockTonnes:F1} t ({result.Source}).";
+            _lastFetchError = result is null ? "FMS SYNC FAILED — SEE LOGS" : null;
         }
         finally
         {
-            _busy = false;
+            _busy = null;
         }
     }
+
+    private async Task ClearOverrides()
+    {
+        _busy = "clear";
+        try
+        {
+            await Overrides.ClearAllAsync();
+            _overrides = Overrides.Snapshot();
+        }
+        finally
+        {
+            _busy = null;
+        }
+    }
+
+    private async Task ResetFlight()
+    {
+        // Two-click arm: first press shows CONFIRM RESET, auto-disarms after 3 s.
+        if (!_resetArmed)
+        {
+            _resetArmed = true;
+            _resetDisarmTimer?.Dispose();
+            _resetDisarmTimer = new Timer(_ => _ = InvokeAsync(() =>
+            {
+                _resetArmed = false;
+                StateHasChanged();
+            }), null, 3000, Timeout.Infinite);
+            return;
+        }
+
+        _resetDisarmTimer?.Dispose();
+        _resetDisarmTimer = null;
+        _resetArmed = false;
+        _busy = "reset";
+        try
+        {
+            await Overrides.ClearAllAsync();
+            LoadsheetControl.ResetCycle();
+            _overrides = Overrides.Snapshot();
+        }
+        finally
+        {
+            _busy = null;
+        }
+    }
+
+    // ── Derived display values ─────────────────────────────────────────────
+
+    private (string Dot, string Label) Status =>
+        _busy == "fetch" ? ("init-status-dot-cyan", "FETCHING…")
+        : _lastFetchError is not null ? ("init-status-dot-warn", "UPLINK FAILED")
+        : _ofp is not null ? ("init-status-dot-green", "OFP LOADED")
+        : ("init-status-dot-amber", "AWAITING OFP");
+
+    // OfpData doesn't track an import source (SimBrief is the only importer);
+    // the predecessor's MCDU / MANUAL chips have no equivalent here yet.
+    private string SourceLabel => _ofp is null ? "—" : "SIMBRIEF";
+
+    // OfpData doesn't carry a separate flight number, planned runways, cruise
+    // FL, cost index or route string yet — render the predecessor's "missing
+    // field" forms (green dash / FL---) until the OFP model grows them.
+    private string? FlightNumber => null;
+    private string? RwyOutIn => null;
+    private string CruiseFl => "FL---";
+    private string? CostIndex => null;
+    private string? CompanyRoute => null;
+
+    // OfpData doesn't carry OEW, minimum fuel or extra fuel yet — green dash.
+    private string? Oew => null;
+    private string? FuelMin => null;
+    private string? FuelExtra => null;
+
+    private string? FuelTrip => _ofp is { } ofp
+        ? FormatKg(Math.Max(0, ofp.FuelPlanRampKg - ofp.FuelTaxiKg - ofp.FuelPlanLandingKg))
+        : null;
+
+    private DateTimeOffset? Eta => _ofp is { ScheduledOutUtc: { } std, EstimatedEnroute: { } enroute }
+        ? std + enroute
+        : null;
+
+    private string FetchedAt => _ofp is { } ofp
+        ? $"FETCHED {ofp.FetchedAtUtc.ToLocalTime():HH:mm:ss}"
+        : "";
+
+    private double Effective(string field, double ofpValue)
+        => _overrides.TryGetValue(field, out var value) ? value : ofpValue;
+
+    private static string Dash(string? text)
+    {
+        var trimmed = (text ?? "").Trim();
+        return trimmed.Length > 0 ? trimmed : "—";
+    }
+
+    private static string FormatKg(double kg)
+        => kg > 0 ? $"{Math.Round(kg).ToString("N0", CultureInfo.InvariantCulture)} KG" : "—";
+
+    private static string FormatPax(double count)
+        => count > 0 ? Math.Round(count).ToString("0", CultureInfo.InvariantCulture) : "—";
+
+    private static string FormatZulu(DateTimeOffset? time)
+        => time is { } t ? $"{t.UtcDateTime:HHmm}Z" : "—";
 }
