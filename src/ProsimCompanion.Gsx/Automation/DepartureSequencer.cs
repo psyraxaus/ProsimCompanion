@@ -48,7 +48,8 @@ public static class DepartureSequencer
         bool requireOfp,
         bool isTurnaround,
         bool forceNext,
-        bool isCompanyHub = false)
+        bool isCompanyHub = false,
+        TimeSpan? plannedFlightDuration = null)
     {
         ArgumentNullException.ThrowIfNull(steps);
         ArgumentNullException.ThrowIfNull(services);
@@ -107,6 +108,17 @@ public static class DepartureSequencer
             if (step.Constraint == GsxServiceConstraint.NonCompanyHub && isCompanyHub)
             {
                 skipped.Add((id, "non-hub only (this airport is a configured hub)"));
+                settled++;
+                continue;
+            }
+
+            // Per-service minimum flight time (Prosim2GSX parity): a short hop skips the
+            // service. Unknown duration never skips — no data, no skip.
+            if (step.MinimumFlightMinutes > 0
+                && plannedFlightDuration is { } duration
+                && duration < TimeSpan.FromMinutes(step.MinimumFlightMinutes))
+            {
+                skipped.Add((id, $"planned flight {(int)duration.TotalMinutes} min is under the {step.MinimumFlightMinutes} min minimum"));
                 settled++;
                 continue;
             }

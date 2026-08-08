@@ -729,7 +729,7 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 
 .services-header {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr 100px;
+  grid-template-columns: 1fr 1.2fr 1fr 76px 100px;
   gap: 8px;
   padding: 6px 0;
   font-size: 11px;
@@ -742,7 +742,7 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 
 .service-row {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr 100px;
+  grid-template-columns: 1fr 1.2fr 1fr 76px 100px;
   gap: 8px;
   align-items: center;
   padding: 4px 0;

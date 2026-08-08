@@ -16,8 +16,9 @@ public sealed class DepartureSequencerTests
     private static DepartureServiceStep Step(
         string id,
         GsxServiceActivation activation = GsxServiceActivation.AfterCalled,
-        GsxServiceConstraint constraint = GsxServiceConstraint.Always)
-        => new(id, activation, constraint);
+        GsxServiceConstraint constraint = GsxServiceConstraint.Always,
+        int minimumFlightMinutes = 0)
+        => new(id, activation, constraint) { MinimumFlightMinutes = minimumFlightMinutes };
 
     private static Dictionary<string, GsxServiceInfo> Services(
         params (string Id, GsxServiceState State, bool CanTrigger)[] entries)
@@ -35,7 +36,8 @@ public sealed class DepartureSequencerTests
         bool requireOfp = true,
         bool turnaround = false,
         bool force = false,
-        bool companyHub = false)
+        bool companyHub = false,
+        TimeSpan? flightDuration = null)
         => DepartureSequencer.Next(
             steps,
             services,
@@ -45,7 +47,68 @@ public sealed class DepartureSequencerTests
             requireOfp,
             turnaround,
             force,
-            companyHub);
+            companyHub,
+            flightDuration);
+
+    // ---- Minimum flight time (Prosim2GSX "Min. Flight Time" parity) ----
+
+    [Fact]
+    public void MinimumFlightTime_ShortHop_SkipsService_AndCursorMovesOn()
+    {
+        var steps = new[] { Step("Catering", minimumFlightMinutes: 60), Step("Refueling") };
+        var services = Services(
+            ("Catering", GsxServiceState.Callable, true), ("Refueling", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, flightDuration: TimeSpan.FromMinutes(30));
+
+        Assert.Equal("Refueling", plan.Trigger);
+        Assert.Contains(plan.Skipped, s => s.ServiceId == "Catering" && s.Reason.Contains("minimum"));
+    }
+
+    [Fact]
+    public void MinimumFlightTime_LongEnoughFlight_RunsService()
+    {
+        var steps = new[] { Step("Catering", minimumFlightMinutes: 60) };
+        var services = Services(("Catering", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, flightDuration: TimeSpan.FromMinutes(90));
+
+        Assert.Equal("Catering", plan.Trigger);
+    }
+
+    [Fact]
+    public void MinimumFlightTime_ExactlyAtThreshold_RunsService()
+    {
+        var steps = new[] { Step("Catering", minimumFlightMinutes: 60) };
+        var services = Services(("Catering", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, flightDuration: TimeSpan.FromMinutes(60));
+
+        Assert.Equal("Catering", plan.Trigger);
+    }
+
+    [Fact]
+    public void MinimumFlightTime_UnknownDuration_NeverSkips()
+    {
+        var steps = new[] { Step("Catering", minimumFlightMinutes: 60) };
+        var services = Services(("Catering", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, flightDuration: null);
+
+        Assert.Equal("Catering", plan.Trigger);
+    }
+
+    [Fact]
+    public void MinimumFlightTime_SkippedServiceCountsAsSettled_ForCompletion()
+    {
+        var steps = new[] { Step("Catering", minimumFlightMinutes: 60) };
+        var services = Services(("Catering", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, flightDuration: TimeSpan.FromMinutes(10));
+
+        Assert.Null(plan.Trigger);
+        Assert.True(plan.AllDone);
+    }
 
     // ---- Company-hub constraints (Prosim2GSX parity) ----
 

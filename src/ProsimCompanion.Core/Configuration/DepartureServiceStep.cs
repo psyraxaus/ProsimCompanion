@@ -82,4 +82,10 @@ public sealed class DepartureServiceStep
     public GsxServiceActivation Activation { get; set; } = GsxServiceActivation.AfterCalled;
 
     public GsxServiceConstraint Constraint { get; set; } = GsxServiceConstraint.Always;
+
+    /// <summary>Skip this service when the planned flight is shorter than this many minutes
+    /// (Prosim2GSX "Min. Flight Time" — e.g. no catering on a 30-minute hop). 0 = no
+    /// constraint. Compared against the OFP's estimated enroute time; an unknown duration
+    /// never skips (no data, no skip).</summary>
+    public int MinimumFlightMinutes { get; set; }
 }

@@ -49,6 +49,7 @@ public sealed class GsxOptionsBindingTests
             ["gsx:departureServices:0:service"] = "Catering",
             ["gsx:departureServices:0:activation"] = "afterPrevCompleted",
             ["gsx:departureServices:0:constraint"] = "turnAround",
+            ["gsx:departureServices:0:minimumFlightMinutes"] = "45",
             ["gsx:departureServices:1:service"] = "Boarding",
             ["gsx:departureServices:1:activation"] = "manual",
         });
@@ -57,8 +58,10 @@ public sealed class GsxOptionsBindingTests
         Assert.Equal("Catering", options.DepartureServices[0].Service);
         Assert.Equal(GsxServiceActivation.AfterPrevCompleted, options.DepartureServices[0].Activation);
         Assert.Equal(GsxServiceConstraint.TurnAround, options.DepartureServices[0].Constraint);
+        Assert.Equal(45, options.DepartureServices[0].MinimumFlightMinutes);
         Assert.Equal(GsxServiceActivation.Manual, options.DepartureServices[1].Activation);
         Assert.Equal(GsxServiceConstraint.Always, options.DepartureServices[1].Constraint);
+        Assert.Equal(0, options.DepartureServices[1].MinimumFlightMinutes);
     }
 
     [Fact]

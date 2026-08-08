@@ -101,7 +101,7 @@
                     else
                     {
                         <div class="services-header">
-                            <span>Service</span><span>Activation</span><span>Runs on</span><span></span>
+                            <span>Service</span><span>Activation</span><span>Runs on</span><span>Min. flight</span><span></span>
                         </div>
                         @for (var i = 0; i < _draft.DepartureServices.Count; i++)
                         {
@@ -126,6 +126,9 @@
                                         <option value="@value">@label</option>
                                     }
                                 </select>
+                                <input class="cell-input" type="number" min="0" step="5"
+                                       title="Skip this service when the planned flight is shorter than this many minutes (0 = always run)"
+                                       @bind="row.MinimumFlightMinutes" />
                                 <span class="service-actions">
                                     <button type="button" class="icon-btn" title="Move up" aria-label="Move up"
                                             disabled="@(index == 0)" @onclick="() => MoveService(index, -1)">▲</button>
@@ -145,8 +148,9 @@
                         Row order is the call order. Each service's activation gates it on the service
                         before it: "Previous called" runs services side by side, "Previous completed" is a
                         strict chain, "All earlier completed" is the classic board-last barrier, and
-                        "Manual" waits for you (INT/RAD, the GSX menu, or the GSX page). Safe to edit
-                        between flights — best not mid-departure.
+                        "Manual" waits for you (INT/RAD, the GSX menu, or the GSX page). "Min. flight"
+                        skips the service when the planned flight is shorter than that many minutes
+                        (0 = always run). Safe to edit between flights — best not mid-departure.
                     </div>
                 </Section>
 
@@ -461,6 +465,7 @@
                         ["service"] = step.Service,
                         ["activation"] = JsonNamingPolicy.CamelCase.ConvertName(step.Activation.ToString()),
                         ["constraint"] = JsonNamingPolicy.CamelCase.ConvertName(step.Constraint.ToString()),
+                        ["minimumFlightMinutes"] = step.MinimumFlightMinutes,
                     });
                 }
                 gsx["departureServices"] = steps;

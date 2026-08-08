@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
@@ -61,6 +62,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
 
     private readonly ISimbriefImporter _simbrief;
     private readonly GroundOpsSignals _groundOpsSignals;
+    private readonly OfpStore _ofpStore;
 
     public GsxAutomationService(
         IGsxRemoteApi api,
@@ -71,6 +73,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         IProsimDataRefs prosim,
         ISimVars simVars,
         ISimbriefImporter simbrief,
+        OfpStore ofpStore,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         GroundOpsSignals groundOpsSignals,
@@ -85,6 +88,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(groundOpsSignals);
+        ArgumentNullException.ThrowIfNull(ofpStore);
+        _ofpStore = ofpStore;
         _simbrief = simbrief;
         _simVars = simVars;
         _groundOpsSignals = groundOpsSignals;
@@ -470,7 +475,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 options.RequireOfpBeforeDeparture,
                 _isTurnaround,
                 forced,
-                IsCompanyHub(options));
+                IsCompanyHub(options),
+                _ofpStore.Current?.EstimatedEnroute);
             if (forced)
             {
                 _forceNext = false; // single-shot, consumed by this evaluation
