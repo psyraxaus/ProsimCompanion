@@ -272,11 +272,26 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         var schedOut = ReadDouble(ofp["times"]?["sched_out"]);
         var enrouteSeconds = ReadDouble(ofp["times"]?["est_time_enroute"]);
 
+        // Predecessor format: ICAO airline prefix + number ("BAW123"); empty without a number.
+        var flightNumber = ReadString(ofp["general"]?["flight_number"]);
+        var fltNbr = string.IsNullOrWhiteSpace(flightNumber)
+            ? ""
+            : $"{ReadString(ofp["general"]?["icao_airline"])}{flightNumber}";
+
+        // initial_altitude is feet ("37000") — stored as a flight level (predecessor rule).
+        var initialAltitudeFt = ReadDouble(ofp["general"]?["initial_altitude"]);
+
         return new OfpData
         {
             RequestId = requestId,
             Ident = requestId.Length >= 4 ? requestId[..4] : requestId,
             Callsign = ReadString(ofp["atc"]?["callsign"]) ?? "",
+            FlightNumber = fltNbr,
+            PlannedRunwayOut = ReadString(ofp["origin"]?["plan_rwy"]) ?? "",
+            PlannedRunwayIn = ReadString(ofp["destination"]?["plan_rwy"]) ?? "",
+            CruiseFlightLevel = initialAltitudeFt > 0 ? (int)Math.Round(initialAltitudeFt / 100.0) : 0,
+            CostIndex = ReadString(ofp["general"]?["costindex"]) ?? "",
+            Route = ReadString(ofp["general"]?["route"]) ?? "",
             OriginIcao = ReadString(ofp["origin"]?["icao_code"]) ?? "",
             OriginIata = ReadString(ofp["origin"]?["iata_code"]) ?? "",
             DestinationIcao = ReadString(ofp["destination"]?["icao_code"]) ?? "",
@@ -289,6 +304,9 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             FuelPlanRampKg = LoadMath.RoundFuelUpToHundredKg(Kg(ofp["fuel"]?["plan_ramp"])),
             FuelPlanLandingKg = Kg(ofp["fuel"]?["plan_landing"]),
             FuelTaxiKg = Kg(ofp["fuel"]?["taxi"]),
+            FuelMinTakeoffKg = Kg(ofp["fuel"]?["min_takeoff"]),
+            FuelExtraKg = Kg(ofp["fuel"]?["extra"]),
+            OewKg = Kg(ofp["weights"]?["oew"]),
             EstZfwKg = Kg(ofp["weights"]?["est_zfw"]),
             EstTowKg = Kg(ofp["weights"]?["est_tow"]),
             EstLdwKg = Kg(ofp["weights"]?["est_ldw"]),

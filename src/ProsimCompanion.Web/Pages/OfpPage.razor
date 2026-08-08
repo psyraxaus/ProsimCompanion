@@ -29,14 +29,12 @@
             <div class="ofpfp-grid">
                 @* Left column — routing / airframe. *@
                 <div>
-                    <div class="ofpfp-kv"><span class="ofpfp-label">FLT NBR</span><span class="ofpfp-value">@_ofp.Ident</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">FLT NBR</span><span class="ofpfp-value">@(_ofp.FlightNumber.Length > 0 ? _ofp.FlightNumber : _ofp.Ident)</span></div>
                     <div class="ofpfp-kv"><span class="ofpfp-label">CALLSIGN</span><span class="ofpfp-value">@_ofp.Callsign</span></div>
                     <div class="ofpfp-kv"><span class="ofpfp-label">FROM/TO</span><span class="ofpfp-value">@_ofp.OriginIcao → @_ofp.DestinationIcao@(string.IsNullOrEmpty(_ofp.AlternateIcao) ? "" : $"  ALTN {_ofp.AlternateIcao}")</span></div>
-                    @* OfpData carries no planned-runway fields yet — render "—" until the fetcher surfaces them. *@
-                    <div class="ofpfp-kv"><span class="ofpfp-label">RWY OUT/IN</span><span class="ofpfp-value">—</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">RWY OUT/IN</span><span class="ofpfp-value">@RunwayOutIn</span></div>
                     <div class="ofpfp-kv"><span class="ofpfp-label">ACFT</span><span class="ofpfp-value">@_ofp.AircraftIcaoType  REG @_ofp.AircraftReg</span></div>
-                    @* OfpData carries no cruise-altitude field yet — render "—" until the fetcher surfaces it. *@
-                    <div class="ofpfp-kv"><span class="ofpfp-label">CRZ FL</span><span class="ofpfp-value">—</span></div>
+                    <div class="ofpfp-kv"><span class="ofpfp-label">CRZ FL</span><span class="ofpfp-value">@CruiseFl</span></div>
                 </div>
 
                 @* Right column — times / weights. *@
@@ -191,6 +189,15 @@
     private string _gate = "";
 
     private string CurrentPreference => GsxOptionsMonitor.CurrentValue.PushbackPreference;
+
+    // Predecessor formats: "{out} / {in}" with per-side "—", and FL350 / "FL---" sentinels.
+    private string RunwayOutIn => _ofp is null
+        ? "—"
+        : $"{(_ofp.PlannedRunwayOut.Length > 0 ? _ofp.PlannedRunwayOut : "—")} / {(_ofp.PlannedRunwayIn.Length > 0 ? _ofp.PlannedRunwayIn : "—")}";
+
+    private string CruiseFl => _ofp is { CruiseFlightLevel: > 0 }
+        ? $"FL{_ofp.CruiseFlightLevel:D3}"
+        : "FL---";
 
     private bool CanSendNow => _gate.Trim().Length > 0 || _gateAssignment.PendingGate is not null;
 

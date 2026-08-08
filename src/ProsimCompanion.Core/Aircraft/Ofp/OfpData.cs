@@ -1,5 +1,15 @@
 namespace ProsimCompanion.Core.Aircraft.Ofp;
 
+/// <summary>Where the current OFP came from — drives the INIT page's source chip. The
+/// predecessor's MCDU/MANUAL sources have no importer here yet (SimBrief is the only one), but
+/// the enum keeps the chip semantics ready for them.</summary>
+public enum OfpSource
+{
+    Simbrief,
+    Mcdu,
+    Manual,
+}
+
 /// <summary>
 /// Typed SimBrief OFP snapshot — the fields the loadsheet pipeline, FMS sync and EFB pages
 /// consume. All weights/fuel are kilograms (lbs OFPs are converted at parse time); estimates
@@ -16,6 +26,12 @@ public sealed record OfpData
     public string Ident { get; init; } = "";
 
     public string Callsign { get; init; } = "";
+
+    /// <summary>Airline flight number with the ICAO airline prefix (SimBrief
+    /// <c>general.icao_airline</c> + <c>general.flight_number</c>, predecessor format);
+    /// empty when the OFP has no flight number.</summary>
+    public string FlightNumber { get; init; } = "";
+
     public string OriginIcao { get; init; } = "";
     public string OriginIata { get; init; } = "";
     public string DestinationIcao { get; init; } = "";
@@ -28,6 +44,22 @@ public sealed record OfpData
     public string AircraftReg { get; init; } = "";
     public string AircraftIcaoType { get; init; } = "";
 
+    /// <summary>Planned departure runway (SimBrief <c>origin.plan_rwy</c>), e.g. "34L".</summary>
+    public string PlannedRunwayOut { get; init; } = "";
+
+    /// <summary>Planned arrival runway (SimBrief <c>destination.plan_rwy</c>).</summary>
+    public string PlannedRunwayIn { get; init; } = "";
+
+    /// <summary>Initial cruise altitude as a flight level (SimBrief <c>general.initial_altitude</c>
+    /// feet / 100, predecessor conversion); 0 when absent.</summary>
+    public int CruiseFlightLevel { get; init; }
+
+    /// <summary>Cost index (SimBrief <c>general.costindex</c>); empty when absent.</summary>
+    public string CostIndex { get; init; } = "";
+
+    /// <summary>Route string (SimBrief <c>general.route</c>) — the INIT page's CPNY RTE.</summary>
+    public string Route { get; init; } = "";
+
     public int PaxCount { get; init; }
     public double CargoKg { get; init; }
 
@@ -35,6 +67,15 @@ public sealed record OfpData
     public double FuelPlanRampKg { get; init; }
     public double FuelPlanLandingKg { get; init; }
     public double FuelTaxiKg { get; init; }
+
+    /// <summary>Minimum takeoff fuel (SimBrief <c>fuel.min_takeoff</c>), kg; 0 when absent.</summary>
+    public double FuelMinTakeoffKg { get; init; }
+
+    /// <summary>Extra fuel above minimum (SimBrief <c>fuel.extra</c>), kg; 0 when absent.</summary>
+    public double FuelExtraKg { get; init; }
+
+    /// <summary>Operating empty weight (SimBrief <c>weights.oew</c>), kg; 0 when absent.</summary>
+    public double OewKg { get; init; }
 
     public double EstZfwKg { get; init; }
     public double EstTowKg { get; init; }
@@ -51,6 +92,9 @@ public sealed record OfpData
     /// <summary>Average flight time (SimBrief <c>times.est_time_enroute</c> seconds), null if
     /// absent — future per-service minimum-duration constraints read this.</summary>
     public TimeSpan? EstimatedEnroute { get; init; }
+
+    /// <summary>How this OFP entered the system (INIT source chip).</summary>
+    public OfpSource Source { get; init; } = OfpSource.Simbrief;
 }
 
 /// <summary>

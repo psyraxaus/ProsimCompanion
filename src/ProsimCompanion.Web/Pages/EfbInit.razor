@@ -483,23 +483,33 @@
         : _ofp is not null ? ("init-status-dot-green", "OFP LOADED")
         : ("init-status-dot-amber", "AWAITING OFP");
 
-    // OfpData doesn't track an import source (SimBrief is the only importer);
-    // the predecessor's MCDU / MANUAL chips have no equivalent here yet.
-    private string SourceLabel => _ofp is null ? "—" : "SIMBRIEF";
+    // In the predecessor the SIMBRIEF label was dead code (its button fetch showed MANUAL);
+    // here the chip reflects OfpData.Source truthfully — SimBrief is the only importer today.
+    private string SourceLabel => _ofp?.Source switch
+    {
+        Core.Aircraft.Ofp.OfpSource.Simbrief => "SIMBRIEF",
+        Core.Aircraft.Ofp.OfpSource.Mcdu => "MCDU",
+        Core.Aircraft.Ofp.OfpSource.Manual => "MANUAL",
+        _ => "—",
+    };
 
-    // OfpData doesn't carry a separate flight number, planned runways, cruise
-    // FL, cost index or route string yet — render the predecessor's "missing
-    // field" forms (green dash / FL---) until the OFP model grows them.
-    private string? FlightNumber => null;
-    private string? RwyOutIn => null;
-    private string CruiseFl => "FL---";
-    private string? CostIndex => null;
-    private string? CompanyRoute => null;
+    private string? FlightNumber => _ofp is { FlightNumber.Length: > 0 } ofp ? ofp.FlightNumber : _ofp?.Ident;
 
-    // OfpData doesn't carry OEW, minimum fuel or extra fuel yet — green dash.
-    private string? Oew => null;
-    private string? FuelMin => null;
-    private string? FuelExtra => null;
+    // Predecessor format: "{out} / {in}" with per-side "—" fallback.
+    private string? RwyOutIn => _ofp is null
+        ? null
+        : $"{Dash(_ofp.PlannedRunwayOut)} / {Dash(_ofp.PlannedRunwayIn)}";
+
+    private string CruiseFl => _ofp is { CruiseFlightLevel: > 0 } ofp
+        ? $"FL{ofp.CruiseFlightLevel:D3}"
+        : "FL---";
+
+    private string? CostIndex => _ofp?.CostIndex;
+    private string? CompanyRoute => _ofp?.Route;
+
+    private string? Oew => _ofp is { OewKg: > 0 } ofp ? FormatKg(ofp.OewKg) : null;
+    private string? FuelMin => _ofp is { FuelMinTakeoffKg: > 0 } ofp ? FormatKg(ofp.FuelMinTakeoffKg) : null;
+    private string? FuelExtra => _ofp is { } extra ? FormatKg(extra.FuelExtraKg) : null;
 
     private string? FuelTrip => _ofp is { } ofp
         ? FormatKg(Math.Max(0, ofp.FuelPlanRampKg - ofp.FuelTaxiKg - ofp.FuelPlanLandingKg))
