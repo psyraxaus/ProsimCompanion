@@ -9,6 +9,7 @@
 @inject IOptionsMonitor<CabinOptions> CabinMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
 @inject IOptionsMonitor<BriefingOptions> BriefingMonitor
+@inject IOptionsMonitor<CommandApiOptions> CommandApiMonitor
 @inject JsonSettingsFile SettingsFile
 @inject ThemeCatalog Themes
 
@@ -74,6 +75,17 @@
         <div class="field-hint" style="max-width:560px;">
             The access token and onboarding QR code live in the desktop app's web-server card —
             they are deliberately not shown here.
+        </div>
+    </Section>
+
+    <Section Title="Command API" Hint="Applies live, no restart">
+        <BoolField Label="Enable command API (required for the Stream Deck plugin)"
+                   Hint="Lets external tools fire GSX, checklist and loadsheet commands over the web server. It is a write surface — off by default, and the access token is required even from this PC"
+                   @bind-Value="_commandApi" />
+        <div class="field-hint" style="max-width:560px;">
+            Stream Deck keys showing "API off" recover on their own once this is saved. To pair
+            the plugin, paste the onboarding URL from the desktop app's web-server card into any
+            key's settings.
         </div>
     </Section>
 
@@ -164,6 +176,7 @@
     private bool _dingFinal;
     private bool _allowChecklistOverride;
     private string _dfdPath = "";
+    private bool _commandApi;
 
     // The draft grew past tuple sanity — a joined string is an adequate dirty fingerprint.
     private string _baseline = "";
@@ -178,7 +191,7 @@
         _webPort, _webLan, _logLevel, _wireTrace,
         _sayIntentions, _autoPrelim, _autoFinal, _finalDelayMin, _finalDelayMax, _autoSyncFms,
         _autoPrelimAtStd, _prelimStdOffset, _solari, _unitSource, _unit,
-        _dingStartup, _dingFinal, _allowChecklistOverride, _dfdPath);
+        _dingStartup, _dingFinal, _allowChecklistOverride, _dfdPath, _commandApi);
 
     protected override void OnInitialized()
     {
@@ -220,6 +233,7 @@
         _dingFinal = cabin.DingOnFinal;
         _allowChecklistOverride = ChecklistMonitor.CurrentValue.AllowManualOverride;
         _dfdPath = BriefingMonitor.CurrentValue.DfdPath;
+        _commandApi = CommandApiMonitor.CurrentValue.Enabled;
 
         _baseline = Snapshot();
         _barMessage = null;
@@ -271,6 +285,9 @@
                 var briefing = JsonSettingsFile.GetOrCreateSection(root, BriefingOptions.SectionName);
                 // Trim quotes too — Explorer's "Copy as path" wraps the path in them.
                 briefing["dfdPath"] = _dfdPath.Trim().Trim('"');
+
+                var commandApi = JsonSettingsFile.GetOrCreateSection(root, CommandApiOptions.SectionName);
+                commandApi["enabled"] = _commandApi;
             });
 
             _baseline = Snapshot();

@@ -23,7 +23,7 @@ file on start. **Never share your `webUi.accessToken`.**
 | `techLog`, `logbook`, `debrief`, `day` | Tech Log / Duty Day | MEL categories, random wear, debrief verbosity, day mode |
 | `updateCheck` | file | update banner enable + interval |
 | `logging` | App Settings | per-subsystem levels (hot-reload), `wireTrace` |
-| `commandApi` | file | HTTP command API (off by default; token-gated even on localhost) |
+| `commandApi` | App Settings | HTTP command API for the Stream Deck plugin (`enabled` checkbox, applies live; off by default; token-gated even on localhost — `requireTokenOnLoopback` is file-only) |
 
 ## The `gsx` section
 
