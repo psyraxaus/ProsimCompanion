@@ -276,7 +276,9 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         return ms.ToArray();
     }
 
-    private static int ResolveDevice(string configuredName)
+    // Internal: SpeechDiagnosticsService's mic test must open the same device the recognizer
+    // will, so they share one resolution rule.
+    internal static int ResolveDevice(string configuredName)
     {
         if (string.IsNullOrWhiteSpace(configuredName))
         {

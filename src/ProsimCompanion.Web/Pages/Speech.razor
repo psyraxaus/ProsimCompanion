@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject SpeechStatusStore Status
 @inject ISpeechControl SpeechControl
+@inject ISpeechDiagnostics Diagnostics
 @inject ArrivalMinimaStore Minima
 
 <PageTitle>Speech — ProsimCompanion</PageTitle>
@@ -38,11 +39,11 @@
         }
     </Section>
 
-    <Section Title="TTS Providers" Hint="Tried in order; a failed provider cools down 60 s">
+    <Section Title="TTS Providers" Hint="Tried in order; a failed provider cools down 60 s. Test speaks with exactly that provider — no fallback">
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
-                    <tr><th>#</th><th>Provider</th><th>State</th><th>Detail</th></tr>
+                    <tr><th>#</th><th>Provider</th><th>State</th><th>Detail</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var (provider, index) in _view.Providers.Select((p, i) => (p, i)))
@@ -53,11 +54,42 @@
                             <td class="mono">@provider.Name</td>
                             <td><span class="pill @tone">@label</span></td>
                             <td>@provider.Detail</td>
+                            <td>
+                                <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
+                                        @onclick="() => TestProviderAsync(provider.Name)">
+                                    @(_runningTest == $"tts:{provider.Name}" ? "Testing…" : "Test")
+                                </button>
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+        @if (_ttsTestResult is not null)
+        {
+            <div class="field-hint" style="margin-top:8px;">@_ttsTestResult</div>
+        }
+    </Section>
+
+    <Section Title="Component Tests" Hint="Verify the LLM endpoint and the microphone without flying a sector">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
+                    @onclick="TestLlmAsync">
+                @(_runningTest == "llm" ? "Testing…" : "Test LLM connection")
+            </button>
+            <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
+                    @onclick="TestMicAsync">
+                @(_runningTest == "mic" ? "Listening… speak now" : "Test microphone")
+            </button>
+        </div>
+        @if (_llmTestResult is not null)
+        {
+            <div class="field-hint" style="margin-top:8px;">LLM: @_llmTestResult</div>
+        }
+        @if (_micTestResult is not null)
+        {
+            <div class="field-hint" style="margin-top:8px;">Microphone: @_micTestResult</div>
+        }
     </Section>
 
     <Section Title="Arrival Minima" Hint="No DH/MDA dataref exists — enter the briefed minima to arm the minimums callouts">
@@ -179,6 +211,43 @@
         if (!string.IsNullOrWhiteSpace(_testText))
         {
             SpeechControl.SpeakTest(_testText.Trim());
+        }
+    }
+
+    private string? _runningTest;
+    private string? _ttsTestResult;
+    private string? _llmTestResult;
+    private string? _micTestResult;
+
+    private Task TestProviderAsync(string providerName) => RunTestAsync(
+        $"tts:{providerName}",
+        // The Speak Test text doubles as the sample phrase when filled in.
+        () => Diagnostics.TestTtsProviderAsync(
+            providerName,
+            string.IsNullOrWhiteSpace(_testText) ? "ProsimCompanion voice test." : _testText.Trim(),
+            CancellationToken.None),
+        result => _ttsTestResult = result);
+
+    private Task TestLlmAsync() => RunTestAsync(
+        "llm", () => Diagnostics.TestLlmAsync(CancellationToken.None), result => _llmTestResult = result);
+
+    private Task TestMicAsync() => RunTestAsync(
+        "mic", () => Diagnostics.TestMicrophoneAsync(CancellationToken.None), result => _micTestResult = result);
+
+    private async Task RunTestAsync(string key, Func<Task<string>> test, Action<string> report)
+    {
+        _runningTest = key;
+        try
+        {
+            report(await test());
+        }
+        catch (Exception)
+        {
+            report("Test failed unexpectedly — see the Logs page.");
+        }
+        finally
+        {
+            _runningTest = null;
         }
     }
 
