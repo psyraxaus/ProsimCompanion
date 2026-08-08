@@ -20,6 +20,10 @@ public sealed class WebUiOptions
     /// </summary>
     public bool BindToAllInterfaces { get; set; }
 
+    /// <summary>Animate the split-flap (Solari) header displays; off snaps characters
+    /// instantly (Prosim2GSX's SolariAnimationEnabled).</summary>
+    public bool SolariAnimation { get; set; } = true;
+
     /// <summary>
     /// Bearer token required from non-loopback clients (delivered via the QR code / onboarding
     /// link, then held in a cookie). Generated automatically on first start; loopback requests

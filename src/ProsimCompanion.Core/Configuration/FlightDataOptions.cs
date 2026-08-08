@@ -12,6 +12,15 @@ public sealed class FlightDataOptions
     /// Refueling service goes active (predecessor behaviour).</summary>
     public bool AutoPrelimOnRefuel { get; set; } = true;
 
+    /// <summary>Also auto-generate the prelim at STD minus <see cref="PrelimStdOffsetMinutes"/>
+    /// (Prosim2GSX's timing model — STD from the OFP or the Loadsheet page's manual entry).
+    /// Off by default; the refuel trigger already covers the common flow. Whichever trigger
+    /// fires first wins — one automatic prelim per cycle either way.</summary>
+    public bool AutoPrelimAtStd { get; set; }
+
+    /// <summary>Minutes before STD for the STD-based prelim trigger (Prosim2GSX default 30).</summary>
+    public int PrelimStdOffsetMinutes { get; set; } = 30;
+
     /// <summary>Generate + uplink the final loadsheet automatically after boarding completes
     /// (following the crew-realism delay below).</summary>
     public bool AutoFinalOnBoardingComplete { get; set; } = true;

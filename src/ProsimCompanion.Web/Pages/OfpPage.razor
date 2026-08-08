@@ -1,12 +1,13 @@
 @page "/ofp"
 @using ProsimCompanion.Core.Aircraft.Ofp
 @using ProsimCompanion.Core.Deice
+@using ProsimCompanion.Core.Gate
 @using ProsimCompanion.Core.Weather
 @implements IDisposable
 @inject OfpStore Ofp
 @inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
 @inject JsonSettingsFile SettingsFile
-@inject IGsxGateControl GateControl
+@inject ArrivalGateCoordinator GateCoordinator
 @inject GsxDiagnosticsStore GsxStore
 @inject WeatherStore Weather
 @inject IWeatherControl WeatherControl
@@ -72,7 +73,7 @@
         </div>
     </Section>
 
-    <Section Title="Arrival Gate Assignment" Hint="Armed now; dispatched when GSX has the destination airport loaded">
+    <Section Title="Arrival Gate Assignment" Hint="Confirm queues for auto-send at cruise; Send Now pushes to GSX + SayIntentions ATC immediately">
         @if (_ofp is null)
         {
             <div class="empty">Load an OFP to enable gate assignment.</div>
@@ -83,12 +84,27 @@
                 <span class="mono">@_ofp.DestinationIcao</span>
                 <input class="text-input" style="max-width:120px; text-transform:uppercase"
                        placeholder="GATE" @bind="_gate" />
-                <button type="button" class="btn primary" disabled="@(_gate.Trim().Length == 0)" @onclick="ArmGate">Confirm</button>
+                <button type="button" class="btn primary" disabled="@(_gate.Trim().Length == 0)" @onclick="ConfirmGate">Confirm</button>
+                <button type="button" class="btn secondary" disabled="@(!CanSendNow)" @onclick="SendNowGate">Send Now</button>
                 <button type="button" class="btn secondary" @onclick="CancelGate">Cancel</button>
             </div>
+            @if (_gateAssignment.PendingGate is { } pending)
+            {
+                <div class="field-hint" style="margin-top:8px;">
+                    @(_gateAssignment.Sent ? $"Sent {pending}" : $"Queued {pending} — sends at cruise (or Send Now)")
+                </div>
+            }
+            @if (_gateAssignment.AtcStatus.Length > 0)
+            {
+                <div class="field-hint" style="margin-top:4px;">ATC: @_gateAssignment.AtcStatus</div>
+            }
+            @if (_gateAssignment.GsxStatus.Length > 0)
+            {
+                <div class="field-hint" style="margin-top:4px;">GSX send: @_gateAssignment.GsxStatus</div>
+            }
             @if (_gsx.GateRequest is { } request)
             {
-                <div class="field-hint" style="margin-top:8px;">GSX: @request</div>
+                <div class="field-hint" style="margin-top:4px;">GSX: @request</div>
             }
         }
     </Section>
@@ -167,6 +183,7 @@
 @code {
     private OfpData? _ofp;
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
+    private ArrivalGateView _gateAssignment = ArrivalGateView.Empty;
     private WeatherSnapshot _weather = WeatherSnapshot.Empty;
     private DeiceHoldoverSnapshot _deice = new(false, false, "", HotPrecip.None, 0, 0, 0, "Awaiting GSX deicing…");
     private double _deiceOat;
@@ -174,14 +191,18 @@
 
     private string CurrentPreference => GsxOptionsMonitor.CurrentValue.PushbackPreference;
 
+    private bool CanSendNow => _gate.Trim().Length > 0 || _gateAssignment.PendingGate is not null;
+
     protected override void OnInitialized()
     {
         Ofp.Changed += OnChanged;
         GsxStore.Changed += OnChanged;
+        GateCoordinator.Changed += OnChanged;
         Weather.Changed += OnChanged;
         Deice.Changed += OnChanged;
         _ofp = Ofp.Current;
         _gsx = GsxStore.Snapshot();
+        _gateAssignment = GateCoordinator.Snapshot();
         _weather = Weather.Snapshot();
         _deice = Deice.Snapshot();
         _deiceOat = _deice.OatC;
@@ -191,6 +212,7 @@
     {
         Ofp.Changed -= OnChanged;
         GsxStore.Changed -= OnChanged;
+        GateCoordinator.Changed -= OnChanged;
         Weather.Changed -= OnChanged;
         Deice.Changed -= OnChanged;
     }
@@ -201,6 +223,7 @@
         {
             _ofp = Ofp.Current;
             _gsx = GsxStore.Snapshot();
+            _gateAssignment = GateCoordinator.Snapshot();
             _weather = Weather.Snapshot();
             _deice = Deice.Snapshot();
             StateHasChanged();
@@ -214,16 +237,18 @@
             gsx["pushbackPreference"] = key;
         });
 
-    private void ArmGate()
+    private void ConfirmGate()
     {
-        var gate = _gate.Trim().ToUpperInvariant();
-        if (gate.Length > 0)
+        if (_gate.Trim().Length > 0)
         {
-            GateControl.RequestGate(gate);
+            GateCoordinator.Confirm(_gate);
         }
     }
 
-    private void CancelGate() => GateControl.Cancel();
+    // Explicit input wins; with the box empty the queued gate is (re)sent.
+    private void SendNowGate() => _ = GateCoordinator.SendNow(_gate.Trim().Length > 0 ? _gate : null);
+
+    private void CancelGate() => GateCoordinator.Cancel();
 
     private async Task RefreshWeather() => await WeatherControl.RefreshAsync();
 

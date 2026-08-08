@@ -131,10 +131,11 @@ public sealed class SpokenChecklistEngine : IDisposable
         }
     }
 
-    /// <summary>Starts a checklist by name (voice start-phrase or web button).</summary>
+    /// <summary>Starts a checklist by name (voice start-phrase or web button). Pinned to the
+    /// default set: the web page's set selection must never change what the spoken run reads.</summary>
     public void StartChecklist(string name)
     {
-        var definition = _checklists.Definitions().FirstOrDefault(d =>
+        var definition = _checklists.Definitions(ChecklistService.DefaultSetName).FirstOrDefault(d =>
             d.Checklist.Equals(name, StringComparison.OrdinalIgnoreCase));
         if (definition is null)
         {
@@ -666,8 +667,8 @@ public sealed class SpokenChecklistEngine : IDisposable
             return;
         }
 
-        // A checklist start phrase?
-        foreach (var definition in _checklists.Definitions())
+        // A checklist start phrase? (Pinned to the default set — see StartChecklist.)
+        foreach (var definition in _checklists.Definitions(ChecklistService.DefaultSetName))
         {
             var startPhrases = definition.StartPhrases is { Count: > 0 }
                 ? definition.StartPhrases
@@ -690,7 +691,7 @@ public sealed class SpokenChecklistEngine : IDisposable
         }
         else
         {
-            foreach (var definition in _checklists.Definitions())
+            foreach (var definition in _checklists.Definitions(ChecklistService.DefaultSetName))
             {
                 vocabulary.AddRange(definition.StartPhrases is { Count: > 0 }
                     ? definition.StartPhrases

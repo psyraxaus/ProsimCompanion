@@ -68,7 +68,7 @@
                                         <option value="@channel">@AudioPresentation.ChannelLabel(channel)</option>
                                     }
                                 </select>
-                                <input class="cell-input" placeholder="Process name (no .exe)" @bind="row.Binary" />
+                                <input class="cell-input" placeholder="Process name (no .exe)" list="audio-process-suggestions" @bind="row.Binary" />
                                 <input class="cell-input" placeholder="All devices" @bind="row.Device" />
                                 <input type="checkbox" class="audio-cell-check" title="Drive mute from the REC latch"
                                        @bind="row.UseLatch" />
@@ -199,6 +199,15 @@
     </div>
 </div>
 
+@* Windowed-process suggestions for the mapping Binary inputs (Prosim2GSX parity) — the
+   Blazor circuit runs on the sim PC, so a plain server-side enumeration suffices. *@
+<datalist id="audio-process-suggestions">
+    @foreach (var name in _processSuggestions)
+    {
+        <option value="@name" />
+    }
+</datalist>
+
 <DirtyBar Visible="@(IsDirty || _barMessage is not null)"
           Message="@(_barMessage ?? "You have unsaved changes")"
           Tone="_barTone"
@@ -257,10 +266,42 @@
             ? parsed : AcpSide.Captain;
     }
 
+    private IReadOnlyList<string> _processSuggestions = [];
+
     protected override void OnInitialized()
     {
         LoadDraft();
         ReloadTargets();
+        LoadProcessSuggestions();
+    }
+
+    private void LoadProcessSuggestions()
+    {
+        try
+        {
+            var processes = System.Diagnostics.Process.GetProcesses();
+            try
+            {
+                // Windowed processes only — the audio-session candidates a user would map.
+                _processSuggestions = processes
+                    .Where(p => p.MainWindowHandle != IntPtr.Zero)
+                    .Select(p => p.ProcessName)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            finally
+            {
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+            }
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            // Suggestions are a convenience — an enumeration failure just leaves the list empty.
+        }
     }
 
     private void LoadDraft()

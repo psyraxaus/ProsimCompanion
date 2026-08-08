@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Configuration;
 
 namespace ProsimCompanion.Core.Checklists;
 
@@ -10,32 +12,53 @@ namespace ProsimCompanion.Core.Checklists;
 /// <see cref="ChecklistRunner"/>, subscribes exactly the datarefs the active checklist's
 /// conditions reference, and re-evaluates on a 500 ms tick. Degrades cleanly: with ProSim
 /// absent every condition reads 0 and auto items simply wait.
+///
+/// Checklists are grouped into SETS: the per-phase folder files form the default
+/// <see cref="DefaultSetName"/> set, and every Prosim2GSX-format file under
+/// <c>config/checklists/sets</c> is a further set (one checklist per section, see
+/// <see cref="Prosim2GsxChecklistSetLoader"/>). The web page picks the active set; the voice
+/// First Officer pins to the default set via <see cref="Definitions(string)"/> so a web-side
+/// set switch never changes what the spoken checklists match against.
 /// </summary>
 public sealed class ChecklistService : IDisposable
 {
+    /// <summary>Name of the built-in set formed by the per-phase files in
+    /// <c>config/checklists</c> — always present (possibly empty), always the startup
+    /// selection, and the set the voice FO pins to.</summary>
+    public const string DefaultSetName = "A320 (ProsimCompanion)";
+
     private static readonly TimeSpan EvaluateInterval = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan ReloadDebounce = TimeSpan.FromMilliseconds(300);
 
     private readonly IProsimDataRefs _prosim;
+    private readonly IOptionsMonitor<ChecklistOptions> _options;
     private readonly ILogger<ChecklistService> _logger;
     private readonly string _folder;
+    private readonly string _setsFolder;
     private readonly object _lock = new();
     private readonly Timer _timer;
     private readonly Dictionary<string, IDataRefSubscription> _subscriptions = new(StringComparer.Ordinal);
     private FileSystemWatcher? _watcher;
     private Timer? _reloadDebounce;
-    private List<ChecklistDefinition> _definitions = [];
+    private List<ChecklistSet> _sets = [new(DefaultSetName, [])];
+    private string _activeSet = DefaultSetName;
     private ChecklistRunner? _active;
 
     public event EventHandler? Changed;
 
-    public ChecklistService(IProsimDataRefs prosim, ILogger<ChecklistService> logger)
+    public ChecklistService(
+        IProsimDataRefs prosim,
+        IOptionsMonitor<ChecklistOptions> options,
+        ILogger<ChecklistService> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
         _prosim = prosim;
+        _options = options;
         _logger = logger;
         _folder = Path.Combine(AppContext.BaseDirectory, "config", "checklists");
+        _setsFolder = Path.Combine(_folder, "sets");
 
         Reload();
         StartWatcher();
@@ -53,24 +76,78 @@ public sealed class ChecklistService : IDisposable
         }
     }
 
+    /// <summary>Names of every loaded checklist set, default set first.</summary>
+    public IReadOnlyList<string> Sets()
+    {
+        lock (_lock)
+        {
+            return [.. _sets.Select(set => set.Name)];
+        }
+    }
+
+    /// <summary>The set the web page is browsing. Voice ignores this — see
+    /// <see cref="Definitions(string)"/>.</summary>
+    public string ActiveSet
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _activeSet;
+            }
+        }
+    }
+
+    /// <summary>Switches the active set. Unknown names no-op; switching abandons the open run
+    /// (it belongs to the previous set's definitions).</summary>
+    public void SelectSet(string name)
+    {
+        lock (_lock)
+        {
+            var set = _sets.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (set is null || string.Equals(set.Name, _activeSet, StringComparison.Ordinal))
+            {
+                return;
+            }
+            _activeSet = set.Name;
+            _active = null;
+            DisposeSubscriptions();
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     public IReadOnlyList<ChecklistCatalogEntry> Catalog()
     {
         lock (_lock)
         {
-            return [.. _definitions.Select(definition => new ChecklistCatalogEntry(
+            return [.. ActiveDefinitions().Select(definition => new ChecklistCatalogEntry(
                 definition.Checklist,
                 definition.Order ?? int.MaxValue,
                 definition.Items.Count))];
         }
     }
 
-    /// <summary>Snapshot of the loaded definitions — the TTS prewarm reads spoken phrases
-    /// from them. The list is a copy; the definitions themselves are not mutated after load.</summary>
+    /// <summary>Snapshot of the ACTIVE set's definitions. The list is a copy; the definitions
+    /// themselves are not mutated after load.</summary>
     public IReadOnlyList<ChecklistDefinition> Definitions()
     {
         lock (_lock)
         {
-            return [.. _definitions];
+            return [.. ActiveDefinitions()];
+        }
+    }
+
+    /// <summary>Snapshot of a NAMED set's definitions (empty for unknown names). The voice FO
+    /// calls this with <see cref="DefaultSetName"/> so its phrase matching is immune to the web
+    /// page's set selection.</summary>
+    public IReadOnlyList<ChecklistDefinition> Definitions(string set)
+    {
+        lock (_lock)
+        {
+            var match = _sets.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, set, StringComparison.OrdinalIgnoreCase));
+            return match is null ? [] : [.. match.Definitions];
         }
     }
 
@@ -88,12 +165,13 @@ public sealed class ChecklistService : IDisposable
     {
         lock (_lock)
         {
+            var definitions = ActiveDefinitions();
             if (_active is null)
             {
-                return _definitions.Count > 0 ? _definitions[0].Checklist : null;
+                return definitions.Count > 0 ? definitions[0].Checklist : null;
             }
-            var index = _definitions.FindIndex(definition => definition.Checklist == _active.Name);
-            return index >= 0 && index + 1 < _definitions.Count ? _definitions[index + 1].Checklist : null;
+            var index = definitions.FindIndex(definition => definition.Checklist == _active.Name);
+            return index >= 0 && index + 1 < definitions.Count ? definitions[index + 1].Checklist : null;
         }
     }
 
@@ -101,7 +179,7 @@ public sealed class ChecklistService : IDisposable
     {
         lock (_lock)
         {
-            var definition = _definitions.FirstOrDefault(candidate =>
+            var definition = ActiveDefinitions().FirstOrDefault(candidate =>
                 string.Equals(candidate.Checklist, name, StringComparison.OrdinalIgnoreCase));
             if (definition is null)
             {
@@ -125,7 +203,11 @@ public sealed class ChecklistService : IDisposable
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Check(int index) => Mutate(runner => runner.Check(index));
+    /// <summary>Ticks the active line. With <see cref="ChecklistOptions.AllowManualOverride"/>
+    /// off (the default) auto items refuse the tick — satisfy the condition or skip; with it on
+    /// the tick lands with freeze semantics (see <see cref="ChecklistRunner.ForceCheck"/>).</summary>
+    public void Check(int index) => Mutate(runner =>
+        _options.CurrentValue.AllowManualOverride ? runner.ForceCheck(index) : runner.Check(index));
 
     public void Skip(int index) => Mutate(runner => runner.Skip(index));
 
@@ -147,6 +229,12 @@ public sealed class ChecklistService : IDisposable
     });
 
     // ── Internals ────────────────────────────────────────────────────────────────────────
+
+    /// <summary>The active set's definition list. Call under <see cref="_lock"/> only. The
+    /// active set always exists — <see cref="Reload"/> and <see cref="SelectSet"/> maintain
+    /// the invariant.</summary>
+    private List<ChecklistDefinition> ActiveDefinitions()
+        => _sets.First(set => string.Equals(set.Name, _activeSet, StringComparison.Ordinal)).Definitions;
 
     private void MutateIfActive(string checklist, Func<ChecklistRunner, bool> action)
     {
@@ -236,6 +324,54 @@ public sealed class ChecklistService : IDisposable
 
     private void Reload()
     {
+        var sets = new List<ChecklistSet> { new(DefaultSetName, LoadDefaultSet()) };
+        foreach (var set in LoadProsim2GsxSets())
+        {
+            if (sets.Any(existing => string.Equals(existing.Name, set.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                _logger.LogWarning("Duplicate checklist set name '{Name}' — first wins", set.Name);
+                continue;
+            }
+            sets.Add(set);
+        }
+
+        lock (_lock)
+        {
+            _sets = sets;
+            if (!sets.Any(set => string.Equals(set.Name, _activeSet, StringComparison.Ordinal)))
+            {
+                _activeSet = DefaultSetName; // the selected set's file was deleted mid-session
+            }
+
+            // A live run survives a reload only if its checklist still exists in the active
+            // set; the run restarts so the statuses always match the (possibly edited)
+            // definition.
+            if (_active is not null)
+            {
+                var current = ActiveDefinitions().FirstOrDefault(definition =>
+                    string.Equals(definition.Checklist, _active.Name, StringComparison.OrdinalIgnoreCase));
+                if (current is null)
+                {
+                    _active = null;
+                    DisposeSubscriptions();
+                }
+                else
+                {
+                    _active = new ChecklistRunner(current);
+                    ResubscribeFor(current);
+                    EvaluateActive();
+                }
+            }
+        }
+        _logger.LogInformation(
+            "Loaded {SetCount} checklist sets ({Count} checklists in the default set) from {Folder}",
+            sets.Count, sets[0].Definitions.Count, _folder);
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The per-phase folder files (Prosim2FO-compatible, one checklist per file).</summary>
+    private List<ChecklistDefinition> LoadDefaultSet()
+    {
         var loaded = new List<ChecklistDefinition>();
         try
         {
@@ -280,31 +416,49 @@ public sealed class ChecklistService : IDisposable
             var byOrder = (left.Order ?? int.MaxValue).CompareTo(right.Order ?? int.MaxValue);
             return byOrder != 0 ? byOrder : string.Compare(left.Checklist, right.Checklist, StringComparison.OrdinalIgnoreCase);
         });
+        return loaded;
+    }
 
-        lock (_lock)
+    /// <summary>One set per Prosim2GSX-format file under <c>config/checklists/sets</c> — the
+    /// files stay in their native shape so a user's own Prosim2GSX checklist drops straight in.</summary>
+    private List<ChecklistSet> LoadProsim2GsxSets()
+    {
+        var sets = new List<ChecklistSet>();
+        try
         {
-            _definitions = loaded;
-            // A live run survives a reload only if its checklist still exists; the run restarts
-            // so the statuses always match the (possibly edited) definition.
-            if (_active is not null)
+            if (!Directory.Exists(_setsFolder))
             {
-                var current = loaded.FirstOrDefault(definition =>
-                    string.Equals(definition.Checklist, _active.Name, StringComparison.OrdinalIgnoreCase));
-                if (current is null)
+                return sets;
+            }
+            foreach (var file in Directory.EnumerateFiles(_setsFolder, "*.json", SearchOption.TopDirectoryOnly))
+            {
+                try
                 {
-                    _active = null;
-                    DisposeSubscriptions();
+                    var set = Prosim2GsxChecklistSetLoader.Parse(
+                        File.ReadAllText(file), Path.GetFileNameWithoutExtension(file), _logger);
+                    if (set is null)
+                    {
+                        _logger.LogWarning("Checklist set file {File} has no sections — skipped", file);
+                        continue;
+                    }
+                    if (sets.Any(existing => string.Equals(existing.Name, set.Name, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _logger.LogWarning("Duplicate checklist set name '{Name}' in {File} — first wins", set.Name, file);
+                        continue;
+                    }
+                    sets.Add(set);
                 }
-                else
+                catch (JsonException ex)
                 {
-                    _active = new ChecklistRunner(current);
-                    ResubscribeFor(current);
-                    EvaluateActive();
+                    _logger.LogWarning("Checklist set file {File} failed to parse: {Message}", file, ex.Message);
                 }
             }
         }
-        _logger.LogInformation("Loaded {Count} checklists from {Folder}", loaded.Count, _folder);
-        Changed?.Invoke(this, EventArgs.Empty);
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex, "Checklist sets folder scan failed");
+        }
+        return sets;
     }
 
     private void StartWatcher()
@@ -318,6 +472,9 @@ public sealed class ChecklistService : IDisposable
             _watcher = new FileSystemWatcher(_folder, "*.json")
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
+                // The sets subfolder hot-reloads too (a dropped-in Prosim2GSX file appears
+                // without a restart).
+                IncludeSubdirectories = true,
                 EnableRaisingEvents = true,
             };
             FileSystemEventHandler onChange = (_, _) => DebouncedReload();

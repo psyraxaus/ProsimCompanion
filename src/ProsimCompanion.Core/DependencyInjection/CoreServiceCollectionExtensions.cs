@@ -61,6 +61,7 @@ public static class CoreServiceCollectionExtensions
             }
         });
         services.Configure<SpeechOptions>(configuration.GetSection(SpeechOptions.SectionName));
+        services.Configure<ChecklistOptions>(configuration.GetSection(ChecklistOptions.SectionName));
         services.Configure<BriefingOptions>(configuration.GetSection(BriefingOptions.SectionName));
         services.Configure<SayIntentionsOptions>(configuration.GetSection(SayIntentionsOptions.SectionName));
         services.Configure<CabinOptions>(configuration.GetSection(CabinOptions.SectionName));
@@ -157,6 +158,15 @@ public static class CoreServiceCollectionExtensions
         // IFlightDataSource and IProsimDataRefs come from the Prosim project's registrations.
         services.AddSingleton<FlightStateEngine>();
         services.AddSingleton<IFlightPhaseSource>(p => p.GetRequiredService<FlightStateEngine>());
+        // Arrival-gate workflow: Confirm queues, cruise auto-fires to GSX + SayIntentions
+        // ATC, Send Now fires immediately. Both targets come from other pillars (Gsx and
+        // Speech) and resolve as optional so a composition without them still starts.
+        services.AddSingleton(p => new Gate.ArrivalGateCoordinator(
+            p.GetRequiredService<IFlightPhaseSource>(),
+            p.GetRequiredService<Aircraft.Ofp.OfpStore>(),
+            p.GetService<IGsxGateControl>(),
+            p.GetService<Gate.ISayIntentionsGateAssign>(),
+            p.GetRequiredService<ILogger<Gate.ArrivalGateCoordinator>>()));
         services.AddSingleton<AircraftProfileService>();
         services.AddHostedService<CoreBootstrapService>();
 

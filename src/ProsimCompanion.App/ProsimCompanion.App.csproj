@@ -60,6 +60,9 @@
     <Content Include="config\settings.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Shipped default checklists (Prosim2FO-compatible JSON; user-editable, hot-reloaded). -->
     <Content Include="config\checklists\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Checklist SETS in the native Prosim2GSX format (shipped verbatim so users can drop in
+         their own Prosim2GSX checklist files; one set per file, hot-reloaded). -->
+    <Content Include="config\checklists\sets\*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Shipped abnormal procedures + memory drills (Prosim2FO-compatible; user-editable). -->
     <Content Include="config\abnormals\*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- SayIntentions ATC request phrasebook (user-editable). -->

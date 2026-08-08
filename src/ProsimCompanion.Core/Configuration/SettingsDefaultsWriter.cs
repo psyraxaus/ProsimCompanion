@@ -35,6 +35,7 @@ public static class SettingsDefaultsWriter
             (GsxOptions.SectionName, new GsxOptions()),
             (AudioOptions.SectionName, new AudioOptions()),
             (SpeechOptions.SectionName, new SpeechOptions()),
+            (ChecklistOptions.SectionName, new ChecklistOptions()),
             (SopOptions.SectionName, new SopOptions()),
             (BriefingOptions.SectionName, new BriefingOptions()),
             (SayIntentionsOptions.SectionName, new SayIntentionsOptions()),

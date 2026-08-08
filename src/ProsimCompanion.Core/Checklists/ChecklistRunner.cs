@@ -93,6 +93,15 @@ public sealed class ChecklistRunner
             }
 
             var item = _definition.Items[active];
+            if (item.IsDisplayOnly)
+            {
+                // Separator/note rows (Prosim2GSX set files) are display furniture: complete
+                // them the instant they become active so they never gate the real items.
+                _statuses[active] = ChecklistItemStatus.Done;
+                changed = true;
+                continue;
+            }
+
             if (item.IsAuto && _conditionSatisfied[active])
             {
                 _statuses[active] = ChecklistItemStatus.Done;
@@ -119,6 +128,22 @@ public sealed class ChecklistRunner
             return false;
         }
         _statuses[index] = ChecklistItemStatus.Done;
+        return true;
+    }
+
+    /// <summary>Ticks the active line even when it is auto — the settings-gated manual
+    /// override (Prosim2GSX's AllowManualChecklistOverride parity). The line freezes with the
+    /// same latch as <see cref="VoiceComplete"/> so the retreat pass cannot immediately
+    /// un-check what the crew deliberately overrode. Still active-line gated: the override
+    /// relaxes WHO may tick, not the in-order discipline.</summary>
+    public bool ForceCheck(int index)
+    {
+        if (IsComplete || index != ActiveIndex || index >= _definition.Items.Count)
+        {
+            return false;
+        }
+        _statuses[index] = ChecklistItemStatus.Done;
+        _voiceFrozen[index] = true;
         return true;
     }
 
@@ -183,7 +208,8 @@ public sealed class ChecklistRunner
                 item.ExpectedResponse ?? "",
                 _statuses[i],
                 item.IsAuto,
-                _conditionSatisfied[i]))]);
+                _conditionSatisfied[i],
+                item.Kind))]);
 
     private int FirstOpenIndex()
     {

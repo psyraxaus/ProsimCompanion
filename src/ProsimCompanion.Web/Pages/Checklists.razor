@@ -1,7 +1,10 @@
 @page "/checklists"
+@using Microsoft.Extensions.Options
 @using ProsimCompanion.Core.Checklists
+@using ProsimCompanion.Core.Configuration
 @implements IDisposable
 @inject ChecklistService Engine
+@inject IOptionsMonitor<ChecklistOptions> Options
 
 <PageTitle>Checklists — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Checklists</h1>
@@ -18,9 +21,14 @@
 
     <div class="ecamcl-header">
         <span class="ecamcl-cl-label">C/L</span>
-        @* One checklist set today; more arrive later, so keep a real select. *@
-        <select class="ecamcl-select" aria-label="Checklist set">
-            <option selected>A320 (ProsimCompanion)</option>
+        @* The per-phase folder set plus every Prosim2GSX-format file in config/checklists/sets. *@
+        <select class="ecamcl-select" aria-label="Checklist set"
+                value="@_activeSet"
+                @onchange="OnSetChanged">
+            @foreach (var set in _sets)
+            {
+                <option value="@set">@set</option>
+            }
         </select>
     </div>
 
@@ -59,53 +67,72 @@
         {
             @foreach (var item in _view.Items)
             {
-                @switch (item.Status)
+                @* Display-only rows from Prosim2GSX set files: the engine completes them
+                   instantly, so they only ever render as furniture — never as a gate. *@
+                @if (string.Equals(item.Kind, "separator", StringComparison.OrdinalIgnoreCase))
                 {
-                    case ChecklistItemStatus.Done:
-                        <div class="ecamcl-item ecamcl-checked" role="listitem">
-                            <span class="ecamcl-check">✓</span>
-                            <span>@item.Label</span>
-                            <span class="ecamcl-dots">@Dots</span>
-                            <span>@item.Response</span>
-                        </div>
-                        break;
+                    <div class="ecamcl-item ecamcl-separator" role="separator">
+                        <span></span>
+                        <span class="ecamcl-sepline"></span>
+                    </div>
+                }
+                else if (string.Equals(item.Kind, "note", StringComparison.OrdinalIgnoreCase))
+                {
+                    <div class="ecamcl-item ecamcl-note" role="listitem">
+                        <span></span>
+                        <span>@item.Label</span>
+                    </div>
+                }
+                else
+                {
+                    @switch (item.Status)
+                    {
+                        case ChecklistItemStatus.Done:
+                            <div class="ecamcl-item ecamcl-checked" role="listitem">
+                                <span class="ecamcl-check">✓</span>
+                                <span>@item.Label</span>
+                                <span class="ecamcl-dots">@Dots</span>
+                                <span>@item.Response</span>
+                            </div>
+                            break;
 
-                    case ChecklistItemStatus.Active:
-                        <div class="ecamcl-item ecamcl-current @(item.IsAuto ? "" : "ecamcl-clickable")"
-                             role="listitem"
-                             @onclick="() => OnCurrentRowClick(item)">
-                            <span class="ecamcl-check">□</span>
-                            <span>@item.Label</span>
-                            <span class="ecamcl-dots">@Dots</span>
-                            <span>@item.Response</span>
-                            <span class="ecamcl-aside">
-                                @if (item.IsAuto && !item.ConditionSatisfied)
-                                {
-                                    <span class="ecamcl-hint">waiting for cockpit</span>
-                                }
-                                <button type="button" class="ecamcl-skip" title="Skip this line"
-                                        @onclick="SkipCurrent" @onclick:stopPropagation>skip</button>
-                            </span>
-                        </div>
-                        break;
+                        case ChecklistItemStatus.Active:
+                            <div class="ecamcl-item ecamcl-current @(item.IsAuto && !AllowOverride ? "" : "ecamcl-clickable")"
+                                 role="listitem"
+                                 @onclick="() => OnCurrentRowClick(item)">
+                                <span class="ecamcl-check">□</span>
+                                <span>@item.Label</span>
+                                <span class="ecamcl-dots">@Dots</span>
+                                <span>@item.Response</span>
+                                <span class="ecamcl-aside">
+                                    @if (item.IsAuto && !item.ConditionSatisfied && !AllowOverride)
+                                    {
+                                        <span class="ecamcl-hint">waiting for cockpit</span>
+                                    }
+                                    <button type="button" class="ecamcl-skip" title="Skip this line"
+                                            @onclick="SkipCurrent" @onclick:stopPropagation>skip</button>
+                                </span>
+                            </div>
+                            break;
 
-                    case ChecklistItemStatus.Skipped:
-                        <div class="ecamcl-item ecamcl-skipped" role="listitem">
-                            <span class="ecamcl-check">–</span>
-                            <span>@item.Label</span>
-                            <span class="ecamcl-dots">@Dots</span>
-                            <span>@item.Response</span>
-                        </div>
-                        break;
+                        case ChecklistItemStatus.Skipped:
+                            <div class="ecamcl-item ecamcl-skipped" role="listitem">
+                                <span class="ecamcl-check">–</span>
+                                <span>@item.Label</span>
+                                <span class="ecamcl-dots">@Dots</span>
+                                <span>@item.Response</span>
+                            </div>
+                            break;
 
-                    default:
-                        <div class="ecamcl-item ecamcl-pending" role="listitem">
-                            <span></span>
-                            <span>@item.Label</span>
-                            <span class="ecamcl-dots">@Dots</span>
-                            <span>@item.Response</span>
-                        </div>
-                        break;
+                        default:
+                            <div class="ecamcl-item ecamcl-pending" role="listitem">
+                                <span></span>
+                                <span>@item.Label</span>
+                                <span class="ecamcl-dots">@Dots</span>
+                                <span>@item.Response</span>
+                            </div>
+                            break;
+                    }
                 }
             }
         }
@@ -130,9 +157,13 @@
     // as the WPF template's CharacterEllipsis-trimmed TextBlock).
     private const string Dots = "....................................................................................................";
 
+    private IReadOnlyList<string> _sets = [];
+    private string _activeSet = "";
     private IReadOnlyList<ChecklistCatalogEntry> _catalog = [];
     private ChecklistView? _view;
     private ElementReference _sectionSelect;
+
+    private bool AllowOverride => Options.CurrentValue.AllowManualOverride;
 
     protected override void OnInitialized()
     {
@@ -152,8 +183,19 @@
 
     private void Refresh()
     {
+        _sets = Engine.Sets();
+        _activeSet = Engine.ActiveSet;
         _catalog = Engine.Catalog();
         _view = Engine.ActiveView();
+    }
+
+    private void OnSetChanged(ChangeEventArgs e)
+    {
+        var name = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(name) && name != _activeSet)
+        {
+            Engine.SelectSet(name);
+        }
     }
 
     private void OnSectionChanged(ChangeEventArgs e)
@@ -168,10 +210,12 @@
 
     private void OnCurrentRowClick(ChecklistItemView item)
     {
-        // Phase B: allowManualChecklistOverride — a settings-gated hand-tick
-        // for auto items. Until then the engine refuses hand-ticks on
-        // dataref-verified lines; the row shows "waiting for cockpit" instead.
-        if (_view is null || item.IsAuto)
+        // checklists.allowManualOverride (Prosim2GSX parity): with the option
+        // on, an auto item accepts a hand-tick — the engine completes it with
+        // freeze semantics so the retreat pass cannot un-tick the crew's
+        // decision. Off keeps the strict rule: dataref-verified lines wait for
+        // the cockpit and the row shows "waiting for cockpit" instead.
+        if (_view is null || (item.IsAuto && !AllowOverride))
         {
             return;
         }

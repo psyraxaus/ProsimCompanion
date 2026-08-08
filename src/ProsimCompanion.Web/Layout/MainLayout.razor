@@ -1,8 +1,10 @@
 @inherits LayoutComponentBase
 @using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Configuration
 @implements IDisposable
 @inject ConnectionStatusStore Status
 @inject IProsimDataRefs DataRefs
+@inject IOptionsMonitor<WebUiOptions> WebUi
 
 <ThemeStyle />
 
@@ -13,16 +15,16 @@
             <span class="brand-tag">WEB</span>
         </div>
         <div class="flap-center">
-            <split-flap text="@_flightNumber" count="8"></split-flap>
+            <split-flap text="@_flightNumber" count="8" animate="@SolariMode"></split-flap>
             <span class="flap-label">FLT NO</span>
         </div>
         <div class="flap-right">
             <div class="flap-block">
-                <split-flap mode="utc-time" count="6"></split-flap>
+                <split-flap mode="utc-time" count="6" animate="@SolariMode"></split-flap>
                 <span class="flap-label">UTC</span>
             </div>
             <div class="flap-block">
-                <split-flap mode="utc-date" count="5"></split-flap>
+                <split-flap mode="utc-date" count="5" animate="@SolariMode"></split-flap>
                 <span class="flap-label">DATE</span>
             </div>
             <span class="conn-indicator" title="ProSim connection">
@@ -82,6 +84,8 @@
 
     private IDataRefSubscription? _flightNumberSub;
     private string _flightNumber = "";
+
+    private string? SolariMode => WebUi.CurrentValue.SolariAnimation ? null : "off";
 
     private string ProsimDotClass => Status.Snapshot()
         .FirstOrDefault(pair => pair.Key == Subsystems.Prosim).Value switch

@@ -56,7 +56,10 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     private readonly IDataRefSubscription _cg;
     private readonly IDataRefSubscription _zfwcg;
 
+    private static readonly TimeSpan StdCheckInterval = TimeSpan.FromSeconds(30);
+
     private readonly object _stateLock = new();
+    private readonly Timer _stdTimer;
     private LoadsheetData? _cachedPrelim;
     private LoadsheetContext? _cachedPrelimContext;
     private bool _finalSent;
@@ -133,10 +136,16 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _signals.BoardingCompleted += OnBoardingCompleted;
         _signals.FlightCycleReset += ResetCycle;
         _connections.Changed += OnConnectionChanged;
+
+        // STD-offset trigger (Prosim2GSX's timing model, opt-in): a slow poll rather than a
+        // scheduled one-shot because the STD source can change at any time (new OFP import,
+        // manual entry on the Loadsheet page).
+        _stdTimer = new Timer(_ => OnStdTick(), null, StdCheckInterval, StdCheckInterval);
     }
 
     public void Dispose()
     {
+        _stdTimer.Dispose();
         _signals.RefuelServiceActive -= OnRefuelServiceActive;
         _signals.BoardingCompleted -= OnBoardingCompleted;
         _signals.FlightCycleReset -= ResetCycle;
@@ -184,6 +193,48 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         }
 
         _ = Task.Run(() => GeneratePreliminaryAsync());
+    }
+
+    /// <summary>STD-offset prelim trigger: fires once the clock passes STD minus the configured
+    /// offset. STD = the Loadsheet page's manual override when set, else the OFP's scheduled
+    /// out. Shares the one-automatic-prelim-per-cycle guard with the refuel trigger.</summary>
+    private void OnStdTick()
+    {
+        var options = _options.CurrentValue;
+        if (!options.AutoPrelimAtStd)
+        {
+            return;
+        }
+
+        var std = EffectiveStdUtc();
+        if (std is null || DateTimeOffset.UtcNow < std - TimeSpan.FromMinutes(Math.Max(0, options.PrelimStdOffsetMinutes)))
+        {
+            return;
+        }
+
+        lock (_stateLock)
+        {
+            if (_cachedPrelim is not null)
+            {
+                return;
+            }
+        }
+
+        RecordDecision($"STD {std:HH:mm}Z minus {options.PrelimStdOffsetMinutes} min reached — preliminary loadsheet");
+        _ = Task.Run(() => GeneratePreliminaryAsync());
+    }
+
+    /// <summary>Manual override wins over the OFP. A manual time-of-day is anchored to today
+    /// (UTC); one that already passed by more than 12 h is read as tomorrow's departure so an
+    /// evening entry for an after-midnight flight doesn't fire instantly.</summary>
+    private DateTimeOffset? EffectiveStdUtc()
+    {
+        if (_store.Snapshot().StdOverrideUtc is { } manual)
+        {
+            var today = new DateTimeOffset(DateTime.UtcNow.Date.Add(manual.ToTimeSpan()), TimeSpan.Zero);
+            return DateTimeOffset.UtcNow - today > TimeSpan.FromHours(12) ? today.AddDays(1) : today;
+        }
+        return _ofpStore.Current?.ScheduledOutUtc;
     }
 
     private void OnBoardingCompleted()

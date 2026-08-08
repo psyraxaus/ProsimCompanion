@@ -239,3 +239,14 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Manual STD entry (shown when the OFP is not supplying the time). */
+.ls-std-input {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

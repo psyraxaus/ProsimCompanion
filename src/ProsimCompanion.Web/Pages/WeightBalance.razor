@@ -1,5 +1,6 @@
 @page "/wnb"
 @using System.Globalization
+@using Microsoft.Extensions.DependencyInjection
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
 @implements IDisposable
@@ -8,6 +9,7 @@
 @inject PassengerManifestService ManifestService
 @inject OfpStore Ofp
 @inject IFmsInitSync FmsSync
+@inject IServiceProvider Services
 
 <PageTitle>Weight &amp; Balance — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Weight and Balance</h1>
@@ -75,6 +77,41 @@
                 <span class="row-value-mono">PLANNED @(ofp?.PaxCount.ToString() ?? "—") · BOARDED @paxBoarded</span>
             </div>
             <div class="row"><span class="row-label">Pax zones 1–4</span><span class="row-value-mono">@_zone1.GetValue(0) / @_zone2.GetValue(0) / @_zone3.GetValue(0) / @_zone4.GetValue(0)</span></div>
+            @if (_paxSim is not null)
+            {
+                @* Predecessor's SIMULATE affordance: the button expands inline to COUNT +
+                   GENERATE/CLEAR. Empty COUNT means a full cabin. The silhouette below picks
+                   up the written occupation string on the next 1 s repaint. *@
+                <div class="row">
+                    @if (!_simOpen)
+                    {
+                        <button type="button" class="btn secondary" @onclick="() => _simOpen = true">SIMULATE</button>
+                    }
+                    else
+                    {
+                        <span class="row-label">COUNT</span>
+                        <input type="number" class="number-input" min="0" max="@paxCapacity"
+                               placeholder="@(paxCapacity > 0 ? paxCapacity.ToString() : "132")"
+                               disabled="@_simBusy" @bind="_simCount" />
+                        <button type="button" class="btn secondary" disabled="@_simBusy" @onclick="GeneratePax">
+                            @(_simBusy ? "…" : "GENERATE")
+                        </button>
+                        <button type="button" class="btn secondary" disabled="@_simBusy" @onclick="ClearPax">CLEAR</button>
+                        <button type="button" class="btn secondary" title="Hide controls" @onclick="CloseSimulate">×</button>
+                    }
+                    @if (_simResult is not null)
+                    {
+                        <span class="row-value">@_simResult</span>
+                    }
+                </div>
+                @if (_simOpen)
+                {
+                    <div class="row">
+                        <span class="row-label"></span>
+                        <span class="row-value">SIMULATE works for headless cabins; GSX boarding will overwrite.</span>
+                    </div>
+                }
+            }
             <div class="row">
                 <span class="row-label">Cargo capacity</span>
                 <span class="row-value-mono">@($"{_cargoFwdCap.GetValue(0.0):F0}") KG FWD, @($"{_cargoAftCap.GetValue(0.0):F0}") KG AFT@(_cargoBulkCap.GetValue(0.0) > 0 ? $", {_cargoBulkCap.GetValue(0.0):F0} KG BULK" : "")</span>
@@ -188,9 +225,18 @@
     private bool _showManifest;
     private bool _syncing;
     private string? _syncResult;
+    private IPassengerSimulation? _paxSim;
+    private bool _simOpen;
+    private bool _simBusy;
+    private int? _simCount;
+    private string? _simResult;
 
     protected override void OnInitialized()
     {
+        // Optional resolution: the SIMULATE tool simply disappears in builds where the ProSim
+        // pillar (its owner) is not wired — degrade, not fail.
+        _paxSim = Services.GetService<IPassengerSimulation>();
+
         _zfw = DataRefs.Subscribe(ProsimDataRefNames.WeightZfw, DataRefTier.Normal);
         _zfwMax = DataRefs.Subscribe(ProsimDataRefNames.WeightZfwMax, DataRefTier.Infrequent);
         _gross = DataRefs.Subscribe(ProsimDataRefNames.WeightGross, DataRefTier.Normal);
@@ -261,6 +307,60 @@
 
     private static string Kg(IDataRefSubscription sub)
         => $"{sub.GetValue(0.0):F0} kg";
+
+    private void CloseSimulate()
+    {
+        _simOpen = false;
+        _simResult = null;
+    }
+
+    /// <summary>An empty COUNT simulates a full cabin (the predecessor's semantics); the
+    /// service clamps to live capacity either way, so the page only clamps for the message.</summary>
+    private async Task GeneratePax()
+    {
+        if (_paxSim is null || _simBusy)
+        {
+            return;
+        }
+
+        _simBusy = true;
+        _simResult = null;
+        try
+        {
+            var capacity = _zone1Cap.GetValue(0) + _zone2Cap.GetValue(0) + _zone3Cap.GetValue(0) + _zone4Cap.GetValue(0);
+            if (capacity <= 0)
+            {
+                capacity = 132;
+            }
+            var target = Math.Clamp(_simCount ?? capacity, 0, capacity);
+            var ok = await _paxSim.GenerateAsync(target);
+            _simResult = ok ? $"Generated {target} pax." : "Generation failed — see logs.";
+        }
+        finally
+        {
+            _simBusy = false;
+        }
+    }
+
+    private async Task ClearPax()
+    {
+        if (_paxSim is null || _simBusy)
+        {
+            return;
+        }
+
+        _simBusy = true;
+        _simResult = null;
+        try
+        {
+            var ok = await _paxSim.ClearAsync();
+            _simResult = ok ? "Cabin cleared." : "Clear failed — see logs.";
+        }
+        finally
+        {
+            _simBusy = false;
+        }
+    }
 
     private async Task SyncFms()
     {

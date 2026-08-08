@@ -35,6 +35,12 @@ public sealed class CabinOptions
     /// <summary>Grace (s) to wait for CAB selection before speaking anyway — a report is never lost.</summary>
     public int CabChannelGraceSeconds { get; set; } = 25;
 
+    /// <summary>Cabin ding when the application starts (Prosim2GSX's DingOnStartup).</summary>
+    public bool DingOnStartup { get; set; }
+
+    /// <summary>Cabin ding when the final loadsheet is transmitted (Prosim2GSX's DingOnFinal).</summary>
+    public bool DingOnFinal { get; set; } = true;
+
     /// <summary>Altitude (ft MSL) below which the "cabin ready" report triggers in Descent/Approach.</summary>
     public double CabinReadyBelowAltFt { get; set; } = 10000;
 

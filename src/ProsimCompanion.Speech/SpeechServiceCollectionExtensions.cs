@@ -73,7 +73,15 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<SayIntentions.SayIntentionsWeatherService>();
         services.AddSingleton<Core.State.IWeatherControl>(
             p => p.GetRequiredService<SayIntentions.SayIntentionsWeatherService>());
+        // Arrival-gate ATC push (assignGate) — the SayIntentions half of the Core
+        // arrival-gate coordinator; on-demand only, deliberately NOT an IVoiceFeature.
+        services.AddSingleton<SayIntentions.SayIntentionsGateAssignService>();
+        services.AddSingleton<Core.Gate.ISayIntentionsGateAssign>(
+            p => p.GetRequiredService<SayIntentions.SayIntentionsGateAssignService>());
         services.AddSingleton<Cabin.CabinCrewService>();
+        // Prosim2GSX-parity cabin dings (startup / final loadsheet) — plain chime playback,
+        // deliberately outside the speech arbiter.
+        services.AddHostedService<Cabin.CabinDingService>();
         // GSX voice control ("cockpit to ground", "request boarding", …) — dispatches through
         // the named-command registry so voice/web/API/StreamDeck share one seam.
         services.AddSingleton<Gsx.GsxVoiceService>();

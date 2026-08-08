@@ -38,6 +38,10 @@ public static class ProsimServiceCollectionExtensions
         services.AddSingleton<Core.State.ILoadsheetControl>(provider => provider.GetRequiredService<Loadsheet.LoadsheetService>());
         services.AddHostedService<Loadsheet.FlightDataBootstrapService>();
 
+        // W&B passenger SIMULATE tool (headless cabin loading; resolved optionally by the web UI).
+        services.AddSingleton<Passengers.PassengerSimulationService>();
+        services.AddSingleton<IPassengerSimulation>(provider => provider.GetRequiredService<Passengers.PassengerSimulationService>());
+
         return services;
     }
 }

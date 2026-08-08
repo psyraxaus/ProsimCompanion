@@ -26,11 +26,23 @@
         </div>
     </div>
 
-    @* Phase B: manual STD (time picker fallback when no OFP is loaded). *@
+    @* STD row — manual entry wins over the OFP (Prosim2GSX parity). The manual time also
+       feeds the STD-offset prelim auto-trigger (flightData.autoPrelimAtStd). *@
     <div class="ls-std-row">
         <span class="ls-std-label">STD (UTC)</span>
-        <span class="ls-std-value">@(Ofp.Current?.ScheduledOutUtc?.ToString("HH:mm") is { } std ? std + "Z" : "—")</span>
-        <span class="ls-std-source">@(Ofp.Current?.ScheduledOutUtc is null ? "not set" : "from OFP")</span>
+        <span class="ls-std-value">@StdDisplay</span>
+        <span class="ls-std-source">@StdSource</span>
+        @* Prosim2GSX behaviour: the picker shows only when the OFP isn't supplying the time
+           (no plan, or a manual override is in force). *@
+        @if (_loadsheets.StdOverrideUtc is not null || Ofp.Current?.ScheduledOutUtc is null)
+        {
+            <input type="time" class="ls-std-input" @bind="_stdDraft" />
+            <button type="button" class="ls-btn" disabled="@(_stdDraft is null)" @onclick="SetStd">SET</button>
+            @if (_loadsheets.StdOverrideUtc is not null)
+            {
+                <button type="button" class="ls-btn" @onclick="ClearStd">CLEAR</button>
+            }
+        }
     </div>
 
     <div class="ls-cards">
@@ -107,6 +119,28 @@
     private LoadsheetSnapshot _loadsheets = LoadsheetSnapshot.Empty;
     private Busy? _busy;
     private bool _armReset;
+    private TimeOnly? _stdDraft;
+
+    private string StdDisplay => _loadsheets.StdOverrideUtc is { } manual
+        ? manual.ToString("HH:mm") + "Z"
+        : Ofp.Current?.ScheduledOutUtc?.ToString("HH:mm") is { } ofpStd ? ofpStd + "Z" : "—";
+
+    private string StdSource => _loadsheets.StdOverrideUtc is not null ? "manual"
+        : Ofp.Current?.ScheduledOutUtc is not null ? "from OFP" : "not set";
+
+    private void SetStd()
+    {
+        if (_stdDraft is { } draft)
+        {
+            Loadsheets.SetStdOverride(draft);
+        }
+    }
+
+    private void ClearStd()
+    {
+        Loadsheets.SetStdOverride(null);
+        _stdDraft = null;
+    }
 
     protected override void OnInitialized()
     {

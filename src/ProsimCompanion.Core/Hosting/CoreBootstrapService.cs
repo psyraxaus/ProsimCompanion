@@ -23,14 +23,17 @@ public sealed class CoreBootstrapService : IHostedService
         JsonlEventLog eventLog,
         AircraftProfileService profiles,
         // Injected purely to activate their event wiring at startup (deice card arms from a
-        // GSX edge that can fire before any web page has resolved it).
-        Deice.DeiceHoldoverService deiceHoldover)
+        // GSX edge that can fire before any web page has resolved it; the arrival-gate
+        // coordinator must hear the cruise transition even with no browser open).
+        Deice.DeiceHoldoverService deiceHoldover,
+        Gate.ArrivalGateCoordinator arrivalGate)
     {
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(profiles);
         ArgumentNullException.ThrowIfNull(deiceHoldover);
+        ArgumentNullException.ThrowIfNull(arrivalGate);
 
         _flightState = flightState;
         _status = status;

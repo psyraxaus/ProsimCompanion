@@ -23,7 +23,13 @@ public sealed record LoadsheetSlotView(
     int Pax,
     string? Error);
 
-public sealed record LoadsheetSnapshot(LoadsheetSlotView Prelim, LoadsheetSlotView Final)
+/// <param name="StdOverrideUtc">Manually entered scheduled-departure time (UTC, time-of-day);
+/// null means the OFP's STD applies. Drives the STD-offset prelim auto-trigger and the
+/// Loadsheet page's "manual" source chip (Prosim2GSX parity).</param>
+public sealed record LoadsheetSnapshot(
+    LoadsheetSlotView Prelim,
+    LoadsheetSlotView Final,
+    TimeOnly? StdOverrideUtc = null)
 {
     public static readonly LoadsheetSlotView EmptySlot =
         new(LoadsheetSlotStatus.None, 0, null, 0, 0, 0, 0, 0, 0, null);
@@ -54,7 +60,11 @@ public sealed class LoadsheetStore
 
     public void SetFinal(LoadsheetSlotView slot) => Update(snapshot => snapshot with { Final = slot });
 
-    public void Reset() => Update(_ => LoadsheetSnapshot.Empty);
+    /// <summary>Sets (or clears, with null) the manual STD override. Survives a slot reset —
+    /// clearing loadsheets does not forget the departure time the user typed.</summary>
+    public void SetStdOverride(TimeOnly? stdUtc) => Update(snapshot => snapshot with { StdOverrideUtc = stdUtc });
+
+    public void Reset() => Update(snapshot => LoadsheetSnapshot.Empty with { StdOverrideUtc = snapshot.StdOverrideUtc });
 
     private void Update(Func<LoadsheetSnapshot, LoadsheetSnapshot> mutate)
     {

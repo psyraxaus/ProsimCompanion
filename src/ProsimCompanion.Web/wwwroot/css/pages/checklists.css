@@ -162,6 +162,23 @@
     color: #00cccc;
 }
 
+/* Display-only rows from Prosim2GSX-format set files. Notes read as quiet
+   guidance lines; separators draw a dashed rule across the row. Neither is
+   interactive — the engine completes them instantly. */
+.ecamcl-note {
+    grid-template-columns: 22px 1fr;
+    font-style: italic;
+    color: rgba(0, 204, 204, 0.7);
+}
+
+.ecamcl-separator {
+    grid-template-columns: 22px 1fr;
+}
+
+.ecamcl-separator .ecamcl-sepline {
+    border-top: 1px dashed rgba(0, 204, 204, 0.35);
+}
+
 .ecamcl-empty {
     padding: 24px 12px;
     font-size: 14px;

@@ -56,6 +56,18 @@ public sealed class ChecklistItemDefinition
     /// regardless. Manual items always freeze.</summary>
     public bool Freeze { get; set; }
 
+    /// <summary>Display kind: "normal" (default) | "separator" | "note" — the Prosim2GSX set
+    /// format's display-only rows. The runner completes separator/note rows instantly so they
+    /// never gate the checklist. Kept as a string so foreign values degrade to normal instead
+    /// of failing deserialization (same rationale as <see cref="Behavior"/>).</summary>
+    public string Kind { get; set; } = "normal";
+
+    /// <summary>True for separator/note rows — display furniture, never a gate.</summary>
+    [JsonIgnore]
+    public bool IsDisplayOnly =>
+        string.Equals(Kind, "separator", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Kind, "note", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>True when the item completes itself from a dataref condition.</summary>
     [JsonIgnore]
     public bool IsAuto => Verify is not null;
@@ -195,7 +207,8 @@ public sealed record ChecklistItemView(
     string Response,
     ChecklistItemStatus Status,
     bool IsAuto,
-    bool ConditionSatisfied);
+    bool ConditionSatisfied,
+    string Kind = "normal");
 
 public sealed record ChecklistView(
     string Name,
@@ -204,3 +217,21 @@ public sealed record ChecklistView(
     IReadOnlyList<ChecklistItemView> Items);
 
 public sealed record ChecklistCatalogEntry(string Name, int Order, int ItemCount);
+
+/// <summary>A named collection of checklists shown as one entry in the web page's set
+/// dropdown: the shipped per-phase folder is one set; every Prosim2GSX-format file under
+/// <c>config/checklists/sets</c> is another. Definitions are not mutated after load.</summary>
+public sealed class ChecklistSet
+{
+    public ChecklistSet(string name, List<ChecklistDefinition> definitions)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(definitions);
+        Name = name;
+        Definitions = definitions;
+    }
+
+    public string Name { get; }
+
+    public List<ChecklistDefinition> Definitions { get; }
+}

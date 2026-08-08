@@ -122,6 +122,13 @@
         cell.charEl.textContent = targetChar;
         return;
       }
+
+      // Solari animation switched off (webUi.solariAnimation) — snap without the drum spin.
+      if (this.getAttribute("animate") === "off") {
+        cell.drumIdx = targetIdx;
+        this._setChar(cell, targetChar, false);
+        return;
+      }
       if (DRUM.charAt(cell.drumIdx) === targetChar) {
         this._setChar(cell, targetChar, false);
         return;

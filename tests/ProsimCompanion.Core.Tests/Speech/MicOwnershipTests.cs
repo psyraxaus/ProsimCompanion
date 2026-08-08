@@ -210,7 +210,10 @@ public sealed class MicOwnershipTests
         var eventLog = SpeechTestSupport.TempEventLog();
         var probe = new ProbeFeature();
 
-        using var checklists = new ChecklistService(dataRefs, NullLogger<ChecklistService>.Instance);
+        using var checklists = new ChecklistService(
+            dataRefs,
+            SpeechTestSupport.ChecklistMonitor(new ChecklistOptions()),
+            NullLogger<ChecklistService>.Instance);
         using var engine = new SpokenChecklistEngine(
             monitor,
             arbiter,
