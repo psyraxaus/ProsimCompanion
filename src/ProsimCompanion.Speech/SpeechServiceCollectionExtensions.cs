@@ -27,6 +27,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<ITtsProvider, Sapi5TtsProvider>();
         services.AddSingleton<TtsRouter>();
         services.AddSingleton<ISpeechPlayback, SpeechPlayback>();
+        services.AddSingleton<IAudioDeviceCatalog, AudioDeviceCatalog>();
         services.AddSingleton<SpeechArbiterService>();
         services.AddSingleton<ISpeechArbiter>(p => p.GetRequiredService<SpeechArbiterService>());
         services.AddSingleton<ISpeechControl>(p => p.GetRequiredService<SpeechArbiterService>());

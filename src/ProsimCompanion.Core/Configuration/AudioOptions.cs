@@ -47,8 +47,9 @@ public sealed class AudioOptions
     // ---- VoiceMeeter backend ----
 
     /// <summary>Full path to VoicemeeterRemote64.dll (never redistributed — typically
-    /// C:\Program Files (x86)\VB\Voicemeeter\VoicemeeterRemote64.dll). Empty disables the
-    /// VoiceMeeter backend; the path is user-configured, never assumed.</summary>
+    /// C:\Program Files (x86)\VB\Voicemeeter\VoicemeeterRemote64.dll). Empty (or a stale
+    /// path) auto-detects the installed VoiceMeeter via its uninstall registry key and the
+    /// default install folders; set explicitly only for non-standard installs.</summary>
     public string VoiceMeeterDllPath { get; set; } = "";
 
     /// <summary>Which ACPs drive VoiceMeeter targets (each with its own mapping list).</summary>

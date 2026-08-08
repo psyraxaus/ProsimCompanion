@@ -131,7 +131,7 @@ public sealed class VoiceMeeterRemote : IDisposable
 
             _loginCalled = true;
             _writesSuspended = false;
-            _logger.LogInformation("VoiceMeeter remote logged in (code {Code})", result);
+            _logger.LogInformation("VoiceMeeter remote logged in from {Path} (code {Code})", dllPath, result);
             return true;
         }
     }

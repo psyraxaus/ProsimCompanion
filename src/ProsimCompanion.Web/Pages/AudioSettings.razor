@@ -6,6 +6,7 @@
 @inject IOptionsMonitor<AudioOptions> AudioMonitor
 @inject JsonSettingsFile SettingsFile
 @inject IAudioControl AudioControl
+@inject IAudioDeviceCatalog DeviceCatalog
 
 <PageTitle>Audio Settings — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Audio Settings</h1>
@@ -69,7 +70,7 @@
                                     }
                                 </select>
                                 <input class="cell-input" placeholder="Process name (no .exe)" list="audio-process-suggestions" @bind="row.Binary" />
-                                <input class="cell-input" placeholder="All devices" @bind="row.Device" />
+                                <input class="cell-input" placeholder="All devices" list="audio-device-suggestions" @bind="row.Device" />
                                 <input type="checkbox" class="audio-cell-check" title="Drive mute from the REC latch"
                                        @bind="row.UseLatch" />
                                 <input type="checkbox" class="audio-cell-check" title="Only control active sessions"
@@ -98,7 +99,7 @@
                             var index = i;
                             <div class="list-row">
                                 <input class="cell-input" placeholder="Device friendly name prefix"
-                                       @bind="_draft.DeviceBlacklist[index]" />
+                                       list="audio-device-suggestions" @bind="_draft.DeviceBlacklist[index]" />
                                 <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
                                         @onclick="() => _draft.DeviceBlacklist.RemoveAt(index)">×</button>
                             </div>
@@ -114,7 +115,7 @@
             {
                 <Section Title="VoiceMeeter" Hint="Strips/buses via VoicemeeterRemote64.dll">
                     <TextField Label="VoicemeeterRemote64.dll path"
-                               Hint="Typically C:\Program Files (x86)\VB\Voicemeeter\VoicemeeterRemote64.dll — never bundled, loaded at runtime"
+                               Hint="Leave empty to auto-detect the installed VoiceMeeter (any edition); set only for non-standard install locations — never bundled, loaded at runtime"
                                @bind-Value="_draft.VoiceMeeterDllPath" />
                     <div style="margin:8px 0;">
                         <button type="button" class="btn secondary" @onclick="ReloadTargets">Reload strips</button>
@@ -208,6 +209,15 @@
     }
 </datalist>
 
+@* Render-device names for the mapping Device filter and the blacklist — both are
+   START-of-friendly-name matches, so picking a full name from the list always works. *@
+<datalist id="audio-device-suggestions">
+    @foreach (var name in _deviceSuggestions)
+    {
+        <option value="@name" />
+    }
+</datalist>
+
 <DirtyBar Visible="@(IsDirty || _barMessage is not null)"
           Message="@(_barMessage ?? "You have unsaved changes")"
           Tone="_barTone"
@@ -267,12 +277,14 @@
     }
 
     private IReadOnlyList<string> _processSuggestions = [];
+    private IReadOnlyList<string> _deviceSuggestions = [];
 
     protected override void OnInitialized()
     {
         LoadDraft();
         ReloadTargets();
         LoadProcessSuggestions();
+        _deviceSuggestions = DeviceCatalog.GetRenderDeviceNames();
     }
 
     private void LoadProcessSuggestions()

@@ -127,7 +127,7 @@ public sealed class AudioControlService : IAudioControl, IDisposable
     public IReadOnlyList<VoiceMeeterTargetView> GetVoiceMeeterTargets()
     {
         var options = _options.CurrentValue;
-        if (!_voiceMeeter.IsLoaded && !_voiceMeeter.Login(options.VoiceMeeterDllPath))
+        if (!_voiceMeeter.IsLoaded && !_voiceMeeter.Login(VoiceMeeterLocator.Resolve(options.VoiceMeeterDllPath)))
         {
             return [];
         }
@@ -194,7 +194,7 @@ public sealed class AudioControlService : IAudioControl, IDisposable
             return;
         }
 
-        if (!_voiceMeeter.Login(options.VoiceMeeterDllPath))
+        if (!_voiceMeeter.Login(VoiceMeeterLocator.Resolve(options.VoiceMeeterDllPath)))
         {
             _boundBackend = null; // retried next tick
             return;
