@@ -7,8 +7,10 @@ namespace ProsimCompanion.Audio.Backends.VoiceMeeter;
 
 /// <summary>
 /// Routes power-gated ACP knob/latch changes to VoiceMeeter strip/bus parameters.
-/// VBVMR_SetParameterFloat is sub-ms, so writes happen synchronously on the SDK callback
-/// thread — no per-mapping worker/coalescer needed (unlike the CoreAudio path).
+/// VBVMR_SetParameterFloat is sub-ms, so writes happen synchronously on the dataref push
+/// dispatcher thread — no per-mapping worker/coalescer needed (unlike the CoreAudio path).
+/// Since issue #35 that dispatcher is decoupled from the SDK's receive thread, so a stalled
+/// VBVMR call delays notifications instead of freezing every dataref cache in the app.
 /// </summary>
 public sealed class VoiceMeeterBinder : IAcpVolumeSink
 {

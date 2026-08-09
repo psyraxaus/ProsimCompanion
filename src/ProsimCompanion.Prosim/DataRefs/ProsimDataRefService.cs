@@ -8,8 +8,9 @@ namespace ProsimCompanion.Prosim.DataRefs;
 
 /// <summary>
 /// The application-wide <see cref="IProsimDataRefs"/> implementation. Owns the subscription
-/// table and the serialized momentary-press worker; a connected SDK session attaches itself as
-/// the <see cref="IDataRefBackend"/>. With no backend attached, cached (stale-flagged) values
+/// table, the serialized momentary-press worker, and the push dispatcher that decouples
+/// subscriber callbacks from the SDK's receive thread; a connected SDK session attaches itself
+/// as the <see cref="IDataRefBackend"/>. With no backend attached, cached (stale-flagged) values
 /// remain readable and writes fail fast with a clear error.
 /// </summary>
 public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
@@ -18,9 +19,13 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
     private readonly ILogger<ProsimDataRefService> _logger;
     private readonly IOptionsMonitor<ProsimOptions> _options;
     private readonly Channel<PressRequest> _presses;
+    private readonly Channel<PushItem> _pushes;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly Task _pressWorker;
+    private readonly Task _pushDispatcher;
     private volatile IDataRefBackend? _backend;
+    private string? _dispatchingName;
+    private long _dispatchStartedTicks;
 
     // DataRefSubscriptionTable lives in Core (shared with the SimConnect layer).
     public ProsimDataRefService(IOptionsMonitor<ProsimOptions> options, ILogger<ProsimDataRefService> logger)
@@ -41,6 +46,12 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
             SingleReader = true,
         });
         _pressWorker = Task.Run(() => RunPressWorkerAsync(_shutdown.Token));
+
+        _pushes = Channel.CreateUnbounded<PushItem>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+        });
+        _pushDispatcher = Task.Run(() => RunPushDispatcherAsync(_shutdown.Token));
     }
 
     /// <inheritdoc />
@@ -77,21 +88,46 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
         }
     }
 
-    /// <summary>Called by the SDK session on disconnect; cached values become stale, not cleared.</summary>
+    /// <summary>Called by the SDK session on disconnect; cached values become stale, not cleared.
+    /// The stale flags queue behind pending pushes so already-received values still apply first.</summary>
     internal void DetachBackend()
     {
         _backend = null;
-        _table.MarkAllStale();
+        _pushes.Writer.TryWrite(PushItem.MarkStale());
     }
 
-    /// <summary>Called by the SDK session for every pushed update (on the SDK's thread).</summary>
+    /// <summary>
+    /// Called by the SDK session for every pushed update (on the SDK's receive thread). Only
+    /// enqueues — subscriber callbacks run on the dispatcher task, so a slow consumer can never
+    /// stall the SDK receive loop and freeze every cache with it (the 2026-08-09 wedge, issue #35).
+    /// </summary>
     internal void UpdateFromPush(string name, object? value)
-        => _table.UpdateValue(name, value, DateTimeOffset.UtcNow);
+        => _pushes.Writer.TryWrite(PushItem.Push(name, value, DateTimeOffset.UtcNow));
+
+    /// <summary>
+    /// Reports a subscriber callback that has been blocking the push dispatcher for at least
+    /// <paramref name="stallThresholdMs"/>. <paramref name="startedTicks"/> identifies the stall
+    /// (same value while the same dispatch is stuck) so the watchdog can log it exactly once.
+    /// </summary>
+    internal bool TryGetStalledDispatch(long stallThresholdMs, out string dataRef, out long startedTicks)
+    {
+        startedTicks = Volatile.Read(ref _dispatchStartedTicks);
+        if (startedTicks != 0 && Environment.TickCount64 - startedTicks >= stallThresholdMs)
+        {
+            dataRef = Volatile.Read(ref _dispatchingName) ?? "(unknown)";
+            return true;
+        }
+
+        dataRef = "";
+        startedTicks = 0;
+        return false;
+    }
 
     public async ValueTask DisposeAsync()
     {
         await _shutdown.CancelAsync().ConfigureAwait(false);
         _presses.Writer.TryComplete();
+        _pushes.Writer.TryComplete();
         try
         {
             await _pressWorker.ConfigureAwait(false);
@@ -99,6 +135,23 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
         catch (OperationCanceledException)
         {
             // Expected on shutdown.
+        }
+
+        // Bounded: a subscriber blocked inside a dispatch would otherwise hang shutdown (the
+        // 2026-08-09 wedge needed the forced-process-exit backstop for exactly this reason).
+        try
+        {
+            await _pushDispatcher.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected on shutdown.
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogWarning(
+                "Push dispatcher did not stop — a subscriber callback is blocked in {DataRef}",
+                Volatile.Read(ref _dispatchingName));
         }
         _shutdown.Dispose();
     }
@@ -144,5 +197,43 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
         }
     }
 
+    private async Task RunPushDispatcherAsync(CancellationToken shutdownToken)
+    {
+        await foreach (var item in _pushes.Reader.ReadAllAsync(shutdownToken).ConfigureAwait(false))
+        {
+            Volatile.Write(ref _dispatchingName, item.Name ?? "(mark-stale)");
+            Volatile.Write(ref _dispatchStartedTicks, Environment.TickCount64);
+            try
+            {
+                if (item.Name is null)
+                {
+                    _table.MarkAllStale();
+                }
+                else
+                {
+                    _table.UpdateValue(item.Name, item.Value, item.TimestampUtc);
+                }
+            }
+            catch (Exception ex)
+            {
+                // The table already contains subscriber exceptions; this guards the dispatcher
+                // itself so one bad update can never stop all future dispatch.
+                _logger.LogError(ex, "Dispatching pushed update for {DataRef} failed", item.Name);
+            }
+            finally
+            {
+                Volatile.Write(ref _dispatchStartedTicks, 0);
+            }
+        }
+    }
+
     private sealed record PressRequest(string Name, TaskCompletionSource Completion, CancellationToken CallerToken);
+
+    /// <summary>A queued push, or the detach marker (null name) that flags all caches stale in order.</summary>
+    private readonly record struct PushItem(string? Name, object? Value, DateTimeOffset TimestampUtc)
+    {
+        public static PushItem Push(string name, object? value, DateTimeOffset timestampUtc) => new(name, value, timestampUtc);
+
+        public static PushItem MarkStale() => new(null, null, default);
+    }
 }

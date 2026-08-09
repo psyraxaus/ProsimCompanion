@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using ProSimSDK;
 using ProsimCompanion.Core.Configuration;
@@ -14,9 +15,21 @@ namespace ProsimCompanion.Prosim.Sdk;
 /// immediately and the SDK keeps retrying by itself (onFailedToConnect fires per attempt) — so we
 /// never stack Connect calls while it is trying. Only after an *established* connection drops
 /// (onDisconnect) do we re-arm a single delayed Connect.
+///
+/// Threading (issue #35, 2026-08-09 wedge): <c>DataRef.Register()</c>/<c>Dispose()</c> are
+/// synchronous network round-trips completed by the SDK's receive thread. Doing them inline under
+/// <c>_gate</c> deadlocked against that thread and silently froze every dataref cache. All
+/// register/unregister work therefore runs on a single worker task, callers only enqueue, and
+/// <c>_gate</c> is held for dictionary bookkeeping only — never across SDK I/O. A watchdog
+/// declares the session wedged when a round-trip stalls and signals <see cref="WedgedTask"/> so
+/// the owner can rebuild the session (a fresh <see cref="ProSimConnect"/> — the SDK doc forbids
+/// stacking Connect calls on a live one).
 /// </summary>
 internal sealed class SdkConnection : IDataRefBackend, IDisposable
 {
+    private static readonly TimeSpan WatchdogInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan WorkerDrainTimeout = TimeSpan.FromSeconds(2);
+
     private readonly ProsimOptions _options;
     private readonly ProsimDataRefService _dataRefs;
     private readonly ConnectionStatusStore _status;
@@ -25,9 +38,19 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
     private readonly object _gate = new();
     private readonly Dictionary<string, DataRef> _subscriptionRefs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DataRef> _writeRefs = new(StringComparer.Ordinal);
+    private readonly Channel<RegistrationWork> _registrationWork;
+    private readonly Task _registrationWorker;
+    private readonly TaskCompletionSource _wedged = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly Timer _watchdog;
     private Timer? _reconnectTimer;
     private volatile bool _disposed;
+    private volatile bool _connected;
     private long _failedAttempts;
+    private string? _workDescription;
+    private long _workStartedTicks;
+    private long _lastPushTicks;
+    private long _reportedDispatchStallTicks;
+    private bool _silenceWarned;
 
     public SdkConnection(
         ProsimOptions options,
@@ -52,7 +75,18 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         _connection.onConnect += OnConnect;
         _connection.onDisconnect += OnDisconnect;
         _connection.onFailedToConnect += OnFailedToConnect;
+
+        _registrationWork = Channel.CreateUnbounded<RegistrationWork>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+        });
+        _registrationWorker = Task.Run(RunRegistrationWorkerAsync);
+        _watchdog = new Timer(OnWatchdogTick, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
+
+    /// <summary>Completes when the session is unrecoverably wedged (a registration round-trip
+    /// stalled past the configured threshold); the owner should dispose and rebuild.</summary>
+    public Task WedgedTask => _wedged.Task;
 
     /// <summary>Starts the (self-retrying, non-blocking) connection attempt.</summary>
     public void Start()
@@ -60,58 +94,22 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         _status.Set(Subsystems.Prosim, ConnectionState.Connecting);
         _logger.LogInformation("Connecting to ProSim at {Host}", _options.Host);
         _connection.Connect(_options.Host, false);
+        _watchdog.Change(WatchdogInterval, WatchdogInterval);
     }
 
     void IDataRefBackend.EnsureRegistered(string name, int intervalMs)
     {
-        if (_disposed)
+        if (!_disposed)
         {
-            return;
-        }
-
-        try
-        {
-            lock (_gate)
-            {
-                if (_subscriptionRefs.TryGetValue(name, out var existing))
-                {
-                    if (existing.interval <= intervalMs)
-                    {
-                        return;
-                    }
-
-                    existing.Dispose();
-                    _subscriptionRefs.Remove(name);
-                }
-
-                // Attach onDataChange BEFORE Register() so the first push is never missed.
-                var dataRef = new DataRef(name, intervalMs, _connection, false);
-                dataRef.onDataChange += OnDataChange;
-                dataRef.Register();
-                _subscriptionRefs[name] = dataRef;
-                _logger.LogDebug("Registered dataref {DataRef} at {Interval} ms", name, intervalMs);
-            }
-        }
-        catch (DataRefNotFoundException)
-        {
-            // Some refs (e.g. efb.prelimLoadsheet) exist only after first write; they will be
-            // picked up on the next reconnect's registration replay.
-            _logger.LogWarning("ProSim does not (yet) know dataref {DataRef}; subscription skipped", name);
-        }
-        catch (ProSimException ex)
-        {
-            _logger.LogError(ex, "Failed to register dataref {DataRef}", name);
+            _registrationWork.Writer.TryWrite(RegistrationWork.Register(name, intervalMs));
         }
     }
 
     void IDataRefBackend.Unregister(string name)
     {
-        lock (_gate)
+        if (!_disposed)
         {
-            if (_subscriptionRefs.Remove(name, out var dataRef))
-            {
-                dataRef.Dispose();
-            }
+            _registrationWork.Writer.TryWrite(RegistrationWork.Unregister(name));
         }
     }
 
@@ -164,6 +162,7 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         }
 
         _disposed = true;
+        _watchdog.Dispose();
         _reconnectTimer?.Dispose();
 
         _connection.onConnect -= OnConnect;
@@ -171,7 +170,23 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         _connection.onFailedToConnect -= OnFailedToConnect;
 
         _dataRefs.DetachBackend();
-        DisposeAllRefs();
+        _registrationWork.Writer.TryComplete();
+
+        // Bounded: if the worker is wedged mid-round-trip we must not hang shutdown/rebuild on
+        // it. Skipping graceful ref disposal is safe — closing the socket releases everything
+        // server-side, and the wedged worker dies with the process (or leaks one task, once,
+        // on a session rebuild).
+        if (_registrationWorker.Wait(WorkerDrainTimeout))
+        {
+            ReleaseAllRefs();
+        }
+        else
+        {
+            _logger.LogWarning(
+                "SDK registration worker did not drain (stuck in {Work}); skipping graceful dataref disposal",
+                Volatile.Read(ref _workDescription));
+        }
+
         _connection.Dispose();
     }
 
@@ -179,6 +194,8 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
     {
         _logger.LogInformation("Connected to ProSim at {Host}", _options.Host);
         Interlocked.Exchange(ref _failedAttempts, 0);
+        Volatile.Write(ref _lastPushTicks, Environment.TickCount64);
+        _connected = true;
         _status.Set(Subsystems.Prosim, ConnectionState.Connected);
 
         // Attaching replays every active registration through EnsureRegistered.
@@ -193,9 +210,12 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         }
 
         _logger.LogWarning("Lost connection to ProSim; reconnecting in {Interval} ms", _options.ReconnectIntervalMs);
+        _connected = false;
         _status.Set(Subsystems.Prosim, ConnectionState.Disconnected);
         _dataRefs.DetachBackend();
-        DisposeAllRefs();
+
+        // Queued so it serializes with in-flight registrations and any reconnect replay after it.
+        _registrationWork.Writer.TryWrite(RegistrationWork.ReleaseAll());
         ArmReconnect();
     }
 
@@ -238,6 +258,7 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
 
     private void OnDataChange(DataRef dataRef)
     {
+        Volatile.Write(ref _lastPushTicks, Environment.TickCount64);
         try
         {
             _dataRefs.UpdateFromPush(dataRef.name, dataRef.value);
@@ -247,6 +268,92 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
             // Never let a consumer failure propagate into the SDK's push pump.
             _logger.LogError(ex, "Processing pushed update for {DataRef} failed", dataRef.name);
         }
+    }
+
+    private async Task RunRegistrationWorkerAsync()
+    {
+        await foreach (var work in _registrationWork.Reader.ReadAllAsync().ConfigureAwait(false))
+        {
+            Volatile.Write(ref _workDescription, work.Describe());
+            Volatile.Write(ref _workStartedTicks, Environment.TickCount64);
+            try
+            {
+                switch (work.Kind)
+                {
+                    case RegistrationWorkKind.Register:
+                        DoRegister(work.Name, work.IntervalMs);
+                        break;
+                    case RegistrationWorkKind.Unregister:
+                        DoUnregister(work.Name);
+                        break;
+                    case RegistrationWorkKind.ReleaseAll:
+                        ReleaseAllRefs();
+                        break;
+                }
+            }
+            catch (DataRefNotFoundException)
+            {
+                // Some refs (e.g. efb.prelimLoadsheet) exist only after first write; they will be
+                // picked up on the next reconnect's registration replay.
+                _logger.LogWarning("ProSim does not (yet) know dataref {DataRef}; subscription skipped", work.Name);
+            }
+            catch (ProSimException ex)
+            {
+                _logger.LogError(ex, "SDK registration work {Work} failed", work.Describe());
+            }
+            catch (Exception ex)
+            {
+                // The worker must survive anything — it is the only thread doing SDK I/O.
+                _logger.LogError(ex, "SDK registration work {Work} failed unexpectedly", work.Describe());
+            }
+            finally
+            {
+                Volatile.Write(ref _workStartedTicks, 0);
+            }
+        }
+    }
+
+    private void DoRegister(string name, int intervalMs)
+    {
+        DataRef? replaced = null;
+        lock (_gate)
+        {
+            if (_subscriptionRefs.TryGetValue(name, out var existing))
+            {
+                if (existing.interval <= intervalMs)
+                {
+                    return;
+                }
+
+                _subscriptionRefs.Remove(name);
+                replaced = existing;
+            }
+        }
+
+        replaced?.Dispose();
+
+        // Attach onDataChange BEFORE Register() so the first push is never missed.
+        var dataRef = new DataRef(name, intervalMs, _connection, false);
+        dataRef.onDataChange += OnDataChange;
+        dataRef.Register();
+
+        lock (_gate)
+        {
+            _subscriptionRefs[name] = dataRef;
+        }
+
+        _logger.LogDebug("Registered dataref {DataRef} at {Interval} ms", name, intervalMs);
+    }
+
+    private void DoUnregister(string name)
+    {
+        DataRef? removed;
+        lock (_gate)
+        {
+            _subscriptionRefs.Remove(name, out removed);
+        }
+
+        removed?.Dispose();
     }
 
     private DataRef GetOrCreateWriteRef(string name)
@@ -262,28 +369,147 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
             {
                 return existing;
             }
-
-            var dataRef = new DataRef(name, (int)Core.Aircraft.DataRefTier.Infrequent, _connection, false);
-            dataRef.Register();
-            _writeRefs[name] = dataRef;
-            return dataRef;
         }
-    }
 
-    private void DisposeAllRefs()
-    {
+        // Register outside _gate — it is a network round-trip (issue #35). Concurrent writers to
+        // the same fresh ref may race; the loser is disposed below.
+        var dataRef = new DataRef(name, (int)Core.Aircraft.DataRefTier.Infrequent, _connection, false);
+        dataRef.Register();
+
+        DataRef? loser = null;
+        DataRef winner;
         lock (_gate)
         {
-            foreach (var dataRef in _subscriptionRefs.Values)
+            if (_writeRefs.TryGetValue(name, out var raced))
             {
-                dataRef.Dispose();
+                loser = dataRef;
+                winner = raced;
             }
-            foreach (var dataRef in _writeRefs.Values)
+            else
             {
-                dataRef.Dispose();
+                _writeRefs[name] = dataRef;
+                winner = dataRef;
             }
+        }
+
+        loser?.Dispose();
+        return winner;
+    }
+
+    private void ReleaseAllRefs()
+    {
+        List<DataRef> toDispose;
+        lock (_gate)
+        {
+            toDispose = new List<DataRef>(_subscriptionRefs.Count + _writeRefs.Count);
+            toDispose.AddRange(_subscriptionRefs.Values);
+            toDispose.AddRange(_writeRefs.Values);
             _subscriptionRefs.Clear();
             _writeRefs.Clear();
         }
+
+        foreach (var dataRef in toDispose)
+        {
+            try
+            {
+                dataRef.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Usually a dropped connection — the server side is gone anyway.
+                _logger.LogDebug(ex, "Disposing dataref {DataRef} failed", dataRef.name);
+            }
+        }
+    }
+
+    private void OnWatchdogTick(object? state)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        var stallMs = Math.Max(1, _options.SdkStallSeconds) * 1000L;
+
+        // (a) Registration round-trip wedged: the SDK session is unrecoverable from inside —
+        // mark caches stale, report Disconnected, and signal the owner to rebuild.
+        var workStarted = Volatile.Read(ref _workStartedTicks);
+        if (workStarted != 0 && Environment.TickCount64 - workStarted >= stallMs)
+        {
+            if (_wedged.TrySetResult())
+            {
+                _logger.LogError(
+                    "SDK registration work {Work} has been blocked for over {Seconds} s — the ProSim session is wedged and will be rebuilt",
+                    Volatile.Read(ref _workDescription),
+                    _options.SdkStallSeconds);
+                _connected = false;
+                _status.Set(Subsystems.Prosim, ConnectionState.Disconnected);
+                _dataRefs.DetachBackend();
+            }
+
+            return;
+        }
+
+        // (b) Push dispatch stalled: a subscriber callback is blocked. No reconnect can free a
+        // stuck callback, so this is loud diagnostics only (once per stall) — it names the
+        // dataref, which names the subsystem to blame.
+        if (_dataRefs.TryGetStalledDispatch(stallMs, out var stalledRef, out var stallTicks)
+            && Interlocked.Exchange(ref _reportedDispatchStallTicks, stallTicks) != stallTicks)
+        {
+            _logger.LogError(
+                "A subscriber callback for dataref {DataRef} has blocked the push dispatcher for over {Seconds} s — "
+                + "dataref caches are frozen until it returns; an app restart may be required",
+                stalledRef,
+                _options.SdkStallSeconds);
+        }
+
+        // (c) Push silence: possibly legitimate (sim paused), so warn once for visibility and
+        // never reconnect over it.
+        if (_connected)
+        {
+            bool anyRefs;
+            lock (_gate)
+            {
+                anyRefs = _subscriptionRefs.Count > 0;
+            }
+
+            var silentMs = Environment.TickCount64 - Volatile.Read(ref _lastPushTicks);
+            var warnMs = Math.Max(1, _options.PushSilenceWarnSeconds) * 1000L;
+            if (anyRefs && silentMs >= warnMs && !_silenceWarned)
+            {
+                _silenceWarned = true;
+                _logger.LogWarning(
+                    "No dataref pushes for {Seconds} s while connected — sim paused, ProSim idle, or the connection is dead",
+                    silentMs / 1000);
+            }
+            else if (_silenceWarned && silentMs < warnMs)
+            {
+                _silenceWarned = false;
+                _logger.LogInformation("Dataref pushes resumed");
+            }
+        }
+    }
+
+    private enum RegistrationWorkKind
+    {
+        Register,
+        Unregister,
+        ReleaseAll,
+    }
+
+    private readonly record struct RegistrationWork(RegistrationWorkKind Kind, string Name, int IntervalMs)
+    {
+        public static RegistrationWork Register(string name, int intervalMs) => new(RegistrationWorkKind.Register, name, intervalMs);
+
+        public static RegistrationWork Unregister(string name) => new(RegistrationWorkKind.Unregister, name, 0);
+
+        public static RegistrationWork ReleaseAll() => new(RegistrationWorkKind.ReleaseAll, "", 0);
+
+        public string Describe() => Kind switch
+        {
+            RegistrationWorkKind.Register => $"register {Name} @ {IntervalMs} ms",
+            RegistrationWorkKind.Unregister => $"unregister {Name}",
+            _ => "release all refs",
+        };
     }
 }

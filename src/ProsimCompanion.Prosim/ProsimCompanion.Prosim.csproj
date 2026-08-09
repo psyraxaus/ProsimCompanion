@@ -41,4 +41,10 @@
     <ProjectReference Include="..\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The SDK-session seam (UpdateFromPush/DetachBackend) is internal by design; tests drive
+         it directly to cover the push dispatcher without a live ProSim (issue #35). -->
+    <InternalsVisibleTo Include="ProsimCompanion.Core.Tests" />
+  </ItemGroup>
+
 </Project>

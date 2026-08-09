@@ -29,4 +29,19 @@ public sealed class ProsimOptions
 
     /// <summary>Minimum gap between serialized momentary presses.</summary>
     public int MomentaryPressGapMs { get; set; } = 120;
+
+    /// <summary>
+    /// Seconds after which a blocked SDK registration round-trip or a blocked subscriber callback
+    /// is declared wedged. A wedged registration rebuilds the whole SDK session; a wedged
+    /// subscriber is only logged, because no reconnect can free a stuck callback (issue #35: the
+    /// 2026-08-09 wedge froze every dataref cache silently for 12 minutes).
+    /// </summary>
+    public int SdkStallSeconds { get; set; } = 15;
+
+    /// <summary>
+    /// Seconds of dataref-push silence while connected before a single warning is logged. Silence
+    /// can be legitimate (sim paused, ProSim idle), so this warns for visibility and never forces
+    /// a reconnect.
+    /// </summary>
+    public int PushSilenceWarnSeconds { get; set; } = 30;
 }

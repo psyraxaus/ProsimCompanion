@@ -46,9 +46,7 @@ public sealed class ProsimConnectionService : BackgroundService
             var sdkDirectory = await WaitForSdkDirectoryAsync(stoppingToken).ConfigureAwait(false);
 
             SdkAssemblyResolver.Register(sdkDirectory);
-            StartConnection(_options.CurrentValue);
-
-            await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken).ConfigureAwait(false);
+            await RunSessionsAsync(stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -118,18 +116,33 @@ public sealed class ProsimConnectionService : BackgroundService
     }
 
     /// <summary>
-    /// Kept non-inlined so the JIT never touches SDK-typed code (and thus never resolves
-    /// ProSimSDK.dll) before the assembly resolver is registered.
+    /// Runs SDK sessions until shutdown, rebuilding on a wedge. The SDK forbids stacking Connect
+    /// calls on a live <c>ProSimConnect</c>, so recovery from a wedged session (a registration
+    /// round-trip deadlocked against the SDK's receive thread — issue #35) is dispose-and-rebuild,
+    /// never reconnect-in-place. Kept non-inlined so the JIT never touches SDK-typed code (and
+    /// thus never resolves ProSimSDK.dll) before the assembly resolver is registered.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void StartConnection(ProsimOptions options)
+    private async Task RunSessionsAsync(CancellationToken stoppingToken)
     {
-        var connection = new SdkConnection(
-            options,
-            _dataRefs,
-            _status,
-            _logger);
-        _connection = connection;
-        connection.Start();
+        while (true)
+        {
+            var connection = new SdkConnection(
+                _options.CurrentValue,
+                _dataRefs,
+                _status,
+                _logger);
+            _connection = connection;
+            connection.Start();
+
+            await connection.WedgedTask.WaitAsync(stoppingToken).ConfigureAwait(false);
+
+            _logger.LogWarning("Rebuilding the ProSim SDK session after a wedge");
+            _connection = null;
+            connection.Dispose();
+            await Task.Delay(
+                TimeSpan.FromMilliseconds(_options.CurrentValue.ReconnectIntervalMs),
+                stoppingToken).ConfigureAwait(false);
+        }
     }
 }
