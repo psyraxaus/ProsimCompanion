@@ -56,6 +56,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
     private volatile bool _forceNext;
     private volatile bool _isTurnaround;
     private volatile InFlightTrigger? _inFlight;
+    private string? _lastDroppedService;
+    private int _consecutiveDrops;
     private bool _paxTargetArmed;
     private string? _autoSelectArmedKey;
     private DateTimeOffset _lastImportAttempt = DateTimeOffset.MinValue;
@@ -577,14 +579,35 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         {
             _lifecycle.MarkCalled(inFlight.ServiceId);
             _inFlight = null;
+            _lastDroppedService = null;
+            _consecutiveDrops = 0;
             RecordDecision($"trigger {inFlight.ServiceId}", $"confirmed by GSX ({mirrorState?.ToString() ?? "lifecycle edge"})");
         }
         else if (DateTimeOffset.UtcNow - inFlight.SentAt > TimeSpan.FromMilliseconds(confirmTimeoutMs))
         {
             _inFlight = null;
+            _consecutiveDrops = string.Equals(_lastDroppedService, inFlight.ServiceId, StringComparison.OrdinalIgnoreCase)
+                ? _consecutiveDrops + 1
+                : 1;
+            _lastDroppedService = inFlight.ServiceId;
             RecordDecision(
                 $"trigger {inFlight.ServiceId}",
                 $"not picked up by GSX within {confirmTimeoutMs / 1000} s — the call was dropped; retrying");
+
+            // Two consecutive drops of the same service means GSX is refusing calls, not
+            // missing them. An open GSX menu at that moment is the usual culprit (issue #44:
+            // a facility/stand conflict kept "Change parking or service" up and every trigger
+            // died) — say so once per streak instead of retrying in silence.
+            if (_consecutiveDrops == 2)
+            {
+                var openMenu = _api.Mirror.MenuShown ? _api.Mirror.Menu?.Title : null;
+                RecordDecision(
+                    $"trigger {inFlight.ServiceId}",
+                    openMenu is null
+                        ? "dropped twice in a row — GSX is not accepting service calls; check the GSX menu/state in the sim"
+                        : $"dropped twice in a row while the GSX menu '{openMenu}' is open — resolve that menu; "
+                            + "triggers are refused until it closes (see issue #44)");
+            }
         }
     }
 

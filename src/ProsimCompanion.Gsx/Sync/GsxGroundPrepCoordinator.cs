@@ -44,6 +44,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     {
         Reposition,
         Settling,
+        AnchorGate,
         GroundEquipment,
         JetwayStairs,
         Complete,
@@ -51,6 +52,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxRepositionService _reposition;
+    private readonly GsxGateAnchorService _gateAnchor;
     private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly GsxJetwayStairsService _jetwayStairs;
     private readonly FlightStateEngine _flightState;
@@ -66,6 +68,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     public GsxGroundPrepCoordinator(
         IGsxRemoteApi api,
         GsxRepositionService reposition,
+        GsxGateAnchorService gateAnchor,
         GsxGroundEquipmentService groundEquipment,
         GsxJetwayStairsService jetwayStairs,
         FlightStateEngine flightState,
@@ -75,6 +78,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(reposition);
+        ArgumentNullException.ThrowIfNull(gateAnchor);
         ArgumentNullException.ThrowIfNull(groundEquipment);
         ArgumentNullException.ThrowIfNull(jetwayStairs);
         ArgumentNullException.ThrowIfNull(flightState);
@@ -84,6 +88,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
         _api = api;
         _reposition = reposition;
+        _gateAnchor = gateAnchor;
         _groundEquipment = groundEquipment;
         _jetwayStairs = jetwayStairs;
         _flightState = flightState;
@@ -192,6 +197,16 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
                 case Stage.Settling:
                     if (DateTimeOffset.UtcNow >= _settleUntil)
+                    {
+                        Advance(Stage.AnchorGate, "re-anchoring GSX to the occupied stand");
+                    }
+                    break;
+
+                case Stage.AnchorGate:
+                    // Issue #44: GSX persists its assigned facility across sim sessions; a new
+                    // flight at a different stand needs an explicit gate.select or every
+                    // service trigger is silently dropped.
+                    if (await _gateAnchor.RunStepAsync().ConfigureAwait(false) == GsxPrepStatus.Done)
                     {
                         Advance(Stage.GroundEquipment, "connecting GPU and placing chocks");
                     }

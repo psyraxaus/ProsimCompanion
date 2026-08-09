@@ -148,4 +148,36 @@ public sealed class GsxGateResolverTests
         Assert.Null(GsxGateResolver.ResolveCanonical(
             [new GsxParking("B12", null, null, 12, null, null)], "D5"));
     }
+
+    // ---- ResolveAnchorToken (issue #44: re-anchor GSX to the occupied stand at prep) ----
+
+    [Fact]
+    public void ResolveAnchorToken_MatchesGateContextKeyToParkingDisplayName()
+    {
+        var parkings = new List<GsxParking>
+        {
+            new("D-Pier =< Medium | Gate D27", " Gate D27", null, 27, null, null),
+            new("D-Pier =< Medium | Gate D5", " Gate D5", null, 5, null, null),
+        };
+
+        Assert.Equal(" Gate D27",
+            GsxGateResolver.ResolveAnchorToken(parkings, "D-Pier =< Medium | Gate D27"));
+    }
+
+    [Fact]
+    public void ResolveAnchorToken_FallsBackThroughNameFields()
+    {
+        var byUiNameOnly = new List<GsxParking> { new("Stand 545", null, null, 545, null, null) };
+
+        Assert.Equal("Stand 545", GsxGateResolver.ResolveAnchorToken(byUiNameOnly, "Stand 545"));
+    }
+
+    [Fact]
+    public void ResolveAnchorToken_UnknownKeyOrEmpty_ReturnsNull()
+    {
+        Assert.Null(GsxGateResolver.ResolveAnchorToken([], "D-Pier =< Medium | Gate D27"));
+        Assert.Null(GsxGateResolver.ResolveAnchorToken(
+            [new GsxParking("B-Pier | Gate B3", " Gate B3", null, 3, null, null)], "D-Pier =< Medium | Gate D27"));
+        Assert.Null(GsxGateResolver.ResolveAnchorToken([], ""));
+    }
 }

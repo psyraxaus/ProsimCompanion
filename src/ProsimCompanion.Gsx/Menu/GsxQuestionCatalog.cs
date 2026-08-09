@@ -103,6 +103,19 @@ public sealed class GsxQuestionCatalog
 
         dispatcher.Register("Select pushback direction", HandlePushbackDirectionAsync);
         dispatcher.Register("Select de-icing type", HandleDeIceTypeAsync);
+
+        // Facility/parking-conflict surfaces (issue #44): GSX raises these when its remembered
+        // parking disagrees with the aircraft's stand (or a parking change is attempted while
+        // services run). No safe automated answer is known yet — the value is the decision-log
+        // visibility, which names the gate GSX is anchored on instead of "no question handler".
+        dispatcher.Register("Change parking or service", HandleParkingConflictAsync);
+        dispatcher.Register("This will revoke all active services", ct =>
+        {
+            RecordDecision(
+                "revoke-services confirmation",
+                "left for the user (never auto-answered — revoking active services is a crew decision)");
+            return Task.CompletedTask;
+        });
         dispatcher.Register("Select handling operator", ct => HandleOperatorMenuAsync("handling operator", ct));
         dispatcher.Register("Select catering operator", ct => HandleOperatorMenuAsync("catering operator", ct));
     }
@@ -189,6 +202,24 @@ public sealed class GsxQuestionCatalog
         {
             _ = await _api.SendCommandAsync("menu.close", null, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>Issue #44 diagnostics: the "Change parking or service" menu's first entry names
+    /// the facility GSX is anchored on ("Change Facility [… Gate D5 …]") — logging it makes a
+    /// stale-facility conflict visible the moment it happens, next to the gate session the
+    /// mirror reports. The menu itself stays with the user (its semantics are unverified).</summary>
+    private Task HandleParkingConflictAsync(CancellationToken cancellationToken)
+    {
+        var facilityEntry = _api.Mirror.MenuShown
+            ? _api.Mirror.Menu?.Entries.FirstOrDefault(e => e.StartsWith("Change Facility", StringComparison.OrdinalIgnoreCase))
+            : null;
+        RecordDecision(
+            "parking-change menu",
+            facilityEntry is null
+                ? "left for the user"
+                : $"left for the user — GSX is anchored on '{facilityEntry}' while the session gate is "
+                    + $"'{_api.Mirror.GateContextKey ?? "unknown"}' (facility/stand conflict? see issue #44)");
+        return Task.CompletedTask;
     }
 
     private async Task HandlePushbackDirectionAsync(CancellationToken cancellationToken)

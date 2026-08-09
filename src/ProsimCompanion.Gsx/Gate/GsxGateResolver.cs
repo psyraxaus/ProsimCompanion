@@ -153,6 +153,27 @@ public static class GsxGateResolver
         return suffix.Count == 1 ? suffix[0] : null;
     }
 
+    /// <summary>
+    /// Resolves the CURRENT gate-context key (the parking uiName GSX pushes, e.g.
+    /// "D-Pier =&lt; Medium | Gate D27") to the token <c>gate.select</c> accepts — the parking's
+    /// display gate name. Used to re-anchor GSX's remembered facility to the stand the aircraft
+    /// actually occupies at departure prep (issue #44: GSX kept the previous session's gate and
+    /// silently dropped every service trigger). Null when the mirror doesn't know the parking.
+    /// </summary>
+    public static string? ResolveAnchorToken(IReadOnlyList<GsxParking> parkings, string gateContextKey)
+    {
+        ArgumentNullException.ThrowIfNull(parkings);
+        var key = Normalize(gateContextKey);
+        if (key.Length == 0)
+        {
+            return null;
+        }
+
+        var parking = parkings.FirstOrDefault(p =>
+            Normalize(p.UiName) == key || Normalize(p.UiGateName) == key || Normalize(p.BglName) == key);
+        return parking is null ? null : parking.UiGateName ?? parking.UiName ?? parking.BglName;
+    }
+
     /// <summary>Nearest-name suggestions for a not_found failure: exact → suffix → contains,
     /// max 3, drawn from the mirrored parkings.</summary>
     public static IReadOnlyList<string> NearestNames(IReadOnlyList<GsxParking> parkings, string requestedGate)

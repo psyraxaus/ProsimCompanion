@@ -218,6 +218,15 @@ public sealed class GsxOptions
     /// <summary>Run GSX's "Reposition Aircraft" once at session start on the ground.</summary>
     public bool AutoReposition { get; set; } = true;
 
+    /// <summary>
+    /// Re-anchor GSX's remembered parking to the stand the aircraft actually occupies (a
+    /// gate.select for the current gate) during ground preparation. GSX persists its assigned
+    /// facility across sim sessions; starting a new flight at a different stand otherwise
+    /// leaves it split between two gates and every service trigger is silently dropped
+    /// (issue #44: previous session ended at D5, new flight spawned at D27).
+    /// </summary>
+    public bool AnchorDepartureGate { get; set; } = true;
+
     /// <summary>Turn off ProSim's own GSX auto-integration flags (efb.gsx.*) while this
     /// application drives GSX — prevents the two automations fighting each other.</summary>
     public bool DisableProsimNativeGsx { get; set; } = true;

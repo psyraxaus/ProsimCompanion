@@ -37,6 +37,7 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Sync.GsxGroundEquipmentService>();
         services.AddSingleton<Sync.GsxJetwayStairsService>();
         services.AddSingleton<Sync.GsxRepositionService>();
+        services.AddSingleton<Sync.GsxGateAnchorService>();
         services.AddSingleton<Sync.GsxGroundPrepCoordinator>();
         services.AddSingleton<Sync.IGsxGroundPrepStatus>(provider => provider.GetRequiredService<Sync.GsxGroundPrepCoordinator>());
         services.AddSingleton<Sync.ProsimNativeGsxGuard>();
