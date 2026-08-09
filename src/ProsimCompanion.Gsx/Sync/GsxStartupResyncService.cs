@@ -367,6 +367,11 @@ public sealed class GsxStartupResyncService : IDisposable
         {
             _lifecycle.SeedCompleted(serviceId);
             RecordDecision($"{serviceId} treated as completed — {reason}");
+            // Backfill the tracking LVAR: seeding is event-silent by design, so the
+            // completion-edge writer never runs for it. Persisting the verdict makes the NEXT
+            // restart resync from the LVARs alone, even after the dataref evidence has moved
+            // on (new fuel target, cleared boarding figures).
+            _ = WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId), 1);
         }
 
         if (verdict.SeedPrepComplete)
