@@ -179,6 +179,44 @@ public sealed class FlightPhaseEvaluatorTests
     }
 
     [Fact]
+    public void ClimbingWithGearDown_StaysClimb()
+    {
+        // Issue #48: a gear lever stuck down (dead hardware panel) flipped Climb->Approach at
+        // +2000 fpm and the cabin announced "secure for landing" on climb-out.
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 1800,
+            VerticalSpeedFpm = 2000,
+            GearDown = true,
+        };
+
+        Assert.Equal(FlightPhase.Climb, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Climb));
+    }
+
+    [Fact]
+    public void LevelWithGearDown_LowOverGround_IsStillApproach()
+    {
+        // The gear-down arm keeps working for a level approach segment — only a genuine climb
+        // outvotes it.
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 1500,
+            VerticalSpeedFpm = 0,
+            GearDown = true,
+        };
+
+        Assert.Equal(FlightPhase.Approach, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Cruise));
+    }
+
+    [Fact]
     public void Touchdown_FromApproach_IsLandingRollout()
     {
         var snapshot = Ground() with { AnyEngineRunning = true, IndicatedAirspeedKt = 120, ParkBrakeSet = false };

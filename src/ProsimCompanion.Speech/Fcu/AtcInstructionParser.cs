@@ -33,8 +33,12 @@ public static class AtcInstructionParser
             return new FcuInstruction(FcuInstructionType.Unknown, RawText: utterance);
         }
 
-        // 2. Conditional — spoken relay only.
-        if (Has(t, "after ", "when ", "once ", "abeam", "passing", "reaching", "at time"))
+        // 2. Conditional — spoken relay only. A condition word ALONE is not an instruction:
+        // "after start checklist" / "after takeoff checklist" were swallowed here and the FO
+        // answered "Copied — conditional" instead of running the checklist (issue #47). Only
+        // classify when actionable FCU content accompanies the condition.
+        if (Has(t, "after ", "when ", "once ", "abeam", "passing", "reaching", "at time")
+            && HasFcuContent(t))
         {
             return new FcuInstruction(FcuInstructionType.Conditional, RawText: utterance);
         }
@@ -138,6 +142,21 @@ public static class AtcInstructionParser
 
         return new FcuInstruction(FcuInstructionType.Unknown, RawText: utterance);
     }
+
+    /// <summary>True when the utterance carries actionable FCU content — the same keyword
+    /// surface the classifier matches below. A condition word without any of these is a non-FCU
+    /// request (a checklist name, small talk), never an ATC instruction (issue #47).</summary>
+    private static bool HasFcuContent(string t)
+        => Has(t,
+            "autopilot", "auto pilot", "autothrust", "auto thrust", "autothrottle",
+            "approach", "localizer", "localiser", "loc mode", "expedite",
+            "navigation", "cleared direct", "direct to",
+            "managed", "selected", "open descent", "open climb", "mach",
+            "flight level", "altitude", "climb", "descend", "descent",
+            "vertical speed", "per minute", "speed", "knots", "knot",
+            "reduce", "increase", "maintain", "heading", "turn left", "turn right",
+            "thousand", "feet", "foot")
+            || HasToken(t, "fl") || HasToken(t, "level");
 
     private static FcuInstruction Value(
         string utterance, FcuField field, bool useMagnitude, bool negative, bool isFlightLevel = false)

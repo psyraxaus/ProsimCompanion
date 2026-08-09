@@ -16,6 +16,7 @@ public sealed class GsxQuestionDispatcher : IDisposable
     private readonly SemaphoreSlim _dispatchLock = new(1, 1);
     private readonly object _gate = new();
     private string? _lastSeenTitle;
+    private string? _lastUnhandledTitle;
 
     public GsxQuestionDispatcher(ILogger<GsxQuestionDispatcher> logger)
     {
@@ -71,6 +72,19 @@ public sealed class GsxQuestionDispatcher : IDisposable
 
         if (handler is null)
         {
+            // GSX re-raises an open menu about once a second (hide/show cycles that re-arm the
+            // dispatch edge) — a stuck unhandled menu logged every second for minutes before a
+            // crash (issue #46). Log each unmatched title once until a different one appears.
+            lock (_gate)
+            {
+                if (string.Equals(title, _lastUnhandledTitle, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _lastUnhandledTitle = title;
+            }
+
             _logger.LogDebug("GSX menu '{Title}' has no question handler", title);
             return;
         }

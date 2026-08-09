@@ -65,6 +65,22 @@ public sealed class AtcInstructionParserTests
         => Assert.Equal(FcuInstructionType.Conditional,
             AtcInstructionParser.Parse("after passing DOSEL descend flight level one two zero").Type);
 
+    [Theory]
+    [InlineData("after start checklist")]
+    [InlineData("after takeoff checklist")]
+    [InlineData("after landing checklist")]
+    [InlineData("when ready")]
+    public void ConditionWordAlone_IsNotAnInstruction(string utterance)
+        // Issue #47: "after start checklist" was swallowed as "Copied — conditional" and the
+        // checklist never ran. A condition word needs FCU content to classify.
+        => Assert.Equal(FcuInstructionType.Unknown, AtcInstructionParser.Parse(utterance).Type);
+
+    [Theory]
+    [InlineData("when established on the localizer descend two thousand feet")]
+    [InlineData("once passing three thousand climb flight level eight zero")]
+    public void ConditionWithFcuContent_StillConditional(string utterance)
+        => Assert.Equal(FcuInstructionType.Conditional, AtcInstructionParser.Parse(utterance).Type);
+
     [Fact]
     public void OpenDescent_NowParses()
     {

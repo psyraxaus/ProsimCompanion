@@ -64,6 +64,22 @@ public static class Program
         var logBuffer = new LogBufferStore();
         Log.Logger = BuildLogger(levels, logBuffer, logDirectory);
 
+        // Last-words logging (issue #46: a crash left zero trace). These cannot stop a native
+        // fault, but any managed unhandled exception — including background threads and
+        // finalized-task faults — writes a Fatal line (flushed) before the process dies.
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            Log.Fatal(e.ExceptionObject as Exception,
+                "Unhandled exception (terminating: {IsTerminating})", e.IsTerminating);
+            Log.CloseAndFlush();
+        };
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            // Observed-and-logged: an unobserved task fault must never escalate to a crash.
+            Log.Error(e.Exception, "Unobserved task exception");
+            e.SetObserved();
+        };
+
         using var wireTrace = new WireTraceService(levels, logDirectory);
 
         try

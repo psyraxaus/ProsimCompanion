@@ -34,6 +34,18 @@
       "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_FD", "press": 1, "restore": 0, "holdMs": 150 } ]
     },
     {
+      "phrases": [ "set standard", "standard set", "altimeters standard" ],
+      "say": "Standard set",
+      "//": "F/O baro knob PUSH = STD (issue #49). Seat-mapped like the other EFIS2 refs; the captain side stays the pilot's own knob.",
+      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 1, "restore": 0, "holdMs": 150 } ]
+    },
+    {
+      "phrases": [ "set qnh", "qnh set", "altimeters qnh" ],
+      "say": "QNH {qnh}, set",
+      "//": "F/O baro knob PULL = back to QNH on descent (companion to set standard).",
+      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 2, "restore": 0, "holdMs": 150 } ]
+    },
+    {
       "//": "Read-only callout: copilot reads back the F/O FCU altimeter setting ({altimeter} = aviation digits, follows hPa/inHg, says 'standard' on STD). No steps = no dataref writes.",
       "phrases": [ "altimeter check", "say altimeter", "check altimeter" ],
       "say": "Altimeter, {altimeter}.",

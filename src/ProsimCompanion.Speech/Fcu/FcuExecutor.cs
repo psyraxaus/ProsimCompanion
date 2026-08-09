@@ -80,6 +80,14 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
 
     public bool TryHandle(string utterance)
     {
+        // A checklist request is never an FCU instruction — "after takeoff climb checklist"
+        // otherwise classifies as a conditional via its condition word + "climb" (issue #47);
+        // let it fall through to the checklist start matching.
+        if (utterance.Contains("checklist", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         var normalized = CommandMatcher.Normalize(utterance);
         if (CancelWords.Contains(normalized))
         {

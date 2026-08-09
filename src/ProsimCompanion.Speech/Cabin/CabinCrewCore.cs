@@ -24,7 +24,8 @@ public sealed record CabinTickSample(
     bool DoorsClosed,
     bool BeaconOn,
     int SeatbeltSignsMode,
-    double AltitudeFt);
+    double AltitudeFt,
+    double VerticalSpeedFpm = 0);
 
 /// <summary>
 /// The pure once-per-flight trigger logic of the cabin-crew simulation (Prosim2FO semantics,
@@ -68,8 +69,11 @@ public sealed class CabinCrewCore
             return CabinAction.SecureReport;
         }
 
+        // VS guard (issue #48): a phase blip to Approach during a climb must not trigger the
+        // landing report — the cabin only reports ready while genuinely not climbing away.
         if (options.CabinReady && !_readyDone
             && sample.Phase is FlightPhase.Descent or FlightPhase.Approach
+            && sample.VerticalSpeedFpm < 300
             && sample.SeatbeltSignsMode == 1
             && sample.AltitudeFt > 0
             && sample.AltitudeFt <= options.CabinReadyBelowAltFt)

@@ -124,13 +124,15 @@ public sealed class CabinCrewService : IDisposable
                 return;
             }
 
+            var flightData = _flightData.Sample();
             var sample = new CabinTickSample(
                 _flight.CurrentPhase,
                 DoorsClosed: !_reads[DoorLF].GetValue(false) && !_reads[DoorLA].GetValue(false)
                     && !_reads[DoorRF].GetValue(false) && !_reads[DoorRA].GetValue(false),
                 BeaconOn: _reads[Beacon].GetValue(0) == 1,
                 SeatbeltSignsMode: _reads[Signs].GetValue(0),
-                AltitudeFt: _flightData.Sample().AltitudeFt);
+                AltitudeFt: flightData.AltitudeFt,
+                VerticalSpeedFpm: flightData.VerticalSpeedFpm);
 
             var action = _core.Evaluate(sample, options, () => Random.Shared.NextDouble());
             if (action == CabinAction.None)

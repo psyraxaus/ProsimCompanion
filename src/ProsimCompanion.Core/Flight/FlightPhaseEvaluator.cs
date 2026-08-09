@@ -116,9 +116,13 @@ public static class FlightPhaseEvaluator
             return FlightPhase.InitialClimb;
         }
 
-        // Low and descending (or configured) near the ground: approach.
+        // Low and descending (or configured) near the ground: approach. Gear down alone must
+        // never outvote a positive climb — a gear lever stuck down (dead hardware panel,
+        // 2026-08-09 flight, issue #48) flipped Climb→Approach at +VS and the cabin announced
+        // "secure for landing" on climb-out.
         if (s.RadioAltitudeFt < ApproachRaCeilingFt
-            && (s.GearDown || s.VerticalSpeedFpm < -ClimbDescentVsFpm)
+            && (s.VerticalSpeedFpm < -ClimbDescentVsFpm
+                || (s.GearDown && s.VerticalSpeedFpm <= ClimbDescentVsFpm))
             && current is not (FlightPhase.InitialClimb or FlightPhase.TakeoffRoll))
         {
             return FlightPhase.Approach;

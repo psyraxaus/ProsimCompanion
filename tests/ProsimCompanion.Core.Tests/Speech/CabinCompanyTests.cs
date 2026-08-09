@@ -14,8 +14,9 @@ public sealed class CabinCrewCoreTests
         bool doorsClosed = true,
         bool beaconOn = true,
         int signs = 1,
-        double altFt = 5000)
-        => new(phase, doorsClosed, beaconOn, signs, altFt);
+        double altFt = 5000,
+        double vsFpm = 0)
+        => new(phase, doorsClosed, beaconOn, signs, altFt, vsFpm);
 
     private static readonly Func<double> NeverRoll = () => 1.0;
 
@@ -55,6 +56,22 @@ public sealed class CabinCrewCoreTests
             core.Evaluate(Sample(FlightPhase.Descent, altFt: 9000), options, NeverRoll));
         Assert.Equal(CabinAction.None,
             core.Evaluate(Sample(FlightPhase.Approach, altFt: 3000), options, NeverRoll));
+    }
+
+    [Fact]
+    public void ReadyReport_NeverFiresWhileClimbing()
+    {
+        // Issue #48: a spurious Approach phase during climb-out (stuck gear lever) made the
+        // cabin announce "secure for landing" on takeoff — the VS guard blocks it.
+        var core = new CabinCrewCore();
+        var options = new CabinOptions();
+
+        Assert.Equal(CabinAction.None,
+            core.Evaluate(Sample(FlightPhase.Approach, altFt: 3000, vsFpm: 2000), options, NeverRoll));
+
+        // Once genuinely descending, the report still fires (once).
+        Assert.Equal(CabinAction.ReadyReport,
+            core.Evaluate(Sample(FlightPhase.Approach, altFt: 3000, vsFpm: -800), options, NeverRoll));
     }
 
     [Fact]
