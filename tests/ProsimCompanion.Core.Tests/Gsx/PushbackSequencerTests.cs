@@ -135,7 +135,11 @@ public sealed class PushbackSequencerTests
         _ = TickUntilAction(sequencer, Ready());
         Assert.Equal(PushbackSequenceStep.ReadyForPush, sequencer.Step);
 
-        Assert.Equal(PushbackAction.None, sequencer.Tick(Ready(pushbackCallable: false), Delays).Action);
+        // The wait is announced exactly once (issue #40: a silent wait hid the service-id bug).
+        var waiting = sequencer.Tick(Ready(pushbackCallable: false), Delays);
+        Assert.Equal(PushbackAction.None, waiting.Action);
+        Assert.Contains("waiting for the GSX Departure service", waiting.Transition, StringComparison.Ordinal);
+        Assert.Null(sequencer.Tick(Ready(pushbackCallable: false), Delays).Transition);
         Assert.Equal(PushbackAction.CallPushback, sequencer.Tick(Ready(), Delays).Action);
     }
 

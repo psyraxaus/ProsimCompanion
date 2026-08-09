@@ -39,6 +39,7 @@ public sealed class PushbackSequencer
     private readonly Func<int, int, int> _pickDelaySeconds;
     private int _remainingTicks;
     private bool _readyAnnounced;
+    private bool _waitingAnnounced;
 
     /// <param name="pickDelaySeconds">Returns a delay in seconds within [min, max] — inject a
     /// seeded picker in tests.</param>
@@ -157,6 +158,14 @@ public sealed class PushbackSequencer
                     Step = PushbackSequenceStep.PushbackCalled;
                     return new(PushbackAction.CallPushback, "calling pushback");
                 }
+                if (!_waitingAnnounced)
+                {
+                    // Announced once so a service-id/state mismatch shows up in the decision log
+                    // instead of stalling silently (issue #40: 3m46s of invisible waiting).
+                    _waitingAnnounced = true;
+                    return new(PushbackAction.None,
+                        "ready for push — waiting for the GSX Departure service to become callable");
+                }
                 return default;
 
             default: // PushbackCalled — GSX's own flow owns it from here
@@ -170,6 +179,7 @@ public sealed class PushbackSequencer
         Step = PushbackSequenceStep.Idle;
         _remainingTicks = 0;
         _readyAnnounced = false;
+        _waitingAnnounced = false;
     }
 
     private static bool CanAdvance(Inputs inputs) => inputs.BeaconOn && inputs.ApuRunning;

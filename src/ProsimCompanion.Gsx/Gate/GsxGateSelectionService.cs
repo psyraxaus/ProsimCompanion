@@ -179,12 +179,35 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     /// disambiguation counts as that retry).</summary>
     private async Task DispatchLadderAsync(string requested)
     {
-        var result = await SendSelectAsync(requested, revokeServices: false, force: false).ConfigureAwait(false);
+        // GSX matches gate.select tokens EXACTLY against its parking display names, which carry
+        // prefixes and whitespace (" Gate D5" at EHAM — issue #36): resolve the user's token to
+        // GSX's own name whenever the mirrored parkings already know it.
+        var sendToken = GsxGateResolver.ResolveCanonical(_api.Mirror.Parkings, requested) ?? requested;
+        if (!string.Equals(sendToken, requested, StringComparison.Ordinal))
+        {
+            _logger.LogInformation("Gate {Gate} resolved to GSX parking name {Canonical}", requested, sendToken);
+        }
+
+        var result = await SendSelectAsync(sendToken, revokeServices: false, force: false).ConfigureAwait(false);
 
         if (!result.Ok && !_retriedOnce)
         {
             switch (result.Code)
             {
+                case "not_found":
+                    // The parkings may not have been mirrored at first dispatch; the failure
+                    // itself proves GSX has an airport loaded, so resolve again and retry with
+                    // the canonical name when it differs from what was just refused.
+                    var canonical = GsxGateResolver.ResolveCanonical(_api.Mirror.Parkings, requested);
+                    if (canonical is not null && !string.Equals(canonical, sendToken, StringComparison.Ordinal))
+                    {
+                        _retriedOnce = true;
+                        _logger.LogInformation(
+                            "Gate {Gate} not found as sent; retrying with GSX parking name {Canonical}",
+                            requested, canonical);
+                        result = await SendSelectAsync(canonical, revokeServices: false, force: false).ConfigureAwait(false);
+                    }
+                    break;
                 case "ambiguous":
                     var candidates = ParseCandidates(result.Error);
                     var candidate = GsxGateResolver.PickUniqueCandidate(candidates, requested);

@@ -43,7 +43,9 @@ const SERVICES: Record<string, ServiceDef> = {
 		heading: "DEBOARD",
 		command: "gsx.requestDeboarding",
 		statusType: "Deboarding",
-		getValue: (g, s) => (inProgress(s) ? `${g.paxBoarded ?? 0}/${g.paxTotal ?? 0}` : undefined),
+		// paxRemaining counts down as pax leave; the boarding counter freezes during a
+		// deboard, which left this key stuck at total/total (issue #37).
+		getValue: (g, s) => (inProgress(s) ? `${g.paxRemaining ?? g.paxBoarded ?? 0}/${g.paxTotal ?? 0}` : undefined),
 	},
 	jetway: { heading: "JETWAY", command: "gsx.requestJetway", statusType: "OperateJetways" },
 	jetwayRetract: { heading: "JETWAY ▲", command: "gsx.retractJetway", statusType: "OperateJetways" },

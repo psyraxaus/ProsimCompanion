@@ -17,9 +17,10 @@ loopback). Requires `commandApi.enabled: true`.
 - `GET /api/status` — polled at 1 Hz while any key is visible (exponential
   backoff capped at 30 s on failure):
   `{ phase, connections:{prosim,msfs,gsx}, gsx:{ automationActive, nextService,
-  services:[{type,state,detail}], refuelPercent, paxBoarded, paxTotal },
-  checklist:{name,item,index,count} }` — sections may be null; service `state`
-  is `notAvailable|callable|requested|active|completed|skipped`.
+  services:[{type,state,detail}], refuelPercent, paxBoarded, paxTotal,
+  paxRemaining }, checklist:{name,item,index,count} }` — sections may be null;
+  `paxRemaining` counts down during a deboard and is null otherwise; service
+  `state` is `notAvailable|callable|requested|active|completed|skipped`.
 - `POST /api/command/{name}` — optional JSON body; response `{outcome, reason}`
   with outcome `success|alreadySatisfied|phaseMismatch|preconditionFailed|
   failed|unavailable`. Command names used: `gsx.startDepartureServices`,

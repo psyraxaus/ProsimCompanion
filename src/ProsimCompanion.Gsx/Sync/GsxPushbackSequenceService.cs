@@ -21,7 +21,10 @@ namespace ProsimCompanion.Gsx.Sync;
 public sealed class GsxPushbackSequenceService : IDisposable
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(1);
-    private const string PushbackServiceId = "Pushback";
+
+    // GSX names the pushback request "Departure" (issue #40: a locally-invented "Pushback" id
+    // made the mirror lookup miss forever and the auto-call never fired — the issue-#31 lesson).
+    private const string PushbackServiceId = GsxServiceIds.Departure;
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxServiceLifecycleTracker _lifecycle;

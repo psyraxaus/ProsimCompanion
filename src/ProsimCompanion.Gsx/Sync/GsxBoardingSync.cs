@@ -139,6 +139,23 @@ public sealed class GsxBoardingSync : IDisposable
     /// total is unknown (the counter alone means nothing).</summary>
     public int? PaxBoarded => PaxTotal is null ? null : (int)_boardedLvar.GetValue(0.0);
 
+    /// <summary>Passengers still aboard while a deboard runs: planned total minus GSX's
+    /// cumulative (up-counting by design) DEBOARDING_TOTAL. Null outside a deboarding session —
+    /// the boarding counter freezes then, which left the Stream Deck deboard key stuck at
+    /// total/total (issue #37).</summary>
+    public int? PaxRemaining
+    {
+        get
+        {
+            if (!_deboardingActive || PaxTotal is not int total)
+            {
+                return null;
+            }
+
+            return Math.Max(0, total - (int)_deboardTotal.GetValue(0.0));
+        }
+    }
+
     private void OnServiceEvent(string serviceId, GsxServiceLifecycleEvent lifecycleEvent)
     {
         if (serviceId.Equals("Boarding", StringComparison.OrdinalIgnoreCase))

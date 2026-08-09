@@ -37,7 +37,8 @@ public sealed record StatusGsx(
     IReadOnlyList<StatusServiceRow> Services,
     double? RefuelPercent,
     int? PaxBoarded,
-    int? PaxTotal);
+    int? PaxTotal,
+    int? PaxRemaining);
 
 public sealed record StatusChecklist(string Name, string Item, int Index, int Count);
 
@@ -102,6 +103,7 @@ public static class StatusApiEndpoints
             services.GetService<GsxRefuelSync>()?.ProgressPercent,
             services.GetService<GsxBoardingSync>()?.PaxBoarded,
             services.GetService<GsxBoardingSync>()?.PaxTotal,
+            services.GetService<GsxBoardingSync>()?.PaxRemaining,
             services.GetService<ChecklistService>()?.ActiveView());
 
         return Results.Json(response, Json);
@@ -117,6 +119,7 @@ public static class StatusApiEndpoints
         double? refuelPercent,
         int? paxBoarded,
         int? paxTotal,
+        int? paxRemaining,
         ChecklistView? checklist)
     {
         ArgumentNullException.ThrowIfNull(connectionStates);
@@ -136,7 +139,8 @@ public static class StatusApiEndpoints
                 Services: rows,
                 RefuelPercent: refuelPercent,
                 PaxBoarded: paxBoarded,
-                PaxTotal: paxTotal);
+                PaxTotal: paxTotal,
+                PaxRemaining: paxRemaining);
         }
 
         StatusChecklist? checklistStatus = null;

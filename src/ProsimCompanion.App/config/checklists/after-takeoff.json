@@ -1,6 +1,7 @@
 {
   "checklist": "After Takeoff",
   "order": 80,
+  "startPhrases": [ "after takeoff checklist", "climb checklist", "after takeoff climb checklist" ],
   "items": [
     { "behavior": "verify", "say": "Landing Gear", "expectedResponse": "UP", "acceptedPhrases": [ "up", "retracted" ], "verify": { "dataref": "system.switches.S_MIP_GEAR", "op": "equals", "value": 1 }, "confirmCallout": "Landing gear, up" },
     { "behavior": "verify", "say": "Flaps", "expectedResponse": "RETRACTED", "acceptedPhrases": [ "retracted", "up", "zero" ], "verify": { "dataref": "system.switches.S_FC_FLAPS", "op": "equals", "value": 0 }, "confirmCallout": "Flaps, retracted" },

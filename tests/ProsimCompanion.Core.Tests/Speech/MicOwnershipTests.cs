@@ -237,7 +237,11 @@ public sealed class MicOwnershipTests
                 eventLog,
                 NullLogger<ProsimCompanion.Speech.Briefings.MinimaCaptureDialogue>.Instance),
             SpeechTestSupport.PhraseBank(),
-            SpeechTestSupport.Persona());
+            SpeechTestSupport.Persona(),
+            new ProsimCompanion.Speech.Commands.SpokenTokenSource(
+                dataRefs,
+                SpeechTestSupport.BriefingMonitor(new BriefingOptions()),
+                NullLogger<ProsimCompanion.Speech.Commands.SpokenTokenSource>.Instance));
         engine.Start();
 
         _window.Hear("test phrase");

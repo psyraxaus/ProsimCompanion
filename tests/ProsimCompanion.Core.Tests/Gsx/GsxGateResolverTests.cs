@@ -101,4 +101,51 @@ public sealed class GsxGateResolverTests
 
         Assert.Empty(GsxGateResolver.NearestNames(parkings, "Z99"));
     }
+
+    // ---- ResolveCanonical (issue #36: EHAM names gates " Gate D5", with prefix and space) ----
+
+    [Fact]
+    public void ResolveCanonical_UniqueSuffixMatch_ReturnsGsxDisplayName()
+    {
+        var parkings = new List<GsxParking>
+        {
+            new(" Gate D5", null, null, 5, null, null),
+            new(" Gate D52", null, null, 52, null, null),
+            new(" Gate D54", null, null, 54, null, null),
+        };
+
+        Assert.Equal(" Gate D5", GsxGateResolver.ResolveCanonical(parkings, "D5"));
+    }
+
+    [Fact]
+    public void ResolveCanonical_ExactNormalizedMatch_WinsOverSuffix()
+    {
+        var parkings = new List<GsxParking>
+        {
+            new("D5", null, null, 5, null, null),
+            new("Stand D5", null, null, 5, null, null),
+        };
+
+        Assert.Equal("D5", GsxGateResolver.ResolveCanonical(parkings, "d 5"));
+    }
+
+    [Fact]
+    public void ResolveCanonical_AmbiguousSuffix_ReturnsNull()
+    {
+        var parkings = new List<GsxParking>
+        {
+            new(" Gate D5", null, null, 5, null, null),
+            new("Stand D5", null, null, 5, null, null),
+        };
+
+        Assert.Null(GsxGateResolver.ResolveCanonical(parkings, "D5"));
+    }
+
+    [Fact]
+    public void ResolveCanonical_UnknownGateOrEmptyMirror_ReturnsNull()
+    {
+        Assert.Null(GsxGateResolver.ResolveCanonical([], "D5"));
+        Assert.Null(GsxGateResolver.ResolveCanonical(
+            [new GsxParking("B12", null, null, 12, null, null)], "D5"));
+    }
 }

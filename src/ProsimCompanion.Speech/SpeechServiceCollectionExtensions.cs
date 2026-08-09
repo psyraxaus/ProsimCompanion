@@ -57,6 +57,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Fcu.FcuExecutor>());
         // File-driven commands.json AFTER the FCU executor: the gated FCU path keeps
         // precedence on overlapping phrases ("arm approach").
+        services.AddSingleton<Commands.SpokenTokenSource>();
         services.AddSingleton<Commands.ConfiguredVoiceCommands>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Commands.ConfiguredVoiceCommands>());
         // MCDU trio (predecessor dispatch position: after fcu, before briefings). Reader is

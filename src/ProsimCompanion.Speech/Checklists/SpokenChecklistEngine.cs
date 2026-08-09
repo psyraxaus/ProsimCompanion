@@ -53,6 +53,7 @@ public sealed class SpokenChecklistEngine : IDisposable
     private readonly ILogger<SpokenChecklistEngine> _logger;
     private readonly Persona.PhraseBank _phrases;
     private readonly Persona.PersonaService _persona;
+    private readonly Commands.SpokenTokenSource _tokens;
     private readonly Briefings.MinimaCaptureDialogue _minimaCapture = null!;
     private readonly object _gate = new();
     private readonly Dictionary<string, IDataRefSubscription> _verifyReads = new(StringComparer.Ordinal);
@@ -80,18 +81,21 @@ public sealed class SpokenChecklistEngine : IDisposable
         ILogger<SpokenChecklistEngine> logger,
         Briefings.MinimaCaptureDialogue minimaCapture,
         Persona.PhraseBank phrases,
-        Persona.PersonaService persona)
+        Persona.PersonaService persona,
+        Commands.SpokenTokenSource tokens)
     {
         ArgumentNullException.ThrowIfNull(failures);
         ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(minimaCapture);
         ArgumentNullException.ThrowIfNull(phrases);
         ArgumentNullException.ThrowIfNull(persona);
+        ArgumentNullException.ThrowIfNull(tokens);
         _failures = failures;
         _features = [.. features];
         _minimaCapture = minimaCapture;
         _phrases = phrases;
         _persona = persona;
+        _tokens = tokens;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(recognition);
@@ -700,7 +704,7 @@ public sealed class SpokenChecklistEngine : IDisposable
             }
         }
 
-        var grammar = BuildRouteVocabulary(awaiting);
+        var grammar = ScopeForChecklistStart(e.Text, BuildRouteVocabulary(awaiting), awaiting is not null);
         var interpretation = _interpreter.Interpret(
             e.Text, grammar, new InterpretContext(awaiting is not null, e.AcousticConfidence, e.NoSpeechProb));
 
@@ -859,6 +863,27 @@ public sealed class SpokenChecklistEngine : IDisposable
         }
     }
 
+    /// <summary>
+    /// Checklist-start bias (issue #38): "approach checklist" phonetically snapped to
+    /// "activate approach phase"/"arm localizer" and the Approach checklist never ran. When the
+    /// pilot literally said "checklist" outside an item window, snapping is restricted to the
+    /// checklist-scoped phrases (start phrases and the global checklist commands) so a start
+    /// request can never resolve to an unrelated command. The full grammar stands when nothing
+    /// checklist-scoped exists or an item is awaiting its answer.
+    /// </summary>
+    internal static List<string> ScopeForChecklistStart(string utterance, List<string> grammar, bool itemAwaiting)
+    {
+        if (itemAwaiting || !utterance.Contains("checklist", StringComparison.OrdinalIgnoreCase))
+        {
+            return grammar;
+        }
+
+        var scoped = grammar
+            .Where(p => p.Contains("checklist", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        return scoped.Count > 0 ? scoped : grammar;
+    }
+
     private List<string> BuildRouteVocabulary(ChecklistItemDefinition? awaiting)
     {
         var vocabulary = new List<string>(VoiceCommands.All);
@@ -923,7 +948,9 @@ public sealed class SpokenChecklistEngine : IDisposable
     {
         if (!string.IsNullOrWhiteSpace(item.ConfirmCallout))
         {
-            await Speak(item.ConfirmCallout).ConfigureAwait(false);
+            // Confirm callouts carry the same {altimeter}/{v1}/… tokens as voice-command
+            // confirmations — expand them or the FO speaks the braces (issue #39).
+            await Speak(_tokens.Apply(item.ConfirmCallout)).ConfigureAwait(false);
         }
     }
 }

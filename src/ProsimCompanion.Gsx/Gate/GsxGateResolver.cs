@@ -114,6 +114,45 @@ public static class GsxGateResolver
         return null;
     }
 
+    /// <summary>
+    /// Resolves a user token ("D5") to GSX's own parking display name (" Gate D5" at EHAM —
+    /// prefixes and whitespace included). gate.select matches exactly against those names, so a
+    /// bare token fails not_found even when the gate exists (issue #36). Returns the canonical
+    /// name on a normalized-exact match, or on a UNIQUE normalized-suffix match; null otherwise
+    /// (unknown gate, or ambiguous — e.g. " Gate D5" vs "Stand D5" both ending in D5).
+    /// </summary>
+    public static string? ResolveCanonical(IReadOnlyList<GsxParking> parkings, string requestedGate)
+    {
+        ArgumentNullException.ThrowIfNull(parkings);
+        var requested = Normalize(requestedGate);
+        if (requested.Length == 0)
+        {
+            return null;
+        }
+
+        var names = parkings
+            .Select(p => p.UiGateName ?? p.UiName ?? p.BglName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var exact = names.Where(n => Normalize(n) == requested).ToList();
+        if (exact.Count == 1)
+        {
+            return exact[0];
+        }
+        if (exact.Count > 1)
+        {
+            return null;
+        }
+
+        var suffix = names
+            .Where(n => Normalize(n).EndsWith(requested, StringComparison.Ordinal))
+            .ToList();
+        return suffix.Count == 1 ? suffix[0] : null;
+    }
+
     /// <summary>Nearest-name suggestions for a not_found failure: exact → suffix → contains,
     /// max 3, drawn from the mirrored parkings.</summary>
     public static IReadOnlyList<string> NearestNames(IReadOnlyList<GsxParking> parkings, string requestedGate)

@@ -69,7 +69,7 @@ public sealed class ConfiguredVoiceCommandsTests
             _dataRefs,
             _arbiter,
             SpeechTestSupport.TempEventLog(),
-            briefing.Object,
+            new SpokenTokenSource(_dataRefs, briefing.Object, NullLogger<SpokenTokenSource>.Instance),
             NullLogger<ConfiguredVoiceCommands>.Instance);
     }
 

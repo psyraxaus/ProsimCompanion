@@ -25,9 +25,10 @@ public sealed class StatusApiTests
         double? refuelPercent = null,
         int? paxBoarded = null,
         int? paxTotal = null,
+        int? paxRemaining = null,
         ChecklistView? checklist = null)
         => StatusApiEndpoints.BuildStatus(
-            phase, connections ?? [], departure, snapshot, refuelPercent, paxBoarded, paxTotal, checklist);
+            phase, connections ?? [], departure, snapshot, refuelPercent, paxBoarded, paxTotal, paxRemaining, checklist);
 
     [Fact]
     public void AbsentPillars_YieldNullsAndSafeDefaults()
@@ -197,11 +198,14 @@ public sealed class StatusApiTests
     [Fact]
     public void ProgressFigures_PassThrough()
     {
-        var gsx = Build(departure: Departure(true), refuelPercent: 62.5, paxBoarded: 87, paxTotal: 180).Gsx!;
+        var gsx = Build(
+            departure: Departure(true), refuelPercent: 62.5,
+            paxBoarded: 87, paxTotal: 180, paxRemaining: 93).Gsx!;
 
         Assert.Equal(62.5, gsx.RefuelPercent);
         Assert.Equal(87, gsx.PaxBoarded);
         Assert.Equal(180, gsx.PaxTotal);
+        Assert.Equal(93, gsx.PaxRemaining);
     }
 
     [Fact]

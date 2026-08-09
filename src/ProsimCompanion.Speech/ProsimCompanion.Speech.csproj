@@ -21,4 +21,9 @@
     <ProjectReference Include="..\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Routing internals (checklist-start bias, issue #38) are unit-tested directly. -->
+    <InternalsVisibleTo Include="ProsimCompanion.Core.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -22,6 +22,7 @@ public sealed class GsxQuestionCatalog
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxQuestionCatalog> _logger;
+    private volatile bool _directionAutoSelected;
 
     public GsxQuestionCatalog(
         IGsxRemoteApi api,
@@ -44,6 +45,10 @@ public sealed class GsxQuestionCatalog
         _diagnostics = diagnostics;
         _eventLog = eventLog;
         _logger = logger;
+
+        // App-lifetime singleton — no unsubscribe needed. A Couatl engine restart starts a new
+        // GSX session, so the once-per-session direction latch re-arms.
+        _api.Mirror.SidChanged += (_, _) => _directionAutoSelected = false;
     }
 
     /// <summary>Registers all catalogued questions on the dispatcher.</summary>
@@ -195,27 +200,51 @@ public sealed class GsxQuestionCatalog
             return;
         }
 
-        // Entry texts observed in GSX 4 (ported from Prosim2GSX): "Straight pushback",
-        // "Tail Left", "Tail Right". Safe-fail matching leaves the menu open on no match.
-        var token = options.PushbackPreference switch
+        // GSX has been seen to re-open the direction menu mid-push (predecessor archaeology,
+        // 2026-08: re-selecting then is never right) — apply the preference once per GSX
+        // session; the SidChanged reset re-arms it for the next engine restart/turnaround.
+        if (_directionAutoSelected)
         {
-            "tailLeft" => "Tail Left",
-            "tailRight" => "Tail Right",
-            _ => "Straight",
-        };
+            RecordDecision("pushback direction menu", "left for the user (preference already applied this session)");
+            return;
+        }
 
+        var menu = _api.Mirror.Menu;
+        if (menu is null || !_api.Mirror.MenuShown)
+        {
+            return;
+        }
+
+        var pick = PushbackDirectionResolver.Resolve(menu.Entries, options.PushbackPreference);
+        if (pick is null)
+        {
+            RecordDecision(
+                "pushback direction menu",
+                $"left for the user (no entry matches preference '{options.PushbackPreference}')");
+            return;
+        }
+
+        // Re-match the resolved entry text exactly in the live menu (predecessor semantics): a
+        // menu that changed between resolution and pick fails safe instead of picking blind.
         var result = await _executor.ExecuteAsync(
             new GsxMenuIntent
             {
                 Name = "pushback direction selection",
                 TitlePrefixes = ["Select pushback direction"],
-                EntryPattern = new Regex(Regex.Escape(token), RegexOptions.IgnoreCase),
+                EntryPattern = new Regex($"^{Regex.Escape(pick.Entry)}$"),
             },
             cancellationToken).ConfigureAwait(false);
 
+        if (result.Succeeded)
+        {
+            _directionAutoSelected = true;
+        }
+
         RecordDecision(
             "pushback direction menu",
-            result.Succeeded ? $"picked '{token}'" : $"{result.Outcome}: {result.Detail}");
+            result.Succeeded
+                ? $"picked '{pick.Entry}' ({pick.Strategy}, preference {options.PushbackPreference})"
+                : $"{result.Outcome}: {result.Detail}");
     }
 
     private async Task HandleDeIceTypeAsync(CancellationToken cancellationToken)

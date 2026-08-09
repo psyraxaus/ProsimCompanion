@@ -48,6 +48,8 @@ export interface GsxStatusDto {
 	refuelPercent?: number;
 	paxBoarded?: number;
 	paxTotal?: number;
+	/** Pax still aboard during a deboard (counts down); absent outside deboarding. */
+	paxRemaining?: number;
 }
 
 /** The `connections` section of /api/status. May be null. */
