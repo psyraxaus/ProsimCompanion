@@ -99,7 +99,7 @@
             @ServiceRow("Lavatory", GsxServiceIds.Lavatory)
             @ServiceRow("Water", GsxServiceIds.Water)
             @ServiceRow("Cleaning", GsxServiceIds.Cleaning)
-            @ServiceRow("GPU", GsxServiceIds.Gpu)
+            @GpuRow()
             @ServiceRow("Boarding", GsxServiceIds.Boarding)
             @ServiceRow("Deboarding", GsxServiceIds.Deboarding)
             @ServiceRow("Pushback", GsxServiceIds.Departure)
@@ -204,6 +204,22 @@
             <span class="row-label">@label</span>
             <span class="pill @tone">@(text ?? "—")</span>
         </div>;
+    }
+
+    private RenderFragment GpuRow()
+    {
+        // ProSim's ground-power dataref is the attachment truth (issue #33): GSX flips its
+        // GPU service back to "available" while the unit stays physically connected, so a
+        // connected GPU must never read as merely callable.
+        if (_gsx.GroundPowerConnected == true)
+        {
+            return @<div class="row">
+                <span class="row-label">GPU</span>
+                <span class="pill tone-ok">connected</span>
+            </div>;
+        }
+
+        return ServiceRow("GPU", GsxServiceIds.Gpu);
     }
 
     private RenderFragment ConnectedRow(string label, string serviceId)

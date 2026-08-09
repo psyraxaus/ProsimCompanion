@@ -8,7 +8,9 @@ using ProsimCompanion.Gsx.Services;
 namespace ProsimCompanion.Gsx.Sync;
 
 /// <summary>Everything the startup assessment can observe, gathered by the service so the
-/// verdict logic stays pure and testable (issue #30).</summary>
+/// verdict logic stays pure and testable (issue #30). <see cref="FlightPlanLoaded"/> is the
+/// corroboration gate (issue #33): SimBrief OFP imported OR a valid MCDU origin/destination
+/// pair.</summary>
 public sealed record ResyncEvidence(
     bool TurnaroundLvar,
     bool PrepDoneLvar,
@@ -20,7 +22,9 @@ public sealed record ResyncEvidence(
     string? EfbBoardingStatus,
     int LoadsheetPrelimEdition,
     bool LoadsheetFinalSent,
-    IReadOnlyList<string> ConfiguredOneShotServices);
+    IReadOnlyList<string> ConfiguredOneShotServices,
+    bool FlightPlanLoaded = true,
+    bool ProsimDataAvailable = true);
 
 /// <summary>What the assessment decided: services to seed as completed (with the evidence that
 /// proved — or the policy that assumed — each one), plus the recovered cross-cutting flags.
@@ -37,6 +41,11 @@ public sealed record ResyncVerdict(
 {
     /// <summary>True when any prior departure-flow progress was detected at all.</summary>
     public bool DepartureInProgress => SeedCompleted.Count > 0;
+
+    /// <summary>The tracking LVARs claimed departure progress the datarefs contradict
+    /// (issue #33: LVARs survive an app restart AND a ProSim reset, but a reset invalidates
+    /// them) — the service must clear them so they cannot confuse a later restart.</summary>
+    public bool StaleTrackingDetected { get; init; }
 }
 
 /// <summary>
@@ -67,6 +76,32 @@ public static class GsxStartupResync
     {
         ArgumentNullException.ThrowIfNull(evidence);
 
+        // Corroboration gate (issue #33): the tracking LVARs survive an app restart AND a
+        // ProSim reset, but a reset invalidates them without clearing them. A departure-flow
+        // claim (any non-exempt service done, or a prelim sent) is only believed when the
+        // datarefs agree: a flight plan must be loaded (the sequencer is plan-gated, so
+        // departure claims without one are always stale), a claimed refuel must not be
+        // contradicted by the live fuel state, and a claimed boarding by an empty cabin.
+        // Exempt-only claims (Deboarding after arrival) stay trusted — the legit
+        // restart-before-the-next-plan window has exactly that shape.
+        var claimsDeparture = evidence.LoadsheetPrelimEdition > 0
+            || evidence.ServiceDoneLvars.Any(id => !ProgressExempt.Contains(id));
+        var refuelContradicted = evidence.ServiceDoneLvars.Contains(GsxServiceIds.Refueling)
+            && evidence.FuelTargetKg > FuelVarianceKg
+            && evidence.FuelOnBoardKg < evidence.FuelTargetKg - FuelVarianceKg;
+        var boardingContradicted = evidence.ServiceDoneLvars.Contains(GsxServiceIds.Boarding)
+            && evidence.PaxOccupied == 0;
+        // Never judge staleness on absent data: with ProSim disconnected every dataref reads
+        // as "nothing", which must not condemn valid LVARs (degrade, not fail).
+        var stale = evidence.ProsimDataAvailable
+            && claimsDeparture
+            && (!evidence.FlightPlanLoaded || refuelContradicted || boardingContradicted);
+
+        var trustedLvars = stale
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : evidence.ServiceDoneLvars;
+        var prelimEdition = stale ? 0 : evidence.LoadsheetPrelimEdition;
+
         var seeds = new List<(string ServiceId, string Reason)>();
         var proven = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -78,7 +113,7 @@ public static class GsxStartupResync
             }
         }
 
-        foreach (var serviceId in evidence.ServiceDoneLvars)
+        foreach (var serviceId in trustedLvars)
         {
             Prove(serviceId, "tracking LVAR says completed this cycle");
         }
@@ -100,11 +135,11 @@ public static class GsxStartupResync
             Prove(GsxServiceIds.Boarding, $"EFB boarding status reads '{evidence.EfbBoardingStatus}'");
         }
 
-        if (evidence.LoadsheetPrelimEdition > 0)
+        if (prelimEdition > 0)
         {
             // The prelim fires when refuel goes active — it proves the refuel cycle started,
             // and with the fuel target long since reached-or-abandoned we treat it as done.
-            Prove(GsxServiceIds.Refueling, $"preliminary loadsheet EDNO {evidence.LoadsheetPrelimEdition} was already sent");
+            Prove(GsxServiceIds.Refueling, $"preliminary loadsheet EDNO {prelimEdition} was already sent");
         }
 
         var boardingProven = proven.Contains(GsxServiceIds.Boarding);
@@ -124,13 +159,19 @@ public static class GsxStartupResync
             }
         }
 
+        // A stale-detected reset also invalidates the sim-session flags: ground prep wrote
+        // PROSIM datarefs (chocks/ground power) that the reset cleared, and the user's fresh
+        // flight must not inherit turnaround constraints.
         return new ResyncVerdict(
             seeds,
-            evidence.TurnaroundLvar,
-            evidence.PrepDoneLvar,
+            !stale && evidence.TurnaroundLvar,
+            !stale && evidence.PrepDoneLvar,
             boardingProven,
-            evidence.LoadsheetPrelimEdition,
-            evidence.LoadsheetFinalSent);
+            prelimEdition,
+            !stale && evidence.LoadsheetFinalSent)
+        {
+            StaleTrackingDetected = stale,
+        };
     }
 }
 
@@ -180,6 +221,9 @@ public sealed class GsxStartupResyncService : IDisposable
     private readonly IDataRefSubscription _paxBooked;
     private readonly IDataRefSubscription _paxOccupied;
     private readonly IDataRefSubscription _efbBoardingStatus;
+    private readonly IDataRefSubscription _ofpImported;
+    private readonly IDataRefSubscription _fmsOrigin;
+    private readonly IDataRefSubscription _fmsDestination;
 
     private readonly Timer _timer;
     private readonly long _startedAtTicks = Environment.TickCount64;
@@ -234,6 +278,9 @@ public sealed class GsxStartupResyncService : IDisposable
         _paxBooked = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
         _paxOccupied = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString, DataRefTier.Infrequent);
         _efbBoardingStatus = prosim.Subscribe(ProsimDataRefNames.EfbBoardingStatus, DataRefTier.Infrequent);
+        _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
+        _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
+        _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
 
         _lifecycle.ServiceEvent += OnServiceEvent;
         _signals.FlightCycleReset += OnFlightCycleReset;
@@ -259,6 +306,9 @@ public sealed class GsxStartupResyncService : IDisposable
         _paxBooked.Dispose();
         _paxOccupied.Dispose();
         _efbBoardingStatus.Dispose();
+        _ofpImported.Dispose();
+        _fmsOrigin.Dispose();
+        _fmsDestination.Dispose();
     }
 
     private void OnServiceEvent(string serviceId, GsxServiceLifecycleEvent lifecycleEvent)
@@ -312,10 +362,12 @@ public sealed class GsxStartupResyncService : IDisposable
 
     private void TryAssess()
     {
+        var timedOut =
+            TimeSpan.FromMilliseconds(Environment.TickCount64 - _startedAtTicks) >= AssessmentTimeout;
         var worldKnown = _api.Readiness == GsxReadiness.Ready && _api.Mirror.Services.Count > 0;
         if (!worldKnown)
         {
-            if (TimeSpan.FromMilliseconds(Environment.TickCount64 - _startedAtTicks) < AssessmentTimeout)
+            if (!timedOut)
             {
                 return;
             }
@@ -327,6 +379,17 @@ public sealed class GsxStartupResyncService : IDisposable
                 turnaroundDetected: _turnaroundLvar.GetValue(0.0) >= 1,
                 loadsheetPrelimEdition: (int)_loadsheetPrelimLvar.GetValue(0.0),
                 loadsheetFinalSent: _loadsheetFinalLvar.GetValue(0.0) >= 1);
+            return;
+        }
+
+        // Give ProSim a chance to report before judging staleness (issue #33) — with no
+        // dataref values every check reads "nothing", which must not condemn valid LVARs.
+        // RawValue stays null until a subscription's first push.
+        var prosimKnown = _fuelTotal.RawValue is not null
+            || _fmsOrigin.RawValue is not null
+            || _ofpImported.RawValue is not null;
+        if (!prosimKnown && !timedOut)
+        {
             return;
         }
 
@@ -359,9 +422,21 @@ public sealed class GsxStartupResyncService : IDisposable
             ConfiguredOneShotServices:
                 [.. _options.CurrentValue.DepartureServices
                     .Select(step => step.Service)
-                    .Where(id => !string.IsNullOrWhiteSpace(id))]);
+                    .Where(id => !string.IsNullOrWhiteSpace(id))],
+            FlightPlanLoaded: _ofpImported.GetValue(false)
+                || (IsValidIcao(_fmsOrigin.GetValue<string?>(null))
+                    && IsValidIcao(_fmsDestination.GetValue<string?>(null))),
+            ProsimDataAvailable: prosimKnown);
 
         var verdict = GsxStartupResync.Assess(evidence);
+
+        if (verdict.StaleTrackingDetected)
+        {
+            RecordDecision(
+                "tracking LVARs claim departure progress the ProSim datarefs contradict "
+                + "(ProSim reset?) — cleared; fresh departure flow");
+            ClearTrackingLvars();
+        }
 
         foreach (var (serviceId, reason) in verdict.SeedCompleted)
         {
@@ -396,6 +471,32 @@ public sealed class GsxStartupResyncService : IDisposable
             verdict.LoadsheetFinalSent,
             verdict.BoardingProven);
     }
+
+    /// <summary>Zeroes every tracking LVAR (stale detection, issue #33) — including the
+    /// turnaround and prep flags: a ProSim reset means the user started a fresh flight, and
+    /// prep wrote ProSim datarefs (chocks/ground power) the reset also cleared.</summary>
+    private void ClearTrackingLvars()
+    {
+        _prepLvarLatched = false;
+        _ = Task.Run(async () =>
+        {
+            await WriteLvarAsync(CompanionLvarNames.Turnaround, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.PrepDone, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.LoadsheetFinalSent, 0).ConfigureAwait(false);
+            foreach (var serviceId in TrackedServices)
+            {
+                await WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId), 0).ConfigureAwait(false);
+            }
+        });
+    }
+
+    /// <summary>Same validity rule as the automation's plan gate: 4 chars, not the MCDU's
+    /// "----" placeholder, not ProSim's literal "Null".</summary>
+    private static bool IsValidIcao(string? value)
+        => value is { Length: 4 }
+            && value != "----"
+            && !value.Equals("Null", StringComparison.OrdinalIgnoreCase);
 
     private async Task WriteLvarAsync(string name, double value)
     {

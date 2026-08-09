@@ -24,12 +24,13 @@ public sealed class GsxStartupResyncTests
         int occupied = 0,
         string? boardingStatus = null,
         int prelimEdition = 0,
-        bool finalSent = false)
+        bool finalSent = false,
+        bool planLoaded = true)
         => new(
             turnaround, prepDone,
             new HashSet<string>(doneLvars ?? [], StringComparer.OrdinalIgnoreCase),
             fuelTarget, fob, booked, occupied, boardingStatus, prelimEdition, finalSent,
-            ConfiguredServices);
+            ConfiguredServices, planLoaded);
 
     [Fact]
     public void FreshSession_SeedsNothing()
@@ -141,6 +142,89 @@ public sealed class GsxStartupResyncTests
         Assert.Single(verdict.SeedCompleted);
         Assert.Equal("GPU", verdict.SeedCompleted[0].ServiceId);
         Assert.True(verdict.SeedPrepComplete);
+    }
+
+    // ── Stale-tracking hardening (issue #33): LVARs survive a ProSim reset that
+    //    invalidates them — dataref corroboration decides whether to believe them. ──
+
+    [Fact]
+    public void DepartureClaimsWithoutFlightPlan_AreStale()
+    {
+        // ProSim reset: LVARs say catering/refuel done, but no OFP/MCDU plan exists —
+        // departure services are plan-gated, so those claims are impossible for THIS flight.
+        var verdict = GsxStartupResync.Assess(Evidence(
+            turnaround: true, prepDone: true,
+            doneLvars: ["Refueling", "Catering"], prelimEdition: 2, planLoaded: false));
+
+        Assert.True(verdict.StaleTrackingDetected);
+        Assert.Empty(verdict.SeedCompleted);
+        Assert.False(verdict.Turnaround);
+        Assert.False(verdict.SeedPrepComplete);
+        Assert.Equal(0, verdict.LoadsheetPrelimEdition);
+        Assert.False(verdict.LoadsheetFinalSent);
+    }
+
+    [Fact]
+    public void RefuelClaimContradictedByLiveFuel_IsStale()
+    {
+        // Same route re-flown after a reset: plan loaded, LVAR says refuel done, but the
+        // tanks are far below the new target — the live dataref wins.
+        var verdict = GsxStartupResync.Assess(Evidence(
+            doneLvars: ["Refueling", "Catering"], fuelTarget: 8000, fob: 4700));
+
+        Assert.True(verdict.StaleTrackingDetected);
+        Assert.Empty(verdict.SeedCompleted);
+    }
+
+    [Fact]
+    public void BoardingClaimWithEmptyCabin_IsStale()
+    {
+        var verdict = GsxStartupResync.Assess(Evidence(doneLvars: ["Boarding", "Water"]));
+
+        Assert.True(verdict.StaleTrackingDetected);
+        Assert.Empty(verdict.SeedCompleted);
+    }
+
+    [Fact]
+    public void CorroboratedClaims_AreNotStale()
+    {
+        // Legit restart mid-turnaround: plan loaded, fuel at target, cabin occupied.
+        var verdict = GsxStartupResync.Assess(Evidence(
+            doneLvars: ["Refueling", "Boarding"],
+            fuelTarget: 8000, fob: 7980, booked: 174, occupied: 174));
+
+        Assert.False(verdict.StaleTrackingDetected);
+        Assert.Contains(verdict.SeedCompleted, s => s.ServiceId == "Refueling");
+        Assert.Contains(verdict.SeedCompleted, s => s.ServiceId == "Boarding");
+    }
+
+    [Fact]
+    public void DeboardingOnlyClaimWithoutPlan_StaysTrusted()
+    {
+        // The legit restart-right-after-arrival window: no leg-2 plan yet, only the
+        // arrival-flow deboarding LVAR set — must NOT be treated as a ProSim reset, or the
+        // recovered turnaround flag would be lost.
+        var verdict = GsxStartupResync.Assess(Evidence(
+            turnaround: true, doneLvars: ["Deboarding"], planLoaded: false));
+
+        Assert.False(verdict.StaleTrackingDetected);
+        Assert.True(verdict.Turnaround);
+        Assert.Single(verdict.SeedCompleted);
+        Assert.Equal("Deboarding", verdict.SeedCompleted[0].ServiceId);
+    }
+
+    [Fact]
+    public void WithoutProsimData_LvarsStayTrusted()
+    {
+        // ProSim disconnected: every dataref reads "nothing" — that absence must not condemn
+        // valid LVARs (degrade, not fail).
+        var evidence = Evidence(doneLvars: ["Refueling", "Catering"], planLoaded: false)
+            with { ProsimDataAvailable = false };
+
+        var verdict = GsxStartupResync.Assess(evidence);
+
+        Assert.False(verdict.StaleTrackingDetected);
+        Assert.Contains(verdict.SeedCompleted, s => s.ServiceId == "Refueling");
     }
 
     [Fact]

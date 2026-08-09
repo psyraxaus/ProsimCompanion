@@ -99,6 +99,11 @@ public sealed record GsxDiagnosticsSnapshot(
 
     /// <summary>Last service lifecycle edge (filled in by Snapshot()).</summary>
     public GsxHandlerEventView? LastHandlerEvent { get; init; }
+
+    /// <summary>ProSim's ground-power state (the GPU physically attached) — dataref truth, not
+    /// the GSX mirror: GSX flips its GPU service back to "available" while the unit stays
+    /// connected. Null until the dataref has reported (issue #33).</summary>
+    public bool? GroundPowerConnected { get; init; }
 }
 
 /// <summary>Arms/cancels arrival-gate requests from UI surfaces (implemented by the GSX layer;
@@ -147,6 +152,7 @@ public sealed class GsxDiagnosticsStore
     private IReadOnlyList<GsxServiceBoardRow> _serviceBoard = [];
     private GsxBoardingCountersView? _boardingCounters;
     private GsxHandlerEventView? _lastHandlerEvent;
+    private bool? _groundPowerConnected;
     private GsxDiagnosticsSnapshot _current = GsxDiagnosticsSnapshot.Empty;
 
     /// <summary>Raised after any update, on the writer's thread — consumers marshal to their
@@ -165,6 +171,7 @@ public sealed class GsxDiagnosticsStore
                 ServiceBoard = _serviceBoard,
                 BoardingCounters = _boardingCounters,
                 LastHandlerEvent = _lastHandlerEvent,
+                GroundPowerConnected = _groundPowerConnected,
             };
         }
     }
@@ -188,6 +195,18 @@ public sealed class GsxDiagnosticsStore
         lock (_gate)
         {
             _boardingCounters = counters;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Replaces the ground-power (GPU attached) state — pushed by the ground
+    /// equipment sync on dataref change; null = not reported yet.</summary>
+    public void UpdateGroundPower(bool? connected)
+    {
+        lock (_gate)
+        {
+            _groundPowerConnected = connected;
         }
 
         Changed?.Invoke(this, EventArgs.Empty);

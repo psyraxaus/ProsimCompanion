@@ -74,12 +74,21 @@ public sealed class GsxGroundEquipmentService : IDisposable
 
         _flightState.PhaseChanged += OnPhaseChanged;
         _beacon.ValueChanged += OnBeaconChanged;
+        _gpuConnected.ValueChanged += OnGpuConnectedChanged;
     }
+
+    /// <summary>Surfaces ProSim's ground-power state to the Flight Status page (issue #33):
+    /// the dataref is the attachment truth — GSX's GPU service flips back to "available"
+    /// while the unit stays physically connected.</summary>
+    private void OnGpuConnectedChanged(object? sender, EventArgs e)
+        => _diagnostics.UpdateGroundPower(
+            _gpuConnected.RawValue is null ? null : _gpuConnected.GetValue(false));
 
     public void Dispose()
     {
         _flightState.PhaseChanged -= OnPhaseChanged;
         _beacon.ValueChanged -= OnBeaconChanged;
+        _gpuConnected.ValueChanged -= OnGpuConnectedChanged;
         _beacon.Dispose();
         _parkBrake.Dispose();
         _apuRunning.Dispose();
