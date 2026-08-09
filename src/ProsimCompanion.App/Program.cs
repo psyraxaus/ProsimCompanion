@@ -128,7 +128,26 @@ public static class Program
             app.InitializeComponent();
             var exitCode = app.Run();
 
-            web.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+            // Shutdown must TERMINATE (issue #32): StopAsync's timeout only signals a token —
+            // one hosted service blocking in synchronous teardown (SDK disconnect, TTS, a
+            // native VBVMR call) hung Main here forever, leaving a headless zombie that kept
+            // the web port, the single-instance mutex and the VoiceMeeter client; the next
+            // launch then couldn't start (or talked to the half-dead instance's UI). Audio
+            // hands its targets back FIRST — hosted services stop in reverse order, so a
+            // speech-side hang used to prevent the VoiceMeeter neutral-reset/logout from ever
+            // running — then the host gets a bounded stop, and the process exits regardless.
+            TryShutdownAudio(web.Services);
+            try
+            {
+                if (!web.StopAsync(TimeSpan.FromSeconds(5)).Wait(TimeSpan.FromSeconds(10)))
+                {
+                    Log.Warning("Host shutdown exceeded 10 s — forcing process exit");
+                }
+            }
+            catch (AggregateException ex)
+            {
+                Log.Warning(ex.GetBaseException(), "Host shutdown faulted — forcing process exit");
+            }
 
             // ProSimSDK owns a foreground thread that cannot be joined; without an explicit exit
             // the process would linger after the UI closes (known from the predecessor apps).
@@ -144,6 +163,25 @@ public static class Program
         finally
         {
             Log.CloseAndFlush();
+        }
+    }
+
+    /// <summary>Audio's clean hand-back (CoreAudio volumes restored / VoiceMeeter targets to
+    /// 0 dB + VBVMR logout), bounded so a blocked native call cannot hang the exit; a second
+    /// call from the hosted service's own StopAsync is a no-op (Shutdown is idempotent).</summary>
+    private static void TryShutdownAudio(IServiceProvider services)
+    {
+        try
+        {
+            var shutdown = Task.Run(() => services.GetRequiredService<AudioControlService>().Shutdown());
+            if (!shutdown.Wait(TimeSpan.FromSeconds(3)))
+            {
+                Log.Warning("Audio hand-back did not finish within 3 s — continuing shutdown");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Audio hand-back failed — continuing shutdown");
         }
     }
 

@@ -32,3 +32,6 @@ VoicemeeterRemote64.dll
 
 # Installer build output
 installer/Output/
+
+# Scratchpad folder
+scratchpad/
