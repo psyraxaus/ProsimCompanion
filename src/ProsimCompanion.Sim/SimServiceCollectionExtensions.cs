@@ -16,7 +16,11 @@ public static class SimServiceCollectionExtensions
 
         services.AddSingleton<SimVarService>();
         services.AddSingleton<ISimVars>(provider => provider.GetRequiredService<SimVarService>());
+        services.AddSingleton<SimSessionSignals>();
         services.AddHostedService<SimConnectService>();
+        // Session detection (camera state + Sim/Pause_EX1 events): publishes SimSessionStore,
+        // the gate that keeps GSX ground prep from firing while MSFS is on the main menu.
+        services.AddHostedService<SimSessionService>();
 
         return services;
     }

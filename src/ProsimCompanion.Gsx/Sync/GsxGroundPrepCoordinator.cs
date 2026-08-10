@@ -32,8 +32,10 @@ public interface IGsxGroundPrepStatus
 /// Enforces the ground-preparation order (owner-specified): <b>reposition → settle → GPU +
 /// chocks → jetway/stairs → departure services</b>. The individual modules keep their own
 /// guards and safe-fail behaviour; this coordinator only decides <i>when</i> each may run, and
-/// gates the departure sequencer until preparation is complete. Resets for a new session on
-/// gate change, Couatl restart, or returning to preparation after flight.
+/// gates the departure sequencer until preparation is complete. The whole chain holds until
+/// the pilot is actually in the MSFS session (<see cref="SimSessionStore"/>) and the startup
+/// resync has assessed. Resets for a new session on gate change, Couatl restart, sim-session
+/// end, or returning to preparation after flight.
 /// </summary>
 public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 {
@@ -56,6 +58,8 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly GsxJetwayStairsService _jetwayStairs;
     private readonly FlightStateEngine _flightState;
+    private readonly SimSessionStore _simSession;
+    private readonly GsxResyncState _resyncState;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxGroundPrepCoordinator> _logger;
@@ -63,6 +67,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private Stage _stage = Stage.Reposition;
     private DateTimeOffset _settleUntil;
     private string? _sessionGateKey;
+    private string? _holdReason;
     private int _running;
 
     public GsxGroundPrepCoordinator(
@@ -72,6 +77,8 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         GsxGroundEquipmentService groundEquipment,
         GsxJetwayStairsService jetwayStairs,
         FlightStateEngine flightState,
+        SimSessionStore simSession,
+        GsxResyncState resyncState,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxGroundPrepCoordinator> logger)
@@ -82,6 +89,8 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         ArgumentNullException.ThrowIfNull(groundEquipment);
         ArgumentNullException.ThrowIfNull(jetwayStairs);
         ArgumentNullException.ThrowIfNull(flightState);
+        ArgumentNullException.ThrowIfNull(simSession);
+        ArgumentNullException.ThrowIfNull(resyncState);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
@@ -92,11 +101,14 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _groundEquipment = groundEquipment;
         _jetwayStairs = jetwayStairs;
         _flightState = flightState;
+        _simSession = simSession;
+        _resyncState = resyncState;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
 
         _api.Mirror.SidChanged += OnSidChanged;
+        _simSession.PhaseChanged += OnSimSessionPhaseChanged;
         _timer = new Timer(_ => _ = CycleAsync(), null, CycleInterval, CycleInterval);
     }
 
@@ -107,10 +119,23 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     public void Dispose()
     {
         _api.Mirror.SidChanged -= OnSidChanged;
+        _simSession.PhaseChanged -= OnSimSessionPhaseChanged;
         _timer.Dispose();
     }
 
     private void OnSidChanged(string? oldSid, string? newSid) => Reset("Couatl engine restart");
+
+    /// <summary>The pilot left the flight (back to the main menu / new flight loading): the
+    /// next session starts the chain from the top. A Couatl restart usually resets us anyway,
+    /// but a session change without one must not inherit a half-finished (or Complete) chain.</summary>
+    private void OnSimSessionPhaseChanged(SimSessionPhase oldPhase, SimSessionPhase newPhase)
+    {
+        if (oldPhase is SimSessionPhase.InSession or SimSessionPhase.Walkaround
+            && newPhase is SimSessionPhase.NotInSession or SimSessionPhase.Unknown)
+        {
+            Reset("sim session ended");
+        }
+    }
 
     /// <summary>Startup resync (issue #30): the tracking LVARs say this gate session's
     /// preparation already ran before the app restarted — jump straight to Complete so the
@@ -150,6 +175,32 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
             {
                 return;
             }
+
+            // Predecessor-parity session gate: ProSim pushes plausible cold-and-dark data and
+            // the Couatl socket answers while MSFS is still on the main menu or loading, so
+            // every downstream precondition can pass with no pilot in the session — the old
+            // Prosim2GSX held on camera state for exactly this reason. Unknown (SimConnect
+            // absent) holds too: a reposition teleports the aircraft, and a signal we cannot
+            // read is not a signal that passed. Walkaround holds — services must not be
+            // driven while the pilot is outside the aircraft.
+            var sessionPhase = _simSession.Phase;
+            if (sessionPhase != SimSessionPhase.InSession)
+            {
+                Hold($"MSFS session not active ({sessionPhase})");
+                return;
+            }
+
+            // Startup-resync ordering (issue #30): the assessment may be about to seed this
+            // chain as already complete — the 2026-08-09 flight test caught the reposition
+            // firing 150 ms before the seed landed. Prep holds for the verdict just like the
+            // departure sequencer; the assessment self-times-out, so this cannot deadlock.
+            if (!_resyncState.IsAssessed)
+            {
+                Hold("waiting for the startup resync assessment");
+                return;
+            }
+
+            ReleaseHold();
 
             var phase = _flightState.CurrentPhase;
             if (phase is not (FlightPhase.Preflight or FlightPhase.ColdAndDark))
@@ -239,6 +290,32 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         {
             Interlocked.Exchange(ref _running, 0);
         }
+    }
+
+    /// <summary>Logs a prep hold once per distinct reason (the cycle runs every 5 s — a log
+    /// line per tick would drown the file while the user sits on the main menu).</summary>
+    private void Hold(string reason)
+    {
+        if (_holdReason == reason)
+        {
+            return;
+        }
+
+        _holdReason = reason;
+        _logger.LogInformation("Ground preparation holding: {Reason}", reason);
+        _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", $"holding: {reason}"));
+    }
+
+    private void ReleaseHold()
+    {
+        if (_holdReason is null)
+        {
+            return;
+        }
+
+        _holdReason = null;
+        _logger.LogInformation("Ground preparation hold released");
+        _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", "hold released"));
     }
 
     private void Advance(Stage next, string detail)

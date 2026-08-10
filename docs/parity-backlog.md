@@ -62,12 +62,16 @@ Decided with the project owner during the parity planning pass; do not "fix" wit
    Never/Always/OnlyJetway; remove-on-final). Touches live automation state machines.
 10. **Ground equipment extras** — randomized arrival chock delay min/max, PCA tri-state
     (Never/Always/OnlyJetway via mirrored gate capabilities) + override, GPU-with-APU-running,
-    gradual removal during pushback. The walkaround-stairs option needs the Sim pillar to track
-    MSFS 2024 walkaround/camera state (also unblocks Flight Status "Walkaround"/"Camera State").
+    gradual removal during pushback. ~~The walkaround-stairs option needs the Sim pillar to
+    track MSFS 2024 walkaround/camera state~~ — the Sim pillar now tracks CAMERA STATE /
+    IS AVATAR (`SimSessionStore`, docs/integrations/msfs-session.md); the Flight Status
+    "Walkaround"/"Camera State" rows are live. The stairs option itself remains.
 11. **Cabin-call auto-answer** — taxi-out and approach answering with configurable delays.
     Writes ACP cabin-channel datarefs ⇒ requires a write-safety allow-list review first.
-12. **Skip walkaround** — SimConnect input-event injection (Sim pillar currently read-only);
-    sim-version and keybinding fragile ("requires default binding"). Lowest priority.
+12. **Skip walkaround** — SimConnect input-event injection (Sim pillar currently read-only
+    for input events); sim-version and keybinding fragile ("requires default binding"). The
+    detection half (camera state / IS AVATAR) now exists in `SimSessionStore`; only the
+    injection remains. Lowest priority.
 
 ## Also worth remembering
 

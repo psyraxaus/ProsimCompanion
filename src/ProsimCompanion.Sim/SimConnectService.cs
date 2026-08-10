@@ -21,6 +21,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
 
     private readonly SimVarService _simVars;
     private readonly ConnectionStatusStore _status;
+    private readonly SimSessionSignals _sessionSignals;
     private readonly ILogger<SimConnectService> _logger;
     private readonly object _gate = new();
     private readonly Dictionary<string, RegisteredVar> _registered = new(StringComparer.OrdinalIgnoreCase);
@@ -32,14 +33,17 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
     public SimConnectService(
         SimVarService simVars,
         ConnectionStatusStore status,
+        SimSessionSignals sessionSignals,
         ILogger<SimConnectService> logger)
     {
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(status);
+        ArgumentNullException.ThrowIfNull(sessionSignals);
         ArgumentNullException.ThrowIfNull(logger);
 
         _simVars = simVars;
         _status = status;
+        _sessionSignals = sessionSignals;
         _logger = logger;
     }
 
@@ -50,6 +54,13 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
 
     private enum RequestId : uint
     {
+    }
+
+    /// <summary>System-event ids — a separate id space from data definitions/requests.</summary>
+    private enum SystemEventId : uint
+    {
+        SimState = 1,
+        PauseEx1 = 2,
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -191,6 +202,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         simConnect.OnRecvQuit += OnRecvQuit;
         simConnect.OnRecvException += OnRecvException;
         simConnect.OnRecvSimobjectData += OnRecvSimobjectData;
+        simConnect.OnRecvEvent += OnRecvEvent;
 
         loggedWaiting = false;
 
@@ -214,6 +226,26 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
             data.dwApplicationVersionMinor);
         _status.Set(Subsystems.SimConnect, ConnectionState.Connected);
 
+        // MSFS 2020 identifies as KittyHawk 11.x; 2024 as a later major. The version decides
+        // whether the session monitor may subscribe the 2024-only avatar SimVars.
+        _sessionSignals.SetConnected(
+            $"{data.szApplicationName} {data.dwApplicationVersionMajor}.{data.dwApplicationVersionMinor}",
+            isMsfs2024: data.dwApplicationVersionMajor >= 12);
+
+        try
+        {
+            // The handshake succeeds from the main menu, so "connected" says nothing about a
+            // flight session. These two events (plus CAMERA STATE, sampled by the session
+            // monitor) carry the actual session lifecycle; both transmit their current state
+            // immediately on subscribe.
+            sender.SubscribeToSystemEvent(SystemEventId.SimState, "Sim");
+            sender.SubscribeToSystemEvent(SystemEventId.PauseEx1, "Pause_EX1");
+        }
+        catch (COMException ex)
+        {
+            _logger.LogWarning(ex, "System-event subscription failed; sim-session detection degraded");
+        }
+
         lock (_gate)
         {
             foreach (var entry in _registered.Values)
@@ -223,6 +255,24 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         }
 
         _simVars.AttachBackend(this);
+    }
+
+    private void OnRecvEvent(SimConnect sender, SIMCONNECT_RECV_EVENT data)
+    {
+        switch ((SystemEventId)data.uEventID)
+        {
+            case SystemEventId.SimState:
+                _sessionSignals.SetSimRunning(data.dwData != 0);
+                _logger.LogDebug("Sim state event: running={Running}", data.dwData != 0);
+                break;
+
+            case SystemEventId.PauseEx1:
+                // Any Pause_EX1 flag (full / active / sim pause) counts as paused — the
+                // "Ready to Fly" hold arrives as a pause flag on a valid cockpit camera.
+                _sessionSignals.SetPaused(data.dwData != 0);
+                _logger.LogDebug("Pause event: flags={Flags}", data.dwData);
+                break;
+        }
     }
 
     private void OnRecvQuit(SimConnect sender, SIMCONNECT_RECV data)
@@ -297,6 +347,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         var wasConnected = _connected;
         _connected = false;
         _simVars.DetachBackend();
+        _sessionSignals.SetDisconnected();
 
         var simConnect = _simConnect;
         _simConnect = null;
@@ -306,6 +357,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
             simConnect.OnRecvQuit -= OnRecvQuit;
             simConnect.OnRecvException -= OnRecvException;
             simConnect.OnRecvSimobjectData -= OnRecvSimobjectData;
+            simConnect.OnRecvEvent -= OnRecvEvent;
             simConnect.Dispose();
         }
 

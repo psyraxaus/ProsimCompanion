@@ -182,8 +182,11 @@ public static class GsxStartupResync
 /// GSX's world is known (Ready + populated mirror), the LVARs and the restart-surviving
 /// datarefs are assessed ONCE, proven/assumed services are seeded into the lifecycle tracker,
 /// ground prep is fast-forwarded, and <see cref="GsxResyncState"/> is published — the
-/// departure sequencer holds until then. If GSX never comes up the assessment times out and
-/// reports "nothing detected" so automation is never deadlocked (degrade, not fail).
+/// departure sequencer holds until then. The assessment (and its timeout window) waits for
+/// the MSFS session proper: the LVARs are created with the flight, so judging them from the
+/// main menu would always read "nothing detected". Once in the session, if GSX never comes up
+/// the assessment times out and reports "nothing detected" so automation is never deadlocked
+/// (degrade, not fail).
 /// </summary>
 public sealed class GsxStartupResyncService : IDisposable
 {
@@ -203,6 +206,7 @@ public sealed class GsxStartupResyncService : IDisposable
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxGroundPrepCoordinator _groundPrep;
     private readonly ISimVars _simVars;
+    private readonly SimSessionStore _simSession;
     private readonly GsxResyncState _resyncState;
     private readonly GroundOpsSignals _signals;
     private readonly IOptionsMonitor<GsxOptions> _options;
@@ -226,14 +230,16 @@ public sealed class GsxStartupResyncService : IDisposable
     private readonly IDataRefSubscription _fmsDestination;
 
     private readonly Timer _timer;
-    private readonly long _startedAtTicks = Environment.TickCount64;
+    private long _assessWindowStartTicks = Environment.TickCount64;
     private bool _prepLvarLatched;
+    private bool _loggedSessionWait;
 
     public GsxStartupResyncService(
         IGsxRemoteApi api,
         GsxServiceLifecycleTracker lifecycle,
         GsxGroundPrepCoordinator groundPrep,
         ISimVars simVars,
+        SimSessionStore simSession,
         IProsimDataRefs prosim,
         GsxResyncState resyncState,
         GroundOpsSignals signals,
@@ -245,6 +251,7 @@ public sealed class GsxStartupResyncService : IDisposable
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(groundPrep);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(simSession);
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(resyncState);
         ArgumentNullException.ThrowIfNull(signals);
@@ -256,6 +263,7 @@ public sealed class GsxStartupResyncService : IDisposable
         _lifecycle = lifecycle;
         _groundPrep = groundPrep;
         _simVars = simVars;
+        _simSession = simSession;
         _resyncState = resyncState;
         _signals = signals;
         _options = options;
@@ -284,6 +292,7 @@ public sealed class GsxStartupResyncService : IDisposable
 
         _lifecycle.ServiceEvent += OnServiceEvent;
         _signals.FlightCycleReset += OnFlightCycleReset;
+        _simSession.PhaseChanged += OnSimSessionPhaseChanged;
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
     }
 
@@ -292,6 +301,7 @@ public sealed class GsxStartupResyncService : IDisposable
         _timer.Dispose();
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _signals.FlightCycleReset -= OnFlightCycleReset;
+        _simSession.PhaseChanged -= OnSimSessionPhaseChanged;
         foreach (var subscription in _serviceDoneLvars.Values)
         {
             subscription.Dispose();
@@ -316,6 +326,19 @@ public sealed class GsxStartupResyncService : IDisposable
         if (lifecycleEvent == GsxServiceLifecycleEvent.Completed && !GsxServiceIds.IsToggle(serviceId))
         {
             _ = WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId), 1);
+        }
+    }
+
+    /// <summary>The pilot left the flight session: the tracking LVARs died with it, and the
+    /// ground-prep chain will re-run in the next session — re-arm the prep-done latch so that
+    /// completion is written to the fresh session's LVAR (otherwise an app restart in the new
+    /// session would find PrepDone=0 and re-drive the reposition mid-turnaround).</summary>
+    private void OnSimSessionPhaseChanged(SimSessionPhase oldPhase, SimSessionPhase newPhase)
+    {
+        if (oldPhase is SimSessionPhase.InSession or SimSessionPhase.Walkaround
+            && newPhase is SimSessionPhase.NotInSession or SimSessionPhase.Unknown)
+        {
+            _prepLvarLatched = false;
         }
     }
 
@@ -362,8 +385,25 @@ public sealed class GsxStartupResyncService : IDisposable
 
     private void TryAssess()
     {
+        // The evidence lives in the sim session: the tracking LVARs are created with the
+        // flight and vanish with it, and ProSim's datarefs settle only once the pilot is
+        // aboard. Assessing from the main menu would always conclude "nothing detected" and
+        // latch it, so the assessment (and its 90 s timeout window) waits for session entry.
+        // Walkaround counts as in-session — the LVARs exist there.
+        if (!_simSession.Snapshot().InSession)
+        {
+            if (!_loggedSessionWait)
+            {
+                _loggedSessionWait = true;
+                RecordDecision("waiting for the MSFS session before assessing (automation holds)");
+            }
+            _assessWindowStartTicks = Environment.TickCount64;
+            return;
+        }
+
+        _loggedSessionWait = false;
         var timedOut =
-            TimeSpan.FromMilliseconds(Environment.TickCount64 - _startedAtTicks) >= AssessmentTimeout;
+            TimeSpan.FromMilliseconds(Environment.TickCount64 - _assessWindowStartTicks) >= AssessmentTimeout;
         var worldKnown = _api.Readiness == GsxReadiness.Ready && _api.Mirror.Services.Count > 0;
         if (!worldKnown)
         {

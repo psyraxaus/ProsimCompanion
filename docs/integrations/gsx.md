@@ -56,6 +56,9 @@ non-hub, turnaround-only services). Departure service order is user-configurable
 (refuel/catering/water/lavatory/cleaning/boarding).
 
 Behaviours that must survive the port:
+- **Session gating**: nothing is driven (above all the reposition) until the pilot is actually
+  in the MSFS flight session — camera state + Sim/Pause_EX1 events, NOT the SimConnect
+  connection, which succeeds from the main menu. See docs/integrations/msfs-session.md.
 - **OFP gating**: refuel/boarding hard-rejected until the SimBrief OFP is imported (30 s wait loop).
 - **Beacon-orchestrated pushback**: doors → jetway → ground equipment removal with randomized
   delays; INT/RAD skip; pause/resume on beacon toggles.

@@ -4,6 +4,7 @@
 @using ProsimCompanion.Core.Profiles
 @implements IDisposable
 @inject ConnectionStatusStore Status
+@inject SimSessionStore Session
 @inject FlightStateEngine FlightState
 @inject AircraftProfileService Profiles
 @inject GsxDiagnosticsStore Diagnostics
@@ -42,13 +43,13 @@
     <section class="status-section">
         <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Sim</h3>
         <div class="section-body">
-            @Indicator("Sim Running", SimConnected)
+            @Indicator("Sim Running", SimSession.SimRunning)
             @Indicator("Sim Connected", SimConnected)
-            @Indicator("Sim Session", FlightState.LastSnapshot?.IsValid == true)
-            @UntrackedIndicator("Sim Paused")
-            @UntrackedIndicator("Walkaround")
-            @Kv("Camera State", "—")
-            @Kv("Sim Version", "—")
+            @Indicator("Sim Session", SimSession.Phase == SimSessionPhase.InSession)
+            @Kv("Sim Paused", SimSession.Paused ? "Yes" : "No")
+            @Kv("Walkaround", SimSession.Phase == SimSessionPhase.Walkaround ? "Yes" : "No")
+            @Kv("Camera State", SimSession.CameraState?.ToString() ?? "—")
+            @Kv("Sim Version", SimSession.SimVersion ?? "—")
             @Kv("Aircraft", Profiles.AircraftTitle ?? "—")
         </div>
     </section>
@@ -119,6 +120,8 @@
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _connections = [];
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
 
+    private SimSessionSnapshot SimSession => Session.Snapshot();
+
     private bool SimConnected => StateOf(Subsystems.SimConnect) == ConnectionState.Connected;
     private bool ProsimConnected => StateOf(Subsystems.Prosim) == ConnectionState.Connected;
     private bool GsxConnected => StateOf(Subsystems.Gsx) == ConnectionState.Connected;
@@ -170,12 +173,6 @@
         <span class="row-label">@label</span>
         <span class="dot @(ok ? "dot-ok" : "dot-bad")" aria-hidden="true"></span>
         <span class="row-value">@(ok ? "OK" : "—")</span>
-    </div>;
-
-    private static RenderFragment UntrackedIndicator(string label) => @<div class="row">
-        <span class="row-label">@label</span>
-        <span class="dot dot-neutral" aria-hidden="true"></span>
-        <span class="row-value">—</span>
     </div>;
 
     private static RenderFragment Kv(string label, string value) => @<div class="row">
@@ -260,6 +257,7 @@
         _gsx = Diagnostics.Snapshot();
 
         Status.Changed += OnStatusChanged;
+        Session.Changed += OnDataChanged;
         Diagnostics.Changed += OnDiagnosticsChanged;
         FlightState.PhaseChanged += OnPhaseChanged;
         Profiles.Changed += OnDataChanged;
@@ -290,6 +288,7 @@
     public void Dispose()
     {
         Status.Changed -= OnStatusChanged;
+        Session.Changed -= OnDataChanged;
         Diagnostics.Changed -= OnDiagnosticsChanged;
         FlightState.PhaseChanged -= OnPhaseChanged;
         Profiles.Changed -= OnDataChanged;

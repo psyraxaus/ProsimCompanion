@@ -121,6 +121,9 @@ public static class CoreServiceCollectionExtensions
             p.GetRequiredService<WeatherStore>(),
             p.GetRequiredService<ILogger<Weather.CompositeWxProvider>>()));
         services.AddSingleton<ConnectionStatusStore>();
+        // Written by the Sim pillar's session monitor; read by session-gated automation and
+        // the web UI. Stays at Empty (phase Unknown = hold) when the Sim pillar is absent.
+        services.AddSingleton<SimSessionStore>();
         services.AddSingleton<GsxDiagnosticsStore>();
         services.AddSingleton<AudioStatusStore>();
         services.AddSingleton<SpeechStatusStore>();
