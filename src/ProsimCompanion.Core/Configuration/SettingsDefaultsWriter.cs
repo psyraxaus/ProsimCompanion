@@ -41,6 +41,8 @@ public static class SettingsDefaultsWriter
             (McduOptions.SectionName, new McduOptions()),
             (SayIntentionsOptions.SectionName, new SayIntentionsOptions()),
             (CabinOptions.SectionName, new CabinOptions()),
+            (GroundCrewOptions.SectionName, new GroundCrewOptions()),
+            (AccentOptions.SectionName, new AccentOptions()),
             (CompanyOptions.SectionName, new CompanyOptions()),
             (VoicesOptions.SectionName, new VoicesOptions()),
             (DayOptions.SectionName, new DayOptions()),

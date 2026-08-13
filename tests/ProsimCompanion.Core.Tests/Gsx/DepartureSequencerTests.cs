@@ -50,6 +50,48 @@ public sealed class DepartureSequencerTests
             companyHub,
             flightDuration);
 
+    // ---- Voice activation (ADR-0006 / issue #50) ----
+
+    [Fact]
+    public void VoiceActivation_ParksTheCursor_WithASpokenHoldReason()
+    {
+        var steps = new[] { Step("Refueling", GsxServiceActivation.Voice), Step("Catering") };
+        var services = Services(
+            ("Refueling", GsxServiceState.Callable, true), ("Catering", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services);
+
+        Assert.Null(plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason.Contains("say 'request"));
+    }
+
+    [Fact]
+    public void VoiceActivation_ForceNext_BypassesTheHold()
+    {
+        // Voice is an additional trigger, never the only one — INT/RAD or the web button
+        // must advance a Voice step exactly like a Manual one.
+        var steps = new[] { Step("Refueling", GsxServiceActivation.Voice) };
+        var services = Services(("Refueling", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, force: true);
+
+        Assert.Equal("Refueling", plan.Trigger);
+    }
+
+    [Fact]
+    public void VoiceActivation_ExternallyCalledService_GatesLaterStepsLikeManual()
+    {
+        // The pilot voice-requested refueling (on-demand path → mirror shows Requested):
+        // the cursor moves past it and the next step evaluates normally.
+        var steps = new[] { Step("Refueling", GsxServiceActivation.Voice), Step("Catering") };
+        var services = Services(
+            ("Refueling", GsxServiceState.Requested, false), ("Catering", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services);
+
+        Assert.Equal("Catering", plan.Trigger);
+    }
+
     // ---- Minimum flight time (Prosim2GSX "Min. Flight Time" parity) ----
 
     [Fact]

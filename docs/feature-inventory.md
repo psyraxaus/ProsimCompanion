@@ -121,8 +121,12 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       the single-writer trigger path, opt-in, token even on loopback) + GET /api/status
 - [x] StreamDeck plugin (streamdeck/ — five actions, REST poll, pair-via-URL; build with
       npm run build / pack per streamdeck/README.md)
-- [x] GSX voice control ("cockpit to ground", "request boarding", "cabin crew start
+- [x] GSX voice control ("commence ground services", "request boarding", "cabin crew start
       boarding", …) via the command registry (gsx.voiceControlEnabled)
+- [x] Voice-gated ground ops (ADR-0006, issues #50–#53): prep gate (gsx.groundPrepActivation),
+      per-step Voice activation, crew hail dialogues ("cockpit to ground" → "go ahead,
+      captain"), ground-crew upcalls on INT with MECH call, SayIntentions FO ack + audible
+      transmission, airport-accent ground voices (accents.*) — all Unverified live
 - [x] Airline themes (JSON), light/dark
 - [ ] Session event log (JSONL) ✔ delivered in Phase 1; replay harness still open
 - [ ] Config importers from Prosim2GSX `AppConfig.json` and Prosim2FO `settings.json`

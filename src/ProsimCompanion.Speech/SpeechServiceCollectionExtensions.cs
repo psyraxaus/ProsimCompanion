@@ -108,10 +108,19 @@ public static class SpeechServiceCollectionExtensions
         // Prosim2GSX-parity cabin dings (startup / final loadsheet) — plain chime playback,
         // deliberately outside the speech arbiter.
         services.AddHostedService<Cabin.CabinDingService>();
-        // GSX voice control ("cockpit to ground", "request boarding", …) — dispatches through
-        // the named-command registry so voice/web/API/StreamDeck share one seam.
+        // GSX voice control ("commence ground services", "request boarding", …) — dispatches
+        // through the named-command registry so voice/web/API/StreamDeck share one seam.
         services.AddSingleton<Gsx.GsxVoiceService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Gsx.GsxVoiceService>());
+        // Interphone hail dialogues ("cockpit to ground" → "go ahead, captain" → request) and
+        // ground-crew upcalls on INT (ADR-0006 / issue #51). The hail feature registers AFTER
+        // GsxVoiceService so single-shot phrases keep their precedence.
+        services.AddSingleton<Crew.CrewHailService>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Crew.CrewHailService>());
+        services.AddSingleton<Crew.GroundCrewUpcallService>();
+        // Accent localization (issue #53): airport-country → per-provider ground-crew voice,
+        // consumed by the arbiter at render time. Registered BEFORE the arbiter resolves.
+        services.AddSingleton<Crew.AccentVoiceResolver>();
         // Post-flight voice: tech-log brief + spoken debrief (deterministic template). Exact-
         // match phrases, so last in the dispatch order is fine. The debrief doubles as the
         // first session-finalization step (Order 10).

@@ -229,6 +229,7 @@ public static class DepartureSequencer
         return activation switch
         {
             GsxServiceActivation.Manual => "waiting for a manual call (INT/RAD, web button, or the GSX menu)",
+            GsxServiceActivation.Voice => "awaiting your call — say 'request …' (INT/RAD or the web button also work)",
             GsxServiceActivation.AfterRequested when prev is { ReachedRequested: false, Completed: false }
                 => "waiting for the previous service to be requested",
             GsxServiceActivation.AfterActive when prev is { ReachedActive: false, Completed: false }

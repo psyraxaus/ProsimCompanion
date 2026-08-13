@@ -1,0 +1,303 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Commands;
+using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Speech.Arbiter;
+using ProsimCompanion.Speech.Gsx;
+using ProsimCompanion.Speech.Recognition;
+
+namespace ProsimCompanion.Speech.Crew;
+
+/// <summary>
+/// The interphone hail dialogues (ADR-0006 / issue #51): "cockpit to ground" is answered by
+/// the ground crew, "cockpit to crew/cabin" by the purser, then a narrow listening window
+/// opens for the request (shared catalog <see cref="GsxVoicePhrases"/> — the same named
+/// commands as every other surface). The mic is borrowed (<see cref="IMicOwnership"/>) so a
+/// running spoken checklist holds and resumes untouched. Ground replies honour the ACP INT
+/// receive latch like the purser honours CAB: select INT before calling, or the reply waits
+/// out the grace and plays anyway — a hail is never lost.
+/// </summary>
+public sealed class CrewHailService : IVoiceFeature, IDisposable
+{
+    private static readonly string[] GroundHails =
+        ["cockpit to ground", "flight deck to ground"];
+
+    private static readonly string[] CabinHails =
+        ["cockpit to crew", "flight deck to crew", "cockpit to cabin", "flight deck to cabin"];
+
+    private static readonly string[] IntLatches =
+        [ProsimDataRefNames.Acp1IntLatch, ProsimDataRefNames.Acp2IntLatch, ProsimDataRefNames.Acp3IntLatch];
+
+    private static readonly string[] CabLatches =
+        [ProsimDataRefNames.Acp1CabLatch, ProsimDataRefNames.Acp2CabLatch, ProsimDataRefNames.Acp3CabLatch];
+
+    private readonly IMicOwnership _mic;
+    private readonly ISpeechArbiter _arbiter;
+    private readonly GsxVoiceService _gsxVoice;
+    private readonly IOptionsMonitor<GsxOptions> _gsxOptions;
+    private readonly IOptionsMonitor<GroundCrewOptions> _groundOptions;
+    private readonly IOptionsMonitor<CabinOptions> _cabinOptions;
+    private readonly JsonlEventLog _eventLog;
+    private readonly ILogger<CrewHailService> _logger;
+    private readonly Dictionary<string, IDataRefSubscription> _latches = new(StringComparer.Ordinal);
+    private readonly CancellationTokenSource _shutdown = new();
+    private int _busy;
+
+    public CrewHailService(
+        IMicOwnership mic,
+        ISpeechArbiter arbiter,
+        GsxVoiceService gsxVoice,
+        IProsimDataRefs dataRefs,
+        IOptionsMonitor<GsxOptions> gsxOptions,
+        IOptionsMonitor<GroundCrewOptions> groundOptions,
+        IOptionsMonitor<CabinOptions> cabinOptions,
+        JsonlEventLog eventLog,
+        ILogger<CrewHailService> logger)
+    {
+        ArgumentNullException.ThrowIfNull(mic);
+        ArgumentNullException.ThrowIfNull(arbiter);
+        ArgumentNullException.ThrowIfNull(gsxVoice);
+        ArgumentNullException.ThrowIfNull(dataRefs);
+        ArgumentNullException.ThrowIfNull(gsxOptions);
+        ArgumentNullException.ThrowIfNull(groundOptions);
+        ArgumentNullException.ThrowIfNull(cabinOptions);
+        ArgumentNullException.ThrowIfNull(eventLog);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _mic = mic;
+        _arbiter = arbiter;
+        _gsxVoice = gsxVoice;
+        _gsxOptions = gsxOptions;
+        _groundOptions = groundOptions;
+        _cabinOptions = cabinOptions;
+        _eventLog = eventLog;
+        _logger = logger;
+
+        foreach (var name in IntLatches.Concat(CabLatches))
+        {
+            _latches[name] = dataRefs.Subscribe(name, DataRefTier.Normal);
+        }
+    }
+
+    public IEnumerable<string> Phrases
+        => _gsxOptions.CurrentValue.VoiceControlEnabled ? GroundHails.Concat(CabinHails) : [];
+
+    public bool ValueParse => false;
+
+    public void Dispose()
+    {
+        _shutdown.Cancel();
+        _shutdown.Dispose();
+        foreach (var latch in _latches.Values)
+        {
+            latch.Dispose();
+        }
+    }
+
+    public bool TryHandle(string utterance)
+    {
+        if (!_gsxOptions.CurrentValue.VoiceControlEnabled || string.IsNullOrWhiteSpace(utterance))
+        {
+            return false;
+        }
+
+        var text = utterance.Trim();
+        var ground = GroundHails.Any(p => string.Equals(p, text, StringComparison.OrdinalIgnoreCase));
+        var cabin = !ground && CabinHails.Any(p => string.Equals(p, text, StringComparison.OrdinalIgnoreCase));
+        if (!ground && !cabin)
+        {
+            return false;
+        }
+
+        if (ground && !_groundOptions.CurrentValue.Enabled)
+        {
+            return false;
+        }
+
+        if (cabin && !_cabinOptions.CurrentValue.Enabled)
+        {
+            return false;
+        }
+
+        _ = RunHailAsync(ground);
+        return true;
+    }
+
+    private async Task RunHailAsync(bool ground)
+    {
+        // One dialogue at a time — a second hail while one runs is dropped, not queued (the
+        // user is mid-conversation; queuing a stale hail would answer into silence).
+        if (Interlocked.Exchange(ref _busy, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            IDisposable borrow;
+            try
+            {
+                borrow = _mic.Borrow("crew-hail");
+            }
+            catch (InvalidOperationException)
+            {
+                _logger.LogDebug("Hail ignored — another dialogue owns the microphone");
+                return;
+            }
+
+            using (borrow)
+            {
+                await RunDialogueAsync(ground).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // shutdown — fine
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Crew hail dialogue failed");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _busy, 0);
+        }
+    }
+
+    private async Task RunDialogueAsync(bool ground)
+    {
+        var role = ground ? SpeechRole.GroundCrew : SpeechRole.Purser;
+        var tag = ground ? "ground.hail" : "cabin.hail";
+        var reply = ground ? _groundOptions.CurrentValue.HailReplyText : _cabinOptions.CurrentValue.HailReplyText;
+        var grammar = ground ? GsxVoicePhrases.GroundHailGrammar : GsxVoicePhrases.CabinHailGrammar;
+        var standingBy = _groundOptions.CurrentValue.StandingByText;
+
+        _eventLog.Record("crew.hail", new { channel = ground ? "ground" : "cabin" });
+
+        // Receive-latch realism (decision 4): the crew answers on their channel — you hear
+        // them once INT (ground) / CAB (purser) is selected on any ACP, or after the grace.
+        if (ground)
+        {
+            await WaitForLatchAsync(
+                IntLatches,
+                _groundOptions.CurrentValue.RequireIntChannel,
+                _groundOptions.CurrentValue.IntChannelGraceSeconds).ConfigureAwait(false);
+        }
+        else
+        {
+            await WaitForLatchAsync(
+                CabLatches,
+                _cabinOptions.CurrentValue.RequireCabChannel,
+                _cabinOptions.CurrentValue.CabChannelGraceSeconds).ConfigureAwait(false);
+        }
+
+        await _arbiter.EnqueueAsync(new SpeechRequest(
+            reply, SpeechPriority.Normal, Ttl: TimeSpan.FromSeconds(30), Tag: tag, Role: role))
+            .ConfigureAwait(false);
+
+        var timeout = TimeSpan.FromSeconds(Math.Max(3, _groundOptions.CurrentValue.HailListenTimeoutSeconds));
+        var heard = await _mic.ListenAsync(grammar, timeout, _shutdown.Token).ConfigureAwait(false);
+
+        if (heard is null
+            || GsxVoicePhrases.CancelPhrases.Any(c => string.Equals(c, heard, StringComparison.OrdinalIgnoreCase)))
+        {
+            await SpeakAsync(standingBy, tag, role).ConfigureAwait(false);
+            return;
+        }
+
+        _eventLog.Record("crew.hail.request", new { channel = ground ? "ground" : "cabin", heard });
+
+        if (GsxVoicePhrases.StartGroundServicesPhrases.Any(
+                p => string.Equals(p, heard, StringComparison.OrdinalIgnoreCase)))
+        {
+            await HandleStartAsync(tag, role).ConfigureAwait(false);
+            return;
+        }
+
+        if (GsxVoicePhrases.Bindings.TryGetValue(heard, out var binding))
+        {
+            await HandleServiceRequestAsync(binding, tag, role).ConfigureAwait(false);
+            return;
+        }
+
+        // A grammar phrase we do not map (should not happen — the grammar IS the catalog).
+        await SpeakAsync(standingBy, tag, role).ConfigureAwait(false);
+    }
+
+    private async Task HandleStartAsync(string tag, SpeechRole role)
+    {
+        var result = await _gsxVoice.ExecuteAsync("gsx.startDepartureServices").ConfigureAwait(false);
+        var line = result.Outcome switch
+        {
+            CommandOutcome.Success => "Copied — commencing ground services.",
+            CommandOutcome.AlreadySatisfied => "Ground services are already underway.",
+            _ => null,
+        };
+
+        if (line is not null)
+        {
+            await SpeakAsync(line, tag, role).ConfigureAwait(false);
+        }
+        else
+        {
+            // Refusals are system explanations — the FO relays them, not the crew.
+            await SpeakAsync(result.Reason, tag + ".refused", SpeechRole.FirstOfficer).ConfigureAwait(false);
+        }
+    }
+
+    private async Task HandleServiceRequestAsync(GsxVoiceBinding binding, string tag, SpeechRole role)
+    {
+        var result = await _gsxVoice.ExecuteAsync(binding.Command).ConfigureAwait(false);
+        _logger.LogInformation(
+            "Hail request {Command} → {Outcome}: {Reason}", binding.Command, result.Outcome, result.Reason);
+
+        switch (result.Outcome)
+        {
+            case CommandOutcome.Success:
+                await SpeakAsync(binding.CrewAckPhrase, tag, role).ConfigureAwait(false);
+                break;
+            case CommandOutcome.AlreadySatisfied:
+                // The reasons read naturally as crew speech ("Refueling is already
+                // requested — crew en route.").
+                await SpeakAsync(result.Reason, tag, role).ConfigureAwait(false);
+                break;
+            default:
+                await SpeakAsync(result.Reason, tag + ".refused", SpeechRole.FirstOfficer).ConfigureAwait(false);
+                break;
+        }
+    }
+
+    /// <summary>Waits for any of the given receive latches, up to the grace. Degrades to an
+    /// immediate return when ProSim is absent/stale — a dialogue must never hang on a signal
+    /// nobody is producing.</summary>
+    private async Task WaitForLatchAsync(string[] latchNames, bool required, int graceSeconds)
+    {
+        if (!required)
+        {
+            return;
+        }
+
+        var reads = latchNames.Select(n => _latches[n]).ToArray();
+        if (reads.Any(r => r.IsStale) || reads.All(r => r.RawValue is null))
+        {
+            return;
+        }
+
+        var deadline = Environment.TickCount64 + Math.Max(0, graceSeconds) * 1000L;
+        while (Environment.TickCount64 < deadline)
+        {
+            if (reads.Any(r => r.GetValue(0) == 1))
+            {
+                return;
+            }
+
+            await Task.Delay(250, _shutdown.Token).ConfigureAwait(false);
+        }
+    }
+
+    private Task SpeakAsync(string text, string tag, SpeechRole role)
+        => _arbiter.EnqueueAsync(new SpeechRequest(
+            text, SpeechPriority.Normal, Ttl: TimeSpan.FromMinutes(1), Tag: tag, Role: role));
+}

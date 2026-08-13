@@ -48,8 +48,15 @@ public sealed class TtsRouter
     /// Cancellation (pre-emption) aborts without penalizing the provider in flight.
     /// <paramref name="voiceOverride"/> (speaker-role voice) is handed to every provider tried
     /// — a provider without configurable voices ignores it rather than failing the chain.
+    /// <paramref name="voiceForProvider"/> (accent localization, issue #53) may supply a
+    /// provider-specific voice by provider name; a null answer falls back to
+    /// <paramref name="voiceOverride"/> — so a Chirp locale id is never handed to Kokoro.
     /// </summary>
-    public async Task<TtsAudio?> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
+    public async Task<TtsAudio?> SynthesizeAsync(
+        string text,
+        CancellationToken cancellationToken,
+        string? voiceOverride = null,
+        Func<string, string?>? voiceForProvider = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
@@ -73,7 +80,8 @@ public sealed class TtsRouter
 
             try
             {
-                var audio = await provider.SynthesizeAsync(text, cancellationToken, voiceOverride).ConfigureAwait(false);
+                var effectiveVoice = voiceForProvider?.Invoke(provider.Name) ?? voiceOverride;
+                var audio = await provider.SynthesizeAsync(text, cancellationToken, effectiveVoice).ConfigureAwait(false);
                 lock (_gate)
                 {
                     _cooldownUntil.Remove(provider.Name);

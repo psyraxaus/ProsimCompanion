@@ -132,6 +132,9 @@
                     <BoolField Label="Auto-start departure services"
                                Hint="Start the sequence automatically once preconditions hold; off = press Start on the GSX page"
                                @bind-Value="_draft.AutoStartDepartureServices" />
+                    <SelectField Label="Ground preparation start" Options="GroundPrepActivationOptions"
+                                 Hint="Voice command holds reposition/GPU/jetway until 'commence ground services' (web Start also releases)"
+                                 @bind-Value="_draft.GroundPrepActivation" />
                     <BoolField Label="Wait for OFP before departure services"
                                Hint="No service is called until the SimBrief OFP is imported in the EFB / MCDU"
                                @bind-Value="_draft.RequireOfpBeforeDeparture" />
@@ -433,6 +436,7 @@
     [
         (GsxServiceActivation.Skip, "Skip / ignore"),
         (GsxServiceActivation.Manual, "Manual by user"),
+        (GsxServiceActivation.Voice, "Voice request"),
         (GsxServiceActivation.AfterCalled, "Previous called"),
         (GsxServiceActivation.AfterRequested, "Previous requested"),
         (GsxServiceActivation.AfterActive, "Previous active"),
@@ -460,6 +464,9 @@
 
     private static readonly IReadOnlyList<(string, string)> CrewAnswerOptions =
         [("Nobody", "Nobody"), ("Crew", "Crew"), ("Pilots", "Pilots"), ("Both", "Both")];
+
+    private static readonly IReadOnlyList<(string, string)> GroundPrepActivationOptions =
+        [("auto", "Automatic (session start)"), ("voice", "Voice command / Start button")];
 
     private static readonly IReadOnlyList<(string, string)> RemoveStairsOptions =
         [("never", "Never"), ("always", "Always"), ("onlyJetway", "Only jetway stands")];
@@ -547,6 +554,7 @@
 
                 gsx["automationEnabled"] = draft.AutomationEnabled;
                 gsx["autoStartDepartureServices"] = draft.AutoStartDepartureServices;
+                gsx["groundPrepActivation"] = draft.GroundPrepActivation;
                 gsx["requireOfpBeforeDeparture"] = draft.RequireOfpBeforeDeparture;
 
                 var steps = new JsonArray();

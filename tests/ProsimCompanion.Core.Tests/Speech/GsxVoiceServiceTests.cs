@@ -103,14 +103,14 @@ public sealed class GsxVoiceServiceTests
     }
 
     [Fact]
-    public void CockpitToGround_NotStarted_StartsDepartureServices()
+    public void CommenceGroundServices_NotStarted_StartsDepartureServices()
     {
         Handler("gsx.startDepartureServices", CommandResult.Ok("started"));
         Handler("gsx.forceNextService", CommandResult.Ok("forced"));
         _departure.SetupGet(d => d.Started).Returns(false);
         var service = CreateService();
 
-        Assert.True(service.TryHandle("cockpit to ground"));
+        Assert.True(service.TryHandle("commence ground services"));
         WaitForDispatch(() => _executed.Count > 0);
 
         Assert.Equal(["gsx.startDepartureServices"], _executed);
@@ -132,13 +132,13 @@ public sealed class GsxVoiceServiceTests
     }
 
     [Fact]
-    public void CockpitToGround_NoDepartureSeam_FallsBackToForceNext_OnAlreadySatisfied()
+    public void CommenceGroundServices_NoDepartureSeam_FallsBackToForceNext_OnAlreadySatisfied()
     {
         Handler("gsx.startDepartureServices", CommandResult.AlreadySatisfied("already started"));
         Handler("gsx.forceNextService", CommandResult.Ok("forced"));
         var service = CreateService(withDepartureControl: false);
 
-        Assert.True(service.TryHandle("cockpit to ground"));
+        Assert.True(service.TryHandle("commence ground services"));
         WaitForDispatch(() => _executed.Count >= 2);
 
         Assert.Equal(["gsx.startDepartureServices", "gsx.forceNextService"], _executed);
@@ -227,9 +227,11 @@ public sealed class GsxVoiceServiceTests
     {
         var service = CreateService();
 
+        // "cockpit to ground" is deliberately ABSENT since ADR-0006 — it is the hail
+        // (CrewHailService), not a command.
         string[] expected =
         [
-            "cockpit to ground", "start ground services", "call the next service", "next service",
+            "commence ground services", "start ground services", "call the next service", "next service",
             "request boarding", "start boarding", "cabin crew start boarding",
             "request refueling", "call the fuel truck", "request catering",
             "request pushback", "request de-icing",
@@ -238,5 +240,7 @@ public sealed class GsxVoiceServiceTests
         {
             Assert.Contains(phrase, service.Phrases, StringComparer.OrdinalIgnoreCase);
         }
+
+        Assert.DoesNotContain("cockpit to ground", service.Phrases, StringComparer.OrdinalIgnoreCase);
     }
 }

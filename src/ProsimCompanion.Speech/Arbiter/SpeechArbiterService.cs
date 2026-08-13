@@ -30,6 +30,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     private readonly SpeechStatusStore _store;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SpeechArbiterService> _logger;
+    private readonly Crew.AccentVoiceResolver? _accents;
 
     private readonly SpeechArbiterCore _core;
     private readonly object _gate = new();
@@ -53,7 +54,8 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         SpeechStatusStore store,
         JsonlEventLog eventLog,
         ILogger<SpeechArbiterService> logger,
-        Persona.QuietState quietState)
+        Persona.QuietState quietState,
+        Crew.AccentVoiceResolver? accents = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(voices);
@@ -73,6 +75,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         _store = store;
         _eventLog = eventLog;
         _logger = logger;
+        _accents = accents;
 
         _core = new SpeechArbiterCore(
         [
@@ -271,7 +274,11 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
                     request.Role);
             }
 
-            var audio = await _router.SynthesizeAsync(spoken, renderCts.Token, roleVoice.VoiceOverride)
+            // Accent localization (issue #53): a per-provider selector so Google can carry a
+            // Chirp locale voice while local providers keep a voice they actually have.
+            var accentSelector = _accents?.ProviderVoiceSelector(request.Role);
+            var audio = await _router
+                .SynthesizeAsync(spoken, renderCts.Token, roleVoice.VoiceOverride, accentSelector)
                 .ConfigureAwait(false);
             if (audio is not null)
             {

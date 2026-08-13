@@ -69,4 +69,7 @@ public sealed class CabinOptions
 
     public string BoardingDelayText { get; set; } =
         "Flight deck, cabin crew. We have a short delay — a few passengers still to board.";
+
+    /// <summary>The purser's answer to a "cockpit to crew" hail (ADR-0006 / issue #51).</summary>
+    public string HailReplyText { get; set; } = "Go ahead, captain.";
 }

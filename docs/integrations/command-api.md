@@ -95,14 +95,15 @@ Non-loopback requests additionally pass through `LanTokenMiddleware` first, unch
 
 `GsxVoiceService` (`src/ProsimCompanion.Speech/Gsx/`, gated by `gsx.voiceControlEnabled`,
 default true) maps exact-match phrases (trimmed, case-insensitive) onto this registry, so voice
-inherits every guard above and never grows a second write path:
+inherits every guard above and never grows a second write path. The phrase→command table lives
+in `GsxVoicePhrases` — one catalog shared with the hail dialogues below (ADR-0006):
 
 | Phrase(s) | Command |
 |---|---|
-| "cockpit to ground", "start ground services" | `gsx.startDepartureServices`, or `gsx.forceNextService` when the sequence is already started (falls back to force-next on `alreadySatisfied` when the departure seam is absent) |
+| "commence ground services", "start ground services" | `gsx.startDepartureServices`, or `gsx.forceNextService` when the sequence is already started (falls back to force-next on `alreadySatisfied` when the departure seam is absent). Also releases the `gsx.groundPrepActivation = voice` prep gate. |
 | "call the next service", "next service" | `gsx.forceNextService` |
 | "request boarding" | `gsx.requestBoarding` |
-| "start boarding", "cabin crew start boarding" | `gsx.requestBoarding` + a cabin-crew "Boarding underway." ack (tag `cabin.boarding.ack`) only on success/alreadySatisfied |
+| "start boarding", "cabin crew start boarding" | `gsx.requestBoarding` + a purser "Boarding underway." ack (tag `cabin.boarding.ack`) only on success/alreadySatisfied |
 | "request refueling", "call the fuel truck" | `gsx.requestRefuel` |
 | "request catering" | `gsx.requestCatering` |
 | "request pushback" | `gsx.requestPushback` |
@@ -110,6 +111,17 @@ inherits every guard above and never grows a second write path:
 
 Each outcome is spoken briefly (arbiter priority Normal, tag `gsx.voice`): success speaks a
 short confirmation ("Boarding requested."), everything else speaks the command's reason.
+
+### Hail dialogues (ADR-0006, issue #51)
+
+**"Cockpit to ground" is no longer a command** — it (and "flight deck to ground") hails the
+ground crew: `CrewHailService` borrows the mic, the ground crew answers in its own voice
+("Ground here — go ahead, captain", after the ACP INT receive latch like the purser's CAB
+rule), then a narrow listening window (~8 s) accepts any phrase from the table above plus
+cancel words. "Cockpit/flight deck to crew/cabin" does the same with the purser (boarding
+phrases only). Successful hail requests are acknowledged by the hailed crew ("Copied — fuel
+truck on the way"); refusals are relayed by the FO. Options: `groundCrew.*`,
+`cabin.hailReplyText`; the ground voice is `voices.ground` with `accents.*` localization.
 
 ## `GET /api/status` — read-only state for live key faces
 

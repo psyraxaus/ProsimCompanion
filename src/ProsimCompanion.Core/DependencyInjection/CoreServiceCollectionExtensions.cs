@@ -66,6 +66,8 @@ public static class CoreServiceCollectionExtensions
         services.Configure<McduOptions>(configuration.GetSection(McduOptions.SectionName));
         services.Configure<SayIntentionsOptions>(configuration.GetSection(SayIntentionsOptions.SectionName));
         services.Configure<CabinOptions>(configuration.GetSection(CabinOptions.SectionName));
+        services.Configure<GroundCrewOptions>(configuration.GetSection(GroundCrewOptions.SectionName));
+        services.Configure<AccentOptions>(configuration.GetSection(AccentOptions.SectionName));
         services.Configure<CompanyOptions>(configuration.GetSection(CompanyOptions.SectionName));
         services.Configure<VoicesOptions>(configuration.GetSection(VoicesOptions.SectionName));
         services.Configure<DayOptions>(configuration.GetSection(DayOptions.SectionName));

@@ -41,9 +41,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxAutomationService> _logger;
     private readonly ISimVars _simVars;
-    private readonly IDataRefSubscription _ofpImported;
-    private readonly IDataRefSubscription _fmsOrigin;
-    private readonly IDataRefSubscription _fmsDestination;
+    private readonly IGsxFlightPlanStatus _flightPlan;
     private readonly IDataRefSubscription _bookedSeatString;
     private readonly IDataRefSubscription _intRadCpt;
     private readonly IDataRefSubscription _intRadFo;
@@ -75,6 +73,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         FlightStateEngine flightState,
         IProsimDataRefs prosim,
         ISimVars simVars,
+        IGsxFlightPlanStatus flightPlan,
         ISimbriefImporter simbrief,
         OfpStore ofpStore,
         IOptionsMonitor<GsxOptions> options,
@@ -91,6 +90,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         ArgumentNullException.ThrowIfNull(simbrief);
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(flightPlan);
+        _flightPlan = flightPlan;
         ArgumentNullException.ThrowIfNull(groundOpsSignals);
         ArgumentNullException.ThrowIfNull(resyncState);
         _resyncState = resyncState;
@@ -115,9 +116,6 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _eventLog = eventLog;
         _logger = logger;
 
-        _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
-        _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
-        _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
         _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
         // The INT/RAD switches on both ACPs are the cockpit "smart button" (predecessor
         // semantics): flicking to INT (value 0) force-calls the next departure service.
@@ -310,9 +308,6 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _intRadCpt.ValueChanged -= OnIntRadChanged;
         _intRadFo.ValueChanged -= OnIntRadChanged;
         _pumpTimer.Dispose();
-        _ofpImported.Dispose();
-        _fmsOrigin.Dispose();
-        _fmsDestination.Dispose();
         _bookedSeatString.Dispose();
         _intRadCpt.Dispose();
         _intRadFo.Dispose();
@@ -457,12 +452,9 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             // plan is detected (the predecessor's trigger, 60 s cooldown). It must never run
             // on its own: round-5 smoke test showed the auto-import satisfying the plan gate
             // two seconds after ground prep, before the pilot had loaded anything.
-            var ofpImported = _ofpImported.GetValue(false);
-            var fmsOrigin = _fmsOrigin.GetValue<string?>(null);
-            var fmsDestination = _fmsDestination.GetValue<string?>(null);
-            var fmsPlanPresent = IsValidIcao(fmsOrigin) && IsValidIcao(fmsDestination);
-            var flightPlanAvailable = ofpImported || fmsPlanPresent;
-            if (fmsPlanPresent && !ofpImported && options.RequireOfpBeforeDeparture)
+            var ofpImported = _flightPlan.OfpImported;
+            var flightPlanAvailable = _flightPlan.FlightPlanAvailable;
+            if (_flightPlan.FmsPlanPresent && !ofpImported && options.RequireOfpBeforeDeparture)
             {
                 TryStartSimbriefImport();
             }
@@ -471,7 +463,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 // Diagnostic (owner report: detection did not fire): show the raw values.
                 RecordDecisionOnce(
                     "flight plan detection",
-                    $"none detected — simbriefImported={ofpImported}, fmsOrigin='{fmsOrigin ?? ""}', fmsDestination='{fmsDestination ?? ""}'");
+                    $"none detected — simbriefImported={ofpImported}, fmsOrigin='{_flightPlan.FmsOrigin ?? ""}', fmsDestination='{_flightPlan.FmsDestination ?? ""}'");
             }
 
             if (flightPlanAvailable)
@@ -732,14 +724,6 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             _logger.LogDebug("Pax target arming deferred: {Reason}", ex.Message);
         }
     }
-
-    /// <summary>The MCDU FMS origin/destination datarefs carry a valid 4-char ICAO once the
-    /// pilot loads a plan — but read "----" before that, and have been observed returning the
-    /// literal string "Null" (predecessor archaeology, TakeoffPerfService).</summary>
-    private static bool IsValidIcao(string? value)
-        => value is { Length: 4 }
-            && value != "----"
-            && !value.Equals("Null", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Fires the SimBrief import in the background with a 60 s cooldown; the importer
     /// itself decision-logs its progress, and a success re-pumps the sequencer. Only invoked

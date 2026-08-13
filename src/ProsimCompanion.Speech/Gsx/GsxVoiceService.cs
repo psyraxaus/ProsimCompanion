@@ -15,33 +15,14 @@ namespace ProsimCompanion.Speech.Gsx;
 /// grows a second write path. Each outcome is spoken briefly through the arbiter
 /// (tag <c>gsx.voice</c>); the cabin-flavored boarding phrases additionally acknowledge as the
 /// cabin crew (tag <c>cabin.boarding.ack</c>) when boarding is actually underway.
+/// The phrase table lives in <see cref="GsxVoicePhrases"/>, shared with the hail dialogues.
+/// Since ADR-0006 "cockpit to ground" is the crew hail (<see cref="Crew.CrewHailService"/>);
+/// "commence ground services" / "start ground services" start the departure sequence here.
 /// Gated by <see cref="GsxOptions.VoiceControlEnabled"/>.
 /// </summary>
 public sealed class GsxVoiceService : IVoiceFeature
 {
     private const string VoiceTag = "gsx.voice";
-
-    /// <summary>One phrase → command mapping. <see cref="SuccessPhrase"/> is spoken on
-    /// Success; every other outcome speaks the command's reason.</summary>
-    private sealed record PhraseBinding(string Command, string SuccessPhrase, bool CabinAck = false);
-
-    private static readonly Dictionary<string, PhraseBinding> Bindings = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["call the next service"] = new("gsx.forceNextService", "Calling the next service."),
-        ["next service"] = new("gsx.forceNextService", "Calling the next service."),
-        ["request boarding"] = new("gsx.requestBoarding", "Boarding requested."),
-        ["start boarding"] = new("gsx.requestBoarding", "Boarding requested.", CabinAck: true),
-        ["cabin crew start boarding"] = new("gsx.requestBoarding", "Boarding requested.", CabinAck: true),
-        ["request refueling"] = new("gsx.requestRefuel", "Refueling requested."),
-        ["call the fuel truck"] = new("gsx.requestRefuel", "Refueling requested."),
-        ["request catering"] = new("gsx.requestCatering", "Catering requested."),
-        ["request pushback"] = new("gsx.requestPushback", "Pushback requested."),
-        ["request de-icing"] = new("gsx.requestDeice", "De-icing requested."),
-    };
-
-    /// <summary>Phrases that resolve to start-or-advance at dispatch time
-    /// (<see cref="HandleGroundServicesAsync"/>) rather than to a single fixed command.</summary>
-    private static readonly string[] GroundServicesPhrases = ["cockpit to ground", "start ground services"];
 
     private readonly CommandRegistry _registry;
     private readonly ISpeechArbiter _arbiter;
@@ -68,7 +49,8 @@ public sealed class GsxVoiceService : IVoiceFeature
         _departureControl = departureControl;
     }
 
-    public IEnumerable<string> Phrases => GroundServicesPhrases.Concat(Bindings.Keys);
+    public IEnumerable<string> Phrases
+        => GsxVoicePhrases.StartGroundServicesPhrases.Concat(GsxVoicePhrases.Bindings.Keys);
 
     public bool ValueParse => false;
 
@@ -80,13 +62,14 @@ public sealed class GsxVoiceService : IVoiceFeature
         }
 
         var text = utterance.Trim();
-        if (GroundServicesPhrases.Any(p => string.Equals(p, text, StringComparison.OrdinalIgnoreCase)))
+        if (GsxVoicePhrases.StartGroundServicesPhrases.Any(
+                p => string.Equals(p, text, StringComparison.OrdinalIgnoreCase)))
         {
             _ = HandleGroundServicesAsync();
             return true;
         }
 
-        if (!Bindings.TryGetValue(text, out var binding))
+        if (!GsxVoicePhrases.Bindings.TryGetValue(text, out var binding))
         {
             return false;
         }
@@ -95,23 +78,23 @@ public sealed class GsxVoiceService : IVoiceFeature
         return true;
     }
 
-    /// <summary>"Cockpit to ground": start the departure sequence, or advance it when it is
-    /// already running. When the departure seam is absent the start command is fired anyway —
-    /// with an AlreadySatisfied answer falling back to force-next.</summary>
+    /// <summary>"Commence ground services": start the departure sequence, or advance it when
+    /// it is already running. When the departure seam is absent the start command is fired
+    /// anyway — with an AlreadySatisfied answer falling back to force-next.</summary>
     private async Task HandleGroundServicesAsync()
     {
         try
         {
             if (_departureControl is { Started: true })
             {
-                await DispatchCoreAsync(new("gsx.forceNextService", "Calling the next service.")).ConfigureAwait(false);
+                await DispatchCoreAsync(GsxVoicePhrases.Bindings["next service"]).ConfigureAwait(false);
                 return;
             }
 
             var result = await ExecuteAsync("gsx.startDepartureServices").ConfigureAwait(false);
             if (result.Outcome == CommandOutcome.AlreadySatisfied)
             {
-                await DispatchCoreAsync(new("gsx.forceNextService", "Calling the next service.")).ConfigureAwait(false);
+                await DispatchCoreAsync(GsxVoicePhrases.Bindings["next service"]).ConfigureAwait(false);
                 return;
             }
 
@@ -124,7 +107,7 @@ public sealed class GsxVoiceService : IVoiceFeature
         }
     }
 
-    private async Task DispatchAsync(PhraseBinding binding)
+    private async Task DispatchAsync(GsxVoiceBinding binding)
     {
         try
         {
@@ -137,7 +120,7 @@ public sealed class GsxVoiceService : IVoiceFeature
         }
     }
 
-    private async Task DispatchCoreAsync(PhraseBinding binding)
+    private async Task DispatchCoreAsync(GsxVoiceBinding binding)
     {
         var result = await ExecuteAsync(binding.Command).ConfigureAwait(false);
         _logger.LogInformation(
@@ -158,11 +141,13 @@ public sealed class GsxVoiceService : IVoiceFeature
                 SpeechPriority.Normal,
                 Ttl: TimeSpan.FromMinutes(1),
                 Tag: "cabin.boarding.ack",
-                Chime: "cabin"));
+                Chime: "cabin",
+                Role: SpeechRole.Purser));
         }
     }
 
-    private Task<CommandResult> ExecuteAsync(string command)
+    /// <summary>Shared with the hail dialogues so both paths execute identically.</summary>
+    internal Task<CommandResult> ExecuteAsync(string command)
         => _registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(command, new EmptyCommandRequest());
 
     private void Speak(string text)

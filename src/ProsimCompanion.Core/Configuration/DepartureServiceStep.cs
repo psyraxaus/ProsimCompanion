@@ -32,6 +32,12 @@ public enum GsxServiceActivation
     /// <summary>Called only after every earlier service completed or was skipped — the barrier
     /// used for the classic board-last.</summary>
     AfterAllCompleted = 6,
+
+    /// <summary>Called on the pilot's voice request ("request refueling", hail dialogue) —
+    /// sequencer semantics are <see cref="Manual"/> (never auto-called; still gates later
+    /// steps), but the status board says what it is waiting for. Any other trigger (INT/RAD
+    /// force-next, web, GSX menu) advances it too — ADR-0006.</summary>
+    Voice = 7,
 }
 
 /// <summary>Which legs of a session a departure service runs on. The first leg lasts until the

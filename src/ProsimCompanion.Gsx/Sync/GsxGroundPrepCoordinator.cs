@@ -60,6 +60,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private readonly FlightStateEngine _flightState;
     private readonly SimSessionStore _simSession;
     private readonly GsxResyncState _resyncState;
+    private readonly Lazy<IGsxDepartureControl> _departureControl;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxGroundPrepCoordinator> _logger;
@@ -79,6 +80,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         FlightStateEngine flightState,
         SimSessionStore simSession,
         GsxResyncState resyncState,
+        Lazy<IGsxDepartureControl> departureControl,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxGroundPrepCoordinator> logger)
@@ -91,6 +93,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(simSession);
         ArgumentNullException.ThrowIfNull(resyncState);
+        ArgumentNullException.ThrowIfNull(departureControl);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
@@ -103,6 +106,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _flightState = flightState;
         _simSession = simSession;
         _resyncState = resyncState;
+        _departureControl = departureControl;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -200,6 +204,19 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
                 return;
             }
 
+            // Voice-gated prep (ADR-0006): in "voice" mode the whole chain — reposition, gate
+            // anchor, GPU/chocks, jetway — waits for the pilot to commence ground services.
+            // "Commence ground services", the web Start button and the API all release it
+            // (voice is an additional trigger, never the only one). Checked AFTER the resync
+            // gate so SeedComplete still fast-forwards a chain that already ran pre-restart.
+            if (_stage != Stage.Complete
+                && IsVoiceActivation(_options.CurrentValue.GroundPrepActivation)
+                && !_departureControl.Value.Started)
+            {
+                Hold("waiting for 'commence ground services' (gsx.groundPrepActivation = voice)");
+                return;
+            }
+
             ReleaseHold();
 
             var phase = _flightState.CurrentPhase;
@@ -291,6 +308,11 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
             Interlocked.Exchange(ref _running, 0);
         }
     }
+
+    /// <summary>Unknown values read as auto — a typo in settings.json must not silently park
+    /// the whole prep chain.</summary>
+    private static bool IsVoiceActivation(string value)
+        => string.Equals(value, "voice", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Logs a prep hold once per distinct reason (the cycle runs every 5 s — a log
     /// line per tick would drown the file while the user sits on the main menu).</summary>

@@ -29,6 +29,13 @@ public sealed class SayIntentionsOptions
     /// <summary>"icao" or "faa" request phraseology.</summary>
     public string Phraseology { get; set; } = "icao";
 
+    /// <summary>The FO speaks the exact transmission text locally (in the FO voice) before it
+    /// goes to sayAs — the audible half of the positive-feedback fix (issue #52; the silent
+    /// pushback-clearance defect). Turn OFF if SayIntentions itself voices sayAs audibly on
+    /// this setup (live-verify) — otherwise the call is heard twice. The FO's short "Roger —
+    /// calling …" acknowledgement is not optional; it is the defect fix itself.</summary>
+    public bool FoSpeaksTransmission { get; set; } = true;
+
     // ---- Batch weather (ATIS/METAR/TAF) + CPDLC station ----
     // These need only the API key, NOT an active flight — a parked cockpit can still pull
     // weather while SayIntentions itself is between flights.

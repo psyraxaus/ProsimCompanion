@@ -26,7 +26,14 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
         services.AddSingleton<Automation.GsxAutomationService>();
         services.AddSingleton<Core.State.IGsxDepartureControl>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
+        // Lazy view for the prep coordinator's voice gate: the automation service depends on
+        // the coordinator, so the reverse edge must resolve late to avoid a constructor cycle.
+        services.AddSingleton(provider => new Lazy<Core.State.IGsxDepartureControl>(
+            provider.GetRequiredService<Core.State.IGsxDepartureControl>));
         services.AddSingleton<Automation.IGsxTriggerDispatcher>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
+        // One flight-plan rule for the sequencer gate AND the on-demand path (ADR-0006).
+        services.AddSingleton<Automation.GsxFlightPlanMonitor>();
+        services.AddSingleton<Automation.IGsxFlightPlanStatus>(provider => provider.GetRequiredService<Automation.GsxFlightPlanMonitor>());
         // On-demand per-service calls (gsx.request*/gsx.retract* commands, voice) — routed
         // through the automation's single serialized trigger slot, never a second writer.
         services.AddSingleton<GsxServiceControl>();

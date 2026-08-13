@@ -38,6 +38,8 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     private readonly IGsxTriggerDispatcher _dispatcher;
     private readonly IGsxGroundPrepStatus _groundPrep;
     private readonly IFlightPhaseSource _flightPhase;
+    private readonly IGsxFlightPlanStatus _flightPlan;
+    private readonly SimSessionStore _simSession;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly ILogger<GsxServiceControl> _logger;
     private readonly IDataRefSubscription _jetwayLvar;
@@ -48,6 +50,8 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         IGsxTriggerDispatcher dispatcher,
         IGsxGroundPrepStatus groundPrep,
         IFlightPhaseSource flightPhase,
+        IGsxFlightPlanStatus flightPlan,
+        SimSessionStore simSession,
         ISimVars simVars,
         IOptionsMonitor<GsxOptions> options,
         ILogger<GsxServiceControl> logger)
@@ -57,6 +61,8 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         ArgumentNullException.ThrowIfNull(dispatcher);
         ArgumentNullException.ThrowIfNull(groundPrep);
         ArgumentNullException.ThrowIfNull(flightPhase);
+        ArgumentNullException.ThrowIfNull(flightPlan);
+        ArgumentNullException.ThrowIfNull(simSession);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
@@ -66,6 +72,8 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         _dispatcher = dispatcher;
         _groundPrep = groundPrep;
         _flightPhase = flightPhase;
+        _flightPlan = flightPlan;
+        _simSession = simSession;
         _options = options;
         _logger = logger;
 
@@ -111,6 +119,21 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
                       + "— request pushback from the GSX menu.");
         }
 
+        // Session gate (ADR-0006 / issue #50): the automatic pillars already hold outside the
+        // MSFS session; the on-demand path must not slip past them. Unknown (SimConnect
+        // absent) deliberately does NOT block — degrade, not fail.
+        switch (_simSession.Phase)
+        {
+            case SimSessionPhase.NotInSession:
+                return new(
+                    GsxServiceCallStatus.Unavailable,
+                    "MSFS is not in a flight session — load into the flight deck first.");
+            case SimSessionPhase.Walkaround:
+                return new(
+                    GsxServiceCallStatus.NotCallable,
+                    "You are on the walkaround — ground services wait for the flight deck.");
+        }
+
         switch (_api.Readiness)
         {
             case GsxReadiness.Disconnected:
@@ -133,6 +156,21 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     {
         var serviceId = ServiceIdFor(action);
         var display = DisplayNameFor(action);
+
+        // Flight-plan gate (ADR-0006 / issue #50): the sequencer has always held these until a
+        // plan exists; the on-demand path (voice, web, API) now applies the same rule instead
+        // of going straight to GSX. Departure-prep phases only — an arrival deboarding or a
+        // turnaround already in progress is never plan-gated here.
+        if (action is GsxServiceAction.RequestRefuel or GsxServiceAction.RequestCatering or GsxServiceAction.RequestBoarding
+            && _options.CurrentValue.RequireOfpBeforeDeparture
+            && _flightPhase.CurrentPhase is FlightPhase.Preflight or FlightPhase.ColdAndDark
+            && !_flightPlan.FlightPlanAvailable)
+        {
+            return new(
+                GsxServiceCallStatus.NotCallable,
+                "No flight plan yet — import the SimBrief OFP or load the plan in the MCDU "
+                + $"before calling {display} (gsx.requireOfpBeforeDeparture).");
+        }
 
         if (action is GsxServiceAction.RequestJetway or GsxServiceAction.RequestStairs)
         {

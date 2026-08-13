@@ -18,9 +18,17 @@ public sealed class VoicesOptions
     /// <summary>Company / dispatch voice id (default is a Kokoro id). Blank = FO voice.</summary>
     public string Company { get; set; } = "am_onyx";
 
+    /// <summary>Ground-crew voice id (default is a Kokoro id). Blank = FO voice. May be
+    /// overridden per airport by accent localization (<see cref="AccentOptions"/>).</summary>
+    public string Ground { get; set; } = "am_michael";
+
     /// <summary>Apply the interphone band-pass to purser speech (matches the real interphone
     /// timbre), regardless of the FO's own intercom-filter setting.</summary>
     public bool PurserIntercomFilter { get; set; } = true;
+
+    /// <summary>Apply the interphone filter to ground-crew speech — ground talks to the
+    /// flight deck on the INT interphone, same timbre as the purser.</summary>
+    public bool GroundIntercomFilter { get; set; } = true;
 
     /// <summary>Apply the interphone filter to company speech. Off by default — a company
     /// message is an ACARS readout, not interphone audio.</summary>

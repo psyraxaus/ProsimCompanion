@@ -37,6 +37,10 @@ public static class ProsimWriteGate
         // SimBrief import flag (written by the OFP importer)
         "efb.simbriefPlanImported",
 
+        // Ground-crew upcalls (ADR-0006): momentary MECH call press so the ACP lamp flashes
+        // when ground initiates an interphone call. Press-only via PressMomentaryAsync.
+        "system.switches.S_OH_CALLS_MECH",
+
         // Planning / pax
         "efb.plannedfuel",
         "efb.plannedCargoKg",

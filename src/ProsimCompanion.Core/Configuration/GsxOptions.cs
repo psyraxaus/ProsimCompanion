@@ -34,6 +34,13 @@ public sealed class GsxOptions
     /// (off by default — <c>StartDepartureServices</c> can always be invoked explicitly).</summary>
     public bool AutoStartDepartureServices { get; set; }
 
+    /// <summary>When the ground-preparation chain (reposition → gate anchor → GPU/chocks →
+    /// jetway) may begin: <c>"auto"</c> runs it as soon as its preconditions hold (default);
+    /// <c>"voice"</c> holds the whole chain until departure services are started — "commence
+    /// ground services", the web Start button, or the API all release it (ADR-0006: voice is
+    /// an additional trigger, never the only one). Unknown values read as auto.</summary>
+    public string GroundPrepActivation { get; set; } = "auto";
+
     /// <summary>The out-of-the-box departure queue (fresh instances per call — the steps are
     /// mutable). Legacy Prosim2GSX defaults: Cleaning + Lavatory on turnarounds only, Refuel +
     /// Catering side by side, Water once catering is requested, board last. Used both as the

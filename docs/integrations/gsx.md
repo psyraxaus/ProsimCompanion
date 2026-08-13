@@ -67,6 +67,14 @@ Behaviours that must survive the port:
 - **Arrival**: stable-parked detection before services; optional GSX restart on taxi-in; gate
   assignment auto-fired at cruise (to GSX via `gate.select` and to ATC via SayIntentions).
 - **INT/RAD ACP switch** doubles as a universal service trigger/advance input ("smart button").
+- **Voice gating (ADR-0006, issues #50/#51)**: `gsx.groundPrepActivation = "voice"` holds the
+  whole prep chain (reposition → gate anchor → GPU/chocks → jetway) until departure services
+  are started ("commence ground services" / web Start / API — voice is never the only
+  trigger); per-step `activation: "voice"` parks a departure service until its spoken request
+  (Manual semantics, distinct hold reason). The on-demand path (`GsxServiceControl`) applies
+  the same flight-plan gate as the sequencer (refuel/catering/boarding, prep phases only) and
+  refuses while the sim session is definitively NotInSession/Walkaround — `Unknown` never
+  blocks (degrade, not fail). One flight-plan rule for both paths: `GsxFlightPlanMonitor`.
 - Cargo doors: open on boarding start, timed close after GSX loaders finish; keep-open options.
 - Refuel: GSX hose connect starts ProSim dataref stepping (fixed kg/s or time-target rate);
   FOB save/restore per aircraft registration; round-up-to-100 kg option; variance-tolerant

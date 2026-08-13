@@ -126,8 +126,30 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
             return true;
         }
 
+        // Positive acknowledgement BEFORE any network work (issue #52): the silent-clearance
+        // defect was exactly this gap — the request transmitted with no FO feedback at all.
+        _ = _arbiter.EnqueueAsync(new SpeechRequest(
+            PickAcknowledgement(request.Station),
+            SpeechPriority.Normal,
+            Ttl: TimeSpan.FromSeconds(20),
+            Tag: "sayintentions.ack"));
+
         _ = TransmitRequestAsync(request, flight, options);
         return true;
+    }
+
+    /// <summary>Rotating "Roger — calling {station}" so repeated requests don't sound like a
+    /// recording. Deterministic enough not to matter; variety is the whole point.</summary>
+    private static string PickAcknowledgement(string station)
+    {
+        var name = string.IsNullOrWhiteSpace(station) ? "them" : station;
+        string[] variants =
+        [
+            $"Roger — calling {name}.",
+            $"Roger, I'll call {name}.",
+            $"Copied — calling {name} now.",
+        ];
+        return variants[Random.Shared.Next(variants.Length)];
     }
 
     private async Task TransmitRequestAsync(
@@ -139,6 +161,8 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
             if (apiKey is null)
             {
                 _logger.LogWarning("SayIntentions request skipped — no API key");
+                _ = _arbiter.SpeakAsync(
+                    "I can't reach SayIntentions — no API key.", SpeechPriority.Normal);
                 return;
             }
 
@@ -149,6 +173,19 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
 
             await Task.Delay(400).ConfigureAwait(false); // radio-clear settle (no-SimVars fallback)
             var message = Fill(PickTemplate(request, options), flight);
+
+            // The audible FO→ATC call (issue #52): the FO voices the exact transmission text
+            // locally, awaited so it finishes before sayAs makes ATC react. Off when
+            // SayIntentions itself voices sayAs audibly (live-verify) — double audio.
+            if (options.FoSpeaksTransmission)
+            {
+                await _arbiter.EnqueueAsync(new SpeechRequest(
+                    message,
+                    SpeechPriority.Normal,
+                    Ttl: TimeSpan.FromSeconds(30),
+                    Tag: "sayintentions.tx")).ConfigureAwait(false);
+            }
+
             await SayAsAsync(apiKey, message).ConfigureAwait(false);
             _eventLog.Record("sayintentions.request", new { station = request.Station, message });
 
@@ -169,6 +206,8 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "SayIntentions request failed");
+            _ = _arbiter.SpeakAsync(
+                "The SayIntentions request failed — see the log.", SpeechPriority.Normal);
         }
     }
 

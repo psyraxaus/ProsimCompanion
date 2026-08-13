@@ -31,6 +31,10 @@ public enum SpeechRole
 
     /// <summary>Company / dispatch (ACARS-style readouts).</summary>
     Company,
+
+    /// <summary>The ground crew on the INT interphone (hail replies, upcalls) — ADR-0006.
+    /// The only role whose voice may be accent-localized by airport (issue #53).</summary>
+    GroundCrew,
 }
 
 /// <summary>

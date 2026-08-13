@@ -46,3 +46,18 @@ chains — "local only" hard mode must exist.
   through one facade — no direct TTS calls from features.
 - Humanized key timing for FCU/MCDU presses (randomized hold/gap, think pauses).
 - MCDU actuation gates: arm switch + FO-is-PF + announced/verified/abortable.
+
+## Speaker roles & accents (ADR-0006)
+
+- Roles: FirstOfficer (default), Purser (CAB interphone), Company (ACARS), **GroundCrew**
+  (INT interphone — hail replies + upcalls; `voices.ground`, intercom filter default on).
+- Interphone receive gating: purser speech waits for a `S_ASP*_CAB_REC_LATCH`, ground speech
+  for a `S_ASP*_INT_REC_LATCH` (any of the three ACPs), grace-then-play-anyway. Upcalls flash
+  the MECH call first (`S_OH_CALLS_MECH` momentary press, allow-listed).
+- **Accent localization** (`accents.*`, GroundCrew only): ICAO prefix → Chirp 3 HD locale
+  (`AirportAccentMap`, user-overridable), resolved per provider at render time — Google gets
+  `{locale}-Chirp3-HD-{persona}`, Kokoro gets `bm_george` for en-GB/AU/IN, everything else
+  falls back to `voices.ground`. `speech.localOnly` therefore degrades accents to US/UK.
+- SayIntentions requests (issue #52): immediate FO "Roger — calling {station}" ack, then the
+  exact sayAs text spoken in the FO voice (`sayIntentions.foSpeaksTransmission`, default true
+  — turn off if SI voices sayAs audibly on this setup).

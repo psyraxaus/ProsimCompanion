@@ -32,6 +32,7 @@ public static class RoleVoiceResolver
             // a purser on the FO voice is still on the interphone.
             SpeechRole.Purser => ForRole(voices.Purser, voices.PurserIntercomFilter),
             SpeechRole.Company => ForRole(voices.Company, voices.CompanyIntercomFilter),
+            SpeechRole.GroundCrew => ForRole(voices.Ground, voices.GroundIntercomFilter),
             _ => new RoleVoice(null, null, false),
         };
     }

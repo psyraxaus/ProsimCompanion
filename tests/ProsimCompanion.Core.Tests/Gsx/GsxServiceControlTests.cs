@@ -23,6 +23,8 @@ public sealed class GsxServiceControlTests
     private readonly Mock<IGsxTriggerDispatcher> _dispatcher = new();
     private readonly Mock<IGsxGroundPrepStatus> _groundPrep = new();
     private readonly Mock<IFlightPhaseSource> _flightPhase = new();
+    private readonly Mock<IGsxFlightPlanStatus> _flightPlan = new();
+    private readonly SimSessionStore _simSession = new();
     private readonly Mock<IDataRefSubscription> _jetwayLvar = new();
     private readonly GsxOptions _options = new();
 
@@ -42,6 +44,7 @@ public sealed class GsxServiceControlTests
 
         _groundPrep.SetupGet(p => p.PrepComplete).Returns(true);
         _flightPhase.SetupGet(f => f.CurrentPhase).Returns(FlightPhase.Preflight);
+        _flightPlan.SetupGet(f => f.FlightPlanAvailable).Returns(true);
         _dispatcher
             .Setup(d => d.TryDispatchServiceTriggerAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -53,10 +56,15 @@ public sealed class GsxServiceControlTests
             _dispatcher.Object,
             _groundPrep.Object,
             _flightPhase.Object,
+            _flightPlan.Object,
+            _simSession,
             simVars.Object,
             options.Object,
             NullLogger<GsxServiceControl>.Instance);
     }
+
+    private void SetSessionPhase(SimSessionPhase phase)
+        => _simSession.Publish(SimSessionSnapshot.Empty with { Phase = phase });
 
     /// <summary>Seeds the mirror with one service in the given semantic wire state.</summary>
     private void SeedService(string id, string state, bool canTrigger = true)
@@ -292,6 +300,91 @@ public sealed class GsxServiceControlTests
         _dispatcher.Verify(
             d => d.TryDispatchServiceTriggerAsync("OperateJetways", It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Theory]
+    [InlineData(GsxServiceAction.RequestRefuel, "Refueling")]
+    [InlineData(GsxServiceAction.RequestCatering, "Catering")]
+    [InlineData(GsxServiceAction.RequestBoarding, "Boarding")]
+    public async Task NoFlightPlan_InPrepPhase_RefusesPlanGatedServices(GsxServiceAction action, string serviceId)
+    {
+        var control = CreateControl();
+        SeedService(serviceId, "available");
+        _flightPlan.SetupGet(f => f.FlightPlanAvailable).Returns(false);
+
+        var outcome = await control.TryCallAsync(action);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        Assert.Contains("flight plan", outcome.Detail, StringComparison.OrdinalIgnoreCase);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task NoFlightPlan_RequireOfpDisabled_StillDispatches()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        _flightPlan.SetupGet(f => f.FlightPlanAvailable).Returns(false);
+        _options.RequireOfpBeforeDeparture = false;
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+    }
+
+    [Fact]
+    public async Task NoFlightPlan_OutsidePrepPhases_NeverPlanGated()
+    {
+        // An arrival-side call (deboarding phase context) must not be held hostage to the
+        // NEXT leg's plan.
+        var control = CreateControl();
+        SeedService("Deboarding", "available");
+        _flightPlan.SetupGet(f => f.FlightPlanAvailable).Returns(false);
+        _flightPhase.SetupGet(f => f.CurrentPhase).Returns(FlightPhase.Shutdown);
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestDeboarding);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+    }
+
+    [Fact]
+    public async Task NotInSession_IsUnavailable()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        SetSessionPhase(SimSessionPhase.NotInSession);
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.Unavailable, outcome.Status);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Walkaround_IsNotCallable()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        SetSessionPhase(SimSessionPhase.Walkaround);
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task UnknownSession_DegradesOpen_AndDispatches()
+    {
+        // SimConnect absent (phase Unknown) must not block the on-demand path — degrade,
+        // not fail. The store's default IS Unknown; make the intent explicit anyway.
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        SetSessionPhase(SimSessionPhase.Unknown);
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
     }
 
     [Fact]
