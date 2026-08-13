@@ -55,6 +55,9 @@ start and remain usable (degraded mode) when the SDK, ProSim, MSFS, or GSX are a
   UI/dispatcher thread; `ConfigureAwait(false)` in library code; pass `CancellationToken` down.
 - **Options**: per-feature options classes bound from `config/settings.json` — no single mega-settings
   class. Every property has a safe default so partial config files work. camelCase JSON.
+  **Every new option ships with a web-UI control** on the matching settings page in the same
+  change (owner rule, 2026-08-14) — never a settings.json-only knob. Dictionary/list power-user
+  structures may stay JSON-edited but must be named in a visible hint on the page.
 - **Degrade, not fail**: every external dependency (ProSim, SimConnect, GSX, network services) can be
   absent. A failed subsystem logs and disables itself; it never blocks startup or other features.
 - **Write safety**: anything that writes to the aircraft goes through explicit code-level allow-lists.

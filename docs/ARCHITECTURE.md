@@ -71,6 +71,10 @@ circular dependency.
   the installer or the web Settings page and stored in config. The app never assumes install
   paths; an unset path degrades that subsystem with guidance in the log/UI.
 - Hot reload: file watcher with ~300 ms debounce; saves are debounced (~750 ms) and flushed on exit.
+- **Every setting gets a web-UI control** (owner decision 2026-08-14): a new options property
+  ships WITH its field on the matching settings page in the same change — settings.json-only
+  knobs are not acceptable (exception: power-user dictionary/list structures may stay
+  JSON-edited, but must be mentioned in a visible hint on the page).
 - Aircraft profiles carry per-aircraft feature settings, matched on aircraft title/airline.
 - Content packs (checklists, SOPs, abnormals, themes) are separate user-editable JSON directories,
   hot-reloaded.
