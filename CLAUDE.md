@@ -77,6 +77,7 @@ start and remain usable (degraded mode) when the SDK, ProSim, MSFS, or GSX are a
 | GSX Couatl Remote API v2 | `ws://127.0.0.1:{port}`, port from `%APPDATA%\Virtuali\CouatlAddons.ini` (default 8744) |
 | ProsimCompanion web UI | `http://localhost:5320` (default; avoids 5000/5001/8730 used by neighbours) |
 | User config | `config/settings.json` beside the exe |
+| User-editable content (checklists, abnormals, commands, phrases, atc-requests, themes) | `%LOCALAPPDATA%\ProsimCompanion\config\` — seeded from `{app}\config` with keep-user-edits hashes (ADR-0007); the `{app}\config` copies are seed source only |
 | Logs | `%LOCALAPPDATA%\ProsimCompanion\logs\` |
 
 ## Agent skills

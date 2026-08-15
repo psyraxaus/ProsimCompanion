@@ -6,7 +6,14 @@
   "phases": [],
   "trigger": {
     "ewdText": [ "ELEC GEN 1 FAULT", "GEN 1 FAULT" ],
-    "condition": { "dataref": "aircraft.electrical.relay.Gen1Line", "op": "equals", "value": 0 },
+    "comment": "Gen off line is only a FAULT with the engine actually running — Gen1Line==0 alone is the normal state every ground minute before start, and fired falsely at the gate on the 2026-08-15 flight test (issue #58).",
+    "condition": {
+      "logic": "and",
+      "conditions": [
+        { "dataref": "aircraft.electrical.relay.Gen1Line", "op": "equals", "value": 0 },
+        { "dataref": "aircraft.engines.1.running", "op": "equals", "value": 1 }
+      ]
+    },
     "logic": "any",
     "corroborate": "system.indicators.I_ECAM_ELEC",
     "debounceSeconds": 2.0

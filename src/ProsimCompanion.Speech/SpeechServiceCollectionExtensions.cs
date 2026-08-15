@@ -47,6 +47,10 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<ControlMonitor>();
         services.AddSingleton<ControlSweepService>();
         services.AddSingleton<Abnormals.FailureMonitor>();
+        // Web-side ECAM escape hatch (issue #56) — the Web project reaches the running
+        // dialogue only through this Core seam.
+        services.AddSingleton<Core.State.IAbnormalDialogueControl>(
+            p => p.GetRequiredService<Abnormals.FailureMonitor>());
         // Voice features — registration order is dispatch precedence (roles first so a
         // handover is never mis-parsed as an instruction).
         services.AddSingleton<Roles.RoleManager>();
@@ -142,10 +146,11 @@ public static class SpeechServiceCollectionExtensions
         // the small-talk feature itself dispatches last — exact phrases only.
         services.AddSingleton<Persona.QuietState>();
         services.AddSingleton<IVoiceFeature, Persona.SmallTalkService>();
-        // FO persona: phrase bank (config/phrases.json), the persona itself (prompt fragment
-        // + ack variation) and the LLM restyle path for advisories.
+        // FO persona: phrase bank (phrases.json in the USER config tree, ADR-0007), the
+        // persona itself (prompt fragment + ack variation) and the LLM restyle path for
+        // advisories.
         services.AddSingleton(p => new Persona.PhraseBank(
-            System.IO.Path.Combine(AppContext.BaseDirectory, "config"),
+            Core.Configuration.UserConfigPaths.Root,
             p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Persona.PhraseBank>>()));
         services.AddSingleton<Persona.PersonaService>();
         services.AddSingleton<Persona.StyledSpeechService>();

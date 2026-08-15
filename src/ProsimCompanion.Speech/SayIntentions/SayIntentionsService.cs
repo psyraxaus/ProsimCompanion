@@ -466,7 +466,8 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
     {
         try
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "config", "atc-requests.json");
+            // User tree, not the install dir (ADR-0007) — seeded from shipped defaults at startup.
+            var path = Core.Configuration.UserConfigPaths.File("atc-requests.json");
             if (!File.Exists(path))
             {
                 return;

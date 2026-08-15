@@ -59,7 +59,7 @@
         {
             <div class="ecamcl-empty">
                 @(_catalog.Count == 0
-                    ? "NO CHECKLIST FILES FOUND IN config/checklists"
+                    ? $"NO CHECKLIST FILES FOUND IN {Engine.Folder}"
                     : "NO C/L SELECTED — SELECT VIA C/L MENU")
             </div>
         }
@@ -150,6 +150,20 @@
     </div>
 
 </div>
+
+@*
+    Source-folder line (issue #55): the one place that answers "which files is the app
+    actually reading, and did it see my last save?". Edits saved into this folder hot-reload
+    within a second and bump the timestamp; a save that does NOT move the timestamp means the
+    wrong copy was edited.
+*@
+<p class="ecamcl-source">
+    Definitions load from <code>@Engine.Folder</code>
+    @if (Engine.LastLoadedUtc is { } loaded)
+    {
+        <span> — last reloaded @loaded.ToLocalTime().ToString("HH:mm:ss") (edits saved there are picked up live)</span>
+    }
+</p>
 
 @code {
     // Fixed-length dotted leader; the 1fr grid column clips it, so every

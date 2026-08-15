@@ -54,11 +54,18 @@ and applies it when that aircraft loads.
 
 ## User-editable content files
 
+These live in **`%LOCALAPPDATA%\ProsimCompanion\config`** — *not* in the install directory.
+The copies beside the exe are only the shipped defaults: on every start the app seeds
+missing files from them and refreshes any you have never edited, while your edited files are
+always kept (so app updates cannot revert your work). The Checklists page shows the exact
+folder and the time of the last reload — if you save an edit and that time does not move,
+you edited the wrong copy.
+
 | File(s) | Format | Hot reload |
 |---|---|---|
-| `config/checklists/*.json` + `sets/` | Prosim2FO / Prosim2GSX checklist formats | yes |
-| `config/abnormals/*.json` | ECAM abnormal definitions | yes |
-| `config/phrases.json` | acknowledgement phrase pools | yes |
-| `config/commands.json` | file-driven voice commands | yes |
-| `config/atc-requests.json` | SayIntentions request phrasebook | on start |
-| `config/themes/*.json` | airline themes | on switch |
+| `checklists\*.json` + `sets\` | Prosim2FO / Prosim2GSX checklist formats | yes |
+| `abnormals\*.json` | ECAM abnormal definitions | on start |
+| `phrases.json` | acknowledgement phrase pools | yes |
+| `commands.json` | file-driven voice commands | yes |
+| `atc-requests.json` | SayIntentions request phrasebook | on start |
+| `themes\*.json` | airline themes | on switch |

@@ -234,3 +234,16 @@
     background: #00e673;
     border-color: #00e673;
 }
+
+/* Source-folder line under the panel (issue #55): quiet metadata, but the path itself is
+   selectable/copyable so the user can paste it straight into an editor's open dialog. */
+.ecamcl-source {
+    margin: 10px 4px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.ecamcl-source code {
+    user-select: all;
+    font-size: 11px;
+}

@@ -9,7 +9,8 @@
     "condition": { "dataref": "system.indicators.I_OH_FIRE_APU_BUTTON", "op": "greaterThan", "value": 0 },
     "logic": "any",
     "corroborate": "system.indicators.I_MIP_MASTER_WARNING_FO",
-    "debounceSeconds": 1.0
+    "comment": "3 s, not 1: a ~1 s indicator blip during the engine-start power transfer survived the old debounce and produced a spurious 'Master warning, APU fire' call on the 2026-08-15 flight test (issue #58). Real fire loops require persistence too.",
+    "debounceSeconds": 3.0
   },
   "announce": "ECAM, A.P.U. fire.",
   "actions": [

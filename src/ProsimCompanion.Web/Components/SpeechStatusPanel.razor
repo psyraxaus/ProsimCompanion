@@ -6,6 +6,17 @@
 @inject ISpeechControl SpeechControl
 @inject ISpeechDiagnostics Diagnostics
 @inject ArrivalMinimaStore Minima
+@inject IAbnormalDialogueControl AbnormalControl
+
+@if (_view.ActiveAbnormal is { Length: > 0 } abnormal)
+{
+    @* The ECAM dialogue holds the mic exclusively — this button is the guaranteed way out
+       when voice fails ("cancel ECAM" is the spoken equivalent). Issue #56. *@
+    <div class="pill tone-warn" style="display:flex; gap:12px; align-items:center; justify-content:center; padding:10px; margin-bottom:12px;">
+        <span>ECAM DIALOGUE RUNNING — @abnormal</span>
+        <button type="button" class="btn secondary" @onclick="CancelAbnormal">Cancel ECAM dialogue</button>
+    </div>
+}
 
 @if (_view.CabinCalling)
 {
@@ -232,6 +243,9 @@
             SpeechControl.SpeakTest(_testText.Trim());
         }
     }
+
+    // The banner disappears via the status-store update the cancellation itself triggers.
+    private void CancelAbnormal() => AbnormalControl.CancelActiveDialogue();
 
     private Task TestProviderAsync(string providerName) => RunTestAsync(
         $"tts:{providerName}",

@@ -104,6 +104,20 @@ public static class Program
                 PredecessorConfigImporter.TryImportOnFirstRun(
                     settingsFile,
                     importLoggerFactory.CreateLogger("PredecessorImport"));
+
+                // Mirror the shipped user-editable config (checklists, abnormals, commands,
+                // phrases, ATC requests) into %LOCALAPPDATA%\ProsimCompanion\config with
+                // keep-user-edits semantics (ADR-0007, issue #55). Must run before the host
+                // builds — ChecklistService and friends read the user tree in their
+                // constructors.
+                var seedResult = UserConfigSeeder.Seed(
+                    Path.Combine(AppContext.BaseDirectory, "config"),
+                    UserConfigPaths.Root,
+                    importLoggerFactory.CreateLogger("UserConfigSeeder"));
+                Log.Information(
+                    "User config at {Root}: {Seeded} seeded, {Updated} default(s) refreshed, {Kept} user-edited kept, {Current} current",
+                    UserConfigPaths.Root, seedResult.Seeded, seedResult.Updated,
+                    seedResult.KeptEdited, seedResult.Current);
             }
 
             var web = BuildWebHost(args, settingsPath, settingsFile, levels, logBuffer, wireTrace);
@@ -258,8 +272,9 @@ public static class Program
         builder.Services.AddGsxServices();
         builder.Services.AddAudioServices();
         builder.Services.AddSpeechServices();
-        builder.Services.AddWebServices(
-            Path.Combine(AppContext.BaseDirectory, "config", "themes"));
+        // User drop-in themes come from the user config tree (ADR-0007); the built-ins are
+        // embedded in the Web assembly.
+        builder.Services.AddWebServices(UserConfigPaths.File("themes"));
 
         builder.Services.AddSingleton(levels);
         builder.Services.AddSingleton(logBuffer);

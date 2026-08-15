@@ -205,6 +205,112 @@ public sealed class EcamDialogueTests
         Assert.Contains(Completion, io.Spoken);
     }
 
+    // ---- abort (issue #56) ----
+
+    [Fact]
+    public async Task CancelEcam_EndsTheWholeProcedure_WithoutStatusOrCompletion()
+    {
+        var io = new ScriptedIo();
+        io.Answers.Enqueue("cancel ecam");
+        var definition = Procedure(
+            new AbnormalAction { Say = "Engine master 1, off.", Confirm = ["master off"] },
+            new AbnormalAction { Say = "Agent 1, discharge.", Confirm = ["discharged"] });
+
+        await Core(io).RunAsync(definition, CancellationToken.None);
+
+        Assert.Contains("ECAM cancelled. Resuming normal duties.", io.Spoken);
+        Assert.DoesNotContain("Agent 1, discharge.", io.Spoken);
+        Assert.DoesNotContain("Status. Avoid icing conditions.", io.Spoken);
+        Assert.DoesNotContain(Completion, io.Spoken);
+    }
+
+    [Fact]
+    public async Task CancelEcam_WorksFromStandbyToo()
+    {
+        var io = new ScriptedIo();
+        io.Answers.Enqueue("standby");
+        io.Answers.Enqueue("cancel ecam");
+        var definition = Procedure(new AbnormalAction { Say = "Engine master 1, off.", Confirm = ["done"] });
+
+        await Core(io).RunAsync(definition, CancellationToken.None);
+
+        Assert.Contains(StandingBy, io.Spoken);
+        Assert.Contains("ECAM cancelled. Resuming normal duties.", io.Spoken);
+        Assert.DoesNotContain(Completion, io.Spoken);
+    }
+
+    // ---- containment matching (issue #56) ----
+
+    [Fact]
+    public async Task NaturalPhrasing_AroundAConfirmPhrase_StillConfirms()
+    {
+        var io = new ScriptedIo();
+        io.Answers.Enqueue("okay engine master one off done"); // superset of the confirm phrase
+        var definition = Procedure(new AbnormalAction
+        {
+            Say = "Engine master 1, off.",
+            Confirm = ["engine master one off"],
+            Ack = "Master one off.",
+        });
+
+        await Core(io).RunAsync(definition, CancellationToken.None);
+
+        Assert.Contains("Master one off.", io.Spoken);
+        Assert.Contains(Completion, io.Spoken);
+    }
+
+    // ---- standby holds through chatter (issue #56) ----
+
+    [Fact]
+    public async Task Standby_IgnoresUnmatchedSpeech_OnlyAContinuePhraseResumes()
+    {
+        var io = new ScriptedIo();
+        io.Answers.Enqueue("standby");
+        io.Answers.Enqueue("tower golf uniform ready for pushback"); // ATC chatter — must hold
+        io.Answers.Enqueue("cabin crew seats for departure");        // more chatter — must hold
+        io.Answers.Enqueue("continue ecam");
+        io.Answers.Enqueue("done");
+        var definition = Procedure(new AbnormalAction { Say = "Engine master 1, off.", Confirm = ["done"] });
+
+        await Core(io).RunAsync(definition, CancellationToken.None);
+
+        Assert.Equal(1, io.Spoken.Count(s => s == "Continuing."));
+        Assert.Contains(Completion, io.Spoken);
+    }
+
+    // ---- already-satisfied lines (issue #57) ----
+
+    [Fact]
+    public async Task VerifyAlreadyTrue_AcksWithoutDemandingAReadback()
+    {
+        // No scripted answers at all: if the dialogue listens, ScriptedIo throws.
+        var io = new ScriptedIo { Evaluate = _ => true };
+        var definition = Procedure(new AbnormalAction
+        {
+            Say = "Electrical, generator 2, off, then on.",
+            Confirm = ["reset"],
+            Verify = new VerifyCondition
+            {
+                Dataref = "aircraft.electrical.relay.Gen2Line",
+                Op = ComparisonOp.Equals,
+                Value = 1,
+            },
+            Ack = "Generator 2 back on line.",
+        });
+
+        await Core(io).RunAsync(definition, CancellationToken.None);
+
+        Assert.Equal(
+            [
+                "Electrical, generator 2, off, then on.",
+                "Generator 2 back on line.",
+                "Status. Avoid icing conditions.",
+                Completion,
+            ],
+            io.Spoken);
+        Assert.Empty(io.Grammars); // never opened a listening window
+    }
+
     // ---- verification ----
 
     [Fact]
@@ -441,6 +547,87 @@ public sealed class EcamDialogueTests
 
         Assert.Equal(1, mic.Borrows);
         Assert.False(mic.IsBorrowed); // borrow restored after the dialogue
+    }
+
+    /// <summary>Mic whose listens BLOCK until cancelled once the scripted answers run out —
+    /// models a pilot who never says anything recognizable, which is exactly the state the
+    /// cleared/cancel paths must be able to break out of.</summary>
+    private sealed class BlockingMic : IMicOwnership
+    {
+        public bool IsBorrowed { get; private set; }
+
+        public IDisposable Borrow(string owner)
+        {
+            IsBorrowed = true;
+            return new Scope(this);
+        }
+
+        public async Task<string?> ListenAsync(
+            IReadOnlyList<string> grammar, TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return null; // unreachable — the delay only ends by cancellation
+        }
+
+        private sealed class Scope(BlockingMic owner) : IDisposable
+        {
+            public void Dispose() => owner.IsBorrowed = false;
+        }
+    }
+
+    [Fact]
+    public async Task FailureClearingMidDialogue_EndsIt_AnnouncesAndReturnsTheMic()
+    {
+        var arbiter = new FakeArbiter();
+        var phase = new FakePhaseSource();
+        var dataRefs = new FakeDataRefs();
+        var mic = new BlockingMic();
+        using var monitor = new FailureMonitor(
+            arbiter, dataRefs, phase, SpeechTestSupport.TempEventLog(),
+            NullLogger<FailureMonitor>.Instance, mic);
+        phase.SetPhase(FlightPhase.Cruise);
+        monitor.Load([DetectableEcam()]);
+        dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+
+        monitor.ProcessTick(T0);
+        monitor.ProcessTick(T0.AddSeconds(1.5));
+        Assert.True(await WaitForSpokenAsync(arbiter, "Engine master 1, off."), "dialogue never started");
+
+        // The fault clears while the dialogue is stuck listening (issue #57).
+        dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 0.0;
+        monitor.ProcessTick(T0.AddSeconds(3));
+
+        Assert.True(
+            await WaitForSpokenAsync(arbiter, "The ENG 1 FIRE has cleared. Resuming normal duties."),
+            "cleared announcement never spoken");
+        Assert.False(mic.IsBorrowed);
+    }
+
+    [Fact]
+    public async Task WebCancel_EndsTheRunningDialogue_AndAcknowledges()
+    {
+        var arbiter = new FakeArbiter();
+        var phase = new FakePhaseSource();
+        var dataRefs = new FakeDataRefs();
+        var mic = new BlockingMic();
+        using var monitor = new FailureMonitor(
+            arbiter, dataRefs, phase, SpeechTestSupport.TempEventLog(),
+            NullLogger<FailureMonitor>.Instance, mic);
+        phase.SetPhase(FlightPhase.Cruise);
+        monitor.Load([DetectableEcam()]);
+        dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+
+        monitor.ProcessTick(T0);
+        monitor.ProcessTick(T0.AddSeconds(1.5));
+        Assert.True(await WaitForSpokenAsync(arbiter, "Engine master 1, off."), "dialogue never started");
+
+        Assert.True(monitor.CancelActiveDialogue());
+
+        Assert.True(
+            await WaitForSpokenAsync(arbiter, "ECAM cancelled. Resuming normal duties."),
+            "cancel acknowledgement never spoken");
+        Assert.False(mic.IsBorrowed);
+        Assert.False(monitor.CancelActiveDialogue()); // nothing left to cancel
     }
 
     [Fact]

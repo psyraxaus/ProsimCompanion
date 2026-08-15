@@ -69,8 +69,9 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
         => Recognition.PilotSeatMap.Map(dataref,
             _speech is not null && Recognition.PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue));
 
+    // User tree, not the install dir (ADR-0007) — seeded from shipped defaults at startup.
     private static string CommandsPath
-        => Path.Combine(AppContext.BaseDirectory, "config", "commands.json");
+        => Core.Configuration.UserConfigPaths.File("commands.json");
 
     public IEnumerable<string> Phrases
     {

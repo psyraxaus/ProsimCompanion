@@ -52,7 +52,8 @@ Off by default (`persona` settings section). When enabled, the FO gets a persona
   advisories, each with its own toggle. Only wording and tone change; numbers and
   operational content are verified and locked, and without an LLM the deterministic texts
   speak unchanged.
-- **Acknowledgement variation** picks randomly from the pools in `config/phrases.json`
+- **Acknowledgement variation** picks randomly from the pools in
+  `%LOCALAPPDATA%\ProsimCompanion\config\phrases.json`
   (edit the file to add your own "are you sure" / "say again" variants — hot-reloaded, and
   used by both the persona and the plain round-robin).
 - Say **"quiet please"** to silence chatter for the rest of the session (checklists and

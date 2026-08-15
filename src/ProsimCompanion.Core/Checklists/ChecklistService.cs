@@ -43,8 +43,27 @@ public sealed class ChecklistService : IDisposable
     private List<ChecklistSet> _sets = [new(DefaultSetName, [])];
     private string _activeSet = DefaultSetName;
     private ChecklistRunner? _active;
+    private DateTimeOffset? _lastLoadedUtc;
 
     public event EventHandler? Changed;
+
+    /// <summary>Absolute folder the definitions load from. Shown on the web page so an edit
+    /// made to a look-alike copy elsewhere is self-diagnosing (issue #55 — a flight test was
+    /// lost to exactly that).</summary>
+    public string Folder => _folder;
+
+    /// <summary>UTC time of the last (re)load — the page's visible acknowledgement that a
+    /// save was picked up (hot reload) or that startup read the folder.</summary>
+    public DateTimeOffset? LastLoadedUtc
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _lastLoadedUtc;
+            }
+        }
+    }
 
     public ChecklistService(
         IProsimDataRefs prosim,
@@ -57,7 +76,9 @@ public sealed class ChecklistService : IDisposable
         _prosim = prosim;
         _options = options;
         _logger = logger;
-        _folder = Path.Combine(AppContext.BaseDirectory, "config", "checklists");
+        // User tree, not the install dir (ADR-0007): seeded from the shipped defaults by
+        // UserConfigSeeder before the host builds; edits there survive app updates.
+        _folder = UserConfigPaths.Checklists;
         _setsFolder = Path.Combine(_folder, "sets");
 
         Reload();
@@ -338,6 +359,7 @@ public sealed class ChecklistService : IDisposable
         lock (_lock)
         {
             _sets = sets;
+            _lastLoadedUtc = DateTimeOffset.UtcNow;
             if (!sets.Any(set => string.Equals(set.Name, _activeSet, StringComparison.Ordinal)))
             {
                 _activeSet = DefaultSetName; // the selected set's file was deleted mid-session

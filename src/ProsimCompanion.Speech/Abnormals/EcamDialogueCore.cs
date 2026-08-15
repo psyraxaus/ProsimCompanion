@@ -66,6 +66,12 @@ public sealed class EcamDialogueCore
     internal static readonly string[] SayAgainPhrases = ["say again", "repeat"];
     internal static readonly string[] SkipPhrases = ["skip", "skip this", "skip line"];
 
+    /// <summary>Whole-procedure escape (issue #56 — the 2026-08-15 flight had NO way out of a
+    /// stuck dialogue short of killing the app). Recognized in every dialogue window,
+    /// including standby.</summary>
+    internal static readonly string[] AbortPhrases =
+        ["cancel ecam", "abort ecam", "stop ecam", "cancel the ecam"];
+
     private enum LineInput
     {
         None,
@@ -73,6 +79,14 @@ public sealed class EcamDialogueCore
         Standby,
         SayAgain,
         Skip,
+        Abort,
+    }
+
+    private enum LineOutcome
+    {
+        Completed,
+        Skipped,
+        Aborted,
     }
 
     private readonly IEcamDialogueIo _io;
@@ -106,7 +120,14 @@ public sealed class EcamDialogueCore
                 continue;
             }
 
-            await RunLineAsync(definition, line, cancellationToken).ConfigureAwait(false);
+            var outcome = await RunLineAsync(definition, line, cancellationToken).ConfigureAwait(false);
+            if (outcome == LineOutcome.Aborted)
+            {
+                _eventLog.Record("abnormal.cancelled", new { id = definition.Id, reason = "voice" });
+                await _io.SpeakAsync("ECAM cancelled. Resuming normal duties.", cancellationToken)
+                    .ConfigureAwait(false);
+                return;
+            }
         }
 
         // The STATUS review is informational — read straight through, no confirmation.
@@ -127,8 +148,12 @@ public sealed class EcamDialogueCore
     }
 
     /// <summary>One action line: speak, wait for the pilot, and only leave on confirm
-    /// (verified when authored), skip, or a continue-past-unverified decision.</summary>
-    private async Task RunLineAsync(AbnormalDefinition definition, AbnormalAction line, CancellationToken cancellationToken)
+    /// (verified when authored), skip, abort, or a continue-past-unverified decision. A line
+    /// whose verify condition already reads true is acknowledged without demanding a readback
+    /// (issue #57 — the aircraft may have satisfied the line, or the whole fault self-cleared,
+    /// while the dialogue was queued or nagging).</summary>
+    private async Task<LineOutcome> RunLineAsync(
+        AbnormalDefinition definition, AbnormalAction line, CancellationToken cancellationToken)
     {
         var grammar = BuildLineGrammar(line);
         var discrepancies = 0;
@@ -137,14 +162,33 @@ public sealed class EcamDialogueCore
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (line.Verify is not null && _io.TryEvaluate(line.Verify) == true)
+            {
+                // Also rescues a pilot whose phrasing never matches the grammar: performing
+                // the action flips the dataref and the next pass lands here.
+                await _io.SpeakAsync(line.Say, cancellationToken).ConfigureAwait(false);
+                await AckAsync(line, cancellationToken).ConfigureAwait(false);
+                _eventLog.Record("abnormal.line",
+                    new { id = definition.Id, say = line.Say, outcome = "already-satisfied" });
+                return LineOutcome.Completed;
+            }
+
             await _io.SpeakAsync(line.Say, cancellationToken).ConfigureAwait(false);
 
             var said = await _io.ListenAsync(grammar, ConfirmTimeout, cancellationToken).ConfigureAwait(false);
             switch (Classify(said, line))
             {
+                case LineInput.Abort:
+                    return LineOutcome.Aborted;
+
                 case LineInput.Standby:
                     silentPrompts = 0;
-                    await StandbyAsync(definition, "standby", cancellationToken).ConfigureAwait(false);
+                    if (!await StandbyAsync(definition, "standby", cancellationToken).ConfigureAwait(false))
+                    {
+                        return LineOutcome.Aborted;
+                    }
+
                     continue; // re-speak the line once resumed
 
                 case LineInput.SayAgain:
@@ -153,14 +197,18 @@ public sealed class EcamDialogueCore
 
                 case LineInput.Skip:
                     _eventLog.Record("abnormal.line", new { id = definition.Id, say = line.Say, outcome = "skipped" });
-                    return;
+                    return LineOutcome.Skipped;
 
                 case LineInput.None:
                     silentPrompts++;
                     if (silentPrompts >= MaxSilentPrompts)
                     {
                         silentPrompts = 0;
-                        await StandbyAsync(definition, "silence", cancellationToken).ConfigureAwait(false);
+                        if (!await StandbyAsync(definition, "silence", cancellationToken).ConfigureAwait(false))
+                        {
+                            return LineOutcome.Aborted;
+                        }
+
                         continue;
                     }
 
@@ -174,7 +222,7 @@ public sealed class EcamDialogueCore
                         await AckAsync(line, cancellationToken).ConfigureAwait(false);
                         _eventLog.Record("abnormal.line",
                             new { id = definition.Id, say = line.Say, confirmed = true, verified = (bool?)null });
-                        return;
+                        return LineOutcome.Completed;
                     }
 
                     // Unreadable (null) counts as unverified — the FO never claims to have
@@ -185,7 +233,7 @@ public sealed class EcamDialogueCore
                     if (verified)
                     {
                         await AckAsync(line, cancellationToken).ConfigureAwait(false);
-                        return;
+                        return LineOutcome.Completed;
                     }
 
                     await _io.SpeakAsync(
@@ -194,17 +242,25 @@ public sealed class EcamDialogueCore
                     discrepancies++;
                     if (discrepancies > MaxVerifyRetries)
                     {
-                        if (await OfferStandbyAsync(cancellationToken).ConfigureAwait(false))
+                        switch (await OfferStandbyAsync(cancellationToken).ConfigureAwait(false))
                         {
-                            await StandbyAsync(definition, "standby", cancellationToken).ConfigureAwait(false);
-                            discrepancies = 0;
-                            continue;
+                            case LineInput.Abort:
+                                return LineOutcome.Aborted;
+
+                            case LineInput.Standby:
+                                if (!await StandbyAsync(definition, "standby", cancellationToken).ConfigureAwait(false))
+                                {
+                                    return LineOutcome.Aborted;
+                                }
+
+                                discrepancies = 0;
+                                continue;
                         }
 
                         // Continue, or no answer → proceed despite the unverified state (logged).
                         _eventLog.Record("abnormal.line",
                             new { id = definition.Id, say = line.Say, outcome = "continued-unverified" });
-                        return;
+                        return LineOutcome.Completed;
                     }
 
                     continue; // re-speak and retry
@@ -235,46 +291,74 @@ public sealed class EcamDialogueCore
         var said = await _io.ListenAsync(ConfirmVocabulary.All, ConfirmTimeout, cancellationToken)
             .ConfigureAwait(false);
         var apply = said is not null
-            && ConfirmVocabulary.Affirm.Contains(said.Trim(), StringComparer.OrdinalIgnoreCase);
+            && MatchesAny(CommandMatcher.Normalize(said), ConfirmVocabulary.Affirm);
         _eventLog.Record("abnormal.branch",
             new { id = definition.Id, say = line.Say, apply, by = "pilot" });
         return apply;
     }
 
-    /// <summary>Pauses until the pilot says any continue phrase, listening silently in
+    /// <summary>Pauses until the pilot says a continue phrase, listening silently in
     /// <see cref="StandbyPollTimeout"/> slices — the FO speaks once going in and once coming
-    /// out, never in between.</summary>
-    private async Task StandbyAsync(AbnormalDefinition definition, string reason, CancellationToken cancellationToken)
+    /// out, never in between. Only a MATCHED continue phrase resumes: the 2026-08-15 flight
+    /// showed that resuming on any recognition (the previous behaviour) turns cockpit chatter
+    /// and ATC calls into an endless resume/nag cycle (issue #56). Returns false when the
+    /// pilot aborted the whole procedure instead of resuming.</summary>
+    private async Task<bool> StandbyAsync(AbnormalDefinition definition, string reason, CancellationToken cancellationToken)
     {
         _eventLog.Record("abnormal.paused", new { id = definition.Id, reason });
         await _io.SpeakAsync("Standing by. Say continue ECAM when ready.", cancellationToken).ConfigureAwait(false);
 
+        var grammar = ContinuePhrases.Concat(AbortPhrases).ToList();
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // The grammar is only the continue phrases, so any recognition resumes.
-            var said = await _io.ListenAsync(ContinuePhrases, StandbyPollTimeout, cancellationToken)
+            var said = await _io.ListenAsync(grammar, StandbyPollTimeout, cancellationToken)
                 .ConfigureAwait(false);
-            if (said is not null)
+            if (said is null)
+            {
+                continue; // silence — keep holding
+            }
+
+            var normalized = CommandMatcher.Normalize(said);
+            if (MatchesAny(normalized, AbortPhrases))
+            {
+                return false;
+            }
+
+            if (MatchesAny(normalized, ContinuePhrases))
             {
                 break;
             }
+
+            // Recognized but unmatched speech (chatter, an ATC readback) holds the standby.
         }
 
         _eventLog.Record("abnormal.resumed", new { id = definition.Id });
         await _io.SpeakAsync("Continuing.", cancellationToken).ConfigureAwait(false);
+        return true;
     }
 
-    /// <summary>After repeated verification mismatches: continue past the line, or stand by?
-    /// Returns true for standby; a continue phrase <b>or a timeout</b> proceeds unverified —
+    /// <summary>After repeated verification mismatches: continue past the line, stand by, or
+    /// abort? A continue phrase, unmatched speech <b>or a timeout</b> proceeds unverified —
     /// the dialogue never wedges on a line the aircraft disagrees with.</summary>
-    private async Task<bool> OfferStandbyAsync(CancellationToken cancellationToken)
+    private async Task<LineInput> OfferStandbyAsync(CancellationToken cancellationToken)
     {
         await _io.SpeakAsync("Say continue to proceed, or standby.", cancellationToken).ConfigureAwait(false);
-        var grammar = ContinuePhrases.Concat(StandbyPhrases).ToList();
+        var grammar = ContinuePhrases.Concat(StandbyPhrases).Concat(AbortPhrases).ToList();
         var said = await _io.ListenAsync(grammar, ConfirmTimeout, cancellationToken).ConfigureAwait(false);
-        return said is not null && StandbyPhrases.Contains(said.Trim(), StringComparer.OrdinalIgnoreCase);
+        if (said is null)
+        {
+            return LineInput.None;
+        }
+
+        var normalized = CommandMatcher.Normalize(said);
+        if (MatchesAny(normalized, AbortPhrases))
+        {
+            return LineInput.Abort;
+        }
+
+        return MatchesAny(normalized, StandbyPhrases) ? LineInput.Standby : LineInput.None;
     }
 
     private Task AckAsync(AbnormalAction line, CancellationToken cancellationToken)
@@ -283,18 +367,22 @@ public sealed class EcamDialogueCore
             : _io.SpeakAsync(line.Ack, cancellationToken);
 
     /// <summary>Per-line grammar: the line's own confirm phrases, the generic affirmatives,
-    /// and the global dialogue words.</summary>
+    /// and the global dialogue words (abort included — an escape must exist in EVERY window).</summary>
     internal static List<string> BuildLineGrammar(AbnormalAction line)
         => line.Confirm
             .Concat(ConfirmVocabulary.Affirm)
             .Concat(StandbyPhrases)
             .Concat(SayAgainPhrases)
             .Concat(SkipPhrases)
+            .Concat(AbortPhrases)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
     /// <summary>Global words win over confirm phrases (so a JSON author cannot shadow
-    /// "standby"); anything else — including a timeout — is <see cref="LineInput.None"/>.</summary>
+    /// "standby"); anything else — including a timeout — is <see cref="LineInput.None"/>.
+    /// Matching is normalized whole-word containment, the checklist engine's rule (issue #56:
+    /// the previous exact-equality match meant "okay, generator reset" answered nothing and
+    /// the dialogue nagged forever).</summary>
     private static LineInput Classify(string? said, AbnormalAction line)
     {
         if (string.IsNullOrWhiteSpace(said))
@@ -302,28 +390,55 @@ public sealed class EcamDialogueCore
             return LineInput.None;
         }
 
-        var text = said.Trim();
-        if (StandbyPhrases.Contains(text, StringComparer.OrdinalIgnoreCase))
+        var normalized = CommandMatcher.Normalize(said);
+        if (MatchesAny(normalized, AbortPhrases))
+        {
+            return LineInput.Abort;
+        }
+
+        if (MatchesAny(normalized, StandbyPhrases))
         {
             return LineInput.Standby;
         }
 
-        if (SayAgainPhrases.Contains(text, StringComparer.OrdinalIgnoreCase))
+        if (MatchesAny(normalized, SayAgainPhrases))
         {
             return LineInput.SayAgain;
         }
 
-        if (SkipPhrases.Contains(text, StringComparer.OrdinalIgnoreCase))
+        if (MatchesAny(normalized, SkipPhrases))
         {
             return LineInput.Skip;
         }
 
-        if (line.Confirm.Any(p => string.Equals(p.Trim(), text, StringComparison.OrdinalIgnoreCase))
-            || ConfirmVocabulary.Affirm.Contains(text, StringComparer.OrdinalIgnoreCase))
+        if (MatchesAny(normalized, line.Confirm) || MatchesAny(normalized, ConfirmVocabulary.Affirm))
         {
             return LineInput.Confirm;
         }
 
         return LineInput.None;
+    }
+
+    /// <summary>Normalized whole-word containment ("QNH set thanks" matches "set"; "reset"
+    /// does not) against every phrase in the pool. <paramref name="normalizedText"/> must
+    /// already be <see cref="CommandMatcher.Normalize"/>d.</summary>
+    private static bool MatchesAny(string normalizedText, IEnumerable<string> phrases)
+    {
+        foreach (var phrase in phrases)
+        {
+            var normalizedPhrase = CommandMatcher.Normalize(phrase);
+            if (normalizedPhrase.Length == 0)
+            {
+                continue;
+            }
+
+            if (normalizedText.Equals(normalizedPhrase, StringComparison.Ordinal)
+                || $" {normalizedText} ".Contains($" {normalizedPhrase} ", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

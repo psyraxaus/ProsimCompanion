@@ -24,7 +24,7 @@ namespace ProsimCompanion.Speech.Abnormals;
 /// FIFO, skipped if the failure clears before its turn, and disabled entirely (announce-only)
 /// when no <see cref="IMicOwnership"/> was supplied.
 /// </summary>
-public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
+public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialogueControl, IDisposable
 {
     private const string EwdLeft = "aircraft.fwc.content.left.str";
     private const string MasterWarning = "system.indicators.I_MIP_MASTER_WARNING_FO";
@@ -37,6 +37,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FailureMonitor> _logger;
     private readonly IMicOwnership? _mic;
+    private readonly Core.State.SpeechStatusStore? _status;
     private readonly EcamDialogueCore _ecamDialogue;
     private readonly SemaphoreSlim _oneDialogue = new(1, 1);
     private readonly CancellationTokenSource _dialogueCts = new();
@@ -45,20 +46,24 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
     private readonly Dictionary<string, TriggerState> _states = [];
 
     private IReadOnlyList<AbnormalDefinition> _definitions = [];
+    private DialogueSession? _activeDialogue;
     private Timer? _timer;
     private int _ticking;
     private bool _ewdWarned;
 
     /// <summary>Optional <paramref name="micOwnership"/>: DI injects the registered seam, so
     /// live ECAM procedures run the interactive dialogue; without it (degraded mode, and the
-    /// pre-existing detection tests) procedures are announce-only and drills are unaffected.</summary>
+    /// pre-existing detection tests) procedures are announce-only and drills are unaffected.
+    /// Optional <paramref name="statusStore"/> publishes the running dialogue's title for the
+    /// web page's cancel affordance (issue #56).</summary>
     public FailureMonitor(
         ISpeechArbiter arbiter,
         IProsimDataRefs dataRefs,
         IFlightPhaseSource flight,
         JsonlEventLog eventLog,
         ILogger<FailureMonitor> logger,
-        IMicOwnership? micOwnership = null)
+        IMicOwnership? micOwnership = null,
+        Core.State.SpeechStatusStore? statusStore = null)
     {
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -72,7 +77,24 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
         _eventLog = eventLog;
         _logger = logger;
         _mic = micOwnership;
+        _status = statusStore;
         _ecamDialogue = new EcamDialogueCore(this, eventLog);
+    }
+
+    /// <summary>The running ECAM dialogue and the means to end it early. Voice abort lives in
+    /// the dialogue core; this cancellation path serves the web button (user) and
+    /// <see cref="ProcessTick"/> (the failure cleared mid-dialogue, issue #57).</summary>
+    private sealed class DialogueSession
+    {
+        public required string Id { get; init; }
+
+        public required string Title { get; init; }
+
+        public required CancellationTokenSource Cts { get; init; }
+
+        /// <summary>Why the session was cancelled ("cleared" / "user") — set BEFORE
+        /// <see cref="Cts"/> fires so the unwind path can announce the right thing.</summary>
+        public string? EndReason { get; set; }
     }
 
     /// <summary>Drill voice phrases for the recognition idle grammar (drills are also
@@ -87,7 +109,8 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
 
     public void Start()
     {
-        Load(AbnormalLoader.LoadFolder(Path.Combine(AppContext.BaseDirectory, "config", "abnormals")));
+        // User tree, not the install dir (ADR-0007) — seeded from shipped defaults at startup.
+        Load(AbnormalLoader.LoadFolder(Core.Configuration.UserConfigPaths.Abnormals));
         _logger.LogInformation("Loaded {Count} abnormal definitions ({Drills} drills)",
             _definitions.Count, _definitions.Count(d => d.IsDrill));
         _timer = new Timer(_ => Tick(), null, 1000, 500); // 2 Hz, fixed (the predecessor's detectionRateHz default; no config knob here yet)
@@ -141,6 +164,10 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
     /// <summary>One evaluation pass — public for tests.</summary>
     public void ProcessTick(DateTimeOffset nowUtc)
     {
+        // Cancelled outside the lock: Cancel() can run continuations synchronously, and one
+        // of those may re-enter this monitor.
+        CancellationTokenSource? clearedDialogue = null;
+
         lock (_lock)
         {
             var phase = _flight.CurrentPhase;
@@ -161,6 +188,16 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
                     {
                         state.Fired = false;
                         _eventLog.Record("failure.cleared", new { id = definition.Id });
+
+                        // A dialogue mid-run for this failure ends now (issue #57): the
+                        // 2026-08-15 flight had the FO demanding a gen reset for 13 minutes
+                        // after the generators came back on line.
+                        if (_activeDialogue is { } active
+                            && string.Equals(active.Id, definition.Id, StringComparison.Ordinal))
+                        {
+                            active.EndReason = "cleared";
+                            clearedDialogue = active.Cts;
+                        }
                     }
 
                     state.RisingSinceUtc = null;
@@ -183,6 +220,28 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
                 Fire(definition);
             }
         }
+
+        clearedDialogue?.Cancel();
+    }
+
+    /// <summary>Web-button escape (issue #56): ends the running ECAM dialogue without needing
+    /// a recognized voice command. The unwind path acknowledges aloud and returns the mic.</summary>
+    public bool CancelActiveDialogue()
+    {
+        CancellationTokenSource? cts;
+        lock (_lock)
+        {
+            if (_activeDialogue is not { } active)
+            {
+                return false;
+            }
+
+            active.EndReason = "user";
+            cts = active.Cts;
+        }
+
+        cts.Cancel();
+        return true;
     }
 
     private void Fire(AbnormalDefinition definition)
@@ -221,7 +280,10 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
     /// One ECAM dialogue at a time (FIFO by semaphore turn — the severity pre-emption of
     /// Prosim2FO's engine is not ported; a later Critical announcement still jumps the audio
     /// queue). When its turn comes, a detection that has already cleared is skipped, matching
-    /// the predecessor. The mic borrow's using-disposal restores normal routing on every path.
+    /// the predecessor. A RUNNING dialogue additionally carries its own cancellation source so
+    /// the web button (issue #56) and a failure clearing mid-run (issue #57) can end it — the
+    /// unwind announces why. The mic borrow's using-disposal restores normal routing on every
+    /// path.
     /// </summary>
     private async Task RunEcamDialogueAsync(AbnormalDefinition definition)
     {
@@ -229,6 +291,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
         try
         {
             await _oneDialogue.WaitAsync(token).ConfigureAwait(false);
+            DialogueSession? session = null;
             try
             {
                 lock (_lock)
@@ -241,15 +304,50 @@ public sealed class FailureMonitor : IEcamDialogueIo, IDisposable
                             "Skipping ECAM dialogue for {Id} — already cleared", definition.Id);
                         return;
                     }
+
+                    session = new DialogueSession
+                    {
+                        Id = definition.Id,
+                        Title = definition.Title,
+                        Cts = CancellationTokenSource.CreateLinkedTokenSource(token),
+                    };
+                    _activeDialogue = session;
                 }
 
-                using (await BorrowMicAsync("abnormal:" + definition.Id, token).ConfigureAwait(false))
+                _status?.Update(s => s with { ActiveAbnormal = definition.Title });
+
+                try
                 {
-                    await _ecamDialogue.RunAsync(definition, token).ConfigureAwait(false);
+                    using (await BorrowMicAsync("abnormal:" + definition.Id, session.Cts.Token).ConfigureAwait(false))
+                    {
+                        await _ecamDialogue.RunAsync(definition, session.Cts.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    // Session-only cancellation: the fault cleared, or the user hit the web
+                    // cancel. Announce on a fresh token — the session's is already cancelled.
+                    var reason = session.EndReason ?? "user";
+                    _eventLog.Record("abnormal.ended", new { id = definition.Id, reason });
+                    var announcement = reason == "cleared"
+                        ? $"The {definition.Title} has cleared. Resuming normal duties."
+                        : "ECAM cancelled. Resuming normal duties.";
+                    await ((IEcamDialogueIo)this)
+                        .SpeakAsync(announcement, CancellationToken.None).ConfigureAwait(false);
                 }
             }
             finally
             {
+                lock (_lock)
+                {
+                    if (ReferenceEquals(_activeDialogue, session))
+                    {
+                        _activeDialogue = null;
+                    }
+                }
+
+                _status?.Update(s => s with { ActiveAbnormal = "" });
+                session?.Cts.Dispose();
                 try
                 {
                     _oneDialogue.Release();

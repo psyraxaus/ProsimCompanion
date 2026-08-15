@@ -39,7 +39,8 @@ public sealed record SpeechStatusSnapshot(
     string LastHeard = "",
     string SpokenChecklist = "",
     string SpokenChecklistItem = "",
-    bool CabinCalling = false)
+    bool CabinCalling = false,
+    string ActiveAbnormal = "")
 {
     public static SpeechStatusSnapshot Empty { get; } = new(
         Enabled: false,
@@ -92,4 +93,15 @@ public interface ISpeechControl
     /// <summary>Speaks a test phrase through the full arbiter/router/playback path at Normal
     /// priority — the /speech page's "say something" button.</summary>
     void SpeakTest(string text);
+}
+
+/// <summary>Web-side escape hatch for the interactive ECAM abnormal dialogue (issue #56:
+/// voice must never be the ONLY way out of a dialogue that holds the mic). Implemented by
+/// the speech pillar's FailureMonitor; the running dialogue's title is on
+/// <see cref="SpeechStatusSnapshot.ActiveAbnormal"/>.</summary>
+public interface IAbnormalDialogueControl
+{
+    /// <summary>Cancels the running ECAM dialogue, if any; returns whether one was active.
+    /// The FO acknowledges the cancellation aloud and normal voice routing resumes.</summary>
+    bool CancelActiveDialogue();
 }
