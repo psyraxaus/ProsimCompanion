@@ -179,6 +179,9 @@ public static class SpeechServiceCollectionExtensions
         // re-testing an unhealthy endpoint every five minutes so recovery is detected.
         services.AddSingleton<Llm.OpenAiChatClient>();
         services.AddHostedService<Llm.LlmHealthProbeService>();
+        // The utterance router (CONTEXT.md, campaign #82): owns interpretation, precedence
+        // and the idle grammar; the checklist engine attaches as its routing host.
+        services.AddSingleton<UtteranceRouter>();
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

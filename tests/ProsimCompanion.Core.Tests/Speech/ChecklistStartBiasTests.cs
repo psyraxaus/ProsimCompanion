@@ -1,4 +1,5 @@
 using ProsimCompanion.Speech.Checklists;
+using ProsimCompanion.Speech.Recognition;
 using Xunit;
 
 namespace ProsimCompanion.Core.Tests.Speech;
@@ -25,7 +26,7 @@ public sealed class ChecklistStartBiasTests
     [Fact]
     public void UtteranceWithChecklist_ScopesToChecklistPhrases()
     {
-        var scoped = SpokenChecklistEngine.ScopeForChecklistStart(
+        var scoped = UtteranceRouter.ScopeForChecklistStart(
             "approach checklist", IdleGrammar, itemAwaiting: false);
 
         Assert.All(scoped, p => Assert.Contains("checklist", p, StringComparison.OrdinalIgnoreCase));
@@ -37,7 +38,7 @@ public sealed class ChecklistStartBiasTests
     [Fact]
     public void UtteranceWithoutChecklist_KeepsFullGrammar()
     {
-        var scoped = SpokenChecklistEngine.ScopeForChecklistStart(
+        var scoped = UtteranceRouter.ScopeForChecklistStart(
             "activate approach phase", IdleGrammar, itemAwaiting: false);
 
         Assert.Same(IdleGrammar, scoped);
@@ -48,7 +49,7 @@ public sealed class ChecklistStartBiasTests
     {
         // A readback like "checklist complete" while a line is pending must stay routable
         // against the item's accepted phrases.
-        var scoped = SpokenChecklistEngine.ScopeForChecklistStart(
+        var scoped = UtteranceRouter.ScopeForChecklistStart(
             "checklist", IdleGrammar, itemAwaiting: true);
 
         Assert.Same(IdleGrammar, scoped);
@@ -59,6 +60,6 @@ public sealed class ChecklistStartBiasTests
     {
         List<string> grammar = ["set heading three two zero"];
 
-        Assert.Same(grammar, SpokenChecklistEngine.ScopeForChecklistStart("checklist", grammar, false));
+        Assert.Same(grammar, UtteranceRouter.ScopeForChecklistStart("checklist", grammar, false));
     }
 }

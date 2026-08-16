@@ -216,18 +216,29 @@ public sealed class MicOwnershipTests
             dataRefs,
             SpeechTestSupport.ChecklistMonitor(new ChecklistOptions()),
             NullLogger<ChecklistService>.Instance);
+        // Routing lives in the router (campaign #82); the engine attaches as its host.
+        using var router = new UtteranceRouter(
+            new UtteranceInterpreter(monitor),
+            checklists,
+            new FailureMonitor(arbiter, dataRefs, phases, eventLog, NullLogger<FailureMonitor>.Instance),
+            [probe],
+            _window,
+            _mic,
+            arbiter,
+            SpeechTestSupport.PhraseBank(),
+            SpeechTestSupport.Persona(),
+            new LlmHealthStore(),
+            NullLogger<UtteranceRouter>.Instance);
         using var engine = new SpokenChecklistEngine(
             monitor,
             arbiter,
             _window,
             _mic,
-            new UtteranceInterpreter(monitor),
+            router,
             checklists,
             dataRefs,
             new ControlMonitor(dataRefs, NullLogger<ControlMonitor>.Instance),
             new ControlSweepService(dataRefs, NullLogger<ControlSweepService>.Instance),
-            new FailureMonitor(arbiter, dataRefs, phases, eventLog, NullLogger<FailureMonitor>.Instance),
-            [probe],
             new SpeechStatusStore(),
             eventLog,
             NullLogger<SpokenChecklistEngine>.Instance,
@@ -243,8 +254,7 @@ public sealed class MicOwnershipTests
             new ProsimCompanion.Speech.Commands.SpokenTokenSource(
                 dataRefs,
                 SpeechTestSupport.BriefingMonitor(new BriefingOptions()),
-                NullLogger<ProsimCompanion.Speech.Commands.SpokenTokenSource>.Instance),
-            new LlmHealthStore());
+                NullLogger<ProsimCompanion.Speech.Commands.SpokenTokenSource>.Instance));
         engine.Start();
 
         _window.Hear("test phrase");

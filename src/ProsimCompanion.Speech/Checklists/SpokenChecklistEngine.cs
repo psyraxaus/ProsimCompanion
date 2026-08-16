@@ -21,8 +21,10 @@ namespace ProsimCompanion.Speech.Checklists;
 /// never-give-up escape line, action (FO control sweep), monitorControls (captain sweep watch
 /// then FO sweep). Runs beside the visual /checklists runner, which keeps its own gated
 /// semantics — this engine is its own state machine, surfaced on the /speech page.
+/// Utterance routing lives in the <see cref="UtteranceRouter"/> (campaign #82); this engine
+/// exposes its run-loop state through <see cref="IChecklistRoutingHost"/>.
 /// </summary>
-public sealed class SpokenChecklistEngine : IDisposable
+public sealed class SpokenChecklistEngine : IDisposable, IChecklistRoutingHost
 {
     private const int DefaultMaxRetries = 3;
 
@@ -41,20 +43,17 @@ public sealed class SpokenChecklistEngine : IDisposable
     private readonly ISpeechArbiter _arbiter;
     private readonly IRecognitionWindow _recognition;
     private readonly IMicOwnership _micOwnership;
-    private readonly UtteranceInterpreter _interpreter;
+    private readonly UtteranceRouter _router;
     private readonly ChecklistService _checklists;
     private readonly IProsimDataRefs _dataRefs;
     private readonly ControlMonitor _monitor;
     private readonly ControlSweepService _sweep;
-    private readonly FailureMonitor _failures;
-    private readonly IReadOnlyList<IVoiceFeature> _features;
     private readonly SpeechStatusStore _store;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SpokenChecklistEngine> _logger;
     private readonly Persona.PhraseBank _phrases;
     private readonly Persona.PersonaService _persona;
     private readonly Commands.SpokenTokenSource _tokens;
-    private readonly LlmHealthStore _llmHealth;
     private readonly Briefings.MinimaCaptureDialogue _minimaCapture = null!;
     private readonly object _gate = new();
     private readonly Dictionary<string, IDataRefSubscription> _verifyReads = new(StringComparer.Ordinal);
@@ -64,39 +63,29 @@ public sealed class SpokenChecklistEngine : IDisposable
     private ChecklistItemDefinition? _awaitingItem;
     private CancellationTokenSource? _monitorSkip;
     private bool _started;
-    private bool _llmOfflineAdvisoryGiven; // once per session (issue #66)
 
     public SpokenChecklistEngine(
         IOptionsMonitor<SpeechOptions> options,
         ISpeechArbiter arbiter,
         IRecognitionWindow recognition,
         IMicOwnership micOwnership,
-        UtteranceInterpreter interpreter,
+        UtteranceRouter router,
         ChecklistService checklists,
         IProsimDataRefs dataRefs,
         ControlMonitor monitor,
         ControlSweepService sweep,
-        FailureMonitor failures,
-        IEnumerable<IVoiceFeature> features,
         SpeechStatusStore store,
         JsonlEventLog eventLog,
         ILogger<SpokenChecklistEngine> logger,
         Briefings.MinimaCaptureDialogue minimaCapture,
         Persona.PhraseBank phrases,
         Persona.PersonaService persona,
-        Commands.SpokenTokenSource tokens,
-        LlmHealthStore llmHealth)
+        Commands.SpokenTokenSource tokens)
     {
-        ArgumentNullException.ThrowIfNull(failures);
-        ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(minimaCapture);
         ArgumentNullException.ThrowIfNull(phrases);
         ArgumentNullException.ThrowIfNull(persona);
         ArgumentNullException.ThrowIfNull(tokens);
-        ArgumentNullException.ThrowIfNull(llmHealth);
-        _llmHealth = llmHealth;
-        _failures = failures;
-        _features = [.. features];
         _minimaCapture = minimaCapture;
         _phrases = phrases;
         _persona = persona;
@@ -105,7 +94,7 @@ public sealed class SpokenChecklistEngine : IDisposable
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(recognition);
         ArgumentNullException.ThrowIfNull(micOwnership);
-        ArgumentNullException.ThrowIfNull(interpreter);
+        ArgumentNullException.ThrowIfNull(router);
         ArgumentNullException.ThrowIfNull(checklists);
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(monitor);
@@ -118,7 +107,7 @@ public sealed class SpokenChecklistEngine : IDisposable
         _arbiter = arbiter;
         _recognition = recognition;
         _micOwnership = micOwnership;
-        _interpreter = interpreter;
+        _router = router;
         _checklists = checklists;
         _dataRefs = dataRefs;
         _monitor = monitor;
@@ -136,26 +125,90 @@ public sealed class SpokenChecklistEngine : IDisposable
         }
 
         _started = true;
-        _recognition.Accepted += OnRecognized;
-        _recognition.Rejected += OnRejected;
-        // A dialogue that borrowed the mic BEFORE this Start (bootstrap ordering — the
-        // dialogue services start earlier) captured window-closed and would close our idle
-        // window on release; re-assert it after every release instead (issue #61).
-        _micOwnership.Released += OnMicReleased;
-        OpenIdleWindow();
+        // The router owns recognition subscription + the idle window (campaign #82); starting
+        // it from here preserves the exact bootstrap ordering (#61).
+        _router.Attach(this);
+        _router.Start();
     }
 
     public void Dispose()
     {
-        _recognition.Accepted -= OnRecognized;
-        _recognition.Rejected -= OnRejected;
-        _micOwnership.Released -= OnMicReleased;
+        _router.Dispose();
         Cancel();
         foreach (var read in _verifyReads.Values)
         {
             read.Dispose();
         }
     }
+
+    ChecklistItemDefinition? IChecklistRoutingHost.AwaitingItem
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _awaitingItem;
+            }
+        }
+    }
+
+    bool IChecklistRoutingHost.ResponsePending
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _response is not null;
+            }
+        }
+    }
+
+    bool IChecklistRoutingHost.IsIdle
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _run is null && _awaitingItem is null && _response is null;
+            }
+        }
+    }
+
+    bool IChecklistRoutingHost.TryCancelMonitorSkip()
+    {
+        CancellationTokenSource? skip;
+        lock (_gate)
+        {
+            skip = _monitorSkip;
+        }
+
+        if (skip is null)
+        {
+            return false;
+        }
+
+        skip.Cancel();
+        return true;
+    }
+
+    bool IChecklistRoutingHost.IsAcceptedAnswer(ChecklistItemDefinition item, string text)
+        => IsAccepted(item, text);
+
+    void IChecklistRoutingHost.Complete(RoutedResponseKind kind, string text)
+        => CompleteResponse(new EngineResponse(kind switch
+        {
+            RoutedResponseKind.Skip => ResponseKind.Skip,
+            RoutedResponseKind.SayAgain => ResponseKind.SayAgain,
+            RoutedResponseKind.NotCaught => ResponseKind.NotCaught,
+            RoutedResponseKind.Hold => ResponseKind.Hold,
+            _ => ResponseKind.Phrase,
+        }, text));
+
+    void IChecklistRoutingHost.CancelChecklist() => Cancel();
+
+    void IChecklistRoutingHost.RestartActive() => RestartActive();
+
+    void IChecklistRoutingHost.StartChecklist(string name) => StartChecklist(name);
 
     /// <summary>Starts a checklist by name (voice start-phrase or web button). Pinned to the
     /// default set: the web page's set selection must never change what the spoken run reads.</summary>
@@ -434,15 +487,9 @@ public sealed class SpokenChecklistEngine : IDisposable
             _monitorSkip = skip;
         }
 
-        // Commands + feature phrases (reference semantics) — skip/cancel work and so does a
-        // mid-check handover or radio call.
-        var monitorGrammar = new List<string>(VoiceCommands.All);
-        foreach (var feature in _features.Where(f => f.Enabled))
-        {
-            monitorGrammar.AddRange(feature.Phrases);
-        }
-
-        _recognition.OpenListeningWindow(monitorGrammar);
+        // Commands + enabled feature phrases (reference semantics) — skip/cancel work and so
+        // does a mid-check handover or radio call.
+        _recognition.OpenListeningWindow(_router.CommandAndFeaturePhrases());
         try
         {
             var completed = await _monitor.RunAsync(
@@ -661,336 +708,6 @@ public sealed class SpokenChecklistEngine : IDisposable
 
         return read.GetValue(0.0);
     }
-
-    private void OnRecognized(object? sender, RecognizedEventArgs e)
-    {
-        // A borrowed mic means a guided dialogue (tech-log raise/rectify, shutdown offer) owns
-        // recognition: normal routing — feature dispatch AND checklist answers — stands down.
-        // A pending item's response source stays pending, so the checklist holds and resumes
-        // when the borrow's disposal replays this engine's window.
-        if (_micOwnership.IsBorrowed)
-        {
-            return;
-        }
-
-        try
-        {
-            RouteUtterance(e);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Utterance routing failed");
-        }
-    }
-
-    /// <summary>After any mic borrow releases: when this engine is fully idle (no run, no
-    /// awaiting item), its idle grammar is the standing window — re-open it, because the
-    /// borrow's replay restored whatever was captured at borrow time, which may pre-date
-    /// <see cref="Start"/>. Mid-run states leave the replayed window alone: an awaiting item's
-    /// window was captured correctly, and the run loop opens its own next window.</summary>
-    private void OnMicReleased()
-    {
-        lock (_gate)
-        {
-            if (_run is not null || _awaitingItem is not null || _response is not null)
-            {
-                return;
-            }
-        }
-
-        OpenIdleWindow();
-    }
-
-    private void OnRejected(object? sender, RecognizedEventArgs e)
-    {
-        if (_micOwnership.IsBorrowed)
-        {
-            return; // a dialogue owns the mic — its own listens handle rejection by timeout
-        }
-
-        // Empty-text rejections (silent PTT tap, timeout) are swallowed by design.
-        if (!string.IsNullOrWhiteSpace(e.Text))
-        {
-            CompleteResponse(new EngineResponse(ResponseKind.NotCaught, ""));
-        }
-    }
-
-    private void RouteUtterance(RecognizedEventArgs e)
-    {
-        ChecklistItemDefinition? awaiting;
-        bool responsePending;
-        lock (_gate)
-        {
-            awaiting = _awaitingItem;
-            responsePending = _response is not null;
-        }
-
-        // Value-parsing features (FCU, radios) get the RAW transcription first so numbers
-        // survive — skipped while an item is awaiting an answer.
-        if (awaiting is null)
-        {
-            foreach (var feature in _features.Where(f => f.Enabled && f.ValueParse))
-            {
-                if (feature.TryHandle(e.Text))
-                {
-                    return;
-                }
-            }
-        }
-
-        var grammar = ScopeForChecklistStart(e.Text, BuildRouteVocabulary(awaiting), awaiting is not null);
-        var interpretation = _interpreter.Interpret(
-            e.Text, grammar, new InterpretContext(awaiting is not null, e.AcousticConfidence, e.NoSpeechProb));
-
-        // The ASR decision trail (issue #66): local data, one Debug line per utterance —
-        // without it, a flight's worth of misrouted utterances left no evidence at all.
-        _logger.LogDebug(
-            "ASR heard \"{Heard}\" (conf {Confidence:F2}, acoustic {Acoustic}, noSpeech {NoSpeech}) -> {Decision} \"{Matched}\" (score {Score:F2})",
-            e.Text, e.Confidence, e.AcousticConfidence, e.NoSpeechProb,
-            interpretation.Kind, interpretation.Text, interpretation.Score);
-
-        switch (interpretation.Kind)
-        {
-            case InterpretKind.Reject:
-                if (string.IsNullOrWhiteSpace(e.Text))
-                {
-                    return;
-                }
-
-                if (responsePending)
-                {
-                    // An item (or the hold loop) owns the reply — its own flow speaks.
-                    CompleteResponse(new EngineResponse(ResponseKind.NotCaught, ""));
-                }
-                else
-                {
-                    HandleIdleMiss();
-                }
-
-                return;
-
-            case InterpretKind.Confirm:
-                // Gray band (score 0.70–0.85, command windows only): "did you mean …?" — the
-                // predecessor's affirm-gated recovery instead of silently discarding it.
-                _ = ConfirmAndRouteAsync(interpretation.Text);
-                return;
-        }
-
-        RouteText(interpretation.Text, awaiting);
-    }
-
-    /// <summary>An utterance nothing routed while fully idle (issue #66): previously it fell
-    /// into the FCU's "which field?" clarifier or vanished silently. Now it gets the normal
-    /// did-not-catch line — or, once per session while the LLM is known-unhealthy, the
-    /// advisory that explains WHY free-form phrasing is falling flat.</summary>
-    private void HandleIdleMiss()
-    {
-        var response = IdleMissPolicy.Decide(
-            _llmHealth.Snapshot().State, _llmOfflineAdvisoryGiven,
-            _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()));
-        if (response.IsLlmOfflineAdvisory)
-        {
-            _llmOfflineAdvisoryGiven = true;
-        }
-
-        _ = _arbiter.EnqueueAsync(new SpeechRequest(
-            response.Text, SpeechPriority.Normal, Tag: response.Tag));
-    }
-
-    /// <summary>Post-interpretation routing (Prosim2FO's Route): an awaiting item's ACCEPTED
-    /// answer outranks the identically-named global command; a non-answer falls through to
-    /// the global commands and then the voice features, so "my aircraft" or "tune the ils"
-    /// still works while a checklist line is pending.</summary>
-    private void RouteText(string text, ChecklistItemDefinition? awaiting)
-    {
-        if (awaiting is not null && IsAccepted(awaiting, text))
-        {
-            CompleteResponse(new EngineResponse(ResponseKind.Phrase, text));
-            return;
-        }
-
-        switch (CommandMatcher.Normalize(text))
-        {
-            case "skip" or "skip item":
-                var monitorSkip = _monitorSkip;
-                if (monitorSkip is not null)
-                {
-                    monitorSkip.Cancel();
-                }
-                else
-                {
-                    CompleteResponse(new EngineResponse(ResponseKind.Skip, ""));
-                }
-
-                return;
-
-            case "say again" or "repeat":
-                CompleteResponse(new EngineResponse(ResponseKind.SayAgain, ""));
-                return;
-
-            case "hold the checklist" or "standby":
-                CompleteResponse(new EngineResponse(ResponseKind.Hold, ""));
-                return;
-
-            case "resume checklist" or "continue":
-                // The hold loop owns the pending response while holding; outside a hold this
-                // completes into an item answer that fails IsAccepted (didn't-catch) or
-                // no-ops when nothing is pending.
-                CompleteResponse(new EngineResponse(ResponseKind.Phrase, text));
-                return;
-
-            case "cancel checklist":
-                Cancel();
-                return;
-
-            case "restart checklist":
-                RestartActive();
-                return;
-        }
-
-        // Voice features stay reachable while an item is pending (reference semantics) — a
-        // handover or radio call must not become a failed checklist answer. Disabled
-        // features are never offered the utterance (campaign #82 — the router owns the gate).
-        foreach (var feature in _features.Where(f => f.Enabled))
-        {
-            if (feature.TryHandle(text))
-            {
-                return;
-            }
-        }
-
-        if (awaiting is not null)
-        {
-            // Not a command, not a feature — treat as the item answer (IsAccepted already
-            // failed above, so this lands in the "didn't catch that" flow).
-            CompleteResponse(new EngineResponse(ResponseKind.Phrase, text));
-            return;
-        }
-
-        // A memory-drill rehearsal phrase?
-        if (_failures.TryRunDrillByPhrase(text))
-        {
-            return;
-        }
-
-        // A checklist start phrase? (Pinned to the default set — see StartChecklist.)
-        foreach (var definition in _checklists.Definitions(ChecklistService.DefaultSetName))
-        {
-            var startPhrases = definition.StartPhrases is { Count: > 0 }
-                ? definition.StartPhrases
-                : [$"{definition.Checklist} checklist"];
-            if (startPhrases.Any(p => CommandMatcher.Normalize(p)
-                .Equals(CommandMatcher.Normalize(text), StringComparison.Ordinal)))
-            {
-                StartChecklist(definition.Checklist);
-                return;
-            }
-        }
-
-        // Interpreted, yet no command/feature/drill/start claimed it (issue #66): answer
-        // like any other idle miss instead of dropping it silently.
-        HandleIdleMiss();
-    }
-
-    /// <summary>The gray-band recovery (Prosim2FO's ConfirmAndRouteAsync): borrow the mic,
-    /// ask "did you mean {candidate}?", listen 8 s on the confirm vocabulary, and route the
-    /// candidate only on an affirmative. Anything else (negative, timeout, mic busy) drops it
-    /// — the borrow's disposal replays the previous window either way.</summary>
-    private async Task ConfirmAndRouteAsync(string candidate)
-    {
-        try
-        {
-            IDisposable scope;
-            try
-            {
-                scope = _micOwnership.Borrow("confirmCommand");
-            }
-            catch (InvalidOperationException)
-            {
-                return; // another dialogue owns the mic — let the pilot just repeat
-            }
-
-            string? answer;
-            using (scope)
-            {
-                await SpeakTagged($"Say again — did you mean {candidate}?", "clarifier").ConfigureAwait(false);
-                answer = await _micOwnership.ListenAsync(
-                    ConfirmVocabulary.All, TimeSpan.FromSeconds(8), CancellationToken.None)
-                    .ConfigureAwait(false);
-            }
-
-            if (answer is not null
-                && ConfirmVocabulary.Affirm.Any(a => answer.Contains(a, StringComparison.OrdinalIgnoreCase)))
-            {
-                ChecklistItemDefinition? awaiting;
-                lock (_gate)
-                {
-                    awaiting = _awaitingItem;
-                }
-
-                RouteText(candidate, awaiting);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Confirm dialogue failed for {Candidate}", candidate);
-        }
-    }
-
-    /// <summary>
-    /// Checklist-start bias (issue #38): "approach checklist" phonetically snapped to
-    /// "activate approach phase"/"arm localizer" and the Approach checklist never ran. When the
-    /// pilot literally said "checklist" outside an item window, snapping is restricted to the
-    /// checklist-scoped phrases (start phrases and the global checklist commands) so a start
-    /// request can never resolve to an unrelated command. The full grammar stands when nothing
-    /// checklist-scoped exists or an item is awaiting its answer.
-    /// </summary>
-    internal static List<string> ScopeForChecklistStart(string utterance, List<string> grammar, bool itemAwaiting)
-    {
-        if (itemAwaiting || !utterance.Contains("checklist", StringComparison.OrdinalIgnoreCase))
-        {
-            return grammar;
-        }
-
-        var scoped = grammar
-            .Where(p => p.Contains("checklist", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        return scoped.Count > 0 ? scoped : grammar;
-    }
-
-    private List<string> BuildRouteVocabulary(ChecklistItemDefinition? awaiting)
-    {
-        var vocabulary = new List<string>(VoiceCommands.All);
-        if (awaiting is not null)
-        {
-            vocabulary.AddRange(awaiting.AcceptedPhrases);
-            // Feature phrases stay in the item window (reference semantics): a handover or
-            // radio call while a line is pending must snap and dispatch, not fail the item.
-            // Disabled features leave the closed grammar entirely (campaign #82).
-            foreach (var feature in _features.Where(f => f.Enabled))
-            {
-                vocabulary.AddRange(feature.Phrases);
-            }
-        }
-        else
-        {
-            foreach (var definition in _checklists.Definitions(ChecklistService.DefaultSetName))
-            {
-                vocabulary.AddRange(definition.StartPhrases is { Count: > 0 }
-                    ? definition.StartPhrases
-                    : [$"{definition.Checklist} checklist"]);
-            }
-
-            vocabulary.AddRange(_failures.DrillPhrases);
-            foreach (var feature in _features.Where(f => f.Enabled))
-            {
-                vocabulary.AddRange(feature.Phrases);
-            }
-        }
-
-        return vocabulary;
-    }
-
     private void RestartActive()
     {
         var name = _store.Snapshot().SpokenChecklist;
@@ -1011,9 +728,8 @@ public sealed class SpokenChecklistEngine : IDisposable
         pending?.TrySetResult(response);
     }
 
-    /// <summary>Idle grammar: every checklist's start phrases — always listening for a start.</summary>
-    private void OpenIdleWindow()
-        => _recognition.OpenListeningWindow(BuildRouteVocabulary(null));
+    /// <summary>Idle grammar is the router's (campaign #82) — always listening for a start.</summary>
+    private void OpenIdleWindow() => _router.OpenIdleWindow();
 
     private async Task Speak(string text)
         => await _arbiter.EnqueueAsync(new SpeechRequest(text, SpeechPriority.Normal, Tag: "checklist"))
