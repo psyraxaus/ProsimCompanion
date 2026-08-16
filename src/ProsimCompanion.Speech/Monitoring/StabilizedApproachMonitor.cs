@@ -16,7 +16,7 @@ namespace ProsimCompanion.Speech.Monitoring;
 /// event-logged either way. <see cref="ProcessSample"/> is public for deterministic
 /// two-sample crossing tests.
 /// </summary>
-public sealed class StabilizedApproachMonitor : IDisposable
+public sealed class StabilizedApproachMonitor : Core.Hosting.IStartupModule, IDisposable
 {
     private const int PollMs = 250;
 

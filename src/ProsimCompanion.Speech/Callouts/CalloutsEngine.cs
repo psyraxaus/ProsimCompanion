@@ -22,7 +22,7 @@ namespace ProsimCompanion.Speech.Callouts;
 /// crossing. Minima come exclusively from the crew-entered <see cref="ArrivalMinimaStore"/> —
 /// never guessed (there is no DH/MDA dataref).
 /// </summary>
-public sealed class CalloutsEngine : IDisposable
+public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
 {
     private const double StdTtlSec = 3.0;   // High callouts
     private const double CritTtlSec = 4.0;  // Critical callouts

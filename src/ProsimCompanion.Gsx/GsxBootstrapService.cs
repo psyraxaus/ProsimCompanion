@@ -37,39 +37,14 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         GsxDiagnosticsStore diagnostics,
         Gate.GsxGateSelectionService gateSelection,
         Automation.GsxAutomationService automation,
-        // The sync modules are injected purely to activate their event wiring at startup.
-        Sync.GsxRefuelSync refuelSync,
-        Sync.GsxBoardingSync boardingSync,
-        Sync.GsxGroundEquipmentService groundEquipment,
-        Sync.GsxJetwayStairsService jetwayStairs,
-        Sync.GsxRepositionService reposition,
-        Sync.GsxGroundPrepCoordinator groundPrep,
-        Sync.ProsimNativeGsxGuard nativeGsxGuard,
-        Sync.GsxDoorService doors,
-        Sync.GsxPushbackSequenceService pushbackSequence,
-        Sync.GsxArrivalService arrival,
-        Sync.GsxGroundOpsSignalRelay groundOpsRelay,
-        Sync.GsxStartupResyncService startupResync,
-        Sync.AircraftStateCheckService aircraftStateCheck,
         JsonlEventLog eventLog,
         ILogger<GsxBootstrapService> logger)
     {
-        ArgumentNullException.ThrowIfNull(doors);
-        ArgumentNullException.ThrowIfNull(pushbackSequence);
-        ArgumentNullException.ThrowIfNull(arrival);
-        ArgumentNullException.ThrowIfNull(groundOpsRelay);
-        ArgumentNullException.ThrowIfNull(startupResync);
-        ArgumentNullException.ThrowIfNull(aircraftStateCheck);
+        // The sync modules used to be injected here purely to force their construction —
+        // they are startup modules now (campaign #87), activated by the StartupModuleHost.
         ArgumentNullException.ThrowIfNull(questionCatalog);
         ArgumentNullException.ThrowIfNull(gateSelection);
         ArgumentNullException.ThrowIfNull(automation);
-        ArgumentNullException.ThrowIfNull(refuelSync);
-        ArgumentNullException.ThrowIfNull(boardingSync);
-        ArgumentNullException.ThrowIfNull(groundEquipment);
-        ArgumentNullException.ThrowIfNull(jetwayStairs);
-        ArgumentNullException.ThrowIfNull(reposition);
-        ArgumentNullException.ThrowIfNull(groundPrep);
-        ArgumentNullException.ThrowIfNull(nativeGsxGuard);
         ArgumentNullException.ThrowIfNull(client);
         _gateSelection = gateSelection;
         _automation = automation;

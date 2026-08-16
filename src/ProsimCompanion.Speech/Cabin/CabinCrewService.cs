@@ -19,7 +19,7 @@ namespace ProsimCompanion.Speech.Cabin;
 /// Reports are tagged cabin.* so the sterile rule exempts them. Detect-and-report only — never
 /// writes the sim.
 /// </summary>
-public sealed class CabinCrewService : IDisposable
+public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
 {
     private const string DoorLF = "doors.entry.left.fwd";
     private const string DoorLA = "doors.entry.left.aft";

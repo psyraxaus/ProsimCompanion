@@ -1,3 +1,4 @@
+using ProsimCompanion.Core.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
@@ -29,14 +30,14 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<ISpeechPlayback, SpeechPlayback>();
         services.AddSingleton<IAudioDeviceCatalog, AudioDeviceCatalog>();
         services.AddSingleton<ISpeechDiagnostics, SpeechDiagnosticsService>();
-        services.AddSingleton<SpeechArbiterService>();
+        services.AddStartupModule<SpeechArbiterService>();
         services.AddSingleton<ISpeechArbiter>(p => p.GetRequiredService<SpeechArbiterService>());
         services.AddSingleton<ISpeechControl>(p => p.GetRequiredService<SpeechArbiterService>());
-        services.AddSingleton<CalloutsEngine>();
-        services.AddSingleton<StabilizedApproachMonitor>();
-        services.AddSingleton<FlowMonitor>();
-        services.AddSingleton<TtsPrewarmService>();
-        services.AddSingleton<PushToTalkService>();
+        services.AddStartupModule<CalloutsEngine>();
+        services.AddStartupModule<StabilizedApproachMonitor>();
+        services.AddStartupModule<FlowMonitor>();
+        services.AddStartupModule<TtsPrewarmService>();
+        services.AddStartupModule<PushToTalkService>();
         services.AddSingleton<IPttInputCapture>(p => p.GetRequiredService<PushToTalkService>());
         services.AddSingleton<RecognitionController>();
         // The controller's listening-window surface + the exclusive-mic seam over it (guided
@@ -46,7 +47,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<UtteranceInterpreter>();
         services.AddSingleton<ControlMonitor>();
         services.AddSingleton<ControlSweepService>();
-        services.AddSingleton<Abnormals.FailureMonitor>();
+        services.AddStartupModule<Abnormals.FailureMonitor>();
         // Web-side ECAM escape hatch (issue #56) — the Web project reaches the running
         // dialogue only through this Core seam.
         services.AddSingleton<Core.State.IAbnormalDialogueControl>(
@@ -86,7 +87,7 @@ public static class SpeechServiceCollectionExtensions
             p => p.GetRequiredService<Briefings.DfdAirportNames>());
         services.AddSingleton<Briefings.ProcedureSource>();
         services.AddSingleton<Briefings.MinimaCaptureDialogue>();
-        services.AddSingleton<Briefings.MissedApproachRebrief>();
+        services.AddStartupModule<Briefings.MissedApproachRebrief>();
         services.AddSingleton<Briefings.BriefingService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Briefings.BriefingService>());
         // The missed-approach voice phrases dispatch through their own small feature so the
@@ -94,7 +95,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<IVoiceFeature, Briefings.MissedApproachVoiceFeature>();
         // Minima recall query — after BriefingService so full-briefing phrases keep precedence.
         services.AddSingleton<IVoiceFeature, Briefings.MinimaQueryVoiceFeature>();
-        services.AddSingleton<Company.CompanyChannelService>();
+        services.AddStartupModule<Company.CompanyChannelService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Company.CompanyChannelService>());
         services.AddSingleton<Company.ICompanyChannel>(p => p.GetRequiredService<Company.CompanyChannelService>());
         // Company day mode: voice start/end, leg tracking (finalizer Order 40), turnaround +
@@ -105,7 +106,7 @@ public static class SpeechServiceCollectionExtensions
             p => p.GetRequiredService<Day.CompanyDayService>());
         services.AddSingleton<Core.Day.IDayControl>(p => p.GetRequiredService<Day.CompanyDayService>());
         services.AddHostedService<Day.DayBootstrapService>();
-        services.AddSingleton<SayIntentions.SayIntentionsService>();
+        services.AddStartupModule<SayIntentions.SayIntentionsService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<SayIntentions.SayIntentionsService>());
         // Weather/CPDLC pulls are on-demand only (web Weather page) — no bootstrap Start,
         // and deliberately NOT an IVoiceFeature.
@@ -117,7 +118,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<SayIntentions.SayIntentionsGateAssignService>();
         services.AddSingleton<Core.Gate.ISayIntentionsGateAssign>(
             p => p.GetRequiredService<SayIntentions.SayIntentionsGateAssignService>());
-        services.AddSingleton<Cabin.CabinCrewService>();
+        services.AddStartupModule<Cabin.CabinCrewService>();
         // Prosim2GSX-parity cabin dings (startup / final loadsheet) — plain chime playback,
         // deliberately outside the speech arbiter.
         services.AddHostedService<Cabin.CabinDingService>();
@@ -137,10 +138,10 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Crew.IAcpChannel>(p => p.GetRequiredService<Crew.AcpChannel>());
         services.AddSingleton<Crew.CrewHailService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Crew.CrewHailService>());
-        services.AddSingleton<Crew.GroundCrewUpcallService>();
+        services.AddStartupModule<Crew.GroundCrewUpcallService>();
         // Cold-and-dark mismatch advisory (issue #63): speaks the aircraft state check's
         // verdict, consumed from the Core diagnostics store — no GSX project reference.
-        services.AddSingleton<Crew.AircraftStateAdvisoryService>();
+        services.AddStartupModule<Crew.AircraftStateAdvisoryService>();
         // Accent localization (issue #53): airport-country → per-provider ground-crew voice,
         // consumed by the arbiter at render time. Registered BEFORE the arbiter resolves.
         services.AddSingleton<Crew.AccentVoiceResolver>();
@@ -183,8 +184,9 @@ public static class SpeechServiceCollectionExtensions
         // The utterance router (CONTEXT.md, campaign #82): owns interpretation, precedence
         // and the idle grammar; the checklist engine attaches as its routing host.
         services.AddSingleton<UtteranceRouter>();
-        services.AddSingleton<SpokenChecklistEngine>();
-        services.AddHostedService<SpeechBootstrapService>();
+        services.AddStartupModule<SpokenChecklistEngine>();
+        // WoL used to hide in the retired bootstrap (campaign #87).
+        services.AddStartupModule<Llm.LlmWakeOnLanStartup>();
 
         return services;
     }

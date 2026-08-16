@@ -18,7 +18,7 @@ namespace ProsimCompanion.Speech.Briefings;
 /// <see cref="ProcessSample"/> takes its clock as a parameter so tests step past the gate
 /// without real-time waits.
 /// </summary>
-public sealed class MissedApproachRebrief : IDisposable
+public sealed class MissedApproachRebrief : Core.Hosting.IStartupModule, IDisposable
 {
     private const int PollMs = 1000;
     private const string Prefix = "Missed approach.";

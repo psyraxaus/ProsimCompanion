@@ -22,7 +22,7 @@ namespace ProsimCompanion.Speech.Recognition;
 /// start/stop must never run on the hook thread. Doubles as <see cref="IPttInputCapture"/>
 /// for the settings card's Set-button capture and pressed-state lamps.
 /// </summary>
-public sealed class PushToTalkService : IDisposable, IPttInputCapture
+public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable, IPttInputCapture
 {
     private const int MaxJoysticks = 16;
 

@@ -24,7 +24,7 @@ namespace ProsimCompanion.Speech.Checklists;
 /// Utterance routing lives in the <see cref="UtteranceRouter"/> (campaign #82); this engine
 /// exposes its run-loop state through <see cref="IChecklistRoutingHost"/>.
 /// </summary>
-public sealed class SpokenChecklistEngine : IDisposable, IChecklistRoutingHost
+public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDisposable, IChecklistRoutingHost
 {
     private const int DefaultMaxRetries = 3;
 

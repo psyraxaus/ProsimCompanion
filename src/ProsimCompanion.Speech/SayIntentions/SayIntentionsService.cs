@@ -29,7 +29,7 @@ public sealed class AtcRequestDefinition
 /// restores them. The SIAI L:var radio-clear gate is replaced by the predecessor's own
 /// no-SimVars fallback (a fixed 400 ms settle) until LVAR reads are wired here.
 /// </summary>
-public sealed class SayIntentionsService : IVoiceFeature, IDisposable
+public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupModule, IDisposable
 {
     private const string ApiBase = "https://apipri.sayintentions.ai/sapi";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };

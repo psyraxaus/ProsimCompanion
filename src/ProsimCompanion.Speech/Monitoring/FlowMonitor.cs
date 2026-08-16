@@ -21,7 +21,7 @@ namespace ProsimCompanion.Speech.Monitoring;
 /// <see cref="ProcessSample"/> takes its clock as a parameter so tests can step rate-limit and
 /// dwell windows deterministically.
 /// </summary>
-public sealed class FlowMonitor : IDisposable
+public sealed class FlowMonitor : Core.Hosting.IStartupModule, IDisposable
 {
     private const double AdvisoryTtlSec = 10.0;
     private const int PollMs = 1000;

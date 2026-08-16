@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ProsimCompanion.Core.Hosting;
 using ProsimCompanion.Gsx.Services;
 
 namespace ProsimCompanion.Gsx;
@@ -38,25 +39,28 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<GsxServiceControl>();
         services.AddSingleton<Core.State.IGsxServiceControl>(provider => provider.GetRequiredService<GsxServiceControl>());
         services.AddSingleton<Sync.GsxProsimWriter>();
-        services.AddSingleton<Sync.GsxRefuelSync>();
-        services.AddSingleton<Sync.GsxBoardingSync>();
-        services.AddSingleton<Sync.GsxGroundEquipmentService>();
-        services.AddSingleton<Sync.GsxJetwayStairsService>();
-        services.AddSingleton<Sync.GsxRepositionService>();
+        // Sync modules are startup modules (campaign #87): construction is their activation
+        // (event wiring in the ctor), driven by the StartupModuleHost — never by a bootstrap
+        // constructor parameter list.
+        services.AddStartupModule<Sync.GsxRefuelSync>();
+        services.AddStartupModule<Sync.GsxBoardingSync>();
+        services.AddStartupModule<Sync.GsxGroundEquipmentService>();
+        services.AddStartupModule<Sync.GsxJetwayStairsService>();
+        services.AddStartupModule<Sync.GsxRepositionService>();
         services.AddSingleton<Sync.GsxGateAnchorService>();
-        services.AddSingleton<Sync.GsxGroundPrepCoordinator>();
+        services.AddStartupModule<Sync.GsxGroundPrepCoordinator>();
         services.AddSingleton<Sync.IGsxGroundPrepStatus>(provider => provider.GetRequiredService<Sync.GsxGroundPrepCoordinator>());
-        services.AddSingleton<Sync.ProsimNativeGsxGuard>();
-        services.AddSingleton<Sync.GsxDoorService>();
-        services.AddSingleton<Sync.GsxPushbackSequenceService>();
-        services.AddSingleton<Sync.GsxArrivalService>();
-        services.AddSingleton<Sync.GsxGroundOpsSignalRelay>();
+        services.AddStartupModule<Sync.ProsimNativeGsxGuard>();
+        services.AddStartupModule<Sync.GsxDoorService>();
+        services.AddStartupModule<Sync.GsxPushbackSequenceService>();
+        services.AddStartupModule<Sync.GsxArrivalService>();
+        services.AddStartupModule<Sync.GsxGroundOpsSignalRelay>();
         // Startup resync (issue #30): tracking LVARs + dataref evidence seed the lifecycle
         // latches after an app restart mid-turnaround; the sequencer holds until assessed.
-        services.AddSingleton<Sync.GsxStartupResyncService>();
+        services.AddStartupModule<Sync.GsxStartupResyncService>();
         // Cold-and-dark verification (issue #63): once per session, after the resync verdict
         // distinguishes a fresh departure from a turnaround.
-        services.AddSingleton<Sync.AircraftStateCheckService>();
+        services.AddStartupModule<Sync.AircraftStateCheckService>();
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

@@ -20,7 +20,7 @@ namespace ProsimCompanion.Speech.Crew;
 /// replays calls for state that already held. Detect-and-report plus the allow-listed MECH
 /// call press — nothing else is written.
 /// </summary>
-public sealed class GroundCrewUpcallService : IDisposable
+public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisposable
 {
     private readonly IProsimDataRefs _dataRefs;
     private readonly GsxDiagnosticsStore _diagnostics;

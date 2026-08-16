@@ -16,7 +16,7 @@ namespace ProsimCompanion.Speech.Crew;
 /// here. One advisory per verdict, keyed by its timestamp — the store fires Changed for many
 /// unrelated updates and the FO must not repeat herself on each of them.
 /// </summary>
-public sealed class AircraftStateAdvisoryService : IDisposable
+public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, IDisposable
 {
     /// <summary>Spoken discrepancies before the remainder is summarized — matches the pure
     /// assessor's constant; a full recital of a 15-item definition would be noise.</summary>

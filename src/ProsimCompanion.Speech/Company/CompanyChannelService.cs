@@ -32,7 +32,7 @@ public interface ICompanyChannel
 /// "Read last company message" repeats the most recent message (the loadsheet deliberately
 /// does not set it — predecessor parity). PDC/clearance readout stays out of scope.
 /// </summary>
-public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDisposable
+public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core.Hosting.IStartupModule, IDisposable
 {
     private const string Zfw = "aircraft.weight.zfw";
     private const string Gross = "aircraft.weight.gross";

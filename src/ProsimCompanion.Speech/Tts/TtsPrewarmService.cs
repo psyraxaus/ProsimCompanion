@@ -19,7 +19,7 @@ namespace ProsimCompanion.Speech.Tts;
 /// router, so a briefly-down Kokoro can't silently warm the whole library through paid Google.
 /// Fully background; a failing provider aborts the run after a few consecutive misses.
 /// </summary>
-public sealed class TtsPrewarmService : IDisposable
+public sealed class TtsPrewarmService : Core.Hosting.IStartupModule, IDisposable
 {
     private const int ConsecutiveFailureAbort = 3;
     private static readonly TimeSpan ChecklistChangeDebounce = TimeSpan.FromSeconds(2);

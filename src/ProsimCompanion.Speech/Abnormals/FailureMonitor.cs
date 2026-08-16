@@ -24,7 +24,7 @@ namespace ProsimCompanion.Speech.Abnormals;
 /// FIFO, skipped if the failure clears before its turn, and disabled entirely (announce-only)
 /// when no <see cref="IMicOwnership"/> was supplied.
 /// </summary>
-public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialogueControl, IDisposable
+public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialogueControl, Core.Hosting.IStartupModule, IDisposable
 {
     private const string EwdLeft = "aircraft.fwc.content.left.str";
     private const string MasterWarning = "system.indicators.I_MIP_MASTER_WARNING_FO";

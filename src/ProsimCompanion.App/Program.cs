@@ -298,6 +298,9 @@ public static class Program
         // User drop-in themes come from the user config tree (ADR-0007); the built-ins are
         // embedded in the Web assembly.
         builder.Services.AddWebServices(UserConfigPaths.File("themes"));
+        // Feature startup modules (campaign #87) — registered AFTER every pillar so hosted
+        // transports (the GSX client, ProSim connection) start before the modules activate.
+        builder.Services.AddHostedService<ProsimCompanion.Core.Hosting.StartupModuleHost>();
 
         builder.Services.AddSingleton(levels);
         builder.Services.AddSingleton(logBuffer);
