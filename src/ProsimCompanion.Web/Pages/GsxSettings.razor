@@ -140,6 +140,15 @@
                                @bind-Value="_draft.RequireOfpBeforeDeparture" />
                 </Section>
 
+                <Section Title="Cold &amp; Dark Check">
+                    <BoolField Label="Verify aircraft state at session start"
+                               Hint="Once per session on a fresh departure (never on turnarounds): switch positions are checked against aircraft-states\cold-and-dark.json in the user config folder (%LOCALAPPDATA%\ProsimCompanion\config) — edit that file to tune the expected set"
+                               @bind-Value="_draft.AircraftStateCheckEnabled" />
+                    <BoolField Label="First Officer announces mismatches"
+                               Hint="One spoken advisory listing the first few discrepancies; the full list always shows on the Flight Status page"
+                               @bind-Value="_draft.AircraftStateCheckAnnounce" />
+                </Section>
+
                 <Section Title="Departure Service Order" Hint="Order = activation sequence">
                     @if (_draft.DepartureServices.Count == 0)
                     {
@@ -556,6 +565,8 @@
                 gsx["autoStartDepartureServices"] = draft.AutoStartDepartureServices;
                 gsx["groundPrepActivation"] = draft.GroundPrepActivation;
                 gsx["requireOfpBeforeDeparture"] = draft.RequireOfpBeforeDeparture;
+                gsx["aircraftStateCheckEnabled"] = draft.AircraftStateCheckEnabled;
+                gsx["aircraftStateCheckAnnounce"] = draft.AircraftStateCheckAnnounce;
 
                 var steps = new JsonArray();
                 foreach (var step in draft.DepartureServices.Where(s => !string.IsNullOrWhiteSpace(s.Service)))

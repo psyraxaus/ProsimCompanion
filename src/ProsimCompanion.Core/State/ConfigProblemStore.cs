@@ -10,6 +10,7 @@ public static class ConfigAreas
     public const string Phrases = "phrases";
     public const string AtcRequests = "atc-requests";
     public const string Themes = "themes";
+    public const string AircraftStates = "aircraft-states";
 }
 
 /// <summary>One user-content file that failed to parse/load. <see cref="Message"/> is the

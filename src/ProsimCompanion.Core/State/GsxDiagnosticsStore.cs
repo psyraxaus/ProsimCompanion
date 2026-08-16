@@ -47,6 +47,37 @@ public sealed record GsxGroundPrepView(string Stage, string Detail);
 /// view): where the service is in its cycle and, when held/skipped, why.</summary>
 public sealed record GsxServiceBoardRow(string ServiceId, GsxServiceStage Stage, string? Detail);
 
+/// <summary>Outcome kinds of the session-start aircraft state check (issue #63).</summary>
+public enum AircraftStateCheckStatus
+{
+    /// <summary>Every evaluable expectation held — the aircraft matches the definition.</summary>
+    Pass,
+
+    /// <summary>At least one expectation failed; see the mismatch list.</summary>
+    Mismatch,
+
+    /// <summary>The check did not run — <see cref="AircraftStateCheckView.Reason"/> says why
+    /// (disabled, airborne restart, turnaround, no definition, datarefs unavailable).</summary>
+    Skipped,
+}
+
+/// <summary>One failed expectation: the definition row's label plus the spoken phrase the FO
+/// advisory uses for it.</summary>
+public sealed record AircraftStateMismatchView(string Label, string Phrase);
+
+/// <summary>Verdict of the once-per-session cold-and-dark check (issue #63). Items whose
+/// datarefs never reported are listed in <see cref="UncheckedLabels"/> rather than counted as
+/// mismatches (fail-open per item — a half-registered ProSim must not condemn the aircraft).
+/// <see cref="Announce"/> is decided by the assessor (mismatches on a FRESH departure with the
+/// announce option on) so the speech side needs no policy of its own.</summary>
+public sealed record AircraftStateCheckView(
+    DateTimeOffset Timestamp,
+    AircraftStateCheckStatus Status,
+    IReadOnlyList<AircraftStateMismatchView> Mismatches,
+    IReadOnlyList<string> UncheckedLabels,
+    string? Reason,
+    bool Announce);
+
 /// <summary>Departure-service progression for the status board, in display priority order.</summary>
 public enum GsxServiceStage
 {
@@ -115,6 +146,10 @@ public sealed record GsxDiagnosticsSnapshot(
     /// the GSX mirror: GSX flips its GPU service back to "available" while the unit stays
     /// connected. Null until the dataref has reported (issue #33).</summary>
     public bool? GroundPowerConnected { get; init; }
+
+    /// <summary>Session-start cold-and-dark verdict (filled in by Snapshot(); pushed once per
+    /// session by the aircraft state check, issue #63). Null until the check has run.</summary>
+    public AircraftStateCheckView? AircraftStateCheck { get; init; }
 }
 
 /// <summary>Arms/cancels arrival-gate requests from UI surfaces (implemented by the GSX layer;
@@ -165,6 +200,7 @@ public sealed class GsxDiagnosticsStore
     private GsxHandlerEventView? _lastHandlerEvent;
     private GsxGroundPrepView? _groundPrep;
     private bool? _groundPowerConnected;
+    private AircraftStateCheckView? _aircraftStateCheck;
     private GsxDiagnosticsSnapshot _current = GsxDiagnosticsSnapshot.Empty;
 
     /// <summary>Raised after any update, on the writer's thread — consumers marshal to their
@@ -185,6 +221,7 @@ public sealed class GsxDiagnosticsStore
                 LastHandlerEvent = _lastHandlerEvent,
                 GroundPrep = _groundPrep,
                 GroundPowerConnected = _groundPowerConnected,
+                AircraftStateCheck = _aircraftStateCheck,
             };
         }
     }
@@ -232,6 +269,18 @@ public sealed class GsxDiagnosticsStore
         lock (_gate)
         {
             _groundPrep = groundPrep;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Replaces the session-start aircraft state verdict (aircraft state check, once
+    /// per session — issue #63); null = re-armed for a new session, renders "—".</summary>
+    public void UpdateAircraftStateCheck(AircraftStateCheckView? check)
+    {
+        lock (_gate)
+        {
+            _aircraftStateCheck = check;
         }
 
         Changed?.Invoke(this, EventArgs.Empty);

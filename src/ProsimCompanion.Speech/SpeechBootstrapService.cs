@@ -27,6 +27,7 @@ public sealed class SpeechBootstrapService : IHostedService
     private readonly SayIntentions.SayIntentionsService _sayIntentions;
     private readonly Cabin.CabinCrewService _cabin;
     private readonly Crew.GroundCrewUpcallService _groundCrew;
+    private readonly Crew.AircraftStateAdvisoryService _aircraftStateAdvisory;
     private readonly Company.CompanyChannelService _company;
     private readonly Briefings.MissedApproachRebrief _missedApproach;
     private readonly Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.BriefingOptions> _briefingOptions;
@@ -44,6 +45,7 @@ public sealed class SpeechBootstrapService : IHostedService
         SayIntentions.SayIntentionsService sayIntentions,
         Cabin.CabinCrewService cabin,
         Crew.GroundCrewUpcallService groundCrew,
+        Crew.AircraftStateAdvisoryService aircraftStateAdvisory,
         Company.CompanyChannelService company,
         Briefings.MissedApproachRebrief missedApproach,
         Microsoft.Extensions.Options.IOptionsMonitor<Core.Configuration.BriefingOptions> briefingOptions,
@@ -59,11 +61,13 @@ public sealed class SpeechBootstrapService : IHostedService
         ArgumentNullException.ThrowIfNull(sayIntentions);
         ArgumentNullException.ThrowIfNull(cabin);
         ArgumentNullException.ThrowIfNull(groundCrew);
+        ArgumentNullException.ThrowIfNull(aircraftStateAdvisory);
         ArgumentNullException.ThrowIfNull(company);
         _failures = failures;
         _sayIntentions = sayIntentions;
         _cabin = cabin;
         _groundCrew = groundCrew;
+        _aircraftStateAdvisory = aircraftStateAdvisory;
         _company = company;
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(callouts);
@@ -93,6 +97,7 @@ public sealed class SpeechBootstrapService : IHostedService
         _sayIntentions.Start();
         _cabin.Start();
         _groundCrew.Start();
+        _aircraftStateAdvisory.Start();
         _company.Start();
         _spokenChecklists.Start();
         _missedApproach.Start();
@@ -112,6 +117,7 @@ public sealed class SpeechBootstrapService : IHostedService
     {
         _spokenChecklists.Dispose();
         _company.Dispose();
+        _aircraftStateAdvisory.Dispose();
         _groundCrew.Dispose();
         _cabin.Dispose();
         _sayIntentions.Dispose();

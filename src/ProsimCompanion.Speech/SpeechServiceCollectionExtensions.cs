@@ -131,6 +131,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Crew.CrewHailService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Crew.CrewHailService>());
         services.AddSingleton<Crew.GroundCrewUpcallService>();
+        // Cold-and-dark mismatch advisory (issue #63): speaks the aircraft state check's
+        // verdict, consumed from the Core diagnostics store — no GSX project reference.
+        services.AddSingleton<Crew.AircraftStateAdvisoryService>();
         // Accent localization (issue #53): airport-country → per-provider ground-crew voice,
         // consumed by the arbiter at render time. Registered BEFORE the arbiter resolves.
         services.AddSingleton<Crew.AccentVoiceResolver>();

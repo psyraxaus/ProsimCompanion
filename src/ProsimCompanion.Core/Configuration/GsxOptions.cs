@@ -69,6 +69,18 @@ public sealed class GsxOptions
     /// <summary>Hold Refueling/Boarding until the SimBrief OFP is imported into ProSim.</summary>
     public bool RequireOfpBeforeDeparture { get; set; } = true;
 
+    // ---- Aircraft state check (issue #63) ----
+
+    /// <summary>Verify the aircraft against the expected cold-and-dark switch set once per
+    /// session, on a fresh departure (skipped on turnarounds and mid-flight restarts). The
+    /// expected positions live in <c>config\aircraft-states\cold-and-dark.json</c> in the
+    /// user config tree.</summary>
+    public bool AircraftStateCheckEnabled { get; set; } = true;
+
+    /// <summary>The FO speaks one advisory listing the first few discrepancies when the check
+    /// finds mismatches (the web Flight Status page shows the full list regardless).</summary>
+    public bool AircraftStateCheckAnnounce { get; set; } = true;
+
     // ---- Voice control ----
 
     /// <summary>Voice phrases for GSX ground services ("request boarding", "cockpit to

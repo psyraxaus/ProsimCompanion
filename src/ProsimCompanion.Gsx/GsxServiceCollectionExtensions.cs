@@ -55,6 +55,9 @@ public static class GsxServiceCollectionExtensions
         // Startup resync (issue #30): tracking LVARs + dataref evidence seed the lifecycle
         // latches after an app restart mid-turnaround; the sequencer holds until assessed.
         services.AddSingleton<Sync.GsxStartupResyncService>();
+        // Cold-and-dark verification (issue #63): once per session, after the resync verdict
+        // distinguishes a fresh departure from a turnaround.
+        services.AddSingleton<Sync.AircraftStateCheckService>();
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

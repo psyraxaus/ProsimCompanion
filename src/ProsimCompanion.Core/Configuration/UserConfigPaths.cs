@@ -25,6 +25,9 @@ public static class UserConfigPaths
     /// <summary>ECAM abnormal procedure + memory drill definitions.</summary>
     public static string Abnormals => Path.Combine(Root, "abnormals");
 
+    /// <summary>Expected-aircraft-state definitions (cold-and-dark switch set, issue #63).</summary>
+    public static string AircraftStates => Path.Combine(Root, "aircraft-states");
+
     /// <summary>Resolves a file directly under the user config root (e.g. <c>commands.json</c>).</summary>
     public static string File(string relativePath) => Path.Combine(Root, relativePath);
 }

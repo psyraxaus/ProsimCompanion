@@ -38,6 +38,7 @@ public static class UserConfigSeeder
     [
         "checklists",
         "abnormals",
+        "aircraft-states",
         "themes", // nothing shipped (built-ins are embedded) — entry migrates old drop-ins
         "atc-requests.json",
         "commands.json",

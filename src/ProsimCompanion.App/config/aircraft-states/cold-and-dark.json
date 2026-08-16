@@ -1,0 +1,161 @@
+{
+  // Expected cold-and-dark switch set (issue #63), checked once per session on a FRESH
+  // departure (skipped on turnarounds and mid-flight app restarts). Every dataref here is a
+  // physical switch/selector POSITION, which ProSim reports regardless of aircraft power —
+  // deliberately no bus-voltage or indicator datarefs, because a truly cold aircraft serves
+  // defaults for those. "verify" blocks use the exact checklist condition schema
+  // (equals/notEquals/greaterThan/lessThan/between/oneOf, compound and/or).
+  // Value maps verified against Prosim_A322_Dataref.csv, 2026-08-16.
+  "name": "Cold and Dark",
+  "groups": [
+    {
+      "name": "Electrical",
+      "items": [
+        {
+          "label": "Battery 1 OFF",
+          "mismatchPhrase": "battery 1 is on",
+          "note": "S_OH_ELEC_BAT1 [0:Off, 1:Auto/On] — the shipped a320_default checklist set reads BATTERIES ON as == 1.",
+          "verify": { "dataref": "system.switches.S_OH_ELEC_BAT1", "op": "equals", "value": 0 }
+        },
+        {
+          "label": "Battery 2 OFF",
+          "mismatchPhrase": "battery 2 is on",
+          "verify": { "dataref": "system.switches.S_OH_ELEC_BAT2", "op": "equals", "value": 0 }
+        },
+        {
+          "label": "External power not connected",
+          "mismatchPhrase": "external power is connected",
+          "note": "Gate dataref (not a switch): reads false while the aircraft is unpowered, so it can only ever flag a genuinely connected GPU — safe both ways.",
+          "verify": { "dataref": "system.gates.B_ELEC_EXTERNAL_CONNECT", "op": "equals", "value": 0 }
+        },
+        {
+          "label": "APU master OFF",
+          "mismatchPhrase": "the APU master is on",
+          "verify": { "dataref": "system.switches.S_OH_ELEC_APU_MASTER", "op": "equals", "value": 0 }
+        }
+      ]
+    },
+    {
+      "name": "Engines",
+      "items": [
+        {
+          "label": "Engine master 1 OFF",
+          "mismatchPhrase": "engine master 1 is on",
+          "verify": { "dataref": "system.switches.S_ENG_MASTER_1", "op": "equals", "value": 0 }
+        },
+        {
+          "label": "Engine master 2 OFF",
+          "mismatchPhrase": "engine master 2 is on",
+          "verify": { "dataref": "system.switches.S_ENG_MASTER_2", "op": "equals", "value": 0 }
+        },
+        {
+          "label": "Engine mode selector NORM",
+          "mismatchPhrase": "the engine mode selector is not at norm",
+          "note": "S_ENG_MODE [0:Crank, 1:Norm, 2:Start].",
+          "verify": { "dataref": "system.switches.S_ENG_MODE", "op": "equals", "value": 1 }
+        }
+      ]
+    },
+    {
+      "name": "ADIRS",
+      "items": [
+        {
+          "label": "ADIRS selectors OFF",
+          "mismatchPhrase": "the ADIRS selectors are not off",
+          "note": "IR mode selectors [0:Off, 1:Nav, 2:Att] — one compound item so the FO says a single line, not three.",
+          "verify": {
+            "logic": "and",
+            "conditions": [
+              { "dataref": "system.switches.S_OH_NAV_IR1_MODE", "op": "equals", "value": 0 },
+              { "dataref": "system.switches.S_OH_NAV_IR2_MODE", "op": "equals", "value": 0 },
+              { "dataref": "system.switches.S_OH_NAV_IR3_MODE", "op": "equals", "value": 0 }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fuel",
+      "items": [
+        {
+          "label": "Fuel pumps OFF",
+          "mismatchPhrase": "the fuel pumps are on",
+          "note": "All six pump pbs [0:Off, 1:On] as one compound item.",
+          "verify": {
+            "logic": "and",
+            "conditions": [
+              { "dataref": "system.switches.S_OH_FUEL_LEFT_1", "op": "equals", "value": 0 },
+              { "dataref": "system.switches.S_OH_FUEL_LEFT_2", "op": "equals", "value": 0 },
+              { "dataref": "system.switches.S_OH_FUEL_RIGHT_1", "op": "equals", "value": 0 },
+              { "dataref": "system.switches.S_OH_FUEL_RIGHT_2", "op": "equals", "value": 0 },
+              { "dataref": "system.switches.S_OH_FUEL_CENTER_1", "op": "equals", "value": 0 },
+              { "dataref": "system.switches.S_OH_FUEL_CENTER_2", "op": "equals", "value": 0 }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exterior lights",
+      "items": [
+        {
+          "label": "Beacon OFF",
+          "mismatchPhrase": "the beacon is on",
+          "verify": { "dataref": "system.switches.S_OH_EXT_LT_BEACON", "op": "equals", "value": 0 }
+        },
+        {
+          "label": "Landing lights OFF",
+          "mismatchPhrase": "the landing lights are on",
+          "note": "S_OH_EXT_LT_LANDING_* [0:Off, 1:On, 2:Retract] — Off and Retract both pass; only ON mismatches.",
+          "verify": {
+            "logic": "and",
+            "conditions": [
+              { "dataref": "system.switches.S_OH_EXT_LT_LANDING_L", "op": "oneOf", "values": [ 0, 2 ] },
+              { "dataref": "system.switches.S_OH_EXT_LT_LANDING_R", "op": "oneOf", "values": [ 0, 2 ] }
+            ]
+          }
+        },
+        {
+          "label": "Nav and logo lights OFF",
+          "mismatchPhrase": "the nav lights are on",
+          "note": "S_OH_EXT_LT_NAV_LOGO [0:Off, 1:1, 2:2].",
+          "verify": { "dataref": "system.switches.S_OH_EXT_LT_NAV_LOGO", "op": "equals", "value": 0 }
+        }
+      ]
+    },
+    {
+      "name": "Signs",
+      "items": [
+        {
+          "label": "Seatbelt signs not ON",
+          "mismatchPhrase": "the seatbelt signs are on",
+          "note": "S_OH_SIGNS [0:Auto, 1:On, 2:Off] — Auto and Off both pass so a spawn default of Auto never nags.",
+          "verify": { "dataref": "system.switches.S_OH_SIGNS", "op": "oneOf", "values": [ 0, 2 ] }
+        }
+      ]
+    },
+    {
+      "name": "Brakes and transponder",
+      "items": [
+        {
+          "label": "Parking brake SET",
+          "mismatchPhrase": "the parking brake is off",
+          "note": "Read the cockpit handle S_MIP_PARKING_BRAKE [0:Off, 1:On] — the B_HYD_PARKING_BRAKE_SET gate was observed inverted on A322.",
+          "verify": { "dataref": "system.switches.S_MIP_PARKING_BRAKE", "op": "equals", "value": 1 }
+        },
+        {
+          "label": "Transponder standby",
+          "mismatchPhrase": "the transponder is on",
+          "note": "S_XPDR_OPERATION [0:Auto, 1:Standby, 2:On] — Auto and Standby both pass; only ON mismatches.",
+          "verify": { "dataref": "system.switches.S_XPDR_OPERATION", "op": "oneOf", "values": [ 0, 1 ] }
+        },
+        {
+          "label": "TCAS standby",
+          "mismatchPhrase": "TCAS is not on standby",
+          "note": "S_XPDR_MODE [0:Stdby, 1:TA, 2:TA/RA].",
+          "verify": { "dataref": "system.switches.S_XPDR_MODE", "op": "equals", "value": 0 }
+        }
+      ]
+    }
+  ]
+}
