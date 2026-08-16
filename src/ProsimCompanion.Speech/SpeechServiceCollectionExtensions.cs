@@ -160,7 +160,8 @@ public static class SpeechServiceCollectionExtensions
         // advisories.
         services.AddSingleton(p => new Persona.PhraseBank(
             Core.Configuration.UserConfigPaths.Root,
-            p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Persona.PhraseBank>>()));
+            p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Persona.PhraseBank>>(),
+            p.GetService<Core.State.ConfigProblemStore>()));
         services.AddSingleton<Persona.PersonaService>();
         services.AddSingleton<Persona.StyledSpeechService>();
         // ONE shared LLM client (issue #66): registering it lets every consumer's optional

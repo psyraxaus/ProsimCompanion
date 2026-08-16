@@ -368,6 +368,14 @@
   color: var(--efb-amber);
 }
 
+/* Reason a disabled control is disabled (issue #65) — sits under the field row. */
+.perf-field-hint {
+  font-size: 0.72rem;
+  color: var(--efb-text-dim);
+  font-style: italic;
+  margin: -2px 0 4px 0;
+}
+
 /* ── METAR strip (shared) ─────────────────────────────────────────── */
 .perf-metar-strip {
   display: flex;
@@ -396,6 +404,28 @@
 .perf-metar-missing {
   color: var(--efb-text-dim);
   font-style: italic;
+}
+/* Small in-strip "Refresh WX" action (issue #62) — right-aligned in the METAR header. */
+.perf-wx-refresh {
+  margin-left: auto;
+  background: transparent;
+  color: var(--efb-text-dim);
+  border: 1px solid var(--efb-border-dim);
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.perf-wx-refresh:hover {
+  color: var(--efb-text);
+  border-color: var(--efb-border);
+}
+.perf-wx-refresh:disabled {
+  opacity: 0.4;
+  cursor: default;
+  border-color: var(--efb-border-dim);
 }
 
 /* ── Footer / banners / actions ───────────────────────────────────── */

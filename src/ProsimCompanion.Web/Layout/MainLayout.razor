@@ -20,12 +20,19 @@
             <span class="flap-label">FLT NO</span>
         </div>
         <div class="flap-right">
+            @* Sim-time clock (issue #71): while ProSim streams a fresh simulator.zuluTime the
+               flap is text-driven from the server (label SIM); on disconnect/staleness the
+               mode attribute returns and app.js resumes the browser-side UTC self-tick. *@
             <div class="flap-block">
-                <split-flap mode="utc-time" count="6" animate="@SolariMode"></split-flap>
-                <span class="flap-label">UTC</span>
+                <split-flap mode="@(_simClockActive ? null : "utc-time")"
+                            text="@(_simClockActive ? _simTimeText : null)"
+                            count="6" animate="@SolariMode"></split-flap>
+                <span class="flap-label">@(_simClockActive ? "SIM" : "UTC")</span>
             </div>
             <div class="flap-block">
-                <split-flap mode="utc-date" count="5" animate="@SolariMode"></split-flap>
+                <split-flap mode="@(_simClockActive && _simDateText is not null ? null : "utc-date")"
+                            text="@(_simClockActive ? _simDateText : null)"
+                            count="5" animate="@SolariMode"></split-flap>
                 <span class="flap-label">DATE</span>
             </div>
             <span class="conn-indicator" title="ProSim connection">
@@ -102,6 +109,20 @@
     private string _flightNumber = "";
     private UpdateSnapshot _update = UpdateSnapshot.Empty;
 
+    // ── Sim-time clock (issue #71) ────────────────────────────────────────────────────
+    // simulator.zuluTime (TimeSpan per the A322 catalog) drives the time flap; the date
+    // comes from simulator.time (DateTime) when it carries one. A 1 s server timer decides
+    // what SHOULD be displayed, but StateHasChanged only fires when the rendered strings
+    // actually change — i.e. once per minute boundary plus SIM/UTC flips — so the circuit
+    // never sees per-second chatter.
+    private static readonly TimeSpan SimTimeStaleAfter = TimeSpan.FromSeconds(10);
+    private IDataRefSubscription? _zuluTimeSub;
+    private IDataRefSubscription? _simTimeSub;
+    private System.Threading.Timer? _simClockTimer;
+    private bool _simClockActive;
+    private string? _simTimeText;
+    private string? _simDateText;
+
     private string? SolariMode => WebUi.CurrentValue.SolariAnimation ? null : "off";
 
     private string ProsimDotClass => Status.Snapshot()
@@ -121,6 +142,39 @@
         _flightNumberSub.ValueChanged += OnChanged;
         _flightNumber = _flightNumberSub.GetValue("");
         _update = Updates.Snapshot();
+
+        // Infrequent (2 s) is plenty for a minute-resolution clock and keeps the 10 s
+        // staleness check meaningful (zulu time changes every sim second, so pushes keep
+        // arriving while ProSim is alive and the sim is unpaused).
+        _zuluTimeSub = DataRefs.Subscribe(ProsimDataRefNames.ZuluTime, DataRefTier.Infrequent);
+        _simTimeSub = DataRefs.Subscribe(ProsimDataRefNames.SimulatorTime, DataRefTier.Infrequent);
+        _simClockTimer = new System.Threading.Timer(_ => EvaluateSimClock(), null,
+            TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        EvaluateSimClock();
+    }
+
+    /// <summary>Recomputes the sim-clock display; re-renders only when it actually changed
+    /// (minute boundary or SIM/UTC source flip).</summary>
+    private void EvaluateSimClock()
+    {
+        var prosimConnected = Status.Snapshot()
+            .FirstOrDefault(pair => pair.Key == Subsystems.Prosim).Value == ConnectionState.Connected;
+        var zulu = _zuluTimeSub;
+        var fresh = zulu?.LastUpdatedUtc is { } updated
+            && DateTimeOffset.UtcNow - updated <= SimTimeStaleAfter;
+        var timeText = fresh ? SimClockFormat.TryFormatZuluTime(zulu!.RawValue) : null;
+        var active = prosimConnected && timeText is not null;
+        var dateText = active ? SimClockFormat.TryFormatDate(_simTimeSub?.RawValue) : null;
+
+        if (active == _simClockActive && timeText == _simTimeText && dateText == _simDateText)
+        {
+            return;
+        }
+
+        _simClockActive = active;
+        _simTimeText = timeText;
+        _simDateText = dateText;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void OnChanged(object? sender, EventArgs e)
@@ -141,5 +195,8 @@
             _flightNumberSub.ValueChanged -= OnChanged;
             _flightNumberSub.Dispose();
         }
+        _simClockTimer?.Dispose();
+        _zuluTimeSub?.Dispose();
+        _simTimeSub?.Dispose();
     }
 }

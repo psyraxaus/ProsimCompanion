@@ -1,0 +1,43 @@
+@implements IDisposable
+@inject ConfigProblemStore Problems
+
+@* User-content parse failures (issue #74): a checklist edit with a JSON typo used to log a
+   warning and vanish — the pilot flew without it unknowingly. Rendered on the Flight Status
+   and Checklists pages; invisible while every file loads cleanly. Sibling of
+   LlmHealthBanner — same warn-banner styling. *@
+
+@if (_problems.Count > 0)
+{
+    <div class="warn-banner" role="alert">
+        <span aria-hidden="true">⚠</span>
+        <span>
+            <strong>@_problems.Count config file@(_problems.Count == 1 ? "" : "s") failed to load</strong> — the affected content is missing until fixed:
+            @foreach (var problem in _problems)
+            {
+                <br />
+                <span class="mono">@System.IO.Path.GetFileName(problem.SourceFile)</span>
+                <span> (@problem.Area) — @problem.Message</span>
+            }
+        </span>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<ConfigProblem> _problems = [];
+
+    protected override void OnInitialized()
+    {
+        _problems = Problems.Snapshot();
+        Problems.Changed += OnChanged;
+    }
+
+    private void OnChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _problems = Problems.Snapshot();
+            StateHasChanged();
+        });
+
+    public void Dispose() => Problems.Changed -= OnChanged;
+}

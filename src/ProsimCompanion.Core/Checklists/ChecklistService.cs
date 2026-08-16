@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Checklists;
 
@@ -33,6 +34,7 @@ public sealed class ChecklistService : IDisposable
     private readonly IProsimDataRefs _prosim;
     private readonly IOptionsMonitor<ChecklistOptions> _options;
     private readonly ILogger<ChecklistService> _logger;
+    private readonly ConfigProblemStore? _problems;
     private readonly string _folder;
     private readonly string _setsFolder;
     private readonly object _lock = new();
@@ -65,10 +67,14 @@ public sealed class ChecklistService : IDisposable
         }
     }
 
+    /// <summary>Optional <paramref name="problems"/>: parse failures surface on the web UI
+    /// (issue #74 — a warning-only log line cost a pilot their edited checklist); absent (old
+    /// tests, degraded composition) the loader just logs as before.</summary>
     public ChecklistService(
         IProsimDataRefs prosim,
         IOptionsMonitor<ChecklistOptions> options,
-        ILogger<ChecklistService> logger)
+        ILogger<ChecklistService> logger,
+        ConfigProblemStore? problems = null)
     {
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(options);
@@ -76,6 +82,7 @@ public sealed class ChecklistService : IDisposable
         _prosim = prosim;
         _options = options;
         _logger = logger;
+        _problems = problems;
         // User tree, not the install dir (ADR-0007): seeded from the shipped defaults by
         // UserConfigSeeder before the host builds; edits there survive app updates.
         _folder = UserConfigPaths.Checklists;
@@ -345,8 +352,10 @@ public sealed class ChecklistService : IDisposable
 
     private void Reload()
     {
-        var sets = new List<ChecklistSet> { new(DefaultSetName, LoadDefaultSet()) };
-        foreach (var set in LoadProsim2GsxSets())
+        // Fresh failure list per (re)load: a fixed file's problem must vanish (issue #74).
+        var failures = new List<(string File, string Message)>();
+        var sets = new List<ChecklistSet> { new(DefaultSetName, LoadDefaultSet(failures)) };
+        foreach (var set in LoadProsim2GsxSets(failures))
         {
             if (sets.Any(existing => string.Equals(existing.Name, set.Name, StringComparison.OrdinalIgnoreCase)))
             {
@@ -385,14 +394,22 @@ public sealed class ChecklistService : IDisposable
                 }
             }
         }
+        _problems?.ClearArea(ConfigAreas.Checklists);
+        foreach (var (file, message) in failures)
+        {
+            _problems?.Report(ConfigAreas.Checklists, file, message);
+        }
+
+        // The summary line carries the failure count (issue #74): "Loaded 2 sets" alone read
+        // as all-good while a pilot's edited file had silently dropped out.
         _logger.LogInformation(
-            "Loaded {SetCount} checklist sets ({Count} checklists in the default set) from {Folder}",
-            sets.Count, sets[0].Definitions.Count, _folder);
+            "Loaded {SetCount} checklist sets ({Count} checklists in the default set) from {Folder}; {Failed} file(s) failed to parse",
+            sets.Count, sets[0].Definitions.Count, _folder, failures.Count);
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>The per-phase folder files (Prosim2FO-compatible, one checklist per file).</summary>
-    private List<ChecklistDefinition> LoadDefaultSet()
+    private List<ChecklistDefinition> LoadDefaultSet(List<(string File, string Message)> failures)
     {
         var loaded = new List<ChecklistDefinition>();
         try
@@ -420,6 +437,7 @@ public sealed class ChecklistService : IDisposable
                     catch (JsonException ex)
                     {
                         _logger.LogWarning("Checklist file {File} failed to parse: {Message}", file, ex.Message);
+                        failures.Add((file, ex.Message));
                     }
                 }
             }
@@ -443,7 +461,7 @@ public sealed class ChecklistService : IDisposable
 
     /// <summary>One set per Prosim2GSX-format file under <c>config/checklists/sets</c> — the
     /// files stay in their native shape so a user's own Prosim2GSX checklist drops straight in.</summary>
-    private List<ChecklistSet> LoadProsim2GsxSets()
+    private List<ChecklistSet> LoadProsim2GsxSets(List<(string File, string Message)> failures)
     {
         var sets = new List<ChecklistSet>();
         try
@@ -473,6 +491,7 @@ public sealed class ChecklistService : IDisposable
                 catch (JsonException ex)
                 {
                     _logger.LogWarning("Checklist set file {File} failed to parse: {Message}", file, ex.Message);
+                    failures.Add((file, ex.Message));
                 }
             }
         }

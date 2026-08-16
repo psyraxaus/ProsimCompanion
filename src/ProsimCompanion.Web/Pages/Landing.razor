@@ -4,8 +4,11 @@
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Gateway
 @using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Weather
 @implements IDisposable
 @inject IProsimGateway Gateway
+@inject IProsimDataRefs DataRefs
+@inject IWxProvider Wx
 @inject OfpStore Ofp
 @inject DisplayUnitService Units
 
@@ -58,6 +61,12 @@
                     </span>
                 </span>
             </div>
+
+            @* Why the runway select is disabled (issue #65) — otherwise it just sat grey. *@
+            @if (_runways is null || _runways.Count == 0)
+            {
+                <div class="perf-field-hint">@RunwayDisabledReason</div>
+            }
 
             <div class="perf-column-title perf-sub">Runway Condition</div>
             <div class="perf-surface-strip">
@@ -218,6 +227,10 @@
                 {
                     <span>· @fetched.ToString("HH:mm", CultureInfo.InvariantCulture)Z</span>
                 }
+                <button type="button" class="perf-wx-refresh"
+                        disabled="@(_wxBusy || _icao.Length != 4)" @onclick="RefreshWxAsync">
+                    @(_wxBusy ? "Fetching…" : "Refresh WX")
+                </button>
             </div>
             @if (!string.IsNullOrWhiteSpace(_metarText))
             {
@@ -225,10 +238,16 @@
             }
             else
             {
-                <div class="perf-metar-missing">No METAR available</div>
+                @* The composite chain's reason (issue #62) — "no data for this ICAO" and
+                   "fetch failed (gateway HTTP 500; …)" demand different pilot actions. *@
+                <div class="perf-metar-missing">@(_wxFailure ?? "No METAR available")</div>
             }
         </div>
 
+        @if (_hasResult && !_metarApplied)
+        {
+            <div class="perf-banner perf-banner-warn">COMPUTED WITHOUT METAR — CHECK OAT / QNH / WIND MANUALLY</div>
+        }
         @if (_lastError is not null)
         {
             <div class="perf-error-row">@_lastError</div>
@@ -274,6 +293,12 @@
     private static readonly int[] CrosswindLimitKt = [15, 20, 25, 29, 38, 38];
 
     private string _icao = "";
+    private bool _icaoTouched;
+    private string? _runwayHint;
+    private string? _wxFailure;
+    private bool _metarApplied;
+    private bool _wxBusy;
+    private IDataRefSubscription? _fmsDestinationSub;
     private IReadOnlyList<RunwayResponse>? _runways;
     private string? _runwayId;
     private int _rwySurfaceCode = 6;
@@ -341,12 +366,69 @@
             null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
 
         Units.Changed += OnUnitsChanged;
+        // MCDU destination as the no-OFP fallback seed (issue #65) — cached-subscription
+        // read, never a polling ReadDataRef loop. The page also re-seeds on OfpStore.Changed
+        // (it previously read the OFP only at first render, so a later import left the
+        // runway select disabled with no hint).
+        _fmsDestinationSub = DataRefs.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
+        _fmsDestinationSub.ValueChanged += OnContextChanged;
+        Ofp.Changed += OnContextChanged;
 
         SeedFromContext();
     }
 
     // Units.Changed fires on arbitrary threads — marshal into the circuit.
     private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    // OFP import / MCDU plan entry after the page opened (issue #65): re-seed the ICAO —
+    // unless the user typed their own. Fires on store/SDK threads; marshal into the circuit.
+    private void OnContextChanged(object? sender, EventArgs e) => _ = InvokeAsync(ReseedIcaoAsync);
+
+    /// <summary>The context's destination: OFP first, MCDU FMS destination as fallback (the
+    /// FMS datarefs read "----"/"Null" before a plan is loaded — predecessor archaeology).</summary>
+    private string? ContextIcao()
+        => ValidIcao(Ofp.Current?.DestinationIcao) ?? ValidIcao(_fmsDestinationSub?.GetValue<string?>(null));
+
+    private static string? ValidIcao(string? value)
+        => value is { Length: 4 } && value != "----"
+            && !value.Equals("Null", StringComparison.OrdinalIgnoreCase)
+            ? value.ToUpperInvariant()
+            : null;
+
+    private async Task ReseedIcaoAsync()
+    {
+        var candidate = ContextIcao();
+        if (_icaoTouched || candidate is null || candidate == _icao)
+        {
+            // Weights may still have arrived with a new OFP even when the ICAO is pinned.
+            if (Ofp.Current is { EstLdwKg: > 0 } ofp && _ldgWeightTons <= 0)
+            {
+                _ldgWeightTons = ofp.EstLdwKg / 1000.0;
+                StateHasChanged();
+            }
+            return;
+        }
+
+        _icao = candidate;
+        _runways = null;
+        _runwayId = null;
+        _hasResult = false;
+        _isNoData = false;
+        _retreatFlap = false;
+        if (Ofp.Current is { EstLdwKg: > 0 } current)
+        {
+            _ldgWeightTons = current.EstLdwKg / 1000.0;
+        }
+        await LoadAirportAsync();
+        await CalculateAsync();
+        StateHasChanged();
+    }
+
+    private string RunwayDisabledReason => _loading
+        ? "Loading runways…"
+        : _icao.Length != 4
+            ? "No destination set — import an OFP, load an MCDU plan, or type an ICAO."
+            : _runwayHint ?? "No runway data.";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -362,7 +444,13 @@
 
     public void Dispose()
     {
+        Ofp.Changed -= OnContextChanged;
         Units.Changed -= OnUnitsChanged;
+        if (_fmsDestinationSub is not null)
+        {
+            _fmsDestinationSub.ValueChanged -= OnContextChanged;
+            _fmsDestinationSub.Dispose();
+        }
         _recalcTimer?.Dispose();
         _resetArmTimer?.Dispose();
     }
@@ -370,7 +458,7 @@
     private void SeedFromContext()
     {
         var ofp = Ofp.Current;
-        _icao = ofp?.DestinationIcao ?? "";
+        _icao = ContextIcao() ?? "";
         _ldgWeightTons = ofp?.EstLdwKg > 0 ? ofp.EstLdwKg / 1000.0 : 0;  // tonnes wire scale
     }
 
@@ -428,6 +516,9 @@
             icao = icao[..4];
         }
         _icao = icao;
+        // A typed ICAO pins the field against context re-seeds; clearing it re-arms them
+        // (issue #65 — never clobber manual input).
+        _icaoTouched = icao.Length > 0;
         _runways = null;
         _runwayId = null;
         _hasResult = false;
@@ -440,6 +531,8 @@
         }
     }
 
+    /// <summary>Runways and METAR load independently (issue #62): a failed runway fetch used
+    /// to early-return past the METAR fetch, so one gateway fault blanked both.</summary>
     private async Task LoadAirportAsync()
     {
         _loading = true;
@@ -447,20 +540,8 @@
         try
         {
             var icao = _icao.Trim().ToUpperInvariant();
-            var runways = await Gateway.GetRunwaysAsync(icao, includeIntersections: false);
-            if (runways is null || runways.Count == 0)
-            {
-                _lastError = "No runway data for that airport.";
-                return;
-            }
-            _runways = runways;
-            _runwayId = runways[0].RunwayId;
-            ApplyMetar(await Gateway.GetMetarAsync(icao));
-        }
-        catch (Exception ex)
-        {
-            // Degrade, not fail: a dead gateway surfaces as an error row, not a circuit crash.
-            _lastError = ex.Message;
+            await LoadRunwaysAsync(icao);
+            await FetchWxAsync(icao);
         }
         finally
         {
@@ -468,28 +549,103 @@
         }
     }
 
-    private void ApplyMetar(Metar? metar)
+    private async Task LoadRunwaysAsync(string icao)
     {
-        if (metar is null)
+        _runwayHint = null;
+        try
         {
-            _metarText = null;
-            _metarFetchedAt = null;
+            var runways = await Gateway.GetRunwaysAsync(icao, includeIntersections: false);
+            if (runways is null)
+            {
+                _runwayHint = "Runway fetch failed — is ProSim running?";
+                return;
+            }
+            if (runways.Count == 0)
+            {
+                _runwayHint = $"No runway data for {icao}.";
+                return;
+            }
+            _runways = runways;
+            _runwayId = runways[0].RunwayId;
+        }
+        catch (Exception ex)
+        {
+            // Degrade, not fail: a dead gateway surfaces as a hint, not a circuit crash.
+            _runwayHint = $"Runway fetch failed: {ex.Message}";
+        }
+    }
+
+    /// <summary>"Refresh WX" button: re-runs the METAR fetch alone for the current ICAO, then
+    /// recalculates with the fresh wind/OAT/QNH (this page auto-recalculates).</summary>
+    private async Task RefreshWxAsync()
+    {
+        if (_icao.Length != 4 || _wxBusy)
+        {
             return;
         }
 
-        _metarText = metar.MetarText;
-        _metarFetchedAt = DateTime.UtcNow;
-
-        // Altim rides the gateway's ×100 hPa convention when large; plain hPa otherwise.
-        var qnh = metar.Altim > 10000 ? (int)Math.Round(metar.Altim / 100.0) : metar.Altim;
-        _oat = metar.Temperature;
-        if (qnh > 0)
+        _wxBusy = true;
+        try
         {
-            _qnh = qnh;
+            await FetchWxAsync(_icao);
+            ScheduleRecalc();
         }
-        _windDir = string.IsNullOrWhiteSpace(metar.WindDir) ? "0" : metar.WindDir.Trim();
-        _ = int.TryParse(metar.WindSpeed?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var windKt);
-        _windKt = windKt;
+        finally
+        {
+            _wxBusy = false;
+        }
+    }
+
+    /// <summary>METAR via the composite provider chain (ActiveSky → gateway → SayIntentions
+    /// cache) instead of the raw gateway tier alone — the 2026-08-16 flight had the gateway
+    /// endpoint 500 deterministically while both other tiers held valid METARs (issue #62).</summary>
+    private async Task FetchWxAsync(string icao)
+    {
+        _wxFailure = null;
+        try
+        {
+            var probe = await Wx.ProbeAsync(icao);
+            if (probe.Status == WxProbeStatus.Found)
+            {
+                ApplyWx(probe.Facts);
+            }
+            else
+            {
+                _metarText = null;
+                _metarFetchedAt = null;
+                _metarApplied = false;
+                _wxFailure = probe.FailureMessage(icao);
+            }
+        }
+        catch (Exception ex)
+        {
+            _metarText = null;
+            _metarFetchedAt = null;
+            _metarApplied = false;
+            _wxFailure = $"Weather fetch failed ({ex.Message})";
+        }
+    }
+
+    private void ApplyWx(WxFacts facts)
+    {
+        _metarText = facts.RawMetar;
+        _metarFetchedAt = DateTime.UtcNow;
+        _metarApplied = true;
+
+        if (facts.TemperatureC is { } oat)
+        {
+            _oat = oat;
+        }
+        if (facts.QnhHpa is { } qnh and > 0)
+        {
+            _qnh = (int)Math.Round(qnh);
+        }
+        // A parsed null direction with wind present is VRB (the parser maps VRB → null);
+        // CalculateAsync already carries the conservative VRB → reciprocal-heading rule.
+        _windDir = facts.WindDirDeg is { } dir
+            ? dir.ToString(CultureInfo.InvariantCulture)
+            : (facts.RawMetar?.Contains("VRB", StringComparison.Ordinal) == true ? "VRB" : "0");
+        _windKt = facts.WindSpeedKt ?? 0;
     }
 
     private async Task CalculateAsync()
@@ -660,6 +816,10 @@
         _lastError = null;
         _metarText = null;
         _metarFetchedAt = null;
+        _metarApplied = false;
+        _wxFailure = null;
+        _runwayHint = null;
+        _icaoTouched = false;
         _hasResult = false;
         _isNoData = false;
         _retreatFlap = false;

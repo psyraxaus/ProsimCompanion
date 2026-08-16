@@ -56,6 +56,23 @@ public sealed class Metar
     public string? ObservationTime { get; set; }
 }
 
+/// <summary>
+/// Outcome of the gateway METAR fetch (issue #62). Three states:
+/// <list type="bullet">
+/// <item><see cref="Metar"/> non-null — an observation was returned;</item>
+/// <item><see cref="Metar"/> null, <see cref="FailureReason"/> null — the gateway answered
+///   204: it authoritatively has no METAR for the ICAO;</item>
+/// <item><see cref="FailureReason"/> non-null — the fetch itself failed (unreachable, HTTP
+///   error, unparseable body). The 2026-08-16 flight had this endpoint 500 deterministically;
+///   collapsing that to a bare null hid the difference from "no data".</item>
+/// </list>
+/// </summary>
+public sealed record MetarFetchResult(Metar? Metar, string? FailureReason)
+{
+    /// <summary>True when the endpoint was consulted successfully (observation or a real 204).</summary>
+    public bool Succeeded => FailureReason is null;
+}
+
 /// <summary>One failure entry from <c>GET /efb/failures</c>; also embedded in the performance
 /// calculation requests.</summary>
 public sealed class FailuresResponse

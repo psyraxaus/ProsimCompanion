@@ -167,7 +167,7 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<Metar?> GetMetarAsync(string icao, CancellationToken cancellationToken = default)
+    public async Task<MetarFetchResult> GetMetarAsync(string icao, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icao);
         var uri = EfbUri($"/airport/{Uri.EscapeDataString(icao)}/metar");
@@ -178,16 +178,26 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
             cancellationToken).ConfigureAwait(false);
         if (response is null)
         {
-            return null;
+            return new MetarFetchResult(null, "gateway unreachable");
         }
 
         // 204 is the gateway's "no METAR available" answer — a success, not a retryable fault.
-        if (response.StatusCode == HttpStatusCode.NoContent || !response.IsSuccessStatusCode)
+        if (response.StatusCode == HttpStatusCode.NoContent)
         {
-            return null;
+            return new MetarFetchResult(null, null);
         }
 
-        return await DeserializeAsync<Metar>(response, $"metar {icao}", cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            // The status code IS the diagnosis (issue #62: a deterministic 500 spent a whole
+            // flight rendered as a bare "No METAR available").
+            return new MetarFetchResult(null, $"gateway HTTP {(int)response.StatusCode}");
+        }
+
+        var metar = await DeserializeAsync<Metar>(response, $"metar {icao}", cancellationToken).ConfigureAwait(false);
+        return metar is null
+            ? new MetarFetchResult(null, "gateway response unparseable")
+            : new MetarFetchResult(metar, null);
     }
 
     /// <inheritdoc />
@@ -253,8 +263,11 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
         }
     }
 
-    /// <summary>Sends with retry; returns null after the last failed attempt (callers treat null
-    /// as "gateway unavailable"). Request messages are single-use, hence the factory.</summary>
+    /// <summary>Sends with retry; returns null only when no HTTP response was ever received
+    /// (callers treat null as "gateway unreachable"). A 4xx returns immediately and a final
+    /// failed 5xx attempt returns its response, so callers can report the real status code —
+    /// all callers gate on <c>IsSuccessStatusCode</c>. Request messages are single-use, hence
+    /// the factory.</summary>
     private async Task<HttpResponseMessage?> SendAsync(
         Func<HttpRequestMessage> requestFactory,
         string operation,
@@ -294,6 +307,15 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
                     attempt,
                     RetryAttempts,
                     (int)response.StatusCode);
+
+                // Final attempt: hand the failed response back so callers can surface the
+                // actual status code (issue #62) — every caller already treats a non-success
+                // response the same as null.
+                if (attempt == RetryAttempts)
+                {
+                    return response;
+                }
+
                 response.Dispose();
             }
             catch (HttpRequestException ex)

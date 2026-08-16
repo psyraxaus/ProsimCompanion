@@ -21,6 +21,7 @@ public sealed class PhraseBank
 
     private readonly string _path;
     private readonly ILogger<PhraseBank> _logger;
+    private readonly Core.State.ConfigProblemStore? _problems;
     private readonly object _gate = new();
     private string[] _areYouSure = DefaultAreYouSure;
     private string[] _didNotCatch = DefaultDidNotCatch;
@@ -28,12 +29,15 @@ public sealed class PhraseBank
     private int _areYouSureIndex;
     private int _didNotCatchIndex;
 
-    public PhraseBank(string configDirectory, ILogger<PhraseBank> logger)
+    /// <summary>Optional <paramref name="problems"/>: an unparseable phrases.json surfaces on
+    /// the web UI (issue #74) instead of only a log warning.</summary>
+    public PhraseBank(string configDirectory, ILogger<PhraseBank> logger, Core.State.ConfigProblemStore? problems = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(configDirectory);
         ArgumentNullException.ThrowIfNull(logger);
         _path = Path.Combine(configDirectory, "phrases.json");
         _logger = logger;
+        _problems = problems;
     }
 
     public string NextAreYouSure()
@@ -91,6 +95,7 @@ public sealed class PhraseBank
             {
                 _areYouSure = DefaultAreYouSure;
                 _didNotCatch = DefaultDidNotCatch;
+                _problems?.ClearArea(Core.State.ConfigAreas.Phrases);
                 return;
             }
 
@@ -105,10 +110,12 @@ public sealed class PhraseBank
                     "phrases.json loaded ({AreYouSure} are-you-sure, {DidNotCatch} did-not-catch phrases)",
                     _areYouSure.Length,
                     _didNotCatch.Length);
+                _problems?.ClearArea(Core.State.ConfigAreas.Phrases);
             }
             catch (Exception ex) when (ex is JsonException or IOException)
             {
                 _logger.LogWarning(ex, "phrases.json unreadable — using the shipped defaults");
+                _problems?.Report(Core.State.ConfigAreas.Phrases, _path, ex.Message);
                 _areYouSure = DefaultAreYouSure;
                 _didNotCatch = DefaultDidNotCatch;
             }

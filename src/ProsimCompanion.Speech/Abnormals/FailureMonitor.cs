@@ -38,6 +38,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     private readonly ILogger<FailureMonitor> _logger;
     private readonly IMicOwnership? _mic;
     private readonly Core.State.SpeechStatusStore? _status;
+    private readonly Core.State.ConfigProblemStore? _configProblems;
     private readonly EcamDialogueCore _ecamDialogue;
     private readonly SemaphoreSlim _oneDialogue = new(1, 1);
     private readonly CancellationTokenSource _dialogueCts = new();
@@ -55,7 +56,8 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     /// live ECAM procedures run the interactive dialogue; without it (degraded mode, and the
     /// pre-existing detection tests) procedures are announce-only and drills are unaffected.
     /// Optional <paramref name="statusStore"/> publishes the running dialogue's title for the
-    /// web page's cancel affordance (issue #56).</summary>
+    /// web page's cancel affordance (issue #56). Optional <paramref name="configProblems"/>
+    /// surfaces malformed abnormal files on the web UI (issue #74).</summary>
     public FailureMonitor(
         ISpeechArbiter arbiter,
         IProsimDataRefs dataRefs,
@@ -63,7 +65,8 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         JsonlEventLog eventLog,
         ILogger<FailureMonitor> logger,
         IMicOwnership? micOwnership = null,
-        Core.State.SpeechStatusStore? statusStore = null)
+        Core.State.SpeechStatusStore? statusStore = null,
+        Core.State.ConfigProblemStore? configProblems = null)
     {
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -78,6 +81,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         _logger = logger;
         _mic = micOwnership;
         _status = statusStore;
+        _configProblems = configProblems;
         _ecamDialogue = new EcamDialogueCore(this, eventLog);
     }
 
@@ -110,9 +114,18 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     public void Start()
     {
         // User tree, not the install dir (ADR-0007) — seeded from shipped defaults at startup.
-        Load(AbnormalLoader.LoadFolder(Core.Configuration.UserConfigPaths.Abnormals));
-        _logger.LogInformation("Loaded {Count} abnormal definitions ({Drills} drills)",
-            _definitions.Count, _definitions.Count(d => d.IsDrill));
+        // Malformed files log AND surface on the web banner (issue #74) instead of the old
+        // silent skip.
+        var failed = 0;
+        _configProblems?.ClearArea(Core.State.ConfigAreas.Abnormals);
+        Load(AbnormalLoader.LoadFolder(Core.Configuration.UserConfigPaths.Abnormals, (file, message) =>
+        {
+            failed++;
+            _logger.LogWarning("Abnormal file {File} failed to load: {Message}", file, message);
+            _configProblems?.Report(Core.State.ConfigAreas.Abnormals, file, message);
+        }));
+        _logger.LogInformation("Loaded {Count} abnormal definitions ({Drills} drills); {Failed} file(s) failed to parse",
+            _definitions.Count, _definitions.Count(d => d.IsDrill), failed);
         _timer = new Timer(_ => Tick(), null, 1000, 500); // 2 Hz, fixed (the predecessor's detectionRateHz default; no config knob here yet)
     }
 

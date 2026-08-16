@@ -15,8 +15,10 @@ namespace ProsimCompanion.Core.Weather;
 /// <item>the local HTTP API (<c>http://host:port/ActiveSky/API/GetMetarInfoAt</c>) when
 ///   ActiveSky is running.</item>
 /// </list>
-/// Returns <see cref="WxFacts.None"/> when neither is available (e.g. ActiveSky not
-/// installed) so the composite provider can fall through. Never throws.
+/// Returns an empty probe when neither is available (e.g. ActiveSky not installed) so the
+/// composite provider can fall through — <see cref="WxProbeStatus.Unavailable"/> when no
+/// interface answered at all, <see cref="WxProbeStatus.NoData"/> when ActiveSky answered but
+/// has nothing for the ICAO. Never throws.
 /// </summary>
 public sealed class ActiveSkyWxProvider : IWxProvider
 {
@@ -37,44 +39,46 @@ public sealed class ActiveSkyWxProvider : IWxProvider
         _logger = logger;
     }
 
-    public async Task<WxFacts> GetAsync(string? icao, CancellationToken cancellationToken = default)
+    public async Task<WxProbe> ProbeAsync(string? icao, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(icao))
         {
-            return WxFacts.None;
+            return WxProbe.NoData(null);
         }
 
         var id = icao.Trim().ToUpperInvariant();
         var options = _options.CurrentValue;
 
-        var fromFile = ReadFromFile(id, options);
+        // "Source seen" = a snapshot file existed or the API answered — that turns an empty
+        // result into "ActiveSky has no METAR for X" instead of "ActiveSky not connected".
+        var snapshotPath = ResolveSnapshotPath(options);
+        var sourceSeen = snapshotPath is not null;
+
+        var fromFile = snapshotPath is null ? null : ReadFromFile(id, snapshotPath);
         if (fromFile is not null)
         {
-            return MetarParser.ToFacts(fromFile);
+            return WxProbe.Found(MetarParser.ToFacts(fromFile));
         }
 
         if (options.UseActiveSkyApi)
         {
-            var fromApi = await ReadFromApiAsync(id, options, cancellationToken).ConfigureAwait(false);
+            var (apiReachable, fromApi) = await ReadFromApiAsync(id, options, cancellationToken).ConfigureAwait(false);
+            sourceSeen |= apiReachable;
             if (fromApi is not null)
             {
-                return MetarParser.ToFacts(fromApi);
+                return WxProbe.Found(MetarParser.ToFacts(fromApi));
             }
         }
 
-        return WxFacts.None;
+        return sourceSeen
+            ? WxProbe.NoData($"ActiveSky has no METAR for {id}")
+            : WxProbe.Unavailable("ActiveSky not connected");
     }
 
     // ---- file snapshot ----
 
-    private string? ReadFromFile(string icao, WeatherOptions options)
+    private string? ReadFromFile(string icao, string path)
     {
-        var path = ResolveSnapshotPath(options);
-        if (path is null)
-        {
-            return null;
-        }
-
         try
         {
             // ActiveSky rewrites the file continuously — share read/write so a concurrent
@@ -166,7 +170,7 @@ public sealed class ActiveSkyWxProvider : IWxProvider
 
     // ---- HTTP API ----
 
-    private async Task<string?> ReadFromApiAsync(string icao, WeatherOptions options, CancellationToken cancellationToken)
+    private async Task<(bool Reachable, string? Metar)> ReadFromApiAsync(string icao, WeatherOptions options, CancellationToken cancellationToken)
     {
         var url = $"http://{options.ActiveSkyApiHost}:{options.ActiveSkyApiPort}/ActiveSky/API/GetMetarInfoAt?ICAO={Uri.EscapeDataString(icao)}";
         try
@@ -176,22 +180,23 @@ public sealed class ActiveSkyWxProvider : IWxProvider
             var body = await Http.GetStringAsync(new Uri(url), timeout.Token).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(body))
             {
-                return null;
+                return (true, null); // API answered — ActiveSky just has nothing for this ICAO
             }
 
             var metar = ExtractMetarFromApiBody(body);
             if (!string.IsNullOrWhiteSpace(metar))
             {
                 _logger.LogInformation("ActiveSky WX {Icao} from API: \"{Metar}\"", icao, metar);
-                return metar;
+                return (true, metar);
             }
+
+            return (true, null);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "ActiveSky API unavailable ({Url})", url);
+            return (false, null);
         }
-
-        return null;
     }
 
     /// <summary>Pulls a METAR out of the API response whether it is JSON carrying a metar

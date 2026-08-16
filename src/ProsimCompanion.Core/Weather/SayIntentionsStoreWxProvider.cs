@@ -19,10 +19,20 @@ public sealed class SayIntentionsStoreWxProvider : IWxProvider
         _store = store;
     }
 
-    public Task<WxFacts> GetAsync(string? icao, CancellationToken cancellationToken = default)
+    public Task<WxProbe> ProbeAsync(string? icao, CancellationToken cancellationToken = default)
     {
         var entry = _store.Snapshot().ForIcao(icao);
-        return Task.FromResult(entry is null ? WxFacts.None : ToFacts(entry));
+        if (entry is null)
+        {
+            // A cache miss is NOT proof the station has no data — SI just hasn't been asked
+            // this session — so it classifies as Unavailable, not NoData.
+            return Task.FromResult(WxProbe.Unavailable("no SayIntentions weather cached"));
+        }
+
+        var facts = ToFacts(entry);
+        return Task.FromResult(facts.RawMetar is null
+            ? WxProbe.NoData("SayIntentions cache has no METAR")
+            : WxProbe.Found(facts));
     }
 
     /// <summary>Builds facts from a cached SI entry: explicit wind fields win over the parsed

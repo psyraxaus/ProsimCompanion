@@ -39,14 +39,18 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
     private bool _initialized;
 
     private readonly IOptionsMonitor<SpeechOptions>? _speech;
+    private readonly Core.State.ConfigProblemStore? _configProblems;
 
+    /// <summary>Optional <paramref name="configProblems"/>: a malformed commands.json surfaces
+    /// on the web UI (issue #74) instead of living only in the log file.</summary>
     public ConfiguredVoiceCommands(
         IProsimDataRefs dataRefs,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         SpokenTokenSource tokens,
         ILogger<ConfiguredVoiceCommands> logger,
-        IOptionsMonitor<SpeechOptions>? speech = null)
+        IOptionsMonitor<SpeechOptions>? speech = null,
+        Core.State.ConfigProblemStore? configProblems = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -60,6 +64,7 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
         _tokens = tokens;
         _logger = logger;
         _speech = speech;
+        _configProblems = configProblems;
     }
 
     /// <summary>Seat-relative side of a commands.json dataref (authored for the default
@@ -156,6 +161,7 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
                     _set = VoiceCommandSet.Empty;
                 }
 
+                _configProblems?.ClearArea(Core.State.ConfigAreas.Commands);
                 return;
             }
 
@@ -163,10 +169,14 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
         }
         catch (Exception ex)
         {
-            // Malformed mid-edit file: keep the previous commands (predecessor behaviour).
+            // Malformed mid-edit file: keep the previous commands (predecessor behaviour),
+            // but say so on the web UI too (issue #74).
             _logger.LogError(ex, "Failed to parse commands.json — keeping previous commands");
+            _configProblems?.Report(Core.State.ConfigAreas.Commands, CommandsPath, ex.Message);
             return;
         }
+
+        _configProblems?.ClearArea(Core.State.ConfigAreas.Commands);
 
         foreach (var warning in result.Warnings)
         {

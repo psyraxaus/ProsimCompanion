@@ -74,7 +74,14 @@ public sealed class AbnormalAction
 /// <summary>Loads abnormals/*.json once at startup (hot reload can come later).</summary>
 public static class AbnormalLoader
 {
-    public static IReadOnlyList<AbnormalDefinition> LoadFolder(string folder)
+    /// <summary>
+    /// Loads every definition in <paramref name="folder"/>. A malformed or id-less file skips
+    /// itself (the loader never fails the pillar) and is reported through
+    /// <paramref name="onProblem"/> (file, message) so the caller can log it and surface it on
+    /// the web UI (issue #74 — silent skips left pilots flying without their edits).
+    /// </summary>
+    public static IReadOnlyList<AbnormalDefinition> LoadFolder(
+        string folder, Action<string, string>? onProblem = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         if (!Directory.Exists(folder))
@@ -95,10 +102,14 @@ public static class AbnormalLoader
                     definition.Trigger.DebounceSeconds = Math.Max(0.5, definition.Trigger.DebounceSeconds);
                     definitions.Add(definition);
                 }
+                else
+                {
+                    onProblem?.Invoke(file, "no \"id\" — definition skipped");
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // A malformed file skips itself; the loader never fails the pillar.
+                onProblem?.Invoke(file, ex.Message);
             }
         }
 

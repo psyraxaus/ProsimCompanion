@@ -36,16 +36,28 @@ public sealed class CompositeWxProvider : IWxProvider
         _logger = logger;
     }
 
-    public async Task<WxFacts> GetAsync(string? icao, CancellationToken cancellationToken = default)
+    public async Task<WxProbe> ProbeAsync(string? icao, CancellationToken cancellationToken = default)
     {
+        // Per-tier reasons accumulate so an all-empty chain can say WHY (issue #62: a
+        // deterministic gateway 500 rendered as a bare "No METAR available" for a whole
+        // flight while other tiers held valid observations).
+        var details = new List<string>();
+        var anyNoData = false;
+
         foreach (var provider in _providers)
         {
             try
             {
-                var facts = await provider.GetAsync(icao, cancellationToken).ConfigureAwait(false);
-                if (facts.RawMetar is not null)
+                var probe = await provider.ProbeAsync(icao, cancellationToken).ConfigureAwait(false);
+                if (probe.Status == WxProbeStatus.Found && probe.Facts.RawMetar is not null)
                 {
-                    return Backfill(facts, icao);
+                    return WxProbe.Found(Backfill(probe.Facts, icao));
+                }
+
+                anyNoData |= probe.Status == WxProbeStatus.NoData;
+                if (!string.IsNullOrWhiteSpace(probe.Detail))
+                {
+                    details.Add(probe.Detail);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -57,10 +69,14 @@ public sealed class CompositeWxProvider : IWxProvider
                 // Providers promise not to throw; if one does anyway, the chain must survive.
                 _logger.LogDebug(ex, "Weather provider {Provider} threw for {Icao}",
                     provider.GetType().Name, icao);
+                details.Add($"{provider.GetType().Name}: {ex.Message}");
             }
         }
 
-        return WxFacts.None;
+        var detail = details.Count > 0 ? string.Join("; ", details) : null;
+        // Any tier authoritatively answering "nothing for this ICAO" beats "everything was
+        // unreachable" — the pilot's next action differs (accept no data vs. fix a connection).
+        return anyNoData ? WxProbe.NoData(detail) : WxProbe.Unavailable(detail);
     }
 
     private WxFacts Backfill(WxFacts facts, string? icao)

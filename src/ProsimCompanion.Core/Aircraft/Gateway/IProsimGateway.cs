@@ -40,9 +40,11 @@ public interface IProsimGateway
     /// <summary>Runway database for an airport. Returns null on failure.</summary>
     Task<IReadOnlyList<RunwayResponse>?> GetRunwaysAsync(string icao, bool includeIntersections, CancellationToken cancellationToken = default);
 
-    /// <summary>METAR for an airport. A gateway 204 means "no data" — returned as null and
-    /// deliberately not retried.</summary>
-    Task<Metar?> GetMetarAsync(string icao, CancellationToken cancellationToken = default);
+    /// <summary>METAR for an airport. A gateway 204 means "no data" — a successful result with
+    /// a null <see cref="MetarFetchResult.Metar"/>, deliberately not retried; transport/HTTP
+    /// failures carry a <see cref="MetarFetchResult.FailureReason"/> so consumers can say WHY
+    /// weather is missing (issue #62). Never returns null.</summary>
+    Task<MetarFetchResult> GetMetarAsync(string icao, CancellationToken cancellationToken = default);
 
     /// <summary>The list of selectable failures (used by the performance calculators).</summary>
     Task<IReadOnlyList<FailuresResponse>?> GetFailuresAsync(CancellationToken cancellationToken = default);

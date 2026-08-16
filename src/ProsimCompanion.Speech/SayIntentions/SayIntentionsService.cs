@@ -38,6 +38,7 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SayIntentionsService> _logger;
+    private readonly Core.State.ConfigProblemStore? _configProblems;
     private readonly object _gate = new();
 
     private List<AtcRequestDefinition> _requests = [];
@@ -68,11 +69,14 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
             new(false, null, null, null, null, null, null, double.MaxValue);
     }
 
+    /// <summary>Optional <paramref name="configProblems"/>: a malformed atc-requests.json
+    /// surfaces on the web UI (issue #74) instead of only a log warning.</summary>
     public SayIntentionsService(
         IOptionsMonitor<SayIntentionsOptions> options,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<SayIntentionsService> logger)
+        ILogger<SayIntentionsService> logger,
+        Core.State.ConfigProblemStore? configProblems = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -83,6 +87,7 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _configProblems = configProblems;
     }
 
     public IEnumerable<string> Phrases
@@ -464,12 +469,13 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
 
     private void LoadRequests()
     {
+        // User tree, not the install dir (ADR-0007) — seeded from shipped defaults at startup.
+        var path = Core.Configuration.UserConfigPaths.File("atc-requests.json");
         try
         {
-            // User tree, not the install dir (ADR-0007) — seeded from shipped defaults at startup.
-            var path = Core.Configuration.UserConfigPaths.File("atc-requests.json");
             if (!File.Exists(path))
             {
+                _configProblems?.ClearArea(Core.State.ConfigAreas.AtcRequests);
                 return;
             }
 
@@ -481,10 +487,14 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
             }
 
             _logger.LogInformation("Loaded {Count} SayIntentions ATC requests", _requests.Count);
+            _configProblems?.ClearArea(Core.State.ConfigAreas.AtcRequests);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "atc-requests.json load failed");
+            // Surface on the web UI too (issue #74) — this load runs once at Start, so a
+            // malformed file otherwise means a whole session of silently missing phrases.
+            _configProblems?.Report(Core.State.ConfigAreas.AtcRequests, path, ex.Message);
         }
     }
 }
