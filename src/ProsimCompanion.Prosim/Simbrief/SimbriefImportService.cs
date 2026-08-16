@@ -40,6 +40,10 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
     private readonly HttpClient _http;
     private readonly SemaphoreSlim _importLock = new(1, 1);
 
+    /// <summary>Randomized figures latched per OFP identity (issue #64) — guarded by
+    /// <see cref="_importLock"/>, which serializes every import.</summary>
+    private SimbriefRandomizationLatch? _randomizationLatch;
+
     public SimbriefImportService(
         IProsimDataRefs prosim,
         IProsimGateway gateway,
@@ -92,7 +96,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         _importLock.Dispose();
     }
 
-    public async Task<SimbriefImportOutcome> TryImportAsync(bool force = false, CancellationToken cancellationToken = default)
+    public async Task<SimbriefImportOutcome> TryImportAsync(bool force = false, string source = "unspecified", CancellationToken cancellationToken = default)
     {
         if (!await _importLock.WaitAsync(0, cancellationToken).ConfigureAwait(false))
         {
@@ -101,6 +105,10 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
 
         try
         {
+            // Attempt-level trace (issue #64): the 6x re-import storm was undiagnosable
+            // because nothing recorded WHO fired each import.
+            _logger.LogDebug("SimBrief import attempt (source {Source}, force {Force})", source, force);
+
             if (!force && _planImported.GetValue(false))
             {
                 return SimbriefImportOutcome.AlreadyImported;
@@ -119,7 +127,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
                 return SimbriefImportOutcome.FetchFailed;
             }
 
-            return await ImportAsync(ofp, cancellationToken).ConfigureAwait(false)
+            return await ImportAsync(ofp, force, cancellationToken).ConfigureAwait(false)
                 ? SimbriefImportOutcome.Imported
                 : SimbriefImportOutcome.ImportFailed;
         }
@@ -176,7 +184,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         return null;
     }
 
-    private async Task<bool> ImportAsync(JsonObject ofp, CancellationToken cancellationToken)
+    private async Task<bool> ImportAsync(JsonObject ofp, bool force, CancellationToken cancellationToken)
     {
         var parsed = ParseOfp(ofp);
         var fuelRamp = parsed.FuelPlanRampKg;
@@ -195,34 +203,62 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         {
             capacities = FallbackZoneCapacities;
         }
-        var totalCapacity = capacities.Sum();
 
-        if (paxCount > totalCapacity)
+        bool[] bookedMap;
+        var ofpKey = SimbriefRandomizationPolicy.OfpKey(
+            parsed.RequestId, parsed.FlightNumber, parsed.ScheduledOutUtc);
+        if (SimbriefRandomizationPolicy.ShouldReuse(_randomizationLatch, ofpKey, force))
         {
-            // Predecessor rule: substitute a plausible load factor rather than refusing.
-            var adjusted = (int)(totalCapacity * (0.75 + (Random.Shared.NextDouble() * 0.20)));
-            RecordDecision("simbrief import", $"OFP pax {paxCount} exceeds capacity {totalCapacity} — using plausible load {adjusted}");
-            paxCount = adjusted;
+            // Idempotent re-import of the SAME OFP (issue #64): reuse the figures latched by
+            // the first import — 2026-08-15 flight evidence: six imports during one boarding
+            // re-rolled pax 89→91→88→85→91→89 while the prelim loadsheet had cut at 89 and
+            // GSX armed a different target each time. A new OFP (different request id) or a
+            // forced user re-import re-randomizes as before.
+            var latch = _randomizationLatch!;
+            bookedMap = [.. latch.BookedMap];
+            paxCount = latch.PaxCount;
+            cargo = latch.CargoKg;
+            RecordDecision(
+                "simbrief import",
+                $"re-import of the same OFP ({ofpKey}) — reusing latched randomization ({paxCount} pax, cargo {cargo:F0} kg)");
         }
-
-        // Booked seat map: capacity-proportional (equal load factor per zone — CG-realistic),
-        // randomized within each zone so empty seats scatter naturally.
-        var bookedMap = SeatMap.SynthesizeBooked(paxCount, capacities);
-
-        // Optional no-show/extra randomization (predecessor feature): seats flip with the
-        // configured chance, cargo tracks the pax delta by the checked-bag weight.
-        var gsxOptions = _options.CurrentValue;
-        if (gsxOptions.RandomizePaxNoShows)
+        else
         {
-            var delta = SeatMap.ApplyNoShowRandomization(bookedMap, gsxOptions.NoShowChancePerSeat);
-            if (delta != 0)
+            var totalCapacity = capacities.Sum();
+
+            if (paxCount > totalCapacity)
             {
-                paxCount += delta;
-                cargo = Math.Max(0, cargo + (delta * gsxOptions.WeightPerBagKg));
-                RecordDecision(
-                    "simbrief import",
-                    $"pax randomization: {(delta > 0 ? "+" : "")}{delta} vs OFP ({paxCount} boarding); cargo adjusted by {delta * gsxOptions.WeightPerBagKg:F0} kg");
+                // Predecessor rule: substitute a plausible load factor rather than refusing.
+                var adjusted = (int)(totalCapacity * (0.75 + (Random.Shared.NextDouble() * 0.20)));
+                RecordDecision("simbrief import", $"OFP pax {paxCount} exceeds capacity {totalCapacity} — using plausible load {adjusted}");
+                paxCount = adjusted;
             }
+
+            // Booked seat map: capacity-proportional (equal load factor per zone — CG-realistic),
+            // randomized within each zone so empty seats scatter naturally.
+            bookedMap = SeatMap.SynthesizeBooked(paxCount, capacities);
+
+            // Optional no-show/extra randomization (predecessor feature): seats flip with the
+            // configured chance, cargo tracks the pax delta by the checked-bag weight.
+            var gsxOptions = _options.CurrentValue;
+            if (gsxOptions.RandomizePaxNoShows)
+            {
+                var delta = SeatMap.ApplyNoShowRandomization(bookedMap, gsxOptions.NoShowChancePerSeat);
+                if (delta != 0)
+                {
+                    paxCount += delta;
+                    cargo = Math.Max(0, cargo + (delta * gsxOptions.WeightPerBagKg));
+                    RecordDecision(
+                        "simbrief import",
+                        $"pax randomization: {(delta > 0 ? "+" : "")}{delta} vs OFP ({paxCount} boarding); cargo adjusted by {delta * gsxOptions.WeightPerBagKg:F0} kg");
+                }
+            }
+
+            // Latch even without no-show randomization: the seat map itself is randomized
+            // within zones and must also stay stable across re-imports of the same OFP.
+            _randomizationLatch = ofpKey.Length > 0
+                ? new SimbriefRandomizationLatch(ofpKey, [.. bookedMap], paxCount, cargo)
+                : null;
         }
 
         // Statistics always derive from the actual map so ProSim's manifest agrees seat-for-seat.

@@ -92,9 +92,9 @@
         <div class="section-body">
             @* Service ids MUST be the canonical GsxServiceIds strings — the mirror never
                carries "Jetway"/"Stairs"/"Pushback", so home-grown names render "—" forever
-               (issue #31). Reposition has no Remote API service (menu-driven) and stays an
-               untracked "—" row for layout parity. *@
-            @ServiceRow("Reposition", "Reposition")
+               (issue #31). Reposition has no Remote API service (menu-driven), so its row is
+               fed by the ground-prep coordinator's published stage instead (issue #45). *@
+            @GroundPrepRow()
             @ServiceRow("Refuel", GsxServiceIds.Refueling)
             @ServiceRow("Catering", GsxServiceIds.Catering)
             @ServiceRow("Lavatory", GsxServiceIds.Lavatory)
@@ -199,6 +199,25 @@
             : view.SemanticState ?? view.MappedState;
         return @<div class="row">
             <span class="row-label">@label</span>
+            <span class="pill @tone">@(text ?? "—")</span>
+        </div>;
+    }
+
+    private RenderFragment GroundPrepRow()
+    {
+        // Live ground-preparation stage from the coordinator (issue #45): "Reposition —
+        // running", "Ground prep — complete", or a hold reason. "—" until it reports.
+        var prep = _gsx.GroundPrep;
+        var tone = prep is null ? "tone-neutral"
+            : prep.Stage == "Complete" ? "tone-ok"
+            : prep.Detail.StartsWith("holding", StringComparison.OrdinalIgnoreCase)
+                || prep.Detail.StartsWith("reset", StringComparison.OrdinalIgnoreCase) ? "tone-warn"
+            : "tone-active";
+        var text = prep is null ? null
+            : prep.Stage == "Complete" ? "Ground prep — complete"
+            : $"{prep.Stage} — {prep.Detail}";
+        return @<div class="row">
+            <span class="row-label">Ground Prep</span>
             <span class="pill @tone">@(text ?? "—")</span>
         </div>;
     }

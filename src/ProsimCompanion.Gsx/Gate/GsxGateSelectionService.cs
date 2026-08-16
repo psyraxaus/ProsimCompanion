@@ -35,6 +35,11 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
 {
     private static readonly TimeSpan ConfirmationWindow = TimeSpan.FromSeconds(60);
 
+    /// <summary>Minimum quiet time before an identical failed gate.select may be re-dispatched
+    /// (issue #75: mirror updates arrive about once a second and re-invoke the dispatcher — a
+    /// failed request re-fired 947 ms after its own failure, twice within the same second).</summary>
+    private static readonly TimeSpan FailedRetryBackoff = TimeSpan.FromSeconds(10);
+
     private readonly IGsxRemoteApi _api;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxGateSelectionService> _logger;
@@ -46,6 +51,8 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     private string? _requestedGate;
     private bool _retriedOnce;
     private bool _dispatching;
+    private string? _lastFailedGate;
+    private long _lastFailedAtTicks;
     private Timer? _confirmationTimer;
 
     public GsxGateSelectionService(
@@ -141,6 +148,16 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
                 return;
             }
 
+            // Failed-request backoff (issue #75): don't re-fire the identical request on every
+            // state-change event. An explicit RequestGate re-arms (Status leaves Failed) and
+            // bypasses this; after the quiet period the automatic retry path resumes.
+            if (Status == GsxGateRequestStatus.Failed
+                && string.Equals(_lastFailedGate, _requestedGate, StringComparison.Ordinal)
+                && TimeSpan.FromMilliseconds(Environment.TickCount64 - _lastFailedAtTicks) < FailedRetryBackoff)
+            {
+                return;
+            }
+
             // Preconditions: Ready, airport context, destination known and matching.
             var airport = _api.Mirror.AirportIcao;
             var destination = _destination.GetValue<string?>(null);
@@ -179,9 +196,11 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     /// disambiguation counts as that retry).</summary>
     private async Task DispatchLadderAsync(string requested)
     {
-        // GSX matches gate.select tokens EXACTLY against its parking display names, which carry
-        // prefixes and whitespace (" Gate D5" at EHAM — issue #36): resolve the user's token to
-        // GSX's own name whenever the mirrored parkings already know it.
+        // GSX matches gate.select tokens against its parking display names, which carry
+        // prefixes (" Gate D5" at EHAM — issue #36): resolve the user's token to GSX's own
+        // name whenever the mirrored parkings already know it. 2026-08-16 amendment (#75):
+        // whitespace is the exception — GSX refused its own leading-space name with
+        // not_found, so resolved tokens are now trimmed before sending.
         var sendToken = GsxGateResolver.ResolveCanonical(_api.Mirror.Parkings, requested) ?? requested;
         if (!string.Equals(sendToken, requested, StringComparison.Ordinal))
         {
@@ -199,13 +218,35 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
                     // itself proves GSX has an airport loaded, so resolve again and retry with
                     // the canonical name when it differs from what was just refused.
                     var canonical = GsxGateResolver.ResolveCanonical(_api.Mirror.Parkings, requested);
-                    if (canonical is not null && !string.Equals(canonical, sendToken, StringComparison.Ordinal))
+                    if (canonical is not null && !string.Equals(canonical, GsxGateResolver.TrimToken(sendToken), StringComparison.Ordinal))
                     {
                         _retriedOnce = true;
                         _logger.LogInformation(
                             "Gate {Gate} not found as sent; retrying with GSX parking name {Canonical}",
                             requested, canonical);
                         result = await SendSelectAsync(canonical, revokeServices: false, force: false).ConfigureAwait(false);
+                        break;
+                    }
+
+                    // Nearest-name substitution (issue #75, 2026-08-15 flight: requested "313"
+                    // failed while GSX's parking list carried "Stand 313"). Accept the nearest
+                    // suggestion ONLY when exactly one candidate is an unambiguous match —
+                    // equal after trim, or equal once a known facility prefix is stripped.
+                    var substitutes = GsxGateResolver
+                        .NearestNames(_api.Mirror.Parkings, requested)
+                        .Where(name => GsxGateResolver.IsUnambiguousNearestMatch(requested, name))
+                        .Select(GsxGateResolver.TrimToken)
+                        .Distinct(StringComparer.Ordinal)
+                        .ToList();
+                    if (substitutes.Count == 1
+                        && !string.Equals(substitutes[0], GsxGateResolver.TrimToken(sendToken), StringComparison.Ordinal))
+                    {
+                        _retriedOnce = true;
+                        _logger.LogInformation(
+                            "Gate {Gate} not found; substituting the unambiguous nearest parking {Nearest}",
+                            requested, substitutes[0]);
+                        _eventLog.Record("gsx-gate-substituted", new { gate = requested, nearest = substitutes[0] });
+                        result = await SendSelectAsync(substitutes[0], revokeServices: false, force: false).ConfigureAwait(false);
                     }
                     break;
                 case "ambiguous":
@@ -273,9 +314,11 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     }
 
     private Task<GsxCommandResult> SendSelectAsync(string gate, bool revokeServices, bool force)
+        // Trimmed at the transport (issue #75): a leading space in a mirrored parking name
+        // (" Gate D57", 2026-08-15 flight) makes GSX answer not_found for its own gate.
         => _api.SendCommandAsync("gate.select", new JsonObject
         {
-            ["gate"] = gate,
+            ["gate"] = GsxGateResolver.TrimToken(gate),
             ["revokeServices"] = revokeServices,
             ["force"] = force,
         });
@@ -343,6 +386,11 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
 
     private void Fail(string detail)
     {
+        lock (_gate)
+        {
+            _lastFailedGate = _requestedGate;
+            _lastFailedAtTicks = Environment.TickCount64;
+        }
         _eventLog.Record("gsx-gate-failed", new { gate = _requestedGate, detail });
         SetStatus(GsxGateRequestStatus.Failed, detail);
     }

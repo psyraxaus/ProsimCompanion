@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Aircraft.Ofp;
 
 namespace ProsimCompanion.Gsx.Automation;
 
@@ -27,17 +29,30 @@ public interface IGsxFlightPlanStatus
 /// when the SimBrief OFP was imported into the EFB, OR the pilot loaded a plan in the MCDU
 /// (valid FMS origin + destination). Extracted from the departure sequencer's pump so the
 /// on-demand service path applies the exact same rule — never a re-derived copy.
+///
+/// Freshness cross-check (issue #60, 2026-08-16 flight evidence): ProSim's
+/// <c>efb.simbriefPlanImported</c> can carry a STALE true from a previous session, which let
+/// GSX-side service requests run 55 s before any plan existed. The dataref alone is therefore
+/// no longer trusted: it must be corroborated by this-session evidence — either the app's own
+/// <see cref="OfpStore"/> holds a current OFP, or the pilot's MCDU plan is present.
 /// </summary>
 public sealed class GsxFlightPlanMonitor : IGsxFlightPlanStatus, IDisposable
 {
     private readonly IDataRefSubscription _ofpImported;
     private readonly IDataRefSubscription _fmsOrigin;
     private readonly IDataRefSubscription _fmsDestination;
+    private readonly OfpStore _ofpStore;
+    private readonly ILogger<GsxFlightPlanMonitor> _logger;
+    private bool _staleWarned;
 
-    public GsxFlightPlanMonitor(IProsimDataRefs prosim)
+    public GsxFlightPlanMonitor(IProsimDataRefs prosim, OfpStore ofpStore, ILogger<GsxFlightPlanMonitor> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
+        ArgumentNullException.ThrowIfNull(ofpStore);
+        ArgumentNullException.ThrowIfNull(logger);
 
+        _ofpStore = ofpStore;
+        _logger = logger;
         _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
         _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
         _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
@@ -51,7 +66,45 @@ public sealed class GsxFlightPlanMonitor : IGsxFlightPlanStatus, IDisposable
 
     public bool FmsPlanPresent => IsValidIcao(FmsOrigin) && IsValidIcao(FmsDestination);
 
-    public bool FlightPlanAvailable => OfpImported || FmsPlanPresent;
+    public bool FlightPlanAvailable
+    {
+        get
+        {
+            var ofpImported = OfpImported;
+            var fmsPlanPresent = FmsPlanPresent;
+            var ofpHeldThisSession = _ofpStore.Current is not null;
+            var available = IsFlightPlanAvailable(ofpImported, fmsPlanPresent, ofpHeldThisSession);
+
+            // Stale-dataref episode: say why ONCE per episode, not on every 3 s pump read.
+            if (!available && ofpImported)
+            {
+                if (!_staleWarned)
+                {
+                    _staleWarned = true;
+                    _logger.LogWarning(
+                        "ProSim reports a SimBrief plan imported, but no OFP was imported this session "
+                        + "and the MCDU has no plan — treating the dataref as stale from a previous "
+                        + "session; the flight-plan gate stays closed (issue #60)");
+                }
+            }
+            else
+            {
+                _staleWarned = false;
+            }
+
+            return available;
+        }
+    }
+
+    /// <summary>
+    /// The pure availability rule (issue #60): the ProSim "imported" dataref is only believed
+    /// when corroborated by this-session evidence — the app's own OFP store, or a pilot-loaded
+    /// MCDU plan. A dataref-only "imported" (no app import this session, FMS empty) is treated
+    /// as stale, because ProSim persists it across its own sessions while the aircraft has no
+    /// actual plan (2026-08-15 flight: refuel latched targets 55 s before the plan arrived).
+    /// </summary>
+    public static bool IsFlightPlanAvailable(bool ofpImportedDataref, bool fmsPlanPresent, bool ofpHeldThisSession)
+        => fmsPlanPresent || (ofpImportedDataref && ofpHeldThisSession);
 
     /// <summary>The MCDU FMS origin/destination datarefs carry a valid 4-char ICAO once the
     /// pilot loads a plan — but read "----" before that, and have been observed returning the

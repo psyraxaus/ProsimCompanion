@@ -16,7 +16,11 @@ public sealed class GsxQuestionDispatcher : IDisposable
     private readonly SemaphoreSlim _dispatchLock = new(1, 1);
     private readonly object _gate = new();
     private string? _lastSeenTitle;
-    private string? _lastUnhandledTitle;
+
+    /// <summary>Unmatched titles already logged this session. A single last-title latch was
+    /// not enough (issue #76): two known-ignorable menus alternating ("Interrupt pushback?" /
+    /// operator popup) re-armed each other and re-logged every swap.</summary>
+    private readonly HashSet<string> _unhandledTitlesLogged = new(StringComparer.Ordinal);
 
     public GsxQuestionDispatcher(ILogger<GsxQuestionDispatcher> logger)
     {
@@ -74,18 +78,20 @@ public sealed class GsxQuestionDispatcher : IDisposable
         {
             // GSX re-raises an open menu about once a second (hide/show cycles that re-arm the
             // dispatch edge) — a stuck unhandled menu logged every second for minutes before a
-            // crash (issue #46). Log each unmatched title once until a different one appears.
+            // crash (issue #46). Each unmatched title is logged ONCE PER SESSION, at Info so a
+            // pilot reading the log sees which menus (e.g. "Interrupt pushback?") were
+            // deliberately left alone (issue #76).
             lock (_gate)
             {
-                if (string.Equals(title, _lastUnhandledTitle, StringComparison.Ordinal))
+                if (!_unhandledTitlesLogged.Add(title))
                 {
                     return;
                 }
-
-                _lastUnhandledTitle = title;
             }
 
-            _logger.LogDebug("GSX menu '{Title}' has no question handler", title);
+            _logger.LogInformation(
+                "GSX menu '{Title}' has no question handler — leaving it for the user (logged once per session)",
+                title);
             return;
         }
 

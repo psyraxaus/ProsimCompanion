@@ -11,6 +11,15 @@ namespace ProsimCompanion.Core.Aircraft.Gateway;
 /// </summary>
 public interface IProsimGateway
 {
+    /// <summary>
+    /// Cheap single-attempt reachability probe: true when the gateway answered ANY HTTP
+    /// response, false on connection refused/timeout. Never retries and never logs above
+    /// Debug — built for hold-until-reachable loops (issue #76: ProSim raises its SDK
+    /// connection before the port-5000 gateway starts listening, so feature writes fired at
+    /// "SDK connected" burned their retry attempts on "actively refused").
+    /// </summary>
+    Task<bool> IsReachableAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Writes a dataref via GraphQL mutation. The mutation type is chosen from the
     /// runtime type of <paramref name="value"/> (bool/int/float-double/string).</summary>
     Task<bool> WriteDataRefAsync(string name, object value, CancellationToken cancellationToken = default);

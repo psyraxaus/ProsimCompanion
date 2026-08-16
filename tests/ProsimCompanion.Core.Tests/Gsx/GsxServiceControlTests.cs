@@ -319,6 +319,27 @@ public sealed class GsxServiceControlTests
         _dispatcher.VerifyNoOtherCalls();
     }
 
+    [Theory]
+    [InlineData(FlightPhase.ColdAndDark)]
+    [InlineData(FlightPhase.Preflight)]
+    [InlineData(FlightPhase.PushbackAndStart)]
+    [InlineData(FlightPhase.TaxiOut)]
+    public async Task NoFlightPlan_AnyPreTakeoffGroundPhase_RefusesPlanGatedServices(FlightPhase phase)
+    {
+        // Issue #60: the gate used to cover only Preflight/ColdAndDark, so plan-less requests
+        // slipped through in the other pre-takeoff ground phases.
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        _flightPlan.SetupGet(f => f.FlightPlanAvailable).Returns(false);
+        _flightPhase.SetupGet(f => f.CurrentPhase).Returns(phase);
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        Assert.Contains("flight plan", outcome.Detail, StringComparison.OrdinalIgnoreCase);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task NoFlightPlan_RequireOfpDisabled_StillDispatches()
     {

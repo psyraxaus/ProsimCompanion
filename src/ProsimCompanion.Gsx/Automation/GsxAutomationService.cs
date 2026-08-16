@@ -243,14 +243,17 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             return new(GsxTriggerDispatchStatus.Rejected, RejectCode: result.Code);
         }
 
-        _ = WatchOnDemandTriggerAsync(serviceId);
+        _ = WatchOnDemandTriggerAsync(serviceId, attempt: 1);
         return new(GsxTriggerDispatchStatus.Dispatched);
     }
 
     /// <summary>Confirm-or-timeout watcher for on-demand triggers, mirroring
     /// <see cref="ResolveInFlightTrigger"/> semantics. Exits early when the departure pump's
-    /// own resolve got there first (the slot no longer carries this service).</summary>
-    private async Task WatchOnDemandTriggerAsync(string serviceId)
+    /// own resolve got there first (the slot no longer carries this service). A first-attempt
+    /// timeout retries ONCE automatically (issue #76: the departure pump retries dropped
+    /// calls, but an on-demand GPU call at arrival simply died); a second drop records a
+    /// web-visible decision and frees the slot.</summary>
+    private async Task WatchOnDemandTriggerAsync(string serviceId, int attempt)
     {
         try
         {
@@ -285,13 +288,42 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
             }
 
-            if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
+            if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) != true)
             {
-                _inFlight = null;
+                return; // someone else already resolved the slot
+            }
+
+            if (attempt == 1)
+            {
+                // 2026-08-16 (#76): GSX silently dropped an on-demand GPU request and nothing
+                // ever re-sent it. Keep owning the slot (fresh timestamp so the departure
+                // pump's own timeout does not race the retry) and fire the trigger once more.
+                _inFlight = new InFlightTrigger(serviceId, DateTimeOffset.UtcNow);
                 RecordDecision(
                     $"trigger {serviceId}",
-                    "not picked up by GSX within the confirm window — the call was dropped; the slot is free again");
+                    "not picked up by GSX within the confirm window — retrying once automatically");
+                var retry = await _api.SendCommandAsync(
+                    "service.trigger",
+                    new JsonObject { ["service"] = serviceId }).ConfigureAwait(false);
+                if (!retry.Ok)
+                {
+                    if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        _inFlight = null;
+                    }
+                    RecordDecision($"trigger {serviceId}", $"automatic retry rejected ({retry.Code}) — the slot is free again");
+                    return;
+                }
+
+                await WatchOnDemandTriggerAsync(serviceId, attempt: 2).ConfigureAwait(false);
+                return;
             }
+
+            _inFlight = null;
+            RecordDecision(
+                $"trigger {serviceId}",
+                "dropped twice (initial call + one automatic retry) — GSX is not accepting this "
+                + "call; check the GSX menu/state in the sim. The slot is free again");
         }
         catch (Exception ex)
         {
@@ -741,7 +773,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         {
             try
             {
-                var outcome = await _simbrief.TryImportAsync().ConfigureAwait(false);
+                var outcome = await _simbrief.TryImportAsync(source: "automation (MCDU plan detected)").ConfigureAwait(false);
                 if (outcome == SimbriefImportOutcome.Imported)
                 {
                     Pump();

@@ -28,7 +28,7 @@ public sealed class OfpCommandHandlerTests
     {
         var importer = new Mock<ISimbriefImporter>(MockBehavior.Strict);
         importer
-            .Setup(i => i.TryImportAsync(true, It.IsAny<CancellationToken>()))
+            .Setup(i => i.TryImportAsync(true, It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(SimbriefImportOutcome.Imported);
 
         var registry = new CommandRegistry();

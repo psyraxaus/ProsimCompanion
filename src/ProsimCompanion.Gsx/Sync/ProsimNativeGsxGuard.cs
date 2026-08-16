@@ -84,10 +84,14 @@ public sealed class ProsimNativeGsxGuard : IDisposable
     {
         try
         {
-            // Give the connection a moment to settle before the first writes. The flags are
-            // written via the gateway (writeBool) — the predecessors' proven path for these;
-            // some are not writable as SDK datarefs.
-            await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            // Hold until the EFB gateway is actually listening (issue #76 item 6,
+            // 2026-08-15 flight): ProSim raises the SDK connection before its port-5000
+            // gateway starts, so writes fired at "SDK connected" burned their retry attempts
+            // on "actively refused" (efb.gsx.autoCatering attempt 1-2/3). Bounded — after
+            // the wait the writes go out regardless, with their retries as the backstop.
+            // The flags are written via the gateway (writeBool) — the predecessors' proven
+            // path for these; some are not writable as SDK datarefs.
+            await WaitForGatewayAsync().ConfigureAwait(false);
 
             var failed = new List<string>();
             foreach (var flag in NativeGsxFlags)
@@ -113,6 +117,21 @@ public sealed class ProsimNativeGsxGuard : IDisposable
             _appliedThisConnection = false;
             _logger.LogError(ex, "Disabling ProSim native GSX flags failed");
         }
+    }
+
+    /// <summary>Probes the gateway every 2 s for up to a minute. Quiet (Debug-level probes)
+    /// by design — the old path logged a warning per burned retry attempt.</summary>
+    private async Task WaitForGatewayAsync()
+    {
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            if (await _gateway.IsReachableAsync().ConfigureAwait(false))
+            {
+                return;
+            }
+            await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        }
+        _logger.LogDebug("ProSim gateway still unreachable after 60 s — writing anyway (retries are the backstop)");
     }
 
     private void RecordDecision(string action, string reason)

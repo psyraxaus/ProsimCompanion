@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 
@@ -63,6 +64,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private readonly Lazy<IGsxDepartureControl> _departureControl;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxGroundPrepCoordinator> _logger;
     private readonly Timer _timer;
     private Stage _stage = Stage.Reposition;
@@ -83,6 +85,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         Lazy<IGsxDepartureControl> departureControl,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
+        JsonlEventLog eventLog,
         ILogger<GsxGroundPrepCoordinator> logger)
     {
         ArgumentNullException.ThrowIfNull(api);
@@ -96,6 +99,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         ArgumentNullException.ThrowIfNull(departureControl);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
         _api = api;
@@ -109,6 +113,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _departureControl = departureControl;
         _options = options;
         _diagnostics = diagnostics;
+        _eventLog = eventLog;
         _logger = logger;
 
         _api.Mirror.SidChanged += OnSidChanged;
@@ -158,12 +163,15 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
     private void Reset(string reason)
     {
-        if (_stage != Stage.Reposition || _sessionGateKey is not null)
-        {
-            _logger.LogInformation("Ground preparation sequence reset ({Reason})", reason);
-        }
+        var wasProgressed = _stage != Stage.Reposition || _sessionGateKey is not null;
         _stage = Stage.Reposition;
         _sessionGateKey = null;
+        if (wasProgressed)
+        {
+            _logger.LogInformation("Ground preparation sequence reset ({Reason})", reason);
+            PublishStage($"reset: {reason}");
+            _eventLog.Record("gsx-ground-prep-stage", new { stage = _stage.ToString(), detail = $"reset: {reason}" });
+        }
     }
 
     private async Task CycleAsync()
@@ -326,6 +334,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _holdReason = reason;
         _logger.LogInformation("Ground preparation holding: {Reason}", reason);
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", $"holding: {reason}"));
+        PublishStage($"holding: {reason}");
     }
 
     private void ReleaseHold()
@@ -338,6 +347,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _holdReason = null;
         _logger.LogInformation("Ground preparation hold released");
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", "hold released"));
+        PublishStage("running");
     }
 
     private void Advance(Stage next, string detail)
@@ -345,5 +355,15 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _stage = next;
         _logger.LogInformation("Ground prep -> {Stage}: {Detail}", next, detail);
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", $"{next}: {detail}"));
+        PublishStage(detail);
+        // Session record for future log analysis (issue #45: the 2026-08-15 flight logs could
+        // not answer "which prep step was running when the gate anchor failed").
+        _eventLog.Record("gsx-ground-prep-stage", new { stage = next.ToString(), detail });
     }
+
+    /// <summary>Pushes the current stage + a short human reason to the diagnostics store —
+    /// the Flight Status page's ground-prep row (issue #45; called only on transitions and
+    /// hold changes, never per cycle tick).</summary>
+    private void PublishStage(string detail)
+        => _diagnostics.UpdateGroundPrep(new GsxGroundPrepView(_stage.ToString(), detail));
 }

@@ -51,7 +51,36 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
         };
     }
 
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(2);
+
     private Uri GraphQlUri => new($"http://{_options.CurrentValue.Host}:{GatewayPort}/graphql");
+
+    /// <inheritdoc />
+    public async Task<bool> IsReachableAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(ProbeTimeout);
+            // Any answer at all — 200, 404, whatever — proves the listener is up; only a
+            // transport failure (refused, timeout) reports unreachable.
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get, new Uri($"http://{_options.CurrentValue.Host}:{GatewayPort}/"));
+            using var response = await _http
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token)
+                .ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            _logger.LogDebug("Gateway reachability probe: not reachable ({Message})", ex.Message);
+            return false;
+        }
+    }
 
     private Uri EfbUri(string relative) => new($"http://{_options.CurrentValue.Host}:{GatewayPort}/efb{relative}");
 

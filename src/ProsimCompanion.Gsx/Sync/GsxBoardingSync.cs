@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Gsx.Automation;
 using ProsimCompanion.Gsx.Services;
 
 namespace ProsimCompanion.Gsx.Sync;
@@ -29,6 +30,7 @@ public sealed class GsxBoardingSync : IDisposable
     private readonly GsxProsimWriter _writer;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly IGsxFlightPlanStatus _flightPlan;
     private readonly ILogger<GsxBoardingSync> _logger;
     private readonly IDataRefSubscription _plannedTotalLvar;
     private readonly IDataRefSubscription _boardedLvar;
@@ -43,6 +45,7 @@ public sealed class GsxBoardingSync : IDisposable
     private readonly IDataRefSubscription _cargoAftCapacity;
     private readonly Timer _timer;
     private volatile bool _boardingActive;
+    private volatile bool _pendingPlanArm;
     private volatile bool _deboardingActive;
     private bool[] _plannedMap = [];
     private bool[] _boardedMap = [];
@@ -61,6 +64,7 @@ public sealed class GsxBoardingSync : IDisposable
         IProsimDataRefs prosim,
         ISimVars simVars,
         GsxProsimWriter writer,
+        IGsxFlightPlanStatus flightPlan,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxBoardingSync> logger)
@@ -69,11 +73,13 @@ public sealed class GsxBoardingSync : IDisposable
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(writer);
+        ArgumentNullException.ThrowIfNull(flightPlan);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
         _writer = writer;
+        _flightPlan = flightPlan;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -163,7 +169,26 @@ public sealed class GsxBoardingSync : IDisposable
             switch (lifecycleEvent)
             {
                 case GsxServiceLifecycleEvent.Active when Enabled:
+                    // Plan gate on ARMING (issue #60): a GSX-side boarding request with no
+                    // flight plan must not latch OFP-derived seat maps/cargo — the sync holds
+                    // and arms from the tick once a plan arrives. Deboarding (arrival flow,
+                    // nothing OFP-derived to latch) is deliberately never plan-gated.
+                    if (_options.CurrentValue.RequireOfpBeforeDeparture && !_flightPlan.FlightPlanAvailable)
+                    {
+                        _pendingPlanArm = true;
+                        RecordDecision(
+                            "boarding sync",
+                            "GSX is boarding without a flight plan — sync holds until one arrives "
+                            + "(gsx.requireOfpBeforeDeparture); no manifest latched");
+                        break;
+                    }
+
                     StartBoarding();
+                    break;
+
+                case GsxServiceLifecycleEvent.Completed when _pendingPlanArm:
+                    _pendingPlanArm = false;
+                    RecordDecision("boarding sync", "GSX boarding completed while holding for a flight plan — no pax/cargo were loaded");
                     break;
 
                 case GsxServiceLifecycleEvent.Completed when _boardingActive:
@@ -264,6 +289,16 @@ public sealed class GsxBoardingSync : IDisposable
 
         try
         {
+            // Deferred arming (issue #60): boarding went active plan-less and the sync held;
+            // the moment the plan arrives, arm normally — the boarded-counter catch-up below
+            // then seats everyone GSX has already boarded in one update.
+            if (_pendingPlanArm && Enabled && _flightPlan.FlightPlanAvailable)
+            {
+                _pendingPlanArm = false;
+                RecordDecision("boarding sync", "flight plan arrived mid-service — arming now");
+                StartBoarding();
+            }
+
             if (_boardingActive && Enabled)
             {
                 var boarded = (int)_boardedLvar.GetValue(0.0);

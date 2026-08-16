@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Gsx.Automation;
 using ProsimCompanion.Gsx.Services;
 
 namespace ProsimCompanion.Gsx.Sync;
@@ -27,6 +28,7 @@ public sealed class GsxRefuelSync : IDisposable
     private readonly GsxProsimWriter _writer;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly IGsxFlightPlanStatus _flightPlan;
     private readonly ILogger<GsxRefuelSync> _logger;
     private readonly IDataRefSubscription _fuelTotal;
     private readonly IDataRefSubscription _fuelTarget;
@@ -35,6 +37,7 @@ public sealed class GsxRefuelSync : IDisposable
     private readonly IDataRefSubscription _hoseConnected;
     private readonly Timer _timer;
     private volatile bool _transferActive;
+    private volatile bool _pendingPlanArm;
     private bool _hoseWasConnected;
     private bool _pumpPowerOn;
     private string? _lastHoldReason;
@@ -48,6 +51,7 @@ public sealed class GsxRefuelSync : IDisposable
         IProsimDataRefs prosim,
         ISimVars simVars,
         GsxProsimWriter writer,
+        IGsxFlightPlanStatus flightPlan,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxRefuelSync> logger)
@@ -56,12 +60,14 @@ public sealed class GsxRefuelSync : IDisposable
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(writer);
+        ArgumentNullException.ThrowIfNull(flightPlan);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
         _prosim = prosim;
         _writer = writer;
+        _flightPlan = flightPlan;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -96,25 +102,29 @@ public sealed class GsxRefuelSync : IDisposable
         switch (lifecycleEvent)
         {
             case GsxServiceLifecycleEvent.Active when Enabled:
-                _transferActive = true;
-                _hoseWasConnected = false;
-                _lastHoldReason = null;
-                _divergenceLogged = false;
-                _pumpPowerOn = false;
-                _dynamicRateKgPerSec = 0;
-                // The target is LATCHED once at activation and never re-read while pumping:
-                // ProSim rewrites aircraft.refuel.fuelTarget to the current FOB the moment its
-                // refuel session engages (round-4 smoke test: 7317 collapsed to 2500 one tick
-                // after pump-on, ending the transfer immediately). Power stays OFF until the
-                // hose actually connects and a sane transfer is possible.
-                _latchedTargetKg = ReadTargetKg();
-                RecordDecision(
-                    "refuel sync",
-                    $"activated — current {_fuelTotal.GetValue(0.0):F0} kg; latched target {_latchedTargetKg:F0} kg (candidates: fuelTarget {_fuelTarget.GetValue(0.0):F0}, fuelTarget.kg {_fuelTargetKg.GetValue(0.0):F0}, plannedfuel {_plannedFuel.GetValue(0.0):F0})");
-                if (TrySkipForTankering(_fuelTotal.GetValue(0.0), _latchedTargetKg))
+                // Plan gate on ARMING (issue #60, 2026-08-16 flight evidence): requests coming
+                // from the GSX side (EFB, menu, gsx-handler refuelingRequested) bypass every
+                // app-side gate, and the sync used to latch a target from stale/absent plan
+                // data — that flight's refuel ran 55 s before the SimBrief plan arrived. With
+                // requireOfpBeforeDeparture the sync now refuses to latch until a plan exists;
+                // the tick arms it the moment one arrives (the same flight latched 5300 kg
+                // fine once the plan was imported — that recovery is preserved).
+                if (_options.CurrentValue.RequireOfpBeforeDeparture && !_flightPlan.FlightPlanAvailable)
                 {
-                    return;
+                    _pendingPlanArm = true;
+                    RecordDecision(
+                        "refuel sync",
+                        "GSX is refueling without a flight plan — sync holds until one arrives "
+                        + "(gsx.requireOfpBeforeDeparture); no fuel target latched");
+                    break;
                 }
+
+                ActivateTransfer();
+                break;
+
+            case GsxServiceLifecycleEvent.Completed when _pendingPlanArm:
+                _pendingPlanArm = false;
+                RecordDecision("refuel sync", "GSX refuel completed while holding for a flight plan — no fuel was moved");
                 break;
 
             case GsxServiceLifecycleEvent.Completed when _transferActive:
@@ -122,6 +132,27 @@ public sealed class GsxRefuelSync : IDisposable
                 _ = FinishOnGsxCompleteAsync();
                 break;
         }
+    }
+
+    /// <summary>Arms the transfer for the current GSX refuel cycle. The target is LATCHED once
+    /// at activation and never re-read while pumping: ProSim rewrites
+    /// <c>aircraft.refuel.fuelTarget</c> to the current FOB the moment its refuel session
+    /// engages (round-4 smoke test: 7317 collapsed to 2500 one tick after pump-on, ending the
+    /// transfer immediately). Power stays OFF until the hose actually connects and a sane
+    /// transfer is possible.</summary>
+    private void ActivateTransfer()
+    {
+        _transferActive = true;
+        _hoseWasConnected = false;
+        _lastHoldReason = null;
+        _divergenceLogged = false;
+        _pumpPowerOn = false;
+        _dynamicRateKgPerSec = 0;
+        _latchedTargetKg = ReadTargetKg();
+        RecordDecision(
+            "refuel sync",
+            $"activated — current {_fuelTotal.GetValue(0.0):F0} kg; latched target {_latchedTargetKg:F0} kg (candidates: fuelTarget {_fuelTarget.GetValue(0.0):F0}, fuelTarget.kg {_fuelTargetKg.GetValue(0.0):F0}, plannedfuel {_plannedFuel.GetValue(0.0):F0})");
+        _ = TrySkipForTankering(_fuelTotal.GetValue(0.0), _latchedTargetKg);
     }
 
     private bool Enabled => _options.CurrentValue.AutomationEnabled && _options.CurrentValue.RefuelSyncEnabled;
@@ -159,13 +190,31 @@ public sealed class GsxRefuelSync : IDisposable
 
     private async Task TickAsync()
     {
-        if (!_transferActive || !Enabled || Interlocked.Exchange(ref _ticking, 1) == 1)
+        if ((!_transferActive && !_pendingPlanArm) || !Enabled || Interlocked.Exchange(ref _ticking, 1) == 1)
         {
             return;
         }
 
         try
         {
+            // Deferred arming (issue #60): a plan-less GSX refuel parked the sync; arm the
+            // moment the flight plan appears so the mid-service import recovery still works.
+            if (_pendingPlanArm)
+            {
+                if (!_flightPlan.FlightPlanAvailable)
+                {
+                    return;
+                }
+
+                _pendingPlanArm = false;
+                RecordDecision("refuel sync", "flight plan arrived mid-service — arming now");
+                ActivateTransfer();
+                if (!_transferActive)
+                {
+                    return; // tankering skip inside the activation
+                }
+            }
+
             var hose = _hoseConnected.GetValue(0.0) != 0;
             if (hose != _hoseWasConnected)
             {

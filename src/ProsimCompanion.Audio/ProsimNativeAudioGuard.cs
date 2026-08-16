@@ -75,8 +75,11 @@ public sealed class ProsimNativeAudioGuard : IDisposable
     {
         try
         {
-            // Let the connection settle before the first writes (same grace as the GSX guard).
-            await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            // Hold until the EFB gateway is listening (issue #76 item 6, same fix as the GSX
+            // native-flags guard): ProSim raises the SDK connection before its port-5000
+            // gateway starts, and the 2026-08-15 flight burned the vhf1 write's retry
+            // attempts on "actively refused". Bounded; per-write retries stay the backstop.
+            await WaitForGatewayAsync().ConfigureAwait(false);
 
             var failed = new List<string>();
             foreach (var window in NativeAudioWindows)
@@ -106,5 +109,19 @@ public sealed class ProsimNativeAudioGuard : IDisposable
             _appliedThisConnection = false;
             _logger.LogError(ex, "Clearing ProSim native audio bindings failed");
         }
+    }
+
+    /// <summary>Probes the gateway every 2 s for up to a minute (quiet, Debug-level).</summary>
+    private async Task WaitForGatewayAsync()
+    {
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            if (await _gateway.IsReachableAsync().ConfigureAwait(false))
+            {
+                return;
+            }
+            await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        }
+        _logger.LogDebug("ProSim gateway still unreachable after 60 s — writing anyway (retries are the backstop)");
     }
 }

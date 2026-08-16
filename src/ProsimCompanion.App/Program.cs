@@ -130,14 +130,37 @@ public static class Program
                 web.Services);
 
             // Retune log levels / wire trace whenever settings change (web UI or file edit).
+            // Debounced (issue #76 item 3): the file watcher + options binder fire OnChange in
+            // bursts (5 reloads in 16 s on the 2026-08-15 flight) — one settings save must
+            // apply once. A 2 s quiet period, latest options win.
             var loggingMonitor = web.Services.GetRequiredService<IOptionsMonitor<LoggingOptions>>();
-            using var levelSubscription = loggingMonitor.OnChange(options =>
+            var reloadGate = new object();
+            LoggingOptions? pendingLoggingOptions = null;
+            using var reloadDebounce = new System.Threading.Timer(_ =>
             {
-                levels.Apply(options);
+                LoggingOptions? toApply;
+                lock (reloadGate)
+                {
+                    toApply = pendingLoggingOptions;
+                    pendingLoggingOptions = null;
+                }
+                if (toApply is null)
+                {
+                    return;
+                }
+                levels.Apply(toApply);
                 Log.Information(
                     "Logging levels reloaded (default {Default}, wire trace {WireTrace})",
-                    options.DefaultLevel,
-                    options.WireTrace);
+                    toApply.DefaultLevel,
+                    toApply.WireTrace);
+            });
+            using var levelSubscription = loggingMonitor.OnChange(options =>
+            {
+                lock (reloadGate)
+                {
+                    pendingLoggingOptions = options;
+                }
+                reloadDebounce.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
             });
 
             web.Start();

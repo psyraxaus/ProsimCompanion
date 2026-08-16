@@ -102,10 +102,12 @@ public sealed class GsxGateResolverTests
         Assert.Empty(GsxGateResolver.NearestNames(parkings, "Z99"));
     }
 
-    // ---- ResolveCanonical (issue #36: EHAM names gates " Gate D5", with prefix and space) ----
+    // ---- ResolveCanonical (issue #36: EHAM names gates " Gate D5", with prefix and space;
+    //      issue #75, 2026-08-16: GSX refused its own leading-space name, so tokens are
+    //      TRIMMED before sending) ----
 
     [Fact]
-    public void ResolveCanonical_UniqueSuffixMatch_ReturnsGsxDisplayName()
+    public void ResolveCanonical_UniqueSuffixMatch_ReturnsTrimmedGsxDisplayName()
     {
         var parkings = new List<GsxParking>
         {
@@ -114,7 +116,7 @@ public sealed class GsxGateResolverTests
             new(" Gate D54", null, null, 54, null, null),
         };
 
-        Assert.Equal(" Gate D5", GsxGateResolver.ResolveCanonical(parkings, "D5"));
+        Assert.Equal("Gate D5", GsxGateResolver.ResolveCanonical(parkings, "D5"));
     }
 
     [Fact]
@@ -152,7 +154,7 @@ public sealed class GsxGateResolverTests
     // ---- ResolveAnchorToken (issue #44: re-anchor GSX to the occupied stand at prep) ----
 
     [Fact]
-    public void ResolveAnchorToken_MatchesGateContextKeyToParkingDisplayName()
+    public void ResolveAnchorToken_MatchesGateContextKeyToParkingDisplayName_Trimmed()
     {
         var parkings = new List<GsxParking>
         {
@@ -160,7 +162,8 @@ public sealed class GsxGateResolverTests
             new("D-Pier =< Medium | Gate D5", " Gate D5", null, 5, null, null),
         };
 
-        Assert.Equal(" Gate D27",
+        // Trimmed (issue #75): the untrimmed " Gate D57" anchor token failed not_found live.
+        Assert.Equal("Gate D27",
             GsxGateResolver.ResolveAnchorToken(parkings, "D-Pier =< Medium | Gate D27"));
     }
 
@@ -179,5 +182,32 @@ public sealed class GsxGateResolverTests
         Assert.Null(GsxGateResolver.ResolveAnchorToken(
             [new GsxParking("B-Pier | Gate B3", " Gate B3", null, 3, null, null)], "D-Pier =< Medium | Gate D27"));
         Assert.Null(GsxGateResolver.ResolveAnchorToken([], ""));
+    }
+
+    // ---- IsUnambiguousNearestMatch (issue #75: accept a not_found "nearest" suggestion only
+    //      when it is trivially the requested gate — whitespace/case or a known facility
+    //      prefix apart; anything looser would send services to the wrong stand) ----
+
+    [Theory]
+    [InlineData("313", "Stand 313", true)]        // bare number vs prefixed stand (live case)
+    [InlineData(" Gate D57", "Gate D57", true)]   // whitespace-only difference (live case)
+    [InlineData("31", "Stand 313", false)]        // partial number — never guess
+    [InlineData("D5", "Gate D57", false)]         // partial gate — never guess
+    [InlineData("D57", "Gate D57", true)]         // prefix-stripped equality
+    [InlineData("7", "Ramp 7", true)]
+    [InlineData("22", "Dock 22", true)]
+    [InlineData("4", "Parking 4", true)]
+    [InlineData("B12", "B12", true)]
+    [InlineData("", "Stand 313", false)]
+    [InlineData("313", "", false)]
+    public void IsUnambiguousNearestMatch_AcceptsOnlyTrivialEquivalence(
+        string requested, string nearest, bool expected)
+        => Assert.Equal(expected, GsxGateResolver.IsUnambiguousNearestMatch(requested, nearest));
+
+    [Fact]
+    public void TrimToken_StripsOuterWhitespaceOnly()
+    {
+        Assert.Equal("Gate D57", GsxGateResolver.TrimToken(" Gate D57"));
+        Assert.Equal("Gate D57", GsxGateResolver.TrimToken("Gate D57"));
     }
 }

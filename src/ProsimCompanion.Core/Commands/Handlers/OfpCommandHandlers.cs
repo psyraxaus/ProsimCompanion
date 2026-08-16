@@ -22,7 +22,8 @@ public static class OfpCommandHandlers
                     return CommandResult.Unavailable("The SimBrief importer is not running.");
                 }
 
-                var outcome = await importer.TryImportAsync(force: true, cancellationToken).ConfigureAwait(false);
+                var outcome = await importer.TryImportAsync(
+                    force: true, source: "command ofp.fetch", cancellationToken: cancellationToken).ConfigureAwait(false);
                 return FromImportOutcome(outcome);
             });
     }

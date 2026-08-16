@@ -396,7 +396,7 @@
 
         try
         {
-            var outcome = await Simbrief.TryImportAsync(force: true);
+            var outcome = await Simbrief.TryImportAsync(force: true, source: "web efb-init fetch");
             _lastFetchError = outcome switch
             {
                 SimbriefImportOutcome.Imported => null,

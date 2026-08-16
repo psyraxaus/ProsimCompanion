@@ -209,9 +209,17 @@ public sealed class GsxStartupResyncService : IDisposable
     private readonly SimSessionStore _simSession;
     private readonly GsxResyncState _resyncState;
     private readonly GroundOpsSignals _signals;
+    private readonly ConnectionStatusStore _connectionStatus;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxStartupResyncService> _logger;
+
+    /// <summary>Tracking-LVAR writes that failed because MSFS was not connected, latest value
+    /// per LVAR (issue #76 item 2: a dropped write here silently corrupts the NEXT restart's
+    /// resync evidence). Flushed when SimConnect reports connected again.</summary>
+    private readonly Dictionary<string, double> _pendingLvarWrites = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _pendingGate = new();
+    private bool _simConnectWasConnected;
 
     private readonly Dictionary<string, IDataRefSubscription> _serviceDoneLvars =
         new(StringComparer.OrdinalIgnoreCase);
@@ -243,6 +251,7 @@ public sealed class GsxStartupResyncService : IDisposable
         IProsimDataRefs prosim,
         GsxResyncState resyncState,
         GroundOpsSignals signals,
+        ConnectionStatusStore connectionStatus,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxStartupResyncService> logger)
@@ -255,6 +264,7 @@ public sealed class GsxStartupResyncService : IDisposable
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(resyncState);
         ArgumentNullException.ThrowIfNull(signals);
+        ArgumentNullException.ThrowIfNull(connectionStatus);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
@@ -266,6 +276,7 @@ public sealed class GsxStartupResyncService : IDisposable
         _simSession = simSession;
         _resyncState = resyncState;
         _signals = signals;
+        _connectionStatus = connectionStatus;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -293,6 +304,7 @@ public sealed class GsxStartupResyncService : IDisposable
         _lifecycle.ServiceEvent += OnServiceEvent;
         _signals.FlightCycleReset += OnFlightCycleReset;
         _simSession.PhaseChanged += OnSimSessionPhaseChanged;
+        _connectionStatus.Changed += OnConnectionStatusChanged;
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
     }
 
@@ -302,6 +314,7 @@ public sealed class GsxStartupResyncService : IDisposable
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _signals.FlightCycleReset -= OnFlightCycleReset;
         _simSession.PhaseChanged -= OnSimSessionPhaseChanged;
+        _connectionStatus.Changed -= OnConnectionStatusChanged;
         foreach (var subscription in _serviceDoneLvars.Values)
         {
             subscription.Dispose();
@@ -546,14 +559,61 @@ public sealed class GsxStartupResyncService : IDisposable
         }
         catch (InvalidOperationException ex)
         {
-            // MSFS not connected — tracking degrades silently; the next resync simply has
-            // less LVAR evidence to work with.
-            _logger.LogDebug("Tracking LVAR write {Name}={Value} skipped: {Reason}", name, value, ex.Message);
+            // MSFS not connected — queue instead of dropping (issue #76 item 2: the
+            // 2026-08-15 flight lost a service-done write to a SimConnect gap, so the next
+            // restart's resync was missing evidence). Latest value per LVAR wins; the queue
+            // flushes when SimConnect reports connected again.
+            lock (_pendingGate)
+            {
+                _pendingLvarWrites[name] = value;
+            }
+            _logger.LogDebug(
+                "Tracking LVAR write {Name}={Value} queued until MSFS connects: {Reason}",
+                name, value, ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Tracking LVAR write {Name}={Value} failed", name, value);
         }
+    }
+
+    /// <summary>Flushes queued tracking-LVAR writes on the SimConnect disconnected→connected
+    /// edge. A write failing again (connection flapped mid-flush) simply re-queues itself via
+    /// <see cref="WriteLvarAsync"/> for the next edge.</summary>
+    private void OnConnectionStatusChanged(object? sender, EventArgs e)
+    {
+        var connected = _connectionStatus.Snapshot()
+            .Any(pair => pair.Key == Subsystems.SimConnect && pair.Value == ConnectionState.Connected);
+        if (connected == _simConnectWasConnected)
+        {
+            return;
+        }
+        _simConnectWasConnected = connected;
+        if (!connected)
+        {
+            return;
+        }
+
+        KeyValuePair<string, double>[] pending;
+        lock (_pendingGate)
+        {
+            if (_pendingLvarWrites.Count == 0)
+            {
+                return;
+            }
+            pending = [.. _pendingLvarWrites];
+            _pendingLvarWrites.Clear();
+        }
+
+        _logger.LogInformation(
+            "SimConnect is back — flushing {Count} queued tracking LVAR write(s)", pending.Length);
+        _ = Task.Run(async () =>
+        {
+            foreach (var (name, value) in pending)
+            {
+                await WriteLvarAsync(name, value).ConfigureAwait(false);
+            }
+        });
     }
 
     private void RecordDecision(string reason)

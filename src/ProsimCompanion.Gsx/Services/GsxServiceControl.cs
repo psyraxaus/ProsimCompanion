@@ -159,11 +159,13 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
 
         // Flight-plan gate (ADR-0006 / issue #50): the sequencer has always held these until a
         // plan exists; the on-demand path (voice, web, API) now applies the same rule instead
-        // of going straight to GSX. Departure-prep phases only — an arrival deboarding or a
-        // turnaround already in progress is never plan-gated here.
+        // of going straight to GSX. Every pre-takeoff ground phase is gated (issue #60: the
+        // old Preflight/ColdAndDark-only gate let plan-less requests through in other ground
+        // phases) — an arrival deboarding or a turnaround already in progress never is.
         if (action is GsxServiceAction.RequestRefuel or GsxServiceAction.RequestCatering or GsxServiceAction.RequestBoarding
             && _options.CurrentValue.RequireOfpBeforeDeparture
             && _flightPhase.CurrentPhase is FlightPhase.Preflight or FlightPhase.ColdAndDark
+                or FlightPhase.PushbackAndStart or FlightPhase.TaxiOut
             && !_flightPlan.FlightPlanAvailable)
         {
             return new(

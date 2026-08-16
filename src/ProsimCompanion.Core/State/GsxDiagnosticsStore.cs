@@ -36,6 +36,13 @@ public sealed record GsxBoardingCountersView(
 /// <summary>Most recent GSX service lifecycle edge ("handler event" in Prosim2GSX terms).</summary>
 public sealed record GsxHandlerEventView(DateTimeOffset Timestamp, string Service, string Event);
 
+/// <summary>Ground-preparation progress for the Flight Status page (issue #45): the
+/// coordinator's current stage name (Reposition/Settling/AnchorGate/GroundEquipment/
+/// JetwayStairs/Complete) plus a short human reason ("waiting for the position to settle",
+/// "holding: MSFS session not active"). Null until the coordinator has reported anything —
+/// the page renders "—", exactly like the other not-yet-known rows.</summary>
+public sealed record GsxGroundPrepView(string Stage, string Detail);
+
 /// <summary>One departure-service row on the status board (the Prosim2GSX-style at-a-glance
 /// view): where the service is in its cycle and, when held/skipped, why.</summary>
 public sealed record GsxServiceBoardRow(string ServiceId, GsxServiceStage Stage, string? Detail);
@@ -100,6 +107,10 @@ public sealed record GsxDiagnosticsSnapshot(
     /// <summary>Last service lifecycle edge (filled in by Snapshot()).</summary>
     public GsxHandlerEventView? LastHandlerEvent { get; init; }
 
+    /// <summary>Ground-preparation stage/status (filled in by Snapshot(); pushed by the prep
+    /// coordinator on stage transitions and hold changes — issue #45).</summary>
+    public GsxGroundPrepView? GroundPrep { get; init; }
+
     /// <summary>ProSim's ground-power state (the GPU physically attached) — dataref truth, not
     /// the GSX mirror: GSX flips its GPU service back to "available" while the unit stays
     /// connected. Null until the dataref has reported (issue #33).</summary>
@@ -152,6 +163,7 @@ public sealed class GsxDiagnosticsStore
     private IReadOnlyList<GsxServiceBoardRow> _serviceBoard = [];
     private GsxBoardingCountersView? _boardingCounters;
     private GsxHandlerEventView? _lastHandlerEvent;
+    private GsxGroundPrepView? _groundPrep;
     private bool? _groundPowerConnected;
     private GsxDiagnosticsSnapshot _current = GsxDiagnosticsSnapshot.Empty;
 
@@ -171,6 +183,7 @@ public sealed class GsxDiagnosticsStore
                 ServiceBoard = _serviceBoard,
                 BoardingCounters = _boardingCounters,
                 LastHandlerEvent = _lastHandlerEvent,
+                GroundPrep = _groundPrep,
                 GroundPowerConnected = _groundPowerConnected,
             };
         }
@@ -207,6 +220,18 @@ public sealed class GsxDiagnosticsStore
         lock (_gate)
         {
             _groundPowerConnected = connected;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Replaces the ground-preparation stage/status (prep coordinator, on stage
+    /// transitions only — issue #45); null = not reported yet.</summary>
+    public void UpdateGroundPrep(GsxGroundPrepView? groundPrep)
+    {
+        lock (_gate)
+        {
+            _groundPrep = groundPrep;
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
