@@ -27,6 +27,7 @@ public sealed class GroundCrewUpcallService : IDisposable
     private readonly GroundOpsSignals _signals;
     private readonly IFlightPhaseSource _flight;
     private readonly ISpeechArbiter _arbiter;
+    private readonly IAcpChannel _acp;
     private readonly IOptionsMonitor<GroundCrewOptions> _options;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GroundCrewUpcallService> _logger;
@@ -37,15 +38,13 @@ public sealed class GroundCrewUpcallService : IDisposable
     private volatile bool _busy;
     private GroundUpcallCore.UpcallState _state = GroundUpcallCore.UpcallState.Initial;
 
-    private static readonly string[] IntLatches =
-        [ProsimDataRefNames.Acp1IntLatch, ProsimDataRefNames.Acp2IntLatch, ProsimDataRefNames.Acp3IntLatch];
-
     public GroundCrewUpcallService(
         IProsimDataRefs dataRefs,
         GsxDiagnosticsStore diagnostics,
         GroundOpsSignals signals,
         IFlightPhaseSource flight,
         ISpeechArbiter arbiter,
+        IAcpChannel acp,
         IOptionsMonitor<GroundCrewOptions> options,
         JsonlEventLog eventLog,
         ILogger<GroundCrewUpcallService> logger)
@@ -55,6 +54,7 @@ public sealed class GroundCrewUpcallService : IDisposable
         ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(arbiter);
+        ArgumentNullException.ThrowIfNull(acp);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
@@ -64,6 +64,7 @@ public sealed class GroundCrewUpcallService : IDisposable
         _signals = signals;
         _flight = flight;
         _arbiter = arbiter;
+        _acp = acp;
         _options = options;
         _eventLog = eventLog;
         _logger = logger;
@@ -76,7 +77,7 @@ public sealed class GroundCrewUpcallService : IDisposable
                      ProsimDataRefNames.GroundPower,
                      ProsimDataRefNames.Chocks,
                      ProsimDataRefNames.FuelTotal,
-                 }.Concat(IntLatches))
+                 })
         {
             _reads[name] = _dataRefs.Subscribe(name, DataRefTier.Normal);
         }
@@ -184,7 +185,19 @@ public sealed class GroundCrewUpcallService : IDisposable
                 }
             }
 
-            await WaitForIntChannelAsync().ConfigureAwait(false);
+            // Latch-or-grace is the ACP channel module's (campaign #85) — a call is never
+            // lost to an unmonitored panel.
+            if (_options.CurrentValue.RequireIntChannel)
+            {
+                var latched = await _acp.AwaitReceiveAsync(
+                    AcpChannelKind.Intercom,
+                    TimeSpan.FromSeconds(Math.Max(0, _options.CurrentValue.IntChannelGraceSeconds)),
+                    _shutdown.Token).ConfigureAwait(false);
+                if (!latched)
+                {
+                    _logger.LogInformation("INT channel not selected within grace — playing the ground call anyway");
+                }
+            }
 
             await _arbiter.EnqueueAsync(new SpeechRequest(
                 text, SpeechPriority.Normal, Ttl: TimeSpan.FromMinutes(2), Tag: tag,
@@ -203,30 +216,6 @@ public sealed class GroundCrewUpcallService : IDisposable
         {
             _busy = false;
         }
-    }
-
-    /// <summary>Waits for any ACP INT receive latch or the grace — the purser's CAB pattern
-    /// on the ground channel. A call is never lost to an unmonitored panel.</summary>
-    private async Task WaitForIntChannelAsync()
-    {
-        var options = _options.CurrentValue;
-        if (!options.RequireIntChannel)
-        {
-            return;
-        }
-
-        var deadline = Environment.TickCount64 + Math.Max(0, options.IntChannelGraceSeconds) * 1000L;
-        while (Environment.TickCount64 < deadline)
-        {
-            if (IntLatches.Any(latch => _reads[latch].GetValue(0) == 1))
-            {
-                return;
-            }
-
-            await Task.Delay(250, _shutdown.Token).ConfigureAwait(false);
-        }
-
-        _logger.LogInformation("INT channel not selected within grace — playing the ground call anyway");
     }
 
     private bool? ReadNullableBool(string name)

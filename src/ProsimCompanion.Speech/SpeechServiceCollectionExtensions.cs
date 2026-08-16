@@ -131,9 +131,10 @@ public static class SpeechServiceCollectionExtensions
         // The ACP transmit monitor (issue #72) feeds the hail gate — captain S_ASP_SEND_CHANNEL
         // + S_ASP_INT_SEND, subscribed once here, never S_ASP_INTRAD (that rocker is the GSX
         // smart button).
-        services.AddSingleton<Crew.AcpTransmitMonitor>();
-        services.AddSingleton<Crew.IAcpTransmitMonitor>(
-            p => p.GetRequiredService<Crew.AcpTransmitMonitor>());
+        // The captain ACP as the crew dialogues see it (campaign #85): atomic transmit
+        // snapshot + the one latch-or-grace wait for INT/CAB receive.
+        services.AddSingleton<Crew.AcpChannel>();
+        services.AddSingleton<Crew.IAcpChannel>(p => p.GetRequiredService<Crew.AcpChannel>());
         services.AddSingleton<Crew.CrewHailService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Crew.CrewHailService>());
         services.AddSingleton<Crew.GroundCrewUpcallService>();

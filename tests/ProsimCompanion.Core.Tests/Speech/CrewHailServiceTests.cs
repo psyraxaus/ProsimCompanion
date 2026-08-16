@@ -22,7 +22,7 @@ public sealed class CrewHailServiceTests : IDisposable
     private readonly GroundCrewOptions _groundOptions = new();
     private readonly CabinOptions _cabinOptions = new();
     private readonly SpeechOptions _speechOptions = new();
-    private readonly FakeAcpTransmitMonitor _acpTransmit = new();
+    private readonly FakeAcpChannel _acpTransmit = new();
     private readonly List<string> _executed = [];
     private readonly string _tempDir =
         Path.Combine(Path.GetTempPath(), "prosimcompanion-tests", Guid.NewGuid().ToString("N"));
@@ -60,15 +60,6 @@ public sealed class CrewHailServiceTests : IDisposable
                 It.IsAny<IReadOnlyList<string>>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(heardUtterance);
 
-        // Latches read as selected so dialogues run without the grace wait.
-        var latch = new Mock<IDataRefSubscription>();
-        latch.SetupGet(s => s.RawValue).Returns(1.0);
-        latch.Setup(s => s.GetValue(It.IsAny<int>())).Returns(1);
-        var dataRefs = new Mock<IProsimDataRefs>();
-        dataRefs
-            .Setup(d => d.Subscribe(It.IsAny<string>(), It.IsAny<DataRefTier>()))
-            .Returns(latch.Object);
-
         var gsxOptions = new Mock<IOptionsMonitor<GsxOptions>>();
         gsxOptions.SetupGet(o => o.CurrentValue).Returns(() => _gsxOptions);
         var groundOptions = new Mock<IOptionsMonitor<GroundCrewOptions>>();
@@ -85,7 +76,6 @@ public sealed class CrewHailServiceTests : IDisposable
             _mic.Object,
             _arbiter,
             gsxVoice,
-            dataRefs.Object,
             _acpTransmit,
             gsxOptions.Object,
             groundOptions.Object,
@@ -95,15 +85,26 @@ public sealed class CrewHailServiceTests : IDisposable
             NullLogger<CrewHailService>.Instance);
     }
 
-    /// <summary>Settable ACP transmit state; defaults to Unknown so the pre-#72 tests run
-    /// through the degrade path (gating on, dataref absent → accept as before).</summary>
-    private sealed class FakeAcpTransmitMonitor : IAcpTransmitMonitor
+    /// <summary>Settable ACP channel; transmit defaults to Unknown so the pre-#72 tests run
+    /// through the degrade path (gating on, dataref absent → accept as before). Latches read
+    /// as selected so dialogues run without the grace wait — one single-state fake (campaign
+    /// #85), not a two-property read plus mocked dataref latches.</summary>
+    private sealed class FakeAcpChannel : IAcpChannel
     {
         public AcpTransmitTarget Current { get; set; } = AcpTransmitTarget.Unknown;
 
         public bool IntKeyPushed { get; set; }
 
+        public bool Latched { get; set; } = true;
+
+        public AcpTransmitState Transmit => new(Current, IntKeyPushed);
+
         public event EventHandler? Changed;
+
+        public bool IsReceiving(AcpChannelKind kind) => Latched;
+
+        public Task<bool> AwaitReceiveAsync(AcpChannelKind kind, TimeSpan grace, CancellationToken cancellationToken)
+            => Task.FromResult(Latched);
 
         public void Raise() => Changed?.Invoke(this, EventArgs.Empty);
     }

@@ -41,23 +41,16 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
     private const string CabinCoachingText =
         "Select the cabin channel on the audio panel first, captain.";
 
-    private static readonly string[] IntLatches =
-        [ProsimDataRefNames.Acp1IntLatch, ProsimDataRefNames.Acp2IntLatch, ProsimDataRefNames.Acp3IntLatch];
-
-    private static readonly string[] CabLatches =
-        [ProsimDataRefNames.Acp1CabLatch, ProsimDataRefNames.Acp2CabLatch, ProsimDataRefNames.Acp3CabLatch];
-
     private readonly IMicOwnership _mic;
     private readonly ISpeechArbiter _arbiter;
     private readonly GsxVoiceService _gsxVoice;
-    private readonly IAcpTransmitMonitor _acpTransmit;
+    private readonly IAcpChannel _acp;
     private readonly IOptionsMonitor<GsxOptions> _gsxOptions;
     private readonly IOptionsMonitor<GroundCrewOptions> _groundOptions;
     private readonly IOptionsMonitor<CabinOptions> _cabinOptions;
     private readonly IOptionsMonitor<SpeechOptions> _speechOptions;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<CrewHailService> _logger;
-    private readonly Dictionary<string, IDataRefSubscription> _latches = new(StringComparer.Ordinal);
     private readonly AcpHailGateCore _hailGate = new();
     private readonly CancellationTokenSource _shutdown = new();
     private int _busy;
@@ -66,8 +59,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         IMicOwnership mic,
         ISpeechArbiter arbiter,
         GsxVoiceService gsxVoice,
-        IProsimDataRefs dataRefs,
-        IAcpTransmitMonitor acpTransmit,
+        IAcpChannel acp,
         IOptionsMonitor<GsxOptions> gsxOptions,
         IOptionsMonitor<GroundCrewOptions> groundOptions,
         IOptionsMonitor<CabinOptions> cabinOptions,
@@ -78,8 +70,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         ArgumentNullException.ThrowIfNull(mic);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(gsxVoice);
-        ArgumentNullException.ThrowIfNull(dataRefs);
-        ArgumentNullException.ThrowIfNull(acpTransmit);
+        ArgumentNullException.ThrowIfNull(acp);
         ArgumentNullException.ThrowIfNull(gsxOptions);
         ArgumentNullException.ThrowIfNull(groundOptions);
         ArgumentNullException.ThrowIfNull(cabinOptions);
@@ -90,18 +81,13 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         _mic = mic;
         _arbiter = arbiter;
         _gsxVoice = gsxVoice;
-        _acpTransmit = acpTransmit;
+        _acp = acp;
         _gsxOptions = gsxOptions;
         _groundOptions = groundOptions;
         _cabinOptions = cabinOptions;
         _speechOptions = speechOptions;
         _eventLog = eventLog;
         _logger = logger;
-
-        foreach (var name in IntLatches.Concat(CabLatches))
-        {
-            _latches[name] = dataRefs.Subscribe(name, DataRefTier.Normal);
-        }
     }
 
     public bool Enabled => _gsxOptions.CurrentValue.VoiceControlEnabled;
@@ -114,10 +100,6 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
     {
         _shutdown.Cancel();
         _shutdown.Dispose();
-        foreach (var latch in _latches.Values)
-        {
-            latch.Dispose();
-        }
     }
 
     public bool TryHandle(string utterance)
@@ -147,23 +129,25 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
 
         // Transmit gate (issue #72): the hail phrase is understood either way (consumed),
         // but with the selector off the channel nobody hears it — the crew does not answer.
+        // One atomic snapshot (campaign #85): the key can't release between the two reads.
         var speech = _speechOptions.CurrentValue;
         var required = ground ? AcpTransmitTarget.Intercom : AcpTransmitTarget.Cabin;
+        var transmit = _acp.Transmit;
         var decision = _hailGate.EvaluateHail(
             speech.AcpTransmitGating,
             speech.AcpIntKeyRequired,
-            _acpTransmit.Current,
-            _acpTransmit.IntKeyPushed,
+            transmit.Target,
+            transmit.IntKeyPushed,
             required);
         if (decision != HailGateDecision.Accept)
         {
             _logger.LogInformation(
                 "Hail to {Channel} not keyed — ACP transmit on {Selected}, {Required} required",
-                ground ? "ground" : "cabin", _acpTransmit.Current, required);
+                ground ? "ground" : "cabin", transmit.Target, required);
             _eventLog.Record("crew.hail.notkeyed", new
             {
                 channel = ground ? "ground" : "cabin",
-                selected = _acpTransmit.Current.ToString(),
+                selected = transmit.Target.ToString(),
                 required = required.ToString(),
             });
             if (decision == HailGateDecision.Coach)
@@ -239,7 +223,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         void OnTransmitChanged(object? sender, EventArgs e)
         {
             if (AcpHailGateCore.ShouldHangUp(
-                    _speechOptions.CurrentValue.AcpTransmitGating, _acpTransmit.Current, required))
+                    _speechOptions.CurrentValue.AcpTransmitGating, _acp.Transmit.Target, required))
             {
                 try
                 {
@@ -252,7 +236,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
             }
         }
 
-        _acpTransmit.Changed += OnTransmitChanged;
+        _acp.Changed += OnTransmitChanged;
         try
         {
             // Catch a selector that moved between hail acceptance and dialogue start.
@@ -260,19 +244,20 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
 
             // Receive-latch realism (decision 4): the crew answers on their channel — you hear
             // them once INT (ground) / CAB (purser) is selected on any ACP, or after the grace.
-            if (ground)
+            // The latch-or-grace wait is the ACP channel module's (campaign #85).
+            if (ground && _groundOptions.CurrentValue.RequireIntChannel)
             {
-                await WaitForLatchAsync(
-                    IntLatches,
-                    _groundOptions.CurrentValue.RequireIntChannel,
-                    _groundOptions.CurrentValue.IntChannelGraceSeconds).ConfigureAwait(false);
+                await _acp.AwaitReceiveAsync(
+                    AcpChannelKind.Intercom,
+                    TimeSpan.FromSeconds(_groundOptions.CurrentValue.IntChannelGraceSeconds),
+                    _shutdown.Token).ConfigureAwait(false);
             }
-            else
+            else if (!ground && _cabinOptions.CurrentValue.RequireCabChannel)
             {
-                await WaitForLatchAsync(
-                    CabLatches,
-                    _cabinOptions.CurrentValue.RequireCabChannel,
-                    _cabinOptions.CurrentValue.CabChannelGraceSeconds).ConfigureAwait(false);
+                await _acp.AwaitReceiveAsync(
+                    AcpChannelKind.Cabin,
+                    TimeSpan.FromSeconds(_cabinOptions.CurrentValue.CabChannelGraceSeconds),
+                    _shutdown.Token).ConfigureAwait(false);
             }
 
             if (hangUp.IsCancellationRequested)
@@ -331,7 +316,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
             // Detach BEFORE the using-dispose of hangUp runs, so a late selector change
             // cannot Cancel a disposed source (the ODE guard is belt-and-braces for an
             // in-flight handler on the SDK thread).
-            _acpTransmit.Changed -= OnTransmitChanged;
+            _acp.Changed -= OnTransmitChanged;
         }
     }
 
@@ -375,34 +360,6 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
             default:
                 await SpeakAsync(result.Reason, tag + ".refused", SpeechRole.FirstOfficer).ConfigureAwait(false);
                 break;
-        }
-    }
-
-    /// <summary>Waits for any of the given receive latches, up to the grace. Degrades to an
-    /// immediate return when ProSim is absent/stale — a dialogue must never hang on a signal
-    /// nobody is producing.</summary>
-    private async Task WaitForLatchAsync(string[] latchNames, bool required, int graceSeconds)
-    {
-        if (!required)
-        {
-            return;
-        }
-
-        var reads = latchNames.Select(n => _latches[n]).ToArray();
-        if (reads.Any(r => r.IsStale) || reads.All(r => r.RawValue is null))
-        {
-            return;
-        }
-
-        var deadline = Environment.TickCount64 + Math.Max(0, graceSeconds) * 1000L;
-        while (Environment.TickCount64 < deadline)
-        {
-            if (reads.Any(r => r.GetValue(0) == 1))
-            {
-                return;
-            }
-
-            await Task.Delay(250, _shutdown.Token).ConfigureAwait(false);
         }
     }
 
