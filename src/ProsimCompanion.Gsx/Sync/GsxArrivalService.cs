@@ -49,13 +49,10 @@ public sealed class GsxArrivalService : IDisposable
     private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly GsxJetwayStairsService _jetwayStairs;
     private readonly Timer _timer;
-    private int _stableSeconds;
-    private bool _arrivalHandled;
+    private ArrivalCore.ArrivalState _arrivalState = ArrivalCore.ArrivalState.Initial;
     private bool _deboardCalled;
     private bool _fobRestored;
     private bool _fobRestoreRefusalLogged;
-    private bool _wasInArrivalPhases;
-    private int _chockCountdown = -1;
     private int _ticking;
 
     public GsxArrivalService(
@@ -132,34 +129,61 @@ public sealed class GsxArrivalService : IDisposable
 
         try
         {
-            if (!Enabled)
-            {
-                return;
-            }
+            // All tick policy is the pure core (campaign #78); this shell gathers inputs and
+            // performs the outcome's effects.
+            var snapshot = _flightState.LastSnapshot;
+            var options = _options.CurrentValue;
+            var outcome = ArrivalCore.Tick(
+                _arrivalState,
+                new ArrivalCore.ArrivalInputs(
+                    Enabled: options.AutomationEnabled,
+                    Phase: _automation.Phase,
+                    SnapshotValid: snapshot?.IsValid == true,
+                    OnGround: snapshot?.OnGround == true,
+                    AnyEngineRunning: snapshot?.AnyEngineRunning == true,
+                    ParkBrakeSet: snapshot?.ParkBrakeSet == true,
+                    GroundSpeedKt: snapshot?.GroundSpeedKt ?? double.MaxValue,
+                    BeaconOn: _beacon.GetValue(0) != 0,
+                    ArrivalStableSecondsOption: options.ArrivalStableSeconds,
+                    AutoCallDeboard: options.AutoCallDeboardOnArrival,
+                    DeboardAlreadyCalled: _deboardCalled,
+                    AutoGroundEquipment: options.AutoGroundEquipment,
+                    ChockDelayMinSec: options.ChockDelayMinSec,
+                    ChockDelayMaxSec: options.ChockDelayMaxSec),
+                Random.Shared.Next);
+            _arrivalState = outcome.State;
 
-            var phase = _automation.Phase;
-            var inArrivalPhases = phase is GsxAutomationPhase.TaxiIn or GsxAutomationPhase.Arrival;
-
-            // A fresh arrival segment resets the arrival latches.
-            if (inArrivalPhases && !_wasInArrivalPhases)
+            if (outcome.ResetDeboardLatch)
             {
-                _stableSeconds = 0;
-                _arrivalHandled = false;
                 _deboardCalled = false;
-                _chockCountdown = -1;
             }
-
-            // The phase engine flips Shutdown -> Preflight quickly once parked (turnaround);
-            // keep processing the arrival until its actions have actually run.
-            var pendingArrival = _wasInArrivalPhases && !_arrivalHandled
-                && phase == GsxAutomationPhase.Preparation;
-            _wasInArrivalPhases = inArrivalPhases || pendingArrival;
-
-            if (inArrivalPhases || pendingArrival)
+            if (outcome.RunArrivalActions)
             {
-                TickArrival();
+                RecordDecision("arrival", $"stable parked for {outcome.State.StableSeconds}s — running arrival actions");
+                SaveFob();
+                ArmDeboardPaxTarget();
             }
-            else if (phase == GsxAutomationPhase.Preparation)
+            if (outcome.RunJetwayArrivalStep)
+            {
+                _ = _jetwayStairs.RunArrivalStep();
+            }
+            if (outcome.TryCallDeboard)
+            {
+                TryCallDeboarding();
+            }
+            if (outcome.ChockCountdownStarted is { } chockDelay)
+            {
+                RecordDecision("arrival", $"placing chocks in {chockDelay}s");
+            }
+            if (outcome.ChockAborted)
+            {
+                RecordDecision("arrival", "chock placement aborted — parked state no longer stable");
+            }
+            if (outcome.PlaceChocks)
+            {
+                _ = _groundEquipment.PlaceArrivalEquipmentAsync();
+            }
+            if (outcome.TryRestoreFob)
             {
                 TryRestoreFob();
             }
@@ -171,79 +195,6 @@ public sealed class GsxArrivalService : IDisposable
         finally
         {
             Interlocked.Exchange(ref _ticking, 0);
-        }
-    }
-
-    private void TickArrival()
-    {
-        var snapshot = _flightState.LastSnapshot;
-        var stable = snapshot is { IsValid: true, OnGround: true, AnyEngineRunning: false, ParkBrakeSet: true }
-            && snapshot.GroundSpeedKt < 2.0
-            && _beacon.GetValue(0) == 0;
-        _stableSeconds = stable ? _stableSeconds + 1 : 0;
-
-        if (_arrivalHandled)
-        {
-            // Jetway/stairs first (predecessor order: gate path before pax leave), then
-            // deboarding — both keep retrying until they succeed or give up.
-            _ = _jetwayStairs.RunArrivalStep();
-            if (!_deboardCalled && _options.CurrentValue.AutoCallDeboardOnArrival)
-            {
-                TryCallDeboarding();
-            }
-
-            TickChockCountdown(stable);
-            return;
-        }
-
-        if (_stableSeconds < Math.Max(1, _options.CurrentValue.ArrivalStableSeconds))
-        {
-            return;
-        }
-
-        _arrivalHandled = true;
-        RecordDecision("arrival", $"stable parked for {_stableSeconds}s — running arrival actions");
-
-        SaveFob();
-        ArmDeboardPaxTarget();
-        if (_options.CurrentValue.AutoCallDeboardOnArrival)
-        {
-            TryCallDeboarding();
-        }
-
-        // Randomized chock delay (predecessor ChockDelayMin/Max): the ground crew takes a
-        // human moment to walk the chocks out after shutdown.
-        var options = _options.CurrentValue;
-        if (options.AutoGroundEquipment)
-        {
-            var lo = Math.Max(0, options.ChockDelayMinSec);
-            var hi = Math.Max(lo + 1, options.ChockDelayMaxSec);
-            _chockCountdown = Random.Shared.Next(lo, hi);
-            RecordDecision("arrival", $"placing chocks in {_chockCountdown}s");
-        }
-    }
-
-    /// <summary>Counts the arrival chock delay down one tick at a time — only while the
-    /// aircraft stays stably parked. Movement mid-countdown aborts the placement outright
-    /// (predecessor rule: "parked state no longer stable").</summary>
-    private void TickChockCountdown(bool stable)
-    {
-        if (_chockCountdown < 0)
-        {
-            return;
-        }
-
-        if (!stable)
-        {
-            _chockCountdown = -1;
-            RecordDecision("arrival", "chock placement aborted — parked state no longer stable");
-            return;
-        }
-
-        if (--_chockCountdown <= 0)
-        {
-            _chockCountdown = -1;
-            _ = _groundEquipment.PlaceArrivalEquipmentAsync();
         }
     }
 
