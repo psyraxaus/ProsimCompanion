@@ -47,11 +47,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
     private GsxAutomationPhase _lastResetPhase = GsxAutomationPhase.SessionStart;
     private int _lastVehicleState = -1;
     private double _lastBypassPin;
-    private bool _tugAttachedDuringBoarding;
-    private bool _tugPushbackCalled;
-    private bool _stairsRemovedAfterDeparture;
-    private bool _doorsClosedOnFinal;
-    private bool _jetwayRemovedOnFinal;
+    private PushbackTickCore.HookState _hookState = PushbackTickCore.HookState.Initial;
     private int _ticking;
 
     public GsxPushbackSequenceService(
@@ -136,11 +132,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
                 && _lastResetPhase != phase)
             {
                 _lastResetPhase = phase;
-                _tugAttachedDuringBoarding = false;
-                _tugPushbackCalled = false;
-                _stairsRemovedAfterDeparture = false;
-                _doorsClosedOnFinal = false;
-                _jetwayRemovedOnFinal = false;
+                _hookState = PushbackTickCore.HookState.Initial;
                 if (_sequencer.Step != PushbackSequenceStep.Idle)
                 {
                     _sequencer.Reset();
@@ -150,11 +142,10 @@ public sealed class GsxPushbackSequenceService : IDisposable
 
             // Tug-attached-during-boarding rule runs independently of the beacon sequence
             // (predecessor semantics — it exists precisely for the early-pushback-call flow).
+            // The policy is the pure core (campaign #78); this shell executes its intents.
             if (_options.CurrentValue.AutomationEnabled && _api.Readiness == GsxReadiness.Ready)
             {
-                DetectTugDuringBoarding();
-                TryCallPushbackForAttachedTug();
-                RunDeparturePhaseHooks();
+                RunHooks();
             }
 
             // Gradual equipment removal belongs to the NON-sequence flow (the beacon sequence
@@ -237,14 +228,14 @@ public sealed class GsxPushbackSequenceService : IDisposable
                             {
                                 if (resolution != GsxTriggerResolution.Confirmed)
                                 {
-                                    _tugPushbackCalled = false;
+                                    _hookState = _hookState with { TugPushbackCalled = false };
                                 }
                             },
                         })
                         .ConfigureAwait(false);
                     if (dispatch.Status != GsxTriggerDispatchStatus.Dispatched)
                     {
-                        _tugPushbackCalled = false;
+                        _hookState = _hookState with { TugPushbackCalled = false };
                         RecordDecision(
                             "pushback sequence",
                             dispatch.Status == GsxTriggerDispatchStatus.Busy
@@ -260,103 +251,63 @@ public sealed class GsxPushbackSequenceService : IDisposable
         }
     }
 
-    /// <summary>The Prosim2GSX departure phase-point hooks (#9), driven by this shell's 1 Hz
-    /// tick because they need a ticker and this shell already samples everything involved:
-    /// jetway/stairs connect when departure services start, stairs removal when they complete,
-    /// and doors-close + jetway-removal on the final loadsheet (the on-final pair yields to
-    /// the beacon sequence, which owns that timing when enabled — predecessor rule).</summary>
-    private void RunDeparturePhaseHooks()
+    /// <summary>Feeds the pure hook core (campaign #78) and executes its intents: the
+    /// Prosim2GSX departure phase-point hooks (#9) and the tug-attached auto-call, driven by
+    /// this shell's 1 Hz tick because they need a ticker and this shell already samples
+    /// everything involved.</summary>
+    private void RunHooks()
     {
         var options = _options.CurrentValue;
+        var boarding = _api.Mirror.Services.GetValueOrDefault("Boarding");
+        var pushback = _api.Mirror.Services.GetValueOrDefault(PushbackServiceId);
 
-        if (options.CallJetwayStairsDuringDeparture
-            && _automation.DepartureStarted
-            && !_automation.DepartureComplete)
+        var intents = PushbackTickCore.Evaluate(_hookState, new PushbackTickCore.HookInputs(
+            DepartureStarted: _automation.DepartureStarted,
+            DepartureComplete: _automation.DepartureComplete,
+            FinalLoadsheetSent: _loadsheets.Snapshot().Final.Status == LoadsheetSlotStatus.Sent,
+            BoardingCompleted: _lifecycle.IsCompleted("Boarding"),
+            PushbackStatusRaised: _pushbackStatus.GetValue(0.0) > 0,
+            BoardingRequestedOrActive: boarding is { State: GsxServiceState.Requested or GsxServiceState.Active },
+            PushbackCallable: pushback is { State: GsxServiceState.Callable, CanTrigger: true },
+            PushbackPending: _lifecycle.IsPending(PushbackServiceId),
+            PushbackAlreadyDone: _lifecycle.IsCompleted(PushbackServiceId),
+            CallJetwayStairsDuringDeparture: options.CallJetwayStairsDuringDeparture,
+            RemoveStairsAfterDepartureMode: options.RemoveStairsAfterDeparture,
+            BeaconSequenceEnabled: options.BeaconPushbackSequenceEnabled,
+            CloseDoorsOnFinal: options.CloseDoorsOnFinal,
+            RemoveJetwayStairsOnFinal: options.RemoveJetwayStairsOnFinal,
+            CallPushbackWhenTugAttachedMode: options.CallPushbackWhenTugAttached));
+        _hookState = intents.State;
+
+        if (intents.TugLatched)
+        {
+            RecordDecision("pushback tug", "tug attached during boarding — pushback auto-call armed");
+        }
+        if (intents.CallTugPushback)
+        {
+            RecordDecision(
+                "pushback tug",
+                $"calling pushback — tug attached and {options.CallPushbackWhenTugAttached} condition met");
+            _ = ExecuteAsync(PushbackAction.CallPushback);
+        }
+        if (intents.RunDepartureJetwayStep)
         {
             _ = _jetwayStairs.RunDepartureStep();
         }
-
-        if (!_stairsRemovedAfterDeparture
-            && _automation.DepartureComplete
-            && !string.Equals(options.RemoveStairsAfterDeparture, "never", StringComparison.OrdinalIgnoreCase))
+        if (intents.RemoveStairsAfterDeparture)
         {
-            _stairsRemovedAfterDeparture = true;
             _ = _jetwayStairs.RemoveStairsAfterDepartureAsync(options.RemoveStairsAfterDeparture);
         }
-
-        // On-final hooks: fire once the final loadsheet is SENT and boarding has completed.
-        if (options.BeaconPushbackSequenceEnabled
-            || _loadsheets.Snapshot().Final.Status != LoadsheetSlotStatus.Sent
-            || !_lifecycle.IsCompleted("Boarding"))
+        if (intents.CloseDoorsOnFinal)
         {
-            return;
-        }
-
-        if (options.CloseDoorsOnFinal && !_doorsClosedOnFinal)
-        {
-            _doorsClosedOnFinal = true;
             RecordDecision("departure", "final loadsheet sent — closing doors");
             _ = _doors.CloseAllDoorsAsync();
         }
-
-        if (options.RemoveJetwayStairsOnFinal && !_jetwayRemovedOnFinal)
+        if (intents.RemoveJetwayStairsOnFinal)
         {
-            _jetwayRemovedOnFinal = true;
             RecordDecision("departure", "final loadsheet sent — removing jetway/stairs");
             _ = _jetwayStairs.RequestRemovalAsync();
         }
-    }
-
-    /// <summary>Predecessor OnPushChange rule: PUSHBACK_STATUS going nonzero while Boarding is
-    /// Requested/Active means the tug attached during boarding (the pilot answered the tug
-    /// question with yes, or attached it by hand). Latched until the next flight segment.</summary>
-    private void DetectTugDuringBoarding()
-    {
-        if (_tugAttachedDuringBoarding || _pushbackStatus.GetValue(0.0) <= 0)
-        {
-            return;
-        }
-
-        var boarding = _api.Mirror.Services.GetValueOrDefault("Boarding");
-        if (boarding is { State: GsxServiceState.Requested or GsxServiceState.Active })
-        {
-            _tugAttachedDuringBoarding = true;
-            RecordDecision("pushback tug", "tug attached during boarding — pushback auto-call armed");
-        }
-    }
-
-    /// <summary>Predecessor CallPushbackWhenTugAttached: with the tug already attached, call
-    /// Pushback once after departure services complete or after the final loadsheet is sent.</summary>
-    private void TryCallPushbackForAttachedTug()
-    {
-        if (!_tugAttachedDuringBoarding || _tugPushbackCalled)
-        {
-            return;
-        }
-
-        var mode = _options.CurrentValue.CallPushbackWhenTugAttached;
-        var due = mode.ToLowerInvariant() switch
-        {
-            "afterdepartureservices" => _automation.DepartureComplete,
-            "afterfinalloadsheet" => _loadsheets.Snapshot().Final.Status == LoadsheetSlotStatus.Sent,
-            _ => false, // "never"
-        };
-        if (!due)
-        {
-            return;
-        }
-
-        var pushback = _api.Mirror.Services.GetValueOrDefault(PushbackServiceId);
-        if (pushback is not { State: GsxServiceState.Callable, CanTrigger: true }
-            || _lifecycle.IsPending(PushbackServiceId)
-            || _lifecycle.IsCompleted(PushbackServiceId))
-        {
-            return;
-        }
-
-        _tugPushbackCalled = true;
-        RecordDecision("pushback tug", $"calling pushback — tug attached and {mode} condition met");
-        _ = ExecuteAsync(PushbackAction.CallPushback);
     }
 
     /// <summary>Surfaces raw tug/pin progress in the decision log — this is how the state-12
