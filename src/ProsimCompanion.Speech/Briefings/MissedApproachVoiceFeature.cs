@@ -19,6 +19,8 @@ public sealed class MissedApproachVoiceFeature : IVoiceFeature
         _rebrief = rebrief;
     }
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases => MissedApproachPhrases;
 
     public bool ValueParse => false;

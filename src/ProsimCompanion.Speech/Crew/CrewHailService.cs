@@ -104,8 +104,9 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         }
     }
 
-    public IEnumerable<string> Phrases
-        => _gsxOptions.CurrentValue.VoiceControlEnabled ? GroundHails.Concat(CabinHails) : [];
+    public bool Enabled => _gsxOptions.CurrentValue.VoiceControlEnabled;
+
+    public IEnumerable<string> Phrases => GroundHails.Concat(CabinHails);
 
     public bool ValueParse => false;
 

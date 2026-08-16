@@ -437,7 +437,7 @@ public sealed class SpokenChecklistEngine : IDisposable
         // Commands + feature phrases (reference semantics) — skip/cancel work and so does a
         // mid-check handover or radio call.
         var monitorGrammar = new List<string>(VoiceCommands.All);
-        foreach (var feature in _features)
+        foreach (var feature in _features.Where(f => f.Enabled))
         {
             monitorGrammar.AddRange(feature.Phrases);
         }
@@ -729,7 +729,7 @@ public sealed class SpokenChecklistEngine : IDisposable
         // survive — skipped while an item is awaiting an answer.
         if (awaiting is null)
         {
-            foreach (var feature in _features.Where(f => f.ValueParse))
+            foreach (var feature in _features.Where(f => f.Enabled && f.ValueParse))
             {
                 if (feature.TryHandle(e.Text))
                 {
@@ -849,8 +849,9 @@ public sealed class SpokenChecklistEngine : IDisposable
         }
 
         // Voice features stay reachable while an item is pending (reference semantics) — a
-        // handover or radio call must not become a failed checklist answer.
-        foreach (var feature in _features)
+        // handover or radio call must not become a failed checklist answer. Disabled
+        // features are never offered the utterance (campaign #82 — the router owns the gate).
+        foreach (var feature in _features.Where(f => f.Enabled))
         {
             if (feature.TryHandle(text))
             {
@@ -965,7 +966,8 @@ public sealed class SpokenChecklistEngine : IDisposable
             vocabulary.AddRange(awaiting.AcceptedPhrases);
             // Feature phrases stay in the item window (reference semantics): a handover or
             // radio call while a line is pending must snap and dispatch, not fail the item.
-            foreach (var feature in _features)
+            // Disabled features leave the closed grammar entirely (campaign #82).
+            foreach (var feature in _features.Where(f => f.Enabled))
             {
                 vocabulary.AddRange(feature.Phrases);
             }
@@ -980,7 +982,7 @@ public sealed class SpokenChecklistEngine : IDisposable
             }
 
             vocabulary.AddRange(_failures.DrillPhrases);
-            foreach (var feature in _features)
+            foreach (var feature in _features.Where(f => f.Enabled))
             {
                 vocabulary.AddRange(feature.Phrases);
             }

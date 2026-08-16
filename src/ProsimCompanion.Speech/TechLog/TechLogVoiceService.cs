@@ -78,6 +78,8 @@ public sealed class TechLogVoiceService : IVoiceFeature, IDisposable
         }
     }
 
+    public bool Enabled => _options.CurrentValue.Enabled;
+
     public IEnumerable<string> Phrases => BriefPhrases;
 
     public bool ValueParse => false;

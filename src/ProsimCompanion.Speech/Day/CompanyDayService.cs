@@ -110,6 +110,8 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     /// same session file and must never race the stores it summarizes.</summary>
     int ISessionFinalizationStep.Order => 40;
 
+    bool IVoiceFeature.Enabled => true;
+
     IEnumerable<string> IVoiceFeature.Phrases => StartPhrases.Concat(EndPhrases);
 
     public bool ValueParse => false;

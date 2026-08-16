@@ -66,6 +66,8 @@ public sealed class TechLogDialogueService : IVoiceFeature, ISessionFinalization
         _core = new TechLogDialogueCore(techLog, this, eventLog);
     }
 
+    public bool Enabled => _options.CurrentValue.Enabled;
+
     public IEnumerable<string> Phrases => AllPhrases;
 
     public bool ValueParse => false;

@@ -70,6 +70,8 @@ public sealed class RoleManager : IVoiceFeature
 
     public bool IsFoPilotFlying { get; private set; }
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases =>
         [.. GiveControl, .. TakeControl, .. ConfirmControl, .. PmCallReplies.Keys];
 

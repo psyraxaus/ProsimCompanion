@@ -90,8 +90,9 @@ public sealed class SayIntentionsService : IVoiceFeature, IDisposable
         _configProblems = configProblems;
     }
 
-    public IEnumerable<string> Phrases
-        => _options.CurrentValue.Enabled ? _requests.SelectMany(r => r.Phrases) : [];
+    public bool Enabled => _options.CurrentValue.Enabled;
+
+    public IEnumerable<string> Phrases => _requests.SelectMany(r => r.Phrases);
 
     public bool ValueParse => false;
 

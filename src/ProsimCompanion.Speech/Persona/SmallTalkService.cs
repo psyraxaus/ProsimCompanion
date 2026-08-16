@@ -88,6 +88,8 @@ public sealed class SmallTalkService : IVoiceFeature
         _logger = logger;
     }
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases => QuietPhrases;
 
     public bool ValueParse => false;

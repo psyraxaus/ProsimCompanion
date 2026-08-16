@@ -78,6 +78,8 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
     private static string CommandsPath
         => Core.Configuration.UserConfigPaths.File("commands.json");
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases
     {
         get

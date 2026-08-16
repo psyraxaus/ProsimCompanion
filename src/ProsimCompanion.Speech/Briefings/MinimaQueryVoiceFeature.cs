@@ -33,6 +33,8 @@ public sealed class MinimaQueryVoiceFeature : IVoiceFeature
         _arbiter = arbiter;
     }
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases => QueryPhrases;
 
     public bool ValueParse => false;

@@ -88,6 +88,8 @@ public sealed class McduRadNavTuner : IVoiceFeature, IDisposable
         _roles.Changed += _onRoleChanged;
     }
 
+    public bool Enabled => _options.CurrentValue.Enabled;
+
     public IEnumerable<string> Phrases => TunePhrases;
 
     public bool ValueParse => false;

@@ -79,6 +79,8 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
         _speech = speech;
     }
 
+    public bool Enabled => _options.CurrentValue.Enabled;
+
     public IEnumerable<string> Phrases => [.. ReadPhrases, .. ScratchpadPhrases];
 
     public bool ValueParse => false;

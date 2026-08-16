@@ -109,6 +109,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         _logger = logger;
     }
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases => [.. DeparturePhrases, .. ArrivalPhrases, .. ApproachOptionPhrases];
 
     public bool ValueParse => false;

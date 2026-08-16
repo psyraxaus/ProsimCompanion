@@ -101,6 +101,8 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
         _logger = logger;
     }
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases =>
     [
         "set standby", "set box one standby", "set box two standby", "tune box one", "tune box two",

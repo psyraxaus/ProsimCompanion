@@ -164,8 +164,9 @@ public sealed class EngineFlapCallFeature : IVoiceFeature
 
     /// <summary>Disabled contributes NO phrases, so the closed offline grammar shrinks with
     /// the option instead of hearing calls the feature would then ignore.</summary>
-    public IEnumerable<string> Phrases
-        => _speechOptions.CurrentValue.EngineFlapCallouts ? EngineFlapCallDecider.Phrases : [];
+    public bool Enabled => _speechOptions.CurrentValue.EngineFlapCallouts;
+
+    public IEnumerable<string> Phrases => EngineFlapCallDecider.Phrases;
 
     public bool ValueParse => false;
 

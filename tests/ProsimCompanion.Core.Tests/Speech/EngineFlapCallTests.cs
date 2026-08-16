@@ -114,7 +114,10 @@ public sealed class EngineFlapCallFeatureTests
         var arbiter = new FakeArbiter();
         var feature = Feature(arbiter, new FakeFlightSource(), enabled: false);
 
-        Assert.Empty(feature.Phrases);
+        // The router owns the gate now (campaign #82): a disabled feature reports
+        // Enabled=false and the router drops its phrases from the grammar; the feature's
+        // own TryHandle guard stays as defence in depth.
+        Assert.False(feature.Enabled);
         Assert.False(feature.TryHandle("flaps two"));
         Assert.Empty(arbiter.Requests);
     }

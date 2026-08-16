@@ -8,12 +8,20 @@ namespace ProsimCompanion.Speech.Recognition;
 /// </summary>
 public interface IVoiceFeature
 {
-    /// <summary>Grammar phrases contributed to the idle listening window.</summary>
+    /// <summary>Whether the feature is currently switched on (campaign #82). The router owns
+    /// the gate: a disabled feature contributes NO phrases to the closed grammar (a smaller
+    /// grammar mishears less) and is never offered the utterance — implementations no longer
+    /// need to hand-roll the check in both places. Option-backed features return their live
+    /// option value; always-on features return true.</summary>
+    bool Enabled { get; }
+
+    /// <summary>Grammar phrases contributed to the idle listening window (when
+    /// <see cref="Enabled"/>).</summary>
     IEnumerable<string> Phrases { get; }
 
     /// <summary>True to receive the raw transcription before the snapper runs.</summary>
     bool ValueParse { get; }
 
-    /// <summary>Handles the utterance; true = consumed.</summary>
+    /// <summary>Handles the utterance; true = consumed. Not called while disabled.</summary>
     bool TryHandle(string utterance);
 }

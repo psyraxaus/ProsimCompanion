@@ -100,6 +100,8 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
         _logger = logger;
     }
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases => LoadsheetPhrases.Concat(RepeatPhrases);
 
     public bool ValueParse => false;

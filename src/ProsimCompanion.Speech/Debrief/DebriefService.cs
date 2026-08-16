@@ -89,6 +89,8 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
 
     int ISessionFinalizationStep.Order => 10;
 
+    bool IVoiceFeature.Enabled => true;
+
     IEnumerable<string> IVoiceFeature.Phrases => Phrases;
 
     public bool ValueParse => false;

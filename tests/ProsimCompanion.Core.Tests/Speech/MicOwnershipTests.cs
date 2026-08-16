@@ -183,6 +183,8 @@ public sealed class MicOwnershipTests
     {
         public int Handled { get; private set; }
 
+        public bool Enabled => true;
+
         public IEnumerable<string> Phrases => ["test phrase"];
 
         public bool ValueParse => false;

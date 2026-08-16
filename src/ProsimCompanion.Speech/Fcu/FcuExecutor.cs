@@ -65,6 +65,8 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
         };
     }
 
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases =>
     [
         .. CancelWords,

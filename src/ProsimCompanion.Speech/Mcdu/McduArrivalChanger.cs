@@ -133,6 +133,8 @@ public sealed class McduArrivalChanger : IVoiceFeature, IDisposable
         _roles.Changed += _onRoleChanged;
     }
 
+    public bool Enabled => _options.CurrentValue.Enabled;
+
     public IEnumerable<string> Phrases => McduArrivalPhrases.Phrases;
 
     /// <summary>Raw transcription, before the snapper: the digit words in "change arrival

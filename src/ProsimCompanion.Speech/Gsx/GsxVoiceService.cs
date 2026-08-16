@@ -49,6 +49,8 @@ public sealed class GsxVoiceService : IVoiceFeature
         _departureControl = departureControl;
     }
 
+    public bool Enabled => _options.CurrentValue.VoiceControlEnabled;
+
     public IEnumerable<string> Phrases
         => GsxVoicePhrases.StartGroundServicesPhrases.Concat(GsxVoicePhrases.Bindings.Keys);
 

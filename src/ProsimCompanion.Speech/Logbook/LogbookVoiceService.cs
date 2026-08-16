@@ -49,6 +49,8 @@ public sealed class LogbookVoiceService : IVoiceFeature
 
     /// <summary>Fixed phrases plus one "landing stats for {icao}" per landed destination —
     /// recomputed each read so the grammar tracks the store (predecessor behaviour).</summary>
+    public bool Enabled => true;
+
     public IEnumerable<string> Phrases
     {
         get
