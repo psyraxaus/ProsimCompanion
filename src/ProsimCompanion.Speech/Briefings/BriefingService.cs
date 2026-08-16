@@ -59,6 +59,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<BriefingService> _logger;
     private readonly Persona.PersonaService? _persona;
+
+    // Optional (like the LLM client) so the briefing degrades to spoken ICAO idents when no
+    // name source is registered — issue #70.
+    private readonly Core.Airports.IAirportNames? _airportNames;
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
 
     public BriefingService(
@@ -73,9 +77,11 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         JsonlEventLog eventLog,
         ILogger<BriefingService> logger,
         OpenAiChatClient? llm = null,
-        Persona.PersonaService? persona = null)
+        Persona.PersonaService? persona = null,
+        Core.Airports.IAirportNames? airportNames = null)
     {
         _persona = persona;
+        _airportNames = airportNames;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(navData);
         ArgumentNullException.ThrowIfNull(procedures);
@@ -263,7 +269,8 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         return new BriefingFacts(
             departure, ids.Airport, ids.Runway, ids.Sid, ids.Star, ids.Approach, nav, v1, vr, v2,
             windDir, windSpeed, qnh, departure ? null : _minima.Current,
-            atisLetter, activeRunway, flexTemp, visibility, temperature);
+            atisLetter, activeRunway, flexTemp, visibility, temperature,
+            AirportName: _airportNames?.SpokenName(ids.Airport));
     }
 
     private async Task<string> ComposeAsync(BriefingFacts facts)

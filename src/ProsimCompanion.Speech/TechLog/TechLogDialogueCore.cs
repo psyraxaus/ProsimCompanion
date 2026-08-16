@@ -191,14 +191,11 @@ public sealed class TechLogDialogueCore
         return MelCategory.C;
     }
 
-    /// <summary>NATO word for the read-back confirm prompt.</summary>
-    public static string SpokenCategory(MelCategory category) => category switch
-    {
-        MelCategory.A => "Alpha",
-        MelCategory.B => "Bravo",
-        MelCategory.C => "Charlie",
-        _ => "Delta",
-    };
+    /// <summary>NATO word for the read-back confirm prompt (shared table, issue #68). The
+    /// enum names ARE the letters, so the word lookup can never miss; the fallback only
+    /// guards a future non-letter member.</summary>
+    public static string SpokenCategory(MelCategory category)
+        => Core.Speech.NatoPhonetics.Word(category.ToString()[0]) ?? category.ToString();
 
     /// <summary>Affirm iff an affirm word matches exactly or as a whole word ("yes please"
     /// affirms). Null/timeout, negatives and unrelated speech all read as non-affirm — a

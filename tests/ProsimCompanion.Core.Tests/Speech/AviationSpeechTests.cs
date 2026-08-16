@@ -12,6 +12,11 @@ public sealed class AviationSpeechTests
     [InlineData("QNH 1013", "Q N H one zero one three")]
     [InlineData("squawk 4521", "squawk four five two one")]
     [InlineData("wind 270", "wind two seven zero")]
+    [InlineData("winds 270 at 12 knots", "windz two seven zero at 12 knots")] // plural rule + respelling (#69)
+    [InlineData("Winds 090", "windz zero niner zero")]                        // case-insensitive
+    [InlineData("light winds today", "light windz today")]                    // standalone plural respelled
+    [InlineData("the wind is calm", "the wind is calm")]                      // singular untouched
+    [InlineData("winds aloft gusting 25 and variable", "windz aloft gusting 25 and variable")]
     [InlineData("tune 110.30", "tune one one zero decimal three zero")]    // frequency
     [InlineData("runway 16R", "runway one six right")]
     [InlineData("runway 9", "runway niner")]

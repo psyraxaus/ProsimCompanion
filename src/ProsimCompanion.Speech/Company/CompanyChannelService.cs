@@ -59,6 +59,9 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
     private readonly IOptionsMonitor<CompanyOptions> _options;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<CompanyChannelService> _logger;
+
+    // Optional: with no name source the destination stays spelled ("E G L L") — issue #70.
+    private readonly Core.Airports.IAirportNames? _airportNames;
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly object _gate = new();
 
@@ -75,8 +78,10 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
         OfpStore ofp,
         IOptionsMonitor<CompanyOptions> options,
         JsonlEventLog eventLog,
-        ILogger<CompanyChannelService> logger)
+        ILogger<CompanyChannelService> logger,
+        Core.Airports.IAirportNames? airportNames = null)
     {
+        _airportNames = airportNames;
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -324,9 +329,10 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
         {
             var destination = _ofp.Current?.DestinationIcao;
             var sb = new StringBuilder("Company. ");
+            // Spoken name when known ("into Heathrow"), spelled ICAO otherwise (issue #70).
             sb.Append(string.IsNullOrWhiteSpace(destination)
                 ? "No significant updates for the arrival. "
-                : $"No significant updates for the arrival into {AviationIcao(destination)}. ");
+                : $"No significant updates for the arrival into {_airportNames?.SpokenName(destination) ?? AviationIcao(destination)}. ");
             sb.Append("Gate will be advised on arrival.");
             var text = sb.ToString();
 

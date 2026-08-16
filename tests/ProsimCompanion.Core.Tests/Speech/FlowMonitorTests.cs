@@ -186,7 +186,7 @@ public sealed class FlowMonitorTests : IDisposable
     }
 
     [Fact]
-    public void IsaDeviation_OncePerCruise_RearmsOnLeavingCruise()
+    public void IsaDeviation_OncePerEpisode_StepClimbStaysQuiet_DescentRearms()
     {
         _phase.SetPhase(FlightPhase.Cruise);
         // ISA at 35,000 ft = 15 − 1.98×35 = −54.3 °C; OAT −40 → deviation +14.3 → "plus 14".
@@ -197,20 +197,72 @@ public sealed class FlowMonitorTests : IDisposable
 
         Tick(cruise);
         var isa = Assert.Single(_arbiter.Requests);
-        Assert.Equal("ISA plus 14 today. Climb performance will be reduced.", isa.Text);
+        Assert.Equal(
+            "ISA plus 14 today — expect reduced step-climb performance and a lower optimum level.",
+            isa.Text);
         Assert.Equal(SpeechPriority.Low, isa.Priority);
 
         Tick(cruise); // latched
         Assert.Single(_arbiter.Requests);
 
-        // Step climb re-arms: one non-cruise pass, then cruise again.
+        // A step climb stays inside the climb+cruise episode (issue #73) — no repeat, unlike
+        // the predecessor's once-per-cruise reset.
         _phase.SetPhase(FlightPhase.Climb);
         Tick(cruise with { AltitudeFt = 36_000 });
         _phase.SetPhase(FlightPhase.Cruise);
         Tick(cruise with { AltitudeFt = 37_000, OatC = -45 });
+        Assert.Single(_arbiter.Requests);
 
+        // Descending ends the episode; the next cruise announces again.
+        _phase.SetPhase(FlightPhase.Descent);
+        Tick(cruise with { AltitudeFt = 20_000 });
+        _phase.SetPhase(FlightPhase.Cruise);
+        Tick(cruise);
         Assert.Equal(2, _arbiter.Requests.Count);
     }
+
+    [Fact]
+    public void IsaDeviation_HighClimb_AnnouncesClimbWording_AndLatchesForCruise()
+    {
+        _phase.SetPhase(FlightPhase.Climb);
+        // ISA at 20,000 ft = 15 − 39.6 = −24.6; OAT −10 → deviation +14.6 → "plus 15".
+        var climb = new FlightDataSnapshot
+        {
+            IsValid = true, OnGround = false, AltitudeFt = 20_000, OatC = -10,
+        };
+
+        Tick(climb);
+        var isa = Assert.Single(_arbiter.Requests);
+        Assert.Equal("ISA plus 15 — expect reduced climb performance.", isa.Text);
+
+        // Reaching cruise later must NOT repeat the note — one per episode.
+        _phase.SetPhase(FlightPhase.Cruise);
+        Tick(climb with { AltitudeFt = 35_000, OatC = -40 });
+        Assert.Single(_arbiter.Requests);
+    }
+
+    [Fact]
+    public void IsaDeviation_LowClimb_StaysQuiet_UntilAboveFl150()
+    {
+        _phase.SetPhase(FlightPhase.Climb);
+        // ISA at 10,000 ft = 15 − 19.8 = −4.8; OAT +10 → deviation +14.8 — over threshold,
+        // but below the FL150 floor (low-level thermal noise, not the airmass).
+        Tick(new FlightDataSnapshot
+        {
+            IsValid = true, OnGround = false, AltitudeFt = 10_000, OatC = 10,
+        });
+
+        Assert.Empty(_arbiter.Requests);
+    }
+
+    [Theory]
+    [InlineData(14, FlightPhase.Climb, "ISA plus 14 — expect reduced climb performance.")]
+    [InlineData(14, FlightPhase.Cruise,
+        "ISA plus 14 today — expect reduced step-climb performance and a lower optimum level.")]
+    [InlineData(-12, FlightPhase.Climb, "ISA minus 12 today. Colder than standard; watch for icing.")]
+    [InlineData(-12, FlightPhase.Cruise, "ISA minus 12 today. Colder than standard; watch for icing.")]
+    public void IsaAdvisoryText_PhaseAndSignAware(int deviation, FlightPhase phase, string expected)
+        => Assert.Equal(expected, FlowMonitor.IsaAdvisoryText(deviation, phase));
 
     [Fact]
     public void IsaDeviation_Cold_UsesIcingSentence()

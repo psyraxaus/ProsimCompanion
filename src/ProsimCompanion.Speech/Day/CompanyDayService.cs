@@ -51,6 +51,9 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     private readonly IOptionsMonitor<DayOptions> _options;
     private readonly ILogger<CompanyDayService> _logger;
 
+    // Optional: with no name source, airports stay spelled ("E G L L") — issue #70.
+    private readonly Core.Airports.IAirportNames? _airportNames;
+
     private readonly object _gate = new();
     private readonly CompanyDayEngine _engine = new();
     private DateTimeOffset _lastActivityUtc = DateTimeOffset.UtcNow;
@@ -69,8 +72,10 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         ICompanyChannel company,
         ISpeechArbiter arbiter,
         IOptionsMonitor<DayOptions> options,
-        ILogger<CompanyDayService> logger)
+        ILogger<CompanyDayService> logger,
+        Core.Airports.IAirportNames? airportNames = null)
     {
+        _airportNames = airportNames;
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(extractor);
@@ -280,8 +285,10 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     }
 
     /// <summary>"Next sector, {From} to {To}, flight {FlightNo}, scheduled off-blocks {HH:mm}
-    /// zulu." — only the parts the plan actually has; null when it has none of them.</summary>
-    private static string? NextSectorMessage(DayLeg leg)
+    /// zulu." — only the parts the plan actually has; null when it has none of them. Airports
+    /// speak by name when known, spelled otherwise (issue #70 — the raw "EGLL" the TTS used
+    /// to get came out as a garbled word).</summary>
+    private string? NextSectorMessage(DayLeg leg)
     {
         if (string.IsNullOrEmpty(leg.To) && string.IsNullOrEmpty(leg.FlightNo))
         {
@@ -291,7 +298,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         var parts = new List<string> { "Next sector" };
         if (!string.IsNullOrEmpty(leg.From) && !string.IsNullOrEmpty(leg.To))
         {
-            parts.Add($"{leg.From} to {leg.To}");
+            parts.Add($"{SpokenAirport(leg.From)} to {SpokenAirport(leg.To)}");
         }
 
         if (!string.IsNullOrEmpty(leg.FlightNo))
@@ -362,8 +369,8 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         if (outcome.DeviationPlanned is not null && outcome.DeviationActual is not null)
         {
             // Post-hoc by design — see the class remarks on the deviation watch.
-            Speak($"Note — the plan showed {Spell(outcome.DeviationPlanned)}, "
-                + $"but we flew to {Spell(outcome.DeviationActual)}.", SpeechPriority.Normal);
+            Speak($"Note — the plan showed {SpokenAirport(outcome.DeviationPlanned)}, "
+                + $"but we flew to {SpokenAirport(outcome.DeviationActual)}.", SpeechPriority.Normal);
         }
 
         if (_options.CurrentValue.TurnaroundSummary && outcome.Leg.BlockMinutes is { } block)
@@ -580,6 +587,10 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
     private void Speak(string text, SpeechPriority priority)
         => _ = _arbiter.EnqueueAsync(new SpeechRequest(text, priority, Tag: "day"));
+
+    /// <summary>Name when known ("Heathrow"), spelled ICAO otherwise ("E G C C").</summary>
+    private string SpokenAirport(string icao)
+        => _airportNames?.SpokenName(icao) ?? Spell(icao);
 
     /// <summary>Spelled ICAO for TTS ("EGCC" → "E G C C").</summary>
     private static string Spell(string icao)

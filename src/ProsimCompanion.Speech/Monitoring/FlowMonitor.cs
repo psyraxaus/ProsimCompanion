@@ -13,7 +13,8 @@ namespace ProsimCompanion.Speech.Monitoring;
 /// true (edge-triggered), then stays quiet until it resolves; a per-key rate limit stops nags,
 /// stamped on SPEAK (not attempt — deliberately different from the callouts placards).
 /// Weather extras: icing-conditions advisory, anti-ice-left-on with a sustain dwell so brief
-/// warm layers don't trigger it, and a once-per-cruise ISA-deviation note. Advisory only —
+/// warm layers don't trigger it, and a phase-aware ISA-deviation note (once per climb+cruise
+/// episode: high climb or cruise, whichever comes first — issue #73). Advisory only —
 /// never commands. Active/rate-limit state deliberately persists across phase changes and
 /// flights (predecessor behavior; no PhaseChanged subscription). The persona styling layer is
 /// not ported yet — the deterministic texts speak directly (they were the fallback anyway).
@@ -24,6 +25,10 @@ public sealed class FlowMonitor : IDisposable
 {
     private const double AdvisoryTtlSec = 10.0;
     private const int PollMs = 1000;
+
+    /// <summary>Altitude (ft) above which a climb ISA note is worth making — below ~FL150 the
+    /// deviation is dominated by low-level thermal noise, not the upper-air airmass.</summary>
+    private const double IsaClimbMinAltFt = 15_000;
 
     private readonly IOptionsMonitor<SopOptions> _sop;
     private readonly IOptionsMonitor<SpeechOptions> _speech;
@@ -38,7 +43,7 @@ public sealed class FlowMonitor : IDisposable
     private readonly HashSet<string> _active = [];
     private readonly Dictionary<string, long> _lastSpoken = [];
     private readonly Dictionary<string, long> _sustainedSince = [];
-    private bool _isaAnnouncedThisCruise;
+    private bool _isaAnnouncedThisEpisode;
 
     private Timer? _timer;
     private int _ticking;
@@ -143,11 +148,13 @@ public sealed class FlowMonitor : IDisposable
         SopWeatherOptions w, long rateLimitMs, long nowMs, FlightDataSnapshot s,
         FlightPhase phase, bool airborne)
     {
-        // Keep the once-per-cruise ISA note re-armable across cruise segments — a step climb
-        // re-arms it. Runs even while the weather block is disabled.
-        if (phase != FlightPhase.Cruise)
+        // ONE ISA note per climb+cruise episode (issue #73): a step climb between cruise
+        // segments stays inside the episode (unlike the predecessor's once-per-cruise reset,
+        // which re-announced after every step climb); descending/landing ends the episode and
+        // re-arms the note for the next flight. Runs even while the weather block is disabled.
+        if (phase is not (FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise))
         {
-            _isaAnnouncedThisCruise = false;
+            _isaAnnouncedThisEpisode = false;
         }
 
         if (!w.Enabled)
@@ -170,14 +177,18 @@ public sealed class FlowMonitor : IDisposable
         Check("antiIceLeftOn", w.AntiIceLeftOn, rateLimitMs, nowMs, s,
             c => dwellMet && AnyAntiIceOn(c) && c.TatC > w.AntiIceClearC);
 
-        // ISA bypasses Check(): no edge state, no rate limit, its own once-per-cruise latch.
-        if (phase == FlightPhase.Cruise && w.IsaDeviation.Enabled && !_isaAnnouncedThisCruise)
+        // ISA bypasses Check(): no edge state, no rate limit, its own once-per-episode latch.
+        // Eligible in cruise, or in the high climb (above the thermal-noise floor) so the
+        // "expect reduced climb performance" note arrives while it is still actionable.
+        var isaEligible = phase == FlightPhase.Cruise
+            || (phase == FlightPhase.Climb && s.AltitudeFt >= IsaClimbMinAltFt);
+        if (isaEligible && w.IsaDeviation.Enabled && !_isaAnnouncedThisEpisode)
         {
             var deviation = s.OatC - IsaTempC(s.AltitudeFt);
             if (Math.Abs(deviation) >= w.IsaDeviationThresholdC)
             {
-                _isaAnnouncedThisCruise = true;
-                var text = IsaText((int)Math.Round(deviation));
+                _isaAnnouncedThisEpisode = true;
+                var text = IsaAdvisoryText((int)Math.Round(deviation), phase);
                 var priority = ParsePriority(w.IsaDeviation.Priority);
                 _eventLog.Record("flow.advisory", new
                 {
@@ -187,7 +198,8 @@ public sealed class FlowMonitor : IDisposable
                     spoken = true,
                 });
                 _ = StyleAndEnqueueAsync(
-                    "isaDeviation", text, priority, () => _flight.CurrentPhase == FlightPhase.Cruise);
+                    "isaDeviation", text, priority,
+                    () => _flight.CurrentPhase is FlightPhase.Climb or FlightPhase.Cruise);
             }
         }
     }
@@ -299,12 +311,22 @@ public sealed class FlowMonitor : IDisposable
     private static double IsaTempC(double altFt)
         => altFt <= 36_089.0 ? 15.0 - 1.98 * (altFt / 1000.0) : -56.5;
 
-    private static string IsaText(int deviation)
+    /// <summary>Phase-aware ISA advisory wording (issue #73 — the old text always said
+    /// "climb performance will be reduced", which sounds wrong when already level in cruise).
+    /// Warm in the climb points at climb performance; warm in cruise points at step-climb
+    /// capability and optimum level; cold keeps the icing note regardless of phase. Pure and
+    /// public so tests pin every branch without a monitor.</summary>
+    public static string IsaAdvisoryText(int deviation, FlightPhase phase)
     {
         var signed = $"{(deviation >= 0 ? "plus" : "minus")} {Math.Abs(deviation)}";
-        return deviation > 0
-            ? $"ISA {signed} today. Climb performance will be reduced."
-            : $"ISA {signed} today. Colder than standard; watch for icing.";
+        if (deviation <= 0)
+        {
+            return $"ISA {signed} today. Colder than standard; watch for icing.";
+        }
+
+        return phase == FlightPhase.Climb
+            ? $"ISA {signed} — expect reduced climb performance."
+            : $"ISA {signed} today — expect reduced step-climb performance and a lower optimum level.";
     }
 
     private void Tick()

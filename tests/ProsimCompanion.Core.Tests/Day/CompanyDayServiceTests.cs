@@ -272,7 +272,8 @@ public sealed class CompanyDayServiceTests : IDisposable
         _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(150));
 
         var message = Assert.Single(_company.Messages);
-        Assert.Equal("Next sector, EGCC to EGLL, flight BA124, scheduled off-blocks 09:00 zulu.", message);
+        // No IAirportNames registered here, so the ICAOs fall back to spelled form (#70).
+        Assert.Equal("Next sector, E G C C to E G L L, flight BA124, scheduled off-blocks 09:00 zulu.", message);
     }
 
     // ---- deviation (post-hoc, at leg completion) ----

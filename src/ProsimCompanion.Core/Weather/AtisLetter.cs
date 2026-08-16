@@ -38,22 +38,13 @@ public static class AtisLetter
             return null;
         }
 
-        if (Phonetic.TryGetValue(token, out var letter))
+        // The shared table accepts both ICAO "juliett" and the common "juliet" misspelling
+        // (seen in live SI data), plus "alfa"/"xray" variants.
+        if (Core.Speech.NatoPhonetics.TryParseWord(token, out var letter))
         {
-            return letter;
+            return letter.ToString();
         }
 
         return token.Length == 1 && char.IsLetter(token[0]) ? token.ToUpperInvariant() : null;
     }
-
-    // Both ICAO "juliett" and the common "juliet" misspelling map to J (seen in live SI data).
-    private static readonly Dictionary<string, string> Phonetic = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["alpha"] = "A", ["bravo"] = "B", ["charlie"] = "C", ["delta"] = "D", ["echo"] = "E",
-        ["foxtrot"] = "F", ["golf"] = "G", ["hotel"] = "H", ["india"] = "I", ["juliet"] = "J",
-        ["juliett"] = "J", ["kilo"] = "K", ["lima"] = "L", ["mike"] = "M", ["november"] = "N",
-        ["oscar"] = "O", ["papa"] = "P", ["quebec"] = "Q", ["romeo"] = "R", ["sierra"] = "S",
-        ["tango"] = "T", ["uniform"] = "U", ["victor"] = "V", ["whiskey"] = "W", ["xray"] = "X",
-        ["yankee"] = "Y", ["zulu"] = "Z",
-    };
 }

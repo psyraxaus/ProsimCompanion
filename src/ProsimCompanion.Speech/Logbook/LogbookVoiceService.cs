@@ -27,10 +27,14 @@ public sealed class LogbookVoiceService : IVoiceFeature
     private readonly ISpeechArbiter _arbiter;
     private readonly ILogger<LogbookVoiceService> _logger;
 
+    // Optional: with no name source the answers keep speaking the raw ICAO — issue #70.
+    private readonly Core.Airports.IAirportNames? _airportNames;
+
     public LogbookVoiceService(
         ILogbookService logbook,
         ISpeechArbiter arbiter,
-        ILogger<LogbookVoiceService> logger)
+        ILogger<LogbookVoiceService> logger,
+        Core.Airports.IAirportNames? airportNames = null)
     {
         ArgumentNullException.ThrowIfNull(logbook);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -39,6 +43,7 @@ public sealed class LogbookVoiceService : IVoiceFeature
         _logbook = logbook;
         _arbiter = arbiter;
         _logger = logger;
+        _airportNames = airportNames;
     }
 
     /// <summary>Fixed phrases plus one "landing stats for {icao}" per landed destination —
@@ -84,7 +89,7 @@ public sealed class LogbookVoiceService : IVoiceFeature
         }
         else if (TryParseAirportQuery(text, out var icao))
         {
-            answer = AirportText(_logbook.GetAggregates(), icao);
+            answer = AirportText(_logbook.GetAggregates(), icao, _airportNames?.SpokenName(icao));
         }
         else
         {
@@ -205,8 +210,10 @@ public sealed class LogbookVoiceService : IVoiceFeature
 
     /// <summary>Answer to "landing stats for {icao}". The touchdown range is spoken slow →
     /// fast, so it reads Slowest first — the aggregates' fastest/slowest naming is already
-    /// corrected in this repo (see <see cref="AirportStat"/>).</summary>
-    public static string AirportText(LogbookAggregates a, string icao)
+    /// corrected in this repo (see <see cref="AirportStat"/>). An optional spoken name
+    /// ("Heathrow") replaces the raw ICAO (issue #70) — stays a parameter so the template
+    /// remains pure/static for tests.</summary>
+    public static string AirportText(LogbookAggregates a, string icao, string? spokenName = null)
     {
         ArgumentNullException.ThrowIfNull(a);
         if (string.IsNullOrWhiteSpace(icao))
@@ -218,10 +225,10 @@ public sealed class LogbookVoiceService : IVoiceFeature
             s => string.Equals(s.Icao, icao, StringComparison.OrdinalIgnoreCase));
         if (stat is null)
         {
-            return $"No landings logged into {icao.ToUpperInvariant()} yet.";
+            return $"No landings logged into {spokenName ?? icao.ToUpperInvariant()} yet.";
         }
 
-        var text = $"{stat.Landings} landings into {stat.Icao.ToUpperInvariant()}";
+        var text = $"{stat.Landings} landings into {spokenName ?? stat.Icao.ToUpperInvariant()}";
         if (stat is { FastestTouchdownGsKt: { } fast, SlowestTouchdownGsKt: { } slow })
         {
             text += $", touchdown ground speed from {Fmt0(slow)} to {Fmt0(fast)} knots";

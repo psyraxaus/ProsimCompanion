@@ -25,8 +25,12 @@ public static class DebriefLlm
             "include one or two brief constructive observations only if the facts support them. End on a positive note.";
     }
 
-    /// <summary>Builds the fact block: one "- Label: value" line per non-empty fact.</summary>
-    public static string FactBlock(DebriefFacts f)
+    /// <summary>Builds the fact block: one "- Label: value" line per non-empty fact. The
+    /// optional <paramref name="airportName"/> resolver (ICAO → spoken name, null = unknown)
+    /// presents stations as "London Heathrow (EGLL)" so the LLM speaks the name instead of a
+    /// garbled ICAO word (issue #70) — a Func rather than the interface keeps this class pure
+    /// and Core-resident with no service dependency.</summary>
+    public static string FactBlock(DebriefFacts f, Func<string, string?>? airportName = null)
     {
         ArgumentNullException.ThrowIfNull(f);
 
@@ -41,8 +45,8 @@ public static class DebriefLlm
             }
         }
 
-        Line("Origin", Station(f.Origin, f.DepartureRunway));
-        Line("Destination", Station(f.Destination, f.ArrivalRunway));
+        Line("Origin", Station(f.Origin, f.DepartureRunway, airportName));
+        Line("Destination", Station(f.Destination, f.ArrivalRunway, airportName));
         Line("Block time (minutes)", f.BlockMinutes?.ToString(CultureInfo.InvariantCulture));
         Line("Airborne time (minutes)", f.FlightMinutes?.ToString(CultureInfo.InvariantCulture));
         Line("Lift-off speed (knots)", f.LiftoffIasKt?.ToString("0", CultureInfo.InvariantCulture));
@@ -165,10 +169,17 @@ public static class DebriefLlm
         return allowed;
     }
 
-    private static string? Station(string? icao, string? runway)
-        => string.IsNullOrWhiteSpace(icao)
-            ? null
-            : icao + (string.IsNullOrWhiteSpace(runway) ? "" : $" runway {runway}");
+    private static string? Station(string? icao, string? runway, Func<string, string?>? airportName)
+    {
+        if (string.IsNullOrWhiteSpace(icao))
+        {
+            return null;
+        }
+
+        var name = airportName?.Invoke(icao);
+        var station = name is null ? icao : $"{name} ({icao})";
+        return station + (string.IsNullOrWhiteSpace(runway) ? "" : $" runway {runway}");
+    }
 
     private static string? Count(int value)
         => value > 0 ? value.ToString(CultureInfo.InvariantCulture) : null;

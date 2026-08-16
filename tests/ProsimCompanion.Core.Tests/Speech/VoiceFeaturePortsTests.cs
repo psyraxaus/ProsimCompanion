@@ -249,6 +249,17 @@ public sealed class LogbookVoiceServiceTests
             LogbookVoiceService.AirportText(SampleAggregates(), "egll"));
 
     [Fact]
+    public void AirportText_SpokenNameReplacesIcao_WhenProvided()
+    {
+        // Issue #70: the resolved name replaces the raw ICAO in both branches.
+        Assert.StartsWith("4 landings into Sydney,",
+            LogbookVoiceService.AirportText(SampleAggregates(), "yssy", "Sydney"),
+            StringComparison.Ordinal);
+        Assert.Equal("No landings logged into Heathrow yet.",
+            LogbookVoiceService.AirportText(SampleAggregates(), "egll", "Heathrow"));
+    }
+
+    [Fact]
     public void DaySummary_NoDayRecorded()
         => Assert.Equal("No duty day recorded yet.", LogbookVoiceService.DaySummaryText(null));
 

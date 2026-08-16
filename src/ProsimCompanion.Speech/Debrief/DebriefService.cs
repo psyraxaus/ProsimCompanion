@@ -40,6 +40,9 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
     private readonly object _gate = new();
     private readonly Persona.PersonaService? _persona;
 
+    // Optional: without it the fact block presents raw ICAO idents — issue #70.
+    private readonly Core.Airports.IAirportNames? _airportNames;
+
     private bool _started;
     private bool _doneThisFlight;
 
@@ -54,9 +57,11 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         ILogger<DebriefService> logger,
         OpenAiChatClient? llm = null,
         Core.Day.DayStatusStore? dayStore = null,
-        Persona.PersonaService? persona = null)
+        Persona.PersonaService? persona = null,
+        Core.Airports.IAirportNames? airportNames = null)
     {
         _persona = persona;
+        _airportNames = airportNames;
         ArgumentNullException.ThrowIfNull(extractor);
         ArgumentNullException.ThrowIfNull(logbook);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -260,7 +265,7 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
             // locks the operational content and the number verifier backs it up.
             var system = (_persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Debrief) ?? "")
                 + DebriefLlm.SystemPrompt(verbosity);
-            var factBlock = DebriefLlm.FactBlock(facts);
+            var factBlock = DebriefLlm.FactBlock(facts, icao => _airportNames?.SpokenName(icao));
             var allowed = DebriefLlm.AllowedNumbers(facts);
 
             var narrative = await _llm.CompleteAsync(

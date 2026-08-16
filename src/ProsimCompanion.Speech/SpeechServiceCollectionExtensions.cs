@@ -78,6 +78,12 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Mcdu.McduArrivalChanger>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Mcdu.McduArrivalChanger>());
         services.AddSingleton<Briefings.DfdNavDataProvider>();
+        // ICAO → spoken airport name (issue #70): curated short names + the DFD's
+        // airport_name column. Optional everywhere it is consumed, so a missing DFD just
+        // means spelled ICAOs again.
+        services.AddSingleton<Briefings.DfdAirportNames>();
+        services.AddSingleton<Core.Airports.IAirportNames>(
+            p => p.GetRequiredService<Briefings.DfdAirportNames>());
         services.AddSingleton<Briefings.ProcedureSource>();
         services.AddSingleton<Briefings.MinimaCaptureDialogue>();
         services.AddSingleton<Briefings.MissedApproachRebrief>();

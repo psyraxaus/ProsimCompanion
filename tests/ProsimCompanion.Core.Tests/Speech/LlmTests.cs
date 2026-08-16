@@ -98,6 +98,16 @@ public sealed class DebriefLlmTests
     }
 
     [Fact]
+    public void FactBlock_AirportNameResolver_PresentsNameWithIcao()
+    {
+        // Issue #70: "Name (ICAO)" when the resolver knows the airport, raw ICAO otherwise.
+        var block = DebriefLlm.FactBlock(Facts(), icao => icao == "YSSY" ? "Sydney" : null);
+
+        Assert.Contains("- Origin: Sydney (YSSY) runway 16R", block, StringComparison.Ordinal);
+        Assert.Contains("- Destination: YMML", block, StringComparison.Ordinal); // resolver miss
+    }
+
+    [Fact]
     public void AllowedNumbers_MinutesRoundedSpeedsGatesCountsAndFuelTonnes()
     {
         var allowed = DebriefLlm.AllowedNumbers(Facts());

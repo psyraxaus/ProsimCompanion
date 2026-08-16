@@ -21,10 +21,45 @@ public sealed class BriefingTests
     {
         var text = BriefingComposer.Template(Departure());
 
+        // The SID renders phonetically (issue #68) — "FISHA1" spoken is "FISHA one".
         Assert.StartsWith("Departure briefing. Departing YSSY. Runway 16R. "
-            + "Standard instrument departure FISHA1. Initial track 163 degrees. "
+            + "Standard instrument departure FISHA one. Initial track 163 degrees. "
             + "Transition altitude 10000 feet. V1 140, rotate 145, V2 150. "
             + "Wind 270 at 12 knots. QNH 1013.", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Template_SpeaksAirportName_WhenResolved()
+    {
+        // Issue #70: the spoken name replaces the ICAO in the template; the ICAO stays in
+        // the facts for the route breadcrumb/verifier.
+        var text = BriefingComposer.Template(Departure() with { AirportName = "Sydney" });
+        Assert.Contains("Departing Sydney.", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("YSSY", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FactBlock_PhoneticIdentifiers_AndNamedAirport()
+    {
+        var block = BriefingComposer.FactBlock(Departure() with
+        {
+            AirportName = "Sydney",
+            AtisLetter = "M",
+        });
+
+        Assert.Contains("- Airport: Sydney (YSSY)", block, StringComparison.Ordinal);
+        Assert.Contains("- SID: FISHA one", block, StringComparison.Ordinal);
+        Assert.Contains("- ATIS information: Mike", block, StringComparison.Ordinal); // issue #68
+    }
+
+    [Fact]
+    public void SpokenApproach_DfdIdentifierDecodes_ManualEntryRendersPhonetically()
+    {
+        // DFD identifier + matching runway → the same spoken form as "which approach".
+        Assert.Equal("ILS Yankee", BriefingComposer.SpokenApproach("I16RY", "16R"));
+        // Manual entry (or no runway) → phonetic identifier rendering.
+        Assert.Equal("ILS one six Romeo", BriefingComposer.SpokenApproach("ILS 16R", "16R"));
+        Assert.Equal("India one six Romeo Yankee", BriefingComposer.SpokenApproach("I16RY", null));
     }
 
     [Fact]

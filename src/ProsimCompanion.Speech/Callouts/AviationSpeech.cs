@@ -5,9 +5,9 @@ namespace ProsimCompanion.Speech.Callouts;
 /// <summary>Digit-word rendering for spoken aviation numbers (rules carried from Prosim2FO).</summary>
 public static class Aviation
 {
-    /// <summary>ICAO digit words — note 9 is "niner".</summary>
-    public static readonly string[] DigitWords =
-        ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "niner"];
+    /// <summary>ICAO digit words — note 9 is "niner". Aliases the canonical Core table so the
+    /// recognition grammars here and Core's identifier phonetics can never drift apart.</summary>
+    public static readonly string[] DigitWords = Core.Speech.NatoPhonetics.DigitWords;
 
     /// <summary>"1013" → "one zero one three"; "29.92" → "two niner decimal niner two".
     /// Non-digit characters other than '.' are silently dropped.</summary>
@@ -103,7 +103,9 @@ public static class AviationSpeech
             m => m.Groups[1].Value + " " + Digits(m.Groups[2].Value)),
         (Rx(@"\bheading\s+(\d{1,3})\b"), m => "heading " + Digits(m.Groups[1].Value.PadLeft(3, '0'))),
         (Rx(@"\b(squawk|transponder)\s+(\d{3,4})\b"), m => m.Groups[1].Value + " " + Digits(m.Groups[2].Value)),
-        (Rx(@"\bwind\s+(\d{3})\b"), m => "wind " + Digits(m.Groups[1].Value)),
+        // Singular and plural: LLM briefing prose says "winds 270" as often as "wind 270"
+        // (issue #69). The matched word is preserved so the plural respelling below applies.
+        (Rx(@"\b(winds?)\s+(\d{3})\b"), m => m.Groups[1].Value + " " + Digits(m.Groups[2].Value)),
         (Rx(@"\bQNH\s+0*(\d{3,4})\b"), m => "Q N H " + Digits(m.Groups[1].Value)),
         (Rx(@"\bQFE\s+0*(\d{3,4})\b"), m => "Q F E " + Digits(m.Groups[1].Value)),
         (Rx(@"\b(\d{3}\.\d{1,3})\b"), m => Digits(m.Groups[1].Value)), // frequencies (e.g. 110.30)
@@ -130,6 +132,11 @@ public static class AviationSpeech
         (Rx(@"\bMDA\b"), "M D A"),
         (Rx(@"\bECAM\b"), "E CAM"),
         (Rx(@"\bMCDU\b"), "M C D U"),
+        // kokoro reads "winds" as the verb /waɪndz/ (issue #69). "windz" is the most
+        // phonetically explicit respelling that still reads as one word — "wind z" risks the
+        // synthesizer spelling out a letter zed. Chosen without an audition; may need an
+        // ear-check on the sim PC.
+        (Rx(@"\bwinds\b"), "windz"),
         (Rx(@"\bFL\b"), "flight level"), // bare FL not followed by a number
         (Rx(@"\bft\b"), "feet"),
         (Rx(@"\bkts?\b"), "knots"),

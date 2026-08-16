@@ -34,18 +34,9 @@ public sealed record NavDataFacts(
 /// </summary>
 public sealed record ApproachOption(string Identifier, string Kind, char? Variant)
 {
-    private static readonly Dictionary<char, string> Phonetics = new()
-    {
-        ['A'] = "Alpha", ['B'] = "Bravo", ['C'] = "Charlie", ['D'] = "Delta", ['E'] = "Echo",
-        ['F'] = "Foxtrot", ['G'] = "Golf", ['H'] = "Hotel", ['I'] = "India", ['J'] = "Juliet",
-        ['K'] = "Kilo", ['L'] = "Lima", ['M'] = "Mike", ['N'] = "November", ['O'] = "Oscar",
-        ['P'] = "Papa", ['Q'] = "Quebec", ['R'] = "Romeo", ['S'] = "Sierra", ['T'] = "Tango",
-        ['U'] = "Uniform", ['V'] = "Victor", ['W'] = "Whiskey", ['X'] = "X-ray", ['Y'] = "Yankee",
-        ['Z'] = "Zulu",
-    };
-
-    /// <summary>Spoken form, e.g. "ILS Yankee" or "RNAV".</summary>
-    public string Spoken => Variant is { } v && Phonetics.TryGetValue(char.ToUpperInvariant(v), out var word)
+    /// <summary>Spoken form, e.g. "ILS Yankee" or "RNAV" (variant words from the shared
+    /// <see cref="Core.Speech.NatoPhonetics"/> table, issue #68).</summary>
+    public string Spoken => Variant is { } v && Core.Speech.NatoPhonetics.Word(v) is { } word
         ? $"{Kind} {word}"
         : Kind;
 }
@@ -243,6 +234,28 @@ public sealed class DfdNavDataProvider
             var schema = DetectSchema(connection);
             return ScalarString(connection, $"SELECT {schema.AiracColumn} FROM {schema.Header} LIMIT 1");
         }
+    }
+
+    /// <summary>Airport name exactly as the DFD stores it (ALL-CAPS, often suffixed —
+    /// "LONDON HEATHROW"); null when the DFD, the airport, or the <c>airport_name</c> column
+    /// is absent. Presentation cleanup is <see cref="DfdAirportNames"/>' job.</summary>
+    public string? AirportName(string? airport)
+    {
+        if (string.IsNullOrWhiteSpace(airport))
+        {
+            return null;
+        }
+
+        using var connection = Open();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        var schema = DetectSchema(connection);
+        return ScalarString(connection,
+            $"SELECT airport_name FROM {schema.Airports} WHERE airport_identifier=@a LIMIT 1",
+            ("@a", airport.Trim().ToUpperInvariant()));
     }
 
     public NavDataFacts Lookup(string airport, string? runway, string? sid = null, string? star = null, string? approach = null)

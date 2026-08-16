@@ -9,7 +9,8 @@ namespace ProsimCompanion.Speech.Briefings;
 /// <summary>Everything a briefing may speak — null fields are simply omitted. ATIS letter and
 /// active runway (SayIntentions-sourced, via the composite weather provider) feed the LLM
 /// fact block only; the deterministic template deliberately ignores them so its clause
-/// structure stays byte-stable.</summary>
+/// structure stays byte-stable. AirportName is the spoken name ("Sydney") resolved by
+/// <see cref="Core.Airports.IAirportNames"/> — null falls back to the ICAO ident.</summary>
 public sealed record BriefingFacts(
     bool IsDeparture,
     string? Airport,
@@ -29,7 +30,8 @@ public sealed record BriefingFacts(
     string? ActiveRunway = null,
     int? FlexTempC = null,
     int? VisibilityM = null,
-    int? TemperatureC = null);
+    int? TemperatureC = null,
+    string? AirportName = null);
 
 /// <summary>
 /// The deterministic briefing template (Prosim2FO's exact clause structure) plus the number
@@ -47,9 +49,11 @@ public static class BriefingComposer
         if (f.IsDeparture)
         {
             s.Add("Departure briefing.");
-            Add(s, f.Airport, a => $"Departing {a}.");
+            Add(s, f.Airport, a => $"Departing {f.AirportName ?? a}.");
             Add(s, f.Runway, r => $"Runway {r}.");
-            Add(s, f.Sid, x => $"Standard instrument departure {x}.");
+            // Identifiers render phonetically (issue #68): kokoro swallowed the designator
+            // letter of "VOLA3V" — "VOLA three Victor" survives synthesis.
+            Add(s, f.Sid, x => $"Standard instrument departure {Core.Speech.NatoPhonetics.SpeakIdentifier(x)}.");
             Add(s, f.Nav.RunwayTrueHeading, h => $"Initial track {h:0} degrees.");
             Add(s, f.Nav.TransitionAltitudeFt, t => $"Transition altitude {t:0} feet.");
             if (f is { V1: not null, Vr: not null, V2: not null })
@@ -60,16 +64,16 @@ public static class BriefingComposer
         else
         {
             s.Add("Arrival briefing.");
-            Add(s, f.Airport, a => $"Arriving {a}.");
+            Add(s, f.Airport, a => $"Arriving {f.AirportName ?? a}.");
             Add(s, f.Runway, r => $"Runway {r}.");
-            Add(s, f.Approach, a => $"Approach {a}.");
+            Add(s, f.Approach, a => $"Approach {SpokenApproach(a, f.Runway)}.");
             if (f.Nav is { IlsIdent: not null, IlsFrequencyMhz: not null })
             {
                 s.Add($"ILS {f.Nav.IlsIdent}, frequency {f.Nav.IlsFrequencyMhz:0.00}.");
             }
 
             Add(s, f.Nav.GlideSlopeAngle, g => $"Glideslope {g:0.0} degrees.");
-            Add(s, f.Star, x => $"Arrival via {x}.");
+            Add(s, f.Star, x => $"Arrival via {Core.Speech.NatoPhonetics.SpeakIdentifier(x)}.");
             Add(s, f.Nav.TransitionLevel, t => $"Transition level {t:0}.");
         }
 
@@ -88,6 +92,19 @@ public static class BriefingComposer
         }
 
         return string.Join(" ", s);
+    }
+
+    /// <summary>Spoken form of the approach fact. DFD identifiers ("I16RY") decode through
+    /// the same path as the "which approach" answer so both say "ILS Yankee"; anything else
+    /// (manual entries like "ILS 16R") renders phonetically. Public so tests can pin both
+    /// branches.</summary>
+    public static string SpokenApproach(string approach, string? runway)
+    {
+        ArgumentNullException.ThrowIfNull(approach);
+        return runway is not null
+            && DfdNavDataProvider.TryDecodeApproachIdentifier(approach, runway, out var option, out _)
+                ? option.Spoken
+                : Core.Speech.NatoPhonetics.SpeakIdentifier(approach);
     }
 
     public static string MinimaCallout(ArrivalMinima minima)
@@ -181,7 +198,8 @@ public static class BriefingComposer
             + "('feet', 'knots', 'degrees'). Read flight levels, headings, frequencies, squawk codes, "
             + "wind direction and runway numbers digit by digit (e.g. 'heading one six three', 'one "
             + "one eight decimal one zero', 'runway one six right'); read altitudes, distances and "
-            + "speeds normally.";
+            + "speeds normally. Speak single letters as their NATO phonetic words: 'information "
+            + "Mike' (never 'information M'), 'VOLA three Victor' (never 'VOLA3V').";
 
     /// <summary>Builds the fact block ("- Label: value" lines, blanks omitted).</summary>
     public static string FactBlock(BriefingFacts f)
@@ -199,11 +217,13 @@ public static class BriefingComposer
             }
         }
 
-        Line("Airport", f.Airport);
+        // Identifiers/letters are handed to the LLM pre-formatted for speech (issue #68) —
+        // asking the model to phoneticize "VOLA3V" itself proved unreliable.
+        Line("Airport", f.AirportName is { } name ? $"{name} ({f.Airport})" : f.Airport);
         Line("Runway", f.Runway);
-        Line("SID", f.Sid);
-        Line("STAR", f.Star);
-        Line("Approach", f.Approach);
+        Line("SID", Core.Speech.NatoPhonetics.SpeakIdentifier(f.Sid));
+        Line("STAR", Core.Speech.NatoPhonetics.SpeakIdentifier(f.Star));
+        Line("Approach", f.Approach is { } approach ? SpokenApproach(approach, f.Runway) : null);
         Line("AIRAC", f.Nav.AiracCycle);
         Line("Runway true heading (deg)", f.Nav.RunwayTrueHeading?.ToString("0", CultureInfo.InvariantCulture));
         Line("Runway length (ft)", f.Nav.RunwayLengthFt?.ToString("0", CultureInfo.InvariantCulture));
@@ -229,7 +249,7 @@ public static class BriefingComposer
         Line("Visibility (m)", f.VisibilityM);
         Line("Temperature (C)", f.TemperatureC);
         Line("QNH (hPa)", f.QnhHpa);
-        Line("ATIS information", f.AtisLetter);
+        Line("ATIS information", Core.Speech.NatoPhonetics.Letter(f.AtisLetter)); // "M" → "Mike"
         Line("Active runway (per ATC)", f.ActiveRunway);
         if (!f.IsDeparture)
         {
