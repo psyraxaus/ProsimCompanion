@@ -202,6 +202,20 @@ public sealed class SpeechOptions
     /// is open, no PTT needed.</summary>
     public string RecognitionMode { get; set; } = "pushToTalk";
 
+    // ---- Interphone transmit gating (issue #72) ----
+
+    /// <summary>Latch crew hail dialogues to the captain ACP transmit selector
+    /// (S_ASP_SEND_CHANNEL): "cockpit to ground" needs INT selected, "cockpit to crew"
+    /// needs CAB, and moving the selector off the channel mid-dialogue hangs up — the
+    /// realism the receive-side latches alone cannot give. Degrades to always-accept when
+    /// the selector dataref is absent or stale (older ProSim, degraded mode).</summary>
+    public bool AcpTransmitGating { get; set; } = true;
+
+    /// <summary>Additionally require the momentary ACP INT key (S_ASP_INT_SEND) pushed at
+    /// the moment a GROUND hail is spoken; the selector latch then keeps the dialogue open.
+    /// Off by default — most home panels drive only the selector.</summary>
+    public bool AcpIntKeyRequired { get; set; }
+
     /// <summary>Minimum engine confidence for offline recognizers.</summary>
     public double RecognitionConfidenceThreshold { get; set; } = 0.6;
 

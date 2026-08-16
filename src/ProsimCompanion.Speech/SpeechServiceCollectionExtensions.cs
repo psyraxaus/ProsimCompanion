@@ -128,6 +128,12 @@ public static class SpeechServiceCollectionExtensions
         // Interphone hail dialogues ("cockpit to ground" → "go ahead, captain" → request) and
         // ground-crew upcalls on INT (ADR-0006 / issue #51). The hail feature registers AFTER
         // GsxVoiceService so single-shot phrases keep their precedence.
+        // The ACP transmit monitor (issue #72) feeds the hail gate — captain S_ASP_SEND_CHANNEL
+        // + S_ASP_INT_SEND, subscribed once here, never S_ASP_INTRAD (that rocker is the GSX
+        // smart button).
+        services.AddSingleton<Crew.AcpTransmitMonitor>();
+        services.AddSingleton<Crew.IAcpTransmitMonitor>(
+            p => p.GetRequiredService<Crew.AcpTransmitMonitor>());
         services.AddSingleton<Crew.CrewHailService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Crew.CrewHailService>());
         services.AddSingleton<Crew.GroundCrewUpcallService>();

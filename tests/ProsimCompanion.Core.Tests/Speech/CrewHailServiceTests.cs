@@ -21,6 +21,8 @@ public sealed class CrewHailServiceTests : IDisposable
     private readonly GsxOptions _gsxOptions = new();
     private readonly GroundCrewOptions _groundOptions = new();
     private readonly CabinOptions _cabinOptions = new();
+    private readonly SpeechOptions _speechOptions = new();
+    private readonly FakeAcpTransmitMonitor _acpTransmit = new();
     private readonly List<string> _executed = [];
     private readonly string _tempDir =
         Path.Combine(Path.GetTempPath(), "prosimcompanion-tests", Guid.NewGuid().ToString("N"));
@@ -73,6 +75,8 @@ public sealed class CrewHailServiceTests : IDisposable
         groundOptions.SetupGet(o => o.CurrentValue).Returns(() => _groundOptions);
         var cabinOptions = new Mock<IOptionsMonitor<CabinOptions>>();
         cabinOptions.SetupGet(o => o.CurrentValue).Returns(() => _cabinOptions);
+        var speechOptions = new Mock<IOptionsMonitor<SpeechOptions>>();
+        speechOptions.SetupGet(o => o.CurrentValue).Returns(() => _speechOptions);
 
         var gsxVoice = new GsxVoiceService(
             _registry, _arbiter, gsxOptions.Object, NullLogger<GsxVoiceService>.Instance);
@@ -82,11 +86,26 @@ public sealed class CrewHailServiceTests : IDisposable
             _arbiter,
             gsxVoice,
             dataRefs.Object,
+            _acpTransmit,
             gsxOptions.Object,
             groundOptions.Object,
             cabinOptions.Object,
+            speechOptions.Object,
             new JsonlEventLog(_tempDir, NullLogger<JsonlEventLog>.Instance),
             NullLogger<CrewHailService>.Instance);
+    }
+
+    /// <summary>Settable ACP transmit state; defaults to Unknown so the pre-#72 tests run
+    /// through the degrade path (gating on, dataref absent → accept as before).</summary>
+    private sealed class FakeAcpTransmitMonitor : IAcpTransmitMonitor
+    {
+        public AcpTransmitTarget Current { get; set; } = AcpTransmitTarget.Unknown;
+
+        public bool IntKeyPushed { get; set; }
+
+        public event EventHandler? Changed;
+
+        public void Raise() => Changed?.Invoke(this, EventArgs.Empty);
     }
 
     private static void WaitFor(Func<bool> condition)
@@ -211,5 +230,129 @@ public sealed class CrewHailServiceTests : IDisposable
 
         Assert.Empty(_executed);
         Assert.Empty(_arbiter.Requests);
+    }
+
+    // ---- ACP transmit gating (issue #72) ----
+
+    [Fact]
+    public void TransmitGating_IntSelected_GroundHailAccepted()
+    {
+        Handler("gsx.requestRefuel", CommandResult.Ok("requested"));
+        _acpTransmit.Current = AcpTransmitTarget.Intercom;
+        var service = CreateService("request refueling");
+
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _executed.Count > 0);
+
+        Assert.Equal(["gsx.requestRefuel"], _executed);
+    }
+
+    [Fact]
+    public void TransmitGating_CabSelected_CabinHailAccepted()
+    {
+        Handler("gsx.requestBoarding", CommandResult.Ok("requested"));
+        _acpTransmit.Current = AcpTransmitTarget.Cabin;
+        var service = CreateService("start boarding");
+
+        Assert.True(service.TryHandle("cockpit to cabin"));
+        WaitFor(() => _executed.Count > 0);
+
+        Assert.Equal(["gsx.requestBoarding"], _executed);
+    }
+
+    [Fact]
+    public void TransmitGating_WrongChannel_CoachesOnce_ThenSilentlyUnanswered()
+    {
+        Handler("gsx.requestRefuel", CommandResult.Ok("requested"));
+        _acpTransmit.Current = AcpTransmitTarget.Vhf1;
+        var service = CreateService("request refueling");
+
+        // Consumed (it IS a hail) but not answered — the FO coaches instead.
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _arbiter.Requests.Count >= 1);
+
+        Assert.Empty(_executed);
+        Assert.Contains(_arbiter.Requests, r =>
+            r.Role == SpeechRole.FirstOfficer && r.Tag == "crew.hail.coach");
+
+        // Second unkeyed hail: still consumed, still unanswered, no second lesson.
+        Assert.True(service.TryHandle("cockpit to ground"));
+        Thread.Sleep(100);
+
+        Assert.Empty(_executed);
+        Assert.Single(_arbiter.Requests, r => r.Tag == "crew.hail.coach");
+    }
+
+    [Fact]
+    public void TransmitGating_Disabled_WrongChannelStillAccepted()
+    {
+        Handler("gsx.requestRefuel", CommandResult.Ok("requested"));
+        _speechOptions.AcpTransmitGating = false;
+        _acpTransmit.Current = AcpTransmitTarget.Vhf1;
+        var service = CreateService("request refueling");
+
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _executed.Count > 0);
+
+        Assert.Equal(["gsx.requestRefuel"], _executed);
+    }
+
+    [Fact]
+    public void TransmitGating_UnknownState_AcceptsAsToday()
+    {
+        Handler("gsx.requestRefuel", CommandResult.Ok("requested"));
+        _acpTransmit.Current = AcpTransmitTarget.Unknown; // dataref absent / connection stale
+        var service = CreateService("request refueling");
+
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _executed.Count > 0);
+
+        Assert.Equal(["gsx.requestRefuel"], _executed);
+    }
+
+    [Fact]
+    public void TransmitGating_IntKeyRequired_GroundHailNeedsTheKey()
+    {
+        Handler("gsx.requestRefuel", CommandResult.Ok("requested"));
+        _speechOptions.AcpIntKeyRequired = true;
+        _acpTransmit.Current = AcpTransmitTarget.Intercom;
+        _acpTransmit.IntKeyPushed = false;
+        var service = CreateService("request refueling");
+
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _arbiter.Requests.Count >= 1);
+        Assert.Empty(_executed);
+
+        _acpTransmit.IntKeyPushed = true;
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _executed.Count > 0);
+        Assert.Equal(["gsx.requestRefuel"], _executed);
+    }
+
+    [Fact]
+    public void TransmitGating_SelectorLeavesChannelMidDialogue_HangsUpWithStandingBy()
+    {
+        Handler("gsx.requestRefuel", CommandResult.Ok("requested"));
+        _acpTransmit.Current = AcpTransmitTarget.Intercom;
+        var service = CreateService(heardUtterance: null);
+        // The pilot never speaks; the listen hangs until the hangup token cancels it.
+        _mic.Setup(m => m.ListenAsync(
+                It.IsAny<IReadOnlyList<string>>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(async (IReadOnlyList<string> _, TimeSpan _, CancellationToken ct) =>
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+                return (string?)null;
+            });
+
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _arbiter.Requests.Count >= 1); // the "go ahead" reply is out
+
+        _acpTransmit.Current = AcpTransmitTarget.Vhf1;
+        _acpTransmit.Raise();
+        WaitFor(() => _arbiter.Requests.Any(r => r.Text == _groundOptions.StandingByText));
+
+        Assert.Empty(_executed);
+        Assert.Contains(_arbiter.Requests, r =>
+            r.Role == SpeechRole.GroundCrew && r.Text == _groundOptions.StandingByText);
     }
 }

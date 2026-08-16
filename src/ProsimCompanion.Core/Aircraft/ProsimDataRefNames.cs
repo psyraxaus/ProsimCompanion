@@ -266,6 +266,16 @@ public static class ProsimDataRefNames
     public const string IntRadCpt = "system.switches.S_ASP_INTRAD";  // [0:INT, 1:Off, 2:RAD]
     public const string IntRadFo = "system.switches.S_ASP2_INTRAD"; // [0:INT, 1:Off, 2:RAD]
 
+    // Captain ACP transmit selection (issue #72). The interphone transmit gate reads THESE,
+    // never S_ASP_INTRAD above: the INT/RAD rocker is repurposed as the GSX "force next
+    // service" smart button (GsxAutomationService), so gating dialogue on it would fire
+    // ground services every time the pilot keyed the intercom.
+    /// <summary>Resolved captain ACP transmit selector
+    /// [0:None, 1:VHF1, 2:VHF2, 3:VHF3, 4:HF1, 5:HF2, 6:INT, 7:CAB, 8:PA].</summary>
+    public const string AcpSendChannel = "system.switches.S_ASP_SEND_CHANNEL";
+    /// <summary>Captain ACP INT transmit key [0:Normal, 1:Pushed].</summary>
+    public const string AcpIntSend = "system.switches.S_ASP_INT_SEND";
+
     // ACP1 Volume Knobs
     public const string Acp1CabAnalog = "system.analog.A_ASP_CAB_VOLUME";
     public const string Acp1Hf1Analog = "system.analog.A_ASP_HF_1_VOLUME";

@@ -140,6 +140,16 @@
                                  Hint="Microphones found on this machine; Default follows the Windows capture device"
                                  @bind-Value="_draft.InputDevice" />
                 </Section>
+
+                <Section Title="Interphone Transmit"
+                         Hint="Latch crew hails to the captain audio panel — speaking to the cabin or ground only works when the ACP transmit selector points at the channel">
+                    <BoolField Label="ACP transmit gating"
+                               Hint="&quot;Cockpit to ground&quot; needs INT selected, &quot;cockpit to crew&quot; needs CAB; moving the selector off the channel mid-call hangs up. Off (or an older ProSim without the dataref) = hails always accepted"
+                               @bind-Value="_draft.AcpTransmitGating" />
+                    <BoolField Label="Require the INT key pressed"
+                               Hint="Ground hails additionally need the momentary INT transmit key held when you speak; the selector latch keeps the call open. Leave off unless your panel has the key"
+                               @bind-Value="_draft.AcpIntKeyRequired" />
+                </Section>
             }
             else if (_section == "sterile")
             {
@@ -859,6 +869,8 @@
                 speech["atcMuteJoystickDeviceName"] = "";
                 speech["asrBaseUrl"] = draft.AsrBaseUrl.Trim();
                 speech["inputDevice"] = draft.InputDevice.Trim();
+                speech["acpTransmitGating"] = draft.AcpTransmitGating;
+                speech["acpIntKeyRequired"] = draft.AcpIntKeyRequired;
 
                 speech["sterileEnabled"] = draft.SterileEnabled;
                 speech["sterileCockpitCeilingFt"] = draft.SterileCockpitCeilingFt;
