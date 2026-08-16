@@ -24,7 +24,7 @@ public sealed class GsxGroundEquipmentService : IDisposable
     private const int JetwayNotAvailable = 2;
 
     private readonly GsxProsimWriter _writer;
-    private readonly FlightStateEngine _flightState;
+    private readonly IFlightPhaseSource _flightState;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxGroundEquipmentService> _logger;
@@ -44,7 +44,7 @@ public sealed class GsxGroundEquipmentService : IDisposable
         IProsimDataRefs prosim,
         ISimVars simVars,
         GsxProsimWriter writer,
-        FlightStateEngine flightState,
+        IFlightPhaseSource flightState,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxGroundEquipmentService> logger)

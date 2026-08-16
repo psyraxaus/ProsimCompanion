@@ -36,7 +36,7 @@ public sealed class CabinCrewService : IDisposable
 
     private readonly IProsimDataRefs _dataRefs;
     private readonly IFlightDataSource _flightData;
-    private readonly FlightStateEngine _flight;
+    private readonly IFlightPhaseSource _flight;
     private readonly ISpeechArbiter _arbiter;
     private readonly ISpeechPlayback _playback;
     private readonly IOptionsMonitor<CabinOptions> _options;
@@ -53,7 +53,7 @@ public sealed class CabinCrewService : IDisposable
     public CabinCrewService(
         IProsimDataRefs dataRefs,
         IFlightDataSource flightData,
-        FlightStateEngine flight,
+        IFlightPhaseSource flight,
         ISpeechArbiter arbiter,
         ISpeechPlayback playback,
         IOptionsMonitor<CabinOptions> options,
@@ -133,7 +133,7 @@ public sealed class CabinCrewService : IDisposable
                 SeatbeltSignsMode: _reads[Signs].GetValue(0),
                 AltitudeFt: flightData.AltitudeFt,
                 VerticalSpeedFpm: flightData.VerticalSpeedFpm,
-                HasBeenAirborne: _flight.HasBeenAirborneThisSession);
+                HasBeenAirborne: _flight.Snapshot().HasBeenAirborneThisSession);
 
             var action = _core.Evaluate(sample, options, () => Random.Shared.NextDouble());
             if (action == CabinAction.None)

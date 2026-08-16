@@ -53,7 +53,7 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
         ["read last company message", "repeat company message", "last company message", "say again company"];
 
     private readonly IProsimDataRefs _dataRefs;
-    private readonly FlightStateEngine _flight;
+    private readonly IFlightPhaseSource _flight;
     private readonly ISpeechArbiter _arbiter;
     private readonly OfpStore _ofp;
     private readonly IOptionsMonitor<CompanyOptions> _options;
@@ -73,7 +73,7 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
 
     public CompanyChannelService(
         IProsimDataRefs dataRefs,
-        FlightStateEngine flight,
+        IFlightPhaseSource flight,
         ISpeechArbiter arbiter,
         OfpStore ofp,
         IOptionsMonitor<CompanyOptions> options,

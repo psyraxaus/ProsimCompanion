@@ -19,7 +19,7 @@ namespace ProsimCompanion.Speech.Crew;
 public sealed class AccentVoiceResolver : IDisposable
 {
     private readonly IOptionsMonitor<AccentOptions> _options;
-    private readonly FlightStateEngine _flight;
+    private readonly IFlightPhaseSource _flight;
     private readonly IDataRefSubscription _fmsOrigin;
     private readonly IDataRefSubscription _fmsDestination;
     private readonly ILogger<AccentVoiceResolver> _logger;
@@ -27,7 +27,7 @@ public sealed class AccentVoiceResolver : IDisposable
 
     public AccentVoiceResolver(
         IProsimDataRefs dataRefs,
-        FlightStateEngine flight,
+        IFlightPhaseSource flight,
         IOptionsMonitor<AccentOptions> options,
         ILogger<AccentVoiceResolver> logger)
     {

@@ -3,12 +3,25 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Flight;
 
-/// <summary>Read-only view of the committed flight phase — the narrow seam consumers (callout
-/// engines, monitors) depend on so tests can drive phases directly.</summary>
+/// <summary>Point-in-time view of the flight state: the committed phase, the most recent data
+/// sample (null before the first), and the airborne-this-session latch.</summary>
+public sealed record FlightStateView(
+    FlightPhase Phase,
+    FlightDataSnapshot? Data,
+    bool HasBeenAirborneThisSession);
+
+/// <summary>Read-only view of the committed flight state — the seam every consumer depends on
+/// so tests can drive phases and snapshots directly. Widened with <see cref="Snapshot"/>
+/// (campaign #80): half the consumers needed the last data sample or the airborne latch and
+/// were forced onto the concrete engine, which made them unmockable; the planned JSONL replay
+/// source becomes this seam's second adapter.</summary>
 public interface IFlightPhaseSource
 {
     /// <summary>The committed phase.</summary>
     FlightPhase CurrentPhase { get; }
+
+    /// <summary>The full current view — phase, last data sample, airborne latch.</summary>
+    FlightStateView Snapshot();
 
     /// <summary>Raised after a committed transition, on the engine's timer thread.</summary>
     event EventHandler<FlightPhaseChangedEventArgs>? PhaseChanged;
@@ -91,6 +104,9 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
 
     /// <summary>Raised after a committed transition, on the timer thread.</summary>
     public event EventHandler<FlightPhaseChangedEventArgs>? PhaseChanged;
+
+    /// <inheritdoc />
+    public FlightStateView Snapshot() => new(CurrentPhase, LastSnapshot, HasBeenAirborneThisSession);
 
     /// <summary>Starts sampling.</summary>
     public void Start() => _timer.Change(TimeSpan.Zero, TickInterval);

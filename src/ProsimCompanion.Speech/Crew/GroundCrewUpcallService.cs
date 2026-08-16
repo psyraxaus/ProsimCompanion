@@ -25,7 +25,7 @@ public sealed class GroundCrewUpcallService : IDisposable
     private readonly IProsimDataRefs _dataRefs;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly GroundOpsSignals _signals;
-    private readonly FlightStateEngine _flight;
+    private readonly IFlightPhaseSource _flight;
     private readonly ISpeechArbiter _arbiter;
     private readonly IOptionsMonitor<GroundCrewOptions> _options;
     private readonly JsonlEventLog _eventLog;
@@ -44,7 +44,7 @@ public sealed class GroundCrewUpcallService : IDisposable
         IProsimDataRefs dataRefs,
         GsxDiagnosticsStore diagnostics,
         GroundOpsSignals signals,
-        FlightStateEngine flight,
+        IFlightPhaseSource flight,
         ISpeechArbiter arbiter,
         IOptionsMonitor<GroundCrewOptions> options,
         JsonlEventLog eventLog,

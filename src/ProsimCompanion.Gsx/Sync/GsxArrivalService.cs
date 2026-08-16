@@ -34,7 +34,7 @@ public sealed class GsxArrivalService : IDisposable
     private readonly IGsxTriggerSlot _slot;
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxAutomationService _automation;
-    private readonly FlightStateEngine _flightState;
+    private readonly IFlightPhaseSource _flightState;
     private readonly IProsimDataRefs _prosim;
     private readonly ISimVars _simVars;
     private readonly JsonSettingsFile _settings;
@@ -60,7 +60,7 @@ public sealed class GsxArrivalService : IDisposable
         IGsxTriggerSlot slot,
         GsxServiceLifecycleTracker lifecycle,
         GsxAutomationService automation,
-        FlightStateEngine flightState,
+        IFlightPhaseSource flightState,
         IProsimDataRefs prosim,
         ISimVars simVars,
         JsonSettingsFile settings,
@@ -131,7 +131,7 @@ public sealed class GsxArrivalService : IDisposable
         {
             // All tick policy is the pure core (campaign #78); this shell gathers inputs and
             // performs the outcome's effects.
-            var snapshot = _flightState.LastSnapshot;
+            var snapshot = _flightState.Snapshot().Data;
             var options = _options.CurrentValue;
             var outcome = ArrivalCore.Tick(
                 _arrivalState,
@@ -348,7 +348,7 @@ public sealed class GsxArrivalService : IDisposable
             _fobRestored,
             _options.CurrentValue.FuelSaveLoadFob,
             _ofpImported.GetValue(false),
-            _flightState.HasBeenAirborneThisSession);
+            _flightState.Snapshot().HasBeenAirborneThisSession);
         if (decision == FobRestoreDecision.NoArrivalThisSession)
         {
             if (!_fobRestoreRefusalLogged)

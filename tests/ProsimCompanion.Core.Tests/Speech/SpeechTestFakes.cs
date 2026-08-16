@@ -13,7 +13,14 @@ internal sealed class FakePhaseSource : IFlightPhaseSource
 {
     public FlightPhase CurrentPhase { get; private set; } = FlightPhase.Unknown;
 
+    /// <summary>Settable data sample + airborne latch for <see cref="Snapshot"/>.</summary>
+    public FlightDataSnapshot? Data { get; set; }
+
+    public bool HasBeenAirborneThisSession { get; set; }
+
     public event EventHandler<FlightPhaseChangedEventArgs>? PhaseChanged;
+
+    public FlightStateView Snapshot() => new(CurrentPhase, Data, HasBeenAirborneThisSession);
 
     public void SetPhase(FlightPhase phase)
     {

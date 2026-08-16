@@ -26,7 +26,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
     private readonly IOptionsMonitor<VoicesOptions> _voices;
     private readonly TtsRouter _router;
     private readonly ISpeechPlayback _playback;
-    private readonly FlightStateEngine _flight;
+    private readonly IFlightPhaseSource _flight;
     private readonly SpeechStatusStore _store;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SpeechArbiterService> _logger;
@@ -50,7 +50,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
         IOptionsMonitor<VoicesOptions> voices,
         TtsRouter router,
         ISpeechPlayback playback,
-        FlightStateEngine flight,
+        IFlightPhaseSource flight,
         SpeechStatusStore store,
         JsonlEventLog eventLog,
         ILogger<SpeechArbiterService> logger,
@@ -384,7 +384,7 @@ public sealed class SpeechArbiterService : ISpeechArbiter, ISpeechControl, IDisp
 
     private SpeechContext BuildContext()
     {
-        var snapshot = _flight.LastSnapshot;
+        var snapshot = _flight.Snapshot().Data;
         return new SpeechContext(
             _flight.CurrentPhase,
             snapshot?.AltitudeFt ?? 0,

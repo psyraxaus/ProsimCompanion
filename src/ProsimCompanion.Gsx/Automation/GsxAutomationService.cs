@@ -34,7 +34,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxGateSelectionService _gateSelection;
     private readonly DepartureCycleState _cycle;
-    private readonly FlightStateEngine _flightState;
+    private readonly IFlightPhaseSource _flightState;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
@@ -64,7 +64,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         GsxServiceLifecycleTracker lifecycle,
         GsxGateSelectionService gateSelection,
         DepartureCycleState cycle,
-        FlightStateEngine flightState,
+        IFlightPhaseSource flightState,
         IProsimDataRefs prosim,
         ISimVars simVars,
         IGsxFlightPlanStatus flightPlan,

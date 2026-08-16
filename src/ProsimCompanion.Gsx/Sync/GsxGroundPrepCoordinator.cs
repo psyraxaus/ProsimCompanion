@@ -48,7 +48,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private readonly GsxGateAnchorService _gateAnchor;
     private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly GsxJetwayStairsService _jetwayStairs;
-    private readonly FlightStateEngine _flightState;
+    private readonly IFlightPhaseSource _flightState;
     private readonly SimSessionStore _simSession;
     private readonly GsxResyncState _resyncState;
     private readonly DepartureCycleState _cycle;
@@ -69,7 +69,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         GsxGateAnchorService gateAnchor,
         GsxGroundEquipmentService groundEquipment,
         GsxJetwayStairsService jetwayStairs,
-        FlightStateEngine flightState,
+        IFlightPhaseSource flightState,
         SimSessionStore simSession,
         GsxResyncState resyncState,
         DepartureCycleState cycle,

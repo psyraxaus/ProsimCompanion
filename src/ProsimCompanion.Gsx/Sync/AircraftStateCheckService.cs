@@ -138,7 +138,7 @@ public sealed class AircraftStateCheckService : IDisposable
     private static readonly TimeSpan SettleTimeout = TimeSpan.FromSeconds(90);
 
     private readonly SimSessionStore _simSession;
-    private readonly FlightStateEngine _flightState;
+    private readonly IFlightPhaseSource _flightState;
     private readonly GsxResyncState _resyncState;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
@@ -154,7 +154,7 @@ public sealed class AircraftStateCheckService : IDisposable
     public AircraftStateCheckService(
         IProsimDataRefs prosim,
         SimSessionStore simSession,
-        FlightStateEngine flightState,
+        IFlightPhaseSource flightState,
         GsxResyncState resyncState,
         GsxDiagnosticsStore diagnostics,
         ConfigProblemStore configProblems,
@@ -254,7 +254,7 @@ public sealed class AircraftStateCheckService : IDisposable
                 // Give the phase engine and the subscriptions time to settle: classifying
                 // gates on session + dataref readiness (issue #59), and a definition dataref
                 // that has not pushed yet would only inflate the unchecked list.
-                if (_flightState.LastSnapshot?.IsReady != true
+                if (_flightState.Snapshot().Data?.IsReady != true
                     || _flightState.CurrentPhase == FlightPhase.Unknown
                     || (_reads.Count > 0 && _reads.Values.All(read => read.RawValue is null)))
                 {
@@ -265,7 +265,7 @@ public sealed class AircraftStateCheckService : IDisposable
             var context = new AircraftStateCheckContext(
                 Enabled: options.AircraftStateCheckEnabled,
                 AnnounceMismatches: options.AircraftStateCheckAnnounce,
-                HasBeenAirborne: _flightState.HasBeenAirborneThisSession,
+                HasBeenAirborne: _flightState.Snapshot().HasBeenAirborneThisSession,
                 TurnaroundDetected: _resyncState.TurnaroundDetected
                     || _resyncState.LoadsheetPrelimEdition > 0
                     || _resyncState.LoadsheetFinalSent,

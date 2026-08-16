@@ -19,7 +19,7 @@ public sealed class GsxRepositionService : IDisposable
 {
     private readonly IGsxRemoteApi _api;
     private readonly GsxMenuIntentExecutor _executor;
-    private readonly FlightStateEngine _flightState;
+    private readonly IFlightPhaseSource _flightState;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxRepositionService> _logger;
@@ -29,7 +29,7 @@ public sealed class GsxRepositionService : IDisposable
     public GsxRepositionService(
         IGsxRemoteApi api,
         GsxMenuIntentExecutor executor,
-        FlightStateEngine flightState,
+        IFlightPhaseSource flightState,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxRepositionService> logger)
@@ -69,7 +69,7 @@ public sealed class GsxRepositionService : IDisposable
         {
             var options = _options.CurrentValue;
             var gateKey = _api.Mirror.GateContextKey;
-            var snapshot = _flightState.LastSnapshot;
+            var snapshot = _flightState.Snapshot().Data;
 
             if (!options.AutoReposition || string.Equals(gateKey, _handledGateKey, StringComparison.Ordinal))
             {

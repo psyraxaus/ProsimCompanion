@@ -5,7 +5,7 @@
 @implements IDisposable
 @inject ConnectionStatusStore Status
 @inject SimSessionStore Session
-@inject FlightStateEngine FlightState
+@inject IFlightPhaseSource FlightState
 @inject AircraftProfileService Profiles
 @inject GsxDiagnosticsStore Diagnostics
 @inject IGsxDepartureControl DepartureControl
@@ -68,9 +68,9 @@
             @Indicator("Audio Controller", Audio.Snapshot().Enabled)
             @Kv("Profile", Profiles.ActiveProfile?.Name ?? "—")
             @Kv("Aircraft", Profiles.AircraftTitle ?? "—")
-            @Kv("On Ground", (FlightState.LastSnapshot?.OnGround)?.ToString() ?? "—")
-            @Kv("Engines Running", (FlightState.LastSnapshot?.AnyEngineRunning)?.ToString() ?? "—")
-            @Kv("In Motion", FlightState.LastSnapshot is { } motion ? (motion.GroundSpeedKt > 0.5).ToString() : "—")
+            @Kv("On Ground", (FlightState.Snapshot().Data?.OnGround)?.ToString() ?? "—")
+            @Kv("Engines Running", (FlightState.Snapshot().Data?.AnyEngineRunning)?.ToString() ?? "—")
+            @Kv("In Motion", FlightState.Snapshot().Data is { } motion ? (motion.GroundSpeedKt > 0.5).ToString() : "—")
             @AircraftStateRow()
         </div>
     </section>
