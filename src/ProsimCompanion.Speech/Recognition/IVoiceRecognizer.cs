@@ -30,7 +30,17 @@ public interface IVoiceRecognizer : IDisposable
     /// "a spoken number is also acceptable" for closed-grammar engines.</summary>
     void SetGrammar(IReadOnlyList<string> phrases);
 
-    void StartListening();
+    /// <summary>True while the ENGINE is actually capturing/recognizing. This is the
+    /// reconcile authority for <see cref="RecognitionController"/> (issue #61): the
+    /// controller used to latch its own intent, so one swallowed start failure (mic busy at
+    /// app boot) left continuous listening dead until a PTT toggle happened to force a state
+    /// change through the latch.</summary>
+    bool IsListening { get; }
+
+    /// <summary>Starts (or keeps) listening. Returns true when the engine is actually
+    /// listening afterwards; false when the start failed (device busy/absent, engine
+    /// unavailable) so the caller can retry — engines must not throw here.</summary>
+    bool StartListening();
 
     void StopListening();
 

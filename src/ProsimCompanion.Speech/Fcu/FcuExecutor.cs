@@ -112,7 +112,10 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
                 return true;
 
             case FcuInstructionType.Query:
-                _ = _arbiter.SpeakAsync($"Say again — {instruction.Reason}.", SpeechPriority.Normal);
+                // Tagged "clarifier" (issue #66): these lines were the only untagged entries
+                // in the session jsonl, which is exactly what made the misroute hard to spot.
+                _ = _arbiter.EnqueueAsync(new SpeechRequest(
+                    $"Say again — {instruction.Reason}.", SpeechPriority.Normal, Tag: "clarifier"));
                 return true;
         }
 

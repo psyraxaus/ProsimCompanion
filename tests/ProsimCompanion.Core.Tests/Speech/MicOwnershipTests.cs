@@ -241,7 +241,8 @@ public sealed class MicOwnershipTests
             new ProsimCompanion.Speech.Commands.SpokenTokenSource(
                 dataRefs,
                 SpeechTestSupport.BriefingMonitor(new BriefingOptions()),
-                NullLogger<ProsimCompanion.Speech.Commands.SpokenTokenSource>.Instance));
+                NullLogger<ProsimCompanion.Speech.Commands.SpokenTokenSource>.Instance),
+            new LlmHealthStore());
         engine.Start();
 
         _window.Hear("test phrase");

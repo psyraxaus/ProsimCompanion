@@ -64,6 +64,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Commands.SpokenTokenSource>();
         services.AddSingleton<Commands.ConfiguredVoiceCommands>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Commands.ConfiguredVoiceCommands>());
+        // Engine-start + flap call responses (issue #67, verbal only — no lever writes).
+        // AFTER commands.json so a user-configured phrase keeps precedence.
+        services.AddSingleton<IVoiceFeature, Callouts.EngineFlapCallFeature>();
         // MCDU trio (predecessor dispatch position: after fcu, before briefings). Reader is
         // read-only; tuner/arrival changer arm only via mcdu.allowActuation.
         services.AddSingleton<Mcdu.McduReader>();
@@ -154,6 +157,12 @@ public static class SpeechServiceCollectionExtensions
             p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Persona.PhraseBank>>()));
         services.AddSingleton<Persona.PersonaService>();
         services.AddSingleton<Persona.StyledSpeechService>();
+        // ONE shared LLM client (issue #66): registering it lets every consumer's optional
+        // `OpenAiChatClient? llm = null` parameter resolve to the same health-reporting
+        // instance instead of each service newing up a silent private copy. The probe keeps
+        // re-testing an unhealthy endpoint every five minutes so recovery is detected.
+        services.AddSingleton<Llm.OpenAiChatClient>();
+        services.AddHostedService<Llm.LlmHealthProbeService>();
         services.AddSingleton<SpokenChecklistEngine>();
         services.AddHostedService<SpeechBootstrapService>();
 

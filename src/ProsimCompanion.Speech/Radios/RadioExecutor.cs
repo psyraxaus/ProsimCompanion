@@ -166,7 +166,10 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
         var khz = FrequencyParser.Parse(frequencyText);
         if (khz is null)
         {
-            _ = _arbiter.SpeakAsync("Say again the frequency.", SpeechPriority.Normal);
+            // Tagged "clarifier" so unreadable-value asks are attributable in the session
+            // jsonl (issue #66 — untagged spoken lines hid a misroute for a whole flight).
+            _ = _arbiter.EnqueueAsync(new SpeechRequest(
+                "Say again the frequency.", SpeechPriority.Normal, Tag: "clarifier"));
             _eventLog.Record("radio.unreadable", new { text = utterance });
             return true;
         }

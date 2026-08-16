@@ -134,8 +134,12 @@ public static class AtcInstructionParser
             return Value(utterance, FcuField.Heading, useMagnitude: false, negative: false);
         }
 
-        // Fallback: a number with no field.
-        if (NumberExtractor.TryExtract(utterance, out _))
+        // Fallback: a number with no value field. Only a clarifying query when the utterance
+        // actually carries FCU content ("descend one two zero") — a bare number in a non-FCU
+        // phrase must fall through as Unknown. 2026-08-16 (issue #66): this fallback used to
+        // fire unconditionally, so "flaps two" and "starting engine one" were consumed here
+        // and every one of them was answered "Say again — which field?" all flight.
+        if (HasFcuContent(t) && NumberExtractor.TryExtract(utterance, out _))
         {
             return new FcuInstruction(FcuInstructionType.Query, Reason: "which field?", RawText: utterance);
         }

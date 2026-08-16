@@ -56,13 +56,26 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         _grammar = [.. phrases.Where(p => p != NumberGrammar.Sentinel)];
     }
 
-    public void StartListening()
+    /// <summary>Reality, not intent: true only while a capture device is actually open —
+    /// the controller's reconcile reads this (issue #61).</summary>
+    public bool IsListening
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _waveIn is not null;
+            }
+        }
+    }
+
+    public bool StartListening()
     {
         lock (_gate)
         {
             if (_waveIn is not null)
             {
-                return;
+                return true;
             }
 
             try
@@ -81,9 +94,22 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "LAN ASR capture failed to start — no input device?");
+                // Mic busy at app start is the COMMON case (issue #61) — Debug here; the
+                // controller logs the once-per-episode Warning and retries with backoff
+                // until the device frees up.
+                _logger.LogDebug(ex, "LAN ASR capture failed to start — input device busy or absent");
+                if (_waveIn is not null)
+                {
+                    // StartRecording threw after construction: unhook and drop the half-open
+                    // device so the next retry starts clean.
+                    _waveIn.DataAvailable -= OnData;
+                    _waveIn.Dispose();
+                }
+
                 _waveIn = null;
             }
+
+            return _waveIn is not null;
         }
     }
 

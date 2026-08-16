@@ -94,6 +94,13 @@ public sealed class SystemSpeechRecognizer : IVoiceRecognizer
                 {
                     _engine.RecognizeAsync(RecognizeMode.Multiple);
                 }
+                else if (wasListening)
+                {
+                    // Cancelled above and nothing to re-arm with (an empty free-form grammar
+                    // the closed engine cannot serve): the flag must follow reality or
+                    // IsListening would lie to the controller's reconcile (issue #61).
+                    _listening = false;
+                }
             }
             catch (Exception ex)
             {
@@ -102,18 +109,31 @@ public sealed class SystemSpeechRecognizer : IVoiceRecognizer
         }
     }
 
-    public void StartListening()
+    /// <summary>Reality, not intent: false until RecognizeAsync actually succeeded (a
+    /// no-engine machine is permanently false) — the controller's reconcile reads this.</summary>
+    public bool IsListening
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _listening;
+            }
+        }
+    }
+
+    public bool StartListening()
     {
         if (_engine is null)
         {
-            return;
+            return false;
         }
 
         lock (_gate)
         {
             if (_listening)
             {
-                return;
+                return true;
             }
 
             try
@@ -123,8 +143,12 @@ public sealed class SystemSpeechRecognizer : IVoiceRecognizer
             }
             catch (Exception ex)
             {
+                // Debug on purpose — the controller owns the once-per-episode Warning and
+                // the retry backoff (issue #61), so this must not spam per attempt.
                 _logger.LogDebug(ex, "System.Speech start failed (no grammar yet?)");
             }
+
+            return _listening;
         }
     }
 

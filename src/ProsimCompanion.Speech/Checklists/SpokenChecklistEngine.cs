@@ -54,6 +54,7 @@ public sealed class SpokenChecklistEngine : IDisposable
     private readonly Persona.PhraseBank _phrases;
     private readonly Persona.PersonaService _persona;
     private readonly Commands.SpokenTokenSource _tokens;
+    private readonly LlmHealthStore _llmHealth;
     private readonly Briefings.MinimaCaptureDialogue _minimaCapture = null!;
     private readonly object _gate = new();
     private readonly Dictionary<string, IDataRefSubscription> _verifyReads = new(StringComparer.Ordinal);
@@ -63,6 +64,7 @@ public sealed class SpokenChecklistEngine : IDisposable
     private ChecklistItemDefinition? _awaitingItem;
     private CancellationTokenSource? _monitorSkip;
     private bool _started;
+    private bool _llmOfflineAdvisoryGiven; // once per session (issue #66)
 
     public SpokenChecklistEngine(
         IOptionsMonitor<SpeechOptions> options,
@@ -82,7 +84,8 @@ public sealed class SpokenChecklistEngine : IDisposable
         Briefings.MinimaCaptureDialogue minimaCapture,
         Persona.PhraseBank phrases,
         Persona.PersonaService persona,
-        Commands.SpokenTokenSource tokens)
+        Commands.SpokenTokenSource tokens,
+        LlmHealthStore llmHealth)
     {
         ArgumentNullException.ThrowIfNull(failures);
         ArgumentNullException.ThrowIfNull(features);
@@ -90,6 +93,8 @@ public sealed class SpokenChecklistEngine : IDisposable
         ArgumentNullException.ThrowIfNull(phrases);
         ArgumentNullException.ThrowIfNull(persona);
         ArgumentNullException.ThrowIfNull(tokens);
+        ArgumentNullException.ThrowIfNull(llmHealth);
+        _llmHealth = llmHealth;
         _failures = failures;
         _features = [.. features];
         _minimaCapture = minimaCapture;
@@ -133,6 +138,10 @@ public sealed class SpokenChecklistEngine : IDisposable
         _started = true;
         _recognition.Accepted += OnRecognized;
         _recognition.Rejected += OnRejected;
+        // A dialogue that borrowed the mic BEFORE this Start (bootstrap ordering — the
+        // dialogue services start earlier) captured window-closed and would close our idle
+        // window on release; re-assert it after every release instead (issue #61).
+        _micOwnership.Released += OnMicReleased;
         OpenIdleWindow();
     }
 
@@ -140,6 +149,7 @@ public sealed class SpokenChecklistEngine : IDisposable
     {
         _recognition.Accepted -= OnRecognized;
         _recognition.Rejected -= OnRejected;
+        _micOwnership.Released -= OnMicReleased;
         Cancel();
         foreach (var read in _verifyReads.Values)
         {
@@ -509,7 +519,9 @@ public sealed class SpokenChecklistEngine : IDisposable
                     continue;
 
                 case ResponseKind.NotCaught:
-                    await Speak(_persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch())).ConfigureAwait(false);
+                    await SpeakTagged(
+                        _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()),
+                        "reject").ConfigureAwait(false);
                     continue;
 
                 case ResponseKind.Hold:
@@ -523,7 +535,9 @@ public sealed class SpokenChecklistEngine : IDisposable
                         return result.Text;
                     }
 
-                    await Speak(_persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch())).ConfigureAwait(false);
+                    await SpeakTagged(
+                        _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()),
+                        "reject").ConfigureAwait(false);
                     continue;
             }
         }
@@ -669,6 +683,24 @@ public sealed class SpokenChecklistEngine : IDisposable
         }
     }
 
+    /// <summary>After any mic borrow releases: when this engine is fully idle (no run, no
+    /// awaiting item), its idle grammar is the standing window — re-open it, because the
+    /// borrow's replay restored whatever was captured at borrow time, which may pre-date
+    /// <see cref="Start"/>. Mid-run states leave the replayed window alone: an awaiting item's
+    /// window was captured correctly, and the run loop opens its own next window.</summary>
+    private void OnMicReleased()
+    {
+        lock (_gate)
+        {
+            if (_run is not null || _awaitingItem is not null || _response is not null)
+            {
+                return;
+            }
+        }
+
+        OpenIdleWindow();
+    }
+
     private void OnRejected(object? sender, RecognizedEventArgs e)
     {
         if (_micOwnership.IsBorrowed)
@@ -686,9 +718,11 @@ public sealed class SpokenChecklistEngine : IDisposable
     private void RouteUtterance(RecognizedEventArgs e)
     {
         ChecklistItemDefinition? awaiting;
+        bool responsePending;
         lock (_gate)
         {
             awaiting = _awaitingItem;
+            responsePending = _response is not null;
         }
 
         // Value-parsing features (FCU, radios) get the RAW transcription first so numbers
@@ -708,12 +742,29 @@ public sealed class SpokenChecklistEngine : IDisposable
         var interpretation = _interpreter.Interpret(
             e.Text, grammar, new InterpretContext(awaiting is not null, e.AcousticConfidence, e.NoSpeechProb));
 
+        // The ASR decision trail (issue #66): local data, one Debug line per utterance —
+        // without it, a flight's worth of misrouted utterances left no evidence at all.
+        _logger.LogDebug(
+            "ASR heard \"{Heard}\" (conf {Confidence:F2}, acoustic {Acoustic}, noSpeech {NoSpeech}) -> {Decision} \"{Matched}\" (score {Score:F2})",
+            e.Text, e.Confidence, e.AcousticConfidence, e.NoSpeechProb,
+            interpretation.Kind, interpretation.Text, interpretation.Score);
+
         switch (interpretation.Kind)
         {
             case InterpretKind.Reject:
-                if (!string.IsNullOrWhiteSpace(e.Text))
+                if (string.IsNullOrWhiteSpace(e.Text))
                 {
+                    return;
+                }
+
+                if (responsePending)
+                {
+                    // An item (or the hold loop) owns the reply — its own flow speaks.
                     CompleteResponse(new EngineResponse(ResponseKind.NotCaught, ""));
+                }
+                else
+                {
+                    HandleIdleMiss();
                 }
 
                 return;
@@ -726,6 +777,24 @@ public sealed class SpokenChecklistEngine : IDisposable
         }
 
         RouteText(interpretation.Text, awaiting);
+    }
+
+    /// <summary>An utterance nothing routed while fully idle (issue #66): previously it fell
+    /// into the FCU's "which field?" clarifier or vanished silently. Now it gets the normal
+    /// did-not-catch line — or, once per session while the LLM is known-unhealthy, the
+    /// advisory that explains WHY free-form phrasing is falling flat.</summary>
+    private void HandleIdleMiss()
+    {
+        var response = IdleMissPolicy.Decide(
+            _llmHealth.Snapshot().State, _llmOfflineAdvisoryGiven,
+            _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()));
+        if (response.IsLlmOfflineAdvisory)
+        {
+            _llmOfflineAdvisoryGiven = true;
+        }
+
+        _ = _arbiter.EnqueueAsync(new SpeechRequest(
+            response.Text, SpeechPriority.Normal, Tag: response.Tag));
     }
 
     /// <summary>Post-interpretation routing (Prosim2FO's Route): an awaiting item's ACCEPTED
@@ -816,6 +885,10 @@ public sealed class SpokenChecklistEngine : IDisposable
                 return;
             }
         }
+
+        // Interpreted, yet no command/feature/drill/start claimed it (issue #66): answer
+        // like any other idle miss instead of dropping it silently.
+        HandleIdleMiss();
     }
 
     /// <summary>The gray-band recovery (Prosim2FO's ConfirmAndRouteAsync): borrow the mic,
@@ -839,7 +912,7 @@ public sealed class SpokenChecklistEngine : IDisposable
             string? answer;
             using (scope)
             {
-                await Speak($"Say again — did you mean {candidate}?").ConfigureAwait(false);
+                await SpeakTagged($"Say again — did you mean {candidate}?", "clarifier").ConfigureAwait(false);
                 answer = await _micOwnership.ListenAsync(
                     ConfirmVocabulary.All, TimeSpan.FromSeconds(8), CancellationToken.None)
                     .ConfigureAwait(false);
@@ -942,6 +1015,12 @@ public sealed class SpokenChecklistEngine : IDisposable
 
     private async Task Speak(string text)
         => await _arbiter.EnqueueAsync(new SpeechRequest(text, SpeechPriority.Normal, Tag: "checklist"))
+            .ConfigureAwait(false);
+
+    /// <summary>Speak with an explicit tag — clarifier/reject lines must be attributable in
+    /// the session jsonl (issue #66), not lumped under "checklist".</summary>
+    private async Task SpeakTagged(string text, string tag)
+        => await _arbiter.EnqueueAsync(new SpeechRequest(text, SpeechPriority.Normal, Tag: tag))
             .ConfigureAwait(false);
 
     private async Task SpeakConfirm(ChecklistItemDefinition item)

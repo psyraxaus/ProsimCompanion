@@ -427,6 +427,8 @@ public sealed class EcamDialogueTests
     {
         public int Borrows;
 
+        public event Action? Released { add { } remove { } }
+
         public Queue<string?> Answers { get; } = new();
 
         public List<IReadOnlyList<string>> Listens { get; } = [];
@@ -554,6 +556,8 @@ public sealed class EcamDialogueTests
     /// cleared/cancel paths must be able to break out of.</summary>
     private sealed class BlockingMic : IMicOwnership
     {
+        public event Action? Released { add { } remove { } }
+
         public bool IsBorrowed { get; private set; }
 
         public IDisposable Borrow(string owner)

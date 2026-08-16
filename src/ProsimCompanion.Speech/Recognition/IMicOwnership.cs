@@ -14,6 +14,13 @@ public interface IMicOwnership
     /// <summary>True while a dialogue owns the microphone (routing must ignore results).</summary>
     bool IsBorrowed { get; }
 
+    /// <summary>Raised AFTER a borrow was released and the pre-borrow window replayed, on the
+    /// releaser's thread. Consumers that own a standing window (the checklist engine's idle
+    /// grammar) re-assert it here: the replay restores the state captured at BORROW time, so
+    /// a dialogue that borrowed before the engine opened its window would otherwise close
+    /// that window forever on release (issue #61's startup-ordering hazard).</summary>
+    event Action? Released;
+
     /// <summary>Takes exclusive ownership. Throws <see cref="InvalidOperationException"/> when
     /// already borrowed — dialogue runners serialize themselves, so an overlap is a bug to
     /// surface, not a queue to wait in. Dispose to re-enable routing and restore the

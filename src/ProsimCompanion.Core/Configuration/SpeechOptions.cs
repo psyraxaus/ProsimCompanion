@@ -220,6 +220,11 @@ public sealed class SpeechOptions
     /// <summary>Play the short listening cue tone when a window opens for a reply.</summary>
     public bool ListeningTone { get; set; } = true;
 
+    /// <summary>FO responses to spoken engine-start and flap calls ("starting engine two",
+    /// "flaps two" → placard speed check). Verbal only — the FO never moves the flap lever
+    /// or engine masters (issue #67; actuation is deferred pending write-safety review).</summary>
+    public bool EngineFlapCallouts { get; set; } = true;
+
     // ---- Playback ----
 
     /// <summary>Output device friendly name (exact match); empty uses the system default

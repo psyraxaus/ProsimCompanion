@@ -81,6 +81,28 @@ public sealed class AtcInstructionParserTests
     public void ConditionWithFcuContent_StillConditional(string utterance)
         => Assert.Equal(FcuInstructionType.Conditional, AtcInstructionParser.Parse(utterance).Type);
 
+    [Theory]
+    [InlineData("flaps two")]
+    [InlineData("flaps one")]
+    [InlineData("starting engine one")]
+    [InlineData("starting engine two")]
+    [InlineData("engine two start")]
+    public void BareNumberWithoutFcuContent_IsUnknown_NeverAWhichFieldQuery(string utterance)
+        // Issue #66: the bare-number fallback fired unconditionally, so every flap call and
+        // engine-start call all flight was consumed by the FCU and answered
+        // "Say again — which field?". The clarifier now requires actual FCU content.
+        => Assert.Equal(FcuInstructionType.Unknown, AtcInstructionParser.Parse(utterance).Type);
+
+    [Fact]
+    public void NumberWithFcuContentButNoField_StillClarifies()
+    {
+        // "descend one two zero" names no settable field, but it IS an FCU-shaped
+        // instruction — the "which field?" query stays useful exactly here.
+        var i = AtcInstructionParser.Parse("descend one two zero");
+        Assert.Equal(FcuInstructionType.Query, i.Type);
+        Assert.Equal("which field?", i.Reason);
+    }
+
     [Fact]
     public void OpenDescent_NowParses()
     {

@@ -10,9 +10,10 @@ namespace ProsimCompanion.Core.Tests.Speech;
 
 /// <summary>
 /// The listen decision (windowOpen &amp;&amp; !atcMuted &amp;&amp; (continuous || pttPressed))
-/// against a fake engine — the regression here is the settings hot-reload path: a
-/// listening-mode flip used to wait for the next window or PTT edge, which in practice
-/// meant an app restart.
+/// against a fake engine. Two regressions guarded here: the settings hot-reload path (a
+/// listening-mode flip used to wait for the next window or PTT edge — an app restart in
+/// practice), and issue #61's dead latch — a swallowed start failure used to short-circuit
+/// Evaluate() forever, so continuous listening stayed dead all flight until a PTT toggle.
 /// </summary>
 public sealed class RecognitionControllerTests : IDisposable
 {
@@ -20,24 +21,78 @@ public sealed class RecognitionControllerTests : IDisposable
 
     private sealed class FakeRecognizer : IVoiceRecognizer
     {
+        private readonly object _gate = new();
+        private int _failStartsRemaining;
+
         public bool Listening { get; private set; }
+
+        public int StartAttempts { get; private set; }
+
+        public bool IsListening => Listening;
 
         public event EventHandler<RecognizedEventArgs>? Accepted { add { } remove { } }
 
         public event EventHandler<RecognizedEventArgs>? Rejected { add { } remove { } }
 
+        /// <summary>Arms the next <paramref name="count"/> StartListening calls to fail —
+        /// the mic-busy-at-boot shape issue #61 is about.</summary>
+        public void FailNextStarts(int count)
+        {
+            lock (_gate)
+            {
+                _failStartsRemaining = count;
+            }
+        }
+
+        /// <summary>Simulates the engine dropping capture behind the controller's back.</summary>
+        public void DropListening()
+        {
+            lock (_gate)
+            {
+                Listening = false;
+            }
+        }
+
         public void SetGrammar(IReadOnlyList<string> phrases)
         {
         }
 
-        public void StartListening() => Listening = true;
+        public bool StartListening()
+        {
+            lock (_gate)
+            {
+                StartAttempts++;
+                if (Listening)
+                {
+                    return true;
+                }
 
-        public void StopListening() => Listening = false;
+                if (_failStartsRemaining > 0)
+                {
+                    _failStartsRemaining--;
+                    return false;
+                }
+
+                Listening = true;
+                return true;
+            }
+        }
+
+        public void StopListening()
+        {
+            lock (_gate)
+            {
+                Listening = false;
+            }
+        }
 
         public void Dispose()
         {
         }
     }
+
+    private static readonly IReadOnlyList<TimeSpan> TestBackoff =
+        [TimeSpan.FromMilliseconds(10)];
 
     private readonly SpeechOptions _options = new();
     private readonly FakeRecognizer _recognizer = new();
@@ -53,7 +108,24 @@ public sealed class RecognitionControllerTests : IDisposable
 
         var ptt = new PushToTalkService(monitor.Object, NullLogger<PushToTalkService>.Instance);
         return new RecognitionController(
-            monitor.Object, ptt, new SpeechStatusStore(), NullLoggerFactory.Instance, () => _recognizer);
+            monitor.Object, ptt, new SpeechStatusStore(), NullLoggerFactory.Instance,
+            () => _recognizer, TestBackoff);
+    }
+
+    private static void WaitUntil(Func<bool> condition, string because)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (condition())
+            {
+                return;
+            }
+
+            Thread.Sleep(10);
+        }
+
+        Assert.Fail(because);
     }
 
     [Fact]
@@ -111,5 +183,70 @@ public sealed class RecognitionControllerTests : IDisposable
         controller.CloseListeningWindow();
 
         Assert.False(_recognizer.Listening);
+    }
+
+    // ---- Issue #61: failed starts must retry until they stick ----
+
+    [Fact]
+    public void FailedStart_RetriesWithBackoff_UntilItSticks()
+    {
+        _options.RecognitionMode = "continuous";
+        _recognizer.FailNextStarts(2);
+        using var controller = Controller();
+
+        controller.OpenListeningWindow(["call up the checklist"]);
+        Assert.False(_recognizer.Listening); // the immediate start failed (mic busy)
+
+        // No PTT toggle, no window churn — the retry loop alone must bring it up.
+        WaitUntil(() => _recognizer.Listening, "failed start never recovered via retry");
+        Assert.True(_recognizer.StartAttempts >= 3);
+    }
+
+    [Fact]
+    public void EngineDesync_IsRepairedByAnyReEvaluation_WithoutPttToggle()
+    {
+        _options.RecognitionMode = "continuous";
+        using var controller = Controller();
+        controller.OpenListeningWindow(["call up the checklist"]);
+        Assert.True(_recognizer.Listening);
+
+        // The engine drops capture behind the controller's back. The old latch compared
+        // desired against its own intent and short-circuited forever.
+        _recognizer.DropListening();
+        _reload!.Invoke(_options, null); // an unchanged-settings reload is enough
+
+        Assert.True(_recognizer.Listening);
+    }
+
+    [Fact]
+    public void RetryEpisode_StopsWhenDesiredStateChanges()
+    {
+        _options.RecognitionMode = "continuous";
+        _recognizer.FailNextStarts(int.MaxValue);
+        using var controller = Controller();
+        controller.OpenListeningWindow(["call up the checklist"]);
+        Assert.False(_recognizer.Listening);
+
+        // Desire flips off (the same path a PTT release or mode flip takes) — the episode
+        // must end; later successes must NOT resurrect listening on their own.
+        _options.RecognitionMode = "pushToTalk";
+        _reload!.Invoke(_options, null);
+        _recognizer.FailNextStarts(0);
+
+        Thread.Sleep(100); // several test-backoff periods
+        Assert.False(_recognizer.Listening);
+    }
+
+    [Fact]
+    public void PushToTalkMode_FailedStartWhileNotDesired_NeverRetries()
+    {
+        // Window open in PTT mode: not listening is the DESIRED state — no retry episode,
+        // so the backoff machinery can't fight the pilot's released PTT.
+        using var controller = Controller();
+        _recognizer.FailNextStarts(int.MaxValue);
+        controller.OpenListeningWindow(["call up the checklist"]);
+
+        Thread.Sleep(100);
+        Assert.Equal(0, _recognizer.StartAttempts);
     }
 }

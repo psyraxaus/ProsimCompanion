@@ -27,6 +27,8 @@ public sealed class MicOwnership : IMicOwnership
         _logger = logger;
     }
 
+    public event Action? Released;
+
     public bool IsBorrowed
     {
         get
@@ -121,6 +123,17 @@ public sealed class MicOwnership : IMicOwnership
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Restoring the listening window after {Owner}'s borrow failed", scope.Owner);
+        }
+
+        // AFTER the replay, so a subscriber re-asserting its current window (idle grammar)
+        // wins over the possibly-stale captured state. Never allowed to undo the release.
+        try
+        {
+            Released?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "A mic-release subscriber threw after {Owner}'s borrow", scope.Owner);
         }
 
         _logger.LogDebug("Mic returned by {Owner}", scope.Owner);

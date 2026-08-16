@@ -1,0 +1,42 @@
+@implements IDisposable
+@inject LlmHealthStore Health
+
+@* LLM-offline warning (issue #66): a 401 once ran a whole flight with zero surfacing —
+   every free-form utterance silently degraded. Rendered on the Flight Status page and the
+   First Officer settings page; invisible while the endpoint is Unknown or Healthy. *@
+
+@if (_snapshot.IsUnhealthy)
+{
+    <div class="warn-banner" role="alert">
+        <span aria-hidden="true">⚠</span>
+        <span>@Message</span>
+    </div>
+}
+
+@code {
+    private LlmHealthSnapshot _snapshot = LlmHealthSnapshot.Empty;
+
+    private string Message => _snapshot.State == LlmHealthState.AuthFailed
+        ? "FO free-form understanding is offline (LLM auth failed — check the API key under First Officer → Briefings & LLM)."
+        : $"FO free-form understanding is offline (LLM endpoint unreachable{Detail}).";
+
+    private string Detail => string.IsNullOrWhiteSpace(_snapshot.LastError)
+        ? ""
+        : $" — {_snapshot.LastError}";
+
+    protected override void OnInitialized()
+    {
+        _snapshot = Health.Snapshot();
+        Health.Changed += OnChanged;
+    }
+
+    private void OnChanged(object? sender, EventArgs e)
+        // Store events fire on the writer's thread; marshal into the circuit.
+        => _ = InvokeAsync(() =>
+        {
+            _snapshot = Health.Snapshot();
+            StateHasChanged();
+        });
+
+    public void Dispose() => Health.Changed -= OnChanged;
+}

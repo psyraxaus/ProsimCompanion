@@ -13,31 +13,53 @@ namespace ProsimCompanion.Speech.Recognition;
 /// probe and a one-way swap to the offline engine if it never comes up) → System.Speech.
 /// Consumers open/close grammar windows and subscribe to the Recognized events; engine
 /// identity is stable across the swap.
+///
+/// Reconciliation is against ENGINE reality, never a latched intent (issue #61): the old
+/// short-circuit compared the desired state to its own previous decision, so one swallowed
+/// start failure (mic busy at app boot) left continuous listening dead for an entire flight
+/// until a PTT toggle forced a state change through the latch. A failed start now retries
+/// with backoff (2 s, 5 s, 10 s, then every 30 s) until it sticks or the desired state
+/// changes, so a busy mic self-heals when the device frees up.
 /// </summary>
 public sealed class RecognitionController : IRecognitionWindow, IDisposable
 {
+    private static readonly IReadOnlyList<TimeSpan> DefaultRetryBackoff =
+    [
+        TimeSpan.FromSeconds(2),
+        TimeSpan.FromSeconds(5),
+        TimeSpan.FromSeconds(10),
+        TimeSpan.FromSeconds(30), // last entry repeats indefinitely
+    ];
+
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly PushToTalkService _ptt;
     private readonly SpeechStatusStore _store;
     private readonly ILogger<RecognitionController> _logger;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IReadOnlyList<TimeSpan> _retryBackoff;
     private readonly IDisposable? _optionsSubscription;
     private readonly object _gate = new();
 
     private IVoiceRecognizer _recognizer;
     private IReadOnlyList<string> _grammar = [];
     private bool _windowOpen;
-    private bool _listening;
+    private bool _desiredListening;
+    private bool _reportedListening; // last state logged/pushed to the store — transition edge detector
     private bool _swapped;
+    private CancellationTokenSource? _retry;
+    private int _retryAttempt;
 
     /// <param name="recognizerFactory">Test seam: overrides the engine chain so the listen
     /// decision is testable without a Windows speech engine; DI leaves it null.</param>
+    /// <param name="retryBackoff">Test seam: start-retry delays (last entry repeats). DI
+    /// leaves it null for the production 2/5/10/30 s ladder.</param>
     public RecognitionController(
         IOptionsMonitor<SpeechOptions> options,
         PushToTalkService ptt,
         SpeechStatusStore store,
         ILoggerFactory loggerFactory,
-        Func<IVoiceRecognizer>? recognizerFactory = null)
+        Func<IVoiceRecognizer>? recognizerFactory = null,
+        IReadOnlyList<TimeSpan>? retryBackoff = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(ptt);
@@ -49,18 +71,29 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
         _store = store;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<RecognitionController>();
+        _retryBackoff = retryBackoff is { Count: > 0 } ? retryBackoff : DefaultRetryBackoff;
 
         _recognizer = recognizerFactory?.Invoke() ?? BuildRecognizer();
         _recognizer.Accepted += OnAccepted;
         _recognizer.Rejected += OnRejected;
-        _ptt.OwnPttChanged += _ => Evaluate();
-        _ptt.AtcPttChanged += _ => Evaluate();
+        // PTT edges logged at Info (issue #61): the flight log had ONE recognition line all
+        // flight — transition evidence is what makes the next silent failure diagnosable.
+        _ptt.OwnPttChanged += pressed =>
+        {
+            _logger.LogInformation("FO PTT {Edge}", pressed ? "down" : "up");
+            Evaluate();
+        };
+        _ptt.AtcPttChanged += pressed =>
+        {
+            _logger.LogInformation("ATC PTT {Edge}", pressed ? "down" : "up");
+            Evaluate();
+        };
 
         // Settings hot-reload: a listening-mode flip (pushToTalk ↔ continuous) must take
         // effect immediately — the idle window stays open for hours, so without this the
         // new mode waited for the next window or PTT edge (i.e. an app restart in practice).
-        // Evaluate() no-ops when the decision is unchanged, so duplicate reload
-        // notifications are harmless.
+        // Evaluate() reconciles against engine state, so duplicate reload notifications are
+        // harmless — and double as desync repair opportunities.
         _optionsSubscription = _options.OnChange(_ => Evaluate());
 
         if (_recognizer is LanAsrRecognizer)
@@ -110,6 +143,7 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
             _windowOpen = true;
         }
 
+        _logger.LogDebug("Listening window opened ({PhraseCount} phrases)", grammar.Count);
         Evaluate();
     }
 
@@ -120,40 +154,171 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
             _windowOpen = false;
         }
 
+        _logger.LogDebug("Listening window closed");
         Evaluate();
     }
 
     public void Dispose()
     {
         _optionsSubscription?.Dispose();
+        lock (_gate)
+        {
+            CancelRetryLocked();
+        }
+
         _recognizer.Dispose();
     }
 
+    /// <summary>Recomputes the desired state and reconciles the ENGINE against it. Called on
+    /// every edge (window, PTT, options reload) — never periodically, so all logging here is
+    /// one line per transition.</summary>
     private void Evaluate()
     {
         bool shouldListen;
+        bool actual;
         lock (_gate)
         {
             var continuous = _options.CurrentValue.RecognitionMode
                 .Equals("continuous", StringComparison.OrdinalIgnoreCase);
             shouldListen = _windowOpen && !_ptt.AtcPttPressed && (continuous || _ptt.OwnPttPressed);
-            if (shouldListen == _listening)
-            {
-                return;
-            }
+            _desiredListening = shouldListen;
 
-            _listening = shouldListen;
             if (shouldListen)
             {
-                _recognizer.StartListening();
+                if (_recognizer.IsListening || _recognizer.StartListening())
+                {
+                    CancelRetryLocked();
+                }
+                else
+                {
+                    ScheduleRetryLocked();
+                }
             }
             else
             {
-                _recognizer.StopListening();
+                CancelRetryLocked();
+                if (_recognizer.IsListening)
+                {
+                    _recognizer.StopListening();
+                }
             }
+
+            actual = _recognizer.IsListening;
         }
 
-        _store.Update(s => s with { Listening = shouldListen });
+        PublishListeningState(actual);
+    }
+
+    /// <summary>Pushes the ACTUAL engine state to the store and logs the transition once —
+    /// the store's Listening flag used to be latched intent, which is how the UI showed
+    /// "listening" over a dead engine.</summary>
+    private void PublishListeningState(bool actual)
+    {
+        bool transition;
+        lock (_gate)
+        {
+            transition = actual != _reportedListening;
+            _reportedListening = actual;
+        }
+
+        if (transition)
+        {
+            _logger.LogInformation(
+                "Recognition {ListenState} ({Engine})", actual ? "listening" : "stopped", EngineName);
+        }
+
+        _store.Update(s => s with { Listening = actual });
+    }
+
+    // ---- Start-failure retry (issue #61) ----
+
+    /// <summary>Kicks off one retry episode; no-op while one is already running. Caller holds
+    /// the gate.</summary>
+    private void ScheduleRetryLocked()
+    {
+        if (_retry is not null)
+        {
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _retry = cts;
+        _retryAttempt = 0;
+        _logger.LogWarning(
+            "Speech recognition failed to start ({Engine}) — retrying with backoff until the device frees up",
+            EngineName);
+        _ = Task.Run(() => RetryLoopAsync(cts));
+    }
+
+    /// <summary>Ends the current retry episode, if any. Caller holds the gate. Deliberately
+    /// no Dispose: the loop may still be inside Task.Delay on this token, and a CTS without
+    /// a timer holds nothing worth racing a dispose for.</summary>
+    private void CancelRetryLocked()
+    {
+        if (_retry is null)
+        {
+            return;
+        }
+
+        _retry.Cancel();
+        _retry = null;
+    }
+
+    private async Task RetryLoopAsync(CancellationTokenSource cts)
+    {
+        try
+        {
+            while (!cts.IsCancellationRequested)
+            {
+                var delay = _retryBackoff[Math.Min(_retryAttempt, _retryBackoff.Count - 1)];
+                _retryAttempt++;
+                try
+                {
+                    await Task.Delay(delay, cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
+                bool recovered;
+                lock (_gate)
+                {
+                    if (!ReferenceEquals(_retry, cts))
+                    {
+                        return; // superseded — a newer episode owns the retries
+                    }
+
+                    if (!_desiredListening)
+                    {
+                        CancelRetryLocked();
+                        return; // desire changed while we were waiting — nothing to repair
+                    }
+
+                    recovered = _recognizer.IsListening || _recognizer.StartListening();
+                    if (recovered)
+                    {
+                        CancelRetryLocked();
+                    }
+                }
+
+                if (recovered)
+                {
+                    _logger.LogInformation(
+                        "Speech recognition recovered on retry {Attempt} ({Engine})",
+                        _retryAttempt, EngineName);
+                    PublishListeningState(true);
+                    return;
+                }
+
+                _logger.LogDebug(
+                    "Recognition start retry {Attempt} failed ({Engine})", _retryAttempt, EngineName);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Recognition start retry loop stopped unexpectedly");
+        }
     }
 
     private IVoiceRecognizer BuildRecognizer()
@@ -197,6 +362,7 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
 
     private void SwapToOffline(string reason)
     {
+        bool actual;
         lock (_gate)
         {
             if (_swapped)
@@ -216,13 +382,18 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
             _recognizer.Accepted += OnAccepted;
             _recognizer.Rejected += OnRejected;
             _recognizer.SetGrammar(_grammar);
-            if (_listening)
+            if (_desiredListening && !_recognizer.StartListening())
             {
-                _recognizer.StartListening();
+                // The replacement engine could not start either — same retry path as any
+                // other failed start, so the swap can't reintroduce the dead-latch bug.
+                ScheduleRetryLocked();
             }
 
             old.Dispose();
+            actual = _recognizer.IsListening;
         }
+
+        PublishListeningState(actual);
     }
 
     private void OnAccepted(object? sender, RecognizedEventArgs e)

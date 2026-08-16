@@ -129,6 +129,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<GsxDiagnosticsStore>();
         services.AddSingleton<AudioStatusStore>();
         services.AddSingleton<SpeechStatusStore>();
+        // LLM endpoint health (issue #66) — written by the speech pillar's LLM client and
+        // re-probe; read by the web banner and the FO's one-shot offline advisory.
+        services.AddSingleton<LlmHealthStore>();
         services.AddSingleton<ArrivalMinimaStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();
