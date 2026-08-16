@@ -173,7 +173,9 @@ public sealed class GsxBoardingSync : IDisposable
                     // flight plan must not latch OFP-derived seat maps/cargo — the sync holds
                     // and arms from the tick once a plan arrives. Deboarding (arrival flow,
                     // nothing OFP-derived to latch) is deliberately never plan-gated.
-                    if (_options.CurrentValue.RequireOfpBeforeDeparture && !_flightPlan.FlightPlanAvailable)
+                    if (BoardingCore.ShouldHoldForPlan(
+                        _options.CurrentValue.RequireOfpBeforeDeparture,
+                        _flightPlan.FlightPlanAvailable))
                     {
                         _pendingPlanArm = true;
                         RecordDecision(
@@ -289,52 +291,58 @@ public sealed class GsxBoardingSync : IDisposable
 
         try
         {
-            // Deferred arming (issue #60): boarding went active plan-less and the sync held;
-            // the moment the plan arrives, arm normally — the boarded-counter catch-up below
-            // then seats everyone GSX has already boarded in one update.
-            if (_pendingPlanArm && Enabled && _flightPlan.FlightPlanAvailable)
+            // The tick's what-to-sync decisions are the pure core (campaign #78); this shell
+            // performs the writes and tracks their success.
+            var plan = BoardingCore.PlanTick(new BoardingCore.TickInputs(
+                BoardingActive: _boardingActive,
+                PendingPlanArm: _pendingPlanArm,
+                DeboardingActive: _deboardingActive,
+                Enabled: Enabled,
+                DeboardEnabled: DeboardEnabled,
+                PlanAvailable: _flightPlan.FlightPlanAvailable,
+                BoardedCounter: (int)_boardedLvar.GetValue(0.0),
+                LastWrittenBoarded: _lastWrittenBoarded,
+                CargoPercent: _cargoPercent.GetValue(0.0),
+                LastWrittenCargoPct: _lastWrittenCargoPct,
+                DeboardCounter: (int)_deboardTotal.GetValue(0.0),
+                LastWrittenDeboard: _lastWrittenDeboard,
+                HaveDeboardMap: _deboardMap.Length > 0,
+                DeboardStartCount: _deboardStartCount,
+                DeboardCargoPercent: _deboardCargoPercent.GetValue(0.0),
+                LastWrittenDeboardCargoPct: _lastWrittenDeboardCargoPct));
+
+            if (plan.ArmBoardingNow)
             {
                 _pendingPlanArm = false;
                 RecordDecision("boarding sync", "flight plan arrived mid-service — arming now");
                 StartBoarding();
             }
 
-            if (_boardingActive && Enabled)
+            if (plan.SyncBoardedSeats && await EnsureMapsAsync().ConfigureAwait(false))
             {
-                var boarded = (int)_boardedLvar.GetValue(0.0);
-                if (boarded != _lastWrittenBoarded && boarded >= 0 && await EnsureMapsAsync().ConfigureAwait(false))
-                {
-                    await WriteBoardedAsync(boarded).ConfigureAwait(false);
-                }
-
-                var cargoPct = _cargoPercent.GetValue(0.0);
-                if (Math.Abs(cargoPct - _lastWrittenCargoPct) >= 1)
-                {
-                    await WriteCargoAsync(cargoPct).ConfigureAwait(false);
-                }
+                await WriteBoardedAsync((int)_boardedLvar.GetValue(0.0)).ConfigureAwait(false);
             }
 
-            if (_deboardingActive && DeboardEnabled)
+            if (plan.SyncBoardingCargo)
             {
-                var deboarded = (int)_deboardTotal.GetValue(0.0);
-                if (deboarded != _lastWrittenDeboard && deboarded >= 0 && _deboardMap.Length > 0)
-                {
-                    // Raw counters stay visible for semantics verification (first live run).
-                    _logger.LogDebug(
-                        "Deboarding counters: NUMPASSENGERS={Planned}, DEBOARD_TOTAL={Deboarded}, CARGO%={CargoPct}",
-                        _plannedTotalLvar.GetValue(0.0),
-                        deboarded,
-                        _deboardCargoPercent.GetValue(0.0));
-                    await WriteDeboardedAsync(deboarded).ConfigureAwait(false);
-                }
+                await WriteCargoAsync(_cargoPercent.GetValue(0.0)).ConfigureAwait(false);
+            }
 
-                var unloadPct = _deboardCargoPercent.GetValue(0.0);
-                if (Math.Abs(unloadPct - _lastWrittenDeboardCargoPct) >= 1)
-                {
-                    _lastWrittenDeboardCargoPct = unloadPct;
-                    // DEBOARDING_CARGO_PERCENT counts unload progress up: remaining = 100 - pct.
-                    await WriteCargoAsync(100 - Math.Clamp(unloadPct, 0, 100)).ConfigureAwait(false);
-                }
+            if (plan.SyncDeboardedSeats)
+            {
+                // Raw counters stay visible for semantics verification (first live run).
+                _logger.LogDebug(
+                    "Deboarding counters: NUMPASSENGERS={Planned}, DEBOARD_TOTAL={Deboarded}, CARGO%={CargoPct}",
+                    _plannedTotalLvar.GetValue(0.0),
+                    (int)_deboardTotal.GetValue(0.0),
+                    _deboardCargoPercent.GetValue(0.0));
+                await WriteDeboardedAsync((int)_deboardTotal.GetValue(0.0)).ConfigureAwait(false);
+            }
+
+            if (plan.SyncDeboardCargo)
+            {
+                _lastWrittenDeboardCargoPct = _deboardCargoPercent.GetValue(0.0);
+                await WriteCargoAsync(plan.DeboardRemainingCargoPercent).ConfigureAwait(false);
             }
 
             PublishCounters();
