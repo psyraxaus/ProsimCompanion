@@ -298,72 +298,6 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         try
         {
             var options = _options.CurrentValue;
-            if (!options.AutomationEnabled || _api.Readiness != GsxReadiness.Ready)
-            {
-                return;
-            }
-
-            // Never sequence before the startup resync has assessed prior progress (#30) —
-            // the assessment is terminal (it times out if GSX/ProSim never come up), so this
-            // hold is bounded.
-            if (!_resyncState.IsAssessed)
-            {
-                PublishWaitingBoard("waiting for the startup state resync");
-                return;
-            }
-
-            if (!_cycle.Started
-                && options.AutoStartDepartureServices
-                && Phase == GsxAutomationPhase.Preparation)
-            {
-                _cycle.MarkStarted();
-                RecordDecision("departure sequence", "auto-started (Preparation phase)");
-            }
-
-            if (!_cycle.Started || _cycle.Complete
-                || Phase is not (GsxAutomationPhase.Preparation or GsxAutomationPhase.SessionStart))
-            {
-                if (!_cycle.Complete)
-                {
-                    PublishWaitingBoard("departure sequence not started");
-                }
-                return;
-            }
-
-            // Order (owner-specified): reposition → GPU/chocks → jetway/stairs must all finish
-            // before any departure service is called.
-            if (!_cycle.PrepComplete)
-            {
-                RecordDecisionOnce("hold departure services", "waiting for ground preparation (reposition/equipment/jetway) to complete");
-                PublishWaitingBoard("ground preparation running");
-                return;
-            }
-
-            // Flight plan = SimBrief OFP imported into the EFB, OR a plan the PILOT loaded in
-            // the MCDU (valid origin + destination ICAOs). The SimBrief importer — which
-            // supplies the booked seat map and planned fuel/cargo — only runs AFTER the MCDU
-            // plan is detected (the predecessor's trigger, 60 s cooldown). It must never run
-            // on its own: round-5 smoke test showed the auto-import satisfying the plan gate
-            // two seconds after ground prep, before the pilot had loaded anything.
-            var ofpImported = _flightPlan.OfpImported;
-            var flightPlanAvailable = _flightPlan.FlightPlanAvailable;
-            if (_flightPlan.FmsPlanPresent && !ofpImported && options.RequireOfpBeforeDeparture)
-            {
-                TryStartSimbriefImport();
-            }
-            if (!flightPlanAvailable && options.RequireOfpBeforeDeparture)
-            {
-                // Diagnostic (owner report: detection did not fire): show the raw values.
-                RecordDecisionOnce(
-                    "flight plan detection",
-                    $"none detected — simbriefImported={ofpImported}, fmsOrigin='{_flightPlan.FmsOrigin ?? ""}', fmsDestination='{_flightPlan.FmsDestination ?? ""}'");
-            }
-
-            if (flightPlanAvailable)
-            {
-                ArmGsxPaxTarget();
-            }
-
             var cycles = _lifecycle.SnapshotCycles();
             DepartureCycleView Cycle(string id)
             {
@@ -375,19 +309,68 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                     Completed: c.Completed);
             }
 
-            var forced = _forceNext;
-            var plan = DepartureSequencer.Next(
-                options.DepartureServices,
-                _api.Mirror.Services,
-                Cycle,
-                _slot.InFlightServiceId,
-                flightPlanAvailable,
-                options.RequireOfpBeforeDeparture,
-                _cycle.IsTurnaround,
-                forced,
-                IsCompanyHub(options),
-                _ofpStore.Current?.EstimatedEnroute);
-            if (forced)
+            // All policy — gates, ordering, sequencing — is the pure core (campaign #78);
+            // this shell only gathers inputs and performs the outcome's effects.
+            var outcome = DepartureAutomationCore.Evaluate(new DepartureAutomationCore.PumpInputs(
+                AutomationEnabled: options.AutomationEnabled,
+                GsxReady: _api.Readiness == GsxReadiness.Ready,
+                ResyncAssessed: _resyncState.IsAssessed,
+                AutoStartOption: options.AutoStartDepartureServices,
+                Phase: Phase,
+                CycleStarted: _cycle.Started,
+                CycleComplete: _cycle.Complete,
+                PrepComplete: _cycle.PrepComplete,
+                RequireOfp: options.RequireOfpBeforeDeparture,
+                FmsPlanPresent: _flightPlan.FmsPlanPresent,
+                OfpImported: _flightPlan.OfpImported,
+                FlightPlanAvailable: _flightPlan.FlightPlanAvailable,
+                FmsOrigin: _flightPlan.FmsOrigin,
+                FmsDestination: _flightPlan.FmsDestination,
+                Forced: _forceNext,
+                InFlightServiceId: _slot.InFlightServiceId,
+                IsTurnaround: _cycle.IsTurnaround,
+                IsCompanyHub: IsCompanyHub(options),
+                EstimatedEnroute: _ofpStore.Current?.EstimatedEnroute,
+                Steps: options.DepartureServices,
+                MirrorServices: _api.Mirror.Services,
+                Cycle: Cycle));
+
+            if (outcome.AutoStarted)
+            {
+                _cycle.MarkStarted();
+                RecordDecision("departure sequence", "auto-started (Preparation phase)");
+            }
+
+            if (outcome.HoldReason is not null)
+            {
+                RecordDecisionOnce("hold departure services", outcome.HoldReason);
+            }
+
+            if (outcome.WaitingBoard is not null)
+            {
+                PublishWaitingBoard(outcome.WaitingBoard);
+                return;
+            }
+
+            if (outcome.Plan is not { } plan)
+            {
+                return; // gated before sequencing with no board to publish (disabled / complete)
+            }
+
+            if (outcome.StartSimbriefImport)
+            {
+                TryStartSimbriefImport();
+            }
+            if (outcome.PlanDiagnostic is not null)
+            {
+                RecordDecisionOnce("flight plan detection", outcome.PlanDiagnostic);
+            }
+            if (outcome.ArmPaxTarget)
+            {
+                ArmGsxPaxTarget();
+            }
+
+            if (outcome.ConsumedForce)
             {
                 _forceNext = false; // single-shot, consumed by this evaluation
                 RecordDecision(
@@ -407,7 +390,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 RecordDecisionOnce($"hold {serviceId}", reason);
             }
 
-            if (plan.Trigger is { } trigger && _slot.InFlightServiceId is null)
+            if (outcome.Trigger is { } trigger)
             {
                 int attempt;
                 lock (_triggerAttempts)
@@ -426,7 +409,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 });
             }
 
-            if (plan.AllDone)
+            if (outcome.AllDone)
             {
                 _cycle.MarkComplete();
                 RecordDecision("departure sequence", "all departure services completed or skipped");
