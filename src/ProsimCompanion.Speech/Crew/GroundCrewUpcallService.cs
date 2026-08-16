@@ -35,14 +35,7 @@ public sealed class GroundCrewUpcallService : IDisposable
 
     private Timer? _timer;
     private volatile bool _busy;
-    private bool? _lastGroundPower;
-    private bool? _lastChocks;
-    private GsxServiceStage? _lastRefuelStage;
-    private GsxServiceStage? _lastCateringStage;
-    private bool _groundPowerCalled;
-    private bool _chocksCalled;
-    private bool _refuelCalled;
-    private bool _cateringCalled;
+    private GroundUpcallCore.UpcallState _state = GroundUpcallCore.UpcallState.Initial;
 
     private static readonly string[] IntLatches =
         [ProsimDataRefNames.Acp1IntLatch, ProsimDataRefNames.Acp2IntLatch, ProsimDataRefNames.Acp3IntLatch];
@@ -105,14 +98,7 @@ public sealed class GroundCrewUpcallService : IDisposable
     }
 
     private void OnFlightCycleReset()
-    {
-        _groundPowerCalled = false;
-        _chocksCalled = false;
-        _refuelCalled = false;
-        _cateringCalled = false;
-        // Edge baselines survive deliberately: the equipment states themselves carry over
-        // into the new cycle and a reset must not turn "still true" into a rising edge.
-    }
+        => _state = GroundUpcallCore.OnFlightCycleReset(_state);
 
     private void Tick()
     {
@@ -130,48 +116,35 @@ public sealed class GroundCrewUpcallService : IDisposable
                 return;
             }
 
-            var phase = _flight.CurrentPhase;
-            var departureWindow = phase is FlightPhase.ColdAndDark or FlightPhase.Preflight;
-            var groundWindow = departureWindow || phase is FlightPhase.TaxiIn or FlightPhase.Shutdown;
-
-            var groundPower = ReadNullableBool(ProsimDataRefNames.GroundPower);
-            var chocks = ReadNullableBool(ProsimDataRefNames.Chocks);
+            // Edge/window/latch policy is the pure core (campaign #78 — CabinCrewCore's
+            // pattern); this shell samples datarefs and delivers the chosen call.
             var board = _diagnostics.Snapshot().ServiceBoard;
-            var refuelStage = StageOf(board, GsxServiceIds.Refueling);
-            var cateringStage = StageOf(board, GsxServiceIds.Catering);
+            var (nextState, call) = GroundUpcallCore.Evaluate(_state, new GroundUpcallCore.UpcallSample(
+                Phase: _flight.CurrentPhase,
+                GroundPower: ReadNullableBool(ProsimDataRefNames.GroundPower),
+                Chocks: ReadNullableBool(ProsimDataRefNames.Chocks),
+                RefuelStage: StageOf(board, GsxServiceIds.Refueling),
+                CateringStage: StageOf(board, GsxServiceIds.Catering),
+                CallOnGroundPower: options.CallOnGroundPower,
+                CallOnChocks: options.CallOnChocks,
+                CallOnRefuelComplete: options.CallOnRefuelComplete,
+                CallOnCateringComplete: options.CallOnCateringComplete));
+            _state = nextState;
 
-            // Baseline on first observation — never announce state recovered at startup.
-            var groundPowerRose = _lastGroundPower is false && groundPower is true;
-            var chocksRose = _lastChocks is false && chocks is true;
-            var refuelCompleted = _lastRefuelStage is not null and not GsxServiceStage.Completed
-                && refuelStage == GsxServiceStage.Completed;
-            var cateringCompleted = _lastCateringStage is not null and not GsxServiceStage.Completed
-                && cateringStage == GsxServiceStage.Completed;
-
-            _lastGroundPower = groundPower ?? _lastGroundPower;
-            _lastChocks = chocks ?? _lastChocks;
-            _lastRefuelStage = refuelStage ?? _lastRefuelStage;
-            _lastCateringStage = cateringStage ?? _lastCateringStage;
-
-            if (groundPowerRose && groundWindow && options.CallOnGroundPower && !_groundPowerCalled)
+            switch (call)
             {
-                _groundPowerCalled = true;
-                Run("ground.upcall.gpu", options.GroundPowerText);
-            }
-            else if (chocksRose && groundWindow && options.CallOnChocks && !_chocksCalled)
-            {
-                _chocksCalled = true;
-                Run("ground.upcall.chocks", options.ChocksText);
-            }
-            else if (refuelCompleted && departureWindow && options.CallOnRefuelComplete && !_refuelCalled)
-            {
-                _refuelCalled = true;
-                Run("ground.upcall.refuel", FillFuel(options.RefuelCompleteText));
-            }
-            else if (cateringCompleted && departureWindow && options.CallOnCateringComplete && !_cateringCalled)
-            {
-                _cateringCalled = true;
-                Run("ground.upcall.catering", options.CateringCompleteText);
+                case GroundUpcallCore.UpcallKind.GroundPower:
+                    Run("ground.upcall.gpu", options.GroundPowerText);
+                    break;
+                case GroundUpcallCore.UpcallKind.Chocks:
+                    Run("ground.upcall.chocks", options.ChocksText);
+                    break;
+                case GroundUpcallCore.UpcallKind.RefuelComplete:
+                    Run("ground.upcall.refuel", FillFuel(options.RefuelCompleteText));
+                    break;
+                case GroundUpcallCore.UpcallKind.CateringComplete:
+                    Run("ground.upcall.catering", options.CateringCompleteText);
+                    break;
             }
         }
         catch (Exception ex)
