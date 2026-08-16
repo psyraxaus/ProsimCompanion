@@ -185,7 +185,8 @@ public sealed class LogbookVoiceServiceTests
         _logbook.SetupGet(l => l.Days).Returns([]);
         _logbook.Setup(l => l.GetAggregates()).Returns(LogbookAggregates.Empty);
         _service = new LogbookVoiceService(
-            _logbook.Object, _arbiter, NullLogger<LogbookVoiceService>.Instance);
+            _logbook.Object, _arbiter, NullLogger<LogbookVoiceService>.Instance,
+            new ProsimCompanion.Core.Speech.SpokenText());
     }
 
     private static LogbookAggregates SampleAggregates() => new(
@@ -290,7 +291,8 @@ public sealed class LogbookVoiceServiceTests
 
         Assert.True(_service.TryHandle("Landing stats for YSSY"));
         var request = Assert.Single(_arbiter.Requests);
-        Assert.Contains("YSSY", request.Text, StringComparison.Ordinal);
+        // NATO-spelled fallback (campaign #81) — never the raw ICAO.
+        Assert.Contains("Yankee Sierra Sierra Yankee", request.Text, StringComparison.Ordinal);
         Assert.Equal(SpeechPriority.Normal, request.Priority);
         Assert.Equal("logbook", request.Tag);
     }

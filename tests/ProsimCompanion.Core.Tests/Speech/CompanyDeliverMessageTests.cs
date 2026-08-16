@@ -25,7 +25,8 @@ public sealed class CompanyDeliverMessageTests
         new OfpStore(),
         OptionsSupport.Monitor(_options),
         SpeechTestSupport.TempEventLog(),
-        NullLogger<CompanyChannelService>.Instance);
+        NullLogger<CompanyChannelService>.Instance,
+        new ProsimCompanion.Core.Speech.SpokenText());
 
     [Fact]
     public void DeliverMessage_SpeaksLowWithCompanyChimeAndDayTag()

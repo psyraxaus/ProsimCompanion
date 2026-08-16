@@ -72,7 +72,8 @@ public sealed class CompanyDayServiceTests : IDisposable
         _company,
         _arbiter,
         OptionsSupport.Monitor(_options),
-        NullLogger<CompanyDayService>.Instance);
+        NullLogger<CompanyDayService>.Instance,
+        new ProsimCompanion.Core.Speech.SpokenText());
 
     public void Dispose()
     {
@@ -273,7 +274,7 @@ public sealed class CompanyDayServiceTests : IDisposable
 
         var message = Assert.Single(_company.Messages);
         // No IAirportNames registered here, so the ICAOs fall back to spelled form (#70).
-        Assert.Equal("Next sector, E G C C to E G L L, flight BA124, scheduled off-blocks 09:00 zulu.", message);
+        Assert.Equal("Next sector, Echo Golf Charlie Charlie to Echo Golf Lima Lima, flight BA124, scheduled off-blocks 09:00 zulu.", message);
     }
 
     // ---- deviation (post-hoc, at leg completion) ----
@@ -290,7 +291,7 @@ public sealed class CompanyDayServiceTests : IDisposable
         Assert.Equal("EGBB", leg.To);
 
         var note = Assert.Single(_arbiter.Requests, r => r.Text.StartsWith("Note —", StringComparison.Ordinal));
-        Assert.Equal("Note — the plan showed E G C C, but we flew to E G B B.", note.Text);
+        Assert.Equal("Note — the plan showed Echo Golf Charlie Charlie, but we flew to Echo Golf Bravo Bravo.", note.Text);
         Assert.Equal(SpeechPriority.Normal, note.Priority);
     }
 

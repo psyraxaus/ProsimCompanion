@@ -93,6 +93,7 @@ public sealed class DebriefLlmStylingTests : IDisposable
             OptionsSupport.Monitor(_options),
             OptionsSupport.Monitor(_briefing),
             NullLogger<DebriefService>.Instance,
+            new ProsimCompanion.Core.Speech.SpokenText(),
             new OpenAiChatClient(OptionsSupport.Monitor(_briefing), new HttpClient(_handler)));
         service.Start();
         return (service, sessionPath);

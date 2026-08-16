@@ -60,9 +60,9 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly ILogger<BriefingService> _logger;
     private readonly Persona.PersonaService? _persona;
 
-    // Optional (like the LLM client) so the briefing degrades to spoken ICAO idents when no
-    // name source is registered — issue #70.
-    private readonly Core.Airports.IAirportNames? _airportNames;
+    // Spoken text (campaign #81): names when the DFD is present, NATO-spelled ICAO otherwise
+    // — the fallback policy lives in the module, not here (issue #70).
+    private readonly Core.Speech.ISpokenText _spokenText;
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
 
     public BriefingService(
@@ -76,12 +76,13 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<BriefingService> logger,
+        Core.Speech.ISpokenText spokenText,
         OpenAiChatClient? llm = null,
-        Persona.PersonaService? persona = null,
-        Core.Airports.IAirportNames? airportNames = null)
+        Persona.PersonaService? persona = null)
     {
         _persona = persona;
-        _airportNames = airportNames;
+        ArgumentNullException.ThrowIfNull(spokenText);
+        _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(navData);
         ArgumentNullException.ThrowIfNull(procedures);
@@ -212,20 +213,12 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         }
     }
 
-    /// <summary>"04L" → "zero four left" (aviation digits + side word).</summary>
+    /// <summary>"04L" → "zero four left". Pronunciation is the shared spoken-text module's
+    /// (campaign #81); a designator with no digits passes through raw.</summary>
     public static string RunwaySpoken(string runway)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runway);
-        var s = runway.Trim().ToUpperInvariant();
-        if (s.StartsWith("RW", StringComparison.Ordinal))
-        {
-            s = s[2..];
-        }
-
-        var digits = new string(s.TakeWhile(char.IsAsciiDigit).ToArray());
-        var side = s.SkipWhile(char.IsAsciiDigit).FirstOrDefault();
-        var sideWord = side switch { 'L' => " left", 'R' => " right", 'C' => " center", _ => "" };
-        return (digits.Length > 0 ? Callouts.Aviation.ToDigits(digits) : s) + sideWord;
+        return Core.Speech.SpokenText.RunwayOrNull(runway) ?? runway.Trim().ToUpperInvariant();
     }
 
     public void Dispose()
@@ -270,7 +263,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             departure, ids.Airport, ids.Runway, ids.Sid, ids.Star, ids.Approach, nav, v1, vr, v2,
             windDir, windSpeed, qnh, departure ? null : _minima.Current,
             atisLetter, activeRunway, flexTemp, visibility, temperature,
-            AirportName: _airportNames?.SpokenName(ids.Airport));
+            AirportName: _spokenText.Airport(ids.Airport));
     }
 
     private async Task<string> ComposeAsync(BriefingFacts facts)

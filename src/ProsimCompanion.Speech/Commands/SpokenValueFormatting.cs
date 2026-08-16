@@ -80,24 +80,8 @@ public static class SpokenValueFormatting
         return v > 0 ? Aviation.ToDigits(v.ToString(System.Globalization.CultureInfo.InvariantCulture)) : "not set";
     }
 
-    /// <summary>"16R" → "one six right"; null/blank → "unavailable".</summary>
+    /// <summary>"16R" → "one six right"; null/blank → "unavailable". Pronunciation is the
+    /// shared spoken-text module's (campaign #81); the absence wording is this caller's.</summary>
     public static string Runway(string? runway)
-    {
-        if (string.IsNullOrWhiteSpace(runway))
-        {
-            return "unavailable";
-        }
-
-        var rwy = runway.Trim().ToUpperInvariant();
-        var digits = new string([.. rwy.TakeWhile(char.IsDigit)]);
-        var side = rwy.SkipWhile(char.IsDigit).FirstOrDefault() switch
-        {
-            'L' => " left",
-            'R' => " right",
-            'C' => " center",
-            _ => "",
-        };
-
-        return digits.Length == 0 ? "unavailable" : Aviation.ToDigits(digits) + side;
-    }
+        => Core.Speech.SpokenText.RunwayOrNull(runway) ?? "unavailable";
 }

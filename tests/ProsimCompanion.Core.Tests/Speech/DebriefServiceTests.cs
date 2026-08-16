@@ -57,7 +57,8 @@ public sealed class DebriefServiceTests : IDisposable
             eventLog,
             OptionsSupport.Monitor(_options),
             OptionsSupport.Monitor(new BriefingOptions()),
-            NullLogger<DebriefService>.Instance);
+            NullLogger<DebriefService>.Instance,
+            new ProsimCompanion.Core.Speech.SpokenText());
         service.Start();
         return (service, sessionPath);
     }

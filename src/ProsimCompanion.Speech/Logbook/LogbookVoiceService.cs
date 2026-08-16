@@ -28,13 +28,13 @@ public sealed class LogbookVoiceService : IVoiceFeature
     private readonly ILogger<LogbookVoiceService> _logger;
 
     // Optional: with no name source the answers keep speaking the raw ICAO — issue #70.
-    private readonly Core.Airports.IAirportNames? _airportNames;
+    private readonly Core.Speech.ISpokenText _spokenText;
 
     public LogbookVoiceService(
         ILogbookService logbook,
         ISpeechArbiter arbiter,
         ILogger<LogbookVoiceService> logger,
-        Core.Airports.IAirportNames? airportNames = null)
+        Core.Speech.ISpokenText spokenText)
     {
         ArgumentNullException.ThrowIfNull(logbook);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -43,7 +43,8 @@ public sealed class LogbookVoiceService : IVoiceFeature
         _logbook = logbook;
         _arbiter = arbiter;
         _logger = logger;
-        _airportNames = airportNames;
+        ArgumentNullException.ThrowIfNull(spokenText);
+        _spokenText = spokenText;
     }
 
     /// <summary>Fixed phrases plus one "landing stats for {icao}" per landed destination —
@@ -89,7 +90,7 @@ public sealed class LogbookVoiceService : IVoiceFeature
         }
         else if (TryParseAirportQuery(text, out var icao))
         {
-            answer = AirportText(_logbook.GetAggregates(), icao, _airportNames?.SpokenName(icao));
+            answer = AirportText(_logbook.GetAggregates(), icao, _spokenText.Airport(icao));
         }
         else
         {

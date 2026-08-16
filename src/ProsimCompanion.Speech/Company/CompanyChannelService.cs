@@ -61,7 +61,7 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
     private readonly ILogger<CompanyChannelService> _logger;
 
     // Optional: with no name source the destination stays spelled ("E G L L") — issue #70.
-    private readonly Core.Airports.IAirportNames? _airportNames;
+    private readonly Core.Speech.ISpokenText _spokenText;
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly object _gate = new();
 
@@ -79,9 +79,10 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
         IOptionsMonitor<CompanyOptions> options,
         JsonlEventLog eventLog,
         ILogger<CompanyChannelService> logger,
-        Core.Airports.IAirportNames? airportNames = null)
+        Core.Speech.ISpokenText spokenText)
     {
-        _airportNames = airportNames;
+        ArgumentNullException.ThrowIfNull(spokenText);
+        _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -332,7 +333,7 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
             // Spoken name when known ("into Heathrow"), spelled ICAO otherwise (issue #70).
             sb.Append(string.IsNullOrWhiteSpace(destination)
                 ? "No significant updates for the arrival. "
-                : $"No significant updates for the arrival into {_airportNames?.SpokenName(destination) ?? AviationIcao(destination)}. ");
+                : $"No significant updates for the arrival into {_spokenText.Airport(destination)}. ");
             sb.Append("Gate will be advised on arrival.");
             var text = sb.ToString();
 
@@ -378,10 +379,6 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, IDis
             Chime: _options.CurrentValue.Chime ? "company" : null,
             Role: SpeechRole.Company)).ConfigureAwait(false);
     }
-
-    /// <summary>Spelled ICAO for TTS ("EGCC" → "E G C C").</summary>
-    private static string AviationIcao(string icao)
-        => string.Join(" ", icao.Trim().ToUpperInvariant().ToCharArray());
 
     /// <summary>Writes the spoken loadsheet (and the raw EFB loadsheet when present) beside
     /// the JSONL session log. Best-effort — a failed write never blocks the delivery.</summary>

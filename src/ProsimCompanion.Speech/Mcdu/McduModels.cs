@@ -33,30 +33,13 @@ public sealed record McduPage(
 /// identifiers are never persona-styled — a read-back must be verbatim-checkable.</summary>
 public static class McduSpeech
 {
-    /// <summary>"04L" → "runway zero four left"; null/blank → "the arrival runway".</summary>
+    /// <summary>"04L" → "runway zero four left"; null/blank → "the arrival runway".
+    /// Pronunciation is the shared spoken-text module's (campaign #81); the absence wording
+    /// is this caller's.</summary>
     public static string SpeakRunway(string? runway)
-    {
-        if (string.IsNullOrWhiteSpace(runway))
-        {
-            return "the arrival runway";
-        }
-
-        var s = runway.Trim().ToUpperInvariant();
-        var digits = new string(s.TakeWhile(char.IsAsciiDigit).ToArray());
-        if (digits.Length == 0)
-        {
-            return "the arrival runway";
-        }
-
-        var side = s.SkipWhile(char.IsAsciiDigit).FirstOrDefault() switch
-        {
-            'L' => " left",
-            'R' => " right",
-            'C' => " center",
-            _ => "",
-        };
-        return $"runway {Aviation.ToDigits(digits)}{side}";
-    }
+        => Core.Speech.SpokenText.RunwayOrNull(runway) is { } spoken
+            ? $"runway {spoken}"
+            : "the arrival runway";
 
     /// <summary>"110.30" → "one one zero decimal three zero" (ICAO digits, 9 = "niner").</summary>
     public static string SpeakFrequency(string frequency) => Aviation.ToDigits(frequency);

@@ -145,6 +145,11 @@ public static class CoreServiceCollectionExtensions
         // (campaign #78).
         services.AddSingleton<DepartureCycleState>();
         services.AddSingleton<DisplayUnitService>();
+        // Spoken text (CONTEXT.md, campaign #81): pronunciation decided once — friendly
+        // airport names come from the optional DFD-backed resolver when the Speech pillar
+        // registered one, NATO-spelled codes otherwise.
+        services.AddSingleton<Speech.ISpokenText>(provider =>
+            new Speech.SpokenText(provider.GetService<Airports.IAirportNames>()));
         // Per-profile GSX settings (Prosim2GSX model): the active profile's stored block is
         // written over the live gsx section on activation.
         services.AddHostedService<Profiles.ProfileGsxApplier>();

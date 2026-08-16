@@ -52,7 +52,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     private readonly ILogger<CompanyDayService> _logger;
 
     // Optional: with no name source, airports stay spelled ("E G L L") — issue #70.
-    private readonly Core.Airports.IAirportNames? _airportNames;
+    private readonly Core.Speech.ISpokenText _spokenText;
 
     private readonly object _gate = new();
     private readonly CompanyDayEngine _engine = new();
@@ -73,9 +73,10 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         ISpeechArbiter arbiter,
         IOptionsMonitor<DayOptions> options,
         ILogger<CompanyDayService> logger,
-        Core.Airports.IAirportNames? airportNames = null)
+        Core.Speech.ISpokenText spokenText)
     {
-        _airportNames = airportNames;
+        ArgumentNullException.ThrowIfNull(spokenText);
+        _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(extractor);
@@ -590,9 +591,6 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
 
     /// <summary>Name when known ("Heathrow"), spelled ICAO otherwise ("E G C C").</summary>
     private string SpokenAirport(string icao)
-        => _airportNames?.SpokenName(icao) ?? Spell(icao);
+        => _spokenText.Airport(icao);
 
-    /// <summary>Spelled ICAO for TTS ("EGCC" → "E G C C").</summary>
-    private static string Spell(string icao)
-        => string.Join(" ", icao.Trim().ToUpperInvariant().ToCharArray());
 }
