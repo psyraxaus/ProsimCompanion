@@ -43,16 +43,6 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan RepositionSettleTime = TimeSpan.FromSeconds(12);
 
-    private enum Stage
-    {
-        Reposition,
-        Settling,
-        AnchorGate,
-        GroundEquipment,
-        JetwayStairs,
-        Complete,
-    }
-
     private readonly IGsxRemoteApi _api;
     private readonly GsxRepositionService _reposition;
     private readonly GsxGateAnchorService _gateAnchor;
@@ -67,7 +57,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxGroundPrepCoordinator> _logger;
     private readonly Timer _timer;
-    private Stage _stage = Stage.Reposition;
+    private GsxPrepStage _stage = GsxPrepStage.Reposition;
     private DateTimeOffset _settleUntil;
     private string? _sessionGateKey;
     private string? _holdReason;
@@ -123,7 +113,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
     /// <summary>True once the whole preparation chain has run for this gate session — the
     /// departure service sequencer waits for this.</summary>
-    public bool PrepComplete => _stage == Stage.Complete;
+    public bool PrepComplete => _stage == GsxPrepStage.Complete;
 
     public void Dispose()
     {
@@ -152,19 +142,19 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     /// still resets the chain normally.</summary>
     public void SeedComplete(string reason)
     {
-        if (_stage == Stage.Complete)
+        if (_stage == GsxPrepStage.Complete)
         {
             return;
         }
 
         _sessionGateKey ??= _api.Mirror.GateContextKey;
-        Advance(Stage.Complete, $"seeded by startup resync — {reason}");
+        Advance(GsxPrepStage.Complete, $"seeded by startup resync — {reason}");
     }
 
     private void Reset(string reason)
     {
-        var wasProgressed = _stage != Stage.Reposition || _sessionGateKey is not null;
-        _stage = Stage.Reposition;
+        var wasProgressed = _stage != GsxPrepStage.Reposition || _sessionGateKey is not null;
+        _stage = GsxPrepStage.Reposition;
         _sessionGateKey = null;
         _cycle.ResetPrep();
         if (wasProgressed)
@@ -184,127 +174,84 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
         try
         {
-            if (!_options.CurrentValue.AutomationEnabled)
+            // All hold/reset/ordering policy is the pure machine (campaign #78) — the 2026-08
+            // review found four reset triggers and three hold gates scattered through this
+            // method with zero tests; they now live where a table test pins them.
+            var decision = PrepStageMachine.Next(
+                new PrepStageMachine.PrepInputs(
+                    AutomationEnabled: _options.CurrentValue.AutomationEnabled,
+                    SessionPhase: _simSession.Phase,
+                    ResyncAssessed: _resyncState.IsAssessed,
+                    VoiceActivationMode: IsVoiceActivation(_options.CurrentValue.GroundPrepActivation),
+                    CycleStarted: _cycle.Started,
+                    FlightPhase: _flightState.CurrentPhase,
+                    GsxReady: _api.Readiness == GsxReadiness.Ready,
+                    GateKey: _api.Mirror.GateContextKey,
+                    SessionGateKey: _sessionGateKey,
+                    Stage: _stage,
+                    SettleUntil: _settleUntil),
+                DateTimeOffset.UtcNow);
+
+            if (decision.ReleasesHold)
             {
-                return;
+                ReleaseHold();
             }
 
-            // Predecessor-parity session gate: ProSim pushes plausible cold-and-dark data and
-            // the Couatl socket answers while MSFS is still on the main menu or loading, so
-            // every downstream precondition can pass with no pilot in the session — the old
-            // Prosim2GSX held on camera state for exactly this reason. Unknown (SimConnect
-            // absent) holds too: a reposition teleports the aircraft, and a signal we cannot
-            // read is not a signal that passed. Walkaround holds — services must not be
-            // driven while the pilot is outside the aircraft.
-            var sessionPhase = _simSession.Phase;
-            if (sessionPhase != SimSessionPhase.InSession)
+            switch (decision.Command)
             {
-                Hold($"MSFS session not active ({sessionPhase})");
-                return;
+                case PrepCommand.None:
+                    return;
+
+                case PrepCommand.Hold:
+                    Hold(decision.Reason!);
+                    return;
+
+                case PrepCommand.Reset:
+                    Reset(decision.Reason!);
+                    return;
+
+                case PrepCommand.AdvanceFromSettling:
+                    Advance(GsxPrepStage.AnchorGate, "re-anchoring GSX to the occupied stand");
+                    return;
             }
 
-            // Startup-resync ordering (issue #30): the assessment may be about to seed this
-            // chain as already complete — the 2026-08-09 flight test caught the reposition
-            // firing 150 ms before the seed landed. Prep holds for the verdict just like the
-            // departure sequencer; the assessment self-times-out, so this cannot deadlock.
-            if (!_resyncState.IsAssessed)
-            {
-                Hold("waiting for the startup resync assessment");
-                return;
-            }
-
-            // Voice-gated prep (ADR-0006): in "voice" mode the whole chain — reposition, gate
-            // anchor, GPU/chocks, jetway — waits for the pilot to commence ground services.
-            // "Commence ground services", the web Start button and the API all release it
-            // (voice is an additional trigger, never the only one). Checked AFTER the resync
-            // gate so SeedComplete still fast-forwards a chain that already ran pre-restart.
-            if (_stage != Stage.Complete
-                && IsVoiceActivation(_options.CurrentValue.GroundPrepActivation)
-                && !_cycle.Started)
-            {
-                Hold("waiting for 'commence ground services' (gsx.groundPrepActivation = voice)");
-                return;
-            }
-
-            ReleaseHold();
-
-            var phase = _flightState.CurrentPhase;
-            if (phase is not (FlightPhase.Preflight or FlightPhase.ColdAndDark))
-            {
-                // Off the ground-prep window; a fresh Preflight after flight restarts the chain.
-                if (_stage != Stage.Reposition
-                    && phase is FlightPhase.TaxiIn or FlightPhase.Shutdown or FlightPhase.Cruise or FlightPhase.Climb)
-                {
-                    Reset($"phase {phase}");
-                }
-                return;
-            }
-
-            if (_api.Readiness != GsxReadiness.Ready)
-            {
-                return;
-            }
-
-            var gateKey = _api.Mirror.GateContextKey;
-            if (gateKey is null)
-            {
-                return;
-            }
-
-            if (_sessionGateKey is not null
-                && !string.Equals(gateKey, _sessionGateKey, StringComparison.Ordinal)
-                && _stage is Stage.JetwayStairs or Stage.Complete)
-            {
-                // The gate genuinely changed mid/after prep (not the reposition itself settling).
-                Reset($"gate changed to {gateKey}");
-            }
-            _sessionGateKey ??= gateKey;
+            _sessionGateKey ??= _api.Mirror.GateContextKey;
 
             switch (_stage)
             {
-                case Stage.Reposition:
+                case GsxPrepStage.Reposition:
                     var repositionStatus = await _reposition.RunStepAsync().ConfigureAwait(false);
                     if (repositionStatus == GsxPrepStatus.Done)
                     {
                         _settleUntil = DateTimeOffset.UtcNow + RepositionSettleTime;
                         _sessionGateKey = null; // reposition may refresh the gate context
-                        Advance(Stage.Settling, "waiting for the position to settle");
+                        Advance(GsxPrepStage.Settling, "waiting for the position to settle");
                     }
                     break;
 
-                case Stage.Settling:
-                    if (DateTimeOffset.UtcNow >= _settleUntil)
-                    {
-                        Advance(Stage.AnchorGate, "re-anchoring GSX to the occupied stand");
-                    }
-                    break;
-
-                case Stage.AnchorGate:
+                case GsxPrepStage.AnchorGate:
                     // Issue #44: GSX persists its assigned facility across sim sessions; a new
                     // flight at a different stand needs an explicit gate.select or every
                     // service trigger is silently dropped.
                     if (await _gateAnchor.RunStepAsync().ConfigureAwait(false) == GsxPrepStatus.Done)
                     {
-                        Advance(Stage.GroundEquipment, "connecting GPU and placing chocks");
+                        Advance(GsxPrepStage.GroundEquipment, "connecting GPU and placing chocks");
                     }
                     break;
 
-                case Stage.GroundEquipment:
+                case GsxPrepStage.GroundEquipment:
                     var equipmentStatus = await _groundEquipment.RunPlacementStepAsync().ConfigureAwait(false);
                     if (equipmentStatus == GsxPrepStatus.Done)
                     {
-                        Advance(Stage.JetwayStairs, "connecting jetway or stairs");
+                        Advance(GsxPrepStage.JetwayStairs, "connecting jetway or stairs");
                     }
                     break;
 
-                case Stage.JetwayStairs:
+                case GsxPrepStage.JetwayStairs:
                     if (_jetwayStairs.RunStep() == GsxPrepStatus.Done)
                     {
-                        Advance(Stage.Complete, "ground preparation complete — departure services may run");
+                        Advance(GsxPrepStage.Complete, "ground preparation complete — departure services may run");
                     }
-                    break;
-
-                case Stage.Complete:
                     break;
             }
         }
@@ -351,10 +298,10 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         PublishStage("running");
     }
 
-    private void Advance(Stage next, string detail)
+    private void Advance(GsxPrepStage next, string detail)
     {
         _stage = next;
-        if (next == Stage.Complete)
+        if (next == GsxPrepStage.Complete)
         {
             // The shared departure cycle is how the automation (and everything else) sees
             // prep completion — the coordinator never talks to the automation directly.
