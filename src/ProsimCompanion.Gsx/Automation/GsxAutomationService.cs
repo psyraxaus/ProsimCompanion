@@ -18,20 +18,19 @@ namespace ProsimCompanion.Gsx.Automation;
 /// engine, runs the departure service sequence (OFP-gated, cursor + per-service activation
 /// rules — see <see cref="DepartureSequencer"/>), arms the configured arrival gate when
 /// reaching flight, writes handler.set autoSelectOperator once per gate session, and resets
-/// service cycles on arrival. Trigger dispatch is strictly one call in flight at a time,
-/// confirmed against the state mirror before the next goes out — the trigger ack proves
-/// nothing, and GSX silently drops rapid-fire requests (round-7 smoke test: five simultaneous
-/// triggers, only the last service ran while the board showed the rest "Called" forever).
-/// Every decision — including holds and skips — is recorded with its reason (decision log +
-/// session event log), deduplicated so a stable state does not spam.
+/// service cycles on arrival. All trigger dispatch goes through the shared
+/// <see cref="IGsxTriggerSlot"/> — this module is a slot client like every other sender; the
+/// sequencer's retry-forever behaviour emerges from re-offering a dropped service on the next
+/// evaluation, not from a watcher policy. Every decision — including holds and skips — is
+/// recorded with its reason (decision log + session event log), deduplicated so a stable
+/// state does not spam.
 /// </summary>
-public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IGsxTriggerDispatcher
+public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
 {
     private static readonly TimeSpan PumpInterval = TimeSpan.FromSeconds(3);
 
-    private sealed record InFlightTrigger(string ServiceId, DateTimeOffset SentAt);
-
     private readonly IGsxRemoteApi _api;
+    private readonly IGsxTriggerSlot _slot;
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxGateSelectionService _gateSelection;
     private readonly Sync.GsxGroundPrepCoordinator _groundPrep;
@@ -53,9 +52,6 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
     private volatile bool _departureComplete;
     private volatile bool _forceNext;
     private volatile bool _isTurnaround;
-    private volatile InFlightTrigger? _inFlight;
-    private string? _lastDroppedService;
-    private int _consecutiveDrops;
     private bool _paxTargetArmed;
     private string? _autoSelectArmedKey;
     private DateTimeOffset _lastImportAttempt = DateTimeOffset.MinValue;
@@ -67,6 +63,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
 
     public GsxAutomationService(
         IGsxRemoteApi api,
+        IGsxTriggerSlot slot,
         GsxServiceLifecycleTracker lifecycle,
         GsxGateSelectionService gateSelection,
         Sync.GsxGroundPrepCoordinator groundPrep,
@@ -84,6 +81,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         ILogger<GsxAutomationService> logger)
     {
         ArgumentNullException.ThrowIfNull(api);
+        ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(gateSelection);
         ArgumentNullException.ThrowIfNull(groundPrep);
@@ -107,6 +105,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         ArgumentNullException.ThrowIfNull(logger);
 
         _api = api;
+        _slot = slot;
         _lifecycle = lifecycle;
         _gateSelection = gateSelection;
         _groundPrep = groundPrep;
@@ -128,6 +127,9 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _lifecycle.ServiceEvent += OnServiceEvent;
         _api.Mirror.Updated += OnMirrorUpdated;
         _resyncState.Assessed += OnResyncAssessed;
+        // Slot occupancy changes (confirm, drop, rejection) re-evaluate the sequence promptly
+        // instead of waiting out the 3 s pump interval.
+        _slot.Changed += Pump;
         _pumpTimer = new Timer(_ => Pump(), null, PumpInterval, PumpInterval);
     }
 
@@ -192,147 +194,9 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         Pump();
     }
 
-    /// <summary>
-    /// On-demand dispatch through the SAME single in-flight slot the departure sequencer uses
-    /// (<see cref="IGsxTriggerDispatcher"/>). The slot is reserved under the pump lock so a
-    /// concurrent sequencing evaluation can never dispatch alongside; a private watcher then
-    /// confirms/times out the trigger against the mirror even in phases where the departure
-    /// pump does not run its own resolve (e.g. a Deboarding call at arrival).
-    /// </summary>
-    public async Task<GsxTriggerDispatch> TryDispatchServiceTriggerAsync(
-        string serviceId,
-        string source,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(serviceId);
-
-        // Reserve under the pump lock — the sequencer checks the slot under the same lock, so
-        // there is exactly one writer. A held lock means an evaluation is mid-flight; briefly
-        // waiting is cheaper (and friendlier) than refusing.
-        if (!await _pumpLock.WaitAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false))
-        {
-            return new(GsxTriggerDispatchStatus.Busy, _inFlight?.ServiceId);
-        }
-
-        try
-        {
-            if (_inFlight is { } inFlight)
-            {
-                return new(GsxTriggerDispatchStatus.Busy, inFlight.ServiceId);
-            }
-
-            _inFlight = new InFlightTrigger(serviceId, DateTimeOffset.UtcNow);
-        }
-        finally
-        {
-            _pumpLock.Release();
-        }
-
-        RecordDecision($"trigger {serviceId}", $"requested by {source}");
-        var result = await _api.SendCommandAsync(
-            "service.trigger",
-            new JsonObject { ["service"] = serviceId },
-            cancellationToken).ConfigureAwait(false);
-        if (!result.Ok)
-        {
-            if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
-            {
-                _inFlight = null;
-            }
-            RecordDecision($"trigger {serviceId}", $"rejected ({result.Code})");
-            return new(GsxTriggerDispatchStatus.Rejected, RejectCode: result.Code);
-        }
-
-        _ = WatchOnDemandTriggerAsync(serviceId, attempt: 1);
-        return new(GsxTriggerDispatchStatus.Dispatched);
-    }
-
-    /// <summary>Confirm-or-timeout watcher for on-demand triggers, mirroring
-    /// <see cref="ResolveInFlightTrigger"/> semantics. Exits early when the departure pump's
-    /// own resolve got there first (the slot no longer carries this service). A first-attempt
-    /// timeout retries ONCE automatically (issue #76: the departure pump retries dropped
-    /// calls, but an on-demand GPU call at arrival simply died); a second drop records a
-    /// web-visible decision and frees the slot.</summary>
-    private async Task WatchOnDemandTriggerAsync(string serviceId, int attempt)
-    {
-        try
-        {
-            var deadline = DateTimeOffset.UtcNow
-                + TimeSpan.FromMilliseconds(_options.CurrentValue.TriggerConfirmTimeoutMs);
-            while (DateTimeOffset.UtcNow < deadline)
-            {
-                if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) != true)
-                {
-                    return; // resolved (or replaced) by the departure pump — nothing left to own
-                }
-
-                var cycles = _lifecycle.SnapshotCycles();
-                cycles.TryGetValue(serviceId, out var cycle);
-                var mirrorState = _api.Mirror.Services.TryGetValue(serviceId, out var info)
-                    ? info.State
-                    : (GsxServiceState?)null;
-                if (cycle.Requested || cycle.Active || cycle.Completed
-                    || mirrorState is GsxServiceState.Requested or GsxServiceState.Active or GsxServiceState.Completed)
-                {
-                    _lifecycle.MarkCalled(serviceId);
-                    if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
-                    {
-                        _inFlight = null;
-                    }
-                    RecordDecision(
-                        $"trigger {serviceId}",
-                        $"confirmed by GSX ({mirrorState?.ToString() ?? "lifecycle edge"})");
-                    return;
-                }
-
-                await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
-            }
-
-            if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) != true)
-            {
-                return; // someone else already resolved the slot
-            }
-
-            if (attempt == 1)
-            {
-                // 2026-08-16 (#76): GSX silently dropped an on-demand GPU request and nothing
-                // ever re-sent it. Keep owning the slot (fresh timestamp so the departure
-                // pump's own timeout does not race the retry) and fire the trigger once more.
-                _inFlight = new InFlightTrigger(serviceId, DateTimeOffset.UtcNow);
-                RecordDecision(
-                    $"trigger {serviceId}",
-                    "not picked up by GSX within the confirm window — retrying once automatically");
-                var retry = await _api.SendCommandAsync(
-                    "service.trigger",
-                    new JsonObject { ["service"] = serviceId }).ConfigureAwait(false);
-                if (!retry.Ok)
-                {
-                    if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
-                    {
-                        _inFlight = null;
-                    }
-                    RecordDecision($"trigger {serviceId}", $"automatic retry rejected ({retry.Code}) — the slot is free again");
-                    return;
-                }
-
-                await WatchOnDemandTriggerAsync(serviceId, attempt: 2).ConfigureAwait(false);
-                return;
-            }
-
-            _inFlight = null;
-            RecordDecision(
-                $"trigger {serviceId}",
-                "dropped twice (initial call + one automatic retry) — GSX is not accepting this "
-                + "call; check the GSX menu/state in the sim. The slot is free again");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "On-demand trigger watcher for {Service} failed", serviceId);
-        }
-    }
-
     public void Dispose()
     {
+        _slot.Changed -= Pump;
         _flightState.PhaseChanged -= OnFlightPhaseChanged;
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _api.Mirror.Updated -= OnMirrorUpdated;
@@ -393,7 +257,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 _paxTargetArmed = false;
                 _isTurnaround = true;
                 _forceNext = false;
-                _inFlight = null;
+                _slot.Reset("service cycles reset after arrival");
                 lock (_triggerAttempts)
                 {
                     _triggerAttempts.Clear();
@@ -503,11 +367,6 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 ArmGsxPaxTarget();
             }
 
-            // Resolve the in-flight trigger BEFORE sequencing: confirmed (mirror/cycle shows
-            // GSX picked it up) → mark called, next dispatch may go out; timed out → the call
-            // was silently dropped, clear it so the sequencer offers the service again.
-            ResolveInFlightTrigger(options.TriggerConfirmTimeoutMs);
-
             var cycles = _lifecycle.SnapshotCycles();
             DepartureCycleView Cycle(string id)
             {
@@ -524,7 +383,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 options.DepartureServices,
                 _api.Mirror.Services,
                 Cycle,
-                _inFlight?.ServiceId,
+                _slot.InFlightServiceId,
                 flightPlanAvailable,
                 options.RequireOfpBeforeDeparture,
                 _isTurnaround,
@@ -551,18 +410,23 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 RecordDecisionOnce($"hold {serviceId}", reason);
             }
 
-            if (plan.Trigger is { } trigger && _inFlight is null)
+            if (plan.Trigger is { } trigger && _slot.InFlightServiceId is null)
             {
                 int attempt;
                 lock (_triggerAttempts)
                 {
                     attempt = _triggerAttempts[trigger] = _triggerAttempts.GetValueOrDefault(trigger) + 1;
                 }
-                _inFlight = new InFlightTrigger(trigger, DateTimeOffset.UtcNow);
-                RecordDecision(
-                    $"trigger {trigger}",
-                    attempt == 1 ? plan.TriggerReason ?? "next in departure order" : $"{plan.TriggerReason} (attempt {attempt})");
-                _ = TriggerServiceAsync(trigger);
+                // No watcher retry: a dropped call frees the slot and this pump re-offers the
+                // same service — the sequencer IS the retry-forever policy. SlotWait zero so
+                // the pump never stalls waiting on an on-demand caller's trigger.
+                var reason = attempt == 1
+                    ? plan.TriggerReason ?? "next in departure order"
+                    : $"{plan.TriggerReason} (attempt {attempt})";
+                _ = _slot.TryDispatchAsync(new GsxTriggerRequest(trigger, $"sequencer — {reason}")
+                {
+                    SlotWait = TimeSpan.Zero,
+                });
             }
 
             if (plan.AllDone)
@@ -579,77 +443,6 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         finally
         {
             _pumpLock.Release();
-        }
-    }
-
-    /// <summary>Confirms or times out the one in-flight service.trigger. The command ack proves
-    /// nothing — confirmation is the mirror (or a latched lifecycle edge, for quick services
-    /// that bounce straight back to available) showing GSX picked the request up. Only then is
-    /// the cycle marked called and the next dispatch allowed out.</summary>
-    private void ResolveInFlightTrigger(int confirmTimeoutMs)
-    {
-        if (_inFlight is not { } inFlight)
-        {
-            return;
-        }
-
-        var cycles = _lifecycle.SnapshotCycles();
-        cycles.TryGetValue(inFlight.ServiceId, out var cycle);
-        var mirrorState = _api.Mirror.Services.TryGetValue(inFlight.ServiceId, out var info) ? info.State : (GsxServiceState?)null;
-        var confirmed = cycle.Requested || cycle.Active || cycle.Completed
-            || mirrorState is GsxServiceState.Requested or GsxServiceState.Active or GsxServiceState.Completed;
-
-        if (confirmed)
-        {
-            _lifecycle.MarkCalled(inFlight.ServiceId);
-            _inFlight = null;
-            _lastDroppedService = null;
-            _consecutiveDrops = 0;
-            RecordDecision($"trigger {inFlight.ServiceId}", $"confirmed by GSX ({mirrorState?.ToString() ?? "lifecycle edge"})");
-        }
-        else if (DateTimeOffset.UtcNow - inFlight.SentAt > TimeSpan.FromMilliseconds(confirmTimeoutMs))
-        {
-            _inFlight = null;
-            _consecutiveDrops = string.Equals(_lastDroppedService, inFlight.ServiceId, StringComparison.OrdinalIgnoreCase)
-                ? _consecutiveDrops + 1
-                : 1;
-            _lastDroppedService = inFlight.ServiceId;
-            RecordDecision(
-                $"trigger {inFlight.ServiceId}",
-                $"not picked up by GSX within {confirmTimeoutMs / 1000} s — the call was dropped; retrying");
-
-            // Two consecutive drops of the same service means GSX is refusing calls, not
-            // missing them. An open GSX menu at that moment is the usual culprit (issue #44:
-            // a facility/stand conflict kept "Change parking or service" up and every trigger
-            // died) — say so once per streak instead of retrying in silence.
-            if (_consecutiveDrops == 2)
-            {
-                var openMenu = _api.Mirror.MenuShown ? _api.Mirror.Menu?.Title : null;
-                RecordDecision(
-                    $"trigger {inFlight.ServiceId}",
-                    openMenu is null
-                        ? "dropped twice in a row — GSX is not accepting service calls; check the GSX menu/state in the sim"
-                        : $"dropped twice in a row while the GSX menu '{openMenu}' is open — resolve that menu; "
-                            + "triggers are refused until it closes (see issue #44)");
-            }
-        }
-    }
-
-    private async Task TriggerServiceAsync(string serviceId)
-    {
-        var result = await _api.SendCommandAsync(
-            "service.trigger",
-            new JsonObject { ["service"] = serviceId }).ConfigureAwait(false);
-        if (!result.Ok)
-        {
-            // Definitive rejection — no point waiting out the confirm window; free the
-            // dispatch slot so the next pump retries (or moves on).
-            if (_inFlight?.ServiceId.Equals(serviceId, StringComparison.OrdinalIgnoreCase) == true)
-            {
-                _inFlight = null;
-            }
-            RecordDecision($"trigger {serviceId}", $"rejected ({result.Code})");
-            Pump();
         }
     }
 
@@ -794,7 +587,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         var holds = plan.Holds.ToDictionary(h => h.ServiceId, h => h.Reason, StringComparer.OrdinalIgnoreCase);
         var skips = plan.Skipped.ToDictionary(s => s.ServiceId, s => s.Reason, StringComparer.OrdinalIgnoreCase);
         var services = _api.Mirror.Services;
-        var inFlight = _inFlight?.ServiceId;
+        var inFlight = _slot.InFlightServiceId;
 
         var rows = new List<GsxServiceBoardRow>();
         foreach (var id in DistinctServiceIds(steps))

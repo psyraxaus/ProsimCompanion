@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ProsimCompanion.Analyzers/ProsimCompanion.Analyzers.csproj" />
     <Project Path="src/ProsimCompanion.App/ProsimCompanion.App.csproj" />
     <Project Path="src/ProsimCompanion.Audio/ProsimCompanion.Audio.csproj" />
     <Project Path="src/ProsimCompanion.Core/ProsimCompanion.Core.csproj" />

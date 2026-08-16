@@ -1,10 +1,10 @@
-using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Gsx.Automation;
 using ProsimCompanion.Gsx.Protocol;
 using ProsimCompanion.Gsx.Services;
 
@@ -22,8 +22,13 @@ public sealed class GsxJetwayStairsService : IDisposable
     private const string JetwayServiceId = GsxServiceIds.OperateJetways;
     private const string StairsServiceId = GsxServiceIds.OperateStairs;
 
+    /// <summary>Connect confirm window — deliberately longer than the shared default: GSX has
+    /// been observed taking 15 s+ to surface a jetway edge at busy airports, and the fallback
+    /// (try the other service) must not fire while the first is still plausibly coming.</summary>
+    private static readonly TimeSpan ConnectConfirmWindow = TimeSpan.FromSeconds(20);
+
     private readonly IGsxRemoteApi _api;
-    private readonly GsxServiceLifecycleTracker _lifecycle;
+    private readonly IGsxTriggerSlot _slot;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxJetwayStairsService> _logger;
@@ -33,8 +38,7 @@ public sealed class GsxJetwayStairsService : IDisposable
     private readonly IDataRefSubscription _operateStairsState;
     private string? _handledGateKey;
     private string? _currentGateKey;
-    private string? _pendingServiceId;
-    private DateTimeOffset _pendingDeadline;
+    private volatile string? _pendingServiceId;
     private bool _fallbackTried;
     private int _checking;
 
@@ -45,21 +49,21 @@ public sealed class GsxJetwayStairsService : IDisposable
 
     public GsxJetwayStairsService(
         IGsxRemoteApi api,
-        GsxServiceLifecycleTracker lifecycle,
+        IGsxTriggerSlot slot,
         ISimVars simVars,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxJetwayStairsService> logger)
     {
         ArgumentNullException.ThrowIfNull(api);
-        ArgumentNullException.ThrowIfNull(lifecycle);
+        ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
         _api = api;
-        _lifecycle = lifecycle;
+        _slot = slot;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
@@ -128,12 +132,11 @@ public sealed class GsxJetwayStairsService : IDisposable
                 _fallbackTried = false;
             }
 
+            // A dispatched connect resolves via the trigger slot's watcher (OnConnectResolved)
+            // — this step just reports Pending until it does.
             if (_pendingServiceId is not null)
             {
-                VerifyPendingTrigger(gateKey);
-                return _pendingServiceId is null && _handledGateKey is not null
-                    ? GsxPrepStatus.Done
-                    : GsxPrepStatus.Pending;
+                return GsxPrepStatus.Pending;
             }
 
             if (string.Equals(gateKey, _handledGateKey, StringComparison.Ordinal))
@@ -202,39 +205,38 @@ public sealed class GsxJetwayStairsService : IDisposable
         }
     }
 
-    /// <summary>A trigger is only trusted once the service shows a Requested/Active/Completed
-    /// edge — GSX has been observed acking OperateJetways at a jetway-less stand and doing
-    /// nothing. No edge within the deadline ⇒ fall back to the other service once.</summary>
-    private void VerifyPendingTrigger(string gateKey)
+    /// <summary>A trigger is only trusted once the trigger slot's watcher confirms the
+    /// Requested/Active/Completed edge — GSX has been observed acking OperateJetways at a
+    /// jetway-less stand and doing nothing. A drop OR a rejection falls back to the other
+    /// service once (the old direct-send path burned 20 s waiting out a definitive rejection
+    /// before falling back; the slot resolves it immediately).</summary>
+    private void OnConnectResolved(string serviceId, string gateKey, GsxTriggerResolution resolution)
     {
-        var pending = _pendingServiceId!;
-        var state = _api.Mirror.Services.GetValueOrDefault(pending)?.State;
-        if (state is GsxServiceState.Requested or GsxServiceState.Active or GsxServiceState.Completed)
+        if (!string.Equals(_pendingServiceId, serviceId, StringComparison.OrdinalIgnoreCase))
         {
-            _pendingServiceId = null;
-            _handledGateKey = gateKey;
-            RecordDecision("jetway/stairs", $"{pending} responding ({state})");
-            return;
-        }
-
-        if (DateTimeOffset.UtcNow < _pendingDeadline)
-        {
-            return;
+            return; // superseded by a gate-context reset
         }
 
         _pendingServiceId = null;
-        var fallbackId = pending == JetwayServiceId ? StairsServiceId : JetwayServiceId;
+        if (resolution == GsxTriggerResolution.Confirmed)
+        {
+            _handledGateKey = gateKey;
+            RecordDecision("jetway/stairs", $"{serviceId} responding");
+            return;
+        }
+
+        var fallbackId = serviceId == JetwayServiceId ? StairsServiceId : JetwayServiceId;
         if (!_fallbackTried && _api.Mirror.Services.TryGetValue(fallbackId, out var fallback)
             && fallback.State == GsxServiceState.Callable && fallback.CanTrigger)
         {
             _fallbackTried = true;
-            RecordDecision("jetway/stairs", $"{pending} showed no response — falling back to {fallbackId}");
+            RecordDecision("jetway/stairs", $"{serviceId} showed no response — falling back to {fallbackId}");
             StartTrigger(fallbackId);
         }
         else
         {
             _handledGateKey = gateKey;
-            RecordDecision("jetway/stairs", $"{pending} showed no response and no usable fallback — giving up for this gate");
+            RecordDecision("jetway/stairs", $"{serviceId} showed no response and no usable fallback — giving up for this gate");
         }
     }
 
@@ -265,7 +267,7 @@ public sealed class GsxJetwayStairsService : IDisposable
         RecordDecision(
             "jetway/stairs",
             $"departure services complete — removing stairs ({mode}{(jetwayConnected ? ", jetway stays" : "")})");
-        await TriggerAsync(StairsServiceId).ConfigureAwait(false);
+        await DispatchRemovalAsync(StairsServiceId).ConfigureAwait(false);
     }
 
     /// <summary>Retracts whatever is connected (the departure-sequence jetway step). The
@@ -281,7 +283,7 @@ public sealed class GsxJetwayStairsService : IDisposable
             {
                 removedAny = true;
                 RecordDecision("jetway/stairs", $"departure — retracting {serviceId}");
-                await TriggerAsync(serviceId).ConfigureAwait(false);
+                await DispatchRemovalAsync(serviceId).ConfigureAwait(false);
             }
         }
         if (!removedAny)
@@ -290,23 +292,63 @@ public sealed class GsxJetwayStairsService : IDisposable
         }
     }
 
-    private void StartTrigger(string serviceId)
+    /// <summary>Toggle retraction through the slot: NoConfirm (the confirming edge for a
+    /// retraction is the service LEAVING Active/Completed — the connect predicate would lie),
+    /// with the slot's spacing interval separating a jetway+stairs pair that used to go out
+    /// back-to-back with zero gap. The long slot wait matters: this can be step 2 of the
+    /// beacon pushback sequence, and skipping it risks pushing with the jetway attached.</summary>
+    private async Task DispatchRemovalAsync(string serviceId)
     {
-        _pendingServiceId = serviceId;
-        _pendingDeadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(20);
-        _lifecycle.MarkCalled(serviceId);
-        _ = TriggerAsync(serviceId);
+        var dispatch = await _slot
+            .TryDispatchAsync(new GsxTriggerRequest(serviceId, "jetway/stairs removal")
+            {
+                NoConfirm = true,
+                SlotWait = TimeSpan.FromSeconds(10),
+            })
+            .ConfigureAwait(false);
+        if (dispatch.Status != GsxTriggerDispatchStatus.Dispatched)
+        {
+            RecordDecision(
+                "jetway/stairs",
+                dispatch.Status == GsxTriggerDispatchStatus.Busy
+                    ? $"{serviceId} retraction NOT sent — trigger slot stayed busy with {dispatch.BusyServiceId ?? "another service"}"
+                    : $"{serviceId} retraction rejected ({dispatch.RejectCode})");
+        }
     }
 
-    private async Task TriggerAsync(string serviceId)
+    private void StartTrigger(string serviceId)
     {
-        var result = await _api.SendCommandAsync(
-            "service.trigger",
-            new JsonObject { ["service"] = serviceId }).ConfigureAwait(false);
-        if (!result.Ok)
+        var gateKey = _currentGateKey ?? string.Empty;
+        _pendingServiceId = serviceId;
+        _ = DispatchConnectAsync(serviceId, gateKey);
+    }
+
+    private async Task DispatchConnectAsync(string serviceId, string gateKey)
+    {
+        try
         {
-            // Let the pending verification time out into the fallback path.
-            RecordDecision("jetway/stairs", $"{serviceId} trigger rejected ({result.Code})");
+            var dispatch = await _slot
+                .TryDispatchAsync(new GsxTriggerRequest(serviceId, "jetway/stairs connect")
+                {
+                    ConfirmWindow = ConnectConfirmWindow,
+                    SlotWait = TimeSpan.FromSeconds(10),
+                    OnResolved = resolution => OnConnectResolved(serviceId, gateKey, resolution),
+                })
+                .ConfigureAwait(false);
+            if (dispatch.Status == GsxTriggerDispatchStatus.Busy
+                && string.Equals(_pendingServiceId, serviceId, StringComparison.OrdinalIgnoreCase))
+            {
+                // Nothing went out — clear pending so the next coordinator cycle retries.
+                _pendingServiceId = null;
+                RecordDecision(
+                    "jetway/stairs",
+                    $"{serviceId} connect waiting — trigger slot busy with {dispatch.BusyServiceId ?? "another service"}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _pendingServiceId = null;
+            _logger.LogError(ex, "Jetway/stairs connect dispatch for {Service} failed", serviceId);
         }
     }
 

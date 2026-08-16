@@ -27,6 +27,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
     private const string PushbackServiceId = GsxServiceIds.Departure;
 
     private readonly IGsxRemoteApi _api;
+    private readonly IGsxTriggerSlot _slot;
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxAutomationService _automation;
     private readonly GsxDoorService _doors;
@@ -55,6 +56,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
 
     public GsxPushbackSequenceService(
         IGsxRemoteApi api,
+        IGsxTriggerSlot slot,
         GsxServiceLifecycleTracker lifecycle,
         GsxAutomationService automation,
         GsxDoorService doors,
@@ -70,6 +72,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
         ArgumentNullException.ThrowIfNull(loadsheets);
         _loadsheets = loadsheets;
         ArgumentNullException.ThrowIfNull(api);
+        ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(automation);
         ArgumentNullException.ThrowIfNull(doors);
@@ -82,6 +85,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
         ArgumentNullException.ThrowIfNull(logger);
 
         _api = api;
+        _slot = slot;
         _lifecycle = lifecycle;
         _automation = automation;
         _doors = doors;
@@ -221,13 +225,31 @@ public sealed class GsxPushbackSequenceService : IDisposable
                     break;
 
                 case PushbackAction.CallPushback:
-                    _lifecycle.MarkCalled(PushbackServiceId);
-                    var result = await _api.SendCommandAsync(
-                        "service.trigger",
-                        new JsonObject { ["service"] = PushbackServiceId }).ConfigureAwait(false);
-                    if (!result.Ok)
+                    // Retry-once (campaign #77): pushback was the only sender with NO retry —
+                    // a silently dropped call was unrecoverable without pilot action. The slot
+                    // marks the cycle called on confirmation, and a failure un-latches the tug
+                    // path so the next tick re-offers.
+                    var dispatch = await _slot
+                        .TryDispatchAsync(new GsxTriggerRequest(PushbackServiceId, "pushback sequence")
+                        {
+                            RetryOnce = true,
+                            OnResolved = resolution =>
+                            {
+                                if (resolution != GsxTriggerResolution.Confirmed)
+                                {
+                                    _tugPushbackCalled = false;
+                                }
+                            },
+                        })
+                        .ConfigureAwait(false);
+                    if (dispatch.Status != GsxTriggerDispatchStatus.Dispatched)
                     {
-                        RecordDecision("pushback sequence", $"pushback trigger rejected ({result.Code})");
+                        _tugPushbackCalled = false;
+                        RecordDecision(
+                            "pushback sequence",
+                            dispatch.Status == GsxTriggerDispatchStatus.Busy
+                                ? $"pushback call waiting — trigger slot busy with {dispatch.BusyServiceId ?? "another service"}"
+                                : $"pushback trigger rejected ({dispatch.RejectCode})");
                     }
                     break;
             }

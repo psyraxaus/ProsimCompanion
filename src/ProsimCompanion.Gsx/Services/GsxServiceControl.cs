@@ -13,8 +13,8 @@ namespace ProsimCompanion.Gsx.Services;
 /// <summary>
 /// Implements the Core <see cref="IGsxServiceControl"/> seam: pre-flight checks against the
 /// state mirror + lifecycle cycles (never raw ordinals, never the menu), then dispatch through
-/// <see cref="IGsxTriggerDispatcher"/> — the SAME serialized single-slot service.trigger path
-/// the departure automation uses, so a user command can never rapid-fire GSX alongside it.
+/// the shared <see cref="IGsxTriggerSlot"/> — the SAME serialized service.trigger path every
+/// sender uses, so a user command can never rapid-fire GSX alongside the automation.
 ///
 /// By-design refusals (documented in docs/integrations/command-api.md):
 /// - <b>Pushback</b> is beacon-orchestrated (<see cref="GsxPushbackSequenceService"/>): doors
@@ -35,7 +35,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxServiceLifecycleTracker _lifecycle;
-    private readonly IGsxTriggerDispatcher _dispatcher;
+    private readonly IGsxTriggerSlot _slot;
     private readonly IGsxGroundPrepStatus _groundPrep;
     private readonly IFlightPhaseSource _flightPhase;
     private readonly IGsxFlightPlanStatus _flightPlan;
@@ -47,7 +47,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     public GsxServiceControl(
         IGsxRemoteApi api,
         GsxServiceLifecycleTracker lifecycle,
-        IGsxTriggerDispatcher dispatcher,
+        IGsxTriggerSlot slot,
         IGsxGroundPrepStatus groundPrep,
         IFlightPhaseSource flightPhase,
         IGsxFlightPlanStatus flightPlan,
@@ -58,7 +58,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
-        ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(groundPrep);
         ArgumentNullException.ThrowIfNull(flightPhase);
         ArgumentNullException.ThrowIfNull(flightPlan);
@@ -69,7 +69,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
 
         _api = api;
         _lifecycle = lifecycle;
-        _dispatcher = dispatcher;
+        _slot = slot;
         _groundPrep = groundPrep;
         _flightPhase = flightPhase;
         _flightPlan = flightPlan;
@@ -282,8 +282,12 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         string display,
         CancellationToken cancellationToken)
     {
-        var dispatch = await _dispatcher
-            .TryDispatchServiceTriggerAsync(serviceId, "command", cancellationToken)
+        // Retry-once (#76): an on-demand call has no sequencer re-offering it, so a silent
+        // drop gets one automatic re-send before the user is told to try again.
+        var dispatch = await _slot
+            .TryDispatchAsync(
+                new GsxTriggerRequest(serviceId, "command") { RetryOnce = true },
+                cancellationToken)
             .ConfigureAwait(false);
         return dispatch.Status switch
         {

@@ -12,6 +12,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
+    <!-- PCGSX001: compile-time fence — only GsxTriggerSlot may send service.trigger. -->
+    <ProjectReference Include="..\ProsimCompanion.Analyzers\ProsimCompanion.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

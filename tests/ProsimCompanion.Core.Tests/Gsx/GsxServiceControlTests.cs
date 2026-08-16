@@ -20,7 +20,7 @@ public sealed class GsxServiceControlTests
     private readonly Mock<IGsxRemoteApi> _api = new();
     private readonly GsxStateMirror _mirror = new();
     private readonly GsxServiceLifecycleTracker _lifecycle = new(NullLogger<GsxServiceLifecycleTracker>.Instance);
-    private readonly Mock<IGsxTriggerDispatcher> _dispatcher = new();
+    private readonly Mock<IGsxTriggerSlot> _dispatcher = new();
     private readonly Mock<IGsxGroundPrepStatus> _groundPrep = new();
     private readonly Mock<IFlightPhaseSource> _flightPhase = new();
     private readonly Mock<IGsxFlightPlanStatus> _flightPlan = new();
@@ -46,8 +46,8 @@ public sealed class GsxServiceControlTests
         _flightPhase.SetupGet(f => f.CurrentPhase).Returns(FlightPhase.Preflight);
         _flightPlan.SetupGet(f => f.FlightPlanAvailable).Returns(true);
         _dispatcher
-            .Setup(d => d.TryDispatchServiceTriggerAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.TryDispatchAsync(
+                It.IsAny<GsxTriggerRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GsxTriggerDispatch(GsxTriggerDispatchStatus.Dispatched));
 
         return new GsxServiceControl(
@@ -106,7 +106,7 @@ public sealed class GsxServiceControlTests
 
         Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
         _dispatcher.Verify(
-            d => d.TryDispatchServiceTriggerAsync("Refueling", It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "Refueling"), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -172,7 +172,7 @@ public sealed class GsxServiceControlTests
         var control = CreateControl();
         SeedService("Catering", "available");
         _dispatcher
-            .Setup(d => d.TryDispatchServiceTriggerAsync("Catering", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "Catering"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GsxTriggerDispatch(GsxTriggerDispatchStatus.Busy, BusyServiceId: "Refueling"));
 
         var outcome = await control.TryCallAsync(GsxServiceAction.RequestCatering);
@@ -187,7 +187,7 @@ public sealed class GsxServiceControlTests
         var control = CreateControl();
         SeedService("Catering", "available");
         _dispatcher
-            .Setup(d => d.TryDispatchServiceTriggerAsync("Catering", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "Catering"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GsxTriggerDispatch(GsxTriggerDispatchStatus.Busy, BusyServiceId: "Catering"));
 
         var outcome = await control.TryCallAsync(GsxServiceAction.RequestCatering);
@@ -201,7 +201,7 @@ public sealed class GsxServiceControlTests
         var control = CreateControl();
         SeedService("DeIce", "available");
         _dispatcher
-            .Setup(d => d.TryDispatchServiceTriggerAsync("DeIce", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "DeIce"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GsxTriggerDispatch(GsxTriggerDispatchStatus.Rejected, RejectCode: "no_gate"));
 
         var outcome = await control.TryCallAsync(GsxServiceAction.RequestDeice);
@@ -298,7 +298,7 @@ public sealed class GsxServiceControlTests
 
         Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
         _dispatcher.Verify(
-            d => d.TryDispatchServiceTriggerAsync("OperateJetways", It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "OperateJetways"), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -418,7 +418,7 @@ public sealed class GsxServiceControlTests
 
         Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
         _dispatcher.Verify(
-            d => d.TryDispatchServiceTriggerAsync("GPU", It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "GPU"), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

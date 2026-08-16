@@ -24,13 +24,16 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Menu.GsxQuestionCatalog>();
         services.AddSingleton<Gate.GsxGateSelectionService>();
         services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
+        // The trigger slot (CONTEXT.md): the single serialized service.trigger path shared by
+        // every sender — sequencer, on-demand commands, arrival, pushback, jetway/stairs.
+        services.AddSingleton<Automation.GsxTriggerSlot>();
+        services.AddSingleton<Automation.IGsxTriggerSlot>(provider => provider.GetRequiredService<Automation.GsxTriggerSlot>());
         services.AddSingleton<Automation.GsxAutomationService>();
         services.AddSingleton<Core.State.IGsxDepartureControl>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
         // Lazy view for the prep coordinator's voice gate: the automation service depends on
         // the coordinator, so the reverse edge must resolve late to avoid a constructor cycle.
         services.AddSingleton(provider => new Lazy<Core.State.IGsxDepartureControl>(
             provider.GetRequiredService<Core.State.IGsxDepartureControl>));
-        services.AddSingleton<Automation.IGsxTriggerDispatcher>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
         // One flight-plan rule for the sequencer gate AND the on-demand path (ADR-0006).
         services.AddSingleton<Automation.GsxFlightPlanMonitor>();
         services.AddSingleton<Automation.IGsxFlightPlanStatus>(provider => provider.GetRequiredService<Automation.GsxFlightPlanMonitor>());

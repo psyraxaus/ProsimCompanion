@@ -31,6 +31,7 @@ public sealed class GsxArrivalService : IDisposable
     private const string DeboardingServiceId = "Deboarding";
 
     private readonly IGsxRemoteApi _api;
+    private readonly IGsxTriggerSlot _slot;
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxAutomationService _automation;
     private readonly FlightStateEngine _flightState;
@@ -59,6 +60,7 @@ public sealed class GsxArrivalService : IDisposable
 
     public GsxArrivalService(
         IGsxRemoteApi api,
+        IGsxTriggerSlot slot,
         GsxServiceLifecycleTracker lifecycle,
         GsxAutomationService automation,
         FlightStateEngine flightState,
@@ -77,6 +79,7 @@ public sealed class GsxArrivalService : IDisposable
         _groundEquipment = groundEquipment;
         _jetwayStairs = jetwayStairs;
         ArgumentNullException.ThrowIfNull(api);
+        ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(automation);
         ArgumentNullException.ThrowIfNull(flightState);
@@ -89,6 +92,7 @@ public sealed class GsxArrivalService : IDisposable
         ArgumentNullException.ThrowIfNull(logger);
 
         _api = api;
+        _slot = slot;
         _lifecycle = lifecycle;
         _automation = automation;
         _flightState = flightState;
@@ -309,20 +313,38 @@ public sealed class GsxArrivalService : IDisposable
         }
 
         _deboardCalled = true;
-        _lifecycle.MarkCalled(DeboardingServiceId);
         RecordDecision("arrival", "calling Deboarding");
         _ = TriggerDeboardingAsync();
     }
 
+    /// <summary>Dispatches through the shared trigger slot. The cycle is marked called by the
+    /// slot on GSX's confirming edge, not up front; anything short of Dispatched re-arms the
+    /// 1 Hz tick so the call is re-offered — including a silent drop, which the old direct
+    /// send never retried.</summary>
     private async Task TriggerDeboardingAsync()
     {
-        var result = await _api.SendCommandAsync(
-            "service.trigger",
-            new JsonObject { ["service"] = DeboardingServiceId }).ConfigureAwait(false);
-        if (!result.Ok)
+        var dispatch = await _slot
+            .TryDispatchAsync(new GsxTriggerRequest(DeboardingServiceId, "arrival")
+            {
+                RetryOnce = true,
+                // Even the automatic retry can drop — un-latch so the tick keeps offering.
+                OnResolved = resolution =>
+                {
+                    if (resolution != GsxTriggerResolution.Confirmed)
+                    {
+                        _deboardCalled = false;
+                    }
+                },
+            })
+            .ConfigureAwait(false);
+        if (dispatch.Status != GsxTriggerDispatchStatus.Dispatched)
         {
             _deboardCalled = false; // retry on a later tick
-            RecordDecision("arrival", $"Deboarding trigger rejected ({result.Code})");
+            RecordDecision(
+                "arrival",
+                dispatch.Status == GsxTriggerDispatchStatus.Busy
+                    ? $"Deboarding call waiting — trigger slot busy with {dispatch.BusyServiceId ?? "another service"}"
+                    : $"Deboarding trigger rejected ({dispatch.RejectCode})");
         }
     }
 
