@@ -107,7 +107,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _logger = logger;
 
         _api.Mirror.SidChanged += OnSidChanged;
-        _simSession.PhaseChanged += OnSimSessionPhaseChanged;
+        _simSession.SessionEnded += OnSessionEnded;
         _timer = new Timer(_ => _ = CycleAsync(), null, CycleInterval, CycleInterval);
     }
 
@@ -118,7 +118,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     public void Dispose()
     {
         _api.Mirror.SidChanged -= OnSidChanged;
-        _simSession.PhaseChanged -= OnSimSessionPhaseChanged;
+        _simSession.SessionEnded -= OnSessionEnded;
         _timer.Dispose();
     }
 
@@ -126,15 +126,9 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
     /// <summary>The pilot left the flight (back to the main menu / new flight loading): the
     /// next session starts the chain from the top. A Couatl restart usually resets us anyway,
-    /// but a session change without one must not inherit a half-finished (or Complete) chain.</summary>
-    private void OnSimSessionPhaseChanged(SimSessionPhase oldPhase, SimSessionPhase newPhase)
-    {
-        if (oldPhase is SimSessionPhase.InSession or SimSessionPhase.Walkaround
-            && newPhase is SimSessionPhase.NotInSession or SimSessionPhase.Unknown)
-        {
-            Reset("sim session ended");
-        }
-    }
+    /// but a session change without one must not inherit a half-finished (or Complete) chain.
+    /// The edge itself is the store's (campaign #79) — never re-derived here.</summary>
+    private void OnSessionEnded() => Reset("sim session ended");
 
     /// <summary>Startup resync (issue #30): the tracking LVARs say this gate session's
     /// preparation already ran before the app restarted — jump straight to Complete so the

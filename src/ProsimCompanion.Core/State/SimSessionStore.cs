@@ -35,9 +35,16 @@ public sealed record SimSessionSnapshot(
     public static SimSessionSnapshot Empty { get; } =
         new(SimSessionPhase.Unknown, SimRunning: false, Paused: true, CameraState: null, SimVersion: null);
 
-    /// <summary>True while a flight session exists at all (aboard or on walkaround) — the
-    /// window in which sim-session LVARs and flight data are meaningful.</summary>
-    public bool InSession => Phase is SimSessionPhase.InSession or SimSessionPhase.Walkaround;
+    /// <summary>The session gate's first question (CONTEXT.md): true while a flight session
+    /// exists at all — aboard or on walkaround — so sim-session LVARs and flight data may be
+    /// trusted.</summary>
+    public bool DataIsMeaningful => Phase is SimSessionPhase.InSession or SimSessionPhase.Walkaround;
+
+    /// <summary>The session gate's second question (CONTEXT.md): true only with the pilot in
+    /// the aircraft. Ground automation (reposition, GSX services) holds during the walkaround
+    /// — services must not be driven while the pilot is outside the aircraft — and on Unknown
+    /// (a signal we cannot read is not a signal that passed).</summary>
+    public bool MayDriveGroundServices => Phase == SimSessionPhase.InSession;
 }
 
 /// <summary>
@@ -58,8 +65,18 @@ public sealed class SimSessionStore
     public event EventHandler? Changed;
 
     /// <summary>Raised when <see cref="SimSessionPhase"/> transitions, with (old, new), on the
-    /// caller's thread. Session-end teardown hooks off this.</summary>
+    /// caller's thread.</summary>
     public event Action<SimSessionPhase, SimSessionPhase>? PhaseChanged;
+
+    /// <summary>Raised once when a flight session begins — entering
+    /// {InSession, Walkaround} from outside (campaign #79: the edge is computed here, never
+    /// re-derived by consumers).</summary>
+    public event Action? SessionStarted;
+
+    /// <summary>Raised once when the flight session ends — leaving {InSession, Walkaround}
+    /// into {NotInSession, Unknown}. Session-end teardown (prep reset, verdict withdrawal,
+    /// latch re-arm) hooks off this.</summary>
+    public event Action? SessionEnded;
 
     public SimSessionSnapshot Snapshot()
     {
@@ -91,6 +108,71 @@ public sealed class SimSessionStore
         if (oldPhase != snapshot.Phase)
         {
             PhaseChanged?.Invoke(oldPhase, snapshot.Phase);
+
+            var wasLive = oldPhase is SimSessionPhase.InSession or SimSessionPhase.Walkaround;
+            var isLive = snapshot.Phase is SimSessionPhase.InSession or SimSessionPhase.Walkaround;
+            if (!wasLive && isLive)
+            {
+                SessionStarted?.Invoke();
+            }
+            else if (wasLive && !isLive)
+            {
+                SessionEnded?.Invoke();
+            }
         }
     }
+
+    /// <summary>Opens a session window (CONTEXT.md): a settle period anchored to
+    /// session entry, after which time-gated checks may conclude. Re-anchors automatically on
+    /// every session start and goes un-elapsed when the session ends — the 90 s tick
+    /// arithmetic the startup resync and the aircraft-state check used to hand-roll.</summary>
+    public SessionWindow OpenWindow(TimeSpan settle) => new(this, settle);
+}
+
+/// <summary>A settle window anchored to sim-session entry (see
+/// <see cref="SimSessionStore.OpenWindow"/>). Monotonic clock; thread-safe; dispose to
+/// unsubscribe.</summary>
+public sealed class SessionWindow : IDisposable
+{
+    private readonly SimSessionStore _store;
+    private readonly TimeSpan _settle;
+    private long _anchorTicks = -1;
+
+    internal SessionWindow(SimSessionStore store, TimeSpan settle)
+    {
+        _store = store;
+        _settle = settle;
+        _store.SessionStarted += OnSessionStarted;
+        _store.SessionEnded += OnSessionEnded;
+        if (store.Snapshot().DataIsMeaningful)
+        {
+            OnSessionStarted();
+        }
+    }
+
+    /// <summary>True once the session has been live for the whole settle period. False while
+    /// no session is live.</summary>
+    public bool Elapsed
+    {
+        get
+        {
+            var anchor = Interlocked.Read(ref _anchorTicks);
+            return anchor >= 0
+                && TimeSpan.FromMilliseconds(Environment.TickCount64 - anchor) >= _settle;
+        }
+    }
+
+    /// <summary>Re-anchors the window to now (an in-session re-arm, e.g. after a verdict is
+    /// withdrawn without the session ending).</summary>
+    public void Restart() => Interlocked.Exchange(ref _anchorTicks, Environment.TickCount64);
+
+    public void Dispose()
+    {
+        _store.SessionStarted -= OnSessionStarted;
+        _store.SessionEnded -= OnSessionEnded;
+    }
+
+    private void OnSessionStarted() => Interlocked.Exchange(ref _anchorTicks, Environment.TickCount64);
+
+    private void OnSessionEnded() => Interlocked.Exchange(ref _anchorTicks, -1);
 }

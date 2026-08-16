@@ -238,7 +238,7 @@ public sealed class GsxStartupResyncService : IDisposable
     private readonly IDataRefSubscription _fmsDestination;
 
     private readonly Timer _timer;
-    private long _assessWindowStartTicks = Environment.TickCount64;
+    private readonly SessionWindow _assessWindow;
     private bool _prepLvarLatched;
     private bool _loggedSessionWait;
 
@@ -303,7 +303,8 @@ public sealed class GsxStartupResyncService : IDisposable
 
         _lifecycle.ServiceEvent += OnServiceEvent;
         _signals.FlightCycleReset += OnFlightCycleReset;
-        _simSession.PhaseChanged += OnSimSessionPhaseChanged;
+        _simSession.SessionEnded += OnSessionEnded;
+        _assessWindow = simSession.OpenWindow(AssessmentTimeout);
         _connectionStatus.Changed += OnConnectionStatusChanged;
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
     }
@@ -313,7 +314,8 @@ public sealed class GsxStartupResyncService : IDisposable
         _timer.Dispose();
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _signals.FlightCycleReset -= OnFlightCycleReset;
-        _simSession.PhaseChanged -= OnSimSessionPhaseChanged;
+        _simSession.SessionEnded -= OnSessionEnded;
+        _assessWindow.Dispose();
         _connectionStatus.Changed -= OnConnectionStatusChanged;
         foreach (var subscription in _serviceDoneLvars.Values)
         {
@@ -346,14 +348,7 @@ public sealed class GsxStartupResyncService : IDisposable
     /// ground-prep chain will re-run in the next session — re-arm the prep-done latch so that
     /// completion is written to the fresh session's LVAR (otherwise an app restart in the new
     /// session would find PrepDone=0 and re-drive the reposition mid-turnaround).</summary>
-    private void OnSimSessionPhaseChanged(SimSessionPhase oldPhase, SimSessionPhase newPhase)
-    {
-        if (oldPhase is SimSessionPhase.InSession or SimSessionPhase.Walkaround
-            && newPhase is SimSessionPhase.NotInSession or SimSessionPhase.Unknown)
-        {
-            _prepLvarLatched = false;
-        }
-    }
+    private void OnSessionEnded() => _prepLvarLatched = false;
 
     /// <summary>The arrival boundary: this sim session is now in a turnaround, and the next
     /// leg's progress tracking starts clean.</summary>
@@ -401,22 +396,20 @@ public sealed class GsxStartupResyncService : IDisposable
         // The evidence lives in the sim session: the tracking LVARs are created with the
         // flight and vanish with it, and ProSim's datarefs settle only once the pilot is
         // aboard. Assessing from the main menu would always conclude "nothing detected" and
-        // latch it, so the assessment (and its 90 s timeout window) waits for session entry.
-        // Walkaround counts as in-session — the LVARs exist there.
-        if (!_simSession.Snapshot().InSession)
+        // latch it, so the assessment (and its 90 s session window) waits for session entry.
+        // Walkaround counts — DataIsMeaningful — because the LVARs exist there.
+        if (!_simSession.Snapshot().DataIsMeaningful)
         {
             if (!_loggedSessionWait)
             {
                 _loggedSessionWait = true;
                 RecordDecision("waiting for the MSFS session before assessing (automation holds)");
             }
-            _assessWindowStartTicks = Environment.TickCount64;
             return;
         }
 
         _loggedSessionWait = false;
-        var timedOut =
-            TimeSpan.FromMilliseconds(Environment.TickCount64 - _assessWindowStartTicks) >= AssessmentTimeout;
+        var timedOut = _assessWindow.Elapsed;
         var worldKnown = _api.Readiness == GsxReadiness.Ready && _api.Mirror.Services.Count > 0;
         if (!worldKnown)
         {

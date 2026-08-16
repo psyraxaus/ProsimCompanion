@@ -140,11 +140,17 @@ public sealed class SimSessionEvaluatorTests
     }
 
     [Fact]
-    public void SnapshotInSession_CoversWalkaround()
+    public void SessionGatePredicates_SplitOnTheWalkaround()
     {
-        Assert.True(SimSessionSnapshot.Empty with { Phase = SimSessionPhase.Walkaround } is { InSession: true });
-        Assert.True(SimSessionSnapshot.Empty with { Phase = SimSessionPhase.InSession } is { InSession: true });
-        Assert.False(SimSessionSnapshot.Empty with { Phase = SimSessionPhase.NotInSession } is { InSession: true });
-        Assert.False(SimSessionSnapshot.Empty.InSession);
+        // The two named questions (campaign #79): data is meaningful on the walkaround, but
+        // ground services may not act there.
+        Assert.True(SimSessionSnapshot.Empty with { Phase = SimSessionPhase.Walkaround } is { DataIsMeaningful: true });
+        Assert.True(SimSessionSnapshot.Empty with { Phase = SimSessionPhase.InSession } is { DataIsMeaningful: true });
+        Assert.False(SimSessionSnapshot.Empty with { Phase = SimSessionPhase.NotInSession } is { DataIsMeaningful: true });
+        Assert.False(SimSessionSnapshot.Empty.DataIsMeaningful);
+
+        Assert.True(SimSessionSnapshot.Empty with { Phase = SimSessionPhase.InSession } is { MayDriveGroundServices: true });
+        Assert.False(SimSessionSnapshot.Empty with { Phase = SimSessionPhase.Walkaround } is { MayDriveGroundServices: true });
+        Assert.False(SimSessionSnapshot.Empty.MayDriveGroundServices);
     }
 }

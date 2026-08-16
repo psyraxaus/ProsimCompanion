@@ -117,7 +117,7 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
         // until a flight session exists (ProSim pushes plausible data while MSFS sits on the
         // main menu — see SimSessionStore) AND the source reports every phase-critical dataref
         // registered and fresh. While gated, hold the current phase quietly.
-        var ready = session.InSession && snapshot.IsReady;
+        var ready = session.DataIsMeaningful && snapshot.IsReady;
         if (ready != _classifying)
         {
             _classifying = ready;

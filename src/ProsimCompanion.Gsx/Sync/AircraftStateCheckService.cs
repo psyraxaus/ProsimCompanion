@@ -148,7 +148,7 @@ public sealed class AircraftStateCheckService : IDisposable
     private readonly AircraftStateDefinition? _definition;
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly Timer _timer;
-    private long _settleWindowStartTicks = Environment.TickCount64;
+    private readonly SessionWindow _settleWindow;
     private bool _assessed;
 
     public AircraftStateCheckService(
@@ -198,14 +198,16 @@ public sealed class AircraftStateCheckService : IDisposable
             }
         }
 
-        _simSession.PhaseChanged += OnSimSessionPhaseChanged;
+        _simSession.SessionEnded += OnSessionEnded;
+        _settleWindow = simSession.OpenWindow(SettleTimeout);
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
     }
 
     public void Dispose()
     {
         _timer.Dispose();
-        _simSession.PhaseChanged -= OnSimSessionPhaseChanged;
+        _simSession.SessionEnded -= OnSessionEnded;
+        _settleWindow.Dispose();
         foreach (var subscription in _reads.Values)
         {
             subscription.Dispose();
@@ -215,15 +217,11 @@ public sealed class AircraftStateCheckService : IDisposable
     /// <summary>Re-arms the check when the pilot leaves the flight session (menu/world map):
     /// the next session gets a fresh verdict, and the stale one is withdrawn so the status
     /// page never shows last flight's aircraft state against a new spawn.</summary>
-    private void OnSimSessionPhaseChanged(SimSessionPhase oldPhase, SimSessionPhase newPhase)
+    private void OnSessionEnded()
     {
-        if (oldPhase is SimSessionPhase.InSession or SimSessionPhase.Walkaround
-            && newPhase is SimSessionPhase.NotInSession or SimSessionPhase.Unknown)
-        {
-            _assessed = false;
-            _settleWindowStartTicks = Environment.TickCount64;
-            _diagnostics.UpdateAircraftStateCheck(null);
-        }
+        _assessed = false;
+        _diagnostics.UpdateAircraftStateCheck(null);
+        // The settle window re-anchors itself on the next session start (campaign #79).
     }
 
     private void Tick()
@@ -235,11 +233,10 @@ public sealed class AircraftStateCheckService : IDisposable
                 return;
             }
 
-            // The switch positions only mean something inside the flight session; keep the
-            // settle window anchored to session entry (same rationale as the startup resync).
-            if (!_simSession.Snapshot().InSession)
+            // The switch positions only mean something inside the flight session; the settle
+            // window is anchored to session entry (same rationale as the startup resync).
+            if (!_simSession.Snapshot().DataIsMeaningful)
             {
-                _settleWindowStartTicks = Environment.TickCount64;
                 return;
             }
 
@@ -251,8 +248,7 @@ public sealed class AircraftStateCheckService : IDisposable
             }
 
             var options = _options.CurrentValue;
-            var timedOut = TimeSpan.FromMilliseconds(Environment.TickCount64 - _settleWindowStartTicks)
-                >= SettleTimeout;
+            var timedOut = _settleWindow.Elapsed;
             if (!timedOut && options.AircraftStateCheckEnabled)
             {
                 // Give the phase engine and the subscriptions time to settle: classifying
