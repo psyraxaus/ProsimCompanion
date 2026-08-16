@@ -183,147 +183,83 @@ public interface IGsxDepartureControl
 
 /// <summary>
 /// Live GSX diagnostics for the web UI — the browser-side twin of the wire trace, built for
-/// evaluating sim smoke tests at a glance. The GSX layer pushes updates; readers subscribe to
-/// <see cref="Changed"/> and read <see cref="Snapshot"/> (no per-reader polling). Kept in Core
-/// so the Web project (which references only Core) can render it.
+/// evaluating sim smoke tests at a glance. The GSX layer pushes updates; readers observe and
+/// read <see cref="SnapshotStore{T}.Snapshot"/> (no per-reader polling). Kept in Core so the
+/// Web project (which references only Core) can render it. Recomposed on the shared snapshot
+/// store (campaign #86): the snapshot record is the single source — a new row is one record
+/// property plus one mutator, and unchanged pushes (value-equal views) no longer notify.
 /// </summary>
-public sealed class GsxDiagnosticsStore
+public sealed class GsxDiagnosticsStore : SnapshotStore<GsxDiagnosticsSnapshot>
 {
     public const int RecentCommandLimit = 25;
     public const int RecentDecisionLimit = 50;
 
-    private readonly object _gate = new();
-    private readonly Queue<GsxCommandView> _commands = new();
-    private readonly Queue<GsxDecisionView> _decisions = new();
-    private IReadOnlyList<GsxServiceBoardRow> _serviceBoard = [];
-    private GsxBoardingCountersView? _boardingCounters;
-    private GsxHandlerEventView? _lastHandlerEvent;
-    private GsxGroundPrepView? _groundPrep;
-    private bool? _groundPowerConnected;
-    private AircraftStateCheckView? _aircraftStateCheck;
-    private GsxDiagnosticsSnapshot _current = GsxDiagnosticsSnapshot.Empty;
+    private readonly Collections.BoundedLog<GsxCommandView> _commands = new(RecentCommandLimit);
+    private readonly Collections.BoundedLog<GsxDecisionView> _decisions = new(RecentDecisionLimit);
 
-    /// <summary>Raised after any update, on the writer's thread — consumers marshal to their
-    /// own context (<c>InvokeAsync</c> in Blazor components).</summary>
-    public event EventHandler? Changed;
-
-    /// <summary>Point-in-time diagnostics view (recent commands/decisions newest-first).</summary>
-    public GsxDiagnosticsSnapshot Snapshot()
+    public GsxDiagnosticsStore()
+        : base(GsxDiagnosticsSnapshot.Empty)
     {
-        lock (_gate)
-        {
-            return _current with
-            {
-                RecentCommands = [.. _commands.Reverse()],
-                RecentDecisions = [.. _decisions.Reverse()],
-                ServiceBoard = _serviceBoard,
-                BoardingCounters = _boardingCounters,
-                LastHandlerEvent = _lastHandlerEvent,
-                GroundPrep = _groundPrep,
-                GroundPowerConnected = _groundPowerConnected,
-                AircraftStateCheck = _aircraftStateCheck,
-            };
-        }
     }
 
     /// <summary>Replaces the departure-service status board (automation layer, every pump).</summary>
     public void UpdateServiceBoard(IReadOnlyList<GsxServiceBoardRow> rows)
     {
         ArgumentNullException.ThrowIfNull(rows);
-        lock (_gate)
-        {
-            _serviceBoard = rows;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        Update(snapshot => snapshot with { ServiceBoard = rows });
     }
 
     /// <summary>Replaces the boarding/deboarding counters (boarding sync, at most 1 Hz —
     /// callers only push on change).</summary>
     public void UpdateBoardingCounters(GsxBoardingCountersView? counters)
-    {
-        lock (_gate)
-        {
-            _boardingCounters = counters;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
+        => Update(snapshot => snapshot with { BoardingCounters = counters });
 
     /// <summary>Replaces the ground-power (GPU attached) state — pushed by the ground
     /// equipment sync on dataref change; null = not reported yet.</summary>
     public void UpdateGroundPower(bool? connected)
-    {
-        lock (_gate)
-        {
-            _groundPowerConnected = connected;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
+        => Update(snapshot => snapshot with { GroundPowerConnected = connected });
 
     /// <summary>Replaces the ground-preparation stage/status (prep coordinator, on stage
     /// transitions only — issue #45); null = not reported yet.</summary>
     public void UpdateGroundPrep(GsxGroundPrepView? groundPrep)
-    {
-        lock (_gate)
-        {
-            _groundPrep = groundPrep;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
+        => Update(snapshot => snapshot with { GroundPrep = groundPrep });
 
     /// <summary>Replaces the session-start aircraft state verdict (aircraft state check, once
     /// per session — issue #63); null = re-armed for a new session, renders "—".</summary>
     public void UpdateAircraftStateCheck(AircraftStateCheckView? check)
-    {
-        lock (_gate)
-        {
-            _aircraftStateCheck = check;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
+        => Update(snapshot => snapshot with { AircraftStateCheck = check });
 
     /// <summary>Records the most recent service lifecycle edge for the Flight Status row.</summary>
     public void RecordHandlerEvent(GsxHandlerEventView handlerEvent)
     {
         ArgumentNullException.ThrowIfNull(handlerEvent);
-        lock (_gate)
-        {
-            _lastHandlerEvent = handlerEvent;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        Update(snapshot => snapshot with { LastHandlerEvent = handlerEvent });
     }
 
-    /// <summary>Replaces the connection/mirror-derived portion of the view.</summary>
+    /// <summary>Replaces the connection/mirror-derived portion of the view; the feature-pushed
+    /// rows (board, counters, prep, rings, …) carry over from the current snapshot.</summary>
     public void Update(GsxDiagnosticsSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        lock (_gate)
+        Update(current => snapshot with
         {
-            _current = snapshot;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
+            RecentCommands = current.RecentCommands,
+            RecentDecisions = current.RecentDecisions,
+            ServiceBoard = current.ServiceBoard,
+            BoardingCounters = current.BoardingCounters,
+            LastHandlerEvent = current.LastHandlerEvent,
+            GroundPrep = current.GroundPrep,
+            GroundPowerConnected = current.GroundPowerConnected,
+            AircraftStateCheck = current.AircraftStateCheck,
+        });
     }
 
     /// <summary>Appends a command outcome to the bounded recent-commands ring.</summary>
     public void RecordCommand(GsxCommandView command)
     {
         ArgumentNullException.ThrowIfNull(command);
-        lock (_gate)
-        {
-            _commands.Enqueue(command);
-            while (_commands.Count > RecentCommandLimit)
-            {
-                _ = _commands.Dequeue();
-            }
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        _commands.Add(command);
+        Update(snapshot => snapshot with { RecentCommands = _commands.Snapshot() });
     }
 
     /// <summary>Appends an automation decision ("what happened and why") to the bounded ring —
@@ -331,15 +267,7 @@ public sealed class GsxDiagnosticsStore
     public void RecordDecision(GsxDecisionView decision)
     {
         ArgumentNullException.ThrowIfNull(decision);
-        lock (_gate)
-        {
-            _decisions.Enqueue(decision);
-            while (_decisions.Count > RecentDecisionLimit)
-            {
-                _ = _decisions.Dequeue();
-            }
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        _decisions.Add(decision);
+        Update(snapshot => snapshot with { RecentDecisions = _decisions.Snapshot() });
     }
 }

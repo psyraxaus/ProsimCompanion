@@ -1,7 +1,7 @@
 @page "/techlog"
 @using Microsoft.Extensions.DependencyInjection
 @using ProsimCompanion.Core.TechLog
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject IServiceProvider Services
 
 <PageTitle>Tech Log — ProsimCompanion</PageTitle>
@@ -129,28 +129,11 @@
         // Optional resolution: the page renders a friendly notice (instead of a DI crash)
         // in builds where the tech log is not yet wired — degrade, not fail.
         _techLog = Services.GetService<ITechLogService>();
-        if (_techLog is not null)
+        if (_techLog is { } techLog)
         {
-            _techLog.Changed += OnChanged;
-            Refresh();
+            WatchChanged(h => techLog.Changed += h, h => techLog.Changed -= h, Refresh);
         }
     }
-
-    public void Dispose()
-    {
-        if (_techLog is not null)
-        {
-            _techLog.Changed -= OnChanged;
-        }
-    }
-
-    private void OnChanged()
-        // Store events fire on the mutating thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            Refresh();
-            StateHasChanged();
-        });
 
     private void Refresh()
     {

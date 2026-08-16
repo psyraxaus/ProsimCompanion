@@ -2,7 +2,7 @@
 @using ProsimCompanion.Core.Configuration
 @using ProsimCompanion.Core.Flight
 @using ProsimCompanion.Core.Profiles
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject ConnectionStatusStore Status
 @inject SimSessionStore Session
 @inject IFlightPhaseSource FlightState
@@ -298,45 +298,12 @@
 
     protected override void OnInitialized()
     {
-        _connections = Status.Snapshot();
-        _gsx = Diagnostics.Snapshot();
-
-        Status.Changed += OnStatusChanged;
-        Session.Changed += OnDataChanged;
-        Diagnostics.Changed += OnDiagnosticsChanged;
-        FlightState.PhaseChanged += OnPhaseChanged;
-        Profiles.Changed += OnDataChanged;
-        Audio.Changed += OnDataChanged;
-    }
-
-    private void OnStatusChanged(object? sender, EventArgs e)
-        // Store events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _connections = Status.Snapshot();
-            StateHasChanged();
-        });
-
-    private void OnDiagnosticsChanged(object? sender, EventArgs e)
-        => _ = InvokeAsync(() =>
-        {
-            _gsx = Diagnostics.Snapshot();
-            StateHasChanged();
-        });
-
-    private void OnDataChanged(object? sender, EventArgs e)
-        => _ = InvokeAsync(StateHasChanged);
-
-    private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
-        => _ = InvokeAsync(StateHasChanged);
-
-    public void Dispose()
-    {
-        Status.Changed -= OnStatusChanged;
-        Session.Changed -= OnDataChanged;
-        Diagnostics.Changed -= OnDiagnosticsChanged;
-        FlightState.PhaseChanged -= OnPhaseChanged;
-        Profiles.Changed -= OnDataChanged;
-        Audio.Changed -= OnDataChanged;
+        Watch(Diagnostics, snapshot => _gsx = snapshot);
+        Watch(Audio, _ => { });
+        WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _connections = Status.Snapshot());
+        WatchChanged(h => Session.Changed += h, h => Session.Changed -= h, () => { });
+        WatchChanged<FlightPhaseChangedEventArgs>(
+            h => FlightState.PhaseChanged += h, h => FlightState.PhaseChanged -= h, () => { });
+        WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
     }
 }

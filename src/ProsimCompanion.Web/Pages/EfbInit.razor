@@ -2,7 +2,7 @@
 @using System.Globalization
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject OfpStore Ofp
 @inject IEfbInitOverrides Overrides
 @inject IFmsInitSync FmsSync
@@ -164,34 +164,19 @@
 
     protected override void OnInitialized()
     {
-        Ofp.Changed += OnChanged;
-        Overrides.Changed += OnChanged;
-        Units.Changed += OnUnitsChanged;
-        _ofp = Ofp.Current;
-        _overrides = Overrides.Snapshot();
+        WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
+        WatchChanged(h => Overrides.Changed += h, h => Overrides.Changed -= h,
+            () => _overrides = Overrides.Snapshot());
+        WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
-        Ofp.Changed -= OnChanged;
-        Overrides.Changed -= OnChanged;
-        Units.Changed -= OnUnitsChanged;
+        base.Dispose();
         _phaseTimer?.Dispose();
         _resetDisarmTimer?.Dispose();
         _editErrorTimer?.Dispose();
     }
-
-    // Units.Changed fires on arbitrary threads — marshal into the circuit.
-    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
-
-    // Store Changed events fire on writer threads — marshal onto the renderer.
-    private void OnChanged(object? sender, EventArgs e)
-        => _ = InvokeAsync(() =>
-        {
-            _ofp = Ofp.Current;
-            _overrides = Overrides.Snapshot();
-            StateHasChanged();
-        });
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

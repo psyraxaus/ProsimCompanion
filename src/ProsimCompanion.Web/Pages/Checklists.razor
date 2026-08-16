@@ -2,7 +2,7 @@
 @using Microsoft.Extensions.Options
 @using ProsimCompanion.Core.Checklists
 @using ProsimCompanion.Core.Configuration
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject ChecklistService Engine
 @inject IOptionsMonitor<ChecklistOptions> Options
 
@@ -182,20 +182,7 @@
     private bool AllowOverride => Options.CurrentValue.AllowManualOverride;
 
     protected override void OnInitialized()
-    {
-        Engine.Changed += OnChanged;
-        Refresh();
-    }
-
-    public void Dispose() => Engine.Changed -= OnChanged;
-
-    // Engine.Changed fires on a writer thread — marshal onto the renderer.
-    private void OnChanged(object? sender, EventArgs e)
-        => _ = InvokeAsync(() =>
-        {
-            Refresh();
-            StateHasChanged();
-        });
+        => WatchChanged(h => Engine.Changed += h, h => Engine.Changed -= h, Refresh);
 
     private void Refresh()
     {

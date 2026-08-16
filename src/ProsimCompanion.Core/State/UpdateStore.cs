@@ -17,41 +17,24 @@ public sealed record UpdateSnapshot(
 /// Holds the update-check outcome for the web layout's banner. Written by the update check
 /// service; <see cref="Changed"/> fires on the writer's thread — UI consumers marshal.
 /// </summary>
-public sealed class UpdateStore
+public sealed class UpdateStore : SnapshotStore<UpdateSnapshot>
 {
-    private readonly object _lock = new();
-    private UpdateSnapshot _snapshot = UpdateSnapshot.Empty;
-
-    public event EventHandler? Changed;
-
-    public UpdateSnapshot Snapshot()
+    public UpdateStore()
+        : base(UpdateSnapshot.Empty)
     {
-        lock (_lock)
-        {
-            return _snapshot;
-        }
     }
 
     public void Set(UpdateSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        lock (_lock)
+        // A dismissal outlives subsequent checks for the same version — the banner must
+        // not pop back every interval; a NEWER version un-dismisses.
+        Update(current => snapshot with
         {
-            // A dismissal outlives subsequent checks for the same version — the banner must
-            // not pop back every interval; a NEWER version un-dismisses.
-            var dismissed = _snapshot.Dismissed
-                && string.Equals(_snapshot.LatestVersion, snapshot.LatestVersion, StringComparison.Ordinal);
-            _snapshot = snapshot with { Dismissed = dismissed };
-        }
-        Changed?.Invoke(this, EventArgs.Empty);
+            Dismissed = current.Dismissed
+                && string.Equals(current.LatestVersion, snapshot.LatestVersion, StringComparison.Ordinal),
+        });
     }
 
-    public void Dismiss()
-    {
-        lock (_lock)
-        {
-            _snapshot = _snapshot with { Dismissed = true };
-        }
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
+    public void Dismiss() => Update(current => current with { Dismissed = true });
 }

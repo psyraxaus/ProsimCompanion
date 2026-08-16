@@ -118,17 +118,19 @@ public sealed class LlmHealthTests
     }
 
     [Fact]
-    public void Store_FiresChangedOnTransitionsOnly()
+    public void Store_NotifiesOnTransitionsOnly()
     {
         var store = new LlmHealthStore();
         var fired = 0;
-        store.Changed += (_, _) => fired++;
+        using var subscription = store.Observe(_ => fired++);
 
         store.Report(LlmHealthState.Healthy);
         store.Report(LlmHealthState.Healthy); // same state + summary — no churn
         store.Report(LlmHealthState.AuthFailed, "HTTP 401 from the chat-completions endpoint");
 
         Assert.Equal(2, fired);
+        // The silent same-state report still refreshed the snapshot's timestamp.
+        Assert.NotNull(store.Snapshot().LastCheckedUtc);
     }
 
     // ---- The probe decision (pure) ----

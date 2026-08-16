@@ -18,44 +18,20 @@ public sealed record ArrivalMinima(ArrivalMinimumKind Kind, double AltitudeFt);
 /// disabled (with a logged reason) until the crew enters them here (/speech page; later the
 /// briefing flow). Cleared on turnaround by the crew or a new entry.
 /// </summary>
-public sealed class ArrivalMinimaStore
+public sealed class ArrivalMinimaStore : SnapshotStore<ArrivalMinima?>
 {
-    private readonly object _gate = new();
-    private ArrivalMinima? _minima;
-
-    /// <summary>Raised after any change, on the writer's thread.</summary>
-    public event EventHandler? Changed;
-
-    public ArrivalMinima? Current
+    public ArrivalMinimaStore()
+        : base(null)
     {
-        get
-        {
-            lock (_gate)
-            {
-                return _minima;
-            }
-        }
     }
+
+    public ArrivalMinima? Current => Snapshot();
 
     public void Set(ArrivalMinima minima)
     {
         ArgumentNullException.ThrowIfNull(minima);
-
-        lock (_gate)
-        {
-            _minima = minima;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        Update(_ => minima);
     }
 
-    public void Clear()
-    {
-        lock (_gate)
-        {
-            _minima = null;
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
+    public void Clear() => Update(_ => null);
 }

@@ -51,34 +51,11 @@ public sealed record WeatherSnapshot(
 /// references only Core) can render it and the composite weather provider can read it back.
 /// Written by the SayIntentions weather service in ProsimCompanion.Speech.
 /// </summary>
-public sealed class WeatherStore
+public sealed class WeatherStore : SnapshotStore<WeatherSnapshot>
 {
-    private readonly object _gate = new();
-    private WeatherSnapshot _snapshot = WeatherSnapshot.Empty;
-
-    /// <summary>Raised after any update, on the writer's thread — consumers marshal to their
-    /// own context (InvokeAsync in Blazor components).</summary>
-    public event EventHandler? Changed;
-
-    public WeatherSnapshot Snapshot()
+    public WeatherStore()
+        : base(WeatherSnapshot.Empty)
     {
-        lock (_gate)
-        {
-            return _snapshot;
-        }
-    }
-
-    /// <summary>Replaces the snapshot via a pure transform of the current one.</summary>
-    public void Update(Func<WeatherSnapshot, WeatherSnapshot> mutate)
-    {
-        ArgumentNullException.ThrowIfNull(mutate);
-
-        lock (_gate)
-        {
-            _snapshot = mutate(_snapshot);
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
     }
 }
 

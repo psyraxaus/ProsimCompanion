@@ -1,7 +1,7 @@
 @page "/day"
 @using Microsoft.Extensions.DependencyInjection
 @using ProsimCompanion.Core.Day
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject IServiceProvider Services
 
 <PageTitle>Duty Day — ProsimCompanion</PageTitle>
@@ -159,28 +159,12 @@
         // in builds where day mode is not yet wired — degrade, not fail.
         _store = Services.GetService<DayStatusStore>();
         _control = Services.GetService<IDayControl>();
-        if (_store is not null)
+        if (_store is { } store)
         {
-            _store.Changed += OnChanged;
-            _snapshot = _store.Snapshot();
+            WatchChanged(h => store.Changed += h, h => store.Changed -= h,
+                () => _snapshot = store.Snapshot());
         }
     }
-
-    public void Dispose()
-    {
-        if (_store is not null)
-        {
-            _store.Changed -= OnChanged;
-        }
-    }
-
-    private void OnChanged(object? sender, EventArgs e)
-        // Store events fire on the mutating thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _snapshot = _store?.Snapshot() ?? DaySnapshot.Empty;
-            StateHasChanged();
-        });
 
     private void StartDay()
     {

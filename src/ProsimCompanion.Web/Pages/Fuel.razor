@@ -2,7 +2,7 @@
 @using System.Globalization
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject IProsimDataRefs DataRefs
 @inject OfpStore Ofp
 @inject DisplayUnitService Units
@@ -131,16 +131,16 @@
         _fuelRightOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuter);
         _fuelRightOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuterCapacity);
 
-        Units.Changed += OnUnitsChanged;
+        WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
 
         // Live instrument view — a 1 s repaint matches the datarefs' Normal cadence.
         _refresh = new Timer(_ => _ = InvokeAsync(StateHasChanged), null,
             TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
-        Units.Changed -= OnUnitsChanged;
+        base.Dispose();
         _refresh?.Dispose();
         foreach (var sub in new[]
         {
@@ -167,9 +167,6 @@
         yield return new TankRow("RIGHT INNER", _fuelRightInner.Value, _fuelRightInnerCap.Value);
         yield return new TankRow("RIGHT OUTER", _fuelRightOuter.Value, _fuelRightOuterCap.Value);
     }
-
-    // Units.Changed fires on arbitrary threads — marshal into the circuit.
-    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     // Uppercase unit label for the panel's all-caps typography ("KG" / "LB").
     private string UnitU => Units.UnitLabel.ToUpperInvariant();

@@ -28,6 +28,7 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
     private readonly ILogger<AircraftStateAdvisoryService> _logger;
     private readonly object _gate = new();
     private DateTimeOffset? _lastSpokenVerdict;
+    private IDisposable? _subscription;
 
     public AircraftStateAdvisoryService(
         GsxDiagnosticsStore diagnostics,
@@ -46,15 +47,15 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
         _logger = logger;
     }
 
-    public void Start() => _diagnostics.Changed += OnDiagnosticsChanged;
+    public void Start() => _subscription = _diagnostics.Observe(OnDiagnosticsChanged);
 
-    public void Dispose() => _diagnostics.Changed -= OnDiagnosticsChanged;
+    public void Dispose() => _subscription?.Dispose();
 
-    private void OnDiagnosticsChanged(object? sender, EventArgs e)
+    private void OnDiagnosticsChanged(GsxDiagnosticsSnapshot snapshot)
     {
         try
         {
-            var check = _diagnostics.Snapshot().AircraftStateCheck;
+            var check = snapshot.AircraftStateCheck;
             if (check is null || check.Status != AircraftStateCheckStatus.Mismatch || !check.Announce
                 || check.Mismatches.Count == 0)
             {

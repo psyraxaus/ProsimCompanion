@@ -1,7 +1,7 @@
 @* Live voice-FO status + diagnostics, shown as the landing section of the First Officer tab
    (#18 — the former standalone /speech page): arbiter state, TTS providers with per-provider
    tests, LLM/mic component tests, arrival minima, speak test and recent utterances. *@
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject SpeechStatusStore Status
 @inject ISpeechControl SpeechControl
 @inject ISpeechDiagnostics Diagnostics
@@ -198,18 +198,9 @@
 
     protected override void OnInitialized()
     {
-        _view = Status.Snapshot();
-        _minima = Minima.Current;
-        Status.Changed += OnChanged;
-        Minima.Changed += OnMinimaChanged;
+        Watch(Status, snapshot => _view = snapshot);
+        Watch(Minima, minima => _minima = minima);
     }
-
-    private void OnMinimaChanged(object? sender, EventArgs e)
-        => _ = InvokeAsync(() =>
-        {
-            _minima = Minima.Current;
-            StateHasChanged();
-        });
 
     private void SetMinima()
     {
@@ -227,14 +218,6 @@
         ArrivalMinimumKind.DecisionHeight => "DH",
         _ => "MDA",
     };
-
-    private void OnChanged(object? sender, EventArgs e)
-        // Store events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _view = Status.Snapshot();
-            StateHasChanged();
-        });
 
     private void SpeakTest()
     {
@@ -300,10 +283,4 @@
         "Suppressed" or "Deferred" => "tone-active",
         _ => "tone-neutral",
     };
-
-    public void Dispose()
-    {
-        Status.Changed -= OnChanged;
-        Minima.Changed -= OnMinimaChanged;
-    }
 }

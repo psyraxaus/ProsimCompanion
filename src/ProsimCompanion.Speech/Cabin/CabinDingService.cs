@@ -21,6 +21,7 @@ public sealed class CabinDingService : IHostedService, IDisposable
     private readonly ILogger<CabinDingService> _logger;
     private readonly CancellationTokenSource _shutdown = new();
     private LoadsheetSlotStatus _lastFinalStatus = LoadsheetSlotStatus.None;
+    private IDisposable? _subscription;
 
     public CabinDingService(
         LoadsheetStore loadsheets,
@@ -41,7 +42,7 @@ public sealed class CabinDingService : IHostedService, IDisposable
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _lastFinalStatus = _loadsheets.Snapshot().Final.Status;
-        _loadsheets.Changed += OnLoadsheetsChanged;
+        _subscription = _loadsheets.Observe(OnLoadsheetsChanged);
 
         if (_options.CurrentValue.DingOnStartup)
         {
@@ -52,18 +53,18 @@ public sealed class CabinDingService : IHostedService, IDisposable
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _loadsheets.Changed -= OnLoadsheetsChanged;
+        _subscription?.Dispose();
         _shutdown.Cancel();
         return Task.CompletedTask;
     }
 
     public void Dispose() => _shutdown.Dispose();
 
-    private void OnLoadsheetsChanged(object? sender, EventArgs e)
+    private void OnLoadsheetsChanged(LoadsheetSnapshot snapshot)
     {
         // Edge-detect the final going to Sent — resends re-enter Sent from Generating and
         // ding again, which matches the predecessor (every transmitted final chimed).
-        var status = _loadsheets.Snapshot().Final.Status;
+        var status = snapshot.Final.Status;
         var wasSent = _lastFinalStatus == LoadsheetSlotStatus.Sent;
         _lastFinalStatus = status;
 

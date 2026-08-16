@@ -55,34 +55,11 @@ public sealed record SpeechStatusSnapshot(
 /// Live status of the speech pillar. Kept in Core so the Web project (which references only
 /// Core) can render it. Written by ProsimCompanion.Speech.
 /// </summary>
-public sealed class SpeechStatusStore
+public sealed class SpeechStatusStore : SnapshotStore<SpeechStatusSnapshot>
 {
-    private readonly object _gate = new();
-    private SpeechStatusSnapshot _snapshot = SpeechStatusSnapshot.Empty;
-
-    /// <summary>Raised after any update, on the writer's thread — consumers marshal to their
-    /// own context (InvokeAsync in Blazor components).</summary>
-    public event EventHandler? Changed;
-
-    public SpeechStatusSnapshot Snapshot()
+    public SpeechStatusStore()
+        : base(SpeechStatusSnapshot.Empty)
     {
-        lock (_gate)
-        {
-            return _snapshot;
-        }
-    }
-
-    /// <summary>Replaces the snapshot via a pure transform of the current one.</summary>
-    public void Update(Func<SpeechStatusSnapshot, SpeechStatusSnapshot> mutate)
-    {
-        ArgumentNullException.ThrowIfNull(mutate);
-
-        lock (_gate)
-        {
-            _snapshot = mutate(_snapshot);
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
     }
 }
 

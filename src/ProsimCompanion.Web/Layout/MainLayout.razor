@@ -1,7 +1,6 @@
-@inherits LayoutComponentBase
+@inherits StoreObserverLayout
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Configuration
-@implements IDisposable
 @inject ConnectionStatusStore Status
 @inject IProsimDataRefs DataRefs
 @inject IOptionsMonitor<WebUiOptions> WebUi
@@ -136,12 +135,14 @@
 
     protected override void OnInitialized()
     {
-        Status.Changed += OnChanged;
-        Updates.Changed += OnChanged;
-        _flightNumberSub = DataRefs.Subscribe(ProsimDataRefNames.CidsFlightNumber);
-        _flightNumberSub.ValueChanged += OnChanged;
-        _flightNumber = _flightNumberSub.Value;
-        _update = Updates.Snapshot();
+        Watch(Updates, snapshot => _update = snapshot);
+        WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => { });
+        var flightNumberSub = DataRefs.Subscribe(ProsimDataRefNames.CidsFlightNumber);
+        _flightNumberSub = flightNumberSub;
+        WatchChanged(
+            h => flightNumberSub.ValueChanged += h,
+            h => flightNumberSub.ValueChanged -= h,
+            () => _flightNumber = flightNumberSub.Value);
 
         // Infrequent (2 s) is plenty for a minute-resolution clock and keeps the 10 s
         // staleness check meaningful (zulu time changes every sim second, so pushes keep
@@ -177,24 +178,10 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private void OnChanged(object? sender, EventArgs e)
-        // Store/SDK events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _flightNumber = _flightNumberSub?.Value ?? "";
-            _update = Updates.Snapshot();
-            StateHasChanged();
-        });
-
-    public void Dispose()
+    public override void Dispose()
     {
-        Status.Changed -= OnChanged;
-        Updates.Changed -= OnChanged;
-        if (_flightNumberSub is not null)
-        {
-            _flightNumberSub.ValueChanged -= OnChanged;
-            _flightNumberSub.Dispose();
-        }
+        base.Dispose();
+        _flightNumberSub?.Dispose();
         _simClockTimer?.Dispose();
         _zuluTimeSub?.Dispose();
         _simTimeSub?.Dispose();

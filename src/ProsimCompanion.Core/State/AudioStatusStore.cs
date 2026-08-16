@@ -66,34 +66,11 @@ public sealed record AudioStatusSnapshot(
 /// Live status of the audio-control pillar. Kept in Core so the Web project (which references
 /// only Core) can render it. Written by ProsimCompanion.Audio.
 /// </summary>
-public sealed class AudioStatusStore
+public sealed class AudioStatusStore : SnapshotStore<AudioStatusSnapshot>
 {
-    private readonly object _gate = new();
-    private AudioStatusSnapshot _snapshot = AudioStatusSnapshot.Empty;
-
-    /// <summary>Raised after any update, on the writer's thread — consumers marshal to their
-    /// own context (InvokeAsync in Blazor components).</summary>
-    public event EventHandler? Changed;
-
-    public AudioStatusSnapshot Snapshot()
+    public AudioStatusStore()
+        : base(AudioStatusSnapshot.Empty)
     {
-        lock (_gate)
-        {
-            return _snapshot;
-        }
-    }
-
-    /// <summary>Replaces the snapshot via a pure transform of the current one.</summary>
-    public void Update(Func<AudioStatusSnapshot, AudioStatusSnapshot> mutate)
-    {
-        ArgumentNullException.ThrowIfNull(mutate);
-
-        lock (_gate)
-        {
-            _snapshot = mutate(_snapshot);
-        }
-
-        Changed?.Invoke(this, EventArgs.Empty);
     }
 }
 

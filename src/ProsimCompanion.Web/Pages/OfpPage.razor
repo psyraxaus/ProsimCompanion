@@ -3,7 +3,7 @@
 @using ProsimCompanion.Core.Deice
 @using ProsimCompanion.Core.Gate
 @using ProsimCompanion.Core.Weather
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject OfpStore Ofp
 @inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
 @inject SettingsWriter Writer
@@ -210,44 +210,17 @@
 
     protected override void OnInitialized()
     {
-        Ofp.Changed += OnChanged;
-        GsxStore.Changed += OnChanged;
-        GateCoordinator.Changed += OnChanged;
-        Weather.Changed += OnChanged;
-        Deice.Changed += OnChanged;
-        Units.Changed += OnUnitsChanged;
-        _ofp = Ofp.Current;
-        _gsx = GsxStore.Snapshot();
-        _gateAssignment = GateCoordinator.Snapshot();
-        _weather = Weather.Snapshot();
-        _deice = Deice.Snapshot();
+        Watch(GsxStore, snapshot => _gsx = snapshot);
+        Watch(Weather, snapshot => _weather = snapshot);
+        WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
+        WatchChanged(h => GateCoordinator.Changed += h, h => GateCoordinator.Changed -= h,
+            () => _gateAssignment = GateCoordinator.Snapshot());
+        WatchChanged(h => Deice.Changed += h, h => Deice.Changed -= h, () => _deice = Deice.Snapshot());
+        WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
+        // Seed the OAT input once from the current snapshot — later Deice changes must not
+        // clobber what the user is typing.
         _deiceOat = _deice.OatC;
     }
-
-    public void Dispose()
-    {
-        Ofp.Changed -= OnChanged;
-        GsxStore.Changed -= OnChanged;
-        GateCoordinator.Changed -= OnChanged;
-        Weather.Changed -= OnChanged;
-        Deice.Changed -= OnChanged;
-        Units.Changed -= OnUnitsChanged;
-    }
-
-    // Units.Changed fires on arbitrary threads — marshal into the circuit.
-    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
-
-    private void OnChanged(object? sender, EventArgs e)
-        // Store events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _ofp = Ofp.Current;
-            _gsx = GsxStore.Snapshot();
-            _gateAssignment = GateCoordinator.Snapshot();
-            _weather = Weather.Snapshot();
-            _deice = Deice.Snapshot();
-            StateHasChanged();
-        });
 
     private void SetPreference(string key)
         // Korry buttons persist immediately (Prosim2GSX behaviour) — no dirty bar.

@@ -105,20 +105,17 @@
     protected override void OnInitialized()
     {
         _profiles = Draft(Options);
-        ProfileService.Changed += OnServiceChanged;
+        // Markup reads ProfileService directly, so the watch only needs the base's re-render.
+        WatchChanged(h => ProfileService.Changed += h, h => ProfileService.Changed -= h, () => { });
+        // Not a store event — an IOptionsMonitor change token, so it stays hand-wired.
         _optionsSubscription = Options.OnChange(options => { _ = InvokeAsync(StateHasChanged); });
     }
 
     public override void Dispose()
     {
-        ProfileService.Changed -= OnServiceChanged;
         _optionsSubscription?.Dispose();
         base.Dispose();
     }
-
-    private void OnServiceChanged(object? sender, EventArgs e)
-        // Service events fire on arbitrary threads; marshal into the circuit.
-        => _ = InvokeAsync(StateHasChanged);
 
     private static bool Matches(AircraftProfile profile, string title)
         => profile.MatchString.Length > 0 && profile.MatchType switch

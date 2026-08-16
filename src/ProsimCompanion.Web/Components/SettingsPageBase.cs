@@ -8,9 +8,11 @@ namespace ProsimCompanion.Web.Components;
 /// Base for settings pages (campaign #84): a page declares one draft per option section it
 /// edits and binds its inputs straight to the clones. Dirty tracking, the atomic diff save,
 /// the DirtyBar messaging and the saved-message timer live here once — the per-page
-/// LoadDraft/Snapshot/Save triples and hand-written JSON keys are gone.
+/// LoadDraft/Snapshot/Save triples and hand-written JSON keys are gone. Extends the store
+/// observer base (#86) so a settings page that also renders live state declares watches the
+/// same way every other page does.
 /// </summary>
-public abstract class SettingsPageBase : ComponentBase, IDisposable
+public abstract class SettingsPageBase : StoreObserverComponent
 {
     private readonly List<OptionsDraft> _drafts = [];
     private Timer? _savedMessageTimer;
@@ -92,5 +94,9 @@ public abstract class SettingsPageBase : ComponentBase, IDisposable
     {
     }
 
-    public virtual void Dispose() => _savedMessageTimer?.Dispose();
+    public override void Dispose()
+    {
+        _savedMessageTimer?.Dispose();
+        base.Dispose();
+    }
 }

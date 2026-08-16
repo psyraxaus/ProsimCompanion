@@ -4,7 +4,7 @@
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
 @using ProsimCompanion.Core.Aircraft.WeightAndBalance
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject IProsimDataRefs DataRefs
 @inject LoadsheetStore Loadsheets
 @inject PassengerManifestService ManifestService
@@ -255,7 +255,8 @@
         // pillar (its owner) is not wired — degrade, not fail.
         _paxSim = Services.GetService<IPassengerSimulation>();
 
-        Units.Changed += OnUnitsChanged;
+        // Markup reads Units directly, so the watch only needs the base's re-render.
+        WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
 
         _zfw = DataRefs.Subscribe(ProsimDataRefNames.WeightZfw);
         _zfwMax = DataRefs.Subscribe(ProsimDataRefNames.WeightZfwMax);
@@ -296,9 +297,8 @@
             TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
-        Units.Changed -= OnUnitsChanged;
         _refresh?.Dispose();
         foreach (var sub in new IDataRefSubscription[]
         {
@@ -311,12 +311,10 @@
         {
             sub.Dispose();
         }
+        base.Dispose();
     }
 
     private static bool DoorOpen(IDataRefSubscription<bool> sub) => sub.Value;
-
-    // Units.Changed fires on arbitrary threads — marshal into the circuit.
-    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     // Uppercase unit label for the panel's all-caps typography ("KG" / "LB").
     private string UnitU => Units.UnitLabel.ToUpperInvariant();

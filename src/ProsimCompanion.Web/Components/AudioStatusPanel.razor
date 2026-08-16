@@ -1,6 +1,6 @@
 @* Live audio-pillar status, shown as the landing section of the Audio tab (#18 — the
    former standalone /audio page). *@
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject AudioStatusStore Status
 
 <Section Title="Volume Control" Hint="ACP knobs / REC latches → app volumes">
@@ -117,27 +117,12 @@ else
     private List<string> _elevatedBinaries = [];
 
     protected override void OnInitialized()
-    {
-        Refresh();
-        Status.Changed += OnChanged;
-    }
-
-    private void OnChanged(object? sender, EventArgs e)
-        // Store events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
+        => Watch(Status, snapshot =>
         {
-            Refresh();
-            StateHasChanged();
+            _view = snapshot;
+            _elevatedBinaries = snapshot.Mappings
+                .Where(m => m.State == AudioMappingState.Elevated)
+                .Select(m => m.Binary)
+                .ToList();
         });
-
-    private void Refresh()
-    {
-        _view = Status.Snapshot();
-        _elevatedBinaries = _view.Mappings
-            .Where(m => m.State == AudioMappingState.Elevated)
-            .Select(m => m.Binary)
-            .ToList();
-    }
-
-    public void Dispose() => Status.Changed -= OnChanged;
 }

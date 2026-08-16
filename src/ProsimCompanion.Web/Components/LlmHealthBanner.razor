@@ -1,4 +1,4 @@
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject LlmHealthStore Health
 
 @* LLM-offline warning (issue #66): a 401 once ran a whole flight with zero surfacing —
@@ -25,18 +25,5 @@
         : $" — {_snapshot.LastError}";
 
     protected override void OnInitialized()
-    {
-        _snapshot = Health.Snapshot();
-        Health.Changed += OnChanged;
-    }
-
-    private void OnChanged(object? sender, EventArgs e)
-        // Store events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _snapshot = Health.Snapshot();
-            StateHasChanged();
-        });
-
-    public void Dispose() => Health.Changed -= OnChanged;
+        => Watch(Health, snapshot => _snapshot = snapshot);
 }

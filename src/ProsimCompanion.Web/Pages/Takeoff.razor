@@ -6,7 +6,7 @@
 @using ProsimCompanion.Core.Aircraft.Gateway
 @using ProsimCompanion.Core.Aircraft.Ofp
 @using ProsimCompanion.Core.Weather
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject IProsimGateway Gateway
 @inject IProsimDataRefs DataRefs
 @inject IWxProvider Wx
@@ -369,10 +369,7 @@
         _engineSub = DataRefs.Subscribe(ProsimDataRefNames.ConfigEngineType);
         // MCDU origin as the no-OFP fallback seed (issue #65) — cached-subscription read,
         // never a polling ReadDataRef loop.
-        _fmsOriginSub = DataRefs.Subscribe(ProsimDataRefNames.FmsOrigin);
-        _fmsOriginSub.ValueChanged += OnContextChanged;
-        Ofp.Changed += OnContextChanged;
-        Units.Changed += OnUnitsChanged;
+        var fmsOriginSub = _fmsOriginSub = DataRefs.Subscribe(ProsimDataRefNames.FmsOrigin);
 
         _uplinkFlashTimer = new System.Threading.Timer(
             _ => _ = InvokeAsync(() => { _uplinkFlashActive = false; StateHasChanged(); }),
@@ -381,7 +378,16 @@
             _ => _ = InvokeAsync(() => { _resetArmed = false; StateHasChanged(); }),
             null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
 
+        // Seed before watching: the watch helpers run their refresh once immediately, and
+        // ReseedIcaoAsync only early-returns cheaply when the ICAO is already seeded.
         SeedFromContext();
+
+        WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
+        // OFP import / MCDU plan entry after the page opened (issue #65): re-seed the ICAO —
+        // unless the user typed their own.
+        WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ = ReseedIcaoAsync());
+        WatchChanged(h => fmsOriginSub.ValueChanged += h, h => fmsOriginSub.ValueChanged -= h,
+            () => _ = ReseedIcaoAsync());
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -395,28 +401,16 @@
         }
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
-        Ofp.Changed -= OnContextChanged;
-        Units.Changed -= OnUnitsChanged;
-        if (_fmsOriginSub is not null)
-        {
-            _fmsOriginSub.ValueChanged -= OnContextChanged;
-            _fmsOriginSub.Dispose();
-        }
+        base.Dispose();
+        _fmsOriginSub?.Dispose();
         _grossSub?.Dispose();
         _cgSub?.Dispose();
         _engineSub?.Dispose();
         _uplinkFlashTimer?.Dispose();
         _resetArmTimer?.Dispose();
     }
-
-    // Units.Changed fires on arbitrary threads — marshal into the circuit.
-    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
-
-    // OFP import / MCDU plan entry after the page opened (issue #65): re-seed the ICAO —
-    // unless the user typed their own. Fires on store/SDK threads; marshal into the circuit.
-    private void OnContextChanged(object? sender, EventArgs e) => _ = InvokeAsync(ReseedIcaoAsync);
 
     /// <summary>The context's origin: OFP first, MCDU FMS origin as fallback (the FMS
     /// datarefs read "----"/"Null" before a plan is loaded — predecessor archaeology).</summary>

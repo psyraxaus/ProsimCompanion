@@ -1,4 +1,4 @@
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject ConfigProblemStore Problems
 
 @* User-content parse failures (issue #74): a checklist edit with a JSON typo used to log a
@@ -26,18 +26,6 @@
     private IReadOnlyList<ConfigProblem> _problems = [];
 
     protected override void OnInitialized()
-    {
-        _problems = Problems.Snapshot();
-        Problems.Changed += OnChanged;
-    }
-
-    private void OnChanged(object? sender, EventArgs e)
-        // Store events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _problems = Problems.Snapshot();
-            StateHasChanged();
-        });
-
-    public void Dispose() => Problems.Changed -= OnChanged;
+        => WatchChanged(h => Problems.Changed += h, h => Problems.Changed -= h,
+            () => _problems = Problems.Snapshot());
 }

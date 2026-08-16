@@ -39,37 +39,28 @@ public sealed record LlmHealthSnapshot(
 /// can render the warning banner (issue #66). <see cref="Changed"/> fires on the writer's
 /// thread — consumers marshal to their own context.
 /// </summary>
-public sealed class LlmHealthStore
+public sealed class LlmHealthStore : SnapshotStore<LlmHealthSnapshot>
 {
-    private readonly object _gate = new();
-    private LlmHealthSnapshot _snapshot = LlmHealthSnapshot.Empty;
-
-    /// <summary>Raised after any state change, on the caller's thread.</summary>
-    public event EventHandler? Changed;
-
-    public LlmHealthSnapshot Snapshot()
+    public LlmHealthStore()
+        : base(LlmHealthSnapshot.Empty, StateAndErrorComparer.Instance)
     {
-        lock (_gate)
-        {
-            return _snapshot;
-        }
     }
 
     /// <summary>Records a call outcome. <paramref name="errorSummary"/> must never contain
-    /// credentials of any kind. Fires <see cref="Changed"/> only when the state actually
-    /// changes so per-call Healthy reports don't churn the UI.</summary>
+    /// credentials of any kind. Observers are notified only when the state actually changes
+    /// (the store's comparer ignores <see cref="LlmHealthSnapshot.LastCheckedUtc"/>, which
+    /// refreshes on every report) so per-call Healthy reports don't churn the UI.</summary>
     public void Report(LlmHealthState state, string? errorSummary = null)
-    {
-        bool changed;
-        lock (_gate)
-        {
-            changed = _snapshot.State != state || _snapshot.LastError != errorSummary;
-            _snapshot = new LlmHealthSnapshot(state, errorSummary, DateTimeOffset.UtcNow);
-        }
+        => Update(_ => new LlmHealthSnapshot(state, errorSummary, DateTimeOffset.UtcNow));
 
-        if (changed)
-        {
-            Changed?.Invoke(this, EventArgs.Empty);
-        }
+    private sealed class StateAndErrorComparer : IEqualityComparer<LlmHealthSnapshot>
+    {
+        public static StateAndErrorComparer Instance { get; } = new();
+
+        public bool Equals(LlmHealthSnapshot? x, LlmHealthSnapshot? y)
+            => ReferenceEquals(x, y)
+                || (x is not null && y is not null && x.State == y.State && x.LastError == y.LastError);
+
+        public int GetHashCode(LlmHealthSnapshot obj) => HashCode.Combine(obj.State, obj.LastError);
     }
 }

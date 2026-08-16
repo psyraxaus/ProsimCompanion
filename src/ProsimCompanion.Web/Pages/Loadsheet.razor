@@ -2,7 +2,7 @@
 @using System.Globalization
 @using ProsimCompanion.Core.Aircraft.Ofp
 @using ProsimCompanion.Core.Aircraft.WeightAndBalance
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject LoadsheetStore Loadsheets
 @inject ILoadsheetControl LoadsheetControl
 @inject OfpStore Ofp
@@ -144,29 +144,10 @@
 
     protected override void OnInitialized()
     {
-        Loadsheets.Changed += OnStoreChanged;
-        Ofp.Changed += OnStoreChanged;
-        Units.Changed += OnUnitsChanged;
-        _loadsheets = Loadsheets.Snapshot();
+        Watch(Loadsheets, snapshot => _loadsheets = snapshot);
+        WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => { });
+        WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
     }
-
-    public void Dispose()
-    {
-        Loadsheets.Changed -= OnStoreChanged;
-        Ofp.Changed -= OnStoreChanged;
-        Units.Changed -= OnUnitsChanged;
-    }
-
-    // Units.Changed fires on arbitrary threads — marshal into the circuit.
-    private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
-
-    private void OnStoreChanged(object? sender, EventArgs e)
-        // Store events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _loadsheets = Loadsheets.Snapshot();
-            StateHasChanged();
-        });
 
     private static string BadgeClass(LoadsheetSlotStatus status) => status switch
     {

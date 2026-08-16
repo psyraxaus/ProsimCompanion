@@ -16,8 +16,7 @@ public sealed class LogBufferStore
 {
     public const int Capacity = 2000;
 
-    private readonly object _gate = new();
-    private readonly Queue<LogEntry> _entries = new(Capacity);
+    private readonly Collections.BoundedLog<LogEntry> _entries = new(Capacity);
     private long _warningCount;
     private long _errorCount;
 
@@ -40,24 +39,9 @@ public sealed class LogBufferStore
             Interlocked.Increment(ref _errorCount);
         }
 
-        lock (_gate)
-        {
-            _entries.Enqueue(entry);
-            while (_entries.Count > Capacity)
-            {
-                _ = _entries.Dequeue();
-            }
-        }
+        _entries.Add(entry);
     }
 
     /// <summary>Newest-first copy of the buffered entries.</summary>
-    public IReadOnlyList<LogEntry> Snapshot()
-    {
-        lock (_gate)
-        {
-            var list = _entries.ToArray();
-            Array.Reverse(list);
-            return list;
-        }
-    }
+    public IReadOnlyList<LogEntry> Snapshot() => _entries.Snapshot();
 }

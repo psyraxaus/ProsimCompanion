@@ -41,19 +41,11 @@ public sealed record LoadsheetSnapshot(
 /// UI-facing status of the in-house loadsheet pipeline. Written by the loadsheet generator
 /// service; read by the /flight page. <see cref="Changed"/> fires on the writer's thread.
 /// </summary>
-public sealed class LoadsheetStore
+public sealed class LoadsheetStore : SnapshotStore<LoadsheetSnapshot>
 {
-    private readonly object _lock = new();
-    private LoadsheetSnapshot _snapshot = LoadsheetSnapshot.Empty;
-
-    public event EventHandler? Changed;
-
-    public LoadsheetSnapshot Snapshot()
+    public LoadsheetStore()
+        : base(LoadsheetSnapshot.Empty)
     {
-        lock (_lock)
-        {
-            return _snapshot;
-        }
     }
 
     public void SetPrelim(LoadsheetSlotView slot) => Update(snapshot => snapshot with { Prelim = slot });
@@ -65,15 +57,6 @@ public sealed class LoadsheetStore
     public void SetStdOverride(TimeOnly? stdUtc) => Update(snapshot => snapshot with { StdOverrideUtc = stdUtc });
 
     public void Reset() => Update(snapshot => LoadsheetSnapshot.Empty with { StdOverrideUtc = snapshot.StdOverrideUtc });
-
-    private void Update(Func<LoadsheetSnapshot, LoadsheetSnapshot> mutate)
-    {
-        lock (_lock)
-        {
-            _snapshot = mutate(_snapshot);
-        }
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
 
     /// <summary>Convenience projection from calculation output.</summary>
     public static LoadsheetSlotView SlotFrom(

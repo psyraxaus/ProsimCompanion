@@ -1,7 +1,7 @@
 @* Live GSX status + controls, shown as the landing section of the GSX tab (#18 — the former
    standalone /gsx page): readiness, arrival gate, departure board, services mirror, menu
    snapshot, automation decisions and recent commands. *@
-@implements IDisposable
+@inherits StoreObserverComponent
 @inject GsxDiagnosticsStore Diagnostics
 @inject IGsxGateControl GateControl
 @inject IGsxDepartureControl DepartureControl
@@ -196,18 +196,5 @@
     }
 
     protected override void OnInitialized()
-    {
-        _view = Diagnostics.Snapshot();
-        Diagnostics.Changed += OnDiagnosticsChanged;
-    }
-
-    private void OnDiagnosticsChanged(object? sender, EventArgs e)
-        // Store events fire on the writer's thread; marshal into the circuit.
-        => _ = InvokeAsync(() =>
-        {
-            _view = Diagnostics.Snapshot();
-            StateHasChanged();
-        });
-
-    public void Dispose() => Diagnostics.Changed -= OnDiagnosticsChanged;
+        => Watch(Diagnostics, snapshot => _view = snapshot);
 }
