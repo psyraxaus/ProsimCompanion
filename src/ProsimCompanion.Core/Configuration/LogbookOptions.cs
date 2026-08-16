@@ -5,9 +5,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// log) into a persistent store. Aggregates are always computed on read — never stored — so
 /// they cannot drift out of sync with the flights list.
 /// </summary>
-public sealed class LogbookOptions
+public sealed class LogbookOptions : IOptionSection
 {
-    public const string SectionName = "logbook";
+    public static string SectionName => "logbook";
 
     public bool Enabled { get; set; } = true;
 

@@ -215,9 +215,9 @@ public sealed class ApproachGate
 /// ever speaks, never commands or blocks. In Prosim2FO this lived in hot-reloadable
 /// sop/*.json profiles; it moves there if/when ProsimCompanion grows SOP profiles.
 /// </summary>
-public sealed class SopOptions
+public sealed class SopOptions : IOptionSection
 {
-    public const string SectionName = "sop";
+    public static string SectionName => "sop";
 
     /// <summary>Master switch for SOP callouts (hot-toggles; checked every tick).</summary>
     public bool CalloutsEnabled { get; set; } = true;

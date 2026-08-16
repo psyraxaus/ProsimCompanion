@@ -8,9 +8,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// company messages get the ACARS double-beep. A PDC/clearance readout stays out of scope —
 /// no squawk / cleared-altitude source exists.
 /// </summary>
-public sealed class CompanyOptions
+public sealed class CompanyOptions : IOptionSection
 {
-    public const string SectionName = "company";
+    public static string SectionName => "company";
 
     public bool Enabled { get; set; } = true;
 

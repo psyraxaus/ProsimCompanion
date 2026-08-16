@@ -3,7 +3,7 @@
 @implements IDisposable
 @inject LogBufferStore Buffer
 @inject IOptionsMonitor<LoggingOptions> LoggingMonitor
-@inject JsonSettingsFile SettingsFile
+@inject SettingsWriter Writer
 
 <PageTitle>Logs — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Logs</h1>
@@ -110,14 +110,12 @@
     {
         if (!string.IsNullOrWhiteSpace(level))
         {
-            SettingsFile.Update(root =>
-                JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName)["defaultLevel"] = level);
+            Writer.Set<LoggingOptions, string>(o => o.DefaultLevel, level);
         }
     }
 
     private void SetWireTrace(bool enabled)
-        => SettingsFile.Update(root =>
-            JsonSettingsFile.GetOrCreateSection(root, LoggingOptions.SectionName)["wireTrace"] = enabled);
+        => Writer.Set<LoggingOptions, bool>(o => o.WireTrace, enabled);
 
     protected override void OnInitialized()
     {

@@ -4,9 +4,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// Settings for the HTTP command API (<c>/api/commands</c>, <c>POST /api/command/{name}</c>) —
 /// the seam the Stream Deck plugin and other remote clients fire commands through.
 /// </summary>
-public sealed class CommandApiOptions
+public sealed class CommandApiOptions : IOptionSection
 {
-    public const string SectionName = "commandApi";
+    public static string SectionName => "commandApi";
 
     /// <summary>
     /// Master switch, off by default: unlike the read-only web pages this is a write surface

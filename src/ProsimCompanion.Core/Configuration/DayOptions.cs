@@ -7,9 +7,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// NOT a flight-time-limitations calculation; there are no regulatory claims and the app
 /// never grounds the aircraft.
 /// </summary>
-public sealed class DayOptions
+public sealed class DayOptions : IOptionSection
 {
-    public const string SectionName = "day";
+    public static string SectionName => "day";
 
     /// <summary>Master on/off for automatic day tracking. Voice ("start duty day") and the
     /// web button work regardless — parity with Prosim2FO, where an explicit request always

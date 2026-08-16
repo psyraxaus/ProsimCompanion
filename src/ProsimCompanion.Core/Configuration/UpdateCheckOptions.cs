@@ -2,9 +2,9 @@ namespace ProsimCompanion.Core.Configuration;
 
 /// <summary>Update-available check against GitHub releases (Prosim2GSX's "New Stable Version"
 /// banner). Purely informational — the check never blocks startup and fails silently offline.</summary>
-public sealed class UpdateCheckOptions
+public sealed class UpdateCheckOptions : IOptionSection
 {
-    public const string SectionName = "updateCheck";
+    public static string SectionName => "updateCheck";
 
     public bool Enabled { get; set; } = true;
 

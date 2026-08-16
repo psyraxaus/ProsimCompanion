@@ -4,9 +4,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// Flight-data pillar settings (SimBrief OFP, loadsheets, FMS sync) — the "flightData"
 /// section of config/settings.json. Every default is safe for a missing section.
 /// </summary>
-public sealed class FlightDataOptions
+public sealed class FlightDataOptions : IOptionSection
 {
-    public const string SectionName = "flightData";
+    public static string SectionName => "flightData";
 
     /// <summary>Generate + uplink the preliminary loadsheet automatically when the GSX
     /// Refueling service goes active (predecessor behaviour).</summary>

@@ -66,9 +66,9 @@ public sealed class HumanizeOptions
 /// providers, and <see cref="LocalOnly"/> is the hard switch that keeps synthesis off the
 /// network entirely (Google is then excluded from every path, including voice listing).
 /// </summary>
-public sealed class SpeechOptions
+public sealed class SpeechOptions : IOptionSection
 {
-    public const string SectionName = "speech";
+    public static string SectionName => "speech";
 
     /// <summary>Master switch for the speech pillar.</summary>
     public bool Enabled { get; set; } = true;

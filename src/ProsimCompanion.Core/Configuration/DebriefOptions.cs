@@ -6,9 +6,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// verifier, sharing the briefing's <c>Llm*</c> endpoint settings) rephrases it warmly without
 /// ever inventing a number.
 /// </summary>
-public sealed class DebriefOptions
+public sealed class DebriefOptions : IOptionSection
 {
-    public const string SectionName = "debrief";
+    public static string SectionName => "debrief";
 
     public bool Enabled { get; set; } = true;
 

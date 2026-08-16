@@ -4,9 +4,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// Settings for the embedded web UI host. These are the only settings also surfaced in the WPF
 /// shell, so a broken web configuration can never lock the user out (ADR-0001).
 /// </summary>
-public sealed class WebUiOptions
+public sealed class WebUiOptions : IOptionSection
 {
-    public const string SectionName = "webUi";
+    public static string SectionName => "webUi";
 
     /// <summary>
     /// HTTP port for the embedded Kestrel host. 5320 avoids the neighbours: ProSim's EFB gateway

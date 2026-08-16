@@ -5,9 +5,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// NEVER change an operational fact, number, identifier, or callout. Off by default; with the
 /// LLM disabled the only observable effect is acknowledgement variation.
 /// </summary>
-public sealed class PersonaOptions
+public sealed class PersonaOptions : IOptionSection
 {
-    public const string SectionName = "persona";
+    public static string SectionName => "persona";
 
     public bool Enabled { get; set; }
 

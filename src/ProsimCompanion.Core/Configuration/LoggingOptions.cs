@@ -4,9 +4,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// Runtime-adjustable logging configuration (hot-reloaded — no restart needed). Levels use
 /// Serilog names: Verbose, Debug, Information, Warning, Error, Fatal.
 /// </summary>
-public sealed class LoggingOptions
+public sealed class LoggingOptions : IOptionSection
 {
-    public const string SectionName = "logging";
+    public static string SectionName => "logging";
 
     /// <summary>Minimum level for all ProsimCompanion sources without an override.</summary>
     public string DefaultLevel { get; set; } = "Information";

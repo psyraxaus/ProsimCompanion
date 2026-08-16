@@ -8,9 +8,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// first willing provider verbatim. A blank id falls back to that provider's First Officer
 /// voice (logged once per role, not per utterance).
 /// </summary>
-public sealed class VoicesOptions
+public sealed class VoicesOptions : IOptionSection
 {
-    public const string SectionName = "voices";
+    public static string SectionName => "voices";
 
     /// <summary>Cabin purser voice id (default is a Kokoro id). Blank = FO voice.</summary>
     public string Purser { get; set; } = "af_heart";

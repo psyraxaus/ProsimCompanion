@@ -4,9 +4,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// Settings for GSX Pro integration. The Couatl Remote API port is intentionally NOT configurable
 /// here — it is always read from CouatlAddons.ini (see docs/integrations/gsx.md).
 /// </summary>
-public sealed class GsxOptions
+public sealed class GsxOptions : IOptionSection
 {
-    public const string SectionName = "gsx";
+    public static string SectionName => "gsx";
 
     /// <summary>Master switch for the GSX ground automation pillar.</summary>
     public bool Enabled { get; set; } = true;

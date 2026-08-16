@@ -8,9 +8,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// lives in <see cref="VoicesOptions"/>; reports carry the Purser speech role once the
 /// call-site wiring lands (WIRING-VOICES.md).
 /// </summary>
-public sealed class CabinOptions
+public sealed class CabinOptions : IOptionSection
 {
-    public const string SectionName = "cabin";
+    public static string SectionName => "cabin";
 
     public bool Enabled { get; set; } = true;
 

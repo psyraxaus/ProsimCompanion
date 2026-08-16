@@ -6,7 +6,7 @@
 @implements IDisposable
 @inject OfpStore Ofp
 @inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
-@inject JsonSettingsFile SettingsFile
+@inject SettingsWriter Writer
 @inject ArrivalGateCoordinator GateCoordinator
 @inject GsxDiagnosticsStore GsxStore
 @inject WeatherStore Weather
@@ -251,11 +251,7 @@
 
     private void SetPreference(string key)
         // Korry buttons persist immediately (Prosim2GSX behaviour) — no dirty bar.
-        => SettingsFile.Update(root =>
-        {
-            var gsx = JsonSettingsFile.GetOrCreateSection(root, GsxOptions.SectionName);
-            gsx["pushbackPreference"] = key;
-        });
+        => Writer.Set<GsxOptions, string>(o => o.PushbackPreference, key);
 
     private void ConfirmGate()
     {

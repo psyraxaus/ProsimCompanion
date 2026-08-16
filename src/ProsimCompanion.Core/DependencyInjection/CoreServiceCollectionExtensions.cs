@@ -26,87 +26,43 @@ public static class CoreServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentException.ThrowIfNullOrWhiteSpace(settingsFilePath);
 
-        services.Configure<WebUiOptions>(configuration.GetSection(WebUiOptions.SectionName));
-        services.Configure<ProsimOptions>(configuration.GetSection(ProsimOptions.SectionName));
-        // The config binder APPENDS array items to a list the options class already initialized
-        // (round-4 smoke test: the departure order arrived doubled and every service triggered
-        // twice). Clear list defaults before the file binds; restore them after when the file
-        // omitted the key entirely.
-        services.Configure<GsxOptions>(o => o.DepartureServices.Clear());
-        services.Configure<GsxOptions>(configuration.GetSection(GsxOptions.SectionName));
-        services.PostConfigure<GsxOptions>(o =>
-        {
-            if (o.DepartureServices.Count == 0)
-            {
-                o.DepartureServices.AddRange(GsxOptions.DefaultDepartureServices);
-            }
-        });
-        // Same binder-appends-to-defaults trap for the audio lists.
-        services.Configure<AudioOptions>(o =>
-        {
-            o.AppMappings.Clear();
-            o.ActiveAcps.Clear();
-        });
-        services.Configure<AudioOptions>(configuration.GetSection(AudioOptions.SectionName));
-        services.PostConfigure<AudioOptions>(o =>
-        {
-            if (o.AppMappings.Count == 0)
-            {
-                o.AppMappings.AddRange(AudioOptions.DefaultAppMappings);
-            }
-
-            if (o.ActiveAcps.Count == 0)
-            {
-                o.ActiveAcps.Add(AcpSide.Captain);
-            }
-        });
-        services.Configure<SpeechOptions>(configuration.GetSection(SpeechOptions.SectionName));
-        services.Configure<ChecklistOptions>(configuration.GetSection(ChecklistOptions.SectionName));
-        services.Configure<BriefingOptions>(configuration.GetSection(BriefingOptions.SectionName));
-        services.Configure<McduOptions>(configuration.GetSection(McduOptions.SectionName));
-        services.Configure<SayIntentionsOptions>(configuration.GetSection(SayIntentionsOptions.SectionName));
-        services.Configure<CabinOptions>(configuration.GetSection(CabinOptions.SectionName));
-        services.Configure<GroundCrewOptions>(configuration.GetSection(GroundCrewOptions.SectionName));
-        services.Configure<AccentOptions>(configuration.GetSection(AccentOptions.SectionName));
-        services.Configure<CompanyOptions>(configuration.GetSection(CompanyOptions.SectionName));
-        services.Configure<VoicesOptions>(configuration.GetSection(VoicesOptions.SectionName));
-        services.Configure<DayOptions>(configuration.GetSection(DayOptions.SectionName));
-        services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
-        services.Configure<TechLogOptions>(configuration.GetSection(TechLogOptions.SectionName));
-        services.Configure<LogbookOptions>(configuration.GetSection(LogbookOptions.SectionName));
-        services.Configure<DebriefOptions>(configuration.GetSection(DebriefOptions.SectionName));
-        // Same binder-appends-to-defaults trap for the SOP lists.
-        services.Configure<SopOptions>(o =>
-        {
-            o.AltitudeCallouts.Clear();
-            o.FlapPlacards.Clear();
-            o.ApproachGates.Clear();
-        });
-        services.Configure<SopOptions>(configuration.GetSection(SopOptions.SectionName));
-        services.PostConfigure<SopOptions>(o =>
-        {
-            if (o.AltitudeCallouts.Count == 0)
-            {
-                o.AltitudeCallouts.AddRange(SopOptions.DefaultAltitudeCallouts);
-            }
-
-            if (o.FlapPlacards.Count == 0)
-            {
-                o.FlapPlacards.AddRange(SopOptions.DefaultFlapPlacards);
-            }
-
-            if (o.ApproachGates.Count == 0)
-            {
-                o.ApproachGates.AddRange(SopOptions.DefaultApproachGates);
-            }
-        });
-        services.Configure<UpdateCheckOptions>(configuration.GetSection(UpdateCheckOptions.SectionName));
-        services.Configure<PersonaOptions>(configuration.GetSection(PersonaOptions.SectionName));
-        services.Configure<AircraftProfilesOptions>(configuration.GetSection(AircraftProfilesOptions.SectionName));
-        services.Configure<LoggingOptions>(configuration.GetSection(LoggingOptions.SectionName));
-        services.Configure<FlightDataOptions>(configuration.GetSection(FlightDataOptions.SectionName));
+        // Every option section registers through AddOptionSection (campaign #84): one call
+        // binds the section, applies the binder list-append fix, and records the section in
+        // the registry the settings-defaults writer enumerates. The binder-appends-to-defaults
+        // archaeology lives on OptionsListBinding.
+        services.AddOptionSection<WebUiOptions>(configuration);
+        services.AddOptionSection<ProsimOptions>(configuration);
+        services.AddOptionSection<GsxOptions>(configuration);
+        services.AddOptionSection<AudioOptions>(configuration);
+        services.AddOptionSection<SpeechOptions>(configuration);
+        services.AddOptionSection<ChecklistOptions>(configuration);
+        services.AddOptionSection<SopOptions>(configuration);
+        services.AddOptionSection<BriefingOptions>(configuration);
+        services.AddOptionSection<McduOptions>(configuration);
+        services.AddOptionSection<SayIntentionsOptions>(configuration);
+        services.AddOptionSection<CabinOptions>(configuration);
+        services.AddOptionSection<GroundCrewOptions>(configuration);
+        services.AddOptionSection<AccentOptions>(configuration);
+        services.AddOptionSection<CompanyOptions>(configuration);
+        services.AddOptionSection<VoicesOptions>(configuration);
+        services.AddOptionSection<DayOptions>(configuration);
+        services.AddOptionSection<WeatherOptions>(configuration);
+        // HTTP command API gate — bound here with every other section (it used to live in
+        // App/Program.cs, which is how it escaped the defaults writer's notice pre-#84).
+        services.AddOptionSection<CommandApiOptions>(configuration);
+        services.AddOptionSection<TechLogOptions>(configuration);
+        services.AddOptionSection<LogbookOptions>(configuration);
+        services.AddOptionSection<DebriefOptions>(configuration);
+        services.AddOptionSection<FlightDataOptions>(configuration);
+        services.AddOptionSection<LoggingOptions>(configuration);
+        services.AddOptionSection<AircraftProfilesOptions>(configuration);
+        services.AddOptionSection<UpdateCheckOptions>(configuration);
+        services.AddOptionSection<PersonaOptions>(configuration);
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
+        // The typed settings write path — pages and services write through this, never through
+        // hand-written section/key strings.
+        services.AddSingleton<SettingsWriter>();
         services.AddSingleton<WeatherStore>();
         // Weather-provider chain — registration order of the array IS the tier order:
         // ActiveSky (file → API, the injected sim weather wins) → ProSim gateway METAR →
@@ -153,6 +109,9 @@ public static class CoreServiceCollectionExtensions
         // Per-profile GSX settings (Prosim2GSX model): the active profile's stored block is
         // written over the live gsx section on activation.
         services.AddHostedService<Profiles.ProfileGsxApplier>();
+        // The write half: the GSX Settings page mirrors the saved gsx section back into the
+        // active profile's stored block after every save.
+        services.AddSingleton<Profiles.ProfileGsxMirror>();
         services.AddSingleton<Checklists.ChecklistService>();
         services.AddSingleton<Deice.DeiceHoldoverService>();
         services.AddSingleton<Aircraft.PassengerManifestService>();

@@ -55,7 +55,6 @@ public static class Program
         var settingsFile = new JsonSettingsFile(settingsPath);
         EnsureAccessToken(settingsFile);
         var previousVersion = SettingsMigrator.Migrate(settingsFile);
-        var defaultsAdded = SettingsDefaultsWriter.EnsureDefaults(settingsFile);
 
         // The level switches and buffer exist before the logger so every line — including
         // startup — flows through them; settings changes retune the switches live.
@@ -92,11 +91,6 @@ public static class Program
                     SettingsMigrator.CurrentVersion);
             }
 
-            if (defaultsAdded)
-            {
-                Log.Information("Settings file updated with newly available option defaults");
-            }
-
             // One-shot predecessor config import (Prosim2GSX AppConfig.json, Prosim2FO
             // settings.json) — marker-guarded, before the host binds the settings file.
             using (var importLoggerFactory = new Serilog.Extensions.Logging.SerilogLoggerFactory(Log.Logger))
@@ -121,6 +115,17 @@ public static class Program
             }
 
             var web = BuildWebHost(args, settingsPath, settingsFile, levels, logBuffer, wireTrace);
+
+            // Self-document every registered option section in settings.json (missing keys
+            // only; existing values are never touched). Runs after the host exists because the
+            // section list IS the DI registry (campaign #84) — safe after binding, since a key
+            // this writes is by definition one whose absence already bound to the same default.
+            if (SettingsDefaultsWriter.EnsureDefaults(
+                    settingsFile,
+                    web.Services.GetRequiredService<ProsimCompanion.Core.Configuration.OptionSectionRegistry>()))
+            {
+                Log.Information("Settings file updated with newly available option defaults");
+            }
 
             // Populate the named-command registry (web/API/StreamDeck seam). RegisterAll
             // resolves seams with GetService so an absent pillar's commands still exist and
@@ -306,10 +311,9 @@ public static class Program
         builder.Services.AddSingleton(logBuffer);
         builder.Services.AddSingleton<IWireTrace>(wireTrace);
 
-        // HTTP command API: gate options + the registry itself (populated in Main after the
-        // host is built — CommandsBootstrap needs the built provider to resolve seams).
-        builder.Services.Configure<CommandApiOptions>(
-            builder.Configuration.GetSection(CommandApiOptions.SectionName));
+        // HTTP command API: the command registry itself (populated in Main after the host is
+        // built — CommandsBootstrap needs the built provider to resolve seams). Its gate
+        // options bind with every other section in AddCoreServices (campaign #84).
         builder.Services.AddSingleton<ProsimCompanion.Core.Commands.CommandRegistry>();
 
         var webUi = builder.Configuration.GetSection(WebUiOptions.SectionName).Get<WebUiOptions>()

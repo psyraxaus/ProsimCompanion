@@ -1,9 +1,9 @@
 namespace ProsimCompanion.Core.Configuration;
 
 /// <summary>Visual checklist behaviour (settings section "checklists").</summary>
-public sealed class ChecklistOptions
+public sealed class ChecklistOptions : IOptionSection
 {
-    public const string SectionName = "checklists";
+    public static string SectionName => "checklists";
 
     /// <summary>Lets the crew hand-tick dataref-verified (auto) checklist lines on the web
     /// page — Prosim2GSX parity (its AllowManualChecklistOverride). Default false because the

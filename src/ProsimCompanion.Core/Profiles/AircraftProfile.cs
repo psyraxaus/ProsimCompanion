@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ProsimCompanion.Core.Configuration;
 
 namespace ProsimCompanion.Core.Profiles;
@@ -25,7 +26,11 @@ public sealed class AircraftProfile
     /// <summary>This profile's GSX settings block. Null = the profile does not carry GSX
     /// settings yet; it captures the current global block the first time it is edited on the
     /// GSX Settings page. When the profile activates, this block is written over the live
-    /// <c>gsx</c> section (Prosim2GSX's per-profile model) — see ProfileGsxApplier.</summary>
+    /// <c>gsx</c> section (Prosim2GSX's per-profile model) — see ProfileGsxApplier.
+    /// Null is not persisted (WhenWritingNull): the pre-#84 file shape omitted the key for
+    /// profiles without a block, and the Profiles page's typed draft save must keep writing
+    /// that exact shape.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public GsxOptions? GsxSettings { get; set; }
 }
 
@@ -46,9 +51,9 @@ public enum ProfileMatchType
 }
 
 /// <summary>Settings section holding all aircraft profiles (<c>aircraftProfiles</c> in config).</summary>
-public sealed class AircraftProfilesOptions
+public sealed class AircraftProfilesOptions : IOptionSection
 {
-    public const string SectionName = "aircraftProfiles";
+    public static string SectionName => "aircraftProfiles";
 
     public List<AircraftProfile> Profiles { get; set; } = [];
 }

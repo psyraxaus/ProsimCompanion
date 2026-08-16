@@ -7,9 +7,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// The distinct ground voice lives in <see cref="VoicesOptions"/>; accent localization in
 /// <see cref="AccentOptions"/>.
 /// </summary>
-public sealed class GroundCrewOptions
+public sealed class GroundCrewOptions : IOptionSection
 {
-    public const string SectionName = "groundCrew";
+    public static string SectionName => "groundCrew";
 
     public bool Enabled { get; set; } = true;
 

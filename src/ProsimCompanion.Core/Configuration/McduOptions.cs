@@ -8,9 +8,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// two-switch arming (<c>mcdu.enabled</c> + <c>mcdu.allowActuation</c>): a user who only
 /// wants the FO to read the box never risks a stray key press.
 /// </summary>
-public sealed class McduOptions
+public sealed class McduOptions : IOptionSection
 {
-    public const string SectionName = "mcdu";
+    public static string SectionName => "mcdu";
 
     /// <summary>Master switch for all MCDU voice features (read-back included).</summary>
     public bool Enabled { get; set; } = true;

@@ -1,77 +1,41 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using ProsimCompanion.Core.Profiles;
 
 namespace ProsimCompanion.Core.Configuration;
 
 /// <summary>
 /// Keeps config/settings.json complete and discoverable: every configurable option appears in
 /// the file with its default value. Missing keys (new options added by an upgrade, or a
-/// hand-trimmed file) are filled in at startup; existing values are never touched. Register new
-/// options classes here so their settings self-document in the file.
+/// hand-trimmed file) are filled in at startup; existing values are never touched. The section
+/// list is the <see cref="OptionSectionRegistry"/> — a section that binds is a section that
+/// self-documents here, with no second list to keep in step (campaign #84).
 /// </summary>
 public static class SettingsDefaultsWriter
 {
-    private static readonly JsonSerializerOptions SerializeOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        // Enums (e.g. departure-service activations) as camelCase strings — the file is
-        // hand-editable and the config binder parses enum names case-insensitively.
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-    };
-
     /// <summary>Adds any missing option keys with their defaults. Returns true when the file was
     /// updated.</summary>
-    public static bool EnsureDefaults(JsonSettingsFile file)
+    public static bool EnsureDefaults(JsonSettingsFile file, OptionSectionRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(file);
-
-        (string Name, object Defaults)[] sections =
-        [
-            (WebUiOptions.SectionName, new WebUiOptions()),
-            (ProsimOptions.SectionName, new ProsimOptions()),
-            (GsxOptions.SectionName, new GsxOptions()),
-            (AudioOptions.SectionName, new AudioOptions()),
-            (SpeechOptions.SectionName, new SpeechOptions()),
-            (ChecklistOptions.SectionName, new ChecklistOptions()),
-            (SopOptions.SectionName, new SopOptions()),
-            (BriefingOptions.SectionName, new BriefingOptions()),
-            (McduOptions.SectionName, new McduOptions()),
-            (SayIntentionsOptions.SectionName, new SayIntentionsOptions()),
-            (CabinOptions.SectionName, new CabinOptions()),
-            (GroundCrewOptions.SectionName, new GroundCrewOptions()),
-            (AccentOptions.SectionName, new AccentOptions()),
-            (CompanyOptions.SectionName, new CompanyOptions()),
-            (VoicesOptions.SectionName, new VoicesOptions()),
-            (DayOptions.SectionName, new DayOptions()),
-            (WeatherOptions.SectionName, new WeatherOptions()),
-            (CommandApiOptions.SectionName, new CommandApiOptions()),
-            (TechLogOptions.SectionName, new TechLogOptions()),
-            (LogbookOptions.SectionName, new LogbookOptions()),
-            (DebriefOptions.SectionName, new DebriefOptions()),
-            (FlightDataOptions.SectionName, new FlightDataOptions()),
-            (LoggingOptions.SectionName, new LoggingOptions()),
-            (AircraftProfilesOptions.SectionName, new AircraftProfilesOptions()),
-        ];
+        ArgumentNullException.ThrowIfNull(registry);
 
         var current = file.Read();
         var missing = new List<(string Section, string Key, JsonNode? Value)>();
 
-        foreach (var (name, defaults) in sections)
+        foreach (var section in registry.Sections)
         {
-            if (JsonSerializer.SerializeToNode(defaults, SerializeOptions) is not JsonObject defaultsNode)
+            if (JsonSerializer.SerializeToNode(section.CreateDefaults(), SettingsJson.FileOptions)
+                is not JsonObject defaultsNode)
             {
                 continue;
             }
 
-            var existing = current[name] as JsonObject;
+            var existing = current[section.SectionName] as JsonObject;
             foreach (var (key, value) in defaultsNode)
             {
                 if (existing is null || !existing.ContainsKey(key))
                 {
-                    missing.Add((name, key, value?.DeepClone()));
+                    missing.Add((section.SectionName, key, value?.DeepClone()));
                 }
             }
         }

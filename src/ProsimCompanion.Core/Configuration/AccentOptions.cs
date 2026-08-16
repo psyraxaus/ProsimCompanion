@@ -7,9 +7,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// local-only mode simply narrows the accents instead of failing. Applies to the GroundCrew
 /// role only — purser/company voices stay as configured in <see cref="VoicesOptions"/>.
 /// </summary>
-public sealed class AccentOptions
+public sealed class AccentOptions : IOptionSection
 {
-    public const string SectionName = "accents";
+    public static string SectionName => "accents";
 
     public bool Enabled { get; set; } = true;
 

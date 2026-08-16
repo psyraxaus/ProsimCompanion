@@ -1,11 +1,8 @@
 @page "/settings/audio"
 @page "/audio"
 @using System.Text.Json
-@using System.Text.Json.Nodes
-@using System.Text.Json.Serialization
-@implements IDisposable
+@inherits SettingsPageBase
 @inject IOptionsMonitor<AudioOptions> AudioMonitor
-@inject JsonSettingsFile SettingsFile
 @inject IAudioControl AudioControl
 @inject IAudioDeviceCatalog DeviceCatalog
 
@@ -35,13 +32,13 @@
                 <Section Title="Volume Control" Hint="ACP knobs and REC latches drive app volumes">
                     <BoolField Label="Enabled"
                                Hint="Master switch for the audio pillar — knobs, latches, and the ProSim native-audio guard"
-                               @bind-Value="_draft.Enabled" />
+                               @bind-Value="_audio.Value.Enabled" />
                     <SelectField Label="Backend" Options="BackendOptions"
                                  Hint="Switching applies live: CoreAudio session volumes are restored, VoiceMeeter targets reset to 0 dB"
                                  @bind-Value="BackendKey" />
                     <BoolField Label="Disable ProSim native audio control"
                                Hint="Clears ProSim's aircraft.communication.windows.* bindings once per connection so both apps never fight over the same sessions"
-                               @bind-Value="_draft.DisableProsimNativeAudio" />
+                               @bind-Value="_audio.Value.DisableProsimNativeAudio" />
                 </Section>
             }
             else if (_section == "coreaudio")
@@ -52,10 +49,10 @@
                                  @bind-Value="CoreAudioAcpKey" />
                     <SelectField Label="Device-filter DataFlow" Options="DeviceFlowOptions"
                                  Hint="Only for troubleshooting — change as advised"
-                                 @bind-Value="_draft.DeviceFilterFlow" />
+                                 @bind-Value="_audio.Value.DeviceFilterFlow" />
                     <SelectField Label="Device-filter State" Options="DeviceStateOptions"
                                  Hint="Only for troubleshooting — change as advised"
-                                 @bind-Value="_draft.DeviceFilterState" />
+                                 @bind-Value="_audio.Value.DeviceFilterState" />
                     <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                         <button type="button" class="btn secondary" disabled="@_debugDumpBusy" @onclick="WriteDebugDump">
                             @(_debugDumpBusy ? "Writing…" : "Write Debug Info")
@@ -68,7 +65,7 @@
                 </Section>
 
                 <Section Title="App Mappings" Hint="A channel may drive several processes">
-                    @if (_draft.AppMappings.Count == 0)
+                    @if (_audio.Value.AppMappings.Count == 0)
                     {
                         <div class="empty">No app mappings configured.</div>
                     }
@@ -78,10 +75,10 @@
                             <span>Channel</span><span>Process</span><span>Device</span>
                             <span>Latch</span><span>Active</span><span></span>
                         </div>
-                        @for (var i = 0; i < _draft.AppMappings.Count; i++)
+                        @for (var i = 0; i < _audio.Value.AppMappings.Count; i++)
                         {
                             var index = i;
-                            var row = _draft.AppMappings[index];
+                            var row = _audio.Value.AppMappings[index];
                             <div class="audio-map-row">
                                 <select class="cell-select" @bind="row.Channel">
                                     @foreach (var channel in Enum.GetValues<AudioChannel>())
@@ -96,13 +93,13 @@
                                 <input type="checkbox" class="audio-cell-check" title="Only control active sessions"
                                        @bind="row.OnlyActive" />
                                 <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
-                                        @onclick="() => _draft.AppMappings.RemoveAt(index)">×</button>
+                                        @onclick="() => _audio.Value.AppMappings.RemoveAt(index)">×</button>
                             </div>
                         }
                     }
                     <div style="margin-top:8px;">
                         <button type="button" class="btn secondary"
-                                @onclick="() => _draft.AppMappings.Add(new AudioAppMapping())">Add mapping</button>
+                                @onclick="() => _audio.Value.AppMappings.Add(new AudioAppMapping())">Add mapping</button>
                     </div>
                     <div class="field-hint" style="margin-top:8px; max-width:640px;">
                         Process name without extension (e.g. "vPilot"). When the latch box is off,
@@ -114,20 +111,20 @@
 
                 <Section Title="Device Blacklist" Hint="Matched on the START of the device name">
                     <div class="list-editor">
-                        @for (var i = 0; i < _draft.DeviceBlacklist.Count; i++)
+                        @for (var i = 0; i < _audio.Value.DeviceBlacklist.Count; i++)
                         {
                             var index = i;
                             <div class="list-row">
                                 <input class="cell-input" placeholder="Device friendly name prefix"
-                                       list="audio-device-suggestions" @bind="_draft.DeviceBlacklist[index]" />
+                                       list="audio-device-suggestions" @bind="_audio.Value.DeviceBlacklist[index]" />
                                 <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
-                                        @onclick="() => _draft.DeviceBlacklist.RemoveAt(index)">×</button>
+                                        @onclick="() => _audio.Value.DeviceBlacklist.RemoveAt(index)">×</button>
                             </div>
                         }
                     </div>
                     <div style="margin-top:8px;">
                         <button type="button" class="btn secondary"
-                                @onclick="() => _draft.DeviceBlacklist.Add(string.Empty)">Add device</button>
+                                @onclick="() => _audio.Value.DeviceBlacklist.Add(string.Empty)">Add device</button>
                     </div>
                 </Section>
             }
@@ -136,7 +133,7 @@
                 <Section Title="VoiceMeeter" Hint="Strips/buses via VoicemeeterRemote64.dll">
                     <TextField Label="VoicemeeterRemote64.dll path"
                                Hint="Leave empty to auto-detect the installed VoiceMeeter (any edition); set only for non-standard install locations — never bundled, loaded at runtime"
-                               @bind-Value="_draft.VoiceMeeterDllPath" />
+                               @bind-Value="_audio.Value.VoiceMeeterDllPath" />
                     <div style="margin:8px 0;">
                         <button type="button" class="btn secondary" @onclick="ReloadTargets">Reload strips</button>
                         <span class="field-hint" style="margin-left:8px;">
@@ -151,7 +148,7 @@
                 {
                     <Section Title="@($"{AudioPresentation.AcpLabel(acp)} Mappings")">
                         <BoolField Label="@($"Drive targets from the {AudioPresentation.AcpLabel(acp)} ACP")"
-                                   Value="_draft.ActiveAcps.Contains(acp)"
+                                   Value="_audio.Value.ActiveAcps.Contains(acp)"
                                    ValueChanged="active => SetAcpActive(acp, active)" />
                         @{ var list = VmList(acp); }
                         @if (list.Count > 0)
@@ -202,17 +199,17 @@
                 <Section Title="Housekeeping" Hint="Predecessor-proven cadences — rarely need changing">
                     <NumberField Label="Run interval" Suffix="ms" Min="250"
                                  Hint="Main housekeeping tick. Takes effect after restarting the application"
-                                 @bind-Value="_draft.RunIntervalMs" />
+                                 @bind-Value="_audio.Value.RunIntervalMs" />
                     <NumberField Label="Process check interval" Suffix="ms" Min="500"
-                                 @bind-Value="_draft.ProcessCheckIntervalMs" />
+                                 @bind-Value="_audio.Value.ProcessCheckIntervalMs" />
                     <NumberField Label="Process startup grace" Suffix="ms" Min="0"
                                  Hint="Wait after a mapped app starts before looking for its audio session"
-                                 @bind-Value="_draft.ProcessStartupDelayMs" />
+                                 @bind-Value="_audio.Value.ProcessStartupDelayMs" />
                     <NumberField Label="Device rescan interval" Suffix="ms" Min="5000"
-                                 @bind-Value="_draft.DeviceCheckIntervalMs" />
+                                 @bind-Value="_audio.Value.DeviceCheckIntervalMs" />
                     <NumberField Label="Max session searches" Min="1"
                                  Hint="Failed lookups for a running process before a forced device rescan"
-                                 @bind-Value="_draft.ProcessMaxSearchCount" />
+                                 @bind-Value="_audio.Value.ProcessMaxSearchCount" />
                 </Section>
             }
 
@@ -238,9 +235,9 @@
     }
 </datalist>
 
-<DirtyBar Visible="@(IsDirty || _barMessage is not null)"
-          Message="@(_barMessage ?? "You have unsaved changes")"
-          Tone="_barTone"
+<DirtyBar Visible="@BarVisible"
+          Message="@(BarMessage ?? "You have unsaved changes")"
+          Tone="BarTone"
           OnSave="Save"
           OnDiscard="Discard" />
 
@@ -301,33 +298,22 @@
         }
     }
 
-    private static readonly JsonSerializerOptions DraftJson = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-    };
-
     private string _section = "status";
-    private AudioOptions _draft = new();
-    private string _baseline = "";
+    private OptionsDraft<AudioOptions> _audio = default!;
     private IReadOnlyList<VoiceMeeterTargetView> _vmTargets = [];
-    private string? _barMessage;
-    private DirtyBar.MessageTone _barTone = DirtyBar.MessageTone.Unsaved;
-    private Timer? _savedMessageTimer;
 
-    private bool IsDirty => Serialize(_draft) != _baseline;
-
+    // The select works in camelCase-key terms; the draft stores the enum.
     private string BackendKey
     {
-        get => JsonNamingPolicy.CamelCase.ConvertName(_draft.Backend.ToString());
-        set => _draft.Backend = Enum.TryParse<AudioBackend>(value, ignoreCase: true, out var parsed)
+        get => JsonNamingPolicy.CamelCase.ConvertName(_audio.Value.Backend.ToString());
+        set => _audio.Value.Backend = Enum.TryParse<AudioBackend>(value, ignoreCase: true, out var parsed)
             ? parsed : AudioBackend.CoreAudio;
     }
 
     private string CoreAudioAcpKey
     {
-        get => JsonNamingPolicy.CamelCase.ConvertName(_draft.CoreAudioAcp.ToString());
-        set => _draft.CoreAudioAcp = Enum.TryParse<AcpSide>(value, ignoreCase: true, out var parsed)
+        get => JsonNamingPolicy.CamelCase.ConvertName(_audio.Value.CoreAudioAcp.ToString());
+        set => _audio.Value.CoreAudioAcp = Enum.TryParse<AcpSide>(value, ignoreCase: true, out var parsed)
             ? parsed : AcpSide.Captain;
     }
 
@@ -336,7 +322,8 @@
 
     protected override void OnInitialized()
     {
-        LoadDraft();
+        _audio = Draft(AudioMonitor);
+        NormalizeVoiceMeeterKeys();
         ReloadTargets();
         LoadProcessSuggestions();
         _deviceSuggestions = DeviceCatalog.GetRenderDeviceNames();
@@ -371,49 +358,40 @@
         }
     }
 
-    private void LoadDraft()
+    // Normalize dictionary keys to the canonical camelCase ACP names so the editor and
+    // the save path address the same buckets regardless of hand-edited key casing.
+    private void NormalizeVoiceMeeterKeys()
     {
-        // JSON round-trip clone — the options instance is shared with the running service
-        // and must never be edited in place.
-        _draft = JsonSerializer.Deserialize<AudioOptions>(
-            JsonSerializer.Serialize(AudioMonitor.CurrentValue, DraftJson), DraftJson) ?? new AudioOptions();
-
-        // Normalize dictionary keys to the canonical camelCase ACP names so the editor and
-        // the save path address the same buckets regardless of hand-edited key casing.
         var normalized = new Dictionary<string, List<VoiceMeeterTargetMapping>>();
-        foreach (var (key, mappings) in _draft.VoiceMeeterMappings)
+        foreach (var (key, mappings) in _audio.Value.VoiceMeeterMappings)
         {
             if (Enum.TryParse<AcpSide>(key, ignoreCase: true, out var acp))
             {
                 normalized[AcpKey(acp)] = mappings;
             }
         }
-        _draft.VoiceMeeterMappings = normalized;
-
-        _baseline = Serialize(_draft);
+        _audio.Value.VoiceMeeterMappings = normalized;
     }
-
-    private static string Serialize(AudioOptions options) => JsonSerializer.Serialize(options, DraftJson);
 
     private static string AcpKey(AcpSide acp) => JsonNamingPolicy.CamelCase.ConvertName(acp.ToString());
 
     private List<VoiceMeeterTargetMapping> VmList(AcpSide acp)
     {
         var key = AcpKey(acp);
-        if (!_draft.VoiceMeeterMappings.TryGetValue(key, out var list))
+        if (!_audio.Value.VoiceMeeterMappings.TryGetValue(key, out var list))
         {
             list = [];
-            _draft.VoiceMeeterMappings[key] = list;
+            _audio.Value.VoiceMeeterMappings[key] = list;
         }
         return list;
     }
 
     private void SetAcpActive(AcpSide acp, bool active)
     {
-        _draft.ActiveAcps.Remove(acp);
+        _audio.Value.ActiveAcps.Remove(acp);
         if (active)
         {
-            _draft.ActiveAcps.Add(acp);
+            _audio.Value.ActiveAcps.Add(acp);
         }
     }
 
@@ -468,99 +446,28 @@
         return options;
     }
 
-    private void Discard()
+    protected override void OnBeforeSave()
     {
-        LoadDraft();
-        _barMessage = null;
+        var audio = _audio.Value;
+
+        // Blank mapping rows never persist; process/device names save trimmed.
+        audio.AppMappings.RemoveAll(m => string.IsNullOrWhiteSpace(m.Binary));
+        foreach (var mapping in audio.AppMappings)
+        {
+            mapping.Binary = mapping.Binary.Trim();
+            mapping.Device = mapping.Device.Trim();
+        }
+
+        audio.DeviceBlacklist.RemoveAll(string.IsNullOrWhiteSpace);
+        for (var i = 0; i < audio.DeviceBlacklist.Count; i++)
+        {
+            audio.DeviceBlacklist[i] = audio.DeviceBlacklist[i].Trim();
+        }
+
+        audio.VoiceMeeterDllPath = audio.VoiceMeeterDllPath.Trim();
+        audio.ActiveAcps = audio.ActiveAcps.Distinct().ToList();
     }
 
-    private void Save()
-    {
-        try
-        {
-            var draft = _draft;
-            SettingsFile.Update(root =>
-            {
-                var audio = JsonSettingsFile.GetOrCreateSection(root, AudioOptions.SectionName);
-
-                audio["enabled"] = draft.Enabled;
-                audio["backend"] = JsonNamingPolicy.CamelCase.ConvertName(draft.Backend.ToString());
-                audio["disableProsimNativeAudio"] = draft.DisableProsimNativeAudio;
-
-                audio["coreAudioAcp"] = JsonNamingPolicy.CamelCase.ConvertName(draft.CoreAudioAcp.ToString());
-                var mappings = new JsonArray();
-                foreach (var mapping in draft.AppMappings.Where(m => !string.IsNullOrWhiteSpace(m.Binary)))
-                {
-                    mappings.Add(new JsonObject
-                    {
-                        ["channel"] = JsonNamingPolicy.CamelCase.ConvertName(mapping.Channel.ToString()),
-                        ["binary"] = mapping.Binary.Trim(),
-                        ["device"] = mapping.Device.Trim(),
-                        ["useLatch"] = mapping.UseLatch,
-                        ["onlyActive"] = mapping.OnlyActive,
-                    });
-                }
-                audio["appMappings"] = mappings;
-
-                var blacklist = new JsonArray();
-                foreach (var entry in draft.DeviceBlacklist.Where(d => !string.IsNullOrWhiteSpace(d)))
-                {
-                    blacklist.Add(entry.Trim());
-                }
-                audio["deviceBlacklist"] = blacklist;
-                audio["deviceFilterFlow"] = draft.DeviceFilterFlow;
-                audio["deviceFilterState"] = draft.DeviceFilterState;
-
-                audio["voiceMeeterDllPath"] = draft.VoiceMeeterDllPath.Trim();
-                var activeAcps = new JsonArray();
-                foreach (var acp in draft.ActiveAcps.Distinct())
-                {
-                    activeAcps.Add(AcpKey(acp));
-                }
-                audio["activeAcps"] = activeAcps;
-
-                var vmMappings = new JsonObject();
-                foreach (var (key, list) in draft.VoiceMeeterMappings)
-                {
-                    var rows = new JsonArray();
-                    foreach (var mapping in list)
-                    {
-                        rows.Add(new JsonObject
-                        {
-                            ["channel"] = JsonNamingPolicy.CamelCase.ConvertName(mapping.Channel.ToString()),
-                            ["stripIndex"] = mapping.StripIndex,
-                            ["isBus"] = mapping.IsBus,
-                            ["useLatch"] = mapping.UseLatch,
-                        });
-                    }
-                    vmMappings[key] = rows;
-                }
-                audio["voiceMeeterMappings"] = vmMappings;
-
-                audio["runIntervalMs"] = draft.RunIntervalMs;
-                audio["processCheckIntervalMs"] = draft.ProcessCheckIntervalMs;
-                audio["processStartupDelayMs"] = draft.ProcessStartupDelayMs;
-                audio["deviceCheckIntervalMs"] = draft.DeviceCheckIntervalMs;
-                audio["processMaxSearchCount"] = draft.ProcessMaxSearchCount;
-            });
-
-            _baseline = Serialize(_draft);
-            _barMessage = "Saved.";
-            _barTone = DirtyBar.MessageTone.Info;
-            _savedMessageTimer?.Dispose();
-            _savedMessageTimer = new Timer(_ => _ = InvokeAsync(() =>
-            {
-                _barMessage = null;
-                _barTone = DirtyBar.MessageTone.Unsaved;
-                StateHasChanged();
-            }), null, TimeSpan.FromSeconds(1.5), Timeout.InfiniteTimeSpan);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            _barMessage = $"Save failed: {ex.Message}";
-            _barTone = DirtyBar.MessageTone.Error;
-        }
-    }
-
-    public void Dispose() => _savedMessageTimer?.Dispose();
+    // A discard re-clones from the live options, so the key normalization must run again.
+    protected override void OnDiscarded() => NormalizeVoiceMeeterKeys();
 }

@@ -6,9 +6,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// controls departure timing, and optional frequency auto-tune from getWX comms data.
 /// Disabled by default — everything requires SayIntentions running with an active flight.
 /// </summary>
-public sealed class SayIntentionsOptions
+public sealed class SayIntentionsOptions : IOptionSection
 {
-    public const string SectionName = "sayIntentions";
+    public static string SectionName => "sayIntentions";
 
     public bool Enabled { get; set; }
 

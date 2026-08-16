@@ -6,9 +6,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// chain. Both access paths are optional — a machine without ActiveSky just falls through to
 /// the ProSim gateway / SayIntentions tiers.
 /// </summary>
-public sealed class WeatherOptions
+public sealed class WeatherOptions : IOptionSection
 {
-    public const string SectionName = "weather";
+    public static string SectionName => "weather";
 
     /// <summary>Explicit path to ActiveSky's <c>current_wx_snapshot.txt</c>. When set it is
     /// authoritative: a missing file disables the snapshot tier rather than falling back to

@@ -6,9 +6,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// failure or writes a dataref: it models the procedure, not the malfunction. An overdue item
 /// is advisory only; the app never grounds the aircraft.
 /// </summary>
-public sealed class TechLogOptions
+public sealed class TechLogOptions : IOptionSection
 {
-    public const string SectionName = "techLog";
+    public static string SectionName => "techLog";
 
     public bool Enabled { get; set; } = true;
 

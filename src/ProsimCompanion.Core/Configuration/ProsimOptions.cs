@@ -4,9 +4,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// Connection settings for the ProSim system. The SDK itself is loaded at runtime from the user's
 /// ProSim installation and is never redistributed (see docs/integrations/prosim.md).
 /// </summary>
-public sealed class ProsimOptions
+public sealed class ProsimOptions : IOptionSection
 {
-    public const string SectionName = "prosim";
+    public static string SectionName => "prosim";
 
     /// <summary>Hostname or IP of the machine running ProSim System.</summary>
     public string Host { get; set; } = "localhost";

@@ -54,9 +54,9 @@ public sealed class BriefingFmsDatarefs
 /// FMS plan, weather, or LLM each just thin out the briefing; the deterministic template is
 /// always the floor.
 /// </summary>
-public sealed class BriefingOptions
+public sealed class BriefingOptions : IOptionSection
 {
-    public const string SectionName = "briefing";
+    public static string SectionName => "briefing";
 
     /// <summary>Path to the user-supplied Navigraph DFD SQLite database; empty disables
     /// nav-data facts (never redistributed).</summary>

@@ -6,9 +6,9 @@ namespace ProsimCompanion.Core.Configuration;
 /// 0–1024 (see docs/integrations/audio.md); ProSim is strictly the source of truth — knob and
 /// latch values are never written back.
 /// </summary>
-public sealed class AudioOptions
+public sealed class AudioOptions : IOptionSection
 {
-    public const string SectionName = "audio";
+    public static string SectionName => "audio";
 
     /// <summary>Master switch for the audio-control pillar.</summary>
     public bool Enabled { get; set; } = true;
