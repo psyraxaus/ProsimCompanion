@@ -18,14 +18,18 @@ public enum CabinAction
     BoardingDelay,
 }
 
-/// <summary>Inputs for one cabin tick — sampled by the shell, judged here.</summary>
+/// <summary>Inputs for one cabin tick — sampled by the shell, judged here.
+/// <paramref name="HasBeenAirborne"/> is the engine's airborne-this-session latch: the
+/// landing report is meaningless without a flight having actually happened (issue #59 — a
+/// bogus startup Approach classification fired "secure for landing" at the gate).</summary>
 public sealed record CabinTickSample(
     FlightPhase Phase,
     bool DoorsClosed,
     bool BeaconOn,
     int SeatbeltSignsMode,
     double AltitudeFt,
-    double VerticalSpeedFpm = 0);
+    double VerticalSpeedFpm = 0,
+    bool HasBeenAirborne = false);
 
 /// <summary>
 /// The pure once-per-flight trigger logic of the cabin-crew simulation (Prosim2FO semantics,
@@ -71,7 +75,10 @@ public sealed class CabinCrewCore
 
         // VS guard (issue #48): a phase blip to Approach during a climb must not trigger the
         // landing report — the cabin only reports ready while genuinely not climbing away.
+        // Airborne guard (issue #59): a bogus startup Approach classification fired "secure
+        // for landing" on a cold aircraft at the gate — the report requires an actual flight.
         if (options.CabinReady && !_readyDone
+            && sample.HasBeenAirborne
             && sample.Phase is FlightPhase.Descent or FlightPhase.Approach
             && sample.VerticalSpeedFpm < 300
             && sample.SeatbeltSignsMode == 1

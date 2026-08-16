@@ -162,6 +162,61 @@ public sealed class FlightPhaseEvaluatorTests
     }
 
     [Fact]
+    public void ShallowDescentFromCruise_StaysCruise()
+    {
+        // Hysteresis (issue #59): four Descent<->Cruise flip-flops in 23 minutes on the
+        // 2026-08-16 flight — entering Descent now needs a decisive rate (> 500 fpm down).
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 30000,
+            AltitudeFt = 36000,
+            VerticalSpeedFpm = -400,
+        };
+
+        Assert.Equal(FlightPhase.Cruise, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Cruise));
+    }
+
+    [Fact]
+    public void EstablishedDescent_HoldsThroughShallowSegment()
+    {
+        // Once established in Descent, a shallow segment (level-off capture, step descent)
+        // down to -100 fpm still counts as descending.
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 20000,
+            AltitudeFt = 24000,
+            VerticalSpeedFpm = -150,
+        };
+
+        Assert.Equal(FlightPhase.Descent, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Descent));
+    }
+
+    [Fact]
+    public void EstablishedDescent_ReturnsToCruiseOnlyNearLevel()
+    {
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 20000,
+            AltitudeFt = 24000,
+            VerticalSpeedFpm = -50,
+        };
+
+        Assert.Equal(FlightPhase.Cruise, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Descent));
+    }
+
+    [Fact]
     public void LowWithGearDown_IsApproach()
     {
         var snapshot = new FlightDataSnapshot

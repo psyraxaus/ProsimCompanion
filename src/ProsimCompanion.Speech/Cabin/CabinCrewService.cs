@@ -132,7 +132,8 @@ public sealed class CabinCrewService : IDisposable
                 BeaconOn: _reads[Beacon].GetValue(0) == 1,
                 SeatbeltSignsMode: _reads[Signs].GetValue(0),
                 AltitudeFt: flightData.AltitudeFt,
-                VerticalSpeedFpm: flightData.VerticalSpeedFpm);
+                VerticalSpeedFpm: flightData.VerticalSpeedFpm,
+                HasBeenAirborne: _flight.HasBeenAirborneThisSession);
 
             var action = _core.Evaluate(sample, options, () => Random.Shared.NextDouble());
             if (action == CabinAction.None)

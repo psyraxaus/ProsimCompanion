@@ -17,7 +17,10 @@ public sealed class CompanyDeliverMessageTests
 
     private CompanyChannelService Create() => new(
         new FakeDataRefs(),
-        new FlightStateEngine(new FakeFlightSource(), NullLogger<FlightStateEngine>.Instance),
+        new FlightStateEngine(
+            new FakeFlightSource(),
+            new ProsimCompanion.Core.State.SimSessionStore(),
+            NullLogger<FlightStateEngine>.Instance),
         _arbiter,
         new OfpStore(),
         OptionsSupport.Monitor(_options),

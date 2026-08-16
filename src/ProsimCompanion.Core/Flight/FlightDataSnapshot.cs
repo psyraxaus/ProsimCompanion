@@ -11,6 +11,14 @@ public sealed record FlightDataSnapshot
     /// <summary>False while the source is disconnected or values are stale.</summary>
     public bool IsValid { get; init; }
 
+    /// <summary>True only once every phase-critical dataref has received a first value and the
+    /// connection is fresh. Distinct from <see cref="IsValid"/>, which only proves the IAS ref
+    /// is alive: ProSim registers subscriptions over several seconds at startup, and a
+    /// half-registered set reads as airborne-with-gear-down garbage (flight test 2026-08-16,
+    /// issue #59 — Unknown→Approach with ias=0/gs=0 six seconds before the gear refs
+    /// registered). The flight state engine refuses to classify while this is false.</summary>
+    public bool IsReady { get; init; }
+
     public bool OnGround { get; init; }
     public double IndicatedAirspeedKt { get; init; }
     public double GroundSpeedKt { get; init; }
@@ -123,8 +131,10 @@ public sealed record FlightDataSnapshot
     public bool WingAntiIceOn { get; init; }
 
     /// <summary>Either aircraft.engines.N.running LITERAL boolean — can disagree with the
-    /// state-string-derived <see cref="AnyEngineRunning"/> during a start; the beacon flow
-    /// check deliberately uses this so a spooling engine counts as running.</summary>
+    /// state-string-derived engine state during a start; the beacon flow check deliberately
+    /// uses this so a spooling engine counts as running. Since 2026-08-16 (issue #59) the
+    /// live source also ORs this into <see cref="AnyEngineRunning"/>, so a transient
+    /// unexpected state string (which maps to Off) cannot read as both-engines-off mid-taxi.</summary>
     public bool AnyEngineRunningRaw { get; init; }
 }
 

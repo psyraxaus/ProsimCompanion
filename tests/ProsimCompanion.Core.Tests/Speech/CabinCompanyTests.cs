@@ -15,8 +15,9 @@ public sealed class CabinCrewCoreTests
         bool beaconOn = true,
         int signs = 1,
         double altFt = 5000,
-        double vsFpm = 0)
-        => new(phase, doorsClosed, beaconOn, signs, altFt, vsFpm);
+        double vsFpm = 0,
+        bool airborne = true)
+        => new(phase, doorsClosed, beaconOn, signs, altFt, vsFpm, airborne);
 
     private static readonly Func<double> NeverRoll = () => 1.0;
 
@@ -72,6 +73,23 @@ public sealed class CabinCrewCoreTests
         // Once genuinely descending, the report still fires (once).
         Assert.Equal(CabinAction.ReadyReport,
             core.Evaluate(Sample(FlightPhase.Approach, altFt: 3000, vsFpm: -800), options, NeverRoll));
+    }
+
+    [Fact]
+    public void ReadyReport_RequiresHavingBeenAirborneThisSession()
+    {
+        // Issue #59 (flight test 2026-08-16): a bogus startup Approach classification fired
+        // "secure for landing" on a cold aircraft at the gate. Without an actual flight this
+        // session, the landing report must never fire.
+        var core = new CabinCrewCore();
+        var options = new CabinOptions();
+
+        Assert.Equal(CabinAction.None,
+            core.Evaluate(Sample(FlightPhase.Approach, altFt: 3000, airborne: false), options, NeverRoll));
+
+        // Once the session has genuinely been airborne, the same conditions fire the report.
+        Assert.Equal(CabinAction.ReadyReport,
+            core.Evaluate(Sample(FlightPhase.Approach, altFt: 3000), options, NeverRoll));
     }
 
     [Fact]

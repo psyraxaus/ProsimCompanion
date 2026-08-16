@@ -16,6 +16,13 @@ public static class FlightPhaseEvaluator
     private const double ClimbDescentVsFpm = 300;
     private const double ApproachRaCeilingFt = 3500;
 
+    // Descent hysteresis (flight test 2026-08-16, issue #59): a symmetric ±300 fpm gate
+    // produced four Descent<->Cruise flip-flops in 23 minutes of step-descent/level segments.
+    // Entering Descent now needs a decisive rate; leaving Descent for Cruise needs near-level
+    // flight (and the engine adds a long Descent->Cruise debounce on top).
+    private const double DescentEntryVsFpm = 500;
+    private const double DescentExitVsFpm = 100;
+
     /// <summary>Derives the target phase for a snapshot. Invalid snapshots hold the current phase.</summary>
     public static FlightPhase Evaluate(FlightDataSnapshot snapshot, FlightPhase current)
     {
@@ -133,7 +140,11 @@ public static class FlightPhaseEvaluator
             return FlightPhase.Climb;
         }
 
-        if (s.VerticalSpeedFpm < -ClimbDescentVsFpm)
+        // Asymmetric descent gate: once established in Descent, a shallow segment (down to
+        // -DescentExitVsFpm) still counts as descending; from anywhere else the descent must
+        // be decisive before we leave Cruise/Climb context.
+        var descentThresholdFpm = current == FlightPhase.Descent ? DescentExitVsFpm : DescentEntryVsFpm;
+        if (s.VerticalSpeedFpm < -descentThresholdFpm)
         {
             return FlightPhase.Descent;
         }

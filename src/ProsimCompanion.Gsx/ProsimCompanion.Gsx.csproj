@@ -14,4 +14,8 @@
     <ProjectReference Include="..\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProsimCompanion.Core.Tests" />
+  </ItemGroup>
+
 </Project>

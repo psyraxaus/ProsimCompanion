@@ -52,6 +52,7 @@ public sealed class GsxArrivalService : IDisposable
     private bool _arrivalHandled;
     private bool _deboardCalled;
     private bool _fobRestored;
+    private bool _fobRestoreRefusalLogged;
     private bool _wasInArrivalPhases;
     private int _chockCountdown = -1;
     private int _ticking;
@@ -325,12 +326,70 @@ public sealed class GsxArrivalService : IDisposable
         }
     }
 
+    /// <summary>Why the preparation-time FOB restore did or did not run — the decision is a
+    /// pure function (<see cref="DecideFobRestore"/>) so the write-safety rule is testable
+    /// without the timer or GSX plumbing.</summary>
+    internal enum FobRestoreDecision
+    {
+        Restore,
+        AlreadyRestored,
+        Disabled,
+        PlanImported,
+        NoArrivalThisSession,
+    }
+
+    /// <summary>Write-safety gate for the FOB restore (issue #59, flight test 2026-08-16): a
+    /// bogus startup phase classification walked the automation straight into Preparation and
+    /// the restore overwrote 9576 kg of freshly-loaded fuel with 3344 kg saved by a PREVIOUS
+    /// session. The restore is a turnaround convenience — it may only run after the aircraft
+    /// has verifiably been airborne in THIS session, never at startup, where whatever fuel is
+    /// already on board is authoritative.</summary>
+    internal static FobRestoreDecision DecideFobRestore(
+        bool alreadyRestored, bool saveLoadFobEnabled, bool planImported, bool airborneThisSession)
+    {
+        if (alreadyRestored)
+        {
+            return FobRestoreDecision.AlreadyRestored;
+        }
+
+        if (!saveLoadFobEnabled)
+        {
+            return FobRestoreDecision.Disabled;
+        }
+
+        if (planImported)
+        {
+            return FobRestoreDecision.PlanImported;
+        }
+
+        return airborneThisSession ? FobRestoreDecision.Restore : FobRestoreDecision.NoArrivalThisSession;
+    }
+
     /// <summary>Restores the saved FOB at preparation, before any plan is loaded — mirrors the
     /// predecessor's guard (restore only when no flight plan exists yet, so a mid-turnaround
-    /// restart never clobbers planned fuel).</summary>
+    /// restart never clobbers planned fuel) plus the arrival-this-session gate (issue #59:
+    /// never restore at startup — see <see cref="DecideFobRestore"/>).</summary>
     private void TryRestoreFob()
     {
-        if (_fobRestored || !_options.CurrentValue.FuelSaveLoadFob || _ofpImported.GetValue(false))
+        var decision = DecideFobRestore(
+            _fobRestored,
+            _options.CurrentValue.FuelSaveLoadFob,
+            _ofpImported.GetValue(false),
+            _flightState.HasBeenAirborneThisSession);
+        if (decision == FobRestoreDecision.NoArrivalThisSession)
+        {
+            if (!_fobRestoreRefusalLogged)
+            {
+                _fobRestoreRefusalLogged = true;
+                RecordDecision(
+                    "fob restore",
+                    "refused — aircraft has not been airborne this session (a startup restore would overwrite loaded fuel)");
+            }
+
+            return;
+        }
+
+        if (decision != FobRestoreDecision.Restore)
         {
             return;
         }

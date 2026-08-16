@@ -63,6 +63,19 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     /// <summary>N1 (%) above which take-off thrust is considered set while on the ground.</summary>
     private const double TakeoffThrustN1Threshold = 75;
 
+    /// <summary>The refs phase derivation actually depends on. Until every one of these has
+    /// pushed a first value the snapshot reports <see cref="FlightDataSnapshot.IsReady"/> =
+    /// false and the flight state engine refuses to classify: at startup ProSim registers the
+    /// subscription set over several seconds (flight test 2026-08-16, issue #59 — the gear
+    /// refs registered 6 s AFTER the engine had already classified Unknown→Approach off the
+    /// half-populated defaults). Exposed internal for tests.</summary>
+    internal static readonly string[] PhaseCriticalRefs =
+    [
+        OnGround, Ias, GroundSpeed, Altitude, RadioAltitude, VerticalSpeed,
+        Engine1State, Engine2State, Engine1Running, Engine2Running, Engine1N1, Engine2N1,
+        Pushback, ParkBrake, GearDown, DcBatteryBusPowered,
+    ];
+
     private readonly Dictionary<string, IDataRefSubscription> _subscriptions = new(StringComparer.Ordinal);
 
     public ProsimFlightDataSource(IProsimDataRefs dataRefs)
@@ -88,12 +101,22 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
 
         var engine1 = ReadEngineState(Engine1State, Engine1Running);
         var engine2 = ReadEngineState(Engine2State, Engine2Running);
-        var anyRunning = engine1 == EngineReadState.Running || engine2 == EngineReadState.Running;
+        // Engine-running is the state STRING ORed with the raw running boolean (issue #59):
+        // an unexpected/transient state string maps to Off (see the hazard note on
+        // FlightDataSnapshot.AnyEngineRunningRaw), and a momentary both-engines-off read
+        // mid-taxi would walk the phase engine backwards into Preflight/Shutdown logic.
+        var anyRunningRaw = Get(Engine1Running, false) || Get(Engine2Running, false);
+        var anyRunning = engine1 == EngineReadState.Running || engine2 == EngineReadState.Running || anyRunningRaw;
         var maxN1 = Math.Max(Get(Engine1N1, 0.0), Get(Engine2N1, 0.0));
 
         return new FlightDataSnapshot
         {
             IsValid = true,
+            IsReady = PhaseCriticalRefs.All(name =>
+            {
+                var subscription = _subscriptions[name];
+                return subscription.RawValue is not null && !subscription.IsStale;
+            }),
             OnGround = Get(OnGround, true),
             IndicatedAirspeedKt = Get(Ias, 0.0),
             GroundSpeedKt = Get(GroundSpeed, 0.0),
@@ -136,7 +159,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             EngineAntiIce1On = Get(EngAntiIce1, 0) != 0,
             EngineAntiIce2On = Get(EngAntiIce2, 0) != 0,
             WingAntiIceOn = Get(WingAntiIce, 0) != 0,
-            AnyEngineRunningRaw = Get(Engine1Running, false) || Get(Engine2Running, false),
+            AnyEngineRunningRaw = anyRunningRaw,
         };
     }
 
