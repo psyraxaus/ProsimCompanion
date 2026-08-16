@@ -61,7 +61,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private readonly FlightStateEngine _flightState;
     private readonly SimSessionStore _simSession;
     private readonly GsxResyncState _resyncState;
-    private readonly Lazy<IGsxDepartureControl> _departureControl;
+    private readonly DepartureCycleState _cycle;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
@@ -82,7 +82,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         FlightStateEngine flightState,
         SimSessionStore simSession,
         GsxResyncState resyncState,
-        Lazy<IGsxDepartureControl> departureControl,
+        DepartureCycleState cycle,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         JsonlEventLog eventLog,
@@ -96,7 +96,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(simSession);
         ArgumentNullException.ThrowIfNull(resyncState);
-        ArgumentNullException.ThrowIfNull(departureControl);
+        ArgumentNullException.ThrowIfNull(cycle);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(eventLog);
@@ -110,7 +110,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _flightState = flightState;
         _simSession = simSession;
         _resyncState = resyncState;
-        _departureControl = departureControl;
+        _cycle = cycle;
         _options = options;
         _diagnostics = diagnostics;
         _eventLog = eventLog;
@@ -166,6 +166,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         var wasProgressed = _stage != Stage.Reposition || _sessionGateKey is not null;
         _stage = Stage.Reposition;
         _sessionGateKey = null;
+        _cycle.ResetPrep();
         if (wasProgressed)
         {
             _logger.LogInformation("Ground preparation sequence reset ({Reason})", reason);
@@ -219,7 +220,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
             // gate so SeedComplete still fast-forwards a chain that already ran pre-restart.
             if (_stage != Stage.Complete
                 && IsVoiceActivation(_options.CurrentValue.GroundPrepActivation)
-                && !_departureControl.Value.Started)
+                && !_cycle.Started)
             {
                 Hold("waiting for 'commence ground services' (gsx.groundPrepActivation = voice)");
                 return;
@@ -353,6 +354,12 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private void Advance(Stage next, string detail)
     {
         _stage = next;
+        if (next == Stage.Complete)
+        {
+            // The shared departure cycle is how the automation (and everything else) sees
+            // prep completion — the coordinator never talks to the automation directly.
+            _cycle.MarkPrepComplete();
+        }
         _logger.LogInformation("Ground prep -> {Stage}: {Detail}", next, detail);
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", $"{next}: {detail}"));
         PublishStage(detail);

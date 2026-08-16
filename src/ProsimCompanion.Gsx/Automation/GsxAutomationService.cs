@@ -33,7 +33,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private readonly IGsxTriggerSlot _slot;
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxGateSelectionService _gateSelection;
-    private readonly Sync.GsxGroundPrepCoordinator _groundPrep;
+    private readonly DepartureCycleState _cycle;
     private readonly FlightStateEngine _flightState;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
@@ -48,10 +48,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private readonly SemaphoreSlim _pumpLock = new(1, 1);
     private readonly Dictionary<string, string> _lastReasonByAction = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _triggerAttempts = new(StringComparer.OrdinalIgnoreCase);
-    private volatile bool _departureStarted;
-    private volatile bool _departureComplete;
     private volatile bool _forceNext;
-    private volatile bool _isTurnaround;
     private bool _paxTargetArmed;
     private string? _autoSelectArmedKey;
     private DateTimeOffset _lastImportAttempt = DateTimeOffset.MinValue;
@@ -66,7 +63,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         IGsxTriggerSlot slot,
         GsxServiceLifecycleTracker lifecycle,
         GsxGateSelectionService gateSelection,
-        Sync.GsxGroundPrepCoordinator groundPrep,
+        DepartureCycleState cycle,
         FlightStateEngine flightState,
         IProsimDataRefs prosim,
         ISimVars simVars,
@@ -84,7 +81,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(gateSelection);
-        ArgumentNullException.ThrowIfNull(groundPrep);
+        ArgumentNullException.ThrowIfNull(cycle);
         ArgumentNullException.ThrowIfNull(simbrief);
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(simVars);
@@ -108,7 +105,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _slot = slot;
         _lifecycle = lifecycle;
         _gateSelection = gateSelection;
-        _groundPrep = groundPrep;
+        _cycle = cycle;
         _flightState = flightState;
         _options = options;
         _diagnostics = diagnostics;
@@ -128,8 +125,10 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _api.Mirror.Updated += OnMirrorUpdated;
         _resyncState.Assessed += OnResyncAssessed;
         // Slot occupancy changes (confirm, drop, rejection) re-evaluate the sequence promptly
-        // instead of waiting out the 3 s pump interval.
+        // instead of waiting out the 3 s pump interval; cycle changes (notably the prep
+        // coordinator marking PrepComplete) do the same.
         _slot.Changed += Pump;
+        _cycle.Changed += Pump;
         _pumpTimer = new Timer(_ => Pump(), null, PumpInterval, PumpInterval);
     }
 
@@ -137,9 +136,9 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     /// in-memory one only rises on an in-session arrival) and let the held sequencer run.</summary>
     private void OnResyncAssessed()
     {
-        if (_resyncState.TurnaroundDetected && !_isTurnaround)
+        if (_resyncState.TurnaroundDetected && !_cycle.IsTurnaround)
         {
-            _isTurnaround = true;
+            _cycle.MarkTurnaround();
             RecordDecision("turnaround", "recovered from tracking LVARs by the startup resync");
         }
 
@@ -150,15 +149,15 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     public GsxAutomationPhase Phase { get; private set; } = GsxAutomationPhase.SessionStart;
 
     /// <summary>True once the departure sequence has been started (manually or automatically).</summary>
-    public bool DepartureStarted => _departureStarted;
+    public bool DepartureStarted => _cycle.Started;
 
     /// <summary>True once every departure service completed or was skipped — the
     /// beacon-orchestrated pushback sequence arms on this.</summary>
-    public bool DepartureComplete => _departureComplete;
+    public bool DepartureComplete => _cycle.Complete;
 
-    bool IGsxDepartureControl.Started => _departureStarted;
+    bool IGsxDepartureControl.Started => _cycle.Started;
 
-    bool IGsxDepartureControl.Complete => _departureComplete;
+    bool IGsxDepartureControl.Complete => _cycle.Complete;
 
     void IGsxDepartureControl.Start() => StartDepartureServices();
 
@@ -167,13 +166,12 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     /// <summary>Starts the departure service sequence (idempotent).</summary>
     public void StartDepartureServices()
     {
-        if (_departureStarted)
+        if (_cycle.Started)
         {
             return;
         }
 
-        _departureStarted = true;
-        _departureComplete = false;
+        _cycle.MarkStarted();
         RecordDecision("departure sequence", "started");
         Pump();
     }
@@ -183,7 +181,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     /// not anything could be called; the flight-plan gate is never bypassed.</summary>
     public void ForceNextService(string source)
     {
-        if (!_departureStarted || _departureComplete)
+        if (!_cycle.Started || _cycle.Complete)
         {
             RecordDecision("force next service", $"{source}: ignored — departure sequence not running");
             return;
@@ -197,6 +195,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     public void Dispose()
     {
         _slot.Changed -= Pump;
+        _cycle.Changed -= Pump;
         _flightState.PhaseChanged -= OnFlightPhaseChanged;
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _api.Mirror.Updated -= OnMirrorUpdated;
@@ -222,8 +221,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         }
 
         if (Phase is GsxAutomationPhase.Preparation or GsxAutomationPhase.SessionStart
-            && _departureStarted
-            && !_departureComplete)
+            && _cycle.Started
+            && !_cycle.Complete)
         {
             ForceNextService("INT/RAD");
         }
@@ -252,10 +251,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 // here on this session's departures are turnarounds (TurnAround-constrained
                 // services like Cleaning/Lavatory arm; FirstLeg-constrained ones stop).
                 _lifecycle.ResetCycle();
-                _departureStarted = false;
-                _departureComplete = false;
+                _cycle.BeginTurnaroundCycle();
                 _paxTargetArmed = false;
-                _isTurnaround = true;
                 _forceNext = false;
                 _slot.Reset("service cycles reset after arrival");
                 lock (_triggerAttempts)
@@ -315,18 +312,18 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 return;
             }
 
-            if (!_departureStarted
+            if (!_cycle.Started
                 && options.AutoStartDepartureServices
                 && Phase == GsxAutomationPhase.Preparation)
             {
-                _departureStarted = true;
+                _cycle.MarkStarted();
                 RecordDecision("departure sequence", "auto-started (Preparation phase)");
             }
 
-            if (!_departureStarted || _departureComplete
+            if (!_cycle.Started || _cycle.Complete
                 || Phase is not (GsxAutomationPhase.Preparation or GsxAutomationPhase.SessionStart))
             {
-                if (!_departureComplete)
+                if (!_cycle.Complete)
                 {
                     PublishWaitingBoard("departure sequence not started");
                 }
@@ -335,7 +332,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
 
             // Order (owner-specified): reposition → GPU/chocks → jetway/stairs must all finish
             // before any departure service is called.
-            if (!_groundPrep.PrepComplete)
+            if (!_cycle.PrepComplete)
             {
                 RecordDecisionOnce("hold departure services", "waiting for ground preparation (reposition/equipment/jetway) to complete");
                 PublishWaitingBoard("ground preparation running");
@@ -386,7 +383,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 _slot.InFlightServiceId,
                 flightPlanAvailable,
                 options.RequireOfpBeforeDeparture,
-                _isTurnaround,
+                _cycle.IsTurnaround,
                 forced,
                 IsCompanyHub(options),
                 _ofpStore.Current?.EstimatedEnroute);
@@ -431,7 +428,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
 
             if (plan.AllDone)
             {
-                _departureComplete = true;
+                _cycle.MarkComplete();
                 RecordDecision("departure sequence", "all departure services completed or skipped");
                 _eventLog.Record("gsx-departure-complete");
             }

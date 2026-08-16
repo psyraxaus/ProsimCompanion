@@ -140,6 +140,10 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<LoadsheetStore>();
         services.AddSingleton<GroundOpsSignals>();
         services.AddSingleton<GsxResyncState>();
+        // The departure cycle (CONTEXT.md): shared owner of started/complete/turnaround/prep
+        // flags so the GSX automation and the prep coordinator never reference each other
+        // (campaign #78).
+        services.AddSingleton<DepartureCycleState>();
         services.AddSingleton<DisplayUnitService>();
         // Per-profile GSX settings (Prosim2GSX model): the active profile's stored block is
         // written over the live gsx section on activation.
