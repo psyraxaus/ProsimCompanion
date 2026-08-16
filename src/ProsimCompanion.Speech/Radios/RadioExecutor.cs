@@ -12,10 +12,10 @@ namespace ProsimCompanion.Speech.Radios;
 /// swap, with a value already vetted in standby — there is no tune-active-directly path.</summary>
 public static class RadioControls
 {
-    public const string Com1Standby = "system.analog.R_COM1_STANDBY";
-    public const string Com2Standby = "system.analog.R_COM2_STANDBY";
-    public const string Com1Active = "system.analog.R_COM1_ACTIVE";
-    public const string Com2Active = "system.analog.R_COM2_ACTIVE";
+    public static readonly DataRef<double> Com1Standby = ProsimDataRefNames.RadioCom1Standby;
+    public static readonly DataRef<double> Com2Standby = ProsimDataRefNames.RadioCom2Standby;
+    public static readonly DataRef<double> Com1Active = ProsimDataRefNames.RadioCom1Active;
+    public static readonly DataRef<double> Com2Active = ProsimDataRefNames.RadioCom2Active;
 }
 
 /// <summary>
@@ -78,7 +78,7 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<RadioExecutor> _logger;
-    private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IDataRefSubscription<double>> _reads = new(StringComparer.Ordinal);
     private readonly HashSet<int> _inhibitedBoxes = [];
     private readonly object _gate = new();
 
@@ -285,8 +285,8 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
                 return;
             }
 
-            await _dataRefs.WriteAsync(activeRef, standby).ConfigureAwait(false);
-            await _dataRefs.WriteAsync(standbyRef, active).ConfigureAwait(false);
+            await _dataRefs.WriteAsync(activeRef.Name, standby).ConfigureAwait(false);
+            await _dataRefs.WriteAsync(standbyRef.Name, active).ConfigureAwait(false);
             await Task.Delay(200).ConfigureAwait(false);
             if ((int)Read(activeRef) == standby)
             {
@@ -309,22 +309,22 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
         }
     }
 
-    private async Task<bool> WriteVerify(string dataref, int khz, CancellationToken ct)
+    private async Task<bool> WriteVerify(DataRef<double> dataref, int khz, CancellationToken ct)
     {
-        await _dataRefs.WriteAsync(dataref, khz, ct).ConfigureAwait(false);
+        await _dataRefs.WriteAsync(dataref.Name, khz, ct).ConfigureAwait(false);
         await Task.Delay(200, ct).ConfigureAwait(false);
         return (int)Read(dataref) == khz;
     }
 
-    private double Read(string dataref)
+    private double Read(DataRef<double> dataref)
     {
-        if (!_reads.TryGetValue(dataref, out var read))
+        if (!_reads.TryGetValue(dataref.Name, out var read))
         {
-            read = _dataRefs.Subscribe(dataref, DataRefTier.Normal);
-            _reads[dataref] = read;
+            read = _dataRefs.Subscribe(dataref);
+            _reads[dataref.Name] = read;
         }
 
-        return read.GetValue(0.0);
+        return read.Value;
     }
 
     private static string SpeakFrequency(int khz)

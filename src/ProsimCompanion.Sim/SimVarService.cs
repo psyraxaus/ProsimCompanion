@@ -51,7 +51,7 @@ public sealed class SimVarService : ISimVars
     }
 
     /// <inheritdoc />
-    public IDataRefSubscription Subscribe(string simVarName, string unit, DataRefTier tier)
+    public IDataRefSubscription SubscribeDynamic(string simVarName, string unit, DataRefTier tier)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(simVarName);
         ArgumentException.ThrowIfNullOrWhiteSpace(unit);

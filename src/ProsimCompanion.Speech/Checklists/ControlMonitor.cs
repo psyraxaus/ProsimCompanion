@@ -65,8 +65,12 @@ public sealed class ControlMonitor
         ArgumentNullException.ThrowIfNull(speakAsync);
         ArgumentNullException.ThrowIfNull(isPaused);
 
+        // Escape hatch (#83): axis dataref names come from the user-editable checklist JSON
+        // (seat-mapped by the engine) — they only exist at runtime. Critical tier is
+        // deliberate: the 33 ms sampling loop below needs the 100 ms push cadence to catch a
+        // brisk sweep's full stops.
         var subscriptions = spec.Axes
-            .ToDictionary(a => a.Name, a => _dataRefs.Subscribe(a.Dataref, DataRefTier.Critical));
+            .ToDictionary(a => a.Name, a => _dataRefs.SubscribeDynamic(a.Dataref, DataRefTier.Critical));
         try
         {
             var state = spec.Axes.ToDictionary(a => a.Name, _ => new AxisState());

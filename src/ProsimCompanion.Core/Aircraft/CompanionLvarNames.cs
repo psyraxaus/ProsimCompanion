@@ -17,22 +17,25 @@ public static class CompanionLvarNames
     public const string Prefix = "L:PROSIMCOMPANION_";
 
     /// <summary>1 = this leg is a turnaround (an arrival was observed this sim session).</summary>
-    public const string Turnaround = Prefix + "TURNAROUND";
+    public static readonly SimVarRef<double> Turnaround = new(Prefix + "TURNAROUND", "number", DataRefTier.Infrequent, 0.0);
 
     /// <summary>1 = the ground-preparation chain (reposition/equipment/jetway) completed.</summary>
-    public const string PrepDone = Prefix + "PREP_DONE";
+    public static readonly SimVarRef<double> PrepDone = new(Prefix + "PREP_DONE", "number", DataRefTier.Infrequent, 0.0);
 
-    /// <summary>Edition number of the preliminary loadsheet sent this cycle; 0 = none.</summary>
-    public const string LoadsheetPrelimEdition = Prefix + "LOADSHEET_PRELIM_EDNO";
+    /// <summary>Edition number of the preliminary loadsheet sent this cycle; 0 = none
+    /// (int semantics on a numeric LVAR — read sites round).</summary>
+    public static readonly SimVarRef<double> LoadsheetPrelimEdition = new(Prefix + "LOADSHEET_PRELIM_EDNO", "number", DataRefTier.Infrequent, 0.0);
 
     /// <summary>1 = the final loadsheet was sent this cycle.</summary>
-    public const string LoadsheetFinalSent = Prefix + "LOADSHEET_FINAL_SENT";
+    public static readonly SimVarRef<double> LoadsheetFinalSent = new(Prefix + "LOADSHEET_FINAL_SENT", "number", DataRefTier.Infrequent, 0.0);
 
     /// <summary>Per-service completion latch (1 = completed this cycle). Only meaningful for
-    /// one-shot services — the jetway/stairs toggles are positional and never latch.</summary>
-    public static string ServiceDone(string serviceId)
+    /// one-shot services — the jetway/stairs toggles are positional and never latch. A builder
+    /// rather than fixed descriptors: the service-id set lives in GsxServiceIds; the guard test
+    /// enumerates the ids so every producible name is still CSV-of-record checked.</summary>
+    public static SimVarRef<double> ServiceDone(string serviceId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(serviceId);
-        return Prefix + "SVC_DONE_" + serviceId.ToUpperInvariant();
+        return new SimVarRef<double>(Prefix + "SVC_DONE_" + serviceId.ToUpperInvariant(), "number", DataRefTier.Infrequent, 0.0);
     }
 }

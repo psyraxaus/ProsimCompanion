@@ -16,7 +16,7 @@ public sealed class FmsPerfUplinkService : IFmsPerfUplink, IDisposable
 
     private readonly IProsimDataRefs _prosim;
     private readonly ILogger<FmsPerfUplinkService> _logger;
-    private readonly IDataRefSubscription _shiftUnit;
+    private readonly IDataRefSubscription<string> _shiftUnit;
 
     public FmsPerfUplinkService(IProsimDataRefs prosim, ILogger<FmsPerfUplinkService> logger)
     {
@@ -24,7 +24,7 @@ public sealed class FmsPerfUplinkService : IFmsPerfUplink, IDisposable
         ArgumentNullException.ThrowIfNull(logger);
         _prosim = prosim;
         _logger = logger;
-        _shiftUnit = prosim.Subscribe(ProsimDataRefNames.UnitTakeoffShift, DataRefTier.Infrequent);
+        _shiftUnit = prosim.Subscribe(ProsimDataRefNames.ConfigTakeoffShiftUnit);
     }
 
     public void Dispose() => _shiftUnit.Dispose();
@@ -35,7 +35,7 @@ public sealed class FmsPerfUplinkService : IFmsPerfUplink, IDisposable
 
         // Predecessor parity: shift is rounded to the nearest 100 in the DISPLAY unit
         // (default "Feet" — ProSim's own default for this config value).
-        var shiftUnit = _shiftUnit.GetValue("Feet");
+        var shiftUnit = _shiftUnit.Value;
         var shiftInUnit = string.Equals(shiftUnit, "Meters", StringComparison.OrdinalIgnoreCase)
             ? values.ShiftMeters
             : values.ShiftMeters * FeetPerMeter;
@@ -44,8 +44,10 @@ public sealed class FmsPerfUplinkService : IFmsPerfUplink, IDisposable
         try
         {
             await _prosim.WriteAsync(ProsimDataRefNames.FmsPerfTakeoffFlaps, values.Flaps, cancellationToken).ConfigureAwait(false);
-            // FLEX rides the dataref as a double; 0 is the FMS's TOGA sentinel.
-            await _prosim.WriteAsync(ProsimDataRefNames.FmsPerfTakeoffFlexTemp, (double)values.FlexTemp, cancellationToken).ConfigureAwait(false);
+            // FLEX rides the dataref as a double; 0 is the FMS's TOGA sentinel. String-name
+            // overload on purpose: the descriptor is DataRef<int> for reads, but the write
+            // must stay a double (predecessor-verified wire behaviour).
+            await _prosim.WriteAsync(ProsimDataRefNames.FmsPerfTakeoffFlexTemp.Name, (double)values.FlexTemp, cancellationToken).ConfigureAwait(false);
             await _prosim.WriteAsync(ProsimDataRefNames.FmsPerfTakeoffV1, values.V1, cancellationToken).ConfigureAwait(false);
             await _prosim.WriteAsync(ProsimDataRefNames.FmsPerfTakeoffVr, values.Vr, cancellationToken).ConfigureAwait(false);
             await _prosim.WriteAsync(ProsimDataRefNames.FmsPerfTakeoffV2, values.V2, cancellationToken).ConfigureAwait(false);

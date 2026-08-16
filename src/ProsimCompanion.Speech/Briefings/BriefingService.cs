@@ -63,7 +63,7 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     // Spoken text (campaign #81): names when the DFD is present, NATO-spelled ICAO otherwise
     // — the fallback policy lives in the module, not here (issue #70).
     private readonly Core.Speech.ISpokenText _spokenText;
-    private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IDataRefSubscription<int>> _reads = new(StringComparer.Ordinal);
 
     public BriefingService(
         IOptionsMonitor<BriefingOptions> options,
@@ -241,10 +241,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         int? v1 = null, vr = null, v2 = null, flexTemp = null;
         if (departure)
         {
-            v1 = PositiveOrNull(Read<int>("aircraft.fms.perf.takeOff.v1"));
-            vr = PositiveOrNull(Read<int>("aircraft.fms.perf.takeOff.vr"));
-            v2 = PositiveOrNull(Read<int>("aircraft.fms.perf.takeOff.v2"));
-            flexTemp = PositiveOrNull(Read<int>("aircraft.fms.perf.takeOff.flexTemp"));
+            v1 = PositiveOrNull(Read(ProsimDataRefNames.FmsPerfTakeoffV1));
+            vr = PositiveOrNull(Read(ProsimDataRefNames.FmsPerfTakeoffVr));
+            v2 = PositiveOrNull(Read(ProsimDataRefNames.FmsPerfTakeoffV2));
+            flexTemp = PositiveOrNull(Read(ProsimDataRefNames.FmsPerfTakeoffFlexTemp));
         }
 
         int? windDir = null, windSpeed = null, qnh = null, visibility = null, temperature = null;
@@ -385,15 +385,18 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         return (plan.Origin, plan.Destination, plan.OriginRunway, plan.DestinationRunway, plan.Sid, plan.Star);
     }
 
-    private T? Read<T>(string dataref)
+    /// <summary>Null when no value has arrived yet — <see cref="PositiveOrNull"/> would treat
+    /// the descriptors' 0 fallback ("not entered") the same way, but the distinction keeps
+    /// the historical "no data" shape intact.</summary>
+    private int? Read(DataRef<int> dataref)
     {
-        if (!_reads.TryGetValue(dataref, out var read))
+        if (!_reads.TryGetValue(dataref.Name, out var read))
         {
-            read = _dataRefs.Subscribe(dataref, DataRefTier.Infrequent);
-            _reads[dataref] = read;
+            read = _dataRefs.Subscribe(dataref);
+            _reads[dataref.Name] = read;
         }
 
-        return read.GetValue<T?>(default);
+        return read.RawValue is null ? null : read.Value;
     }
 
     private static int? PositiveOrNull(int? value) => value is > 0 ? value : null;

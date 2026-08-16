@@ -5,33 +5,24 @@ namespace ProsimCompanion.Speech.Fcu;
 /// 1=push=managed, 2=pull=selected). Read-only indicators verify outcomes.</summary>
 public static class FcuControls
 {
-    public const string HeadingValue = "system.analog.A_FCU_HEADING";
-    public const string AltitudeValue = "system.analog.A_FCU_ALTITUDE";
-    public const string SpeedValue = "system.analog.A_FCU_SPEED";
-    public const string VsValue = "system.analog.A_FCU_VS";
+    // Write targets (knobs/pushbuttons), aliased to the catalog's wire vocabulary.
+    public const string HeadingKnob = Core.Aircraft.ProsimDataRefNames.FcuHeading;
+    public const string AltitudeKnob = Core.Aircraft.ProsimDataRefNames.FcuAltitude;
+    public const string SpeedKnob = Core.Aircraft.ProsimDataRefNames.FcuSpeed;
+    public const string VsKnob = Core.Aircraft.ProsimDataRefNames.FcuVerticalSpeed;
 
-    public const string HeadingKnob = "system.switches.S_FCU_HEADING";
-    public const string AltitudeKnob = "system.switches.S_FCU_ALTITUDE";
-    public const string SpeedKnob = "system.switches.S_FCU_SPEED";
-    public const string VsKnob = "system.switches.S_FCU_VERTICAL_SPEED";
+    public const string Ap1 = Core.Aircraft.ProsimDataRefNames.FcuAp1;
+    public const string Ap2 = Core.Aircraft.ProsimDataRefNames.FcuAp2;
+    public const string Athr = Core.Aircraft.ProsimDataRefNames.FcuAthr;
+    public const string Appr = Core.Aircraft.ProsimDataRefNames.FcuAppr;
+    public const string Loc = Core.Aircraft.ProsimDataRefNames.FcuLoc;
+    public const string Exped = Core.Aircraft.ProsimDataRefNames.FcuExped;
+    public const string SpdMach = Core.Aircraft.ProsimDataRefNames.FcuSpdMach;
 
-    public const string Ap1 = "system.switches.S_FCU_AP1";
-    public const string Ap2 = "system.switches.S_FCU_AP2";
-    public const string Athr = "system.switches.S_FCU_ATHR";
-    public const string Appr = "system.switches.S_FCU_APPR";
-    public const string Loc = "system.switches.S_FCU_LOC";
-    public const string Exped = "system.switches.S_FCU_EXPED";
-    public const string SpdMach = "system.switches.S_FCU_SPD_MACH";
-
-    // Read-only verification indicators (never written).
-    public const string HeadingManaged = "system.indicators.I_FCU_HEADING_MANAGED";
-    public const string AltitudeManaged = "system.indicators.I_FCU_ALTITUDE_MANAGED";
-    public const string SpeedManaged = "system.indicators.I_FCU_SPEED_MANAGED";
-    public const string IndAp1 = "system.indicators.I_FCU_AP1";
-    public const string IndAp2 = "system.indicators.I_FCU_AP2";
-    public const string IndAthr = "system.indicators.I_FCU_ATHR";
-    public const string IndAppr = "system.indicators.I_FCU_APPR";
-    public const string IndLoc = "system.indicators.I_FCU_LOC";
+    // Read-only value/indicator refs are the typed catalog descriptors (#83):
+    // ProsimDataRefNames.FcuSpeedValue/FcuHeadingValue/FcuAltitudeValue/FcuVsValue and
+    // FcuAp1Indicator/FcuAp2Indicator/FcuAthrIndicator/FcuApprIndicator/FcuLocIndicator,
+    // FcuSpeedManaged/FcuHeadingManaged/FcuAltitudeManaged.
 }
 
 public enum FcuField

@@ -14,18 +14,6 @@ namespace ProsimCompanion.Speech.Commands;
 /// </summary>
 public sealed class SpokenTokenSource : IDisposable
 {
-    // Seat-relative EFIS2 (F/O-side) baro refs — flipped by PilotSeatMap when the human flies
-    // the right seat, so "the FO's altimeter" always means the virtual FO's side.
-    private const string FoBaroStdRef = "system.gates.B_FCU_EFIS2_BARO_STD";
-    private const string FoBaroModeRef = ProsimDataRefNames.Efis2BaroMode; // 0:inHg 1:hPa
-    private const string FoBaroHpaRef = ProsimDataRefNames.Efis2BaroHpa;
-    private const string FoBaroInchRef = ProsimDataRefNames.Efis2BaroInch;
-
-    private const string V1Ref = "aircraft.fms.perf.takeOff.v1";
-    private const string VrRef = "aircraft.fms.perf.takeOff.vr";
-    private const string V2Ref = "aircraft.fms.perf.takeOff.v2";
-    private const string FlexRef = "aircraft.fms.perf.takeOff.flexTemp";
-
     private readonly IProsimDataRefs _dataRefs;
     private readonly IOptionsMonitor<BriefingOptions> _briefingOptions;
     private readonly ILogger<SpokenTokenSource> _logger;
@@ -62,14 +50,18 @@ public sealed class SpokenTokenSource : IDisposable
     {
         try
         {
-            Sub(FoBaroStdRef, DataRefTier.Normal);
-            Sub(FoBaroModeRef, DataRefTier.Normal);
-            Sub(FoBaroHpaRef, DataRefTier.Normal);
-            Sub(FoBaroInchRef, DataRefTier.Normal);
-            Sub(V1Ref, DataRefTier.Infrequent);
-            Sub(VrRef, DataRefTier.Infrequent);
-            Sub(V2Ref, DataRefTier.Infrequent);
-            Sub(FlexRef, DataRefTier.Infrequent);
+            // The EFIS2 (F/O-side) baro refs are seat-relative — Sub flips them via
+            // PilotSeatMap when the human flies the right seat, so "the FO's altimeter"
+            // always means the virtual FO's side. The STD read is deliberately the effective
+            // GATE, not the push-pull switch (see Efis2BaroStdGate, #83).
+            Sub(ProsimDataRefNames.Efis2BaroStdGate);
+            Sub(ProsimDataRefNames.Efis2BaroMode); // 0:inHg 1:hPa
+            Sub(ProsimDataRefNames.Efis2BaroHpa);
+            Sub(ProsimDataRefNames.Efis2BaroInch);
+            Sub(ProsimDataRefNames.FmsPerfTakeoffV1);
+            Sub(ProsimDataRefNames.FmsPerfTakeoffVr);
+            Sub(ProsimDataRefNames.FmsPerfTakeoffV2);
+            Sub(ProsimDataRefNames.FmsPerfTakeoffFlexTemp);
         }
         catch (Exception ex)
         {
@@ -83,11 +75,11 @@ public sealed class SpokenTokenSource : IDisposable
     {
         try
         {
-            var std = Sub(FoBaroStdRef, DataRefTier.Normal);
-            bool? stdState = std.RawValue is null ? null : (bool?)std.GetValue(false);
-            var hpaMode = Sub(FoBaroModeRef, DataRefTier.Normal).GetValue(1) == 1;
-            var hpa = Sub(FoBaroHpaRef, DataRefTier.Normal).GetValue(0.0);
-            var inches = Sub(FoBaroInchRef, DataRefTier.Normal).GetValue(0.0);
+            var std = Sub(ProsimDataRefNames.Efis2BaroStdGate);
+            bool? stdState = std.RawValue is null ? null : std.Value;
+            var hpaMode = Sub(ProsimDataRefNames.Efis2BaroMode).Value == 1;
+            var hpa = Sub(ProsimDataRefNames.Efis2BaroHpa).Value;
+            var inches = Sub(ProsimDataRefNames.Efis2BaroInch).Value;
 
             var runway = FlightJsonRouteReader.Read().DepartureRunway;
             if (string.IsNullOrWhiteSpace(runway))
@@ -98,10 +90,10 @@ public sealed class SpokenTokenSource : IDisposable
             return new CommandTokenValues(
                 Altimeter: SpokenValueFormatting.Altimeter(stdState, hpaMode, hpa, inches),
                 Qnh: SpokenValueFormatting.Altimeter(stdState, hpaMode: true, hpa, inches),
-                V1: SpokenValueFormatting.Speed(Perf(V1Ref)),
-                Vr: SpokenValueFormatting.Speed(Perf(VrRef)),
-                V2: SpokenValueFormatting.Speed(Perf(V2Ref)),
-                Flex: SpokenValueFormatting.Speed(Perf(FlexRef)),
+                V1: SpokenValueFormatting.Speed(Perf(ProsimDataRefNames.FmsPerfTakeoffV1)),
+                Vr: SpokenValueFormatting.Speed(Perf(ProsimDataRefNames.FmsPerfTakeoffVr)),
+                V2: SpokenValueFormatting.Speed(Perf(ProsimDataRefNames.FmsPerfTakeoffV2)),
+                Flex: SpokenValueFormatting.Speed(Perf(ProsimDataRefNames.FmsPerfTakeoffFlexTemp)),
                 Runway: SpokenValueFormatting.Runway(runway));
         }
         catch (Exception ex)
@@ -123,27 +115,27 @@ public sealed class SpokenTokenSource : IDisposable
         }
     }
 
-    private double? Perf(string dataref)
+    private int? Perf(DataRef<int> dataref)
     {
-        var sub = Sub(dataref, DataRefTier.Infrequent);
-        return sub.RawValue is null ? null : sub.GetValue(0.0);
+        var sub = Sub(dataref);
+        return sub.RawValue is null ? null : sub.Value;
     }
 
-    private IDataRefSubscription Sub(string dataref, DataRefTier tier)
+    private IDataRefSubscription<T> Sub<T>(DataRef<T> dataref)
     {
         lock (_reads)
         {
             // Seat-relative reads (EFIS baro etc.); cached under the MAPPED name so a seat
             // change picks up the other side on the next new subscription.
-            dataref = Recognition.PilotSeatMap.Map(dataref,
+            var mapped = Recognition.PilotSeatMap.Map(dataref,
                 _speech is not null && Recognition.PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue));
-            if (!_reads.TryGetValue(dataref, out var read))
+            if (!_reads.TryGetValue(mapped.Name, out var read))
             {
-                read = _dataRefs.Subscribe(dataref, tier);
-                _reads[dataref] = read;
+                read = _dataRefs.Subscribe(mapped);
+                _reads[mapped.Name] = read;
             }
 
-            return read;
+            return (IDataRefSubscription<T>)read;
         }
     }
 }

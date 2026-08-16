@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using ProsimCompanion.Core.Aircraft;
 
 namespace ProsimCompanion.Prosim.DataRefs;
 
@@ -13,59 +14,59 @@ public static class ProsimWriteGate
     private static readonly FrozenSet<string> AllowedNames = new[]
     {
         // Refuel
-        "aircraft.refuel.fuelTarget",
-        "aircraft.refuel.fuelTarget.kg",
-        "aircraft.refuel.refuelingActive",
-        "aircraft.refuel.refuelingPower",
-        "aircraft.refuel.refuelingRate",
-        "aircraft.fuel.total.amount.kg",
+        ProsimDataRefNames.RefuelFuelTarget.Name,
+        ProsimDataRefNames.RefuelFuelTargetKg.Name,
+        ProsimDataRefNames.RefuelActive,
+        ProsimDataRefNames.RefuelPower,
+        ProsimDataRefNames.RefuelRate,
+        ProsimDataRefNames.FuelTotal.Name,
 
         // Ground equipment
-        "groundservice.groundpower",
-        "groundservice.preconditionedAir",
-        "efb.chocks",
-        "efb.fwdStairs",
-        "efb.aftStairs",
+        ProsimDataRefNames.GroundPower.Name,
+        ProsimDataRefNames.GroundPreconditionedAir.Name,
+        ProsimDataRefNames.Chocks.Name,
+        ProsimDataRefNames.EfbFwdStairs,
+        ProsimDataRefNames.EfbAftStairs,
 
         // ProSim native-integration flags we own while running
-        "efb.autoJetway",
-        "efb.autoDoor",
+        ProsimDataRefNames.EfbAutoJetway,
+        ProsimDataRefNames.EfbAutoDoor,
 
         // Boarding state (EFB UI tracks it; double "efb." is the real path)
-        "efb.efb.boardingStatus",
+        ProsimDataRefNames.EfbBoardingStatus.Name,
 
         // SimBrief import flag (written by the OFP importer)
-        "efb.simbriefPlanImported",
+        ProsimDataRefNames.EfbSimbriefPlanImported.Name,
 
         // Ground-crew upcalls (ADR-0006): momentary MECH call press so the ACP lamp flashes
         // when ground initiates an interphone call. Press-only via PressMomentaryAsync.
-        "system.switches.S_OH_CALLS_MECH",
+        ProsimDataRefNames.OhCallsMech,
 
         // Planning / pax
-        "efb.plannedfuel",
-        "efb.plannedCargoKg",
-        "efb.passengers.booked.string",
-        "efb.passengerStatistics",
-        "aircraft.passengers.seatOccupation.string",
+        ProsimDataRefNames.EfbPlannedFuel.Name,
+        ProsimDataRefNames.EfbPlannedCargoKg.Name,
+        ProsimDataRefNames.PaxBookedString.Name,
+        ProsimDataRefNames.EfbPassengerStatistics,
+        ProsimDataRefNames.PaxSeatOccupationString.Name,
 
         // Loadsheet pipeline (Phase 3): the EFB display slots + the ACARS uplink envelope
-        "efb.prelimLoadsheet",
-        "efb.finalLoadsheet",
-        "efb.aoc.message.uplink",
+        ProsimDataRefNames.EfbPrelimLoadsheet,
+        ProsimDataRefNames.EfbFinalLoadsheet.Name,
+        ProsimDataRefNames.AocMessageUplink,
 
         // MCDU INIT B sync (values in TONNES for zfw/block; zfwcg is %MAC)
-        "aircraft.fms.init.block",
-        "aircraft.fms.init.zfw",
-        "aircraft.fms.init.zfwcg",
+        ProsimDataRefNames.FmsInitBlock,
+        ProsimDataRefNames.FmsInitZfw,
+        ProsimDataRefNames.FmsInitZfwcg,
 
         // FMS PERF TO uplink (Phase 3 performance page)
-        "aircraft.fms.perf.takeOff.flaps",
-        "aircraft.fms.perf.takeOff.flexTemp",
-        "aircraft.fms.perf.takeOff.v1",
-        "aircraft.fms.perf.takeOff.vr",
-        "aircraft.fms.perf.takeOff.v2",
-        "aircraft.fms.perf.takeOff.ths",
-        "aircraft.fms.perf.takeOff.shift",
+        ProsimDataRefNames.FmsPerfTakeoffFlaps,
+        ProsimDataRefNames.FmsPerfTakeoffFlexTemp.Name,
+        ProsimDataRefNames.FmsPerfTakeoffV1.Name,
+        ProsimDataRefNames.FmsPerfTakeoffVr.Name,
+        ProsimDataRefNames.FmsPerfTakeoffV2.Name,
+        ProsimDataRefNames.FmsPerfTakeoffThs,
+        ProsimDataRefNames.FmsPerfTakeoffShift,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly string[] AllowedPrefixes =

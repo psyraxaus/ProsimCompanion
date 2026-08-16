@@ -42,10 +42,10 @@ public sealed class GsxArrivalService : IDisposable
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxArrivalService> _logger;
-    private readonly IDataRefSubscription _beacon;
-    private readonly IDataRefSubscription _fuelTotal;
-    private readonly IDataRefSubscription _seatOccupation;
-    private readonly IDataRefSubscription _ofpImported;
+    private readonly IDataRefSubscription<int> _beacon;
+    private readonly IDataRefSubscription<double> _fuelTotal;
+    private readonly IDataRefSubscription<string?> _seatOccupation;
+    private readonly IDataRefSubscription<bool> _ofpImported;
     private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly GsxJetwayStairsService _jetwayStairs;
     private readonly Timer _timer;
@@ -101,10 +101,10 @@ public sealed class GsxArrivalService : IDisposable
         _diagnostics = diagnostics;
         _logger = logger;
 
-        _beacon = prosim.Subscribe(ProsimDataRefNames.OhExtLtBeacon, DataRefTier.Normal);
-        _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal, DataRefTier.Normal);
-        _seatOccupation = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString, DataRefTier.Infrequent);
-        _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
+        _beacon = prosim.Subscribe(ProsimDataRefNames.OhExtLtBeacon);
+        _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);
+        _seatOccupation = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString);
+        _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported);
 
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
     }
@@ -143,7 +143,7 @@ public sealed class GsxArrivalService : IDisposable
                     AnyEngineRunning: snapshot?.AnyEngineRunning == true,
                     ParkBrakeSet: snapshot?.ParkBrakeSet == true,
                     GroundSpeedKt: snapshot?.GroundSpeedKt ?? double.MaxValue,
-                    BeaconOn: _beacon.GetValue(0) != 0,
+                    BeaconOn: _beacon.Value != 0,
                     ArrivalStableSecondsOption: options.ArrivalStableSeconds,
                     AutoCallDeboard: options.AutoCallDeboardOnArrival,
                     DeboardAlreadyCalled: _deboardCalled,
@@ -214,7 +214,7 @@ public sealed class GsxArrivalService : IDisposable
             return;
         }
 
-        var fuel = Math.Round(_fuelTotal.GetValue(0.0), 1);
+        var fuel = Math.Round(_fuelTotal.Value, 1);
         if (fuel <= 0)
         {
             return;
@@ -233,7 +233,7 @@ public sealed class GsxArrivalService : IDisposable
     /// same heads that boarded (predecessor: SetPaxTarget(PaxBoarded) at arrival).</summary>
     private void ArmDeboardPaxTarget()
     {
-        var boarded = SeatMap.Parse(_seatOccupation.GetValue<string?>(null)).Count(seat => seat);
+        var boarded = SeatMap.Parse(_seatOccupation.Value).Count(seat => seat);
         if (boarded <= 0)
         {
             return;
@@ -241,7 +241,7 @@ public sealed class GsxArrivalService : IDisposable
 
         try
         {
-            _ = _simVars.WriteAsync(GsxLvarNames.NumPassengers, boarded);
+            _ = _simVars.WriteAsync(GsxLvarNames.NumPassengers.Name, boarded);
             RecordDecision("arrival", $"armed GSX deboard pax target: {boarded}");
         }
         catch (InvalidOperationException ex)
@@ -347,7 +347,7 @@ public sealed class GsxArrivalService : IDisposable
         var decision = DecideFobRestore(
             _fobRestored,
             _options.CurrentValue.FuelSaveLoadFob,
-            _ofpImported.GetValue(false),
+            _ofpImported.Value,
             _flightState.Snapshot().HasBeenAirborneThisSession);
         if (decision == FobRestoreDecision.NoArrivalThisSession)
         {
@@ -373,7 +373,9 @@ public sealed class GsxArrivalService : IDisposable
             return; // title arrives with the sim — retry next tick
         }
 
-        var current = _fuelTotal.GetValue(-1.0);
+        // −1 sentinel (GetValueOr, #83): "not read yet" must stay distinguishable from a real
+        // 0 kg — the catalog fallback is 0.0, which would let a restore race the real value.
+        var current = _fuelTotal.GetValueOr(-1.0);
         if (current < 0)
         {
             return; // ProSim fuel not read yet — a restore now would race the real value

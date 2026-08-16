@@ -33,6 +33,7 @@ public sealed class ProcedureSource : IDisposable
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly object _gate = new();
 
+    private IDataRefSubscription<string?>? _flightPlanXml;
     private string? _lastXml;
     private FmsPlan _cachedPlan = FmsPlan.Empty;
 
@@ -134,6 +135,7 @@ public sealed class ProcedureSource : IDisposable
 
     public void Dispose()
     {
+        _flightPlanXml?.Dispose();
         foreach (var read in _reads.Values)
         {
             read.Dispose();
@@ -142,7 +144,8 @@ public sealed class ProcedureSource : IDisposable
 
     private FmsPlan CurrentPlan()
     {
-        var xml = ReadDataref("aircraft.fms.flightPlanXml");
+        _flightPlanXml ??= _dataRefs.Subscribe(ProsimDataRefNames.FmsFlightPlanXml);
+        var xml = _flightPlanXml.Value;
         if (string.IsNullOrWhiteSpace(xml))
         {
             return FmsPlan.Empty;
@@ -173,7 +176,9 @@ public sealed class ProcedureSource : IDisposable
 
         if (!_reads.TryGetValue(name, out var read))
         {
-            read = _dataRefs.Subscribe(name, DataRefTier.Infrequent);
+            // Escape hatch (#83): the per-field FMS dataref names come from the user's
+            // briefing settings (BriefingOptions.FmsDatarefs) — they only exist at runtime.
+            read = _dataRefs.SubscribeDynamic(name, DataRefTier.Infrequent);
             _reads[name] = read;
         }
 

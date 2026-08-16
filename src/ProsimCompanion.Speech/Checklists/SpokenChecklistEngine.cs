@@ -702,7 +702,9 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     {
         if (!_verifyReads.TryGetValue(dataref, out var read))
         {
-            read = _dataRefs.Subscribe(dataref, DataRefTier.Normal);
+            // Escape hatch (#83): verify/readback dataref names come from the user-editable
+            // checklist JSON — they only exist at runtime.
+            read = _dataRefs.SubscribeDynamic(dataref, DataRefTier.Normal);
             _verifyReads[dataref] = read;
         }
 

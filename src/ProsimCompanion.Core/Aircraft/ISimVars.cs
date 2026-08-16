@@ -9,13 +9,15 @@ namespace ProsimCompanion.Core.Aircraft;
 public interface ISimVars
 {
     /// <summary>
-    /// Subscribes to a SimVar (e.g. "PLANE ALTITUDE") or LVAR ("L:FSDT_GSX_MENU_OPEN", unit
-    /// "number") in the given unit. The first subscription for a name fixes its unit; the
+    /// Subscribes to a SimVar or LVAR by raw name — the registration primitive behind the
+    /// typed <see cref="TypedSubscriptionExtensions.Subscribe{T}(ISimVars, SimVarRef{T})"/>
+    /// path, which is what feature code must call (a guard test enforces it; there are no
+    /// runtime-named SimVars today). The first subscription for a name fixes its unit; the
     /// cadence tier maps to a SimConnect request period. Dispose the handle to release the
-    /// registration. Note: the sim silently auto-creates unknown LVAR names as 0 — use the
-    /// centralized names in <see cref="ProsimDataRefNames.Lvars"/>, never ad-hoc strings.
+    /// registration. Note: the sim silently auto-creates unknown LVAR names as 0 — the
+    /// typed catalog is the only defence against a misspelled name reading as a real 0.
     /// </summary>
-    IDataRefSubscription Subscribe(string simVarName, string unit, DataRefTier tier);
+    IDataRefSubscription SubscribeDynamic(string simVarName, string unit, DataRefTier tier);
 
     /// <summary>
     /// Writes a value to an allow-listed SimVar/LVAR (unit "number", FLOAT64). After a write

@@ -11,16 +11,43 @@ namespace ProsimCompanion.Speech.Checklists;
 /// (captain-side refs are forbidden by both this list and the write gate).</summary>
 public static class CopilotControls
 {
-    public const string Roll = "system.analog.A_FC_FO_ROLL";
-    public const string Pitch = "system.analog.A_FC_FO_PITCH";
-    public const string Rudder = "system.analog.A_FC_FO_RUDDER";
+    // The catalog descriptors carry the raw-neutral 512 as their fallback (#83) — a dead
+    // axis must read centered, never deflected.
+    public static readonly DataRef<int> Roll = ProsimDataRefNames.AnalogFoRoll;
+    public static readonly DataRef<int> Pitch = ProsimDataRefNames.AnalogFoPitch;
+    public static readonly DataRef<int> Rudder = ProsimDataRefNames.AnalogFoRudder;
 
     public const int Min = 0;
-    public const int NeutralRaw = 512;
     public const int Max = 1024;
 
     public static bool IsWritable(string dataref)
-        => dataref is Roll or Pitch or Rudder;
+        => TryResolve(dataref, out _);
+
+    /// <summary>Resolves an AUTHORED (FO-side) axis dataref name from checklist JSON to its
+    /// catalog descriptor; false for anything outside the three permitted axes.</summary>
+    public static bool TryResolve(string dataref, out DataRef<int> axis)
+    {
+        if (dataref == Roll.Name)
+        {
+            axis = Roll;
+            return true;
+        }
+
+        if (dataref == Pitch.Name)
+        {
+            axis = Pitch;
+            return true;
+        }
+
+        if (dataref == Rudder.Name)
+        {
+            axis = Rudder;
+            return true;
+        }
+
+        axis = default;
+        return false;
+    }
 
     /// <summary>Normalized −1..+1 → raw 0..1024 (512 = neutral).</summary>
     public static int NormalizedToRaw(double normalized)
@@ -41,7 +68,7 @@ public sealed class ControlSweepService
     private readonly IProsimDataRefs _dataRefs;
     private readonly ILogger<ControlSweepService> _logger;
     private readonly IOptionsMonitor<SpeechOptions>? _speech;
-    private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IDataRefSubscription<int>> _reads = new(StringComparer.Ordinal);
 
     public ControlSweepService(
         IProsimDataRefs dataRefs,
@@ -60,8 +87,8 @@ public sealed class ControlSweepService
     /// the right seat the virtual pilot sweeps the captain-side analogs instead. The
     /// allow-list check stays on the AUTHORED name — the map only changes which side of an
     /// already-approved axis is written.</summary>
-    private string Side(string dataref)
-        => PilotSeatMap.Map(dataref,
+    private DataRef<int> Side(DataRef<int> axis)
+        => PilotSeatMap.Map(axis,
             _speech is not null && PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue));
 
     /// <summary>Runs the sweep to completion. Cancellation forces neutral, then rethrows.</summary>
@@ -74,13 +101,13 @@ public sealed class ControlSweepService
             foreach (var step in action.Steps)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!CopilotControls.IsWritable(step.Dataref))
+                if (!CopilotControls.TryResolve(step.Dataref, out var axis))
                 {
                     _logger.LogWarning("Sweep step refused — {Dataref} is not an FO control", step.Dataref);
                     continue;
                 }
 
-                await RampAsync(step, cancellationToken).ConfigureAwait(false);
+                await RampAsync(axis, step, cancellationToken).ConfigureAwait(false);
                 if (step.HoldMs > 0)
                 {
                     await Task.Delay(step.HoldMs, cancellationToken).ConfigureAwait(false);
@@ -99,28 +126,29 @@ public sealed class ControlSweepService
     /// safety path; failures are logged and swallowed.</summary>
     public async Task ForceNeutralAsync()
     {
-        foreach (var dataref in new[] { CopilotControls.Pitch, CopilotControls.Roll, CopilotControls.Rudder })
+        foreach (var axis in new[] { CopilotControls.Pitch, CopilotControls.Roll, CopilotControls.Rudder })
         {
             try
             {
-                await _dataRefs.WriteAsync(Side(dataref), CopilotControls.NeutralRaw).ConfigureAwait(false);
+                // The descriptor fallback IS the raw neutral (#83).
+                await _dataRefs.WriteAsync(Side(axis).Name, axis.Fallback).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Neutral write failed for {Dataref}", dataref);
+                _logger.LogDebug(ex, "Neutral write failed for {Dataref}", axis.Name);
             }
         }
     }
 
-    private async Task RampAsync(ControlSweepStep step, CancellationToken cancellationToken)
+    private async Task RampAsync(DataRef<int> axis, ControlSweepStep step, CancellationToken cancellationToken)
     {
-        var dataref = Side(step.Dataref);
+        var dataref = Side(axis);
         var target = CopilotControls.NormalizedToRaw(step.To);
         var current = ReadCurrent(dataref);
 
         if (step.RampMs <= 0 || current == target)
         {
-            await _dataRefs.WriteAsync(dataref, target, cancellationToken).ConfigureAwait(false);
+            await _dataRefs.WriteAsync(dataref.Name, target, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -130,24 +158,24 @@ public sealed class ControlSweepService
         {
             cancellationToken.ThrowIfCancellationRequested();
             var value = (int)Math.Round(current + (target - current) * (frame / (double)frames));
-            await _dataRefs.WriteAsync(dataref, value, cancellationToken).ConfigureAwait(false);
+            await _dataRefs.WriteAsync(dataref.Name, value, cancellationToken).ConfigureAwait(false);
             await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
         }
 
         // Land exactly on target regardless of rounding.
-        await _dataRefs.WriteAsync(dataref, target, cancellationToken).ConfigureAwait(false);
+        await _dataRefs.WriteAsync(dataref.Name, target, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Reads the axis's current raw value via a cached subscription (registered on
-    /// first use); 512 when unknown.</summary>
-    private int ReadCurrent(string dataref)
+    /// first use); the descriptor's raw-neutral fallback when unknown.</summary>
+    private int ReadCurrent(DataRef<int> dataref)
     {
-        if (!_reads.TryGetValue(dataref, out var subscription))
+        if (!_reads.TryGetValue(dataref.Name, out var subscription))
         {
-            subscription = _dataRefs.Subscribe(dataref, DataRefTier.Normal);
-            _reads[dataref] = subscription;
+            subscription = _dataRefs.Subscribe(dataref);
+            _reads[dataref.Name] = subscription;
         }
 
-        return subscription.GetValue(CopilotControls.NeutralRaw);
+        return subscription.Value;
     }
 }

@@ -1,9 +1,11 @@
 namespace ProsimCompanion.Core.Aircraft;
 
 /// <summary>
-/// Canonical catalog of ProSim SDK dataref names, ported from ProsimInterface's
-/// <c>ProsimConstants.cs</c>. The full ~4,470-row reference is <c>ProsimDataref.csv</c>
-/// at the repo root.
+/// Canonical catalog of ProSim SDK datarefs. Every ref the app SUBSCRIBES is a typed
+/// <see cref="DataRef{T}"/> descriptor declaring wire name, tier and fallback policy in one
+/// place (#83); names used only as write/press targets, or kept as wire vocabulary, remain
+/// plain string constants. The full reference is <c>Prosim_A322_Dataref.csv</c> at the repo
+/// root; a guard test checks every declared wire against it.
 /// <para>
 /// The string values are wire-protocol identifiers consumed verbatim by the ProSim SDK
 /// and SimConnect. They must NEVER be "corrected" — several are deliberately misspelled
@@ -20,59 +22,98 @@ public static class ProsimDataRefNames
 {
     #region FlightDynamics
 
-    public const string Altitude = "aircraft.altitude";
+    /// <summary>Also the flight-data validity sentinel — consumers probe RawValue/IsStale.</summary>
+    public static readonly DataRef<double> IndicatedAirspeed = new("aircraft.speed.ias", DataRefTier.Critical, 0.0);
+    public static readonly DataRef<double> Altitude = new("aircraft.altitude", DataRefTier.Critical, 0.0);
+    public static readonly DataRef<double> RadioAltitude = new("aircraft.altitude.radio", DataRefTier.Critical, 0.0);
+    /// <summary>Non-saturating AGL — deliberately distinct from <see cref="RadioAltitude"/>,
+    /// which tops out like the real RA; keep both.</summary>
+    public static readonly DataRef<double> AltitudeAboveGround = new("aircraft.altitude.aboveGround", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> VerticalSpeed = new("aircraft.verticalspeed", DataRefTier.Critical, 0.0);
+    public static readonly DataRef<double> GroundSpeed = new("aircraft.speed.ground", DataRefTier.Frequent, 0.0);
+    /// <summary>On-ground gate. Fallback true: with no data we assume parked, never airborne —
+    /// ground-only automation stays quiet either way, air-only callouts cannot fire on a cold start.</summary>
+    public static readonly DataRef<bool> OnGroundGate = new("system.gates.B_GROUND", DataRefTier.Frequent, true);
+
+    public static readonly DataRef<bool> EngineRunning1 = new("aircraft.engines.1.running", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> EngineRunning2 = new("aircraft.engines.2.running", DataRefTier.Normal, false);
+    /// <summary>Engine state string (issue #59: transiently misreports during start — consumers
+    /// corroborate with N1/running before acting).</summary>
+    public static readonly DataRef<string> Engine1State = new("aircraft.systems.engines.1.state", DataRefTier.Normal, "");
+    public static readonly DataRef<string> Engine2State = new("aircraft.systems.engines.2.state", DataRefTier.Normal, "");
+    /// <summary>N1 in percent. A distinct <c>aircraft.engine1.raw</c> ("Engine 1 N1 raw") ref
+    /// exists in ProSim and once shared the symbol name Engine1N1 with this one (#83); it is
+    /// deliberately NOT declared — every consumer audited in 2026-08 wants percent semantics.</summary>
+    public static readonly DataRef<double> Engine1N1Percent = new("aircraft.engines.1.n1", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Engine2N1Percent = new("aircraft.engines.2.n1", DataRefTier.Frequent, 0.0);
+    /// <summary>Fallback 0 is load-bearing: 0 means "limit not set", which disables FLEX/TOGA
+    /// threshold callouts instead of firing them against a fictitious limit.</summary>
+    public static readonly DataRef<double> EnginesLimitFlex = new("aircraft.engines.limits.flex", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> EnginesLimitToga = new("aircraft.engines.limits.toga", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<int> ThrottleLeftMaxReverse = new("system.switches.S_FC_THROTTLE_LEFT_MAX_REVERSE", DataRefTier.Frequent, 0);
+    public static readonly DataRef<int> ThrottleRightMaxReverse = new("system.switches.S_FC_THROTTLE_RIGHT_MAX_REVERSE", DataRefTier.Frequent, 0);
+    public static readonly DataRef<double> Fac1Vls = new("aircraft.FAC1.VLS", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<bool> GroundSpoilersDeployed = new("debug.groundSpoilersDeployd", DataRefTier.Frequent, false); // sic — ProSim's typo, never correct
+    /// <summary>Fallback true: no data reads as "gear is down", so gear-up warnings stay silent
+    /// rather than crying wolf on a dead link.</summary>
+    public static readonly DataRef<bool> GearDown = new("aircraft.gearDown", DataRefTier.Normal, true); // also referenced by lg-gear-not-downlocked.json
+    public static readonly DataRef<bool> ElecBusPowerDcBat = new("system.gates.B_ELEC_BUS_POWER_DC_BAT", DataRefTier.Normal, false);
+    /// <summary>Fallback 15 °C: a plausible temperate default so anti-icing advisories never
+    /// false-positive off a generic 0 °C when the ref is dead.</summary>
+    public static readonly DataRef<double> TemperatureTat = new("aircraft.temperature.tat", DataRefTier.Infrequent, 15.0);
+    public static readonly DataRef<double> TemperatureOat = new("aircraft.temperature.oat", DataRefTier.Infrequent, 15.0);
+    public static readonly DataRef<bool> AmbientInCloud = new("environment.ambientInCloud", DataRefTier.Infrequent, false);
+    /// <summary>Fallback MaxValue = unlimited visibility; a generic 0 would read as dense fog.</summary>
+    public static readonly DataRef<double> AmbientVisibility = new("environment.ambientVisibility", DataRefTier.Infrequent, double.MaxValue);
+
+    // Wire vocabulary only (no subscriber today) — kept as reference names.
     public const string GroundContact = "aircraft.ground";
-    public const string EngineRunning1 = "aircraft.engines.1.running";
-    public const string EngineRunning2 = "aircraft.engines.2.running";
-    public const string Engine1N1 = "aircraft.engine1.raw";
-    public const string Engine2N1 = "aircraft.engine2.raw";
     public const string BankAngle = "aircraft.bank";
     public const string PitchAngle = "aircraft.pitch";
     public const string HeadingMagnetic = "aircraft.heading.magnetic";
     public const string HeadingTrue = "aircraft.heading.true";
-    public const string GroundSpeed = "aircraft.speed.ground";
-    public const string IndicatedAirspeed = "aircraft.speed.ias";
-    public const string VerticalSpeed = "aircraft.verticalspeed";
     public const string AircraftTime = "aircraft.time";
 
     #endregion
 
     #region Fuel
 
-    public const string FuelTotal = "aircraft.fuel.total.amount.kg";
+    public static readonly DataRef<double> FuelTotal = new("aircraft.fuel.total.amount.kg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> FuelLeft = new("aircraft.fuel.left.amount.kg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> FuelRight = new("aircraft.fuel.right.amount.kg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> FuelCenter = new("aircraft.fuel.center.amount.kg", DataRefTier.Normal, 0.0);
     public const string FuelTotalCapacity = "aircraft.fuel.total.capacity";
-    public const string FuelLeft = "aircraft.fuel.left.amount.kg";
-    public const string FuelRight = "aircraft.fuel.right.amount.kg";
-    public const string FuelCenter = "aircraft.fuel.center.amount.kg";
     public const string FuelAct1 = "aircraft.fuel.ACT1.amount.kg";
     public const string FuelAct2 = "aircraft.fuel.ACT2.amount.kg";
     public const string FuelLeftCapacity = "aircraft.fuel.left.capacity";
     public const string FuelRightCapacity = "aircraft.fuel.right.capacity";
-    public const string FuelCenterCapacity = "aircraft.fuel.center.capacity";
+    public static readonly DataRef<double> FuelCenterCapacity = new("aircraft.fuel.center.capacity", DataRefTier.Infrequent, 0.0);
 
     // Per-tank A320 breakdown — `aircraft.fuel.left.amount.kg` is the WING aggregate
     // (inner + outer). The granular `aircraft.systems.fuel.*` refs expose each
     // individual tank, matching the 5-tank picture ProSim's own FUEL EFB page shows.
     // Amounts move during refuel (poll at the same cadence as the wing aggregates);
     // capacities are airframe-fixed, slow polling is plenty.
-    public const string FuelLeftInner = "aircraft.systems.fuel.left.inner.amount.kg";
-    public const string FuelLeftInnerCapacity = "aircraft.systems.fuel.left.inner.capacity";
-    public const string FuelLeftOuter = "aircraft.systems.fuel.left.outer.amount.kg";
-    public const string FuelLeftOuterCapacity = "aircraft.systems.fuel.left.outer.capacity";
-    public const string FuelRightInner = "aircraft.systems.fuel.right.inner.amount.kg";
-    public const string FuelRightInnerCapacity = "aircraft.systems.fuel.right.inner.capacity";
-    public const string FuelRightOuter = "aircraft.systems.fuel.right.outer.amount.kg";
-    public const string FuelRightOuterCapacity = "aircraft.systems.fuel.right.outer.capacity";
-
-    /// <summary>Weight display unit from ProSim config.</summary>
-    public const string WeightUnit = "system.config.Units.Weight";
+    public static readonly DataRef<double> FuelLeftInner = new("aircraft.systems.fuel.left.inner.amount.kg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> FuelLeftInnerCapacity = new("aircraft.systems.fuel.left.inner.capacity", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> FuelLeftOuter = new("aircraft.systems.fuel.left.outer.amount.kg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> FuelLeftOuterCapacity = new("aircraft.systems.fuel.left.outer.capacity", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> FuelRightInner = new("aircraft.systems.fuel.right.inner.amount.kg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> FuelRightInnerCapacity = new("aircraft.systems.fuel.right.inner.capacity", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> FuelRightOuter = new("aircraft.systems.fuel.right.outer.amount.kg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> FuelRightOuterCapacity = new("aircraft.systems.fuel.right.outer.capacity", DataRefTier.Infrequent, 0.0);
 
     #endregion
 
     #region Refuel
 
-    public const string RefuelFuelTarget = "aircraft.refuel.fuelTarget";
-    public const string RefuelFuelTargetKg = "aircraft.refuel.fuelTarget.kg";
+    /// <summary>Refuel target in ProSim's configured unit — unit-ambiguous by itself;
+    /// consumers pair it with <see cref="RefuelFuelTargetKg"/> and the unit config.</summary>
+    public static readonly DataRef<double> RefuelFuelTarget = new("aircraft.refuel.fuelTarget", DataRefTier.Infrequent, 0.0);
+    /// <summary>Preferred kg-denominated refuel target. NOT present in Prosim_A322_Dataref.csv
+    /// (sole CSV exception, #83) — live verification pending; if it never pushes, consumers'
+    /// fallback path via <see cref="RefuelFuelTarget"/> is what has actually been running.</summary>
+    public static readonly DataRef<double> RefuelFuelTargetKg = new("aircraft.refuel.fuelTarget.kg", DataRefTier.Infrequent, 0.0);
     public const string RefuelActive = "aircraft.refuel.refuelingActive";
     public const string RefuelPower = "aircraft.refuel.refuelingPower";
     public const string RefuelRate = "aircraft.refuel.refuelingRate";
@@ -81,60 +122,67 @@ public static class ProsimDataRefNames
 
     #region WeightAndBalance
 
-    public const string WeightGross = "aircraft.weight.gross";
-    public const string WeightGrossMax = "aircraft.weight.grossMax";
-    public const string WeightZfw = "aircraft.weight.zfw";
-    public const string WeightZfwMax = "aircraft.weight.zfwMax";
-    public const string WeightFuel = "aircraft.weight.fuel";
+    public static readonly DataRef<double> WeightGross = new("aircraft.weight.gross", DataRefTier.Normal, 0.0);
+    /// <summary>Fallback 0 is load-bearing: consumers treat &lt;= 0 as "unknown, fall through
+    /// to the OFP value" — never substitute a plausible airframe number here.</summary>
+    public static readonly DataRef<double> WeightGrossMax = new("aircraft.weight.grossMax", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> WeightZfw = new("aircraft.weight.zfw", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> WeightZfwMax = new("aircraft.weight.zfwMax", DataRefTier.Infrequent, 0.0);
     /// <summary>Readable equivalent of the write-only FMS INIT ZFWCG; drives MACZFW/MACGW.</summary>
-    public const string Zfwcg = "aircraft.zfwcg";
-    public const string CenterOfGravity = "aircraft.cg";
+    public static readonly DataRef<double> Zfwcg = new("aircraft.zfwcg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> CenterOfGravity = new("aircraft.cg", DataRefTier.Normal, 0.0);
+    public const string WeightFuel = "aircraft.weight.fuel";
     public const string BalanceMac = "aircraft.balance.MAC";
 
     #endregion
 
     #region Passengers
 
-    public const string PaxZone1Capacity = "aircraft.passengers.zone1.capacity";
-    public const string PaxZone2Capacity = "aircraft.passengers.zone2.capacity";
-    public const string PaxZone3Capacity = "aircraft.passengers.zone3.capacity";
-    public const string PaxZone4Capacity = "aircraft.passengers.zone4.capacity";
-    public const string PaxZone1Amount = "aircraft.passengers.zone1.amount";
-    public const string PaxZone2Amount = "aircraft.passengers.zone2.amount";
-    public const string PaxZone3Amount = "aircraft.passengers.zone3.amount";
-    public const string PaxZone4Amount = "aircraft.passengers.zone4.amount";
+    /// <summary>Zone capacities. Fallback 0 is load-bearing: a zero capacity SUM triggers the
+    /// [24,30,36,42] default-cabin substitution downstream — keep 0, never a plausible capacity.</summary>
+    public static readonly DataRef<int> PaxZone1Capacity = new("aircraft.passengers.zone1.capacity", DataRefTier.Infrequent, 0);
+    public static readonly DataRef<int> PaxZone2Capacity = new("aircraft.passengers.zone2.capacity", DataRefTier.Infrequent, 0);
+    public static readonly DataRef<int> PaxZone3Capacity = new("aircraft.passengers.zone3.capacity", DataRefTier.Infrequent, 0);
+    public static readonly DataRef<int> PaxZone4Capacity = new("aircraft.passengers.zone4.capacity", DataRefTier.Infrequent, 0);
+    public static readonly DataRef<int> PaxZone1Amount = new("aircraft.passengers.zone1.amount", DataRefTier.Normal, 0);
+    public static readonly DataRef<int> PaxZone2Amount = new("aircraft.passengers.zone2.amount", DataRefTier.Normal, 0);
+    public static readonly DataRef<int> PaxZone3Amount = new("aircraft.passengers.zone3.amount", DataRefTier.Normal, 0);
+    public static readonly DataRef<int> PaxZone4Amount = new("aircraft.passengers.zone4.amount", DataRefTier.Normal, 0);
+    /// <summary>Null fallback (not ""): consumers use null-vs-value as the "seat map has
+    /// actually arrived" liveness probe. Normal tier for the web seat-map's boarding
+    /// responsiveness (fastest-requested rule; the GSX consumers only need Infrequent).</summary>
+    public static readonly DataRef<string?> PaxSeatOccupationString = new("aircraft.passengers.seatOccupation.string", DataRefTier.Normal, null);
+    /// <summary>Booked-passenger string (EFB namespace; also used as the pax-booked readout).</summary>
+    public static readonly DataRef<string?> PaxBookedString = new("efb.passengers.booked.string", DataRefTier.Infrequent, null);
     public const string PaxTotalWeight = "aircraft.passengers.total.weight";
     public const string PaxSeatOccupation = "aircraft.passengers.seatOccupation";
-    public const string PaxSeatOccupationString = "aircraft.passengers.seatOccupation.string";
-    /// <summary>Booked-passenger string (EFB namespace; also used as the pax-booked readout).</summary>
-    public const string PaxBookedString = "efb.passengers.booked.string";
 
     #endregion
 
     #region Cargo
 
-    public const string CargoForwardAmount = "aircraft.cargo.forward.amount";
-    public const string CargoForwardCapacity = "aircraft.cargo.forward.capacity";
-    public const string CargoAftAmount = "aircraft.cargo.aft.amount";
-    public const string CargoAftCapacity = "aircraft.cargo.aft.capacity";
+    public static readonly DataRef<double> CargoForwardAmount = new("aircraft.cargo.forward.amount", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> CargoForwardCapacity = new("aircraft.cargo.forward.capacity", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> CargoAftAmount = new("aircraft.cargo.aft.amount", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> CargoAftCapacity = new("aircraft.cargo.aft.capacity", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> CargoBulkCapacity = new("aircraft.cargo.bulk.capacity", DataRefTier.Infrequent, 0.0);
     public const string CargoBulkAmount = "aircraft.cargo.bulk.amount";
-    public const string CargoBulkCapacity = "aircraft.cargo.bulk.capacity";
 
     #endregion
 
     #region Doors
 
-    public const string Door1L = "doors.entry.left.fwd";
-    public const string Door2L = "doors.wing.left.1";
-    public const string Door3L = "doors.wing.left.2";
-    public const string Door4L = "doors.entry.left.aft";
-    public const string Door1R = "doors.entry.right.fwd";
-    public const string Door2R = "doors.wing.right.1";
-    public const string Door3R = "doors.wing.right.2";
-    public const string Door4R = "doors.entry.right.aft";
-    public const string DoorCargoForward = "doors.cargo.forward";
-    public const string DoorCargoAft = "doors.cargo.aft";
-    public const string DoorCargoBulk = "doors.cargo.bulk";
+    public static readonly DataRef<bool> Door1L = new("doors.entry.left.fwd", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> Door4L = new("doors.entry.left.aft", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> Door1R = new("doors.entry.right.fwd", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> Door4R = new("doors.entry.right.aft", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> DoorCargoForward = new("doors.cargo.forward", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> DoorCargoAft = new("doors.cargo.aft", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> DoorCargoBulk = new("doors.cargo.bulk", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> Door2L = new("doors.wing.left.1", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> Door3L = new("doors.wing.left.2", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> Door2R = new("doors.wing.right.1", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> Door3R = new("doors.wing.right.2", DataRefTier.Normal, false);
     public const string CockpitDoorSwitch = "system.switches.S_PED_COCKPIT_DOOR"; // [0:Normal, 1:Unlock, 2:Lock]
     public const string CockpitDoorState = "system.switches.S_DOORS_COCKPIT";
     public const string CockpitDoorIndicatorUpper = "system.indicators.I_PED_COCKPIT_DOOR_U";
@@ -143,27 +191,32 @@ public static class ProsimDataRefNames
 
     #region GroundServices
 
+    public static readonly DataRef<bool> GroundPreconditionedAir = new("groundservice.preconditionedAir", DataRefTier.Infrequent, false);
+    public static readonly DataRef<bool> GroundPower = new("groundservice.groundpower", DataRefTier.Normal, false);
+    public static readonly DataRef<bool> Chocks = new("efb.chocks", DataRefTier.Normal, false);
+    public static readonly DataRef<int> PushbackState = new("groundservice.pushback", DataRefTier.Normal, 0);
     public const string GroundPneumatic = "groundservice.pneumatic";
-    public const string GroundPreconditionedAir = "groundservice.preconditionedAir";
-    public const string GroundPower = "groundservice.groundpower";
-    public const string Chocks = "efb.chocks";
-    public const string PushbackState = "groundservice.pushback";
     public const string PushbackWait = "groundservice.pushback.wait";
 
     #endregion
 
     #region Efb
 
+    public static readonly DataRef<string?> EfbBoardingStatus = new("efb.efb.boardingStatus", DataRefTier.Infrequent, null); // double "efb." is the real published path
+    public static readonly DataRef<double> EfbPlannedCargoKg = new("efb.plannedCargoKg", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<double> EfbPlannedFuel = new("efb.plannedfuel", DataRefTier.Infrequent, 0.0);
+    public static readonly DataRef<string?> EfbFinalLoadsheet = new("efb.finalLoadsheet", DataRefTier.Infrequent, null);
+    public static readonly DataRef<string?> EfbSimbriefId = new("efb.simbrief.id", DataRefTier.Infrequent, null);
+    /// <summary>Issue #60: can hold a stale true from a PREVIOUS session's import — consumers
+    /// corroborate with FMS origin/destination before trusting it after startup.</summary>
+    public static readonly DataRef<bool> EfbSimbriefPlanImported = new("efb.simbriefPlanImported", DataRefTier.Infrequent, false);
+    /// <summary>CIDS flight number (System.String per the A322 CSV) — drives the web header's
+    /// FLT NO split-flap. Fallback "" renders blank flaps until real data arrives.</summary>
+    public static readonly DataRef<string> CidsFlightNumber = new("efb.cids.flightNumber", DataRefTier.Infrequent, "");
     public const string EfbLoaded = "efb.loaded";
     public const string EfbReady = "efb.ready";
     public const string EfbTest = "efb.test";
-    public const string EfbBoardingStatus = "efb.efb.boardingStatus"; // double "efb." is the real published path
-    public const string EfbPlannedCargoKg = "efb.plannedCargoKg";
-    public const string EfbPlannedFuel = "efb.plannedfuel";
     public const string EfbPrelimLoadsheet = "efb.prelimLoadsheet";
-    public const string EfbFinalLoadsheet = "efb.finalLoadsheet";
-    public const string EfbSimbriefId = "efb.simbrief.id";
-    public const string EfbSimbriefPlanImported = "efb.simbriefPlanImported";
     public const string EfbFlightTimestampJson = "efb.flightTimestampJSON";
     public const string EfbPaxBooked = "efb.passengers.booked";
     public const string EfbPassengerStatistics = "efb.passengerStatistics";
@@ -199,21 +252,24 @@ public static class ProsimDataRefNames
 
     #region Fms
 
-    public const string FmsOrigin = "aircraft.fms.origin";
-    public const string FmsDestination = "aircraft.fms.destination";
+    /// <summary>Null until real data; ProSim publishes "----"/"Null" sentinels for "no airport
+    /// entered" — validate with the ICAO check beside these descriptors, not ad hoc.</summary>
+    public static readonly DataRef<string?> FmsOrigin = new("aircraft.fms.origin", DataRefTier.Infrequent, null);
+    public static readonly DataRef<string?> FmsDestination = new("aircraft.fms.destination", DataRefTier.Infrequent, null);
+    public static readonly DataRef<string?> FmsFlightPlanXml = new("aircraft.fms.flightPlanXml", DataRefTier.Infrequent, null);
     public const string FmsAlternate = "aircraft.fms.alternate";
     public const string FmsCruiseAlt = "aircraft.fms.cruiseAlt";
     public const string FmsFlightPhase = "aircraft.fms.flightPhase";
-    public const string FmsFlightPlanXml = "aircraft.fms.flightPlanXml";
     public const string FmsRoute = "aircraft.fms.route";
     public const string FmsTimeToDest = "aircraft.fms.TimeToDest";
 
-    // FMS Performance
+    // FMS Performance. V-speeds/flex fall back to 0 = "not entered yet" — spoken tokens and
+    // briefings treat 0 as absent. The shift/THS/flaps refs are write targets, not reads.
+    public static readonly DataRef<int> FmsPerfTakeoffFlexTemp = new("aircraft.fms.perf.takeOff.flexTemp", DataRefTier.Infrequent, 0);
+    public static readonly DataRef<int> FmsPerfTakeoffV1 = new("aircraft.fms.perf.takeOff.v1", DataRefTier.Infrequent, 0);
+    public static readonly DataRef<int> FmsPerfTakeoffVr = new("aircraft.fms.perf.takeOff.vr", DataRefTier.Infrequent, 0);
+    public static readonly DataRef<int> FmsPerfTakeoffV2 = new("aircraft.fms.perf.takeOff.v2", DataRefTier.Infrequent, 0);
     public const string FmsPerfTakeoffFlaps = "aircraft.fms.perf.takeOff.flaps";
-    public const string FmsPerfTakeoffFlexTemp = "aircraft.fms.perf.takeOff.flexTemp";
-    public const string FmsPerfTakeoffV1 = "aircraft.fms.perf.takeOff.v1";
-    public const string FmsPerfTakeoffVr = "aircraft.fms.perf.takeOff.vr";
-    public const string FmsPerfTakeoffV2 = "aircraft.fms.perf.takeOff.v2";
     public const string FmsPerfTakeoffThs = "aircraft.fms.perf.takeOff.ths";
     public const string FmsPerfTakeoffShift = "aircraft.fms.perf.takeOff.shift";
     public const string FmsPerfLandingFlaps = "aircraft.fms.perf.landing.flaps";
@@ -227,28 +283,37 @@ public static class ProsimDataRefNames
     /// Engine type from the user's selected aircraft profile; drives takeoff V-speed
     /// lookup tables. Declared values: "CFM" | "IAE" | "CFM-Leap" (treat Leap as "CFM"
     /// on the wire — only two lookup buckets exist).
+    /// Fallback "CFM" is a semantic default (like <see cref="ConfigTakeoffShiftUnit"/>):
+    /// with no data the V-speed lookup uses the CFM bucket, which is also where the
+    /// consumer maps every non-"IAE" value.
     /// </summary>
-    public const string ConfigEngineType = "system.config.Config.EPR";
+    public static readonly DataRef<string> ConfigEngineType = new("system.config.Config.EPR", DataRefTier.Infrequent, "CFM");
 
     /// <summary>ProSim's configured weight unit — "LBS" for pounds, otherwise kilograms
-    /// (predecessor's empirically-established rule; drives the "aircraft" unit source).</summary>
-    public const string ConfigWeightUnit = "system.config.Units.Weight";
+    /// (predecessor's empirically-established rule; drives the "aircraft" unit source).
+    /// Null fallback: consumers must distinguish "not read yet" from a real unit.</summary>
+    public static readonly DataRef<string?> ConfigWeightUnit = new("system.config.Units.Weight", DataRefTier.Infrequent, null);
 
     /// <summary>
     /// Display-unit selector for the runway-shift value written to
     /// aircraft.fms.perf.takeOff.shift. Values: "Meters" | "Feet". Read this before
     /// composing the shift integer — ProSim interprets the number in this unit.
+    /// Fallback "Feet" is ProSim's own default, a semantic default rather than a zero.
     /// </summary>
-    public const string UnitTakeoffShift = "system.config.Units.TakeoffShiftUnit";
+    public static readonly DataRef<string> ConfigTakeoffShiftUnit = new("system.config.Units.TakeoffShiftUnit", DataRefTier.Infrequent, "Feet");
 
     #endregion
 
     #region SystemState
 
+    public static readonly DataRef<string?> AircraftTitle = new("simulator.aircraft.title", DataRefTier.Infrequent, null);
     public const string SimulatorConnected = "simulator.connected";
-    public const string SimulatorTime = "simulator.time";
-    public const string ZuluTime = "simulator.zuluTime";
-    public const string AircraftTitle = "simulator.aircraft.title";
+    // Sim clock feeds (issue #71). Declared DateTime/TimeSpan per the A322 CSV, but the
+    // consumer (MainLayout's header clock) reads RawValue through SimClockFormat, which
+    // accepts every shape the transport actually delivers — the typed fallbacks are the
+    // "unpopulated" sentinels SimClockFormat already treats as no-data.
+    public static readonly DataRef<DateTime> SimulatorTime = new("simulator.time", DataRefTier.Infrequent, default);
+    public static readonly DataRef<TimeSpan> ZuluTime = new("simulator.zuluTime", DataRefTier.Infrequent, default);
 
     #endregion
 
@@ -262,79 +327,86 @@ public static class ProsimDataRefNames
     public const string RmpPower1Switch = "system.switches.S_PED_RMP1_POWER";
     public const string RmpPower2Switch = "system.switches.S_PED_RMP2_POWER";
 
-    // INT/RAD source switches
-    public const string IntRadCpt = "system.switches.S_ASP_INTRAD";  // [0:INT, 1:Off, 2:RAD]
-    public const string IntRadFo = "system.switches.S_ASP2_INTRAD"; // [0:INT, 1:Off, 2:RAD]
+    // INT/RAD source switches. Fallback 1 (Off): the repurposed smart button must read as
+    // idle, never as a held INT/RAD position, when the ref is dead.
+    public static readonly DataRef<int> IntRadCpt = new("system.switches.S_ASP_INTRAD", DataRefTier.Frequent, 1);  // [0:INT, 1:Off, 2:RAD]
+    public static readonly DataRef<int> IntRadFo = new("system.switches.S_ASP2_INTRAD", DataRefTier.Frequent, 1); // [0:INT, 1:Off, 2:RAD]
 
     // Captain ACP transmit selection (issue #72). The interphone transmit gate reads THESE,
     // never S_ASP_INTRAD above: the INT/RAD rocker is repurposed as the GSX "force next
     // service" smart button (GsxAutomationService), so gating dialogue on it would fire
     // ground services every time the pilot keyed the intercom.
     /// <summary>Resolved captain ACP transmit selector
-    /// [0:None, 1:VHF1, 2:VHF2, 3:VHF3, 4:HF1, 5:HF2, 6:INT, 7:CAB, 8:PA].</summary>
-    public const string AcpSendChannel = "system.switches.S_ASP_SEND_CHANNEL";
+    /// [0:None, 1:VHF1, 2:VHF2, 3:VHF3, 4:HF1, 5:HF2, 6:INT, 7:CAB, 8:PA].
+    /// Fallback −1 is deliberately out of range → maps to AcpTransmitTarget.Unknown,
+    /// so a dead ref can never read as a valid transmit selection.</summary>
+    public static readonly DataRef<int> AcpSendChannel = new("system.switches.S_ASP_SEND_CHANNEL", DataRefTier.Frequent, -1);
     /// <summary>Captain ACP INT transmit key [0:Normal, 1:Pushed].</summary>
-    public const string AcpIntSend = "system.switches.S_ASP_INT_SEND";
+    public static readonly DataRef<int> AcpIntSend = new("system.switches.S_ASP_INT_SEND", DataRefTier.Frequent, 0);
+
+    // ACP volume knobs and REC latches. Latch fallback 1 (unmuted / fail-audible, #83): a
+    // dead subscription must never silently mute a channel; degraded-mode gating belongs on
+    // RawValue/IsStale, not on reading the fallback (see AcpChannel).
 
     // ACP1 Volume Knobs
-    public const string Acp1CabAnalog = "system.analog.A_ASP_CAB_VOLUME";
-    public const string Acp1Hf1Analog = "system.analog.A_ASP_HF_1_VOLUME";
-    public const string Acp1Hf2Analog = "system.analog.A_ASP_HF_2_VOLUME";
-    public const string Acp1IntAnalog = "system.analog.A_ASP_INT_VOLUME";
-    public const string Acp1PaAnalog = "system.analog.A_ASP_PA_VOLUME";
-    public const string Acp1Vhf1Analog = "system.analog.A_ASP_VHF_1_VOLUME";
-    public const string Acp1Vhf2Analog = "system.analog.A_ASP_VHF_2_VOLUME";
-    public const string Acp1Vhf3Analog = "system.analog.A_ASP_VHF_3_VOLUME";
+    public static readonly DataRef<double> Acp1CabAnalog = new("system.analog.A_ASP_CAB_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp1Hf1Analog = new("system.analog.A_ASP_HF_1_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp1Hf2Analog = new("system.analog.A_ASP_HF_2_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp1IntAnalog = new("system.analog.A_ASP_INT_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp1PaAnalog = new("system.analog.A_ASP_PA_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp1Vhf1Analog = new("system.analog.A_ASP_VHF_1_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp1Vhf2Analog = new("system.analog.A_ASP_VHF_2_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp1Vhf3Analog = new("system.analog.A_ASP_VHF_3_VOLUME", DataRefTier.Frequent, 0.0);
 
     // ACP1 Latch Switches
-    public const string Acp1CabLatch = "system.switches.S_ASP_CAB_REC_LATCH";
-    public const string Acp1Hf1Latch = "system.switches.S_ASP_HF_1_REC_LATCH";
-    public const string Acp1Hf2Latch = "system.switches.S_ASP_HF_2_REC_LATCH";
-    public const string Acp1IntLatch = "system.switches.S_ASP_INT_REC_LATCH";
-    public const string Acp1PaLatch = "system.switches.S_ASP_PA_REC_LATCH";
-    public const string Acp1Vhf1Latch = "system.switches.S_ASP_VHF_1_REC_LATCH";
-    public const string Acp1Vhf2Latch = "system.switches.S_ASP_VHF_2_REC_LATCH";
-    public const string Acp1Vhf3Latch = "system.switches.S_ASP_VHF_3_REC_LATCH";
+    public static readonly DataRef<int> Acp1CabLatch = new("system.switches.S_ASP_CAB_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp1Hf1Latch = new("system.switches.S_ASP_HF_1_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp1Hf2Latch = new("system.switches.S_ASP_HF_2_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp1IntLatch = new("system.switches.S_ASP_INT_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp1PaLatch = new("system.switches.S_ASP_PA_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp1Vhf1Latch = new("system.switches.S_ASP_VHF_1_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp1Vhf2Latch = new("system.switches.S_ASP_VHF_2_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp1Vhf3Latch = new("system.switches.S_ASP_VHF_3_REC_LATCH", DataRefTier.Frequent, 1);
 
     // ACP2 Volume Knobs
-    public const string Acp2CabAnalog = "system.analog.A_ASP2_CAB_VOLUME";
-    public const string Acp2Hf1Analog = "system.analog.A_ASP2_HF_1_VOLUME";
-    public const string Acp2Hf2Analog = "system.analog.A_ASP2_HF_2_VOLUME";
-    public const string Acp2IntAnalog = "system.analog.A_ASP2_INT_VOLUME";
-    public const string Acp2PaAnalog = "system.analog.A_ASP2_PA_VOLUME";
-    public const string Acp2Vhf1Analog = "system.analog.A_ASP2_VHF_1_VOLUME";
-    public const string Acp2Vhf2Analog = "system.analog.A_ASP2_VHF_2_VOLUME";
-    public const string Acp2Vhf3Analog = "system.analog.A_ASP2_VHF_3_VOLUME";
+    public static readonly DataRef<double> Acp2CabAnalog = new("system.analog.A_ASP2_CAB_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp2Hf1Analog = new("system.analog.A_ASP2_HF_1_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp2Hf2Analog = new("system.analog.A_ASP2_HF_2_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp2IntAnalog = new("system.analog.A_ASP2_INT_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp2PaAnalog = new("system.analog.A_ASP2_PA_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp2Vhf1Analog = new("system.analog.A_ASP2_VHF_1_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp2Vhf2Analog = new("system.analog.A_ASP2_VHF_2_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp2Vhf3Analog = new("system.analog.A_ASP2_VHF_3_VOLUME", DataRefTier.Frequent, 0.0);
 
     // ACP2 Latch Switches
-    public const string Acp2CabLatch = "system.switches.S_ASP2_CAB_REC_LATCH";
-    public const string Acp2Hf1Latch = "system.switches.S_ASP2_HF_1_REC_LATCH";
-    public const string Acp2Hf2Latch = "system.switches.S_ASP2_HF_2_REC_LATCH";
-    public const string Acp2IntLatch = "system.switches.S_ASP2_INT_REC_LATCH";
-    public const string Acp2PaLatch = "system.switches.S_ASP2_PA_REC_LATCH";
-    public const string Acp2Vhf1Latch = "system.switches.S_ASP2_VHF_1_REC_LATCH";
-    public const string Acp2Vhf2Latch = "system.switches.S_ASP2_VHF_2_REC_LATCH";
-    public const string Acp2Vhf3Latch = "system.switches.S_ASP2_VHF_3_REC_LATCH";
+    public static readonly DataRef<int> Acp2CabLatch = new("system.switches.S_ASP2_CAB_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp2Hf1Latch = new("system.switches.S_ASP2_HF_1_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp2Hf2Latch = new("system.switches.S_ASP2_HF_2_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp2IntLatch = new("system.switches.S_ASP2_INT_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp2PaLatch = new("system.switches.S_ASP2_PA_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp2Vhf1Latch = new("system.switches.S_ASP2_VHF_1_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp2Vhf2Latch = new("system.switches.S_ASP2_VHF_2_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp2Vhf3Latch = new("system.switches.S_ASP2_VHF_3_REC_LATCH", DataRefTier.Frequent, 1);
 
     // ACP3 (Observer) Volume Knobs
-    public const string Acp3CabAnalog = "system.analog.A_ASP3_CAB_VOLUME";
-    public const string Acp3Hf1Analog = "system.analog.A_ASP3_HF_1_VOLUME";
-    public const string Acp3Hf2Analog = "system.analog.A_ASP3_HF_2_VOLUME";
-    public const string Acp3IntAnalog = "system.analog.A_ASP3_INT_VOLUME";
-    public const string Acp3PaAnalog = "system.analog.A_ASP3_PA_VOLUME";
-    public const string Acp3Vhf1Analog = "system.analog.A_ASP3_VHF_1_VOLUME";
-    public const string Acp3Vhf2Analog = "system.analog.A_ASP3_VHF_2_VOLUME";
-    public const string Acp3Vhf3Analog = "system.analog.A_ASP3_VHF_3_VOLUME";
+    public static readonly DataRef<double> Acp3CabAnalog = new("system.analog.A_ASP3_CAB_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp3Hf1Analog = new("system.analog.A_ASP3_HF_1_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp3Hf2Analog = new("system.analog.A_ASP3_HF_2_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp3IntAnalog = new("system.analog.A_ASP3_INT_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp3PaAnalog = new("system.analog.A_ASP3_PA_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp3Vhf1Analog = new("system.analog.A_ASP3_VHF_1_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp3Vhf2Analog = new("system.analog.A_ASP3_VHF_2_VOLUME", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> Acp3Vhf3Analog = new("system.analog.A_ASP3_VHF_3_VOLUME", DataRefTier.Frequent, 0.0);
 
     // ACP3 (Observer) Latch Switches
-    public const string Acp3CabLatch = "system.switches.S_ASP3_CAB_REC_LATCH";
-    public const string Acp3Hf1Latch = "system.switches.S_ASP3_HF_1_REC_LATCH";
-    public const string Acp3Hf2Latch = "system.switches.S_ASP3_HF_2_REC_LATCH";
-    public const string Acp3IntLatch = "system.switches.S_ASP3_INT_REC_LATCH";
-    public const string Acp3PaLatch = "system.switches.S_ASP3_PA_REC_LATCH";
-    public const string Acp3Vhf1Latch = "system.switches.S_ASP3_VHF_1_REC_LATCH";
-    public const string Acp3Vhf2Latch = "system.switches.S_ASP3_VHF_2_REC_LATCH";
-    public const string Acp3Vhf3Latch = "system.switches.S_ASP3_VHF_3_REC_LATCH";
+    public static readonly DataRef<int> Acp3CabLatch = new("system.switches.S_ASP3_CAB_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp3Hf1Latch = new("system.switches.S_ASP3_HF_1_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp3Hf2Latch = new("system.switches.S_ASP3_HF_2_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp3IntLatch = new("system.switches.S_ASP3_INT_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp3PaLatch = new("system.switches.S_ASP3_PA_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp3Vhf1Latch = new("system.switches.S_ASP3_VHF_1_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp3Vhf2Latch = new("system.switches.S_ASP3_VHF_2_REC_LATCH", DataRefTier.Frequent, 1);
+    public static readonly DataRef<int> Acp3Vhf3Latch = new("system.switches.S_ASP3_VHF_3_REC_LATCH", DataRefTier.Frequent, 1);
 
     #endregion
 
@@ -377,7 +449,7 @@ public static class ProsimDataRefNames
 
     public const string FcFlaps = "system.switches.S_FC_FLAPS";
     public const string FcSpeedbrake = "system.analog.A_FC_SPEEDBRAKE"; // analog
-    public const string FcSpeedbrakeArmed = "system.switches.S_FC_SPEEDBRAKE_ARMED";
+    public static readonly DataRef<int> FcSpeedbrakeArmed = new("system.switches.S_FC_SPEEDBRAKE_ARMED", DataRefTier.Normal, 0);
 
     /// <summary>Elevator trim in degrees. Warning: Fenix encodes the LVAR as value * 1000.</summary>
     public const string FcElevatorTrim = "aircraft.flightControls.trim.elevator";
@@ -400,9 +472,11 @@ public static class ProsimDataRefNames
     public const string FcSurfaceRudder = "aircraft.flightControls.flightControlSurfaces.Rudder";
 
     // FO analog input datarefs — writable Int32 inputs that command ProSim's FCS.
-    public const string AnalogFoPitch = "system.analog.A_FC_FO_PITCH";
-    public const string AnalogFoRoll = "system.analog.A_FC_FO_ROLL";
-    public const string AnalogFoRudder = "system.analog.A_FC_FO_RUDDER";
+    // Fallback 512 is the raw neutral: a dead axis must read centered, never deflected.
+    // Authored FO-side; PilotSeatMap swaps to A_FC_CAPT_* inside Subscribe when seated right.
+    public static readonly DataRef<int> AnalogFoPitch = new("system.analog.A_FC_FO_PITCH", DataRefTier.Normal, 512);
+    public static readonly DataRef<int> AnalogFoRoll = new("system.analog.A_FC_FO_ROLL", DataRefTier.Normal, 512);
+    public static readonly DataRef<int> AnalogFoRudder = new("system.analog.A_FC_FO_RUDDER", DataRefTier.Normal, 512);
 
     public const string FcRudderNum = "system.numerical.N_FC_RUDDER";
 
@@ -424,7 +498,7 @@ public static class ProsimDataRefNames
     /// Flap handle index (Int32: 0=Up, 1=F1, 2=F1+F, 3=F2, 4=F3, 5=F4) — distinct from
     /// <see cref="FcFlaps"/>, which is the cockpit switch dataref.
     /// </summary>
-    public const string FlapPositionHandle = "aircraft.flap.positionHandle";
+    public static readonly DataRef<int> FlapPositionHandle = new("aircraft.flap.positionHandle", DataRefTier.Normal, 0);
 
     #endregion
 
@@ -436,7 +510,9 @@ public static class ProsimDataRefNames
 
     #region ParkingBrake
 
-    public const string MipParkingBrake = "system.switches.S_MIP_PARKING_BRAKE";
+    /// <summary>Read the cockpit handle for brake status, preferred over the B_HYD gate
+    /// (observed inverted on A322 — see <see cref="HydParkingBrakeSet"/>).</summary>
+    public static readonly DataRef<int> MipParkingBrake = new("system.switches.S_MIP_PARKING_BRAKE", DataRefTier.Normal, 0);
     /// <summary>
     /// Actual hydraulic parking-brake state gate. Note: read the cockpit handle
     /// (<see cref="MipParkingBrake"/>) for brake status — this gate was observed
@@ -460,7 +536,7 @@ public static class ProsimDataRefNames
     public const string OhElecApuStart = "system.switches.S_OH_ELEC_APU_START";
     public const string OhPneumaticApuBleed = "system.switches.S_OH_PNEUMATIC_APU_BLEED";
     public const string ApuAvailable = "system.gates.B_ELEC_POWERUP";
-    public const string ApuRunning = "system.gates.B_APU_RUNNING";
+    public static readonly DataRef<bool> ApuRunning = new("system.gates.B_APU_RUNNING", DataRefTier.Normal, false);
     public const string OhElecApuGenerator = "system.switches.S_OH_ELEC_APU_GENERATOR";
     public const string ApuBleedValve = "aircraft.systems.pneumatic.valve.BLEED_VALVE";
     public const string ApuBleedIndicatorUpper = "system.indicators.I_OH_PNEUMATIC_APU_BLEED_U";
@@ -484,17 +560,19 @@ public static class ProsimDataRefNames
     public const string ExtPwrIndicatorLower = "system.indicators.I_OH_ELEC_EXT_PWR_L";
     public const string ExtPwrIndicatorUpper = "system.indicators.I_OH_ELEC_EXT_PWR_U";
 
-    public const string ElecExternalConnect = "system.gates.B_ELEC_EXTERNAL_CONNECT"; // AC external connect
-    public const string ElecBusPowerDcEss = "system.gates.B_ELEC_BUS_POWER_DC_ESS";
-    public const string ElecBusPowerAcEss = "system.gates.B_ELEC_BUS_POWER_AC_ESS";
-    public const string ElecBusPowerDc1 = "system.gates.B_ELEC_BUS_POWER_DC_1";
+    // system.gates.B_* refs are booleans by ProSim convention — declared bool (#83).
+    public static readonly DataRef<bool> ElecExternalConnect = new("system.gates.B_ELEC_EXTERNAL_CONNECT", DataRefTier.Normal, false); // AC external connect
+    public static readonly DataRef<bool> ElecBusPowerDcEss = new("system.gates.B_ELEC_BUS_POWER_DC_ESS", DataRefTier.Frequent, false);
+    public static readonly DataRef<bool> ElecBusPowerAcEss = new("system.gates.B_ELEC_BUS_POWER_AC_ESS", DataRefTier.Frequent, false);
+    public static readonly DataRef<bool> ElecBusPowerDc1 = new("system.gates.B_ELEC_BUS_POWER_DC_1", DataRefTier.Frequent, false);
     public const string ElecBatterySwitch1 = "system.gates.B_ELEC_BATTERY_SWITCH_1";
 
     /// <summary>
     /// Audio switching selector — 0:CAPT (capt swapped to ACP3), 1:NORM,
     /// 2:F/O (FO swapped to ACP3). Drives the per-ACP power gate.
+    /// Fallback 1 (NORM) is deliberate: no data means the normal ACP layout.
     /// </summary>
-    public const string AudioSwitching = "system.switches.S_AUDIO_SWITCHING";
+    public static readonly DataRef<int> AudioSwitching = new("system.switches.S_AUDIO_SWITCHING", DataRefTier.Frequent, 1);
 
     #endregion
 
@@ -502,9 +580,9 @@ public static class ProsimDataRefNames
 
     public const string OhPneumaticPack1 = "system.switches.S_OH_PNEUMATIC_PACK_1";
     public const string OhPneumaticPack2 = "system.switches.S_OH_PNEUMATIC_PACK_2";
-    public const string OhPneumaticEng1AntiIce = "system.switches.S_OH_PNEUMATIC_ENG1_ANTI_ICE";
-    public const string OhPneumaticEng2AntiIce = "system.switches.S_OH_PNEUMATIC_ENG2_ANTI_ICE";
-    public const string OhPneumaticWingAntiIce = "system.switches.S_OH_PNEUMATIC_WING_ANTI_ICE";
+    public static readonly DataRef<int> OhPneumaticEng1AntiIce = new("system.switches.S_OH_PNEUMATIC_ENG1_ANTI_ICE", DataRefTier.Normal, 0);
+    public static readonly DataRef<int> OhPneumaticEng2AntiIce = new("system.switches.S_OH_PNEUMATIC_ENG2_ANTI_ICE", DataRefTier.Normal, 0);
+    public static readonly DataRef<int> OhPneumaticWingAntiIce = new("system.switches.S_OH_PNEUMATIC_WING_ANTI_ICE", DataRefTier.Normal, 0);
     public const string OhPneumaticXbleedSelector = "system.switches.S_OH_PNEUMATIC_XBLEED_SELECTOR"; // 0=Shut 1=Auto 2=Open
 
     // Pneumatic Indicators
@@ -529,11 +607,13 @@ public static class ProsimDataRefNames
 
     #region ExteriorLights
 
-    public const string OhExtLtBeacon = "system.switches.S_OH_EXT_LT_BEACON"; // 0=Off 1=On
+    /// <summary>Beacon switch — also the ProSim-liveness sentinel for several ground
+    /// services (they probe RawValue, not the fallback).</summary>
+    public static readonly DataRef<int> OhExtLtBeacon = new("system.switches.S_OH_EXT_LT_BEACON", DataRefTier.Normal, 0); // 0=Off 1=On
     /// <summary>Warning — strobe values differ between platforms: Fenix 0=Auto/1=Off/2=On vs ProSim 0=Auto/1=On/2=Off.</summary>
     public const string OhExtLtStrobe = "system.switches.S_OH_EXT_LT_STROBE";
-    public const string OhExtLtLandingL = "system.switches.S_OH_EXT_LT_LANDING_L"; // 0=Off 1=On 2=Retract
-    public const string OhExtLtLandingR = "system.switches.S_OH_EXT_LT_LANDING_R";
+    public static readonly DataRef<int> OhExtLtLandingL = new("system.switches.S_OH_EXT_LT_LANDING_L", DataRefTier.Normal, 0); // 0=Off 1=On 2=Retract
+    public static readonly DataRef<int> OhExtLtLandingR = new("system.switches.S_OH_EXT_LT_LANDING_R", DataRefTier.Normal, 0);
     public const string OhExtLtRwyTurnoff = "system.switches.S_OH_EXT_LT_RWY_TURNOFF"; // 0=Off 1=On
     public const string OhExtLtNose = "system.switches.S_OH_EXT_LT_NOSE"; // 0=Off 1=Taxi 2=TO
     public const string OhExtLtWing = "system.switches.S_OH_EXT_LT_WING"; // 0=Off 1=On
@@ -550,7 +630,7 @@ public static class ProsimDataRefNames
 
     #region Signs
 
-    public const string OhSigns = "system.switches.S_OH_SIGNS"; // 0=Auto 1=On 2=Off
+    public static readonly DataRef<int> OhSigns = new("system.switches.S_OH_SIGNS", DataRefTier.Normal, 0); // 0=Auto 1=On 2=Off
     public const string OhSignsSmoking = "system.switches.S_OH_SIGNS_SMOKING";
 
     #endregion
@@ -601,34 +681,44 @@ public static class ProsimDataRefNames
 
     #region Fcu
 
+    public const string FcuAthr = "system.switches.S_FCU_ATHR";
+    public const string FcuExped = "system.switches.S_FCU_EXPED";
+    public const string FcuSpdMach = "system.switches.S_FCU_SPD_MACH";
     public const string FcuAp1 = "system.switches.S_FCU_AP1";
-    public const string FcuAp1Indicator = "system.indicators.I_FCU_AP1";
+    public static readonly DataRef<double> FcuAp1Indicator = new("system.indicators.I_FCU_AP1", DataRefTier.Frequent, 0.0);
     public const string FcuAp2 = "system.switches.S_FCU_AP2";
-    public const string FcuAp2Indicator = "system.indicators.I_FCU_AP2";
-    public const string FcuAthrIndicator = "system.indicators.I_FCU_ATHR";
+    public static readonly DataRef<double> FcuAp2Indicator = new("system.indicators.I_FCU_AP2", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> FcuAthrIndicator = new("system.indicators.I_FCU_ATHR", DataRefTier.Frequent, 0.0);
     public const string FcuAppr = "system.switches.S_FCU_APPR";
-    public const string FcuApprIndicator = "system.indicators.I_FCU_APPR";
+    public static readonly DataRef<double> FcuApprIndicator = new("system.indicators.I_FCU_APPR", DataRefTier.Frequent, 0.0);
     public const string FcuLoc = "system.switches.S_FCU_LOC";
-    public const string FcuLocIndicator = "system.indicators.I_FCU_LOC";
+    public static readonly DataRef<double> FcuLocIndicator = new("system.indicators.I_FCU_LOC", DataRefTier.Frequent, 0.0);
 
     // Speed / heading / altitude / VS knobs are all push-pull:
     // 0=Normal, 1=Pushed (managed), 2=Pulled (selected)
     public const string FcuSpeed = "system.switches.S_FCU_SPEED";
     public const string FcuSpeedNum = "system.numerical.N_FCU_SPEED";
-    public const string FcuSpeedManaged = "system.indicators.I_FCU_SPEED_MANAGED";
+    public static readonly DataRef<double> FcuSpeedManaged = new("system.indicators.I_FCU_SPEED_MANAGED", DataRefTier.Frequent, 0.0);
     public const string FcuSpeedMode = "system.indicators.I_FCU_SPEED_MODE";
 
     public const string FcuHeading = "system.switches.S_FCU_HEADING";
     public const string FcuHeadingNum = "system.numerical.N_FCU_HEADING";
-    public const string FcuHeadingManaged = "system.indicators.I_FCU_HEADING_MANAGED";
+    public static readonly DataRef<double> FcuHeadingManaged = new("system.indicators.I_FCU_HEADING_MANAGED", DataRefTier.Frequent, 0.0);
 
     public const string FcuAltitude = "system.switches.S_FCU_ALTITUDE";
     public const string FcuAltitudeScale = "system.switches.S_FCU_ALTITUDE_SCALE"; // 0=100ft 1=1000ft
     public const string FcuAltitudeNum = "system.numerical.N_FCU_ALTITUDE";
-    public const string FcuAltitudeManaged = "system.indicators.I_FCU_ALTITUDE_MANAGED";
+    public static readonly DataRef<double> FcuAltitudeManaged = new("system.indicators.I_FCU_ALTITUDE_MANAGED", DataRefTier.Frequent, 0.0);
 
     public const string FcuVerticalSpeed = "system.switches.S_FCU_VERTICAL_SPEED";
     public const string FcuVsNum = "system.numerical.N_FCU_VS";
+
+    // FCU display values (analog read-backs used to verify spoken FCU commands; the
+    // altitude value is also a flight-data input).
+    public static readonly DataRef<double> FcuSpeedValue = new("system.analog.A_FCU_SPEED", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> FcuHeadingValue = new("system.analog.A_FCU_HEADING", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> FcuAltitudeValue = new("system.analog.A_FCU_ALTITUDE", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> FcuVsValue = new("system.analog.A_FCU_VS", DataRefTier.Frequent, 0.0);
 
     public const string FcuHdgVsTrkFpa = "system.switches.S_FCU_HDGVS_TRKFPA";
     public const string FcuTrackFpaModeIndicator = "system.indicators.I_FCU_TRACK_FPA_MODE";
@@ -671,11 +761,17 @@ public static class ProsimDataRefNames
     public const string Efis2NdZoom = "system.switches.S_FCU_EFIS2_ND_ZOOM";
     public const string Efis2Nav1 = "system.switches.S_FCU_EFIS2_NAV1";
     public const string Efis2Nav2 = "system.switches.S_FCU_EFIS2_NAV2";
-    public const string Efis2BaroMode = "system.switches.S_FCU_EFIS2_BARO_MODE";
+    /// <summary>Fallback 1 (hPa): with no data, baro readouts assume hectopascals.</summary>
+    public static readonly DataRef<int> Efis2BaroMode = new("system.switches.S_FCU_EFIS2_BARO_MODE", DataRefTier.Normal, 1);
     public const string Efis2BaroStd = "system.switches.S_FCU_EFIS2_BARO_STD";
+    /// <summary>Effective STD state GATE — deliberately distinct from the
+    /// <see cref="Efis2BaroStd"/> push-pull switch; spoken-token reads want the effective
+    /// state, not the momentary knob position (#83, do not "fix" one onto the other).</summary>
+    public static readonly DataRef<bool> Efis2BaroStdGate = new("system.gates.B_FCU_EFIS2_BARO_STD", DataRefTier.Normal, false);
     public const string Efis2QnhIndicator = "system.indicators.I_FCU_EFIS2_QNH";
-    public const string Efis2BaroHpa = "system.numerical.N_FCU_EFIS2_BARO_HPA";
-    public const string Efis2BaroInch = "system.numerical.N_FCU_EFIS2_BARO_INCH";
+    // Authored FO-side; PilotSeatMap swaps to EFIS1 when seated right.
+    public static readonly DataRef<double> Efis2BaroHpa = new("system.numerical.N_FCU_EFIS2_BARO_HPA", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> Efis2BaroInch = new("system.numerical.N_FCU_EFIS2_BARO_INCH", DataRefTier.Normal, 0.0);
 
     #endregion
 
@@ -697,7 +793,7 @@ public static class ProsimDataRefNames
 
     public const string XpdrOperation = "system.switches.S_XPDR_OPERATION"; // 0=Auto 1=Stdby 2=On
     public const string XpdrAtc = "system.switches.S_XPDR_ATC"; // 0=1 1=2
-    public const string XpdrMode = "system.switches.S_XPDR_MODE"; // 0=Stdby 1=TA 2=TA/RA
+    public static readonly DataRef<int> XpdrMode = new("system.switches.S_XPDR_MODE", DataRefTier.Normal, 0); // 0=Stdby 1=TA 2=TA/RA
     public const string XpdrAltReporting = "system.switches.S_XPDR_ALTREPORTING"; // 0=On 1=Off
     public const string TcasRange = "system.switches.S_TCAS_RANGE"; // 0=Normal 1=Above 2=Below 3=Thrt
 
@@ -811,375 +907,32 @@ public static class ProsimDataRefNames
 
     #endregion
 
-    /// <summary>
-    /// SimConnect / Fenix LVAR names ("L:" prefixed). These are SimConnect wire
-    /// identifiers, not ProSim SDK dataref paths — same exactness rule applies.
-    /// </summary>
-    public static class Lvars
-    {
-        #region GsxIntegration
+    #region Radios
 
-        public const string DoorToggleCargo1 = "L:FSDT_GSX_AIRCRAFT_CARGO_1_TOGGLE";
-        public const string DoorToggleCargo2 = "L:FSDT_GSX_AIRCRAFT_CARGO_2_TOGGLE";
-        public const string CargoLoading1 = "L:FSDT_GSX_BOARDING_CARGO_EXIT_0";
-        public const string CargoLoading2 = "L:FSDT_GSX_BOARDING_CARGO_EXIT_1";
-        public const string CargoUnloading1 = "L:FSDT_GSX_DEBOARDING_CARGO_EXIT_0";
-        public const string CargoUnloading2 = "L:FSDT_GSX_DEBOARDING_CARGO_EXIT_1";
-        public const string DoorToggleService1 = "L:FSDT_GSX_AIRCRAFT_SERVICE_1_TOGGLE";
-        public const string DoorToggleService2 = "L:FSDT_GSX_AIRCRAFT_SERVICE_2_TOGGLE";
-        public const string CockpitDoor = "L:S_COCKPIT_DOOR";
-        public const string FsdtCockpitDoorOpen = "L:FSDT_GSX_COCKPIT_DOOR_OPEN";
+    // COM radio frequency read-backs (spoken radio commands verify against these).
+    public static readonly DataRef<double> RadioCom1Standby = new("system.analog.R_COM1_STANDBY", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> RadioCom1Active = new("system.analog.R_COM1_ACTIVE", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> RadioCom2Standby = new("system.analog.R_COM2_STANDBY", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> RadioCom2Active = new("system.analog.R_COM2_ACTIVE", DataRefTier.Normal, 0.0);
 
-        #endregion
+    #endregion
 
-        #region DisplayBrightness
+    #region Mcdu
 
-        public const string DisplayBrightnessFo = "L:A_DISPLAY_BRIGHTNESS_FO";
-        public const string DisplayBrightnessFi = "L:A_DISPLAY_BRIGHTNESS_FI";
+    /// <summary>FO MCDU display content. Frequent is deliberate — the reader settle-checks
+    /// consecutive frames. Authored FO-side; PilotSeatMap swaps to mcdu1 when seated right.</summary>
+    public static readonly DataRef<string?> Mcdu2Display = new("aircraft.mcdu2.display", DataRefTier.Frequent, null);
 
-        #endregion
+    #endregion
 
-        #region FlightControls
+    #region Abnormals
 
-        public const string FcFlaps = "L:S_FC_FLAPS";
-        public const string FcSpeedbrake = "L:A_FC_SPEEDBRAKE";
-        public const string FcSpeedbrakeArmed = "L:S_FC_SPEEDBRAKE_ARMED";
-        /// <summary>Warning — Fenix encodes elevator trim as value * 1000; ProSim's dataref returns degrees.</summary>
-        public const string FcElevatorTrim = "L:A_FC_ELEVATOR_TRIM";
-        public const string FcElevatorTrimNum = "L:N_FC_ELEVATOR_TRIM"; // numerical read-back
-        public const string FcRudderTrimReset = "L:S_FC_RUDDER_TRIM_RESET";
-        public const string SidestickCaptPitch = "L:N_FC_SIDESTICK_CAPT_PITCH";
-        public const string SidestickFoPitch = "L:N_FC_SIDESTICK_FO_PITCH";
-        public const string SidestickCaptBank = "L:N_FC_SIDESTICK_CAPT_BANK";
-        public const string SidestickFoBank = "L:N_FC_SIDESTICK_FO_BANK";
-        public const string FcRudderNum = "L:N_FC_RUDDER";
-        public const string ThrottleLeftInput = "L:A_FC_THROTTLE_LEFT_INPUT";
-        public const string ThrottleRightInput = "L:A_FC_THROTTLE_RIGHT_INPUT";
+    /// <summary>FWC left ECAM content string — the failure monitor's trigger feed.</summary>
+    public static readonly DataRef<string> FwcContentLeft = new("aircraft.fwc.content.left.str", DataRefTier.Normal, "");
+    public static readonly DataRef<double> MipMasterWarningFo = new("system.indicators.I_MIP_MASTER_WARNING_FO", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> MipMasterCautionFo = new("system.indicators.I_MIP_MASTER_CAUTION_FO", DataRefTier.Normal, 0.0);
 
-        #endregion
-
-        #region GearAndBrakes
-
-        public const string MipGear = "L:S_MIP_GEAR";
-        public const string MipParkingBrake = "L:S_MIP_PARKING_BRAKE";
-        public const string MipAutobrakeMax = "L:S_MIP_AUTOBRAKE_MAX";
-        public const string MipAutobrakeMed = "L:S_MIP_AUTOBRAKE_MED";
-        public const string MipAutobrakeLo = "L:S_MIP_AUTOBRAKE_LO";
-        public const string MipBrakeFan = "L:S_MIP_BRAKE_FAN";
-        public const string MipGpwsTerrainOnNdCapt = "L:S_MIP_GPWS_TERRAIN_ON_ND_CAPT";
-        public const string MipGpwsTerrainOnNdFo = "L:S_MIP_GPWS_TERRAIN_ON_ND_FO";
-
-        #endregion
-
-        #region Engines
-
-        public const string EngMaster1 = "L:S_ENG_MASTER_1";
-        public const string EngMaster2 = "L:S_ENG_MASTER_2";
-        public const string EngMode = "L:S_ENG_MODE";
-
-        #endregion
-
-        #region Apu
-
-        public const string OhElecApuMaster = "L:S_OH_ELEC_APU_MASTER";
-        public const string OhElecApuStart = "L:S_OH_ELEC_APU_START";
-        public const string OhPneumaticApuBleed = "L:S_OH_PNEUMATIC_APU_BLEED";
-        public const string ApuAvailIndicator = "L:I_OH_ELEC_APU_START_U"; // APU START upper LED = AVAIL
-
-        #endregion
-
-        #region Electrical
-
-        public const string OhElecBat1 = "L:S_OH_ELEC_BAT1";
-        public const string OhElecBat2 = "L:S_OH_ELEC_BAT2";
-        public const string OhElecExtPwr = "L:S_OH_ELEC_EXT_PWR";
-        public const string ExtPwrIndicatorLower = "L:I_OH_ELEC_EXT_PWR_L"; // indicator: ext pwr connected (ON)
-        public const string ExtPwrIndicatorUpper = "L:I_OH_ELEC_EXT_PWR_U"; // indicator: ext pwr available
-        public const string ElecBusPowerDcEss = "L:B_ELEC_BUS_POWER_DC_ESS";
-        public const string ConfigGpu = "L:B_CONFIG_GPU";
-        public const string ConfigChocks = "L:B_CONFIG_CHOCKS";
-
-        #endregion
-
-        #region Pneumatics
-
-        public const string OhPneumaticPack1 = "L:S_OH_PNEUMATIC_PACK_1";
-        public const string OhPneumaticPack2 = "L:S_OH_PNEUMATIC_PACK_2";
-        public const string OhPneumaticEng1AntiIce = "L:S_OH_PNEUMATIC_ENG1_ANTI_ICE";
-        public const string OhPneumaticEng2AntiIce = "L:S_OH_PNEUMATIC_ENG2_ANTI_ICE";
-        public const string OhPneumaticWingAntiIce = "L:S_OH_PNEUMATIC_WING_ANTI_ICE";
-        public const string OhPneumaticXbleedSelector = "L:S_OH_PNEUMATIC_XBLEED_SELECTOR";
-
-        #endregion
-
-        #region FuelPumps
-
-        public const string OhFuelLeft1 = "L:S_OH_FUEL_LEFT_1";
-        public const string OhFuelLeft2 = "L:S_OH_FUEL_LEFT_2";
-        public const string OhFuelRight1 = "L:S_OH_FUEL_RIGHT_1";
-        public const string OhFuelRight2 = "L:S_OH_FUEL_RIGHT_2";
-        public const string OhFuelCenter1 = "L:S_OH_FUEL_CENTER_1";
-        public const string OhFuelCenter2 = "L:S_OH_FUEL_CENTER_2";
-
-        #endregion
-
-        #region Refuel
-
-        public const string RefuelPower = "L:S_THIRD_PARTY_REFUELG"; // sic — misspelled in ProSim/Fenix ("REFUELG")
-        public const string RefuelValveLeft = "L:S_EXT_REFUELING_VALVE_LEFT";
-        public const string RefuelValveCenter = "L:S_EXT_REFUELINGL_VALVE_CENTER"; // sic — misspelled in ProSim/Fenix ("REFUELINGL")
-        public const string RefuelValveRight = "L:S_EXT_REFUELING_VALVE_RIGHT";
-        public const string RefuelValveAct1 = "L:S_EXT_REFUELING_ACT_VALVE_1";
-        public const string RefuelValveAct2 = "L:S_EXT_REFUELING_ACT_VALVE_2";
-        public const string RefuelModeCover = "L:S_EXT_REFUELING_MODE_Cover"; // sic — mixed-case "Cover" is exact
-        public const string RefuelMode = "L:S_EXT_REFUELING_MODE";
-
-        #endregion
-
-        #region ExteriorLights
-
-        // Warning — strobe values differ: Fenix 0=Auto/1=Off/2=On vs ProSim 0=Auto/1=On/2=Off.
-        public const string OhExtLtBeacon = "L:S_OH_EXT_LT_BEACON";
-        public const string OhExtLtStrobe = "L:S_OH_EXT_LT_STROBE";
-        public const string OhExtLtLandingL = "L:S_OH_EXT_LT_LANDING_L";
-        public const string OhExtLtLandingR = "L:S_OH_EXT_LT_LANDING_R";
-        public const string OhExtLtRwyTurnoff = "L:S_OH_EXT_LT_RWY_TURNOFF";
-        public const string OhExtLtNose = "L:S_OH_EXT_LT_NOSE";
-        public const string OhExtLtWing = "L:S_OH_EXT_LT_WING";
-        public const string OhExtLtNavLogo = "L:S_OH_EXT_LT_NAV_LOGO";
-
-        #endregion
-
-        #region InteriorLightsAndSigns
-
-        public const string OhIntLtEmer = "L:S_OH_INT_LT_EMER";
-        public const string OhIntLtDome = "L:S_OH_INT_LT_DOME";
-        public const string OhSigns = "L:S_OH_SIGNS";
-        public const string OhSignsSmoking = "L:S_OH_SIGNS_SMOKING";
-
-        #endregion
-
-        #region MiscOverhead
-
-        public const string OhOxygenCrewOxygen = "L:S_OH_OXYGEN_CREW_OXYGEN";
-        public const string OhGpwsLdgFlap3 = "L:S_OH_GPWS_LDG_FLAP3";
-        public const string OhNavIr1Mode = "L:S_OH_NAV_IR1_MODE";
-        public const string OhNavIr2Mode = "L:S_OH_NAV_IR2_MODE";
-        public const string OhNavIr3Mode = "L:S_OH_NAV_IR3_MODE";
-        public const string OhHydYellowElecPump = "L:S_OH_HYD_YELLOW_ELEC_PUMP";
-        public const string OhHydYellowElecPumpIndicator = "L:I_OH_HYD_YELLOW_ELEC_PUMP_L";
-        public const string OhCallsAft = "L:S_OH_CALLS_AFT";
-        public const string FireApuTest = "L:S_OH_FIRE_APU_TEST";
-
-        #endregion
-
-        #region Fcu
-
-        public const string FcuAp1 = "L:S_FCU_AP1";
-        public const string FcuAp1Indicator = "L:I_FCU_AP1";
-        public const string FcuAp2 = "L:S_FCU_AP2";
-        public const string FcuAp2Indicator = "L:I_FCU_AP2";
-        public const string FcuAppr = "L:S_FCU_APPR";
-        public const string FcuLoc = "L:S_FCU_LOC";
-        public const string FcuSpeed = "L:S_FCU_SPEED";
-        public const string FcuSpeedNum = "L:N_FCU_SPEED";
-        public const string FcuSpeedManaged = "L:I_FCU_SPEED_MANAGED";
-        public const string FcuSpeedMode = "L:I_FCU_SPEED_MODE";
-        public const string FcuHeading = "L:S_FCU_HEADING";
-        public const string FcuHeadingNum = "L:N_FCU_HEADING";
-        public const string FcuHeadingManaged = "L:I_FCU_HEADING_MANAGED";
-        public const string FcuAltitude = "L:S_FCU_ALTITUDE";
-        public const string FcuAltitudeScale = "L:S_FCU_ALTITUDE_SCALE";
-        public const string FcuAltitudeNum = "L:N_FCU_ALTITUDE";
-        public const string FcuAltitudeManaged = "L:I_FCU_ALTITUDE_MANAGED";
-        public const string FcuVerticalSpeed = "L:S_FCU_VERTICAL_SPEED";
-        public const string FcuVsNum = "L:N_FCU_VS";
-        public const string FcuHdgVsTrkFpa = "L:S_FCU_HDGVS_TRKFPA";
-        public const string FcuTrackFpaModeIndicator = "L:I_FCU_TRACK_FPA_MODE";
-
-        #endregion
-
-        #region EfisCaptain
-
-        public const string Efis1Fd = "L:S_FCU_EFIS1_FD";
-        public const string Efis1FdIndicator = "L:I_FCU_EFIS1_FD";
-        public const string Efis1Ls = "L:S_FCU_EFIS1_LS";
-        public const string Efis1LsIndicator = "L:I_FCU_EFIS1_LS";
-        public const string Efis1Cstr = "L:S_FCU_EFIS1_CSTR";
-        public const string Efis1CstrIndicator = "L:I_FCU_EFIS1_CSTR";
-        public const string Efis1Arpt = "L:S_FCU_EFIS1_ARPT";
-        public const string Efis1ArptIndicator = "L:I_FCU_EFIS1_ARPT";
-        public const string Efis1NdMode = "L:S_FCU_EFIS1_ND_MODE";
-        public const string Efis1NdZoom = "L:S_FCU_EFIS1_ND_ZOOM";
-        public const string Efis1Nav1 = "L:S_FCU_EFIS1_NAV1";
-        public const string Efis1Nav2 = "L:S_FCU_EFIS1_NAV2";
-        public const string Efis1BaroMode = "L:S_FCU_EFIS1_BARO_MODE";
-        public const string Efis1QnhIndicator = "L:I_FCU_EFIS1_QNH";
-        public const string Efis1BaroHpa = "L:N_FCU_EFIS1_BARO_HPA";
-        public const string Efis1BaroInch = "L:N_FCU_EFIS1_BARO_INCH";
-
-        #endregion
-
-        #region EfisFirstOfficer
-
-        public const string Efis2Fd = "L:S_FCU_EFIS2_FD";
-        public const string Efis2FdIndicator = "L:I_FCU_EFIS2_FD";
-        public const string Efis2Ls = "L:S_FCU_EFIS2_LS";
-        public const string Efis2LsIndicator = "L:I_FCU_EFIS2_LS";
-        public const string Efis2Cstr = "L:S_FCU_EFIS2_CSTR";
-        public const string Efis2CstrIndicator = "L:I_FCU_EFIS2_CSTR";
-        public const string Efis2Arpt = "L:S_FCU_EFIS2_ARPT";
-        public const string Efis2ArptIndicator = "L:I_FCU_EFIS2_ARPT";
-        public const string Efis2NdMode = "L:S_FCU_EFIS2_ND_MODE";
-        public const string Efis2NdZoom = "L:S_FCU_EFIS2_ND_ZOOM";
-        public const string Efis2Nav1 = "L:S_FCU_EFIS2_NAV1";
-        public const string Efis2Nav2 = "L:S_FCU_EFIS2_NAV2";
-        public const string Efis2BaroMode = "L:S_FCU_EFIS2_BARO_MODE";
-        public const string Efis2QnhIndicator = "L:I_FCU_EFIS2_QNH";
-        public const string Efis2BaroHpa = "L:N_FCU_EFIS2_BARO_HPA";
-        public const string Efis2BaroInch = "L:N_FCU_EFIS2_BARO_INCH";
-
-        #endregion
-
-        #region Ecam
-
-        public const string EcamRcl = "L:S_ECAM_RCL";
-        public const string EcamApu = "L:S_ECAM_APU";
-        public const string EcamEngine = "L:S_ECAM_ENGINE";
-        public const string EcamEngineIndicator = "L:I_ECAM_ENGINE";
-        public const string EcamDoor = "L:S_ECAM_DOOR";
-        public const string EcamHyd = "L:S_ECAM_HYD";
-        public const string EcamStatus = "L:S_ECAM_STATUS";
-        public const string EcamStatusIndicator = "L:I_ECAM_STATUS";
-        public const string EcamTo = "L:S_ECAM_TO";
-
-        #endregion
-
-        #region TransponderTcas
-
-        public const string XpdrOperation = "L:S_XPDR_OPERATION";
-        public const string XpdrAtc = "L:S_XPDR_ATC";
-        public const string XpdrMode = "L:S_XPDR_MODE";
-        public const string XpdrAltReporting = "L:S_XPDR_ALTREPORTING";
-        public const string TcasRange = "L:S_TCAS_RANGE";
-
-        #endregion
-
-        #region WeatherRadar
-
-        public const string WrSys = "L:S_WR_SYS";
-        public const string WrMultiscan = "L:S_WR_MULTISCAN";
-        public const string WrPredWs = "L:S_WR_PRED_WS";
-
-        #endregion
-
-        #region WipersAndClocks
-
-        public const string MiscWiperCapt = "L:S_MISC_WIPER_CAPT";
-        public const string MiscWiperFo = "L:S_MISC_WIPER_FO";
-        public const string MipClockEt = "L:S_MIP_CLOCK_ET";
-        public const string MipClockChr = "L:S_MIP_CLOCK_CHR";
-        public const string MipChronoFo = "L:S_MIP_CHRONO_FO";
-
-        #endregion
-
-        #region RmpTransfer
-
-        public const string PedRmp1Xfer = "L:S_PED_RMP1_XFER";
-        public const string PedRmp2Xfer = "L:S_PED_RMP2_XFER";
-
-        #endregion
-
-        #region Audio
-
-        public const string IntRadCpt = "L:S_ASP_INTRAD";
-        public const string IntRadFo = "L:S_ASP2_INTRAD";
-        public const string AcpCabSend = "L:S_ASP_CAB_SEND";
-        public const string AcpVhfSend = "L:S_ASP_VHF_1_SEND";
-        public const string AcpReset = "L:S_ASP_RESET";
-        public const string AcpCabCall = "L:I_ASP_CAB_CALL";
-        public const string AcpIntCallCpt = "L:I_ASP_INT_CALL";
-        public const string AcpIntCallFo = "L:I_ASP2_INT_CALL";
-
-        #endregion
-
-        #region Cdu2Keys
-
-        public const string Cdu2Key0 = "L:S_CDU2_KEY_0";
-        public const string Cdu2Key1 = "L:S_CDU2_KEY_1";
-        public const string Cdu2Key2 = "L:S_CDU2_KEY_2";
-        public const string Cdu2Key3 = "L:S_CDU2_KEY_3";
-        public const string Cdu2Key4 = "L:S_CDU2_KEY_4";
-        public const string Cdu2Key5 = "L:S_CDU2_KEY_5";
-        public const string Cdu2Key6 = "L:S_CDU2_KEY_6";
-        public const string Cdu2Key7 = "L:S_CDU2_KEY_7";
-        public const string Cdu2Key8 = "L:S_CDU2_KEY_8";
-        public const string Cdu2Key9 = "L:S_CDU2_KEY_9";
-        public const string Cdu2KeyA = "L:S_CDU2_KEY_A";
-        public const string Cdu2KeyB = "L:S_CDU2_KEY_B";
-        public const string Cdu2KeyC = "L:S_CDU2_KEY_C";
-        public const string Cdu2KeyD = "L:S_CDU2_KEY_D";
-        public const string Cdu2KeyE = "L:S_CDU2_KEY_E";
-        public const string Cdu2KeyF = "L:S_CDU2_KEY_F";
-        public const string Cdu2KeyG = "L:S_CDU2_KEY_G";
-        public const string Cdu2KeyH = "L:S_CDU2_KEY_H";
-        public const string Cdu2KeyI = "L:S_CDU2_KEY_I";
-        public const string Cdu2KeyJ = "L:S_CDU2_KEY_J";
-        public const string Cdu2KeyK = "L:S_CDU2_KEY_K";
-        public const string Cdu2KeyL = "L:S_CDU2_KEY_L";
-        public const string Cdu2KeyM = "L:S_CDU2_KEY_M";
-        public const string Cdu2KeyN = "L:S_CDU2_KEY_N";
-        public const string Cdu2KeyO = "L:S_CDU2_KEY_O";
-        public const string Cdu2KeyP = "L:S_CDU2_KEY_P";
-        public const string Cdu2KeyQ = "L:S_CDU2_KEY_Q";
-        public const string Cdu2KeyR = "L:S_CDU2_KEY_R";
-        public const string Cdu2KeyS = "L:S_CDU2_KEY_S";
-        public const string Cdu2KeyT = "L:S_CDU2_KEY_T";
-        public const string Cdu2KeyU = "L:S_CDU2_KEY_U";
-        public const string Cdu2KeyV = "L:S_CDU2_KEY_V";
-        public const string Cdu2KeyW = "L:S_CDU2_KEY_W";
-        public const string Cdu2KeyX = "L:S_CDU2_KEY_X";
-        public const string Cdu2KeyY = "L:S_CDU2_KEY_Y";
-        public const string Cdu2KeyZ = "L:S_CDU2_KEY_Z";
-        public const string Cdu2KeyAirport = "L:S_CDU2_KEY_AIRPORT";
-        public const string Cdu2KeyArrowDown = "L:S_CDU2_KEY_ARROW_DOWN";
-        public const string Cdu2KeyArrowLeft = "L:S_CDU2_KEY_ARROW_LEFT";
-        public const string Cdu2KeyArrowRight = "L:S_CDU2_KEY_ARROW_RIGHT";
-        public const string Cdu2KeyArrowUp = "L:S_CDU2_KEY_ARROW_UP";
-        public const string Cdu2KeyAtcCom = "L:S_CDU2_KEY_ATC_COM";
-        public const string Cdu2KeyClb = "L:S_CDU2_KEY_CLB";
-        public const string Cdu2KeyClear = "L:S_CDU2_KEY_CLEAR";
-        public const string Cdu2KeyClearLine = "L:S_CDU2_KEY_CLEAR_LINE";
-        public const string Cdu2KeyData = "L:S_CDU2_KEY_DATA";
-        public const string Cdu2KeyDir = "L:S_CDU2_KEY_DIR";
-        public const string Cdu2KeyDot = "L:S_CDU2_KEY_DOT";
-        public const string Cdu2KeyFpln = "L:S_CDU2_KEY_FPLN";
-        public const string Cdu2KeyFuelPred = "L:S_CDU2_KEY_FUEL_PRED";
-        public const string Cdu2KeyInit = "L:S_CDU2_KEY_INIT";
-        public const string Cdu2KeyLsk1L = "L:S_CDU2_KEY_LSK1L";
-        public const string Cdu2KeyLsk1R = "L:S_CDU2_KEY_LSK1R";
-        public const string Cdu2KeyLsk2L = "L:S_CDU2_KEY_LSK2L";
-        public const string Cdu2KeyLsk2R = "L:S_CDU2_KEY_LSK2R";
-        public const string Cdu2KeyLsk3L = "L:S_CDU2_KEY_LSK3L";
-        public const string Cdu2KeyLsk3R = "L:S_CDU2_KEY_LSK3R";
-        public const string Cdu2KeyLsk4L = "L:S_CDU2_KEY_LSK4L";
-        public const string Cdu2KeyLsk4R = "L:S_CDU2_KEY_LSK4R";
-        public const string Cdu2KeyLsk5L = "L:S_CDU2_KEY_LSK5L";
-        public const string Cdu2KeyLsk5R = "L:S_CDU2_KEY_LSK5R";
-        public const string Cdu2KeyLsk6L = "L:S_CDU2_KEY_LSK6L";
-        public const string Cdu2KeyLsk6R = "L:S_CDU2_KEY_LSK6R";
-        public const string Cdu2KeyMenu = "L:S_CDU2_KEY_MENU";
-        public const string Cdu2KeyMinus = "L:S_CDU2_KEY_MINUS";
-        public const string Cdu2KeyOvfly = "L:S_CDU2_KEY_OVFLY";
-        public const string Cdu2KeyPerf = "L:S_CDU2_KEY_PERF";
-        public const string Cdu2KeyProg = "L:S_CDU2_KEY_PROG";
-        public const string Cdu2KeyRadNav = "L:S_CDU2_KEY_RAD_NAV";
-        public const string Cdu2KeySecFpln = "L:S_CDU2_KEY_SEC_FPLN";
-        public const string Cdu2KeySlash = "L:S_CDU2_KEY_SLASH";
-        public const string Cdu2KeySpace = "L:S_CDU2_KEY_SPACE";
-
-        #endregion
-    }
+    #endregion
 
     /// <summary>
     /// SimConnect simulation variable names (not "L:" LVARs and not ProSim datarefs) —
@@ -1187,6 +940,12 @@ public static class ProsimDataRefNames
     /// </summary>
     public static class SimVars
     {
+        /// <summary>MSFS camera state — drives the sim-session gate.</summary>
+        public static readonly SimVarRef<int> CameraState = new("CAMERA STATE", "Enum", DataRefTier.Normal, 0);
+
+        /// <summary>True while the user is walking around as an avatar (MSFS 2024).</summary>
+        public static readonly SimVarRef<bool> IsAvatar = new("IS AVATAR", "Bool", DataRefTier.Normal, false);
+
         public const string Eng1Combustion = "ENG COMBUSTION:1";
         public const string Eng2Combustion = "ENG COMBUSTION:2";
         public const string DoorPointFwd = "INTERACTIVE POINT OPEN:8";

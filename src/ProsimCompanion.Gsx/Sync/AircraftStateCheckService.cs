@@ -194,7 +194,9 @@ public sealed class AircraftStateCheckService : IDisposable
                 .Distinct(StringComparer.Ordinal);
             foreach (var name in names)
             {
-                _reads[name] = prosim.Subscribe(name, DataRefTier.Infrequent);
+                // Escape hatch (#83): names come from the user-editable aircraft-states JSON
+                // (cold-and-dark.json), so no compile-time descriptor can exist for them.
+                _reads[name] = prosim.SubscribeDynamic(name, DataRefTier.Infrequent);
             }
         }
 

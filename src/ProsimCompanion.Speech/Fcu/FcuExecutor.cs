@@ -30,7 +30,7 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FcuExecutor> _logger;
     private readonly SemaphoreSlim _execGate = new(1, 1);
-    private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IDataRefSubscription<double>> _reads = new(StringComparer.Ordinal);
     private readonly HashSet<FcuField> _inhibited = [];
     private readonly object _gate = new();
 
@@ -250,12 +250,12 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
                 if (field == FcuField.Altitude)
                 {
                     // Value only — the vertical mode stays an explicit command.
-                    await Write(ValueRef(field), (int)value, ct).ConfigureAwait(false);
+                    await Write(ValueRef(field).Name, (int)value, ct).ConfigureAwait(false);
                     await Task.Delay(250, ct).ConfigureAwait(false);
                     return Math.Abs(Read(ValueRef(field)) - value) <= 1;
                 }
 
-                await Write(ValueRef(field), (int)value, ct).ConfigureAwait(false);
+                await Write(ValueRef(field).Name, (int)value, ct).ConfigureAwait(false);
                 await Task.Delay(200, ct).ConfigureAwait(false);
                 await Pulse(KnobRef(field), 2, ct).ConfigureAwait(false); // pull = selected
                 await Task.Delay(150, ct).ConfigureAwait(false);
@@ -275,16 +275,17 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
                     || instruction.RawText.Contains(" 2", StringComparison.Ordinal);
                 return await PulseVerify(
                     two ? FcuControls.Ap2 : FcuControls.Ap1, 1,
-                    two ? FcuControls.IndAp2 : FcuControls.IndAp1, expect: 1, ct).ConfigureAwait(false);
+                    two ? ProsimDataRefNames.FcuAp2Indicator : ProsimDataRefNames.FcuAp1Indicator,
+                    expect: 1, ct).ConfigureAwait(false);
 
             case FcuInstructionType.AutoThrust:
-                return await PulseVerify(FcuControls.Athr, 1, FcuControls.IndAthr, 1, ct).ConfigureAwait(false);
+                return await PulseVerify(FcuControls.Athr, 1, ProsimDataRefNames.FcuAthrIndicator, 1, ct).ConfigureAwait(false);
 
             case FcuInstructionType.Approach:
-                return await PulseVerify(FcuControls.Appr, 1, FcuControls.IndAppr, 1, ct).ConfigureAwait(false);
+                return await PulseVerify(FcuControls.Appr, 1, ProsimDataRefNames.FcuApprIndicator, 1, ct).ConfigureAwait(false);
 
             case FcuInstructionType.Localizer:
-                return await PulseVerify(FcuControls.Loc, 1, FcuControls.IndLoc, 1, ct).ConfigureAwait(false);
+                return await PulseVerify(FcuControls.Loc, 1, ProsimDataRefNames.FcuLocIndicator, 1, ct).ConfigureAwait(false);
 
             case FcuInstructionType.Expedite:
                 await Pulse(FcuControls.Exped, 1, ct).ConfigureAwait(false);
@@ -299,16 +300,16 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
         }
     }
 
-    private async Task<bool> PulseVerify(string knob, int press, string? indicator, int expect, CancellationToken ct)
+    private async Task<bool> PulseVerify(string knob, int press, DataRef<double>? indicator, int expect, CancellationToken ct)
     {
         await Pulse(knob, press, ct).ConfigureAwait(false);
         await Task.Delay(250, ct).ConfigureAwait(false);
-        if (indicator is null)
+        if (indicator is not { } indicatorRef)
         {
             return true; // V/S has no managed indicator — pulse unverified (predecessor bug fixed)
         }
 
-        return Math.Abs(Read(indicator) - expect) < 0.5;
+        return Math.Abs(Read(indicatorRef) - expect) < 0.5;
     }
 
     private async Task Pulse(string dataref, int press, CancellationToken ct)
@@ -321,15 +322,15 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
     private Task Write(string dataref, int value, CancellationToken ct)
         => _dataRefs.WriteAsync(dataref, value, ct);
 
-    private double Read(string dataref)
+    private double Read(DataRef<double> dataref)
     {
-        if (!_reads.TryGetValue(dataref, out var read))
+        if (!_reads.TryGetValue(dataref.Name, out var read))
         {
-            read = _dataRefs.Subscribe(dataref, DataRefTier.Frequent);
-            _reads[dataref] = read;
+            read = _dataRefs.Subscribe(dataref);
+            _reads[dataref.Name] = read;
         }
 
-        return read.GetValue(0.0);
+        return read.Value;
     }
 
     private bool CancelPending()
@@ -355,12 +356,12 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
         }
     }
 
-    private static string ValueRef(FcuField field) => field switch
+    private static DataRef<double> ValueRef(FcuField field) => field switch
     {
-        FcuField.Heading => FcuControls.HeadingValue,
-        FcuField.Altitude => FcuControls.AltitudeValue,
-        FcuField.Speed => FcuControls.SpeedValue,
-        _ => FcuControls.VsValue,
+        FcuField.Heading => ProsimDataRefNames.FcuHeadingValue,
+        FcuField.Altitude => ProsimDataRefNames.FcuAltitudeValue,
+        FcuField.Speed => ProsimDataRefNames.FcuSpeedValue,
+        _ => ProsimDataRefNames.FcuVsValue,
     };
 
     private static string KnobRef(FcuField field) => field switch
@@ -371,11 +372,11 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
         _ => FcuControls.VsKnob,
     };
 
-    private static string? ManagedIndicator(FcuField field) => field switch
+    private static DataRef<double>? ManagedIndicator(FcuField field) => field switch
     {
-        FcuField.Heading => FcuControls.HeadingManaged,
-        FcuField.Altitude => FcuControls.AltitudeManaged,
-        FcuField.Speed => FcuControls.SpeedManaged,
+        FcuField.Heading => ProsimDataRefNames.FcuHeadingManaged,
+        FcuField.Altitude => ProsimDataRefNames.FcuAltitudeManaged,
+        FcuField.Speed => ProsimDataRefNames.FcuSpeedManaged,
         _ => null, // V/S: no managed indicator exists
     };
 

@@ -23,7 +23,7 @@ public sealed class EfbInitOverridesService : IEfbInitOverrides, IDisposable
     private readonly GroundOpsSignals _signals;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<EfbInitOverridesService> _logger;
-    private readonly IDataRefSubscription[] _zoneCapacities;
+    private readonly IDataRefSubscription<int>[] _zoneCapacities;
     private readonly ConcurrentDictionary<string, double> _overrides = new(StringComparer.OrdinalIgnoreCase);
     private string? _lastOfpRequestId;
 
@@ -53,10 +53,10 @@ public sealed class EfbInitOverridesService : IEfbInitOverrides, IDisposable
 
         _zoneCapacities =
         [
-            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity, DataRefTier.Infrequent),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity),
         ];
 
         _ofpStore.Changed += OnOfpChanged;
@@ -160,7 +160,7 @@ public sealed class EfbInitOverridesService : IEfbInitOverrides, IDisposable
                     return true;
 
                 case IEfbInitOverrides.CargoKg:
-                    return await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPlannedCargoKg, value, cancellationToken).ConfigureAwait(false);
+                    return await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPlannedCargoKg.Name, value, cancellationToken).ConfigureAwait(false);
 
                 case IEfbInitOverrides.PassengerCount:
                     return await WritePassengerCountAsync((int)value, cancellationToken).ConfigureAwait(false);
@@ -180,7 +180,7 @@ public sealed class EfbInitOverridesService : IEfbInitOverrides, IDisposable
     /// within zones — same recipe as the importer) so boarding and manifests agree with it.</summary>
     private async Task<bool> WritePassengerCountAsync(int paxCount, CancellationToken cancellationToken)
     {
-        var capacities = _zoneCapacities.Select(zone => zone.GetValue(0)).ToArray();
+        var capacities = _zoneCapacities.Select(zone => zone.Value).ToArray();
         if (capacities.Sum() <= 0)
         {
             capacities = [24, 30, 36, 42];
@@ -199,7 +199,7 @@ public sealed class EfbInitOverridesService : IEfbInitOverrides, IDisposable
             Total = paxCount,
         });
 
-        return await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxBookedString, SeatMap.Build(bookedMap), cancellationToken).ConfigureAwait(false)
+        return await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxBookedString.Name, SeatMap.Build(bookedMap), cancellationToken).ConfigureAwait(false)
             & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPassengerStatistics, statistics, cancellationToken).ConfigureAwait(false);
     }
 

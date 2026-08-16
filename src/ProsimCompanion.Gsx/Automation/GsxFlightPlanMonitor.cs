@@ -38,9 +38,9 @@ public interface IGsxFlightPlanStatus
 /// </summary>
 public sealed class GsxFlightPlanMonitor : IGsxFlightPlanStatus, IDisposable
 {
-    private readonly IDataRefSubscription _ofpImported;
-    private readonly IDataRefSubscription _fmsOrigin;
-    private readonly IDataRefSubscription _fmsDestination;
+    private readonly IDataRefSubscription<bool> _ofpImported;
+    private readonly IDataRefSubscription<string?> _fmsOrigin;
+    private readonly IDataRefSubscription<string?> _fmsDestination;
     private readonly OfpStore _ofpStore;
     private readonly ILogger<GsxFlightPlanMonitor> _logger;
     private bool _staleWarned;
@@ -53,16 +53,16 @@ public sealed class GsxFlightPlanMonitor : IGsxFlightPlanStatus, IDisposable
 
         _ofpStore = ofpStore;
         _logger = logger;
-        _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
-        _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
-        _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
+        _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported);
+        _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin);
+        _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination);
     }
 
-    public bool OfpImported => _ofpImported.GetValue(false);
+    public bool OfpImported => _ofpImported.Value;
 
-    public string? FmsOrigin => _fmsOrigin.GetValue<string?>(null);
+    public string? FmsOrigin => _fmsOrigin.Value;
 
-    public string? FmsDestination => _fmsDestination.GetValue<string?>(null);
+    public string? FmsDestination => _fmsDestination.Value;
 
     public bool FmsPlanPresent => IsValidIcao(FmsOrigin) && IsValidIcao(FmsDestination);
 

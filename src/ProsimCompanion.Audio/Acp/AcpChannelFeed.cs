@@ -27,10 +27,10 @@ public sealed class AcpChannelFeed : IDisposable
     private readonly ILogger<AcpChannelFeed> _logger;
     private readonly object _gate = new();
 
-    private readonly IDataRefSubscription _acEss;
-    private readonly IDataRefSubscription _dcEss;
-    private readonly IDataRefSubscription _dc1;
-    private readonly IDataRefSubscription _audioSwitching;
+    private readonly IDataRefSubscription<bool> _acEss;
+    private readonly IDataRefSubscription<bool> _dcEss;
+    private readonly IDataRefSubscription<bool> _dc1;
+    private readonly IDataRefSubscription<int> _audioSwitching;
 
     private readonly List<ChannelBinding> _bindings = [];
     private IAcpVolumeSink? _sink;
@@ -47,10 +47,10 @@ public sealed class AcpChannelFeed : IDisposable
         _prosim = prosim;
         _logger = logger;
 
-        _acEss = prosim.Subscribe(ProsimDataRefNames.ElecBusPowerAcEss, DataRefTier.Frequent);
-        _dcEss = prosim.Subscribe(ProsimDataRefNames.ElecBusPowerDcEss, DataRefTier.Frequent);
-        _dc1 = prosim.Subscribe(ProsimDataRefNames.ElecBusPowerDc1, DataRefTier.Frequent);
-        _audioSwitching = prosim.Subscribe(ProsimDataRefNames.AudioSwitching, DataRefTier.Frequent);
+        _acEss = prosim.Subscribe(ProsimDataRefNames.ElecBusPowerAcEss);
+        _dcEss = prosim.Subscribe(ProsimDataRefNames.ElecBusPowerDcEss);
+        _dc1 = prosim.Subscribe(ProsimDataRefNames.ElecBusPowerDc1);
+        _audioSwitching = prosim.Subscribe(ProsimDataRefNames.AudioSwitching);
 
         _acEss.ValueChanged += OnPowerRefChanged;
         _dcEss.ValueChanged += OnPowerRefChanged;
@@ -59,11 +59,11 @@ public sealed class AcpChannelFeed : IDisposable
     }
 
     public AcpPowerInputs PowerInputs => new(
-        AcEss: _acEss.GetValue(0) != 0,
-        DcEss: _dcEss.GetValue(0) != 0,
-        Dc1: _dc1.GetValue(0) != 0,
-        // NORM fallback: an unreadable switch must never gate out ACP1/ACP2.
-        AudioSwitching: _audioSwitching.GetValue(1));
+        AcEss: _acEss.Value,
+        DcEss: _dcEss.Value,
+        Dc1: _dc1.Value,
+        // NORM fallback (in the catalog descriptor): an unreadable switch must never gate out ACP1/ACP2.
+        AudioSwitching: _audioSwitching.Value);
 
     public bool IsPowered(AcpSide acp) => AcpPowerGate.IsPowered(acp, PowerInputs);
 
@@ -83,8 +83,8 @@ public sealed class AcpChannelFeed : IDisposable
                 var binding = new ChannelBinding(
                     acp,
                     channel,
-                    _prosim.Subscribe(AcpDataRefCatalog.VolumeRef(acp, channel), DataRefTier.Frequent),
-                    _prosim.Subscribe(AcpDataRefCatalog.LatchRef(acp, channel), DataRefTier.Frequent));
+                    _prosim.Subscribe(AcpDataRefCatalog.VolumeRef(acp, channel)),
+                    _prosim.Subscribe(AcpDataRefCatalog.LatchRef(acp, channel)));
                 binding.Volume.ValueChanged += (_, _) => EmitVolume(binding);
                 binding.Latch.ValueChanged += (_, _) => EmitMute(binding);
                 _bindings.Add(binding);
@@ -190,7 +190,7 @@ public sealed class AcpChannelFeed : IDisposable
             return;
         }
 
-        _sink.OnVolume(binding.Acp, binding.Channel, VolumeMath.Normalize(binding.Volume.GetValue(0.0)));
+        _sink.OnVolume(binding.Acp, binding.Channel, VolumeMath.Normalize(binding.Volume.Value));
     }
 
     private void EmitMuteLocked(ChannelBinding binding)
@@ -200,13 +200,13 @@ public sealed class AcpChannelFeed : IDisposable
             return;
         }
 
-        // Latch: 0 = muted, 1 = unmuted.
-        _sink.OnMute(binding.Acp, binding.Channel, binding.Latch.GetValue(1) == 0);
+        // Latch: 0 = muted, 1 = unmuted (fallback 1 = fail-audible, guarded by RawValue above).
+        _sink.OnMute(binding.Acp, binding.Channel, binding.Latch.Value == 0);
     }
 
     private sealed record ChannelBinding(
         AcpSide Acp,
         AudioChannel Channel,
-        IDataRefSubscription Volume,
-        IDataRefSubscription Latch);
+        IDataRefSubscription<double> Volume,
+        IDataRefSubscription<int> Latch);
 }

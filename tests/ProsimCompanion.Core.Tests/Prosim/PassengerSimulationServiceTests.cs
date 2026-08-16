@@ -27,7 +27,7 @@ public sealed class PassengerSimulationServiceTests
         var prosim = new Mock<IProsimDataRefs>();
         var next = 0;
         prosim
-            .Setup(p => p.Subscribe(It.IsAny<string>(), It.IsAny<DataRefTier>()))
+            .Setup(p => p.SubscribeDynamic(It.IsAny<string>(), It.IsAny<DataRefTier>()))
             .Returns(() => subs[next++]);
 
         _gateway
@@ -51,12 +51,12 @@ public sealed class PassengerSimulationServiceTests
 
         Assert.True(ok);
         Assert.Equal(
-            [ProsimDataRefNames.PaxBookedString, ProsimDataRefNames.EfbPassengerStatistics, ProsimDataRefNames.PaxSeatOccupationString],
+            [ProsimDataRefNames.PaxBookedString.Name, ProsimDataRefNames.EfbPassengerStatistics, ProsimDataRefNames.PaxSeatOccupationString.Name],
             _writeOrder);
 
         // Booked and occupation carry the SAME map — what is planned is what is aboard.
-        var booked = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxBookedString]);
-        var occupation = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxSeatOccupationString]);
+        var booked = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxBookedString.Name]);
+        var occupation = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxSeatOccupationString.Name]);
         Assert.Equal(booked, occupation);
         Assert.Equal(28, booked.Length);
         Assert.Equal(15, booked.Count(seat => seat));
@@ -69,7 +69,7 @@ public sealed class PassengerSimulationServiceTests
 
         Assert.True(await service.GenerateAsync(15));
 
-        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxBookedString]);
+        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxBookedString.Name]);
         var perZone = SeatMap.CountPerZone(map, [4, 6, 8, 10]);
         using var statistics = JsonDocument.Parse((string)_writes[ProsimDataRefNames.EfbPassengerStatistics]);
         var root = statistics.RootElement;
@@ -89,7 +89,7 @@ public sealed class PassengerSimulationServiceTests
 
         Assert.True(await service.GenerateAsync(999));
 
-        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxSeatOccupationString]);
+        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxSeatOccupationString.Name]);
         Assert.Equal(28, map.Count(seat => seat));    // full cabin, never more
     }
 
@@ -100,7 +100,7 @@ public sealed class PassengerSimulationServiceTests
 
         Assert.True(await service.GenerateAsync(-5));
 
-        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxSeatOccupationString]);
+        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxSeatOccupationString.Name]);
         Assert.All(map, seat => Assert.False(seat));
     }
 
@@ -111,7 +111,7 @@ public sealed class PassengerSimulationServiceTests
 
         Assert.True(await service.GenerateAsync(100));
 
-        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxBookedString]);
+        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxBookedString.Name]);
         Assert.Equal(132, map.Length);    // 24+30+36+42
         Assert.Equal(100, map.Count(seat => seat));
     }
@@ -121,7 +121,7 @@ public sealed class PassengerSimulationServiceTests
     {
         var service = CreateService();
         _gateway
-            .Setup(g => g.WriteDataRefAsync(ProsimDataRefNames.PaxSeatOccupationString, It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .Setup(g => g.WriteDataRefAsync(ProsimDataRefNames.PaxSeatOccupationString.Name, It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         Assert.False(await service.GenerateAsync(10));
@@ -135,8 +135,8 @@ public sealed class PassengerSimulationServiceTests
         var ok = await service.ClearAsync();
 
         Assert.True(ok);
-        Assert.Equal([ProsimDataRefNames.PaxSeatOccupationString], _writeOrder);
-        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxSeatOccupationString]);
+        Assert.Equal([ProsimDataRefNames.PaxSeatOccupationString.Name], _writeOrder);
+        var map = SeatMap.Parse((string)_writes[ProsimDataRefNames.PaxSeatOccupationString.Name]);
         Assert.Equal(28, map.Length);
         Assert.All(map, seat => Assert.False(seat));
     }

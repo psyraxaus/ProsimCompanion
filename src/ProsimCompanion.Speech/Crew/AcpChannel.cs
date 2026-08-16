@@ -74,16 +74,16 @@ public interface IAcpChannel
 /// </summary>
 public sealed class AcpChannel : IAcpChannel, IDisposable
 {
-    private static readonly string[] IntLatches =
+    private static readonly DataRef<int>[] IntLatches =
         [ProsimDataRefNames.Acp1IntLatch, ProsimDataRefNames.Acp2IntLatch, ProsimDataRefNames.Acp3IntLatch];
 
-    private static readonly string[] CabLatches =
+    private static readonly DataRef<int>[] CabLatches =
         [ProsimDataRefNames.Acp1CabLatch, ProsimDataRefNames.Acp2CabLatch, ProsimDataRefNames.Acp3CabLatch];
 
-    private readonly IDataRefSubscription _sendChannel;
-    private readonly IDataRefSubscription _intSend;
-    private readonly IDataRefSubscription[] _intLatches;
-    private readonly IDataRefSubscription[] _cabLatches;
+    private readonly IDataRefSubscription<int> _sendChannel;
+    private readonly IDataRefSubscription<int> _intSend;
+    private readonly IDataRefSubscription<int>[] _intLatches;
+    private readonly IDataRefSubscription<int>[] _cabLatches;
     private readonly ILogger<AcpChannel> _logger;
     private readonly object _gate = new();
     private AcpTransmitState _last = new(AcpTransmitTarget.Unknown, false);
@@ -94,12 +94,13 @@ public sealed class AcpChannel : IAcpChannel, IDisposable
         ArgumentNullException.ThrowIfNull(logger);
 
         _logger = logger;
-        // Frequent tier: the INT key is momentary and the selector drives live hangup
-        // decisions — 250 ms matches the INTRAD smart button's cadence.
-        _sendChannel = dataRefs.Subscribe(ProsimDataRefNames.AcpSendChannel, DataRefTier.Frequent);
-        _intSend = dataRefs.Subscribe(ProsimDataRefNames.AcpIntSend, DataRefTier.Frequent);
-        _intLatches = [.. IntLatches.Select(n => dataRefs.Subscribe(n, DataRefTier.Normal))];
-        _cabLatches = [.. CabLatches.Select(n => dataRefs.Subscribe(n, DataRefTier.Normal))];
+        // Tiers come from the catalog (#83): the transmit refs are Frequent — the INT key is
+        // momentary and the selector drives live hangup decisions, 250 ms matching the INTRAD
+        // smart button's cadence.
+        _sendChannel = dataRefs.Subscribe(ProsimDataRefNames.AcpSendChannel);
+        _intSend = dataRefs.Subscribe(ProsimDataRefNames.AcpIntSend);
+        _intLatches = [.. IntLatches.Select(latch => dataRefs.Subscribe(latch))];
+        _cabLatches = [.. CabLatches.Select(latch => dataRefs.Subscribe(latch))];
         _sendChannel.ValueChanged += OnTransmitValueChanged;
         _intSend.ValueChanged += OnTransmitValueChanged;
     }
@@ -118,18 +119,18 @@ public sealed class AcpChannel : IAcpChannel, IDisposable
             }
             else
             {
-                var value = _sendChannel.GetValue(-1);
+                var value = _sendChannel.Value;
                 target = value is >= 0 and <= 8 ? (AcpTransmitTarget)value : AcpTransmitTarget.Unknown;
             }
 
-            var intKey = _intSend.RawValue is not null && !_intSend.IsStale && _intSend.GetValue(0) == 1;
+            var intKey = _intSend.RawValue is not null && !_intSend.IsStale && _intSend.Value == 1;
             return new AcpTransmitState(target, intKey);
         }
     }
 
     /// <inheritdoc />
     public bool IsReceiving(AcpChannelKind kind)
-        => LatchesFor(kind).Any(latch => latch.GetValue(0) == 1);
+        => LatchesFor(kind).Any(IsLatched);
 
     /// <inheritdoc />
     public async Task<bool> AwaitReceiveAsync(AcpChannelKind kind, TimeSpan grace, CancellationToken cancellationToken)
@@ -143,7 +144,7 @@ public sealed class AcpChannel : IAcpChannel, IDisposable
         var deadline = Environment.TickCount64 + (long)Math.Max(0, grace.TotalMilliseconds);
         while (Environment.TickCount64 < deadline)
         {
-            if (latches.Any(latch => latch.GetValue(0) == 1))
+            if (latches.Any(IsLatched))
             {
                 return true;
             }
@@ -153,6 +154,15 @@ public sealed class AcpChannel : IAcpChannel, IDisposable
 
         return false;
     }
+
+    /// <summary>The latch descriptors fall back to 1 (unmuted / fail-audible, #83) — so
+    /// "no data has arrived yet" must be decided on the liveness contract (RawValue is null),
+    /// never by reading the fallback, or a dead subscription would report a held latch.
+    /// A stale value keeps the last real reading ("valid or hold previous decision"), exactly
+    /// as the old fallback-0 read did; callers that must degrade on staleness gate on IsStale
+    /// themselves (see <see cref="AwaitReceiveAsync"/>'s entry check).</summary>
+    private static bool IsLatched(IDataRefSubscription<int> latch)
+        => latch.RawValue is not null && latch.Value == 1;
 
     public void Dispose()
     {
@@ -166,7 +176,7 @@ public sealed class AcpChannel : IAcpChannel, IDisposable
         }
     }
 
-    private IDataRefSubscription[] LatchesFor(AcpChannelKind kind)
+    private IDataRefSubscription<int>[] LatchesFor(AcpChannelKind kind)
         => kind == AcpChannelKind.Intercom ? _intLatches : _cabLatches;
 
     private void OnTransmitValueChanged(object? sender, EventArgs e)

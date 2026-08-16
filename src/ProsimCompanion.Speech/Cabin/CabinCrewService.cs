@@ -21,19 +21,6 @@ namespace ProsimCompanion.Speech.Cabin;
 /// </summary>
 public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
 {
-    private const string DoorLF = "doors.entry.left.fwd";
-    private const string DoorLA = "doors.entry.left.aft";
-    private const string DoorRF = "doors.entry.right.fwd";
-    private const string DoorRA = "doors.entry.right.aft";
-    private const string Beacon = "system.switches.S_OH_EXT_LT_BEACON";
-    private const string Signs = "system.switches.S_OH_SIGNS";
-    private static readonly string[] CabLatches =
-    [
-        "system.switches.S_ASP_CAB_REC_LATCH",
-        "system.switches.S_ASP2_CAB_REC_LATCH",
-        "system.switches.S_ASP3_CAB_REC_LATCH",
-    ];
-
     private readonly IProsimDataRefs _dataRefs;
     private readonly IFlightDataSource _flightData;
     private readonly IFlightPhaseSource _flight;
@@ -44,9 +31,16 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
     private readonly SpeechStatusStore _store;
     private readonly ILogger<CabinCrewService> _logger;
     private readonly CabinCrewCore _core = new();
-    private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly CancellationTokenSource _shutdown = new();
 
+    private IDataRefSubscription<bool>? _doorLF;
+    private IDataRefSubscription<bool>? _doorLA;
+    private IDataRefSubscription<bool>? _doorRF;
+    private IDataRefSubscription<bool>? _doorRA;
+    private IDataRefSubscription<int>? _beacon;
+    private IDataRefSubscription<int>? _signs;
+    private IDataRefSubscription<int>[] _cabLatches = [];
+    private IDataRefSubscription[] _reads = [];
     private Timer? _timer;
     private volatile bool _busy;
 
@@ -84,10 +78,19 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
 
     public void Start()
     {
-        foreach (var name in new[] { DoorLF, DoorLA, DoorRF, DoorRA, Beacon, Signs }.Concat(CabLatches))
-        {
-            _reads[name] = _dataRefs.Subscribe(name, DataRefTier.Normal);
-        }
+        _doorLF = _dataRefs.Subscribe(ProsimDataRefNames.Door1L);
+        _doorLA = _dataRefs.Subscribe(ProsimDataRefNames.Door4L);
+        _doorRF = _dataRefs.Subscribe(ProsimDataRefNames.Door1R);
+        _doorRA = _dataRefs.Subscribe(ProsimDataRefNames.Door4R);
+        _beacon = _dataRefs.Subscribe(ProsimDataRefNames.OhExtLtBeacon);
+        _signs = _dataRefs.Subscribe(ProsimDataRefNames.OhSigns);
+        _cabLatches =
+        [
+            _dataRefs.Subscribe(ProsimDataRefNames.Acp1CabLatch),
+            _dataRefs.Subscribe(ProsimDataRefNames.Acp2CabLatch),
+            _dataRefs.Subscribe(ProsimDataRefNames.Acp3CabLatch),
+        ];
+        _reads = [_doorLF, _doorLA, _doorRF, _doorRA, _beacon, _signs, .. _cabLatches];
 
         _flight.PhaseChanged += OnPhaseChanged;
         _timer = new Timer(_ => Tick(), null, 1000, 1000);
@@ -98,7 +101,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         _flight.PhaseChanged -= OnPhaseChanged;
         _timer?.Dispose();
         _shutdown.Cancel();
-        foreach (var read in _reads.Values)
+        foreach (var read in _reads)
         {
             read.Dispose();
         }
@@ -112,14 +115,14 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         try
         {
             var options = _options.CurrentValue;
-            if (!options.Enabled || _busy)
+            if (!options.Enabled || _busy || _reads.Length == 0)
             {
                 return;
             }
 
             // Stale subscriptions mean ProSim is gone — a disconnected sim must never trigger
             // a report off held-over values.
-            if (_reads.Values.Any(r => r.IsStale) || _reads[Beacon].RawValue is null)
+            if (_reads.Any(r => r.IsStale) || _beacon!.RawValue is null)
             {
                 return;
             }
@@ -127,10 +130,10 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
             var flightData = _flightData.Sample();
             var sample = new CabinTickSample(
                 _flight.CurrentPhase,
-                DoorsClosed: !_reads[DoorLF].GetValue(false) && !_reads[DoorLA].GetValue(false)
-                    && !_reads[DoorRF].GetValue(false) && !_reads[DoorRA].GetValue(false),
-                BeaconOn: _reads[Beacon].GetValue(0) == 1,
-                SeatbeltSignsMode: _reads[Signs].GetValue(0),
+                DoorsClosed: !_doorLF!.Value && !_doorLA!.Value
+                    && !_doorRF!.Value && !_doorRA!.Value,
+                BeaconOn: _beacon.Value == 1,
+                SeatbeltSignsMode: _signs!.Value,
                 AltitudeFt: flightData.AltitudeFt,
                 VerticalSpeedFpm: flightData.VerticalSpeedFpm,
                 HasBeenAirborne: _flight.Snapshot().HasBeenAirborneThisSession);
@@ -224,7 +227,10 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         var deadline = Environment.TickCount64 + Math.Max(0, options.CabChannelGraceSeconds) * 1000L;
         while (Environment.TickCount64 < deadline)
         {
-            if (CabLatches.Any(latch => _reads[latch].GetValue(0) == 1))
+            // The latch descriptors fall back to 1 (unmuted / fail-audible, #83), so "no data
+            // yet" is decided on the liveness probe (RawValue) — a dead subscription must wait
+            // out the grace exactly as the old fallback-0 read did.
+            if (_cabLatches.Any(latch => latch.RawValue is not null && latch.Value == 1))
             {
                 return;
             }

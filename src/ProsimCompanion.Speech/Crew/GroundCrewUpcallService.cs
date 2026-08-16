@@ -31,8 +31,11 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
     private readonly IOptionsMonitor<GroundCrewOptions> _options;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GroundCrewUpcallService> _logger;
-    private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly CancellationTokenSource _shutdown = new();
+
+    private IDataRefSubscription<bool>? _groundPower;
+    private IDataRefSubscription<bool>? _chocks;
+    private IDataRefSubscription<double>? _fuelTotal;
 
     private Timer? _timer;
     private volatile bool _busy;
@@ -72,15 +75,9 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
 
     public void Start()
     {
-        foreach (var name in new[]
-                 {
-                     ProsimDataRefNames.GroundPower,
-                     ProsimDataRefNames.Chocks,
-                     ProsimDataRefNames.FuelTotal,
-                 })
-        {
-            _reads[name] = _dataRefs.Subscribe(name, DataRefTier.Normal);
-        }
+        _groundPower = _dataRefs.Subscribe(ProsimDataRefNames.GroundPower);
+        _chocks = _dataRefs.Subscribe(ProsimDataRefNames.Chocks);
+        _fuelTotal = _dataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
 
         _signals.FlightCycleReset += OnFlightCycleReset;
         _timer = new Timer(_ => Tick(), null, 1000, 1000);
@@ -92,10 +89,9 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         _timer?.Dispose();
         _shutdown.Cancel();
         _shutdown.Dispose();
-        foreach (var read in _reads.Values)
-        {
-            read.Dispose();
-        }
+        _groundPower?.Dispose();
+        _chocks?.Dispose();
+        _fuelTotal?.Dispose();
     }
 
     private void OnFlightCycleReset()
@@ -106,13 +102,16 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         try
         {
             var options = _options.CurrentValue;
-            if (!options.Enabled || _busy || _reads.Count == 0)
+            if (!options.Enabled || _busy
+                || _groundPower is not { } groundPower
+                || _chocks is not { } chocks
+                || _fuelTotal is not { } fuelTotal)
             {
                 return;
             }
 
             // Disconnected ProSim must never trigger calls off held-over values.
-            if (_reads.Values.Any(r => r.IsStale))
+            if (groundPower.IsStale || chocks.IsStale || fuelTotal.IsStale)
             {
                 return;
             }
@@ -122,8 +121,8 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
             var board = _diagnostics.Snapshot().ServiceBoard;
             var (nextState, call) = GroundUpcallCore.Evaluate(_state, new GroundUpcallCore.UpcallSample(
                 Phase: _flight.CurrentPhase,
-                GroundPower: ReadNullableBool(ProsimDataRefNames.GroundPower),
-                Chocks: ReadNullableBool(ProsimDataRefNames.Chocks),
+                GroundPower: ReadNullableBool(groundPower),
+                Chocks: ReadNullableBool(chocks),
                 RefuelStage: StageOf(board, GsxServiceIds.Refueling),
                 CateringStage: StageOf(board, GsxServiceIds.Catering),
                 CallOnGroundPower: options.CallOnGroundPower,
@@ -218,11 +217,8 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         }
     }
 
-    private bool? ReadNullableBool(string name)
-    {
-        var read = _reads[name];
-        return read.RawValue is null ? null : read.GetValue(false);
-    }
+    private static bool? ReadNullableBool(IDataRefSubscription<bool> read)
+        => read.RawValue is null ? null : read.Value;
 
     private static GsxServiceStage? StageOf(IReadOnlyList<GsxServiceBoardRow> board, string serviceId)
     {
@@ -239,7 +235,7 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
 
     private string FillFuel(string template)
     {
-        var kg = _reads[ProsimDataRefNames.FuelTotal].GetValue(0.0);
+        var kg = _fuelTotal?.Value ?? 0.0;
         var tonnes = (kg / 1000.0).ToString("0.0", CultureInfo.InvariantCulture);
         return template.Replace("{fuel}", tonnes, StringComparison.Ordinal);
     }

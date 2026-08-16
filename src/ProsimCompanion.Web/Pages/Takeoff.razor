@@ -301,10 +301,10 @@
     private static readonly string[] AntiIceOptions = ["OFF", "ENG", "ENG+WING"];
     private static readonly string[] PacksOptions = ["OFF", "ON"];
 
-    private IDataRefSubscription? _grossSub;
-    private IDataRefSubscription? _cgSub;
-    private IDataRefSubscription? _engineSub;
-    private IDataRefSubscription? _fmsOriginSub;
+    private IDataRefSubscription<double>? _grossSub;
+    private IDataRefSubscription<double>? _cgSub;
+    private IDataRefSubscription<string>? _engineSub;
+    private IDataRefSubscription<string?>? _fmsOriginSub;
 
     private string _icao = "";
     private bool _icaoTouched;
@@ -364,12 +364,12 @@
 
     protected override void OnInitialized()
     {
-        _grossSub = DataRefs.Subscribe(ProsimDataRefNames.WeightGross, DataRefTier.Normal);
-        _cgSub = DataRefs.Subscribe(ProsimDataRefNames.CenterOfGravity, DataRefTier.Normal);
-        _engineSub = DataRefs.Subscribe(ProsimDataRefNames.ConfigEngineType, DataRefTier.Infrequent);
+        _grossSub = DataRefs.Subscribe(ProsimDataRefNames.WeightGross);
+        _cgSub = DataRefs.Subscribe(ProsimDataRefNames.CenterOfGravity);
+        _engineSub = DataRefs.Subscribe(ProsimDataRefNames.ConfigEngineType);
         // MCDU origin as the no-OFP fallback seed (issue #65) — cached-subscription read,
         // never a polling ReadDataRef loop.
-        _fmsOriginSub = DataRefs.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
+        _fmsOriginSub = DataRefs.Subscribe(ProsimDataRefNames.FmsOrigin);
         _fmsOriginSub.ValueChanged += OnContextChanged;
         Ofp.Changed += OnContextChanged;
         Units.Changed += OnUnitsChanged;
@@ -421,7 +421,7 @@
     /// <summary>The context's origin: OFP first, MCDU FMS origin as fallback (the FMS
     /// datarefs read "----"/"Null" before a plan is loaded — predecessor archaeology).</summary>
     private string? ContextIcao()
-        => ValidIcao(Ofp.Current?.OriginIcao) ?? ValidIcao(_fmsOriginSub?.GetValue<string?>(null));
+        => ValidIcao(Ofp.Current?.OriginIcao) ?? ValidIcao(_fmsOriginSub?.Value);
 
     private static string? ValidIcao(string? value)
         => value is { Length: 4 } && value != "----"
@@ -459,11 +459,11 @@
     {
         _icao = ContextIcao() ?? "";
         var best = BestLoadsheet();
-        _towKg = best?.TowKg > 0 ? best.TowKg : _grossSub!.GetValue(0.0);
-        _macTow = best?.MacTow > 0 ? best.MacTow : _cgSub!.GetValue(0.0);
+        _towKg = best?.TowKg > 0 ? best.TowKg : _grossSub!.Value;
+        _macTow = best?.MacTow > 0 ? best.MacTow : _cgSub!.Value;
 
         // "CFM-Leap" shares the CFM lookup tables — only two wire buckets exist.
-        var engine = _engineSub!.GetValue("CFM");
+        var engine = _engineSub!.Value;
         _engine = engine.Contains("IAE", StringComparison.OrdinalIgnoreCase) ? "IAE" : "CFM";
     }
 

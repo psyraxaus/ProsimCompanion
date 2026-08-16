@@ -34,9 +34,9 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
     private readonly OfpStore _ofpStore;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<SimbriefImportService> _logger;
-    private readonly IDataRefSubscription _pilotId;
-    private readonly IDataRefSubscription _planImported;
-    private readonly IDataRefSubscription[] _zoneCapacities;
+    private readonly IDataRefSubscription<string?> _pilotId;
+    private readonly IDataRefSubscription<bool> _planImported;
+    private readonly IDataRefSubscription<int>[] _zoneCapacities;
     private readonly HttpClient _http;
     private readonly SemaphoreSlim _importLock = new(1, 1);
 
@@ -68,14 +68,14 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         _diagnostics = diagnostics;
         _logger = logger;
 
-        _pilotId = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefId, DataRefTier.Infrequent);
-        _planImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
+        _pilotId = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefId);
+        _planImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported);
         _zoneCapacities =
         [
-            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity, DataRefTier.Infrequent),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity),
         ];
 
         _http = new HttpClient(new SocketsHttpHandler { UseProxy = false })
@@ -109,12 +109,12 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             // because nothing recorded WHO fired each import.
             _logger.LogDebug("SimBrief import attempt (source {Source}, force {Force})", source, force);
 
-            if (!force && _planImported.GetValue(false))
+            if (!force && _planImported.Value)
             {
                 return SimbriefImportOutcome.AlreadyImported;
             }
 
-            var pilotId = _pilotId.GetValue<string?>(null)?.Trim();
+            var pilotId = _pilotId.Value?.Trim();
             if (string.IsNullOrEmpty(pilotId) || pilotId == "0")
             {
                 RecordDecision("simbrief import", "no pilot id in ProSim (efb.simbrief.id) — set it in the ProSim EFB");
@@ -198,7 +198,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         }
 
         // Zone capacities from the live aircraft; predecessor fallback constants otherwise.
-        var capacities = _zoneCapacities.Select(zone => zone.GetValue(0)).ToArray();
+        var capacities = _zoneCapacities.Select(zone => zone.Value).ToArray();
         if (capacities.Sum() <= 0)
         {
             capacities = FallbackZoneCapacities;
@@ -273,12 +273,12 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             Total = paxCount,
         });
 
-        var ok = await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxBookedString, SeatMap.Build(bookedMap), cancellationToken).ConfigureAwait(false)
+        var ok = await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxBookedString.Name, SeatMap.Build(bookedMap), cancellationToken).ConfigureAwait(false)
             & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPassengerStatistics, statistics, cancellationToken).ConfigureAwait(false)
-            & await _gateway.WriteDataRefAsync(ProsimDataRefNames.RefuelFuelTarget, fuelRamp, cancellationToken).ConfigureAwait(false)
-            & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPlannedFuel, fuelRamp, cancellationToken).ConfigureAwait(false)
-            & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPlannedCargoKg, cargo, cancellationToken).ConfigureAwait(false)
-            & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbSimbriefPlanImported, true, cancellationToken).ConfigureAwait(false);
+            & await _gateway.WriteDataRefAsync(ProsimDataRefNames.RefuelFuelTarget.Name, fuelRamp, cancellationToken).ConfigureAwait(false)
+            & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPlannedFuel.Name, fuelRamp, cancellationToken).ConfigureAwait(false)
+            & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPlannedCargoKg.Name, cargo, cancellationToken).ConfigureAwait(false)
+            & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbSimbriefPlanImported.Name, true, cancellationToken).ConfigureAwait(false);
 
         if (!ok)
         {

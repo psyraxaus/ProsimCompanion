@@ -37,11 +37,11 @@ public sealed class GsxPushbackSequenceService : IDisposable
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly LoadsheetStore _loadsheets;
     private readonly ILogger<GsxPushbackSequenceService> _logger;
-    private readonly IDataRefSubscription _beacon;
-    private readonly IDataRefSubscription _apuRunning;
-    private readonly IDataRefSubscription _vehicleState;
-    private readonly IDataRefSubscription _pushbackStatus;
-    private readonly IDataRefSubscription _bypassPin;
+    private readonly IDataRefSubscription<int> _beacon;
+    private readonly IDataRefSubscription<bool> _apuRunning;
+    private readonly IDataRefSubscription<double> _vehicleState;
+    private readonly IDataRefSubscription<double> _pushbackStatus;
+    private readonly IDataRefSubscription<double> _bypassPin;
     private readonly PushbackSequencer _sequencer;
     private readonly Timer _timer;
     private GsxAutomationPhase _lastResetPhase = GsxAutomationPhase.SessionStart;
@@ -91,11 +91,11 @@ public sealed class GsxPushbackSequenceService : IDisposable
         _diagnostics = diagnostics;
         _logger = logger;
 
-        _beacon = prosim.Subscribe(ProsimDataRefNames.OhExtLtBeacon, DataRefTier.Normal);
-        _apuRunning = prosim.Subscribe(ProsimDataRefNames.ApuRunning, DataRefTier.Normal);
-        _vehicleState = simVars.Subscribe(GsxLvarNames.VehiclePushbackState, "number", DataRefTier.Normal);
-        _pushbackStatus = simVars.Subscribe(GsxLvarNames.PushbackStatus, "number", DataRefTier.Normal);
-        _bypassPin = simVars.Subscribe(GsxLvarNames.BypassPin, "number", DataRefTier.Normal);
+        _beacon = prosim.Subscribe(ProsimDataRefNames.OhExtLtBeacon);
+        _apuRunning = prosim.Subscribe(ProsimDataRefNames.ApuRunning);
+        _vehicleState = simVars.Subscribe(GsxLvarNames.VehiclePushbackState);
+        _pushbackStatus = simVars.Subscribe(GsxLvarNames.PushbackStatus);
+        _bypassPin = simVars.Subscribe(GsxLvarNames.BypassPin);
 
         _sequencer = new PushbackSequencer(Random.Shared.Next);
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
@@ -167,8 +167,8 @@ public sealed class GsxPushbackSequenceService : IDisposable
             var inputs = new PushbackSequencer.Inputs(
                 Armed: _automation.DepartureComplete
                     && phase is GsxAutomationPhase.Preparation or GsxAutomationPhase.PushBack,
-                BeaconOn: _beacon.GetValue(0) != 0,
-                ApuRunning: _apuRunning.GetValue(false),
+                BeaconOn: _beacon.Value != 0,
+                ApuRunning: _apuRunning.Value,
                 AnyDoorOpen: _doors.AnyDoorOpen,
                 CallPushback: options.CallPushbackOnBeacon,
                 PushbackCallable: pushback is { State: GsxServiceState.Callable, CanTrigger: true });
@@ -266,7 +266,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
             DepartureComplete: _automation.DepartureComplete,
             FinalLoadsheetSent: _loadsheets.Snapshot().Final.Status == LoadsheetSlotStatus.Sent,
             BoardingCompleted: _lifecycle.IsCompleted("Boarding"),
-            PushbackStatusRaised: _pushbackStatus.GetValue(0.0) > 0,
+            PushbackStatusRaised: _pushbackStatus.Value > 0,
             BoardingRequestedOrActive: boarding is { State: GsxServiceState.Requested or GsxServiceState.Active },
             PushbackCallable: pushback is { State: GsxServiceState.Callable, CanTrigger: true },
             PushbackPending: _lifecycle.IsPending(PushbackServiceId),
@@ -314,19 +314,19 @@ public sealed class GsxPushbackSequenceService : IDisposable
     /// engine-start-confirmation gate and pin removal become diagnosable from logs alone.</summary>
     private void MonitorPushbackLvars()
     {
-        var vehicleState = (int)_vehicleState.GetValue(0.0);
+        var vehicleState = (int)_vehicleState.Value;
         if (vehicleState != _lastVehicleState)
         {
             if (_lastVehicleState != -1 || vehicleState != 0)
             {
                 RecordDecision(
                     "pushback tug",
-                    $"vehicle state {vehicleState} ({DescribeVehicleState(vehicleState)}); status={_pushbackStatus.GetValue(0.0):F0}");
+                    $"vehicle state {vehicleState} ({DescribeVehicleState(vehicleState)}); status={_pushbackStatus.Value:F0}");
             }
             _lastVehicleState = vehicleState;
         }
 
-        var pin = _bypassPin.GetValue(0.0);
+        var pin = _bypassPin.Value;
         if (Math.Abs(pin - _lastBypassPin) > 0.5)
         {
             _lastBypassPin = pin;

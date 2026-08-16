@@ -34,18 +34,6 @@ public interface ICompanyChannel
 /// </summary>
 public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core.Hosting.IStartupModule, IDisposable
 {
-    private const string Zfw = "aircraft.weight.zfw";
-    private const string Gross = "aircraft.weight.gross";
-
-    // The explicitly-kg variant — aircraft.fuel.total.amount is unit-ambiguous in the catalog.
-    private const string FobKg = "aircraft.fuel.total.amount.kg";
-    private const string Cg = "aircraft.cg";
-    private const string Zone1 = "aircraft.passengers.zone1.amount";
-    private const string Zone2 = "aircraft.passengers.zone2.amount";
-    private const string Zone3 = "aircraft.passengers.zone3.amount";
-    private const string Zone4 = "aircraft.passengers.zone4.amount";
-    private const string FinalLoadsheet = "efb.finalLoadsheet";
-
     private static readonly string[] LoadsheetPhrases =
         ["request loadsheet", "loadsheet please", "read the loadsheet", "loadsheet"];
 
@@ -62,9 +50,18 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
 
     // Optional: with no name source the destination stays spelled ("E G L L") — issue #70.
     private readonly Core.Speech.ISpokenText _spokenText;
-    private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
+    private readonly List<IDataRefSubscription> _reads = [];
     private readonly object _gate = new();
 
+    private IDataRefSubscription<double>? _zfw;
+    private IDataRefSubscription<double>? _gross;
+    private IDataRefSubscription<double>? _fobKg; // the explicitly-kg fuel ref — aircraft.fuel.total.amount is unit-ambiguous
+    private IDataRefSubscription<double>? _cg;
+    private IDataRefSubscription<int>? _zone1;
+    private IDataRefSubscription<int>? _zone2;
+    private IDataRefSubscription<int>? _zone3;
+    private IDataRefSubscription<int>? _zone4;
+    private IDataRefSubscription<string?>? _finalLoadsheet;
     private Timer? _timer;
     private bool _busy;
     private bool _loadsheetDone;
@@ -108,12 +105,15 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
 
     public void Start()
     {
-        foreach (var name in new[] { Zfw, Gross, FobKg, Cg, Zone1, Zone2, Zone3, Zone4 })
-        {
-            _reads[name] = _dataRefs.Subscribe(name, DataRefTier.Infrequent);
-        }
-
-        _reads[FinalLoadsheet] = _dataRefs.Subscribe(FinalLoadsheet, DataRefTier.Infrequent);
+        _zfw = Track(_dataRefs.Subscribe(ProsimDataRefNames.WeightZfw));
+        _gross = Track(_dataRefs.Subscribe(ProsimDataRefNames.WeightGross));
+        _fobKg = Track(_dataRefs.Subscribe(ProsimDataRefNames.FuelTotal));
+        _cg = Track(_dataRefs.Subscribe(ProsimDataRefNames.CenterOfGravity));
+        _zone1 = Track(_dataRefs.Subscribe(ProsimDataRefNames.PaxZone1Amount));
+        _zone2 = Track(_dataRefs.Subscribe(ProsimDataRefNames.PaxZone2Amount));
+        _zone3 = Track(_dataRefs.Subscribe(ProsimDataRefNames.PaxZone3Amount));
+        _zone4 = Track(_dataRefs.Subscribe(ProsimDataRefNames.PaxZone4Amount));
+        _finalLoadsheet = Track(_dataRefs.Subscribe(ProsimDataRefNames.EfbFinalLoadsheet));
         _flight.PhaseChanged += OnPhaseChanged;
         _timer = new Timer(_ => Tick(), null, 2000, 2000);
     }
@@ -122,10 +122,16 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
     {
         _flight.PhaseChanged -= OnPhaseChanged;
         _timer?.Dispose();
-        foreach (var read in _reads.Values)
+        foreach (var read in _reads)
         {
             read.Dispose();
         }
+    }
+
+    private IDataRefSubscription<T> Track<T>(IDataRefSubscription<T> subscription)
+    {
+        _reads.Add(subscription);
+        return subscription;
     }
 
     public bool TryHandle(string utterance)
@@ -236,7 +242,7 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
                 }
             }
 
-            if (_reads.Values.Any(r => r.IsStale))
+            if (_reads.Any(r => r.IsStale))
             {
                 return;
             }
@@ -269,8 +275,8 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
     /// <summary>Ready once the final loadsheet has landed in the EFB, else once the weights
     /// are plausibly populated (sanity floors, not real limits).</summary>
     private bool LoadsheetReady()
-        => !string.IsNullOrWhiteSpace(_reads[FinalLoadsheet].GetValue<string?>(null))
-            || (_reads[Zfw].GetValue(0.0) > 1000 && _reads[FobKg].GetValue(0.0) > 100);
+        => !string.IsNullOrWhiteSpace(_finalLoadsheet?.Value)
+            || ((_zfw?.Value ?? 0.0) > 1000 && (_fobKg?.Value ?? 0.0) > 100);
 
     private async Task DeliverLoadsheetAsync(bool manual)
     {
@@ -298,12 +304,11 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
                 return;
             }
 
-            var pax = (int)Math.Round(
-                _reads[Zone1].GetValue(0.0) + _reads[Zone2].GetValue(0.0)
-                + _reads[Zone3].GetValue(0.0) + _reads[Zone4].GetValue(0.0));
+            var pax = (_zone1?.Value ?? 0) + (_zone2?.Value ?? 0)
+                + (_zone3?.Value ?? 0) + (_zone4?.Value ?? 0);
             var spoken = BuildLoadsheet(
-                _reads[Zfw].GetValue(0.0), _reads[Gross].GetValue(0.0),
-                _reads[FobKg].GetValue(0.0), _reads[Cg].GetValue(0.0), pax);
+                _zfw?.Value ?? 0.0, _gross?.Value ?? 0.0,
+                _fobKg?.Value ?? 0.0, _cg?.Value ?? 0.0, pax);
 
             Persist(spoken);
             var options = _options.CurrentValue;
@@ -400,7 +405,7 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
             }
 
             var sb = new StringBuilder(spoken);
-            var raw = _reads[FinalLoadsheet].GetValue<string?>(null);
+            var raw = _finalLoadsheet?.Value;
             if (!string.IsNullOrWhiteSpace(raw))
             {
                 sb.Append("\n\n--- EFB final loadsheet ---\n").Append(raw);

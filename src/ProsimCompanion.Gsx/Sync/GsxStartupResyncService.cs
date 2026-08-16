@@ -221,21 +221,21 @@ public sealed class GsxStartupResyncService : IDisposable
     private readonly object _pendingGate = new();
     private bool _simConnectWasConnected;
 
-    private readonly Dictionary<string, IDataRefSubscription> _serviceDoneLvars =
+    private readonly Dictionary<string, IDataRefSubscription<double>> _serviceDoneLvars =
         new(StringComparer.OrdinalIgnoreCase);
-    private readonly IDataRefSubscription _turnaroundLvar;
-    private readonly IDataRefSubscription _prepDoneLvar;
-    private readonly IDataRefSubscription _loadsheetPrelimLvar;
-    private readonly IDataRefSubscription _loadsheetFinalLvar;
-    private readonly IDataRefSubscription _fuelTargetKg;
-    private readonly IDataRefSubscription _fuelTarget;
-    private readonly IDataRefSubscription _fuelTotal;
-    private readonly IDataRefSubscription _paxBooked;
-    private readonly IDataRefSubscription _paxOccupied;
-    private readonly IDataRefSubscription _efbBoardingStatus;
-    private readonly IDataRefSubscription _ofpImported;
-    private readonly IDataRefSubscription _fmsOrigin;
-    private readonly IDataRefSubscription _fmsDestination;
+    private readonly IDataRefSubscription<double> _turnaroundLvar;
+    private readonly IDataRefSubscription<double> _prepDoneLvar;
+    private readonly IDataRefSubscription<double> _loadsheetPrelimLvar;
+    private readonly IDataRefSubscription<double> _loadsheetFinalLvar;
+    private readonly IDataRefSubscription<double> _fuelTargetKg;
+    private readonly IDataRefSubscription<double> _fuelTarget;
+    private readonly IDataRefSubscription<double> _fuelTotal;
+    private readonly IDataRefSubscription<string?> _paxBooked;
+    private readonly IDataRefSubscription<string?> _paxOccupied;
+    private readonly IDataRefSubscription<string?> _efbBoardingStatus;
+    private readonly IDataRefSubscription<bool> _ofpImported;
+    private readonly IDataRefSubscription<string?> _fmsOrigin;
+    private readonly IDataRefSubscription<string?> _fmsDestination;
 
     private readonly Timer _timer;
     private readonly SessionWindow _assessWindow;
@@ -283,23 +283,22 @@ public sealed class GsxStartupResyncService : IDisposable
 
         foreach (var serviceId in TrackedServices)
         {
-            _serviceDoneLvars[serviceId] = simVars.Subscribe(
-                CompanionLvarNames.ServiceDone(serviceId), "number", DataRefTier.Infrequent);
+            _serviceDoneLvars[serviceId] = simVars.Subscribe(CompanionLvarNames.ServiceDone(serviceId));
         }
-        _turnaroundLvar = simVars.Subscribe(CompanionLvarNames.Turnaround, "number", DataRefTier.Infrequent);
-        _prepDoneLvar = simVars.Subscribe(CompanionLvarNames.PrepDone, "number", DataRefTier.Infrequent);
-        _loadsheetPrelimLvar = simVars.Subscribe(CompanionLvarNames.LoadsheetPrelimEdition, "number", DataRefTier.Infrequent);
-        _loadsheetFinalLvar = simVars.Subscribe(CompanionLvarNames.LoadsheetFinalSent, "number", DataRefTier.Infrequent);
+        _turnaroundLvar = simVars.Subscribe(CompanionLvarNames.Turnaround);
+        _prepDoneLvar = simVars.Subscribe(CompanionLvarNames.PrepDone);
+        _loadsheetPrelimLvar = simVars.Subscribe(CompanionLvarNames.LoadsheetPrelimEdition);
+        _loadsheetFinalLvar = simVars.Subscribe(CompanionLvarNames.LoadsheetFinalSent);
 
-        _fuelTargetKg = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTargetKg, DataRefTier.Infrequent);
-        _fuelTarget = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTarget, DataRefTier.Infrequent);
-        _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal, DataRefTier.Infrequent);
-        _paxBooked = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
-        _paxOccupied = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString, DataRefTier.Infrequent);
-        _efbBoardingStatus = prosim.Subscribe(ProsimDataRefNames.EfbBoardingStatus, DataRefTier.Infrequent);
-        _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported, DataRefTier.Infrequent);
-        _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
-        _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
+        _fuelTargetKg = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTargetKg);
+        _fuelTarget = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTarget);
+        _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);
+        _paxBooked = prosim.Subscribe(ProsimDataRefNames.PaxBookedString);
+        _paxOccupied = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString);
+        _efbBoardingStatus = prosim.Subscribe(ProsimDataRefNames.EfbBoardingStatus);
+        _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported);
+        _fmsOrigin = prosim.Subscribe(ProsimDataRefNames.FmsOrigin);
+        _fmsDestination = prosim.Subscribe(ProsimDataRefNames.FmsDestination);
 
         _lifecycle.ServiceEvent += OnServiceEvent;
         _signals.FlightCycleReset += OnFlightCycleReset;
@@ -340,7 +339,7 @@ public sealed class GsxStartupResyncService : IDisposable
     {
         if (lifecycleEvent == GsxServiceLifecycleEvent.Completed && !GsxServiceIds.IsToggle(serviceId))
         {
-            _ = WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId), 1);
+            _ = WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 1);
         }
     }
 
@@ -357,13 +356,13 @@ public sealed class GsxStartupResyncService : IDisposable
         _prepLvarLatched = false;
         _ = Task.Run(async () =>
         {
-            await WriteLvarAsync(CompanionLvarNames.Turnaround, 1).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.PrepDone, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.LoadsheetFinalSent, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.Turnaround.Name, 1).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.PrepDone.Name, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition.Name, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 0).ConfigureAwait(false);
             foreach (var serviceId in TrackedServices)
             {
-                await WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId), 0).ConfigureAwait(false);
+                await WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 0).ConfigureAwait(false);
             }
         });
     }
@@ -382,7 +381,7 @@ public sealed class GsxStartupResyncService : IDisposable
             if (!_prepLvarLatched && _groundPrep.PrepComplete)
             {
                 _prepLvarLatched = true;
-                _ = WriteLvarAsync(CompanionLvarNames.PrepDone, 1);
+                _ = WriteLvarAsync(CompanionLvarNames.PrepDone.Name, 1);
             }
         }
         catch (Exception ex)
@@ -422,9 +421,9 @@ public sealed class GsxStartupResyncService : IDisposable
             // loadsheet restore) must not wait on us forever.
             RecordDecision("assessment timed out (GSX not ready) — no prior progress assumed");
             _resyncState.MarkAssessed(
-                turnaroundDetected: _turnaroundLvar.GetValue(0.0) >= 1,
-                loadsheetPrelimEdition: (int)_loadsheetPrelimLvar.GetValue(0.0),
-                loadsheetFinalSent: _loadsheetFinalLvar.GetValue(0.0) >= 1);
+                turnaroundDetected: _turnaroundLvar.Value >= 1,
+                loadsheetPrelimEdition: (int)_loadsheetPrelimLvar.Value,
+                loadsheetFinalSent: _loadsheetFinalLvar.Value >= 1);
             return;
         }
 
@@ -442,36 +441,36 @@ public sealed class GsxStartupResyncService : IDisposable
         var doneLvars = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (serviceId, subscription) in _serviceDoneLvars)
         {
-            if (subscription.GetValue(0.0) >= 1)
+            if (subscription.Value >= 1)
             {
                 doneLvars.Add(serviceId);
             }
         }
 
-        var fuelTarget = _fuelTargetKg.GetValue(0.0);
+        var fuelTarget = _fuelTargetKg.Value;
         if (fuelTarget <= 0)
         {
-            fuelTarget = _fuelTarget.GetValue(0.0);
+            fuelTarget = _fuelTarget.Value;
         }
 
         var evidence = new ResyncEvidence(
-            TurnaroundLvar: _turnaroundLvar.GetValue(0.0) >= 1,
-            PrepDoneLvar: _prepDoneLvar.GetValue(0.0) >= 1,
+            TurnaroundLvar: _turnaroundLvar.Value >= 1,
+            PrepDoneLvar: _prepDoneLvar.Value >= 1,
             ServiceDoneLvars: doneLvars,
             FuelTargetKg: fuelTarget,
-            FuelOnBoardKg: _fuelTotal.GetValue(0.0),
-            PaxBooked: SeatMap.Parse(_paxBooked.GetValue<string?>(null)).Count(seat => seat),
-            PaxOccupied: SeatMap.Parse(_paxOccupied.GetValue<string?>(null)).Count(seat => seat),
-            EfbBoardingStatus: _efbBoardingStatus.GetValue<string?>(null)?.Trim().ToLowerInvariant(),
-            LoadsheetPrelimEdition: (int)_loadsheetPrelimLvar.GetValue(0.0),
-            LoadsheetFinalSent: _loadsheetFinalLvar.GetValue(0.0) >= 1,
+            FuelOnBoardKg: _fuelTotal.Value,
+            PaxBooked: SeatMap.Parse(_paxBooked.Value).Count(seat => seat),
+            PaxOccupied: SeatMap.Parse(_paxOccupied.Value).Count(seat => seat),
+            EfbBoardingStatus: _efbBoardingStatus.Value?.Trim().ToLowerInvariant(),
+            LoadsheetPrelimEdition: (int)_loadsheetPrelimLvar.Value,
+            LoadsheetFinalSent: _loadsheetFinalLvar.Value >= 1,
             ConfiguredOneShotServices:
                 [.. _options.CurrentValue.DepartureServices
                     .Select(step => step.Service)
                     .Where(id => !string.IsNullOrWhiteSpace(id))],
-            FlightPlanLoaded: _ofpImported.GetValue(false)
-                || (IsValidIcao(_fmsOrigin.GetValue<string?>(null))
-                    && IsValidIcao(_fmsDestination.GetValue<string?>(null))),
+            FlightPlanLoaded: _ofpImported.Value
+                || (IsValidIcao(_fmsOrigin.Value)
+                    && IsValidIcao(_fmsDestination.Value)),
             ProsimDataAvailable: prosimKnown);
 
         var verdict = GsxStartupResync.Assess(evidence);
@@ -492,7 +491,7 @@ public sealed class GsxStartupResyncService : IDisposable
             // completion-edge writer never runs for it. Persisting the verdict makes the NEXT
             // restart resync from the LVARs alone, even after the dataref evidence has moved
             // on (new fuel target, cleared boarding figures).
-            _ = WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId), 1);
+            _ = WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 1);
         }
 
         if (verdict.SeedPrepComplete)
@@ -526,13 +525,13 @@ public sealed class GsxStartupResyncService : IDisposable
         _prepLvarLatched = false;
         _ = Task.Run(async () =>
         {
-            await WriteLvarAsync(CompanionLvarNames.Turnaround, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.PrepDone, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition, 0).ConfigureAwait(false);
-            await WriteLvarAsync(CompanionLvarNames.LoadsheetFinalSent, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.Turnaround.Name, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.PrepDone.Name, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition.Name, 0).ConfigureAwait(false);
+            await WriteLvarAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 0).ConfigureAwait(false);
             foreach (var serviceId in TrackedServices)
             {
-                await WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId), 0).ConfigureAwait(false);
+                await WriteLvarAsync(CompanionLvarNames.ServiceDone(serviceId).Name, 0).ConfigureAwait(false);
             }
         });
     }

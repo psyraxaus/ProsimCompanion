@@ -17,7 +17,7 @@ public sealed class AircraftProfileService : IDisposable
     private readonly IOptionsMonitor<AircraftProfilesOptions> _options;
     private readonly OfpStore _ofp;
     private readonly ILogger<AircraftProfileService> _logger;
-    private readonly IDataRefSubscription _title;
+    private readonly IDataRefSubscription<string?> _title;
     private readonly IDisposable? _optionsSubscription;
     private string? _manualProfileId;
 
@@ -36,14 +36,14 @@ public sealed class AircraftProfileService : IDisposable
         _ofp = ofp;
         _logger = logger;
 
-        _title = dataRefs.Subscribe(ProsimDataRefNames.AircraftTitle, DataRefTier.Infrequent);
+        _title = dataRefs.Subscribe(ProsimDataRefNames.AircraftTitle);
         _title.ValueChanged += (_, _) => Rematch();
         _ofp.Changed += OnOfpChanged;
         _optionsSubscription = _options.OnChange(_ => Rematch());
     }
 
     /// <summary>Current aircraft title as reported by the simulator, or null before data arrives.</summary>
-    public string? AircraftTitle => _title.GetValue<string?>(null);
+    public string? AircraftTitle => _title.Value;
 
     /// <summary>ICAO airline for the Airline match type: the OFP callsign's leading letters
     /// (e.g. "BAW123" → "BAW"), or null without a plan.</summary>

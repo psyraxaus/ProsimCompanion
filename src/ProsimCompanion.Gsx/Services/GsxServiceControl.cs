@@ -42,7 +42,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     private readonly SimSessionStore _simSession;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly ILogger<GsxServiceControl> _logger;
-    private readonly IDataRefSubscription _jetwayLvar;
+    private readonly IDataRefSubscription<double> _jetwayLvar;
 
     public GsxServiceControl(
         IGsxRemoteApi api,
@@ -77,7 +77,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         _options = options;
         _logger = logger;
 
-        _jetwayLvar = simVars.Subscribe(GsxLvarNames.Jetway, "number", DataRefTier.Normal);
+        _jetwayLvar = simVars.Subscribe(GsxLvarNames.Jetway);
     }
 
     public void Dispose() => _jetwayLvar.Dispose();
@@ -177,7 +177,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         if (action is GsxServiceAction.RequestJetway or GsxServiceAction.RequestStairs)
         {
             if (action == GsxServiceAction.RequestJetway
-                && (int)_jetwayLvar.GetValue(0.0) == JetwayLvarNotPresent)
+                && (int)_jetwayLvar.Value == JetwayLvarNotPresent)
             {
                 // GSX 4 lists (and acks!) OperateJetways at jetway-less stands — the LVAR is
                 // the truth. Refuse instead of "succeeding" invisibly.

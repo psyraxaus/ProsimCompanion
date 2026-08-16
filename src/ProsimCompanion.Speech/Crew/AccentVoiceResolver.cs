@@ -20,8 +20,8 @@ public sealed class AccentVoiceResolver : IDisposable
 {
     private readonly IOptionsMonitor<AccentOptions> _options;
     private readonly IFlightPhaseSource _flight;
-    private readonly IDataRefSubscription _fmsOrigin;
-    private readonly IDataRefSubscription _fmsDestination;
+    private readonly IDataRefSubscription<string?> _fmsOrigin;
+    private readonly IDataRefSubscription<string?> _fmsDestination;
     private readonly ILogger<AccentVoiceResolver> _logger;
     private string? _loggedLocale;
 
@@ -39,8 +39,8 @@ public sealed class AccentVoiceResolver : IDisposable
         _flight = flight;
         _options = options;
         _logger = logger;
-        _fmsOrigin = dataRefs.Subscribe(ProsimDataRefNames.FmsOrigin, DataRefTier.Infrequent);
-        _fmsDestination = dataRefs.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
+        _fmsOrigin = dataRefs.Subscribe(ProsimDataRefNames.FmsOrigin);
+        _fmsDestination = dataRefs.Subscribe(ProsimDataRefNames.FmsDestination);
     }
 
     public void Dispose()
@@ -90,8 +90,8 @@ public sealed class AccentVoiceResolver : IDisposable
     /// Shutdown — and the flight phases, where a stray ground call would still be "ahead").</summary>
     private string? CurrentAirport()
     {
-        var origin = ValidIcaoOrNull(_fmsOrigin.GetValue<string?>(null));
-        var destination = ValidIcaoOrNull(_fmsDestination.GetValue<string?>(null));
+        var origin = ValidIcaoOrNull(_fmsOrigin.Value);
+        var destination = ValidIcaoOrNull(_fmsDestination.Value);
 
         return _flight.CurrentPhase switch
         {

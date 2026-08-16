@@ -15,7 +15,7 @@ internal sealed class FakeDataRefs : IProsimDataRefs
 
     public List<(string Name, object? Value)> Writes { get; } = [];
 
-    public IDataRefSubscription Subscribe(string name, DataRefTier tier) => new Sub(this, name);
+    public IDataRefSubscription SubscribeDynamic(string name, DataRefTier tier) => new Sub(this, name);
 
     public Task WriteAsync(string name, object? value, CancellationToken cancellationToken = default)
     {

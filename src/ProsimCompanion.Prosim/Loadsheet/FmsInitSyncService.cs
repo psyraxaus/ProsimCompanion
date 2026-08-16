@@ -19,9 +19,9 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
     private readonly OfpStore _ofpStore;
     private readonly LoadsheetStore _loadsheets;
     private readonly ILogger<FmsInitSyncService> _logger;
-    private readonly IDataRefSubscription _zfw;
-    private readonly IDataRefSubscription _zfwcg;
-    private readonly IDataRefSubscription _plannedFuel;
+    private readonly IDataRefSubscription<double> _zfw;
+    private readonly IDataRefSubscription<double> _zfwcg;
+    private readonly IDataRefSubscription<double> _plannedFuel;
 
     public FmsInitSyncService(
         IProsimDataRefs prosim,
@@ -39,9 +39,9 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
         _loadsheets = loadsheets;
         _logger = logger;
 
-        _zfw = prosim.Subscribe(ProsimDataRefNames.WeightZfw, DataRefTier.Normal);
-        _zfwcg = prosim.Subscribe(ProsimDataRefNames.Zfwcg, DataRefTier.Normal);
-        _plannedFuel = prosim.Subscribe(ProsimDataRefNames.EfbPlannedFuel, DataRefTier.Infrequent);
+        _zfw = prosim.Subscribe(ProsimDataRefNames.WeightZfw);
+        _zfwcg = prosim.Subscribe(ProsimDataRefNames.Zfwcg);
+        _plannedFuel = prosim.Subscribe(ProsimDataRefNames.EfbPlannedFuel);
     }
 
     public void Dispose()
@@ -62,7 +62,7 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
 
         // Block: the OFP's ordered figure, else whatever the EFB fuel page holds.
         var ofp = _ofpStore.Current;
-        var blockKg = ofp?.FuelPlanRampKg > 0 ? ofp.FuelPlanRampKg : _plannedFuel.GetValue(0.0);
+        var blockKg = ofp?.FuelPlanRampKg > 0 ? ofp.FuelPlanRampKg : _plannedFuel.Value;
         blockKg = LoadMath.RoundFuelUpToHundredKg(blockKg);
         if (blockKg <= 0)
         {
@@ -104,8 +104,8 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
             return ("prelim", prelim.ZfwKg, prelim.MacZfw);
         }
 
-        var liveZfw = _zfw.GetValue(0.0);
-        var liveCg = _zfwcg.GetValue(0.0);
+        var liveZfw = _zfw.Value;
+        var liveCg = _zfwcg.Value;
         try
         {
             A320WeightAndBalance.EnsurePlausibleCg(liveCg, "FMS sync ZFW");

@@ -43,8 +43,8 @@ public sealed class SimSessionService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var camera = _simVars.Subscribe("CAMERA STATE", "Enum", DataRefTier.Normal);
-        IDataRefSubscription? avatar = null;
+        using var camera = _simVars.Subscribe(ProsimDataRefNames.SimVars.CameraState);
+        IDataRefSubscription<bool>? avatar = null;
 
         try
         {
@@ -57,15 +57,15 @@ public sealed class SimSessionService : BackgroundService
                 // SimConnect error every session, so the subscription waits for the version.
                 if (isMsfs2024)
                 {
-                    avatar ??= _simVars.Subscribe("IS AVATAR", "Bool", DataRefTier.Normal);
+                    avatar ??= _simVars.Subscribe(ProsimDataRefNames.SimVars.IsAvatar);
                 }
 
                 var inputs = new SimSessionInputs(
                     connected,
                     simRunning,
                     paused,
-                    CameraState: Fresh(camera) ? (int)camera.GetValue(0.0) : null,
-                    IsAvatar: avatar is not null && Fresh(avatar) ? avatar.GetValue(0.0) >= 1 : null);
+                    CameraState: Fresh(camera) ? camera.Value : null,
+                    IsAvatar: avatar is not null && Fresh(avatar) ? avatar.Value : null);
 
                 var phase = _evaluator.ProcessTick(inputs);
                 if (phase != _loggedPhase)

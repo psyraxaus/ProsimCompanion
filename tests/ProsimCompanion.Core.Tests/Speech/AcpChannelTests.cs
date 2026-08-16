@@ -16,7 +16,7 @@ public sealed class AcpChannelTests
     {
         var dataRefs = new Mock<IProsimDataRefs>();
         dataRefs
-            .Setup(d => d.Subscribe(It.IsAny<string>(), It.IsAny<DataRefTier>()))
+            .Setup(d => d.SubscribeDynamic(It.IsAny<string>(), It.IsAny<DataRefTier>()))
             .Returns((string name, DataRefTier _) =>
             {
                 if (!_subs.TryGetValue(name, out var sub))
@@ -45,8 +45,8 @@ public sealed class AcpChannelTests
     public void Transmit_IsOneCoherentSnapshot()
     {
         using var channel = CreateChannel();
-        Set(ProsimDataRefNames.AcpSendChannel, 6);
-        Set(ProsimDataRefNames.AcpIntSend, 1);
+        Set(ProsimDataRefNames.AcpSendChannel.Name, 6);
+        Set(ProsimDataRefNames.AcpIntSend.Name, 1);
 
         var transmit = channel.Transmit;
 
@@ -60,7 +60,7 @@ public sealed class AcpChannelTests
         using var channel = CreateChannel();
         Assert.Equal(AcpTransmitTarget.Unknown, channel.Transmit.Target);
 
-        Set(ProsimDataRefNames.AcpSendChannel, 7, stale: true);
+        Set(ProsimDataRefNames.AcpSendChannel.Name, 7, stale: true);
         Assert.Equal(AcpTransmitTarget.Unknown, channel.Transmit.Target);
     }
 
@@ -68,7 +68,7 @@ public sealed class AcpChannelTests
     public async Task AwaitReceive_ReturnsImmediately_WhenAlreadyLatched()
     {
         using var channel = CreateChannel();
-        Set(ProsimDataRefNames.Acp2IntLatch, 1);
+        Set(ProsimDataRefNames.Acp2IntLatch.Name, 1);
 
         Assert.True(channel.IsReceiving(AcpChannelKind.Intercom));
         Assert.True(await channel.AwaitReceiveAsync(
@@ -79,7 +79,7 @@ public sealed class AcpChannelTests
     public async Task AwaitReceive_GracePath_ElapsesAndReportsUnlatched()
     {
         using var channel = CreateChannel();
-        Set(ProsimDataRefNames.Acp1IntLatch, 0);
+        Set(ProsimDataRefNames.Acp1IntLatch.Name, 0);
 
         var latched = await channel.AwaitReceiveAsync(
             AcpChannelKind.Intercom, TimeSpan.FromMilliseconds(400), CancellationToken.None);
@@ -91,7 +91,7 @@ public sealed class AcpChannelTests
     public async Task AwaitReceive_DegradesImmediately_WhenProsimIsStaleOrAbsent()
     {
         using var channel = CreateChannel();
-        Set(ProsimDataRefNames.Acp1IntLatch, 0, stale: true);
+        Set(ProsimDataRefNames.Acp1IntLatch.Name, 0, stale: true);
 
         // A dialogue must never hang on a signal nobody is producing — no grace burn.
         var start = Environment.TickCount64;
@@ -106,7 +106,7 @@ public sealed class AcpChannelTests
     public async Task CabinLatches_AreIndependentOfIntercom()
     {
         using var channel = CreateChannel();
-        Set(ProsimDataRefNames.Acp3CabLatch, 1);
+        Set(ProsimDataRefNames.Acp3CabLatch.Name, 1);
 
         Assert.True(channel.IsReceiving(AcpChannelKind.Cabin));
         Assert.False(channel.IsReceiving(AcpChannelKind.Intercom));

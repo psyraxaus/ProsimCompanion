@@ -337,7 +337,8 @@ public sealed class ChecklistService : IDisposable
             .Distinct(StringComparer.Ordinal);
         foreach (var dataref in datarefs)
         {
-            _subscriptions[dataref] = _prosim.Subscribe(dataref, DataRefTier.Normal);
+            // Escape hatch (#83): names come from user-authored checklist verify-conditions.
+            _subscriptions[dataref] = _prosim.SubscribeDynamic(dataref, DataRefTier.Normal);
         }
     }
 

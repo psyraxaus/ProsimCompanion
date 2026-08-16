@@ -9,7 +9,7 @@ namespace ProsimCompanion.Audio.Acp;
 /// </summary>
 public static class AcpDataRefCatalog
 {
-    public static string VolumeRef(AcpSide acp, AudioChannel channel) => (acp, channel) switch
+    public static DataRef<double> VolumeRef(AcpSide acp, AudioChannel channel) => (acp, channel) switch
     {
         (AcpSide.Captain, AudioChannel.Vhf1) => ProsimDataRefNames.Acp1Vhf1Analog,
         (AcpSide.Captain, AudioChannel.Vhf2) => ProsimDataRefNames.Acp1Vhf2Analog,
@@ -38,7 +38,7 @@ public static class AcpDataRefCatalog
         _ => throw new ArgumentOutOfRangeException(nameof(channel), $"{acp}/{channel}"),
     };
 
-    public static string LatchRef(AcpSide acp, AudioChannel channel) => (acp, channel) switch
+    public static DataRef<int> LatchRef(AcpSide acp, AudioChannel channel) => (acp, channel) switch
     {
         (AcpSide.Captain, AudioChannel.Vhf1) => ProsimDataRefNames.Acp1Vhf1Latch,
         (AcpSide.Captain, AudioChannel.Vhf2) => ProsimDataRefNames.Acp1Vhf2Latch,

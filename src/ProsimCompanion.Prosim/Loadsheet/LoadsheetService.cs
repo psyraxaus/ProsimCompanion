@@ -41,22 +41,22 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     private readonly ISimVars _simVars;
     private readonly ILogger<LoadsheetService> _logger;
 
-    private readonly IDataRefSubscription[] _zoneAmounts;
-    private readonly IDataRefSubscription[] _zoneCapacities;
-    private readonly IDataRefSubscription _cargoForward;
-    private readonly IDataRefSubscription _cargoAft;
-    private readonly IDataRefSubscription _cargoForwardCapacity;
-    private readonly IDataRefSubscription _cargoAftCapacity;
-    private readonly IDataRefSubscription _cargoBulkCapacity;
-    private readonly IDataRefSubscription _fuelCenter;
-    private readonly IDataRefSubscription _fuelLeft;
-    private readonly IDataRefSubscription _fuelRight;
-    private readonly IDataRefSubscription _zfw;
-    private readonly IDataRefSubscription _zfwMax;
-    private readonly IDataRefSubscription _gross;
-    private readonly IDataRefSubscription _grossMax;
-    private readonly IDataRefSubscription _cg;
-    private readonly IDataRefSubscription _zfwcg;
+    private readonly IDataRefSubscription<int>[] _zoneAmounts;
+    private readonly IDataRefSubscription<int>[] _zoneCapacities;
+    private readonly IDataRefSubscription<double> _cargoForward;
+    private readonly IDataRefSubscription<double> _cargoAft;
+    private readonly IDataRefSubscription<double> _cargoForwardCapacity;
+    private readonly IDataRefSubscription<double> _cargoAftCapacity;
+    private readonly IDataRefSubscription<double> _cargoBulkCapacity;
+    private readonly IDataRefSubscription<double> _fuelCenter;
+    private readonly IDataRefSubscription<double> _fuelLeft;
+    private readonly IDataRefSubscription<double> _fuelRight;
+    private readonly IDataRefSubscription<double> _zfw;
+    private readonly IDataRefSubscription<double> _zfwMax;
+    private readonly IDataRefSubscription<double> _gross;
+    private readonly IDataRefSubscription<double> _grossMax;
+    private readonly IDataRefSubscription<double> _cg;
+    private readonly IDataRefSubscription<double> _zfwcg;
 
     private static readonly TimeSpan StdCheckInterval = TimeSpan.FromSeconds(30);
 
@@ -114,32 +114,32 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
 
         _zoneAmounts =
         [
-            prosim.Subscribe(ProsimDataRefNames.PaxZone1Amount, DataRefTier.Normal),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone2Amount, DataRefTier.Normal),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone3Amount, DataRefTier.Normal),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone4Amount, DataRefTier.Normal),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone1Amount),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone2Amount),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone3Amount),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone4Amount),
         ];
         _zoneCapacities =
         [
-            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity, DataRefTier.Infrequent),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity),
         ];
-        _cargoForward = prosim.Subscribe(ProsimDataRefNames.CargoForwardAmount, DataRefTier.Normal);
-        _cargoAft = prosim.Subscribe(ProsimDataRefNames.CargoAftAmount, DataRefTier.Normal);
-        _cargoForwardCapacity = prosim.Subscribe(ProsimDataRefNames.CargoForwardCapacity, DataRefTier.Infrequent);
-        _cargoAftCapacity = prosim.Subscribe(ProsimDataRefNames.CargoAftCapacity, DataRefTier.Infrequent);
-        _cargoBulkCapacity = prosim.Subscribe(ProsimDataRefNames.CargoBulkCapacity, DataRefTier.Infrequent);
-        _fuelCenter = prosim.Subscribe(ProsimDataRefNames.FuelCenter, DataRefTier.Normal);
-        _fuelLeft = prosim.Subscribe(ProsimDataRefNames.FuelLeft, DataRefTier.Normal);
-        _fuelRight = prosim.Subscribe(ProsimDataRefNames.FuelRight, DataRefTier.Normal);
-        _zfw = prosim.Subscribe(ProsimDataRefNames.WeightZfw, DataRefTier.Normal);
-        _zfwMax = prosim.Subscribe(ProsimDataRefNames.WeightZfwMax, DataRefTier.Infrequent);
-        _gross = prosim.Subscribe(ProsimDataRefNames.WeightGross, DataRefTier.Normal);
-        _grossMax = prosim.Subscribe(ProsimDataRefNames.WeightGrossMax, DataRefTier.Infrequent);
-        _cg = prosim.Subscribe(ProsimDataRefNames.CenterOfGravity, DataRefTier.Normal);
-        _zfwcg = prosim.Subscribe(ProsimDataRefNames.Zfwcg, DataRefTier.Normal);
+        _cargoForward = prosim.Subscribe(ProsimDataRefNames.CargoForwardAmount);
+        _cargoAft = prosim.Subscribe(ProsimDataRefNames.CargoAftAmount);
+        _cargoForwardCapacity = prosim.Subscribe(ProsimDataRefNames.CargoForwardCapacity);
+        _cargoAftCapacity = prosim.Subscribe(ProsimDataRefNames.CargoAftCapacity);
+        _cargoBulkCapacity = prosim.Subscribe(ProsimDataRefNames.CargoBulkCapacity);
+        _fuelCenter = prosim.Subscribe(ProsimDataRefNames.FuelCenter);
+        _fuelLeft = prosim.Subscribe(ProsimDataRefNames.FuelLeft);
+        _fuelRight = prosim.Subscribe(ProsimDataRefNames.FuelRight);
+        _zfw = prosim.Subscribe(ProsimDataRefNames.WeightZfw);
+        _zfwMax = prosim.Subscribe(ProsimDataRefNames.WeightZfwMax);
+        _gross = prosim.Subscribe(ProsimDataRefNames.WeightGross);
+        _grossMax = prosim.Subscribe(ProsimDataRefNames.WeightGrossMax);
+        _cg = prosim.Subscribe(ProsimDataRefNames.CenterOfGravity);
+        _zfwcg = prosim.Subscribe(ProsimDataRefNames.Zfwcg);
 
         _signals.RefuelServiceActive += OnRefuelServiceActive;
         _signals.BoardingCompleted += OnBoardingCompleted;
@@ -164,7 +164,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _pendingFinal?.Cancel();
         _pendingFinal?.Dispose();
 
-        foreach (var sub in _zoneAmounts.Concat(_zoneCapacities))
+        foreach (var sub in _zoneAmounts.Concat<IDataRefSubscription>(_zoneCapacities))
         {
             sub.Dispose();
         }
@@ -343,7 +343,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             // Fresh cycle (or unrecoverable content): last session's loadsheet must not appear
             // on this session's W&B page — the datarefs only exist after a first write.
             var ok = await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPrelimLoadsheet, "").ConfigureAwait(false)
-                & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbFinalLoadsheet, "").ConfigureAwait(false);
+                & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbFinalLoadsheet.Name, "").ConfigureAwait(false);
             _logger.LogInformation("Loadsheet datarefs primed with empty placeholders (ok={Ok})", ok);
         }
         catch (Exception ex)
@@ -382,7 +382,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
 
         if (_resyncState.LoadsheetFinalSent)
         {
-            var finalJson = await _gateway.QueryDataRefAsync(ProsimDataRefNames.EfbFinalLoadsheet).ConfigureAwait(false);
+            var finalJson = await _gateway.QueryDataRefAsync(ProsimDataRefNames.EfbFinalLoadsheet.Name).ConfigureAwait(false);
             if (LoadsheetEnvelope.TryParse(finalJson, out var isFinal, out var finalData, out var finalCtx) && isFinal)
             {
                 _store.SetFinal(LoadsheetStore.SlotFrom(
@@ -481,7 +481,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         }
 
         // Tracking LVAR (issue #30): a restart can now tell a prelim already exists this cycle.
-        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition, ctx.EditionNumber);
+        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition.Name, ctx.EditionNumber);
 
         _store.SetPrelim(LoadsheetStore.SlotFrom(
             sent ? LoadsheetSlotStatus.Sent : LoadsheetSlotStatus.Failed,
@@ -590,7 +590,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _store.SetFinal(LoadsheetStore.SlotFrom(LoadsheetSlotStatus.Generating, ctx.EditionNumber, data, null));
 
         var json = LoadsheetEnvelope.Build(data, ctx, isFinal: true, prelimForChk: prelim);
-        if (!await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbFinalLoadsheet, json, cancellationToken).ConfigureAwait(false))
+        if (!await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbFinalLoadsheet.Name, json, cancellationToken).ConfigureAwait(false))
         {
             RecordDecision("final loadsheet dataref write failed — see gateway log");
             _store.SetFinal(LoadsheetStore.SlotFrom(LoadsheetSlotStatus.Failed, ctx.EditionNumber, data, null, "EFB write failed"));
@@ -613,7 +613,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             _finalSent = true;
         }
 
-        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetFinalSent, 1);
+        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 1);
 
         _store.SetFinal(LoadsheetStore.SlotFrom(
             sent ? LoadsheetSlotStatus.Sent : LoadsheetSlotStatus.Failed,
@@ -648,8 +648,8 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             _nextEditionNumber = 1;
         }
         _store.Reset();
-        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition, 0);
-        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetFinalSent, 0);
+        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetPrelimEdition.Name, 0);
+        _ = WriteTrackingLvarAsync(CompanionLvarNames.LoadsheetFinalSent.Name, 0);
         RecordDecision("loadsheet state reset for new flight cycle");
     }
 
@@ -677,12 +677,12 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     /// then the A322 default.</summary>
     private LoadsheetContext BuildContext(OfpData ofp)
     {
-        var maxZfw = _zfwMax.GetValue(0.0);
+        var maxZfw = _zfwMax.Value;
         if (maxZfw <= 0)
         {
             maxZfw = ofp.MaxZfwKg;
         }
-        var maxTow = _grossMax.GetValue(0.0);
+        var maxTow = _grossMax.Value;
         if (maxTow <= 0)
         {
             maxTow = ofp.MaxTowKg;
@@ -708,20 +708,20 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
 
     private WeightAndBalanceLiveState ReadLiveState() => new()
     {
-        ZoneCapacities = [.. _zoneCapacities.Select(zone => zone.GetValue(0))],
-        ZoneAmounts = [.. _zoneAmounts.Select(zone => zone.GetValue(0))],
-        CargoForwardCapacityKg = _cargoForwardCapacity.GetValue(0.0),
-        CargoAftCapacityKg = _cargoAftCapacity.GetValue(0.0),
-        CargoBulkCapacityKg = _cargoBulkCapacity.GetValue(0.0),
-        CargoForwardKg = _cargoForward.GetValue(0.0),
-        CargoAftKg = _cargoAft.GetValue(0.0),
-        FuelCenterKg = _fuelCenter.GetValue(0.0),
-        FuelLeftKg = _fuelLeft.GetValue(0.0),
-        FuelRightKg = _fuelRight.GetValue(0.0),
-        ZfwKg = _zfw.GetValue(0.0),
-        GrossWeightKg = _gross.GetValue(0.0),
-        GrossCgMac = _cg.GetValue(0.0),
-        ZfwCgMac = _zfwcg.GetValue(0.0),
+        ZoneCapacities = [.. _zoneCapacities.Select(zone => zone.Value)],
+        ZoneAmounts = [.. _zoneAmounts.Select(zone => zone.Value)],
+        CargoForwardCapacityKg = _cargoForwardCapacity.Value,
+        CargoAftCapacityKg = _cargoAftCapacity.Value,
+        CargoBulkCapacityKg = _cargoBulkCapacity.Value,
+        CargoForwardKg = _cargoForward.Value,
+        CargoAftKg = _cargoAft.Value,
+        FuelCenterKg = _fuelCenter.Value,
+        FuelLeftKg = _fuelLeft.Value,
+        FuelRightKg = _fuelRight.Value,
+        ZfwKg = _zfw.Value,
+        GrossWeightKg = _gross.Value,
+        GrossCgMac = _cg.Value,
+        ZfwCgMac = _zfwcg.Value,
     };
 
     private static void FillDispatcherIfBlank(LoadsheetContext ctx)

@@ -1,3 +1,4 @@
+using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 
 namespace ProsimCompanion.Speech.Recognition;
@@ -53,4 +54,10 @@ public static class PilotSeatMap
 
         return dataref;
     }
+
+    /// <summary>Typed counterpart for subscriptions (#83): the catalog authors seat-dependent
+    /// refs FO-side; this returns the same descriptor (tier and fallback unchanged) with the
+    /// seat-mapped wire name. The string overload stays for write paths.</summary>
+    public static DataRef<T> Map<T>(DataRef<T> dataRef, bool humanIsRightSeat)
+        => dataRef with { Name = Map(dataRef.Name, humanIsRightSeat) };
 }

@@ -8,11 +8,15 @@ namespace ProsimCompanion.Core.Aircraft;
 public interface IProsimDataRefs
 {
     /// <summary>
-    /// Subscribes to a dataref at the given cadence and returns a handle for cached reads.
+    /// Subscribes to a dataref by raw wire name — the escape hatch for names that only
+    /// exist at runtime (user-authored checklists, abnormals, aircraft-state files,
+    /// briefing settings). Compile-time refs must go through the typed
+    /// <see cref="TypedSubscriptionExtensions.Subscribe{T}(IProsimDataRefs, DataRef{T})"/>
+    /// path instead; a guard test whitelists the files allowed to call this directly.
     /// Repeated subscriptions to the same name share one server registration at the fastest
     /// requested tier. Dispose the handle to release the registration.
     /// </summary>
-    IDataRefSubscription Subscribe(string name, DataRefTier tier);
+    IDataRefSubscription SubscribeDynamic(string name, DataRefTier tier);
 
     /// <summary>
     /// Writes a value to an allow-listed dataref.

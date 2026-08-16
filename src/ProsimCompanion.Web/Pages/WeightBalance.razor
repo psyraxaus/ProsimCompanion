@@ -21,10 +21,10 @@
     <section class="status-section">
         <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">CG Envelope</h3>
         <div class="section-body">
-            <CgEnvelope GrossWeightKg="@_gross.GetValue(0.0)"
-                        GrossCgMac="@_cg.GetValue(0.0)"
-                        ZfwKg="@_zfw.GetValue(0.0)"
-                        ZfwCgMac="@_zfwcg.GetValue(0.0)" />
+            <CgEnvelope GrossWeightKg="@_gross.Value"
+                        GrossCgMac="@_cg.Value"
+                        ZfwKg="@_zfw.Value"
+                        ZfwCgMac="@_zfwcg.Value" />
             @{
                 var sheets = Loadsheets.Snapshot();
                 var best = sheets.Final.Status == LoadsheetSlotStatus.Sent ? sheets.Final
@@ -38,10 +38,10 @@
                 <span class="manifest-head">ZFW (@Units.UnitLabel.ToUpperInvariant())</span><span class="manifest-head">MACZFW (%)</span>
                 <span class="manifest-head">GW (@Units.UnitLabel.ToUpperInvariant())</span><span class="manifest-head">MACGW (%)</span>
                 <span class="manifest-head">LIVE</span>
-                <span class="row-value-mono">@W0(_zfw.GetValue(0.0))</span>
-                <span class="row-value-mono">@($"{_zfwcg.GetValue(0.0):F1}")</span>
-                <span class="row-value-mono">@W0(_gross.GetValue(0.0))</span>
-                <span class="row-value-mono">@($"{_cg.GetValue(0.0):F1}")</span>
+                <span class="row-value-mono">@W0(_zfw.Value)</span>
+                <span class="row-value-mono">@($"{_zfwcg.Value:F1}")</span>
+                <span class="row-value-mono">@W0(_gross.Value)</span>
+                <span class="row-value-mono">@($"{_cg.Value:F1}")</span>
                 <span class="manifest-head">L/S @(bestTag is null ? "" : $"({bestTag})")</span>
                 <span class="row-value-mono">@(best is null ? "—" : W0(best.ZfwKg))</span>
                 <span class="row-value-mono">@(best is null ? "—" : $"{best.MacZfw:F1}")</span>
@@ -51,10 +51,10 @@
             @{
                 // Weight-dependent envelope limits (A320TrimEnvelope, digitized from this
                 // chart's own artwork) — the Prosim2GSX "VALID RANGE" line, per live weight.
-                var (zfwMin, zfwMax) = A320TrimEnvelope.ZeroFuelLimits(_zfw.GetValue(0.0));
-                var (gwMin, gwMax) = A320TrimEnvelope.GrossWeightLimits(_gross.GetValue(0.0));
-                var zfwCgBad = _zfwcg.GetValue(0.0) is var liveZfwCg and > 0 && (liveZfwCg < zfwMin || liveZfwCg > zfwMax);
-                var gwCgBad = _cg.GetValue(0.0) is var liveGwCg and > 0 && (liveGwCg < gwMin || liveGwCg > gwMax);
+                var (zfwMin, zfwMax) = A320TrimEnvelope.ZeroFuelLimits(_zfw.Value);
+                var (gwMin, gwMax) = A320TrimEnvelope.GrossWeightLimits(_gross.Value);
+                var zfwCgBad = _zfwcg.Value is var liveZfwCg and > 0 && (liveZfwCg < zfwMin || liveZfwCg > zfwMax);
+                var gwCgBad = _cg.Value is var liveGwCg and > 0 && (liveGwCg < gwMin || liveGwCg > gwMax);
             }
             <div class="row" style="margin-top:6px;">
                 <span class="row-label">VALID RANGE</span>
@@ -84,9 +84,9 @@
         <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Passengers &amp; Cargo</h3>
         <div class="section-body">
             @{
-                var paxCapacity = _zone1Cap.GetValue(0) + _zone2Cap.GetValue(0) + _zone3Cap.GetValue(0) + _zone4Cap.GetValue(0);
-                var paxBoarded = _zone1.GetValue(0) + _zone2.GetValue(0) + _zone3.GetValue(0) + _zone4.GetValue(0);
-                var cargoLoaded = _cargoFwd.GetValue(0.0) + _cargoAft.GetValue(0.0);
+                var paxCapacity = _zone1Cap.Value + _zone2Cap.Value + _zone3Cap.Value + _zone4Cap.Value;
+                var paxBoarded = _zone1.Value + _zone2.Value + _zone3.Value + _zone4.Value;
+                var cargoLoaded = _cargoFwd.Value + _cargoAft.Value;
                 var ofp = Ofp.Current;
             }
             <div class="row"><span class="row-label">Pax capacity</span><span class="row-value-mono">@paxCapacity ECONOMY</span></div>
@@ -94,7 +94,7 @@
                 <span class="row-label">Pax</span>
                 <span class="row-value-mono">PLANNED @(ofp?.PaxCount.ToString() ?? "—") · BOARDED @paxBoarded</span>
             </div>
-            <div class="row"><span class="row-label">Pax zones 1–4</span><span class="row-value-mono">@_zone1.GetValue(0) / @_zone2.GetValue(0) / @_zone3.GetValue(0) / @_zone4.GetValue(0)</span></div>
+            <div class="row"><span class="row-label">Pax zones 1–4</span><span class="row-value-mono">@_zone1.Value / @_zone2.Value / @_zone3.Value / @_zone4.Value</span></div>
             @if (_paxSim is not null)
             {
                 @* Predecessor's SIMULATE affordance: the button expands inline to COUNT +
@@ -132,14 +132,14 @@
             }
             <div class="row">
                 <span class="row-label">Cargo capacity</span>
-                <span class="row-value-mono">@W0(_cargoFwdCap.GetValue(0.0)) @UnitU FWD, @W0(_cargoAftCap.GetValue(0.0)) @UnitU AFT@(_cargoBulkCap.GetValue(0.0) > 0 ? $", {W0(_cargoBulkCap.GetValue(0.0))} {UnitU} BULK" : "")</span>
+                <span class="row-value-mono">@W0(_cargoFwdCap.Value) @UnitU FWD, @W0(_cargoAftCap.Value) @UnitU AFT@(_cargoBulkCap.Value > 0 ? $", {W0(_cargoBulkCap.Value)} {UnitU} BULK" : "")</span>
             </div>
             <div class="row">
                 <span class="row-label">Cargo</span>
                 <span class="row-value-mono">PLANNED @(ofp is null ? "—" : W0(ofp.CargoKg)) · LOADED @W0(cargoLoaded) @UnitU</span>
             </div>
-            <div class="row"><span class="row-label">FWD / AFT</span><span class="row-value-mono">@W0(_cargoFwd.GetValue(0.0)) / @W0(_cargoAft.GetValue(0.0)) @UnitU</span></div>
-            <div class="row"><span class="row-label">Fuel</span><span class="row-value-mono">PLANNED @(ofp is null ? "—" : W0(ofp.FuelPlanRampKg)) · IN TANKS @W0(_fuelTotal.GetValue(0.0)) @UnitU</span></div>
+            <div class="row"><span class="row-label">FWD / AFT</span><span class="row-value-mono">@W0(_cargoFwd.Value) / @W0(_cargoAft.Value) @UnitU</span></div>
+            <div class="row"><span class="row-label">Fuel</span><span class="row-value-mono">PLANNED @(ofp is null ? "—" : W0(ofp.FuelPlanRampKg)) · IN TANKS @W0(_fuelTotal.Value) @UnitU</span></div>
             <div class="row"><span class="row-label">ZFW</span><span class="row-value-mono">@Wt(_zfw) / max @Wt(_zfwMax)</span></div>
             <div class="row"><span class="row-label">Gross weight</span><span class="row-value-mono">@Wt(_gross) / max @Wt(_grossMax)</span></div>
         </div>
@@ -148,7 +148,7 @@
     <section class="status-section status-span">
         <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Aircraft Status</h3>
         <div class="section-body">
-            <A320Silhouette SeatOccupation="@ParseSeatOccupation(_seatOccupation.GetValue(""))"
+            <A320Silhouette SeatOccupation="@ParseSeatOccupation(_seatOccupation.Value)"
                             Door1L="@DoorOpen(_door1L)" Door2L="@DoorOpen(_door2L)"
                             Door3L="@DoorOpen(_door3L)" Door4L="@DoorOpen(_door4L)"
                             Door1R="@DoorOpen(_door1R)" Door2R="@DoorOpen(_door2R)"
@@ -156,7 +156,7 @@
                             FwdCargoOpen="@DoorOpen(_doorCargoFwd)"
                             AftCargoOpen="@DoorOpen(_doorCargoAft)"
                             BulkCargoOpen="@DoorOpen(_doorCargoBulk)"
-                            BulkFitted="@(_cargoBulkCap.GetValue(0.0) > 0)" />
+                            BulkFitted="@(_cargoBulkCap.Value > 0)" />
             @{
                 var anyDoorOpen = new[] { _door1L, _door2L, _door3L, _door4L, _door1R, _door2R, _door3R, _door4R, _doorCargoFwd, _doorCargoAft, _doorCargoBulk }
                     .Any(DoorOpen);
@@ -164,7 +164,7 @@
             <div class="row" style="justify-content:center; gap:24px;">
                 @foreach (var (label, sub) in new[] { ("FWD", _doorCargoFwd), ("AFT", _doorCargoAft), ("BULK", _doorCargoBulk) })
                 {
-                    var fitted = label != "BULK" || _cargoBulkCap.GetValue(0.0) > 0;
+                    var fitted = label != "BULK" || _cargoBulkCap.Value > 0;
                     <span class="row-value-mono" style="color:@(!fitted ? "#555555" : DoorOpen(sub) ? "var(--warning)" : "var(--success)")">
                         @label: @(!fitted ? "N/A" : DoorOpen(sub) ? "OPEN" : "CLOSED")
                     </span>
@@ -207,38 +207,38 @@
 </div>
 
 @code {
-    private IDataRefSubscription _zfw = default!;
-    private IDataRefSubscription _zfwMax = default!;
-    private IDataRefSubscription _gross = default!;
-    private IDataRefSubscription _grossMax = default!;
-    private IDataRefSubscription _cg = default!;
-    private IDataRefSubscription _zfwcg = default!;
-    private IDataRefSubscription _fuelTotal = default!;
-    private IDataRefSubscription _zone1 = default!;
-    private IDataRefSubscription _zone2 = default!;
-    private IDataRefSubscription _zone3 = default!;
-    private IDataRefSubscription _zone4 = default!;
-    private IDataRefSubscription _zone1Cap = default!;
-    private IDataRefSubscription _zone2Cap = default!;
-    private IDataRefSubscription _zone3Cap = default!;
-    private IDataRefSubscription _zone4Cap = default!;
-    private IDataRefSubscription _cargoFwd = default!;
-    private IDataRefSubscription _cargoAft = default!;
-    private IDataRefSubscription _cargoFwdCap = default!;
-    private IDataRefSubscription _cargoAftCap = default!;
-    private IDataRefSubscription _cargoBulkCap = default!;
-    private IDataRefSubscription _seatOccupation = default!;
-    private IDataRefSubscription _door1L = default!;
-    private IDataRefSubscription _door2L = default!;
-    private IDataRefSubscription _door3L = default!;
-    private IDataRefSubscription _door4L = default!;
-    private IDataRefSubscription _door1R = default!;
-    private IDataRefSubscription _door2R = default!;
-    private IDataRefSubscription _door3R = default!;
-    private IDataRefSubscription _door4R = default!;
-    private IDataRefSubscription _doorCargoFwd = default!;
-    private IDataRefSubscription _doorCargoAft = default!;
-    private IDataRefSubscription _doorCargoBulk = default!;
+    private IDataRefSubscription<double> _zfw = default!;
+    private IDataRefSubscription<double> _zfwMax = default!;
+    private IDataRefSubscription<double> _gross = default!;
+    private IDataRefSubscription<double> _grossMax = default!;
+    private IDataRefSubscription<double> _cg = default!;
+    private IDataRefSubscription<double> _zfwcg = default!;
+    private IDataRefSubscription<double> _fuelTotal = default!;
+    private IDataRefSubscription<int> _zone1 = default!;
+    private IDataRefSubscription<int> _zone2 = default!;
+    private IDataRefSubscription<int> _zone3 = default!;
+    private IDataRefSubscription<int> _zone4 = default!;
+    private IDataRefSubscription<int> _zone1Cap = default!;
+    private IDataRefSubscription<int> _zone2Cap = default!;
+    private IDataRefSubscription<int> _zone3Cap = default!;
+    private IDataRefSubscription<int> _zone4Cap = default!;
+    private IDataRefSubscription<double> _cargoFwd = default!;
+    private IDataRefSubscription<double> _cargoAft = default!;
+    private IDataRefSubscription<double> _cargoFwdCap = default!;
+    private IDataRefSubscription<double> _cargoAftCap = default!;
+    private IDataRefSubscription<double> _cargoBulkCap = default!;
+    private IDataRefSubscription<string?> _seatOccupation = default!;
+    private IDataRefSubscription<bool> _door1L = default!;
+    private IDataRefSubscription<bool> _door2L = default!;
+    private IDataRefSubscription<bool> _door3L = default!;
+    private IDataRefSubscription<bool> _door4L = default!;
+    private IDataRefSubscription<bool> _door1R = default!;
+    private IDataRefSubscription<bool> _door2R = default!;
+    private IDataRefSubscription<bool> _door3R = default!;
+    private IDataRefSubscription<bool> _door4R = default!;
+    private IDataRefSubscription<bool> _doorCargoFwd = default!;
+    private IDataRefSubscription<bool> _doorCargoAft = default!;
+    private IDataRefSubscription<bool> _doorCargoBulk = default!;
     private Timer? _refresh;
     private bool _showManifest;
     private bool _syncing;
@@ -257,38 +257,38 @@
 
         Units.Changed += OnUnitsChanged;
 
-        _zfw = DataRefs.Subscribe(ProsimDataRefNames.WeightZfw, DataRefTier.Normal);
-        _zfwMax = DataRefs.Subscribe(ProsimDataRefNames.WeightZfwMax, DataRefTier.Infrequent);
-        _gross = DataRefs.Subscribe(ProsimDataRefNames.WeightGross, DataRefTier.Normal);
-        _grossMax = DataRefs.Subscribe(ProsimDataRefNames.WeightGrossMax, DataRefTier.Infrequent);
-        _cg = DataRefs.Subscribe(ProsimDataRefNames.CenterOfGravity, DataRefTier.Normal);
-        _zfwcg = DataRefs.Subscribe(ProsimDataRefNames.Zfwcg, DataRefTier.Normal);
-        _fuelTotal = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal, DataRefTier.Normal);
-        _zone1 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone1Amount, DataRefTier.Normal);
-        _zone2 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone2Amount, DataRefTier.Normal);
-        _zone3 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone3Amount, DataRefTier.Normal);
-        _zone4 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone4Amount, DataRefTier.Normal);
-        _zone1Cap = DataRefs.Subscribe(ProsimDataRefNames.PaxZone1Capacity, DataRefTier.Infrequent);
-        _zone2Cap = DataRefs.Subscribe(ProsimDataRefNames.PaxZone2Capacity, DataRefTier.Infrequent);
-        _zone3Cap = DataRefs.Subscribe(ProsimDataRefNames.PaxZone3Capacity, DataRefTier.Infrequent);
-        _zone4Cap = DataRefs.Subscribe(ProsimDataRefNames.PaxZone4Capacity, DataRefTier.Infrequent);
-        _cargoFwd = DataRefs.Subscribe(ProsimDataRefNames.CargoForwardAmount, DataRefTier.Normal);
-        _cargoAft = DataRefs.Subscribe(ProsimDataRefNames.CargoAftAmount, DataRefTier.Normal);
-        _cargoFwdCap = DataRefs.Subscribe(ProsimDataRefNames.CargoForwardCapacity, DataRefTier.Infrequent);
-        _cargoAftCap = DataRefs.Subscribe(ProsimDataRefNames.CargoAftCapacity, DataRefTier.Infrequent);
-        _cargoBulkCap = DataRefs.Subscribe(ProsimDataRefNames.CargoBulkCapacity, DataRefTier.Infrequent);
-        _seatOccupation = DataRefs.Subscribe(ProsimDataRefNames.PaxSeatOccupationString, DataRefTier.Normal);
-        _door1L = DataRefs.Subscribe(ProsimDataRefNames.Door1L, DataRefTier.Normal);
-        _door2L = DataRefs.Subscribe(ProsimDataRefNames.Door2L, DataRefTier.Normal);
-        _door3L = DataRefs.Subscribe(ProsimDataRefNames.Door3L, DataRefTier.Normal);
-        _door4L = DataRefs.Subscribe(ProsimDataRefNames.Door4L, DataRefTier.Normal);
-        _door1R = DataRefs.Subscribe(ProsimDataRefNames.Door1R, DataRefTier.Normal);
-        _door2R = DataRefs.Subscribe(ProsimDataRefNames.Door2R, DataRefTier.Normal);
-        _door3R = DataRefs.Subscribe(ProsimDataRefNames.Door3R, DataRefTier.Normal);
-        _door4R = DataRefs.Subscribe(ProsimDataRefNames.Door4R, DataRefTier.Normal);
-        _doorCargoFwd = DataRefs.Subscribe(ProsimDataRefNames.DoorCargoForward, DataRefTier.Normal);
-        _doorCargoAft = DataRefs.Subscribe(ProsimDataRefNames.DoorCargoAft, DataRefTier.Normal);
-        _doorCargoBulk = DataRefs.Subscribe(ProsimDataRefNames.DoorCargoBulk, DataRefTier.Normal);
+        _zfw = DataRefs.Subscribe(ProsimDataRefNames.WeightZfw);
+        _zfwMax = DataRefs.Subscribe(ProsimDataRefNames.WeightZfwMax);
+        _gross = DataRefs.Subscribe(ProsimDataRefNames.WeightGross);
+        _grossMax = DataRefs.Subscribe(ProsimDataRefNames.WeightGrossMax);
+        _cg = DataRefs.Subscribe(ProsimDataRefNames.CenterOfGravity);
+        _zfwcg = DataRefs.Subscribe(ProsimDataRefNames.Zfwcg);
+        _fuelTotal = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
+        _zone1 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone1Amount);
+        _zone2 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone2Amount);
+        _zone3 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone3Amount);
+        _zone4 = DataRefs.Subscribe(ProsimDataRefNames.PaxZone4Amount);
+        _zone1Cap = DataRefs.Subscribe(ProsimDataRefNames.PaxZone1Capacity);
+        _zone2Cap = DataRefs.Subscribe(ProsimDataRefNames.PaxZone2Capacity);
+        _zone3Cap = DataRefs.Subscribe(ProsimDataRefNames.PaxZone3Capacity);
+        _zone4Cap = DataRefs.Subscribe(ProsimDataRefNames.PaxZone4Capacity);
+        _cargoFwd = DataRefs.Subscribe(ProsimDataRefNames.CargoForwardAmount);
+        _cargoAft = DataRefs.Subscribe(ProsimDataRefNames.CargoAftAmount);
+        _cargoFwdCap = DataRefs.Subscribe(ProsimDataRefNames.CargoForwardCapacity);
+        _cargoAftCap = DataRefs.Subscribe(ProsimDataRefNames.CargoAftCapacity);
+        _cargoBulkCap = DataRefs.Subscribe(ProsimDataRefNames.CargoBulkCapacity);
+        _seatOccupation = DataRefs.Subscribe(ProsimDataRefNames.PaxSeatOccupationString);
+        _door1L = DataRefs.Subscribe(ProsimDataRefNames.Door1L);
+        _door2L = DataRefs.Subscribe(ProsimDataRefNames.Door2L);
+        _door3L = DataRefs.Subscribe(ProsimDataRefNames.Door3L);
+        _door4L = DataRefs.Subscribe(ProsimDataRefNames.Door4L);
+        _door1R = DataRefs.Subscribe(ProsimDataRefNames.Door1R);
+        _door2R = DataRefs.Subscribe(ProsimDataRefNames.Door2R);
+        _door3R = DataRefs.Subscribe(ProsimDataRefNames.Door3R);
+        _door4R = DataRefs.Subscribe(ProsimDataRefNames.Door4R);
+        _doorCargoFwd = DataRefs.Subscribe(ProsimDataRefNames.DoorCargoForward);
+        _doorCargoAft = DataRefs.Subscribe(ProsimDataRefNames.DoorCargoAft);
+        _doorCargoBulk = DataRefs.Subscribe(ProsimDataRefNames.DoorCargoBulk);
 
         // Live instrument view — a 1 s repaint is simpler and cheaper than wiring 30+
         // ValueChanged handlers, and matches the datarefs' Normal cadence.
@@ -300,7 +300,7 @@
     {
         Units.Changed -= OnUnitsChanged;
         _refresh?.Dispose();
-        foreach (var sub in new[]
+        foreach (var sub in new IDataRefSubscription[]
         {
             _zfw, _zfwMax, _gross, _grossMax, _cg, _zfwcg, _fuelTotal,
             _zone1, _zone2, _zone3, _zone4, _zone1Cap, _zone2Cap, _zone3Cap, _zone4Cap,
@@ -313,7 +313,7 @@
         }
     }
 
-    private static bool DoorOpen(IDataRefSubscription sub) => sub.GetValue(0.0) > 0.5;
+    private static bool DoorOpen(IDataRefSubscription<bool> sub) => sub.Value;
 
     // Units.Changed fires on arbitrary threads — marshal into the circuit.
     private void OnUnitsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
@@ -325,8 +325,9 @@
     private string W0(double kg) => Units.FromKg(kg).ToString("F0", CultureInfo.InvariantCulture);
 
     /// <summary>ProSim's seatOccupation string is comma-separated "true,false,…" (legacy
-    /// producers used "1"/"0"); anything unparseable reads as an empty cabin.</summary>
-    private static IReadOnlyList<bool> ParseSeatOccupation(string raw)
+    /// producers used "1"/"0"); anything unparseable — including the descriptor's null
+    /// "no seat map yet" fallback — reads as an empty cabin.</summary>
+    private static IReadOnlyList<bool> ParseSeatOccupation(string? raw)
         => string.IsNullOrEmpty(raw)
             ? []
             : raw.Split(',').Select(token =>
@@ -335,8 +336,8 @@
                 return value.Equals("true", StringComparison.OrdinalIgnoreCase) || value == "1";
             }).ToArray();
 
-    private string Wt(IDataRefSubscription sub)
-        => $"{W0(sub.GetValue(0.0))} {Units.UnitLabel}";
+    private string Wt(IDataRefSubscription<double> sub)
+        => $"{W0(sub.Value)} {Units.UnitLabel}";
 
     private void CloseSimulate()
     {
@@ -357,7 +358,7 @@
         _simResult = null;
         try
         {
-            var capacity = _zone1Cap.GetValue(0) + _zone2Cap.GetValue(0) + _zone3Cap.GetValue(0) + _zone4Cap.GetValue(0);
+            var capacity = _zone1Cap.Value + _zone2Cap.Value + _zone3Cap.Value + _zone4Cap.Value;
             if (capacity <= 0)
             {
                 capacity = 132;

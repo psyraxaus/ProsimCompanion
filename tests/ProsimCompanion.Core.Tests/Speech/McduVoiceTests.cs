@@ -284,13 +284,13 @@ public sealed class McduVoiceTests
     private static (McduReader Reader, FakeArbiter Arbiter) MakeReader(string? displayXml, bool enabled = true)
     {
         var subscription = new Mock<IDataRefSubscription>();
-        subscription.SetupGet(s => s.Name).Returns(McduControls.Display);
+        subscription.SetupGet(s => s.Name).Returns(ProsimDataRefNames.Mcdu2Display.Name);
         subscription.SetupGet(s => s.RawValue).Returns(displayXml);
         subscription.SetupGet(s => s.IsStale).Returns(false);
         subscription.Setup(s => s.GetValue<string?>(null)).Returns(displayXml);
 
         var dataRefs = new Mock<IProsimDataRefs>();
-        dataRefs.Setup(d => d.Subscribe(McduControls.Display, It.IsAny<DataRefTier>()))
+        dataRefs.Setup(d => d.SubscribeDynamic(ProsimDataRefNames.Mcdu2Display.Name, It.IsAny<DataRefTier>()))
             .Returns(subscription.Object);
 
         var options = new Mock<IOptionsMonitor<McduOptions>>();

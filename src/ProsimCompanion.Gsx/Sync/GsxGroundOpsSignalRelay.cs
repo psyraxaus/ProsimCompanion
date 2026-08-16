@@ -14,7 +14,7 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
 {
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GroundOpsSignals _signals;
-    private readonly IDataRefSubscription _deiceFluidType;
+    private readonly IDataRefSubscription<double> _deiceFluidType;
 
     public GsxGroundOpsSignalRelay(GsxServiceLifecycleTracker lifecycle, GroundOpsSignals signals, ISimVars simVars)
     {
@@ -25,7 +25,7 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
         _signals = signals;
         // Applied fluid TYPE the user picked at the GSX deice crew (1=Type I … 4=Type IV).
         // GSX exposes the type but not the concentration.
-        _deiceFluidType = simVars.Subscribe("L:FSDT_GSX_DEICING_TYPE", "number", DataRefTier.Infrequent);
+        _deiceFluidType = simVars.Subscribe(GsxLvarNames.DeicingType);
         _lifecycle.ServiceEvent += OnServiceEvent;
     }
 
@@ -51,7 +51,7 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
             && serviceId.Replace("-", "").Contains("deic", StringComparison.OrdinalIgnoreCase))
         {
             // Service id tolerance: GSX has shipped "Deice"/"De-Ice"/"Deicing" spellings.
-            _signals.RaiseDeiceCompleted((int)_deiceFluidType.GetValue(0.0));
+            _signals.RaiseDeiceCompleted((int)_deiceFluidType.Value);
         }
     }
 }

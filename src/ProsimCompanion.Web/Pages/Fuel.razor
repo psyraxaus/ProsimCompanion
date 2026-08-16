@@ -14,7 +14,7 @@
 <h1 class="sr-only">Fuel</h1>
 
 @{
-    var inTanks = _fuelTotal.GetValue(0.0);
+    var inTanks = _fuelTotal.Value;
     var planned = Ofp.Current?.FuelPlanRampKg ?? 0;
     var capacity = TotalCapacityKg();
     var delta = inTanks - planned;
@@ -99,17 +99,17 @@
     private const double DeltaAmberKg = 100;
     private const double DeltaRedKg = 100;
 
-    private IDataRefSubscription _fuelTotal = default!;
-    private IDataRefSubscription _fuelCenter = default!;
-    private IDataRefSubscription _fuelCenterCap = default!;
-    private IDataRefSubscription _fuelLeftInner = default!;
-    private IDataRefSubscription _fuelLeftInnerCap = default!;
-    private IDataRefSubscription _fuelLeftOuter = default!;
-    private IDataRefSubscription _fuelLeftOuterCap = default!;
-    private IDataRefSubscription _fuelRightInner = default!;
-    private IDataRefSubscription _fuelRightInnerCap = default!;
-    private IDataRefSubscription _fuelRightOuter = default!;
-    private IDataRefSubscription _fuelRightOuterCap = default!;
+    private IDataRefSubscription<double> _fuelTotal = default!;
+    private IDataRefSubscription<double> _fuelCenter = default!;
+    private IDataRefSubscription<double> _fuelCenterCap = default!;
+    private IDataRefSubscription<double> _fuelLeftInner = default!;
+    private IDataRefSubscription<double> _fuelLeftInnerCap = default!;
+    private IDataRefSubscription<double> _fuelLeftOuter = default!;
+    private IDataRefSubscription<double> _fuelLeftOuterCap = default!;
+    private IDataRefSubscription<double> _fuelRightInner = default!;
+    private IDataRefSubscription<double> _fuelRightInnerCap = default!;
+    private IDataRefSubscription<double> _fuelRightOuter = default!;
+    private IDataRefSubscription<double> _fuelRightOuterCap = default!;
     private Timer? _refresh;
 
     private sealed record TankRow(string Name, double AmountKg, double CapacityKg)
@@ -119,17 +119,17 @@
 
     protected override void OnInitialized()
     {
-        _fuelTotal = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal, DataRefTier.Normal);
-        _fuelCenter = DataRefs.Subscribe(ProsimDataRefNames.FuelCenter, DataRefTier.Normal);
-        _fuelCenterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelCenterCapacity, DataRefTier.Infrequent);
-        _fuelLeftInner = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftInner, DataRefTier.Normal);
-        _fuelLeftInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftInnerCapacity, DataRefTier.Infrequent);
-        _fuelLeftOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftOuter, DataRefTier.Normal);
-        _fuelLeftOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftOuterCapacity, DataRefTier.Infrequent);
-        _fuelRightInner = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInner, DataRefTier.Normal);
-        _fuelRightInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInnerCapacity, DataRefTier.Infrequent);
-        _fuelRightOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuter, DataRefTier.Normal);
-        _fuelRightOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuterCapacity, DataRefTier.Infrequent);
+        _fuelTotal = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
+        _fuelCenter = DataRefs.Subscribe(ProsimDataRefNames.FuelCenter);
+        _fuelCenterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelCenterCapacity);
+        _fuelLeftInner = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftInner);
+        _fuelLeftInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftInnerCapacity);
+        _fuelLeftOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftOuter);
+        _fuelLeftOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelLeftOuterCapacity);
+        _fuelRightInner = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInner);
+        _fuelRightInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInnerCapacity);
+        _fuelRightOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuter);
+        _fuelRightOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuterCapacity);
 
         Units.Changed += OnUnitsChanged;
 
@@ -154,18 +154,18 @@
     }
 
     private double TotalCapacityKg()
-        => _fuelCenterCap.GetValue(0.0)
-            + _fuelLeftInnerCap.GetValue(0.0) + _fuelLeftOuterCap.GetValue(0.0)
-            + _fuelRightInnerCap.GetValue(0.0) + _fuelRightOuterCap.GetValue(0.0);
+        => _fuelCenterCap.Value
+            + _fuelLeftInnerCap.Value + _fuelLeftOuterCap.Value
+            + _fuelRightInnerCap.Value + _fuelRightOuterCap.Value;
 
     private IEnumerable<TankRow> Tanks()
     {
         // Airframe order, matching Prosim2GSX's Fuel tab.
-        yield return new TankRow("LEFT OUTER", _fuelLeftOuter.GetValue(0.0), _fuelLeftOuterCap.GetValue(0.0));
-        yield return new TankRow("LEFT INNER", _fuelLeftInner.GetValue(0.0), _fuelLeftInnerCap.GetValue(0.0));
-        yield return new TankRow("CENTRE", _fuelCenter.GetValue(0.0), _fuelCenterCap.GetValue(0.0));
-        yield return new TankRow("RIGHT INNER", _fuelRightInner.GetValue(0.0), _fuelRightInnerCap.GetValue(0.0));
-        yield return new TankRow("RIGHT OUTER", _fuelRightOuter.GetValue(0.0), _fuelRightOuterCap.GetValue(0.0));
+        yield return new TankRow("LEFT OUTER", _fuelLeftOuter.Value, _fuelLeftOuterCap.Value);
+        yield return new TankRow("LEFT INNER", _fuelLeftInner.Value, _fuelLeftInnerCap.Value);
+        yield return new TankRow("CENTRE", _fuelCenter.Value, _fuelCenterCap.Value);
+        yield return new TankRow("RIGHT INNER", _fuelRightInner.Value, _fuelRightInnerCap.Value);
+        yield return new TankRow("RIGHT OUTER", _fuelRightOuter.Value, _fuelRightOuterCap.Value);
     }
 
     // Units.Changed fires on arbitrary threads — marshal into the circuit.

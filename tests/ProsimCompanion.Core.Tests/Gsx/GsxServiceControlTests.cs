@@ -36,7 +36,7 @@ public sealed class GsxServiceControlTests
         _jetwayLvar.Setup(s => s.GetValue(It.IsAny<double>())).Returns(0.0);
         var simVars = new Mock<ISimVars>();
         simVars
-            .Setup(s => s.Subscribe(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DataRefTier>()))
+            .Setup(s => s.SubscribeDynamic(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DataRefTier>()))
             .Returns(_jetwayLvar.Object);
 
         var options = new Mock<IOptionsMonitor<GsxOptions>>();

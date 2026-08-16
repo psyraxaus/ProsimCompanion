@@ -32,10 +32,10 @@ public sealed class GsxJetwayStairsService : IDisposable
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxJetwayStairsService> _logger;
-    private readonly IDataRefSubscription _jetwayLvar;
-    private readonly IDataRefSubscription _stairsLvar;
-    private readonly IDataRefSubscription _operateJetwaysState;
-    private readonly IDataRefSubscription _operateStairsState;
+    private readonly IDataRefSubscription<double> _jetwayLvar;
+    private readonly IDataRefSubscription<double> _stairsLvar;
+    private readonly IDataRefSubscription<double> _operateJetwaysState;
+    private readonly IDataRefSubscription<double> _operateStairsState;
     private string? _handledGateKey;
     private string? _currentGateKey;
     private volatile string? _pendingServiceId;
@@ -68,10 +68,10 @@ public sealed class GsxJetwayStairsService : IDisposable
         _diagnostics = diagnostics;
         _logger = logger;
 
-        _jetwayLvar = simVars.Subscribe(GsxLvarNames.Jetway, "number", DataRefTier.Normal);
-        _stairsLvar = simVars.Subscribe(GsxLvarNames.Stairs, "number", DataRefTier.Normal);
-        _operateJetwaysState = simVars.Subscribe(GsxLvarNames.OperateJetwaysState, "number", DataRefTier.Normal);
-        _operateStairsState = simVars.Subscribe(GsxLvarNames.OperateStairsState, "number", DataRefTier.Normal);
+        _jetwayLvar = simVars.Subscribe(GsxLvarNames.Jetway);
+        _stairsLvar = simVars.Subscribe(GsxLvarNames.Stairs);
+        _operateJetwaysState = simVars.Subscribe(GsxLvarNames.OperateJetwaysState);
+        _operateStairsState = simVars.Subscribe(GsxLvarNames.OperateStairsState);
 
         _api.Mirror.SidChanged += OnSidChanged;
     }
@@ -152,7 +152,7 @@ public sealed class GsxJetwayStairsService : IDisposable
 
             // Live GSX 4 lists OperateJetways even at jetway-less stands (and acks a trigger
             // that does nothing) — the jetway LVAR is the truth: 2 = no jetway here.
-            var jetwayLvar = (int)_jetwayLvar.GetValue(0.0);
+            var jetwayLvar = (int)_jetwayLvar.Value;
             var jetwayExists = services.ContainsKey(JetwayServiceId) && jetwayLvar != JetwayLvarNotPresent;
             var targetId = jetwayExists ? JetwayServiceId
                 : services.ContainsKey(StairsServiceId) ? StairsServiceId
@@ -166,8 +166,8 @@ public sealed class GsxJetwayStairsService : IDisposable
 
             var target = services[targetId];
             var lvarDetail =
-                $"LVARs jetway={jetwayLvar} stairs={_stairsLvar.GetValue(0.0):F0} " +
-                $"opJetways={_operateJetwaysState.GetValue(0.0):F0} opStairs={_operateStairsState.GetValue(0.0):F0}";
+                $"LVARs jetway={jetwayLvar} stairs={_stairsLvar.Value:F0} " +
+                $"opJetways={_operateJetwaysState.Value:F0} opStairs={_operateStairsState.Value:F0}";
 
             // Connected check: a docked jetway/stairs mirrors as Active or Completed (spec §4.3
             // — the mirror can read a docked jetway as completed). Never toggle those.

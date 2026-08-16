@@ -298,7 +298,7 @@
     private string? _wxFailure;
     private bool _metarApplied;
     private bool _wxBusy;
-    private IDataRefSubscription? _fmsDestinationSub;
+    private IDataRefSubscription<string?>? _fmsDestinationSub;
     private IReadOnlyList<RunwayResponse>? _runways;
     private string? _runwayId;
     private int _rwySurfaceCode = 6;
@@ -370,7 +370,7 @@
         // read, never a polling ReadDataRef loop. The page also re-seeds on OfpStore.Changed
         // (it previously read the OFP only at first render, so a later import left the
         // runway select disabled with no hint).
-        _fmsDestinationSub = DataRefs.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
+        _fmsDestinationSub = DataRefs.Subscribe(ProsimDataRefNames.FmsDestination);
         _fmsDestinationSub.ValueChanged += OnContextChanged;
         Ofp.Changed += OnContextChanged;
 
@@ -387,7 +387,7 @@
     /// <summary>The context's destination: OFP first, MCDU FMS destination as fallback (the
     /// FMS datarefs read "----"/"Null" before a plan is loaded — predecessor archaeology).</summary>
     private string? ContextIcao()
-        => ValidIcao(Ofp.Current?.DestinationIcao) ?? ValidIcao(_fmsDestinationSub?.GetValue<string?>(null));
+        => ValidIcao(Ofp.Current?.DestinationIcao) ?? ValidIcao(_fmsDestinationSub?.Value);
 
     private static string? ValidIcao(string? value)
         => value is { Length: 4 } && value != "----"

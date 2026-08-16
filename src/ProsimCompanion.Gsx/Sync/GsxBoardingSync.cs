@@ -32,17 +32,17 @@ public sealed class GsxBoardingSync : IDisposable
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly IGsxFlightPlanStatus _flightPlan;
     private readonly ILogger<GsxBoardingSync> _logger;
-    private readonly IDataRefSubscription _plannedTotalLvar;
-    private readonly IDataRefSubscription _boardedLvar;
-    private readonly IDataRefSubscription _cargoPercent;
-    private readonly IDataRefSubscription _deboardTotal;
-    private readonly IDataRefSubscription _deboardCargoPercent;
-    private readonly IDataRefSubscription _bookedSeatString;
-    private readonly IDataRefSubscription _seatOccupationString;
-    private readonly IDataRefSubscription[] _zoneCapacities;
-    private readonly IDataRefSubscription _plannedCargo;
-    private readonly IDataRefSubscription _cargoFwdCapacity;
-    private readonly IDataRefSubscription _cargoAftCapacity;
+    private readonly IDataRefSubscription<double> _plannedTotalLvar;
+    private readonly IDataRefSubscription<double> _boardedLvar;
+    private readonly IDataRefSubscription<double> _cargoPercent;
+    private readonly IDataRefSubscription<double> _deboardTotal;
+    private readonly IDataRefSubscription<double> _deboardCargoPercent;
+    private readonly IDataRefSubscription<string?> _bookedSeatString;
+    private readonly IDataRefSubscription<string?> _seatOccupationString;
+    private readonly IDataRefSubscription<int>[] _zoneCapacities;
+    private readonly IDataRefSubscription<double> _plannedCargo;
+    private readonly IDataRefSubscription<double> _cargoFwdCapacity;
+    private readonly IDataRefSubscription<double> _cargoAftCapacity;
     private readonly Timer _timer;
     private volatile bool _boardingActive;
     private volatile bool _pendingPlanArm;
@@ -86,24 +86,24 @@ public sealed class GsxBoardingSync : IDisposable
 
         // Counter semantics per the 2026-08-02 live session: NUMPASSENGERS holds the planned
         // total from the start; BOARDING_TOTAL counts up progressively as pax walk aboard.
-        _plannedTotalLvar = simVars.Subscribe(GsxLvarNames.NumPassengers, "number", DataRefTier.Normal);
-        _boardedLvar = simVars.Subscribe(GsxLvarNames.NumPassengersBoardingTotal, "number", DataRefTier.Normal);
-        _cargoPercent = simVars.Subscribe(GsxLvarNames.BoardingCargoPercent, "number", DataRefTier.Normal);
-        _deboardTotal = simVars.Subscribe(GsxLvarNames.NumPassengersDeboardingTotal, "number", DataRefTier.Normal);
-        _deboardCargoPercent = simVars.Subscribe(GsxLvarNames.DeboardingCargoPercent, "number", DataRefTier.Normal);
+        _plannedTotalLvar = simVars.Subscribe(GsxLvarNames.NumPassengers);
+        _boardedLvar = simVars.Subscribe(GsxLvarNames.NumPassengersBoardingTotal);
+        _cargoPercent = simVars.Subscribe(GsxLvarNames.BoardingCargoPercent);
+        _deboardTotal = simVars.Subscribe(GsxLvarNames.NumPassengersDeboardingTotal);
+        _deboardCargoPercent = simVars.Subscribe(GsxLvarNames.DeboardingCargoPercent);
 
-        _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
-        _seatOccupationString = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString, DataRefTier.Infrequent);
+        _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString);
+        _seatOccupationString = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString);
         _zoneCapacities =
         [
-            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity, DataRefTier.Infrequent),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity),
         ];
-        _plannedCargo = prosim.Subscribe(ProsimDataRefNames.EfbPlannedCargoKg, DataRefTier.Infrequent);
-        _cargoFwdCapacity = prosim.Subscribe(ProsimDataRefNames.CargoForwardCapacity, DataRefTier.Infrequent);
-        _cargoAftCapacity = prosim.Subscribe(ProsimDataRefNames.CargoAftCapacity, DataRefTier.Infrequent);
+        _plannedCargo = prosim.Subscribe(ProsimDataRefNames.EfbPlannedCargoKg);
+        _cargoFwdCapacity = prosim.Subscribe(ProsimDataRefNames.CargoForwardCapacity);
+        _cargoAftCapacity = prosim.Subscribe(ProsimDataRefNames.CargoAftCapacity);
 
         lifecycle.ServiceEvent += OnServiceEvent;
         _timer = new Timer(_ => _ = TickAsync(), null, TickInterval, TickInterval);
@@ -136,14 +136,14 @@ public sealed class GsxBoardingSync : IDisposable
     {
         get
         {
-            var total = (int)_plannedTotalLvar.GetValue(0.0);
+            var total = (int)_plannedTotalLvar.Value;
             return total > 0 ? total : null;
         }
     }
 
     /// <summary>Pax boarded so far per GSX's live boarding counter; null while the planned
     /// total is unknown (the counter alone means nothing).</summary>
-    public int? PaxBoarded => PaxTotal is null ? null : (int)_boardedLvar.GetValue(0.0);
+    public int? PaxBoarded => PaxTotal is null ? null : (int)_boardedLvar.Value;
 
     /// <summary>Passengers still aboard while a deboard runs: planned total minus GSX's
     /// cumulative (up-counting by design) DEBOARDING_TOTAL. Null outside a deboarding session —
@@ -158,7 +158,7 @@ public sealed class GsxBoardingSync : IDisposable
                 return null;
             }
 
-            return Math.Max(0, total - (int)_deboardTotal.GetValue(0.0));
+            return Math.Max(0, total - (int)_deboardTotal.Value);
         }
     }
 
@@ -221,7 +221,7 @@ public sealed class GsxBoardingSync : IDisposable
     /// and drains from the front as GSX's up-counting DEBOARDING_TOTAL rises.</summary>
     private void StartDeboarding()
     {
-        _deboardMap = SeatMap.Parse(_seatOccupationString.GetValue<string?>(null));
+        _deboardMap = SeatMap.Parse(_seatOccupationString.Value);
         _deboardStartCount = _deboardMap.Count(seat => seat);
         _lastWrittenDeboard = -1;
         _lastWrittenDeboardCargoPct = -1;
@@ -238,8 +238,8 @@ public sealed class GsxBoardingSync : IDisposable
         _plannedMap = [];
         _boardedMap = [];
 
-        RecordDecision("boarding sync", $"activated — GSX planned {_plannedTotalLvar.GetValue(0.0):F0} pax");
-        _ = _writer.WriteAsync(ProsimDataRefNames.EfbBoardingStatus, "inProg");
+        RecordDecision("boarding sync", $"activated — GSX planned {_plannedTotalLvar.Value:F0} pax");
+        _ = _writer.WriteAsync(ProsimDataRefNames.EfbBoardingStatus.Name, "inProg");
     }
 
     /// <summary>
@@ -256,7 +256,7 @@ public sealed class GsxBoardingSync : IDisposable
             return true;
         }
 
-        var booked = SeatMap.Parse(_bookedSeatString.GetValue<string?>(null));
+        var booked = SeatMap.Parse(_bookedSeatString.Value);
         if (booked.Any(seat => seat))
         {
             _plannedMap = booked;
@@ -266,8 +266,8 @@ public sealed class GsxBoardingSync : IDisposable
             return true;
         }
 
-        var planned = (int)_plannedTotalLvar.GetValue(0.0);
-        var capacities = _zoneCapacities.Select(zone => zone.GetValue(0)).ToArray();
+        var planned = (int)_plannedTotalLvar.Value;
+        var capacities = _zoneCapacities.Select(zone => zone.Value).ToArray();
         if (planned <= 0 || capacities.Sum() <= 0)
         {
             RecordDecision("boarding sync", "waiting for pax data (no booked map, GSX planned count/zone capacities not ready)");
@@ -278,7 +278,7 @@ public sealed class GsxBoardingSync : IDisposable
         _boardedMap = new bool[_plannedMap.Length];
         _seatMapMode = true;
         RecordDecision("boarding sync", $"seat-map mode — synthesized {planned} booked seats (capacity-proportional, randomized within zones; no OFP manifest)");
-        _ = await _writer.WriteAsync(ProsimDataRefNames.PaxBookedString, SeatMap.Build(_plannedMap)).ConfigureAwait(false);
+        _ = await _writer.WriteAsync(ProsimDataRefNames.PaxBookedString.Name, SeatMap.Build(_plannedMap)).ConfigureAwait(false);
         return true;
     }
 
@@ -300,15 +300,15 @@ public sealed class GsxBoardingSync : IDisposable
                 Enabled: Enabled,
                 DeboardEnabled: DeboardEnabled,
                 PlanAvailable: _flightPlan.FlightPlanAvailable,
-                BoardedCounter: (int)_boardedLvar.GetValue(0.0),
+                BoardedCounter: (int)_boardedLvar.Value,
                 LastWrittenBoarded: _lastWrittenBoarded,
-                CargoPercent: _cargoPercent.GetValue(0.0),
+                CargoPercent: _cargoPercent.Value,
                 LastWrittenCargoPct: _lastWrittenCargoPct,
-                DeboardCounter: (int)_deboardTotal.GetValue(0.0),
+                DeboardCounter: (int)_deboardTotal.Value,
                 LastWrittenDeboard: _lastWrittenDeboard,
                 HaveDeboardMap: _deboardMap.Length > 0,
                 DeboardStartCount: _deboardStartCount,
-                DeboardCargoPercent: _deboardCargoPercent.GetValue(0.0),
+                DeboardCargoPercent: _deboardCargoPercent.Value,
                 LastWrittenDeboardCargoPct: _lastWrittenDeboardCargoPct));
 
             if (plan.ArmBoardingNow)
@@ -320,12 +320,12 @@ public sealed class GsxBoardingSync : IDisposable
 
             if (plan.SyncBoardedSeats && await EnsureMapsAsync().ConfigureAwait(false))
             {
-                await WriteBoardedAsync((int)_boardedLvar.GetValue(0.0)).ConfigureAwait(false);
+                await WriteBoardedAsync((int)_boardedLvar.Value).ConfigureAwait(false);
             }
 
             if (plan.SyncBoardingCargo)
             {
-                await WriteCargoAsync(_cargoPercent.GetValue(0.0)).ConfigureAwait(false);
+                await WriteCargoAsync(_cargoPercent.Value).ConfigureAwait(false);
             }
 
             if (plan.SyncDeboardedSeats)
@@ -333,15 +333,15 @@ public sealed class GsxBoardingSync : IDisposable
                 // Raw counters stay visible for semantics verification (first live run).
                 _logger.LogDebug(
                     "Deboarding counters: NUMPASSENGERS={Planned}, DEBOARD_TOTAL={Deboarded}, CARGO%={CargoPct}",
-                    _plannedTotalLvar.GetValue(0.0),
-                    (int)_deboardTotal.GetValue(0.0),
-                    _deboardCargoPercent.GetValue(0.0));
-                await WriteDeboardedAsync((int)_deboardTotal.GetValue(0.0)).ConfigureAwait(false);
+                    _plannedTotalLvar.Value,
+                    (int)_deboardTotal.Value,
+                    _deboardCargoPercent.Value);
+                await WriteDeboardedAsync((int)_deboardTotal.Value).ConfigureAwait(false);
             }
 
             if (plan.SyncDeboardCargo)
             {
-                _lastWrittenDeboardCargoPct = _deboardCargoPercent.GetValue(0.0);
+                _lastWrittenDeboardCargoPct = _deboardCargoPercent.Value;
                 await WriteCargoAsync(plan.DeboardRemainingCargoPercent).ConfigureAwait(false);
             }
 
@@ -359,13 +359,13 @@ public sealed class GsxBoardingSync : IDisposable
 
     private async Task FinalizeBoardingAsync()
     {
-        var planned = (int)_plannedTotalLvar.GetValue(0.0);
+        var planned = (int)_plannedTotalLvar.Value;
         if (await EnsureMapsAsync().ConfigureAwait(false))
         {
             await WriteBoardedAsync(Math.Max(planned, _lastWrittenBoarded)).ConfigureAwait(false);
         }
         await WriteCargoAsync(100).ConfigureAwait(false);
-        await _writer.WriteAsync(ProsimDataRefNames.EfbBoardingStatus, "completed").ConfigureAwait(false);
+        await _writer.WriteAsync(ProsimDataRefNames.EfbBoardingStatus.Name, "completed").ConfigureAwait(false);
         RecordDecision("boarding sync", $"completed — reconciled at {planned} pax, cargo 100%");
     }
 
@@ -378,7 +378,7 @@ public sealed class GsxBoardingSync : IDisposable
         if (unseated > 0 || deboardedCount != _lastWrittenDeboard)
         {
             var ok = await _writer.WriteAsync(
-                ProsimDataRefNames.PaxSeatOccupationString,
+                ProsimDataRefNames.PaxSeatOccupationString.Name,
                 SeatMap.Build(_deboardMap)).ConfigureAwait(false);
             if (ok)
             {
@@ -399,7 +399,7 @@ public sealed class GsxBoardingSync : IDisposable
         {
             Array.Clear(_deboardMap);
             await _writer.WriteAsync(
-                ProsimDataRefNames.PaxSeatOccupationString,
+                ProsimDataRefNames.PaxSeatOccupationString.Name,
                 SeatMap.Build(_deboardMap)).ConfigureAwait(false);
         }
         await WriteCargoAsync(0).ConfigureAwait(false);
@@ -412,7 +412,7 @@ public sealed class GsxBoardingSync : IDisposable
         if (seated > 0 || boardedCount != _lastWrittenBoarded)
         {
             var ok = await _writer.WriteAsync(
-                ProsimDataRefNames.PaxSeatOccupationString,
+                ProsimDataRefNames.PaxSeatOccupationString.Name,
                 SeatMap.Build(_boardedMap)).ConfigureAwait(false);
             if (ok)
             {
@@ -428,7 +428,7 @@ public sealed class GsxBoardingSync : IDisposable
 
     private async Task WriteCargoAsync(double percent)
     {
-        var planned = _plannedCargo.GetValue(0.0);
+        var planned = _plannedCargo.Value;
         if (planned <= 0)
         {
             return;
@@ -437,10 +437,10 @@ public sealed class GsxBoardingSync : IDisposable
         var loaded = planned * Math.Clamp(percent, 0, 100) / 100.0;
         var (forward, aft) = LoadMath.SplitCargo(
             loaded,
-            _cargoFwdCapacity.GetValue(0.0),
-            _cargoAftCapacity.GetValue(0.0));
-        var ok = await _writer.WriteAsync(ProsimDataRefNames.CargoForwardAmount, forward).ConfigureAwait(false)
-            & await _writer.WriteAsync(ProsimDataRefNames.CargoAftAmount, aft).ConfigureAwait(false);
+            _cargoFwdCapacity.Value,
+            _cargoAftCapacity.Value);
+        var ok = await _writer.WriteAsync(ProsimDataRefNames.CargoForwardAmount.Name, forward).ConfigureAwait(false)
+            & await _writer.WriteAsync(ProsimDataRefNames.CargoAftAmount.Name, aft).ConfigureAwait(false);
         if (ok)
         {
             _lastWrittenCargoPct = percent;
@@ -453,15 +453,15 @@ public sealed class GsxBoardingSync : IDisposable
     /// per tick. Null until GSX reports a planned pax total — the page renders "—".</summary>
     private void PublishCounters()
     {
-        var target = (int)_plannedTotalLvar.GetValue(0.0);
+        var target = (int)_plannedTotalLvar.Value;
         var view = target <= 0
             ? null
             : new GsxBoardingCountersView(
                 target,
-                (int)_boardedLvar.GetValue(0.0),
-                (int)_deboardTotal.GetValue(0.0),
-                Math.Round(_cargoPercent.GetValue(0.0)),
-                Math.Round(_deboardCargoPercent.GetValue(0.0)));
+                (int)_boardedLvar.Value,
+                (int)_deboardTotal.Value,
+                Math.Round(_cargoPercent.Value),
+                Math.Round(_deboardCargoPercent.Value));
         if (!Equals(view, _lastPublishedCounters))
         {
             _lastPublishedCounters = view;

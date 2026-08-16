@@ -18,7 +18,7 @@ public sealed class DisplayUnitService : IDisposable
     public const double LbPerKg = 2.20462262;
 
     private readonly IOptionsMonitor<WebUiOptions> _options;
-    private readonly IDataRefSubscription _aircraftUnit;
+    private readonly IDataRefSubscription<string?> _aircraftUnit;
     private readonly IDisposable? _optionsSubscription;
 
     /// <summary>Raised when the effective unit may have changed, on arbitrary threads —
@@ -30,7 +30,7 @@ public sealed class DisplayUnitService : IDisposable
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(options);
         _options = options;
-        _aircraftUnit = dataRefs.Subscribe(ProsimDataRefNames.ConfigWeightUnit, DataRefTier.Infrequent);
+        _aircraftUnit = dataRefs.Subscribe(ProsimDataRefNames.ConfigWeightUnit);
         _aircraftUnit.ValueChanged += OnSourceChanged;
         _optionsSubscription = options.OnChange(_ => Changed?.Invoke(this, EventArgs.Empty));
     }
@@ -50,7 +50,7 @@ public sealed class DisplayUnitService : IDisposable
             var options = _options.CurrentValue;
             if (string.Equals(options.UnitSource, "aircraft", StringComparison.OrdinalIgnoreCase))
             {
-                var aircraft = _aircraftUnit.GetValue<string?>(null);
+                var aircraft = _aircraftUnit.Value;
                 if (!string.IsNullOrWhiteSpace(aircraft))
                 {
                     return aircraft.Contains("LB", StringComparison.OrdinalIgnoreCase);

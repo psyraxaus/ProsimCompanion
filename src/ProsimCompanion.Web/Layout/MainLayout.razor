@@ -105,7 +105,7 @@
         ("Logs", "logs"),
     ];
 
-    private IDataRefSubscription? _flightNumberSub;
+    private IDataRefSubscription<string>? _flightNumberSub;
     private string _flightNumber = "";
     private UpdateSnapshot _update = UpdateSnapshot.Empty;
 
@@ -116,8 +116,8 @@
     // actually change — i.e. once per minute boundary plus SIM/UTC flips — so the circuit
     // never sees per-second chatter.
     private static readonly TimeSpan SimTimeStaleAfter = TimeSpan.FromSeconds(10);
-    private IDataRefSubscription? _zuluTimeSub;
-    private IDataRefSubscription? _simTimeSub;
+    private IDataRefSubscription<TimeSpan>? _zuluTimeSub;
+    private IDataRefSubscription<DateTime>? _simTimeSub;
     private System.Threading.Timer? _simClockTimer;
     private bool _simClockActive;
     private string? _simTimeText;
@@ -138,16 +138,16 @@
     {
         Status.Changed += OnChanged;
         Updates.Changed += OnChanged;
-        _flightNumberSub = DataRefs.Subscribe("efb.cids.flightNumber", DataRefTier.Infrequent);
+        _flightNumberSub = DataRefs.Subscribe(ProsimDataRefNames.CidsFlightNumber);
         _flightNumberSub.ValueChanged += OnChanged;
-        _flightNumber = _flightNumberSub.GetValue("");
+        _flightNumber = _flightNumberSub.Value;
         _update = Updates.Snapshot();
 
         // Infrequent (2 s) is plenty for a minute-resolution clock and keeps the 10 s
         // staleness check meaningful (zulu time changes every sim second, so pushes keep
         // arriving while ProSim is alive and the sim is unpaused).
-        _zuluTimeSub = DataRefs.Subscribe(ProsimDataRefNames.ZuluTime, DataRefTier.Infrequent);
-        _simTimeSub = DataRefs.Subscribe(ProsimDataRefNames.SimulatorTime, DataRefTier.Infrequent);
+        _zuluTimeSub = DataRefs.Subscribe(ProsimDataRefNames.ZuluTime);
+        _simTimeSub = DataRefs.Subscribe(ProsimDataRefNames.SimulatorTime);
         _simClockTimer = new System.Threading.Timer(_ => EvaluateSimClock(), null,
             TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         EvaluateSimClock();
@@ -181,7 +181,7 @@
         // Store/SDK events fire on the writer's thread; marshal into the circuit.
         => _ = InvokeAsync(() =>
         {
-            _flightNumber = _flightNumberSub?.GetValue("") ?? "";
+            _flightNumber = _flightNumberSub?.Value ?? "";
             _update = Updates.Snapshot();
             StateHasChanged();
         });

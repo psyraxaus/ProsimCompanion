@@ -19,7 +19,7 @@ public sealed class ConfiguredVoiceCommandsTests
         public List<(string Name, object? Value)> Writes { get; } = [];
         public Dictionary<string, object?> Values { get; } = new(StringComparer.Ordinal);
 
-        public IDataRefSubscription Subscribe(string name, DataRefTier tier) => new FakeSub(this, name);
+        public IDataRefSubscription SubscribeDynamic(string name, DataRefTier tier) => new FakeSub(this, name);
 
         public Task WriteAsync(string name, object? value, CancellationToken cancellationToken = default)
         {

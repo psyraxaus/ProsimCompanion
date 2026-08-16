@@ -34,24 +34,24 @@ public sealed class GsxDoorService : IDisposable
     private readonly ILogger<GsxDoorService> _logger;
     private readonly CancellationTokenSource _shutdown = new();
 
-    private readonly IDataRefSubscription _door1L;
-    private readonly IDataRefSubscription _door4L;
-    private readonly IDataRefSubscription _door1R;
-    private readonly IDataRefSubscription _door4R;
-    private readonly IDataRefSubscription _cargoFwd;
-    private readonly IDataRefSubscription _cargoAft;
-    private readonly IDataRefSubscription _cargoBulk;
+    private readonly IDataRefSubscription<bool> _door1L;
+    private readonly IDataRefSubscription<bool> _door4L;
+    private readonly IDataRefSubscription<bool> _door1R;
+    private readonly IDataRefSubscription<bool> _door4R;
+    private readonly IDataRefSubscription<bool> _cargoFwd;
+    private readonly IDataRefSubscription<bool> _cargoAft;
+    private readonly IDataRefSubscription<bool> _cargoBulk;
 
     private readonly ISimVars _simVars;
-    private readonly IDataRefSubscription _disableDoorsMsg;
-    private readonly IDataRefSubscription _toggleCargo1;
-    private readonly IDataRefSubscription _toggleCargo2;
-    private readonly IDataRefSubscription _toggleService1;
-    private readonly IDataRefSubscription _toggleService2;
-    private readonly IDataRefSubscription _cargoExit0;
-    private readonly IDataRefSubscription _cargoExit1;
-    private readonly IDataRefSubscription _stairsState;
-    private readonly IDataRefSubscription _jetwayLvar;
+    private readonly IDataRefSubscription<double> _disableDoorsMsg;
+    private readonly IDataRefSubscription<double> _toggleCargo1;
+    private readonly IDataRefSubscription<double> _toggleCargo2;
+    private readonly IDataRefSubscription<double> _toggleService1;
+    private readonly IDataRefSubscription<double> _toggleService2;
+    private readonly IDataRefSubscription<double> _cargoExit0;
+    private readonly IDataRefSubscription<double> _cargoExit1;
+    private readonly IDataRefSubscription<double> _stairsState;
+    private readonly IDataRefSubscription<double> _jetwayLvar;
 
     private readonly Timer _reassertTimer;
     private double _lastToggleCargo1;
@@ -90,23 +90,23 @@ public sealed class GsxDoorService : IDisposable
         _diagnostics = diagnostics;
         _logger = logger;
 
-        _door1L = prosim.Subscribe(ProsimDataRefNames.Door1L, DataRefTier.Normal);
-        _door4L = prosim.Subscribe(ProsimDataRefNames.Door4L, DataRefTier.Normal);
-        _door1R = prosim.Subscribe(ProsimDataRefNames.Door1R, DataRefTier.Normal);
-        _door4R = prosim.Subscribe(ProsimDataRefNames.Door4R, DataRefTier.Normal);
-        _cargoFwd = prosim.Subscribe(ProsimDataRefNames.DoorCargoForward, DataRefTier.Normal);
-        _cargoAft = prosim.Subscribe(ProsimDataRefNames.DoorCargoAft, DataRefTier.Normal);
-        _cargoBulk = prosim.Subscribe(ProsimDataRefNames.DoorCargoBulk, DataRefTier.Normal);
+        _door1L = prosim.Subscribe(ProsimDataRefNames.Door1L);
+        _door4L = prosim.Subscribe(ProsimDataRefNames.Door4L);
+        _door1R = prosim.Subscribe(ProsimDataRefNames.Door1R);
+        _door4R = prosim.Subscribe(ProsimDataRefNames.Door4R);
+        _cargoFwd = prosim.Subscribe(ProsimDataRefNames.DoorCargoForward);
+        _cargoAft = prosim.Subscribe(ProsimDataRefNames.DoorCargoAft);
+        _cargoBulk = prosim.Subscribe(ProsimDataRefNames.DoorCargoBulk);
 
-        _disableDoorsMsg = simVars.Subscribe(GsxLvarNames.DisableDoorsMsg, "number", DataRefTier.Infrequent);
-        _toggleCargo1 = simVars.Subscribe(GsxLvarNames.DoorToggleCargo1, "number", DataRefTier.Normal);
-        _toggleCargo2 = simVars.Subscribe(GsxLvarNames.DoorToggleCargo2, "number", DataRefTier.Normal);
-        _toggleService1 = simVars.Subscribe(GsxLvarNames.DoorToggleService1, "number", DataRefTier.Normal);
-        _toggleService2 = simVars.Subscribe(GsxLvarNames.DoorToggleService2, "number", DataRefTier.Normal);
-        _cargoExit0 = simVars.Subscribe(GsxLvarNames.BoardingCargoExit0, "number", DataRefTier.Normal);
-        _cargoExit1 = simVars.Subscribe(GsxLvarNames.BoardingCargoExit1, "number", DataRefTier.Normal);
-        _stairsState = simVars.Subscribe(GsxLvarNames.Stairs, "number", DataRefTier.Normal);
-        _jetwayLvar = simVars.Subscribe(GsxLvarNames.Jetway, "number", DataRefTier.Normal);
+        _disableDoorsMsg = simVars.Subscribe(GsxLvarNames.DisableDoorsMsg);
+        _toggleCargo1 = simVars.Subscribe(GsxLvarNames.DoorToggleCargo1);
+        _toggleCargo2 = simVars.Subscribe(GsxLvarNames.DoorToggleCargo2);
+        _toggleService1 = simVars.Subscribe(GsxLvarNames.DoorToggleService1);
+        _toggleService2 = simVars.Subscribe(GsxLvarNames.DoorToggleService2);
+        _cargoExit0 = simVars.Subscribe(GsxLvarNames.BoardingCargoExit0);
+        _cargoExit1 = simVars.Subscribe(GsxLvarNames.BoardingCargoExit1);
+        _stairsState = simVars.Subscribe(GsxLvarNames.Stairs);
+        _jetwayLvar = simVars.Subscribe(GsxLvarNames.Jetway);
 
         _toggleCargo1.ValueChanged += OnLvarChanged;
         _toggleCargo2.ValueChanged += OnLvarChanged;
@@ -148,9 +148,9 @@ public sealed class GsxDoorService : IDisposable
     /// <summary>True while any tracked entry or cargo door reads open in ProSim — the
     /// pushback sequence's doors-closed gate.</summary>
     public bool AnyDoorOpen =>
-        _door1L.GetValue(false) || _door4L.GetValue(false)
-        || _door1R.GetValue(false) || _door4R.GetValue(false)
-        || _cargoFwd.GetValue(false) || _cargoAft.GetValue(false) || _cargoBulk.GetValue(false);
+        _door1L.Value || _door4L.Value
+        || _door1R.Value || _door4R.Value
+        || _cargoFwd.Value || _cargoAft.Value || _cargoBulk.Value;
 
     /// <summary>Closes every tracked door that reads open (the departure-sequence doors step).</summary>
     public async Task CloseAllDoorsAsync()
@@ -172,9 +172,11 @@ public sealed class GsxDoorService : IDisposable
         try
         {
             var desired = Enabled && _options.CurrentValue.SuppressGsxDoorMessages ? 1.0 : 0.0;
-            if (Math.Abs(_disableDoorsMsg.GetValue(desired) - desired) > 0.5)
+            // GetValueOr(desired): compare against the intended value, so "no data yet" never
+            // triggers a write — the catalog's static 0 fallback is meaningless here (#83).
+            if (Math.Abs(_disableDoorsMsg.GetValueOr(desired) - desired) > 0.5)
             {
-                _ = _simVars.WriteAsync(GsxLvarNames.DisableDoorsMsg, desired);
+                _ = _simVars.WriteAsync(GsxLvarNames.DisableDoorsMsg.Name, desired);
                 _logger.LogInformation("GSX door-message suppression LVAR set to {Value}", desired);
             }
         }
@@ -301,9 +303,9 @@ public sealed class GsxDoorService : IDisposable
         }
     }
 
-    private static void HandleToggle(IDataRefSubscription toggle, ref double last, Func<Task> action)
+    private static void HandleToggle(IDataRefSubscription<double> toggle, ref double last, Func<Task> action)
     {
-        var value = toggle.GetValue(0.0);
+        var value = toggle.Value;
         var rising = value != 0 && last == 0;
         last = value;
         if (rising)
@@ -317,13 +319,13 @@ public sealed class GsxDoorService : IDisposable
     /// this per direction (boarding = KeepCargoDoorsOpenAfterLoad, deboarding =
     /// KeepCargoDoorsOpenAfterUnload); the service-completed close still applies.</summary>
     private void HandleCargoExit(
-        IDataRefSubscription exit,
+        IDataRefSubscription<double> exit,
         ref double last,
-        IDataRefSubscription door,
-        string doorRef,
+        IDataRefSubscription<bool> door,
+        DataRef<bool> doorRef,
         string label)
     {
-        var value = exit.GetValue(0.0);
+        var value = exit.Value;
         var finished = value == 0 && last != 0;
         last = value;
         var keepOpen = _loading switch
@@ -337,7 +339,7 @@ public sealed class GsxDoorService : IDisposable
             RecordDecision("doors", $"{label} loader finished — door kept open (configured)");
             return;
         }
-        if (finished && _loading != Loading.None && door.GetValue(false))
+        if (finished && _loading != Loading.None && door.Value)
         {
             var delay = Math.Max(0, _options.CurrentValue.CargoDoorCloseDelaySec);
             RecordDecision("doors", $"{label} loader finished — closing in {delay}s");
@@ -359,14 +361,14 @@ public sealed class GsxDoorService : IDisposable
     /// jetway, ProSim's autoDoor owns L1). Stairs leaving close what we opened.</summary>
     private void HandleStairs()
     {
-        var active = (int)_stairsState.GetValue(0.0) == StairsActiveState;
+        var active = (int)_stairsState.Value == StairsActiveState;
         if (active == _stairsWereActive)
         {
             return;
         }
         _stairsWereActive = active;
 
-        var noJetway = (int)_jetwayLvar.GetValue(0.0) == JetwayLvarNotPresent;
+        var noJetway = (int)_jetwayLvar.Value == JetwayLvarNotPresent;
         if (active)
         {
             _stairsOpenedL1 = noJetway;
@@ -389,9 +391,9 @@ public sealed class GsxDoorService : IDisposable
         }
     }
 
-    private Task OpenIfClosedAsync(IDataRefSubscription door, string doorRef, string label, string reason)
+    private Task OpenIfClosedAsync(IDataRefSubscription<bool> door, DataRef<bool> doorRef, string label, string reason)
     {
-        if (door.GetValue(false))
+        if (door.Value)
         {
             return Task.CompletedTask;
         }
@@ -399,20 +401,20 @@ public sealed class GsxDoorService : IDisposable
         return SetDoorAsync(door, doorRef, true, label);
     }
 
-    private Task ToggleDoorAsync(IDataRefSubscription door, string doorRef, string label, string reason)
+    private Task ToggleDoorAsync(IDataRefSubscription<bool> door, DataRef<bool> doorRef, string label, string reason)
     {
-        var newState = !door.GetValue(false);
+        var newState = !door.Value;
         RecordDecision("doors", $"{reason} — {(newState ? "opening" : "closing")} {label}");
         return SetDoorAsync(door, doorRef, newState, label);
     }
 
-    private async Task SetDoorAsync(IDataRefSubscription door, string doorRef, bool open, string label)
+    private async Task SetDoorAsync(IDataRefSubscription<bool> door, DataRef<bool> doorRef, bool open, string label)
     {
-        if (door.GetValue(false) == open)
+        if (door.Value == open)
         {
             return;
         }
-        var ok = await _writer.WriteAsync(doorRef, open).ConfigureAwait(false);
+        var ok = await _writer.WriteAsync(doorRef.Name, open).ConfigureAwait(false);
         _logger.LogDebug("Door {Door} -> {State} (written {Ok})", label, open ? "open" : "closed", ok);
     }
 

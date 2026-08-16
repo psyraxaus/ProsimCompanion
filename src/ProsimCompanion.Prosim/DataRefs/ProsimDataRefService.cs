@@ -55,7 +55,7 @@ public sealed class ProsimDataRefService : IProsimDataRefs, IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public IDataRefSubscription Subscribe(string name, DataRefTier tier) => _table.Subscribe(name, tier);
+    public IDataRefSubscription SubscribeDynamic(string name, DataRefTier tier) => _table.Subscribe(name, tier);
 
     /// <inheritdoc />
     public async Task WriteAsync(string name, object? value, CancellationToken cancellationToken = default)

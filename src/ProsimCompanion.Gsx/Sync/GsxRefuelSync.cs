@@ -25,11 +25,11 @@ public sealed class GsxRefuelSync : IDisposable
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly IGsxFlightPlanStatus _flightPlan;
     private readonly ILogger<GsxRefuelSync> _logger;
-    private readonly IDataRefSubscription _fuelTotal;
-    private readonly IDataRefSubscription _fuelTarget;
-    private readonly IDataRefSubscription _fuelTargetKg;
-    private readonly IDataRefSubscription _plannedFuel;
-    private readonly IDataRefSubscription _hoseConnected;
+    private readonly IDataRefSubscription<double> _fuelTotal;
+    private readonly IDataRefSubscription<double> _fuelTarget;
+    private readonly IDataRefSubscription<double> _fuelTargetKg;
+    private readonly IDataRefSubscription<double> _plannedFuel;
+    private readonly IDataRefSubscription<double> _hoseConnected;
     private readonly Timer _timer;
     private readonly Lock _stateLock = new();
     private RefuelCore.RefuelState _state = RefuelCore.RefuelState.Idle;
@@ -62,11 +62,11 @@ public sealed class GsxRefuelSync : IDisposable
         _diagnostics = diagnostics;
         _logger = logger;
 
-        _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal, DataRefTier.Normal);
-        _fuelTarget = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTarget, DataRefTier.Infrequent);
-        _fuelTargetKg = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTargetKg, DataRefTier.Infrequent);
-        _plannedFuel = prosim.Subscribe(ProsimDataRefNames.EfbPlannedFuel, DataRefTier.Infrequent);
-        _hoseConnected = simVars.Subscribe(GsxLvarNames.FuelHoseConnected, "number", DataRefTier.Normal);
+        _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);
+        _fuelTarget = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTarget);
+        _fuelTargetKg = prosim.Subscribe(ProsimDataRefNames.RefuelFuelTargetKg);
+        _plannedFuel = prosim.Subscribe(ProsimDataRefNames.EfbPlannedFuel);
+        _hoseConnected = simVars.Subscribe(GsxLvarNames.FuelHoseConnected);
 
         lifecycle.ServiceEvent += OnServiceEvent;
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
@@ -121,7 +121,7 @@ public sealed class GsxRefuelSync : IDisposable
             var target = state.LatchedTargetKg;
             return target <= 0
                 ? 0.0
-                : Math.Clamp(_fuelTotal.GetValue(0.0) / target * 100.0, 0.0, 100.0);
+                : Math.Clamp(_fuelTotal.Value / target * 100.0, 0.0, 100.0);
         }
     }
 
@@ -157,11 +157,11 @@ public sealed class GsxRefuelSync : IDisposable
         return new RefuelCore.RefuelInputs(
             RequireOfp: options.RequireOfpBeforeDeparture,
             PlanAvailable: _flightPlan.FlightPlanAvailable,
-            HoseConnected: _hoseConnected.GetValue(0.0) != 0,
-            CurrentKg: _fuelTotal.GetValue(0.0),
-            FuelTargetRaw: _fuelTarget.GetValue(0.0),
-            FuelTargetKgRaw: _fuelTargetKg.GetValue(0.0),
-            PlannedFuelRaw: _plannedFuel.GetValue(0.0),
+            HoseConnected: _hoseConnected.Value != 0,
+            CurrentKg: _fuelTotal.Value,
+            FuelTargetRaw: _fuelTarget.Value,
+            FuelTargetKgRaw: _fuelTargetKg.Value,
+            PlannedFuelRaw: _plannedFuel.Value,
             FinishOnHose: options.RefuelFinishOnHose,
             AllowDefuel: options.AllowDefuel,
             SkipOnTankering: options.SkipRefuelOnTankering,

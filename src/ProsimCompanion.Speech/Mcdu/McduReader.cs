@@ -53,7 +53,7 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
     private readonly ILogger<McduReader> _logger;
     private readonly object _gate = new();
 
-    private IDataRefSubscription? _display;
+    private IDataRefSubscription<string?>? _display;
 
     private readonly IOptionsMonitor<SpeechOptions>? _speech;
 
@@ -105,7 +105,7 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
         // what flushes the buffer.
         try
         {
-            return McduDisplayParser.Parse(Display().GetValue<string?>(null));
+            return McduDisplayParser.Parse(Display().Value);
         }
         catch (Exception ex)
         {
@@ -202,18 +202,18 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
         }
     }
 
-    private IDataRefSubscription Display()
+    private IDataRefSubscription<string?> Display()
     {
         lock (_gate)
         {
-            // Frequent (250 ms) so the actuator's two-identical-reads settle check converges
-            // inside its timeout. Registered once and cached — never re-read per call.
-            // Seat-relative side chosen at FIRST use — a pilot-seat change needs an app
-            // restart to re-subscribe the other CDU's display.
+            // The descriptor's Frequent tier (250 ms) is deliberate: the actuator's
+            // two-identical-reads settle check must converge inside its timeout. Registered
+            // once and cached — never re-read per call. Seat-relative side chosen at FIRST
+            // use — a pilot-seat change needs an app restart to re-subscribe the other CDU's
+            // display.
             return _display ??= _dataRefs.Subscribe(
-                Recognition.PilotSeatMap.Map(McduControls.Display,
-                    _speech is not null && Recognition.PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue)),
-                DataRefTier.Frequent);
+                Recognition.PilotSeatMap.Map(ProsimDataRefNames.Mcdu2Display,
+                    _speech is not null && Recognition.PilotSeatMap.HumanIsRightSeat(_speech.CurrentValue)));
         }
     }
 

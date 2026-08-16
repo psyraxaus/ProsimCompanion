@@ -10,10 +10,9 @@ namespace ProsimCompanion.Speech.Mcdu;
 /// </summary>
 public static class McduControls
 {
-    /// <summary>The FO's CDU2 display dataref — an XML document
-    /// (<c>&lt;root&gt;&lt;title/&gt;&lt;line/&gt;×12&lt;scratchpad/&gt;&lt;/root&gt;</c>).
-    /// Read-only; parsed by <see cref="McduDisplayParser"/>.</summary>
-    public const string Display = "aircraft.mcdu2.display";
+    // The read-only CDU2 display ref is the typed ProsimDataRefNames.Mcdu2Display descriptor
+    // (#83) — an XML document (<root><title/><line/>×12<scratchpad/></root>) parsed by
+    // McduDisplayParser.
 
     /// <summary>Dataref prefix for the FO's CDU2 keypad
     /// (<c>system.switches.S_CDU2_KEY_*</c>: LSK1L–6R, 0–9, A–Z, FPLN/DIR/INIT/DATA/PERF/

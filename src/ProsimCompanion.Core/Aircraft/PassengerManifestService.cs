@@ -13,8 +13,8 @@ public sealed class PassengerManifestService : IDisposable
 {
     private static readonly int[] FallbackZoneCapacities = [24, 30, 36, 42];
 
-    private readonly IDataRefSubscription _bookedSeatString;
-    private readonly IDataRefSubscription[] _zoneCapacities;
+    private readonly IDataRefSubscription<string?> _bookedSeatString;
+    private readonly IDataRefSubscription<int>[] _zoneCapacities;
     private readonly object _lock = new();
     private string _manifestForMap = "";
     private IReadOnlyList<PassengerManifestEntry> _manifest = [];
@@ -22,13 +22,13 @@ public sealed class PassengerManifestService : IDisposable
     public PassengerManifestService(IProsimDataRefs prosim)
     {
         ArgumentNullException.ThrowIfNull(prosim);
-        _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
+        _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString);
         _zoneCapacities =
         [
-            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity, DataRefTier.Infrequent),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity),
         ];
     }
 
@@ -44,7 +44,7 @@ public sealed class PassengerManifestService : IDisposable
     /// <summary>The manifest for the current booked map (regenerated lazily when it changes).</summary>
     public IReadOnlyList<PassengerManifestEntry> Manifest()
     {
-        var mapString = _bookedSeatString.GetValue("") ?? "";
+        var mapString = _bookedSeatString.Value ?? "";
         lock (_lock)
         {
             if (mapString == _manifestForMap)
@@ -52,7 +52,7 @@ public sealed class PassengerManifestService : IDisposable
                 return _manifest;
             }
 
-            var capacities = _zoneCapacities.Select(zone => zone.GetValue(0)).ToArray();
+            var capacities = _zoneCapacities.Select(zone => zone.Value).ToArray();
             if (capacities.Sum() <= 0)
             {
                 capacities = FallbackZoneCapacities;

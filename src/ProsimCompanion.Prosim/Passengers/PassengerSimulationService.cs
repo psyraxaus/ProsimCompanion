@@ -23,7 +23,7 @@ public sealed class PassengerSimulationService : IPassengerSimulation, IDisposab
 
     private readonly IProsimGateway _gateway;
     private readonly ILogger<PassengerSimulationService> _logger;
-    private readonly IDataRefSubscription[] _zoneCapacities;
+    private readonly IDataRefSubscription<int>[] _zoneCapacities;
 
     public PassengerSimulationService(
         IProsimDataRefs prosim,
@@ -38,10 +38,10 @@ public sealed class PassengerSimulationService : IPassengerSimulation, IDisposab
         _logger = logger;
         _zoneCapacities =
         [
-            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity, DataRefTier.Infrequent),
-            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity, DataRefTier.Infrequent),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone1Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone2Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone3Capacity),
+            prosim.Subscribe(ProsimDataRefNames.PaxZone4Capacity),
         ];
     }
 
@@ -67,9 +67,9 @@ public sealed class PassengerSimulationService : IPassengerSimulation, IDisposab
 
             // Booked + statistics first (the plan the manifest reads), then the occupation
             // string — the actual cabin load. Same statistics shape as EfbInitOverridesService.
-            var ok = await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxBookedString, seatString, cancellationToken).ConfigureAwait(false)
+            var ok = await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxBookedString.Name, seatString, cancellationToken).ConfigureAwait(false)
                 & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPassengerStatistics, statistics, cancellationToken).ConfigureAwait(false)
-                & await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxSeatOccupationString, seatString, cancellationToken).ConfigureAwait(false);
+                & await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxSeatOccupationString.Name, seatString, cancellationToken).ConfigureAwait(false);
 
             if (ok)
             {
@@ -98,7 +98,7 @@ public sealed class PassengerSimulationService : IPassengerSimulation, IDisposab
         try
         {
             var emptyCabin = SeatMap.Build(new bool[ResolveCapacities().Sum()]);
-            var ok = await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxSeatOccupationString, emptyCabin, cancellationToken).ConfigureAwait(false);
+            var ok = await _gateway.WriteDataRefAsync(ProsimDataRefNames.PaxSeatOccupationString.Name, emptyCabin, cancellationToken).ConfigureAwait(false);
             if (ok)
             {
                 _logger.LogInformation("Passenger simulation: cabin cleared");
@@ -123,7 +123,7 @@ public sealed class PassengerSimulationService : IPassengerSimulation, IDisposab
     /// <summary>Live zone capacities, or the A320 standard 24/30/36/42 before they populate.</summary>
     private int[] ResolveCapacities()
     {
-        var capacities = _zoneCapacities.Select(zone => zone.GetValue(0)).ToArray();
+        var capacities = _zoneCapacities.Select(zone => zone.Value).ToArray();
         return capacities.Sum() > 0 ? capacities : FallbackZoneCapacities;
     }
 

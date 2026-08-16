@@ -41,9 +41,9 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private readonly ILogger<GsxAutomationService> _logger;
     private readonly ISimVars _simVars;
     private readonly IGsxFlightPlanStatus _flightPlan;
-    private readonly IDataRefSubscription _bookedSeatString;
-    private readonly IDataRefSubscription _intRadCpt;
-    private readonly IDataRefSubscription _intRadFo;
+    private readonly IDataRefSubscription<string?> _bookedSeatString;
+    private readonly IDataRefSubscription<int> _intRadCpt;
+    private readonly IDataRefSubscription<int> _intRadFo;
     private readonly Timer _pumpTimer;
     private readonly SemaphoreSlim _pumpLock = new(1, 1);
     private readonly Dictionary<string, string> _lastReasonByAction = new(StringComparer.Ordinal);
@@ -112,11 +112,11 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _eventLog = eventLog;
         _logger = logger;
 
-        _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString, DataRefTier.Infrequent);
+        _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString);
         // The INT/RAD switches on both ACPs are the cockpit "smart button" (predecessor
         // semantics): flicking to INT (value 0) force-calls the next departure service.
-        _intRadCpt = prosim.Subscribe(ProsimDataRefNames.IntRadCpt, DataRefTier.Frequent);
-        _intRadFo = prosim.Subscribe(ProsimDataRefNames.IntRadFo, DataRefTier.Frequent);
+        _intRadCpt = prosim.Subscribe(ProsimDataRefNames.IntRadCpt);
+        _intRadFo = prosim.Subscribe(ProsimDataRefNames.IntRadFo);
         _intRadCpt.ValueChanged += OnIntRadChanged;
         _intRadFo.ValueChanged += OnIntRadChanged;
 
@@ -214,8 +214,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     /// every other phase.</summary>
     private void OnIntRadChanged(object? sender, EventArgs e)
     {
-        var subscription = (IDataRefSubscription)sender!;
-        if (subscription.GetValue(1) != 0)
+        var subscription = (IDataRefSubscription<int>)sender!;
+        if (subscription.Value != 0)
         {
             return;
         }
@@ -496,7 +496,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         }
 
         var booked = ProsimCompanion.Core.Aircraft.SeatMap
-            .Parse(_bookedSeatString.GetValue<string?>(null))
+            .Parse(_bookedSeatString.Value)
             .Count(seat => seat);
         if (booked <= 0)
         {
@@ -511,7 +511,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     {
         try
         {
-            await _simVars.WriteAsync(GsxLvarNames.NumPassengers, booked).ConfigureAwait(false);
+            await _simVars.WriteAsync(GsxLvarNames.NumPassengers.Name, booked).ConfigureAwait(false);
             RecordDecision("pax target", $"armed GSX with {booked} passengers (booked manifest)");
 
             if (_options.CurrentValue.SkipCrewBoardingQuestion)

@@ -26,9 +26,6 @@ namespace ProsimCompanion.Speech.Abnormals;
 /// </summary>
 public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialogueControl, Core.Hosting.IStartupModule, IDisposable
 {
-    private const string EwdLeft = "aircraft.fwc.content.left.str";
-    private const string MasterWarning = "system.indicators.I_MIP_MASTER_WARNING_FO";
-    private const string MasterCaution = "system.indicators.I_MIP_MASTER_CAUTION_FO";
     private const int DrillGapMs = 350;
 
     private readonly ISpeechArbiter _arbiter;
@@ -46,6 +43,9 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly Dictionary<string, TriggerState> _states = [];
 
+    private IDataRefSubscription<string>? _ewdText;
+    private IDataRefSubscription<double>? _masterWarning;
+    private IDataRefSubscription<double>? _masterCaution;
     private IReadOnlyList<AbnormalDefinition> _definitions = [];
     private DialogueSession? _activeDialogue;
     private Timer? _timer;
@@ -149,6 +149,9 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     {
         _dialogueCts.Cancel(); // stops a running/queued ECAM dialogue mid-line
         _timer?.Dispose();
+        _ewdText?.Dispose();
+        _masterWarning?.Dispose();
+        _masterCaution?.Dispose();
         foreach (var read in _reads.Values)
         {
             read.Dispose();
@@ -454,8 +457,10 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     {
         // Acknowledge the lit master light first (predecessor's acknowledgeMaster default).
         var warning = definition.Severity.Equals("warning", StringComparison.OrdinalIgnoreCase);
-        var light = warning ? MasterWarning : MasterCaution;
-        if (Read(light) > 0.5)
+        var light = warning
+            ? _masterWarning ??= _dataRefs.Subscribe(ProsimDataRefNames.MipMasterWarningFo)
+            : _masterCaution ??= _dataRefs.Subscribe(ProsimDataRefNames.MipMasterCautionFo);
+        if (light.Value > 0.5)
         {
             return (warning ? "Master warning. " : "Master caution. ") + definition.Announce;
         }
@@ -539,7 +544,8 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
     private string ReadEwdText()
     {
-        var text = Subscription(EwdLeft).GetValue("");
+        _ewdText ??= _dataRefs.Subscribe(ProsimDataRefNames.FwcContentLeft);
+        var text = _ewdText.Value;
         if (text.Length == 0 && !_ewdWarned)
         {
             _ewdWarned = true;
@@ -556,7 +562,9 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     {
         if (!_reads.TryGetValue(dataref, out var read))
         {
-            read = _dataRefs.Subscribe(dataref, DataRefTier.Normal);
+            // Escape hatch (#83): trigger/verify/corroborate dataref names come from the
+            // user-editable abnormal JSON files — they only exist at runtime.
+            read = _dataRefs.SubscribeDynamic(dataref, DataRefTier.Normal);
             _reads[dataref] = read;
         }
 

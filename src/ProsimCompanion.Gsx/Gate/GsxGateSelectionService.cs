@@ -43,10 +43,10 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     private readonly IGsxRemoteApi _api;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxGateSelectionService> _logger;
-    private readonly IDataRefSubscription _destination;
-    private readonly IDataRefSubscription _gateName;
-    private readonly IDataRefSubscription _gateNumber;
-    private readonly IDataRefSubscription _gateSuffix;
+    private readonly IDataRefSubscription<string?> _destination;
+    private readonly IDataRefSubscription<int> _gateName;
+    private readonly IDataRefSubscription<int> _gateNumber;
+    private readonly IDataRefSubscription<int> _gateSuffix;
     private readonly object _gate = new();
     private string? _requestedGate;
     private bool _retriedOnce;
@@ -72,10 +72,10 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         _eventLog = eventLog;
         _logger = logger;
 
-        _destination = prosim.Subscribe(ProsimDataRefNames.FmsDestination, DataRefTier.Infrequent);
-        _gateName = simVars.Subscribe(GsxLvarNames.SetGateName, "number", DataRefTier.Normal);
-        _gateNumber = simVars.Subscribe(GsxLvarNames.SetGateNumber, "number", DataRefTier.Normal);
-        _gateSuffix = simVars.Subscribe(GsxLvarNames.SetGateSuffix, "number", DataRefTier.Normal);
+        _destination = prosim.Subscribe(ProsimDataRefNames.FmsDestination);
+        _gateName = simVars.Subscribe(GsxLvarNames.SetGateName);
+        _gateNumber = simVars.Subscribe(GsxLvarNames.SetGateNumber);
+        _gateSuffix = simVars.Subscribe(GsxLvarNames.SetGateSuffix);
 
         _api.ReadinessChanged += OnStateChanged;
         _api.Mirror.Updated += OnMirrorUpdated;
@@ -160,7 +160,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
 
             // Preconditions: Ready, airport context, destination known and matching.
             var airport = _api.Mirror.AirportIcao;
-            var destination = _destination.GetValue<string?>(null);
+            var destination = _destination.Value;
             if (_api.Readiness != GsxReadiness.Ready
                 || string.IsNullOrWhiteSpace(airport)
                 || string.IsNullOrWhiteSpace(destination)
@@ -360,9 +360,9 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         }
 
         var formatted = GsxGateResolver.FormatReadback(
-            _gateName.GetValue(0),
-            _gateNumber.GetValue(0),
-            _gateSuffix.GetValue(-1));
+            _gateName.Value,
+            _gateNumber.Value,
+            _gateSuffix.Value);
         if (formatted is null)
         {
             return;

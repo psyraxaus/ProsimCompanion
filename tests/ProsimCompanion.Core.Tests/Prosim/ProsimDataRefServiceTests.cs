@@ -22,7 +22,7 @@ public sealed class ProsimDataRefServiceTests : IAsyncDisposable
     [Fact]
     public async Task UpdateFromPush_DeliversValueToSubscriber()
     {
-        using var subscription = _service.Subscribe("aircraft.speed.ias", DataRefTier.Frequent);
+        using var subscription = _service.SubscribeDynamic("aircraft.speed.ias", DataRefTier.Frequent);
         var notified = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         subscription.ValueChanged += (_, _) => notified.TrySetResult();
 
@@ -38,7 +38,7 @@ public sealed class ProsimDataRefServiceTests : IAsyncDisposable
     {
         using var handlerEntered = new ManualResetEventSlim(false);
         using var releaseHandler = new ManualResetEventSlim(false);
-        using var subscription = _service.Subscribe("system.gates.B_GROUND", DataRefTier.Frequent);
+        using var subscription = _service.SubscribeDynamic("system.gates.B_GROUND", DataRefTier.Frequent);
         subscription.ValueChanged += (_, _) =>
         {
             handlerEntered.Set();
@@ -63,7 +63,7 @@ public sealed class ProsimDataRefServiceTests : IAsyncDisposable
     [Fact]
     public async Task DetachBackend_MarksCachesStaleAfterPendingPushesApply()
     {
-        using var subscription = _service.Subscribe("aircraft.altitude", DataRefTier.Critical);
+        using var subscription = _service.SubscribeDynamic("aircraft.altitude", DataRefTier.Critical);
 
         _service.UpdateFromPush("aircraft.altitude", 3500.0);
         _service.DetachBackend();

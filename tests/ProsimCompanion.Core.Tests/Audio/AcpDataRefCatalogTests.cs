@@ -21,8 +21,8 @@ public sealed class AcpDataRefCatalogTests
     [MemberData(nameof(AllKeys))]
     public void EveryKey_ResolvesToDistinctNonEmptyRefs(AcpSide acp, AudioChannel channel)
     {
-        var volume = AcpDataRefCatalog.VolumeRef(acp, channel);
-        var latch = AcpDataRefCatalog.LatchRef(acp, channel);
+        var volume = AcpDataRefCatalog.VolumeRef(acp, channel).Name;
+        var latch = AcpDataRefCatalog.LatchRef(acp, channel).Name;
 
         Assert.False(string.IsNullOrWhiteSpace(volume));
         Assert.False(string.IsNullOrWhiteSpace(latch));
@@ -37,8 +37,8 @@ public sealed class AcpDataRefCatalogTests
     {
         var all = AllKeys().Select(k => ((AcpSide)k[0], (AudioChannel)k[1])).ToList();
 
-        Assert.Equal(all.Count, all.Select(k => AcpDataRefCatalog.VolumeRef(k.Item1, k.Item2)).Distinct().Count());
-        Assert.Equal(all.Count, all.Select(k => AcpDataRefCatalog.LatchRef(k.Item1, k.Item2)).Distinct().Count());
+        Assert.Equal(all.Count, all.Select(k => AcpDataRefCatalog.VolumeRef(k.Item1, k.Item2).Name).Distinct().Count());
+        Assert.Equal(all.Count, all.Select(k => AcpDataRefCatalog.LatchRef(k.Item1, k.Item2).Name).Distinct().Count());
     }
 
     [Theory]
@@ -50,7 +50,7 @@ public sealed class AcpDataRefCatalogTests
     [InlineData(AcpSide.Observer, AudioChannel.Pa, "system.analog.A_ASP3_PA_VOLUME")]
     public void VolumeRef_MatchesTheWireNames(AcpSide acp, AudioChannel channel, string expected)
     {
-        Assert.Equal(expected, AcpDataRefCatalog.VolumeRef(acp, channel));
+        Assert.Equal(expected, AcpDataRefCatalog.VolumeRef(acp, channel).Name);
     }
 
     [Theory]
@@ -59,6 +59,6 @@ public sealed class AcpDataRefCatalogTests
     [InlineData(AcpSide.Observer, AudioChannel.Hf2, "system.switches.S_ASP3_HF_2_REC_LATCH")]
     public void LatchRef_MatchesTheWireNames(AcpSide acp, AudioChannel channel, string expected)
     {
-        Assert.Equal(expected, AcpDataRefCatalog.LatchRef(acp, channel));
+        Assert.Equal(expected, AcpDataRefCatalog.LatchRef(acp, channel).Name);
     }
 }
