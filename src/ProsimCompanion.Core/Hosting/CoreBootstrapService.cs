@@ -70,10 +70,24 @@ public sealed class CoreBootstrapService : IHostedService
         {
             previous = e.Previous.ToString(),
             current = e.Current.ToString(),
+            // Full phase-relevant evidence, not just speeds (issue #93): a bogus transition
+            // must be diagnosable from this record alone — the 2026-08-17 Unknown→Approach
+            // recurrence of #59 had to be reconstructed from evaluator code paths.
             snapshot = snapshot is null ? null : new
             {
                 iasKt = Math.Round(snapshot.IndicatedAirspeedKt, 1),
                 groundSpeedKt = Math.Round(snapshot.GroundSpeedKt, 1),
+                onGround = snapshot.OnGround,
+                altitudeFt = Math.Round(snapshot.AltitudeFt),
+                radioAltitudeFt = Math.Round(snapshot.RadioAltitudeFt),
+                verticalSpeedFpm = Math.Round(snapshot.VerticalSpeedFpm),
+                powered = snapshot.AircraftPowered,
+                enginesRunning = snapshot.AnyEngineRunning,
+                engineStarting = snapshot.EngineStarting,
+                pushback = snapshot.PushbackActive,
+                parkBrake = snapshot.ParkBrakeSet,
+                gearDown = snapshot.GearDown,
+                takeoffThrust = snapshot.TakeoffThrustSet,
             },
         });
     }

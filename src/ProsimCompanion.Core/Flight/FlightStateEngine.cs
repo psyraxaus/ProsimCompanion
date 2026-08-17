@@ -189,7 +189,19 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
                 snapshot.PushbackActive, snapshot.ParkBrakeSet, snapshot.GroundSpeedKt, snapshot.IndicatedAirspeedKt);
         }
 
-        _logger.LogInformation("Flight phase {Previous} -> {Current}", previous, target);
+        // Commits are rare (a handful per flight) so the full evidence set is cheap — and it
+        // turns a "why did it think we were on approach?" investigation into a one-look
+        // diagnosis (issue #93: the 2026-08-17 bogus-Approach recurrence of #59 had to be
+        // reconstructed from evaluator code paths because only ias/gs were recorded).
+        _logger.LogInformation(
+            "Flight phase {Previous} -> {Current}: onGround={OnGround} ias={IndicatedAirspeedKt:F1}kt "
+            + "gs={GroundSpeedKt:F1}kt alt={AltitudeFt:F0}ft ra={RadioAltitudeFt:F0}ft vs={VerticalSpeedFpm:F0}fpm "
+            + "powered={AircraftPowered} enginesRunning={EnginesRunning} engineStarting={EngineStarting} "
+            + "pushback={PushbackActive} parkBrake={ParkBrakeSet} gearDown={GearDown} takeoffThrust={TakeoffThrustSet}",
+            previous, target, snapshot.OnGround, snapshot.IndicatedAirspeedKt, snapshot.GroundSpeedKt,
+            snapshot.AltitudeFt, snapshot.RadioAltitudeFt, snapshot.VerticalSpeedFpm, snapshot.AircraftPowered,
+            snapshot.AnyEngineRunning, snapshot.EngineStarting, snapshot.PushbackActive, snapshot.ParkBrakeSet,
+            snapshot.GearDown, snapshot.TakeoffThrustSet);
         PhaseChanged?.Invoke(this, new FlightPhaseChangedEventArgs(previous, target));
     }
 
