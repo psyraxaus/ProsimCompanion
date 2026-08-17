@@ -223,40 +223,12 @@ public static class StatusApiEndpoints
         _ => StatusServiceState.NotAvailable,
     };
 
-    /// <summary>Same credential checks as <see cref="CommandApiEndpoints"/> (bearer token or
-    /// onboarded-browser cookie, fixed-time compared; token-even-on-loopback by default).</summary>
+    /// <summary>Same credential checks as <see cref="CommandApiEndpoints"/> — one shared
+    /// implementation since #94 (bearer token or onboarded-browser cookie, fixed-time
+    /// compared; token-even-on-loopback by default).</summary>
     private static bool IsAuthorized(
         HttpContext context,
         CommandApiOptions apiOptions,
         WebUiOptions webUiOptions)
-    {
-        var remote = context.Connection.RemoteIpAddress;
-        var isLoopback = remote is null || IPAddress.IsLoopback(remote);
-        if (isLoopback && !apiOptions.RequireTokenOnLoopback)
-        {
-            return true;
-        }
-
-        var token = webUiOptions.AccessToken;
-        if (string.IsNullOrEmpty(token))
-        {
-            return false;
-        }
-
-        const string bearerPrefix = "Bearer ";
-        var authorization = context.Request.Headers.Authorization.ToString();
-        if (authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
-            && TokensEqual(authorization[bearerPrefix.Length..].Trim(), token))
-        {
-            return true;
-        }
-
-        return context.Request.Cookies.TryGetValue(LanTokenMiddleware.CookieName, out var cookie)
-            && TokensEqual(cookie, token);
-    }
-
-    private static bool TokensEqual(string presented, string expected)
-        => CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(presented),
-            Encoding.UTF8.GetBytes(expected));
+        => ApiTokenAuth.IsAuthorized(context, apiOptions.RequireTokenOnLoopback, webUiOptions);
 }

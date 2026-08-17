@@ -46,10 +46,7 @@ public static class Program
             return 0;
         }
 
-        var logDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ProsimCompanion",
-            "logs");
+        var logDirectory = UserDataPaths.Logs;
 
         var settingsPath = Path.Combine(AppContext.BaseDirectory, "config", "settings.json");
         var settingsFile = new JsonSettingsFile(settingsPath);
@@ -336,6 +333,10 @@ public static class Program
         // section; 404 while disabled). The status feed is what the Stream Deck plugin polls.
         web.MapCommandApi();
         web.MapStatusApi();
+
+        // Read-only telemetry feed for the flight-verification workflow (issue #94):
+        // session event logs + log tails, on by default, 404 while disabled.
+        web.MapTelemetryApi();
 
         // In-sim GSX handler bridge (gsx_handler.py): event push + VDGS flight info. Always
         // on — the script targets loopback, which the token middleware exempts.

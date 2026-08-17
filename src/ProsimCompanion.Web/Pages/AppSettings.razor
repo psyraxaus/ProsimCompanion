@@ -10,6 +10,7 @@
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
 @inject IOptionsMonitor<BriefingOptions> BriefingMonitor
 @inject IOptionsMonitor<CommandApiOptions> CommandApiMonitor
+@inject IOptionsMonitor<TelemetryApiOptions> TelemetryApiMonitor
 @inject ThemeCatalog Themes
 
 <PageTitle>App Settings — ProsimCompanion</PageTitle>
@@ -88,6 +89,12 @@
         </div>
     </Section>
 
+    <Section Title="Telemetry API" Hint="Applies live, no restart">
+        <BoolField Label="Enable telemetry API"
+                   Hint="Read-only: serves session event logs and log tails over the web server for post-flight/live verification (issue triage). Other devices need the access token; nothing here can control the aircraft"
+                   @bind-Value="_telemetryApi.Value.Enabled" />
+    </Section>
+
     <Section Title="Integrations">
         <BoolField Label="Use SayIntentions"
                    Hint="ATIS/METAR/TAF weather, CPDLC station display, and arrival-gate send"
@@ -160,6 +167,7 @@
     private OptionsDraft<ChecklistOptions> _checklists = default!;
     private OptionsDraft<BriefingOptions> _briefing = default!;
     private OptionsDraft<CommandApiOptions> _commandApi = default!;
+    private OptionsDraft<TelemetryApiOptions> _telemetryApi = default!;
 
     // The bound options keep an unset API key as null; the input works in "" terms.
     private string ApiKeyInput
@@ -180,6 +188,7 @@
         _checklists = Draft(ChecklistMonitor);
         _briefing = Draft(BriefingMonitor);
         _commandApi = Draft(CommandApiMonitor);
+        _telemetryApi = Draft(TelemetryApiMonitor);
     }
 
     protected override void OnBeforeSave()

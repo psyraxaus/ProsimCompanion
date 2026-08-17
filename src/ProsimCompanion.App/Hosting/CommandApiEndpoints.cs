@@ -186,44 +186,12 @@ public static class CommandApiEndpoints
         return null;
     }
 
+    /// <summary>Shared credential checks (<see cref="ApiTokenAuth"/> since #94): bearer token
+    /// or onboarded-browser cookie, fixed-time compared; token-even-on-loopback by default —
+    /// this is a write surface.</summary>
     private static bool IsAuthorized(
         HttpContext context,
         CommandApiOptions apiOptions,
         WebUiOptions webUiOptions)
-    {
-        var remote = context.Connection.RemoteIpAddress;
-        var isLoopback = remote is null || IPAddress.IsLoopback(remote);
-        if (isLoopback && !apiOptions.RequireTokenOnLoopback)
-        {
-            return true;
-        }
-
-        // A write surface with no token configured stays closed; EnsureAccessToken generates
-        // one on first start, so in practice this only trips on a hand-emptied settings file.
-        var token = webUiOptions.AccessToken;
-        if (string.IsNullOrEmpty(token))
-        {
-            return false;
-        }
-
-        const string bearerPrefix = "Bearer ";
-        var authorization = context.Request.Headers.Authorization.ToString();
-        if (authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
-            && TokensEqual(authorization[bearerPrefix.Length..].Trim(), token))
-        {
-            return true;
-        }
-
-        // The browser path: a session already onboarded through LanTokenMiddleware carries the
-        // cookie, so web-page buttons can call the API without special headers.
-        return context.Request.Cookies.TryGetValue(LanTokenMiddleware.CookieName, out var cookie)
-            && TokensEqual(cookie, token);
-    }
-
-    /// <summary>Fixed-time comparison, same as <see cref="LanTokenMiddleware"/> — an early-exit
-    /// compare would leak prefix-match timing to a guessing client.</summary>
-    private static bool TokensEqual(string presented, string expected)
-        => CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(presented),
-            Encoding.UTF8.GetBytes(expected));
+        => ApiTokenAuth.IsAuthorized(context, apiOptions.RequireTokenOnLoopback, webUiOptions);
 }

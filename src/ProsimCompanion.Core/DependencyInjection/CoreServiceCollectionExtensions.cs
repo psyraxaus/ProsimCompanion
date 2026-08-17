@@ -50,6 +50,9 @@ public static class CoreServiceCollectionExtensions
         // HTTP command API gate — bound here with every other section (it used to live in
         // App/Program.cs, which is how it escaped the defaults writer's notice pre-#84).
         services.AddOptionSection<CommandApiOptions>(configuration);
+        // Read-only telemetry API (issue #94) — serves session/log files to the
+        // flight-verification workflow.
+        services.AddOptionSection<TelemetryApiOptions>(configuration);
         services.AddOptionSection<TechLogOptions>(configuration);
         services.AddOptionSection<LogbookOptions>(configuration);
         services.AddOptionSection<DebriefOptions>(configuration);
@@ -117,10 +120,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Aircraft.PassengerManifestService>();
 
         services.AddSingleton(provider => new JsonlEventLog(
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ProsimCompanion",
-                "sessions"),
+            UserDataPaths.Sessions,
             provider.GetRequiredService<ILogger<JsonlEventLog>>()));
 
         // Company day mode: persisted state, live view store and the summary composer (the
