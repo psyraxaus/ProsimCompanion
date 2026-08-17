@@ -59,8 +59,11 @@ public static class GsxServiceCollectionExtensions
         // latches after an app restart mid-turnaround; the sequencer holds until assessed.
         services.AddStartupModule<Sync.GsxStartupResyncService>();
         // Cold-and-dark verification (issue #63): once per session, after the resync verdict
-        // distinguishes a fresh departure from a turnaround.
+        // distinguishes a fresh departure from a turnaround. The Core control seam is how the
+        // web button and the voice command trigger an on-demand re-check (issue #92).
         services.AddStartupModule<Sync.AircraftStateCheckService>();
+        services.AddSingleton<Core.State.IAircraftStateCheckControl>(
+            provider => provider.GetRequiredService<Sync.AircraftStateCheckService>());
         services.AddHostedService<GsxBootstrapService>();
 
         return services;

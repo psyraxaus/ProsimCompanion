@@ -9,6 +9,7 @@
 @inject AircraftProfileService Profiles
 @inject GsxDiagnosticsStore Diagnostics
 @inject IGsxDepartureControl DepartureControl
+@inject IAircraftStateCheckControl StateCheckControl
 @inject AudioStatusStore Audio
 @inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
 
@@ -229,7 +230,9 @@
     private RenderFragment AircraftStateRow()
     {
         // Once-per-session cold-and-dark verdict (issue #63), published by the aircraft state
-        // check after session entry on a fresh departure. "—" until it has run.
+        // check after session entry on a fresh departure. "—" until it has run. The Re-check
+        // button (issue #92) clears the once-per-session latch — without it, a pilot who fixed
+        // the switches could only get a fresh verdict by restarting the app.
         var check = _gsx.AircraftStateCheck;
         var (tone, text) = check switch
         {
@@ -245,8 +248,22 @@
         return @<div class="row">
             <span class="row-label">Aircraft State</span>
             <span class="pill @tone">@(text ?? "—")</span>
+            <button type="button" class="btn secondary" style="margin-left:8px;"
+                    @onclick="RecheckAircraftState"
+                    title="Re-run the cold-and-dark check now (also available by voice: 'check the aircraft state').">
+                Re-check
+            </button>
+            @if (_recheckUnavailable)
+            {
+                <span class="pill tone-neutral">not ready yet</span>
+            }
         </div>;
     }
+
+    private bool _recheckUnavailable;
+
+    private void RecheckAircraftState()
+        => _recheckUnavailable = !StateCheckControl.RequestRecheck("web UI");
 
     private RenderFragment GpuRow()
     {
@@ -298,7 +315,17 @@
 
     protected override void OnInitialized()
     {
-        Watch(Diagnostics, snapshot => _gsx = snapshot);
+        Watch(Diagnostics, snapshot =>
+        {
+            // A fresh verdict (from any surface — web, voice, auto) retires the transient
+            // "not ready yet" hint next to the Re-check button.
+            if (!Equals(snapshot.AircraftStateCheck, _gsx.AircraftStateCheck))
+            {
+                _recheckUnavailable = false;
+            }
+
+            _gsx = snapshot;
+        });
         Watch(Audio, _ => { });
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _connections = Status.Snapshot());
         WatchChanged(h => Session.Changed += h, h => Session.Changed -= h, () => { });

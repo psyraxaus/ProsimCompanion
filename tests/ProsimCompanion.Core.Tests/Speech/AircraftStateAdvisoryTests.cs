@@ -40,4 +40,37 @@ public sealed class AircraftStateAdvisoryTests
     public void ExactlyFour_SingularRemainder()
         => Assert.EndsWith("and 1 more item.", AircraftStateAdvisoryService.ComposeAdvisory(
             ["a", "b", "c", "d"]));
+
+    // ---- Requested re-check answers (issue #92): a pilot who explicitly asked must hear a
+    // spoken answer even when that answer is "all good" or "didn't run". ----
+
+    [Fact]
+    public void Pass_AllVerified_IsAPlainAllClear()
+        => Assert.Equal(
+            "Captain, the aircraft is in the expected cold and dark state.",
+            AircraftStateAdvisoryService.ComposePass(uncheckedCount: 0));
+
+    [Fact]
+    public void Pass_WithUncheckedItems_VoicesTheCaveat()
+        => Assert.Equal(
+            "Captain, the aircraft is in the expected cold and dark state, though "
+            + "2 items could not be verified.",
+            AircraftStateAdvisoryService.ComposePass(uncheckedCount: 2));
+
+    [Fact]
+    public void Pass_OneUncheckedItem_Singular()
+        => Assert.EndsWith("1 item could not be verified.",
+            AircraftStateAdvisoryService.ComposePass(uncheckedCount: 1));
+
+    [Fact]
+    public void Skipped_SpeaksTheAssessorsReason()
+        => Assert.Equal(
+            "Captain, I didn't run the aircraft state check — already airborne this session.",
+            AircraftStateAdvisoryService.ComposeSkipped("already airborne this session"));
+
+    [Fact]
+    public void Skipped_WithNoReason_StaysWellFormed()
+        => Assert.Equal(
+            "Captain, I didn't run the aircraft state check.",
+            AircraftStateAdvisoryService.ComposeSkipped(null));
 }

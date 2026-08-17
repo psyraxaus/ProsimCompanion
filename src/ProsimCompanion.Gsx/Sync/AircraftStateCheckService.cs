@@ -127,8 +127,13 @@ public static class AircraftStateCheck
 /// Speech-side advisory subscriber) and the session event log; the check re-arms when the
 /// pilot leaves the flight session. Degrades on every absence: no definition, no ProSim, or
 /// no session simply produce a Skipped verdict or a quiet wait — never a fault.
+/// On-demand re-checks (issue #92, via <see cref="IAircraftStateCheckControl"/>) clear the
+/// once-per-session latch and force the fresh verdict's Announce flag so the FO answers even
+/// with a Pass; a Mismatch verdict also re-runs itself when the phase engine later commits
+/// ColdAndDark — the pilot visibly fixed the switches, so the stale nag must not outlive the
+/// condition it reported.
 /// </summary>
-public sealed class AircraftStateCheckService : IDisposable
+public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDisposable
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(5);
 
@@ -149,7 +154,14 @@ public sealed class AircraftStateCheckService : IDisposable
     private readonly Dictionary<string, IDataRefSubscription> _reads = new(StringComparer.Ordinal);
     private readonly Timer _timer;
     private readonly SessionWindow _settleWindow;
+
+    /// <summary>Serializes assessment: the 5 s timer, on-demand re-checks and the ColdAndDark
+    /// auto-re-run all funnel into <see cref="TickCore"/>, and a re-check must observe the
+    /// latch state its own run produced, not a concurrent timer tick's.</summary>
+    private readonly object _tickGate = new();
+
     private bool _assessed;
+    private AircraftStateCheckStatus? _lastStatus;
 
     public AircraftStateCheckService(
         IProsimDataRefs prosim,
@@ -201,6 +213,7 @@ public sealed class AircraftStateCheckService : IDisposable
         }
 
         _simSession.SessionEnded += OnSessionEnded;
+        _flightState.PhaseChanged += OnPhaseChanged;
         _settleWindow = simSession.OpenWindow(SettleTimeout);
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
     }
@@ -209,10 +222,25 @@ public sealed class AircraftStateCheckService : IDisposable
     {
         _timer.Dispose();
         _simSession.SessionEnded -= OnSessionEnded;
+        _flightState.PhaseChanged -= OnPhaseChanged;
         _settleWindow.Dispose();
         foreach (var subscription in _reads.Values)
         {
             subscription.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public bool RequestRecheck(string source)
+    {
+        lock (_tickGate)
+        {
+            _assessed = false;
+            _logger.LogInformation("Aircraft state re-check requested by {Source}", source);
+            TickCore(forceAnnounce: true);
+            // TickCore only sets the latch when an assessment actually published — so this is
+            // the honest "did the pilot get an answer" signal the caller needs.
+            return _assessed;
         }
     }
 
@@ -221,12 +249,48 @@ public sealed class AircraftStateCheckService : IDisposable
     /// page never shows last flight's aircraft state against a new spawn.</summary>
     private void OnSessionEnded()
     {
-        _assessed = false;
+        lock (_tickGate)
+        {
+            _assessed = false;
+            _lastStatus = null;
+        }
+
         _diagnostics.UpdateAircraftStateCheck(null);
         // The settle window re-anchors itself on the next session start (campaign #79).
     }
 
+    /// <summary>A Mismatch verdict re-runs itself when the aircraft actually goes cold and
+    /// dark (issue #92): the pilot fixed the switches, so the FO withdraws the nag with a
+    /// spoken all-clear instead of holding last minute's verdict until the session ends.</summary>
+    private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
+    {
+        if (e.Current != FlightPhase.ColdAndDark)
+        {
+            return;
+        }
+
+        lock (_tickGate)
+        {
+            if (!_assessed || _lastStatus != AircraftStateCheckStatus.Mismatch)
+            {
+                return;
+            }
+
+            _assessed = false;
+            _logger.LogInformation("Aircraft state re-check: aircraft went cold and dark after a mismatch verdict");
+            TickCore(forceAnnounce: true);
+        }
+    }
+
     private void Tick()
+    {
+        lock (_tickGate)
+        {
+            TickCore(forceAnnounce: false);
+        }
+    }
+
+    private void TickCore(bool forceAnnounce)
     {
         try
         {
@@ -276,7 +340,15 @@ public sealed class AircraftStateCheckService : IDisposable
                 Read: ReadCached);
 
             var verdict = AircraftStateCheck.Assess(context, DateTimeOffset.UtcNow);
+            if (forceAnnounce)
+            {
+                // The pilot explicitly asked (or fixed a mismatch): even a Pass or a Skipped
+                // deserves a spoken answer, not the assessor's silent default.
+                verdict = verdict with { Announce = true };
+            }
+
             _assessed = true;
+            _lastStatus = verdict.Status;
             _diagnostics.UpdateAircraftStateCheck(verdict);
             _eventLog.Record("aircraft-state-check", new
             {

@@ -142,6 +142,13 @@ public static class SpeechServiceCollectionExtensions
         // Cold-and-dark mismatch advisory (issue #63): speaks the aircraft state check's
         // verdict, consumed from the Core diagnostics store — no GSX project reference.
         services.AddStartupModule<Crew.AircraftStateAdvisoryService>();
+        // "Check the aircraft state" re-check trigger (issue #92). The control seam lives in
+        // Core and is implemented by the GSX pillar; resolved as optional so the feature
+        // degrades to disabled (no grammar) when that pillar is absent.
+        services.AddSingleton<IVoiceFeature>(p => new Crew.AircraftStateVoiceService(
+            p.GetService<Core.State.IAircraftStateCheckControl>(),
+            p.GetRequiredService<ISpeechArbiter>(),
+            p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Crew.AircraftStateVoiceService>>()));
         // Accent localization (issue #53): airport-country → per-provider ground-crew voice,
         // consumed by the arbiter at render time. Registered BEFORE the arbiter resolves.
         services.AddSingleton<Crew.AccentVoiceResolver>();

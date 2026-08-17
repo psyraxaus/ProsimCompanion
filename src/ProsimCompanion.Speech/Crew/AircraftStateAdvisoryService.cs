@@ -56,8 +56,15 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
         try
         {
             var check = snapshot.AircraftStateCheck;
-            if (check is null || check.Status != AircraftStateCheckStatus.Mismatch || !check.Announce
-                || check.Mismatches.Count == 0)
+            // Announce is the whole policy (assessor sets it for fresh-departure mismatches;
+            // the on-demand re-check forces it for any status — issue #92, the pilot asked
+            // and deserves an answer even when that answer is "all good" or "didn't run").
+            if (check is null || !check.Announce)
+            {
+                return;
+            }
+
+            if (check.Status == AircraftStateCheckStatus.Mismatch && check.Mismatches.Count == 0)
             {
                 return;
             }
@@ -72,7 +79,13 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
                 _lastSpokenVerdict = check.Timestamp;
             }
 
-            var text = ComposeAdvisory([.. check.Mismatches.Select(mismatch => mismatch.Phrase)]);
+            var text = check.Status switch
+            {
+                AircraftStateCheckStatus.Mismatch
+                    => ComposeAdvisory([.. check.Mismatches.Select(mismatch => mismatch.Phrase)]),
+                AircraftStateCheckStatus.Pass => ComposePass(check.UncheckedLabels.Count),
+                _ => ComposeSkipped(check.Reason),
+            };
             _eventLog.Record("fo.aircraft-state-advisory", new { text });
             _ = SpeakAsync(text);
         }
@@ -102,6 +115,23 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
             : "";
         return $"Captain, the aircraft is not in the expected cold and dark state — {joined}{tail}.";
     }
+
+    /// <summary>The all-clear for an explicitly requested (or self-correcting) re-check. The
+    /// unchecked count is voiced when non-zero — a Pass over half-verified switches must not
+    /// sound like a full inspection. Exposed for tests.</summary>
+    public static string ComposePass(int uncheckedCount)
+        => uncheckedCount > 0
+            ? "Captain, the aircraft is in the expected cold and dark state, though "
+                + $"{uncheckedCount} item{(uncheckedCount == 1 ? "" : "s")} could not be verified."
+            : "Captain, the aircraft is in the expected cold and dark state.";
+
+    /// <summary>The honest non-answer when a requested re-check could not judge the aircraft
+    /// (turnaround leg, airborne latch, no definition). The assessor's reasons are plain
+    /// English, so they are spoken as-is. Exposed for tests.</summary>
+    public static string ComposeSkipped(string? reason)
+        => string.IsNullOrWhiteSpace(reason)
+            ? "Captain, I didn't run the aircraft state check."
+            : $"Captain, I didn't run the aircraft state check — {reason}.";
 
     private async Task SpeakAsync(string text)
     {
