@@ -90,6 +90,13 @@ Issues are tracked as GitHub Issues on `psyraxaus/ProsimCompanion` via the `gh` 
 
 Default label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
 
+### Flight verification
+
+After a flight (or live via the telemetry API), evaluate GitHub issues against the session
+event log + CMTrace log using the probe catalog `docs/agents/verification-probes.json`.
+Workflow, verdict semantics and reporting rules: `docs/agents/flight-verification.md`.
+Behavioural fixes ship with a probe in the same change.
+
 ### Domain docs
 
 Single-context: root `CONTEXT.md` (created lazily) + ADRs in `docs/decisions/` (this repo's convention, not `docs/adr/`). See `docs/agents/domain.md`.

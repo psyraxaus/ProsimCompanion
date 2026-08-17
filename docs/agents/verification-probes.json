@@ -1,0 +1,378 @@
+{
+  "version": 1,
+  "description": "Machine-checkable verification probes: one entry per GitHub issue whose resolution (or regression) is observable from flight telemetry. Evaluated by an agent after (or during) a flight against the session event log and the CMTrace app log — see docs/agents/flight-verification.md for the workflow, sources and reporting rules. Probes are evidence-gatherers: a passing probe means 'observed working this flight', never 'auto-close'.",
+  "sources": {
+    "session": "JSONL session event log (sessions/session-*.jsonl): one JSON object per line with timestamp, type, payload.",
+    "log": "CMTrace application log (logs/ProsimCompanion-*.log): component, level (type 1=info 2=warn 3=error), message.",
+    "wire": "GSX wire trace (logs/ProsimCompanion-wire-*.log): only consulted when a probe names it; often disabled or huge."
+  },
+  "kinds": {
+    "assert-absent": "The failure signature must NOT appear. Pass = absent all session; fail = present (quote the evidence).",
+    "assert-present": "The fixed/feature behaviour must appear WHEN its trigger occurred. Pass = trigger+behaviour seen; not-exercised = trigger never occurred (report as untested, not passed); fail = trigger seen without the behaviour.",
+    "watch": "Health signal with no fixed pass/fail: count and report occurrences with context.",
+    "feature-pending": "Issue is an unimplemented feature; probe documents what to assert once it ships. Skip during evaluation, but report accidental sightings.",
+    "requires-human": "Not observable from telemetry (web UI, audio quality, installer). Listed so the flight report can remind the pilot what to eyeball."
+  },
+  "probes": [
+    {
+      "id": "phase-startup-misclassification",
+      "issue": 59,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "No 'phase-changed' event into InitialClimb/Climb/Cruise/Descent/Approach whose snapshot has iasKt < 30 AND groundSpeedKt < 30 (with #93 shipped, also onGround=true or powered=false — physically impossible airborne states).",
+        "No log line 'GSX \"fob restore\": ... -> ... (saved value)' before the session has a genuine airborne phase commit (ias > 80 at the transition). The refusal line ('refused — aircraft has not been airborne') is the CORRECT behaviour.",
+        "No 'aircraft-state-check' skipped with reason 'already airborne this session' in a session that never actually flew."
+      ],
+      "notes": "Recurred 2026-08-17 (fuel clobbered 9576->4650 kg) despite the IsReady gate — ProSim warm-up defaults passed value-arrival checks. Root-cause fix (plausibility gate + latch hardening) not yet implemented, so expect this to FAIL when ProSim connects after the app; a clean pass on a ProSim-first startup does not close the issue."
+    },
+    {
+      "id": "gsx-services-without-flight-plan",
+      "issue": 60,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "If a 'gsx-decision' with reason containing 'waiting for a flight plan' exists, no 'gsx-service' {service: Refueling, event: Active} may occur before a later decision shows the plan was detected (simbriefImported=True or fmsOrigin non-empty in the 'flight plan detection' decision)."
+      ],
+      "notes": "The OFP gate only holds the automation path; GSX-side requests bypass it. Fail = fuel/boarding ran planless."
+    },
+    {
+      "id": "pax-target-thrash",
+      "issue": 64,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "Between 'gsx-service' {Boarding, Requested} and {Boarding, Completed}, at most 2 distinct passenger counts across 'gsx-decision' events with action 'pax target' (reason contains 'armed GSX with N passengers')."
+      ],
+      "notes": "2026-08-16 flight thrashed 89→91→88→85→91→89 from SimBrief pax randomization re-imports during boarding."
+    },
+    {
+      "id": "gate-name-matching",
+      "issue": 75,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["log"],
+      "checks": [
+        "No gate-selection failure lines: 'not_found' on a gate select, or a refusal where the log's own nearest-match equals the requested gate (e.g. requested '313' vs GSX 'Stand 313')."
+      ],
+      "notes": "Leading-space ' Gate D57' and prefix-word mismatches. Exercised only when an arrival gate is armed."
+    },
+    {
+      "id": "ground-ops-double-fire",
+      "issue": 90,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No duplicated 'gsx-service' (same service+event pair) within 5 seconds.",
+        "No duplicated 'ground.calling'/'ground.upcall' for the same call id within one departure/arrival cycle (a second GPU upcall after a genuine reconnect is legitimate — check the mirror context).",
+        "No repeated deice completion events for one deice pass."
+      ],
+      "notes": "Mirror-vanish reset and deice id matching can re-arm one-shot events within a cycle."
+    },
+    {
+      "id": "false-ecam-triggers",
+      "issue": 58,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No abnormal/ECAM dialogue or master-warning speech for GEN 1/GEN 2 FAULT while no engine has been started this session (pre-start state is normal, not a fault).",
+        "No APU FIRE dialogue from a transient shorter than ~2 s (fire signal appears and clears between adjacent events)."
+      ],
+      "notes": "Correlate 'speech.spoken'/abnormal events against engine state from phase-changed payloads (#93 fields)."
+    },
+    {
+      "id": "ecam-dialogue-ignores-cleared",
+      "issue": 57,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No abnormal-dialogue prompt (repeat of the same demand) spoken more than 60 s after the underlying failure cleared.",
+        "Queued dialogues must not starve: any enqueued dialogue eventually speaks or is withdrawn."
+      ],
+      "notes": "2026-08-15: FO demanded a gen reset 13 minutes after failure.cleared."
+    },
+    {
+      "id": "ecam-dialogue-inescapable",
+      "issue": 56,
+      "state": "open",
+      "kind": "watch",
+      "sources": ["session"],
+      "checks": [
+        "Report any abnormal dialogue active > 10 minutes, any interval where the same prompt was spoken 3+ times, and any recognized-but-rejected utterances while a dialogue was awaiting an answer (candidate cancel phrases the pilot tried)."
+      ],
+      "notes": "Full fix needs a cancel command (feature); the watch quantifies how often the trap bites and captures what the pilot said trying to escape."
+    },
+    {
+      "id": "llm-intent-auth",
+      "issue": 66,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["log"],
+      "checks": [
+        "No '401'/'Unauthorized' from the LLM intent client. If the LLM tier is enabled and any free-form utterance fell through to a clarifier, at least one successful LLM intent call should exist."
+      ],
+      "notes": "Dead-key scenario: every utterance silently degraded to 'Say again — which field?' for a whole flight."
+    },
+    {
+      "id": "metar-gateway",
+      "issue": 62,
+      "state": "open",
+      "kind": "watch",
+      "sources": ["log"],
+      "checks": [
+        "Count 'Gateway \"metar ...\" attempt N/3 failed' lines per airport. Zero failures + a successful METAR consumption = evidence toward closing; persistent 500s = still broken (confirmed 2026-08-17)."
+      ],
+      "notes": "Fix will add fallback sources; until then this tracks whether the ProSim gateway endpoint recovered."
+    },
+    {
+      "id": "crash-without-trace",
+      "issue": 46,
+      "state": "open",
+      "kind": "watch",
+      "sources": ["session", "log"],
+      "checks": [
+        "Any session JSONL that does not end with a 'session-ended' event = crash/kill signature; report the last events before the cut. Any CMTrace log that stops mid-write. Correlate with USB/audio-device lines just before the end."
+      ],
+      "notes": "The issue asks for global unhandled-exception logging; until it ships, the absent-session-ended heuristic is the only crash telemetry."
+    },
+    {
+      "id": "climb-approach-gear-down",
+      "issue": 48,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'phase-changed' Climb→Approach whose snapshot shows verticalSpeedFpm > +300 (positive climb must outvote a stuck gear lever)."
+      ],
+      "notes": "Evaluator already guards InitialClimb/TakeoffRoll; this watches the Climb path with the #93 payload fields."
+    },
+    {
+      "id": "checklist-swallowed-by-atc-parser",
+      "issue": 47,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'Copied — conditional' (or other ATC-copy reply) spoken in response to an utterance containing 'checklist'."
+      ],
+      "notes": "'After start/after takeoff checklist' classified as an ATC conditional without any FCU content."
+    },
+    {
+      "id": "voicemeeter-session-leak",
+      "issue": 34,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["log"],
+      "checks": [
+        "No second VoiceMeeter session/login opened without the previous one closing (pair open/close lines; a mapping change mid-flight is the trigger)."
+      ],
+      "notes": "Exercise by changing an audio mapping mid-session (also the #35 watchdog scenario)."
+    },
+    {
+      "id": "log-hardening-bundle",
+      "issue": 76,
+      "state": "open",
+      "kind": "watch",
+      "sources": ["session", "log", "wire"],
+      "checks": [
+        "Wire log growth: report final size; > 50 MB in one session = the logging-reload storm signature.",
+        "Any GSX trigger sent ('trigger sent — waiting for GSX to confirm') with no confirmation within 60 s = dropped request (the #76 GPU case).",
+        "Any turnaround LVAR write followed by a SimConnect disconnect within 2 s (write may be lost).",
+        "Count GSX retry-noise warning lines."
+      ],
+      "notes": "Four sub-items from the 2026-08-16 log review; each occurrence is evidence for prioritizing the fix."
+    },
+    {
+      "id": "isa-advisory-phase-blind",
+      "issue": 73,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'speech.spoken' containing 'climb performance' while the committed phase is Cruise or later."
+      ],
+      "notes": "Wording should become phase-aware; the spoken text in the session log is the normalizer's final output, so this is directly checkable."
+    },
+    {
+      "id": "winds-pronunciation",
+      "issue": 69,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'speech.spoken' text matching /\\bwinds \\d/ — the plural form must be expanded by the AviationSpeech normalizer like the singular already is."
+      ],
+      "notes": "Spoken text is logged post-normalizer, so the raw digit pattern surviving = bug reproduced."
+    },
+    {
+      "id": "nato-phonetics",
+      "issue": 68,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'speech.spoken' ATIS text matching /information [a-z]\\b/i without the phonetic word (should read 'information Mike'), and no SID/STAR designator spoken with a bare trailing letter."
+      ],
+      "notes": "Partially checkable from text; final pronunciation quality still needs ears (see requires-human list)."
+    },
+    {
+      "id": "airport-common-names",
+      "issue": 70,
+      "state": "open",
+      "kind": "feature-pending",
+      "sources": ["session"],
+      "checks": [
+        "Once shipped: briefing/logbook 'speech.spoken' texts contain airport names ('Heathrow') where today they contain bare ICAOs; count bare 4-letter ICAO codes in spoken text as the before/after metric."
+      ],
+      "notes": "DFD airports table already carries airport_name."
+    },
+    {
+      "id": "set-standard-command",
+      "issue": 49,
+      "state": "open",
+      "kind": "feature-pending",
+      "sources": ["session"],
+      "checks": [
+        "Once shipped: 'set standard' utterance → baro STD write + FO confirmation. Until then: count 'reject' speech events immediately after transition-altitude context as demand evidence."
+      ],
+      "notes": ""
+    },
+    {
+      "id": "voice-ground-ops-wp1-gating",
+      "issue": 50,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "When the Voice activation mode is configured: departure services must not auto-start without the voice trigger — 'gsx-decision' shows the gate holding until the pilot's call; with automation mode, auto-start decisions appear as before."
+      ],
+      "notes": "Trigger-dependent: only evaluable in sessions where voice gating was enabled."
+    },
+    {
+      "id": "voice-ground-ops-wp2-upcalls",
+      "issue": 51,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session"],
+      "checks": [
+        "Ground-crew upcalls fire on their triggers: 'ground.upcall.gpu' after GPU connect, 'ground.upcall.refuel' after Refueling Completed, 'ground.upcall.catering' after Catering Completed; crew hail dialogues respond on INT."
+      ],
+      "notes": "Upcalls verified live 2026-08-17 (GPU/refuel/catering all spoke). Hail dialogues still unverified — exercise one 'cockpit to ground' hail."
+    },
+    {
+      "id": "accent-localization",
+      "issue": 53,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["log"],
+      "checks": [
+        "At a non-home-country airport, the ground-crew voice resolution log shows a locale derived from the airport ICAO prefix."
+      ],
+      "notes": "WP4; needs a flight from/to an airport whose prefix maps to a non-default accent."
+    },
+    {
+      "id": "intrad-service-skip",
+      "issue": 91,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "When INT/RAD is pressed during a running departure sequence: 'gsx-decision' {action: 'force next service', reason: 'requested by INT/RAD'} appears and the next service triggers.",
+        "assert-absent: any 'Subscriber handler ... threw System.InvalidCastException' for S_ASP_INTRAD/S_ASP2_INTRAD."
+      ],
+      "notes": "Fixed 7b8db7a after being silently dead (sender cast). Not exercised = report untested."
+    },
+    {
+      "id": "aircraft-state-recheck",
+      "issue": 92,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session"],
+      "checks": [
+        "Voice 'check the aircraft state' → a fresh 'aircraft-state-check' event AND an 'fo.aircraft-state-advisory' speaking the verdict (Pass wording: 'the aircraft is in the expected cold and dark state').",
+        "After a Mismatch verdict, making the aircraft cold and dark (phase-changed → ColdAndDark) → automatic re-check with a spoken all-clear.",
+        "If asked while the check cannot run: the FO answers 'Standing by' rather than silence."
+      ],
+      "notes": "Shipped fd4c47d, never verified live."
+    },
+    {
+      "id": "phase-commit-evidence",
+      "issue": 93,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session"],
+      "checks": [
+        "Every 'phase-changed' snapshot payload carries the full field set (onGround, altitudeFt, radioAltitudeFt, verticalSpeedFpm, powered, enginesRunning, engineStarting, pushback, parkBrake, gearDown, takeoffThrust) — a payload with only iasKt/groundSpeedKt means an old build is running."
+      ],
+      "notes": "Doubles as a build-version canary for every other probe that reads these fields."
+    },
+    {
+      "id": "state-check-runs-each-session",
+      "issue": 63,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session"],
+      "checks": [
+        "Each session with a sim flight has exactly one initial 'aircraft-state-check' event (Pass/Mismatch/Skipped with an honest reason); a Mismatch produces the FO advisory when announce is on."
+      ],
+      "notes": "Verified live 2026-08-17."
+    },
+    {
+      "id": "listening-at-startup",
+      "issue": 61,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["log"],
+      "checks": [
+        "'Recognition \"listening\"' within ~5 s of app start, without a PTT toggle in between."
+      ],
+      "notes": "Verified live 2026-08-17 (all three sessions)."
+    },
+    {
+      "id": "startup-resync",
+      "issue": 30,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "On an app restart mid-turnaround: resync assessment completes, lifecycle latches seed from tracking LVARs/dataref evidence, and the sequencer holds until assessed (no duplicate service calls after restart)."
+      ],
+      "notes": "See the issue's live-verification list; exercised only by restarting the app mid-cycle."
+    },
+    {
+      "id": "sdk-wedge-watchdog",
+      "issue": 35,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["log"],
+      "checks": [
+        "No SDK-dispatcher watchdog trips and no wedged-worker recoveries when audio mappings change mid-flight."
+      ],
+      "notes": "Deadlock fixed with worker+dispatcher+watchdog; a watchdog LINE FIRING means the underlying wedge returned."
+    },
+    {
+      "id": "requires-human-checklist",
+      "issue": 0,
+      "state": "open",
+      "kind": "requires-human",
+      "sources": [],
+      "checks": [
+        "#71 EFB header clock shows sim time when connected (web UI).",
+        "#65 landing performance runway select enables after OFP import (web UI).",
+        "#74/#55 config parse failures and loaded-config path visible in the web UI.",
+        "#54 settings GUI backfill completeness (web UI).",
+        "#45 Services card shows ground-prep progress (web UI; the underlying gsx-ground-prep-stage events already flow).",
+        "#68/#69 final TTS pronunciation quality (ears, beyond the text-level probes).",
+        "#44 GSX facility/stale-gate behaviour at a stand GSX has no file for (sim-side observation).",
+        "Parity/features not yet implemented: #42, #43, #67, #72, #3–#12."
+      ],
+      "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
+    }
+  ]
+}
