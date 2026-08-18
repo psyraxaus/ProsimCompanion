@@ -541,6 +541,13 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   font-family: var(--font-mono);
   letter-spacing: 0.04em;
   white-space: nowrap;
+  /* Same overflow discipline as .row-value-mono: a long status ellipsizes inside its
+     track instead of widening the row until the card's overflow:hidden clips it raw.
+     min-width:0 is what lets a grid/flex cell shrink the pill below content width. */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tone-ok { background: rgba(76, 175, 80, 0.15); color: var(--success); }
@@ -661,6 +668,33 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   white-space: nowrap;
 }
 .row .pill { grid-column: 2 / -1; justify-self: end; }
+
+/* A row whose value side holds several elements (verdict pill + button + transient hint):
+   one flex cell spanning the value columns — .row's 3-column grid can't seat four children
+   without wrapping them onto implicit rows. */
+.row-actions {
+  grid-column: 2 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* Departure-board rows carry a fourth (detail) cell. The explicit minmax(0, …) track is
+   what lets the detail ellipsize — an implicit auto track (the old grid-column:auto
+   override landed the detail in one) sizes to its content and never truncates. */
+.row.row-with-detail { grid-template-columns: 1fr auto auto minmax(0, 50%); }
+.row-detail {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .log-box {
   height: 220px;

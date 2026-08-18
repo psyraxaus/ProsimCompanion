@@ -66,11 +66,13 @@
     }
     @foreach (var row in _view.ServiceBoard)
     {
-        <div class="row">
+        <div class="row row-with-detail">
             <span class="row-label">@row.ServiceId</span>
             <span class="@GsxPresentation.StageLamp(row.Stage)"></span>
             <span class="row-value">@GsxPresentation.StageLabel(row.Stage)</span>
-            <span class="row-value-mono" style="grid-column:auto;">@(row.Detail ?? "")</span>
+            @* Hold reasons are full sentences — the row-with-detail track ellipsizes them;
+               the hover title carries the whole thing. *@
+            <span class="row-detail" title="@row.Detail">@(row.Detail ?? "")</span>
         </div>
     }
 </Section>

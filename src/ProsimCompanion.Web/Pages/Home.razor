@@ -210,22 +210,40 @@
 
     private RenderFragment GroundPrepRow()
     {
-        // Live ground-preparation stage from the coordinator (issue #45): "Reposition —
-        // running", "Ground prep — complete", or a hold reason. "—" until it reports.
+        // Live ground-preparation stage from the coordinator (issue #45). The pill carries a
+        // short status word only — the coordinator's detail sentence is log-grade and used to
+        // clip off the card edge — with the full "stage — detail" kept on the hover title.
         var prep = _gsx.GroundPrep;
+        var holding = prep is not null
+            && prep.Detail.StartsWith("holding", StringComparison.OrdinalIgnoreCase);
         var tone = prep is null ? "tone-neutral"
             : prep.Stage == "Complete" ? "tone-ok"
-            : prep.Detail.StartsWith("holding", StringComparison.OrdinalIgnoreCase)
+            : holding
                 || prep.Detail.StartsWith("reset", StringComparison.OrdinalIgnoreCase) ? "tone-warn"
             : "tone-active";
         var text = prep is null ? null
-            : prep.Stage == "Complete" ? "Ground prep — complete"
-            : $"{prep.Stage} — {prep.Detail}";
+            : holding ? "Holding"
+            : PrepStageDisplay(prep.Stage);
+        var tooltip = prep is null ? null : $"{PrepStageDisplay(prep.Stage)} — {prep.Detail}";
         return @<div class="row">
             <span class="row-label">Ground Prep</span>
-            <span class="pill @tone">@(text ?? "—")</span>
+            <span class="pill @tone" title="@tooltip">@(text ?? "—")</span>
         </div>;
     }
+
+    /// <summary>The coordinator publishes raw <c>GsxPrepStage</c> enum names ("AnchorGate",
+    /// "GroundEquipment") — developer codenames, not dashboard words. Unknown names pass
+    /// through so a future stage still renders something.</summary>
+    private static string PrepStageDisplay(string stage) => stage switch
+    {
+        "Reposition" => "Repositioning",
+        "Settling" => "Settling",
+        "AnchorGate" => "Anchoring gate",
+        "GroundEquipment" => "Ground equipment",
+        "JetwayStairs" => "Jetway/stairs",
+        "Complete" => "Complete",
+        _ => stage,
+    };
 
     private RenderFragment AircraftStateRow()
     {
@@ -233,30 +251,37 @@
         // check after session entry on a fresh departure. "—" until it has run. The Re-check
         // button (issue #92) clears the once-per-session latch — without it, a pilot who fixed
         // the switches could only get a fresh verdict by restarting the app.
+        // The pill stays a glanceable verdict; the item list rides on the hover title. The
+        // mismatch tooltip uses the spoken phrases ("battery 1 is on") — the checklist labels
+        // ("Battery 1 OFF") read backwards when listed as what is WRONG.
         var check = _gsx.AircraftStateCheck;
-        var (tone, text) = check switch
+        var (tone, text, tooltip) = check switch
         {
-            null => ("tone-neutral", (string?)null),
-            { Status: AircraftStateCheckStatus.Pass } =>
-                ("tone-ok", "cold and dark ✓"),
+            null => ("tone-neutral", (string?)null, (string?)null),
+            { Status: AircraftStateCheckStatus.Pass } pass =>
+                ("tone-ok", "cold and dark ✓",
+                    pass.UncheckedLabels.Count == 0 ? null
+                        : $"unchecked (dataref never reported): {string.Join(", ", pass.UncheckedLabels)}"),
             { Status: AircraftStateCheckStatus.Mismatch } mismatch =>
                 ("tone-warn",
-                    $"{mismatch.Mismatches.Count} mismatch{(mismatch.Mismatches.Count == 1 ? "" : "es")} "
-                    + $"({string.Join(", ", mismatch.Mismatches.Select(item => item.Label))})"),
-            _ => ("tone-neutral", $"not checked — {check.Reason}"),
+                    $"{mismatch.Mismatches.Count} mismatch{(mismatch.Mismatches.Count == 1 ? "" : "es")}",
+                    string.Join(", ", mismatch.Mismatches.Select(item => item.Phrase))),
+            _ => ("tone-neutral", "not checked", check.Reason),
         };
         return @<div class="row">
             <span class="row-label">Aircraft State</span>
-            <span class="pill @tone">@(text ?? "—")</span>
-            <button type="button" class="btn secondary" style="margin-left:8px;"
-                    @onclick="RecheckAircraftState"
-                    title="Re-run the cold-and-dark check now (also available by voice: 'check the aircraft state').">
-                Re-check
-            </button>
-            @if (_recheckUnavailable)
-            {
-                <span class="pill tone-neutral">not ready yet</span>
-            }
+            <span class="row-actions">
+                <span class="pill @tone" title="@tooltip">@(text ?? "—")</span>
+                <button type="button" class="btn secondary"
+                        @onclick="RecheckAircraftState"
+                        title="Re-run the cold-and-dark check now (also available by voice: 'check the aircraft state').">
+                    Re-check
+                </button>
+                @if (_recheckUnavailable)
+                {
+                    <span class="pill tone-neutral">not ready yet</span>
+                }
+            </span>
         </div>;
     }
 

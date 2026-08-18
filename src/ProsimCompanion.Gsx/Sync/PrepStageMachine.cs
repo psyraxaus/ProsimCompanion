@@ -91,7 +91,9 @@ internal static class PrepStageMachine
             && inputs.VoiceActivationMode
             && !inputs.CycleStarted)
         {
-            return new(PrepCommand.Hold, "waiting for 'commence ground services' (gsx.groundPrepActivation = voice)");
+            // Pilot-facing (it surfaces on the Flight Status page): no settings-key jargon —
+            // "(voice activation mode)" keeps the why without leaking gsx.groundPrepActivation.
+            return new(PrepCommand.Hold, "waiting for 'commence ground services' (voice activation mode)");
         }
 
         if (inputs.FlightPhase is not (FlightPhase.Preflight or FlightPhase.ColdAndDark))

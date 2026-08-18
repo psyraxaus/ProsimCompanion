@@ -93,7 +93,7 @@ internal static class DepartureAutomationCore
             {
                 AutoStarted = autoStarted,
                 WaitingBoard = "ground preparation running",
-                HoldReason = "waiting for ground preparation (reposition/equipment/jetway) to complete",
+                HoldReason = "waiting for ground preparation to complete",
             };
         }
 
