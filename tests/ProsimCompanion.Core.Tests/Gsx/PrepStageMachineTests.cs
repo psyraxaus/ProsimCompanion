@@ -107,6 +107,43 @@ public sealed class PrepStageMachineTests
     }
 
     [Fact]
+    public void IdleChain_InFlight_StaysSilent()
+    {
+        // Issue #98: a mid-flight app restart starts the chain at Idle — descent/cruise must
+        // produce no reset, no publish, nothing for the status row to mislabel.
+        foreach (var phase in new[] { FlightPhase.Descent, FlightPhase.Cruise, FlightPhase.Climb })
+        {
+            var decision = PrepStageMachine.Next(
+                Open(GsxPrepStage.Idle) with { FlightPhase = phase },
+                Now);
+
+            Assert.Equal(PrepCommand.None, decision.Command);
+        }
+    }
+
+    [Fact]
+    public void IdleChain_InWindow_Runs()
+    {
+        // The shell advances Idle → Reposition on RunStage; only then may the page say
+        // "Repositioning".
+        var decision = PrepStageMachine.Next(Open(GsxPrepStage.Idle), Now);
+
+        Assert.Equal(PrepCommand.RunStage, decision.Command);
+    }
+
+    [Fact]
+    public void MidRepositionChain_ResetsWhenTheFlightMovesOn()
+    {
+        // With Idle as the resting stage, a chain caught mid-Reposition is progressed and
+        // must reset (back to Idle) once the flight moves on.
+        var decision = PrepStageMachine.Next(
+            Open(GsxPrepStage.Reposition) with { FlightPhase = FlightPhase.Cruise },
+            Now);
+
+        Assert.Equal(PrepCommand.Reset, decision.Command);
+    }
+
+    [Fact]
     public void UnprogressedChain_OffPhase_JustWaits()
     {
         var decision = PrepStageMachine.Next(

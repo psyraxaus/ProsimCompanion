@@ -57,7 +57,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxGroundPrepCoordinator> _logger;
     private readonly Timer _timer;
-    private GsxPrepStage _stage = GsxPrepStage.Reposition;
+    private GsxPrepStage _stage = GsxPrepStage.Idle;
     private DateTimeOffset _settleUntil;
     private string? _sessionGateKey;
     private string? _holdReason;
@@ -147,8 +147,8 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
     private void Reset(string reason)
     {
-        var wasProgressed = _stage != GsxPrepStage.Reposition || _sessionGateKey is not null;
-        _stage = GsxPrepStage.Reposition;
+        var wasProgressed = _stage != GsxPrepStage.Idle || _sessionGateKey is not null;
+        _stage = GsxPrepStage.Idle;
         _sessionGateKey = null;
         _cycle.ResetPrep();
         if (wasProgressed)
@@ -213,6 +213,13 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
             switch (_stage)
             {
+                case GsxPrepStage.Idle:
+                    // The machine only lets RunStage through when the whole window is open —
+                    // this transition is what makes "Repositioning" mean an actual reposition
+                    // (issue #98). The step itself runs next cycle.
+                    Advance(GsxPrepStage.Reposition, "starting ground preparation");
+                    break;
+
                 case GsxPrepStage.Reposition:
                     var repositionStatus = await _reposition.RunStepAsync().ConfigureAwait(false);
                     if (repositionStatus == GsxPrepStatus.Done)
@@ -289,7 +296,9 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _holdReason = null;
         _logger.LogInformation("Ground preparation hold released");
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", "hold released"));
-        PublishStage("running");
+        // A parked chain releasing a hold is not "running" (issue #98: after a mid-flight
+        // restart the startup holds release into descent — the row must read as idle).
+        PublishStage(_stage == GsxPrepStage.Idle ? "standing by" : "running");
     }
 
     private void Advance(GsxPrepStage next, string detail)

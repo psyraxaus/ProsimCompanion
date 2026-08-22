@@ -88,6 +88,12 @@ public sealed class CoreBootstrapService : IHostedService
                 parkBrake = snapshot.ParkBrakeSet,
                 gearDown = snapshot.GearDown,
                 takeoffThrust = snapshot.TakeoffThrustSet,
+                // #100: the pushback boolean proved untrustworthy — the beacon/APU gate
+                // inputs and the raw enum ride along so the dataref's real semantics can be
+                // settled from one instrumented flight.
+                beacon = snapshot.BeaconOn,
+                apuRunning = snapshot.ApuRunning,
+                rawPushback = snapshot.RawPushbackState,
             },
         });
     }

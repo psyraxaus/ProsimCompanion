@@ -189,6 +189,42 @@ public sealed class FlightStateEngineTests
     }
 
     [Fact]
+    public void ApproachToClimb_BlipHolds_SustainedGoAroundCommits()
+    {
+        // Issue #99 second layer: even a go-around-grade VS reading must sustain for the 5 s
+        // Approach->Climb settle before committing — and a short blip never does.
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+
+        var approach = new FlightDataSnapshot
+        {
+            IsValid = true,
+            IsReady = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            IndicatedAirspeedKt = 190,
+            GroundSpeedKt = 215,
+            RadioAltitudeFt = 3000,
+            VerticalSpeedFpm = -600,
+            GearDown = true,
+        };
+        var now = Drive(engine, approach, T0, TimeSpan.FromSeconds(6));
+        Assert.Equal(FlightPhase.Approach, engine.CurrentPhase);
+
+        // 3 s go-around-grade blip: evaluator votes Climb, the settle holds Approach.
+        var climbBlip = approach with { VerticalSpeedFpm = 1500, GearDown = false };
+        now = Drive(engine, climbBlip, now, TimeSpan.FromSeconds(3));
+        Assert.Equal(FlightPhase.Approach, engine.CurrentPhase);
+        now = Drive(engine, approach, now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Approach, engine.CurrentPhase);
+
+        // A real go-around sustains: commits after the settle window.
+        Drive(engine, climbBlip, now, TimeSpan.FromSeconds(6));
+        Assert.Equal(FlightPhase.Climb, engine.CurrentPhase);
+    }
+
+    [Fact]
     public void WarmupGarbage_AirborneAtZeroSpeed_IsHeldImplausible()
     {
         // The 2026-08-17 recurrence shape (issue #59): every ref has a first value, so

@@ -31,9 +31,19 @@ public sealed record FlightDataSnapshot
 
     public bool AnyEngineRunning { get; init; }
     public bool EngineStarting { get; init; }
+
+    /// <summary>groundservice.pushback &gt; 0. CAUTION (issue #100): non-zero whenever the
+    /// pushback service is merely CONNECTED, not only while a tug pushes — on the 2026-08-22
+    /// flight it read true at cold-and-dark, 0 during the actual GSX push, and true from
+    /// mid-taxi to shutdown. Phase logic must only trust it behind the beacon gate.</summary>
     public bool PushbackActive { get; init; }
     public bool ParkBrakeSet { get; init; }
     public bool GearDown { get; init; }
+
+    /// <summary>APU running (system.gates.B_APU_RUNNING). With <see cref="BeaconOn"/> this is
+    /// the predecessor-parity push/start cue (issue #100): during a GSX-driven push the
+    /// pushback dataref reads 0, but beacon-on + APU-running marks the real push window.</summary>
+    public bool ApuRunning { get; init; }
 
     /// <summary>Take-off thrust (FLEX/TOGA) commanded.</summary>
     public bool TakeoffThrustSet { get; init; }

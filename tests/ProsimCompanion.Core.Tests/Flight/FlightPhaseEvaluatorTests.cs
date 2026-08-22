@@ -31,9 +31,31 @@ public sealed class FlightPhaseEvaluatorTests
         => Assert.Equal(FlightPhase.Preflight, FlightPhaseEvaluator.Evaluate(Ground(), FlightPhase.ColdAndDark));
 
     [Fact]
-    public void Pushback_WithBrakeReleased_IsPushbackAndStart()
+    public void Pushback_WithBeaconAndBrakeReleased_IsPushbackAndStart()
     {
+        var snapshot = Ground() with { PushbackActive = true, BeaconOn = true, ParkBrakeSet = false };
+
+        Assert.Equal(FlightPhase.PushbackAndStart, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Preflight));
+    }
+
+    [Fact]
+    public void PushbackFlag_WithoutBeacon_StaysPreflight()
+    {
+        // Issue #100: groundservice.pushback is non-zero whenever the service is merely
+        // connected (true at cold-and-dark on the 2026-08-22 flight) — the beacon is the
+        // necessary gate, per Prosim2FO's hard-won rule.
         var snapshot = Ground() with { PushbackActive = true, ParkBrakeSet = false };
+
+        Assert.Equal(FlightPhase.Preflight, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Preflight));
+    }
+
+    [Fact]
+    public void BeaconAndApu_BrakeReleased_IsPushbackAndStart()
+    {
+        // Issue #100: during a GSX-driven push the pushback dataref reads 0 — beacon-on +
+        // APU-running marks the real push window (the 2026-08-22 flight showed "Preflight"
+        // for the whole actual pushback).
+        var snapshot = Ground() with { BeaconOn = true, ApuRunning = true, ParkBrakeSet = false };
 
         Assert.Equal(FlightPhase.PushbackAndStart, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Preflight));
     }
@@ -42,9 +64,38 @@ public sealed class FlightPhaseEvaluatorTests
     public void PushbackFlag_WithBrakeSet_StaysPreflight()
     {
         // Smoke-test find: a noisy pushback flag on a parked aircraft must not fake a pushback.
-        var snapshot = Ground() with { PushbackActive = true };
+        var snapshot = Ground() with { PushbackActive = true, BeaconOn = true, ApuRunning = true };
 
         Assert.Equal(FlightPhase.Preflight, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Preflight));
+    }
+
+    [Fact]
+    public void TaxiOut_ConnectedPushbackReading_NeverWalksBack()
+    {
+        // Issue #100, 2026-08-22 10:57:58: stopped during taxi (gs=0, brake off) with the
+        // "service connected" flag true — the phase regressed TaxiOut→PushbackAndStart and
+        // spent the last 7 minutes of taxi there. Once the taxi has begun, only a genuine
+        // engine start may regress.
+        var snapshot = Ground() with
+        {
+            AnyEngineRunning = true,
+            GroundSpeedKt = 0,
+            ParkBrakeSet = false,
+            PushbackActive = true,
+            BeaconOn = true,
+            ApuRunning = true,
+        };
+
+        Assert.Equal(FlightPhase.TaxiOut, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.TaxiOut));
+    }
+
+    [Fact]
+    public void EngineStart_MidTaxi_StillRegressesToPushbackAndStart()
+    {
+        // The cross-bleed-start path stays: a real engine start regresses from anywhere.
+        var snapshot = Ground() with { AnyEngineRunning = true, EngineStarting = true, ParkBrakeSet = false };
+
+        Assert.Equal(FlightPhase.PushbackAndStart, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.TaxiOut));
     }
 
     [Fact]
@@ -269,6 +320,44 @@ public sealed class FlightPhaseEvaluatorTests
         };
 
         Assert.Equal(FlightPhase.Approach, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Cruise));
+    }
+
+    [Fact]
+    public void Approach_LevelOffClimbBlip_StaysApproach()
+    {
+        // Issue #99, 2026-08-22 LGAV 14:09:06 verbatim: +388 fpm during a level-off at
+        // 3,000 ft (gear still up) flipped Approach→Climb and the FO called "positive climb"
+        // on final.
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            IndicatedAirspeedKt = 189.9,
+            RadioAltitudeFt = 3003,
+            VerticalSpeedFpm = 388,
+        };
+
+        Assert.Equal(FlightPhase.Approach, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Approach));
+    }
+
+    [Fact]
+    public void Approach_GoAroundGradeClimb_ExitsToClimb()
+    {
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            IndicatedAirspeedKt = 160,
+            RadioAltitudeFt = 2500,
+            VerticalSpeedFpm = 2200,
+            GearDown = true,
+        };
+
+        Assert.Equal(FlightPhase.Climb, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Approach));
     }
 
     [Fact]

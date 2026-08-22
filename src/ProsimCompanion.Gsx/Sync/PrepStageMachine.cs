@@ -3,9 +3,15 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Gsx.Sync;
 
-/// <summary>The ground-preparation chain's stages, in owner-specified order.</summary>
+/// <summary>The ground-preparation chain's stages, in owner-specified order. Idle is the
+/// resting state (issue #98): before Reposition doubled as "parked, nothing running", every
+/// parked publish (reset in climb, hold release after a mid-flight restart) rendered as an
+/// active "Repositioning" pill on the Flight Status page for the rest of the flight.</summary>
 public enum GsxPrepStage
 {
+    /// <summary>Chain parked — before the first run of a gate session, and after any reset.</summary>
+    Idle,
+
     Reposition,
     Settling,
     AnchorGate,
@@ -99,7 +105,9 @@ internal static class PrepStageMachine
         if (inputs.FlightPhase is not (FlightPhase.Preflight or FlightPhase.ColdAndDark))
         {
             // Off the ground-prep window; a fresh Preflight after flight restarts the chain.
-            if (inputs.Stage != GsxPrepStage.Reposition
+            // An Idle chain has nothing to reset — it just waits (issue #98: a mid-flight
+            // app restart starts at Idle and must stay there quietly).
+            if (inputs.Stage != GsxPrepStage.Idle
                 && inputs.FlightPhase is FlightPhase.TaxiIn or FlightPhase.Shutdown
                     or FlightPhase.Cruise or FlightPhase.Climb)
             {

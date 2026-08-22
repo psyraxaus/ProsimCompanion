@@ -59,6 +59,10 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     private readonly IDataRefSubscription<bool> _gearDown;
     private readonly IDataRefSubscription<bool> _dcBatteryBusPowered;
 
+    // Beacon+APU gate the untrustworthy pushback flag (issue #100). Deliberately NOT
+    // phase-critical: a missing APU ref degrades to flag-only evidence, never blocks IsReady.
+    private readonly IDataRefSubscription<bool> _apuRunning;
+
     // Callout/monitoring refs (Phase 5) — names confirmed in Prosim2FO's proven source.
     private readonly IDataRefSubscription<double> _flexN1;
     private readonly IDataRefSubscription<double> _togaN1;
@@ -115,6 +119,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _parkBrake = dataRefs.Subscribe(ProsimDataRefNames.MipParkingBrake);
         _gearDown = dataRefs.Subscribe(ProsimDataRefNames.GearDown);
         _dcBatteryBusPowered = dataRefs.Subscribe(ProsimDataRefNames.ElecBusPowerDcBat);
+        _apuRunning = dataRefs.Subscribe(ProsimDataRefNames.ApuRunning);
         _flexN1 = dataRefs.Subscribe(ProsimDataRefNames.EnginesLimitFlex);
         _togaN1 = dataRefs.Subscribe(ProsimDataRefNames.EnginesLimitToga);
         _v1 = dataRefs.Subscribe(ProsimDataRefNames.FmsPerfTakeoffV1);
@@ -152,6 +157,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _all =
         [
             .. _phaseCritical,
+            _apuRunning,
             _flexN1, _togaN1, _v1, _vr, _v2, _vls, _flapHandle, _fcuAltitude,
             _groundSpoilers, _reverseLeftMax, _reverseRightMax,
             _altitudeAgl, _landingLightL, _landingLightR, _seatbeltSigns, _beacon,
@@ -196,7 +202,11 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             PushbackActive = _pushback.Value > 0,
             ParkBrakeSet = _parkBrake.Value != 0,
             GearDown = _gearDown.Value,
-            TakeoffThrustSet = anyRunning && maxN1 >= TakeoffThrustN1Threshold,
+            ApuRunning = _apuRunning.Value,
+            // On the ground only (issue #101): climb/cruise N1 routinely exceeds 75%, which
+            // kept this flag true for entire flights in telemetry — and reverse thrust after
+            // touchdown can exceed it too, a TakeoffRoll trap if arrival context ever gaps.
+            TakeoffThrustSet = _onGround.Value && anyRunning && maxN1 >= TakeoffThrustN1Threshold,
             RawPushbackState = _pushback.Value,
             RawEngine1State = _engine1State.Value,
             RawEngine2State = _engine2State.Value,

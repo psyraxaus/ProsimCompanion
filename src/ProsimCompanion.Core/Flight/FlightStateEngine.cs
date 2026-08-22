@@ -71,6 +71,10 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
         [(FlightPhase.TaxiOut, FlightPhase.Preflight)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.TakeoffRoll, FlightPhase.Preflight)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.Descent, FlightPhase.Cruise)] = TimeSpan.FromSeconds(15),
+        // Approach→Climb is a go-around: real ones sustain their climb for far longer than
+        // 5 s, while the 2026-08-22 level-off blips (#99) lasted seconds. Second layer of
+        // defence behind the evaluator's go-around VS gate.
+        [(FlightPhase.Approach, FlightPhase.Climb)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.Unknown, FlightPhase.Approach)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.Unknown, FlightPhase.Climb)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.Unknown, FlightPhase.Descent)] = TimeSpan.FromSeconds(5),

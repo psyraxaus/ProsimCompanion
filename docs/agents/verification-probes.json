@@ -385,7 +385,7 @@
       "kind": "assert-present",
       "sources": ["session"],
       "checks": [
-        "Every 'phase-changed' snapshot payload carries the full field set (onGround, altitudeFt, radioAltitudeFt, verticalSpeedFpm, powered, enginesRunning, engineStarting, pushback, parkBrake, gearDown, takeoffThrust) — a payload with only iasKt/groundSpeedKt means an old build is running."
+        "Every 'phase-changed' snapshot payload carries the full field set (onGround, altitudeFt, radioAltitudeFt, verticalSpeedFpm, powered, enginesRunning, engineStarting, pushback, parkBrake, gearDown, takeoffThrust; with #100 shipped, also beacon, apuRunning, rawPushback) — a payload with only iasKt/groundSpeedKt means an old build is running."
       ],
       "notes": "Doubles as a build-version canary for every other probe that reads these fields."
     },
@@ -434,6 +434,56 @@
       "notes": "Deadlock fixed with worker+dispatcher+watchdog; a watchdog LINE FIRING means the underlying wedge returned."
     },
     {
+      "id": "ground-prep-idle-stage",
+      "issue": 98,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "After the last 'phase-changed' event leaving the ground-prep window (current not Preflight/ColdAndDark), every subsequent 'gsx-ground-prep-stage' event carries stage 'Idle' or 'Complete' until the phase returns to the window — any 'Reposition'/'Settling'/'AnchorGate' stage recorded in flight is a fail.",
+        "On a mid-flight app restart: no 'gsx-ground-prep-stage' event with an active stage name before landing."
+      ],
+      "notes": "Fix: GsxPrepStage.Idle resting state; resets land on Idle, hold-release publishes 'standing by'. The pill itself ('Idle', neutral tone) is on the requires-human list."
+    },
+    {
+      "id": "approach-phase-flapping",
+      "issue": 99,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'phase-changed' Approach->Climb whose snapshot has verticalSpeedFpm < 800 (the go-around gate).",
+        "No 'phase-changed' into Cruise with radioAltitudeFt < 5000 in arrival context (the 14:09:14 'Cruise at 3,000 ft' signature).",
+        "No 'callout.fired' positiveClimb, no 'flapsNotRetracted' speech, and no ISA-deviation advisory between the first Approach commit and touchdown, unless a genuine go-around (sustained VS >= 800 fpm) occurred.",
+        "assert-present on a deliberate go-around: Approach->Climb still commits within ~5-10 s of sustained TOGA climb."
+      ],
+      "notes": "Two layers (2026-08-22): evaluator keeps Approach below +800 fpm; engine adds a 5 s Approach->Climb settle. Reproduced verbatim at LGAV 14:09:03-14:12:38."
+    },
+    {
+      "id": "pushback-flag-semantics",
+      "issue": 100,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'phase-changed' TaxiOut->PushbackAndStart whose snapshot has engineStarting=false (a 'connected' pushback reading must never walk a taxi back).",
+        "assert-present during a normal GSX pushback with beacon on: a Preflight->PushbackAndStart commit BEFORE engine start (the beacon+APU window) — the 2026-08-22 flight showed Preflight for the whole push.",
+        "watch: record the rawPushback value at every phase-changed event across the turnaround (cold-and-dark, push, taxi, flight, shutdown) — the enum semantics of groundservice.pushback are the open question this field answers."
+      ],
+      "notes": "Fix: beacon is a necessary gate (Prosim2FO parity), beacon+APU covers the real push window, and only at-gate phases may enter on pushback evidence. ApuRunning has a benign false fallback — if the APU ref never arrives, entry degrades to engine-start-only (report it)."
+    },
+    {
+      "id": "takeoff-thrust-airborne",
+      "issue": 101,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'phase-changed' snapshot with onGround=false AND takeoffThrust=true (the flag now means thrust set on the ground)."
+      ],
+      "notes": "Was an N1-only heuristic: true for the whole climb/cruise on the 2026-08-22 flight, and a latent reverse-thrust->TakeoffRoll trap."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",
@@ -445,6 +495,7 @@
         "#74/#55 config parse failures and loaded-config path visible in the web UI.",
         "#54 settings GUI backfill completeness (web UI).",
         "#45 Services card shows ground-prep progress (web UI; the underlying gsx-ground-prep-stage events already flow).",
+        "#98 Ground Prep pill reads 'Idle' with the neutral tone in flight and after a mid-flight app restart (web UI).",
         "#68/#69 final TTS pronunciation quality (ears, beyond the text-level probes).",
         "#97 dead-circuit auto-reload: restart the app with the EFB open — the page must reload itself (~10 s).",
         "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67)."

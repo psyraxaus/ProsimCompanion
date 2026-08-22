@@ -16,6 +16,12 @@ public static class FlightPhaseEvaluator
     private const double ClimbDescentVsFpm = 300;
     private const double ApproachRaCeilingFt = 3500;
 
+    // Leaving Approach upward needs a go-around-grade climb (issue #99, 2026-08-22 LGAV):
+    // a +388 fpm level-off blip at 3,000 ft flipped Approach→Climb→Cruise and the FO called
+    // "positive climb" / "flaps still extended" on final. A real go-around blows straight
+    // through this threshold.
+    private const double GoAroundVsFpm = 800;
+
     // Descent hysteresis (flight test 2026-08-16, issue #59): a symmetric ±300 fpm gate
     // produced four Descent<->Cruise flip-flops in 23 minutes of step-descent/level segments.
     // Entering Descent now needs a decisive rate; leaving Descent for Cruise needs near-level
@@ -91,9 +97,19 @@ public static class FlightPhaseEvaluator
             return FlightPhase.TakeoffRoll;
         }
 
-        // Pushback requires the park brake released (a parked aircraft with a noisy pushback
-        // flag must stay Preflight); an engine start counts regardless of the brake.
-        if (s.EngineStarting || (s.PushbackActive && !s.ParkBrakeSet))
+        // Pushback evidence (issue #100). groundservice.pushback is non-zero whenever the
+        // pushback service is merely CONNECTED, not only while a tug pushes (Prosim2FO
+        // archaeology; 2026-08-22 flight: true at cold-and-dark, 0 during the actual GSX
+        // push, true from mid-taxi to shutdown). Predecessor-parity rule: the beacon is a
+        // NECESSARY gate, and beacon+APU covers the real push window where the flag reads 0.
+        // The park brake must be released (a parked aircraft with a noisy flag stays
+        // Preflight). Only at-gate phases may enter on this evidence — once the taxi has
+        // begun, a "connected" reading must never walk the phase back; a genuine engine
+        // start (e.g. cross-bleed after a stop) still regresses from anywhere.
+        var atGate = current is FlightPhase.Unknown or FlightPhase.ColdAndDark
+            or FlightPhase.Preflight or FlightPhase.PushbackAndStart;
+        if (s.EngineStarting
+            || (atGate && s.BeaconOn && (s.ApuRunning || s.PushbackActive) && !s.ParkBrakeSet))
         {
             return FlightPhase.PushbackAndStart;
         }
@@ -137,6 +153,14 @@ public static class FlightPhaseEvaluator
 
         if (s.VerticalSpeedFpm > ClimbDescentVsFpm)
         {
+            // From Approach, only a go-around-grade climb exits upward (issue #99) — a
+            // level-off blip stays Approach. Departure climbs are unaffected, and #48's rule
+            // (gear down never outvotes a positive climb) applies to Climb context, not here.
+            if (current == FlightPhase.Approach && s.VerticalSpeedFpm < GoAroundVsFpm)
+            {
+                return FlightPhase.Approach;
+            }
+
             return FlightPhase.Climb;
         }
 

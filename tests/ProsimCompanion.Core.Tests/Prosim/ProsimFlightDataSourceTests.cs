@@ -89,4 +89,22 @@ public sealed class ProsimFlightDataSourceTests
 
         Assert.False(source.Sample().AnyEngineRunning);
     }
+
+    [Fact]
+    public void TakeoffThrust_RequiresBeingOnTheGround()
+    {
+        // Issue #101: climb/cruise N1 routinely exceeds the 75% threshold, which kept the
+        // flag true for entire flights in telemetry — it must mean thrust set ON THE GROUND.
+        var refs = new FakeDataRefs();
+        using var source = new ProsimFlightDataSource(refs);
+        MakeReady(refs);
+        refs.Values[Engine1Running] = true;
+        refs.Values["aircraft.engines.1.n1"] = 85.0;
+
+        Assert.True(source.Sample().TakeoffThrustSet);
+
+        refs.Values["system.gates.B_GROUND"] = false;
+        refs.Values[Ias] = 250.0;
+        Assert.False(source.Sample().TakeoffThrustSet);
+    }
 }

@@ -218,8 +218,10 @@
             && prep.Detail.StartsWith("holding", StringComparison.OrdinalIgnoreCase);
         var tone = prep is null ? "tone-neutral"
             : prep.Stage == "Complete" ? "tone-ok"
-            : holding
-                || prep.Detail.StartsWith("reset", StringComparison.OrdinalIgnoreCase) ? "tone-warn"
+            : holding ? "tone-warn"
+            // Idle = parked chain (issue #98) — calm, not an activity and not a warning.
+            : prep.Stage == "Idle" ? "tone-neutral"
+            : prep.Detail.StartsWith("reset", StringComparison.OrdinalIgnoreCase) ? "tone-warn"
             : "tone-active";
         var text = prep is null ? null
             : holding ? "Holding"
@@ -236,6 +238,7 @@
     /// through so a future stage still renders something.</summary>
     private static string PrepStageDisplay(string stage) => stage switch
     {
+        "Idle" => "Idle",
         "Reposition" => "Repositioning",
         "Settling" => "Settling",
         "AnchorGate" => "Anchoring gate",
