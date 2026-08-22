@@ -315,6 +315,30 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
                 _executionGate.Release();
             }
 
+            // Cross-check before confirming (issue #49): a press that did not take must
+            // yield an honest negative, never a confident readback of a non-event.
+            if (command.Verify is { } verify && !VoiceCommandConfigParser.IsPlaceholder(verify.Dataref))
+            {
+                var verified = await VerifyEffectAsync(verify).ConfigureAwait(false);
+                _eventLog.Record("voicecommand.verified", new
+                {
+                    phrase = label,
+                    dataref = verify.Dataref,
+                    expected = verify.Expected,
+                    ok = verified,
+                });
+                if (!verified)
+                {
+                    _logger.LogWarning(
+                        "Voice command \"{Command}\" verify failed: {Dataref} did not reach {Expected} within {TimeoutMs} ms",
+                        label, verify.Dataref, verify.Expected, verify.TimeoutMs);
+                    await SpeakAsync(string.IsNullOrWhiteSpace(verify.SayOnFail)
+                        ? $"Negative — {label} did not take effect."
+                        : ApplyTokens(verify.SayOnFail)).ConfigureAwait(false);
+                    return;
+                }
+            }
+
             await SpeakAsync(ApplyTokens(command.Say)).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -322,6 +346,27 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
             _logger.LogError(ex, "Voice command \"{Command}\" failed", label);
             await SpeakAsync("Unable — see the log.").ConfigureAwait(false);
         }
+    }
+
+    /// <summary>Waits for the verify dataref to read the expected value. A short-lived
+    /// dynamic subscription (the names are user-authored, no compile-time descriptor can
+    /// exist) polled on the cached value — never a network round-trip per read.</summary>
+    private async Task<bool> VerifyEffectAsync(VoiceCommandVerify verify)
+    {
+        using var read = _dataRefs.SubscribeDynamic(Side(verify.Dataref), Core.Aircraft.DataRefTier.Frequent);
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(Math.Clamp(verify.TimeoutMs, 250, 10_000));
+        while (DateTimeOffset.UtcNow <= deadline)
+        {
+            if (read.RawValue is not null
+                && Math.Abs(read.GetValue(double.NaN) - verify.Expected) < 0.5)
+            {
+                return true;
+            }
+
+            await Task.Delay(100).ConfigureAwait(false);
+        }
+
+        return false;
     }
 
     private async Task SpeakAsync(string text)

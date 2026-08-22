@@ -28,6 +28,30 @@ public sealed class VoiceCommandStep
 }
 
 /// <summary>
+/// Post-step cross-check (issue #49): after the presses, the command's confirmation is only
+/// spoken once <see cref="Dataref"/> reads <see cref="Expected"/> — a press that did not
+/// take must produce an honest "negative", never a confident readback of something that
+/// didn't happen (the 2026-08-22 flight's "Standard set" with an unmoved altimeter).
+/// </summary>
+public sealed class VoiceCommandVerify
+{
+    /// <summary>Read-only dataref proving the effect (e.g. the EFIS STD gate) — reads need
+    /// no write allow-list. Seat-mapped like the step writes.</summary>
+    public string Dataref { get; set; } = "";
+
+    /// <summary>The value that proves success (JSON key <c>equals</c>).</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("equals")]
+    public double Expected { get; set; } = 1;
+
+    /// <summary>How long to wait for the effect before declaring failure.</summary>
+    public int TimeoutMs { get; set; } = 2000;
+
+    /// <summary>Spoken instead of <see cref="VoiceCommandDefinition.Say"/> when the check
+    /// fails; empty = a generic "did not take effect". Supports the same tokens.</summary>
+    public string SayOnFail { get; set; } = "";
+}
+
+/// <summary>
 /// A file-configured voice command: trigger phrases, an optional spoken confirmation
 /// (<see cref="Say"/>, supporting <c>{token}</c> placeholders), and a press sequence.
 /// A command with no steps is a spoken query — it only speaks.
@@ -37,10 +61,13 @@ public sealed class VoiceCommandDefinition
     public List<string> Phrases { get; set; } = [];
 
     /// <summary>Spoken after the steps complete (or immediately for a query command).
-    /// May contain tokens: {altimeter} {qnh} {v1} {vr} {v2} {flex} {runway}.</summary>
+    /// May contain tokens: {altimeter} {qnh} {v1} {vr} {v2} {flex} {runway} {flightLevel}.</summary>
     public string Say { get; set; } = "";
 
     public List<VoiceCommandStep> Steps { get; set; } = [];
+
+    /// <summary>Optional effect cross-check gating <see cref="Say"/> (issue #49).</summary>
+    public VoiceCommandVerify? Verify { get; set; }
 
     /// <summary>First phrase, used as the command's label in logs and refusals.</summary>
     public string Label => Phrases.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p)) ?? "command";

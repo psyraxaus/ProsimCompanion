@@ -13,11 +13,12 @@ public sealed record CommandTokenValues(
     string Vr,
     string V2,
     string Flex,
-    string Runway)
+    string Runway,
+    string FlightLevel)
 {
     public static CommandTokenValues Unavailable { get; } = new(
         "unavailable", "unavailable", "unavailable", "unavailable",
-        "unavailable", "unavailable", "unavailable");
+        "unavailable", "unavailable", "unavailable", "unavailable");
 }
 
 /// <summary>
@@ -45,7 +46,8 @@ public static class SpokenValueFormatting
             .Replace("{vr}", values.Vr, StringComparison.Ordinal)
             .Replace("{v2}", values.V2, StringComparison.Ordinal)
             .Replace("{flex}", values.Flex, StringComparison.Ordinal)
-            .Replace("{runway}", values.Runway, StringComparison.Ordinal);
+            .Replace("{runway}", values.Runway, StringComparison.Ordinal)
+            .Replace("{flightLevel}", values.FlightLevel, StringComparison.Ordinal);
     }
 
     /// <summary>F/O baro as spoken digits. <paramref name="std"/> null = no data yet
@@ -84,4 +86,21 @@ public static class SpokenValueFormatting
     /// shared spoken-text module's (campaign #81); the absence wording is this caller's.</summary>
     public static string Runway(string? runway)
         => Core.Speech.SpokenText.RunwayOrNull(runway) ?? "unavailable";
+
+    /// <summary>Altitude (ft) → flight-level digits: 7 500 → "seven five" so the template's
+    /// "passing flight level {flightLevel}" reads per SOP (issue #49). The words "flight
+    /// level" stay in the template — the token is only the number, like every other token.
+    /// Null or on-the-deck values read "unavailable".</summary>
+    public static string FlightLevel(double? altitudeFt)
+    {
+        if (altitudeFt is null)
+        {
+            return "unavailable";
+        }
+
+        var fl = (int)Math.Round(altitudeFt.Value / 100);
+        return fl > 0
+            ? Aviation.ToDigits(fl.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            : "unavailable";
+    }
 }

@@ -62,6 +62,7 @@ public sealed class SpokenTokenSource : IDisposable
             Sub(ProsimDataRefNames.FmsPerfTakeoffVr);
             Sub(ProsimDataRefNames.FmsPerfTakeoffV2);
             Sub(ProsimDataRefNames.FmsPerfTakeoffFlexTemp);
+            Sub(ProsimDataRefNames.Altitude); // {flightLevel} (issue #49)
         }
         catch (Exception ex)
         {
@@ -94,7 +95,9 @@ public sealed class SpokenTokenSource : IDisposable
                 Vr: SpokenValueFormatting.Speed(Perf(ProsimDataRefNames.FmsPerfTakeoffVr)),
                 V2: SpokenValueFormatting.Speed(Perf(ProsimDataRefNames.FmsPerfTakeoffV2)),
                 Flex: SpokenValueFormatting.Speed(Perf(ProsimDataRefNames.FmsPerfTakeoffFlexTemp)),
-                Runway: SpokenValueFormatting.Runway(runway));
+                Runway: SpokenValueFormatting.Runway(runway),
+                FlightLevel: SpokenValueFormatting.FlightLevel(
+                    Sub(ProsimDataRefNames.Altitude) is { RawValue: not null } altitude ? altitude.Value : null));
         }
         catch (Exception ex)
         {

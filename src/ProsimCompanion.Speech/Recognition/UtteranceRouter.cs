@@ -75,6 +75,9 @@ public sealed class UtteranceRouter : IDisposable
     private readonly Persona.PersonaService _persona;
     private readonly LlmHealthStore _llmHealth;
     private readonly ILogger<UtteranceRouter> _logger;
+
+    // Optional (tests construct the router bare): phase-aware reject suppression, issue #67.
+    private readonly Core.Flight.IFlightPhaseSource? _flightPhase;
     private IChecklistRoutingHost? _host;
     private bool _started;
     private bool _llmOfflineAdvisoryGiven; // once per session (issue #66)
@@ -90,7 +93,8 @@ public sealed class UtteranceRouter : IDisposable
         Persona.PhraseBank phrases,
         Persona.PersonaService persona,
         LlmHealthStore llmHealth,
-        ILogger<UtteranceRouter> logger)
+        ILogger<UtteranceRouter> logger,
+        Core.Flight.IFlightPhaseSource? flightPhase = null)
     {
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
@@ -115,6 +119,7 @@ public sealed class UtteranceRouter : IDisposable
         _persona = persona;
         _llmHealth = llmHealth;
         _logger = logger;
+        _flightPhase = flightPhase;
     }
 
     /// <summary>Attaches the checklist run loop; called by the engine before Start.</summary>
@@ -286,6 +291,19 @@ public sealed class UtteranceRouter : IDisposable
     /// advisory that explains WHY free-form phrasing is falling flat.</summary>
     private void HandleIdleMiss()
     {
+        // Sterile-phase suppression (issue #67, 2026-08-22 flight): during the takeoff roll
+        // and rotation the pilot makes SOP callouts ("takeoff", the FMA readback) faster than
+        // features can grow to answer them — a chirped "Didn't catch that" DURING ROTATION is
+        // the worst possible chatter. Unmatched speech in these phases is absorbed silently;
+        // the ASR decision trail still records every word for the post-flight review.
+        if (_flightPhase?.CurrentPhase is Core.Flight.FlightPhase.TakeoffRoll
+            or Core.Flight.FlightPhase.InitialClimb
+            or Core.Flight.FlightPhase.LandingRollout)
+        {
+            _logger.LogDebug("Idle miss absorbed silently (sterile phase {Phase})", _flightPhase.CurrentPhase);
+            return;
+        }
+
         var response = IdleMissPolicy.Decide(
             _llmHealth.Snapshot().State, _llmOfflineAdvisoryGiven,
             _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()));

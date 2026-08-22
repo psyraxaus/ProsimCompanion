@@ -68,6 +68,9 @@ public static class SpeechServiceCollectionExtensions
         // Engine-start + flap call responses (issue #67, verbal only — no lever writes).
         // AFTER commands.json so a user-configured phrase keeps precedence.
         services.AddSingleton<IVoiceFeature, Callouts.EngineFlapCallFeature>();
+        // "Gear up/down" PM action (issue #43) — the one call whose point IS the lever;
+        // write-gated on airborne evidence, adjacent to its verbal-only sibling above.
+        services.AddSingleton<IVoiceFeature, Callouts.GearCallFeature>();
         // MCDU trio (predecessor dispatch position: after fcu, before briefings). Reader is
         // read-only; tuner/arrival changer arm only via mcdu.allowActuation.
         services.AddSingleton<Mcdu.McduReader>();
@@ -142,6 +145,9 @@ public static class SpeechServiceCollectionExtensions
         // Cold-and-dark mismatch advisory (issue #63): speaks the aircraft state check's
         // verdict, consumed from the Core diagnostics store — no GSX project reference.
         services.AddStartupModule<Crew.AircraftStateAdvisoryService>();
+        // Parking-conflict guidance (issue #44): when GSX doesn't recognize the position,
+        // the FO names the facility GSX offers and the actions that actually help.
+        services.AddStartupModule<Crew.ParkingConflictAdvisoryService>();
         // "Check the aircraft state" re-check trigger (issue #92). The control seam lives in
         // Core and is implemented by the GSX pillar; resolved as optional so the feature
         // degrades to disabled (no grammar) when that pillar is absent.

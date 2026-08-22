@@ -54,13 +54,27 @@
     {
       "id": "gate-name-matching",
       "issue": 75,
-      "state": "open",
-      "kind": "assert-absent",
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
       "sources": ["log"],
       "checks": [
-        "No gate-selection failure lines: 'not_found' on a gate select, or a refusal where the log's own nearest-match equals the requested gate (e.g. requested '313' vs GSX 'Stand 313')."
+        "When the anchor runs: a 'gate anchor: anchored GSX to 'X' (code)' decision — and REPORT WHICH ladder rung X was (display name, full facility|gate key, bglName, or bare designator): which identity gate.select matches on is the open empirical question this probe answers.",
+        "assert-absent: 'gate.select failed for every identity [...]' — the whole ladder refused means a genuinely unknown-to-GSX stand (cross-check the #44 probe).",
+        "Arrival selects at decorated stands ('Stand 547 with Safedock©') accept the unambiguous designator match instead of refusing."
       ],
-      "notes": "Leading-space ' Gate D57' and prefix-word mismatches. Exercised only when an arrival gate is armed."
+      "notes": "Fixed 2026-08-22: the anchor walks an identity ladder (not_found advances, any other code stops) and nearest-matching compares the leading designator so decorations never block. The first flight that logs a ladder winner settles the gate.select contract — record it in docs/integrations/gsx-remote-api.md."
+    },
+    {
+      "id": "parking-position-unknown",
+      "issue": 44,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "When GSX does not recognize the parking (spawn at an unknown stand): a ground-prep hold with reason 'GSX has not identified the parking — select the stand in the GSX menu, or reposition' (visible on the Flight Status card), AND an 'fo.parking-conflict-advisory' spoken event naming the facility GSX offers, once per conflict.",
+        "assert-absent: repeated app restarts around a parking-change menu with session gate 'unknown' and no pilot-facing guidance (the 2026-08-17/22 signature)."
+      ],
+      "notes": "Fixed 2026-08-22: the silent gate-null prep branch now holds visibly, and the parking-change handler publishes the conflict for the FO advisory + status row. The app still never clicks GSX's parking menus — it advises."
     },
     {
       "id": "ground-ops-double-fire",
@@ -237,13 +251,74 @@
     {
       "id": "set-standard-command",
       "issue": 49,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "'set standard' → 'voicecommand.executed', then 'voicecommand.verified' with ok=true (the EFIS2 STD gate read 1), then spoken 'Standard, cross checked, passing flight level <digits>' — never the confirmation without the verified event.",
+        "If the press does not take: 'voicecommand.verified' ok=false and the spoken 'Negative — my altimeter did not take standard.' (an honest negative IS the fix working; report it as a ProSim-side press-semantics finding, not a probe failure).",
+        "'set qnh' on descent mirrors this with equals=0 and 'QNH ..., cross checked'."
+      ],
+      "notes": "Shipped 2026-08-22: {flightLevel} token + per-command verify gate. CAVEAT: a user-edited %LOCALAPPDATA% commands.json keeps its old say/no-verify entries (ADR-0007 keep-user-edits) — if the old 'Standard set' phrasing is heard, the user copy needs a manual merge."
+    },
+    {
+      "id": "sterile-phase-reject-suppression",
+      "issue": 67,
       "state": "open",
-      "kind": "feature-pending",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "No 'reject'-tagged speech (Didn't catch that / Say again / Repeat please) between a phase commit into TakeoffRoll and the first commit out of InitialClimb, nor during LandingRollout — unmatched utterances there produce 'Idle miss absorbed silently' debug lines instead.",
+        "Recognized callouts (engine start, flaps) still answer normally outside those phases."
+      ],
+      "notes": "Suppression shipped 2026-08-22 (the FO chirped 'Say again?' during rotation on that flight); the full FMA-callout recognition remains open on this issue."
+    },
+    {
+      "id": "gear-voice-command",
+      "issue": 43,
+      "state": "open",
+      "kind": "assert-present",
       "sources": ["session"],
       "checks": [
-        "Once shipped: 'set standard' utterance → baro STD write + FO confirmation. Until then: count 'reject' speech events immediately after transition-altitude context as demand evidence."
+        "'gear up' after liftoff → a 'voicecommand.gear' {position: up} event, FO speaks 'Gear up.', and NO reject speech (the 2026-08-22 signature was two rejected calls seconds after liftoff).",
+        "'gear up' on the ground → refused verbally ('Negative — we are on the ground.') with NO gear event.",
+        "'gear down' on approach → 'voicecommand.gear' {position: down} + 'Gear down.'"
       ],
-      "notes": ""
+      "notes": "Gear shipped 2026-08-22 as the first non-FCU PM action (S_MIP_GEAR, airborne-gated). The issue stays open for the remaining PM duties (radio tuning, FCU actions, user-selectable scope)."
+    },
+    {
+      "id": "loadsheet-sim-time",
+      "issue": 95,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "The loadsheet footer time (HH:mmZ) matches the sim zulu clock captured in the same session (within a few minutes), not the wall clock — decisive whenever the simulated time of day differs from real.",
+        "STD-offset prelim decisions ('STD HH:mmZ minus N min reached') fire against the simulated clock."
+      ],
+      "notes": "Fixed 2026-08-22 via the Core ISimClock seam (zulu time-of-day + sim date, 10 s freshness, real-UTC fallback). With no sim running, loadsheets correctly carry real UTC."
+    },
+    {
+      "id": "api-auth-ergonomics",
+      "issue": 96,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": [],
+      "checks": [
+        "From another machine: a telemetry request with ONLY 'Authorization: Bearer <token>' succeeds (no cookie dance), and '?token=...&tailKb=N' onboarding preserves tailKb through the redirect (response size tracks N)."
+      ],
+      "notes": "Fixed 2026-08-22 in LanTokenMiddleware. Verified by the evaluating agent itself on its next telemetry pull — this probe is self-exercising."
+    },
+    {
+      "id": "dead-circuit-auto-reload",
+      "issue": 97,
+      "state": "closed-regression-watch",
+      "kind": "requires-human",
+      "sources": [],
+      "checks": [
+        "With the EFB open in a browser, restart the app: the page must reload itself within ~10 s (boot-id watchdog polling /api/app/boot) instead of sitting dead. GET /api/app/boot returns a stable id per process."
+      ],
+      "notes": "A dead tab leaves no server-side events by definition — human-eyeball only, but it takes 15 seconds to test."
     },
     {
       "id": "voice-ground-ops-wp1-gating",
@@ -371,8 +446,8 @@
         "#54 settings GUI backfill completeness (web UI).",
         "#45 Services card shows ground-prep progress (web UI; the underlying gsx-ground-prep-stage events already flow).",
         "#68/#69 final TTS pronunciation quality (ears, beyond the text-level probes).",
-        "#44 GSX facility/stale-gate behaviour at a stand GSX has no file for (sim-side observation).",
-        "Parity/features not yet implemented: #42, #43, #67, #72, #3–#12."
+        "#97 dead-circuit auto-reload: restart the app with the EFB open — the page must reload itself (~10 s).",
+        "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     }

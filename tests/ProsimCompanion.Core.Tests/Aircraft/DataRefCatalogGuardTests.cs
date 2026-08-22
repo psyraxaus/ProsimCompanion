@@ -27,7 +27,7 @@ public sealed class DataRefCatalogGuardTests
     ];
 
     /// <summary>Files allowed to call the raw-string SubscribeDynamic escape hatch: the typed
-    /// adapter itself plus the six audited sites whose names come from user-editable content.</summary>
+    /// adapter itself plus the audited sites whose names come from user-editable content.</summary>
     private static readonly string[] DynamicSubscribeAllowList =
     [
         @"src\ProsimCompanion.Core\Aircraft\TypedSubscriptionExtensions.cs",
@@ -37,6 +37,8 @@ public sealed class DataRefCatalogGuardTests
         @"src\ProsimCompanion.Speech\Checklists\ControlMonitor.cs",
         @"src\ProsimCompanion.Speech\Checklists\SpokenChecklistEngine.cs",
         @"src\ProsimCompanion.Speech\Briefings\ProcedureSource.cs",
+        // #49: verify datarefs come from the user-editable commands.json.
+        @"src\ProsimCompanion.Speech\Commands\ConfiguredVoiceCommands.cs",
     ];
 
     [Fact]

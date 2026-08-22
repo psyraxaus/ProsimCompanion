@@ -1,5 +1,5 @@
 {
-  "//": "Voice commands = FO actions performed by dataref writes. Active anytime the app is listening. Each step is a momentary 'press' (write press -> hold -> write restore). Step datarefs form the command write allow-list (bounded in code to FCU push-buttons and MCDU keys). FCU buttons and MCDU keys are momentary [0:Normal,1:Pushed]; pressing again toggles for FCU. MCDU keys = the F/O CDU (CDU2). delayMs gives the MCDU time to change pages between keys. Spoken-query tokens: {altimeter} {qnh} {v1} {vr} {v2} {flex} {runway}.",
+  "//": "Voice commands = FO actions performed by dataref writes. Active anytime the app is listening. Each step is a momentary 'press' (write press -> hold -> write restore). Step datarefs form the command write allow-list (bounded in code to FCU push-buttons and MCDU keys). FCU buttons and MCDU keys are momentary [0:Normal,1:Pushed]; pressing again toggles for FCU. MCDU keys = the F/O CDU (CDU2). delayMs gives the MCDU time to change pages between keys. Spoken-query tokens: {altimeter} {qnh} {v1} {vr} {v2} {flex} {runway} {flightLevel}. Optional per-command 'verify' (issue #49): after the steps, 'say' is only spoken once verify.dataref reads verify.equals (within timeoutMs, default 2000); otherwise sayOnFail speaks an honest negative.",
 
   "commands": [
     {
@@ -35,15 +35,17 @@
     },
     {
       "phrases": [ "set standard", "standard set", "altimeters standard" ],
-      "say": "Standard set",
-      "//": "F/O baro knob PUSH = STD (issue #49). Seat-mapped like the other EFIS2 refs; the captain side stays the pilot's own knob.",
-      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 1, "restore": 0, "holdMs": 150 } ]
+      "say": "Standard, cross checked, passing flight level {flightLevel}",
+      "//": "F/O baro knob PUSH = STD (issue #49). Seat-mapped like the other EFIS2 refs; the captain side stays the pilot's own knob. The verify gate reads the effective STD state, so the SOP readback is only spoken when the altimeter really took standard.",
+      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 1, "restore": 0, "holdMs": 150 } ],
+      "verify": { "dataref": "system.gates.B_FCU_EFIS2_BARO_STD", "equals": 1, "timeoutMs": 2000, "sayOnFail": "Negative — my altimeter did not take standard." }
     },
     {
       "phrases": [ "set qnh", "qnh set", "altimeters qnh" ],
-      "say": "QNH {qnh}, set",
+      "say": "QNH {qnh}, cross checked",
       "//": "F/O baro knob PULL = back to QNH on descent (companion to set standard).",
-      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 2, "restore": 0, "holdMs": 150 } ]
+      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 2, "restore": 0, "holdMs": 150 } ],
+      "verify": { "dataref": "system.gates.B_FCU_EFIS2_BARO_STD", "equals": 0, "timeoutMs": 2000, "sayOnFail": "Negative — my altimeter is still on standard." }
     },
     {
       "//": "Read-only callout: copilot reads back the F/O FCU altimeter setting ({altimeter} = aviation digits, follows hPa/inHg, says 'standard' on STD). No steps = no dataref writes.",

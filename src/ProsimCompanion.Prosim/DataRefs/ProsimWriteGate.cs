@@ -67,6 +67,11 @@ public static class ProsimWriteGate
         ProsimDataRefNames.FmsPerfTakeoffV2.Name,
         ProsimDataRefNames.FmsPerfTakeoffThs,
         ProsimDataRefNames.FmsPerfTakeoffShift,
+
+        // Landing gear lever [0:Down, 1:Up] — the "gear up/down" PM voice command (issue
+        // #43). The feature gates on airborne evidence before writing; dataref-first per
+        // the write-safety rule (the lever IS the dataref, no cockpit switch actuation).
+        ProsimDataRefNames.MipGear,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly string[] AllowedPrefixes =
