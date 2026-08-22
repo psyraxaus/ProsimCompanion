@@ -39,7 +39,27 @@ public static class SimClockFormat
             : null;
     }
 
-    private static TimeSpan? ToTimeOfDay(object? raw)
+    /// <summary>Raw sim date value → UTC date (no time-of-day), or null when the value
+    /// carries no date. The value counterpart of <see cref="TryFormatDate"/>, added for
+    /// <see cref="SimClock"/> (issue #95) — timestamps need a <see cref="DateTime"/>, not a
+    /// display string.</summary>
+    public static DateTime? TryGetDate(object? raw)
+    {
+        DateTime? date = raw switch
+        {
+            DateTime dt => dt,
+            DateTimeOffset dto => dto.UtcDateTime,
+            string s when DateTime.TryParse(
+                s, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var dt) => dt,
+            _ => null,
+        };
+
+        return date is { } d && d > DateTime.MinValue ? d.Date : null;
+    }
+
+    /// <summary>Raw zulu-time value → time of day, or null when uninterpretable. Public for
+    /// <see cref="SimClock"/> (issue #95); the display formatters above stay the UI path.</summary>
+    public static TimeSpan? ToTimeOfDay(object? raw)
     {
         return raw switch
         {

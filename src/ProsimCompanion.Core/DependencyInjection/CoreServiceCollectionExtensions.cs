@@ -145,6 +145,10 @@ public static class CoreServiceCollectionExtensions
         // IFlightDataSource and IProsimDataRefs come from the Prosim project's registrations.
         services.AddSingleton<FlightStateEngine>();
         services.AddSingleton<IFlightPhaseSource>(p => p.GetRequiredService<FlightStateEngine>());
+        // The simulated clock as a value (issue #95): loadsheet timestamps and STD triggers
+        // follow the sim's day, falling back to real UTC when the sim clock is not live.
+        services.AddSingleton<Aircraft.SimClock>();
+        services.AddSingleton<Aircraft.ISimClock>(p => p.GetRequiredService<Aircraft.SimClock>());
         // Arrival-gate workflow: Confirm queues, cruise auto-fires to GSX + SayIntentions
         // ATC, Send Now fires immediately. Both targets come from other pillars (Gsx and
         // Speech) and resolve as optional so a composition without them still starts.

@@ -39,6 +39,10 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly GsxResyncState _resyncState;
     private readonly ISimVars _simVars;
+
+    // The simulated clock (issue #95): loadsheet timestamps and STD-offset triggers follow
+    // the sim's day; falls back to real UTC when the sim clock is not live.
+    private readonly ISimClock _simClock;
     private readonly ILogger<LoadsheetService> _logger;
 
     private readonly IDataRefSubscription<int>[] _zoneAmounts;
@@ -83,6 +87,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         GsxDiagnosticsStore diagnostics,
         GsxResyncState resyncState,
         ISimVars simVars,
+        ISimClock simClock,
         ILogger<LoadsheetService> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
@@ -97,9 +102,11 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(resyncState);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(simClock);
         ArgumentNullException.ThrowIfNull(logger);
         _resyncState = resyncState;
         _simVars = simVars;
+        _simClock = simClock;
 
         _gateway = gateway;
         _acars = acars;
@@ -218,7 +225,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         }
 
         var std = EffectiveStdUtc();
-        if (std is null || DateTimeOffset.UtcNow < std - TimeSpan.FromMinutes(Math.Max(0, options.PrelimStdOffsetMinutes)))
+        if (std is null || _simClock.UtcNowOrReal < std - TimeSpan.FromMinutes(Math.Max(0, options.PrelimStdOffsetMinutes)))
         {
             return;
         }
@@ -242,8 +249,11 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     {
         if (_store.Snapshot().StdOverrideUtc is { } manual)
         {
-            var today = new DateTimeOffset(DateTime.UtcNow.Date.Add(manual.ToTimeSpan()), TimeSpan.Zero);
-            return DateTimeOffset.UtcNow - today > TimeSpan.FromHours(12) ? today.AddDays(1) : today;
+            // Anchored to the SIMULATED day (issue #95): a pilot flying an overnight sim at a
+            // real-world afternoon enters the sim's departure time, not the wall clock's.
+            var now = _simClock.UtcNowOrReal;
+            var today = new DateTimeOffset(now.UtcDateTime.Date.Add(manual.ToTimeSpan()), TimeSpan.Zero);
+            return now - today > TimeSpan.FromHours(12) ? today.AddDays(1) : today;
         }
         return _ofpStore.Current?.ScheduledOutUtc;
     }
@@ -695,7 +705,9 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             DepartureIata = ofp.OriginIata,
             ArrivalIata = ofp.DestinationIata,
             AircraftTailNumber = ofp.AircraftReg,
-            Time = DateTime.UtcNow,
+            // Sim time (issue #95): the footer's HH:mmZ must match the simulated day the
+            // pilot is flying, not the wall clock behind the curtain.
+            Time = _simClock.UtcNowOrReal.UtcDateTime,
             ScheduledDepartureTime = ofp.ScheduledOutUtc is { } schedOut
                 ? schedOut.UtcDateTime.ToString("d dMMMyy", CultureInfo.InvariantCulture)
                 : "",
