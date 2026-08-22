@@ -283,4 +283,44 @@
   }
 
   initCircuitRecovery();
+
+  // ------------------------------------------------------ server-restart watchdog (#97)
+  // A server restart kills every circuit, but when the WebSocket dies SILENTLY (the app was
+  // restarted while this tab sat idle) blazor.web.js may never notice: the page keeps
+  // rendering and ignores every click with no overlay at all — indistinguishable from "the
+  // page is broken" (2026-08-22: six app restarts, a seemingly dead performance page). The
+  // recovery above only helps once Blazor notices, so this watchdog asks the server
+  // directly: poll its boot id and hard-reload the moment a different process answers.
+
+  const BOOT_POLL_MS = 8000;
+
+  function initServerRestartWatch() {
+    let knownBootId = null;
+    let inflight = false;
+
+    async function check() {
+      if (inflight || document.visibilityState !== "visible") return;
+      inflight = true;
+      try {
+        const res = await fetch("/api/app/boot", { cache: "no-store" });
+        if (!res.ok) return;
+        const body = await res.json();
+        if (!body || !body.bootId) return;
+        if (knownBootId === null) { knownBootId = body.bootId; return; }
+        if (body.bootId !== knownBootId) location.reload();
+      } catch {
+        // Server unreachable (mid-restart) — the next successful poll does the compare.
+      } finally {
+        inflight = false;
+      }
+    }
+
+    check();
+    setInterval(check, BOOT_POLL_MS);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") check();
+    });
+  }
+
+  initServerRestartWatch();
 })();

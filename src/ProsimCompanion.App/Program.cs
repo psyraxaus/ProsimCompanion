@@ -338,6 +338,9 @@ public static class Program
         // session event logs + log tails, on by default, 404 while disabled.
         web.MapTelemetryApi();
 
+        // Boot id for the client-side server-restart watchdog (issue #97).
+        web.MapAppBoot();
+
         // In-sim GSX handler bridge (gsx_handler.py): event push + VDGS flight info. Always
         // on — the script targets loopback, which the token middleware exempts.
         web.MapGsxHandlerApi();
