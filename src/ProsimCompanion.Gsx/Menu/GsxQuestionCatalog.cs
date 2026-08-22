@@ -207,19 +207,47 @@ public sealed class GsxQuestionCatalog
     /// <summary>Issue #44 diagnostics: the "Change parking or service" menu's first entry names
     /// the facility GSX is anchored on ("Change Facility [… Gate D5 …]") — logging it makes a
     /// stale-facility conflict visible the moment it happens, next to the gate session the
-    /// mirror reports. The menu itself stays with the user (its semantics are unverified).</summary>
+    /// mirror reports. When the session gate is UNKNOWN (EGLL Stand 547, 2026-08-22: GSX did
+    /// not recognize the spawn position and the pilot restarted the app four times at a state
+    /// no restart can fix) the conflict is also published to the diagnostics store, which
+    /// drives the Flight Status row and the FO's spoken guidance. The menu itself stays with
+    /// the user (its semantics are unverified) — the app advises, never clicks.</summary>
     private Task HandleParkingConflictAsync(CancellationToken cancellationToken)
     {
         var facilityEntry = _api.Mirror.MenuShown
             ? _api.Mirror.Menu?.Entries.FirstOrDefault(e => e.StartsWith("Change Facility", StringComparison.OrdinalIgnoreCase))
             : null;
+        var gateKey = _api.Mirror.GateContextKey;
         RecordDecision(
             "parking-change menu",
             facilityEntry is null
                 ? "left for the user"
                 : $"left for the user — GSX is anchored on '{facilityEntry}' while the session gate is "
-                    + $"'{_api.Mirror.GateContextKey ?? "unknown"}' (facility/stand conflict? see issue #44)");
+                    + $"'{gateKey ?? "unknown"}' (facility/stand conflict? see issue #44)");
+
+        if (facilityEntry is not null && gateKey is null)
+        {
+            _diagnostics.UpdateParkingConflict(new GsxParkingConflictView(
+                DateTimeOffset.UtcNow, ExtractFacility(facilityEntry)));
+        }
+        else if (gateKey is not null)
+        {
+            // The session gate is known again — whatever conflict stood is over.
+            _diagnostics.UpdateParkingConflict(null);
+        }
+
         return Task.CompletedTask;
+    }
+
+    /// <summary>"Change Facility [Terminal 5B (531-548) Stand 547 with Safedock©]" → the
+    /// bracketed facility; falls back to the whole entry when the brackets are absent.</summary>
+    internal static string ExtractFacility(string changeFacilityEntry)
+    {
+        var open = changeFacilityEntry.IndexOf('[', StringComparison.Ordinal);
+        var close = changeFacilityEntry.LastIndexOf(']');
+        return open >= 0 && close > open + 1
+            ? changeFacilityEntry[(open + 1)..close].Trim()
+            : changeFacilityEntry.Trim();
     }
 
     private async Task HandlePushbackDirectionAsync(CancellationToken cancellationToken)

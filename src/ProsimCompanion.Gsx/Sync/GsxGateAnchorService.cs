@@ -75,23 +75,43 @@ public sealed class GsxGateAnchorService : IDisposable
             // Latch first — a failed anchor must not loop gate.select every cycle.
             _handledGateKey = gateKey;
 
-            var token = GsxGateResolver.ResolveAnchorToken(_api.Mirror.Parkings, gateKey);
-            if (token is null)
+            var ladder = GsxGateResolver.AnchorTokenLadder(_api.Mirror.Parkings, gateKey);
+            if (ladder.Count == 0)
             {
                 RecordDecision($"skipped — the mirror has no parking matching '{gateKey}'");
                 return GsxPrepStatus.Done;
             }
 
-            var result = await _api.SendCommandAsync("gate.select", new JsonObject
+            // Which identity gate.select matches on is empirically open (issue #75): walk the
+            // ladder until GSX accepts one, and log the winner — the field is the only place
+            // this contract can be learned. not_found alone advances the ladder; any other
+            // failure code is a real refusal worth surfacing as-is.
+            GsxCommandResult? last = null;
+            foreach (var token in ladder)
             {
-                ["gate"] = token,
-                ["revokeServices"] = false,
-                ["force"] = false,
-            }).ConfigureAwait(false);
+                var result = await _api.SendCommandAsync("gate.select", new JsonObject
+                {
+                    ["gate"] = token,
+                    ["revokeServices"] = false,
+                    ["force"] = false,
+                }).ConfigureAwait(false);
 
-            RecordDecision(result.Ok || result.Code is "already_selected" or "already_parked" or "prepared"
-                ? $"anchored GSX to '{token}' ({result.Code})"
-                : $"gate.select '{token}' failed ({result.Code}) — GSX may still be on a previous session's gate");
+                if (result.Ok || result.Code is "already_selected" or "already_parked" or "prepared")
+                {
+                    RecordDecision($"anchored GSX to '{token}' ({result.Code})");
+                    return GsxPrepStatus.Done;
+                }
+
+                last = result;
+                if (result.Code is not "not_found")
+                {
+                    break;
+                }
+            }
+
+            RecordDecision(
+                $"gate.select failed for every identity [{string.Join(", ", ladder.Select(t => $"'{t}'"))}] "
+                + $"(last: {last?.Code}) — GSX may still be on a previous session's gate");
             return GsxPrepStatus.Done;
         }
         catch (Exception ex)

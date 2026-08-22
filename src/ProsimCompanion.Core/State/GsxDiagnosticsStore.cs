@@ -150,7 +150,18 @@ public sealed record GsxDiagnosticsSnapshot(
     /// <summary>Session-start cold-and-dark verdict (filled in by Snapshot(); pushed once per
     /// session by the aircraft state check, issue #63). Null until the check has run.</summary>
     public AircraftStateCheckView? AircraftStateCheck { get; init; }
+
+    /// <summary>GSX parking conflict (issue #44): GSX is showing its parking-change menu while
+    /// the session gate is unknown — it does not recognize the aircraft's position, and no
+    /// app restart can fix that. Null when no conflict stands.</summary>
+    public GsxParkingConflictView? ParkingConflict { get; init; }
 }
+
+/// <summary>One observed parking conflict (issue #44). <see cref="GsxFacility"/> is the
+/// facility GSX itself names in its "Change Facility [...]" menu entry — the strongest
+/// available hint of where GSX thinks the aircraft is. The FO advisory speaks each
+/// <see cref="Timestamp"/> once; the web Flight Status page renders it as long as it stands.</summary>
+public sealed record GsxParkingConflictView(DateTimeOffset Timestamp, string GsxFacility);
 
 /// <summary>Arms/cancels arrival-gate requests from UI surfaces (implemented by the GSX layer;
 /// status is visible through <see cref="GsxDiagnosticsStore"/>).</summary>
@@ -243,6 +254,11 @@ public sealed class GsxDiagnosticsStore : SnapshotStore<GsxDiagnosticsSnapshot>
     public void UpdateAircraftStateCheck(AircraftStateCheckView? check)
         => Update(snapshot => snapshot with { AircraftStateCheck = check });
 
+    /// <summary>Replaces the parking-conflict view (issue #44); null = conflict cleared (the
+    /// session gate became known, or the session ended).</summary>
+    public void UpdateParkingConflict(GsxParkingConflictView? conflict)
+        => Update(snapshot => snapshot with { ParkingConflict = conflict });
+
     /// <summary>Records the most recent service lifecycle edge for the Flight Status row.</summary>
     public void RecordHandlerEvent(GsxHandlerEventView handlerEvent)
     {
@@ -265,6 +281,7 @@ public sealed class GsxDiagnosticsStore : SnapshotStore<GsxDiagnosticsSnapshot>
             GroundPrep = current.GroundPrep,
             GroundPowerConnected = current.GroundPowerConnected,
             AircraftStateCheck = current.AircraftStateCheck,
+            ParkingConflict = current.ParkingConflict,
         });
     }
 

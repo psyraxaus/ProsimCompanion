@@ -108,9 +108,20 @@ internal static class PrepStageMachine
             return new(PrepCommand.None, ReleasesHold: true);
         }
 
-        if (!inputs.GsxReady || inputs.GateKey is null)
+        if (!inputs.GsxReady)
         {
             return new(PrepCommand.None, ReleasesHold: true);
+        }
+
+        // GSX is up but has not identified the parking (issue #44, EGLL Stand 547
+        // 2026-08-22): GSX believed the aircraft was not on a recognized position, the
+        // session gate stayed unknown, and this branch was silent — the pilot restarted the
+        // app four times at a state no restart can fix. Pilot-facing wording: the two
+        // actions that actually resolve it.
+        if (inputs.GateKey is null)
+        {
+            return new(PrepCommand.Hold,
+                "GSX has not identified the parking — select the stand in the GSX menu, or reposition");
         }
 
         // The gate genuinely changed mid/after prep (not the reposition itself settling).

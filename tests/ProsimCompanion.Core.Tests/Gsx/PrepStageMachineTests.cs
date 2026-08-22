@@ -145,13 +145,17 @@ public sealed class PrepStageMachineTests
     }
 
     [Fact]
-    public void NotReady_OrNoGate_IsSilent()
+    public void NotReady_IsSilent_ButUnknownGate_HoldsVisibly()
     {
+        // GSX absent: nothing to say (degrade quietly).
         Assert.Equal(
             PrepCommand.None,
             PrepStageMachine.Next(Open() with { GsxReady = false }, Now).Command);
-        Assert.Equal(
-            PrepCommand.None,
-            PrepStageMachine.Next(Open() with { GateKey = null }, Now).Command);
+
+        // GSX up but no session gate (issue #44, EGLL Stand 547): the old silent branch cost
+        // the pilot four app restarts — the hold must now be visible with actionable wording.
+        var unknownGate = PrepStageMachine.Next(Open() with { GateKey = null }, Now);
+        Assert.Equal(PrepCommand.Hold, unknownGate.Command);
+        Assert.Contains("GSX has not identified the parking", unknownGate.Reason);
     }
 }

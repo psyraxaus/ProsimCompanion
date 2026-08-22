@@ -186,7 +186,36 @@ public static class GsxGateResolver
             return false;
         }
 
-        return requested == nearest || StripFacilityPrefix(nearest) == requested;
+        if (requested == nearest || StripFacilityPrefix(nearest) == requested)
+        {
+            return true;
+        }
+
+        // Decorated stand names (issue #75, EGLL "Stand 547 with Safedock©"): compare the
+        // DESIGNATOR — the first word after an optional facility word — so the decoration
+        // never blocks the match, while the word boundary keeps "Stand 313" from ever
+        // answering a requested "31" (normalization alone erases that boundary).
+        var designator = LeadingDesignator(nearestName);
+        return designator is not null
+            && (designator == requested || designator == StripFacilityPrefix(requested));
+    }
+
+    /// <summary>Normalized first word of a display name after an optional facility word:
+    /// "Stand 547 with Safedock©" → "547", " Gate D57" → "D57". Null for empty input.</summary>
+    private static string? LeadingDesignator(string rawName)
+    {
+        var words = rawName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(Normalize)
+            .Where(word => word.Length > 0)
+            .ToList();
+        if (words.Count == 0)
+        {
+            return null;
+        }
+
+        var start = words.Count > 1 && KnownFacilityPrefixes.Contains(words[0]) ? 1 : 0;
+        return words[start];
     }
 
     private static string StripFacilityPrefix(string normalized)
@@ -209,19 +238,60 @@ public static class GsxGateResolver
     /// silently dropped every service trigger). Null when the mirror doesn't know the parking.
     /// </summary>
     public static string? ResolveAnchorToken(IReadOnlyList<GsxParking> parkings, string gateContextKey)
+        => AnchorTokenLadder(parkings, gateContextKey).FirstOrDefault();
+
+    /// <summary>
+    /// Every identity a <c>gate.select</c> re-anchor may try, in order (issue #75): which
+    /// field GSX matches on is still empirically open — the display gate name worked at some
+    /// stands but was refused not_found at EGLL Stand 313 (2026-08-22) while GSX's own menus
+    /// carried the full "facility|gate" key. The caller walks the ladder until GSX accepts:
+    /// display gate name → full uiName key → bglName → the bare designator ("313"). Whichever
+    /// rung succeeds is logged, so the field teaches us the real answer.
+    /// </summary>
+    public static IReadOnlyList<string> AnchorTokenLadder(IReadOnlyList<GsxParking> parkings, string gateContextKey)
     {
         ArgumentNullException.ThrowIfNull(parkings);
         var key = Normalize(gateContextKey);
         if (key.Length == 0)
         {
-            return null;
+            return [];
         }
 
         var parking = parkings.FirstOrDefault(p =>
             Normalize(p.UiName) == key || Normalize(p.UiGateName) == key || Normalize(p.BglName) == key);
-        var token = parking is null ? null : parking.UiGateName ?? parking.UiName ?? parking.BglName;
+        if (parking is null)
+        {
+            return [];
+        }
+
         // Trimmed (issue #75): the untrimmed " Gate D57" anchor token was refused not_found.
-        return token is null ? null : TrimToken(token);
+        List<string?> candidates =
+        [
+            parking.UiGateName,
+            parking.UiName,
+            parking.BglName,
+            BareDesignator(parking.UiGateName),
+        ];
+        return [.. candidates
+            .Where(token => !string.IsNullOrWhiteSpace(token))
+            .Select(token => TrimToken(token!))
+            .Distinct(StringComparer.Ordinal)];
+    }
+
+    /// <summary>"Stand 313" → "313": the display name minus a single leading facility word —
+    /// the docs' "as typed in GSX's gate search, no prefix" reading of the token contract.
+    /// Null when there is no facility word to strip (nothing new to try).</summary>
+    private static string? BareDesignator(string? uiGateName)
+    {
+        if (string.IsNullOrWhiteSpace(uiGateName))
+        {
+            return null;
+        }
+
+        var words = uiGateName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length >= 2 && KnownFacilityPrefixes.Contains(Normalize(words[0]))
+            ? string.Join(' ', words[1..])
+            : null;
     }
 
     /// <summary>Nearest-name suggestions for a not_found failure: exact → suffix → contains,
