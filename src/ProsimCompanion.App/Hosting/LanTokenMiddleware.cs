@@ -11,7 +11,8 @@ namespace ProsimCompanion.App.Hosting;
 /// Gate for non-loopback clients: loopback always passes (the local UI can never be locked out);
 /// LAN clients must present the access token once — via the QR/onboarding link's
 /// <c>?token=</c> query — after which a cookie carries it (including over the Blazor circuit's
-/// WebSocket). Comparisons are fixed-time.
+/// WebSocket). Stateless API clients may instead send <c>Authorization: Bearer</c> on every
+/// request (issue #96). Comparisons are fixed-time.
 /// </summary>
 public sealed class LanTokenMiddleware
 {
@@ -55,6 +56,18 @@ public sealed class LanTokenMiddleware
             return;
         }
 
+        // Pure API clients authenticate with the bearer header alone (issue #96): the API
+        // endpoints always advertised it, but this middleware ran first and demanded the
+        // cookie dance. No cookie is minted — a stateless client stays stateless.
+        const string bearerPrefix = "Bearer ";
+        var authorization = context.Request.Headers.Authorization.ToString();
+        if (authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
+            && TokensEqual(authorization[bearerPrefix.Length..].Trim(), token))
+        {
+            await _next(context).ConfigureAwait(false);
+            return;
+        }
+
         if (context.Request.Query.TryGetValue(QueryName, out var presented) && TokensEqual(presented.ToString(), token))
         {
             context.Response.Cookies.Append(CookieName, token, new CookieOptions
@@ -64,8 +77,15 @@ public sealed class LanTokenMiddleware
                 MaxAge = TimeSpan.FromDays(30),
             });
 
-            // Strip the token from the address bar.
-            context.Response.Redirect(context.Request.Path.HasValue ? context.Request.Path.Value! : "/");
+            // Strip the token from the address bar — but ONLY the token (issue #96: the
+            // whole query was dropped, silently discarding parameters like tailKb on an
+            // onboarding request).
+            var remaining = context.Request.Query
+                .Where(pair => !string.Equals(pair.Key, QueryName, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(pair => pair.Value, (pair, value) => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(value ?? "")}")
+                .ToList();
+            var path = context.Request.Path.HasValue ? context.Request.Path.Value! : "/";
+            context.Response.Redirect(remaining.Count > 0 ? $"{path}?{string.Join('&', remaining)}" : path);
             return;
         }
 
