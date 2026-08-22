@@ -950,5 +950,41 @@ public static class ProsimDataRefNames
         public const string Eng2Combustion = "ENG COMBUSTION:2";
         public const string DoorPointFwd = "INTERACTIVE POINT OPEN:8";
         public const string DoorPointAft = "INTERACTIVE POINT OPEN:9";
+
+        // Airframe damage state for the read-only /api/debug/damage probe. The four legacy
+        // Bool flags exist on both MSFS 2020 and 2024; the WEAR AND TEAR family is 2024-only —
+        // on 2020 the registration is refused (logged SimConnect exception) and the value
+        // never arrives, which the probe surfaces as received=false rather than a fake 0.
+
+        /// <summary>True once the landing gear was damaged by excessive speed.</summary>
+        public static readonly SimVarRef<bool> GearDamageBySpeed = new("GEAR DAMAGE BY SPEED", "Bool", DataRefTier.Infrequent, false);
+
+        /// <summary>True while the gear-extended speed limit is exceeded.</summary>
+        public static readonly SimVarRef<bool> GearSpeedExceeded = new("GEAR SPEED EXCEEDED", "Bool", DataRefTier.Infrequent, false);
+
+        /// <summary>True once the flaps were damaged by excessive speed.</summary>
+        public static readonly SimVarRef<bool> FlapDamageBySpeed = new("FLAP DAMAGE BY SPEED", "Bool", DataRefTier.Infrequent, false);
+
+        /// <summary>True while the flaps speed limit is exceeded.</summary>
+        public static readonly SimVarRef<bool> FlapSpeedExceeded = new("FLAP SPEED EXCEEDED", "Bool", DataRefTier.Infrequent, false);
+
+        /// <summary>MSFS 2024 wear level of component 37 (TIRE): 1 = undamaged, 0 = failed.
+        /// The component index addresses the whole tyre system — per-wheel granularity is not
+        /// reachable through a plain SimConnect name. Fallback 1.0 = healthy keeps a dead or
+        /// 2020 subscription reading as "no damage".</summary>
+        public static readonly SimVarRef<double> TireWearLevel = new("WEAR AND TEAR LEVEL:37", "percent over 100", DataRefTier.Infrequent, 1.0);
+
+        /// <summary>MSFS 2024: true when component 37 (TIRE) has failed completely — the
+        /// "tyre blown" condition the wear level bottoms out into.</summary>
+        public static readonly SimVarRef<bool> TireFailed = new("WEAR AND TEAR IS FAILED:37", "Bool", DataRefTier.Infrequent, false);
+
+        /// <summary>MSFS 2024 wear level of component 38 (TIRE_PRESSURE): 1 = nominal.</summary>
+        public static readonly SimVarRef<double> TirePressureWearLevel = new("WEAR AND TEAR LEVEL:38", "percent over 100", DataRefTier.Infrequent, 1.0);
+
+        /// <summary>MSFS 2024 average wear of the exposed airframe parts: 1 = pristine.</summary>
+        public static readonly SimVarRef<double> ExposedPartsWearLevel = new("WEAR AND TEAR EXPOSED PARTS LEVEL", "percent over 100", DataRefTier.Infrequent, 1.0);
+
+        /// <summary>MSFS 2024 lowest (worst) wear among the exposed airframe parts.</summary>
+        public static readonly SimVarRef<double> ExposedPartsLowestWearLevel = new("WEAR AND TEAR EXPOSED PARTS LOWEST LEVEL", "percent over 100", DataRefTier.Infrequent, 1.0);
     }
 }

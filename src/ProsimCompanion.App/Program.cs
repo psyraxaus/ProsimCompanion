@@ -313,6 +313,10 @@ public static class Program
         // options bind with every other section in AddCoreServices (campaign #84).
         builder.Services.AddSingleton<ProsimCompanion.Core.Commands.CommandRegistry>();
 
+        // Airframe-damage debug probe (/api/debug/damage) — subscribes its SimVars lazily on
+        // first request, so registering it costs nothing until the surface is actually used.
+        builder.Services.AddSingleton<SimDamageProbe>();
+
         var webUi = builder.Configuration.GetSection(WebUiOptions.SectionName).Get<WebUiOptions>()
             ?? new WebUiOptions();
         var host = webUi.BindToAllInterfaces ? "0.0.0.0" : "localhost";
@@ -337,6 +341,9 @@ public static class Program
         // Read-only telemetry feed for the flight-verification workflow (issue #94):
         // session event logs + log tails, on by default, 404 while disabled.
         web.MapTelemetryApi();
+
+        // Read-only airframe-damage snapshot (blown-tyre wear state); rides the telemetry gate.
+        web.MapSimDamageApi();
 
         // Boot id for the client-side server-restart watchdog (issue #97).
         web.MapAppBoot();
