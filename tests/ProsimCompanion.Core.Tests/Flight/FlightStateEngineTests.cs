@@ -168,11 +168,14 @@ public sealed class FlightStateEngineTests
             OnGround = false,
             AircraftPowered = true,
             AnyEngineRunning = true,
+            IndicatedAirspeedKt = 280,
+            GroundSpeedKt = 420,
             RadioAltitudeFt = 20000,
             AltitudeFt = 24000,
             VerticalSpeedFpm = -1800,
         };
-        var now = Drive(engine, airborneDescent, T0, TimeSpan.FromSeconds(2));
+        // Unknown -> Descent carries the 5 s first-classification debounce (issue #59).
+        var now = Drive(engine, airborneDescent, T0, TimeSpan.FromSeconds(6));
         Assert.Equal(FlightPhase.Descent, engine.CurrentPhase);
 
         // Level segment: target Cruise, but the 15 s Descent->Cruise debounce holds Descent
@@ -183,6 +186,90 @@ public sealed class FlightStateEngineTests
 
         Drive(engine, level, now, TimeSpan.FromSeconds(3));
         Assert.Equal(FlightPhase.Cruise, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void WarmupGarbage_AirborneAtZeroSpeed_IsHeldImplausible()
+    {
+        // The 2026-08-17 recurrence shape (issue #59): every ref has a first value, so
+        // IsReady passes, but ProSim's own boot serves onGround=false with ias=0/gs=0 — the
+        // sample is physically impossible and must never classify, let alone latch.
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+
+        var warmupGarbage = new FlightDataSnapshot
+        {
+            IsValid = true,
+            IsReady = true,
+            OnGround = false,
+            GearDown = true,
+            RadioAltitudeFt = 0,
+            IndicatedAirspeedKt = 0,
+            GroundSpeedKt = 0,
+            VerticalSpeedFpm = 0,
+            AircraftPowered = false,
+        };
+        Drive(engine, warmupGarbage, T0, TimeSpan.FromSeconds(20));
+
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+        Assert.False(engine.HasBeenAirborneThisSession);
+    }
+
+    [Fact]
+    public void AirborneCommit_WithoutConvincingEvidence_DoesNotLatch()
+    {
+        // Plausible enough to classify (gs above the floor) but not convincingly airborne
+        // (slow AND low): the phase may commit and self-correct later, but the write-safety
+        // latch must hold — it is what opened the FOB restore on 2026-08-17.
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+
+        var lowSlowApproach = new FlightDataSnapshot
+        {
+            IsValid = true,
+            IsReady = true,
+            OnGround = false,
+            GearDown = true,
+            RadioAltitudeFt = 150,
+            IndicatedAirspeedKt = 40,
+            GroundSpeedKt = 45,
+            VerticalSpeedFpm = -400,
+            AircraftPowered = true,
+        };
+        Drive(engine, lowSlowApproach, T0, TimeSpan.FromSeconds(6));
+
+        Assert.Equal(FlightPhase.Approach, engine.CurrentPhase);
+        Assert.False(engine.HasBeenAirborneThisSession);
+    }
+
+    [Fact]
+    public void MidFlightRestart_StillClassifiesAndLatches_AfterTheFirstClassificationHold()
+    {
+        // App restart at cruise: genuine airborne data classifies after the 5 s
+        // Unknown->airborne debounce and the latch opens — the hardening must not break the
+        // legitimate restart path.
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+
+        var cruise = new FlightDataSnapshot
+        {
+            IsValid = true,
+            IsReady = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            IndicatedAirspeedKt = 250,
+            GroundSpeedKt = 440,
+            RadioAltitudeFt = 30000,
+            AltitudeFt = 36000,
+            VerticalSpeedFpm = 0,
+        };
+        var now = Drive(engine, cruise, T0, TimeSpan.FromSeconds(4));
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+
+        Drive(engine, cruise, now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Cruise, engine.CurrentPhase);
+        Assert.True(engine.HasBeenAirborneThisSession);
     }
 
     [Fact]

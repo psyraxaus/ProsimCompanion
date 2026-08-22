@@ -30,6 +30,9 @@ VoicemeeterRemote64.dll
 # Agent worktrees (session-local)
 .claude/worktrees/
 
+# Personal Claude Code settings
+.claude/settings.local.json
+
 # Installer build output
 installer/Output/
 

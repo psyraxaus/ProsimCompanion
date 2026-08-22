@@ -60,14 +60,37 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
     /// must not walk the ground automation back to Preflight, yet a genuine correction, like
     /// the 2026-08-16 PushbackAndStart→Preflight recovery from a bogus startup phase, still
     /// commits after the hold). Descent→Cruise gets a long settle so the level segments of a
-    /// step descent do not flip-flop (four flips in 23 min on the 2026-08-16 flight).</summary>
+    /// step descent do not flip-flop (four flips in 23 min on the 2026-08-16 flight).
+    /// Unknown→airborne commits need sustained evidence too (issue #59, 2026-08-17
+    /// recurrence): the very first classification of a session leaping straight to a flight
+    /// phase is either a mid-flight app restart (5 s costs nothing) or connection warm-up
+    /// garbage (5 s outlives it).</summary>
     private static readonly Dictionary<(FlightPhase From, FlightPhase To), TimeSpan> TransitionDebounceOverrides = new()
     {
         [(FlightPhase.PushbackAndStart, FlightPhase.Preflight)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.TaxiOut, FlightPhase.Preflight)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.TakeoffRoll, FlightPhase.Preflight)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.Descent, FlightPhase.Cruise)] = TimeSpan.FromSeconds(15),
+        [(FlightPhase.Unknown, FlightPhase.Approach)] = TimeSpan.FromSeconds(5),
+        [(FlightPhase.Unknown, FlightPhase.Climb)] = TimeSpan.FromSeconds(5),
+        [(FlightPhase.Unknown, FlightPhase.Descent)] = TimeSpan.FromSeconds(5),
+        [(FlightPhase.Unknown, FlightPhase.Cruise)] = TimeSpan.FromSeconds(5),
     };
+
+    /// <summary>Below both of these, a not-on-ground sample is physically impossible — an
+    /// A322 cannot be airborne at 30 kt IAS AND 30 kt ground speed. ProSim pushes exactly
+    /// this shape while it warms up after an SDK connect (issue #59 recurrence 2026-08-17:
+    /// every phase-critical ref had a first value, so <see cref="FlightDataSnapshot.IsReady"/>
+    /// passed, but the values were boot defaults — onGround=false with ias=0/gs=0 — and the
+    /// bogus Approach latched airborne history and restored 4.6 t of fuel over a 9.5 t load).</summary>
+    private const double PlausibleAirborneMinSpeedKt = 30;
+
+    /// <summary>Airborne-latch evidence floor: a committed flight phase only proves the
+    /// session has flown when the sample itself is convincingly airborne. Below flying speed
+    /// AND below this radio altitude, the commit may still be a data artifact — the phase can
+    /// stand (it self-corrects) but the write-safety latch must not.</summary>
+    private const double AirborneLatchMinIasKt = 80;
+    private const double AirborneLatchMinRaFt = 200;
 
     private readonly IFlightDataSource _source;
     private readonly SimSessionStore _session;
@@ -132,14 +155,18 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
         // reports fired back-to-back and the FOB restore clobbered loaded fuel. Never evaluate
         // until a flight session exists (ProSim pushes plausible data while MSFS sits on the
         // main menu — see SimSessionStore) AND the source reports every phase-critical dataref
-        // registered and fresh. While gated, hold the current phase quietly.
-        var ready = session.DataIsMeaningful && snapshot.IsReady;
+        // registered and fresh AND the sample is physically possible (2026-08-17 recurrence:
+        // value-arrival checks pass while ProSim's own boot still serves airborne-at-zero-speed
+        // defaults — IsReady proves the values arrived, not that they are sane). While gated,
+        // hold the current phase quietly.
+        var plausible = IsPhysicallyPlausible(snapshot);
+        var ready = session.DataIsMeaningful && snapshot.IsReady && plausible;
         if (ready != _classifying)
         {
             _classifying = ready;
             _logger.LogInformation(
-                "Flight phase classification {State} (session {SessionPhase}, flight data ready: {DataReady})",
-                ready ? "enabled" : "suspended", session.Phase, snapshot.IsReady);
+                "Flight phase classification {State} (session {SessionPhase}, flight data ready: {DataReady}, plausible: {Plausible})",
+                ready ? "enabled" : "suspended", session.Phase, snapshot.IsReady, plausible);
         }
 
         if (!ready)
@@ -174,7 +201,24 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
         if (target is FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise
             or FlightPhase.Descent or FlightPhase.Approach)
         {
-            HasBeenAirborneThisSession = true;
+            // The latch opens write-safety gates (FOB restore, cabin landing report), so it
+            // demands more than a committed phase name: the sample itself must be convincingly
+            // airborne. A commit that later proves to be a data artifact self-corrects; a
+            // latched artifact overwrote 9.5 t of fuel on 2026-08-17 (issue #59).
+            if (!snapshot.OnGround
+                && (snapshot.IndicatedAirspeedKt >= AirborneLatchMinIasKt
+                    || snapshot.RadioAltitudeFt >= AirborneLatchMinRaFt))
+            {
+                HasBeenAirborneThisSession = true;
+            }
+            else if (!HasBeenAirborneThisSession)
+            {
+                _logger.LogInformation(
+                    "Airborne phase {Phase} committed without convincing airborne evidence "
+                    + "(onGround={OnGround} ias={IndicatedAirspeedKt:F1}kt ra={RadioAltitudeFt:F0}ft) — "
+                    + "airborne-this-session latch withheld",
+                    target, snapshot.OnGround, snapshot.IndicatedAirspeedKt, snapshot.RadioAltitudeFt);
+            }
         }
 
         if (IsDepartureRegression(previous, target))
@@ -204,6 +248,13 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
             snapshot.GearDown, snapshot.TakeoffThrustSet);
         PhaseChanged?.Invoke(this, new FlightPhaseChangedEventArgs(previous, target));
     }
+
+    /// <summary>False for sample shapes that cannot describe a real aircraft: not on the
+    /// ground yet below flying speed on BOTH speed sources. Exposed internal for tests.</summary>
+    internal static bool IsPhysicallyPlausible(FlightDataSnapshot snapshot)
+        => snapshot.OnGround
+            || snapshot.IndicatedAirspeedKt >= PlausibleAirborneMinSpeedKt
+            || snapshot.GroundSpeedKt >= PlausibleAirborneMinSpeedKt;
 
     private static bool IsDepartureRegression(FlightPhase from, FlightPhase to)
         => to == FlightPhase.Preflight
