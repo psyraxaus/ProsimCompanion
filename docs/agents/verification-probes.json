@@ -90,21 +90,36 @@
       "notes": "Mirror-vanish reset and deice id matching can re-arm one-shot events within a cycle."
     },
     {
+      "id": "failure-detection-truthful",
+      "issue": 103,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "No detected->cleared->detected cycle for one failure id within 5 minutes (the 2026-08-23 signature: 4 cycles of elec-gen-1-fault in 6 min, tracking the ECP page button).",
+        "No 'failure.cleared' while the fault demonstrably persisted (when instructor-injected: the pilot knows; from telemetry: a re-detect of the same id within minutes is the tell).",
+        "assert-present when a failure occurs: 'failure.detected' fires within the definition's debounce WITHOUT any ECP page-button interaction.",
+        "watch: count 'trigger is firing but corroborate ... reads low — suppressed' log lines (new visibility) — each is a detection a corroborate blocked; also report 'E/WD text channel is live' vs 'returned no content' (which of the two trigger channels this aircraft actually provides).",
+        "watch: any abnormal.line outcome 'fault-remains'/'unable' — the new pilot replies in use."
+      ],
+      "notes": "Fixed: I_ECAM_* corroborates removed from all shipped definitions (page buttons only light on manual selection); a latched fault clears ONLY via its authored clearedWhen (signal absence is the no-clearedWhen fallback); corroborate suppression logged once per episode; E/WD text channel re-checked after connect; global 'fault remains'/'no change' and 'unable' replies added to every dialogue line."
+    },
+    {
       "id": "false-ecam-triggers",
       "issue": 58,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session"],
       "checks": [
         "No abnormal/ECAM dialogue or master-warning speech for GEN 1/GEN 2 FAULT while no engine has been started this session (pre-start state is normal, not a fault).",
         "No APU FIRE dialogue from a transient shorter than ~2 s (fire signal appears and clears between adjacent events)."
       ],
-      "notes": "Correlate 'speech.spoken'/abnormal events against engine state from phase-changed payloads (#93 fields)."
+      "notes": "Verified live 2026-08-23 (1 h powered, engines off, zero false ECAM) — the engine-running AND-condition carries this alone; the I_ECAM corroborate that over-corrected was removed by #103."
     },
     {
       "id": "ecam-dialogue-ignores-cleared",
       "issue": 57,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session"],
       "checks": [
@@ -116,7 +131,7 @@
     {
       "id": "ecam-dialogue-inescapable",
       "issue": 56,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "sources": ["session"],
       "checks": [

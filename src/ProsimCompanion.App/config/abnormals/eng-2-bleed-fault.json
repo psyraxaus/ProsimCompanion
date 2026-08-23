@@ -7,7 +7,6 @@
   "trigger": {
     "ewdText": [ "ENG 2 BLEED FAULT", "BLEED 2 FAULT", "ENG 2 BLEED" ],
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_BLEED",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, engine 2 bleed fault.",

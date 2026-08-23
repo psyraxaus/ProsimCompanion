@@ -15,7 +15,6 @@
       ]
     },
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_ELEC",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, electrical, generator 1 fault.",

@@ -8,7 +8,6 @@
     "ewdText": [ "F/CTL ALTN LAW", "ALTN LAW", "ALTERNATE LAW", "PROT LOST" ],
     "condition": { "dataref": "aircraft.controlLaw.numerical", "op": "notEquals", "value": 0 },
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_FCTL",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, flight controls, alternate law.",

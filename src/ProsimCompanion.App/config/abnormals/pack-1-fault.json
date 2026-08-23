@@ -7,7 +7,6 @@
   "trigger": {
     "ewdText": [ "AIR PACK 1 FAULT", "PACK 1 FAULT", "PACK 1 OVHT" ],
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_BLEED",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, air, pack 1 fault.",

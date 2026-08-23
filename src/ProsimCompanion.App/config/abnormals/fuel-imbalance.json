@@ -8,7 +8,6 @@
   "trigger": {
     "ewdText": [ "FUEL L-R WING TK IMBALANCE", "WING TK IMBALANCE", "FUEL IMBALANCE" ],
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_FUEL",
     "debounceSeconds": 5.0
   },
   "announce": "ECAM, fuel, wing tank imbalance.",

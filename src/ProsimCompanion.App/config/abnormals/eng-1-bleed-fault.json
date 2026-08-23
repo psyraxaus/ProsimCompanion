@@ -8,7 +8,6 @@
     "ewdText": [ "ENG 1 BLEED FAULT", "BLEED 1 FAULT", "ENG 1 BLEED" ],
     "condition": { "dataref": "aircraft.systems.pneumatic.valve.engines.1.BLEED_VALVE", "op": "equals", "value": 0 },
     "logic": "all",
-    "corroborate": "system.indicators.I_ECAM_BLEED",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, engine 1 bleed fault.",

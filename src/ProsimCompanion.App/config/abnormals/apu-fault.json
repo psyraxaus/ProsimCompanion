@@ -7,7 +7,6 @@
   "trigger": {
     "ewdText": [ "APU FAULT", "APU AUTO SHUT DOWN" ],
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_APU",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, A.P.U. fault.",

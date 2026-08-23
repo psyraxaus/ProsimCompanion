@@ -8,7 +8,6 @@
     "ewdText": [ "HYD B RSVR LO LVL", "HYD B RSVR LO", "BLUE RSVR LO LVL" ],
     "condition": { "dataref": "aircraft.hydraulics.blue.quantity", "op": "lessThan", "value": 3.0 },
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_HYD",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, hydraulic, blue reservoir low level.",

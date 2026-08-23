@@ -51,6 +51,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     private Timer? _timer;
     private int _ticking;
     private bool _ewdWarned;
+    private bool _ewdLive;
 
     /// <summary>Optional <paramref name="micOwnership"/>: DI injects the registered seam, so
     /// live ECAM procedures run the interactive dialogue; without it (degraded mode, and the
@@ -197,31 +198,59 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                 }
 
                 var state = _states[definition.Id];
-                var signal = EvaluateTrigger(definition, ewdText);
-                if (!signal)
+                var signal = EvaluateTrigger(definition, ewdText, out var corroborateSuppressed);
+                if (corroborateSuppressed && !state.SuppressionLogged)
                 {
-                    if (state.Fired)
-                    {
-                        state.Fired = false;
-                        _eventLog.Record("failure.cleared", new { id = definition.Id });
-
-                        // A dialogue mid-run for this failure ends now (issue #57): the
-                        // 2026-08-15 flight had the FO demanding a gen reset for 13 minutes
-                        // after the generators came back on line.
-                        if (_activeDialogue is { } active
-                            && string.Equals(active.Id, definition.Id, StringComparison.Ordinal))
-                        {
-                            active.EndReason = "cleared";
-                            clearedDialogue = active.Cts;
-                        }
-                    }
-
-                    state.RisingSinceUtc = null;
-                    continue;
+                    // This path was invisible on the 2026-08-23 flight (issue #103): an
+                    // injected GEN 1 fault fired the raw trigger every tick and the
+                    // corroborate silently discarded it — one line per episode makes the
+                    // suppression diagnosable.
+                    state.SuppressionLogged = true;
+                    _logger.LogInformation(
+                        "Abnormal {Id} trigger is firing but corroborate {Corroborate} reads low — suppressed",
+                        definition.Id, definition.Trigger!.Corroborate);
+                }
+                else if (!corroborateSuppressed)
+                {
+                    state.SuppressionLogged = false;
                 }
 
                 if (state.Fired)
                 {
+                    // A latched fault only clears on its authored clearedWhen condition —
+                    // the trigger signal dropping is NOT proof (issue #103: deselecting the
+                    // ECAM page false-cleared a live GEN fault four times on 2026-08-23,
+                    // and the FO announced "has cleared" over a dead generator). Without a
+                    // clearedWhen, signal absence remains the only clue we have; an
+                    // unreadable condition (null) never clears.
+                    var cleared = definition.ClearedWhen is not null
+                        ? ((IEcamDialogueIo)this).TryEvaluate(definition.ClearedWhen) == true
+                        : !signal;
+                    if (!cleared)
+                    {
+                        continue;
+                    }
+
+                    state.Fired = false;
+                    state.RisingSinceUtc = null;
+                    _eventLog.Record("failure.cleared", new { id = definition.Id });
+
+                    // A dialogue mid-run for this failure ends now (issue #57): the
+                    // 2026-08-15 flight had the FO demanding a gen reset for 13 minutes
+                    // after the generators came back on line.
+                    if (_activeDialogue is { } active
+                        && string.Equals(active.Id, definition.Id, StringComparison.Ordinal))
+                    {
+                        active.EndReason = "cleared";
+                        clearedDialogue = active.Cts;
+                    }
+
+                    continue;
+                }
+
+                if (!signal)
+                {
+                    state.RisingSinceUtc = null;
                     continue;
                 }
 
@@ -498,8 +527,9 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         }
     }
 
-    private bool EvaluateTrigger(AbnormalDefinition definition, string ewdText)
+    private bool EvaluateTrigger(AbnormalDefinition definition, string ewdText, out bool corroborateSuppressed)
     {
+        corroborateSuppressed = false;
         var trigger = definition.Trigger!;
         bool? textHit = trigger.EwdText.Count > 0
             ? trigger.EwdText.Any(p => ewdText.Contains(p, StringComparison.OrdinalIgnoreCase))
@@ -530,9 +560,14 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             signal = textHit ?? condHit ?? false;
         }
 
+        // Corroborate lights must be signals that actually illuminate on the fault (master
+        // lights, engine fault lights). ECAM page-button lights do NOT — they light on
+        // manual page selection only, which blinded the monitor to a live GEN fault on
+        // 2026-08-23 (issue #103); those were removed from the shipped definitions.
         if (signal && !string.IsNullOrWhiteSpace(trigger.Corroborate) && Read(trigger.Corroborate) <= 0.5)
         {
             signal = false;
+            corroborateSuppressed = true;
         }
 
         return signal;
@@ -545,12 +580,29 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     private string ReadEwdText()
     {
         _ewdText ??= _dataRefs.Subscribe(ProsimDataRefNames.FwcContentLeft);
-        var text = _ewdText.Value;
-        if (text.Length == 0 && !_ewdWarned)
+        if (_ewdText.RawValue is null)
         {
-            _ewdWarned = true;
-            _logger.LogInformation(
-                "E/WD text dataref returned no content — using dataref-condition triggers only");
+            // Nothing pushed yet (ProSim not connected) — say nothing until we actually
+            // know. The pre-#103 version stamped its warn-once verdict one second after
+            // app start, before the connection existed, and never re-checked.
+            return "";
+        }
+
+        var text = _ewdText.Value;
+        if (text.Length == 0)
+        {
+            if (!_ewdWarned)
+            {
+                _ewdWarned = true;
+                _logger.LogInformation(
+                    "E/WD text dataref returned no content — using dataref-condition triggers only");
+            }
+        }
+        else if (!_ewdLive)
+        {
+            _ewdLive = true;
+            _ewdWarned = false;
+            _logger.LogInformation("E/WD text channel is live — text triggers active");
         }
 
         return text;
@@ -596,5 +648,8 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     {
         public bool Fired { get; set; }
         public DateTimeOffset? RisingSinceUtc { get; set; }
+
+        /// <summary>One suppression log line per corroborate episode (issue #103).</summary>
+        public bool SuppressionLogged { get; set; }
     }
 }

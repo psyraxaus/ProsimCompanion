@@ -18,7 +18,6 @@
       ]
     },
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_WHEEL",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, landing gear not downlocked.",

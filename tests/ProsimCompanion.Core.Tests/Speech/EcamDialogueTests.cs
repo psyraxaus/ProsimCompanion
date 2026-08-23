@@ -115,6 +115,69 @@ public sealed class EcamDialogueTests
         Assert.Contains("say again", grammar);
         Assert.Contains("skip", grammar);
         Assert.Contains("skip line", grammar);
+        Assert.Contains("fault remains", grammar);
+        Assert.Contains("unable", grammar);
+    }
+
+    // ---- fault remains / unable (issue #103) ----
+
+    [Fact]
+    public async Task FaultRemains_ClosesTheLineWithoutItsVerify_AndRunsTheCarryPath()
+    {
+        // The 2026-08-23 GEN fault run: the reset did not work and the pilot had no way to
+        // say so — "fault remains" must accept the failed action (never demanding the
+        // verify) and let the condition-gated carry-the-fault line run.
+        var io = new ScriptedIo();
+        io.Answers.Enqueue("fault remains");   // line 1: the reset did not work
+        io.Answers.Enqueue("generator off");   // line 2: the carry path
+        io.Evaluate = condition => condition.Dataref == "carry"; // verify false, branch true
+        var definition = Procedure(
+            new AbnormalAction
+            {
+                Say = "Generator 1, off, then on. Attempt a reset.",
+                Confirm = ["reset"],
+                Verify = new VerifyCondition { Dataref = "verify", Op = ComparisonOp.Equals, Value = 1 },
+                Discrepancy = "Generator 1 has not come back on line.",
+            },
+            new AbnormalAction
+            {
+                Say = "Generator 1, off.",
+                Confirm = ["generator off"],
+                Condition = new VerifyCondition { Dataref = "carry", Op = ComparisonOp.Equals, Value = 0 },
+            });
+
+        await Core(io).RunAsync(definition, CancellationToken.None);
+
+        Assert.Equal(
+            [
+                "Generator 1, off, then on. Attempt a reset.",
+                "Understood — the fault remains.",
+                "Generator 1, off.",
+                "Status. Avoid icing conditions.",
+                Completion,
+            ],
+            io.Spoken);
+    }
+
+    [Fact]
+    public async Task Unable_SkipsRemainingActions_StillReadsStatus()
+    {
+        var io = new ScriptedIo();
+        io.Answers.Enqueue("unable");
+        var definition = Procedure(
+            new AbnormalAction { Say = "Generator 1, off, then on. Attempt a reset.", Confirm = ["reset"] },
+            new AbnormalAction { Say = "Generator 1, off.", Confirm = ["generator off"] });
+
+        await Core(io).RunAsync(definition, CancellationToken.None);
+
+        Assert.Equal(
+            [
+                "Generator 1, off, then on. Attempt a reset.",
+                "Understood.",
+                "Status. Avoid icing conditions.",
+                Completion,
+            ],
+            io.Spoken);
     }
 
     // ---- standby / continue ----

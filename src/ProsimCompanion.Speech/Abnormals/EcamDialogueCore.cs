@@ -72,6 +72,17 @@ public sealed class EcamDialogueCore
     internal static readonly string[] AbortPhrases =
         ["cancel ecam", "abort ecam", "stop ecam", "cancel the ecam"];
 
+    /// <summary>The corrective action did not work and the pilot is accepting that (issue
+    /// #103 — the 2026-08-23 GEN fault run had no way to say "the reset failed, we carry
+    /// the fault"): the line closes without its verify, and the dialogue moves on to the
+    /// condition-matching fallback actions and the STATUS review.</summary>
+    internal static readonly string[] FaultRemainsPhrases =
+        ["fault remains", "the fault remains", "no change", "fault persists", "still failed"];
+
+    /// <summary>Give up on all remaining actions and go straight to STATUS — for when the
+    /// pilot cannot work the drill at all right now but still wants the summary.</summary>
+    internal static readonly string[] UnablePhrases = ["unable"];
+
     private enum LineInput
     {
         None,
@@ -80,6 +91,8 @@ public sealed class EcamDialogueCore
         SayAgain,
         Skip,
         Abort,
+        FaultRemains,
+        Unable,
     }
 
     private enum LineOutcome
@@ -87,6 +100,7 @@ public sealed class EcamDialogueCore
         Completed,
         Skipped,
         Aborted,
+        Unable,
     }
 
     private readonly IEcamDialogueIo _io;
@@ -127,6 +141,13 @@ public sealed class EcamDialogueCore
                 await _io.SpeakAsync("ECAM cancelled. Resuming normal duties.", cancellationToken)
                     .ConfigureAwait(false);
                 return;
+            }
+
+            if (outcome == LineOutcome.Unable)
+            {
+                // Straight to the STATUS review — the pilot cannot work the remaining
+                // lines, but still gets the operational summary (issue #103).
+                break;
             }
         }
 
@@ -198,6 +219,22 @@ public sealed class EcamDialogueCore
                 case LineInput.Skip:
                     _eventLog.Record("abnormal.line", new { id = definition.Id, say = line.Say, outcome = "skipped" });
                     return LineOutcome.Skipped;
+
+                case LineInput.FaultRemains:
+                    // The pilot performed (or attempted) the action and reports it did not
+                    // help — accept, never demand the verify, move to the next line (whose
+                    // branch condition typically selects the carry-the-fault path).
+                    _eventLog.Record("abnormal.line",
+                        new { id = definition.Id, say = line.Say, outcome = "fault-remains" });
+                    await _io.SpeakAsync("Understood — the fault remains.", cancellationToken)
+                        .ConfigureAwait(false);
+                    return LineOutcome.Completed;
+
+                case LineInput.Unable:
+                    _eventLog.Record("abnormal.line",
+                        new { id = definition.Id, say = line.Say, outcome = "unable" });
+                    await _io.SpeakAsync("Understood.", cancellationToken).ConfigureAwait(false);
+                    return LineOutcome.Unable;
 
                 case LineInput.None:
                     silentPrompts++;
@@ -375,6 +412,8 @@ public sealed class EcamDialogueCore
             .Concat(SayAgainPhrases)
             .Concat(SkipPhrases)
             .Concat(AbortPhrases)
+            .Concat(FaultRemainsPhrases)
+            .Concat(UnablePhrases)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -409,6 +448,18 @@ public sealed class EcamDialogueCore
         if (MatchesAny(normalized, SkipPhrases))
         {
             return LineInput.Skip;
+        }
+
+        // Before the confirm pools: "no change" and friends must never read as a generic
+        // acknowledgement of the line (issue #103).
+        if (MatchesAny(normalized, FaultRemainsPhrases))
+        {
+            return LineInput.FaultRemains;
+        }
+
+        if (MatchesAny(normalized, UnablePhrases))
+        {
+            return LineInput.Unable;
         }
 
         if (MatchesAny(normalized, line.Confirm) || MatchesAny(normalized, ConfirmVocabulary.Affirm))

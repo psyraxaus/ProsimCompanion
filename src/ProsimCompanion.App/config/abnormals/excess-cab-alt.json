@@ -8,7 +8,6 @@
     "ewdText": [ "EXCESS CAB ALT", "CAB PR EXCESS CAB ALT" ],
     "condition": { "dataref": "aircraft.pneumatic.cpc_1.cabinAlt", "op": "greaterThan", "value": 9550 },
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_CAB_PRESS",
     "debounceSeconds": 1.0
   },
   "announce": "ECAM, cabin pressure, excess cabin altitude.",

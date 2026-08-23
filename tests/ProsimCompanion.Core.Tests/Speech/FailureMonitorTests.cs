@@ -162,6 +162,44 @@ public sealed class FailureMonitorTests : IDisposable
     }
 
     [Fact]
+    public void LatchedFault_TriggerSignalDropping_DoesNotClear_WhileClearedWhenReadsFalse()
+    {
+        // Issue #103 verbatim (2026-08-23): a live GEN fault "cleared" four times because
+        // the corroborate light went out when the pilot deselected the ECAM page — the
+        // authored clearedWhen (generator back on line) must be the only thing that clears.
+        var definition = EngineFire();
+        definition.ClearedWhen = new VerifyCondition
+        {
+            Dataref = "system.indicators.I_ENG_FIRE_1",
+            Op = ComparisonOp.Equals,
+            Value = 0,
+        };
+        _monitor.Load([definition]);
+        _dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+        _dataRefs.Values["system.indicators.I_MIP_MASTER_WARNING_FO"] = 1.0;
+        _monitor.ProcessTick(T0);
+        _monitor.ProcessTick(T0.AddSeconds(1.5));
+        Assert.Single(_arbiter.Requests);
+
+        // The corroborate light goes out (signal drops) while the fault itself persists:
+        // must stay latched — no clear, no re-fire when the light returns.
+        _dataRefs.Values["system.indicators.I_MIP_MASTER_WARNING_FO"] = 0.0;
+        _monitor.ProcessTick(T0.AddSeconds(3));
+        _dataRefs.Values["system.indicators.I_MIP_MASTER_WARNING_FO"] = 1.0;
+        _monitor.ProcessTick(T0.AddSeconds(4));
+        _monitor.ProcessTick(T0.AddSeconds(5.5));
+        Assert.Single(_arbiter.Requests);
+
+        // The fault actually resolving clears and re-arms.
+        _dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 0.0;
+        _monitor.ProcessTick(T0.AddSeconds(7));
+        _dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+        _monitor.ProcessTick(T0.AddSeconds(8));
+        _monitor.ProcessTick(T0.AddSeconds(9.5));
+        Assert.Equal(2, _arbiter.Requests.Count);
+    }
+
+    [Fact]
     public void PhaseGate_BlocksOutsideArmedPhases()
     {
         var definition = EngineFire();
@@ -212,6 +250,12 @@ public sealed class FailureMonitorTests : IDisposable
         Assert.Equal(30, definitions.Count);
         Assert.Equal(4, definitions.Count(d => d.IsDrill));
         Assert.All(definitions, d => Assert.False(string.IsNullOrWhiteSpace(d.Announce)));
+
+        // Issue #103: ECAM page-button lights (I_ECAM_*) only illuminate on MANUAL page
+        // selection — corroborating on one blinds the monitor to the real fault. No shipped
+        // definition may ever reintroduce that trap.
+        Assert.All(definitions, d => Assert.DoesNotContain(
+            "I_ECAM", d.Trigger?.Corroborate ?? "", StringComparison.Ordinal));
     }
 
     private static string FindRepoRoot()

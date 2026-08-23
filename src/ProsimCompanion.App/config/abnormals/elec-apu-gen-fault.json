@@ -8,7 +8,6 @@
     "ewdText": [ "APU GEN FAULT", "ELEC APU GEN FAULT" ],
     "condition": { "dataref": "system.indicators.I_OH_ELEC_APU_GENERATOR_U", "op": "greaterThan", "value": 0 },
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_ELEC",
     "debounceSeconds": 2.0
   },
   "announce": "ECAM, electrical, A.P.U. generator fault.",

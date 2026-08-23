@@ -8,7 +8,6 @@
     "ewdText": [ "BRAKES HOT", "WHEEL BRAKES HOT", "HOT BRAKES" ],
     "condition": { "dataref": "aircraft.brakes.brakeTempFactor", "op": "greaterThan", "value": 2.0 },
     "logic": "any",
-    "corroborate": "system.indicators.I_ECAM_WHEEL",
     "debounceSeconds": 3.0
   },
   "announce": "ECAM, brakes hot.",
