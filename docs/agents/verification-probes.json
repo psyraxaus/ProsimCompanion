@@ -71,10 +71,11 @@
       "kind": "assert-present",
       "sources": ["session", "log"],
       "checks": [
-        "When GSX does not recognize the parking (spawn at an unknown stand): a ground-prep hold with reason 'GSX has not identified the parking — select the stand in the GSX menu, or reposition' (visible on the Flight Status card), AND an 'fo.parking-conflict-advisory' spoken event naming the facility GSX offers, once per conflict.",
-        "assert-absent: repeated app restarts around a parking-change menu with session gate 'unknown' and no pilot-facing guidance (the 2026-08-17/22 signature)."
+        "When GSX does not recognize the parking (spawn at an unknown stand): a ground-prep hold with reason 'GSX has not identified the parking — select the stand in the GSX menu, or reposition' (visible on the Flight Status card), AND an 'fo.parking-conflict-advisory' spoken event, once per conflict — including when the only GSX surface is the 'Select Position at ...' menu (the 2026-08-23 gap: only the parking-CHANGE menu was wired, so the hold stayed a log line).",
+        "assert-absent: repeated app restarts around a parking-change menu with session gate 'unknown' and no pilot-facing guidance (the 2026-08-17/22 signature).",
+        "A 'gsx-question' decision 'position-select menu ... left for the user' when the Select Position menu appears (no more anonymous 'no question handler')."
       ],
-      "notes": "Fixed 2026-08-22: the silent gate-null prep branch now holds visibly, and the parking-change handler publishes the conflict for the FO advisory + status row. The app still never clicks GSX's parking menus — it advises."
+      "notes": "Re-fixed 2026-08-23: the unknown-parking HOLD itself now publishes the parking conflict (advisory + status row), so no particular menu shape is required; the Select Position menu is a named catalogue decision. The app still never clicks GSX's parking menus — it advises."
     },
     {
       "id": "ground-ops-double-fire",
@@ -433,9 +434,11 @@
       "kind": "assert-present",
       "sources": ["session", "log"],
       "checks": [
-        "On an app restart mid-turnaround: resync assessment completes, lifecycle latches seed from tracking LVARs/dataref evidence, and the sequencer holds until assessed (no duplicate service calls after restart)."
+        "On an app restart mid-turnaround: resync assessment completes, lifecycle latches seed from tracking LVARs/dataref evidence, and the sequencer holds until assessed (no duplicate service calls after restart).",
+        "No 'tracking LVARs claim departure progress the ProSim datarefs contradict' decision within ~15 s of app start (the 2026-08-23 false-stale signature: judged before the plan refs pushed, wiped valid LVARs, re-ran Refueling+Catering and re-pumped FOB mid-boarding).",
+        "No 'gsx-service' Requested for a service whose prior session recorded Completed in the same departure cycle."
       ],
-      "notes": "See the issue's live-verification list; exercised only by restarting the app mid-cycle."
+      "notes": "Regressed 2026-08-23, re-fixed: the staleness judgement now waits for the plan refs' first push (bounded by the 90 s window) and unknown facts (null) can neither prove nor condemn. Exercised only by restarting the app mid-cycle."
     },
     {
       "id": "sdk-wedge-watchdog",

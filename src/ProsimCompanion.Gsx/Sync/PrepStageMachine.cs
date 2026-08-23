@@ -64,6 +64,12 @@ internal static class PrepStageMachine
     internal sealed record PrepDecision(PrepCommand Command, string? Reason = null, bool ReleasesHold = false)
     {
         internal static readonly PrepDecision None = new(PrepCommand.None);
+
+        /// <summary>This hold is the GSX-does-not-know-the-parking state (issue #44) — the
+        /// shell publishes it as a parking conflict so the Flight Status row AND the FO's
+        /// spoken guidance fire, not just a log line (the 2026-08-23 flight held here twice
+        /// and the pilot saw and heard nothing).</summary>
+        public bool UnknownParking { get; init; }
     }
 
     internal static PrepDecision Next(PrepInputs inputs, DateTimeOffset now)
@@ -129,7 +135,10 @@ internal static class PrepStageMachine
         if (inputs.GateKey is null)
         {
             return new(PrepCommand.Hold,
-                "GSX has not identified the parking — select the stand in the GSX menu, or reposition");
+                "GSX has not identified the parking — select the stand in the GSX menu, or reposition")
+            {
+                UnknownParking = true,
+            };
         }
 
         // The gate genuinely changed mid/after prep (not the reposition itself settling).

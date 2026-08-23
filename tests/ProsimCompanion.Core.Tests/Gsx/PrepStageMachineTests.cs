@@ -194,5 +194,15 @@ public sealed class PrepStageMachineTests
         var unknownGate = PrepStageMachine.Next(Open() with { GateKey = null }, Now);
         Assert.Equal(PrepCommand.Hold, unknownGate.Command);
         Assert.Contains("GSX has not identified the parking", unknownGate.Reason);
+
+        // The 2026-08-23 flight held here twice and the pilot saw and heard NOTHING — the
+        // decision must flag itself so the shell publishes the parking conflict (Flight
+        // Status row + spoken FO guidance), not just a log line.
+        Assert.True(unknownGate.UnknownParking);
+
+        // No other hold is a parking conflict.
+        var resyncHold = PrepStageMachine.Next(Open() with { ResyncAssessed = false }, Now);
+        Assert.Equal(PrepCommand.Hold, resyncHold.Command);
+        Assert.False(resyncHold.UnknownParking);
     }
 }

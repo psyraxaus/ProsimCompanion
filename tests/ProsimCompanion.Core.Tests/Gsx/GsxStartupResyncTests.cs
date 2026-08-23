@@ -25,12 +25,52 @@ public sealed class GsxStartupResyncTests
         string? boardingStatus = null,
         int prelimEdition = 0,
         bool finalSent = false,
-        bool planLoaded = true)
+        bool? planLoaded = true)
         => new(
             turnaround, prepDone,
             new HashSet<string>(doneLvars ?? [], StringComparer.OrdinalIgnoreCase),
             fuelTarget, fob, booked, occupied, boardingStatus, prelimEdition, finalSent,
             ConfiguredServices, planLoaded);
+
+    [Fact]
+    public void UnpushedPlanRefs_NeverCondemnValidLvars()
+    {
+        // Issue #30 regression (2026-08-23 09:29 restart): the assessment ran 5 s after app
+        // start, before efb.simbriefPlanImported / FMS origin had pushed — FlightPlanLoaded
+        // read as false-because-unknown, the LVARs were condemned as "ProSim reset?", and
+        // refuelling + catering re-ran mid-boarding. Unknown (null) must not condemn.
+        var verdict = GsxStartupResync.Assess(
+            Evidence(doneLvars: ["Refueling", "Catering"], planLoaded: null));
+
+        Assert.False(verdict.StaleTrackingDetected);
+        Assert.Contains(verdict.SeedCompleted, seed => seed.ServiceId == "Refueling");
+        Assert.Contains(verdict.SeedCompleted, seed => seed.ServiceId == "Catering");
+    }
+
+    [Fact]
+    public void UnpushedFuelRef_DoesNotContradictACompletedRefuel()
+    {
+        var evidence = Evidence(doneLvars: ["Refueling"], fuelTarget: 8000) with
+        {
+            FuelOnBoardKg = null,
+        };
+
+        var verdict = GsxStartupResync.Assess(evidence);
+
+        Assert.False(verdict.StaleTrackingDetected);
+        Assert.Contains(verdict.SeedCompleted, seed => seed.ServiceId == "Refueling");
+    }
+
+    [Fact]
+    public void UnpushedPaxRef_DoesNotContradictACompletedBoarding()
+    {
+        var evidence = Evidence(doneLvars: ["Boarding"]) with { PaxOccupied = null };
+
+        var verdict = GsxStartupResync.Assess(evidence);
+
+        Assert.False(verdict.StaleTrackingDetected);
+        Assert.Contains(verdict.SeedCompleted, seed => seed.ServiceId == "Boarding");
+    }
 
     [Fact]
     public void FreshSession_SeedsNothing()

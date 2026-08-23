@@ -61,6 +61,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private DateTimeOffset _settleUntil;
     private string? _sessionGateKey;
     private string? _holdReason;
+    private bool _conflictPublished;
     private int _running;
 
     public GsxGroundPrepCoordinator(
@@ -197,7 +198,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
                     return;
 
                 case PrepCommand.Hold:
-                    Hold(decision.Reason!);
+                    Hold(decision.Reason!, decision.UnknownParking);
                     return;
 
                 case PrepCommand.Reset:
@@ -272,8 +273,11 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         => string.Equals(value, "voice", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Logs a prep hold once per distinct reason (the cycle runs every 5 s — a log
-    /// line per tick would drown the file while the user sits on the main menu).</summary>
-    private void Hold(string reason)
+    /// line per tick would drown the file while the user sits on the main menu). An
+    /// unknown-parking hold additionally publishes the parking conflict (issue #44): that is
+    /// what drives the Flight Status row and the FO's spoken guidance — on the 2026-08-23
+    /// flight the hold fired twice and stayed a log line the pilot never saw.</summary>
+    private void Hold(string reason, bool unknownParking = false)
     {
         if (_holdReason == reason)
         {
@@ -284,6 +288,13 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _logger.LogInformation("Ground preparation holding: {Reason}", reason);
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", $"holding: {reason}"));
         PublishStage($"holding: {reason}");
+
+        if (unknownParking)
+        {
+            _conflictPublished = true;
+            _diagnostics.UpdateParkingConflict(new GsxParkingConflictView(
+                DateTimeOffset.UtcNow, FacilityFromMenu() ?? ""));
+        }
     }
 
     private void ReleaseHold()
@@ -296,9 +307,29 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _holdReason = null;
         _logger.LogInformation("Ground preparation hold released");
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", "hold released"));
+        if (_conflictPublished)
+        {
+            // Whatever unknown-parking state stood is over (gate identified, phase moved on).
+            _conflictPublished = false;
+            _diagnostics.UpdateParkingConflict(null);
+        }
+
         // A parked chain releasing a hold is not "running" (issue #98: after a mid-flight
         // restart the startup holds release into descent — the row must read as idle).
         PublishStage(_stage == GsxPrepStage.Idle ? "standing by" : "running");
+    }
+
+    /// <summary>The facility GSX itself names, when a menu is up that names one — the
+    /// "Change Facility [...]" entry of the parking-change menu. The Select Position menu
+    /// lists candidate stands without naming an anchor, so this often stays null and the
+    /// advisory speaks its facility-less form.</summary>
+    private string? FacilityFromMenu()
+    {
+        var entry = _api.Mirror.MenuShown
+            ? _api.Mirror.Menu?.Entries.FirstOrDefault(
+                e => e.StartsWith("Change Facility", StringComparison.OrdinalIgnoreCase))
+            : null;
+        return entry is null ? null : Menu.GsxQuestionCatalog.ExtractFacility(entry);
     }
 
     private void Advance(GsxPrepStage next, string detail)

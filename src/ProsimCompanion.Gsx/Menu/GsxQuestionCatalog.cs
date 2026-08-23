@@ -109,6 +109,19 @@ public sealed class GsxQuestionCatalog
         // services run). No safe automated answer is known yet — the value is the decision-log
         // visibility, which names the gate GSX is anchored on instead of "no question handler".
         dispatcher.Register("Change parking or service", HandleParkingConflictAsync);
+
+        // The unknown-parking spawn (issue #44, 2026-08-23 LGAV): GSX raises "Select
+        // Position at <airport>" when it does not recognize the aircraft's stand. The menu
+        // stays with the user (picking a stand is a crew decision) — registering it turns
+        // the anonymous "no question handler" line into a named decision; the pilot-facing
+        // conflict itself is published by the ground-prep coordinator's hold.
+        dispatcher.Register("Select Position", ct =>
+        {
+            RecordDecision(
+                "position-select menu",
+                "left for the user — GSX does not recognize the parking; pick the stand or reposition (issue #44)");
+            return Task.CompletedTask;
+        });
         dispatcher.Register("This will revoke all active services", ct =>
         {
             RecordDecision(

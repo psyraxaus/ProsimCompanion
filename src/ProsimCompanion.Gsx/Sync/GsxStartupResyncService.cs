@@ -10,20 +10,24 @@ namespace ProsimCompanion.Gsx.Sync;
 /// <summary>Everything the startup assessment can observe, gathered by the service so the
 /// verdict logic stays pure and testable (issue #30). <see cref="FlightPlanLoaded"/> is the
 /// corroboration gate (issue #33): SimBrief OFP imported OR a valid MCDU origin/destination
-/// pair.</summary>
+/// pair. The nullable facts (<see cref="FuelOnBoardKg"/>, <see cref="PaxOccupied"/>,
+/// <see cref="FlightPlanLoaded"/>) are null while their datarefs have not pushed a first
+/// value — an unknown fact can neither prove nor CONDEMN (the 2026-08-23 restart judged
+/// "ProSim reset?" 5 s after start, before the plan refs had pushed, wiped valid LVARs and
+/// re-ran refuelling mid-boarding).</summary>
 public sealed record ResyncEvidence(
     bool TurnaroundLvar,
     bool PrepDoneLvar,
     IReadOnlySet<string> ServiceDoneLvars,
     double FuelTargetKg,
-    double FuelOnBoardKg,
+    double? FuelOnBoardKg,
     int PaxBooked,
-    int PaxOccupied,
+    int? PaxOccupied,
     string? EfbBoardingStatus,
     int LoadsheetPrelimEdition,
     bool LoadsheetFinalSent,
     IReadOnlyList<string> ConfiguredOneShotServices,
-    bool FlightPlanLoaded = true,
+    bool? FlightPlanLoaded = true,
     bool ProsimDataAvailable = true);
 
 /// <summary>What the assessment decided: services to seed as completed (with the evidence that
@@ -88,14 +92,18 @@ public static class GsxStartupResync
             || evidence.ServiceDoneLvars.Any(id => !ProgressExempt.Contains(id));
         var refuelContradicted = evidence.ServiceDoneLvars.Contains(GsxServiceIds.Refueling)
             && evidence.FuelTargetKg > FuelVarianceKg
-            && evidence.FuelOnBoardKg < evidence.FuelTargetKg - FuelVarianceKg;
+            && evidence.FuelOnBoardKg is double fuelAboard
+            && fuelAboard < evidence.FuelTargetKg - FuelVarianceKg;
         var boardingContradicted = evidence.ServiceDoneLvars.Contains(GsxServiceIds.Boarding)
             && evidence.PaxOccupied == 0;
         // Never judge staleness on absent data: with ProSim disconnected every dataref reads
-        // as "nothing", which must not condemn valid LVARs (degrade, not fail).
+        // as "nothing", which must not condemn valid LVARs (degrade, not fail). Null facts
+        // (refs not pushed yet) are absent data too — FlightPlanLoaded must read a definite
+        // FALSE, not merely not-yet-true, before it may condemn (issue #30 regression
+        // 2026-08-23: the 5-seconds-after-start assessment beat the plan refs' first push).
         var stale = evidence.ProsimDataAvailable
             && claimsDeparture
-            && (!evidence.FlightPlanLoaded || refuelContradicted || boardingContradicted);
+            && (evidence.FlightPlanLoaded == false || refuelContradicted || boardingContradicted);
 
         var trustedLvars = stale
             ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -119,16 +127,19 @@ public static class GsxStartupResync
         }
 
         if (evidence.FuelTargetKg > FuelVarianceKg
-            && evidence.FuelOnBoardKg >= evidence.FuelTargetKg - FuelVarianceKg)
+            && evidence.FuelOnBoardKg is double fuelProof
+            && fuelProof >= evidence.FuelTargetKg - FuelVarianceKg)
         {
             Prove(
                 GsxServiceIds.Refueling,
-                $"fuel on board {evidence.FuelOnBoardKg:F0} kg meets the {evidence.FuelTargetKg:F0} kg target");
+                $"fuel on board {fuelProof:F0} kg meets the {evidence.FuelTargetKg:F0} kg target");
         }
 
-        if (evidence.PaxBooked > 0 && evidence.PaxOccupied >= evidence.PaxBooked)
+        if (evidence.PaxBooked > 0
+            && evidence.PaxOccupied is int occupied
+            && occupied >= evidence.PaxBooked)
         {
-            Prove(GsxServiceIds.Boarding, $"{evidence.PaxOccupied} of {evidence.PaxBooked} booked pax aboard");
+            Prove(GsxServiceIds.Boarding, $"{occupied} of {evidence.PaxBooked} booked pax aboard");
         }
         else if (evidence.EfbBoardingStatus is "completed" or "ended")
         {
@@ -447,6 +458,19 @@ public sealed class GsxStartupResyncService : IDisposable
             }
         }
 
+        // The staleness judgement compares the tracking LVARs against the plan refs — so
+        // when the LVARs claim progress, WAIT for those refs' first push (issue #30
+        // regression 2026-08-23: assessed 5 s after start, before efb.simbriefPlanImported
+        // / FMS origin had pushed, condemned valid LVARs as "ProSim reset?" and re-ran
+        // refuelling + catering mid-boarding). The 90 s window still bounds the wait.
+        var planKnown = _ofpImported.RawValue is not null
+            || (_fmsOrigin.RawValue is not null && _fmsDestination.RawValue is not null);
+        var lvarsClaimProgress = doneLvars.Count > 0 || (int)_loadsheetPrelimLvar.Value > 0;
+        if (lvarsClaimProgress && !planKnown && !timedOut)
+        {
+            return;
+        }
+
         var fuelTarget = _fuelTargetKg.Value;
         if (fuelTarget <= 0)
         {
@@ -458,9 +482,11 @@ public sealed class GsxStartupResyncService : IDisposable
             PrepDoneLvar: _prepDoneLvar.Value >= 1,
             ServiceDoneLvars: doneLvars,
             FuelTargetKg: fuelTarget,
-            FuelOnBoardKg: _fuelTotal.Value,
+            FuelOnBoardKg: _fuelTotal.RawValue is null ? null : _fuelTotal.Value,
             PaxBooked: SeatMap.Parse(_paxBooked.Value).Count(seat => seat),
-            PaxOccupied: SeatMap.Parse(_paxOccupied.Value).Count(seat => seat),
+            PaxOccupied: _paxOccupied.RawValue is null
+                ? null
+                : SeatMap.Parse(_paxOccupied.Value).Count(seat => seat),
             EfbBoardingStatus: _efbBoardingStatus.Value?.Trim().ToLowerInvariant(),
             LoadsheetPrelimEdition: (int)_loadsheetPrelimLvar.Value,
             LoadsheetFinalSent: _loadsheetFinalLvar.Value >= 1,
@@ -468,9 +494,11 @@ public sealed class GsxStartupResyncService : IDisposable
                 [.. _options.CurrentValue.DepartureServices
                     .Select(step => step.Service)
                     .Where(id => !string.IsNullOrWhiteSpace(id))],
-            FlightPlanLoaded: _ofpImported.Value
-                || (IsValidIcao(_fmsOrigin.Value)
-                    && IsValidIcao(_fmsDestination.Value)),
+            FlightPlanLoaded: planKnown
+                ? _ofpImported.Value
+                    || (IsValidIcao(_fmsOrigin.Value)
+                        && IsValidIcao(_fmsDestination.Value))
+                : null,
             ProsimDataAvailable: prosimKnown);
 
         var verdict = GsxStartupResync.Assess(evidence);
