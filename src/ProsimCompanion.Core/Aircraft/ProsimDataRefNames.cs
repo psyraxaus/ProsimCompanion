@@ -194,7 +194,15 @@ public static class ProsimDataRefNames
     public static readonly DataRef<bool> GroundPreconditionedAir = new("groundservice.preconditionedAir", DataRefTier.Infrequent, false);
     public static readonly DataRef<bool> GroundPower = new("groundservice.groundpower", DataRefTier.Normal, false);
     public static readonly DataRef<bool> Chocks = new("efb.chocks", DataRefTier.Normal, false);
-    public static readonly DataRef<int> PushbackState = new("groundservice.pushback", DataRefTier.Normal, 0);
+    /// <summary>groundservice.pushback. Settled empirically on the 2026-08-23 instrumented
+    /// flight (issue #104): 3 = idle/no pushback (parked cold-and-dark, taxi, airborne,
+    /// shutdown), 0 = pushback service session in progress (the only other value observed;
+    /// 1/2 are presumed direction variants and treated as active). The fallback is therefore
+    /// the IDLE value — a missing dataref must never read as "pushback running".</summary>
+    public static readonly DataRef<int> PushbackState = new("groundservice.pushback", DataRefTier.Normal, PushbackIdleState);
+
+    /// <summary>The groundservice.pushback value meaning "no pushback" (see <see cref="PushbackState"/>).</summary>
+    public const int PushbackIdleState = 3;
     public const string GroundPneumatic = "groundservice.pneumatic";
     public const string PushbackWait = "groundservice.pushback.wait";
 
@@ -258,7 +266,10 @@ public static class ProsimDataRefNames
     public static readonly DataRef<string?> FmsDestination = new("aircraft.fms.destination", DataRefTier.Infrequent, null);
     public static readonly DataRef<string?> FmsFlightPlanXml = new("aircraft.fms.flightPlanXml", DataRefTier.Infrequent, null);
     public const string FmsAlternate = "aircraft.fms.alternate";
-    public const string FmsCruiseAlt = "aircraft.fms.cruiseAlt";
+    /// <summary>FMS cruise altitude in feet (Int32 per the A322 catalog); 0 = not entered.
+    /// Gates Cruise-phase entry (issue #105) — deliberately NOT phase-critical, the benign
+    /// 0 fallback degrades to the fixed altitude floor.</summary>
+    public static readonly DataRef<int> FmsCruiseAltitude = new("aircraft.fms.cruiseAlt", DataRefTier.Infrequent, 0);
     public const string FmsFlightPhase = "aircraft.fms.flightPhase";
     public const string FmsRoute = "aircraft.fms.route";
     public const string FmsTimeToDest = "aircraft.fms.TimeToDest";

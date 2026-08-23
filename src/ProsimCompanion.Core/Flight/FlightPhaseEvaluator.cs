@@ -29,6 +29,18 @@ public static class FlightPhaseEvaluator
     private const double DescentEntryVsFpm = 500;
     private const double DescentExitVsFpm = 100;
 
+    // Cruise-entry altitude gate (issue #105, 2026-08-23 flight): a SID level-off at
+    // 3,989 ft committed Cruise on departure (and spoke the ISA advisory there), and
+    // arrival level-offs at 7,300/6,000 ft flipped Descent→Cruise. Level flight only
+    // counts as cruise near the FMS cruise level; without one, above a conservative floor.
+    private const double CruiseLevelToleranceFt = 2000;
+    private const double CruiseFloorNoFmsFt = 10000;
+
+    // A tug pushes at walking pace. Above this ground speed the beacon+APU window is a
+    // taxi, not a push — without the guard, taxiing with the APU still running (common
+    // after a cross-bleed start) would hold PushbackAndStart indefinitely (issue #104).
+    private const double PushbackMaxGroundSpeedKt = 10;
+
     /// <summary>Derives the target phase for a snapshot. Invalid snapshots hold the current phase.</summary>
     public static FlightPhase Evaluate(FlightDataSnapshot snapshot, FlightPhase current)
     {
@@ -97,19 +109,19 @@ public static class FlightPhaseEvaluator
             return FlightPhase.TakeoffRoll;
         }
 
-        // Pushback evidence (issue #100). groundservice.pushback is non-zero whenever the
-        // pushback service is merely CONNECTED, not only while a tug pushes (Prosim2FO
-        // archaeology; 2026-08-22 flight: true at cold-and-dark, 0 during the actual GSX
-        // push, true from mid-taxi to shutdown). Predecessor-parity rule: the beacon is a
-        // NECESSARY gate, and beacon+APU covers the real push window where the flag reads 0.
-        // The park brake must be released (a parked aircraft with a noisy flag stays
-        // Preflight). Only at-gate phases may enter on this evidence — once the taxi has
-        // begun, a "connected" reading must never walk the phase back; a genuine engine
-        // start (e.g. cross-bleed after a stop) still regresses from anywhere.
+        // Pushback evidence (issues #100/#104). The pushback flag reads the settled enum
+        // (3 = idle, 0 = pushing — 2026-08-23 instrumented flight); the beacon stays a
+        // NECESSARY gate (Prosim2FO parity), the park brake must be released (a parked
+        // aircraft with a noisy flag stays Preflight), and the aircraft must be at walking
+        // pace — beacon+APU while rolling at taxi speed is a taxi, not a push. Only at-gate
+        // phases may enter on this evidence — once the taxi has begun, pushback evidence
+        // must never walk the phase back; a genuine engine start (e.g. cross-bleed after a
+        // stop) still regresses from anywhere.
         var atGate = current is FlightPhase.Unknown or FlightPhase.ColdAndDark
             or FlightPhase.Preflight or FlightPhase.PushbackAndStart;
         if (s.EngineStarting
-            || (atGate && s.BeaconOn && (s.ApuRunning || s.PushbackActive) && !s.ParkBrakeSet))
+            || (atGate && s.BeaconOn && (s.ApuRunning || s.PushbackActive) && !s.ParkBrakeSet
+                && s.GroundSpeedKt <= PushbackMaxGroundSpeedKt))
         {
             return FlightPhase.PushbackAndStart;
         }
@@ -173,8 +185,24 @@ public static class FlightPhaseEvaluator
             return FlightPhase.Descent;
         }
 
-        // Level flight. Only settle into cruise from climb/cruise/descent context; level
-        // segments during approach stay approach.
-        return current is FlightPhase.Approach ? FlightPhase.Approach : FlightPhase.Cruise;
+        // Level flight. Level segments during approach stay approach; an established cruise
+        // stays cruise. ENTERING cruise additionally needs a cruise-plausible altitude
+        // (issue #105): a level-off at a climb/descent constraint holds the current phase
+        // instead of committing a bogus Cruise (which fired the ISA advisory at 4,000 ft
+        // on departure and flip-flopped the arrival at 7,300/6,000 ft on 2026-08-23).
+        if (current is FlightPhase.Approach or FlightPhase.Cruise)
+        {
+            return current;
+        }
+
+        return IsCruisePlausibleAltitude(s) ? FlightPhase.Cruise : current;
     }
+
+    /// <summary>Level flight only reads as cruise near the FMS cruise level; when the FMS
+    /// has none entered (0 / garbage), above a conservative floor. The tolerance sits below
+    /// any real step-climb increment (2,000 ft), so intermediate levels stay climb.</summary>
+    private static bool IsCruisePlausibleAltitude(FlightDataSnapshot s)
+        => s.FmsCruiseAltFt >= 1000
+            ? s.AltitudeFt >= s.FmsCruiseAltFt - CruiseLevelToleranceFt
+            : s.AltitudeFt >= CruiseFloorNoFmsFt;
 }

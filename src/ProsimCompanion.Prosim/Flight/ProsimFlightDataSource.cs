@@ -63,6 +63,10 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     // phase-critical: a missing APU ref degrades to flag-only evidence, never blocks IsReady.
     private readonly IDataRefSubscription<bool> _apuRunning;
 
+    // Cruise-entry altitude gate (issue #105). NOT phase-critical: absent reads 0 and the
+    // evaluator degrades to its fixed altitude floor.
+    private readonly IDataRefSubscription<int> _fmsCruiseAlt;
+
     // Callout/monitoring refs (Phase 5) — names confirmed in Prosim2FO's proven source.
     private readonly IDataRefSubscription<double> _flexN1;
     private readonly IDataRefSubscription<double> _togaN1;
@@ -120,6 +124,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _gearDown = dataRefs.Subscribe(ProsimDataRefNames.GearDown);
         _dcBatteryBusPowered = dataRefs.Subscribe(ProsimDataRefNames.ElecBusPowerDcBat);
         _apuRunning = dataRefs.Subscribe(ProsimDataRefNames.ApuRunning);
+        _fmsCruiseAlt = dataRefs.Subscribe(ProsimDataRefNames.FmsCruiseAltitude);
         _flexN1 = dataRefs.Subscribe(ProsimDataRefNames.EnginesLimitFlex);
         _togaN1 = dataRefs.Subscribe(ProsimDataRefNames.EnginesLimitToga);
         _v1 = dataRefs.Subscribe(ProsimDataRefNames.FmsPerfTakeoffV1);
@@ -157,7 +162,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _all =
         [
             .. _phaseCritical,
-            _apuRunning,
+            _apuRunning, _fmsCruiseAlt,
             _flexN1, _togaN1, _v1, _vr, _v2, _vls, _flapHandle, _fcuAltitude,
             _groundSpoilers, _reverseLeftMax, _reverseRightMax,
             _altitudeAgl, _landingLightL, _landingLightR, _seatbeltSigns, _beacon,
@@ -199,7 +204,9 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             AircraftPowered = _dcBatteryBusPowered.Value,
             AnyEngineRunning = anyRunning,
             EngineStarting = engine1 == EngineReadState.Starting || engine2 == EngineReadState.Starting,
-            PushbackActive = _pushback.Value > 0,
+            // Inverted enum (issue #104, settled 2026-08-23): 3 = idle, 0 = push in
+            // progress; unobserved 1/2 are presumed direction variants and count as active.
+            PushbackActive = _pushback.Value != ProsimDataRefNames.PushbackIdleState,
             ParkBrakeSet = _parkBrake.Value != 0,
             GearDown = _gearDown.Value,
             ApuRunning = _apuRunning.Value,
@@ -220,6 +227,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             VlsKt = _vls.Value,
             FlapHandle = _flapHandle.Value,
             FcuAltitudeFt = _fcuAltitude.Value,
+            FmsCruiseAltFt = _fmsCruiseAlt.Value,
             GroundSpoilersDeployed = _groundSpoilers.Value,
             ReversersMaxBoth = _reverseLeftMax.Value != 0 && _reverseRightMax.Value != 0,
             AltitudeAglFt = _altitudeAgl.Value,

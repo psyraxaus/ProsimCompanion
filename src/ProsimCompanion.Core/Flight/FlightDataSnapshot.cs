@@ -32,10 +32,12 @@ public sealed record FlightDataSnapshot
     public bool AnyEngineRunning { get; init; }
     public bool EngineStarting { get; init; }
 
-    /// <summary>groundservice.pushback &gt; 0. CAUTION (issue #100): non-zero whenever the
-    /// pushback service is merely CONNECTED, not only while a tug pushes — on the 2026-08-22
-    /// flight it read true at cold-and-dark, 0 during the actual GSX push, and true from
-    /// mid-taxi to shutdown. Phase logic must only trust it behind the beacon gate.</summary>
+    /// <summary>Pushback service session in progress. Semantics settled on the 2026-08-23
+    /// instrumented flight (issue #104): groundservice.pushback reads 3 when idle (parked,
+    /// taxi, airborne) and 0 during the actual push — the pre-#104 "&gt;0 = active" mapping
+    /// was inverted and latched this flag true for entire flights, which blocked the
+    /// PushbackAndStart→TaxiOut exit. Phase logic still only trusts it behind the beacon
+    /// gate (issue #100).</summary>
     public bool PushbackActive { get; init; }
     public bool ParkBrakeSet { get; init; }
     public bool GearDown { get; init; }
@@ -88,6 +90,11 @@ public sealed record FlightDataSnapshot
 
     /// <summary>FCU selected altitude (ft) from system.analog.A_FCU_ALTITUDE.</summary>
     public double FcuAltitudeFt { get; init; }
+
+    /// <summary>FMS cruise altitude (ft) from aircraft.fms.cruiseAlt; 0 = not entered.
+    /// Gates Cruise-phase entry (issue #105): a level-off well below the planned cruise
+    /// level is a climb/descent constraint, not the cruise.</summary>
+    public double FmsCruiseAltFt { get; init; }
 
     /// <summary>Ground spoilers deployed — only readable via debug.groundSpoilersDeployd
     /// (the trailing typo is ProSim's, not ours).</summary>

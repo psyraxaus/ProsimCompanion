@@ -87,6 +87,13 @@ keys are **lowercase**: `{type, header, id, accept, content}`.
 **Doors/ground**: `doors.entry.*`, `doors.cargo.*`, `groundservice.groundpower`, `efb.chocks`,
 `groundservice.preconditionedAir`, `efb.fwdStairs|aftStairs`, `groundservice.pushback`.
 
+**`groundservice.pushback` enum (settled empirically, 2026-08-23 instrumented flight, issue
+#104)**: **3 = idle/no pushback** — observed parked cold-and-dark, during taxi, airborne, and at
+shutdown; **0 = pushback service session in progress** — the only other value ever observed,
+present for the whole GSX push incl. engine start. Values 1/2 have never been observed (presumed
+direction variants; we treat any non-3 as active). The obvious ">0 = pushback active" reading is
+WRONG and latched the flag true for entire flights. A missing dataref must fall back to 3.
+
 **Disable ProSim's native integrations when we own them**: 8 `efb.gsx.*` flags, `efb.autoJetway`,
 `efb.autoDoor`, plus native audio channel control.
 

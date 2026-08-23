@@ -385,7 +385,7 @@
       "kind": "assert-present",
       "sources": ["session"],
       "checks": [
-        "Every 'phase-changed' snapshot payload carries the full field set (onGround, altitudeFt, radioAltitudeFt, verticalSpeedFpm, powered, enginesRunning, engineStarting, pushback, parkBrake, gearDown, takeoffThrust; with #100 shipped, also beacon, apuRunning, rawPushback) — a payload with only iasKt/groundSpeedKt means an old build is running."
+        "Every 'phase-changed' snapshot payload carries the full field set (onGround, altitudeFt, radioAltitudeFt, verticalSpeedFpm, powered, enginesRunning, engineStarting, pushback, parkBrake, gearDown, takeoffThrust; with #100 shipped, also beacon, apuRunning, rawPushback; with #105 shipped, also fmsCruiseAltFt) — a payload with only iasKt/groundSpeedKt means an old build is running."
       ],
       "notes": "Doubles as a build-version canary for every other probe that reads these fields."
     },
@@ -466,11 +466,38 @@
       "kind": "assert-absent",
       "sources": ["session"],
       "checks": [
-        "No 'phase-changed' TaxiOut->PushbackAndStart whose snapshot has engineStarting=false (a 'connected' pushback reading must never walk a taxi back).",
-        "assert-present during a normal GSX pushback with beacon on: a Preflight->PushbackAndStart commit BEFORE engine start (the beacon+APU window) — the 2026-08-22 flight showed Preflight for the whole push.",
-        "watch: record the rawPushback value at every phase-changed event across the turnaround (cold-and-dark, push, taxi, flight, shutdown) — the enum semantics of groundservice.pushback are the open question this field answers."
+        "No 'phase-changed' TaxiOut->PushbackAndStart whose snapshot has engineStarting=false (a stray pushback reading must never walk a taxi back).",
+        "assert-present during a normal GSX pushback with beacon on: a Preflight->PushbackAndStart commit BEFORE engine start (the beacon+APU window)."
       ],
-      "notes": "Fix: beacon is a necessary gate (Prosim2FO parity), beacon+APU covers the real push window, and only at-gate phases may enter on pushback evidence. ApuRunning has a benign false fallback — if the APU ref never arrives, entry degrades to engine-start-only (report it)."
+      "notes": "Fix: beacon is a necessary gate (Prosim2FO parity), beacon+APU covers the real push window, and only at-gate phases may enter on pushback evidence. The rawPushback watch item was answered on 2026-08-23 — see probe pushback-enum-mapping (#104). ApuRunning has a benign false fallback — if the APU ref never arrives, entry degrades to engine-start-only (report it)."
+    },
+    {
+      "id": "pushback-enum-mapping",
+      "issue": 104,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'phase-changed' snapshot with pushback=true while airborne or during TaxiOut/TakeoffRoll (the inverted-mapping latch signature: pushback=true for the whole 2026-08-23 flight).",
+        "assert-present on a normal departure: a PushbackAndStart->TaxiOut commit exists between the push and TakeoffRoll (the stuck-phase signature was 14 min of taxi in PushbackAndStart, rescued only by TakeoffRoll).",
+        "watch: report any rawPushback value other than 3 (idle) or 0 (push in progress) with its context — 1/2 are presumed direction variants, unobserved so far."
+      ],
+      "notes": "Settled enum (2026-08-23 instrumented flight): groundservice.pushback 3 = idle, 0 = push session in progress; mapping inverted accordingly, descriptor fallback = 3. Documented in docs/integrations/prosim.md."
+    },
+    {
+      "id": "cruise-entry-gate",
+      "issue": 105,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'phase-changed' into Cruise whose snapshot has fmsCruiseAltFt >= 1000 AND altitudeFt < fmsCruiseAltFt - 2000 (level-offs below the planned cruise level must hold Climb/Descent).",
+        "No 'phase-changed' into Cruise with fmsCruiseAltFt < 1000 AND altitudeFt < 10000 (the no-FMS floor).",
+        "No more than 2 Climb<->Cruise transitions per climb and 2 Descent<->Cruise per descent (the 2026-08-23 flight had 6 and 3).",
+        "No 'flow.advisory' isaDeviation below 10,000 ft.",
+        "assert-present: reaching the FMS cruise level and levelling still commits Cruise within ~30 s."
+      ],
+      "notes": "Fix: evaluator holds the current phase on level flight unless the altitude is cruise-plausible (near aircraft.fms.cruiseAlt, else >= 10,000 ft); established Cruise is exempt (entry-only gate); engine adds a 10 s Cruise->Climb settle. The phase-changed payload carries fmsCruiseAltFt for this check."
     },
     {
       "id": "takeoff-thrust-airborne",

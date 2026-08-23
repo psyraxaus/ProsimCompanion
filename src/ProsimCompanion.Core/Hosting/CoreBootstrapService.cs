@@ -94,6 +94,9 @@ public sealed class CoreBootstrapService : IHostedService
                 beacon = snapshot.BeaconOn,
                 apuRunning = snapshot.ApuRunning,
                 rawPushback = snapshot.RawPushbackState,
+                // #105: the cruise-entry altitude gate's input — a Cruise commit must be
+                // checkable against the FMS cruise level from this record alone.
+                fmsCruiseAltFt = Math.Round(snapshot.FmsCruiseAltFt),
             },
         });
     }

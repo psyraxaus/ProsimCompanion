@@ -106,6 +106,39 @@ public sealed class FlightPhaseEvaluatorTests
         Assert.Equal(FlightPhase.PushbackAndStart, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Preflight));
     }
 
+    [Fact]
+    public void TaxiAfterPush_ApuStillRunning_ExitsToTaxiOut()
+    {
+        // Issue #104 (2026-08-23 flight): PushbackAndStart stuck through 14 minutes of taxi.
+        // With the corrected pushback flag AND the walking-pace guard, taxiing with the
+        // beacon on (always) and the APU still running must exit to TaxiOut.
+        var snapshot = Ground() with
+        {
+            AnyEngineRunning = true,
+            GroundSpeedKt = 15,
+            ParkBrakeSet = false,
+            BeaconOn = true,
+            ApuRunning = true,
+        };
+
+        Assert.Equal(FlightPhase.TaxiOut, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.PushbackAndStart));
+    }
+
+    [Fact]
+    public void PushAtWalkingPace_BeaconAndApu_StaysPushbackAndStart()
+    {
+        // The real push window (beacon + APU, tug pace) still classifies as pushback.
+        var snapshot = Ground() with
+        {
+            GroundSpeedKt = 4,
+            ParkBrakeSet = false,
+            BeaconOn = true,
+            ApuRunning = true,
+        };
+
+        Assert.Equal(FlightPhase.PushbackAndStart, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.PushbackAndStart));
+    }
+
     [Theory]
     [InlineData(FlightPhase.Cruise)]
     [InlineData(FlightPhase.InitialClimb)]
@@ -193,6 +226,102 @@ public sealed class FlightPhaseEvaluatorTests
         };
 
         Assert.Equal(FlightPhase.Cruise, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Climb));
+    }
+
+    [Fact]
+    public void DepartureLevelOff_BelowFmsCruise_StaysClimb()
+    {
+        // Issue #105, 2026-08-23 verbatim: a SID level-off at 3,989 ft (VS +277) committed
+        // Cruise on departure and the ISA advisory spoke at 4,000 ft.
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 3978,
+            AltitudeFt = 3989,
+            VerticalSpeedFpm = 277,
+            FmsCruiseAltFt = 36000,
+        };
+
+        Assert.Equal(FlightPhase.Climb, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Climb));
+    }
+
+    [Fact]
+    public void ArrivalLevelOff_BelowFmsCruise_StaysDescent()
+    {
+        // Issue #105, 2026-08-23 verbatim: approach level-offs at 7,334/6,021 ft flipped
+        // Descent→Cruise on the way into EGLL.
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 7169,
+            AltitudeFt = 7334,
+            VerticalSpeedFpm = -6,
+            FmsCruiseAltFt = 36000,
+        };
+
+        Assert.Equal(FlightPhase.Descent, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Descent));
+    }
+
+    [Fact]
+    public void LevelNearFmsCruise_IsCruise()
+    {
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 30000,
+            AltitudeFt = 35200,
+            VerticalSpeedFpm = 40,
+            FmsCruiseAltFt = 36000,
+        };
+
+        Assert.Equal(FlightPhase.Cruise, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Climb));
+    }
+
+    [Fact]
+    public void LevelWithoutFmsCruise_BelowFloor_StaysClimb()
+    {
+        // No FMS cruise level entered: the conservative 10,000 ft floor gates cruise entry.
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 7900,
+            AltitudeFt = 8000,
+            VerticalSpeedFpm = 0,
+        };
+
+        Assert.Equal(FlightPhase.Climb, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Climb));
+    }
+
+    [Fact]
+    public void EstablishedCruise_StaysCruise_EvenBelowTheGate()
+    {
+        // The gate applies on ENTRY only — an established cruise (e.g. cruise level lowered
+        // in the FMS mid-flight) never un-cruises on altitude alone.
+        var snapshot = new FlightDataSnapshot
+        {
+            IsValid = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 8000,
+            AltitudeFt = 8000,
+            VerticalSpeedFpm = 0,
+            FmsCruiseAltFt = 36000,
+        };
+
+        Assert.Equal(FlightPhase.Cruise, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Cruise));
     }
 
     [Fact]

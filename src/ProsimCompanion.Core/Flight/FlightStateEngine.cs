@@ -71,6 +71,9 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
         [(FlightPhase.TaxiOut, FlightPhase.Preflight)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.TakeoffRoll, FlightPhase.Preflight)] = TimeSpan.FromSeconds(5),
         [(FlightPhase.Descent, FlightPhase.Cruise)] = TimeSpan.FromSeconds(15),
+        // A VS blip at cruise (turbulence, altimetry) must not flip to Climb; a real step
+        // climb sustains its rate far past 10 s (issue #105).
+        [(FlightPhase.Cruise, FlightPhase.Climb)] = TimeSpan.FromSeconds(10),
         // Approach→Climb is a go-around: real ones sustain their climb for far longer than
         // 5 s, while the 2026-08-22 level-off blips (#99) lasted seconds. Second layer of
         // defence behind the evaluator's go-around VS gate.
