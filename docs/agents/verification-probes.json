@@ -272,10 +272,10 @@
       "sources": ["session", "log"],
       "checks": [
         "'set standard' → 'voicecommand.executed', then 'voicecommand.verified' with ok=true (the EFIS2 STD gate read 1), then spoken 'Standard, cross checked, passing flight level <digits>' — never the confirmation without the verified event.",
-        "If the press does not take: 'voicecommand.verified' ok=false and the spoken 'Negative — my altimeter did not take standard.' (an honest negative IS the fix working; report it as a ProSim-side press-semantics finding, not a probe failure).",
+        "With #109 shipped: a verify failure triggers ONE automatic retry with a 600 ms hold ('voicecommand.verified' carries retried=true) — 'ok=true, retried=true' means the long hold is what ProSim needed (record that as the press-semantics answer); 'ok=false, retried=true' after the retry is a genuine press-semantics failure to investigate (the 2026-08-23 flight went 0-for-3 at the 150 ms hold).",
         "'set qnh' on descent mirrors this with equals=0 and 'QNH ..., cross checked'."
       ],
-      "notes": "Shipped 2026-08-22: {flightLevel} token + per-command verify gate. CAVEAT: a user-edited %LOCALAPPDATA% commands.json keeps its old say/no-verify entries (ADR-0007 keep-user-edits) — if the old 'Standard set' phrasing is heard, the user copy needs a manual merge."
+      "notes": "Shipped 2026-08-22: {flightLevel} token + per-command verify gate. #109 (2026-08-23) added the single-press verify retry at a 600 ms hold. CAVEAT: a user-edited %LOCALAPPDATA% commands.json keeps its old say/no-verify entries (ADR-0007 keep-user-edits) — if the old 'Standard set' phrasing is heard, the user copy needs a manual merge."
     },
     {
       "id": "sterile-phase-reject-suppression",
@@ -527,6 +527,44 @@
         "No 'phase-changed' snapshot with onGround=false AND takeoffThrust=true (the flag now means thrust set on the ground)."
       ],
       "notes": "Was an N1-only heuristic: true for the whole climb/cruise on the 2026-08-22 flight, and a latent reverse-thrust->TakeoffRoll trap."
+    },
+    {
+      "id": "good-engine-start-confirm",
+      "issue": 106,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["log"],
+      "checks": [
+        "During a pushback with engine start: after 'vehicle state 12 (awaiting good-engine-start confirmation)', a 'confirmed good engine start — tug clear to disconnect' decision appears without any pilot menu interaction.",
+        "assert-absent: 'GSX menu '\"Interrupt pushback?\"' has no question handler' (the 2026-08-23 signature — the pilot had to answer by hand).",
+        "A 'good-engine-start confirm failed ... leaving the menu to the pilot' line is the honest give-up path — report it as a menu-shape finding, not a regression."
+      ],
+      "notes": "Auto-confirm gates (Prosim2GSX parity): park brake set, an engine stably running (any — single-engine taxi is real), none mid-start; entry pattern '^confirm good engine' on the Interrupt-pushback menu, retry-capped, fails safe to the pilot."
+    },
+    {
+      "id": "checklist-answer-acceptance",
+      "issue": 107,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No more than ONE reject-tagged speech while a single checklist item is open (further misses are absorbed with a debug log).",
+        "No reject-tagged speech in Approach below 1,000 ft RA (short-final absorb).",
+        "assert-present when exercised: an utterance containing 'as required' or 'checked' completes a non-number checklist item (the verify backstop still cross-checks the switch)."
+      ],
+      "notes": "2026-08-23 lineup: 'As required' rejected 3x on the T CAS item with the spoken nag escalation, plus a 'Repeat please.' between the 1,000 and 500 ft calls on final."
+    },
+    {
+      "id": "callout-duplication",
+      "issue": 108,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No identical 'callout.fired' id twice within 10 s (2026-08-23: spoilers 2x in 100 ms at touchdown, oneThousandToGo 8x in 1.5 s while the FCU knob was wound).",
+        "oneThousandToGo fires at most once per settled FCU target and never inside its ~15 s cooldown."
+      ],
+      "notes": "Fixes: rollout latches re-arm on Approach entry (the LandingRollout commit raced the 100 ms sample tick), oneThousandToGo requires a knob-settled target plus a cooldown."
     },
     {
       "id": "requires-human-checklist",

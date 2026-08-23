@@ -304,6 +304,16 @@ public sealed class UtteranceRouter : IDisposable
             return;
         }
 
+        // Short final is sterile too (issue #107, 2026-08-23: "Repeat please." landed
+        // between the 1,000 and 500 ft calls) — below 1,000 ft on approach the pilot's
+        // words are callouts and ATC, not commands.
+        if (_flightPhase?.Snapshot() is { Phase: Core.Flight.FlightPhase.Approach } view
+            && view.Data is { RadioAltitudeFt: < 1000 })
+        {
+            _logger.LogDebug("Idle miss absorbed silently (short final)");
+            return;
+        }
+
         var response = IdleMissPolicy.Decide(
             _llmHealth.Snapshot().State, _llmOfflineAdvisoryGiven,
             _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()));

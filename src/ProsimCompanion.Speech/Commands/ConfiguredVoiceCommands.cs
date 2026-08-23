@@ -25,6 +25,10 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
 {
     private const string VoiceTag = "voice.command";
 
+    /// <summary>Hold for the single verify-retry press (issue #109) — deliberately far above
+    /// the 150 ms default, so a switch state ProSim samples slowly is still observed.</summary>
+    private const int VerifyRetryHoldMs = 600;
+
     private readonly IProsimDataRefs _dataRefs;
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
@@ -273,59 +277,81 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
 
             // Serialize: one command's full press sequence completes before the next starts,
             // so rapid triggers queue instead of interleaving on the MCDU.
-            await _executionGate.WaitAsync().ConfigureAwait(false);
-            try
+            async Task RunStepsAsync(int? holdOverrideMs)
             {
-                _logger.LogInformation(
-                    "Executing voice command \"{Command}\" ({Steps} step(s))", label, command.Steps.Count);
-                foreach (var step in command.Steps)
+                await _executionGate.WaitAsync().ConfigureAwait(false);
+                try
                 {
-                    // Belt-and-braces: the write must be on the set's own file-derived
-                    // allow-list (which VoiceCommandWriteGate bounded at parse time).
-                    if (!set.WriteAllowList.Contains(step.Dataref))
+                    _logger.LogInformation(
+                        "Executing voice command \"{Command}\" ({Steps} step(s))", label, command.Steps.Count);
+                    foreach (var step in command.Steps)
                     {
-                        throw new InvalidOperationException(
-                            $"Dataref '{step.Dataref}' is not on the loaded voice-command write allow-list.");
-                    }
+                        // Belt-and-braces: the write must be on the set's own file-derived
+                        // allow-list (which VoiceCommandWriteGate bounded at parse time).
+                        if (!set.WriteAllowList.Contains(step.Dataref))
+                        {
+                            throw new InvalidOperationException(
+                                $"Dataref '{step.Dataref}' is not on the loaded voice-command write allow-list.");
+                        }
 
-                    // Human pacing (Prosim2FO's Humanize): jittered hold, and a jittered
-                    // gap with occasional think pauses below — configured times are the
-                    // functional minimums and are never undercut.
-                    var humanize = _speech?.CurrentValue.Humanize ?? new HumanizeOptions();
-                    await _dataRefs.WriteAsync(Side(step.Dataref), step.Press).ConfigureAwait(false);
-                    if (step.Restore is { } restore)
-                    {
-                        await Task.Delay(HumanTiming.Hold(humanize, step.HoldMs > 0 ? step.HoldMs : 150, Random.Shared))
-                            .ConfigureAwait(false);
-                        await _dataRefs.WriteAsync(Side(step.Dataref), restore).ConfigureAwait(false);
-                    }
+                        // Human pacing (Prosim2FO's Humanize): jittered hold, and a jittered
+                        // gap with occasional think pauses below — configured times are the
+                        // functional minimums and are never undercut.
+                        var humanize = _speech?.CurrentValue.Humanize ?? new HumanizeOptions();
+                        await _dataRefs.WriteAsync(Side(step.Dataref), step.Press).ConfigureAwait(false);
+                        if (step.Restore is { } restore)
+                        {
+                            var holdMs = holdOverrideMs ?? (step.HoldMs > 0 ? step.HoldMs : 150);
+                            await Task.Delay(HumanTiming.Hold(humanize, holdMs, Random.Shared))
+                                .ConfigureAwait(false);
+                            await _dataRefs.WriteAsync(Side(step.Dataref), restore).ConfigureAwait(false);
+                        }
 
-                    if (step.DelayMs > 0)
-                    {
-                        await Task.Delay(HumanTiming.Gap(
-                            humanize, step.DelayMs, HumanTiming.IsPageKey(step.Dataref), Random.Shared))
-                            .ConfigureAwait(false);
+                        if (step.DelayMs > 0)
+                        {
+                            await Task.Delay(HumanTiming.Gap(
+                                humanize, step.DelayMs, HumanTiming.IsPageKey(step.Dataref), Random.Shared))
+                                .ConfigureAwait(false);
+                        }
                     }
                 }
+                finally
+                {
+                    _executionGate.Release();
+                }
+            }
 
-                _eventLog.Record("voicecommand.executed", new { phrase = label, steps = command.Steps.Count });
-            }
-            finally
-            {
-                _executionGate.Release();
-            }
+            await RunStepsAsync(null).ConfigureAwait(false);
+            _eventLog.Record("voicecommand.executed", new { phrase = label, steps = command.Steps.Count });
 
             // Cross-check before confirming (issue #49): a press that did not take must
             // yield an honest negative, never a confident readback of a non-event.
             if (command.Verify is { } verify && !VoiceCommandConfigParser.IsPlaceholder(verify.Dataref))
             {
                 var verified = await VerifyEffectAsync(verify).ConfigureAwait(false);
+                var retried = false;
+                if (!verified && command.Steps.Count == 1 && command.Steps[0].Restore is not null)
+                {
+                    // One retry with a deliberately long hold (issue #109): three "set
+                    // standard" presses at the standard 150 ms hold never latched STD on the
+                    // 2026-08-23 flight — ProSim plausibly never sampled the pressed state.
+                    // Single-press commands only: re-running an MCDU key sequence would
+                    // double-type it.
+                    retried = true;
+                    _logger.LogInformation(
+                        "Voice command \"{Command}\" verify failed — retrying once with a {RetryHoldMs} ms hold",
+                        label, VerifyRetryHoldMs);
+                    await RunStepsAsync(VerifyRetryHoldMs).ConfigureAwait(false);
+                    verified = await VerifyEffectAsync(verify).ConfigureAwait(false);
+                }
+
                 _eventLog.Record("voicecommand.verified", new
                 {
                     phrase = label,
                     dataref = verify.Dataref,
                     expected = verify.Expected,
                     ok = verified,
+                    retried,
                 });
                 if (!verified)
                 {

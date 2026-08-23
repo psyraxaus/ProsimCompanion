@@ -516,12 +516,14 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     /// for an accepted phrase; null means skipped.</summary>
     private async Task<string?> AwaitAcceptedAsync(ChecklistItemDefinition item, CancellationToken ct)
     {
+        var misses = 0;
         while (true)
         {
             ct.ThrowIfCancellationRequested();
 
             var grammar = new List<string>(VoiceCommands.All);
             grammar.AddRange(item.AcceptedPhrases);
+            grammar.AddRange(UniversalAnswers);
             if (item.Expects.Equals("number", StringComparison.OrdinalIgnoreCase))
             {
                 grammar.Add(NumberGrammar.Sentinel);
@@ -562,16 +564,16 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
                     return null;
 
                 case ResponseKind.SayAgain:
+                    misses = 0;
                     await Speak(item.Say).ConfigureAwait(false);
                     continue;
 
                 case ResponseKind.NotCaught:
-                    await SpeakTagged(
-                        _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()),
-                        "reject").ConfigureAwait(false);
+                    await RejectOnceAsync().ConfigureAwait(false);
                     continue;
 
                 case ResponseKind.Hold:
+                    misses = 0;
                     await HoldUntilResumedAsync(ct).ConfigureAwait(false);
                     await Speak(item.Say).ConfigureAwait(false); // re-challenge after the hold
                     continue;
@@ -582,11 +584,28 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
                         return result.Text;
                     }
 
-                    await SpeakTagged(
-                        _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()),
-                        "reject").ConfigureAwait(false);
+                    await RejectOnceAsync().ConfigureAwait(false);
                     continue;
             }
+        }
+
+        // One spoken reject per open item, then silence (issue #107): the 2026-08-23 lineup
+        // had the FO chirp "Didn't catch that / Repeat please / Say again" three times in
+        // eight seconds while the pilot was head-down before takeoff. Later misses are
+        // absorbed (logged) — the item is still open and any valid answer still lands.
+        async Task RejectOnceAsync()
+        {
+            misses++;
+            if (misses > 1)
+            {
+                _logger.LogDebug(
+                    "Checklist item \"{Item}\": unmatched answer #{Count} absorbed silently", item.Say, misses);
+                return;
+            }
+
+            await SpeakTagged(
+                _persona.Acknowledge(Persona.AckKind.DidNotCatch, _phrases.NextDidNotCatch()),
+                "reject").ConfigureAwait(false);
         }
     }
 
@@ -644,38 +663,34 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
         }
     }
 
-    /// <summary>Matching is against AcceptedPhrases, never the display-only ExpectedResponse:
-    /// extracted number (when expected), exact equality, or whole-word containment ("QNH 1017
-    /// set" matches "set"; "reset" does not).</summary>
+    /// <summary>Non-committal confirmations any non-number item accepts (issue #107): real
+    /// crews answer "as required" / "checked" to plenty of lines, and the verify backstop
+    /// still cross-checks the aircraft — a wrong switch state is caught by "are you sure",
+    /// never by refusing the phrase (the 2026-08-23 lineup rejected "as required" three
+    /// times in a row at the worst possible moment).</summary>
+    private static readonly string[] UniversalAnswers = ["as required", "checked"];
+
+    /// <summary>Matching is against AcceptedPhrases (plus <see cref="UniversalAnswers"/>),
+    /// never the display-only ExpectedResponse: extracted number (when expected), exact
+    /// equality, or whole-word containment ("QNH 1017 set" matches "set"; "reset" does not).</summary>
     private static bool IsAccepted(ChecklistItemDefinition item, string text)
     {
-        if (item.Expects.Equals("number", StringComparison.OrdinalIgnoreCase)
-            && NumberExtractor.TryExtract(text, out _))
+        var isNumber = item.Expects.Equals("number", StringComparison.OrdinalIgnoreCase);
+        if (isNumber && NumberExtractor.TryExtract(text, out _))
         {
             return true;
         }
 
+        // Universal answers never satisfy a number item — "checked" is not a readback.
+        var pool = isNumber ? item.AcceptedPhrases : item.AcceptedPhrases.Concat(UniversalAnswers);
         var normalized = CommandMatcher.Normalize(text);
-        foreach (var phrase in item.AcceptedPhrases)
+        return pool.Any(phrase =>
         {
             var accepted = CommandMatcher.Normalize(phrase);
-            if (accepted.Length == 0)
-            {
-                continue;
-            }
-
-            if (normalized.Equals(accepted, StringComparison.Ordinal))
-            {
-                return true;
-            }
-
-            if ($" {normalized} ".Contains($" {accepted} ", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
+            return accepted.Length > 0
+                && (normalized.Equals(accepted, StringComparison.Ordinal)
+                    || $" {normalized} ".Contains($" {accepted} ", StringComparison.Ordinal));
+        });
     }
 
     /// <summary>The verify backstop: an ACCEPTED phrase whose dataref condition is false (or

@@ -1,10 +1,13 @@
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Automation;
+using ProsimCompanion.Gsx.Menu;
 using ProsimCompanion.Gsx.Protocol;
 using ProsimCompanion.Gsx.Services;
 
@@ -15,8 +18,11 @@ namespace ProsimCompanion.Gsx.Sync;
 /// (beacon, APU, doors, GSX Pushback service state), executes the sequencer's actions through
 /// the door / jetway / ground-equipment services, and decision-logs every transition. Also
 /// monitors the pushback LVARs (<c>VEHICLE_PUSHBACK_STATE</c>, <c>PUSHBACK_STATUS</c>,
-/// <c>BYPASS_PIN</c>) so tug progress — including the state-12 "confirm good engine start"
-/// gate answered by the question dispatcher — is visible in the decision log.
+/// <c>BYPASS_PIN</c>) so tug progress is visible in the decision log, and answers the
+/// state-12 "confirm good engine start" gate itself (issue #106 — the 2026-08-23 flight
+/// left the tug waiting until the pilot opened the GSX menu by hand): once at least one
+/// engine is stably running with the park brake set, the "Confirm good engine start" entry
+/// on GSX's "Interrupt pushback?" menu is selected, Prosim2GSX-parity.
 /// </summary>
 public sealed class GsxPushbackSequenceService : IDisposable
 {
@@ -36,6 +42,8 @@ public sealed class GsxPushbackSequenceService : IDisposable
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly LoadsheetStore _loadsheets;
+    private readonly IFlightPhaseSource _flight;
+    private readonly GsxMenuIntentExecutor _menuExecutor;
     private readonly ILogger<GsxPushbackSequenceService> _logger;
     private readonly IDataRefSubscription<int> _beacon;
     private readonly IDataRefSubscription<bool> _apuRunning;
@@ -50,6 +58,15 @@ public sealed class GsxPushbackSequenceService : IDisposable
     private PushbackTickCore.HookState _hookState = PushbackTickCore.HookState.Initial;
     private int _ticking;
 
+    // Good-engine-start confirmation (issue #106): once per push; a failed menu pick
+    // retries every few ticks up to the cap, then leaves the menu to the pilot.
+    private const int ConfirmRetryGapTicks = 5;
+    private const int ConfirmMaxAttempts = 10;
+    private bool _engineStartConfirmed;
+    private int _confirmAttempts;
+    private int _confirmCooldown;
+    private int _confirming;
+
     public GsxPushbackSequenceService(
         IGsxRemoteApi api,
         IGsxTriggerSlot slot,
@@ -63,10 +80,16 @@ public sealed class GsxPushbackSequenceService : IDisposable
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         LoadsheetStore loadsheets,
+        IFlightPhaseSource flight,
+        GsxMenuIntentExecutor menuExecutor,
         ILogger<GsxPushbackSequenceService> logger)
     {
         ArgumentNullException.ThrowIfNull(loadsheets);
         _loadsheets = loadsheets;
+        ArgumentNullException.ThrowIfNull(flight);
+        _flight = flight;
+        ArgumentNullException.ThrowIfNull(menuExecutor);
+        _menuExecutor = menuExecutor;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -133,6 +156,9 @@ public sealed class GsxPushbackSequenceService : IDisposable
             {
                 _lastResetPhase = phase;
                 _hookState = PushbackTickCore.HookState.Initial;
+                _engineStartConfirmed = false;
+                _confirmAttempts = 0;
+                _confirmCooldown = 0;
                 if (_sequencer.Step != PushbackSequenceStep.Idle)
                 {
                     _sequencer.Reset();
@@ -146,6 +172,7 @@ public sealed class GsxPushbackSequenceService : IDisposable
             if (_options.CurrentValue.AutomationEnabled && _api.Readiness == GsxReadiness.Ready)
             {
                 RunHooks();
+                TryConfirmEngineStart();
             }
 
             // Gradual equipment removal belongs to the NON-sequence flow (the beacon sequence
@@ -308,6 +335,85 @@ public sealed class GsxPushbackSequenceService : IDisposable
             RecordDecision("departure", "final loadsheet sent — removing jetway/stairs");
             _ = _jetwayStairs.RequestRemovalAsync();
         }
+    }
+
+    /// <summary>The state-12 gate (issue #106): GSX finishes the physical push and waits for
+    /// the good-engine-start confirmation on its "Interrupt pushback?" menu — the 2026-08-23
+    /// flight sat there until the pilot answered by hand. Prosim2GSX-parity conditions: park
+    /// brake set, an engine stably running (any, not both — single-engine taxi is a real
+    /// procedure), none mid-start. Fails safe: an unmatched menu retries a few times, then
+    /// the menu stays with the pilot.</summary>
+    private void TryConfirmEngineStart()
+    {
+        if (_engineStartConfirmed || (int)_vehicleState.Value != 12)
+        {
+            return;
+        }
+
+        if (_confirmCooldown > 0)
+        {
+            _confirmCooldown--;
+            return;
+        }
+
+        var data = _flight.Snapshot().Data;
+        if (data is null || !data.AnyEngineRunning || data.EngineStarting || !data.ParkBrakeSet)
+        {
+            return;
+        }
+
+        if (Interlocked.Exchange(ref _confirming, 1) == 1)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var result = await _menuExecutor.ExecuteAsync(
+                    new GsxMenuIntent
+                    {
+                        Name = "confirm good engine start",
+                        TitlePrefixes = ["Interrupt pushback"],
+                        // Prosim2GSX's proven entry pattern — only the engine-start variant
+                        // of the interrupt menu matches; other variants fail safe.
+                        EntryPattern = new Regex("^confirm good engine", RegexOptions.IgnoreCase),
+                    },
+                    CancellationToken.None).ConfigureAwait(false);
+
+                if (result.Succeeded)
+                {
+                    _engineStartConfirmed = true;
+                    RecordDecision("pushback tug", "confirmed good engine start — tug clear to disconnect");
+                    return;
+                }
+
+                _confirmAttempts++;
+                if (_confirmAttempts >= ConfirmMaxAttempts)
+                {
+                    _engineStartConfirmed = true; // give up quietly — the menu stays with the pilot
+                    RecordDecision(
+                        "pushback tug",
+                        $"good-engine-start confirm failed {ConfirmMaxAttempts} times ({result.Outcome}: {result.Detail}) — leaving the menu to the pilot");
+                    return;
+                }
+
+                _confirmCooldown = ConfirmRetryGapTicks;
+                _logger.LogDebug(
+                    "Good-engine-start confirm attempt {Attempt} did not land ({Outcome}: {Detail}) — retrying",
+                    _confirmAttempts, result.Outcome, result.Detail);
+            }
+            catch (Exception ex)
+            {
+                _confirmCooldown = ConfirmRetryGapTicks;
+                _logger.LogError(ex, "Good-engine-start confirmation failed");
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _confirming, 0);
+            }
+        });
     }
 
     /// <summary>Surfaces raw tug/pin progress in the decision log — this is how the state-12

@@ -62,6 +62,13 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
     private double _prevRadio = double.NaN;
     private double _prevBaro = double.NaN;
     private double _prevIas = double.NaN;
+    private double _prevFcu = double.NaN;
+
+    /// <summary>Minimum ticks between "one thousand to go" fires (~15 s at the default
+    /// 100 ms poll). Issue #108: winding the FCU altitude knob makes every tick see a
+    /// "genuinely different target" — 8 fires in 1.5 s on the 2026-08-23 descent.</summary>
+    private const int ToGoCooldownTicks = 150;
+    private int _toGoCooldown;
 
     public CalloutsEngine(
         IOptionsMonitor<SopOptions> options,
@@ -149,6 +156,11 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
             _prevRadio = s.RadioAltitudeFt;
             _prevBaro = s.AltitudeFt;
             _prevIas = s.IndicatedAirspeedKt;
+            _prevFcu = s.FcuAltitudeFt;
+            if (_toGoCooldown > 0)
+            {
+                _toGoCooldown--;
+            }
         }
     }
 
@@ -177,10 +189,11 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
                     break;
 
                 case FlightPhase.Approach:
+                    // Rollout latches re-arm HERE, not on the LandingRollout commit
+                    // (issue #108): the commit races the 100 ms sample tick — on
+                    // 2026-08-23 "spoilers" fired, the commit handler reset the latch
+                    // ~10 ms later, and it fired again on the next tick.
                     ResetApproach();
-                    break;
-
-                case FlightPhase.LandingRollout:
                     ResetRollout();
                     break;
             }
@@ -195,7 +208,8 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
         ResetRollout();
         _placardCooldown.Clear();
         _warned.Clear();
-        _prevRadio = _prevBaro = _prevIas = double.NaN;
+        _prevRadio = _prevBaro = _prevIas = _prevFcu = double.NaN;
+        _toGoCooldown = 0;
     }
 
     private void ResetClimbCallouts()
@@ -341,11 +355,16 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
 
         var toward = (fcu > s.AltitudeFt && s.VerticalSpeedFpm > 100)
             || (fcu < s.AltitudeFt && s.VerticalSpeedFpm < -100);
-        // A target change of > 50 ft counts as a new target.
-        if (gap <= toGo.WithinFt && toward
+        // A target change of > 50 ft counts as a new target — but only once the knob has
+        // STOPPED (the target matches the previous sample) and never inside the cooldown:
+        // winding the FCU through the within-band made every tick a "new target" and the
+        // callout machine-gunned 8× in 1.5 s (issue #108, 2026-08-23).
+        var knobSettled = !double.IsNaN(_prevFcu) && Math.Abs(fcu - _prevFcu) <= 50;
+        if (gap <= toGo.WithinFt && toward && knobSettled && _toGoCooldown == 0
             && (_toGoFiredAlt is null || Math.Abs(_toGoFiredAlt.Value - fcu) > 50))
         {
             _toGoFiredAlt = fcu;
+            _toGoCooldown = ToGoCooldownTicks;
             Fire("oneThousandToGo", toGo.Text, SpeechPriority.High, StdTtlSec);
         }
     }

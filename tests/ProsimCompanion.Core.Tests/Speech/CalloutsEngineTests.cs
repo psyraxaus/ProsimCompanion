@@ -135,6 +135,54 @@ public sealed class CalloutsEngineTests : IDisposable
     }
 
     [Fact]
+    public void OneThousandToGo_WindingTheFcuKnob_DoesNotMachineGun()
+    {
+        // Issue #108, 2026-08-23 descent: spinning the FCU altitude knob made every 100 ms
+        // sample a "genuinely different target" — 8 fires in 1.5 s. A moving knob must not
+        // fire; the first settled sample fires once; the cooldown blocks re-fires.
+        _phase.SetPhase(FlightPhase.Descent);
+        FlightDataSnapshot At(double fcu) => new()
+        {
+            IsValid = true, OnGround = false, AltitudeFt = 7_000, FcuAltitudeFt = fcu, VerticalSpeedFpm = -900,
+        };
+
+        _engine.ProcessSample(At(7_500));
+        _engine.ProcessSample(At(7_000));
+        _engine.ProcessSample(At(6_500));
+        _engine.ProcessSample(At(6_300));
+        Assert.DoesNotContain("oneThousandToGo", _arbiter.Tags);
+
+        // Knob stops: two consecutive samples on the same target — exactly one fire.
+        _engine.ProcessSample(At(6_300));
+        Assert.Single(_arbiter.Requests, r => r.Tag == "oneThousandToGo");
+
+        // A new settled target inside the cooldown still stays quiet.
+        _engine.ProcessSample(At(6_800));
+        _engine.ProcessSample(At(6_800));
+        Assert.Single(_arbiter.Requests, r => r.Tag == "oneThousandToGo");
+    }
+
+    [Fact]
+    public void Spoilers_RolloutCommitRacingTheSampleTick_DoesNotDoubleFire()
+    {
+        // Issue #108: "spoilers" fired, the Approach->LandingRollout commit handler reset
+        // the latch ~10 ms later, and the next tick fired it again. Rollout latches now
+        // re-arm on Approach entry, so the commit is a no-op for them.
+        _phase.SetPhase(FlightPhase.Approach);
+        _phase.SetPhase(FlightPhase.LandingRollout);
+        FlightDataSnapshot Rollout() => new()
+        {
+            IsValid = true, OnGround = true, IndicatedAirspeedKt = 130, GroundSpoilersDeployed = true,
+        };
+
+        _engine.ProcessSample(Rollout());
+        _phase.SetPhase(FlightPhase.LandingRollout); // the racing commit event
+        _engine.ProcessSample(Rollout());
+
+        Assert.Single(_arbiter.Requests, r => r.Tag == "spoilers");
+    }
+
+    [Fact]
     public void Approach_OneThousand_FiveHundred_OnDescendingRadioCrossings()
     {
         _phase.SetPhase(FlightPhase.Approach);
