@@ -226,7 +226,7 @@
                                      @bind-Value="_gsx.Value.RefuelRateKgPerSec" />
                     }
                     <BoolField Label="Skip refuel when FOB exceeds plan"
-                               Hint="Tankering: no fuel moves when the aircraft already carries the planned figure"
+                               Hint="Tankering: when the aircraft already carries the OFP block fuel (25 kg tolerance) the refuel truck is not called at all — the sequence moves on and the preliminary loadsheet still triggers"
                                @bind-Value="_gsx.Value.SkipRefuelOnTankering" />
                     <BoolField Label="Finish refuel on hose disconnect"
                                Hint="Snap to the planned fuel instantly when the GSX hose disconnects mid-transfer"

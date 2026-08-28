@@ -266,12 +266,35 @@ internal static class RefuelCore
     }
 
     /// <summary>Tankering skip (predecessor SkipFuelOnTankering): with the FOB already at or
-    /// above the plan (within tolerance) the whole transfer is skipped — the GSX crew still
-    /// runs its animation, but no fuel moves and refuel power never comes on.</summary>
+    /// above the plan (within tolerance) the whole transfer is skipped — reached only when GSX
+    /// Refueling was called anyway (externally, or with the OFP arriving mid-service); the
+    /// sequencer's own pre-call check is <see cref="TankeringSkipReason"/>.</summary>
     private static bool ShouldSkipForTankering(RefuelInputs inputs, double currentKg, double targetKg)
         => inputs.SkipOnTankering
             && targetKg > 0
             && currentKg >= targetKg - TankeringToleranceKg;
+
+    /// <summary>
+    /// Pre-call tankering check for the departure sequencer (issue #117): the reason to skip
+    /// calling GSX Refueling at all, or null. The 2026-08-29 turnaround carried 9576 kg against
+    /// a 7100 kg plan and the truck was still ordered — the in-service skip above only stops
+    /// the fuel moving, the crew and hose animation still ran and the sequence waited on it.
+    /// Plan figure = the OFP block fuel first (what the pilot means by "above the OFP"), else
+    /// the EFB planned-fuel dataref; <c>aircraft.refuel.fuelTarget</c> is deliberately NOT
+    /// consulted here — before a refuel session it can still hold the previous leg's value.
+    /// </summary>
+    internal static string? TankeringSkipReason(bool skipOnTankering, double currentKg, double ofpBlockKg, double plannedFuelRaw)
+    {
+        if (!skipOnTankering)
+        {
+            return null;
+        }
+
+        var target = LoadMath.RoundFuelUpToHundredKg(ofpBlockKg > 0 ? ofpBlockKg : plannedFuelRaw);
+        return target > 0 && currentKg >= target - TankeringToleranceKg
+            ? $"FOB {currentKg:F0} kg already meets planned {target:F0} kg (tankering) — GSX refuel not called"
+            : null;
+    }
 
     /// <summary>Per-tick rate. Dynamic method computes it once per transfer from the FIRST
     /// tick's remaining amount over the time target, so the fill takes ~the configured

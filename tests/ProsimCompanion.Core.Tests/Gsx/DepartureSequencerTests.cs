@@ -37,7 +37,8 @@ public sealed class DepartureSequencerTests
         bool turnaround = false,
         bool force = false,
         bool companyHub = false,
-        TimeSpan? flightDuration = null)
+        TimeSpan? flightDuration = null,
+        Func<string, string?>? preSkip = null)
         => DepartureSequencer.Next(
             steps,
             services,
@@ -48,7 +49,65 @@ public sealed class DepartureSequencerTests
             turnaround,
             force,
             companyHub,
-            flightDuration);
+            flightDuration,
+            preSkip);
+
+    // ---- Situational pre-skip (issue #117: tankering) ----
+
+    [Fact]
+    public void PreSkip_RetiresTheStep_AndTheNextStepTakesTheTurn()
+    {
+        var steps = new[] { Step("Refueling"), Step("Catering"), Step("Boarding", GsxServiceActivation.AfterAllCompleted) };
+        var services = Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true),
+            ("Boarding", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, preSkip: id => id == "Refueling" ? "FOB covers the plan (tankering)" : null);
+
+        Assert.Equal("Catering", plan.Trigger);
+        Assert.Contains(plan.Skipped, s => s.ServiceId == "Refueling" && s.Reason.Contains("tankering"));
+        Assert.DoesNotContain(plan.Holds, h => h.ServiceId == "Refueling");
+    }
+
+    [Fact]
+    public void PreSkip_CountsAsSettled_ForAfterAllCompleted()
+    {
+        var steps = new[] { Step("Refueling"), Step("Boarding", GsxServiceActivation.AfterAllCompleted) };
+        var services = Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Boarding", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, preSkip: id => id == "Refueling" ? "tankering" : null);
+
+        Assert.Equal("Boarding", plan.Trigger);
+    }
+
+    [Fact]
+    public void PreSkip_NeverTouchesAServiceAlreadyRunning()
+    {
+        var steps = new[] { Step("Refueling"), Step("Catering") };
+        var services = Services(
+            ("Refueling", GsxServiceState.Active, false),
+            ("Catering", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, preSkip: id => id == "Refueling" ? "tankering" : null);
+
+        Assert.DoesNotContain(plan.Skipped, s => s.ServiceId == "Refueling");
+        Assert.Equal("Catering", plan.Trigger);
+    }
+
+    [Fact]
+    public void PreSkip_DoesNotBypassTheFlightPlanGate_WhenItAnswersNull()
+    {
+        var steps = new[] { Step("Refueling") };
+        var services = Services(("Refueling", GsxServiceState.Callable, true));
+
+        var plan = Next(steps, services, plan: false, preSkip: _ => null);
+
+        Assert.Null(plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason.Contains("flight plan"));
+    }
 
     // ---- Voice activation (ADR-0006 / issue #50) ----
 

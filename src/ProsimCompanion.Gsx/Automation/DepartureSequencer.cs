@@ -34,6 +34,9 @@ public sealed record DeparturePlan(
 /// silently drops (round-7 smoke test: five simultaneous triggers, only Cleaning ran).
 /// <c>Manual</c> parks the cursor until the service is called externally or forced (INT/RAD /
 /// web); <c>forceNext</c> bypasses the activation rule — but never the flight-plan gate.
+/// <c>preSkip</c> lets the shell retire a not-yet-running step from live aircraft data (the
+/// tankering skip, #117) — it is answered before the cursor is assigned, so the next step
+/// takes the turn in the same evaluation.
 /// </summary>
 public static class DepartureSequencer
 {
@@ -49,7 +52,8 @@ public static class DepartureSequencer
         bool isTurnaround,
         bool forceNext,
         bool isCompanyHub = false,
-        TimeSpan? plannedFlightDuration = null)
+        TimeSpan? plannedFlightDuration = null,
+        Func<string, string?>? preSkip = null)
     {
         ArgumentNullException.ThrowIfNull(steps);
         ArgumentNullException.ThrowIfNull(services);
@@ -162,6 +166,17 @@ public static class DepartureSequencer
                     ReachedActive: view.ReachedActive || info.State is GsxServiceState.Active or GsxServiceState.Completed,
                     Completed: false);
                 allEarlierSettled = false;
+                continue;
+            }
+
+            // Situational skip decided by the shell from live aircraft data (issue #117:
+            // Refueling when the FOB already covers the plan — tankering). Only a step that
+            // is NOT already running can be skipped this way; a skipped step is transparent
+            // to the activation predicates like every other skip, so the cursor moves on.
+            if (preSkip?.Invoke(id) is { } preSkipReason)
+            {
+                skipped.Add((id, preSkipReason));
+                settled++;
                 continue;
             }
 

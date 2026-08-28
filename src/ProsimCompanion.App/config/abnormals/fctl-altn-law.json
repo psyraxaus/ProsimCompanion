@@ -7,6 +7,7 @@
   "trigger": {
     "ewdText": [ "F/CTL ALTN LAW", "ALTN LAW", "ALTERNATE LAW", "PROT LOST" ],
     "condition": { "dataref": "aircraft.controlLaw.numerical", "op": "notEquals", "value": 0 },
+    "corroborate": "system.indicators.I_MIP_MASTER_CAUTION_FO",
     "logic": "any",
     "debounceSeconds": 2.0
   },

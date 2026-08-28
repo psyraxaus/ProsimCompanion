@@ -284,6 +284,44 @@ public sealed class FailureMonitorTests : IDisposable
     }
 
     [Fact]
+    public void EmptyPhaseList_IsNotArmedInColdAndDark()
+    {
+        // Issue #116: an unpowered aircraft has no ECAM — a firing trigger is held, and the
+        // hold is logged once; the same fault fires as soon as the aircraft is powered.
+        var definition = EngineFire();
+        definition.Phases = [];
+        _monitor.Load([definition]);
+        _dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+        _dataRefs.Values["system.indicators.I_MIP_MASTER_WARNING_FO"] = 1.0;
+
+        _phase.SetPhase(FlightPhase.ColdAndDark);
+        _monitor.ProcessTick(T0);
+        _monitor.ProcessTick(T0.AddSeconds(2));
+        _monitor.ProcessTick(T0.AddSeconds(4));
+        Assert.Empty(_arbiter.Requests);
+
+        _phase.SetPhase(FlightPhase.Preflight);
+        _monitor.ProcessTick(T0.AddSeconds(6));
+        _monitor.ProcessTick(T0.AddSeconds(8));
+        Assert.Single(_arbiter.Requests);
+    }
+
+    [Fact]
+    public void ExplicitColdAndDarkPhase_StillArms()
+    {
+        var definition = EngineFire();
+        definition.Phases = ["ColdAndDark"];
+        _monitor.Load([definition]);
+        _dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+        _dataRefs.Values["system.indicators.I_MIP_MASTER_WARNING_FO"] = 1.0;
+
+        _phase.SetPhase(FlightPhase.ColdAndDark);
+        _monitor.ProcessTick(T0);
+        _monitor.ProcessTick(T0.AddSeconds(2));
+        Assert.Single(_arbiter.Requests);
+    }
+
+    [Fact]
     public void EmptyPhaseList_IsNotArmedInUnknownPhase()
     {
         var definition = EngineFire();

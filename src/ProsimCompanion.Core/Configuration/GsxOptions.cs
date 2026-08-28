@@ -164,8 +164,11 @@ public sealed class GsxOptions : IOptionSection
     /// <summary>Target fill duration in seconds for the dynamic rate method.</summary>
     public int RefuelTimeTargetSeconds { get; set; } = 300;
 
-    /// <summary>Skip the fuel transfer when FOB already meets the planned figure (tankering) —
-    /// predecessor default on, 25 kg tolerance.</summary>
+    /// <summary>Tankering: when the FOB already meets the planned figure (OFP block fuel, else
+    /// the EFB planned fuel; 25 kg tolerance) the departure sequence retires Refueling without
+    /// calling GSX at all (#117) and raises the preliminary-loadsheet trigger in its place. A
+    /// refuel called anyway (GSX menu, plan arriving mid-service) still moves no fuel.
+    /// Predecessor default on.</summary>
     public bool SkipRefuelOnTankering { get; set; } = true;
 
     /// <summary>Snap the FOB to the target when the GSX fuel hose disconnects mid-transfer,

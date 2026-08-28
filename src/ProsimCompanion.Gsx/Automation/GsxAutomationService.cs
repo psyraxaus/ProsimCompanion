@@ -42,6 +42,14 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private readonly ISimVars _simVars;
     private readonly IGsxFlightPlanStatus _flightPlan;
     private readonly IDataRefSubscription<string?> _bookedSeatString;
+
+    // Tankering pre-skip inputs (#117): cached reads only, same refs the refuel sync latches.
+    private readonly IDataRefSubscription<double> _fuelTotal;
+    private readonly IDataRefSubscription<double> _plannedFuel;
+
+    /// <summary>The refuel-active edge was raised in place of a tankering-skipped refuel this
+    /// cycle (#117) — once per turnaround, reset at arrival.</summary>
+    private bool _tankeringPrelimRaised;
     private readonly IDataRefSubscription<int> _intRadCpt;
     private readonly IDataRefSubscription<int> _intRadFo;
     private readonly Timer _pumpTimer;
@@ -113,6 +121,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _logger = logger;
 
         _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString);
+        _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);
+        _plannedFuel = prosim.Subscribe(ProsimDataRefNames.EfbPlannedFuel);
         // The INT/RAD switches on both ACPs are the cockpit "smart button" (predecessor
         // semantics): flicking to INT (value 0) force-calls the next departure service.
         _intRadCpt = prosim.Subscribe(ProsimDataRefNames.IntRadCpt);
@@ -204,6 +214,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _intRadFo.ValueChanged -= OnIntRadChanged;
         _pumpTimer.Dispose();
         _bookedSeatString.Dispose();
+        _fuelTotal.Dispose();
+        _plannedFuel.Dispose();
         _intRadCpt.Dispose();
         _intRadFo.Dispose();
         _pumpLock.Dispose();
@@ -253,6 +265,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 _lifecycle.ResetCycle();
                 _cycle.BeginTurnaroundCycle();
                 _paxTargetArmed = false;
+                _tankeringPrelimRaised = false;
                 _forceNext = false;
                 _slot.Reset("service cycles reset after arrival");
                 lock (_triggerAttempts)
@@ -333,7 +346,14 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 EstimatedEnroute: _ofpStore.Current?.EstimatedEnroute,
                 Steps: options.DepartureServices,
                 MirrorServices: _api.Mirror.Services,
-                Cycle: Cycle));
+                Cycle: Cycle,
+                PreSkip: id => id.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
+                    ? Sync.RefuelCore.TankeringSkipReason(
+                        options.SkipRefuelOnTankering,
+                        _fuelTotal.Value,
+                        _ofpStore.Current?.FuelPlanRampKg ?? 0,
+                        _plannedFuel.Value)
+                    : null));
 
             if (outcome.AutoStarted)
             {
@@ -383,6 +403,18 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
             foreach (var (serviceId, reason) in plan.Skipped)
             {
                 RecordDecisionOnce($"skip {serviceId}", reason);
+
+                // Tankering skip (#117): the truck is never ordered, so the refuel-active
+                // edge that fires the preliminary loadsheet never happens — raise it here
+                // once per cycle so autoPrelimOnRefuel still produces the prelim.
+                if (serviceId.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
+                    && reason.Contains("tankering", StringComparison.OrdinalIgnoreCase)
+                    && !_tankeringPrelimRaised)
+                {
+                    _tankeringPrelimRaised = true;
+                    RecordDecision("refuel skipped for tankering", "preliminary loadsheet trigger raised in place of the refuel-active edge");
+                    _groundOpsSignals.RaiseRefuelServiceActive();
+                }
             }
 
             foreach (var (serviceId, reason) in plan.Holds)

@@ -34,7 +34,8 @@ internal static class DepartureAutomationCore
         TimeSpan? EstimatedEnroute,
         IReadOnlyList<DepartureServiceStep> Steps,
         IReadOnlyDictionary<string, GsxServiceInfo> MirrorServices,
-        Func<string, DepartureCycleView> Cycle);
+        Func<string, DepartureCycleView> Cycle,
+        Func<string, string?>? PreSkip = null);
 
     /// <summary>What one evaluation decided. Effects run in the shell, in this order:
     /// auto-start decision → waiting board (stop) → hold decision → import/diagnostic/pax →
@@ -117,7 +118,8 @@ internal static class DepartureAutomationCore
             inputs.IsTurnaround,
             inputs.Forced,
             inputs.IsCompanyHub,
-            inputs.EstimatedEnroute);
+            inputs.EstimatedEnroute,
+            inputs.PreSkip);
 
         return new PumpOutcome(
             AutoStarted: autoStarted,

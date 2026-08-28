@@ -244,12 +244,18 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
             foreach (var definition in _definitions)
             {
-                if (!definition.Enabled || !PhaseArmed(definition, phase))
+                if (!definition.Enabled)
                 {
                     continue;
                 }
 
                 var state = _states[definition.Id];
+                if (!PhaseArmed(definition, phase))
+                {
+                    NoteHeldUnpowered(definition, state, phase, ewdText);
+                    continue;
+                }
+
                 var signal = EvaluateTrigger(definition, ewdText, out var corroborateSuppressed);
                 if (corroborateSuppressed && !state.SuppressionLogged)
                 {
@@ -633,11 +639,38 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
     /// <summary>An empty phase list means "every phase of a flight" — never Unknown, which is
     /// the engine's "no flight yet" state (issue #114): 24 of the 31 shipped definitions are
-    /// unrestricted, and every one of them was armed at app start.</summary>
+    /// unrestricted, and every one of them was armed at app start. Nor ColdAndDark (issue
+    /// #116): an unpowered aircraft has no ECAM to read, yet its datarefs look faulty —
+    /// fly-by-wire not in normal law, dead generators, unaligned IRs — and the FO opened the
+    /// "F/CTL ALTN LAW" dialogue five seconds into every cold-and-dark session on 2026-08-29.
+    /// An author who really wants a cold-and-dark abnormal lists the phase explicitly.</summary>
     private static bool PhaseArmed(AbnormalDefinition definition, FlightPhase phase)
         => definition.Phases.Count == 0
-            ? phase != FlightPhase.Unknown
+            ? phase is not (FlightPhase.Unknown or FlightPhase.ColdAndDark)
             : definition.Phases.Any(p => p.Equals(phase.ToString(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>One Information line per cold-and-dark episode for an unrestricted definition
+    /// whose raw trigger is firing while held (issue #116) — the same diagnosability rule as
+    /// the corroborate suppression line (#103): a silent hold is indistinguishable from a
+    /// broken monitor in the log.</summary>
+    private void NoteHeldUnpowered(AbnormalDefinition definition, TriggerState state, FlightPhase phase, string ewdText)
+    {
+        if (phase != FlightPhase.ColdAndDark || definition.Phases.Count > 0)
+        {
+            state.HeldUnpoweredLogged = false;
+            return;
+        }
+
+        if (state.HeldUnpoweredLogged || !EvaluateTrigger(definition, ewdText, out _))
+        {
+            return;
+        }
+
+        state.HeldUnpoweredLogged = true;
+        _logger.LogInformation(
+            "Abnormal {Id} trigger is firing but the aircraft is unpowered (ColdAndDark) — held, no ECAM to read",
+            definition.Id);
+    }
 
     private string ReadEwdText()
     {
@@ -713,5 +746,8 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
         /// <summary>One suppression log line per corroborate episode (issue #103).</summary>
         public bool SuppressionLogged { get; set; }
+
+        /// <summary>One "held, unpowered" line per cold-and-dark episode (issue #116).</summary>
+        public bool HeldUnpoweredLogged { get; set; }
     }
 }
