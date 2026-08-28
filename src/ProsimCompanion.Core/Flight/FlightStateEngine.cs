@@ -4,11 +4,13 @@ using ProsimCompanion.Core.State;
 namespace ProsimCompanion.Core.Flight;
 
 /// <summary>Point-in-time view of the flight state: the committed phase, the most recent data
-/// sample (null before the first), and the airborne-this-session latch.</summary>
+/// sample (null before the first), the airborne-this-session latch, and the flight-live gate
+/// (<see cref="IFlightPhaseSource.IsLive"/>).</summary>
 public sealed record FlightStateView(
     FlightPhase Phase,
     FlightDataSnapshot? Data,
-    bool HasBeenAirborneThisSession);
+    bool HasBeenAirborneThisSession,
+    bool IsLive = false);
 
 /// <summary>Read-only view of the committed flight state — the seam every consumer depends on
 /// so tests can drive phases and snapshots directly. Widened with <see cref="Snapshot"/>
@@ -23,8 +25,21 @@ public interface IFlightPhaseSource
     /// <summary>The full current view — phase, last data sample, airborne latch.</summary>
     FlightStateView Snapshot();
 
+    /// <summary>The flight-live gate (CONTEXT.md): true only while the sim session is live
+    /// (the session gate's "data is meaningful"), every phase-critical dataref is registered
+    /// and fresh, AND the sample is physically plausible. This is the single arming signal for
+    /// the voice First Officer (issue #114): every tick-driven FO module holds while it is
+    /// false, because ProSim pushes plausible cold-and-dark data — including live ECAM fault
+    /// indications — with MSFS still on the main menu or not running at all.</summary>
+    bool IsLive { get; }
+
     /// <summary>Raised after a committed transition, on the engine's timer thread.</summary>
     event EventHandler<FlightPhaseChangedEventArgs>? PhaseChanged;
+
+    /// <summary>Raised when <see cref="IsLive"/> changes, with the new value, on the engine's
+    /// timer thread. Modules that hold state across a flight (fault latches, dialogues) reset
+    /// on the false edge so the next session starts clean.</summary>
+    event Action<bool>? LiveChanged;
 }
 
 /// <summary>
@@ -105,7 +120,6 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
     private readonly Timer _timer;
     private FlightPhase _pendingTarget = FlightPhase.Unknown;
     private DateTimeOffset _pendingSince;
-    private bool _classifying;
     private int _ticking;
 
     public FlightStateEngine(IFlightDataSource source, SimSessionStore session, ILogger<FlightStateEngine> logger)
@@ -136,7 +150,13 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
     public event EventHandler<FlightPhaseChangedEventArgs>? PhaseChanged;
 
     /// <inheritdoc />
-    public FlightStateView Snapshot() => new(CurrentPhase, LastSnapshot, HasBeenAirborneThisSession);
+    public bool IsLive { get; private set; }
+
+    /// <inheritdoc />
+    public event Action<bool>? LiveChanged;
+
+    /// <inheritdoc />
+    public FlightStateView Snapshot() => new(CurrentPhase, LastSnapshot, HasBeenAirborneThisSession, IsLive);
 
     /// <summary>Starts sampling.</summary>
     public void Start() => _timer.Change(TimeSpan.Zero, TickInterval);
@@ -168,12 +188,22 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IDisposable
         // hold the current phase quietly.
         var plausible = IsPhysicallyPlausible(snapshot);
         var ready = session.DataIsMeaningful && snapshot.IsReady && plausible;
-        if (ready != _classifying)
+        if (ready != IsLive)
         {
-            _classifying = ready;
+            // The same three-way verdict is the FO's arming gate (issue #114) — publish it
+            // before classifying so a module reacting to the edge sees a consistent view.
+            IsLive = ready;
             _logger.LogInformation(
-                "Flight phase classification {State} (session {SessionPhase}, flight data ready: {DataReady}, plausible: {Plausible})",
-                ready ? "enabled" : "suspended", session.Phase, snapshot.IsReady, plausible);
+                "Flight live {State} — phase classification {Classification} (session {SessionPhase}, flight data ready: {DataReady}, plausible: {Plausible})",
+                ready ? "true" : "false", ready ? "enabled" : "suspended", session.Phase, snapshot.IsReady, plausible);
+            try
+            {
+                LiveChanged?.Invoke(ready);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "A LiveChanged subscriber threw");
+            }
         }
 
         if (!ready)

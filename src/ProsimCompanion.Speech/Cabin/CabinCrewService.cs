@@ -115,7 +115,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         try
         {
             var options = _options.CurrentValue;
-            if (!options.Enabled || _busy || _reads.Length == 0)
+            // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.
+            if (!options.Enabled || _busy || _reads.Length == 0 || !_flight.IsLive)
             {
                 return;
             }

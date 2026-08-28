@@ -84,7 +84,8 @@ public sealed class StabilizedApproachMonitor : Core.Hosting.IStartupModule, IDi
 
         lock (_lock)
         {
-            if (!s.IsValid)
+            // Flight-live gate (issue #114): hold with no MSFS session.
+            if (!s.IsValid || !_flight.IsLive)
             {
                 return;
             }

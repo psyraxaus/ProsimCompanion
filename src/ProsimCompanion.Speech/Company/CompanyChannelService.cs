@@ -229,7 +229,8 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
         try
         {
             var options = _options.CurrentValue;
-            if (!options.Enabled)
+            // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.
+            if (!options.Enabled || !_flight.IsLive)
             {
                 return;
             }

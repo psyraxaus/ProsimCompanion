@@ -91,7 +91,8 @@ public sealed class MissedApproachRebrief : Core.Hosting.IStartupModule, IDispos
         bool fire;
         lock (_gate)
         {
-            if (!_pending || _done)
+            // Flight-live gate (issue #114): hold with no MSFS session.
+            if (!_pending || _done || !_flight.IsLive)
             {
                 return;
             }

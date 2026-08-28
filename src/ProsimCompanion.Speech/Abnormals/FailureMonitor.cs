@@ -187,6 +187,58 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
         lock (_lock)
         {
+            if (!_flight.IsLive)
+            {
+                // Flight-live gate (issue #114): with MSFS on the main menu or not running,
+                // ProSim still pushes cold-and-dark indications — unaligned IRs, unpowered
+                // packs, dead generators — and the 2026-08-29 launch test had the FO working
+                // ECAM faults at an empty sim. Hold, and drop every per-flight latch so the
+                // next session starts clean rather than inheriting a "fired" fault.
+                clearedDialogue = ResetForNotLive();
+            }
+            else
+            {
+                clearedDialogue = Evaluate(nowUtc);
+            }
+        }
+
+        clearedDialogue?.Cancel();
+    }
+
+    /// <summary>Drops every trigger latch and ends a running dialogue silently. Returns the
+    /// dialogue's CTS for the caller to cancel outside the lock, or null.</summary>
+    private CancellationTokenSource? ResetForNotLive()
+    {
+        var hadState = false;
+        foreach (var state in _states.Values)
+        {
+            hadState |= state.Fired || state.RisingSinceUtc is not null;
+            state.Fired = false;
+            state.RisingSinceUtc = null;
+            state.SuppressionLogged = false;
+        }
+
+        if (hadState)
+        {
+            _logger.LogInformation("Flight not live — abnormal trigger latches reset");
+        }
+
+        if (_activeDialogue is not { } active)
+        {
+            return null;
+        }
+
+        active.EndReason = "session-ended";
+        return active.Cts;
+    }
+
+    /// <summary>The live-flight evaluation pass; caller holds <see cref="_lock"/>. Returns the
+    /// CTS of a dialogue whose failure cleared this tick — cancelled by the caller outside the
+    /// lock, since Cancel() can run continuations synchronously that re-enter this monitor.</summary>
+    private CancellationTokenSource? Evaluate(DateTimeOffset nowUtc)
+    {
+        CancellationTokenSource? clearedDialogue = null;
+        {
             var phase = _flight.CurrentPhase;
             var ewdText = ReadEwdText();
 
@@ -266,7 +318,7 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             }
         }
 
-        clearedDialogue?.Cancel();
+        return clearedDialogue;
     }
 
     /// <summary>Web-button escape (issue #56): ends the running ECAM dialogue without needing
@@ -374,6 +426,12 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                     // cancel. Announce on a fresh token — the session's is already cancelled.
                     var reason = session.EndReason ?? "user";
                     _eventLog.Record("abnormal.ended", new { id = definition.Id, reason });
+                    if (reason == "session-ended")
+                    {
+                        // The flight is gone (issue #114) — nobody to announce to.
+                        return;
+                    }
+
                     var announcement = reason == "cleared"
                         ? $"The {definition.Title} has cleared. Resuming normal duties."
                         : "ECAM cancelled. Resuming normal duties.";
@@ -573,9 +631,13 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         return signal;
     }
 
+    /// <summary>An empty phase list means "every phase of a flight" — never Unknown, which is
+    /// the engine's "no flight yet" state (issue #114): 24 of the 31 shipped definitions are
+    /// unrestricted, and every one of them was armed at app start.</summary>
     private static bool PhaseArmed(AbnormalDefinition definition, FlightPhase phase)
         => definition.Phases.Count == 0
-            || definition.Phases.Any(p => p.Equals(phase.ToString(), StringComparison.OrdinalIgnoreCase));
+            ? phase != FlightPhase.Unknown
+            : definition.Phases.Any(p => p.Equals(phase.ToString(), StringComparison.OrdinalIgnoreCase));
 
     private string ReadEwdText()
     {

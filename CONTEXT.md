@@ -37,6 +37,14 @@ questions: *data is meaningful* (flight data may be trusted — includes the wal
 *may drive ground services* (GSX automation may act — excludes the walkaround).
 _Avoid_: in-session check, session predicate
 
+**Flight live**:
+The voice First Officer's single arming signal: the session gate says data is meaningful AND
+every phase-critical dataref is registered and fresh AND the sample is physically plausible.
+Published by the flight-state engine; every tick-driven FO module holds while it is false and
+resets its per-flight latches on the false edge. ProSim connectivity alone is never enough —
+ProSim pushes plausible cold-and-dark data, faults included, with no MSFS session.
+_Avoid_: FO armed, ready flag, classification enabled
+
 ### Speech
 
 **Spoken text**:

@@ -80,6 +80,33 @@ public sealed class FlightStateEngineTests
     }
 
     [Fact]
+    public void IsLive_FollowsSessionAndReadiness_AndRaisesEdges()
+    {
+        // Issue #114: the FO's arming gate is the engine's classification verdict.
+        var engine = Create(out var session);
+        var edges = new List<bool>();
+        engine.LiveChanged += edges.Add;
+
+        engine.ProcessTick(ReadyGround(), T0);
+        Assert.False(engine.IsLive);
+        Assert.False(engine.Snapshot().IsLive);
+
+        SetSession(session, SimSessionPhase.InSession);
+        engine.ProcessTick(HalfRegisteredStartup(), T0 + Tick);
+        Assert.False(engine.IsLive); // session live but data not ready
+
+        engine.ProcessTick(ReadyGround(), T0 + Tick * 2);
+        Assert.True(engine.IsLive);
+        Assert.True(engine.Snapshot().IsLive);
+
+        SetSession(session, SimSessionPhase.NotInSession);
+        engine.ProcessTick(ReadyGround(), T0 + Tick * 3);
+        Assert.False(engine.IsLive);
+
+        Assert.Equal([true, false], edges);
+    }
+
+    [Fact]
     public void StaysUnknown_WhileDatarefsStillRegistering()
     {
         // The 2026-08-16 bug shape: session live, but the half-registered snapshot would have

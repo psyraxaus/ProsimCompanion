@@ -102,7 +102,8 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         try
         {
             var options = _options.CurrentValue;
-            if (!options.Enabled || _busy
+            // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.
+            if (!options.Enabled || _busy || !_flight.IsLive
                 || _groundPower is not { } groundPower
                 || _chocks is not { } chocks
                 || _fuelTotal is not { } fuelTotal)

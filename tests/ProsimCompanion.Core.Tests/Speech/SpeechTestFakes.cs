@@ -18,9 +18,26 @@ internal sealed class FakePhaseSource : IFlightPhaseSource
 
     public bool HasBeenAirborneThisSession { get; set; }
 
+    /// <summary>Defaults live so existing module tests exercise their logic; the gate tests
+    /// flip it with <see cref="SetLive"/>.</summary>
+    public bool IsLive { get; private set; } = true;
+
     public event EventHandler<FlightPhaseChangedEventArgs>? PhaseChanged;
 
-    public FlightStateView Snapshot() => new(CurrentPhase, Data, HasBeenAirborneThisSession);
+    public event Action<bool>? LiveChanged;
+
+    public FlightStateView Snapshot() => new(CurrentPhase, Data, HasBeenAirborneThisSession, IsLive);
+
+    public void SetLive(bool live)
+    {
+        if (IsLive == live)
+        {
+            return;
+        }
+
+        IsLive = live;
+        LiveChanged?.Invoke(live);
+    }
 
     public void SetPhase(FlightPhase phase)
     {

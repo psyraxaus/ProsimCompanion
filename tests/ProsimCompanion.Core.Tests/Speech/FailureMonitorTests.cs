@@ -242,6 +242,68 @@ public sealed class FailureMonitorTests : IDisposable
     }
 
     [Fact]
+    public void FlightNotLive_HoldsEvenWithFaultIndicated_AndResetsRisingLatch()
+    {
+        // Issue #114: ProSim alone pushes live fault indications with no MSFS session.
+        _monitor.Load([EngineFire()]);
+        _dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+        _dataRefs.Values["system.indicators.I_MIP_MASTER_WARNING_FO"] = 1.0;
+
+        _phase.SetLive(false);
+        _monitor.ProcessTick(T0);
+        _monitor.ProcessTick(T0.AddSeconds(5));
+        _monitor.ProcessTick(T0.AddSeconds(10));
+        Assert.Empty(_arbiter.Requests);
+
+        // Going live re-starts the debounce from scratch — the held-over rise must not
+        // count, or the FO fires the instant the session opens.
+        _phase.SetLive(true);
+        _monitor.ProcessTick(T0.AddSeconds(11));
+        Assert.Empty(_arbiter.Requests);
+        _monitor.ProcessTick(T0.AddSeconds(12.5));
+        Assert.Single(_arbiter.Requests);
+    }
+
+    [Fact]
+    public void FlightGoesNotLive_ClearsFiredLatch_SoNextSessionRedetects()
+    {
+        _monitor.Load([EngineFire()]);
+        _dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+        _dataRefs.Values["system.indicators.I_MIP_MASTER_WARNING_FO"] = 1.0;
+        _monitor.ProcessTick(T0);
+        _monitor.ProcessTick(T0.AddSeconds(1.5));
+        Assert.Single(_arbiter.Requests);
+
+        _phase.SetLive(false);
+        _monitor.ProcessTick(T0.AddSeconds(2));
+
+        _phase.SetLive(true);
+        _monitor.ProcessTick(T0.AddSeconds(3));
+        _monitor.ProcessTick(T0.AddSeconds(4.5));
+        Assert.Equal(2, _arbiter.Requests.Count);
+    }
+
+    [Fact]
+    public void EmptyPhaseList_IsNotArmedInUnknownPhase()
+    {
+        var definition = EngineFire();
+        definition.Phases = [];
+        _monitor.Load([definition]);
+        _dataRefs.Values["system.indicators.I_ENG_FIRE_1"] = 1.0;
+        _dataRefs.Values["system.indicators.I_MIP_MASTER_WARNING_FO"] = 1.0;
+
+        _phase.SetPhase(FlightPhase.Unknown);
+        _monitor.ProcessTick(T0);
+        _monitor.ProcessTick(T0.AddSeconds(2));
+        Assert.Empty(_arbiter.Requests);
+
+        _phase.SetPhase(FlightPhase.Preflight);
+        _monitor.ProcessTick(T0.AddSeconds(3));
+        _monitor.ProcessTick(T0.AddSeconds(4.5));
+        Assert.Single(_arbiter.Requests);
+    }
+
+    [Fact]
     public void ShippedAbnormals_AllLoad()
     {
         var folder = Path.Combine(FindRepoRoot(), "src", "ProsimCompanion.App", "config", "abnormals");

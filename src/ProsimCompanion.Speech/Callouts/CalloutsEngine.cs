@@ -120,7 +120,8 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
         lock (_lock)
         {
             var sop = _options.CurrentValue;
-            if (!sop.CalloutsEnabled || !s.IsValid)
+            // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.
+            if (!sop.CalloutsEnabled || !s.IsValid || !_flight.IsLive)
             {
                 return;
             }

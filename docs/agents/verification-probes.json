@@ -567,6 +567,20 @@
       "notes": "Fixes: rollout latches re-arm on Approach entry (the LandingRollout commit raced the 100 ms sample tick), oneThousandToGo requires a knob-settled target plus a cooldown."
     },
     {
+      "id": "fo-flight-live-gate",
+      "issue": 114,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "No 'failure.detected', 'abnormal.*', 'callout.*', cabin, ground-upcall or company-channel speech event before the first 'Flight live true' log line of the session (FlightStateEngine). Any FO speech with the app up and MSFS on the menu / not running is the 2026-08-29 signature.",
+        "assert-present after session exit (menu/world map): 'Flight live false' log line, then — if a fault was latched — 'abnormal trigger latches reset'; a running ECAM dialogue ends with 'abnormal.ended' reason 'session-ended' and NO 'ECAM cancelled' / 'has cleared' announcement.",
+        "assert-present on the next session start: a still-present fault is re-detected ('failure.detected') after its normal debounce — the latch did not survive the session boundary.",
+        "watch: the 'Flight live' true/false edge count per session — more than a handful indicates readiness/plausibility flapping that would mute the FO mid-flight."
+      ],
+      "notes": "Fixed: IFlightPhaseSource.IsLive (session data-meaningful AND datarefs ready AND plausible) is the single FO arming gate; FailureMonitor, FlowMonitor, StabilizedApproachMonitor, CalloutsEngine, CabinCrewService, GroundCrewUpcallService, CompanyChannelService and MissedApproachRebrief hold on it; an empty abnormal 'phases' list no longer arms in Unknown. PTT/recognition and TTS prewarm are deliberately NOT gated (TTS/STT server configuration must remain testable with no sim)."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",

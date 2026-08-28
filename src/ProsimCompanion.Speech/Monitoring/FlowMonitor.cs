@@ -86,7 +86,8 @@ public sealed class FlowMonitor : Core.Hosting.IStartupModule, IDisposable
     {
         ArgumentNullException.ThrowIfNull(s);
 
-        if (!s.IsValid)
+        // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.
+        if (!s.IsValid || !_flight.IsLive)
         {
             return;
         }
