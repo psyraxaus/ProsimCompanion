@@ -27,8 +27,19 @@ chains — "local only" hard mode must exist.
 
 ## LLM (briefings/debrief composition)
 
-- Any OpenAI-compatible endpoint; default `http://localhost:3000/api` (Open-WebUI/Ollama). Optional
-  custom CA / allow-invalid-cert.
+- Two API flavours (`briefing.llmApi`): `openAi` — any OpenAI-compatible endpoint, default
+  `http://localhost:3000/api` (Open-WebUI) — or `ollama` — Ollama's native `POST {base}/api/chat`
+  with base = server root (`http://host:11434`). Optional custom CA / allow-invalid-cert.
+- **Thinking models (qwen3.6 etc.) — 2026-08-29:** the hidden reasoning phase adds 10 s+ before the
+  first token. Ollama only honours thinking control through the NATIVE API's top-level
+  `"think": <bool>`; the OpenAI-compatible `/v1/chat/completions` has no way to pass it, and the
+  `/no_think` prompt prefix (a qwen3.5-era trick) does nothing on qwen3.6. `briefing.llmEnableThinking`
+  (default false) is therefore sent explicitly in BOTH states on the Ollama flavour — such models
+  default thinking ON, so omitting the field would silently re-enable it. Sampling limits move into
+  Ollama's `options` object (`num_predict` ≙ `max_tokens`). Replies may carry a separate
+  `message.thinking` field when enabled; only `message.content` ever reaches TTS. Ollama streams as
+  NDJSON (one object per line, final line `"done": true`), not SSE — the parser accepts both the
+  single-object and NDJSON shapes.
 - **Every number in LLM output is verified against source facts** (`NumberVerifier`); deterministic
   template fallback when the LLM is unavailable or fails verification.
 

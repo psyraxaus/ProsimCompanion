@@ -390,19 +390,26 @@
                                  @bind-Value="_briefing.Value.MissedApproachHardCeilingSeconds" />
                 </Section>
 
-                <Section Title="LLM Styling" Hint="One OpenAI-compatible endpoint for the whole app (briefing and debrief prose)">
+                <Section Title="LLM Styling" Hint="One LLM endpoint for the whole app (briefing and debrief prose)">
                     <BoolField Label="Enabled"
                                Hint="Off = deterministic templates only, nothing leaves this machine"
                                @bind-Value="_briefing.Value.LlmEnabled" />
+                    <SelectField Label="API flavour" Options="LlmApiOptions"
+                                 Hint="Ollama native is the only flavour that can switch model thinking off; pick it when the base URL is an Ollama server"
+                                 @bind-Value="LlmApiKey" />
                     <TextField Label="Base URL"
-                               Hint="OpenAI-compatible API root, e.g. http://localhost:3000/api or https://api.openai.com/v1"
+                               Hint="OpenAI-compatible: the API root, e.g. http://localhost:3000/api or https://api.openai.com/v1. Ollama native: the server root, e.g. http://localhost:11434 (no /v1)"
                                @bind-Value="_briefing.Value.LlmBaseUrl" />
                     <TextField Label="API key"
                                Hint="Stored in config/settings.json, never logged; empty for keyless local servers"
                                @bind-Value="_briefing.Value.LlmApiKey" />
                     <TextField Label="Model"
-                               Hint="Model name the endpoint expects (e.g. gpt-4o-mini, llama3.1). Empty disables LLM styling even when enabled"
+                               Hint="Model name the endpoint expects (e.g. gpt-4o-mini, qwen3.6:27b). Empty disables LLM styling even when enabled"
                                @bind-Value="_briefing.Value.LlmModel" />
+                    <BoolField Label="Enable model thinking (slower, deeper reasoning)"
+                               Hint="Lets a thinking model (qwen3.x, deepseek-r1) reason before it answers. Adds significant delay (often 10 s+) before speech begins — leave off for briefings. Ollama native API only"
+                               Disabled="@(_briefing.Value.LlmApi != LlmApiKind.Ollama)"
+                               @bind-Value="_briefing.Value.LlmEnableThinking" />
                     <NumberField Label="Max tokens" Min="64"
                                  @bind-Value="_briefing.Value.LlmMaxTokens" />
                     <NumberField Label="Timeout" Suffix="s" Min="5"
@@ -492,6 +499,12 @@
     [
         ("left", "Left seat (FO operates the right side)"),
         ("right", "Right seat (virtual pilot operates the left side)"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> LlmApiOptions =
+    [
+        ("openAi", "OpenAI-compatible (/chat/completions)"),
+        ("ollama", "Ollama native (/api/chat — thinking control)"),
     ];
 
     private static readonly IReadOnlyList<(string, string)> ProcedureSourceOptions =
@@ -682,6 +695,13 @@
     private void OnPressedChanged(object? sender, EventArgs e)
         // Service events fire on its worker thread; marshal into the circuit for the lamps.
         => _ = InvokeAsync(StateHasChanged);
+
+    private string LlmApiKey
+    {
+        get => JsonNamingPolicy.CamelCase.ConvertName(_briefing.Value.LlmApi.ToString());
+        set => _briefing.Value.LlmApi = Enum.TryParse<LlmApiKind>(value, ignoreCase: true, out var parsed)
+            ? parsed : LlmApiKind.OpenAi;
+    }
 
     private string ProcedureSourceKey
     {

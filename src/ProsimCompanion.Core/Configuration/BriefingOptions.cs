@@ -111,12 +111,40 @@ public sealed class BriefingOptions : IOptionSection
     /// falls back to the deterministic template.</summary>
     public bool VerifyNumbers { get; set; } = true;
 
-    // ---- Optional OpenAI-compatible LLM (briefing prose only — numbers are verified) ----
+    // ---- Optional LLM (briefing prose only — numbers are verified) ----
 
     public bool LlmEnabled { get; set; }
+
+    /// <summary>Which wire protocol the endpoint speaks: <see cref="LlmApiKind.OpenAi"/>
+    /// (<c>{base}/chat/completions</c>) or <see cref="LlmApiKind.Ollama"/> (Ollama's native
+    /// <c>{base}/api/chat</c>). Ollama native is REQUIRED to control thinking — the
+    /// OpenAI-compatible endpoint has no way to pass <c>think</c>, and the <c>/no_think</c>
+    /// prompt prefix stopped working with qwen3.6. Defaults to OpenAI so existing configs
+    /// (Open WebUI, api.openai.com) keep working unchanged.</summary>
+    public LlmApiKind LlmApi { get; set; } = LlmApiKind.OpenAi;
+
+    /// <summary>API root. OpenAI flavour: e.g. <c>http://localhost:3000/api</c> or
+    /// <c>https://api.openai.com/v1</c>. Ollama flavour: the server root, e.g.
+    /// <c>http://localhost:11434</c> (no <c>/v1</c>).</summary>
     public string LlmBaseUrl { get; set; } = "http://localhost:3000/api";
     public string LlmApiKey { get; set; } = "";
     public string LlmModel { get; set; } = "";
     public int LlmMaxTokens { get; set; } = 512;
     public int LlmTimeoutSeconds { get; set; } = 30;
+
+    /// <summary>Let a thinking-capable model (qwen3.x, deepseek-r1…) run its hidden reasoning
+    /// phase before answering. Off by default: the phase adds 10 s+ before the first token,
+    /// which is unusable for spoken briefings. Honoured only on the Ollama native API, and
+    /// sent EXPLICITLY in both states because such models default thinking ON.</summary>
+    public bool LlmEnableThinking { get; set; }
+}
+
+/// <summary>Wire protocol of the configured LLM endpoint.</summary>
+public enum LlmApiKind
+{
+    /// <summary>OpenAI chat-completions shape (OpenAI, Open WebUI, LM Studio, Ollama's /v1 shim).</summary>
+    OpenAi,
+
+    /// <summary>Ollama native <c>/api/chat</c> — the only shape that can switch thinking off.</summary>
+    Ollama,
 }
