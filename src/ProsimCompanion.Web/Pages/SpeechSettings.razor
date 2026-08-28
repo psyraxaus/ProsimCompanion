@@ -129,8 +129,11 @@
                         or any joystick button (bound by device name, so re-plugged hardware keeps
                         working). Remember to save afterwards; the lamps follow the saved bindings.
                     </div>
-                    <TextField Label="LAN faster-whisper URL"
-                               Hint="e.g. http://192.168.1.50:8000 — empty uses the offline System.Speech engine"
+                    <SelectField Label="LAN ASR server flavour" Options="AsrApiOptions"
+                                 Hint="Must match what is running at the URL: the wrong flavour answers 404 to every utterance while the health check stays green (a Warning is logged when that happens)"
+                                 @bind-Value="AsrApiKey" />
+                    <TextField Label="LAN ASR URL"
+                               Hint="Server root, e.g. http://192.168.1.50:8000 — empty uses the offline System.Speech engine"
                                @bind-Value="_speech.Value.AsrBaseUrl" />
                     <SelectField Label="Input device"
                                  Options="InputDeviceOptions()"
@@ -507,6 +510,12 @@
         ("ollama", "Ollama native (/api/chat — thinking control)"),
     ];
 
+    private static readonly IReadOnlyList<(string, string)> AsrApiOptions =
+    [
+        ("fasterWhisper", "faster-whisper wrapper (/transcribe)"),
+        ("whisperCpp", "whisper.cpp server (/v1/audio/transcriptions)"),
+    ];
+
     private static readonly IReadOnlyList<(string, string)> ProcedureSourceOptions =
     [
         ("auto", "Auto (FMS → flight.json → manual)"),
@@ -701,6 +710,13 @@
         get => JsonNamingPolicy.CamelCase.ConvertName(_briefing.Value.LlmApi.ToString());
         set => _briefing.Value.LlmApi = Enum.TryParse<LlmApiKind>(value, ignoreCase: true, out var parsed)
             ? parsed : LlmApiKind.OpenAi;
+    }
+
+    private string AsrApiKey
+    {
+        get => JsonNamingPolicy.CamelCase.ConvertName(_speech.Value.AsrApi.ToString());
+        set => _speech.Value.AsrApi = Enum.TryParse<AsrApiKind>(value, ignoreCase: true, out var parsed)
+            ? parsed : AsrApiKind.FasterWhisper;
     }
 
     private string ProcedureSourceKey

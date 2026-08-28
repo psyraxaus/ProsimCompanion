@@ -66,6 +66,20 @@ public sealed class HumanizeOptions
 /// providers, and <see cref="LocalOnly"/> is the hard switch that keeps synthesis off the
 /// network entirely (Google is then excluded from every path, including voice listing).
 /// </summary>
+/// <summary>HTTP shape of the LAN speech-recognition server (<c>speech.asrApi</c>).</summary>
+public enum AsrApiKind
+{
+    /// <summary>The Prosim2FO faster-whisper wrapper (<c>deploy/faster-whisper</c>):
+    /// <c>POST /transcribe</c> with a <c>hotwords</c> field, flat JSON reply carrying
+    /// <c>text</c>, <c>confidence</c> and <c>no_speech_prob</c>.</summary>
+    FasterWhisper,
+
+    /// <summary>whisper.cpp <c>whisper-server</c>: OpenAI-style
+    /// <c>POST /v1/audio/transcriptions</c> with a <c>prompt</c> field; the app asks for
+    /// <c>verbose_json</c> and derives confidence from the segments' <c>avg_logprob</c>.</summary>
+    WhisperCpp,
+}
+
 public sealed class SpeechOptions : IOptionSection
 {
     public static string SectionName => "speech";
@@ -152,10 +166,17 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Preferred SAPI5 (System.Speech) voice name; empty picks the system default.</summary>
     public string SapiVoice { get; set; } = "";
 
-    // ---- Recognition (chain: LAN faster-whisper → WinRT → System.Speech) ----
+    // ---- Recognition (chain: LAN whisper → WinRT → System.Speech) ----
 
-    /// <summary>Base URL of the LAN faster-whisper wrapper (docs/integrations/speech.md);
-    /// empty disables the LAN engine.</summary>
+    /// <summary>Wire shape of the LAN ASR server at <see cref="AsrBaseUrl"/>. The two
+    /// flavours disagree on the transcribe path, the biasing field and the response JSON;
+    /// pointing the faster-whisper shape at a whisper.cpp server answers 404 to every
+    /// utterance while <c>/health</c> still says OK (2026-08-29 — voice went silent with no
+    /// log evidence).</summary>
+    public AsrApiKind AsrApi { get; set; } = AsrApiKind.FasterWhisper;
+
+    /// <summary>Server root of the LAN ASR server (docs/integrations/speech.md), e.g.
+    /// <c>http://192.168.1.50:8000</c>; empty disables the LAN engine.</summary>
     public string AsrBaseUrl { get; set; } = "";
 
     /// <summary>Transcription request timeout.</summary>

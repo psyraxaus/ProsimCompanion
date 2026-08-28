@@ -343,9 +343,10 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
             try
             {
                 using var response = await http.GetAsync(url).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode)
+                var api = _options.CurrentValue.AsrApi;
+                if (AsrServerApi.IsReady(api, (int)response.StatusCode))
                 {
-                    _logger.LogInformation("LAN ASR ready");
+                    _logger.LogInformation("LAN ASR ready ({Api} at {Url})", api, url);
                     return;
                 }
             }

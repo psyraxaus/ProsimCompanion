@@ -581,6 +581,32 @@
       "notes": "Fixed: IFlightPhaseSource.IsLive (session data-meaningful AND datarefs ready AND plausible) is the single FO arming gate; FailureMonitor, FlowMonitor, StabilizedApproachMonitor, CalloutsEngine, CabinCrewService, GroundCrewUpcallService, CompanyChannelService and MissedApproachRebrief hold on it; an empty abnormal 'phases' list no longer arms in Unknown. PTT/recognition and TTS prewarm are deliberately NOT gated (TTS/STT server configuration must remain testable with no sim)."
     },
     {
+      "id": "asr-server-flavour",
+      "issue": 115,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["log"],
+      "checks": [
+        "Trigger = the pilot spoke (any 'FO PTT down' line, or continuous mode with the app up and the LAN ASR reachable). Behaviour = at least one 'ASR heard' line (UtteranceRouter, Debug) in the session. A session with recognition 'listening' for minutes and ZERO 'ASR heard' lines is the 2026-08-29 signature (server answering 404 to /transcribe while /health was green).",
+        "assert-absent: Warning 'LAN ASR server … answered … for flavour … check speech.asrApi matches the server' (LanAsrRecognizer). Present = speech.asrApi does not match the server at speech.asrBaseUrl (or the server is mis-routed) — quote the status code and flavour.",
+        "assert-present at start: 'LAN ASR ready (WhisperCpp at …)' or '(FasterWhisper at …)' naming the configured flavour; 'Falling back to offline recognition' means the box never answered within 120 s.",
+        "watch: 'ASR heard' lines with conf 0.00 / acoustic null under WhisperCpp — the server answered plain json (no segments); response_format=verbose_json was not honoured."
+      ],
+      "notes": "Fixed: speech.asrApi (fasterWhisper | whisperCpp) selects path (/transcribe vs /v1/audio/transcriptions), bias field (hotwords vs prompt) and response parsing (AsrServerApi, unit-tested); whisper.cpp confidence = exp(duration-weighted avg_logprob), no_speech_prob = max over segments — the wrapper's own formula. Non-2xx or unparseable transcribe replies now log one Warning per episode instead of being swallowed as empty-text rejects."
+    },
+    {
+      "id": "abnormal-cold-dark-hold",
+      "issue": 116,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "No 'failure.detected' / 'abnormal.started' event while the most recent 'phase-changed' snapshot says powered:false (phase ColdAndDark). The 2026-08-29 signature: 'failure.detected fctl-altn-law' ~5 s after 'Flight live \"true\"' with the aircraft cold and dark, then 'Mic borrowed by \"abnormal:fctl-altn-law\"'.",
+        "Once fixed (assert-present): a log line naming the abnormal held for ColdAndDark when its trigger is firing, and 'failure.detected' for the same id only after the phase snapshot shows powered:true AND the corroborate light (master caution) reads high."
+      ],
+      "notes": "Not fixed yet (owner to authorise): fctl-altn-law triggers on aircraft.controlLaw.numerical != 0, which is non-zero on an unpowered FBW; phases: [] arms in ColdAndDark. Proposed: exclude ColdAndDark from the empty-phases default (no ECAM when unpowered) and add corroborate I_MIP_MASTER_CAUTION_FO to fctl-altn-law. Workaround: enabled:false in the user abnormals copy."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",

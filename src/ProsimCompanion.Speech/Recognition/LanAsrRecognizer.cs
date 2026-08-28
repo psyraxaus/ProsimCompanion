@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NAudio.Wave;
@@ -7,13 +6,14 @@ using ProsimCompanion.Core.Configuration;
 namespace ProsimCompanion.Speech.Recognition;
 
 /// <summary>
-/// LAN faster-whisper recognizer: WaveInEvent capture at 16 kHz mono PCM16 with a simple RMS
-/// VAD (constants proven in Prosim2FO — 500/32767 threshold, 700 ms end-silence, 300 ms
-/// minimum speech, 300 ms pre-roll, 15 s hard cap), each segmented utterance POSTed as
-/// multipart "file" to the transcribe endpoint. Transcribe-only: snapping and gating live in
-/// the interpreter. Improvements over the predecessor: the configured input device is actually
-/// honoured (matched on WaveIn product-name prefix), and grammar phrases are sent as hotwords
-/// (the server has always accepted them).
+/// LAN whisper recognizer (faster-whisper wrapper or whisper.cpp, per <c>speech.asrApi</c> —
+/// the wire differences live in <see cref="AsrServerApi"/>): WaveInEvent capture at 16 kHz
+/// mono PCM16 with a simple RMS VAD (constants proven in Prosim2FO — 500/32767 threshold,
+/// 700 ms end-silence, 300 ms minimum speech, 300 ms pre-roll, 15 s hard cap), each segmented
+/// utterance POSTed as multipart "file" to the transcribe endpoint. Transcribe-only: snapping
+/// and gating live in the interpreter. Improvements over the predecessor: the configured input
+/// device is actually honoured (matched on WaveIn product-name prefix), and grammar phrases
+/// are sent for decoder biasing (hotwords / initial prompt).
 /// </summary>
 public sealed class LanAsrRecognizer : IVoiceRecognizer
 {
@@ -36,6 +36,7 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
     private IReadOnlyList<string> _grammar = [];
     private bool _speechDetected;
     private int _silenceMs;
+    private int _serverFailureLogged;
 
     public LanAsrRecognizer(IOptionsMonitor<SpeechOptions> options, ILogger<LanAsrRecognizer> logger)
     {
@@ -223,6 +224,7 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             var options = _options.CurrentValue;
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(Math.Max(1000, options.AsrTimeoutMs)));
 
+            var api = options.AsrApi;
             using var form = new MultipartFormDataContent();
             var wav = new ByteArrayContent(ToWav(pcm));
             wav.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("audio/wav");
@@ -231,34 +233,72 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             var grammar = _grammar;
             if (grammar.Count is > 0 and <= 50)
             {
-                form.Add(new StringContent(string.Join(", ", grammar)), "hotwords");
+                form.Add(new StringContent(string.Join(", ", grammar)), AsrServerApi.BiasField(api));
             }
 
-            var url = options.AsrBaseUrl.TrimEnd('/') + "/transcribe";
+            foreach (var (name, value) in AsrServerApi.ExtraFields(api))
+            {
+                form.Add(new StringContent(value), name);
+            }
+
+            var url = options.AsrBaseUrl.TrimEnd('/') + AsrServerApi.TranscribePath(api);
             using var response = await Http.PostAsync(url, form, cts.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
+                NoteServerFailure(url, (int)response.StatusCode, api);
                 Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, null));
                 return;
             }
 
-            var payload = await System.Net.Http.Json.HttpContentJsonExtensions
-                .ReadFromJsonAsync<TranscribeResponse>(response.Content, cancellationToken: cts.Token)
-                .ConfigureAwait(false);
-            var text = payload?.Text?.Trim() ?? "";
-            if (text.Length == 0)
+            var body = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+            var transcript = AsrServerApi.Parse(api, body);
+            if (transcript is null)
             {
-                Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, payload?.NoSpeechProb));
+                NoteServerFailure(url, (int)response.StatusCode, api);
+                Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, null));
+                return;
+            }
+
+            NoteServerRecovered(url);
+            if (transcript.Text.Length == 0)
+            {
+                Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, transcript.NoSpeechProb));
                 return;
             }
 
             Accepted?.Invoke(this, new RecognizedEventArgs(
-                text, payload!.Confidence ?? 0, payload.Confidence, payload.NoSpeechProb));
+                transcript.Text, transcript.Confidence ?? 0, transcript.Confidence, transcript.NoSpeechProb));
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "LAN ASR transcription failed");
             Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, null));
+        }
+    }
+
+    /// <summary>One Warning per failure episode, Debug thereafter. A server that answers but
+    /// not in the configured shape (wrong <c>speech.asrApi</c>, wrong path) used to drop every
+    /// utterance with no log line at all — 2026-08-29, a whole morning of "voice is broken"
+    /// with <c>/health</c> green.</summary>
+    private void NoteServerFailure(string url, int statusCode, AsrApiKind api)
+    {
+        if (Interlocked.Exchange(ref _serverFailureLogged, 1) == 0)
+        {
+            _logger.LogWarning(
+                "LAN ASR server {Url} answered {StatusCode} for flavour {Api} — utterances are being dropped; check speech.asrApi matches the server",
+                url, statusCode, api);
+        }
+        else
+        {
+            _logger.LogDebug("LAN ASR server {Url} answered {StatusCode}", url, statusCode);
+        }
+    }
+
+    private void NoteServerRecovered(string url)
+    {
+        if (Interlocked.Exchange(ref _serverFailureLogged, 0) == 1)
+        {
+            _logger.LogInformation("LAN ASR server {Url} answering again", url);
         }
     }
 
@@ -325,8 +365,4 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         return 0;
     }
 
-    private sealed record TranscribeResponse(
-        [property: JsonPropertyName("text")] string? Text,
-        [property: JsonPropertyName("confidence")] double? Confidence,
-        [property: JsonPropertyName("no_speech_prob")] double? NoSpeechProb);
 }

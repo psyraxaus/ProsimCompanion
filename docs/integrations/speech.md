@@ -15,9 +15,22 @@ chains — "local only" hard mode must exist.
 
 ## Recognition (chain: LAN → WinRT → offline System.Speech)
 
-- **LAN ASR** (faster-whisper wrapper, docker-compose in Prosim2FO `deploy/`): `GET /health`,
-  `POST /transcribe` (multipart WAV 16 kHz) → `text`, `duration`, `confidence`, `avg_logprob`,
-  `no_speech_prob`, word timestamps; biasing fields `initial_prompt`/`hotwords`/`vad_filter`.
+- **LAN ASR** — two server flavours, selected by `speech.asrApi` (`AsrServerApi` holds the
+  wire differences; the recognizer is flavour-agnostic):
+  - `fasterWhisper` (Prosim2FO `deploy/faster-whisper` wrapper): `GET /health`,
+    `POST /transcribe` (multipart WAV 16 kHz) → `text`, `duration`, `confidence`, `avg_logprob`,
+    `no_speech_prob`, word timestamps; biasing fields `initial_prompt`/`hotwords`/`vad_filter`.
+  - `whisperCpp` (whisper.cpp `whisper-server`, e.g. native on a Mac mini since 2026-08-29):
+    OpenAI-style `POST /v1/audio/transcriptions`, fields `file`, `prompt` (grammar phrases go
+    here — it is the initial prompt), `response_format=verbose_json`, `temperature=0`. Reply
+    carries `text` plus `segments[].{start,end,avg_logprob,no_speech_prob}`; confidence is
+    derived client-side with the wrapper's formula (exp of duration-weighted `avg_logprob`,
+    `no_speech_prob` = max over segments) so the interpreter thresholds mean the same thing.
+    `/health` may 404 on builds without the route — readiness accepts any HTTP answer.
+  - **Trap (2026-08-29):** the wrong flavour answers 404 to every utterance while `/health`
+    is green; the app used to drop those silently (a whole session with zero "ASR heard"
+    lines). Now a Warning "LAN ASR server … answered 404 … check speech.asrApi" fires once
+    per episode.
   Default `http://192.168.1.50:8000`; readiness polling + optional wake-on-LAN (MAC/broadcast/port 9).
 - Push-to-talk via keyboard hook or joystick; continuous mode optional; ATC-mute binding.
   PTT decides when the FO LISTENS; whether a crew HAIL is accepted is a separate, dataref-side
