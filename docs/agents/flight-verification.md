@@ -33,6 +33,23 @@ at them.
 5. End the report with the `requires-human-checklist` entry so the pilot knows what still
    needs eyeballs.
 
+## Replaying a flight through the phase engine
+
+Since 2026-08-29 the session log carries a compact `flight-sample` event about once a second
+while the flight is live (`FlightSampleRecorder`; keys documented on `FlightSample`).
+`FlightReplay.RunFile(path)` feeds those samples through a fresh `FlightStateEngine` at their
+recorded times, re-creating the 250 ms tick cadence, and reports this build's phase timeline
+next to the live engine's recorded `phase-changed` edges (`Describe()`).
+
+- **Diagnosing a bad phase**: replay the session, read the rule id + reason on the offending
+  edge, adjust the rule or a `flightState` threshold, replay again — no sim needed.
+- **Turning a flight into a regression test**: copy the session file into
+  `tests/ProsimCompanion.Core.Tests/Flight/Recordings/` with a sidecar
+  `<name>.expected.txt` (one `From -> To` per line; `FlightReplayTests` prints the timeline
+  to paste when the sidecar is missing). Every rule change is then judged against that flight.
+- A replay that **diverges** from the recording means the running build and the repo disagree
+  (old build on the sim PC, or a rule change) — report the first differing edge.
+
 ## Reporting rules
 
 - Comment evidence on the matching GitHub issue when a probe **fails** (bug reproduced /

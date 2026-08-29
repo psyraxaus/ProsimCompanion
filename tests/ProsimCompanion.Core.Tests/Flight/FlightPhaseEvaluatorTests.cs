@@ -472,7 +472,7 @@ public sealed class FlightPhaseEvaluatorTests
     }
 
     [Fact]
-    public void Approach_GoAroundGradeClimb_ExitsToClimb()
+    public void Approach_GoAroundGradeClimb_ExitsToInitialClimb()
     {
         var snapshot = new FlightDataSnapshot
         {
@@ -486,7 +486,10 @@ public sealed class FlightPhaseEvaluatorTests
             GearDown = true,
         };
 
-        Assert.Equal(FlightPhase.Climb, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Approach));
+        // InitialClimb, not Climb (review 2026-08-29): the missed-approach re-brief, the
+        // callouts engine and the stabilised-approach monitor all detect a go-around on the
+        // Approach/LandingRollout → InitialClimb edge.
+        Assert.Equal(FlightPhase.InitialClimb, FlightPhaseEvaluator.Evaluate(snapshot, FlightPhase.Approach));
     }
 
     [Fact]

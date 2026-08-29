@@ -401,7 +401,8 @@
       "kind": "assert-present",
       "sources": ["session"],
       "checks": [
-        "Every 'phase-changed' snapshot payload carries the full field set (onGround, altitudeFt, radioAltitudeFt, verticalSpeedFpm, powered, enginesRunning, engineStarting, pushback, parkBrake, gearDown, takeoffThrust; with #100 shipped, also beacon, apuRunning, rawPushback; with #105 shipped, also fmsCruiseAltFt) — a payload with only iasKt/groundSpeedKt means an old build is running."
+        "Every 'phase-changed' snapshot payload carries the full field set (onGround, altitudeFt, radioAltitudeFt, verticalSpeedFpm, powered, enginesRunning, engineStarting, pushback, parkBrake, gearDown, takeoffThrust; with #100 shipped, also beacon, apuRunning, rawPushback; with #105 shipped, also fmsCruiseAltFt) — a payload with only iasKt/groundSpeedKt means an old build is running.",
+        "With the 2026-08-29 rule table shipped, every 'phase-changed' payload also carries top-level 'rule' (a kebab-case PhaseRule id such as 'takeoff-thrust', or the engine ids 'manual-override' / 'session-ended') and a non-empty 'reason' string."
       ],
       "notes": "Doubles as a build-version canary for every other probe that reads these fields."
     },
@@ -637,6 +638,80 @@
       "notes": "Feature, not a fix (no issue number): IVoiceListeningControl on RecognitionController, commands speech.pause/resume/toggleListening, /api/status voice:{listening,paused}, Stream Deck 'Voice Pause' action, web pill + button on the First Officer tab. Runtime latch only — cleared by an app restart."
     },
     {
+      "id": "flight-sample-recorder",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session"],
+      "checks": [
+        "While the flight is live, 'flight-sample' events appear at roughly the configured interval (default 1 s) whenever the sampled state changes, and at least every keep-alive (default 10 s) while it does not; none appear while the session is not live (before MSFS is in a flight, or on the menu).",
+        "Each payload carries the short-key field set (ph, og, ias, gs, alt, ra, agl, vs, pwr, eng, engRaw, st, pb, pbRaw, brk, gear, apu, bcn, thr, n1, n1avg, flap, fcu, fms, v1, vr, v2) and 'ph' equals the phase most recently committed by 'phase-changed'.",
+        "Replay check: run FlightReplay over the session file (tests: FlightReplayTests / drop the file into tests/ProsimCompanion.Core.Tests/Flight/Recordings) — the replayed timeline must match the recorded 'phase-changed' edges after the first sample ('matches the recording'). A divergence means the live build and the repo's rule table disagree: report the first differing edge with its rule id and reason."
+      ],
+      "notes": "Feature, not a fix (2026-08-29 robustness review): per-second FlightSampleRecorder + FlightReplay harness. Session files grow to a few MB per flight; the logbook/debrief readers skip the event type."
+    },
+    {
+      "id": "turnaround-without-cold-and-dark",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "After a 'phase-changed' into Shutdown, if the aircraft stays parked (engines off, park brake set, beacon off, gs < 2 kt) for the turnaround hold (default 30 s) WITHOUT powering down, a 'phase-changed' Shutdown -> Preflight with rule 'turnaround-parked' follows; a 'gsx-automation-phase' Preparation follows it.",
+        "If the beacon goes on and an engine starts (or the brake is released with the APU running) while still in Shutdown, 'phase-changed' Shutdown -> PushbackAndStart with rule 'turnaround-start' — never Shutdown -> TaxiIn.",
+        "assert-absent: any 'phase-changed' Shutdown -> TaxiIn."
+      ],
+      "notes": "Pre-2026-08-29 the only exit from Shutdown was ColdAndDark (powered=false); an engine start after shutdown evaluated to TaxiIn and leg 2 of a multi-leg day never got GSX prep. Consumers already expected Shutdown/TaxiIn -> Preflight (CompanyChannelService, CompanyDayService, ArrivalCore)."
+    },
+    {
+      "id": "ground-contact-agreement",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "No pair of 'phase-changed' events X -> InitialClimb and InitialClimb -> X (or Approach -> LandingRollout -> Approach) closer than 1 s apart — a one-sample flicker of the on-ground flag must be absorbed by the agreement filter (default 2 samples).",
+        "Log: any 'Ground contact committed ... after N agreeing sample(s)' Debug line precedes the corresponding runway transition when Debug logging is on."
+      ],
+      "notes": "Prosim2GSX GroundTicks parity, 2026-08-29. Configurable on the Flight Phase settings page (Ground contact agreement)."
+    },
+    {
+      "id": "go-around-lands-on-initial-climb",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session"],
+      "checks": [
+        "A go-around (sustained VS > 800 fpm from Approach or LandingRollout) records 'phase-changed' Approach|LandingRollout -> InitialClimb with rule 'go-around', followed by 'goaround.detected' (missed-approach re-brief) — not Approach -> Climb.",
+        "assert-absent: 'phase-changed' Approach -> Climb."
+      ],
+      "notes": "Before 2026-08-29 the evaluator sent go-arounds to Climb, which MissedApproachRebrief, CalloutsEngine and StabilizedApproachMonitor never see (they key on the InitialClimb edge)."
+    },
+    {
+      "id": "phase-session-reset",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "When MSFS leaves the flight (menu / world map) after a phase was committed, a 'phase-changed' <phase> -> Unknown with rule 'session-ended' is recorded and the log carries 'MSFS flight session ended'; the next session's first commit starts from Unknown.",
+        "assert-absent: a new session's first 'phase-changed' whose previous phase is anything but Unknown."
+      ],
+      "notes": "2026-08-29: previously only the airborne latch reset on NotInSession and the phase leaked into the next flight."
+    },
+    {
+      "id": "phase-manual-override",
+      "issue": 0,
+      "state": "open",
+      "kind": "watch",
+      "sources": ["session", "log"],
+      "checks": [
+        "Count 'phase-changed' events with rule 'manual-override' (reason 'manual override (<source>)') and the matching Warning log lines 'Manual phase override by ...'; report each with what the rule table would have said next (the next automatic commit after 'Manual phase override released').",
+        "assert-absent: an 'airborne-this-session' latch opening (FOB restore / cabin landing report) on a manual-override commit alone."
+      ],
+      "notes": "Web Flight Status 'Phase engine' row: Force / freeze / Resume auto (2026-08-29). Frequent use on a flight is a signal the rule table needs a recording-backed fix."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",
@@ -649,6 +724,7 @@
         "#54 settings GUI backfill completeness (web UI).",
         "#45 Services card shows ground-prep progress (web UI; the underlying gsx-ground-prep-stage events already flow).",
         "#98 Ground Prep pill reads 'Idle' with the neutral tone in flight and after a mid-flight app restart (web UI).",
+        "2026-08-29 phase engine: Flight Status shows the commit reason under the phase label and the 'Phase engine' row (automatic/frozen pill, phase select, freeze, Force, Resume auto); the Flight Phase settings tab edits every flightState threshold and lists the rule table (web UI).",
         "#68/#69 final TTS pronunciation quality (ears, beyond the text-level probes).",
         "#97 dead-circuit auto-reload: restart the app with the EFB open — the page must reload itself (~10 s).",
         "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67)."

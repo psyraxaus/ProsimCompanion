@@ -61,6 +61,7 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<AircraftProfilesOptions>(configuration);
         services.AddOptionSection<UpdateCheckOptions>(configuration);
         services.AddOptionSection<PersonaOptions>(configuration);
+        services.AddOptionSection<FlightStateOptions>(configuration);
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         // The typed settings write path — pages and services write through this, never through
@@ -145,6 +146,10 @@ public static class CoreServiceCollectionExtensions
         // IFlightDataSource and IProsimDataRefs come from the Prosim project's registrations.
         services.AddSingleton<FlightStateEngine>();
         services.AddSingleton<IFlightPhaseSource>(p => p.GetRequiredService<FlightStateEngine>());
+        services.AddSingleton<IFlightPhaseControl>(p => p.GetRequiredService<FlightStateEngine>());
+        // Per-second flight-sample recorder: makes every flight replayable through the phase
+        // rule table (FlightReplay) — the regression harness for phase fixes.
+        services.AddHostedService<FlightSampleRecorder>();
         // The simulated clock as a value (issue #95): loadsheet timestamps and STD triggers
         // follow the sim's day, falling back to real UTC when the sim clock is not live.
         services.AddSingleton<Aircraft.SimClock>();

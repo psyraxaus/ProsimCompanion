@@ -20,6 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Recorded flights (session JSONL + .expected.txt phase timeline) replayed through the
+         phase engine by FlightReplayTests — every real flight dropped here is a regression test. -->
+    <None Include="Flight\Recordings\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- App: the /api/status DTO assembly (StatusApiEndpoints.BuildStatus) is tested here. -->
     <ProjectReference Include="..\..\src\ProsimCompanion.App\ProsimCompanion.App.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Audio\ProsimCompanion.Audio.csproj" />

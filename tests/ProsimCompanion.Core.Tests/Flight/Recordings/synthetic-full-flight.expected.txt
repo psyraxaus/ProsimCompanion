@@ -1,0 +1,13 @@
+# Expected phase timeline for synthetic-full-flight.jsonl (one edge per line; # = comment).
+Unknown -> Preflight
+Preflight -> PushbackAndStart
+PushbackAndStart -> TaxiOut
+TaxiOut -> TakeoffRoll
+TakeoffRoll -> InitialClimb
+InitialClimb -> Climb
+Climb -> Cruise
+Cruise -> Descent
+Descent -> Approach
+Approach -> LandingRollout
+LandingRollout -> TaxiIn
+TaxiIn -> Shutdown

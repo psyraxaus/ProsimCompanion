@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 using Xunit;
@@ -246,9 +247,11 @@ public sealed class FlightStateEngineTests
         now = Drive(engine, approach, now, TimeSpan.FromSeconds(2));
         Assert.Equal(FlightPhase.Approach, engine.CurrentPhase);
 
-        // A real go-around sustains: commits after the settle window.
+        // A real go-around sustains: commits after the settle window — onto InitialClimb,
+        // the edge the go-around consumers key on (review 2026-08-29); the climb-out to
+        // Climb follows one default debounce later.
         Drive(engine, climbBlip, now, TimeSpan.FromSeconds(6));
-        Assert.Equal(FlightPhase.Climb, engine.CurrentPhase);
+        Assert.Equal(FlightPhase.InitialClimb, engine.CurrentPhase);
     }
 
     [Fact]
@@ -363,5 +366,170 @@ public sealed class FlightStateEngineTests
         SetSession(session, SimSessionPhase.NotInSession);
         engine.ProcessTick(new FlightDataSnapshot { IsValid = false }, now);
         Assert.False(engine.HasBeenAirborneThisSession);
+    }
+
+    // ---- 2026-08-29 robustness review ----
+
+    private static FlightDataSnapshot TaxiingOut() => ReadyGround() with
+    {
+        AnyEngineRunning = true,
+        ParkBrakeSet = false,
+        GroundSpeedKt = 20,
+        IndicatedAirspeedKt = 15,
+    };
+
+    [Fact]
+    public void GroundContactFlicker_OneSample_NeverCommitsARunwayTransition()
+    {
+        // Prosim2GSX GroundTicks parity: a single not-on-ground sample (touchdown bounce,
+        // SimConnect hiccup) must not commit the zero-debounce InitialClimb and fire its callouts.
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, TaxiingOut(), T0, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.TaxiOut, engine.CurrentPhase);
+
+        var airborneBlip = TaxiingOut() with { OnGround = false, IndicatedAirspeedKt = 60, RadioAltitudeFt = 5, VerticalSpeedFpm = 100 };
+        engine.ProcessTick(airborneBlip, now);
+        Assert.Equal(FlightPhase.TaxiOut, engine.CurrentPhase);
+        engine.ProcessTick(TaxiingOut(), now + Tick);
+        Assert.Equal(FlightPhase.TaxiOut, engine.CurrentPhase);
+
+        // Two agreeing samples flip the committed ground state and the lift-off commits at once.
+        engine.ProcessTick(airborneBlip, now + Tick * 2);
+        engine.ProcessTick(airborneBlip, now + Tick * 3);
+        Assert.Equal(FlightPhase.InitialClimb, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void SessionEnd_ResetsThePhaseToUnknown_WithTheEngineRuleId()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+
+        FlightPhaseChangedEventArgs? last = null;
+        engine.PhaseChanged += (_, e) => last = e;
+        SetSession(session, SimSessionPhase.NotInSession);
+        engine.ProcessTick(ReadyGround(), now);
+
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+        Assert.NotNull(last);
+        Assert.Equal(FlightPhase.Preflight, last.Previous);
+        Assert.Equal(FlightStateEngine.SessionEndedRuleId, last.RuleId);
+
+        // The next session classifies afresh from Unknown.
+        SetSession(session, SimSessionPhase.InSession);
+        Drive(engine, ReadyGround(), now + Tick, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void PhaseChanged_CarriesTheRuleIdAndReason()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        FlightPhaseChangedEventArgs? last = null;
+        engine.PhaseChanged += (_, e) => last = e;
+
+        Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+
+        Assert.NotNull(last);
+        Assert.Equal("preflight", last.RuleId);
+        Assert.False(string.IsNullOrWhiteSpace(last.Reason));
+        Assert.Equal(last.Reason, engine.Snapshot().LastTransitionReason);
+    }
+
+    [Fact]
+    public void ForcePhase_WithFreeze_HoldsAgainstEvidence_UntilResumed()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        FlightPhaseChangedEventArgs? last = null;
+        engine.PhaseChanged += (_, e) => last = e;
+
+        engine.ForcePhase(FlightPhase.Cruise, freeze: true, "test");
+
+        Assert.Equal(FlightPhase.Cruise, engine.CurrentPhase);
+        Assert.True(engine.IsFrozen);
+        Assert.True(engine.Snapshot().Frozen);
+        Assert.Equal(FlightStateEngine.ManualOverrideRuleId, last?.RuleId);
+        Assert.Contains("test", last?.Reason);
+        // A forced airborne phase is an assertion, never evidence the aircraft flew.
+        Assert.False(engine.HasBeenAirborneThisSession);
+
+        now = Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(10));
+        Assert.Equal(FlightPhase.Cruise, engine.CurrentPhase);
+
+        engine.ResumeAutomatic("test");
+        Assert.False(engine.IsFrozen);
+        Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase); // spawn-recovery from a flight phase
+    }
+
+    [Fact]
+    public void ForcePhase_WithoutFreeze_YieldsToTheNextEvidence()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+
+        engine.ForcePhase(FlightPhase.TaxiOut, freeze: false, "test");
+        Assert.Equal(FlightPhase.TaxiOut, engine.CurrentPhase);
+
+        // Engines-off evidence walks it back via the 5 s departure-regression settle.
+        Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(6));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void SessionEnd_ReleasesAFrozenOverride()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        engine.ForcePhase(FlightPhase.Cruise, freeze: true, "test");
+
+        SetSession(session, SimSessionPhase.NotInSession);
+        engine.ProcessTick(ReadyGround(), now);
+
+        Assert.False(engine.IsFrozen);
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void Shutdown_ParkedWithBeaconOff_TurnsAroundAfterTheHold()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        engine.ForcePhase(FlightPhase.Shutdown, freeze: false, "test");
+
+        var hold = TimeSpan.FromSeconds(FlightStateOptions.Default.TurnaroundHoldSeconds);
+        now = Drive(engine, ReadyGround(), now, hold - TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Shutdown, engine.CurrentPhase);
+
+        Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(3));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void Options_AreReadLive_FromTheMonitor()
+    {
+        // Hot-reloadable thresholds: a longer turnaround hold from the options monitor is
+        // honoured on the next tick without restarting the engine.
+        var session = new SimSessionStore();
+        var options = new FlightStateOptions { TurnaroundHoldSeconds = 2 };
+        var engine = new FlightStateEngine(
+            new NullFlightSource(), session, NullLogger<FlightStateEngine>.Instance,
+            new FixedOptionsMonitor<FlightStateOptions>(options));
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        engine.ForcePhase(FlightPhase.Shutdown, freeze: false, "test");
+
+        Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(3));
+
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
     }
 }

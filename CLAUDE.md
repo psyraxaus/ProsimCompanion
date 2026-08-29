@@ -95,7 +95,9 @@ Default label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `read
 After a flight (or live via the telemetry API), evaluate GitHub issues against the session
 event log + CMTrace log using the probe catalog `docs/agents/verification-probes.json`.
 Workflow, verdict semantics and reporting rules: `docs/agents/flight-verification.md`.
-Behavioural fixes ship with a probe in the same change.
+Behavioural fixes ship with a probe in the same change. Phase-engine fixes additionally ship
+with a replayed recording (`FlightReplay` over the session's `flight-sample` events; see
+"Replaying a flight" in the workflow doc) — never a threshold guessed from log lines.
 
 ### Domain docs
 

@@ -45,6 +45,33 @@ resets its per-flight latches on the false edge. ProSim connectivity alone is ne
 ProSim pushes plausible cold-and-dark data, faults included, with no MSFS session.
 _Avoid_: FO armed, ready flag, classification enabled
 
+### Flight phase
+
+**Phase rule**:
+One edge of the flight-phase graph: the phases it may fire from, its target (or *hold*), the
+evidence test, its settle time and a reason string. The ordered rule table (ground list, then
+airborne list; first match wins) is the whole classifier — a phase fix is a rule or a
+threshold, never a new branch in a tree.
+_Avoid_: transition condition, evaluator branch
+
+**Phase commit**:
+A transition the engine actually published, after the matched rule's evidence persisted for
+its settle time. Carries the rule id and reason; a forced phase and a session-end reset are
+commits with the engine's own ids.
+_Avoid_: phase change (ambiguous with the raw evaluator vote)
+
+**Ground contact**:
+The committed on-ground/airborne state: the raw weight-on-wheels flag must agree for a
+configured number of consecutive samples before it flips, so a one-sample flicker never
+commits a runway transition.
+_Avoid_: on-ground flag (that is the raw dataref)
+
+**Flight sample**:
+The compact per-second record of what the phase engine saw, written to the session log while
+the flight is live. The replay feeds these back through the engine; a recorded flight plus its
+expected timeline is a regression test.
+_Avoid_: telemetry tick, snapshot event
+
 ### Speech
 
 **Spoken text**:

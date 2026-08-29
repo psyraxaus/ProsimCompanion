@@ -70,6 +70,10 @@ public sealed class CoreBootstrapService : IHostedService
         {
             previous = e.Previous.ToString(),
             current = e.Current.ToString(),
+            // Which rule fired and why (review 2026-08-29): a replay diff and a probe can name
+            // the edge; "manual-override" / "session-ended" are the engine's own ids.
+            rule = e.RuleId,
+            reason = e.Reason,
             // Full phase-relevant evidence, not just speeds (issue #93): a bogus transition
             // must be diagnosable from this record alone — the 2026-08-17 Unknown→Approach
             // recurrence of #59 had to be reconstructed from evaluator code paths.

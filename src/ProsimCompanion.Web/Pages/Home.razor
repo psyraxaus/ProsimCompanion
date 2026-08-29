@@ -12,6 +12,7 @@
 @inject IAircraftStateCheckControl StateCheckControl
 @inject AudioStatusStore Audio
 @inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
+@inject IFlightPhaseControl PhaseControl
 
 @* Prosim2GSX FlightStatusPanel clone: Flight Phase span card, then Sim / App / GSX /
    Services cards with the same rows in the same order. The log tail card is deliberately
@@ -31,6 +32,11 @@
         <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Flight Phase</h3>
         <div class="phase-body">
             <div class="phase-label">@PhaseDisplay</div>
+            @* Why the engine committed this phase (the rule's reason) — the one-look answer to
+               "why does it think we are on approach?" (review 2026-08-29). *@
+            <div class="phase-reason" style="font-size:12px; opacity:.75; padding:0 0 8px;" title="Reason the current flight phase was committed">
+                @PhaseReason
+            </div>
             <div class="phase-grid">
                 @for (var i = 0; i < BlockLabels.Length; i++)
                 {
@@ -40,6 +46,37 @@
                 {
                     <div class="phase-block-label">@label</div>
                 }
+            </div>
+            @* Pilot escape hatch (Prosim2FO ForcePhase parity): force a phase when the engine
+               is wrong; "freeze" keeps it there until Resume. Never opens write-safety gates. *@
+            <div class="row" style="margin-top:10px;">
+                <span class="row-label">Phase engine</span>
+                <span class="row-actions">
+                    <span class="pill @(View.Frozen ? "tone-warn" : "tone-neutral")"
+                          title="@(View.Frozen ? "Automatic transitions are suspended until Resume auto" : "Phase follows the rule table")">
+                        @(View.Frozen ? "frozen (manual override)" : "automatic")
+                    </span>
+                    <select class="number-input" @bind="_forcePhase" title="Phase to force">
+                        @foreach (var phase in Enum.GetValues<FlightPhase>())
+                        {
+                            <option value="@phase">@ToSpacedUpper(phase.ToString())</option>
+                        }
+                    </select>
+                    <label class="pill tone-neutral" title="Keep the forced phase until Resume auto; otherwise the next contradicting evidence moves on">
+                        <input type="checkbox" @bind="_freeze" /> freeze
+                    </label>
+                    <button type="button" class="btn secondary" @onclick="ForcePhase"
+                            title="Commit the selected phase now (logged as a manual override)">
+                        Force
+                    </button>
+                    @if (View.Frozen)
+                    {
+                        <button type="button" class="btn secondary" @onclick="ResumeAutomatic"
+                                title="Lift the freeze; evaluation continues from the current phase">
+                            Resume auto
+                        </button>
+                    }
+                </span>
             </div>
         </div>
     </section>
@@ -148,6 +185,17 @@
     };
 
     private string PhaseDisplay => ToSpacedUpper(FlightState.CurrentPhase.ToString());
+
+    private FlightStateView View => FlightState.Snapshot();
+
+    private string PhaseReason => View.LastTransitionReason is { Length: > 0 } reason ? reason : "—";
+
+    private FlightPhase _forcePhase = FlightPhase.Preflight;
+    private bool _freeze = true;
+
+    private void ForcePhase() => PhaseControl.ForcePhase(_forcePhase, _freeze, "web UI");
+
+    private void ResumeAutomatic() => PhaseControl.ResumeAutomatic("web UI");
 
     // Prosim2GSX row shapes: "boarded | deboarded" pax and "board% | deboard%" cargo.
     private string PaxTotals => _gsx.BoardingCounters is { } pax

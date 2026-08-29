@@ -1,0 +1,141 @@
+@page "/settings/flight-phase"
+@using ProsimCompanion.Core.Flight
+@inherits SettingsPageBase
+@inject IOptionsMonitor<FlightStateOptions> Monitor
+
+<PageTitle>Flight Phase — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Flight Phase settings</h1>
+
+<div class="panel" style="padding-bottom:96px;">
+
+    <Section Title="Speeds" Hint="Applies live, no restart. Defaults are the values proven on the 2026-08 flight tests — change them with a replayed recording that shows why.">
+        <NumberField Label="Take-off roll hold above" Suffix="kt" Min="0"
+                     Hint="Above this IAS the roll is kept even if take-off thrust momentarily reads unset (FLEX detent bounce)"
+                     @bind-Value="_o.Value.TaxiSpeedMaxKt" />
+        <NumberField Label="Rollout complete below" Suffix="kt" Min="0"
+                     Hint="Landing rollout becomes Taxi In once IAS drops below this"
+                     @bind-Value="_o.Value.RolloutCompleteKt" />
+        <NumberField Label="Pushback max ground speed" Suffix="kt" Min="0"
+                     Hint="Beacon + APU above this ground speed is a taxi, not a push"
+                     @bind-Value="_o.Value.PushbackMaxGroundSpeedKt" />
+        <NumberField Label="Parked below" Suffix="kt" Min="0"
+                     Hint="Ground speed below which the aircraft counts as stopped (hardware cockpits idle at 1–2 kt)"
+                     @bind-Value="_o.Value.ParkedGroundSpeedKt" />
+    </Section>
+
+    <Section Title="Vertical">
+        <NumberField Label="Initial climb ceiling" Suffix="ft RA" Min="0"
+                     Hint="Below this radio altitude a departure stays Initial Climb"
+                     @bind-Value="_o.Value.InitialClimbCeilingRaFt" />
+        <NumberField Label="Level flight band" Suffix="fpm" Min="0"
+                     Hint="|VS| below this is level; above it a climb"
+                     @bind-Value="_o.Value.ClimbDescentVsFpm" />
+        <NumberField Label="Approach ceiling" Suffix="ft RA" Min="0"
+                     Hint="Descending (or gear-down level) below this radio altitude is Approach"
+                     @bind-Value="_o.Value.ApproachRaCeilingFt" />
+        <NumberField Label="Go-around climb rate" Suffix="fpm" Min="0"
+                     Hint="Leaving Approach upward needs at least this VS — a level-off blip must not read as a go-around"
+                     @bind-Value="_o.Value.GoAroundVsFpm" />
+        <NumberField Label="Descent entry rate" Suffix="fpm" Min="0"
+                     Hint="Entering Descent needs a sink rate at least this decisive"
+                     @bind-Value="_o.Value.DescentEntryVsFpm" />
+        <NumberField Label="Descent exit rate" Suffix="fpm" Min="0"
+                     Hint="Once descending, a segment shallower than this still counts as descent"
+                     @bind-Value="_o.Value.DescentExitVsFpm" />
+    </Section>
+
+    <Section Title="Cruise gate" Hint="Level flight only reads as Cruise near the FMS cruise altitude (a SID level-off is not cruise)">
+        <NumberField Label="Tolerance below FMS cruise" Suffix="ft" Min="0"
+                     @bind-Value="_o.Value.CruiseLevelToleranceFt" />
+        <NumberField Label="Floor without FMS cruise" Suffix="ft" Min="0"
+                     Hint="With no cruise altitude entered, level flight must be above this"
+                     @bind-Value="_o.Value.CruiseFloorNoFmsFt" />
+    </Section>
+
+    <Section Title="Ground and turnaround">
+        <NumberField Label="Ground contact agreement" Suffix="samples" Min="1" Step="1"
+                     Hint="Consecutive samples (250 ms each) the on-ground flag must agree before ground/air flips; 1 disables the filter"
+                     @bind-Value="_o.Value.GroundContactAgreeSamples" />
+        <NumberField Label="Turnaround hold" Suffix="s" Min="0"
+                     Hint="Parked after shutdown (engines off, brake set, beacon off) for this long goes Shutdown → Preflight without a cold-and-dark reset"
+                     @bind-Value="_o.Value.TurnaroundHoldSeconds" />
+        <NumberField Label="Heartbeat log interval" Suffix="s" Min="0"
+                     Hint="A 'still thinking' log line while live; 0 disables"
+                     @bind-Value="_o.Value.HeartbeatSeconds" />
+    </Section>
+
+    <Section Title="Settle times" Hint="How long a transition's evidence must persist before it commits">
+        <NumberField Label="Default" Suffix="s" Min="0" @bind-Value="_o.Value.DefaultDebounceSeconds" />
+        <NumberField Label="Enter Cruise" Suffix="s" Min="0" @bind-Value="_o.Value.CruiseSettleSeconds" />
+        <NumberField Label="Descent → Cruise" Suffix="s" Min="0"
+                     Hint="Level segments of a step descent must not flip-flop"
+                     @bind-Value="_o.Value.DescentToCruiseSettleSeconds" />
+        <NumberField Label="Cruise → Climb" Suffix="s" Min="0"
+                     Hint="A VS blip at cruise is turbulence; a step climb sustains"
+                     @bind-Value="_o.Value.CruiseToClimbSettleSeconds" />
+        <NumberField Label="Go-around" Suffix="s" Min="0" @bind-Value="_o.Value.GoAroundSettleSeconds" />
+        <NumberField Label="Departure regression" Suffix="s" Min="0"
+                     Hint="Walking Pushback/Taxi Out/Take-off Roll back to Preflight needs sustained contradiction"
+                     @bind-Value="_o.Value.DepartureRegressionSeconds" />
+        <NumberField Label="First airborne classification" Suffix="s" Min="0"
+                     Hint="A session whose first classification is a flight phase (mid-flight restart or warm-up garbage) must sustain this long"
+                     @bind-Value="_o.Value.FirstAirborneClassificationSeconds" />
+    </Section>
+
+    <Section Title="Flight recorder" Hint="Compact per-second samples in the session log so any flight can be replayed through the phase engine offline (see docs/agents/flight-verification.md)">
+        <BoolField Label="Record flight samples" @bind-Value="_o.Value.RecordSamples" />
+        <NumberField Label="Sample interval" Suffix="s" Min="0.25" Step="0.25" @bind-Value="_o.Value.SampleIntervalSeconds" />
+        <NumberField Label="Keep-alive" Suffix="s" Min="1"
+                     Hint="Unchanged samples are skipped; one is still written at least this often"
+                     @bind-Value="_o.Value.SampleKeepAliveSeconds" />
+    </Section>
+
+    <Section Title="Rule table" Hint="Evaluation order, first match wins. 'hold' keeps the current phase. Read-only — the rules live in code; the thresholds above feed them.">
+        <div style="overflow-x:auto;">
+            <table class="rule-table" style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding:4px 6px;">Set</th>
+                        <th style="text-align:left; padding:4px 6px;">Rule</th>
+                        <th style="text-align:left; padding:4px 6px;">From</th>
+                        <th style="text-align:left; padding:4px 6px;">To</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var (set, rule) in Rules)
+                    {
+                        <tr style="border-top:1px solid var(--border);">
+                            <td style="padding:3px 6px; white-space:nowrap;">@set</td>
+                            <td style="padding:3px 6px; white-space:nowrap;"><code>@rule.Id</code></td>
+                            <td style="padding:3px 6px;">@FromText(rule)</td>
+                            <td style="padding:3px 6px; white-space:nowrap;">@(rule.To?.ToString() ?? "hold")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </Section>
+
+</div>
+
+<DirtyBar Visible="@BarVisible"
+          Message="@(BarMessage ?? "You have unsaved changes")"
+          Tone="BarTone"
+          OnSave="Save"
+          OnDiscard="Discard" />
+
+@code {
+    private OptionsDraft<FlightStateOptions> _o = default!;
+
+    private static IEnumerable<(string Set, PhaseRule Rule)> Rules =>
+        FlightPhaseRules.Ground.Select(r => ("Ground", r))
+            .Concat(FlightPhaseRules.Airborne.Select(r => ("Airborne", r)));
+
+    private static string FromText(PhaseRule rule)
+        => rule.From is null ? "any" : string.Join(", ", rule.From.OrderBy(p => (int)p));
+
+    protected override void OnInitialized()
+    {
+        _o = Draft(Monitor);
+    }
+}
