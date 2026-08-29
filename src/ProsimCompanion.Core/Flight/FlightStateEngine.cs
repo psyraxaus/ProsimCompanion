@@ -123,9 +123,15 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
     private bool _frozen;
     private DateTimeOffset? _lastHeartbeat;
 
+    // Turnaround gate (2026-08-29 ESSA): the ground-ops layer's "arrival complete" latch,
+    // stamped onto the sample so the Shutdown → Preflight rule can see it. Cleared whenever
+    // Shutdown is left and when the session ends.
+    private readonly GroundOpsSignals? _groundOps;
+    private bool _arrivalComplete;
+
     /// <summary>Defaults-only construction — tests and the replay harness.</summary>
     public FlightStateEngine(IFlightDataSource source, SimSessionStore session, ILogger<FlightStateEngine> logger)
-        : this(source, session, logger, new FixedOptionsMonitor<FlightStateOptions>(FlightStateOptions.Default))
+        : this(source, session, logger, new FixedOptionsMonitor<FlightStateOptions>(FlightStateOptions.Default), null)
     {
     }
 
@@ -134,6 +140,18 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         SimSessionStore session,
         ILogger<FlightStateEngine> logger,
         IOptionsMonitor<FlightStateOptions> options)
+        : this(source, session, logger, options, null)
+    {
+    }
+
+    /// <summary>Full composition: <paramref name="groundOps"/> feeds the turnaround gate
+    /// (<see cref="NotifyArrivalComplete"/>); null degrades to "no turnaround until the beacon".</summary>
+    public FlightStateEngine(
+        IFlightDataSource source,
+        SimSessionStore session,
+        ILogger<FlightStateEngine> logger,
+        IOptionsMonitor<FlightStateOptions> options,
+        GroundOpsSignals? groundOps)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(session);
@@ -144,7 +162,30 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         _session = session;
         _logger = logger;
         _options = options;
+        _groundOps = groundOps;
+        if (_groundOps is not null)
+        {
+            _groundOps.ArrivalCompleted += NotifyArrivalComplete;
+        }
+
         _timer = new Timer(_ => Tick(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    }
+
+    /// <summary>The arrival is done with the aircraft (deboarding completed). Only meaningful
+    /// while in Shutdown: the turnaround rule may now take the parked, beacon-off aircraft to
+    /// the next leg's Preflight after the configured hold.</summary>
+    public void NotifyArrivalComplete()
+    {
+        lock (_gate)
+        {
+            if (CurrentPhase != FlightPhase.Shutdown || _arrivalComplete)
+            {
+                return;
+            }
+
+            _arrivalComplete = true;
+            _logger.LogInformation("Arrival complete (deboarded) — the turnaround to Preflight is now armed");
+        }
     }
 
     /// <summary>The committed phase.</summary>
@@ -287,6 +328,11 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         }
 
         var classified = ApplyGroundContactFilter(snapshot, options);
+        if (CurrentPhase == FlightPhase.Shutdown && _arrivalComplete)
+        {
+            classified = classified with { ArrivalComplete = true };
+        }
+
         Heartbeat(classified, nowUtc, options);
 
         if (_frozen)
@@ -361,6 +407,10 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         LastTransitionReason = reason;
         LastTransitionRuleId = ruleId;
         _pendingTarget = target;
+        if (target != FlightPhase.Shutdown)
+        {
+            _arrivalComplete = false; // the latch belongs to one Shutdown only
+        }
 
         var s = snapshot ?? new FlightDataSnapshot();
         _logger.LogInformation(
@@ -487,7 +537,15 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         => to == FlightPhase.Preflight
             && from is FlightPhase.PushbackAndStart or FlightPhase.TaxiOut or FlightPhase.TakeoffRoll;
 
-    public void Dispose() => _timer.Dispose();
+    public void Dispose()
+    {
+        if (_groundOps is not null)
+        {
+            _groundOps.ArrivalCompleted -= NotifyArrivalComplete;
+        }
+
+        _timer.Dispose();
+    }
 
     private void Tick()
     {

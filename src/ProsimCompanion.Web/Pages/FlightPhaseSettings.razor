@@ -57,7 +57,7 @@
                      Hint="Consecutive samples (250 ms each) the on-ground flag must agree before ground/air flips; 1 disables the filter"
                      @bind-Value="_o.Value.GroundContactAgreeSamples" />
         <NumberField Label="Turnaround hold" Suffix="s" Min="0"
-                     Hint="Parked after shutdown (engines off, brake set, beacon off) for this long goes Shutdown → Preflight without a cold-and-dark reset"
+                     Hint="After deboarding completes, parked (engines off, brake set, beacon off) for this long goes Shutdown → Preflight without a cold-and-dark reset"
                      @bind-Value="_o.Value.TurnaroundHoldSeconds" />
         <NumberField Label="Heartbeat log interval" Suffix="s" Min="0"
                      Hint="A 'still thinking' log line while live; 0 disables"

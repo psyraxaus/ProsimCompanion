@@ -353,7 +353,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                         _fuelTotal.Value,
                         _ofpStore.Current?.FuelPlanRampKg ?? 0,
                         _plannedFuel.Value)
-                    : null));
+                    : null,
+                VoiceActivationMode: Sync.GsxGroundPrepCoordinator.IsVoiceActivation(options.GroundPrepActivation)));
 
             if (outcome.AutoStarted)
             {

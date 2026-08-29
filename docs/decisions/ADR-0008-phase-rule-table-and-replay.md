@@ -32,9 +32,15 @@ the tree never produced.
 2. **Every threshold and settle time is a `flightState` option** (`FlightStateOptions`, hot
    reloadable, edited on the Flight Phase settings page). A field-found edge case is a
    settings change first and a rule change second.
-3. **Turnaround is a rule, not a power-down**: `Shutdown → Preflight` after a parked hold
-   (engines off, brake set, beacon off, stopped), `Shutdown → PushbackAndStart` on
+3. **Turnaround is a rule, not a power-down**: `Shutdown → Preflight` once the ground-ops
+   layer reports the arrival complete (deboarding done — `GroundOpsSignals.ArrivalCompleted`,
+   stamped onto the sample as `ArrivalComplete`) and the aircraft has sat parked (engines off,
+   brake set, beacon off, stopped) for the hold; `Shutdown → PushbackAndStart` on
    beacon-corroborated start evidence. The phase resets to Unknown when the sim session ends.
+   *Amended 2026-08-29 (ESSA):* the first cut was time-only and fired 30 s after shutdown
+   mid-deboarding — ground prep repositioned the aircraft under the passengers. A phase that
+   opens ground automation must wait for ground evidence, not a clock. The prep chain also
+   never repositions on a turnaround, and voice-activation mode never auto-starts departure.
 4. **Ground contact is a committed state**: the raw on-ground flag must agree for N
    consecutive samples (default 2) before ground/air flips.
 5. **Go-arounds land on InitialClimb** from Approach/LandingRollout, the edge the consumers

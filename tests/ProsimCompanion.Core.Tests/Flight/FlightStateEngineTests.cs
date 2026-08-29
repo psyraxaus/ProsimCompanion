@@ -499,18 +499,55 @@ public sealed class FlightStateEngineTests
     }
 
     [Fact]
-    public void Shutdown_ParkedWithBeaconOff_TurnsAroundAfterTheHold()
+    public void Shutdown_ParkedWithBeaconOff_TurnsAroundAfterTheHold_OnceTheArrivalIsComplete()
     {
         var engine = Create(out var session);
         SetSession(session, SimSessionPhase.InSession);
         var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
         engine.ForcePhase(FlightPhase.Shutdown, freeze: false, "test");
 
+        // Still deboarding: parked for far longer than the hold changes nothing (2026-08-29 ESSA).
         var hold = TimeSpan.FromSeconds(FlightStateOptions.Default.TurnaroundHoldSeconds);
+        now = Drive(engine, ReadyGround(), now, hold * 3);
+        Assert.Equal(FlightPhase.Shutdown, engine.CurrentPhase);
+
+        engine.NotifyArrivalComplete();
         now = Drive(engine, ReadyGround(), now, hold - TimeSpan.FromSeconds(2));
         Assert.Equal(FlightPhase.Shutdown, engine.CurrentPhase);
 
         Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(3));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void ArrivalComplete_OutsideShutdown_IsIgnored_AndTheLatchDiesWithTheShutdown()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+
+        engine.NotifyArrivalComplete(); // Preflight — nothing to arm
+        engine.ForcePhase(FlightPhase.Shutdown, freeze: false, "test");
+        Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(FlightStateOptions.Default.TurnaroundHoldSeconds + 2));
+
+        Assert.Equal(FlightPhase.Shutdown, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void GroundOpsSignal_ArmsTheTurnaround()
+    {
+        var session = new SimSessionStore();
+        var signals = new GroundOpsSignals();
+        using var engine = new FlightStateEngine(
+            new NullFlightSource(), session, NullLogger<FlightStateEngine>.Instance,
+            new FixedOptionsMonitor<FlightStateOptions>(new FlightStateOptions { TurnaroundHoldSeconds = 2 }), signals);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        engine.ForcePhase(FlightPhase.Shutdown, freeze: false, "test");
+
+        signals.RaiseArrivalCompleted();
+        Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(3));
+
         Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
     }
 
@@ -527,6 +564,7 @@ public sealed class FlightStateEngineTests
         SetSession(session, SimSessionPhase.InSession);
         var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
         engine.ForcePhase(FlightPhase.Shutdown, freeze: false, "test");
+        engine.NotifyArrivalComplete();
 
         Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(3));
 

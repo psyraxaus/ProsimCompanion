@@ -50,6 +50,12 @@ public sealed record FlightDataSnapshot
     /// <summary>Take-off thrust (FLEX/TOGA) commanded.</summary>
     public bool TakeoffThrustSet { get; init; }
 
+    /// <summary>The ground-ops layer has finished the arrival (deboarding completed) since
+    /// this Shutdown began. Not a dataref: the engine stamps it from
+    /// <see cref="State.GroundOpsSignals.ArrivalCompleted"/> before evaluation, and the
+    /// turnaround rule refuses to leave Shutdown without it (2026-08-29 ESSA).</summary>
+    public bool ArrivalComplete { get; init; }
+
     // ---- Raw diagnostics fields (shown on the Status page; never used for phase logic) ----
 
     /// <summary>Raw groundservice.pushback value — multi-state; semantics under live verification.</summary>

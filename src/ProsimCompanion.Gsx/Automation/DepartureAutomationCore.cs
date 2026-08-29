@@ -35,7 +35,8 @@ internal static class DepartureAutomationCore
         IReadOnlyList<DepartureServiceStep> Steps,
         IReadOnlyDictionary<string, GsxServiceInfo> MirrorServices,
         Func<string, DepartureCycleView> Cycle,
-        Func<string, string?>? PreSkip = null);
+        Func<string, string?>? PreSkip = null,
+        bool VoiceActivationMode = false);
 
     /// <summary>What one evaluation decided. Effects run in the shell, in this order:
     /// auto-start decision → waiting board (stop) → hold decision → import/diagnostic/pax →
@@ -71,8 +72,12 @@ internal static class DepartureAutomationCore
             return PumpOutcome.Idle with { WaitingBoard = "waiting for the startup state resync" };
         }
 
+        // Voice activation mode (ADR-0006) owns the start: an auto-start here marked the
+        // cycle Started, which silently released the prep chain's "commence ground
+        // services" hold (2026-08-29 ESSA turnaround — prep and services ran unasked).
         var autoStarted = !inputs.CycleStarted
             && inputs.AutoStartOption
+            && !inputs.VoiceActivationMode
             && inputs.Phase == GsxAutomationPhase.Preparation;
         var started = inputs.CycleStarted || autoStarted;
 

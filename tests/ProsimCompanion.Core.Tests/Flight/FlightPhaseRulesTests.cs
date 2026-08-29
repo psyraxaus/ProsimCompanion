@@ -23,15 +23,21 @@ public sealed class FlightPhaseRulesTests
     // ---- Turnaround (the gap: Shutdown could only leave via ColdAndDark) ----
 
     [Fact]
-    public void Shutdown_ParkedWithBeaconOff_TurnsAroundToPreflight_AfterTheHold()
+    public void Shutdown_ArrivalCompleteAndParked_TurnsAroundToPreflight_AfterTheHold()
     {
-        var decision = Decide(Parked(), FlightPhase.Shutdown);
+        var decision = Decide(Parked() with { ArrivalComplete = true }, FlightPhase.Shutdown);
 
         Assert.NotNull(decision);
         Assert.Equal(FlightPhase.Preflight, decision.Target);
-        Assert.Equal("turnaround-parked", decision.RuleId);
+        Assert.Equal("turnaround-arrival-complete", decision.RuleId);
         Assert.Equal(TimeSpan.FromSeconds(FlightStateOptions.Default.TurnaroundHoldSeconds), decision.Debounce);
     }
+
+    [Fact]
+    public void Shutdown_ParkedButStillDeboarding_Holds()
+        // 2026-08-29 ESSA: a time-only turnaround flipped to Preflight 30 s after shutdown
+        // and ground prep repositioned the aircraft under the passengers.
+        => Assert.Null(Decide(Parked(), FlightPhase.Shutdown));
 
     [Fact]
     public void Shutdown_BeaconStillOn_Holds()

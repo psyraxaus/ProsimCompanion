@@ -47,6 +47,13 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
         {
             _signals.RaiseBoardingCompleted();
         }
+        else if (serviceId.Equals("Deboarding", StringComparison.OrdinalIgnoreCase)
+            && lifecycleEvent == GsxServiceLifecycleEvent.Completed)
+        {
+            // The phase engine's turnaround gate (2026-08-29 ESSA): Shutdown may become the
+            // next leg's Preflight only after the passengers are off.
+            _signals.RaiseArrivalCompleted();
+        }
         else if (lifecycleEvent == GsxServiceLifecycleEvent.Completed
             && serviceId.Replace("-", "").Contains("deic", StringComparison.OrdinalIgnoreCase))
         {

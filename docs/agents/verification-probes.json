@@ -657,7 +657,8 @@
       "kind": "assert-present",
       "sources": ["session", "log"],
       "checks": [
-        "After a 'phase-changed' into Shutdown, if the aircraft stays parked (engines off, park brake set, beacon off, gs < 2 kt) for the turnaround hold (default 30 s) WITHOUT powering down, a 'phase-changed' Shutdown -> Preflight with rule 'turnaround-parked' follows; a 'gsx-automation-phase' Preparation follows it.",
+        "After a 'phase-changed' into Shutdown, Shutdown -> Preflight (rule 'turnaround-arrival-complete') happens ONLY after 'gsx-service' {Deboarding, Completed} (log: 'Arrival complete (deboarded) — the turnaround to Preflight is now armed') plus the hold (default 30 s) parked with the beacon off — never before deboarding completes (2026-08-29 ESSA: the old time-only 'turnaround-parked' fired at +30 s mid-deboarding, prep repositioned the aircraft and services ran).",
+        "On that turnaround Preflight: the prep chain goes Idle -> GroundEquipment ('turnaround — on stand already, skipping reposition'), never Reposition; and with gsx.groundPrepActivation = voice there is NO 'departure sequence — auto-started (Preparation phase)' decision — the sequence waits for 'commence ground services'.",
         "If the beacon goes on and an engine starts (or the brake is released with the APU running) while still in Shutdown, 'phase-changed' Shutdown -> PushbackAndStart with rule 'turnaround-start' — never Shutdown -> TaxiIn.",
         "assert-absent: any 'phase-changed' Shutdown -> TaxiIn."
       ],

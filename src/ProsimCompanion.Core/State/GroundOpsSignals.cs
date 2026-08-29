@@ -24,7 +24,16 @@ public sealed class GroundOpsSignals
     /// card.</summary>
     public event Action<int>? DeiceCompleted;
 
+    /// <summary>The arrival is done with the aircraft (deboarding completed): the phase
+    /// engine may now treat a parked, beacon-off Shutdown as the start of the next leg's
+    /// Preflight. Without it the engine stays in Shutdown — 2026-08-29 ESSA: a time-only
+    /// turnaround rule flipped to Preflight 30 s after shutdown, ground prep repositioned the
+    /// aircraft under the passengers and departure services ran mid-deboarding.</summary>
+    public event Action? ArrivalCompleted;
+
     public void RaiseRefuelServiceActive() => RefuelServiceActive?.Invoke();
+
+    public void RaiseArrivalCompleted() => ArrivalCompleted?.Invoke();
 
     public void RaiseBoardingCompleted() => BoardingCompleted?.Invoke();
 

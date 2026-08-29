@@ -218,6 +218,15 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
                     // The machine only lets RunStage through when the whole window is open —
                     // this transition is what makes "Repositioning" mean an actual reposition
                     // (issue #98). The step itself runs next cycle.
+                    if (_cycle.IsTurnaround)
+                    {
+                        // A turnaround never repositions: the aircraft is on the stand it
+                        // taxied to, jetway attached. 2026-08-29 ESSA: the reposition fired
+                        // under the passengers and disengaged the deboarding jetway.
+                        Advance(GsxPrepStage.GroundEquipment, "turnaround — on stand already, skipping reposition");
+                        break;
+                    }
+
                     Advance(GsxPrepStage.Reposition, "starting ground preparation");
                     break;
 
@@ -269,7 +278,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
     /// <summary>Unknown values read as auto — a typo in settings.json must not silently park
     /// the whole prep chain.</summary>
-    private static bool IsVoiceActivation(string value)
+    internal static bool IsVoiceActivation(string value)
         => string.Equals(value, "voice", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Logs a prep hold once per distinct reason (the cycle runs every 5 s — a log

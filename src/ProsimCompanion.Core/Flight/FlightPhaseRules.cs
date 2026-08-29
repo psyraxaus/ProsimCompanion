@@ -112,11 +112,18 @@ public static class FlightPhaseRules
                 ? "beacon on, engine start at the stand — turnaround"
                 : "beacon on, brake released after shutdown — turnaround push"),
 
-        Rule("turnaround-parked", Set(Shutdown), Preflight,
-            (_, s, o) => !s.AnyEngineRunning && s.ParkBrakeSet && !s.BeaconOn
+        // The next leg's Preflight begins only once the arrival is DONE with the aircraft
+        // (deboarding completed — stamped by the engine from GroundOpsSignals) and it has
+        // sat parked with the beacon off for the hold. A time-only version of this rule
+        // (2026-08-29 ESSA) fired 30 s after shutdown mid-deboarding: ground prep
+        // repositioned the aircraft under the passengers and departure services ran.
+        // Without a ground-ops layer the rule never fires; the beacon rule above still
+        // starts the next leg on real departure evidence.
+        Rule("turnaround-arrival-complete", Set(Shutdown), Preflight,
+            (_, s, o) => s.ArrivalComplete && !s.AnyEngineRunning && s.ParkBrakeSet && !s.BeaconOn
                 && s.GroundSpeedKt < o.ParkedGroundSpeedKt,
             (_, o) => TimeSpan.FromSeconds(o.TurnaroundHoldSeconds),
-            (_, _) => "parked with beacon off after shutdown — turnaround"),
+            (_, _) => "arrival complete (deboarded), parked with beacon off — turnaround"),
 
         Hold("shutdown-hold", Set(Shutdown), (_, _, _) => true),
 

@@ -52,6 +52,27 @@ public sealed class DepartureAutomationCoreTests
             Cycle: id => cycles?.GetValueOrDefault(id) ?? default);
 
     [Fact]
+    public void VoiceActivationMode_NeverAutoStarts()
+    {
+        // 2026-08-29 ESSA turnaround: the auto-start marked the cycle Started and silently
+        // released the prep chain's "commence ground services" hold.
+        var inputs = Ready() with { CycleStarted = false, AutoStartOption = true, VoiceActivationMode = true };
+
+        var outcome = DepartureAutomationCore.Evaluate(inputs);
+
+        Assert.False(outcome.AutoStarted);
+        Assert.Null(outcome.Trigger);
+    }
+
+    [Fact]
+    public void AutoMode_StillAutoStarts()
+    {
+        var inputs = Ready() with { CycleStarted = false, AutoStartOption = true };
+
+        Assert.True(DepartureAutomationCore.Evaluate(inputs).AutoStarted);
+    }
+
+    [Fact]
     public void EverythingOpen_TriggersTheNextService()
     {
         var outcome = DepartureAutomationCore.Evaluate(Ready());

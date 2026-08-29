@@ -66,8 +66,9 @@ public sealed class FlightStateOptions : IOptionSection
     /// ground/air state flips (Prosim2GSX <c>GroundTicks</c> parity). 1 disables the filter.</summary>
     public int GroundContactAgreeSamples { get; set; } = 2;
 
-    /// <summary>Parked after shutdown (engines off, brake set, beacon off, stopped) for this
-    /// long commits Shutdown → Preflight: the turnaround begins without a cold-and-dark reset.</summary>
+    /// <summary>Once the arrival is complete (deboarding done) AND the aircraft has sat parked
+    /// (engines off, brake set, beacon off, stopped) for this long, Shutdown → Preflight: the
+    /// turnaround begins without a cold-and-dark reset. Counted from whichever came last.</summary>
     public double TurnaroundHoldSeconds { get; set; } = 30;
 
     /// <summary>Interval of the "still thinking" log line while live (0 disables).</summary>
