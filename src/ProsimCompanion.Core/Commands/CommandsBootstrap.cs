@@ -36,6 +36,9 @@ public static class CommandsBootstrap
             services.GetService<IFmsInitSync>());
         OfpCommandHandlers.Register(registry, services.GetService<ISimbriefImporter>());
         MinimaCommandHandlers.Register(registry, services.GetService<ArrivalMinimaStore>());
-        SpeechCommandHandlers.Register(registry, services.GetService<ISpeechControl>());
+        SpeechCommandHandlers.Register(
+            registry,
+            services.GetService<ISpeechControl>(),
+            services.GetService<IVoiceListeningControl>());
     }
 }

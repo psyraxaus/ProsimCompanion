@@ -65,6 +65,7 @@ state (HTTP `401`) — paste a fresh token/URL and they recover on their own.
 | **GSX Service** | Pick a service in the Property Inspector (refuel / catering / boarding / deboarding / jetway ± retract / stairs ± retract / GPU / de-ice / pushback / departure-services). Shows that service's live colour-coded state (+ pax `n/total` while boarding/deboarding, refuel `%` while fuelling); press fires the matching `gsx.request*` / `gsx.retract*` command. Greyed out when the service is not available in the current phase. |
 | **Next Service** | Shows the ground automation's next planned service (`gsx.nextService`); press POSTs `gsx.forceNextService` to run it now. |
 | **Checklist** | Shows the active checklist's name, current item and `index/count`. Pick the function: **Advance** (`checklists.advanceNext`) or **Restart** (`checklists.restart`). |
+| **Voice Pause** | Toggle — pauses the First Officer's speech recognition so you can talk to a real person (the FO still speaks). Press POSTs `speech.toggleListening`; the face follows `/api/status` `voice`: red **PAUSED**, green **LISTENING**, grey **IDLE** (PTT mode, key not held), dim **N/A** (speech pillar absent). Silent — the FO does not acknowledge. Cleared by an app restart. |
 | **Flight Phase** | Display only — the current ProsimCompanion flight phase. |
 | **Connection Health** | Display only — three dots for the ProSim / MSFS / GSX connections, plus distinct tiles for *set up* (unpaired), *connecting*, *re-pair* (token rejected) and *API off* (command API disabled). |
 

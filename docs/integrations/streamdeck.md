@@ -18,15 +18,17 @@ loopback). Requires `commandApi.enabled: true`.
   backoff capped at 30 s on failure):
   `{ phase, connections:{prosim,msfs,gsx}, gsx:{ automationActive, nextService,
   services:[{type,state,detail}], refuelPercent, paxBoarded, paxTotal,
-  paxRemaining }, checklist:{name,item,index,count} }` — sections may be null;
-  `paxRemaining` counts down during a deboard and is null otherwise; service
-  `state` is `notAvailable|callable|requested|active|completed|skipped`.
+  paxRemaining }, checklist:{name,item,index,count}, voice:{listening,paused} }` —
+  sections may be null; `paxRemaining` counts down during a deboard and is null
+  otherwise; service `state` is `notAvailable|callable|requested|active|completed|skipped`;
+  `voice` is null when the speech pillar is absent (`listening` = engine truth,
+  `paused` = the pilot's ear-off latch behind the Voice Pause key).
 - `POST /api/command/{name}` — optional JSON body; response `{outcome, reason}`
   with outcome `success|alreadySatisfied|phaseMismatch|preconditionFailed|
   failed|unavailable`. Command names used: `gsx.startDepartureServices`,
   `gsx.forceNextService`, `gsx.request{Refuel,Catering,Boarding,Deboarding,
   Jetway,Stairs,Gpu,Deice,Pushback}`, `gsx.retract{Jetway,Stairs}`,
-  `checklists.advanceNext`, `checklists.restart`.
+  `checklists.advanceNext`, `checklists.restart`, `speech.toggleListening`.
 - Error semantics the key states depend on: HTTP **401** → re-pair (token
   rotated), HTTP **404** on `/api/status` → command API disabled. Onboarding
   URL format is `http://{host}:{port}/?token={token}` (query string, not

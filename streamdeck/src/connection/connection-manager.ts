@@ -98,6 +98,15 @@ export class ConnectionManager extends EventEmitter {
 		this.setStatus("disconnected");
 	}
 
+	/**
+	 * Poll now instead of waiting for the timer — used right after a command that
+	 * flips visible state (the Voice Pause toggle) so the key face follows within
+	 * one round-trip rather than up to a full poll period. No-op with no visible keys.
+	 */
+	refresh(): void {
+		this.restart();
+	}
+
 	// ── Poll loop ───────────────────────────────────────────────────────────
 
 	private restart(): void {

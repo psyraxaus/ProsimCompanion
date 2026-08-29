@@ -57,6 +57,9 @@ Naming convention: dotted lowercase area + camelCase verb — `gsx.forceNextServ
 | `minima.set` | `{"kind":"da","altitudeFt":740}` | `kind`: `da`/`dh`/`mda` (or enum names). 0–20000 ft. |
 | `minima.clear` | — | |
 | `speech.speakTest` | `{"text":"Radio check"}` | ≤ 300 chars (routes into real, possibly paid, TTS). |
+| `speech.pauseListening` | — | Pilot "ear off" latch: stops speech recognition (the FO still speaks) so the pilot can talk to a real person. Sits below every other listen input (window, PTT, mic borrow) in the recognition controller. Silent — no FO acknowledgement. Runtime state only: cleared by an app restart. `alreadySatisfied` when already paused. |
+| `speech.resumeListening` | — | Clears the latch; `alreadySatisfied` when not paused. |
+| `speech.toggleListening` | — | The one-key Stream Deck flow (Voice Pause action); the reason text names the NEW state. |
 
 ## Outcome → HTTP status
 

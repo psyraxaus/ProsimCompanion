@@ -8,7 +8,10 @@ namespace ProsimCompanion.Speech.Recognition;
 
 /// <summary>
 /// Owns the active recognizer and the listen decision:
-/// <c>shouldListen = windowOpen &amp;&amp; !atcMuted &amp;&amp; (continuous || pttPressed)</c>.
+/// <c>shouldListen = windowOpen &amp;&amp; !paused &amp;&amp; !atcMuted &amp;&amp; (continuous || pttPressed)</c>.
+/// <c>paused</c> is the pilot's "ear off" latch (<see cref="IVoiceListeningControl"/>, Stream
+/// Deck / web toggle for talking to real people): a latched ATC mute, deliberately silent —
+/// no FO acknowledgement, since the pilot is about to talk to someone else.
 /// The recognizer chain is LAN faster-whisper (when configured, with a background readiness
 /// probe and a one-way swap to the offline engine if it never comes up) → System.Speech.
 /// Consumers open/close grammar windows and subscribe to the Recognized events; engine
@@ -21,7 +24,7 @@ namespace ProsimCompanion.Speech.Recognition;
 /// with backoff (2 s, 5 s, 10 s, then every 30 s) until it sticks or the desired state
 /// changes, so a busy mic self-heals when the device frees up.
 /// </summary>
-public sealed class RecognitionController : IRecognitionWindow, IDisposable
+public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningControl, IDisposable
 {
     private static readonly IReadOnlyList<TimeSpan> DefaultRetryBackoff =
     [
@@ -43,6 +46,7 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
     private IVoiceRecognizer _recognizer;
     private IReadOnlyList<string> _grammar = [];
     private bool _windowOpen;
+    private bool _paused;
     private bool _desiredListening;
     private bool _reportedListening; // last state logged/pushed to the store — transition edge detector
     private bool _swapped;
@@ -132,6 +136,39 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
         }
     }
 
+    // ---- IVoiceListeningControl (pilot "ear off" latch) ----
+
+    public bool Paused
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _paused;
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>Logged at Info on every edge (same reasoning as the PTT edges, issue #61): a
+    /// paused mic looks exactly like a dead engine in the flight log otherwise.</remarks>
+    public bool SetPaused(bool paused)
+    {
+        lock (_gate)
+        {
+            if (_paused == paused)
+            {
+                return false;
+            }
+
+            _paused = paused;
+        }
+
+        _logger.LogInformation("Voice recognition {PauseEdge} by the pilot", paused ? "paused" : "resumed");
+        Evaluate();
+        return true;
+    }
+
     public void OpenListeningWindow(IReadOnlyList<string> grammar)
     {
         ArgumentNullException.ThrowIfNull(grammar);
@@ -180,7 +217,7 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
         {
             var continuous = _options.CurrentValue.RecognitionMode
                 .Equals("continuous", StringComparison.OrdinalIgnoreCase);
-            shouldListen = _windowOpen && !_ptt.AtcPttPressed && (continuous || _ptt.OwnPttPressed);
+            shouldListen = _windowOpen && !_paused && !_ptt.AtcPttPressed && (continuous || _ptt.OwnPttPressed);
             _desiredListening = shouldListen;
 
             if (shouldListen)
@@ -215,10 +252,12 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
     private void PublishListeningState(bool actual)
     {
         bool transition;
+        bool paused;
         lock (_gate)
         {
             transition = actual != _reportedListening;
             _reportedListening = actual;
+            paused = _paused;
         }
 
         if (transition)
@@ -227,7 +266,7 @@ public sealed class RecognitionController : IRecognitionWindow, IDisposable
                 "Recognition {ListenState} ({Engine})", actual ? "listening" : "stopped", EngineName);
         }
 
-        _store.Update(s => s with { Listening = actual });
+        _store.Update(s => s with { Listening = actual, ListeningPaused = paused });
     }
 
     // ---- Start-failure retry (issue #61) ----

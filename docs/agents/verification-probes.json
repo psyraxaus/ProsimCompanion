@@ -623,6 +623,20 @@
       "notes": "Fixed: RefuelCore.TankeringSkipReason (OFP block fuel first, else efb.plannedfuel; aircraft.refuel.fuelTarget deliberately ignored pre-session) feeds DepartureSequencer.Next(preSkip) from GsxAutomationService; the skipped step counts as settled so AfterAllCompleted boarding proceeds; RaiseRefuelServiceActive is raised once per cycle in place of the missing refuel-active edge. The in-service skip in RefuelCore remains for externally-called refuels."
     },
     {
+      "id": "voice-pause-toggle",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["log"],
+      "checks": [
+        "Trigger = the pilot presses the Stream Deck Voice Pause key (or the web 'Pause listening' button): a 'speech.toggleListening' / 'speech.pauseListening' command line, or the RecognitionController Info line 'Voice recognition paused by the pilot'. Behaviour = within the same second a 'Recognition stopped (<engine>)' transition (continuous mode, window open) and NO 'Recognition listening' until the matching 'Voice recognition resumed by the pilot' line.",
+        "assert-present: after 'resumed by the pilot' in continuous mode with a window open, 'Recognition listening (<engine>)' follows without any PTT edge or window churn in between.",
+        "assert-absent: any FO speech tagged to the pause/resume edges — the toggle is deliberately silent (owner decision 2026-08-29).",
+        "assert-absent: 'Speech recognition failed to start' retry episodes starting while paused — pause flips desire off, so the #61 retry loop must not run."
+      ],
+      "notes": "Feature, not a fix (no issue number): IVoiceListeningControl on RecognitionController, commands speech.pause/resume/toggleListening, /api/status voice:{listening,paused}, Stream Deck 'Voice Pause' action, web pill + button on the First Officer tab. Runtime latch only — cleared by an app restart."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",

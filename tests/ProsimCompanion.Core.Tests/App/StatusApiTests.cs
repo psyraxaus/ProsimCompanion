@@ -26,9 +26,10 @@ public sealed class StatusApiTests
         int? paxBoarded = null,
         int? paxTotal = null,
         int? paxRemaining = null,
-        ChecklistView? checklist = null)
+        ChecklistView? checklist = null,
+        SpeechStatusSnapshot? speech = null)
         => StatusApiEndpoints.BuildStatus(
-            phase, connections ?? [], departure, snapshot, refuelPercent, paxBoarded, paxTotal, paxRemaining, checklist);
+            phase, connections ?? [], departure, snapshot, refuelPercent, paxBoarded, paxTotal, paxRemaining, checklist, speech);
 
     [Fact]
     public void AbsentPillars_YieldNullsAndSafeDefaults()
@@ -41,6 +42,23 @@ public sealed class StatusApiTests
         Assert.False(response.Connections.Gsx);
         Assert.Null(response.Gsx);
         Assert.Null(response.Checklist);
+    }
+
+    [Fact]
+    public void Voice_IsNullWithoutTheSpeechPillar_AndMirrorsTheStoreOtherwise()
+    {
+        Assert.Null(Build().Voice);
+
+        var snapshot = SpeechStatusSnapshot.Empty with { Listening = true, ListeningPaused = false };
+        var listening = Build(speech: snapshot).Voice;
+        Assert.NotNull(listening);
+        Assert.True(listening.Listening);
+        Assert.False(listening.Paused);
+
+        var paused = Build(speech: snapshot with { Listening = false, ListeningPaused = true }).Voice;
+        Assert.NotNull(paused);
+        Assert.False(paused.Listening);
+        Assert.True(paused.Paused);
     }
 
     [Fact]

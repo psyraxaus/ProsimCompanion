@@ -40,7 +40,8 @@ public sealed record SpeechStatusSnapshot(
     string SpokenChecklist = "",
     string SpokenChecklistItem = "",
     bool CabinCalling = false,
-    string ActiveAbnormal = "")
+    string ActiveAbnormal = "",
+    bool ListeningPaused = false)
 {
     public static SpeechStatusSnapshot Empty { get; } = new(
         Enabled: false,
@@ -70,6 +71,23 @@ public interface ISpeechControl
     /// <summary>Speaks a test phrase through the full arbiter/router/playback path at Normal
     /// priority — the /speech page's "say something" button.</summary>
     void SpeakTest(string text);
+}
+
+/// <summary>
+/// Pilot-side "ear off" latch for voice recognition — the Stream Deck / web toggle that mutes
+/// the FO's listening while the pilot talks to a real person. Sits below every other listen
+/// input (window, PTT, mic borrow) in the recognition controller's decision, so a paused mic
+/// stays paused whatever the dialogues do. Runtime state only: never persisted, cleared by an
+/// app restart. Implemented by ProsimCompanion.Speech; absent when the pillar is.
+/// </summary>
+public interface IVoiceListeningControl
+{
+    /// <summary>True while the pilot has paused recognition.</summary>
+    bool Paused { get; }
+
+    /// <summary>Sets the pause latch. Returns true when the state actually changed, so the
+    /// command surface can answer <c>alreadySatisfied</c> instead of flapping the engine.</summary>
+    bool SetPaused(bool paused);
 }
 
 /// <summary>Web-side escape hatch for the interactive ECAM abnormal dialogue (issue #56:

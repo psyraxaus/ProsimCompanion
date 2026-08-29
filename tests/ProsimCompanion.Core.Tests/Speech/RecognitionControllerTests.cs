@@ -185,6 +185,85 @@ public sealed class RecognitionControllerTests : IDisposable
         Assert.False(_recognizer.Listening);
     }
 
+    // ---- Pilot "ear off" latch (Voice Pause key) ----
+
+    [Fact]
+    public void Pause_WhileListeningContinuous_StopsTheEngine_AndResumeRestartsIt()
+    {
+        _options.RecognitionMode = "continuous";
+        using var controller = Controller();
+        controller.OpenListeningWindow(["call up the checklist"]);
+        Assert.True(_recognizer.Listening);
+
+        Assert.True(controller.SetPaused(true));
+        Assert.True(controller.Paused);
+        Assert.False(_recognizer.Listening);
+
+        Assert.True(controller.SetPaused(false));
+        Assert.False(controller.Paused);
+        Assert.True(_recognizer.Listening);
+    }
+
+    [Fact]
+    public void Pause_WinsOverAWindowOpenedLater()
+    {
+        _options.RecognitionMode = "continuous";
+        using var controller = Controller();
+        controller.SetPaused(true);
+
+        // A dialogue opening its window (or a grammar swap) must not un-mute the pilot.
+        controller.OpenListeningWindow(["call up the checklist"]);
+        Assert.False(_recognizer.Listening);
+        Assert.Equal(0, _recognizer.StartAttempts);
+    }
+
+    [Fact]
+    public void SetPaused_SameState_ReportsNoChange()
+    {
+        using var controller = Controller();
+
+        Assert.False(controller.SetPaused(false)); // already listening-allowed
+        Assert.True(controller.SetPaused(true));
+        Assert.False(controller.SetPaused(true)); // already paused
+    }
+
+    [Fact]
+    public void Pause_PublishesTheLatchToTheStore()
+    {
+        var store = new SpeechStatusStore();
+        var monitor = new Mock<IOptionsMonitor<SpeechOptions>>();
+        monitor.SetupGet(m => m.CurrentValue).Returns(() => _options);
+        monitor.Setup(m => m.OnChange(It.IsAny<Action<SpeechOptions, string?>>())).Returns(Mock.Of<IDisposable>());
+        var ptt = new PushToTalkService(monitor.Object, NullLogger<PushToTalkService>.Instance);
+        using var controller = new RecognitionController(
+            monitor.Object, ptt, store, NullLoggerFactory.Instance, () => _recognizer, TestBackoff);
+
+        controller.SetPaused(true);
+        Assert.True(store.Snapshot().ListeningPaused);
+        Assert.False(store.Snapshot().Listening);
+
+        controller.SetPaused(false);
+        Assert.False(store.Snapshot().ListeningPaused);
+    }
+
+    [Fact]
+    public void Pause_EndsARunningStartRetryEpisode()
+    {
+        _options.RecognitionMode = "continuous";
+        _recognizer.FailNextStarts(int.MaxValue);
+        using var controller = Controller();
+        controller.OpenListeningWindow(["call up the checklist"]);
+        Assert.False(_recognizer.Listening);
+
+        // Pausing flips desire off — the retry loop must stop, not resurrect listening
+        // behind the pilot's back once the mic frees up.
+        controller.SetPaused(true);
+        _recognizer.FailNextStarts(0);
+
+        Thread.Sleep(100); // several test-backoff periods
+        Assert.False(_recognizer.Listening);
+    }
+
     // ---- Issue #61: failed starts must retry until they stick ----
 
     [Fact]

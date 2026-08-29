@@ -7,6 +7,7 @@
 @inject ISpeechDiagnostics Diagnostics
 @inject ArrivalMinimaStore Minima
 @inject IAbnormalDialogueControl AbnormalControl
+@inject IVoiceListeningControl ListeningControl
 
 @if (_view.ActiveAbnormal is { Length: > 0 } abnormal)
 {
@@ -35,6 +36,14 @@
               title="Below the sterile ceiling in a workload phase, Low speech is dropped and Normal follows the configured policy">
             @(_view.SterileCockpit ? "Sterile cockpit" : "Not sterile")
         </span>
+        <span class="pill @(_view.ListeningPaused ? "tone-warn" : _view.Listening ? "tone-ok" : "tone-neutral")"
+              title="Engine truth: Listening means the recognizer is actually capturing; Paused is the pilot's ear-off latch (Stream Deck Voice Pause key / the button here)">
+            @(_view.ListeningPaused ? "Voice paused" : _view.Listening ? "Listening" : "Not listening")
+        </span>
+        <button type="button" class="btn secondary" @onclick="ToggleListening"
+                title="Mute the FO's ear while you talk to a real person — the FO still speaks. Silent: no acknowledgement either way. Cleared by an app restart">
+            @(_view.ListeningPaused ? "Resume listening" : "Pause listening")
+        </button>
         <span class="pill tone-active">Queue @_view.QueueDepth</span>
         @if (_view.NowPlaying is { } playing)
         {
@@ -229,6 +238,9 @@
 
     // The banner disappears via the status-store update the cancellation itself triggers.
     private void CancelAbnormal() => AbnormalControl.CancelActiveDialogue();
+
+    // Same store-driven re-render: the controller publishes ListeningPaused on every edge.
+    private void ToggleListening() => ListeningControl.SetPaused(!ListeningControl.Paused);
 
     private Task TestProviderAsync(string providerName) => RunTestAsync(
         $"tts:{providerName}",

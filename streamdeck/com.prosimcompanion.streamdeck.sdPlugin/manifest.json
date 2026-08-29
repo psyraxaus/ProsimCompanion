@@ -94,6 +94,23 @@
 			]
 		},
 		{
+			"Name": "Voice Pause",
+			"UUID": "com.prosimcompanion.streamdeck.voicepause",
+			"Icon": "imgs/actions/voicepause/icon",
+			"Tooltip": "Toggle: pause the First Officer's speech recognition while you talk to a real person (the FO still speaks). Red = paused.",
+			"PropertyInspectorPath": "ui/connection.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/actions/voicepause/icon",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
 			"Name": "Connection Health",
 			"UUID": "com.prosimcompanion.streamdeck.health",
 			"Icon": "imgs/actions/health/icon",

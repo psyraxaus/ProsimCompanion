@@ -43,6 +43,9 @@ public static class SpeechServiceCollectionExtensions
         // The controller's listening-window surface + the exclusive-mic seam over it (guided
         // dialogues borrow the mic; normal routing stands down while borrowed).
         services.AddSingleton<IRecognitionWindow>(p => p.GetRequiredService<RecognitionController>());
+        // Pilot "ear off" latch (Stream Deck / web toggle) — the Core seam the command
+        // registry and the web panel reach the controller through.
+        services.AddSingleton<IVoiceListeningControl>(p => p.GetRequiredService<RecognitionController>());
         services.AddSingleton<IMicOwnership, MicOwnership>();
         services.AddSingleton<UtteranceInterpreter>();
         services.AddSingleton<ControlMonitor>();

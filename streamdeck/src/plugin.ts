@@ -4,6 +4,7 @@ import { ConnectionHealthAction } from "./actions/connection-health-action";
 import { FlightPhaseAction } from "./actions/flight-phase-action";
 import { GsxServiceAction } from "./actions/gsx-service-action";
 import { NextServiceAction } from "./actions/next-service-action";
+import { VoicePauseAction } from "./actions/voice-pause-action";
 import { connection } from "./connection/connection-manager";
 import { ConnectionSettings, DEFAULT_SETTINGS } from "./connection/types";
 
@@ -15,6 +16,7 @@ streamDeck.actions.registerAction(new NextServiceAction());
 streamDeck.actions.registerAction(new ChecklistAction());
 streamDeck.actions.registerAction(new FlightPhaseAction());
 streamDeck.actions.registerAction(new ConnectionHealthAction());
+streamDeck.actions.registerAction(new VoicePauseAction());
 
 // Connection settings live in Stream Deck *global* settings (shared by all keys).
 // Reconfigure whenever a Property Inspector saves them.

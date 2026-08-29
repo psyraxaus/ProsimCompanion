@@ -42,11 +42,16 @@ public sealed record StatusGsx(
 
 public sealed record StatusChecklist(string Name, string Item, int Index, int Count);
 
+/// <summary>Voice-recognition state for the Stream Deck "Voice Pause" key: <c>Listening</c> is
+/// the ENGINE truth (issue #61), <c>Paused</c> the pilot's "ear off" latch.</summary>
+public sealed record StatusVoice(bool Listening, bool Paused);
+
 public sealed record StatusResponse(
     string Phase,
     StatusConnections Connections,
     StatusGsx? Gsx,
-    StatusChecklist? Checklist);
+    StatusChecklist? Checklist,
+    StatusVoice? Voice = null);
 
 /// <summary>
 /// Read-only <c>GET /api/status</c> for the Stream Deck plugin's live key faces: flight phase,
@@ -104,7 +109,8 @@ public static class StatusApiEndpoints
             services.GetService<GsxBoardingSync>()?.PaxBoarded,
             services.GetService<GsxBoardingSync>()?.PaxTotal,
             services.GetService<GsxBoardingSync>()?.PaxRemaining,
-            services.GetService<ChecklistService>()?.ActiveView());
+            services.GetService<ChecklistService>()?.ActiveView(),
+            services.GetService<SpeechStatusStore>()?.Snapshot());
 
         return Results.Json(response, Json);
     }
@@ -120,7 +126,8 @@ public static class StatusApiEndpoints
         int? paxBoarded,
         int? paxTotal,
         int? paxRemaining,
-        ChecklistView? checklist)
+        ChecklistView? checklist,
+        SpeechStatusSnapshot? speech = null)
     {
         ArgumentNullException.ThrowIfNull(connectionStates);
 
@@ -156,11 +163,16 @@ public static class StatusApiEndpoints
                 checklist.Items.Count);
         }
 
+        // Null when the speech pillar is absent — the Voice Pause key then shows N/A rather
+        // than a misleading "listening".
+        StatusVoice? voice = speech is null ? null : new StatusVoice(speech.Listening, speech.ListeningPaused);
+
         return new StatusResponse(
             JsonNamingPolicy.CamelCase.ConvertName((phase ?? FlightPhase.Unknown).ToString()),
             connections,
             gsx,
-            checklistStatus);
+            checklistStatus,
+            voice);
     }
 
     private static bool IsConnected(

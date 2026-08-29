@@ -67,12 +67,23 @@ export interface ChecklistStatusDto {
 	count?: number;
 }
 
+/**
+ * The `voice` section of /api/status. May be null when the speech pillar is absent.
+ * `listening` is the recognizer's real state; `paused` is the pilot's ear-off latch
+ * (the Voice Pause key). Both can be false at once (PTT mode, key not held).
+ */
+export interface VoiceStatusDto {
+	listening?: boolean;
+	paused?: boolean;
+}
+
 /** The whole /api/status payload. Every section is optional — degrade, not fail. */
 export interface StatusDto {
 	phase?: string;
 	connections?: ConnectionsStatusDto | null;
 	gsx?: GsxStatusDto | null;
 	checklist?: ChecklistStatusDto | null;
+	voice?: VoiceStatusDto | null;
 }
 
 /** Camel-case outcome enum returned by POST /api/command/{name}. */
