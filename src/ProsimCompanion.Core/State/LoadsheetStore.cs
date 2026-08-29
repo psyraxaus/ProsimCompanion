@@ -8,6 +8,10 @@ public enum LoadsheetSlotStatus
     Generating,
     Sent,
     Failed,
+
+    /// <summary>An automatic trigger fired but a precondition (OFP, CG datarefs) is not there
+    /// yet — the trigger is armed and re-checking; <c>Error</c> carries what it waits for.</summary>
+    Waiting,
 }
 
 /// <summary>One loadsheet slot (prelim or final) as the web UI shows it.</summary>

@@ -71,6 +71,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     private bool _finalSent;
     private int _nextEditionNumber = 1;
     private CancellationTokenSource? _pendingFinal;
+    private CancellationTokenSource? _autoPrelim;
     private ConnectionState _lastProsimState = ConnectionState.Disconnected;
     private bool _restoredOrPrimedThisConnect;
 
@@ -170,6 +171,8 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         _resyncState.Assessed -= OnResyncAssessed;
         _pendingFinal?.Cancel();
         _pendingFinal?.Dispose();
+        _autoPrelim?.Cancel();
+        _autoPrelim?.Dispose();
 
         foreach (var sub in _zoneAmounts.Concat<IDataRefSubscription>(_zoneCapacities))
         {
@@ -210,7 +213,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
             }
         }
 
-        _ = Task.Run(() => GeneratePreliminaryAsync());
+        StartAutomaticPrelim("refuel active");
     }
 
     /// <summary>STD-offset prelim trigger: fires once the clock passes STD minus the configured
@@ -239,8 +242,109 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         }
 
         RecordDecision($"STD {std:HH:mm}Z minus {options.PrelimStdOffsetMinutes} min reached — preliminary loadsheet");
-        _ = Task.Run(() => GeneratePreliminaryAsync());
+        StartAutomaticPrelim("STD offset");
     }
+
+    /// <summary>Arms the automatic prelim: the edge that fired it (refuel active, tankering
+    /// pre-skip, STD offset) can arrive before the prelim's inputs exist — the OFP not yet
+    /// imported, or the CG datarefs not yet pushed after an app restart (2026-08-29
+    /// turnaround: ERROR on the page until a manual Resend). The armed trigger re-checks on
+    /// <see cref="PrelimTriggerPolicy.RetryInterval"/> and generates once ready; a manual
+    /// generate in the meantime wins (the cached prelim ends the wait). Re-arming replaces
+    /// any earlier wait; the cycle reset cancels it.</summary>
+    private void StartAutomaticPrelim(string trigger)
+    {
+        var cts = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _autoPrelim, cts);
+        previous?.Cancel();
+        previous?.Dispose();
+        _ = Task.Run(() => RunAutomaticPrelimAsync(trigger, cts.Token));
+    }
+
+    private async Task RunAutomaticPrelimAsync(string trigger, CancellationToken cancellationToken)
+    {
+        var armedAt = DateTimeOffset.UtcNow;
+        string? lastReason = null;
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                lock (_stateLock)
+                {
+                    if (_cachedPrelim is not null)
+                    {
+                        return; // a manual generate/resend produced it meanwhile
+                    }
+                }
+
+                var decision = PrelimTriggerPolicy.Next(ReadPrelimReadiness(), DateTimeOffset.UtcNow - armedAt);
+                switch (decision.Action)
+                {
+                    case PrelimTriggerAction.Generate:
+                        if (lastReason is not null)
+                        {
+                            RecordDecision($"automatic prelim ({trigger}) — inputs ready, generating");
+                        }
+
+                        if (await GeneratePreliminaryAsync(cancellationToken).ConfigureAwait(false))
+                        {
+                            return;
+                        }
+
+                        // A transient failure (EFB write, ACARS uplink) is retried like a
+                        // missing input; the slot keeps the failure text as the wait reason.
+                        var failure = _store.Snapshot().Prelim.Error ?? "generation failed";
+                        SetWaiting(trigger, $"retrying — {failure}", ref lastReason);
+                        break;
+
+                    case PrelimTriggerAction.Wait:
+                        SetWaiting(trigger, decision.Reason!, ref lastReason);
+                        break;
+
+                    case PrelimTriggerAction.GiveUp:
+                        RecordDecision($"automatic prelim ({trigger}) {decision.Reason} — press Resend on the Loadsheet page once the inputs are there");
+                        _store.SetPrelim(LoadsheetSnapshot.EmptySlot with
+                        {
+                            Status = LoadsheetSlotStatus.Failed,
+                            Error = decision.Reason,
+                        });
+                        return;
+                }
+
+                await Task.Delay(PrelimTriggerPolicy.RetryInterval, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Cycle reset or a newer trigger replaced this wait.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Automatic prelim ({Trigger}) failed unexpectedly", trigger);
+        }
+    }
+
+    private void SetWaiting(string trigger, string reason, ref string? lastReason)
+    {
+        if (reason == lastReason)
+        {
+            return;
+        }
+
+        lastReason = reason;
+        RecordDecision($"automatic prelim ({trigger}) {reason}");
+        _store.SetPrelim(LoadsheetSnapshot.EmptySlot with
+        {
+            Status = LoadsheetSlotStatus.Waiting,
+            Error = reason,
+        });
+    }
+
+    private PrelimReadiness ReadPrelimReadiness() => new(
+        OfpImported: _ofpStore.Current is not null,
+        CgPopulated: _cg.RawValue is not null && _zfwcg.RawValue is not null,
+        GrossCgMac: _cg.Value,
+        ZfwCgMac: _zfwcg.Value);
 
     /// <summary>Manual override wins over the OFP. A manual time-of-day is anchored to today
     /// (UTC); one that already passed by more than 12 h is read as tomorrow's departure so an
@@ -649,6 +753,9 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         var pending = Interlocked.Exchange(ref _pendingFinal, null);
         pending?.Cancel();
         pending?.Dispose();
+        var autoPrelim = Interlocked.Exchange(ref _autoPrelim, null);
+        autoPrelim?.Cancel();
+        autoPrelim?.Dispose();
 
         lock (_stateLock)
         {

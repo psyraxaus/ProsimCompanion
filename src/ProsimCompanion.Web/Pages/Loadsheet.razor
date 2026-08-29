@@ -72,9 +72,12 @@
                 @if (!showData)
                 {
                     <div class="ls-empty">
-                        @(slot.Status == LoadsheetSlotStatus.Failed
-                            ? (slot.Error ?? "Loadsheet generation failed. See log.")
-                            : "Awaiting loadsheet from Dispatch.")
+                        @(slot.Status switch
+                        {
+                            LoadsheetSlotStatus.Failed => slot.Error ?? "Loadsheet generation failed. See log.",
+                            LoadsheetSlotStatus.Waiting => $"Automatic loadsheet armed — {slot.Error ?? "waiting for inputs"}.",
+                            _ => "Awaiting loadsheet from Dispatch.",
+                        })
                     </div>
                 }
                 else
@@ -160,6 +163,7 @@
     {
         LoadsheetSlotStatus.Sent => "RECEIVED",
         LoadsheetSlotStatus.Failed => "ERROR",
+        LoadsheetSlotStatus.Waiting => "WAITING",
         _ => "PENDING",
     };
 

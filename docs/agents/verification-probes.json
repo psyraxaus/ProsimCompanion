@@ -712,6 +712,19 @@
       "notes": "Web Flight Status 'Phase engine' row: Force / freeze / Resume auto (2026-08-29). Frequent use on a flight is a signal the rule table needs a recording-backed fix."
     },
     {
+      "id": "prelim-auto-trigger-waits-for-inputs",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "No 'gsx-decision' (component 'loadsheet') with reason 'prelim aborted: ...implausible...' or 'no OFP imported — cannot generate a preliminary loadsheet' that was produced by an AUTOMATIC trigger: after 'refuel skipped for tankering' / a Refueling Active edge / 'STD ... reached', the loadsheet decisions must read 'automatic prelim (<trigger>) waiting for ...' (zero or more) then 'PRELIM EDNO n sent' — never a Failed slot that a manual Resend then fixes.",
+        "assert-present when a blocker existed: 'automatic prelim (<trigger>) waiting for an OFP import' or '... waiting for the CG datarefs ...' followed within 20 min by 'automatic prelim (<trigger>) — inputs ready, generating' and 'PRELIM EDNO n sent'.",
+        "The Loadsheet page shows WAITING (not ERROR) with the reason while the trigger is armed (web UI)."
+      ],
+      "notes": "2026-08-29 (tankering leg): the tankering pre-skip raised the prelim edge before the prelim's inputs existed (OFP / CG datarefs after a restart) and the page showed ERROR until Resend. PrelimTriggerPolicy now arms a 10 s re-check for up to 20 min; a manual Resend still generates immediately."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",
