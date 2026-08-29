@@ -151,6 +151,8 @@ public static class SpeechServiceCollectionExtensions
         // Parking-conflict guidance (issue #44): when GSX doesn't recognize the position,
         // the FO names the facility GSX offers and the actions that actually help.
         services.AddStartupModule<Crew.ParkingConflictAdvisoryService>();
+        // Dropped GSX call (issue #76): the slot's retry failed too — say so, once per drop.
+        services.AddStartupModule<Crew.DroppedCallAdvisoryService>();
         // "Check the aircraft state" re-check trigger (issue #92). The control seam lives in
         // Core and is implemented by the GSX pillar; resolved as optional so the feature
         // degrades to disabled (no grammar) when that pillar is absent.

@@ -97,14 +97,29 @@ public sealed class TtsRouter
             }
             catch (Exception ex)
             {
+                // The cooldown starts when the failure happened, not when this call began
+                // (issue #113): a provider that streamed for seconds before failing must not
+                // get a shorter window.
                 lock (_gate)
                 {
-                    _cooldownUntil[provider.Name] = now + FailureCooldown;
+                    _cooldownUntil[provider.Name] = DateTimeOffset.UtcNow + FailureCooldown;
                 }
 
-                _logger.LogWarning(ex,
-                    "TTS provider {Provider} failed; cooling down {CooldownSeconds}s",
-                    provider.Name, (int)FailureCooldown.TotalSeconds);
+                if (ex is TimeoutException)
+                {
+                    // An operational timeout is one readable sentence, not a four-level
+                    // socket trace in CMTrace.
+                    _logger.LogWarning(
+                        "TTS provider {Provider} failed: {Reason}; cooling down {CooldownSeconds}s",
+                        provider.Name, ex.Message, (int)FailureCooldown.TotalSeconds);
+                }
+                else
+                {
+                    _logger.LogWarning(ex,
+                        "TTS provider {Provider} failed; cooling down {CooldownSeconds}s",
+                        provider.Name, (int)FailureCooldown.TotalSeconds);
+                }
+
                 PublishHealth();
             }
         }

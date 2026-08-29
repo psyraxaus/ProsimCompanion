@@ -11,8 +11,13 @@ public sealed class GsxOptions : IOptionSection
     /// <summary>Master switch for the GSX ground automation pillar.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Delay between Remote API reconnect attempts.</summary>
+    /// <summary>Delay between Remote API reconnect attempts (the first retry).</summary>
     public int ReconnectIntervalMs { get; set; } = 5000;
+
+    /// <summary>Ceiling for the reconnect delay: each consecutive failure doubles the wait
+    /// from <see cref="ReconnectIntervalMs"/> up to this (issue #76 — 27 attempts at a fixed
+    /// 7 s before GSX had even started). Resets on the first successful connect.</summary>
+    public int ReconnectMaxIntervalMs { get; set; } = 60000;
 
     /// <summary>How long to await a command result before synthesizing a timeout.</summary>
     public int CommandTimeoutMs { get; set; } = 10_000;

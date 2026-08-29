@@ -32,7 +32,7 @@
     {
       "id": "gsx-services-without-flight-plan",
       "issue": 60,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session"],
       "checks": [
@@ -143,7 +143,7 @@
     {
       "id": "llm-intent-auth",
       "issue": 66,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["log"],
       "checks": [
@@ -154,7 +154,7 @@
     {
       "id": "metar-gateway",
       "issue": 62,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "sources": ["log"],
       "checks": [
@@ -165,7 +165,7 @@
     {
       "id": "crash-without-trace",
       "issue": 46,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "sources": ["session", "log"],
       "checks": [
@@ -176,7 +176,7 @@
     {
       "id": "climb-approach-gear-down",
       "issue": 48,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session"],
       "checks": [
@@ -223,7 +223,7 @@
     {
       "id": "isa-advisory-phase-blind",
       "issue": 73,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session"],
       "checks": [
@@ -234,7 +234,7 @@
     {
       "id": "winds-pronunciation",
       "issue": 69,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session"],
       "checks": [
@@ -245,7 +245,7 @@
     {
       "id": "nato-phonetics",
       "issue": 68,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session"],
       "checks": [
@@ -256,7 +256,7 @@
     {
       "id": "airport-common-names",
       "issue": 70,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "feature-pending",
       "sources": ["session"],
       "checks": [
@@ -272,15 +272,15 @@
       "sources": ["session", "log"],
       "checks": [
         "'set standard' → 'voicecommand.executed', then 'voicecommand.verified' with ok=true (the EFIS2 STD gate read 1), then spoken 'Standard, cross checked, passing flight level <digits>' — never the confirmation without the verified event.",
-        "With #109 shipped: a verify failure triggers ONE automatic retry with a 600 ms hold ('voicecommand.verified' carries retried=true) — 'ok=true, retried=true' means the long hold is what ProSim needed (record that as the press-semantics answer); 'ok=false, retried=true' after the retry is a genuine press-semantics failure to investigate (the 2026-08-23 flight went 0-for-3 at the 150 ms hold).",
-        "'set qnh' on descent mirrors this with equals=0 and 'QNH ..., cross checked'."
+        "With the #109 value fix shipped (2026-08-29): 'set standard' verifies ok=true on the FIRST attempt (retried=false) — the honest negative is no longer an acceptable steady state. 'ok=false' now means the user's %LOCALAPPDATA% commands.json still carries press:1 (see notes) or a new fault.",
+        "'set qnh' on descent mirrors this with equals=0 and 'QNH ..., cross checked' — its press value is 1."
       ],
-      "notes": "Shipped 2026-08-22: {flightLevel} token + per-command verify gate. #109 (2026-08-23) added the single-press verify retry at a 600 ms hold. CAVEAT: a user-edited %LOCALAPPDATA% commands.json keeps its old say/no-verify entries (ADR-0007 keep-user-edits) — if the old 'Standard set' phrasing is heard, the user copy needs a manual merge."
+      "notes": "Shipped 2026-08-22: {flightLevel} token + per-command verify gate. #109 root cause settled live 2026-08-29 16:42 (A322, cruise, gateway writeInt): S_FCU_EFIS2_BARO_STD value 2 pushes (STD) and value 1 pulls (QNH) — the reverse of the catalog's '1:Pushed, 2:Pulled'. Seed commands.json now presses 2 for STD / 1 for QNH at a 300 ms hold; the 600 ms verify retry stays as belt-and-braces. CAVEAT: a user-edited %LOCALAPPDATA% commands.json keeps its old entries (ADR-0007 keep-user-edits) — the sim PC copy must be updated by hand or re-seeded."
     },
     {
       "id": "sterile-phase-reject-suppression",
       "issue": 67,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session", "log"],
       "checks": [
@@ -570,7 +570,7 @@
     {
       "id": "fo-flight-live-gate",
       "issue": 114,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session", "log"],
       "checks": [
@@ -584,7 +584,7 @@
     {
       "id": "asr-server-flavour",
       "issue": 115,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": ["log"],
       "checks": [
@@ -598,7 +598,7 @@
     {
       "id": "abnormal-cold-dark-hold",
       "issue": 116,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": ["session", "log"],
       "checks": [
@@ -612,7 +612,7 @@
     {
       "id": "refuel-tankering-preskip",
       "issue": 117,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": ["session", "log"],
       "checks": [
@@ -723,6 +723,32 @@
         "The Loadsheet page shows WAITING (not ERROR) with the reason while the trigger is armed (web UI)."
       ],
       "notes": "2026-08-29 (tankering leg): the tankering pre-skip raised the prelim edge before the prelim's inputs existed (OFP / CG datarefs after a restart) and the page showed ERROR until Resend. PrelimTriggerPolicy now arms a 10 s re-check for up to 20 min; a manual Resend still generates immediately."
+    },
+    {
+      "id": "kokoro-two-phase-timeout",
+      "issue": 113,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["log"],
+      "checks": [
+        "While the Kokoro host is up (any successful kokoro synthesis in the session), no 'TTS provider \"kokoro\" failed' Warning — in particular none whose reason reads 'timed out after ... (body — N chars still streaming)' for a long utterance (briefing, checklist line, ATC readback).",
+        "assert-present when the host is asleep/unreachable: a single-line 'TTS provider \"kokoro\" failed: Kokoro TTS timed out after 1500 ms (connect — host asleep or unreachable); cooling down 60s' with NO stack trace, then fall-through to the next provider.",
+        "watch: count 'cooling down 60s' lines for kokoro — the 2026-08-29 baseline was 8 in one leg."
+      ],
+      "notes": "2026-08-29: the single 1.5 s budget covered the whole streamed WAV; split into connect (kokoroTimeoutMs) + body (kokoroBodyTimeoutMs + 100 ms/char). Cooldown now starts at the failure instant."
+    },
+    {
+      "id": "dropped-call-advisory",
+      "issue": 76,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "Every 'gsx-decision' '... — the call was dropped' (after the automatic retry) is followed within 1 s by a 'gsx-call-dropped' event {service, openMenu, consecutive} AND an 'fo.dropped-call-advisory' event with the spoken text ('Captain, ground did not pick up the <service> call ...'); the Flight Status GSX card shows 'Dropped Call: <service> at HH:mm:ss' until a later call confirms (web UI).",
+        "assert-absent: a dropped call with no advisory (the 2026-08-29 15:31:33 Deboarding signature).",
+        "GSX reconnect backoff: while GSX is not running, the Debug 'connect/receive failed (attempt N)' lines must space out — roughly 5 s, 10 s, 20 s, 40 s, then every 60 s (gsx.reconnectIntervalMs doubling to gsx.reconnectMaxIntervalMs) — not a fixed ~7 s cadence."
+      ],
+      "notes": "2026-08-29: closes the two residues of #76 (items 1 and 4). Items 2/3 shipped earlier."
     },
     {
       "id": "requires-human-checklist",

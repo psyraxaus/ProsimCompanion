@@ -191,6 +191,7 @@ public sealed class GsxTriggerSlot : IGsxTriggerSlot, IDisposable
                     ClearIfOwned(serviceId);
                     _lastDroppedService = null;
                     _consecutiveDrops = 0;
+                    _diagnostics.UpdateDroppedCall(null); // a confirmed call retires the warning
                     RecordDecision($"trigger {serviceId}", $"confirmed by GSX ({confirmedBy})");
                     SafeResolve(request, GsxTriggerResolution.Confirmed);
                     Changed?.Invoke();
@@ -283,9 +284,15 @@ public sealed class GsxTriggerSlot : IGsxTriggerSlot, IDisposable
             $"trigger {serviceId}",
             $"not picked up by GSX within {(int)window.TotalSeconds} s — the call was dropped");
 
+        // Surface it (issue #76): a log line is not a notification — the 2026-08-29
+        // Deboarding call died at 15:31:33 with the pilot none the wiser. The diagnostics
+        // view drives the Flight Status row and the FO's spoken advisory.
+        var openMenu = _api.Mirror.MenuShown ? _api.Mirror.Menu?.Title : null;
+        _diagnostics.UpdateDroppedCall(new GsxDroppedCallView(DateTimeOffset.UtcNow, serviceId, openMenu));
+        _eventLog.Record("gsx-call-dropped", new { service = serviceId, openMenu, consecutive = _consecutiveDrops });
+
         if (_consecutiveDrops == 2)
         {
-            var openMenu = _api.Mirror.MenuShown ? _api.Mirror.Menu?.Title : null;
             RecordDecision(
                 $"trigger {serviceId}",
                 openMenu is null

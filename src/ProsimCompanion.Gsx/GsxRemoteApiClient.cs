@@ -193,7 +193,16 @@ public sealed class GsxRemoteApiClient : BackgroundService, IGsxRemoteApi
 
             try
             {
-                await Task.Delay(_options.CurrentValue.ReconnectIntervalMs, stoppingToken).ConfigureAwait(false);
+                // Backoff (issue #76): a GSX that is not running yet is re-tried at a growing
+                // interval instead of every few seconds for half an hour; the counter resets
+                // on the next successful session so a real drop still reconnects quickly.
+                var reconnectOptions = _options.CurrentValue;
+                await Task.Delay(
+                    GsxReconnectBackoff.Delay(
+                        reconnectOptions.ReconnectIntervalMs,
+                        reconnectOptions.ReconnectMaxIntervalMs,
+                        Interlocked.Read(ref _consecutiveConnectFailures)),
+                    stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

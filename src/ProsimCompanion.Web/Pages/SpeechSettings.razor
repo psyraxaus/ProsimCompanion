@@ -312,9 +312,12 @@
                                @bind-Value="_speech.Value.KokoroBaseUrl" />
                     <TextField Label="Model" @bind-Value="_speech.Value.KokoroModel" />
                     <TextField Label="Voice" Hint="e.g. bm_george" @bind-Value="_speech.Value.KokoroVoice" />
-                    <NumberField Label="Timeout" Suffix="ms" Min="200"
-                                 Hint="Kept tight on purpose — a sleeping host falls through to the next provider instead of stalling a callout"
+                    <NumberField Label="Connect timeout" Suffix="ms" Min="200"
+                                 Hint="Wait for Kokoro to answer — kept tight on purpose so a sleeping host falls through to the next provider instead of stalling a callout"
                                  @bind-Value="_speech.Value.KokoroTimeoutMs" />
+                    <NumberField Label="Body timeout" Suffix="ms" Min="1000"
+                                 Hint="Budget for the streamed audio once Kokoro has answered, plus 100 ms per character — a long briefing must not trip the 60 s cooldown"
+                                 @bind-Value="_speech.Value.KokoroBodyTimeoutMs" />
                     <NumberField Label="Cache cap per voice" Suffix="MB" Min="0"
                                  Hint="0 = unlimited"
                                  @bind-Value="_speech.Value.KokoroMaxCacheMbPerVoice" />

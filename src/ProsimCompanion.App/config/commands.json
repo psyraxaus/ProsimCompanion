@@ -36,15 +36,15 @@
     {
       "phrases": [ "set standard", "standard set", "altimeters standard" ],
       "say": "Standard, cross checked, passing flight level {flightLevel}",
-      "//": "F/O baro knob PUSH = STD (issue #49). Seat-mapped like the other EFIS2 refs; the captain side stays the pilot's own knob. The verify gate reads the effective STD state, so the SOP readback is only spoken when the altimeter really took standard.",
-      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 1, "restore": 0, "holdMs": 150 } ],
+      "//": "F/O baro knob PUSH = STD (issue #49). Value 2, NOT 1 (issue #109, settled live 2026-08-29 16:42 on the A322 in cruise): ProSim's catalog says '1:Pushed, 2:Pulled' but writing 1 pulled the knob to QNH and writing 2 pushed it to STD — the catalog is inverted for this switch. Seat-mapped like the other EFIS2 refs; the captain side stays the pilot's own knob. The verify gate reads the effective STD state, so the SOP readback is only spoken when the altimeter really took standard.",
+      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 2, "restore": 0, "holdMs": 300 } ],
       "verify": { "dataref": "system.gates.B_FCU_EFIS2_BARO_STD", "equals": 1, "timeoutMs": 2000, "sayOnFail": "Negative — my altimeter did not take standard." }
     },
     {
       "phrases": [ "set qnh", "qnh set", "altimeters qnh" ],
       "say": "QNH {qnh}, cross checked",
-      "//": "F/O baro knob PULL = back to QNH on descent (companion to set standard).",
-      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 2, "restore": 0, "holdMs": 150 } ],
+      "//": "F/O baro knob PULL = back to QNH on descent (companion to set standard). Value 1 = pull on the A322 (issue #109 — see the note above; the catalog's 1/2 are swapped).",
+      "steps": [ { "dataref": "system.switches.S_FCU_EFIS2_BARO_STD", "press": 1, "restore": 0, "holdMs": 300 } ],
       "verify": { "dataref": "system.gates.B_FCU_EFIS2_BARO_STD", "equals": 0, "timeoutMs": 2000, "sayOnFail": "Negative — my altimeter is still on standard." }
     },
     {

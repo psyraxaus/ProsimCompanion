@@ -184,6 +184,30 @@ public sealed class GsxTriggerSlotTests : IDisposable
         Assert.Equal(GsxTriggerResolution.Dropped, await WaitForResolutionAsync(tcs));
         Assert.Equal(["GPU", "GPU"], _sentServices);
         Assert.Null(slot.InFlightServiceId);
+
+        // Issue #76: the drop is surfaced, not just logged — the Flight Status row and the
+        // FO advisory both read this view.
+        var dropped = _diagnostics.Snapshot().DroppedCall;
+        Assert.NotNull(dropped);
+        Assert.Equal("GPU", dropped.ServiceId);
+        Assert.Null(dropped.OpenMenu);
+    }
+
+    [Fact]
+    public async Task DroppedCallView_IsRetired_ByTheNextConfirmedCall()
+    {
+        using var slot = CreateSlot();
+        var dropped = new TaskCompletionSource<GsxTriggerResolution>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await slot.TryDispatchAsync(new GsxTriggerRequest("GPU", "test") { ConfirmWindow = ShortWindow, OnResolved = dropped.SetResult });
+        Assert.Equal(GsxTriggerResolution.Dropped, await WaitForResolutionAsync(dropped));
+        Assert.NotNull(_diagnostics.Snapshot().DroppedCall);
+
+        var confirmed = new TaskCompletionSource<GsxTriggerResolution>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await slot.TryDispatchAsync(new GsxTriggerRequest("Boarding", "test") { ConfirmWindow = TimeSpan.FromSeconds(5), OnResolved = confirmed.SetResult });
+        SeedService("Boarding", "requested");
+        Assert.Equal(GsxTriggerResolution.Confirmed, await WaitForResolutionAsync(confirmed));
+
+        Assert.Null(_diagnostics.Snapshot().DroppedCall);
     }
 
     [Fact]

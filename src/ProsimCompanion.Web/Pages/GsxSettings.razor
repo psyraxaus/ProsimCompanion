@@ -398,7 +398,11 @@
                                Hint="Master switch for the whole GSX pillar"
                                @bind-Value="_gsx.Value.Enabled" />
                     <NumberField Label="Reconnect interval" Suffix="ms" Min="500"
+                                 Hint="First retry after a lost or refused connection"
                                  @bind-Value="_gsx.Value.ReconnectIntervalMs" />
+                    <NumberField Label="Reconnect ceiling" Suffix="ms" Min="500"
+                                 Hint="Each further failure doubles the wait up to this — quiet while GSX is not running yet"
+                                 @bind-Value="_gsx.Value.ReconnectMaxIntervalMs" />
                 </Section>
                 <Section Title="Timeouts" Hint="Empirically tuned — see docs/integrations/gsx.md">
                     <NumberField Label="Command timeout" Suffix="ms" Min="1000"

@@ -114,6 +114,12 @@ ACP audio `system.analog.A_ASP{1|2|3}_*_VOLUME` (0–1024) and
 value = hPa × 16, index 0 = captain.
 
 **Quirks**:
+
+- `S_FCU_EFIS2_BARO_STD` (F/O baro knob) is momentary and the catalog's value legend is
+  inverted: settled live 2026-08-29 16:42 (A322, cruise, gateway `writeInt`) — writing **2**
+  pushes the knob (STD gate goes true), writing **1** pulls it (QNH), the switch reads 0 again
+  immediately either way, and a 300 ms hold is plenty. The catalog says `1:Pushed, 2:Pulled`.
+  Presume the captain's `S_FCU_EFIS1_BARO_STD` matches, unverified (issue #109).
 - Park brake: read `system.switches.S_MIP_PARKING_BRAKE`; the hydraulic gate
   `B_HYD_PARKING_BRAKE_SET` reads **inverted on the A322** (found 2026-05-02).
 - ACP knob range is 0–1024 (`VolumeMax = 1024`).

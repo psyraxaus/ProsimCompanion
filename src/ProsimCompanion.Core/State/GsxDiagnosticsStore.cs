@@ -155,7 +155,16 @@ public sealed record GsxDiagnosticsSnapshot(
     /// the session gate is unknown — it does not recognize the aircraft's position, and no
     /// app restart can fix that. Null when no conflict stands.</summary>
     public GsxParkingConflictView? ParkingConflict { get; init; }
+
+    /// <summary>The most recent service call GSX never picked up (issue #76): the trigger
+    /// slot's retry ran and still nothing confirmed. Stands until the next confirmed call so
+    /// the pilot sees it on the Flight Status page; the FO speaks each one once.</summary>
+    public GsxDroppedCallView? DroppedCall { get; init; }
 }
+
+/// <summary>One dropped service call (issue #76). <see cref="OpenMenu"/> is the GSX menu
+/// title standing at the time, when any — the usual reason a call dies (issue #44).</summary>
+public sealed record GsxDroppedCallView(DateTimeOffset Timestamp, string ServiceId, string? OpenMenu);
 
 /// <summary>One observed parking conflict (issue #44). <see cref="GsxFacility"/> is the
 /// facility GSX itself names in its "Change Facility [...]" menu entry — the strongest
@@ -259,6 +268,10 @@ public sealed class GsxDiagnosticsStore : SnapshotStore<GsxDiagnosticsSnapshot>
     public void UpdateParkingConflict(GsxParkingConflictView? conflict)
         => Update(snapshot => snapshot with { ParkingConflict = conflict });
 
+    /// <summary>Replaces the dropped-call view (issue #76); null = a later call confirmed.</summary>
+    public void UpdateDroppedCall(GsxDroppedCallView? droppedCall)
+        => Update(snapshot => snapshot with { DroppedCall = droppedCall });
+
     /// <summary>Records the most recent service lifecycle edge for the Flight Status row.</summary>
     public void RecordHandlerEvent(GsxHandlerEventView handlerEvent)
     {
@@ -282,6 +295,7 @@ public sealed class GsxDiagnosticsStore : SnapshotStore<GsxDiagnosticsSnapshot>
             GroundPowerConnected = current.GroundPowerConnected,
             AircraftStateCheck = current.AircraftStateCheck,
             ParkingConflict = current.ParkingConflict,
+            DroppedCall = current.DroppedCall,
         });
     }
 

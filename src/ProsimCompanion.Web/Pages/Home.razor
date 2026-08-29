@@ -118,6 +118,7 @@
         <div class="section-body">
             @Indicator("GSX Running", GsxConnected)
             @Indicator("Couatl Vars", _gsx.Readiness == "Ready")
+            @DroppedCallRow()
             @Kv("Couatl Started", _gsx.StartupSid ?? "—")
             @Kv("Menu State", _gsx.MenuShown ? (_gsx.MenuTitle ?? "shown") : "closed")
             @Kv("Pax Target", _gsx.BoardingCounters?.PaxTarget?.ToString() ?? "—")
@@ -337,6 +338,22 @@
     }
 
     private bool _recheckUnavailable;
+
+    private RenderFragment DroppedCallRow()
+    {
+        // A dropped GSX call (issue #76) stays visible until a later call confirms — the log
+        // line alone let a Deboarding call die unnoticed on 2026-08-29.
+        var dropped = _gsx.DroppedCall;
+        var text = dropped is null
+            ? "—"
+            : $"{dropped.ServiceId} at {dropped.Timestamp.ToLocalTime():HH:mm:ss}"
+                + (string.IsNullOrWhiteSpace(dropped.OpenMenu) ? " — check the GSX menu" : $" — GSX menu \"{dropped.OpenMenu}\" open");
+        return @<div class="row">
+            <span class="row-label">Dropped Call</span>
+            <span class="pill @(dropped is null ? "tone-neutral" : "tone-warn")"
+                  title="@(dropped is null ? "No GSX service call has been dropped" : "GSX never picked this call up (retried once). Clear any GSX menu and call the service again.")">@text</span>
+        </div>;
+    }
 
     private void RecheckAircraftState()
         => _recheckUnavailable = !StateCheckControl.RequestRecheck("web UI");

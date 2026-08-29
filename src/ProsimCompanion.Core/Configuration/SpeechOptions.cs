@@ -133,9 +133,17 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Kokoro voice id.</summary>
     public string KokoroVoice { get; set; } = "bm_george";
 
-    /// <summary>Kokoro request timeout (floor 200 ms at use) — deliberately tight so a
-    /// sleeping LAN host does not stall a callout; the router falls through instead.</summary>
+    /// <summary>Kokoro connect / first-byte timeout (floor 200 ms at use) — deliberately
+    /// tight so a sleeping LAN host does not stall a callout; the router falls through
+    /// instead. Covers only the wait for response headers (issue #113): the streamed WAV
+    /// body has its own budget, <see cref="KokoroBodyTimeoutMs"/>.</summary>
     public int KokoroTimeoutMs { get; set; } = 1500;
+
+    /// <summary>Base budget for reading the streamed WAV body once Kokoro has answered
+    /// (issue #113). kokoro-fastapi synthesises while it streams, so a long briefing takes
+    /// seconds; the effective budget is this plus 100 ms per character, never below the
+    /// connect timeout. A healthy host asked to say something long must not be cooled down.</summary>
+    public int KokoroBodyTimeoutMs { get; set; } = 15000;
 
     /// <summary>Per-voice disk-cache cap in MB for Kokoro audio; 0 = unlimited.</summary>
     public int KokoroMaxCacheMbPerVoice { get; set; }

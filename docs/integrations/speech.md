@@ -7,7 +7,11 @@ chains — "local only" hard mode must exist.
 
 - **Kokoro** (kokoro-fastapi, local neural): OpenAI-compatible `POST {base}/v1/audio/speech` (WAV)
   and `GET {base}/v1/audio/voices`. Default `http://192.168.1.50:8880`, model `kokoro`, voice
-  `bm_george`, 1500 ms timeout, per-voice disk cache.
+  `bm_george`, per-voice disk cache. Two timeout phases (issue #113): `kokoroTimeoutMs`
+  (1500 ms) covers connect/first byte only — the "is the host awake?" check; the streamed
+  WAV body gets `kokoroBodyTimeoutMs` (15 s) + 100 ms per character, because kokoro-fastapi
+  synthesises while it streams and a long briefing takes seconds. A timeout surfaces as one
+  `TimeoutException` sentence naming the phase; the router still cools the provider down 60 s.
 - **Google Cloud TTS Chirp 3 HD**: service-account JSON key, LINEAR16; disk cache keyed by
   text+voice+format; prewarm checklist phrases; monthly usage counter (`cache/tts/usage.json`)
   against the 1M-char free tier.
