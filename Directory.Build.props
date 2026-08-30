@@ -7,7 +7,7 @@
     <!-- THE version: single source of truth (docs/VERSIONING.md). The update banner, the
          installer build and the release tag all derive from this value — bump it here,
          nowhere else, then tag v<Version> and publish the GitHub release. -->
-    <Version>0.3.0-beta.23</Version>
+    <Version>0.3.0-beta.24</Version>
     <Company>Protovision</Company>
     <Product>ProsimCompanion</Product>
     <!-- Native SimConnect.dll is x64-only; pin the whole solution so it can never be loaded
