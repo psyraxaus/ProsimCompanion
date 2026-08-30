@@ -28,6 +28,15 @@ public sealed class EngineFlapCallDeciderTests
     public void EngineStart_EngineOff_BriefAcknowledgement(string call, string expected)
         => Assert.Equal(expected, EngineFlapCallDecider.Decide(call, Snapshot(), DefaultPlacards));
 
+    [Theory]
+    [InlineData("set flaps one", "Speed checked, flaps one.")]
+    [InlineData("set flaps full", "Speed checked, flaps full.")]
+    [InlineData("set flaps up", "Flaps up.")]
+    public void SetFlapsPhrasing_IsAcceptedLikeThePlainForm(string call, string expected)
+        // Issue #119: "Set flaps one" was rejected on 2026-08-29 — the natural phrasing
+        // belongs in the catalogue and the decider strips the prefix.
+        => Assert.Equal(expected, EngineFlapCallDecider.Decide(call, Snapshot(ias: 150), DefaultPlacards));
+
     [Fact]
     public void EngineStart_EngineAlreadyRunning_GentleCorrection()
         => Assert.Equal(

@@ -37,7 +37,10 @@ public static class EngineFlapCallDecider
         "start engine one", "start engine two",
         "engine one start", "engine two start",
         "flaps one", "flaps two", "flaps three", "flaps full",
-        "flaps up", "flaps zero",
+        // "Set flaps one" scored below the accept line against "flaps one" and was rejected
+        // on 2026-08-29 (issue #119) — the natural phrasing belongs in the catalogue.
+        "set flaps one", "set flaps two", "set flaps three", "set flaps full",
+        "flaps up", "flaps zero", "set flaps up",
     ];
 
     /// <summary>Decides the FO's verbal response to a NORMALIZED utterance; null when the
@@ -52,6 +55,12 @@ public static class EngineFlapCallDecider
         ArgumentNullException.ThrowIfNull(normalized);
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(placards);
+
+        // The catalogue's "set flaps …" variants resolve here with the prefix intact.
+        if (normalized.StartsWith("set ", StringComparison.Ordinal))
+        {
+            normalized = normalized["set ".Length..];
+        }
 
         if (TryEngineNumber(normalized, out var engineWord))
         {

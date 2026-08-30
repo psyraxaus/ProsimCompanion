@@ -283,9 +283,20 @@ internal static class RefuelCore
     /// the EFB planned-fuel dataref; <c>aircraft.refuel.fuelTarget</c> is deliberately NOT
     /// consulted here — before a refuel session it can still hold the previous leg's value.
     /// </summary>
-    internal static string? TankeringSkipReason(bool skipOnTankering, double currentKg, double ofpBlockKg, double plannedFuelRaw)
+    internal static string? TankeringSkipReason(
+        bool skipOnTankering, bool flightPlanAvailable, double currentKg, double ofpBlockKg, double plannedFuelRaw)
     {
         if (!skipOnTankering)
+        {
+            return null;
+        }
+
+        // No flight plan = no tankering decision (issue #118, 2026-08-30 flight): 90 s after
+        // app start this fired on the previous leg's unsettled FOB (9,576 kg) against the
+        // EFB dataref's stale 2,300 kg — and refuel then ran anyway once the real 8,000 kg
+        // OFP arrived. A skip that retires the Refueling step for the cycle must only be
+        // decided from a plan the pilot actually has.
+        if (!flightPlanAvailable)
         {
             return null;
         }

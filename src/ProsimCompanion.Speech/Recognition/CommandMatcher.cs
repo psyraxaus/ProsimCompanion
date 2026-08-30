@@ -28,6 +28,12 @@ public static class CommandMatcher
             return null;
         }
 
+        // Whisper writes numbers either way ("flaps 1" / "flaps one"); the digit form scored
+        // almost identically against "flaps one" and "flaps two" and the phonetic half had
+        // nothing for a bare "1" — "Flaps 1" matched flaps TWO on 2026-08-29 (issue #119).
+        // Score against the spoken-digit form too and keep the best.
+        var textDigitsSpoken = SpeakSingleDigits(textNorm);
+
         CommandMatch? best = null;
         foreach (var phrase in vocabulary)
         {
@@ -37,8 +43,12 @@ public static class CommandMatcher
                 continue;
             }
 
-            var score = 0.5 * LevenshteinSimilarity(textNorm, phraseNorm)
-                + 0.5 * PhoneticSimilarity(textNorm, phraseNorm);
+            var score = Score(textNorm, phraseNorm);
+            if (!ReferenceEquals(textDigitsSpoken, textNorm))
+            {
+                score = Math.Max(score, Score(textDigitsSpoken, phraseNorm));
+            }
+
             if (best is null || score > best.Score)
             {
                 best = new CommandMatch(phrase, score);
@@ -46,6 +56,33 @@ public static class CommandMatcher
         }
 
         return best is not null && best.Score >= threshold ? best : null;
+    }
+
+    private static double Score(string textNorm, string phraseNorm)
+        => 0.5 * LevenshteinSimilarity(textNorm, phraseNorm)
+            + 0.5 * PhoneticSimilarity(textNorm, phraseNorm);
+
+    /// <summary>Replaces standalone single-digit tokens with their spoken words
+    /// ("flaps 1" → "flaps one"). Multi-digit tokens ("121", "350") are left alone — the
+    /// number/frequency extractors depend on them. Returns the SAME instance when nothing
+    /// changed, so callers can skip the second scoring pass.</summary>
+    internal static string SpeakSingleDigits(string normalized)
+    {
+        ArgumentNullException.ThrowIfNull(normalized);
+
+        string[] words = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+        var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var changed = false;
+        for (var i = 0; i < tokens.Length; i++)
+        {
+            if (tokens[i].Length == 1 && tokens[i][0] is >= '0' and <= '9')
+            {
+                tokens[i] = words[tokens[i][0] - '0'];
+                changed = true;
+            }
+        }
+
+        return changed ? string.Join(' ', tokens) : normalized;
     }
 
     /// <summary>Lower-case, strip punctuation, collapse whitespace.</summary>

@@ -78,7 +78,7 @@
             else if (_section == "recognition")
             {
                 <Section Title="Recognition & Push-to-Talk"
-                         Hint="How the FO listens. On a network (VATSIM/IVAO/SayIntentions) bind YOUR transmit key as the ATC-mute key so the FO never hears what you say to ATC">
+                         Hint="How the FO listens. On a network (VATSIM/IVAO/SayIntentions) bind YOUR transmit key as the ATC-mute key so the FO never hears what you say to ATC. Whisper silence-hallucinations ('Thank you.') are absorbed silently — the phrase list is speech.asrHallucinationPhrases in settings.json">
                     <SelectField Label="Listening mode" Options="RecognitionModeOptions"
                                  Hint="Push-to-talk: the FO listens only while the FO PTT is held — use a DIFFERENT key/button than your ATC transmit. Continuous: the FO listens whenever a command window is open, except while the ATC-mute key is held"
                                  @bind-Value="_speech.Value.RecognitionMode" />

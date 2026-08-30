@@ -256,6 +256,17 @@ public sealed class SpeechOptions : IOptionSection
     public double NoSpeechCeiling { get; set; } = 0.6;
     public double ConfidenceFloor { get; set; } = 0.5;
 
+    /// <summary>Utterances absorbed silently instead of chirping a reject (issue #120):
+    /// whisper's classic silence/breath hallucinations. Matched against the normalized heard
+    /// text, whole-utterance only, and only on the reject path — a phrase here can still be
+    /// a valid checklist answer ("checked") because answers are consumed before rejection.
+    /// Power-user list: edit in settings.json (speech.asrHallucinationPhrases).</summary>
+    public List<string> AsrHallucinationPhrases { get; set; } =
+    [
+        "thank you", "thank you very much", "thanks", "you", "bye", "goodbye",
+        "okay", "checked", "sniff", "blank audio", "silence",
+    ];
+
     /// <summary>Snapped command scores in [threshold, this) trigger a "did you mean …?"
     /// confirmation instead of firing.</summary>
     public double ConfirmBelowScore { get; set; } = 0.85;

@@ -120,6 +120,16 @@ public sealed class GsxQuestionCatalog
             RecordDecision(
                 "position-select menu",
                 "left for the user — GSX does not recognize the parking; pick the stand or reposition (issue #44)");
+
+            // Publish the conflict from HERE too (issue #121, 2026-08-30 EGLL arrival): on
+            // arrival there is no prep hold to publish it, so the menu appeared and the
+            // pilot heard nothing. Once per standing conflict — the advisory speaks each
+            // timestamp once and re-publishing would re-speak it.
+            if (_diagnostics.Snapshot().ParkingConflict is null)
+            {
+                _diagnostics.UpdateParkingConflict(new GsxParkingConflictView(DateTimeOffset.UtcNow, ""));
+            }
+
             return Task.CompletedTask;
         });
         dispatcher.Register("This will revoke all active services", ct =>

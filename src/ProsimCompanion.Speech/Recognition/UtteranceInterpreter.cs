@@ -15,6 +15,11 @@ public enum InterpretKind
 
     /// <summary>Unusable — "say again".</summary>
     Reject,
+
+    /// <summary>A known ASR silence/breath hallucination ("Thank you.", issue #120) —
+    /// absorbed silently, never a spoken reject. Only outside answer windows: a phrase on
+    /// the list can still be a valid checklist answer, and answers are consumed first.</summary>
+    Hallucination,
 }
 
 /// <summary>Interpretation context: whether a checklist item is awaiting an answer, plus the
@@ -65,11 +70,28 @@ public sealed class UtteranceInterpreter
             }
         }
 
-        var normalized = CommandMatcher.Normalize(rawText);
+        // Whisper hallucination filter (issue #120, 2026-08-29 flight: 8× "Thank you." from
+        // breaths/silence, each one an audible FO reject in cruise). Checked BEFORE snapping
+        // — "thank you" fuzzy-matched nothing anyway, but must never reach the reject chirp.
+        // Skipped while an item awaits an answer: those windows consume their own words.
+        var normalizedEarly = CommandMatcher.Normalize(rawText);
+        if (!context.ItemAwaiting
+            && options.AsrHallucinationPhrases.Any(h =>
+                CommandMatcher.Normalize(h).Equals(normalizedEarly, StringComparison.Ordinal)))
+        {
+            return new InterpretResult(InterpretKind.Hallucination, rawText, 0);
+        }
+
+        // Exact match accepts the spoken-digit form too ("flaps 1" == "flaps one", #119):
+        // whisper chooses the written form freely and the pilot said the same thing.
+        var normalized = normalizedEarly;
+        var digitsSpoken = CommandMatcher.SpeakSingleDigits(normalized);
         foreach (var phrase in vocabulary)
         {
             if (phrase != NumberGrammar.Sentinel
-                && CommandMatcher.Normalize(phrase).Equals(normalized, StringComparison.Ordinal))
+                && CommandMatcher.Normalize(phrase) is var phraseNorm
+                && (phraseNorm.Equals(normalized, StringComparison.Ordinal)
+                    || phraseNorm.Equals(digitsSpoken, StringComparison.Ordinal)))
             {
                 return new InterpretResult(InterpretKind.Resolved, phrase, 1.0);
             }

@@ -648,7 +648,32 @@
         "Each payload carries the short-key field set (ph, og, ias, gs, alt, ra, agl, vs, pwr, eng, engRaw, st, pb, pbRaw, brk, gear, apu, bcn, thr, n1, n1avg, flap, fcu, fms, v1, vr, v2) and 'ph' equals the phase most recently committed by 'phase-changed'.",
         "Replay check: run FlightReplay over the session file (tests: FlightReplayTests / drop the file into tests/ProsimCompanion.Core.Tests/Flight/Recordings) — the replayed timeline must match the recorded 'phase-changed' edges after the first sample ('matches the recording'). A divergence means the live build and the repo's rule table disagree: report the first differing edge with its rule id and reason."
       ],
-      "notes": "Feature, not a fix (2026-08-29 robustness review): per-second FlightSampleRecorder + FlightReplay harness. Session files grow to a few MB per flight; the logbook/debrief readers skip the event type."
+      "notes": "Feature, not a fix (2026-08-29 robustness review): per-second FlightSampleRecorder + FlightReplay harness. Session files grow to a few MB per flight; the logbook/debrief readers skip the event type. Verified 2026-08-30: 8,671 samples, replay matched the live 13-edge timeline exactly."
+    },
+    {
+      "id": "digit-word-command-matching",
+      "issue": 119,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["log"],
+      "checks": [
+        "No 'ASR heard' Debug line where the heard text contains 'flaps <digit>' or 'engine <digit>' and the Decision resolved/confirmed a DIFFERENT number ('Flaps 1' -> 'flaps two' was the 2026-08-29 signature), and none where 'set flaps ...' was rejected (score 0.00).",
+        "assert-present when exercised: digit-form utterances ('Flaps 1', 'Starting Engine 1') resolve to the matching word phrase at score 1.00 (exact via SpeakSingleDigits) or snap to it — never to the other engine/flap number."
+      ],
+      "notes": "Fixed 2026-08-31: CommandMatcher scores the spoken-digit form too and the interpreter's exact match accepts it; 'set flaps N' added to the EngineFlapCall catalogue with the prefix stripped in the decider."
+    },
+    {
+      "id": "asr-hallucination-absorb",
+      "issue": 120,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "No reject-tagged speech ('Didn't catch that.' / 'Repeat please.' / 'Say again?') whose triggering 'ASR heard' text is on speech.asrHallucinationPhrases (defaults: thank you, thanks, you, bye, okay, checked, ...). The absorb shows as a Debug 'Hallucination absorbed silently (\"...\")' line instead.",
+        "watch: count absorbed hallucinations per flight (2026-08-29 baseline: 13 of 25 rejects were hallucinations, incl. 8x 'Thank you.'); a large count is a mic/VAD signal, not a bug.",
+        "Checklist answers are unaffected: 'checked' while an item awaits still completes the item (it never reaches the reject path)."
+      ],
+      "notes": "Fixed 2026-08-31: InterpretKind.Hallucination in UtteranceInterpreter (skipped while an item awaits), absorbed silently by the router. Phrase list is a JSON-edited option named in the Recognition section hint."
     },
     {
       "id": "turnaround-without-cold-and-dark",
@@ -750,6 +775,31 @@
         "GSX reconnect backoff: while GSX is not running, the Debug 'connect/receive failed (attempt N)' lines must space out — roughly 5 s, 10 s, 20 s, 40 s, then every 60 s (gsx.reconnectIntervalMs doubling to gsx.reconnectMaxIntervalMs) — not a fixed ~7 s cadence."
       ],
       "notes": "2026-08-29: closes the two residues of #76 (items 1 and 4). Items 2/3 shipped earlier."
+    },
+    {
+      "id": "tankering-preskip-plan-gate",
+      "issue": 118,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'skip Refueling' gsx-decision containing '(tankering)' before a 'flight plan detection' decision (or SimBrief import log line) shows a plan exists — the 2026-08-30 signature was two skips against phantom figures (FOB 9576 / planned 2300) 2 min before the OFP arrived.",
+        "No cycle containing BOTH a '(tankering)' skip decision and a later 'trigger Refueling' from the sequencer — a published skip must be final.",
+        "assert-present on a genuine tankering leg: the skip decision quotes the OFP block (or the current EFB planned fuel), Refueling is never triggered, and the prelim-loadsheet edge still fires once."
+      ],
+      "notes": "Fixed 2026-08-31: TankeringSkipReason gains a flightPlanAvailable gate (the #60 availability signal) — no plan, no decision, no prelim edge."
+    },
+    {
+      "id": "arrival-parking-conflict-advisory",
+      "issue": 121,
+      "state": "closed-regression-watch",
+      "kind": "assert-present",
+      "sources": ["session"],
+      "checks": [
+        "When a 'gsx-question' {action: 'position-select menu'} fires at the ARRIVAL airport, an 'fo.parking-conflict-advisory' follows once (and the Flight Status row shows the conflict) — the 2026-08-30 EGLL menu at 01:31Z produced neither.",
+        "assert-absent: repeated advisories for one standing conflict (the publish is once-per-conflict; the advisory speaks each timestamp once)."
+      ],
+      "notes": "Fixed 2026-08-31: the GsxQuestionCatalog's Select Position handler publishes the parking conflict itself when none stands, so the arrival path no longer depends on the prep-chain hold."
     },
     {
       "id": "requires-human-checklist",

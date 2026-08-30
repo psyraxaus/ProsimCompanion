@@ -39,7 +39,7 @@ public sealed class RefuelCoreTests
     [InlineData(9576, 0, 0, false)]       // no plan figure at all → never skip
     public void TankeringSkipReason_ComparesFobAgainstOfpBlockFuel(double fob, double ofpBlock, double planned, bool skip)
     {
-        var reason = RefuelCore.TankeringSkipReason(true, fob, ofpBlock, planned);
+        var reason = RefuelCore.TankeringSkipReason(true, true, fob, ofpBlock, planned);
 
         Assert.Equal(skip, reason is not null);
         if (skip)
@@ -53,12 +53,12 @@ public sealed class RefuelCoreTests
     public void TankeringSkipReason_OfpWins_OverPlannedFuelDataref()
     {
         // OFP says 10 000, the EFB dataref still shows last leg's 7 100: FOB 9 576 must refuel.
-        Assert.Null(RefuelCore.TankeringSkipReason(true, 9576, 10000, 7100));
+        Assert.Null(RefuelCore.TankeringSkipReason(true, true, 9576, 10000, 7100));
     }
 
     [Fact]
     public void TankeringSkipReason_OptionOff_NeverSkips()
-        => Assert.Null(RefuelCore.TankeringSkipReason(false, 9576, 7100, 7100));
+        => Assert.Null(RefuelCore.TankeringSkipReason(false, true, 9576, 7100, 7100));
 
     [Fact]
     public void Activation_LatchesTheTarget_RoundedUpToHundred()

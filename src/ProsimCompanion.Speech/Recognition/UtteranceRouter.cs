@@ -257,6 +257,12 @@ public sealed class UtteranceRouter : IDisposable
 
         switch (interpretation.Kind)
         {
+            case InterpretKind.Hallucination:
+                // Known ASR silence artifact (issue #120): absorbed, never chirped. The ASR
+                // decision trail above already recorded what was heard.
+                _logger.LogDebug("Hallucination absorbed silently (\"{Heard}\")", e.Text);
+                return;
+
             case InterpretKind.Reject:
                 if (string.IsNullOrWhiteSpace(e.Text))
                 {

@@ -1,0 +1,14 @@
+# ESSA -> EGLL, 2026-08-29 22:32Z, 0.3.0-beta.23 (first real-flight recording). Replayed 2026-08-30: 13 edges, matched the live engine.
+Unknown -> ColdAndDark
+ColdAndDark -> Preflight
+Preflight -> PushbackAndStart
+PushbackAndStart -> TaxiOut
+TaxiOut -> TakeoffRoll
+TakeoffRoll -> InitialClimb
+InitialClimb -> Climb
+Climb -> Cruise
+Cruise -> Descent
+Descent -> Approach
+Approach -> LandingRollout
+LandingRollout -> TaxiIn
+TaxiIn -> Shutdown

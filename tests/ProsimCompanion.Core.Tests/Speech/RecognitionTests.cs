@@ -89,6 +89,45 @@ public sealed class RecognitionTests
     }
 
     [Theory]
+    [InlineData("Thank you.")]
+    [InlineData("thanks")]
+    [InlineData("Checked.")]
+    [InlineData("you")]
+    public void Interpreter_KnownHallucination_IsAbsorbedNotRejected(string heard)
+    {
+        // Issue #120: 13 of 25 rejects on 2026-08-29 were whisper silence artifacts, each an
+        // audible FO chirp in cruise.
+        var result = Interpreter().Interpret(heard, VoiceCommands.All,
+            new InterpretContext(false, 0.9, 0.1));
+
+        Assert.Equal(InterpretKind.Hallucination, result.Kind);
+    }
+
+    [Fact]
+    public void Interpreter_HallucinationWord_StillAnswersAnAwaitingItem()
+    {
+        // "checked" is on the hallucination list AND the universal checklist answer — while
+        // an item awaits, the answer path must win.
+        var result = Interpreter().Interpret("Checked.", ["checked"],
+            new InterpretContext(true, 0.9, 0.1));
+
+        Assert.Equal(InterpretKind.Resolved, result.Kind);
+    }
+
+    [Fact]
+    public void Interpreter_DigitForm_ResolvesExactly()
+    {
+        // Issue #119: "Flaps 1" must equal "flaps one" — on 2026-08-29 it confirmed
+        // "flaps two" instead.
+        var result = Interpreter().Interpret("Flaps 1.", ["flaps one", "flaps two"],
+            new InterpretContext(false, 0.9, 0.1));
+
+        Assert.Equal(InterpretKind.Resolved, result.Kind);
+        Assert.Equal("flaps one", result.Text);
+        Assert.Equal(1.0, result.Score);
+    }
+
+    [Theory]
     [InlineData("F12", 0x7B)]
     [InlineData("space", 0x20)]
     [InlineData("RightCtrl", 0xA3)]

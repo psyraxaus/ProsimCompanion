@@ -350,6 +350,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 PreSkip: id => id.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
                     ? Sync.RefuelCore.TankeringSkipReason(
                         options.SkipRefuelOnTankering,
+                        _flightPlan.FlightPlanAvailable,
                         _fuelTotal.Value,
                         _ofpStore.Current?.FuelPlanRampKg ?? 0,
                         _plannedFuel.Value)
