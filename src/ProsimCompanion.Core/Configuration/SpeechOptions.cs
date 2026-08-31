@@ -193,6 +193,34 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Capture device product-name (prefix match); empty uses the default mic.</summary>
     public string InputDevice { get; set; } = "";
 
+    /// <summary>Voice-activity engine for LAN ASR segmentation: "silero" (default — Silero
+    /// VAD over ONNX Runtime, robust to cockpit/engine noise and TTS bleed) or "rms" (the
+    /// legacy energy gate). Silero degrades to RMS automatically if the model or the native
+    /// runtime cannot load — recognition is never lost to the VAD.</summary>
+    public string VadEngine { get; set; } = "silero";
+
+    /// <summary>Speech probability that opens an utterance (Silero path only). Hysteresis is
+    /// built in: trailing silence is only counted below this minus 0.15 (Silero's default
+    /// negative threshold), so a soft word tail can't end a sentence early.</summary>
+    public double VadThreshold { get; set; } = 0.5;
+
+    /// <summary>Trailing silence that closes an utterance, Silero path only — the RMS gate
+    /// keeps its proven 700 ms regardless. Shorter than the legacy value because Silero
+    /// doesn't mistake quiet speech for silence, so commands land sooner.</summary>
+    public int VadEndSilenceMs { get; set; } = 500;
+
+    /// <summary>Segments shorter than this are dropped as blips (door slams, breaths),
+    /// Silero path only.</summary>
+    public int VadMinSpeechMs { get; set; } = 300;
+
+    /// <summary>Pre-speech audio retained ahead of the first speech frame so a soft first
+    /// syllable isn't clipped, Silero path only.</summary>
+    public int VadPreRollMs { get; set; } = 300;
+
+    /// <summary>Hard cap on one utterance, Silero path only; a capped utterance is posted and
+    /// segmentation restarts immediately.</summary>
+    public int VadMaxUtteranceMs { get; set; } = 15_000;
+
     /// <summary>FO push-to-talk binding (key OR joystick button, Prosim2FO process). When
     /// unset, the legacy flat fields below still apply, so pre-binding configs migrate
     /// silently.</summary>

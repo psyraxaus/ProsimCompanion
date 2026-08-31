@@ -139,6 +139,15 @@
                                  Options="InputDeviceOptions()"
                                  Hint="Microphones found on this machine; Default follows the Windows capture device"
                                  @bind-Value="_speech.Value.InputDevice" />
+                    <SelectField Label="Voice activity detection" Options="VadEngineOptions"
+                                 Hint="How the FO decides you are speaking (LAN ASR only). Silero ignores engine noise and TTS bleed and hears quiet commands; RMS is the legacy energy gate and the automatic fallback if the Silero model cannot load. Power-user knobs speech.vadMinSpeechMs / vadPreRollMs / vadMaxUtteranceMs stay in settings.json. Applies from the next listening start"
+                                 @bind-Value="_speech.Value.VadEngine" />
+                    <NumberField Label="VAD threshold" Step="0.05" Min="0.1" Max="0.95"
+                                 Hint="Speech probability that opens an utterance (Silero only). Raise it if noise still triggers false segments; lower it if quiet commands are missed"
+                                 @bind-Value="_speech.Value.VadThreshold" />
+                    <NumberField Label="End-of-utterance silence" Suffix="ms" Min="200" Step="50"
+                                 Hint="Trailing silence that closes an utterance (Silero only; the RMS gate keeps its proven 700 ms). Raise it if natural pauses split your sentences"
+                                 @bind-Value="_speech.Value.VadEndSilenceMs" />
                 </Section>
 
                 <Section Title="Interphone Transmit"
@@ -519,6 +528,12 @@
         ("whisperCpp", "whisper.cpp server (/v1/audio/transcriptions)"),
     ];
 
+    private static readonly IReadOnlyList<(string, string)> VadEngineOptions =
+    [
+        ("silero", "Silero VAD (neural, recommended)"),
+        ("rms", "RMS energy gate (legacy)"),
+    ];
+
     private static readonly IReadOnlyList<(string, string)> ProcedureSourceOptions =
     [
         ("auto", "Auto (FMS → flight.json → manual)"),
@@ -759,6 +774,7 @@
         speech.PilotSeat = speech.PilotSeat.Trim().ToLowerInvariant();
         speech.RecognitionMode = speech.RecognitionMode.Trim();
         speech.AsrBaseUrl = speech.AsrBaseUrl.Trim();
+        speech.VadEngine = speech.VadEngine.Trim();
         speech.InputDevice = speech.InputDevice.Trim();
         speech.KokoroBaseUrl = speech.KokoroBaseUrl.Trim();
         speech.KokoroModel = speech.KokoroModel.Trim();

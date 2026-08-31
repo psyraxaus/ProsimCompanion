@@ -10,8 +10,10 @@ namespace ProsimCompanion.Speech.Recognition;
 /// LAN whisper recognizer (faster-whisper wrapper or whisper.cpp, per <c>speech.asrApi</c> —
 /// the wire differences live in <see cref="AsrServerApi"/>): WaveInEvent capture at 16 kHz
 /// mono PCM16, segmented into utterances by <see cref="UtteranceSegmenter"/> over a pluggable
-/// frame classifier (RMS energy gate, constants proven in Prosim2FO), each segmented
-/// utterance POSTed as multipart "file" to the transcribe endpoint. Transcribe-only: snapping
+/// frame classifier (<c>speech.vadEngine</c>: Silero VAD by default, the legacy RMS energy
+/// gate as selectable fallback — it also engages automatically if Silero cannot initialise),
+/// each segmented utterance POSTed as multipart "file" to the transcribe endpoint.
+/// Transcribe-only: snapping
 /// and gating live in the interpreter. Improvements over the predecessor: the configured input
 /// device is actually honoured (matched on WaveIn product-name prefix), and grammar phrases
 /// are sent for decoder biasing (hotwords / initial prompt).
@@ -34,6 +36,8 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
 
     private WaveInEvent? _waveIn;
     private UtteranceSegmenter? _segmenter;
+    private SileroVadClassifier? _silero;
+    private bool _sileroFailed;
     private IReadOnlyList<string> _grammar = [];
     private int _serverFailureLogged;
 
@@ -140,18 +144,68 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         }
     }
 
-    public void Dispose() => StopListening();
+    public void Dispose()
+    {
+        StopListening();
+        lock (_gate)
+        {
+            _silero?.Dispose();
+            _silero = null;
+        }
+    }
 
     /// <summary>Builds a fresh segmenter for one capture episode; settings are re-read here so
-    /// options changes apply on the next StartListening without a restart.</summary>
+    /// options changes (engine, thresholds) apply on the next StartListening without a
+    /// restart. Reset() clears the classifier's recurrent state per episode. Caller holds the
+    /// gate.</summary>
     private UtteranceSegmenter CreateSegmenter()
     {
-        var segmenter = new UtteranceSegmenter(new RmsClassifier(), RmsSegmenterSettings);
+        var options = _options.CurrentValue;
+        var classifier = ResolveClassifier(options);
+        var settings = classifier is SileroVadClassifier
+            ? new SegmenterSettings(
+                (float)options.VadThreshold,
+                options.VadEndSilenceMs,
+                options.VadMinSpeechMs,
+                options.VadPreRollMs,
+                options.VadMaxUtteranceMs)
+            : RmsSegmenterSettings;
+
+        var segmenter = new UtteranceSegmenter(classifier, settings);
         segmenter.Reset();
         segmenter.UtteranceReady += (_, e) => _ = TranscribeAsync(e.Pcm);
         segmenter.UtteranceDropped += (_, e) =>
             _logger.LogDebug("ASR segment dropped under min-speech ({DurationMs} ms)", e.DurationMs);
         return segmenter;
+    }
+
+    /// <summary>One Silero session for the recognizer's lifetime; any initialisation failure
+    /// (missing model, native load error) warns once and degrades permanently to the RMS gate
+    /// — recognition must never be lost because of the VAD. Caller holds the gate.</summary>
+    private ISpeechFrameClassifier ResolveClassifier(SpeechOptions options)
+    {
+        if (!options.VadEngine.Trim().Equals("silero", StringComparison.OrdinalIgnoreCase) || _sileroFailed)
+        {
+            return new RmsClassifier();
+        }
+
+        if (_silero is not null)
+        {
+            return _silero;
+        }
+
+        try
+        {
+            _silero = new SileroVadClassifier(SileroVadClassifier.DefaultModelPath);
+            _logger.LogInformation("Silero VAD initialised ({ModelPath})", SileroVadClassifier.DefaultModelPath);
+            return _silero;
+        }
+        catch (Exception ex)
+        {
+            _sileroFailed = true;
+            _logger.LogWarning(ex, "Silero VAD failed to initialise — falling back to the RMS energy gate");
+            return new RmsClassifier();
+        }
     }
 
     private void OnData(object? sender, WaveInEventArgs e)
