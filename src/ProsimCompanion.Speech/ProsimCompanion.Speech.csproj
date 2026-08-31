@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Google.Cloud.TextToSpeech.V1" />
     <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
     <PackageReference Include="NAudio" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" />
     <PackageReference Include="System.Speech" />
@@ -19,6 +20,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Vendored Silero VAD model (v6.2.1, MIT — provenance in THIRD_PARTY.md). Loaded from
+         the output directory at runtime; NEVER downloaded. Flows to the App and test outputs
+         through the ProjectReference. -->
+    <Content Include="Recognition\Vad\silero_vad.onnx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

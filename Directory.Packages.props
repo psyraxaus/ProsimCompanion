@@ -23,6 +23,9 @@
     <!-- Speech pillar (Phase 5): Google Chirp 3 HD TTS + SAPI5 last-resort synth. -->
     <PackageVersion Include="Google.Cloud.TextToSpeech.V1" Version="3.18.0" />
     <PackageVersion Include="System.Speech" Version="10.0.10" />
+    <!-- Silero VAD inference (speech pillar). CPU package only; the installer publish
+         (-r win-x64) trims the native runtimes to a single RID (THIRD_PARTY.md). -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.29.0" />
     <!-- Navigraph DFD SQLite (briefings). lib.e_sqlite3 pinned >= 3.53.3: GHSA-2m69-gcr7-jv3q. -->
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.0" />
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
