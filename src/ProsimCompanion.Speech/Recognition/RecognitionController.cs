@@ -40,6 +40,7 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
     private readonly ILogger<RecognitionController> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IReadOnlyList<TimeSpan> _retryBackoff;
+    private readonly Core.EventLog.JsonlEventLog? _eventLog;
     private readonly IDisposable? _optionsSubscription;
     private readonly object _gate = new();
 
@@ -57,13 +58,16 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
     /// decision is testable without a Windows speech engine; DI leaves it null.</param>
     /// <param name="retryBackoff">Test seam: start-retry delays (last entry repeats). DI
     /// leaves it null for the production 2/5/10/30 s ladder.</param>
+    /// <param name="eventLog">Session JSONL, forwarded to the LAN recognizer for per-utterance
+    /// VAD diagnostics; optional so tests need no sessions directory.</param>
     public RecognitionController(
         IOptionsMonitor<SpeechOptions> options,
         PushToTalkService ptt,
         SpeechStatusStore store,
         ILoggerFactory loggerFactory,
         Func<IVoiceRecognizer>? recognizerFactory = null,
-        IReadOnlyList<TimeSpan>? retryBackoff = null)
+        IReadOnlyList<TimeSpan>? retryBackoff = null,
+        Core.EventLog.JsonlEventLog? eventLog = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(ptt);
@@ -76,6 +80,7 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<RecognitionController>();
         _retryBackoff = retryBackoff is { Count: > 0 } ? retryBackoff : DefaultRetryBackoff;
+        _eventLog = eventLog;
 
         _recognizer = recognizerFactory?.Invoke() ?? BuildRecognizer();
         _recognizer.Accepted += OnAccepted;
@@ -364,7 +369,7 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
     {
         if (!string.IsNullOrWhiteSpace(_options.CurrentValue.AsrBaseUrl))
         {
-            return new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>());
+            return new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog);
         }
 
         return new SystemSpeechRecognizer(_options, _loggerFactory.CreateLogger<SystemSpeechRecognizer>());

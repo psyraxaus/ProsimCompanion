@@ -32,6 +32,7 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
 
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ILogger<LanAsrRecognizer> _logger;
+    private readonly Core.EventLog.JsonlEventLog? _eventLog;
     private readonly object _gate = new();
 
     private WaveInEvent? _waveIn;
@@ -40,14 +41,21 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
     private bool _sileroFailed;
     private IReadOnlyList<string> _grammar = [];
     private int _serverFailureLogged;
+    private int _droppedSegments;
 
-    public LanAsrRecognizer(IOptionsMonitor<SpeechOptions> options, ILogger<LanAsrRecognizer> logger)
+    /// <param name="eventLog">Session JSONL for per-utterance VAD diagnostics; null (tests,
+    /// degraded mode) simply skips the records.</param>
+    public LanAsrRecognizer(
+        IOptionsMonitor<SpeechOptions> options,
+        ILogger<LanAsrRecognizer> logger,
+        Core.EventLog.JsonlEventLog? eventLog = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
         _logger = logger;
+        _eventLog = eventLog;
     }
 
     public event EventHandler<RecognizedEventArgs>? Accepted;
@@ -171,12 +179,38 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
                 options.VadMaxUtteranceMs)
             : RmsSegmenterSettings;
 
+        var engine = classifier is SileroVadClassifier ? "silero" : "rms";
         var segmenter = new UtteranceSegmenter(classifier, settings);
         segmenter.Reset();
-        segmenter.UtteranceReady += (_, e) => _ = TranscribeAsync(e.Pcm);
+        segmenter.UtteranceReady += (_, e) =>
+        {
+            RecordUtterance(e.Stats, engine);
+            _ = TranscribeAsync(e.Pcm);
+        };
         segmenter.UtteranceDropped += (_, e) =>
-            _logger.LogDebug("ASR segment dropped under min-speech ({DurationMs} ms)", e.DurationMs);
+        {
+            var dropped = Interlocked.Increment(ref _droppedSegments);
+            _logger.LogDebug(
+                "ASR segment dropped under min-speech ({DurationMs} ms, {DroppedTotal} total this session)",
+                e.DurationMs, dropped);
+        };
         return segmenter;
+    }
+
+    /// <summary>Per-utterance VAD diagnostics into the session JSONL — the tuning data for
+    /// <c>speech.vadThreshold</c> / <c>vadEndSilenceMs</c>. Field names and the camelCase
+    /// endReason values (silence | hardCap | pttRelease) are read by the flight-verification
+    /// workflow — keep them stable.</summary>
+    private void RecordUtterance(UtteranceStats stats, string engine)
+    {
+        var reason = stats.EndReason.ToString();
+        _eventLog?.Record("asr.utterance", new
+        {
+            durationMs = stats.DurationMs,
+            peakSpeechProb = Math.Round(stats.PeakProbability, 3),
+            endReason = char.ToLowerInvariant(reason[0]) + reason[1..],
+            vadEngine = engine,
+        });
     }
 
     /// <summary>One Silero session for the recognizer's lifetime; any initialisation failure
