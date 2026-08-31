@@ -2,14 +2,15 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NAudio.Wave;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Speech.Recognition.Vad;
 
 namespace ProsimCompanion.Speech.Recognition;
 
 /// <summary>
 /// LAN whisper recognizer (faster-whisper wrapper or whisper.cpp, per <c>speech.asrApi</c> —
 /// the wire differences live in <see cref="AsrServerApi"/>): WaveInEvent capture at 16 kHz
-/// mono PCM16 with a simple RMS VAD (constants proven in Prosim2FO — 500/32767 threshold,
-/// 700 ms end-silence, 300 ms minimum speech, 300 ms pre-roll, 15 s hard cap), each segmented
+/// mono PCM16, segmented into utterances by <see cref="UtteranceSegmenter"/> over a pluggable
+/// frame classifier (RMS energy gate, constants proven in Prosim2FO), each segmented
 /// utterance POSTed as multipart "file" to the transcribe endpoint. Transcribe-only: snapping
 /// and gating live in the interpreter. Improvements over the predecessor: the configured input
 /// device is actually honoured (matched on WaveIn product-name prefix), and grammar phrases
@@ -17,13 +18,13 @@ namespace ProsimCompanion.Speech.Recognition;
 /// </summary>
 public sealed class LanAsrRecognizer : IVoiceRecognizer
 {
-    private const double SpeechRmsThreshold = 500.0;
-    private const int EndSilenceMs = 700;
-    private const int MinSpeechMs = 300;
-    private const int PreRollMs = 300;
-    private const int MaxUtteranceMs = 15_000;
+    /// <summary>Legacy RMS-path segmentation (700 ms end-silence etc.) — deliberately NOT
+    /// driven by the Vad* options, so the fallback behaves exactly like the proven
+    /// predecessor gate regardless of Silero tuning.</summary>
+    private static readonly SegmenterSettings RmsSegmenterSettings =
+        new(Threshold: 0.5f, EndSilenceMs: 700, MinSpeechMs: 300, PreRollMs: 300, MaxUtteranceMs: 15_000);
+
     private const int SampleRate = 16_000;
-    private const int BytesPerMs = SampleRate * 2 / 1000;
 
     private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan };
 
@@ -32,10 +33,8 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
     private readonly object _gate = new();
 
     private WaveInEvent? _waveIn;
-    private MemoryStream _buffer = new();
+    private UtteranceSegmenter? _segmenter;
     private IReadOnlyList<string> _grammar = [];
-    private bool _speechDetected;
-    private int _silenceMs;
     private int _serverFailureLogged;
 
     public LanAsrRecognizer(IOptionsMonitor<SpeechOptions> options, ILogger<LanAsrRecognizer> logger)
@@ -88,9 +87,7 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
                     BufferMilliseconds = 50,
                 };
                 _waveIn.DataAvailable += OnData;
-                _buffer = new MemoryStream();
-                _speechDetected = false;
-                _silenceMs = 0;
+                _segmenter = CreateSegmenter();
                 _waveIn.StartRecording();
             }
             catch (Exception ex)
@@ -116,7 +113,6 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
 
     public void StopListening()
     {
-        byte[]? utterance = null;
         lock (_gate)
         {
             if (_waveIn is null)
@@ -137,84 +133,33 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             _waveIn.Dispose();
             _waveIn = null;
 
-            // PTT release: flush what was buffered if it contained speech.
-            if (_speechDetected && _buffer.Length >= MinSpeechMs * BytesPerMs)
-            {
-                utterance = _buffer.ToArray();
-            }
-
-            _buffer = new MemoryStream();
-            _speechDetected = false;
-        }
-
-        if (utterance is not null)
-        {
-            _ = TranscribeAsync(utterance);
+            // PTT release: the flush emits the buffered utterance (fire-and-forget POST)
+            // if it contained speech, and discards buffered ambience otherwise.
+            _segmenter?.Flush();
+            _segmenter = null;
         }
     }
 
     public void Dispose() => StopListening();
 
-    private void OnData(object? sender, WaveInEventArgs e)
+    /// <summary>Builds a fresh segmenter for one capture episode; settings are re-read here so
+    /// options changes apply on the next StartListening without a restart.</summary>
+    private UtteranceSegmenter CreateSegmenter()
     {
-        byte[]? utterance = null;
-        lock (_gate)
-        {
-            var frameMs = e.BytesRecorded / BytesPerMs;
-            var speaking = Rms(e.Buffer, e.BytesRecorded) > SpeechRmsThreshold;
-
-            _buffer.Write(e.Buffer, 0, e.BytesRecorded);
-
-            if (speaking)
-            {
-                _speechDetected = true;
-                _silenceMs = 0;
-            }
-            else
-            {
-                _silenceMs += frameMs;
-                if (!_speechDetected)
-                {
-                    TrimToPreRoll();
-                }
-            }
-
-            // Segment on trailing silence or the hard cap.
-            if (_speechDetected
-                && (_silenceMs >= EndSilenceMs || _buffer.Length >= MaxUtteranceMs * (long)BytesPerMs))
-            {
-                if (_buffer.Length >= MinSpeechMs * BytesPerMs)
-                {
-                    utterance = _buffer.ToArray();
-                }
-
-                _buffer = new MemoryStream();
-                _speechDetected = false;
-                _silenceMs = 0;
-            }
-        }
-
-        if (utterance is not null)
-        {
-            _ = TranscribeAsync(utterance);
-        }
+        var segmenter = new UtteranceSegmenter(new RmsClassifier(), RmsSegmenterSettings);
+        segmenter.Reset();
+        segmenter.UtteranceReady += (_, e) => _ = TranscribeAsync(e.Pcm);
+        segmenter.UtteranceDropped += (_, e) =>
+            _logger.LogDebug("ASR segment dropped under min-speech ({DurationMs} ms)", e.DurationMs);
+        return segmenter;
     }
 
-    /// <summary>Keeps only the last 300 ms of pre-speech audio so leading silence never
-    /// reaches the server.</summary>
-    private void TrimToPreRoll()
+    private void OnData(object? sender, WaveInEventArgs e)
     {
-        var keep = PreRollMs * BytesPerMs;
-        if (_buffer.Length <= keep)
+        lock (_gate)
         {
-            return;
+            _segmenter?.Push(e.Buffer, e.BytesRecorded);
         }
-
-        var tail = new byte[keep];
-        _buffer.Position = _buffer.Length - keep;
-        _ = _buffer.Read(tail, 0, keep);
-        _buffer = new MemoryStream();
-        _buffer.Write(tail, 0, keep);
     }
 
     private async Task TranscribeAsync(byte[] pcm)
@@ -300,24 +245,6 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         {
             _logger.LogInformation("LAN ASR server {Url} answering again", url);
         }
-    }
-
-    private static double Rms(byte[] buffer, int bytes)
-    {
-        if (bytes < 2)
-        {
-            return 0;
-        }
-
-        double sum = 0;
-        var samples = bytes / 2;
-        for (var i = 0; i < samples; i++)
-        {
-            double sample = BitConverter.ToInt16(buffer, i * 2);
-            sum += sample * sample;
-        }
-
-        return Math.Sqrt(sum / samples);
     }
 
     /// <summary>Canonical 44-byte WAV header + PCM.</summary>
