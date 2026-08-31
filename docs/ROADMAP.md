@@ -294,7 +294,8 @@ from Phase 1 — this phase adds the speech stack and features on top.
 - [x] Recognition + spoken checklists + flight-control check (Prosim2FO semantics, with its
       own port-notes applied — the legacy non-interpreter path deliberately dropped, input
       device selection actually wired, whisper hotword biasing sent on ≤50-phrase windows): LAN faster-whisper
-      (WaveInEvent 16 kHz + RMS VAD 500/700 ms/300 ms/15 s, multipart POST, 120 s readiness
+      (WaveInEvent 16 kHz + Silero VAD v6 segmentation with RMS-gate fallback since 2026-09-01
+      — ADR-0009, `speech.vadEngine`; multipart POST, 120 s readiness
       probe with one-way swap to offline) → System.Speech (Choices grammar + 1–6-word digit
       grammar); WinRT recognition deferred. PTT: global low-level keyboard hook (own
       message-pump thread, never swallows keys, edge evaluation off-thread) + winmm joystick

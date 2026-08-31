@@ -36,6 +36,21 @@ chains — "local only" hard mode must exist.
     lines). Now a Warning "LAN ASR server … answered 404 … check speech.asrApi" fires once
     per episode.
   Default `http://192.168.1.50:8000`; readiness polling + optional wake-on-LAN (MAC/broadcast/port 9).
+- **Utterance segmentation (ADR-0009)** — `UtteranceSegmenter` over a pluggable
+  `ISpeechFrameClassifier` (512-sample / 32 ms frames at 16 kHz; WaveInEvent's 800-sample
+  buffers are reframed with remainder carry). Engine per `speech.vadEngine`:
+  - `silero` (default): Silero VAD v6, vendored ONNX model (THIRD_PARTY.md) on
+    `Microsoft.ML.OnnxRuntime` CPU, one intra-op thread, recurrent state + 64-sample context
+    reset per listening start. Hysteresis: speech opens at p ≥ `vadThreshold` (0.5), silence
+    only counts below threshold − 0.15. Defaults: 500 ms end-silence, 300 ms min speech,
+    300 ms pre-roll, 15 s hard cap (`vadEndSilenceMs` / `vadMinSpeechMs` / `vadPreRollMs` /
+    `vadMaxUtteranceMs`).
+  - `rms`: the legacy Prosim2FO energy gate (500/32767, its own 700 ms end-silence, ignores
+    the Vad* tuning) — also the automatic fallback if Silero can't initialise (one Warning,
+    sticky for the recognizer lifetime; recognition is never lost to the VAD).
+  Per utterance an `asr.utterance` JSONL event carries `durationMs`, `peakSpeechProb`,
+  `endReason` (`silence`|`hardCap`|`pttRelease`) and `vadEngine` — the tuning evidence for the
+  thresholds; field names are stable for the verification workflow.
 - Push-to-talk via keyboard hook or joystick; continuous mode optional; ATC-mute binding.
   PTT decides when the FO LISTENS; whether a crew HAIL is accepted is a separate, dataref-side
   gate — see "Interphone transmit gating" below.
