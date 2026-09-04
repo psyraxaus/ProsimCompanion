@@ -802,6 +802,18 @@
       "notes": "Fixed 2026-08-31: the GsxQuestionCatalog's Select Position handler publishes the parking conflict itself when none stands, so the arrival path no longer depends on the prep-chain hold."
     },
     {
+      "id": "flight-status-pill-vs-text",
+      "issue": 110,
+      "state": "open",
+      "kind": "watch",
+      "sources": ["log"],
+      "checks": [
+        "Collect every 'Flight Status display: pill ...' line (component FlightStatusChangeLog). Report each interval where the pill and the phase text disagree (e.g. pill DEPARTURE while text COLD AND DARK), with duration and the trigger that opened and closed it.",
+        "assert-present: at least one such line per session once any phase commit or departure-sequence start occurred — total silence means the change log is not wired."
+      ],
+      "notes": "Instrumentation shipped 2026-09-05: the dashboard pill mapping and the change log share FlightStatusPresentation, so the log records exactly what the card showed, browser open or not. The pill deliberately reads the GSX departure sequence on the ground pre-push; this probe quantifies how contradictory it reads in practice, feeding the #110 legibility redesign."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",

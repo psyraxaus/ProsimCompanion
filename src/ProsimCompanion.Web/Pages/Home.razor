@@ -38,11 +38,11 @@
                 @PhaseReason
             </div>
             <div class="phase-grid">
-                @for (var i = 0; i < BlockLabels.Length; i++)
+                @for (var i = 0; i < FlightStatusPresentation.BlockLabels.Length; i++)
                 {
                     <div class="phase-block @(i == ActiveBlock ? "active" : null)"></div>
                 }
-                @foreach (var label in BlockLabels)
+                @foreach (var label in FlightStatusPresentation.BlockLabels)
                 {
                     <div class="phase-block-label">@label</div>
                 }
@@ -59,7 +59,7 @@
                     <select class="number-input" @bind="_forcePhase" title="Phase to force">
                         @foreach (var phase in Enum.GetValues<FlightPhase>())
                         {
-                            <option value="@phase">@ToSpacedUpper(phase.ToString())</option>
+                            <option value="@phase">@FlightStatusPresentation.PhaseDisplay(phase)</option>
                         }
                     </select>
                     <label class="pill tone-neutral" title="Keep the forced phase until Resume auto; otherwise the next contradicting evidence moves on">
@@ -157,9 +157,6 @@
 </div>
 
 @code {
-    private static readonly string[] BlockLabels =
-        ["PREFLIGHT", "DEPARTURE", "PUSHBACK", "TAXI OUT", "FLIGHT", "TAXI IN", "ARRIVAL"];
-
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _connections = [];
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
 
@@ -172,20 +169,12 @@
     private ConnectionState StateOf(string subsystem)
         => _connections.FirstOrDefault(pair => pair.Key == subsystem).Value;
 
-    private int ActiveBlock => FlightState.CurrentPhase switch
-    {
-        FlightPhase.Unknown or FlightPhase.ColdAndDark or FlightPhase.Preflight =>
-            DepartureControl.Started && !DepartureControl.Complete ? 1 : 0,
-        FlightPhase.PushbackAndStart => 2,
-        FlightPhase.TaxiOut or FlightPhase.TakeoffRoll => 3,
-        FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise
-            or FlightPhase.Descent or FlightPhase.Approach => 4,
-        FlightPhase.LandingRollout or FlightPhase.TaxiIn => 5,
-        FlightPhase.Shutdown => 6,
-        _ => 0,
-    };
+    // Pill + text mappings live in FlightStatusPresentation, shared with the
+    // FlightStatusChangeLog so the flight log records exactly what this card showed (#110).
+    private int ActiveBlock => FlightStatusPresentation.ActiveBlock(
+        FlightState.CurrentPhase, DepartureControl.Started, DepartureControl.Complete);
 
-    private string PhaseDisplay => ToSpacedUpper(FlightState.CurrentPhase.ToString());
+    private string PhaseDisplay => FlightStatusPresentation.PhaseDisplay(FlightState.CurrentPhase);
 
     private FlightStateView View => FlightState.Snapshot();
 
@@ -391,20 +380,6 @@
     private GsxServiceView? ServiceView(string serviceId)
         => _gsx.Services.FirstOrDefault(service =>
             string.Equals(service.Id, serviceId, StringComparison.OrdinalIgnoreCase));
-
-    private static string ToSpacedUpper(string pascal)
-    {
-        var result = new System.Text.StringBuilder(pascal.Length + 4);
-        foreach (var ch in pascal)
-        {
-            if (char.IsUpper(ch) && result.Length > 0)
-            {
-                result.Append(' ');
-            }
-            result.Append(char.ToUpperInvariant(ch));
-        }
-        return result.ToString();
-    }
 
     protected override void OnInitialized()
     {

@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ProsimCompanion.Core.Hosting;
+using ProsimCompanion.Web.Components;
 using ProsimCompanion.Web.Theming;
 
 namespace ProsimCompanion.Web;
@@ -20,6 +22,8 @@ public static class WebServiceCollectionExtensions
         services.AddSingleton(provider => new ThemeCatalog(
             userThemesDirectory,
             provider.GetRequiredService<ILogger<ThemeCatalog>>()));
+        // Flight Status pill/text change log (issue #110) — runs whether or not a browser is open.
+        services.AddStartupModule<FlightStatusChangeLog>();
         return services;
     }
 }
