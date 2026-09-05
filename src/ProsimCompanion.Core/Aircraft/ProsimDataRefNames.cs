@@ -280,7 +280,10 @@ public static class ProsimDataRefNames
     public static readonly DataRef<int> FmsPerfTakeoffV1 = new("aircraft.fms.perf.takeOff.v1", DataRefTier.Infrequent, 0);
     public static readonly DataRef<int> FmsPerfTakeoffVr = new("aircraft.fms.perf.takeOff.vr", DataRefTier.Infrequent, 0);
     public static readonly DataRef<int> FmsPerfTakeoffV2 = new("aircraft.fms.perf.takeOff.v2", DataRefTier.Infrequent, 0);
-    public const string FmsPerfTakeoffFlaps = "aircraft.fms.perf.takeOff.flaps";
+    /// <summary>PERF TO flap entry [0:UP, 1, 2, 3, 4:Full]. The perf uplink writes it
+    /// (via <c>.Name</c>); the {takeoffConfig} token and the taxi checklist's flap-config
+    /// read-back (issue #125) read it typed.</summary>
+    public static readonly DataRef<int> FmsPerfTakeoffFlaps = new("aircraft.fms.perf.takeOff.flaps", DataRefTier.Infrequent, 0);
     public const string FmsPerfTakeoffThs = "aircraft.fms.perf.takeOff.ths";
     public const string FmsPerfTakeoffShift = "aircraft.fms.perf.takeOff.shift";
     public const string FmsPerfLandingFlaps = "aircraft.fms.perf.landing.flaps";
@@ -458,7 +461,9 @@ public static class ProsimDataRefNames
 
     #region FlightControls
 
-    public const string FcFlaps = "system.switches.S_FC_FLAPS";
+    /// <summary>Flap lever [0:0, 1:1, 2:2, 3:3, 4:Full] — same detent scale as
+    /// <see cref="FmsPerfTakeoffFlaps"/> (issue #125).</summary>
+    public static readonly DataRef<int> FcFlaps = new("system.switches.S_FC_FLAPS", DataRefTier.Normal, 0);
     public const string FcSpeedbrake = "system.analog.A_FC_SPEEDBRAKE"; // analog
     public static readonly DataRef<int> FcSpeedbrakeArmed = new("system.switches.S_FC_SPEEDBRAKE_ARMED", DataRefTier.Normal, 0);
 
@@ -829,6 +834,10 @@ public static class ProsimDataRefNames
 
     public const string MipClockEt = "system.switches.S_MIP_CLOCK_ET"; // 0=RUN 1=STP 2=RST
     public const string MipClockChr = "system.switches.S_MIP_CLOCK_CHR";
+
+    /// <summary>F/O clock chrono button [0:Normal, 1:Pushed] — momentary, pressed by the FO
+    /// on the pilot's "takeoff" call and again at touchdown to stop the timer (issue #126).
+    /// Press-only via <see cref="IProsimDataRefs.PressMomentaryAsync"/>.</summary>
     public const string MipChronoFo = "system.switches.S_MIP_CHRONO_FO";
 
     #endregion

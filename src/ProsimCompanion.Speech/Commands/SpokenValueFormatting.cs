@@ -14,7 +14,8 @@ public sealed record CommandTokenValues(
     string V2,
     string Flex,
     string Runway,
-    string FlightLevel)
+    string FlightLevel,
+    string TakeoffConfig = "unavailable")
 {
     public static CommandTokenValues Unavailable { get; } = new(
         "unavailable", "unavailable", "unavailable", "unavailable",
@@ -47,7 +48,8 @@ public static class SpokenValueFormatting
             .Replace("{v2}", values.V2, StringComparison.Ordinal)
             .Replace("{flex}", values.Flex, StringComparison.Ordinal)
             .Replace("{runway}", values.Runway, StringComparison.Ordinal)
-            .Replace("{flightLevel}", values.FlightLevel, StringComparison.Ordinal);
+            .Replace("{flightLevel}", values.FlightLevel, StringComparison.Ordinal)
+            .Replace("{takeoffConfig}", values.TakeoffConfig, StringComparison.Ordinal);
     }
 
     /// <summary>F/O baro as spoken digits. <paramref name="std"/> null = no data yet

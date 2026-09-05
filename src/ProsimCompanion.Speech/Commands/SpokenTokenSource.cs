@@ -62,6 +62,8 @@ public sealed class SpokenTokenSource : IDisposable
             Sub(ProsimDataRefNames.FmsPerfTakeoffVr);
             Sub(ProsimDataRefNames.FmsPerfTakeoffV2);
             Sub(ProsimDataRefNames.FmsPerfTakeoffFlexTemp);
+            Sub(ProsimDataRefNames.FmsPerfTakeoffFlaps); // {takeoffConfig} (issue #125)
+            Sub(ProsimDataRefNames.FcFlaps); // {takeoffConfig} lever fallback
             Sub(ProsimDataRefNames.Altitude); // {flightLevel} (issue #49)
         }
         catch (Exception ex)
@@ -97,7 +99,14 @@ public sealed class SpokenTokenSource : IDisposable
                 Flex: SpokenValueFormatting.Speed(Perf(ProsimDataRefNames.FmsPerfTakeoffFlexTemp)),
                 Runway: SpokenValueFormatting.Runway(runway),
                 FlightLevel: SpokenValueFormatting.FlightLevel(
-                    Sub(ProsimDataRefNames.Altitude) is { RawValue: not null } altitude ? altitude.Value : null));
+                    Sub(ProsimDataRefNames.Altitude) is { RawValue: not null } altitude ? altitude.Value : null),
+                TakeoffConfig: Checklists.FlapConfigAnswer.Spoken(
+                    // PERF TO entry first ("look at the performance", #125); an unfilled page
+                    // (0/null) falls back to the actual lever so a verified answer never
+                    // reads back "not set".
+                    Perf(ProsimDataRefNames.FmsPerfTakeoffFlaps) is > 0 and var perfConfig
+                        ? perfConfig
+                        : Perf(ProsimDataRefNames.FcFlaps)));
         }
         catch (Exception ex)
         {

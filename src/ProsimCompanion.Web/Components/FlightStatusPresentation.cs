@@ -16,11 +16,16 @@ public static class FlightStatusPresentation
 
     /// <summary>Index of the highlighted block. The strip is NOT a pure phase view: on the
     /// ground pre-push it also reads the GSX departure sequence, so DEPARTURE can light while
-    /// the phase text still says COLD AND DARK — the exact contradictory read of issue #110.</summary>
+    /// the phase text still says COLD AND DARK — the exact contradictory read of issue #110.
+    /// Completion gate (owner report, 2026-09-06): once the sequence has STARTED the strip
+    /// holds DEPARTURE until pushback — the 2026-09-05 flight stepped backwards to PREFLIGHT
+    /// for seven minutes when boarding completed, which read as the app losing its place. The
+    /// strip is a progress bar; progress bars never regress within one departure (the
+    /// turnaround resets Started, so leg 2 begins at PREFLIGHT correctly).</summary>
     public static int ActiveBlock(FlightPhase phase, bool departureStarted, bool departureComplete) => phase switch
     {
         FlightPhase.Unknown or FlightPhase.ColdAndDark or FlightPhase.Preflight =>
-            departureStarted && !departureComplete ? 1 : 0,
+            departureStarted ? 1 : 0,
         FlightPhase.PushbackAndStart => 2,
         FlightPhase.TaxiOut or FlightPhase.TakeoffRoll => 3,
         FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise

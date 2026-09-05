@@ -63,6 +63,8 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     private ChecklistItemDefinition? _awaitingItem;
     private CancellationTokenSource? _monitorSkip;
     private bool _started;
+    private IDataRefSubscription<int>? _flapLever;
+    private IDataRefSubscription<int>? _perfFlaps;
 
     public SpokenChecklistEngine(
         IOptionsMonitor<SpeechOptions> options,
@@ -139,6 +141,9 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
         {
             read.Dispose();
         }
+
+        _flapLever?.Dispose();
+        _perfFlaps?.Dispose();
     }
 
     ChecklistItemDefinition? IChecklistRoutingHost.AwaitingItem
@@ -697,6 +702,11 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     /// whose read-back number is out of tolerance) is what triggers "are you sure".</summary>
     private bool EvaluateResponse(ChecklistItemDefinition item, string answer)
     {
+        if (item.Expects.Equals("flapConfig", StringComparison.OrdinalIgnoreCase))
+        {
+            return EvaluateFlapConfig(answer);
+        }
+
         if (item.Expects.Equals("number", StringComparison.OrdinalIgnoreCase)
             && !string.IsNullOrWhiteSpace(item.ReadbackDataref)
             && NumberExtractor.TryExtract(answer, out var said))
@@ -711,6 +721,28 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
         }
 
         return item.Verify is null || ConditionEvaluator.Evaluate(item.Verify, ReadVerify);
+    }
+
+    /// <summary>The takeoff flap-config read-back (issue #125): a spoken config ("config 1
+    /// plus F") must match the flap lever AND, when the PERF TO page carries one, the FMS
+    /// performance entry — "looking at the performance" is the point, not phrase-matching. A
+    /// generic "set"/"checked" answer makes the FO do the cross-check itself: lever in a
+    /// takeoff detent and agreeing with the performance. A perf entry of 0 means the page is
+    /// not filled yet — the lever alone then governs (fail-open per input, like the aircraft
+    /// state check).</summary>
+    private bool EvaluateFlapConfig(string answer)
+    {
+        var said = FlapConfigAnswer.TryParse(answer);
+        var lever = (_flapLever ??= _dataRefs.Subscribe(ProsimDataRefNames.FcFlaps)).Value;
+        var perf = (_perfFlaps ??= _dataRefs.Subscribe(ProsimDataRefNames.FmsPerfTakeoffFlaps)).Value;
+
+        var ok = said is { } config
+            ? lever == config && (perf == 0 || perf == config)
+            : lever >= 1 && lever <= 3 && (perf == 0 || lever == perf);
+        _logger.LogInformation(
+            "Flap config read-back: said {Said}, lever {Lever}, perf {Perf} -> {Result}",
+            said?.ToString() ?? "(generic)", lever, perf, ok ? "pass" : "fail");
+        return ok;
     }
 
     private double ReadVerify(string dataref)

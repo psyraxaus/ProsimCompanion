@@ -84,7 +84,9 @@ public sealed class ChecklistItemDefinition
     /// <summary>Verify-mismatch retries before the "still not set" escape line (default 3).</summary>
     public int? MaxRetries { get; set; }
 
-    /// <summary>"none" | "number" — number items accept any spoken number.</summary>
+    /// <summary>"none" | "number" | "flapConfig" — number items accept any spoken number;
+    /// flapConfig items (issue #125) parse an Airbus takeoff config ("config 1 plus F") and
+    /// read it back against the flap lever and the FMS PERF TO entry.</summary>
     public string Expects { get; set; } = "none";
 
     /// <summary>When set with Expects=number: the spoken number is compared to this dataref

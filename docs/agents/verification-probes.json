@@ -812,7 +812,7 @@
         "Collect every 'Flight Status display: pill ...' line (component FlightStatusChangeLog). Report each interval where the pill and the phase text disagree (e.g. pill DEPARTURE while text COLD AND DARK), with duration and the trigger that opened and closed it.",
         "assert-present: at least one such line per session once any phase commit or departure-sequence start occurred — total silence means the change log is not wired."
       ],
-      "notes": "Instrumentation shipped 2026-09-05: the dashboard pill mapping and the change log share FlightStatusPresentation, so the log records exactly what the card showed, browser open or not. The pill deliberately reads the GSX departure sequence on the ground pre-push; this probe quantifies how contradictory it reads in practice, feeding the #110 legibility redesign."
+      "notes": "Instrumentation shipped 2026-09-05: the dashboard pill mapping and the change log share FlightStatusPresentation, so the log records exactly what the card showed, browser open or not. The pill deliberately reads the GSX departure sequence on the ground pre-push; this probe quantifies how contradictory it reads in practice, feeding the #110 legibility redesign. Completion gate shipped 2026-09-06 (owner report): once the sequence starts the strip HOLDS DEPARTURE until pushback — add assert-absent: any pill line stepping DEPARTURE back to PREFLIGHT within one departure (the 2026-09-05 seven-minute regression signature); the turnaround reset to PREFLIGHT on a new leg is correct."
     },
     {
       "id": "abnormal-transient-debounce",
@@ -841,6 +841,32 @@
         "The save side stays healthy: an arrival 'saved FOB N kg for <title>' decision on every stable-park (worked 2026-09-05: 3214.6 kg persisted to settings.json)."
       ],
       "notes": "Shipped 2026-09-05: DecideFobRestore gains a startup path — saved value exists AND IsLive AND phase ColdAndDark/Preflight AND no plan imported. The turnaround path (#59's airborne proof) is unchanged, default fallback included."
+    },
+    {
+      "id": "flap-config-readback",
+      "issue": 125,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "On the taxi checklist's 'Flap Setting' item, an answer naming a config ('config 1 plus F', word or digit form) completes the item with a 'Flap config read-back: said N, lever N, perf N -> pass' log line — no reject speech for the config phrasing.",
+        "assert-present when the spoken config disagrees with the lever or the PERF TO entry: the read-back logs 'fail' and the FO asks 'are you sure' instead of confirming.",
+        "The confirm callout speaks the actual config ('Flap setting, config one plus F') via {takeoffConfig} — never the literal brace token, and never 'not set' after a passing verify (lever fallback when the PERF page is empty)."
+      ],
+      "notes": "Shipped 2026-09-06: expects 'flapConfig' on the taxi item — the spoken config is parsed (FlapConfigAnswer) and read back against S_FC_FLAPS AND aircraft.fms.perf.takeOff.flaps (perf 0 = page unfilled, lever governs); a generic 'set' makes the FO cross-check lever-vs-perf itself. ADR-0007: a user-edited taxi checklist keeps its old item — re-seed by hand."
+    },
+    {
+      "id": "chrono-takeoff-landing",
+      "issue": 126,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "Pilot says 'takeoff' during TaxiOut/TakeoffRoll: a 'voicecommand.chrono' {action: start} event, the FO speaks 'Takeoff.' (tag fo.chrono), and NO reject speech for the utterance (the 2026-09-05 09:53:15 'Repeat please.' signature is dead).",
+        "At the LandingRollout commit of a flight where the start press happened: a 'voicecommand.chrono' {action: stop} event with NO speech attached.",
+        "assert-absent: a stop press at touchdown with no start press earlier in the flight (a blind press would START a stopped chrono); any chrono event outside TaxiOut/TakeoffRoll/LandingRollout."
+      ],
+      "notes": "Shipped 2026-09-06: ChronoCallFeature presses S_MIP_CHRONO_FO (momentary, serialized press path, write-gate widened deliberately). The running latch resets without a press when the session ends mid-flight."
     },
     {
       "id": "requires-human-checklist",

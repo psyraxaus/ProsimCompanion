@@ -43,7 +43,7 @@ public sealed class FmsPerfUplinkService : IFmsPerfUplink, IDisposable
 
         try
         {
-            await _prosim.WriteAsync(ProsimDataRefNames.FmsPerfTakeoffFlaps, values.Flaps, cancellationToken).ConfigureAwait(false);
+            await _prosim.WriteAsync(ProsimDataRefNames.FmsPerfTakeoffFlaps.Name, values.Flaps, cancellationToken).ConfigureAwait(false);
             // FLEX rides the dataref as a double; 0 is the FMS's TOGA sentinel. String-name
             // overload on purpose: the descriptor is DataRef<int> for reads, but the write
             // must stay a double (predecessor-verified wire behaviour).

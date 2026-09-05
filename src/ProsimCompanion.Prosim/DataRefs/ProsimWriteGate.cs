@@ -60,7 +60,7 @@ public static class ProsimWriteGate
         ProsimDataRefNames.FmsInitZfwcg,
 
         // FMS PERF TO uplink (Phase 3 performance page)
-        ProsimDataRefNames.FmsPerfTakeoffFlaps,
+        ProsimDataRefNames.FmsPerfTakeoffFlaps.Name,
         ProsimDataRefNames.FmsPerfTakeoffFlexTemp.Name,
         ProsimDataRefNames.FmsPerfTakeoffV1.Name,
         ProsimDataRefNames.FmsPerfTakeoffVr.Name,
@@ -72,6 +72,10 @@ public static class ProsimWriteGate
         // #43). The feature gates on airborne evidence before writing; dataref-first per
         // the write-safety rule (the lever IS the dataref, no cockpit switch actuation).
         ProsimDataRefNames.MipGear,
+
+        // F/O clock chrono — momentary press on the pilot's "takeoff" call and again at
+        // touchdown (issue #126). Press-only via PressMomentaryAsync, like the MECH call.
+        ProsimDataRefNames.MipChronoFo,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly string[] AllowedPrefixes =

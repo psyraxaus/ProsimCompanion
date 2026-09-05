@@ -74,6 +74,11 @@ public static class SpeechServiceCollectionExtensions
         // "Gear up/down" PM action (issue #43) — the one call whose point IS the lever;
         // write-gated on airborne evidence, adjacent to its verbal-only sibling above.
         services.AddSingleton<IVoiceFeature, Callouts.GearCallFeature>();
+        // "Takeoff" chrono PM action (issue #126): "Takeoff." + F/O chrono press on the roll,
+        // stop press at touchdown. Startup module so the touchdown edge is wired even before
+        // the first utterance.
+        services.AddStartupModule<Callouts.ChronoCallFeature>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Callouts.ChronoCallFeature>());
         // MCDU trio (predecessor dispatch position: after fcu, before briefings). Reader is
         // read-only; tuner/arrival changer arm only via mcdu.allowActuation.
         services.AddSingleton<Mcdu.McduReader>();
