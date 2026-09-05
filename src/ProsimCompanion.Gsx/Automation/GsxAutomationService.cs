@@ -50,6 +50,17 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     /// <summary>The refuel-active edge was raised in place of a tankering-skipped refuel this
     /// cycle (#117) — once per turnaround, reset at arrival.</summary>
     private bool _tankeringPrelimRaised;
+
+    /// <summary>EFB planned-fuel settle window (#118, 2026-09-05): with no OFP yet, the
+    /// tankering decision trusts <c>efb.plannedfuel</c> only after the plan has stood this
+    /// long — the import the plan detection itself starts needs time to overwrite the
+    /// previous leg's figure (imports land in seconds; failures leave the pilot's own EFB
+    /// entry as the honest fallback).</summary>
+    private static readonly TimeSpan TankeringPlanSettle = TimeSpan.FromSeconds(90);
+
+    /// <summary>UTC instant the flight plan first read as available this cycle; null while
+    /// none stands. Reset at arrival with the rest of the cycle state.</summary>
+    private DateTimeOffset? _planAvailableSinceUtc;
     private readonly IDataRefSubscription<int> _intRadCpt;
     private readonly IDataRefSubscription<int> _intRadFo;
     private readonly Timer _pumpTimer;
@@ -266,6 +277,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 _cycle.BeginTurnaroundCycle();
                 _paxTargetArmed = false;
                 _tankeringPrelimRaised = false;
+                _planAvailableSinceUtc = null;
                 _forceNext = false;
                 _slot.Reset("service cycles reset after arrival");
                 lock (_triggerAttempts)
@@ -311,6 +323,21 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         try
         {
             var options = _options.CurrentValue;
+
+            // Plan-figure settling for the tankering decision (#118): stamp when the plan
+            // first appears; the EFB fallback figure is trusted once the OFP is imported or
+            // the settle window has passed with no import landing.
+            if (!_flightPlan.FlightPlanAvailable)
+            {
+                _planAvailableSinceUtc = null;
+            }
+            else
+            {
+                _planAvailableSinceUtc ??= DateTimeOffset.UtcNow;
+            }
+            var planFiguresSettled = _flightPlan.OfpImported
+                || (_planAvailableSinceUtc is { } since && DateTimeOffset.UtcNow - since >= TankeringPlanSettle);
+
             var cycles = _lifecycle.SnapshotCycles();
             DepartureCycleView Cycle(string id)
             {
@@ -351,6 +378,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                     ? Sync.RefuelCore.TankeringSkipReason(
                         options.SkipRefuelOnTankering,
                         _flightPlan.FlightPlanAvailable,
+                        planFiguresSettled,
                         _fuelTotal.Value,
                         _ofpStore.Current?.FuelPlanRampKg ?? 0,
                         _plannedFuel.Value)
@@ -426,6 +454,19 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
 
             if (outcome.Trigger is { } trigger)
             {
+                // A tankering skip is a live judgement, not a latch — when the inputs
+                // materially change (2026-09-05: the pilot reset the FOB to ~300 kg after the
+                // skip had been published), calling Refueling after all is CORRECT, but the
+                // flight log must say why the skip reversed instead of contradicting itself
+                // silently (#118).
+                if (trigger.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
+                    && _tankeringPrelimRaised)
+                {
+                    RecordDecisionOnce(
+                        "tankering skip reversed",
+                        $"FOB {_fuelTotal.Value:F0} kg no longer meets the plan — Refueling called after all");
+                }
+
                 int attempt;
                 lock (_triggerAttempts)
                 {

@@ -18,7 +18,7 @@
       ]
     },
     "logic": "any",
-    "debounceSeconds": 2.0
+    "debounceSeconds": 30.0
   },
   "announce": "ECAM, landing gear not downlocked.",
   "actions": [

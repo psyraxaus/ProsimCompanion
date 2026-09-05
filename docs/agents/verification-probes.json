@@ -784,10 +784,11 @@
       "sources": ["session"],
       "checks": [
         "No 'skip Refueling' gsx-decision containing '(tankering)' before a 'flight plan detection' decision (or SimBrief import log line) shows a plan exists — the 2026-08-30 signature was two skips against phantom figures (FOB 9576 / planned 2300) 2 min before the OFP arrived.",
-        "No cycle containing BOTH a '(tankering)' skip decision and a later 'trigger Refueling' from the sequencer — a published skip must be final.",
-        "assert-present on a genuine tankering leg: the skip decision quotes the OFP block (or the current EFB planned fuel), Refueling is never triggered, and the prelim-loadsheet edge still fires once."
+        "No '(tankering)' skip decision quoting a planned figure that differs from the OFP block that lands within the next 2 minutes (the 2026-09-05 second bite: skip on efb.plannedfuel 2300 two seconds before the OFP's 7500 arrived) — with no OFP yet, the decision must wait out the 90 s settle window.",
+        "A cycle containing BOTH a '(tankering)' skip and a later 'trigger Refueling' MUST also contain a 'tankering skip reversed' decision naming the FOB that no longer meets the plan (2026-09-05: legitimate reversal after the pilot reset the FOB to ~300 kg) — a silent skip-then-trigger contradiction is the fail.",
+        "assert-present on a genuine tankering leg: the skip decision quotes the OFP block (or the settled EFB planned fuel), Refueling is never triggered, and the prelim-loadsheet edge still fires once."
       ],
-      "notes": "Fixed 2026-08-31: TankeringSkipReason gains a flightPlanAvailable gate (the #60 availability signal) — no plan, no decision, no prelim edge."
+      "notes": "Fixed 2026-08-31 (flightPlanAvailable gate) + 2026-09-05: with no OFP block, the EFB planned-fuel figure is trusted only once settled (OFP imported, or the plan has stood 90 s with no import landing), and a skip that later reverses on changed inputs logs the 'tankering skip reversed' decision instead of contradicting itself silently."
     },
     {
       "id": "arrival-parking-conflict-advisory",
@@ -799,7 +800,7 @@
         "When a 'gsx-question' {action: 'position-select menu'} fires at the ARRIVAL airport, an 'fo.parking-conflict-advisory' follows once (and the Flight Status row shows the conflict) — the 2026-08-30 EGLL menu at 01:31Z produced neither.",
         "assert-absent: repeated advisories for one standing conflict (the publish is once-per-conflict; the advisory speaks each timestamp once)."
       ],
-      "notes": "Fixed 2026-08-31: the GsxQuestionCatalog's Select Position handler publishes the parking conflict itself when none stands, so the arrival path no longer depends on the prep-chain hold."
+      "notes": "Fixed 2026-08-31: the GsxQuestionCatalog's Select Position handler publishes the parking conflict itself when none stands, so the arrival path no longer depends on the prep-chain hold. Re-fixed 2026-09-05 (departure-side duplicate): a hold-release cleared the conflict and the menu republished it 16 s later — the advisory now holds a 10-minute same-text episode cooldown, so a clear-then-republish speaks once; changed guidance (a newly named facility) still speaks."
     },
     {
       "id": "flight-status-pill-vs-text",
@@ -822,22 +823,24 @@
       "checks": [
         "No 'abnormal.started' whose matching 'failure.cleared' (same id) arrives within 5 seconds — a dialogue that starts and dies inside the transit/blip window is the 2026-09-05 signature (fctl-altn-law twice in preflight, lg-gear-not-downlocked during normal gear extension).",
         "No 'speech.dropped' with tag 'abnormal' and reason 'caller cancelled' within seconds of a failure.cleared — the mic-borrowed-then-cut pattern is the audible half of the same transient.",
-        "assert-present when a failure genuinely persists: 'failure.detected' still fires after the definition's hold time — the debounce must delay, not suppress."
+        "assert-present when a failure genuinely persists: 'failure.detected' still fires after the definition's hold time — the debounce must delay, not suppress.",
+        "No 'failure.detected lg-gear-not-downlocked' within 30 s of a gear-down command/lever movement whose gears then lock normally; no 'failure.detected fctl-altn-law' while on the ground before TaxiOut (the definition no longer arms in ColdAndDark/Preflight/PushbackAndStart)."
       ],
-      "notes": "Filed 2026-09-05: FailureMonitor starts dialogues on the detection edge with no minimum condition duration. Gear needs >= gear transit time (or a gear-lever corroborate); fctl-altn-law rode 2-3 s master-caution blips through its corroborate in powered preflight."
+      "notes": "Fixed 2026-09-05 (correction to the issue text: FailureMonitor DID have a per-definition debounce — the transients outlived the 2 s values). Definition tuning: lg-gear-not-downlocked debounce 2->30 s (covers the normal transit), fctl-altn-law debounce 2->5 s AND phases restricted to TaxiOut..TaxiIn (powered-preflight alternate law with hydraulics down is normal, not a fault; the 2-3 s master-caution blips rode through the corroborate there). Seeds propagate via ADR-0007 unless the user edited those files."
     },
     {
       "id": "fob-startup-restore",
       "issue": 124,
       "state": "open",
-      "kind": "feature-pending",
+      "kind": "assert-present",
       "sources": ["session", "log"],
       "checks": [
-        "Once shipped: at a session start with a saved gsx.fuelFobSaved value for the active aircraft and NO plan imported, a 'fob restore' decision '<current> kg -> <saved> kg' appears while phase is ColdAndDark/Preflight and IsLive is true — the 2026-09-05 gap was the blanket refusal 'aircraft has not been airborne this session'.",
-        "assert-absent (the #59 clobber must stay dead): no restore AFTER a plan import, and no restore whose written value replaces more fuel than saved (overwriting freshly-loaded planned fuel).",
+        "At a session start with a saved gsx.fuelFobSaved value for the active aircraft and NO plan imported: a 'fob restore' decision '<current> kg -> <saved> kg (saved landing fuel applied at session start, issue #124)' while phase is ColdAndDark/Preflight and the flight-live gate is up — the pre-fix signature was the blanket refusal 'aircraft has not been airborne this session'.",
+        "assert-absent (the #59 clobber must stay dead): no startup restore after a plan import, none while the flight is not live, none applying the fuelResetDefaultKg default (startup applies SAVED values only), and none in a phase other than ColdAndDark/Preflight.",
+        "assert-present while the startup gate holds (no saved value / not live yet): one 'fob restore: held at startup — waiting for a saved value with the flight live at the stand' decision, not silence.",
         "The save side stays healthy: an arrival 'saved FOB N kg for <title>' decision on every stable-park (worked 2026-09-05: 3214.6 kg persisted to settings.json)."
       ],
-      "notes": "Filed 2026-09-05 after the owner's report: save works, restore is turnaround-only by design (#59 write-safety), so a fresh session starts with ProSim's own fuel (9576 kg that day, which then fed the #118 tankering contradiction)."
+      "notes": "Shipped 2026-09-05: DecideFobRestore gains a startup path — saved value exists AND IsLive AND phase ColdAndDark/Preflight AND no plan imported. The turnaround path (#59's airborne proof) is unchanged, default fallback included."
     },
     {
       "id": "requires-human-checklist",

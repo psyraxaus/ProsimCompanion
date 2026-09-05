@@ -21,6 +21,8 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
     private readonly ILogger<ParkingConflictAdvisoryService> _logger;
     private readonly object _gate = new();
     private DateTimeOffset? _lastSpokenConflict;
+    private string? _lastSpokenText;
+    private DateTimeOffset? _lastSpokenAtUtc;
     private IDisposable? _subscription;
 
     public ParkingConflictAdvisoryService(
@@ -54,6 +56,7 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
                 return;
             }
 
+            var text = ComposeAdvisory(conflict.GsxFacility);
             lock (_gate)
             {
                 if (_lastSpokenConflict == conflict.Timestamp)
@@ -61,10 +64,24 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
                     return;
                 }
 
+                // One episode, one line (#121, 2026-09-05 EGLL): the prep hold published the
+                // conflict, released it sixteen seconds later when the reposition remedy
+                // started, and the position-select menu republished it — two identical
+                // advisories for one standing problem. A clear-then-republish inside the
+                // cooldown is the same episode unless the guidance itself changed (a facility
+                // GSX now names is new information and still speaks).
+                if (IsRepeatWithinCooldown(_lastSpokenText, _lastSpokenAtUtc, text, DateTimeOffset.UtcNow))
+                {
+                    _lastSpokenConflict = conflict.Timestamp;
+                    _logger.LogDebug("Parking conflict republished within the cooldown — advisory not repeated");
+                    return;
+                }
+
                 _lastSpokenConflict = conflict.Timestamp;
+                _lastSpokenText = text;
+                _lastSpokenAtUtc = DateTimeOffset.UtcNow;
             }
 
-            var text = ComposeAdvisory(conflict.GsxFacility);
             _eventLog.Record("fo.parking-conflict-advisory", new { text });
             _ = SpeakAsync(text);
         }
@@ -73,6 +90,19 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
             _logger.LogDebug(ex, "Parking conflict advisory handling failed");
         }
     }
+
+    /// <summary>Episode cooldown for re-published conflicts (#121). Pure — exposed for tests.
+    /// A different spoken text (GSX now names a facility) is never a repeat.</summary>
+    internal static bool IsRepeatWithinCooldown(
+        string? lastText, DateTimeOffset? lastAtUtc, string text, DateTimeOffset nowUtc)
+        => lastText is not null
+            && lastAtUtc is not null
+            && string.Equals(lastText, text, StringComparison.Ordinal)
+            && nowUtc - lastAtUtc < RepeatCooldown;
+
+    /// <summary>Long enough to bridge a hold-release/menu republish churn at one stand; short
+    /// enough that a genuinely new conflict at the arrival airport hours later still speaks.</summary>
+    internal static readonly TimeSpan RepeatCooldown = TimeSpan.FromMinutes(10);
 
     /// <summary>The single spoken line. The facility string is cleaned for speech — the
     /// stand-range parentheses and the Safedock trademark sign are display furniture, not

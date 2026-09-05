@@ -3,13 +3,13 @@
   "title": "F/CTL ALTN LAW",
   "severity": "caution",
   "enabled": true,
-  "phases": [],
+  "phases": [ "TaxiOut", "TakeoffRoll", "InitialClimb", "Climb", "Cruise", "Descent", "Approach", "LandingRollout", "TaxiIn" ],
   "trigger": {
     "ewdText": [ "F/CTL ALTN LAW", "ALTN LAW", "ALTERNATE LAW", "PROT LOST" ],
     "condition": { "dataref": "aircraft.controlLaw.numerical", "op": "notEquals", "value": 0 },
     "corroborate": "system.indicators.I_MIP_MASTER_CAUTION_FO",
     "logic": "any",
-    "debounceSeconds": 2.0
+    "debounceSeconds": 5.0
   },
   "announce": "ECAM, flight controls, alternate law.",
   "actions": [

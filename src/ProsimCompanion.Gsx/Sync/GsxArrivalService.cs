@@ -305,20 +305,35 @@ public sealed class GsxArrivalService : IDisposable
     internal enum FobRestoreDecision
     {
         Restore,
+
+        /// <summary>Startup restore (issue #124): a SAVED landing-fuel value applied at the
+        /// start of a fresh session — never the configured default.</summary>
+        RestoreAtStartup,
         AlreadyRestored,
         Disabled,
         PlanImported,
-        NoArrivalThisSession,
+        NotSafeAtStartup,
     }
 
     /// <summary>Write-safety gate for the FOB restore (issue #59, flight test 2026-08-16): a
     /// bogus startup phase classification walked the automation straight into Preparation and
     /// the restore overwrote 9576 kg of freshly-loaded fuel with 3344 kg saved by a PREVIOUS
-    /// session. The restore is a turnaround convenience — it may only run after the aircraft
-    /// has verifiably been airborne in THIS session, never at startup, where whatever fuel is
-    /// already on board is authoritative.</summary>
+    /// session. After an arrival in THIS session (verifiably airborne) the restore runs
+    /// unconditionally, default fallback included. At STARTUP (issue #124, owner report
+    /// 2026-09-05: the saved landing fuel was never applied and the session started on
+    /// ProSim's own 9576 kg) it runs only under the narrow gate that could not exist in the
+    /// #59 era: the flight-live gate holds (session live, datarefs fresh and plausible —
+    /// #114), the phase is a real at-the-stand phase, a value was actually SAVED for this
+    /// aircraft, and no flight plan has been imported. The configured reset default is
+    /// deliberately excluded at startup — it would clobber deliberately-loaded fuel.</summary>
     internal static FobRestoreDecision DecideFobRestore(
-        bool alreadyRestored, bool saveLoadFobEnabled, bool planImported, bool airborneThisSession)
+        bool alreadyRestored,
+        bool saveLoadFobEnabled,
+        bool planImported,
+        bool airborneThisSession,
+        bool flightLive = false,
+        FlightPhase phase = FlightPhase.Unknown,
+        bool savedValueExists = false)
     {
         if (alreadyRestored)
         {
@@ -335,34 +350,51 @@ public sealed class GsxArrivalService : IDisposable
             return FobRestoreDecision.PlanImported;
         }
 
-        return airborneThisSession ? FobRestoreDecision.Restore : FobRestoreDecision.NoArrivalThisSession;
+        if (airborneThisSession)
+        {
+            return FobRestoreDecision.Restore;
+        }
+
+        return savedValueExists
+            && flightLive
+            && phase is FlightPhase.ColdAndDark or FlightPhase.Preflight
+            ? FobRestoreDecision.RestoreAtStartup
+            : FobRestoreDecision.NotSafeAtStartup;
     }
 
     /// <summary>Restores the saved FOB at preparation, before any plan is loaded — mirrors the
     /// predecessor's guard (restore only when no flight plan exists yet, so a mid-turnaround
-    /// restart never clobbers planned fuel) plus the arrival-this-session gate (issue #59:
-    /// never restore at startup — see <see cref="DecideFobRestore"/>).</summary>
+    /// restart never clobbers planned fuel) plus the gates of <see cref="DecideFobRestore"/>:
+    /// turnaround restores run freely (issue #59's airborne proof), a startup restore applies
+    /// only an actually-saved value under the flight-live gate (issue #124).</summary>
     private void TryRestoreFob()
     {
+        var flight = _flightState.Snapshot();
+        var savedTitle = _profiles.AircraftTitle;
         var decision = DecideFobRestore(
             _fobRestored,
             _options.CurrentValue.FuelSaveLoadFob,
             _ofpImported.Value,
-            _flightState.Snapshot().HasBeenAirborneThisSession);
-        if (decision == FobRestoreDecision.NoArrivalThisSession)
+            flight.HasBeenAirborneThisSession,
+            _flightState.IsLive,
+            flight.Phase,
+            savedValueExists: !string.IsNullOrWhiteSpace(savedTitle)
+                && _options.CurrentValue.FuelFobSaved.ContainsKey(savedTitle));
+        if (decision == FobRestoreDecision.NotSafeAtStartup)
         {
             if (!_fobRestoreRefusalLogged)
             {
                 _fobRestoreRefusalLogged = true;
                 RecordDecision(
                     "fob restore",
-                    "refused — aircraft has not been airborne this session (a startup restore would overwrite loaded fuel)");
+                    "held at startup — waiting for a saved value with the flight live at the stand "
+                    + "(a blind restore here would overwrite loaded fuel, issue #59)");
             }
 
             return;
         }
 
-        if (decision != FobRestoreDecision.Restore)
+        if (decision is not (FobRestoreDecision.Restore or FobRestoreDecision.RestoreAtStartup))
         {
             return;
         }
@@ -384,15 +416,17 @@ public sealed class GsxArrivalService : IDisposable
         _fobRestored = true;
         var options = _options.CurrentValue;
         var saved = options.FuelFobSaved.TryGetValue(title, out var value) ? value : options.FuelResetDefaultKg;
-        _ = RestoreFobAsync(title, current, saved);
+        _ = RestoreFobAsync(title, current, saved, decision == FobRestoreDecision.RestoreAtStartup);
     }
 
-    private async Task RestoreFobAsync(string title, double current, double target)
+    private async Task RestoreFobAsync(string title, double current, double target, bool atStartup)
     {
         try
         {
             await _prosim.WriteAsync(ProsimDataRefNames.FuelTotal, target).ConfigureAwait(false);
-            RecordDecision("fob restore", $"'{title}': {current:F0} kg -> {target:F0} kg (saved value{(Math.Abs(target - _options.CurrentValue.FuelResetDefaultKg) < 0.1 ? " or default" : "")})");
+            RecordDecision("fob restore", atStartup
+                ? $"'{title}': {current:F0} kg -> {target:F0} kg (saved landing fuel applied at session start, issue #124)"
+                : $"'{title}': {current:F0} kg -> {target:F0} kg (saved value{(Math.Abs(target - _options.CurrentValue.FuelResetDefaultKg) < 0.1 ? " or default" : "")})");
         }
         catch (InvalidOperationException ex)
         {

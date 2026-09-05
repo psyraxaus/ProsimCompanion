@@ -284,7 +284,12 @@ internal static class RefuelCore
     /// consulted here — before a refuel session it can still hold the previous leg's value.
     /// </summary>
     internal static string? TankeringSkipReason(
-        bool skipOnTankering, bool flightPlanAvailable, double currentKg, double ofpBlockKg, double plannedFuelRaw)
+        bool skipOnTankering,
+        bool flightPlanAvailable,
+        bool planFiguresSettled,
+        double currentKg,
+        double ofpBlockKg,
+        double plannedFuelRaw)
     {
         if (!skipOnTankering)
         {
@@ -297,6 +302,17 @@ internal static class RefuelCore
         // OFP arrived. A skip that retires the Refueling step for the cycle must only be
         // decided from a plan the pilot actually has.
         if (!flightPlanAvailable)
+        {
+            return null;
+        }
+
+        // Second #118 bite (2026-09-05): "plan available" flips the instant the MCDU plan is
+        // DETECTED — the same pump that starts the SimBrief import — while efb.plannedfuel
+        // still holds the previous leg's figure (skip decided on a phantom 2,300 kg two
+        // seconds before the OFP's 7,500 kg landed). Until the OFP block exists, the EFB
+        // figure is trusted only once the shell says it has settled (import done or the
+        // settle window elapsed with none coming).
+        if (ofpBlockKg <= 0 && !planFiguresSettled)
         {
             return null;
         }
