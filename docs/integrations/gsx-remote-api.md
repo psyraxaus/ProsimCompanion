@@ -212,8 +212,12 @@ re-assigning the same gate may already match). Letter map: Name 0 = NONE, 10 = "
 (+ registry install path `HKCU\SOFTWARE\FSDreamTeam\root`). Everything else on the API.
 
 GSX Pro **4.0.0** is the hard-targeted version (renamed submenu "Additional Services";
-no 3.9.x fallback). Open empiric question: which identity field `gate.select` matches on —
-log every command + verbatim result frame (wire trace) to establish it.
+no 3.9.x fallback). `gate.select` identity (settled empirically, 2026-09-05 EPWA flight):
+it matches **GSX's own facility display name** — `{"gate":"Parking 14R"}` (the name from
+GSX's menu) returned `ok`, while at a stand GSX did not recognize, every ProSim-derived
+identity (`'Stand 311'`, `'Terminal 3 (301-365)|Stand 311'`, bare `'311'`) returned
+`not_found` (2026-09-05 EGLL, issue #75). Prefer names GSX itself has shown (menu entries,
+`Change Facility [...]`) over ProSim gate keys when anchoring.
 
 **Client config defaults**: reconnect 5000 ms, command timeout 10 000 ms, intent verify 5000 ms,
 menu-open wait 5000 ms. All frames go through `IWireTrace` ("GsxRemoteApi" channel).

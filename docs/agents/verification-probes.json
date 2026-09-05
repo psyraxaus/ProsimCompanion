@@ -814,6 +814,32 @@
       "notes": "Instrumentation shipped 2026-09-05: the dashboard pill mapping and the change log share FlightStatusPresentation, so the log records exactly what the card showed, browser open or not. The pill deliberately reads the GSX departure sequence on the ground pre-push; this probe quantifies how contradictory it reads in practice, feeding the #110 legibility redesign."
     },
     {
+      "id": "abnormal-transient-debounce",
+      "issue": 123,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'abnormal.started' whose matching 'failure.cleared' (same id) arrives within 5 seconds — a dialogue that starts and dies inside the transit/blip window is the 2026-09-05 signature (fctl-altn-law twice in preflight, lg-gear-not-downlocked during normal gear extension).",
+        "No 'speech.dropped' with tag 'abnormal' and reason 'caller cancelled' within seconds of a failure.cleared — the mic-borrowed-then-cut pattern is the audible half of the same transient.",
+        "assert-present when a failure genuinely persists: 'failure.detected' still fires after the definition's hold time — the debounce must delay, not suppress."
+      ],
+      "notes": "Filed 2026-09-05: FailureMonitor starts dialogues on the detection edge with no minimum condition duration. Gear needs >= gear transit time (or a gear-lever corroborate); fctl-altn-law rode 2-3 s master-caution blips through its corroborate in powered preflight."
+    },
+    {
+      "id": "fob-startup-restore",
+      "issue": 124,
+      "state": "open",
+      "kind": "feature-pending",
+      "sources": ["session", "log"],
+      "checks": [
+        "Once shipped: at a session start with a saved gsx.fuelFobSaved value for the active aircraft and NO plan imported, a 'fob restore' decision '<current> kg -> <saved> kg' appears while phase is ColdAndDark/Preflight and IsLive is true — the 2026-09-05 gap was the blanket refusal 'aircraft has not been airborne this session'.",
+        "assert-absent (the #59 clobber must stay dead): no restore AFTER a plan import, and no restore whose written value replaces more fuel than saved (overwriting freshly-loaded planned fuel).",
+        "The save side stays healthy: an arrival 'saved FOB N kg for <title>' decision on every stable-park (worked 2026-09-05: 3214.6 kg persisted to settings.json)."
+      ],
+      "notes": "Filed 2026-09-05 after the owner's report: save works, restore is turnaround-only by design (#59 write-safety), so a fresh session starts with ProSim's own fuel (9576 kg that day, which then fed the #118 tankering contradiction)."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",
