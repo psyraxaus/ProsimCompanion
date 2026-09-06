@@ -364,10 +364,17 @@ public sealed class UtteranceRouter : IDisposable
 
             case "resume checklist" or "continue":
                 // The hold loop owns the pending response while holding; outside a hold this
-                // completes into an item answer that fails acceptance (didn't-catch) or
-                // no-ops when nothing is pending.
-                host.Complete(RoutedResponseKind.Phrase, text);
-                return;
+                // completes into an item answer that fails acceptance (didn't-catch). Fully
+                // idle, a bare "continue" is not a checklist word at all — it is the pilot's
+                // minimums decision call (issue #127, 2026-09-06 short final: "Continue." was
+                // absorbed) — so it falls through to the features instead of no-opping.
+                if (!host.IsIdle)
+                {
+                    host.Complete(RoutedResponseKind.Phrase, text);
+                    return;
+                }
+
+                break;
 
             case "cancel checklist":
                 host.CancelChecklist();
@@ -406,10 +413,7 @@ public sealed class UtteranceRouter : IDisposable
         // A checklist start phrase? (Pinned to the default set — see StartChecklist.)
         foreach (var definition in _checklists.Definitions(ChecklistService.DefaultSetName))
         {
-            var startPhrases = definition.StartPhrases is { Count: > 0 }
-                ? definition.StartPhrases
-                : [$"{definition.Checklist} checklist"];
-            if (startPhrases.Any(p => CommandMatcher.Normalize(p)
+            if (StartPhrases(definition).Any(p => CommandMatcher.Normalize(p)
                 .Equals(CommandMatcher.Normalize(text), StringComparison.Ordinal)))
             {
                 host.StartChecklist(definition.Checklist);
@@ -484,6 +488,21 @@ public sealed class UtteranceRouter : IDisposable
         return scoped.Count > 0 ? scoped : grammar;
     }
 
+    /// <summary>A checklist's start phrases — the authored (or default "{name} checklist")
+    /// forms plus their "request …" variants (issue #127, 2026-09-06: "Request taxi
+    /// checklist" was rejected and the pilot had to re-phrase twice). Exposed for tests.</summary>
+    internal static IEnumerable<string> StartPhrases(ChecklistDefinition definition)
+    {
+        var authored = definition.StartPhrases is { Count: > 0 }
+            ? definition.StartPhrases
+            : [$"{definition.Checklist} checklist"];
+        foreach (var phrase in authored)
+        {
+            yield return phrase;
+            yield return $"request {phrase}";
+        }
+    }
+
     private List<string> BuildRouteVocabulary(ChecklistItemDefinition? awaiting)
     {
         var vocabulary = new List<string>(VoiceCommands.All);
@@ -502,9 +521,7 @@ public sealed class UtteranceRouter : IDisposable
         {
             foreach (var definition in _checklists.Definitions(ChecklistService.DefaultSetName))
             {
-                vocabulary.AddRange(definition.StartPhrases is { Count: > 0 }
-                    ? definition.StartPhrases
-                    : [$"{definition.Checklist} checklist"]);
+                vocabulary.AddRange(StartPhrases(definition));
             }
 
             vocabulary.AddRange(_failures.DrillPhrases);

@@ -170,8 +170,10 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
         {
             // Tagged "clarifier" so unreadable-value asks are attributable in the session
             // jsonl (issue #66 — untagged spoken lines hid a misroute for a whole flight).
+            // Short TTL like the FCU clarifier (issue #128): stale asks die quietly.
             _ = _arbiter.EnqueueAsync(new SpeechRequest(
-                "Say again the frequency.", SpeechPriority.Normal, Tag: "clarifier"));
+                "Say again the frequency.", SpeechPriority.Normal,
+                Ttl: TimeSpan.FromSeconds(10), Tag: "clarifier"));
             _eventLog.Record("radio.unreadable", new { text = utterance });
             return true;
         }

@@ -869,6 +869,32 @@
       "notes": "Shipped 2026-09-06: ChronoCallFeature presses S_MIP_CHRONO_FO (momentary, serialized press path, write-gate widened deliberately). The running latch resets without a press when the session ends mid-flight."
     },
     {
+      "id": "pilot-announcement-ack",
+      "issue": 127,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "An FMA read during TakeoffRoll/InitialClimb ('man flex/toga, SRS, runway, nav blue' in any ASR junction) or a capture call during Descent/Approach ('localizer/glideslope star', 'lockstar') produces a 'pilot.announcement' event and a spoken 'Checked.' (tag fo.announce) — never a reject.",
+        "'manual flight' -> 'pilot.announcement' {kind: ManualFlight} with the echoed 'Manual flight.'; a bare 'continue' on Approach with no checklist running -> {kind: Continue} and 'Continue.' — while a checklist is held, 'continue' still resumes it (the router's resume path is unchanged).",
+        "'request <name> checklist' starts that checklist exactly like '<name> checklist'; 'begin ground services' starts the departure sequence without a did-you-mean round-trip; 'set q and h' executes set-qnh directly.",
+        "assert-absent: any reject speech for these phrase families in their phases (the 2026-09-06 signatures: 07:33:44, 07:42:26, 10:00:41, 10:03:31, 10:05:48, 10:06:57)."
+      ],
+      "notes": "Shipped 2026-09-06: PilotAnnouncementFeature (verbal-only, phase-gated), StartPhrases request-variants, GsxVoicePhrases + commands.json aliases, and the router's idle-'continue' fall-through. ADR-0007: a user-edited commands.json keeps the old set-qnh phrases — re-seed by hand."
+    },
+    {
+      "id": "clarifier-ttl",
+      "issue": 128,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "No 'speech.spoken' with tag 'clarifier' whose matching 'speech.enqueued' is more than ~12 s older (the 2026-09-06 signature: enqueued 09:09:49, spoken 09:10:39 behind the arrival brief). A stale clarifier now appears as 'speech.dropped' (expired) instead.",
+        "Prompt clarifiers (queue empty) still speak normally within seconds."
+      ],
+      "notes": "Fixed 2026-09-06: 10 s TTL on the fire-and-forget FCU 'which field?' and radio 'say again the frequency' lines. The interactive did-you-mean confirm dialogue is deliberately unchanged."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",

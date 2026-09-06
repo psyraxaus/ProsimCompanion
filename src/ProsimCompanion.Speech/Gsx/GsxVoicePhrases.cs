@@ -21,7 +21,9 @@ public static class GsxVoicePhrases
     /// <summary>Phrases that start the departure sequence (and release the voice-mode ground
     /// prep gate) — mapped to gsx.startDepartureServices at dispatch time.</summary>
     public static readonly IReadOnlyList<string> StartGroundServicesPhrases =
-        ["commence ground services", "start ground services"];
+        // "begin" added 2026-09-06 (issue #127): the owner's natural phrasing needed a
+        // did-you-mean round-trip every departure.
+        ["commence ground services", "start ground services", "begin ground services"];
 
     /// <summary>Cancel words accepted inside a hail's listening window.</summary>
     public static readonly IReadOnlyList<string> CancelPhrases =

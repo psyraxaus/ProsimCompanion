@@ -116,8 +116,12 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
             case FcuInstructionType.Query:
                 // Tagged "clarifier" (issue #66): these lines were the only untagged entries
                 // in the session jsonl, which is exactly what made the misroute hard to spot.
+                // Short TTL (issue #128, 2026-09-06): queued behind the arrival briefing this
+                // spoke 50 s after the utterance — a stale "which field?" the pilot had long
+                // moved past. A clarifier that cannot speak promptly must die quietly.
                 _ = _arbiter.EnqueueAsync(new SpeechRequest(
-                    $"Say again — {instruction.Reason}.", SpeechPriority.Normal, Tag: "clarifier"));
+                    $"Say again — {instruction.Reason}.", SpeechPriority.Normal,
+                    Ttl: TimeSpan.FromSeconds(10), Tag: "clarifier"));
                 return true;
         }
 

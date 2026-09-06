@@ -79,6 +79,10 @@ public static class SpeechServiceCollectionExtensions
         // the first utterance.
         services.AddStartupModule<Callouts.ChronoCallFeature>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Callouts.ChronoCallFeature>());
+        // PF announcement acknowledgements (issue #127): FMA reads ("man flex, SRS…",
+        // "localizer star"), "manual flight", and the "continue" decision at minimums —
+        // verbal only, phase-gated, never writes.
+        services.AddSingleton<IVoiceFeature, Callouts.PilotAnnouncementFeature>();
         // MCDU trio (predecessor dispatch position: after fcu, before briefings). Reader is
         // read-only; tuner/arrival changer arm only via mcdu.allowActuation.
         services.AddSingleton<Mcdu.McduReader>();
