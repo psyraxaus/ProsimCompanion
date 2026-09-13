@@ -307,6 +307,11 @@ public sealed class SpeechOptions : IOptionSection
     /// or engine masters (issue #67; actuation is deferred pending write-safety review).</summary>
     public bool EngineFlapCallouts { get; set; } = true;
 
+    /// <summary>PM-side engine-start monitoring (issue #131): "Engine two, starting." on the
+    /// N2 rise, "Engine two, avail." at idle, "Both engines stabilized." once both are at
+    /// idle. Fired from datarefs — no pilot speech needed; ground only; once per start.</summary>
+    public bool EngineStartCallouts { get; set; } = true;
+
     // ---- Playback ----
 
     /// <summary>Output device friendly name (exact match); empty uses the system default

@@ -54,6 +54,8 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     private readonly IDataRefSubscription<bool> _engine2Running;
     private readonly IDataRefSubscription<double> _engine1N1;
     private readonly IDataRefSubscription<double> _engine2N1;
+    private readonly IDataRefSubscription<double> _engine1N2;
+    private readonly IDataRefSubscription<double> _engine2N2;
     private readonly IDataRefSubscription<int> _pushback;
     private readonly IDataRefSubscription<int> _parkBrake;
     private readonly IDataRefSubscription<bool> _gearDown;
@@ -119,6 +121,8 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _engine2Running = dataRefs.Subscribe(ProsimDataRefNames.EngineRunning2);
         _engine1N1 = dataRefs.Subscribe(ProsimDataRefNames.Engine1N1Percent);
         _engine2N1 = dataRefs.Subscribe(ProsimDataRefNames.Engine2N1Percent);
+        _engine1N2 = dataRefs.Subscribe(ProsimDataRefNames.Engine1N2Percent);
+        _engine2N2 = dataRefs.Subscribe(ProsimDataRefNames.Engine2N2Percent);
         _pushback = dataRefs.Subscribe(ProsimDataRefNames.PushbackState);
         _parkBrake = dataRefs.Subscribe(ProsimDataRefNames.MipParkingBrake);
         _gearDown = dataRefs.Subscribe(ProsimDataRefNames.GearDown);
@@ -162,6 +166,9 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _all =
         [
             .. _phaseCritical,
+            // N2 (issue #131) is deliberately NOT phase-critical: a missing ref must not hold
+            // the flight-live gate — the engine-start monitor simply stays silent.
+            _engine1N2, _engine2N2,
             _apuRunning, _fmsCruiseAlt,
             _flexN1, _togaN1, _v1, _vr, _v2, _vls, _flapHandle, _fcuAltitude,
             _groundSpoilers, _reverseLeftMax, _reverseRightMax,
@@ -217,6 +224,10 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             RawPushbackState = _pushback.Value,
             RawEngine1State = _engine1State.Value,
             RawEngine2State = _engine2State.Value,
+            Engine1Running = _engine1Running.Value,
+            Engine2Running = _engine2Running.Value,
+            Engine1N2Percent = _engine1N2.Value,
+            Engine2N2Percent = _engine2N2.Value,
             MaxN1Percent = maxN1,
             AverageN1Percent = (_engine1N1.Value + _engine2N1.Value) / 2.0,
             FlexN1Target = _flexN1.Value,

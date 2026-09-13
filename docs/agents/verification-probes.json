@@ -908,6 +908,20 @@
       "notes": "Shipped 2026-09-13: {fuelQuantity} reads aircraft.fuel.total.amount.kg via the shared SpokenTokenSource (cached subscription, primed with the other tokens). Unit follows system.config.Units.Weight ('LB*' ⇒ pounds), the DisplayUnitService rule. Token name is case-sensitive ({fuelquantity} still speaks the braces)."
     },
     {
+      "id": "engine-start-callouts",
+      "issue": 131,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "For each ground engine start: a 'callout.fired' {id: engineStart.starting, text: 'Engine N, starting.'} event within ~1 s of the N2 rise (CMTrace 'Engine start call: engineStart.starting'), then 'callout.fired' {id: engineStart.avail, text: 'Engine N, avail.'} when that engine reaches idle — exactly one of each per engine per start.",
+        "On the avail that leaves both engines at idle: exactly one 'callout.fired' {id: engineStart.stabilized, text: 'Both engines stabilized.'} per start episode (a cross-bleed second start after pushback still yields one, not two).",
+        "assert-absent: any engineStart.* callout during an engine SHUTDOWN (N2 spooling down through 10 %), during an in-flight relight, or on app start/reconnect with engines already running; a second 'starting' for the same start when the running flag flickers mid-start (#59).",
+        "Ordering sanity: the pilot's own 'starting engine two' crewcall.answered ('Engine two.') precedes engineStart.starting for that engine; the after-start checklist is never called by the FO unprompted (Option A)."
+      ],
+      "notes": "Shipped 2026-09-13: EngineStartMonitor (250 ms poll) over EngineStartCalloutCore — starting = upward N2 crossing of 10 % with running=false; avail = running=true with N2 >= 50 % (idle ~58–60 %); stabilized once per episode, episode resets only when both engines are off. Gated on speech.engineStartCallouts (Speech settings toggle) and the flight-live gate; suppressed calls log 'callout.suppressed' with reason disabled/not-live. N2 is not in flight-sample — corroborate timing from the CMTrace line and the ECAM."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",

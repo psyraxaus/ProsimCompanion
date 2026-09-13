@@ -67,6 +67,15 @@ public sealed record FlightDataSnapshot
     /// <summary>Raw aircraft.systems.engines.2.state string.</summary>
     public string? RawEngine2State { get; init; }
 
+    /// <summary>Per-engine raw running booleans (aircraft.engines.N.running — true once the
+    /// engine is at idle, ProSim's ECAM "AVAIL" moment) and N2 (%). The engine-start
+    /// monitor (issue #131) needs the PER-ENGINE view: an upward N2 crossing is "starting",
+    /// running-with-N2-at-idle is "avail" — the state string alone is noisy mid-start (#59).</summary>
+    public bool Engine1Running { get; init; }
+    public bool Engine2Running { get; init; }
+    public double Engine1N2Percent { get; init; }
+    public double Engine2N2Percent { get; init; }
+
     /// <summary>Max engine N1 (%) — feeds the takeoff-thrust heuristic.</summary>
     public double MaxN1Percent { get; init; }
 

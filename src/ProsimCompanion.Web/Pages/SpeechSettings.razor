@@ -51,6 +51,9 @@
                     <BoolField Label="Engine &amp; flap call responses"
                                Hint="The FO answers &quot;starting engine one/two&quot; and checks &quot;flaps one/two/three/full&quot; against the flap placard speeds — verbal only, the FO never moves the levers"
                                @bind-Value="_speech.Value.EngineFlapCallouts" />
+                    <BoolField Label="Engine start monitoring"
+                               Hint="The FO monitors each start from the datarefs: &quot;Engine two, starting&quot; on the N2 rise, &quot;Engine two, avail&quot; at idle, then &quot;Both engines stabilized&quot; — ground only, once per start, no pilot call needed"
+                               @bind-Value="_speech.Value.EngineStartCallouts" />
                 </Section>
 
                 <Section Title="Human Pacing" Hint="Button pushing at a human tempo — jittered gaps with occasional scan pauses after page-changing keys">

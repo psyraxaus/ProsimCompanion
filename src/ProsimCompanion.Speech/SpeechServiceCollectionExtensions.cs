@@ -36,6 +36,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<CalloutsEngine>();
         services.AddStartupModule<StabilizedApproachMonitor>();
         services.AddStartupModule<FlowMonitor>();
+        // PM engine-start monitoring (issue #131): starting / avail / both stabilized, from
+        // datarefs — advisory only, ground only.
+        services.AddStartupModule<Callouts.EngineStartMonitor>();
         services.AddStartupModule<TtsPrewarmService>();
         services.AddStartupModule<PushToTalkService>();
         services.AddSingleton<IPttInputCapture>(p => p.GetRequiredService<PushToTalkService>());

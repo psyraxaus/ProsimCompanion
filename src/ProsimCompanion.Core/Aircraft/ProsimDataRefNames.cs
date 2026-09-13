@@ -46,6 +46,12 @@ public static class ProsimDataRefNames
     /// deliberately NOT declared — every consumer audited in 2026-08 wants percent semantics.</summary>
     public static readonly DataRef<double> Engine1N1Percent = new("aircraft.engines.1.n1", DataRefTier.Frequent, 0.0);
     public static readonly DataRef<double> Engine2N1Percent = new("aircraft.engines.2.n1", DataRefTier.Frequent, 0.0);
+    /// <summary>N2 in percent — the start-sequence discriminator (issue #131): N2 rises first
+    /// on a start and falls last on a shutdown, so an upward crossing means "starting" where
+    /// the state string is transiently noisy (#59). The catalog also lists a distinct
+    /// "n2 raw" ref; like N1, every consumer wants percent semantics.</summary>
+    public static readonly DataRef<double> Engine1N2Percent = new("aircraft.engines.1.n2", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> Engine2N2Percent = new("aircraft.engines.2.n2", DataRefTier.Normal, 0.0);
     /// <summary>Fallback 0 is load-bearing: 0 means "limit not set", which disables FLEX/TOGA
     /// threshold callouts instead of firing them against a fictitious limit.</summary>
     public static readonly DataRef<double> EnginesLimitFlex = new("aircraft.engines.limits.flex", DataRefTier.Infrequent, 0.0);
