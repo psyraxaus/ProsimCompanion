@@ -24,6 +24,11 @@ public sealed class PilotAnnouncementTests
     [InlineData("lockstar", FlightPhase.Approach)]
     [InlineData("loc star", FlightPhase.Descent)]
     [InlineData("localizer star", FlightPhase.Approach)]
+    // 2026-09-13 EGLL→LIRF signatures: 13:33:38 / 13:34:45 "capture" phrasing, 13:33:24 ALT*.
+    [InlineData("localizer capture", FlightPhase.Approach)]
+    [InlineData("glideslope capture", FlightPhase.Approach)]
+    [InlineData("altstar", FlightPhase.Descent)]
+    [InlineData("alt star", FlightPhase.Approach)]
     public void CaptureCalls_AreAcknowledged(string normalized, FlightPhase phase)
         => Assert.Equal(
             PilotAnnouncementFeature.AnnouncementKind.CaptureFma,

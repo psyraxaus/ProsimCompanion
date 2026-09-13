@@ -196,6 +196,13 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         Interlocked.Exchange(ref _failedAttempts, 0);
         Volatile.Write(ref _lastPushTicks, Environment.TickCount64);
         _connected = true;
+        // Issue #132 (2026-09-13 flight): the SDK's own retry can reconnect INSIDE the
+        // reconnect interval (Lost 03.195, Connected 03.465). The timer armed on Lost then
+        // fired at 05.195, set Connecting and called Connect() on a live session — which
+        // raises no onConnect — so the pill read "Connecting" for the whole flight. A
+        // successful connect cancels any pending reconnect.
+        _reconnectTimer?.Dispose();
+        _reconnectTimer = null;
         _status.Set(Subsystems.Prosim, ConnectionState.Connected);
 
         // Attaching replays every active registration through EnsureRegistered.
@@ -238,8 +245,10 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         _reconnectTimer?.Dispose();
         _reconnectTimer = new Timer(_ =>
         {
-            if (_disposed)
+            if (_disposed || _connected)
             {
+                // Already back (the SDK reconnected on its own, #132): a Connect() on a live
+                // session raises no onConnect, so setting Connecting here would stick.
                 return;
             }
 

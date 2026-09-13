@@ -23,7 +23,14 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
     [
         "man flex srs runway nav blue", "man toga srs runway nav blue", "man flex", "man toga",
         "localizer star", "loc star", "glideslope star", "glide slope star",
-        "manual flight", "continue",
+        // 2026-09-13 EGLL→LIRF: the router fuzzy-matched the ASR junctions to the two-word
+        // forms at 0.74–0.77 and asked "did you mean loc star?" instead of dispatching, so
+        // the junctions and the "capture" phrasing are catalogue phrases in their own right
+        // (exact match = 1.0). "alt star" is the ALT* capture the same leg rejected outright.
+        "lockstar", "locstar", "glidestar",
+        "localizer capture", "loc capture", "glideslope capture", "glide slope capture",
+        "alt star", "altstar", "altitude star", "alt capture",
+        "manual flight", "manual control", "continue",
     ];
 
     internal enum AnnouncementKind
@@ -81,12 +88,21 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
                 || normalized.Contains("locstar", StringComparison.Ordinal)
                 || normalized.Contains("glideslope star", StringComparison.Ordinal)
                 || normalized.Contains("glide slope star", StringComparison.Ordinal)
-                || normalized.Contains("glidestar", StringComparison.Ordinal)))
+                || normalized.Contains("glidestar", StringComparison.Ordinal)
+                || normalized.Contains("localizer capture", StringComparison.Ordinal)
+                || normalized.Contains("loc capture", StringComparison.Ordinal)
+                || normalized.Contains("glideslope capture", StringComparison.Ordinal)
+                || normalized.Contains("glide slope capture", StringComparison.Ordinal)
+                || normalized.Contains("alt star", StringComparison.Ordinal)
+                || normalized.Contains("altstar", StringComparison.Ordinal)
+                || normalized.Contains("altitude star", StringComparison.Ordinal)
+                || normalized.Contains("alt capture", StringComparison.Ordinal)))
         {
             return AnnouncementKind.CaptureFma;
         }
 
-        if (normalized.Equals("manual flight", StringComparison.Ordinal))
+        if (normalized.Equals("manual flight", StringComparison.Ordinal)
+            || normalized.Equals("manual control", StringComparison.Ordinal))
         {
             return AnnouncementKind.ManualFlight;
         }

@@ -809,10 +809,10 @@
       "kind": "watch",
       "sources": ["log"],
       "checks": [
-        "Collect every 'Flight Status display: pill ...' line (component FlightStatusChangeLog). Report each interval where the pill and the phase text disagree (e.g. pill DEPARTURE while text COLD AND DARK), with duration and the trigger that opened and closed it.",
+        "Collect every 'Flight Status display: pill ...' line (component FlightStatusChangeLog). Report each interval where the pill and the phase text disagree, with duration and the trigger that opened and closed it. Since 2026-09-13 the only permitted disagreements are the strip's coarser buckets (TAXI OUT while text TAKEOFF ROLL; TAXI IN while text LANDING ROLLOUT; FLIGHT for every airborne phase; PREFLIGHT while text COLD AND DARK/UNKNOWN) — a DEPARTURE pill, or any disagreement lasting longer than the underlying phase, is a regression.",
         "assert-present: at least one such line per session once any phase commit or departure-sequence start occurred — total silence means the change log is not wired."
       ],
-      "notes": "Instrumentation shipped 2026-09-05: the dashboard pill mapping and the change log share FlightStatusPresentation, so the log records exactly what the card showed, browser open or not. The pill deliberately reads the GSX departure sequence on the ground pre-push; this probe quantifies how contradictory it reads in practice, feeding the #110 legibility redesign. Completion gate shipped 2026-09-06 (owner report): once the sequence starts the strip HOLDS DEPARTURE until pushback — add assert-absent: any pill line stepping DEPARTURE back to PREFLIGHT within one departure (the 2026-09-05 seven-minute regression signature); the turnaround reset to PREFLIGHT on a new leg is correct."
+      "notes": "2026-09-13 (owner Option 2, closes #130): the DEPARTURE block is gone — the strip is a pure phase view (PREFLIGHT / PUSHBACK / TAXI OUT / FLIGHT / TAXI IN / ARRIVAL); the departure sequence shows on the Services card only. The 2026-09-13 leg measured the old contradiction at 32 min (pill DEPARTURE, text PREFLIGHT, 10:43–11:15). Instrumentation shipped 2026-09-05: the dashboard pill mapping and the change log share FlightStatusPresentation, so the log records exactly what the card showed, browser open or not. The pill deliberately reads the GSX departure sequence on the ground pre-push; this probe quantifies how contradictory it reads in practice, feeding the #110 legibility redesign. Completion gate shipped 2026-09-06 (owner report): once the sequence starts the strip HOLDS DEPARTURE until pushback — add assert-absent: any pill line stepping DEPARTURE back to PREFLIGHT within one departure (the 2026-09-05 seven-minute regression signature); the turnaround reset to PREFLIGHT on a new leg is correct."
     },
     {
       "id": "abnormal-transient-debounce",
@@ -880,7 +880,7 @@
         "'request <name> checklist' starts that checklist exactly like '<name> checklist'; 'begin ground services' starts the departure sequence without a did-you-mean round-trip; 'set q and h' executes set-qnh directly.",
         "assert-absent: any reject speech for these phrase families in their phases (the 2026-09-06 signatures: 07:33:44, 07:42:26, 10:00:41, 10:03:31, 10:05:48, 10:06:57)."
       ],
-      "notes": "Shipped 2026-09-06: PilotAnnouncementFeature (verbal-only, phase-gated), StartPhrases request-variants, GsxVoicePhrases + commands.json aliases, and the router's idle-'continue' fall-through. ADR-0007: a user-edited commands.json keeps the old set-qnh phrases — re-seed by hand."
+      "notes": "2026-09-13 EGLL→LIRF: 'Lockstar' (0.77), 'Localizer capture' (0.74) and 'Glideslope capture' (0.75) went to did-you-mean, 'Altstar' was rejected — the ASR junctions ('lockstar'/'locstar'/'glidestar'), the 'capture' phrasing, ALT* ('alt star'/'altstar'/'altitude star'/'alt capture') and 'manual control' are now catalogue phrases (exact match = 1.0) and Classify accepts them. Shipped 2026-09-06: PilotAnnouncementFeature (verbal-only, phase-gated), StartPhrases request-variants, GsxVoicePhrases + commands.json aliases, and the router's idle-'continue' fall-through. ADR-0007: a user-edited commands.json keeps the old set-qnh phrases — re-seed by hand."
     },
     {
       "id": "clarifier-ttl",
@@ -920,6 +920,19 @@
         "Ordering sanity: the pilot's own 'starting engine two' crewcall.answered ('Engine two.') precedes engineStart.starting for that engine; the after-start checklist is never called by the FO unprompted (Option A)."
       ],
       "notes": "Shipped 2026-09-13: EngineStartMonitor (250 ms poll) over EngineStartCalloutCore — starting = upward N2 crossing of 10 % with running=false; avail = running=true with N2 >= 50 % (idle ~58–60 %); stabilized once per episode, episode resets only when both engines are off. Gated on speech.engineStartCallouts (Speech settings toggle) and the flight-live gate; suppressed calls log 'callout.suppressed' with reason disabled/not-live. N2 is not in flight-sample — corroborate timing from the CMTrace line and the ECAM."
+    },
+    {
+      "id": "prosim-status-stuck-connecting",
+      "issue": 132,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "After any 'subsystem-status' {ProSim: Disconnected} ('Lost connection to ProSim; reconnecting in N ms'), the ProSim status must end in Connected within N + 5 s of the CMTrace 'Connected to ProSim' line and stay there — never a trailing {ProSim: Connecting} with datarefs still flowing (the 2026-09-13 signature: Connected 00:22:03.465, Connecting 00:22:05.200, then nothing for 3.5 h).",
+        "assert-absent: a {ProSim: Connecting} status with NO 'Connecting to ProSim'/'Lost connection' CMTrace line in the preceding 3 s — that is the stale reconnect timer firing after the SDK already reconnected.",
+        "Whole-flight: the last ProSim value in 'subsystem-status' is Connected (or Disconnected with a matching 'Lost connection' line if ProSim was really down)."
+      ],
+      "notes": "Fixed 2026-09-13: OnConnect disposes the pending reconnect timer and the timer callback returns when already connected — Connect() on a live SDK session raises no onConnect, so the Connecting status it set could never clear. Pill-only bug: dataref traffic was unaffected."
     },
     {
       "id": "requires-human-checklist",
