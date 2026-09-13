@@ -895,6 +895,19 @@
       "notes": "Fixed 2026-09-06: 10 s TTL on the fire-and-forget FCU 'which field?' and radio 'say again the frequency' lines. The interactive did-you-mean confirm dialogue is deliberately unchanged."
     },
     {
+      "id": "fuel-quantity-token",
+      "issue": 129,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "A checklist confirmCallout (or voice-command say) carrying {fuelQuantity} is spoken as a figure with its unit ('Fuel quantity, 8540 kilograms' / '... pounds' when ProSim's weight unit is LBS) — never the literal brace token.",
+        "assert-absent: 'unavailable' in that callout once ProSim is connected — the total-fuel and weight-unit datarefs are primed at startup, so the first read must not miss.",
+        "The figure is within 10 of the session's latest 'flight-sample' fuel-on-board value at the time of the callout (rounded to the nearest 10; pounds = kg × 2.20462)."
+      ],
+      "notes": "Shipped 2026-09-13: {fuelQuantity} reads aircraft.fuel.total.amount.kg via the shared SpokenTokenSource (cached subscription, primed with the other tokens). Unit follows system.config.Units.Weight ('LB*' ⇒ pounds), the DisplayUnitService rule. Token name is case-sensitive ({fuelquantity} still speaks the braces)."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",

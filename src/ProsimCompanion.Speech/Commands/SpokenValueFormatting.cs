@@ -15,7 +15,8 @@ public sealed record CommandTokenValues(
     string Flex,
     string Runway,
     string FlightLevel,
-    string TakeoffConfig = "unavailable")
+    string TakeoffConfig = "unavailable",
+    string FuelQuantity = "unavailable")
 {
     public static CommandTokenValues Unavailable { get; } = new(
         "unavailable", "unavailable", "unavailable", "unavailable",
@@ -49,7 +50,33 @@ public static class SpokenValueFormatting
             .Replace("{flex}", values.Flex, StringComparison.Ordinal)
             .Replace("{runway}", values.Runway, StringComparison.Ordinal)
             .Replace("{flightLevel}", values.FlightLevel, StringComparison.Ordinal)
-            .Replace("{takeoffConfig}", values.TakeoffConfig, StringComparison.Ordinal);
+            .Replace("{takeoffConfig}", values.TakeoffConfig, StringComparison.Ordinal)
+            .Replace("{fuelQuantity}", values.FuelQuantity, StringComparison.Ordinal);
+    }
+
+    /// <summary>Exact avoirdupois factor shared with the display-unit service.</summary>
+    private const double LbPerKg = Core.State.DisplayUnitService.LbPerKg;
+
+    /// <summary>Total fuel on board as a spoken figure with its unit (issue #129):
+    /// "8540 kilograms" / "18830 pounds". The unit follows ProSim's configured weight unit
+    /// (<c>system.config.Units.Weight</c>, "LBS" ⇒ pounds — the same rule the display-unit
+    /// service applies) so the FO reads what the ECAM shows. Rounded to the nearest 10 —
+    /// nobody reads back single kilograms. Left as plain digits (not aviation digit words):
+    /// a fuel figure is a quantity, spoken "eight thousand five hundred forty", never
+    /// "eight five four zero". Null (dataref not yet pushed) reads "unavailable".</summary>
+    public static string FuelQuantity(double? kg, string? weightUnit)
+    {
+        if (kg is null || !double.IsFinite(kg.Value) || kg.Value < 0)
+        {
+            return "unavailable";
+        }
+
+        var pounds = !string.IsNullOrWhiteSpace(weightUnit)
+            && weightUnit.Contains("LB", StringComparison.OrdinalIgnoreCase);
+        var figure = pounds ? kg.Value * LbPerKg : kg.Value;
+        var rounded = (int)(Math.Round(figure / 10) * 10);
+        return rounded.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + (pounds ? " pounds" : " kilograms");
     }
 
     /// <summary>F/O baro as spoken digits. <paramref name="std"/> null = no data yet

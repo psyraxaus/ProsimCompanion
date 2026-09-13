@@ -7,7 +7,8 @@ using ProsimCompanion.Speech.Briefings;
 namespace ProsimCompanion.Speech.Commands;
 
 /// <summary>
-/// The single source for spoken-value tokens ({altimeter}/{qnh}/{v1}/{vr}/{v2}/{flex}/{runway}),
+/// The single source for spoken-value tokens ({altimeter}/{qnh}/{v1}/{vr}/{v2}/{flex}/{runway}/
+/// {flightLevel}/{takeoffConfig}/{fuelQuantity}),
 /// shared by voice-command confirm callouts and checklist confirm callouts (issue #39: the
 /// checklist path spoke the raw brace tokens because it had no expansion of its own). Owns the
 /// cached dataref subscriptions; the formatting stays pure in <see cref="SpokenValueFormatting"/>.
@@ -65,6 +66,8 @@ public sealed class SpokenTokenSource : IDisposable
             Sub(ProsimDataRefNames.FmsPerfTakeoffFlaps); // {takeoffConfig} (issue #125)
             Sub(ProsimDataRefNames.FcFlaps); // {takeoffConfig} lever fallback
             Sub(ProsimDataRefNames.Altitude); // {flightLevel} (issue #49)
+            Sub(ProsimDataRefNames.FuelTotal); // {fuelQuantity} (issue #129)
+            Sub(ProsimDataRefNames.ConfigWeightUnit); // {fuelQuantity} kg/lb
         }
         catch (Exception ex)
         {
@@ -106,7 +109,10 @@ public sealed class SpokenTokenSource : IDisposable
                     // reads back "not set".
                     Perf(ProsimDataRefNames.FmsPerfTakeoffFlaps) is > 0 and var perfConfig
                         ? perfConfig
-                        : Perf(ProsimDataRefNames.FcFlaps)));
+                        : Perf(ProsimDataRefNames.FcFlaps)),
+                FuelQuantity: SpokenValueFormatting.FuelQuantity(
+                    Sub(ProsimDataRefNames.FuelTotal) is { RawValue: not null } fuel ? fuel.Value : null,
+                    Sub(ProsimDataRefNames.ConfigWeightUnit).Value));
         }
         catch (Exception ex)
         {
