@@ -5,10 +5,7 @@
 <div class="field">
     <label class="field-label" for="@_id">
         @Label
-        @if (!string.IsNullOrEmpty(Hint))
-        {
-            <span class="field-hint">@Hint</span>
-        }
+        <FieldHint Hint="@Hint" More="@More" />
     </label>
     <div class="field-control">
         <input id="@_id" type="@(Password ? "password" : "text")" class="text-input" value="@Value"
@@ -26,6 +23,10 @@
 
     [Parameter]
     public string? Hint { get; set; }
+
+    /// <summary>Longer explanation behind a "More" fold under the hint (ADR-0010).</summary>
+    [Parameter]
+    public string? More { get; set; }
 
     [Parameter]
     public string Value { get; set; } = "";

@@ -1,0 +1,54 @@
+@* First-run guidance on the Flight Status page (ADR-0010): while a connection every install
+   needs is missing, dashes on the status cards told a new user nothing. One card lists the
+   steps that still need doing, each linked to the exact settings section; it disappears by
+   itself once ProSim and GSX are both talking. *@
+@inherits StoreObserverComponent
+@using ProsimCompanion.Core.Configuration
+@inject ConnectionStatusStore Status
+@inject IOptionsMonitor<ProsimOptions> ProsimOptions
+@inject IOptionsMonitor<GsxOptions> GsxOptions
+
+@if (_steps.Count > 0)
+{
+    <Section Title="Getting Started" Hint="This card goes away once everything is connected">
+        <ol class="setup-steps">
+            @foreach (var (text, href, linkText) in _steps)
+            {
+                <li>@text <a href="@href">@linkText</a></li>
+            }
+        </ol>
+    </Section>
+}
+
+@code {
+    private List<(string Text, string Href, string LinkText)> _steps = [];
+
+    protected override void OnInitialized()
+        => WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, Refresh);
+
+    private void Refresh()
+    {
+        var steps = new List<(string, string, string)>();
+        var states = Status.Snapshot().ToDictionary(pair => pair.Key, pair => pair.Value);
+
+        if (string.IsNullOrWhiteSpace(ProsimOptions.CurrentValue.SdkPath))
+        {
+            steps.Add(("Tell the app where ProSim's SDK is, so it can talk to the aircraft.", "settings", "Set the ProSim SDK folder"));
+        }
+        else if (states.GetValueOrDefault(Subsystems.Prosim) != ConnectionState.Connected)
+        {
+            steps.Add(("ProSim is not connected yet. Start ProSim System, or check the host name.", "settings", "Check the ProSim connection"));
+        }
+
+        if (!GsxOptions.CurrentValue.Enabled)
+        {
+            steps.Add(("GSX ground services are switched off.", "settings", "Turn them on under Setup"));
+        }
+        else if (states.GetValueOrDefault(Subsystems.Gsx) != ConnectionState.Connected)
+        {
+            steps.Add(("GSX is not connected yet. Start the simulator with GSX Pro running.", "settings/gsx/status", "See the GSX status"));
+        }
+
+        _steps = steps;
+    }
+}

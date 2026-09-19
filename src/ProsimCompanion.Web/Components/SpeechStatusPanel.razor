@@ -162,6 +162,8 @@
     </div>
 </Section>
 
+<details class="diagnostics">
+    <summary>Diagnostics — recent utterances</summary>
 <Section Title="Recent Utterances" Hint="Latest first — full history in the session event log">
     @if (_view.RecentUtterances.Count == 0)
     {
@@ -190,6 +192,7 @@
         </div>
     }
 </Section>
+</details>
 
 @code {
     private SpeechStatusSnapshot _view = SpeechStatusSnapshot.Empty;

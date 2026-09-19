@@ -29,57 +29,46 @@
 }
 else if (CurrentSection == "general")
 {
-    <Section Title="Voice First Officer" Hint="TTS chain: Kokoro → Google → WinRT → SAPI5">
-        <BoolField Label="Local only"
-                   Hint="Hard mode: network providers (Kokoro, Google) are excluded from every path — synthesis never leaves this machine"
+    <Section Title="Voice First Officer" Hint="Voices are tried in order: Kokoro, Google, then Windows">
+        <BoolField Label="Local only" Hint="Never use network voices. Speech never leaves this PC." More="Kokoro and Google are skipped on every path."
                    @bind-Value="_speech.Value.LocalOnly" />
-        <SelectField Label="Your seat" Options="PilotSeatOptions"
-                     Hint="The virtual pilot operates the OPPOSITE side: left (default) = FO on CDU2/right-side controls/EFIS2; right = the virtual pilot uses CDU1/captain-side controls/EFIS1. The MCDU display side applies after an app restart"
+        <SelectField Label="Your seat" Hint="The seat you fly from. The First Officer works the other side." More="Left: the FO uses the right MCDU, EFIS and controls. Right: the FO uses the captain's side. The MCDU side changes after an app restart." Options="PilotSeatOptions"
                      @bind-Value="_speech.Value.PilotSeat" />
-        <BoolField Label="Engine &amp; flap call responses"
-                   Hint="The FO answers &quot;starting engine one/two&quot; and checks &quot;flaps one/two/three/full&quot; against the flap placard speeds — verbal only, the FO never moves the levers"
+        <BoolField Label="Engine &amp; flap call responses" Hint="The FO answers your engine start and flap calls." More="Flap calls are checked against the placard speeds. Verbal only: the FO never moves the levers."
                    @bind-Value="_speech.Value.EngineFlapCallouts" />
-        <BoolField Label="Engine start monitoring"
-                   Hint="The FO monitors each start from the datarefs: &quot;Engine two, starting&quot; on the N2 rise, &quot;Engine two, avail&quot; at idle, then &quot;Both engines stabilized&quot; — ground only, once per start, no pilot call needed"
+        <BoolField Label="Engine start monitoring" Hint="The FO calls each engine start: starting, available, both stabilized." More="Read from the engine data on the ground, once per start. No pilot call needed."
                    @bind-Value="_speech.Value.EngineStartCallouts" />
     </Section>
 
-    <Section Title="Human Pacing" Hint="Button pushing at a human tempo — jittered gaps with occasional scan pauses after page-changing keys" Advanced="true">
-        <BoolField Label="Humanize button timing"
-                   Hint="Off = the configured minimum delays only (wire-speed sequences)"
+    <Section Title="Human Pacing" Hint="Button presses at a human tempo" Advanced="true">
+        <BoolField Label="Humanize button timing" Hint="Add small human pauses between button presses." More="Off: the minimum delays only."
                    @bind-Value="_speech.Value.Humanize.Enabled" />
-        <NumberField Label="Tempo" Step="0.1" Min="0.25" Max="4"
-                     Hint="Overall pacing multiplier: 1.0 = normal, 2.0 = twice as slow. Jitter details (gap/hold/think pauses) are tunable in settings.json"
+        <NumberField Label="Tempo" Hint="1.0 is normal, 2.0 is twice as slow." Step="0.1" Min="0.25" Max="4"
                      Disabled="@(!_speech.Value.Humanize.Enabled)"
                      @bind-Value="_speech.Value.Humanize.Tempo"
                      Default="_speech.Defaults.Humanize.Tempo" />
     </Section>
 
     <Section Title="Playback">
-        <SelectField Label="Output device"
+        <SelectField Label="Output device" Hint="Where the First Officer's voice plays."
                      Options="OutputDeviceOptions()"
-                     Hint="Playback devices found on this machine; System default follows Windows"
                      @bind-Value="_speech.Value.OutputDevice" />
         <NumberField Label="Volume" Suffix="%" Min="0" Max="100"
-                     Hint="Applied client-side, so it works for every provider"
                      @bind-Value="_speech.Value.Volume"
                      Default="_speech.Defaults.Volume" />
-        <BoolField Label="Intercom filter"
-                   Hint="300–3000 Hz band-pass + soft clip so the FO sounds like a headset, not a narrator"
+        <BoolField Label="Intercom filter" Hint="Make the FO sound like a headset, not a narrator."
                    @bind-Value="_speech.Value.IntercomFilter" />
     </Section>
 }
 else if (CurrentSection == "listening")
 {
-    <Section Title="Recognition & Push-to-Talk"
-             Hint="How the FO listens. On a network (VATSIM/IVAO/SayIntentions) bind YOUR transmit key as the ATC-mute key so the FO never hears what you say to ATC. Whisper silence-hallucinations ('Thank you.') are absorbed silently — the phrase list is speech.asrHallucinationPhrases in settings.json">
-        <SelectField Label="Listening mode" Options="RecognitionModeOptions"
-                     Hint="Push-to-talk: the FO listens only while the FO PTT is held — use a DIFFERENT key/button than your ATC transmit. Continuous: the FO listens whenever a command window is open, except while the ATC-mute key is held"
+    <Section Title="Recognition & Push-to-Talk" Hint="How the First Officer hears you">
+        <SelectField Label="Listening mode" Hint="Push-to-talk: the FO listens only while your FO key is held." More="Continuous: the FO listens whenever it expects a reply, except while the ATC key is held. On a network (VATSIM, IVAO, SayIntentions) always bind your ATC transmit key below, so the FO never hears what you say to ATC." Options="RecognitionModeOptions"
                      @bind-Value="_speech.Value.RecognitionMode" />
         <div class="field">
             <label class="field-label">
                 FO push-to-talk
-                <span class="field-hint">Never your ATC transmit — this one talks to the First Officer. The lamp lights while the SAVED binding is held</span>
+                <span class="field-hint">The key or button that talks to the First Officer. Never your ATC key.</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -98,7 +87,7 @@ else if (CurrentSection == "listening")
         <div class="field">
             <label class="field-label">
                 ATC push-to-talk (mute)
-                <span class="field-hint">Bind the SAME key or button you transmit to ATC with — while held, the FO ignores everything it hears (works in both modes)</span>
+                <span class="field-hint">The key or button you use to talk to ATC. While it is held, the FO does not listen.</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -119,147 +108,124 @@ else if (CurrentSection == "listening")
             <div class="field-hint">@_captureMessage</div>
         }
         <div class="field-hint" style="max-width:640px;">
-            Set listens for ten seconds and binds whatever you press — a keyboard key
-            or any joystick button (bound by device name, so re-plugged hardware keeps
-            working). Remember to save afterwards; the lamps follow the saved bindings.
+            Set waits ten seconds for a key or a joystick button. Save afterwards; the lamps
+            light for the saved bindings only.
         </div>
-        <SelectField Label="Input device"
+        <SelectField Label="Input device" Hint="The microphone the FO listens on."
                      Options="InputDeviceOptions()"
-                     Hint="Microphones found on this machine; Default follows the Windows capture device"
                      @bind-Value="_speech.Value.InputDevice" />
     </Section>
 
-    <Section Title="Speech Recognition Server" Hint="A LAN transcription box; empty uses the offline Windows engine">
-        <TextField Label="LAN ASR URL"
-                   Hint="Server root, e.g. http://192.168.1.50:8000 — empty uses the offline System.Speech engine"
+    <Section Title="Speech Recognition Server" Hint="A transcription server on your network. Empty uses the offline Windows engine">
+        <TextField Label="LAN ASR URL" Hint="Server address, for example http://192.168.1.50:8000."
                    @bind-Value="_speech.Value.AsrBaseUrl" />
-        <SelectField Label="LAN ASR server flavour" Options="AsrApiOptions"
-                     Hint="Must match what is running at the URL: the wrong flavour answers 404 to every utterance while the health check stays green (a Warning is logged when that happens)"
+        <SelectField Label="LAN ASR server flavour" Hint="Must match the server type running at that address." More="The wrong type answers 404 to everything while the health check stays green. A warning is logged when that happens." Options="AsrApiOptions"
                      Disabled="@(string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl))"
                      @bind-Value="AsrApiKey" />
-        <SelectField Label="Voice activity detection" Options="VadEngineOptions"
-                     Hint="How the FO decides you are speaking (LAN ASR only). Silero ignores engine noise and TTS bleed and hears quiet commands; RMS is the legacy energy gate and the automatic fallback if the Silero model cannot load. Power-user knobs speech.vadMinSpeechMs / vadPreRollMs / vadMaxUtteranceMs stay in settings.json. Applies from the next listening start"
+        <SelectField Label="Voice activity detection" Hint="How the FO decides you are speaking." More="Silero ignores engine noise and the FO's own voice and hears quiet commands. RMS is the older energy gate and the fallback if the Silero model cannot load. Applies from the next listening start. Further knobs (vadMinSpeechMs, vadPreRollMs, vadMaxUtteranceMs) are file-only in settings.json." Options="VadEngineOptions"
                      Disabled="@(string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl))"
                      @bind-Value="_speech.Value.VadEngine" />
         <AdvancedFields>
-            <NumberField Label="VAD threshold" Step="0.05" Min="0.1" Max="0.95"
-                         Hint="Speech probability that opens an utterance (Silero only). Raise it if noise still triggers false segments; lower it if quiet commands are missed"
+            <NumberField Label="VAD threshold" Hint="Raise it if noise triggers the FO. Lower it if quiet commands are missed." Step="0.05" Min="0.1" Max="0.95"
                          Disabled="@(!SileroSelected)"
                          @bind-Value="_speech.Value.VadThreshold"
                          Default="_speech.Defaults.VadThreshold" />
-            <NumberField Label="End-of-utterance silence" Suffix="ms" Min="200" Step="50"
-                         Hint="Trailing silence that closes an utterance (Silero only; the RMS gate keeps its proven 700 ms). Raise it if natural pauses split your sentences"
+            <NumberField Label="End-of-utterance silence" Hint="Silence that ends your sentence. Raise it if pauses split your sentences." Suffix="ms" Min="200" Step="50"
                          Disabled="@(!SileroSelected)"
                          @bind-Value="_speech.Value.VadEndSilenceMs"
                          Default="_speech.Defaults.VadEndSilenceMs" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Interphone Transmit"
-             Hint="Latch crew hails to the captain audio panel — speaking to the cabin or ground only works when the ACP transmit selector points at the channel">
-        <BoolField Label="ACP transmit gating"
-                   Hint="&quot;Cockpit to ground&quot; needs INT selected, &quot;cockpit to crew&quot; needs CAB; moving the selector off the channel mid-call hangs up. Off (or an older ProSim without the dataref) = hails always accepted"
+    <Section Title="Interphone Transmit" Hint="Crew calls follow the captain's audio panel">
+        <BoolField Label="ACP transmit gating" Hint="Calls to ground or cabin need INT or CAB selected on the audio panel." More="Moving the selector away mid-call hangs up. Off, or an older ProSim: calls are always accepted."
                    @bind-Value="_speech.Value.AcpTransmitGating" />
-        <BoolField Label="Require the INT key pressed"
-                   Hint="Ground hails additionally need the momentary INT transmit key held when you speak; the selector latch keeps the call open. Leave off unless your panel has the key"
+        <BoolField Label="Require the INT key pressed" Hint="Ground calls also need the INT key held while you speak." More="Leave off unless your panel has the key."
                    Disabled="@(!_speech.Value.AcpTransmitGating)"
                    @bind-Value="_speech.Value.AcpIntKeyRequired" />
     </Section>
 }
 else if (CurrentSection == "sterile")
 {
-    <Section Title="Sterile Cockpit" Hint="Workload phases below the ceiling gate non-essential speech">
-        <BoolField Label="Enabled" @bind-Value="_speech.Value.SterileEnabled" />
-        <NumberField Label="Ceiling" Suffix="ft MSL" Min="1000"
-                     Hint="Sterile in InitialClimb/Climb/Descent/Approach below this altitude; cruise and ground phases are never sterile"
+    <Section Title="Sterile Cockpit" Hint="A quiet cockpit during the busy phases">
+        <BoolField Label="Enabled" Hint="The FO holds non-essential speech below the ceiling." @bind-Value="_speech.Value.SterileEnabled" />
+        <NumberField Label="Ceiling" Hint="Sterile below this altitude in climb, descent and approach." More="Cruise and ground are never sterile." Suffix="ft MSL" Min="1000"
                      Disabled="@(!_speech.Value.SterileEnabled)"
                      @bind-Value="_speech.Value.SterileCockpitCeilingFt"
                      Default="_speech.Defaults.SterileCockpitCeilingFt" />
-        <BoolField Label="Drop Low-priority speech"
-                   Hint="Advisories are discarded while sterile (never replayed)"
+        <BoolField Label="Drop Low-priority speech" Hint="Advisories are dropped while sterile, never replayed."
                    Disabled="@(!_speech.Value.SterileEnabled)"
                    @bind-Value="_speech.Value.SterileSuppressLow" />
-        <SelectField Label="Normal-priority policy" Options="NormalPolicyOptions"
-                     Hint="Allow is the safe default — Normal carries checklists and briefings, which are required during a low-altitude approach"
+        <SelectField Label="Normal-priority policy" Hint="What happens to normal speech while sterile." More="Allow is the safe default. Checklists and briefings are normal priority and are needed on a low approach." Options="NormalPolicyOptions"
                      Disabled="@(!_speech.Value.SterileEnabled)"
                      @bind-Value="NormalPolicyKey" />
-        <BoolField Label="Exempt cabin reports"
-                   Hint="cabin.*-tagged speech passes while sterile — cabin-ready calls below the ceiling are operationally expected"
+        <BoolField Label="Exempt cabin reports" Hint="Cabin reports still come through while sterile."
                    Disabled="@(!_speech.Value.SterileEnabled)"
                    @bind-Value="_speech.Value.SterileExemptCabinReports" />
     </Section>
 }
 else if (CurrentSection == "crew")
 {
-    <Section Title="Crew Voices" Hint="Provider-specific voice ids — Kokoro ids (af_heart) for a Kokoro chain, Google names (en-AU-Chirp3-HD-Aoede) for a Google chain. Blank = the FO voice">
-        <TextField Label="Purser voice" Hint="Cabin reports on the CAB interphone"
+    <Section Title="Crew Voices" Hint="Voice names from your provider, for example af_heart (Kokoro) or en-AU-Chirp3-HD-Aoede (Google). Blank uses the FO voice">
+        <TextField Label="Purser voice" Hint="Cabin reports on the cabin interphone."
                    @bind-Value="_voices.Value.Purser" />
-        <BoolField Label="Purser intercom filter"
-                   Hint="Interphone band-pass on purser speech"
+        <BoolField Label="Purser intercom filter" Hint="Headset sound on the purser."
                    @bind-Value="_voices.Value.PurserIntercomFilter" />
-        <TextField Label="Company voice" Hint="ACARS-style dispatch readouts"
+        <TextField Label="Company voice" Hint="Dispatch messages, read out like ACARS."
                    @bind-Value="_voices.Value.Company" />
-        <BoolField Label="Company intercom filter"
-                   Hint="Off by default — a company message is an ACARS readout, not interphone audio"
+        <BoolField Label="Company intercom filter" Hint="Off by default. A company message is a printout, not a phone call."
                    @bind-Value="_voices.Value.CompanyIntercomFilter" />
-        <TextField Label="Ground crew voice" Hint="Hail replies and upcalls on the INT interphone"
+        <TextField Label="Ground crew voice" Hint="Ground crew replies and calls on the interphone."
                    @bind-Value="_voices.Value.Ground" />
         <BoolField Label="Ground intercom filter"
                    @bind-Value="_voices.Value.GroundIntercomFilter" />
     </Section>
 
-    <Section Title="Accent Localization" Hint="The ground-crew voice follows the airport country (ICAO prefix → Chirp 3 HD locale). Needs the Google provider for most accents; local-only mode degrades to US/UK">
-        <BoolField Label="Enabled"
-                   Hint="Applies to the ground crew only — purser/company stay as configured above"
+    <Section Title="Accent Localization" Hint="The ground crew's accent follows the airport's country">
+        <BoolField Label="Enabled" Hint="Ground crew only. Purser and company keep the voices above." More="Needs the Google provider for most accents. Local only mode falls back to US or UK."
                    @bind-Value="_accents.Value.Enabled" />
-        <TextField Label="Chirp 3 HD persona"
-                   Hint="Voice id becomes {locale}-Chirp3-HD-{persona}, e.g. Charon"
+        <TextField Label="Chirp 3 HD persona" Hint="Google voice persona, for example Charon."
                    Disabled="@(!_accents.Value.Enabled)"
                    @bind-Value="_accents.Value.GooglePersona" />
         <div class="field-hint" style="max-width:640px;">
-            Per-airport overrides (ICAO prefix → locale, longest prefix wins) are
-            power-user territory: edit <span class="mono">accents.overrides</span>
-            in config/settings.json.
+            Per-airport overrides are file-only: <span class="mono">accents.overrides</span>
+            in config/settings.json (airport code prefix to voice locale).
         </div>
     </Section>
 }
 else if (CurrentSection == "groundCrew")
 {
-    <Section Title="Ground Crew" Hint="Hail dialogues (&quot;cockpit to ground&quot;) and crew-initiated interphone upcalls — ADR-0006">
+    <Section Title="Ground Crew" Hint="Hail the ground crew and hear their calls">
         <BoolField Label="Enabled" @bind-Value="_groundCrew.Value.Enabled" />
-        <BoolField Label="Require INT selected"
-                   Hint="Ground speech waits for an ACP INT receive latch (any panel) — like the purser on CAB. Select INT before calling ground"
+        <BoolField Label="Require INT selected" Hint="Ground speech waits until INT is selected on an audio panel."
                    Disabled="@(!_groundCrew.Value.Enabled)"
                    @bind-Value="_groundCrew.Value.RequireIntChannel" />
         <AdvancedFields>
-            <NumberField Label="INT grace" Suffix="s" Min="0"
-                         Hint="Speech plays anyway after this wait — a call is never lost"
+            <NumberField Label="INT grace" Hint="After this wait the call plays anyway." Suffix="s" Min="0"
                          Disabled="@(!_groundCrew.Value.Enabled || !_groundCrew.Value.RequireIntChannel)"
                          @bind-Value="_groundCrew.Value.IntChannelGraceSeconds"
                          Default="_groundCrew.Defaults.IntChannelGraceSeconds" />
         </AdvancedFields>
-        <BoolField Label="MECH call on upcalls"
-                   Hint="Momentary overhead MECH press so the ACP lamp flashes when ground initiates a call"
+        <BoolField Label="MECH call on upcalls" Hint="Flash the MECH light when the ground crew calls you."
                    Disabled="@(!_groundCrew.Value.Enabled)"
                    @bind-Value="_groundCrew.Value.MechCall" />
         <AdvancedFields>
-            <NumberField Label="Hail listen window" Suffix="s" Min="3"
-                         Hint="How long the crew waits for your request after answering the hail"
+            <NumberField Label="Hail listen window" Hint="How long the crew waits for your request after answering." Suffix="s" Min="3"
                          Disabled="@(!_groundCrew.Value.Enabled)"
                          @bind-Value="_groundCrew.Value.HailListenTimeoutSeconds"
                          Default="_groundCrew.Defaults.HailListenTimeoutSeconds" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Upcalls" Hint="Each fires once per turnaround">
+    <Section Title="Upcalls" Hint="Each call comes once per turnaround">
         <BoolField Label="Ground power connected" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnGroundPower" />
         <BoolField Label="Chocks in place" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnChocks" />
-        <BoolField Label="Refueling complete" Hint="Includes the fuel figure ({fuel} tonnes)"
+        <BoolField Label="Refueling complete" Hint="Includes the fuel figure."
                    Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnRefuelComplete" />
         <BoolField Label="Catering complete" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnCateringComplete" />
     </Section>
 
-    <Section Title="Ground Crew Wording" Hint="Spoken verbatim in the ground-crew voice; {fuel} = tonnes on board">
+    <Section Title="Ground Crew Wording" Hint="Spoken word for word. {fuel} becomes the tonnes on board">
         <TextField Label="Hail reply" @bind-Value="_groundCrew.Value.HailReplyText" />
         <TextField Label="Standing by" @bind-Value="_groundCrew.Value.StandingByText" />
         <TextField Label="Ground power" @bind-Value="_groundCrew.Value.GroundPowerText" />
@@ -270,19 +236,18 @@ else if (CurrentSection == "groundCrew")
 }
 else if (CurrentSection == "cabin")
 {
-    <Section Title="Cabin Crew" Hint="Purser reports on the CAB interphone">
+    <Section Title="Cabin Crew" Hint="Purser reports on the cabin interphone">
         <BoolField Label="Enabled" @bind-Value="_cabin.Value.Enabled" />
-        <BoolField Label="Cabin secure report" Hint="Before takeoff (doors closed + beacon on)"
+        <BoolField Label="Cabin secure report" Hint="Before takeoff, once the doors are closed and the beacon is on."
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CabinSecure" />
-        <BoolField Label="Cabin ready report" Hint="On approach below the trigger altitude"
+        <BoolField Label="Cabin ready report" Hint="On approach, below the altitude set here."
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CabinReady" />
         <NumberField Label="Cabin-ready below" Suffix="ft MSL" Min="1000"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinReady)"
                      @bind-Value="_cabin.Value.CabinReadyBelowAltFt"
                      Default="_cabin.Defaults.CabinReadyBelowAltFt" />
         <BoolField Label="FO acknowledges reports" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.FoAcknowledge" />
-        <BoolField Label="Require CAB selected"
-                   Hint="The purser voice waits for an ACP CAB receive latch or the grace"
+        <BoolField Label="Require CAB selected" Hint="The purser waits until CAB is selected on an audio panel, or the grace time."
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.RequireCabChannel" />
         <AdvancedFields>
             <NumberField Label="CAB grace" Suffix="s" Min="0"
@@ -291,20 +256,20 @@ else if (CurrentSection == "cabin")
                          Default="_cabin.Defaults.CabChannelGraceSeconds" />
         </AdvancedFields>
         <BoolField Label="Interphone chime before calls" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.Chime" />
-        <BoolField Label="Ding on startup" Hint="Cabin chime when the application starts"
+        <BoolField Label="Ding on startup" Hint="Cabin chime when the app starts."
                    @bind-Value="_cabin.Value.DingOnStartup" />
-        <BoolField Label="Ding on final loadsheet" Hint="Cabin chime when the final loadsheet is transmitted"
+        <BoolField Label="Ding on final loadsheet" Hint="Cabin chime when the final loadsheet is sent."
                    @bind-Value="_cabin.Value.DingOnFinal" />
-        <BoolField Label="Ambient events" Hint="Occasional boarding-delay call at the gate"
+        <BoolField Label="Ambient events" Hint="Now and then the purser reports a boarding delay."
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AmbientEvents" />
-        <NumberField Label="Boarding-delay probability" Step="0.05" Min="0" Max="1"
+        <NumberField Label="Boarding-delay probability" Hint="0.2 is one flight in five." Step="0.05" Min="0" Max="1"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AmbientEvents)"
                      @bind-Value="_cabin.Value.BoardingDelayProbability"
                      Default="_cabin.Defaults.BoardingDelayProbability" />
     </Section>
 
-    <Section Title="Cabin Wording" Hint="Spoken verbatim in the purser voice">
-        <TextField Label="Hail reply" Hint="Answer to &quot;cockpit to crew/cabin&quot;"
+    <Section Title="Cabin Wording" Hint="Spoken word for word">
+        <TextField Label="Hail reply" Hint="Answer to &quot;cockpit to cabin&quot;."
                    @bind-Value="_cabin.Value.HailReplyText" />
         <TextField Label="Cabin secure" @bind-Value="_cabin.Value.CabinSecureText" />
         <TextField Label="Cabin secure — FO ack" @bind-Value="_cabin.Value.CabinSecureAckText" />
@@ -315,48 +280,43 @@ else if (CurrentSection == "cabin")
 }
 else if (CurrentSection == "sayIntentions")
 {
-    <Section Title="SayIntentions" Hint="ATC integration: voice radio requests, weather (ATIS/METAR/TAF), CPDLC and the arrival-gate send">
-        <BoolField Label="Use SayIntentions"
-                   Hint="Master switch for every SayIntentions feature. Voice requests need SayIntentions running with an active flight"
+    <Section Title="SayIntentions" Hint="Online ATC: radio requests, weather, CPDLC and the arrival gate">
+        <BoolField Label="Use SayIntentions" Hint="Turns on every SayIntentions feature." More="Voice requests need SayIntentions running with an active flight. Weather only needs the API key."
                    @bind-Value="_sayIntentions.Value.Enabled" />
-        <SelectField Label="API key" Options="ApiKeySourceOptions"
-                     Hint="Auto reads it from flight.json each call"
+        <SelectField Label="API key" Hint="Auto reads the key from SayIntentions' flight.json." Options="ApiKeySourceOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled)"
                      @bind-Value="_sayIntentions.Value.ApiKeySource" />
-        <TextField Label="Manual API key" Hint="Only used when API key = Manual; never logged"
+        <TextField Label="Manual API key" Hint="Used only with Manual. Never logged."
                    Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.ApiKeySource != "manual")"
                    @bind-Value="_sayIntentions.Value.ManualApiKey" />
         <SelectField Label="Phraseology" Options="PhraseologyOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled)"
                      @bind-Value="_sayIntentions.Value.Phraseology" />
-        <BoolField Label="FO speaks the transmission"
-                   Hint="The FO voices the exact radio call locally before it transmits. Turn OFF if SayIntentions itself plays sayAs audibly (double audio)"
+        <BoolField Label="FO speaks the transmission" Hint="The FO says the radio call out loud before it is sent." More="Turn off if SayIntentions plays it as well (double audio)."
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.FoSpeaksTransmission" />
-        <BoolField Label="Auto-tune frequency"
-                   Hint="Tunes the matched station from getWX comms data before transmitting"
+        <BoolField Label="Auto-tune frequency" Hint="Tune the matched station before transmitting."
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.AutoTuneFrequency" />
-        <BoolField Label="Departure comms gate"
-                   Hint="Takes comms back from the SI copilot approaching the runway so YOU time the takeoff request"
+        <BoolField Label="Departure comms gate" Hint="You make the takeoff request, not the SayIntentions copilot." More="Comms come back to you when you get close to the runway."
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.DepartureGatingEnabled" />
-        <NumberField Label="Gate distance" Suffix="nm" Step="0.1" Min="0"
+        <NumberField Label="Gate distance" Hint="Distance from the runway where comms come back to you." Suffix="nm" Step="0.1" Min="0"
                      Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.DepartureGatingEnabled)"
                      @bind-Value="_sayIntentions.Value.DepartureGateDistanceNm"
                      Default="_sayIntentions.Defaults.DepartureGateDistanceNm" />
     </Section>
 
-    <Section Title="SayIntentions Weather" Hint="ATIS/METAR/TAF + CPDLC — needs only the API key, not an active flight">
+    <Section Title="SayIntentions Weather" Hint="ATIS, METAR, TAF and CPDLC. Needs only the API key">
         <BoolField Label="Enabled"
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.WeatherEnabled" />
         <AdvancedFields>
-            <NumberField Label="Cache TTL" Suffix="min" Min="1"
+            <NumberField Label="Cache TTL" Hint="How long a weather report is kept." Suffix="min" Min="1"
                          Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.WeatherEnabled)"
                          @bind-Value="_sayIntentions.Value.WeatherCacheMinutes"
                          Default="_sayIntentions.Defaults.WeatherCacheMinutes" />
-            <NumberField Label="Refresh debounce" Suffix="s" Min="0"
+            <NumberField Label="Refresh debounce" Hint="Shortest gap between refreshes." Suffix="s" Min="0"
                          Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.WeatherEnabled)"
                          @bind-Value="_sayIntentions.Value.WeatherRefreshDebounceSeconds"
                          Default="_sayIntentions.Defaults.WeatherRefreshDebounceSeconds" />
@@ -365,70 +325,58 @@ else if (CurrentSection == "sayIntentions")
 }
 else if (CurrentSection == "providers")
 {
-    <Section Title="Kokoro (local neural TTS)" Hint="A kokoro-fastapi instance on this machine or the LAN">
-        <TextField Label="Base URL"
-                   Hint="e.g. http://192.168.1.50:8880 — empty disables the provider"
+    <Section Title="Kokoro (local neural TTS)" Hint="Free neural voices from a Kokoro server on this PC or your network">
+        <TextField Label="Base URL" Hint="Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off."
                    @bind-Value="_speech.Value.KokoroBaseUrl" />
         <TextField Label="Model" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroModel" />
-        <TextField Label="Voice" Hint="e.g. bm_george" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroVoice" />
+        <TextField Label="Voice" Hint="For example bm_george." Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroVoice" />
         <AdvancedFields>
-            <NumberField Label="Connect timeout" Suffix="ms" Min="200"
-                         Hint="Wait for Kokoro to answer — kept tight on purpose so a sleeping host falls through to the next provider instead of stalling a callout"
+            <NumberField Label="Connect timeout" Hint="Wait for the server to answer." More="Kept short on purpose. A sleeping server falls through to the next voice instead of stalling a callout." Suffix="ms" Min="200"
                          Disabled="@KokoroOff"
                          @bind-Value="_speech.Value.KokoroTimeoutMs"
                          Default="_speech.Defaults.KokoroTimeoutMs" />
-            <NumberField Label="Body timeout" Suffix="ms" Min="1000"
-                         Hint="Budget for the streamed audio once Kokoro has answered, plus 100 ms per character — a long briefing must not trip the 60 s cooldown"
+            <NumberField Label="Body timeout" Hint="Time allowed for the audio to arrive." More="Plus 100 ms per character, so a long briefing never trips the 60 s cooldown." Suffix="ms" Min="1000"
                          Disabled="@KokoroOff"
                          @bind-Value="_speech.Value.KokoroBodyTimeoutMs"
                          Default="_speech.Defaults.KokoroBodyTimeoutMs" />
-            <NumberField Label="Cache cap per voice" Suffix="MB" Min="0"
-                         Hint="0 = unlimited"
+            <NumberField Label="Cache cap per voice" Hint="0 is no limit." Suffix="MB" Min="0"
                          Disabled="@KokoroOff"
                          @bind-Value="_speech.Value.KokoroMaxCacheMbPerVoice"
                          Default="_speech.Defaults.KokoroMaxCacheMbPerVoice" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Google Cloud TTS (Chirp 3 HD)" Hint="Paid neural voices — cached and budget-guarded">
-        <TextField Label="Service-account key file"
-                   Hint="Path to the JSON key; empty disables the provider. The key is never logged"
+    <Section Title="Google Cloud TTS (Chirp 3 HD)" Hint="Paid neural voices. Cached, with a monthly budget">
+        <TextField Label="Service-account key file" Hint="Path to the service-account JSON key. Empty turns Google off. Never logged."
                    @bind-Value="_speech.Value.GoogleKeyFilePath" />
-        <TextField Label="Voice" Hint="e.g. en-AU-Chirp3-HD-Charon" Disabled="@GoogleOff" @bind-Value="_speech.Value.GoogleVoice" />
-        <NumberField Label="Monthly character budget" Min="0"
-                     Hint="Synthesis stops for the month at this figure and falls through to offline voices (free tier is 1,000,000). 0 disables enforcement"
+        <TextField Label="Voice" Hint="For example en-AU-Chirp3-HD-Charon." Disabled="@GoogleOff" @bind-Value="_speech.Value.GoogleVoice" />
+        <NumberField Label="Monthly character budget" Hint="Google stops for the month at this many characters. 0 is no limit." More="The free tier is 1,000,000 characters. The offline voices take over." Min="0"
                      Disabled="@GoogleOff"
                      @bind-Value="_speech.Value.GoogleMonthlyCharBudget"
                      Default="_speech.Defaults.GoogleMonthlyCharBudget" />
     </Section>
 
-    <Section Title="Windows Voices" Hint="Offline fallbacks — always available">
-        <TextField Label="WinRT voice"
-                   Hint="Display name or id; empty uses the system default. WinRT reaches the Windows 11 neural &quot;Natural&quot; voices"
+    <Section Title="Windows Voices" Hint="Offline voices, always available">
+        <TextField Label="WinRT voice" Hint="Voice name. Empty uses the Windows default." More="This reaches the Windows 11 &quot;Natural&quot; voices."
                    @bind-Value="_speech.Value.WinRtVoice" />
-        <TextField Label="SAPI5 voice"
-                   Hint="Last-resort voice; empty uses the system default"
+        <TextField Label="SAPI5 voice" Hint="Last-resort voice. Empty uses the Windows default."
                    @bind-Value="_speech.Value.SapiVoice" />
     </Section>
 
     <Section Title="Cache" Advanced="true">
-        <TextField Label="TTS cache folder"
-                   Hint="Empty uses %LOCALAPPDATA%\ProsimCompanion\cache\tts. Cached per provider and voice; the usage counter lives here too"
+        <TextField Label="TTS cache folder" Hint="Empty uses the app's cache folder." More="%LOCALAPPDATA%\ProsimCompanion\cache\tts, one folder per provider and voice. The usage counter lives there too."
                    @bind-Value="_speech.Value.CacheFolder" />
     </Section>
 }
 else if (CurrentSection == "mcdu")
 {
-    <Section Title="MCDU" Hint="Voice MCDU: read-back always works; key presses need deliberate arming">
-        <BoolField Label="Enabled"
-                   Hint="Master switch for the MCDU voice features (read the mcdu, tune the ils, change arrival runway)"
+    <Section Title="MCDU" Hint="Voice MCDU: reading always works, key presses need arming">
+        <BoolField Label="Enabled" Hint="Read the MCDU, tune the ILS and change the arrival runway by voice."
                    @bind-Value="_mcdu.Value.Enabled" />
-        <BoolField Label="Allow actuation"
-                   Hint="Lets the virtual pilot PRESS MCDU keys (RAD NAV tuning, arrival changes). Off = read-only; commands answer that actuation is disabled"
+        <BoolField Label="Allow actuation" Hint="Let the FO press MCDU keys." More="Off: read only. Commands answer that key presses are off."
                    Disabled="@(!_mcdu.Value.Enabled)"
                    @bind-Value="_mcdu.Value.AllowActuation" />
-        <NumberField Label="Verify pause" Suffix="s" Min="0"
-                     Hint="Announce-then-pause cancel window before an MCDU change is inserted"
+        <NumberField Label="Verify pause" Hint="The FO announces the change, then waits this long so you can cancel." Suffix="s" Min="0"
                      Disabled="@(!_mcdu.Value.Enabled || !_mcdu.Value.AllowActuation)"
                      @bind-Value="_mcdu.Value.VerifyPauseSeconds"
                      Default="_mcdu.Defaults.VerifyPauseSeconds" />
@@ -436,85 +384,73 @@ else if (CurrentSection == "mcdu")
 }
 else if (CurrentSection == "briefing")
 {
-    <Section Title="Briefings" Hint="Departure/arrival briefings composed from nav data + weather; the deterministic template is always the floor">
-        <SelectField Label="Procedure source" Options="ProcedureSourceOptions"
-                     Hint="Auto walks FMS plan → SayIntentions flight.json → the manual entries below, per field"
+    <Section Title="Briefings" Hint="Departure and arrival briefings from nav data and weather">
+        <SelectField Label="Procedure source" Hint="Where the runway, SID, STAR and approach come from." More="Auto tries the FMS plan, then SayIntentions, then the manual entries below, field by field." Options="ProcedureSourceOptions"
                      @bind-Value="ProcedureSourceKey" />
-        <BoolField Label="Verify numbers in LLM output"
-                   Hint="Every figure the LLM writes is checked against the source facts; a failed retry falls back to the template"
+        <BoolField Label="Verify numbers in LLM output" Hint="Every figure the LLM writes is checked against the facts." More="A failed check falls back to the plain template."
                    @bind-Value="_briefing.Value.VerifyNumbers" />
         <div class="field-hint" style="max-width:640px;">
             The Navigraph DFD database path lives under <a href="settings">Setup → Nav Data</a>.
         </div>
     </Section>
 
-    <Section Title="Manual Procedure Overrides" Hint="Used when the FMS/flight.json tiers can't resolve a field (or always, in Manual mode)">
+    <Section Title="Manual Procedure Overrides" Hint="Used when the FMS or SayIntentions cannot fill a field, or always in Manual mode">
         <TextField Label="Departure airport" Hint="ICAO, e.g. YSSY" @bind-Value="_briefing.Value.DepartureAirport" />
         <TextField Label="Departure runway" Hint="e.g. 16R" @bind-Value="_briefing.Value.DepartureRunway" />
         <TextField Label="SID" Hint="Identifier, e.g. FISHA1" @bind-Value="_briefing.Value.DepartureSid" />
         <TextField Label="Arrival airport" Hint="ICAO, e.g. YMML" @bind-Value="_briefing.Value.ArrivalAirport" />
         <TextField Label="Arrival runway" Hint="e.g. 34" @bind-Value="_briefing.Value.ArrivalRunway" />
         <TextField Label="STAR" Hint="Identifier, e.g. RAZZI4" @bind-Value="_briefing.Value.ArrivalStar" />
-        <TextField Label="Approach" Hint="DFD identifier, e.g. I16R. Empty auto-fills the top-ranked published approach (ILS first); ask the FO &quot;which approach&quot; to hear the candidates"
+        <TextField Label="Approach" Hint="For example I16R. Empty picks the best published approach, ILS first." More="Ask the FO &quot;which approach&quot; to hear the candidates."
                    @bind-Value="_briefing.Value.ArrivalApproach" />
     </Section>
 
-    <Section Title="Minima Capture" Hint="During the arrival brief the FO asks for the minimums, reads them back, and arms the callouts on confirmation">
-        <BoolField Label="Interactive capture"
-                   Hint="A value already entered on the First Officer Status card skips the dialogue. Works best with the LAN transcription engine"
+    <Section Title="Minima Capture" Hint="The FO asks for the minimums during the arrival brief">
+        <BoolField Label="Interactive capture" Hint="The FO asks, reads back, and arms the minimums callouts." More="A value already set on the Status section skips the question. Works best with a transcription server."
                    @bind-Value="_briefing.Value.MinimaCaptureEnabled" />
         <AdvancedFields>
-            <NumberField Label="Listen timeout" Suffix="s" Min="5"
+            <NumberField Label="Listen timeout" Hint="How long the FO waits for your answer." Suffix="s" Min="5"
                          Disabled="@(!_briefing.Value.MinimaCaptureEnabled)"
                          @bind-Value="_briefing.Value.MinimaListenTimeoutSeconds"
                          Default="_briefing.Defaults.MinimaListenTimeoutSeconds" />
-            <NumberField Label="Max retries" Min="0"
-                         Hint="Failed or unconfirmed attempts before the brief proceeds &quot;not briefed&quot;"
+            <NumberField Label="Max retries" Hint="Failed tries before the brief goes on as not briefed." Min="0"
                          Disabled="@(!_briefing.Value.MinimaCaptureEnabled)"
                          @bind-Value="_briefing.Value.MinimaMaxRetries"
                          Default="_briefing.Defaults.MinimaMaxRetries" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Missed-Approach Re-brief" Hint="After a go-around, the FO speaks the published missed-approach legs">
-        <BoolField Label="Enabled"
-                   Hint="Waits for the delay AND gear-up (the crew flies first); degrades to a prompt when the DFD has no legs"
+    <Section Title="Missed-Approach Re-brief" Hint="After a go-around the FO reads the missed approach">
+        <BoolField Label="Enabled" Hint="Waits for the delay and gear up, so you fly first." More="Without published legs the FO gives a prompt instead."
                    @bind-Value="_briefing.Value.MissedApproachRebriefEnabled" />
         <AdvancedFields>
             <NumberField Label="Delay" Suffix="s" Min="0"
                          Disabled="@(!_briefing.Value.MissedApproachRebriefEnabled)"
                          @bind-Value="_briefing.Value.MissedApproachDelaySeconds"
                          Default="_briefing.Defaults.MissedApproachDelaySeconds" />
-            <NumberField Label="Hard ceiling" Suffix="s" Min="0"
-                         Hint="Speaks at this point even if gear-up is never seen"
+            <NumberField Label="Hard ceiling" Hint="Speaks by this time even if the gear never comes up." Suffix="s" Min="0"
                          Disabled="@(!_briefing.Value.MissedApproachRebriefEnabled)"
                          @bind-Value="_briefing.Value.MissedApproachHardCeilingSeconds"
                          Default="_briefing.Defaults.MissedApproachHardCeilingSeconds" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="LLM Styling" Hint="One LLM endpoint for the whole app (briefing and debrief prose)">
-        <BoolField Label="Enabled"
-                   Hint="Off = deterministic templates only, nothing leaves this machine"
+    <Section Title="LLM Styling" Hint="One language model for the briefing and debrief prose">
+        <BoolField Label="Enabled" Hint="Off: plain templates only. Nothing leaves this PC."
                    @bind-Value="_briefing.Value.LlmEnabled" />
-        <SelectField Label="API flavour" Options="LlmApiOptions"
-                     Hint="Ollama native is the only flavour that can switch model thinking off; pick it when the base URL is an Ollama server"
+        <SelectField Label="API flavour" Hint="Pick Ollama when the address is an Ollama server." More="Only the Ollama type can switch model thinking off." Options="LlmApiOptions"
                      Disabled="@(!_briefing.Value.LlmEnabled)"
                      @bind-Value="LlmApiKey" />
-        <TextField Label="Base URL"
-                   Hint="OpenAI-compatible: the API root, e.g. http://localhost:3000/api or https://api.openai.com/v1. Ollama native: the server root, e.g. http://localhost:11434 (no /v1)"
+        <TextField Label="Base URL" Hint="OpenAI style: the API root, e.g. https://api.openai.com/v1. Ollama: the server root, e.g. http://localhost:11434."
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmBaseUrl" />
-        <TextField Label="API key"
-                   Hint="Stored in config/settings.json, never logged; empty for keyless local servers"
+        <TextField Label="API key" Hint="Never logged. Empty for local servers without a key."
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmApiKey" />
-        <TextField Label="Model"
-                   Hint="Model name the endpoint expects (e.g. gpt-4o-mini, qwen3.6:27b). Empty disables LLM styling even when enabled"
+        <TextField Label="Model" Hint="Model name, e.g. gpt-4o-mini or qwen3.6:27b. Empty turns styling off."
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmModel" />
-        <BoolField Label="Enable model thinking (slower, deeper reasoning)"
-                   Hint="Lets a thinking model (qwen3.x, deepseek-r1) reason before it answers. Adds significant delay (often 10 s+) before speech begins — leave off for briefings. Ollama native API only"
+        <BoolField Label="Enable model thinking (slower, deeper reasoning)" Hint="Lets a thinking model reason first. Slow: often 10 s or more." More="Ollama only. Leave off for briefings."
                    Disabled="@(!_briefing.Value.LlmEnabled || _briefing.Value.LlmApi != LlmApiKind.Ollama)"
                    @bind-Value="_briefing.Value.LlmEnableThinking" />
         <AdvancedFields>
@@ -522,38 +458,31 @@ else if (CurrentSection == "briefing")
                          Disabled="@(!_briefing.Value.LlmEnabled)"
                          @bind-Value="_briefing.Value.LlmMaxTokens"
                          Default="_briefing.Defaults.LlmMaxTokens" />
-            <NumberField Label="Timeout" Suffix="s" Min="5"
-                         Hint="Per call — a styled composition may make two (ask + strict re-ask)"
+            <NumberField Label="Timeout" Hint="Per call. A styled briefing may make two calls." Suffix="s" Min="5"
                          Disabled="@(!_briefing.Value.LlmEnabled)"
                          @bind-Value="_briefing.Value.LlmTimeoutSeconds"
                          Default="_briefing.Defaults.LlmTimeoutSeconds" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
-            Save, then use "Test LLM connection" on the <a href="settings/speech/status">Status section</a> to verify
-            the endpoint round-trips.
+            Save, then press "Test LLM connection" on the <a href="settings/speech/status">Status section</a>.
         </div>
     </Section>
 
-    <Section Title="LLM Wake-on-LAN" Hint="Magic packet at startup so the self-hosted LLM box powers itself on" Advanced="true">
-        <BoolField Label="Enabled"
-                   Hint="Requires WoL enabled in the host's BIOS/UEFI and NIC driver (one-time manual setup), wired Ethernet, same subnet"
+    <Section Title="LLM Wake-on-LAN" Hint="Wake the LLM PC when the app starts" Advanced="true">
+        <BoolField Label="Enabled" Hint="Sends a wake-up packet when the app starts." More="The LLM PC needs Wake-on-LAN enabled in its BIOS and network driver, a wired connection, and the same network."
                    @bind-Value="_briefing.Value.LlmWakeOnLan.Enabled" />
-        <TextField Label="MAC address"
-                   Hint="Target NIC MAC, e.g. AA:BB:CC:DD:EE:FF (':' or '-' separators, or none)"
+        <TextField Label="MAC address" Hint="For example AA:BB:CC:DD:EE:FF."
                    Disabled="@(!_briefing.Value.LlmWakeOnLan.Enabled)"
                    @bind-Value="_briefing.Value.LlmWakeOnLan.MacAddress" />
-        <TextField Label="Broadcast address"
-                   Hint="255.255.255.255 or the subnet broadcast, e.g. 192.168.1.255"
+        <TextField Label="Broadcast address" Hint="255.255.255.255, or your subnet's broadcast such as 192.168.1.255."
                    Disabled="@(!_briefing.Value.LlmWakeOnLan.Enabled)"
                    @bind-Value="_briefing.Value.LlmWakeOnLan.BroadcastAddress" />
-        <NumberField Label="Port" Min="1" Max="65535"
-                     Hint="Conventionally 9 (the discard port)"
+        <NumberField Label="Port" Hint="Usually 9." Min="1" Max="65535"
                      Disabled="@(!_briefing.Value.LlmWakeOnLan.Enabled)"
                      @bind-Value="_briefing.Value.LlmWakeOnLan.Port"
                      Default="_briefing.Defaults.LlmWakeOnLan.Port" />
         <div class="field-hint" style="max-width:640px;">
-            The send is fire-and-forget — use "Wake LLM server" then "Test LLM
-            connection" on the <a href="settings/speech/status">Status section</a> to confirm the host came up.
+            Press "Wake LLM server", then "Test LLM connection" on the <a href="settings/speech/status">Status section</a> to check the PC came up.
         </div>
     </Section>
 }

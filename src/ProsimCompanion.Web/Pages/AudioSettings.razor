@@ -19,27 +19,22 @@
             }
             else if (CurrentSection == "general")
             {
-                <Section Title="Volume Control" Hint="ACP knobs and REC latches drive app volumes">
-                    <SelectField Label="Backend" Options="BackendOptions"
-                                 Hint="Switching applies live: CoreAudio session volumes are restored, VoiceMeeter targets reset to 0 dB"
+                <Section Title="Volume Control" Hint="Audio panel knobs and latches set app volumes">
+                    <SelectField Label="Backend" Hint="Windows app volumes, or VoiceMeeter strips and buses." More="Switching applies live. Windows volumes are restored, VoiceMeeter targets reset to 0 dB." Options="BackendOptions"
                                  @bind-Value="BackendKey" />
-                    <BoolField Label="Disable ProSim native audio control"
-                               Hint="Clears ProSim's aircraft.communication.windows.* bindings once per connection so both apps never fight over the same sessions"
+                    <BoolField Label="Disable ProSim native audio control" Hint="Turn off ProSim's own Windows volume control so the two never fight."
                                @bind-Value="_audio.Value.DisableProsimNativeAudio" />
                 </Section>
             }
             else if (CurrentSection == "coreaudio")
             {
-                <Section Title="CoreAudio" Hint="Windows per-app session volumes">
-                    <SelectField Label="ACP" Options="AcpOptions"
-                                 Hint="Which Audio Control Panel the app mappings listen to"
+                <Section Title="CoreAudio" Hint="Windows per-app volumes">
+                    <SelectField Label="ACP" Hint="Which audio control panel drives the app volumes." Options="AcpOptions"
                                  @bind-Value="CoreAudioAcpKey" />
                     <AdvancedFields Label="Troubleshooting filters hidden">
-                        <SelectField Label="Device-filter DataFlow" Options="DeviceFlowOptions"
-                                     Hint="Only for troubleshooting — change as advised"
+                        <SelectField Label="Device-filter DataFlow" Hint="Troubleshooting only. Change when asked." Options="DeviceFlowOptions"
                                      @bind-Value="_audio.Value.DeviceFilterFlow" />
-                        <SelectField Label="Device-filter State" Options="DeviceStateOptions"
-                                     Hint="Only for troubleshooting — change as advised"
+                        <SelectField Label="Device-filter State" Hint="Troubleshooting only. Change when asked." Options="DeviceStateOptions"
                                      @bind-Value="_audio.Value.DeviceFilterState" />
                         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                             <button type="button" class="btn secondary" disabled="@_debugDumpBusy" @onclick="WriteDebugDump">
@@ -91,14 +86,19 @@
                                 @onclick="() => _audio.Value.AppMappings.Add(new AudioAppMapping())">Add mapping</button>
                     </div>
                     <div class="field-hint" style="margin-top:8px; max-width:640px;">
-                        Process name without extension (e.g. "vPilot"). When the latch box is off,
-                        mute is never written — an app muted elsewhere stays muted. Apps running
-                        elevated (as administrator) cannot be controlled unless ProsimCompanion
-                        also runs elevated; the Audio page flags them.
+                        Process name without .exe, for example vPilot.
+                        <details class="field-more">
+                            <summary>More</summary>
+                            <span class="field-more-body">
+                                Latch off: mute is never written, so an app muted elsewhere stays muted.
+                                An app run as administrator needs ProsimCompanion run as administrator
+                                too; the Status section flags them.
+                            </span>
+                        </details>
                     </div>
                 </Section>
 
-                <Section Title="Device Blacklist" Hint="Matched on the START of the device name">
+                <Section Title="Device Blacklist" Hint="Matched on the start of the device name">
                     <div class="list-editor">
                         @for (var i = 0; i < _audio.Value.DeviceBlacklist.Count; i++)
                         {
@@ -119,10 +119,9 @@
             }
             else if (CurrentSection == "voicemeeter")
             {
-                <Section Title="VoiceMeeter" Hint="Strips/buses via VoicemeeterRemote64.dll">
+                <Section Title="VoiceMeeter" Hint="Strips and buses through VoiceMeeter's remote API">
                     <AdvancedFields>
-                        <TextField Label="VoicemeeterRemote64.dll path"
-                                   Hint="Leave empty to auto-detect the installed VoiceMeeter (any edition); set only for non-standard install locations — never bundled, loaded at runtime"
+                        <TextField Label="VoicemeeterRemote64.dll path" Hint="Empty finds the installed VoiceMeeter by itself. Set only for an unusual install folder."
                                    @bind-Value="_audio.Value.VoiceMeeterDllPath" />
                     </AdvancedFields>
                     <div style="margin:8px 0;">
@@ -180,30 +179,32 @@
                 }
 
                 <div class="field-hint" style="max-width:640px;">
-                    A channel may appear once per ACP, and a strip/bus may be driven by only one
-                    ACP. Conflicting saves fall back to CPT-only until fixed (the Audio page shows
-                    the reason). Knob travel maps to −60 dB … +12 dB; 0 dB sits around 83 %.
+                    A channel may appear once per panel. A strip or bus may belong to one panel only.
+                    <details class="field-more">
+                        <summary>More</summary>
+                        <span class="field-more-body">
+                            Conflicting saves fall back to the captain's panel until fixed; the Status
+                            section shows why. Knob travel maps to −60 dB … +12 dB; 0 dB sits near 83 %.
+                        </span>
+                    </details>
                 </div>
             }
             else
             {
-                <Section Title="Housekeeping" Hint="Predecessor-proven cadences — rarely need changing" Advanced="true">
-                    <NumberField Label="Run interval" Suffix="ms" Min="250"
-                                 Hint="Main housekeeping tick. Takes effect after restarting the application"
+                <Section Title="Housekeeping" Hint="Proven timings. Rarely need changing" Advanced="true">
+                    <NumberField Label="Run interval" Hint="Main check. Takes effect after an app restart." Suffix="ms" Min="250"
                                  @bind-Value="_audio.Value.RunIntervalMs"
                                  Default="_audio.Defaults.RunIntervalMs" />
                     <NumberField Label="Process check interval" Suffix="ms" Min="500"
                                  @bind-Value="_audio.Value.ProcessCheckIntervalMs"
                                  Default="_audio.Defaults.ProcessCheckIntervalMs" />
-                    <NumberField Label="Process startup grace" Suffix="ms" Min="0"
-                                 Hint="Wait after a mapped app starts before looking for its audio session"
+                    <NumberField Label="Process startup grace" Hint="Wait after a mapped app starts before looking for its sound." Suffix="ms" Min="0"
                                  @bind-Value="_audio.Value.ProcessStartupDelayMs"
                                  Default="_audio.Defaults.ProcessStartupDelayMs" />
                     <NumberField Label="Device rescan interval" Suffix="ms" Min="5000"
                                  @bind-Value="_audio.Value.DeviceCheckIntervalMs"
                                  Default="_audio.Defaults.DeviceCheckIntervalMs" />
-                    <NumberField Label="Max session searches" Min="1"
-                                 Hint="Failed lookups for a running process before a forced device rescan"
+                    <NumberField Label="Max session searches" Hint="Failed lookups before the devices are scanned again." Min="1"
                                  @bind-Value="_audio.Value.ProcessMaxSearchCount"
                                  Default="_audio.Defaults.ProcessMaxSearchCount" />
                 </Section>

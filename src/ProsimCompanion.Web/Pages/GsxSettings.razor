@@ -20,103 +20,79 @@
 else if (CurrentSection == "doors")
 {
     <Section Title="Doors">
-        <BoolField Label="Door automation"
-                   Hint="Master switch — the per-class rules below only apply while this is on"
+        <BoolField Label="Door automation" Hint="Lets the app open and close doors for the ground services." More="The door rules below only work while this is on."
                    @bind-Value="_gsx.Value.DoorAutomationEnabled" />
-        <BoolField Label="Passenger doors follow stairs"
-                   Hint="L4 opens when GSX stairs dock (L1 too at jetway-less stands) and closes when they leave"
+        <BoolField Label="Passenger doors follow stairs" Hint="The rear passenger door opens when the stairs arrive and closes when they leave." More="At stands without a jetway the front door opens too."
                    Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
                    @bind-Value="_gsx.Value.DoorStairHandling" />
-        <BoolField Label="Service doors follow catering"
-                   Hint="1R/4R toggle on GSX's catering door requests"
+        <BoolField Label="Service doors follow catering" Hint="The right-side service doors open and close for the catering truck."
                    Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
                    @bind-Value="_gsx.Value.DoorCateringHandling" />
-        <BoolField Label="Cargo doors follow loading"
-                   Hint="Open on GSX's cargo requests, close when each loader finishes"
+        <BoolField Label="Cargo doors follow loading" Hint="The cargo doors open for the loaders and close when each loader finishes."
                    Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
                    @bind-Value="_gsx.Value.DoorCargoHandling" />
-        <BoolField Label="Open cargo doors on boarding active"
-                   Hint="Both cargo doors open shortly after boarding/deboarding starts"
+        <BoolField Label="Open cargo doors on boarding active" Hint="Both cargo doors open shortly after boarding or deboarding starts."
                    Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
                    @bind-Value="_gsx.Value.DoorOpenOnBoardingActive" />
-        <NumberField Label="Cargo door open delay" Suffix="s" Min="0"
-                     Hint="After boarding/deboarding begins"
+        <NumberField Label="Cargo door open delay" Hint="Wait after boarding or deboarding begins." Suffix="s" Min="0"
                      Disabled="@(!_gsx.Value.DoorAutomationEnabled || !_gsx.Value.DoorOpenOnBoardingActive)"
                      @bind-Value="_gsx.Value.CargoDoorOpenDelaySec"
                      Default="_gsx.Defaults.CargoDoorOpenDelaySec" />
-        <NumberField Label="Cargo door close delay" Suffix="s" Min="0"
-                     Hint="After the hold's GSX loader finishes"
+        <NumberField Label="Cargo door close delay" Hint="Wait after the loader finishes." Suffix="s" Min="0"
                      Disabled="@(!_gsx.Value.DoorAutomationEnabled || !_gsx.Value.DoorCargoHandling)"
                      @bind-Value="_gsx.Value.CargoDoorCloseDelaySec"
                      Default="_gsx.Defaults.CargoDoorCloseDelaySec" />
-        <BoolField Label="Keep cargo doors open after loading"
-                   Hint="Skip the loader-finished close during boarding (still closed when boarding completes)"
+        <BoolField Label="Keep cargo doors open after loading" Hint="Leave the cargo doors open until boarding completes."
                    Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
                    @bind-Value="_gsx.Value.KeepCargoDoorsOpenAfterLoad" />
-        <BoolField Label="Keep cargo doors open after unload"
-                   Hint="Ground-crew realism option; default closes them"
+        <BoolField Label="Keep cargo doors open after unload" Hint="Leave the cargo doors open after unloading." More="Off closes them when each loader finishes."
                    Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
                    @bind-Value="_gsx.Value.KeepCargoDoorsOpenAfterUnload" />
-        <BoolField Label="Close doors on final loadsheet"
-                   Hint="All doors close once the final loadsheet is transmitted (beacon sequence off only)"
+        <BoolField Label="Close doors on final loadsheet" Hint="Close all doors when the final loadsheet is sent." More="Only used while the beacon pushback sequence is off."
                    Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
                    @bind-Value="_gsx.Value.CloseDoorsOnFinal" />
         <AdvancedFields>
-            <BoolField Label="Suppress GSX door messages"
-                       Hint="Writes DISABLE_DOORS_MSG so GSX never shows door prompts while this app drives the doors"
+            <BoolField Label="Suppress GSX door messages" Hint="Hide GSX's own door prompts while this app drives the doors."
                        @bind-Value="_gsx.Value.SuppressGsxDoorMessages" />
         </AdvancedFields>
     </Section>
     <Section Title="Jetway / Stairs">
-        <BoolField Label="Connect at session start"
-                   Hint="Once per gate session; LVAR truth decides jetway vs stairs at this stand"
+        <BoolField Label="Connect at session start" Hint="Connect the jetway or stairs when the session starts at the gate." More="Once per gate session. GSX decides jetway or stairs for the stand."
                    @bind-Value="_gsx.Value.AutoConnectJetwayOrStairs" />
-        <BoolField Label="Connect when departure services start"
-                   Hint="For sessions where the session-start connect is off"
+        <BoolField Label="Connect when departure services start" Hint="Connect the jetway or stairs when the departure services start." More="For sessions where the connect at session start is off."
                    @bind-Value="_gsx.Value.CallJetwayStairsDuringDeparture" />
-        <SelectField Label="Remove stairs after departure services" Options="RemoveStairsOptions"
-                     Hint="Only jetway = only when a jetway still serves the pax doors"
+        <SelectField Label="Remove stairs after departure services" Hint="When to remove the stairs after the departure services." More="Only jetway stands: only when a jetway still serves the passenger doors." Options="RemoveStairsOptions"
                      @bind-Value="_gsx.Value.RemoveStairsAfterDeparture" />
-        <BoolField Label="Remove jetway/stairs on final loadsheet"
-                   Hint="Retract both once the final loadsheet is transmitted (beacon sequence off only)"
+        <BoolField Label="Remove jetway/stairs on final loadsheet" Hint="Retract the jetway or stairs when the final loadsheet is sent." More="Only used while the beacon pushback sequence is off."
                    @bind-Value="_gsx.Value.RemoveJetwayStairsOnFinal" />
-        <BoolField Label="Connect on arrival"
-                   Hint="Jetway or stairs connect once stably parked, before deboarding"
+        <BoolField Label="Connect on arrival" Hint="Connect the jetway or stairs after parking, before deboarding."
                    @bind-Value="_gsx.Value.CallJetwayStairsOnArrival" />
     </Section>
 }
 else if (CurrentSection == "equipment")
 {
     <Section Title="Ground Equipment">
-        <BoolField Label="Place ground equipment"
-                   Hint="GPU + chocks at session start on the ground; removed when the beacon comes on"
+        <BoolField Label="Place ground equipment" Hint="Place the ground power unit and the chocks at session start." More="They are removed when the beacon comes on."
                    @bind-Value="_gsx.Value.AutoGroundEquipment" />
-        <BoolField Label="Connect GPU with APU running"
-                   Hint="Off skips the GPU at session start when the APU already powers the aircraft"
+        <BoolField Label="Connect GPU with APU running" Hint="Connect ground power even when the APU already powers the aircraft."
                    Disabled="@(!_gsx.Value.AutoGroundEquipment)"
                    @bind-Value="_gsx.Value.ConnectGpuWithApuRunning" />
-        <SelectField Label="Connect PCA" Options="PcaModeOptions"
-                     Hint="Preconditioned air at session start &amp; arrival; Only jetway uses GSX's jetway availability"
+        <SelectField Label="Connect PCA" Hint="When to connect pre-conditioned air (PCA)." More="Only jetway stands follows GSX's jetway availability. Applies at session start and on arrival." Options="PcaModeOptions"
                      @bind-Value="PcaModeKey" />
         <AdvancedFields>
-            <BoolField Label="Override PCA state"
-                       Hint="Disconnect PCA when a saved panel state left it connected but the setting above disallows it"
+            <BoolField Label="Override PCA state" Hint="Disconnect PCA that a saved panel state left connected when the setting above forbids it."
                        @bind-Value="_gsx.Value.PcaOverride" />
         </AdvancedFields>
-        <BoolField Label="Gradual removal during pushback"
-                   Hint="GPU clears on external-power disconnect, chocks on park brake set (beacon sequence off only)"
+        <BoolField Label="Gradual removal during pushback" Hint="Remove ground power when external power goes off, and the chocks when the park brake is set." More="Only used while the beacon pushback sequence is off."
                    @bind-Value="_gsx.Value.GradualGroundEquipRemoval" />
-        <RangeField Label="Arrival chock delay" Suffix="s" Min="0"
-                    Hint="Random delay after stable parking before the chocks go in"
+        <RangeField Label="Arrival chock delay" Hint="Random wait after parking before the chocks go in." Suffix="s" Min="0"
                     Disabled="@(!_gsx.Value.AutoGroundEquipment)"
                     @bind-From="_gsx.Value.ChockDelayMinSec" @bind-To="_gsx.Value.ChockDelayMaxSec"
                     DefaultFrom="_gsx.Defaults.ChockDelayMinSec" DefaultTo="_gsx.Defaults.ChockDelayMaxSec" />
-        <BoolField Label="Reposition at startup"
-                   Hint="Run GSX's Reposition Aircraft once at session start on the ground"
+        <BoolField Label="Reposition at startup" Hint="Run GSX's Reposition Aircraft once at session start."
                    @bind-Value="_gsx.Value.AutoReposition" />
         <AdvancedFields>
-            <BoolField Label="Disable ProSim's native GSX integration"
-                       Hint="Turns off efb.gsx.* auto-flags so the two automations never fight"
+            <BoolField Label="Disable ProSim's native GSX integration" Hint="Turn off ProSim's own GSX automation so the two never fight."
                        @bind-Value="_gsx.Value.DisableProsimNativeGsx" />
         </AdvancedFields>
     </Section>
@@ -124,31 +100,25 @@ else if (CurrentSection == "equipment")
 else if (CurrentSection == "departure")
 {
     <Section Title="Automation">
-        <BoolField Label="Ground automation"
-                   Hint="Question answering + service sequencing (the Remote API client runs regardless)"
+        <BoolField Label="Ground automation" Hint="Let the app answer GSX questions and run the service sequence." More="The GSX connection stays up either way, so the status board still works."
                    @bind-Value="_gsx.Value.AutomationEnabled" />
-        <BoolField Label="Auto-start departure services"
-                   Hint="Start the sequence automatically once preconditions hold; off = press Start on the Status section"
+        <BoolField Label="Auto-start departure services" Hint="Start the departure services by itself once the aircraft is ready." More="Off: press Start on the Status section, or ask the First Officer."
                    @bind-Value="_gsx.Value.AutoStartDepartureServices" />
-        <SelectField Label="Ground preparation start" Options="GroundPrepActivationOptions"
-                     Hint="Voice command holds reposition/GPU/jetway until 'commence ground services' (web Start also releases)"
+        <SelectField Label="Ground preparation start" Hint="When ground preparation (reposition, ground power, jetway) begins." More="Voice command waits for &quot;commence ground services&quot; or the Start button." Options="GroundPrepActivationOptions"
                      @bind-Value="_gsx.Value.GroundPrepActivation" />
-        <BoolField Label="Wait for OFP before departure services"
-                   Hint="No service is called until the SimBrief OFP is imported in the EFB / MCDU"
+        <BoolField Label="Wait for OFP before departure services" Hint="Wait for the SimBrief flight plan before calling any service."
                    @bind-Value="_gsx.Value.RequireOfpBeforeDeparture" />
     </Section>
 
     <Section Title="Cold &amp; Dark Check">
-        <BoolField Label="Verify aircraft state at session start"
-                   Hint="Once per session on a fresh departure (never on turnarounds): switch positions are checked against aircraft-states\cold-and-dark.json in the user config folder (%LOCALAPPDATA%\ProsimCompanion\config) — edit that file to tune the expected set"
+        <BoolField Label="Verify aircraft state at session start" Hint="Check the cockpit switches against the cold-and-dark state at session start." More="Once per session on a fresh departure, never on a turnaround. The expected switch set is the file aircraft-states\cold-and-dark.json in your config folder."
                    @bind-Value="_gsx.Value.AircraftStateCheckEnabled" />
-        <BoolField Label="First Officer announces mismatches"
-                   Hint="One spoken advisory listing the first few discrepancies; the full list always shows on the Flight Status page"
+        <BoolField Label="First Officer announces mismatches" Hint="The First Officer reads out the first few mismatches." More="The full list always shows on the Flight Status page."
                    Disabled="@(!_gsx.Value.AircraftStateCheckEnabled)"
                    @bind-Value="_gsx.Value.AircraftStateCheckAnnounce" />
     </Section>
 
-    <Section Title="Departure Service Order" Hint="Order = activation sequence">
+    <Section Title="Departure Service Order" Hint="Top to bottom is the call order">
         <div class="preset-row">
             <span class="preset-label">Start from a preset</span>
             <button type="button" class="btn secondary" title="Refuel and catering side by side, water after catering, board last (the out-of-the-box order)"
@@ -159,12 +129,17 @@ else if (CurrentSection == "departure")
                     @onclick='() => ApplyPreset("manual")'>Manual</button>
         </div>
         <div class="field-hint" style="margin-bottom:8px; max-width:640px;">
-            Row order is the call order. Each service's activation gates it on the service
-            before it: "Previous called" runs services side by side, "Previous completed" is a
-            strict chain, "All earlier completed" is the classic board-last barrier, and
-            "Manual" waits for you (INT/RAD, the GSX menu, or the Status section). "Min. flight"
-            skips the service when the planned flight is shorter than that many minutes
-            (0 = always run). Safe to edit between flights — best not mid-departure.
+            Each row waits for the row above it, as set in its Activation column.
+            <details class="field-more">
+                <summary>More</summary>
+                <span class="field-more-body">
+                    "Previous called" runs services side by side. "Previous completed" is a strict
+                    chain. "All earlier completed" is the classic board-last barrier. "Manual" waits
+                    for you: the INT/RAD switch, the GSX menu or the Status section. "Min. flight"
+                    skips the service when the planned flight is shorter than that many minutes
+                    (0 always runs it). Edit between flights, not mid-departure.
+                </span>
+            </details>
         </div>
         @if (_gsx.Value.DepartureServices.Count == 0)
         {
@@ -221,54 +196,46 @@ else if (CurrentSection == "departure")
 else if (CurrentSection == "refuel")
 {
     <Section Title="Refuel">
-        <SelectField Label="Refuel call" Options="RefuelCallOptions"
-                     Hint="SOP mode holds ONLY the fuel truck until the crew confirms the block fuel (INIT page CONFIRM FUEL, 'fuel confirmed' by voice, or 'request refueling'); catering and the rest continue, boarding waits for the truck. The INIT FUEL RAMP entry is the figure the truck loads; raising it after the truck finished offers a top-up on the same button/phrase."
+        <SelectField Label="Refuel call" Hint="When the fuel truck is called." More="SOP: the truck waits until you confirm the block fuel (CONFIRM FUEL on the INIT page, or say &quot;fuel confirmed&quot;). The other services continue; boarding waits for the truck. The truck loads the INIT FUEL RAMP figure. Raising it after the truck has finished offers a top-up." Options="RefuelCallOptions"
                      @bind-Value="_gsx.Value.RefuelCall" />
-        <BoolField Label="Refuel sync"
-                   Hint="Step ProSim fuel toward the target while the GSX hose is connected"
+        <BoolField Label="Refuel sync" Hint="Fill the ProSim tanks while the GSX hose is connected."
                    @bind-Value="_gsx.Value.RefuelSyncEnabled" />
-        <SelectField Label="Refuel method" Options="RefuelMethodOptions"
-                     Hint="Dynamic: rate is computed so the fill takes the time target regardless of amount"
+        <SelectField Label="Refuel method" Hint="Fixed: a set rate. Dynamic: the fill always takes the time target." Options="RefuelMethodOptions"
                      Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
                      @bind-Value="_gsx.Value.RefuelMethod" />
         @if (string.Equals(_gsx.Value.RefuelMethod, "dynamicRate", StringComparison.OrdinalIgnoreCase))
         {
-            <NumberField Label="Time target" Suffix="s" Min="30"
+            <NumberField Label="Time target" Hint="How long the fill takes." Suffix="s" Min="30"
                          Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
                          @bind-Value="_gsx.Value.RefuelTimeTargetSeconds"
                      Default="_gsx.Defaults.RefuelTimeTargetSeconds" />
         }
         else
         {
-            <NumberField Label="Refuel rate" Suffix="kg/s" Step="0.5" Min="1"
+            <NumberField Label="Refuel rate" Hint="Kilograms per second." Suffix="kg/s" Step="0.5" Min="1"
                          Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
                          @bind-Value="_gsx.Value.RefuelRateKgPerSec"
                      Default="_gsx.Defaults.RefuelRateKgPerSec" />
         }
-        <BoolField Label="Skip refuel when FOB exceeds plan"
-                   Hint="Tankering: when the aircraft already carries the OFP block fuel (25 kg tolerance) the refuel truck is not called at all — the sequence moves on and the preliminary loadsheet still triggers"
+        <BoolField Label="Skip refuel when FOB exceeds plan" Hint="Do not call the truck when the aircraft already carries the planned fuel." More="Tankering, with a 25 kg tolerance. The sequence moves on and the preliminary loadsheet still goes out."
                    @bind-Value="_gsx.Value.SkipRefuelOnTankering" />
-        <BoolField Label="Finish refuel on hose disconnect"
-                   Hint="Snap to the planned fuel instantly when the GSX hose disconnects mid-transfer"
+        <BoolField Label="Finish refuel on hose disconnect" Hint="Jump to the planned fuel at once if the hose disconnects early."
                    Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
                    @bind-Value="_gsx.Value.RefuelFinishOnHose" />
-        <BoolField Label="Allow defuel"
-                   Hint="Off by default: an erroneous low target holds, never defuels"
+        <BoolField Label="Allow defuel" Hint="Let the truck take fuel out when the target is below what is on board." More="Off holds the fuel instead, so a wrong low figure never defuels."
                    Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
                    @bind-Value="_gsx.Value.AllowDefuel" />
     </Section>
 
     <Section Title="Boarding">
-        <BoolField Label="Boarding sync"
-                   Hint="Mirror GSX boarding counters into ProSim pax zones and cargo holds"
+        <BoolField Label="Boarding sync" Hint="Fill the ProSim seats and holds as GSX counts passengers and bags aboard."
                    @bind-Value="_gsx.Value.BoardingSyncEnabled" />
     </Section>
 
     <Section Title="Passengers">
-        <BoolField Label="Randomize pax no-shows / extras"
-                   Hint="Each seat flips with the chance below; cargo adjusted per passenger delta"
+        <BoolField Label="Randomize pax no-shows / extras" Hint="Some booked passengers do not show up, and some extras appear." More="Each seat flips with the chance below. Cargo follows the passenger change."
                    @bind-Value="_gsx.Value.RandomizePaxNoShows" />
-        <NumberField Label="Chance per seat" Step="0.001" Min="0" Max="1"
+        <NumberField Label="Chance per seat" Hint="0.03 is 3 percent per seat." Step="0.001" Min="0" Max="1"
                      Disabled="@(!_gsx.Value.RandomizePaxNoShows)"
                      @bind-Value="_gsx.Value.NoShowChancePerSeat"
                      Default="_gsx.Defaults.NoShowChancePerSeat" />
@@ -280,16 +247,14 @@ else if (CurrentSection == "refuel")
 else if (CurrentSection == "pushback")
 {
     <Section Title="Pushback">
-        <BoolField Label="Beacon-orchestrated pushback sequence"
-                   Hint="Beacon on (services complete): wait APU → close doors → retract jetway → clear equipment → pushback"
+        <BoolField Label="Beacon-orchestrated pushback sequence" Hint="Beacon on runs the pushback sequence." More="Wait for the APU, close the doors, retract the jetway, clear the equipment, then push back."
                    @bind-Value="_gsx.Value.BeaconPushbackSequenceEnabled" />
-        <BoolField Label="Call pushback at ready-for-push"
-                   Hint="Off = the sequence prepares everything and leaves the call to you"
+        <BoolField Label="Call pushback at ready-for-push" Hint="Call the pushback when everything is ready." More="Off: the sequence prepares everything and leaves the call to you."
                    Disabled="@(!_gsx.Value.BeaconPushbackSequenceEnabled)"
                    @bind-Value="_gsx.Value.CallPushbackOnBeacon" />
     </Section>
 
-    <Section Title="Beacon Sequence Delays" Hint="Randomized crew-realism bounds">
+    <Section Title="Beacon Sequence Delays" Hint="Random waits between the steps, for realism">
         <RangeField Label="Doors close delay" Suffix="s" Min="0"
                     Disabled="@(!_gsx.Value.BeaconPushbackSequenceEnabled)"
                     @bind-From="_gsx.Value.SeqDoorsCloseDelayMinSec" @bind-To="_gsx.Value.SeqDoorsCloseDelayMaxSec"
@@ -307,26 +272,20 @@ else if (CurrentSection == "pushback")
 else if (CurrentSection == "arrival")
 {
     <Section Title="Arrival &amp; Deboarding">
-        <BoolField Label="Deboarding sync"
-                   Hint="Seats empty front-first from GSX's counter; cargo drains by unload %"
+        <BoolField Label="Deboarding sync" Hint="Empty the ProSim seats and holds as GSX counts passengers off."
                    @bind-Value="_gsx.Value.DeboardingSyncEnabled" />
-        <BoolField Label="Call deboarding on arrival"
-                   Hint="Automatically once stably parked"
+        <BoolField Label="Call deboarding on arrival" Hint="Call deboarding by itself once parked."
                    @bind-Value="_gsx.Value.AutoCallDeboardOnArrival" />
-        <NumberField Label="Stable-parked hold time" Suffix="s" Min="1"
-                     Hint="On ground, engines off, brake set, beacon off, stationary — held this long"
+        <NumberField Label="Stable-parked hold time" Hint="How long the aircraft must be parked before the arrival services begin." More="On the ground, engines off, park brake set, beacon off, not moving." Suffix="s" Min="1"
                      @bind-Value="_gsx.Value.ArrivalStableSeconds"
                      Default="_gsx.Defaults.ArrivalStableSeconds" />
-        <TextField Label="Arrival gate" Placeholder="e.g. B12"
-                   Hint="Armed automatically when reaching flight; empty = choose on the Status section"
+        <TextField Label="Arrival gate" Hint="Gate to request from GSX on arrival." More="Sent when the flight reaches cruise. Empty: choose it on the Status section or the OFP page." Placeholder="e.g. B12"
                    @bind-Value="_gsx.Value.ArrivalGate" />
     </Section>
     <Section Title="Fuel Memory">
-        <BoolField Label="Remember fuel on board"
-                   Hint="FOB saved per aircraft at arrival and restored at preparation"
+        <BoolField Label="Remember fuel on board" Hint="Save the fuel on board at arrival and load it back next session."
                    @bind-Value="_gsx.Value.FuelSaveLoadFob" />
-        <NumberField Label="Default FOB" Suffix="kg" Min="0"
-                     Hint="Written at preparation when nothing is saved for this aircraft yet"
+        <NumberField Label="Default FOB" Hint="Fuel loaded when nothing is saved for this aircraft yet." Suffix="kg" Min="0"
                      Disabled="@(!_gsx.Value.FuelSaveLoadFob)"
                      @bind-Value="_gsx.Value.FuelResetDefaultKg"
                      Default="_gsx.Defaults.FuelResetDefaultKg" />
@@ -335,13 +294,12 @@ else if (CurrentSection == "arrival")
 else if (CurrentSection == "operators")
 {
     <Section Title="Operator Selection">
-        <BoolField Label="Auto-select operator"
-                   Hint="Picks the handling/catering operator per gate session so the operator popup never surfaces"
+        <BoolField Label="Auto-select operator" Hint="Pick the ground handler and the caterer by itself, so GSX never asks."
                    @bind-Value="_gsx.Value.AutoSelectOperator" />
         <div class="list-editor" style="margin-top:8px;">
             <div class="list-label">
-                Operator preferences — ordered keywords matched against handling/catering
-                operator menus ("[GSX choice]" is always an accepted fallback)
+                Preferred operators, best first. Each word is matched against GSX's handler and
+                caterer menus. "[GSX choice]" always counts as a match.
             </div>
             @for (var i = 0; i < _gsx.Value.OperatorPreferences.Count; i++)
             {
@@ -364,8 +322,7 @@ else if (CurrentSection == "operators")
             </div>
         </div>
     </Section>
-    <Section Title="Company Hubs"
-             Hint="ICAO prefixes (1–4 letters) identifying company-hub airports for the hub departure-service constraints">
+    <Section Title="Company Hubs" Hint="Airport codes (1 to 4 letters) that count as your company's hubs">
         <div class="list-editor">
             @for (var i = 0; i < _gsx.Value.CompanyHubs.Count; i++)
             {
@@ -393,36 +350,29 @@ else if (CurrentSection == "operators")
 else if (CurrentSection == "questions")
 {
     <Section Title="Skip Questions / Pop-ups">
-        <BoolField Label="Skip Follow-Me question"
+        <BoolField Label="Skip Follow-Me question" Hint="Never ask about the Follow-Me car."
                    @bind-Value="_gsx.Value.SkipFollowMe" />
-        <BoolField Label="Answer crew questions"
-                   Hint="Answer board/deboard crew menus automatically"
+        <BoolField Label="Answer crew questions" Hint="Answer GSX's crew boarding questions by itself."
                    @bind-Value="_gsx.Value.AnswerCrewQuestions" />
-        <SelectField Label="Crew boarding answer" Options="CrewAnswerOptions"
-                     Hint="GSX 4's crew menu choices"
+        <SelectField Label="Crew boarding answer" Hint="Who boards through GSX's crew menu." Options="CrewAnswerOptions"
                      Disabled="@(!_gsx.Value.AnswerCrewQuestions)"
                      @bind-Value="_gsx.Value.CrewBoardingAnswer" />
-        <BoolField Label="Suppress crew question entirely"
-                   Hint="Writes the NOT_BOARDING LVARs so GSX never asks — skips crew boarding altogether"
+        <BoolField Label="Suppress crew question entirely" Hint="Tell GSX up front that no crew boards, so it never asks."
                    @bind-Value="_gsx.Value.SkipCrewBoardingQuestion" />
-        <BoolField Label="Confirm pushback request"
-                   Hint='Answer "Do you want to request pushback" with yes'
+        <BoolField Label="Confirm pushback request" Hint="Answer &quot;Do you want to request pushback&quot; with yes."
                    @bind-Value="_gsx.Value.ConfirmPushbackRequest" />
-        <SelectField Label="Tug question during boarding" Options="TugAnswerOptions"
-                     Hint='Answer GSX&#39;s "Attach Pushback Tug" question'
+        <SelectField Label="Tug question during boarding" Hint="Answer to GSX's &quot;Attach pushback tug&quot; question during boarding." Options="TugAnswerOptions"
                      @bind-Value="_gsx.Value.TugQuestionAnswer" />
-        <SelectField Label="Call pushback when tug attached" Options="TugPushbackOptions"
-                     Hint="With the tug already attached during boarding, auto-call pushback at this point"
+        <SelectField Label="Call pushback when tug attached" Hint="When to call the pushback if the tug is already attached." Options="TugPushbackOptions"
                      @bind-Value="_gsx.Value.CallPushbackWhenTugAttached" />
     </Section>
     <Section Title="De-Icing">
-        <BoolField Label="Auto-accept de-ice offer"
-                   Hint="Accept GSX's de-icing offer and select the fluid automatically"
+        <BoolField Label="Auto-accept de-ice offer" Hint="Accept GSX's de-icing offer and pick the fluid by itself."
                    @bind-Value="_gsx.Value.AutoDeIce" />
         <SelectField Label="De-ice fluid" Options="DeIceFluidOptions"
                      Disabled="@(!_gsx.Value.AutoDeIce)"
                      @bind-Value="_gsx.Value.DeIceFluidType" />
-        <SelectField Label="Concentration" Options="DeIceConcentrationOptions" Hint="%"
+        <SelectField Label="Concentration" Hint="Percent." Options="DeIceConcentrationOptions"
                      Disabled="@(!_gsx.Value.AutoDeIce)"
                      @bind-Value="_gsx.Value.DeIceConcentration" />
     </Section>
@@ -430,16 +380,14 @@ else if (CurrentSection == "questions")
 else if (CurrentSection == "connection")
 {
     <Section Title="Connection" Hint="Rarely needs changing" Advanced="true">
-        <NumberField Label="Reconnect interval" Suffix="ms" Min="500"
-                     Hint="First retry after a lost or refused connection"
+        <NumberField Label="Reconnect interval" Hint="First wait after a lost connection." Suffix="ms" Min="500"
                      @bind-Value="_gsx.Value.ReconnectIntervalMs"
                      Default="_gsx.Defaults.ReconnectIntervalMs" />
-        <NumberField Label="Reconnect ceiling" Suffix="ms" Min="500"
-                     Hint="Each further failure doubles the wait up to this — quiet while GSX is not running yet"
+        <NumberField Label="Reconnect ceiling" Hint="Longest wait between retries." More="Each failure doubles the wait, up to this." Suffix="ms" Min="500"
                      @bind-Value="_gsx.Value.ReconnectMaxIntervalMs"
                      Default="_gsx.Defaults.ReconnectMaxIntervalMs" />
     </Section>
-    <Section Title="Timeouts" Hint="Empirically tuned — see docs/integrations/gsx.md" Advanced="true">
+    <Section Title="Timeouts" Hint="Tuned on real flights. Change only with a reason" Advanced="true">
         <NumberField Label="Command timeout" Suffix="ms" Min="1000"
                      @bind-Value="_gsx.Value.CommandTimeoutMs"
                      Default="_gsx.Defaults.CommandTimeoutMs" />
@@ -449,8 +397,7 @@ else if (CurrentSection == "connection")
         <NumberField Label="Intent verify timeout" Suffix="ms" Min="1000"
                      @bind-Value="_gsx.Value.IntentVerifyTimeoutMs"
                      Default="_gsx.Defaults.IntentVerifyTimeoutMs" />
-        <NumberField Label="Trigger confirm timeout" Suffix="ms" Min="1000"
-                     Hint="How long a service.trigger may wait before it counts as dropped and is retried"
+        <NumberField Label="Trigger confirm timeout" Hint="How long a service call may go unanswered before it is sent again." Suffix="ms" Min="1000"
                      @bind-Value="_gsx.Value.TriggerConfirmTimeoutMs"
                      Default="_gsx.Defaults.TriggerConfirmTimeoutMs" />
     </Section>

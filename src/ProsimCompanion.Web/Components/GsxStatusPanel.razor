@@ -77,6 +77,11 @@
     }
 </Section>
 
+@* Raw diagnostics (ADR-0010): the wire tables are for triage, not for flying — folded so the
+   status board above stays the page. *@
+<details class="diagnostics">
+    <summary>Diagnostics — services, GSX menu, recent commands</summary>
+
 <Section Title="Services" Hint="Wire state vs mapped state from the Remote API mirror">
     @if (_view.Services.Count == 0)
     {
@@ -180,10 +185,11 @@
         </div>
     }
     <div class="field-hint" style="margin-top:8px;">
-        Full wire frames are captured when <code>logging.wireTrace</code> is enabled — see
+        Full wire frames are captured when <a href="settings/logs">Wire trace</a> is on — see
         <code>ProsimCompanion-wire-*.log</code> (CMTrace format) next to the main log.
     </div>
 </Section>
+</details>
 
 @code {
     private GsxDiagnosticsSnapshot _view = GsxDiagnosticsSnapshot.Empty;

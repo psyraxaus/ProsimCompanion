@@ -34,7 +34,15 @@
     </Section>
 
     <Section Title="Profiles"
-             Hint="Matched automatically against the sim's aircraft title — exact matches win over contains; no match falls back to defaults">
+             Hint="Matched against the aircraft loaded in the sim. Exact match wins over contains; no match uses the defaults">
+        <div class="info-banner" role="note">
+            <span aria-hidden="true">ⓘ</span>
+            <span>
+                A profile holds the Ground Services settings. Saving on the
+                <a href="settings/gsx">Ground Services</a> pages while a profile is active stores
+                them in that profile, and they come back the next time that aircraft loads.
+            </span>
+        </div>
         @for (var i = 0; i < DraftProfiles.Count; i++)
         {
             var index = i;

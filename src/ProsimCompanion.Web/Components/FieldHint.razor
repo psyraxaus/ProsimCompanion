@@ -1,0 +1,23 @@
+@* The hint line under a field label plus the optional "More" fold (ADR-0010): the hint is
+   one plain sentence; anything longer lives behind the fold so the page stays readable and
+   the detail is still one tap away. Shared by every field component. *@
+
+@if (!string.IsNullOrEmpty(Hint))
+{
+    <span class="field-hint">@Hint</span>
+}
+@if (!string.IsNullOrEmpty(More))
+{
+    <details class="field-more">
+        <summary>More</summary>
+        <span class="field-more-body">@More</span>
+    </details>
+}
+
+@code {
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string? More { get; set; }
+}

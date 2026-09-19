@@ -18,55 +18,44 @@
    connections every install needs. Everything here used to be spread over four tabs — the
    GSX switch sat at the bottom of "Connection & Timeouts". *@
 
-<Section Title="Features" Hint="Each pillar keeps its settings pages while off; nothing runs">
-    <BoolField Label="GSX ground services"
-               Hint="Departure services, doors, jetway, pushback and arrival handling through GSX Pro"
+<Section Title="Features" Hint="A pillar that is off keeps its pages, but nothing runs">
+    <BoolField Label="GSX ground services" Hint="Departure services, doors, jetway, pushback and arrival through GSX Pro."
                @bind-Value="_gsx.Value.Enabled" />
-    <BoolField Label="Voice First Officer"
-               Hint="Spoken checklists, callouts, briefings and voice commands"
+    <BoolField Label="Voice First Officer" Hint="Spoken checklists, callouts, briefings and voice commands."
                @bind-Value="_speech.Value.Enabled" />
-    <BoolField Label="Audio control"
-               Hint="ACP knobs and latches drive app volumes (CoreAudio or VoiceMeeter)"
+    <BoolField Label="Audio control" Hint="Audio panel knobs and latches set app volumes."
                @bind-Value="_audio.Value.Enabled" />
 </Section>
 
 <Section Title="ProSim Connection">
-    <TextField Label="ProSim host" Placeholder="localhost"
-               Hint="Name or IP address of the PC running ProSim System"
+    <TextField Label="ProSim host" Hint="Name or IP address of the PC that runs ProSim System." Placeholder="localhost"
                @bind-Value="_prosim.Value.Host" />
-    <TextField Label="ProSim SDK folder"
-               Hint="Folder containing ProSimSDK.dll. Empty keeps the ProSim connection off"
+    <TextField Label="ProSim SDK folder" Hint="The folder that contains ProSimSDK.dll. Empty keeps ProSim off."
                @bind-Value="_prosim.Value.SdkPath" />
-    <TextField Label="API key" Password="true"
-               Hint="Only newer ProSim builds use one; leave empty otherwise"
+    <TextField Label="API key" Hint="Only newer ProSim builds use one. Leave empty otherwise." Password="true"
                @bind-Value="ApiKeyInput" />
     <AdvancedFields>
-        <NumberField Label="Reconnect interval" Suffix="ms" Min="500"
-                     Hint="Wait between connection attempts"
+        <NumberField Label="Reconnect interval" Hint="Wait between connection tries." Suffix="ms" Min="500"
                      @bind-Value="_prosim.Value.ReconnectIntervalMs"
                      Default="_prosim.Defaults.ReconnectIntervalMs" />
     </AdvancedFields>
 </Section>
 
-<Section Title="Nav Data" Hint="Navigraph DFD database for SID/STAR/approach lookups">
-    <TextField Label="DFD database path"
-               Hint="The .s3db file or its folder; ProSim's Navdata folder works as-is. Empty looks next to the SDK"
+<Section Title="Nav Data" Hint="Navigraph database for SIDs, STARs and approaches">
+    <TextField Label="DFD database path" Hint="The .s3db file or its folder. ProSim's Navdata folder works. Empty looks next to the SDK."
                @bind-Value="_briefing.Value.DfdPath" />
 </Section>
 
 <Section Title="Web Interface" Hint="Port and LAN access are also editable in the desktop window">
-    <NumberField Label="Port" Min="1024" Max="65535"
-                 Hint="Takes effect after an app restart"
+    <NumberField Label="Port" Hint="Takes effect after an app restart." Min="1024" Max="65535"
                  @bind-Value="_webUi.Value.Port"
                  Default="_webUi.Defaults.Port" />
-    <BoolField Label="Allow other devices (LAN)"
-               Hint="Lets tablets and other PCs open this page; they sign in with the QR code in the desktop window"
+    <BoolField Label="Allow other devices (LAN)" Hint="Tablets and other PCs can open this page." More="They sign in with the QR code in the desktop window."
                @bind-Value="_webUi.Value.BindToAllInterfaces" />
 </Section>
 
 <Section Title="Stream Deck &amp; External Tools" Hint="Applies live">
-    <BoolField Label="Command API"
-               Hint="Required by the Stream Deck plugin. Lets tools send GSX, checklist and loadsheet commands; always needs the access token"
+    <BoolField Label="Command API" Hint="Needed by the Stream Deck plugin. Always needs the access token." More="Lets outside tools send GSX, checklist and loadsheet commands over the web server."
                @bind-Value="_commandApi.Value.Enabled" />
     <div class="field-hint" style="max-width:560px;">
         To pair the plugin, paste the onboarding link from the desktop window into any key's
