@@ -8,10 +8,14 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  /* Both cards share the row height (owner request 2026-09-20); the tank rows spread evenly
+     over the breakdown card so the bars fill it instead of bunching at the top. */
+  align-items: stretch;
   gap: 16px;
 }
-.fuel-card { margin: 0; border-radius: var(--radius-xl); }
+.fuel-card { margin: 0; border-radius: var(--radius-xl); display: flex; flex-direction: column; }
+.fuel-card > .fuel-body { flex: 1 1 auto; }
+.fuel-card:last-child > .fuel-body { justify-content: space-evenly; }
 .fuel-card .section-header { justify-content: space-between; flex-wrap: wrap; }
 .fuel-body { gap: 14px; }
 

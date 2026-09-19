@@ -12,6 +12,10 @@
     margin: 0 auto;
     width: 100%;
     box-sizing: border-box;
+    /* Fills the pane down to the footer (owner request 2026-09-20): the hero keeps its size,
+       the grid takes the rest, and the two cards scroll inside. Below a 320 px grid the
+       page scrolls again instead of crushing the ECAM screen. */
+    height: 100%;
 }
 .cl-page > .section { margin: 0; border-radius: var(--radius-xl); }
 
@@ -61,10 +65,14 @@
 .cl-grid {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-    align-items: start;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
     gap: 16px;
+    flex: 1 1 0;
+    min-height: 320px;
 }
-.cl-grid > .section { margin: 0; border-radius: var(--radius-xl); }
+.cl-grid > .section { margin: 0; border-radius: var(--radius-xl); display: flex; flex-direction: column; min-height: 0; }
+.cl-sequence > .section-body { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 
 /* Screen card: the ECAM screen sits as an inset between the header and the actions. */
 .cl-screen-card .section-header { justify-content: space-between; }
@@ -89,8 +97,8 @@
 /* ---- the ECAM instrument screen — black, cyan, monospace (never themed) ---- */
 
 .ecamcl-body {
-    min-height: 320px;
-    max-height: 60vh;
+    flex: 1 1 0;
+    min-height: 200px;
     overflow-y: auto;
     margin: 6px 18px 0;
     padding: 12px 8px;
@@ -246,7 +254,10 @@
 .ecamcl-source code { user-select: all; font-size: 11px; }
 
 @media (max-width: 900px) {
-    .cl-grid { grid-template-columns: minmax(0, 1fr); }
+    .cl-page { height: auto; }
+    .cl-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; flex: none; }
+    .cl-sequence > .section-body { overflow: visible; }
+    .ecamcl-body { min-height: 320px; max-height: 60vh; }
 }
 @media (max-width: 540px) {
     .cl-page { padding: 12px; }

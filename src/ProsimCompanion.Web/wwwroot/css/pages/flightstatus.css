@@ -11,7 +11,9 @@
 .fs-grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  align-items: start;
+  /* Both cards share the row height (owner request 2026-09-20); the hero pins its live
+     figures to the bottom so the spare height sits between the route and the figures. */
+  align-items: stretch;
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -20,6 +22,8 @@
 
 .fs-hero {
   position: relative;
+  display: flex;
+  flex-direction: column;
   padding: 26px 28px 22px;
   margin: 0;
   border-radius: var(--radius-xl);
@@ -37,6 +41,7 @@
 
 .fs-hero-top {
   position: relative;
+  margin-bottom: 26px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -111,7 +116,7 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
-  margin-top: 26px;
+  margin-top: auto;
   padding-top: 20px;
   border-top: 1px solid var(--border);
 }

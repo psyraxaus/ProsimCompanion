@@ -4,7 +4,9 @@
 @using ProsimCompanion.Core.Configuration
 @inherits StoreObserverComponent
 @inject ChecklistService Engine
+@using Microsoft.JSInterop
 @inject IOptionsMonitor<ChecklistOptions> Options
+@inject IJSRuntime JS
 
 <PageTitle>Checklists — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Checklists</h1>
@@ -127,7 +129,7 @@
                                     break;
 
                                 case ChecklistItemStatus.Active:
-                                    <div class="ecamcl-item ecamcl-current @(item.IsAuto && !AllowOverride ? "" : "ecamcl-clickable")"
+                                    <div id="ecamcl-current" class="ecamcl-item ecamcl-current @(item.IsAuto && !AllowOverride ? "" : "ecamcl-clickable")"
                                          role="listitem"
                                          @onclick="() => OnCurrentRowClick(item)">
                                         <span class="ecamcl-check">□</span>
@@ -192,7 +194,7 @@
                         @foreach (var entry in _catalog)
                         {
                             var active = entry.Name == _view?.Name;
-                            <li class="cl-step @(active ? "active" : null)">
+                            <li id="@(active ? "cl-step-active" : null)" class="cl-step @(active ? "active" : null)">
                                 <button type="button" class="cl-step-btn" @onclick="() => Engine.Select(entry.Name)">
                                     <span class="cl-step-dot" aria-hidden="true"></span>
                                     <span class="cl-step-text">
@@ -235,6 +237,11 @@
     private ChecklistView? _view;
     private ElementReference _sectionSelect;
 
+    // Auto-scroll (owner request 2026-09-20): the sequence rail follows the active checklist
+    // and the ECAM screen follows the current line, but only when either actually moved —
+    // every re-render otherwise would fight the user's own scrolling.
+    private (string? Name, int Index) _scrolled = (null, -1);
+
     /// <summary>Separator and note rows are furniture — never counted toward completion.</summary>
     private static bool IsFurniture(ChecklistItemView item)
         => string.Equals(item.Kind, "separator", StringComparison.OrdinalIgnoreCase)
@@ -244,6 +251,31 @@
 
     protected override void OnInitialized()
         => WatchChanged(h => Engine.Changed += h, h => Engine.Changed -= h, Refresh);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var now = (Name: _view?.Name, Index: _view?.ActiveIndex ?? -1);
+        if (now == _scrolled)
+        {
+            return;
+        }
+
+        var nameChanged = now.Name != _scrolled.Name;
+        _scrolled = now;
+        try
+        {
+            if (nameChanged)
+            {
+                await JS.InvokeVoidAsync("prosimCompanion.scrollIntoView", "cl-step-active");
+            }
+
+            await JS.InvokeVoidAsync("prosimCompanion.scrollIntoView", "ecamcl-current");
+        }
+        catch (JSException)
+        {
+            // Scrolling is cosmetic; a disconnected circuit must not surface as an error.
+        }
+    }
 
     private void Refresh()
     {

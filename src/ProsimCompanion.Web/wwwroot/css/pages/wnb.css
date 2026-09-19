@@ -4,13 +4,16 @@
 .wnb-page {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  align-items: start;
+  /* Cards share their row height (owner request 2026-09-20): the side cards stretch to the
+     loading card and the CG envelope; the Sync button pins to the summary card's bottom. */
+  align-items: stretch;
   gap: 16px;
   padding: 16px 18px;
   max-width: 1180px;
   margin: 0 auto;
 }
-.wnb-page > .section { margin: 0; border-radius: var(--radius-xl); }
+.wnb-page > .section { margin: 0; border-radius: var(--radius-xl); display: flex; flex-direction: column; }
+.wnb-page > .section > .section-body { flex: 1 1 auto; }
 
 .wnb-legend { display: inline-flex; gap: 14px; margin-left: auto; }
 .wnb-legend-item { display: inline-flex; align-items: center; gap: 6px; }
@@ -100,7 +103,7 @@
 
 .wnb-bad { color: var(--danger) !important; text-shadow: none !important; }
 
-.wnb-summary-body .btn { width: 100%; }
+.wnb-summary-body .btn { width: 100%; margin-top: auto; }
 
 /* ---- CG envelope ---- */
 

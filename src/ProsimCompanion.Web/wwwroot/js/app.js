@@ -10,6 +10,16 @@
 (function () {
   "use strict";
 
+  // ------------------------------------------------------------- blazor helpers
+  // Tiny interop surface for pages that need the browser to do a layout-aware thing.
+  // scrollIntoView keeps the active checklist entry / the current ECAM line visible while
+  // the lists scroll inside their cards (ADR-0011, owner request 2026-09-20).
+  window.prosimCompanion = window.prosimCompanion || {};
+  window.prosimCompanion.scrollIntoView = function (id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
+
   // ------------------------------------------------------------------ split-flap
 
   const DRUM = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-/";
