@@ -21,11 +21,15 @@
 .init-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  /* Both cards share the row height (owner request 2026-09-20); the status lines at the
+     foot of ACTIVE / INIT stay at the bottom of the card. */
+  align-items: stretch;
   gap: 16px;
 }
 
-.init-card { margin: 0; border-radius: var(--radius-xl); }
+.init-card { margin: 0; border-radius: var(--radius-xl); display: flex; flex-direction: column; }
+.init-card > .init-body { flex: 1 1 auto; }
+.init-body > .init-status-row:first-of-type { margin-top: auto; }
 
 .init-body {
   gap: 0;
