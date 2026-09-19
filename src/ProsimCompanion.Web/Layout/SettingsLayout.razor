@@ -1,0 +1,119 @@
+@* Nested layout for every settings page (ADR-0010): one rail for the whole hub, grouped by
+   pillar, URL-driven. The page inside only renders its cards — the rail, the breadcrumb
+   heading, the "pillar is off" notice and the mobile section picker all live here once. *@
+@inherits StoreObserverLayout
+@layout MainLayout
+@using ProsimCompanion.Core.Profiles
+@inject NavigationManager Nav
+@inject IOptionsMonitor<GsxOptions> GsxOptions
+@inject IOptionsMonitor<SpeechOptions> SpeechOptions
+@inject IOptionsMonitor<AudioOptions> AudioOptions
+@inject AircraftProfileService Profiles
+
+<div class="settings-panel">
+    <div class="settings-body">
+        <div class="rail-column @(_railOpen ? "open" : null)">
+            <button type="button" class="rail-toggle" @onclick="() => _railOpen = !_railOpen"
+                    aria-expanded="@_railOpen" aria-controls="settings-rail">
+                <span class="rail-toggle-label">Settings</span>
+                <span class="rail-toggle-current">@Breadcrumb</span>
+                <span class="rail-toggle-chevron" aria-hidden="true">@(_railOpen ? "▲" : "▼")</span>
+            </button>
+            <nav class="rail-nav sticky-rail" id="settings-rail" aria-label="Settings sections">
+                @foreach (var group in SettingsNav.Groups)
+                {
+                    var isActive = group == _group;
+                    <a class="rail-group @(isActive ? "active" : null)" href="@group.Href">@group.Label</a>
+                    @if (isActive && group.Items.Count > 0)
+                    {
+                        @foreach (var item in group.Items)
+                        {
+                            <a class="rail-item @(item == _item ? "active" : null)" href="@item.Href">@item.Label</a>
+                        }
+                    }
+                }
+            </nav>
+        </div>
+
+        <div class="settings-content">
+            <div class="settings-heading">
+                <span class="settings-heading-group">@(_group?.Label ?? "Settings")</span>
+                @if (_item is not null && _group?.Items.Count > 0)
+                {
+                    <span class="settings-heading-sep" aria-hidden="true">›</span>
+                    <span class="settings-heading-item">@_item.Label</span>
+                }
+            </div>
+
+            @if (PillarOffNotice is { } notice)
+            {
+                <div class="info-banner" role="status">
+                    <span aria-hidden="true">ⓘ</span>
+                    <span>@notice <a href="settings">Turn it on under Setup.</a></span>
+                </div>
+            }
+
+            @if (_group?.Key == "gsx" && Profiles.ActiveProfile is { } profile)
+            {
+                <div class="info-banner" role="status">
+                    <span aria-hidden="true">ⓘ</span>
+                    <span>
+                        Aircraft profile <strong>@profile.Name</strong> is active. Saving on these
+                        pages stores the ground-services settings in that profile.
+                        <a href="settings/profiles">Manage profiles.</a>
+                    </span>
+                </div>
+            }
+
+            @Body
+        </div>
+    </div>
+</div>
+
+@code {
+    private SettingsNavGroup? _group;
+    private SettingsNavItem? _item;
+    private bool _railOpen;
+
+    private string Breadcrumb => _group is null
+        ? "Settings"
+        : _item is null || _group.Items.Count == 0 ? _group.Label : $"{_group.Label} › {_item.Label}";
+
+    /// <summary>A pillar's pages stay reachable while it is switched off (degrade, not fail),
+    /// but a user tuning a dead pillar deserves one line saying why nothing happens.</summary>
+    private string? PillarOffNotice => _group?.Key switch
+    {
+        "gsx" when !GsxOptions.CurrentValue.Enabled => "GSX ground services are switched off.",
+        "speech" when !SpeechOptions.CurrentValue.Enabled => "The voice First Officer is switched off.",
+        "audio" when !AudioOptions.CurrentValue.Enabled => "Audio control is switched off.",
+        _ => null,
+    };
+
+    protected override void OnInitialized()
+    {
+        Resolve();
+        // Navigation is not a store — it stays hand-wired; the profile banner is store-driven.
+        Nav.LocationChanged += OnLocationChanged;
+        WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
+    }
+
+    private void Resolve()
+    {
+        var path = SettingsNav.NormalizePath(Nav.ToBaseRelativePath(Nav.Uri));
+        _group = SettingsNav.GroupFor(path);
+        _item = _group?.ActiveItem(path);
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        Resolve();
+        _railOpen = false;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public override void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        base.Dispose();
+    }
+}

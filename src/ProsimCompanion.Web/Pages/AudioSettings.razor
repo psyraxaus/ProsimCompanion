@@ -1,38 +1,25 @@
-@page "/settings/audio"
+@page "/settings/audio/{Section?}"
 @page "/audio"
+@layout SettingsLayout
 @using System.Text.Json
 @inherits SettingsPageBase
 @inject IOptionsMonitor<AudioOptions> AudioMonitor
 @inject IAudioControl AudioControl
 @inject IAudioDeviceCatalog DeviceCatalog
 
-<PageTitle>Audio — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Audio</h1>
+<PageTitle>Audio Control — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Audio Control</h1>
 
-<div class="settings-panel" style="padding-bottom:96px;">
-    <div class="settings-body">
-        <div class="rail-column">
-            <div class="rail-header"><span class="rail-header-context">Audio</span></div>
-            <nav class="rail-nav sticky-rail">
-                @foreach (var (key, label) in Sections)
-                {
-                    <button type="button" class="rail-item @(_section == key ? "active" : null)"
-                            @onclick="() => _section = key">@label</button>
-                }
-            </nav>
-        </div>
-        <div class="settings-content">
+@* Sections are URL-driven (settings/audio/{section}, ADR-0010); the rail lives in
+   SettingsLayout. The audio master switch moved to Setup with the other pillar switches. *@
 
-            @if (_section == "status")
+            @if (CurrentSection == "status")
             {
                 <AudioStatusPanel />
             }
-            else if (_section == "general")
+            else if (CurrentSection == "general")
             {
                 <Section Title="Volume Control" Hint="ACP knobs and REC latches drive app volumes">
-                    <BoolField Label="Enabled"
-                               Hint="Master switch for the audio pillar — knobs, latches, and the ProSim native-audio guard"
-                               @bind-Value="_audio.Value.Enabled" />
                     <SelectField Label="Backend" Options="BackendOptions"
                                  Hint="Switching applies live: CoreAudio session volumes are restored, VoiceMeeter targets reset to 0 dB"
                                  @bind-Value="BackendKey" />
@@ -41,7 +28,7 @@
                                @bind-Value="_audio.Value.DisableProsimNativeAudio" />
                 </Section>
             }
-            else if (_section == "coreaudio")
+            else if (CurrentSection == "coreaudio")
             {
                 <Section Title="CoreAudio" Hint="Windows per-app session volumes">
                     <SelectField Label="ACP" Options="AcpOptions"
@@ -128,7 +115,7 @@
                     </div>
                 </Section>
             }
-            else if (_section == "voicemeeter")
+            else if (CurrentSection == "voicemeeter")
             {
                 <Section Title="VoiceMeeter" Hint="Strips/buses via VoicemeeterRemote64.dll">
                     <TextField Label="VoicemeeterRemote64.dll path"
@@ -213,10 +200,6 @@
                 </Section>
             }
 
-        </div>
-    </div>
-</div>
-
 @* Windowed-process suggestions for the mapping Binary inputs (Prosim2GSX parity) — the
    Blazor circuit runs on the sim PC, so a plain server-side enumeration suffices. *@
 <datalist id="audio-process-suggestions">
@@ -242,14 +225,10 @@
           OnDiscard="Discard" />
 
 @code {
-    private static readonly (string Key, string Label)[] Sections =
-    [
-        ("status", "Status"),
-        ("general", "General"),
-        ("coreaudio", "CoreAudio"),
-        ("voicemeeter", "VoiceMeeter"),
-        ("advanced", "Advanced"),
-    ];
+    [Parameter]
+    public string? Section { get; set; }
+
+    private string CurrentSection => SettingsNav.ResolveSection(SettingsNav.AudioSections, Section);
 
     private static readonly IReadOnlyList<(string, string)> BackendOptions =
     [
@@ -298,7 +277,6 @@
         }
     }
 
-    private string _section = "status";
     private OptionsDraft<AudioOptions> _audio = default!;
     private IReadOnlyList<VoiceMeeterTargetView> _vmTargets = [];
 

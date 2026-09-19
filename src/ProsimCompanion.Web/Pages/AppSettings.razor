@@ -1,137 +1,66 @@
 @page "/settings/app"
+@layout SettingsLayout
 @using ProsimCompanion.Web.Theming
 @inherits SettingsPageBase
-@inject IOptionsMonitor<ProsimOptions> ProsimMonitor
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
-@inject IOptionsMonitor<LoggingOptions> LoggingMonitor
-@inject IOptionsMonitor<SayIntentionsOptions> SayIntentionsMonitor
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
-@inject IOptionsMonitor<CabinOptions> CabinMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
-@inject IOptionsMonitor<BriefingOptions> BriefingMonitor
-@inject IOptionsMonitor<CommandApiOptions> CommandApiMonitor
-@inject IOptionsMonitor<TelemetryApiOptions> TelemetryApiMonitor
 @inject ThemeCatalog Themes
 
-<PageTitle>App Settings — ProsimCompanion</PageTitle>
-<h1 class="sr-only">App Settings</h1>
+<PageTitle>Display &amp; Flight Data — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Display and Flight Data</h1>
 
-<div class="panel" style="padding-bottom:96px;">
+@* Settings UX pass 2026-09-19 (ADR-0010): connections, APIs and logging moved to Setup /
+   Advanced; the cabin chimes and the SayIntentions switch were duplicates of the First
+   Officer pages and live only there now. *@
 
-    <Section Title="Theme" Hint="Applies live on save">
-        <SelectField Label="UI theme" Options="_themeOptions"
-                     Hint="Built-in airline themes, plus any JSON in config/themes (Prosim2GSX theme format)"
-                     @bind-Value="_webUi.Value.Theme" />
-    </Section>
+<Section Title="Theme" Hint="Applies live on save">
+    <SelectField Label="UI theme" Options="_themeOptions"
+                 Hint="Built-in airline themes, plus any JSON theme in config/themes"
+                 @bind-Value="_webUi.Value.Theme" />
+</Section>
 
-    <Section Title="Display">
-        <SelectField Label="Unit source" Options="UnitSourceOptions"
-                     Hint="App = the fixed default below; Aircraft = follow ProSim's configured weight unit"
-                     @bind-Value="_webUi.Value.UnitSource" />
-        <SelectField Label="Default unit" Options="UnitOptions"
-                     Hint="Weights display in this unit (storage stays kg)"
-                     @bind-Value="_webUi.Value.Unit" />
-        <BoolField Label="Solari animation"
-                   Hint="Animate the split-flap header displays; off snaps characters instantly"
-                   @bind-Value="_webUi.Value.SolariAnimation" />
-    </Section>
+<Section Title="Display">
+    <SelectField Label="Weight unit source" Options="UnitSourceOptions"
+                 Hint="App = the unit below; Aircraft = follow ProSim's weight unit"
+                 @bind-Value="_webUi.Value.UnitSource" />
+    <SelectField Label="Weight unit" Options="UnitOptions"
+                 Hint="Display only; values are stored in kg"
+                 @bind-Value="_webUi.Value.Unit" />
+    <BoolField Label="Split-flap animation"
+               Hint="Animate the header displays; off snaps characters instantly"
+               @bind-Value="_webUi.Value.SolariAnimation" />
+</Section>
 
-    <Section Title="Audio Cues">
-        <BoolField Label="Ding on startup"
-                   Hint="Cabin chime when the application starts"
-                   @bind-Value="_cabin.Value.DingOnStartup" />
-        <BoolField Label="Ding on final loadsheet"
-                   Hint="Cabin chime when the final loadsheet is transmitted"
-                   @bind-Value="_cabin.Value.DingOnFinal" />
-    </Section>
+<Section Title="Loadsheets">
+    <BoolField Label="Preliminary loadsheet when refuel starts"
+               Hint="Generate and send the prelim as GSX refueling begins"
+               @bind-Value="_flightData.Value.AutoPrelimOnRefuel" />
+    <BoolField Label="Preliminary loadsheet before departure time"
+               Hint="Also send the prelim at STD minus the offset below"
+               @bind-Value="_flightData.Value.AutoPrelimAtStd" />
+    <NumberField Label="Prelim offset before STD" Suffix="min" Min="0"
+                 Disabled="@(!_flightData.Value.AutoPrelimAtStd)"
+                 @bind-Value="_flightData.Value.PrelimStdOffsetMinutes" />
+    <BoolField Label="Final loadsheet when boarding completes"
+               @bind-Value="_flightData.Value.AutoFinalOnBoardingComplete" />
+    <NumberField Label="Final loadsheet delay min" Suffix="s" Min="0"
+                 Hint="Random dispatcher delay before the final goes out"
+                 Disabled="@(!_flightData.Value.AutoFinalOnBoardingComplete)"
+                 @bind-Value="_flightData.Value.FinalDelayMinSeconds" />
+    <NumberField Label="Final loadsheet delay max" Suffix="s" Min="0"
+                 Disabled="@(!_flightData.Value.AutoFinalOnBoardingComplete)"
+                 @bind-Value="_flightData.Value.FinalDelayMaxSeconds" />
+    <BoolField Label="Send final figures to the MCDU"
+               Hint="Push ZFW, ZFWCG and block fuel into INIT B when the final is produced"
+               @bind-Value="_flightData.Value.AutoSyncFmsOnFinal" />
+</Section>
 
-    <Section Title="ProSim">
-        <TextField Label="Host" Placeholder="localhost"
-                   Hint="Hostname or IP of the machine running ProSim System"
-                   @bind-Value="_prosim.Value.Host" />
-        <TextField Label="SDK path"
-                   Hint="Folder containing ProSimSDK.dll (loaded at runtime, never bundled). Empty = ProSim subsystem disabled"
-                   @bind-Value="_prosim.Value.SdkPath" />
-        <TextField Label="API key" Password="true"
-                   Hint="Optional — newer ProSim builds only; leave empty when not used"
-                   @bind-Value="ApiKeyInput" />
-        <NumberField Label="Reconnect interval" Suffix="ms" Min="500"
-                     @bind-Value="_prosim.Value.ReconnectIntervalMs" />
-    </Section>
-
-    <Section Title="Nav Data" Hint="Navigraph DFD database for SID/STAR/approach lookups (briefings and other nav-data consumers)">
-        <TextField Label="DFD database path"
-                   Hint="The Navigraph DFD SQLite file (e.g. ng_jeppesen_prosim.s3db) OR the folder containing it — ProSim's Navdata directory works as-is. Empty auto-probes {ProSim SDK path}\Navdata. User-supplied, never redistributed"
-                   @bind-Value="_briefing.Value.DfdPath" />
-    </Section>
-
-    <Section Title="Web Interface" Hint="Bind/port also editable in the desktop app (lockout prevention)">
-        <NumberField Label="Port" Min="1024" Max="65535"
-                     Hint="Takes effect after restarting the application"
-                     @bind-Value="_webUi.Value.Port" />
-        <BoolField Label="Expose to LAN"
-                   Hint="Bind all interfaces so tablets / a second PC can connect. Non-local devices authenticate via the QR code in the desktop app"
-                   @bind-Value="_webUi.Value.BindToAllInterfaces" />
-        <div class="field-hint" style="max-width:560px;">
-            The access token and onboarding QR code live in the desktop app's web-server card —
-            they are deliberately not shown here.
-        </div>
-    </Section>
-
-    <Section Title="Command API" Hint="Applies live, no restart">
-        <BoolField Label="Enable command API (required for the Stream Deck plugin)"
-                   Hint="Lets external tools fire GSX, checklist and loadsheet commands over the web server. It is a write surface — off by default, and the access token is required even from this PC"
-                   @bind-Value="_commandApi.Value.Enabled" />
-        <div class="field-hint" style="max-width:560px;">
-            Stream Deck keys showing "API off" recover on their own once this is saved. To pair
-            the plugin, paste the onboarding URL from the desktop app's web-server card into any
-            key's settings.
-        </div>
-    </Section>
-
-    <Section Title="Telemetry API" Hint="Applies live, no restart">
-        <BoolField Label="Enable telemetry API"
-                   Hint="Read-only: serves session event logs and log tails over the web server for post-flight/live verification (issue triage). Other devices need the access token; nothing here can control the aircraft"
-                   @bind-Value="_telemetryApi.Value.Enabled" />
-    </Section>
-
-    <Section Title="Integrations">
-        <BoolField Label="Use SayIntentions"
-                   Hint="ATIS/METAR/TAF weather, CPDLC station display, and arrival-gate send"
-                   @bind-Value="_sayIntentions.Value.Enabled" />
-        <BoolField Label="Auto prelim loadsheet on refuel"
-                   Hint="Generate + send the preliminary loadsheet when GSX refueling starts"
-                   @bind-Value="_flightData.Value.AutoPrelimOnRefuel" />
-        <BoolField Label="Auto final loadsheet on boarding complete"
-                   @bind-Value="_flightData.Value.AutoFinalOnBoardingComplete" />
-        <NumberField Label="Final loadsheet delay min" Suffix="s" Min="0"
-                     Hint="Randomized dispatcher delay before the final goes out"
-                     @bind-Value="_flightData.Value.FinalDelayMinSeconds" />
-        <NumberField Label="Final loadsheet delay max" Suffix="s" Min="0"
-                     @bind-Value="_flightData.Value.FinalDelayMaxSeconds" />
-        <BoolField Label="Auto-sync FMS on final loadsheet"
-                   Hint="Push ZFW/ZFWCG/block into the MCDU INIT B when the final is produced"
-                   @bind-Value="_flightData.Value.AutoSyncFmsOnFinal" />
-        <BoolField Label="Allow manual checklist override"
-                   Hint="Hand-tick auto-detected checklist items on the Checklists page (Prosim2GSX behaviour)"
-                   @bind-Value="_checklists.Value.AllowManualOverride" />
-        <BoolField Label="Auto prelim at STD offset"
-                   Hint="Also generate the prelim at STD minus the offset below (Prosim2GSX timing; STD from the OFP or the Loadsheet page)"
-                   @bind-Value="_flightData.Value.AutoPrelimAtStd" />
-        <NumberField Label="Prelim STD offset" Suffix="min" Min="0"
-                     @bind-Value="_flightData.Value.PrelimStdOffsetMinutes" />
-    </Section>
-
-    <Section Title="Logging" Hint="Applies live, no restart">
-        <SelectField Label="Capture level" Options="LevelOptions"
-                     Hint="Minimum level recorded to the log file and the Logs page"
-                     @bind-Value="_logging.Value.DefaultLevel" />
-        <BoolField Label="Wire trace"
-                   Hint="Raw GSX / gateway frames to a separate CMTrace file — verbose by design"
-                   @bind-Value="_logging.Value.WireTrace" />
-    </Section>
-
-</div>
+<Section Title="Checklists">
+    <BoolField Label="Allow manual ticks"
+               Hint="Hand-tick auto-detected items on the Checklists page"
+               @bind-Value="_checklists.Value.AllowManualOverride" />
+</Section>
 
 <DirtyBar Visible="@BarVisible"
           Message="@(BarMessage ?? "You have unsaved changes")"
@@ -140,16 +69,6 @@
           OnDiscard="Discard" />
 
 @code {
-    private static readonly IReadOnlyList<(string, string)> LevelOptions =
-    [
-        ("Verbose", "Verbose"),
-        ("Debug", "Debug"),
-        ("Information", "Information"),
-        ("Warning", "Warning"),
-        ("Error", "Error"),
-        ("Fatal", "Fatal"),
-    ];
-
     private static readonly IReadOnlyList<(string, string)> UnitSourceOptions =
         [("app", "App"), ("aircraft", "Aircraft")];
 
@@ -158,44 +77,15 @@
 
     private IReadOnlyList<(string, string)> _themeOptions = [];
 
-    private OptionsDraft<ProsimOptions> _prosim = default!;
     private OptionsDraft<WebUiOptions> _webUi = default!;
-    private OptionsDraft<LoggingOptions> _logging = default!;
-    private OptionsDraft<SayIntentionsOptions> _sayIntentions = default!;
     private OptionsDraft<FlightDataOptions> _flightData = default!;
-    private OptionsDraft<CabinOptions> _cabin = default!;
     private OptionsDraft<ChecklistOptions> _checklists = default!;
-    private OptionsDraft<BriefingOptions> _briefing = default!;
-    private OptionsDraft<CommandApiOptions> _commandApi = default!;
-    private OptionsDraft<TelemetryApiOptions> _telemetryApi = default!;
-
-    // The bound options keep an unset API key as null; the input works in "" terms.
-    private string ApiKeyInput
-    {
-        get => _prosim.Value.ApiKey ?? "";
-        set => _prosim.Value.ApiKey = value.Length == 0 ? null : value;
-    }
 
     protected override void OnInitialized()
     {
         _themeOptions = Themes.ListNames().Select(name => (name, name)).ToList();
-        _prosim = Draft(ProsimMonitor);
         _webUi = Draft(WebUiMonitor);
-        _logging = Draft(LoggingMonitor);
-        _sayIntentions = Draft(SayIntentionsMonitor);
         _flightData = Draft(FlightDataMonitor);
-        _cabin = Draft(CabinMonitor);
         _checklists = Draft(ChecklistMonitor);
-        _briefing = Draft(BriefingMonitor);
-        _commandApi = Draft(CommandApiMonitor);
-        _telemetryApi = Draft(TelemetryApiMonitor);
-    }
-
-    protected override void OnBeforeSave()
-    {
-        _prosim.Value.Host = _prosim.Value.Host.Trim();
-        _prosim.Value.SdkPath = _prosim.Value.SdkPath.Trim();
-        // Trim quotes too — Explorer's "Copy as path" wraps the path in them.
-        _briefing.Value.DfdPath = _briefing.Value.DfdPath.Trim().Trim('"');
     }
 }

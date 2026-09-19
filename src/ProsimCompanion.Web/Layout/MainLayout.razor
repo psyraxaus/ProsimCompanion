@@ -56,11 +56,11 @@
         </div>
     }
 
-    @* Single flat tab strip. Originally mirrored Prosim2GSX's web EFB order verbatim;
-       superseded 2026-08-08 (owner decision, #18): each pillar's status page is merged
-       into its settings tab (GSX / Audio / First Officer) as a default-selected Status
-       section, so the strip carries one tab per pillar. Overflow scrolls with the
-       chevron buttons wired up in app.js. *@
+    @* Tab strip. Originally a flat mirror of Prosim2GSX's web EFB order; 2026-08-08 (#18)
+       folded each pillar's status page into its settings tab; 2026-09-19 (ADR-0010) the
+       strip carries only the fly-the-flight pages plus one right-aligned Settings entry —
+       every configuration page now hangs off the settings hub's own rail. Overflow scrolls
+       with the chevron buttons wired up in app.js. *@
     <div class="tabbar-wrap">
         <button type="button" class="chevron chevron-left" aria-label="Scroll tabs left">‹</button>
         <nav class="tabbar">
@@ -69,6 +69,11 @@
                 <NavLink class="tab" href="@href"
                          Match="@(href.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix)">@label</NavLink>
             }
+            <span class="tab-spacer" aria-hidden="true"></span>
+            <NavLink class="tab tab-settings" href="settings" Match="NavLinkMatch.Prefix"
+                     ActiveClass="active">
+                <span aria-hidden="true">⚙</span> Settings
+            </NavLink>
         </nav>
         <button type="button" class="chevron chevron-right" aria-label="Scroll tabs right">›</button>
     </div>
@@ -79,8 +84,9 @@
 </div>
 
 @code {
-    // One tab per pillar: GSX / Audio / First Officer carry their status as the default
-    // rail section (#18); the old /gsx, /audio and /speech routes still resolve there.
+    // The fly-the-flight pages only (ADR-0010). Settings, profiles, the phase engine and the
+    // log viewer are reached through the Settings tab's rail (SettingsNav); the old /gsx,
+    // /audio, /speech, /profiles and /logs routes still resolve there.
     // 2026-08-08 (owner decision): the Weather tab is gone (the OFP page carries the same
     // cards, TAF included) and Takeoff/Landing live under one Performance tab with sub-tabs
     // (old /takeoff and /landing routes still resolve).
@@ -94,15 +100,8 @@
         ("Fuel", "fuel"),
         ("Performance", "performance"),
         ("Checklists", "checklists"),
-        ("GSX", "settings/gsx"),
-        ("Aircraft Profiles", "profiles"),
-        ("Audio", "settings/audio"),
-        ("App Settings", "settings/app"),
-        ("Flight Phase", "settings/flight-phase"),
-        ("First Officer", "settings/speech"),
         ("Tech Log", "techlog"),
         ("Duty Day", "day"),
-        ("Logs", "logs"),
     ];
 
     private IDataRefSubscription<string>? _flightNumberSub;

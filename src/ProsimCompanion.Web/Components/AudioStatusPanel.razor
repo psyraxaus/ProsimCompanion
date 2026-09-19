@@ -47,7 +47,7 @@
     <Section Title="App Mappings" Hint="Live session state per mapped process">
         @if (_view.Mappings.Count == 0)
         {
-            <div class="empty">No app mappings configured — add them in the CoreAudio section.</div>
+            <div class="empty">No app mappings configured — <a href="settings/audio/coreaudio">add them in the CoreAudio section</a>.</div>
         }
         else
         {
@@ -84,7 +84,7 @@ else
     <Section Title="VoiceMeeter Targets" Hint="Live strip/bus state per bound channel">
         @if (_view.VoiceMeeterBindings.Count == 0)
         {
-            <div class="empty">No targets bound — configure mappings in the VoiceMeeter section.</div>
+            <div class="empty">No targets bound — <a href="settings/audio/voicemeeter">configure mappings in the VoiceMeeter section</a>.</div>
         }
         else
         {

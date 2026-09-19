@@ -1,8 +1,11 @@
+@page "/settings/logs"
 @page "/logs"
+@layout SettingsLayout
 @using ProsimCompanion.Core.Logging
 @implements IDisposable
 @inject LogBufferStore Buffer
 @inject IOptionsMonitor<LoggingOptions> LoggingMonitor
+@inject IOptionsMonitor<TelemetryApiOptions> TelemetryMonitor
 @inject SettingsWriter Writer
 
 <PageTitle>Logs — ProsimCompanion</PageTitle>
@@ -19,6 +22,10 @@
                    Hint="Raw GSX / gateway frames to a separate CMTrace file"
                    Value="@LoggingMonitor.CurrentValue.WireTrace"
                    ValueChanged="SetWireTrace" />
+        <BoolField Label="Telemetry API"
+                   Hint="Read-only: serves session event logs and log tails over the web server for post-flight checks. Other devices need the access token"
+                   Value="@TelemetryMonitor.CurrentValue.Enabled"
+                   ValueChanged="SetTelemetryApi" />
         <div class="field-hint" style="margin-top:4px;">
             Session totals — warnings: @Buffer.WarningCount · errors: @Buffer.ErrorCount.
             The rolling files in <code>%LOCALAPPDATA%\ProsimCompanion\logs</code> are CMTrace
@@ -116,6 +123,11 @@
 
     private void SetWireTrace(bool enabled)
         => Writer.Set<LoggingOptions, bool>(o => o.WireTrace, enabled);
+
+    // Moved here from App Settings (ADR-0010): it is a log-serving switch, and this page is
+    // the no-dirty-bar page, so it applies live like the other capture controls.
+    private void SetTelemetryApi(bool enabled)
+        => Writer.Set<TelemetryApiOptions, bool>(o => o.Enabled, enabled);
 
     protected override void OnInitialized()
     {

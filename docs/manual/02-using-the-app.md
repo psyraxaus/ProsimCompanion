@@ -20,12 +20,26 @@ running instance's window to the front.
 | **Fuel** | Fuel panel |
 | **Performance** | Takeoff and Landing sub-tabs — runway/intersection/condition pick, calculated speeds, FMS PERF uplink |
 | **Checklists** | ECAM-style interactive checklists (visual runner; the voice FO runs beside it) |
-| **GSX** | Status board (departure services with hold/skip reasons), decision log, gate control, and all GSX settings |
+| **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode |
+| **⚙ Settings** | Everything you configure, on one rail (below) |
+
+### The Settings hub
+
+The Settings tab (right end of the strip) opens a rail grouped by pillar. Every section has
+its own address, so a refresh or a link from a warning banner lands on the right cards.
+
+| Rail entry | What it holds |
+|---|---|
+| **Setup** | The three master switches (GSX ground services, voice First Officer, audio control), the ProSim host/SDK path, nav data, web port/LAN access, the Stream Deck command API |
+| **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
+| **Voice First Officer** | Status (provider tests, minima card, speak test), general, listening & PTT, sterile cockpit, crew voices, ground crew, cabin crew, briefings & LLM, MCDU, SayIntentions, voice providers |
+| **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings, housekeeping |
+| **Display & Flight Data** | Theme, units, split-flap animation, loadsheet automation, checklist ticks |
 | **Aircraft Profiles** | Per-aircraft settings profiles with automatic matching |
-| **Audio** | Audio pillar status + settings (CoreAudio mappings, VoiceMeeter, device filters) |
-| **App Settings** | ProSim connection/SDK path, theme, units, logging levels |
-| **First Officer** | Speech pillar status + settings (voices, recognition, PTT, minima card) |
-| **Tech Log / Duty Day / Logs** | MEL & tech log, multi-leg company day mode, live log viewer |
+| **Advanced** | Flight phase engine thresholds, the live log viewer with capture settings |
+
+**Show advanced settings** (top of the rail) reveals the tuning fields — timeouts, intervals,
+thresholds — that most users never touch. Greyed-out fields belong to a switch that is off.
 
 ## A typical flight
 

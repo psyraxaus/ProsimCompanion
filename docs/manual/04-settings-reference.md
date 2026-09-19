@@ -7,27 +7,29 @@ file on start. **Never share your `webUi.accessToken`.**
 
 | Section | Page | Highlights |
 |---|---|---|
-| `prosim` | App Settings | `sdkPath` (ProSimSDK.dll), `host`, optional `apiKey` |
-| `webUi` | desktop window | `port` (default 5320), `bindToAllInterfaces`, `accessToken`, theme, units, Solari animation |
-| `gsx` | GSX tab | the whole ground pillar — see below |
-| `audio` | Audio tab | backend (CoreAudio/VoiceMeeter), app mappings, ACP side, device blacklist, device-filter flow/state |
-| `speech` | First Officer tab | TTS providers/voices, output/input devices, recognition, PTT/ATC-mute bindings, sterile cockpit |
-| `voices` | First Officer tab | purser/company voices + chimes |
+| `prosim` | Settings → Setup | `sdkPath` (ProSimSDK.dll), `host`, optional `apiKey` |
+| `webUi` | Settings → Setup / Display, desktop window | `port` (default 5320), `bindToAllInterfaces`, `accessToken`, theme, units, Solari animation |
+| `gsx` | Settings → Ground Services | the whole ground pillar — see below (master switch on Setup) |
+| `audio` | Settings → Audio Control | backend (CoreAudio/VoiceMeeter), app mappings, ACP side, device blacklist, device-filter flow/state (master switch on Setup) |
+| `speech` | Settings → Voice First Officer | TTS providers/voices, output/input devices, recognition, PTT/ATC-mute bindings, sterile cockpit (master switch on Setup) |
+| `voices` | Settings → Voice First Officer | purser/company voices + chimes |
 | `checklists` | Checklists | checklist sets, manual-override allowance |
 | `sop` | file | callout texts/thresholds, flow monitor, stabilized gates, weather advisories |
-| `briefing` | file | departure/arrival overrides, DFD path (`dfdPath`), minima capture, LLM endpoint (`llm*`) |
+| `briefing` | Settings → Voice First Officer → Briefings & LLM (DFD path on Setup) | departure/arrival overrides, DFD path (`dfdPath`), minima capture, LLM endpoint (`llm*`) |
 | `persona` | file | FO persona — enabled, name, experience, formality, chattiness, style toggles |
-| `sayIntentions` | file | API key source, phraseology, auto-tune, departure gating, weather |
-| `cabin`, `company` | file | purser reports, ambient events, company loadsheet/cruise messages, chimes |
-| `flightData` | file | SimBrief fetch attempts, prelim/final loadsheet triggers and delays |
+| `sayIntentions` | Settings → Voice First Officer → SayIntentions | API key source, phraseology, auto-tune, departure gating, weather |
+| `cabin`, `company` | Settings → Voice First Officer → Cabin Crew (`company` file-only) | purser reports, ambient events, company loadsheet/cruise messages, chimes |
+| `flightData` | Settings → Display & Flight Data | SimBrief fetch attempts, prelim/final loadsheet triggers and delays |
+| `flightState` | Settings → Advanced → Flight Phase Engine | phase-engine thresholds and settle times (calibration data) |
 | `techLog`, `logbook`, `debrief`, `day` | Tech Log / Duty Day | MEL categories, random wear, debrief verbosity, day mode |
 | `updateCheck` | file | update banner enable + interval |
-| `logging` | App Settings | per-subsystem levels (hot-reload), `wireTrace` |
-| `commandApi` | App Settings | HTTP command API for the Stream Deck plugin (`enabled` checkbox, applies live; off by default; token-gated even on localhost — `requireTokenOnLoopback` is file-only) |
+| `logging` | Settings → Advanced → Logs | per-subsystem levels (hot-reload), `wireTrace` |
+| `telemetryApi` | Settings → Advanced → Logs | read-only telemetry endpoints for post-flight verification |
+| `commandApi` | Settings → Setup | HTTP command API for the Stream Deck plugin (`enabled` checkbox, applies live; off by default; token-gated even on localhost — `requireTokenOnLoopback` is file-only) |
 
 ## The `gsx` section
 
-Ground behaviour, in the GSX tab's rail order:
+Ground behaviour, in the Ground Services rail order:
 
 - **Automation** — master switch, auto-start departure services, wait-for-OFP gate
 - **Departure Service Order** — ordered steps, each with an activation rule (previous

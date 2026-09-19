@@ -301,6 +301,11 @@ a { color: var(--accent); }
 .tab:hover { color: var(--text-on-dark); background: rgba(255, 255, 255, 0.06); }
 .tab.active { color: var(--text-on-dark); border-bottom-color: var(--accent); }
 
+/* Pushes the Settings tab to the right edge while there is room; collapses to nothing when
+   the strip overflows so the tabs keep scrolling as before. */
+.tab-spacer { flex: 1 1 auto; min-width: 0; }
+.tab-settings { border-left: 1px solid var(--border); }
+
 /* -------------------------------------------------------------- split-flap
    Mirrors the predecessor's WPF SplitFlapCharacterControl: 14x20 cells, dark gradient
    halves, #2A2A2A border, #333 mid-seam, amber #FFD700 character, ScaleY squeeze +
@@ -765,61 +770,89 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   z-index: 1;
 }
 
-.rail-header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.rail-header-label {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-on-dark-muted);
-}
-
-.rail-header-context {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-on-dark);
-  font-family: var(--font-mono);
-}
-
+/* The hub rail (ADR-0010): pillar groups, the active group expanded to its sections.
+   Rail sits on bg-secondary (always dark), so it uses the dedicated on-dark colours. */
 .rail-nav {
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
-  min-width: 200px;
-  max-width: 240px;
+  min-width: 220px;
+  max-width: 260px;
+  padding: 8px 0 16px;
 }
 
+/* The mobile section picker: hidden on desktop, a full-width bar on narrow screens. */
+.rail-toggle { display: none; }
+
+.rail-group,
 .rail-item {
   appearance: none;
   background: transparent;
   border: none;
-  /* Rail sits on bg-secondary (always dark), so use the dedicated on-dark colours. */
   color: var(--text-on-dark-muted);
   text-align: left;
-  padding: 16px 20px;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  text-decoration: none;
   cursor: pointer;
   transition: background 120ms ease, color 120ms ease;
 }
 
-.rail-item:hover { color: var(--text-on-dark); background: rgba(255, 255, 255, 0.06); }
-.rail-item.active { color: var(--text-on-dark); background: var(--accent); }
+.rail-group {
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rail-item {
+  padding: 9px 20px 9px 34px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-left: 3px solid transparent;
+}
+
+.rail-group:hover, .rail-item:hover { color: var(--text-on-dark); background: rgba(255, 255, 255, 0.06); }
+.rail-group.active { color: var(--text-on-dark); }
+.rail-item.active { color: var(--text-on-dark); border-left-color: var(--accent); background: rgba(255, 255, 255, 0.08); }
 
 .settings-content {
   flex: 1 1 auto;
   min-width: 0;
   /* Bottom padding reserves room for the DirtyBar sliding in. */
-  padding: 30px 18px 96px;
+  padding: 22px 18px 96px;
   max-width: 1080px;
 }
+
+/* Pages that render a .panel keep working inside the hub without double padding. */
+.settings-content .panel { padding: 0; margin: 0; max-width: none; }
+
+.settings-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.settings-heading-item { color: var(--text-primary); font-weight: 600; }
+.settings-heading-sep { opacity: 0.6; }
+
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text-secondary);
+}
+.info-banner a { color: var(--accent); }
 
 .empty { color: var(--text-muted); font-size: 12px; padding: 8px 0; }
 
@@ -972,27 +1005,28 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   .settings-body { flex-direction: column; }
   .sticky-rail { position: static; }
   .rail-column { border-bottom: 1px solid var(--border); }
-  .rail-header { padding: 10px 14px; }
-  .rail-header-context { font-size: 14px; }
 
-  /* Rail becomes a horizontal pill bar. */
-  .rail-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border-bottom: 1px solid var(--border);
-    min-width: 0;
-    max-width: none;
-    scrollbar-width: thin;
+  /* Rail becomes a section picker: one bar showing where you are, tap to open the list. */
+  .rail-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: none;
+    color: var(--text-on-dark);
+    font-size: 13px;
+    text-align: left;
   }
-  .rail-item {
-    flex: 0 0 auto;
-    border-bottom: 2px solid transparent;
-    padding: 10px 14px;
-    white-space: nowrap;
-    font-size: 12px;
-  }
-  .rail-item.active { border-bottom-color: var(--text-on-dark); background: transparent; }
+  .rail-toggle-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-on-dark-muted); }
+  .rail-toggle-current { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .rail-toggle-chevron { font-size: 10px; color: var(--text-on-dark-muted); }
+
+  .rail-nav { display: none; min-width: 0; max-width: none; padding: 0 0 8px; }
+  .rail-column.open .rail-nav { display: flex; }
+  .rail-group { padding: 10px 16px; }
+  .rail-item { padding: 9px 16px 9px 30px; }
 
   .services-header { display: none; }
   .service-row {

@@ -1,0 +1,126 @@
+@page "/settings"
+@layout SettingsLayout
+@using ProsimCompanion.Core.Profiles
+@inherits SettingsPageBase
+@inject IOptionsMonitor<GsxOptions> GsxMonitor
+@inject IOptionsMonitor<SpeechOptions> SpeechMonitor
+@inject IOptionsMonitor<AudioOptions> AudioMonitor
+@inject IOptionsMonitor<ProsimOptions> ProsimMonitor
+@inject IOptionsMonitor<WebUiOptions> WebUiMonitor
+@inject IOptionsMonitor<BriefingOptions> BriefingMonitor
+@inject IOptionsMonitor<CommandApiOptions> CommandApiMonitor
+@inject ProfileGsxMirror ProfileMirror
+
+<PageTitle>Setup — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Setup</h1>
+
+@* The landing page of the settings hub (ADR-0010): the three pillar master switches and the
+   connections every install needs. Everything here used to be spread over four tabs — the
+   GSX switch sat at the bottom of "Connection & Timeouts". *@
+
+<Section Title="Features" Hint="Each pillar keeps its settings pages while off; nothing runs">
+    <BoolField Label="GSX ground services"
+               Hint="Departure services, doors, jetway, pushback and arrival handling through GSX Pro"
+               @bind-Value="_gsx.Value.Enabled" />
+    <BoolField Label="Voice First Officer"
+               Hint="Spoken checklists, callouts, briefings and voice commands"
+               @bind-Value="_speech.Value.Enabled" />
+    <BoolField Label="Audio control"
+               Hint="ACP knobs and latches drive app volumes (CoreAudio or VoiceMeeter)"
+               @bind-Value="_audio.Value.Enabled" />
+</Section>
+
+<Section Title="ProSim Connection">
+    <TextField Label="ProSim host" Placeholder="localhost"
+               Hint="Name or IP address of the PC running ProSim System"
+               @bind-Value="_prosim.Value.Host" />
+    <TextField Label="ProSim SDK folder"
+               Hint="Folder containing ProSimSDK.dll. Empty keeps the ProSim connection off"
+               @bind-Value="_prosim.Value.SdkPath" />
+    <TextField Label="API key" Password="true"
+               Hint="Only newer ProSim builds use one; leave empty otherwise"
+               @bind-Value="ApiKeyInput" />
+    <NumberField Label="Reconnect interval" Suffix="ms" Min="500"
+                 Hint="Wait between connection attempts"
+                 @bind-Value="_prosim.Value.ReconnectIntervalMs" />
+</Section>
+
+<Section Title="Nav Data" Hint="Navigraph DFD database for SID/STAR/approach lookups">
+    <TextField Label="DFD database path"
+               Hint="The .s3db file or its folder; ProSim's Navdata folder works as-is. Empty looks next to the SDK"
+               @bind-Value="_briefing.Value.DfdPath" />
+</Section>
+
+<Section Title="Web Interface" Hint="Port and LAN access are also editable in the desktop window">
+    <NumberField Label="Port" Min="1024" Max="65535"
+                 Hint="Takes effect after an app restart"
+                 @bind-Value="_webUi.Value.Port" />
+    <BoolField Label="Allow other devices (LAN)"
+               Hint="Lets tablets and other PCs open this page; they sign in with the QR code in the desktop window"
+               @bind-Value="_webUi.Value.BindToAllInterfaces" />
+</Section>
+
+<Section Title="Stream Deck &amp; External Tools" Hint="Applies live">
+    <BoolField Label="Command API"
+               Hint="Required by the Stream Deck plugin. Lets tools send GSX, checklist and loadsheet commands; always needs the access token"
+               @bind-Value="_commandApi.Value.Enabled" />
+    <div class="field-hint" style="max-width:560px;">
+        To pair the plugin, paste the onboarding link from the desktop window into any key's
+        settings. Keys showing "API off" recover on their own once this is saved.
+    </div>
+</Section>
+
+<DirtyBar Visible="@BarVisible"
+          Message="@(BarMessage ?? "You have unsaved changes")"
+          Tone="BarTone"
+          OnSave="Save"
+          OnDiscard="Discard" />
+
+@code {
+    private OptionsDraft<GsxOptions> _gsx = default!;
+    private OptionsDraft<SpeechOptions> _speech = default!;
+    private OptionsDraft<AudioOptions> _audio = default!;
+    private OptionsDraft<ProsimOptions> _prosim = default!;
+    private OptionsDraft<WebUiOptions> _webUi = default!;
+    private OptionsDraft<BriefingOptions> _briefing = default!;
+    private OptionsDraft<CommandApiOptions> _commandApi = default!;
+    private bool _gsxChanged;
+
+    // The bound options keep an unset API key as null; the input works in "" terms.
+    private string ApiKeyInput
+    {
+        get => _prosim.Value.ApiKey ?? "";
+        set => _prosim.Value.ApiKey = value.Length == 0 ? null : value;
+    }
+
+    protected override void OnInitialized()
+    {
+        _gsx = Draft(GsxMonitor);
+        _speech = Draft(SpeechMonitor);
+        _audio = Draft(AudioMonitor);
+        _prosim = Draft(ProsimMonitor);
+        _webUi = Draft(WebUiMonitor);
+        _briefing = Draft(BriefingMonitor);
+        _commandApi = Draft(CommandApiMonitor);
+    }
+
+    protected override void OnBeforeSave()
+    {
+        _prosim.Value.Host = _prosim.Value.Host.Trim();
+        _prosim.Value.SdkPath = _prosim.Value.SdkPath.Trim();
+        // Trim quotes too — Explorer's "Copy as path" wraps the path in them.
+        _briefing.Value.DfdPath = _briefing.Value.DfdPath.Trim().Trim('"');
+        _gsxChanged = _gsx.IsDirty;
+    }
+
+    // The gsx master switch is part of the per-profile gsx block: a save that changed it must
+    // mirror into the active profile exactly as the GSX pages do, or the next profile match
+    // would silently flip it back.
+    protected override void OnAfterSave()
+    {
+        if (_gsxChanged)
+        {
+            ProfileMirror.MirrorActiveProfile();
+        }
+    }
+}

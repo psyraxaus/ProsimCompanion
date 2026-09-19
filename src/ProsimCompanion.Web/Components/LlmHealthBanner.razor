@@ -9,7 +9,10 @@
 {
     <div class="warn-banner" role="alert">
         <span aria-hidden="true">⚠</span>
-        <span>@Message</span>
+        <span>
+            @Message
+            <a href="settings/speech/briefing">Open the LLM settings.</a>
+        </span>
     </div>
 }
 
@@ -17,7 +20,7 @@
     private LlmHealthSnapshot _snapshot = LlmHealthSnapshot.Empty;
 
     private string Message => _snapshot.State == LlmHealthState.AuthFailed
-        ? "FO free-form understanding is offline (LLM auth failed — check the API key under First Officer → Briefings & LLM)."
+        ? "FO free-form understanding is offline (LLM auth failed — check the API key)."
         : $"FO free-form understanding is offline (LLM endpoint unreachable{Detail}).";
 
     private string Detail => string.IsNullOrWhiteSpace(_snapshot.LastError)
