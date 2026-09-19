@@ -60,6 +60,11 @@
 
 html, body { height: 100%; margin: 0; padding: 0; }
 
+/* The document itself never scrolls — the .app shell is fixed to the viewport and .main is
+   the only scroll container (see .app). overscroll-behavior stops iOS from bouncing the
+   page when a pane hits its end. */
+body { overflow: hidden; overscroll-behavior: none; }
+
 body {
   font-family: var(--font-sans);
   background: var(--bg-primary);
@@ -76,7 +81,15 @@ a { color: var(--accent); }
 /* ---------------------------------------------------------------- app shell */
 
 .app {
+  /* The shell is pinned to the visible viewport and only .main scrolls, so the header and
+     tab strip never move. `position: fixed` + `100dvh` (dynamic viewport height) is the
+     iPad Safari fix: 100vh counts the collapsed toolbar, so the document used to be a
+     toolbar's height taller than the screen and the whole page scrolled "a little"
+     (owner report 2026-09-19). Browsers without dvh keep the 100vh fallback. */
+  position: fixed;
+  inset: 0;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
@@ -90,7 +103,11 @@ a { color: var(--accent); }
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px 0;
+  /* Scroll stays inside the pane: no rubber-banding of the whole page on touch. */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Home-indicator inset on notched tablets in standalone mode. */
+  padding: 16px 0 calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ------------------------------------------------------------------- header */
@@ -100,7 +117,11 @@ a { color: var(--accent); }
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 18px;
-  padding: 8px 18px;
+  /* Safe-area insets so a notched tablet in standalone mode never hides the brand/clock. */
+  padding: calc(8px + env(safe-area-inset-top, 0px))
+           calc(18px + env(safe-area-inset-right, 0px))
+           8px
+           calc(18px + env(safe-area-inset-left, 0px));
   background: var(--header-bg, var(--bg-secondary));
   color: var(--header-text, var(--text-primary));
   border-bottom: 1px solid var(--border);
@@ -504,6 +525,7 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   transition: transform 220ms ease;
   z-index: 100;
   box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .dirtybar.visible { transform: translateY(0); }
