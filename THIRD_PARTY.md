@@ -30,6 +30,17 @@ re-verified against upstream.
   shipped beside the fonts as `PublicSans-OFL.txt`
 - Used as `--font-sans` in the web UI (labels, body text) since the 2026-09-20 restyle.
 
+## Lucide icons — `src/ProsimCompanion.Web/Components/AppIcons.cs`
+
+- Upstream: https://github.com/lucide-icons/lucide (npm `lucide-static`)
+- Version: **1.47.0**
+- Upstream path: `icons/{layout-dashboard,file-input,file-text,clipboard-list,scale,fuel,gauge,list-checks,wrench,clock-4,settings,plane,bell,cpu,chevron-down}.svg`
+- Licence: **ISC** (Copyright (c) 2026 Lucide Icons and Contributors) —
+  https://github.com/lucide-icons/lucide/blob/main/LICENSE
+- The inner markup of each 24×24 SVG is inlined into the `AppIcons.Shapes` dictionary and rendered
+  by `AppIcon.razor` — no icon runtime is fetched from a CDN (ADR-0011: the sim PC and the iPad
+  may be offline). Re-verify by diffing against the upstream file at that version.
+
 ## Silero VAD model — `src/ProsimCompanion.Speech/Recognition/Vad/silero_vad.onnx`
 
 - Upstream: https://github.com/snakers4/silero-vad

@@ -246,7 +246,7 @@
 .ecamcl-source code { user-select: all; font-size: 11px; }
 
 @media (max-width: 900px) {
-    .cl-grid { grid-template-columns: 1fr; }
+    .cl-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 540px) {
     .cl-page { padding: 12px; }

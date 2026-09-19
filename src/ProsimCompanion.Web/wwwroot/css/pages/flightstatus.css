@@ -207,7 +207,7 @@
 .fs-status { padding: 0; max-width: none; }
 
 @media (max-width: 900px) {
-  .fs-grid { grid-template-columns: 1fr; }
+  .fs-grid { grid-template-columns: minmax(0, 1fr); }
   .fs-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .fs-hero-side { max-width: 45%; }
 }

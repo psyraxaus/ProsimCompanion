@@ -443,7 +443,7 @@
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .perf-grid { grid-template-columns: 1fr; }
+  .perf-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 540px) {
   .perf-page { padding: 12px; }

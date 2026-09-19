@@ -1,0 +1,15 @@
+@* One inline Lucide icon by name (see AppIcons). Unknown names render nothing rather than
+   a broken box — a typo in a nav entry must never break the shell. *@
+@if (AppIcons.Shapes.TryGetValue(Name, out var shape))
+{
+    <svg class="icon @Class" viewBox="0 0 24 24" width="@Size" height="@Size" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">@((MarkupString)shape)</svg>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+
+    [Parameter] public int Size { get; set; } = 24;
+
+    [Parameter] public string? Class { get; set; }
+}

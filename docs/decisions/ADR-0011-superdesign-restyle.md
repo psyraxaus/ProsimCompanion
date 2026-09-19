@@ -16,11 +16,16 @@ and store the chosen theme in `localStorage`.
 
 ## Decision
 
-1. **Adopt the visual language, keep our shell structure.** Tokens, fonts, card, button, pill,
-   input and tab styling follow the canvas. The navigation stays our horizontal tab strip plus
-   the settings hub (ADR-0010) — the canvas's 4-item icon sidebar does not fit our 11 pages on an
-   iPad in landscape. A status footer with real connection signals replaces the canvas's fake
+1. **Adopt the visual language and the canvas shell.** Tokens, fonts, card, button, pill and
+   input styling follow the canvas. The canvas's icon sidebar replaces the horizontal tab strip
+   (owner decision later the same day, reversing the first cut's "keep the tab strip"): all ten
+   fly-the-flight pages plus Settings pinned at the bottom, 84 px wide, collapsing to a
+   horizontal icon strip under 720 px. The settings hub (ADR-0010) keeps its own rail inside
+   the page. The header carries the canvas aircraft block (type + registration from the OFP)
+   and a theme picker that writes the same `webUi.theme` option the Display settings page
+   edits. A status footer with real connection signals replaces the canvas's fake
    CPU/MEM/wifi/battery widgets; the tactical radar and ND map are dropped (no data source).
+   Icons are inlined Lucide shapes (ISC, `THIRD_PARTY.md`).
 2. **Split-flap stays, on the clock only.** The Solari split-flap header displays (FLT NO, SIM/UTC
    time, date) are kept; numeric figures elsewhere are plain glowing mono digits, as on the
    canvas.

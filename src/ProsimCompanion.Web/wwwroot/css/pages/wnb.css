@@ -125,7 +125,7 @@
 .wnb-table .pill { font-size: 8px; padding: 2px 8px; }
 
 @media (max-width: 900px) {
-  .wnb-page { grid-template-columns: 1fr; }
+  .wnb-page { grid-template-columns: minmax(0, 1fr); }
   .wnb-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
