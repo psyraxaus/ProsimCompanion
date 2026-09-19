@@ -89,13 +89,25 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
                 _status.Set(Subsystems.SimConnect, ConnectionState.Disabled);
                 return;
             }
+            catch (Exception ex) when (ex is FileNotFoundException or BadImageFormatException or TypeLoadException)
+            {
+                // The managed wrapper (Microsoft.FlightSimulator.SimConnect.dll) is mixed-mode
+                // C++/CLI: without the VC++ 2019+ runtime (vcruntime140_1.dll) the loader
+                // reports the WRAPPER as "module not found" — a FileNotFoundException, not the
+                // DllNotFoundException above. Observed 2026-09-19 on a fresh dev workstation;
+                // it used to escape the loop and stop the whole host (StopHost behaviour).
+                _logger.LogError(ex,
+                    "SimConnect wrapper could not be loaded (install the Microsoft Visual C++ 2015-2022 x64 runtime); SimConnect subsystem disabled");
+                _status.Set(Subsystems.SimConnect, ConnectionState.Disabled);
+                return;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "SimConnect session failed; retrying");
             }
             finally
             {
-                TearDownSession();
+                TearDownSessionSafely();
             }
 
             try
@@ -339,6 +351,27 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         catch (COMException ex)
         {
             _logger.LogError(ex, "Failed to register SimVar {SimVar} ({Unit})", entry.Name, entry.Unit);
+        }
+    }
+
+    /// <summary>
+    /// <see cref="TearDownSession"/> references SimConnect types, so merely JIT-compiling it
+    /// throws when the wrapper assembly cannot load — inside a <c>finally</c> that exception
+    /// escaped ExecuteAsync and took the host down. A teardown that cannot run has nothing to
+    /// tear down; the subsystem is already flagged Disabled by the catch above.
+    /// </summary>
+    private void TearDownSessionSafely()
+    {
+        try
+        {
+            TearDownSession();
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or BadImageFormatException or TypeLoadException)
+        {
+            _connected = false;
+            _simVars.DetachBackend();
+            _sessionSignals.SetDisconnected();
+            _logger.LogDebug(ex, "SimConnect teardown skipped: wrapper assembly unavailable");
         }
     }
 
