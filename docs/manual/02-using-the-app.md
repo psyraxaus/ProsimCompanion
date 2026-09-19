@@ -10,22 +10,29 @@ running instance's window to the front.
 
 ## Web UI tour
 
-| Tab | What it does |
+The web UI is laid out like an electronic flight bag. The **header** carries the aircraft type
+and registration (from the OFP), the flight number and the SIM/UTC clock on split-flap
+displays, a theme picker and the ProSim connection dot. The **sidebar** on the left lists the
+flight pages in flight order with Settings pinned at the bottom; on a phone it becomes a
+scrolling icon strip. The **footer** shows the ProSim, SimConnect and GSX connections and the
+running version.
+
+| Page | What it does |
 |---|---|
-| **Flight Status** | Phase bar, Sim/App/GSX cards, per-service state pills, boarding counters, last handler event |
-| **INIT** | MCDU-style OFP display: fetch the SimBrief OFP, per-field overrides (ZFW, fuel, pax, cargo), SYNC TO FMS, flight reset |
-| **OFP** | Flight-plan summary, pushback-direction Korry buttons, arrival-gate assignment, weather (METAR/TAF/ATIS), de-ice holdover card |
+| **Flight Status** | Route hero with live ground speed / altitude / vertical speed / heading / fuel, the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills |
+| **INIT** | MCDU-style OFP display: fetch the SimBrief OFP, per-field overrides (ZFW, fuel, pax, cargo), SYNC TO FMS, confirm fuel, flight reset |
+| **OFP** | Flight-plan hero, arrival-gate assignment, weather (METAR/TAF/ATIS), pushback-direction Korry buttons, de-ice holdover card |
 | **Loadsheet** | Prelim/final loadsheets with per-weight MAC envelope brackets, manual STD, resend/reset |
-| **W&B** | Live weights/CG on the envelope chart, valid MAC ranges, pax/cargo state, aircraft silhouette with doors, passenger manifest, SIMULATE |
-| **Fuel** | Fuel panel |
-| **Performance** | Takeoff and Landing sub-tabs — runway/intersection/condition pick, calculated speeds, FMS PERF uplink |
-| **Checklists** | ECAM-style interactive checklists (visual runner; the voice FO runs beside it) |
-| **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode |
+| **W&B** | Aircraft silhouette with doors and pax/cargo totals, weight summary bars, the CG envelope chart with valid MAC ranges, loading breakdown, passenger manifest, SIMULATE |
+| **Fuel** | Fuel summary with capacity bar and delta, tank breakdown |
+| **Performance** | Takeoff and Landing switch — airport/runway card with runway chips, runway diagram and wind components, weather, aircraft config, FMGC figures, FMS PERF uplink |
+| **Checklists** | ECAM-style interactive checklists with a completion bar and the checklist sequence rail (visual runner; the voice FO runs beside it) |
+| **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode with a legs timeline |
 | **⚙ Settings** | Everything you configure, on one rail (below) |
 
 ### The Settings hub
 
-The Settings tab (right end of the strip) opens a rail grouped by pillar. Every section has
+The Settings entry (bottom of the sidebar) opens a rail grouped by pillar. Every section has
 its own address, so a refresh or a link from a warning banner lands on the right cards.
 
 | Rail entry | What it holds |
@@ -67,6 +74,9 @@ thresholds — that most users never touch. Greyed-out fields belong to a switch
 
 ## Themes & units
 
-Airline themes (dark/light and airline palettes) switch live from App Settings; drop your own
-JSON themes in `config/themes`. Weight displays follow the app unit setting or the aircraft's
-own unit selection (kg/lb); settings entry fields stay in kg.
+Thirteen built-in themes — KLM Royal Dutch (the default), Lufthansa, Swiss International,
+British Airways, Air France, Singapore Airlines, Emirates, Qatar Airways, United Airlines,
+Qantas, Finnair, Light and Dark — switch live from the header picker or from Display & Flight
+Data; both write the same setting. Drop your own JSON themes in `config/themes` (Prosim2GSX
+theme format). Weight displays follow the app unit setting or the aircraft's own unit
+selection (kg/lb); settings entry fields stay in kg.

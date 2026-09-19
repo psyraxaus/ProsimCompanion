@@ -6,7 +6,8 @@ W&B, loadsheets) and **Prosim2FO** (voice First Officer) into a single, modern a
 
 A small desktop window starts the app; everything else — configuration, EFB, status — runs in
 your **browser** (default `http://localhost:5320`), on the sim PC or from any phone/tablet on
-your network via QR onboarding.
+your network via QR onboarding. The web UI is an electronic flight bag: an icon sidebar of
+flight pages, live figures on glass instrument cards, and a Solari split-flap clock.
 
 ![Flight Status](docs/img/flight-status.png)
 
@@ -64,8 +65,10 @@ your network via QR onboarding.
 ### Integrations & platform
 - SayIntentions (spoken ATC requests, gate push, weather/CPDLC), ActiveSky weather chain,
   Elgato Stream Deck plugin, opt-in HTTP command/status API
-- Airline-themeable web UI (light/dark + airline palettes, user JSON themes), kg/lb display
-  units, system tray, single-instance, update banner from GitHub releases
+- EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
+  bundled fonts and icons (works offline), 13 airline/basic themes switchable from the header
+  plus user JSON themes, kg/lb display units, system tray, single-instance, update banner from
+  GitHub releases
 - Migrating from Prosim2GSX / Prosim2FO? Your existing configuration is **imported
   automatically on first run**
 

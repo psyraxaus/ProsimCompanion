@@ -152,6 +152,12 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
 
 ## Phase 2.5 — Web UI foundation (pulled forward from Phase 7)
 
+> **2026-09-20 — superseded look.** The Prosim2GSX design language below was replaced by the
+> Superdesign "KLM navy instrument panel" restyle ([ADR-0011](decisions/ADR-0011-superdesign-restyle.md)):
+> icon sidebar, glass cards, bundled fonts/icons, 13 themes. The mechanics (Blazor, theme JSON
+> schema, `ThemeCssBuilder` derivation) are unchanged; only the visual language and the built-in
+> theme set moved on.
+
 Recreates the Prosim2GSX web EFB design language in Blazor before Phase 3 adds more pages, so
 migrating Prosim2GSX users land in a familiar UI and every later page is built into the final
 frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.Web` React app
