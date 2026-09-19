@@ -1,0 +1,31 @@
+@* Folds a run of advanced (tuning) fields inside a card (ADR-0010). While "Show advanced
+   settings" is off the fields are replaced by one muted line, so the card keeps its shape
+   and the user learns where the knobs went. The controls still exist — the owner rule
+   "every option ships with a web control" holds. *@
+@inherits StoreObserverComponent
+@inject AdvancedSettingsStore Advanced
+
+@if (_show)
+{
+    @ChildContent
+}
+else
+{
+    <div class="advanced-hidden">
+        <span aria-hidden="true">⋯</span>
+        <span>@(Label ?? "Advanced settings hidden") — <button type="button" class="link-btn" @onclick="() => Advanced.Set(true)">show advanced settings</button></span>
+    </div>
+}
+
+@code {
+    private bool _show;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Optional wording, e.g. "Timing knobs hidden".</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    protected override void OnInitialized() => Watch(Advanced, show => _show = show);
+}

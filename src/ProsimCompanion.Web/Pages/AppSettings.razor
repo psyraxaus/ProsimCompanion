@@ -41,16 +41,15 @@
                @bind-Value="_flightData.Value.AutoPrelimAtStd" />
     <NumberField Label="Prelim offset before STD" Suffix="min" Min="0"
                  Disabled="@(!_flightData.Value.AutoPrelimAtStd)"
-                 @bind-Value="_flightData.Value.PrelimStdOffsetMinutes" />
+                 @bind-Value="_flightData.Value.PrelimStdOffsetMinutes"
+                 Default="_flightData.Defaults.PrelimStdOffsetMinutes" />
     <BoolField Label="Final loadsheet when boarding completes"
                @bind-Value="_flightData.Value.AutoFinalOnBoardingComplete" />
-    <NumberField Label="Final loadsheet delay min" Suffix="s" Min="0"
-                 Hint="Random dispatcher delay before the final goes out"
-                 Disabled="@(!_flightData.Value.AutoFinalOnBoardingComplete)"
-                 @bind-Value="_flightData.Value.FinalDelayMinSeconds" />
-    <NumberField Label="Final loadsheet delay max" Suffix="s" Min="0"
-                 Disabled="@(!_flightData.Value.AutoFinalOnBoardingComplete)"
-                 @bind-Value="_flightData.Value.FinalDelayMaxSeconds" />
+    <RangeField Label="Final loadsheet delay" Suffix="s" Min="0"
+                Hint="Random dispatcher delay before the final goes out"
+                Disabled="@(!_flightData.Value.AutoFinalOnBoardingComplete)"
+                @bind-From="_flightData.Value.FinalDelayMinSeconds" @bind-To="_flightData.Value.FinalDelayMaxSeconds"
+                DefaultFrom="_flightData.Defaults.FinalDelayMinSeconds" DefaultTo="_flightData.Defaults.FinalDelayMaxSeconds" />
     <BoolField Label="Send final figures to the MCDU"
                Hint="Push ZFW, ZFWCG and block fuel into INIT B when the final is produced"
                @bind-Value="_flightData.Value.AutoSyncFmsOnFinal" />

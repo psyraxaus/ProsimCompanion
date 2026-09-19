@@ -32,7 +32,7 @@ public abstract class OptionsDraft
 /// the page was open are never clobbered, and there are no hand-written key strings anywhere.
 /// </summary>
 public sealed class OptionsDraft<TOptions> : OptionsDraft
-    where TOptions : class, IOptionSection
+    where TOptions : class, IOptionSection, new()
 {
     private readonly Func<TOptions> _current;
     private JsonObject _baseline = [];
@@ -47,6 +47,11 @@ public sealed class OptionsDraft<TOptions> : OptionsDraft
     /// <summary>The editable clone. Mutating it never touches the live bound options; only
     /// <see cref="SettingsWriter.Save"/> persists.</summary>
     public TOptions Value { get; private set; }
+
+    /// <summary>The section's out-of-the-box values (a fresh instance — every option class
+    /// carries its defaults as property initializers). Settings pages show them beside the
+    /// numeric fields and reset to them (ADR-0010).</summary>
+    public TOptions Defaults { get; } = new();
 
     public override bool IsDirty => !JsonNode.DeepEquals(SerializeDraft(), _baseline);
 

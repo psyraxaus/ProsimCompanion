@@ -12,83 +12,107 @@
     <Section Title="Speeds" Hint="Applies live, no restart. Defaults are the values proven on the 2026-08 flight tests — change them with a replayed recording that shows why.">
         <NumberField Label="Take-off roll hold above" Suffix="kt" Min="0"
                      Hint="Above this IAS the roll is kept even if take-off thrust momentarily reads unset (FLEX detent bounce)"
-                     @bind-Value="_o.Value.TaxiSpeedMaxKt" />
+                     @bind-Value="_o.Value.TaxiSpeedMaxKt"
+                     Default="_o.Defaults.TaxiSpeedMaxKt" />
         <NumberField Label="Rollout complete below" Suffix="kt" Min="0"
                      Hint="Landing rollout becomes Taxi In once IAS drops below this"
-                     @bind-Value="_o.Value.RolloutCompleteKt" />
+                     @bind-Value="_o.Value.RolloutCompleteKt"
+                     Default="_o.Defaults.RolloutCompleteKt" />
         <NumberField Label="Pushback max ground speed" Suffix="kt" Min="0"
                      Hint="Beacon + APU above this ground speed is a taxi, not a push"
-                     @bind-Value="_o.Value.PushbackMaxGroundSpeedKt" />
+                     @bind-Value="_o.Value.PushbackMaxGroundSpeedKt"
+                     Default="_o.Defaults.PushbackMaxGroundSpeedKt" />
         <NumberField Label="Parked below" Suffix="kt" Min="0"
                      Hint="Ground speed below which the aircraft counts as stopped (hardware cockpits idle at 1–2 kt)"
-                     @bind-Value="_o.Value.ParkedGroundSpeedKt" />
+                     @bind-Value="_o.Value.ParkedGroundSpeedKt"
+                     Default="_o.Defaults.ParkedGroundSpeedKt" />
     </Section>
 
     <Section Title="Vertical">
         <NumberField Label="Initial climb ceiling" Suffix="ft RA" Min="0"
                      Hint="Below this radio altitude a departure stays Initial Climb"
-                     @bind-Value="_o.Value.InitialClimbCeilingRaFt" />
+                     @bind-Value="_o.Value.InitialClimbCeilingRaFt"
+                     Default="_o.Defaults.InitialClimbCeilingRaFt" />
         <NumberField Label="Level flight band" Suffix="fpm" Min="0"
                      Hint="|VS| below this is level; above it a climb"
-                     @bind-Value="_o.Value.ClimbDescentVsFpm" />
+                     @bind-Value="_o.Value.ClimbDescentVsFpm"
+                     Default="_o.Defaults.ClimbDescentVsFpm" />
         <NumberField Label="Approach ceiling" Suffix="ft RA" Min="0"
                      Hint="Descending (or gear-down level) below this radio altitude is Approach"
-                     @bind-Value="_o.Value.ApproachRaCeilingFt" />
+                     @bind-Value="_o.Value.ApproachRaCeilingFt"
+                     Default="_o.Defaults.ApproachRaCeilingFt" />
         <NumberField Label="Go-around climb rate" Suffix="fpm" Min="0"
                      Hint="Leaving Approach upward needs at least this VS — a level-off blip must not read as a go-around"
-                     @bind-Value="_o.Value.GoAroundVsFpm" />
+                     @bind-Value="_o.Value.GoAroundVsFpm"
+                     Default="_o.Defaults.GoAroundVsFpm" />
         <NumberField Label="Descent entry rate" Suffix="fpm" Min="0"
                      Hint="Entering Descent needs a sink rate at least this decisive"
-                     @bind-Value="_o.Value.DescentEntryVsFpm" />
+                     @bind-Value="_o.Value.DescentEntryVsFpm"
+                     Default="_o.Defaults.DescentEntryVsFpm" />
         <NumberField Label="Descent exit rate" Suffix="fpm" Min="0"
                      Hint="Once descending, a segment shallower than this still counts as descent"
-                     @bind-Value="_o.Value.DescentExitVsFpm" />
+                     @bind-Value="_o.Value.DescentExitVsFpm"
+                     Default="_o.Defaults.DescentExitVsFpm" />
     </Section>
 
     <Section Title="Cruise gate" Hint="Level flight only reads as Cruise near the FMS cruise altitude (a SID level-off is not cruise)">
         <NumberField Label="Tolerance below FMS cruise" Suffix="ft" Min="0"
-                     @bind-Value="_o.Value.CruiseLevelToleranceFt" />
+                     @bind-Value="_o.Value.CruiseLevelToleranceFt"
+                     Default="_o.Defaults.CruiseLevelToleranceFt" />
         <NumberField Label="Floor without FMS cruise" Suffix="ft" Min="0"
                      Hint="With no cruise altitude entered, level flight must be above this"
-                     @bind-Value="_o.Value.CruiseFloorNoFmsFt" />
+                     @bind-Value="_o.Value.CruiseFloorNoFmsFt"
+                     Default="_o.Defaults.CruiseFloorNoFmsFt" />
     </Section>
 
     <Section Title="Ground and turnaround">
         <NumberField Label="Ground contact agreement" Suffix="samples" Min="1" Step="1"
                      Hint="Consecutive samples (250 ms each) the on-ground flag must agree before ground/air flips; 1 disables the filter"
-                     @bind-Value="_o.Value.GroundContactAgreeSamples" />
+                     @bind-Value="_o.Value.GroundContactAgreeSamples"
+                     Default="_o.Defaults.GroundContactAgreeSamples" />
         <NumberField Label="Turnaround hold" Suffix="s" Min="0"
                      Hint="After deboarding completes, parked (engines off, brake set, beacon off) for this long goes Shutdown → Preflight without a cold-and-dark reset"
-                     @bind-Value="_o.Value.TurnaroundHoldSeconds" />
+                     @bind-Value="_o.Value.TurnaroundHoldSeconds"
+                     Default="_o.Defaults.TurnaroundHoldSeconds" />
         <NumberField Label="Heartbeat log interval" Suffix="s" Min="0"
                      Hint="A 'still thinking' log line while live; 0 disables"
-                     @bind-Value="_o.Value.HeartbeatSeconds" />
+                     @bind-Value="_o.Value.HeartbeatSeconds"
+                     Default="_o.Defaults.HeartbeatSeconds" />
     </Section>
 
     <Section Title="Settle times" Hint="How long a transition's evidence must persist before it commits">
-        <NumberField Label="Default" Suffix="s" Min="0" @bind-Value="_o.Value.DefaultDebounceSeconds" />
-        <NumberField Label="Enter Cruise" Suffix="s" Min="0" @bind-Value="_o.Value.CruiseSettleSeconds" />
+        <NumberField Label="Default" Suffix="s" Min="0" @bind-Value="_o.Value.DefaultDebounceSeconds"
+                     Default="_o.Defaults.DefaultDebounceSeconds" />
+        <NumberField Label="Enter Cruise" Suffix="s" Min="0" @bind-Value="_o.Value.CruiseSettleSeconds"
+                     Default="_o.Defaults.CruiseSettleSeconds" />
         <NumberField Label="Descent → Cruise" Suffix="s" Min="0"
                      Hint="Level segments of a step descent must not flip-flop"
-                     @bind-Value="_o.Value.DescentToCruiseSettleSeconds" />
+                     @bind-Value="_o.Value.DescentToCruiseSettleSeconds"
+                     Default="_o.Defaults.DescentToCruiseSettleSeconds" />
         <NumberField Label="Cruise → Climb" Suffix="s" Min="0"
                      Hint="A VS blip at cruise is turbulence; a step climb sustains"
-                     @bind-Value="_o.Value.CruiseToClimbSettleSeconds" />
-        <NumberField Label="Go-around" Suffix="s" Min="0" @bind-Value="_o.Value.GoAroundSettleSeconds" />
+                     @bind-Value="_o.Value.CruiseToClimbSettleSeconds"
+                     Default="_o.Defaults.CruiseToClimbSettleSeconds" />
+        <NumberField Label="Go-around" Suffix="s" Min="0" @bind-Value="_o.Value.GoAroundSettleSeconds"
+                     Default="_o.Defaults.GoAroundSettleSeconds" />
         <NumberField Label="Departure regression" Suffix="s" Min="0"
                      Hint="Walking Pushback/Taxi Out/Take-off Roll back to Preflight needs sustained contradiction"
-                     @bind-Value="_o.Value.DepartureRegressionSeconds" />
+                     @bind-Value="_o.Value.DepartureRegressionSeconds"
+                     Default="_o.Defaults.DepartureRegressionSeconds" />
         <NumberField Label="First airborne classification" Suffix="s" Min="0"
                      Hint="A session whose first classification is a flight phase (mid-flight restart or warm-up garbage) must sustain this long"
-                     @bind-Value="_o.Value.FirstAirborneClassificationSeconds" />
+                     @bind-Value="_o.Value.FirstAirborneClassificationSeconds"
+                     Default="_o.Defaults.FirstAirborneClassificationSeconds" />
     </Section>
 
     <Section Title="Flight recorder" Hint="Compact per-second samples in the session log so any flight can be replayed through the phase engine offline (see docs/agents/flight-verification.md)">
         <BoolField Label="Record flight samples" @bind-Value="_o.Value.RecordSamples" />
-        <NumberField Label="Sample interval" Suffix="s" Min="0.25" Step="0.25" @bind-Value="_o.Value.SampleIntervalSeconds" />
+        <NumberField Label="Sample interval" Suffix="s" Min="0.25" Step="0.25" @bind-Value="_o.Value.SampleIntervalSeconds"
+                     Default="_o.Defaults.SampleIntervalSeconds" />
         <NumberField Label="Keep-alive" Suffix="s" Min="1"
                      Hint="Unchanged samples are skipped; one is still written at least this often"
-                     @bind-Value="_o.Value.SampleKeepAliveSeconds" />
+                     @bind-Value="_o.Value.SampleKeepAliveSeconds"
+                     Default="_o.Defaults.SampleKeepAliveSeconds" />
     </Section>
 
     <Section Title="Rule table" Hint="Evaluation order, first match wins. 'hold' keeps the current phase. Read-only — the rules live in code; the thresholds above feed them.">

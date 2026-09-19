@@ -1,0 +1,123 @@
+@* A min/max pair on one row ("from 10 to 20 s") for the randomized crew-realism delays
+   (ADR-0010) — two rows of "delay min" / "delay max" read as two unrelated settings.
+   Supports @bind-From / @bind-To; shows the defaults and a reset like NumberField. *@
+@typeparam TValue
+@using System.Globalization
+
+<div class="field">
+    <label class="field-label" for="@_idFrom">
+        @Label
+        @if (!string.IsNullOrEmpty(Hint))
+        {
+            <span class="field-hint">@Hint</span>
+        }
+    </label>
+    <div class="field-control">
+        <span class="number-row range-row">
+            <span class="range-word">from</span>
+            <input id="@_idFrom" type="number" class="number-input" inputmode="decimal"
+                   step="@(Step ?? "any")" min="@Min" aria-label="@($"{Label} minimum")"
+                   value="@BindConverter.FormatValue(From, CultureInfo.InvariantCulture)"
+                   disabled="@Disabled" @onchange="OnFromChangedAsync" />
+            <span class="range-word">to</span>
+            <input id="@_idTo" type="number" class="number-input" inputmode="decimal"
+                   step="@(Step ?? "any")" min="@Min" aria-label="@($"{Label} maximum")"
+                   value="@BindConverter.FormatValue(To, CultureInfo.InvariantCulture)"
+                   disabled="@Disabled" @onchange="OnToChangedAsync" />
+            @if (!string.IsNullOrEmpty(Suffix))
+            {
+                <span class="suffix">@Suffix</span>
+            }
+            @if (DefaultFrom is not null && DefaultTo is not null)
+            {
+                @if (IsDefault)
+                {
+                    <span class="field-default" title="These are the default values">default</span>
+                }
+                else
+                {
+                    <button type="button" class="reset-btn" disabled="@Disabled"
+                            title="@($"Reset to the defaults ({Text(DefaultFrom)}–{Text(DefaultTo)}{(string.IsNullOrEmpty(Suffix) ? "" : " " + Suffix)})")"
+                            aria-label="Reset to defaults"
+                            @onclick="ResetAsync">↺ @Text(DefaultFrom)–@Text(DefaultTo)</button>
+                }
+            }
+        </span>
+    </div>
+</div>
+
+@code {
+    private readonly string _idFrom = $"f{Guid.NewGuid():N}";
+    private readonly string _idTo = $"f{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public TValue From { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<TValue> FromChanged { get; set; }
+
+    [Parameter]
+    public TValue To { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<TValue> ToChanged { get; set; }
+
+    // Typed object for the same reason as NumberField.Default (unconstrained TValue? is not
+    // nullable for value types).
+    [Parameter]
+    public object? DefaultFrom { get; set; }
+
+    [Parameter]
+    public object? DefaultTo { get; set; }
+
+    [Parameter]
+    public string? Suffix { get; set; }
+
+    [Parameter]
+    public string? Step { get; set; }
+
+    [Parameter]
+    public string? Min { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private static string Text(object? value)
+        => value is null ? "" : Convert.ToString(value, CultureInfo.InvariantCulture) ?? "";
+
+    private bool IsDefault => Text(From) == Text(DefaultFrom) && Text(To) == Text(DefaultTo);
+
+    private async Task ResetAsync()
+    {
+        if (DefaultFrom is not TValue from || DefaultTo is not TValue to)
+        {
+            return;
+        }
+
+        await FromChanged.InvokeAsync(from);
+        await ToChanged.InvokeAsync(to);
+    }
+
+    private Task OnFromChangedAsync(ChangeEventArgs e) => ApplyAsync(e, FromChanged);
+
+    private Task OnToChangedAsync(ChangeEventArgs e) => ApplyAsync(e, ToChanged);
+
+    private async Task ApplyAsync(ChangeEventArgs e, EventCallback<TValue> target)
+    {
+        if (BindConverter.TryConvertTo<TValue>(e.Value?.ToString(), CultureInfo.InvariantCulture, out var parsed)
+            && parsed is not null)
+        {
+            await target.InvokeAsync(parsed);
+        }
+        else
+        {
+            StateHasChanged();
+        }
+    }
+}

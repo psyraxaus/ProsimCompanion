@@ -24,6 +24,11 @@ public sealed class WebUiOptions : IOptionSection
     /// instantly (Prosim2GSX's SolariAnimationEnabled).</summary>
     public bool SolariAnimation { get; set; } = true;
 
+    /// <summary>Reveal the advanced (tuning) fields on the settings pages — timeouts,
+    /// intervals, thresholds (ADR-0010). Off by default so a new user meets the everyday
+    /// choices only; the controls still exist, they are folded.</summary>
+    public bool ShowAdvancedSettings { get; set; }
+
     /// <summary>Weight unit source: "app" (the fixed <see cref="Unit"/> below) or "aircraft"
     /// (follow ProSim's configured weight unit) — Prosim2GSX's DisplayUnitSource.</summary>
     public string UnitSource { get; set; } = "app";

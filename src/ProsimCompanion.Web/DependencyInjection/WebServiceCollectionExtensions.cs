@@ -22,6 +22,8 @@ public static class WebServiceCollectionExtensions
         services.AddSingleton(provider => new ThemeCatalog(
             userThemesDirectory,
             provider.GetRequiredService<ILogger<ThemeCatalog>>()));
+        // Live mirror of webUi.showAdvancedSettings for the settings pages (ADR-0010).
+        services.AddSingleton<AdvancedSettingsStore>();
         // Flight Status pill/text change log (issue #110) — runs whether or not a browser is open.
         services.AddStartupModule<FlightStatusChangeLog>();
         return services;

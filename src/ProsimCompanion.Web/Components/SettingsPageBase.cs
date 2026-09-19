@@ -31,7 +31,7 @@ public abstract class SettingsPageBase : StoreObserverComponent
     /// <summary>Creates and registers this page's editable clone of one option section.
     /// Call once per section from <c>OnInitialized</c>.</summary>
     protected OptionsDraft<TOptions> Draft<TOptions>(IOptionsMonitor<TOptions> monitor)
-        where TOptions : class, IOptionSection
+        where TOptions : class, IOptionSection, new()
     {
         ArgumentNullException.ThrowIfNull(monitor);
         var draft = new OptionsDraft<TOptions>(() => monitor.CurrentValue);

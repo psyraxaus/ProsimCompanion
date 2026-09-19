@@ -9,6 +9,7 @@
 @inject IOptionsMonitor<SpeechOptions> SpeechOptions
 @inject IOptionsMonitor<AudioOptions> AudioOptions
 @inject AircraftProfileService Profiles
+@inject AdvancedSettingsStore Advanced
 
 <div class="settings-panel">
     <div class="settings-body">
@@ -20,6 +21,11 @@
                 <span class="rail-toggle-chevron" aria-hidden="true">@(_railOpen ? "▲" : "▼")</span>
             </button>
             <nav class="rail-nav sticky-rail" id="settings-rail" aria-label="Settings sections">
+                <label class="rail-advanced" title="Reveal the tuning fields (timeouts, intervals, thresholds) on every settings page">
+                    <input type="checkbox" class="checkbox" checked="@_showAdvanced"
+                           @onchange="e => Advanced.Set(e.Value is true)" />
+                    <span>Show advanced settings</span>
+                </label>
                 @foreach (var group in SettingsNav.Groups)
                 {
                     var isActive = group == _group;
@@ -74,6 +80,7 @@
     private SettingsNavGroup? _group;
     private SettingsNavItem? _item;
     private bool _railOpen;
+    private bool _showAdvanced;
 
     private string Breadcrumb => _group is null
         ? "Settings"
@@ -95,6 +102,7 @@
         // Navigation is not a store — it stays hand-wired; the profile banner is store-driven.
         Nav.LocationChanged += OnLocationChanged;
         WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
+        Watch(Advanced, show => _showAdvanced = show);
     }
 
     private void Resolve()

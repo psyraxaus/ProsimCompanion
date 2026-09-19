@@ -1,6 +1,8 @@
 @* Numeric field row with optional unit suffix. Generic over the numeric type so int and
    double settings bind without casts; a value the browser lets through that fails to parse
-   re-renders the previous value rather than corrupting the draft. Supports @bind-Value. *@
+   re-renders the previous value rather than corrupting the draft. Supports @bind-Value.
+   With Default set (ADR-0010) the row shows the out-of-the-box value and a reset button
+   whenever the current value differs. *@
 @typeparam TValue
 @using System.Globalization
 
@@ -22,6 +24,20 @@
             {
                 <span class="suffix">@Suffix</span>
             }
+            @if (Default is not null)
+            {
+                @if (IsDefault)
+                {
+                    <span class="field-default" title="This is the default value">default</span>
+                }
+                else
+                {
+                    <button type="button" class="reset-btn" disabled="@Disabled"
+                            title="@($"Reset to the default ({DefaultText}{(string.IsNullOrEmpty(Suffix) ? "" : " " + Suffix)})")"
+                            aria-label="Reset to default"
+                            @onclick="ResetAsync">↺ @DefaultText</button>
+                }
+            }
         </span>
     </div>
 </div>
@@ -41,6 +57,12 @@
     [Parameter]
     public EventCallback<TValue> ValueChanged { get; set; }
 
+    /// <summary>The option's out-of-the-box value (typically <c>draft.Defaults.X</c>). Typed
+    /// object on purpose: an unconstrained <c>TValue?</c> is not nullable for int/double, so
+    /// "no default given" could not be told apart from a default of 0.</summary>
+    [Parameter]
+    public object? Default { get; set; }
+
     [Parameter]
     public string? Suffix { get; set; }
 
@@ -55,6 +77,17 @@
 
     [Parameter]
     public bool Disabled { get; set; }
+
+    private string DefaultText => Convert.ToString(Default, CultureInfo.InvariantCulture) ?? "";
+
+    // Compared as formatted text so 30 and 30.0 read as the same default.
+    private bool IsDefault => string.Equals(
+        BindConverter.FormatValue(Value, CultureInfo.InvariantCulture)?.ToString(),
+        DefaultText,
+        StringComparison.Ordinal);
+
+    private Task ResetAsync()
+        => Default is TValue typed ? ValueChanged.InvokeAsync(typed) : Task.CompletedTask;
 
     private async Task OnChangedAsync(ChangeEventArgs e)
     {

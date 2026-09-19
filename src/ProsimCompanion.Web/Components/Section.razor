@@ -1,25 +1,52 @@
 @* Card with an uppercase category-coloured title and optional right-aligned hint — the
-   basic content container of the design language. *@
-<section class="section">
-    <div class="section-header">
-        <h3 class="section-title">@Title</h3>
-        @if (!string.IsNullOrEmpty(Hint))
-        {
-            <span class="section-hint">@Hint</span>
-        }
-    </div>
-    <div class="section-body">
-        @ChildContent
-    </div>
-</section>
+   basic content container of the design language. An Advanced card (ADR-0010) collapses to
+   its header while "Show advanced settings" is off. *@
+@inherits StoreObserverComponent
+@inject AdvancedSettingsStore AdvancedStore
+
+@if (Advanced && !_showAdvanced)
+{
+    <section class="section section-folded">
+        <div class="section-header">
+            <h3 class="section-title">@Title</h3>
+            <span class="section-hint">
+                Advanced — <button type="button" class="link-btn" @onclick="() => AdvancedStore.Set(true)">show advanced settings</button>
+            </span>
+        </div>
+    </section>
+}
+else
+{
+    <section class="section">
+        <div class="section-header">
+            <h3 class="section-title">@Title</h3>
+            @if (!string.IsNullOrEmpty(Hint))
+            {
+                <span class="section-hint">@Hint</span>
+            }
+        </div>
+        <div class="section-body">
+            @ChildContent
+        </div>
+    </section>
+}
 
 @code {
+    private bool _showAdvanced;
+
     [Parameter, EditorRequired]
     public string Title { get; set; } = "";
 
     [Parameter]
     public string? Hint { get; set; }
 
+    /// <summary>True for a card that holds tuning constants only; it folds to its header
+    /// until advanced settings are revealed.</summary>
+    [Parameter]
+    public bool Advanced { get; set; }
+
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnInitialized() => Watch(AdvancedStore, show => _showAdvanced = show);
 }

@@ -34,21 +34,23 @@
                     <SelectField Label="ACP" Options="AcpOptions"
                                  Hint="Which Audio Control Panel the app mappings listen to"
                                  @bind-Value="CoreAudioAcpKey" />
-                    <SelectField Label="Device-filter DataFlow" Options="DeviceFlowOptions"
-                                 Hint="Only for troubleshooting — change as advised"
-                                 @bind-Value="_audio.Value.DeviceFilterFlow" />
-                    <SelectField Label="Device-filter State" Options="DeviceStateOptions"
-                                 Hint="Only for troubleshooting — change as advised"
-                                 @bind-Value="_audio.Value.DeviceFilterState" />
-                    <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                        <button type="button" class="btn secondary" disabled="@_debugDumpBusy" @onclick="WriteDebugDump">
-                            @(_debugDumpBusy ? "Writing…" : "Write Debug Info")
-                        </button>
-                        @if (_debugDumpResult is not null)
-                        {
-                            <span class="field-hint">@_debugDumpResult</span>
-                        }
-                    </div>
+                    <AdvancedFields Label="Troubleshooting filters hidden">
+                        <SelectField Label="Device-filter DataFlow" Options="DeviceFlowOptions"
+                                     Hint="Only for troubleshooting — change as advised"
+                                     @bind-Value="_audio.Value.DeviceFilterFlow" />
+                        <SelectField Label="Device-filter State" Options="DeviceStateOptions"
+                                     Hint="Only for troubleshooting — change as advised"
+                                     @bind-Value="_audio.Value.DeviceFilterState" />
+                        <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <button type="button" class="btn secondary" disabled="@_debugDumpBusy" @onclick="WriteDebugDump">
+                                @(_debugDumpBusy ? "Writing…" : "Write Debug Info")
+                            </button>
+                            @if (_debugDumpResult is not null)
+                            {
+                                <span class="field-hint">@_debugDumpResult</span>
+                            }
+                        </div>
+                    </AdvancedFields>
                 </Section>
 
                 <Section Title="App Mappings" Hint="A channel may drive several processes">
@@ -118,9 +120,11 @@
             else if (CurrentSection == "voicemeeter")
             {
                 <Section Title="VoiceMeeter" Hint="Strips/buses via VoicemeeterRemote64.dll">
-                    <TextField Label="VoicemeeterRemote64.dll path"
-                               Hint="Leave empty to auto-detect the installed VoiceMeeter (any edition); set only for non-standard install locations — never bundled, loaded at runtime"
-                               @bind-Value="_audio.Value.VoiceMeeterDllPath" />
+                    <AdvancedFields>
+                        <TextField Label="VoicemeeterRemote64.dll path"
+                                   Hint="Leave empty to auto-detect the installed VoiceMeeter (any edition); set only for non-standard install locations — never bundled, loaded at runtime"
+                                   @bind-Value="_audio.Value.VoiceMeeterDllPath" />
+                    </AdvancedFields>
                     <div style="margin:8px 0;">
                         <button type="button" class="btn secondary" @onclick="ReloadTargets">Reload strips</button>
                         <span class="field-hint" style="margin-left:8px;">
@@ -183,20 +187,25 @@
             }
             else
             {
-                <Section Title="Housekeeping" Hint="Predecessor-proven cadences — rarely need changing">
+                <Section Title="Housekeeping" Hint="Predecessor-proven cadences — rarely need changing" Advanced="true">
                     <NumberField Label="Run interval" Suffix="ms" Min="250"
                                  Hint="Main housekeeping tick. Takes effect after restarting the application"
-                                 @bind-Value="_audio.Value.RunIntervalMs" />
+                                 @bind-Value="_audio.Value.RunIntervalMs"
+                                 Default="_audio.Defaults.RunIntervalMs" />
                     <NumberField Label="Process check interval" Suffix="ms" Min="500"
-                                 @bind-Value="_audio.Value.ProcessCheckIntervalMs" />
+                                 @bind-Value="_audio.Value.ProcessCheckIntervalMs"
+                                 Default="_audio.Defaults.ProcessCheckIntervalMs" />
                     <NumberField Label="Process startup grace" Suffix="ms" Min="0"
                                  Hint="Wait after a mapped app starts before looking for its audio session"
-                                 @bind-Value="_audio.Value.ProcessStartupDelayMs" />
+                                 @bind-Value="_audio.Value.ProcessStartupDelayMs"
+                                 Default="_audio.Defaults.ProcessStartupDelayMs" />
                     <NumberField Label="Device rescan interval" Suffix="ms" Min="5000"
-                                 @bind-Value="_audio.Value.DeviceCheckIntervalMs" />
+                                 @bind-Value="_audio.Value.DeviceCheckIntervalMs"
+                                 Default="_audio.Defaults.DeviceCheckIntervalMs" />
                     <NumberField Label="Max session searches" Min="1"
                                  Hint="Failed lookups for a running process before a forced device rescan"
-                                 @bind-Value="_audio.Value.ProcessMaxSearchCount" />
+                                 @bind-Value="_audio.Value.ProcessMaxSearchCount"
+                                 Default="_audio.Defaults.ProcessMaxSearchCount" />
                 </Section>
             }
 
