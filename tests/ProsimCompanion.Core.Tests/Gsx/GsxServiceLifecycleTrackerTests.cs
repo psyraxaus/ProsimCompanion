@@ -143,4 +143,32 @@ public sealed class GsxServiceLifecycleTrackerTests
 
         Assert.Equal(2, _events.Count);
     }
+
+    [Fact]
+    public void RearmCycle_LetsASecondRunFireItsEdgesAgain()
+    {
+        // Fuel top-up (2026-09-19): a completed Refueling ordered a second time must produce
+        // a fresh Active edge (refuel sync latches the new target) and a fresh Completed edge
+        // (crew upcall) — the latched flags would otherwise report the second run as history.
+        _tracker.Process(Services(("Refueling", GsxServiceState.Active)));
+        _tracker.Process(Services(("Refueling", GsxServiceState.Callable))); // return-to-available = completed
+        Assert.True(_tracker.IsCompleted("Refueling"));
+        _events.Clear();
+
+        _tracker.RearmCycle("Refueling");
+        _tracker.Process(Services(("Refueling", GsxServiceState.Callable))); // still idle — nothing fires
+        Assert.Empty(_events);
+        Assert.False(_tracker.IsCompleted("Refueling"));
+
+        _tracker.Process(Services(("Refueling", GsxServiceState.Requested)));
+        _tracker.Process(Services(("Refueling", GsxServiceState.Active)));
+        _tracker.Process(Services(("Refueling", GsxServiceState.Callable)));
+
+        Assert.Equal(
+            [("Refueling", GsxServiceLifecycleEvent.Requested),
+             ("Refueling", GsxServiceLifecycleEvent.Active),
+             ("Refueling", GsxServiceLifecycleEvent.Completed)],
+            _events);
+        Assert.True(_tracker.IsCompleted("Refueling"));
+    }
 }

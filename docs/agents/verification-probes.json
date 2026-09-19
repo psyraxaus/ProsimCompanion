@@ -624,6 +624,49 @@
       "notes": "Fixed: RefuelCore.TankeringSkipReason (OFP block fuel first, else efb.plannedfuel; aircraft.refuel.fuelTarget deliberately ignored pre-session) feeds DepartureSequencer.Next(preSkip) from GsxAutomationService; the skipped step counts as settled so AfterAllCompleted boarding proceeds; RaiseRefuelServiceActive is raised once per cycle in place of the missing refuel-active edge. The in-service skip in RefuelCore remains for externally-called refuels."
     },
     {
+      "id": "init-fuel-ramp-override-feeds-refuel",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "Trigger = the pilot overrides FUEL RAMP on the INIT page before the truck is ordered ('EFB INIT: override fuelRampKg = N applied' log line / 'efb init' decision). Behaviour = the refuel sync's activation line ('activated — current X kg; latched target T kg (candidates: fuelTarget …') latches T equal to the override rounded up to 100 kg, NOT the OFP block fuel from the import line ('imported …: fuel F kg'). The 2026-09-19 user report (Prosim2GSX): override entered, GSX still fueled the OFP value.",
+        "assert-present: the same override shows on the Fuel page as 'PLANNED — INIT MOD' and in the preliminary loadsheet as a 'block fuel N kg from the INIT override (+D kg vs the OFP)' loadsheet decision.",
+        "assert-present (tankering): with FOB at or above the OVERRIDE figure the departure sequence still pre-skips Refueling ('tankering) — GSX refuel not called'); with FOB above the OFP but below the override it must NOT skip.",
+        "watch: a 'live fuelTarget changed to … mid-transfer — keeping latched' line right after pump-on is ProSim rewriting the target (known archaeology), not the override being lost."
+      ],
+      "notes": "Fixed: EfbInitOverridesService.FuelRampKg now writes aircraft.refuel.fuelTarget + efb.plannedfuel alongside aircraft.fms.init.block; EffectiveBlockFuel (override → OFP → efb.plannedfuel) feeds RefuelCore's tankering pre-check, the loadsheet, FMS INIT B sync and the Fuel page. Live-verify: enter a FUEL RAMP above the OFP before 'commence ground services' and confirm the latched target."
+    },
+    {
+      "id": "refuel-on-fuel-confirmed-hold",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "Trigger = gsx.refuelCall = onFuelConfirmed and the departure sequence starts without a prior fuel confirmation. Behaviour = a 'hold Refueling' gsx-decision whose reason contains 'waiting for the crew to confirm the block fuel', WHILE Catering (and any other AfterCalled step) is still triggered ('trigger Catering' — 'next in departure order') and Boarding (AfterAllCompleted) holds on 'waiting for all earlier services to complete'.",
+        "assert-present: on confirmation (INIT CONFIRM FUEL / Flight Status Confirm fuel / 'fuel confirmed' / gsx.confirmFuel / gsx.requestRefuel) a 'fuel confirmed' decision with the figure and source ('INIT override' / 'OFP block fuel' / 'EFB planned fuel'), followed within one pump by 'trigger Refueling' or the command path's 'GSX service \"Refueling\": Requested'.",
+        "assert-absent: any 'trigger Refueling' from the sequencer BEFORE the 'fuel confirmed' decision in onFuelConfirmed mode.",
+        "assert-absent: in automatic mode (the default) any 'hold Refueling' with the fuel-confirmation reason — the legacy flow must be untouched.",
+        "watch: a 'force next service' decision while Refueling is held must call the NEXT eligible service, never Refueling (the hold is not force-bypassable)."
+      ],
+      "notes": "Shipped 2026-09-19: DepartureSequencer.Next(preHold) from GsxAutomationService (FuelConfirmationHoldReason), FuelConfirmationStore (Core), GsxServiceControl.ConfirmFuelAsync. Live-verify the voice phrases ('fuel confirmed', 'fuel figure confirmed', 'confirm fuel figure') and that a confirmation observed by the store re-pumps the sequence at once (Refueling triggers within ~1 s, not the 3 s pump)."
+    },
+    {
+      "id": "refuel-topup-after-change",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "Trigger = Refueling completed this cycle ('GSX service Refueling: Completed'), then the pilot raises FUEL RAMP on the INIT page above the FOB and presses CONFIRM FUEL / says 'fuel confirmed' / 'request refueling'. Behaviour = a 'refuel top-up' decision ('FOB X kg is below the T kg figure (INIT override) after a completed refuel — Refueling re-called'), a 'GSX service Refueling: cycle re-armed for a second run' log line, then a SECOND 'GSX service Refueling: Requested/Active/Completed' cycle, a second refuel-sync activation latching T, and a second 'ground.upcall.refuel' with the new figure.",
+        "assert-absent: a second preliminary loadsheet generated automatically by the top-up's Active edge (the once-per-cycle prelim guard must hold; a manual generate is fine).",
+        "assert-present (no regression): with FOB already at the figure the same button/phrase answers 'no top-up needed' and NO second Refueling request goes out.",
+        "watch: if GSX still reports 'completed' (not back to available) at the moment of the request, the command answers 'request the top-up again in a moment' — count occurrences; frequent hits mean the return-to-available lag needs a retry-once in the control."
+      ],
+      "notes": "Shipped 2026-09-19: GsxServiceControl.RequestRefuelTopUpAsync + GsxServiceLifecycleTracker.RearmCycle. Unverified live — GSX's willingness to run a second Refueling in one turnaround is assumed from the return-to-available behaviour."
+    },
+    {
       "id": "voice-pause-toggle",
       "issue": 0,
       "state": "open",

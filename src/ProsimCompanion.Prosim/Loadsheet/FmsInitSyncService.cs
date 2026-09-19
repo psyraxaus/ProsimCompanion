@@ -18,6 +18,7 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
     private readonly IProsimDataRefs _prosim;
     private readonly OfpStore _ofpStore;
     private readonly LoadsheetStore _loadsheets;
+    private readonly IEfbInitOverrides _initOverrides;
     private readonly ILogger<FmsInitSyncService> _logger;
     private readonly IDataRefSubscription<double> _zfw;
     private readonly IDataRefSubscription<double> _zfwcg;
@@ -27,16 +28,19 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
         IProsimDataRefs prosim,
         OfpStore ofpStore,
         LoadsheetStore loadsheets,
+        IEfbInitOverrides initOverrides,
         ILogger<FmsInitSyncService> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(ofpStore);
         ArgumentNullException.ThrowIfNull(loadsheets);
+        ArgumentNullException.ThrowIfNull(initOverrides);
         ArgumentNullException.ThrowIfNull(logger);
 
         _prosim = prosim;
         _ofpStore = ofpStore;
         _loadsheets = loadsheets;
+        _initOverrides = initOverrides;
         _logger = logger;
 
         _zfw = prosim.Subscribe(ProsimDataRefNames.WeightZfw);
@@ -60,10 +64,10 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
         }
         var (source, zfwKg, zfwCgMac) = trio.Value;
 
-        // Block: the OFP's ordered figure, else whatever the EFB fuel page holds.
-        var ofp = _ofpStore.Current;
-        var blockKg = ofp?.FuelPlanRampKg > 0 ? ofp.FuelPlanRampKg : _plannedFuel.Value;
-        blockKg = LoadMath.RoundFuelUpToHundredKg(blockKg);
+        // Block: the crew's INIT override first, then the OFP's ordered figure, else whatever
+        // the EFB fuel page holds (one rule for every consumer — EffectiveBlockFuel).
+        var figure = EffectiveBlockFuel.Resolve(_initOverrides.Snapshot(), _ofpStore.Current, _plannedFuel.Value);
+        var blockKg = figure.Kg;
         if (blockKg <= 0)
         {
             _logger.LogWarning("FMS sync: no block fuel figure available (no OFP, empty efb.plannedfuel) — not writing INIT B");

@@ -13,6 +13,8 @@
 @inject AudioStatusStore Audio
 @inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
 @inject IFlightPhaseControl PhaseControl
+@inject IGsxServiceControl ServiceControl
+@inject FuelConfirmationStore FuelConfirmation
 
 @* Prosim2GSX FlightStatusPanel clone: Flight Phase span card, then Sim / App / GSX /
    Services cards with the same rows in the same order. The log tail card is deliberately
@@ -138,7 +140,7 @@
                (issue #31). Reposition has no Remote API service (menu-driven), so its row is
                fed by the ground-prep coordinator's published stage instead (issue #45). *@
             @GroundPrepRow()
-            @ServiceRow("Refuel", GsxServiceIds.Refueling)
+            @RefuelRow()
             @ServiceRow("Catering", GsxServiceIds.Catering)
             @ServiceRow("Lavatory", GsxServiceIds.Lavatory)
             @ServiceRow("Water", GsxServiceIds.Water)
@@ -328,6 +330,76 @@
 
     private bool _recheckUnavailable;
 
+    // Refuel row with the crew's fuel-confirmation button (2026-09-19, real-world SOP): in
+    // gsx.refuelCall = onFuelConfirmed the truck waits for it; in every mode the same button
+    // orders a top-up once the INIT FUEL RAMP figure is raised after a completed refuel.
+    // The INIT page carries the same button next to the FUEL RAMP entry.
+    private RenderFragment RefuelRow()
+    {
+        var view = ServiceView(GsxServiceIds.Refueling);
+        var tone = view?.Stage switch
+        {
+            GsxServiceStage.Completed => "tone-ok",
+            GsxServiceStage.Active => "tone-active",
+            GsxServiceStage.Requested or GsxServiceStage.Called => "tone-warn",
+            _ => "tone-neutral",
+        };
+        var text = view is null ? null
+            : view.Stage == GsxServiceStage.Completed ? "completed"
+            : view.SemanticState ?? view.MappedState;
+        var confirmation = FuelConfirmation.Snapshot();
+        var sopMode = GsxOptions.IsRefuelOnFuelConfirmed(GsxOptionsMonitor.CurrentValue.RefuelCall);
+        var awaiting = sopMode && !confirmation.Confirmed && !DepartureControl.Complete;
+        return @<div class="row">
+            <span class="row-label">Refuel</span>
+            <span class="row-actions">
+                <span class="pill @(awaiting ? "tone-warn" : tone)"
+                      title="@(awaiting ? "Waiting for the crew to confirm the block fuel (SOP mode)" : null)">
+                    @(awaiting ? "awaiting fuel confirm" : text ?? "—")
+                </span>
+                @if (confirmation.Confirmed)
+                {
+                    <span class="pill tone-ok" title="@($"Confirmed {confirmation.ConfirmedAtUtc?.ToLocalTime():HH:mm:ss} via {confirmation.Source}")">
+                        @($"{confirmation.ConfirmedKg:F0} kg confirmed")
+                    </span>
+                }
+                <button type="button" class="btn secondary" disabled="@_confirmingFuel"
+                        @onclick="ConfirmFuel"
+                        title="Confirm the block fuel (INIT FUEL RAMP override, else the OFP) and order the fuel truck — or a top-up after a completed refuel. Also by voice: 'fuel confirmed'.">
+                    @(_confirmingFuel ? "Confirming…" : "Confirm fuel")
+                </button>
+                @if (_confirmFuelNote is not null)
+                {
+                    <span class="pill tone-neutral" title="@_confirmFuelNote">@_confirmFuelNote</span>
+                }
+            </span>
+        </div>;
+    }
+
+    private bool _confirmingFuel;
+    private string? _confirmFuelNote;
+    private Timer? _confirmFuelNoteTimer;
+
+    private async Task ConfirmFuel()
+    {
+        _confirmingFuel = true;
+        try
+        {
+            var outcome = await ServiceControl.TryCallAsync(GsxServiceAction.ConfirmFuel);
+            _confirmFuelNote = outcome.Detail;
+            _confirmFuelNoteTimer?.Dispose();
+            _confirmFuelNoteTimer = new Timer(_ => _ = InvokeAsync(() =>
+            {
+                _confirmFuelNote = null;
+                StateHasChanged();
+            }), null, 8000, Timeout.Infinite);
+        }
+        finally
+        {
+            _confirmingFuel = false;
+        }
+    }
+
     private RenderFragment DroppedCallRow()
     {
         // A dropped GSX call (issue #76) stays visible until a later call confirms — the log
@@ -400,5 +472,12 @@
         WatchChanged<FlightPhaseChangedEventArgs>(
             h => FlightState.PhaseChanged += h, h => FlightState.PhaseChanged -= h, () => { });
         WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
+        Watch(FuelConfirmation, _ => { });
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _confirmFuelNoteTimer?.Dispose();
     }
 }

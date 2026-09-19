@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Gsx.Automation;
+using ProsimCompanion.Gsx.Mirror;
 using ProsimCompanion.Gsx.Protocol;
 using ProsimCompanion.Gsx.Sync;
 
@@ -41,8 +43,14 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     private readonly IGsxFlightPlanStatus _flightPlan;
     private readonly SimSessionStore _simSession;
     private readonly IOptionsMonitor<GsxOptions> _options;
+    private readonly FuelConfirmationStore _fuelConfirmation;
+    private readonly IEfbInitOverrides _initOverrides;
+    private readonly OfpStore _ofpStore;
+    private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxServiceControl> _logger;
     private readonly IDataRefSubscription<double> _jetwayLvar;
+    private readonly IDataRefSubscription<double> _fuelTotal;
+    private readonly IDataRefSubscription<double> _plannedFuel;
 
     public GsxServiceControl(
         IGsxRemoteApi api,
@@ -53,6 +61,11 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         IGsxFlightPlanStatus flightPlan,
         SimSessionStore simSession,
         ISimVars simVars,
+        IProsimDataRefs prosim,
+        FuelConfirmationStore fuelConfirmation,
+        IEfbInitOverrides initOverrides,
+        OfpStore ofpStore,
+        GsxDiagnosticsStore diagnostics,
         IOptionsMonitor<GsxOptions> options,
         ILogger<GsxServiceControl> logger)
     {
@@ -64,6 +77,11 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         ArgumentNullException.ThrowIfNull(flightPlan);
         ArgumentNullException.ThrowIfNull(simSession);
         ArgumentNullException.ThrowIfNull(simVars);
+        ArgumentNullException.ThrowIfNull(prosim);
+        ArgumentNullException.ThrowIfNull(fuelConfirmation);
+        ArgumentNullException.ThrowIfNull(initOverrides);
+        ArgumentNullException.ThrowIfNull(ofpStore);
+        ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -74,13 +92,24 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         _flightPhase = flightPhase;
         _flightPlan = flightPlan;
         _simSession = simSession;
+        _fuelConfirmation = fuelConfirmation;
+        _initOverrides = initOverrides;
+        _ofpStore = ofpStore;
+        _diagnostics = diagnostics;
         _options = options;
         _logger = logger;
 
         _jetwayLvar = simVars.Subscribe(GsxLvarNames.Jetway);
+        _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);
+        _plannedFuel = prosim.Subscribe(ProsimDataRefNames.EfbPlannedFuel);
     }
 
-    public void Dispose() => _jetwayLvar.Dispose();
+    public void Dispose()
+    {
+        _jetwayLvar.Dispose();
+        _fuelTotal.Dispose();
+        _plannedFuel.Dispose();
+    }
 
     public async Task<GsxServiceCallOutcome> TryCallAsync(
         GsxServiceAction action,
@@ -146,8 +175,62 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         {
             GsxServiceAction.RetractJetway => await RetractAsync(JetwayServiceId, "jetway", cancellationToken).ConfigureAwait(false),
             GsxServiceAction.RetractStairs => await RetractAsync(StairsServiceId, "stairs", cancellationToken).ConfigureAwait(false),
+            GsxServiceAction.ConfirmFuel => await ConfirmFuelAsync(cancellationToken).ConfigureAwait(false),
             _ => await RequestAsync(action, cancellationToken).ConfigureAwait(false),
         };
+    }
+
+    /// <summary>
+    /// The crew confirms the block fuel (2026-09-19, real-world SOP): the confirmation is
+    /// recorded FIRST — it releases the sequencer's <c>onFuelConfirmed</c> hold even when the
+    /// truck cannot be ordered right now (plan gate, slot busy) — and then the refuel is
+    /// requested through the normal path, which also covers the top-up after a completed
+    /// refuel. The figure is the INIT FUEL RAMP override, else the OFP, else the EFB planned
+    /// fuel (<see cref="EffectiveBlockFuel"/>).
+    /// </summary>
+    private async Task<GsxServiceCallOutcome> ConfirmFuelAsync(CancellationToken cancellationToken)
+    {
+        var figure = EffectiveFigure();
+        if (!figure.HasValue)
+        {
+            return new(
+                GsxServiceCallStatus.NotCallable,
+                "No block-fuel figure to confirm yet — import the SimBrief OFP or enter FUEL RAMP on the INIT page.");
+        }
+
+        var reconfirmed = _fuelConfirmation.Confirmed;
+        _fuelConfirmation.Confirm(figure.Kg, "confirm");
+        RecordDecision(
+            "fuel confirmed",
+            $"{figure.Kg:F0} kg ({SourceLabel(figure.Source)}) confirmed by the crew{(reconfirmed ? " (re-confirmed)" : "")}");
+
+        var outcome = await RequestAsync(GsxServiceAction.RequestRefuel, cancellationToken).ConfigureAwait(false);
+        var prefix = $"Fuel figure {figure.Kg:F0} kg confirmed";
+        return outcome.Status switch
+        {
+            GsxServiceCallStatus.Called => new(GsxServiceCallStatus.Called, $"{prefix} — refueling requested."),
+            GsxServiceCallStatus.AlreadySatisfied => new(GsxServiceCallStatus.AlreadySatisfied, $"{prefix} — {Decapitalize(outcome.Detail)}"),
+            // NotCallable / Unavailable / Rejected: the confirmation stands — the departure
+            // sequence orders the truck itself once the gate clears.
+            _ => outcome with { Detail = $"{prefix}. {outcome.Detail}" },
+        };
+    }
+
+    private BlockFuelFigure EffectiveFigure()
+        => EffectiveBlockFuel.Resolve(_initOverrides.Snapshot(), _ofpStore.Current, _plannedFuel.Value);
+
+    private static string SourceLabel(BlockFuelSource source) => source switch
+    {
+        BlockFuelSource.Override => "INIT override",
+        BlockFuelSource.Ofp => "OFP block fuel",
+        BlockFuelSource.EfbPlannedFuel => "EFB planned fuel",
+        _ => "no figure",
+    };
+
+    private void RecordDecision(string action, string reason)
+    {
+        _logger.LogInformation("GSX {Action}: {Reason}", action, reason);
+        _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, action, reason));
     }
 
     private async Task<GsxServiceCallOutcome> RequestAsync(
@@ -205,6 +288,18 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
                 $"GSX does not offer {display} in the current gate context.");
         }
 
+        // Fuel top-up (2026-09-19, real-world SOP): the crew raised the block fuel AFTER the
+        // truck completed. A completed Refueling is not "already satisfied" when the fuel on
+        // board is short of the current figure — the cycle is re-armed and the truck ordered
+        // again. GSX allows a second refuel; the refuel sync latches the new target on the
+        // new Active edge.
+        if (action == GsxServiceAction.RequestRefuel
+            && !_lifecycle.IsPending(serviceId)
+            && (service.State == GsxServiceState.Completed || _lifecycle.IsCompleted(serviceId)))
+        {
+            return await RequestRefuelTopUpAsync(service, display, cancellationToken).ConfigureAwait(false);
+        }
+
         // The jetway/stairs trigger is a TOGGLE: Active/Completed means connected — never
         // re-fire (that would retract it). For plain services those states mean the request
         // already holds. Either way: AlreadySatisfied.
@@ -248,7 +343,67 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
                 $"GSX reports {display} cannot be triggered right now.");
         }
 
-        return await DispatchAsync(serviceId, display, cancellationToken).ConfigureAwait(false);
+        var outcome = await DispatchAsync(serviceId, display, cancellationToken).ConfigureAwait(false);
+        if (action == GsxServiceAction.RequestRefuel && outcome.Status == GsxServiceCallStatus.Called)
+        {
+            // A direct refuel request IS the crew's confirmation of the current figure — it
+            // releases the onFuelConfirmed hold so the sequencer never re-offers the truck.
+            ConfirmCurrentFigure("request");
+        }
+        return outcome;
+    }
+
+    /// <summary>Second Refueling call in one turnaround: only when the fuel on board is short
+    /// of the effective figure (25 kg tolerance, the tankering rule); otherwise the completed
+    /// refuel stands.</summary>
+    private async Task<GsxServiceCallOutcome> RequestRefuelTopUpAsync(
+        GsxServiceInfo service,
+        string display,
+        CancellationToken cancellationToken)
+    {
+        var figure = EffectiveFigure();
+        var fob = _fuelTotal.Value;
+        if (!figure.HasValue)
+        {
+            return new(GsxServiceCallStatus.AlreadySatisfied, $"{display} has already completed this turnaround.");
+        }
+
+        if (fob >= figure.Kg - RefuelCore.TankeringToleranceKg)
+        {
+            return new(
+                GsxServiceCallStatus.AlreadySatisfied,
+                $"{display} has already completed — {fob:F0} kg on board meets the {figure.Kg:F0} kg figure; no top-up needed.");
+        }
+
+        if (service.State != GsxServiceState.Callable || !service.CanTrigger)
+        {
+            return new(
+                GsxServiceCallStatus.NotCallable,
+                $"GSX still reports the previous refuel finishing ('{service.SemanticState ?? service.State.ToString()}') — request the top-up again in a moment.");
+        }
+
+        _lifecycle.RearmCycle(GsxServiceIds.Refueling);
+        RecordDecision(
+            "refuel top-up",
+            $"FOB {fob:F0} kg is below the {figure.Kg:F0} kg figure ({SourceLabel(figure.Source)}) after a completed refuel — Refueling re-called");
+
+        var outcome = await DispatchAsync(GsxServiceIds.Refueling, display, cancellationToken).ConfigureAwait(false);
+        if (outcome.Status == GsxServiceCallStatus.Called)
+        {
+            ConfirmCurrentFigure("top-up");
+            return new(GsxServiceCallStatus.Called, $"Top-up requested — {fob:F0} kg on board, {figure.Kg:F0} kg ordered.");
+        }
+        return outcome;
+    }
+
+    private void ConfirmCurrentFigure(string source)
+    {
+        var figure = EffectiveFigure();
+        if (figure.HasValue && !_fuelConfirmation.Confirmed)
+        {
+            _fuelConfirmation.Confirm(figure.Kg, source);
+            RecordDecision("fuel confirmed", $"{figure.Kg:F0} kg ({SourceLabel(figure.Source)}) implied by the refuel {source}");
+        }
     }
 
     /// <summary>Retract path for the operate toggles: only a service currently reading
@@ -349,4 +504,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
 
     private static string Capitalize(string text)
         => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
+
+    private static string Decapitalize(string text)
+        => text.Length == 0 ? text : char.ToLowerInvariant(text[0]) + text[1..];
 }

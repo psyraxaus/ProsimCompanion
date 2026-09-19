@@ -18,6 +18,12 @@ public enum GsxServiceAction
     RequestGpu,
     RequestDeice,
     RequestPushback,
+
+    /// <summary>Confirm the block-fuel figure (INIT FUEL RAMP override, else the OFP) and
+    /// order the fuel truck on it — the real-world SOP step (2026-09-19). Releases the
+    /// <c>gsx.refuelCall = "onFuelConfirmed"</c> hold; after a completed refuel it orders a
+    /// top-up when the confirmed figure is above the fuel on board.</summary>
+    ConfirmFuel,
 }
 
 /// <summary>Classification of one attempted service call — the command layer maps these onto

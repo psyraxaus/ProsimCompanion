@@ -209,6 +209,9 @@
                 </Section>
 
                 <Section Title="Refuel">
+                    <SelectField Label="Refuel call" Options="RefuelCallOptions"
+                                 Hint="SOP mode holds ONLY the fuel truck until the crew confirms the block fuel (INIT page CONFIRM FUEL, 'fuel confirmed' by voice, or 'request refueling'); catering and the rest continue, boarding waits for the truck. The INIT FUEL RAMP entry is the figure the truck loads; raising it after the truck finished offers a top-up on the same button/phrase."
+                                 @bind-Value="_gsx.Value.RefuelCall" />
                     <BoolField Label="Refuel sync"
                                Hint="Step ProSim fuel toward the target while the GSX hose is connected"
                                @bind-Value="_gsx.Value.RefuelSyncEnabled" />
@@ -466,6 +469,9 @@
 
     private static readonly IReadOnlyList<(string, string)> RefuelMethodOptions =
         [("fixedRate", "Fixed rate"), ("dynamicRate", "Dynamic rate")];
+
+    private static readonly IReadOnlyList<(string, string)> RefuelCallOptions =
+        [("automatic", "Automatic (departure sequence)"), ("onFuelConfirmed", "After the crew confirms the fuel (SOP)")];
 
     private static readonly IReadOnlyList<(string, string)> DeIceFluidOptions =
         [("Type I", "Type I"), ("Type II", "Type II"), ("Type IV", "Type IV")];

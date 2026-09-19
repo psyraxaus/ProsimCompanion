@@ -5,6 +5,7 @@
 @inherits StoreObserverComponent
 @inject IProsimDataRefs DataRefs
 @inject OfpStore Ofp
+@inject IEfbInitOverrides Overrides
 @inject DisplayUnitService Units
 
 @* Markup and styling ported from Prosim2GSX's web FuelPanel (FuelPanel.tsx /
@@ -15,7 +16,11 @@
 
 @{
     var inTanks = _fuelTotal.Value;
-    var planned = Ofp.Current?.FuelPlanRampKg ?? 0;
+    // The planned figure is the same one the GSX refuel loads (2026-09-19): the INIT FUEL
+    // RAMP override first, then the OFP, then the EFB planned fuel.
+    var figure = EffectiveBlockFuel.Resolve(Overrides.Snapshot(), Ofp.Current, _plannedFuel.Value);
+    var planned = figure.Kg;
+    var plannedLabel = figure.Source == BlockFuelSource.Override ? "PLANNED — INIT MOD" : "PLANNED";
     var capacity = TotalCapacityKg();
     var delta = inTanks - planned;
 }
@@ -36,7 +41,7 @@
         </div>
 
         <div class="fuel-summary-grid">
-            <div class="fuel-summary-header">PLANNED (@UnitU)</div>
+            <div class="fuel-summary-header">@plannedLabel (@UnitU)</div>
             <div class="fuel-summary-header">IN TANKS (@UnitU)</div>
             <div class="fuel-summary-value">@FmtW(planned)</div>
             <div class="fuel-summary-value">@FmtW(inTanks)</div>
@@ -110,6 +115,7 @@
     private IDataRefSubscription<double> _fuelRightInnerCap = default!;
     private IDataRefSubscription<double> _fuelRightOuter = default!;
     private IDataRefSubscription<double> _fuelRightOuterCap = default!;
+    private IDataRefSubscription<double> _plannedFuel = default!;
     private Timer? _refresh;
 
     private sealed record TankRow(string Name, double AmountKg, double CapacityKg)
@@ -130,8 +136,10 @@
         _fuelRightInnerCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightInnerCapacity);
         _fuelRightOuter = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuter);
         _fuelRightOuterCap = DataRefs.Subscribe(ProsimDataRefNames.FuelRightOuterCapacity);
+        _plannedFuel = DataRefs.Subscribe(ProsimDataRefNames.EfbPlannedFuel);
 
         WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
+        WatchChanged(h => Overrides.Changed += h, h => Overrides.Changed -= h, () => { });
 
         // Live instrument view — a 1 s repaint matches the datarefs' Normal cadence.
         _refresh = new Timer(_ => _ = InvokeAsync(StateHasChanged), null,
@@ -146,7 +154,7 @@
         {
             _fuelTotal, _fuelCenter, _fuelCenterCap, _fuelLeftInner, _fuelLeftInnerCap,
             _fuelLeftOuter, _fuelLeftOuterCap, _fuelRightInner, _fuelRightInnerCap,
-            _fuelRightOuter, _fuelRightOuterCap,
+            _fuelRightOuter, _fuelRightOuterCap, _plannedFuel,
         })
         {
             sub.Dispose();

@@ -8,6 +8,8 @@
 @inject IFmsInitSync FmsSync
 @inject ISimbriefImporter Simbrief
 @inject ILoadsheetControl LoadsheetControl
+@inject IGsxServiceControl ServiceControl
+@inject FuelConfirmationStore FuelConfirmation
 @inject DisplayUnitService Units
 
 <PageTitle>EFB INIT — ProsimCompanion</PageTitle>
@@ -65,6 +67,18 @@
                 {
                     <div class="init-error-line">@_lastFetchError</div>
                 }
+                @if (_fuelConfirmation.Confirmed)
+                {
+                    <div class="init-status-row">
+                        <span class="init-status-dot init-status-dot-green"></span>
+                        <span class="init-value">FUEL @($"{_fuelConfirmation.ConfirmedKg:F0}") KG CONFIRMED</span>
+                        <span class="init-label">@_fuelConfirmation.ConfirmedAtUtc?.ToLocalTime().ToString("HH:mm")</span>
+                    </div>
+                }
+                @if (_fuelNote is not null)
+                {
+                    <div class="init-fetch-phase">@_fuelNote</div>
+                }
                 @if (_fetchPhase.Length > 0)
                 {
                     <div class="init-fetch-phase">@_fetchPhase</div>
@@ -104,6 +118,15 @@
             <button type="button" class="init-btn init-btn-primary"
                     disabled="@(_busy is not null || _ofp is null)" @onclick="SyncFms">
                 @(_busy == "sync" ? "SYNCING…" : "SYNC TO FMS")
+            </button>
+            @* Real-world SOP (2026-09-19): the crew confirms the block fuel — the FUEL RAMP
+               entry above, else the OFP — and only then is the truck ordered (gsx.refuelCall
+               = onFuelConfirmed). After a completed refuel the same button orders a top-up
+               when the figure was raised. Voice: "fuel confirmed". *@
+            <button type="button" class="init-btn init-btn-primary"
+                    disabled="@(_busy is not null || _ofp is null)" @onclick="ConfirmFuel"
+                    title="Confirm the block fuel and order the fuel truck (or a top-up)">
+                @(_busy == "fuel" ? "CONFIRMING…" : _fuelConfirmation.Confirmed ? "RE-CONFIRM FUEL" : "CONFIRM FUEL")
             </button>
             <button type="button" class="init-btn init-btn-amber"
                     disabled="@(_busy is not null || _overrides.Count == 0)" @onclick="ClearOverrides">
@@ -168,6 +191,7 @@
         WatchChanged(h => Overrides.Changed += h, h => Overrides.Changed -= h,
             () => _overrides = Overrides.Snapshot());
         WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
+        Watch(FuelConfirmation, snapshot => _fuelConfirmation = snapshot);
     }
 
     public override void Dispose()
@@ -176,6 +200,7 @@
         _phaseTimer?.Dispose();
         _resetDisarmTimer?.Dispose();
         _editErrorTimer?.Dispose();
+        _fuelNoteTimer?.Dispose();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -408,6 +433,30 @@
         {
             var result = await FmsSync.SyncAsync();
             _lastFetchError = result is null ? "FMS SYNC FAILED — SEE LOGS" : null;
+        }
+        finally
+        {
+            _busy = null;
+        }
+    }
+
+    private FuelConfirmationSnapshot _fuelConfirmation = FuelConfirmationSnapshot.Empty;
+    private string? _fuelNote;
+    private Timer? _fuelNoteTimer;
+
+    private async Task ConfirmFuel()
+    {
+        _busy = "fuel";
+        try
+        {
+            var outcome = await ServiceControl.TryCallAsync(GsxServiceAction.ConfirmFuel);
+            _fuelNote = outcome.Detail.ToUpperInvariant();
+            _fuelNoteTimer?.Dispose();
+            _fuelNoteTimer = new Timer(_ => _ = InvokeAsync(() =>
+            {
+                _fuelNote = null;
+                StateHasChanged();
+            }), null, 8000, Timeout.Infinite);
         }
         finally
         {

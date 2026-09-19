@@ -99,6 +99,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();
         services.AddSingleton<GroundOpsSignals>();
+        // The crew's block-fuel confirmation (2026-09-19 SOP seam): written by the GSX
+        // service control, read by the departure hold rule and the INIT / Flight Status pages.
+        services.AddSingleton<FuelConfirmationStore>();
         services.AddSingleton<GsxResyncState>();
         // The departure cycle (CONTEXT.md): shared owner of started/complete/turnaround/prep
         // flags so the GSX automation and the prep coordinator never reference each other

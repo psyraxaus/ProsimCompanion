@@ -26,6 +26,7 @@ public static class GsxServiceCommandHandlers
             ["gsx.requestGpu"] = GsxServiceAction.RequestGpu,
             ["gsx.requestDeice"] = GsxServiceAction.RequestDeice,
             ["gsx.requestPushback"] = GsxServiceAction.RequestPushback,
+            ["gsx.confirmFuel"] = GsxServiceAction.ConfirmFuel,
         };
 
     public static void Register(CommandRegistry registry, IGsxServiceControl? serviceControl)

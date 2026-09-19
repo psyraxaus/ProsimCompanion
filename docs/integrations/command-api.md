@@ -33,6 +33,7 @@ Naming convention: dotted lowercase area + camelCase verb — `gsx.forceNextServ
 | `gsx.requestGate` | `{"gate":"B12"}` | Arms an arrival gate request. |
 | `gsx.cancelGate` | — | |
 | `gsx.requestRefuel` | — | Per-service calls (this row and the next ten) go through the `IGsxServiceControl` seam — the SAME serialized single-slot `service.trigger` path the departure automation uses, mirror-checked first, never a second writer and never raw menu ordinals. Outcomes: already requested/active/completed (or already called and awaiting GSX) → `alreadySatisfied`; GSX absent/not running → `unavailable`; not offered / not callable / slot busy with another service → `preconditionFailed` with the reason; GSX rejection → `failed`. |
+| `gsx.confirmFuel` | — | Real-world SOP (2026-09-19): confirms the block fuel — the INIT page FUEL RAMP override, else the OFP block fuel, else `efb.plannedfuel` — and orders the truck on it. The confirmation is recorded FIRST (it releases the `gsx.refuelCall = "onFuelConfirmed"` departure hold even when the call itself is refused by the plan gate or a busy slot), then the request runs as `gsx.requestRefuel`. After a completed refuel it orders a **top-up** when the fuel on board is more than 25 kg short of the figure (the Refueling lifecycle cycle is re-armed so the refuel sync latches the new target and the crew upcall fires again); FOB already at the figure → `alreadySatisfied` "no top-up needed". A plain `gsx.requestRefuel` implies the confirmation and also takes the top-up path. |
 | `gsx.requestCatering` | — | |
 | `gsx.requestBoarding` | — | |
 | `gsx.requestDeboarding` | — | Normally auto-called on stable-parked arrival (`gsx.autoCallDeboardOnArrival`); this is the manual path. |
@@ -108,6 +109,7 @@ in `GsxVoicePhrases` — one catalog shared with the hail dialogues below (ADR-0
 | "request boarding" | `gsx.requestBoarding` |
 | "start boarding", "cabin crew start boarding" | `gsx.requestBoarding` + a purser "Boarding underway." ack (tag `cabin.boarding.ack`) only on success/alreadySatisfied |
 | "request refueling", "call the fuel truck" | `gsx.requestRefuel` |
+| "fuel confirmed", "fuel figure confirmed", "confirm fuel figure" | `gsx.confirmFuel` — the SOP confirmation of the block fuel; the FO answers "Fuel figure confirmed — refueling requested.", a hail answers "Copied — fuel truck on the way with the confirmed figure." |
 | "request catering" | `gsx.requestCatering` |
 | "request pushback" | `gsx.requestPushback` |
 | "request de-icing" | `gsx.requestDeice` |

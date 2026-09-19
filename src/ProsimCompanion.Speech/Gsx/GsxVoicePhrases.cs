@@ -46,6 +46,15 @@ public static class GsxVoicePhrases
                 "gsx.requestRefuel", "Refueling requested.", "Copied — fuel truck on the way."),
             ["call the fuel truck"] = new(
                 "gsx.requestRefuel", "Refueling requested.", "Copied — fuel truck on the way."),
+            // Real-world SOP (2026-09-19): the captain confirms the block fuel after their own
+            // considerations, and only then is the truck ordered (gsx.refuelCall =
+            // onFuelConfirmed). After a completed refuel the same phrase orders a top-up.
+            ["fuel confirmed"] = new(
+                "gsx.confirmFuel", "Fuel figure confirmed — refueling requested.", "Copied — fuel truck on the way with the confirmed figure."),
+            ["fuel figure confirmed"] = new(
+                "gsx.confirmFuel", "Fuel figure confirmed — refueling requested.", "Copied — fuel truck on the way with the confirmed figure."),
+            ["confirm fuel figure"] = new(
+                "gsx.confirmFuel", "Fuel figure confirmed — refueling requested.", "Copied — fuel truck on the way with the confirmed figure."),
             ["request catering"] = new(
                 "gsx.requestCatering", "Catering requested.", "Copied — catering is on the way."),
             ["request pushback"] = new(

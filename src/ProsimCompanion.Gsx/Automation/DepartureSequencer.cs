@@ -36,7 +36,12 @@ public sealed record DeparturePlan(
 /// web); <c>forceNext</c> bypasses the activation rule — but never the flight-plan gate.
 /// <c>preSkip</c> lets the shell retire a not-yet-running step from live aircraft data (the
 /// tankering skip, #117) — it is answered before the cursor is assigned, so the next step
-/// takes the turn in the same evaluation.
+/// takes the turn in the same evaluation. <c>preHold</c> (2026-09-19, refuel-on-confirmation)
+/// parks a not-yet-running step WITHOUT taking the cursor: the step is transparent to the
+/// activation predicates (the next step runs as if it were not there) but counts as
+/// unsettled, so an <c>AfterAllCompleted</c> barrier still waits for it. That is the
+/// real-world shape — catering and cleaning proceed while the captain decides the fuel;
+/// boarding waits for the truck.
 /// </summary>
 public static class DepartureSequencer
 {
@@ -53,7 +58,8 @@ public static class DepartureSequencer
         bool forceNext,
         bool isCompanyHub = false,
         TimeSpan? plannedFlightDuration = null,
-        Func<string, string?>? preSkip = null)
+        Func<string, string?>? preSkip = null,
+        Func<string, string?>? preHold = null)
     {
         ArgumentNullException.ThrowIfNull(steps);
         ArgumentNullException.ThrowIfNull(services);
@@ -177,6 +183,18 @@ public static class DepartureSequencer
             {
                 skipped.Add((id, preSkipReason));
                 settled++;
+                continue;
+            }
+
+            // Situational hold decided by the shell (2026-09-19: Refueling waits for the
+            // crew's fuel confirmation). Transparent to the activation predicates — the
+            // next step takes the turn as if this one were absent — but NOT settled, so an
+            // AfterAllCompleted barrier (boarding) still waits for it. Force-next does not
+            // bypass it: the confirmation is an explicit crew action with its own phrases.
+            if (preHold?.Invoke(id) is { } preHoldReason)
+            {
+                holds.Add((id, preHoldReason));
+                allEarlierSettled = false;
                 continue;
             }
 

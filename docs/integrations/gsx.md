@@ -79,6 +79,23 @@ Behaviours that must survive the port:
 - Refuel: GSX hose connect starts ProSim dataref stepping (fixed kg/s or time-target rate);
   FOB save/restore per aircraft registration; round-up-to-100 kg option; variance-tolerant
   completion correction.
+- **Block fuel = one rule** (2026-09-19, user report via Prosim2GSX: the INIT FUEL RAMP entry
+  only wrote `aircraft.fms.init.block` and the truck still fueled the OFP): `EffectiveBlockFuel`
+  = INIT override → OFP block → `efb.plannedfuel`, rounded up to 100 kg, used by the refuel
+  target, the tankering pre-check, the loadsheet, FMS INIT B sync and the Fuel page. The
+  override now writes `aircraft.refuel.fuelTarget` + `efb.plannedfuel` too (the importer's
+  trio). The refuel sync still latches its target at GSX Active — enter the figure BEFORE the
+  truck, or order a top-up afterwards.
+- **Refuel call mode** `gsx.refuelCall`: `automatic` (legacy) or `onFuelConfirmed` (real-world
+  SOP): the sequencer's `preHold` parks ONLY the Refueling step (transparent to the activation
+  chain — catering etc. continue — but unsettled, so `AfterAllCompleted` boarding waits) until
+  `FuelConfirmationStore` says confirmed: INIT page CONFIRM FUEL / Flight Status "Confirm fuel"
+  button, voice "fuel confirmed", `gsx.confirmFuel`, or a direct `gsx.requestRefuel`. Force-next
+  does not bypass it. Resets on the flight-cycle reset and on a NEW OFP request id.
+- **Top-up**: a completed Refueling is re-callable when FOB is > 25 kg short of the effective
+  figure — `GsxServiceLifecycleTracker.RearmCycle("Refueling")` before the trigger so the second
+  run fires its own Active (refuel sync latches the new target) and Completed (crew upcall)
+  edges; the prelim loadsheet's once-per-cycle guard keeps it from re-firing.
 - Boarding: GSX counters → ProSim zone amounts + seat map, seat-level reconciliation at complete,
   optional no-show/extra randomization with cargo-weight adjustment.
 

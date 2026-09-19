@@ -36,7 +36,8 @@ internal static class DepartureAutomationCore
         IReadOnlyDictionary<string, GsxServiceInfo> MirrorServices,
         Func<string, DepartureCycleView> Cycle,
         Func<string, string?>? PreSkip = null,
-        bool VoiceActivationMode = false);
+        bool VoiceActivationMode = false,
+        Func<string, string?>? PreHold = null);
 
     /// <summary>What one evaluation decided. Effects run in the shell, in this order:
     /// auto-start decision → waiting board (stop) → hold decision → import/diagnostic/pax →
@@ -124,7 +125,8 @@ internal static class DepartureAutomationCore
             inputs.Forced,
             inputs.IsCompanyHub,
             inputs.EstimatedEnroute,
-            inputs.PreSkip);
+            inputs.PreSkip,
+            inputs.PreHold);
 
         return new PumpOutcome(
             AutoStarted: autoStarted,

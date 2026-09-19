@@ -195,6 +195,25 @@ public sealed class GsxServiceLifecycleTracker
         _logger.LogInformation("GSX service {Service}: seeded completed (startup resync)", serviceId);
     }
 
+    /// <summary>
+    /// Starts a fresh cycle for ONE service so its lifecycle edges fire again — the fuel
+    /// top-up path (2026-09-19): the crew raises the block fuel after the truck already
+    /// completed, and Refueling is ordered a second time in the same turnaround. Without
+    /// this the latched Completed flag reports the second run as history: no Active edge for
+    /// the refuel sync, no Completed edge for the crew upcall. Callers re-arm immediately
+    /// before dispatching the second trigger; the mirror reads Callable at that point (refuel
+    /// returns to available), so nothing fires until GSX picks the new request up.
+    /// </summary>
+    public void RearmCycle(string serviceId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(serviceId);
+        lock (_gate)
+        {
+            _cycles.Remove(serviceId);
+        }
+        _logger.LogInformation("GSX service {Service}: cycle re-armed for a second run", serviceId);
+    }
+
     /// <summary>Starts a fresh cycle for every service (new turnaround / departure), so the
     /// lifecycle events fire again.</summary>
     public void ResetCycle()

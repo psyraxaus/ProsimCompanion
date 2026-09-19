@@ -556,4 +556,109 @@ public sealed class DepartureSequencerTests
 
         Assert.False(plan.AllDone);
     }
+
+    // ---- Situational pre-hold (2026-09-19: Refueling waits for the crew's fuel confirmation) ----
+
+    private static DeparturePlan NextWithHold(
+        IReadOnlyList<DepartureServiceStep> steps,
+        Dictionary<string, GsxServiceInfo> services,
+        Func<string, string?> preHold,
+        Dictionary<string, DepartureCycleView>? cycles = null,
+        bool force = false)
+        => DepartureSequencer.Next(
+            steps,
+            services,
+            id => cycles?.GetValueOrDefault(id) ?? default,
+            null,
+            true,
+            true,
+            false,
+            force,
+            false,
+            null,
+            null,
+            preHold);
+
+    private static readonly Func<string, string?> HoldRefuel =
+        id => id == "Refueling" ? "waiting for the crew to confirm the block fuel" : null;
+
+    [Fact]
+    public void PreHold_ParksTheStep_WhileTheNextStepTakesTheTurn()
+    {
+        var steps = new[] { Step("Refueling"), Step("Catering"), Step("Boarding", GsxServiceActivation.AfterAllCompleted) };
+        var services = Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true),
+            ("Boarding", GsxServiceState.Callable, true));
+
+        var plan = NextWithHold(steps, services, HoldRefuel);
+
+        Assert.Equal("Catering", plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling" && h.Reason.Contains("confirm the block fuel"));
+        Assert.DoesNotContain(plan.Skipped, s => s.ServiceId == "Refueling");
+        Assert.False(plan.AllDone);
+    }
+
+    [Fact]
+    public void PreHold_IsNotSettled_SoTheAfterAllCompletedBarrierWaits()
+    {
+        // Catering done; Refueling still held for the fuel figure — boarding must wait for the truck.
+        var steps = new[] { Step("Refueling"), Step("Catering"), Step("Boarding", GsxServiceActivation.AfterAllCompleted) };
+        var services = Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true),
+            ("Boarding", GsxServiceState.Callable, true));
+        var cycles = new Dictionary<string, DepartureCycleView> { ["Catering"] = Done };
+
+        var plan = NextWithHold(steps, services, HoldRefuel, cycles);
+
+        Assert.Null(plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Boarding" && h.Reason.Contains("all earlier services"));
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling");
+    }
+
+    [Fact]
+    public void PreHold_Released_TriggersRefuelingNormally()
+    {
+        var steps = new[] { Step("Refueling"), Step("Catering") };
+        var services = Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true));
+
+        var plan = NextWithHold(steps, services, _ => null);
+
+        Assert.Equal("Refueling", plan.Trigger);
+    }
+
+    [Fact]
+    public void PreHold_IsNotBypassedByForceNext()
+    {
+        // The confirmation is an explicit crew action with its own phrases — force-next moves
+        // on to the next eligible service instead.
+        var steps = new[] { Step("Refueling"), Step("Catering", GsxServiceActivation.Manual) };
+        var services = Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true));
+
+        var plan = NextWithHold(steps, services, HoldRefuel, force: true);
+
+        Assert.Equal("Catering", plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == "Refueling");
+    }
+
+    [Fact]
+    public void PreHold_DoesNotApply_OnceTheServiceIsRunning()
+    {
+        // The truck was ordered directly (confirmation implied) — the running step is passed
+        // over like any other, the hold predicate is never consulted for it.
+        var steps = new[] { Step("Refueling"), Step("Catering") };
+        var services = Services(
+            ("Refueling", GsxServiceState.Active, false),
+            ("Catering", GsxServiceState.Callable, true));
+
+        var plan = NextWithHold(steps, services, HoldRefuel);
+
+        Assert.Equal("Catering", plan.Trigger);
+        Assert.DoesNotContain(plan.Holds, h => h.ServiceId == "Refueling");
+    }
 }

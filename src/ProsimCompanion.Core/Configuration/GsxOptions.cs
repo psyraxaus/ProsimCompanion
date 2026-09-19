@@ -155,6 +155,23 @@ public sealed class GsxOptions : IOptionSection
 
     // ---- ProSim sync modules ----
 
+    /// <summary>When the departure sequence orders the fuel truck (2026-09-19, real-world
+    /// SOP request): <c>"automatic"</c> calls Refueling in departure order on the current
+    /// figure (legacy); <c>"onFuelConfirmed"</c> holds ONLY the Refueling step until the crew
+    /// confirms the block fuel (INIT page CONFIRM FUEL, "fuel confirmed" by voice, a direct
+    /// refuel request, or the command API) — the other services continue. Unknown values
+    /// read as automatic.</summary>
+    public string RefuelCall { get; set; } = "automatic";
+
+    /// <summary>The <see cref="RefuelCall"/> value that holds Refueling for the crew's
+    /// confirmation.</summary>
+    public const string RefuelCallOnFuelConfirmed = "onFuelConfirmed";
+
+    /// <summary>True when a <see cref="RefuelCall"/> value asks for the crew's fuel
+    /// confirmation (a method, not a property, so the settings writer never serializes it).</summary>
+    public static bool IsRefuelOnFuelConfirmed(string? refuelCall)
+        => string.Equals(refuelCall, RefuelCallOnFuelConfirmed, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Step ProSim fuel toward the target while the GSX hose is connected.</summary>
     public bool RefuelSyncEnabled { get; set; } = true;
 

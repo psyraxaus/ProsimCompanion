@@ -43,6 +43,7 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     // The simulated clock (issue #95): loadsheet timestamps and STD-offset triggers follow
     // the sim's day; falls back to real UTC when the sim clock is not live.
     private readonly ISimClock _simClock;
+    private readonly IEfbInitOverrides _initOverrides;
     private readonly ILogger<LoadsheetService> _logger;
 
     private readonly IDataRefSubscription<int>[] _zoneAmounts;
@@ -89,8 +90,11 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         GsxResyncState resyncState,
         ISimVars simVars,
         ISimClock simClock,
+        IEfbInitOverrides initOverrides,
         ILogger<LoadsheetService> logger)
     {
+        ArgumentNullException.ThrowIfNull(initOverrides);
+        _initOverrides = initOverrides;
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(gateway);
         ArgumentNullException.ThrowIfNull(acars);
@@ -537,16 +541,27 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         }
         FillDispatcherIfBlank(ctx);
 
+        // The crew's INIT FUEL RAMP override is the ordered block fuel (2026-09-19): extra
+        // fuel above the OFP rides through to the landing fuel, TOW and LAW unchanged in
+        // trip terms — the OFP's estimates are shifted by the same delta rather than
+        // discarded, so a plan with no override reproduces the OFP exactly.
+        var blockKg = EffectiveBlockFuel.PlanKg(_initOverrides.Snapshot(), ofp);
+        var fuelDelta = blockKg > 0 ? blockKg - ofp.FuelPlanRampKg : 0;
+        if (Math.Abs(fuelDelta) > 0.5)
+        {
+            RecordDecision($"block fuel {blockKg:F0} kg from the INIT override ({(fuelDelta > 0 ? "+" : "")}{fuelDelta:F0} kg vs the OFP)");
+        }
+
         var plan = new FlightPlanInputs
         {
             PassengerCount = ofp.PaxCount,
             CargoTotalKg = ofp.CargoKg,
-            PlannedFuelKg = ofp.FuelPlanRampKg,
-            PlannedLandingFuelKg = ofp.FuelPlanLandingKg,
+            PlannedFuelKg = ofp.FuelPlanRampKg + fuelDelta,
+            PlannedLandingFuelKg = Math.Max(0, ofp.FuelPlanLandingKg + fuelDelta),
             TaxiFuelKg = ofp.FuelTaxiKg,
             EstimatedZeroFuelWeightKg = ofp.EstZfwKg,
-            EstimatedTakeoffWeightKg = ofp.EstTowKg,
-            EstimatedLandingWeightKg = ofp.EstLdwKg,
+            EstimatedTakeoffWeightKg = ofp.EstTowKg > 0 ? ofp.EstTowKg + fuelDelta : 0,
+            EstimatedLandingWeightKg = ofp.EstLdwKg > 0 ? ofp.EstLdwKg + fuelDelta : 0,
         };
 
         LoadsheetData data;

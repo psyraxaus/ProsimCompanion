@@ -58,12 +58,19 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     /// entry as the honest fallback).</summary>
     private static readonly TimeSpan TankeringPlanSettle = TimeSpan.FromSeconds(90);
 
+    /// <summary>Hold reason for the Refueling step under <c>gsx.refuelCall = onFuelConfirmed</c>
+    /// (2026-09-19). Probed by <c>refuel-on-fuel-confirmed-hold</c> — keep the wording stable.</summary>
+    internal const string FuelConfirmationHoldReason =
+        "waiting for the crew to confirm the block fuel (INIT page CONFIRM FUEL, "
+        + "'fuel confirmed' by voice, or 'request refueling') — other services continue";
+
     /// <summary>UTC instant the flight plan first read as available this cycle; null while
     /// none stands. Reset at arrival with the rest of the cycle state.</summary>
     private DateTimeOffset? _planAvailableSinceUtc;
     private readonly IDataRefSubscription<int> _intRadCpt;
     private readonly IDataRefSubscription<int> _intRadFo;
     private readonly Timer _pumpTimer;
+    private readonly IDisposable _fuelConfirmationObserver;
     private readonly SemaphoreSlim _pumpLock = new(1, 1);
     private readonly Dictionary<string, string> _lastReasonByAction = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _triggerAttempts = new(StringComparer.OrdinalIgnoreCase);
@@ -76,6 +83,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private readonly GroundOpsSignals _groundOpsSignals;
     private readonly OfpStore _ofpStore;
     private readonly GsxResyncState _resyncState;
+    private readonly FuelConfirmationStore _fuelConfirmation;
+    private readonly IEfbInitOverrides _initOverrides;
 
     public GsxAutomationService(
         IGsxRemoteApi api,
@@ -94,8 +103,14 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         GroundOpsSignals groundOpsSignals,
         GsxResyncState resyncState,
         JsonlEventLog eventLog,
+        FuelConfirmationStore fuelConfirmation,
+        IEfbInitOverrides initOverrides,
         ILogger<GsxAutomationService> logger)
     {
+        ArgumentNullException.ThrowIfNull(fuelConfirmation);
+        ArgumentNullException.ThrowIfNull(initOverrides);
+        _fuelConfirmation = fuelConfirmation;
+        _initOverrides = initOverrides;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -150,6 +165,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         // coordinator marking PrepComplete) do the same.
         _slot.Changed += Pump;
         _cycle.Changed += Pump;
+        // A fuel confirmation releases the Refueling hold at once, not on the next 3 s pump.
+        _fuelConfirmationObserver = _fuelConfirmation.Observe(_ => Pump());
         _pumpTimer = new Timer(_ => Pump(), null, PumpInterval, PumpInterval);
     }
 
@@ -223,6 +240,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _resyncState.Assessed -= OnResyncAssessed;
         _intRadCpt.ValueChanged -= OnIntRadChanged;
         _intRadFo.ValueChanged -= OnIntRadChanged;
+        _fuelConfirmationObserver.Dispose();
         _pumpTimer.Dispose();
         _bookedSeatString.Dispose();
         _fuelTotal.Dispose();
@@ -380,10 +398,18 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                         _flightPlan.FlightPlanAvailable,
                         planFiguresSettled,
                         _fuelTotal.Value,
-                        _ofpStore.Current?.FuelPlanRampKg ?? 0,
+                        // The crew's INIT FUEL RAMP override is the plan when set (2026-09-19).
+                        EffectiveBlockFuel.PlanKg(_initOverrides.Snapshot(), _ofpStore.Current),
                         _plannedFuel.Value)
                     : null,
-                VoiceActivationMode: Sync.GsxGroundPrepCoordinator.IsVoiceActivation(options.GroundPrepActivation)));
+                VoiceActivationMode: Sync.GsxGroundPrepCoordinator.IsVoiceActivation(options.GroundPrepActivation),
+                // Real-world SOP (2026-09-19): with gsx.refuelCall = onFuelConfirmed the truck
+                // waits for the crew's block-fuel confirmation; every other service proceeds.
+                PreHold: id => id.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
+                    && GsxOptions.IsRefuelOnFuelConfirmed(options.RefuelCall)
+                    && !_fuelConfirmation.Confirmed
+                    ? FuelConfirmationHoldReason
+                    : null));
 
             if (outcome.AutoStarted)
             {

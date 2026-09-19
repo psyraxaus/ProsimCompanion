@@ -11,7 +11,9 @@ namespace ProsimCompanion.Prosim.Loadsheet;
 /// <summary>
 /// EFB INIT per-field overrides, following the predecessor's exact field mapping:
 /// zfwKg → <c>aircraft.fms.init.zfw</c> (tonnes), fuelRampKg → <c>aircraft.fms.init.block</c>
-/// (rounded up to 100 kg, tonnes), cargoKg → <c>efb.plannedCargoKg</c>, passengerCount → a
+/// (rounded up to 100 kg, tonnes) PLUS <c>aircraft.refuel.fuelTarget</c> and
+/// <c>efb.plannedfuel</c> (kg — the refuel target the GSX sync latches, 2026-09-19),
+/// cargoKg → <c>efb.plannedCargoKg</c>, passengerCount → a
 /// re-synthesized booked seat map + passenger statistics. Overrides live in memory for the
 /// flight and reset on a new OFP (request-id change) or the turnaround cycle reset.
 /// </summary>
@@ -155,9 +157,19 @@ public sealed class EfbInitOverridesService : IEfbInitOverrides, IDisposable
                     return true;
 
                 case IEfbInitOverrides.FuelRampKg:
+                    // FUEL RAMP is the figure the crew wants ON BOARD, not just an FMS entry
+                    // (2026-09-19 user report via Prosim2GSX: the override wrote only
+                    // aircraft.fms.init.block while the GSX refuel sync kept reading
+                    // aircraft.refuel.fuelTarget / efb.plannedfuel — the truck fueled the OFP
+                    // figure whatever the pilot typed). Write all three, exactly as the
+                    // SimBrief importer does, so the refuel target, the EFB fuel page and
+                    // the FMS block agree. A later refuel call latches the refuel target
+                    // at GSX Active (RefuelCore), so the figure must be entered BEFORE the
+                    // truck is ordered — or re-ordered as a top-up afterwards.
                     var rounded = LoadMath.RoundFuelUpToHundredKg(value);
                     await _prosim.WriteAsync(ProsimDataRefNames.FmsInitBlock, rounded / 1000.0, cancellationToken).ConfigureAwait(false);
-                    return true;
+                    return await _gateway.WriteDataRefAsync(ProsimDataRefNames.RefuelFuelTarget.Name, rounded, cancellationToken).ConfigureAwait(false)
+                        & await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPlannedFuel.Name, rounded, cancellationToken).ConfigureAwait(false);
 
                 case IEfbInitOverrides.CargoKg:
                     return await _gateway.WriteDataRefAsync(ProsimDataRefNames.EfbPlannedCargoKg.Name, value, cancellationToken).ConfigureAwait(false);

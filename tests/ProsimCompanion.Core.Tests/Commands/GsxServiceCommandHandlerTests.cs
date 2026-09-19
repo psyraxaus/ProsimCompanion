@@ -19,7 +19,7 @@ public sealed class GsxServiceCommandHandlerTests
         => registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(name, new EmptyCommandRequest());
 
     [Fact]
-    public void AllElevenCommands_AreRegistered()
+    public void AllTwelveCommands_AreRegistered()
     {
         var registry = Registry(control: null);
 
@@ -28,9 +28,9 @@ public sealed class GsxServiceCommandHandlerTests
             "gsx.requestRefuel", "gsx.requestCatering", "gsx.requestBoarding",
             "gsx.requestDeboarding", "gsx.requestJetway", "gsx.retractJetway",
             "gsx.requestStairs", "gsx.retractStairs", "gsx.requestGpu",
-            "gsx.requestDeice", "gsx.requestPushback",
+            "gsx.requestDeice", "gsx.requestPushback", "gsx.confirmFuel",
         ];
-        Assert.Equal(11, GsxServiceCommandHandlers.Commands.Count);
+        Assert.Equal(12, GsxServiceCommandHandlers.Commands.Count);
         foreach (var name in expected)
         {
             Assert.True(registry.IsRegistered(name), $"{name} should be registered");

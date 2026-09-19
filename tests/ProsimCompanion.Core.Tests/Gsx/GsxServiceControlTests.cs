@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
@@ -28,6 +29,24 @@ public sealed class GsxServiceControlTests
     private readonly Mock<IDataRefSubscription> _jetwayLvar = new();
     private readonly GsxOptions _options = new();
 
+    // Fuel figure inputs (2026-09-19 confirm/top-up): FOB, the EFB planned-fuel dataref, the
+    // INIT override snapshot and the OFP store.
+    private readonly Mock<IDataRefSubscription> _fuelTotal = new();
+    private readonly Mock<IDataRefSubscription> _plannedFuel = new();
+    private readonly Mock<IEfbInitOverrides> _initOverrides = new();
+    private readonly OfpStore _ofpStore = new();
+    private readonly GroundOpsSignals _signals = new();
+    private readonly FuelConfirmationStore _fuelConfirmation;
+    private readonly GsxDiagnosticsStore _diagnostics = new();
+    private double _fob;
+    private double _plannedFuelKg;
+    private Dictionary<string, double> _overrides = new(StringComparer.OrdinalIgnoreCase);
+
+    public GsxServiceControlTests()
+    {
+        _fuelConfirmation = new FuelConfirmationStore(_ofpStore, _signals);
+    }
+
     private GsxServiceControl CreateControl()
     {
         _api.SetupGet(a => a.Readiness).Returns(GsxReadiness.Ready);
@@ -38,6 +57,17 @@ public sealed class GsxServiceControlTests
         simVars
             .Setup(s => s.SubscribeDynamic(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DataRefTier>()))
             .Returns(_jetwayLvar.Object);
+
+        _fuelTotal.Setup(s => s.GetValue(It.IsAny<double>())).Returns(() => _fob);
+        _plannedFuel.Setup(s => s.GetValue(It.IsAny<double>())).Returns(() => _plannedFuelKg);
+        var prosim = new Mock<IProsimDataRefs>();
+        prosim
+            .Setup(p => p.SubscribeDynamic(ProsimDataRefNames.FuelTotal.Name, It.IsAny<DataRefTier>()))
+            .Returns(_fuelTotal.Object);
+        prosim
+            .Setup(p => p.SubscribeDynamic(ProsimDataRefNames.EfbPlannedFuel.Name, It.IsAny<DataRefTier>()))
+            .Returns(_plannedFuel.Object);
+        _initOverrides.Setup(o => o.Snapshot()).Returns(() => _overrides);
 
         var options = new Mock<IOptionsMonitor<GsxOptions>>();
         options.SetupGet(o => o.CurrentValue).Returns(() => _options);
@@ -59,9 +89,18 @@ public sealed class GsxServiceControlTests
             _flightPlan.Object,
             _simSession,
             simVars.Object,
+            prosim.Object,
+            _fuelConfirmation,
+            _initOverrides.Object,
+            _ofpStore,
+            _diagnostics,
             options.Object,
             NullLogger<GsxServiceControl>.Instance);
     }
+
+    /// <summary>Loads an OFP with the given block fuel — the "plan" every fuel decision reads.</summary>
+    private void SeedOfp(double blockKg)
+        => _ofpStore.Set(new OfpData { RequestId = "req-1", FuelPlanRampKg = blockKg });
 
     private void SetSessionPhase(SimSessionPhase phase)
         => _simSession.Publish(SimSessionSnapshot.Empty with { Phase = phase });
@@ -420,5 +459,146 @@ public sealed class GsxServiceControlTests
         _dispatcher.Verify(
             d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "GPU"), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    // ---- Fuel confirmation + top-up (2026-09-19, real-world SOP) ----
+
+    /// <summary>Runs one complete Refueling cycle through the lifecycle tracker (performing →
+    /// available = completed by the return-to-available rule).</summary>
+    private void CompleteRefuelCycle()
+    {
+        SeedService("Refueling", "performing");
+        _lifecycle.Process(_mirror.Services);
+        SeedService("Refueling", "available");
+        _lifecycle.Process(_mirror.Services);
+    }
+
+    [Fact]
+    public async Task ConfirmFuel_RecordsTheFigure_AndOrdersTheTruck()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        SeedOfp(7000);
+        _fob = 3000;
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.ConfirmFuel);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        Assert.Contains("7000 kg confirmed", outcome.Detail, StringComparison.Ordinal);
+        Assert.True(_fuelConfirmation.Confirmed);
+        Assert.Equal(7000, _fuelConfirmation.Snapshot().ConfirmedKg);
+        _dispatcher.Verify(
+            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "Refueling"), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ConfirmFuel_UsesTheInitOverride_OverTheOfp()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        SeedOfp(7000);
+        _overrides[IEfbInitOverrides.FuelRampKg] = 7850; // rounds up to 7900
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.ConfirmFuel);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        Assert.Equal(7900, _fuelConfirmation.Snapshot().ConfirmedKg);
+    }
+
+    [Fact]
+    public async Task ConfirmFuel_WithoutAnyFigure_IsNotCallable_AndConfirmsNothing()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.ConfirmFuel);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        Assert.False(_fuelConfirmation.Confirmed);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ConfirmFuel_StandsEvenWhenTheTruckCannotBeOrderedYet()
+    {
+        // Plan gate refuses the call (no flight plan) — the confirmation is still recorded so
+        // the sequencer orders the truck itself once the plan arrives.
+        var control = CreateControl();
+        _flightPlan.SetupGet(f => f.FlightPlanAvailable).Returns(false);
+        SeedService("Refueling", "available");
+        _plannedFuelKg = 6500;
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.ConfirmFuel);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        Assert.True(_fuelConfirmation.Confirmed);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task DirectRefuelRequest_ImpliesConfirmation()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        SeedOfp(7000);
+
+        await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.True(_fuelConfirmation.Confirmed);
+        Assert.Equal("request", _fuelConfirmation.Snapshot().Source);
+    }
+
+    [Fact]
+    public async Task CompletedRefuel_WithFobShortOfARaisedFigure_IsReCalledAsATopUp()
+    {
+        var control = CreateControl();
+        SeedOfp(7000);
+        CompleteRefuelCycle();
+        _fob = 7000;
+        _overrides[IEfbInitOverrides.FuelRampKg] = 8000; // the crew raised it afterwards
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        Assert.Contains("Top-up", outcome.Detail, StringComparison.Ordinal);
+        Assert.False(_lifecycle.IsCompleted("Refueling")); // re-armed for the second run
+        _dispatcher.Verify(
+            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "Refueling"), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CompletedRefuel_WithFobMeetingTheFigure_StaysAlreadySatisfied()
+    {
+        var control = CreateControl();
+        SeedOfp(7000);
+        CompleteRefuelCycle();
+        _fob = 6990; // within the 25 kg tolerance
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.ConfirmFuel);
+
+        Assert.Equal(GsxServiceCallStatus.AlreadySatisfied, outcome.Status);
+        Assert.Contains("no top-up needed", outcome.Detail, StringComparison.Ordinal);
+        Assert.True(_lifecycle.IsCompleted("Refueling"));
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task CompletedRefuel_WhileGsxStillReportsCompleting_AsksToRetry()
+    {
+        var control = CreateControl();
+        SeedOfp(8000);
+        SeedService("Refueling", "performing");
+        _lifecycle.Process(_mirror.Services);
+        SeedService("Refueling", "completed");
+        _lifecycle.Process(_mirror.Services);
+        _fob = 7000;
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        Assert.True(_lifecycle.IsCompleted("Refueling")); // not re-armed
+        _dispatcher.VerifyNoOtherCalls();
     }
 }
