@@ -1,0 +1,135 @@
+/* Weight & Balance page (ADR-0011) — the canvas "W&B" page: aircraft loading + weight
+   summary, then the CG envelope (the Prosim2GSX port, kept as-is) + loading breakdown. */
+
+.wnb-page {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: 16px;
+  padding: 16px 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.wnb-page > .section { margin: 0; border-radius: var(--radius-xl); }
+
+.wnb-legend { display: inline-flex; gap: 14px; margin-left: auto; }
+.wnb-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---- aircraft loading ---- */
+
+.wnb-loading-body { gap: 16px; }
+
+.wnb-silhouette {
+  position: relative;
+  padding: 18px 22px 14px;
+  border-radius: var(--radius-lg);
+}
+
+.wnb-doors {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.wnb-door {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.wnb-door.closed { color: var(--success); }
+.wnb-door.open { color: var(--warning); }
+.wnb-door.na { color: var(--text-muted); }
+
+.wnb-totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.wnb-total { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.wnb-total .figure { font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wnb-total-sub { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
+
+.wnb-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.wnb-manifest { padding: 10px 12px; }
+
+/* ---- weight summary ---- */
+
+.wnb-summary-body { gap: 12px; }
+
+.wnb-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+}
+.wnb-bar.hot { border-color: color-mix(in srgb, var(--accent-gold) 45%, transparent); }
+.wnb-bar-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.wnb-bar.hot .label-caps { color: var(--accent-gold); }
+.wnb-bar-value { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.wnb-bar.hot .wnb-bar-value { font-size: 18px; color: var(--accent); text-shadow: var(--glow); }
+.wnb-bar-max { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
+.wnb-bar-track { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.10); overflow: hidden; }
+.wnb-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 300ms ease; }
+.wnb-bar-fill.over { background: var(--danger); }
+
+.wnb-mac {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+}
+.wnb-mac-cell { display: flex; flex-direction: column; gap: 4px; text-align: center; }
+.wnb-mac-cell .figure { font-size: 22px; }
+
+.wnb-bad { color: var(--danger) !important; text-shadow: none !important; }
+
+.wnb-summary-body .btn { width: 100%; }
+
+/* ---- CG envelope ---- */
+
+.wnb-envelope-body { gap: 12px; }
+.wnb-chart {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+/* ---- tables ---- */
+
+.wnb-table th.num, .wnb-table td.num { text-align: right; }
+.wnb-table td { font-size: 12px; }
+.wnb-rowhead {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+}
+.wnb-table .pill { font-size: 8px; padding: 2px 8px; }
+
+@media (max-width: 900px) {
+  .wnb-page { grid-template-columns: 1fr; }
+  .wnb-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 540px) {
+  .wnb-page { padding: 12px; }
+  .wnb-silhouette { padding: 12px; }
+}

@@ -1,16 +1,16 @@
 {
   "name": "Lufthansa",
-  "description": "Lufthansa inspired theme",
+  "description": "Deep blue with Lufthansa yellow accents",
   "colors": {
-    "primaryColor": "#05164D",
-    "secondaryColor": "#FFAD00",
-    "accentColor": "#FF4500",
-    "headerBackground": "#05164D",
-    "tabBarBackground": "#030B28",
-    "contentBackground": "#F8F8F8",
-    "sectionBackground": "#FFFFFF",
-    "headerText": "#FFFFFF",
-    "contentText": "#333333",
-    "categoryText": "#05164D"
+    "primaryColor": "#FFCC00",
+    "secondaryColor": "#E0B400",
+    "accentColor": "#FFCC00",
+    "headerBackground": "#00264D",
+    "tabBarBackground": "#00264D",
+    "contentBackground": "#003366",
+    "sectionBackground": "#00264D",
+    "headerText": "#F8FAFC",
+    "contentText": "#F8FAFC",
+    "categoryText": "#A1A1AA"
   }
 }

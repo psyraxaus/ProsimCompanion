@@ -5,7 +5,8 @@
    the same axis ranges (%MAC 20–39 across, 35–78 t up), the same limit annotations
    (MTOW/MLW/MZFW) and rotated envelope-region labels at the same PNG-relative ratios, the
    same single live GW marker (red/white quadrant crosshair at (MACGW, GW), clamped to
-   21–38 %MAC / 35–75 t, hidden with no data) and the same ZFW/GW MAC gauge bars below.
+   21–38 %MAC / 35–75 t, hidden with no data). The source's ZFW/GW MAC gauge bars below
+   the chart are not reproduced (owner decision 2026-09-20).
    Geometry uses CSS percentages of the image box, so it is resolution-independent exactly
    like the source's measured-ratio scheme. Colors are the source's own (the artwork is
    white-on-dark; this card is deliberately not theme-aware). *@
@@ -60,9 +61,8 @@
         }
     </div>
 
-    @* ZFW (pink) and GW (orange) MAC gauge bars — full chart width, invisible track. *@
-    <div class="cg-gauge"><div class="cg-gauge-zfw" style="width:@BarCss(ZfwCgMac)"></div></div>
-    <div class="cg-gauge"><div class="cg-gauge-gw" style="width:@BarCss(GrossCgMac)"></div></div>
+    @* The source's ZFW/GW MAC gauge bars below the chart were dropped 2026-09-20 (owner
+       decision during the ADR-0011 restyle): the MAC figures sit in the Weight Summary card. *@
 </div>
 
 <style>
@@ -143,24 +143,6 @@
         overflow: visible;
     }
 
-    .cg-gauge {
-        position: relative;
-        height: 5px;
-        margin-top: 3px;
-        background: transparent;
-        width: 100%;
-    }
-
-    .cg-gauge-zfw,
-    .cg-gauge-gw {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-    }
-
-    .cg-gauge-zfw { background: #e91e63; }
-    .cg-gauge-gw { background: #ff8a00; }
 </style>
 
 @code {
@@ -180,7 +162,7 @@
     [Parameter] public double GrossCgMac { get; set; }
 
     /// <summary>Zero-fuel weight, kg — the chart shows a single GW marker like the source;
-    /// ZFW feeds the pink gauge bar and the tables outside this component.</summary>
+    /// ZFW is accepted for the tables outside this component.</summary>
     [Parameter] public double ZfwKg { get; set; }
 
     /// <summary>ZFW CG, %MAC.</summary>
@@ -228,11 +210,4 @@
         return $"calc({YPct(tonnes).ToString("F3", CultureInfo.InvariantCulture)}% - 2px - {DotRadius}px)";
     }
 
-    private static string BarCss(double mac)
-    {
-        var fraction = !double.IsFinite(mac) || mac <= 0
-            ? 0
-            : (Math.Clamp(mac, AxisMacMin, AxisMacMax) - AxisMacMin) / (double)(AxisMacMax - AxisMacMin);
-        return (fraction * 100).ToString("F2", CultureInfo.InvariantCulture) + "%";
-    }
 }

@@ -1,60 +1,183 @@
-/* OFP page — Flight Plan block only, ported from Prosim2GSX
-   Prosim2GSX.Web/src/panels/OfpPanel.module.css ("Flight info grid")
-   (classes prefixed ofpfp- because Blazor has no CSS-module scoping).
-   The Korry / gate / weather / deice sections keep their app.css styling. */
+/* OFP page (ADR-0011) — the canvas "OFP" page: flight-plan hero + arrival gate on the first
+   row, weather + (pushback, deice) on the second. The Korry pushbutton keeps its own tokens
+   in app.css (a cockpit part, never themed). */
 
-.ofpfp-grid {
+.ofp-page {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 18px;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: 16px;
+  padding: 16px 18px;
+  max-width: 1180px;
+  margin: 0 auto;
 }
 
-.ofpfp-kv {
+.ofp-page > .section { margin: 0; }
+.ofp-hero, .ofp-gate, .ofp-weather, .ofp-pushback, .ofp-deice { border-radius: var(--radius-xl); }
+
+.ofp-side { display: flex; flex-direction: column; gap: 16px; }
+.ofp-side > .section { margin: 0; }
+
+.ofp-hint { font-size: 11px; font-style: italic; color: var(--text-muted); }
+.ofp-hint-center { text-align: center; margin-top: 8px; }
+
+/* ---- flight plan hero ---- */
+
+.ofp-hero-body { gap: 18px; }
+
+.ofp-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.ofp-idents { display: flex; align-items: flex-end; gap: 18px; }
+.ofp-ident { display: flex; flex-direction: column; gap: 6px; }
+.ofp-ident-sep { width: 1px; height: 34px; background: var(--border-strong); }
+
+.ofp-route {
   display: grid;
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: auto 120px auto;
+  align-items: end;
+  column-gap: 18px;
+  row-gap: 6px;
+}
+.ofp-route-end { display: flex; flex-direction: column; gap: 6px; text-align: center; }
+.ofp-route-line {
+  position: relative;
+  height: 1px;
+  margin-bottom: 16px;
+  background: var(--border-strong);
+}
+.ofp-route-line svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  color: var(--accent-gold);
+  background: var(--bg-card);
+  padding: 2px;
+}
+.ofp-altn { grid-column: 1 / -1; text-align: center; }
+
+.ofp-data {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px 12px;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+}
+.ofp-datum { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.ofp-datum .label-caps { font-size: 8px; }
+.ofp-datum .figure { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- arrival gate ---- */
+
+.ofp-gate-body { gap: 10px; }
+.ofp-gate-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ofp-gate-input {
+  max-width: 110px;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.ofp-gate-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ofp-gate-body .btn { width: 100%; }
+.ofp-gate-status {
+  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
-  font-size: 13px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
 }
 
-.ofpfp-label {
-  color: var(--text-secondary);
-}
+/* ---- weather ---- */
 
-.ofpfp-value {
+.ofp-weather-body { gap: 14px; }
+.ofp-weather-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.ofp-wx-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.ofp-wx { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ofp-wx-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.ofp-wx-title {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 12px;
+}
+.ofp-wx-wind { font-size: 10px; color: var(--accent-gold); white-space: nowrap; }
+.ofp-wx-label {
+  margin-top: 6px;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--category-text);
+}
+.ofp-wx-box {
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+/* ---- deice ---- */
+
+.ofp-deice-body { gap: 10px; }
+.ofp-deice-oat { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ofp-deice-input { max-width: 110px; text-align: right; font-size: 18px; font-weight: 700; }
+.ofp-deice-select { max-width: none; }
+.ofp-deice-range {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  text-align: center;
+}
+.ofp-deice-fluid, .ofp-deice-status { font-size: 11px; color: var(--text-secondary); }
+.ofp-deice-expired { color: var(--danger); text-shadow: none; }
+.ofp-deice-note {
+  margin-top: 2px;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--warning);
+}
+
+@media (max-width: 900px) {
+  .ofp-page { grid-template-columns: 1fr; }
+  .ofp-data { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 540px) {
-  .ofpfp-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Footer strip: fetched-at stamp left, page-navigation hint right. */
-.ofpfp-footer {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.ofpfp-fetched {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-}
-
-.ofpfp-hint {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-style: italic;
+  .ofp-page { padding: 12px; }
+  .ofp-route { grid-template-columns: auto 60px auto; }
+  .ofp-data { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ofp-wx-grid { grid-template-columns: 1fr; }
 }

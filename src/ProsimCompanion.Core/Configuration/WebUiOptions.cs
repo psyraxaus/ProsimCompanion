@@ -45,9 +45,12 @@ public sealed class WebUiOptions : IOptionSection
     public string? AccessToken { get; set; }
 
     /// <summary>
-    /// Web UI theme: a built-in name (Default, Dark, Light, Delta, Finnair, Lufthansa, Qantas)
-    /// or the name of a user theme JSON in <c>config/themes</c> (Prosim2GSX theme format).
-    /// Unknown names fall back to Default.
+    /// Web UI theme: a built-in name (KLM Royal Dutch, Lufthansa, Swiss International,
+    /// British Airways, Air France, Singapore Airlines, Emirates, Qatar Airways, United
+    /// Airlines, Qantas, Finnair, Light, Dark — the 13 from the 2026-09-20 Superdesign
+    /// restyle) or the name of a user theme JSON in <c>config/themes</c> (Prosim2GSX theme
+    /// format). Unknown names — and the pre-restyle name "Default" — fall back to KLM Royal
+    /// Dutch.
     /// </summary>
-    public string Theme { get; set; } = "Default";
+    public string Theme { get; set; } = "KLM Royal Dutch";
 }

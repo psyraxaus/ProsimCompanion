@@ -12,160 +12,216 @@
 <ConfigProblemsBanner />
 
 @*
-    ECAM-style checklist surface, ported from Prosim2GSX's ChecklistsPanel
-    (which mirrors the WPF ViewChecklist): checklist-set dropdown, section
-    dropdown, black instrument screen with dotted-leader rows, and the
-    RESET / C/L MENU / MSG LIST / C/L COMPLETE footer. The voice First
-    Officer drives the same engine, so this page just re-renders on
-    Engine.Changed.
+    ECAM-style checklist surface, ported from Prosim2GSX's ChecklistsPanel (which mirrors the
+    WPF ViewChecklist): the black instrument screen with dotted-leader rows is kept as-is (an
+    Airbus emulation, never themed); the chrome around it follows the canvas "Checklists"
+    page (ADR-0011): an active-checklist hero with a completion bar, the screen card with the
+    RESET / C/L MENU / MSG LIST / C/L COMPLETE actions, and a checklist-sequence rail. The
+    voice First Officer drives the same engine, so this page just re-renders on Engine.Changed.
 *@
-<div class="ecamcl-panel">
+@{
+    var normalItems = _view?.Items.Where(item => !IsFurniture(item)).ToList() ?? [];
+    var doneCount = normalItems.Count(item => item.Status is ChecklistItemStatus.Done or ChecklistItemStatus.Skipped);
+    var pct = normalItems.Count == 0 ? 0 : (int)Math.Round(100.0 * doneCount / normalItems.Count);
+}
+<div class="cl-page">
 
-    <div class="ecamcl-header">
-        <span class="ecamcl-cl-label">C/L</span>
-        @* The per-phase folder set plus every Prosim2GSX-format file in config/checklists/sets. *@
-        <select class="ecamcl-select" aria-label="Checklist set"
-                value="@_activeSet"
-                @onchange="OnSetChanged">
-            @foreach (var set in _sets)
-            {
-                <option value="@set">@set</option>
-            }
-        </select>
-    </div>
-
-    <div class="ecamcl-sectionbar">
-        <select class="ecamcl-select" aria-label="Checklist section"
-                @ref="_sectionSelect"
-                value="@(_view?.Name ?? string.Empty)"
-                @onchange="OnSectionChanged">
-            @if (_catalog.Count == 0)
-            {
-                <option value="">(none available)</option>
-            }
-            else
-            {
-                @* selected must be explicit: browsers skip disabled options when defaulting,
-                   so the prerendered frame would otherwise display the first checklist name. *@
-                <option value="" disabled selected="@(_view is null)">(select checklist)</option>
-                @foreach (var entry in _catalog)
-                {
-                    <option value="@entry.Name">@entry.Name</option>
-                }
-            }
-        </select>
-    </div>
-
-    <div class="ecamcl-body" role="list">
-        @if (_view is null)
-        {
-            <div class="ecamcl-empty">
-                @(_catalog.Count == 0
-                    ? $"NO CHECKLIST FILES FOUND IN {Engine.Folder}"
-                    : "NO C/L SELECTED — SELECT VIA C/L MENU")
+    <section class="section cl-hero">
+        <div class="section-body cl-hero-body">
+            <div class="cl-hero-main">
+                <span class="label-caps">Active checklist</span>
+                <span class="cl-hero-title">@(_view?.Name ?? "No checklist selected")</span>
+                <div class="cl-selects">
+                    <label class="cl-select-wrap">
+                        <span class="label-caps">Set</span>
+                        @* The per-phase folder set plus every Prosim2GSX-format file in config/checklists/sets. *@
+                        <select class="select cl-select" aria-label="Checklist set" value="@_activeSet" @onchange="OnSetChanged">
+                            @foreach (var set in _sets)
+                            {
+                                <option value="@set">@set</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="cl-select-wrap">
+                        <span class="label-caps">Checklist</span>
+                        <select class="select cl-select" aria-label="Checklist section" @ref="_sectionSelect"
+                                value="@(_view?.Name ?? string.Empty)" @onchange="OnSectionChanged">
+                            @if (_catalog.Count == 0)
+                            {
+                                <option value="">(none available)</option>
+                            }
+                            else
+                            {
+                                @* selected must be explicit: browsers skip disabled options when defaulting,
+                                   so the prerendered frame would otherwise display the first checklist name. *@
+                                <option value="" disabled selected="@(_view is null)">(select checklist)</option>
+                                @foreach (var entry in _catalog)
+                                {
+                                    <option value="@entry.Name">@entry.Name</option>
+                                }
+                            }
+                        </select>
+                    </label>
+                </div>
             </div>
-        }
-        else
-        {
-            @foreach (var item in _view.Items)
-            {
-                @* Display-only rows from Prosim2GSX set files: the engine completes them
-                   instantly, so they only ever render as furniture — never as a gate. *@
-                @if (string.Equals(item.Kind, "separator", StringComparison.OrdinalIgnoreCase))
+            <div class="cl-progress">
+                <div class="cl-progress-head">
+                    <span class="label-caps">Completion</span>
+                    <span class="cl-progress-pct mono">@(_view is null ? "—" : $"{pct}%")</span>
+                </div>
+                <div class="cl-progress-track"><div class="cl-progress-fill" style="width:@pct%"></div></div>
+                <span class="cl-progress-sub">@(_view is null ? "Pick a checklist" : $"{doneCount} of {normalItems.Count} lines")</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="cl-grid">
+        <section class="section cl-screen-card">
+            <div class="section-header">
+                <h3 class="section-title">C/L @(_view?.Name ?? "")</h3>
+                <span class="pill @(_view is null ? "tone-neutral" : _view.IsComplete ? "tone-ok" : "tone-active")">
+                    @(_view is null ? "standby" : _view.IsComplete ? "complete" : "in progress")
+                </span>
+            </div>
+
+            <div class="ecamcl-body" role="list">
+                @if (_view is null)
                 {
-                    <div class="ecamcl-item ecamcl-separator" role="separator">
-                        <span></span>
-                        <span class="ecamcl-sepline"></span>
-                    </div>
-                }
-                else if (string.Equals(item.Kind, "note", StringComparison.OrdinalIgnoreCase))
-                {
-                    <div class="ecamcl-item ecamcl-note" role="listitem">
-                        <span></span>
-                        <span>@item.Label</span>
+                    <div class="ecamcl-empty">
+                        @(_catalog.Count == 0
+                            ? $"NO CHECKLIST FILES FOUND IN {Engine.Folder}"
+                            : "NO C/L SELECTED — SELECT VIA C/L MENU")
                     </div>
                 }
                 else
                 {
-                    @switch (item.Status)
+                    @foreach (var item in _view.Items)
                     {
-                        case ChecklistItemStatus.Done:
-                            <div class="ecamcl-item ecamcl-checked" role="listitem">
-                                <span class="ecamcl-check">✓</span>
-                                <span>@item.Label</span>
-                                <span class="ecamcl-dots">@Dots</span>
-                                <span>@item.Response</span>
+                        @* Display-only rows from Prosim2GSX set files: the engine completes them
+                           instantly, so they only ever render as furniture — never as a gate. *@
+                        @if (string.Equals(item.Kind, "separator", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div class="ecamcl-item ecamcl-separator" role="separator">
+                                <span></span>
+                                <span class="ecamcl-sepline"></span>
                             </div>
-                            break;
-
-                        case ChecklistItemStatus.Active:
-                            <div class="ecamcl-item ecamcl-current @(item.IsAuto && !AllowOverride ? "" : "ecamcl-clickable")"
-                                 role="listitem"
-                                 @onclick="() => OnCurrentRowClick(item)">
-                                <span class="ecamcl-check">□</span>
-                                <span>@item.Label</span>
-                                <span class="ecamcl-dots">@Dots</span>
-                                <span>@item.Response</span>
-                                <span class="ecamcl-aside">
-                                    @if (item.IsAuto && !item.ConditionSatisfied && !AllowOverride)
-                                    {
-                                        <span class="ecamcl-hint">waiting for cockpit</span>
-                                    }
-                                    <button type="button" class="ecamcl-skip" title="Skip this line"
-                                            @onclick="SkipCurrent" @onclick:stopPropagation>skip</button>
-                                </span>
-                            </div>
-                            break;
-
-                        case ChecklistItemStatus.Skipped:
-                            <div class="ecamcl-item ecamcl-skipped" role="listitem">
-                                <span class="ecamcl-check">–</span>
-                                <span>@item.Label</span>
-                                <span class="ecamcl-dots">@Dots</span>
-                                <span>@item.Response</span>
-                            </div>
-                            break;
-
-                        default:
-                            <div class="ecamcl-item ecamcl-pending" role="listitem">
+                        }
+                        else if (string.Equals(item.Kind, "note", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div class="ecamcl-item ecamcl-note" role="listitem">
                                 <span></span>
                                 <span>@item.Label</span>
-                                <span class="ecamcl-dots">@Dots</span>
-                                <span>@item.Response</span>
                             </div>
-                            break;
+                        }
+                        else
+                        {
+                            @switch (item.Status)
+                            {
+                                case ChecklistItemStatus.Done:
+                                    <div class="ecamcl-item ecamcl-checked" role="listitem">
+                                        <span class="ecamcl-check">✓</span>
+                                        <span>@item.Label</span>
+                                        <span class="ecamcl-dots">@Dots</span>
+                                        <span>@item.Response</span>
+                                    </div>
+                                    break;
+
+                                case ChecklistItemStatus.Active:
+                                    <div class="ecamcl-item ecamcl-current @(item.IsAuto && !AllowOverride ? "" : "ecamcl-clickable")"
+                                         role="listitem"
+                                         @onclick="() => OnCurrentRowClick(item)">
+                                        <span class="ecamcl-check">□</span>
+                                        <span>@item.Label</span>
+                                        <span class="ecamcl-dots">@Dots</span>
+                                        <span>@item.Response</span>
+                                        <span class="ecamcl-aside">
+                                            @if (item.IsAuto && !item.ConditionSatisfied && !AllowOverride)
+                                            {
+                                                <span class="ecamcl-hint">waiting for cockpit</span>
+                                            }
+                                            <button type="button" class="ecamcl-skip" title="Skip this line"
+                                                    @onclick="SkipCurrent" @onclick:stopPropagation>skip</button>
+                                        </span>
+                                    </div>
+                                    break;
+
+                                case ChecklistItemStatus.Skipped:
+                                    <div class="ecamcl-item ecamcl-skipped" role="listitem">
+                                        <span class="ecamcl-check">–</span>
+                                        <span>@item.Label</span>
+                                        <span class="ecamcl-dots">@Dots</span>
+                                        <span>@item.Response</span>
+                                    </div>
+                                    break;
+
+                                default:
+                                    <div class="ecamcl-item ecamcl-pending" role="listitem">
+                                        <span></span>
+                                        <span>@item.Label</span>
+                                        <span class="ecamcl-dots">@Dots</span>
+                                        <span>@item.Response</span>
+                                    </div>
+                                    break;
+                            }
+                        }
                     }
                 }
-            }
+            </div>
+
+            <div class="cl-actions">
+                <button type="button" class="btn secondary" @onclick="ResetClicked">Reset</button>
+                <button type="button" class="btn secondary" @onclick="MenuClicked">C/L Menu</button>
+                <button type="button" class="btn secondary" disabled>Msg List</button>
+                <button type="button" class="btn @(_view?.IsComplete == true ? "cl-btn-complete" : "secondary")"
+                        @onclick="CompleteClicked">
+                    C/L Complete
+                </button>
+            </div>
+        </section>
+
+        <section class="section cl-sequence">
+            <div class="section-header"><h3 class="section-title">Checklist sequence</h3></div>
+            <div class="section-body">
+                @if (_catalog.Count == 0)
+                {
+                    <div class="empty">No checklists in this set.</div>
+                }
+                else
+                {
+                    <ol class="cl-timeline">
+                        @foreach (var entry in _catalog)
+                        {
+                            var active = entry.Name == _view?.Name;
+                            <li class="cl-step @(active ? "active" : null)">
+                                <button type="button" class="cl-step-btn" @onclick="() => Engine.Select(entry.Name)">
+                                    <span class="cl-step-dot" aria-hidden="true"></span>
+                                    <span class="cl-step-text">
+                                        <span class="cl-step-name">@entry.Name</span>
+                                        <span class="cl-step-sub">@(active ? (_view!.IsComplete ? "Complete" : $"{doneCount} / {normalItems.Count}") : $"{entry.ItemCount} lines")</span>
+                                    </span>
+                                </button>
+                            </li>
+                        }
+                    </ol>
+                }
+            </div>
+        </section>
+    </div>
+
+    @*
+        Source-folder line (issue #55): the one place that answers "which files is the app
+        actually reading, and did it see my last save?". Edits saved into this folder hot-reload
+        within a second and bump the timestamp; a save that does NOT move the timestamp means the
+        wrong copy was edited.
+    *@
+    <p class="ecamcl-source">
+        Definitions load from <code>@Engine.Folder</code>
+        @if (Engine.LastLoadedUtc is { } loaded)
+        {
+            <span> — last reloaded @loaded.ToLocalTime().ToString("HH:mm:ss") (edits saved there are picked up live)</span>
         }
-    </div>
-
-    <div class="ecamcl-footer">
-        <button type="button" class="ecamcl-btn" @onclick="ResetClicked">RESET</button>
-        <button type="button" class="ecamcl-btn" @onclick="MenuClicked">C/L MENU</button>
-        <button type="button" class="ecamcl-btn" disabled>MSG LIST</button>
-        <button type="button"
-                class="ecamcl-btn @(_view?.IsComplete == true ? "ecamcl-btn-complete" : "")"
-                @onclick="CompleteClicked">
-            C/L COMPLETE
-        </button>
-    </div>
-
+    </p>
 </div>
-
-@*
-    Source-folder line (issue #55): the one place that answers "which files is the app
-    actually reading, and did it see my last save?". Edits saved into this folder hot-reload
-    within a second and bump the timestamp; a save that does NOT move the timestamp means the
-    wrong copy was edited.
-*@
-<p class="ecamcl-source">
-    Definitions load from <code>@Engine.Folder</code>
-    @if (Engine.LastLoadedUtc is { } loaded)
-    {
-        <span> — last reloaded @loaded.ToLocalTime().ToString("HH:mm:ss") (edits saved there are picked up live)</span>
-    }
-</p>
 
 @code {
     // Fixed-length dotted leader; the 1fr grid column clips it, so every
@@ -178,6 +234,11 @@
     private IReadOnlyList<ChecklistCatalogEntry> _catalog = [];
     private ChecklistView? _view;
     private ElementReference _sectionSelect;
+
+    /// <summary>Separator and note rows are furniture — never counted toward completion.</summary>
+    private static bool IsFurniture(ChecklistItemView item)
+        => string.Equals(item.Kind, "separator", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(item.Kind, "note", StringComparison.OrdinalIgnoreCase);
 
     private bool AllowOverride => Options.CurrentValue.AllowManualOverride;
 

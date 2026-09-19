@@ -16,29 +16,35 @@ public sealed class ThemeDefinition
 }
 
 /// <summary>
-/// The raw theme colour tokens. Property defaults are the "Default" navy EFB palette so a
-/// partial theme file still renders coherently. Status colours (success/warning/danger) and
-/// instrument palettes are deliberately not themeable — they convey state, not brand.
+/// The raw theme colour tokens. Property defaults are the "KLM Royal Dutch" navy palette —
+/// the default look since the 2026-09-20 Superdesign restyle (ADR-0011) — so a partial theme
+/// file still renders coherently. Status colours (success/warning/danger) and instrument
+/// palettes are deliberately not themeable — they convey state, not brand.
+///
+/// Token roles under the restyle: <see cref="PrimaryColor"/> is the "live data" accent (cyan
+/// in the default theme; links, active tab, glowing figures), <see cref="AccentColor"/> is the
+/// warm highlight (gold; primary buttons, selected chips, brand mark), and
+/// <see cref="CategoryText"/> is the dim caps colour of card titles and labels.
 /// </summary>
 public sealed class ThemeColors
 {
-    public string PrimaryColor { get; set; } = "#2196F3";
+    public string PrimaryColor { get; set; } = "#00D9FF";
 
-    public string SecondaryColor { get; set; } = "#1976D2";
+    public string SecondaryColor { get; set; } = "#00B8D9";
 
-    public string AccentColor { get; set; } = "#FF6A33";
+    public string AccentColor { get; set; } = "#D4A373";
 
-    public string HeaderBackground { get; set; } = "#1F2540";
+    public string HeaderBackground { get; set; } = "#0F3B6F";
 
-    public string TabBarBackground { get; set; } = "#1F2540";
+    public string TabBarBackground { get; set; } = "#0F3B6F";
 
-    public string ContentBackground { get; set; } = "#1A2035";
+    public string ContentBackground { get; set; } = "#1A5490";
 
-    public string SectionBackground { get; set; } = "#232A47";
+    public string SectionBackground { get; set; } = "#0F3B6F";
 
-    public string HeaderText { get; set; } = "#FFFFFF";
+    public string HeaderText { get; set; } = "#F8FAFC";
 
-    public string ContentText { get; set; } = "#FFFFFF";
+    public string ContentText { get; set; } = "#F8FAFC";
 
-    public string CategoryText { get; set; } = "#5AABFF";
+    public string CategoryText { get; set; } = "#B0B8C1";
 }

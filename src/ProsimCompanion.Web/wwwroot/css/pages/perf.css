@@ -1,510 +1,453 @@
 /*
- * Takeoff / Landing performance pages — pixel port of Prosim2GSX's
- * TakeoffPerfPanel / LandingPerfPanel + perf-shared EFB styling.
- *
- * Tokens: chrome aliases ride on the app theme variables (app.css) so the
- * perf pages recolour with the theme; the instrument-readout + state
- * colours are deliberately FIXED — they convey instrument state, not theme.
+ * Takeoff / Landing performance pages (ADR-0011) — the canvas "Performance" page: a
+ * Takeoff | Landing switch, an input column (runway card, weather, aircraft config) and an
+ * output column with large glowing figures. Chrome rides on the app theme tokens; the
+ * instrument-state colours (amber limits, red exceedances) are fixed — they convey state.
  */
 
-.perf-panel {
-  /* Theme-aware chrome */
-  --efb-bg: var(--bg-card);
-  --efb-bg-soft: var(--bg-input);
-  --efb-border: var(--accent);
-  --efb-border-dim: var(--border);
-  --efb-text: var(--text-primary);
-  --efb-text-dim: var(--text-secondary);
-  --efb-heading: var(--category-text);
-
-  /* Fixed instrument-readout + state colours (NOT themed) */
-  --efb-amber: #ffb84d;
-  --efb-cyan: #00e0ff;
-  --efb-green: #67d97b;
-  --efb-red: #ff5b62;
-  --efb-red-soft: #2a0d10;
-  --efb-amber-soft: #2a1d0a;
-
-  /* Standard padded panel frame — same outer margin as the other pages. */
+.perf-page {
   padding: 16px 18px;
-  max-width: 1200px;
+  max-width: 1180px;
   margin: 0 auto;
-  color: var(--efb-text);
   display: flex;
   flex-direction: column;
+  gap: 14px;
 }
 
-/* ── Performance sub-tabs (Takeoff | Landing under the one Performance tab) ── */
+/* ── Takeoff | Landing switch ─────────────────────────────────────── */
 .perf-subtabs {
-  display: flex;
+  display: inline-flex;
   gap: 4px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 12px 18px 0 18px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  align-self: flex-start;
 }
 .perf-subtab {
-  padding: 7px 18px;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
   text-decoration: none;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  border-bottom: none;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  background: var(--bg-secondary);
+  color: var(--text-on-dark-muted);
+  transition: background 120ms ease, color 120ms ease;
 }
 .perf-subtab:hover { color: var(--text-primary); }
 .perf-subtab.active {
-  color: var(--text-primary);
-  background: var(--bg-card);
-  border-color: var(--accent);
+  background: var(--accent-gold);
+  color: #1a1614;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* ── Header ───────────────────────────────────────────────────────── */
-.perf-header {
-  padding: 0 0 10px 0;
-  display: flex;
-  align-items: baseline;
+/* ── Two-column grid ──────────────────────────────────────────────── */
+.perf-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 1fr);
+  align-items: start;
   gap: 16px;
 }
-.perf-title {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  color: var(--efb-heading);
-  text-transform: uppercase;
-  font-weight: 600;
-}
-.perf-flightinfo {
+.perf-inputs, .perf-output { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.perf-card { margin: 0; border-radius: var(--radius-xl); }
+.perf-card .section-body { gap: 12px; }
+.perf-card .section-header { justify-content: space-between; }
+
+.perf-chip-gold {
   margin-left: auto;
-  color: var(--efb-text-dim);
-  font-size: 0.8rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 40%, transparent);
+  background: var(--accent-gold-soft);
+  color: var(--accent-gold);
   font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
 }
 
-/* ── Body: 3-column EFB grid ──────────────────────────────────────── */
-.perf-body {
-  flex: 1 1 auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 14px;
-}
-@media (max-width: 900px) {
-  .perf-body {
-    grid-template-columns: 1fr;
-  }
-}
-.perf-column {
-  background: var(--efb-bg);
-  border: 1px solid var(--efb-border-dim);
-  border-radius: var(--radius-md, 6px);
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.perf-column-title {
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--efb-heading);
-  border-bottom: 1px dashed var(--efb-border-dim);
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-}
-.perf-column-title.perf-sub {
-  margin-top: 12px;
-}
-
-/* ── Field rows ───────────────────────────────────────────────────── */
-.perf-field-row {
+/* ── Rows ─────────────────────────────────────────────────────────── */
+.perf-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: 30px;
 }
 .perf-field-label {
-  font-size: 0.78rem;
-  color: var(--efb-text-dim);
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: var(--category-text);
 }
-.perf-field-value {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.perf-field-value { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.perf-field-hint { font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+.perf-subhead {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--category-text);
 }
 
-/* ── ICAO input ───────────────────────────────────────────────────── */
+/* ── Runway card ──────────────────────────────────────────────────── */
+.perf-runway-body { gap: 12px; }
+
+.perf-airport-row { display: flex; align-items: center; gap: 16px; }
 .perf-icao-input {
-  background: var(--efb-bg-soft);
-  color: var(--efb-text);
-  border: 1px solid var(--efb-border-dim);
-  padding: 6px 10px;
-  font: inherit;
-  width: 10ch;
+  width: 5.2ch;
+  padding: 4px 8px;
+  font-size: 34px;
   text-align: center;
   text-transform: uppercase;
-}
-.perf-icao-input:focus {
-  outline: 1px solid var(--efb-border);
-  outline-offset: -1px;
-}
-
-/* ── Runway dropdown (+ intersection) ─────────────────────────────── */
-.perf-runway-dropdown {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.perf-runway-dropdown select {
-  background: var(--efb-bg-soft);
-  color: var(--efb-text);
-  border: 1px solid var(--efb-border-dim);
-  padding: 6px 10px;
-  font: inherit;
-  min-width: 110px;
-}
-.perf-runway-dropdown select:focus {
-  outline: 1px solid var(--efb-border);
-  outline-offset: -1px;
-}
-
-/* ── Toggle strips ────────────────────────────────────────────────── */
-.perf-toggle-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.perf-toggle-btn {
-  background: var(--efb-bg-soft);
-  color: var(--efb-text);
-  border: 1px solid var(--efb-border-dim);
-  padding: 4px 10px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.78rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--border-strong);
+  outline: none;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
-.perf-toggle-btn.active {
-  background: var(--efb-border);
-  color: #000;
-  border-color: var(--efb-border);
-}
-.perf-toggle-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
+.perf-icao-input:focus { border-bottom-color: var(--accent); }
+.perf-icao-input::placeholder { color: var(--text-muted); }
+.perf-airport-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.perf-airport-sub { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); }
 
-.perf-check-row {
+.perf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.perf-chip {
+  appearance: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.perf-chip:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-strong); }
+.perf-chip.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(0, 217, 255, 0.10);
+  text-shadow: var(--glow);
+}
+.perf-chip:disabled { opacity: 0.5; cursor: default; }
+
+/* Runway strip */
+.perf-strip {
+  position: relative;
+  padding: 26px 22px 30px;
+  border-radius: var(--radius-lg);
+  background: #000;
+  overflow: hidden;
+}
+.perf-strip-runway {
+  position: relative;
+  height: 34px;
+  border-radius: 3px;
+  background: #2f3136;
+  border: 1px solid #4a4d55;
+}
+.perf-strip-keys {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  width: 14px;
+  background: repeating-linear-gradient(to bottom, #d0d3d9 0 2px, transparent 2px 5px);
+}
+.perf-strip-keys.left { left: 4px; }
+.perf-strip-keys.right { right: 4px; }
+.perf-strip-centre {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(to right, #d0d3d9 0 14px, transparent 14px 24px);
+}
+.perf-strip-num {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #f1f2f4;
+}
+.perf-strip-num.left { left: 22px; }
+.perf-strip-num.right { right: 22px; }
+.perf-strip-tick {
+  position: absolute;
+  top: -8px;
+  width: 2px;
+  height: 12px;
+  background: var(--text-muted);
+}
+.perf-strip-tick-label {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.perf-strip-tick.active { background: var(--accent-gold); box-shadow: 0 0 6px var(--accent-gold); }
+.perf-strip-tick.active .perf-strip-tick-label { color: var(--accent-gold); }
+
+.perf-strip-wind {
+  position: absolute;
+  right: 18px;
+  bottom: 6px;
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--accent);
 }
+.perf-wind-arrow { width: 16px; height: 16px; filter: drop-shadow(0 0 4px var(--accent)); }
+.perf-wind-text { font-size: 9px; color: var(--text-secondary); }
+.perf-wind-comp { font-size: 9px; color: var(--accent); }
 
-/* ── Runway-condition strip (landing) — Dry(6) → Poor(1) ─────────── */
-.perf-surface-strip {
+.perf-data-row {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
+.perf-datum { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.perf-datum .label-caps { font-size: 8px; }
+.perf-datum .figure { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.perf-select { max-width: 200px; }
+
+/* ── Toggle chips (flap, packs, brake …) ──────────────────────────── */
+.perf-toggle-row { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.perf-toggle-btn {
+  appearance: none;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.perf-toggle-btn:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-strong); }
+.perf-toggle-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #06283d;
+  box-shadow: 0 0 10px var(--accent-muted);
+}
+.perf-toggle-btn:disabled { opacity: 0.5; cursor: default; }
+
+.perf-check-row { display: flex; align-items: center; gap: 8px; }
+
+/* Runway-condition strip (landing) — Dry(6) → Poor(1) */
+.perf-surface-strip { display: flex; flex-wrap: wrap; gap: 4px; }
 .perf-surface-btn {
-  background: var(--efb-bg-soft);
-  color: var(--efb-text);
-  border: 1px solid var(--efb-border-dim);
-  padding: 6px 4px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.72rem;
-  text-align: center;
+  appearance: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .perf-surface-btn.active {
-  background: var(--efb-border);
-  color: #000;
-  border-color: var(--efb-border);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #06283d;
+  box-shadow: 0 0 10px var(--accent-muted);
 }
 
 /* ── Keyboard number input (shared) ───────────────────────────────── */
 .perf-kbd {
   display: inline-flex;
   align-items: stretch;
-  background: var(--efb-bg-soft);
-  border: 1px solid var(--efb-border-dim);
-  height: 28px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  height: 30px;
+  overflow: hidden;
 }
-.perf-kbd:focus-within {
-  border-color: var(--efb-border);
-}
+.perf-kbd:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-muted); }
 .perf-kbd input {
   background: transparent;
-  color: var(--efb-text);
+  color: var(--text-primary);
   border: 0;
-  padding: 0 8px;
+  padding: 0 6px;
+  /* The pages size these with inline width:Nch — keep that the CONTENT width so the
+     padding does not eat the digits (QNH 1013 clipped to "1" at border-box). */
+  box-sizing: content-box;
   width: 5ch;
-  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
   text-align: right;
 }
-.perf-kbd input:focus {
-  outline: none;
-}
+.perf-kbd input:focus { outline: none; }
+/* No native spinner: it ate a third of a 5ch box and clipped "1013" to "101". */
+.perf-kbd input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+.perf-kbd input[type="number"]::-webkit-outer-spin-button,
+.perf-kbd input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .perf-kbd .perf-unit {
   display: flex;
   align-items: center;
   padding: 0 8px;
-  background: var(--efb-bg);
-  color: var(--efb-text-dim);
-  border-left: 1px solid var(--efb-border-dim);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-/* ── Wind dir/speed pair ──────────────────────────────────────────── */
-.perf-wind-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.perf-wind-row input[type="text"] {
-  background: var(--efb-bg-soft);
-  color: var(--efb-text);
-  border: 1px solid var(--efb-border-dim);
-  padding: 4px 8px;
-  width: 5ch;
-  font: inherit;
-  text-align: center;
-}
-.perf-wind-sep {
-  color: var(--efb-text-dim);
-}
-
-/* ── MCDU output frame (takeoff) ──────────────────────────────────── */
-.perf-mcdu-frame {
-  background: #000;
-  border: 1px solid var(--efb-border);
-  padding: 12px 14px;
-  font-family: var(--font-mono);
-  color: var(--efb-cyan);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.perf-mcdu-title {
-  color: var(--efb-amber);
-  letter-spacing: 0.14em;
-  font-size: 0.75rem;
-  text-align: center;
-  border-bottom: 1px dashed var(--efb-border-dim);
-  padding-bottom: 4px;
-  margin-bottom: 4px;
-}
-.perf-mcdu-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-.perf-mcdu-label {
-  color: var(--efb-text-dim);
-  text-transform: uppercase;
-}
-.perf-mcdu-value {
-  color: #00ff00;
-  font-weight: 600;
-}
-.perf-mcdu-value-amber {
-  color: var(--efb-amber);
-}
-.perf-mcdu-value-dim {
-  color: var(--efb-text-dim);
-}
-
-/* ── Output frame (landing) ───────────────────────────────────────── */
-.perf-out-frame {
-  background: #000;
-  border: 1px solid var(--efb-border);
-  padding: 14px 16px;
-  font-family: var(--font-mono);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.perf-out-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-}
-.perf-out-label {
-  color: var(--efb-text-dim);
-  text-transform: uppercase;
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-}
-.perf-out-value {
-  color: #00ff00;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--category-text);
+  border-left: 1px solid var(--border);
+  font-size: 9px;
   font-weight: 700;
-  font-size: 1.1rem;
-}
-.perf-out-value-big {
-  font-size: 1.5rem;
-}
-.perf-out-unit {
-  color: var(--efb-text-dim);
-  font-size: 0.72rem;
-  margin-left: 4px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-/* Landing distance / wind state colours. */
-.perf-val-normal {
-  color: #00ff00;
+.perf-wind-row { display: flex; gap: 6px; align-items: center; }
+.perf-wind-row input[type="text"] {
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 6px;
+  box-sizing: border-box;
+  width: 6ch;
+  height: 30px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
 }
-.perf-val-red {
-  color: var(--efb-red);
-}
-.perf-val-red-margin {
-  color: var(--efb-amber);
-}
+.perf-wind-row input[type="text"]:focus { outline: none; border-color: var(--accent); }
+.perf-wind-sep { color: var(--text-muted); }
 
-/* Reason a disabled control is disabled (issue #65) — sits under the field row. */
-.perf-field-hint {
-  font-size: 0.72rem;
-  color: var(--efb-text-dim);
-  font-style: italic;
-  margin: -2px 0 4px 0;
-}
-
-/* ── METAR strip (shared) ─────────────────────────────────────────── */
+/* ── METAR strip ──────────────────────────────────────────────────── */
 .perf-metar-strip {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 12px;
-  background: var(--efb-bg-soft);
-  border-left: 3px solid var(--efb-border);
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
   font-family: var(--font-mono);
-  color: var(--efb-text);
 }
 .perf-metar-header {
   display: flex;
-  gap: 12px;
-  align-items: baseline;
-  font-size: 0.75rem;
-  color: var(--efb-text-dim);
-  letter-spacing: 0.06em;
+  gap: 10px;
+  align-items: center;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+  color: var(--category-text);
 }
-.perf-metar-text {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.35;
-}
-.perf-metar-missing {
-  color: var(--efb-text-dim);
-  font-style: italic;
-}
-/* Small in-strip "Refresh WX" action (issue #62) — right-aligned in the METAR header. */
+.perf-metar-text { font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; color: var(--text-primary); }
+.perf-metar-missing { font-size: 11px; color: var(--text-muted); font-style: italic; }
 .perf-wx-refresh {
   margin-left: auto;
+  appearance: none;
   background: transparent;
-  color: var(--efb-text-dim);
-  border: 1px solid var(--efb-border-dim);
-  padding: 2px 8px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
   font: inherit;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  cursor: pointer;
 }
-.perf-wx-refresh:hover {
-  color: var(--efb-text);
-  border-color: var(--efb-border);
-}
-.perf-wx-refresh:disabled {
-  opacity: 0.4;
-  cursor: default;
-  border-color: var(--efb-border-dim);
-}
+.perf-wx-refresh:hover:not(:disabled) { color: var(--text-primary); border-color: var(--accent); }
+.perf-wx-refresh:disabled { opacity: 0.4; cursor: default; }
 
-/* ── Footer / banners / actions ───────────────────────────────────── */
-.perf-footer {
-  margin-top: 14px;
-  padding: 14px 0 0 0;
-  border-top: 1px solid var(--efb-border-dim);
+/* ── Output card ──────────────────────────────────────────────────── */
+.perf-out-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.perf-out-title { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.perf-out-title .gold { color: var(--accent-gold); }
+
+.perf-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 14px;
+  padding: 16px 0 6px;
+}
+.perf-figure { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.perf-figure .figure { font-size: 36px; white-space: nowrap; }
+.perf-figure.dim .figure { color: var(--text-muted); text-shadow: none; }
+.perf-figure.amber .figure { color: var(--warning); text-shadow: 0 0 8px rgba(255, 183, 3, 0.4); }
+.perf-figure.red .figure { color: var(--danger); text-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+.perf-figure.small .figure { font-size: 24px; }
+
+.perf-limits {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
 }
+.perf-limit { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.perf-limit-value { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.perf-limit-value.dim { color: var(--text-muted); }
+.perf-limit-value.amber { color: var(--warning); }
 
+.perf-margin-track { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.10); overflow: hidden; }
+.perf-margin-fill { height: 100%; border-radius: 999px; background: var(--success); }
+.perf-margin-fill.amber { background: var(--warning); }
+.perf-margin-fill.red { background: var(--danger); }
+
+/* ── Banners / actions ────────────────────────────────────────────── */
 .perf-banner {
   text-align: center;
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 11px;
   letter-spacing: 0.12em;
-  padding: 6px 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
 }
 .perf-banner-warn {
-  background: var(--efb-amber-soft);
-  color: var(--efb-amber);
-  border: 1px solid var(--efb-amber);
+  background: rgba(255, 183, 3, 0.12);
+  color: var(--warning);
+  border: 1px solid rgba(255, 183, 3, 0.35);
 }
 .perf-banner-error {
-  background: var(--efb-red-soft);
-  color: var(--efb-red);
-  border: 1px solid var(--efb-red);
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
-.perf-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.perf-action-btn {
-  background: var(--efb-bg-soft);
-  color: var(--efb-text);
-  border: 1px solid var(--efb-border-dim);
-  padding: 8px 16px;
-  font: inherit;
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.perf-action-btn:hover {
-  border-color: var(--efb-border);
-}
-.perf-action-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-  border-color: var(--efb-border-dim);
-}
-.perf-action-primary {
-  background: var(--efb-border);
-  color: #000;
-  border-color: var(--efb-border);
-}
-.perf-action-primary:hover {
-  filter: brightness(1.1);
-}
-.perf-action-sent {
-  background: var(--efb-green);
-  color: #000;
-  border-color: var(--efb-green);
-}
-.perf-action-flex {
-  margin-left: auto;
-}
+.perf-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.perf-actions .btn.primary { flex: 1 1 auto; }
+.perf-action-flex { margin-left: auto; }
+.perf-action-sent { background: var(--success) !important; color: #06283d !important; border-color: var(--success) !important; }
+.perf-busy { font-size: 11px; color: var(--text-muted); }
+.perf-error-row { color: var(--danger); font-size: 12px; }
 
-.perf-busy {
-  font-size: 0.8rem;
-  color: var(--efb-text-dim);
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .perf-grid { grid-template-columns: 1fr; }
 }
-.perf-error-row {
-  color: var(--efb-red);
-  font-size: 0.85rem;
-  padding: 4px 0;
+@media (max-width: 540px) {
+  .perf-page { padding: 12px; }
+  .perf-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .perf-figure .figure { font-size: 30px; }
+  .perf-data-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

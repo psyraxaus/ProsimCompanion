@@ -1,0 +1,16 @@
+{
+  "name": "Air France",
+  "description": "Air France blue cockpit with red panels",
+  "colors": {
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#E5E7EB",
+    "accentColor": "#FFFFFF",
+    "headerBackground": "#C8102E",
+    "tabBarBackground": "#C8102E",
+    "contentBackground": "#003DA5",
+    "sectionBackground": "#C8102E",
+    "headerText": "#F8FAFC",
+    "contentText": "#F8FAFC",
+    "categoryText": "#CBD5E1"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "British Airways",
+  "description": "Navy cockpit with BA red panels",
+  "colors": {
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#E5E7EB",
+    "accentColor": "#FFFFFF",
+    "headerBackground": "#C8102E",
+    "tabBarBackground": "#C8102E",
+    "contentBackground": "#003366",
+    "sectionBackground": "#C8102E",
+    "headerText": "#F8FAFC",
+    "contentText": "#F8FAFC",
+    "categoryText": "#94A3B8"
+  }
+}

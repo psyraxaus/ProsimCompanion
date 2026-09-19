@@ -1,0 +1,16 @@
+{
+  "name": "Swiss International",
+  "description": "Charcoal cockpit with Swiss red panels",
+  "colors": {
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#E5E7EB",
+    "accentColor": "#D4A373",
+    "headerBackground": "#EF0000",
+    "tabBarBackground": "#EF0000",
+    "contentBackground": "#1A1A1A",
+    "sectionBackground": "#EF0000",
+    "headerText": "#FFFFFF",
+    "contentText": "#FFFFFF",
+    "categoryText": "#D1D5DB"
+  }
+}

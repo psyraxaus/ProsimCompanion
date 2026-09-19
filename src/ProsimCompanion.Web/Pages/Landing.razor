@@ -15,255 +15,214 @@
 <PageTitle>Landing Performance — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Landing Performance</h1>
 
-<nav class="perf-subtabs" aria-label="Performance pages">
-    <a class="perf-subtab" href="performance/takeoff">TAKEOFF</a>
-    <a class="perf-subtab active" href="performance/landing">LANDING</a>
-</nav>
+@* Layout (ADR-0011): mirrors the Takeoff page — runway card with the condition chips,
+   weather, aircraft config on the left; LDR / LDA / wind figures on the right. *@
+<div class="perf-page">
+    <nav class="perf-subtabs" aria-label="Performance pages">
+        <a class="perf-subtab" href="performance/takeoff">Takeoff</a>
+        <a class="perf-subtab active" href="performance/landing">Landing</a>
+    </nav>
 
-<div class="perf-panel">
-    <div class="perf-header">
-        <span class="perf-title">LANDING PERFORMANCE</span>
-        <span class="perf-flightinfo">@(_icao is { Length: > 0 } ? _icao : "----")</span>
-    </div>
+    <div class="perf-grid">
+        <div class="perf-inputs">
 
-    <div class="perf-body">
-        @* ─── Column 1: Airport + runway-condition picker ─────────────── *@
-        <div class="perf-column">
-            <div class="perf-column-title">Airport / Runway</div>
 
-            <div class="perf-field-row">
-                <span class="perf-field-label">ICAO</span>
-                <span class="perf-field-value">
-                    <input type="text" class="perf-icao-input" maxlength="4"
-                           @bind="_icao" @bind:after="OnIcaoCommitAsync" />
-                </span>
-            </div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">Runway</span>
-                <span class="perf-field-value">
-                    <span class="perf-runway-dropdown">
-                        <select aria-label="Runway"
-                                disabled="@(_runways is null || _runways.Count == 0)"
-                                @bind="_runwayId" @bind:after="ScheduleRecalc">
-                            @if (_runways is null || _runways.Count == 0)
-                            {
-                                <option value="">—</option>
-                            }
-                            else
-                            {
-                                @foreach (var runway in _runways)
-                                {
-                                    <option value="@runway.RunwayId">RWY @runway.RunwayId@(runway.LengthFt is > 0 ? $" · {runway.LengthFt} ft" : "")</option>
-                                }
-                            }
-                        </select>
-                    </span>
-                </span>
-            </div>
-
-            @* Why the runway select is disabled (issue #65) — otherwise it just sat grey. *@
-            @if (_runways is null || _runways.Count == 0)
-            {
-                <div class="perf-field-hint">@RunwayDisabledReason</div>
-            }
-
-            <div class="perf-column-title perf-sub">Runway Condition</div>
-            <div class="perf-surface-strip">
-                @foreach (var option in SurfaceOptions)
-                {
-                    var code = option.Code;
-                    <button type="button" class="perf-surface-btn @(code == _rwySurfaceCode ? "active" : "")"
-                            @onclick="() => SetInput(() => _rwySurfaceCode = code)">@option.Label</button>
-                }
-            </div>
-
-            <div class="perf-column-title perf-sub">Wind / Weather</div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">Wind</span>
-                <span class="perf-field-value">
-                    <span class="perf-wind-row">
-                        <input type="text" maxlength="3" aria-label="Wind direction"
-                               @bind="_windDir" @bind:after="OnInputChanged" />
-                        <span class="perf-wind-sep">/</span>
-                        <span class="perf-kbd">
-                            <input type="number" min="0" style="width:3ch" aria-label="Wind speed"
-                                   @bind="_windKt" @bind:after="OnInputChanged" />
-                            <span class="perf-unit">kt</span>
+            <section class="section perf-card">
+                <div class="section-header"><h3 class="section-title">Aircraft Config</h3></div>
+                <div class="section-body">
+                    <div class="perf-row">
+                        <span class="perf-field-label">Ldg weight</span>
+                        <span class="perf-field-value">
+                            <span class="perf-kbd">
+                                <input type="number" min="0" step="@(Units.IsPounds ? "100" : "0.1")"
+                                       style="width:@(Units.IsPounds ? "7ch" : "5ch")" aria-label="Landing weight"
+                                       @bind="LdgWeightDisplay" @bind:after="OnInputChanged" />
+                                <span class="perf-unit">@(Units.IsPounds ? "lb" : "t")</span>
+                            </span>
                         </span>
-                    </span>
-                </span>
-            </div>
+                    </div>
+                    <div class="perf-row">
+                        <span class="perf-field-label">Flap</span>
+                        <span class="perf-field-value">@Toggle(FlapOptions, _flapConfig, v => SetInput(() => _flapConfig = v))</span>
+                    </div>
+                    <div class="perf-row">
+                        <span class="perf-field-label">Brake</span>
+                        <span class="perf-field-value">@Toggle(BrakeOptions, _brakeMode, v => SetInput(() => _brakeMode = v))</span>
+                    </div>
+                    <div class="perf-row">
+                        <span class="perf-field-label">Reverse</span>
+                        <span class="perf-field-value">@Toggle(RevOptions, _revMode, v => SetInput(() => _revMode = v))</span>
+                    </div>
+                    <div class="perf-row">
+                        <span class="perf-field-label">Autoland</span>
+                        <span class="perf-field-value">@Toggle(AutolandOptions, _autolandMode, v => SetInput(() => _autolandMode = v))</span>
+                    </div>
+                    <div class="perf-row">
+                        <span class="perf-field-label">A/THR</span>
+                        <span class="perf-field-value">@Toggle(AthrOptions, _athr, v => SetInput(() => _athr = v))</span>
+                    </div>
+                    <div class="perf-row">
+                        <span class="perf-field-label">VAPP override</span>
+                        <span class="perf-field-value">
+                            <span class="perf-kbd">
+                                <input type="number" min="0" style="width:4ch" aria-label="VAPP override"
+                                       @bind="_vappOverride" @bind:after="OnInputChanged" />
+                                <span class="perf-unit">kt</span>
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </section>
+            <section class="section perf-card">
+                <div class="section-header"><h3 class="section-title">Wind / Weather</h3></div>
+                <div class="section-body">
+                    <div class="perf-row">
+                        <span class="perf-field-label">Wind</span>
+                        <span class="perf-field-value">
+                            <span class="perf-wind-row">
+                                <input type="text" maxlength="3" aria-label="Wind direction"
+                                       @bind="_windDir" @bind:after="OnInputChanged" />
+                                <span class="perf-wind-sep">/</span>
+                                <span class="perf-kbd">
+                                    <input type="number" min="0" style="width:3ch" aria-label="Wind speed"
+                                           @bind="_windKt" @bind:after="OnInputChanged" />
+                                    <span class="perf-unit">kt</span>
+                                </span>
+                            </span>
+                        </span>
+                    </div>
+                    <div class="perf-row">
+                        <span class="perf-field-label">OAT</span>
+                        <span class="perf-field-value">
+                            <span class="perf-kbd">
+                                <input type="number" style="width:4ch" aria-label="OAT"
+                                       @bind="_oat" @bind:after="OnInputChanged" />
+                                <span class="perf-unit">°C</span>
+                            </span>
+                        </span>
+                    </div>
+                    <div class="perf-row">
+                        <span class="perf-field-label">QNH</span>
+                        <span class="perf-field-value">
+                            <span class="perf-kbd">
+                                <input type="number" min="900" max="1100" style="width:5ch" aria-label="QNH"
+                                       @bind="_qnh" @bind:after="OnInputChanged" />
+                                <span class="perf-unit">hPa</span>
+                            </span>
+                        </span>
+                    </div>
 
-            <div class="perf-field-row">
-                <span class="perf-field-label">OAT</span>
-                <span class="perf-field-value">
-                    <span class="perf-kbd">
-                        <input type="number" style="width:4ch" aria-label="OAT"
-                               @bind="_oat" @bind:after="OnInputChanged" />
-                        <span class="perf-unit">°C</span>
-                    </span>
-                </span>
-            </div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">QNH</span>
-                <span class="perf-field-value">
-                    <span class="perf-kbd">
-                        <input type="number" min="900" max="1100" style="width:5ch" aria-label="QNH"
-                               @bind="_qnh" @bind:after="OnInputChanged" />
-                        <span class="perf-unit">hPa</span>
-                    </span>
-                </span>
-            </div>
+                    <div class="perf-metar-strip inset">
+                        <div class="perf-metar-header">
+                            <span>METAR @(_icao is { Length: > 0 } ? _icao : "----")</span>
+                            @if (_metarFetchedAt is { } fetched)
+                            {
+                                <span>· @fetched.ToString("HH:mm", CultureInfo.InvariantCulture)Z</span>
+                            }
+                            <button type="button" class="perf-wx-refresh"
+                                    disabled="@(_wxBusy || _icao.Length != 4)" @onclick="RefreshWxAsync">
+                                @(_wxBusy ? "Fetching…" : "Refresh WX")
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(_metarText))
+                        {
+                            <div class="perf-metar-text">@_metarText.Trim()</div>
+                        }
+                        else
+                        {
+                            @* The composite chain's reason (issue #62) — "no data for this ICAO" and
+                               "fetch failed (gateway HTTP 500; …)" demand different pilot actions. *@
+                            <div class="perf-metar-missing">@(_wxFailure ?? "No METAR available")</div>
+                        }
+                    </div>
+                </div>
+            </section>
         </div>
 
-        @* ─── Column 2: Aircraft config ───────────────────────────────── *@
-        <div class="perf-column">
-            <div class="perf-column-title">Aircraft Config</div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">Ldg weight</span>
-                <span class="perf-field-value">
-                    <span class="perf-kbd">
-                        <input type="number" min="0" step="@(Units.IsPounds ? "100" : "0.1")"
-                               style="width:@(Units.IsPounds ? "7ch" : "5ch")" aria-label="Landing weight"
-                               @bind="LdgWeightDisplay" @bind:after="OnInputChanged" />
-                        <span class="perf-unit">@(Units.IsPounds ? "lb" : "t")</span>
+        <div class="perf-output">
+            <PerfRunwayCard @bind-Icao="_icao" OnIcaoCommit="OnIcaoCommitAsync"
+                            Runways="_runways" @bind-RunwayId="_runwayId" OnRunwayChanged="ScheduleRecalc"
+                            WindDir="@_windDir" WindKt="_windKt"
+                            DisabledReason="@RunwayDisabledReason" MetarFetchedAt="_metarFetchedAt"
+                            DistanceLabel="LDA" SurfaceLabel="Condition">
+                <Surface>
+                    <span class="perf-surface-strip" role="radiogroup" aria-label="Runway condition">
+                        @foreach (var option in SurfaceOptions)
+                        {
+                            var code = option.Code;
+                            <button type="button" class="perf-surface-btn @(code == _rwySurfaceCode ? "active" : "")"
+                                    role="radio" aria-checked="@(code == _rwySurfaceCode)"
+                                    @onclick="() => SetInput(() => _rwySurfaceCode = code)">@option.Label</button>
+                        }
                     </span>
-                </span>
-            </div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">Flap</span>
-                <span class="perf-field-value">@Toggle(FlapOptions, _flapConfig, v => SetInput(() => _flapConfig = v))</span>
-            </div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">Brake</span>
-                <span class="perf-field-value">@Toggle(BrakeOptions, _brakeMode, v => SetInput(() => _brakeMode = v))</span>
-            </div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">Reverse</span>
-                <span class="perf-field-value">@Toggle(RevOptions, _revMode, v => SetInput(() => _revMode = v))</span>
-            </div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">Autoland</span>
-                <span class="perf-field-value">@Toggle(AutolandOptions, _autolandMode, v => SetInput(() => _autolandMode = v))</span>
-            </div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">A/THR</span>
-                <span class="perf-field-value">@Toggle(AthrOptions, _athr, v => SetInput(() => _athr = v))</span>
-            </div>
-
-            <div class="perf-field-row">
-                <span class="perf-field-label">VAPP override</span>
-                <span class="perf-field-value">
-                    <span class="perf-kbd">
-                        <input type="number" min="0" style="width:4ch" aria-label="VAPP override"
-                               @bind="_vappOverride" @bind:after="OnInputChanged" />
-                        <span class="perf-unit">kt</span>
-                    </span>
-                </span>
-            </div>
-        </div>
-
-        @* ─── Column 3: Output ────────────────────────────────────────── *@
-        <div class="perf-column">
-            <div class="perf-column-title">Output</div>
-
-            @if (_isNoData)
-            {
-                <div class="perf-banner perf-banner-warn">NO PERFORMANCE DATA</div>
-            }
-            @if (_retreatFlap)
-            {
-                <div class="perf-banner perf-banner-warn">RETREAT FLAP CONFIG</div>
-            }
-
-            <div class="perf-out-frame">
-                <div class="perf-out-row">
-                    <span class="perf-out-label">LDR</span>
-                    <span>
-                        <span class="perf-out-value perf-out-value-big @ValClass(_visualDistClass)">@(ShowResult ? _ldrM.ToString(CultureInfo.InvariantCulture) : "----")</span>
-                        <span class="perf-out-unit">m</span>
-                    </span>
+                </Surface>
+            </PerfRunwayCard>
+            <section class="section perf-card">
+                <div class="section-header">
+                    <h3 class="section-title">Landing Performance</h3>
+                    <span class="section-hint">@(ShowResult ? "Calculated values" : "Not calculated")</span>
                 </div>
-                <div class="perf-out-row">
-                    <span class="perf-out-label">LDR + 15%</span>
-                    <span>
-                        <span class="perf-out-value @ValClass(_visualDistClass)">@(ShowResult ? _ldr15M.ToString(CultureInfo.InvariantCulture) : "----")</span>
-                        <span class="perf-out-unit">m</span>
-                    </span>
-                </div>
-                <div class="perf-out-row">
-                    <span class="perf-out-label">LDA</span>
-                    <span>
-                        <span class="perf-out-value @ValClass(_visualDistClass)">@(_ldaM > 0 ? Math.Round(_ldaM).ToString(CultureInfo.InvariantCulture) : "----")</span>
-                        <span class="perf-out-unit">m</span>
-                    </span>
-                </div>
-                <div class="perf-out-row">
-                    <span class="perf-out-label">@(_hwKt < 0 ? "TW (KT)" : "HW (KT)")</span>
-                    <span class="perf-out-value @ValClass(_hwClass)">@(ShowResult ? Math.Round(Math.Abs(_hwKt)).ToString(CultureInfo.InvariantCulture) : "----")</span>
-                </div>
-                <div class="perf-out-row">
-                    <span class="perf-out-label">XW (KT)</span>
-                    <span class="perf-out-value @ValClass(_xwClass)">@(ShowResult ? Math.Round(Math.Abs(_xwKt)).ToString(CultureInfo.InvariantCulture) : "----")</span>
-                </div>
-            </div>
-        </div>
-    </div>
+                <div class="section-body">
+                    <div class="perf-out-head">
+                        <span class="perf-out-title">@(_icao is { Length: > 0 } ? _icao : "----") <span class="gold">@(_runwayId ?? "--")</span></span>
+                        <span class="pill @(_isNoData ? "tone-bad" : _retreatFlap ? "tone-warn" : ShowResult ? "tone-ok" : "tone-neutral")">
+                            @(_isNoData ? "no data" : _retreatFlap ? "retreat flap" : ShowResult ? "valid" : "standby")
+                        </span>
+                    </div>
 
-    <div class="perf-footer">
-        <div class="perf-metar-strip">
-            <div class="perf-metar-header">
-                <span>METAR @(_icao is { Length: > 0 } ? _icao : "----")</span>
-                @if (_metarFetchedAt is { } fetched)
-                {
-                    <span>· @fetched.ToString("HH:mm", CultureInfo.InvariantCulture)Z</span>
-                }
-                <button type="button" class="perf-wx-refresh"
-                        disabled="@(_wxBusy || _icao.Length != 4)" @onclick="RefreshWxAsync">
-                    @(_wxBusy ? "Fetching…" : "Refresh WX")
-                </button>
-            </div>
-            @if (!string.IsNullOrWhiteSpace(_metarText))
-            {
-                <div class="perf-metar-text">@_metarText.Trim()</div>
-            }
-            else
-            {
-                @* The composite chain's reason (issue #62) — "no data for this ICAO" and
-                   "fetch failed (gateway HTTP 500; …)" demand different pilot actions. *@
-                <div class="perf-metar-missing">@(_wxFailure ?? "No METAR available")</div>
-            }
-        </div>
+                    @if (_isNoData)
+                    {
+                        <div class="perf-banner perf-banner-warn">NO PERFORMANCE DATA</div>
+                    }
+                    @if (_retreatFlap)
+                    {
+                        <div class="perf-banner perf-banner-warn">RETREAT FLAP CONFIG</div>
+                    }
 
-        @if (_hasResult && !_metarApplied)
-        {
-            <div class="perf-banner perf-banner-warn">COMPUTED WITHOUT METAR — CHECK OAT / QNH / WIND MANUALLY</div>
-        }
-        @if (_lastError is not null)
-        {
-            <div class="perf-error-row">@_lastError</div>
-        }
+                    <div class="perf-figures">
+                        @OutFigure("LDR (m)", ShowResult ? _ldrM.ToString(CultureInfo.InvariantCulture) : null, FigureTone(_visualDistClass))
+                        @OutFigure("LDR + 15% (m)", ShowResult ? _ldr15M.ToString(CultureInfo.InvariantCulture) : null, FigureTone(_visualDistClass) + " small")
+                        @OutFigure("LDA (m)", _ldaM > 0 ? Math.Round(_ldaM).ToString(CultureInfo.InvariantCulture) : null, "small")
+                        @OutFigure(_hwKt < 0 ? "TW (kt)" : "HW (kt)", ShowResult ? Math.Round(Math.Abs(_hwKt)).ToString(CultureInfo.InvariantCulture) : null, FigureTone(_hwClass) + " small")
+                        @OutFigure("XW (kt)", ShowResult ? Math.Round(Math.Abs(_xwKt)).ToString(CultureInfo.InvariantCulture) : null, FigureTone(_xwClass) + " small")
+                    </div>
 
-        <div class="perf-actions">
-            @* v2 placeholder — failure cases arrive in a future release. *@
-            <button type="button" class="perf-action-btn" disabled
-                    title="Failure cases arrive in a future release">Failures…</button>
-            <button type="button" class="perf-action-btn perf-action-flex" disabled="@IsBusy" @onclick="OnResetClick">
-                @(_resetArmed ? "Confirm Reset?" : "Reset")
-            </button>
-            @if (IsBusy)
-            {
-                <span class="perf-busy">Working…</span>
-            }
+                    @if (ShowResult && _ldaM > 0)
+                    {
+                        var ratio = Math.Clamp(_ldr15M / _ldaM, 0, 1);
+                        var fill = _ldr15M > _ldaM ? "red" : ratio > 0.85 ? "amber" : "";
+                        <div class="perf-limits inset">
+                            <div class="perf-limit">
+                                <span class="perf-field-label">Margin (LDA − LDR+15%)</span>
+                                <span class="perf-limit-value @fill">@((int)Math.Round(_ldaM - _ldr15M)) m</span>
+                            </div>
+                            <div class="perf-margin-track"><div class="perf-margin-fill @fill" style="width:@((ratio * 100).ToString("F1", CultureInfo.InvariantCulture))%"></div></div>
+                        </div>
+                    }
+
+                    @if (_hasResult && !_metarApplied)
+                    {
+                        <div class="perf-banner perf-banner-warn">COMPUTED WITHOUT METAR — CHECK OAT / QNH / WIND MANUALLY</div>
+                    }
+                    @if (_lastError is not null)
+                    {
+                        <div class="perf-error-row">@_lastError</div>
+                    }
+
+                    <div class="perf-actions">
+                        @* v2 placeholder — failure cases arrive in a future release. *@
+                        <button type="button" class="btn secondary" disabled
+                                title="Failure cases arrive in a future release">Failures…</button>
+                        <button type="button" class="btn secondary perf-action-flex" disabled="@IsBusy" @onclick="OnResetClick">
+                            @(_resetArmed ? "Confirm Reset?" : "Reset")
+                        </button>
+                        @if (IsBusy)
+                        {
+                            <span class="perf-busy">Working…</span>
+                        }
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 </div>
@@ -495,12 +454,21 @@
     private static int ParseFeet(string? text)
         => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
 
-    private static string ValClass(string code) => code switch
+    /// <summary>Maps the calculator state codes onto the output-figure tones (ADR-0011).</summary>
+    private static string FigureTone(string code) => code switch
     {
-        "red" => "perf-val-red",
-        "red-margin" => "perf-val-red-margin",
-        _ => "perf-val-normal",
+        "red" => "red",
+        "red-margin" => "amber",
+        _ => "glow",
     };
+
+    /// <summary>One large output figure (ADR-0011): label above, mono figure below; a null
+    /// value renders dim dashes. Tone classes: glow / amber / red / small.</summary>
+    private static RenderFragment OutFigure(string label, string? value, string tone = "") =>
+        @<div class="perf-figure @(value is null ? "dim" : tone)">
+            <span class="label-caps">@label</span>
+            <span class="figure">@(value ?? "----")</span>
+        </div>;
 
     private async Task OnIcaoCommitAsync()
     {

@@ -1,13 +1,13 @@
 {
-  "name": "Finnair",
-  "description": "Finnair blue cockpit with white panels",
+  "name": "Singapore Airlines",
+  "description": "Navy cockpit with white panels and gold accents",
   "colors": {
-    "primaryColor": "#003580",
-    "secondaryColor": "#002B66",
+    "primaryColor": "#D4A373",
+    "secondaryColor": "#B8865A",
     "accentColor": "#D4A373",
     "headerBackground": "#FFFFFF",
     "tabBarBackground": "#FFFFFF",
-    "contentBackground": "#003580",
+    "contentBackground": "#003B6F",
     "sectionBackground": "#FFFFFF",
     "headerText": "#1A1614",
     "contentText": "#1A1614",

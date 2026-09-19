@@ -1,0 +1,16 @@
+{
+  "name": "KLM Royal Dutch",
+  "description": "KLM navy — the canvas default",
+  "colors": {
+    "primaryColor": "#00D9FF",
+    "secondaryColor": "#00B8D9",
+    "accentColor": "#D4A373",
+    "headerBackground": "#0F3B6F",
+    "tabBarBackground": "#0F3B6F",
+    "contentBackground": "#1A5490",
+    "sectionBackground": "#0F3B6F",
+    "headerText": "#F8FAFC",
+    "contentText": "#F8FAFC",
+    "categoryText": "#B0B8C1"
+  }
+}

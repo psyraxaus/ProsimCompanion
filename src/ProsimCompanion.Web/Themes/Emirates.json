@@ -1,0 +1,16 @@
+{
+  "name": "Emirates",
+  "description": "Midnight navy cockpit with Emirates gold panels",
+  "colors": {
+    "primaryColor": "#001D3D",
+    "secondaryColor": "#0B2F5C",
+    "accentColor": "#001D3D",
+    "headerBackground": "#D4AF37",
+    "tabBarBackground": "#D4AF37",
+    "contentBackground": "#001D3D",
+    "sectionBackground": "#D4AF37",
+    "headerText": "#1A1614",
+    "contentText": "#1A1614",
+    "categoryText": "#5B4A1A"
+  }
+}

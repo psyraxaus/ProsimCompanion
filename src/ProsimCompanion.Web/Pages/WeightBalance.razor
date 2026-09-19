@@ -16,171 +16,125 @@
 <PageTitle>Weight &amp; Balance — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Weight and Balance</h1>
 
-<div class="status-panel">
+@{
+    var sheets = Loadsheets.Snapshot();
+    var best = sheets.Final.Status == LoadsheetSlotStatus.Sent ? sheets.Final
+        : sheets.Prelim.Status == LoadsheetSlotStatus.Sent ? sheets.Prelim
+        : null;
+    var bestTag = sheets.Final.Status == LoadsheetSlotStatus.Sent ? "FIN"
+        : sheets.Prelim.Status == LoadsheetSlotStatus.Sent ? "PRE" : null;
 
-    <section class="status-section">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">CG Envelope</h3>
-        <div class="section-body">
-            <CgEnvelope GrossWeightKg="@_gross.Value"
-                        GrossCgMac="@_cg.Value"
-                        ZfwKg="@_zfw.Value"
-                        ZfwCgMac="@_zfwcg.Value" />
-            @{
-                var sheets = Loadsheets.Snapshot();
-                var best = sheets.Final.Status == LoadsheetSlotStatus.Sent ? sheets.Final
-                    : sheets.Prelim.Status == LoadsheetSlotStatus.Sent ? sheets.Prelim
-                    : null;
-                var bestTag = sheets.Final.Status == LoadsheetSlotStatus.Sent ? "FIN"
-                    : sheets.Prelim.Status == LoadsheetSlotStatus.Sent ? "PRE" : null;
-            }
-            <div class="manifest-grid" style="margin-top:10px; grid-template-columns:auto repeat(4, 1fr);">
-                <span class="manifest-head"></span>
-                <span class="manifest-head">ZFW (@Units.UnitLabel.ToUpperInvariant())</span><span class="manifest-head">MACZFW (%)</span>
-                <span class="manifest-head">GW (@Units.UnitLabel.ToUpperInvariant())</span><span class="manifest-head">MACGW (%)</span>
-                <span class="manifest-head">LIVE</span>
-                <span class="row-value-mono">@W0(_zfw.Value)</span>
-                <span class="row-value-mono">@($"{_zfwcg.Value:F1}")</span>
-                <span class="row-value-mono">@W0(_gross.Value)</span>
-                <span class="row-value-mono">@($"{_cg.Value:F1}")</span>
-                <span class="manifest-head">L/S @(bestTag is null ? "" : $"({bestTag})")</span>
-                <span class="row-value-mono">@(best is null ? "—" : W0(best.ZfwKg))</span>
-                <span class="row-value-mono">@(best is null ? "—" : $"{best.MacZfw:F1}")</span>
-                <span class="row-value-mono">@(best is null ? "—" : W0(best.TowKg))</span>
-                <span class="row-value-mono">@(best is null ? "—" : $"{best.MacTow:F1}")</span>
-            </div>
-            @{
-                // Weight-dependent envelope limits (A320TrimEnvelope, digitized from this
-                // chart's own artwork) — the Prosim2GSX "VALID RANGE" line, per live weight.
-                var (zfwMin, zfwMax) = A320TrimEnvelope.ZeroFuelLimits(_zfw.Value);
-                var (gwMin, gwMax) = A320TrimEnvelope.GrossWeightLimits(_gross.Value);
-                var zfwCgBad = _zfwcg.Value is var liveZfwCg and > 0 && (liveZfwCg < zfwMin || liveZfwCg > zfwMax);
-                var gwCgBad = _cg.Value is var liveGwCg and > 0 && (liveGwCg < gwMin || liveGwCg > gwMax);
-            }
-            <div class="row" style="margin-top:6px;">
-                <span class="row-label">VALID RANGE</span>
-                <span class="row-value-mono">
-                    <span style="@(zfwCgBad ? "color:var(--danger);font-weight:600" : "")">MACZFW @($"{zfwMin:F1}–{zfwMax:F1} %")</span>
-                    ·
-                    <span style="@(gwCgBad ? "color:var(--danger);font-weight:600" : "")">MACGW @($"{gwMin:F1}–{gwMax:F1} %")</span>
-                </span>
-            </div>
-            <div class="row" style="margin-top:6px;">
-                <span class="row-label"></span>
-                <span class="row-value">LIVE reads aircraft datarefs each tick. L/S mirrors the latest loadsheet (final preferred, prelim fallback). Valid ranges interpolate the trim envelope at the live weights.</span>
-            </div>
-            <div class="row">
-                <button type="button" class="btn primary" disabled="@_syncing" @onclick="SyncFms">
-                    @(_syncing ? "Syncing…" : $"Sync to FMS ({bestTag ?? "COMPUTED"})")
-                </button>
-                @if (_syncResult is not null)
-                {
-                    <span class="row-value">@_syncResult</span>
-                }
-            </div>
+    var paxCapacity = _zone1Cap.Value + _zone2Cap.Value + _zone3Cap.Value + _zone4Cap.Value;
+    var paxBoarded = _zone1.Value + _zone2.Value + _zone3.Value + _zone4.Value;
+    var cargoLoaded = _cargoFwd.Value + _cargoAft.Value;
+    var cargoCapacity = _cargoFwdCap.Value + _cargoAftCap.Value + _cargoBulkCap.Value;
+    var ofp = Ofp.Current;
+
+    // Weight-dependent envelope limits (A320TrimEnvelope, digitized from this chart's own
+    // artwork) — the Prosim2GSX "VALID RANGE" line, per live weight.
+    var (zfwMin, zfwMax) = A320TrimEnvelope.ZeroFuelLimits(_zfw.Value);
+    var (gwMin, gwMax) = A320TrimEnvelope.GrossWeightLimits(_gross.Value);
+    var zfwCgBad = _zfwcg.Value is var liveZfwCg and > 0 && (liveZfwCg < zfwMin || liveZfwCg > zfwMax);
+    var gwCgBad = _cg.Value is var liveGwCg and > 0 && (liveGwCg < gwMin || liveGwCg > gwMax);
+
+    var anyDoorOpen = new[] { _door1L, _door2L, _door3L, _door4L, _door1R, _door2R, _door3R, _door4R, _doorCargoFwd, _doorCargoAft, _doorCargoBulk }
+        .Any(DoorOpen);
+}
+
+@* Layout (ADR-0011, canvas "W&B" page): aircraft loading + weight summary on the first row,
+   the CG envelope (kept as-is — owner decision) + loading breakdown on the second. *@
+<div class="wnb-page">
+
+    <section class="section wnb-loading">
+        <div class="section-header">
+            <h3 class="section-title">Aircraft Loading</h3>
+            <span class="section-hint wnb-legend">
+                <span class="wnb-legend-item"><span class="dot dot-ok"></span>Closed</span>
+                <span class="wnb-legend-item"><span class="dot dot-warn"></span>Open</span>
+            </span>
         </div>
-    </section>
-
-    <section class="status-section">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Passengers &amp; Cargo</h3>
-        <div class="section-body">
-            @{
-                var paxCapacity = _zone1Cap.Value + _zone2Cap.Value + _zone3Cap.Value + _zone4Cap.Value;
-                var paxBoarded = _zone1.Value + _zone2.Value + _zone3.Value + _zone4.Value;
-                var cargoLoaded = _cargoFwd.Value + _cargoAft.Value;
-                var ofp = Ofp.Current;
-            }
-            <div class="row"><span class="row-label">Pax capacity</span><span class="row-value-mono">@paxCapacity ECONOMY</span></div>
-            <div class="row">
-                <span class="row-label">Pax</span>
-                <span class="row-value-mono">PLANNED @(ofp?.PaxCount.ToString() ?? "—") · BOARDED @paxBoarded</span>
+        <div class="section-body wnb-loading-body">
+            <div class="wnb-silhouette inset">
+                <A320Silhouette SeatOccupation="@ParseSeatOccupation(_seatOccupation.Value)"
+                                Door1L="@DoorOpen(_door1L)" Door2L="@DoorOpen(_door2L)"
+                                Door3L="@DoorOpen(_door3L)" Door4L="@DoorOpen(_door4L)"
+                                Door1R="@DoorOpen(_door1R)" Door2R="@DoorOpen(_door2R)"
+                                Door3R="@DoorOpen(_door3R)" Door4R="@DoorOpen(_door4R)"
+                                FwdCargoOpen="@DoorOpen(_doorCargoFwd)"
+                                AftCargoOpen="@DoorOpen(_doorCargoAft)"
+                                BulkCargoOpen="@DoorOpen(_doorCargoBulk)"
+                                BulkFitted="@(_cargoBulkCap.Value > 0)" />
+                <div class="wnb-doors">
+                    @foreach (var (label, sub) in new[] { ("FWD", _doorCargoFwd), ("AFT", _doorCargoAft), ("BULK", _doorCargoBulk) })
+                    {
+                        var fitted = label != "BULK" || _cargoBulkCap.Value > 0;
+                        <span class="wnb-door @(!fitted ? "na" : DoorOpen(sub) ? "open" : "closed")">
+                            @label: @(!fitted ? "N/A" : DoorOpen(sub) ? "OPEN" : "CLOSED")
+                        </span>
+                    }
+                    <span class="pill @(anyDoorOpen ? "tone-warn" : "tone-ok")">
+                        @(anyDoorOpen ? "Doors open" : "All doors closed")
+                    </span>
+                </div>
             </div>
-            <div class="row"><span class="row-label">Pax zones 1–4</span><span class="row-value-mono">@_zone1.Value / @_zone2.Value / @_zone3.Value / @_zone4.Value</span></div>
-            @if (_paxSim is not null)
-            {
-                @* Predecessor's SIMULATE affordance: the button expands inline to COUNT +
-                   GENERATE/CLEAR. Empty COUNT means a full cabin. The silhouette below picks
-                   up the written occupation string on the next 1 s repaint. *@
-                <div class="row">
+
+            <div class="wnb-totals">
+                <div class="wnb-total">
+                    <span class="label-caps">Total pax</span>
+                    <span class="figure figure-lg">@paxBoarded<span class="figure-unit">/ @paxCapacity</span></span>
+                    <span class="wnb-total-sub">Zones @_zone1.Value / @_zone2.Value / @_zone3.Value / @_zone4.Value · planned @(ofp?.PaxCount.ToString() ?? "—")</span>
+                </div>
+                <div class="wnb-total">
+                    <span class="label-caps">Cargo FWD</span>
+                    <span class="figure figure-lg">@W0(_cargoFwd.Value)<span class="figure-unit">@UnitU</span></span>
+                    <span class="wnb-total-sub">max @W0(_cargoFwdCap.Value)</span>
+                </div>
+                <div class="wnb-total">
+                    <span class="label-caps">Cargo AFT</span>
+                    <span class="figure figure-lg">@W0(_cargoAft.Value)<span class="figure-unit">@UnitU</span></span>
+                    <span class="wnb-total-sub">max @W0(_cargoAftCap.Value)@(_cargoBulkCap.Value > 0 ? $" · bulk {W0(_cargoBulkCap.Value)}" : "")</span>
+                </div>
+                <div class="wnb-total">
+                    <span class="label-caps">Fuel in tanks</span>
+                    <span class="figure figure-lg glow">@W0(_fuelTotal.Value)<span class="figure-unit">@UnitU</span></span>
+                    <span class="wnb-total-sub">planned @(ofp is null ? "—" : W0(ofp.FuelPlanRampKg))</span>
+                </div>
+            </div>
+
+            <div class="wnb-tools">
+                @if (_paxSim is not null)
+                {
+                    @* Predecessor's SIMULATE affordance: the button expands inline to COUNT +
+                       GENERATE/CLEAR. Empty COUNT means a full cabin. The silhouette above picks
+                       up the written occupation string on the next 1 s repaint. *@
                     @if (!_simOpen)
                     {
-                        <button type="button" class="btn secondary" @onclick="() => _simOpen = true">SIMULATE</button>
+                        <button type="button" class="btn secondary" @onclick="() => _simOpen = true">Simulate</button>
                     }
                     else
                     {
-                        <span class="row-label">COUNT</span>
+                        <span class="label-caps">Count</span>
                         <input type="number" class="number-input" min="0" max="@paxCapacity"
                                placeholder="@(paxCapacity > 0 ? paxCapacity.ToString() : "132")"
                                disabled="@_simBusy" @bind="_simCount" />
                         <button type="button" class="btn secondary" disabled="@_simBusy" @onclick="GeneratePax">
-                            @(_simBusy ? "…" : "GENERATE")
+                            @(_simBusy ? "…" : "Generate")
                         </button>
-                        <button type="button" class="btn secondary" disabled="@_simBusy" @onclick="ClearPax">CLEAR</button>
+                        <button type="button" class="btn secondary" disabled="@_simBusy" @onclick="ClearPax">Clear</button>
                         <button type="button" class="btn secondary" title="Hide controls" @onclick="CloseSimulate">×</button>
+                        <span class="field-hint">Works for headless cabins; GSX boarding will overwrite.</span>
                     }
                     @if (_simResult is not null)
                     {
-                        <span class="row-value">@_simResult</span>
+                        <span class="field-hint">@_simResult</span>
                     }
-                </div>
-                @if (_simOpen)
-                {
-                    <div class="row">
-                        <span class="row-label"></span>
-                        <span class="row-value">SIMULATE works for headless cabins; GSX boarding will overwrite.</span>
-                    </div>
                 }
-            }
-            <div class="row">
-                <span class="row-label">Cargo capacity</span>
-                <span class="row-value-mono">@W0(_cargoFwdCap.Value) @UnitU FWD, @W0(_cargoAftCap.Value) @UnitU AFT@(_cargoBulkCap.Value > 0 ? $", {W0(_cargoBulkCap.Value)} {UnitU} BULK" : "")</span>
-            </div>
-            <div class="row">
-                <span class="row-label">Cargo</span>
-                <span class="row-value-mono">PLANNED @(ofp is null ? "—" : W0(ofp.CargoKg)) · LOADED @W0(cargoLoaded) @UnitU</span>
-            </div>
-            <div class="row"><span class="row-label">FWD / AFT</span><span class="row-value-mono">@W0(_cargoFwd.Value) / @W0(_cargoAft.Value) @UnitU</span></div>
-            <div class="row"><span class="row-label">Fuel</span><span class="row-value-mono">PLANNED @(ofp is null ? "—" : W0(ofp.FuelPlanRampKg)) · IN TANKS @W0(_fuelTotal.Value) @UnitU</span></div>
-            <div class="row"><span class="row-label">ZFW</span><span class="row-value-mono">@Wt(_zfw) / max @Wt(_zfwMax)</span></div>
-            <div class="row"><span class="row-label">Gross weight</span><span class="row-value-mono">@Wt(_gross) / max @Wt(_grossMax)</span></div>
-        </div>
-    </section>
-
-    <section class="status-section status-span">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Aircraft Status</h3>
-        <div class="section-body">
-            <A320Silhouette SeatOccupation="@ParseSeatOccupation(_seatOccupation.Value)"
-                            Door1L="@DoorOpen(_door1L)" Door2L="@DoorOpen(_door2L)"
-                            Door3L="@DoorOpen(_door3L)" Door4L="@DoorOpen(_door4L)"
-                            Door1R="@DoorOpen(_door1R)" Door2R="@DoorOpen(_door2R)"
-                            Door3R="@DoorOpen(_door3R)" Door4R="@DoorOpen(_door4R)"
-                            FwdCargoOpen="@DoorOpen(_doorCargoFwd)"
-                            AftCargoOpen="@DoorOpen(_doorCargoAft)"
-                            BulkCargoOpen="@DoorOpen(_doorCargoBulk)"
-                            BulkFitted="@(_cargoBulkCap.Value > 0)" />
-            @{
-                var anyDoorOpen = new[] { _door1L, _door2L, _door3L, _door4L, _door1R, _door2R, _door3R, _door4R, _doorCargoFwd, _doorCargoAft, _doorCargoBulk }
-                    .Any(DoorOpen);
-            }
-            <div class="row" style="justify-content:center; gap:24px;">
-                @foreach (var (label, sub) in new[] { ("FWD", _doorCargoFwd), ("AFT", _doorCargoAft), ("BULK", _doorCargoBulk) })
-                {
-                    var fitted = label != "BULK" || _cargoBulkCap.Value > 0;
-                    <span class="row-value-mono" style="color:@(!fitted ? "#555555" : DoorOpen(sub) ? "var(--warning)" : "var(--success)")">
-                        @label: @(!fitted ? "N/A" : DoorOpen(sub) ? "OPEN" : "CLOSED")
-                    </span>
-                }
-            </div>
-            <div class="row" style="justify-content:center;">
-                <span class="pill @(anyDoorOpen ? "tone-active" : "tone-ok")" style="font-weight:600;">
-                    @(anyDoorOpen ? "DOORS OPEN" : "ALL DOORS CLOSED")
-                </span>
-            </div>
-            <div class="row">
                 <button type="button" class="btn secondary" @onclick="() => _showManifest = !_showManifest">
                     @(_showManifest ? "▾ Hide manifest" : $"▸ Manifest ({ManifestService.Manifest().Count})")
                 </button>
-                <span class="row-value">Generated from the booked seat map; the same flight keeps the same names.</span>
+                <span class="field-hint">Generated from the booked seat map; the same flight keeps the same names.</span>
             </div>
+
             @if (_showManifest)
             {
                 var manifest = ManifestService.Manifest();
@@ -190,7 +144,7 @@
                 }
                 else
                 {
-                    <div class="manifest-grid">
+                    <div class="manifest-grid inset wnb-manifest">
                         <span class="manifest-head">SEAT</span><span class="manifest-head">NAME</span><span class="manifest-head">ZONE</span>
                         @foreach (var pax in manifest)
                         {
@@ -201,6 +155,107 @@
                     </div>
                 }
             }
+        </div>
+    </section>
+
+    <section class="section wnb-summary">
+        <div class="section-header"><h3 class="section-title">Weight Summary</h3></div>
+        <div class="section-body wnb-summary-body">
+            @WeightBar("Zero fuel weight (ZFW)", _zfw.Value, _zfwMax.Value, false)
+            @WeightBar("Gross weight (GW)", _gross.Value, _grossMax.Value, true)
+            <div class="wnb-mac inset">
+                <div class="wnb-mac-cell">
+                    <span class="label-caps">MACZFW</span>
+                    <span class="figure @(zfwCgBad ? "wnb-bad" : null)">@($"{_zfwcg.Value:F1}")<span class="figure-unit">%</span></span>
+                    <span class="wnb-total-sub @(zfwCgBad ? "wnb-bad" : null)">valid @($"{zfwMin:F1}–{zfwMax:F1}")</span>
+                </div>
+                <div class="wnb-mac-cell">
+                    <span class="label-caps">MACGW</span>
+                    <span class="figure glow @(gwCgBad ? "wnb-bad" : null)">@($"{_cg.Value:F1}")<span class="figure-unit">%</span></span>
+                    <span class="wnb-total-sub @(gwCgBad ? "wnb-bad" : null)">valid @($"{gwMin:F1}–{gwMax:F1}")</span>
+                </div>
+            </div>
+            <button type="button" class="btn primary" disabled="@_syncing" @onclick="SyncFms">
+                @(_syncing ? "Syncing…" : $"Sync to FMS ({bestTag ?? "COMPUTED"})")
+            </button>
+            @if (_syncResult is not null)
+            {
+                <span class="field-hint">@_syncResult</span>
+            }
+        </div>
+    </section>
+
+    <section class="section wnb-envelope">
+        <div class="section-header">
+            <h3 class="section-title">CG Envelope</h3>
+            <span class="section-hint">LIVE reads aircraft datarefs each tick · L/S mirrors the latest loadsheet (final preferred, prelim fallback)</span>
+        </div>
+        <div class="section-body wnb-envelope-body">
+            <div class="wnb-chart">
+                <CgEnvelope GrossWeightKg="@_gross.Value"
+                            GrossCgMac="@_cg.Value"
+                            ZfwKg="@_zfw.Value"
+                            ZfwCgMac="@_zfwcg.Value" />
+            </div>
+            <table class="data-table wnb-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th class="num">ZFW (@UnitU)</th>
+                        <th class="num">MACZFW (%)</th>
+                        <th class="num">GW (@UnitU)</th>
+                        <th class="num">MACGW (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="wnb-rowhead">LIVE</td>
+                        <td class="mono num">@W0(_zfw.Value)</td>
+                        <td class="mono num @(zfwCgBad ? "wnb-bad" : null)">@($"{_zfwcg.Value:F1}")</td>
+                        <td class="mono num">@W0(_gross.Value)</td>
+                        <td class="mono num @(gwCgBad ? "wnb-bad" : null)">@($"{_cg.Value:F1}")</td>
+                    </tr>
+                    <tr>
+                        <td class="wnb-rowhead">L/S @(bestTag is null ? "" : $"({bestTag})")</td>
+                        <td class="mono num">@(best is null ? "—" : W0(best.ZfwKg))</td>
+                        <td class="mono num">@(best is null ? "—" : $"{best.MacZfw:F1}")</td>
+                        <td class="mono num">@(best is null ? "—" : W0(best.TowKg))</td>
+                        <td class="mono num">@(best is null ? "—" : $"{best.MacTow:F1}")</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="section wnb-breakdown">
+        <div class="section-header"><h3 class="section-title">Loading Breakdown</h3></div>
+        <div class="section-body">
+            <table class="data-table wnb-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th class="num">Actual</th>
+                        <th class="num">Max</th>
+                        <th class="num">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @BreakdownRow("Passengers", paxBoarded, paxCapacity, "", ofp?.PaxCount)
+                    @BreakdownRow("Cargo FWD", _cargoFwd.Value, _cargoFwdCap.Value, UnitU, null)
+                    @BreakdownRow("Cargo AFT", _cargoAft.Value, _cargoAftCap.Value, UnitU, null)
+                    @if (_cargoBulkCap.Value > 0)
+                    {
+                        @BreakdownRow("Cargo total", cargoLoaded, cargoCapacity, UnitU, ofp?.CargoKg)
+                    }
+                    else
+                    {
+                        @BreakdownRow("Cargo total", cargoLoaded, cargoCapacity, UnitU, ofp?.CargoKg)
+                    }
+                    @BreakdownRow("Fuel", _fuelTotal.Value, 0, UnitU, ofp?.FuelPlanRampKg)
+                    @BreakdownRow("ZFW", _zfw.Value, _zfwMax.Value, UnitU, ofp?.EstZfwKg)
+                    @BreakdownRow("Gross weight", _gross.Value, _grossMax.Value, UnitU, ofp?.EstTowKg)
+                </tbody>
+            </table>
         </div>
     </section>
 
@@ -312,6 +367,42 @@
             sub.Dispose();
         }
         base.Dispose();
+    }
+
+    // ── Row renderers (ADR-0011) ─────────────────────────────────────────────────────
+
+    /// <summary>Weight summary bar: figure vs limit, red when over.</summary>
+    private RenderFragment WeightBar(string label, double kg, double maxKg, bool hot)
+    {
+        var pct = maxKg > 0 ? Math.Clamp(kg / maxKg * 100, 0, 100) : 0;
+        var over = maxKg > 0 && kg > maxKg;
+        return @<div class="wnb-bar @(hot ? "hot" : null)">
+            <div class="wnb-bar-head">
+                <span class="label-caps">@label</span>
+                <span class="wnb-bar-value @(over ? "wnb-bad" : null)">@W0(kg) @UnitU</span>
+            </div>
+            <div class="wnb-bar-track"><div class="wnb-bar-fill @(over ? "over" : null)" style="width:@(pct.ToString("F1", CultureInfo.InvariantCulture))%"></div></div>
+            <span class="wnb-bar-max">max @(maxKg > 0 ? $"{W0(maxKg)} {UnitU}" : "—")</span>
+        </div>;
+    }
+
+    /// <summary>Loading-breakdown row: actual vs max (0 = no limit) with a status pill;
+    /// pax rows carry no unit, weight rows convert through the display unit.</summary>
+    private RenderFragment BreakdownRow(string category, double actual, double max, string unit, double? planned)
+    {
+        var isWeight = unit.Length > 0;
+        string Fmt(double v) => isWeight ? W0(v) : v.ToString("F0", CultureInfo.InvariantCulture);
+        var over = max > 0 && actual > max;
+        var (tone, text) = over ? ("tone-bad", "over")
+            : actual <= 0 ? ("tone-neutral", "empty")
+            : planned is { } p && p > 0 && Math.Abs(actual - p) / p > 0.05 ? ("tone-warn", "vs plan")
+            : ("tone-ok", "ok");
+        return @<tr>
+            <td class="wnb-rowhead">@category</td>
+            <td class="mono num @(over ? "wnb-bad" : null)">@Fmt(actual) @unit</td>
+            <td class="mono num" style="color:var(--text-muted)">@(max > 0 ? $"{Fmt(max)} {unit}" : planned is { } pl ? $"plan {Fmt(pl)} {unit}" : "—")</td>
+            <td class="num"><span class="pill @tone">@text</span></td>
+        </tr>;
     }
 
     private static bool DoorOpen(IDataRefSubscription<bool> sub) => sub.Value;

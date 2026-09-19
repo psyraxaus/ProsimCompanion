@@ -1,16 +1,16 @@
 {
   "name": "Dark",
-  "description": "Dark theme for low-light environments",
+  "description": "Pure black cockpit with warm charcoal panels",
   "colors": {
-    "primaryColor": "#1E90FF",
-    "secondaryColor": "#0078D7",
-    "accentColor": "#FF6A33",
-    "headerBackground": "#2C3E50",
-    "tabBarBackground": "#0A0A0A",
-    "contentBackground": "#1E1E1E",
-    "sectionBackground": "#2D2D2D",
+    "primaryColor": "#00D9FF",
+    "secondaryColor": "#00B8D9",
+    "accentColor": "#00D9FF",
+    "headerBackground": "#1A1614",
+    "tabBarBackground": "#1A1614",
+    "contentBackground": "#000000",
+    "sectionBackground": "#1A1614",
     "headerText": "#FFFFFF",
-    "contentText": "#E0E0E0",
-    "categoryText": "#5AABFF"
+    "contentText": "#FFFFFF",
+    "categoryText": "#9CA3AF"
   }
 }

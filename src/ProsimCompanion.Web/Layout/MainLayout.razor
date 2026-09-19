@@ -1,4 +1,5 @@
 @inherits StoreObserverLayout
+@using System.Reflection
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Configuration
 @inject ConnectionStatusStore Status
@@ -11,8 +12,17 @@
 <div class="app">
     <header class="header">
         <div class="brand">
-            <span class="brand-name">PROSIMCOMPANION</span>
-            <span class="brand-tag">WEB</span>
+            @* Lucide "plane" (ISC) inline — no icon CDN (ADR-0011). *@
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
+                </svg>
+            </span>
+            <span class="brand-text">
+                <span class="brand-name">PROSIM<span class="gold">COMPANION</span></span>
+                <span class="brand-tag">Electronic Flight Bag</span>
+            </span>
         </div>
         <div class="flap-center">
             <split-flap text="@_flightNumber" count="8" animate="@SolariMode"></split-flap>
@@ -81,6 +91,21 @@
     <main class="main">
         @Body
     </main>
+
+    @* Status footer (ADR-0011): the canvas footer carried fake CPU/MEM/wifi widgets; ours
+       shows the three real connections and the running version. Hidden on phones. *@
+    <footer class="footer">
+        <div class="footer-links">
+            @foreach (var (label, subsystem) in FooterLinks)
+            {
+                <span class="footer-link" title="@label connection">
+                    <span class="conn-dot @DotClass(subsystem)"></span>
+                    <span>@label</span>
+                </span>
+            }
+        </div>
+        <div class="footer-version mono">v@(Version)</div>
+    </footer>
 </div>
 
 @code {
@@ -124,8 +149,24 @@
 
     private string? SolariMode => WebUi.CurrentValue.SolariAnimation ? null : "off";
 
-    private string ProsimDotClass => Status.Snapshot()
-        .FirstOrDefault(pair => pair.Key == Subsystems.Prosim).Value switch
+    private string ProsimDotClass => DotClass(Subsystems.Prosim);
+
+    // Footer order: the aircraft link first, then the sim, then ground services.
+    private static readonly (string Label, string Subsystem)[] FooterLinks =
+    [
+        ("ProSim", Subsystems.Prosim),
+        ("SimConnect", Subsystems.SimConnect),
+        ("GSX", Subsystems.Gsx),
+    ];
+
+    // The running version without the "+sha" build metadata — what the release tag reads.
+    private static readonly string Version = (typeof(MainLayout).Assembly
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion ?? "")
+        .Split('+')[0];
+
+    private string DotClass(string subsystem) => Status.Snapshot()
+        .FirstOrDefault(pair => pair.Key == subsystem).Value switch
     {
         ConnectionState.Connected => "open",
         ConnectionState.Connecting => "reconnecting",

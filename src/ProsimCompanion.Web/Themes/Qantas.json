@@ -1,16 +1,16 @@
 {
   "name": "Qantas",
-  "description": "Qantas inspired theme",
+  "description": "White cockpit with Qantas navy panels",
   "colors": {
-    "primaryColor": "#E40000",
-    "secondaryColor": "#B00000",
-    "accentColor": "#FF4500",
-    "headerBackground": "#E40000",
-    "tabBarBackground": "#4A0000",
-    "contentBackground": "#F8F8F8",
-    "sectionBackground": "#FFFFFF",
-    "headerText": "#FFFFFF",
-    "contentText": "#333333",
-    "categoryText": "#E40000"
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#E5E7EB",
+    "accentColor": "#D4A373",
+    "headerBackground": "#003B6F",
+    "tabBarBackground": "#003B6F",
+    "contentBackground": "#FFFFFF",
+    "sectionBackground": "#003B6F",
+    "headerText": "#F8FAFC",
+    "contentText": "#F8FAFC",
+    "categoryText": "#B0B8C1"
   }
 }

@@ -30,7 +30,7 @@ public static class ThemeCssBuilder
         ArgumentNullException.ThrowIfNull(colors);
 
         // Detect dark vs light surface so we know which direction to shift.
-        var (r, g, b) = ParseHex(colors.SectionBackground) ?? (35, 42, 71);
+        var (r, g, b) = ParseHex(colors.SectionBackground) ?? (15, 59, 111);
         var isDark = (r + g + b) / 3.0 < 128;
 
         var css = new StringBuilder();
@@ -63,6 +63,16 @@ public static class ThemeCssBuilder
         Set("--header-text", colors.HeaderText);
 
         Set("--category-text", colors.CategoryText);
+
+        // Restyle 2026-09-20 (ADR-0011): the warm highlight (gold in the default theme) drives
+        // primary buttons, selected chips and the brand mark; the soft variant tints chips.
+        // Before the restyle AccentColor was parsed but never emitted.
+        Set("--accent-gold", colors.AccentColor);
+        Set("--accent-gold-soft", Rgba(colors.AccentColor, 0.12));
+
+        // Recessed "inset" surfaces (weather text, log boxes, runway diagram) sit INSIDE a
+        // card: near-black on dark themes, a light grey wash on light ones.
+        Set("--bg-inset", isDark ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.05)");
 
         return css.ToString();
     }

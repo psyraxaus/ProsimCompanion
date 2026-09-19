@@ -1,78 +1,104 @@
-/* ECAM-style checklist page — a port of Prosim2GSX's ChecklistsPanel
-   (ChecklistsPanel.module.css / ViewChecklist.xaml). Fixed colours are
-   intentional: they emulate the Airbus ECAM checklist display and do not
-   recolour with the app theme. Only the header/footer chrome uses theme
-   variables so the instrument screen sits inside a themed card frame. */
+/* Checklists page (ADR-0011) — the canvas "Checklists" page around the ECAM checklist
+   screen ported from Prosim2GSX's ChecklistsPanel (ChecklistsPanel.module.css /
+   ViewChecklist.xaml). The .ecamcl-* instrument rules keep their fixed colours: they
+   emulate the Airbus ECAM checklist display and do not recolour with the app theme. */
 
-.ecamcl-panel {
+.cl-page {
     display: flex;
     flex-direction: column;
-    /* Standard padded frame so the page sits in the same outer margin as
-       other pages. Only the chrome is themed — the checklist list keeps
-       its black instrument-screen styling on .ecamcl-body. */
+    gap: 16px;
     padding: 16px 18px;
-    max-width: 1100px;
+    max-width: 1180px;
     margin: 0 auto;
     width: 100%;
-    height: 100%;
     box-sizing: border-box;
+}
+.cl-page > .section { margin: 0; border-radius: var(--radius-xl); }
+
+/* ---- hero ---- */
+
+.cl-hero-body {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-top: 18px;
+}
+.cl-hero-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cl-hero-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+}
+.cl-selects { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.cl-select-wrap { display: flex; flex-direction: column; gap: 4px; }
+.cl-select { min-width: 220px; }
+
+.cl-progress { display: flex; flex-direction: column; gap: 6px; flex: 0 1 320px; min-width: 200px; }
+.cl-progress-head { display: flex; justify-content: space-between; align-items: baseline; }
+.cl-progress-pct { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.cl-progress-track {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
     overflow: hidden;
 }
+.cl-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--category-text), var(--accent-gold));
+    box-shadow: 0 0 10px var(--accent-gold-soft);
+    transition: width 300ms ease;
+}
+.cl-progress-sub { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
 
-/* Row 1: darker header strip — "C/L" label + checklist-set dropdown. */
-.ecamcl-header {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-bottom: none;
-    border-radius: var(--radius-md, 6px) var(--radius-md, 6px) 0 0;
-    padding: 10px 14px 4px 14px;
+/* ---- grid ---- */
+
+.cl-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    align-items: start;
+    gap: 16px;
+}
+.cl-grid > .section { margin: 0; border-radius: var(--radius-xl); }
+
+/* Screen card: the ECAM screen sits as an inset between the header and the actions. */
+.cl-screen-card .section-header { justify-content: space-between; }
+
+.cl-actions {
     display: flex;
-    align-items: center;
+    justify-content: center;
     gap: 8px;
+    flex-wrap: wrap;
+    padding: 14px 18px 16px;
 }
+.cl-actions .btn { min-width: 120px; }
 
-/* Row 2: section dropdown bar (same strip, continues the frame). */
-.ecamcl-sectionbar {
-    background: var(--bg-card);
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    padding: 6px 14px 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+/* C/L COMPLETE turns full ECAM-green when every line is checked. */
+.cl-btn-complete {
+    background: #00cc66 !important;
+    color: #000000 !important;
+    border-color: #00cc66 !important;
 }
+.cl-btn-complete:hover:not(:disabled) { background: #00e673 !important; border-color: #00e673 !important; }
 
-.ecamcl-cl-label {
-    font-weight: 600;
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-}
+/* ---- the ECAM instrument screen — black, cyan, monospace (never themed) ---- */
 
-.ecamcl-select {
-    background: var(--bg-input);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm, 4px);
-    padding: 5px 8px;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    min-width: 240px;
-}
-
-/* Row 3: the ECAM instrument screen — black, cyan, monospace. Flanked by
-   the themed header/footer bars so the 1px frame reads as one card. */
 .ecamcl-body {
-    flex: 1;
     min-height: 320px;
+    max-height: 60vh;
     overflow-y: auto;
+    margin: 6px 18px 0;
     padding: 12px 8px;
+    border-radius: var(--radius-lg);
     background: #000000;
     color: #00cccc;
-    font-family: Consolas, "Courier New", monospace;
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
+    font-family: var(--font-mono);
+    border: 1px solid var(--border);
 }
 
 /* Shared row skeleton: check glyph | label | dotted leader | value. */
@@ -86,14 +112,9 @@
     cursor: default;
 }
 
-.ecamcl-item.ecamcl-clickable {
-    cursor: pointer;
-}
+.ecamcl-item.ecamcl-clickable { cursor: pointer; }
 
-.ecamcl-check {
-    font-weight: bold;
-    text-align: center;
-}
+.ecamcl-check { font-weight: bold; text-align: center; }
 
 .ecamcl-dots {
     color: inherit;
@@ -103,21 +124,13 @@
     margin: 0 6px;
 }
 
-.ecamcl-checked {
-    color: #00cc44;
-}
+.ecamcl-checked { color: #00cc44; }
 
 /* Pending (not yet reached): same ECAM cyan, dimmed. */
-.ecamcl-pending {
-    color: #00cccc;
-    opacity: 0.55;
-}
+.ecamcl-pending { color: #00cccc; opacity: 0.55; }
 
 /* Skipped: dash prefix, dim — no strikethrough. */
-.ecamcl-skipped {
-    color: #00cccc;
-    opacity: 0.45;
-}
+.ecamcl-skipped { color: #00cccc; opacity: 0.45; }
 
 /* Current line: full-brightness cyan inside a highlight box. */
 .ecamcl-current {
@@ -150,17 +163,13 @@
     border: 1px solid rgba(0, 204, 204, 0.3);
     border-radius: 2px;
     color: rgba(0, 204, 204, 0.6);
-    font-family: Consolas, "Courier New", monospace;
+    font-family: var(--font-mono);
     font-size: 11px;
     line-height: 1.4;
     padding: 0 6px;
     cursor: pointer;
 }
-
-.ecamcl-skip:hover {
-    border-color: rgba(0, 204, 204, 0.7);
-    color: #00cccc;
-}
+.ecamcl-skip:hover { border-color: rgba(0, 204, 204, 0.7); color: #00cccc; }
 
 /* Display-only rows from Prosim2GSX-format set files. Notes read as quiet
    guidance lines; separators draw a dashed rule across the row. Neither is
@@ -170,14 +179,8 @@
     font-style: italic;
     color: rgba(0, 204, 204, 0.7);
 }
-
-.ecamcl-separator {
-    grid-template-columns: 22px 1fr;
-}
-
-.ecamcl-separator .ecamcl-sepline {
-    border-top: 1px dashed rgba(0, 204, 204, 0.35);
-}
+.ecamcl-separator { grid-template-columns: 22px 1fr; }
+.ecamcl-separator .ecamcl-sepline { border-top: 1px dashed rgba(0, 204, 204, 0.35); }
 
 .ecamcl-empty {
     padding: 24px 12px;
@@ -187,63 +190,66 @@
     text-align: center;
 }
 
-/* Row 4: footer button bar. */
-.ecamcl-footer {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 var(--radius-md, 6px) var(--radius-md, 6px);
-    padding: 10px;
+/* ---- sequence rail ---- */
+
+.cl-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 14px;
     display: flex;
-    justify-content: center;
-    gap: 8px;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 1px solid var(--border);
 }
-
-.ecamcl-btn {
-    background: var(--bg-button);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm, 4px);
-    padding: 6px 16px;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    min-width: 110px;
+.cl-step-btn {
+    appearance: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    font: inherit;
     cursor: pointer;
+    position: relative;
 }
-
-.ecamcl-btn:hover:not(:disabled) {
-    border-color: var(--accent);
+.cl-step-btn:hover { background: rgba(255, 255, 255, 0.05); }
+.cl-step-dot {
+    position: absolute;
+    left: -21px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    border: 2px solid var(--bg-card);
+    box-sizing: border-box;
 }
-
-.ecamcl-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+.cl-step.active .cl-step-dot { background: var(--accent); box-shadow: 0 0 10px var(--accent-muted); }
+.cl-step-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cl-step-name {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-primary);
 }
-
-/* C/L COMPLETE turns full ECAM-green when every line is checked. */
-.ecamcl-btn-complete {
-    background: #00cc66;
-    color: #000000;
-    border-color: #00cc66;
-}
-
-.ecamcl-btn-complete:hover:not(:disabled) {
-    background: #00e673;
-    border-color: #00e673;
-}
+.cl-step.active .cl-step-name { color: var(--accent); text-shadow: var(--glow); }
+.cl-step-sub { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--category-text); font-family: var(--font-mono); }
 
 /* Source-folder line under the panel (issue #55): quiet metadata, but the path itself is
    selectable/copyable so the user can paste it straight into an editor's open dialog. */
-.ecamcl-source {
-    margin: 10px 4px 0;
-    font-size: 12px;
-    color: var(--text-muted);
-}
+.ecamcl-source { margin: 0 4px; font-size: 12px; color: var(--text-muted); }
+.ecamcl-source code { user-select: all; font-size: 11px; }
 
-.ecamcl-source code {
-    user-select: all;
-    font-size: 11px;
+@media (max-width: 900px) {
+    .cl-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 540px) {
+    .cl-page { padding: 12px; }
+    .ecamcl-body { margin: 6px 12px 0; }
+    .cl-actions .btn { min-width: 0; flex: 1 1 45%; }
 }

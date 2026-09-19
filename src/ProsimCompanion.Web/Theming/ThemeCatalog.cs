@@ -17,9 +17,24 @@ public sealed class ThemeCatalog
         PropertyNameCaseInsensitive = true,
     };
 
-    // Presentation order for the built-ins (List() appends user themes alphabetically after).
+    /// <summary>
+    /// The theme used when none is configured or the configured name is unknown. Since the
+    /// 2026-09-20 restyle (ADR-0011) this is the KLM navy palette from the Superdesign canvas;
+    /// the pre-restyle name "Default" is kept as an alias so existing settings files and
+    /// theme files that reference it keep resolving.
+    /// </summary>
+    public const string DefaultThemeName = "KLM Royal Dutch";
+
+    private const string LegacyDefaultAlias = "Default";
+
+    // Presentation order for the built-ins (List() appends user themes alphabetically after):
+    // the default first, then the airlines as the canvas listed them, then the two basics.
     private static readonly string[] BuiltInOrder =
-        ["Default", "Dark", "Light", "Delta", "Finnair", "Lufthansa", "Qantas"];
+    [
+        DefaultThemeName, "Lufthansa", "Swiss International", "British Airways", "Air France",
+        "Singapore Airlines", "Emirates", "Qatar Airways", "United Airlines", "Qantas", "Finnair",
+        "Light", "Dark",
+    ];
 
     private readonly Dictionary<string, ThemeDefinition> _builtIns;
     private readonly string _userThemesDirectory;
@@ -45,14 +60,16 @@ public sealed class ThemeCatalog
     }
 
     /// <summary>
-    /// Resolves a theme by name (case-insensitive; user themes shadow built-ins except
-    /// Default). Unknown names fall back to Default so a stale setting can never blank the UI.
+    /// Resolves a theme by name (case-insensitive; user themes shadow built-ins except the
+    /// default). Unknown names fall back to <see cref="DefaultThemeName"/> so a stale setting
+    /// can never blank the UI; the legacy name "Default" resolves there silently.
     /// </summary>
     public ThemeDefinition Get(string? name)
     {
-        if (!string.IsNullOrWhiteSpace(name))
+        if (!string.IsNullOrWhiteSpace(name)
+            && !name.Equals(LegacyDefaultAlias, StringComparison.OrdinalIgnoreCase))
         {
-            if (!name.Equals("Default", StringComparison.OrdinalIgnoreCase)
+            if (!name.Equals(DefaultThemeName, StringComparison.OrdinalIgnoreCase)
                 && LoadUserThemes().TryGetValue(name, out var user))
             {
                 return user;
@@ -63,10 +80,10 @@ public sealed class ThemeCatalog
                 return builtIn;
             }
 
-            _logger.LogWarning("Theme {Theme} not found; using Default", name);
+            _logger.LogWarning("Theme {Theme} not found; using {Default}", name, DefaultThemeName);
         }
 
-        return _builtIns["Default"];
+        return _builtIns[DefaultThemeName];
     }
 
     private static Dictionary<string, ThemeDefinition> LoadBuiltIns()

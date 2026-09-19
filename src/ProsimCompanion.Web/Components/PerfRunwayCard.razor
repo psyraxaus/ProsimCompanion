@@ -1,0 +1,241 @@
+@* Airport / Runway card shared by the Takeoff and Landing performance pages (ADR-0011,
+   canvas "Performance" page): ICAO entry, runway chips, a stylised top-down runway diagram
+   with the take-off intersections and the wind vector, a TORA/TODA/ASDA/HDG data row, and a
+   slot for the page's surface/condition chips. The gateway's runway list is the only data
+   source — no airport names (the gateway does not carry them). *@
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft.Gateway
+
+<section class="section perf-card perf-runway-card">
+    <div class="section-header">
+        <h3 class="section-title">Airport / Runway</h3>
+        @if (MetarFetchedAt is { } fetched)
+        {
+            <span class="perf-chip-gold">METAR @fetched.ToString("HH:mm", CultureInfo.InvariantCulture)Z</span>
+        }
+    </div>
+    <div class="section-body perf-runway-body">
+
+        <div class="perf-airport-row">
+            <input type="text" class="perf-icao-input figure" maxlength="4" aria-label="Airport ICAO"
+                   placeholder="----" value="@Icao" @onchange="OnIcaoInput" />
+            <div class="perf-airport-meta">
+                <span class="label-caps">Airport</span>
+                <span class="perf-airport-sub">
+                    @if (Selected is { } picked)
+                    {
+                        <text>@(picked.ElevationFt is { Length: > 0 } elev ? $"ELEV {elev} FT" : "")@(picked.TransAlt is { } ta ? $" · TA {ta}" : "")</text>
+                    }
+                    else if (DisabledReason is { Length: > 0 } reason)
+                    {
+                        <text>@reason</text>
+                    }
+                    else
+                    {
+                        <text>Type the ICAO to load runways</text>
+                    }
+                </span>
+            </div>
+        </div>
+
+        @if (Runways is { Count: > 0 })
+        {
+            <div class="perf-chips" role="radiogroup" aria-label="Runway">
+                @foreach (var runway in Runways)
+                {
+                    var id = runway.RunwayId ?? "";
+                    <button type="button" class="perf-chip @(id == RunwayId ? "active" : null)"
+                            role="radio" aria-checked="@(id == RunwayId)"
+                            title="@(runway.LengthFt is > 0 ? $"{runway.LengthFt} ft" : null)"
+                            @onclick="() => SelectRunway(id)">@id</button>
+                }
+            </div>
+        }
+
+        <div class="perf-strip inset" aria-hidden="true">
+            @{
+                var strip = Selected;
+                var lengthFt = strip?.LengthFt ?? 0;
+                var reciprocal = Reciprocal(strip?.RunwayId);
+            }
+            <div class="perf-strip-runway">
+                <span class="perf-strip-keys left"></span>
+                <span class="perf-strip-keys right"></span>
+                <span class="perf-strip-centre"></span>
+                <span class="perf-strip-num left">@(strip?.RunwayId ?? "--")</span>
+                <span class="perf-strip-num right">@(reciprocal ?? "--")</span>
+                @if (strip?.Intersections is { Length: > 0 } intersections && lengthFt > 0)
+                {
+                    <span class="perf-strip-tick @(Intersection == "" ? "active" : null)" style="left:6%">
+                        <span class="perf-strip-tick-label">FULL</span>
+                    </span>
+                    @foreach (var ix in intersections)
+                    {
+                        var tora = ix.ToraFt ?? lengthFt;
+                        var pct = Math.Clamp(6 + (1.0 - (double)tora / lengthFt) * 88, 6, 94);
+                        <span class="perf-strip-tick @(ix.Name == Intersection ? "active" : null)"
+                              style="left:@(pct.ToString("F1", CultureInfo.InvariantCulture))%">
+                            <span class="perf-strip-tick-label">@ix.Name</span>
+                        </span>
+                    }
+                }
+            </div>
+            <div class="perf-strip-wind">
+                @if (WindKt > 0 && Heading is { } hdg && int.TryParse(WindDir, out var windDir))
+                {
+                    var rel = ((windDir - hdg) % 360 + 360) % 360;
+                    var rad = rel * Math.PI / 180.0;
+                    var hw = WindKt * Math.Cos(rad);
+                    var xw = WindKt * Math.Sin(rad);
+                    <svg class="perf-wind-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                         style="transform: rotate(@((rel + 90).ToString(CultureInfo.InvariantCulture))deg)">
+                        <path d="M5 12h14" /><path d="m13 6 6 6-6 6" />
+                    </svg>
+                    <span class="perf-wind-text mono">@windDir.ToString("000")°/@WindKt KT</span>
+                    <span class="perf-wind-comp mono">@(hw >= 0 ? "HW" : "TW") @Math.Abs(Math.Round(hw)) · XW @Math.Abs(Math.Round(xw))</span>
+                }
+                else
+                {
+                    <span class="perf-wind-text mono">WIND @(WindDir is { Length: > 0 } ? WindDir.PadLeft(3, '0') : "---")°/@WindKt KT</span>
+                }
+            </div>
+        </div>
+
+        <div class="perf-data-row">
+            @{
+                var selected = Selected;
+                var full = selected?.LengthFt ?? 0;
+                var ix2 = Intersection is not "" && selected?.Intersections is { } list
+                    ? list.FirstOrDefault(candidate => candidate.Name == Intersection)
+                    : null;
+                var toraFt = ix2?.ToraFt ?? full;
+                var todaFt = ix2?.TodaFt ?? full;
+                var asdaFt = ix2?.AsdaFt ?? full;
+            }
+            @if (DistanceLabel == "LDA")
+            {
+                @* Landing: the declared distances are take-off figures; show the runway facts. *@
+                @Datum("LDA", Metres(full))
+                @Datum("ELEV", selected?.ElevationFt is { Length: > 0 } elev ? $"{elev} FT" : "—")
+                @Datum("WIDTH", selected?.WidthFt is { Length: > 0 } width ? $"{width} FT" : "—")
+            }
+            else
+            {
+                @Datum(DistanceLabel, Metres(toraFt))
+                @Datum("TODA", Metres(todaFt))
+                @Datum("ASDA", Metres(asdaFt))
+            }
+            @Datum("HDG", Heading is { } h ? $"{h:000}°" : "—")
+        </div>
+
+        @if (Selected?.Intersections is { Length: > 0 } ixs)
+        {
+            <div class="perf-row">
+                <span class="perf-field-label">Intersection</span>
+                <select class="select perf-select" aria-label="Intersection" value="@Intersection" @onchange="OnIntersectionInput">
+                    <option value="">Full length</option>
+                    @foreach (var ix in ixs)
+                    {
+                        <option value="@ix.Name">@ix.Name · @ix.ToraFt ft</option>
+                    }
+                </select>
+            </div>
+        }
+
+        @if (Surface is not null)
+        {
+            <div class="perf-row">
+                <span class="perf-field-label">@SurfaceLabel</span>
+                <span class="perf-field-value">@Surface</span>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Icao { get; set; } = "";
+    [Parameter] public EventCallback<string> IcaoChanged { get; set; }
+
+    /// <summary>Runs after a new ICAO is committed (the page loads runways + METAR).</summary>
+    [Parameter] public EventCallback OnIcaoCommit { get; set; }
+
+    [Parameter] public IReadOnlyList<RunwayResponse>? Runways { get; set; }
+
+    [Parameter] public string? RunwayId { get; set; }
+    [Parameter] public EventCallback<string?> RunwayIdChanged { get; set; }
+
+    /// <summary>Runs after a runway chip is picked (the page reseeds or recalculates).</summary>
+    [Parameter] public EventCallback OnRunwayChanged { get; set; }
+
+    /// <summary>Selected take-off intersection name; "" = full length.</summary>
+    [Parameter] public string Intersection { get; set; } = "";
+    [Parameter] public EventCallback<string> IntersectionChanged { get; set; }
+    [Parameter] public EventCallback OnIntersectionChanged { get; set; }
+
+    /// <summary>Wind as entered on the page — drives the arrow and HW/XW readout.</summary>
+    [Parameter] public string WindDir { get; set; } = "";
+    [Parameter] public int WindKt { get; set; }
+
+    /// <summary>Why the runway list is empty (issue #65) — shown under the ICAO.</summary>
+    [Parameter] public string? DisabledReason { get; set; }
+
+    [Parameter] public DateTime? MetarFetchedAt { get; set; }
+
+    /// <summary>"TORA" (takeoff) or "LDA" (landing) — the first figure of the data row.</summary>
+    [Parameter] public string DistanceLabel { get; set; } = "TORA";
+
+    /// <summary>The page's surface / runway-condition chips.</summary>
+    [Parameter] public RenderFragment? Surface { get; set; }
+
+    [Parameter] public string SurfaceLabel { get; set; } = "Surface";
+
+    private RunwayResponse? Selected
+        => Runways?.FirstOrDefault(runway => runway.RunwayId == RunwayId);
+
+    private int? Heading
+        => Selected?.HdgDegT is { } text
+           && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var hdg)
+            ? (int)Math.Round(((hdg % 360) + 360) % 360)
+            : null;
+
+    private static string Metres(int feet)
+        => feet > 0 ? $"{(int)Math.Round(feet * 0.3048):N0} M" : "—";
+
+    /// <summary>"18L" → "36R": the opposite end's designator, for the far end of the strip.</summary>
+    private static string? Reciprocal(string? id)
+    {
+        if (string.IsNullOrEmpty(id) || !int.TryParse(id.AsSpan(0, Math.Min(2, id.Length)), out var num))
+        {
+            return null;
+        }
+
+        var opposite = (num + 18 - 1) % 36 + 1;
+        var side = id.Length > 2 ? id[2] switch { 'L' => "R", 'R' => "L", var c => c.ToString() } : "";
+        return $"{opposite:00}{side}";
+    }
+
+    private async Task OnIcaoInput(ChangeEventArgs e)
+    {
+        var value = (e.Value?.ToString() ?? "").Trim().ToUpperInvariant();
+        await IcaoChanged.InvokeAsync(value);
+        await OnIcaoCommit.InvokeAsync();
+    }
+
+    private async Task SelectRunway(string id)
+    {
+        await RunwayIdChanged.InvokeAsync(id);
+        await OnRunwayChanged.InvokeAsync();
+    }
+
+    private async Task OnIntersectionInput(ChangeEventArgs e)
+    {
+        await IntersectionChanged.InvokeAsync(e.Value?.ToString() ?? "");
+        await OnIntersectionChanged.InvokeAsync();
+    }
+
+    private static RenderFragment Datum(string label, string value) => @<div class="perf-datum">
+        <span class="label-caps">@label</span>
+        <span class="figure">@value</span>
+    </div>;
+}

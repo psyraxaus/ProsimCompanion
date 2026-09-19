@@ -1,0 +1,16 @@
+{
+  "name": "Qatar Airways",
+  "description": "Burgundy cockpit with oryx-beige panels",
+  "colors": {
+    "primaryColor": "#6B1C32",
+    "secondaryColor": "#8A2742",
+    "accentColor": "#6B1C32",
+    "headerBackground": "#D4A574",
+    "tabBarBackground": "#D4A574",
+    "contentBackground": "#6B1C32",
+    "sectionBackground": "#D4A574",
+    "headerText": "#1A1614",
+    "contentText": "#1A1614",
+    "categoryText": "#5C4633"
+  }
+}
