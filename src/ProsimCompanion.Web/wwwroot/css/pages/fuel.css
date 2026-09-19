@@ -1,205 +1,154 @@
-/* Fuel page — ported from Prosim2GSX Prosim2GSX.Web/src/panels/FuelPanel.module.css
-   (classes prefixed fuel- because Blazor has no CSS-module scoping). */
+/* Fuel page (ADR-0011): Fuel Summary and Tank Breakdown as two glass cards. The
+   green / amber / red bands of the capacity bar and the delta indicator are instrument
+   state colours and stay fixed. */
 
-.fuel-panel {
+.fuel-page {
   padding: 16px 18px;
-  max-width: 720px;
+  max-width: 1180px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
 }
+.fuel-card { margin: 0; border-radius: var(--radius-xl); }
+.fuel-card .section-header { justify-content: space-between; flex-wrap: wrap; }
+.fuel-body { gap: 14px; }
 
-.fuel-col-heading {
-  margin: 0 0 4px 0;
-  padding: 0;
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--category-text);
-  font-weight: 600;
-}
+/* ---- hero figure ---- */
 
-.fuel-col-heading + .fuel-col-heading,
-.fuel-data-card + .fuel-col-heading {
-  margin-top: 14px;
-}
+.fuel-hero { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 2px; }
 
-.fuel-data-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md, 6px);
-  padding: 12px;
-}
+/* ---- capacity bar ---- */
 
-.fuel-capacity {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--category-text);
-  margin-bottom: 8px;
-}
-
-/* ── Capacity bar ──────────────────────────────────────────────────────
-   Single horizontal bar showing fuel-in-tanks as a fraction of usable
-   capacity. Overlaid centred label gives the absolute kg figures. The
-   fill colour is set per-status by the parent (.fuel-capacity-fill-green /
-   ...-amber / ...-red / ...-neutral). */
 .fuel-capacity-bar {
   position: relative;
-  width: 100%;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.06);
+  height: 26px;
+  border-radius: 999px;
+  background: var(--bg-inset);
   border: 1px solid var(--border);
-  border-radius: 4px;
   overflow: hidden;
 }
-
 .fuel-capacity-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  transition: width 200ms ease;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 300ms ease;
 }
-
-.fuel-capacity-fill-green   { background: #4CAF50; }
-.fuel-capacity-fill-amber   { background: #F5A623; }
-.fuel-capacity-fill-red     { background: #E53935; }
-.fuel-capacity-fill-neutral { background: #4F6F8F; }   /* slate-blue when no plan */
-
+.fuel-capacity-fill-green   { background: var(--success); box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+.fuel-capacity-fill-amber   { background: var(--warning); box-shadow: 0 0 10px rgba(255, 183, 3, 0.5); }
+.fuel-capacity-fill-red     { background: var(--danger); box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+.fuel-capacity-fill-neutral { background: var(--text-muted); }   /* no plan */
 .fuel-capacity-label {
   position: absolute;
-  left: 0; right: 0; top: 0; bottom: 0;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #FFFFFF;
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
-  font-family: var(--font-mono, monospace);
-  pointer-events: none;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-/* ── Summary grid: PLANNED / IN TANKS in KG and L ─────────────────────
-   2-col header row + 2-col value row, repeated for kg then litres. */
+/* ---- planned / in-tanks grid ---- */
+
 .fuel-summary-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 18px;
-  margin-top: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
 }
-
 .fuel-summary-header {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--category-text);
-  text-align: center;
-}
-
-.fuel-summary-value {
+  margin-top: 8px;
+  font-size: 9px;
   font-weight: 700;
-  font-size: 18px;
-  font-family: var(--font-mono, monospace);
-  text-align: center;
-  color: var(--text-primary, #FFFFFF);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--category-text);
+}
+.fuel-summary-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
 }
 
-/* ── Delta row ───────────────────────────────────────────────────────── */
+/* ---- delta ---- */
+
 .fuel-delta-row {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-top: 12px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.03);
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
 }
-
-.fuel-delta-label {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--category-text);
-  font-weight: 600;
-}
-
 .fuel-delta-value {
+  font-family: var(--font-mono);
   font-size: 18px;
   font-weight: 700;
-  font-family: var(--font-mono, monospace);
-  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
-
 .fuel-delta-tag {
   margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #FFFFFF;
-  background: rgba(0, 0, 0, 0.4);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
+.fuel-delta-green .fuel-delta-value, .fuel-delta-green .fuel-delta-tag { color: var(--success); border-color: rgba(16, 185, 129, 0.35); }
+.fuel-delta-amber .fuel-delta-value, .fuel-delta-amber .fuel-delta-tag { color: var(--warning); border-color: rgba(255, 183, 3, 0.35); }
+.fuel-delta-red   .fuel-delta-value, .fuel-delta-red   .fuel-delta-tag { color: var(--danger); border-color: rgba(239, 68, 68, 0.35); }
+.fuel-delta-neutral .fuel-delta-value { color: var(--text-muted); }
 
-.fuel-delta-green   .fuel-delta-value { color: #4CAF50; }
-.fuel-delta-amber   .fuel-delta-value { color: #F5A623; }
-.fuel-delta-red     .fuel-delta-value { color: #E53935; }
-.fuel-delta-neutral .fuel-delta-value { color: var(--category-text); }
+/* ---- tank rows ---- */
 
-/* ── Tank breakdown rows ────────────────────────────────────────────── */
 .fuel-tank-row {
   display: grid;
-  grid-template-columns: 64px 1fr 160px;
+  grid-template-columns: 90px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 6px 0;
 }
-
-.fuel-tank-row + .fuel-tank-row {
-  border-top: 1px solid var(--border);
-}
-
 .fuel-tank-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--category-text);
 }
-
 .fuel-tank-bar {
-  position: relative;
   height: 12px;
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  background: var(--bg-inset);
   border: 1px solid var(--border);
-  border-radius: 3px;
   overflow: hidden;
 }
-
 .fuel-tank-fill {
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  background: #4CAF50;
-  transition: width 200ms ease;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: var(--glow);
+  transition: width 300ms ease;
 }
-
 .fuel-tank-value {
-  font-size: 13px;
-  font-weight: 700;
-  font-family: var(--font-mono, monospace);
-  text-align: right;
-  color: var(--text-primary, #FFFFFF);
-}
-
-.fuel-note {
-  margin: 8px 0 0 0;
-  padding: 0;
-  text-align: center;
-  font-style: italic;
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: #cfd5e6;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
-/* Stack-on-narrow already happens implicitly because the panel is
-   single-column; no media query needed. */
+@media (max-width: 900px) {
+  .fuel-page { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 540px) {
+  .fuel-page { padding: 12px; }
+  .fuel-tank-row { grid-template-columns: 70px minmax(0, 1fr); }
+  .fuel-tank-value { grid-column: 2; text-align: right; }
+}

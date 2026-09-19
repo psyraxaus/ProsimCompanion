@@ -1,94 +1,67 @@
-/* EFB INIT page — pixel port of Prosim2GSX's web EFB InitPanel.module.css.
- * Airbus FMS look: monospace, uppercase, letter-spaced readouts in a sharp
- * two-column layout. Chrome (section backgrounds, borders, buttons) rides on
- * the app theme tokens so the page recolours with the theme; the FMS readout
- * and state colours below are deliberately FIXED — they convey FMS state,
- * not theme (same rationale as the predecessor's perf-tab instrument
- * readouts). */
+/* EFB INIT page (ADR-0011). The Prosim2GSX InitPanel's Airbus-FMS readout semantics are kept
+   — uppercase mono rows, amber pending boxes while no OFP is loaded, MOD chips and
+   click-to-edit rows — inside the glass cards of the design language. The FMS state colours
+   below are fixed (they convey FMS state, not theme); the chrome rides on the app tokens. */
 
-.init-panel {
-  /* Theme-aware chrome */
-  --init-bg-section: var(--bg-card);
-  --init-btn-bg:     var(--bg-button);
-  --init-btn-border: var(--border);
-  --init-grey:       var(--border);
-  --init-white:      var(--text-primary);
-  --init-heading:    var(--category-text);
+.init-page {
+  padding: 16px 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 
   /* Fixed FMS readout / state colours (NOT themed) */
   --init-cyan:     #00d4e8;
-  --init-green:    #39ff6e;
   --init-amber:    #ffaa00;
-  --init-override: #ff8c00;
-  --init-warn:     #ff4444;
-  --init-font:     'Courier New', 'Lucida Console', monospace;
-
-  color: var(--text-primary);
-  font-family: var(--init-font);
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 16px 18px;
-  max-width: 1100px;
-  margin: 0 auto;
-  box-sizing: border-box;
-}
-
-.init-inner {
-  min-width: 0;
+  --init-override: var(--accent-gold);
+  --init-warn:     var(--danger);
 }
 
 .init-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
 }
 
-/* Stack columns on narrow viewports (phones / split-screen browsers). */
-@media (max-width: 760px) {
-  .init-columns {
-    grid-template-columns: 1fr;
-  }
+.init-card { margin: 0; border-radius: var(--radius-xl); }
+
+.init-body {
+  gap: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.init-column {
-  background: var(--init-bg-section);
-  border: 1px solid var(--init-grey);
-  border-radius: var(--radius-md, 6px);
-  padding: 14px 16px;
-  min-width: 0; /* allow column to shrink inside the grid */
+/* Route figures on top of the left card. */
+.init-route {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 4px 0 10px;
 }
-
-.init-title {
-  color: var(--init-heading);
-  font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  margin: 0 0 8px 0;
+.init-route-end { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.init-value-big {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
 }
 
 .init-separator {
   height: 1px;
-  background: var(--init-grey);
-  opacity: 0.4;
+  background: var(--border);
   margin: 8px 0;
 }
 
 .init-row {
   display: grid;
-  grid-template-columns: 110px auto;
+  grid-template-columns: 120px auto;
   gap: 12px;
-  margin: 4px 0;
+  margin: 3px 0;
   align-items: center;
-}
-
-.init-row-split {
-  display: grid;
-  grid-template-columns: 60px 80px 40px 80px 50px 80px;
-  gap: 8px;
-  margin: 4px 0;
-  align-items: center;
-  justify-content: start;
 }
 
 .init-row-fuel {
@@ -97,162 +70,123 @@
   display: flex;
   align-items: center;
   margin: 3px 0;
+  min-height: 24px;
 }
-
-.init-row-fuel .init-label {
-  width: 120px;
-  flex-shrink: 0;
-}
-
-.init-row-fuel .init-value-right {
-  width: 160px;
-  text-align: right;
-  flex-shrink: 0;
-}
+.init-row-fuel .init-label { width: 120px; flex-shrink: 0; }
+.init-row-fuel .init-value-right { width: 160px; text-align: right; flex-shrink: 0; }
 
 .init-label {
-  color: var(--init-white);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--category-text);
 }
 
-.init-value {
-  color: var(--init-green);
-  font-weight: bold;
+.init-value, .init-value-right {
+  color: var(--text-primary);
+  font-weight: 700;
   font-size: 13px;
 }
+.init-value-right { text-align: right; }
+.init-value-overridden { color: var(--init-override); }
 
-.init-value-right {
-  color: var(--init-green);
-  font-weight: bold;
-  font-size: 13px;
-  text-align: right;
-}
-
-.init-value-overridden {
-  color: var(--init-override);
-}
-
-/* Pending / empty (no OFP loaded yet) — a row of individual amber-outlined
- * boxes, mimicking a real Airbus FMS INIT page where each character slot has
- * its own square box awaiting an entry. Inline-flex so the boxes sit
- * side-by-side without the wrapper expanding to fill its grid cell. */
+/* Pending / empty (no OFP loaded yet) — a row of individual amber-outlined boxes,
+ * mimicking a real Airbus FMS INIT page where each character slot awaits an entry. */
 .init-pending {
   display: inline-flex;
-  gap: 1px;
+  gap: 2px;
   width: max-content;
   justify-self: start;
   flex: 0 0 auto;
 }
-
 .init-pending-box {
   display: inline-block;
   width: 0.62em;
   height: 1em;
   border: 1px solid var(--init-amber);
-  background: transparent;
+  border-radius: 2px;
+  background: rgba(255, 170, 0, 0.08);
   box-sizing: border-box;
 }
-
-/* When a pending block sits in a fuel row (display: flex), push it to the
- * right edge so it lines up with where the green value normally lives. */
-.init-pending-fuel {
-  margin-left: auto;
-}
+.init-value-big.init-pending .init-pending-box { width: 0.62em; height: 1em; }
+.init-pending-fuel { margin-left: auto; }
 
 /* Editor — inline input + ENT / CLR keys for the four writable rows. */
 .init-editor {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex: 1;
   justify-content: flex-end;
 }
-
 .init-editor-input {
-  background: var(--init-btn-bg);
-  border: 1px solid var(--init-cyan);
-  color: var(--init-green);
-  font-family: var(--init-font);
+  background: var(--bg-inset);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
   font-size: 13px;
-  font-weight: bold;
-  padding: 2px 6px;
-  width: 90px;
+  font-weight: 700;
+  padding: 4px 8px;
+  width: 96px;
   text-align: right;
   outline: none;
-  border-radius: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  box-shadow: 0 0 0 2px var(--accent-muted);
 }
-
-.init-editor-input:focus {
-  border-color: var(--init-green);
-}
-
 .init-editor-key {
-  background: var(--init-btn-bg);
-  border: 1px solid var(--init-btn-border);
-  color: var(--init-white);
-  border-radius: 0;
-  padding: 2px 6px;
-  font-family: var(--init-font);
-  font-size: 10px;
-  font-weight: bold;
-  cursor: pointer;
-  letter-spacing: 0.05em;
-}
-
-.init-editor-key:hover {
-  border-color: var(--init-cyan);
-  color: var(--init-cyan);
-}
-
-.init-editor-key-ent {
-  border-color: var(--init-cyan);
-  color: var(--init-cyan);
-}
-
-.init-editor-key-clr {
-  border-color: var(--init-warn);
-  color: var(--init-warn);
-}
-
-/* Editable rows are click targets. Subtle hover hint so the pilot knows
- * they can edit. */
-.init-row-fuel-editable {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
   cursor: pointer;
 }
+.init-editor-key:hover { border-color: var(--border-strong); }
+.init-editor-key-ent { border-color: var(--accent); color: var(--accent); }
+.init-editor-key-clr { border-color: var(--init-warn); color: var(--init-warn); }
 
+/* Editable rows are click targets. Subtle hover hint so the pilot knows they can edit. */
+.init-row-fuel-editable { cursor: pointer; }
 .init-row-fuel-editable:hover .init-value-right {
-  border-bottom: 1px dashed var(--init-cyan);
-  margin-bottom: -1px; /* keep layout stable */
+  color: var(--accent);
+  text-shadow: var(--glow);
 }
 
-/* "OUT OF RANGE" / "INVALID" / "WRITE FAILED" — red, sits to the right of
- * the editor keys; cleared after ~2s by the page's flash timer. */
+/* "OUT OF RANGE" / "INVALID" / "WRITE FAILED" — sits right of the editor keys for ~2 s. */
 .init-editor-error {
   color: var(--init-warn);
   font-size: 10px;
-  font-weight: bold;
+  font-weight: 700;
   letter-spacing: 0.05em;
   margin-left: 6px;
 }
 
 /* MOD chip for overridden rows. */
 .init-mod-chip {
-  color: var(--init-override);
-  font-size: 10px;
-  font-weight: bold;
-  margin-left: 6px;
-  letter-spacing: 0.05em;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 45%, transparent);
+  background: var(--accent-gold-soft);
+  color: var(--accent-gold);
+  font-family: var(--font-sans);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
 }
 
-/* Fetch-phase text at the bottom of the left panel. Cycles
- * "CONTACTING SIMBRIEF..." → "PARSING OFP..." → "WRITING TO FMS..." while a
- * fetch is in flight; cleared when the fetch finishes. */
+/* Fetch-phase text: cycles "CONTACTING SIMBRIEF..." → "PARSING OFP..." → "WRITING TO FMS...". */
 .init-fetch-phase {
-  color: var(--init-cyan);
+  color: var(--accent);
+  text-shadow: var(--glow);
   font-size: 11px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   margin-top: 6px;
   min-height: 1em;
 }
@@ -262,76 +196,42 @@
   grid-template-columns: 14px 1fr auto;
   margin: 4px 0;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
+.init-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.init-status-dot-green { background: var(--success); box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
+.init-status-dot-amber { background: var(--init-amber); box-shadow: 0 0 6px rgba(255, 170, 0, 0.6); }
+.init-status-dot-warn  { background: var(--init-warn); box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+.init-status-dot-cyan  { background: var(--accent); box-shadow: var(--glow); }
 
-.init-status-dot {
-  width: 8px;
-  height: 8px;
-  display: inline-block;
-}
-
-.init-status-dot-green { background: var(--init-green); }
-.init-status-dot-amber { background: var(--init-amber); }
-.init-status-dot-warn  { background: var(--init-warn);  }
-.init-status-dot-cyan  { background: var(--init-cyan);  }
-
-.init-error-line {
-  color: var(--init-warn);
-  font-size: 11px;
-  margin-top: 4px;
-}
+.init-error-line { color: var(--init-warn); font-size: 11px; margin-top: 4px; }
 
 .init-fetched-at {
   color: var(--text-muted);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.1em;
   text-align: right;
   margin-top: 4px;
 }
 
-.init-actions {
+/* Action row — one full-width glass card. */
+.init-actions-card .init-actions {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
   flex-wrap: wrap;
+  align-items: center;
+  padding: 16px 18px;
 }
+.init-btn-flex { margin-left: auto; }
 
-.init-btn {
-  background: var(--init-btn-bg);
-  border: 1px solid var(--init-btn-border);
-  color: var(--text-primary);
-  border-radius: var(--radius-sm, 4px);
-  padding: 6px 14px;
-  font-family: var(--init-font);
-  font-size: 11px;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: border-color 100ms, color 100ms;
+@media (max-width: 900px) {
+  .init-columns { grid-template-columns: minmax(0, 1fr); }
 }
-
-.init-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.init-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.init-btn-primary {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.init-btn-amber {
-  border-color: var(--warning);
-  color: var(--warning);
-}
-
-.init-btn-warn {
-  border-color: var(--danger);
-  color: var(--danger);
+@media (max-width: 540px) {
+  .init-page { padding: 12px; }
+  .init-value-big { font-size: 24px; }
+  .init-row-fuel .init-label { width: 96px; }
+  .init-row-fuel .init-value-right { width: auto; flex: 1; }
+  .init-btn-flex { margin-left: 0; }
 }

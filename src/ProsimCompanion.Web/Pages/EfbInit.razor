@@ -22,25 +22,26 @@
    keys, range-validated against FieldRanges below; out-of-range commits
    flash a red hint and reject without writing. *@
 
-<div class="init-panel">
-    <div class="init-inner">
-        <div class="init-columns">
+@* Layout (ADR-0011): the two MCDU columns become two glass cards with the route as big
+   figures on top; the FMS readout semantics (green-on-black lineage: pending amber boxes,
+   MOD chips, click-to-edit rows) are kept. *@
+<div class="init-page">
+    <div class="init-columns">
 
-            @* LEFT — ACTIVE / INIT *@
-            <div class="init-column">
-                <div class="init-title">ACTIVE / INIT</div>
+        @* LEFT — ACTIVE / INIT *@
+        <section class="section init-card">
+            <div class="section-header"><h3 class="section-title">Active / Init</h3></div>
+            <div class="section-body init-body">
+
+                <div class="init-route">
+                    <div class="init-route-end"><span class="label-caps">From</span>@ValueCell(_ofp?.OriginIcao, 4, true)</div>
+                    <div class="init-route-end"><span class="label-caps">To</span>@ValueCell(_ofp?.DestinationIcao, 4, true)</div>
+                    <div class="init-route-end"><span class="label-caps">Altn</span>@ValueCell(_ofp?.AlternateIcao, 4, true)</div>
+                </div>
+
                 <div class="init-separator"></div>
 
                 @Row("FLT NBR", FlightNumber, 6)
-
-                <div class="init-row-split">
-                    <span class="init-label">FROM</span>
-                    @ValueCell(_ofp?.OriginIcao, 4)
-                    <span class="init-label">TO</span>
-                    @ValueCell(_ofp?.DestinationIcao, 4)
-                    <span class="init-label">ALTN</span>
-                    @ValueCell(_ofp?.AlternateIcao, 4)
-                </div>
 
                 @Row("RWY OUT/IN", RwyOutIn, 5)
                 @Row("CALLSIGN", _ofp?.Callsign, 6)
@@ -84,11 +85,12 @@
                     <div class="init-fetch-phase">@_fetchPhase</div>
                 }
             </div>
+        </section>
 
-            @* RIGHT — DATA / STATUS *@
-            <div class="init-column">
-                <div class="init-title">DATA / STATUS</div>
-                <div class="init-separator"></div>
+        @* RIGHT — DATA / STATUS *@
+        <section class="section init-card">
+            <div class="section-header"><h3 class="section-title">Data / Status</h3></div>
+            <div class="section-body init-body">
 
                 @Row("ACFT", _ofp?.AircraftIcaoType, 8)
                 @Row("REG", _ofp?.AircraftReg, 6)
@@ -107,15 +109,17 @@
                 <div class="init-separator"></div>
                 <div class="init-fetched-at">@FetchedAt</div>
             </div>
-        </div>
+        </section>
+    </div>
 
-        @* ACTIONS — full-width row spanning both columns *@
+    @* ACTIONS — full-width row spanning both columns *@
+    <section class="section init-card init-actions-card">
         <div class="init-actions">
-            <button type="button" class="init-btn init-btn-primary"
+            <button type="button" class="btn primary"
                     disabled="@(_busy is not null)" @onclick="FetchOfp">
                 @(_busy == "fetch" ? "FETCHING…" : "FETCH OFP")
             </button>
-            <button type="button" class="init-btn init-btn-primary"
+            <button type="button" class="btn secondary"
                     disabled="@(_busy is not null || _ofp is null)" @onclick="SyncFms">
                 @(_busy == "sync" ? "SYNCING…" : "SYNC TO FMS")
             </button>
@@ -123,21 +127,21 @@
                entry above, else the OFP — and only then is the truck ordered (gsx.refuelCall
                = onFuelConfirmed). After a completed refuel the same button orders a top-up
                when the figure was raised. Voice: "fuel confirmed". *@
-            <button type="button" class="init-btn init-btn-primary"
+            <button type="button" class="btn primary"
                     disabled="@(_busy is not null || _ofp is null)" @onclick="ConfirmFuel"
                     title="Confirm the block fuel and order the fuel truck (or a top-up)">
                 @(_busy == "fuel" ? "CONFIRMING…" : _fuelConfirmation.Confirmed ? "RE-CONFIRM FUEL" : "CONFIRM FUEL")
             </button>
-            <button type="button" class="init-btn init-btn-amber"
+            <button type="button" class="btn secondary"
                     disabled="@(_busy is not null || _overrides.Count == 0)" @onclick="ClearOverrides">
                 @(_busy == "clear" ? "CLEARING…" : "CLEAR OVERRIDES")
             </button>
-            <button type="button" class="init-btn init-btn-warn"
+            <button type="button" class="btn danger init-btn-flex"
                     disabled="@(_busy is not null)" @onclick="ResetFlight">
                 @(_busy == "reset" ? "RESETTING…" : _resetArmed ? "CONFIRM RESET" : "RESET FLIGHT")
             </button>
         </div>
-    </div>
+    </section>
 </div>
 
 @code {
@@ -230,8 +234,8 @@
     // Green value, or a run of amber pending boxes while no OFP is loaded.
     // An OFP-loaded panel with one missing field still shows "—" green (data
     // is there, the field just isn't populated) — predecessor behaviour.
-    private RenderFragment ValueCell(string? value, int pendLen) =>
-        @<span class="@(_ofp is null ? "init-pending" : "init-value")">@if (_ofp is null)
+    private RenderFragment ValueCell(string? value, int pendLen, bool big = false) =>
+        @<span class="@(_ofp is null ? "init-pending" : "init-value") @(big ? "init-value-big" : null)">@if (_ofp is null)
             {@PendingBoxes(pendLen)}
             else
             {@Dash(value)}</span>;

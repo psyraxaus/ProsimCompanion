@@ -25,13 +25,20 @@
     var delta = inTanks - planned;
 }
 
-<div class="fuel-panel">
+@* Layout (ADR-0011): Fuel Summary and Tank Breakdown as two glass cards side by side; the
+   in-tanks figure is the hero number. The green/amber/red state bands are unchanged. *@
+<div class="fuel-page">
 
     @* ── FUEL SUMMARY ───────────────────────────────────────── *@
-    <h2 class="fuel-col-heading">Fuel Summary</h2>
-    <div class="fuel-data-card">
-        <div class="fuel-capacity">
-            CAPACITY USABLE @FmtW(capacity) @UnitU — SG: @SpecificGravity.ToString("F2", CultureInfo.InvariantCulture)
+    <section class="section fuel-card">
+        <div class="section-header">
+            <h3 class="section-title">Fuel Summary</h3>
+            <span class="section-hint">Capacity usable @FmtW(capacity) @UnitU · SG @SpecificGravity.ToString("F2", CultureInfo.InvariantCulture)</span>
+        </div>
+        <div class="section-body fuel-body">
+        <div class="fuel-hero">
+            <span class="label-caps">In tanks</span>
+            <span class="figure figure-xl glow">@FmtW(inTanks)<span class="figure-unit">@UnitU</span></span>
         </div>
 
         <div class="fuel-capacity-bar" role="img" aria-label="@($"{Units.FromKg(inTanks):F0} of {Units.FromKg(capacity):F0} {Units.UnitLabel}")">
@@ -52,8 +59,8 @@
             <div class="fuel-summary-value">@FmtNum(inTanks / SpecificGravity)</div>
         </div>
 
-        <div class="fuel-delta-row @DeltaClass(delta, planned)">
-            <span class="fuel-delta-label">DELTA:</span>
+        <div class="fuel-delta-row inset @DeltaClass(delta, planned)">
+            <span class="fuel-delta-label label-caps">Delta</span>
             <span class="fuel-delta-value">
                 @(planned > 0 ? $"{(delta >= 0 ? "+" : "")}{FmtW(delta)} {UnitU}" : "— (no flight plan)")
             </span>
@@ -62,14 +69,19 @@
                 <span class="fuel-delta-tag">@DeltaTag(delta)</span>
             }
         </div>
-    </div>
+        </div>
+    </section>
 
     @* ── TANK BREAKDOWN ─────────────────────────────────────── *@
     @* Order matches the airframe layout (left to right, looking from behind
        the aircraft): outer wing → inner wing → centre → inner → outer.
        Rendered top-to-bottom for readability. *@
-    <h2 class="fuel-col-heading">Tank Breakdown</h2>
-    <div class="fuel-data-card">
+    <section class="section fuel-card">
+        <div class="section-header">
+            <h3 class="section-title">Tank Breakdown</h3>
+            <span class="section-hint">Live figures · airframe order</span>
+        </div>
+        <div class="section-body fuel-body">
         @foreach (var tank in Tanks())
         {
             <div class="fuel-tank-row">
@@ -82,9 +94,8 @@
                 <div class="fuel-tank-value">@FmtW(tank.AmountKg) / @FmtW(tank.CapacityKg) @UnitU</div>
             </div>
         }
-    </div>
-
-    <p class="fuel-note">NOTE: THE ABOVE FIGURES ARE LIVE.</p>
+        </div>
+    </section>
 
 </div>
 

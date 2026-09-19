@@ -7,76 +7,86 @@
 <PageTitle>Duty Day — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Duty Day</h1>
 
-<div class="status-panel">
+@* Layout (ADR-0011): the day status card with block / duty as big figures on the left,
+   the legs as a timeline rail on the right. *@
+<div class="ops-page">
 
-    <section class="status-section status-span">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Company Day Mode</h3>
-        <div class="section-body">
+    <section class="section ops-card ops-main">
+        <div class="section-header">
+            <h3 class="section-title">Company Day Mode</h3>
+            @if (_store is not null && _snapshot.View is { } v)
+            {
+                <span class="pill @(v.Active ? "tone-active" : "tone-neutral")">@v.State</span>
+            }
+        </div>
+        <div class="section-body ops-body">
             @if (_store is null)
             {
                 <div class="empty">Company day mode is not wired into this build (see WIRING-DAY.md).</div>
             }
             else if (_snapshot.View is not { } view)
             {
-                <div class="row">
-                    <span class="row-label">Status</span>
-                    <span class="row-value-mono">no duty day</span>
+                <div class="ops-figures">
+                    <div class="ops-figure">
+                        <span class="label-caps">Status</span>
+                        <span class="figure ops-text-figure">No duty day</span>
+                    </div>
                 </div>
-                <div class="row">
+                <div class="ops-actions">
                     <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="StartDay">
                         Start duty day
                     </button>
                 </div>
-                <div class="empty">
+                <div class="ops-note">
                     Say "start duty day", or press the button. With day mode enabled and auto-start on,
                     a day also begins at the first Preflight. Drop a rotations/*.json file for a planned day.
                 </div>
             }
             else
             {
-                <div class="row">
-                    <span class="row-label">State</span>
-                    <span class="row-value-mono">
-                        <span class="pill @(view.Active ? "" : "tone-bad")">@view.State</span>
-                    </span>
-                </div>
-                <div class="row">
-                    <span class="row-label">Leg</span>
-                    <span class="row-value-mono">@view.LegIndex of @view.LegCount (@view.LegsCompleted completed)</span>
-                </div>
-                <div class="row">
-                    <span class="row-label">Route</span>
-                    <span class="row-value-mono">@(view.From ?? "?") &rarr; @(view.To ?? "?")</span>
-                </div>
-                <div class="row">
-                    <span class="row-label">Block</span>
-                    <span class="row-value-mono">@DayMath.FormatHoursMinutes(view.BlockMinutes)</span>
-                </div>
-                <div class="row">
-                    <span class="row-label">Duty</span>
-                    <span class="row-value-mono">@DayMath.FormatHoursMinutes(view.DutyMinutes)</span>
-                </div>
-                @if (view.DelayMinutes is { } delay)
-                {
-                    <div class="row">
-                        <span class="row-label">Schedule</span>
-                        <span class="row-value-mono">
-                            @if (delay > 0)
-                            {
-                                <span class="pill tone-bad">@delay min behind</span>
-                            }
-                            else if (delay < 0)
-                            {
-                                <span class="pill">@(-delay) min ahead</span>
-                            }
-                            else
-                            {
-                                <span class="pill">on schedule</span>
-                            }
-                        </span>
+                <div class="ops-route">
+                    <div class="ops-route-end">
+                        <span class="label-caps">From</span>
+                        <span class="figure figure-xl">@(view.From ?? "----")</span>
                     </div>
-                }
-                <div class="row">
+                    <span class="ops-route-arrow" aria-hidden="true">→</span>
+                    <div class="ops-route-end">
+                        <span class="label-caps">To</span>
+                        <span class="figure figure-xl">@(view.To ?? "----")</span>
+                    </div>
+                    <div class="ops-route-leg">
+                        <span class="label-caps">Leg</span>
+                        <span class="figure">@view.LegIndex<span class="figure-unit">of @view.LegCount</span></span>
+                        <span class="ops-item-sub">@view.LegsCompleted completed</span>
+                    </div>
+                </div>
+
+                <div class="ops-figures">
+                    <div class="ops-figure">
+                        <span class="label-caps">Block</span>
+                        <span class="figure figure-lg glow">@DayMath.FormatHoursMinutes(view.BlockMinutes)</span>
+                    </div>
+                    <div class="ops-figure">
+                        <span class="label-caps">Duty</span>
+                        <span class="figure figure-lg">@DayMath.FormatHoursMinutes(view.DutyMinutes)</span>
+                    </div>
+                    <div class="ops-figure">
+                        <span class="label-caps">Schedule</span>
+                        @if (view.DelayMinutes is { } delay)
+                        {
+                            <span class="figure figure-lg @(delay > 0 ? "ops-bad" : delay < 0 ? "glow" : null)">
+                                @(delay > 0 ? $"+{delay}" : delay < 0 ? $"−{-delay}" : "0")<span class="figure-unit">min</span>
+                            </span>
+                            <span class="ops-item-sub">@(delay > 0 ? "behind" : delay < 0 ? "ahead" : "on schedule")</span>
+                        }
+                        else
+                        {
+                            <span class="figure figure-lg">—</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="ops-actions">
                     @if (view.Active)
                     {
                         <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="EndDay">
@@ -90,7 +100,7 @@
                         </button>
                     }
                 </div>
-                <div class="empty">
+                <div class="ops-note">
                     Block and duty figures are convenience tracking of what was flown — not a
                     flight-time-limitations calculation.
                 </div>
@@ -100,48 +110,42 @@
 
     @if (_store is not null && _snapshot.Legs.Count > 0)
     {
-        <section class="status-section status-span">
-            <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Legs</h3>
+        <section class="section ops-card ops-side">
+            <div class="section-header"><h3 class="section-title">Legs</h3></div>
             <div class="section-body">
-                @foreach (var leg in _snapshot.Legs)
-                {
-                    <div class="row" style="align-items:flex-start;">
-                        <span class="row-label">
-                            Leg @leg.Index
-                            @if (!string.IsNullOrWhiteSpace(leg.FlightNo))
-                            {
-                                <br /><span class="pill">@leg.FlightNo</span>
-                            }
-                        </span>
-                        <span class="row-value-mono">
-                            @(leg.From ?? "?") &rarr; @(leg.To ?? "?")
-                            @if (leg.BlockMinutes is { } block)
-                            {
-                                <span> · @block min block</span>
-                            }
-                            @if (leg.Completed)
-                            {
-                                <span> · @(leg.Landed ? "landed" : "no landing")</span>
-                            }
-                            @if (leg.Stabilized is { } stab)
-                            {
-                                <br />
-                                @if (stab)
-                                {
-                                    <span class="pill">stabilized</span>
-                                }
-                                else
-                                {
-                                    <span class="pill tone-bad">unstable</span>
-                                }
-                            }
-                            @if (!string.IsNullOrWhiteSpace(leg.Deviation))
-                            {
-                                <br /><span class="pill tone-bad">@leg.Deviation</span>
-                            }
-                        </span>
-                    </div>
-                }
+                <ol class="ops-timeline">
+                    @foreach (var leg in _snapshot.Legs)
+                    {
+                        var current = _snapshot.View is { } cv && cv.LegIndex == leg.Index;
+                        <li class="ops-step @(leg.Completed ? "done" : current ? "active" : "pending")">
+                            <span class="ops-step-dot" aria-hidden="true"></span>
+                            <div class="ops-step-text">
+                                <span class="ops-step-name">Leg @leg.Index · @(leg.From ?? "?") → @(leg.To ?? "?")</span>
+                                <span class="ops-step-sub">
+                                    @if (!string.IsNullOrWhiteSpace(leg.FlightNo))
+                                    {
+                                        <text>@leg.FlightNo · </text>
+                                    }
+                                    @if (leg.BlockMinutes is { } block)
+                                    {
+                                        <text>@block min block · </text>
+                                    }
+                                    @(leg.Completed ? (leg.Landed ? "landed" : "no landing") : current ? "in progress" : "planned")
+                                </span>
+                                <div class="ops-item-pills">
+                                    @if (leg.Stabilized is { } stab)
+                                    {
+                                        <span class="pill @(stab ? "tone-ok" : "tone-bad")">@(stab ? "stabilized" : "unstable")</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(leg.Deviation))
+                                    {
+                                        <span class="pill tone-bad">@leg.Deviation</span>
+                                    }
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ol>
             </div>
         </section>
     }

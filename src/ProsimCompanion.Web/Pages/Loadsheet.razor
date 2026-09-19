@@ -15,37 +15,44 @@
 <PageTitle>Loadsheet — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Loadsheet</h1>
 
-<div class="ls-panel">
-    <div class="ls-header">
-        <h2 class="ls-title">LOADSHEET</h2>
+@* Layout (ADR-0011): a hero card with the STD and the actions, then the Prelim and Final
+   slot cards side by side as glass sections. *@
+<div class="ls-page">
+    <section class="section ls-hero">
+        <div class="section-body ls-hero-body">
+        <div class="ls-hero-main">
+            <span class="label-caps">Loadsheet</span>
+            <span class="ls-title">Prelim &amp; Final</span>
+        </div>
         <div class="ls-actions">
-            <button type="button" class="ls-btn" disabled="@(_busy is not null)" @onclick="ResendAsync">
+            <button type="button" class="btn secondary" disabled="@(_busy is not null)" @onclick="ResendAsync">
                 @(_busy == Busy.Resend ? "RESENDING…" : "RESEND")
             </button>
-            <button type="button" class="ls-btn ls-btn-danger" disabled="@(_busy is not null)" @onclick="Reset">
+            <button type="button" class="btn danger" disabled="@(_busy is not null)" @onclick="Reset">
                 @(_busy == Busy.Reset ? "RESETTING…" : _armReset ? "CONFIRM RESET" : "RESET")
             </button>
         </div>
-    </div>
 
     @* STD row — manual entry wins over the OFP (Prosim2GSX parity). The manual time also
        feeds the STD-offset prelim auto-trigger (flightData.autoPrelimAtStd). *@
-    <div class="ls-std-row">
-        <span class="ls-std-label">STD (UTC)</span>
-        <span class="ls-std-value">@StdDisplay</span>
+    <div class="ls-std-row inset">
+        <span class="label-caps">STD (UTC)</span>
+        <span class="ls-std-value figure">@StdDisplay</span>
         <span class="ls-std-source">@StdSource</span>
         @* Prosim2GSX behaviour: the picker shows only when the OFP isn't supplying the time
            (no plan, or a manual override is in force). *@
         @if (_loadsheets.StdOverrideUtc is not null || Ofp.Current?.ScheduledOutUtc is null)
         {
             <input type="time" class="ls-std-input" @bind="_stdDraft" />
-            <button type="button" class="ls-btn" disabled="@(_stdDraft is null)" @onclick="SetStd">SET</button>
+            <button type="button" class="btn secondary" disabled="@(_stdDraft is null)" @onclick="SetStd">Set</button>
             @if (_loadsheets.StdOverrideUtc is not null)
             {
-                <button type="button" class="ls-btn" @onclick="ClearStd">CLEAR</button>
+                <button type="button" class="btn secondary" @onclick="ClearStd">Clear</button>
             }
         }
     </div>
+        </div>
+    </section>
 
     <div class="ls-cards">
         @foreach (var (label, slot, finalErrorBorder) in new[]
@@ -63,11 +70,12 @@
             // window; the prelim card just colours the value cell.
             var errBorder = finalErrorBorder && macError && showData;
 
-            <section class="ls-card @(errBorder ? "ls-card-error" : "")">
-                <div class="ls-card-head">
-                    <div class="ls-card-label">@label</div>
-                    <span class="ls-badge @BadgeClass(slot.Status)">@BadgeText(slot.Status)</span>
+            <section class="section ls-card @(errBorder ? "ls-card-error" : "")">
+                <div class="section-header">
+                    <h3 class="section-title">@label</h3>
+                    <span class="pill @BadgeClass(slot.Status)">@BadgeText(slot.Status)</span>
                 </div>
+                <div class="section-body ls-card-body">
 
                 @if (!showData)
                 {
@@ -111,6 +119,7 @@
                         </div>
                     </div>
                 }
+                </div>
             </section>
         }
     </div>
@@ -154,9 +163,9 @@
 
     private static string BadgeClass(LoadsheetSlotStatus status) => status switch
     {
-        LoadsheetSlotStatus.Sent => "ls-badge-ok",
-        LoadsheetSlotStatus.Failed => "ls-badge-bad",
-        _ => "ls-badge-warn",
+        LoadsheetSlotStatus.Sent => "tone-ok",
+        LoadsheetSlotStatus.Failed => "tone-bad",
+        _ => "tone-warn",
     };
 
     private static string BadgeText(LoadsheetSlotStatus status) => status switch

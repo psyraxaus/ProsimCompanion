@@ -1,252 +1,140 @@
-/* Loadsheet page — ported from Prosim2GSX Prosim2GSX.Web/src/panels/LoadsheetPanel.module.css
-   (classes prefixed ls- because Blazor has no CSS-module scoping). */
+/* Loadsheet page (ADR-0011): a hero card (STD + actions) over the Prelim / Final slot cards.
+   The MAC range bar keeps its red out-of-window state colour. */
 
-.ls-panel {
+.ls-page {
   padding: 16px 18px;
-  max-width: 1200px;
+  max-width: 1180px;
   margin: 0 auto;
-}
-
-.ls-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.ls-title {
-  margin: 0;
-  font-size: 13px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--category-text);
-  font-weight: 600;
-}
-
-.ls-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.ls-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 6px 14px;
-  border-radius: var(--radius-sm, 4px);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: uppercase;
-}
-
-.ls-btn:hover:not(:disabled) {
-  border-color: var(--accent, #4a90e2);
-}
-
-.ls-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ls-btn-danger {
-  border-color: rgba(220, 64, 64, 0.6);
-}
-
-.ls-btn-danger:hover:not(:disabled) {
-  border-color: #dc4040;
-  background: rgba(220, 64, 64, 0.1);
-}
-
-/* Two cards side-by-side; stack on narrow screens. */
-.ls-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.ls-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md, 6px);
-  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
+.ls-page > .section, .ls-cards > .section { margin: 0; border-radius: var(--radius-xl); }
 
-/* Final-card error highlight per spec. */
-.ls-card-error {
-  border-color: #dc4040;
-  box-shadow: 0 0 0 1px rgba(220, 64, 64, 0.4);
-}
+/* ---- hero ---- */
 
-.ls-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.ls-card-label {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  font-weight: 600;
-  color: var(--category-text);
-}
-
-/* Status badges — three colours per spec (PENDING amber, RECEIVED green,
-   ERROR red). */
-.ls-badge {
-  font-size: 10px;
+.ls-hero-body { gap: 14px; padding-top: 18px; }
+.ls-hero-main { display: flex; flex-direction: column; gap: 6px; }
+.ls-title {
+  font-size: 18px;
+  font-weight: 700;
   letter-spacing: 0.12em;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-}
-
-.ls-badge-warn {
-  color: #f5a623;
-  background: rgba(245, 166, 35, 0.12);
-  border-color: rgba(245, 166, 35, 0.5);
-}
-
-.ls-badge-ok {
-  color: #2dbe4d;
-  background: rgba(45, 190, 77, 0.12);
-  border-color: rgba(45, 190, 77, 0.5);
-}
-
-.ls-badge-bad {
-  color: #dc4040;
-  background: rgba(220, 64, 64, 0.12);
-  border-color: rgba(220, 64, 64, 0.5);
-}
-
-.ls-empty {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-style: italic;
-  padding: 8px 0;
-}
-
-/* 2-column key/value grid. Labels left-aligned, values right-aligned in
-   monospace. */
-.ls-kv-grid {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 6px 14px;
-  align-items: center;
-}
-
-.ls-kv-label {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--category-text);
-}
-
-.ls-kv-value {
-  font-family: var(--font-mono, monospace);
-  font-size: 14px;
-  font-weight: 700;
-  text-align: right;
+  text-transform: uppercase;
   color: var(--text-primary);
 }
+.ls-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ls-hero-body { position: relative; }
+.ls-hero-body .ls-actions { position: absolute; top: 18px; right: 18px; }
 
-.ls-kv-value-bad {
-  color: #dc4040;
+.ls-std-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+}
+.ls-std-value { font-size: 26px; }
+.ls-std-source {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+}
+.ls-std-input {
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color-scheme: dark;
+}
+.ls-std-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-muted); }
+
+/* ---- slot cards ---- */
+
+.ls-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.ls-card .section-header { justify-content: space-between; }
+.ls-card-error { border-color: color-mix(in srgb, var(--danger) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 35%, transparent), var(--panel-shadow); }
+.ls-card-body { gap: 14px; }
+
+.ls-empty {
+  padding: 18px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
-/* MAC% range indicator. Track is a thin line, marker is a circle that
-   slides between min/max anchors. */
-.ls-range {
-  margin-top: 4px;
+.ls-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
 }
+.ls-kv-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--category-text);
+}
+.ls-kv-value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Label above value: the grid alternates label/value rows, so pair them visually. */
+.ls-kv-grid > .ls-kv-label { margin-bottom: -8px; }
+.ls-kv-value-bad { color: var(--danger); }
 
+/* ---- MAC range bar ---- */
+
+.ls-range { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
 .ls-range-labels {
   display: flex;
   justify-content: space-between;
+  font-family: var(--font-mono);
   font-size: 10px;
-  font-family: var(--font-mono, monospace);
-  color: var(--text-secondary);
-  margin-bottom: 4px;
+  color: var(--text-muted);
 }
-
-.ls-range-mid {
-  letter-spacing: 0.08em;
-  color: var(--category-text);
-}
-
+.ls-range-mid { font-family: var(--font-sans); font-size: 8px; font-weight: 800; letter-spacing: 0.2em; color: var(--category-text); }
 .ls-range-bar {
   position: relative;
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--border);
 }
-
 .ls-range-marker {
   position: absolute;
   top: 50%;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #2dbe4d;
   transform: translate(-50%, -50%);
-  border: 2px solid var(--bg-card);
+  background: var(--accent);
+  box-shadow: var(--glow);
 }
+.ls-range-marker-bad { background: var(--danger); box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
 
-.ls-range-marker-bad {
-  background: #dc4040;
+@media (max-width: 900px) {
+  .ls-cards { grid-template-columns: minmax(0, 1fr); }
 }
-
-/* STD row — sits between the title bar and the cards. */
-.ls-std-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md, 6px);
-}
-
-.ls-std-label {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  font-weight: 600;
-  color: var(--category-text);
-}
-
-.ls-std-value {
-  font-family: var(--font-mono, monospace);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-  min-width: 56px;
-}
-
-.ls-std-source {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-@media (max-width: 700px) {
-  .ls-cards {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Manual STD entry (shown when the OFP is not supplying the time). */
-.ls-std-input {
-  background: var(--bg-input);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 3px 8px;
-  font-family: var(--font-mono);
-  font-size: 12px;
+@media (max-width: 540px) {
+  .ls-page { padding: 12px; }
+  .ls-hero-body .ls-actions { position: static; }
+  .ls-std-value { font-size: 22px; }
 }

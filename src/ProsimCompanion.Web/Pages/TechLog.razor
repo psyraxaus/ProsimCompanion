@@ -7,64 +7,81 @@
 <PageTitle>Tech Log — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Tech Log</h1>
 
-<div class="status-panel">
+@* Layout (ADR-0011): the defect list as glass rows on the left, the raise-a-defect form on
+   the right. Advisory only — the app never grounds the aircraft. *@
+<div class="ops-page">
 
-    <section class="status-section status-span">
-        <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Tech Log &amp; MEL</h3>
-        <div class="section-body">
+    <section class="section ops-card ops-main">
+        <div class="section-header">
+            <h3 class="section-title">Tech Log &amp; MEL</h3>
+            @if (_techLog is not null)
+            {
+                <span class="pill @(!_techLog.IsEnabled ? "tone-neutral" : _open.Count == 0 ? "tone-ok" : _open.Any(_techLog.IsOverdue) ? "tone-bad" : "tone-warn")">
+                    @(!_techLog.IsEnabled ? "switched off" : _open.Count == 0 ? "clean" : $"{_open.Count} open")
+                </span>
+            }
+        </div>
+        <div class="section-body ops-body">
             @if (_techLog is null)
             {
                 <div class="empty">The tech log service is not wired into this build (see WIRING-TECHLOG.md).</div>
             }
             else
             {
-                <div class="row">
-                    <span class="row-label">Status</span>
-                    <span class="row-value-mono">
-                        @(_techLog.IsEnabled
-                            ? $"{_open.Count} open item(s), {_defects.Count} total"
-                            : "switched off (techLog.enabled)")
-                    </span>
+                <div class="ops-figures">
+                    <div class="ops-figure">
+                        <span class="label-caps">Open items</span>
+                        <span class="figure figure-lg @(_open.Count > 0 ? "glow" : null)">@_open.Count</span>
+                    </div>
+                    <div class="ops-figure">
+                        <span class="label-caps">On file</span>
+                        <span class="figure figure-lg">@_defects.Count</span>
+                    </div>
+                    <div class="ops-figure">
+                        <span class="label-caps">Overdue</span>
+                        <span class="figure figure-lg @(_open.Any(_techLog.IsOverdue) ? "ops-bad" : null)">@_open.Count(_techLog.IsOverdue)</span>
+                    </div>
                 </div>
+
                 @if (_defects.Count == 0)
                 {
                     <div class="empty">Tech log is clean — no defects on file.</div>
                 }
-                @foreach (var defect in _defects)
-                {
-                    var overdue = _techLog.IsOverdue(defect);
-                    <div class="row" style="align-items:flex-start;">
-                        <span class="row-label">
-                            @defect.Title
-                            @if (!string.IsNullOrWhiteSpace(defect.Placard))
-                            {
-                                <br /><span class="pill">@defect.Placard</span>
-                            }
-                        </span>
-                        <span class="row-value-mono">
-                            @defect.MelReference · CAT @defect.Category · @defect.Status
-                            @if (defect.IsOpen)
-                            {
-                                <br />
-                                @if (overdue)
+                <div class="ops-list">
+                    @foreach (var defect in _defects)
+                    {
+                        var overdue = _techLog.IsOverdue(defect);
+                        <div class="ops-item inset @(defect.IsOpen ? (overdue ? "bad" : "open") : "closed")">
+                            <div class="ops-item-main">
+                                <span class="ops-item-title">@defect.Title</span>
+                                <span class="ops-item-sub mono">@defect.MelReference · CAT @defect.Category · @defect.Status</span>
+                                <div class="ops-item-pills">
+                                    @if (!string.IsNullOrWhiteSpace(defect.Placard))
+                                    {
+                                        <span class="pill tone-warn">@defect.Placard</span>
+                                    }
+                                    @if (defect.IsOpen)
+                                    {
+                                        <span class="pill @(overdue ? "tone-bad" : "tone-neutral")">@(overdue ? "OVERDUE — " : "")@_techLog.DaysPhrase(defect)</span>
+                                        <span class="pill tone-neutral">@defect.SectorsCarried sector(s) carried</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill tone-ok">rectified</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="ops-item-actions">
+                                @if (defect.IsOpen)
                                 {
-                                    <span class="pill tone-bad">OVERDUE — @_techLog.DaysPhrase(defect)</span>
+                                    <button type="button" class="btn primary" @onclick="() => Rectify(defect.Id)">Rectify</button>
                                 }
-                                else
-                                {
-                                    <span>@_techLog.DaysPhrase(defect)</span>
-                                }
-                                <span> · @defect.SectorsCarried sector(s) carried</span>
-                            }
-                        </span>
-                        @if (defect.IsOpen)
-                        {
-                            <button type="button" class="btn primary" @onclick="() => Rectify(defect.Id)">Rectify</button>
-                        }
-                        <button type="button" class="btn secondary" @onclick="() => Remove(defect.Id)">Remove</button>
-                    </div>
-                }
-                <div class="empty" style="margin-top:6px;">
+                                <button type="button" class="btn secondary" @onclick="() => Remove(defect.Id)">Remove</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="ops-note">
                     An overdue MEL item is advisory only — the app never grounds the aircraft; whether to fly is
                     your call. MEL references are simulated, never real citations.
                 </div>
@@ -74,39 +91,37 @@
 
     @if (_techLog is not null)
     {
-        <section class="status-section">
-            <h3 class="section-title" style="padding:9px 14px; border-bottom:1px solid var(--border);">Raise a defect</h3>
-            <div class="section-body">
-                <div class="row">
-                    <span class="row-label">Title</span>
-                    <input class="input" @bind="_title" placeholder="e.g. APU inoperative" />
-                </div>
-                <div class="row">
-                    <span class="row-label">MEL category</span>
-                    <select class="input" @bind="_category">
+        <section class="section ops-card ops-side">
+            <div class="section-header"><h3 class="section-title">Raise a defect</h3></div>
+            <div class="section-body ops-form">
+                <label class="ops-field">
+                    <span class="label-caps">Title</span>
+                    <input class="text-input" @bind="_title" placeholder="e.g. APU inoperative" />
+                </label>
+                <label class="ops-field">
+                    <span class="label-caps">MEL category</span>
+                    <select class="select" @bind="_category">
                         <option value="A">A — @_techLog.RepairDaysForCategory(MelCategory.A) days</option>
                         <option value="B">B — @_techLog.RepairDaysForCategory(MelCategory.B) days</option>
                         <option value="C">C — @_techLog.RepairDaysForCategory(MelCategory.C) days</option>
                         <option value="D">D — @_techLog.RepairDaysForCategory(MelCategory.D) days</option>
                     </select>
-                </div>
-                <div class="row">
-                    <span class="row-label">MEL reference</span>
-                    <input class="input" @bind="_melReference" placeholder="blank = simulated default" />
-                </div>
-                <div class="row">
-                    <span class="row-label">Implications</span>
-                    <input class="input" @bind="_implications" placeholder="spoken in the preflight brief" />
-                </div>
-                <div class="row">
-                    <span class="row-label">Placard</span>
-                    <input class="input" @bind="_placard" placeholder="optional, e.g. APU INOP" />
-                </div>
-                <div class="row">
-                    <button type="button" class="btn primary" disabled="@string.IsNullOrWhiteSpace(_title)" @onclick="Raise">
-                        Enter in tech log
-                    </button>
-                </div>
+                </label>
+                <label class="ops-field">
+                    <span class="label-caps">MEL reference</span>
+                    <input class="text-input" @bind="_melReference" placeholder="blank = simulated default" />
+                </label>
+                <label class="ops-field">
+                    <span class="label-caps">Implications</span>
+                    <input class="text-input" @bind="_implications" placeholder="spoken in the preflight brief" />
+                </label>
+                <label class="ops-field">
+                    <span class="label-caps">Placard</span>
+                    <input class="text-input" @bind="_placard" placeholder="optional, e.g. APU INOP" />
+                </label>
+                <button type="button" class="btn primary" disabled="@string.IsNullOrWhiteSpace(_title)" @onclick="Raise">
+                    Enter in tech log
+                </button>
             </div>
         </section>
     }
