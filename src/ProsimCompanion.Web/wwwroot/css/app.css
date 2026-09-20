@@ -329,13 +329,11 @@ a { color: var(--accent); }
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  /* The bottom safe-area inset is INSIDE the box (border-box), so the strip must grow by
-     it — at a fixed 34 px an iPad home-screen app squeezed the labels into 14 px and
-     clipped them against the border (owner screenshot 2026-09-20). */
+  /* iPad home-screen app (owner screenshots 2026-09-20): the strip grows by the bottom
+     safe-area inset and the row is centred in the whole strip. Padding the inset instead
+     left an empty band under the labels; a fixed 34 px squeezed and clipped them. */
   height: calc(34px + env(safe-area-inset-bottom, 0px));
-  padding: 0 calc(18px + env(safe-area-inset-right, 0px))
-           env(safe-area-inset-bottom, 0px)
-           calc(18px + env(safe-area-inset-left, 0px));
+  padding: 0 calc(18px + env(safe-area-inset-right, 0px)) 0 calc(18px + env(safe-area-inset-left, 0px));
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   color: var(--text-on-dark-muted);
