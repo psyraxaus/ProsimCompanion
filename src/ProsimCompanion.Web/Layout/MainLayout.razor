@@ -21,7 +21,7 @@
 <div class="app">
     @* Header (ADR-0011, canvas EFBHeader): brand badge · aircraft block · FLT NO flap ·
        SIM/UTC clock (split-flap stays on the clock — owner decision) · the theme's uploaded
-       airline logo (Settings → Appearance) · ProSim connection dot. *@
+       airline logo (Settings → Appearance). The ProSim dot moved to the footer (2026-09-20). *@
     <header class="header">
         <div class="brand">
             <span class="brand-mark" aria-hidden="true"><AppIcon Name="plane" Size="20" /></span>
@@ -66,11 +66,6 @@
                 <img class="brand-logo" src="api/theme-logo/@(logoSlug)?v=@Logos.Version"
                      alt="@ThemeName" title="@ThemeName" />
             }
-
-            <span class="conn-indicator" title="ProSim connection">
-                <span class="conn-dot @ProsimDotClass"></span>
-                <span class="conn-label">ProSim</span>
-            </span>
         </div>
     </header>
 
@@ -189,7 +184,6 @@
 
     private string? SolariMode => WebUi.CurrentValue.SolariAnimation ? null : "off";
 
-    private string ProsimDotClass => DotClass(Subsystems.Prosim);
 
     // Footer order: the aircraft link first, then the sim, then ground services, then the
     // two LAN voice services (owner request 2026-09-20: the voice box came up late after a
