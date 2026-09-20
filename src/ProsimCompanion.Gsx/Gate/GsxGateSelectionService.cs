@@ -1,7 +1,10 @@
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Gsx.Menu;
 using ProsimCompanion.Gsx.Mirror;
 
 namespace ProsimCompanion.Gsx.Gate;
@@ -26,10 +29,14 @@ public enum GsxGateRequestStatus
 
 /// <summary>
 /// Arrival-gate assignment with the arm-then-dispatch model and single-auto-retry ladder
-/// (docs/integrations/gsx-remote-api.md §6): dispatch only when Ready ∧ airport loaded ∧
-/// destination known ∧ loaded airport == destination; otherwise stay armed and re-dispatch on
-/// state changes. Success is provisional until the SetGate_* LVAR readback matches (60 s window,
-/// checked immediately too). A Couatl restart re-arms the last request.
+/// (docs/integrations/gsx-remote-api.md §6). The dispatch decision is the pure
+/// <see cref="GateDispatchPlanner"/>: in the air (cruise → approach) GSX is made to load the
+/// destination through its own "Select airport" menu, then <c>gate.select</c> goes out with the
+/// token as typed — GSX's search resolves "545R" against "Stand 545R" by suffix (Handler
+/// Scripts Developer Guide, selectGate). On the ground the send happens the moment GSX loads
+/// the airport itself, while still rolling; once parked it is too late by GSX's own rule.
+/// Success is provisional until the SetGate_* LVAR readback matches (60 s window, checked
+/// immediately too). A Couatl restart re-arms the last request.
 /// </summary>
 public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDisposable
 {
@@ -40,7 +47,17 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     /// failed request re-fired 947 ms after its own failure, twice within the same second).</summary>
     private static readonly TimeSpan FailedRetryBackoff = TimeSpan.FromSeconds(10);
 
+    /// <summary>GSX's in-flight airport list page (Prosim2GSX GsxParkingSelector archaeology:
+    /// the title is exactly this; rows carry the ICAO).</summary>
+    internal const string AirportSelectTitle = "Select airport";
+
+    /// <summary>The destination context arrives as a handlerData/airport patch after the pick;
+    /// GSX loads the airport in the background, so allow well beyond the 5 s default.</summary>
+    private static readonly TimeSpan AirportLoadTimeout = TimeSpan.FromSeconds(20);
+
     private readonly IGsxRemoteApi _api;
+    private readonly GsxMenuIntentExecutor _executor;
+    private readonly IFlightPhaseSource _flightState;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxGateSelectionService> _logger;
     private readonly IDataRefSubscription<string?> _destination;
@@ -51,24 +68,33 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     private string? _requestedGate;
     private bool _retriedOnce;
     private bool _dispatching;
+    private bool _tooLateReported;
     private string? _lastFailedGate;
     private long _lastFailedAtTicks;
+    private DateTimeOffset? _lastAirportPickAtUtc;
+    private int _airportPickAttempts;
     private Timer? _confirmationTimer;
 
     public GsxGateSelectionService(
         IGsxRemoteApi api,
+        GsxMenuIntentExecutor executor,
+        IFlightPhaseSource flightState,
         IProsimDataRefs prosim,
         ISimVars simVars,
         JsonlEventLog eventLog,
         ILogger<GsxGateSelectionService> logger)
     {
         ArgumentNullException.ThrowIfNull(api);
+        ArgumentNullException.ThrowIfNull(executor);
+        ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
         _api = api;
+        _executor = executor;
+        _flightState = flightState;
         _eventLog = eventLog;
         _logger = logger;
 
@@ -80,6 +106,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         _api.ReadinessChanged += OnStateChanged;
         _api.Mirror.Updated += OnMirrorUpdated;
         _api.Mirror.SidChanged += OnSidChanged;
+        _flightState.PhaseChanged += OnPhaseChanged;
         _destination.ValueChanged += OnDataChanged;
         _gateName.ValueChanged += OnReadbackChanged;
         _gateNumber.ValueChanged += OnReadbackChanged;
@@ -105,6 +132,9 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         {
             _requestedGate = gate.Trim().ToUpperInvariant();
             _retriedOnce = false;
+            _tooLateReported = false;
+            _airportPickAttempts = 0;
+            _lastAirportPickAtUtc = null;
         }
         SetStatus(GsxGateRequestStatus.Armed, $"armed for {gate}");
         _ = TryDispatchAsync();
@@ -126,6 +156,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         _api.ReadinessChanged -= OnStateChanged;
         _api.Mirror.Updated -= OnMirrorUpdated;
         _api.Mirror.SidChanged -= OnSidChanged;
+        _flightState.PhaseChanged -= OnPhaseChanged;
         _destination.ValueChanged -= OnDataChanged;
         _gateName.ValueChanged -= OnReadbackChanged;
         _gateNumber.ValueChanged -= OnReadbackChanged;
@@ -140,6 +171,8 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     internal async Task TryDispatchAsync()
     {
         string requested;
+        GateDispatchStep step;
+        string destination;
         lock (_gate)
         {
             if (_requestedGate is null || _dispatching
@@ -158,15 +191,35 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
                 return;
             }
 
-            // Preconditions: Ready, airport context, destination known and matching.
-            var airport = _api.Mirror.AirportIcao;
-            var destination = _destination.Value;
-            if (_api.Readiness != GsxReadiness.Ready
-                || string.IsNullOrWhiteSpace(airport)
-                || string.IsNullOrWhiteSpace(destination)
-                || !string.Equals(airport, destination.Trim(), StringComparison.OrdinalIgnoreCase))
+            var view = _flightState.Snapshot();
+            destination = _destination.Value?.Trim() ?? "";
+            step = GateDispatchPlanner.Decide(new GateDispatchInputs(
+                _api.Readiness == GsxReadiness.Ready,
+                _api.Mirror.AirportIcao,
+                destination,
+                view.Phase,
+                view.Data,
+                DateTimeOffset.UtcNow,
+                _lastAirportPickAtUtc,
+                _airportPickAttempts));
+
+            switch (step)
             {
-                return; // stay armed; the state-change wiring re-invokes us
+                case GateDispatchStep.Wait:
+                    return; // stay armed; the state-change wiring re-invokes us
+
+                case GateDispatchStep.TooLate:
+                    if (_tooLateReported)
+                    {
+                        return;
+                    }
+                    _tooLateReported = true;
+                    break;
+
+                case GateDispatchStep.PickAirport:
+                    _airportPickAttempts++;
+                    _lastAirportPickAtUtc = DateTimeOffset.UtcNow;
+                    break;
             }
 
             _dispatching = true;
@@ -175,6 +228,26 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
 
         try
         {
+            switch (step)
+            {
+                case GateDispatchStep.TooLate:
+                    // selectGate refuses while parked with services engaged (Handler Scripts
+                    // Developer Guide) and the refusal surfaces as not_found — say so instead
+                    // of sending, so nobody chases stand names again (2026-08-22 EGLL 313,
+                    // 2026-09-13 LIRF 829).
+                    _eventLog.Record("gsx-gate-too-late", new { gate = requested, airport = _api.Mirror.AirportIcao });
+                    Fail("too late — GSX already has the aircraft parked at a stand; pick the gate in the GSX menu");
+                    return;
+
+                case GateDispatchStep.PickAirport:
+                    SetStatus(GsxGateRequestStatus.Armed, $"loading {destination} in GSX (in-flight airport pick, attempt {_airportPickAttempts})");
+                    if (!await PickAirportInFlightAsync(destination).ConfigureAwait(false))
+                    {
+                        return; // stay armed; the backoff paces the next attempt
+                    }
+                    break;
+            }
+
             SetStatus(GsxGateRequestStatus.Dispatching, $"selecting {requested}");
             await DispatchLadderAsync(requested).ConfigureAwait(false);
         }
@@ -192,63 +265,96 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         }
     }
 
-    /// <summary>The retry ladder — at most ONE auto-retry total per user request (the
-    /// disambiguation counts as that retry).</summary>
-    private async Task DispatchLadderAsync(string requested)
+    /// <summary>
+    /// The in-flight airport pick (the Handler Scripts guide's onSelectGateInFlight moment):
+    /// GSX menu → "Select airport" page → the row carrying the destination ICAO. Success is
+    /// GSX reporting the destination as its loaded airport (handlerData/airport patch). The
+    /// row is matched by ICAO text, never by ordinal (§5 rule; the predecessor's row-2
+    /// fallback is deliberately not carried). A menu we opened is closed again on failure;
+    /// on success the gate.select that follows closes it.
+    /// </summary>
+    private async Task<bool> PickAirportInFlightAsync(string destination)
     {
-        // GSX matches gate.select tokens against its parking display names, which carry
-        // prefixes (" Gate D5" at EHAM — issue #36): resolve the user's token to GSX's own
-        // name whenever the mirrored parkings already know it. 2026-08-16 amendment (#75):
-        // whitespace is the exception — GSX refused its own leading-space name with
-        // not_found, so resolved tokens are now trimmed before sending.
-        var sendToken = GsxGateResolver.ResolveCanonical(_api.Mirror.Parkings, requested) ?? requested;
-        if (!string.Equals(sendToken, requested, StringComparison.Ordinal))
+        var menuWasShown = _api.Mirror.MenuShown;
+        var rootMenu = new GsxMenuIntent
         {
-            _logger.LogInformation("Gate {Gate} resolved to GSX parking name {Canonical}", requested, sendToken);
+            Name = "gsx menu (in-flight root)",
+            TitlePrefixes = [""],
+            EntryPattern = new Regex("^select airport", RegexOptions.IgnoreCase),
+            Verify = mirror => mirror.MenuShown
+                && mirror.Menu?.Title.StartsWith(AirportSelectTitle, StringComparison.OrdinalIgnoreCase) == true,
+        };
+        var airportPick = new GsxMenuIntent
+        {
+            Name = "in-flight airport pick",
+            TitlePrefixes = [AirportSelectTitle],
+            EntryPattern = new Regex($@"\b{Regex.Escape(destination)}\b", RegexOptions.IgnoreCase),
+            ParentMenu = rootMenu,
+            Verify = mirror => string.Equals(mirror.AirportIcao, destination, StringComparison.OrdinalIgnoreCase),
+            VerifyTimeout = AirportLoadTimeout,
+        };
+
+        var result = await _executor.ExecuteAsync(airportPick).ConfigureAwait(false);
+        _eventLog.Record("gsx-gate-airport-pick", new
+        {
+            destination,
+            outcome = result.Outcome.ToString(),
+            detail = result.Detail,
+            attempt = _airportPickAttempts,
+            entries = _api.Mirror.MenuShown ? _api.Mirror.Menu?.Entries : null,
+        });
+
+        if (result.Succeeded)
+        {
+            _logger.LogInformation("GSX loaded {Destination} from the in-flight airport pick: {Detail}", destination, result.Detail);
+            return true;
         }
 
-        var result = await SendSelectAsync(sendToken, revokeServices: false, force: false).ConfigureAwait(false);
+        // The menu entries are the evidence for the next flight: which page came up and
+        // what its rows looked like when the ICAO was not found.
+        _logger.LogInformation(
+            "In-flight airport pick for {Destination} not completed ({Outcome}): {Detail}; page '{Title}' rows [{Rows}]",
+            destination,
+            result.Outcome,
+            result.Detail,
+            _api.Mirror.Menu?.Title,
+            string.Join(" | ", _api.Mirror.Menu?.Entries ?? []));
+
+        if (!menuWasShown && _api.Mirror.MenuShown)
+        {
+            _ = await _api.SendCommandAsync("menu.close", null).ConfigureAwait(false);
+        }
+
+        return false;
+    }
+
+    /// <summary>The retry ladder — at most ONE auto-retry total per user request. The token
+    /// goes out as typed: GSX resolves it the way its gate search does (exact bglName → exact
+    /// uiGateName → full uiName → suffix on uiGateName), so "545R" finds "Stand 545R". The one
+    /// not_found fallback is the parking NUMBER as an integer — the fourth identity the
+    /// Remote API accepts and the only one never tried before 2026-09-21.</summary>
+    private async Task DispatchLadderAsync(string requested)
+    {
+        var menuWasShown = _api.Mirror.MenuShown;
+        var result = await SendSelectAsync(JsonValue.Create(requested), revokeServices: false, force: false).ConfigureAwait(false);
 
         if (!result.Ok && !_retriedOnce)
         {
             switch (result.Code)
             {
                 case "not_found":
-                    // The parkings may not have been mirrored at first dispatch; the failure
-                    // itself proves GSX has an airport loaded, so resolve again and retry with
-                    // the canonical name when it differs from what was just refused.
-                    var canonical = GsxGateResolver.ResolveCanonical(_api.Mirror.Parkings, requested);
-                    if (canonical is not null && !string.Equals(canonical, GsxGateResolver.TrimToken(sendToken), StringComparison.Ordinal))
+                    var number = GsxGateResolver.NumberFallback(_api.Mirror.Parkings, requested);
+                    if (number is { } parkingNumber)
                     {
                         _retriedOnce = true;
                         _logger.LogInformation(
-                            "Gate {Gate} not found as sent; retrying with GSX parking name {Canonical}",
-                            requested, canonical);
-                        result = await SendSelectAsync(canonical, revokeServices: false, force: false).ConfigureAwait(false);
-                        break;
-                    }
-
-                    // Nearest-name substitution (issue #75, 2026-08-15 flight: requested "313"
-                    // failed while GSX's parking list carried "Stand 313"). Accept the nearest
-                    // suggestion ONLY when exactly one candidate is an unambiguous match —
-                    // equal after trim, or equal once a known facility prefix is stripped.
-                    var substitutes = GsxGateResolver
-                        .NearestNames(_api.Mirror.Parkings, requested)
-                        .Where(name => GsxGateResolver.IsUnambiguousNearestMatch(requested, name))
-                        .Select(GsxGateResolver.TrimToken)
-                        .Distinct(StringComparer.Ordinal)
-                        .ToList();
-                    if (substitutes.Count == 1
-                        && !string.Equals(substitutes[0], GsxGateResolver.TrimToken(sendToken), StringComparison.Ordinal))
-                    {
-                        _retriedOnce = true;
-                        _logger.LogInformation(
-                            "Gate {Gate} not found; substituting the unambiguous nearest parking {Nearest}",
-                            requested, substitutes[0]);
-                        _eventLog.Record("gsx-gate-substituted", new { gate = requested, nearest = substitutes[0] });
-                        result = await SendSelectAsync(substitutes[0], revokeServices: false, force: false).ConfigureAwait(false);
+                            "Gate {Gate} not found by name; retrying with parking number {Number}",
+                            requested, parkingNumber);
+                        _eventLog.Record("gsx-gate-number-fallback", new { gate = requested, number = parkingNumber });
+                        result = await SendSelectAsync(JsonValue.Create(parkingNumber), revokeServices: false, force: false).ConfigureAwait(false);
                     }
                     break;
+
                 case "ambiguous":
                     var candidates = ParseCandidates(result.Error);
                     var candidate = GsxGateResolver.PickUniqueCandidate(candidates, requested);
@@ -256,7 +362,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
                     {
                         _retriedOnce = true;
                         _logger.LogInformation("Gate {Gate} ambiguous; retrying with candidate {Token}", requested, token);
-                        result = await SendSelectAsync(token, revokeServices: false, force: false).ConfigureAwait(false);
+                        result = await SendSelectAsync(JsonValue.Create(token), revokeServices: false, force: false).ConfigureAwait(false);
                     }
                     else
                     {
@@ -268,25 +374,31 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
                 case "services_active":
                     _retriedOnce = true;
                     _logger.LogInformation("Gate {Gate} has active services; retrying with revoke", requested);
-                    result = await SendSelectAsync(requested, revokeServices: true, force: false).ConfigureAwait(false);
+                    result = await SendSelectAsync(JsonValue.Create(requested), revokeServices: true, force: false).ConfigureAwait(false);
                     break;
 
                 case "assigned_to_other":
                     _retriedOnce = true;
                     _logger.LogInformation("Gate {Gate} occupied; retrying with force", requested);
-                    result = await SendSelectAsync(requested, revokeServices: false, force: true).ConfigureAwait(false);
+                    result = await SendSelectAsync(JsonValue.Create(requested), revokeServices: false, force: true).ConfigureAwait(false);
                     break;
             }
         }
 
         HandleFinalResult(requested, result);
+
+        // The in-flight pick leaves GSX's gate page on screen; the pilot did not open it.
+        if (!menuWasShown && _api.Mirror.MenuShown)
+        {
+            _ = await _api.SendCommandAsync("menu.close", null).ConfigureAwait(false);
+        }
     }
 
     private void HandleFinalResult(string requested, GsxCommandResult result)
     {
         if (result.Ok || result.Code is "ok" or "prepared" or "already_selected" or "already_parked")
         {
-            _eventLog.Record("gsx-gate-assigned", new { gate = requested, code = result.Code });
+            _eventLog.Record("gsx-gate-assigned", new { gate = requested, code = result.Code, payload = result.Payload?.ToJsonString() });
             SetStatus(GsxGateRequestStatus.Assigned, $"assigned ({result.Code}); awaiting confirmation");
             StartConfirmationWindow();
             CheckReadback();
@@ -313,12 +425,10 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         }
     }
 
-    private Task<GsxCommandResult> SendSelectAsync(string gate, bool revokeServices, bool force)
-        // Trimmed at the transport (issue #75): a leading space in a mirrored parking name
-        // (" Gate D57", 2026-08-15 flight) makes GSX answer not_found for its own gate.
+    private Task<GsxCommandResult> SendSelectAsync(JsonNode? gate, bool revokeServices, bool force)
         => _api.SendCommandAsync("gate.select", new JsonObject
         {
-            ["gate"] = GsxGateResolver.TrimToken(gate),
+            ["gate"] = gate,
             ["revokeServices"] = revokeServices,
             ["force"] = force,
         });
@@ -407,9 +517,15 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
 
     private void OnDataChanged(object? sender, EventArgs e) => _ = TryDispatchAsync();
 
+    private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e) => _ = TryDispatchAsync();
+
     private void OnMirrorUpdated(string key)
     {
-        if (string.Equals(key, "handlerData", StringComparison.OrdinalIgnoreCase))
+        // Live GSX 4 pushes the loaded airport as the top-level /airport key (the mirror's
+        // preferred source); handlerData is the fallback shape. Both must re-evaluate — the
+        // pre-2026-09-21 wiring listened to handlerData only.
+        if (string.Equals(key, "handlerData", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(key, "airport", StringComparison.OrdinalIgnoreCase))
         {
             _ = TryDispatchAsync();
         }
@@ -423,6 +539,9 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         {
             rearm = _requestedGate is not null;
             _retriedOnce = false;
+            _tooLateReported = false;
+            _airportPickAttempts = 0;
+            _lastAirportPickAtUtc = null;
         }
 
         if (rearm && Status is GsxGateRequestStatus.Assigned or GsxGateRequestStatus.Confirmed

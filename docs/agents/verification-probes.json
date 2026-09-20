@@ -92,6 +92,21 @@
       "notes": "Fixed 2026-09-21 (0.4.0-rc.3): GsxMenuIntentExecutor.IsDriving (intent chain + 5 s grace) gates the Select Position handler; ParkingConflictGate.IsParkedEnginesOff gates both the catalogue publish and the FO advisory (held while moving, re-checked on the at-gate phase edge); GsxBootstrapService clears the conflict when the mirror names a parking."
     },
     {
+      "id": "arrival-gate-in-flight-pick",
+      "issue": 75,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "When an arrival gate is armed and the phase reaches Cruise (or Descent/Approach) with GSX still reporting the departure airport: a 'gsx-gate-airport-pick' session event (payload destination, outcome, detail, attempt, entries) and the log line 'Gate request <gate>: Armed — loading <ICAO> in GSX (in-flight airport pick, attempt N)'. REPORT the page title and rows quoted in the 'In-flight airport pick ... not completed' line on failure — that is how we learn GSX's in-flight menu shape (expected: entry '^select airport' on the root menu, page 'Select airport', rows carrying the ICAO).",
+        "On success: 'GSX loaded <ICAO> from the in-flight airport pick', then 'GSX command gate.select {\"gate\":\"<as typed>\"...} -> ok (prepared|ok)' IN THE AIR, then 'gsx-gate-assigned' and, within 60 s, 'gsx-gate-confirmed' from the SetGate LVAR readback. After landing NO 'Select Position at <destination>' menu and no parking conflict — services engage on arrival.",
+        "assert-absent: a gate.select sent while parked (on ground, stopped, engines off). The planner must record 'gsx-gate-too-late' + 'too late — GSX already has the aircraft parked at a stand' instead of a send (the 2026-08-22 EGLL 313 and 2026-09-13 LIRF 829 signature).",
+        "If the name send is refused not_found and a unique parking number exists: 'gsx-gate-number-fallback' + a second gate.select with \"gate\":<integer>. REPORT whether the integer was accepted.",
+        "assert-absent: more than one airport-pick attempt within 2 minutes, or more than 12 in a flight."
+      ],
+      "notes": "Added 2026-09-21 (0.4.0-rc.4) from the GSX Pro integration guide §8.14 + Handler Scripts guide selectGate: gate.select refuses while parked (surfaces as not_found), the token as typed resolves by suffix, and GSX only loads the destination in flight if picked from its 'Select airport' menu. First flight verifies the in-flight menu shape; the pick fails soft (menu closed again) and the ground taxi-in send still runs."
+    },
+    {
       "id": "gate-select-error-detail",
       "issue": 75,
       "state": "open",

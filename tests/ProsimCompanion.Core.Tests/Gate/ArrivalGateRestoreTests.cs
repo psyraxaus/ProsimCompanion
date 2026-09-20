@@ -146,7 +146,7 @@ public sealed class ArrivalGateRestoreTests : IDisposable
         var ofp = new OfpStore();
         ofp.Set(new OfpData { DestinationIcao = "EGLL", FetchedAtUtc = DateTimeOffset.UtcNow });
         var file = new ArrivalGateStateFile(NullLogger<ArrivalGateStateFile>.Instance, _path);
-        file.Save(State(fired: true));
+        file.Save(State(fired: true, savedAt: DateTimeOffset.UtcNow - TimeSpan.FromMinutes(30)));
 
         using var coordinator = new ArrivalGateCoordinator(phase.Object, ofp, gsx.Object, atc.Object,
             NullLogger<ArrivalGateCoordinator>.Instance, file);
@@ -166,7 +166,7 @@ public sealed class ArrivalGateRestoreTests : IDisposable
         var gsx = new Mock<IGsxGateControl>();
         var ofp = new OfpStore();
         var file = new ArrivalGateStateFile(NullLogger<ArrivalGateStateFile>.Instance, _path);
-        file.Save(State());
+        file.Save(State(savedAt: DateTimeOffset.UtcNow - TimeSpan.FromMinutes(30)));
 
         using var coordinator = new ArrivalGateCoordinator(phase.Object, ofp, gsx.Object, null,
             NullLogger<ArrivalGateCoordinator>.Instance, file);

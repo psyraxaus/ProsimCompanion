@@ -294,6 +294,33 @@ public static class GsxGateResolver
             : null;
     }
 
+    /// <summary>
+    /// The parking NUMBER to retry with after a not_found (2026-09-21): the Remote API accepts
+    /// an integer parking number as a fourth identity, and it is the only one never sent in
+    /// six weeks of refusals. Only a UNIQUE parking whose display/BGL name equals or ends with
+    /// the requested token (normalized) qualifies — a guessed number sends the services to the
+    /// wrong stand. Null when none, several, or the parking carries no number.
+    /// </summary>
+    public static int? NumberFallback(IReadOnlyList<GsxParking> parkings, string requestedGate)
+    {
+        ArgumentNullException.ThrowIfNull(parkings);
+        var requested = Normalize(requestedGate);
+        if (requested.Length == 0)
+        {
+            return null;
+        }
+
+        var matches = parkings
+            .Where(p => p.Number is not null)
+            .Where(p => new[] { p.UiGateName, p.UiName, p.BglName }
+                .Select(Normalize)
+                .Any(name => name.Length > 0 && (name == requested || name.EndsWith(requested, StringComparison.Ordinal))))
+            .Select(p => p.Number!.Value)
+            .Distinct()
+            .ToList();
+        return matches.Count == 1 ? matches[0] : null;
+    }
+
     /// <summary>Nearest-name suggestions for a not_found failure: exact → suffix → contains,
     /// max 3, drawn from the mirrored parkings.</summary>
     public static IReadOnlyList<string> NearestNames(IReadOnlyList<GsxParking> parkings, string requestedGate)

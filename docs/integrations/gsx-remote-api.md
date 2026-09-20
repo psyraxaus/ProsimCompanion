@@ -171,16 +171,49 @@ would answer a menu raised for a different reason.
 
 ## 6. Gate selection — retry ladder + confirmation
 
-Arm-then-dispatch: dispatch only when Ready ∧ `handlerData.airport.icao` known ∧ destination
-known ∧ loaded airport == destination; otherwise stay armed, re-dispatch on state changes;
-re-arm on `sid` change. **At most one auto-retry total per user request.**
+**Contract (GSX Pro integration guide §8.14 + Handler Scripts Developer Guide `selectGate`,
+read 2026-09-21).** `gate` is any ONE identity of a parking in `handlerData.airport.parkings`:
+`number` (an integer), `bglName`, `uiGateName` or `uiName`. A string resolves the way the
+in-game gate search does: exact BGL name (`"Gate A1"`, `"Parking2"`) → exact uiGateName →
+exact full uiName (`"Terminal 1 | Gate A5"`) → **suffix on uiGateName** (`"A5"` finds
+`"Gate A5"`). So the token as the pilot typed it (`"545R"`) is already enough — no name
+mapping needed. `*`/`?` make it a wildcard search that always answers `ambiguous`. It assigns
+and prepares only; it never moves the aircraft. **It refuses while the aircraft is parked
+with services engaged, and after a user "Revoke parking services" until the user picks a gate
+from the menu or leaves the airport** — the Python returns False, the same value as "no
+match", so the refusal surfaces as `not_found`. Every send from 2026-08-09 to 2026-09-20 went
+out on the ground, most of them at the stand; that, not the token shape, is why they failed.
 
-1. Plain: `{gate, revokeServices:false, force:false}`
-2. `ambiguous` → pick unique candidate (exact normalized `uiName`/`gate` match, else unique
+**Timing is the design.** GSX loads the DESTINATION airport context only when the aircraft
+reaches it on the ground (and asks "Select Position" the same second) — unless the airport is
+picked from the in-flight **"Select airport"** menu first (the handler guide's
+`onSelectGateInFlight` moment, when the request is processed immediately). Dispatch therefore
+runs as (`GateDispatchPlanner`, pure):
+
+- Ready ∧ destination known, loaded airport ≠ destination, phase Cruise/Descent/Approach →
+  **pick the airport in flight**: GSX menu → entry `^select airport` → page titled
+  `Select airport` → the row containing the destination ICAO (text match, never an
+  ordinal; Prosim2GSX's row-2 fallback is deliberately not carried) → verify the mirror's
+  loaded airport becomes the destination (≤20 s). Backoff 2 min between attempts, max 12
+  (the destination joins GSX's nearby list only within range). A menu we opened is closed
+  again on failure; after the gate.select on success.
+- loaded airport == destination ∧ not parked → **send now** (in the air, or on the ground
+  while still rolling when GSX loaded the airport itself after landing).
+- loaded airport == destination ∧ parked (on ground, ≤1 kt, engines off) → **too late**:
+  `gsx-gate-too-late` event + Failed "pick the gate in the GSX menu"; never sent.
+- Re-evaluated on readiness, mirror `airport`/`handlerData` patches (the top-level
+  `/airport` key is what live GSX 4 pushes — listening to handlerData alone missed it), FMS
+  destination and phase changes; re-arm on `sid` change. **At most one auto-retry total.**
+
+1. Plain: `{gate: "<as typed>", revokeServices:false, force:false}`
+2. `not_found` → resend `gate` = the parking **number as an integer** when exactly one
+   mirrored parking's uiGateName/uiName/bglName equals or ends with the token
+   (`GsxGateResolver.NumberFallback`) — the one identity never tried before 2026-09-21.
+3. `ambiguous` → pick unique candidate (exact normalized `uiName`/`gate` match, else unique
    normalized suffix match); resend `gate` = candidate's `bglName ?? uiName ?? gate`.
    Normalization = strip non-alphanumerics, uppercase.
-3. `services_active` → resend with `revokeServices:true`
-4. `assigned_to_other` → resend with `force:true`
+4. `services_active` → resend with `revokeServices:true`
+5. `assigned_to_other` → resend with `force:true`
 
 `not_found` → fail with nearest-name suggestions from the parkings cache (exact → suffix →
 contains, max 3). Success is only **provisional**: confirm via readback LVARs
@@ -204,6 +237,12 @@ Two "Select Position at <airport>" menus are NOT GSX asking where the aircraft i
 own **Reposition Aircraft** pick opens (the executor is driving it — `GsxMenuIntentExecutor.
 IsDriving`), and the one GSX raises on the landing roll when no arrival gate was pre-selected
 (normal; a conflict only if still unanswered once parked with engines off).
+
+The departure "gate anchor" (`gsx.anchorDepartureGate`, issue #44) sends gate.select right
+after the reposition — i.e. while parked — and so can never succeed by the rule above. It is
+kept only because the owner loads the sim at the gate and does not set a departure gate; it
+fails soft and costs one refused command per session. Remove or retarget it, never "fix" its
+token.
 
 ## 7. Locked decisions (carry verbatim)
 
