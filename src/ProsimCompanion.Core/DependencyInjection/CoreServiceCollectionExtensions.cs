@@ -160,12 +160,16 @@ public static class CoreServiceCollectionExtensions
         // Arrival-gate workflow: Confirm queues, cruise auto-fires to GSX + SayIntentions
         // ATC, Send Now fires immediately. Both targets come from other pillars (Gsx and
         // Speech) and resolve as optional so a composition without them still starts.
+        // The queue survives an app restart in flight (2026-09-20: two restarts in the
+        // descent lost the confirmed gate) — the core bootstrap restores it at startup.
+        services.AddSingleton<Gate.ArrivalGateStateFile>();
         services.AddSingleton(p => new Gate.ArrivalGateCoordinator(
             p.GetRequiredService<IFlightPhaseSource>(),
             p.GetRequiredService<Aircraft.Ofp.OfpStore>(),
             p.GetService<IGsxGateControl>(),
             p.GetService<Gate.ISayIntentionsGateAssign>(),
-            p.GetRequiredService<ILogger<Gate.ArrivalGateCoordinator>>()));
+            p.GetRequiredService<ILogger<Gate.ArrivalGateCoordinator>>(),
+            p.GetRequiredService<Gate.ArrivalGateStateFile>()));
         services.AddSingleton<AircraftProfileService>();
         services.AddHostedService<CoreBootstrapService>();
 

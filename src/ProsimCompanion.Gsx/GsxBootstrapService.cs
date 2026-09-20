@@ -109,8 +109,28 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
             // Fire-and-forget is safe: the dispatcher contains all its own failures.
             _ = _questions.OnMenuUpdatedAsync(_client.Mirror.MenuShown, _client.Mirror.Menu?.Title);
         }
+        else if (key is "parking" or "handlerData")
+        {
+            ClearParkingConflictIfIdentified();
+        }
 
         PublishDiagnostics();
+    }
+
+    /// <summary>A standing parking conflict ends the moment GSX names the parking. The
+    /// publishers (prep hold, question catalogue) clear only their own episodes; on the
+    /// 2026-09-20 EGLL arrival the Select Position conflict outlived the pilot's stand pick
+    /// by the whole deboarding, so the Flight Status row kept warning at a known stand.</summary>
+    private void ClearParkingConflictIfIdentified()
+    {
+        var gateKey = _client.Mirror.GateContextKey;
+        if (gateKey is null || _diagnostics.Snapshot().ParkingConflict is null)
+        {
+            return;
+        }
+
+        _logger.LogInformation("GSX identified the parking {Gate} — parking conflict cleared", gateKey);
+        _diagnostics.UpdateParkingConflict(null);
     }
 
     private void OnReadinessChanged(GsxReadiness readiness)

@@ -238,6 +238,58 @@ public sealed class GsxMenuIntentExecutorTests
         Assert.Equal(2, _api.Commands.Count(c => c.Verb == "menu.pick"));
     }
 
+    /// <summary>2026-09-13/20 flights: the reposition step opens GSX's "Select Position at …"
+    /// list and the question catalogue took it for the unknown-parking prompt. The executor
+    /// must own up to the menus it drives — the child, its parent, and for a grace period
+    /// after the pick.</summary>
+    [Fact]
+    public async Task IsDriving_CoversTheIntentChainWhileRunning_AndBrieflyAfter()
+    {
+        var gateMenu = Intent("Activate Services at", "^reposition aircraft") with
+        {
+            Verify = mirror => mirror.MenuShown
+                && mirror.Menu?.Title.StartsWith("Select Position", StringComparison.OrdinalIgnoreCase) == true,
+        };
+        var positionPick = new GsxMenuIntent
+        {
+            Name = "reposition position pick",
+            TitlePrefixes = ["Select Position at"],
+            EntryIndex = 0,
+            ParentMenu = gateMenu,
+        };
+        Assert.False(_executor.IsDriving("Select Position at LIRF/Fiumicino"));
+
+        var drivingDuringSubmenu = false;
+        _api.OnCommand = (verb, args) =>
+        {
+            if (verb == "menu.open")
+            {
+                ShowMenu("Activate Services at LIRF/Fiumicino", "Reposition Aircraft");
+            }
+            else if (verb == "menu.pick" && (int?)args?["index"] == 0
+                && _api.Mirror.Menu?.Title.StartsWith("Activate", StringComparison.Ordinal) == true)
+            {
+                ShowMenu("Select Position at LIRF/Fiumicino", "Reposition here [Remote Stands 8XX/9XX | Stand 835]");
+                drivingDuringSubmenu = _executor.IsDriving("Select Position at LIRF/Fiumicino");
+            }
+            else if (verb == "menu.pick")
+            {
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(false));
+            }
+            return new GsxCommandResult(true, "ok", null, null);
+        };
+
+        var result = await _executor.ExecuteAsync(positionPick);
+
+        Assert.Equal(GsxIntentOutcome.Success, result.Outcome);
+        Assert.True(drivingDuringSubmenu);
+        // Grace after the pick: the dispatcher may reach its handler a beat later.
+        Assert.True(_executor.IsDriving("Select Position at LIRF/Fiumicino"));
+        Assert.True(_executor.IsDriving("Activate Services at LIRF/Fiumicino"));
+        Assert.False(_executor.IsDriving("Request FollowMe?"));
+        Assert.False(_executor.IsDriving(null));
+    }
+
     private sealed class FakeGsxApi : IGsxRemoteApi
     {
 #pragma warning disable CS0067 // raised by the real client; not needed by these scenarios

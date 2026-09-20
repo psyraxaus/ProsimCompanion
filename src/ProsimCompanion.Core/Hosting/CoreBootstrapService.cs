@@ -16,6 +16,7 @@ public sealed class CoreBootstrapService : IHostedService
     private readonly ConnectionStatusStore _status;
     private readonly JsonlEventLog _eventLog;
     private readonly AircraftProfileService _profiles;
+    private readonly Gate.ArrivalGateCoordinator _arrivalGate;
 
     public CoreBootstrapService(
         FlightStateEngine flightState,
@@ -39,6 +40,7 @@ public sealed class CoreBootstrapService : IHostedService
         _status = status;
         _eventLog = eventLog;
         _profiles = profiles;
+        _arrivalGate = arrivalGate;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -48,7 +50,26 @@ public sealed class CoreBootstrapService : IHostedService
         _status.Changed += OnStatusChanged;
         _profiles.Changed += OnProfileChanged;
         _flightState.Start();
+        RestoreArrivalGate();
         return Task.CompletedTask;
+    }
+
+    /// <summary>The persisted arrival gate comes back before any page or phase edge needs it
+    /// (2026-09-20: in-flight restarts lost it). A failure here is logged, never fatal.</summary>
+    private void RestoreArrivalGate()
+    {
+        try
+        {
+            var (action, gate) = _arrivalGate.Restore();
+            if (action != Gate.ArrivalGateRestoreAction.Ignore)
+            {
+                _eventLog.Record("arrival-gate-restored", new { gate, action = action.ToString() });
+            }
+        }
+        catch (Exception ex)
+        {
+            _eventLog.Record("arrival-gate-restore-failed", new { error = ex.Message });
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

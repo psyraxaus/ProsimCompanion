@@ -75,7 +75,46 @@
         "assert-absent: repeated app restarts around a parking-change menu with session gate 'unknown' and no pilot-facing guidance (the 2026-08-17/22 signature).",
         "A 'gsx-question' decision 'position-select menu ... left for the user' when the Select Position menu appears (no more anonymous 'no question handler')."
       ],
-      "notes": "Re-fixed 2026-08-23: the unknown-parking HOLD itself now publishes the parking conflict (advisory + status row), so no particular menu shape is required; the Select Position menu is a named catalogue decision. The app still never clicks GSX's parking menus — it advises."
+      "notes": "Re-fixed 2026-08-23: the unknown-parking HOLD itself now publishes the parking conflict (advisory + status row), so no particular menu shape is required; the Select Position menu is a named catalogue decision. The app still never clicks GSX's parking menus — it advises. 2026-09-21: the Select Position menu is a conflict ONLY when GSX raised it (not our reposition) at a parked, engines-off aircraft — see probe parking-advisory-false-alarm."
+    },
+    {
+      "id": "parking-advisory-false-alarm",
+      "issue": 44,
+      "state": "closed-regression-watch",
+      "kind": "assert-absent",
+      "sources": ["session", "log"],
+      "checks": [
+        "assert-absent: an 'fo.parking-conflict-advisory' event within 60 s after a 'gsx-decision' reposition ('repositioning at <gate>') whose position pick succeeded — the 2026-09-13 EGLL 546 and 2026-09-20 LIRF 835 signature: our own Reposition Aircraft → Select Position submenu was taken for GSX's unknown-parking prompt and the FO said 'GSX doesn't recognise our parking position' at a stand GSX had armed 90 s earlier.",
+        "assert-present: when the reposition runs, the 'gsx-question' decision for the position-select menu reads 'opened by our own reposition step — GSX knows the stand; not a parking conflict'.",
+        "assert-absent: an 'fo.parking-conflict-advisory' event while the phase is TakeoffRoll..TaxiIn or while any engine is running (2026-09-20 EGLL: spoken 31 s after touchdown on the landing roll). A conflict published while moving records 'fo.parking-conflict-held' instead and speaks only if it still stands once parked with engines off.",
+        "assert-present: when GSX names the parking after a conflict stood (mirror 'parking'/'handlerData' update with a gate key), the log line 'GSX identified the parking <gate> — parking conflict cleared' (2026-09-20: the Select Position conflict outlived the pilot's stand pick by the whole deboarding)."
+      ],
+      "notes": "Fixed 2026-09-21 (0.4.0-rc.3): GsxMenuIntentExecutor.IsDriving (intent chain + 5 s grace) gates the Select Position handler; ParkingConflictGate.IsParkedEnginesOff gates both the catalogue publish and the FO advisory (held while moving, re-checked on the at-gate phase edge); GsxBootstrapService clears the conflict when the mirror names a parking."
+    },
+    {
+      "id": "gate-select-error-detail",
+      "issue": 75,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["log"],
+      "checks": [
+        "When any gate.select is refused: a 'GSX command gate.select failure detail: error={...} payload={...}' log line right after the 'GSX command gate.select ... -> failed (not_found)' summary. REPORT the error object verbatim — it is the only evidence we have for what GSX matches the gate token against (every shape tried 2026-08-09 → 2026-09-20 was refused: ' Gate D27', 'D27', 'D5', 'Stand 313', '313', 'Stand 546', 'Terminal 5B (531-548)|Stand 546', '546', 'Stand 829', 'Stand 835', 'Remote Stands 8XX/9XX | Stand 835', '835').",
+        "When a gate.select succeeds: a 'GSX command gate.select result payload: {...}' line — record the accepted token shape in docs/integrations/gsx-remote-api.md §6 and flip this probe to closed-regression-watch."
+      ],
+      "notes": "Added 2026-09-21 (0.4.0-rc.3). gate.select has never returned ok in any recorded flight; the client used to log only the result code. Also turn on logging.wireTrace for the next flight so the full frames are available."
+    },
+    {
+      "id": "arrival-gate-persisted",
+      "issue": 44,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "When the app restarts in flight after an arrival gate was confirmed: an 'arrival-gate-restored' session event (payload gate + action Queue/DispatchBoth/DispatchGsxOnly) in the new session, and 'Arrival gate <gate> restored after restart' in the log — 2026-09-20 EGLL: 545R confirmed twice, two restarts in the descent, the last run landed with no gate and GSX asked 'Select Position' on the roll.",
+        "When restored past the cruise entry (Descent/Approach): the GSX 'Gate request <gate>: Armed' line follows immediately; if the earlier run had already fired, the ATC status reads 'ATC assignment already sent before the restart' and no second SayIntentions assignGate goes out.",
+        "assert-absent: a restored gate from a PREVIOUS flight (a different OFP destination, or a file older than 18 h) — the log then reads 'Persisted arrival gate ... ignored — stale or another flight'. The file is cleared on Cancel and at Shutdown."
+      ],
+      "notes": "Added 2026-09-21 (0.4.0-rc.3): ArrivalGateStateFile (%LOCALAPPDATA%\\ProsimCompanion\\arrival-gate.json) + ArrivalGateRestorePlan; CoreBootstrapService restores at startup. First in-flight restart on this build verifies it."
     },
     {
       "id": "ground-ops-double-fire",

@@ -66,6 +66,8 @@ Behaviours that must survive the port:
   power is connected (unless forced); GPU & chocks auto-removed when beacon comes on.
 - **Arrival**: stable-parked detection before services; optional GSX restart on taxi-in; gate
   assignment auto-fired at cruise (to GSX via `gate.select` and to ATC via SayIntentions).
+  The confirmed gate is persisted (`%LOCALAPPDATA%\ProsimCompanion\arrival-gate.json`) and
+  restored at startup, so an in-flight app restart does not land without it (2026-09-20).
 - **INT/RAD ACP switch** doubles as a universal service trigger/advance input ("smart button").
 - **Voice gating (ADR-0006, issues #50/#51)**: `gsx.groundPrepActivation = "voice"` holds the
   whole prep chain (reposition → gate anchor → GPU/chocks → jetway) until departure services

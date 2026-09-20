@@ -147,6 +147,24 @@ public sealed class GsxRemoteApiClient : BackgroundService, IGsxRemoteApi
             argsText,
             result.Ok ? "ok" : "failed",
             result.Code);
+
+        // The code alone taught us nothing for six weeks of gate.select not_found (2026-08-09
+        // → 2026-09-20: every token shape refused, wire trace off on every flight). The
+        // server's error/payload objects are small and rare — keep them in the app log so the
+        // next refusal explains itself without a wire trace. Synthetic results carry neither.
+        if (!result.Ok && (result.Error is not null || result.Payload is not null))
+        {
+            _logger.LogInformation(
+                "GSX command {Verb} failure detail: error={Error} payload={Payload}",
+                verb,
+                result.Error?.ToJsonString() ?? "null",
+                result.Payload?.ToJsonString() ?? "null");
+        }
+        else if (result.Ok && verb == "gate.select" && result.Payload is not null)
+        {
+            _logger.LogInformation("GSX command {Verb} result payload: {Payload}", verb, result.Payload.ToJsonString());
+        }
+
         CommandCompleted?.Invoke(new GsxCommandView(DateTimeOffset.UtcNow, verb, argsText, result.Ok, result.Code));
         return result;
     }

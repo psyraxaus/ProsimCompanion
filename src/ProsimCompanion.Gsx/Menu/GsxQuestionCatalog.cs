@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Gsx.Menu;
@@ -20,15 +21,18 @@ public sealed class GsxQuestionCatalog
     private readonly GsxMenuIntentExecutor _executor;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly IFlightPhaseSource _flightState;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxQuestionCatalog> _logger;
     private volatile bool _directionAutoSelected;
+    private volatile bool _selectPositionSeenWhileMoving;
 
     public GsxQuestionCatalog(
         IGsxRemoteApi api,
         GsxMenuIntentExecutor executor,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
+        IFlightPhaseSource flightState,
         JsonlEventLog eventLog,
         ILogger<GsxQuestionCatalog> logger)
     {
@@ -36,6 +40,7 @@ public sealed class GsxQuestionCatalog
         ArgumentNullException.ThrowIfNull(executor);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -43,12 +48,18 @@ public sealed class GsxQuestionCatalog
         _executor = executor;
         _options = options;
         _diagnostics = diagnostics;
+        _flightState = flightState;
         _eventLog = eventLog;
         _logger = logger;
 
         // App-lifetime singleton — no unsubscribe needed. A Couatl engine restart starts a new
         // GSX session, so the once-per-session direction latch re-arms.
-        _api.Mirror.SidChanged += (_, _) => _directionAutoSelected = false;
+        _api.Mirror.SidChanged += (_, _) =>
+        {
+            _directionAutoSelected = false;
+            _selectPositionSeenWhileMoving = false;
+        };
+        _flightState.PhaseChanged += OnPhaseChanged;
     }
 
     /// <summary>Registers all catalogued questions on the dispatcher.</summary>
@@ -117,19 +128,7 @@ public sealed class GsxQuestionCatalog
         // conflict itself is published by the ground-prep coordinator's hold.
         dispatcher.Register("Select Position", ct =>
         {
-            RecordDecision(
-                "position-select menu",
-                "left for the user — GSX does not recognize the parking; pick the stand or reposition (issue #44)");
-
-            // Publish the conflict from HERE too (issue #121, 2026-08-30 EGLL arrival): on
-            // arrival there is no prep hold to publish it, so the menu appeared and the
-            // pilot heard nothing. Once per standing conflict — the advisory speaks each
-            // timestamp once and re-publishing would re-speak it.
-            if (_diagnostics.Snapshot().ParkingConflict is null)
-            {
-                _diagnostics.UpdateParkingConflict(new GsxParkingConflictView(DateTimeOffset.UtcNow, ""));
-            }
-
+            HandleSelectPosition();
             return Task.CompletedTask;
         });
         dispatcher.Register("This will revoke all active services", ct =>
@@ -260,6 +259,90 @@ public sealed class GsxQuestionCatalog
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The "Select Position at …" menu has three different meanings, and only one of them is
+    /// a parking conflict (2026-09-21 review of the 09-13 and 09-20 flights):
+    /// <list type="bullet">
+    /// <item>Our own reposition step opened it (Reposition Aircraft → Select Position). GSX
+    /// already knows the stand — the intent executor is driving this menu. Not a conflict;
+    /// the FO spoke "GSX doesn't recognise our parking position" on every departure because
+    /// this case was not distinguished.</item>
+    /// <item>GSX asks for the arrival parking while the aircraft is still rolling (EGLL
+    /// 2026-09-20: 31 s after touchdown). Normal GSX behaviour with no gate pre-selected —
+    /// the pilot picks, or GSX identifies the stand on parking. Held: it becomes a conflict
+    /// only if the menu is still up, with no parking identified, once parked with engines
+    /// off (checked on the phase change, see <see cref="OnPhaseChanged"/>).</item>
+    /// <item>The aircraft is parked, engines off, and GSX still does not know the stand —
+    /// the genuine #44 case. Published (the Flight Status row + the FO's guidance).</item>
+    /// </list>
+    /// </summary>
+    private void HandleSelectPosition()
+    {
+        var title = _api.Mirror.Menu?.Title ?? "Select Position at";
+        if (_executor.IsDriving(title))
+        {
+            RecordDecision(
+                "position-select menu",
+                "opened by our own reposition step — GSX knows the stand; not a parking conflict");
+            return;
+        }
+
+        var data = _flightState.Snapshot().Data;
+        if (!ParkingConflictGate.IsParkedEnginesOff(data))
+        {
+            _selectPositionSeenWhileMoving = true;
+            RecordDecision(
+                "position-select menu",
+                "left for the user — GSX is asking for the parking while the aircraft is moving or running; "
+                + "a conflict only if it is still unanswered once parked");
+            return;
+        }
+
+        PublishSelectPositionConflict();
+    }
+
+    private void PublishSelectPositionConflict()
+    {
+        RecordDecision(
+            "position-select menu",
+            "left for the user — GSX does not recognize the parking; pick the stand or reposition (issue #44)");
+
+        // Publish the conflict from HERE too (issue #121, 2026-08-30 EGLL arrival): on
+        // arrival there is no prep hold to publish it, so the menu appeared and the
+        // pilot heard nothing. Once per standing conflict — the advisory speaks each
+        // timestamp once and re-publishing would re-speak it.
+        if (_diagnostics.Snapshot().ParkingConflict is null)
+        {
+            _diagnostics.UpdateParkingConflict(new GsxParkingConflictView(DateTimeOffset.UtcNow, ""));
+        }
+    }
+
+    /// <summary>The held arrival case: the position menu appeared while rolling, the aircraft
+    /// has now parked (Shutdown), and GSX still names no parking with the menu still up —
+    /// that is the genuine conflict, published now rather than during the landing roll.</summary>
+    private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
+    {
+        try
+        {
+            if (!_selectPositionSeenWhileMoving || !e.Current.IsAtGate())
+            {
+                return;
+            }
+
+            _selectPositionSeenWhileMoving = false;
+            var menuStillUp = _api.Mirror.MenuShown
+                && _api.Mirror.Menu?.Title.StartsWith("Select Position", StringComparison.OrdinalIgnoreCase) == true;
+            if (menuStillUp && _api.Mirror.GateContextKey is null)
+            {
+                PublishSelectPositionConflict();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Select Position phase follow-up failed");
+        }
     }
 
     /// <summary>"Change Facility [Terminal 5B (531-548) Stand 547 with Safedock©]" → the

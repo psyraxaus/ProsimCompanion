@@ -18,9 +18,17 @@ public sealed class GsxMenuIntentExecutor
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
+    /// <summary>How long a finished intent still counts as "driving" its menus. The question
+    /// dispatcher runs off the receive thread and can reach a handler a beat after the pick
+    /// verified; without this grace the last mirror update of our own submenu would read as a
+    /// GSX-raised question.</summary>
+    internal static readonly TimeSpan RecentGrace = TimeSpan.FromSeconds(5);
+
     private readonly IGsxRemoteApi _api;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly ILogger<GsxMenuIntentExecutor> _logger;
+    private readonly object _drivenGate = new();
+    private readonly List<(GsxMenuIntent Intent, DateTimeOffset? FinishedAtUtc)> _driven = [];
 
     public GsxMenuIntentExecutor(
         IGsxRemoteApi api,
@@ -40,7 +48,17 @@ public sealed class GsxMenuIntentExecutor
     {
         ArgumentNullException.ThrowIfNull(intent);
 
-        var result = await ExecuteCoreAsync(intent, cancellationToken).ConfigureAwait(false);
+        GsxIntentResult result;
+        MarkDriving(intent);
+        try
+        {
+            result = await ExecuteCoreAsync(intent, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            MarkFinished(intent);
+        }
+
         if (result.Succeeded)
         {
             _logger.LogInformation("Intent {Intent} succeeded: {Detail}", intent.Name, result.Detail);
@@ -56,6 +74,60 @@ public sealed class GsxMenuIntentExecutor
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// True when a menu with this title is one THIS executor opened: an intent in flight, any
+    /// parent in its chain, or one that finished within <see cref="RecentGrace"/>. The question
+    /// catalogue asks before treating a menu as a GSX-raised question. The reposition step
+    /// opens GSX's own "Select Position at …" list, and on the 2026-09-13 and 2026-09-20
+    /// flights the dispatcher took that submenu for the unknown-parking prompt — the FO then
+    /// spoke "GSX doesn't recognise our parking position" at a stand GSX had already armed.
+    /// </summary>
+    public bool IsDriving(string? title)
+    {
+        if (string.IsNullOrEmpty(title))
+        {
+            return false;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        lock (_drivenGate)
+        {
+            _driven.RemoveAll(entry => entry.FinishedAtUtc is { } finished && now - finished > RecentGrace);
+            foreach (var (intent, _) in _driven)
+            {
+                for (var current = intent; current is not null; current = current.ParentMenu)
+                {
+                    if (current.TitleMatches(title))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void MarkDriving(GsxMenuIntent intent)
+    {
+        lock (_drivenGate)
+        {
+            _driven.Add((intent, null));
+        }
+    }
+
+    private void MarkFinished(GsxMenuIntent intent)
+    {
+        lock (_drivenGate)
+        {
+            var index = _driven.FindIndex(entry => ReferenceEquals(entry.Intent, intent) && entry.FinishedAtUtc is null);
+            if (index >= 0)
+            {
+                _driven[index] = (intent, DateTimeOffset.UtcNow);
+            }
+        }
     }
 
     private async Task<GsxIntentResult> ExecuteCoreAsync(GsxMenuIntent intent, CancellationToken cancellationToken)

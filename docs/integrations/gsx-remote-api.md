@@ -189,6 +189,22 @@ re-assigning the same gate may already match). Letter map: Name 0 = NONE, 10 = "
 12..37 = A..Z → "{Letter}{Number}"; Suffix −1 = unassigned. Window expiry → "Assigned
 (unconfirmed)", never a failure.
 
+**ARCHAEOLOGY (2026-09-21 review): the `gate` token contract is still unproven.** Every
+`gate.select` in every recorded flight from 2026-08-09 to 2026-09-20 was refused `not_found`,
+whatever shape was sent: `" Gate D27"`, `"D27"`, `"D5"` (EHAM); `"Stand 313"`, `"313"`,
+`"Stand 546"`, `"Terminal 5B (531-548)|Stand 546"`, `"546"` (EGLL); `"Stand 829"` (LIRF);
+`"Stand 835"`, `"Remote Stands 8XX/9XX | Stand 835"`, `"835"` (LIRF). Prosim2GSX never proved
+it either (its Phase-1 doc marks the matched field UNVERIFIED). Until 0.4.0-rc.3 the client
+logged only the result code and the wire trace was off on every flight, so the server's error
+object was never seen. The client now logs `error`/`payload` for every refused command and the
+payload of every `gate.select`; the next refusal is the evidence — read it before changing the
+anchor ladder or the arrival resolver again. Turn `logging.wireTrace` on for that flight too.
+
+Two "Select Position at <airport>" menus are NOT GSX asking where the aircraft is: the one our
+own **Reposition Aircraft** pick opens (the executor is driving it — `GsxMenuIntentExecutor.
+IsDriving`), and the one GSX raises on the landing roll when no arrival gate was pre-selected
+(normal; a conflict only if still unanswered once parked with engines off).
+
 ## 7. Locked decisions (carry verbatim)
 
 1. Remote API is the only path — no menu-file walker, no handler script for control.
