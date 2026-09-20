@@ -6,6 +6,7 @@
 @using ProsimCompanion.Core.Profiles
 @using ProsimCompanion.Web.Theming
 @inject ConnectionStatusStore Status
+@inject SpeechStatusStore Speech
 @inject IProsimDataRefs DataRefs
 @inject IOptionsMonitor<WebUiOptions> WebUi
 @inject UpdateStore Updates
@@ -128,12 +129,13 @@
     </div>
 
     @* Status footer (ADR-0011): the canvas footer carried fake CPU/MEM/wifi widgets; ours
-       shows the three real connections and the running version. Hidden on phones. *@
+       shows the real connections (aircraft, sim, ground services, the two LAN voice
+       services) and the running version. Hidden on phones. *@
     <footer class="footer">
         <div class="footer-links">
             @foreach (var (label, subsystem) in FooterLinks)
             {
-                <span class="footer-link" title="@label connection">
+                <span class="footer-link" title="@FooterTitle(label, subsystem)">
                     <span class="conn-dot @DotClass(subsystem)"></span>
                     <span>@label</span>
                 </span>
@@ -202,13 +204,46 @@
 
     private string ProsimDotClass => DotClass(Subsystems.Prosim);
 
-    // Footer order: the aircraft link first, then the sim, then ground services.
+    // Footer order: the aircraft link first, then the sim, then ground services, then the
+    // two LAN voice services (owner request 2026-09-20: the voice box came up late after a
+    // macOS update and nothing on the page said the FO was on the offline engine).
     private static readonly (string Label, string Subsystem)[] FooterLinks =
     [
         ("ProSim", Subsystems.Prosim),
         ("SimConnect", Subsystems.SimConnect),
         ("GSX", Subsystems.Gsx),
+        ("ASR", Subsystems.Asr),
+        ("TTS", Subsystems.Tts),
     ];
+
+    /// <summary>Hover text per dot: the voice dots carry the engine reality the speech
+    /// pillar publishes ("offline engine covering — retrying …"); the others name the link.</summary>
+    private string FooterTitle(string label, string subsystem) => subsystem switch
+    {
+        Subsystems.Asr => $"Speech recognition (LAN whisper): {(_speech.RecognizerDetail.Length > 0 ? _speech.RecognizerDetail : "unknown")}",
+        Subsystems.Tts => $"Voice (Kokoro): {NetworkVoiceDetail()}",
+        _ => $"{label} connection",
+    };
+
+    private string NetworkVoiceDetail()
+    {
+        var kokoro = _speech.Providers.FirstOrDefault(p => p.Name.Equals("kokoro", StringComparison.OrdinalIgnoreCase));
+        if (kokoro is null)
+        {
+            return "not in the chain";
+        }
+
+        var health = kokoro.Health switch
+        {
+            TtsProviderHealth.Healthy => "healthy",
+            TtsProviderHealth.Failed => "cooling down after a failure",
+            TtsProviderHealth.Disabled => "disabled",
+            _ => "configured, not yet used",
+        };
+        return kokoro.Detail.Length > 0 ? $"{health} ({kokoro.Detail})" : health;
+    }
+
+    private SpeechStatusSnapshot _speech = SpeechStatusSnapshot.Empty;
 
     // The running version without the "+sha" build metadata — what the release tag reads.
     private static readonly string Version = (typeof(MainLayout).Assembly
@@ -228,6 +263,7 @@
     protected override void OnInitialized()
     {
         Watch(Updates, snapshot => _update = snapshot);
+        Watch(Speech, snapshot => _speech = snapshot);
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => { });
         WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => { });

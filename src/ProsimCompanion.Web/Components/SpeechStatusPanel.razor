@@ -44,6 +44,15 @@
                 title="Mute the FO's ear while you talk to a real person — the FO still speaks. Silent: no acknowledgement either way. Cleared by an app restart">
             @(_view.ListeningPaused ? "Resume listening" : "Pause listening")
         </button>
+        @if (_view.RecognizerEngine.Length > 0)
+        {
+            @* Engine reality (2026-09-20): the app fell back to the offline engine before
+               take-off and nothing on the page said so. *@
+            <span class="pill @(_view.RecognizerEngine == "whisper" ? "tone-ok" : "tone-warn")"
+                  title="@_view.RecognizerDetail">
+                @(_view.RecognizerEngine == "whisper" ? "Ear: whisper (LAN)" : "Ear: offline engine")
+            </span>
+        }
         <span class="pill tone-active">Queue @_view.QueueDepth</span>
         @if (_view.NowPlaying is { } playing)
         {
@@ -107,7 +116,16 @@
                 title="Sends the Wake-on-LAN magic packet to the configured LLM host — then verify with Test LLM connection">
             @(_runningTest == "wol" ? "Sending…" : "Wake LLM server")
         </button>
+        <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
+                @onclick="ReconnectVoiceAsync"
+                title="Checks whisper and Kokoro now. Swaps recognition back to whisper if it answers and clears a Kokoro cooldown — the app also retries whisper every 30 s by itself">
+            @(_runningTest == "reconnect" ? "Checking…" : "Reconnect voice services")
+        </button>
     </div>
+    @if (_reconnectResult is not null)
+    {
+        <div class="field-hint" style="margin-top:8px;">Voice services: @_reconnectResult</div>
+    }
     @if (_llmTestResult is not null)
     {
         <div class="field-hint" style="margin-top:8px;">LLM: @_llmTestResult</div>
@@ -207,6 +225,7 @@
     private string? _micTestResult;
     private string? _navDataTestResult;
     private string? _wakeResult;
+    private string? _reconnectResult;
 
     protected override void OnInitialized()
     {
@@ -265,6 +284,9 @@
 
     private Task WakeLlmAsync() => RunTestAsync(
         "wol", () => Diagnostics.WakeLlmServerAsync(CancellationToken.None), result => _wakeResult = result);
+
+    private Task ReconnectVoiceAsync() => RunTestAsync(
+        "reconnect", () => Diagnostics.ReconnectVoiceServicesAsync(CancellationToken.None), result => _reconnectResult = result);
 
     private async Task RunTestAsync(string key, Func<Task<string>> test, Action<string> report)
     {

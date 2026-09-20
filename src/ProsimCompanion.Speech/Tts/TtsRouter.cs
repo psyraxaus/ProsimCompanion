@@ -24,11 +24,16 @@ public sealed class TtsRouter
     private readonly HashSet<string> _succeeded = [];
     private readonly object _gate = new();
 
+    private readonly ConnectionStatusStore? _connections;
+
+    /// <param name="connections">Footer/status dot for the network voice
+    /// (<see cref="Subsystems.Tts"/>); optional so tests need no store.</param>
     public TtsRouter(
         IEnumerable<ITtsProvider> providers,
         IOptionsMonitor<SpeechOptions> options,
         SpeechStatusStore store,
-        ILogger<TtsRouter> logger)
+        ILogger<TtsRouter> logger,
+        ConnectionStatusStore? connections = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(options);
@@ -39,7 +44,51 @@ public sealed class TtsRouter
         _options = options;
         _store = store;
         _logger = logger;
+        _connections = connections;
         PublishHealth();
+    }
+
+    /// <summary>Asks every configured network provider that can answer a health check
+    /// (Kokoro) whether it is up, now. A provider that answers has its failure cooldown
+    /// cleared so the next utterance uses it at once instead of waiting out the 60 s — the
+    /// "Reconnect voice services" button (2026-09-20: Kokoro refused connections while the
+    /// voice box finished an update). One readable sentence per provider.</summary>
+    public async Task<string> ProbeNetworkProvidersAsync(CancellationToken cancellationToken)
+    {
+        var localOnly = _options.CurrentValue.LocalOnly;
+        var lines = new List<string>();
+        foreach (var provider in _providers)
+        {
+            if (provider is not IProbeableTtsProvider probeable || !provider.IsConfigured)
+            {
+                continue;
+            }
+
+            if (localOnly)
+            {
+                lines.Add($"Voice ({provider.Name}): skipped — local-only mode.");
+                continue;
+            }
+
+            var ok = await probeable.ProbeAsync(cancellationToken).ConfigureAwait(false);
+            lock (_gate)
+            {
+                if (ok)
+                {
+                    // A health answer is as good as a synthesis for the chain's purposes:
+                    // the provider is reachable, so stop skipping it.
+                    _cooldownUntil.Remove(provider.Name);
+                    _succeeded.Add(provider.Name);
+                }
+            }
+
+            lines.Add(ok
+                ? $"Voice ({provider.Name}): answers — cooldown cleared."
+                : $"Voice ({provider.Name}): not reachable — the next voice in the chain keeps covering.");
+        }
+
+        PublishHealth();
+        return lines.Count == 0 ? "Voice: no network provider configured." : string.Join(' ', lines);
     }
 
     /// <summary>
@@ -176,5 +225,30 @@ public sealed class TtsRouter
     {
         var views = DescribeProviders();
         _store.Update(s => s with { Providers = views });
+        _connections?.Set(Subsystems.Tts, NetworkVoiceState(views));
     }
+
+    /// <summary>The footer's TTS dot: the state of the first network provider in the chain
+    /// (Kokoro). Reality, like every other dot — a cooldown shows as disconnected even
+    /// though the chain still speaks through the next provider.</summary>
+    internal TtsProviderHealth? NetworkVoiceHealth(IReadOnlyList<TtsProviderView> views)
+    {
+        for (var i = 0; i < _providers.Count && i < views.Count; i++)
+        {
+            if (_providers[i].IsNetworkProvider)
+            {
+                return views[i].Health;
+            }
+        }
+
+        return null;
+    }
+
+    private ConnectionState NetworkVoiceState(IReadOnlyList<TtsProviderView> views) => NetworkVoiceHealth(views) switch
+    {
+        TtsProviderHealth.Healthy => ConnectionState.Connected,
+        TtsProviderHealth.Failed => ConnectionState.Disconnected,
+        TtsProviderHealth.Unknown => ConnectionState.Connecting,
+        _ => ConnectionState.Disabled,
+    };
 }

@@ -874,6 +874,33 @@
       "notes": "Owner decision 2026-09-20 after the 2026-09-19 EGLL session (session-20260919-235732): the phase text said PREFLIGHT for 44 min (00:01–00:45 UTC) across catering, refuel, boarding (00:16–00:25) and the 20-min wait for the push. Departure is a real FlightPhase between Preflight and PushbackAndStart, entered on GroundOpsSignals.BoardingStarted (GSX Boarding Active, relayed by GsxGroundOpsSignalRelay) and held by 'departure-hold' until push/start/thrust/power-off. Every at-gate consumer now goes through FlightPhase.IsAtGate()/IsBeforeTaxiOut(). No ProSim-side boarding fallback yet (efb.efb.boardingStatus values unverified) — a flight without GSX boarding stays Preflight until the push, which is the pre-2026-09-20 behaviour, not a failure."
     },
     {
+      "id": "voice-services-reprobe",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["log"],
+      "checks": [
+        "assert-present when 'Falling back to offline recognition: LAN ASR not ready within 120 s' occurs: a later 'LAN ASR recovered — swapping back to whisper' line once the box answers (the controller re-probes /health every 30 s for the rest of the session), followed by 'Recognition \"listening\" (\"whisper\")'. Fallback without recovery while the box is known up = regression.",
+        "assert-absent: any session that ends on the offline engine while the LAN box answered /health during it (compare the last 'Recognition ... (\"systemSpeech\")' against the box's availability if known).",
+        "requires-human: the footer shows ASR and TTS dots (green whisper/Kokoro, amber pulsing while covering/cooling, grey when not configured); the Voice First Officer Status section shows 'Ear: whisper (LAN)' or 'Ear: offline engine' and the 'Reconnect voice services' button reports one sentence per service.",
+        "watch: count 'TTS provider kokoro failed' lines; each should be followed within 60 s by a successful Kokoro utterance or a 'Voice services reconnect' line that clears the cooldown."
+      ],
+      "notes": "Built 2026-09-20 after the EGLL flight of that morning: the Mac mini had just applied a macOS update and held whisper/Kokoro behind on-screen prompts; the app fell back before take-off (09:59:33 local) and, with a one-way swap, ran the whole flight on System.Speech while Kokoro refused four connections. Now: RecognitionController re-probes after a fallback and swaps back (SwapToLan), ISpeechDiagnostics.ReconnectVoiceServicesAsync probes both and clears the Kokoro cooldown, ConnectionStatusStore carries Subsystems.Asr / Subsystems.Tts for the footer. No Wake-on-LAN for the voice box by owner decision (it is always on)."
+    },
+    {
+      "id": "system-speech-grammar-race",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["log"],
+      "checks": [
+        "No 'System.Speech grammar update failed' line (now Warning) followed by more than ~5 s without a 'Recognition \"listening\" (\"systemSpeech\")' line while a listening window is open — the flag now follows engine reality, so the controller must restart the engine on the next Evaluate or enter the 2/5/10/30 s retry ladder.",
+        "watch: count 'System.Speech cancel did not settle within' debug lines — a cancel that never raises RecognizeCompleted is a different engine fault worth a look.",
+        "assert-absent: a 'Listening window opened' line with no 'ASR heard' for the rest of a checklist while the pilot was answering (the 2026-09-20 signature: 10:04:42–10:09:22, 11:17:31–11:21:43, 11:21:51–11:27:20 local, zero utterances heard in each gap)."
+      ],
+      "notes": "Root cause (2026-09-20): SystemSpeechRecognizer.SetGrammar called RecognizeAsyncCancel then RecognizeAsync at once; the cancel is asynchronous, RecognizeAsync threw InvalidOperationException ('Cannot perform this operation while the recognizer is doing recognition'), the Debug-level catch left _listening true and the FO was deaf until the next window edge. Fix: wait for RecognizeCompleted (2 s cap) after every cancel, set _listening=false on any failure, log at Warning. Only bites when the offline engine is active (a LAN fallback or no LAN ASR configured)."
+    },
+    {
       "id": "abnormal-transient-debounce",
       "issue": 123,
       "state": "open",

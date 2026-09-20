@@ -22,4 +22,14 @@ public static class Subsystems
     public const string Prosim = "ProSim";
     public const string SimConnect = "SimConnect";
     public const string Gsx = "GSX";
+
+    /// <summary>LAN speech recognition (whisper on the voice box). Connected = the LAN engine
+    /// answers its health check; Disconnected = the offline engine is covering and the
+    /// controller re-probes; Disabled = no LAN ASR configured.</summary>
+    public const string Asr = "ASR";
+
+    /// <summary>Network text-to-speech (Kokoro). Connected = last synthesis or health probe
+    /// succeeded; Disconnected = cooling down after a failure; Connecting = configured, not
+    /// yet exercised; Disabled = not configured or local-only mode.</summary>
+    public const string Tts = "TTS";
 }

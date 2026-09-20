@@ -34,13 +34,25 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         TimeSpan.FromSeconds(30), // last entry repeats indefinitely
     ];
 
+    /// <summary>Start-up readiness: how long the LAN engine may take to answer before the
+    /// offline engine covers, and how often it is asked meanwhile.</summary>
+    private static readonly TimeSpan DefaultReadinessBudget = TimeSpan.FromSeconds(120);
+    private static readonly TimeSpan DefaultReadinessCadence = TimeSpan.FromSeconds(3);
+
+    /// <summary>After a fallback the LAN engine is re-probed at this cadence for the rest of
+    /// the session (2026-09-20: the voice box finished a macOS update minutes after the app
+    /// gave up, and the whole flight ran on the offline engine).</summary>
+    private static readonly TimeSpan DefaultReprobeInterval = TimeSpan.FromSeconds(30);
+
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly PushToTalkService _ptt;
     private readonly SpeechStatusStore _store;
+    private readonly ConnectionStatusStore? _connections;
     private readonly ILogger<RecognitionController> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IReadOnlyList<TimeSpan> _retryBackoff;
     private readonly Core.EventLog.JsonlEventLog? _eventLog;
+    private readonly RecognitionEngineSeams _seams;
     private readonly IDisposable? _optionsSubscription;
     private readonly object _gate = new();
 
@@ -50,9 +62,10 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
     private bool _paused;
     private bool _desiredListening;
     private bool _reportedListening; // last state logged/pushed to the store — transition edge detector
-    private bool _swapped;
+    private bool _onLan;
     private CancellationTokenSource? _retry;
     private int _retryAttempt;
+    private CancellationTokenSource? _reprobe;
 
     /// <param name="recognizerFactory">Test seam: overrides the engine chain so the listen
     /// decision is testable without a Windows speech engine; DI leaves it null.</param>
@@ -60,6 +73,10 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
     /// leaves it null for the production 2/5/10/30 s ladder.</param>
     /// <param name="eventLog">Session JSONL, forwarded to the LAN recognizer for per-utterance
     /// VAD diagnostics; optional so tests need no sessions directory.</param>
+    /// <param name="connections">Footer/status dot for the LAN engine (<see cref="Subsystems.Asr"/>);
+    /// optional so tests need no store.</param>
+    /// <param name="seams">Test seams for the LAN/offline chain (health probe, engine
+    /// factories, timings); DI leaves it null.</param>
     public RecognitionController(
         IOptionsMonitor<SpeechOptions> options,
         PushToTalkService ptt,
@@ -67,7 +84,9 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         ILoggerFactory loggerFactory,
         Func<IVoiceRecognizer>? recognizerFactory = null,
         IReadOnlyList<TimeSpan>? retryBackoff = null,
-        Core.EventLog.JsonlEventLog? eventLog = null)
+        Core.EventLog.JsonlEventLog? eventLog = null,
+        ConnectionStatusStore? connections = null,
+        RecognitionEngineSeams? seams = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(ptt);
@@ -77,12 +96,29 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         _options = options;
         _ptt = ptt;
         _store = store;
+        _connections = connections;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<RecognitionController>();
         _retryBackoff = retryBackoff is { Count: > 0 } ? retryBackoff : DefaultRetryBackoff;
         _eventLog = eventLog;
+        _seams = seams ?? new RecognitionEngineSeams();
 
-        _recognizer = recognizerFactory?.Invoke() ?? BuildRecognizer();
+        if (recognizerFactory is not null)
+        {
+            _recognizer = recognizerFactory();
+            _onLan = false;
+        }
+        else if (LanConfigured)
+        {
+            _recognizer = BuildLanRecognizer();
+            _onLan = true;
+        }
+        else
+        {
+            _recognizer = BuildOfflineRecognizer();
+            _onLan = false;
+        }
+
         _recognizer.Accepted += OnAccepted;
         _recognizer.Rejected += OnRejected;
         // PTT edges logged at Info (issue #61): the flight log had ONE recognition line all
@@ -105,9 +141,16 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         // harmless — and double as desync repair opportunities.
         _optionsSubscription = _options.OnChange(_ => Evaluate());
 
-        if (_recognizer is LanAsrRecognizer)
+        if (_onLan)
         {
+            PublishEngine(ConnectionState.Connecting, $"waiting for the LAN engine at {AsrUrl}");
             _ = ProbeReadinessAsync();
+        }
+        else
+        {
+            PublishEngine(
+                LanConfigured ? ConnectionState.Disconnected : ConnectionState.Disabled,
+                LanConfigured ? "offline engine" : "no LAN engine configured — offline engine only");
         }
     }
 
@@ -117,7 +160,50 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
     /// <summary>Raised per unusable utterance (engine threads).</summary>
     public event EventHandler<RecognizedEventArgs>? Rejected;
 
-    public string EngineName => _recognizer is LanAsrRecognizer ? "whisper" : "systemSpeech";
+    public string EngineName => _onLan ? "whisper" : "systemSpeech";
+
+    /// <summary>True while the LAN engine is the active recognizer (reality, not
+    /// configuration: false after a fallback until the swap back).</summary>
+    public bool OnLanEngine
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _onLan;
+            }
+        }
+    }
+
+    private bool LanConfigured => !string.IsNullOrWhiteSpace(_options.CurrentValue.AsrBaseUrl);
+
+    private string AsrUrl => _options.CurrentValue.AsrBaseUrl.TrimEnd('/');
+
+    /// <summary>Probes the LAN engine once, now, and swaps back to it if it answers — the
+    /// Status section's "Reconnect voice services" button. One readable sentence.</summary>
+    public async Task<string> ReprobeNowAsync(CancellationToken cancellationToken)
+    {
+        if (!LanConfigured)
+        {
+            return "Speech recognition: no LAN engine configured — the offline engine is the only one.";
+        }
+
+        var ready = await ProbeHealthAsync(cancellationToken).ConfigureAwait(false);
+        if (OnLanEngine)
+        {
+            return ready
+                ? $"Speech recognition: whisper answers at {AsrUrl}."
+                : $"Speech recognition: whisper is the active engine but {AsrUrl}/health did not answer — the next utterance will show whether it still works.";
+        }
+
+        if (!ready)
+        {
+            return $"Speech recognition: whisper still not reachable at {AsrUrl} — the offline engine keeps covering; the app retries every {(int)ReprobeInterval.TotalSeconds} s.";
+        }
+
+        SwapToLan("reconnect requested — LAN engine answered");
+        return $"Speech recognition: whisper is back at {AsrUrl} — swapped from the offline engine.";
+    }
 
     public bool WindowOpen
     {
@@ -206,6 +292,7 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         lock (_gate)
         {
             CancelRetryLocked();
+            CancelReprobeLocked();
         }
 
         _recognizer.Dispose();
@@ -365,44 +452,57 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         }
     }
 
-    private IVoiceRecognizer BuildRecognizer()
+    private IVoiceRecognizer BuildLanRecognizer()
+        => _seams.LanFactory?.Invoke()
+           ?? new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog);
+
+    private IVoiceRecognizer BuildOfflineRecognizer()
+        => _seams.OfflineFactory?.Invoke()
+           ?? new SystemSpeechRecognizer(_options, _loggerFactory.CreateLogger<SystemSpeechRecognizer>());
+
+    private TimeSpan ReprobeInterval => _seams.ReprobeInterval ?? DefaultReprobeInterval;
+
+    /// <summary>One health check of the LAN engine: true when the configured API shape says
+    /// ready. Never throws — an unreachable box is "not ready".</summary>
+    private async Task<bool> ProbeHealthAsync(CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(_options.CurrentValue.AsrBaseUrl))
+        if (_seams.HealthProbe is { } probe)
         {
-            return new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog);
+            return await probe(cancellationToken).ConfigureAwait(false);
         }
 
-        return new SystemSpeechRecognizer(_options, _loggerFactory.CreateLogger<SystemSpeechRecognizer>());
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var response = await http.GetAsync(AsrUrl + "/health", cancellationToken).ConfigureAwait(false);
+            return AsrServerApi.IsReady(_options.CurrentValue.AsrApi, (int)response.StatusCode);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return false;
+        }
     }
 
     /// <summary>Polls the LAN ASR health endpoint (3 s cadence, 120 s budget); if it never
-    /// comes up, swaps one-way to the offline engine, replaying grammar and listen state.</summary>
+    /// comes up, swaps to the offline engine, replaying grammar and listen state — and keeps
+    /// re-probing so the swap is no longer one-way.</summary>
     private async Task ProbeReadinessAsync()
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-        var url = _options.CurrentValue.AsrBaseUrl.TrimEnd('/') + "/health";
-        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(120);
+        var deadline = DateTimeOffset.UtcNow + (_seams.ReadinessBudget ?? DefaultReadinessBudget);
+        var cadence = _seams.ReadinessCadence ?? DefaultReadinessCadence;
         while (DateTimeOffset.UtcNow < deadline)
         {
-            try
+            if (await ProbeHealthAsync(CancellationToken.None).ConfigureAwait(false))
             {
-                using var response = await http.GetAsync(url).ConfigureAwait(false);
-                var api = _options.CurrentValue.AsrApi;
-                if (AsrServerApi.IsReady(api, (int)response.StatusCode))
-                {
-                    _logger.LogInformation("LAN ASR ready ({Api} at {Url})", api, url);
-                    return;
-                }
-            }
-            catch
-            {
-                // Keep polling — the box may still be booting.
+                _logger.LogInformation("LAN ASR ready ({Api} at {Url})", _options.CurrentValue.AsrApi, AsrUrl);
+                PublishEngine(ConnectionState.Connected, $"whisper at {AsrUrl}");
+                return;
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+            await Task.Delay(cadence).ConfigureAwait(false);
         }
 
-        SwapToOffline("LAN ASR not ready within 120 s");
+        SwapToOffline($"LAN ASR not ready within {(int)(_seams.ReadinessBudget ?? DefaultReadinessBudget).TotalSeconds} s");
     }
 
     private void SwapToOffline(string reason)
@@ -410,35 +510,136 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         bool actual;
         lock (_gate)
         {
-            if (_swapped)
+            if (!_onLan)
             {
                 return;
             }
 
-            _swapped = true;
+            _onLan = false;
             _logger.LogWarning("Falling back to offline recognition: {Reason}", reason);
-
-            var old = _recognizer;
-            old.Accepted -= OnAccepted;
-            old.Rejected -= OnRejected;
-
-            _recognizer = new SystemSpeechRecognizer(
-                _options, _loggerFactory.CreateLogger<SystemSpeechRecognizer>());
-            _recognizer.Accepted += OnAccepted;
-            _recognizer.Rejected += OnRejected;
-            _recognizer.SetGrammar(_grammar);
-            if (_desiredListening && !_recognizer.StartListening())
-            {
-                // The replacement engine could not start either — same retry path as any
-                // other failed start, so the swap can't reintroduce the dead-latch bug.
-                ScheduleRetryLocked();
-            }
-
-            old.Dispose();
+            ReplaceEngineLocked(BuildOfflineRecognizer());
+            ScheduleReprobeLocked();
             actual = _recognizer.IsListening;
         }
 
+        PublishEngine(
+            ConnectionState.Disconnected,
+            $"offline engine covering — {reason}; retrying {AsrUrl} every {(int)ReprobeInterval.TotalSeconds} s");
         PublishListeningState(actual);
+    }
+
+    private void SwapToLan(string reason)
+    {
+        bool actual;
+        lock (_gate)
+        {
+            if (_onLan)
+            {
+                return;
+            }
+
+            _onLan = true;
+            CancelReprobeLocked();
+            _logger.LogInformation("LAN ASR recovered — swapping back to whisper: {Reason}", reason);
+            ReplaceEngineLocked(BuildLanRecognizer());
+            actual = _recognizer.IsListening;
+        }
+
+        PublishEngine(ConnectionState.Connected, $"whisper at {AsrUrl} (recovered)");
+        PublishListeningState(actual);
+    }
+
+    /// <summary>Swaps the active engine, replaying grammar and listen state onto the new one.
+    /// Caller holds the gate.</summary>
+    private void ReplaceEngineLocked(IVoiceRecognizer replacement)
+    {
+        var old = _recognizer;
+        old.Accepted -= OnAccepted;
+        old.Rejected -= OnRejected;
+
+        _recognizer = replacement;
+        _recognizer.Accepted += OnAccepted;
+        _recognizer.Rejected += OnRejected;
+        _recognizer.SetGrammar(_grammar);
+        if (_desiredListening && !_recognizer.StartListening())
+        {
+            // The replacement engine could not start either — same retry path as any
+            // other failed start, so the swap can't reintroduce the dead-latch bug.
+            ScheduleRetryLocked();
+        }
+
+        old.Dispose();
+    }
+
+    // ---- LAN re-probe after a fallback ----
+
+    /// <summary>Starts the background re-probe episode; no-op while one runs. Caller holds
+    /// the gate.</summary>
+    private void ScheduleReprobeLocked()
+    {
+        if (_reprobe is not null)
+        {
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _reprobe = cts;
+        _ = Task.Run(() => ReprobeLoopAsync(cts));
+    }
+
+    private void CancelReprobeLocked()
+    {
+        if (_reprobe is null)
+        {
+            return;
+        }
+
+        _reprobe.Cancel();
+        _reprobe = null;
+    }
+
+    private async Task ReprobeLoopAsync(CancellationTokenSource cts)
+    {
+        try
+        {
+            while (!cts.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(ReprobeInterval, cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
+                if (await ProbeHealthAsync(cts.Token).ConfigureAwait(false))
+                {
+                    lock (_gate)
+                    {
+                        if (!ReferenceEquals(_reprobe, cts))
+                        {
+                            return; // superseded — a newer episode (or a manual reconnect) owns the swap
+                        }
+                    }
+
+                    SwapToLan("health check answered after the fallback");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "LAN ASR re-probe loop stopped unexpectedly");
+        }
+    }
+
+    /// <summary>Publishes the engine identity for the Status section and the footer dot —
+    /// engine reality, the same way the listening flag is published.</summary>
+    private void PublishEngine(ConnectionState state, string detail)
+    {
+        _connections?.Set(Subsystems.Asr, state);
+        _store.Update(s => s with { RecognizerEngine = EngineName, RecognizerDetail = detail });
     }
 
     private void OnAccepted(object? sender, RecognizedEventArgs e)

@@ -328,4 +328,103 @@ public sealed class RecognitionControllerTests : IDisposable
         Thread.Sleep(100);
         Assert.Equal(0, _recognizer.StartAttempts);
     }
+
+    // ---- LAN engine fallback and recovery (2026-09-20: the voice box finished a macOS
+    // update minutes after the app gave up, and the whole flight ran offline) ----
+
+    private sealed class LanChain
+    {
+        public volatile bool Healthy;
+        public FakeRecognizer? Lan;
+        public FakeRecognizer? Offline;
+        public int LanBuilds;
+        public ConnectionStatusStore Connections { get; } = new();
+        public SpeechStatusStore Speech { get; } = new();
+    }
+
+    private RecognitionController LanController(LanChain chain, TimeSpan? reprobeInterval = null)
+    {
+        _options.AsrBaseUrl = "http://voice.test:8000";
+        _options.RecognitionMode = "continuous";
+        var monitor = new Mock<IOptionsMonitor<SpeechOptions>>();
+        monitor.SetupGet(m => m.CurrentValue).Returns(() => _options);
+        monitor.Setup(m => m.OnChange(It.IsAny<Action<SpeechOptions, string?>>()))
+            .Returns(Mock.Of<IDisposable>());
+
+        var ptt = new PushToTalkService(monitor.Object, NullLogger<PushToTalkService>.Instance);
+        var seams = new RecognitionEngineSeams(
+            HealthProbe: _ => Task.FromResult(chain.Healthy),
+            LanFactory: () => { chain.LanBuilds++; return chain.Lan = new FakeRecognizer(); },
+            OfflineFactory: () => chain.Offline = new FakeRecognizer(),
+            ReadinessBudget: TimeSpan.FromMilliseconds(60),
+            ReadinessCadence: TimeSpan.FromMilliseconds(10),
+            ReprobeInterval: reprobeInterval ?? TimeSpan.FromMilliseconds(20));
+        return new RecognitionController(
+            monitor.Object, ptt, chain.Speech, NullLoggerFactory.Instance,
+            retryBackoff: TestBackoff, connections: chain.Connections, seams: seams);
+    }
+
+    private static ConnectionState AsrState(LanChain chain)
+        => chain.Connections.Snapshot().FirstOrDefault(p => p.Key == Subsystems.Asr).Value;
+
+    [Fact]
+    public void LanEngine_NotReadyWithinBudget_FallsBack_ThenSwapsBackWhenHealthReturns()
+    {
+        var chain = new LanChain();
+        using var controller = LanController(chain);
+        Assert.True(controller.OnLanEngine);
+        Assert.Equal(ConnectionState.Connecting, AsrState(chain));
+        controller.OpenListeningWindow(["call up the checklist"]);
+
+        WaitUntil(() => !controller.OnLanEngine, "the LAN engine never fell back to offline");
+        WaitUntil(() => chain.Offline is { Listening: true }, "the offline engine did not take over listening");
+        Assert.Equal("systemSpeech", controller.EngineName);
+        Assert.Equal(ConnectionState.Disconnected, AsrState(chain));
+        Assert.Contains("offline engine covering", chain.Speech.Snapshot().RecognizerDetail);
+
+        chain.Healthy = true;
+        WaitUntil(() => controller.OnLanEngine, "the controller never swapped back to the LAN engine");
+        WaitUntil(() => chain.Lan is { Listening: true }, "the recovered LAN engine is not listening");
+        Assert.Equal(2, chain.LanBuilds);
+        Assert.Equal("whisper", controller.EngineName);
+        Assert.Equal(ConnectionState.Connected, AsrState(chain));
+    }
+
+    [Fact]
+    public async Task ReprobeNow_AfterFallback_SwapsBackAtOnce_WhenTheBoxAnswers()
+    {
+        var chain = new LanChain();
+        using var controller = LanController(chain, reprobeInterval: TimeSpan.FromHours(1));
+        controller.OpenListeningWindow(["call up the checklist"]);
+        WaitUntil(() => !controller.OnLanEngine, "the LAN engine never fell back to offline");
+
+        var stillDown = await controller.ReprobeNowAsync(CancellationToken.None);
+        Assert.Contains("still not reachable", stillDown);
+        Assert.False(controller.OnLanEngine);
+
+        chain.Healthy = true;
+        var back = await controller.ReprobeNowAsync(CancellationToken.None);
+        Assert.Contains("swapped from the offline engine", back);
+        Assert.True(controller.OnLanEngine);
+        Assert.True(chain.Lan is { Listening: true });
+    }
+
+    [Fact]
+    public void LanEngine_ReadyInTime_StaysOnLan_AndPublishesConnected()
+    {
+        var chain = new LanChain { Healthy = true };
+        using var controller = LanController(chain);
+
+        WaitUntil(() => AsrState(chain) == ConnectionState.Connected, "the LAN engine was never published as connected");
+        Assert.True(controller.OnLanEngine);
+        Assert.Equal(1, chain.LanBuilds);
+    }
+
+    [Fact]
+    public async Task ReprobeNow_WithoutLanConfigured_SaysSo()
+    {
+        using var controller = Controller();
+
+        Assert.Contains("no LAN engine configured", await controller.ReprobeNowAsync(CancellationToken.None));
+    }
 }

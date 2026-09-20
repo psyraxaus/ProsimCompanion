@@ -13,7 +13,7 @@ namespace ProsimCompanion.Speech.Tts;
 /// budget aborted every long utterance mid-download and tripped the router's 60 s cooldown
 /// eight times in one leg (the FO voice audibly changed each time).
 /// </summary>
-public sealed class KokoroTtsProvider : ITtsProvider
+public sealed class KokoroTtsProvider : ITtsProvider, IProbeableTtsProvider
 {
     /// <summary>Body budget growth per character of input text.</summary>
     public const int BodyTimeoutPerCharMs = 100;
@@ -53,6 +53,29 @@ public sealed class KokoroTtsProvider : ITtsProvider
     }
 
     public string Name => "kokoro";
+
+    /// <summary>kokoro-fastapi's <c>/health</c>: a 2xx means the service is up (2026-09-20:
+    /// after a macOS update the box answered ping but refused this port for minutes).</summary>
+    public async Task<bool> ProbeAsync(CancellationToken cancellationToken)
+    {
+        if (!IsConfigured)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(3));
+            using var request = new HttpRequestMessage(HttpMethod.Get, _options.CurrentValue.KokoroBaseUrl.TrimEnd('/') + "/health");
+            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
 
     public bool IsConfigured
         => !string.IsNullOrWhiteSpace(_options.CurrentValue.KokoroBaseUrl)

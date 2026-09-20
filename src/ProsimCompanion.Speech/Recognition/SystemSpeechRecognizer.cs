@@ -13,10 +13,22 @@ namespace ProsimCompanion.Speech.Recognition;
 /// </summary>
 public sealed class SystemSpeechRecognizer : IVoiceRecognizer
 {
+    /// <summary>How long a cancel may take to settle before we give up waiting and try to
+    /// restart anyway. The engine normally raises RecognizeCompleted within milliseconds.</summary>
+    private static readonly TimeSpan CancelSettleTimeout = TimeSpan.FromSeconds(2);
+
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ILogger<SystemSpeechRecognizer> _logger;
     private readonly object _gate = new();
     private readonly SpeechRecognitionEngine? _engine;
+
+    // RecognizeAsyncCancel is asynchronous: the engine keeps "doing recognition" until it
+    // raises RecognizeCompleted. On the 2026-09-20 EGLL flight a grammar swap called
+    // RecognizeAsync straight after the cancel, the engine threw InvalidOperationException,
+    // the catch left _listening true and the FO was deaf for four to five minutes three
+    // times (each right after a checklist opened its window). The cancel now waits for the
+    // completion edge before re-arming.
+    private readonly ManualResetEventSlim _recognizeCompleted = new(false);
 
     private bool _listening;
 
@@ -34,6 +46,7 @@ public sealed class SystemSpeechRecognizer : IVoiceRecognizer
             _engine.SetInputToDefaultAudioDevice();
             _engine.SpeechRecognized += OnRecognized;
             _engine.SpeechRecognitionRejected += OnRejected;
+            _engine.RecognizeCompleted += (_, _) => _recognizeCompleted.Set();
         }
         catch (Exception ex)
         {
@@ -67,7 +80,7 @@ public sealed class SystemSpeechRecognizer : IVoiceRecognizer
                 var wasListening = _listening;
                 if (wasListening)
                 {
-                    _engine.RecognizeAsyncCancel();
+                    CancelAndSettleLocked();
                 }
 
                 _engine.UnloadAllGrammars();
@@ -104,8 +117,27 @@ public sealed class SystemSpeechRecognizer : IVoiceRecognizer
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "System.Speech grammar update failed");
+                // Whatever failed, the engine is NOT capturing after a cancel: the flag must
+                // say so, or the controller's reconcile sees "listening" over a dead engine
+                // (issue #61's dead latch, re-found on 2026-09-20 via this very path). With
+                // the flag false the next Evaluate restarts the engine or enters the retry
+                // ladder — a 2 s gap instead of a four-minute one.
+                _listening = false;
+                _logger.LogWarning(ex, "System.Speech grammar update failed — engine stopped, the controller will restart it");
             }
+        }
+    }
+
+    /// <summary>Cancels the running recognition and waits for the engine to confirm it
+    /// stopped (RecognizeCompleted), so the next RecognizeAsync cannot collide with a cancel
+    /// still in flight. Caller holds the gate.</summary>
+    private void CancelAndSettleLocked()
+    {
+        _recognizeCompleted.Reset();
+        _engine!.RecognizeAsyncCancel();
+        if (!_recognizeCompleted.Wait(CancelSettleTimeout))
+        {
+            _logger.LogDebug("System.Speech cancel did not settle within {Timeout} ms", CancelSettleTimeout.TotalMilliseconds);
         }
     }
 
@@ -166,7 +198,7 @@ public sealed class SystemSpeechRecognizer : IVoiceRecognizer
                 return;
             }
 
-            _engine.RecognizeAsyncCancel();
+            CancelAndSettleLocked();
             _listening = false;
         }
     }
@@ -175,6 +207,7 @@ public sealed class SystemSpeechRecognizer : IVoiceRecognizer
     {
         StopListening();
         _engine?.Dispose();
+        _recognizeCompleted.Dispose();
     }
 
     private void OnRecognized(object? sender, SpeechRecognizedEventArgs e)

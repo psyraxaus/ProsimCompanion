@@ -41,7 +41,9 @@ public sealed record SpeechStatusSnapshot(
     string SpokenChecklistItem = "",
     bool CabinCalling = false,
     string ActiveAbnormal = "",
-    bool ListeningPaused = false)
+    bool ListeningPaused = false,
+    string RecognizerEngine = "",
+    string RecognizerDetail = "")
 {
     public static SpeechStatusSnapshot Empty { get; } = new(
         Enabled: false,

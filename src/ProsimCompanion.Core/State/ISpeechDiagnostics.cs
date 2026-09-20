@@ -31,4 +31,11 @@ public interface ISpeechDiagnostics
     /// mid-session; the startup send happens automatically when enabled). Fire-and-forget —
     /// confirm readiness with the LLM connection test afterwards.</summary>
     Task<string> WakeLlmServerAsync(CancellationToken cancellationToken);
+
+    /// <summary>Re-probes the LAN voice services now (whisper health, Kokoro health): swaps
+    /// recognition back to the LAN engine when it answers and clears a Kokoro cooldown. The
+    /// pilot's shortcut when the voice box was slow to come up (2026-09-20: a macOS update
+    /// held the services behind on-screen prompts, the app fell back to the offline engine
+    /// before take-off and never looked again). One readable sentence per service.</summary>
+    Task<string> ReconnectVoiceServicesAsync(CancellationToken cancellationToken);
 }

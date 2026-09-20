@@ -31,7 +31,13 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
     private readonly DfdNavDataProvider _navData;
     private readonly OpenAiChatClient _llm;
     private readonly ILogger<SpeechDiagnosticsService> _logger;
+    private readonly TtsRouter? _router;
+    private readonly RecognitionController? _recognition;
 
+    /// <param name="router">The TTS chain, for the reconnect probe; optional so a
+    /// diagnostics-only composition still works.</param>
+    /// <param name="recognition">The recognition controller, for the reconnect probe;
+    /// optional for the same reason.</param>
     public SpeechDiagnosticsService(
         IEnumerable<ITtsProvider> providers,
         ISpeechPlayback playback,
@@ -39,8 +45,12 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         IOptionsMonitor<BriefingOptions> briefingOptions,
         DfdNavDataProvider navData,
         ILogger<SpeechDiagnosticsService> logger,
-        OpenAiChatClient? llm = null)
+        OpenAiChatClient? llm = null,
+        TtsRouter? router = null,
+        RecognitionController? recognition = null)
     {
+        _router = router;
+        _recognition = recognition;
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(playback);
         ArgumentNullException.ThrowIfNull(options);
@@ -55,6 +65,18 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         _navData = navData;
         _logger = logger;
         _llm = llm ?? new OpenAiChatClient(briefingOptions);
+    }
+
+    public async Task<string> ReconnectVoiceServicesAsync(CancellationToken cancellationToken)
+    {
+        var asr = _recognition is null
+            ? "Speech recognition: not running."
+            : await _recognition.ReprobeNowAsync(cancellationToken).ConfigureAwait(false);
+        var tts = _router is null
+            ? "Voice: TTS chain not running."
+            : await _router.ProbeNetworkProvidersAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("Voice services reconnect: {Asr} {Tts}", asr, tts);
+        return $"{asr} {tts}";
     }
 
     public Task<string> WakeLlmServerAsync(CancellationToken cancellationToken)
