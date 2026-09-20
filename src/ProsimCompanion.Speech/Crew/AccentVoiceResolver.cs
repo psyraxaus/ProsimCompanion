@@ -95,7 +95,7 @@ public sealed class AccentVoiceResolver : IDisposable
 
         return _flight.CurrentPhase switch
         {
-            FlightPhase.ColdAndDark or FlightPhase.Preflight or FlightPhase.PushbackAndStart
+            FlightPhase.ColdAndDark or FlightPhase.Preflight or FlightPhase.Departure or FlightPhase.PushbackAndStart
                 or FlightPhase.TaxiOut or FlightPhase.TakeoffRoll => origin ?? destination,
             _ => destination ?? origin,
         };

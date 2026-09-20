@@ -27,13 +27,13 @@ public static class FlightPhaseRules
         new HashSet<FlightPhase> { InitialClimb, Climb, Cruise, Descent, Approach };
 
     private static readonly IReadOnlySet<FlightPhase> AtGatePhases =
-        new HashSet<FlightPhase> { Unknown, ColdAndDark, Preflight, PushbackAndStart };
+        new HashSet<FlightPhase> { Unknown, ColdAndDark, Preflight, Departure, PushbackAndStart };
 
     private static readonly IReadOnlySet<FlightPhase> DepartureRegressionSources =
         new HashSet<FlightPhase> { PushbackAndStart, TaxiOut, TakeoffRoll };
 
     private static readonly IReadOnlySet<FlightPhase> LiftoffSources =
-        new HashSet<FlightPhase> { TakeoffRoll, TaxiOut, PushbackAndStart, Preflight, InitialClimb };
+        new HashSet<FlightPhase> { TakeoffRoll, TaxiOut, PushbackAndStart, Departure, Preflight, InitialClimb };
 
     private static readonly IReadOnlySet<FlightPhase> ApproachSources =
         new HashSet<FlightPhase>(Enum.GetValues<FlightPhase>().Except([InitialClimb, TakeoffRoll]));
@@ -168,7 +168,25 @@ public static class FlightPhaseRules
             DefaultDebounce,
             (_, s) => $"engines running, rolling at {s.GroundSpeedKt:F0} kt"),
 
+        // Departure (owner decision 2026-09-20, session 2026-09-19 EGLL: 44 min of PREFLIGHT
+        // between power-on and the push, boarding included): boarding evidence from the
+        // ground-ops layer takes a powered, engines-off Preflight to Departure. The flag is
+        // a latch, not a dataref, so the rule needs no debounce beyond the default.
+        Rule("boarding", Set(Preflight), Departure,
+            (_, s, _) => s.BoardingStarted,
+            DefaultDebounce,
+            (_, _) => "boarding underway — departure in progress"),
+
+        // Departure holds until real departure evidence above (push, start, thrust) or a
+        // power-off at the top of the table: boarding completing, doors closing or the beacon
+        // flickering never walk it back to Preflight. A progress bar never regresses within
+        // one departure (the 2026-09-05 seven-minute PREFLIGHT step-back, issue #110).
+        Hold("departure-hold", Set(Departure), (_, _, _) => true),
+
         // Departure regressions to Preflight must be deliberate, not a data blip (issue #59).
+        // A regression with the boarding latch still set lands on Preflight and re-enters
+        // Departure on the next tick — two honest edges rather than a rule that lies about
+        // where the contradiction took it.
         Rule("preflight", null, Preflight,
             (_, _, _) => true,
             (from, o) => DepartureRegressionSources.Contains(from)

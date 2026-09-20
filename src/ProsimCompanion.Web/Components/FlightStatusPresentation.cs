@@ -12,25 +12,26 @@ public static class FlightStatusPresentation
 {
     /// <summary>Progress-strip block labels, left to right (Prosim2GSX FlightStatusPanel clone).</summary>
     public static readonly string[] BlockLabels =
-        ["PREFLIGHT", "PUSHBACK", "TAXI OUT", "FLIGHT", "TAXI IN", "ARRIVAL"];
+        ["PREFLIGHT", "DEPARTURE", "PUSHBACK", "TAXI OUT", "FLIGHT", "TAXI IN", "ARRIVAL"];
 
     /// <summary>Index of the highlighted block — a pure phase view since 2026-09-13 (issue
     /// #110, owner's Option 2). Until then the strip carried a DEPARTURE block that lit from
     /// the GSX departure sequence while the phase text still said PREFLIGHT: on the
     /// 2026-09-13 leg the two disagreed for 32 minutes (10:43–11:15), which the owner read as
-    /// the title "dropping back" (#130). The departure services have their own card, so the
-    /// strip no longer second-guesses the phase engine. The departure flags stay in the
-    /// signature so the change log keeps recording them (a future decision can re-read them
-    /// without re-plumbing the callers).</summary>
+    /// the title "dropping back" (#130). The DEPARTURE block returned on 2026-09-20 as a
+    /// real engine phase (boarding underway → pushback), so the strip and the text still
+    /// come from the one state machine. The departure flags stay in the signature so the
+    /// change log keeps recording them next to the phase.</summary>
     public static int ActiveBlock(FlightPhase phase, bool departureStarted, bool departureComplete) => phase switch
     {
         FlightPhase.Unknown or FlightPhase.ColdAndDark or FlightPhase.Preflight => 0,
-        FlightPhase.PushbackAndStart => 1,
-        FlightPhase.TaxiOut or FlightPhase.TakeoffRoll => 2,
+        FlightPhase.Departure => 1,
+        FlightPhase.PushbackAndStart => 2,
+        FlightPhase.TaxiOut or FlightPhase.TakeoffRoll => 3,
         FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise
-            or FlightPhase.Descent or FlightPhase.Approach => 3,
-        FlightPhase.LandingRollout or FlightPhase.TaxiIn => 4,
-        FlightPhase.Shutdown => 5,
+            or FlightPhase.Descent or FlightPhase.Approach => 4,
+        FlightPhase.LandingRollout or FlightPhase.TaxiIn => 5,
+        FlightPhase.Shutdown => 6,
         _ => 0,
     };
 

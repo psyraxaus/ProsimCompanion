@@ -11,6 +11,10 @@ public sealed class GroundOpsSignals
     /// trigger.</summary>
     public event Action? RefuelServiceActive;
 
+    /// <summary>GSX Boarding went Active — the phase engine's Preflight → Departure evidence
+    /// (owner decision 2026-09-20: the departure is "in progress" once passengers board).</summary>
+    public event Action? BoardingStarted;
+
     /// <summary>GSX Boarding completed — the final-loadsheet trigger (after a crew-realism
     /// delay owned by the subscriber).</summary>
     public event Action? BoardingCompleted;
@@ -34,6 +38,8 @@ public sealed class GroundOpsSignals
     public void RaiseRefuelServiceActive() => RefuelServiceActive?.Invoke();
 
     public void RaiseArrivalCompleted() => ArrivalCompleted?.Invoke();
+
+    public void RaiseBoardingStarted() => BoardingStarted?.Invoke();
 
     public void RaiseBoardingCompleted() => BoardingCompleted?.Invoke();
 

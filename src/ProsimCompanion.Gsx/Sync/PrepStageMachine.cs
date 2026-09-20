@@ -108,7 +108,7 @@ internal static class PrepStageMachine
             return new(PrepCommand.Hold, "waiting for 'commence ground services' (voice activation mode)");
         }
 
-        if (inputs.FlightPhase is not (FlightPhase.Preflight or FlightPhase.ColdAndDark))
+        if (!inputs.FlightPhase.IsAtGate())
         {
             // Off the ground-prep window; a fresh Preflight after flight restarts the chain.
             // An Idle chain has nothing to reset — it just waits (issue #98: a mid-flight

@@ -109,6 +109,28 @@ public sealed class FlightReplayTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Replay_RaisesBoardingFromTheSessionsGsxEvents()
+    {
+        // Recordings made before the sample carried the boarding latch (2026-09-20) still
+        // hold the GSX service events; the harness replays "Boarding: Active" as the
+        // signal the live relay would have raised, so the Departure rule is exercised.
+        var lines = new[]
+        {
+            Envelope(0, "flight-sample", Ground(phase: "Unknown")),
+            Envelope(8, "gsx-service", new { service = "Boarding", @event = "Active" }),
+            Envelope(20, "flight-sample", Ground(phase: "Preflight")),
+        };
+
+        var result = FlightReplay.Run(lines);
+        output.WriteLine(result.Describe());
+
+        Assert.Equal(["Unknown -> Preflight", "Preflight -> Departure"], result.Commits.Select(c => c.Edge));
+        var departure = Assert.Single(result.Commits, c => c.Current == FlightPhase.Departure);
+        Assert.Equal("boarding", departure.RuleId);
+        Assert.True(departure.At >= T0.AddSeconds(8), "Departure must not commit before the boarding event");
+    }
+
+    [Fact]
     public void Replay_WithOptions_ChangesTheVerdict()
     {
         // A 60 s cruise settle: level from 90 s to 120 s never commits Cruise.

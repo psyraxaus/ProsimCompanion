@@ -1,3 +1,4 @@
+# EGLL departure only, 2026-09-19 23:57Z, 0.4.0-beta.2 (session-20260919-235732). The flight that motivated ADR-0012: 44 min of PREFLIGHT at the gate; Departure now enters at boarding (00:16Z) and holds to the push (00:45Z).
 Unknown -> Preflight
 Preflight -> ColdAndDark
 ColdAndDark -> Preflight
@@ -7,11 +8,3 @@ PushbackAndStart -> TaxiOut
 TaxiOut -> TakeoffRoll
 TakeoffRoll -> InitialClimb
 InitialClimb -> Climb
-Climb -> Cruise
-Cruise -> Descent
-Descent -> Climb
-Climb -> Descent
-Descent -> Approach
-Approach -> LandingRollout
-LandingRollout -> TaxiIn
-TaxiIn -> Shutdown

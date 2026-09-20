@@ -167,7 +167,7 @@ public sealed class GsxGroundEquipmentService : IDisposable
         }
 
         // Beacon-on before departure = crew signals readiness: clear the ground equipment.
-        if (_flightState.CurrentPhase is FlightPhase.Preflight or FlightPhase.ColdAndDark or FlightPhase.PushbackAndStart)
+        if (_flightState.CurrentPhase.IsBeforeTaxiOut())
         {
             _removedThisSession = true;
             _ = RemoveEquipmentAsync();

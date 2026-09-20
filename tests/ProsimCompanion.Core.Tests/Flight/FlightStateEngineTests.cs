@@ -570,4 +570,77 @@ public sealed class FlightStateEngineTests
 
         Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
     }
+
+    // ---- Departure latch (owner decision 2026-09-20) ----
+
+    [Fact]
+    public void GroundOpsSignal_BoardingStarted_TakesPreflightToDeparture()
+    {
+        var session = new SimSessionStore();
+        var signals = new GroundOpsSignals();
+        using var engine = new FlightStateEngine(
+            new NullFlightSource(), session, NullLogger<FlightStateEngine>.Instance,
+            new FixedOptionsMonitor<FlightStateOptions>(FlightStateOptions.Default), signals);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+
+        signals.RaiseBoardingStarted();
+        now = Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+
+        // Boarding complete, doors closed, beacon on with the brake still set: still Departure.
+        now = Drive(engine, ReadyGround() with { BeaconOn = true, ApuRunning = true }, now, TimeSpan.FromSeconds(10));
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+
+        // Brake released with the beacon and APU: the push.
+        Drive(engine, ReadyGround() with { BeaconOn = true, ApuRunning = true, ParkBrakeSet = false }, now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.PushbackAndStart, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void BoardingStarted_BeforeTheFirstClassification_IsKept()
+    {
+        // A boarding that starts while the cockpit is unpowered (or before the engine is
+        // live) must still yield Departure once Preflight is reached.
+        var engine = Create(out var session);
+        engine.NotifyBoardingStarted(); // Unknown
+        SetSession(session, SimSessionPhase.InSession);
+
+        Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(4));
+
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void BoardingStarted_AfterTaxiOut_IsIgnored()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        engine.ForcePhase(FlightPhase.TaxiIn, freeze: false, "test");
+
+        engine.NotifyBoardingStarted(); // arrival side — not the next departure
+        engine.ForcePhase(FlightPhase.Preflight, freeze: false, "test");
+        Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(4));
+
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void BoardingLatch_DiesWhenTheAircraftLeavesTheGate()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+        engine.NotifyBoardingStarted();
+        now = Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+
+        engine.ForcePhase(FlightPhase.TaxiOut, freeze: false, "test"); // latch cleared here
+        engine.ForcePhase(FlightPhase.Preflight, freeze: false, "test");
+        Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(4));
+
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+    }
 }

@@ -48,6 +48,13 @@ public sealed record FlightSample
     [JsonPropertyName("frz"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool Frozen { get; init; }
 
+    /// <summary>The engine's boarding latch (Preflight → Departure evidence). Omitted while
+    /// false so recordings made before 2026-09-20 parse unchanged; the replay harness also
+    /// re-derives it from the session's GSX Boarding events, so older recordings still
+    /// exercise the Departure rule.</summary>
+    [JsonPropertyName("brd"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool BoardingStarted { get; init; }
+
     /// <summary>Builds the record from the engine's view. Values are rounded to what the rule
     /// table can distinguish so unchanged flight states compare equal and are not re-written.</summary>
     public static FlightSample From(FlightStateView view)
@@ -84,6 +91,7 @@ public sealed record FlightSample
             VrKt = s.VrKt,
             V2Kt = s.V2Kt,
             Frozen = view.Frozen,
+            BoardingStarted = s.BoardingStarted,
         };
     }
 
@@ -119,5 +127,6 @@ public sealed record FlightSample
         V1Kt = V1Kt,
         VrKt = VrKt,
         V2Kt = V2Kt,
+        BoardingStarted = BoardingStarted,
     };
 }

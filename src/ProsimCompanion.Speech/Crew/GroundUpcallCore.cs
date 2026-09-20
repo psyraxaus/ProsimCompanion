@@ -62,7 +62,7 @@ internal static class GroundUpcallCore
     /// (ground power → chocks → refuel → catering).</summary>
     internal static (UpcallState State, UpcallKind? Call) Evaluate(UpcallState state, UpcallSample sample)
     {
-        var departureWindow = sample.Phase is FlightPhase.ColdAndDark or FlightPhase.Preflight;
+        var departureWindow = sample.Phase.IsAtGate();
         var groundWindow = departureWindow || sample.Phase is FlightPhase.TaxiIn or FlightPhase.Shutdown;
 
         // Baseline on first observation — never announce state recovered at startup.

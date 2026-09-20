@@ -121,7 +121,7 @@
                             <span class="fs-step-mark" aria-hidden="true"></span>
                             <span class="fs-step-text">
                                 <span class="fs-step-label">@FlightStatusPresentation.BlockLabels[i]</span>
-                                <span class="fs-step-sub">@(state switch { "done" => "Complete", "active" => "In progress", _ => "Pending" })</span>
+                                <span class="fs-step-sub">@StepSubText(i, state)</span>
                             </span>
                         </li>
                     }
@@ -262,6 +262,23 @@
         FlightState.CurrentPhase, DepartureControl.Started, DepartureControl.Complete);
 
     private string PhaseDisplay => FlightStatusPresentation.PhaseDisplay(FlightState.CurrentPhase);
+
+    /// <summary>The line under a sequence step. The active DEPARTURE step (2026-09-20) says
+    /// where the boarding is, since that is the evidence the phase engine entered it on.</summary>
+    private string StepSubText(int block, string state)
+    {
+        if (state == "active" && FlightState.CurrentPhase == FlightPhase.Departure)
+        {
+            return ServiceView(GsxServiceIds.Boarding)?.Stage switch
+            {
+                GsxServiceStage.Completed => "Boarding complete",
+                GsxServiceStage.Active => "Boarding",
+                _ => "In progress",
+            };
+        }
+
+        return state switch { "done" => "Complete", "active" => "In progress", _ => "Pending" };
+    }
 
     private FlightStateView View => FlightState.Snapshot();
 

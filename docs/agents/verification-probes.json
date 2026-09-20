@@ -852,10 +852,26 @@
       "kind": "watch",
       "sources": ["log"],
       "checks": [
-        "Collect every 'Flight Status display: pill ...' line (component FlightStatusChangeLog). Report each interval where the pill and the phase text disagree, with duration and the trigger that opened and closed it. Since 2026-09-13 the only permitted disagreements are the strip's coarser buckets (TAXI OUT while text TAKEOFF ROLL; TAXI IN while text LANDING ROLLOUT; FLIGHT for every airborne phase; PREFLIGHT while text COLD AND DARK/UNKNOWN) — a DEPARTURE pill, or any disagreement lasting longer than the underlying phase, is a regression.",
+        "Collect every 'Flight Status display: pill ...' line (component FlightStatusChangeLog). Report each interval where the pill and the phase text disagree, with duration and the trigger that opened and closed it. Since 2026-09-13 the only permitted disagreements are the strip's coarser buckets (TAXI OUT while text TAKEOFF ROLL; TAXI IN while text LANDING ROLLOUT; FLIGHT for every airborne phase; PREFLIGHT while text COLD AND DARK/UNKNOWN). Since 2026-09-20 the DEPARTURE pill is legitimate ONLY while the phase text is DEPARTURE (it is a real engine phase again) — a DEPARTURE pill next to any other text, or any disagreement lasting longer than the underlying phase, is a regression.",
         "assert-present: at least one such line per session once any phase commit or departure-sequence start occurred — total silence means the change log is not wired."
       ],
       "notes": "2026-09-13 (owner Option 2, closes #130): the DEPARTURE block is gone — the strip is a pure phase view (PREFLIGHT / PUSHBACK / TAXI OUT / FLIGHT / TAXI IN / ARRIVAL); the departure sequence shows on the Services card only. The 2026-09-13 leg measured the old contradiction at 32 min (pill DEPARTURE, text PREFLIGHT, 10:43–11:15). Instrumentation shipped 2026-09-05: the dashboard pill mapping and the change log share FlightStatusPresentation, so the log records exactly what the card showed, browser open or not. The pill deliberately reads the GSX departure sequence on the ground pre-push; this probe quantifies how contradictory it reads in practice, feeding the #110 legibility redesign. Completion gate shipped 2026-09-06 (owner report): once the sequence starts the strip HOLDS DEPARTURE until pushback — add assert-absent: any pill line stepping DEPARTURE back to PREFLIGHT within one departure (the 2026-09-05 seven-minute regression signature); the turnaround reset to PREFLIGHT on a new leg is correct."
+    },
+    {
+      "id": "departure-phase-on-boarding",
+      "issue": 110,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": ["session", "log"],
+      "checks": [
+        "assert-present when a 'gsx-service' Boarding/Active event occurs while the phase is Preflight: a 'phase-changed' Preflight->Departure with rule 'boarding' within 3 s of it (1 s default settle + tick). The log carries 'Boarding started — Preflight → Departure is now armed' at the signal.",
+        "assert-absent: any 'phase-changed' Departure->Preflight. Departure leaves only to PushbackAndStart (push-evidence / engine-start), TaxiOut (taxi-out), TakeoffRoll or ColdAndDark (power-off). A Departure->Preflight edge is the hold rule failing.",
+        "assert-present: the first 'phase-changed' out of Departure is PushbackAndStart or TaxiOut on a normal departure, and the GSX 'Departure' (pushback) service Active precedes or coincides with it.",
+        "flight-sample events after the boarding edge carry brd=true until the aircraft leaves the pre-taxi window (TaxiOut and later must not carry it); the Preflight of a second leg starts without it.",
+        "FlightReplay of the session reproduces the Preflight->Departure edge at the same second (the harness re-derives the signal from the gsx-service event when brd is absent).",
+        "requires-human: the Flight Status sequence shows DEPARTURE with the sub-line 'Boarding' then 'Boarding complete'; the phase text reads DEPARTURE at the same time (never PREFLIGHT)."
+      ],
+      "notes": "Owner decision 2026-09-20 after the 2026-09-19 EGLL session (session-20260919-235732): the phase text said PREFLIGHT for 44 min (00:01–00:45 UTC) across catering, refuel, boarding (00:16–00:25) and the 20-min wait for the push. Departure is a real FlightPhase between Preflight and PushbackAndStart, entered on GroundOpsSignals.BoardingStarted (GSX Boarding Active, relayed by GsxGroundOpsSignalRelay) and held by 'departure-hold' until push/start/thrust/power-off. Every at-gate consumer now goes through FlightPhase.IsAtGate()/IsBeforeTaxiOut(). No ProSim-side boarding fallback yet (efb.efb.boardingStatus values unverified) — a flight without GSX boarding stays Preflight until the push, which is the pre-2026-09-20 behaviour, not a failure."
     },
     {
       "id": "abnormal-transient-debounce",

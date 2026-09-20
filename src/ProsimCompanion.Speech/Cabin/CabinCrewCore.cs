@@ -90,7 +90,7 @@ public sealed class CabinCrewCore
         }
 
         if (options.AmbientEvents && !_boardingRolled
-            && sample.Phase is FlightPhase.Preflight or FlightPhase.PushbackAndStart)
+            && sample.Phase is FlightPhase.Preflight or FlightPhase.Departure or FlightPhase.PushbackAndStart)
         {
             _boardingRolled = true;
             if (roll() < Math.Clamp(options.BoardingDelayProbability, 0, 1))

@@ -1,7 +1,9 @@
 # ESSA -> EGLL, 2026-08-29 22:32Z, 0.3.0-beta.23 (first real-flight recording). Replayed 2026-08-30: 13 edges, matched the live engine.
+# 2026-09-20: Departure inserted (ADR-0012) — the GSX Boarding/Active event in this file now yields Preflight -> Departure.
 Unknown -> ColdAndDark
 ColdAndDark -> Preflight
-Preflight -> PushbackAndStart
+Preflight -> Departure
+Departure -> PushbackAndStart
 PushbackAndStart -> TaxiOut
 TaxiOut -> TakeoffRoll
 TakeoffRoll -> InitialClimb

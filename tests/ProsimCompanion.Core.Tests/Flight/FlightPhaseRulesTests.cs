@@ -203,4 +203,71 @@ public sealed class FlightPhaseRulesTests
     [Fact]
     public void InvalidSnapshot_DecidesNothing()
         => Assert.Null(Decide(new FlightDataSnapshot { IsValid = false }, FlightPhase.Cruise));
+
+    // ---- Departure (owner decision 2026-09-20: boarding underway → Departure, held to the push) ----
+
+    [Fact]
+    public void Preflight_BoardingStarted_IsDeparture()
+    {
+        var decision = Decide(Parked() with { BoardingStarted = true }, FlightPhase.Preflight);
+
+        Assert.Equal(FlightPhase.Departure, decision?.Target);
+        Assert.Equal("boarding", decision?.RuleId);
+        Assert.Equal(TimeSpan.FromSeconds(FlightStateOptions.Default.DefaultDebounceSeconds), decision?.Debounce);
+    }
+
+    [Fact]
+    public void Preflight_WithoutBoarding_NeverReadsDeparture()
+        => Assert.NotEqual(FlightPhase.Departure, Decide(Parked(), FlightPhase.Preflight)?.Target);
+
+    [Fact]
+    public void Departure_HoldsWhenBoardingCompletesOrTheBeaconFlickers()
+    {
+        // The latch is the engine's; at rule level Departure is sticky on any parked,
+        // engines-off evidence — boarding done, doors closed, beacon on with the brake set.
+        Assert.Null(Decide(Parked(), FlightPhase.Departure));
+        Assert.Null(Decide(Parked() with { BeaconOn = true }, FlightPhase.Departure));
+        Assert.Null(Decide(Parked() with { BeaconOn = true, ApuRunning = true }, FlightPhase.Departure));
+    }
+
+    [Fact]
+    public void Departure_PushEvidence_IsPushbackAndStart()
+    {
+        var decision = Decide(
+            Parked() with { BeaconOn = true, ApuRunning = true, ParkBrakeSet = false }, FlightPhase.Departure);
+
+        Assert.Equal(FlightPhase.PushbackAndStart, decision?.Target);
+        Assert.Equal("push-evidence", decision?.RuleId);
+    }
+
+    [Fact]
+    public void Departure_EngineStart_IsPushbackAndStart()
+        => Assert.Equal(
+            FlightPhase.PushbackAndStart,
+            Decide(Parked() with { EngineStarting = true }, FlightPhase.Departure)?.Target);
+
+    [Fact]
+    public void Departure_EnginesRunning_IsTaxiOut()
+        => Assert.Equal(
+            FlightPhase.TaxiOut,
+            Decide(Parked() with { AnyEngineRunning = true, ParkBrakeSet = false }, FlightPhase.Departure)?.Target);
+
+    [Fact]
+    public void Departure_PowerOff_IsColdAndDark()
+        => Assert.Equal(
+            FlightPhase.ColdAndDark,
+            Decide(Parked() with { AircraftPowered = false }, FlightPhase.Departure)?.Target);
+
+    [Fact]
+    public void Departure_Liftoff_IsInitialClimb()
+    {
+        // Spawn-in-the-air / data glitch parity with Preflight: Departure is a liftoff source.
+        var airborne = new FlightDataSnapshot
+        {
+            IsValid = true, OnGround = false, AircraftPowered = true, AnyEngineRunning = true,
+            IndicatedAirspeedKt = 150, RadioAltitudeFt = 100, VerticalSpeedFpm = 1500,
+        };
+
+        Assert.Equal(FlightPhase.InitialClimb, Decide(airborne, FlightPhase.Departure)?.Target);
+    }
 }

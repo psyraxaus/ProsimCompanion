@@ -56,6 +56,12 @@ public sealed record FlightDataSnapshot
     /// turnaround rule refuses to leave Shutdown without it (2026-08-29 ESSA).</summary>
     public bool ArrivalComplete { get; init; }
 
+    /// <summary>Boarding has begun (or finished) for this departure. Not a dataref: the engine
+    /// stamps it from <see cref="State.GroundOpsSignals.BoardingStarted"/> (GSX Boarding went
+    /// Active) and the Preflight → Departure rule reads it. Cleared once the aircraft leaves
+    /// the pre-taxi window, so the next leg's Preflight starts clean.</summary>
+    public bool BoardingStarted { get; init; }
+
     // ---- Raw diagnostics fields (shown on the Status page; never used for phase logic) ----
 
     /// <summary>Raw groundservice.pushback value — multi-state; semantics under live verification.</summary>

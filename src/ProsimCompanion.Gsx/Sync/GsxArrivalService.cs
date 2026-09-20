@@ -357,7 +357,7 @@ public sealed class GsxArrivalService : IDisposable
 
         return savedValueExists
             && flightLive
-            && phase is FlightPhase.ColdAndDark or FlightPhase.Preflight
+            && phase.IsAtGate()
             ? FobRestoreDecision.RestoreAtStartup
             : FobRestoreDecision.NotSafeAtStartup;
     }

@@ -129,6 +129,12 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
     private readonly GroundOpsSignals? _groundOps;
     private bool _arrivalComplete;
 
+    // Departure gate (owner decision 2026-09-20): the ground-ops layer's "boarding started"
+    // latch, stamped onto the sample so the Preflight → Departure rule can see it. Cleared
+    // once the aircraft leaves the pre-taxi window (taxi, flight, shutdown, session end) so
+    // the next leg's Preflight starts clean.
+    private bool _boardingStarted;
+
     /// <summary>Defaults-only construction — tests and the replay harness.</summary>
     public FlightStateEngine(IFlightDataSource source, SimSessionStore session, ILogger<FlightStateEngine> logger)
         : this(source, session, logger, new FixedOptionsMonitor<FlightStateOptions>(FlightStateOptions.Default), null)
@@ -166,9 +172,29 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         if (_groundOps is not null)
         {
             _groundOps.ArrivalCompleted += NotifyArrivalComplete;
+            _groundOps.BoardingStarted += NotifyBoardingStarted;
         }
 
         _timer = new Timer(_ => Tick(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    }
+
+    /// <summary>Boarding has begun for this departure (GSX Boarding went Active). Latched
+    /// while the aircraft is still before taxi-out (or unclassified, so a boarding that
+    /// starts during a cockpit power cycle is not lost); the Preflight → Departure rule
+    /// reads it. Ignored once the aircraft has left the gate — a boarding edge there is an
+    /// arrival-side artifact, not the next departure.</summary>
+    public void NotifyBoardingStarted()
+    {
+        lock (_gate)
+        {
+            if (_boardingStarted || !(CurrentPhase == FlightPhase.Unknown || CurrentPhase.IsBeforeTaxiOut()))
+            {
+                return;
+            }
+
+            _boardingStarted = true;
+            _logger.LogInformation("Boarding started — Preflight → Departure is now armed (phase {Phase})", CurrentPhase);
+        }
     }
 
     /// <summary>The arrival is done with the aircraft (deboarding completed). Only meaningful
@@ -333,6 +359,15 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
             classified = classified with { ArrivalComplete = true };
         }
 
+        if (_boardingStarted)
+        {
+            classified = classified with { BoardingStarted = true };
+        }
+
+        // The recorder and the Status page read what the rules saw, latches included, so a
+        // replay of this session can reproduce the Departure edge without the GSX events.
+        LastSnapshot = classified;
+
         Heartbeat(classified, nowUtc, options);
 
         if (_frozen)
@@ -410,6 +445,11 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         if (target != FlightPhase.Shutdown)
         {
             _arrivalComplete = false; // the latch belongs to one Shutdown only
+        }
+
+        if (!target.IsBeforeTaxiOut())
+        {
+            _boardingStarted = false; // the latch belongs to one departure only
         }
 
         var s = snapshot ?? new FlightDataSnapshot();
@@ -542,6 +582,7 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         if (_groundOps is not null)
         {
             _groundOps.ArrivalCompleted -= NotifyArrivalComplete;
+            _groundOps.BoardingStarted -= NotifyBoardingStarted;
         }
 
         _timer.Dispose();

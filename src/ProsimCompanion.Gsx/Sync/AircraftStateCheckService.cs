@@ -64,7 +64,7 @@ public static class AircraftStateCheck
             return Skipped("no cold-and-dark definition loaded");
         }
 
-        if (context.Phase is not (FlightPhase.ColdAndDark or FlightPhase.Preflight))
+        if (!context.Phase.IsAtGate())
         {
             return Skipped($"phase {context.Phase} is not a pre-departure start");
         }

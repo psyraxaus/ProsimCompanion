@@ -128,6 +128,10 @@ public static class FlightReplay
 
         var samples = new List<(DateTimeOffset At, FlightSample Sample)>();
         var recorded = new List<RecordedCommit>();
+        // Ground-ops edges the live engine received as signals, not samples. Re-derived from
+        // the session's GSX service events so recordings made before the sample carried the
+        // boarding latch (2026-09-20) still exercise the Departure rule.
+        var boardingStarts = new List<DateTimeOffset>();
         foreach (var line in jsonlLines)
         {
             if (string.IsNullOrWhiteSpace(line))
@@ -162,6 +166,13 @@ public static class FlightReplay
                         recorded.Add(new RecordedCommit(at, previous, current, reason));
                     }
                 }
+                else if (type == "gsx-service" && root.TryGetProperty("payload", out var service)
+                    && service.TryGetProperty("service", out var serviceEl) && service.TryGetProperty("event", out var eventEl)
+                    && string.Equals(serviceEl.GetString(), "Boarding", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(eventEl.GetString(), "Active", StringComparison.OrdinalIgnoreCase))
+                {
+                    boardingStarts.Add(at);
+                }
             }
             catch (JsonException)
             {
@@ -185,6 +196,8 @@ public static class FlightReplay
         var now = samples[0].At;
         engine.PhaseChanged += (_, e) => commits.Add(new ReplayCommit(now, e.Previous, e.Current, e.RuleId, e.Reason));
 
+        boardingStarts.Sort();
+        var nextSignal = 0;
         FlightDataSnapshot? held = null;
         foreach (var (at, sample) in samples)
         {
@@ -197,6 +210,7 @@ public static class FlightReplay
                     for (var t = now + FlightStateEngine.TickInterval; t < at; t += FlightStateEngine.TickInterval)
                     {
                         now = t;
+                        RaiseSignalsDue(engine, boardingStarts, ref nextSignal, t);
                         engine.ProcessTick(held, t);
                     }
                 }
@@ -204,12 +218,24 @@ public static class FlightReplay
 
             held = sample.ToSnapshot();
             now = at;
+            RaiseSignalsDue(engine, boardingStarts, ref nextSignal, at);
             engine.ProcessTick(held, at);
         }
 
         var firstAt = samples[0].At;
         var recordedInWindow = recorded.Where(c => c.At >= firstAt).ToList();
         return new FlightReplayResult(commits, recordedInWindow, samples.Count, firstAt, samples[^1].At);
+    }
+
+    /// <summary>Delivers every boarding-started signal stamped at or before <paramref name="now"/>
+    /// to the engine, in order, exactly once — the same latch the live relay would have set.</summary>
+    private static void RaiseSignalsDue(FlightStateEngine engine, List<DateTimeOffset> boardingStarts, ref int next, DateTimeOffset now)
+    {
+        while (next < boardingStarts.Count && boardingStarts[next] <= now)
+        {
+            engine.NotifyBoardingStarted();
+            next++;
+        }
     }
 
     private static bool TryPhase(JsonElement payload, string name, out FlightPhase phase)

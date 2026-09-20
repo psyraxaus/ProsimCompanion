@@ -22,7 +22,9 @@ public static class GsxAutomationPhaseMapper
     public static GsxAutomationPhase Map(FlightPhase phase) => phase switch
     {
         FlightPhase.Unknown => GsxAutomationPhase.SessionStart,
-        FlightPhase.ColdAndDark or FlightPhase.Preflight => GsxAutomationPhase.Preparation,
+        // Departure (boarding underway, still at the gate) is the same ground-automation
+        // window as Preflight: the departure sequence is already running inside it.
+        FlightPhase.ColdAndDark or FlightPhase.Preflight or FlightPhase.Departure => GsxAutomationPhase.Preparation,
         FlightPhase.PushbackAndStart => GsxAutomationPhase.PushBack,
         FlightPhase.TaxiOut or FlightPhase.TakeoffRoll => GsxAutomationPhase.TaxiOut,
         FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise

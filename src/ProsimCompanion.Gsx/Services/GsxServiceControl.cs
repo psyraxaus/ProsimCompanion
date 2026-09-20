@@ -247,8 +247,8 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         // phases) — an arrival deboarding or a turnaround already in progress never is.
         if (action is GsxServiceAction.RequestRefuel or GsxServiceAction.RequestCatering or GsxServiceAction.RequestBoarding
             && _options.CurrentValue.RequireOfpBeforeDeparture
-            && _flightPhase.CurrentPhase is FlightPhase.Preflight or FlightPhase.ColdAndDark
-                or FlightPhase.PushbackAndStart or FlightPhase.TaxiOut
+            && (_flightPhase.CurrentPhase.IsAtGate()
+                || _flightPhase.CurrentPhase is FlightPhase.PushbackAndStart or FlightPhase.TaxiOut)
             && !_flightPlan.FlightPlanAvailable)
         {
             return new(
@@ -470,7 +470,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         return options.AutomationEnabled
             && options.AutoConnectJetwayOrStairs
             && !_groundPrep.PrepComplete
-            && _flightPhase.CurrentPhase is FlightPhase.Preflight or FlightPhase.ColdAndDark;
+            && _flightPhase.CurrentPhase.IsAtGate();
     }
 
     private static bool IsToggle(GsxServiceAction action)

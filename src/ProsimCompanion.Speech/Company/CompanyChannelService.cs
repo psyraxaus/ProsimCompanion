@@ -250,7 +250,7 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
 
             var phase = _flight.CurrentPhase;
             if (options.AutoLoadsheet && !_loadsheetDone
-                && phase is FlightPhase.Preflight or FlightPhase.PushbackAndStart
+                && phase is FlightPhase.Preflight or FlightPhase.Departure or FlightPhase.PushbackAndStart
                 && LoadsheetReady())
             {
                 _loadsheetDone = true;

@@ -43,6 +43,13 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
             _signals.RaiseRefuelServiceActive();
         }
         else if (serviceId.Equals("Boarding", StringComparison.OrdinalIgnoreCase)
+            && lifecycleEvent == GsxServiceLifecycleEvent.Active)
+        {
+            // The phase engine's departure gate (owner decision 2026-09-20): Preflight
+            // becomes Departure once the passengers start boarding.
+            _signals.RaiseBoardingStarted();
+        }
+        else if (serviceId.Equals("Boarding", StringComparison.OrdinalIgnoreCase)
             && lifecycleEvent == GsxServiceLifecycleEvent.Completed)
         {
             _signals.RaiseBoardingCompleted();
