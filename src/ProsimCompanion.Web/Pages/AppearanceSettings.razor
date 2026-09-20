@@ -1,0 +1,109 @@
+@page "/settings/appearance"
+@layout SettingsLayout
+@using Microsoft.Extensions.Logging
+@using ProsimCompanion.Core.Theming
+@using ProsimCompanion.Web.Theming
+@inherits StoreObserverComponent
+@inject ThemeCatalog Themes
+@inject ThemeLogoStore Logos
+@inject IOptionsMonitor<WebUiOptions> WebUi
+@inject SettingsWriter Writer
+@inject ILogger<AppearanceSettings> Logger
+
+<PageTitle>Appearance — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Appearance</h1>
+
+@* Owner decision 2026-09-20: the header theme picker moved here. A click applies the theme
+   at once and writes webUi.theme to settings.json (the same option, no second store). The
+   airline logos are the pilot's own files under %LOCALAPPDATA% — real airline marks are
+   trademarks, so the app ships none and the installer refuses to (build-installer.ps1). *@
+
+<div class="panel" style="padding-bottom:24px;">
+    <Section Title="Theme" Hint="Click a theme to apply it now. Your own JSON themes in the user config folder appear after the built-in ones.">
+        @if (_message is not null)
+        {
+            <div class="field-hint" style="margin-bottom:8px;">@_message</div>
+        }
+        <div class="theme-grid">
+            @foreach (var name in Themes.ListNames())
+            {
+                var theme = Themes.Get(name);
+                var active = string.Equals(name, ActiveThemeName, StringComparison.OrdinalIgnoreCase);
+                var logoSlug = Logos.FindFile(name) is null ? null : ThemeLogoStore.Slug(name);
+                <div class="theme-swatch @(active ? "active" : null)">
+                    <button type="button" class="theme-swatch-pick" title="Apply @name" @onclick="() => Apply(name)">
+                        <span class="swatch-bars" aria-hidden="true">
+                            <span style="background:@theme.Colors.HeaderBackground"></span>
+                            <span style="background:@theme.Colors.ContentBackground"></span>
+                            <span style="background:@theme.Colors.SectionBackground"></span>
+                            <span style="background:@theme.Colors.PrimaryColor"></span>
+                            <span style="background:@theme.Colors.AccentColor"></span>
+                        </span>
+                        <span class="swatch-name">@name @(active ? "· active" : "")</span>
+                    </button>
+                    @if (logoSlug is not null)
+                    {
+                        <img class="swatch-logo" src="api/theme-logo/@(logoSlug)?v=@Logos.Version" alt="@name logo" />
+                    }
+                    <div class="swatch-actions">
+                        <label class="btn secondary" title="PNG, SVG, JPG or WEBP up to 512 KB — shown in the header while this theme is active">
+                            @(logoSlug is null ? "Add logo" : "Replace logo")
+                            <InputFile accept=".png,.svg,.jpg,.jpeg,.webp" OnChange="args => UploadAsync(name, args)" />
+                        </label>
+                        @if (logoSlug is not null)
+                        {
+                            <button type="button" class="btn secondary" @onclick="() => RemoveLogo(name)">Remove</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="field-hint" style="margin-top:12px; max-width:640px;">
+            Logos are your own files. They stay on this PC in
+            <code>%LOCALAPPDATA%\ProsimCompanion\config\themes\logos</code> and are never part of the app or
+            the installer. The header shows the active theme's logo when one is set.
+        </div>
+    </Section>
+</div>
+
+@code {
+    private string? _message;
+
+    private string ActiveThemeName => Themes.Get(WebUi.CurrentValue.Theme).Name;
+
+    protected override void OnInitialized()
+    {
+        WatchChanged(h => Logos.Changed += h, h => Logos.Changed -= h, () => { });
+    }
+
+    private void Apply(string name)
+    {
+        if (!string.Equals(name, WebUi.CurrentValue.Theme, StringComparison.Ordinal))
+        {
+            Writer.Set<WebUiOptions, string>(o => o.Theme, name);
+            _message = $"Theme set to {name}.";
+        }
+    }
+
+    private async Task UploadAsync(string themeName, InputFileChangeEventArgs args)
+    {
+        try
+        {
+            await using var stream = args.File.OpenReadStream(ThemeLogoStore.MaxBytes);
+            await Logos.SaveAsync(themeName, args.File.Name, stream, CancellationToken.None);
+            _message = $"Logo for {themeName} saved.";
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
+        {
+            // OpenReadStream throws IOException past the size cap; the store names the format
+            // and size rules itself. Either way the pilot reads why, not a stack trace.
+            _message = $"Logo for {themeName} not saved: {ex.Message}";
+            Logger.LogWarning(ex, "Theme logo upload for {Theme} rejected", themeName);
+        }
+    }
+
+    private void RemoveLogo(string themeName)
+    {
+        _message = Logos.Remove(themeName) ? $"Logo for {themeName} removed." : $"{themeName} has no logo.";
+    }
+}

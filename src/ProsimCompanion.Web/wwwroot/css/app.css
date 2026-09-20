@@ -271,35 +271,6 @@ a { color: var(--accent); }
 .header-value { font-size: 13px; font-weight: 700; color: var(--header-text, var(--text-primary)); white-space: nowrap; }
 
 /* Theme picker (canvas airline selector) — a native select dressed as a chip. */
-.theme-picker {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
-  color: var(--header-text, var(--text-primary));
-  cursor: pointer;
-}
-.theme-picker:hover { background: rgba(0, 0, 0, 0.45); }
-.theme-select {
-  appearance: none;
-  background: transparent;
-  border: none;
-  color: inherit;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding-right: 4px;
-  cursor: pointer;
-  outline: none;
-}
-.theme-select option { color: #1a1614; background: #ffffff; text-transform: none; letter-spacing: 0; }
-.theme-chevron { color: var(--text-on-dark-muted); }
 
 .flap-center {
   display: flex;
@@ -309,6 +280,9 @@ a { color: var(--accent); }
 }
 
 .flap-right { display: flex; align-items: center; gap: 12px; }
+
+/* The pilot's own airline logo for the active theme (Settings → Appearance; never shipped). */
+.brand-logo { height: 30px; max-width: 150px; object-fit: contain; }
 
 .flap-block { display: flex; flex-direction: column; align-items: center; }
 
@@ -1378,7 +1352,6 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 }
 
 @media (max-width: 540px) {
-  .theme-picker { display: none; }
   .conn-label { display: none; }
   .flap-center { display: none; }
   .footer { display: none; }
@@ -1618,3 +1591,41 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   border-bottom: 1px solid var(--border);
   padding-bottom: 6px;
 }
+
+/* ── Appearance page: theme swatches + logo upload (owner decision 2026-09-20) ── */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+.theme-swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  text-align: left;
+}
+.theme-swatch.active { outline: 2px solid var(--accent); outline-offset: 1px; }
+.theme-swatch-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+.swatch-bars { display: flex; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+.swatch-bars span { flex: 1; }
+.swatch-name { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.swatch-logo { height: 28px; max-width: 100%; object-fit: contain; align-self: flex-start; }
+.swatch-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 11px; }
+.swatch-actions input[type="file"] { display: none; }
+.swatch-actions .btn { padding: 4px 8px; font-size: 10px; }

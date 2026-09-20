@@ -1,11 +1,9 @@
 @page "/settings/app"
 @layout SettingsLayout
-@using ProsimCompanion.Web.Theming
 @inherits SettingsPageBase
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
-@inject ThemeCatalog Themes
 
 <PageTitle>Display &amp; Flight Data — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Display and Flight Data</h1>
@@ -14,9 +12,10 @@
    Advanced; the cabin chimes and the SayIntentions switch were duplicates of the First
    Officer pages and live only there now. *@
 
-<Section Title="Theme" Hint="Applies live on save">
-    <SelectField Label="UI theme" Hint="Built-in airline themes, plus your own JSON themes in config/themes." Options="_themeOptions"
-                 @bind-Value="_webUi.Value.Theme" />
+<Section Title="Theme" Hint="Moved">
+    <div class="field-hint" style="max-width:640px;">
+        Themes and airline logos live on the <a href="settings/appearance">Appearance page</a> (owner decision 2026-09-20).
+    </div>
 </Section>
 
 <Section Title="Display">
@@ -73,7 +72,6 @@
     private static readonly IReadOnlyList<(string, string)> UnitOptions =
         [("kg", "kg"), ("lb", "lb")];
 
-    private IReadOnlyList<(string, string)> _themeOptions = [];
 
     private OptionsDraft<WebUiOptions> _webUi = default!;
     private OptionsDraft<FlightDataOptions> _flightData = default!;
@@ -81,7 +79,6 @@
 
     protected override void OnInitialized()
     {
-        _themeOptions = Themes.ListNames().Select(name => (name, name)).ToList();
         _webUi = Draft(WebUiMonitor);
         _flightData = Draft(FlightDataMonitor);
         _checklists = Draft(ChecklistMonitor);

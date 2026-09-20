@@ -75,6 +75,7 @@ public static class SettingsNav
         new("speech", "Voice First Officer", "settings/speech", SpeechSections),
         new("audio", "Audio Control", "settings/audio", AudioSections),
         new("app", "Display & Flight Data", "settings/app", []),
+        new("appearance", "Appearance", "settings/appearance", []),
         new("profiles", "Aircraft Profiles", "settings/profiles", []),
         new("advanced", "Advanced", "settings/advanced",
         [

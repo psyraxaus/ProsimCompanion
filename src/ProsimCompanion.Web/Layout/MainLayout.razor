@@ -4,14 +4,15 @@
 @using ProsimCompanion.Core.Aircraft.Ofp
 @using ProsimCompanion.Core.Configuration
 @using ProsimCompanion.Core.Profiles
+@using ProsimCompanion.Core.Theming
 @using ProsimCompanion.Web.Theming
 @inject ConnectionStatusStore Status
 @inject SpeechStatusStore Speech
 @inject IProsimDataRefs DataRefs
 @inject IOptionsMonitor<WebUiOptions> WebUi
 @inject UpdateStore Updates
-@inject SettingsWriter Writer
 @inject ThemeCatalog Themes
+@inject ThemeLogoStore Logos
 @inject AircraftProfileService Profiles
 @inject OfpStore Ofp
 
@@ -19,8 +20,8 @@
 
 <div class="app">
     @* Header (ADR-0011, canvas EFBHeader): brand badge · aircraft block · FLT NO flap ·
-       SIM/UTC clock + date flaps (split-flap stays on the clock — owner decision) · theme
-       picker · ProSim connection dot. *@
+       SIM/UTC clock (split-flap stays on the clock — owner decision) · the theme's uploaded
+       airline logo (Settings → Appearance) · ProSim connection dot. *@
     <header class="header">
         <div class="brand">
             <span class="brand-mark" aria-hidden="true"><AppIcon Name="plane" Size="20" /></span>
@@ -49,35 +50,22 @@
         <div class="flap-right">
             @* Sim-time clock (issue #71): while ProSim streams a fresh simulator.zuluTime the
                flap is text-driven from the server (label SIM); on disconnect/staleness the
-               mode attribute returns and app.js resumes the browser-side UTC self-tick. *@
+               mode attribute returns and app.js resumes the browser-side UTC self-tick.
+               Owner decision 2026-09-20: the date flap and the header theme picker are gone
+               (the picker lives on Settings → Appearance); the theme's own logo, when the
+               pilot has uploaded one, takes their place. *@
             <div class="flap-block">
                 <split-flap mode="@(_simClockActive ? null : "utc-time")"
                             text="@(_simClockActive ? _simTimeText : null)"
                             count="6" animate="@SolariMode"></split-flap>
                 <span class="flap-label">@(_simClockActive ? "SIM" : "UTC")</span>
             </div>
-            <div class="flap-block">
-                <split-flap mode="@(_simClockActive && _simDateText is not null ? null : "utc-date")"
-                            text="@(_simClockActive ? _simDateText : null)"
-                            count="5" animate="@SolariMode"></split-flap>
-                <span class="flap-label">DATE</span>
-            </div>
 
-            @* Theme picker (canvas airline selector). Writes webUi.theme to settings.json — the
-               same option the Display settings page edits, so this is a shortcut, not a
-               second store (owner rule: every option has a web control; never localStorage). *@
-            <label class="theme-picker" title="UI theme">
-                <AppIcon Name="settings" Size="14" />
-                @* Resolved name, not the raw setting: a legacy "Default" (or a typo) must still
-                   show the theme that is actually applied instead of a blank chip. *@
-                <select class="theme-select" aria-label="UI theme" value="@Themes.Get(WebUi.CurrentValue.Theme).Name" @onchange="OnThemeChanged">
-                    @foreach (var name in Themes.ListNames())
-                    {
-                        <option value="@name">@name</option>
-                    }
-                </select>
-                <AppIcon Name="chevron-down" Size="12" Class="theme-chevron" />
-            </label>
+            @if (LogoSlug is { } logoSlug)
+            {
+                <img class="brand-logo" src="api/theme-logo/@(logoSlug)?v=@Logos.Version"
+                     alt="@ThemeName" title="@ThemeName" />
+            }
 
             <span class="conn-indicator" title="ProSim connection">
                 <span class="conn-dot @ProsimDotClass"></span>
@@ -174,13 +162,14 @@
 
     private string AircraftReg => Ofp.Current?.AircraftReg is { Length: > 0 } reg ? reg : "—";
 
-    private void OnThemeChanged(ChangeEventArgs e)
-    {
-        if (e.Value?.ToString() is { Length: > 0 } theme && theme != WebUi.CurrentValue.Theme)
-        {
-            Writer.Set<WebUiOptions, string>(o => o.Theme, theme);
-        }
-    }
+    // Resolved name, not the raw setting: a legacy "Default" (or a typo) must still show the
+    // theme that is actually applied.
+    private string ThemeName => Themes.Get(WebUi.CurrentValue.Theme).Name;
+
+    /// <summary>Slug of the active theme's uploaded logo, or null when the pilot has none.</summary>
+    private string? LogoSlug => Logos.FindFile(ThemeName) is null ? null : ThemeLogoStore.Slug(ThemeName);
+
+    private IDisposable? _themeSubscription;
 
     private IDataRefSubscription<string>? _flightNumberSub;
     private string _flightNumber = "";
@@ -194,11 +183,9 @@
     // never sees per-second chatter.
     private static readonly TimeSpan SimTimeStaleAfter = TimeSpan.FromSeconds(10);
     private IDataRefSubscription<TimeSpan>? _zuluTimeSub;
-    private IDataRefSubscription<DateTime>? _simTimeSub;
     private System.Threading.Timer? _simClockTimer;
     private bool _simClockActive;
     private string? _simTimeText;
-    private string? _simDateText;
 
     private string? SolariMode => WebUi.CurrentValue.SolariAnimation ? null : "off";
 
@@ -278,10 +265,13 @@
         // staleness check meaningful (zulu time changes every sim second, so pushes keep
         // arriving while ProSim is alive and the sim is unpaused).
         _zuluTimeSub = DataRefs.Subscribe(ProsimDataRefNames.ZuluTime);
-        _simTimeSub = DataRefs.Subscribe(ProsimDataRefNames.SimulatorTime);
         _simClockTimer = new System.Threading.Timer(_ => EvaluateSimClock(), null,
             TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         EvaluateSimClock();
+
+        // The header logo follows the theme (Appearance page) and the logo store (uploads).
+        WatchChanged(h => Logos.Changed += h, h => Logos.Changed -= h, () => { });
+        _themeSubscription = WebUi.OnChange(options => _ = InvokeAsync(StateHasChanged));
     }
 
     /// <summary>Recomputes the sim-clock display; re-renders only when it actually changed
@@ -295,25 +285,23 @@
             && DateTimeOffset.UtcNow - updated <= SimTimeStaleAfter;
         var timeText = fresh ? SimClockFormat.TryFormatZuluTime(zulu!.RawValue) : null;
         var active = prosimConnected && timeText is not null;
-        var dateText = active ? SimClockFormat.TryFormatDate(_simTimeSub?.RawValue) : null;
 
-        if (active == _simClockActive && timeText == _simTimeText && dateText == _simDateText)
+        if (active == _simClockActive && timeText == _simTimeText)
         {
             return;
         }
 
         _simClockActive = active;
         _simTimeText = timeText;
-        _simDateText = dateText;
         _ = InvokeAsync(StateHasChanged);
     }
 
     public override void Dispose()
     {
         base.Dispose();
+        _themeSubscription?.Dispose();
         _flightNumberSub?.Dispose();
         _simClockTimer?.Dispose();
         _zuluTimeSub?.Dispose();
-        _simTimeSub?.Dispose();
     }
 }

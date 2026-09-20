@@ -345,6 +345,9 @@ public static class Program
         // Read-only airframe-damage snapshot (blown-tyre wear state); rides the telemetry gate.
         web.MapSimDamageApi();
 
+        // The pilot's uploaded airline logos for the header and the Appearance page.
+        web.MapThemeLogoApi();
+
         // Boot id for the client-side server-restart watchdog (issue #97).
         web.MapAppBoot();
 

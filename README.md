@@ -66,8 +66,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - SayIntentions (spoken ATC requests, gate push, weather/CPDLC), ActiveSky weather chain,
   Elgato Stream Deck plugin, opt-in HTTP command/status API
 - EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
-  bundled fonts and icons (works offline), 13 airline/basic themes switchable from the header
-  plus user JSON themes, kg/lb display units, system tray, single-instance, update banner from
+  bundled fonts and icons (works offline), 13 airline/basic themes on the Appearance settings page
+  plus user JSON themes and your own airline logos (never shipped — you upload them), kg/lb
+  display units, system tray, single-instance, update banner from
   GitHub releases
 - Migrating from Prosim2GSX / Prosim2FO? Your existing configuration is **imported
   automatically on first run**

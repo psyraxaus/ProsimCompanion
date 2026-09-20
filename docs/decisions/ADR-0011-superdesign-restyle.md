@@ -65,3 +65,16 @@ receive the new look through the shared tokens and cards only.
   perf amber/red) which were always separate from the theme.
 - The Superdesign init snapshot lives in `.superdesign/init/` (untracked); the canvas is the
   design source of record for further iterations.
+
+## Amendment 2026-09-20 — header trim, Appearance page, airline logos
+
+- The header loses the date flap and the theme picker (owner decision after the first
+  flights on the restyle): brand · aircraft block · FLT NO · SIM/UTC clock · ProSim dot.
+- The theme picker moves to its own settings page, **Appearance** (`/settings/appearance`):
+  colour swatches for every theme, one click applies and writes `webUi.theme` as before.
+- **Airline logos are the pilot's own files.** Real airline marks are trademarks, so the app
+  ships none. The Appearance page uploads a PNG/SVG/JPG/WEBP (≤ 512 KB) per theme into
+  `%LOCALAPPDATA%\ProsimCompanion\config\themes\logos\<slug>.<ext>` (`ThemeLogoStore`);
+  the header shows the active theme's logo where the picker was, served by
+  `/api/theme-logo/{slug}`. The seed folder is git-ignored for logos and
+  `build-installer.ps1` fails if one reaches the payload.

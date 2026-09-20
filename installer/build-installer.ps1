@@ -32,6 +32,14 @@ if ($sdkLeak) {
 }
 Write-Host 'Verified: ProSimSDK.dll is not in the payload.'
 
+# Airline logos are the pilot's own files (trademarks; owner decision 2026-09-20). They live in
+# %LOCALAPPDATA% and must never ride the seed config folder into the installer.
+$logoLeak = Get-ChildItem -Recurse -File (Join-Path $publishDir 'config\themes\logos') -ErrorAction SilentlyContinue
+if ($logoLeak) {
+    throw "ABORT: theme logo found in the publish output ($($logoLeak[0].FullName)) - logos are user content and must never be redistributed."
+}
+Write-Host 'Verified: no theme logos in the payload.'
+
 # Stream Deck plugin: bundle the TypeScript source and pack the .sdPlugin so the installer
 # can (optionally) drop it into the Elgato plugins folder and ship the .streamDeckPlugin for
 # manual installs. The plugin never ships without bin\plugin.js — a source-only copy would
