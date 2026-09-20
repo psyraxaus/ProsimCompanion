@@ -10,7 +10,7 @@ namespace ProsimCompanion.Speech.Recognition;
 /// <summary>
 /// Push-to-talk input (Prosim2FO process): a global low-level keyboard hook (installed on a
 /// dedicated message-pump thread — never swallows keys, so PTT still reaches the sim) plus a
-/// winmm poller that tracks the pressed buttons of EVERY connected joystick as a
+/// winmm poller (one dedicated thread, present devices only) that tracks the pressed buttons of every connected joystick as a
 /// (device, button) set. The FO PTT and ATC-mute functions each carry one
 /// <see cref="PttBindingOptions"/> — a keyboard key OR a joystick button — matched against
 /// those sets; the legacy flat key/device/button fields still apply while a binding is unset,
@@ -25,6 +25,20 @@ namespace ProsimCompanion.Speech.Recognition;
 public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable, IPttInputCapture
 {
     private const int MaxJoysticks = 16;
+
+    // Joystick polling (crash 2026-09-20, LIRF→EGLL deboarding, dump ProsimCompanion.exe.35372):
+    // a 25 ms System.Threading.Timer polled all 16 winmm ids; for every ABSENT id Windows'
+    // joystick layer (dinput) re-enumerates the HID devices, so one pass took >300 ms, the
+    // timer piled 13 pool threads onto the lock, and when MSFS released its devices dinput
+    // overran its own buffer inside joyGetPosEx (0xC0000374 heap corruption) and the process
+    // died. Now: ONE dedicated thread (no pile-up), present ids polled every 25 ms, absent ids
+    // re-probed every 2 s, no polling at all without a joystick binding, every winmm call
+    // under one gate, and a slow-pass warning so the next re-enumeration storm is visible.
+    private const int PollIntervalMs = 25;
+    private const int AbsentRescanIntervalMs = 2000;
+    private const int SlowPollWarnMs = 100;
+    private const int SlowPollWarnEveryMs = 60_000;
+    private static readonly object WinmmGate = new(); // every joyGet* call, whichever thread
 
     private const int WhKeyboardLl = 13;
     private const int WmKeydown = 0x0100;
@@ -124,12 +138,17 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
     private readonly HashSet<(int Dev, int Btn)> _buttonsDown = [];
     private readonly Dictionary<int, int> _deviceMasks = []; // per winmm id: previous buttons
     private readonly Dictionary<(string Name, int? Id), int> _resolvedIds = [];
-    private readonly object _recomputeGate = new(); // serializes edge detection (pool + timer threads)
+    private readonly object _recomputeGate = new(); // serializes edge detection (pool + poll threads)
+    private readonly HashSet<int> _presentIds = []; // winmm ids that answered on the last probe
+    private readonly ManualResetEventSlim _pollStop = new(false);
 
     private Thread? _hookThread;
     private uint _hookThreadId;
     private IntPtr _hook;
-    private Timer? _joystickTimer;
+    private Thread? _pollThread;
+    private long _nextAbsentRescan;
+    private long _lastSlowPollWarning = long.MinValue / 2; // "never", without overflowing the subtraction
+    private int _captureWantsJoysticks; // settings-card capture in progress (polls even unbound)
     private IDisposable? _optionsSubscription;
     private bool _ownPressed;
     private bool _atcPressed;
@@ -163,7 +182,8 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
         _hookThread = new Thread(HookThreadMain) { IsBackground = true, Name = "ptt-hook" };
         _hookThread.SetApartmentState(ApartmentState.STA);
         _hookThread.Start();
-        _joystickTimer = new Timer(_ => PollJoysticks(), null, 1000, 25);
+        _pollThread = new Thread(PollLoop) { IsBackground = true, Name = "ptt-joystick" };
+        _pollThread.Start();
 
         // Settings hot-reload: re-match pressed state against the NEW bindings immediately.
         // Without this a saved binding change (or a mode flip's cleared binding) only took
@@ -175,7 +195,8 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
     public void Dispose()
     {
         _optionsSubscription?.Dispose();
-        _joystickTimer?.Dispose();
+        _pollStop.Set();
+        _pollThread?.Join(TimeSpan.FromSeconds(1));
         if (_hookThreadId != 0)
         {
             PostThreadMessageW(_hookThreadId, 0x0012 /*WM_QUIT*/, IntPtr.Zero, IntPtr.Zero);
@@ -251,42 +272,110 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
             baselineButtons = [.. _buttonsDown];
         }
 
-        var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
-        while (Environment.TickCount64 < deadline)
+        // The poll thread only reads joysticks while a binding needs them; a capture wants
+        // them regardless, so it holds the poller open for its window.
+        if (includeJoysticks)
         {
-            await Task.Delay(25, cancellationToken).ConfigureAwait(false);
-
-            lock (_keysDown)
-            {
-                baselineKeys.IntersectWith(_keysDown);
-                foreach (var vk in _keysDown)
-                {
-                    if (!baselineKeys.Contains(vk))
-                    {
-                        return new PttInputCaptureResult(FormatKey(vk), null, null);
-                    }
-                }
-            }
-
-            if (!includeJoysticks)
-            {
-                continue;
-            }
-
-            lock (_recomputeGate)
-            {
-                baselineButtons.IntersectWith(_buttonsDown);
-                foreach (var (dev, btn) in _buttonsDown)
-                {
-                    if (!baselineButtons.Contains((dev, btn)))
-                    {
-                        return new PttInputCaptureResult(null, dev, btn);
-                    }
-                }
-            }
+            Interlocked.Increment(ref _captureWantsJoysticks);
         }
 
-        return null;
+        try
+        {
+            var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
+            while (Environment.TickCount64 < deadline)
+            {
+                await Task.Delay(25, cancellationToken).ConfigureAwait(false);
+
+                lock (_keysDown)
+                {
+                    baselineKeys.IntersectWith(_keysDown);
+                    foreach (var vk in _keysDown)
+                    {
+                        if (!baselineKeys.Contains(vk))
+                        {
+                            return new PttInputCaptureResult(FormatKey(vk), null, null);
+                        }
+                    }
+                }
+
+                if (!includeJoysticks)
+                {
+                    continue;
+                }
+
+                lock (_recomputeGate)
+                {
+                    baselineButtons.IntersectWith(_buttonsDown);
+                    foreach (var (dev, btn) in _buttonsDown)
+                    {
+                        if (!baselineButtons.Contains((dev, btn)))
+                        {
+                            return new PttInputCaptureResult(null, dev, btn);
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+        finally
+        {
+            if (includeJoysticks)
+            {
+                Interlocked.Decrement(ref _captureWantsJoysticks);
+            }
+        }
+    }
+
+    /// <summary>True when any PTT/ATC-mute binding (new shape or legacy flat fields) names a
+    /// joystick button — the only reason to touch winmm at all. Keyboard-only rigs never
+    /// enter the joystick layer, which is where the 2026-09-20 crash lived.</summary>
+    public static bool JoystickPollingWanted(SpeechOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return WantsJoystick(options.PttBinding, options.PttJoystickDeviceName, options.PttJoystickDevice, options.PttJoystickButton)
+            || WantsJoystick(options.AtcMuteBinding, options.AtcMuteJoystickDeviceName, options.AtcMuteJoystickDevice, options.AtcMuteJoystickButton);
+
+        static bool WantsJoystick(PttBindingOptions binding, string legacyName, int? legacyDevice, int? legacyButton)
+            => binding.IsSet
+                ? binding.Kind.Equals("joystickButton", StringComparison.OrdinalIgnoreCase)
+                : legacyButton is not null && (!string.IsNullOrWhiteSpace(legacyName) || legacyDevice is not null);
+    }
+
+    /// <summary>The winmm ids one pass reads: every id that answered last time, plus — only
+    /// on a rescan pass — the absent ones, so an unplugged slot costs one device enumeration
+    /// every <see cref="AbsentRescanIntervalMs"/> instead of forty a second.</summary>
+    internal static IEnumerable<int> IdsToProbe(IReadOnlySet<int> present, bool rescanAbsent, int maxJoysticks = MaxJoysticks)
+    {
+        ArgumentNullException.ThrowIfNull(present);
+        for (var id = 0; id < maxJoysticks; id++)
+        {
+            if (rescanAbsent || present.Contains(id))
+            {
+                yield return id;
+            }
+        }
+    }
+
+    private void PollLoop()
+    {
+        while (!_pollStop.Wait(PollIntervalMs))
+        {
+            try
+            {
+                if (Volatile.Read(ref _captureWantsJoysticks) > 0 || JoystickPollingWanted(_options.CurrentValue))
+                {
+                    PollJoysticks();
+                }
+            }
+            catch (Exception ex)
+            {
+                // A managed fault must not end the poller (or the process); the next pass
+                // starts clean. Native faults cannot be caught here — that is what the
+                // present-only probing and the single thread are for.
+                _logger.LogWarning(ex, "Joystick poll pass failed");
+            }
+        }
     }
 
     /// <summary>The id a binding should poll: a non-empty product name wins (prefix-matched
@@ -320,8 +409,13 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
         }
 
         var caps = new JoyCaps();
-        return joyGetDevCapsW((IntPtr)id, ref caps, Marshal.SizeOf<JoyCaps>()) == 0
-            && !string.IsNullOrWhiteSpace(caps.ProductName)
+        int result;
+        lock (WinmmGate)
+        {
+            result = joyGetDevCapsW((IntPtr)id, ref caps, Marshal.SizeOf<JoyCaps>());
+        }
+
+        return result == 0 && !string.IsNullOrWhiteSpace(caps.ProductName)
             ? caps.ProductName
             : $"Joystick {id}";
     }
@@ -378,17 +472,26 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
     }
 
     /// <summary>Maintains the (device, button) pressed set across every connected winmm
-    /// device (Prosim2FO's JoystickMonitor, poll-based).</summary>
+    /// device (Prosim2FO's JoystickMonitor, poll-based). One pass; see the class notes for
+    /// why only present ids are read on most passes.</summary>
     private void PollJoysticks()
     {
         lock (_recomputeGate)
         {
+            var now = Environment.TickCount64;
+            var rescanAbsent = now >= _nextAbsentRescan;
+            if (rescanAbsent)
+            {
+                _nextAbsentRescan = now + AbsentRescanIntervalMs;
+            }
+
             var changed = false;
-            for (var id = 0; id < MaxJoysticks; id++)
+            foreach (var id in IdsToProbe(_presentIds, rescanAbsent))
             {
                 var buttons = ReadButtons(id);
                 if (buttons is null)
                 {
+                    _presentIds.Remove(id);
                     // Device gone — drop its state so a stale held button can't latch PTT.
                     if (_deviceMasks.Remove(id, out var stale) && stale != 0)
                     {
@@ -399,6 +502,7 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
                     continue;
                 }
 
+                _presentIds.Add(id);
                 _deviceMasks.TryGetValue(id, out var previous);
                 if (buttons == previous)
                 {
@@ -422,6 +526,17 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
                 }
 
                 changed = true;
+            }
+
+            var elapsed = Environment.TickCount64 - now;
+            if (elapsed > SlowPollWarnMs && now - _lastSlowPollWarning > SlowPollWarnEveryMs)
+            {
+                // Windows re-enumerating game controllers inside joyGetPosEx — the shape that
+                // preceded the 2026-09-20 heap-corruption crash. One line a minute at most.
+                _lastSlowPollWarning = now;
+                _logger.LogWarning(
+                    "Joystick poll pass took {ElapsedMs} ms ({Present} device(s) present, absent slots rescanned: {Rescan}) — Windows is re-enumerating game controllers",
+                    elapsed, _presentIds.Count, rescanAbsent);
             }
 
             if (changed)
@@ -535,6 +650,9 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
     private static int? ReadButtons(int id)
     {
         var info = new JoyInfoEx { Size = Marshal.SizeOf<JoyInfoEx>(), Flags = 0x80 /*JOY_RETURNBUTTONS*/ };
-        return joyGetPosEx(id, ref info) == 0 ? info.Buttons : null;
+        lock (WinmmGate)
+        {
+            return joyGetPosEx(id, ref info) == 0 ? info.Buttons : null;
+        }
     }
 }

@@ -14,12 +14,27 @@ public sealed class ConnectionStatusStore
     /// <summary>Raised after any state change, on the caller's thread.</summary>
     public event EventHandler? Changed;
 
-    /// <summary>Records the state of a subsystem (see <see cref="Subsystems"/> for keys).</summary>
+    /// <summary>Records the state of a subsystem (see <see cref="Subsystems"/> for keys).
+    /// Raises <see cref="Changed"/> only when the value actually changed: on the 2026-09-20
+    /// flight the TTS router re-published "Connected" after every utterance and each call
+    /// re-rendered the whole web layout and the WPF window (112 events for 105 sentences).</summary>
     public void Set(string subsystem, ConnectionState state)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subsystem);
-        _states[subsystem] = state;
-        Changed?.Invoke(this, EventArgs.Empty);
+        var changed = true;
+        _states.AddOrUpdate(
+            subsystem,
+            state,
+            (_, previous) =>
+            {
+                changed = previous != state;
+                return state;
+            });
+
+        if (changed)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     /// <summary>Point-in-time copy of all known subsystem states, ordered by name.</summary>

@@ -233,4 +233,51 @@ public sealed class RecognitionTests
     [InlineData("system.switches.S_FCU_AP1", false)]        // not a CDU key at all
     public void HumanTiming_PageKeyDetection(string dataref, bool isPageKey)
         => Assert.Equal(isPageKey, ProsimCompanion.Speech.Commands.HumanTiming.IsPageKey(dataref));
+
+    // ---- Joystick polling scope (crash 2026-09-20: winmm/dinput heap overrun under a 25 ms
+    // timer that polled all 16 ids and piled 13 threads onto the lock) ----
+
+    [Fact]
+    public void JoystickPolling_NotWanted_ForKeyboardOnlyBindings()
+    {
+        var options = new SpeechOptions();
+        options.PttBinding.Kind = "keyboard";
+        options.PttBinding.Key = "F12";
+
+        Assert.False(PushToTalkService.JoystickPollingWanted(options));
+    }
+
+    [Fact]
+    public void JoystickPolling_Wanted_ForAJoystickButtonBinding()
+    {
+        // The 2026-09-20 sim PC shape: PTT unset, ATC mute on joystick 0.
+        var options = new SpeechOptions();
+        options.AtcMuteBinding.Kind = "joystickButton";
+        options.AtcMuteBinding.JoystickDevice = 0;
+        options.AtcMuteBinding.Button = 2;
+
+        Assert.True(PushToTalkService.JoystickPollingWanted(options));
+    }
+
+    [Fact]
+    public void JoystickPolling_Wanted_ForLegacyFlatJoystickFields_OnlyWhenComplete()
+    {
+        var options = new SpeechOptions { PttJoystickDevice = 1, PttJoystickButton = 3 };
+        Assert.True(PushToTalkService.JoystickPollingWanted(options));
+
+        var buttonOnly = new SpeechOptions { PttJoystickButton = 3 };
+        Assert.False(PushToTalkService.JoystickPollingWanted(buttonOnly));
+
+        Assert.False(PushToTalkService.JoystickPollingWanted(new SpeechOptions()));
+    }
+
+    [Fact]
+    public void IdsToProbe_ReadsPresentIdsOnly_BetweenRescans()
+    {
+        var present = new HashSet<int> { 0, 5 };
+
+        Assert.Equal([0, 5], PushToTalkService.IdsToProbe(present, rescanAbsent: false));
+        Assert.Equal(Enumerable.Range(0, 16), PushToTalkService.IdsToProbe(present, rescanAbsent: true));
+        Assert.Empty(PushToTalkService.IdsToProbe(new HashSet<int>(), rescanAbsent: false));
+    }
 }

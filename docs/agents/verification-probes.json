@@ -874,6 +874,32 @@
       "notes": "Owner decision 2026-09-20 after the 2026-09-19 EGLL session (session-20260919-235732): the phase text said PREFLIGHT for 44 min (00:01–00:45 UTC) across catering, refuel, boarding (00:16–00:25) and the 20-min wait for the push. Departure is a real FlightPhase between Preflight and PushbackAndStart, entered on GroundOpsSignals.BoardingStarted (GSX Boarding Active, relayed by GsxGroundOpsSignalRelay) and held by 'departure-hold' until push/start/thrust/power-off. Every at-gate consumer now goes through FlightPhase.IsAtGate()/IsBeforeTaxiOut(). No ProSim-side boarding fallback yet (efb.efb.boardingStatus values unverified) — a flight without GSX boarding stays Preflight until the push, which is the pre-2026-09-20 behaviour, not a failure."
     },
     {
+      "id": "joystick-poll-heap-crash",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["log", "session"],
+      "checks": [
+        "No new ProsimCompanion.exe.*.dmp in the sim PC's %LOCALAPPDATA%\\CrashDumps during or after the flight, and the CMTrace log ends with the app's own shutdown lines (or is still being written) rather than stopping mid-line.",
+        "No 'Joystick poll pass took ... ms' warning while devices are stable. A single warning around a USB re-plug or the sim closing is acceptable; repeated warnings (one a minute for minutes) mean Windows is re-enumerating controllers constantly and the 2026-09-20 shape is back.",
+        "assert-present: with a joystick ATC-mute/PTT binding configured, an 'ATC PTT down/up' (or 'FO PTT') edge still appears when the button is pressed — present-only polling must not lose the bound device.",
+        "assert-present: with NO joystick binding configured, the log shows no joystick warnings at all (the poll thread idles)."
+      ],
+      "notes": "2026-09-20 LIRF→EGLL: process died at 13:22:45 local mid-deboarding (iPad lost the page). Dump ProsimCompanion.exe.35372.dmp: 0xC0000374 HEAP_CORRUPTION_ACTIONABLE_BufferOverrun on the joystick poll thread — PushToTalkService.PollJoysticks → winmm!joyGetPosEx → dinput → LocalReAlloc → RtlFreeHeap fatal; 13 pool threads queued on the poll lock because a 25 ms Timer polled 16 winmm ids and every absent id re-enumerates HID devices (>300 ms per pass). Trigger: MSFS closing released its DirectInput devices. Fix: one dedicated poll thread, present ids only (absent rescan every 2 s), no polling without a joystick binding, all winmm calls under one gate, slow-pass warning."
+    },
+    {
+      "id": "connection-status-storm",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": ["session"],
+      "checks": [
+        "Count 'subsystem-status' events per session: there must be at most a handful per subsystem transition (start-up, a fallback, a recovery). More 'subsystem-status' events than genuine state changes — in particular one per 'speech.spoken' — is the 2026-09-20 regression (ConnectionStatusStore.Set raising on unchanged values).",
+        "Consecutive 'subsystem-status' payloads must differ in at least one key."
+      ],
+      "notes": "Found in the 2026-09-20 LIRF→EGLL session: 112 subsystem-status events for 105 utterances, each re-rendering MainLayout, Home, GettingStartedCard and the WPF MainWindow. Fixed the same day: Set is compare-and-set."
+    },
+    {
       "id": "voice-services-reprobe",
       "issue": 0,
       "state": "open",
