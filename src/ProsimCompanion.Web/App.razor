@@ -1,6 +1,7 @@
 @* Root document for the Blazor web UI. Styling lives in wwwroot/css/app.css (served as a
    plain static file — a WinExe host has no static-web-assets pipeline); runtime theme
    overrides are injected into the head by the ThemeStyle component via HeadOutlet. *@
+@using System.Reflection
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,18 +12,18 @@
     <title>ProsimCompanion</title>
     <base href="/" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/app.css?v=@AssetVersion" />
     @* Per-page stylesheets for the Prosim2GSX-parity page rebuilds (kept out of app.css so
        page work stays independently editable; the host serves plain static files). *@
-    <link rel="stylesheet" href="css/pages/init.css" />
-    <link rel="stylesheet" href="css/pages/perf.css" />
-    <link rel="stylesheet" href="css/pages/checklists.css" />
-    <link rel="stylesheet" href="css/pages/loadsheet.css" />
-    <link rel="stylesheet" href="css/pages/fuel.css" />
-    <link rel="stylesheet" href="css/pages/ofp.css" />
-    <link rel="stylesheet" href="css/pages/flightstatus.css" />
-    <link rel="stylesheet" href="css/pages/wnb.css" />
-    <link rel="stylesheet" href="css/pages/ops.css" />
+    <link rel="stylesheet" href="css/pages/init.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/perf.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/checklists.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/loadsheet.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/fuel.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/ofp.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/flightstatus.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/wnb.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/pages/ops.css?v=@AssetVersion" />
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
@@ -40,8 +41,18 @@
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=@AssetVersion"></script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 
 </html>
+
+@code {
+    // Cache-buster for our own static assets (2026-09-20: after the beta.4 update the sim
+    // PC's browser kept the previous app.css and drew the header logo at its intrinsic
+    // size). The version changes on every release, so a new build always gets fresh CSS/JS;
+    // blazor.web.js and the framework files ship their own fingerprinting.
+    private static readonly string AssetVersion = Uri.EscapeDataString(
+        (typeof(App).Assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion ?? "0").Split('+')[0]);
+}
