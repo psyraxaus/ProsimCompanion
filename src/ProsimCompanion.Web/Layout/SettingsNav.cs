@@ -58,6 +58,7 @@ public static class SettingsNav
         ("briefing", "Briefings & LLM"),
         ("mcdu", "MCDU"),
         ("sayIntentions", "SayIntentions"),
+        ("callouts", "Callouts & Placards"),
         ("providers", "Voice Providers"));
 
     public static readonly SettingsNavItem[] AudioSections = Items("settings/audio",

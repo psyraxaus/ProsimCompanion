@@ -54,7 +54,7 @@ public sealed class EngineFlapCallDeciderTests
 
     [Fact]
     public void FlapsTwo_BelowPlacard_SpeedChecked()
-        // "two" is HANDLE 3 (F2, 185 kt default) — handle 2 is the 1+F config.
+        // "two" is HANDLE 3 (CONF 2, 200 kt) — handle 2 is the 1+F config (215 kt).
         => Assert.Equal(
             "Speed checked, flaps two.",
             EngineFlapCallDecider.Decide("flaps two", Snapshot(ias: 180), DefaultPlacards));
@@ -62,7 +62,7 @@ public sealed class EngineFlapCallDeciderTests
     [Fact]
     public void FlapsTwo_AbovePlacard_NegativeWithBothSpeeds()
         => Assert.Equal(
-            "Negative — speed 240, flaps two limit is 185.",
+            "Negative — speed 240, flaps two limit is 200.",
             EngineFlapCallDecider.Decide("flaps two", Snapshot(ias: 240), DefaultPlacards));
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class EngineFlapCallDeciderTests
         // placard advisory uses).
         => Assert.Equal(
             "Speed checked, flaps three.",
-            EngineFlapCallDecider.Decide("flaps three", Snapshot(ias: 177), DefaultPlacards));
+            EngineFlapCallDecider.Decide("flaps three", Snapshot(ias: 185), DefaultPlacards));
 
     [Fact]
     public void FlapsFull_ChecksHandleFive()

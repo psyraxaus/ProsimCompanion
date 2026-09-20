@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Speech.Arbiter;
@@ -30,13 +32,15 @@ public sealed class GearCallFeature : IVoiceFeature
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GearCallFeature> _logger;
     private readonly IFlightPhaseSource? _flight;
+    private readonly IOptionsMonitor<SopOptions>? _sop;
 
     public GearCallFeature(
         IProsimDataRefs dataRefs,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<GearCallFeature> logger,
-        IFlightPhaseSource? flight = null)
+        IFlightPhaseSource? flight = null,
+        IOptionsMonitor<SopOptions>? sop = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -48,6 +52,7 @@ public sealed class GearCallFeature : IVoiceFeature
         _eventLog = eventLog;
         _logger = logger;
         _flight = flight;
+        _sop = sop;
     }
 
     public bool Enabled => true;
@@ -77,6 +82,15 @@ public sealed class GearCallFeature : IVoiceFeature
         if (!up && data is { IsValid: true, OnGround: true, GearDown: true })
         {
             Speak("The gear is down.");
+            return true;
+        }
+
+        // VLO (owner's A322 figures, 2026-09-20): the lever must not move above the
+        // extension / retraction limit — the PM refuses with both speeds, like the flap call.
+        if (data is { IsValid: true } && _sop is not null
+            && GearCallDecider.SpeedRefusal(up, data.IndicatedAirspeedKt, _sop.CurrentValue) is { } refusal)
+        {
+            Speak(refusal);
             return true;
         }
 

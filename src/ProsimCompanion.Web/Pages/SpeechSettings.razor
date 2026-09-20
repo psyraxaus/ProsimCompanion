@@ -11,6 +11,7 @@
 @inject IOptionsMonitor<CabinOptions> CabinMonitor
 @inject IOptionsMonitor<AccentOptions> AccentsMonitor
 @inject IOptionsMonitor<SayIntentionsOptions> SayIntentionsMonitor
+@inject IOptionsMonitor<SopOptions> SopMonitor
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
 
@@ -486,6 +487,71 @@ else if (CurrentSection == "briefing")
         </div>
     </Section>
 }
+else if (CurrentSection == "callouts")
+{
+    <Section Title="Standard Callouts" Hint="The FO's speed, altitude and rollout calls.">
+        <BoolField Label="Callouts enabled" Hint="Master switch for every standard callout." More="Applies live. The individual callout texts, altitude callouts, approach gates, flow monitor and weather advisories are edited in the sop section of settings.json for now."
+                   @bind-Value="_sop.Value.CalloutsEnabled" />
+    </Section>
+
+    <Section Title="Flap Placards" Hint="Maximum speed per flap lever position (VFE). The FO warns when you approach or exceed it, and checks your flap calls against it.">
+        <div class="field-hint" style="margin-bottom:8px; max-width:640px;">
+            ProSim reports the lever in six steps: UP, 1, 1+F, 2, 3, FULL. Lever 1 gives 1+F on the
+            ground and on take-off; the FO reads the step ProSim reports.
+        </div>
+        <div class="services-header">
+            <span>Lever</span><span>Limit (kt)</span><span></span><span></span><span></span>
+        </div>
+        @for (var i = 0; i < _sop.Value.FlapPlacards.Count; i++)
+        {
+            var row = _sop.Value.FlapPlacards[i];
+            <div class="service-row">
+                <span class="row-value-mono">@SopOptions.FlapHandleLabel(row.FlapHandle)</span>
+                <input class="number-input" type="number" min="0" max="400" step="1" @bind="row.MaxKt" />
+                <span></span><span></span><span></span>
+            </div>
+        }
+        <div class="preset-row" style="margin-top:8px;">
+            <button type="button" class="btn secondary" title="A322 figures: 230 / 215 / 200 / 185 / 177"
+                    @onclick="ResetFlapPlacards">Reset to A320 defaults</button>
+        </div>
+    </Section>
+
+    <Section Title="Gear Limits" Hint="VLE is the limit with the gear down. VLO is the limit while the gear moves; the FO refuses a gear call above it.">
+        <NumberField Label="Gear extended (VLE)" Suffix="kt" Min="0" Max="400"
+                     Hint="The FO warns when you fly faster than this with the gear down. 0 turns the warning off."
+                     @bind-Value="_sop.Value.GearMaxKt"
+                     Default="_sop.Defaults.GearMaxKt" />
+        <NumberField Label="Gear extension (VLO down)" Suffix="kt" Min="0" Max="400"
+                     Hint="\"Gear down\" is refused above this speed. 0 turns the check off."
+                     @bind-Value="_sop.Value.GearExtendMaxKt"
+                     Default="_sop.Defaults.GearExtendMaxKt" />
+        <NumberField Label="Gear retraction (VLO up)" Suffix="kt" Min="0" Max="400"
+                     Hint="\"Gear up\" is refused above this speed. 0 turns the check off."
+                     @bind-Value="_sop.Value.GearRetractMaxKt"
+                     Default="_sop.Defaults.GearRetractMaxKt" />
+    </Section>
+
+    <Section Title="Placard Advisories" Hint="What the FO says when a limit is close or exceeded" Advanced="true">
+        <BoolField Label="Enabled" @bind-Value="_sop.Value.PlacardAdvisory.Enabled" />
+        <NumberField Label="Warn within" Suffix="kt" Min="0" Max="50"
+                     Hint="Speak the approaching call this close below the limit, while accelerating."
+                     Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
+                     @bind-Value="_sop.Value.PlacardAdvisory.WarnWithinKt"
+                     Default="_sop.Defaults.PlacardAdvisory.WarnWithinKt" />
+        <NumberField Label="Cooldown" Suffix="s" Min="0" Max="600"
+                     Hint="Minimum time between two advisories of the same kind."
+                     Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
+                     @bind-Value="_sop.Value.PlacardAdvisory.CooldownSeconds"
+                     Default="_sop.Defaults.PlacardAdvisory.CooldownSeconds" />
+        <TextField Label="Approaching flap limit" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
+                   @bind-Value="_sop.Value.PlacardAdvisory.ApproachingText" />
+        <TextField Label="Flap limit exceeded" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
+                   @bind-Value="_sop.Value.PlacardAdvisory.ExceededText" />
+        <TextField Label="Gear limit exceeded" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
+                   @bind-Value="_sop.Value.PlacardAdvisory.GearExceededText" />
+    </Section>
+}
 
 <DirtyBar Visible="@BarVisible"
           Message="@(BarMessage ?? "You have unsaved changes")"
@@ -498,6 +564,8 @@ else if (CurrentSection == "briefing")
     public string? Section { get; set; }
 
     private string CurrentSection => SettingsNav.ResolveSection(SettingsNav.SpeechSections, Section);
+
+    private void ResetFlapPlacards() => _sop.Value.FlapPlacards = [.. SopOptions.DefaultFlapPlacards];
 
     private bool SileroSelected => !string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl)
         && _speech.Value.VadEngine.Equals("silero", StringComparison.OrdinalIgnoreCase);
@@ -564,6 +632,7 @@ else if (CurrentSection == "briefing")
     private OptionsDraft<CabinOptions> _cabin = default!;
     private OptionsDraft<AccentOptions> _accents = default!;
     private OptionsDraft<SayIntentionsOptions> _sayIntentions = default!;
+    private OptionsDraft<SopOptions> _sop = default!;
 
     private IReadOnlyList<string> _captureDevices = [];
     private IReadOnlyList<string> _renderDevices = [];
@@ -762,6 +831,7 @@ else if (CurrentSection == "briefing")
         _cabin = Draft(CabinMonitor);
         _accents = Draft(AccentsMonitor);
         _sayIntentions = Draft(SayIntentionsMonitor);
+        _sop = Draft(SopMonitor);
         MigrateLegacyBindings(_speech.Value);
         _captureDevices = DeviceCatalog.GetCaptureDeviceNames();
         _renderDevices = DeviceCatalog.GetRenderDeviceNames();

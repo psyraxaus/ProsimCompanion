@@ -256,19 +256,47 @@ public sealed class SopOptions : IOptionSection
     public SpeedCalloutSetting DecelSpeed { get; set; } = new("seventy knots", 70);
 
     // ---- Placards ----
+
+    /// <summary>A320 VFE per flap HANDLE step (ProSim <c>aircraft.flap.positionHandle</c>:
+    /// 0 = UP, 1 = CONF 1, 2 = CONF 1+F, 3 = CONF 2, 4 = CONF 3, 5 = FULL). Owner's A322
+    /// figures, 2026-09-20: 230 / 215 / 200 / 185 / 177. Before that date steps 2–4 carried
+    /// the next configuration's speed (1+F read as 200, CONF 2 as 185, CONF 3 as 177) — the
+    /// table had been keyed as if the handle had five steps.</summary>
     public static IReadOnlyList<FlapPlacard> DefaultFlapPlacards =>
     [
         new() { FlapHandle = 1, MaxKt = 230 },
-        new() { FlapHandle = 2, MaxKt = 200 },
-        new() { FlapHandle = 3, MaxKt = 185 },
-        new() { FlapHandle = 4, MaxKt = 177 },
+        new() { FlapHandle = 2, MaxKt = 215 },
+        new() { FlapHandle = 3, MaxKt = 200 },
+        new() { FlapHandle = 4, MaxKt = 185 },
         new() { FlapHandle = 5, MaxKt = 177 },
     ];
 
     public List<FlapPlacard> FlapPlacards { get; set; } = [.. DefaultFlapPlacards];
 
-    /// <summary>Gear-extended speed limit (kt); 0 disables the advisory.</summary>
+    /// <summary>The pilot-facing name of a handle step (the placard table is keyed by
+    /// step, and "2" alone would read as CONF 2).</summary>
+    public static string FlapHandleLabel(int handle) => handle switch
+    {
+        0 => "UP",
+        1 => "1",
+        2 => "1+F",
+        3 => "2",
+        4 => "3",
+        5 => "FULL",
+        _ => handle.ToString(System.Globalization.CultureInfo.InvariantCulture),
+    };
+
+    /// <summary>VLE — gear-extended speed limit (kt); 0 disables the advisory. The A322's
+    /// M0.67 side is not modelled: gear down above 20,000 ft is not a case the FO meets.</summary>
     public int GearMaxKt { get; set; } = 280;
+
+    /// <summary>VLO extension — the limit for MOVING the gear down (kt). The "gear down"
+    /// call is refused above it; 0 disables the check.</summary>
+    public int GearExtendMaxKt { get; set; } = 250;
+
+    /// <summary>VLO retraction — the limit for MOVING the gear up (kt). The "gear up" call
+    /// is refused above it; 0 disables the check.</summary>
+    public int GearRetractMaxKt { get; set; } = 220;
 
     public PlacardAdvisoryOptions PlacardAdvisory { get; set; } = new();
 
