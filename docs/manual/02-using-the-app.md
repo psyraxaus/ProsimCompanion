@@ -19,7 +19,7 @@ running version.
 
 | Page | What it does |
 |---|---|
-| **Flight Status** | Route hero with live ground speed / altitude / vertical speed / heading / fuel, the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills |
+| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown), the live ground speed / altitude / vertical speed / heading / fuel figures, the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. Final-call thresholds and the weather refresh cadence live under Settings → Display & Flight Data → Flight Status card |
 | **INIT** | MCDU-style OFP display: fetch the SimBrief OFP, per-field overrides (ZFW, fuel, pax, cargo), SYNC TO FMS, confirm fuel, flight reset |
 | **OFP** | Flight-plan hero, arrival-gate assignment, weather (METAR/TAF/ATIS), pushback-direction Korry buttons, de-ice holdover card |
 | **Loadsheet** | Prelim/final loadsheets with per-weight MAC envelope brackets, manual STD, resend/reset |

@@ -19,6 +19,20 @@ One aircraft turnaround's departure side, from ground-prep start to departure se
 complete — including whether it is a turnaround continuation rather than a fresh origin.
 _Avoid_: departure state, automation phase
 
+**Gate monitor**:
+The Flight Status hero strip that latches one of five forward-only states for the current
+departure cycle — Gate Closed, Gate Open, Boarding, Final Call, Gate Closed — from the
+latched GSX Boarding stage, the GSX pax counters, door 1L and the effective STD. It resets
+only with the ground-ops cycle; it dims after taxi-out but never hides.
+_Avoid_: boarding widget, gate status pill
+
+**Weather card**:
+One of the two hero-card weather tiles: "local weather" (the origin until Descent, the
+destination from Descent on) and "weather at destination" (the alternate once local has
+moved to the destination). Fed by the composite weather chain; the sky graphic is the
+classifier's coarse read of the METAR, the raw text stays on hover.
+_Avoid_: METAR box, weather widget
+
 **Ground-ops cycle**:
 The logical cycle of ground-operations milestones (loadsheets, deice, reset) that features
 observe; each milestone occurs at most once per cycle.

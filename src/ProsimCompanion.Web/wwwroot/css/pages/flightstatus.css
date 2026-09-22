@@ -120,6 +120,9 @@
   padding-top: 20px;
   border-top: 1px solid var(--border);
 }
+/* The widgets block above the telemetry owns the spare height (owner: gate strip anchored
+   at the bottom, 2026-09-22); the metrics then sit tight under it. */
+.fs-widgets + .fs-metrics { margin-top: 0; }
 .fs-metric { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .fs-metric .figure { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -224,4 +227,178 @@
   .fs-hero-side { align-items: flex-start; text-align: left; max-width: none; }
   .fs-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .figure-xl { font-size: 34px; }
+}
+
+/* ---- hero widgets (owner sign-off 2026-09-22, canvas "Weather Card Title Line" v3) ----
+   Two weather cards under the flight line, then the gate strip pinned directly above the
+   telemetry hairline. Both keep a fixed shape across states so the hero never jumps. */
+
+.fs-widgets {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.fs-wx-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fs-wx {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.fs-wx-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.fs-wx-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fs-wx-title .label-caps { color: var(--text-primary); }
+.fs-wx-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-wx-atis { padding: 2px 6px; font-size: 9px; letter-spacing: 0.1em; flex: none; }
+
+.fs-wx-body { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.fs-wx-sky {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  width: 72px;
+}
+.fs-wx-sky .icon { width: 32px; height: 32px; }
+.fs-wx-sky .label-caps { font-size: 8px; text-align: center; white-space: nowrap; }
+.fs-wx-sky.sky-clear, .fs-wx-sky.sky-fewclouds { color: var(--accent-gold); }
+.fs-wx-sky.sky-overcast { color: var(--text-secondary); }
+.fs-wx-sky.sky-rain, .fs-wx-sky.sky-drizzle { color: var(--accent); }
+.fs-wx-sky.sky-snow { color: var(--text-primary); }
+.fs-wx-sky.sky-fog { color: var(--text-muted); }
+.fs-wx-sky.sky-thunderstorm, .fs-wx-sky.sky-windy { color: var(--warning); }
+.fs-wx-sky.sky-unknown { color: var(--text-muted); }
+
+.fs-wx-data { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+.fs-wx-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.fs-wx-line.split { justify-content: space-between; }
+.fs-wx-wind { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.fs-wx-wind .icon { width: 10px; height: 10px; }
+.fs-wx-gust { color: var(--warning); }
+.fs-wx-stamp { font-size: 10px; color: var(--text-muted); }
+.fs-wx-missing { font-size: 11px; font-style: italic; color: var(--text-muted); }
+.fs-wx-raw { cursor: help; }
+
+/* ---- gate monitor strip ---- */
+
+.fs-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  transition: opacity 300ms ease, border-color 300ms ease;
+}
+.fs-gate.dimmed { opacity: 0.45; }
+.fs-gate.final-call {
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+  animation: fs-gate-halo 1.6s ease-in-out infinite;
+}
+@keyframes fs-gate-halo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 183, 3, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 183, 3, 0.18); }
+}
+
+.fs-gate-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.fs-gate-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fs-gate-id { display: inline-flex; align-items: baseline; gap: 6px; font-size: 11px; }
+.fs-gate-id .figure { font-size: 14px; }
+
+.fs-gate-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: center;
+}
+.fs-gate-state .figure { font-size: 24px; letter-spacing: 0.05em; white-space: nowrap; }
+.fs-gate-state .icon { width: 22px; height: 22px; flex: none; }
+.fs-gate-state.closed { color: var(--text-secondary); }
+.fs-gate-state.closed .figure { color: var(--text-secondary); }
+.fs-gate-state.open { color: var(--accent-gold); }
+.fs-gate-state.open .figure { color: var(--accent-gold); }
+.fs-gate-state.boarding .figure { color: var(--accent); text-shadow: var(--glow); }
+.fs-gate-state.final-call { color: var(--warning); }
+.fs-gate-state.final-call .figure { color: var(--warning); text-shadow: 0 0 8px rgba(255, 183, 3, 0.5); }
+.fs-gate-state.closed-after { color: var(--success); }
+.fs-gate-state.closed-after .figure { color: var(--success); }
+
+.fs-gate-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+.fs-gate-pax { font-size: 14px; }
+.fs-gate-pax .muted { color: var(--text-muted); }
+.fs-gate-std { font-size: 11px; color: var(--text-secondary); }
+.fs-gate-std.soon { color: var(--warning); }
+.fs-gate-detail { font-size: 11px; color: var(--text-muted); }
+
+.fs-gate-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.fs-gate-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--text-muted);
+  transition: width 600ms ease, background 300ms ease;
+}
+.fs-gate.open .fs-gate-fill { background: var(--accent-gold); }
+.fs-gate.boarding .fs-gate-fill { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.fs-gate.final-call .fs-gate-fill { background: var(--warning); }
+.fs-gate.closed-after .fs-gate-fill { background: var(--success); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-gate.final-call { animation: none; }
+}
+
+@media (max-width: 900px) {
+  .fs-wx-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 540px) {
+  .fs-gate-head { grid-template-columns: 1fr; justify-items: start; }
+  .fs-gate-state { justify-self: start; }
+  .fs-gate-right { align-items: flex-start; text-align: left; }
 }

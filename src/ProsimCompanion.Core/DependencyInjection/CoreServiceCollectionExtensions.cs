@@ -62,6 +62,9 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<UpdateCheckOptions>(configuration);
         services.AddOptionSection<PersonaOptions>(configuration);
         services.AddOptionSection<FlightStateOptions>(configuration);
+        // Flight Status hero widgets (owner request 2026-09-22): gate monitor thresholds and
+        // the weather-card refresh cadence, edited on Display & Flight Data.
+        services.AddOptionSection<FlightStatusOptions>(configuration);
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         // The typed settings write path — pages and services write through this, never through
@@ -82,6 +85,12 @@ public static class CoreServiceCollectionExtensions
             ],
             p.GetRequiredService<WeatherStore>(),
             p.GetRequiredService<ILogger<Weather.CompositeWxProvider>>()));
+        // Flight Status hero widgets (2026-09-22): the two weather cards and the gate monitor.
+        // Both modules degrade to "no data" without GSX / ProSim / a flight plan.
+        services.AddSingleton<Weather.HeroWeatherStore>();
+        services.AddStartupModule<Weather.HeroWeatherService>();
+        services.AddSingleton<Boarding.GateStatusStore>();
+        services.AddStartupModule<Boarding.GateMonitorService>();
         services.AddSingleton<ConnectionStatusStore>();
         // Written by the Sim pillar's session monitor; read by session-gated automation and
         // the web UI. Stays at Empty (phase Unknown = hold) when the Sim pillar is absent.

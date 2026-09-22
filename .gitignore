@@ -40,3 +40,6 @@ installer/Output/
 scratchpad/
 # The pilot's own airline logos are user content in %LOCALAPPDATA%; the seed folder must never hold one (trademarks).
 src/ProsimCompanion.App/config/themes/logos/
+
+# Superdesign scratch HTML (never commit)
+.superdesign/tmp/

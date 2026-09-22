@@ -19,7 +19,10 @@
       "issue": 59,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "No 'phase-changed' event into InitialClimb/Climb/Cruise/Descent/Approach whose snapshot has iasKt < 30 AND groundSpeedKt < 30 (with #93 shipped, also onGround=true or powered=false — physically impossible airborne states).",
         "No log line 'GSX \"fob restore\": ... -> ... (saved value)' before the session has a genuine airborne phase commit (ias > 80 at the transition). The refusal line ('refused — aircraft has not been airborne') is the CORRECT behaviour.",
@@ -34,7 +37,9 @@
       "issue": 60,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "If a 'gsx-decision' with reason containing 'waiting for a flight plan' exists, no 'gsx-service' {service: Refueling, event: Active} may occur before a later decision shows the plan was detected (simbriefImported=True or fmsOrigin non-empty in the 'flight plan detection' decision)."
       ],
@@ -45,7 +50,9 @@
       "issue": 64,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "Between 'gsx-service' {Boarding, Requested} and {Boarding, Completed}, at most 2 distinct passenger counts across 'gsx-decision' events with action 'pax target' (reason contains 'armed GSX with N passengers')."
       ],
@@ -56,7 +63,9 @@
       "issue": 75,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "When the anchor runs: a 'gate anchor: anchored GSX to 'X' (code)' decision — and REPORT WHICH ladder rung X was (display name, full facility|gate key, bglName, or bare designator): which identity gate.select matches on is the open empirical question this probe answers.",
         "assert-absent: 'gate.select failed for every identity [...]' — the whole ladder refused means a genuinely unknown-to-GSX stand (cross-check the #44 probe).",
@@ -69,7 +78,10 @@
       "issue": 44,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "When GSX does not recognize the parking (spawn at an unknown stand): a ground-prep hold with reason 'GSX has not identified the parking — select the stand in the GSX menu, or reposition' (visible on the Flight Status card), AND an 'fo.parking-conflict-advisory' spoken event, once per conflict — including when the only GSX surface is the 'Select Position at ...' menu (the 2026-08-23 gap: only the parking-CHANGE menu was wired, so the hold stayed a log line).",
         "assert-absent: repeated app restarts around a parking-change menu with session gate 'unknown' and no pilot-facing guidance (the 2026-08-17/22 signature).",
@@ -82,7 +94,10 @@
       "issue": 44,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "assert-absent: an 'fo.parking-conflict-advisory' event within 60 s after a 'gsx-decision' reposition ('repositioning at <gate>') whose position pick succeeded — the 2026-09-13 EGLL 546 and 2026-09-20 LIRF 835 signature: our own Reposition Aircraft → Select Position submenu was taken for GSX's unknown-parking prompt and the FO said 'GSX doesn't recognise our parking position' at a stand GSX had armed 90 s earlier.",
         "assert-present: when the reposition runs, the 'gsx-question' decision for the position-select menu reads 'opened by our own reposition step — GSX knows the stand; not a parking conflict'.",
@@ -96,7 +111,10 @@
       "issue": 75,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "When an arrival gate is armed and the phase reaches Cruise (or Descent/Approach) with GSX still reporting the departure airport: a 'gsx-gate-airport-pick' session event (payload destination, outcome, detail, attempt, entries) and the log line 'Gate request <gate>: Armed — loading <ICAO> in GSX (in-flight airport pick, attempt N)'. REPORT the page title and rows quoted in the 'In-flight airport pick ... not completed' line on failure — that is how we learn GSX's in-flight menu shape (expected: entry '^select airport' on the root menu, page 'Select airport', rows carrying the ICAO).",
         "On success: 'GSX loaded <ICAO> from the in-flight airport pick', then 'GSX command gate.select {\"gate\":\"<as typed>\"...} -> ok (prepared|ok)' IN THE AIR, then 'gsx-gate-assigned' and, within 60 s, 'gsx-gate-confirmed' from the SetGate LVAR readback. After landing NO 'Select Position at <destination>' menu and no parking conflict — services engage on arrival.",
@@ -111,7 +129,9 @@
       "issue": 75,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "When any gate.select is refused: a 'GSX command gate.select failure detail: error={...} payload={...}' log line right after the 'GSX command gate.select ... -> failed (not_found)' summary. REPORT the error object verbatim — it is the only evidence we have for what GSX matches the gate token against (every shape tried 2026-08-09 → 2026-09-20 was refused: ' Gate D27', 'D27', 'D5', 'Stand 313', '313', 'Stand 546', 'Terminal 5B (531-548)|Stand 546', '546', 'Stand 829', 'Stand 835', 'Remote Stands 8XX/9XX | Stand 835', '835').",
         "When a gate.select succeeds: a 'GSX command gate.select result payload: {...}' line — record the accepted token shape in docs/integrations/gsx-remote-api.md §6 and flip this probe to closed-regression-watch."
@@ -123,7 +143,10 @@
       "issue": 44,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "When the app restarts in flight after an arrival gate was confirmed: an 'arrival-gate-restored' session event (payload gate + action Queue/DispatchBoth/DispatchGsxOnly) in the new session, and 'Arrival gate <gate> restored after restart' in the log — 2026-09-20 EGLL: 545R confirmed twice, two restarts in the descent, the last run landed with no gate and GSX asked 'Select Position' on the roll.",
         "When restored past the cruise entry (Descent/Approach): the GSX 'Gate request <gate>: Armed' line follows immediately; if the earlier run had already fired, the ATC status reads 'ATC assignment already sent before the restart' and no second SayIntentions assignGate goes out.",
@@ -136,7 +159,9 @@
       "issue": 90,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No duplicated 'gsx-service' (same service+event pair) within 5 seconds.",
         "No duplicated 'ground.calling'/'ground.upcall' for the same call id within one departure/arrival cycle (a second GPU upcall after a genuine reconnect is legitimate — check the mirror context).",
@@ -149,7 +174,10 @@
       "issue": 103,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "No detected->cleared->detected cycle for one failure id within 5 minutes (the 2026-08-23 signature: 4 cycles of elec-gen-1-fault in 6 min, tracking the ECP page button).",
         "No 'failure.cleared' while the fault demonstrably persisted (when instructor-injected: the pilot knows; from telemetry: a re-detect of the same id within minutes is the tell).",
@@ -164,7 +192,9 @@
       "issue": 58,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No abnormal/ECAM dialogue or master-warning speech for GEN 1/GEN 2 FAULT while no engine has been started this session (pre-start state is normal, not a fault).",
         "No APU FIRE dialogue from a transient shorter than ~2 s (fire signal appears and clears between adjacent events)."
@@ -176,7 +206,9 @@
       "issue": 57,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No abnormal-dialogue prompt (repeat of the same demand) spoken more than 60 s after the underlying failure cleared.",
         "Queued dialogues must not starve: any enqueued dialogue eventually speaks or is withdrawn."
@@ -188,7 +220,9 @@
       "issue": 56,
       "state": "closed-regression-watch",
       "kind": "watch",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "Report any abnormal dialogue active > 10 minutes, any interval where the same prompt was spoken 3+ times, and any recognized-but-rejected utterances while a dialogue was awaiting an answer (candidate cancel phrases the pilot tried)."
       ],
@@ -199,7 +233,9 @@
       "issue": 66,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "No '401'/'Unauthorized' from the LLM intent client. If the LLM tier is enabled and any free-form utterance fell through to a clarifier, at least one successful LLM intent call should exist."
       ],
@@ -210,7 +246,9 @@
       "issue": 62,
       "state": "closed-regression-watch",
       "kind": "watch",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "Count 'Gateway \"metar ...\" attempt N/3 failed' lines per airport. Zero failures + a successful METAR consumption = evidence toward closing; persistent 500s = still broken (confirmed 2026-08-17)."
       ],
@@ -221,7 +259,10 @@
       "issue": 46,
       "state": "closed-regression-watch",
       "kind": "watch",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "Any session JSONL that does not end with a 'session-ended' event = crash/kill signature; report the last events before the cut. Any CMTrace log that stops mid-write. Correlate with USB/audio-device lines just before the end."
       ],
@@ -232,7 +273,9 @@
       "issue": 48,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'phase-changed' Climb→Approach whose snapshot shows verticalSpeedFpm > +300 (positive climb must outvote a stuck gear lever)."
       ],
@@ -243,7 +286,9 @@
       "issue": 47,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'Copied — conditional' (or other ATC-copy reply) spoken in response to an utterance containing 'checklist'."
       ],
@@ -254,7 +299,9 @@
       "issue": 34,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "No second VoiceMeeter session/login opened without the previous one closing (pair open/close lines; a mapping change mid-flight is the trigger)."
       ],
@@ -265,7 +312,11 @@
       "issue": 76,
       "state": "open",
       "kind": "watch",
-      "sources": ["session", "log", "wire"],
+      "sources": [
+        "session",
+        "log",
+        "wire"
+      ],
       "checks": [
         "Wire log growth: report final size; > 50 MB in one session = the logging-reload storm signature.",
         "Any GSX trigger sent ('trigger sent — waiting for GSX to confirm') with no confirmation within 60 s = dropped request (the #76 GPU case).",
@@ -279,7 +330,9 @@
       "issue": 73,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'speech.spoken' containing 'climb performance' while the committed phase is Cruise or later."
       ],
@@ -290,7 +343,9 @@
       "issue": 69,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'speech.spoken' text matching /\\bwinds \\d/ — the plural form must be expanded by the AviationSpeech normalizer like the singular already is."
       ],
@@ -301,7 +356,9 @@
       "issue": 68,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'speech.spoken' ATIS text matching /information [a-z]\\b/i without the phonetic word (should read 'information Mike'), and no SID/STAR designator spoken with a bare trailing letter."
       ],
@@ -312,7 +369,9 @@
       "issue": 70,
       "state": "closed-regression-watch",
       "kind": "feature-pending",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "Once shipped: briefing/logbook 'speech.spoken' texts contain airport names ('Heathrow') where today they contain bare ICAOs; count bare 4-letter ICAO codes in spoken text as the before/after metric."
       ],
@@ -323,7 +382,10 @@
       "issue": 49,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "'set standard' → 'voicecommand.executed', then 'voicecommand.verified' with ok=true (the EFIS2 STD gate read 1), then spoken 'Standard, cross checked, passing flight level <digits>' — never the confirmation without the verified event.",
         "With the #109 value fix shipped (2026-08-29): 'set standard' verifies ok=true on the FIRST attempt (retried=false) — the honest negative is no longer an acceptable steady state. 'ok=false' now means the user's %LOCALAPPDATA% commands.json still carries press:1 (see notes) or a new fault.",
@@ -336,7 +398,10 @@
       "issue": 67,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "No 'reject'-tagged speech (Didn't catch that / Say again / Repeat please) between a phase commit into TakeoffRoll and the first commit out of InitialClimb, nor during LandingRollout — unmatched utterances there produce 'Idle miss absorbed silently' debug lines instead.",
         "Recognized callouts (engine start, flaps) still answer normally outside those phases."
@@ -348,7 +413,9 @@
       "issue": 43,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "'gear up' after liftoff → a 'voicecommand.gear' {position: up} event, FO speaks 'Gear up.', and NO reject speech (the 2026-08-22 signature was two rejected calls seconds after liftoff).",
         "'gear up' on the ground → refused verbally ('Negative — we are on the ground.') with NO gear event.",
@@ -361,7 +428,10 @@
       "issue": 95,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "The loadsheet footer time (HH:mmZ) matches the sim zulu clock captured in the same session (within a few minutes), not the wall clock — decisive whenever the simulated time of day differs from real.",
         "STD-offset prelim decisions ('STD HH:mmZ minus N min reached') fire against the simulated clock."
@@ -395,7 +465,10 @@
       "issue": 50,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "When the Voice activation mode is configured: departure services must not auto-start without the voice trigger — 'gsx-decision' shows the gate holding until the pilot's call; with automation mode, auto-start decisions appear as before."
       ],
@@ -406,7 +479,9 @@
       "issue": 51,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "Ground-crew upcalls fire on their triggers: 'ground.upcall.gpu' after GPU connect, 'ground.upcall.refuel' after Refueling Completed, 'ground.upcall.catering' after Catering Completed; crew hail dialogues respond on INT."
       ],
@@ -417,7 +492,9 @@
       "issue": 53,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "At a non-home-country airport, the ground-crew voice resolution log shows a locale derived from the airport ICAO prefix."
       ],
@@ -428,7 +505,10 @@
       "issue": 91,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "When INT/RAD is pressed during a running departure sequence: 'gsx-decision' {action: 'force next service', reason: 'requested by INT/RAD'} appears and the next service triggers.",
         "assert-absent: any 'Subscriber handler ... threw System.InvalidCastException' for S_ASP_INTRAD/S_ASP2_INTRAD."
@@ -440,7 +520,9 @@
       "issue": 92,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "Voice 'check the aircraft state' → a fresh 'aircraft-state-check' event AND an 'fo.aircraft-state-advisory' speaking the verdict (Pass wording: 'the aircraft is in the expected cold and dark state').",
         "After a Mismatch verdict, making the aircraft cold and dark (phase-changed → ColdAndDark) → automatic re-check with a spoken all-clear.",
@@ -453,7 +535,9 @@
       "issue": 93,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "Every 'phase-changed' snapshot payload carries the full field set (onGround, altitudeFt, radioAltitudeFt, verticalSpeedFpm, powered, enginesRunning, engineStarting, pushback, parkBrake, gearDown, takeoffThrust; with #100 shipped, also beacon, apuRunning, rawPushback; with #105 shipped, also fmsCruiseAltFt) — a payload with only iasKt/groundSpeedKt means an old build is running.",
         "With the 2026-08-29 rule table shipped, every 'phase-changed' payload also carries top-level 'rule' (a kebab-case PhaseRule id such as 'takeoff-thrust', or the engine ids 'manual-override' / 'session-ended') and a non-empty 'reason' string."
@@ -465,7 +549,9 @@
       "issue": 63,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "Each session with a sim flight has exactly one initial 'aircraft-state-check' event (Pass/Mismatch/Skipped with an honest reason); a Mismatch produces the FO advisory when announce is on."
       ],
@@ -476,7 +562,9 @@
       "issue": 61,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "'Recognition \"listening\"' within ~5 s of app start, without a PTT toggle in between."
       ],
@@ -487,7 +575,10 @@
       "issue": 30,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "On an app restart mid-turnaround: resync assessment completes, lifecycle latches seed from tracking LVARs/dataref evidence, and the sequencer holds until assessed (no duplicate service calls after restart).",
         "No 'tracking LVARs claim departure progress the ProSim datarefs contradict' decision within ~15 s of app start (the 2026-08-23 false-stale signature: judged before the plan refs pushed, wiped valid LVARs, re-ran Refueling+Catering and re-pumped FOB mid-boarding).",
@@ -500,7 +591,9 @@
       "issue": 35,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "No SDK-dispatcher watchdog trips and no wedged-worker recoveries when audio mappings change mid-flight."
       ],
@@ -511,7 +604,9 @@
       "issue": 98,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "After the last 'phase-changed' event leaving the ground-prep window (current not Preflight/ColdAndDark), every subsequent 'gsx-ground-prep-stage' event carries stage 'Idle' or 'Complete' until the phase returns to the window — any 'Reposition'/'Settling'/'AnchorGate' stage recorded in flight is a fail.",
         "On a mid-flight app restart: no 'gsx-ground-prep-stage' event with an active stage name before landing."
@@ -523,7 +618,9 @@
       "issue": 99,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'phase-changed' Approach->Climb whose snapshot has verticalSpeedFpm < 800 (the go-around gate).",
         "No 'phase-changed' into Cruise with radioAltitudeFt < 5000 in arrival context (the 14:09:14 'Cruise at 3,000 ft' signature).",
@@ -537,7 +634,9 @@
       "issue": 100,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'phase-changed' TaxiOut->PushbackAndStart whose snapshot has engineStarting=false (a stray pushback reading must never walk a taxi back).",
         "assert-present during a normal GSX pushback with beacon on: a Preflight->PushbackAndStart commit BEFORE engine start (the beacon+APU window)."
@@ -549,7 +648,9 @@
       "issue": 104,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'phase-changed' snapshot with pushback=true while airborne or during TaxiOut/TakeoffRoll (the inverted-mapping latch signature: pushback=true for the whole 2026-08-23 flight).",
         "assert-present on a normal departure: a PushbackAndStart->TaxiOut commit exists between the push and TakeoffRoll (the stuck-phase signature was 14 min of taxi in PushbackAndStart, rescued only by TakeoffRoll).",
@@ -562,7 +663,9 @@
       "issue": 105,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'phase-changed' into Cruise whose snapshot has fmsCruiseAltFt >= 1000 AND altitudeFt < fmsCruiseAltFt - 2000 (level-offs below the planned cruise level must hold Climb/Descent).",
         "No 'phase-changed' into Cruise with fmsCruiseAltFt < 1000 AND altitudeFt < 10000 (the no-FMS floor).",
@@ -577,7 +680,9 @@
       "issue": 101,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'phase-changed' snapshot with onGround=false AND takeoffThrust=true (the flag now means thrust set on the ground)."
       ],
@@ -588,7 +693,9 @@
       "issue": 106,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "During a pushback with engine start: after 'vehicle state 12 (awaiting good-engine-start confirmation)', a 'confirmed good engine start — tug clear to disconnect' decision appears without any pilot menu interaction.",
         "assert-absent: 'GSX menu '\"Interrupt pushback?\"' has no question handler' (the 2026-08-23 signature — the pilot had to answer by hand).",
@@ -601,7 +708,9 @@
       "issue": 107,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No more than ONE reject-tagged speech while a single checklist item is open (further misses are absorbed with a debug log).",
         "No reject-tagged speech in Approach below 1,000 ft RA (short-final absorb).",
@@ -614,7 +723,9 @@
       "issue": 108,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No identical 'callout.fired' id twice within 10 s (2026-08-23: spoilers 2x in 100 ms at touchdown, oneThousandToGo 8x in 1.5 s while the FCU knob was wound).",
         "oneThousandToGo fires at most once per settled FCU target and never inside its ~15 s cooldown."
@@ -626,7 +737,10 @@
       "issue": 114,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "No 'failure.detected', 'abnormal.*', 'callout.*', cabin, ground-upcall or company-channel speech event before the first 'Flight live true' log line of the session (FlightStateEngine). Any FO speech with the app up and MSFS on the menu / not running is the 2026-08-29 signature.",
         "assert-present after session exit (menu/world map): 'Flight live false' log line, then — if a fault was latched — 'abnormal trigger latches reset'; a running ECAM dialogue ends with 'abnormal.ended' reason 'session-ended' and NO 'ECAM cancelled' / 'has cleared' announcement.",
@@ -640,7 +754,9 @@
       "issue": 115,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "Trigger = the pilot spoke (any 'FO PTT down' line, or continuous mode with the app up and the LAN ASR reachable). Behaviour = at least one 'ASR heard' line (UtteranceRouter, Debug) in the session. A session with recognition 'listening' for minutes and ZERO 'ASR heard' lines is the 2026-08-29 signature (server answering 404 to /transcribe while /health was green).",
         "assert-absent: Warning 'LAN ASR server … answered … for flavour … check speech.asrApi matches the server' (LanAsrRecognizer). Present = speech.asrApi does not match the server at speech.asrBaseUrl (or the server is mis-routed) — quote the status code and flavour.",
@@ -654,7 +770,10 @@
       "issue": 116,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "No 'failure.detected' / 'abnormal.started' event while the most recent 'phase-changed' snapshot says powered:false (phase ColdAndDark). The 2026-08-29 signature: 'failure.detected fctl-altn-law' ~5 s after 'Flight live \"true\"' with the aircraft cold and dark, then 'Mic borrowed by \"abnormal:fctl-altn-law\"'.",
         "assert-present when a trigger is genuinely firing cold and dark (e.g. fctl-altn-law on controlLaw.numerical): one Information line 'Abnormal <id> trigger is firing but the aircraft is unpowered (ColdAndDark) — held, no ECAM to read' (FailureMonitor), and no dialogue.",
@@ -668,7 +787,10 @@
       "issue": 117,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "Trigger = departure sequence runs with gsx.skipRefuelOnTankering on and the FOB at or above the OFP block fuel minus 25 kg (compare aircraft.fuel.total in the first 'refuel sync' or loadsheet lines against OfpData.FuelPlanRampKg / the OFP import line). Behaviour = 'gsx-decision' action 'skip Refueling' whose reason contains 'tankering) — GSX refuel not called', a decision 'refuel skipped for tankering' … 'preliminary loadsheet trigger raised', and NO 'trigger Refueling' from the sequencer nor 'GSX service \"Refueling\": Requested' that session. The 2026-08-29 signature (session 223842): trigger at 08:42:21, sync 'skipped (tankering)' only at 08:44:07 after Active, six minutes of truck animation, 'refueling complete, 9.6 tonnes' upcall.",
         "assert-present (no regression) when FOB is below the plan: the normal 'trigger Refueling' — 'next in departure order' and the refuel-sync activation line.",
@@ -682,7 +804,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "Trigger = the pilot overrides FUEL RAMP on the INIT page before the truck is ordered ('EFB INIT: override fuelRampKg = N applied' log line / 'efb init' decision). Behaviour = the refuel sync's activation line ('activated — current X kg; latched target T kg (candidates: fuelTarget …') latches T equal to the override rounded up to 100 kg, NOT the OFP block fuel from the import line ('imported …: fuel F kg'). The 2026-09-19 user report (Prosim2GSX): override entered, GSX still fueled the OFP value.",
         "assert-present: the same override shows on the Fuel page as 'PLANNED — INIT MOD' and in the preliminary loadsheet as a 'block fuel N kg from the INIT override (+D kg vs the OFP)' loadsheet decision.",
@@ -696,7 +821,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "Trigger = gsx.refuelCall = onFuelConfirmed and the departure sequence starts without a prior fuel confirmation. Behaviour = a 'hold Refueling' gsx-decision whose reason contains 'waiting for the crew to confirm the block fuel', WHILE Catering (and any other AfterCalled step) is still triggered ('trigger Catering' — 'next in departure order') and Boarding (AfterAllCompleted) holds on 'waiting for all earlier services to complete'.",
         "assert-present: on confirmation (INIT CONFIRM FUEL / Flight Status Confirm fuel / 'fuel confirmed' / gsx.confirmFuel / gsx.requestRefuel) a 'fuel confirmed' decision with the figure and source ('INIT override' / 'OFP block fuel' / 'EFB planned fuel'), followed within one pump by 'trigger Refueling' or the command path's 'GSX service \"Refueling\": Requested'.",
@@ -711,7 +839,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "Trigger = Refueling completed this cycle ('GSX service Refueling: Completed'), then the pilot raises FUEL RAMP on the INIT page above the FOB and presses CONFIRM FUEL / says 'fuel confirmed' / 'request refueling'. Behaviour = a 'refuel top-up' decision ('FOB X kg is below the T kg figure (INIT override) after a completed refuel — Refueling re-called'), a 'GSX service Refueling: cycle re-armed for a second run' log line, then a SECOND 'GSX service Refueling: Requested/Active/Completed' cycle, a second refuel-sync activation latching T, and a second 'ground.upcall.refuel' with the new figure.",
         "assert-absent: a second preliminary loadsheet generated automatically by the top-up's Active edge (the once-per-cycle prelim guard must hold; a manual generate is fine).",
@@ -725,7 +856,9 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "Trigger = the pilot presses the Stream Deck Voice Pause key (or the web 'Pause listening' button): a 'speech.toggleListening' / 'speech.pauseListening' command line, or the RecognitionController Info line 'Voice recognition paused by the pilot'. Behaviour = within the same second a 'Recognition stopped (<engine>)' transition (continuous mode, window open) and NO 'Recognition listening' until the matching 'Voice recognition resumed by the pilot' line.",
         "assert-present: after 'resumed by the pilot' in continuous mode with a window open, 'Recognition listening (<engine>)' follows without any PTT edge or window churn in between.",
@@ -739,7 +872,9 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "While the flight is live, 'flight-sample' events appear at roughly the configured interval (default 1 s) whenever the sampled state changes, and at least every keep-alive (default 10 s) while it does not; none appear while the session is not live (before MSFS is in a flight, or on the menu).",
         "Each payload carries the short-key field set (ph, og, ias, gs, alt, ra, agl, vs, pwr, eng, engRaw, st, pb, pbRaw, brk, gear, apu, bcn, thr, n1, n1avg, flap, fcu, fms, v1, vr, v2) and 'ph' equals the phase most recently committed by 'phase-changed'.",
@@ -752,7 +887,9 @@
       "issue": 119,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "No 'ASR heard' Debug line where the heard text contains 'flaps <digit>' or 'engine <digit>' and the Decision resolved/confirmed a DIFFERENT number ('Flaps 1' -> 'flaps two' was the 2026-08-29 signature), and none where 'set flaps ...' was rejected (score 0.00).",
         "assert-present when exercised: digit-form utterances ('Flaps 1', 'Starting Engine 1') resolve to the matching word phrase at score 1.00 (exact via SpeakSingleDigits) or snap to it — never to the other engine/flap number."
@@ -764,7 +901,10 @@
       "issue": 120,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "No reject-tagged speech ('Didn't catch that.' / 'Repeat please.' / 'Say again?') whose triggering 'ASR heard' text is on speech.asrHallucinationPhrases (defaults: thank you, thanks, you, bye, okay, checked, ...). The absorb shows as a Debug 'Hallucination absorbed silently (\"...\")' line instead.",
         "watch: count absorbed hallucinations per flight (2026-08-29 baseline: 13 of 25 rejects were hallucinations, incl. 8x 'Thank you.'); a large count is a mic/VAD signal, not a bug.",
@@ -777,7 +917,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "After a 'phase-changed' into Shutdown, Shutdown -> Preflight (rule 'turnaround-arrival-complete') happens ONLY after 'gsx-service' {Deboarding, Completed} (log: 'Arrival complete (deboarded) — the turnaround to Preflight is now armed') plus the hold (default 30 s) parked with the beacon off — never before deboarding completes (2026-08-29 ESSA: the old time-only 'turnaround-parked' fired at +30 s mid-deboarding, prep repositioned the aircraft and services ran).",
         "On that turnaround Preflight: the prep chain goes Idle -> GroundEquipment ('turnaround — on stand already, skipping reposition'), never Reposition; and with gsx.groundPrepActivation = voice there is NO 'departure sequence — auto-started (Preparation phase)' decision — the sequence waits for 'commence ground services'.",
@@ -791,7 +934,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "No pair of 'phase-changed' events X -> InitialClimb and InitialClimb -> X (or Approach -> LandingRollout -> Approach) closer than 1 s apart — a one-sample flicker of the on-ground flag must be absorbed by the agreement filter (default 2 samples).",
         "Log: any 'Ground contact committed ... after N agreeing sample(s)' Debug line precedes the corresponding runway transition when Debug logging is on."
@@ -803,7 +949,9 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "A go-around (sustained VS > 800 fpm from Approach or LandingRollout) records 'phase-changed' Approach|LandingRollout -> InitialClimb with rule 'go-around', followed by 'goaround.detected' (missed-approach re-brief) — not Approach -> Climb.",
         "assert-absent: 'phase-changed' Approach -> Climb."
@@ -815,7 +963,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "When MSFS leaves the flight (menu / world map) after a phase was committed, a 'phase-changed' <phase> -> Unknown with rule 'session-ended' is recorded and the log carries 'MSFS flight session ended'; the next session's first commit starts from Unknown.",
         "assert-absent: a new session's first 'phase-changed' whose previous phase is anything but Unknown."
@@ -827,7 +978,10 @@
       "issue": 0,
       "state": "open",
       "kind": "watch",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "Count 'phase-changed' events with rule 'manual-override' (reason 'manual override (<source>)') and the matching Warning log lines 'Manual phase override by ...'; report each with what the rule table would have said next (the next automatic commit after 'Manual phase override released').",
         "assert-absent: an 'airborne-this-session' latch opening (FOB restore / cabin landing report) on a manual-override commit alone."
@@ -839,7 +993,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "No 'gsx-decision' (component 'loadsheet') with reason 'prelim aborted: ...implausible...' or 'no OFP imported — cannot generate a preliminary loadsheet' that was produced by an AUTOMATIC trigger: after 'refuel skipped for tankering' / a Refueling Active edge / 'STD ... reached', the loadsheet decisions must read 'automatic prelim (<trigger>) waiting for ...' (zero or more) then 'PRELIM EDNO n sent' — never a Failed slot that a manual Resend then fixes.",
         "assert-present when a blocker existed: 'automatic prelim (<trigger>) waiting for an OFP import' or '... waiting for the CG datarefs ...' followed within 20 min by 'automatic prelim (<trigger>) — inputs ready, generating' and 'PRELIM EDNO n sent'.",
@@ -852,7 +1009,9 @@
       "issue": 113,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "While the Kokoro host is up (any successful kokoro synthesis in the session), no 'TTS provider \"kokoro\" failed' Warning — in particular none whose reason reads 'timed out after ... (body — N chars still streaming)' for a long utterance (briefing, checklist line, ATC readback).",
         "assert-present when the host is asleep/unreachable: a single-line 'TTS provider \"kokoro\" failed: Kokoro TTS timed out after 1500 ms (connect — host asleep or unreachable); cooling down 60s' with NO stack trace, then fall-through to the next provider.",
@@ -865,7 +1024,10 @@
       "issue": 76,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "Every 'gsx-decision' '... — the call was dropped' (after the automatic retry) is followed within 1 s by a 'gsx-call-dropped' event {service, openMenu, consecutive} AND an 'fo.dropped-call-advisory' event with the spoken text ('Captain, ground did not pick up the <service> call ...'); the Flight Status GSX card shows 'Dropped Call: <service> at HH:mm:ss' until a later call confirms (web UI).",
         "assert-absent: a dropped call with no advisory (the 2026-08-29 15:31:33 Deboarding signature).",
@@ -878,7 +1040,9 @@
       "issue": 118,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'skip Refueling' gsx-decision containing '(tankering)' before a 'flight plan detection' decision (or SimBrief import log line) shows a plan exists — the 2026-08-30 signature was two skips against phantom figures (FOB 9576 / planned 2300) 2 min before the OFP arrived.",
         "No '(tankering)' skip decision quoting a planned figure that differs from the OFP block that lands within the next 2 minutes (the 2026-09-05 second bite: skip on efb.plannedfuel 2300 two seconds before the OFP's 7500 arrived) — with no OFP yet, the decision must wait out the 90 s settle window.",
@@ -892,7 +1056,9 @@
       "issue": 121,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "When a 'gsx-question' {action: 'position-select menu'} fires at the ARRIVAL airport, an 'fo.parking-conflict-advisory' follows once (and the Flight Status row shows the conflict) — the 2026-08-30 EGLL menu at 01:31Z produced neither.",
         "assert-absent: repeated advisories for one standing conflict (the publish is once-per-conflict; the advisory speaks each timestamp once)."
@@ -904,7 +1070,9 @@
       "issue": 110,
       "state": "open",
       "kind": "watch",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "Collect every 'Flight Status display: pill ...' line (component FlightStatusChangeLog). Report each interval where the pill and the phase text disagree, with duration and the trigger that opened and closed it. Since 2026-09-13 the only permitted disagreements are the strip's coarser buckets (TAXI OUT while text TAKEOFF ROLL; TAXI IN while text LANDING ROLLOUT; FLIGHT for every airborne phase; PREFLIGHT while text COLD AND DARK/UNKNOWN). Since 2026-09-20 the DEPARTURE pill is legitimate ONLY while the phase text is DEPARTURE (it is a real engine phase again) — a DEPARTURE pill next to any other text, or any disagreement lasting longer than the underlying phase, is a regression.",
         "assert-present: at least one such line per session once any phase commit or departure-sequence start occurred — total silence means the change log is not wired."
@@ -916,7 +1084,10 @@
       "issue": 110,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "assert-present when a 'gsx-service' Boarding/Active event occurs while the phase is Preflight: a 'phase-changed' Preflight->Departure with rule 'boarding' within 3 s of it (1 s default settle + tick). The log carries 'Boarding started — Preflight → Departure is now armed' at the signal.",
         "assert-absent: any 'phase-changed' Departure->Preflight. Departure leaves only to PushbackAndStart (push-evidence / engine-start), TaxiOut (taxi-out), TakeoffRoll or ColdAndDark (power-off). A Departure->Preflight edge is the hold rule failing.",
@@ -932,7 +1103,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["log", "session"],
+      "sources": [
+        "log",
+        "session"
+      ],
       "checks": [
         "No new ProsimCompanion.exe.*.dmp in the sim PC's %LOCALAPPDATA%\\CrashDumps during or after the flight, and the CMTrace log ends with the app's own shutdown lines (or is still being written) rather than stopping mid-line.",
         "No 'Joystick poll pass took ... ms' warning while devices are stable. A single warning around a USB re-plug or the sim closing is acceptable; repeated warnings (one a minute for minutes) mean Windows is re-enumerating controllers constantly and the 2026-09-20 shape is back.",
@@ -946,7 +1120,9 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "Count 'subsystem-status' events per session: there must be at most a handful per subsystem transition (start-up, a fallback, a recovery). More 'subsystem-status' events than genuine state changes — in particular one per 'speech.spoken' — is the 2026-09-20 regression (ConnectionStatusStore.Set raising on unchanged values).",
         "Consecutive 'subsystem-status' payloads must differ in at least one key."
@@ -958,7 +1134,9 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "assert-present when 'Falling back to offline recognition: LAN ASR not ready within 120 s' occurs: a later 'LAN ASR recovered — swapping back to whisper' line once the box answers (the controller re-probes /health every 30 s for the rest of the session), followed by 'Recognition \"listening\" (\"whisper\")'. Fallback without recovery while the box is known up = regression.",
         "assert-absent: any session that ends on the offline engine while the LAN box answered /health during it (compare the last 'Recognition ... (\"systemSpeech\")' against the box's availability if known).",
@@ -972,7 +1150,9 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["log"],
+      "sources": [
+        "log"
+      ],
       "checks": [
         "No 'System.Speech grammar update failed' line (now Warning) followed by more than ~5 s without a 'Recognition \"listening\" (\"systemSpeech\")' line while a listening window is open — the flag now follows engine reality, so the controller must restart the engine on the next Evaluate or enter the 2/5/10/30 s retry ladder.",
         "watch: count 'System.Speech cancel did not settle within' debug lines — a cancel that never raises RecognizeCompleted is a different engine fault worth a look.",
@@ -985,7 +1165,9 @@
       "issue": 123,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'abnormal.started' whose matching 'failure.cleared' (same id) arrives within 5 seconds — a dialogue that starts and dies inside the transit/blip window is the 2026-09-05 signature (fctl-altn-law twice in preflight, lg-gear-not-downlocked during normal gear extension).",
         "No 'speech.dropped' with tag 'abnormal' and reason 'caller cancelled' within seconds of a failure.cleared — the mic-borrowed-then-cut pattern is the audible half of the same transient.",
@@ -999,7 +1181,10 @@
       "issue": 124,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "At a session start with a saved gsx.fuelFobSaved value for the active aircraft and NO plan imported: a 'fob restore' decision '<current> kg -> <saved> kg (saved landing fuel applied at session start, issue #124)' while phase is ColdAndDark/Preflight and the flight-live gate is up — the pre-fix signature was the blanket refusal 'aircraft has not been airborne this session'.",
         "assert-absent (the #59 clobber must stay dead): no startup restore after a plan import, none while the flight is not live, none applying the fuelResetDefaultKg default (startup applies SAVED values only), and none in a phase other than ColdAndDark/Preflight.",
@@ -1013,7 +1198,10 @@
       "issue": 125,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "On the taxi checklist's 'Flap Setting' item, an answer naming a config ('config 1 plus F', word or digit form) completes the item with a 'Flap config read-back: said N, lever N, perf N -> pass' log line — no reject speech for the config phrasing.",
         "assert-present when the spoken config disagrees with the lever or the PERF TO entry: the read-back logs 'fail' and the FO asks 'are you sure' instead of confirming.",
@@ -1026,7 +1214,10 @@
       "issue": 126,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "Pilot says 'takeoff' during TaxiOut/TakeoffRoll: a 'voicecommand.chrono' {action: start} event, the FO speaks 'Takeoff.' (tag fo.chrono), and NO reject speech for the utterance (the 2026-09-05 09:53:15 'Repeat please.' signature is dead).",
         "At the LandingRollout commit of a flight where the start press happened: a 'voicecommand.chrono' {action: stop} event with NO speech attached.",
@@ -1039,7 +1230,10 @@
       "issue": 127,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "An FMA read during TakeoffRoll/InitialClimb ('man flex/toga, SRS, runway, nav blue' in any ASR junction) or a capture call during Descent/Approach ('localizer/glideslope star', 'lockstar') produces a 'pilot.announcement' event and a spoken 'Checked.' (tag fo.announce) — never a reject.",
         "'manual flight' -> 'pilot.announcement' {kind: ManualFlight} with the echoed 'Manual flight.'; a bare 'continue' on Approach with no checklist running -> {kind: Continue} and 'Continue.' — while a checklist is held, 'continue' still resumes it (the router's resume path is unchanged).",
@@ -1053,7 +1247,9 @@
       "issue": 128,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session"],
+      "sources": [
+        "session"
+      ],
       "checks": [
         "No 'speech.spoken' with tag 'clarifier' whose matching 'speech.enqueued' is more than ~12 s older (the 2026-09-06 signature: enqueued 09:09:49, spoken 09:10:39 behind the arrival brief). A stale clarifier now appears as 'speech.dropped' (expired) instead.",
         "Prompt clarifiers (queue empty) still speak normally within seconds."
@@ -1065,7 +1261,10 @@
       "issue": 129,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "A checklist confirmCallout (or voice-command say) carrying {fuelQuantity} is spoken as a figure with its unit ('Fuel quantity, 8540 kilograms' / '... pounds' when ProSim's weight unit is LBS) — never the literal brace token.",
         "assert-absent: 'unavailable' in that callout once ProSim is connected — the total-fuel and weight-unit datarefs are primed at startup, so the first read must not miss.",
@@ -1078,7 +1277,10 @@
       "issue": 131,
       "state": "open",
       "kind": "assert-present",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "For each ground engine start: a 'callout.fired' {id: engineStart.starting, text: 'Engine N, starting.'} event within ~1 s of the N2 rise (CMTrace 'Engine start call: engineStart.starting'), then 'callout.fired' {id: engineStart.avail, text: 'Engine N, avail.'} when that engine reaches idle — exactly one of each per engine per start.",
         "On the avail that leaves both engines at idle: exactly one 'callout.fired' {id: engineStart.stabilized, text: 'Both engines stabilized.'} per start episode (a cross-bleed second start after pushback still yields one, not two).",
@@ -1092,7 +1294,10 @@
       "issue": 132,
       "state": "open",
       "kind": "assert-absent",
-      "sources": ["session", "log"],
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "After any 'subsystem-status' {ProSim: Disconnected} ('Lost connection to ProSim; reconnecting in N ms'), the ProSim status must end in Connected within N + 5 s of the CMTrace 'Connected to ProSim' line and stay there — never a trailing {ProSim: Connecting} with datarefs still flowing (the 2026-09-13 signature: Connected 00:22:03.465, Connecting 00:22:05.200, then nothing for 3.5 h).",
         "assert-absent: a {ProSim: Connecting} status with NO 'Connecting to ProSim'/'Lost connection' CMTrace line in the preceding 3 s — that is the stale reconnect timer firing after the SDK already reconnected.",
@@ -1116,9 +1321,28 @@
         "2026-08-29 phase engine: Flight Status shows the commit reason under the phase label and the 'Phase engine' row (automatic/frozen pill, phase select, freeze, Force, Resume auto); the Flight Phase settings tab edits every flightState threshold and lists the rule table (web UI).",
         "#68/#69 final TTS pronunciation quality (ears, beyond the text-level probes).",
         "#97 dead-circuit auto-reload: restart the app with the EFB open — the page must reload itself (~10 s).",
-        "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67)."
+        "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67).",
+        "2026-09-22 Flight Status hero widgets: two weather cards (sky graphic + condition word matching the METAR, wind arrow, ATIS chip, 'METAR hh:mmZ' stamp; LOCAL WEATHER flips to the destination from Descent) and the gate strip (grey → gold → cyan glow with the pax bar → amber halo → green tick; dims after taxi-out) render on the route card; Settings → Display & Flight Data → Flight Status card edits the three thresholds (web UI)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
+    },
+    {
+      "id": "gate-monitor-states",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "When GSX boarding ran (a 'gsx-service' Boarding Active edge or a 'Boarding: Active' handler event), the session holds 'gate-status-changed' events reaching state Boarding and later ClosedAfterBoarding, in that order, each with paxBoarded/paxTarget populated.",
+        "No 'gate-status-changed' event moves BACKWARDS (Boarding → Open, ClosedAfterBoarding → Boarding …) without an intervening flight-cycle reset (the GSX 'flight-cycle-reset' decision / a new Preflight). A backwards edge is the forward-only latch failing.",
+        "If the leg reached ≥ flightStatus.gateFinalCallPaxPercent boarded OR came within gateFinalCallMinutesBeforeStd of STD while still boarding, a FinalCall event exists between Boarding and ClosedAfterBoarding; if boarding completed before either threshold, FinalCall is legitimately absent (report as skipped, not failed).",
+        "Log lines 'Gate monitor: <State> (was <Previous>)' match the session events one-to-one.",
+        "'hero-weather-refreshed' events appear after every OFP fetch and at the configured cadence; a local/second status other than Found is a weather-chain outcome to report with its icao, not a widget failure."
+      ],
+      "notes": "Feature shipped 2026-09-22 (owner sign-off on the canvas draft 'Weather Card Title Line' v3). Issue 0 until the tracking issue is filed. Thresholds: flightStatus.gateFinalCallPaxPercent (90) / gateFinalCallMinutesBeforeStd (10)."
     }
   ]
 }

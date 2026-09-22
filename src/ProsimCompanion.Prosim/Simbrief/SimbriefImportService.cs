@@ -330,9 +330,12 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             Route = ReadString(ofp["general"]?["route"]) ?? "",
             OriginIcao = ReadString(ofp["origin"]?["icao_code"]) ?? "",
             OriginIata = ReadString(ofp["origin"]?["iata_code"]) ?? "",
+            OriginName = ReadString(ofp["origin"]?["name"]) ?? "",
             DestinationIcao = ReadString(ofp["destination"]?["icao_code"]) ?? "",
             DestinationIata = ReadString(ofp["destination"]?["iata_code"]) ?? "",
+            DestinationName = ReadString(ofp["destination"]?["name"]) ?? "",
             AlternateIcao = ReadAlternateIcao(ofp["alternate"]),
+            AlternateName = ReadAlternateField(ofp["alternate"], "name"),
             AircraftReg = ReadString(ofp["aircraft"]?["reg"]) ?? "",
             AircraftIcaoType = ReadString(ofp["aircraft"]?["icaocode"]) ?? "",
             PaxCount = (int)ReadDouble(ofp["weights"]?["pax_count"]),
@@ -359,10 +362,13 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
 
     /// <summary>The SimBrief alternate node is polymorphic: object, array of objects, or empty
     /// string. First alternate wins; anything unparseable is "no alternate".</summary>
-    private static string ReadAlternateIcao(JsonNode? alternate) => alternate switch
+    private static string ReadAlternateIcao(JsonNode? alternate) => ReadAlternateField(alternate, "icao_code");
+
+    /// <summary>One string field of the first alternate (same polymorphic node rules).</summary>
+    private static string ReadAlternateField(JsonNode? alternate, string field) => alternate switch
     {
-        JsonObject obj => ReadString(obj["icao_code"]) ?? "",
-        JsonArray { Count: > 0 } arr when arr[0] is JsonObject first => ReadString(first["icao_code"]) ?? "",
+        JsonObject obj => ReadString(obj[field]) ?? "",
+        JsonArray { Count: > 0 } arr when arr[0] is JsonObject first => ReadString(first[field]) ?? "",
         _ => "",
     };
 

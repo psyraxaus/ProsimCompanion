@@ -4,6 +4,7 @@
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
+@inject IOptionsMonitor<FlightStatusOptions> FlightStatusMonitor
 
 <PageTitle>Display &amp; Flight Data — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Display and Flight Data</h1>
@@ -53,6 +54,36 @@
                @bind-Value="_flightData.Value.AutoSyncFmsOnFinal" />
 </Section>
 
+<Section Title="Flight Status card" Hint="Weather cards and the gate monitor on the route card">
+    <NumberField Label="Final call at passengers on board" Suffix="%" Min="1" Max="100"
+                 Hint="The gate monitor shows FINAL CALL once this share of the planned passengers has boarded; 100 = off"
+                 @bind-Value="_flightStatus.Value.GateFinalCallPaxPercent"
+                 Default="_flightStatus.Defaults.GateFinalCallPaxPercent" />
+    <NumberField Label="Final call before departure time" Suffix="min" Min="0"
+                 Hint="Also FINAL CALL this many minutes before STD (OFP or the Loadsheet page entry); 0 = off"
+                 @bind-Value="_flightStatus.Value.GateFinalCallMinutesBeforeStd"
+                 Default="_flightStatus.Defaults.GateFinalCallMinutesBeforeStd" />
+    <NumberField Label="Weather card refresh" Suffix="min" Min="1" Max="120"
+                 Hint="How often the local / destination weather cards re-read the METAR; they also refresh on every OFP fetch"
+                 @bind-Value="_flightStatus.Value.WeatherRefreshMinutes"
+                 Default="_flightStatus.Defaults.WeatherRefreshMinutes" />
+</Section>
+
+<Section Title="Flight Status card" Hint="Weather cards and the gate monitor on the route card">
+    <NumberField Label="Final call at passengers on board" Suffix="%" Min="1" Max="100"
+                 Hint="The gate monitor shows FINAL CALL once this share of the planned passengers has boarded; 100 = off"
+                 @bind-Value="_flightStatus.Value.GateFinalCallPaxPercent"
+                 Default="_flightStatus.Defaults.GateFinalCallPaxPercent" />
+    <NumberField Label="Final call before departure time" Suffix="min" Min="0"
+                 Hint="Also FINAL CALL this many minutes before STD (OFP, or the Loadsheet page entry); 0 = off"
+                 @bind-Value="_flightStatus.Value.GateFinalCallMinutesBeforeStd"
+                 Default="_flightStatus.Defaults.GateFinalCallMinutesBeforeStd" />
+    <NumberField Label="Weather card refresh" Suffix="min" Min="1" Max="120"
+                 Hint="How often the local / destination weather cards re-read the METAR; they also refresh on every OFP fetch"
+                 @bind-Value="_flightStatus.Value.WeatherRefreshMinutes"
+                 Default="_flightStatus.Defaults.WeatherRefreshMinutes" />
+</Section>
+
 <Section Title="Checklists">
     <BoolField Label="Allow manual ticks"
                Hint="Hand-tick auto-detected items on the Checklists page"
@@ -76,11 +107,13 @@
     private OptionsDraft<WebUiOptions> _webUi = default!;
     private OptionsDraft<FlightDataOptions> _flightData = default!;
     private OptionsDraft<ChecklistOptions> _checklists = default!;
+    private OptionsDraft<FlightStatusOptions> _flightStatus = default!;
 
     protected override void OnInitialized()
     {
         _webUi = Draft(WebUiMonitor);
         _flightData = Draft(FlightDataMonitor);
         _checklists = Draft(ChecklistMonitor);
+        _flightStatus = Draft(FlightStatusMonitor);
     }
 }

@@ -34,12 +34,23 @@ public sealed record OfpData
 
     public string OriginIcao { get; init; } = "";
     public string OriginIata { get; init; } = "";
+
+    /// <summary>SimBrief <c>origin.name</c> as shipped (capitals, e.g. "LONDON HEATHROW");
+    /// the Flight Status weather cards title-case it. Empty when absent.</summary>
+    public string OriginName { get; init; } = "";
+
     public string DestinationIcao { get; init; } = "";
     public string DestinationIata { get; init; } = "";
+
+    /// <summary>SimBrief <c>destination.name</c> as shipped; empty when absent.</summary>
+    public string DestinationName { get; init; } = "";
 
     /// <summary>Empty when the OFP has no alternate. The SimBrief <c>alternate</c> node is
     /// polymorphic (object / array / empty string); the first alternate wins.</summary>
     public string AlternateIcao { get; init; } = "";
+
+    /// <summary>The first alternate's SimBrief name; empty without an alternate.</summary>
+    public string AlternateName { get; init; } = "";
 
     public string AircraftReg { get; init; } = "";
     public string AircraftIcaoType { get; init; } = "";

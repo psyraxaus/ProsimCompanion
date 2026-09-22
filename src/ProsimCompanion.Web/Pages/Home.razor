@@ -1,9 +1,11 @@
 @page "/"
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Boarding
 @using ProsimCompanion.Core.Configuration
 @using ProsimCompanion.Core.Flight
 @using ProsimCompanion.Core.Profiles
+@using ProsimCompanion.Core.Weather
 @inherits StoreObserverComponent
 @inject ConnectionStatusStore Status
 @inject SimSessionStore Session
@@ -18,6 +20,8 @@
 @inject IGsxServiceControl ServiceControl
 @inject FuelConfirmationStore FuelConfirmation
 @inject OfpStore Ofp
+@inject HeroWeatherStore HeroWeather
+@inject GateStatusStore GateStatus
 @inject IProsimDataRefs DataRefs
 @inject DisplayUnitService Units
 
@@ -82,6 +86,17 @@
                        approach?" (review 2026-08-29). *@
                     <span class="fs-reason" title="Reason the current flight phase was committed">@PhaseReason</span>
                 </div>
+            </div>
+
+            @* Hero widgets (owner sign-off 2026-09-22, canvas "Weather Card Title Line" v3):
+               the local / destination weather cards, then the gate monitor strip pinned
+               directly above the telemetry. Both keep their shape in every state. *@
+            <div class="fs-widgets">
+                <div class="fs-wx-row">
+                    @WeatherCardView(_weather.Local)
+                    @WeatherCardView(_weather.Second)
+                </div>
+                @GateStrip()
             </div>
 
             <div class="fs-metrics">
@@ -297,6 +312,8 @@
         new(ProsimDataRefNames.HeadingMagnetic, DataRefTier.Normal, 0.0);
 
     private OfpData? _ofp;
+    private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
+    private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
     private IDataRefSubscription<double>? _headingSub;
     private IDataRefSubscription<double>? _fuelSub;
     private System.Threading.Timer? _metricsTimer;
@@ -344,6 +361,179 @@
     }
 
     private void ForcePhase() => PhaseControl.ForcePhase(_forcePhase, _freeze, "web UI");
+
+    // ── Hero widgets (owner sign-off 2026-09-22) ──────────────────────────────────────
+    // Weather cards: the label on its own line, the airport name under it, the ATIS chip
+    // top-right, then the sky graphic + condition word beside two mono data lines. The raw
+    // METAR rides on the hover title. Values are formatted here only — classification and
+    // the observation stamp come pre-computed from the store.
+
+    private static string CardTitle(WeatherCardRole role) => role switch
+    {
+        WeatherCardRole.Local => "Local weather",
+        WeatherCardRole.Alternate => "Weather at alternate",
+        _ => "Weather at destination",
+    };
+
+    private static string SkyIcon(SkyCondition sky) => sky switch
+    {
+        SkyCondition.Clear => "sun",
+        SkyCondition.FewClouds => "cloud-sun",
+        SkyCondition.Overcast => "cloud",
+        SkyCondition.Rain => "cloud-rain",
+        SkyCondition.Drizzle => "cloud-drizzle",
+        SkyCondition.Snow => "cloud-snow",
+        SkyCondition.Fog => "cloud-fog",
+        SkyCondition.Thunderstorm => "cloud-lightning",
+        SkyCondition.Windy => "wind",
+        _ => "help-circle",
+    };
+
+    private static string WindText(WxFacts facts) => facts switch
+    {
+        { WindSpeedKt: null } => "WIND —",
+        { WindSpeedKt: 0 } => "CALM",
+        { WindDirDeg: null } => $"VRB/{facts.WindSpeedKt:00} KT",
+        _ => $"{facts.WindDirDeg:000}°/{facts.WindSpeedKt:00} KT",
+    };
+
+    private static string VisibilityText(WxFacts facts) => facts.VisibilityMeters switch
+    {
+        null => "VIS —",
+        >= 10000 => "10 KM+",
+        >= 1000 => $"{facts.VisibilityMeters.Value / 1000.0:0.#} KM",
+        _ => $"{facts.VisibilityMeters} M",
+    };
+
+    private static string CeilingText(WxFacts facts)
+        => facts.CeilingFt is { } ceiling ? $"CIG {ceiling:N0} FT" : "NO CIG";
+
+    private static string TemperatureText(WxFacts facts)
+        => facts.TemperatureC is { } temp ? $"{temp:+0;-0;0}°C" : "TEMP —";
+
+    private static string QnhText(WxFacts facts)
+        => facts.QnhHpa is { } qnh ? $"Q{qnh:0}" : "QNH —";
+
+    private RenderFragment WeatherCardView(WeatherCard card) => @<div class="inset fs-wx">
+        <div class="fs-wx-head">
+            <div class="fs-wx-title">
+                <span class="label-caps">@CardTitle(card.Role)</span>
+                <span class="fs-wx-name" title="@card.Icao">@(card.AirportName.Length > 0 ? card.AirportName : card.Icao.Length > 0 ? card.Icao : "No flight plan")</span>
+            </div>
+            @if (card.Facts.AtisLetter is { Length: > 0 } atis)
+            {
+                <span class="fs-chip fs-wx-atis">ATIS @atis</span>
+            }
+        </div>
+        <div class="fs-wx-body">
+            <div class="fs-wx-sky sky-@(card.Sky.ToString().ToLowerInvariant()) fs-wx-raw" title="@(card.Facts.RawMetar ?? card.Failure)">
+                <AppIcon Name="@SkyIcon(card.Sky)" Size="32" />
+                <span class="label-caps">@card.SkyLabel</span>
+            </div>
+            <div class="fs-wx-data">
+                @if (card.Status == WxProbeStatus.Found)
+                {
+                    <div class="fs-wx-line">
+                        <span class="fs-wx-wind">
+                            @if (card.Facts.WindDirDeg is { } dir && card.Facts.WindSpeedKt is > 0)
+                            {
+                                <span style="display:inline-flex;transform:rotate(@(dir)deg)" aria-hidden="true"><AppIcon Name="arrow-down" Size="10" /></span>
+                            }
+                            @WindText(card.Facts)
+                            @if (card.Facts.WindGustKt is { } gust)
+                            {
+                                <span class="fs-wx-gust">G@(gust)</span>
+                            }
+                        </span>
+                        <span>@VisibilityText(card.Facts)</span>
+                        <span>@CeilingText(card.Facts)</span>
+                    </div>
+                    <div class="fs-wx-line split">
+                        <span class="fs-wx-line"><span>@TemperatureText(card.Facts)</span><span>@QnhText(card.Facts)</span></span>
+                        <span class="fs-wx-stamp">METAR @(card.ObservedAt ?? "—")</span>
+                    </div>
+                }
+                else
+                {
+                    <span class="fs-wx-missing">@(card.Icao.Length == 0 ? "Fetch an OFP on the INIT page" : card.Failure ?? "No METAR available")</span>
+                }
+            </div>
+        </div>
+    </div>;
+
+    // Gate monitor strip: five forward-only states (owner spec 2026-09-22), same size in
+    // every state; dims from taxi-out onward instead of disappearing.
+    private string GateClass => _gate.State switch
+    {
+        GateState.Open => "open",
+        GateState.Boarding => "boarding",
+        GateState.FinalCall => "final-call",
+        GateState.ClosedAfterBoarding => "closed-after",
+        _ => "closed",
+    };
+
+    private string GateWord => _gate.State switch
+    {
+        GateState.Open => "GATE OPEN",
+        GateState.Boarding => "BOARDING",
+        GateState.FinalCall => "FINAL CALL",
+        _ => "GATE CLOSED",
+    };
+
+    private string GateIcon => _gate.State switch
+    {
+        GateState.Open => "door-open",
+        GateState.FinalCall => "bell-ring",
+        GateState.ClosedAfterBoarding => "circle-check",
+        _ => "door-closed",
+    };
+
+    private string StdText => _gate switch
+    {
+        { StdUtc: null } => "STD —",
+        { Dimmed: true } or { State: GateState.ClosedAfterBoarding } => $"STD {_gate.StdUtc:HH:mm}Z",
+        { MinutesToStd: { } m } when m >= 0 => $"STD −{m} MIN",
+        { MinutesToStd: { } m } => $"STD +{-m} MIN",
+        _ => "STD —",
+    };
+
+    private RenderFragment GateStrip() => @<div class="inset fs-gate @GateClass @(_gate.Dimmed ? "dimmed" : null)"
+                                              title="@($"{_gate.Detail}{(_gate.ChangedAtUtc is { } at ? $" · since {at:HH:mm}Z" : "")}")">
+        <div class="fs-gate-head">
+            <span class="fs-gate-left">
+                <span class="label-caps fs-gate-id">Gate <span class="figure">@(_gate.GateId ?? "—")</span></span>
+                <span class="fs-gate-detail">@_gate.Detail</span>
+            </span>
+            <span class="fs-gate-state @GateClass">
+                @if (_gate.State == GateState.Boarding)
+                {
+                    <span class="fs-chip-dot live" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <AppIcon Name="@GateIcon" Size="22" />
+                }
+                <span class="figure">@GateWord</span>
+            </span>
+            <span class="fs-gate-right">
+                <span class="figure fs-gate-pax">
+                    @if (_gate.PaxTarget is { } target)
+                    {
+                        <span class="@(_gate.State == GateState.Boarding ? "glow" : null)">@(_gate.PaxBoarded ?? 0)</span><span class="muted"> / @target PAX</span>
+                    }
+                    else
+                    {
+                        <span class="muted">— PAX</span>
+                    }
+                </span>
+                <span class="figure fs-gate-std @(_gate.State == GateState.FinalCall ? "soon" : null)">@StdText</span>
+            </span>
+        </div>
+        <div class="fs-gate-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="@((int)Math.Round(_gate.Progress * 100))">
+            <div class="fs-gate-fill" style="width:@((_gate.Progress * 100).ToString("F0", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+        </div>
+    </div>;
 
     private void ResumeAutomatic() => PhaseControl.ResumeAutomatic("web UI");
 
@@ -632,6 +822,8 @@
         WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
         Watch(FuelConfirmation, _ => { });
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
+        Watch(HeroWeather, snapshot => _weather = snapshot);
+        Watch(GateStatus, snapshot => _gate = snapshot);
 
         _headingSub = DataRefs.Subscribe(HeadingMagneticRef);
         _fuelSub = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal);

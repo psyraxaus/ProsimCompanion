@@ -350,21 +350,11 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
         GrossCgMac: _cg.Value,
         ZfwCgMac: _zfwcg.Value);
 
-    /// <summary>Manual override wins over the OFP. A manual time-of-day is anchored to today
-    /// (UTC); one that already passed by more than 12 h is read as tomorrow's departure so an
-    /// evening entry for an after-midnight flight doesn't fire instantly.</summary>
+    /// <summary>The effective STD — one shared rule (<see cref="ScheduledDeparture"/>) with
+    /// the gate monitor, anchored to the SIMULATED day (issue #95).</summary>
     private DateTimeOffset? EffectiveStdUtc()
-    {
-        if (_store.Snapshot().StdOverrideUtc is { } manual)
-        {
-            // Anchored to the SIMULATED day (issue #95): a pilot flying an overnight sim at a
-            // real-world afternoon enters the sim's departure time, not the wall clock's.
-            var now = _simClock.UtcNowOrReal;
-            var today = new DateTimeOffset(now.UtcDateTime.Date.Add(manual.ToTimeSpan()), TimeSpan.Zero);
-            return now - today > TimeSpan.FromHours(12) ? today.AddDays(1) : today;
-        }
-        return _ofpStore.Current?.ScheduledOutUtc;
-    }
+        => ScheduledDeparture.Effective(
+            _store.Snapshot().StdOverrideUtc, _ofpStore.Current?.ScheduledOutUtc, _simClock.UtcNowOrReal);
 
     private void OnBoardingCompleted()
     {
