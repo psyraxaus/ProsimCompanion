@@ -77,6 +77,24 @@ public sealed class ThemeLogoStore
     /// <summary>Full path of the theme's logo, or null when none is uploaded.</summary>
     public string? FindFile(string themeName) => FindFileBySlug(Slug(themeName));
 
+    /// <summary>Every slug that has a logo file, sorted — only files with an allowed
+    /// extension count, so a stray file in the folder is invisible.</summary>
+    public IReadOnlyList<string> ListSlugs()
+    {
+        if (!System.IO.Directory.Exists(Directory))
+        {
+            return [];
+        }
+
+        return [.. System.IO.Directory.EnumerateFiles(Directory)
+            .Where(path => AllowedExtensions.Contains(Path.GetExtension(path)))
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(name => name is not null && name == Slug(name))
+            .Select(name => name!)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal)];
+    }
+
     /// <summary>Full path of the logo stored under <paramref name="slug"/>, or null. Only
     /// files with an allowed extension count, so a stray file in the folder is invisible.</summary>
     public string? FindFileBySlug(string slug)

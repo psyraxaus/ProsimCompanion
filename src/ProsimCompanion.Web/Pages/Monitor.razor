@@ -1,0 +1,472 @@
+@page "/monitor"
+@layout MonitorLayout
+@using Microsoft.JSInterop
+@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Boarding
+@using ProsimCompanion.Core.Flight
+@using ProsimCompanion.Core.Gate
+@using ProsimCompanion.Core.Theming
+@using ProsimCompanion.Core.Weather
+@inherits StoreObserverComponent
+@inject IFlightPhaseSource FlightState
+@inject IGsxDepartureControl DepartureControl
+@inject GsxDiagnosticsStore Diagnostics
+@inject GateStatusStore GateStatus
+@inject HeroWeatherStore HeroWeather
+@inject FlightTimesStore FlightTimes
+@inject OfpStore Ofp
+@inject ConnectionStatusStore Status
+@inject ArrivalGateCoordinator ArrivalGate
+@inject AirlineLogoStore Logos
+@inject IProsimDataRefs DataRefs
+@inject ISimClock Clock
+@inject DisplayUnitService Units
+@inject IJSRuntime JS
+
+<PageTitle>@FlightMonitorPresentation.ModeLabel(Mode) — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Flight Monitor</h1>
+
+@* The pop-out Flight Monitor board (owner sign-off 2026-09-23, canvas "Route Over Word"
+   v5): a fixed 1920×1080 stage the browser scales as one piece to the window. GATE MONITOR
+   at the stand, FLIGHT MONITOR from pushback to landing, ARRIVAL MONITOR after. *@
+<div id="mon-stage" class="mon-stage">
+
+    <div class="mon-header">
+        <div class="mon-header-left">
+            @if (LogoSlug is { } slug)
+            {
+                <img class="mon-logo" src="api/airline-logo/@(slug)?v=@Logos.Files.Version" alt="@AirlineCode logo" />
+            }
+            else
+            {
+                <div class="mon-logo-ph" title="Upload this airline's logo on Settings → Appearance">@(AirlineCode.Length > 0 ? AirlineCode : "AIRLINE LOGO")</div>
+            }
+            <span class="label-caps mon-aircraft">@AircraftLine</span>
+        </div>
+        <div class="mon-header-right">
+            <span class="label-caps mon-mode">@FlightMonitorPresentation.ModeLabel(Mode)</span>
+            <span class="figure mon-clock">@FlightMonitorPresentation.Clock(Now)</span>
+        </div>
+    </div>
+
+    <div class="mon-centre">
+        <span class="mon-flight-no">@FlightNumber</span>
+        <div class="mon-route">
+            <span class="mon-route-line">@(Origin)<span class="mon-route-arrow">→</span>@(Destination)</span>
+            <span class="mon-route-names">@RouteNames</span>
+        </div>
+
+        <span class="label-caps mon-gate-label">@GateLabel <span class="figure mon-gate-id">@GateValue</span></span>
+
+        <div class="mon-state @StateTone">
+            @if (StateTone is "boarding")
+            {
+                <span class="mon-state-dot" aria-hidden="true"></span>
+            }
+            else if (Mode == MonitorMode.Gate)
+            {
+                <AppIcon Name="@GateIcon" Size="64" />
+            }
+            <span class="figure mon-state-word">@StateWord</span>
+        </div>
+
+        <div class="mon-pax">
+            <div class="mon-bar @StateTone"><div class="mon-bar-fill" style="width:@BarPercent%"></div></div>
+            <div class="mon-pax-row">
+                <span class="figure mon-pax-count">@BarPrimary</span>
+                <div class="mon-pax-facts">
+                    <div class="mon-pax-col">
+                        <span class="label-caps">@FactA</span>
+                        <span class="label-caps">@FactB</span>
+                    </div>
+                    <div class="mon-pax-col">
+                        <span class="label-caps @(Mode == MonitorMode.Gate && _gate.State == GateState.FinalCall ? "warn" : null)">@FactC</span>
+                        <span class="label-caps">@FactD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mon-band">
+        @WeatherCardView(_weather.Local)
+
+        <div class="card mon-card mon-middle">
+            @if (Mode == MonitorMode.Flight)
+            {
+                <div class="mon-grid2">
+                    <div class="mon-col">
+                        <span class="label-caps muted">Flight data</span>
+                        @Row("Ground speed", Metric(Data?.GroundSpeedKt, "F0", " KTS"))
+                        @Row("Altitude", Metric(Data?.AltitudeFt, "N0", " FT"))
+                        @Row("Vertical speed", VerticalSpeed)
+                        @Row("Heading", Heading)
+                    </div>
+                    <div class="mon-col">
+                        <span class="label-caps muted">Aircraft</span>
+                        @Lamp("Gear", Data?.GearDown == true ? "DOWN" : "UP", Data?.GearDown == true ? "warn" : "ok")
+                        @Lamp("Flaps", Data is { } d ? d.FlapHandle.ToString() : "—", Data?.FlapHandle > 0 ? "warn" : "neutral")
+                        @Lamp("Seat belts", Data?.SeatbeltSignsMode switch { 1 => "ON", 2 => "AUTO", 0 => "OFF", _ => "—" }, Data?.SeatbeltSignsMode == 1 ? "ok" : "neutral")
+                        @Lamp("Beacon", Data?.BeaconOn == true ? "ON" : "OFF", Data?.BeaconOn == true ? "ok" : "neutral")
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="mon-grid2">
+                    <div class="mon-col">
+                        <span class="label-caps muted">Doors &amp; connections</span>
+                        @Door("1L", _door1L)
+                        @Door("1R", _door1R)
+                        @Door("Cargo fwd", _cargoFwd)
+                        @Door("Cargo aft", _cargoAft)
+                        @Lamp("Jetway / stairs", BridgeConnected ? "CONN" : "—", BridgeConnected ? "ok" : "neutral")
+                        @Lamp("GPU", GpuConnected ? "CONN" : "—", GpuConnected ? "ok" : "neutral")
+                    </div>
+                    <div class="mon-col">
+                        <span class="label-caps muted">Ground services</span>
+                        @if (Mode == MonitorMode.Arrival)
+                        {
+                            @Service("Deboarding", GsxServiceIds.Deboarding)
+                            @Service("Cleaning", GsxServiceIds.Cleaning)
+                            @Service("Catering", GsxServiceIds.Catering)
+                            @Service("Refuel", GsxServiceIds.Refueling)
+                        }
+                        else
+                        {
+                            @Service("Refuel", GsxServiceIds.Refueling)
+                            @Service("Catering", GsxServiceIds.Catering)
+                            @Service("Boarding", GsxServiceIds.Boarding)
+                            @Service("Pushback", GsxServiceIds.Departure)
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @WeatherCardView(_weather.Second)
+    </div>
+
+    <div class="card mon-sequence">
+        @for (var i = 0; i < FlightStatusPresentation.BlockLabels.Length; i++)
+        {
+            var state = i < ActiveBlock ? "done" : i == ActiveBlock ? "active" : "pending";
+            if (i > 0)
+            {
+                <span class="mon-connector" aria-hidden="true"></span>
+            }
+            <span class="mon-step @state">
+                <span class="mon-step-mark" aria-hidden="true"></span>
+                <span class="label-caps">@FlightStatusPresentation.BlockLabels[i]</span>
+            </span>
+        }
+    </div>
+
+    <div class="mon-footer">
+        <span class="mon-footer-dots">
+            <span class="dot @DotClass(Subsystems.Prosim)" title="ProSim"></span>
+            <span class="dot @DotClass(Subsystems.SimConnect)" title="SimConnect"></span>
+            <span class="dot @DotClass(Subsystems.Gsx)" title="GSX"></span>
+        </span>
+        <span class="label-caps muted">ProsimCompanion</span>
+    </div>
+</div>
+
+@code {
+    private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
+    private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
+    private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
+    private FlightTimesSnapshot _times = FlightTimesSnapshot.Empty;
+    private IReadOnlyList<KeyValuePair<string, ConnectionState>> _connections = [];
+    private OfpData? _ofp;
+
+    private static readonly DataRef<double> HeadingMagneticRef =
+        new(ProsimDataRefNames.HeadingMagnetic, DataRefTier.Normal, 0.0);
+
+    private IDataRefSubscription<bool>? _door1L;
+    private IDataRefSubscription<bool>? _door1R;
+    private IDataRefSubscription<bool>? _cargoFwd;
+    private IDataRefSubscription<bool>? _cargoAft;
+    private IDataRefSubscription<bool>? _gpu;
+    private IDataRefSubscription<double>? _fuel;
+    private IDataRefSubscription<double>? _heading;
+    private System.Threading.Timer? _tick;
+    private string _tickKey = "";
+    private bool _stageFitted;
+
+    private DateTimeOffset Now => Clock.UtcNowOrReal;
+
+    private FlightPhase Phase => FlightState.CurrentPhase;
+
+    private MonitorMode Mode => FlightMonitorPresentation.Mode(Phase);
+
+    private FlightDataSnapshot? Data => FlightState.Snapshot().Data is { IsValid: true } data ? data : null;
+
+    private bool ProsimConnected => _connections.Any(p => p.Key == Subsystems.Prosim && p.Value == ConnectionState.Connected);
+
+    // ── header ──────────────────────────────────────────────────────────────────────
+    private string AirlineCode => _ofp?.AirlineIcao ?? "";
+
+    private string? LogoSlug => Logos.FindFile(AirlineCode) is null ? null : AirlineLogoStore.Slug(AirlineCode);
+
+    private string AircraftLine => _ofp is null
+        ? "—"
+        : string.Join(" · ", new[] { _ofp.AircraftIcaoType, _ofp.AircraftReg }.Where(s => s.Length > 0));
+
+    // ── centre column ───────────────────────────────────────────────────────────────
+    private string FlightNumber => _ofp is null ? "No flight plan" : _ofp.Callsign.Length > 0 ? _ofp.Callsign : _ofp.Ident;
+
+    private string Origin => _ofp?.OriginIcao is { Length: > 0 } o ? o : "----";
+
+    private string Destination => _ofp?.DestinationIcao is { Length: > 0 } d ? d : "----";
+
+    private string RouteNames => _ofp is null
+        ? "Fetch an OFP on the INIT page"
+        : $"{AirportNameFormat.TitleCase(_ofp.OriginName)} → {AirportNameFormat.TitleCase(_ofp.DestinationName)}";
+
+    private bool DeboardingActive => ServiceView(GsxServiceIds.Deboarding)?.Stage == GsxServiceStage.Active;
+
+    private bool ArrivalComplete => FlightState.Snapshot().Data?.ArrivalComplete == true
+        || ServiceView(GsxServiceIds.Deboarding)?.Stage == GsxServiceStage.Completed;
+
+    private string StateWord => FlightMonitorPresentation.StateWord(Mode, _gate.State, Phase, DeboardingActive, ArrivalComplete);
+
+    private string StateTone => FlightMonitorPresentation.StateTone(Mode, _gate.State, ArrivalComplete);
+
+    private string GateIcon => _gate.State switch
+    {
+        GateState.Open => "door-open",
+        GateState.FinalCall => "bell-ring",
+        GateState.ClosedAfterBoarding => "circle-check",
+        _ => "door-closed",
+    };
+
+    private string GateLabel => Mode switch
+    {
+        MonitorMode.Flight => "Cruise",
+        MonitorMode.Arrival => "Arrival gate",
+        _ => "Gate",
+    };
+
+    private string GateValue => Mode switch
+    {
+        MonitorMode.Flight => Data is { FmsCruiseAltFt: > 0 } d ? $"FL{(int)Math.Round(d.FmsCruiseAltFt / 100):000}"
+            : _ofp is { CruiseFlightLevel: > 0 } o ? $"FL{o.CruiseFlightLevel:000}" : "—",
+        MonitorMode.Arrival => ArrivalGate.Snapshot().PendingGate ?? _gate.GateId ?? "—",
+        _ => _gate.GateId ?? "—",
+    };
+
+    private DateTimeOffset? Eta => FlightMonitorPresentation.Eta(_times, _ofp, _gate.StdUtc);
+
+    private double Progress => Mode switch
+    {
+        MonitorMode.Flight => FlightMonitorPresentation.FlightProgress(_times, _ofp?.EstimatedEnroute, Now) ?? 0,
+        MonitorMode.Arrival => FlightMonitorPresentation.DeboardingProgress(_gsx.BoardingCounters?.PaxDeboarded, _gsx.BoardingCounters?.PaxTarget),
+        _ => _gate.Progress,
+    };
+
+    private string BarPercent => (Progress * 100).ToString("F0", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string BarPrimary => Mode switch
+    {
+        MonitorMode.Flight => $"ELAPSED {FlightMonitorPresentation.Duration(_times.BlockTime(Now))}",
+        MonitorMode.Arrival => _gsx.BoardingCounters is { PaxTarget: { } t } c ? $"{c.PaxDeboarded ?? 0} / {t} PAX OFF" : "— PAX",
+        _ => _gate.PaxTarget is { } target ? $"{_gate.PaxBoarded ?? 0} / {target} PAX" : "— PAX",
+    };
+
+    private string FactA => Mode switch
+    {
+        MonitorMode.Flight => $"EET {FlightMonitorPresentation.Duration(_ofp?.EstimatedEnroute)}",
+        MonitorMode.Arrival => $"BLOCK-IN {FlightMonitorPresentation.Clock(_times.OnBlocksUtc)}",
+        _ => $"EET {FlightMonitorPresentation.Duration(_ofp?.EstimatedEnroute)}",
+    };
+
+    private string FactB => Mode switch
+    {
+        MonitorMode.Arrival => $"BLOCK TIME {FlightMonitorPresentation.Duration(_times.BlockTime(Now))}",
+        _ => $"FOB {FuelOnBoard}{(_ofp is { FuelPlanRampKg: > 0 } o ? $" / {Units.Format(o.FuelPlanRampKg)}" : "")}",
+    };
+
+    private string FactC => Mode switch
+    {
+        MonitorMode.Flight => $"OFF BLOCKS {FlightMonitorPresentation.Clock(_times.OffBlocksUtc)}",
+        MonitorMode.Arrival => $"FLIGHT TIME {FlightMonitorPresentation.Duration(_times.FlightTime(Now))}",
+        _ => _gate.StdUtc is { } std
+            ? $"STD {FlightMonitorPresentation.Clock(std)} · {(_gate.MinutesToStd is { } m ? (m >= 0 ? $"−{m}" : $"+{-m}") : "—")} MIN"
+            : "STD —",
+    };
+
+    private string FactD => Mode switch
+    {
+        MonitorMode.Arrival => $"LANDED {FlightMonitorPresentation.Clock(_times.LandingUtc)}",
+        _ => $"ETA {FlightMonitorPresentation.Clock(Eta)}",
+    };
+
+    // ── figures ─────────────────────────────────────────────────────────────────────
+    private static string Metric(double? value, string format, string unit)
+        => value is { } v ? v.ToString(format, System.Globalization.CultureInfo.InvariantCulture) + unit : "—";
+
+    private string VerticalSpeed => Data is { } data
+        ? data.VerticalSpeedFpm.ToString("+#,0;-#,0;0", System.Globalization.CultureInfo.InvariantCulture) + " FPM"
+        : "—";
+
+    private string Heading => _heading is { RawValue: not null } sub && ProsimConnected
+        ? $"{((sub.Value % 360 + 360) % 360):000}°"
+        : "—";
+
+    private string FuelOnBoard => _fuel is { RawValue: not null } sub && ProsimConnected ? Units.Format(sub.Value) : "—";
+
+    private bool BridgeConnected =>
+        ServiceView(GsxServiceIds.OperateJetways)?.Stage is GsxServiceStage.Active or GsxServiceStage.Completed
+        || ServiceView(GsxServiceIds.OperateStairs)?.Stage is GsxServiceStage.Active or GsxServiceStage.Completed;
+
+    private bool GpuConnected => _gsx.GroundPowerConnected == true || (_gpu is { RawValue: not null } g && g.Value);
+
+    private int ActiveBlock => FlightStatusPresentation.ActiveBlock(Phase, DepartureControl.Started, DepartureControl.Complete);
+
+    private GsxServiceView? ServiceView(string id)
+        => _gsx.Services.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    private string DotClass(string subsystem)
+        => _connections.FirstOrDefault(p => p.Key == subsystem).Value == ConnectionState.Connected ? "dot-ok" : "dot-bad";
+
+    // ── row renderers ───────────────────────────────────────────────────────────────
+    private static RenderFragment Row(string label, string value) => @<div class="mon-row">
+        <span class="label-caps">@label</span>
+        <span class="figure mon-row-figure">@value</span>
+    </div>;
+
+    private static RenderFragment Lamp(string label, string value, string tone) => @<div class="mon-row">
+        <span class="label-caps @(tone == "ok" ? "ok" : tone == "warn" ? "gold" : null)">@label</span>
+        <span class="mon-lamp @tone" title="@value"></span>
+    </div>;
+
+    private RenderFragment Door(string name, IDataRefSubscription<bool>? sub)
+    {
+        var known = sub is { RawValue: not null } && ProsimConnected;
+        var open = known && sub!.Value;
+        return @<div class="mon-row">
+            <span class="label-caps @(open ? "gold" : null)">@name @(known ? (open ? "OPEN" : "CLOSED") : "—")</span>
+            <AppIcon Name="@(open ? "door-open" : "door-closed")" Size="22" Class="@(open ? "gold" : "muted")" />
+        </div>;
+    }
+
+    private RenderFragment Service(string label, string id)
+    {
+        var stage = ServiceView(id)?.Stage;
+        var tone = stage switch
+        {
+            GsxServiceStage.Completed => "ok",
+            GsxServiceStage.Active => "active",
+            GsxServiceStage.Requested or GsxServiceStage.Called => "warn",
+            _ => "neutral",
+        };
+        return @<div class="mon-row">
+            <span class="label-caps @(tone == "active" ? "cyan" : tone == "neutral" ? "muted" : null)">@label</span>
+            <span class="mon-lamp @tone" title="@(stage?.ToString() ?? "—")"></span>
+        </div>;
+    }
+
+    private RenderFragment WeatherCardView(WeatherCard card) => @<div class="card mon-card mon-wx">
+        <span class="label-caps cyan">@(card.Role == WeatherCardRole.Local ? "Local" : card.Role == WeatherCardRole.Alternate ? "Alternate" : "Destination")</span>
+        <div class="inset mon-wx-body">
+            <div class="mon-wx-sky sky-@(card.Sky.ToString().ToLowerInvariant())" title="@(card.Facts.RawMetar ?? card.Failure)">
+                <AppIcon Name="@WeatherCardFormat.SkyIcon(card.Sky)" Size="60" />
+                <span class="label-caps">@card.SkyLabel</span>
+            </div>
+            <div class="mon-wx-data">
+                @if (card.Status == WxProbeStatus.Found)
+                {
+                    <div class="mon-wx-line figure"><span>@WeatherCardFormat.Wind(card.Facts)</span><span>@WeatherCardFormat.Visibility(card.Facts)</span></div>
+                    <div class="mon-wx-line figure"><span>@WeatherCardFormat.Ceiling(card.Facts)</span><span>@WeatherCardFormat.Temperature(card.Facts)</span></div>
+                    <div class="mon-wx-line">
+                        <span class="figure">@WeatherCardFormat.Qnh(card.Facts)</span>
+                        @if (card.Facts.AtisLetter is { Length: > 0 } atis)
+                        {
+                            <span class="fs-chip mon-wx-atis">ATIS @atis</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="mon-wx-missing">@(card.Icao.Length == 0 ? "Fetch an OFP on the INIT page" : card.Failure ?? "No METAR available")</span>
+                }
+            </div>
+        </div>
+        <span class="label-caps muted mon-wx-stamp">@(card.Icao.Length > 0 ? $"{card.Icao} · METAR {card.ObservedAt ?? "—"}" : "")</span>
+    </div>;
+
+    private void Tick()
+    {
+        // The clock, the countdowns and the datarefs have no store event; re-render once a
+        // second only when a rendered value changed (the Flight Status hero's discipline).
+        var key = string.Concat(FlightMonitorPresentation.Clock(Now), BarPercent, BarPrimary, FactB, FactC, FactD,
+            Heading, VerticalSpeed, Metric(Data?.GroundSpeedKt, "F0", ""), Metric(Data?.AltitudeFt, "N0", ""),
+            _door1L?.RawValue, _door1R?.RawValue, _cargoFwd?.RawValue, _cargoAft?.RawValue, _gpu?.RawValue, Phase);
+        if (key == _tickKey)
+        {
+            return;
+        }
+
+        _tickKey = key;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    protected override void OnInitialized()
+    {
+        Watch(GateStatus, s => _gate = s);
+        Watch(HeroWeather, s => _weather = s);
+        Watch(Diagnostics, s => _gsx = s);
+        Watch(FlightTimes, s => _times = s);
+        WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _connections = Status.Snapshot());
+        WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
+        WatchChanged<FlightPhaseChangedEventArgs>(h => FlightState.PhaseChanged += h, h => FlightState.PhaseChanged -= h, () => { });
+        WatchChanged(h => Logos.Files.Changed += h, h => Logos.Files.Changed -= h, () => { });
+
+        _door1L = DataRefs.Subscribe(ProsimDataRefNames.Door1L);
+        _door1R = DataRefs.Subscribe(ProsimDataRefNames.Door1R);
+        _cargoFwd = DataRefs.Subscribe(ProsimDataRefNames.DoorCargoForward);
+        _cargoAft = DataRefs.Subscribe(ProsimDataRefNames.DoorCargoAft);
+        _gpu = DataRefs.Subscribe(ProsimDataRefNames.GroundPower);
+        _fuel = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
+        _heading = DataRefs.Subscribe(HeadingMagneticRef);
+        _tick = new System.Threading.Timer(_ => Tick(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_stageFitted)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("prosimCompanion.fitStage", "mon-stage",
+                FlightMonitorPresentation.StageWidth, FlightMonitorPresentation.StageHeight);
+            _stageFitted = true;
+        }
+        catch (JSException)
+        {
+            // Prerender / interop not ready: the CSS fallback keeps the stage at 1:1.
+        }
+        catch (InvalidOperationException)
+        {
+            // Same — the next render retries.
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _tick?.Dispose();
+        _door1L?.Dispose();
+        _door1R?.Dispose();
+        _cargoFwd?.Dispose();
+        _cargoAft?.Dispose();
+        _gpu?.Dispose();
+        _fuel?.Dispose();
+        _heading?.Dispose();
+    }
+}

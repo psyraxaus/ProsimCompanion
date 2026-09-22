@@ -29,6 +29,7 @@ is regenerated automatically (pair tablets again via the QR code).
 | `sayIntentions` | Settings → Voice First Officer → SayIntentions | API key source, phraseology, auto-tune, departure gating, weather |
 | `cabin`, `company` | Settings → Voice First Officer → Cabin Crew (`company` file-only) | purser reports, ambient events, company loadsheet/cruise messages, chimes |
 | `flightData` | Settings → Display & Flight Data | SimBrief fetch attempts, prelim/final loadsheet triggers and delays |
+| `flightStatus` | Settings → Display & Flight Data → Flight Status card | gate monitor final-call thresholds (`gateFinalCallPaxPercent` 90, `gateFinalCallMinutesBeforeStd` 10), weather-card refresh (`weatherRefreshMinutes` 10); also drives the pop-out Flight Monitor |
 | `flightState` | Settings → Advanced → Flight Phase Engine | phase-engine thresholds and settle times (calibration data) |
 | `techLog`, `logbook`, `debrief`, `day` | Tech Log / Duty Day | MEL categories, random wear, debrief verbosity, day mode |
 | `updateCheck` | file | update banner enable + interval |

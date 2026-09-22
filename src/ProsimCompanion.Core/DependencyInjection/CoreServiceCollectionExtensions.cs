@@ -91,6 +91,9 @@ public static class CoreServiceCollectionExtensions
         services.AddStartupModule<Weather.HeroWeatherService>();
         services.AddSingleton<Boarding.GateStatusStore>();
         services.AddStartupModule<Boarding.GateMonitorService>();
+        // Off/on-blocks, takeoff and landing stamps for the Flight Monitor board (2026-09-23).
+        services.AddSingleton<Flight.FlightTimesStore>();
+        services.AddStartupModule<Flight.FlightTimesTracker>();
         services.AddSingleton<ConnectionStatusStore>();
         // Written by the Sim pillar's session monitor; read by session-gated automation and
         // the web UI. Stays at Empty (phase Unknown = hold) when the Sim pillar is absent.

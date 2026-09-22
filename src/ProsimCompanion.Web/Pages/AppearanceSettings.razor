@@ -6,6 +6,7 @@
 @inherits StoreObserverComponent
 @inject ThemeCatalog Themes
 @inject ThemeLogoStore Logos
+@inject AirlineLogoStore AirlineLogos
 @inject IOptionsMonitor<WebUiOptions> WebUi
 @inject SettingsWriter Writer
 @inject ILogger<AppearanceSettings> Logger
@@ -64,6 +65,51 @@
             the installer. The header shows the active theme's logo when one is set.
         </div>
     </Section>
+
+    @* Airline logos for the pop-out Flight Monitor (owner request 2026-09-23): keyed by the
+       OFP's ICAO airline code so the board shows the right mark whatever theme is active. *@
+    <Section Title="Airline logos" Hint="For the pop-out Flight Monitor board — matched to the flight plan's airline code">
+        @if (_airlineMessage is not null)
+        {
+            <div class="field-hint" style="margin-bottom:8px;">@_airlineMessage</div>
+        }
+        <div class="airline-logo-add">
+            <label class="field-label" for="airline-code">Airline ICAO code</label>
+            <input id="airline-code" class="number-input mono" style="width:6em; text-transform:uppercase;" maxlength="4"
+                   placeholder="KLM" @bind="_airlineCode" @bind:event="oninput" />
+            <label class="btn secondary @(AirlineLogoStore.Slug(_airlineCode) is null ? "disabled" : null)"
+                   title="PNG, SVG, JPG or WEBP up to 512 KB — shown on the Flight Monitor when the OFP's airline matches">
+                Add logo
+                <InputFile accept=".png,.svg,.jpg,.jpeg,.webp" OnChange="UploadAirlineAsync" disabled="@(AirlineLogoStore.Slug(_airlineCode) is null)" />
+            </label>
+        </div>
+        @{
+            var airlineSlugs = AirlineLogos.Files.ListSlugs();
+        }
+        @if (airlineSlugs.Count == 0)
+        {
+            <div class="field-hint">No airline logos yet. Type the airline's ICAO code (the one SimBrief shows, e.g. KLM, BAW, DLH) and add its logo.</div>
+        }
+        else
+        {
+            <div class="theme-grid">
+                @foreach (var slug in airlineSlugs)
+                {
+                    <div class="theme-swatch">
+                        <div class="swatch-name" style="padding:8px 10px 0;">@slug.ToUpperInvariant()</div>
+                        <img class="swatch-logo" src="api/airline-logo/@(slug)?v=@AirlineLogos.Files.Version" alt="@slug logo" />
+                        <div class="swatch-actions">
+                            <button type="button" class="btn secondary" @onclick="() => RemoveAirlineLogo(slug)">Remove</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        <div class="field-hint" style="margin-top:12px; max-width:640px;">
+            Stored in <code>%LOCALAPPDATA%\ProsimCompanion\config\themes\logos\airlines</code>, never part of the app.
+            The Flight Monitor shows the logo whose code equals the OFP's airline code; without one it shows the code itself.
+        </div>
+    </Section>
 </div>
 
 @code {
@@ -105,5 +151,36 @@
     private void RemoveLogo(string themeName)
     {
         _message = Logos.Remove(themeName) ? $"Logo for {themeName} removed." : $"{themeName} has no logo.";
+    }
+
+    private string _airlineCode = "";
+    private string? _airlineMessage;
+
+    private async Task UploadAirlineAsync(InputFileChangeEventArgs args)
+    {
+        var code = _airlineCode.Trim().ToUpperInvariant();
+        if (AirlineLogoStore.Slug(code) is null)
+        {
+            _airlineMessage = "Type the airline's 2–4 character code first (e.g. KLM).";
+            return;
+        }
+
+        try
+        {
+            await using var stream = args.File.OpenReadStream(ThemeLogoStore.MaxBytes);
+            await AirlineLogos.Files.SaveAsync(code, args.File.Name, stream, CancellationToken.None);
+            _airlineMessage = $"Logo for {code} saved.";
+            _airlineCode = "";
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
+        {
+            _airlineMessage = $"Logo for {code} not saved: {ex.Message}";
+            Logger.LogWarning(ex, "Airline logo upload for {Airline} rejected", code);
+        }
+    }
+
+    private void RemoveAirlineLogo(string slug)
+    {
+        _airlineMessage = AirlineLogos.Files.Remove(slug) ? $"Logo {slug.ToUpperInvariant()} removed." : "Nothing to remove.";
     }
 }

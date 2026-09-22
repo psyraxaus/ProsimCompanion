@@ -26,6 +26,13 @@ latched GSX Boarding stage, the GSX pax counters, door 1L and the effective STD.
 only with the ground-ops cycle; it dims after taxi-out but never hides.
 _Avoid_: boarding widget, gate status pill
 
+**Flight monitor board**:
+The pop-out window (`/monitor`) that shows the gate monitor at the stand, the flight monitor
+from pushback to landing and the arrival monitor after block-in — one fixed 1920×1080 stage
+scaled as a whole to the window. Its progress line is time-based (off-blocks against the OFP
+enroute time); the app has no aircraft position.
+_Avoid_: second screen, FIDS, dashboard
+
 **Weather card**:
 One of the two hero-card weather tiles: "local weather" (the origin until Descent, the
 destination from Descent on) and "weather at destination" (the alternate once local has

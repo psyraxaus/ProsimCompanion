@@ -115,6 +115,11 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 ## Bridges & extras
 
 - [x] SayIntentions extras (ATIS/METAR/TAF/wind batch, CPDLC station, /weather page)
+- [x] Flight Status hero weather cards (local / destination, sky graphic from the METAR) and the
+      gate monitor strip (five forward-only states from GSX boarding + door 1L + STD) — new,
+      no predecessor equivalent (2026-09-22)
+- [x] Pop-out Flight Monitor board (gate → flight → arrival modes, per-airline logo, fixed
+      1920×1080 stage scaled to the window) — new (2026-09-23)
 - [x] ActiveSky weather provider (snapshot file + local API, composite chain with gateway
       METAR and SayIntentions fallback; briefings consume it)
 - [x] Command registry + HTTP command API (29 commands incl. per-service GSX requests through

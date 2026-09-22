@@ -35,6 +35,10 @@ public static class UserConfigPaths
     /// trademarks; owner decision 2026-09-20).</summary>
     public static string ThemeLogos => Path.Combine(Themes, "logos");
 
+    /// <summary>The pilot's airline logos keyed by ICAO airline code (Flight Monitor board);
+    /// a sub-folder so an airline code can never collide with a theme slug.</summary>
+    public static string AirlineLogos => Path.Combine(ThemeLogos, "airlines");
+
     /// <summary>Resolves a file directly under the user config root (e.g. <c>commands.json</c>).</summary>
     public static string File(string relativePath) => Path.Combine(Root, relativePath);
 }

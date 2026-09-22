@@ -323,6 +323,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
             Ident = requestId.Length >= 4 ? requestId[..4] : requestId,
             Callsign = ReadString(ofp["atc"]?["callsign"]) ?? "",
             FlightNumber = fltNbr,
+            AirlineIcao = (ReadString(ofp["general"]?["icao_airline"]) ?? "").Trim().ToUpperInvariant(),
             PlannedRunwayOut = ReadString(ofp["origin"]?["plan_rwy"]) ?? "",
             PlannedRunwayIn = ReadString(ofp["destination"]?["plan_rwy"]) ?? "",
             CruiseFlightLevel = initialAltitudeFt > 0 ? (int)Math.Round(initialAltitudeFt / 100.0) : 0,

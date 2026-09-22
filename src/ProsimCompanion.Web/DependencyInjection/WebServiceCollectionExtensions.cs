@@ -26,6 +26,8 @@ public static class WebServiceCollectionExtensions
             provider.GetRequiredService<ILogger<ThemeCatalog>>()));
         // The pilot's own airline logos (owner decision 2026-09-20: never shipped, never seeded).
         services.AddSingleton(_ => new ThemeLogoStore(UserConfigPaths.ThemeLogos));
+        // Airline logos keyed by the OFP airline code for the pop-out Flight Monitor (2026-09-23).
+        services.AddSingleton(_ => new AirlineLogoStore(UserConfigPaths.AirlineLogos));
         // Live mirror of webUi.showAdvancedSettings for the settings pages (ADR-0010).
         services.AddSingleton<AdvancedSettingsStore>();
         // Flight Status pill/text change log (issue #110) — runs whether or not a browser is open.

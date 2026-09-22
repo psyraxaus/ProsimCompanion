@@ -32,6 +32,11 @@ public sealed record OfpData
     /// empty when the OFP has no flight number.</summary>
     public string FlightNumber { get; init; } = "";
 
+    /// <summary>The operator's ICAO code as SimBrief ships it (<c>general.icao_airline</c>,
+    /// e.g. "KLM"); empty when the OFP has none. Keys the pilot's airline logo on the pop-out
+    /// Flight Monitor board (2026-09-23).</summary>
+    public string AirlineIcao { get; init; } = "";
+
     public string OriginIcao { get; init; } = "";
     public string OriginIata { get; init; } = "";
 

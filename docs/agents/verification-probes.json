@@ -1322,7 +1322,8 @@
         "#68/#69 final TTS pronunciation quality (ears, beyond the text-level probes).",
         "#97 dead-circuit auto-reload: restart the app with the EFB open — the page must reload itself (~10 s).",
         "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67).",
-        "2026-09-22 Flight Status hero widgets: two weather cards (sky graphic + condition word matching the METAR, wind arrow, ATIS chip, 'METAR hh:mmZ' stamp; LOCAL WEATHER flips to the destination from Descent) and the gate strip (grey → gold → cyan glow with the pax bar → amber halo → green tick; dims after taxi-out) render on the route card; Settings → Display & Flight Data → Flight Status card edits the three thresholds (web UI)."
+        "2026-09-22 Flight Status hero widgets: two weather cards (sky graphic + condition word matching the METAR, wind arrow, ATIS chip, 'METAR hh:mmZ' stamp; LOCAL WEATHER flips to the destination from Descent) and the gate strip (grey → gold → cyan glow with the pax bar → amber halo → green tick; dims after taxi-out) render on the route card; Settings → Display & Flight Data → Flight Status card edits the three thresholds (web UI).",
+        "2026-09-23 pop-out Flight Monitor: 'Pop out' on the gate strip opens /monitor in its own window; the board scales as one piece at any window size; GATE MONITOR at the stand (state word + pax bar match the hero strip), FLIGHT MONITOR from pushback (phase word, time-based progress, ETA, GS/ALT/VS/HDG), ARRIVAL MONITOR after landing (arrival gate, deboarding bar, block-in/block time); the airline logo appears when one is uploaded for the OFP's airline code (Settings → Appearance → Airline logos). Log lines 'Flight times: off … takeoff … landing … on …' stamp each edge once (web UI + log)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },

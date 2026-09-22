@@ -372,6 +372,26 @@
 .fs-gate-std.soon { color: var(--warning); }
 .fs-gate-detail { font-size: 11px; color: var(--text-muted); }
 
+.fs-gate-popout {
+  align-self: flex-start;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fs-gate-popout:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.fs-gate-popout .icon { width: 12px; height: 12px; }
+
 .fs-gate-bar {
   height: 6px;
   border-radius: 3px;

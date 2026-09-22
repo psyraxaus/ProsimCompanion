@@ -38,6 +38,12 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   boarding, ACARS uplink, per-weight **MAC envelope limits** digitized from the CG chart
 - Live W&B with CG envelope, cabin/cargo/fuel state and an aircraft silhouette; takeoff &
   landing performance with FMS PERF uplink; ECAM-style interactive checklists
+- Flight Status hero with **local / destination weather cards** (sky graphic, wind, visibility,
+  ceiling, temperature, QNH, ATIS) and a **gate monitor** (Gate Closed → Gate Open → Boarding →
+  Final Call → Gate Closed, from GSX boarding, door 1L and the STD)
+- **Pop-out Flight Monitor** — one click opens a second-monitor board that is the gate monitor
+  at the stand, the flight monitor from pushback to landing and the arrival monitor after
+  block-in; scales as one piece to any window and shows your own logo for the OFP's airline
 
 ![INIT](docs/img/init.png)
 ![Weight & Balance](docs/img/wnb.png)
@@ -67,7 +73,7 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   Elgato Stream Deck plugin, opt-in HTTP command/status API
 - EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
   bundled fonts and icons (works offline), 13 airline/basic themes on the Appearance settings page
-  plus user JSON themes and your own airline logos (never shipped — you upload them), kg/lb
+  plus user JSON themes and your own theme and airline logos (never shipped — you upload them), kg/lb
   display units, system tray, single-instance, update banner from
   GitHub releases
 - Migrating from Prosim2GSX / Prosim2FO? Your existing configuration is **imported

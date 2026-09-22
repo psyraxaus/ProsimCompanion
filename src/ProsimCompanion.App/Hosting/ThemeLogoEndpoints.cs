@@ -19,6 +19,24 @@ public static class ThemeLogoEndpoints
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         endpoints.MapGet("/api/theme-logo/{slug}", GetLogo);
+        endpoints.MapGet("/api/airline-logo/{code}", GetAirlineLogo);
+    }
+
+    private static IResult GetAirlineLogo(
+        HttpContext context,
+        string code,
+        AirlineLogoStore logos,
+        IOptionsMonitor<WebUiOptions> webUiOptions)
+    {
+        if (!ApiTokenAuth.IsAuthorized(context, requireTokenOnLoopback: false, webUiOptions.CurrentValue))
+        {
+            return Results.Unauthorized();
+        }
+
+        var path = logos.FindFile(code);
+        return path is null
+            ? Results.NotFound()
+            : Results.File(path, ThemeLogoStore.ContentType(path));
     }
 
     private static IResult GetLogo(

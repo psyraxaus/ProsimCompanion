@@ -19,7 +19,8 @@ running version.
 
 | Page | What it does |
 |---|---|
-| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown), the live ground speed / altitude / vertical speed / heading / fuel figures, the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. Final-call thresholds and the weather refresh cadence live under Settings → Display & Flight Data → Flight Status card |
+| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. Final-call thresholds and the weather refresh cadence live under Settings → Display & Flight Data → Flight Status card |
+| **Flight Monitor** (pop-out) | A second-monitor board opened from the gate strip's Pop out button (or at `/monitor`) — see below |
 | **INIT** | MCDU-style OFP display: fetch the SimBrief OFP, per-field overrides (ZFW, fuel, pax, cargo), SYNC TO FMS, confirm fuel, flight reset |
 | **OFP** | Flight-plan hero, arrival-gate assignment, weather (METAR/TAF/ATIS), pushback-direction Korry buttons, de-ice holdover card |
 | **Loadsheet** | Prelim/final loadsheets with per-weight MAC envelope brackets, manual STD, resend/reset |
@@ -29,6 +30,21 @@ running version.
 | **Checklists** | ECAM-style interactive checklists with a completion bar and the checklist sequence rail (visual runner; the voice FO runs beside it) |
 | **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode with a legs timeline |
 | **⚙ Settings** | Everything you configure, on one rail (below) |
+
+### The Flight Monitor window
+
+**Pop out** on the Flight Status gate strip opens the Flight Monitor in its own browser window
+(drag it to a second monitor, or open `/monitor` on the iPad). It is one fixed 1920×1080
+picture that scales as a whole to the window, so nothing ever overlaps whatever the size or
+shape. It changes face with the flight:
+
+| Mode | When | What it shows |
+|---|---|---|
+| **Gate monitor** | at the stand | your airline logo (Settings → Appearance → Airline logos, matched to the OFP's airline code), flight number, route with airport names, the gate, the big state word (GATE CLOSED / GATE OPEN / BOARDING / FINAL CALL / GATE CLOSED), the passenger bar, EET / fuel / STD countdown / ETA, doors, jetway and GPU, the ground-services lamps, the local and destination weather cards, the flight sequence strip |
+| **Flight monitor** | pushback → landing | the phase as the big word (PUSHBACK AND START, CLIMB, CRUISE…), the cruise level, a time-based progress bar (elapsed block time against the OFP's enroute time), off-blocks time and ETA, ground speed / altitude / vertical speed / heading, gear / flaps / seat-belt signs / beacon; the local weather card follows the aircraft (destination from descent, the alternate on the second card) |
+| **Arrival monitor** | taxi-in → shutdown | TAXI IN / ON BLOCKS / DEBOARDING / ARRIVED, the arrival gate, the deboarding bar, block-in time, block and flight times, doors, GPU and the arrival services |
+
+The header clock is sim time. The footer dots are the real ProSim / SimConnect / GSX connections.
 
 ### The Settings hub
 
@@ -41,7 +57,8 @@ its own address, so a refresh or a link from a warning banner lands on the right
 | **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
 | **Voice First Officer** | Status (provider tests, minima card, speak test), general, listening & PTT, sterile cockpit, crew voices, ground crew, cabin crew, briefings & LLM, MCDU, SayIntentions, voice providers |
 | **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings, housekeeping |
-| **Display & Flight Data** | Theme, units, split-flap animation, loadsheet automation, checklist ticks |
+| **Display & Flight Data** | Units, split-flap animation, loadsheet automation, the Flight Status card (final-call thresholds, weather refresh), checklist ticks |
+| **Appearance** | Theme swatches, your theme logos for the header, your airline logos for the Flight Monitor |
 | **Aircraft Profiles** | Per-aircraft settings profiles with automatic matching |
 | **Advanced** | Flight phase engine thresholds, the live log viewer with capture settings |
 
@@ -80,3 +97,8 @@ Qantas, Finnair, Light and Dark — switch live from the header picker or from D
 Data; both write the same setting. Drop your own JSON themes in `config/themes` (Prosim2GSX
 theme format). Weight displays follow the app unit setting or the aircraft's own unit
 selection (kg/lb); settings entry fields stay in kg.
+
+Logos are yours, never shipped: Settings → Appearance takes a **theme logo** (shown in the
+header while that theme is active) and **airline logos keyed by ICAO airline code** (KLM, BAW,
+DLH…), which the Flight Monitor shows for the flight plan's airline. Both live under
+`%LOCALAPPDATA%\ProsimCompanion\config\themes\logos`.

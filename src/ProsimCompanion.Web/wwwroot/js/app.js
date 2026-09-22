@@ -20,6 +20,35 @@
     if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
+  // Flight Monitor board (owner decision 2026-09-23): the board is a fixed 1920×1080 stage
+  // scaled as ONE piece to fit the window and centred — never reflowed, so nothing can
+  // overlap at any window size. Viewport units and CSS zoom fight each other; a transform
+  // does not.
+  window.prosimCompanion.fitStage = function (id, width, height) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const fit = () => {
+      const k = Math.min(window.innerWidth / width, window.innerHeight / height);
+      el.style.transformOrigin = "top left";
+      el.style.transform = "translate(" + ((window.innerWidth - width * k) / 2) + "px, "
+        + ((window.innerHeight - height * k) / 2) + "px) scale(" + k + ")";
+    };
+    fit();
+    if (el._fitStage) window.removeEventListener("resize", el._fitStage);
+    el._fitStage = fit;
+    window.addEventListener("resize", fit);
+  };
+
+  // Opens (or focuses) the pop-out Flight Monitor window. Same origin, so the onboarded
+  // browser cookie carries over; a popup that the browser blocked falls back to a tab.
+  window.prosimCompanion.openMonitor = function () {
+    const url = "monitor";
+    const win = window.open(url, "prosim-flight-monitor", "popup=yes,width=1600,height=900");
+    if (win) { win.focus(); return true; }
+    window.open(url, "_blank");
+    return false;
+  };
+
   // ------------------------------------------------------------------ split-flap
 
   const DRUM = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-/";

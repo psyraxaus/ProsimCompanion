@@ -6,6 +6,7 @@
 @using ProsimCompanion.Core.Flight
 @using ProsimCompanion.Core.Profiles
 @using ProsimCompanion.Core.Weather
+@using Microsoft.JSInterop
 @inherits StoreObserverComponent
 @inject ConnectionStatusStore Status
 @inject SimSessionStore Session
@@ -24,6 +25,7 @@
 @inject GateStatusStore GateStatus
 @inject IProsimDataRefs DataRefs
 @inject DisplayUnitService Units
+@inject IJSRuntime JS
 
 @* Prosim2GSX FlightStatusPanel clone: Flight Phase span card, then Sim / App / GSX /
    Services cards with the same rows in the same order. The log tail card is deliberately
@@ -362,6 +364,19 @@
 
     private void ForcePhase() => PhaseControl.ForcePhase(_forcePhase, _freeze, "web UI");
 
+    private async Task OpenMonitor()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("prosimCompanion.openMonitor");
+        }
+        catch (JSException)
+        {
+            // Popup blocked or interop unavailable (prerender): the page stays usable; the
+            // board is also reachable by typing /monitor.
+        }
+    }
+
     // ── Hero widgets (owner sign-off 2026-09-22) ──────────────────────────────────────
     // Weather cards: the label on its own line, the airport name under it, the ATIS chip
     // top-right, then the sky graphic + condition word beside two mono data lines. The raw
@@ -375,44 +390,7 @@
         _ => "Weather at destination",
     };
 
-    private static string SkyIcon(SkyCondition sky) => sky switch
-    {
-        SkyCondition.Clear => "sun",
-        SkyCondition.FewClouds => "cloud-sun",
-        SkyCondition.Overcast => "cloud",
-        SkyCondition.Rain => "cloud-rain",
-        SkyCondition.Drizzle => "cloud-drizzle",
-        SkyCondition.Snow => "cloud-snow",
-        SkyCondition.Fog => "cloud-fog",
-        SkyCondition.Thunderstorm => "cloud-lightning",
-        SkyCondition.Windy => "wind",
-        _ => "help-circle",
-    };
-
-    private static string WindText(WxFacts facts) => facts switch
-    {
-        { WindSpeedKt: null } => "WIND —",
-        { WindSpeedKt: 0 } => "CALM",
-        { WindDirDeg: null } => $"VRB/{facts.WindSpeedKt:00} KT",
-        _ => $"{facts.WindDirDeg:000}°/{facts.WindSpeedKt:00} KT",
-    };
-
-    private static string VisibilityText(WxFacts facts) => facts.VisibilityMeters switch
-    {
-        null => "VIS —",
-        >= 10000 => "10 KM+",
-        >= 1000 => $"{facts.VisibilityMeters.Value / 1000.0:0.#} KM",
-        _ => $"{facts.VisibilityMeters} M",
-    };
-
-    private static string CeilingText(WxFacts facts)
-        => facts.CeilingFt is { } ceiling ? $"CIG {ceiling:N0} FT" : "NO CIG";
-
-    private static string TemperatureText(WxFacts facts)
-        => facts.TemperatureC is { } temp ? $"{temp:+0;-0;0}°C" : "TEMP —";
-
-    private static string QnhText(WxFacts facts)
-        => facts.QnhHpa is { } qnh ? $"Q{qnh:0}" : "QNH —";
+    // Figure texts live in WeatherCardFormat, shared with the pop-out Flight Monitor board.
 
     private RenderFragment WeatherCardView(WeatherCard card) => @<div class="inset fs-wx">
         <div class="fs-wx-head">
@@ -427,7 +405,7 @@
         </div>
         <div class="fs-wx-body">
             <div class="fs-wx-sky sky-@(card.Sky.ToString().ToLowerInvariant()) fs-wx-raw" title="@(card.Facts.RawMetar ?? card.Failure)">
-                <AppIcon Name="@SkyIcon(card.Sky)" Size="32" />
+                <AppIcon Name="@WeatherCardFormat.SkyIcon(card.Sky)" Size="32" />
                 <span class="label-caps">@card.SkyLabel</span>
             </div>
             <div class="fs-wx-data">
@@ -439,17 +417,17 @@
                             {
                                 <span style="display:inline-flex;transform:rotate(@(dir)deg)" aria-hidden="true"><AppIcon Name="arrow-down" Size="10" /></span>
                             }
-                            @WindText(card.Facts)
+                            @WeatherCardFormat.Wind(card.Facts)
                             @if (card.Facts.WindGustKt is { } gust)
                             {
                                 <span class="fs-wx-gust">G@(gust)</span>
                             }
                         </span>
-                        <span>@VisibilityText(card.Facts)</span>
-                        <span>@CeilingText(card.Facts)</span>
+                        <span>@WeatherCardFormat.Visibility(card.Facts)</span>
+                        <span>@WeatherCardFormat.Ceiling(card.Facts)</span>
                     </div>
                     <div class="fs-wx-line split">
-                        <span class="fs-wx-line"><span>@TemperatureText(card.Facts)</span><span>@QnhText(card.Facts)</span></span>
+                        <span class="fs-wx-line"><span>@WeatherCardFormat.Temperature(card.Facts)</span><span>@WeatherCardFormat.Qnh(card.Facts)</span></span>
                         <span class="fs-wx-stamp">METAR @(card.ObservedAt ?? "—")</span>
                     </div>
                 }
@@ -503,6 +481,13 @@
             <span class="fs-gate-left">
                 <span class="label-caps fs-gate-id">Gate <span class="figure">@(_gate.GateId ?? "—")</span></span>
                 <span class="fs-gate-detail">@_gate.Detail</span>
+                @* Pop-out Flight Monitor (owner request 2026-09-23): the same gate strip,
+                   full-screen on a second monitor, which turns into the flight / arrival
+                   monitor as the leg goes. *@
+                <button type="button" class="fs-gate-popout" @onclick="OpenMonitor"
+                        title="Open the Flight Monitor board in its own window (second monitor / tablet)">
+                    <AppIcon Name="external-link" Size="14" /> Pop out
+                </button>
             </span>
             <span class="fs-gate-state @GateClass">
                 @if (_gate.State == GateState.Boarding)
