@@ -45,6 +45,8 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   at the stand, the flight monitor from pushback to landing and the arrival monitor after
   block-in; scales as one piece to any window and shows your own logo for the OFP's airline
 
+![Flight Monitor](docs/img/flight-monitor.png)
+
 ![INIT](docs/img/init.png)
 ![Weight & Balance](docs/img/wnb.png)
 
@@ -73,7 +75,8 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   Elgato Stream Deck plugin, opt-in HTTP command/status API
 - EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
   bundled fonts and icons (works offline), 13 airline/basic themes on the Appearance settings page
-  plus user JSON themes and your own theme and airline logos (never shipped — you upload them), kg/lb
+  plus user JSON themes and your own theme and airline logos (never shipped — you upload them
+  on the Appearance page), kg/lb
   display units, system tray, single-instance, update banner from
   GitHub releases
 - Migrating from Prosim2GSX / Prosim2FO? Your existing configuration is **imported

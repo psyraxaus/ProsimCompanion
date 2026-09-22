@@ -46,6 +46,8 @@ shape. It changes face with the flight:
 
 The header clock is sim time. The footer dots are the real ProSim / SimConnect / GSX connections.
 
+![Flight Monitor](../img/flight-monitor.png)
+
 ### The Settings hub
 
 The Settings entry (bottom of the sidebar) opens a rail grouped by pillar. Every section has
