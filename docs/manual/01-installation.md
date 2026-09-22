@@ -27,7 +27,10 @@ run it elevated). The wizard asks for:
    your own `gsx.cfg` edits are kept unless you tick *overwrite*.
 
 Everything the wizard collects lands in `config\settings.json` beside the app — updates never
-modify an existing `settings.json` or re-ask for the paths already in it.
+modify an existing `settings.json` or re-ask for the paths already in it. API keys and the
+LAN access token in that file are encrypted for your Windows account (DPAPI); a `settings.json`
+copied to another PC or account keeps every path and preference, but the keys must be
+re-entered on the settings pages (see the [settings reference](04-settings-reference.md)).
 
 ## First run
 

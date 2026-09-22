@@ -5,6 +5,15 @@ per feature. The web pages cover the everyday sections; everything is also hand-
 missing keys fall back to safe defaults, and the app adds newly available defaults to the
 file on start. **Never share your `webUi.accessToken`.**
 
+**Secrets are encrypted per Windows user.** The API keys and the access token (`prosim.apiKey`,
+`sayIntentions.manualApiKey`, `briefing.llmApiKey`, `webUi.accessToken`) are stored as
+`dpapi:…` values, protected with Windows DPAPI for the account that runs the app. They only
+decrypt on that PC and that Windows account. If you copy `settings.json` to another PC or
+account, those fields bind as empty, the log warns once, and the settings page shows a
+"re-enter it and save" hint under each affected field — type the key again and save. A key
+typed into the file by hand is accepted and encrypted on the next start. The access token
+is regenerated automatically (pair tablets again via the QR code).
+
 | Section | Page | Highlights |
 |---|---|---|
 | `prosim` | Settings → Setup | `sdkPath` (ProSimSDK.dll), `host`, optional `apiKey` |

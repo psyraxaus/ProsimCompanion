@@ -13,6 +13,9 @@
 ;   * fresh installs prompt for the ProSimSDK.dll location (auto-detected where possible) and
 ;     write it into {app}\config\settings.json (prosim.sdkPath)
 ;   * fresh installs prompt for the VoiceMeeter Remote DLL (optional) -> audio.voiceMeeterDllPath
+;     (settings.json is plain JSON except the API keys / LAN token, which the app stores
+;     DPAPI-protected for the installing Windows user — a file copied to another PC/account
+;     needs those re-entered on the web Settings pages; the installer never touches them)
 ;   * prompts for the Virtuali directory and installs the GSX aircraft profiles (gsx.cfg for
 ;     the three ProSim A322 SimObject folders) into <Virtuali>\Airplanes — profiles the user
 ;     never edited auto-update when the shipped content changes (tracked via a sidecar hash

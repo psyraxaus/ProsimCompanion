@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using ProsimCompanion.App.Configuration;
 using ProsimCompanion.App.Hosting;
 using ProsimCompanion.App.Logging;
 using ProsimCompanion.Audio;
@@ -86,6 +87,15 @@ public static class Program
                     "Settings migrated from version {From} to {To}",
                     previousVersion,
                     SettingsMigrator.CurrentVersion);
+            }
+
+            // One-shot upgrade of a settings file that still holds a plain API key / token
+            // (pre-DPAPI build, or a hand-edited key). Before the host binds the file so the
+            // plain value is never read by the configuration provider; every later write
+            // protects itself inside JsonSettingsFile.Update.
+            if (SecretProtector.EnsureProtected(settingsFile))
+            {
+                Log.Information("Settings secrets are now DPAPI-protected for the current Windows user");
             }
 
             // One-shot predecessor config import (Prosim2GSX AppConfig.json, Prosim2FO
@@ -279,7 +289,14 @@ public static class Program
             WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot"),
         });
 
-        builder.Configuration.AddJsonFile(settingsPath, optional: true, reloadOnChange: true);
+        // Stock JSON file source plus DPAPI decryption of the registered secret paths
+        // (SecretProtector); reloadOnChange keeps the web UI's saves live as before.
+        builder.Configuration.Sources.Add(new ProtectedJsonConfigurationSource
+        {
+            Path = settingsPath,
+            Optional = true,
+            ReloadOnChange = true,
+        });
 
         builder.Services.AddSerilog();
         builder.Services.AddRazorComponents().AddInteractiveServerComponents(circuit =>
@@ -379,11 +396,16 @@ public static class Program
     }
 
     /// <summary>Generates the LAN access token on first start so enabling LAN access later never
-    /// finds an empty token.</summary>
+    /// finds an empty token. A stored token that no longer decrypts (settings.json copied from
+    /// another PC/user) is regenerated too — it was machine-generated, so there is nothing for
+    /// the user to re-enter; the new token reaches the tablet via the QR code as usual.</summary>
     private static void EnsureAccessToken(JsonSettingsFile settingsFile)
     {
         var webUi = settingsFile.Read()[WebUiOptions.SectionName];
-        if (!string.IsNullOrEmpty((string?)webUi?["accessToken"]))
+        var stored = (string?)webUi?["accessToken"];
+        if (!string.IsNullOrEmpty(stored)
+            && SecretProtector.TryUnprotect(stored, out var existing)
+            && !string.IsNullOrEmpty(existing))
         {
             return;
         }

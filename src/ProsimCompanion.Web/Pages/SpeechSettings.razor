@@ -290,6 +290,7 @@ else if (CurrentSection == "sayIntentions")
         <TextField Label="Manual API key" Hint="Used only with Manual. Never logged."
                    Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.ApiKeySource != "manual")"
                    @bind-Value="_sayIntentions.Value.ManualApiKey" />
+        <SecretUnreadableHint Path="sayIntentions:manualApiKey" />
         <SelectField Label="Phraseology" Options="PhraseologyOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled)"
                      @bind-Value="_sayIntentions.Value.Phraseology" />
@@ -448,6 +449,7 @@ else if (CurrentSection == "briefing")
         <TextField Label="API key" Hint="Never logged. Empty for local servers without a key."
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmApiKey" />
+        <SecretUnreadableHint Path="briefing:llmApiKey" />
         <TextField Label="Model" Hint="Model name, e.g. gpt-4o-mini or qwen3.6:27b. Empty turns styling off."
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmModel" />

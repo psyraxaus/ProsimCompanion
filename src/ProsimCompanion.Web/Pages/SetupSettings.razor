@@ -34,6 +34,7 @@
                @bind-Value="_prosim.Value.SdkPath" />
     <TextField Label="API key" Hint="Only newer ProSim builds use one. Leave empty otherwise." Password="true"
                @bind-Value="ApiKeyInput" />
+    <SecretUnreadableHint Path="prosim:apiKey" />
     <AdvancedFields>
         <NumberField Label="Reconnect interval" Hint="Wait between connection tries." Suffix="ms" Min="500"
                      @bind-Value="_prosim.Value.ReconnectIntervalMs"

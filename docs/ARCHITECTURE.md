@@ -64,6 +64,14 @@ circular dependency.
 
 - `config/settings.json` beside the exe; camelCase; per-feature options classes registered via
   `IOptionsMonitor<T>`; every property has a safe default so partial files work.
+- Secrets (`prosim.apiKey`, `sayIntentions.manualApiKey`, `briefing.llmApiKey`,
+  `webUi.accessToken`) are stored DPAPI-protected (CurrentUser scope) as `dpapi:<base64>`.
+  `SecretProtector` (Core) owns the path list and the protect/unprotect primitives;
+  `JsonSettingsFile.Update` protects on every write and a startup pass upgrades older files;
+  `ProtectedJsonConfigurationProvider` (App) decrypts on load so options bind plain values. A
+  value that fails to decrypt (file copied to another PC/user) binds as empty, is logged once,
+  and is listed in `SecretProtector.Unreadable` for the settings pages' re-enter hint. DPAPI
+  output is non-deterministic: never compare stored strings, only decrypted option values.
 - `configVersion` stamp + stepwise `SettingsMigrator` (runs at startup, before binding). Additive
   settings never need migration; the ladder exists for breaking changes only (renames,
   restructures) — the model that served Prosim2GSX through 33 config versions.

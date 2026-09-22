@@ -46,6 +46,11 @@ public sealed class JsonSettingsFile
             var root = ReadCore();
             mutate(root);
 
+            // Every writer (web UI drafts, SettingsWriter.Set, the predecessor importer, the
+            // token generator) funnels through here, so this is the one place a plain API key
+            // is turned into its DPAPI form before it ever reaches disk.
+            SecretProtector.ProtectKnownSecrets(root);
+
             var directory = System.IO.Path.GetDirectoryName(_path);
             if (!string.IsNullOrEmpty(directory))
             {
