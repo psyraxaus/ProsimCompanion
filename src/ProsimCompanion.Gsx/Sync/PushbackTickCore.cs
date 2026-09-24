@@ -1,3 +1,5 @@
+using ProsimCompanion.Gsx.Automation;
+
 namespace ProsimCompanion.Gsx.Sync;
 
 /// <summary>
@@ -46,6 +48,21 @@ internal static class PushbackTickCore
         bool RemoveStairsAfterDeparture,
         bool CloseDoorsOnFinal,
         bool RemoveJetwayStairsOnFinal);
+
+    /// <summary>Whether the shell should tick <see cref="GsxGroundEquipmentService.TickGradualRemovalAsync"/>
+    /// this second: non-sequence flow only, automation on, a departure ground phase, and
+    /// departure services complete. The last gate is the 2026-09-25 cold-and-dark fix — before
+    /// it the ticker ran in Preparation the instant ground prep placed the GPU, saw external
+    /// power still off (the crew had not pressed EXT PWR yet) and pulled the GPU straight back.</summary>
+    internal static bool ShouldTickGradualRemoval(
+        bool beaconSequenceEnabled,
+        bool automationEnabled,
+        bool departureComplete,
+        GsxAutomationPhase phase)
+        => !beaconSequenceEnabled
+            && automationEnabled
+            && departureComplete
+            && phase is GsxAutomationPhase.Preparation or GsxAutomationPhase.PushBack;
 
     internal static HookIntents Evaluate(HookState state, HookInputs inputs)
     {

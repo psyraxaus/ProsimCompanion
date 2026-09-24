@@ -43,6 +43,11 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan RepositionSettleTime = TimeSpan.FromSeconds(12);
 
+    /// <summary>Throttle for the waiting/stalled diagnostics (2026-09-25 cold-and-dark GPU
+    /// report): a chain that never reaches the equipment step was invisible on the Status
+    /// page — one decision line per 30 s says where it sits without flooding the log.</summary>
+    private static readonly TimeSpan DiagnosticInterval = TimeSpan.FromSeconds(30);
+
     private readonly IGsxRemoteApi _api;
     private readonly GsxRepositionService _reposition;
     private readonly GsxGateAnchorService _gateAnchor;
@@ -63,6 +68,9 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private string? _holdReason;
     private bool _conflictPublished;
     private int _running;
+    private DateTimeOffset _stageEnteredAt = DateTimeOffset.UtcNow;
+    private DateTimeOffset _lastWaitingLog;
+    private DateTimeOffset _lastStalledLog;
 
     public GsxGroundPrepCoordinator(
         IGsxRemoteApi api,
@@ -143,13 +151,14 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         }
 
         _sessionGateKey ??= _api.Mirror.GateContextKey;
-        Advance(GsxPrepStage.Complete, $"seeded by startup resync — {reason}");
+        Advance(GsxPrepStage.Complete, $"seeded by startup resync — {reason}; GPU/chocks placement skipped");
     }
 
     private void Reset(string reason)
     {
         var wasProgressed = _stage != GsxPrepStage.Idle || _sessionGateKey is not null;
         _stage = GsxPrepStage.Idle;
+        _stageEnteredAt = DateTimeOffset.UtcNow;
         _sessionGateKey = null;
         _cycle.ResetPrep();
         if (wasProgressed)
@@ -172,6 +181,9 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
             // All hold/reset/ordering policy is the pure machine (campaign #78) — the 2026-08
             // review found four reset triggers and three hold gates scattered through this
             // method with zero tests; they now live where a table test pins them.
+            var now = DateTimeOffset.UtcNow;
+            var readiness = _api.Readiness;
+            var gateKey = _api.Mirror.GateContextKey;
             var decision = PrepStageMachine.Next(
                 new PrepStageMachine.PrepInputs(
                     AutomationEnabled: _options.CurrentValue.AutomationEnabled,
@@ -180,17 +192,19 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
                     VoiceActivationMode: IsVoiceActivation(_options.CurrentValue.GroundPrepActivation),
                     CycleStarted: _cycle.Started,
                     FlightPhase: _flightState.CurrentPhase,
-                    GsxReady: _api.Readiness == GsxReadiness.Ready,
-                    GateKey: _api.Mirror.GateContextKey,
+                    GsxReady: readiness == GsxReadiness.Ready,
+                    GateKey: gateKey,
                     SessionGateKey: _sessionGateKey,
                     Stage: _stage,
                     SettleUntil: _settleUntil),
-                DateTimeOffset.UtcNow);
+                now);
 
             if (decision.ReleasesHold)
             {
                 ReleaseHold();
             }
+
+            NoteWaitingForGsx(decision, readiness, gateKey, now);
 
             switch (decision.Command)
             {
@@ -212,6 +226,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
             _sessionGateKey ??= _api.Mirror.GateContextKey;
 
+            GsxPrepStatus? stepStatus = null;
             switch (_stage)
             {
                 case GsxPrepStage.Idle:
@@ -232,6 +247,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
                 case GsxPrepStage.Reposition:
                     var repositionStatus = await _reposition.RunStepAsync().ConfigureAwait(false);
+                    stepStatus = repositionStatus;
                     if (repositionStatus == GsxPrepStatus.Done)
                     {
                         _settleUntil = DateTimeOffset.UtcNow + RepositionSettleTime;
@@ -244,7 +260,8 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
                     // Issue #44: GSX persists its assigned facility across sim sessions; a new
                     // flight at a different stand needs an explicit gate.select or every
                     // service trigger is silently dropped.
-                    if (await _gateAnchor.RunStepAsync().ConfigureAwait(false) == GsxPrepStatus.Done)
+                    stepStatus = await _gateAnchor.RunStepAsync().ConfigureAwait(false);
+                    if (stepStatus == GsxPrepStatus.Done)
                     {
                         Advance(GsxPrepStage.GroundEquipment, "connecting GPU and placing chocks");
                     }
@@ -252,6 +269,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
 
                 case GsxPrepStage.GroundEquipment:
                     var equipmentStatus = await _groundEquipment.RunPlacementStepAsync().ConfigureAwait(false);
+                    stepStatus = equipmentStatus;
                     if (equipmentStatus == GsxPrepStatus.Done)
                     {
                         Advance(GsxPrepStage.JetwayStairs, "connecting jetway or stairs");
@@ -259,12 +277,15 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
                     break;
 
                 case GsxPrepStage.JetwayStairs:
-                    if (_jetwayStairs.RunStep() == GsxPrepStatus.Done)
+                    stepStatus = _jetwayStairs.RunStep();
+                    if (stepStatus == GsxPrepStatus.Done)
                     {
                         Advance(GsxPrepStage.Complete, "ground preparation complete — departure services may run");
                     }
                     break;
             }
+
+            NoteStalledStage(stepStatus, now);
         }
         catch (Exception ex)
         {
@@ -341,9 +362,62 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         return entry is null ? null : Menu.GsxQuestionCatalog.ExtractFacility(entry);
     }
 
+    /// <summary>The chain cannot run because GSX is not Ready or has no gate context (the
+    /// machine answers None / the unknown-parking Hold): say so on the Status page once per
+    /// <see cref="DiagnosticInterval"/> so a chain that never reaches the equipment step is
+    /// distinguishable from one that placed the GPU and lost it. Only while at the gate with
+    /// the chain unfinished — a parked or completed chain has nothing to wait for.</summary>
+    private void NoteWaitingForGsx(
+        PrepStageMachine.PrepDecision decision, GsxReadiness readiness, string? gateKey, DateTimeOffset now)
+    {
+        var blockedOnGsx = readiness != GsxReadiness.Ready || gateKey is null;
+        var relevant = decision.Command == PrepCommand.None || decision.UnknownParking;
+        if (!blockedOnGsx
+            || !relevant
+            || _stage == GsxPrepStage.Complete
+            || !_options.CurrentValue.AutomationEnabled
+            || !_flightState.CurrentPhase.IsAtGate()
+            || now - _lastWaitingLog < DiagnosticInterval)
+        {
+            return;
+        }
+
+        _lastWaitingLog = now;
+        RecordDecision($"waiting for GSX (readiness={readiness}, gate={gateKey ?? "none"})");
+    }
+
+    /// <summary>A stage step that keeps answering Waiting/Pending past
+    /// <see cref="DiagnosticInterval"/> is reported once per interval with its age, so a
+    /// reposition that never settles or a placement whose writes keep failing shows on the
+    /// Status page instead of sitting silently behind the last "→ stage" line.</summary>
+    private void NoteStalledStage(GsxPrepStatus? stepStatus, DateTimeOffset now)
+    {
+        if (stepStatus is null or GsxPrepStatus.Done)
+        {
+            return;
+        }
+
+        var age = now - _stageEnteredAt;
+        if (age < DiagnosticInterval || now - _lastStalledLog < DiagnosticInterval)
+        {
+            return;
+        }
+
+        _lastStalledLog = now;
+        RecordDecision($"{_stage} still waiting after {(int)age.TotalSeconds}s");
+    }
+
+    private void RecordDecision(string reason)
+    {
+        _logger.LogInformation("Ground prep: {Reason}", reason);
+        _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", reason));
+    }
+
     private void Advance(GsxPrepStage next, string detail)
     {
         _stage = next;
+        _stageEnteredAt = DateTimeOffset.UtcNow;
+        _lastStalledLog = default;
         if (next == GsxPrepStage.Complete)
         {
             // The shared departure cycle is how the automation (and everything else) sees

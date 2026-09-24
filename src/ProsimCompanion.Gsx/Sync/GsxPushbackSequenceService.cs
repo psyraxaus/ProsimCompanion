@@ -177,9 +177,13 @@ public sealed class GsxPushbackSequenceService : IDisposable
 
             // Gradual equipment removal belongs to the NON-sequence flow (the beacon sequence
             // owns its own timed removal step) and needs a ticker — this shell provides it.
-            if (!_options.CurrentValue.BeaconPushbackSequenceEnabled
-                && _options.CurrentValue.AutomationEnabled
-                && phase is GsxAutomationPhase.Preparation or GsxAutomationPhase.PushBack)
+            // Gated on departure services being complete (2026-09-25 cold-and-dark report:
+            // the ticker ran the instant ground prep placed the GPU and pulled it again).
+            if (PushbackTickCore.ShouldTickGradualRemoval(
+                    _options.CurrentValue.BeaconPushbackSequenceEnabled,
+                    _options.CurrentValue.AutomationEnabled,
+                    _automation.DepartureComplete,
+                    phase))
             {
                 _ = _groundEquipment.TickGradualRemovalAsync();
             }

@@ -227,7 +227,8 @@ public sealed class GsxOptions : IOptionSection
     public bool ConnectGpuWithApuRunning { get; set; } = true;
 
     /// <summary>Condition-driven equipment removal during the pushback phase (predecessor
-    /// GradualGroundEquipRemoval): the GPU clears as soon as external power is off the buses,
+    /// GradualGroundEquipRemoval): the GPU clears once external power has fed the buses and
+    /// then goes off (a GPU never switched on is left alone — 2026-09-25 cold-and-dark fix),
     /// the chocks once the park brake is set and the GPU is gone. Only meaningful with the
     /// beacon-orchestrated sequence OFF (the sequence owns its own timed removal).</summary>
     public bool GradualGroundEquipRemoval { get; set; }

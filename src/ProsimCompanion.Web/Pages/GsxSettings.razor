@@ -83,7 +83,7 @@ else if (CurrentSection == "equipment")
             <BoolField Label="Override PCA state" Hint="Disconnect PCA that a saved panel state left connected when the setting above forbids it."
                        @bind-Value="_gsx.Value.PcaOverride" />
         </AdvancedFields>
-        <BoolField Label="Gradual removal during pushback" Hint="Remove ground power when external power goes off, and the chocks when the park brake is set." More="Only used while the beacon pushback sequence is off."
+        <BoolField Label="Gradual removal during pushback" Hint="Remove ground power when external power goes off after it was on, and the chocks when the park brake is set." More="Only used while the beacon pushback sequence is off, and only after departure services are complete."
                    @bind-Value="_gsx.Value.GradualGroundEquipRemoval" />
         <RangeField Label="Arrival chock delay" Hint="Random wait after parking before the chocks go in." Suffix="s" Min="0"
                     Disabled="@(!_gsx.Value.AutoGroundEquipment)"

@@ -40,6 +40,14 @@ public sealed class GsxGroundEquipmentService : IDisposable
     private bool _removedThisSession;
     private bool _beaconWasOn;
 
+    // Gradual-removal GPU latch (2026-09-25 cold-and-dark report): the GPU rule is a
+    // falling edge on external power — it must have been SEEN feeding the buses before
+    // "external power off" means the crew let go of it. At cold and dark the dataref is
+    // false the instant the GPU is placed (nobody pressed EXT PWR yet), and the plain
+    // "GPU on && ext power off" test pulled the unit within a second of placement.
+    private bool _externalPowerSeen;
+    private bool _gpuRemovalWritten;
+
     public GsxGroundEquipmentService(
         IProsimDataRefs prosim,
         ISimVars simVars,
@@ -145,6 +153,7 @@ public sealed class GsxGroundEquipmentService : IDisposable
         {
             _placedThisSession = false;
             _removedThisSession = false;
+            ResetGpuLatch();
         }
     }
 
@@ -187,11 +196,14 @@ public sealed class GsxGroundEquipmentService : IDisposable
     }
 
     /// <summary>Condition-driven gradual removal (predecessor GradualGroundEquipRemoval),
-    /// called at 1 Hz from the pushback shell while in a departure ground phase and the
-    /// beacon sequence is off: the GPU clears once external power is no longer feeding the
-    /// buses, the chocks once the park brake is set AND the GPU is already gone. Cached
-    /// reads only; each write happens at most once per state change (idempotent writes to
-    /// an already-false dataref are skipped via the mirror reads).</summary>
+    /// called at 1 Hz from the pushback shell while in a departure ground phase with
+    /// departure services complete and the beacon sequence off: the GPU clears once external
+    /// power has been seen feeding the buses and then stops (a falling edge — a GPU that was
+    /// never switched on is left alone), the chocks once the park brake is set AND the GPU is
+    /// already gone. Cached reads only; the GPU-off decision is logged and written once per
+    /// removal (the ProSim echo lags the write by a tick or two, so the raw condition alone
+    /// repeated the line every second); chock writes to an already-false dataref are skipped
+    /// via the mirror reads.</summary>
     public async Task TickGradualRemovalAsync()
     {
         if (!Enabled || _removedThisSession || !_options.CurrentValue.GradualGroundEquipRemoval)
@@ -199,8 +211,14 @@ public sealed class GsxGroundEquipmentService : IDisposable
             return;
         }
 
-        if (_gpuConnected.Value && !_externalPowerConnected.Value)
+        if (_externalPowerConnected.Value)
         {
+            _externalPowerSeen = true;
+        }
+
+        if (_externalPowerSeen && _gpuConnected.Value && !_externalPowerConnected.Value && !_gpuRemovalWritten)
+        {
+            _gpuRemovalWritten = true;
             RecordDecision("ground equipment", "gradual removal — GPU off (external power disconnected)");
             await _writer.WriteAsync(ProsimDataRefNames.GroundPower.Name, false).ConfigureAwait(false);
         }
@@ -247,7 +265,13 @@ public sealed class GsxGroundEquipmentService : IDisposable
         var ok = await _writer.WriteAsync(ProsimDataRefNames.Chocks.Name, true).ConfigureAwait(false);
         if (!skipGpuForApu)
         {
-            ok &= await _writer.WriteAsync(ProsimDataRefNames.GroundPower.Name, true).ConfigureAwait(false);
+            var gpuOk = await _writer.WriteAsync(ProsimDataRefNames.GroundPower.Name, true).ConfigureAwait(false);
+            ok &= gpuOk;
+            if (gpuOk)
+            {
+                // A re-placement after removal starts the falling-edge latch fresh.
+                ResetGpuLatch();
+            }
         }
 
         if (withPca)
@@ -284,6 +308,14 @@ public sealed class GsxGroundEquipmentService : IDisposable
             _removedThisSession = false; // chocks still down — retry on the next beacon edge
             RecordDecision("ground equipment", "chocks kept — park brake is not set");
         }
+    }
+
+    /// <summary>Forgets that external power was ever seen — the next gradual-removal pass
+    /// must observe a fresh rise before a fall may pull the GPU.</summary>
+    private void ResetGpuLatch()
+    {
+        _externalPowerSeen = false;
+        _gpuRemovalWritten = false;
     }
 
     private void RecordDecision(string action, string reason)

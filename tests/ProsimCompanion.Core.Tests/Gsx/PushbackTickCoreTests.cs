@@ -1,3 +1,4 @@
+using ProsimCompanion.Gsx.Automation;
 using ProsimCompanion.Gsx.Sync;
 using Xunit;
 
@@ -23,6 +24,33 @@ public sealed class PushbackTickCoreTests
             CloseDoorsOnFinal: true,
             RemoveJetwayStairsOnFinal: true,
             CallPushbackWhenTugAttachedMode: "afterDepartureServices");
+
+    /// <summary>2026-09-25 cold-and-dark report: the gradual-removal ticker must not run in
+    /// Preparation until departure services are complete — before that gate it fired the
+    /// instant ground prep placed the GPU.</summary>
+    [Fact]
+    public void GradualRemovalTicker_HoldsInPreparation_UntilDepartureComplete()
+    {
+        Assert.False(PushbackTickCore.ShouldTickGradualRemoval(
+            beaconSequenceEnabled: false, automationEnabled: true, departureComplete: false,
+            GsxAutomationPhase.Preparation));
+        Assert.False(PushbackTickCore.ShouldTickGradualRemoval(
+            beaconSequenceEnabled: false, automationEnabled: true, departureComplete: false,
+            GsxAutomationPhase.PushBack));
+    }
+
+    [Theory]
+    [InlineData(GsxAutomationPhase.Preparation)]
+    [InlineData(GsxAutomationPhase.PushBack)]
+    public void GradualRemovalTicker_RunsOnceDepartureComplete_InNonSequenceFlow(GsxAutomationPhase phase)
+    {
+        Assert.True(PushbackTickCore.ShouldTickGradualRemoval(
+            beaconSequenceEnabled: false, automationEnabled: true, departureComplete: true, phase));
+        Assert.False(PushbackTickCore.ShouldTickGradualRemoval(
+            beaconSequenceEnabled: true, automationEnabled: true, departureComplete: true, phase));
+        Assert.False(PushbackTickCore.ShouldTickGradualRemoval(
+            beaconSequenceEnabled: false, automationEnabled: false, departureComplete: true, phase));
+    }
 
     [Fact]
     public void TugDuringBoarding_LatchesOnce()
