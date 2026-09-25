@@ -77,7 +77,9 @@ public static class SettingsNav
         new("app", "Display & Flight Data", "settings/app", []),
         new("appearance", "Appearance", "settings/appearance", []),
         new("profiles", "Aircraft Profiles", "settings/profiles", []),
-        new("advanced", "Advanced", "settings/advanced",
+        // The group link must land on a real page: there is no /settings/advanced route, so
+        // the header opens the first section (clicking it gave a 404 until 2026-09-26).
+        new("advanced", "Advanced", "settings/flight-phase",
         [
             new("flightPhase", "Flight Phase Engine", "settings/flight-phase"),
             new("logs", "Logs", "settings/logs"),
