@@ -59,7 +59,10 @@ public static class Program
         var levels = new LoggingLevels();
         levels.Apply(ReadLoggingOptions(settingsFile));
         var logBuffer = new LogBufferStore();
-        Log.Logger = BuildLogger(levels, logBuffer, logDirectory);
+        // Warning+ mirror into the session JSONL: the sink exists from the first line, but
+        // only starts recording once the host has built the event log (target set below).
+        var sessionMirror = new SessionEventLogTarget();
+        Log.Logger = BuildLogger(levels, logBuffer, logDirectory, sessionMirror);
 
         // Last-words logging (issue #46: a crash left zero trace). These cannot stop a native
         // fault, but any managed unhandled exception — including background threads and
@@ -128,8 +131,9 @@ public static class Program
             // exists once the container has built the event log (resolving it here creates the
             // file a moment earlier than the bootstrap service would have — harmless).
             var build = web.Services.GetRequiredService<ProsimCompanion.Core.Diagnostics.IAppBuildInfo>();
-            var sessionFile = Path.GetFileName(
-                web.Services.GetRequiredService<ProsimCompanion.Core.EventLog.JsonlEventLog>().Path);
+            var eventLog = web.Services.GetRequiredService<ProsimCompanion.Core.EventLog.JsonlEventLog>();
+            var sessionFile = Path.GetFileName(eventLog.Path);
+            sessionMirror.Current = eventLog;
             Log.Information(
                 ProsimCompanion.Core.EventLog.SessionHeader.BannerTemplate,
                 build.Version, build.Commit ?? "no commit", build.Os, build.Runtime, sessionFile);
@@ -264,7 +268,8 @@ public static class Program
     private static Serilog.Core.Logger BuildLogger(
         LoggingLevels levels,
         LogBufferStore logBuffer,
-        string logDirectory)
+        string logDirectory,
+        SessionEventLogTarget sessionMirror)
     {
         var configuration = new LoggerConfiguration()
             .MinimumLevel.ControlledBy(levels.DefaultLevel)
@@ -275,7 +280,8 @@ public static class Program
                 Path.Combine(logDirectory, "ProsimCompanion-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14)
-            .WriteTo.Sink(new LogBufferSink(logBuffer));
+            .WriteTo.Sink(new LogBufferSink(logBuffer))
+            .WriteTo.Sink(new SessionEventLogSink(sessionMirror, () => levels.MirrorToSession));
 
         foreach (var (source, levelSwitch) in levels.SourceSwitches)
         {

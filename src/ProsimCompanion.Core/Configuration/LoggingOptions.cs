@@ -23,4 +23,25 @@ public sealed class LoggingOptions : IOptionSection
     /// separate wire-trace CMTrace file. Off by default — verbose by design.
     /// </summary>
     public bool WireTrace { get; set; }
+
+    /// <summary>
+    /// Which log events are mirrored into the session JSONL as <c>log.warning</c> /
+    /// <c>log.error</c> / <c>log.fatal</c> events (SessionEventLogSink), making the session
+    /// file the single evidence stream for triage. Warning-and-above by default; Information
+    /// is never mirrored.
+    /// </summary>
+    public LogMirrorLevel MirrorToSession { get; set; } = LogMirrorLevel.WarningAndAbove;
+}
+
+/// <summary>Threshold for mirroring log events into the session event log.</summary>
+public enum LogMirrorLevel
+{
+    /// <summary>No log events reach the session file.</summary>
+    Off,
+
+    /// <summary>Warning, Error and Fatal (the default).</summary>
+    WarningAndAbove,
+
+    /// <summary>Error and Fatal only.</summary>
+    ErrorAndAbove,
 }

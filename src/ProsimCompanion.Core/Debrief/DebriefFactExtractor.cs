@@ -42,6 +42,10 @@ public interface IDebriefFactExtractor
 /// (emitted by the briefing service when a briefing resolves).</item>
 /// <item><c>fuel.check</c> { fobKg } — first/last/used. No producer exists in this codebase
 /// yet; the mapping is kept so the fuel lines light up when one arrives.</item>
+/// <item><c>log.warning</c> / <c>log.error</c> / <c>log.fatal</c> { source, component,
+/// message, exceptionType, exceptionMessage, stackTop, threadId } — Warning-and-above log
+/// events mirrored by the App's SessionEventLogSink (since 0.5.0). Not read here: the
+/// support reducer clusters them; the debrief ignores them.</item>
 /// </list>
 /// </summary>
 public sealed class DebriefFactExtractor : IDebriefFactExtractor

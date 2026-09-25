@@ -32,6 +32,7 @@ public sealed class LoggingLevels
 
     private readonly Dictionary<string, LoggingLevelSwitch> _switches;
     private volatile bool _wireTraceEnabled;
+    private volatile LogMirrorLevel _mirrorToSession = LogMirrorLevel.WarningAndAbove;
 
     public LoggingLevels()
     {
@@ -54,6 +55,10 @@ public sealed class LoggingLevels
 
     /// <summary>Current wire-trace flag (see <see cref="Core.Logging.IWireTrace"/>).</summary>
     public bool WireTraceEnabled => _wireTraceEnabled;
+
+    /// <summary>Current session-mirror threshold (see <see cref="SessionEventLogSink"/>); the
+    /// sink reads this live so a settings change applies without a restart.</summary>
+    public LogMirrorLevel MirrorToSession => _mirrorToSession;
 
     /// <summary>Applies options to the live switches. Unknown override keys are ignored (the
     /// switch set is fixed at the subsystem-namespace granularity).</summary>
@@ -79,6 +84,7 @@ public sealed class LoggingLevels
         }
 
         _wireTraceEnabled = options.WireTrace;
+        _mirrorToSession = options.MirrorToSession;
     }
 
     private static LogEventLevel ParseLevel(string? text, LogEventLevel fallback)

@@ -1,6 +1,7 @@
 @page "/settings/logs"
 @page "/logs"
 @layout SettingsLayout
+@using System.Text.Json
 @using ProsimCompanion.Core.Logging
 @implements IDisposable
 @inject LogBufferStore Buffer
@@ -22,6 +23,11 @@
                    Hint="Raw GSX / gateway frames to a separate CMTrace file"
                    Value="@LoggingMonitor.CurrentValue.WireTrace"
                    ValueChanged="SetWireTrace" />
+        <SelectField Label="Mirror to session log"
+                     Hint="Copies warnings and errors into the session event file, in order with the flight events, so one file tells the whole story"
+                     Options="MirrorOptions"
+                     Value="@MirrorValue"
+                     ValueChanged="SetMirrorToSession" />
         <BoolField Label="Telemetry API"
                    Hint="Read-only: serves session event logs and log tails over the web server for post-flight checks. Other devices need the access token"
                    Value="@TelemetryMonitor.CurrentValue.Enabled"
@@ -123,6 +129,24 @@
 
     private void SetWireTrace(bool enabled)
         => Writer.Set<LoggingOptions, bool>(o => o.WireTrace, enabled);
+
+    private static readonly IReadOnlyList<(string, string)> MirrorOptions =
+    [
+        ("warningAndAbove", "Warnings and errors"),
+        ("errorAndAbove", "Errors only"),
+        ("off", "Off"),
+    ];
+
+    private string MirrorValue
+        => JsonNamingPolicy.CamelCase.ConvertName(LoggingMonitor.CurrentValue.MirrorToSession.ToString());
+
+    private void SetMirrorToSession(string value)
+    {
+        if (Enum.TryParse<LogMirrorLevel>(value, ignoreCase: true, out var level))
+        {
+            Writer.Set<LoggingOptions, LogMirrorLevel>(o => o.MirrorToSession, level);
+        }
+    }
 
     // Moved here from App Settings (ADR-0010): it is a log-serving switch, and this page is
     // the no-dirty-bar page, so it applies live like the other capture controls.
