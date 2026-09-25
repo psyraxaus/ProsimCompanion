@@ -98,6 +98,8 @@ Workflow, verdict semantics and reporting rules: `docs/agents/flight-verificatio
 Behavioural fixes ship with a probe in the same change. Phase-engine fixes additionally ship
 with a replayed recording (`FlightReplay` over the session's `flight-sample` events; see
 "Replaying a flight" in the workflow doc) — never a threshold guessed from log lines.
+A user-sent diagnostics bundle (Logs page → "Export diagnostics") is reduced with
+`tools/ProsimCompanion.Reduce`; contents, CLI and report schema: `docs/agents/support-bundle.md`.
 
 ### Domain docs
 

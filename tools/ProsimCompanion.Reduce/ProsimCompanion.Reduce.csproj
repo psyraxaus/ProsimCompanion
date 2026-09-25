@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Plain net10.0 on purpose: this tool runs on the (Linux) support host next to n8n, so
+         the support report and the in-app debrief come from the SAME Core reducer. The app
+         stays Windows-only; only Core and this tool need to be portable. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>reduce</AssemblyName>
+    <RootNamespace>ProsimCompanion.Reduce</RootNamespace>
+    <!-- The solution pins x64 for SimConnect; a CLI has no such constraint and AnyCPU keeps
+         `dotnet run` / `dotnet publish -r linux-x64` straightforward. -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ProsimCompanion.Core\ProsimCompanion.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The probe catalog ships inside the tool so a bare `reduce` works; the "probes" option
+         overrides it when the pipeline has a newer catalog than the build. -->
+    <EmbeddedResource Include="..\..\docs\agents\verification-probes.json" LogicalName="verification-probes.json" />
+  </ItemGroup>
+
+</Project>

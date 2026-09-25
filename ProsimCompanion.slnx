@@ -13,4 +13,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/ProsimCompanion.Core.Tests/ProsimCompanion.Core.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/ProsimCompanion.Reduce/ProsimCompanion.Reduce.csproj" />
+  </Folder>
 </Solution>

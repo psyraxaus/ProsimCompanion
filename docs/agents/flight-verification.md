@@ -12,6 +12,7 @@ sim time goes into flying, not log spelunking. The probe catalog is
 | App log (CMTrace) | `%LOCALAPPDATA%\ProsimCompanion\logs\ProsimCompanion-<date>.log` | `type="1"` info, `"2"` warning, `"3"` error. |
 | Wire trace | `...\logs\ProsimCompanion-wire-<date>.log` | GSX frames only; often disabled and can be huge — consult only when a probe names it. |
 | Telemetry API | `http://<host>:5320/api/telemetry/*` (issue #94) | Same files over HTTP, token-gated — lets the agent pull evidence from the sim PC without file copying, including mid-flight. |
+| User diagnostics bundle | Logs page → "Export diagnostics" (`/api/diagnostics/bundle`) | The user-sent zip: newest sessions + logs + redacted settings + version banner with a hash manifest. `tools/ProsimCompanion.Reduce` turns it into the support report and pre-evaluates the machine-checkable probes. See [`support-bundle.md`](support-bundle.md). |
 
 When the sim PC is remote and the telemetry API is unavailable, the fallback is what we did
 on 2026-08-17: copy `logs/` + `sessions/` into the repo's `scratchpad/` and point the agent

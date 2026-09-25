@@ -34,6 +34,8 @@
     <ProjectReference Include="..\..\src\ProsimCompanion.Prosim\ProsimCompanion.Prosim.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Sim\ProsimCompanion.Sim.csproj" />
     <ProjectReference Include="..\..\src\ProsimCompanion.Speech\ProsimCompanion.Speech.csproj" />
+    <!-- The support reducer CLI: its report shape is snapshotted over the recordings below. -->
+    <ProjectReference Include="..\..\tools\ProsimCompanion.Reduce\ProsimCompanion.Reduce.csproj" />
   </ItemGroup>
 
 </Project>
