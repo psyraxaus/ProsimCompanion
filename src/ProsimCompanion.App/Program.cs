@@ -123,6 +123,17 @@ public static class Program
 
             var web = BuildWebHost(args, settingsPath, settingsFile, levels, logBuffer, wireTrace);
 
+            // The version banner: CMTrace lines carry no properties, so this one line is how a
+            // log file gets attributed to a build. It needs the session file name, which only
+            // exists once the container has built the event log (resolving it here creates the
+            // file a moment earlier than the bootstrap service would have — harmless).
+            var build = web.Services.GetRequiredService<ProsimCompanion.Core.Diagnostics.IAppBuildInfo>();
+            var sessionFile = Path.GetFileName(
+                web.Services.GetRequiredService<ProsimCompanion.Core.EventLog.JsonlEventLog>().Path);
+            Log.Information(
+                ProsimCompanion.Core.EventLog.SessionHeader.BannerTemplate,
+                build.Version, build.Commit ?? "no commit", build.Os, build.Runtime, sessionFile);
+
             // Self-document every registered option section in settings.json (missing keys
             // only; existing values are never touched). Runs after the host exists because the
             // section list IS the DI registry (campaign #84) — safe after binding, since a key

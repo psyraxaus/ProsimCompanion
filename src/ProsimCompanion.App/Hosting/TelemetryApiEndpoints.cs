@@ -1,5 +1,4 @@
 using System.IO;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
@@ -7,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Diagnostics;
 
 namespace ProsimCompanion.App.Hosting;
 
@@ -58,9 +58,10 @@ public static class TelemetryApiEndpoints
     private static IResult GetSummary(
         HttpContext context,
         IOptionsMonitor<TelemetryApiOptions> apiOptions,
-        IOptionsMonitor<WebUiOptions> webUiOptions)
+        IOptionsMonitor<WebUiOptions> webUiOptions,
+        IAppBuildInfo build)
         => Gate(context, apiOptions, webUiOptions) ?? Results.Json(
-            BuildSummary(ListFiles(UserDataPaths.Sessions), ListFiles(UserDataPaths.Logs)),
+            BuildSummary(build, ListFiles(UserDataPaths.Sessions), ListFiles(UserDataPaths.Logs)),
             Json);
 
     private static IResult ListSessions(
@@ -140,17 +141,16 @@ public static class TelemetryApiEndpoints
 
     /// <summary>Pure over the listings — exposed for tests.</summary>
     public static TelemetrySummary BuildSummary(
+        IAppBuildInfo build,
         IReadOnlyList<TelemetryFileView> sessions,
         IReadOnlyList<TelemetryFileView> logs)
     {
+        ArgumentNullException.ThrowIfNull(build);
         ArgumentNullException.ThrowIfNull(sessions);
         ArgumentNullException.ThrowIfNull(logs);
 
-        var version = typeof(TelemetryApiEndpoints).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
-        var plus = version.IndexOf('+', StringComparison.Ordinal);
         return new TelemetrySummary(
-            plus > 0 ? version[..plus] : version,
+            build.Version,
             sessions.Count,
             sessions.FirstOrDefault(),
             // The wire trace also lives here — the newest APP log is the one the probes read.

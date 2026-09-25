@@ -113,13 +113,14 @@ public sealed class TelemetryApiTests : IDisposable
             new TelemetryFileView("ProsimCompanion-20260818.log", 42, DateTimeOffset.UtcNow.AddMinutes(-1)),
         };
 
-        var summary = TelemetryApiEndpoints.BuildSummary(sessions, logs);
+        var summary = TelemetryApiEndpoints.BuildSummary(
+            ProsimCompanion.Core.Diagnostics.AppBuildInfo.Create("0.5.0-rc.2+abc123", ".NET", "Windows", "X64"), sessions, logs);
 
         Assert.Equal(2, summary.SessionFileCount);
         Assert.Equal("session-b.jsonl", summary.CurrentSession?.Name);
         // The wire trace is newer but the APP log is what the probes read first.
         Assert.Equal("ProsimCompanion-20260818.log", summary.CurrentLog?.Name);
-        Assert.False(string.IsNullOrWhiteSpace(summary.Version));
+        Assert.Equal("0.5.0-rc.2", summary.Version);
         Assert.DoesNotContain('+', summary.Version);
     }
 }

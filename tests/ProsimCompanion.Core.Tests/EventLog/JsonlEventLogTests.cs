@@ -46,6 +46,28 @@ public sealed class JsonlEventLogTests : IDisposable
     }
 
     [Fact]
+    public async Task StartNewSession_RaisesRotated_AndAHandlerRecordLandsFirstInTheNewFile()
+    {
+        var log = new JsonlEventLog(_dir, NullLogger<JsonlEventLog>.Instance);
+        string? rotatedTo = null;
+        log.SessionRotated += (_, e) =>
+        {
+            rotatedTo = e.NewPath;
+            log.Record("session-rotated", new { file = Path.GetFileName(e.NewPath) });
+        };
+
+        log.Record("leg-one-event");
+        log.StartNewSession();
+        log.Record("leg-two-event");
+        await log.DisposeAsync();
+
+        Assert.Equal(log.Path, rotatedTo);
+        var lines = File.ReadAllLines(log.Path);
+        Assert.Contains("session-rotated", lines[0], StringComparison.Ordinal);
+        Assert.Contains("leg-two-event", lines[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task StartNewSession_SameSecond_NeverCollides()
     {
         var log = new JsonlEventLog(_dir, NullLogger<JsonlEventLog>.Instance);

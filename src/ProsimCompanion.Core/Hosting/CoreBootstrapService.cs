@@ -1,4 +1,8 @@
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Diagnostics;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Profiles;
@@ -8,7 +12,8 @@ namespace ProsimCompanion.Core.Hosting;
 
 /// <summary>
 /// Starts the core infrastructure (flight state engine) and mirrors the interesting moments —
-/// phase transitions, subsystem connection changes — into the session event log.
+/// phase transitions, subsystem connection changes — into the session event log. Also owns the
+/// session header: every session file (initial or rotated) opens with the build that wrote it.
 /// </summary>
 public sealed class CoreBootstrapService : IHostedService
 {
@@ -17,6 +22,9 @@ public sealed class CoreBootstrapService : IHostedService
     private readonly JsonlEventLog _eventLog;
     private readonly AircraftProfileService _profiles;
     private readonly Gate.ArrivalGateCoordinator _arrivalGate;
+    private readonly IAppBuildInfo _build;
+    private readonly IOptionsMonitor<FlightStateOptions> _flightStateOptions;
+    private readonly ILogger<CoreBootstrapService> _logger;
 
     public CoreBootstrapService(
         FlightStateEngine flightState,
@@ -27,7 +35,10 @@ public sealed class CoreBootstrapService : IHostedService
         // GSX edge that can fire before any web page has resolved it; the arrival-gate
         // coordinator must hear the cruise transition even with no browser open).
         Deice.DeiceHoldoverService deiceHoldover,
-        Gate.ArrivalGateCoordinator arrivalGate)
+        Gate.ArrivalGateCoordinator arrivalGate,
+        IAppBuildInfo build,
+        IOptionsMonitor<FlightStateOptions> flightStateOptions,
+        ILogger<CoreBootstrapService> logger)
     {
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(status);
@@ -35,17 +46,24 @@ public sealed class CoreBootstrapService : IHostedService
         ArgumentNullException.ThrowIfNull(profiles);
         ArgumentNullException.ThrowIfNull(deiceHoldover);
         ArgumentNullException.ThrowIfNull(arrivalGate);
+        ArgumentNullException.ThrowIfNull(build);
+        ArgumentNullException.ThrowIfNull(flightStateOptions);
+        ArgumentNullException.ThrowIfNull(logger);
 
         _flightState = flightState;
         _status = status;
         _eventLog = eventLog;
         _profiles = profiles;
         _arrivalGate = arrivalGate;
+        _build = build;
+        _flightStateOptions = flightStateOptions;
+        _logger = logger;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _eventLog.Record("session-started");
+        _eventLog.Record(SessionHeader.StartedEvent, BuildHeader(_eventLog.Path));
+        _eventLog.SessionRotated += OnSessionRotated;
         _flightState.PhaseChanged += OnPhaseChanged;
         _status.Changed += OnStatusChanged;
         _profiles.Changed += OnProfileChanged;
@@ -74,11 +92,32 @@ public sealed class CoreBootstrapService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
+        _eventLog.SessionRotated -= OnSessionRotated;
         _flightState.PhaseChanged -= OnPhaseChanged;
         _status.Changed -= OnStatusChanged;
         _profiles.Changed -= OnProfileChanged;
         _eventLog.Record("session-ended");
         return Task.CompletedTask;
+    }
+
+    /// <summary>The version stamp for a session file. Exposed for tests.</summary>
+    public SessionHeader BuildHeader(string sessionPath)
+        => SessionHeader.Create(
+            _build,
+            sessionPath,
+            _flightStateOptions.CurrentValue.SampleIntervalSeconds,
+            _profiles.ActiveProfile?.Name);
+
+    /// <summary>A rotated file (company day mode) gets the same header as its first line, and
+    /// the CMTrace log gets the banner again so a daily file that started mid-session still
+    /// names the build near the top of the day.</summary>
+    private void OnSessionRotated(object? sender, SessionRotatedEventArgs e)
+    {
+        var header = BuildHeader(e.NewPath);
+        _eventLog.Record(SessionHeader.RotatedEvent, header);
+        _logger.LogInformation(
+            SessionHeader.BannerTemplate,
+            header.AppVersion, header.Commit ?? "no commit", header.Os, header.Runtime, header.SessionFile);
     }
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)

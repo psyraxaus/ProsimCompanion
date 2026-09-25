@@ -21,9 +21,14 @@ at them.
 
 1. Identify the session files covering the flight (there may be several if the app was
    restarted — restarts are themselves evidence; see probe `crash-without-trace`).
-2. Run the `phase-commit-evidence` probe **first**: it doubles as the build canary. If the
-   `phase-changed` payloads lack the full field set, the sim PC is running an old build and
-   most other probes are meaningless — say so instead of reporting false failures.
+2. Read the build from the first line of each session file **first**: since 0.5.0 the
+   `session-started` (and `session-rotated`) payload carries `appVersion`, `commit`,
+   `runtime`, `os` and the sample interval, and the CMTrace log opens with the matching
+   `ProsimCompanion <version> (<commit>) starting on ...` banner. A first line with no
+   payload means an older build ("unversioned") — fall back to the `phase-commit-evidence`
+   probe as the canary. If the `phase-changed` payloads lack the full field set, the sim PC
+   is running an old build and most other probes are meaningless — say so instead of
+   reporting false failures.
 3. Evaluate every probe whose `state` is `open` or `closed-regression-watch`, honouring the
    `kind` semantics defined at the top of the probe file. Three verdicts per probe:
    **pass** (behaviour observed / signature absent while the trigger occurred),

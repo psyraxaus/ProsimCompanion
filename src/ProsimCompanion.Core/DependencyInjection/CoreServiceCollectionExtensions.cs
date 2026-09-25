@@ -66,6 +66,10 @@ public static class CoreServiceCollectionExtensions
         // the weather-card refresh cadence, edited on Display & Flight Data.
         services.AddOptionSection<FlightStatusOptions>(configuration);
 
+        // The running build, resolved once: session headers, the log banner, the telemetry
+        // summary, the update banner and the diagnostics bundle all stamp from this one object.
+        services.AddSingleton<Diagnostics.IAppBuildInfo>(Diagnostics.AppBuildInfo.Current);
+
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         // The typed settings write path — pages and services write through this, never through
         // hand-written section/key strings.

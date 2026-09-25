@@ -16,11 +16,4 @@ public sealed class UpdateCheckServiceTests
     [InlineData("", "0.1.0", false)]
     public void IsNewer_ComparesSemverTags(string tag, string current, bool expected)
         => Assert.Equal(expected, UpdateCheckService.IsNewer(tag, current));
-
-    [Fact]
-    public void CurrentVersion_IsAParseableVersion()
-    {
-        var current = UpdateCheckService.CurrentVersion;
-        Assert.True(Version.TryParse(current.Split('-')[0], out _), $"'{current}' should parse");
-    }
 }

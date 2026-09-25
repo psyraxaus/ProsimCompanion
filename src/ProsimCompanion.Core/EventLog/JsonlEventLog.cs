@@ -59,6 +59,14 @@ public sealed class JsonlEventLog : IAsyncDisposable
         _writer = Task.Run(() => WriteLoopAsync(initialPath));
     }
 
+    /// <summary>
+    /// Raised synchronously inside <see cref="StartNewSession"/> after the rotation is queued,
+    /// with the new file's path. Anything a handler records lands in the NEW file — which is
+    /// how the session header becomes the first line of a rotated file (the bootstrap service
+    /// writes <c>session-rotated</c> and re-logs the version banner from here).
+    /// </summary>
+    public event EventHandler<SessionRotatedEventArgs>? SessionRotated;
+
     /// <summary>Path of the current session's log file (changes on <see cref="StartNewSession"/>).</summary>
     public string Path
     {
@@ -92,6 +100,7 @@ public sealed class JsonlEventLog : IAsyncDisposable
             }
 
             _logger.LogInformation("Event log rotated to {Session}", System.IO.Path.GetFileName(newPath));
+            SessionRotated?.Invoke(this, new SessionRotatedEventArgs(newPath));
         }
         catch (Exception ex)
         {
@@ -228,4 +237,17 @@ public sealed class JsonlEventLog : IAsyncDisposable
     private sealed record RotateTo(string Path);
 
     private sealed record EventEnvelope(DateTimeOffset Timestamp, string Type, object? Payload);
+}
+
+/// <summary>Argument of <see cref="JsonlEventLog.SessionRotated"/>: the file that now receives events.</summary>
+public sealed class SessionRotatedEventArgs : EventArgs
+{
+    public SessionRotatedEventArgs(string newPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(newPath);
+        NewPath = newPath;
+    }
+
+    /// <summary>Full path of the new session file.</summary>
+    public string NewPath { get; }
 }

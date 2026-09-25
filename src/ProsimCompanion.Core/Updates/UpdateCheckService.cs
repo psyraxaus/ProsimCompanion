@@ -1,10 +1,10 @@
 using System.Net.Http;
-using System.Reflection;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Diagnostics;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Updates;
@@ -26,40 +26,30 @@ public sealed class UpdateCheckService : BackgroundService
     private readonly UpdateStore _store;
     private readonly IOptionsMonitor<UpdateCheckOptions> _options;
     private readonly ILogger<UpdateCheckService> _logger;
+    private readonly IAppBuildInfo _build;
     private readonly HttpClient _http;
 
     public UpdateCheckService(
         UpdateStore store,
         IOptionsMonitor<UpdateCheckOptions> options,
-        ILogger<UpdateCheckService> logger)
+        ILogger<UpdateCheckService> logger,
+        IAppBuildInfo build)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(build);
 
         _store = store;
         _options = options;
         _logger = logger;
+        _build = build;
         _http = new HttpClient(new SocketsHttpHandler { UseProxy = false })
         {
             Timeout = TimeSpan.FromSeconds(10),
         };
         _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github.v3+json");
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("ProsimCompanion");
-    }
-
-    /// <summary>The running app's version (assembly informational version, any "+commit"
-    /// build-metadata suffix stripped).</summary>
-    public static string CurrentVersion
-    {
-        get
-        {
-            var informational = typeof(UpdateCheckService).Assembly
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-            var version = informational ?? typeof(UpdateCheckService).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
-            var metadata = version.IndexOf('+', StringComparison.Ordinal);
-            return metadata > 0 ? version[..metadata] : version;
-        }
     }
 
     /// <summary>Pure comparison core (tested without the network): true when
@@ -123,7 +113,7 @@ public sealed class UpdateCheckService : BackgroundService
                 return;
             }
 
-            var current = CurrentVersion;
+            var current = _build.Version;
             var available = IsNewer(tag, current);
             _store.Set(new UpdateSnapshot(
                 available,
