@@ -65,10 +65,13 @@ public static class CoreServiceCollectionExtensions
         // Flight Status hero widgets (owner request 2026-09-22): gate monitor thresholds and
         // the weather-card refresh cadence, edited on Display & Flight Data.
         services.AddOptionSection<FlightStatusOptions>(configuration);
+        // Support bundle sizing (Logs page, "Export diagnostics").
+        services.AddOptionSection<DiagnosticsOptions>(configuration);
 
         // The running build, resolved once: session headers, the log banner, the telemetry
         // summary, the update banner and the diagnostics bundle all stamp from this one object.
         services.AddSingleton<Diagnostics.IAppBuildInfo>(Diagnostics.AppBuildInfo.Current);
+        services.AddSingleton<Diagnostics.DiagnosticsBundleBuilder>();
 
         services.AddSingleton(new JsonSettingsFile(settingsFilePath));
         // The typed settings write path — pages and services write through this, never through

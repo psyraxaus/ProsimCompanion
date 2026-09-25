@@ -2,11 +2,15 @@
 @page "/logs"
 @layout SettingsLayout
 @using System.Text.Json
+@using Microsoft.JSInterop
 @using ProsimCompanion.Core.Logging
 @implements IDisposable
 @inject LogBufferStore Buffer
 @inject IOptionsMonitor<LoggingOptions> LoggingMonitor
 @inject IOptionsMonitor<TelemetryApiOptions> TelemetryMonitor
+@inject IOptionsMonitor<DiagnosticsOptions> DiagnosticsMonitor
+@inject ProsimCompanion.Core.Diagnostics.IAppBuildInfo Build
+@inject IJSRuntime JS
 @inject SettingsWriter Writer
 
 <PageTitle>Logs — ProsimCompanion</PageTitle>
@@ -36,6 +40,33 @@
             Session totals — warnings: @Buffer.WarningCount · errors: @Buffer.ErrorCount.
             The rolling files in <code>%LOCALAPPDATA%\ProsimCompanion\logs</code> are CMTrace
             format for live viewing in CMTrace.
+        </div>
+    </Section>
+
+    <Section Title="Support" Hint="One zip with everything a bug report needs">
+        <NumberField Label="Session files"
+                     Hint="Newest session event logs to include"
+                     TValue="int" Min="@DiagnosticsOptions.MinSessions.ToString()" Max="@DiagnosticsOptions.MaxSessions.ToString()" Step="1"
+                     Value="@DiagnosticsMonitor.CurrentValue.BundleSessionCount"
+                     ValueChanged="SetBundleSessions" />
+        <NumberField Label="Log days"
+                     Hint="Newest daily app logs to include"
+                     TValue="int" Min="@DiagnosticsOptions.MinLogDays.ToString()" Max="@DiagnosticsOptions.MaxLogDays.ToString()" Step="1"
+                     Value="@DiagnosticsMonitor.CurrentValue.BundleLogDays"
+                     ValueChanged="SetBundleLogDays" />
+        <BoolField Label="Include wire trace"
+                   Hint="Raw GSX / gateway frames for the same days — large; only when asked for"
+                   Value="@DiagnosticsMonitor.CurrentValue.IncludeWireTrace"
+                   ValueChanged="SetIncludeWireTrace" />
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+            <a class="btn primary" href="@BundleUrl" download>Export diagnostics</a>
+            <button type="button" class="btn secondary" @onclick="CopyVersionAsync">@_copyLabel</button>
+        </div>
+        <div class="field-hint" style="margin-top:6px;">
+            The bundle holds the newest session event logs, the app logs, a copy of
+            settings.json with every key and token redacted, and the version banner, with a
+            manifest of file hashes. Attach it to a GitHub issue on psyraxaus/ProsimCompanion;
+            "Copy version" puts <code>@Build.Describe()</code> on the clipboard for the issue text.
         </div>
     </Section>
 
@@ -152,6 +183,48 @@
     // the no-dirty-bar page, so it applies live like the other capture controls.
     private void SetTelemetryApi(bool enabled)
         => Writer.Set<TelemetryApiOptions, bool>(o => o.Enabled, enabled);
+
+    private void SetBundleSessions(int count)
+        => Writer.Set<DiagnosticsOptions, int>(
+            o => o.BundleSessionCount, Math.Clamp(count, DiagnosticsOptions.MinSessions, DiagnosticsOptions.MaxSessions));
+
+    private void SetBundleLogDays(int days)
+        => Writer.Set<DiagnosticsOptions, int>(
+            o => o.BundleLogDays, Math.Clamp(days, DiagnosticsOptions.MinLogDays, DiagnosticsOptions.MaxLogDays));
+
+    private void SetIncludeWireTrace(bool include)
+        => Writer.Set<DiagnosticsOptions, bool>(o => o.IncludeWireTrace, include);
+
+    // Relative so the onboarded browser cookie authenticates — no token in the URL, and
+    // the link works through whichever host name the tablet used to reach us.
+    private string BundleUrl
+    {
+        get
+        {
+            var o = DiagnosticsMonitor.CurrentValue;
+            return $"api/diagnostics/bundle?sessions={o.BundleSessionCount}&days={o.BundleLogDays}&wire={(o.IncludeWireTrace ? "true" : "false")}";
+        }
+    }
+
+    private string _copyLabel = "Copy version";
+
+    private async Task CopyVersionAsync()
+    {
+        bool ok;
+        try
+        {
+            ok = await JS.InvokeAsync<bool>("prosimCompanion.copyText", Build.Describe());
+        }
+        catch (JSException)
+        {
+            ok = false;
+        }
+
+        _copyLabel = ok ? "Copied" : "Copy failed";
+        StateHasChanged();
+        await Task.Delay(1500);
+        _copyLabel = "Copy version";
+    }
 
     protected override void OnInitialized()
     {

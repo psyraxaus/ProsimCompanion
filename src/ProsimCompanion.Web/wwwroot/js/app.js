@@ -39,6 +39,32 @@
     window.addEventListener("resize", fit);
   };
 
+  // Clipboard for the Logs page "Copy version" button (users paste the banner into GitHub
+  // issues). navigator.clipboard needs a secure context; a LAN http:// tablet falls back to
+  // the legacy execCommand path. Returns whether the copy succeeded.
+  window.prosimCompanion.copyText = async function (text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) { /* fall through */ }
+    try {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(area);
+      return ok;
+    } catch (e) {
+      return false;
+    }
+  };
+
   // Opens (or focuses) the pop-out Flight Monitor window. Same origin, so the onboarded
   // browser cookie carries over; a popup that the browser blocked falls back to a tab.
   window.prosimCompanion.openMonitor = function () {
