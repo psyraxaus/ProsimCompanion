@@ -61,10 +61,11 @@ public sealed class HumanizeOptions
 
 /// <summary>
 /// Settings for the voice First Officer pillar's speech foundations: the arbiter, the TTS
-/// provider chain (fixed order Kokoro → Google → WinRT → SAPI5, docs/integrations/speech.md)
-/// and audio playback. Every provider is optional — the router skips unconfigured or failing
-/// providers, and <see cref="LocalOnly"/> is the hard switch that keeps synthesis off the
-/// network entirely (Google is then excluded from every path, including voice listing).
+/// provider chain (fixed order Kokoro → ElevenLabs → Google → WinRT → SAPI5,
+/// docs/integrations/speech.md) and audio playback. Every provider is optional — the router
+/// skips unconfigured or failing providers, and <see cref="LocalOnly"/> is the hard switch
+/// that keeps synthesis off the network entirely (ElevenLabs and Google are then excluded
+/// from every path, including voice listing).
 /// </summary>
 /// <summary>HTTP shape of the LAN speech-recognition server (<c>speech.asrApi</c>).</summary>
 public enum AsrApiKind
@@ -97,8 +98,8 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Human-like pacing for MCDU/FCU button sequences.</summary>
     public HumanizeOptions Humanize { get; set; } = new();
 
-    /// <summary>Hard "local only" mode: network TTS providers (Kokoro, Google) are excluded
-    /// regardless of their own configuration.</summary>
+    /// <summary>Hard "local only" mode: network TTS providers (Kokoro, ElevenLabs, Google)
+    /// are excluded regardless of their own configuration.</summary>
     public bool LocalOnly { get; set; }
 
     // ---- Sterile cockpit (predecessor defaults; lived in the SOP profile in Prosim2FO —
@@ -163,6 +164,60 @@ public sealed class SpeechOptions : IOptionSection
     /// offline voices. Google's free tier is 1M chars — the margin keeps an overshoot
     /// harmless. 0 disables enforcement (the predecessor tracked but never enforced).</summary>
     public int GoogleMonthlyCharBudget { get; set; } = 950_000;
+
+    // ---- ElevenLabs (paid cloud neural TTS) ----
+
+    /// <summary>ElevenLabs API key (sent as the <c>xi-api-key</c> header); empty disables the
+    /// provider. Never logged. DPAPI-protected in the file like the other keys.</summary>
+    public string ElevenLabsApiKey { get; set; } = "";
+
+    /// <summary>API base URL; overridable for proxies or regional endpoints.</summary>
+    public string ElevenLabsBaseUrl { get; set; } = "https://api.elevenlabs.io";
+
+    /// <summary>ElevenLabs <c>voice_id</c> for the First Officer (from <c>GET /v2/voices</c>,
+    /// or the "Fetch voices" picker on the settings page). No default — the user picks; the
+    /// provider stays unconfigured until both the key and a voice id are set.</summary>
+    public string ElevenLabsVoiceId { get; set; } = "";
+
+    /// <summary>Model id: <c>eleven_flash_v2_5</c> (~75 ms, half the credit cost, the
+    /// default) or <c>eleven_v3</c> (most expressive, slower, full price).</summary>
+    public string ElevenLabsModelId { get; set; } = "eleven_flash_v2_5";
+
+    /// <summary>Output format requested from the API. <c>mp3_44100_128</c> works on every
+    /// plan including Free and is decoded locally to WAV (NAudio / Media Foundation);
+    /// <c>pcm_24000</c> needs a paid plan but skips the decode — raw PCM is wrapped in a WAV
+    /// header. The format rides in the disk-cache key, so changing it never serves stale
+    /// audio.</summary>
+    public string ElevenLabsOutputFormat { get; set; } = "mp3_44100_128";
+
+    /// <summary>Voice stability 0..1 — high-ish so the FO sounds consistent call to call.</summary>
+    public double ElevenLabsStability { get; set; } = 0.6;
+
+    /// <summary>Similarity boost 0..1 (how closely the output tracks the source voice).</summary>
+    public double ElevenLabsSimilarityBoost { get; set; } = 0.75;
+
+    /// <summary>Speaking rate; ElevenLabs accepts 0.7–1.2, 1.0 is the voice's natural pace.</summary>
+    public double ElevenLabsSpeed { get; set; } = 1.0;
+
+    /// <summary>Whole-request timeout (floor 200 ms at use). A cloud hop, so looser than
+    /// Kokoro's LAN budget; the router still falls through to the next voice on expiry.</summary>
+    public int ElevenLabsTimeoutMs { get; set; } = 8000;
+
+    /// <summary>Monthly character budget enforced BEFORE each call so the chain falls through
+    /// to offline voices instead of billing. Plan-relative: Free 10k credits/month, Starter
+    /// 30k, Creator 121k (Flash v2.5 is billed at roughly half a credit per character). The
+    /// default leaves a margin under the Free allowance. 0 disables enforcement.</summary>
+    public int ElevenLabsMonthlyCharBudget { get; set; } = 9_000;
+
+    /// <summary>Longest text sent in one request; the Free plan caps a generation at about
+    /// 2 500 characters and answers longer texts with an error. A longer utterance is refused
+    /// locally (no credits spent) and falls through to the next provider. 0 disables the cap.</summary>
+    public int ElevenLabsMaxCharsPerRequest { get; set; } = 2_500;
+
+    /// <summary>Send <c>apply_text_normalization=auto</c> instead of <c>off</c>. Off by
+    /// default: the arbiter already emits spoken-form phraseology ("flight level three five
+    /// zero") and ElevenLabs' normaliser mangles aviation tokens.</summary>
+    public bool ElevenLabsTextNormalization { get; set; }
 
     // ---- Windows fallbacks ----
 

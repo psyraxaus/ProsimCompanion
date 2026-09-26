@@ -64,8 +64,10 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - Cabin crew (a "cabin secure" that arrives a realistic, pax-scaled while after the doors
   close — sometimes at the holding point) and company/ACARS immersion, tech log & MEL with
   voice dialogues, pilot logbook, spoken post-flight debrief, multi-leg company day mode
-- TTS chain (Kokoro local neural → Google Chirp HD → Windows voices) with caching and an
-  intercom filter; LAN faster-whisper or offline recognition; PTT on keyboard or joystick
+- TTS chain (Kokoro local neural → ElevenLabs → Google Chirp HD → Windows voices) with caching
+  and an intercom filter; LAN faster-whisper or offline recognition; PTT on keyboard or joystick.
+  ElevenLabs: bring your own key; the default MP3 output works on the Free plan (no commercial
+  licence there), PCM output needs a paid plan; a monthly character budget keeps the bill in check
 - An optional **persona** (name, experience, formality, chattiness) colours the FO's
   wording — numbers verified and locked, deterministic texts always the floor
 - A **Voice Reference** drawer on every page (the mic pill in the header): every live phrase for the

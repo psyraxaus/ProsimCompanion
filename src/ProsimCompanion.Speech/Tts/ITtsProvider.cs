@@ -5,13 +5,14 @@ namespace ProsimCompanion.Speech.Tts;
 public sealed record TtsAudio(byte[] WavBytes, string ProviderName);
 
 /// <summary>
-/// One synthesis backend in the router chain (docs/integrations/speech.md: Kokoro → Google →
-/// WinRT → SAPI5). Implementations throw on failure — the router owns fallback, cooldown and
-/// health reporting; providers stay dumb.
+/// One synthesis backend in the router chain (docs/integrations/speech.md: Kokoro →
+/// ElevenLabs → Google → WinRT → SAPI5). Implementations throw on failure — the router owns
+/// fallback, cooldown and health reporting; providers stay dumb.
 /// </summary>
 public interface ITtsProvider
 {
-    /// <summary>Stable name for logs and the /speech page ("kokoro", "google", "winrt", "sapi").</summary>
+    /// <summary>Stable name for logs and the /speech page ("kokoro", "elevenlabs", "google",
+    /// "winrt", "sapi").</summary>
     string Name { get; }
 
     /// <summary>False when unconfigured (no URL/key/voice) — the router skips without

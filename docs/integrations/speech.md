@@ -3,7 +3,7 @@
 From Prosim2FO. All endpoints are user-hosted or cloud; every provider is optional with fallback
 chains — "local only" hard mode must exist.
 
-## TTS (router order: Kokoro → Google → WinRT → SAPI5)
+## TTS (router order: Kokoro → ElevenLabs → Google → WinRT → SAPI5)
 
 - **Kokoro** (kokoro-fastapi, local neural): OpenAI-compatible `POST {base}/v1/audio/speech` (WAV)
   and `GET {base}/v1/audio/voices`. Default `http://192.168.1.50:8880`, model `kokoro`, voice
@@ -12,6 +12,20 @@ chains — "local only" hard mode must exist.
   WAV body gets `kokoroBodyTimeoutMs` (15 s) + 100 ms per character, because kokoro-fastapi
   synthesises while it streams and a long briefing takes seconds. A timeout surfaces as one
   `TimeoutException` sentence naming the phase; the router still cools the provider down 60 s.
+- **ElevenLabs** (paid cloud neural, design note `elevenlabs-tts-provider.md`):
+  `POST {base}/v1/text-to-speech/{voice_id}?output_format=…`, key in the `xi-api-key` header,
+  base `https://api.elevenlabs.io`. Default model `eleven_flash_v2_5` (~75 ms, half the credit
+  cost; `eleven_v3` optional). ElevenLabs never emits WAV: default `mp3_44100_128` works on
+  every plan (Free included) and is decoded locally via NAudio/Media Foundation; `pcm_24000`
+  needs a paid plan and is wrapped in a 44-byte WAV header (no decode). Cache key voice
+  segment is `{voice}@{model}@{format}` so a model/format change never serves stale audio;
+  cache uncapped. Pre-call guards: `elevenLabsMaxCharsPerRequest` (2 500, the Free-plan
+  per-generation cap) and the monthly budget `elevenLabsMonthlyCharBudget` (9 000 — plan-
+  relative: Free 10k, Starter 30k, Creator 121k credits) counted in
+  `cache/tts/usage.elevenlabs.json`. `apply_text_normalization=off` — the arbiter already
+  emits spoken-form phraseology. 401 latches the provider until settings change; 429/422
+  throw and the router cools it down. Voice picker: `GET {base}/v2/voices?category=premade`.
+  Role voice ids (`voices.*`) must be ElevenLabs voice_ids while this provider serves.
 - **Google Cloud TTS Chirp 3 HD**: service-account JSON key, LINEAR16; disk cache keyed by
   text+voice+format; prewarm checklist phrases; monthly usage counter (`cache/tts/usage.json`)
   against the 1M-char free tier.

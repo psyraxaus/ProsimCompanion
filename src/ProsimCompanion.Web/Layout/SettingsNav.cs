@@ -59,7 +59,8 @@ public static class SettingsNav
         ("mcdu", "MCDU"),
         ("sayIntentions", "SayIntentions"),
         ("callouts", "Callouts & Placards"),
-        ("providers", "Voice Providers"));
+        ("providers", "Voice Providers"),
+        ("elevenlabs", "ElevenLabs"));
 
     public static readonly SettingsNavItem[] AudioSections = Items("settings/audio",
         ("status", "Status"),

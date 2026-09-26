@@ -15,14 +15,19 @@ public static class SpeechServiceCollectionExtensions
 {
     /// <summary>Registers the voice First Officer pillar's speech foundations: arbiter, TTS
     /// router and playback. Provider registration order IS the fallback chain order —
-    /// Kokoro → Google → WinRT → SAPI5 (docs/integrations/speech.md).</summary>
+    /// Kokoro → ElevenLabs → Google → WinRT → SAPI5 (docs/integrations/speech.md). A user
+    /// configures at most one paid cloud provider; whichever is configured wins.</summary>
     public static IServiceCollection AddSpeechServices(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<TtsDiskCache>();
         services.AddSingleton<TtsUsageTracker>();
+        // Core-facing read-outs for the settings pages (Web references only Core).
+        services.AddSingleton<Core.State.ITtsUsageReadout, TtsUsageReadout>();
+        services.AddSingleton<Core.State.IElevenLabsVoiceCatalog, ElevenLabsVoiceCatalog>();
         services.AddSingleton<ITtsProvider, KokoroTtsProvider>();
+        services.AddSingleton<ITtsProvider, ElevenLabsTtsProvider>();
         services.AddSingleton<ITtsProvider, GoogleTtsProvider>();
         services.AddSingleton<ITtsProvider, WinRtTtsProvider>();
         services.AddSingleton<ITtsProvider, Sapi5TtsProvider>();

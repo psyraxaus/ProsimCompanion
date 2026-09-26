@@ -90,8 +90,8 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       review deferred); memory drills (stall, TCAS RA, windshear, EGPWS)
 - [x] Speech: LAN whisper → System.Speech offline chain (WinRT engine deferred); PTT
       keyboard/joystick; phonetic snapping; utterance interpreter
-- [x] TTS: Kokoro → Google Chirp 3 HD (cached, usage-tracked, budget-enforced) → WinRT →
-      SAPI5; intercom filter; prewarm cache
+- [x] TTS: Kokoro → ElevenLabs → Google Chirp 3 HD (both cloud voices cached, usage-tracked,
+      budget-enforced) → WinRT → SAPI5; intercom filter; prewarm cache
 - [x] Briefings (departure/arrival; Navigraph DFD facts; LLM-composed with number
       verification; interactive minimums capture deferred — /speech card instead)
 - [x] SayIntentions ATC requests + departure comms gating + radio management

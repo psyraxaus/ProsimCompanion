@@ -20,6 +20,7 @@ public sealed class SettingsRedactorTests
           "prosim": { "host": "192.168.1.20", "apiKey": "plain-prosim-key-value" },
           "sayIntentions": { "apiKeySource": "manual", "manualApiKey": "dpapi:AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAA" },
           "briefing": { "llmEnabled": true, "llmApiKey": "sk-proj-abcdefghijklmnopqrstuvwxyz0123456789", "llmModel": "gpt-4o" },
+          "speech": { "elevenLabsApiKey": "short-key", "elevenLabsVoiceId": "JBFqnCBsd6RMkjVDRZzb", "elevenLabsModelId": "eleven_flash_v2_5" },
           "telemetryApi": { "enabled": true, "requireTokenOnLoopback": false },
           "gsx": { "operatorPreferences": ["Swissport", "dnata"], "pushbackPreference": "auto" },
           "custom": {
