@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-rc.4
+
+- Fix: the app crashed at a ProSim reconnect when simulator.time arrived as a local-kind date (sim clock threw ArgumentException; the Monitor page's timer thread terminated the process). The sim clock now degrades to "not live" instead of throwing, and the Monitor tick and the loadsheet STD tick are guarded. Probe: sim-clock-local-kind-crash.
+
 ## 0.5.0-rc.3
 
 - New: every session file and the CMTrace log are version-stamped (session-started/session-rotated header payload, startup banner).
