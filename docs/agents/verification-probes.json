@@ -1124,6 +1124,24 @@
       "notes": "2026-09-20 LIRF→EGLL: process died at 13:22:45 local mid-deboarding (iPad lost the page). Dump ProsimCompanion.exe.35372.dmp: 0xC0000374 HEAP_CORRUPTION_ACTIONABLE_BufferOverrun on the joystick poll thread — PushToTalkService.PollJoysticks → winmm!joyGetPosEx → dinput → LocalReAlloc → RtlFreeHeap fatal; 13 pool threads queued on the poll lock because a 25 ms Timer polled 16 winmm ids and every absent id re-enumerates HID devices (>300 ms per pass). Trigger: MSFS closing released its DirectInput devices. Fix: one dedicated poll thread, present ids only (absent rescan every 2 s), no polling without a joystick binding, all winmm calls under one gate, slow-pass warning."
     },
     {
+      "id": "sim-clock-local-kind-crash",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": { "kind": "signature", "signature": { "source": "log", "contains": "Unhandled exception (terminating", "minCount": 1 } },
+      "sources": [
+        "log",
+        "session"
+      ],
+      "checks": [
+        "No 'Unhandled exception (terminating: True)' line in the CMTrace log and no 'log.fatal' session event — the process must never die from a timer thread.",
+        "No 'The UTC Offset of the local dateTime parameter does not match the offset argument' anywhere in the log (the 2026-09-26 signature: SimClock.SimUtcNow composing a Local-kind simulator.time date on a UTC+10 machine).",
+        "watch: 'Flight monitor tick failed' or 'STD prelim tick failed' warnings — the new guards catching something. Zero is expected; any hit is a new bug to quote with its exception.",
+        "assert-present after a ProSim reconnect ('Lost connection to ProSim; reconnecting'): the Monitor page clock and the loadsheet STD countdown keep running (sim time still shown on /monitor, 'Gate monitor:' lines continue) — the clock is live again, not stuck on the real UTC fallback."
+      ],
+      "notes": "2026-09-26 11:44 local (0.5.0-rc.3, session-20260925-223613): ProSim dropped, reconnected 2 s later, and the first simulator.time push arrived as a DateTime with Kind=Local. SimClock built DateTimeOffset(date, Zero) → ArgumentException. GateMonitorService caught it (4 warnings); Monitor.razor's 1 s System.Threading.Timer tick did not and the process terminated. Fixed 0.5.0-rc.4: SimClockFormat.TryGetDate returns a UTC-kind date, SimClock.SimUtcNow degrades to null instead of throwing, and both the Monitor tick and LoadsheetService.OnStdTick run under try/catch. Open question for the next flight: whether Kind=Local is the SDK's normal delivery (then the fix is exercised every second) or a reconnect-only shape."
+    },
+    {
       "id": "connection-status-storm",
       "issue": 0,
       "state": "open",

@@ -1,5 +1,6 @@
 @page "/monitor"
 @layout MonitorLayout
+@using Microsoft.Extensions.Logging
 @using Microsoft.JSInterop
 @using ProsimCompanion.Core.Aircraft
 @using ProsimCompanion.Core.Aircraft.Ofp
@@ -23,6 +24,7 @@
 @inject ISimClock Clock
 @inject DisplayUnitService Units
 @inject IJSRuntime JS
+@inject ILogger<Monitor> Logger
 
 <PageTitle>@FlightMonitorPresentation.ModeLabel(Mode) — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Flight Monitor</h1>
@@ -401,16 +403,26 @@
     {
         // The clock, the countdowns and the datarefs have no store event; re-render once a
         // second only when a rendered value changed (the Flight Status hero's discipline).
-        var key = string.Concat(FlightMonitorPresentation.Clock(Now), BarPercent, BarPrimary, FactB, FactC, FactD,
-            Heading, VerticalSpeed, Metric(Data?.GroundSpeedKt, "F0", ""), Metric(Data?.AltitudeFt, "N0", ""),
-            _door1L?.RawValue, _door1R?.RawValue, _cargoFwd?.RawValue, _cargoAft?.RawValue, _gpu?.RawValue, Phase);
-        if (key == _tickKey)
+        // Runs on a System.Threading.Timer thread: anything that escapes here terminates the
+        // process (2026-09-26, 0.5.0-rc.3: an ArgumentException out of the sim clock took the
+        // whole app down at a ProSim reconnect). A page tick may fail; the app may not.
+        try
         {
-            return;
-        }
+            var key = string.Concat(FlightMonitorPresentation.Clock(Now), BarPercent, BarPrimary, FactB, FactC, FactD,
+                Heading, VerticalSpeed, Metric(Data?.GroundSpeedKt, "F0", ""), Metric(Data?.AltitudeFt, "N0", ""),
+                _door1L?.RawValue, _door1R?.RawValue, _cargoFwd?.RawValue, _cargoAft?.RawValue, _gpu?.RawValue, Phase);
+            if (key == _tickKey)
+            {
+                return;
+            }
 
-        _tickKey = key;
-        _ = InvokeAsync(StateHasChanged);
+            _tickKey = key;
+            _ = InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Flight monitor tick failed; the board keeps its last render");
+        }
     }
 
     protected override void OnInitialized()

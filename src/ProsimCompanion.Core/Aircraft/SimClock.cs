@@ -60,7 +60,17 @@ public sealed class SimClock : ISimClock, IDisposable
             // No sim date = still a usable clock: the zulu time on today's real date. The
             // date ref is the refinement (overnight sims, date-shifted flights), not a gate.
             var date = SimClockFormat.TryGetDate(_simDate.RawValue) ?? DateTime.UtcNow.Date;
-            return new DateTimeOffset(date.Add(timeOfDay), TimeSpan.Zero);
+            try
+            {
+                return new DateTimeOffset(DateTime.SpecifyKind(date.Add(timeOfDay), DateTimeKind.Utc), TimeSpan.Zero);
+            }
+            catch (ArgumentException)
+            {
+                // A clock that cannot be composed is "not live", never a throw: this getter
+                // runs on bare timer threads (Monitor page tick, loadsheet STD tick) where an
+                // escaped exception terminates the process (the 2026-09-26 crash).
+                return null;
+            }
         }
     }
 

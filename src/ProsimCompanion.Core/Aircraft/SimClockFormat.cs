@@ -54,7 +54,13 @@ public static class SimClockFormat
             _ => null,
         };
 
-        return date is { } d && d > DateTime.MinValue ? d.Date : null;
+        // Kind must be UTC (or Unspecified) for the caller's DateTimeOffset(date, Zero) —
+        // a Local-kind date on a UTC+10 machine throws ArgumentException there. Observed
+        // 2026-09-26 (0.5.0-rc.3): the SDK delivered simulator.time as a Local-kind DateTime
+        // on the first push after a ProSim reconnect and the Monitor page's 1 s tick took the
+        // whole process down. The date is used as-is (never shifted): the ref's own clock
+        // component is unverified local-vs-zulu, so only its calendar date is trusted.
+        return date is { } d && d > DateTime.MinValue ? DateTime.SpecifyKind(d.Date, DateTimeKind.Utc) : null;
     }
 
     /// <summary>Raw zulu-time value → time of day, or null when uninterpretable. Public for

@@ -46,6 +46,24 @@ public sealed class SimClockTests
     }
 
     [Fact]
+    public void LocalKindSimDate_NeverThrows_AndKeepsItsCalendarDate()
+    {
+        // 2026-09-26 crash (0.5.0-rc.3): the SDK pushed simulator.time as a Local-kind
+        // DateTime after a ProSim reconnect; DateTimeOffset(local, Zero) threw on a UTC+10
+        // machine and the Monitor page's timer thread took the process down.
+        var dataRefs = new FakeProsimDataRefs();
+        using var clock = new SimClock(dataRefs);
+        dataRefs.Push(ProsimDataRefNames.ZuluTime.Name, new TimeSpan(2, 15, 0));
+        dataRefs.Push(ProsimDataRefNames.SimulatorTime.Name,
+            DateTime.SpecifyKind(new DateTime(2026, 12, 24, 23, 59, 0), DateTimeKind.Local));
+
+        var sim = clock.SimUtcNow;
+
+        Assert.Equal(new DateTimeOffset(2026, 12, 24, 2, 15, 0, TimeSpan.Zero), sim);
+        Assert.Equal(sim, clock.UtcNowOrReal);
+    }
+
+    [Fact]
     public void NumericZuluSeconds_AreAccepted()
     {
         // SimConnect's convention: seconds since midnight, sometimes delivered as a double.

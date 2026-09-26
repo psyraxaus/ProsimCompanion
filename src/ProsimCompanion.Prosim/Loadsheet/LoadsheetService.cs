@@ -225,6 +225,20 @@ public sealed class LoadsheetService : ILoadsheetControl, IDisposable
     /// out. Shares the one-automatic-prelim-per-cycle guard with the refuel trigger.</summary>
     private void OnStdTick()
     {
+        // Bare timer thread: an escaped exception terminates the process (the 2026-09-26
+        // sim-clock crash reached this path too, one tick behind the Monitor page's).
+        try
+        {
+            StdTickCore();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "STD prelim tick failed; retrying on the next tick");
+        }
+    }
+
+    private void StdTickCore()
+    {
         var options = _options.CurrentValue;
         if (!options.AutoPrelimAtStd)
         {
