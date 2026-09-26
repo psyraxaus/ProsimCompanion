@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-rc.6
+
+- New: Voice Reference drawer (#136) — a VOICE button in the header on every page opens a "what can I say?" panel: five tabs (FO · Ground · Cabin · ATC · Lists), every phrase the FO, ground crew, purser and SayIntentions ATC understand, alternatives joined by *or*, what happens and what comes back, badges for pilot-flying / INT / CAB / phase / value / dialogue, the live listening state and PTT binding, a search across all tabs and an "always available" box. The content is built live from the recognition grammar (registered voice features, checklist starts, drills, commands.json, atc-requests.json), so switched-off features show dimmed with the setting to flip and the list can never go stale. `?voice=1` opens it on load. Probe voice-reference-drawer.
+
 ## 0.5.0-rc.5
 
 - New: NEXT SERVICE button in the EFB header (#133) — opt-in on Settings → Appearance; names the next departure service and its hold reason, calls it on a click (the INT/RAD smart button on every page). Off by default.
