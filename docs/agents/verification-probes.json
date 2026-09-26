@@ -1426,6 +1426,25 @@
         "requires-human: the card on Flight Status (GSX column), the OFP pushback card and Settings → Ground Services → Diagnostics → Menu shows the live title and lines, greyed lines disabled, Open when closed / Close when shown; a click that changed nothing shows 'sent — GSX showed no change' under the card."
       ],
       "notes": "Nico's request 2026-09-27 (EDDL: up to three named pushback directions per stand — the resolver's fixed-index fallback covers lines 0/1 only, and recordings show 'left for the user' on most legs). GsxMenuControl → GsxMenuIntentExecutor with EntryIndex + the entry text the pilot saw; verify = any mirror change; own picks excluded from the IsDriving lock-out."
+    },
+    {
+      "id": "voice-reference-drawer",
+      "issue": 136,
+      "state": "open",
+      "kind": "requires-human",
+      "sources": [
+        "log"
+      ],
+      "checks": [
+        "The VOICE header button shows LISTENING (mic glowing cyan) while the recognizer is capturing, PAUSED with the ear-off latch, OFF otherwise — compare with the footer ASR dot and the Speech status page.",
+        "Clicking it opens the drawer over the current page on every page (Flight Status, INIT, OFP, settings pages); X, the scrim, and clicking VOICE again close it; ?voice=1 opens it on load.",
+        "Ground tab: the single-shot GSX phrases carry the FO's real confirmation lines ('Boarding requested.') and the hail row carries the configured groundCrew.hailReplyText; with speech.acpTransmitGating on, the hail rows show INT / CAB badges. Cabin tab: the hails plus 'start boarding' with the purser mark.",
+        "Switch a feature off (e.g. techLog.enabled or sayIntentions.enabled) and reopen: its group is dimmed with the setting named in the reason line; switch it on and it lists normally — the drawer follows the live grammar.",
+        "Search 'heading' shows the FCU rows from every tab; searching a word that matches nothing shows the 'Nothing matches' line.",
+        "Every phrase shown must be one the recognizer accepts: pick three from different tabs, say them, and confirm the FO reacts (a listed phrase that is rejected is a describer/grammar mismatch to file). Watch: any group titled with a class name (e.g. 'SomethingFeature') is a voice feature added without a describer row.",
+        "Under 720 px (phone / portrait tablet) the drawer is full width and scrolls; on desktop it is 420 px wide over a dimmed page."
+      ],
+      "notes": "Owner request 2026-09-27; design approved on the Superdesign canvas (draft e2a99413 v3: V2 crew tabs + V1 phrase rows, italic 'or', badges under the phrase). Composed live by VoiceReferenceBuilder from IVoiceFeature.Enabled/Phrases + checklist starts + drills + commands.json + atc-requests.json; wording from VoiceReferenceDescribers (keyed by feature type; a test asserts every feature type is described or composed live). Known grammar conflicts found during the inventory (radio/FCU value parsers swallowing 'tune the ils', 'say v speeds', 'altitude star', 'one hundred knots') are NOT fixed here — separate issue."
     }
   ]
 }

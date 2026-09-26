@@ -18,6 +18,17 @@ names the next departure service, why it is holding, and calls it on a click —
 
 ![Header with the NEXT SERVICE button](../img/header-next-service.png)
 
+The **VOICE** button in the header opens the **Voice Reference** on any page: every phrase
+the First Officer, the ground crew, the purser and SayIntentions ATC understand, on five tabs
+(FO · Ground · Cabin · ATC · Lists). Each row shows the phrase and its alternatives, what
+happens and what the crew says back; badges mark phrases that need the FO as pilot flying,
+INT or CAB on the audio panel, a flight phase, a value, or that open a dialogue. The head shows
+whether the FO is listening and which PTT key or button is bound; the search box filters every
+tab. The list is built from what the recognizer actually listens for right now, so a
+switched-off feature shows dimmed with the setting that turns it on.
+
+![Voice Reference drawer](../img/voice-reference.png)
+
 The **sidebar** on the left lists the
 flight pages in flight order with Settings pinned at the bottom; on a phone it becomes a
 scrolling icon strip. The **footer** shows the ProSim, SimConnect and GSX connections and the

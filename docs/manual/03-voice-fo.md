@@ -10,6 +10,15 @@
   genuinely unclear response gets a "say again?".
 - A separate **ATC-mute** binding silences the FO while you transmit to online ATC.
 
+## What can I say?
+
+Press **VOICE** in the header of any page. The Voice Reference drawer lists every phrase
+that is live right now — FO, ground crew, cabin crew, ATC and checklists on their own tabs,
+with what each phrase does, what comes back, and the badges that matter (pilot-flying only,
+INT/CAB channel, phase, value, dialogue). Type a word to filter every tab. Phrases from your
+own `commands.json` appear under "From commands.json". Open it directly with
+`http://localhost:5320/?voice=1`.
+
 ## Spoken checklists
 
 Say the checklist's start phrase (e.g. *"before start checklist"*). The FO reads each

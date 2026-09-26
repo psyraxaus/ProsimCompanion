@@ -24,7 +24,7 @@ namespace ProsimCompanion.Speech.Abnormals;
 /// FIFO, skipped if the failure clears before its turn, and disabled entirely (announce-only)
 /// when no <see cref="IMicOwnership"/> was supplied.
 /// </summary>
-public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialogueControl, Core.Hosting.IStartupModule, IDisposable
+public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialogueControl, Core.Hosting.IStartupModule, IDisposable, IDrillSource
 {
     private const int DrillGapMs = 350;
 
@@ -106,6 +106,10 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
     /// voice-invocable as rehearsals).</summary>
     public IReadOnlyList<string> DrillPhrases
         => [.. _definitions.Where(d => d.IsDrill).SelectMany(d => d.VoiceTriggers)];
+
+    /// <inheritdoc/>
+    public IReadOnlyList<(string Title, IReadOnlyList<string> Triggers)> Drills
+        => [.. _definitions.Where(d => d.IsDrill).Select(d => (d.Title, (IReadOnlyList<string>)[.. d.VoiceTriggers]))];
 
     /// <summary>Raised (id, title) when a real abnormal fires — the seam the tech log uses to
     /// remember which abnormals happened this flight (for the deferred post-abnormal offer)
@@ -750,4 +754,12 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         /// <summary>One "held, unpowered" line per cold-and-dark episode (issue #116).</summary>
         public bool HeldUnpoweredLogged { get; set; }
     }
+}
+
+/// <summary>The loaded memory drills as (title, voice triggers) — the Voice Reference
+/// drawer (issue #136) lists each drill under its own name instead of a flat trigger soup.
+/// A seam so the drawer's composer is testable without a live failure monitor.</summary>
+public interface IDrillSource
+{
+    IReadOnlyList<(string Title, IReadOnlyList<string> Triggers)> Drills { get; }
 }

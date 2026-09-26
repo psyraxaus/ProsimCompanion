@@ -94,6 +94,10 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
 
     public IEnumerable<string> Phrases => _requests.SelectMany(r => r.Phrases);
 
+    /// <summary>The loaded request phrasebook (atc-requests.json) — the Voice Reference drawer
+    /// (issue #136) shows each request with its station and transmission.</summary>
+    public IReadOnlyList<AtcRequestDefinition> Requests => _requests;
+
     public bool ValueParse => false;
 
     public void Start()

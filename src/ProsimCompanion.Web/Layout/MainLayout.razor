@@ -64,6 +64,18 @@
                 </button>
             }
 
+            @* Voice reference trigger (issue #136): the "what can I say?" drawer, on every
+               page. The mic glows cyan only while the recognizer is actually listening. *@
+            <button type="button" class="header-voice @(_speech.Listening && !_speech.ListeningPaused ? "listening" : null)"
+                    @onclick="() => _voiceDrawer?.Toggle()"
+                    title="Voice reference — every phrase the FO, ground crew, cabin crew and ATC understand">
+                <span class="label-caps">Voice</span>
+                <span class="header-voice-state">
+                    <AppIcon Name="mic" Size="16" />
+                    <span class="header-value mono">@(_speech.ListeningPaused ? "PAUSED" : _speech.Listening ? "LISTENING" : "OFF")</span>
+                </span>
+            </button>
+
             @* Sim-time clock (issue #71): while ProSim streams a fresh simulator.zuluTime the
                flap is text-driven from the server (label SIM); on disconnect/staleness the
                mode attribute returns and app.js resumes the browser-side UTC self-tick.
@@ -142,6 +154,8 @@
         </div>
         <div class="footer-version mono">v@(Version)</div>
     </footer>
+
+    <VoiceReferenceDrawer @ref="_voiceDrawer" />
 </div>
 
 @code {
@@ -181,6 +195,9 @@
     private string? LogoSlug => Logos.FindFile(ThemeName) is null ? null : ThemeLogoStore.Slug(ThemeName);
 
     private IDisposable? _themeSubscription;
+
+    // Voice reference drawer (issue #136) — mounted once here, toggled from the header.
+    private VoiceReferenceDrawer? _voiceDrawer;
 
     // ── NEXT SERVICE header button (issue #133) ────────────────────────────────────
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;

@@ -95,6 +95,17 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
 
     public bool ValueParse => false;
 
+    /// <summary>The loaded command definitions (phrases + the confirmation each speaks) —
+    /// the Voice Reference drawer (issue #136) lists them under "From commands.json".</summary>
+    public IReadOnlyList<VoiceCommandDefinition> Commands
+    {
+        get
+        {
+            EnsureInitialized();
+            return CurrentSet.Commands;
+        }
+    }
+
     /// <summary>Replaces the loaded set directly (tests; also marks the service initialized so
     /// the lazy file load never clobbers an injected set).</summary>
     public void Load(VoiceCommandSet set)

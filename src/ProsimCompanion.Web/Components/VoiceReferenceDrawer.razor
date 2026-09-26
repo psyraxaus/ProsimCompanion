@@ -1,0 +1,248 @@
+@* Voice Reference drawer (issue #136; approved canvas draft e2a99413 v3): the "what can I
+   say?" panel, slid in from the right over any page. Content comes LIVE from IVoiceReference
+   at open time — never a typed list — so it cannot drift from the grammar. Five crew tabs,
+   phrase rows with an italic "or" between alternatives, badges on their own line, the
+   listening state and PTT binding in the head, an "always available" inset, and a search
+   that spans every tab. Opened from the header mic button (MainLayout) or by ?voice=1. *@
+@using ProsimCompanion.Core.VoiceReference
+@inherits StoreObserverComponent
+@inject IVoiceReference Reference
+@inject SpeechStatusStore Speech
+@inject NavigationManager Nav
+
+@if (_open)
+{
+    <div class="vr-scrim" @onclick="Close">
+        <aside class="vr-drawer" role="dialog" aria-label="Voice reference" @onclick:stopPropagation="true">
+            <div class="vr-head">
+                <div class="vr-head-row">
+                    <span class="label-caps">Voice reference</span>
+                    <label class="vr-search" title="Filter every tab">
+                        <AppIcon Name="search" Size="14" />
+                        <input type="search" placeholder="Type a word… e.g. boarding, heading"
+                               value="@_query" @oninput="e => _query = e.Value?.ToString() ?? string.Empty" />
+                    </label>
+                    <button type="button" class="vr-close" aria-label="Close" @onclick="Close"><AppIcon Name="x" Size="16" /></button>
+                </div>
+                <div class="vr-listen">
+                    <span class="pill @ListenTone" title="@_speech.RecognizerDetail">@ListenText</span>
+                    <span class="vr-ptt mono">PTT: @_snapshot.PttBindingText</span>
+                </div>
+            </div>
+
+            @if (!Searching)
+            {
+                <div class="vr-tabs" role="tablist">
+                    @foreach (var (tab, label) in Tabs)
+                    {
+                        <button type="button" role="tab" class="vr-tab @(tab == _tab ? "active" : null)"
+                                aria-selected="@(tab == _tab)" @onclick="() => _tab = tab">@label</button>
+                    }
+                </div>
+                <div class="vr-who">
+                    <span class="vr-mark @MarkClass(TabSpeaker(_tab))"><AppIcon Name="volume-2" Size="15" /></span>
+                    <span class="vr-who-text">@TabWho(_tab)</span>
+                </div>
+            }
+
+            <div class="vr-body">
+                @foreach (var group in VisibleGroups())
+                {
+                    var entries = Filter(group.Entries);
+                    <div class="vr-group @(group.Enabled ? null : "off")">
+                        <div class="vr-group-title">
+                            <span class="section-title">@group.Title</span>
+                            <span class="vr-count mono">@entries.Count</span>
+                        </div>
+                        @if (!group.Enabled)
+                        {
+                            <div class="vr-off-reason">@(group.DisabledReason ?? "switched off")</div>
+                        }
+                        @foreach (var entry in entries)
+                        {
+                            @Row(entry, group.Speaker)
+                        }
+                    </div>
+                }
+
+                @if (!Searching || Filter(_snapshot.AlwaysAvailable).Count > 0)
+                {
+                    <div class="vr-always">
+                        <div class="vr-always-title">Always available</div>
+                        @foreach (var entry in Filter(_snapshot.AlwaysAvailable))
+                        {
+                            @Row(entry, VoiceSpeaker.FirstOfficer, compact: true)
+                        }
+                    </div>
+                }
+
+                @if (Searching && !VisibleGroups().Any() && Filter(_snapshot.AlwaysAvailable).Count == 0)
+                {
+                    <div class="empty">Nothing matches “@_query”.</div>
+                }
+            </div>
+
+            <div class="vr-footer">
+                <div class="vr-footer-hint">Say <strong>skip</strong>, <strong>say again</strong>, <strong>hold the checklist</strong>, <strong>cancel checklist</strong> any time</div>
+                <a class="vr-footer-edit" href="settings/speech/general" title="Your own phrases live in commands.json (user config folder)">Edit phrases · commands.json</a>
+            </div>
+        </aside>
+    </div>
+}
+
+@code {
+    private static readonly (VoiceReferenceTab Tab, string Label)[] Tabs =
+    [
+        (VoiceReferenceTab.FirstOfficer, "FO"),
+        (VoiceReferenceTab.Ground, "Ground"),
+        (VoiceReferenceTab.Cabin, "Cabin"),
+        (VoiceReferenceTab.Atc, "ATC"),
+        (VoiceReferenceTab.Checklists, "Lists"),
+    ];
+
+    private bool _open;
+    private VoiceReferenceTab _tab = VoiceReferenceTab.FirstOfficer;
+    private string _query = "";
+    private VoiceReferenceSnapshot _snapshot = VoiceReferenceSnapshot.Empty;
+    private SpeechStatusSnapshot _speech = SpeechStatusSnapshot.Empty;
+
+    /// <summary>True while the drawer is shown — the header button reads it for its state.</summary>
+    public bool IsOpen => _open;
+
+    /// <summary>Opens the drawer with a fresh snapshot of the live grammar.</summary>
+    public void Open()
+    {
+        _snapshot = Reference.Build();
+        _open = true;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _query = "";
+        StateHasChanged();
+    }
+
+    public void Toggle()
+    {
+        if (_open)
+        {
+            Close();
+        }
+        else
+        {
+            Open();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Watch(Speech, snapshot => _speech = snapshot);
+        // ?voice=1 opens the drawer on load — the docs screenshots and a bookmark on a tablet.
+        var query = Nav.ToAbsoluteUri(Nav.Uri).Query;
+        if (query.Split('?', '&').Any(part => part == "voice=1"))
+        {
+            _snapshot = Reference.Build();
+            _open = true;
+        }
+    }
+
+    private bool Searching => _query.Trim().Length > 0;
+
+    private IEnumerable<VoiceReferenceGroup> VisibleGroups()
+        => _snapshot.Groups
+            .Where(g => Searching || g.Tab == _tab)
+            .Where(g => !Searching || Filter(g.Entries).Count > 0);
+
+    private List<VoiceReferenceEntry> Filter(IReadOnlyList<VoiceReferenceEntry> entries)
+    {
+        if (!Searching)
+        {
+            return [.. entries];
+        }
+
+        var q = _query.Trim();
+        return [.. entries.Where(e =>
+            e.Phrases.Any(p => p.Contains(q, StringComparison.OrdinalIgnoreCase))
+            || e.What.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || (e.Answer?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false))];
+    }
+
+    private string ListenTone => _speech.ListeningPaused ? "tone-warn" : _speech.Listening ? "tone-ok" : "tone-neutral";
+
+    private string ListenText => _speech.ListeningPaused ? "Voice paused" : _speech.Listening ? "Listening" : "Not listening";
+
+    private static VoiceSpeaker TabSpeaker(VoiceReferenceTab tab) => tab switch
+    {
+        VoiceReferenceTab.Ground => VoiceSpeaker.GroundCrew,
+        VoiceReferenceTab.Cabin => VoiceSpeaker.Purser,
+        VoiceReferenceTab.Atc => VoiceSpeaker.Atc,
+        _ => VoiceSpeaker.FirstOfficer,
+    };
+
+    private static string TabWho(VoiceReferenceTab tab) => tab switch
+    {
+        VoiceReferenceTab.Ground => "Ground crew answers on INT — say cockpit to ground first, or use the single-shot phrases",
+        VoiceReferenceTab.Cabin => "The purser answers on CAB — say cockpit to cabin first",
+        VoiceReferenceTab.Atc => "The FO acknowledges, then transmits on COM1 to SayIntentions ATC",
+        VoiceReferenceTab.Checklists => "The FO runs the checklist — answer each challenge, or use the always-available words",
+        _ => "The First Officer answers",
+    };
+
+    private static string MarkClass(VoiceSpeaker speaker) => speaker switch
+    {
+        VoiceSpeaker.GroundCrew => "mark-ground",
+        VoiceSpeaker.Purser => "mark-purser",
+        VoiceSpeaker.Company => "mark-company",
+        VoiceSpeaker.Atc => "mark-atc",
+        _ => "mark-fo",
+    };
+
+    private static string BadgeClass(string badge) => badge switch
+    {
+        "INT" or "CAB" => "badge-int",
+        "DIALOGUE" => "badge-dialogue",
+        _ => "badge-neutral",
+    };
+
+    private RenderFragment Row(VoiceReferenceEntry entry, VoiceSpeaker groupSpeaker, bool compact = false) => @<div class="vr-row @(compact ? "compact" : null)">
+        @if (!compact)
+        {
+            <span class="vr-mark @MarkClass(entry.Speaker)"><AppIcon Name="volume-2" Size="14" /></span>
+        }
+        <div class="vr-row-body">
+            <div class="vr-phrase mono">
+                @for (var i = 0; i < entry.Phrases.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        <span class="vr-or">or</span>
+                    }
+                    <span>@entry.Phrases[i]</span>
+                }
+                @if (entry.ValueHint is { Length: > 0 } hint)
+                {
+                    <span class="vr-hint">@hint</span>
+                }
+            </div>
+            @if (entry.Badges.Count > 0)
+            {
+                <div class="vr-badges">
+                    @foreach (var badge in entry.Badges)
+                    {
+                        <span class="vr-badge @BadgeClass(badge)">@badge</span>
+                    }
+                </div>
+            }
+            @if (entry.What.Length > 0)
+            {
+                <div class="vr-what">@entry.What</div>
+            }
+            @if (entry.Answer is { Length: > 0 } answer)
+            {
+                <div class="vr-answer">› @answer</div>
+            }
+        </div>
+    </div>;
+}

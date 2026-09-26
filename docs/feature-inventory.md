@@ -24,6 +24,8 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       Ground Services — the addon-airport direction lines the Korry preference cannot reach
 - [x] Header NEXT SERVICE button (#133, opt-in on Appearance) and the pax-scaled cabin-secure
       wait (#134)
+- [x] Voice Reference drawer (#136): every live voice phrase from any page, five crew tabs,
+      composed from the recognition grammar (IVoiceReference / VoiceReferenceBuilder)
 - [ ] Auto engine-start confirmation
 - [x] De-icing auto-answer + fluid/concentration selection (question catalogue)
 - [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs deferred)

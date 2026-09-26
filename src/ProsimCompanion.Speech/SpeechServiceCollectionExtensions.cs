@@ -196,6 +196,11 @@ public static class SpeechServiceCollectionExtensions
         // the small-talk feature itself dispatches last — exact phrases only.
         services.AddSingleton<Persona.QuietState>();
         services.AddSingleton<IVoiceFeature, Persona.SmallTalkService>();
+        // The "what can I say?" drawer (issue #136) composes itself from the IVoiceFeature set
+        // above at open time — register it after the last feature so every phrase is in.
+        services.AddSingleton<Abnormals.IDrillSource>(p => p.GetRequiredService<Abnormals.FailureMonitor>());
+        services.AddSingleton<VoiceReference.IChecklistDefinitionSource, VoiceReference.ChecklistDefinitionSource>();
+        services.AddSingleton<Core.VoiceReference.IVoiceReference, VoiceReference.VoiceReferenceBuilder>();
         // FO persona: phrase bank (phrases.json in the USER config tree, ADR-0007), the
         // persona itself (prompt fragment + ack variation) and the LLM restyle path for
         // advisories.
