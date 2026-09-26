@@ -171,7 +171,8 @@
 
     private string ListenTone => _speech.ListeningPaused ? "tone-warn" : _speech.Listening ? "tone-ok" : "tone-neutral";
 
-    private string ListenText => _speech.ListeningPaused ? "Voice paused" : _speech.Listening ? "Listening" : "Not listening";
+    // Same three words as the header pill (owner pick B2): READY / LISTENING / PAUSED.
+    private string ListenText => _speech.ListeningPaused ? "Paused" : _speech.Listening ? "Listening" : "Ready";
 
     private static VoiceSpeaker TabSpeaker(VoiceReferenceTab tab) => tab switch
     {

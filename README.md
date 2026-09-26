@@ -68,7 +68,7 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   intercom filter; LAN faster-whisper or offline recognition; PTT on keyboard or joystick
 - An optional **persona** (name, experience, formality, chattiness) colours the FO's
   wording — numbers verified and locked, deterministic texts always the floor
-- A **Voice Reference** drawer on every page (VOICE in the header): every live phrase for the
+- A **Voice Reference** drawer on every page (the mic pill in the header): every live phrase for the
   FO, ground crew, cabin crew, ATC and checklists — what it does, what comes back, which
   ones need INT/CAB or the FO as pilot flying — built from the recognizer's own grammar
 

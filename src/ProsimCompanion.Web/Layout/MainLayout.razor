@@ -64,16 +64,22 @@
                 </button>
             }
 
-            @* Voice reference trigger (issue #136): the "what can I say?" drawer, on every
-               page. The mic glows cyan only while the recognizer is actually listening. *@
-            <button type="button" class="header-voice @(_speech.Listening && !_speech.ListeningPaused ? "listening" : null)"
+            @* Voice reference trigger (issue #136; owner pick 2026-09-27 "B2" from the canvas
+               options sheet): ONE pill, the mic inside it. READY when the ear is idle, a
+               pulsing cyan dot + LISTENING while the recognizer captures, PAUSED on the
+               ear-off latch. The shipped "VOICE / OFF" block read as voice switched off. *@
+            <button type="button" class="header-voice pill @VoiceTone"
                     @onclick="() => _voiceDrawer?.Toggle()"
                     title="Voice reference — every phrase the FO, ground crew, cabin crew and ATC understand">
-                <span class="label-caps">Voice</span>
-                <span class="header-voice-state">
-                    <AppIcon Name="mic" Size="16" />
-                    <span class="header-value mono">@(_speech.ListeningPaused ? "PAUSED" : _speech.Listening ? "LISTENING" : "OFF")</span>
-                </span>
+                @if (VoiceListening)
+                {
+                    <span class="header-voice-dot" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <AppIcon Name="mic" Size="13" />
+                }
+                <span>@VoiceWord</span>
             </button>
 
             @* Sim-time clock (issue #71): while ProSim streams a fresh simulator.zuluTime the
@@ -198,6 +204,12 @@
 
     // Voice reference drawer (issue #136) — mounted once here, toggled from the header.
     private VoiceReferenceDrawer? _voiceDrawer;
+
+    private bool VoiceListening => _speech.Listening && !_speech.ListeningPaused;
+
+    private string VoiceWord => _speech.ListeningPaused ? "Paused" : VoiceListening ? "Listening" : "Ready";
+
+    private string VoiceTone => _speech.ListeningPaused ? "tone-warn" : VoiceListening ? "tone-ok" : "tone-neutral";
 
     // ── NEXT SERVICE header button (issue #133) ────────────────────────────────────
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;

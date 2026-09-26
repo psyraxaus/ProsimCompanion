@@ -1436,8 +1436,8 @@
         "log"
       ],
       "checks": [
-        "The VOICE header button shows LISTENING (mic glowing cyan) while the recognizer is capturing, PAUSED with the ear-off latch, OFF otherwise — compare with the footer ASR dot and the Speech status page.",
-        "Clicking it opens the drawer over the current page on every page (Flight Status, INIT, OFP, settings pages); X, the scrim, and clicking VOICE again close it; ?voice=1 opens it on load.",
+        "The header mic pill (owner pick B2, rc.8) reads READY (neutral, mic glyph) while the ear is idle, LISTENING (green pill, pulsing cyan dot in place of the mic) while the recognizer is capturing, PAUSED (amber) with the ear-off latch — compare with the footer ASR dot and the Speech status page; the drawer's head pill shows the same word.",
+        "Clicking the pill opens the drawer over the current page on every page (Flight Status, INIT, OFP, settings pages); X, the scrim, and clicking the pill again close it; ?voice=1 opens it on load.",
         "Ground tab: the single-shot GSX phrases carry the FO's real confirmation lines ('Boarding requested.') and the hail row carries the configured groundCrew.hailReplyText; with speech.acpTransmitGating on, the hail rows show INT / CAB badges. Cabin tab: the hails plus 'start boarding' with the purser mark.",
         "Switch a feature off (e.g. techLog.enabled or sayIntentions.enabled) and reopen: its group is dimmed with the setting named in the reason line; switch it on and it lists normally — the drawer follows the live grammar.",
         "Search 'heading' shows the FCU rows from every tab; searching a word that matches nothing shows the 'Nothing matches' line.",

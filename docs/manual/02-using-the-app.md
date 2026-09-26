@@ -18,7 +18,8 @@ names the next departure service, why it is holding, and calls it on a click —
 
 ![Header with the NEXT SERVICE button](../img/header-next-service.png)
 
-The **VOICE** button in the header opens the **Voice Reference** on any page: every phrase
+The **mic pill** in the header (READY, LISTENING with a pulsing dot, or PAUSED) opens the
+**Voice Reference** on any page: every phrase
 the First Officer, the ground crew, the purser and SayIntentions ATC understand, on five tabs
 (FO · Ground · Cabin · ATC · Lists). Each row shows the phrase and its alternatives, what
 happens and what the crew says back; badges mark phrases that need the FO as pilot flying,
