@@ -40,9 +40,29 @@ public sealed class SpokenTokenSource : IDisposable
     /// <summary>Expands the brace tokens in <paramref name="text"/> from the current cached
     /// values; pass-through when the text carries no tokens.</summary>
     public string Apply(string text)
-        => string.IsNullOrEmpty(text) || !text.Contains('{')
-            ? text
-            : SpokenValueFormatting.ApplyTokens(text, Snapshot());
+    {
+        if (string.IsNullOrEmpty(text) || !text.Contains('{'))
+        {
+            return text;
+        }
+
+        var spoken = SpokenValueFormatting.ApplyTokens(text, Snapshot(), out var strippedUnknown);
+        // A brace word nobody expands was stripped (issue #129 — the FO once read "{fuel}"
+        // aloud). Name it once per text so the author can fix the checklist or command file.
+        if (strippedUnknown && _warnedTexts.Add(text))
+        {
+            _logger.LogWarning(
+                "Spoken text carries an unknown token and it was left out: \"{Text}\" (known: {Known})",
+                text, KnownTokens);
+        }
+
+        return spoken;
+    }
+
+    private const string KnownTokens =
+        "{fuel} {fuelQuantity} {altimeter} {qnh} {v1} {vr} {v2} {flex} {runway} {flightLevel} {takeoffConfig}";
+
+    private readonly HashSet<string> _warnedTexts = new(StringComparer.Ordinal);
 
     /// <summary>Registers the token subscriptions ahead of first use so ProSim has pushed values
     /// before the first spoken query fires — a lazy first subscribe would answer "unavailable"

@@ -475,12 +475,14 @@ public sealed class ConfiguredVoiceCommandsTests
         => Assert.Equal(expected, SpokenValueFormatting.Runway(runway));
 
     [Fact]
-    public void Formatting_ApplyTokens_LeavesUnknownBracesAlone()
+    public void Formatting_ApplyTokens_StripsUnknownBraces()
     {
+        // Issue #129 hotfix: an unknown brace word is left out (and reported), never spoken.
         var values = CommandTokenValues.Unavailable with { V1 = "one two three" };
 
         Assert.Equal(
-            "V one one two three {mystery}",
-            SpokenValueFormatting.ApplyTokens("V one {v1} {mystery}", values));
+            "V one one two three",
+            SpokenValueFormatting.ApplyTokens("V one {v1} {mystery}", values, out var stripped));
+        Assert.True(stripped);
     }
 }

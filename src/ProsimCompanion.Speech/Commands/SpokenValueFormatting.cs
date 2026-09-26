@@ -32,16 +32,23 @@ public static class SpokenValueFormatting
 {
     /// <summary>Replaces every known {token} in the text. Unknown braces pass through.</summary>
     public static string ApplyTokens(string text, CommandTokenValues values)
+        => ApplyTokens(text, values, out _);
+
+    /// <inheritdoc cref="ApplyTokens(string, CommandTokenValues)"/>
+    /// <param name="strippedUnknown">True when a brace word nobody expands was removed —
+    /// the caller logs it once so the author can fix the file.</param>
+    public static string ApplyTokens(string text, CommandTokenValues values, out bool strippedUnknown)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(values);
 
         if (!text.Contains('{'))
         {
+            strippedUnknown = false;
             return text;
         }
 
-        return text
+        var expanded = text
             .Replace("{altimeter}", values.Altimeter, StringComparison.Ordinal)
             .Replace("{qnh}", values.Qnh, StringComparison.Ordinal)
             .Replace("{v1}", values.V1, StringComparison.Ordinal)
@@ -51,7 +58,43 @@ public static class SpokenValueFormatting
             .Replace("{runway}", values.Runway, StringComparison.Ordinal)
             .Replace("{flightLevel}", values.FlightLevel, StringComparison.Ordinal)
             .Replace("{takeoffConfig}", values.TakeoffConfig, StringComparison.Ordinal)
-            .Replace("{fuelQuantity}", values.FuelQuantity, StringComparison.Ordinal);
+            .Replace("{fuelQuantity}", values.FuelQuantity, StringComparison.Ordinal)
+            // {fuel} is what the owner actually typed into their checklist (issue #129, flight
+            // 2026-09-19: the FO said "Fuel quantity, {fuel}, loaded" out loud) — the short
+            // form is the natural one, so it is an alias, not a mistake.
+            .Replace("{fuel}", values.FuelQuantity, StringComparison.Ordinal);
+
+        return StripUnknownTokens(expanded, out strippedUnknown);
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex UnknownToken =
+        new(@"\{[A-Za-z0-9_]+\}", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static readonly System.Text.RegularExpressions.Regex EmptySlot =
+        new(@"\s*,\s*,|\s{2,}", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>A brace word nobody expands is never spoken (issue #129): the TTS read the
+    /// braces as text, which is worse than a missing number. The token goes, and the empty
+    /// slot it leaves (", ," or a double space) is tidied so the sentence still reads.
+    /// True when anything was removed, so the caller can log the misspelt token once.</summary>
+    public static string StripUnknownTokens(string text)
+        => StripUnknownTokens(text, out _);
+
+    /// <inheritdoc cref="StripUnknownTokens(string)"/>
+    public static string StripUnknownTokens(string text, out bool removed)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        if (!UnknownToken.IsMatch(text))
+        {
+            removed = false;
+            return text;
+        }
+
+        removed = true;
+        var stripped = UnknownToken.Replace(text, "");
+        stripped = EmptySlot.Replace(stripped, match => match.Value.Contains(',') ? "," : " ");
+        return stripped.Replace(" ,", ",", StringComparison.Ordinal).Trim();
     }
 
     /// <summary>Exact avoirdupois factor shared with the display-unit service.</summary>

@@ -30,6 +30,11 @@ anytime. Items with a dataref condition verify against the aircraft; the visual 
 Checklists page stays in sync. The flight-control check is fully monitored (your sweep is
 watched at 30 Hz, then the FO answers with the FO-side controls).
 
+A `confirmCallout` in your checklist file may carry a live value: `{fuel}` (or
+`{fuelQuantity}`), `{altimeter}`, `{qnh}`, `{v1}`, `{vr}`, `{v2}`, `{flex}`, `{runway}`,
+`{flightLevel}`, `{takeoffConfig}`. A brace word the app does not know is left out, never read
+aloud (a warning names it in the log once).
+
 ## Callouts & monitoring
 
 SOP callouts (thrust set, one hundred, V1, rotate, positive climb, transition, one-thousand-

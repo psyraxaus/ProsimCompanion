@@ -33,6 +33,41 @@ public sealed class FuelQuantityTokenTests
     }
 
     [Fact]
+    public void ApplyTokens_FuelIsAnAliasOfFuelQuantity()
+    {
+        // Flight 2026-09-19: the owner's checklist said "{fuel}" and the FO read the braces.
+        var values = CommandTokenValues.Unavailable with { FuelQuantity = "8540 kilograms" };
+
+        Assert.Equal(
+            "Fuel quantity, 8540 kilograms, loaded",
+            SpokenValueFormatting.ApplyTokens("Fuel quantity, {fuel}, loaded", values));
+    }
+
+    [Theory]
+    [InlineData("Fuel quantity, {fule}, loaded", "Fuel quantity, loaded")]
+    [InlineData("Set {unknownThing} now", "Set now")]
+    [InlineData("{gone}", "")]
+    [InlineData("Altimeter {altimeter}, {typo}", "Altimeter unavailable")]
+    public void ApplyTokens_NeverSpeaksAnUnknownBraceWord(string text, string expected)
+    {
+        var spoken = SpokenValueFormatting.ApplyTokens(text, CommandTokenValues.Unavailable);
+
+        Assert.Equal(expected, spoken.TrimEnd(','));
+        Assert.DoesNotContain('{', spoken);
+        Assert.DoesNotContain('}', spoken);
+    }
+
+    [Fact]
+    public void StripUnknownTokens_ReportsWhetherAnythingWasRemoved()
+    {
+        Assert.Equal("plain text", SpokenValueFormatting.StripUnknownTokens("plain text", out var removedNone));
+        Assert.False(removedNone);
+
+        Assert.Equal("a, b", SpokenValueFormatting.StripUnknownTokens("a, {x}, b", out var removedOne));
+        Assert.True(removedOne);
+    }
+
+    [Fact]
     public void ApplyTokens_ExpandsFuelQuantity()
     {
         var values = CommandTokenValues.Unavailable with { FuelQuantity = "8540 kilograms" };
@@ -43,12 +78,15 @@ public sealed class FuelQuantityTokenTests
     }
 
     [Fact]
-    public void ApplyTokens_IsCaseSensitive_LowercaseSpellingPassesThrough()
+    public void ApplyTokens_IsCaseSensitive_LowercaseSpellingIsStrippedNotSpoken()
     {
+        // Token names stay case-sensitive; a misspelt one is no longer read aloud as braces
+        // (issue #129 hotfix) — it is left out and the caller logs it.
         var values = CommandTokenValues.Unavailable with { FuelQuantity = "8540 kilograms" };
 
         Assert.Equal(
-            "Fuel quantity, {fuelquantity}",
-            SpokenValueFormatting.ApplyTokens("Fuel quantity, {fuelquantity}", values));
+            "Fuel quantity,",
+            SpokenValueFormatting.ApplyTokens("Fuel quantity, {fuelquantity}", values, out var stripped));
+        Assert.True(stripped);
     }
 }

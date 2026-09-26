@@ -311,7 +311,7 @@
     {
       "id": "log-hardening-bundle",
       "issue": 76,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "sources": [
         "session",
@@ -412,7 +412,7 @@
     {
       "id": "gear-voice-command",
       "issue": 43,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session"
@@ -536,7 +536,31 @@
       "issue": 93,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "machine": { "kind": "required-fields", "type": "phase-changed", "fields": ["rule", "reason", "snapshot.iasKt", "snapshot.groundSpeedKt", "snapshot.onGround", "snapshot.altitudeFt", "snapshot.radioAltitudeFt", "snapshot.verticalSpeedFpm", "snapshot.powered", "snapshot.enginesRunning", "snapshot.engineStarting", "snapshot.pushback", "snapshot.parkBrake", "snapshot.gearDown", "snapshot.takeoffThrust", "snapshot.beacon", "snapshot.apuRunning", "snapshot.rawPushback", "snapshot.fmsCruiseAltFt"] },
+      "machine": {
+        "kind": "required-fields",
+        "type": "phase-changed",
+        "fields": [
+          "rule",
+          "reason",
+          "snapshot.iasKt",
+          "snapshot.groundSpeedKt",
+          "snapshot.onGround",
+          "snapshot.altitudeFt",
+          "snapshot.radioAltitudeFt",
+          "snapshot.verticalSpeedFpm",
+          "snapshot.powered",
+          "snapshot.enginesRunning",
+          "snapshot.engineStarting",
+          "snapshot.pushback",
+          "snapshot.parkBrake",
+          "snapshot.gearDown",
+          "snapshot.takeoffThrust",
+          "snapshot.beacon",
+          "snapshot.apuRunning",
+          "snapshot.rawPushback",
+          "snapshot.fmsCruiseAltFt"
+        ]
+      },
       "sources": [
         "session"
       ],
@@ -725,7 +749,12 @@
       "issue": 108,
       "state": "closed-regression-watch",
       "kind": "assert-absent",
-      "machine": { "kind": "duplicate-within", "type": "callout.fired", "key": "id", "windowSeconds": 10 },
+      "machine": {
+        "kind": "duplicate-within",
+        "type": "callout.fired",
+        "key": "id",
+        "windowSeconds": 10
+      },
       "sources": [
         "session"
       ],
@@ -757,7 +786,17 @@
       "issue": 115,
       "state": "closed-regression-watch",
       "kind": "assert-present",
-      "machine": { "kind": "signature", "trigger": { "source": "log", "contains": "FO PTT down" }, "signature": { "source": "log", "contains": "ASR heard" } },
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "log",
+          "contains": "FO PTT down"
+        },
+        "signature": {
+          "source": "log",
+          "contains": "ASR heard"
+        }
+      },
       "sources": [
         "log"
       ],
@@ -876,7 +915,39 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "machine": { "kind": "required-fields", "type": "flight-sample", "fields": ["ph", "og", "ias", "gs", "alt", "ra", "agl", "vs", "pwr", "eng", "engRaw", "st", "pb", "pbRaw", "brk", "gear", "apu", "bcn", "thr", "n1", "n1avg", "flap", "fcu", "fms", "v1", "vr", "v2"] },
+      "machine": {
+        "kind": "required-fields",
+        "type": "flight-sample",
+        "fields": [
+          "ph",
+          "og",
+          "ias",
+          "gs",
+          "alt",
+          "ra",
+          "agl",
+          "vs",
+          "pwr",
+          "eng",
+          "engRaw",
+          "st",
+          "pb",
+          "pbRaw",
+          "brk",
+          "gear",
+          "apu",
+          "bcn",
+          "thr",
+          "n1",
+          "n1avg",
+          "flap",
+          "fcu",
+          "fms",
+          "v1",
+          "vr",
+          "v2"
+        ]
+      },
       "sources": [
         "session"
       ],
@@ -968,7 +1039,18 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "machine": { "kind": "signature", "trigger": { "source": "log", "contains": "MSFS flight session ended" }, "signature": { "source": "session", "type": "phase-changed", "contains": "\"rule\":\"session-ended\"" } },
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "log",
+          "contains": "MSFS flight session ended"
+        },
+        "signature": {
+          "source": "session",
+          "type": "phase-changed",
+          "contains": "\"rule\":\"session-ended\""
+        }
+      },
       "sources": [
         "session",
         "log"
@@ -1015,7 +1097,13 @@
       "issue": 113,
       "state": "open",
       "kind": "assert-absent",
-      "machine": { "kind": "signature", "signature": { "source": "log", "contains": "chars still streaming" } },
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "log",
+          "contains": "chars still streaming"
+        }
+      },
       "sources": [
         "log"
       ],
@@ -1029,7 +1117,7 @@
     {
       "id": "dropped-call-advisory",
       "issue": 76,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -1075,7 +1163,7 @@
     {
       "id": "flight-status-pill-vs-text",
       "issue": 110,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "watch",
       "sources": [
         "log"
@@ -1089,7 +1177,7 @@
     {
       "id": "departure-phase-on-boarding",
       "issue": 110,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -1110,7 +1198,14 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-absent",
-      "machine": { "kind": "signature", "signature": { "source": "log", "contains": "Joystick poll pass took", "minCount": 3 } },
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "log",
+          "contains": "Joystick poll pass took",
+          "minCount": 3
+        }
+      },
       "sources": [
         "log",
         "session"
@@ -1128,7 +1223,14 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-absent",
-      "machine": { "kind": "signature", "signature": { "source": "log", "contains": "Unhandled exception (terminating", "minCount": 1 } },
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "log",
+          "contains": "Unhandled exception (terminating",
+          "minCount": 1
+        }
+      },
       "sources": [
         "log",
         "session"
@@ -1146,7 +1248,10 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-absent",
-      "machine": { "kind": "consecutive-duplicates", "type": "subsystem-status" },
+      "machine": {
+        "kind": "consecutive-duplicates",
+        "type": "subsystem-status"
+      },
       "sources": [
         "session"
       ],
@@ -1161,7 +1266,17 @@
       "issue": 0,
       "state": "open",
       "kind": "assert-present",
-      "machine": { "kind": "signature", "trigger": { "source": "log", "contains": "Falling back to offline recognition" }, "signature": { "source": "log", "contains": "LAN ASR recovered" } },
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "log",
+          "contains": "Falling back to offline recognition"
+        },
+        "signature": {
+          "source": "log",
+          "contains": "LAN ASR recovered"
+        }
+      },
       "sources": [
         "log"
       ],
@@ -1298,12 +1413,12 @@
         "assert-absent: 'unavailable' in that callout once ProSim is connected — the total-fuel and weight-unit datarefs are primed at startup, so the first read must not miss.",
         "The figure is within 10 of the session's latest 'flight-sample' fuel-on-board value at the time of the callout (rounded to the nearest 10; pounds = kg × 2.20462)."
       ],
-      "notes": "Shipped 2026-09-13: {fuelQuantity} reads aircraft.fuel.total.amount.kg via the shared SpokenTokenSource (cached subscription, primed with the other tokens). Unit follows system.config.Units.Weight ('LB*' ⇒ pounds), the DisplayUnitService rule. Token name is case-sensitive ({fuelquantity} still speaks the braces)."
+      "notes": "Shipped 2026-09-13: {fuelQuantity} reads aircraft.fuel.total.amount.kg via the shared SpokenTokenSource (cached subscription, primed with the other tokens). Unit follows system.config.Units.Weight ('LB*' ⇒ pounds), the DisplayUnitService rule. Token name is case-sensitive ({fuelquantity} still speaks the braces). 2026-09-27 hotfix (0.5.0-rc.9): the owner's checklist used {fuel} and the FO spoke the braces on 2026-09-19 (\"Fuel quantity, {fuel}, loaded\" at 00:22:17Z) — {fuel} is now an alias of {fuelQuantity}, and any brace word nobody expands is stripped (with a one-time warning) instead of being read aloud. assert-absent: no speech.spoken text containing a literal { or }."
     },
     {
       "id": "engine-start-callouts",
       "issue": 131,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -1320,7 +1435,7 @@
     {
       "id": "prosim-status-stuck-connecting",
       "issue": 132,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session",
@@ -1393,7 +1508,19 @@
       "issue": 134,
       "state": "open",
       "kind": "assert-present",
-      "machine": { "kind": "signature", "trigger": { "source": "session", "type": "cabin.secure-armed", "contains": "delaySeconds" }, "signature": { "source": "session", "type": "cabin.report", "contains": "cabin.secure" } },
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "cabin.secure-armed",
+          "contains": "delaySeconds"
+        },
+        "signature": {
+          "source": "session",
+          "type": "cabin.report",
+          "contains": "cabin.secure"
+        }
+      },
       "sources": [
         "session",
         "log"
@@ -1413,7 +1540,19 @@
       "issue": 135,
       "state": "open",
       "kind": "assert-present",
-      "machine": { "kind": "signature", "trigger": { "source": "session", "type": "gsx-menu-card", "contains": "web menu pick" }, "signature": { "source": "session", "type": "gsx-menu-card", "contains": "picked" } },
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "gsx-menu-card",
+          "contains": "web menu pick"
+        },
+        "signature": {
+          "source": "session",
+          "type": "gsx-menu-card",
+          "contains": "picked"
+        }
+      },
       "sources": [
         "session",
         "log"
@@ -1451,7 +1590,11 @@
       "issue": 137,
       "state": "open",
       "kind": "assert-absent",
-      "machine": { "kind": "signature", "source": "log", "contains": "Say again the frequency" },
+      "machine": {
+        "kind": "signature",
+        "source": "log",
+        "contains": "Say again the frequency"
+      },
       "sources": [
         "log"
       ],
