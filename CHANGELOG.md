@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-rc.9
+
+- Fix: checklist confirm callouts accept `{fuel}` as an alias of `{fuelQuantity}` (#129) — on the 2026-09-19 flight the FO read "Fuel quantity, {fuel}, loaded" aloud because the owner's checklist used the short form. Any brace word the app does not know is now stripped (logged once) instead of being spoken.
+- Housekeeping: #10, #43, #45, #54, #76, #110, #116, #131, #132 closed on flight evidence; their probes moved to regression watch.
+
 ## 0.5.0-rc.8
 
 - Changed: the header voice trigger is now one pill with the mic inside it (owner pick "B2" from the canvas options sheet, #136): READY when the FO's ear is idle, LISTENING with a pulsing cyan dot while the recognizer captures, PAUSED on the ear-off latch. The rc.6/rc.7 "VOICE / OFF" block read as voice switched off. The drawer's head pill uses the same three words.
