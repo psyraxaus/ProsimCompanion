@@ -15,6 +15,9 @@ and registration (from the OFP), the flight number and the SIM/UTC clock on spli
 displays, a theme picker and the ProSim connection dot. Home cockpits that never touch the
 INT/RAD switch can add a **NEXT SERVICE** button to the header (Settings → Appearance): it
 names the next departure service, why it is holding, and calls it on a click — on every page.
+
+![Header with the NEXT SERVICE button](../img/header-next-service.png)
+
 The **sidebar** on the left lists the
 flight pages in flight order with Settings pinned at the bottom; on a phone it becomes a
 scrolling icon strip. The **footer** shows the ProSim, SimConnect and GSX connections and the

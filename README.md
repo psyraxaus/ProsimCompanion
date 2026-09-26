@@ -25,6 +25,10 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - Beacon-orchestrated pushback (APU → doors → jetway → equipment → push, crew-realistic
   delays), GSX question auto-answering (direction, tug, crew, de-ice, operators), arrival
   gate assignment, stable-parked arrival handling with FOB save/restore
+- A **live GSX menu card** (Flight Status, OFP, Ground Services) mirrors whatever menu GSX has
+  open as buttons — the named pushback directions an addon airport gives each stand, Customize,
+  operator lists — so you never open the GSX window; plus an opt-in **NEXT SERVICE** header
+  button for home cockpits that do not use the INT/RAD switch
 - An in-sim handler script bridges GSX events back to the app and renders your flight number
   and route on the **gate's VDGS display**
 - Every action — and every deliberate non-action — lands in a decision log with its reason
@@ -57,8 +61,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   flow-monitor and weather advisories, sterile cockpit
 - Voice FCU/radio control behind a PF/PM handover, MCDU voice actions, ECAM abnormals with
   memory drills, departure/arrival briefings from Navigraph DFD + live weather
-- Cabin crew and company/ACARS immersion, tech log & MEL with voice dialogues, pilot
-  logbook, spoken post-flight debrief, multi-leg company day mode
+- Cabin crew (a "cabin secure" that arrives a realistic, pax-scaled while after the doors
+  close — sometimes at the holding point) and company/ACARS immersion, tech log & MEL with
+  voice dialogues, pilot logbook, spoken post-flight debrief, multi-leg company day mode
 - TTS chain (Kokoro local neural → Google Chirp HD → Windows voices) with caching and an
   intercom filter; LAN faster-whisper or offline recognition; PTT on keyboard or joystick
 - An optional **persona** (name, experience, formality, chattiness) colours the FO's
