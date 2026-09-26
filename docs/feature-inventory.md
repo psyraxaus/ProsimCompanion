@@ -19,7 +19,11 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] GPU / PCA / chocks placement & removal with interlocks; beacon-edge removal
 - [x] Beacon-orchestrated pushback sequence (randomized delays, beacon-off pause; INT/RAD
       force-next covers the skip)
-- [ ] Pushback direction preselect (Korry buttons, per profile)
+- [x] Pushback direction preselect (Korry buttons on the OFP page, gsx.pushbackPreference)
+- [x] Live GSX menu card (#135): every open GSX menu as buttons on Flight Status / OFP /
+      Ground Services — the addon-airport direction lines the Korry preference cannot reach
+- [x] Header NEXT SERVICE button (#133, opt-in on Appearance) and the pax-scaled cabin-secure
+      wait (#134)
 - [ ] Auto engine-start confirmation
 - [x] De-icing auto-answer + fluid/concentration selection (question catalogue)
 - [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs deferred)

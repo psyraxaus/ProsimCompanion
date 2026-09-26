@@ -1372,6 +1372,60 @@
         "'hero-weather-refreshed' events appear after every OFP fetch and at the configured cadence; a local/second status other than Found is a weather-chain outcome to report with its icao, not a widget failure."
       ],
       "notes": "Feature shipped 2026-09-22 (owner sign-off on the canvas draft 'Weather Card Title Line' v3). Issue 0 until the tracking issue is filed. Thresholds: flightStatus.gateFinalCallPaxPercent (90) / gateFinalCallMinutesBeforeStd (10)."
+    },
+    {
+      "id": "header-next-service",
+      "issue": 133,
+      "state": "open",
+      "kind": "requires-human",
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "With Settings → Appearance → 'Show NEXT SERVICE button in the header' ON, every page's header shows a NEXT SERVICE block naming the next departure service and its stage; it is greyed before the departure sequence starts and after it completes. OFF (the default) leaves the header exactly as before.",
+        "A click while a service is holding produces the same session evidence as the INT/RAD switch: a 'gsx-force-next' / sequencer decision with source 'web' followed by the held service's trigger. If the click leaves no such evidence, the button is dead.",
+        "The hover title names the hold reason (the departure board's Detail) — the button doubles as a status pill."
+      ],
+      "notes": "Nico's home-cockpit request 2026-09-27: he used Settings → Ground Services → Call next service and wanted it on every page. Same IGsxDepartureControl.ForceNext() as the existing button, the Stream Deck key and the voice command 'next service'."
+    },
+    {
+      "id": "cabin-secure-delay",
+      "issue": 134,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": { "kind": "signature", "trigger": { "source": "session", "type": "cabin.secure-armed", "contains": "delaySeconds" }, "signature": { "source": "session", "type": "cabin.report", "contains": "cabin.secure" } },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present: a 'cabin.secure-armed' event (payload delaySeconds, pax, dueUtc) at the first tick with doors closed + beacon on in PushbackAndStart/TaxiOut, followed by 'cabin.report' {report: cabin.secure}. Not-exercised when the leg never closed doors with the beacon on (or cabin.cabinSecure is off).",
+        "The gap between cabin.secure-armed and cabin.report must be >= delaySeconds (a re-opened door or a paused push may make it longer, never shorter). A report before the due time is the timer being bypassed.",
+        "delaySeconds must lie within [cabinSecureMinDelaySeconds, cabinSecureMinDelaySeconds + pax × cabinSecureSecondsPerPax] for the pax in the payload; pax should equal GSX's boarded count (gsx boarding counters) or, without GSX, the OFP figure.",
+        "assert-absent: a second cabin.secure-armed or cabin.report{cabin.secure} on the same leg without a re-arm (ColdAndDark / turnaround Preflight) in between.",
+        "requires-human: Flight Status → App → 'Cabin' pill reads 'securing' between the two events and 'secure' after; a 'cockpit to cabin' hail while securing is answered with the cabinSecuringReplyText line (speech.spoken, role Purser), not the normal hail reply.",
+        "watch: with the defaults (45 s + 1 s/pax) a full A320 reports between ~45 s and ~4 min after doors+beacon — report where in that band the leg landed."
+      ],
+      "notes": "Nico's request 2026-09-27: cabin readiness that sometimes comes right after pushback and sometimes at the runway. CabinCrewCore arms once per flight (min + roll × pax × perPax, roll drawn once) and fires when due AND doors closed + beacon on still hold. Defaults cabin.cabinSecureMinDelaySeconds 45 / cabinSecureSecondsPerPax 1.0; 0/0 restores the instant report."
+    },
+    {
+      "id": "gsx-menu-card-pick",
+      "issue": 135,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": { "kind": "signature", "trigger": { "source": "session", "type": "gsx-menu-card", "contains": "web menu pick" }, "signature": { "source": "session", "type": "gsx-menu-card", "contains": "picked" } },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present when the pilot used the card: every 'gsx-menu-card' event with action 'web menu pick' carries payload {title, index, entry, outcome, detail}; outcome Success (reason 'picked …') means the mirror changed after menu.pick (closed, submenu or new lines). Not-exercised when no gsx-menu-card event exists (the pilot never clicked).",
+        "A pick whose outcome is ItemNotAvailable/MenuTitleMismatch with 'menu changed' in the detail is the TOCTOU guard working — report it as a guard hit, not a failure — and must NOT be followed by a menu.pick command in the GSX Recent Commands / wire trace for that click.",
+        "assert-absent: a 'web menu pick' while a question handler was mid-dispatch on the same title ('Dispatching question handler for menu' without its completion line in between) — the card must refuse with 'automation is answering'.",
+        "The pushback case: when 'pushback direction menu' was 'left for the user (no entry matches preference …)' and the pilot picked a direction line from the card, the pushback proceeded (VEHICLE_PUSHBACK_STATE / pushback-state events) without the GSX window being opened. Report the picked line text — the addon-airport phrasing is the evidence the resolver could not reach it.",
+        "requires-human: the card on Flight Status (GSX column), the OFP pushback card and Settings → Ground Services → Diagnostics → Menu shows the live title and lines, greyed lines disabled, Open when closed / Close when shown; a click that changed nothing shows 'sent — GSX showed no change' under the card."
+      ],
+      "notes": "Nico's request 2026-09-27 (EDDL: up to three named pushback directions per stand — the resolver's fixed-index fallback covers lines 0/1 only, and recordings show 'left for the user' on most legs). GsxMenuControl → GsxMenuIntentExecutor with EntryIndex + the entry text the pilot saw; verify = any mirror change; own picks excluded from the IsDriving lock-out."
     }
   ]
 }

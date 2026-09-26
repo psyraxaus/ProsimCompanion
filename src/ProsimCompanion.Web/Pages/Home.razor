@@ -16,6 +16,7 @@
 @inject IGsxDepartureControl DepartureControl
 @inject IAircraftStateCheckControl StateCheckControl
 @inject AudioStatusStore Audio
+@inject SpeechStatusStore Speech
 @inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
 @inject IFlightPhaseControl PhaseControl
 @inject IGsxServiceControl ServiceControl
@@ -212,6 +213,7 @@
             @Kv("Engines Running", (FlightState.Snapshot().Data?.AnyEngineRunning)?.ToString() ?? "—")
             @Kv("In Motion", FlightState.Snapshot().Data is { } motion ? (motion.GroundSpeedKt > 0.5).ToString() : "—")
             @AircraftStateRow()
+            @CabinRow()
         </div>
     </section>
 
@@ -229,6 +231,9 @@
             @Kv("Departure Services", DepartureSummary)
             @Kv("Assigned Gate", _gsx.GateRequest ?? "—")
             @Kv("Last Handler Event", HandlerEvent)
+            @* Live GSX menu as buttons (issue #135) — the pushback-direction lines an addon
+               airport names per stand, and every other menu GSX leaves for the pilot. *@
+            <GsxMenuCard />
         </div>
     </section>
 
@@ -663,6 +668,25 @@
 
     private bool _recheckUnavailable;
 
+    // Cabin-secure state (issue #134): the crew's randomized securing wait after doors
+    // closed + beacon on. "securing" is the moment a "cockpit to cabin" hail gets "still
+    // securing"; "secure" once the purser has reported. "—" before either.
+    private RenderFragment CabinRow()
+    {
+        var (tone, text, tooltip) = _speech.CabinSecure switch
+        {
+            CabinSecureState.Securing => ("tone-warn", "securing", "Doors closed and beacon on — the crew is securing the cabin; the report follows when their timer runs out (Settings → Voice First Officer → Cabin Crew)."),
+            CabinSecureState.Secure => ("tone-ok", "secure", "The purser has reported the cabin secure for this flight."),
+            _ => ("tone-neutral", "—", "The cabin-secure wait starts when the doors are closed and the beacon is on."),
+        };
+        return @<div class="row">
+            <span class="row-label">Cabin</span>
+            <span class="pill @tone" title="@tooltip">@text</span>
+        </div>;
+    }
+
+    private SpeechStatusSnapshot _speech = SpeechStatusSnapshot.Empty;
+
     // Refuel row with the crew's fuel-confirmation button (2026-09-19, real-world SOP): in
     // gsx.refuelCall = onFuelConfirmed the truck waits for it; in every mode the same button
     // orders a top-up once the INIT FUEL RAMP figure is raised after a completed refuel.
@@ -800,6 +824,7 @@
             _gsx = snapshot;
         });
         Watch(Audio, _ => { });
+        Watch(Speech, snapshot => _speech = snapshot);
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _connections = Status.Snapshot());
         WatchChanged(h => Session.Changed += h, h => Session.Changed -= h, () => { });
         WatchChanged<FlightPhaseChangedEventArgs>(

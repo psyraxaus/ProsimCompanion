@@ -224,6 +224,7 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
             [])
         {
             AutomationPhase = _automation.Phase.ToString(),
+            MenuDisabled = mirror.Menu?.Disabled ?? [],
             GateRequest = _gateSelection.RequestedGate is null
                 ? null
                 : $"{_gateSelection.RequestedGate}: {_gateSelection.Status} — {_gateSelection.StatusDetail}",

@@ -4,6 +4,7 @@ using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Commands;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Gsx;
 using ProsimCompanion.Speech.Recognition;
@@ -50,6 +51,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
     private readonly IOptionsMonitor<CabinOptions> _cabinOptions;
     private readonly IOptionsMonitor<SpeechOptions> _speechOptions;
     private readonly JsonlEventLog _eventLog;
+    private readonly SpeechStatusStore _status;
     private readonly ILogger<CrewHailService> _logger;
     private readonly AcpHailGateCore _hailGate = new();
     private readonly CancellationTokenSource _shutdown = new();
@@ -65,6 +67,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         IOptionsMonitor<CabinOptions> cabinOptions,
         IOptionsMonitor<SpeechOptions> speechOptions,
         JsonlEventLog eventLog,
+        SpeechStatusStore status,
         ILogger<CrewHailService> logger)
     {
         ArgumentNullException.ThrowIfNull(mic);
@@ -76,6 +79,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         ArgumentNullException.ThrowIfNull(cabinOptions);
         ArgumentNullException.ThrowIfNull(speechOptions);
         ArgumentNullException.ThrowIfNull(eventLog);
+        ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(logger);
 
         _mic = mic;
@@ -87,6 +91,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         _cabinOptions = cabinOptions;
         _speechOptions = speechOptions;
         _eventLog = eventLog;
+        _status = status;
         _logger = logger;
     }
 
@@ -209,7 +214,13 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
     {
         var role = ground ? SpeechRole.GroundCrew : SpeechRole.Purser;
         var tag = ground ? "ground.hail" : "cabin.hail";
-        var reply = ground ? _groundOptions.CurrentValue.HailReplyText : _cabinOptions.CurrentValue.HailReplyText;
+        // While the cabin-secure timer runs (issue #134) the purser is busy: a hail gets the
+        // "still securing" line instead of "go ahead" — the cockpit learns the cabin is not
+        // ready yet without the report being forced early.
+        var reply = ground ? _groundOptions.CurrentValue.HailReplyText
+            : _status.Snapshot().CabinSecure == CabinSecureState.Securing
+                ? _cabinOptions.CurrentValue.CabinSecuringReplyText
+                : _cabinOptions.CurrentValue.HailReplyText;
         var grammar = ground ? GsxVoicePhrases.GroundHailGrammar : GsxVoicePhrases.CabinHailGrammar;
         var standingBy = _groundOptions.CurrentValue.StandingByText;
         var required = ground ? AcpTransmitTarget.Intercom : AcpTransmitTarget.Cabin;

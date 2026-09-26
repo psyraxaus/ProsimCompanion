@@ -1,0 +1,116 @@
+@* Live GSX menu card (issue #135, Nico 2026-09-27): whatever menu GSX has open — the
+   stand's named pushback directions at an addon airport, Customize, operator lists — as
+   buttons, so the pilot never opens the GSX window. Every click goes through
+   IGsxMenuControl: the line is re-matched against the live menu when the pick is sent, and
+   the card refuses while the automation is answering the same menu. *@
+@inherits StoreObserverComponent
+@inject GsxDiagnosticsStore Diagnostics
+@inject IGsxMenuControl MenuControl
+
+<div class="gsx-menu-card">
+    <div class="gsx-menu-head">
+        <span class="gsx-menu-heading">
+            <span class="label-caps">GSX menu</span>
+            <span class="gsx-menu-title" title="@(_view.MenuShown ? _view.MenuTitle : null)">
+                @(_view.MenuShown ? _view.MenuTitle ?? "(untitled)" : "closed")
+            </span>
+        </span>
+        <span class="gsx-menu-actions">
+            @if (_view.MenuShown)
+            {
+                <button type="button" class="btn secondary" disabled="@_busy" @onclick="CloseAsync"
+                        title="Dismiss the GSX menu (leave the question unanswered)">Close</button>
+            }
+            else
+            {
+                <button type="button" class="btn secondary" disabled="@(_busy || _view.Readiness != "Ready")"
+                        @onclick="OpenAsync" title="Open the GSX menu here">Open</button>
+            }
+        </span>
+    </div>
+
+    @if (!_view.MenuShown)
+    {
+        <div class="empty">
+            @(_view.Readiness == "Ready"
+                ? "GSX has no menu open. Open it here, or wait — questions GSX raises (pushback direction, de-ice, operator) appear as buttons."
+                : "GSX is not connected.")
+        </div>
+    }
+    else
+    {
+        var driving = MenuControl.AutomationDriving;
+        @if (driving)
+        {
+            <div class="field-hint gsx-menu-driving">The automation is answering this menu — the lines unlock when it is done.</div>
+        }
+        <ol class="gsx-menu-entries" start="0">
+            @for (var i = 0; i < _view.MenuEntries.Count; i++)
+            {
+                var index = i;
+                var entry = _view.MenuEntries[i];
+                var greyed = i < _view.MenuDisabled.Count && _view.MenuDisabled[i];
+                <li>
+                    <button type="button" class="gsx-menu-entry" disabled="@(_busy || driving || greyed)"
+                            title="@(greyed ? "Greyed out in GSX" : $"Pick '{entry}'")"
+                            @onclick="() => PickAsync(index, entry)">
+                        <span class="gsx-menu-index mono">@index</span>
+                        <span class="gsx-menu-text">@entry</span>
+                    </button>
+                </li>
+            }
+        </ol>
+    }
+
+    @if (Hint is { Length: > 0 })
+    {
+        <div class="field-hint">@Hint</div>
+    }
+    @if (_note is { } note)
+    {
+        <div class="field-hint gsx-menu-note @(note.Ok ? "ok" : "warn")">@note.Text</div>
+    }
+</div>
+
+@code {
+    /// <summary>Optional one-line hint under the card (the OFP pushback card says why the
+    /// direction lines matter at addon airports).</summary>
+    [Parameter]
+    public string? Hint { get; set; }
+
+    private GsxDiagnosticsSnapshot _view = GsxDiagnosticsSnapshot.Empty;
+    private bool _busy;
+    private (string Text, bool Ok)? _note;
+
+    protected override void OnInitialized()
+        => Watch(Diagnostics, snapshot => _view = snapshot);
+
+    private Task PickAsync(int index, string entry)
+        => RunAsync(ct => MenuControl.PickAsync(index, entry, ct));
+
+    private Task OpenAsync() => RunAsync(MenuControl.OpenAsync);
+
+    private Task CloseAsync() => RunAsync(MenuControl.CloseAsync);
+
+    private async Task RunAsync(Func<CancellationToken, Task<GsxMenuActionOutcome>> action)
+    {
+        _busy = true;
+        _note = null;
+        try
+        {
+            var outcome = await action(CancellationToken.None);
+            // A clean pick needs no note — the menu itself changes. Everything else says why.
+            _note = outcome.Status == GsxMenuActionStatus.Done && !outcome.Detail.Contains("no change", StringComparison.Ordinal)
+                ? null
+                : (outcome.Detail, outcome.Status == GsxMenuActionStatus.Done);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _note = (ex.Message, false);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -206,6 +206,9 @@
                                          OnClick="@(() => SetPreference("tailRight"))" />
                 </div>
                 <div class="ofp-hint ofp-hint-center">Auto-answers the GSX direction menu · saved as gsx.pushbackPreference</div>
+                @* Issue #135: addon airports name up to three directions per stand and the
+                   Korry preference cannot reach the third — the live menu card can. *@
+                <GsxMenuCard Hint="When GSX shows 'Select pushback direction' with the stand's own named lines, pick one here — no need to open the GSX window." />
             </div>
         </section>
 

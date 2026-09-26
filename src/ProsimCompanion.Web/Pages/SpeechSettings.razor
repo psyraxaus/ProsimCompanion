@@ -241,6 +241,17 @@ else if (CurrentSection == "cabin")
         <BoolField Label="Enabled" @bind-Value="_cabin.Value.Enabled" />
         <BoolField Label="Cabin secure report" Hint="Before takeoff, once the doors are closed and the beacon is on."
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CabinSecure" />
+        <NumberField Label="Cabin secure: minimum wait" Suffix="s" Min="0"
+                     Hint="The crew needs this long after doors closed + beacon on before the report. 0 = instant."
+                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinSecure)"
+                     @bind-Value="_cabin.Value.CabinSecureMinDelaySeconds"
+                     Default="_cabin.Defaults.CabinSecureMinDelaySeconds" />
+        <NumberField Label="Cabin secure: extra per passenger" Suffix="s/pax" Step="0.1" Min="0"
+                     Hint="A random share of pax × this is added, drawn once per flight — sometimes ready after pushback, sometimes at the runway."
+                     More="Passengers = GSX's boarded count, else the OFP figure. With 45 s and 1 s/pax a full A320 waits between 45 s and about 4 minutes. 0 = the minimum only."
+                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinSecure)"
+                     @bind-Value="_cabin.Value.CabinSecureSecondsPerPax"
+                     Default="_cabin.Defaults.CabinSecureSecondsPerPax" />
         <BoolField Label="Cabin ready report" Hint="On approach, below the altitude set here."
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CabinReady" />
         <NumberField Label="Cabin-ready below" Suffix="ft MSL" Min="1000"
@@ -272,6 +283,8 @@ else if (CurrentSection == "cabin")
     <Section Title="Cabin Wording" Hint="Spoken word for word">
         <TextField Label="Hail reply" Hint="Answer to &quot;cockpit to cabin&quot;."
                    @bind-Value="_cabin.Value.HailReplyText" />
+        <TextField Label="Hail reply while securing" Hint="Answer to a hail while the cabin-secure wait is still running."
+                   @bind-Value="_cabin.Value.CabinSecuringReplyText" />
         <TextField Label="Cabin secure" @bind-Value="_cabin.Value.CabinSecureText" />
         <TextField Label="Cabin secure — FO ack" @bind-Value="_cabin.Value.CabinSecureAckText" />
         <TextField Label="Cabin ready" @bind-Value="_cabin.Value.CabinReadyText" />

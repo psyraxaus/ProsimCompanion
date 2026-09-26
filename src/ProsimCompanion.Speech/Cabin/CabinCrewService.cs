@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
@@ -18,6 +19,12 @@ namespace ProsimCompanion.Speech.Cabin;
 /// captain's) or the grace, then speak the purser report with an optional FO acknowledgement.
 /// Reports are tagged cabin.* so the sterile rule exempts them. Detect-and-report only — never
 /// writes the sim.
+/// <para>
+/// The cabin-secure wait (issue #134) is scaled by the passengers on board: GSX's boarded
+/// count when it has one, else the OFP figure, else 0 (minimum wait only). The arm/report
+/// pair is published on <see cref="SpeechStatusStore"/> so the Flight Status page shows
+/// "securing" and the purser answers a hail with "still securing" meanwhile.
+/// </para>
 /// </summary>
 public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
 {
@@ -29,6 +36,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
     private readonly IOptionsMonitor<CabinOptions> _options;
     private readonly JsonlEventLog _eventLog;
     private readonly SpeechStatusStore _store;
+    private readonly GsxDiagnosticsStore _gsx;
+    private readonly OfpStore _ofp;
     private readonly ILogger<CabinCrewService> _logger;
     private readonly CabinCrewCore _core = new();
     private readonly CancellationTokenSource _shutdown = new();
@@ -53,6 +62,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         IOptionsMonitor<CabinOptions> options,
         JsonlEventLog eventLog,
         SpeechStatusStore store,
+        GsxDiagnosticsStore gsx,
+        OfpStore ofp,
         ILogger<CabinCrewService> logger)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -63,6 +74,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(gsx);
+        ArgumentNullException.ThrowIfNull(ofp);
         ArgumentNullException.ThrowIfNull(logger);
 
         _dataRefs = dataRefs;
@@ -73,6 +86,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         _options = options;
         _eventLog = eventLog;
         _store = store;
+        _gsx = gsx;
+        _ofp = ofp;
         _logger = logger;
     }
 
@@ -108,7 +123,27 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
     }
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
-        => _core.OnPhaseChanged(e.Previous, e.Current);
+    {
+        _core.OnPhaseChanged(e.Previous, e.Current);
+        // The core's re-arm (cold-and-dark / turnaround Preflight) is the same edge that
+        // clears the published state — a stale "secure" must not carry into the next leg.
+        if (_core.SecureDueAtUtc is null && _core.SecureDelaySeconds == 0)
+        {
+            SetSecureState(CabinSecureState.None);
+        }
+    }
+
+    /// <summary>Passengers on board for the cabin-secure wait: GSX's boarded count (the truth
+    /// once boarding ran), else the OFP figure (no GSX, or GSX never counted), else 0.</summary>
+    private int PaxOnBoard()
+    {
+        if (_gsx.Snapshot().BoardingCounters?.PaxBoarded is > 0 and var boarded)
+        {
+            return boarded;
+        }
+
+        return _ofp.Current?.PaxCount is > 0 and var planned ? planned : 0;
+    }
 
     private void Tick()
     {
@@ -137,12 +172,37 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
                 SeatbeltSignsMode: _signs!.Value,
                 AltitudeFt: flightData.AltitudeFt,
                 VerticalSpeedFpm: flightData.VerticalSpeedFpm,
-                HasBeenAirborne: _flight.Snapshot().HasBeenAirborneThisSession);
+                HasBeenAirborne: _flight.Snapshot().HasBeenAirborneThisSession,
+                PaxOnBoard: PaxOnBoard(),
+                NowUtc: DateTimeOffset.UtcNow);
 
             var action = _core.Evaluate(sample, options, () => Random.Shared.NextDouble());
             if (action == CabinAction.None)
             {
                 return;
+            }
+
+            if (action == CabinAction.SecureArmed)
+            {
+                // Not a report — nothing plays. The pill and the hail reply switch to
+                // "securing"; the event carries the draw so a flight probe can check the
+                // report waited at least this long (issue #134).
+                _logger.LogInformation(
+                    "Cabin securing: report in {DelaySeconds} s ({Pax} pax on board)",
+                    _core.SecureDelaySeconds, sample.PaxOnBoard);
+                _eventLog.Record("cabin.secure-armed", new
+                {
+                    delaySeconds = _core.SecureDelaySeconds,
+                    pax = sample.PaxOnBoard,
+                    dueUtc = _core.SecureDueAtUtc,
+                });
+                SetSecureState(CabinSecureState.Securing);
+                return;
+            }
+
+            if (action == CabinAction.SecureReport)
+            {
+                SetSecureState(CabinSecureState.Secure);
             }
 
             _busy = true;
@@ -244,4 +304,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
 
     private void SetCalling(bool value)
         => _store.Update(s => s with { CabinCalling = value });
+
+    private void SetSecureState(CabinSecureState state)
+        => _store.Update(s => s.CabinSecure == state ? s : s with { CabinSecure = state });
 }

@@ -121,6 +121,11 @@ public sealed record GsxDiagnosticsSnapshot(
     /// <summary>Automation phase label (set by the GSX layer alongside Update).</summary>
     public string AutomationPhase { get; init; } = "Inactive";
 
+    /// <summary>Parallel to <see cref="MenuEntries"/>: true where GSX greys the line (the
+    /// web menu card renders those disabled — issue #135). Shorter than the entries when
+    /// GSX sent no disabled flags; treat missing as enabled.</summary>
+    public IReadOnlyList<bool> MenuDisabled { get; init; } = [];
+
     /// <summary>Armed/last gate request summary, e.g. "B12: Confirmed — confirmed as B12".</summary>
     public string? GateRequest { get; init; }
 

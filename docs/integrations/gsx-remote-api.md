@@ -157,6 +157,16 @@ disabled guard → `menu.pick` → verify (poll ≤5 s, per-intent overridable �
 can exceed 5 s; verify = title moved off/onto expected prefix, against the mirror) → on any
 failure: **menu left open for the user, logged — never a wrong click**.
 
+**Manual picks (issue #135, 2026-09-27)** ride the same pipeline: the web menu card sends
+`IGsxMenuControl.PickAsync(index, expectedEntry)`, which becomes a positional intent
+(`TitlePrefixes = [live title]`, `EntryIndex`) only after the live line at that index still
+reads `expectedEntry` — a menu GSX re-raised under the pilot's click sends nothing. Verify is
+"anything changed" (closed, submenu, or same title with other lines); an accepted pick with
+an unchanged mirror is reported as sent-no-change, not as a failure. The card refuses while
+the executor is driving the shown title (our own pick excluded via its in-flight latch), and
+`menu.open` is sent only when `menuShown == false` (never a toggle). Decisions land as
+`web menu pick|open|close`; session events as `gsx-menu-card`.
+
 GSX-raised questions dispatch on the **rising edge of the menu title** (dispatch once per title
 appearance; clear the edge when the menu hides), serialized off the WS receive thread. The
 question/answer catalogue (title prefix → regex/choice) is in the Prosim2GSX report — port the

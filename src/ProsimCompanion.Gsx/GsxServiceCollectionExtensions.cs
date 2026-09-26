@@ -23,6 +23,10 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Menu.GsxMenuIntentExecutor>();
         services.AddSingleton<Menu.GsxQuestionDispatcher>();
         services.AddSingleton<Menu.GsxQuestionCatalog>();
+        // Manual menu driving from the web menu card (issue #135) — same executor pipeline
+        // as the automation, so a pilot's click is guarded exactly like an intent.
+        services.AddSingleton<Menu.GsxMenuControl>();
+        services.AddSingleton<Core.State.IGsxMenuControl>(provider => provider.GetRequiredService<Menu.GsxMenuControl>());
         services.AddSingleton<Gate.GsxGateSelectionService>();
         services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
         // The trigger slot (CONTEXT.md): the single serialized service.trigger path shared by

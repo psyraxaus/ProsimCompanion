@@ -17,7 +17,7 @@ is regenerated automatically (pair tablets again via the QR code).
 | Section | Page | Highlights |
 |---|---|---|
 | `prosim` | Settings → Setup | `sdkPath` (ProSimSDK.dll), `host`, optional `apiKey` |
-| `webUi` | Settings → Setup / Display, desktop window | `port` (default 5320), `bindToAllInterfaces`, `accessToken`, theme, units, Solari animation |
+| `webUi` | Settings → Setup / Display / Appearance, desktop window | `port` (default 5320), `bindToAllInterfaces`, `accessToken`, theme, units, Solari animation, `showNextServiceInHeader` (off — the header NEXT SERVICE button) |
 | `gsx` | Settings → Ground Services | the whole ground pillar — see below (master switch on Setup) |
 | `audio` | Settings → Audio Control | backend (CoreAudio/VoiceMeeter), app mappings, ACP side, device blacklist, device-filter flow/state (master switch on Setup) |
 | `speech` | Settings → Voice First Officer | TTS providers/voices, output/input devices, recognition, PTT/ATC-mute bindings, sterile cockpit (master switch on Setup) |
@@ -27,7 +27,7 @@ is regenerated automatically (pair tablets again via the QR code).
 | `briefing` | Settings → Voice First Officer → Briefings & LLM (DFD path on Setup) | departure/arrival overrides, DFD path (`dfdPath`), minima capture, LLM endpoint (`llm*`) |
 | `persona` | file | FO persona — enabled, name, experience, formality, chattiness, style toggles |
 | `sayIntentions` | Settings → Voice First Officer → SayIntentions | API key source, phraseology, auto-tune, departure gating, weather |
-| `cabin`, `company` | Settings → Voice First Officer → Cabin Crew (`company` file-only) | purser reports, ambient events, company loadsheet/cruise messages, chimes |
+| `cabin`, `company` | Settings → Voice First Officer → Cabin Crew (`company` file-only) | purser reports, the cabin-secure wait (`cabinSecureMinDelaySeconds` 45, `cabinSecureSecondsPerPax` 1.0, `cabinSecuringReplyText`), ambient events, company loadsheet/cruise messages, chimes |
 | `flightData` | Settings → Display & Flight Data | SimBrief fetch attempts, prelim/final loadsheet triggers and delays |
 | `flightStatus` | Settings → Display & Flight Data → Flight Status card | gate monitor final-call thresholds (`gateFinalCallPaxPercent` 90, `gateFinalCallMinutesBeforeStd` 10), weather-card refresh (`weatherRefreshMinutes` 10); also drives the pop-out Flight Monitor |
 | `flightState` | Settings → Advanced → Flight Phase Engine | phase-engine thresholds and settle times (calibration data) |

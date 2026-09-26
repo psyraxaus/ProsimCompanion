@@ -29,6 +29,13 @@ public sealed class WebUiOptions : IOptionSection
     /// choices only; the controls still exist, they are folded.</summary>
     public bool ShowAdvancedSettings { get; set; }
 
+    /// <summary>Show the NEXT SERVICE button in the EFB header on every page (issue #133,
+    /// Nico's home-cockpit request 2026-09-27): the INT/RAD "smart button" for pilots who
+    /// do not use the switch, without switching to Settings → Ground Services. Off by
+    /// default so the header stays as it was for everyone else; the toggle lives on
+    /// Settings → Appearance.</summary>
+    public bool ShowNextServiceInHeader { get; set; }
+
     /// <summary>Weight unit source: "app" (the fixed <see cref="Unit"/> below) or "aircraft"
     /// (follow ProSim's configured weight unit) — Prosim2GSX's DisplayUnitSource.</summary>
     public string UnitSource { get; set; } = "app";

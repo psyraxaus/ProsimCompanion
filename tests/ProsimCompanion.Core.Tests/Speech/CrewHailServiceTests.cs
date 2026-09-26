@@ -23,6 +23,7 @@ public sealed class CrewHailServiceTests : IDisposable
     private readonly CabinOptions _cabinOptions = new();
     private readonly SpeechOptions _speechOptions = new();
     private readonly FakeAcpChannel _acpTransmit = new();
+    private readonly Core.State.SpeechStatusStore _status = new();
     private readonly List<string> _executed = [];
     private readonly string _tempDir =
         Path.Combine(Path.GetTempPath(), "prosimcompanion-tests", Guid.NewGuid().ToString("N"));
@@ -82,6 +83,7 @@ public sealed class CrewHailServiceTests : IDisposable
             cabinOptions.Object,
             speechOptions.Object,
             new JsonlEventLog(_tempDir, NullLogger<JsonlEventLog>.Instance),
+            _status,
             NullLogger<CrewHailService>.Instance);
     }
 
@@ -195,6 +197,23 @@ public sealed class CrewHailServiceTests : IDisposable
             r.Role == SpeechRole.Purser && r.Text == _cabinOptions.HailReplyText);
         Assert.Contains(_arbiter.Requests, r =>
             r.Role == SpeechRole.Purser && r.Text == "Copied — we'll start boarding.");
+    }
+
+    [Fact]
+    public void CabinHail_WhileSecuring_AnswersStillSecuring()
+    {
+        // Issue #134: during the cabin-secure wait the purser is busy — the hail is answered
+        // with the securing line, not "go ahead"; the request window still opens.
+        Handler("gsx.requestBoarding", CommandResult.Ok("requested"));
+        _status.Update(s => s with { CabinSecure = Core.State.CabinSecureState.Securing });
+        var service = CreateService("start boarding");
+
+        Assert.True(service.TryHandle("cockpit to cabin"));
+        WaitFor(() => _arbiter.Requests.Count >= 2);
+
+        Assert.Contains(_arbiter.Requests, r =>
+            r.Role == SpeechRole.Purser && r.Text == _cabinOptions.CabinSecuringReplyText);
+        Assert.DoesNotContain(_arbiter.Requests, r => r.Text == _cabinOptions.HailReplyText);
     }
 
     [Fact]

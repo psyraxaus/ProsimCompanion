@@ -17,6 +17,17 @@ public sealed class CabinOptions : IOptionSection
     /// <summary>"Cabin secure" report before takeoff (doors closed + beacon on).</summary>
     public bool CabinSecure { get; set; } = true;
 
+    /// <summary>Minimum wait (s) between doors-closed + beacon-on and the "cabin secure"
+    /// report (issue #134, Nico 2026-09-27): the crew needs time to arm doors, cross-check
+    /// and walk the cabin. 0 restores the instant report.</summary>
+    public int CabinSecureMinDelaySeconds { get; set; } = 45;
+
+    /// <summary>Random extra wait per passenger on board (s per pax, drawn once per flight
+    /// from 0 to pax × this): a full cabin can still be securing at the holding point, an
+    /// empty positioning flight is ready almost at once. Pax = GSX boarded count, else the
+    /// OFP figure. 0 disables the pax factor.</summary>
+    public double CabinSecureSecondsPerPax { get; set; } = 1.0;
+
     /// <summary>"Cabin ready" report on approach (seatbelt signs ON, below the trigger altitude).</summary>
     public bool CabinReady { get; set; } = true;
 
@@ -72,4 +83,9 @@ public sealed class CabinOptions : IOptionSection
 
     /// <summary>The purser's answer to a "cockpit to crew" hail (ADR-0006 / issue #51).</summary>
     public string HailReplyText { get; set; } = "Go ahead, captain.";
+
+    /// <summary>The purser's answer to a hail while the cabin-secure timer is still running
+    /// (issue #134) — the crew is busy, the report will follow.</summary>
+    public string CabinSecuringReplyText { get; set; } =
+        "Still securing the cabin, captain — we'll call you when we're ready.";
 }

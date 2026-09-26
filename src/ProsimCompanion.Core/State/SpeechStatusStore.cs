@@ -27,6 +27,21 @@ public sealed record UtteranceView(
     string Source,
     string Outcome);
 
+/// <summary>Where the cabin stands on the pre-takeoff "cabin secure" report (issue #134):
+/// the timer is running (the purser answers a hail with "still securing"), or the report
+/// has been given for this flight. Reset with the cabin re-arm (cold-and-dark / turnaround).</summary>
+public enum CabinSecureState
+{
+    /// <summary>Not started — doors not yet closed with the beacon on this flight.</summary>
+    None,
+
+    /// <summary>Doors closed + beacon on; the crew's securing timer is running.</summary>
+    Securing,
+
+    /// <summary>The "cabin secure" report has been given.</summary>
+    Secure,
+}
+
 /// <summary>Everything the web Speech page renders.</summary>
 public sealed record SpeechStatusSnapshot(
     bool Enabled,
@@ -41,6 +56,7 @@ public sealed record SpeechStatusSnapshot(
     string SpokenChecklistItem = "",
     bool CabinCalling = false,
     string ActiveAbnormal = "",
+    CabinSecureState CabinSecure = CabinSecureState.None,
     bool ListeningPaused = false,
     string RecognizerEngine = "",
     string RecognizerDetail = "")

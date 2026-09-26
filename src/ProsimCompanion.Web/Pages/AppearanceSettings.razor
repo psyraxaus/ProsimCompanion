@@ -66,6 +66,16 @@
         </div>
     </Section>
 
+    @* Header extras (issue #133): the NEXT SERVICE button for home cockpits that do not use
+       the INT/RAD switch. Applies at once, like the theme — no dirty bar. *@
+    <Section Title="Header" Hint="What the top bar shows on every page">
+        <BoolField Label="Show NEXT SERVICE button in the header"
+                   Hint="Calls the next departure service now — the INT/RAD smart button, on every page."
+                   More="The button names the next service and why it is holding. It is greyed until the departure sequence has started, and after it completes. Same action as Settings → Ground Services → Call next service now, the Stream Deck key and the voice command 'next service'."
+                   Value="@WebUi.CurrentValue.ShowNextServiceInHeader"
+                   ValueChanged="SetShowNextService" />
+    </Section>
+
     @* Airline logos for the pop-out Flight Monitor (owner request 2026-09-23): keyed by the
        OFP's ICAO airline code so the board shows the right mark whatever theme is active. *@
     <Section Title="Airline logos" Hint="For the pop-out Flight Monitor board — matched to the flight plan's airline code">
@@ -117,9 +127,20 @@
 
     private string ActiveThemeName => Themes.Get(WebUi.CurrentValue.Theme).Name;
 
+    private IDisposable? _webUiSubscription;
+
     protected override void OnInitialized()
     {
         WatchChanged(h => Logos.Changed += h, h => Logos.Changed -= h, () => { });
+        // The header toggle writes settings.json and the option reloads a beat later — the
+        // checkbox must follow the reloaded value, not the pre-click one.
+        _webUiSubscription = WebUi.OnChange(options => _ = InvokeAsync(StateHasChanged));
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _webUiSubscription?.Dispose();
     }
 
     private void Apply(string name)
@@ -130,6 +151,9 @@
             _message = $"Theme set to {name}.";
         }
     }
+
+    private void SetShowNextService(bool show)
+        => Writer.Set<WebUiOptions, bool>(o => o.ShowNextServiceInHeader, show);
 
     private async Task UploadAsync(string themeName, InputFileChangeEventArgs args)
     {

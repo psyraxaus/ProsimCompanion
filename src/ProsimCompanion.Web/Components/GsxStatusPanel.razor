@@ -114,21 +114,8 @@
     }
 </Section>
 
-<Section Title="Menu">
-    @if (!_view.MenuShown)
-    {
-        <div class="empty">No menu shown (menuShown = false).</div>
-    }
-    else
-    {
-        <div class="row-value" style="padding:4px 0; font-weight:600;">@_view.MenuTitle</div>
-        <ol start="0" style="margin:4px 0; padding-left:24px; font-family:var(--font-mono); font-size:12px;">
-            @foreach (var entry in _view.MenuEntries)
-            {
-                <li>@entry</li>
-            }
-        </ol>
-    }
+<Section Title="Menu" Hint="The live GSX menu — click a line to pick it (issue #135); the same card sits on Flight Status and the OFP page">
+    <GsxMenuCard />
 </Section>
 
 <Section Title="Automation Decisions" Hint="What happened and why — newest first">

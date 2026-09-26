@@ -12,7 +12,10 @@ running instance's window to the front.
 
 The web UI is laid out like an electronic flight bag. The **header** carries the aircraft type
 and registration (from the OFP), the flight number and the SIM/UTC clock on split-flap
-displays, a theme picker and the ProSim connection dot. The **sidebar** on the left lists the
+displays, a theme picker and the ProSim connection dot. Home cockpits that never touch the
+INT/RAD switch can add a **NEXT SERVICE** button to the header (Settings → Appearance): it
+names the next departure service, why it is holding, and calls it on a click — on every page.
+The **sidebar** on the left lists the
 flight pages in flight order with Settings pinned at the bottom; on a phone it becomes a
 scrolling icon strip. The **footer** shows the ProSim, SimConnect and GSX connections and the
 running version.
@@ -56,11 +59,11 @@ its own address, so a refresh or a link from a warning banner lands on the right
 | Rail entry | What it holds |
 |---|---|
 | **Setup** | The three master switches (GSX ground services, voice First Officer, audio control), the ProSim host/SDK path, nav data, web port/LAN access, the Stream Deck command API |
-| **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
+| **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control, the live GSX menu card) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
 | **Voice First Officer** | Status (provider tests, minima card, speak test), general, listening & PTT, sterile cockpit, crew voices, ground crew, cabin crew, briefings & LLM, MCDU, SayIntentions, voice providers |
 | **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings, housekeeping |
 | **Display & Flight Data** | Units, split-flap animation, loadsheet automation, the Flight Status card (final-call thresholds, weather refresh), checklist ticks |
-| **Appearance** | Theme swatches, your theme logos for the header, your airline logos for the Flight Monitor |
+| **Appearance** | Theme swatches, the header NEXT SERVICE button toggle, your theme logos for the header, your airline logos for the Flight Monitor |
 | **Aircraft Profiles** | Per-aircraft settings profiles with automatic matching |
 | **Advanced** | Flight phase engine thresholds, the live log viewer with capture settings |
 
@@ -75,13 +78,22 @@ thresholds — that most users never touch. Greyed-out fields belong to a switch
    import writes the booked seat map, planned fuel and cargo into the ProSim EFB.
 3. **Departure services** run in your configured order (default: cleaning/lavatory on
    turnarounds, refuel + catering in parallel, water, then boarding last). The INT/RAD
-   switch or the GSX page's button force-calls the next service. Refuel steps the ProSim
+   switch, the header's NEXT SERVICE button (opt-in) or the GSX page's button force-calls
+   the next service. Refuel steps the ProSim
    fuel while the GSX hose is connected; boarding fills seats as GSX counts pax aboard.
 4. **Loadsheets.** The preliminary loadsheet arrives when refuel starts; the final one after
    boarding completes (dispatcher delay). Doors close and the jetway retracts on final —
    or, with the beacon sequence enabled, everything runs off the beacon: APU up → doors →
    jetway → ground equipment → pushback, with crew-realistic random delays.
-5. **Pushback.** GSX's questions (direction, tug, de-ice) are answered per your settings —
+5. **Pushback.** The cabin crew report "cabin secure" a random while after the doors are
+   closed and the beacon is on — a minimum wait plus up to a second per passenger, so a full
+   cabin can still be securing at the holding point (Settings → Voice First Officer → Cabin
+   Crew). Until then a "cockpit to cabin" hail gets "still securing". GSX's questions
+   (direction, tug, de-ice) are answered per your settings — and any menu GSX leaves for you
+   (an addon airport's named pushback directions, for instance) shows as buttons in the
+   **GSX menu** card on Flight Status, the OFP page and Ground Services: pick a line there
+   instead of opening the GSX window. The card refuses picks while the automation is
+   answering the same menu, and a line that moved before your click landed is not sent —
    every answer, and every "left for you", is in the decision log.
 6. **Flight.** The arrival gate you confirmed on the OFP page is sent to GSX (and
    SayIntentions ATC) at cruise. The voice FO runs callouts, monitors flows, and briefs on

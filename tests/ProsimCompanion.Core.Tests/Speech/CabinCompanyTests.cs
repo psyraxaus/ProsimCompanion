@@ -21,16 +21,93 @@ public sealed class CabinCrewCoreTests
 
     private static readonly Func<double> NeverRoll = () => 1.0;
 
+    private static readonly DateTimeOffset T0 = new(2026, 9, 27, 10, 0, 0, TimeSpan.Zero);
+
+    /// <summary>The pre-#134 behaviour: no securing wait at all.</summary>
+    private static CabinOptions Instant() => new() { CabinSecureMinDelaySeconds = 0, CabinSecureSecondsPerPax = 0 };
+
     [Fact]
     public void SecureReport_FiresOnceWithDoorsAndBeacon()
     {
         var core = new CabinCrewCore();
-        var options = new CabinOptions();
+        var options = Instant();
 
         Assert.Equal(CabinAction.SecureReport,
             core.Evaluate(Sample(FlightPhase.PushbackAndStart), options, NeverRoll));
         Assert.Equal(CabinAction.None,
             core.Evaluate(Sample(FlightPhase.TaxiOut), options, NeverRoll));
+    }
+
+    [Fact]
+    public void SecureReport_WaitsForTheDrawnDelay()
+    {
+        // Issue #134 (Nico): doors closed + beacon on arms min + roll × pax × perPax; the
+        // report fires only when that expires. 30 s + 0.5 × 100 pax × 1 s/pax = 80 s.
+        var core = new CabinCrewCore();
+        var options = new CabinOptions { CabinSecureMinDelaySeconds = 30, CabinSecureSecondsPerPax = 1.0 };
+        CabinTickSample At(int seconds) => Sample(FlightPhase.PushbackAndStart) with
+        {
+            PaxOnBoard = 100,
+            NowUtc = T0.AddSeconds(seconds),
+        };
+
+        Assert.Equal(CabinAction.SecureArmed, core.Evaluate(At(0), options, () => 0.5));
+        Assert.Equal(80, core.SecureDelaySeconds);
+        Assert.Equal(T0.AddSeconds(80), core.SecureDueAtUtc);
+
+        Assert.Equal(CabinAction.None, core.Evaluate(At(1), options, NeverRoll));
+        Assert.Equal(CabinAction.None, core.Evaluate(At(79), options, NeverRoll));
+        Assert.Equal(CabinAction.SecureReport, core.Evaluate(At(80) with { Phase = FlightPhase.TaxiOut }, options, NeverRoll));
+        Assert.Null(core.SecureDueAtUtc);
+        Assert.Equal(CabinAction.None, core.Evaluate(At(81), options, NeverRoll));
+    }
+
+    [Fact]
+    public void SecureTimer_HoldsTheReportWhileADoorIsOpen_NeverCancels()
+    {
+        // A re-opened door (or beacon off during a paused push) after arming holds the
+        // report until the conditions are back; the drawn wait is not re-rolled.
+        var core = new CabinCrewCore();
+        var options = new CabinOptions { CabinSecureMinDelaySeconds = 10, CabinSecureSecondsPerPax = 0 };
+
+        Assert.Equal(CabinAction.SecureArmed,
+            core.Evaluate(Sample(FlightPhase.PushbackAndStart) with { NowUtc = T0 }, options, NeverRoll));
+        Assert.Equal(CabinAction.None,
+            core.Evaluate(Sample(FlightPhase.PushbackAndStart, doorsClosed: false) with { NowUtc = T0.AddSeconds(20) }, options, NeverRoll));
+        Assert.Equal(10, core.SecureDelaySeconds);
+        Assert.Equal(CabinAction.SecureReport,
+            core.Evaluate(Sample(FlightPhase.PushbackAndStart) with { NowUtc = T0.AddSeconds(21) }, options, NeverRoll));
+    }
+
+    [Theory]
+    [InlineData(45, 1.0, 180, 0.0, 45)]     // losing roll: minimum only
+    [InlineData(45, 1.0, 180, 1.0, 225)]    // full spread
+    [InlineData(45, 1.0, 0, 1.0, 45)]       // no pax known: minimum only
+    [InlineData(0, 0.0, 180, 1.0, 0)]       // instant (pre-#134 behaviour)
+    [InlineData(-5, -1.0, 180, 1.0, 0)]     // misconfigured negatives degrade to instant
+    [InlineData(60, 0.5, 150, 0.4, 90)]     // 60 + 0.4 × 150 × 0.5 = 90
+    public void SecureDelay_IsMinimumPlusRandomShareOfPaxFactor(int min, double perPax, int pax, double roll, int expected)
+    {
+        var options = new CabinOptions { CabinSecureMinDelaySeconds = min, CabinSecureSecondsPerPax = perPax };
+
+        Assert.Equal(expected, CabinCrewCore.SecureDelay(options, pax, roll));
+    }
+
+    [Fact]
+    public void Rearm_ClearsTheSecureTimer()
+    {
+        var core = new CabinCrewCore();
+        var options = new CabinOptions { CabinSecureMinDelaySeconds = 10, CabinSecureSecondsPerPax = 0 };
+
+        Assert.Equal(CabinAction.SecureArmed,
+            core.Evaluate(Sample(FlightPhase.PushbackAndStart) with { NowUtc = T0 }, options, NeverRoll));
+        core.OnPhaseChanged(FlightPhase.Shutdown, FlightPhase.ColdAndDark);
+        Assert.Null(core.SecureDueAtUtc);
+        Assert.Equal(0, core.SecureDelaySeconds);
+
+        // The next leg draws afresh — it does not inherit the expired timer.
+        Assert.Equal(CabinAction.SecureArmed,
+            core.Evaluate(Sample(FlightPhase.PushbackAndStart) with { NowUtc = T0.AddMinutes(30) }, options, NeverRoll));
     }
 
     [Theory]
@@ -115,7 +192,7 @@ public sealed class CabinCrewCoreTests
     public void Rearm_OnColdAndDark_AndOnTurnaroundPreflight()
     {
         var core = new CabinCrewCore();
-        var options = new CabinOptions();
+        var options = Instant();
         Assert.Equal(CabinAction.SecureReport,
             core.Evaluate(Sample(FlightPhase.PushbackAndStart), options, NeverRoll));
 

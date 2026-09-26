@@ -15,6 +15,8 @@
 @inject ThemeLogoStore Logos
 @inject AircraftProfileService Profiles
 @inject OfpStore Ofp
+@inject GsxDiagnosticsStore Diagnostics
+@inject IGsxDepartureControl DepartureControl
 
 <ThemeStyle />
 
@@ -48,6 +50,20 @@
         </div>
 
         <div class="flap-right">
+            @* NEXT SERVICE (issue #133, opt-in on Settings → Appearance): the INT/RAD smart
+               button for home cockpits that never touch the switch — the same ForceNext the
+               Ground Services page, the Stream Deck key and the voice command use. It doubles
+               as a status pill: the next departure service and why it is holding. *@
+            @if (WebUi.CurrentValue.ShowNextServiceInHeader)
+            {
+                <button type="button" class="header-next-service" @onclick="DepartureControl.ForceNext"
+                        disabled="@(!DepartureControl.Started || DepartureControl.Complete)"
+                        title="@NextServiceTitle">
+                    <span class="label-caps">Next service</span>
+                    <span class="header-value mono">@NextServiceText</span>
+                </button>
+            }
+
             @* Sim-time clock (issue #71): while ProSim streams a fresh simulator.zuluTime the
                flap is text-driven from the server (label SIM); on disconnect/staleness the
                mode attribute returns and app.js resumes the browser-side UTC self-tick.
@@ -166,6 +182,27 @@
 
     private IDisposable? _themeSubscription;
 
+    // ── NEXT SERVICE header button (issue #133) ────────────────────────────────────
+    private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
+
+    /// <summary>The first departure-board row still to run (not completed / skipped) — the
+    /// service ForceNext would call. Null before the board exists or once everything ran.</summary>
+    private GsxServiceBoardRow? NextServiceRow => _gsx.ServiceBoard.FirstOrDefault(row =>
+        row.Stage is not (GsxServiceStage.Completed or GsxServiceStage.Skipped));
+
+    private string NextServiceText => DepartureControl.Complete ? "complete"
+        : !DepartureControl.Started ? "not started"
+        : NextServiceRow is { } row ? $"{row.ServiceId} · {GsxPresentation.StageLabel(row.Stage)}"
+        : "—";
+
+    private string NextServiceTitle => DepartureControl.Complete
+        ? "Every departure service has completed or was skipped."
+        : !DepartureControl.Started
+            ? "The departure sequence has not started yet (it starts with the flight plan, or from Settings → Ground Services)."
+            : NextServiceRow is { Detail.Length: > 0 } row
+                ? $"Call {row.ServiceId} now, bypassing its activation rule (INT/RAD). Holding: {row.Detail}"
+                : "Call the next departure service now, bypassing its activation rule (INT/RAD).";
+
     private IDataRefSubscription<string>? _flightNumberSub;
     private string _flightNumber = "";
     private UpdateSnapshot _update = UpdateSnapshot.Empty;
@@ -245,6 +282,7 @@
     {
         Watch(Updates, snapshot => _update = snapshot);
         Watch(Speech, snapshot => _speech = snapshot);
+        Watch(Diagnostics, snapshot => _gsx = snapshot);
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => { });
         WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => { });
