@@ -72,6 +72,27 @@ public sealed class UtteranceRouterTests
         }
     }
 
+    /// <summary>A value parser the way the real ones behave (issue #137): it claims any text
+    /// containing its keyword, whether or not it can read a value from it.</summary>
+    private sealed class GreedyValueFeature(string keyword) : IVoiceFeature
+    {
+        public List<string> Handled { get; } = [];
+        public bool Enabled => true;
+        public IEnumerable<string> Phrases => [$"set {keyword}"];
+        public bool ValueParse => true;
+
+        public bool TryHandle(string utterance)
+        {
+            if (!utterance.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            Handled.Add(utterance);
+            return true;
+        }
+    }
+
     private readonly FakeRecognitionWindow _window = new();
     private readonly MicOwnership _mic;
     private readonly FakeArbiter _arbiter = new();
@@ -124,6 +145,52 @@ public sealed class UtteranceRouterTests
         _window.Hear("request refueling");
 
         Assert.Single(feature.Handled);
+    }
+
+    [Theory]
+    [InlineData("tune the ils", "tune")]           // McduRadNavTuner vs RadioExecutor
+    [InlineData("say v speeds", "speed")]          // commands.json vs FcuExecutor
+    [InlineData("altitude star", "altitude")]      // PilotAnnouncement vs FcuExecutor
+    [InlineData("one hundred knots", "knots")]     // RoleManager PM call vs FcuExecutor
+    public void ExactPhrase_OutranksAGreedyValueParser(string phrase, string keyword)
+    {
+        // Issue #137: the value parsers used to get the raw text first and swallowed these
+        // with "Say again — couldn't read the …" before their owner ever saw them.
+        var greedy = new GreedyValueFeature(keyword);
+        var owner = new ScriptedFeature(phrase);
+        using var router = CreateRouter(greedy, owner);
+
+        _window.Hear(phrase);
+
+        Assert.Single(owner.Handled);
+        Assert.Empty(greedy.Handled);
+    }
+
+    [Fact]
+    public void FreeFormInstruction_StillReachesTheValueParserFirst()
+    {
+        var greedy = new GreedyValueFeature("speed");
+        var owner = new ScriptedFeature("say v speeds");
+        using var router = CreateRouter(greedy, owner);
+
+        _window.Hear("set speed two one zero");
+
+        Assert.Single(greedy.Handled);
+        Assert.Empty(owner.Handled);
+    }
+
+    [Fact]
+    public void ExactPhrase_OfADisabledOwner_StillGoesToTheValueParser()
+    {
+        // A switched-off feature owns nothing — its phrase is free-form text again.
+        var greedy = new GreedyValueFeature("speed");
+        var owner = new ScriptedFeature("say v speeds", enabled: false);
+        using var router = CreateRouter(greedy, owner);
+
+        _window.Hear("say v speeds");
+
+        Assert.Single(greedy.Handled);
+        Assert.Empty(owner.Handled);
     }
 
     [Fact]

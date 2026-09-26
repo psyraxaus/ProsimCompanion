@@ -232,8 +232,11 @@ public sealed class UtteranceRouter : IDisposable
         var responsePending = host.ResponsePending;
 
         // Value-parsing features (FCU, radios) get the RAW transcription first so numbers
-        // survive — skipped while an item is awaiting an answer.
-        if (awaiting is null)
+        // survive — skipped while an item is awaiting an answer, and skipped when the text IS
+        // an exact phrase somebody else owns (issue #137): the parsers key on words, so "tune
+        // the ils" died as "Say again the frequency" and "say v speeds" / "altitude star" /
+        // "one hundred knots" as "couldn't read the speed" before their features ever saw them.
+        if (awaiting is null && !IsExactKnownPhrase(e.Text))
         {
             foreach (var feature in _features.Where(f => f.Enabled && f.ValueParse))
             {
@@ -289,6 +292,43 @@ public sealed class UtteranceRouter : IDisposable
         }
 
         RouteText(host, interpretation.Text, awaiting);
+    }
+
+    /// <summary>True when the raw text, normalized, equals a phrase owned outside the value
+    /// parsers — a global checklist command, an enabled non-value feature's phrase, a drill
+    /// trigger or a checklist start. Such text goes straight to <see cref="RouteText"/>; the
+    /// value parsers stay the path for free-form instructions ("set heading one two zero").
+    /// Exposed for tests.</summary>
+    internal bool IsExactKnownPhrase(string text)
+    {
+        var normalized = CommandMatcher.Normalize(text);
+        if (normalized.Length == 0)
+        {
+            return false;
+        }
+
+        bool Same(string phrase) => string.Equals(CommandMatcher.Normalize(phrase), normalized, StringComparison.Ordinal);
+
+        if (VoiceCommands.All.Any(Same))
+        {
+            return true;
+        }
+
+        foreach (var feature in _features.Where(f => f.Enabled && !f.ValueParse))
+        {
+            if (feature.Phrases.Any(Same))
+            {
+                return true;
+            }
+        }
+
+        if (_failures.DrillPhrases.Any(Same))
+        {
+            return true;
+        }
+
+        return _checklists.Definitions(ChecklistService.DefaultSetName)
+            .Any(definition => StartPhrases(definition).Any(Same));
     }
 
     /// <summary>An utterance nothing routed while fully idle (issue #66): previously it fell
@@ -387,8 +427,16 @@ public sealed class UtteranceRouter : IDisposable
 
         // Voice features stay reachable while an item is pending (reference semantics) — a
         // handover or radio call must not become a failed checklist answer. Disabled
-        // features are never offered the utterance (the router owns the gate).
-        foreach (var feature in _features.Where(f => f.Enabled))
+        // features are never offered the utterance (the router owns the gate). A feature
+        // that contributes the text as one of ITS phrases is offered first (issue #137):
+        // registration order put the radio/FCU parsers ahead of everyone, and their
+        // keyword matching claimed "tune the ils" and "say v speeds" on this pass too.
+        var normalized = CommandMatcher.Normalize(text);
+        var candidates = _features
+            .Where(f => f.Enabled)
+            .OrderBy(f => f.Phrases.Any(p => string.Equals(CommandMatcher.Normalize(p), normalized, StringComparison.Ordinal)) ? 0 : 1)
+            .ToList();
+        foreach (var feature in candidates)
         {
             if (feature.TryHandle(text))
             {

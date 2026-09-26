@@ -1444,7 +1444,23 @@
         "Every phrase shown must be one the recognizer accepts: pick three from different tabs, say them, and confirm the FO reacts (a listed phrase that is rejected is a describer/grammar mismatch to file). Watch: any group titled with a class name (e.g. 'SomethingFeature') is a voice feature added without a describer row.",
         "Under 720 px (phone / portrait tablet) the drawer is full width and scrolls; on desktop it is 420 px wide over a dimmed page."
       ],
-      "notes": "Owner request 2026-09-27; design approved on the Superdesign canvas (draft e2a99413 v3: V2 crew tabs + V1 phrase rows, italic 'or', badges under the phrase). Composed live by VoiceReferenceBuilder from IVoiceFeature.Enabled/Phrases + checklist starts + drills + commands.json + atc-requests.json; wording from VoiceReferenceDescribers (keyed by feature type; a test asserts every feature type is described or composed live). Known grammar conflicts found during the inventory (radio/FCU value parsers swallowing 'tune the ils', 'say v speeds', 'altitude star', 'one hundred knots') are NOT fixed here — separate issue."
+      "notes": "Owner request 2026-09-27; design approved on the Superdesign canvas (draft e2a99413 v3: V2 crew tabs + V1 phrase rows, italic 'or', badges under the phrase). Composed live by VoiceReferenceBuilder from IVoiceFeature.Enabled/Phrases + checklist starts + drills + commands.json + atc-requests.json; wording from VoiceReferenceDescribers (keyed by feature type; a test asserts every feature type is described or composed live). The grammar conflicts found during the inventory are fixed in #137 (probe exact-phrase-precedence)."
+    },
+    {
+      "id": "exact-phrase-precedence",
+      "issue": 137,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": { "kind": "signature", "source": "log", "contains": "Say again the frequency" },
+      "sources": [
+        "log"
+      ],
+      "checks": [
+        "assert-absent: after the pilot says an exact owned phrase — 'tune the ils', 'tune the radios', 'say v speeds', 'v speeds', 'speed check', 'altitude star', 'one hundred knots', 'autopilot one', 'arm approach' — no 'Say again the frequency' / 'Say again — couldn't read the' / 'You're pilot flying — the FCU is yours' reply follows it (speech.spoken within 3 s). Correlate with the ASR decision trail ('ASR heard \"…\"') to see what was actually transcribed; a mis-transcription ('tune the i l s') is the recognizer, not this fix.",
+        "assert-present when exercised: 'tune the ils' → the RAD NAV tuning flow (McduRadNavTuner log lines); 'say v speeds' → the FO speaks 'V one … rotate … V two'; 'altitude star' in descent/approach → 'Checked.'; 'one hundred knots' with the FO as PF → 'Checked.' (not 'Setting speed').",
+        "assert-present: free-form value instructions still reach the parsers first — 'set heading one two zero' / 'set box one standby one one eight decimal one' produce the readback + 3 s cancel window as before."
+      ],
+      "notes": "Found 2026-09-27 during the Voice Reference inventory. UtteranceRouter.IsExactKnownPhrase: a normalized raw utterance equal to a global checklist command, an enabled non-value feature's phrase, a drill trigger or a checklist start skips the value-parser pass. Router tests cover the four phrases, the free-form fallback and a disabled owner."
     }
   ]
 }
