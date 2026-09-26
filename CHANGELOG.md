@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-rc.7
+
+- Fix: exact voice phrases now win over the value parsers (#137). "tune the ils", "say v speeds", "altitude star", "one hundred knots" and the commands.json FCU presses ("autopilot one", "arm approach") reached the radio/FCU parsers first and died with "Say again — couldn't read the …"; the router now sends text that IS a known phrase (global checklist command, an enabled feature's phrase, a drill trigger or a checklist start) straight to its owner. Free-form instructions ("set heading one two zero") still go to the parsers first. Probe exact-phrase-precedence.
+
 ## 0.5.0-rc.6
 
 - New: Voice Reference drawer (#136) — a VOICE button in the header on every page opens a "what can I say?" panel: five tabs (FO · Ground · Cabin · ATC · Lists), every phrase the FO, ground crew, purser and SayIntentions ATC understand, alternatives joined by *or*, what happens and what comes back, badges for pilot-flying / INT / CAB / phase / value / dialogue, the live listening state and PTT binding, a search across all tabs and an "always available" box. The content is built live from the recognition grammar (registered voice features, checklist starts, drills, commands.json, atc-requests.json), so switched-off features show dimmed with the setting to flip and the list can never go stale. `?voice=1` opens it on load. Probe voice-reference-drawer.
