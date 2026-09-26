@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-rc.8
+
+- Changed: the header voice trigger is now one pill with the mic inside it (owner pick "B2" from the canvas options sheet, #136): READY when the FO's ear is idle, LISTENING with a pulsing cyan dot while the recognizer captures, PAUSED on the ear-off latch. The rc.6/rc.7 "VOICE / OFF" block read as voice switched off. The drawer's head pill uses the same three words.
+
 ## 0.5.0-rc.7
 
 - Fix: exact voice phrases now win over the value parsers (#137). "tune the ils", "say v speeds", "altitude star", "one hundred knots" and the commands.json FCU presses ("autopilot one", "arm approach") reached the radio/FCU parsers first and died with "Say again — couldn't read the …"; the router now sends text that IS a known phrase (global checklist command, an enabled feature's phrase, a drill trigger or a checklist start) straight to its owner. Free-form instructions ("set heading one two zero") still go to the parsers first. Probe exact-phrase-precedence.
