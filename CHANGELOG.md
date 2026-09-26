@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-rc.10
+
+- New: ElevenLabs voice provider (design note docs/integrations/elevenlabs-tts-provider.md). Chain is now Kokoro → ElevenLabs → Google → Windows. Settings → Voice First Officer → ElevenLabs: paste your key (DPAPI-protected, never logged), **Fetch voices** to pick a premade voice, model (Flash v2.5 default, v3 optional), output format (MP3 works on every plan and is decoded locally; PCM 24 kHz needs a paid plan), stability / similarity / speed, a monthly character budget (9,000 default, plan-relative) and a per-request cap (2,500, the Free-plan limit) both checked before any call, text normalisation off by default, and a usage-this-month read-out. Usage is counted in `cache/tts/usage.elevenlabs.json` (Google's `usage.json` is untouched). A rejected key (401) parks the provider until settings are saved again. Crew role voices must be ElevenLabs voice ids while it is the active provider. Unverified live.
+
 ## 0.5.0-rc.9
 
 - Fix: checklist confirm callouts accept `{fuel}` as an alias of `{fuelQuantity}` (#129) — on the 2026-09-19 flight the FO read "Fuel quantity, {fuel}, loaded" aloud because the owner's checklist used the short form. Any brace word the app does not know is now stripped (logged once) instead of being spoken.
