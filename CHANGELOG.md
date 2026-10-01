@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-rc.12
+
+Replaces 0.5.0-rc.11 (same fixes) and adds two features.
+
+- New: **Approach Gates** card on Settings → Voice First Officer → Callouts & Placards. Airline SOPs differ, so the stable-approach gates are no longer `settings.json` only: per gate the height, gear down required, minimum flap lever, speed band around VLS, maximum sink rate and whether a pass is spoken; add a gate (a 1500 ft gate, say), remove one, or reset to the 1000 / 500 ft defaults. The card also holds the master switch, the stable / unstable wording and the optional thrust check. Gear Limits gains the "gear still down" reminder switch and its height. The gear speed limits stay where they were; "gear up" on the ground is still always refused.
+- New: **ElevenLabs voices** are in this build (the 0.5.0-rc.10 work, never published before) with a step-by-step setup guide: docs/manual/06-elevenlabs.md. Not yet run against a real key by the developer — reports welcome.
+- Everything in 0.5.0-rc.11 below.
+
 ## 0.5.0-rc.11
 
 Fixes from a tester's diagnostics bundle (0.5.0-rc.9, EDDN, ground only). 0.5.0-rc.10 is the ElevenLabs TTS build on its own branch; it was never published and is not part of this release.
@@ -8,6 +16,7 @@ Fixes from a tester's diagnostics bundle (0.5.0-rc.9, EDDN, ground only). 0.5.0-
 - Fix: "confirm fuel" (voice, the CONFIRM FUEL button, the API) and a direct refuel request no longer order the GSX truck on a tankered aircraft (#143). The on-demand path now applies the same tankering rule as the departure sequence (`gsx.skipRefuelOnTankering`, FOB within 25 kg of the plan or above it): the request answers "Refueling is not needed", the figure is still confirmed, and the preliminary loadsheet is still produced. If GSX runs a refuel anyway (called from the GSX menu), the ground crew no longer announces "refueling complete" for fuel that never moved. Probe refuel-tankering-preskip extended.
 - Fix (support reducer): a session that carries mirrored log events no longer lists every warning a second time from the CMTrace file, and Blazor circuit ids / Kestrel request ids collapse so one fault is one row with a count.
 - Watch: catering at a jetway stand never opened door 1R in the bundle and one run stalled for 36 minutes (#144, needs a wire trace). New watch probe catering-1r-door-toggle. GSX's new `prompt` state key is recorded as known, not yet consumed.
+
 ## 0.5.0-rc.10
 
 - New: ElevenLabs voice provider (design note docs/integrations/elevenlabs-tts-provider.md). Chain is now Kokoro → ElevenLabs → Google → Windows. Settings → Voice First Officer → ElevenLabs: paste your key (DPAPI-protected, never logged), **Fetch voices** to pick a premade voice, model (Flash v2.5 default, v3 optional), output format (MP3 works on every plan and is decoded locally; PCM 24 kHz needs a paid plan), stability / similarity / speed, a monthly character budget (9,000 default, plan-relative) and a per-request cap (2,500, the Free-plan limit) both checked before any call, text normalisation off by default, and a usage-this-month read-out. Usage is counted in `cache/tts/usage.elevenlabs.json` (Google's `usage.json` is untouched). A rejected key (401) parks the provider until settings are saved again. Crew role voices must be ElevenLabs voice ids while it is the active provider. Unverified live.
