@@ -48,6 +48,7 @@ public static class SecretProtector
         "sayIntentions:manualApiKey",
         "webUi:accessToken",
         "briefing:llmApiKey",
+        "speech:elevenLabsApiKey",
     ];
 
     /// <summary>

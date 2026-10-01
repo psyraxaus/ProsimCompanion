@@ -12,6 +12,41 @@ namespace ProsimCompanion.Speech.Tts;
 /// </summary>
 public static class WavRepair
 {
+    /// <summary>
+    /// Wraps raw signed 16-bit little-endian PCM in a complete 44-byte-header RIFF/WAV
+    /// container (the canonical PCM layout: "fmt " then "data", sizes filled in). Used for
+    /// providers that return headerless PCM (ElevenLabs <c>pcm_*</c> formats), so the playback
+    /// layer's "always a complete WAV" contract holds without a decode step. Dependency-free
+    /// on purpose — keep NAudio out of this helper.
+    /// </summary>
+    public static byte[] WrapPcm16(ReadOnlySpan<byte> pcm, int sampleRateHz, int channels = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(sampleRateHz, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(channels, 0);
+
+        const int bitsPerSample = 16;
+        var blockAlign = channels * bitsPerSample / 8;
+        var byteRate = sampleRateHz * blockAlign;
+        var wav = new byte[44 + pcm.Length];
+        var span = wav.AsSpan();
+
+        "RIFF"u8.CopyTo(span);
+        BinaryPrimitives.WriteUInt32LittleEndian(span[4..], (uint)(wav.Length - 8));
+        "WAVE"u8.CopyTo(span[8..]);
+        "fmt "u8.CopyTo(span[12..]);
+        BinaryPrimitives.WriteUInt32LittleEndian(span[16..], 16);          // PCM fmt chunk size
+        BinaryPrimitives.WriteUInt16LittleEndian(span[20..], 1);           // WAVE_FORMAT_PCM
+        BinaryPrimitives.WriteUInt16LittleEndian(span[22..], (ushort)channels);
+        BinaryPrimitives.WriteUInt32LittleEndian(span[24..], (uint)sampleRateHz);
+        BinaryPrimitives.WriteUInt32LittleEndian(span[28..], (uint)byteRate);
+        BinaryPrimitives.WriteUInt16LittleEndian(span[32..], (ushort)blockAlign);
+        BinaryPrimitives.WriteUInt16LittleEndian(span[34..], bitsPerSample);
+        "data"u8.CopyTo(span[36..]);
+        BinaryPrimitives.WriteUInt32LittleEndian(span[40..], (uint)pcm.Length);
+        pcm.CopyTo(span[44..]);
+        return wav;
+    }
+
     public static void NormalizeSizes(byte[] wav)
     {
         ArgumentNullException.ThrowIfNull(wav);

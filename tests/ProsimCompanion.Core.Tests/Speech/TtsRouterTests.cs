@@ -87,6 +87,27 @@ public sealed class TtsRouterTests
     }
 
     [Fact]
+    public async Task UnconfiguredElevenLabs_SkippedWithoutFailure_InChainOrder()
+    {
+        // The shipped chain: an unconfigured ElevenLabs (no key/voice) between Kokoro and
+        // Google must be stepped over without a call, a failure or a cooldown.
+        var kokoro = new FakeProvider("kokoro", network: true) { IsConfigured = false };
+        var elevenLabs = new FakeProvider("elevenlabs", network: true) { IsConfigured = false };
+        var google = new FakeProvider("google", network: true);
+        var router = Router(kokoro, elevenLabs, google);
+
+        var audio = await router.SynthesizeAsync("hello", CancellationToken.None);
+
+        Assert.Equal("google", audio?.ProviderName);
+        Assert.Equal(0, elevenLabs.Calls);
+
+        // Configured later (settings saved) — it is first in line again.
+        elevenLabs.IsConfigured = true;
+        audio = await router.SynthesizeAsync("again", CancellationToken.None);
+        Assert.Equal("elevenlabs", audio?.ProviderName);
+    }
+
+    [Fact]
     public async Task LocalOnly_ExcludesNetworkProviders()
     {
         _options.LocalOnly = true;

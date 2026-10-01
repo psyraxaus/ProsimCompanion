@@ -14,6 +14,8 @@
 @inject IOptionsMonitor<SopOptions> SopMonitor
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
+@inject IElevenLabsVoiceCatalog ElevenLabsVoices
+@inject ITtsUsageReadout TtsUsage
 
 <PageTitle>Voice First Officer — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Voice First Officer</h1>
@@ -30,8 +32,8 @@
 }
 else if (CurrentSection == "general")
 {
-    <Section Title="Voice First Officer" Hint="Voices are tried in order: Kokoro, Google, then Windows">
-        <BoolField Label="Local only" Hint="Never use network voices. Speech never leaves this PC." More="Kokoro and Google are skipped on every path."
+    <Section Title="Voice First Officer" Hint="Voices are tried in order: Kokoro, ElevenLabs, Google, then Windows">
+        <BoolField Label="Local only" Hint="Never use network voices. Speech never leaves this PC." More="Kokoro, ElevenLabs and Google are skipped on every path."
                    @bind-Value="_speech.Value.LocalOnly" />
         <SelectField Label="Your seat" Hint="The seat you fly from. The First Officer works the other side." More="Left: the FO uses the right MCDU, EFIS and controls. Right: the FO uses the captain's side. The MCDU side changes after an app restart." Options="PilotSeatOptions"
                      @bind-Value="_speech.Value.PilotSeat" />
@@ -167,7 +169,7 @@ else if (CurrentSection == "sterile")
 }
 else if (CurrentSection == "crew")
 {
-    <Section Title="Crew Voices" Hint="Voice names from your provider, for example af_heart (Kokoro) or en-AU-Chirp3-HD-Aoede (Google). Blank uses the FO voice">
+    <Section Title="Crew Voices" Hint="Voice names from your provider, for example af_heart (Kokoro), an ElevenLabs voice id, or en-AU-Chirp3-HD-Aoede (Google). Blank uses the FO voice">
         <TextField Label="Purser voice" Hint="Cabin reports on the cabin interphone."
                    @bind-Value="_voices.Value.Purser" />
         <BoolField Label="Purser intercom filter" Hint="Headset sound on the purser."
@@ -381,6 +383,90 @@ else if (CurrentSection == "providers")
     <Section Title="Cache" Advanced="true">
         <TextField Label="TTS cache folder" Hint="Empty uses the app's cache folder." More="%LOCALAPPDATA%\ProsimCompanion\cache\tts, one folder per provider and voice. The usage counter lives there too."
                    @bind-Value="_speech.Value.CacheFolder" />
+    </Section>
+}
+else if (CurrentSection == "elevenlabs")
+{
+    <Section Title="ElevenLabs" Hint="Paid cloud neural voices with your own key. Cached, with a monthly budget. Tried after Kokoro and before Google">
+        <TextField Label="API key" Hint="From elevenlabs.io, your profile, API keys. Empty turns ElevenLabs off. Never logged." More="The Free plan works for testing but has no commercial licence. Starter and up are licensed." Password="true"
+                   @bind-Value="_speech.Value.ElevenLabsApiKey" />
+        <SecretUnreadableHint Path="speech:elevenLabsApiKey" />
+        <TextField Label="Voice id" Hint="An ElevenLabs voice_id. Pick one below or paste it." More="Crew voices (purser, company, ground) must be ElevenLabs voice ids too while this provider is active."
+                   Disabled="@ElevenLabsOff"
+                   @bind-Value="_speech.Value.ElevenLabsVoiceId" />
+        <div class="field">
+            <label class="field-label">
+                Fetch voices
+                <span class="field-hint">Lists the ElevenLabs premade voices with the key above. Picking one fills the voice id.</span>
+            </label>
+            <div class="field-control">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <button type="button" class="btn secondary" disabled="@(ElevenLabsOff || _fetchingVoices)"
+                            @onclick="FetchElevenLabsVoicesAsync">
+                        @(_fetchingVoices ? "Fetching…" : "Fetch voices")
+                    </button>
+                    @if (_elevenLabsVoices.Count > 0)
+                    {
+                        <select class="select" value="@_speech.Value.ElevenLabsVoiceId" @onchange="OnElevenLabsVoicePicked">
+                            @if (!_elevenLabsVoices.Any(v => v.Id == _speech.Value.ElevenLabsVoiceId))
+                            {
+                                <option value="" selected>Pick a voice…</option>
+                            }
+                            @foreach (var voice in _elevenLabsVoices)
+                            {
+                                <option value="@voice.Id" selected="@(voice.Id == _speech.Value.ElevenLabsVoiceId)">@VoiceLabel(voice)</option>
+                            }
+                        </select>
+                    }
+                </div>
+                @if (_voiceFetchError is not null)
+                {
+                    <div class="field-hint field-hint-warn" style="margin-top:6px;">@_voiceFetchError</div>
+                }
+            </div>
+        </div>
+        <SelectField Label="Model" Hint="Flash is fast and costs half. v3 is the most expressive, slower and full price." Options="ElevenLabsModelOptions"
+                     Disabled="@ElevenLabsOff"
+                     @bind-Value="_speech.Value.ElevenLabsModelId" />
+        <SelectField Label="Output format" Hint="MP3 works on every plan and is decoded on this PC. PCM needs a paid plan and skips the decode." Options="ElevenLabsFormatOptions"
+                     Disabled="@ElevenLabsOff"
+                     @bind-Value="_speech.Value.ElevenLabsOutputFormat" />
+        <NumberField Label="Stability" Hint="0 to 1. Higher is steadier and less expressive." Step="0.05" Min="0" Max="1"
+                     Disabled="@ElevenLabsOff"
+                     @bind-Value="_speech.Value.ElevenLabsStability"
+                     Default="_speech.Defaults.ElevenLabsStability" />
+        <NumberField Label="Similarity" Hint="0 to 1. How closely the output follows the original voice." Step="0.05" Min="0" Max="1"
+                     Disabled="@ElevenLabsOff"
+                     @bind-Value="_speech.Value.ElevenLabsSimilarityBoost"
+                     Default="_speech.Defaults.ElevenLabsSimilarityBoost" />
+        <NumberField Label="Speed" Hint="0.7 to 1.2. 1.0 is the voice's natural pace." Step="0.05" Min="0.7" Max="1.2"
+                     Disabled="@ElevenLabsOff"
+                     @bind-Value="_speech.Value.ElevenLabsSpeed"
+                     Default="_speech.Defaults.ElevenLabsSpeed" />
+        <NumberField Label="Monthly character budget" Hint="ElevenLabs stops for the month at this many characters. 0 is no limit." More="Plan credits per month: Free 10,000, Starter 30,000, Creator 121,000. Flash costs about half a credit per character. The next voice in the chain takes over." Min="0"
+                     Disabled="@ElevenLabsOff"
+                     @bind-Value="_speech.Value.ElevenLabsMonthlyCharBudget"
+                     Default="_speech.Defaults.ElevenLabsMonthlyCharBudget" />
+        <NumberField Label="Max characters per request" Hint="Longer texts skip ElevenLabs and use the next voice. 0 is no limit." More="The Free plan caps one generation at about 2,500 characters." Min="0"
+                     Disabled="@ElevenLabsOff"
+                     @bind-Value="_speech.Value.ElevenLabsMaxCharsPerRequest"
+                     Default="_speech.Defaults.ElevenLabsMaxCharsPerRequest" />
+        <BoolField Label="Text normalisation" Hint="Let ElevenLabs expand numbers and abbreviations itself." More="Off is right for the FO: the app already writes numbers the spoken way, and the ElevenLabs normaliser mangles aviation words."
+                   Disabled="@ElevenLabsOff"
+                   @bind-Value="_speech.Value.ElevenLabsTextNormalization" />
+        <div class="field-hint" style="max-width:640px;">
+            Usage this month: <span class="mono">@ElevenLabsUsageThisMonth.ToString("N0")</span> characters
+            (counted in <span class="mono">usage.elevenlabs.json</span> in the cache folder).
+        </div>
+        <AdvancedFields>
+            <TextField Label="Base URL" Hint="Only change this for a proxy or a regional endpoint."
+                       Disabled="@ElevenLabsOff"
+                       @bind-Value="_speech.Value.ElevenLabsBaseUrl" />
+            <NumberField Label="Timeout" Hint="Whole request. The next voice takes over when it runs out." Suffix="ms" Min="200"
+                         Disabled="@ElevenLabsOff"
+                         @bind-Value="_speech.Value.ElevenLabsTimeoutMs"
+                         Default="_speech.Defaults.ElevenLabsTimeoutMs" />
+        </AdvancedFields>
     </Section>
 }
 else if (CurrentSection == "mcdu")
@@ -680,6 +766,76 @@ else if (CurrentSection == "callouts")
 
     private bool GoogleOff => string.IsNullOrWhiteSpace(_speech.Value.GoogleKeyFilePath);
 
+    private bool ElevenLabsOff => string.IsNullOrWhiteSpace(_speech.Value.ElevenLabsApiKey);
+
+    // The voice picker works off the DRAFT key so a first-time setup can list voices before
+    // the key is saved; the list is per page visit, never persisted.
+    private IReadOnlyList<(string Id, string Name, string? Accent, string? Gender, string? PreviewUrl)> _elevenLabsVoices = [];
+    private bool _fetchingVoices;
+    private string? _voiceFetchError;
+
+    private int ElevenLabsUsageThisMonth
+    {
+        get
+        {
+            try
+            {
+                return TtsUsage.CharactersThisMonth("elevenlabs");
+            }
+            catch (Exception)
+            {
+                return 0; // A broken counter must not break the page.
+            }
+        }
+    }
+
+    private static readonly IReadOnlyList<(string, string)> ElevenLabsModelOptions =
+    [
+        ("eleven_flash_v2_5", "eleven_flash_v2_5 (fast, half cost)"),
+        ("eleven_v3", "eleven_v3 (expressive, full cost)"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> ElevenLabsFormatOptions =
+    [
+        ("mp3_44100_128", "mp3_44100_128 (all plans)"),
+        ("pcm_24000", "pcm_24000 (paid plans)"),
+    ];
+
+    private static string VoiceLabel((string Id, string Name, string? Accent, string? Gender, string? PreviewUrl) voice)
+    {
+        var traits = string.Join(", ", new[] { voice.Accent, voice.Gender }.Where(t => !string.IsNullOrWhiteSpace(t)));
+        return traits.Length > 0 ? $"{voice.Name} ({traits})" : voice.Name;
+    }
+
+    private async Task FetchElevenLabsVoicesAsync()
+    {
+        _fetchingVoices = true;
+        _voiceFetchError = null;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            _elevenLabsVoices = await ElevenLabsVoices.FetchPremadeVoicesAsync(
+                _speech.Value.ElevenLabsBaseUrl, _speech.Value.ElevenLabsApiKey, cts.Token);
+            if (_elevenLabsVoices.Count == 0)
+            {
+                _voiceFetchError = "No premade voices came back.";
+            }
+        }
+        catch (Exception ex)
+        {
+            // Status + body snippet from the catalog; the key is never in the message.
+            _elevenLabsVoices = [];
+            _voiceFetchError = "Fetch failed: " + ex.Message;
+        }
+        finally
+        {
+            _fetchingVoices = false;
+        }
+    }
+
+    private void OnElevenLabsVoicePicked(ChangeEventArgs e)
+        => _speech.Value.ElevenLabsVoiceId = e.Value?.ToString() ?? "";
+
     private static readonly IReadOnlyList<(string, string)> RecognitionModeOptions =
     [
         ("pushToTalk", "Push-to-talk (dedicated FO key)"),
@@ -958,6 +1114,11 @@ else if (CurrentSection == "callouts")
         speech.KokoroVoice = speech.KokoroVoice.Trim();
         speech.GoogleKeyFilePath = speech.GoogleKeyFilePath.Trim();
         speech.GoogleVoice = speech.GoogleVoice.Trim();
+        speech.ElevenLabsApiKey = speech.ElevenLabsApiKey.Trim();
+        speech.ElevenLabsBaseUrl = speech.ElevenLabsBaseUrl.Trim();
+        speech.ElevenLabsVoiceId = speech.ElevenLabsVoiceId.Trim();
+        speech.ElevenLabsModelId = speech.ElevenLabsModelId.Trim();
+        speech.ElevenLabsOutputFormat = speech.ElevenLabsOutputFormat.Trim();
         speech.WinRtVoice = speech.WinRtVoice.Trim();
         speech.SapiVoice = speech.SapiVoice.Trim();
         speech.OutputDevice = speech.OutputDevice.Trim();

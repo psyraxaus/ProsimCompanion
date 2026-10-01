@@ -15,8 +15,9 @@ namespace ProsimCompanion.Speech.Tts;
 ///
 /// Phrases are normalized with <see cref="AviationSpeech.Normalize"/> exactly as the render
 /// path does, so the warmed cache keys match at runtime. Synthesis goes DIRECTLY to the first
-/// configured caching provider (Kokoro, else Google when not local-only) — never through the
-/// router, so a briefly-down Kokoro can't silently warm the whole library through paid Google.
+/// configured caching provider (Kokoro, else ElevenLabs, else Google when not local-only) —
+/// never through the router, so a briefly-down Kokoro can't silently warm the whole library
+/// through a paid cloud voice.
 /// Fully background; a failing provider aborts the run after a few consecutive misses.
 /// </summary>
 public sealed class TtsPrewarmService : Core.Hosting.IStartupModule, IDisposable
@@ -213,9 +214,12 @@ public sealed class TtsPrewarmService : Core.Hosting.IStartupModule, IDisposable
 
             // Role voices are warmed on the same provider with an override — the provider's
             // per-voice cache namespacing keeps them isolated from the FO phrases above.
-            var foVoice = provider.Name == "google"
-                ? _speech.CurrentValue.GoogleVoice
-                : _speech.CurrentValue.KokoroVoice;
+            var foVoice = provider.Name switch
+            {
+                "google" => _speech.CurrentValue.GoogleVoice,
+                "elevenlabs" => _speech.CurrentValue.ElevenLabsVoiceId,
+                _ => _speech.CurrentValue.KokoroVoice,
+            };
             var work = phrases.Select(p => (Voice: (string?)null, Phrase: p))
                 .Concat(CollectRolePhrases(_cabin.CurrentValue, _voices.CurrentValue, foVoice)
                     .Select(rp => (Voice: (string?)rp.Voice, Phrase: rp.Phrase)))
@@ -278,8 +282,10 @@ public sealed class TtsPrewarmService : Core.Hosting.IStartupModule, IDisposable
         }
     }
 
-    /// <summary>Kokoro when configured; else Google (never in local-only mode). Null when no
-    /// caching provider is available.</summary>
+    /// <summary>Kokoro when configured; else ElevenLabs, else Google (neither in local-only
+    /// mode — the same chain order the router uses). Null when no caching provider is
+    /// available. Pre-warming through a paid provider is the single biggest cost lever: it
+    /// turns the per-flight spend on the checklist phrase set into a one-off.</summary>
     private ITtsProvider? PickCachingProvider()
     {
         var localOnly = _speech.CurrentValue.LocalOnly;
@@ -292,6 +298,12 @@ public sealed class TtsPrewarmService : Core.Hosting.IStartupModule, IDisposable
         if (localOnly)
         {
             return null;
+        }
+
+        var elevenLabs = _providers.FirstOrDefault(p => p.Name == "elevenlabs");
+        if (elevenLabs is { IsConfigured: true })
+        {
+            return elevenLabs;
         }
 
         var google = _providers.FirstOrDefault(p => p.Name == "google");
