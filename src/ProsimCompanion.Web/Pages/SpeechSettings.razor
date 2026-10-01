@@ -505,7 +505,7 @@ else if (CurrentSection == "briefing")
 else if (CurrentSection == "callouts")
 {
     <Section Title="Standard Callouts" Hint="The FO's speed, altitude and rollout calls.">
-        <BoolField Label="Callouts enabled" Hint="Master switch for every standard callout." More="Applies live. The individual callout texts, altitude callouts, approach gates, flow monitor and weather advisories are edited in the sop section of settings.json for now."
+        <BoolField Label="Callouts enabled" Hint="Master switch for every standard callout." More="Applies live. The individual callout texts, altitude callouts, the other flow-monitor reminders and the weather advisories are edited in the sop section of settings.json for now."
                    @bind-Value="_sop.Value.CalloutsEnabled" />
     </Section>
 
@@ -545,6 +545,73 @@ else if (CurrentSection == "callouts")
                      Hint='"Gear up" is refused above this speed. 0 turns the check off.'
                      @bind-Value="_sop.Value.GearRetractMaxKt"
                      Default="_sop.Defaults.GearRetractMaxKt" />
+        <BoolField Label="Gear still down reminder"
+                   Hint='The FO says "gear still down" when you climb with the gear down.'
+                   @bind-Value="_sop.Value.FlowMonitor.GearStillDown.Enabled" />
+        <NumberField Label="Gear up by" Suffix="ft AGL" Min="0" Max="10000" Step="50"
+                     Hint="The reminder comes when you climb above this height with the gear down."
+                     Disabled="@(!_sop.Value.FlowMonitor.GearStillDown.Enabled)"
+                     @bind-Value="_sop.Value.FlowMonitor.GearUpAboveAglFt"
+                     Default="_sop.Defaults.FlowMonitor.GearUpAboveAglFt" />
+    </Section>
+
+    <Section Title="Approach Gates" Hint="The heights where the FO checks that the approach is stable. Airlines differ — set your own SOP.">
+        <BoolField Label="Stable approach check"
+                   Hint="At each gate the FO checks speed, sink rate, gear and flaps, and calls an unstable approach."
+                   More="A gate is checked once, when you descend through its height on the radio altimeter. The highest gate is checked first. The speed band is measured from VLS."
+                   @bind-Value="_sop.Value.Stabilized.Enabled" />
+        @for (var i = 0; i < _sop.Value.ApproachGates.Count; i++)
+        {
+            var gate = _sop.Value.ApproachGates[i];
+            var gateOff = !_sop.Value.Stabilized.Enabled || !gate.Enabled;
+            <div class="gate-block">
+                <div class="gate-title">
+                    <span>Gate @(i + 1) — @gate.AglFt ft</span>
+                    <button type="button" class="btn secondary" title="Remove this gate"
+                            @onclick="() => RemoveApproachGate(gate)">Remove</button>
+                </div>
+                <BoolField Label="Gate in use" @bind-Value="gate.Enabled" Disabled="@(!_sop.Value.Stabilized.Enabled)" />
+                <NumberField Label="Height" Suffix="ft AGL" Min="0" Max="5000" Step="50"
+                             Hint="Radio altitude of the gate. 0 switches the gate off."
+                             Disabled="@gateOff" @bind-Value="gate.AglFt" />
+                <BoolField Label="Gear down required" Disabled="@gateOff" @bind-Value="gate.RequireGearDown" />
+                <SelectField Label="Minimum flap lever" Options="FlapLeverOptions" Disabled="@gateOff"
+                             Hint="The flap lever must be at this position or further."
+                             Value="@gate.RequireFlapHandleAtLeast.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                             ValueChanged="@(value => gate.RequireFlapHandleAtLeast = ParseFlapLever(value, gate.RequireFlapHandleAtLeast))" />
+                <NumberField Label="Speed below VLS allowed" Suffix="kt" Min="0" Max="50" Step="1"
+                             Disabled="@gateOff" @bind-Value="gate.SpeedBandBelowVls" />
+                <NumberField Label="Speed above VLS allowed" Suffix="kt" Min="0" Max="50" Step="1"
+                             Disabled="@gateOff" @bind-Value="gate.SpeedBandAboveVls" />
+                <NumberField Label="Maximum sink rate" Suffix="fpm" Min="0" Max="3000" Step="50"
+                             Disabled="@gateOff" @bind-Value="gate.MaxSinkRateFpm" />
+                <BoolField Label='Say "stabilized" when the gate passes'
+                           Hint="Off: the FO speaks at this gate only when the approach is unstable."
+                           Disabled="@gateOff" @bind-Value="gate.AnnounceStabilized" />
+            </div>
+        }
+        <div class="preset-row" style="margin-top:12px;">
+            <button type="button" class="btn secondary" title="Add a gate, for example a 1500 ft gate"
+                    @onclick="AddApproachGate">Add gate</button>
+            <button type="button" class="btn secondary" title="Two gates: 1000 ft (flap 2 or more) and 500 ft (flap 3 or more), gear down at both"
+                    @onclick="ResetApproachGates">Reset to defaults</button>
+        </div>
+        <AdvancedFields Label="Wording and thrust check hidden">
+            <div class="gate-block">
+                <TextField Label="Stable call" Disabled="@(!_sop.Value.Stabilized.Enabled)"
+                           @bind-Value="_sop.Value.Stabilized.StableText" />
+                <TextField Label="Unstable call" Disabled="@(!_sop.Value.Stabilized.Enabled)"
+                           @bind-Value="_sop.Value.Stabilized.UnstableText" />
+                <BoolField Label="Thrust must be spooled up"
+                           Hint="Adds a thrust check to every gate: the average N1 must be at or above the figure below."
+                           Disabled="@(!_sop.Value.Stabilized.Enabled)"
+                           @bind-Value="_sop.Value.Stabilized.RequireThrustStabilized" />
+                <NumberField Label="Minimum N1" Suffix="%" Min="0" Max="100" Step="1"
+                             Disabled="@(!_sop.Value.Stabilized.Enabled || !_sop.Value.Stabilized.RequireThrustStabilized)"
+                             @bind-Value="_sop.Value.Stabilized.MinStabilizedN1"
+                             Default="_sop.Defaults.Stabilized.MinStabilizedN1" />
+            </div>
+        </AdvancedFields>
     </Section>
 
     <Section Title="Placard Advisories" Hint="What the FO says when a limit is close or exceeded" Advanced="true">
@@ -581,6 +648,30 @@ else if (CurrentSection == "callouts")
     private string CurrentSection => SettingsNav.ResolveSection(SettingsNav.SpeechSections, Section);
 
     private void ResetFlapPlacards() => _sop.Value.FlapPlacards = [.. SopOptions.DefaultFlapPlacards];
+
+    // ---- Approach gates (airline SOPs differ: 1000/500, 1000 only, an extra 1500 ft gate) ----
+
+    private static readonly IReadOnlyList<(string, string)> FlapLeverOptions =
+        [.. Enumerable.Range(0, 6).Select(handle => (
+            handle.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            SopOptions.FlapHandleLabel(handle)))];
+
+    private static int ParseFlapLever(string value, int fallback)
+        => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var handle)
+            ? handle
+            : fallback;
+
+    private void ResetApproachGates() => _sop.Value.ApproachGates = [.. SopOptions.DefaultApproachGates];
+
+    private void RemoveApproachGate(ApproachGate gate) => _sop.Value.ApproachGates.Remove(gate);
+
+    private void AddApproachGate()
+    {
+        // Above the highest gate in use, so the new one never lands on an existing height.
+        var top = _sop.Value.ApproachGates.Count == 0 ? 500 : _sop.Value.ApproachGates.Max(g => g.AglFt);
+        _sop.Value.ApproachGates.Add(new ApproachGate { AglFt = top + 500, AnnounceStabilized = false });
+        SopOptions.SyncApproachGateNames(_sop.Value.ApproachGates);
+    }
 
     private bool SileroSelected => !string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl)
         && _speech.Value.VadEngine.Equals("silero", StringComparison.OrdinalIgnoreCase);
@@ -912,6 +1003,9 @@ else if (CurrentSection == "callouts")
         sayIntentions.ApiKeySource = sayIntentions.ApiKeySource.Trim().ToLowerInvariant();
         sayIntentions.ManualApiKey = sayIntentions.ManualApiKey.Trim();
         sayIntentions.Phraseology = sayIntentions.Phraseology.Trim().ToLowerInvariant();
+
+        // The monitor latches fired gates by name — keep names unique and in step with heights.
+        SopOptions.SyncApproachGateNames(_sop.Value.ApproachGates);
     }
 
     protected override void OnDiscarded()

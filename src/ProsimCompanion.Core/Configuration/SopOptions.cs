@@ -325,4 +325,34 @@ public sealed class SopOptions : IOptionSection
 
     /// <summary>Evaluated highest-first; entries with AglFt &lt;= 0 are ignored.</summary>
     public List<ApproachGate> ApproachGates { get; set; } = [.. DefaultApproachGates];
+
+    /// <summary>
+    /// Keeps the gate names usable as keys after an edit on the Approach Gates card: the
+    /// stabilized-approach monitor latches each fired gate BY NAME, so two gates with one name
+    /// would silence the second, and a "1000" gate moved to 1500 ft would log under the old
+    /// height. A blank or all-digit name follows the height; a hand-written name
+    /// ("1000 IMC" in settings.json) is kept. Duplicates get a "-2", "-3" … suffix.
+    /// </summary>
+    public static void SyncApproachGateNames(IList<ApproachGate> gates)
+    {
+        ArgumentNullException.ThrowIfNull(gates);
+        var invariant = System.Globalization.CultureInfo.InvariantCulture;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var gate in gates)
+        {
+            var name = (gate.Name ?? "").Trim();
+            if (name.Length == 0 || name.All(char.IsAsciiDigit))
+            {
+                name = gate.AglFt.ToString(invariant);
+            }
+
+            var unique = name;
+            for (var n = 2; !seen.Add(unique); n++)
+            {
+                unique = $"{name}-{n.ToString(invariant)}";
+            }
+
+            gate.Name = unique;
+        }
+    }
 }
