@@ -47,7 +47,11 @@ Ground behaviour, in the Ground Services rail order:
   (always / first leg / turnaround / company hub / non-hub) and a minimum flight time
   (short hops skip the service)
 - **Refuel** — fixed or dynamic rate (fixed fill time), tankering skip, finish-on-hose,
-  defuel guard
+  defuel guard. *Skip refuel on tankering*: when the fuel on board already meets the plan
+  (INIT override, else OFP block fuel, else the EFB planned fuel; 25 kg tolerance) the truck is
+  not ordered — by the departure sequence, by "confirm fuel" (voice or the INIT button) or by
+  a direct refuel request. The preliminary loadsheet is still produced, and the ground crew
+  does not call "refueling complete". Switch it off to always order the truck
 - **Gate & Doors** — per-door-class rules (pax doors follow stairs, service doors follow
   catering, cargo doors follow loading with keep-open choices, close-on-final) and the
   jetway/stairs lifecycle (connect at start / at departure / on arrival; stairs removal

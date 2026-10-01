@@ -88,6 +88,20 @@ Behaviours that must survive the port:
   override now writes `aircraft.refuel.fuelTarget` + `efb.plannedfuel` too (the importer's
   trio). The refuel sync still latches its target at GSX Active — enter the figure BEFORE the
   truck, or order a top-up afterwards.
+- **Tankering pre-skip covers every caller** (2026-09-30, ticket t-20260929-1933, EDDN rc.9:
+  "confirm fuel" on 9,576 kg against a 4,800 kg plan ordered the truck, the sync moved nothing,
+  and the crew called "refueling complete, 9.6 tonnes"): `RefuelCore.TankeringSkipReason` is
+  consulted by the sequencer (`preSkip`, #117) AND by `GsxServiceControl.RequestAsync` for every
+  on-demand Refueling request, `ConfirmFuel` included. The command path answers
+  `AlreadySatisfied`, records the same two decisions, raises `RefuelServiceActive` for the
+  prelim loadsheet and confirms the figure. It has no settle window to observe, so the EFB
+  planned-fuel fallback counts only once the OFP import has landed — an unsettled figure
+  orders the truck, never a wrong skip. The in-service skip (GSX called from its own menu)
+  now raises `GroundOpsSignals.RefuelSkippedForTankering`, which mutes the refuel-complete
+  upcall for that cycle.
+- **State key `prompt`** (singular; first seen 2026-09-28 next to the hello capability
+  `prompts`): known, not consumed, shape unknown. Capture it with `wireTrace` during a
+  catering cycle before relying on it (#144).
 - **Refuel call mode** `gsx.refuelCall`: `automatic` (legacy) or `onFuelConfirmed` (real-world
   SOP): the sequencer's `preHold` parks ONLY the Refueling step (transparent to the activation
   chain — catering etc. continue — but unsettled, so `AfterAllCompleted` boarding waits) until

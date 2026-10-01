@@ -102,7 +102,7 @@ Crew-initiated calls, once per flight cycle each (reset on `FlightCycleReset`):
 |---|---|---|
 | Ground power connected | groundPower dataref edge | "Cockpit, ground — ground power connected." |
 | Chocks in place | chocks dataref edge | "Chocks in place, cockpit." |
-| Refueling complete | diagnostics stage → Completed | "Refueling complete — {fuel} on board." |
+| Refueling complete | diagnostics stage → Completed (muted for the cycle when the refuel sync skipped the transfer for tankering — `GroundOpsSignals.RefuelSkippedForTankering`) | "Refueling complete — {fuel} on board." |
 | Catering complete | diagnostics stage → Completed | "Catering finished, all doors closed." |
 
 Delivery mirrors the purser interphone flow on INT: optional MECH call (momentary press of

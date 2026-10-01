@@ -17,8 +17,10 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - Full departure-service sequencing with per-service activation rules, leg constraints
   (first-leg / turnaround / company-hub) and minimum flight time — driven through GSX Pro's
   Couatl Remote API with LVAR timing where it matters
-- Refuel sync (fixed or dynamic rate, tankering skip, finish-on-hose), seat-map progressive
-  boarding/deboarding that keeps ProSim's CG realistic at every stage
+- Refuel sync (fixed or dynamic rate, finish-on-hose) with a tankering skip that holds on every
+  path — the departure sequence, "confirm fuel" and a direct refuel request never order a
+  truck the plan does not need — and seat-map progressive boarding/deboarding that keeps
+  ProSim's CG realistic at every stage
 - Per-door-class automation (pax doors follow stairs, service doors follow catering, cargo
   doors follow the loaders), jetway/stairs lifecycle, ground equipment with PCA tri-state,
   chock delays and GPU/APU logic
