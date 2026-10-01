@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0-rc.11
+
+Fixes from a tester's diagnostics bundle (0.5.0-rc.9, EDDN, ground only). 0.5.0-rc.10 is the ElevenLabs TTS build on its own branch; it was never published and is not part of this release.
+
+- Fix: the Speech settings page (`/speech`) threw on every render (#142). Two Gear Limits hints were written with backslash-escaped quotes, which Razor does not support — the word "Gear" reached the number field as a parameter. A source-scan test now fails the build if the pattern returns. Probe speech-settings-render-crash.
+- Fix: "confirm fuel" (voice, the CONFIRM FUEL button, the API) and a direct refuel request no longer order the GSX truck on a tankered aircraft (#143). The on-demand path now applies the same tankering rule as the departure sequence (`gsx.skipRefuelOnTankering`, FOB within 25 kg of the plan or above it): the request answers "Refueling is not needed", the figure is still confirmed, and the preliminary loadsheet is still produced. If GSX runs a refuel anyway (called from the GSX menu), the ground crew no longer announces "refueling complete" for fuel that never moved. Probe refuel-tankering-preskip extended.
+- Fix (support reducer): a session that carries mirrored log events no longer lists every warning a second time from the CMTrace file, and Blazor circuit ids / Kestrel request ids collapse so one fault is one row with a count.
+- Watch: catering at a jetway stand never opened door 1R in the bundle and one run stalled for 36 minutes (#144, needs a wire trace). New watch probe catering-1r-door-toggle. GSX's new `prompt` state key is recorded as known, not yet consumed.
+
 ## 0.5.0-rc.9
 
 - Fix: checklist confirm callouts accept `{fuel}` as an alias of `{fuelQuantity}` (#129) — on the 2026-09-19 flight the FO read "Fuel quantity, {fuel}, loaded" aloud because the owner's checklist used the short form. Any brace word the app does not know is now stripped (logged once) instead of being spoken.
