@@ -838,9 +838,11 @@
         "Trigger = departure sequence runs with gsx.skipRefuelOnTankering on and the FOB at or above the OFP block fuel minus 25 kg (compare aircraft.fuel.total in the first 'refuel sync' or loadsheet lines against OfpData.FuelPlanRampKg / the OFP import line). Behaviour = 'gsx-decision' action 'skip Refueling' whose reason contains 'tankering) — GSX refuel not called', a decision 'refuel skipped for tankering' … 'preliminary loadsheet trigger raised', and NO 'trigger Refueling' from the sequencer nor 'GSX service \"Refueling\": Requested' that session. The 2026-08-29 signature (session 223842): trigger at 08:42:21, sync 'skipped (tankering)' only at 08:44:07 after Active, six minutes of truck animation, 'refueling complete, 9.6 tonnes' upcall.",
         "assert-present (no regression) when FOB is below the plan: the normal 'trigger Refueling' — 'next in departure order' and the refuel-sync activation line.",
         "assert-present: with the skip, a preliminary loadsheet still appears (loadsheet events / 'preliminary' log lines) when flightData.autoPrelimOnRefuel is on.",
-        "assert-absent: 'ground.upcall.refuel' speech in a tankering-skipped cycle — the crew must not announce a refuel that never happened."
+        "assert-absent: 'ground.upcall.refuel' speech in a tankering-skipped cycle — the crew must not announce a refuel that never happened.",
+        "assert-present (command path, ticket t-20260929-1933): a crew 'fuel confirmed' decision or a direct refuel request (voice, web, API — trigger reason 'requested by command') with the FOB at or above the plan produces a 'skip Refueling' decision containing 'tankering) — GSX refuel not called' and 'refuel skipped for tankering' … 'preliminary loadsheet trigger raised', and NO 'trigger Refueling' — 'requested by command' follows it. The 2026-09-28 EDDN signature (two runs, 15:13:32Z and 17:19:37Z): 'fuel confirmed' → 'trigger Refueling — requested by command' → Requested → Active → refuel sync 'skipped — FOB 9576 kg already meets planned 4800 kg (tankering)' → Completed five minutes later → 'ground.upcall.refuel' '9.6 tonnes'.",
+        "assert-present (in-service skip, any caller): a refuel sync 'skipped — … (tankering)' decision after Active is followed by a 'Refuel upcall suppressed' log line and no 'ground.upcall.refuel' for that cycle."
       ],
-      "notes": "Fixed: RefuelCore.TankeringSkipReason (OFP block fuel first, else efb.plannedfuel; aircraft.refuel.fuelTarget deliberately ignored pre-session) feeds DepartureSequencer.Next(preSkip) from GsxAutomationService; the skipped step counts as settled so AfterAllCompleted boarding proceeds; RaiseRefuelServiceActive is raised once per cycle in place of the missing refuel-active edge. The in-service skip in RefuelCore remains for externally-called refuels."
+      "notes": "Fixed: RefuelCore.TankeringSkipReason (OFP block fuel first, else efb.plannedfuel; aircraft.refuel.fuelTarget deliberately ignored pre-session) feeds DepartureSequencer.Next(preSkip) from GsxAutomationService; the skipped step counts as settled so AfterAllCompleted boarding proceeds; RaiseRefuelServiceActive is raised once per cycle in place of the missing refuel-active edge. The in-service skip in RefuelCore remains for externally-called refuels. 2026-09-30: GsxServiceControl.RequestAsync applies the same TankeringSkipReason to every on-demand Refueling request (ConfirmFuel included) → AlreadySatisfied, records the two decisions, raises RefuelServiceActive and confirms the figure; RefuelCore flags SkippedForTankering, GsxRefuelSync raises GroundOpsSignals.RefuelSkippedForTankering and GroundCrewUpcallService latches the refuel upcall for the cycle."
     },
     {
       "id": "init-fuel-ramp-override-feeds-refuel",
@@ -1604,6 +1606,43 @@
         "assert-present: free-form value instructions still reach the parsers first — 'set heading one two zero' / 'set box one standby one one eight decimal one' produce the readback + 3 s cancel window as before."
       ],
       "notes": "Found 2026-09-27 during the Voice Reference inventory. UtteranceRouter.IsExactKnownPhrase: a normalized raw utterance equal to a global checklist command, an enabled non-value feature's phrase, a drill trigger or a checklist start skips the value-parser pass. Router tests cover the four phrases, the free-form fallback and a disabled owner."
+    },
+    {
+      "id": "speech-settings-render-crash",
+      "issue": 142,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "log",
+          "contains": "does not have a property matching the name"
+        }
+      },
+      "sources": [
+        "log"
+      ],
+      "checks": [
+        "assert-absent: any RemoteRenderer 'Unhandled exception rendering component: … does not have a property matching the name' line — a Razor attribute whose value was cut short at an inner quote and spilled the remainder as stray component parameters (0.5.0-rc.9: Hint=\"\\\"Gear down\\\" …\" on /speech passed 'Gear' to NumberField<int>; the page threw on every render, CircuitHost/Kestrel errors 21:49–22:06Z on 2026-09-28).",
+        "watch: a burst of CircuitHost 'Unhandled exception in circuit' errors with no matching RemoteRenderer cause line — another page fault; report the first RemoteRenderer warning before it."
+      ],
+      "notes": "Fixed 2026-09-30 (ticket t-20260929-1933): the two hints use single-quoted attributes; RazorAttributeEscapeGuardTests scans src/ProsimCompanion.Web/**/*.razor for a backslash-escaped quote at the start of an attribute value and fails with file:line. Razor has no backslash escape inside a double-quoted attribute — use single quotes or &quot;."
+    },
+    {
+      "id": "catering-1r-door-toggle",
+      "issue": 144,
+      "state": "open",
+      "kind": "watch",
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "For every Catering cycle, pair 'GSX service \"Catering\": Active' with its Completed and list the 'GSX \"doors\"' decisions in between. Report any cycle that runs Active→Completed for more than 10 minutes with no 'GSX service-1 toggle — opening 1R' — the 2026-09-28 EDDN signature (Gate 10, jetway stand): only 'service-2 toggle — opening/closing 4R' in both runs, the first stall 15:29:56Z→16:05:46Z with DISABLE_DOORS_MSG suppressing GSX's own door prompt.",
+        "watch: the GsxBootstrapService state key 'prompt' (first seen 2026-09-28, now logged at Debug as known-unconsumed) — with logging.wireTrace on, quote the frame that carries it during a catering cycle; it may be the action prompt GSX is waiting on.",
+        "watch: L:FSDT_GSX_AIRCRAFT_SERVICE_1_TOGGLE never pulsing while service-2 does = GSX did not ask for the forward door (catering config / airline profile), not a door-service fault."
+      ],
+      "notes": "needs-info (ticket t-20260929-1933): no wire trace in the bundle, so whether GSX pulsed the service-1 toggle at all is unknown. Ask for a flight with logging.wireTrace=true before touching GsxDoorService."
     }
   ]
 }

@@ -58,6 +58,12 @@ internal static class GroundUpcallCore
             CateringCalled = false,
         };
 
+    /// <summary>The refuel sync retired the transfer for tankering while GSX Refueling ran
+    /// anyway: the Completed edge still arrives, but "refueling complete, N tonnes" would
+    /// announce fuel that never moved (2026-09-28 EDDN). Latch the call for this cycle.</summary>
+    internal static UpcallState OnRefuelSkippedForTankering(UpcallState state)
+        => state with { RefuelCalled = true };
+
     /// <summary>One 1 Hz evaluation: at most one call per tick, in fixed priority order
     /// (ground power → chocks → refuel → catering).</summary>
     internal static (UpcallState State, UpcallKind? Call) Evaluate(UpcallState state, UpcallSample sample)

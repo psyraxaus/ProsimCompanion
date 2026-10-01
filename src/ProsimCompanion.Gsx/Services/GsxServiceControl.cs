@@ -47,6 +47,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     private readonly IEfbInitOverrides _initOverrides;
     private readonly OfpStore _ofpStore;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly GroundOpsSignals _groundOpsSignals;
     private readonly ILogger<GsxServiceControl> _logger;
     private readonly IDataRefSubscription<double> _jetwayLvar;
     private readonly IDataRefSubscription<double> _fuelTotal;
@@ -66,6 +67,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         IEfbInitOverrides initOverrides,
         OfpStore ofpStore,
         GsxDiagnosticsStore diagnostics,
+        GroundOpsSignals groundOpsSignals,
         IOptionsMonitor<GsxOptions> options,
         ILogger<GsxServiceControl> logger)
     {
@@ -82,6 +84,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         ArgumentNullException.ThrowIfNull(initOverrides);
         ArgumentNullException.ThrowIfNull(ofpStore);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(groundOpsSignals);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -96,6 +99,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         _initOverrides = initOverrides;
         _ofpStore = ofpStore;
         _diagnostics = diagnostics;
+        _groundOpsSignals = groundOpsSignals;
         _options = options;
         _logger = logger;
 
@@ -219,6 +223,20 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     private BlockFuelFigure EffectiveFigure()
         => EffectiveBlockFuel.Resolve(_initOverrides.Snapshot(), _ofpStore.Current, _plannedFuel.Value);
 
+    /// <summary>The sequencer's pre-call tankering rule (<see cref="RefuelCore.TankeringSkipReason"/>)
+    /// applied to an on-demand request. The EFB planned-fuel fallback counts as settled only
+    /// once the OFP import has landed (the sequencer also accepts a 90 s settle window, which
+    /// a one-shot command has no way to observe — a not-yet-settled figure simply orders the
+    /// truck as before, never a wrong skip).</summary>
+    private string? TankeringSkipReason()
+        => RefuelCore.TankeringSkipReason(
+            _options.CurrentValue.SkipRefuelOnTankering,
+            _flightPlan.FlightPlanAvailable,
+            planFiguresSettled: _flightPlan.OfpImported,
+            _fuelTotal.Value,
+            EffectiveBlockFuel.PlanKg(_initOverrides.Snapshot(), _ofpStore.Current),
+            _plannedFuel.Value);
+
     private static string SourceLabel(BlockFuelSource source) => source switch
     {
         BlockFuelSource.Override => "INIT override",
@@ -327,6 +345,24 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         if (!IsToggle(action) && _lifecycle.IsCompleted(serviceId))
         {
             return new(GsxServiceCallStatus.AlreadySatisfied, $"{display} has already completed this turnaround.");
+        }
+
+        // Tankering pre-skip on the command path (ticket t-20260929-1933, 2026-09-28 EDDN):
+        // the sequencer has refused to order the truck when the FOB already meets the plan
+        // since #117, but "confirm fuel" / "request refuel" (voice, web, API) went straight
+        // to GSX — the truck animated for five minutes, the sync moved no fuel and the crew
+        // then announced "refueling complete, 9.6 tonnes" for a 4,800 kg plan. Same rule,
+        // same wording, and the prelim-loadsheet edge the missing refuel-active edge would
+        // have raised.
+        if (action == GsxServiceAction.RequestRefuel && TankeringSkipReason() is { } tankering)
+        {
+            RecordDecision("skip Refueling", tankering);
+            RecordDecision("refuel skipped for tankering", "preliminary loadsheet trigger raised in place of the refuel-active edge");
+            _groundOpsSignals.RaiseRefuelServiceActive();
+            // The request still stands as the crew's confirmation of the figure — the
+            // onFuelConfirmed hold must not re-offer a truck the plan does not need.
+            ConfirmCurrentFigure("request");
+            return new(GsxServiceCallStatus.AlreadySatisfied, $"{display} is not needed — {tankering}.");
         }
 
         if (service.State != GsxServiceState.Callable)

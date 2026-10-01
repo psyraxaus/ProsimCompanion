@@ -80,12 +80,14 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
         _fuelTotal = _dataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
 
         _signals.FlightCycleReset += OnFlightCycleReset;
+        _signals.RefuelSkippedForTankering += OnRefuelSkippedForTankering;
         _timer = new Timer(_ => Tick(), null, 1000, 1000);
     }
 
     public void Dispose()
     {
         _signals.FlightCycleReset -= OnFlightCycleReset;
+        _signals.RefuelSkippedForTankering -= OnRefuelSkippedForTankering;
         _timer?.Dispose();
         _shutdown.Cancel();
         _shutdown.Dispose();
@@ -96,6 +98,12 @@ public sealed class GroundCrewUpcallService : Core.Hosting.IStartupModule, IDisp
 
     private void OnFlightCycleReset()
         => _state = GroundUpcallCore.OnFlightCycleReset(_state);
+
+    private void OnRefuelSkippedForTankering()
+    {
+        _state = GroundUpcallCore.OnRefuelSkippedForTankering(_state);
+        _logger.LogInformation("Refuel upcall suppressed — the refuel sync skipped the transfer for tankering");
+    }
 
     private void Tick()
     {

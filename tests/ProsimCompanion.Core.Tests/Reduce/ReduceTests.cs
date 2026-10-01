@@ -299,4 +299,54 @@ public sealed class ReduceTests : IDisposable
         Assert.Equal("Request # failed after #s", LogClusterer.Normalize("Request 8f1c2d3e-1111-2222-3333-444455556666 failed after 2.5s"));
         Assert.Equal("Only the first line", LogClusterer.Normalize("Only the first line\r\n   at Some.Frame()"));
     }
+
+    [Fact]
+    public void LogClusterer_CollapsesOpaqueIds_ButKeepsShortCodes()
+    {
+        // The 2026-09-28 bundle: six CircuitHost rows and three Kestrel rows for one fault.
+        Assert.Equal(
+            LogClusterer.Normalize("Unhandled exception in circuit '\"ivYGm0OeM3IGmKn3VJlagBnjJ5efZAWNWf4jvhay62A\"'."),
+            LogClusterer.Normalize("Unhandled exception in circuit '\"6eVz-QVAaCpFGUg8mag4Cj70r2hSQtMFeHkE9MNuuvQ\"'."));
+        Assert.Equal(
+            LogClusterer.Normalize("Connection id \"\"0HNOTKNN21AUJ\"\", Request id \"\"0HNOTKNN21AUJ:00000037\"\": An unhandled exception was thrown by the application."),
+            LogClusterer.Normalize("Connection id \"\"0HNOTKNN21AUN\"\", Request id \"\"0HNOTKNN21AUN:00000019\"\": An unhandled exception was thrown by the application."));
+        // Airport codes, dataref paths and service names stay distinct problems.
+        Assert.NotEqual(
+            LogClusterer.Normalize("Gateway \"metar EDDN\" attempt 1/3 failed with 500"),
+            LogClusterer.Normalize("Gateway \"metar LFSB\" attempt 1/3 failed with 500"));
+        Assert.Equal("Gateway \"metar EDDN\" attempt #/# failed with #", LogClusterer.Normalize("Gateway \"metar EDDN\" attempt 1/3 failed with 500"));
+        Assert.Equal("Dataref aircraft.fuel.total stale", LogClusterer.Normalize("Dataref aircraft.fuel.total stale"));
+    }
+
+    [Fact]
+    public void Session_CmTraceIsTheFallback_NeverASecondCopy()
+    {
+        // The 2026-09-28 bundle carried both the mirrored log.* events and the CMTrace file;
+        // every warning was listed twice per session while logSource said "session".
+        var mirrored = Session("session-20260926-100000.jsonl",
+            Line("2026-09-26T10:00:00Z", "session-started"),
+            Line("2026-09-26T10:00:02Z", "log.warning", "{\"component\":\"Gsx\",\"message\":\"GSX Remote API unavailable\"}"),
+            Line("2026-09-26T10:00:10Z", "session-ended"));
+        var unmirrored = Session("session-20260926-110000.jsonl",
+            Line("2026-09-26T11:00:00Z", "session-started"),
+            Line("2026-09-26T11:00:10Z", "session-ended"));
+        var log = Path.Combine(_dir, "ProsimCompanion-20260926.log");
+        File.WriteAllText(log,
+            CmTraceFormat.Line(new DateTimeOffset(2026, 9, 26, 10, 0, 2, TimeSpan.Zero), "GSX Remote API unavailable", "Gsx", "P.Gsx", 2, 1) + "\n"
+            + CmTraceFormat.Line(new DateTimeOffset(2026, 9, 26, 11, 0, 2, TimeSpan.Zero), "GSX Remote API unavailable", "Gsx", "P.Gsx", 2, 1) + "\n");
+
+        var contents = new BundleContents("folder", _dir, null, null, [mirrored.Path, unmirrored.Path], [log], false, []);
+        var report = Reducer.Run(contents, [], maxKb: 400);
+
+        var first = report.Sessions[0];
+        Assert.Single(first.LogEvents);
+        Assert.Empty(first.CmTraceEvents);
+        Assert.Equal("session", first.LogSource);
+
+        var second = report.Sessions[1];
+        Assert.Empty(second.LogEvents);
+        Assert.Single(second.CmTraceEvents);
+        Assert.Equal("cmtrace", second.LogSource);
+        Assert.Empty(report.UnattributedLogClusters);
+    }
 }

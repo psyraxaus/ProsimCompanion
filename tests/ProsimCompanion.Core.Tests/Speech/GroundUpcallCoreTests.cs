@@ -140,4 +140,22 @@ public sealed class GroundUpcallCoreTests
         Assert.Null(call);
         Assert.False(next.GroundPowerCalled);
     }
+
+    [Fact]
+    public void RefuelSkippedForTankering_MutesTheCompletionCall_UntilTheNextCycle()
+    {
+        // 2026-09-28 EDDN: GSX animated the truck and reported Completed, the sync moved no
+        // fuel, and the crew still announced "refueling complete, 9.6 tonnes".
+        var (state, _) = GroundUpcallCore.Evaluate(GroundUpcallCore.UpcallState.Initial, Sample());
+        state = GroundUpcallCore.OnRefuelSkippedForTankering(state);
+
+        (state, var call) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Completed));
+        Assert.Null(call);
+
+        // A genuine refuel in the next turnaround still announces.
+        state = GroundUpcallCore.OnFlightCycleReset(state);
+        (state, _) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Waiting));
+        (_, call) = GroundUpcallCore.Evaluate(state, Sample(refuel: GsxServiceStage.Completed));
+        Assert.Equal(GroundUpcallCore.UpcallKind.RefuelComplete, call);
+    }
 }

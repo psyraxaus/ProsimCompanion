@@ -11,6 +11,13 @@ public sealed class GroundOpsSignals
     /// trigger.</summary>
     public event Action? RefuelServiceActive;
 
+    /// <summary>The refuel sync skipped the transfer for tankering while GSX Refueling ran
+    /// anyway (the FOB already met the plan): the crew animation and the Completed edge still
+    /// happen, but no fuel moved. Consumers that announce "refueling complete" must stay
+    /// silent — 2026-09-28 EDDN (ticket t-20260929-1933): "refueling complete, 9.6 tonnes"
+    /// was spoken for a 4,800 kg plan on a 9,576 kg FOB.</summary>
+    public event Action? RefuelSkippedForTankering;
+
     /// <summary>GSX Boarding went Active — the phase engine's Preflight → Departure evidence
     /// (owner decision 2026-09-20: the departure is "in progress" once passengers board).</summary>
     public event Action? BoardingStarted;
@@ -36,6 +43,8 @@ public sealed class GroundOpsSignals
     public event Action? ArrivalCompleted;
 
     public void RaiseRefuelServiceActive() => RefuelServiceActive?.Invoke();
+
+    public void RaiseRefuelSkippedForTankering() => RefuelSkippedForTankering?.Invoke();
 
     public void RaiseArrivalCompleted() => ArrivalCompleted?.Invoke();
 

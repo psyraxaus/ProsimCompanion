@@ -186,9 +186,12 @@ public static class SessionReducer
             }
         }
 
-        // CMTrace fallback: attribute by time range, phase from the timeline.
+        // CMTrace fallback: attribute by time range, phase from the timeline — ONLY when the
+        // session carries no mirrored log.* events. Filling both streams (0.5.0-rc.9 reducer,
+        // ticket t-20260929-1933) listed every warning twice, once under each stream, while
+        // logSource still claimed "session"; the LLM step then read one problem as two.
         var cmOccurrences = new List<LogOccurrence>();
-        if (session.FirstEvent is { } first && session.LastEvent is { } last)
+        if (logOccurrences.Count == 0 && session.FirstEvent is { } first && session.LastEvent is { } last)
         {
             foreach (var entry in cmTrace)
             {

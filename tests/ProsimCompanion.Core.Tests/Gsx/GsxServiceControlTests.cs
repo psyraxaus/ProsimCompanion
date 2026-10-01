@@ -94,6 +94,7 @@ public sealed class GsxServiceControlTests
             _initOverrides.Object,
             _ofpStore,
             _diagnostics,
+            _signals,
             options.Object,
             NullLogger<GsxServiceControl>.Instance);
     }
@@ -600,5 +601,78 @@ public sealed class GsxServiceControlTests
         Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
         Assert.True(_lifecycle.IsCompleted("Refueling")); // not re-armed
         _dispatcher.VerifyNoOtherCalls();
+    }
+
+    // ---- Tankering pre-skip on the command path (ticket t-20260929-1933, 2026-09-28 EDDN) ----
+
+    [Fact]
+    public async Task ConfirmFuel_WithFobAlreadyMeetingThePlan_SkipsTheTruck_AndRaisesThePrelimEdge()
+    {
+        // The EDDN signature: 4,800 kg OFP block, 9,576 kg on board, "confirm fuel" ordered
+        // the truck anyway; the sync then moved nothing and the crew announced 9.6 tonnes.
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        SeedOfp(4800);
+        _fob = 9576;
+        var prelimEdges = 0;
+        _signals.RefuelServiceActive += () => prelimEdges++;
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.ConfirmFuel);
+
+        Assert.Equal(GsxServiceCallStatus.AlreadySatisfied, outcome.Status);
+        Assert.Contains("4800 kg confirmed", outcome.Detail, StringComparison.Ordinal);
+        Assert.Contains("tankering", outcome.Detail, StringComparison.Ordinal);
+        Assert.True(_fuelConfirmation.Confirmed);
+        Assert.Equal(1, prelimEdges);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task DirectRefuelRequest_WithFobAlreadyMeetingThePlan_SkipsTheTruck_AndStillConfirms()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        SeedOfp(7100);
+        _fob = 7080; // within the 25 kg tolerance
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.AlreadySatisfied, outcome.Status);
+        Assert.Contains("GSX refuel not called", outcome.Detail, StringComparison.Ordinal);
+        Assert.True(_fuelConfirmation.Confirmed);
+        Assert.Equal("request", _fuelConfirmation.Snapshot().Source);
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task TankeringPreSkip_OptionOff_OrdersTheTruck()
+    {
+        var control = CreateControl();
+        _options.SkipRefuelOnTankering = false;
+        SeedService("Refueling", "available");
+        SeedOfp(4800);
+        _fob = 9576;
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.ConfirmFuel);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        _dispatcher.Verify(
+            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "Refueling"), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task TankeringPreSkip_UnsettledEfbFigure_OrdersTheTruck()
+    {
+        // No OFP, import not landed: the EFB planned fuel may still be the previous leg's
+        // (#118) — a one-shot command never skips on it, it orders the truck as before.
+        var control = CreateControl();
+        SeedService("Refueling", "available");
+        _plannedFuelKg = 2300;
+        _fob = 9576;
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
     }
 }

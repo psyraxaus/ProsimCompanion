@@ -12,9 +12,10 @@ public sealed record LogOccurrence(
     string? Phase);
 
 /// <summary>
-/// Groups warnings/errors by (component, message shape): digits and GUIDs collapse to '#' so
-/// "Gate 12 refused" and "Gate 47 refused" are one problem with a count, not two lines the
-/// LLM has to correlate. The first verbatim message is kept as the example.
+/// Groups warnings/errors by (component, message shape): digits, GUIDs and opaque ids
+/// (Blazor circuit ids, Kestrel connection/request ids — long letter+digit tokens) collapse
+/// to '#' so "Gate 12 refused" and "Gate 47 refused" are one problem with a count, not two
+/// lines the LLM has to correlate. The first verbatim message is kept as the example.
 /// </summary>
 public static partial class LogClusterer
 {
@@ -24,7 +25,11 @@ public static partial class LogClusterer
         ArgumentNullException.ThrowIfNull(message);
         var firstLine = message.Split('\n', 2)[0].TrimEnd('\r');
         var noGuids = GuidPattern().Replace(firstLine, "#");
-        return DigitsPattern().Replace(noGuids, "#");
+        // Opaque ids before the digit pass: a circuit id such as ivYGm0OeM3IGmKn3VJlagBnjJ5
+        // would otherwise keep its letters and split one crash into a cluster per circuit
+        // (2026-09-28 bundle: six CircuitHost + three Kestrel rows for the one /speech fault).
+        var noIds = OpaqueIdPattern().Replace(noGuids, "#");
+        return DigitsPattern().Replace(noIds, "#");
     }
 
     public static IReadOnlyList<LogCluster> Cluster(IEnumerable<LogOccurrence> occurrences)
@@ -85,4 +90,10 @@ public static partial class LogClusterer
 
     [GeneratedRegex(@"\d+(\.\d+)?")]
     private static partial Regex DigitsPattern();
+
+    /// <summary>A token of 12+ url-safe characters that mixes letters and digits (with an
+    /// optional ":hex" suffix — Kestrel request ids). Airport codes, service names and
+    /// dataref paths never match: they are shorter, or letters only, or contain dots.</summary>
+    [GeneratedRegex(@"(?<![\w\-])(?=[A-Za-z0-9_\-]*\d)(?=[A-Za-z0-9_\-]*[A-Za-z])[A-Za-z0-9_\-]{12,}(?::[0-9A-Fa-f]{4,})?(?![\w\-])")]
+    private static partial Regex OpaqueIdPattern();
 }

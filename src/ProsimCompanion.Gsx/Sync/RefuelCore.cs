@@ -45,13 +45,17 @@ internal static class RefuelCore
         int TimeTargetSeconds);
 
     /// <summary>What one evaluation decided. <c>RefuelPower</c> non-null = write the EFB
-    /// refuel-power toggle; <c>WriteFuelKg</c> non-null = awaited fuel-quantity write.</summary>
+    /// refuel-power toggle; <c>WriteFuelKg</c> non-null = awaited fuel-quantity write.
+    /// <c>SkippedForTankering</c> = the transfer was retired in-service because the FOB
+    /// already met the plan; the shell publishes it so the "refueling complete" upcall stays
+    /// silent (GSX still runs the animation and reports Completed).</summary>
     internal sealed record RefuelOutcome(
         RefuelState State,
         IReadOnlyList<string> Decisions,
         string? Hold = null,
         double? WriteFuelKg = null,
-        bool? RefuelPower = null)
+        bool? RefuelPower = null,
+        bool SkippedForTankering = false)
     {
         internal static RefuelOutcome Nothing(RefuelState state) => new(state, []);
     }
@@ -176,7 +180,7 @@ internal static class RefuelCore
             if (ShouldSkipForTankering(inputs, current, latched))
             {
                 decisions.Add($"skipped — FOB {current:F0} kg already meets planned {latched:F0} kg (tankering)");
-                return new(state with { TransferActive = false }, decisions);
+                return new(state with { TransferActive = false }, decisions, SkippedForTankering: true);
             }
         }
 
@@ -260,6 +264,7 @@ internal static class RefuelCore
         {
             decisions.Add($"skipped — FOB {inputs.CurrentKg:F0} kg already meets planned {latched:F0} kg (tankering)");
             state = state with { TransferActive = false };
+            return new(state, decisions, SkippedForTankering: true);
         }
 
         return new(state, decisions);

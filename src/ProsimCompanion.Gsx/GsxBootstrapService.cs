@@ -146,6 +146,10 @@ public sealed class GsxBootstrapService : IHostedService, IDisposable
         "state", "stateText", "airline", "commandIcons", "commandIconsSvg", "simbrief",
         "statusHtml", "settings", "search", "gateProperties", "operators", "receipt",
         "billing", "prompts",
+        // "prompt" (singular) arrived in the 2026-09-28 EDDN bundle (ticket t-20260929-1933)
+        // next to the hello capability "prompts". Shape unknown until a wireTrace flight
+        // captures it — it may be the action prompt DISABLE_DOORS_MSG hides during catering.
+        "prompt",
     };
 
     /// <summary>First-flight telemetry: a state key the mirror does not consume, reported once

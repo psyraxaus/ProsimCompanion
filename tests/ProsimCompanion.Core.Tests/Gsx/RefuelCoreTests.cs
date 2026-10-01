@@ -277,4 +277,29 @@ public sealed class RefuelCoreTests
         Assert.False(outcome.State.PendingPlanArm);
         Assert.Contains(outcome.Decisions, d => d.Contains("no fuel was moved"));
     }
+
+    // ---- In-service tankering skip flags the outcome (ticket t-20260929-1933) ----
+
+    [Fact]
+    public void InServiceTankeringSkip_AtActivation_IsFlagged()
+    {
+        var skipped = RefuelCore.OnRefuelActive(RefuelCore.RefuelState.Idle, Inputs(currentKg: 9576, fuelTargetRaw: 4800));
+        var normal = RefuelCore.OnRefuelActive(RefuelCore.RefuelState.Idle, Inputs());
+
+        Assert.True(skipped.SkippedForTankering);
+        Assert.False(skipped.State.TransferActive);
+        Assert.False(normal.SkippedForTankering);
+    }
+
+    [Fact]
+    public void InServiceTankeringSkip_OnLateLatch_IsFlagged()
+    {
+        var waiting = RefuelCore.OnRefuelActive(RefuelCore.RefuelState.Idle, Inputs(currentKg: 9576, fuelTargetRaw: 0));
+        Assert.False(waiting.SkippedForTankering);
+
+        var latched = RefuelCore.Tick(waiting.State, Inputs(currentKg: 9576, fuelTargetRaw: 4800));
+
+        Assert.True(latched.SkippedForTankering);
+        Assert.False(latched.State.TransferActive);
+    }
 }

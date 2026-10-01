@@ -24,6 +24,7 @@ public sealed class GsxRefuelSync : IDisposable
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly IGsxFlightPlanStatus _flightPlan;
+    private readonly GroundOpsSignals _signals;
     private readonly ILogger<GsxRefuelSync> _logger;
     private readonly IDataRefSubscription<double> _fuelTotal;
     private readonly IDataRefSubscription<double> _fuelTarget;
@@ -44,6 +45,7 @@ public sealed class GsxRefuelSync : IDisposable
         IGsxFlightPlanStatus flightPlan,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
+        GroundOpsSignals signals,
         ILogger<GsxRefuelSync> logger)
     {
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -53,6 +55,7 @@ public sealed class GsxRefuelSync : IDisposable
         ArgumentNullException.ThrowIfNull(flightPlan);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(logger);
 
         _prosim = prosim;
@@ -60,6 +63,7 @@ public sealed class GsxRefuelSync : IDisposable
         _flightPlan = flightPlan;
         _options = options;
         _diagnostics = diagnostics;
+        _signals = signals;
         _logger = logger;
 
         _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);
@@ -193,6 +197,12 @@ public sealed class GsxRefuelSync : IDisposable
         if (outcome.Hold is not null)
         {
             HoldOnce(outcome.Hold);
+        }
+        if (outcome.SkippedForTankering)
+        {
+            // GSX still animates the truck and reports Completed — the "refueling complete"
+            // upcall must not announce fuel that never moved (2026-09-28 EDDN).
+            _signals.RaiseRefuelSkippedForTankering();
         }
 
         if (outcome.RefuelPower == true)
