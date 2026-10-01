@@ -24,6 +24,7 @@ kept there so a broken web configuration can always be repaired.
 | [Voice First Officer](03-voice-fo.md) | PTT, spoken checklists, callouts, briefings, persona |
 | [Settings reference](04-settings-reference.md) | Every settings section, including the hand-editable ones |
 | [Troubleshooting](05-troubleshooting.md) | Logs, degraded subsystems, common problems |
+| [ElevenLabs voices](06-elevenlabs.md) | Step-by-step setup: API key, voice, plan, crew voices, cost control |
 
 ## Design principles (what to expect)
 

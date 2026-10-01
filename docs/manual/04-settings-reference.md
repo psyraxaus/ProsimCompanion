@@ -6,7 +6,8 @@ missing keys fall back to safe defaults, and the app adds newly available defaul
 file on start. **Never share your `webUi.accessToken`.**
 
 **Secrets are encrypted per Windows user.** The API keys and the access token (`prosim.apiKey`,
-`sayIntentions.manualApiKey`, `briefing.llmApiKey`, `webUi.accessToken`) are stored as
+`sayIntentions.manualApiKey`, `briefing.llmApiKey`, `speech.elevenLabsApiKey`,
+`webUi.accessToken`) are stored as
 `dpapi:…` values, protected with Windows DPAPI for the account that runs the app. They only
 decrypt on that PC and that Windows account. If you copy `settings.json` to another PC or
 account, those fields bind as empty, the log warns once, and the settings page shows a
@@ -20,10 +21,10 @@ is regenerated automatically (pair tablets again via the QR code).
 | `webUi` | Settings → Setup / Display / Appearance, desktop window | `port` (default 5320), `bindToAllInterfaces`, `accessToken`, theme, units, Solari animation, `showNextServiceInHeader` (off — the header NEXT SERVICE button) |
 | `gsx` | Settings → Ground Services | the whole ground pillar — see below (master switch on Setup) |
 | `audio` | Settings → Audio Control | backend (CoreAudio/VoiceMeeter), app mappings, ACP side, device blacklist, device-filter flow/state (master switch on Setup) |
-| `speech` | Settings → Voice First Officer | TTS providers/voices, output/input devices, recognition, PTT/ATC-mute bindings, sterile cockpit (master switch on Setup) |
+| `speech` | Settings → Voice First Officer | TTS providers/voices (Kokoro, Google and Windows on Voice Providers; ElevenLabs on its own page — see the [ElevenLabs setup guide](06-elevenlabs.md)), output/input devices, recognition, PTT/ATC-mute bindings, sterile cockpit (master switch on Setup) |
 | `voices` | Settings → Voice First Officer | purser/company voices + chimes |
 | `checklists` | Checklists | checklist sets, manual-override allowance |
-| `sop` | file | callout texts/thresholds, flow monitor, stabilized gates, weather advisories |
+| `sop` | Settings → Voice First Officer → Callouts & Placards (rest: file) | on the page: callouts master switch, flap placards, gear limits and the "gear still down" height, the **Approach Gates** card (stable-approach check, per-gate height / gear / minimum flap / speed band / sink rate / spoken pass, add and remove gates, wording, thrust check), placard advisories. File only: the individual callout texts and thresholds, the other flow-monitor reminders, weather advisories |
 | `briefing` | Settings → Voice First Officer → Briefings & LLM (DFD path on Setup) | departure/arrival overrides, DFD path (`dfdPath`), minima capture, LLM endpoint (`llm*`) |
 | `persona` | file | FO persona — enabled, name, experience, formality, chattiness, style toggles |
 | `sayIntentions` | Settings → Voice First Officer → SayIntentions | API key source, phraseology, auto-tune, departure gating, weather |

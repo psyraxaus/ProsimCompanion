@@ -59,7 +59,8 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 ### Voice First Officer
 - Spoken checklists beside the visual runner — challenge/response with verification against
   the aircraft, a monitored flight-control check, and never-give-up retry semantics
-- SOP callouts (V1, rotate, positive climb, minimums…), stabilized-approach gates,
+- SOP callouts (V1, rotate, positive climb, minimums…), stabilized-approach gates you set to
+  your airline's SOP (heights, gear, flap, speed band, sink rate — add or remove gates),
   flow-monitor and weather advisories, sterile cockpit
 - Voice FCU/radio control behind a PF/PM handover, MCDU voice actions, ECAM abnormals with
   memory drills, departure/arrival briefings from Navigraph DFD + live weather
@@ -70,6 +71,7 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   and an intercom filter; LAN faster-whisper or offline recognition; PTT on keyboard or joystick.
   ElevenLabs: bring your own key; the default MP3 output works on the Free plan (no commercial
   licence there), PCM output needs a paid plan; a monthly character budget keeps the bill in check
+  — step-by-step in the [ElevenLabs setup guide](docs/manual/06-elevenlabs.md)
 - An optional **persona** (name, experience, formality, chattiness) colours the FO's
   wording — numbers verified and locked, deterministic texts always the floor
 - A **Voice Reference** drawer on every page (the mic pill in the header): every live phrase for the

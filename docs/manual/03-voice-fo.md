@@ -40,7 +40,12 @@ aloud (a warning names it in the log once).
 SOP callouts (thrust set, one hundred, V1, rotate, positive climb, transition, one-thousand-
 to-go, approach 1000/500, minimums, rollout calls) fire from live data; minimums arm only
 from the minima you enter on the First Officer page. Stabilized-approach gates call
-*"stabilized"* or *"unstable, go around"* at the 1000 ft gate. Flow monitoring speaks
+*"stabilized"* or *"unstable, go around"* at the 1000 ft gate. The gates are yours to set —
+airlines differ — on **Settings → Voice First Officer → Callouts & Placards → Approach
+Gates**: per gate the height, whether the gear must be down, the minimum flap lever, the
+speed band around VLS, the maximum sink rate, and whether a pass is spoken. Add a gate (a
+1500 ft gate, say) or remove one. The same page holds the flap and gear placard speeds and
+the height of the *"gear still down"* reminder in the climb. Flow monitoring speaks
 advisories (landing lights, flaps/gear ceilings, parking brake with thrust, seatbelts, icing
 conditions, anti-ice left on, ISA deviation) once per condition with a cooldown. Sterile
 cockpit suppresses chatter below 10,000 ft in climb/descent phases.
@@ -77,6 +82,10 @@ Off by default (`persona` settings section). When enabled, the FO gets a persona
 ## Voices
 
 The FO, the purser and company ACARS each have their own voice (`speech` and `voices`
-settings): Kokoro local neural first, then Google Chirp HD (cached, budget-enforced), then
-Windows voices. Cabin reports arrive on the CAB channel with the interphone chime; company
-messages with the ACARS beep.
+settings). Voices are tried in order: Kokoro local neural first, then ElevenLabs (your own
+key, cached, budget-enforced), then Google Chirp HD (cached, budget-enforced), then Windows
+voices. Cabin reports arrive on the CAB channel with the interphone chime; company messages
+with the ACARS beep.
+
+To set up ElevenLabs — key, voice, plan, crew voices, cost — follow the
+[ElevenLabs setup guide](06-elevenlabs.md).
