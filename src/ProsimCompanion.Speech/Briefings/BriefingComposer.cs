@@ -41,57 +41,138 @@ public sealed record BriefingFacts(
 /// </summary>
 public static class BriefingComposer
 {
+    /// <summary>The whole template as one text: the sections joined by a space.</summary>
     public static string Template(BriefingFacts f)
+        => string.Join(" ", Sections(f).Select(section => section.Text));
+
+    /// <summary>The template clause by clause (issue #147), each with the figures and words
+    /// that identify it in other wording — see <see cref="Core.Speech.NarrationSection"/>. A
+    /// streamed LLM briefing that is cut short is finished with exactly the clauses the pilot
+    /// has not heard yet. The clause texts and their order are the template, unchanged.</summary>
+    public static IReadOnlyList<Core.Speech.NarrationSection> Sections(BriefingFacts f)
     {
         ArgumentNullException.ThrowIfNull(f);
 
-        var s = new List<string>();
+        var s = new List<Core.Speech.NarrationSection>();
         if (f.IsDeparture)
         {
-            s.Add("Departure briefing.");
-            Add(s, f.Airport, a => $"Departing {f.AirportName ?? a}.");
-            Add(s, f.Runway, r => $"Runway {r}.");
+            s.Add(new("header", "Departure briefing.") { IsOpening = true });
+            if (f.Airport is { } airport)
+            {
+                s.Add(new("airport", $"Departing {f.AirportName ?? airport}.") { AnyOf = Names(f.AirportName, airport) });
+            }
+
+            if (f.Runway is { } runway)
+            {
+                s.Add(new("runway", $"Runway {runway}.") { Runway = runway });
+            }
+
             // Identifiers render phonetically (issue #68): kokoro swallowed the designator
             // letter of "VOLA3V" — "VOLA three Victor" survives synthesis.
-            Add(s, f.Sid, x => $"Standard instrument departure {Core.Speech.NatoPhonetics.SpeakIdentifier(x)}.");
-            Add(s, f.Nav.RunwayTrueHeading, h => $"Initial track {h:0} degrees.");
-            Add(s, f.Nav.TransitionAltitudeFt, t => $"Transition altitude {t:0} feet.");
-            if (f is { V1: not null, Vr: not null, V2: not null })
+            if (f.Sid is { } sid)
             {
-                s.Add($"V1 {f.V1}, rotate {f.Vr}, V2 {f.V2}.");
+                var spoken = Core.Speech.NatoPhonetics.SpeakIdentifier(sid);
+                s.Add(new("sid", $"Standard instrument departure {spoken}.") { AnyOf = LeadWord(spoken) });
+            }
+
+            if (f.Nav.RunwayTrueHeading is { } heading)
+            {
+                s.Add(new("track", $"Initial track {heading:0} degrees.") { Numbers = [Math.Round(heading)], AnyOf = ["track", "heading"] });
+            }
+
+            if (f.Nav.TransitionAltitudeFt is { } transitionAltitude)
+            {
+                s.Add(new("transition-altitude", $"Transition altitude {transitionAltitude:0} feet.")
+                {
+                    Numbers = [Math.Round(transitionAltitude)],
+                    AnyOf = ["transition"],
+                });
+            }
+
+            if (f is { V1: { } v1, Vr: { } vr, V2: { } v2 })
+            {
+                s.Add(new("v-speeds", $"V1 {v1}, rotate {vr}, V2 {v2}.") { Numbers = [v1, vr, v2] });
             }
         }
         else
         {
-            s.Add("Arrival briefing.");
-            Add(s, f.Airport, a => $"Arriving {f.AirportName ?? a}.");
-            Add(s, f.Runway, r => $"Runway {r}.");
-            Add(s, f.Approach, a => $"Approach {SpokenApproach(a, f.Runway)}.");
-            if (f.Nav is { IlsIdent: not null, IlsFrequencyMhz: not null })
+            s.Add(new("header", "Arrival briefing.") { IsOpening = true });
+            if (f.Airport is { } airport)
             {
-                s.Add($"ILS {f.Nav.IlsIdent}, frequency {f.Nav.IlsFrequencyMhz:0.00}.");
+                s.Add(new("airport", $"Arriving {f.AirportName ?? airport}.") { AnyOf = Names(f.AirportName, airport) });
             }
 
-            Add(s, f.Nav.GlideSlopeAngle, g => $"Glideslope {g:0.0} degrees.");
-            Add(s, f.Star, x => $"Arrival via {Core.Speech.NatoPhonetics.SpeakIdentifier(x)}.");
-            Add(s, f.Nav.TransitionLevel, t => $"Transition level {t:0}.");
+            if (f.Runway is { } runway)
+            {
+                s.Add(new("runway", $"Runway {runway}.") { Runway = runway });
+            }
+
+            if (f.Approach is { } approach)
+            {
+                var spoken = SpokenApproach(approach, f.Runway);
+                s.Add(new("approach", $"Approach {spoken}.") { AnyOf = [spoken] });
+            }
+
+            if (f.Nav is { IlsIdent: { } ilsIdent, IlsFrequencyMhz: { } ilsFrequency })
+            {
+                s.Add(new("ils", $"ILS {ilsIdent}, frequency {ilsFrequency:0.00}.") { Numbers = [ilsFrequency] });
+            }
+
+            if (f.Nav.GlideSlopeAngle is { } glideSlope)
+            {
+                s.Add(new("glideslope", $"Glideslope {glideSlope:0.0} degrees.") { Numbers = [glideSlope], AnyOf = ["glide"] });
+            }
+
+            if (f.Star is { } star)
+            {
+                var spoken = Core.Speech.NatoPhonetics.SpeakIdentifier(star);
+                s.Add(new("star", $"Arrival via {spoken}.") { AnyOf = LeadWord(spoken) });
+            }
+
+            if (f.Nav.TransitionLevel is { } transitionLevel)
+            {
+                s.Add(new("transition-level", $"Transition level {transitionLevel:0}.")
+                {
+                    Numbers = [Math.Round(transitionLevel)],
+                    AnyOf = ["transition"],
+                });
+            }
         }
 
-        if (f is { WindDirDeg: not null, WindSpeedKt: not null })
+        if (f is { WindDirDeg: { } windDir, WindSpeedKt: { } windSpeed })
         {
-            s.Add($"Wind {f.WindDirDeg:000} at {f.WindSpeedKt} knots.");
+            s.Add(new("wind", $"Wind {windDir:000} at {windSpeed} knots.") { Numbers = [windDir, windSpeed], AnyOf = ["wind"] });
         }
 
-        Add(s, f.QnhHpa, q => $"QNH {q:0}.");
+        if (f.QnhHpa is { } qnh)
+        {
+            s.Add(new("qnh", $"QNH {qnh:0}.") { Numbers = [qnh], AnyOf = ["qnh", "altimeter"] });
+        }
 
         if (!f.IsDeparture)
         {
             s.Add(f.Minima is { } m
-                ? $"Minimums, {MinimaCallout(m)}."
-                : "Minimums not briefed.");
+                ? new("minimums", $"Minimums, {MinimaCallout(m)}.")
+                {
+                    Numbers = [Math.Round(m.AltitudeFt)],
+                    AnyOf = ["minimum", "decision", "descent altitude"],
+                }
+                : new("minimums", "Minimums not briefed.") { AnyOf = ["minimum"] });
         }
 
-        return string.Join(" ", s);
+        return s;
+    }
+
+    /// <summary>The names an airport may have been spoken by: its friendly name and its ident.</summary>
+    private static string[] Names(string? name, string icao)
+        => name is null ? [icao] : [name, icao];
+
+    /// <summary>The leading word of a spoken identifier ("VOLA three Victor" → "VOLA"): the
+    /// part a listener recognises the procedure by. Empty when there is none of useful length.</summary>
+    private static string[] LeadWord(string spokenIdentifier)
+    {
+        var lead = spokenIdentifier.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return lead is { Length: >= 3 } ? [lead] : [];
     }
 
     /// <summary>Spoken form of the approach fact. DFD identifiers ("I16RY") decode through
@@ -130,6 +211,14 @@ public static class BriefingComposer
 
         var check = Llm.NumberVerifier.Check(narrative, BuildAllowed(f));
         return (check.Offending, check.Allowed);
+    }
+
+    /// <summary>Every number a briefing built from these facts may speak — the set the
+    /// streamed path verifies each sentence against (issue #147).</summary>
+    public static IReadOnlyList<double> AllowedNumbers(BriefingFacts f)
+    {
+        ArgumentNullException.ThrowIfNull(f);
+        return BuildAllowed(f);
     }
 
     private static List<double> BuildAllowed(BriefingFacts f)
@@ -257,13 +346,5 @@ public static class BriefingComposer
         }
 
         return sb.ToString();
-    }
-
-    private static void Add<T>(List<string> sentences, T? value, Func<T, string> format)
-    {
-        if (value is not null)
-        {
-            sentences.Add(format(value));
-        }
     }
 }

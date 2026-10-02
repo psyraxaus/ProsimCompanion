@@ -54,6 +54,9 @@ public enum SpeechRole
 /// the utterance in the same arbiter slot — pre-emption cancels both. Unknown ids no-op.</param>
 /// <param name="Role">Speaker role; selects the TTS voice and intercom filtering. Defaults to
 /// <see cref="SpeechRole.FirstOfficer"/> so existing callers are unchanged.</param>
+/// <param name="Stream">When set, the utterance arrives in segments (issue #147): the item
+/// speaks them in order and <paramref name="Text"/> is only its label for logs and events.
+/// A streamed item is never restarted after a pre-emption — it ends.</param>
 public sealed record SpeechRequest(
     string Text,
     SpeechPriority Priority = SpeechPriority.Normal,
@@ -61,7 +64,8 @@ public sealed record SpeechRequest(
     Func<bool>? IsStillValid = null,
     string? Tag = null,
     string? Chime = null,
-    SpeechRole Role = SpeechRole.FirstOfficer);
+    SpeechRole Role = SpeechRole.FirstOfficer,
+    StreamedUtterance? Stream = null);
 
 /// <summary>Terminal fate of a submitted request — what the caller's awaited task resolves to.
 /// Arbitration never throws at callers; it reports one of these instead.</summary>
@@ -94,6 +98,9 @@ public enum SpeechEventKind
     Spoken,
     Preempted,
     Requeued,
+
+    /// <summary>One segment of a streamed item was spoken to its end.</summary>
+    Segment,
     Deferred,
     Dropped,
     Expired,

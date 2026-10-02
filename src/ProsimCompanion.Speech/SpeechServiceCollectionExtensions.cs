@@ -223,6 +223,8 @@ public static class SpeechServiceCollectionExtensions
         // instance instead of each service newing up a silent private copy. The probe keeps
         // re-testing an unhealthy endpoint every five minutes so recovery is detected.
         services.AddSingleton<Llm.OpenAiChatClient>();
+        // Sentence-by-sentence LLM speech for briefings and the debrief (issue #147).
+        services.AddSingleton<Llm.StreamingNarrator>();
         services.AddHostedService<Llm.LlmHealthProbeService>();
         // The utterance router (CONTEXT.md, campaign #82): owns interpretation, precedence
         // and the idle grammar; the checklist engine attaches as its routing host.

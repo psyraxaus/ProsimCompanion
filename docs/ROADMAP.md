@@ -526,7 +526,22 @@ until a flight confirms it; the manual test steps are on each issue.
       token-gated on LAN, invariant culture, UTC ISO). The debrief template and LLM fact sheet
       gain the touchdown rate line, rounded to 10 fpm, under the number verifier.
       **Unverified live** — pitch sign convention and the acceleration unit in particular.
-- [ ] Streaming LLM output with sentence-chunked speech
+- [x] **Streaming LLM output with sentence-chunked speech** (#147, `feature/llm-streaming`):
+      `OpenAiChatClient.StreamAsync` (SSE for the OpenAI shape, NDJSON for Ollama; one budget
+      for the first text delta and every gap after it; health reported on both paths), pure
+      `SentenceChunker` (no cut inside decimals / frequencies / after abbreviations or single
+      letters / before a lower-case word; fragments join; 320-character safety cut),
+      `SpokenNumberText` (spelled-out digit runs and magnitudes back to digits so the number
+      verifier sees them — owner decision D4), `NarrationCore` (speak a sentence only after
+      it verifies; first failure drops it and the rest and the template finishes with the
+      sections not yet heard, recognised by their numbers / key words / runway — D1-A), one
+      `StreamedUtterance` queue item per narration (High callouts between sentences — D3; a
+      Critical ends the stream for good, never restarted — D2), LLM sentences outside the TTS
+      disk cache, `briefing.streamLlm` (default on) on the LLM Styling card, `llm.stream`
+      session event (first-token / first-audio latency, sentences spoken, takeover reason).
+      Briefings and the debrief use it; `StyledSpeechService` one-liners and `CompleteAsync`
+      callers are unchanged. **Unverified live** — first-token / first-audio figures on a real
+      model are what the feature is judged by.
 - [ ] In-flight FO monitoring (fuel check, takeoff gross-error check, destination weather
       watch, standalone read-backs)
 - [ ] Free-form FO questions

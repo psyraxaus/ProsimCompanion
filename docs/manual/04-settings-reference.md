@@ -25,7 +25,7 @@ is regenerated automatically (pair tablets again via the QR code).
 | `voices` | Settings → Voice First Officer | purser/company voices + chimes |
 | `checklists` | Checklists | checklist sets, manual-override allowance |
 | `sop` | Settings → Voice First Officer → Callouts & Placards (rest: file) | on the page: callouts master switch, flap placards, gear limits and the "gear still down" height, the **Approach Gates** card (stable-approach check, per-gate height / gear / minimum flap / speed band / sink rate / spoken pass, add and remove gates, wording, thrust check), placard advisories. File only: the individual callout texts and thresholds, the other flow-monitor reminders, weather advisories |
-| `briefing` | Settings → Voice First Officer → Briefings & LLM (DFD path on Setup) | departure/arrival overrides, DFD path (`dfdPath`), minima capture, LLM endpoint (`llm*`) |
+| `briefing` | Settings → Voice First Officer → Briefings & LLM (DFD path on Setup) | departure/arrival overrides, DFD path (`dfdPath`), minima capture, LLM endpoint (`llm*`), streamed LLM speech (`streamLlm` true) |
 | `persona` | file | FO persona — enabled, name, experience, formality, chattiness, style toggles |
 | `sayIntentions` | Settings → Voice First Officer → SayIntentions | API key source, phraseology, auto-tune, departure gating, weather |
 | `cabin`, `company` | Settings → Voice First Officer → Cabin Crew (`company` file-only) | purser reports, the cabin-secure wait (`cabinSecureMinDelaySeconds` 45, `cabinSecureSecondsPerPax` 1.0, `cabinSecuringReplyText`), ambient events, company loadsheet/cruise messages, chimes |

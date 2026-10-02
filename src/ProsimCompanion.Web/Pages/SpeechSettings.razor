@@ -539,6 +539,11 @@ else if (CurrentSection == "briefing")
     <Section Title="LLM Styling" Hint="One language model for the briefing and debrief prose">
         <BoolField Label="Enabled" Hint="Off: plain templates only. Nothing leaves this PC."
                    @bind-Value="_briefing.Value.LlmEnabled" />
+        <BoolField Label="Speak while the model writes"
+                   Hint="The FO starts speaking after the first sentence, not after the whole reply. Each sentence is checked before it is spoken."
+                   More="If a sentence has a wrong number, or the model stops, the plain template finishes the briefing. Nothing starts again from the top. Off: the FO waits for the whole reply (the old behaviour)."
+                   Disabled="@(!_briefing.Value.LlmEnabled)"
+                   @bind-Value="_briefing.Value.StreamLlm" />
         <SelectField Label="API flavour" Hint="Pick Ollama when the address is an Ollama server." More="Only the Ollama type can switch model thinking off." Options="LlmApiOptions"
                      Disabled="@(!_briefing.Value.LlmEnabled)"
                      @bind-Value="LlmApiKey" />

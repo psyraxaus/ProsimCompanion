@@ -88,6 +88,36 @@ chains — "local only" hard mode must exist.
   single-object and NDJSON shapes.
 - **Every number in LLM output is verified against source facts** (`NumberVerifier`); deterministic
   template fallback when the LLM is unavailable or fails verification.
+- **Streamed speech (issue #147, 2026-10-03; `briefing.streamLlm`, default on):**
+  `OpenAiChatClient.StreamAsync` asks for `stream: true` and yields text deltas — SSE `data:`
+  lines for the OpenAI shape (`choices[0].delta.content`; `data: [DONE]` ends; role-only, usage-only
+  and finish chunks carry no text; `:` lines are keep-alives), NDJSON for Ollama
+  (`message.content` per line; `done: true` ends; `message.thinking` is never read). Lines are
+  read through a UTF-8 `StreamReader`, so a network chunk that splits a JSON object or a
+  multi-byte character is harmless. ONE budget (`llmTimeoutSeconds`, 5 s floor) covers the first
+  TEXT delta (a model that only thinks does not count) and then the gap between lines.
+  `SentenceChunker` cuts the deltas into sentences (not inside "118.10", not after "e.g." or a
+  single letter, not before a lower-case word, fragments join the next, 320-character safety
+  cut). `StreamingNarrator` verifies each sentence — **spelled-out numbers included**:
+  `SpokenNumberText` turns "one six three" / "five thousand" / "one one eight decimal one zero"
+  back into digits for the check only (before this, a spelled number was never verified at all)
+  — and hands it to the arbiter as the next segment of one `StreamedUtterance`
+  (`SpeechRequest.Stream`). The first sentence that fails is dropped with everything after it
+  and the template finishes with the sections the pilot has not heard yet (`NarrationCore`:
+  a section counts as heard when its numbers, one of its key words and its runway appear in
+  the spoken text — a miss repeats a short fact, never loses one); so does a stall (speech
+  idle 4 s with no new sentence), a broken stream or an error. Nothing verified before the
+  failure → the whole template as one ordinary utterance. No strict re-ask on this path.
+  Arbiter rules: one queue item for the whole stream (nothing at its priority or below gets
+  between sentences); a **High** callout is spoken between two sentences (owner decision D3);
+  a **Critical** cuts the stream and the stream ENDS — `Superseded`, the LLM request cancelled,
+  never resumed or restarted (D2; the pilot asks again for a fresh briefing). LLM sentences
+  bypass the TTS disk cache (`TtsDiskCache.Bypass`, an async-local scope); template sentences
+  use it. `StyledSpeechService` one-liners and `CompleteAsync` callers are unchanged. Session
+  events: `llm.stream` (firstTokenMs, firstAudioMs, sentencesSpoken, templateTookOver,
+  takeoverReason verify-failed|stalled|timeout|error|none, sectionsFromTemplate, preempted,
+  model), `speech.segment` per sentence, `briefing.spoken` / `debrief.spoken` with
+  `streamed: true` and the text actually spoken.
 
 ## Other data sources
 

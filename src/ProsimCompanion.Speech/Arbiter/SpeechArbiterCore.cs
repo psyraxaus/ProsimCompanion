@@ -144,6 +144,13 @@ public sealed class SpeechArbiterCore
     /// check order — TTL, suppression, validity, caller cancel.
     /// </summary>
     public ArbiterTakeResult TakeNext(SpeechContext context, DateTimeOffset nowUtc)
+        => TakeNext(context, nowUtc, SpeechPriority.Low);
+
+    /// <summary>As <see cref="TakeNext(SpeechContext, DateTimeOffset)"/>, but only from the
+    /// bands at or above <paramref name="floor"/>. The shell uses it between two segments of
+    /// a streamed item (issue #147): a High callout may be spoken there, while everything at
+    /// the stream's own priority or below stays queued until the stream has ended.</summary>
+    public ArbiterTakeResult TakeNext(SpeechContext context, DateTimeOffset nowUtc, SpeechPriority floor)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -152,7 +159,7 @@ public sealed class SpeechArbiterCore
 
         while (true)
         {
-            var item = DequeueHighest();
+            var item = DequeueHighest(floor);
             if (item is null)
             {
                 return new ArbiterTakeResult(null, disposals);
@@ -228,7 +235,10 @@ public sealed class SpeechArbiterCore
             return CancelDisposition.Cancelled;
         }
 
+        // A streamed item is never restarted (issue #147): its content may be stale by the
+        // time the Critical is done, and the pilot must not hear it again from the top.
         if (item.Request.Priority == SpeechPriority.Normal
+            && item.Request.Stream is null
             && !item.IsInvalid()
             && !item.CallerToken.IsCancellationRequested)
         {
@@ -310,9 +320,9 @@ public sealed class SpeechArbiterCore
         }
     }
 
-    private ArbiterItem? DequeueHighest()
+    private ArbiterItem? DequeueHighest(SpeechPriority floor)
     {
-        for (var p = PriorityCount - 1; p >= 0; p--)
+        for (var p = PriorityCount - 1; p >= (int)floor; p--)
         {
             var queue = _queues[p];
             if (queue.Count > 0)

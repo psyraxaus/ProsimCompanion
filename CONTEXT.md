@@ -125,6 +125,24 @@ altitude — including the fallback when the friendly form is unknown (an unknow
 NATO-spelled, never letter-spelled).
 _Avoid_: phrasing, pronunciation helpers
 
+**Streamed narration**:
+An LLM-styled briefing or debrief spoken while the model is still writing it: each sentence
+is verified against the fact set — spelled-out numbers included — and only then handed to
+the arbiter as the next segment of ONE queue item, so nothing at the same or a lower priority
+gets between its sentences, a High callout plays between two of them, and a Critical ends it
+for good (never resumed, never restarted). Off by the `briefing.streamLlm` switch = the
+whole-reply path.
+_Avoid_: incremental speech, token streaming (that is the wire, not the speech)
+
+**Template takeover**:
+The deterministic template finishing a streamed narration that the model could not: the
+first sentence that fails verification is dropped with everything after it (likewise a stall,
+a broken stream or an error), and the template's sections the pilot has not heard yet follow
+in template order. A section counts as heard when its numbers, one of its key words and its
+runway appear in what was spoken; a miss repeats a short fact, never loses one. Nothing
+spoken yet = the whole template as one ordinary utterance.
+_Avoid_: fallback restart, re-ask (there is none on the streamed path)
+
 **Utterance router**:
 The module that decides what a recognized utterance means right now — feature, checklist
 answer, global command, confirmation, or idle miss — by a fixed precedence order over the
