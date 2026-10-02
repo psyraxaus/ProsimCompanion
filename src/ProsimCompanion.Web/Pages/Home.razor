@@ -24,6 +24,7 @@
 @inject OfpStore Ofp
 @inject HeroWeatherStore HeroWeather
 @inject GateStatusStore GateStatus
+@inject FlightProgressStore FlightProgress
 @inject IProsimDataRefs DataRefs
 @inject DisplayUnitService Units
 @inject IJSRuntime JS
@@ -123,6 +124,37 @@
                     <span class="label-caps">Fuel on board</span>
                     <span class="figure figure-lg">@FuelOnBoard</span>
                 </div>
+            </div>
+
+            @* Distance / ETA row (issue #145). Distances are great-circle DIRECT, never
+               along the route, and the row says so; the tags name where each figure came
+               from (GS = position and ground speed, PLAN = the time-based fallback). *@
+            <div class="fs-progress" title="Distances are great-circle direct, not along the route. Top of descent is a 3:1 estimate.">
+                <span class="fs-progress-item">
+                    <span class="label-caps">To go</span>
+                    <span class="figure">@FlightMonitorPresentation.Distance(_progress.DistanceToGoNm)</span>
+                </span>
+                <span class="fs-progress-item">
+                    <span class="label-caps">Flown</span>
+                    <span class="figure">@FlightMonitorPresentation.Distance(_progress.DistanceFlownNm)</span>
+                </span>
+                <span class="fs-progress-item">
+                    <span class="label-caps">ETA</span>
+                    <span class="figure">@FlightMonitorPresentation.Clock(_progress.EtaUtc)</span>
+                    @if (_progress.EtaUtc is not null)
+                    {
+                        <span class="fs-progress-tag">@FlightMonitorPresentation.BasisTag(_progress.EtaBasis)</span>
+                    }
+                </span>
+                <span class="fs-progress-item">
+                    <span class="label-caps">Top of descent</span>
+                    <span class="figure">@FlightMonitorPresentation.MinutesToTod(_progress.MinutesToTod)</span>
+                    @if (_progress.MinutesToTod is not null)
+                    {
+                        <span class="fs-progress-tag">EST</span>
+                    }
+                </span>
+                <span class="fs-progress-note">@FlightMonitorPresentation.ProgressCaption(_progress)</span>
             </div>
         </section>
 
@@ -321,6 +353,7 @@
     private OfpData? _ofp;
     private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
     private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
+    private FlightProgressSnapshot _progress = FlightProgressSnapshot.Empty;
     private IDataRefSubscription<double>? _headingSub;
     private IDataRefSubscription<double>? _fuelSub;
     private System.Threading.Timer? _metricsTimer;
@@ -834,6 +867,7 @@
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
         Watch(HeroWeather, snapshot => _weather = snapshot);
         Watch(GateStatus, snapshot => _gate = snapshot);
+        Watch(FlightProgress, snapshot => _progress = snapshot);
 
         _headingSub = DataRefs.Subscribe(HeadingMagneticRef);
         _fuelSub = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal);

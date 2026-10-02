@@ -258,6 +258,36 @@ public sealed class DfdNavDataProvider
             ("@a", airport.Trim().ToUpperInvariant()));
     }
 
+    /// <summary>The airport reference point and elevation (<c>airport_ref_latitude</c> /
+    /// <c>airport_ref_longitude</c> / <c>elevation</c> — same column names in both schema
+    /// generations), or null when the DFD, the airport or either coordinate is absent.
+    /// Feeds the flight-progress distances (issue #145).</summary>
+    public (double LatitudeDeg, double LongitudeDeg, double? ElevationFt)? AirportReferencePoint(string? airport)
+    {
+        if (string.IsNullOrWhiteSpace(airport))
+        {
+            return null;
+        }
+
+        using var connection = Open();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        var schema = DetectSchema(connection);
+        var apt = airport.Trim().ToUpperInvariant();
+        var latitude = ScalarDouble(connection, $"SELECT airport_ref_latitude FROM {schema.Airports} WHERE airport_identifier=@a LIMIT 1", ("@a", apt));
+        var longitude = ScalarDouble(connection, $"SELECT airport_ref_longitude FROM {schema.Airports} WHERE airport_identifier=@a LIMIT 1", ("@a", apt));
+        if (latitude is null || longitude is null)
+        {
+            return null;
+        }
+
+        var elevation = ScalarDouble(connection, $"SELECT elevation FROM {schema.Airports} WHERE airport_identifier=@a LIMIT 1", ("@a", apt));
+        return (latitude.Value, longitude.Value, elevation);
+    }
+
     public NavDataFacts Lookup(string airport, string? runway, string? sid = null, string? star = null, string? approach = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(airport);

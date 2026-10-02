@@ -101,6 +101,14 @@ public static class CoreServiceCollectionExtensions
         // Off/on-blocks, takeoff and landing stamps for the Flight Monitor board (2026-09-23).
         services.AddSingleton<Flight.FlightTimesStore>();
         services.AddStartupModule<Flight.FlightTimesTracker>();
+        // Position-based flight progress (issue #145): distance flown / to go, ground-speed
+        // ETA and the top-of-descent estimate. Airport coordinates come from the ordered
+        // IAirportCoordinateSource tiers — the gateway here, the Navigraph DFD from the
+        // Speech pillar when it is composed in; with neither, every figure stays time-based.
+        services.AddSingleton<Airports.IAirportCoordinateSource, Airports.GatewayAirportCoordinates>();
+        services.AddSingleton<Airports.AirportLocator>();
+        services.AddSingleton<Flight.FlightProgressStore>();
+        services.AddStartupModule<Flight.FlightProgressService>();
         services.AddSingleton<ConnectionStatusStore>();
         // Written by the Sim pillar's session monitor; read by session-gated automation and
         // the web UI. Stays at Empty (phase Unknown = hold) when the Sim pillar is absent.

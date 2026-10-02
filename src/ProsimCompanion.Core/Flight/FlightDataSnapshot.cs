@@ -26,6 +26,15 @@ public sealed record FlightDataSnapshot
     public double RadioAltitudeFt { get; init; }
     public double VerticalSpeedFpm { get; init; }
 
+    /// <summary>Where the aircraft is (aircraft.latitude / aircraft.longitude), or null when
+    /// there is no usable position: refs not pushed yet, stale, NaN, or exactly (0, 0) — see
+    /// <see cref="GeoPoint.FromRaw"/>. Never phase evidence; it feeds the flight-progress
+    /// store and the recording only (issue #145).</summary>
+    public GeoPoint? Position { get; init; }
+
+    /// <summary>True track over the ground, degrees 0–360; null when unknown.</summary>
+    public double? TrackTrueDeg { get; init; }
+
     /// <summary>Electrical power available (battery/external) — cold-and-dark discriminator.</summary>
     public bool AircraftPowered { get; init; }
 

@@ -55,6 +55,16 @@ public sealed record FlightSample
     [JsonPropertyName("brd"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool BoardingStarted { get; init; }
 
+    /// <summary>Aircraft position, decimal degrees to 4 places (about 11 m — finer than
+    /// anything the progress line or a replay can use, and it keeps a parked aircraft's
+    /// samples equal so they stay suppressed). Both omitted when there is no position, so
+    /// recordings made before 2026-10 parse unchanged (issue #145).</summary>
+    [JsonPropertyName("lat"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? LatitudeDeg { get; init; }
+
+    [JsonPropertyName("lon"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? LongitudeDeg { get; init; }
+
     /// <summary>Builds the record from the engine's view. Values are rounded to what the rule
     /// table can distinguish so unchanged flight states compare equal and are not re-written.</summary>
     public static FlightSample From(FlightStateView view)
@@ -92,6 +102,8 @@ public sealed record FlightSample
             V2Kt = s.V2Kt,
             Frozen = view.Frozen,
             BoardingStarted = s.BoardingStarted,
+            LatitudeDeg = s.Position is { } latitude ? Math.Round(latitude.LatitudeDeg, 4) : null,
+            LongitudeDeg = s.Position is { } longitude ? Math.Round(longitude.LongitudeDeg, 4) : null,
         };
     }
 
@@ -128,5 +140,8 @@ public sealed record FlightSample
         VrKt = VrKt,
         V2Kt = V2Kt,
         BoardingStarted = BoardingStarted,
+        Position = LatitudeDeg is { } latitude && LongitudeDeg is { } longitude
+            ? GeoPoint.FromRaw(latitude, longitude)
+            : null,
     };
 }

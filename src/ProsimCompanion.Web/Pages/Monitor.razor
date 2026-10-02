@@ -16,6 +16,7 @@
 @inject GateStatusStore GateStatus
 @inject HeroWeatherStore HeroWeather
 @inject FlightTimesStore FlightTimes
+@inject FlightProgressStore FlightProgress
 @inject OfpStore Ofp
 @inject ConnectionStatusStore Status
 @inject ArrivalGateCoordinator ArrivalGate
@@ -74,7 +75,44 @@
         </div>
 
         <div class="mon-pax">
-            <div class="mon-bar @StateTone"><div class="mon-bar-fill" style="width:@BarPercent%"></div></div>
+            @if (Mode == MonitorMode.Flight)
+            {
+                @* Route strip (issue #145): the origin → destination great circle as a
+                   straight line, the aircraft at its along/cross-track position on one
+                   scale, turned by its track. Inline SVG only — no map tiles, no network. *@
+                var strip = Strip;
+                <svg class="mon-strip" viewBox="0 0 @RouteStripView.Px(RouteStripView.Width) @RouteStripView.Px(RouteStripView.Height)"
+                     role="img" aria-label="@StripLabel">
+                    <line class="mon-strip-line" x1="@RouteStripView.Px(RouteStripView.OriginX)" y1="@RouteStripView.Px(RouteStripView.LineY)"
+                          x2="@RouteStripView.Px(RouteStripView.DestinationX)" y2="@RouteStripView.Px(RouteStripView.LineY)" />
+                    @if (strip.FlownX is { } flownX)
+                    {
+                        <line class="mon-strip-flown" x1="@RouteStripView.Px(RouteStripView.OriginX)" y1="@RouteStripView.Px(RouteStripView.LineY)"
+                              x2="@RouteStripView.Px(flownX)" y2="@RouteStripView.Px(RouteStripView.LineY)" />
+                    }
+                    @if (strip.TodX is { } todX)
+                    {
+                        <line class="mon-strip-tod" x1="@RouteStripView.Px(todX)" y1="@RouteStripView.Px(RouteStripView.LineY - 14)"
+                              x2="@RouteStripView.Px(todX)" y2="@RouteStripView.Px(RouteStripView.LineY + 14)" />
+                        @* An SVG <text> inside a code block reads as Razor's own text tag
+                           (RZ1023), so the element is emitted as markup. Numbers only. *@
+                        @((MarkupString)$"<text class=\"mon-strip-text\" x=\"{RouteStripView.Px(todX)}\" y=\"{RouteStripView.Px(RouteStripView.LineY - 20)}\" text-anchor=\"middle\">T/D EST</text>")
+                    }
+                    <circle class="mon-strip-end" cx="@RouteStripView.Px(RouteStripView.OriginX)" cy="@RouteStripView.Px(RouteStripView.LineY)" r="7" />
+                    <circle class="mon-strip-end" cx="@RouteStripView.Px(RouteStripView.DestinationX)" cy="@RouteStripView.Px(RouteStripView.LineY)" r="7" />
+                    @if (strip is { MarkerX: { } markerX, MarkerY: { } markerY })
+                    {
+                        <g transform="@($"translate({RouteStripView.Px(markerX)} {RouteStripView.Px(markerY)}) rotate({RouteStripView.Px(strip.MarkerRotationDeg)})")">
+                            <path class="mon-strip-aircraft" d="M18 0 L-12 -11 L-6 0 L-12 11 Z" />
+                        </g>
+                    }
+                </svg>
+                <span class="label-caps muted mon-strip-caption">@FlightMonitorPresentation.ProgressCaption(_progress)</span>
+            }
+            else
+            {
+                <div class="mon-bar @StateTone"><div class="mon-bar-fill" style="width:@BarPercent%"></div></div>
+            }
             <div class="mon-pax-row">
                 <span class="figure mon-pax-count">@BarPrimary</span>
                 <div class="mon-pax-facts">
@@ -86,6 +124,13 @@
                         <span class="label-caps @(Mode == MonitorMode.Gate && _gate.State == GateState.FinalCall ? "warn" : null)">@FactC</span>
                         <span class="label-caps">@FactD</span>
                     </div>
+                    @if (Mode == MonitorMode.Flight)
+                    {
+                        <div class="mon-pax-col" title="Great-circle direct distance, not along the route. Top of descent is a 3:1 estimate.">
+                            <span class="label-caps">TO GO @FlightMonitorPresentation.Distance(_progress.DistanceToGoNm) DIRECT</span>
+                            <span class="label-caps">T/D @FlightMonitorPresentation.MinutesToTod(_progress.MinutesToTod) EST</span>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -180,6 +225,7 @@
     private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
     private FlightTimesSnapshot _times = FlightTimesSnapshot.Empty;
+    private FlightProgressSnapshot _progress = FlightProgressSnapshot.Empty;
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _connections = [];
     private OfpData? _ofp;
 
@@ -259,11 +305,22 @@
         _ => _gate.GateId ?? "—",
     };
 
-    private DateTimeOffset? Eta => FlightMonitorPresentation.Eta(_times, _ofp, _gate.StdUtc);
+    // Position-based from the progress store when the aircraft has a position and the
+    // airports are located (issue #145); the store itself falls back to the time-based
+    // rules, and the direct call covers the moment before its first tick.
+    private DateTimeOffset? Eta => _progress.EtaUtc ?? FlightMonitorPresentation.Eta(_times, _ofp, _gate.StdUtc);
+
+    private string EtaTag => _progress.EtaUtc is null ? "" : FlightMonitorPresentation.BasisTag(_progress.EtaBasis);
+
+    private RouteStripView Strip => FlightMonitorPresentation.RouteStrip(
+        _progress.Fraction is null ? _progress with { Fraction = Progress } : _progress);
+
+    private string StripLabel => $"Route {Origin} to {Destination}, {BarPercent} percent, {FlightMonitorPresentation.ProgressCaption(_progress)}";
 
     private double Progress => Mode switch
     {
-        MonitorMode.Flight => FlightMonitorPresentation.FlightProgress(_times, _ofp?.EstimatedEnroute, Now) ?? 0,
+        MonitorMode.Flight => _progress.Fraction
+            ?? FlightMonitorPresentation.FlightProgress(_times, _ofp?.EstimatedEnroute, Now) ?? 0,
         MonitorMode.Arrival => FlightMonitorPresentation.DeboardingProgress(_gsx.BoardingCounters?.PaxDeboarded, _gsx.BoardingCounters?.PaxTarget),
         _ => _gate.Progress,
     };
@@ -302,6 +359,7 @@
     private string FactD => Mode switch
     {
         MonitorMode.Arrival => $"LANDED {FlightMonitorPresentation.Clock(_times.LandingUtc)}",
+        MonitorMode.Flight when EtaTag.Length > 0 => $"ETA {FlightMonitorPresentation.Clock(Eta)} {EtaTag}",
         _ => $"ETA {FlightMonitorPresentation.Clock(Eta)}",
     };
 
@@ -431,6 +489,7 @@
         Watch(HeroWeather, s => _weather = s);
         Watch(Diagnostics, s => _gsx = s);
         Watch(FlightTimes, s => _times = s);
+        Watch(FlightProgress, s => _progress = s);
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _connections = Status.Snapshot());
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
         WatchChanged<FlightPhaseChangedEventArgs>(h => FlightState.PhaseChanged += h, h => FlightState.PhaseChanged -= h, () => { });

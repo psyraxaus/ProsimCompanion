@@ -37,7 +37,7 @@ running version.
 
 | Page | What it does |
 |---|---|
-| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. Final-call thresholds and the weather refresh cadence live under Settings → Display & Flight Data → Flight Status card |
+| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the distance row (to go, flown, ETA, top of descent — direct distances, see the Flight Monitor notes below), the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. Final-call thresholds, the weather refresh cadence and the top-of-descent notice live under Settings → Display & Flight Data → Flight Status card |
 | **Flight Monitor** (pop-out) | A second-monitor board opened from the gate strip's Pop out button (or at `/monitor`) — see below |
 | **INIT** | MCDU-style OFP display: fetch the SimBrief OFP, per-field overrides (ZFW, fuel, pax, cargo), SYNC TO FMS, confirm fuel (orders the fuel truck — unless the fuel on board already meets the figure, then it answers "Refueling is not needed" and no truck comes), flight reset |
 | **OFP** | Flight-plan hero, arrival-gate assignment, weather (METAR/TAF/ATIS), pushback-direction Korry buttons, de-ice holdover card |
@@ -59,10 +59,32 @@ shape. It changes face with the flight:
 | Mode | When | What it shows |
 |---|---|---|
 | **Gate monitor** | at the stand | your airline logo (Settings → Appearance → Airline logos, matched to the OFP's airline code), flight number, route with airport names, the gate, the big state word (GATE CLOSED / GATE OPEN / BOARDING / FINAL CALL / GATE CLOSED), the passenger bar, EET / fuel / STD countdown / ETA, doors, jetway and GPU, the ground-services lamps, the local and destination weather cards, the flight sequence strip |
-| **Flight monitor** | pushback → landing | the phase as the big word (PUSHBACK AND START, CLIMB, CRUISE…), the cruise level, a time-based progress bar (elapsed block time against the OFP's enroute time), off-blocks time and ETA, ground speed / altitude / vertical speed / heading, gear / flaps / seat-belt signs / beacon; the local weather card follows the aircraft (destination from descent, the alternate on the second card) |
+| **Flight monitor** | pushback → landing | the phase as the big word (PUSHBACK AND START, CLIMB, CRUISE…), the cruise level, the route strip (below), elapsed time, distance to go, off-blocks time and ETA, minutes to top of descent, ground speed / altitude / vertical speed / heading, gear / flaps / seat-belt signs / beacon; the local weather card follows the aircraft (destination from descent, the alternate on the second card) |
 | **Arrival monitor** | taxi-in → shutdown | TAXI IN / ON BLOCKS / DEBOARDING / ARRIVED, the arrival gate, the deboarding bar, block-in time, block and flight times, doors, GPU and the arrival services |
 
 The header clock is sim time. The footer dots are the real ProSim / SimConnect / GSX connections.
+
+**The route strip and the distance figures.** In flight the bar becomes a route strip: a
+straight line from the origin (left dot) to the destination (right dot), with the aircraft
+marker on it. The line is the great circle — the shortest way between the two airports — so a
+marker that sits above or below it is that far off the direct line, on the same scale. The
+marker points the way the aircraft is tracking; the gold **T/D EST** tick is the estimated
+top of descent. Beside it:
+
+- **TO GO … NM DIRECT** — the straight-line distance to the destination. It is *not* the
+  distance along your route, so it reads short when the route has a dog-leg.
+- **ETA … GS** — when you reach the destination at the present ground speed. **ETA … PLAN**
+  means the planned time instead (takeoff plus the OFP enroute time) — the app shows that on
+  the ground and whenever it has no position.
+- **T/D … MIN EST** — minutes to the top of descent, estimated with the 3:1 rule (three miles
+  for every thousand feet between your cruise level and the destination elevation). It is an
+  estimate and it errs early; your FMS is the authority.
+
+The caption under the strip says where the figures come from: *Great-circle direct · from
+position*, or *Time-based* when the app has no aircraft position or could not locate the
+airports. Airport positions come from ProSim's own airport data, or from your Navigraph
+database (Settings → Setup) when ProSim has none. With neither, everything still works on the
+time-based values. The same figures are on a small row under the telemetry on Flight Status.
 
 ![Flight Monitor](../img/flight-monitor.png)
 
@@ -77,7 +99,7 @@ its own address, so a refresh or a link from a warning banner lands on the right
 | **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control, the live GSX menu card) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
 | **Voice First Officer** | Status (provider tests, minima card, speak test), general, listening & PTT, sterile cockpit, crew voices, ground crew, cabin crew, briefings & LLM, MCDU, SayIntentions, voice providers |
 | **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings, housekeeping |
-| **Display & Flight Data** | Units, split-flap animation, loadsheet automation, the Flight Status card (final-call thresholds, weather refresh), checklist ticks |
+| **Display & Flight Data** | Units, split-flap animation, loadsheet automation, the Flight Status card (final-call thresholds, weather refresh, top-of-descent notice), checklist ticks |
 | **Appearance** | Theme swatches, the header NEXT SERVICE button toggle, your theme logos for the header, your airline logos for the Flight Monitor |
 | **Aircraft Profiles** | Per-aircraft settings profiles with automatic matching |
 | **Advanced** | Flight phase engine thresholds, the live log viewer with capture settings |

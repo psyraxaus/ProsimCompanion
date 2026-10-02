@@ -126,6 +126,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       no predecessor equivalent (2026-09-22)
 - [x] Pop-out Flight Monitor board (gate → flight → arrival modes, per-airline logo, fixed
       1920×1080 stage scaled to the window) — new (2026-09-23)
+- [x] Aircraft position and distance-based flight progress (#145): great-circle distance
+      flown / to go, ground-speed ETA, 3:1 top-of-descent estimate with a once-per-flight
+      `tod-approaching` event, the route strip on the Flight Monitor and the distance row on
+      Flight Status; time-based fallback without a position — new (2026-10-03), Unverified live
 - [x] ActiveSky weather provider (snapshot file + local API, composite chain with gateway
       METAR and SayIntentions fallback; briefings consume it)
 - [x] Command registry + HTTP command API (29 commands incl. per-service GSX requests through

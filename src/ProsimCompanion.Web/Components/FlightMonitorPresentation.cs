@@ -82,39 +82,101 @@ public static class FlightMonitorPresentation
         _ => arrivalComplete ? "closed-after" : "boarding",
     };
 
-    /// <summary>Share of the planned block time flown, 0–1, from the off-blocks stamp and the
-    /// OFP's estimated enroute time. Null until off-blocks (the bar then shows the pax bar in
-    /// gate mode). Position data does not exist in the app, so this is time-based by design
-    /// (2026-09-23 feasibility scan); a leg that runs long pins at 100 %.</summary>
+    /// <summary>The TIME-BASED progress share (off-blocks against the OFP enroute time) —
+    /// since issue #145 the fallback behind the position-based fraction on
+    /// <see cref="FlightProgressStore"/>. The rule itself lives in
+    /// <see cref="FlightProgressCore.TimeFraction"/>; this forwards so the board's direct
+    /// render (before the store's first tick) and the store can never disagree.</summary>
     public static double? FlightProgress(FlightTimesSnapshot times, TimeSpan? estimatedEnroute, DateTimeOffset nowUtc)
-    {
-        ArgumentNullException.ThrowIfNull(times);
-        if (times.OffBlocksUtc is not { } off || estimatedEnroute is not { } eet || eet <= TimeSpan.Zero)
-        {
-            return null;
-        }
+        => FlightProgressCore.TimeFraction(times, estimatedEnroute, nowUtc);
 
-        var end = times.OnBlocksUtc ?? nowUtc;
-        return Math.Clamp((end - off) / eet, 0, 1);
+    /// <summary>The TIME-BASED estimated on-blocks (see <see cref="FlightProgressCore.TimeEta"/>):
+    /// the fallback behind the ground-speed ETA.</summary>
+    public static DateTimeOffset? Eta(FlightTimesSnapshot times, OfpData? ofp, DateTimeOffset? stdUtc)
+        => FlightProgressCore.TimeEta(times, ofp, stdUtc);
+
+    /// <summary>"312 NM" / "—". Whole miles: the figure is a direct distance, and a decimal
+    /// would claim a precision the route does not have.</summary>
+    public static string Distance(double? nm)
+        => nm is { } value && double.IsFinite(value)
+            ? Math.Round(value).ToString("N0", CultureInfo.InvariantCulture) + " NM"
+            : "—";
+
+    /// <summary>"14 MIN" / "NOW" / "—" for the minutes-to-top-of-descent figure.</summary>
+    public static string MinutesToTod(double? minutes)
+        => minutes switch
+        {
+            null => "—",
+            < 0.5 => "NOW",
+            { } value => Math.Round(value).ToString("F0", CultureInfo.InvariantCulture) + " MIN",
+        };
+
+    /// <summary>The tag after an ETA: where the figure came from.</summary>
+    public static string BasisTag(ProgressBasis basis) => basis switch
+    {
+        ProgressBasis.Position => "GS",
+        ProgressBasis.Time => "PLAN",
+        _ => "",
+    };
+
+    /// <summary>The one-line honesty label under the route strip and on Flight Status.</summary>
+    public static string ProgressCaption(FlightProgressSnapshot progress)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        return progress.FractionBasis switch
+        {
+            ProgressBasis.Position => "Great-circle direct · from position",
+            ProgressBasis.Time => progress.Position is null
+                ? "Time-based · no aircraft position"
+                : "Time-based · airport position unknown",
+            _ => "No progress data",
+        };
     }
 
-    /// <summary>Estimated on-blocks: takeoff + enroute once airborne, else off-blocks +
-    /// enroute, else STD + enroute (the OFP page's rule) — whichever is the best evidence.</summary>
-    public static DateTimeOffset? Eta(FlightTimesSnapshot times, OfpData? ofp, DateTimeOffset? stdUtc)
+    /// <summary>Lays the leg out on the board's route strip (issue #145): the origin →
+    /// destination great circle drawn as a straight line, the aircraft at its along-track /
+    /// cross-track position on ONE scale (so an off-route marker is honestly off the line),
+    /// the marker turned by its track relative to the route. Without a position the marker
+    /// rides the line at the time-based fraction; with no figure at all it is absent.</summary>
+    public static RouteStripView RouteStrip(FlightProgressSnapshot progress)
     {
-        ArgumentNullException.ThrowIfNull(times);
-        if (times.OnBlocksUtc is { } on)
+        ArgumentNullException.ThrowIfNull(progress);
+
+        const double left = RouteStripView.OriginX;
+        const double right = RouteStripView.DestinationX;
+        const double span = right - left;
+
+        if (progress is { RouteDistanceNm: > 0, AlongTrackNm: { } along, CrossTrackNm: { } cross } located
+            && located.Origin is { } origin && located.Destination is { } destination)
         {
-            return on;
+            var route = located.RouteDistanceNm!.Value;
+            var scale = span / route;
+            var x = Math.Clamp(left + (along * scale), RouteStripView.Edge, RouteStripView.Width - RouteStripView.Edge);
+            var y = Math.Clamp(
+                RouteStripView.LineY + (cross * scale),
+                RouteStripView.Edge, RouteStripView.Height - RouteStripView.Edge);
+            var rotation = 0.0;
+            if (located.TrackTrueDeg is { } track)
+            {
+                // The route's own course at the point abeam the aircraft; the marker shows
+                // the difference, so "along the route" always points right.
+                var abeam = GreatCircle.Intermediate(origin.Position, destination.Position, Math.Clamp(along / route, 0, 0.999));
+                rotation = (((track - GreatCircle.InitialBearingDeg(abeam, destination.Position)) % 360) + 540) % 360 - 180;
+            }
+
+            double? tod = located.DescentDistanceNm is { } descent && descent < route
+                ? left + ((route - descent) * scale)
+                : null;
+            return new RouteStripView(x, y, rotation, Math.Clamp(x, left, right), tod);
         }
 
-        if (ofp?.EstimatedEnroute is not { } eet)
+        if (progress.Fraction is { } fraction)
         {
-            return null;
+            var x = left + (Math.Clamp(fraction, 0, 1) * span);
+            return new RouteStripView(x, RouteStripView.LineY, 0, x, null);
         }
 
-        var anchor = times.TakeoffUtc ?? times.OffBlocksUtc ?? stdUtc;
-        return anchor?.Add(eet);
+        return new RouteStripView(null, null, 0, null, null);
     }
 
     /// <summary>"2h 15m" / "48m" / "—".</summary>
@@ -136,6 +198,28 @@ public static class FlightMonitorPresentation
     /// <summary>The deboarding share, 0–1, for the arrival bar; 0 when unknown.</summary>
     public static double DeboardingProgress(int? paxDeboarded, int? paxTarget)
         => paxTarget is > 0 && paxDeboarded is { } off ? Math.Clamp((double)off / paxTarget.Value, 0, 1) : 0;
+}
+
+/// <summary>Geometry of the board's route strip in its own SVG user units (the viewBox is
+/// <see cref="Width"/> × <see cref="Height"/>). Null marker = nothing to place.</summary>
+/// <param name="MarkerX">Aircraft marker centre.</param>
+/// <param name="MarkerY">Aircraft marker centre; <see cref="LineY"/> = on the route.</param>
+/// <param name="MarkerRotationDeg">Clockwise turn of the marker; 0 = along the route.</param>
+/// <param name="FlownX">Right end of the "flown" part of the line.</param>
+/// <param name="TodX">The estimated top-of-descent tick, when there is one.</param>
+public sealed record RouteStripView(double? MarkerX, double? MarkerY, double MarkerRotationDeg, double? FlownX, double? TodX)
+{
+    public const double Width = 1200;
+    public const double Height = 72;
+    public const double LineY = 36;
+    public const double OriginX = 40;
+    public const double DestinationX = 1160;
+
+    /// <summary>Closest the marker centre may come to the strip's border.</summary>
+    public const double Edge = 12;
+
+    /// <summary>Invariant "123.4" for an SVG attribute — a comma decimal breaks the markup.</summary>
+    public static string Px(double value) => value.ToString("0.#", CultureInfo.InvariantCulture);
 }
 
 /// <summary>The weather-card figure texts, shared by the Flight Status hero and the board so

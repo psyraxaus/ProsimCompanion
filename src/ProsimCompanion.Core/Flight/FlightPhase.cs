@@ -72,4 +72,10 @@ public static class FlightPhaseExtensions
     /// company-channel features treat as "before departure".</summary>
     public static bool IsBeforeTaxiOut(this FlightPhase phase)
         => phase.IsAtGate() || phase == FlightPhase.PushbackAndStart;
+
+    /// <summary>Off the ground: initial climb through approach. The takeoff roll and the
+    /// landing rollout are ground phases.</summary>
+    public static bool IsAirborne(this FlightPhase phase)
+        => phase is FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise
+            or FlightPhase.Descent or FlightPhase.Approach;
 }

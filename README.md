@@ -49,7 +49,10 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   Final Call → Gate Closed, from GSX boarding, door 1L and the STD)
 - **Pop-out Flight Monitor** — one click opens a second-monitor board that is the gate monitor
   at the stand, the flight monitor from pushback to landing and the arrival monitor after
-  block-in; scales as one piece to any window and shows your own logo for the OFP's airline
+  block-in; scales as one piece to any window and shows your own logo for the OFP's airline.
+  In flight it draws a **route strip** from the aircraft position: the great circle origin →
+  destination with the aircraft marker, distance to go, a ground-speed ETA and the estimated
+  top of descent (direct distances; time-based fallback without a position)
 
 ![Flight Monitor](docs/img/flight-monitor.png)
 

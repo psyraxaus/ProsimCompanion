@@ -142,6 +142,17 @@
 .mon-bar.final-call .mon-bar-fill { background: var(--warning); }
 .mon-bar.closed-after .mon-bar-fill { background: var(--success); }
 
+/* Route strip (issue #145): flight mode shows it in place of the bar. The viewBox is
+   1200×72 and the strip is as wide as the bar was, so 1 user unit ≈ 1 stage px. */
+.mon-strip { display: block; width: 100%; height: 72px; overflow: visible; }
+.mon-strip-line { stroke: rgba(255, 255, 255, 0.16); stroke-width: 4; stroke-linecap: round; }
+.mon-strip-flown { stroke: var(--accent); stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 5px var(--accent)); }
+.mon-strip-end { fill: var(--bg-primary); stroke: var(--text-secondary); stroke-width: 3; }
+.mon-strip-tod { stroke: var(--accent-gold); stroke-width: 3; stroke-linecap: round; }
+.mon-strip-text { fill: var(--accent-gold); font-size: 12px; font-weight: 700; letter-spacing: 0.15em; }
+.mon-strip-aircraft { fill: var(--text-primary); stroke: var(--bg-primary); stroke-width: 2; stroke-linejoin: round; }
+.mon-strip-caption { display: block; margin: 2px 0 12px; font-size: 12px; }
+
 .mon-pax-row { display: flex; justify-content: space-between; align-items: flex-end; }
 .mon-pax-count { font-size: 28px; color: var(--accent); }
 .mon-pax-facts { display: flex; gap: 48px; text-align: right; }

@@ -27,8 +27,9 @@ public sealed class DfdNavDataProviderTests : IDisposable
             CREATE TABLE tbl_hdr_header (cycle TEXT);
             INSERT INTO tbl_hdr_header VALUES ('2508');
             CREATE TABLE tbl_pa_airports (airport_identifier TEXT, transition_altitude TEXT,
-                transition_level REAL, elevation REAL);
-            INSERT INTO tbl_pa_airports VALUES ('YSSY', 'FL110', 0, 21);
+                transition_level REAL, elevation REAL, airport_ref_latitude REAL, airport_ref_longitude REAL);
+            INSERT INTO tbl_pa_airports VALUES ('YSSY', 'FL110', 0, 21, -33.946111, 151.177222);
+            INSERT INTO tbl_pa_airports VALUES ('XNOP', NULL, 0, 0, NULL, NULL);
             CREATE TABLE tbl_pg_runways (airport_identifier TEXT, runway_identifier TEXT,
                 runway_true_bearing REAL, runway_length REAL, landing_threshold_elevation REAL);
             INSERT INTO tbl_pg_runways VALUES ('YSSY', 'RW16R', 163.0, 12999, 0);
@@ -81,6 +82,43 @@ public sealed class DfdNavDataProviderTests : IDisposable
         Assert.True(facts.SidFound);
         Assert.False(facts.StarFound);                      // MARLN4 not in the DB
         Assert.True(facts.ApproachFound);
+    }
+
+    [Fact]
+    public void AirportReferencePoint_ReadsCoordinatesAndElevation()
+    {
+        var point = Provider().AirportReferencePoint("yssy");
+
+        Assert.NotNull(point);
+        Assert.Equal(-33.946111, point.Value.LatitudeDeg, 6);
+        Assert.Equal(151.177222, point.Value.LongitudeDeg, 6);
+        Assert.Equal(21, point.Value.ElevationFt);
+    }
+
+    [Fact]
+    public void AirportReferencePoint_UnknownAirportOrNoCoordinates_IsNull()
+    {
+        Assert.Null(Provider().AirportReferencePoint("ZZZZ"));
+        Assert.Null(Provider().AirportReferencePoint("XNOP"));   // row exists, coordinates NULL
+        Assert.Null(Provider().AirportReferencePoint(" "));
+    }
+
+    [Fact]
+    public async Task DfdAirportCoordinates_IsTheSecondTier_AndDegradesWithoutADatabase()
+    {
+        var source = new DfdAirportCoordinates(Provider());
+
+        var found = await source.FindAsync("yssy");
+
+        Assert.Equal(20, source.Order);
+        Assert.Equal("YSSY", found!.Icao);
+        Assert.Equal("dfd", found.Source);
+        Assert.Equal(-33.9461, found.Position.LatitudeDeg, 4);
+        Assert.Equal(21, found.ElevationFt);
+        Assert.Null(await source.FindAsync("ZZZZ"));
+
+        _options.DfdPath = Path.Combine(Path.GetTempPath(), $"no-such-dfd-{Guid.NewGuid():N}.s3db");
+        Assert.Null(await new DfdAirportCoordinates(Provider()).FindAsync("YSSY"));
     }
 
     [Fact]

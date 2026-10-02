@@ -490,3 +490,30 @@ from Phase 1 — this phase adds the speech stack and features on top.
       `settings.json` (marker-guarded first-run; PredecessorConfigImporter)
 - [x] Docs site / user manual — `docs/manual/` (installation, using the app, voice FO,
       settings reference, troubleshooting)
+
+## Phase 8 — October 2026 batch
+
+Seven packages, one GitHub issue and one branch each. New behaviour is **Unverified live**
+until a flight confirms it; the manual test steps are on each issue.
+
+- [x] **Aircraft position and distance-based progress** (#145, `feature/aircraft-position`):
+      `aircraft.latitude` / `aircraft.longitude` / `aircraft.track.true` at the 500 ms tier on
+      `FlightDataSnapshot` (stale, NaN or exactly (0, 0) = no position; never phase evidence),
+      `lat` / `lon` on the flight sample (4 dp, omitted when absent — older recordings parse
+      unchanged), pure `GreatCircle` maths, airport coordinates through ordered
+      `IAirportCoordinateSource` tiers (ProSim gateway runway list, then the Navigraph DFD
+      reference point; resolved once per OFP), `FlightProgressStore` (distance flown / to go,
+      fraction, ground-speed ETA, each with its basis: position or the time-based fallback),
+      top of descent by the 3:1 rule with a once-per-flight `tod-approaching` session event
+      (`flightStatus.todLeadMinutes`, default 10), the route strip on the Flight Monitor board
+      (inline SVG) and the distance row on Flight Status. Distances are great-circle direct.
+      `debug.vnav.distance.remaining` and `aircraft.fms.TimeToDest` are recorded raw for
+      calibration, not used. **Unverified live** — the gateway's runway-coordinate wire shape
+      in particular.
+- [ ] Logbook page and landing analysis
+- [ ] Streaming LLM output with sentence-chunked speech
+- [ ] In-flight FO monitoring (fuel check, takeoff gross-error check, destination weather
+      watch, standalone read-backs)
+- [ ] Free-form FO questions
+- [ ] Installable web app and screen keep-awake
+- [ ] Outbound event notifications

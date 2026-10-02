@@ -29,9 +29,20 @@ _Avoid_: boarding widget, gate status pill
 **Flight monitor board**:
 The pop-out window (`/monitor`) that shows the gate monitor at the stand, the flight monitor
 from pushback to landing and the arrival monitor after block-in — one fixed 1920×1080 stage
-scaled as a whole to the window. Its progress line is time-based (off-blocks against the OFP
-enroute time); the app has no aircraft position.
+scaled as a whole to the window. In flight mode its progress line is the route strip: the
+origin → destination great circle drawn straight, the aircraft marker placed from flight
+progress, with the distance to go and the ETA beside it. It shows position-based figures
+while there are any and the time-based fallback otherwise, and says which.
 _Avoid_: second screen, FIDS, dashboard
+
+**Flight progress**:
+How far along the leg the aircraft is: distance flown, distance to go, the fraction done, the
+ETA and the time to top of descent. Position-based when the flight is live, the aircraft has a
+position and the OFP's airports are located (ProSim gateway, else the Navigraph DFD);
+otherwise each figure falls back on its own to the time-based rule (off-blocks against the OFP
+enroute time) and carries that basis. Distances are great-circle direct, never along the
+route. The top of descent is an estimate (3:1 rule) that errs early.
+_Avoid_: route progress, distance remaining on the route, FMS distance
 
 **Weather card**:
 One of the two hero-card weather tiles: "local weather" (the origin until Descent, the

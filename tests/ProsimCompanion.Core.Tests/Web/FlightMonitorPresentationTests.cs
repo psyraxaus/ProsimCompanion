@@ -1,4 +1,6 @@
+using System.Globalization;
 using ProsimCompanion.Core.Aircraft.Ofp;
+using ProsimCompanion.Core.Airports;
 using ProsimCompanion.Core.Boarding;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Weather;
@@ -84,6 +86,149 @@ public sealed class FlightMonitorPresentationTests
         Assert.Equal("—", FlightMonitorPresentation.Duration(null));
         Assert.Equal("—", FlightMonitorPresentation.Clock(null));
         Assert.Equal("13:00Z", FlightMonitorPresentation.Clock(new DateTimeOffset(2026, 9, 23, 13, 0, 0, TimeSpan.Zero)));
+    }
+
+    // ---- flight progress figures and the route strip (issue #145) ----
+
+    private static readonly AirportLocation StripOrigin = new("AAAA", new GeoPoint(0, 10), 0, "test");
+    private static readonly AirportLocation StripDestination = new("BBBB", new GeoPoint(0, 20), 0, "test");
+
+    private static FlightProgressSnapshot Located(double along, double cross, double? track = 90, double? descent = null)
+        => new()
+        {
+            Position = new GeoPoint(0, 10),
+            Origin = StripOrigin,
+            Destination = StripDestination,
+            RouteDistanceNm = 600,
+            AlongTrackNm = along,
+            CrossTrackNm = cross,
+            TrackTrueDeg = track,
+            DescentDistanceNm = descent,
+            Fraction = along / 600,
+            FractionBasis = ProgressBasis.Position,
+        };
+
+    [Theory]
+    [InlineData(311.6, "312 NM")]
+    [InlineData(2991.2, "2,991 NM")]
+    [InlineData(0.2, "0 NM")]
+    [InlineData(null, "—")]
+    public void Distance_IsWholeMiles(double? nm, string expected)
+        => Assert.Equal(expected, FlightMonitorPresentation.Distance(nm));
+
+    [Theory]
+    [InlineData(14.4, "14 MIN")]
+    [InlineData(0.0, "NOW")]
+    [InlineData(null, "—")]
+    public void MinutesToTod_Formats(double? minutes, string expected)
+        => Assert.Equal(expected, FlightMonitorPresentation.MinutesToTod(minutes));
+
+    [Fact]
+    public void ProgressCaption_SaysWhereTheFiguresCameFrom()
+    {
+        Assert.Equal("Great-circle direct · from position", FlightMonitorPresentation.ProgressCaption(Located(100, 0)));
+        Assert.Equal("Time-based · no aircraft position",
+            FlightMonitorPresentation.ProgressCaption(new FlightProgressSnapshot { Fraction = 0.4, FractionBasis = ProgressBasis.Time }));
+        Assert.Equal("Time-based · airport position unknown",
+            FlightMonitorPresentation.ProgressCaption(new FlightProgressSnapshot
+            {
+                Position = new GeoPoint(1, 1), Fraction = 0.4, FractionBasis = ProgressBasis.Time,
+            }));
+        Assert.Equal("No progress data", FlightMonitorPresentation.ProgressCaption(FlightProgressSnapshot.Empty));
+        Assert.Equal("GS", FlightMonitorPresentation.BasisTag(ProgressBasis.Position));
+        Assert.Equal("PLAN", FlightMonitorPresentation.BasisTag(ProgressBasis.Time));
+    }
+
+    [Fact]
+    public void RouteStrip_PlacesTheAircraftAlongTheLine_OnOneScale()
+    {
+        // 600 nm across 1,120 units: half way is the middle of the strip, on the line.
+        var strip = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0));
+
+        Assert.Equal(600, strip.MarkerX!.Value, 1);
+        Assert.Equal(RouteStripView.LineY, strip.MarkerY!.Value, 1);
+        Assert.Equal(600, strip.FlownX!.Value, 1);
+        Assert.Equal(0, strip.MarkerRotationDeg, 1);    // tracking 090 along a 090 route
+    }
+
+    [Fact]
+    public void RouteStrip_OffRoute_MovesTheMarkerOffTheLine_AndClampsItInsideTheStrip()
+    {
+        // 10 nm right of track is 18.7 units below the line; 500 nm would leave the strip.
+        var right = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 10));
+        var far = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: -500));
+
+        Assert.Equal(RouteStripView.LineY + 18.7, right.MarkerY!.Value, 1);
+        Assert.Equal(RouteStripView.Edge, far.MarkerY!.Value, 1);
+    }
+
+    [Fact]
+    public void RouteStrip_TurnsTheMarkerByTheTrackRelativeToTheRoute()
+    {
+        var turnedRight = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: 120));
+        var turnedLeft = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: 60));
+        var reciprocal = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: 270));
+        var unknown = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: null));
+
+        Assert.Equal(30, turnedRight.MarkerRotationDeg, 1);
+        Assert.Equal(-30, turnedLeft.MarkerRotationDeg, 1);
+        Assert.Equal(180, Math.Abs(reciprocal.MarkerRotationDeg), 1);
+        Assert.Equal(0, unknown.MarkerRotationDeg);
+    }
+
+    [Fact]
+    public void RouteStrip_BeforeTheOriginOrPastTheDestination_KeepsTheFlownPartOnTheLine()
+    {
+        var behind = FlightMonitorPresentation.RouteStrip(Located(along: -30, cross: 0));
+        var beyond = FlightMonitorPresentation.RouteStrip(Located(along: 660, cross: 0));
+
+        Assert.Equal(RouteStripView.OriginX, behind.FlownX!.Value, 1);
+        Assert.Equal(RouteStripView.DestinationX, beyond.FlownX!.Value, 1);
+        Assert.InRange(behind.MarkerX!.Value, RouteStripView.Edge, RouteStripView.OriginX);
+        Assert.InRange(beyond.MarkerX!.Value, RouteStripView.DestinationX, RouteStripView.Width - RouteStripView.Edge);
+    }
+
+    [Fact]
+    public void RouteStrip_MarksTheTopOfDescentEstimate()
+    {
+        // 105 nm of descent on a 600 nm leg: the tick sits 495 nm along.
+        var strip = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, descent: 105));
+        var none = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0));
+        var longerThanTheLeg = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, descent: 700));
+
+        Assert.Equal(RouteStripView.OriginX + (495.0 / 600 * 1120), strip.TodX!.Value, 1);
+        Assert.Null(none.TodX);
+        Assert.Null(longerThanTheLeg.TodX);
+    }
+
+    [Fact]
+    public void RouteStrip_WithoutAPosition_RidesTheLineAtTheTimeFraction()
+    {
+        var strip = FlightMonitorPresentation.RouteStrip(
+            new FlightProgressSnapshot { Fraction = 0.25, FractionBasis = ProgressBasis.Time });
+        var nothing = FlightMonitorPresentation.RouteStrip(FlightProgressSnapshot.Empty);
+
+        Assert.Equal(RouteStripView.OriginX + (0.25 * 1120), strip.MarkerX!.Value, 1);
+        Assert.Equal(RouteStripView.LineY, strip.MarkerY);
+        Assert.Null(strip.TodX);
+        Assert.Null(nothing.MarkerX);
+        Assert.Null(nothing.FlownX);
+    }
+
+    [Fact]
+    public void RouteStrip_Px_IsInvariant()
+    {
+        var previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+            Assert.Equal("123.5", RouteStripView.Px(123.46));
+            Assert.Equal("-30", RouteStripView.Px(-30));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
     }
 
     [Fact]

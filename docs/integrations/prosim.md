@@ -55,6 +55,16 @@ Base `http://{prosimHost}:5000`. PascalCase requests / camelCase responses. 3 re
   fields misspelled `Break*` are required as-is.
 - `GET /efb/airport/{icao}/runways?includeIntersections=`, `GET /efb/airport/{icao}/metar`
   (204 = no data; don't retry), `GET /efb/failures`.
+- **Airport coordinates come from the runway list** (issue #145): the gateway has no airport
+  reference point, so `GatewayAirportCoordinates` takes the centre of the runway coordinates
+  and the mean runway elevation. **The coordinate wire shape is unverified live.** The DTO
+  (carried from ProsimInterface) types BOTH `lat` and `lng` as a `{latitude, longitude}`
+  pair. Two readings are handled: each is a full point (two per runway), or `lat` carries
+  only the latitude and `lng` only the longitude (one point per runway). Points more than
+  15 nm from their own centre are distrusted and the Navigraph DFD tier
+  (`airport_ref_latitude` / `airport_ref_longitude` / `elevation`) answers instead. The log
+  line `Gateway airport <ICAO>: N runway(s), M coordinate point(s) -> …` and the
+  `airport-coordinates` session event (`source: gateway|dfd`) settle it on the first flight.
 
 Two write paths exist (SDK vs GraphQL). The predecessors chose ad-hoc per feature; ProsimCompanion
 should consolidate on SDK push/write where possible and use the gateway only for gateway-exclusive
@@ -102,6 +112,25 @@ WRONG and latched the flag true for entire flights. A missing dataref must fall 
 (**scale 0=Up,1=F1,2=F1+F,3=F2,4=F3,5=F4 — NOT the S_FC_FLAPS switch scale**),
 `aircraft.engines.limits.toga/flex`, `debug.groundSpoilersDeployd` (sic — misspelled in ProSim),
 `aircraft.ground.nose`, `environment.ambientInCloud/Visibility`.
+
+**Position (issue #145)**: `aircraft.latitude`, `aircraft.longitude` (decimal degrees, the
+true position in the world — NOT the `aircraft.adiru.N.latitude/longitude` IRS outputs, which
+are blank until the IRS aligns) and `aircraft.track.true`, all at the 500 ms tier (the slowest
+that still feeds a 1 Hz consumer). Fallback NaN; **stale, NaN or exactly (0, 0) is "no
+position"** (`GeoPoint.FromRaw`) — (0, 0) is what an unpopulated ref and a ProSim with no sim
+attached read as. Position is never phase evidence and never holds the flight-live gate.
+**Unverified live**: that the two refs push with MSFS attached and read sim-true values.
+
+**Distance / top-of-descent references — none usable yet.** The A322 catalog has no FMS
+distance-to-destination and no T/D dataref. The two near misses are recorded raw on the
+`flight-progress` and `tod-approaching` session events and acted on by nothing:
+`debug.vnav.distance.remaining` ("VNAV distance remaining" — unit and reference point
+undocumented: destination? T/D? the next constraint?) and `aircraft.fms.TimeToDest` (seconds).
+Compare them with `toGoNm` / `minutesToTod` on the same events after a flight; if the VNAV ref
+proves to be an along-route distance to the destination it should replace the 3:1 estimate's
+direct distance. Until then the top of descent is `(cruise altitude − destination elevation)
+/ 1000 × 3` nm before the destination on the great-circle direct distance — an estimate that
+errs early, because the route is never shorter than the direct line.
 
 **Cockpit systems**: FCU `system.analog.A_FCU_{HEADING|ALTITUDE|SPEED|VS}`,
 `system.switches.S_FCU_*`, `system.indicators.I_FCU_*`; MCDU2 keys

@@ -98,6 +98,12 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     private readonly IDataRefSubscription<int> _engAntiIce2;
     private readonly IDataRefSubscription<int> _wingAntiIce;
 
+    // Position (issue #145). NOT phase-critical: a missing position degrades the progress
+    // line to its time-based fallback and never holds the flight-live gate.
+    private readonly IDataRefSubscription<double> _latitude;
+    private readonly IDataRefSubscription<double> _longitude;
+    private readonly IDataRefSubscription<double> _trackTrue;
+
     private readonly IDataRefSubscription[] _phaseCritical;
     private readonly IDataRefSubscription[] _all;
 
@@ -154,6 +160,9 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _engAntiIce1 = dataRefs.Subscribe(ProsimDataRefNames.OhPneumaticEng1AntiIce);
         _engAntiIce2 = dataRefs.Subscribe(ProsimDataRefNames.OhPneumaticEng2AntiIce);
         _wingAntiIce = dataRefs.Subscribe(ProsimDataRefNames.OhPneumaticWingAntiIce);
+        _latitude = dataRefs.Subscribe(ProsimDataRefNames.Latitude);
+        _longitude = dataRefs.Subscribe(ProsimDataRefNames.Longitude);
+        _trackTrue = dataRefs.Subscribe(ProsimDataRefNames.TrackTrue);
 
         // Must cover the same refs, in the same order, as PhaseCriticalRefs above.
         _phaseCritical =
@@ -175,6 +184,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             _altitudeAgl, _landingLightL, _landingLightR, _seatbeltSigns, _beacon,
             _speedbrakeArmed, _xpdrMode, _tat, _oat, _inCloud, _visibility,
             _engAntiIce1, _engAntiIce2, _wingAntiIce,
+            _latitude, _longitude, _trackTrue,
         ];
     }
 
@@ -256,7 +266,33 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             EngineAntiIce2On = _engAntiIce2.Value != 0,
             WingAntiIceOn = _wingAntiIce.Value != 0,
             AnyEngineRunningRaw = anyRunningRaw,
+            Position = ReadPosition(),
+            TrackTrueDeg = ReadTrack(),
         };
+    }
+
+    /// <summary>Both refs pushed and fresh, and the pair passes <see cref="GeoPoint.FromRaw"/>
+    /// (NaN and exactly (0, 0) are "no position") — otherwise null.</summary>
+    private GeoPoint? ReadPosition()
+    {
+        if (_latitude.RawValue is null || _latitude.IsStale
+            || _longitude.RawValue is null || _longitude.IsStale)
+        {
+            return null;
+        }
+
+        return GeoPoint.FromRaw(_latitude.Value, _longitude.Value);
+    }
+
+    private double? ReadTrack()
+    {
+        if (_trackTrue.RawValue is null || _trackTrue.IsStale)
+        {
+            return null;
+        }
+
+        var track = _trackTrue.Value;
+        return double.IsFinite(track) ? ((track % 360) + 360) % 360 : null;
     }
 
     public void Dispose()

@@ -20,4 +20,10 @@ public sealed class FlightStatusOptions : IOptionSection
     /// <summary>How often the two weather cards re-probe the weather chain while a flight
     /// plan is loaded. The cards also refresh on every OFP change.</summary>
     public int WeatherRefreshMinutes { get; set; } = 10;
+
+    /// <summary>How many minutes before the estimated top of descent the once-per-flight
+    /// <c>tod-approaching</c> session event is published (issue #145; later packages hang a
+    /// notification and an FO line off it). 0 disables the event; the figure on the Flight
+    /// Monitor board and Flight Status is shown either way.</summary>
+    public int TodLeadMinutes { get; set; } = 10;
 }

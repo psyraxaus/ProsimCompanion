@@ -72,6 +72,21 @@ public static class ProsimDataRefNames
     /// <summary>Fallback MaxValue = unlimited visibility; a generic 0 would read as dense fog.</summary>
     public static readonly DataRef<double> AmbientVisibility = new("environment.ambientVisibility", DataRefTier.Infrequent, double.MaxValue);
 
+    /// <summary>True position of the aircraft in the world, decimal degrees (issue #145).
+    /// Normal tier: 500 ms is the slowest tier that still feeds the 1 Hz flight sample and the
+    /// progress tick with a fresh value (Infrequent is 0.5 Hz). Fallback NaN is load-bearing —
+    /// a dead ref must read as "no position" (<see cref="Flight.GeoPoint.FromRaw"/>), never as
+    /// latitude 0. Deliberately not the ADIRU outputs: those are blank until the IRS aligns.</summary>
+    public static readonly DataRef<double> Latitude = new("aircraft.latitude", DataRefTier.Normal, double.NaN);
+    public static readonly DataRef<double> Longitude = new("aircraft.longitude", DataRefTier.Normal, double.NaN);
+    /// <summary>True track over the ground, degrees — the route strip's marker direction.
+    /// Fallback NaN = unknown (the marker then points along the route).</summary>
+    public static readonly DataRef<double> TrackTrue = new("aircraft.track.true", DataRefTier.Normal, double.NaN);
+    /// <summary>"VNAV distance remaining" — unit and reference point (destination? T/D?) are
+    /// undocumented, so it is only RECORDED on the flight-progress session events (issue
+    /// #145) until one flight settles what it measures. Nothing acts on it.</summary>
+    public static readonly DataRef<double> VnavDistanceRemaining = new("debug.vnav.distance.remaining", DataRefTier.Infrequent, double.NaN);
+
     // Wire vocabulary only (no subscriber today) — kept as reference names.
     public const string GroundContact = "aircraft.ground";
     public const string BankAngle = "aircraft.bank";
@@ -278,7 +293,10 @@ public static class ProsimDataRefNames
     public static readonly DataRef<int> FmsCruiseAltitude = new("aircraft.fms.cruiseAlt", DataRefTier.Infrequent, 0);
     public const string FmsFlightPhase = "aircraft.fms.flightPhase";
     public const string FmsRoute = "aircraft.fms.route";
-    public const string FmsTimeToDest = "aircraft.fms.TimeToDest";
+    /// <summary>FMS time to destination, seconds. Recorded beside
+    /// <see cref="VnavDistanceRemaining"/> on the flight-progress session events (issue
+    /// #145) for calibration only; −1 = no value.</summary>
+    public static readonly DataRef<int> FmsTimeToDest = new("aircraft.fms.TimeToDest", DataRefTier.Infrequent, -1);
 
     // FMS Performance. V-speeds/flex fall back to 0 = "not entered yet" — spoken tokens and
     // briefings treat 0 as absent. The shift/THS/flaps refs are write targets, not reads.

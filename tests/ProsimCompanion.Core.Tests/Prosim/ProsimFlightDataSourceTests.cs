@@ -55,6 +55,48 @@ public sealed class ProsimFlightDataSourceTests
     }
 
     [Fact]
+    public void Position_IsCarried_WhenBothRefsHoldARealPlace()
+    {
+        var refs = new FakeDataRefs();
+        using var source = new ProsimFlightDataSource(refs);
+        MakeReady(refs);
+        refs.Values["aircraft.latitude"] = 51.4775;
+        refs.Values["aircraft.longitude"] = -0.4614;
+        refs.Values["aircraft.track.true"] = -90.0;
+
+        var sample = source.Sample();
+
+        Assert.Equal(51.4775, sample.Position!.Value.LatitudeDeg);
+        Assert.Equal(-0.4614, sample.Position.Value.LongitudeDeg);
+        Assert.Equal(270, sample.TrackTrueDeg);
+        // Position is not phase evidence: it never holds the flight-live gate.
+        Assert.DoesNotContain("aircraft.latitude", ProsimFlightDataSource.PhaseCriticalRefs);
+    }
+
+    [Theory]
+    [InlineData(null, null)]                    // never pushed
+    [InlineData(51.4775, null)]                 // half a position is no position
+    [InlineData(0.0, 0.0)]                      // ProSim with no sim attached
+    [InlineData(double.NaN, -0.4614)]
+    [InlineData(95.0, -0.4614)]
+    public void Position_IsNull_WhenTheRefsDoNotHoldARealPlace(double? latitude, double? longitude)
+    {
+        // Issue #145: stale, NaN or exactly (0, 0) is "no position" — and it leaves the
+        // sample ready, so the progress line degrades without touching phase classification.
+        var refs = new FakeDataRefs();
+        using var source = new ProsimFlightDataSource(refs);
+        MakeReady(refs);
+        refs.Values["aircraft.latitude"] = latitude;
+        refs.Values["aircraft.longitude"] = longitude;
+
+        var sample = source.Sample();
+
+        Assert.Null(sample.Position);
+        Assert.Null(sample.TrackTrueDeg);
+        Assert.True(sample.IsReady);
+    }
+
+    [Fact]
     public void AnyEngineRunning_SurvivesAnUnexpectedStateString()
     {
         // Issue #59: the state string is descriptive and any unexpected value maps to Off

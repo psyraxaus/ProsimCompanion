@@ -126,6 +126,27 @@
 .fs-metric { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .fs-metric .figure { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* Distance / ETA row under the telemetry (issue #145). */
+.fs-progress {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 28px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.fs-progress-item { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.fs-progress-item .figure { font-size: 16px; }
+.fs-progress-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+.fs-progress-note { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+
 /* ---- flight sequence ---- */
 
 .fs-sequence { margin: 0; border-radius: var(--radius-xl); }

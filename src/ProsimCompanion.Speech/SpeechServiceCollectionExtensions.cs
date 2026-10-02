@@ -108,6 +108,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Briefings.DfdAirportNames>();
         services.AddSingleton<Core.Airports.IAirportNames>(
             p => p.GetRequiredService<Briefings.DfdAirportNames>());
+        // Airport coordinates for the flight-progress store (issue #145): the fallback tier
+        // behind the gateway's runway list.
+        services.AddSingleton<Core.Airports.IAirportCoordinateSource, Briefings.DfdAirportCoordinates>();
         services.AddSingleton<Briefings.ProcedureSource>();
         services.AddSingleton<Briefings.MinimaCaptureDialogue>();
         services.AddStartupModule<Briefings.MissedApproachRebrief>();

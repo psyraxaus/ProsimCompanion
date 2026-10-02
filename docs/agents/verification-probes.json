@@ -1468,7 +1468,8 @@
         "#97 dead-circuit auto-reload: restart the app with the EFB open — the page must reload itself (~10 s).",
         "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67).",
         "2026-09-22 Flight Status hero widgets: two weather cards (sky graphic + condition word matching the METAR, wind arrow, ATIS chip, 'METAR hh:mmZ' stamp; LOCAL WEATHER flips to the destination from Descent) and the gate strip (grey → gold → cyan glow with the pax bar → amber halo → green tick; dims after taxi-out) render on the route card; Settings → Display & Flight Data → Flight Status card edits the three thresholds (web UI).",
-        "2026-09-23 pop-out Flight Monitor: 'Pop out' on the gate strip opens /monitor in its own window; the board scales as one piece at any window size; GATE MONITOR at the stand (state word + pax bar match the hero strip), FLIGHT MONITOR from pushback (phase word, time-based progress, ETA, GS/ALT/VS/HDG), ARRIVAL MONITOR after landing (arrival gate, deboarding bar, block-in/block time); the airline logo appears when one is uploaded for the OFP's airline code (Settings → Appearance → Airline logos). Log lines 'Flight times: off … takeoff … landing … on …' stamp each edge once (web UI + log)."
+        "2026-09-23 pop-out Flight Monitor: 'Pop out' on the gate strip opens /monitor in its own window; the board scales as one piece at any window size; GATE MONITOR at the stand (state word + pax bar match the hero strip), FLIGHT MONITOR from pushback (phase word, time-based progress, ETA, GS/ALT/VS/HDG), ARRIVAL MONITOR after landing (arrival gate, deboarding bar, block-in/block time); the airline logo appears when one is uploaded for the OFP's airline code (Settings → Appearance → Airline logos). Log lines 'Flight times: off … takeoff … landing … on …' stamp each edge once (web UI + log).",
+        "#145 route strip and distance figures: in FLIGHT MONITOR the bar is replaced by the route strip (origin dot left, destination dot right, flown part cyan, aircraft marker on or near the line and pointing along it, gold 'T/D EST' tick in climb/cruise); the caption reads 'Great-circle direct · from position'; 'TO GO n NM DIRECT', 'ETA hh:mmZ GS' and 'T/D n MIN EST' update; nothing overlaps on the 1920×1080 stage. Flight Status shows the To go / Flown / ETA / Top of descent row under the telemetry. Settings → Display & Flight Data shows ONE Flight Status card with the 'Top of descent notice' field (web UI)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -1643,6 +1644,61 @@
         "watch: L:FSDT_GSX_AIRCRAFT_SERVICE_1_TOGGLE never pulsing while service-2 does = GSX did not ask for the forward door (catering config / airline profile), not a door-service fault."
       ],
       "notes": "needs-info (ticket t-20260929-1933): no wire trace in the bundle, so whether GSX pulsed the service-1 toggle at all is unknown. Ask for a flight with logging.wireTrace=true before touching GsxDoorService."
+    },
+    {
+      "id": "flight-progress-position",
+      "issue": 145,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "phase-changed",
+          "contains": "\"current\":\"Cruise\""
+        },
+        "signature": {
+          "source": "session",
+          "type": "flight-progress",
+          "contains": "\"fractionBasis\":\"Position\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "When the flight reached Cruise: at least one 'flight-progress' event with fractionBasis 'Position' AND etaBasis 'Position', carrying lat/lon, routeNm, flownNm, toGoNm and fraction. flownNm + toGoNm must be >= routeNm (triangle inequality; equal only on the direct line) and fraction must rise over the flight.",
+        "An 'airport-coordinates' event after the OFP fetch with origin.found and destination.found true — REPORT each 'source' (gateway or dfd) and the log line 'Gateway airport <ICAO>: N runway(s), M coordinate point(s) -> …': which reading of the gateway's lat/lng pair applied is the open empirical question (docs/integrations/prosim.md §2). Compare the reported lat/lon with the real airport reference point; more than ~3 nm off is a wire-shape bug.",
+        "Sanity: routeNm for the leg matches the known great-circle distance within 1 % (EGLL–LIRF ≈ 780 nm, EGLL–EKCH ≈ 529 nm, EGLL–EHAM ≈ 200 nm).",
+        "'flight-sample' events carry lat/lon in the air (4 decimals) and the values move; on the ground at the stand they hold still and unchanged samples stay suppressed (no one-per-second flood while parked).",
+        "assert-absent: lat 0 / lon 0 on any 'flight-sample' or 'flight-progress' event — exactly (0, 0) must be dropped as 'no position'.",
+        "A 'Flight progress: fraction Time … ETA Time' log line in mid-flight means position or airport coordinates were lost — report the 'position' / 'origin' / 'destination' fields on that line. Before off-blocks and with no OFP it is expected.",
+        "CALIBRATION (report, no verdict): list vnavDistanceRemainingRaw and fmsTimeToDestSecRaw beside toGoNm / etaUtc on each 'flight-progress' event. If vnavDistanceRemainingRaw tracks toGoNm (a little larger, shrinking at ground speed) it is an along-route distance to the destination in nm and should replace the direct distance in the T/D estimate."
+      ],
+      "notes": "Shipped 2026-10-03 (October batch package 1). Events: 'airport-coordinates' (once per OFP, on resolve), 'flight-progress' (on every basis change and every 5 min while airborne), 'tod-approaching' (see tod-approaching-once). Distances are great-circle DIRECT by design — toGoNm under-reads the route distance; that is not a failure."
+    },
+    {
+      "id": "tod-approaching-once",
+      "issue": 145,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "duplicate-within",
+        "type": "tod-approaching",
+        "key": "destination",
+        "windowSeconds": 3600
+      },
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "assert-absent: two 'tod-approaching' events for the same destination within one flight — the moment is once per flight (it re-arms only on the ground before the next departure, or on a flight-cycle reset).",
+        "assert-present when the flight cruised with flightStatus.todLeadMinutes > 0: exactly one 'tod-approaching' event, with minutesToTod <= leadMinutes, estimate true, and cruiseAltitudeFt / destinationElevationFt / descentDistanceNm consistent with (cruise − elevation) / 1000 × 3.",
+        "TIMING (report, no verdict): the gap between the 'tod-approaching' timestamp and the 'phase-changed' commit into Descent. The 3:1 estimate on a direct distance errs EARLY, so the gap should be leadMinutes or more; a gap much SHORTER than leadMinutes (the descent began before the estimate said so) is worth an issue comment with cruiseAltitudeFt, distanceToGoNm and groundSpeedKt quoted.",
+        "An app restart or ProSim reconnect inside the lead window must NOT produce a second event (no crossing was seen); a restart outside it must still produce the one event."
+      ],
+      "notes": "Shipped 2026-10-03 (October batch package 1). No speech hangs off this event yet — package 4 (FO monitoring) and package 7 (notifications) consume it. destinationElevationFt null = the airport source had no elevation and sea level was assumed."
     }
   ]
 }
