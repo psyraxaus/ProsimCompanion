@@ -41,6 +41,12 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<CalloutsEngine>();
         services.AddStartupModule<StabilizedApproachMonitor>();
         services.AddStartupModule<FlowMonitor>();
+        // In-flight FO monitoring (issue #148), each behind its own sop.monitoring switch.
+        services.AddStartupModule<Monitoring.FuelCheckMonitor>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Monitoring.FuelCheckMonitor>());
+        services.AddStartupModule<Monitoring.GrossErrorCheckMonitor>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Monitoring.GrossErrorCheckMonitor>());
+        services.AddStartupModule<Monitoring.DestinationWeatherWatch>();
         // PM engine-start monitoring (issue #131): starting / avail / both stabilized, from
         // datarefs — advisory only, ground only.
         services.AddStartupModule<Callouts.EngineStartMonitor>();
@@ -67,6 +73,10 @@ public static class SpeechServiceCollectionExtensions
         // handover is never mis-parsed as an instruction).
         services.AddSingleton<Roles.RoleManager>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Roles.RoleManager>());
+        // Standalone read-backs (issue #148) parse figures too and go BEFORE the radio/FCU
+        // parsers: "altimeter one zero one three" is a read-back, not an FCU instruction.
+        services.AddSingleton<Monitoring.StandaloneReadbacks>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Monitoring.StandaloneReadbacks>());
         services.AddSingleton<Radios.RadioExecutor>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Radios.RadioExecutor>());
         services.AddSingleton<Fcu.FcuExecutor>();

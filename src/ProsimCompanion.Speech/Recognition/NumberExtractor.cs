@@ -96,6 +96,100 @@ public static class NumberExtractor
             && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
+    /// <summary>
+    /// Every number in the utterance, in order (issue #148 read-backs: "one four one, one four
+    /// four, one four seven"). A run of digit-words is one number until a non-number word ends
+    /// it; "hundred" / "thousand" scale the digits before them ("two hundred" = 200, "two
+    /// thousand five hundred" = 2500); Arabic numerals are one number each. A digit-word run
+    /// of six or more digits in a multiple of three — three speeds said without a pause — is
+    /// split into three-digit numbers, since no aviation read-back figure has six digits.
+    /// </summary>
+    public static IReadOnlyList<double> ExtractAll(string utterance)
+    {
+        if (string.IsNullOrWhiteSpace(utterance))
+        {
+            return [];
+        }
+
+        var numbers = new List<double>();
+        var run = new StringBuilder();
+        var scaled = 0.0;
+        var any = false;
+
+        void Flush()
+        {
+            if (!any)
+            {
+                return;
+            }
+
+            var s = run.ToString();
+            var tail = s.Any(c => c is >= '0' and <= '9')
+                && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var t) ? t : 0;
+            if (scaled == 0 && s.Length >= 6 && s.Length % 3 == 0 && !s.Contains('.', StringComparison.Ordinal))
+            {
+                for (var i = 0; i < s.Length; i += 3)
+                {
+                    numbers.Add(double.Parse(s.AsSpan(i, 3), CultureInfo.InvariantCulture));
+                }
+            }
+            else
+            {
+                numbers.Add(scaled + tail);
+            }
+
+            run.Clear();
+            scaled = 0;
+            any = false;
+        }
+
+        foreach (var raw in utterance.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var word = raw.TrimEnd(TrailingPunct).ToLowerInvariant();
+            if (word.Length == 0)
+            {
+                continue;
+            }
+
+            if (DigitWords.TryGetValue(word, out var digit))
+            {
+                run.Append((char)('0' + digit));
+                any = true;
+                continue;
+            }
+
+            if (word is "hundred" or "thousand")
+            {
+                var factor = word == "hundred" ? 100 : 1000;
+                var digitsBefore = run.Length == 0 ? 1 : double.Parse(run.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+                scaled += digitsBefore * factor;
+                run.Clear();
+                any = true;
+                continue;
+            }
+
+            if (word is "decimal" or "point")
+            {
+                if (any && !run.ToString().Contains('.', StringComparison.Ordinal))
+                {
+                    run.Append('.');
+                }
+
+                continue;
+            }
+
+            Flush();
+            var token = word.Replace(",", "", StringComparison.Ordinal);
+            if (LooksNumeric(token) && double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out var numeral))
+            {
+                numbers.Add(numeral);
+            }
+        }
+
+        Flush();
+        return numbers;
+    }
+
     private static bool LooksNumeric(string token)
     {
         var hasDigit = false;

@@ -50,6 +50,37 @@ advisories (landing lights, flaps/gear ceilings, parking brake with thrust, seat
 conditions, anti-ice left on, ISA deviation) once per condition with a cooldown. Sterile
 cockpit suppresses chatter below 10,000 ft in climb/descent phases.
 
+### In-flight monitoring
+
+Four extra monitors live on the same page under **In-flight monitoring**. Each has its own
+switch and all are **off** until you turn them on; each needs the flight to be live (ProSim
+connected, real flight data).
+
+- **Fuel check.** In the cruise, every 30 minutes (your interval) and whenever you say
+  *"fuel check"*, the FO reads the last flight-plan fix you passed, the fuel on board, how far
+  you are from the SimBrief plan at that point, and the estimated landing fuel against the
+  planned figure: *"Fuel check. Past KONAN, fuel on board 6.2 tonnes, 200 kilos below plan.
+  Estimated landing fuel 2.9 tonnes, planned 3.1."* A shortfall beyond your margin is spoken
+  with priority. The check needs the SimBrief OFP (the navlog comes with it) and the aircraft
+  position; without them it falls back to burn rate × time to the ETA.
+- **Gross error check.** Once the final loadsheet has been sent and the FMS PERF TO page has
+  V-speeds, the FO compares the aircraft's zero fuel weight and fuel with the loadsheet, and
+  the FMS flaps, flex and V1/VR/V2 with the result on the **Takeoff** performance page —
+  *"Gross error check: checked."* or each mismatch by name. Once per loadsheet; again if the
+  final is revised. Say *"gross error check"* to run it any time. If you never used the
+  Takeoff page the FO says so ("takeoff performance not compared").
+- **Destination weather watch.** From the cruise, when the destination METAR changes in a way
+  that matters — visibility or ceiling crossing your thresholds (down or back up), a new ATIS
+  letter, a tailwind on the planned runway — the FO tells you, and adds the alternate's weather
+  when the destination has dropped below a limit. Each kind of change is spoken at most once
+  per 15 minutes (your setting). Steady weather is never repeated.
+- **Read-backs.** State a figure and the FO checks it against the aircraft: *"altimeter one
+  zero one three"* (EFIS baro), *"V speeds one four one, one four four, one four seven"* (FMS
+  PERF TO), *"runway two seven right"* (the briefed departure or arrival runway), *"minimums
+  four one zero"* (the minima you entered). The answer is *"QNH one zero one three, checked."*
+  or *"Negative. I read QNH one zero one seven."* A lead-in with no figure (*"minimums check"*)
+  is still the checklist's.
+
 ## Briefings, radios, FCU
 
 - *"Brief the departure"* / *"brief the arrival"* — composed from the FMS plan, Navigraph

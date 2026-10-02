@@ -51,6 +51,10 @@ public static class ProsimDataRefNames
     /// the state string is transiently noisy (#59). The catalog also lists a distinct
     /// "n2 raw" ref; like N1, every consumer wants percent semantics.</summary>
     public static readonly DataRef<double> Engine1N2Percent = new("aircraft.engines.1.n2", DataRefTier.Normal, 0.0);
+    /// <summary>Fuel flow per engine, kg/h (issue #148): the fuel check's fallback when the OFP
+    /// has no navlog (FOB − flow × time remaining). Fallback 0 = no flow known.</summary>
+    public static readonly DataRef<double> Engine1FuelFlowKgh = new("aircraft.engines.1.ff.kg", DataRefTier.Normal, 0.0);
+    public static readonly DataRef<double> Engine2FuelFlowKgh = new("aircraft.engines.2.ff.kg", DataRefTier.Normal, 0.0);
     public static readonly DataRef<double> Engine2N2Percent = new("aircraft.engines.2.n2", DataRefTier.Normal, 0.0);
     /// <summary>Fallback 0 is load-bearing: 0 means "limit not set", which disables FLEX/TOGA
     /// threshold callouts instead of firing them against a fictitious limit.</summary>
@@ -791,7 +795,9 @@ public static class ProsimDataRefNames
     public const string Efis1BaroMode = "system.switches.S_FCU_EFIS1_BARO_MODE"; // 0=inHg 1=hPa
     public const string Efis1BaroStd = "system.switches.S_FCU_EFIS1_BARO_STD"; // 0=Normal 1=Push(STD) 2=Pull(QNH)
     public const string Efis1QnhIndicator = "system.indicators.I_FCU_EFIS1_QNH";
-    public const string Efis1BaroHpa = "system.numerical.N_FCU_EFIS1_BARO_HPA";
+    /// <summary>Captain's baro setting, hPa — the altimeter read-back compares against it
+    /// (issue #148). Fallback 0 = not read.</summary>
+    public static readonly DataRef<double> Efis1BaroHpa = new("system.numerical.N_FCU_EFIS1_BARO_HPA", DataRefTier.Normal, 0.0);
     public const string Efis1BaroInch = "system.numerical.N_FCU_EFIS1_BARO_INCH";
 
     #endregion

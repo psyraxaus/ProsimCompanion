@@ -130,6 +130,18 @@ chains — "local only" hard mode must exist.
 
 ## Architecture notes to preserve
 
+- **In-flight monitoring** (2026-10, #148): four modules in `Speech/Monitoring`, each a pure
+  core plus a thin shell armed by `IFlightPhaseSource.IsLive`, all off by default under
+  `sop.monitoring`. Fuel check (`fuel.check` event; navlog last-fix rule in `FuelCheckCore`),
+  gross error check (`fo.gross-error-check`; the FMS INIT B ZFW/block datarefs are write-only,
+  so live `aircraft.weight.zfw` / total fuel stand in; the Takeoff page fills
+  `TakeoffPerfStore`), destination weather watch (`fo.destination-weather`; observes
+  `HeroWeatherStore`, edges only, per-trigger rate limit), standalone read-backs
+  (`fo.readback`; `StandaloneReadbacks` is registered BEFORE `RadioExecutor` / the FCU
+  executor so "altimeter …" / "runway …" with a figure are checks, not settings, and a bare
+  lead-in is declined so "minimums check" keeps its owner). `NumberExtractor.ExtractAll`
+  reads every figure in order with hundred/thousand and splits an unbroken nine-digit run
+  into three speeds.
 - **SpeechArbiter**: single priority queue (Low/Normal/High/Critical) with pre-emption and pluggable
   suppression rules (sterile cockpit below 10,000 ft suppresses Low, defers Normal). All speech goes
   through one facade — no direct TTS calls from features.
