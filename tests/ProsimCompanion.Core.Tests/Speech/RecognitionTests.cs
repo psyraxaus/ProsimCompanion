@@ -32,6 +32,18 @@ public sealed class RecognitionTests
     public void NumberExtractor_NoNumber_ReturnsFalse()
         => Assert.False(NumberExtractor.TryExtract("checked and set", out _));
 
+    [Theory]
+    [InlineData("one four one, one four four, one four seven", new[] { 141.0, 144.0, 147.0 })]
+    [InlineData("one four one one four four one four seven", new[] { 141.0, 144.0, 147.0 })]   // no pause: three-digit groups
+    [InlineData("141 144 and 147", new[] { 141.0, 144.0, 147.0 })]
+    [InlineData("two hundred", new[] { 200.0 })]
+    [InlineData("two thousand five hundred", new[] { 2500.0 })]
+    [InlineData("one thousand two hundred fifty", new[] { 1200.0 })]                       // "fifty" is not a digit word: ends the run
+    [InlineData("one zero one three decimal five", new[] { 1013.5 })]
+    [InlineData("checked and set", new double[0])]
+    public void NumberExtractor_ExtractAll_ReadsEveryFigureInOrder(string utterance, double[] expected)
+        => Assert.Equal(expected, NumberExtractor.ExtractAll(utterance));
+
     [Fact]
     public void CommandMatcher_SnapsNearMiss()
     {

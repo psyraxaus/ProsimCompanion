@@ -719,6 +719,94 @@ else if (CurrentSection == "callouts")
         <TextField Label="Gear limit exceeded" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
                    @bind-Value="_sop.Value.PlacardAdvisory.GearExceededText" />
     </Section>
+
+    <Section Title="In-flight monitoring" Hint="Four FO duties that are off until you turn them on. Each needs a live flight and only ever speaks.">
+        <BoolField Label="Fuel check"
+                   Hint="In the cruise the FO compares fuel on board with the SimBrief plan at your position and gives the estimated landing fuel. Also on 'fuel check'."
+                   More="Needs a SimBrief OFP with a navlog and the aircraft position. Without them: fuel on board minus fuel flow times the time to the ETA. A shortfall beyond the margin is spoken at High. Silent in sterile phases."
+                   @bind-Value="_sop.Value.Monitoring.FuelCheck.Enabled" />
+        <NumberField Label="Fuel check every" Suffix="min" Min="0" Max="120"
+                     Hint="Minutes between automatic checks in the cruise; 0 = on request only"
+                     Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.FuelCheck.IntervalMinutes"
+                     Default="_sop.Defaults.Monitoring.FuelCheck.IntervalMinutes" />
+        <NumberField Label="Shortfall margin" Suffix="kg" Min="0" Max="5000"
+                     Hint="This far below plan (or more) the check is spoken as a warning"
+                     Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.FuelCheck.ShortfallMarginKg"
+                     Default="_sop.Defaults.Monitoring.FuelCheck.ShortfallMarginKg" />
+        <NumberField Label="Counts as on plan within" Suffix="kg" Min="0" Max="2000"
+                     Hint="Smaller differences are 'on plan' instead of a figure"
+                     Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.FuelCheck.OnPlanWithinKg"
+                     Default="_sop.Defaults.Monitoring.FuelCheck.OnPlanWithinKg" />
+
+        <BoolField Label="Takeoff gross error check"
+                   Hint="One line before takeoff: the aircraft's weights against the final loadsheet, and the FMS flaps, flex and V-speeds against the last takeoff performance calculation. Also on 'gross error check'."
+                   More="Runs once per departure when the final loadsheet is out and the V-speeds are in the FMS. The FMS INIT weights cannot be read from ProSim, so the aircraft's own zero fuel weight and fuel on board stand in for them. The performance figures come from the Performance page's last calculation."
+                   @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.Enabled" />
+        <BoolField Label="Automatic" Hint="Off = only when you ask for it"
+                   Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
+                   @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.Automatic" />
+        <NumberField Label="Zero fuel weight tolerance" Suffix="kg" Min="0" Max="5000"
+                     Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.ZfwToleranceKg"
+                     Default="_sop.Defaults.Monitoring.GrossErrorCheck.ZfwToleranceKg" />
+        <NumberField Label="Block fuel tolerance" Suffix="kg" Min="0" Max="5000"
+                     Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.BlockFuelToleranceKg"
+                     Default="_sop.Defaults.Monitoring.GrossErrorCheck.BlockFuelToleranceKg" />
+        <NumberField Label="V-speed tolerance" Suffix="kt" Min="0" Max="20"
+                     Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.VSpeedToleranceKt"
+                     Default="_sop.Defaults.Monitoring.GrossErrorCheck.VSpeedToleranceKt" />
+        <NumberField Label="Flex tolerance" Suffix="°C" Min="0" Max="20"
+                     Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.FlexToleranceC"
+                     Default="_sop.Defaults.Monitoring.GrossErrorCheck.FlexToleranceC" />
+
+        <BoolField Label="Destination weather watch"
+                   Hint="From the cruise on, the FO tells you when the destination's visibility or ceiling crosses your limit, when the ATIS letter changes, or when the wind turns into a tailwind on the planned landing runway."
+                   More="Uses the weather cards' own refresh, no extra polling. The alternate's weather is added once the destination is below a limit. Each kind of change is spoken at most once in the quiet period."
+                   @bind-Value="_sop.Value.Monitoring.DestinationWeather.Enabled" />
+        <NumberField Label="Visibility limit" Suffix="m" Min="0" Max="10000"
+                     Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.DestinationWeather.VisibilityThresholdM"
+                     Default="_sop.Defaults.Monitoring.DestinationWeather.VisibilityThresholdM" />
+        <NumberField Label="Ceiling limit" Suffix="ft" Min="0" Max="5000"
+                     Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.DestinationWeather.CeilingThresholdFt"
+                     Default="_sop.Defaults.Monitoring.DestinationWeather.CeilingThresholdFt" />
+        <NumberField Label="Tailwind limit" Suffix="kt" Min="0" Max="30"
+                     Hint="A tailwind component above this on the planned landing runway is announced"
+                     Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.DestinationWeather.TailwindThresholdKt"
+                     Default="_sop.Defaults.Monitoring.DestinationWeather.TailwindThresholdKt" />
+        <NumberField Label="Quiet period per change" Suffix="min" Min="1" Max="120"
+                     Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.DestinationWeather.MinutesBetweenAnnouncements"
+                     Default="_sop.Defaults.Monitoring.DestinationWeather.MinutesBetweenAnnouncements" />
+        <BoolField Label="Announce ATIS letter changes"
+                   Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
+                   @bind-Value="_sop.Value.Monitoring.DestinationWeather.AnnounceAtisChange" />
+
+        <BoolField Label="Read-backs"
+                   Hint="Say 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' or 'minimums two one zero' and the FO checks it against the aircraft."
+                   More="The altimeter is checked against your baro setting, the V-speeds against the FMS PERF page, the runway against the FMS plan (departure before takeoff, arrival after), the minimums against the ones you briefed. The FO answers 'checked' or the value it reads."
+                   @bind-Value="_sop.Value.Monitoring.Readbacks.Enabled" />
+        <NumberField Label="Altimeter tolerance" Suffix="hPa" Min="0" Max="5" Step="0.1"
+                     Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.Readbacks.AltimeterToleranceHpa"
+                     Default="_sop.Defaults.Monitoring.Readbacks.AltimeterToleranceHpa" />
+        <NumberField Label="V-speed tolerance" Suffix="kt" Min="0" Max="10"
+                     Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.Readbacks.VSpeedToleranceKt"
+                     Default="_sop.Defaults.Monitoring.Readbacks.VSpeedToleranceKt" />
+        <NumberField Label="Minimums tolerance" Suffix="ft" Min="0" Max="100"
+                     Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
+                     @bind-Value="_sop.Value.Monitoring.Readbacks.MinimumsToleranceFt"
+                     Default="_sop.Defaults.Monitoring.Readbacks.MinimumsToleranceFt" />
+    </Section>
 }
 
 <DirtyBar Visible="@BarVisible"

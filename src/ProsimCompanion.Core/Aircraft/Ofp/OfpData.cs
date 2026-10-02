@@ -111,7 +111,28 @@ public sealed record OfpData
 
     /// <summary>How this OFP entered the system (INIT source chip).</summary>
     public OfpSource Source { get; init; } = OfpSource.Simbrief;
+
+    /// <summary>The SimBrief navlog (issue #148): every fix in route order with its planned
+    /// fuel on board and time from takeoff, for the cruise fuel check. Empty when the OFP had
+    /// none (or came from another source).</summary>
+    public IReadOnlyList<OfpFix> Navlog { get; init; } = [];
 }
+
+/// <summary>One navlog fix.</summary>
+/// <param name="Ident">The fix name as SimBrief prints it ("MOGOP", "TOC").</param>
+/// <param name="Position">The fix position.</param>
+/// <param name="PlannedFuelOnBoardKg">Planned fuel on board PASSING the fix (SimBrief
+/// <c>fuel_plan_onboard</c>, converted to kg); null when the OFP had none.</param>
+/// <param name="TimeFromTakeoff">Planned elapsed time at the fix (<c>time_total</c>); null when absent.</param>
+/// <param name="AltitudeFt">Planned altitude at the fix; null when absent.</param>
+/// <param name="IsProcedure">Part of the SID or STAR (<c>is_sid_star</c>).</param>
+public sealed record OfpFix(
+    string Ident,
+    Flight.GeoPoint Position,
+    double? PlannedFuelOnBoardKg,
+    TimeSpan? TimeFromTakeoff,
+    double? AltitudeFt,
+    bool IsProcedure);
 
 /// <summary>
 /// Holds the most recently fetched OFP for every consumer (loadsheets, FMS sync, web pages).

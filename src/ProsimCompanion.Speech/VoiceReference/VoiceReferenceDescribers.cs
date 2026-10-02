@@ -196,6 +196,34 @@ internal static class VoiceReferenceDescribers
                     new(["end duty day", "close duty day", "end the duty day"], "Ends it with a summary and the logbook fold."),
                 ]),
 
+            [typeof(Monitoring.FuelCheckMonitor)] = new(
+                "fuelCheck", "Fuel check", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+                $"sop.monitoring.fuelCheck.enabled is off — {SettingsFo} → Callouts & Placards → In-flight monitoring",
+                [
+                    new(["fuel check", "fuel check please", "check the fuel", "how is the fuel"],
+                        "Fuel on board against the SimBrief plan at your position, and the estimated landing fuel against the planned figure. Also automatic in the cruise.",
+                        "Fuel check. Passing MOGOP, fuel on board 6.2 tonnes, on plan. Estimated landing fuel 3.1 tonnes, planned 3.1."),
+                ]),
+
+            [typeof(Monitoring.GrossErrorCheckMonitor)] = new(
+                "grossErrorCheck", "Gross error check", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+                $"sop.monitoring.grossErrorCheck.enabled is off — {SettingsFo} → Callouts & Placards → In-flight monitoring",
+                [
+                    new(["gross error check", "gross error check please", "run the gross error check", "cross check the loadsheet"],
+                        "The aircraft's weights against the final loadsheet and the FMS PERF entries against the last takeoff performance calculation. Also automatic once the final loadsheet and V-speeds are in.",
+                        "Gross error check: checked."),
+                ]),
+
+            [typeof(Monitoring.StandaloneReadbacks)] = new(
+                "readbacks", "Read-backs", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+                $"sop.monitoring.readbacks.enabled is off — {SettingsFo} → Callouts & Placards → In-flight monitoring",
+                [
+                    new(["altimeter", "qnh"], "Read back the altimeter setting; the FO checks it against your baro.", "QNH one zero one three, checked.", [Value], "‹one zero one three›"),
+                    new(["v speeds", "v one"], "Read back V1, rotate and V2; the FO checks them against the FMS.", "V one one four one, rotate one four four, V two one four seven, checked.", [Value], "‹one four one, one four four, one four seven›"),
+                    new(["runway"], "Read back the runway; the FO checks it against the FMS plan.", "Runway two seven right, checked.", [Value], "‹two seven right›"),
+                    new(["minimums", "decision altitude", "decision height"], "Read back the minimums; the FO checks them against the briefed minima.", "Minimums, decision altitude two one zero feet, checked.", [Value], "‹two one zero›"),
+                ]),
+
             [typeof(Logbook.LogbookVoiceService)] = new(
                 "logbook", "Logbook", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer, null,
                 [

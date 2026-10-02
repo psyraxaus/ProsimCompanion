@@ -307,6 +307,10 @@ public sealed class SopOptions : IOptionSection
     // ---- Stabilized approach ----
     public StabilizedOptions Stabilized { get; set; } = new();
 
+    /// <summary>In-flight FO monitoring (issue #148): fuel check, takeoff gross-error check,
+    /// destination weather watch, standalone read-backs. All off by default.</summary>
+    public InFlightMonitoringOptions Monitoring { get; set; } = new();
+
     public static IReadOnlyList<ApproachGate> DefaultApproachGates =>
     [
         new()

@@ -13,6 +13,7 @@
 @inject OfpStore Ofp
 @inject LoadsheetStore Loadsheets
 @inject IFmsPerfUplink PerfUplink
+@inject TakeoffPerfStore PerfStore
 @inject DisplayUnitService Units
 
 <PageTitle>Takeoff Performance — ProsimCompanion</PageTitle>
@@ -694,6 +695,19 @@
             else
             {
                 _result = result;
+                // The last calculation on record for the gross-error check (issue #148).
+                if (result.VSpeed is { } speeds)
+                {
+                    PerfStore.Set(new TakeoffPerfSnapshot(
+                        result.FlapSettings,
+                        ForceTogaResult ? null : result.FlexOutput,
+                        (int)Math.Round(speeds.V1),
+                        (int)Math.Round(speeds.VR),
+                        (int)Math.Round(speeds.V2),
+                        _towKg > 0 ? _towKg : null,
+                        SelectedRunway()?.RunwayId,
+                        DateTimeOffset.UtcNow));
+                }
             }
         }
         catch (Exception ex)

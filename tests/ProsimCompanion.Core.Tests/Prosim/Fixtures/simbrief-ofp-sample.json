@@ -1,0 +1,36 @@
+{
+  "_comment": "SimBrief xml.fetcher.php?json=1 shape, reduced to the fields ProsimCompanion reads. Hand-written from the documented format (EGLL to LIRF, A320), not a live download: the values are plausible, not a real flight.",
+  "params": {
+    "request_id": "1234567890",
+    "units": "kgs",
+    "time_generated": "1759471200"
+  },
+  "general": {
+    "icao_airline": "BAW",
+    "flight_number": "552",
+    "costindex": "25",
+    "initial_altitude": "37000",
+    "route": "DET UL6 DVR UL9 KONAN UL607 KOK ... ELB"
+  },
+  "atc": { "callsign": "BAW552" },
+  "aircraft": { "icaocode": "A320", "reg": "G-EUYB" },
+  "origin": { "icao_code": "EGLL", "iata_code": "LHR", "name": "LONDON HEATHROW", "plan_rwy": "27R", "pos_lat": "51.477500", "pos_long": "-0.461389" },
+  "destination": { "icao_code": "LIRF", "iata_code": "FCO", "name": "ROME FIUMICINO", "plan_rwy": "16L", "pos_lat": "41.800278", "pos_long": "12.238889" },
+  "alternate": { "icao_code": "LIRN", "name": "NAPLES CAPODICHINO" },
+  "times": { "sched_out": "1759485600", "est_time_enroute": "7800" },
+  "weights": { "pax_count": "150", "cargo": "2100", "oew": "42500", "est_zfw": "58800", "est_tow": "66900", "est_ldw": "61500", "max_zfw": "62500", "max_tow": "77000", "max_ldw": "66000" },
+  "fuel": { "plan_ramp": "8120", "plan_landing": "3050", "taxi": "250", "min_takeoff": "7000", "extra": "500" },
+  "navlog": {
+    "fix": [
+      { "ident": "DET", "name": "DETLING", "type": "vor", "pos_lat": "51.303889", "pos_long": "0.597222", "altitude_feet": "6000", "time_total": "480", "fuel_plan_onboard": "7450", "is_sid_star": "1" },
+      { "ident": "TOC", "name": "TOP OF CLIMB", "type": "ltlg", "pos_lat": "50.600000", "pos_long": "2.100000", "altitude_feet": "37000", "time_total": "1320", "fuel_plan_onboard": "6700", "is_sid_star": "0" },
+      { "ident": "KONAN", "name": "KONAN", "type": "wpt", "pos_lat": "50.375000", "pos_long": "2.556667", "altitude_feet": "37000", "time_total": "1500", "fuel_plan_onboard": "6600", "is_sid_star": "0" },
+      { "ident": "KOK", "name": "KOKSY", "type": "vor", "pos_lat": "51.095000", "pos_long": "2.650000", "altitude_feet": "37000", "time_total": "1620", "fuel_plan_onboard": "6520", "is_sid_star": "0" },
+      { "ident": "RLP", "name": "ROLAMPONT", "type": "vor", "pos_lat": "47.869722", "pos_long": "5.253333", "altitude_feet": "37000", "time_total": "3000", "fuel_plan_onboard": "5600", "is_sid_star": "0" },
+      { "ident": "GVA", "name": "GENEVA", "type": "vor", "pos_lat": "46.252222", "pos_long": "6.132500", "altitude_feet": "37000", "time_total": "3780", "fuel_plan_onboard": "5100", "is_sid_star": "0" },
+      { "ident": "TOD", "name": "TOP OF DESCENT", "type": "ltlg", "pos_lat": "43.350000", "pos_long": "10.100000", "altitude_feet": "37000", "time_total": "5880", "fuel_plan_onboard": "3700", "is_sid_star": "0" },
+      { "ident": "ELB", "name": "ELBA", "type": "vor", "pos_lat": "42.730833", "pos_long": "10.397500", "altitude_feet": "24000", "time_total": "6420", "fuel_plan_onboard": "3450", "is_sid_star": "0" },
+      { "ident": "LIRF", "name": "ROME FIUMICINO", "type": "apt", "pos_lat": "41.800278", "pos_long": "12.238889", "altitude_feet": "15", "time_total": "7800", "fuel_plan_onboard": "3050", "is_sid_star": "1" }
+    ]
+  }
+}

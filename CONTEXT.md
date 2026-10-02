@@ -117,3 +117,27 @@ The module that decides what a recognized utterance means right now — feature,
 answer, global command, confirmation, or idle miss — by a fixed precedence order over the
 enabled voice features.
 _Avoid_: recognition handler, command router
+
+**Fuel check**:
+The FO's periodic (and on-request) comparison of fuel on board with the SimBrief plan at the
+last fix passed, ending in an estimated landing fuel against the planned figure. "Last fix
+passed" is the start of the leg the aircraft is on; off every leg, the nearest fix behind.
+_Avoid_: fuel report, fuel monitor
+
+**Gross error check**:
+The one-shot pre-departure comparison of the aircraft's weights with the final loadsheet and
+of the FMS PERF TO entries with the last Takeoff performance result — "checked" or a list of
+mismatches. Once per loadsheet edition.
+_Avoid_: performance cross-check, weight check
+
+**Destination weather watch**:
+The in-flight module that speaks a destination METAR change — a limit crossed (visibility,
+ceiling), a new ATIS letter, a tailwind on the planned runway — as an edge, rate-limited per
+trigger, never a repeat of a steady state.
+_Avoid_: weather alerts, METAR monitor
+
+**Read-back**:
+A captain's statement of a figure ("altimeter one zero one three") that the FO checks against
+the aircraft and answers "checked" or corrects. A lead-in with no figure ("minimums check") is
+not a read-back; it belongs to the checklist or callout feature.
+_Avoid_: confirmation, challenge

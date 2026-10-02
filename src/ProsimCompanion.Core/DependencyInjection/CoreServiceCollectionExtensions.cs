@@ -125,6 +125,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<ArrivalMinimaStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();
+        // The last takeoff performance result (issue #148): the Takeoff page writes it, the
+        // gross-error check reads it.
+        services.AddSingleton<TakeoffPerfStore>();
         services.AddSingleton<GroundOpsSignals>();
         // The crew's block-fuel confirmation (2026-09-19 SOP seam): written by the GSX
         // service control, read by the departure hold rule and the INIT / Flight Status pages.

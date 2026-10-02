@@ -512,8 +512,24 @@ until a flight confirms it; the manual test steps are on each issue.
       in particular.
 - [ ] Logbook page and landing analysis
 - [ ] Streaming LLM output with sentence-chunked speech
-- [ ] In-flight FO monitoring (fuel check, takeoff gross-error check, destination weather
-      watch, standalone read-backs)
+- [x] **In-flight FO monitoring** (#148, `feature/fo-monitoring`, built on #145): four
+      modules under `sop.monitoring`, each with its own switch (all off by default) on the
+      Callouts & Placards page, each armed by `IsLive`, each a pure clock-passed-in core with
+      a thin shell. `FuelCheckCore` — SimBrief navlog now parsed (`OfpData.Navlog`, positions,
+      planned FOB, time); "last fix passed" = the leg the aircraft is on within a 30 nm
+      corridor, else the nearest fix behind; planned FOB interpolated along the leg; estimated
+      landing = planned landing + difference; fallback burn × time-to-ETA; periodic from one
+      interval after cruise entry; `fuel.check` event. `GrossErrorCheckCore` — live
+      `aircraft.weight.zfw` / FOB vs the final loadsheet (INIT B is write-only in the SDK) and
+      FMS PERF TO vs the new `TakeoffPerfStore` (filled by the Takeoff page); once per
+      loadsheet edition; `fo.gross-error-check` event. `DestinationWeatherWatchCore` — edge
+      detection over the hero weather store's destination card (visibility, ceiling, ATIS
+      letter, tailwind on the OFP's `plan_rwy`), per-trigger rate limit, baseline rule,
+      alternate line when below a limit; `fo.destination-weather` event. `ReadbackCore` —
+      altimeter / V-speeds / runway / minimums lead-ins with a figure, registered ahead of the
+      Radio/FCU executors, bare lead-ins left to their owners; `NumberExtractor.ExtractAll`
+      (every figure in order, hundred/thousand, 3-digit grouping); `fo.readback` event.
+      **Unverified live** — every module.
 - [ ] Free-form FO questions
 - [ ] Installable web app and screen keep-awake
 - [ ] Outbound event notifications

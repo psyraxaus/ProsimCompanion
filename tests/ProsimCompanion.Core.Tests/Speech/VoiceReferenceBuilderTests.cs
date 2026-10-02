@@ -130,6 +130,33 @@ public sealed class VoiceReferenceBuilderTests
         Assert.Single(group.Entries);
     }
 
+    [Fact]
+    public void Describers_InFlightMonitoring_PointAtTheSettingsCard_AndMarkReadbackValues()
+    {
+        // Issue #148: the three voice-facing monitors (the weather watch has no phrases). The
+        // builder keys on the real feature type, so the table itself is checked here.
+        var fuel = VoiceReferenceDescribers.ByFeatureType[typeof(ProsimCompanion.Speech.Monitoring.FuelCheckMonitor)];
+        var gross = VoiceReferenceDescribers.ByFeatureType[typeof(ProsimCompanion.Speech.Monitoring.GrossErrorCheckMonitor)];
+        var readbacks = VoiceReferenceDescribers.ByFeatureType[typeof(ProsimCompanion.Speech.Monitoring.StandaloneReadbacks)];
+
+        foreach (var describer in new[] { fuel, gross, readbacks })
+        {
+            Assert.Contains("In-flight monitoring", describer.DisabledReason, StringComparison.Ordinal);
+            Assert.Equal(VoiceReferenceTab.FirstOfficer, describer.Tab);
+        }
+
+        Assert.Contains("fuel check", fuel.Entries.SelectMany(e => e.Phrases));
+        Assert.Contains("gross error check", gross.Entries.SelectMany(e => e.Phrases));
+        Assert.Equal(4, readbacks.Entries.Length);
+        Assert.All(readbacks.Entries, e =>
+        {
+            Assert.Contains(VoiceReferenceDescribers.Value, e.Badges!);
+            Assert.NotNull(e.ValueHint);
+        });
+        // Every described lead-in is one the parser accepts.
+        Assert.All(readbacks.Entries.SelectMany(e => e.Phrases), p => Assert.Contains(p, ProsimCompanion.Speech.Monitoring.ReadbackCore.LeadIns));
+    }
+
     // ---- fixture ---------------------------------------------------------------------------
 
     private static VoiceReferenceBuilder Builder(IEnumerable<IVoiceFeature> features)

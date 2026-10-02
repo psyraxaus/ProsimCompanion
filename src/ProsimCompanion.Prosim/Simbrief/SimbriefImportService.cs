@@ -8,6 +8,7 @@ using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Aircraft.Gateway;
 using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Prosim.Simbrief;
@@ -298,7 +299,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
 
     /// <summary>Builds the typed OFP snapshot. Weights convert lbs→kg per params.units; block
     /// fuel is rounded up to the next 100 kg (fuel-order increments, owner requirement).</summary>
-    private static OfpData ParseOfp(JsonObject ofp)
+    internal static OfpData ParseOfp(JsonObject ofp)
     {
         var units = ReadString(ofp["params"]?["units"]) ?? "kgs";
         var isLbs = string.Equals(units, "lbs", StringComparison.OrdinalIgnoreCase);
@@ -358,6 +359,7 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
                 : null,
             EstimatedEnroute = enrouteSeconds > 0 ? TimeSpan.FromSeconds(enrouteSeconds) : null,
             FetchedAtUtc = DateTimeOffset.UtcNow,
+            Navlog = ParseNavlog(ofp["navlog"], Kg),
         };
     }
 
@@ -372,6 +374,52 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         JsonArray { Count: > 0 } arr when arr[0] is JsonObject first => ReadString(first[field]) ?? "",
         _ => "",
     };
+
+    /// <summary>The navlog (issue #148): <c>navlog.fix</c> is an array of fix objects (one
+    /// object when the route has a single fix — the JSON is converted from XML). A fix with
+    /// no usable position is skipped; everything else is optional. Fuel converts with the
+    /// OFP's units like every other weight.</summary>
+    internal static IReadOnlyList<OfpFix> ParseNavlog(JsonNode? navlog, Func<JsonNode?, double> kg)
+    {
+        ArgumentNullException.ThrowIfNull(kg);
+        var fixNode = navlog is JsonObject obj ? obj["fix"] : null;
+        IEnumerable<JsonNode?> fixes = fixNode switch
+        {
+            // Cast: without it the switch types as JsonArray and the single-fix arm builds a
+            // new JsonArray around a node that already has a parent (throws).
+            JsonArray array => (IEnumerable<JsonNode?>)array,
+            JsonObject single => [single],
+            _ => [],
+        };
+
+        var result = new List<OfpFix>();
+        foreach (var node in fixes)
+        {
+            if (node is not JsonObject fix)
+            {
+                continue;
+            }
+
+            var position = GeoPoint.FromRaw(ReadDouble(fix["pos_lat"]), ReadDouble(fix["pos_long"]));
+            if (position is null)
+            {
+                continue;
+            }
+
+            var fuel = fix["fuel_plan_onboard"];
+            var time = ReadDouble(fix["time_total"]);
+            var altitude = ReadDouble(fix["altitude_feet"]);
+            result.Add(new OfpFix(
+                ReadString(fix["ident"]) ?? "",
+                position.Value,
+                fuel is null ? null : kg(fuel),
+                time > 0 ? TimeSpan.FromSeconds(time) : null,
+                altitude > 0 ? altitude : null,
+                ReadString(fix["is_sid_star"]) == "1" || (fix["is_sid_star"] is JsonValue flag && flag.TryGetValue<int>(out var i) && i == 1)));
+        }
+
+        return result;
+    }
 
     private static double ReadDouble(JsonNode? node)
     {
