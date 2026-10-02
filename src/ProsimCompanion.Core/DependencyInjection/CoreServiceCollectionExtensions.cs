@@ -109,6 +109,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Airports.AirportLocator>();
         services.AddSingleton<Flight.FlightProgressStore>();
         services.AddStartupModule<Flight.FlightProgressService>();
+        // Landing analysis (issue #146): one `touchdown` session event per landing, read
+        // back by the debrief and the logbook fold. Passive — it never writes to the aircraft.
+        services.AddStartupModule<Flight.TouchdownRecorder>();
         services.AddSingleton<ConnectionStatusStore>();
         // Written by the Sim pillar's session monitor; read by session-gated automation and
         // the web UI. Stays at Empty (phase Unknown = hold) when the Sim pillar is absent.

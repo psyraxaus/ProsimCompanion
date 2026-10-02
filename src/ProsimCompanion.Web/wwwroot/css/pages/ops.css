@@ -116,3 +116,55 @@
   .ops-item { flex-direction: column; }
   .ops-route-leg { margin-left: 0; text-align: left; }
 }
+
+/* ---- Logbook page (issue #146): totals, touchdown-rate trend, sortable table, drawer ---- */
+
+.lb-figures { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+.lb-trend { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: var(--radius-md); }
+.lb-trend-note { font-size: 11px; color: var(--text-muted); }
+/* One series: the line stays in the de-emphasis ink and only the latest landing wears the
+   accent, so the eye lands on "how was the last one against the rest". */
+.lb-spark { display: block; width: 100%; max-width: 480px; height: 64px; overflow: visible; }
+.lb-spark-line { fill: none; stroke: var(--text-secondary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.lb-spark-avg { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 3 4; }
+.lb-spark-dot { fill: var(--text-secondary); }
+.lb-spark-last { fill: var(--accent); stroke: var(--bg-card); stroke-width: 2; }
+.lb-spark-hit { fill: transparent; }
+
+.lb-table th { padding: 0 10px 0 0; }
+.lb-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.lb-sort:hover, .lb-sort.active { color: var(--text-primary); }
+.lb-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lb-sort-mark { display: inline-block; width: 10px; font-size: 8px; color: var(--accent); }
+.lb-row { cursor: pointer; }
+.lb-row:hover td { background: rgba(255, 255, 255, 0.04); }
+.lb-row.selected td { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.lb-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.lb-row td { vertical-align: middle; white-space: nowrap; }
+.lb-bounce { margin-left: 6px; }
+
+.lb-close { padding: 4px 8px; }
+.lb-detail { gap: 2px; }
+.lb-detail .row-value-mono { text-align: right; overflow-wrap: anywhere; }
+.lb-detail-head { margin-top: 12px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.lb-delete { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; align-items: flex-start; }
+
+@media (max-width: 900px) {
+  .lb-figures { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 540px) {
+  .lb-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

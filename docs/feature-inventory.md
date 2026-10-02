@@ -57,7 +57,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       simulate-cabin dataref write deliberately dropped — GSX boarding owns occupation)
 - [x] Interactive ECAM-style visual checklists (Prosim2FO-compatible JSON, hot reload,
       gating/retreat/freeze; momentary-switch sweep support is a voice-FO concern → Phase 5)
-- [ ] EFB reset flows (full/soft); OOOI flight timestamps
+- [ ] EFB reset flows (full/soft)
+- [x] OOOI flight timestamps (off-blocks / takeoff / landing / on-blocks from the phase
+      engine's edges, `FlightTimesTracker`, 2026-09-23; written to the session log and carried
+      on each logbook flight since #146)
 - [ ] Web EFB parity: 13 pages, QR onboarding, bearer token, live updates (QR/token/live done
       in Phase 1/2.5; remaining predecessor pages tracked by the rows above)
 
@@ -112,7 +115,9 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       voice brief + guided raise/rectify dialogues + post-abnormal offer; procedural hooks
       deferred)
 - [x] Pilot logbook (shutdown fold, aggregates, backfill, debrief comparison line, duty-day
-      records; voice queries + web page deferred)
+      records; voice queries — `LogbookVoiceService`; the **Logbook page** with totals, a
+      sortable table, flight detail, touchdown-rate trend, delete and CSV export, and the
+      touchdown recorder: rate, IAS, pitch, bounces per landing — #146, Unverified live)
 - [x] Post-flight debrief (event log → facts → LLM behind the number verifier → verified →
       spoken, deterministic template floor)
 - [x] Company day mode (multi-sector duties, per-leg session rotation, planned rotations,

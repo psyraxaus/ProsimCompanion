@@ -1,0 +1,364 @@
+@page "/logbook"
+@using Microsoft.Extensions.DependencyInjection
+@using ProsimCompanion.Core.Logbook
+@inherits StoreObserverComponent
+@inject IServiceProvider Services
+
+<PageTitle>Logbook — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Logbook</h1>
+
+@* Layout (the Tech Log page's shape, ADR-0011): totals, the touchdown-rate trend and the
+   flight table on the main card; the selected flight's detail drawer on the side card.
+   Issue #146. *@
+<div class="ops-page">
+
+    <section class="section ops-card ops-main">
+        <div class="section-header">
+            <h3 class="section-title">Pilot Logbook</h3>
+            @if (_logbook is not null)
+            {
+                <span class="ops-actions">
+                    <button type="button" class="btn secondary" disabled="@_backfilling" @onclick="Backfill"
+                            title="Read the session files still on disk and add any flight that is not in the logbook yet. Deleted flights stay deleted.">
+                        @(_backfilling ? "Reading…" : "Read saved sessions")
+                    </button>
+                    <a class="btn primary" href="api/logbook/export.csv" download
+                       title="Every flight as a CSV file: UTC times, decimal points, one row per flight.">Export CSV</a>
+                </span>
+            }
+        </div>
+        <div class="section-body ops-body">
+            @if (_logbook is null)
+            {
+                <div class="empty">The logbook service is not wired into this build.</div>
+            }
+            else
+            {
+                <div class="ops-figures lb-figures">
+                    <div class="ops-figure">
+                        <span class="label-caps">Flights</span>
+                        <span class="figure figure-lg">@_totals.TotalFlights</span>
+                    </div>
+                    <div class="ops-figure">
+                        <span class="label-caps">Block hours</span>
+                        <span class="figure figure-lg">@_totals.TotalBlockHours.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)</span>
+                    </div>
+                    <div class="ops-figure">
+                        <span class="label-caps">Landings</span>
+                        <span class="figure figure-lg">@_totals.Landings</span>
+                    </div>
+                    <div class="ops-figure" title="@($"{_totals.StabilizedApproaches} stable of {_totals.JudgedApproaches} approaches the gates judged")">
+                        <span class="label-caps">Stable approaches</span>
+                        <span class="figure figure-lg">@LogbookPresentation.Percent(_totals.StabilizedRatePct)</span>
+                    </div>
+                    <div class="ops-figure" title="@($"Average over the {_totals.MeasuredTouchdowns} landing(s) the touchdown recorder measured")">
+                        <span class="label-caps">Avg touchdown</span>
+                        <span class="figure figure-lg">@LogbookPresentation.Rate(_totals.AverageTouchdownVerticalSpeedFpm)<span class="figure-unit">FPM</span></span>
+                    </div>
+                </div>
+
+                <div class="lb-trend inset">
+                    <span class="label-caps">Touchdown rate · last @_spark.Points.Count landing(s)</span>
+                    @if (_spark.Points.Count == 0)
+                    {
+                        <span class="empty">No measured landing yet. The trend starts with your next landing.</span>
+                    }
+                    else
+                    {
+                        <svg class="lb-spark" viewBox="0 0 @LogbookSparkline.Px(LogbookSparkline.Width) @LogbookSparkline.Px(LogbookSparkline.Height)"
+                             role="img" aria-label="@SparkLabel">
+                            @if (_spark.AverageY is { } averageY)
+                            {
+                                <line class="lb-spark-avg" x1="0" x2="@LogbookSparkline.Px(LogbookSparkline.Width)"
+                                      y1="@LogbookSparkline.Px(averageY)" y2="@LogbookSparkline.Px(averageY)" />
+                            }
+                            @if (_spark.Path.Length > 0)
+                            {
+                                <path class="lb-spark-line" d="@_spark.Path" />
+                            }
+                            @for (var i = 0; i < _spark.Points.Count; i++)
+                            {
+                                var point = _spark.Points[i];
+                                var last = i == _spark.Points.Count - 1;
+                                <g>
+                                    <title>@point.Label</title>
+                                    @* The hit target is larger than the mark. *@
+                                    <circle class="lb-spark-hit" cx="@LogbookSparkline.Px(point.X)" cy="@LogbookSparkline.Px(point.Y)" r="8" />
+                                    <circle class="@(last ? "lb-spark-last" : "lb-spark-dot")" cx="@LogbookSparkline.Px(point.X)"
+                                            cy="@LogbookSparkline.Px(point.Y)" r="@(last ? "4" : "2")" />
+                                </g>
+                            }
+                        </svg>
+                        <span class="lb-trend-note">
+                            Oldest left, latest right (the bright dot). Higher is softer. The faint line is the average of these landings.
+                        </span>
+                    }
+                </div>
+
+                @if (_backfillNote is not null)
+                {
+                    <div class="ops-note">@_backfillNote</div>
+                }
+
+                @if (_rows.Count == 0)
+                {
+                    <div class="empty">The logbook is empty. A flight is added when you shut down at the gate.</div>
+                }
+                else
+                {
+                    <div class="table-scroll">
+                        <table class="data-table lb-table">
+                            <thead>
+                                <tr>
+                                    @SortHeader("Date", LogbookSort.Date)
+                                    @SortHeader("Route", LogbookSort.Route)
+                                    @SortHeader("Block", LogbookSort.Block)
+                                    @SortHeader("Flight", LogbookSort.Flight)
+                                    @SortHeader("T/D rate", LogbookSort.TouchdownRate)
+                                    @SortHeader("T/D speed", LogbookSort.TouchdownSpeed)
+                                    @SortHeader("Approach", LogbookSort.Approach)
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var flight in _rows)
+                                {
+                                    var id = flight.SessionId;
+                                    <tr class="lb-row @(id == _selectedId ? "selected" : null)" tabindex="0" role="button"
+                                        aria-pressed="@(id == _selectedId ? "true" : "false")"
+                                        @onclick="() => Select(id)" @onkeydown="e => OnRowKey(e, id)">
+                                        <td class="mono">@(flight.Date.Length > 0 ? flight.Date : "—")</td>
+                                        <td class="mono">@LogbookPresentation.Route(flight)</td>
+                                        <td class="mono">@LogbookPresentation.Minutes(flight.BlockMinutes)</td>
+                                        <td class="mono">@LogbookPresentation.Minutes(flight.FlightMinutes)</td>
+                                        <td class="mono">
+                                            @LogbookPresentation.Rate(flight.TouchdownVerticalSpeedFpm)
+                                            @if (flight.Bounces is > 0)
+                                            {
+                                                <span class="pill tone-warn lb-bounce" title="Ground contact lost and regained within 5 seconds">@flight.Bounces bounce@(flight.Bounces == 1 ? "" : "s")</span>
+                                            }
+                                        </td>
+                                        <td class="mono">@LogbookPresentation.Knots(flight.TouchdownGroundSpeedKt)</td>
+                                        <td>
+                                            @if (flight.ApproachResult is { Length: > 0 } approach)
+                                            {
+                                                <span class="pill @LogbookPresentation.ApproachTone(approach)">@approach</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="mono">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="ops-note">
+                        T/D rate is the vertical speed in feet per minute in the second before the wheels touched;
+                        T/D speed is ground speed in knots. Flights recorded before the touchdown recorder show a dash.
+                        Select a row for the detail.
+                    </div>
+                }
+            }
+        </div>
+    </section>
+
+    @if (_logbook is not null && Selected is { } detail)
+    {
+        <section class="section ops-card ops-side lb-drawer" aria-label="Flight detail">
+            <div class="section-header">
+                <h3 class="section-title">@LogbookPresentation.Route(detail)</h3>
+                <button type="button" class="btn secondary lb-close" @onclick="CloseDetail" aria-label="Close the flight detail">
+                    <AppIcon Name="x" Size="14" />
+                </button>
+            </div>
+            <div class="section-body lb-detail">
+                @Detail("Date", detail.Date.Length > 0 ? detail.Date : "—")
+                @Detail("Runways", $"{detail.DepartureRunway ?? "—"} / {detail.ArrivalRunway ?? "—"}")
+                @Detail("Off blocks", LogbookPresentation.Stamp(detail.OffBlocksUtc))
+                @Detail("Takeoff", LogbookPresentation.Stamp(detail.TakeoffUtc))
+                @Detail("Landing", LogbookPresentation.Stamp(detail.LandingUtc))
+                @Detail("On blocks", LogbookPresentation.Stamp(detail.OnBlocksUtc))
+                @Detail("Block time", LogbookPresentation.Minutes(detail.BlockMinutes))
+                @Detail("Flight time", LogbookPresentation.Minutes(detail.FlightMinutes))
+                @Detail("Lift-off IAS", LogbookPresentation.Knots(detail.LiftoffIasKt) + " kt")
+
+                <span class="label-caps lb-detail-head">Landing</span>
+                @Detail("Touchdown rate", LogbookPresentation.Rate(detail.TouchdownVerticalSpeedFpm) + " fpm")
+                @Detail("Touchdown IAS", LogbookPresentation.Knots(detail.TouchdownIasKt) + " kt")
+                @Detail("Touchdown ground speed", LogbookPresentation.Knots(detail.TouchdownGroundSpeedKt) + " kt")
+                @Detail("Pitch at touchdown", LogbookPresentation.Degrees(detail.TouchdownPitchDeg))
+                @Detail("Bounces", detail.Bounces is { } bounces ? bounces.ToString(System.Globalization.CultureInfo.InvariantCulture) : "—")
+                @Detail("Approach", detail.ApproachResult ?? "not judged")
+
+                <span class="label-caps lb-detail-head">Tech log</span>
+                @Detail("Abnormals", detail.Abnormals.Count == 0 ? "none" : string.Join(", ", detail.Abnormals))
+                @Detail("Defects", $"{detail.DefectsRaised} raised · {detail.DefectsRectified} rectified · {detail.DefectsCarried} carried")
+                @Detail("Session", detail.SessionId)
+
+                <div class="lb-delete">
+                    <button type="button" class="btn danger" @onclick="() => Delete(detail.SessionId)">
+                        @(_deleteArmed ? "CONFIRM DELETE" : "Delete flight")
+                    </button>
+                    <span class="ops-note">
+                        @(_deleteArmed
+                            ? "Press again to delete. This cannot be undone."
+                            : "Removes this flight from the logbook. It will not come back from its session file.")
+                    </span>
+                </div>
+            </div>
+        </section>
+    }
+
+</div>
+
+@code {
+    private ILogbookService? _logbook;
+    private IReadOnlyList<LogbookFlight> _flights = [];
+    private IReadOnlyList<LogbookFlight> _rows = [];
+    private LogbookAggregates _totals = LogbookAggregates.Empty;
+    private LogbookSparkline _spark = new([], "", null);
+
+    private LogbookSort _sort = LogbookSort.Date;
+    private bool _descending = true;
+    private string? _selectedId;
+
+    private bool _deleteArmed;
+    private System.Threading.Timer? _deleteDisarmTimer;
+    private bool _backfilling;
+    private string? _backfillNote;
+
+    private LogbookFlight? Selected => _selectedId is null
+        ? null
+        : _flights.FirstOrDefault(f => string.Equals(f.SessionId, _selectedId, StringComparison.OrdinalIgnoreCase));
+
+    private string SparkLabel => _spark.Points.Count == 0
+        ? "No measured landings"
+        : $"Touchdown rate of the last {_spark.Points.Count} landings; the latest is {_spark.Points[^1].Label}";
+
+    protected override void OnInitialized()
+    {
+        // Optional resolution, like the Tech Log page: a friendly notice instead of a DI
+        // crash in a build without the post-flight pillar — degrade, not fail.
+        _logbook = Services.GetService<ILogbookService>();
+        if (_logbook is { } logbook)
+        {
+            WatchChanged(h => logbook.Changed += h, h => logbook.Changed -= h, Refresh);
+        }
+    }
+
+    private void Refresh()
+    {
+        if (_logbook is null)
+        {
+            return;
+        }
+
+        _flights = _logbook.Flights;
+        _totals = _logbook.GetAggregates();
+        _spark = LogbookPresentation.Sparkline(_flights);
+        _rows = LogbookPresentation.Sorted(_flights, _sort, _descending);
+    }
+
+    private RenderFragment SortHeader(string label, LogbookSort column) => @<th aria-sort="@(_sort == column ? (_descending ? "descending" : "ascending") : "none")">
+        <button type="button" class="lb-sort @(_sort == column ? "active" : null)" @onclick="() => SortBy(column)">
+            @label<span class="lb-sort-mark" aria-hidden="true">@(_sort == column ? (_descending ? "▼" : "▲") : "")</span>
+        </button>
+    </th>;
+
+    private static RenderFragment Detail(string label, string value) => @<div class="row">
+        <span class="row-label">@label</span>
+        <span class="row-value-mono">@value</span>
+    </div>;
+
+    private void SortBy(LogbookSort column)
+    {
+        // A second click on the same column flips it; a new column starts descending
+        // (newest, longest, …) except the route, which reads A → Z.
+        _descending = _sort == column ? !_descending : column != LogbookSort.Route;
+        _sort = column;
+        _rows = LogbookPresentation.Sorted(_flights, _sort, _descending);
+    }
+
+    private void Select(string sessionId)
+    {
+        _selectedId = _selectedId == sessionId ? null : sessionId;
+        Disarm();
+    }
+
+    private void OnRowKey(KeyboardEventArgs e, string sessionId)
+    {
+        if (e.Key is "Enter" or " ")
+        {
+            Select(sessionId);
+        }
+    }
+
+    private void CloseDetail()
+    {
+        _selectedId = null;
+        Disarm();
+    }
+
+    private void Delete(string sessionId)
+    {
+        // Two-click arm (the INIT page's RESET FLIGHT rule): the first press shows CONFIRM
+        // DELETE and disarms itself after 3 s.
+        if (!_deleteArmed)
+        {
+            _deleteArmed = true;
+            _deleteDisarmTimer?.Dispose();
+            _deleteDisarmTimer = new System.Threading.Timer(_ => _ = InvokeAsync(() =>
+            {
+                _deleteArmed = false;
+                StateHasChanged();
+            }), null, 3000, Timeout.Infinite);
+            return;
+        }
+
+        Disarm();
+        if (_logbook?.RemoveFlight(sessionId) == true)
+        {
+            _selectedId = null;
+        }
+
+        Refresh();
+    }
+
+    private void Disarm()
+    {
+        _deleteDisarmTimer?.Dispose();
+        _deleteDisarmTimer = null;
+        _deleteArmed = false;
+    }
+
+    private async Task Backfill()
+    {
+        if (_logbook is not { } logbook)
+        {
+            return;
+        }
+
+        _backfilling = true;
+        try
+        {
+            // Reads every session file on disk: off the render thread.
+            var added = await Task.Run(logbook.Backfill);
+            _backfillNote = added == 0
+                ? "No new flight found in the saved sessions."
+                : $"{added} flight(s) added from the saved sessions.";
+        }
+        finally
+        {
+            _backfilling = false;
+        }
+
+        Refresh();
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _deleteDisarmTimer?.Dispose();
+    }
+}

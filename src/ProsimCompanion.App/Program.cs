@@ -382,6 +382,9 @@ public static class Program
         // Support bundle download (Logs page "Export diagnostics"); rides the telemetry gate.
         web.MapDiagnosticsApi();
 
+        // The pilot logbook as a CSV download (Logbook page "Export CSV"); token-gated on LAN.
+        web.MapLogbookApi();
+
         // The pilot's uploaded airline logos for the header and the Appearance page.
         web.MapThemeLogoApi();
 

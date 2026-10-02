@@ -51,6 +51,11 @@ public static class DebriefLlm
         Line("Airborne time (minutes)", f.FlightMinutes?.ToString(CultureInfo.InvariantCulture));
         Line("Lift-off speed (knots)", f.LiftoffIasKt?.ToString("0", CultureInfo.InvariantCulture));
         Line("Touchdown ground speed (knots)", f.TouchdownGroundSpeedKt?.ToString("0", CultureInfo.InvariantCulture));
+        // Worded exactly as the template speaks it ("minus 180"), so the model has no sign
+        // character to mangle and the verifier sees the same magnitude either way.
+        Line("Touchdown rate (feet per minute)",
+            f.TouchdownVerticalSpeedFpm is { } rate ? DebriefTemplate.TouchdownRate(rate) : null);
+        Line("Bounces on landing", f.Bounces is > 0 ? f.Bounces.Value.ToString(CultureInfo.InvariantCulture) : null);
 
         foreach (var gate in f.Gates)
         {
@@ -132,6 +137,17 @@ public static class DebriefLlm
         if (f.TouchdownGroundSpeedKt is { } touchdown)
         {
             allowed.Add(Math.Round(touchdown));
+        }
+
+        if (f.TouchdownVerticalSpeedFpm is { } rate)
+        {
+            // The verifier reads digits only ("minus 180" and "-180" are both the token 180).
+            allowed.Add(Math.Abs(DebriefTemplate.RoundedTouchdownRate(rate)));
+        }
+
+        if (f.Bounces is { } bounces)
+        {
+            allowed.Add(bounces);
         }
 
         foreach (var gate in f.Gates)

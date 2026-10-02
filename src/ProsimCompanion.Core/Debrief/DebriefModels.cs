@@ -46,7 +46,15 @@ public sealed record DebriefFacts(
     int DefectsRectified = 0,
     int DefectsCarried = 0,
     int RadioTunes = 0,
-    int MemoryDrills = 0)
+    int MemoryDrills = 0,
+    double? TouchdownVerticalSpeedFpm = null,
+    double? TouchdownIasKt = null,
+    double? TouchdownPitchDeg = null,
+    int? Bounces = null,
+    DateTimeOffset? OffBlocksUtc = null,
+    DateTimeOffset? TakeoffUtc = null,
+    DateTimeOffset? LandingUtc = null,
+    DateTimeOffset? OnBlocksUtc = null)
 {
     public static DebriefFacts Empty { get; } = new(
         null, null, null, null, [], 0, 0, 0, [],

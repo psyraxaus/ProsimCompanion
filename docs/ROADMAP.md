@@ -510,7 +510,22 @@ until a flight confirms it; the manual test steps are on each issue.
       `debug.vnav.distance.remaining` and `aircraft.fms.TimeToDest` are recorded raw for
       calibration, not used. **Unverified live** — the gateway's runway-coordinate wire shape
       in particular.
-- [ ] Logbook page and landing analysis
+- [x] **Logbook page and landing analysis** (#146, `feature/logbook-page`): pure
+      `TouchdownRecorderCore` fed at 100 ms — on the committed ground-contact edge after at
+      least 5 s airborne it captures the most negative vertical speed of the second before
+      first wheel contact, IAS, ground speed, pitch, bank and the bounce count (ground contact
+      lost and regained within 5 s), and writes ONE `touchdown` session event once the landing
+      has settled; a touch followed by more than 5 s airborne is reported as a go-around and
+      the real landing reports separately. `aircraft.acceleration.Y` is recorded raw (max, min,
+      pre-contact baseline) — unit unconfirmed, never converted, never shown. The flight
+      stamps ride in the session log as `flight-times`. `LogbookFlight` gains touchdown V/S,
+      IAS, pitch, bounces and the four stamps (additive JSON; old files load; backfill
+      tolerates sessions without the event). `/logbook` page: totals, touchdown-rate trend
+      (inline SVG), sortable table, detail drawer, two-click delete with a tombstone so a
+      backfill cannot resurrect the flight, CSV export (`GET /api/logbook/export.csv`,
+      token-gated on LAN, invariant culture, UTC ISO). The debrief template and LLM fact sheet
+      gain the touchdown rate line, rounded to 10 fpm, under the number verifier.
+      **Unverified live** — pitch sign convention and the acceleration unit in particular.
 - [ ] Streaming LLM output with sentence-chunked speech
 - [ ] In-flight FO monitoring (fuel check, takeoff gross-error check, destination weather
       watch, standalone read-backs)

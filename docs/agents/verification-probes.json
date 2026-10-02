@@ -1469,7 +1469,9 @@
         "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67).",
         "2026-09-22 Flight Status hero widgets: two weather cards (sky graphic + condition word matching the METAR, wind arrow, ATIS chip, 'METAR hh:mmZ' stamp; LOCAL WEATHER flips to the destination from Descent) and the gate strip (grey → gold → cyan glow with the pax bar → amber halo → green tick; dims after taxi-out) render on the route card; Settings → Display & Flight Data → Flight Status card edits the three thresholds (web UI).",
         "2026-09-23 pop-out Flight Monitor: 'Pop out' on the gate strip opens /monitor in its own window; the board scales as one piece at any window size; GATE MONITOR at the stand (state word + pax bar match the hero strip), FLIGHT MONITOR from pushback (phase word, time-based progress, ETA, GS/ALT/VS/HDG), ARRIVAL MONITOR after landing (arrival gate, deboarding bar, block-in/block time); the airline logo appears when one is uploaded for the OFP's airline code (Settings → Appearance → Airline logos). Log lines 'Flight times: off … takeoff … landing … on …' stamp each edge once (web UI + log).",
-        "#145 route strip and distance figures: in FLIGHT MONITOR the bar is replaced by the route strip (origin dot left, destination dot right, flown part cyan, aircraft marker on or near the line and pointing along it, gold 'T/D EST' tick in climb/cruise); the caption reads 'Great-circle direct · from position'; 'TO GO n NM DIRECT', 'ETA hh:mmZ GS' and 'T/D n MIN EST' update; nothing overlaps on the 1920×1080 stage. Flight Status shows the To go / Flown / ETA / Top of descent row under the telemetry. Settings → Display & Flight Data shows ONE Flight Status card with the 'Top of descent notice' field (web UI)."
+        "#145 route strip and distance figures: in FLIGHT MONITOR the bar is replaced by the route strip (origin dot left, destination dot right, flown part cyan, aircraft marker on or near the line and pointing along it, gold 'T/D EST' tick in climb/cruise); the caption reads 'Great-circle direct · from position'; 'TO GO n NM DIRECT', 'ETA hh:mmZ GS' and 'T/D n MIN EST' update; nothing overlaps on the 1920×1080 stage. Flight Status shows the To go / Flown / ETA / Top of descent row under the telemetry. Settings → Display & Flight Data shows ONE Flight Status card with the 'Top of descent notice' field (web UI).",
+        "#146 Logbook page: 'Logbook' is in the sidebar; after shutdown the flight is the top row with its touchdown rate; the totals row and the trend chart include it (bright dot = this landing; hover shows the flight); column headings sort and flip; a row click opens the detail panel with the four UTC stamps, pitch and bounces; 'Delete flight' needs a second press on CONFIRM DELETE within 3 s; 'Export CSV' downloads a file that opens in a spreadsheet with one row per flight; on the iPad (LAN) the export works from the onboarded browser (web UI).",
+        "#146 debrief by ear: the FO says 'touchdown at minus one eighty feet per minute' (or the TTS's reading of 'minus 180') right after the touchdown speed."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -1699,6 +1701,61 @@
         "An app restart or ProSim reconnect inside the lead window must NOT produce a second event (no crossing was seen); a restart outside it must still produce the one event."
       ],
       "notes": "Shipped 2026-10-03 (October batch package 1). No speech hangs off this event yet — package 4 (FO monitoring) and package 7 (notifications) consume it. destinationElevationFt null = the airport source had no elevation and sea level was assumed."
+    },
+    {
+      "id": "touchdown-recorded",
+      "issue": 146,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "phase-changed",
+          "contains": "\"current\":\"LandingRollout\""
+        },
+        "signature": {
+          "source": "session",
+          "type": "touchdown",
+          "contains": "\"verticalSpeedFpm\""
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "When the flight landed (a 'phase-changed' commit into LandingRollout): one 'touchdown' event 5–8 s later carrying verticalSpeedFpm, iasKt, groundSpeedKt, pitchDeg, bankDeg, bounces, wentAround and outcome (landed / went-around), with the matching log line 'Touchdown: <n> fpm, IAS … GS … pitch … bank …, <n> bounce(s)'.",
+        "verticalSpeedFpm is NEGATIVE and plausible (−30 to −700 for a normal landing). Cross-check with the 'flight-sample' events around contactUtc: the event's rate must be at least as negative as the 'vs' of the last airborne samples and more negative than the first on-ground sample — the recorder takes the most negative value of the last second, not the sample at contact.",
+        "groundSpeedKt agrees with the LandingRollout 'phase-changed' snapshot.groundSpeedKt within a few knots (the phase commit trails contact by the engine's debounce).",
+        "REPORT pitchDeg with its sign: a normal landing is 3–7° nose-up. A NEGATIVE value settles that aircraft.pitch is nose-up-negative and the sign must be flipped (docs/integrations/prosim.md).",
+        "CALIBRATION (report, no verdict): quote accelerationYRawBeforeContact, accelerationYRawMax and accelerationYRawMin. The pre-contact baseline names the unit — about 1 = G with gravity, about 0 = G without, about 9.8 = m/s², about 32 = ft/s². Nothing may show or convert these until the owner confirms.",
+        "After shutdown: a 'logbook.folded' event whose touchdownVerticalSpeedFpm equals the 'touchdown' event's verticalSpeedFpm, and the debrief text ('speech.spoken' / the .debrief.txt file) contains 'Touchdown at minus <rate rounded to 10> feet per minute'.",
+        "'flight-times' events carry offBlocksUtc → takeoffUtc → landingUtc → onBlocksUtc filling in order, each stamp never changing once set."
+      ],
+      "notes": "Shipped 2026-10-03 (October batch package 2). The event is written only once the landing has settled (ground contact held 5 s), so it is absent if the app or the sim session ended inside those 5 s. A touchdown needs 5 s airborne first — a rejected takeoff produces none."
+    },
+    {
+      "id": "touchdown-once-per-landing",
+      "issue": 146,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "duplicate-within",
+        "type": "touchdown",
+        "key": "outcome",
+        "windowSeconds": 10
+      },
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "assert-absent: two 'touchdown' events within 10 s — one landing is one event; the bounce count rides on it instead of producing a second one.",
+        "A bounced landing (the pilot will say so) shows bounces >= 1 on ONE event. A raw on-ground flicker with no real bounce must show bounces 0.",
+        "A touch-and-go or a go-around after touchdown: one event with wentAround true (written about 5 s after the wheels left the ground), then a second event with wentAround false for the landing that ended the flight. The logbook flight and the debrief use the second.",
+        "assert-absent: a 'touchdown' event while the phase is TakeoffRoll, TaxiOut or any at-gate phase with no airborne phase before it in the session."
+      ],
+      "notes": "Shipped 2026-10-03 (October batch package 2). Bounces are edges of the COMMITTED ground contact (flightState.groundContactAgreeSamples at the engine's 250 ms tick), so a bounce shorter than about half a second is not counted — by design."
     }
   ]
 }

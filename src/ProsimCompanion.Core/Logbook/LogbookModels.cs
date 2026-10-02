@@ -25,6 +25,31 @@ public sealed class LogbookFlight
 
     public double? TouchdownGroundSpeedKt { get; set; }
 
+    // ---- landing analysis + stamps (issue #146). All nullable and written only when set,
+    //      so a logbook.json from before 2026-10 loads unchanged and stays readable by an
+    //      older build. ----
+
+    /// <summary>Touchdown vertical speed, feet per minute (negative = descending): the most
+    /// negative value in the second before the wheels touched.</summary>
+    public double? TouchdownVerticalSpeedFpm { get; set; }
+
+    public double? TouchdownIasKt { get; set; }
+
+    /// <summary>Pitch attitude at touchdown, degrees, as ProSim reports it.</summary>
+    public double? TouchdownPitchDeg { get; set; }
+
+    /// <summary>Times ground contact was lost and regained within 5 s of the touchdown.</summary>
+    public int? Bounces { get; set; }
+
+    /// <summary>Block and flight stamps (sim-clock UTC) from the flight times tracker.</summary>
+    public DateTimeOffset? OffBlocksUtc { get; set; }
+
+    public DateTimeOffset? TakeoffUtc { get; set; }
+
+    public DateTimeOffset? LandingUtc { get; set; }
+
+    public DateTimeOffset? OnBlocksUtc { get; set; }
+
     /// <summary>True when the flight touched down (a landing).</summary>
     public bool Landed { get; set; }
 
@@ -85,6 +110,10 @@ public sealed class LogbookStore
     public List<LogbookFlight> Flights { get; set; } = [];
 
     public List<LogbookDay> Days { get; set; } = [];
+
+    /// <summary>Session ids of flights the pilot deleted on the Logbook page. A fold or a
+    /// backfill of the same session file must not bring the flight back.</summary>
+    public List<string> RemovedSessionIds { get; set; } = [];
 }
 
 /// <summary>Per-airport landing history, computed from the store. Note the semantics:
@@ -105,7 +134,9 @@ public sealed record LogbookAggregates(
     int Landings,
     int StabilizedApproaches,
     int JudgedApproaches,
-    IReadOnlyList<AirportStat> Airports)
+    IReadOnlyList<AirportStat> Airports,
+    double? AverageTouchdownVerticalSpeedFpm = null,
+    int MeasuredTouchdowns = 0)
 {
     /// <summary>Stabilized rate (percent) over gate-judged approaches only; null when none
     /// were judged (a rate over unjudged approaches would be an invented number).</summary>

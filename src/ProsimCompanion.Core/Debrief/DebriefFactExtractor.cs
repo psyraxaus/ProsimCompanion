@@ -42,6 +42,13 @@ public interface IDebriefFactExtractor
 /// (emitted by the briefing service when a briefing resolves).</item>
 /// <item><c>fuel.check</c> { fobKg } — first/last/used. No producer exists in this codebase
 /// yet; the mapping is kept so the fuel lines light up when one arrives.</item>
+/// <item><c>touchdown</c> { verticalSpeedFpm, iasKt, groundSpeedKt, pitchDeg, bankDeg,
+/// bounces, wentAround, outcome, accelerationYRaw* } — the touchdown recorder's one event per landing
+/// (issue #146). The first that was not a go-around supplies the landing figures; the raw
+/// acceleration fields are NOT read (unit unconfirmed). Absent in sessions recorded before
+/// 2026-10: the facts stay null and the fold still succeeds.</item>
+/// <item><c>flight-times</c> { offBlocksUtc, takeoffUtc, landingUtc, onBlocksUtc } — the
+/// block/flight stamps (sim-clock UTC) on every change; first value of each kind wins.</item>
 /// <item><c>log.warning</c> / <c>log.error</c> / <c>log.fatal</c> { source, component,
 /// message, exceptionType, exceptionMessage, stackTop, threadId } — Warning-and-above log
 /// events mirrored by the App's SessionEventLogSink (since 0.5.0). Not read here: the
@@ -77,6 +84,10 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             var fobs = new List<double>();
             var advisories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string? origin = null, destination = null, depRunway = null, arrRunway = null;
+            double? touchdownRate = null, touchdownIas = null, touchdownPitch = null;
+            int? bounces = null;
+            bool touchdownSeen = false, touchdownSettled = false;
+            DateTimeOffset? stampOff = null, stampTakeoff = null, stampLanding = null, stampOn = null;
 
             // failure id → (title, cleared); insertion-ordered so the debrief reads them in
             // the order they happened.
@@ -301,6 +312,35 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
 
                             break;
                         }
+
+                        case "touchdown":
+                        {
+                            // The landing that stuck: the first touchdown that was not a
+                            // go-around (first-wins, like the phase stamps above, so a
+                            // second leg in the same session never overwrites the first).
+                            // A session whose only touchdowns were go-arounds keeps the first.
+                            var wentAround = Flag(payload, "wentAround");
+                            if (!touchdownSettled && (!touchdownSeen || !wentAround))
+                            {
+                                touchdownRate = Num(payload, "verticalSpeedFpm");
+                                touchdownIas = Num(payload, "iasKt");
+                                touchdownPitch = Num(payload, "pitchDeg");
+                                bounces = Num(payload, "bounces") is { } b ? (int)b : null;
+                            }
+
+                            touchdownSeen = true;
+                            touchdownSettled |= !wentAround;
+                            break;
+                        }
+
+                        case "flight-times":
+                        {
+                            stampOff ??= Time(payload, "offBlocksUtc");
+                            stampTakeoff ??= Time(payload, "takeoffUtc");
+                            stampLanding ??= Time(payload, "landingUtc");
+                            stampOn ??= Time(payload, "onBlocksUtc");
+                            break;
+                        }
                     }
                 }
             }
@@ -321,7 +361,9 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 startFob, finalFob, used, advisories.ToList(), degradations,
                 abnormalOrder.Select(id => new AbnormalFact(abnormals[id].Title, abnormals[id].Cleared)).ToList(),
                 origin, destination, depRunway, arrRunway, cabinReports,
-                defectsRaised, defectsRectified, defectsCarried, radioTunes, memoryDrills);
+                defectsRaised, defectsRectified, defectsCarried, radioTunes, memoryDrills,
+                touchdownRate, touchdownIas, touchdownPitch, bounces,
+                stampOff, stampTakeoff, stampLanding, stampOn);
         }
         catch (Exception ex)
         {
@@ -346,6 +388,19 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             && v.ValueKind == JsonValueKind.Number
             && v.TryGetDouble(out var d)
                 ? d
+                : null;
+
+    private static bool Flag(JsonElement payload, string field)
+        => payload.ValueKind == JsonValueKind.Object
+            && payload.TryGetProperty(field, out var v)
+            && v.ValueKind == JsonValueKind.True;
+
+    private static DateTimeOffset? Time(JsonElement payload, string field)
+        => Str(payload, field) is { } text
+            && DateTimeOffset.TryParse(
+                text, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.RoundtripKind, out var parsed)
+                ? parsed
                 : null;
 
     private static double? Snap(JsonElement payload, string field)
