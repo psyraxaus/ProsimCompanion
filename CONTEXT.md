@@ -172,3 +172,21 @@ A captain's statement of a figure ("altimeter one zero one three") that the FO c
 the aircraft and answers "checked" or corrects. A lead-in with no figure ("minimums check") is
 not a read-back; it belongs to the checklist or callout feature.
 _Avoid_: confirmation, challenge
+
+### Web host
+
+**Secure context**:
+The browser's rule that some features — the screen wake lock, the installed web app —
+exist only on an `https://` page (or `http://localhost`). Why the app has an optional HTTPS
+address at all.
+_Avoid_: SSL mode, secure mode
+
+**HTTPS listener**:
+The optional second Kestrel endpoint (ADR-0013) with the user's own certificate, beside the
+HTTP one that always runs. Fails to a banner, never to a locked-out app.
+_Avoid_: SSL port, secure server
+
+**Keep-awake**:
+The per-device switch that holds the browser's Screen Wake Lock while the app is open —
+stored on that tablet, not in settings.json.
+_Avoid_: wake lock (in user-facing text), caffeine mode

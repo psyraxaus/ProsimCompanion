@@ -1473,7 +1473,8 @@
         "#146 Logbook page: 'Logbook' is in the sidebar; after shutdown the flight is the top row with its touchdown rate; the totals row and the trend chart include it (bright dot = this landing; hover shows the flight); column headings sort and flip; a row click opens the detail panel with the four UTC stamps, pitch and bounces; 'Delete flight' needs a second press on CONFIRM DELETE within 3 s; 'Export CSV' downloads a file that opens in a spreadsheet with one row per flight; on the iPad (LAN) the export works from the onboarded browser (web UI).",
         "#146 debrief by ear: the FO says 'touchdown at minus one eighty feet per minute' (or the TTS's reading of 'minus 180') right after the touchdown speed.",
         "#147 by ear: with the LLM on, 'brief the departure' starts speaking a few seconds in (not after the whole reply) and the sentences flow as one briefing; a template takeover sounds like the plain briefing finishing the list, never a restart from 'Departure briefing'; Settings → Voice First Officer → LLM Styling shows 'Speak while the model writes' (web UI).",
-        "#148 In-flight monitoring: Settings → Voice First Officer → Callouts & Placards has an 'In-flight monitoring' card with four switches (Fuel check, Gross error check, Destination weather watch, Read-backs) and their tolerances; each switch off ⇒ the matching phrases show the disabled reason in the header VOICE drawer; on ⇒ 'fuel check', 'gross error check' and the read-back lead-ins (with the value badge) are listed (web UI + ears)."
+        "#148 In-flight monitoring: Settings → Voice First Officer → Callouts & Placards has an 'In-flight monitoring' card with four switches (Fuel check, Gross error check, Destination weather watch, Read-backs) and their tolerances; each switch off ⇒ the matching phrases show the disabled reason in the header VOICE drawer; on ⇒ 'fuel check', 'gross error check' and the read-back lead-ins (with the value badge) are listed (web UI + ears).",
+        "#150 Tablet install + keep-awake: on an iPad that trusts the mkcert CA, the HTTPS address opens with a padlock and the HTTP one still opens; Appearance → Screen & Install reads ACTIVE with the switch on and the screen does not sleep past the auto-lock time; switching apps and back returns ACTIVE within a second; over plain HTTP the pill reads NEEDS HTTPS with the HTTPS setup link; Share → Add to Home Screen gives a full-screen Companion app and the card then reads INSTALLED; Setup → Web Interface shows the HTTPS fields and the status pill (ON with the address / FAILED with the reason / OFF); the desktop window's QR carries the https address when HTTPS is up and its status list has an HTTPS line; a wrong PFX password shows the banner on every page and HTTP keeps working (web UI + tablet)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -1922,6 +1923,24 @@
         "GRAMMAR: with the closed recognizer, the lead-ins must appear in the grammar snapshot ('speech.grammar' / the Voice Reference drawer under Read-backs with the value badge) — report if a read-back was transcribed but not routed (an 'intent' miss event right after a read-back-shaped 'speech.heard')."
       ],
       "notes": "Shipped 2026-10-03 (October batch package 4). Off by default. StandaloneReadbacks is registered BEFORE the Radio and FCU executors so 'altimeter …' / 'runway …' are not swallowed as settings commands; it declines any utterance without a figure so the existing bare phrases keep their owners."
+    },
+    {
+      "id": "web-https-listener",
+      "issue": 150,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": [
+        "log"
+      ],
+      "checks": [
+        "When webUi.https.enabled was true: exactly one of the start-up log lines 'HTTPS listener up at https://…' or 'HTTPS listener: <problem>' — never both, never neither. 'Web UI available at http://…' must still appear in every case (HTTP never depends on HTTPS).",
+        "With a usable certificate: 'HTTPS listener up at https://<lan-ip>:<port>' and NO 'webUi.https' config-problem entry in the diagnostics bundle's problems list.",
+        "With a missing file, wrong password or a PFX without a private key: 'HTTPS listener: … — HTTP only.' AND the config-problem entry (area 'webUi.https'); the app started normally (modules started, web UI available).",
+        "With an expired certificate: 'HTTPS listener up at …' AND a 'webUi.https' problem whose text contains 'expired on' — both, by owner decision (ADR-0013 point 4).",
+        "assert-absent: a failed start ('terminated unexpectedly') with any HTTPS problem — HTTPS must never take HTTP down, including an HTTPS port already in use (that case logs 'already in use on this PC — HTTP only').",
+        "assert-absent: the PFX password, or any 'dpapi:' value, in any log line or diagnostics bundle."
+      ],
+      "notes": "Shipped 2026-10-03 (October batch package 6, ADR-0013). Off by default. The wake lock and the home-screen install are browser-side and have no server evidence beyond the install assets being fetched without the token (a 200 on /manifest.webmanifest from a non-loopback address with no cookie, if request logging is on) — they live on the human checklist."
     }
   ]
 }

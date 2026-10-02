@@ -125,6 +125,8 @@ public static class CoreServiceCollectionExtensions
         // User-content parse failures (issue #74) — written by the checklist/abnormal/command/
         // phrase/ATC-request loaders; read by the web warning banner.
         services.AddSingleton<ConfigProblemStore>();
+        // What the web host actually listens on (ADR-0013) — set by the host after Start.
+        services.AddSingleton<WebListenerStatus>();
         services.AddSingleton<ArrivalMinimaStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
         services.AddSingleton<LoadsheetStore>();

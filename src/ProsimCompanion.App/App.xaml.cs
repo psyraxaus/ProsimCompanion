@@ -36,7 +36,8 @@ public partial class App : Application
             _services.GetRequiredService<ConnectionStatusStore>(),
             _services.GetRequiredService<JsonSettingsFile>(),
             _services.GetRequiredService<IOptionsMonitor<WebUiOptions>>().CurrentValue,
-            _webUrl);
+            _webUrl,
+            _services.GetRequiredService<WebListenerStatus>().Snapshot());
         MainWindow = window;
         _trayIcon = new TrayIcon(window, _webUrl);
         // A second launch pokes the show-window event instead of starting twice.

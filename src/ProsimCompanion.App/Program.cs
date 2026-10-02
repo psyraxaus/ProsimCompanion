@@ -353,10 +353,46 @@ public static class Program
 
         var webUi = builder.Configuration.GetSection(WebUiOptions.SectionName).Get<WebUiOptions>()
             ?? new WebUiOptions();
-        var host = webUi.BindToAllInterfaces ? "0.0.0.0" : "localhost";
-        builder.WebHost.UseUrls($"http://{host}:{webUi.Port}");
+        // HTTP always; HTTPS beside it when asked for and the certificate is usable (ADR-0013).
+        // The plan is pure and tested; a bad certificate is a banner, never a failed start.
+        var listenerPlan = ProsimCompanion.Core.Hosting.WebListenerPlan.Build(
+            webUi, ProsimCompanion.Core.Hosting.WebListenerPlan.LoadPfx, DateTimeOffset.UtcNow);
+        if (listenerPlan.HttpsEnabled && !PortIsFree(listenerPlan.Host, listenerPlan.HttpsPort!.Value))
+        {
+            // Kestrel fails the WHOLE host when one endpoint cannot bind, so the HTTPS port is
+            // probed first and dropped from the plan while HTTP carries on.
+            listenerPlan.Certificate?.Dispose();
+            listenerPlan = listenerPlan with
+            {
+                HttpsPort = null,
+                Certificate = null,
+                HttpsWarningOnly = false,
+                HttpsProblem = $"HTTPS port {webUi.Https.Port} is already in use on this PC — HTTP only. Pick another port on Settings → Setup → Web Interface.",
+            };
+        }
+
+        builder.WebHost.ConfigureKestrel(kestrel =>
+        {
+            if (listenerPlan.Host == "0.0.0.0")
+            {
+                kestrel.ListenAnyIP(listenerPlan.HttpPort);
+                if (listenerPlan.Certificate is { } lanCert)
+                {
+                    kestrel.ListenAnyIP(listenerPlan.HttpsPort!.Value, listen => listen.UseHttps(lanCert));
+                }
+            }
+            else
+            {
+                kestrel.ListenLocalhost(listenerPlan.HttpPort);
+                if (listenerPlan.Certificate is { } localCert)
+                {
+                    kestrel.ListenLocalhost(listenerPlan.HttpsPort!.Value, listen => listen.UseHttps(localCert));
+                }
+            }
+        });
 
         var web = builder.Build();
+        PublishListenerStatus(web.Services, listenerPlan);
 
         // LAN clients authenticate with the access token (QR onboarding); loopback always passes.
         web.UseMiddleware<LanTokenMiddleware>();
@@ -403,6 +439,50 @@ public static class Program
     {
         var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<WebUiOptions>>();
         return $"http://localhost:{options.Value.Port}";
+    }
+
+    /// <summary>A bind probe on the HTTPS port before Kestrel is configured (ADR-0013): one
+    /// endpoint that cannot bind fails the whole host, and HTTP must survive a busy HTTPS port.</summary>
+    private static bool PortIsFree(string host, int port)
+    {
+        try
+        {
+            var address = host == "0.0.0.0" ? System.Net.IPAddress.Any : System.Net.IPAddress.Loopback;
+            using var probe = new System.Net.Sockets.TcpListener(address, port);
+            probe.Start();
+            probe.Stop();
+            return true;
+        }
+        catch (System.Net.Sockets.SocketException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Publishes what the host listens on (the QR, the WPF status line and the Setup
+    /// page read it) and raises the config-problem banner when HTTPS was asked for and is off
+    /// or degraded.</summary>
+    private static void PublishListenerStatus(IServiceProvider services, ProsimCompanion.Core.Hosting.WebListenerPlan plan)
+    {
+        var lan = plan.Host == "0.0.0.0" ? MainWindow.FindLanAddress()?.ToString() : null;
+        var hostName = lan ?? "localhost";
+        var httpUrl = $"http://{hostName}:{plan.HttpPort}";
+        var httpsUrl = plan.HttpsPort is { } httpsPort ? $"https://{hostName}:{httpsPort}" : null;
+        services.GetRequiredService<ProsimCompanion.Core.State.WebListenerStatus>().Set(
+            new ProsimCompanion.Core.State.WebListenerSnapshot(
+                httpUrl, httpsUrl, services.GetRequiredService<IOptions<WebUiOptions>>().Value.Https.Enabled,
+                plan.HttpsProblem, plan.HttpsWarningOnly));
+
+        if (plan.HttpsProblem is { } problem)
+        {
+            Log.Warning("HTTPS listener: {Problem}", problem);
+            services.GetRequiredService<ProsimCompanion.Core.State.ConfigProblemStore>().Report(
+                ProsimCompanion.Core.State.ConfigAreas.WebHttps, "settings.json (webUi.https)", problem);
+        }
+        else if (httpsUrl is not null)
+        {
+            Log.Information("HTTPS listener up at {Url}", httpsUrl);
+        }
     }
 
     private static LoggingOptions ReadLoggingOptions(JsonSettingsFile settingsFile)

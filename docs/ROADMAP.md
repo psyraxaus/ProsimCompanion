@@ -561,5 +561,21 @@ until a flight confirms it; the manual test steps are on each issue.
       (every figure in order, hundred/thousand, 3-digit grouping); `fo.readback` event.
       **Unverified live** — every module.
 - [ ] Free-form FO questions
-- [ ] Installable web app and screen keep-awake
+- [x] **Installable web app, screen keep-awake, optional HTTPS listener** (#150,
+      `feature/pwa-wake-lock`, ADR-0013, design A): `manifest.webmanifest` + committed PNG
+      icons rendered from `favicon.svg` (180 / 192 / 512, apple-touch-icon) + the Apple
+      web-app meta tags, no service worker; `LanTokenMiddleware.IsPublicInstallAsset` allow-lists
+      exactly the manifest, favicon and icon PNGs (GET only). `WebListenerPlan` (Core, pure):
+      HTTP always, HTTPS when `webUi.https.enabled` and the PFX loads with a private key —
+      missing / unreadable / wrong password / no key / bad port = HTTP only + `ConfigProblemStore`
+      banner (`webUi.https`); expired or not-yet-valid = listens anyway + warning (owner
+      decision); the HTTPS port is bind-probed first because one failed endpoint fails the
+      whole Kestrel host. `WebListenerStatus` snapshot (HTTP / HTTPS urls, problem) feeds the
+      WPF status line and QR (HTTPS when up) and the Setup page's status pill. `pfxPassword` is
+      a registered DPAPI secret. Wake lock in app.js (`prosimCompanion.wakeLock`): localStorage
+      preference, request on load, re-acquire on visibilitychange, release on pagehide, state
+      pushed to the Appearance page's "Screen & Install" card (ACTIVE / OFF / NEEDS HTTPS /
+      NOT SUPPORTED / REQUESTING, INSTALLED / IN BROWSER, "this device" line). Manual chapter 7.
+      **Unverified live** — the wake lock on a real iPad over mkcert HTTPS, and the QR sign-in
+      on the HTTPS origin.
 - [ ] Outbound event notifications

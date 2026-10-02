@@ -85,4 +85,9 @@
     <Content Include="config\techlog\wear-pool.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The token middleware's install-asset allow-list (issue #150) is unit-tested directly. -->
+    <InternalsVisibleTo Include="ProsimCompanion.Core.Tests" />
+  </ItemGroup>
+
 </Project>

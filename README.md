@@ -79,6 +79,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   — step-by-step in the [ElevenLabs setup guide](docs/manual/06-elevenlabs.md)
 - An optional **persona** (name, experience, formality, chattiness) colours the FO's
   wording — numbers verified and locked, deterministic texts always the floor
+- **On a tablet**: add the EFB to the home screen as a full-screen app and keep the screen awake
+  during the flight — both need the optional **HTTPS** address with your own certificate
+  (the app never makes or installs one) — step-by-step in [chapter 7](docs/manual/07-tablet-install.md)
 - A **Voice Reference** drawer on every page (the mic pill in the header): every live phrase for the
   FO, ground crew, cabin crew, ATC and checklists — what it does, what comes back, which
   ones need INT/CAB or the FO as pilot flying — built from the recognizer's own grammar

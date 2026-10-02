@@ -1,7 +1,7 @@
 # ADR-0013: An optional HTTPS listener beside HTTP, for secure-context browser features
 
 Date: 2026-10-03
-Status: proposed (awaiting owner OK — October 2026 batch, package 6, issue #150)
+Status: accepted (2026-10-03, owner OK: port 5321, QR offers HTTPS when up, expired certificate starts with a banner; design A)
 Amends: ADR-0001 (the web server gains a second, optional endpoint; the lockout rule is
 unchanged).
 

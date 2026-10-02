@@ -25,6 +25,7 @@ kept there so a broken web configuration can always be repaired.
 | [Settings reference](04-settings-reference.md) | Every settings section, including the hand-editable ones |
 | [Troubleshooting](05-troubleshooting.md) | Logs, degraded subsystems, common problems |
 | [ElevenLabs voices](06-elevenlabs.md) | Step-by-step setup: API key, voice, plan, crew voices, cost control |
+| [Tablet: HTTPS, home screen, keep-awake](07-tablet-install.md) | Your own certificate (mkcert), trusting the CA on the iPad, Add to Home Screen, the keep-awake switch; no offline mode |
 
 ## Design principles (what to expect)
 

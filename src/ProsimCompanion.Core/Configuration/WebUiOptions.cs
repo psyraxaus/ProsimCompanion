@@ -60,4 +60,30 @@ public sealed class WebUiOptions : IOptionSection
     /// Dutch.
     /// </summary>
     public string Theme { get; set; } = "KLM Royal Dutch";
+
+    /// <summary>The optional HTTPS listener beside HTTP (ADR-0013). Lives here and on the web
+    /// Setup page, not in the desktop window: a broken HTTPS setting cannot lock anyone out,
+    /// because HTTP keeps serving on its own port.</summary>
+    public HttpsOptions Https { get; set; } = new();
+}
+
+/// <summary>
+/// The second, secure Kestrel endpoint (ADR-0013). Off by default. The certificate is the
+/// user's own PKCS#12 file; the app never generates, requests or installs one. Takes effect on
+/// restart, like the port.
+/// </summary>
+public sealed class HttpsOptions
+{
+    public bool Enabled { get; set; }
+
+    /// <summary>HTTPS port — 5321 by default, beside HTTP's 5320.</summary>
+    public int Port { get; set; } = 5321;
+
+    /// <summary>Full path of the PKCS#12 (.pfx / .p12) file holding the certificate and its
+    /// private key. Its subject alternative names must cover the address the tablet uses (the
+    /// LAN IP by default).</summary>
+    public string PfxPath { get; set; } = "";
+
+    /// <summary>The PFX password; stored DPAPI-protected (<c>dpapi:…</c>) like every other secret.</summary>
+    public string PfxPassword { get; set; } = "";
 }
