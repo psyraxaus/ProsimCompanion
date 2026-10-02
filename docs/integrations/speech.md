@@ -142,6 +142,21 @@ chains — "local only" hard mode must exist.
   lead-in is declined so "minimums check" keeps its owner). `NumberExtractor.ExtractAll`
   reads every figure in order with hundred/thousand and splits an unbroken nine-digit run
   into three speeds.
+- **FO questions** (2026-10, #149): `Speech/Questions`. The router offers the RAW
+  transcription to `IFreeFormQuestionHandler` at BOTH idle-miss sites (interpreter reject and
+  the end of `RouteText`), only when `IRecognitionWindow.FreeFormCapable` (= the LAN engine is
+  active) — so a question is never considered on the offline closed-grammar engine, which
+  cannot produce one anyway. `FoFactSheetBuilder` (Core, pure) prints "- Label: value" lines
+  and the allowed-number set, including the spoken forms (tonnes to one decimal rounded on
+  the DECIMAL value, clock as hhmm / hh / mm, durations as hours / minutes / total minutes,
+  runway and callsign digit runs) — `NarrationCore` verifies each streamed sentence against
+  it, so "six point two tonnes" verifies against 6200 kg. The service streams through
+  `StreamingNarrator` with an EMPTY template (`NarrationPlan.Sections = []`; the narrator
+  then speaks nothing on failure and the caller decides), cancels the "stand by" timer and
+  the time budget on `NarrationPlan.OnFirstSpeech`, and does ONE strict `CompleteAsync`
+  re-ask only when the stream failed verification before any speech. Sterile cockpit drops the
+  question silently (recorded as outcome `sterile`). Nested list defaults are barred by the
+  option-section guard, so `foQuestions.leadIns` is a comma-separated string.
 - **SpeechArbiter**: single priority queue (Low/Normal/High/Critical) with pre-emption and pluggable
   suppression rules (sterile cockpit below 10,000 ft suppresses Low, defers Normal). All speech goes
   through one facade — no direct TTS calls from features.

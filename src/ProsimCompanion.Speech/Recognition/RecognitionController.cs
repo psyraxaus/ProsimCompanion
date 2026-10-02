@@ -175,6 +175,9 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         }
     }
 
+    /// <inheritdoc />
+    public bool FreeFormCapable => OnLanEngine;
+
     private bool LanConfigured => !string.IsNullOrWhiteSpace(_options.CurrentValue.AsrBaseUrl);
 
     private string AsrUrl => _options.CurrentValue.AsrBaseUrl.TrimEnd('/');

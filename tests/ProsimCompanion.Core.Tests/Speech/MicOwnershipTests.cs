@@ -20,6 +20,8 @@ internal sealed class FakeRecognitionWindow : IRecognitionWindow
 
     public bool WindowOpen { get; private set; }
 
+    public bool FreeFormCapable { get; set; } = true;
+
     public IReadOnlyList<string> CurrentGrammar { get; private set; } = [];
 
     /// <summary>Every grammar passed to OpenListeningWindow, in order.</summary>

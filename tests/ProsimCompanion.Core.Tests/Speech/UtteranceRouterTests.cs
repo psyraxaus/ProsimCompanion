@@ -103,7 +103,9 @@ public sealed class UtteranceRouterTests
         _mic = new MicOwnership(_window, NullLogger<MicOwnership>.Instance);
     }
 
-    private UtteranceRouter CreateRouter(params IVoiceFeature[] features)
+    private UtteranceRouter CreateRouter(params IVoiceFeature[] features) => CreateRouter(null, features);
+
+    private UtteranceRouter CreateRouter(IFreeFormQuestionHandler? questions, params IVoiceFeature[] features)
     {
         var options = SpeechTestSupport.SpeechMonitor(new SpeechOptions());
         var dataRefs = Mock.Of<IProsimDataRefs>();
@@ -123,7 +125,8 @@ public sealed class UtteranceRouterTests
             SpeechTestSupport.PhraseBank(),
             SpeechTestSupport.Persona(),
             new LlmHealthStore(),
-            NullLogger<UtteranceRouter>.Instance);
+            NullLogger<UtteranceRouter>.Instance,
+            questions: questions);
         router.Attach(_host);
         router.Start();
         return router;
@@ -283,5 +286,104 @@ public sealed class UtteranceRouterTests
         }
 
         Assert.Empty(feature.Handled);
+    }
+
+    // ---- free-form questions (issue #149) ------------------------------------------------------
+
+    private sealed class ScriptedQuestions(bool enabled = true, bool take = true) : IFreeFormQuestionHandler
+    {
+        public List<string> Asked { get; } = [];
+        public bool Enabled => enabled;
+
+        public bool TryAsk(string rawUtterance)
+        {
+            Asked.Add(rawUtterance);
+            return take;
+        }
+    }
+
+    [Fact]
+    public void Question_IsOfferedTheRawText_OnlyAfterNothingElseMatched()
+    {
+        var questions = new ScriptedQuestions();
+        var feature = new ScriptedFeature("request refueling");
+        using var router = CreateRouter(questions, feature);
+
+        _window.Hear("what is our fuel on board right now");
+
+        Assert.Equal("what is our fuel on board right now", Assert.Single(questions.Asked));
+        Assert.Empty(feature.Handled);
+        Assert.Empty(_arbiter.Requests);                        // the handler took it: no did-not-catch line
+    }
+
+    [Fact]
+    public void ExactPhrase_BeatsTheQuestionHandler()
+    {
+        var questions = new ScriptedQuestions();
+        var feature = new ScriptedFeature("what is our fuel state");   // a feature that OWNS a question-shaped phrase
+        using var router = CreateRouter(questions, feature);
+
+        _window.Hear("what is our fuel state");
+
+        Assert.Single(feature.Handled);
+        Assert.Empty(questions.Asked);
+    }
+
+    [Fact]
+    public void Question_NotTaken_FallsThroughToTheDidNotCatchLine()
+    {
+        var questions = new ScriptedQuestions(take: false);
+        using var router = CreateRouter(questions, new ScriptedFeature("request refueling"));
+
+        _window.Hear("umm what was that noise");
+
+        Assert.Single(questions.Asked);
+        Assert.Single(_arbiter.Requests);
+        Assert.Equal("reject", _arbiter.Requests[0].Tag);
+    }
+
+    [Fact]
+    public void Question_NotOffered_WhenDisabled_OnTheOfflineEngine_OrWhileADialogueOwnsTheMic()
+    {
+        var disabled = new ScriptedQuestions(enabled: false);
+        using (var router = CreateRouter(disabled, new ScriptedFeature("request refueling")))
+        {
+            _window.Hear("what is our fuel on board right now");
+            Assert.Empty(disabled.Asked);
+            Assert.Single(_arbiter.Requests);                   // the ordinary reject
+        }
+
+        _arbiter.Requests.Clear();
+        var offline = new ScriptedQuestions();
+        _window.FreeFormCapable = false;
+        using (var router = CreateRouter(offline, new ScriptedFeature("request refueling")))
+        {
+            _window.Hear("what is our fuel on board right now");
+            Assert.Empty(offline.Asked);
+        }
+
+        _window.FreeFormCapable = true;
+        _arbiter.Requests.Clear();
+        var borrowed = new ScriptedQuestions();
+        using (var router = CreateRouter(borrowed, new ScriptedFeature("request refueling")))
+        using (_mic.Borrow("dialogue"))
+        {
+            _window.Hear("what is our fuel on board right now");
+            Assert.Empty(borrowed.Asked);
+            Assert.Empty(_arbiter.Requests);
+        }
+    }
+
+    [Fact]
+    public void Question_NotOffered_WhileAChecklistItemAwaitsItsAnswer()
+    {
+        var questions = new ScriptedQuestions();
+        using var router = CreateRouter(questions, new ScriptedFeature("request refueling"));
+        _host.AwaitingItem = Item("checked");
+        _host.ResponsePending = true;
+
+        _window.Hear("what is our fuel on board right now");
+
+        Assert.Empty(questions.Asked);                          // the item's own flow answers
     }
 }

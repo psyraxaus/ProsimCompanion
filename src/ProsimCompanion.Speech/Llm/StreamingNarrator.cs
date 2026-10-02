@@ -25,7 +25,13 @@ public sealed record NarrationPlan(
     IReadOnlyList<double> Allowed,
     IReadOnlyList<NarrationSection> Sections,
     SpeechRequest Header,
-    IReadOnlyList<string> Epilogue);
+    IReadOnlyList<string> Epilogue)
+{
+    /// <summary>Called once, when the first verified model sentence is handed to the arbiter
+    /// (issue #149: the FO questions cancel their "stand by" timer and their time budget here).
+    /// Not called when the template speaks instead.</summary>
+    public Action? OnFirstSpeech { get; init; }
+}
 
 /// <summary>What a streamed narration came to.</summary>
 /// <param name="Text">The text actually spoken (what reached the arbiter and was played).</param>
@@ -130,6 +136,7 @@ public sealed class StreamingNarrator
                     stream = new StreamedUtterance();
                     stream.TryWrite(new SpeechSegment(sentence, Cacheable: false));
                     speaking = _arbiter.EnqueueAsync(plan.Header with { Stream = stream }, cancellationToken);
+                    plan.OnFirstSpeech?.Invoke();
                 }
                 else
                 {
@@ -261,7 +268,12 @@ public sealed class StreamingNarrator
                     // (cached and prewarmed like every non-LLM narration).
                     templateSections = plan.Sections.Count;
                     wholeText = string.Join(" ", plan.Sections.Select(s => s.Text).Concat(plan.Epilogue));
-                    speaking = _arbiter.EnqueueAsync(plan.Header with { Text = wholeText }, cancellationToken);
+                    if (wholeText.Length > 0)
+                    {
+                        speaking = _arbiter.EnqueueAsync(plan.Header with { Text = wholeText }, cancellationToken);
+                    }
+                    // A plan with no template (the FO questions, #149) says nothing here: the
+                    // caller decides what a silent model means.
                 }
                 else
                 {

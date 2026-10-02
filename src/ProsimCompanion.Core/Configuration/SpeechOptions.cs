@@ -98,6 +98,9 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Human-like pacing for MCDU/FCU button sequences.</summary>
     public HumanizeOptions Humanize { get; set; } = new();
 
+    /// <summary>Free-form questions to the FO, answered by the LLM from live facts (issue #149).</summary>
+    public FoQuestionOptions FoQuestions { get; set; } = new();
+
     /// <summary>Hard "local only" mode: network TTS providers (Kokoro, ElevenLabs, Google)
     /// are excluded regardless of their own configuration.</summary>
     public bool LocalOnly { get; set; }

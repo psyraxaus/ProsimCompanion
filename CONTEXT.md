@@ -145,9 +145,20 @@ _Avoid_: fallback restart, re-ask (there is none on the streamed path)
 
 **Utterance router**:
 The module that decides what a recognized utterance means right now — feature, checklist
-answer, global command, confirmation, or idle miss — by a fixed precedence order over the
-enabled voice features.
+answer, global command, confirmation, free-form question, or idle miss — by a fixed
+precedence order over the enabled voice features. A question is the last thing tried before
+the idle miss, and only on the free-text engine; every known phrase outranks it.
 _Avoid_: recognition handler, command router
+
+**FO question**:
+A free-form utterance (a configured lead-in, at least four words) that nothing else matched,
+answered by the LLM from the fact sheet and only spoken — never parsed for commands.
+_Avoid_: chat, free-form command
+
+**Fact sheet**:
+The labelled lines of what the app knows right now, built from the stores for one answer;
+every number in it is the set an answer may contain.
+_Avoid_: context, knowledge base
 
 **Fuel check**:
 The FO's periodic (and on-request) comparison of fuel on board with the SimBrief plan at the

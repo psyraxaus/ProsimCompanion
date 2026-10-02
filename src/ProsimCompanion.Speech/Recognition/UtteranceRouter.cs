@@ -56,7 +56,7 @@ public interface IChecklistRoutingHost
 /// <summary>
 /// The utterance router (CONTEXT.md): decides what a recognized utterance means right now —
 /// value-parse feature, checklist answer, global command, voice feature, memory drill,
-/// checklist start, gray-band confirmation, or idle miss — by the fixed precedence order the
+/// checklist start, gray-band confirmation, free-form question (#149), or idle miss — by the fixed precedence order the
 /// predecessor established. Extracted from <see cref="SpokenChecklistEngine"/> (campaign #82):
 /// the engine keeps the checklist run loop and exposes it through
 /// <see cref="IChecklistRoutingHost"/>; the router owns interpretation, the closed grammar
@@ -78,6 +78,8 @@ public sealed class UtteranceRouter : IDisposable
 
     // Optional (tests construct the router bare): phase-aware reject suppression, issue #67.
     private readonly Core.Flight.IFlightPhaseSource? _flightPhase;
+    // Optional: the free-form question handler (issue #149), consulted last.
+    private readonly IFreeFormQuestionHandler? _questions;
     private IChecklistRoutingHost? _host;
     private bool _started;
     private bool _llmOfflineAdvisoryGiven; // once per session (issue #66)
@@ -94,7 +96,8 @@ public sealed class UtteranceRouter : IDisposable
         Persona.PersonaService persona,
         LlmHealthStore llmHealth,
         ILogger<UtteranceRouter> logger,
-        Core.Flight.IFlightPhaseSource? flightPhase = null)
+        Core.Flight.IFlightPhaseSource? flightPhase = null,
+        IFreeFormQuestionHandler? questions = null)
     {
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
@@ -120,6 +123,7 @@ public sealed class UtteranceRouter : IDisposable
         _llmHealth = llmHealth;
         _logger = logger;
         _flightPhase = flightPhase;
+        _questions = questions;
     }
 
     /// <summary>Attaches the checklist run loop; called by the engine before Start.</summary>
@@ -279,7 +283,7 @@ public sealed class UtteranceRouter : IDisposable
                 }
                 else
                 {
-                    HandleIdleMiss();
+                    HandleIdleMiss(e.Text);
                 }
 
                 return;
@@ -291,7 +295,7 @@ public sealed class UtteranceRouter : IDisposable
                 return;
         }
 
-        RouteText(host, interpretation.Text, awaiting);
+        RouteText(host, interpretation.Text, awaiting, e.Text);
     }
 
     /// <summary>True when the raw text, normalized, equals a phrase owned outside the value
@@ -335,8 +339,17 @@ public sealed class UtteranceRouter : IDisposable
     /// into the FCU's "which field?" clarifier or vanished silently. Now it gets the normal
     /// did-not-catch line — or, once per session while the LLM is known-unhealthy, the
     /// advisory that explains WHY free-form phrasing is falling flat.</summary>
-    private void HandleIdleMiss()
+    private void HandleIdleMiss(string rawText)
     {
+        // A free-form question (issue #149) is the last thing tried before the did-not-catch
+        // line — only on the free-text engine, only when the handler takes it. It gets the
+        // RAW transcription: the snapper may have bent a question towards a phrase nobody
+        // then claimed. Known phrases never reach here, so they always win.
+        if (_questions is { Enabled: true } questions && _recognition.FreeFormCapable && questions.TryAsk(rawText))
+        {
+            return;
+        }
+
         // Sterile-phase suppression (issue #67, 2026-08-22 flight): during the takeoff roll
         // and rotation the pilot makes SOP callouts ("takeoff", the FMA readback) faster than
         // features can grow to answer them — a chirped "Didn't catch that" DURING ROTATION is
@@ -376,7 +389,7 @@ public sealed class UtteranceRouter : IDisposable
     /// answer outranks the identically-named global command; a non-answer falls through to
     /// the global commands and then the voice features, so "my aircraft" or "tune the ils"
     /// still works while a checklist line is pending.</summary>
-    private void RouteText(IChecklistRoutingHost host, string text, ChecklistItemDefinition? awaiting)
+    private void RouteText(IChecklistRoutingHost host, string text, ChecklistItemDefinition? awaiting, string? rawText = null)
     {
         if (awaiting is not null && host.IsAcceptedAnswer(awaiting, text))
         {
@@ -471,7 +484,7 @@ public sealed class UtteranceRouter : IDisposable
 
         // Interpreted, yet no command/feature/drill/start claimed it (issue #66): answer
         // like any other idle miss instead of dropping it silently.
-        HandleIdleMiss();
+        HandleIdleMiss(rawText ?? text);
     }
 
     /// <summary>The gray-band recovery (Prosim2FO's ConfirmAndRouteAsync): borrow the mic,

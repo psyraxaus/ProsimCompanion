@@ -27,6 +27,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
     private readonly IOptionsMonitor<GroundCrewOptions> _groundCrew;
     private readonly IOptionsMonitor<CabinOptions> _cabin;
     private readonly ILogger<VoiceReferenceBuilder> _logger;
+    private readonly IFreeFormQuestionHandler? _questions;
 
     public VoiceReferenceBuilder(
         IEnumerable<IVoiceFeature> features,
@@ -35,7 +36,8 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         IOptionsMonitor<SpeechOptions> speech,
         IOptionsMonitor<GroundCrewOptions> groundCrew,
         IOptionsMonitor<CabinOptions> cabin,
-        ILogger<VoiceReferenceBuilder> logger)
+        ILogger<VoiceReferenceBuilder> logger,
+        IFreeFormQuestionHandler? questions = null)
     {
         ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(checklists);
@@ -52,6 +54,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         _groundCrew = groundCrew;
         _cabin = cabin;
         _logger = logger;
+        _questions = questions;
     }
 
     public VoiceReferenceSnapshot Build()
@@ -73,6 +76,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
 
         groups.Add(ChecklistStarts());
         groups.Add(Drills());
+        groups.Add(Questions());
 
         // Tab order, then the described features in registration order.
         var ordered = groups
@@ -303,6 +307,32 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
             .ToList();
         return new VoiceReferenceGroup("drills", "Memory drills", VoiceReferenceTab.Checklists,
             VoiceSpeaker.FirstOfficer, true, null, entries);
+    }
+
+    /// <summary>Free-form questions (issue #149): not grammar — example questions and the
+    /// rule that makes an utterance one. Listed dimmed with the reason while off.</summary>
+    private VoiceReferenceGroup Questions()
+    {
+        var options = _speech.CurrentValue.FoQuestions;
+        var enabled = _questions is { Enabled: true };
+        var leadIns = options.LeadInList().Select(l => l.ToLowerInvariant()).ToList();
+        var reason = _questions is null ? "not available in this build"
+            : !options.Enabled ? $"speech.foQuestions.enabled is off — {SettingsFo} → Briefings & LLM → Ask the First Officer"
+            : null;
+        var minimum = options.MinimumWords.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        IReadOnlyList<VoiceReferenceEntry> entries =
+        [
+            new(["what is our fuel on board"], "Fuel on board and the planned figures.", "Fuel on board is six point two tonnes, against a planned landing fuel of three point one."),
+            new(["how long to top of descent"], "Minutes to the 3:1 top-of-descent estimate.", "About twenty five minutes to top of descent."),
+            new(["tell me the destination weather"], "The destination METAR as the hero card shows it.", "Schiphol: wind two seven zero at twelve knots, visibility ten kilometres or more, ceiling two thousand five hundred feet."),
+            new(["what time do we land"], "The ground-speed ETA.", "Estimated arrival is fourteen zero five zulu."),
+            new(["are we above the minimum takeoff fuel"], "Anything the fact sheet can compare.", "Yes — six point two tonnes on board against a minimum of five point eight."),
+            new(leadIns.Count > 0 ? leadIns : ["question"],
+                $"Any question starting with one of these lead-ins and at least {minimum} words long. Answered only from live facts; the FO says \"{ProsimCompanion.Speech.Questions.FoQuestionCore.DontHaveThat}\" when the facts do not cover it. Needs the LAN speech server.",
+                null, Badges: [VoiceReferenceDescribers.Value], ValueHint: "‹your question›"),
+        ];
+        return new VoiceReferenceGroup("foQuestions", "Ask the First Officer", VoiceReferenceTab.FirstOfficer,
+            VoiceSpeaker.FirstOfficer, enabled, reason, entries);
     }
 
     /// <summary>The router's global checklist commands — in every grammar, no feature owns them.</summary>

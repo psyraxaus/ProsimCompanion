@@ -575,6 +575,28 @@ else if (CurrentSection == "briefing")
         </div>
     </Section>
 
+    <Section Title="Ask the First Officer" Hint="Free-form questions, answered by the language model from live facts. Spoken only — never acted on">
+        <BoolField Label="Enabled"
+                   Hint="Ask in plain words: 'what is our fuel on board', 'how long to top of descent', 'tell me the destination weather'. The FO answers from what the app knows right now."
+                   More="Needs the LLM above and the LAN speech recognition server (the offline Windows engine only hears exact phrases). Every number in the answer is checked against the live facts; an unverifiable answer becomes 'I don't have a verified answer for that'. A question is tried only after every exact phrase has been ruled out, so nothing you could say before changes. In the sterile cockpit (below the sterile ceiling in climb, descent and approach) a question is heard but not answered."
+                   @bind-Value="_speech.Value.FoQuestions.Enabled" />
+        <TextField Label="Question lead-ins" Hint="Comma-separated. An utterance must start with one of these to count as a question."
+                   Disabled="@(!_speech.Value.FoQuestions.Enabled)"
+                   @bind-Value="_speech.Value.FoQuestions.LeadIns" />
+        <NumberField Label="Minimum words" Hint="Shorter utterances are never questions — they are exact phrases, misheard." Min="1" Max="10"
+                     Disabled="@(!_speech.Value.FoQuestions.Enabled)"
+                     @bind-Value="_speech.Value.FoQuestions.MinimumWords"
+                     Default="_speech.Defaults.FoQuestions.MinimumWords" />
+        <NumberField Label="Time budget" Hint="From the question to the first spoken word. After this the FO gives up with the fixed line." Suffix="s" Min="1" Max="60"
+                     Disabled="@(!_speech.Value.FoQuestions.Enabled)"
+                     @bind-Value="_speech.Value.FoQuestions.TimeBudgetSeconds"
+                     Default="_speech.Defaults.FoQuestions.TimeBudgetSeconds" />
+        <NumberField Label="'Stand by' after" Hint="Silence before the FO says 'Stand by'. 0 = never." Suffix="s" Min="0" Max="30"
+                     Disabled="@(!_speech.Value.FoQuestions.Enabled)"
+                     @bind-Value="_speech.Value.FoQuestions.StandBySeconds"
+                     Default="_speech.Defaults.FoQuestions.StandBySeconds" />
+    </Section>
+
     <Section Title="LLM Wake-on-LAN" Hint="Wake the LLM PC when the app starts" Advanced="true">
         <BoolField Label="Enabled" Hint="Sends a wake-up packet when the app starts." More="The LLM PC needs Wake-on-LAN enabled in its BIOS and network driver, a wired connection, and the same network."
                    @bind-Value="_briefing.Value.LlmWakeOnLan.Enabled" />

@@ -238,6 +238,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddHostedService<Llm.LlmHealthProbeService>();
         // The utterance router (CONTEXT.md, campaign #82): owns interpretation, precedence
         // and the idle grammar; the checklist engine attaches as its routing host.
+        // Free-form questions to the FO (issue #149): the router's last stop before the
+        // did-not-catch line. Read-only — answers are speech and a session event only.
+        services.AddSingleton<Questions.FoFactSource>();
+        services.AddSingleton<Questions.FoQuestionService>();
+        services.AddSingleton<IFreeFormQuestionHandler>(p => p.GetRequiredService<Questions.FoQuestionService>());
         services.AddSingleton<UtteranceRouter>();
         services.AddStartupModule<SpokenChecklistEngine>();
         // WoL used to hide in the retired bootstrap (campaign #87).

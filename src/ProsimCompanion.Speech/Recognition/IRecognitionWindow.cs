@@ -14,6 +14,11 @@ public interface IRecognitionWindow
     /// <summary>Raised per unusable utterance (engine threads).</summary>
     event EventHandler<RecognizedEventArgs>? Rejected;
 
+    /// <summary>True while the active engine returns free text (the LAN transcription engine).
+    /// The offline closed-grammar engine can only return grammar phrases, so free-form
+    /// consumers — the FO questions (issue #149) — stand down while it is active.</summary>
+    bool FreeFormCapable { get; }
+
     /// <summary>True while a listening window is open.</summary>
     bool WindowOpen { get; }
 

@@ -560,6 +560,21 @@ until a flight confirms it; the manual test steps are on each issue.
       Radio/FCU executors, bare lead-ins left to their owners; `NumberExtractor.ExtractAll`
       (every figure in order, hundred/thousand, 3-digit grouping); `fo.readback` event.
       **Unverified live** — every module.
-- [ ] Free-form FO questions
+- [x] **Free-form FO questions** (#149, `feature/fo-questions`, built on #145 and #147):
+      `FoFactSheetBuilder` in Core (pure; labelled lines from the phase source, progress,
+      flight times, OFP, loadsheet, live FOB/ZFW/GW via `ILiveAircraftFacts`, hero weather,
+      minima, open tech-log items — every printed number plus its spoken forms is the allowed
+      set), `IFreeFormQuestionHandler` consulted by the router immediately before the idle-miss
+      line on both paths with the RAW transcription, gated by the new
+      `IRecognitionWindow.FreeFormCapable` (LAN engine only) and by every known phrase first;
+      `FoQuestionService` streams the answer through `StreamingNarrator` with an empty
+      template (new `NarrationPlan.OnFirstSpeech`; a plan with nothing to say speaks nothing),
+      one strict non-streamed re-ask when verification failed before any speech, the fixed
+      line otherwise; time budget to first spoken word (6 s) with "Stand by" at 2 s; sterile
+      cockpit = heard, recorded, not answered; LLM unhealthy = the offline advisory; one
+      question at a time. Read-only by construction: the only exit is the arbiter. Session
+      events `fo.query` / `fo.answer`. `speech.foQuestions` card "Ask the First Officer" on
+      Briefings & LLM; a Voice Reference group with example questions. **Unverified live** —
+      especially the LAN ASR's transcription of a full sentence and the model's latency.
 - [ ] Installable web app and screen keep-awake
 - [ ] Outbound event notifications

@@ -20,6 +20,26 @@ INT/CAB channel, phase, value, dialogue). Type a word to filter every tab. Phras
 own `commands.json` appear under "From commands.json". Open it directly with
 `http://localhost:5320/?voice=1`.
 
+### Ask the First Officer
+
+Everything above is an exact phrase. With **Ask the First Officer** switched on (Settings →
+Voice First Officer → Briefings & LLM) you can also just ask: *"what is our fuel on board"*,
+*"how long to top of descent"*, *"tell me the destination weather"*, *"are we above the
+minimum takeoff fuel"*, *"what time do we land"*. The rule: the utterance starts with one of
+the question lead-ins (what, how, when, tell me, are we, question…), is at least four words
+long, and matched no exact phrase — known phrases always win, so nothing you could say before
+changes. The FO answers in one or two sentences from what the app knows right now (phase,
+fuel and plan figures, weights, distance and ETA, block and flight times, the weather cards,
+the briefed minima, the OFP basics, open tech-log items) and from nothing else: *"I don't have
+that."* when the facts do not cover it. Every number in the answer is checked against those
+facts; an answer that fails the check is asked for once more, strictly, and after that you
+hear *"I don't have a verified answer for that."* After two seconds of silence the FO says
+*"Stand by."*; after six seconds without an answer, the fixed line. The answer is only ever
+spoken — it is never read as a command, so an answer that happens to contain "set heading"
+does nothing. Below ten thousand feet in the climb, descent and approach (the sterile
+cockpit) a question is heard but not answered. Needs the LLM (same card) and the **LAN speech
+server** — the offline Windows engine only hears exact phrases.
+
 ## Spoken checklists
 
 Say the checklist's start phrase (e.g. *"before start checklist"*). The FO reads each
