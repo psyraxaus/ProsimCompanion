@@ -37,6 +37,15 @@ public interface ILogbookService
     /// in-progress one. Returns the number of flights added; safe to re-run.</summary>
     int Backfill();
 
+    /// <summary>Deletes one flight (the Logbook page). The session id is remembered so a later
+    /// fold or backfill of the same session file does not bring it back. False when no such
+    /// flight is on file. Never throws.</summary>
+    bool RemoveFlight(string sessionId);
+
+    /// <summary>Raised after the flights or days list changed (fold, day record, delete),
+    /// on the caller's thread.</summary>
+    event EventHandler? Changed;
+
     /// <summary>Career aggregates, computed on read.</summary>
     LogbookAggregates GetAggregates();
 
@@ -89,6 +98,9 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
         _options = options;
         _logger = logger;
     }
+
+    /// <inheritdoc />
+    public event EventHandler? Changed;
 
     string ISessionFinalizationStep.Name => "logbook";
 
@@ -165,6 +177,7 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
                 Save();
             }
 
+            RaiseChanged();
             _eventLog.Record("logbook.day-recorded", new { dayId = day.DayId, legs = day.Legs });
             _logger.LogInformation("Logbook: recorded duty day {DayId} ({Legs} leg(s))", day.DayId, day.Legs);
         }
@@ -216,12 +229,15 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
                 Save();
             }
 
+            RaiseChanged();
             _eventLog.Record("logbook.folded", new
             {
                 sessionId,
                 origin = flight.Origin,
                 destination = flight.Destination,
                 landed = flight.Landed,
+                touchdownVerticalSpeedFpm = flight.TouchdownVerticalSpeedFpm,
+                bounces = flight.Bounces,
             });
             _logger.LogInformation("Logbook: recorded {Session} {Origin}->{Destination}",
                 sessionId, flight.Origin ?? "?", flight.Destination ?? "?");
@@ -229,6 +245,58 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Logbook fold failed for {Path}", sessionPath);
+        }
+    }
+
+    public bool RemoveFlight(string sessionId)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(sessionId))
+            {
+                return false;
+            }
+
+            lock (_gate)
+            {
+                var index = _store.Flights.FindIndex(
+                    f => string.Equals(f.SessionId, sessionId, StringComparison.OrdinalIgnoreCase));
+                if (index < 0)
+                {
+                    return false;
+                }
+
+                _store.Flights.RemoveAt(index);
+                if (!_store.RemovedSessionIds.Contains(sessionId, StringComparer.OrdinalIgnoreCase))
+                {
+                    _store.RemovedSessionIds.Add(sessionId);
+                }
+
+                Save();
+            }
+
+            RaiseChanged();
+            _eventLog.Record("logbook.removed", new { sessionId });
+            _logger.LogInformation("Logbook: removed {Session}", sessionId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Logbook remove failed for {Session}", sessionId);
+            return false;
+        }
+    }
+
+    private void RaiseChanged()
+    {
+        try
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            // A page observer must never fail a fold.
+            _logger.LogWarning(ex, "A logbook Changed subscriber threw");
         }
     }
 
@@ -292,6 +360,14 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
             FlightMinutes = facts.FlightMinutes,
             LiftoffIasKt = facts.LiftoffIasKt,
             TouchdownGroundSpeedKt = facts.TouchdownGroundSpeedKt,
+            TouchdownVerticalSpeedFpm = facts.TouchdownVerticalSpeedFpm,
+            TouchdownIasKt = facts.TouchdownIasKt,
+            TouchdownPitchDeg = facts.TouchdownPitchDeg,
+            Bounces = facts.Bounces,
+            OffBlocksUtc = facts.OffBlocksUtc,
+            TakeoffUtc = facts.TakeoffUtc,
+            LandingUtc = facts.LandingUtc,
+            OnBlocksUtc = facts.OnBlocksUtc,
             Landed = landed,
             ApproachResult = OverallApproach(facts),
             Abnormals = facts.Abnormals.Select(a => a.Title).ToList(),
@@ -359,6 +435,13 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
                 .OrderByDescending(a => a.Landings)
                 .ToList();
 
+            // Only landings the recorder measured: flights from before it existed have no
+            // rate, and counting them as zero would flatter the average.
+            var rates = flights
+                .Where(f => f.Landed && f.TouchdownVerticalSpeedFpm is not null)
+                .Select(f => f.TouchdownVerticalSpeedFpm!.Value)
+                .ToList();
+
             return new LogbookAggregates(
                 flights.Count,
                 Math.Round(blockHours, 1),
@@ -366,7 +449,9 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
                 landings,
                 stabilized,
                 judged,
-                airports);
+                airports,
+                rates.Count > 0 ? Math.Round(rates.Average()) : null,
+                rates.Count);
         }
     }
 
@@ -427,6 +512,8 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
         {
             _store = JsonSerializer.Deserialize<LogbookStore>(File.ReadAllText(path), JsonOptions)
                 ?? new LogbookStore();
+            // A hand-edited file may carry an explicit null here.
+            _store.RemovedSessionIds ??= [];
         }
         catch (Exception ex)
         {
@@ -464,8 +551,10 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
         }
     }
 
+    /// <summary>On file, or deleted by the pilot — either way the session is not folded again.</summary>
     private bool ContainsLocked(string sessionId)
-        => _store.Flights.Any(f => string.Equals(f.SessionId, sessionId, StringComparison.OrdinalIgnoreCase));
+        => _store.Flights.Any(f => string.Equals(f.SessionId, sessionId, StringComparison.OrdinalIgnoreCase))
+            || _store.RemovedSessionIds.Contains(sessionId, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>"session-yyyyMMdd-HHmmss" → "yyyy-MM-dd"; empty when the id doesn't match.</summary>
     internal static string DateFromSessionId(string sessionId)

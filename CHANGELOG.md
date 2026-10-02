@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New: **Logbook page** (#146) — a Logbook entry in the sidebar. Totals (flights, block hours, landings, stable-approach rate, average touchdown rate), a touchdown-rate trend chart of your last landings, a table of every flight you can sort by any column, and a detail panel per flight: off-blocks / takeoff / landing / on-blocks times, runways, lift-off speed, touchdown rate, IAS, ground speed, pitch and bounces. **Delete flight** takes two clicks and a deleted flight does not come back. **Export CSV** downloads the whole logbook (UTC times, decimal points whatever your Windows region is). **Read saved sessions** adds flights that are still in the session files but not in the logbook.
+- New: **landing analysis** (#146). The app now measures each landing: the touchdown rate is the lowest vertical speed in the second before the wheels touch (not the already-flared reading at contact), with IAS, ground speed, pitch, bank and a bounce count (wheels off and on again within five seconds). A touch-and-go or a go-around after touchdown is recorded separately and does not count as your landing. The debrief gains one line — "Touchdown at minus 180 feet per minute" — and the LLM-styled debrief is held to the same figure by the number verifier. Flights flown before this build show a dash. Unverified live. Probes touchdown-recorded, touchdown-once-per-landing.
+- Watch: `aircraft.acceleration.Y` is recorded raw on the touchdown event for a future vertical-G figure. Its unit is undocumented, so nothing converts or shows it yet.
+
 ## 0.5.0-rc.12
 
 Replaces 0.5.0-rc.11 (same fixes) and adds two features.

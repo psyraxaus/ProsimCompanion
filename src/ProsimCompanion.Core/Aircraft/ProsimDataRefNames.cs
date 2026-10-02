@@ -72,10 +72,20 @@ public static class ProsimDataRefNames
     /// <summary>Fallback MaxValue = unlimited visibility; a generic 0 would read as dense fog.</summary>
     public static readonly DataRef<double> AmbientVisibility = new("environment.ambientVisibility", DataRefTier.Infrequent, double.MaxValue);
 
+    // Touchdown recorder inputs (issue #146), Critical tier: the landing is over in a second
+    // and the recorder samples at 100 ms. Fallback NaN = "not read" — a dead ref must show as
+    // a blank figure in the logbook, never as a 0° pitch.
+    /// <summary>Pitch attitude, degrees. Sign convention unverified live (expected: nose-up
+    /// positive) — recorded and shown as ProSim sends it.</summary>
+    public static readonly DataRef<double> PitchAngle = new("aircraft.pitch", DataRefTier.Critical, double.NaN);
+    public static readonly DataRef<double> BankAngle = new("aircraft.bank", DataRefTier.Critical, double.NaN);
+    /// <summary>"Aircraft vertical acceleration" — the catalog gives NO unit (G? m/s²? ft/s²?
+    /// with or without the 1 g of gravity?). Only RECORDED, raw, on the touchdown session
+    /// event until one flight settles it; never converted to G and never shown in the UI.</summary>
+    public static readonly DataRef<double> AccelerationYRaw = new("aircraft.acceleration.Y", DataRefTier.Critical, double.NaN);
+
     // Wire vocabulary only (no subscriber today) — kept as reference names.
     public const string GroundContact = "aircraft.ground";
-    public const string BankAngle = "aircraft.bank";
-    public const string PitchAngle = "aircraft.pitch";
     public const string HeadingMagnetic = "aircraft.heading.magnetic";
     public const string HeadingTrue = "aircraft.heading.true";
     public const string AircraftTime = "aircraft.time";

@@ -103,6 +103,22 @@ WRONG and latched the flag true for entire flights. A missing dataref must fall 
 `aircraft.engines.limits.toga/flex`, `debug.groundSpoilersDeployd` (sic — misspelled in ProSim),
 `aircraft.ground.nose`, `environment.ambientInCloud/Visibility`.
 
+**Touchdown recorder (issue #146)**: `aircraft.verticalspeed`, `aircraft.pitch`,
+`aircraft.bank` and `aircraft.acceleration.Y` at the 100 ms tier, with the raw
+`system.gates.B_GROUND` flag used only to find the instant of first wheel contact (the
+committed ground contact trails it by the agreement filter). Fallback NaN on pitch / bank /
+acceleration, so a dead ref is a blank figure. Two things are **unverified live**:
+
+- **`aircraft.pitch` sign.** Expected nose-up positive; recorded and shown as ProSim sends it.
+  If a normal landing shows a negative pitch on the Logbook page, the sign is inverted.
+- **`aircraft.acceleration.Y` unit.** The catalog says "Aircraft vertical acceleration" and
+  nothing else. The `touchdown` session event carries three RAW values —
+  `accelerationYRawBeforeContact` (mean over the second before contact),
+  `accelerationYRawMax` and `accelerationYRawMin` (contact to contact + 3 s). The baseline
+  tells the unit apart: about 1 = G including gravity, about 0 = G with gravity removed,
+  about 9.8 = m/s², about 32 = ft/s². Nothing converts it to G and no page shows it until
+  the owner confirms the unit from a flight.
+
 **Cockpit systems**: FCU `system.analog.A_FCU_{HEADING|ALTITUDE|SPEED|VS}`,
 `system.switches.S_FCU_*`, `system.indicators.I_FCU_*`; MCDU2 keys
 `system.switches.S_CDU2_KEY_<suffix>`; COM `system.analog.R_COM{1|2}_{ACTIVE|STANDBY}`; baro

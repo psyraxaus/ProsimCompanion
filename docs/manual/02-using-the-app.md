@@ -47,6 +47,7 @@ running version.
 | **Performance** | Takeoff and Landing switch — airport/runway card with runway chips, runway diagram and wind components, weather, aircraft config, FMGC figures, FMS PERF uplink |
 | **Checklists** | ECAM-style interactive checklists with a completion bar and the checklist sequence rail (visual runner; the voice FO runs beside it) |
 | **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode with a legs timeline |
+| **Logbook** | Your flights: totals (flights, block hours, landings, stable-approach rate, average touchdown rate), the touchdown-rate trend, a table you can sort by any column, the detail of one flight (times, runways, touchdown rate / speed / pitch, bounces, abnormals), delete (two clicks) and **Export CSV** — see below |
 | **⚙ Settings** | Everything you configure, on one rail (below) |
 
 ### The Flight Monitor window
@@ -65,6 +66,38 @@ shape. It changes face with the flight:
 The header clock is sim time. The footer dots are the real ProSim / SimConnect / GSX connections.
 
 ![Flight Monitor](../img/flight-monitor.png)
+
+### The Logbook page
+
+**Logbook** in the sidebar shows every flight the app has recorded. A flight is added when
+you shut down at the gate.
+
+- **Totals** — flights, block hours, landings, how many approaches the gates judged stable,
+  and your average touchdown rate.
+- **Touchdown rate trend** — the small chart shows your last landings, oldest on the left.
+  Higher is softer. The bright dot is your latest landing; the faint dashed line is the
+  average. Hover a dot to read the flight and the figure.
+- **The table** — click a column heading to sort by it; click again to turn the order round.
+  Flights with no value in that column stay at the bottom.
+- **The detail** — click a row. The panel on the right shows the off-blocks, takeoff, landing
+  and on-blocks times (sim time, UTC), runways, lift-off speed, and the landing: touchdown
+  rate, IAS, ground speed, pitch and bounces. Click the row again, or the ✕, to close it.
+- **Delete flight** — in the detail panel. Press it once and it reads CONFIRM DELETE; press
+  again within three seconds to delete. A deleted flight does not come back.
+- **Export CSV** — downloads every flight as a spreadsheet file. Times are UTC
+  (`2026-10-03T08:11:05Z`), numbers use a decimal point whatever your Windows region is, and
+  an unknown value is an empty cell.
+- **Read saved sessions** — adds any flight that is still in the app's session files but not
+  in the logbook (for example flights flown while the logbook was switched off).
+
+**What the touchdown rate is.** It is the vertical speed, in feet per minute, at which the
+aircraft arrived: the lowest reading in the second before the wheels touched, not the reading
+at the instant of contact (the flare has already arrested that one). Minus 100 to minus 250
+is a normal airline landing. A **bounce** is counted when the wheels leave the ground and
+touch again within five seconds. If you touch down and go around, that touch is not your
+landing — the logbook records the landing that ended the flight. Flights flown before this
+feature show a dash. The FO also reads the figure in the debrief ("touchdown at minus one
+eighty feet per minute").
 
 ### The Settings hub
 

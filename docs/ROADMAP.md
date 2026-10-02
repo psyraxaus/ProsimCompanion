@@ -490,3 +490,25 @@ from Phase 1 — this phase adds the speech stack and features on top.
       `settings.json` (marker-guarded first-run; PredecessorConfigImporter)
 - [x] Docs site / user manual — `docs/manual/` (installation, using the app, voice FO,
       settings reference, troubleshooting)
+
+## Phase 8 — October 2026 batch
+
+Seven packages, one GitHub issue and one branch each. New behaviour is **Unverified live**
+until a flight confirms it; the manual test steps are on each issue.
+
+- [x] **Logbook page and landing analysis** (#146, `feature/logbook-page`): pure
+      `TouchdownRecorderCore` fed at 100 ms — on the committed ground-contact edge after at
+      least 5 s airborne it captures the most negative vertical speed of the second before
+      first wheel contact, IAS, ground speed, pitch, bank and the bounce count (ground contact
+      lost and regained within 5 s), and writes ONE `touchdown` session event once the landing
+      has settled; a touch followed by more than 5 s airborne is reported as a go-around and
+      the real landing reports separately. `aircraft.acceleration.Y` is recorded raw (max, min,
+      pre-contact baseline) — unit unconfirmed, never converted, never shown. The flight
+      stamps ride in the session log as `flight-times`. `LogbookFlight` gains touchdown V/S,
+      IAS, pitch, bounces and the four stamps (additive JSON; old files load; backfill
+      tolerates sessions without the event). `/logbook` page: totals, touchdown-rate trend
+      (inline SVG), sortable table, detail drawer, two-click delete with a tombstone so a
+      backfill cannot resurrect the flight, CSV export (`GET /api/logbook/export.csv`,
+      token-gated on LAN, invariant culture, UTC ISO). The debrief template and LLM fact sheet
+      gain the touchdown rate line, rounded to 10 fpm, under the number verifier.
+      **Unverified live** — pitch sign convention and the acceleration unit in particular.

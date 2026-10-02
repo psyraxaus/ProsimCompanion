@@ -66,7 +66,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   memory drills, departure/arrival briefings from Navigraph DFD + live weather
 - Cabin crew (a "cabin secure" that arrives a realistic, pax-scaled while after the doors
   close — sometimes at the holding point) and company/ACARS immersion, tech log & MEL with
-  voice dialogues, pilot logbook, spoken post-flight debrief, multi-leg company day mode
+  voice dialogues, pilot logbook with a **Logbook page** (totals, sortable flights, touchdown
+  rate and bounces per landing, a trend chart, CSV export), spoken post-flight debrief,
+  multi-leg company day mode
 - TTS chain (Kokoro local neural → ElevenLabs → Google Chirp HD → Windows voices) with caching
   and an intercom filter; LAN faster-whisper or offline recognition; PTT on keyboard or joystick.
   ElevenLabs: bring your own key; the default MP3 output works on the Free plan (no commercial

@@ -101,6 +101,9 @@ public static class CoreServiceCollectionExtensions
         // Off/on-blocks, takeoff and landing stamps for the Flight Monitor board (2026-09-23).
         services.AddSingleton<Flight.FlightTimesStore>();
         services.AddStartupModule<Flight.FlightTimesTracker>();
+        // Landing analysis (issue #146): one `touchdown` session event per landing, read
+        // back by the debrief and the logbook fold. Passive — it never writes to the aircraft.
+        services.AddStartupModule<Flight.TouchdownRecorder>();
         services.AddSingleton<ConnectionStatusStore>();
         // Written by the Sim pillar's session monitor; read by session-gated automation and
         // the web UI. Stays at Empty (phase Unknown = hold) when the Sim pillar is absent.

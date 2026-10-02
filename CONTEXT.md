@@ -93,6 +93,19 @@ the flight is live. The replay feeds these back through the engine; a recorded f
 expected timeline is a regression test.
 _Avoid_: telemetry tick, snapshot event
 
+**Touchdown**:
+One landing as the touchdown recorder measured it: the ground-contact edge after the aircraft
+has been off the ground for at least five seconds, reported once the landing has settled. Its
+rate is the most negative vertical speed in the second before the wheels first touched — not
+the sample at contact. A touch followed by more than five seconds airborne is a go-around, a
+separate touchdown from the landing that ends the flight.
+_Avoid_: landing event, landing-rollout edge (that is the phase commit)
+
+**Bounce**:
+Ground contact lost and regained within five seconds of a touchdown. Counted on the committed
+ground contact, so a one-sample flicker of the raw flag is not a bounce.
+_Avoid_: skip, second touchdown
+
 ### Speech
 
 **Spoken text**:

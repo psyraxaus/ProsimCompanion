@@ -59,6 +59,11 @@ public static class DebriefTemplate
             parts.Add($"Touchdown {touchdown.ToString("0", CultureInfo.InvariantCulture)} knots.");
         }
 
+        if (facts.TouchdownVerticalSpeedFpm is { } rate)
+        {
+            parts.Add($"Touchdown at {TouchdownRate(rate)} feet per minute.");
+        }
+
         if (facts.ChecklistsCompleted > 0)
         {
             parts.Add($"{facts.ChecklistsCompleted} checklists complete.");
@@ -120,4 +125,19 @@ public static class DebriefTemplate
     }
 
     private static string Tonnes(double kg) => (kg / 1000.0).ToString("0.0", CultureInfo.InvariantCulture);
+
+    /// <summary>The spoken touchdown rate: nearest ten feet per minute (a recorder reading of
+    /// −183 is not more true than "minus 180", and it is easier on the ear), the sign as the
+    /// word "minus" so no TTS engine reads a hyphen as "dash" or drops it. Shared with the
+    /// LLM fact sheet (<see cref="DebriefLlm"/>) so both paths speak the same figure.</summary>
+    public static string TouchdownRate(double verticalSpeedFpm)
+    {
+        var rounded = RoundedTouchdownRate(verticalSpeedFpm);
+        var magnitude = Math.Abs(rounded).ToString("0", CultureInfo.InvariantCulture);
+        return rounded < 0 ? "minus " + magnitude : magnitude;
+    }
+
+    /// <summary>The touchdown rate to the nearest ten feet per minute, sign kept.</summary>
+    public static double RoundedTouchdownRate(double verticalSpeedFpm)
+        => Math.Round(verticalSpeedFpm / 10.0, MidpointRounding.AwayFromZero) * 10.0;
 }

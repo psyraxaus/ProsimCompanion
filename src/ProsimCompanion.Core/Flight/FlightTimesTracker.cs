@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Flight;
@@ -90,11 +91,15 @@ public sealed class FlightTimesCore
 /// </summary>
 public sealed class FlightTimesTracker : IDisposable
 {
+    /// <summary>Session event carrying the four stamps (sim-clock UTC) on every change.</summary>
+    public const string EventType = "flight-times";
+
     private readonly IFlightPhaseSource _flight;
     private readonly GroundOpsSignals _signals;
     private readonly ISimClock _clock;
     private readonly FlightTimesStore _store;
     private readonly ILogger<FlightTimesTracker> _logger;
+    private readonly JsonlEventLog? _eventLog;
     private readonly FlightTimesCore _core = new();
     private readonly object _gate = new();
 
@@ -103,7 +108,8 @@ public sealed class FlightTimesTracker : IDisposable
         GroundOpsSignals signals,
         ISimClock clock,
         FlightTimesStore store,
-        ILogger<FlightTimesTracker> logger)
+        ILogger<FlightTimesTracker> logger,
+        JsonlEventLog? eventLog = null)
     {
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(signals);
@@ -116,6 +122,7 @@ public sealed class FlightTimesTracker : IDisposable
         _clock = clock;
         _store = store;
         _logger = logger;
+        _eventLog = eventLog;
 
         _flight.PhaseChanged += OnPhaseChanged;
         _signals.FlightCycleReset += OnFlightCycleReset;
@@ -134,6 +141,20 @@ public sealed class FlightTimesTracker : IDisposable
             _logger.LogInformation(
                 "Flight times: off {Off:HH:mm}Z takeoff {Takeoff:HH:mm}Z landing {Landing:HH:mm}Z on {On:HH:mm}Z ({Previous} → {Current})",
                 times.OffBlocksUtc, times.TakeoffUtc, times.LandingUtc, times.OnBlocksUtc, e.Previous, e.Current);
+
+            // The stamps ride in the session log (issue #146) so the logbook can carry them
+            // from any folded or backfilled session. A reset to "all empty" is not recorded:
+            // the extractor keeps the first stamp of each kind, so it would say nothing.
+            if (times != FlightTimesSnapshot.Empty)
+            {
+                _eventLog?.Record(EventType, new
+                {
+                    offBlocksUtc = times.OffBlocksUtc,
+                    takeoffUtc = times.TakeoffUtc,
+                    landingUtc = times.LandingUtc,
+                    onBlocksUtc = times.OnBlocksUtc,
+                });
+            }
         }
 
         _store.Update(_ => times);
