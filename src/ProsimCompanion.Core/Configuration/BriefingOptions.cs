@@ -115,6 +115,14 @@ public sealed class BriefingOptions : IOptionSection
 
     public bool LlmEnabled { get; set; }
 
+    /// <summary>Speak LLM-styled briefings and the debrief WHILE the model writes them
+    /// (issue #147): each sentence is verified and spoken as soon as it is complete, instead
+    /// of after the whole reply. Off = the reply is awaited whole, verified once, then spoken
+    /// (the pre-2026-10 behaviour). The streaming path always verifies numbers — spelled-out
+    /// ones included — whatever <see cref="VerifyNumbers"/> says; a sentence that fails is
+    /// dropped and the deterministic template finishes the narration.</summary>
+    public bool StreamLlm { get; set; } = true;
+
     /// <summary>Which wire protocol the endpoint speaks: <see cref="LlmApiKind.OpenAi"/>
     /// (<c>{base}/chat/completions</c>) or <see cref="LlmApiKind.Ollama"/> (Ollama's native
     /// <c>{base}/api/chat</c>). Ollama native is REQUIRED to control thinking — the

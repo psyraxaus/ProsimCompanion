@@ -1468,7 +1468,8 @@
         "#97 dead-circuit auto-reload: restart the app with the EFB open — the page must reload itself (~10 s).",
         "Parity/features not yet implemented: #42, #72, #3–#12 (plus the unshipped remainders of #43 and #67).",
         "2026-09-22 Flight Status hero widgets: two weather cards (sky graphic + condition word matching the METAR, wind arrow, ATIS chip, 'METAR hh:mmZ' stamp; LOCAL WEATHER flips to the destination from Descent) and the gate strip (grey → gold → cyan glow with the pax bar → amber halo → green tick; dims after taxi-out) render on the route card; Settings → Display & Flight Data → Flight Status card edits the three thresholds (web UI).",
-        "2026-09-23 pop-out Flight Monitor: 'Pop out' on the gate strip opens /monitor in its own window; the board scales as one piece at any window size; GATE MONITOR at the stand (state word + pax bar match the hero strip), FLIGHT MONITOR from pushback (phase word, time-based progress, ETA, GS/ALT/VS/HDG), ARRIVAL MONITOR after landing (arrival gate, deboarding bar, block-in/block time); the airline logo appears when one is uploaded for the OFP's airline code (Settings → Appearance → Airline logos). Log lines 'Flight times: off … takeoff … landing … on …' stamp each edge once (web UI + log)."
+        "2026-09-23 pop-out Flight Monitor: 'Pop out' on the gate strip opens /monitor in its own window; the board scales as one piece at any window size; GATE MONITOR at the stand (state word + pax bar match the hero strip), FLIGHT MONITOR from pushback (phase word, time-based progress, ETA, GS/ALT/VS/HDG), ARRIVAL MONITOR after landing (arrival gate, deboarding bar, block-in/block time); the airline logo appears when one is uploaded for the OFP's airline code (Settings → Appearance → Airline logos). Log lines 'Flight times: off … takeoff … landing … on …' stamp each edge once (web UI + log).",
+        "#147 by ear: with the LLM on, 'brief the departure' starts speaking a few seconds in (not after the whole reply) and the sentences flow as one briefing; a template takeover sounds like the plain briefing finishing the list, never a restart from 'Departure briefing'; Settings → Voice First Officer → LLM Styling shows 'Speak while the model writes' (web UI)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -1643,6 +1644,63 @@
         "watch: L:FSDT_GSX_AIRCRAFT_SERVICE_1_TOGGLE never pulsing while service-2 does = GSX did not ask for the forward door (catering config / airline profile), not a door-service fault."
       ],
       "notes": "needs-info (ticket t-20260929-1933): no wire trace in the bundle, so whether GSX pulsed the service-1 toggle at all is unknown. Ask for a flight with logging.wireTrace=true before touching GsxDoorService."
+    },
+    {
+      "id": "llm-stream-takeover",
+      "issue": 147,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "briefing.spoken",
+          "contains": "\"streamed\":true"
+        },
+        "signature": {
+          "source": "session",
+          "type": "llm.stream",
+          "contains": "\"kind\":\"briefing"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "When a briefing or the debrief was spoken with the LLM on and briefing.streamLlm on: one 'llm.stream' event per narration carrying kind, firstTokenMs, firstAudioMs, sentencesSpoken, templateTookOver, takeoverReason, sectionsFromTemplate, preempted, outcome and model. REPORT firstTokenMs and firstAudioMs — the numbers the feature is judged by (expected: first audio a few seconds after the request instead of after the whole reply).",
+        "'speech.segment' events follow for each sentence (reason 'llm' for the model's own sentences, none for template ones), all between ONE 'speech.dequeued' and ONE 'speech.spoken' for the item (text 'Departure briefing' / 'Arrival briefing' / 'Post-flight debrief', reason 'stream — N segment(s)').",
+        "When templateTookOver is true: REPORT takeoverReason and the log line before it — 'a streamed sentence failed number verification (unverified: …)' names the number the model got wrong; 'stalled', 'timed out', 'the LLM stream failed' name the other causes. A takeover is the rule WORKING, not a failure; a takeover on every briefing means the model or the prompt needs work.",
+        "assert-absent: a 'speech.segment' whose text holds a number that is not one of the briefing's facts (cross-check against the OFP, the METAR and the FMS values of the flight: runway heading, transition altitude, V-speeds, wind, QNH, ILS frequency, minima). Spelled-out numbers count — 'one six eight' is 168.",
+        "The segments spoken after a verify-failed takeover are template sentences in template order ('Initial track 163 degrees.', 'Wind 250 at 14 knots.', 'QNH 1013.' …) and never repeat a section whose numbers the model had already spoken.",
+        "'briefing.spoken' / 'debrief.spoken' with streamed true carry the text that was actually heard (the model's sentences plus any template sections), not the model's full reply."
+      ],
+      "notes": "Shipped 2026-10-03 (October batch package 3; owner decisions D1-A, D2-1, D3-1, D4-1 on the issue). The debrief's llm.stream event has kind 'debrief'. With briefing.streamLlm off none of these events exist and the whole-reply path's 'debrief.styled' / 'briefing.spoken' (no streamed flag) apply."
+    },
+    {
+      "id": "llm-stream-never-restarted",
+      "issue": 147,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "speech.requeued",
+          "contains": "\"text\":\"Departure briefing\","
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-absent: a 'speech.requeued' event for a streamed item (text exactly 'Departure briefing', 'Arrival briefing' or 'Post-flight debrief') — a streamed narration cut by a Critical ENDS (speech.preempted then speech.dropped 'pre-empted', llm.stream preempted true, outcome Superseded); it must never be put back to restart from the top. The whole-reply path's restart of a Normal item (text = the full narrative) is unchanged and still allowed.",
+        "assert-absent: any 'speech.segment' of that item after its 'speech.preempted'.",
+        "When a High callout ('callout.fired' / tag callout) was enqueued while a stream was speaking: its 'speech.dequeued' reason reads 'between stream segments' and it was spoken between two 'speech.segment' events — not after the item's 'speech.spoken'.",
+        "assert-absent: a Normal or Low 'speech.spoken' between two 'speech.segment' events of one stream (nothing at the stream's priority or below may interleave)."
+      ],
+      "notes": "Shipped 2026-10-03 (October batch package 3). Covers owner decisions D2 (a pre-empted stream ends) and D3 (High plays between sentences)."
     }
   ]
 }

@@ -21,11 +21,41 @@ public sealed class TtsDiskCache
         _logger = logger;
     }
 
+    // Ambient "do not cache this synthesis" flag (issue #147). An async-local rather than a
+    // parameter on ITtsProvider: the decision belongs to the caller that knows the text is
+    // one-off (a streamed LLM sentence), and it must reach whichever provider the router
+    // ends up using without every provider and fake growing an argument. It flows down the
+    // awaited call chain only, so a concurrent prewarm or another render is unaffected.
+    private static readonly AsyncLocal<bool> BypassFlag = new();
+
+    /// <summary>True while the calling flow is inside <see cref="Bypass"/>.</summary>
+    public static bool IsBypassed => BypassFlag.Value;
+
+    /// <summary>Makes every cache read miss and every cache write a no-op for the calling
+    /// async flow until the returned scope is disposed. For text that will never be asked
+    /// for again: reading cannot hit, and writing only grows the cache (the cloud providers'
+    /// folders have no size cap).</summary>
+    public static IDisposable Bypass() => new BypassScope();
+
+    private sealed class BypassScope : IDisposable
+    {
+        private readonly bool _previous = BypassFlag.Value;
+
+        public BypassScope() => BypassFlag.Value = true;
+
+        public void Dispose() => BypassFlag.Value = _previous;
+    }
+
     /// <summary>Returns the cached WAV (sizes healed) or null on a miss.</summary>
     public async Task<byte[]?> GetAsync(string root, string provider, string voice, string text)
     {
         try
         {
+            if (IsBypassed)
+            {
+                return null;
+            }
+
             var path = PathFor(root, provider, voice, text);
             if (!File.Exists(path))
             {
@@ -51,6 +81,11 @@ public sealed class TtsDiskCache
 
         try
         {
+            if (IsBypassed)
+            {
+                return;
+            }
+
             var path = PathFor(root, provider, voice, text);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await File.WriteAllBytesAsync(path, wav).ConfigureAwait(false);

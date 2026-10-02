@@ -60,6 +60,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly ILogger<BriefingService> _logger;
     private readonly Persona.PersonaService? _persona;
 
+    // Streamed LLM speech (issue #147). Optional: hand-built instances (tests, tools)
+    // without one simply keep the whole-reply path.
+    private readonly StreamingNarrator? _narrator;
+
     // Spoken text (campaign #81): names when the DFD is present, NATO-spelled ICAO otherwise
     // — the fallback policy lives in the module, not here (issue #70).
     private readonly Core.Speech.ISpokenText _spokenText;
@@ -78,9 +82,11 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         ILogger<BriefingService> logger,
         Core.Speech.ISpokenText spokenText,
         OpenAiChatClient? llm = null,
-        Persona.PersonaService? persona = null)
+        Persona.PersonaService? persona = null,
+        StreamingNarrator? narrator = null)
     {
         _persona = persona;
+        _narrator = narrator;
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(options);
@@ -153,29 +159,54 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             }
 
             var facts = await BuildFactsAsync(departure).ConfigureAwait(false);
-            var narrative = await ComposeAsync(facts).ConfigureAwait(false);
-            // Route breadcrumb for the logbook/debrief extractor: the briefing is the one place
-            // the resolved airport + runway exist as facts (Prosim2FO emitted flight.route from
-            // the same spot). A flight flown without a briefing simply has no route on record.
-            if (!string.IsNullOrWhiteSpace(facts.Airport))
+            var tag = departure ? "briefing.departure" : "briefing.arrival";
+
+            // Streamed path (issue #147): the model's sentences are verified and spoken as
+            // they arrive, the template finishing whatever the model does not deliver.
+            if (_narrator is not null && _llm.IsConfigured && _options.CurrentValue.StreamLlm)
             {
-                _eventLog.Record("flight.route", new
-                {
-                    role = departure ? "departure" : "arrival",
-                    airport = facts.Airport,
-                    runway = facts.Runway,
-                });
+                RecordRoute(facts, departure);
+                var personaFragment = _persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Briefing) ?? "";
+                var result = await _narrator.RunAsync(new NarrationPlan(
+                    tag,
+                    personaFragment + BriefingComposer.SystemPrompt(facts.IsDeparture),
+                    BriefingComposer.FactBlock(facts) + "\n\nWrite the spoken briefing now.",
+                    BriefingComposer.AllowedNumbers(facts),
+                    BriefingComposer.Sections(facts),
+                    new SpeechRequest(
+                        departure ? "Departure briefing" : "Arrival briefing", SpeechPriority.Normal, Tag: tag),
+                    Epilogue: [])).ConfigureAwait(false);
+                _eventLog.Record("briefing.spoken", new { departure, narrative = result.Text, streamed = true });
+                return;
             }
 
+            var narrative = await ComposeAsync(facts).ConfigureAwait(false);
+            RecordRoute(facts, departure);
+
             _eventLog.Record("briefing.spoken", new { departure, narrative });
-            await _arbiter.EnqueueAsync(new SpeechRequest(
-                narrative, SpeechPriority.Normal, Tag: departure ? "briefing.departure" : "briefing.arrival"))
+            await _arbiter.EnqueueAsync(new SpeechRequest(narrative, SpeechPriority.Normal, Tag: tag))
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Briefing failed");
             _ = _arbiter.SpeakAsync("Unable to compose the briefing.", SpeechPriority.Normal);
+        }
+    }
+
+    /// <summary>Route breadcrumb for the logbook/debrief extractor: the briefing is the one
+    /// place the resolved airport + runway exist as facts (Prosim2FO emitted flight.route
+    /// from the same spot). A flight flown without a briefing simply has no route on record.</summary>
+    private void RecordRoute(BriefingFacts facts, bool departure)
+    {
+        if (!string.IsNullOrWhiteSpace(facts.Airport))
+        {
+            _eventLog.Record("flight.route", new
+            {
+                role = departure ? "departure" : "arrival",
+                airport = facts.Airport,
+                runway = facts.Runway,
+            });
         }
     }
 

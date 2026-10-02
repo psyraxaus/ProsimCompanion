@@ -34,11 +34,16 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
     private readonly IFlightPhaseSource _flight;
     private readonly JsonlEventLog _eventLog;
     private readonly IOptionsMonitor<DebriefOptions> _options;
+    private readonly IOptionsMonitor<BriefingOptions> _briefingOptions;
     private readonly OpenAiChatClient _llm;
     private readonly Core.Day.DayStatusStore? _dayStore;
     private readonly ILogger<DebriefService> _logger;
     private readonly object _gate = new();
     private readonly Persona.PersonaService? _persona;
+
+    // Streamed LLM speech (issue #147). Optional: hand-built instances (tests, tools)
+    // without one simply keep the whole-reply path.
+    private readonly StreamingNarrator? _narrator;
 
     // Optional: without it the fact block presents raw ICAO idents — issue #70.
     private readonly Core.Speech.ISpokenText _spokenText;
@@ -58,9 +63,11 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         Core.Speech.ISpokenText spokenText,
         OpenAiChatClient? llm = null,
         Core.Day.DayStatusStore? dayStore = null,
-        Persona.PersonaService? persona = null)
+        Persona.PersonaService? persona = null,
+        StreamingNarrator? narrator = null)
     {
         _persona = persona;
+        _narrator = narrator;
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(extractor);
@@ -79,6 +86,7 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         _flight = flight;
         _eventLog = eventLog;
         _options = options;
+        _briefingOptions = briefingOptions;
         // Optional so DI needs no extra registration (the LLM endpoint settings live in the
         // briefing section); a test passes a client over a fake HTTP handler here.
         _llm = llm ?? new OpenAiChatClient(briefingOptions);
@@ -193,6 +201,17 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
 
             // Optional LLM styling behind the number verifier; ANY failure keeps the template.
             var attemptLlm = options.UseLlm && _llm.IsConfigured;
+            if (attemptLlm && _narrator is not null && _briefingOptions.CurrentValue.StreamLlm)
+            {
+                // Streamed path (issue #147): spoken sentence by sentence while the model
+                // writes. It runs in the background — the narration lasts as long as the
+                // speech, and the session finalizer must not wait for that. Everything it
+                // needs from the session is read here, before this method returns.
+                _eventLog.Record("debrief.styled", new { llm = true, streamed = true });
+                _ = NarrateAsync(facts, verbosity, Epilogue(facts, sessionPath), sessionPath, manual);
+                return;
+            }
+
             string? styled = null;
             if (attemptLlm)
             {
@@ -251,6 +270,70 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Debrief failed");
+        }
+    }
+
+    /// <summary>The deterministic lines spoken after the debrief, never paraphrased: the
+    /// day-mode context ("Leg 2 of 4 complete.") and the logbook comparison ("That's landing
+    /// number N into X."), in that order — the order the whole-reply path appends them in.</summary>
+    private List<string> Epilogue(DebriefFacts facts, string sessionPath)
+    {
+        var lines = new List<string>();
+        var dayLine = _dayStore?.Snapshot().DebriefContextLine;
+        if (!string.IsNullOrWhiteSpace(dayLine))
+        {
+            lines.Add(dayLine);
+        }
+
+        var comparison = _logbook.DescribeComparison(facts, Path.GetFileNameWithoutExtension(sessionPath));
+        if (!string.IsNullOrWhiteSpace(comparison))
+        {
+            lines.Add(comparison);
+        }
+
+        return lines;
+    }
+
+    /// <summary>The streamed debrief: same Low priority, shelf life and validity window as
+    /// the whole-reply path. The text that was actually spoken is what gets persisted.</summary>
+    private async Task NarrateAsync(
+        DebriefFacts facts, DebriefVerbosity verbosity, List<string> epilogue, string sessionPath, bool manual)
+    {
+        try
+        {
+            var system = (_persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Debrief) ?? "")
+                + DebriefLlm.SystemPrompt(verbosity);
+            var result = await _narrator!.RunAsync(new NarrationPlan(
+                "debrief",
+                system,
+                DebriefLlm.FactBlock(facts, icao => _spokenText.Airport(icao)) + "\n\nWrite the spoken debrief now.",
+                DebriefLlm.AllowedNumbers(facts),
+                DebriefTemplate.Sections(facts, verbosity),
+                new SpeechRequest(
+                    "Post-flight debrief",
+                    SpeechPriority.Low,
+                    Ttl: TimeSpan.FromMinutes(10),
+                    IsStillValid: () => _flight.CurrentPhase
+                        is FlightPhase.Shutdown or FlightPhase.ColdAndDark or FlightPhase.TaxiIn,
+                    Tag: "debrief"),
+                epilogue), CancellationToken.None).ConfigureAwait(false);
+
+            if (result.Text.Length > 0)
+            {
+                Persist(sessionPath, result.Text);
+            }
+
+            _eventLog.Record("debrief.spoken", new
+            {
+                chars = result.Text.Length,
+                verbosity = verbosity.ToString().ToLowerInvariant(),
+                manual,
+                streamed = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Streamed debrief failed");
         }
     }
 

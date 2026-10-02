@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New: **the FO speaks LLM briefings and the debrief while the model writes them** (#147). The first words come after the model's first sentence instead of after the whole reply. Every sentence is checked against the facts before it is spoken — and numbers the model writes as words ("heading one six three") are now checked too; before, they slipped past the check. If a sentence has a wrong number, or the model stalls or fails, the plain template finishes the briefing from where the model left off — nothing is said twice from the top. A safety callout (minimums, V1, master warning) cuts a briefing for good; "brief the arrival" again gives a fresh one. "Positive climb"-type callouts no longer wait behind a whole briefing: they are spoken between two of its sentences. Switch: Settings → Voice First Officer → LLM Styling → **Speak while the model writes** (`briefing.streamLlm`, on). Model sentences are not written to the TTS cache. Unverified live. Probes llm-stream-takeover, llm-stream-never-restarted.
+- Changed: with streaming on, the one strict re-ask of the whole-reply path does not happen (it would cost the latency streaming removes); the template takes over instead. The whole-reply path (switch off) is unchanged.
+
 ## 0.5.0-rc.12
 
 Replaces 0.5.0-rc.11 (same fixes) and adds two features.

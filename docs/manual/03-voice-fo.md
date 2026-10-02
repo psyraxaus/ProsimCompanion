@@ -54,7 +54,13 @@ cockpit suppresses chatter below 10,000 ft in climb/descent phases.
 
 - *"Brief the departure"* / *"brief the arrival"* — composed from the FMS plan, Navigraph
   DFD procedures, live weather and your minima. With an LLM configured the wording is
-  natural; every number is verified against the facts and the deterministic template is the
+  natural and the FO starts speaking after the model's first sentence, not after the whole
+  reply (Settings → Voice First Officer → LLM Styling → **Speak while the model writes**, on by
+  default; the same switch covers the debrief). Every sentence is checked before it is spoken
+  — numbers written as words included — and if one is wrong, or the model stops, the plain
+  template finishes the briefing without starting again. A safety callout (minimums, V1) cuts
+  a briefing short for good; ask again for a fresh one. Every number is verified against the
+  facts and the deterministic template is the
   floor.
 - Radio management: *"set one two one decimal nine"*, box selection, standby-then-swap only.
 - FCU: hand the FO pilot-flying (*"you have controls"*) and instruct — headings, altitudes,
