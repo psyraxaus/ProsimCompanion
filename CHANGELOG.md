@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0-rc.2
+
+Keep-awake diagnostics after the first iPad test (the screen still slept over HTTPS).
+
+- Changed: the screen wake lock is **re-requested on your first tap** on any page (iPadOS Safari can refuse a request made at load, before any touch), and on focus / page show.
+- New: a **Lock diagnostics** line under Keep the screen awake — requests made, when the lock was granted, when the browser let it go, and the text of the last refusal — plus a **Request again** button. Send that line with a report.
+- Docs: the switch is stored per address (`http://…:5320` and `https://…:5321` are different), and iPadOS ignores every wake lock in Low Power Mode — said on the card and in manual chapter 7.
+- Everything in 0.6.0-rc.1 below.
+
 ## 0.6.0-rc.1
 
 The October 2026 batch (#145–#151): seven features, one issue each, every one off by default
