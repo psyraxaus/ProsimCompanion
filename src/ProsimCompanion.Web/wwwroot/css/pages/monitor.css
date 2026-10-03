@@ -21,11 +21,16 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  color: var(--text-primary);
+  /* Text on the PAGE colour (Finnair: white on blue), not the card text — the cards below
+     switch back to the card tokens (owner report 2026-10-03). Old builds without the tokens
+     fall back to the card text. */
+  color: var(--text-on-bg, var(--text-primary));
 }
 
 .mon-stage .label-caps { font-size: 14px; }
-.mon-stage .label-caps.muted { color: var(--text-muted); }
+.mon-stage .label-caps.muted { color: var(--text-on-bg-muted, var(--text-muted)); }
+.mon-card, .mon-sequence { color: var(--text-primary); }
+.mon-card .label-caps.muted, .mon-sequence .label-caps.muted { color: var(--text-muted); }
 .mon-stage .label-caps.cyan { color: var(--accent); }
 .mon-stage .label-caps.gold { color: var(--accent-gold); }
 .mon-stage .label-caps.ok { color: var(--success); }
@@ -46,6 +51,10 @@
 .mon-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .mon-mode { color: var(--accent); }
 .mon-clock { font-size: 36px; }
+/* The split-flap clock (2026-10-03): the header element at board scale — ~56px tiles. */
+.mon-clock-flap split-flap .sf-cell { width: 40px; height: 56px; margin: 0 2px; border-radius: 4px; }
+.mon-clock-flap split-flap .sf-char { font-size: 34px; }
+.mon-clock-flap split-flap .sf-seam { height: 2px; }
 .mon-logo { height: 64px; max-width: 260px; object-fit: contain; }
 .mon-logo-ph {
   width: 220px;
@@ -56,7 +65,7 @@
   background: var(--bg-inset);
   border: 1px solid var(--border);
   border-radius: 12px;
-  color: var(--text-muted);
+  color: var(--text-on-bg-muted, var(--text-muted));
   font-weight: 700;
   letter-spacing: 0.2em;
   font-size: 13px;
@@ -79,7 +88,7 @@
   font-family: var(--font-mono);
   font-weight: 700;
   letter-spacing: 0.25em;
-  color: var(--text-muted);
+  color: var(--text-on-bg-muted, var(--text-muted));
   font-size: 18px;
 }
 .mon-route { display: flex; flex-direction: column; align-items: center; }
@@ -93,14 +102,14 @@
   align-items: center;
   gap: 20px;
 }
-.mon-route-arrow { color: var(--text-muted); }
+.mon-route-arrow { color: var(--text-on-bg-muted, var(--text-muted)); }
 .mon-route-names {
   margin-top: 4px;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--category-text);
+  color: var(--text-on-bg-secondary, var(--category-text));
 }
 .mon-gate-label { font-size: 22px; margin-top: 10px; }
 .mon-gate-id { font-size: 28px; margin-left: 16px; }
@@ -122,7 +131,7 @@
   animation: mon-pulse 1.6s ease-in-out infinite;
 }
 @keyframes mon-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-.mon-state.closed, .mon-state.closed .mon-state-word { color: var(--text-secondary); }
+.mon-state.closed, .mon-state.closed .mon-state-word { color: var(--text-on-bg-secondary, var(--text-secondary)); }
 .mon-state.open, .mon-state.open .mon-state-word { color: var(--accent-gold); }
 .mon-state.boarding .mon-state-word { color: var(--accent-readable, var(--accent)); text-shadow: var(--glow); }
 .mon-state.final-call, .mon-state.final-call .mon-state-word { color: var(--warning); text-shadow: 0 0 12px rgba(255, 183, 3, 0.5); }
@@ -147,10 +156,14 @@
 .mon-strip { display: block; width: 100%; height: 72px; overflow: visible; }
 .mon-strip-line { stroke: rgba(255, 255, 255, 0.16); stroke-width: 4; stroke-linecap: round; }
 .mon-strip-flown { stroke: var(--accent); stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 5px var(--accent)); }
-.mon-strip-end { fill: var(--bg-primary); stroke: var(--text-secondary); stroke-width: 3; }
+.mon-strip-end { fill: var(--bg-primary); stroke: var(--text-on-bg-secondary, var(--text-secondary)); stroke-width: 3; }
 .mon-strip-tod { stroke: var(--accent-gold); stroke-width: 3; stroke-linecap: round; }
 .mon-strip-text { fill: var(--accent-gold); font-size: 12px; font-weight: 700; letter-spacing: 0.15em; }
-.mon-strip-aircraft { fill: var(--text-primary); stroke: var(--bg-primary); stroke-width: 2; stroke-linejoin: round; }
+/* The route marker (owner approval 2026-10-04): ONE closed top-down airliner outline, 3 px in
+   the page's text colour with a soft accent glow, filled with the page colour so the strip
+   line does not show through. The stroke is non-scaling: the group is scaled to ~64 px. */
+.mon-strip-plane { filter: drop-shadow(0 0 6px var(--accent-muted)); }
+.mon-strip-plane path { fill: var(--bg-primary); stroke: var(--text-on-bg, var(--text-primary)); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .mon-strip-caption { display: block; margin: 2px 0 12px; font-size: 12px; }
 
 .mon-pax-row { display: flex; justify-content: space-between; align-items: flex-end; }

@@ -24,6 +24,9 @@ public sealed class HeroWeatherService : IDisposable
     private readonly HeroWeatherStore _store;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<HeroWeatherService> _logger;
+    // SayIntentions getWX (the ATIS letter, SI winds): refreshed before every probe. 2026-10-03
+    // flight: it was fetched once at session start and the ATIS chip never changed all flight.
+    private readonly State.IWeatherControl? _stationWeather;
     private readonly Timer _timer;
     private readonly SemaphoreSlim _fetchGate = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
@@ -37,7 +40,8 @@ public sealed class HeroWeatherService : IDisposable
         IOptionsMonitor<FlightStatusOptions> options,
         HeroWeatherStore store,
         JsonlEventLog eventLog,
-        ILogger<HeroWeatherService> logger)
+        ILogger<HeroWeatherService> logger,
+        State.IWeatherControl? stationWeather = null)
     {
         ArgumentNullException.ThrowIfNull(weather);
         ArgumentNullException.ThrowIfNull(ofp);
@@ -54,6 +58,7 @@ public sealed class HeroWeatherService : IDisposable
         _store = store;
         _eventLog = eventLog;
         _logger = logger;
+        _stationWeather = stationWeather;
 
         _ofp.Changed += OnOfpChanged;
         _flight.PhaseChanged += OnPhaseChanged;
@@ -131,6 +136,7 @@ public sealed class HeroWeatherService : IDisposable
         }
 
         _store.Update(s => s with { IsRefreshing = true });
+        await RefreshStationWeatherAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogDebug("Hero weather: probing {Local} and {Second} ({Reason})", plan.LocalIcao, plan.SecondIcao, reason);
 
         var local = await ProbeCardAsync(WeatherCardRole.Local, plan.LocalIcao, plan.LocalName, cancellationToken).ConfigureAwait(false);
@@ -148,6 +154,31 @@ public sealed class HeroWeatherService : IDisposable
             local = new { icao = local.Icao, status = local.Status.ToString(), sky = local.Sky.ToString() },
             second = new { role = second.Role.ToString(), icao = second.Icao, status = second.Status.ToString(), sky = second.Sky.ToString() },
         });
+    }
+
+    /// <summary>Asks the station-weather source (SayIntentions getWX) to refresh its cache
+    /// before the cards are probed, so the ATIS letter and SI winds move with the flight. The
+    /// control applies its own TTL and debounce, so this is cheap when nothing is due; a
+    /// failure there must never stop the METAR probe.</summary>
+    private async Task RefreshStationWeatherAsync(CancellationToken cancellationToken)
+    {
+        if (_stationWeather is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _stationWeather.RefreshAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Station weather refresh before the hero probe failed; probing with the cache");
+        }
     }
 
     private async Task<WeatherCard> ProbeCardAsync(WeatherCardRole role, string icao, string name, CancellationToken cancellationToken)

@@ -101,6 +101,13 @@ internal static class SpeechTestSupport
         return monitor.Object;
     }
 
+    public static IOptionsMonitor<WebUiOptions> WebUiMonitor(WebUiOptions options)
+    {
+        var monitor = new Mock<IOptionsMonitor<WebUiOptions>>();
+        monitor.SetupGet(m => m.CurrentValue).Returns(() => options);
+        return monitor.Object;
+    }
+
     public static IOptionsMonitor<SpeechOptions> SpeechMonitor(SpeechOptions options)
     {
         var monitor = new Mock<IOptionsMonitor<SpeechOptions>>();

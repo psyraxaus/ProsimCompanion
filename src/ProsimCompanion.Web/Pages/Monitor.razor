@@ -23,6 +23,7 @@
 @inject AirlineLogoStore Logos
 @inject IProsimDataRefs DataRefs
 @inject ISimClock Clock
+@inject IOptionsMonitor<WebUiOptions> WebUi
 @inject DisplayUnitService Units
 @inject IJSRuntime JS
 @inject ILogger<Monitor> Logger
@@ -49,7 +50,11 @@
         </div>
         <div class="mon-header-right">
             <span class="label-caps mon-mode">@FlightMonitorPresentation.ModeLabel(Mode)</span>
-            <span class="figure mon-clock">@FlightMonitorPresentation.Clock(Now)</span>
+            @* The split-flap clock (owner request 2026-10-03): the header's own <split-flap> element —
+               amber on dark tiles, NOT themed, flips on the minute like the header's SIM clock. *@
+            <div class="mon-clock-flap">
+                <split-flap text="@FlightMonitorPresentation.Clock(Now)" count="6" animate="@SolariMode"></split-flap>
+            </div>
         </div>
     </div>
 
@@ -102,8 +107,13 @@
                     <circle class="mon-strip-end" cx="@RouteStripView.Px(RouteStripView.DestinationX)" cy="@RouteStripView.Px(RouteStripView.LineY)" r="7" />
                     @if (strip is { MarkerX: { } markerX, MarkerY: { } markerY })
                     {
-                        <g transform="@($"translate({RouteStripView.Px(markerX)} {RouteStripView.Px(markerY)}) rotate({RouteStripView.Px(strip.MarkerRotationDeg)})")">
-                            <path class="mon-strip-aircraft" d="M18 0 L-12 -11 L-6 0 L-12 11 Z" />
+                        <g class="mon-strip-plane" transform="@($"translate({RouteStripView.Px(markerX)} {RouteStripView.Px(markerY)}) rotate({RouteStripView.Px(strip.MarkerRotationDeg)}) scale(0.64)")">
+                            @* One closed outline traced from the owner's reference (2026-10-04): drawn nose-up in a
+                               100×100 box, turned nose-right (+x) and centred, scaled to ~64 px; the stroke is
+                               non-scaling so it stays 3 px whatever the scale. *@
+                            <g transform="rotate(90) translate(-50 -50)">
+                                <path d="M50 3 C46.5 7 44 13 44 20 L44 40 L36 41.5 L36 38 Q36 36 34 36 L29 36 Q27 36 27 38 L27 43.5 L4 54.5 L3 57.5 L42.5 52 L43.5 86 L34 94 L34 97 L48 93.5 L48 100 L52 100 L52 93.5 L66 97 L66 94 L56.5 86 L57.5 52 L97 57.5 L96 54.5 L73 43.5 L73 38 Q73 36 71 36 L66 36 Q64 36 64 38 L64 41.5 L56 40 L56 20 C56 13 53.5 7 50 3 Z" />
+                            </g>
                         </g>
                     }
                 </svg>
@@ -244,6 +254,25 @@
     private bool _stageFitted;
 
     private DateTimeOffset Now => Clock.UtcNowOrReal;
+
+    // Same rule as the header: the Solari flip follows webUi.solariAnimation.
+    private string? SolariMode => WebUi.CurrentValue.SolariAnimation ? null : "off";
+
+    /// <summary>" · updated 2 min ago" from the hero store's last fetch — so a pilot can see the
+    /// cards are live (owner request 2026-10-03); the board re-renders every minute.</summary>
+    private string UpdatedAgo
+    {
+        get
+        {
+            if (_weather.FetchedAtUtc is not { } fetched)
+            {
+                return "";
+            }
+
+            var minutes = (int)Math.Max(0, (DateTimeOffset.UtcNow - fetched).TotalMinutes);
+            return minutes == 0 ? " · updated just now" : $" · updated {minutes} min ago";
+        }
+    }
 
     private FlightPhase Phase => FlightState.CurrentPhase;
 
@@ -454,7 +483,7 @@
                 }
             </div>
         </div>
-        <span class="label-caps muted mon-wx-stamp">@(card.Icao.Length > 0 ? $"{card.Icao} · METAR {card.ObservedAt ?? "—"}" : "")</span>
+        <span class="label-caps muted mon-wx-stamp">@(card.Icao.Length > 0 ? $"{card.Icao} · METAR {card.ObservedAt ?? "—"}{UpdatedAgo}" : "")</span>
     </div>;
 
     private void Tick()

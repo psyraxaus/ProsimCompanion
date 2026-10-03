@@ -73,6 +73,17 @@ public static class ThemeCssBuilder
         // during boarding), so a too-close pair is pushed apart: lightened on a dark surface,
         // darkened on a light one, and if that still fails the gold accent takes over.
         Set("--accent-readable", ReadableOn(colors.PrimaryColor, colors.ContentBackground, colors.AccentColor));
+        // Text drawn directly on the PAGE background (the Flight Monitor board's clock, route,
+        // state word and figures — owner report 2026-10-03, Finnair: #1A1614 card text on the
+        // #003580 page was unreadable). --text-primary is the CARD text; these three are its
+        // on-page counterparts: the card text when it already reads on the page, else plain
+        // light or dark, with the secondary / muted steps mixed towards the page colour.
+        var textOnBg = Contrast(colors.ContentText, colors.ContentBackground) >= 4.5
+            ? colors.ContentText
+            : Luminance(colors.ContentBackground) < 0.4 ? "#f4f6f8" : "#141414";
+        Set("--text-on-bg", textOnBg);
+        Set("--text-on-bg-secondary", MixHex(textOnBg, colors.ContentBackground, 0.3));
+        Set("--text-on-bg-muted", MixHex(textOnBg, colors.ContentBackground, 0.5));
         Set("--accent-gold", colors.AccentColor);
         Set("--accent-gold-soft", Rgba(colors.AccentColor, 0.12));
 

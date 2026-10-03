@@ -87,6 +87,12 @@ airports. Airport positions come from ProSim's own airport data, or from your Na
 database (Settings → Setup) when ProSim has none. With neither, everything still works on the
 time-based values. The same figures are on a small row under the telemetry on Flight Status.
 
+
+The aircraft on the strip is a plain top-down outline that turns with your track. The clock
+top-right is a split-flap display like the header's (amber on black in every theme; it flips
+only if Solari animation is on in Settings → Display & Flight Data). Each weather tile shows
+the METAR observation time, the ATIS letter and "updated n min ago", so you can see the cards
+are live — the METAR is re-read every ten minutes and the ATIS letter is re-read with it.
 ![Flight Monitor](../img/flight-monitor.png)
 
 ### The Logbook page

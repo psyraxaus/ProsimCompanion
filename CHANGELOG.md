@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0-rc.8
+
+Flight Monitor board, round three (owner requests in flight on 2026-10-03).
+
+- New: the board's clock is a **split-flap display** like the header's — amber on black in every theme, flipping on the minute when Solari animation is on.
+- Changed: the route-strip marker is a **plain top-down airliner outline** — one closed line traced from the owner's reference drawing — instead of an arrow; it still turns with your track.
+- Fix: **text on the page colour is readable on every theme** — Finnair showed the card's dark text on its blue page (clock, route, GATE CLOSED, EET/FOB/ETA unreadable). Themes now carry a "text on page" colour family; the white cards keep their own.
+- Fix: **the ATIS letter now moves with the flight.** SayIntentions weather (the source of the ATIS letter) was fetched once at session start and never again; the weather refresh now asks it to update first, every cycle (its own 10 min cache applies). The METAR itself was already re-read every ten minutes.
+- New: each board weather tile shows **"updated n min ago"** beside the METAR time, so you can see the cards are live.
+- Everything in 0.6.0-rc.7 below.
+
 ## 0.6.0-rc.7
 
 - New: **small talk and fun facts** for Ask the First Officer (#152, owner request in flight). A second switch on the same card, off by default. With it on, ask anything — "who is better, Chelsea or Arsenal", "tell me a fun fact", "what is the capital of Peru" — with no lead-in word: any sentence of four words or more that matched nothing else goes to the FO. A question that mentions the flight (fuel, weights, speeds, altitude, runway, weather, times, passengers…) still takes the strict path: fact sheet only, every number verified. On the small-talk path the FO answers from general knowledge, in character, one or two light sentences; numbers there are trivia and not verified, but a sentence about this flight with a figure in it is refused and the fixed line is spoken. "Let me check." hands a question back to the strict path. Still speech only, still silent in the sterile cockpit. Session events carry `mode: flight | chat`.

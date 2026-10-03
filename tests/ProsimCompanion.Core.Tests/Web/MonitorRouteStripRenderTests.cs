@@ -80,6 +80,7 @@ public sealed class MonitorRouteStripRenderTests : IDisposable
             flight.Object, ofp, null, null, NullLogger<ArrivalGateCoordinator>.Instance));
         services.AddSingleton(new AirlineLogoStore(_logoDirectory));
         services.AddSingleton<IProsimDataRefs>(dataRefs);
+        services.AddSingleton(Speech.SpeechTestSupport.WebUiMonitor(new ProsimCompanion.Core.Configuration.WebUiOptions()));
         services.AddSingleton(clock.Object);
         services.AddSingleton(new DisplayUnitService(dataRefs, new FixedOptionsMonitor<WebUiOptions>(new WebUiOptions())));
         services.AddSingleton(Mock.Of<IJSRuntime>());
@@ -130,7 +131,9 @@ public sealed class MonitorRouteStripRenderTests : IDisposable
         // 3° of 10° along the leg: x = 40 + 0.3 × 1120 = 376, on the line, turned 30° right
         // (tracking 120 on a 090 route).
         Assert.Contains("translate(376 36) rotate(30)", html, StringComparison.Ordinal);
-        Assert.Contains("mon-strip-aircraft", html, StringComparison.Ordinal);
+        Assert.Contains("mon-strip-plane", html, StringComparison.Ordinal);          // the top-down outline marker (2026-10-03)
+        Assert.Contains("rotate(90) translate(-50 -50)", html, StringComparison.Ordinal);   // the single-outline plane, nose-right
+        Assert.Contains("<split-flap", html, StringComparison.Ordinal);               // the Solari clock on the board
         Assert.Contains("mon-strip-tod", html, StringComparison.Ordinal);
         Assert.Contains("T/D EST", html, StringComparison.Ordinal);
         Assert.Contains("TO GO 420 NM DIRECT", html, StringComparison.Ordinal);
