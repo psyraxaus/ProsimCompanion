@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.6.0-rc.1
+
+The October 2026 batch (#145–#151): seven features, one issue each, every one off by default
+except the Logbook page and the flight-progress figures. Every item below is **unverified
+live** — the test steps for the next flights are on each issue. Also includes everything in
+0.5.0-rc.12 (ElevenLabs, Approach Gates, the EDDN fixes).
 
 - New: **aircraft position and distance-based flight progress** (#145). The app now reads the aircraft's latitude and longitude from ProSim and locates the flight plan's airports (ProSim gateway first, your Navigraph database as the fallback). The pop-out Flight Monitor replaces its time-based bar in flight with a **route strip** — the origin → destination great circle with the aircraft marker on it, turned by its track, and a tick at the estimated top of descent — plus **distance to go**, a **ground-speed ETA** and **minutes to top of descent**. Flight Status gains the same figures on a small row under the telemetry. Distances are great-circle direct, not along the route, and are labelled that way; the top of descent is a 3:1 estimate and says so. With no position or no airport coordinates every figure falls back to the old time-based value and the caption tells you. A once-per-flight "top of descent approaching" moment is recorded 10 minutes ahead (Settings → Display & Flight Data → Flight Status card → Top of descent notice; 0 = off) — nothing is spoken yet. Flight recordings carry the position. Unverified live. Probes flight-progress-position, tod-approaching-once.
 - Fix: the Flight Status card appeared twice on Settings → Display & Flight Data.
