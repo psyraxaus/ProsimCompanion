@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0-rc.12
+
+- New: **Fuel Log** tab (#154, owner request in flight) — the paper OFP's fuel column. **Plan vs actual**: fuel on board against the OFP's fuel at your exact point on the navlog, the delta with the last three fixes, the estimated landing fuel (planned landing fuel moved by the delta — the First Officer's own rule) and a holding / gaining / losing pill; **Fuel check now** makes the FO speak a check, **Open OFP** jumps to the plan. A **burn chart** (plan line, actual dots, planned landing line, where you land at the present delta). The **waypoint table** fills in as each fix is passed — planned and actual time, minutes early or late, planned and actual fuel, the difference; nothing is stamped before takeoff, the first row is the takeoff fuel at the takeoff time, a new OFP restarts the log. The **FO fuel checks** strip lists every check spoken this session with the exact words. Needs an OFP with a navlog; session only. Each stamped fix is a `fuel.log.fix` session event.
+- Changed: the First Officer's fuel check and the Fuel Log page share one "where are we on the navlog" rule, so their figures agree.
+- Everything in 0.6.0-rc.11 below.
+
 ## 0.6.0-rc.11
 
 - New: **"What are we flying over?"** for Ask the First Officer (#153, owner request in flight). A third switch on the card, off by default. Ask *"what are we flying over"*, *"where are we"*, *"what is that city on the left"*, *"what country is this"* — no lead-in word, no minimum length, works with small talk off. The FO answers at once from an **atlas built into the app** (no internet): the country and which part of it, the mountains, desert or sea below, and the nearest notable towns with distance and side — *"We're over the Alps in Switzerland, about 30 miles north of Turin. Nearest town is Aosta, 12 miles out on the left."* The position line never comes from the language model. Then the model adds a fact or two about those places (small-talk rules: numbers unverified, nothing about this flight).
