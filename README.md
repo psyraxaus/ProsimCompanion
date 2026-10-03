@@ -82,7 +82,10 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   "minimums …" — checked against the aircraft
 - **Ask the First Officer**: free-form questions ("what is our fuel on board", "how long to top
   of descent") answered by the language model from a live fact sheet and nothing else, every
-  number verified, spoken only — never a command (needs the LAN speech server; off by default)
+  number verified, spoken only — never a command (needs the LAN speech server; off by default).
+  Optional small talk and fun facts, and **"what are we flying over?"** answered from a built-in
+  offline atlas (country, mountains or sea, nearest towns with distance and side) followed by a
+  fact or two — from Wikipedia when that switch is on
 - LLM briefings and the debrief are **spoken while the model writes** them, sentence by
   sentence, each sentence verified before it is heard; the plain template is always the floor
 - Voice FCU/radio control behind a PF/PM handover, MCDU voice actions, ECAM abnormals with

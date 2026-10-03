@@ -6,6 +6,7 @@ using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.Geo;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Core.Weather;
 using ProsimCompanion.Speech.Llm;
@@ -72,7 +73,29 @@ public sealed class FoQuestionServiceTests : IDisposable
         _refs.Values["aircraft.weight.gross"] = 65000.0;
     }
 
-    private FoQuestionService Service(SequenceHandler handler)
+    /// <summary>A two-town atlas for the place path (#153): Testland with its capital
+    /// Testville and the smaller Nearby, plus the Test Hills over the eastern half.</summary>
+    private static PlaceLookup FakePlaces() => new(new Atlas(
+        [new AtlasCountry("Testland", "TL", "Nowhere", [new AtlasPolygon([[0, 40, 10, 40, 10, 50, 0, 50]])])],
+        [],
+        [new AtlasArea("Test Hills", "Range/mtn", [new AtlasPolygon([[5, 40, 10, 40, 10, 50, 5, 50]])])],
+        [
+            new AtlasTown("Testville", "TL", new GeoPoint(45.0, 2.0), 1_500_000, TownRank.Capital),
+            new AtlasTown("Nearby", "TL", new GeoPoint(45.3, 3.0), 60_000, TownRank.Town),
+        ]));
+
+    private sealed class FakeSummaries(PlaceSummary? summary) : IPlaceSummarySource
+    {
+        public List<string> Asked { get; } = [];
+
+        public Task<PlaceSummary?> SummaryAsync(string title, string? countryName, CancellationToken cancellationToken)
+        {
+            Asked.Add(title + "|" + countryName);
+            return Task.FromResult(summary);
+        }
+    }
+
+    private FoQuestionService Service(SequenceHandler handler, IPlaceLookup? places = null, IPlaceSummarySource? summaries = null, GeoPoint? position = null)
     {
         var briefing = SpeechTestSupport.BriefingMonitor(_briefing);
         var client = new OpenAiChatClient(briefing, new HttpClient(handler), _health) { StreamTimeoutFloorSeconds = 20 };
@@ -82,12 +105,18 @@ public sealed class FoQuestionServiceTests : IDisposable
         };
         var ofp = new OfpStore();
         ofp.Set(new OfpData { DestinationIcao = "LIRF", DestinationName = "Rome Fiumicino", FuelPlanLandingKg = 3050, FuelMinTakeoffKg = 7000 });
+        var progress = new FlightProgressStore();
+        if (position is { } at)
+        {
+            progress.Update(s => s with { Position = at, TrackTrueDeg = 90 });
+        }
+
         var facts = new FoFactSource(
-            _phases, new FlightProgressStore(), new FlightTimesStore(), ofp, new LoadsheetStore(),
+            _phases, progress, new FlightTimesStore(), ofp, new LoadsheetStore(),
             new HeroWeatherStore(), new ArrivalMinimaStore(), _refs);
         return new FoQuestionService(
             SpeechTestSupport.SpeechMonitor(_speech), briefing, client, narrator, _arbiter, _phases, facts, _health,
-            _eventLog, NullLogger<FoQuestionService>.Instance);
+            _eventLog, NullLogger<FoQuestionService>.Instance, places: places, summaries: summaries);
     }
 
     private static async Task Settle(FoQuestionService service)
@@ -418,5 +447,147 @@ public sealed class FoQuestionServiceTests : IDisposable
         Assert.Contains("FACTS:", handler.RequestBodies[0], StringComparison.Ordinal);
         Assert.Equal("flight", Assert.Single(Events("fo.query")).GetProperty("payload").GetProperty("mode").GetString());
         Assert.DoesNotContain("seven point five", string.Join(" ", Spoken), StringComparison.Ordinal);   // verified away
+    }
+
+    // ---- "What are we flying over?" (issue #153) ----
+
+    [Theory]
+    [InlineData("what are we flying over", true)]
+    [InlineData("where are we right now", true)]
+    [InlineData("where are we", true)]                          // three words, no lead-in — still a place question
+    [InlineData("what is that city on the left", true)]
+    [InlineData("what's that down there", true)]
+    [InlineData("which country is this below us", true)]
+    [InlineData("what is our fuel on board right now", false)]
+    [InlineData("tell me a fun fact please", false)]
+    public void PlaceQuestions_AreRecognised_WithTheSwitchOn(string question, bool place)
+    {
+        var options = new FoQuestionOptions { WhereAreWe = true };
+        Assert.Equal(place, FoQuestionCore.IsPlaceQuestion(ProsimCompanion.Speech.Recognition.CommandMatcher.Normalize(question)));
+        if (place)
+        {
+            Assert.True(FoQuestionCore.IsQuestion(question, options));
+        }
+
+        // Switch off: the ordinary rules (lead-in + four words) decide.
+        Assert.Equal(question.Split(' ').Length >= 4 && (question.StartsWith("what", StringComparison.Ordinal) || question.StartsWith("where", StringComparison.Ordinal) || question.StartsWith("which", StringComparison.Ordinal) || question.StartsWith("tell me", StringComparison.Ordinal)),
+            FoQuestionCore.IsQuestion(question, new FoQuestionOptions()));
+    }
+
+    [Fact]
+    public async Task Place_SpeaksThePositionFirst_ThenTheModelsFacts_AndRecordsGeo()
+    {
+        _speech.FoQuestions.WhereAreWe = true;
+        var handler = new SequenceHandler(Streamed("Testville is famous for its clock tower, Captain."));
+        using var service = Service(handler, FakePlaces(), position: new GeoPoint(45.3, 2.6));   // ~31 nm north-east of Testville, Nearby 17 nm east (track 090)
+
+        Assert.True(service.TryAsk("what are we flying over"));
+        await Settle(service);
+
+        // The position line is enqueued first (plain), the facts stream after it.
+        Assert.Equal(2, _arbiter.Requests.Count);
+        Assert.Equal("We're over western Testland, about 30 miles north-east of Testville. Nearest town is Nearby, 15 miles ahead of us.", _arbiter.Requests[0].Text);
+        Assert.NotNull(_arbiter.Requests[1].Stream);
+        Assert.Contains("Testville is famous for its clock tower, Captain.", Spoken);
+        Assert.Contains("WE ARE: ", handler.RequestBodies[0], StringComparison.Ordinal);   // the apostrophe is JSON-escaped in the body
+        Assert.Contains("re over western Testland, about 30 miles", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.Contains("PLACES: western Testland; Testville; Nearby", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("SOURCE:", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("FACTS:", handler.RequestBodies[0], StringComparison.Ordinal);
+        var answer = Assert.Single(Events("fo.answer")).GetProperty("payload");
+        Assert.Equal("geo", answer.GetProperty("mode").GetString());
+        Assert.Equal("answered", answer.GetProperty("outcome").GetString());
+        Assert.Equal("model", answer.GetProperty("factSource").GetString());
+        Assert.Equal("geo", Assert.Single(Events("fo.query")).GetProperty("payload").GetProperty("mode").GetString());
+    }
+
+    [Fact]
+    public async Task Place_WithWikipediaOn_FeedsTheSummaryAsTheSource()
+    {
+        _speech.FoQuestions.WhereAreWe = true;
+        _speech.FoQuestions.WikipediaFacts = true;
+        var summaries = new FakeSummaries(new PlaceSummary("Testville", "Testville is the capital of Testland, founded in 1203 on the river Test."));
+        var handler = new SequenceHandler(Streamed("Testville was founded in twelve oh three on the river Test."));
+        using var service = Service(handler, FakePlaces(), summaries, new GeoPoint(45.3, 2.6));
+
+        Assert.True(service.TryAsk("where are we"));
+        await Settle(service);
+
+        Assert.Equal(["Testville|Testland"], summaries.Asked);
+        Assert.Contains("SOURCE: Testville is the capital of Testland", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.Contains("Use ONLY the SOURCE text", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.Equal("wikipedia", Assert.Single(Events("fo.answer")).GetProperty("payload").GetProperty("factSource").GetString());
+    }
+
+    [Fact]
+    public async Task Place_WikipediaFailing_FallsBackToTheModel()
+    {
+        _speech.FoQuestions.WhereAreWe = true;
+        _speech.FoQuestions.WikipediaFacts = true;
+        var handler = new SequenceHandler(Streamed("A fine part of Testland, Captain."));
+        using var service = Service(handler, FakePlaces(), new FakeSummaries(null), new GeoPoint(45.3, 2.6));
+
+        Assert.True(service.TryAsk("what country is this"));
+        await Settle(service);
+
+        Assert.DoesNotContain("SOURCE:", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.Equal("model", Assert.Single(Events("fo.answer")).GetProperty("payload").GetProperty("factSource").GetString());
+    }
+
+    [Fact]
+    public async Task Place_WithoutAPosition_SaysSo_AndAsksNoModel()
+    {
+        _speech.FoQuestions.WhereAreWe = true;
+        var handler = new SequenceHandler(Streamed("never asked"));
+        using var service = Service(handler, FakePlaces());
+
+        Assert.True(service.TryAsk("what are we flying over"));
+        await Settle(service);
+
+        Assert.Equal([PlaceFixText.NoPosition], Spoken);
+        Assert.Empty(handler.RequestBodies);
+    }
+
+    [Fact]
+    public async Task Place_WithTheModelDown_StillSpeaksThePosition()
+    {
+        _speech.FoQuestions.WhereAreWe = true;
+        _briefing.LlmEnabled = false;
+        var handler = new SequenceHandler(Streamed("never asked"));
+        using var service = Service(handler, FakePlaces(), position: new GeoPoint(45.3, 2.6));
+
+        Assert.True(service.TryAsk("what are we flying over"));
+        await Settle(service);
+
+        Assert.StartsWith("We're over western Testland, about 30 miles north-east of Testville.", Assert.Single(Spoken), StringComparison.Ordinal);
+        Assert.Empty(handler.RequestBodies);
+        Assert.Equal("atlas", Assert.Single(Events("fo.answer")).GetProperty("payload").GetProperty("factSource").GetString());
+    }
+
+    [Fact]
+    public async Task Place_AFlightFigureInTheFacts_IsRefused_ButThePositionStands()
+    {
+        _speech.FoQuestions.WhereAreWe = true;
+        var handler = new SequenceHandler(Streamed("Our fuel on board is seven point five tonnes, Captain."));
+        using var service = Service(handler, FakePlaces(), position: new GeoPoint(45.3, 2.6));
+
+        Assert.True(service.TryAsk("what are we flying over"));
+        await Settle(service);
+
+        Assert.StartsWith("We're over western Testland", Assert.Single(Spoken), StringComparison.Ordinal);
+        Assert.Equal("atlas", Assert.Single(Events("fo.answer")).GetProperty("payload").GetProperty("factSource").GetString());
+    }
+
+    [Fact]
+    public async Task Place_SwitchOff_TakesTheOrdinaryPath()
+    {
+        var handler = new SequenceHandler(Streamed("I don't have that."));
+        using var service = Service(handler, FakePlaces(), position: new GeoPoint(45.3, 2.6));
+
+        Assert.True(service.TryAsk("what are we flying over now"));
+        await Settle(service);
+
+        Assert.Contains("FACTS:", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.Equal("flight", Assert.Single(Events("fo.query")).GetProperty("payload").GetProperty("mode").GetString());
     }
 }

@@ -50,6 +50,29 @@ sentences; numbers there are trivia and are not verified, but a sentence about *
 with a figure in it is thrown away and you hear the fixed line instead. If the FO says *"Let
 me check."* the question turned out to be about the flight and the strict answer follows.
 
+**"What are we flying over?"** (a third switch on the card, off by default) answers the
+question every passenger asks: *"what are we flying over"*, *"where are we"*, *"what is that
+city on the left"*, *"what country is this"*. The FO answers at once from an **atlas built
+into the app** — no internet needed — naming the country (and which part of it), the
+mountains, desert or sea below, and the nearest notable towns with distance and which side
+they are on: *"We're over the Alps in northern Italy, about 30 miles north of Turin. Nearest
+town is Aosta, 12 miles out on the left."* Then the language model adds a fact or two about
+those places. These phrases need no lead-in word and no minimum length, and they work with
+small talk off. The position line never comes from the model, so it is always the same for the
+same spot; "left" and "right" are relative to the track, so in a strong crosswind a town
+"ahead" may sit a few degrees off the nose.
+
+**Wikipedia facts** (a fourth switch, only with the one above) makes the FO take those facts
+from a short Wikipedia summary of the nearest town instead of the model's memory: one small
+request to `en.wikipedia.org` per place, a three-second limit, cached after the first time,
+and nothing but the place name is sent. If the fetch fails or finds nothing, you still get the
+position and the model's own facts.
+
+The atlas: country outlines from [Natural Earth](https://www.naturalearthdata.com/) 1:110m,
+seas and natural regions from Natural Earth 1:50m (both public domain), towns from
+[GeoNames](https://www.geonames.org/) (`cities15000`, towns of 25 000 and up plus every
+capital and first-order seat; licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
+
 ## Spoken checklists
 
 Say the checklist's start phrase (e.g. *"before start checklist"*). The FO reads each

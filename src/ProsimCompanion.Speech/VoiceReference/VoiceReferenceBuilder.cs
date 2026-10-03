@@ -339,6 +339,13 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
             entries.Add(new(["any sentence of " + minimum + " words or more"], "Small talk is on: no lead-in needed. A question that mentions the flight still takes the strict, verified path.", null, Badges: [VoiceReferenceDescribers.Value], ValueHint: "‹anything›"));
         }
 
+        if (options.WhereAreWe)
+        {
+            // Issue #153: the place below, from the offline atlas, then a fact or two.
+            entries.Add(new(["what are we flying over", "where are we"], "The country, mountains or sea below and the nearest towns — at once, from the built-in atlas — then a fact or two" + (options.WikipediaFacts ? " from Wikipedia." : " from the model."), "We're over the Alps in northern Italy, about 30 miles north of Turin. Nearest town is Aosta, 12 miles out on the left. Aosta still has its Roman walls and arch."));
+            entries.Add(new(["what is that city on the left", "what country is this"], "Same answer; the side is relative to our track.", null));
+        }
+
         return new VoiceReferenceGroup("foQuestions", "Ask the First Officer", VoiceReferenceTab.FirstOfficer,
             VoiceSpeaker.FirstOfficer, enabled, reason, entries);
     }

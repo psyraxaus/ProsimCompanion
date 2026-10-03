@@ -585,6 +585,16 @@ else if (CurrentSection == "briefing")
                    More="A question that mentions the flight (fuel, weights, speeds, altitude, runway, weather, times, passengers…) still takes the strict path: fact sheet only, every number verified. On the small-talk path numbers are not verified — they are trivia — but a sentence about this flight with a figure in it is refused and the FO says 'I don't have a verified answer for that'. With this on, no lead-in word is needed: any sentence of four words or more that matched nothing else goes to the FO. Still speech only, still silent in the sterile cockpit."
                    Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                    @bind-Value="_speech.Value.FoQuestions.SmallTalk" />
+        <BoolField Label="'What are we flying over?'"
+                   Hint="Ask 'what are we flying over', 'where are we', 'what is that city on the left'. The FO names the country, the mountains or sea, and the nearest towns with distance and side — at once, from an atlas in the app — then adds a fact or two about them."
+                   More="The position line comes from a built-in offline atlas (Natural Earth outlines, GeoNames towns — see the manual for the attribution), never from the language model, so it needs no internet and is always the same for the same spot. The facts after it come from the LLM: with 'Wikipedia facts' off, from its own knowledge, like small talk (numbers unverified, nothing about this flight). No lead-in word or minimum length is needed for these phrases. Works with small talk off."
+                   Disabled="@(!_speech.Value.FoQuestions.Enabled)"
+                   @bind-Value="_speech.Value.FoQuestions.WhereAreWe" />
+        <BoolField Label="Wikipedia facts"
+                   Hint="With the switch above: fetch a short Wikipedia summary of the nearest town and have the FO take its facts from that instead of the model's memory."
+                   More="One small request to en.wikipedia.org per place, three-second limit, answered from a cache after the first time. If it fails or finds nothing, the FO still gives the position and falls back to the model's own knowledge. Nothing about you or the flight is sent — only the place name."
+                   Disabled="@(!_speech.Value.FoQuestions.Enabled || !_speech.Value.FoQuestions.WhereAreWe)"
+                   @bind-Value="_speech.Value.FoQuestions.WikipediaFacts" />
         <TextField Label="Question lead-ins" Hint="Comma-separated. An utterance must start with one of these to count as a question (not needed with small talk on)."
                    Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                    @bind-Value="_speech.Value.FoQuestions.LeadIns" />

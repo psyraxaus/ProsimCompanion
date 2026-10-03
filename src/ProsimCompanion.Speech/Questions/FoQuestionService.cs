@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.Geo;
 using ProsimCompanion.Core.Speech;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
@@ -71,6 +72,8 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FoQuestionService> _logger;
     private readonly Persona.PersonaService? _persona;
+    private readonly IPlaceLookup? _places;
+    private readonly IPlaceSummarySource? _summaries;
     private readonly SemaphoreSlim _oneAtATime = new(1, 1);
     private Task? _inFlight;
 
@@ -85,7 +88,9 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         LlmHealthStore llmHealth,
         JsonlEventLog eventLog,
         ILogger<FoQuestionService> logger,
-        Persona.PersonaService? persona = null)
+        Persona.PersonaService? persona = null,
+        IPlaceLookup? places = null,
+        IPlaceSummarySource? summaries = null)
     {
         ArgumentNullException.ThrowIfNull(speech);
         ArgumentNullException.ThrowIfNull(briefing);
@@ -109,6 +114,8 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         _eventLog = eventLog;
         _logger = logger;
         _persona = persona;
+        _places = places;
+        _summaries = summaries;
     }
 
     private FoQuestionOptions Options => _speech.CurrentValue.FoQuestions;
@@ -143,7 +150,9 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
             return true;
         }
 
-        if (!_llm.IsConfigured || !_briefing.CurrentValue.LlmEnabled || _llmHealth.Snapshot().IsUnhealthy)
+        // The place path needs no model for the position line — it answers from the atlas
+        // and only adds facts when the model is up (#153).
+        if (mode != "geo" && (!_llm.IsConfigured || !_briefing.CurrentValue.LlmEnabled || _llmHealth.Snapshot().IsUnhealthy))
         {
             Speak(FoQuestionCore.LlmOffline);
             Record(question, FoAnswerOutcome.LlmOffline, FoQuestionCore.LlmOffline, null, null, 0);
@@ -177,14 +186,29 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         return true;
     }
 
-    /// <summary>"flight" (strict, fact sheet, verified) or "chat" (small talk, issue #152) —
+    /// <summary>"geo" (the place below, issue #153 — checked first, "where are we" has a flight
+    /// word in it), "flight" (strict, fact sheet, verified) or "chat" (small talk, issue #152) —
     /// chat only with the switch on and no flight word in the question.</summary>
     private string Mode(string question)
-        => Options.SmallTalk && !FoQuestionCore.IsFlightQuestion(question) ? "chat" : "flight";
+    {
+        if (Options.WhereAreWe && _places is not null && FoQuestionCore.IsPlaceQuestion(CommandMatcher.Normalize(question)))
+        {
+            return "geo";
+        }
+
+        return Options.SmallTalk && !FoQuestionCore.IsFlightQuestion(question) ? "chat" : "flight";
+    }
 
     private async Task AnswerAsync(string question)
     {
-        if (Mode(question) == "chat")
+        var mode = Mode(question);
+        if (mode == "geo")
+        {
+            await AnswerPlaceAsync(question).ConfigureAwait(false);
+            return;
+        }
+
+        if (mode == "chat")
         {
             var checkedInstead = await AnswerChatAsync(question).ConfigureAwait(false);
             if (!checkedInstead)
@@ -274,6 +298,95 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         Record(question, FoAnswerOutcome.Unverified, (result.Text + " " + FoQuestionCore.NoVerifiedAnswer).Trim(),
             result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds, "chat");
         return false;
+    }
+
+    /// <summary>The place path (issue #153). The position line is spoken AT ONCE from the atlas
+    /// — no model in that loop, so where we are never waits on, or comes from, the LLM. Then,
+    /// with the model up, one or two facts about the named places: from a Wikipedia summary
+    /// when that switch is on and the fetch answers inside its three seconds, else from the
+    /// model's own knowledge under the chat guard. A slow or silent model after the position
+    /// line costs nothing — the Captain already has the answer, so there is no fixed line.</summary>
+    private async Task AnswerPlaceAsync(string question)
+    {
+        var options = Options;
+        var clock = Stopwatch.StartNew();
+        var located = _facts.PositionAndTrack();
+        if (located is null)
+        {
+            Speak(PlaceFixText.NoPosition);
+            Record(question, FoAnswerOutcome.Unverified, PlaceFixText.NoPosition, null, null, clock.ElapsedMilliseconds, "geo");
+            return;
+        }
+
+        var fix = _places!.Locate(located.Value.Position, located.Value.TrackTrueDeg);
+        var position = PlaceFixText.Spoken(fix);
+        Speak(position);
+        if (fix.IsEmpty)
+        {
+            Record(question, FoAnswerOutcome.Answered, position, null, null, clock.ElapsedMilliseconds, "geo", "atlas");
+            return;
+        }
+
+        var llmUp = _llm.IsConfigured && _briefing.CurrentValue.LlmEnabled && !_llmHealth.Snapshot().IsUnhealthy;
+        if (!llmUp)
+        {
+            Record(question, FoAnswerOutcome.Answered, position, null, null, clock.ElapsedMilliseconds, "geo", "atlas");
+            return;
+        }
+
+        var factSource = "model";
+        string? source = null;
+        if (options.WikipediaFacts && _summaries is not null)
+        {
+            var town = fix.Reference ?? fix.Nearest;
+            var title = town?.Town.Name ?? fix.Region?.Name ?? fix.Country?.Name;
+            if (title is not null)
+            {
+                var summary = await _summaries.SummaryAsync(title, fix.Country?.Name, CancellationToken.None).ConfigureAwait(false);
+                if (summary is not null)
+                {
+                    source = summary.Extract;
+                    factSource = "wikipedia";
+                }
+            }
+        }
+
+        var personaFragment = _persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Advisory) ?? "";
+        using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(1, options.TimeBudgetSeconds)));
+        var plan = new NarrationPlan(
+            "fo.place", FoQuestionCore.PlaceSystemPrompt(personaFragment, source is not null),
+            FoQuestionCore.PlaceUserPrompt(position, PlaceFixText.PlaceNames(fix), source, question), [], [],
+            new SpeechRequest("FO place facts", SpeechPriority.Normal, TimeSpan.FromSeconds(30), Tag: Tag), [])
+        {
+            VerifyNumbers = false,
+            Guard = FoQuestionCore.ChatSentenceAllowed,
+            OnFirstSpeech = () =>
+            {
+                try
+                {
+                    budget.CancelAfter(Timeout.InfiniteTimeSpan);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Already finished.
+                }
+            },
+        };
+
+        NarrationResult? result = null;
+        try
+        {
+            result = await _narrator.RunAsync(plan, budget.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (budget.IsCancellationRequested)
+        {
+            // The position was said; the facts did not come in time. Nothing more to say.
+        }
+
+        var facts = result is { LlmSentences: > 0, Takeover: TakeoverReason.None } ? result.Text : "";
+        var text = (position + " " + facts).Trim();
+        var outcome = result is { Preempted: true } ? FoAnswerOutcome.Preempted : FoAnswerOutcome.Answered;
+        Record(question, outcome, text, result?.FirstTokenMs, result?.FirstAudioMs, clock.ElapsedMilliseconds, "geo", facts.Length > 0 ? factSource : "atlas");
     }
 
     private async Task AnswerFlightAsync(string question)
@@ -438,7 +551,7 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
     private void Speak(string text)
         => _ = _arbiter.EnqueueAsync(new SpeechRequest(text, SpeechPriority.Normal, TimeSpan.FromSeconds(30), Tag: Tag));
 
-    private void Record(string question, FoAnswerOutcome outcome, string text, double? firstTokenMs, double? firstAudioMs, long totalMs, string? mode = null)
+    private void Record(string question, FoAnswerOutcome outcome, string text, double? firstTokenMs, double? firstAudioMs, long totalMs, string? mode = null, string? factSource = null)
     {
         _logger.LogInformation("FO question \"{Question}\" -> {Outcome} in {TotalMs} ms: \"{Answer}\"", question, outcome, totalMs, text);
         _eventLog.Record(AnswerEvent, new
@@ -461,6 +574,8 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
             firstAudioMs = firstAudioMs is { } a ? Math.Round(a) : (double?)null,
             totalMs,
             model = _briefing.CurrentValue.LlmModel,
+            // The place path only (#153): "atlas" (position line alone), "wikipedia" or "model".
+            factSource,
         });
     }
 

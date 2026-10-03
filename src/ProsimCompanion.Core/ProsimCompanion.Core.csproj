@@ -13,4 +13,10 @@
     <PackageReference Include="System.Security.Cryptography.ProtectedData" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The offline atlas for "what are we flying over?" (#153): Natural Earth + GeoNames,
+         built by tools/build-atlas.js. 1.2 MB gzipped, read on the first question. -->
+    <EmbeddedResource Include="Geo\Data\atlas.json.gz" />
+  </ItemGroup>
+
 </Project>

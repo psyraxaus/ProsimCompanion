@@ -99,6 +99,11 @@ public static class CoreServiceCollectionExtensions
         services.AddStartupModule<Weather.HeroWeatherService>();
         services.AddSingleton<Boarding.GateStatusStore>();
         services.AddStartupModule<Boarding.GateMonitorService>();
+        // "What are we flying over?" (#153): the shipped atlas, read on the first question,
+        // and the optional Wikipedia summary source behind it.
+        services.AddSingleton<Geo.IPlaceLookup>(_ => new Geo.PlaceLookup(() => Geo.Atlas.Default));
+        services.AddSingleton<Geo.WikipediaSummaryClient>();
+        services.AddSingleton<Geo.IPlaceSummarySource>(p => p.GetRequiredService<Geo.WikipediaSummaryClient>());
         // Off/on-blocks, takeoff and landing stamps for the Flight Monitor board (2026-09-23).
         services.AddSingleton<Flight.FlightTimesStore>();
         services.AddStartupModule<Flight.FlightTimesTracker>();

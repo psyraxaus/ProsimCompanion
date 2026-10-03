@@ -36,6 +36,14 @@ public static class FoQuestionCore
         }
 
         var normalized = CommandMatcher.Normalize(utterance);
+
+        // "Where are we?" is three words and starts with no lead-in, yet it is unmistakably a
+        // place question (issue #153): the place phrases stand on their own.
+        if (options.WhereAreWe && IsPlaceQuestion(normalized))
+        {
+            return true;
+        }
+
         var words = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length < Math.Max(1, options.MinimumWords))
         {
@@ -87,6 +95,64 @@ public static class FoQuestionCore
     /// <summary>Spoken by the chat path when the model realises the question is about the
     /// flight after all; the service then re-runs it on the strict path.</summary>
     public const string LetMeCheck = "Let me check.";
+
+    /// <summary>Phrases that make a question about the place below (issue #153). Checked
+    /// before the flight words — "where are we" contains "are we", a flight word — and
+    /// matched inside the normalized text, so "what are we flying over right now" and
+    /// "flying over anything interesting" both count.</summary>
+    private static readonly string[] PlacePhrases =
+    [
+        "flying over", "fly over", "flying above", "over right now", "below us", "beneath us", "under us", "underneath us",
+        "down there", "down below", "where are we", "where we are", "whereabouts are we", "where exactly are we",
+        "what country", "which country", "what city", "which city", "what town", "which town", "that city", "that town",
+        "what sea", "which sea", "what ocean", "what lake", "what island", "which island", "what mountains", "those mountains",
+        "that mountain", "what river", "that river", "what desert", "out the window", "out of the window", "out my window",
+        "out your window", "on the left", "on the right", "to the left", "to the right", "off the left", "off the right",
+        "left side", "right side", "what is that", "what s that", "what place", "nearest city", "nearest town", "closest city",
+        "closest town", "big city", "any cities", "anything interesting",
+    ];
+
+    /// <summary>True when the (normalized) question is about the place below.</summary>
+    public static bool IsPlaceQuestion(string normalizedQuestion)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedQuestion))
+        {
+            return false;
+        }
+
+        var text = " " + normalizedQuestion.Trim() + " ";
+        foreach (var phrase in PlacePhrases)
+        {
+            if (text.Contains(" " + phrase + " ", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The place path's instructions: the position is already spoken (the deterministic
+    /// line from the atlas); the model adds one or two facts about the named places — from the
+    /// SOURCE text when there is one, else from general knowledge — and nothing about the flight.</summary>
+    public static string PlaceSystemPrompt(string personaFragment, bool hasSource)
+        => (personaFragment ?? "")
+            + "You are the First Officer of an Airbus A320. The Captain asked what we are flying over. You have "
+            + "ALREADY told the Captain where we are (the WE ARE line below) — do not repeat it and do not give "
+            + "any distance, direction, position or coordinate. Add one or two short spoken sentences with "
+            + "something interesting about the PLACES named: history, a landmark, what the place is known for. "
+            + (hasSource
+                ? "Use ONLY the SOURCE text for facts; if it has nothing interesting, say one sentence about the place from the source. "
+                : "Use general knowledge; prefer well-known facts over precise figures. ")
+            + "Friendly, in character, plain English for text-to-speech: no markdown, no lists, no emoji. "
+            + "Never say anything about this flight's fuel, weights, speeds, altitudes, times, weather or route, "
+            + "and never tell the Captain to do anything.";
+
+    public static string PlaceUserPrompt(string spokenPosition, string placeNames, string? source, string question)
+        => "WE ARE: " + spokenPosition
+            + "\nPLACES: " + placeNames
+            + (string.IsNullOrWhiteSpace(source) ? "" : "\nSOURCE: " + source)
+            + "\n\nCAPTAIN ASKED: " + question + "\n\nAdd the facts now.";
 
     /// <summary>Words that mark a question as being about THIS flight (issue #152). A
     /// question with any of them takes the strict, fact-sheet-only path whatever the small-talk

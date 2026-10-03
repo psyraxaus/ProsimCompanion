@@ -34,6 +34,20 @@ public sealed class FoQuestionOptions
     /// fact-sheet-only, number-verified path. Off: lead-ins and the fact sheet only.</summary>
     public bool SmallTalk { get; set; }
 
+    /// <summary>"What are we flying over?" (issue #153). On: a question about the place below
+    /// — where are we, what country / city is that, what is out the left window — is answered
+    /// at once from the shipped offline atlas (country, region or sea, the nearest notable
+    /// towns with distance and side), then the LLM adds a fact or two about those places.
+    /// Works with the small-talk switch off; no lead-in or minimum word count needed for the
+    /// place phrases. Off: such questions take the ordinary path (fact sheet: "I don't have that").</summary>
+    public bool WhereAreWe { get; set; }
+
+    /// <summary>With <see cref="WhereAreWe"/>: fetch a short Wikipedia summary of the nearest
+    /// town (one small request, three-second ceiling, cached) and give the model THAT as the
+    /// source of its facts instead of its own memory. Off, or on failure: the facts are the
+    /// model's general knowledge, as for small talk.</summary>
+    public bool WikipediaFacts { get; set; }
+
     /// <summary>Seconds from the question to the first spoken word of the answer before the FO
     /// gives up ("I don't have a verified answer for that").</summary>
     public int TimeBudgetSeconds { get; set; } = 6;

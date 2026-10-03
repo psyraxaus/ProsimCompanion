@@ -80,6 +80,16 @@ public sealed class FoFactSource : ILiveAircraftFacts, IDisposable
             _techLog is { IsEnabled: true } log ? Safe(() => log.OpenDefects) : null,
             nowUtc));
 
+    /// <summary>Where we are and which way we are going, for "what are we flying over?"
+    /// (issue #153): the progress store's rounded position and true track (the sim has no
+    /// heading in this snapshot; in cruise the two agree within the crab angle). Null while
+    /// the sim has no position.</summary>
+    public (GeoPoint Position, double? TrackTrueDeg)? PositionAndTrack()
+    {
+        var progress = Safe(() => _progress.Snapshot());
+        return progress?.Position is { } p ? (p, progress.TrackTrueDeg) : null;
+    }
+
     public void Dispose()
     {
         _fuel.Dispose();

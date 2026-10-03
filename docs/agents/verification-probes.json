@@ -1958,6 +1958,36 @@
       "notes": "Shipped 2026-10-03 (October batch package 5). Off by default. Sterile cockpit drops the question without a word by owner decision (a 'stand by, after ten thousand' would itself be the chatter the SOP forbids). The strict re-ask happens only when verification failed BEFORE any speech; a half-spoken answer that then fails ends with the fixed line and no re-ask. 'busy' = a second question while one was being answered. 2026-10-03: small talk (#152) added — chat path = no fact sheet, no number verification, per-sentence flight-figure guard, \"Let me check.\" hand-over to the strict path."
     },
     {
+      "id": "fo-where-are-we",
+      "issue": 153,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "fo.answer",
+        "fields": [
+          "question",
+          "mode",
+          "outcome",
+          "text",
+          "factSource"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only when speech.foQuestions.whereAreWe was true: every place question ('what are we flying over', 'where are we', 'what is that city on the left', 'what country is this') produces one fo.query and one fo.answer with mode geo. A place question answered with mode flight (\"I don't have that.\") is the failure: quote it.",
+        "The fo.answer text begins with the atlas line (\"We're over …\" / \"We're right over …\" / \"We're about … of …\"), and the place it names agrees with the telemetry position nearest the event (lat/lon on the flight-sample): the named country contains the position, the reference town lies within ~120 nm in the stated compass direction (we are SOUTH-EAST of a town that bears north-west), and the stated distance matches within the spoken rounding (nearest mile under 10, 5 under 50, 10 above). A wrong country or a town on the wrong side is the one failure that matters.",
+        "factSource ∈ atlas | model | wikipedia. 'atlas' = the position line alone (model down, model refused by the guard, or nothing nearby); with speech.foQuestions.wikipediaFacts true and a reference town present, expect 'wikipedia' most of the time — a run of 'model' means the fetch fails (report; the debug log line 'Wikipedia summary for … failed' says why).",
+        "assert-absent: an fo.answer in mode geo whose fact sentences (everything after the first atlas sentences) contain a distance, bearing, position or coordinate, or a flight-data word (fuel, tonnes, feet, knots, flight level, heading, runway, QNH, altitude, passengers, zulu, ETA) together with a figure — the position comes only from the atlas and the chat guard must have refused such a sentence.",
+        "A place question with no position (fo.answer text = \"I don't have our position right now.\") is only correct while the flight-sample shows no lat/lon.",
+        "Sterile cockpit, busy, preempted: the same rules as fo-question-answer. The atlas line needs no LLM: with the LLM down the answer must still carry the position line with factSource atlas, never the llm-offline advisory."
+      ],
+      "notes": "Shipped 2026-10-04 (#153). Off by default; two switches (whereAreWe, wikipediaFacts). Position line is deterministic from the shipped atlas (Natural Earth 110m countries, 50m seas/regions, GeoNames towns >= 25k + capitals/seats); the side (left/right/ahead/behind) is relative to TRUE TRACK, not heading — in a strong crosswind a town 'ahead' may sit a few degrees off the nose. Regions wider than 40 square degrees (North European Plain, Siberia) are deliberately not named."
+    },
+    {
       "id": "web-https-listener",
       "issue": 150,
       "state": "open",
