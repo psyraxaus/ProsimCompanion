@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0-rc.11
+
+- New: **"What are we flying over?"** for Ask the First Officer (#153, owner request in flight). A third switch on the card, off by default. Ask *"what are we flying over"*, *"where are we"*, *"what is that city on the left"*, *"what country is this"* — no lead-in word, no minimum length, works with small talk off. The FO answers at once from an **atlas built into the app** (no internet): the country and which part of it, the mountains, desert or sea below, and the nearest notable towns with distance and side — *"We're over the Alps in Switzerland, about 30 miles north of Turin. Nearest town is Aosta, 12 miles out on the left."* The position line never comes from the language model. Then the model adds a fact or two about those places (small-talk rules: numbers unverified, nothing about this flight).
+- New: **Wikipedia facts** (a fourth switch, only with the one above): the FO takes those facts from a short Wikipedia summary of the nearest town instead of the model's memory — one small request per place, three-second limit, cached; on failure the model's own facts. Only the place name is sent.
+- Atlas data: Natural Earth 1:110m countries and 1:50m seas and regions (public domain), GeoNames towns of 25 000 and up plus capitals and first-order seats (CC BY 4.0). "Left" and "right" are relative to the track. Very broad regions (the North European Plain) are not named on purpose.
+- Everything in 0.6.0-rc.10 below.
+
 ## 0.6.0-rc.10
 
 - Changed: the Flight Monitor's route-strip plane **always points at the destination** for the whole journey (owner request 2026-10-04). It used to turn with your track, so at the gate it pointed wherever the stand faced and read as flying away from the route. The track no longer turns it.
