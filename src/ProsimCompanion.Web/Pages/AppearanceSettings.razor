@@ -111,6 +111,7 @@
         @if (_wake is not null)
         {
             <div class="field-hint label-caps" style="margin-top:4px;">This device: @DeviceLine</div>
+            <div class="field-hint" style="margin-top:2px; user-select:all;">@ViewportLine</div>
             <div class="field-hint" style="margin-top:6px;">
                 The switch is stored per address: on at <code>https://…:5321</code> does not carry over from <code>http://…:5320</code>. iPadOS ignores every wake lock in <strong>Low Power Mode</strong>.
             </div>
@@ -184,7 +185,16 @@
 
     // ---- screen keep-awake (issue #150): the browser owns the state; this page only shows it.
     private sealed record WakeInfo(bool Wanted, string State, bool Secure, bool Supported, bool Standalone, string Scheme, string UserAgent,
-        string? LastError = null, string? LastErrorAt = null, string? AcquiredAt = null, string? ReleasedAt = null, int Attempts = 0);
+        string? LastError = null, string? LastErrorAt = null, string? AcquiredAt = null, string? ReleasedAt = null, int Attempts = 0,
+        ViewportInfo? Viewport = null);
+
+    private sealed record ViewportInfo(int InnerWidth, int InnerHeight, int OuterHeight, int ScreenWidth, int ScreenHeight, int? VisualHeight,
+        double Dpr, string SafeTop, string SafeBottom, string DisplayMode, int? AppHeight);
+
+    /// <summary>The geometry line for a bug report: what the web view was given vs the screen.</summary>
+    private string ViewportLine => _wake?.Viewport is { } v
+        ? $"Viewport: window {v.InnerWidth}×{v.InnerHeight} (outer {v.OuterHeight}, visual {v.VisualHeight?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "—"}) · screen {v.ScreenWidth}×{v.ScreenHeight} @{v.Dpr:0.#}x · safe top {v.SafeTop} bottom {v.SafeBottom} · {v.DisplayMode} · shell {v.AppHeight?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "—"} px"
+        : "";
 
     /// <summary>What the browser said, for the test flight: attempts, the last refusal with its
     /// text, when the lock was last granted and last let go (all device clock, UTC).</summary>

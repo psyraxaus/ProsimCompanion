@@ -43,6 +43,33 @@
     return d.toISOString().substring(11, 19) + "Z";
   }
 
+  // The geometry facts for the Appearance card (iPad home-screen app, owner screenshots
+  // 2026-10-03: black bands above the header and below the footer). One line that says what
+  // the web view was given versus the screen, and what the safe-area insets read.
+  function viewportFacts() {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;"
+      + "padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);";
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const facts = {
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      outerHeight: window.outerHeight,
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      visualHeight: window.visualViewport ? Math.round(window.visualViewport.height) : null,
+      dpr: window.devicePixelRatio,
+      safeTop: cs.paddingTop,
+      safeBottom: cs.paddingBottom,
+      displayMode: (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ? "standalone"
+        : (window.matchMedia && window.matchMedia("(display-mode: fullscreen)").matches) ? "fullscreen" : "browser",
+      appHeight: (document.querySelector(".app") || {}).offsetHeight || null,
+    };
+    probe.remove();
+    return facts;
+  }
+
   function wakeState() {
     if (!wakeWanted) return "off";
     if (!window.isSecureContext) return "needs-https";
@@ -107,6 +134,7 @@
         acquiredAt: wakeAcquiredAt,
         releasedAt: wakeReleasedAt,
         attempts: wakeAttempts,
+        viewport: viewportFacts(),
       };
     },
     setWanted: function (wanted) {
