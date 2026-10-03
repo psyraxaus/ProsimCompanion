@@ -19,7 +19,13 @@
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    @* "black" (opaque), NOT "black-translucent": with the see-through bar iPadOS gives the
+       home-screen app a web view one status-bar short (owner's iPad, 2026-10-03: screen 820,
+       window 788, safe-top 32) and places it at the top — a black band the height of the
+       status bar under the footer that no CSS can reach. Opaque: iOS paints the bar, the view
+       starts below it at the right height. iOS freezes this at "Add to Home Screen" time, so
+       an upgrade needs the icon deleted and added again (manual chapter 7). *@
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Companion" />
     <meta name="application-name" content="ProsimCompanion" />
     <link rel="stylesheet" href="css/app.css?v=@AssetVersion" />

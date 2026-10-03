@@ -68,7 +68,12 @@ address bar shows the padlock; if it does not, go back to 7.3.
 
 1. Open the HTTPS address in **Safari** (not Chrome — iOS only installs from Safari).
 2. Tap **Share** (the square with the arrow), then **Add to Home Screen**, then **Add**.
-3. Open the new **Companion** icon. The app runs full-screen; the status bar blends in.
+3. Open the new **Companion** icon. The app runs full-screen under a black status bar.
+
+**After every app upgrade, delete the icon and add it again.** iOS copies the web-app settings
+(status bar, full-screen mode, name, icon) at the moment you add the icon and never refreshes
+them — an old icon keeps old settings, which on the iPad shows as a black band under the
+footer.
 
 Android / Chrome: open the address, menu (⋮) → **Install app** or **Add to Home screen**.
 
