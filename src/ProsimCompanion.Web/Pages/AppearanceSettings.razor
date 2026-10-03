@@ -111,6 +111,21 @@
         @if (_wake is not null)
         {
             <div class="field-hint label-caps" style="margin-top:4px;">This device: @DeviceLine</div>
+            <div class="field-hint" style="margin-top:6px;">
+                The switch is stored per address: on at <code>https://…:5321</code> does not carry over from <code>http://…:5320</code>. iPadOS ignores every wake lock in <strong>Low Power Mode</strong>.
+            </div>
+            @if (_wake.Wanted)
+            {
+                <div class="field" style="align-items:center; margin-top:4px;">
+                    <label class="field-label">
+                        Lock diagnostics
+                        <FieldHint Hint="@WakeDiagnostics" />
+                    </label>
+                    <div class="field-control">
+                        <button type="button" class="btn secondary" style="padding:4px 10px;" @onclick="RetryWake">Request again</button>
+                    </div>
+                </div>
+            }
         }
     </Section>
 
@@ -168,7 +183,45 @@
     private IDisposable? _webUiSubscription;
 
     // ---- screen keep-awake (issue #150): the browser owns the state; this page only shows it.
-    private sealed record WakeInfo(bool Wanted, string State, bool Secure, bool Supported, bool Standalone, string Scheme, string UserAgent);
+    private sealed record WakeInfo(bool Wanted, string State, bool Secure, bool Supported, bool Standalone, string Scheme, string UserAgent,
+        string? LastError = null, string? LastErrorAt = null, string? AcquiredAt = null, string? ReleasedAt = null, int Attempts = 0);
+
+    /// <summary>What the browser said, for the test flight: attempts, the last refusal with its
+    /// text, when the lock was last granted and last let go (all device clock, UTC).</summary>
+    private string WakeDiagnostics
+    {
+        get
+        {
+            if (_wake is null)
+            {
+                return "";
+            }
+
+            var parts = new List<string> { $"{_wake.Attempts} request(s)" };
+            if (_wake.AcquiredAt is { } got)
+            {
+                parts.Add($"granted {got}");
+            }
+
+            if (_wake.ReleasedAt is { } let)
+            {
+                parts.Add($"released {let}");
+            }
+
+            if (_wake.LastError is { } err)
+            {
+                parts.Add($"last refusal {_wake.LastErrorAt}: {err}");
+            }
+
+            return string.Join(" · ", parts) + ". If the screen still sleeps with the pill ACTIVE and no release shown, the OS overrode the lock (Low Power Mode, or Guided Access / a Screen Time limit).";
+        }
+    }
+
+    private async Task RetryWake()
+    {
+        await JS.InvokeVoidAsync("prosimCompanion.wakeLock.retry");
+        _wake = await JS.InvokeAsync<WakeInfo>("prosimCompanion.wakeLock.describe");
+    }
 
     private WakeInfo? _wake;
     private DotNetObjectReference<AppearanceSettings>? _wakeRef;
@@ -251,7 +304,16 @@
     {
         if (_wake is not null)
         {
-            _wake = _wake with { State = state, Wanted = state != "off" || _wake.Wanted };
+            // Re-read the facts (times, last error) rather than patching the state alone.
+            try
+            {
+                _wake = await JS.InvokeAsync<WakeInfo>("prosimCompanion.wakeLock.describe");
+            }
+            catch (JSException)
+            {
+                _wake = _wake with { State = state, Wanted = state != "off" || _wake.Wanted };
+            }
+
             await InvokeAsync(StateHasChanged);
         }
     }

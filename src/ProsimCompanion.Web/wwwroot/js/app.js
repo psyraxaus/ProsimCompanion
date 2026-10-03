@@ -30,6 +30,18 @@
   let wakeSentinel = null;
   let wakeWanted = false;
   let wakeListeners = [];
+  // Diagnostics for the Appearance card (2026-10-03 iPad report: "the screen still sleeps"):
+  // the last refusal and the last release, with their times, so a failed test explains itself.
+  let wakeLastError = null;
+  let wakeLastErrorAt = null;
+  let wakeReleasedAt = null;
+  let wakeAcquiredAt = null;
+  let wakeAttempts = 0;
+
+  function clock() {
+    const d = new Date();
+    return d.toISOString().substring(11, 19) + "Z";
+  }
 
   function wakeState() {
     if (!wakeWanted) return "off";
@@ -48,13 +60,24 @@
   async function acquireWake() {
     if (!wakeWanted || !window.isSecureContext || !("wakeLock" in navigator)) { notifyWake(); return; }
     if (wakeSentinel && !wakeSentinel.released) { notifyWake(); return; }
+    if (document.visibilityState !== "visible") { notifyWake(); return; } // the browser would refuse anyway
+    wakeAttempts++;
     try {
       wakeSentinel = await navigator.wakeLock.request("screen");
-      wakeSentinel.addEventListener("release", () => { notifyWake(); });
-    } catch (_) {
-      // Low battery, or the page is not visible: the browser said no. Try again on the next
-      // visibility change; the state shows "requesting" until then.
+      wakeAcquiredAt = clock();
+      wakeLastError = null;
+      wakeSentinel.addEventListener("release", () => {
+        // The browser let go: page hidden, tab switched, Low Power Mode, or iPadOS auto-lock
+        // overriding the lock. Recorded so the card can show WHEN it happened.
+        wakeReleasedAt = clock();
+        notifyWake();
+      });
+    } catch (e) {
+      // NotAllowedError = Low Power Mode or a browser rule (Safari may want a user gesture
+      // first — see the first-touch retry in initWakeLock); the text is shown on the card.
       wakeSentinel = null;
+      wakeLastError = (e && e.name ? e.name : "Error") + (e && e.message ? ": " + e.message : "");
+      wakeLastErrorAt = clock();
     }
     notifyWake();
   }
@@ -79,6 +102,11 @@
         standalone: !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true,
         scheme: location.protocol.replace(":", ""),
         userAgent: navigator.userAgent,
+        lastError: wakeLastError,
+        lastErrorAt: wakeLastErrorAt,
+        acquiredAt: wakeAcquiredAt,
+        releasedAt: wakeReleasedAt,
+        attempts: wakeAttempts,
       };
     },
     setWanted: function (wanted) {
@@ -86,6 +114,8 @@
       try { localStorage.setItem(WAKE_KEY, wakeWanted ? "1" : "0"); } catch (_) { /* private mode */ }
       if (wakeWanted) acquireWake(); else releaseWake();
     },
+    // The card's "Request again" button: a request from a real user gesture.
+    retry: function () { acquireWake(); },
     subscribe: function (dotNetRef) {
       wakeListeners.push(dotNetRef);
       notifyWake();
@@ -101,6 +131,14 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && wakeWanted) acquireWake();
     });
+    // iPadOS Safari and the home-screen app: a request made at load, before any touch, can
+    // be refused; the first user gesture on the page retries it (every page, not only
+    // Appearance — the user may never open Appearance in flight).
+    const retryOnGesture = () => { if (wakeWanted && !(wakeSentinel && !wakeSentinel.released)) acquireWake(); };
+    document.addEventListener("pointerdown", retryOnGesture, { passive: true });
+    document.addEventListener("touchend", retryOnGesture, { passive: true });
+    window.addEventListener("focus", retryOnGesture);
+    window.addEventListener("pageshow", retryOnGesture);
     window.addEventListener("pagehide", () => { if (wakeSentinel) wakeSentinel.release().catch(() => {}); });
   }
 

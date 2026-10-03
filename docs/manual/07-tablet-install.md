@@ -89,8 +89,17 @@ reads:
 | `REQUESTING` | The browser refused for now (often a low battery); it tries again when you return to the page. |
 
 The choice is stored **on that device** (the browser's local storage), not in `settings.json`
-— each tablet decides for itself. The browser drops the lock when you switch apps or lock the
-tablet, and the app takes it again when you come back. Closing the tab releases it.
+— each tablet decides for itself, **and per address**: switching it on at `http://…:5320`
+does not carry over to `https://…:5321`. Switch it on once on the https page. The browser
+drops the lock when you switch apps or lock the tablet, and the app takes it again when you
+come back (or on your first tap). Closing the tab releases it.
+
+**If the screen still sleeps** with the pill reading `ACTIVE`: switch off **Low Power Mode**
+(iPadOS ignores every wake lock in it) and check Guided Access / Screen Time limits. The
+**Lock diagnostics** line under the switch shows how many times the lock was requested, when
+it was granted, when the browser let it go, and the text of the last refusal — send that line
+with a bug report. **Request again** asks for the lock from a tap, which Safari sometimes
+wants.
 
 ## 7.7 Checks after setup
 
