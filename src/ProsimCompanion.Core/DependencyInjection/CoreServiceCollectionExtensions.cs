@@ -99,6 +99,11 @@ public static class CoreServiceCollectionExtensions
         services.AddStartupModule<Weather.HeroWeatherService>();
         services.AddSingleton<Boarding.GateStatusStore>();
         services.AddStartupModule<Boarding.GateMonitorService>();
+        // Fuel log (#154): plan vs actual per navlog fix for the Fuel Log page, and the FO's
+        // spoken fuel checks kept for the same page.
+        services.AddSingleton<Flight.FuelLogStore>();
+        services.AddStartupModule<Flight.FuelLogService>();
+        services.AddSingleton<Flight.FuelCheckLogStore>();
         // "What are we flying over?" (#153): the shipped atlas, read on the first question,
         // and the optional Wikipedia summary source behind it.
         services.AddSingleton<Geo.IPlaceLookup>(_ => new Geo.PlaceLookup(() => Geo.Atlas.Default));

@@ -1,0 +1,285 @@
+@page "/fuellog"
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Flight
+@inherits StoreObserverComponent
+@inject IProsimDataRefs DataRefs
+@inject OfpStore Ofp
+@inject FuelLogStore Log
+@inject FuelCheckLogStore Checks
+@inject FlightProgressStore Progress
+@inject DisplayUnitService Units
+@inject IServiceProvider Services
+
+@* Fuel Log (issue #154, owner pick "B" of the Superdesign drafts 2026-10-04): the paper
+   OFP's fuel column. Plan vs Actual hero + burn chart on top, the waypoint table full
+   width, the FO's spoken fuel checks as a strip at the foot. Everything here is read from
+   Core stores; the only action is the "Fuel check now" button, which speaks. *@
+
+<PageTitle>Fuel Log — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Fuel Log</h1>
+
+@{
+    var log = _log;
+    var navlog = Ofp.Current?.Navlog ?? [];
+    var fob = _fuelTotal is { RawValue: not null, IsStale: false } sub ? sub.Value : (double?)null;
+    var header = FuelLogPresentation.Header(log, navlog, Progress.Snapshot().Position, fob);
+    var chart = log.HasPlan ? FuelLogPresentation.Chart(log, fob, header.EstimatedLandingKg) : null;
+    var takeoff = log.TakeoffUtc;
+    var last = log.LastPassed;
+}
+
+<div class="fuellog-page">
+
+@if (!log.HasPlan)
+{
+    <section class="section fuellog-empty">
+        <div class="section-header"><h3 class="section-title">Fuel Log</h3></div>
+        <div class="section-body">
+            <p class="fuellog-empty-text">No fuel plan loaded. Fetch an OFP with a navlog on the <a href="init">INIT page</a> and the log fills in as each waypoint is passed.</p>
+        </div>
+    </section>
+}
+else
+{
+    <div class="fuellog-top">
+        @* ── PLAN VS ACTUAL ──────────────────────────────────── *@
+        <section class="section fuellog-hero">
+            <div class="section-header">
+                <h3 class="section-title">Plan vs actual</h3>
+                @if (header.Trend is { } trend)
+                {
+                    <span class="pill @TrendTone(trend)">@trend</span>
+                }
+            </div>
+            <div class="section-body">
+                <div class="fuellog-stats">
+                    <div class="fuellog-stat">
+                        <span class="label-caps">Fuel on board</span>
+                        <span class="figure figure-lg @(header.FuelOnBoardKg is null ? "" : "glow")">@Kg(header.FuelOnBoardKg)<span class="figure-unit">@UnitU</span></span>
+                        <span class="fuellog-sub">@(header.FuelOnBoardKg is null ? "no fuel figure from ProSim" : "live")</span>
+                    </div>
+                    <div class="fuellog-stat">
+                        <span class="label-caps">Plan at this point</span>
+                        <span class="figure figure-lg">@Kg(header.PlanHereKg)<span class="figure-unit">@UnitU</span></span>
+                        <span class="fuellog-sub">@Between(header)</span>
+                    </div>
+                    <div class="fuellog-stat">
+                        <span class="label-caps">Delta</span>
+                        <span class="figure figure-lg @DeltaClass(header.DeltaKg)">@SignedKg(header.DeltaKg)<span class="figure-unit">@UnitU</span></span>
+                        <span class="fuellog-sub">@FuelLogPresentation.RecentDeltasLine(header.RecentDeltas.Select(d => Units.FromKg(d)).ToList())</span>
+                    </div>
+                    <div class="fuellog-stat">
+                        <span class="label-caps">Estimated landing</span>
+                        <span class="figure figure-lg @(header.EstimatedLandingKg is { } e && e < log.PlannedLandingKg ? "fuellog-neg" : "")">@Kg(header.EstimatedLandingKg)<span class="figure-unit">@UnitU</span></span>
+                        <span class="fuellog-sub">@(log.PlannedLandingKg > 0 ? $"planned {Kg(log.PlannedLandingKg)}" : "no planned landing fuel")</span>
+                    </div>
+                </div>
+                <div class="fuellog-actions">
+                    <button type="button" class="btn primary" @onclick="RequestCheck" disabled="@(FuelCheck is null)">Fuel check now</button>
+                    <a class="btn secondary" href="ofp">Open OFP</a>
+                    @if (_notice is { Length: > 0 })
+                    {
+                        <span class="fuellog-notice">@_notice</span>
+                    }
+                </div>
+            </div>
+        </section>
+
+        @* ── BURN CHART ──────────────────────────────────────── *@
+        <section class="section fuellog-chart-card">
+            <div class="section-header">
+                <h3 class="section-title">Burn · @log.OriginIcao → @log.DestinationIcao</h3>
+                <span class="section-hint">grey = plan · cyan = actual · dashed = at the present delta</span>
+            </div>
+            <div class="section-body">
+                @if (chart is { } c)
+                {
+                    <svg class="fuellog-chart" viewBox="0 0 @Px(c.Width) @Px(c.Height)" role="img" aria-label="Planned fuel against actual fuel over the route">
+                        @foreach (var (y, label) in c.GridLines)
+                        {
+                            <line class="fuellog-grid" x1="44" x2="@Px(c.Width - 16)" y1="@Px(y)" y2="@Px(y)" />
+                            @SvgText("fuellog-axis", 36, y + 3, "end", label)
+                        }
+                        @if (c.PlannedLandingY is { } ly)
+                        {
+                            <line class="fuellog-landing" x1="44" x2="@Px(c.Width - 16)" y1="@Px(ly)" y2="@Px(ly)" />
+                            @SvgText("fuellog-landing-label", 48, ly - 5, "start", "PLANNED LANDING " + Kg(log.PlannedLandingKg))
+                        }
+                        <polyline class="fuellog-plan" points="@c.PlannedPoints" />
+                        @if (c.ProjectionPoints.Length > 0)
+                        {
+                            <polyline class="fuellog-projection" points="@c.ProjectionPoints" />
+                        }
+                        @if (c.ActualPoints.Length > 0)
+                        {
+                            <polyline class="fuellog-actual" points="@c.ActualPoints" />
+                        }
+                        @foreach (var dot in c.ActualDots)
+                        {
+                            <circle class="fuellog-dot" cx="@Px(dot.X)" cy="@Px(dot.Y)" r="4"><title>@dot.Ident</title></circle>
+                        }
+                        @if (c.Estimate is { } est)
+                        {
+                            @SvgText("fuellog-estimate", est.X, est.Y + 14, "end", est.Label)
+                        }
+                        @foreach (var (x, label) in c.FixLabels)
+                        {
+                            @SvgText("fuellog-axis", x, c.Height - 8, "middle", label)
+                        }
+                    </svg>
+                }
+                else
+                {
+                    <p class="fuellog-empty-text">The navlog has no fuel figures to chart.</p>
+                }
+            </div>
+        </section>
+    </div>
+
+    @* ── WAYPOINT TABLE ─────────────────────────────────────── *@
+    <section class="section fuellog-table-card">
+        <div class="section-header">
+            <h3 class="section-title">Fuel log</h3>
+            <span class="section-hint">@log.PassedCount of @log.Rows.Count fixes passed@(takeoff is null ? " · stamps start at takeoff" : "")</span>
+        </div>
+        <div class="fuellog-table-wrap">
+            <table class="data-table fuellog-table">
+                <thead>
+                    <tr>
+                        <th>Waypoint</th>
+                        <th class="num">Plan</th>
+                        <th class="num">Actual</th>
+                        <th class="num">Δ min</th>
+                        <th class="num">Plan FOB</th>
+                        <th class="num">Actual FOB</th>
+                        <th class="num">Δ @UnitU</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in log.Rows)
+                    {
+                        var isLast = last is not null && row.Index == last.Index;
+                        var dMin = row.DeltaMinutes(takeoff);
+                        <tr class="@(row.Passed ? (isLast ? "now" : "") : "future")">
+                            <td class="mono fuellog-fix">@row.Ident @if (isLast) { <span class="pill tone-active">last</span> }</td>
+                            <td class="mono num">@PlanTime(row, takeoff)</td>
+                            <td class="mono num">@Clock(row.ActualTimeUtc)</td>
+                            <td class="mono num @(dMin is > 0 ? "fuellog-neg" : dMin is < 0 ? "fuellog-pos" : "")">@(dMin is { } m ? (m > 0 ? "+" : "") + m : "—")</td>
+                            <td class="mono num">@Kg(row.PlannedFobKg)</td>
+                            <td class="mono num @(row.Passed ? "glow" : "")">@Kg(row.ActualFobKg)</td>
+                            <td class="mono num fuellog-delta @DeltaClass(row.DeltaKg)">@SignedKg(row.DeltaKg)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    @* ── FO FUEL CHECKS ─────────────────────────────────────── *@
+    <section class="section fuellog-checks-card">
+        <div class="section-header">
+            <h3 class="section-title">FO fuel checks</h3>
+            <span class="section-hint">@(_checks.Checks.Count == 0 ? "none spoken yet this session" : "newest first · what the First Officer said")</span>
+        </div>
+        <div class="section-body">
+            @if (_checks.Checks.Count == 0)
+            {
+                <p class="fuellog-empty-text">The First Officer's periodic fuel checks (Speech → Monitoring) and any "fuel check" you ask for appear here with the exact words spoken.</p>
+            }
+            else
+            {
+                <div class="fuellog-checks">
+                    @foreach (var check in _checks.Checks)
+                    {
+                        <div class="inset fuellog-check">
+                            <div class="fuellog-check-head">
+                                <span class="mono fuellog-check-time">@Clock(check.AtUtc)</span>
+                                <span class="label-caps">@check.Method@(check.Fix is { Length: > 0 } ? " · " + check.Fix : "") · @check.Trigger</span>
+                                <span class="pill @(check.Shortfall ? "tone-bad" : check.DifferenceKg is < -50 ? "tone-warn" : "tone-ok")">@CheckTag(check)</span>
+                            </div>
+                            <div class="fuellog-check-text">“@check.Text”</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+}
+
+</div>
+
+@code {
+    private IDataRefSubscription<double> _fuelTotal = null!;
+    private FuelLogSnapshot _log = FuelLogSnapshot.Empty;
+    private FuelCheckLogSnapshot _checks = FuelCheckLogSnapshot.Empty;
+    private Timer? _refresh;
+    private string? _notice;
+
+    // Registered by the Speech pillar; absent in a host without voice (tests) — the button then disables.
+    private IFuelCheckRequests? FuelCheck => Services.GetService(typeof(IFuelCheckRequests)) as IFuelCheckRequests;
+
+    protected override void OnInitialized()
+    {
+        _fuelTotal = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
+        _log = Log.Snapshot();
+        _checks = Checks.Snapshot();
+        Watch(Log, s => _log = s);
+        Watch(Checks, s => _checks = s);
+        WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => { });
+        WatchChanged(h => Units.Changed += h, h => Units.Changed -= h, () => { });
+        // The header's live figures (FOB, plan-at-here) move between store events.
+        _refresh = new Timer(_ => _ = InvokeAsync(StateHasChanged), null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _refresh?.Dispose();
+        _fuelTotal.Dispose();
+    }
+
+    private void RequestCheck()
+    {
+        _notice = FuelCheck?.RequestNow("page") ?? "Spoken.";
+        _ = ClearNoticeAsync();
+    }
+
+    private async Task ClearNoticeAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(6));
+        _notice = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string UnitU => Units.UnitLabel.ToUpperInvariant();
+
+    private string Kg(double? kg) => kg is { } v ? Units.FromKg(v).ToString("N0", CultureInfo.InvariantCulture) : "—";
+
+    private string SignedKg(double? kg) => kg is { } v ? FuelLogPresentation.Signed(Math.Round(Units.FromKg(v))) : "—";
+
+    private static string DeltaClass(double? kg) => kg is < 0 ? "fuellog-neg" : kg is > 0 ? "fuellog-pos" : "";
+
+    private static string TrendTone(string trend) => trend switch { "losing" => "tone-warn", "gaining" => "tone-ok", _ => "tone-neutral" };
+
+    private static string Between(FuelLogHeader h) => h.BetweenFrom is null ? "no position on the navlog"
+        : h.BetweenTo is null ? $"past {h.BetweenFrom}" : $"between {h.BetweenFrom} and {h.BetweenTo}";
+
+    private static string Clock(DateTimeOffset? utc) => utc is { } t ? t.ToString("HH:mm", CultureInfo.InvariantCulture) : "—";
+
+    // Before takeoff the plan is only an elapsed time ("+1:23"); after it, a clock time.
+    private static string PlanTime(FuelLogRow row, DateTimeOffset? takeoff)
+        => row.PlannedTimeUtc(takeoff) is { } t ? Clock(t)
+            : row.PlannedTimeFromTakeoff is { } d ? "+" + ((int)d.TotalHours).ToString(CultureInfo.InvariantCulture) + ":" + d.Minutes.ToString("00", CultureInfo.InvariantCulture)
+            : "—";
+
+    private static string CheckTag(FuelCheckRecord c) => c.Shortfall ? "shortfall" : c.DifferenceKg is < -50 ? "under plan" : c.DifferenceKg is > 50 ? "above plan" : "on plan";
+
+    private static string Px(double v) => v.ToString("0.#", CultureInfo.InvariantCulture);
+
+    // An SVG <text> inside a Razor code block reads as Razor's own <text> tag (same trick as
+    // the Flight Monitor board); the label is HTML-encoded before it goes in.
+    private static MarkupString SvgText(string cssClass, double x, double y, string anchor, string label)
+        => (MarkupString)$"<text class=\"{cssClass}\" x=\"{Px(x)}\" y=\"{Px(y)}\" text-anchor=\"{anchor}\">{System.Net.WebUtility.HtmlEncode(label)}</text>";
+}

@@ -44,6 +44,7 @@ running version.
 | **Loadsheet** | Prelim/final loadsheets with per-weight MAC envelope brackets, manual STD, resend/reset |
 | **W&B** | Aircraft silhouette with doors and pax/cargo totals, weight summary bars, the CG envelope chart with valid MAC ranges, loading breakdown, passenger manifest, SIMULATE |
 | **Fuel** | Fuel summary with capacity bar and delta, tank breakdown |
+| **Fuel Log** | The paper OFP's fuel column: plan vs actual at your point on the navlog, estimated landing fuel, a burn chart, the waypoint table that fills in as you pass each fix, and the First Officer's spoken fuel checks — see below |
 | **Performance** | Takeoff and Landing switch — airport/runway card with runway chips, runway diagram and wind components, weather, aircraft config, FMGC figures, FMS PERF uplink |
 | **Checklists** | ECAM-style interactive checklists with a completion bar and the checklist sequence rail (visual runner; the voice FO runs beside it) |
 | **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode with a legs timeline |
@@ -94,6 +95,29 @@ only if Solari animation is on in Settings → Display & Flight Data). Each weat
 the METAR observation time, the ATIS letter and "updated n min ago", so you can see the cards
 are live — the METAR is re-read every ten minutes and the ATIS letter is re-read with it.
 ![Flight Monitor](../img/flight-monitor.png)
+
+### The Fuel Log page
+
+**Fuel Log** in the sidebar is the fuel column of a paper OFP, kept for you. It needs an OFP
+with a navlog (SimBrief); without one it says so.
+
+![Fuel Log](../img/fuel-log.png)
+
+- **Plan vs actual** — fuel on board now against the OFP's fuel at your exact point on the
+  navlog (between the last fix and the next), the delta, and the **estimated landing fuel**
+  (the planned landing fuel moved by that delta — the same rule the First Officer's fuel
+  check uses). The pill says **holding**, **gaining** or **losing** from the last three
+  fixes. **Fuel check now** makes the First Officer speak a fuel check (the same as saying
+  *"fuel check"*); **Open OFP** jumps to the plan.
+- **Burn** — the planned fuel line across the route, your actual fuel as dots, the planned
+  landing fuel as a gold dashed line and, dashed in cyan, where you land at the present delta.
+- **Fuel log** — one row per navlog fix: planned and actual time, minutes early or late,
+  planned and actual fuel, and the difference. Rows fill in as each fix is passed; the ones
+  ahead show the plan in grey. Nothing is stamped before takeoff: the first row is the
+  takeoff fuel at the takeoff time. A new OFP starts a fresh log; the log is kept for the
+  session (restart the app and the past rows are gone — each row is also in the session log).
+- **FO fuel checks** — every fuel check the First Officer spoke this session, newest first,
+  with the exact words.
 
 ### The Logbook page
 

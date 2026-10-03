@@ -1,0 +1,85 @@
+/* Fuel Log page (#154, Superdesign draft "B" 2026-10-04): Plan vs Actual hero + burn chart
+   on top, the waypoint table full width, the FO's fuel checks as a strip. Amber = under plan,
+   green = above, cyan = live — instrument state colours, fixed across themes. */
+
+.fuellog-page {
+  padding: 16px 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.fuellog-page .section { margin: 0; }
+.fuellog-page .section-header { justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.fuellog-empty-text { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+
+/* ---- top row: hero + chart ---- */
+
+.fuellog-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.fuellog-hero { border-radius: var(--radius-xl); }
+.fuellog-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+}
+.fuellog-stat { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fuellog-sub { font-size: 11px; color: var(--text-secondary); line-height: 1.35; }
+.fuellog-actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.fuellog-actions .btn { text-decoration: none; display: inline-flex; align-items: center; }
+.fuellog-notice { font-size: 11px; color: var(--text-secondary); }
+
+.fuellog-neg { color: var(--warning); }
+.fuellog-pos { color: var(--success); }
+
+/* ---- chart ---- */
+
+.fuellog-chart-card .section-body { padding-top: 4px; }
+.fuellog-chart { width: 100%; height: auto; display: block; }
+.fuellog-grid { stroke: rgba(255, 255, 255, 0.08); }
+.fuellog-axis { font-family: var(--font-mono); font-size: 9px; fill: var(--text-muted); letter-spacing: 0.08em; }
+.fuellog-plan { fill: none; stroke: var(--text-secondary); stroke-width: 2; stroke-linejoin: round; }
+.fuellog-actual { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; filter: drop-shadow(0 0 4px var(--accent)); }
+.fuellog-projection { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 2 4; opacity: 0.7; }
+.fuellog-dot { fill: var(--accent); stroke: var(--bg-card); stroke-width: 2; }
+.fuellog-landing { stroke: var(--accent-gold); stroke-dasharray: 3 4; }
+.fuellog-landing-label { font-family: var(--font-mono); font-size: 9px; fill: var(--accent-gold); letter-spacing: 0.08em; }
+.fuellog-estimate { font-family: var(--font-mono); font-size: 9px; font-weight: 700; fill: var(--accent); letter-spacing: 0.08em; }
+
+/* ---- table ---- */
+
+.fuellog-table-wrap { overflow-x: auto; padding: 0 6px 8px; }
+.fuellog-table { width: 100%; }
+.fuellog-table th.num, .fuellog-table td.num { text-align: right; }
+.fuellog-table td.mono { font-size: 13px; }
+.fuellog-table td.fuellog-fix { font-weight: 700; white-space: nowrap; }
+.fuellog-table td.fuellog-fix .pill { margin-left: 8px; }
+.fuellog-table td.fuellog-delta { font-weight: 700; }
+.fuellog-table tr.future td { color: var(--text-muted); }
+.fuellog-table tr.future td.glow { color: var(--text-muted); text-shadow: none; }
+.fuellog-table tr.now td { background: rgba(0, 217, 255, 0.07); }
+
+/* ---- FO checks strip ---- */
+
+.fuellog-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.fuellog-check { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.fuellog-check-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fuellog-check-head .pill { margin-left: auto; }
+.fuellog-check-time { font-weight: 700; }
+.fuellog-check-text { color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
+
+@media (max-width: 900px) {
+  .fuellog-top { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .fuellog-stats { grid-template-columns: minmax(0, 1fr); }
+}

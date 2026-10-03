@@ -18,7 +18,7 @@ namespace ProsimCompanion.Speech.Monitoring;
 /// outside the cruise; a shortfall beyond the margin is spoken at High. Advisory only.
 /// The timing shell is thin: <see cref="ProcessTick"/> takes its clock so tests can step it.
 /// </summary>
-public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeature, IDisposable
+public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeature, IFuelCheckRequests, IDisposable
 {
     private static readonly string[] CheckPhrases = ["fuel check", "fuel check please", "check the fuel", "how is the fuel"];
     private static readonly TimeSpan Poll = TimeSpan.FromSeconds(10);
@@ -32,6 +32,7 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FuelCheckMonitor> _logger;
+    private readonly FuelCheckLogStore? _checkLog;
     private readonly IDataRefSubscription<double> _fuelTotal;
     private readonly IDataRefSubscription<double> _flow1;
     private readonly IDataRefSubscription<double> _flow2;
@@ -52,7 +53,8 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
         IProsimDataRefs dataRefs,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<FuelCheckMonitor> logger)
+        ILogger<FuelCheckMonitor> logger,
+        FuelCheckLogStore? checkLog = null)
     {
         ArgumentNullException.ThrowIfNull(sop);
         ArgumentNullException.ThrowIfNull(speech);
@@ -72,6 +74,7 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _checkLog = checkLog;
         _fuelTotal = dataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
         _flow1 = dataRefs.Subscribe(ProsimDataRefNames.Engine1FuelFlowKgh);
         _flow2 = dataRefs.Subscribe(ProsimDataRefNames.Engine2FuelFlowKgh);
@@ -118,6 +121,25 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
 
         Speak(result, "voice");
         return true;
+    }
+
+    /// <summary>The Fuel Log page's button (issue #154): the voice path without the phrase.</summary>
+    public string? RequestNow(string source)
+    {
+        if (!_flight.IsLive)
+        {
+            return "No flight data for a fuel check.";
+        }
+
+        var result = Compute(DateTimeOffset.UtcNow);
+        if (result is null)
+        {
+            _eventLog.Record("fuel.check", new { trigger = source, spoken = false, reason = "no plan or no fuel figure" });
+            return "No fuel plan loaded — fetch an OFP on the INIT page.";
+        }
+
+        Speak(result, source);
+        return null;
     }
 
     /// <summary>The periodic rule, clock supplied: in the cruise, the first check comes one
@@ -211,6 +233,9 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
             text = result.Text,
         });
         _ = _arbiter.EnqueueAsync(new SpeechRequest(result.Text, result.Priority, SpokenTtl, Tag: "fuel.check"));
+        _checkLog?.Add(new FuelCheckRecord(
+            DateTimeOffset.UtcNow, trigger, result.Method, result.Fix, result.FuelOnBoardKg, result.PlannedFuelOnBoardKg,
+            result.DifferenceKg, result.EstimatedLandingKg, result.PlannedLandingKg, result.Shortfall, result.Text));
     }
 
     private static double? Round(double? value) => value is { } v ? Math.Round(v) : null;

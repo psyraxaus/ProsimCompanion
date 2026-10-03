@@ -44,6 +44,7 @@ public static class SpeechServiceCollectionExtensions
         // In-flight FO monitoring (issue #148), each behind its own sop.monitoring switch.
         services.AddStartupModule<Monitoring.FuelCheckMonitor>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Monitoring.FuelCheckMonitor>());
+        services.AddSingleton<Core.Flight.IFuelCheckRequests>(p => p.GetRequiredService<Monitoring.FuelCheckMonitor>());
         services.AddStartupModule<Monitoring.GrossErrorCheckMonitor>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Monitoring.GrossErrorCheckMonitor>());
         services.AddStartupModule<Monitoring.DestinationWeatherWatch>();

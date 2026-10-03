@@ -53,6 +53,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   In flight it draws a **route strip** from the aircraft position: the great circle origin →
   destination with the aircraft marker, distance to go, a ground-speed ETA and the estimated
   top of descent (direct distances; time-based fallback without a position)
+- A **Fuel Log** page — the paper OFP's fuel column: plan vs actual at your point on the
+  navlog, estimated landing fuel, a burn chart, one row per waypoint that fills in as you pass
+  it (planned/actual time and fuel, delta), and every fuel check the First Officer spoke
 - A **Logbook** page: totals, a touchdown-rate trend and every flight with its block and
   flight times, landing V/S, IAS, pitch and bounces (measured at the committed ground contact),
   CSV export; the debrief quotes the touchdown rate
@@ -65,6 +68,7 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 
 ![INIT](docs/img/init.png)
 ![Weight & Balance](docs/img/wnb.png)
+![Fuel Log](docs/img/fuel-log.png)
 ![Logbook](docs/img/logbook.png)
 
 ### Voice First Officer
