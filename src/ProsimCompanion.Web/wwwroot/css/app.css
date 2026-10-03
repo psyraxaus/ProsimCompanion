@@ -191,6 +191,20 @@ a { color: var(--accent); }
   overflow: hidden;
 }
 
+/* Home-screen (standalone) web app on the iPad (owner screenshot 2026-10-03, 0.6.0-rc.1):
+   100dvh under-reports the window there — iPadOS keeps a phantom toolbar band in the dynamic
+   viewport even though no toolbar exists — so the shell stopped ~100 px short and the
+   footer floated above a black strip. There is no toolbar to track in standalone mode, so
+   the fixed shell simply fills `inset: 0`; the footer's safe-area padding then sits on the
+   real bottom edge. Browser tabs keep the dvh rule above. */
+@media (display-mode: standalone) {
+  .app { height: auto; }
+}
+
+/* The canvas behind the shell wears the theme too, so any sliver the shell does not cover
+   (orientation change, keyboard) is never black. */
+html { background: var(--bg-primary); }
+
 .main {
   /* flex-basis 0 + min-height 0 so main shrinks to the remaining space instead of
      sizing to its content (which would scroll the chrome away). */
