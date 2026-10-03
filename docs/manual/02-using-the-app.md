@@ -94,6 +94,8 @@ time-based values. The same figures are on a small row under the telemetry on Fl
 **Logbook** in the sidebar shows every flight the app has recorded. A flight is added when
 you shut down at the gate.
 
+![Logbook](../img/logbook.png)
+
 - **Totals** — flights, block hours, landings, how many approaches the gates judged stable,
   and your average touchdown rate.
 - **Touchdown rate trend** — the small chart shows your last landings, oldest on the left.
@@ -179,6 +181,8 @@ Away from the flight deck during a long turnaround? **Settings → Notifications
 short message at the milestones: refuel complete, boarding complete, final loadsheet sent,
 ready for pushback, cabin secure, deice holdover expiring, top of descent approaching,
 landed, on blocks, deboarding complete. Each fires once per flight.
+
+![Notifications settings](../img/notifications.png)
 
 Turn on **Send notifications**, then **Add target**. A target is one place to notify:
 

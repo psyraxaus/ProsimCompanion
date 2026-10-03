@@ -53,11 +53,19 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   In flight it draws a **route strip** from the aircraft position: the great circle origin →
   destination with the aircraft marker, distance to go, a ground-speed ETA and the estimated
   top of descent (direct distances; time-based fallback without a position)
+- A **Logbook** page: totals, a touchdown-rate trend and every flight with its block and
+  flight times, landing V/S, IAS, pitch and bounces (measured at the committed ground contact),
+  CSV export; the debrief quotes the touchdown rate
+- **Notifications to your phone** — an ntfy topic, a Discord webhook or any JSON webhook gets
+  refuel complete, boarding complete, final loadsheet sent, ready for pushback, cabin secure,
+  deice holdover expiring, top of descent approaching, landed, on blocks and deboarding
+  complete, each once per flight; URLs and tokens stored encrypted (off by default)
 
 ![Flight Monitor](docs/img/flight-monitor.png)
 
 ![INIT](docs/img/init.png)
 ![Weight & Balance](docs/img/wnb.png)
+![Logbook](docs/img/logbook.png)
 
 ### Voice First Officer
 - Spoken checklists beside the visual runner — challenge/response with verification against
@@ -65,6 +73,18 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - SOP callouts (V1, rotate, positive climb, minimums…), stabilized-approach gates you set to
   your airline's SOP (heights, gear, flap, speed band, sink rate — add or remove gates),
   flow-monitor and weather advisories, sterile cockpit
+- **In-flight monitoring** (each with its own switch, off by default): a periodic **fuel check**
+  against the SimBrief navlog at the last fix passed with the estimated landing fuel, a
+  pre-departure **gross error check** of the weights and the FMS PERF entries against the
+  loadsheet and the Takeoff page, a **destination weather watch** that speaks METAR changes
+  (visibility, ceiling, ATIS letter, tailwind on the planned runway) with the alternate when
+  below a limit, and **read-backs** — "altimeter one zero one three", "V speeds …", "runway …",
+  "minimums …" — checked against the aircraft
+- **Ask the First Officer**: free-form questions ("what is our fuel on board", "how long to top
+  of descent") answered by the language model from a live fact sheet and nothing else, every
+  number verified, spoken only — never a command (needs the LAN speech server; off by default)
+- LLM briefings and the debrief are **spoken while the model writes** them, sentence by
+  sentence, each sentence verified before it is heard; the plain template is always the floor
 - Voice FCU/radio control behind a PF/PM handover, MCDU voice actions, ECAM abnormals with
   memory drills, departure/arrival briefings from Navigraph DFD + live weather
 - Cabin crew (a "cabin secure" that arrives a realistic, pax-scaled while after the doors
