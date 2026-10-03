@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0-rc.4
+
+- New: a **Viewport** line on Appearance → Screen & Install (window size, screen size, safe-area insets, display mode, shell height) — the facts for the iPad home-screen band report. Note: iOS freezes a home-screen app's settings when the icon is added; after an upgrade, delete the icon and add it again.
+- Everything in 0.6.0-rc.3 below.
+
 ## 0.6.0-rc.3
 
 - Fix: in the home-screen (installed) app on the iPad the footer floated above a black band at the bottom of the screen (0.6.0-rc.1 screenshot). iPadOS under-reports the dynamic viewport height in standalone mode; the shell now fills the window there and the page canvas wears the theme colour.
