@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0-rc.3
+
+- Fix: in the home-screen (installed) app on the iPad the footer floated above a black band at the bottom of the screen (0.6.0-rc.1 screenshot). iPadOS under-reports the dynamic viewport height in standalone mode; the shell now fills the window there and the page canvas wears the theme colour.
+- Everything in 0.6.0-rc.2 below.
+
 ## 0.6.0-rc.2
 
 Keep-awake diagnostics after the first iPad test (the screen still slept over HTTPS).
