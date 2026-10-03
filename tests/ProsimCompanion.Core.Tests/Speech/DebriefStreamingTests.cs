@@ -116,16 +116,32 @@ public sealed class DebriefStreamingTests : IDisposable
             _arbiter.Segments.Select(s => s.Text));
         Assert.Equal([false, false, false, true], _arbiter.Segments.Select(s => s.Cacheable));
 
+        // The debrief file is written on the service's thread after the speech completes; the
+        // file can EXIST while the writer still holds it (an IOException read it mid-write in
+        // 1 of ~4 full runs on 2026-10-03), so wait for the content, not the name.
         var debriefPath = Path.ChangeExtension(sessionPath, ".debrief.txt");
         var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
-        while (!File.Exists(debriefPath) && DateTimeOffset.UtcNow < deadline)
+        string? written = null;
+        while (written is null && DateTimeOffset.UtcNow < deadline)
         {
-            await Task.Delay(10);
+            try
+            {
+                written = File.Exists(debriefPath) ? File.ReadAllText(debriefPath) : null;
+            }
+            catch (IOException)
+            {
+                // still being written
+            }
+
+            if (written is null)
+            {
+                await Task.Delay(10);
+            }
         }
 
         Assert.Equal(
             "Nice flight, Captain. Two callouts, all clean. Good work today. That's landing number 3 into YMML.",
-            File.ReadAllText(debriefPath));
+            written);
     }
 
     [Fact]

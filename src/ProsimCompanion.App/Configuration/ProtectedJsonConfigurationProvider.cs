@@ -24,7 +24,7 @@ public sealed class ProtectedJsonConfigurationProvider : JsonConfigurationProvid
         base.Load(stream);
 
         var unreadable = new List<string>();
-        foreach (var path in SecretProtector.SecretPaths)
+        foreach (var path in SecretProtector.ExpandSecretKeys(Data.Keys))
         {
             // Data is case-insensitive, so the camelCase path finds a hand-edited "ApiKey" too.
             if (!Data.TryGetValue(path, out var stored) || string.IsNullOrEmpty(stored))

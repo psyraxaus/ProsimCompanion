@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace ProsimCompanion.Core.Configuration;
 
@@ -50,6 +51,10 @@ public static class SecretProtector
         "briefing:llmApiKey",
         "speech:elevenLabsApiKey",
         "webUi:https:pfxPassword",
+        // Issue #151: a notification target's URL carries its secret (a Discord webhook URL,
+        // an ntfy topic nobody should learn) as much as its token does. `*` = every target.
+        "notifications:targets:*:url",
+        "notifications:targets:*:token",
     ];
 
     /// <summary>
@@ -128,17 +133,19 @@ public static class SecretProtector
         var changed = false;
         foreach (var path in SecretPaths)
         {
-            var (parent, key) = Locate(root, path);
-            if (parent?[key] is not JsonValue leaf || !leaf.TryGetValue<string>(out var plain))
+            foreach (var (parent, key) in LocateAll(root, path))
             {
-                continue;
-            }
+                if (parent[key] is not JsonValue leaf || !leaf.TryGetValue<string>(out var plain))
+                {
+                    continue;
+                }
 
-            var protectedValue = Protect(plain);
-            if (!ReferenceEquals(protectedValue, plain))
-            {
-                parent[key] = protectedValue;
-                changed = true;
+                var protectedValue = Protect(plain);
+                if (!ReferenceEquals(protectedValue, plain))
+                {
+                    parent[key] = protectedValue;
+                    changed = true;
+                }
             }
         }
 
@@ -184,30 +191,99 @@ public static class SecretProtector
 
         foreach (var path in SecretPaths)
         {
-            var (parent, key) = Locate(root, path);
-            if (parent?[key] is JsonValue leaf
-                && leaf.TryGetValue<string>(out var value)
-                && value.Length > 0
-                && !IsProtected(value))
+            foreach (var (parent, key) in LocateAll(root, path))
             {
-                return true;
+                if (parent[key] is JsonValue leaf
+                    && leaf.TryGetValue<string>(out var value)
+                    && value.Length > 0
+                    && !IsProtected(value))
+                {
+                    return true;
+                }
             }
         }
 
         return false;
     }
 
-    /// <summary>Walks <c>section:sub:key</c> without creating anything; the parent is null when
-    /// any segment before the last is missing or not an object.</summary>
-    private static (JsonObject? Parent, string Key) Locate(JsonObject root, string path)
+    /// <summary>
+    /// Walks <c>section:sub:key</c> without creating anything and yields every (parent, key)
+    /// the path names. A <c>*</c> segment stands for every element of a JSON array (issue
+    /// #151: <c>notifications:targets:*:token</c> — one secret per list entry), so a path may
+    /// resolve to zero, one or many leaves.
+    /// </summary>
+    private static IEnumerable<(JsonObject Parent, string Key)> LocateAll(JsonObject root, string path)
     {
         var segments = path.Split(':');
-        JsonObject? node = root;
-        for (var i = 0; i < segments.Length - 1 && node is not null; i++)
-        {
-            node = node[segments[i]] as JsonObject;
-        }
+        return Walk(root, segments, 0);
 
-        return (node, segments[^1]);
+        static IEnumerable<(JsonObject Parent, string Key)> Walk(JsonObject node, string[] segments, int index)
+        {
+            if (index == segments.Length - 1)
+            {
+                yield return (node, segments[index]);
+                yield break;
+            }
+
+            var segment = segments[index];
+            if (segment == "*")
+            {
+                yield break; // a wildcard must follow a list-valued key, never an object key
+            }
+
+            switch (node[segment])
+            {
+                case JsonObject child:
+                    foreach (var hit in Walk(child, segments, index + 1))
+                    {
+                        yield return hit;
+                    }
+
+                    break;
+
+                case JsonArray list when index + 1 < segments.Length - 1 && segments[index + 1] == "*":
+                    foreach (var element in list)
+                    {
+                        if (element is JsonObject item)
+                        {
+                            foreach (var hit in Walk(item, segments, index + 2))
+                            {
+                                yield return hit;
+                            }
+                        }
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The concrete configuration keys a secret path names in a flattened configuration
+    /// (<c>notifications:targets:*:token</c> → <c>notifications:targets:0:token</c>, …): the
+    /// provider decrypts by key, so wildcards are expanded against the keys it loaded. Paths
+    /// without a wildcard return themselves. Case-insensitive, like configuration keys.
+    /// </summary>
+    public static IEnumerable<string> ExpandSecretKeys(IEnumerable<string> loadedKeys)
+    {
+        ArgumentNullException.ThrowIfNull(loadedKeys);
+        var keys = loadedKeys as ICollection<string> ?? [.. loadedKeys];
+        foreach (var path in SecretPaths)
+        {
+            if (!path.Contains('*', StringComparison.Ordinal))
+            {
+                yield return path;
+                continue;
+            }
+
+            var pattern = "^" + string.Join(':', path.Split(':').Select(s => s == "*" ? "[0-9]+" : Regex.Escape(s))) + "$";
+            foreach (var key in keys)
+            {
+                if (Regex.IsMatch(key, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
+                    yield return key;
+                }
+            }
+        }
     }
 }

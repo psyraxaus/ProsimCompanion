@@ -189,6 +189,9 @@ public sealed class FlightProgressService : IDisposable
 
         if (tod is not null)
         {
+            // Consumers (the outbound notifications, #151) get the estimate as a signal; the
+            // raise is synchronous and listeners must not block — the dispatcher only queues.
+            _signals.RaiseTodApproaching(tod);
             _logger.LogInformation(
                 "Top of descent in about {Minutes:F0} min (estimate, 3:1 rule): {ToTodNm:F0} nm to T/D, {ToGoNm:F0} nm to go direct, "
                 + "descent {DescentNm:F0} nm from {CruiseAltFt:F0} ft to {ElevationFt} ft at {GroundSpeedKt:F0} kt",

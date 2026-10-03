@@ -201,3 +201,15 @@ _Avoid_: SSL port, secure server
 The per-device switch that holds the browser's Screen Wake Lock while the app is open —
 stored on that tablet, not in settings.json.
 _Avoid_: wake lock (in user-facing text), caffeine mode
+### Notifications
+
+**Milestone**:
+One of the ten flight moments the app can announce outward (refuel complete, boarding
+complete, final loadsheet sent, ready for pushback, cabin secure, deice holdover expiring, top
+of descent approaching, landed, on blocks, deboarding complete). Fires once per flight cycle.
+_Avoid_: trigger, alert
+
+**Target**:
+One place a milestone is sent to — an ntfy topic, a Discord webhook or a generic JSON
+webhook — with its own event switches. Its URL and token are secrets.
+_Avoid_: channel, endpoint, subscriber

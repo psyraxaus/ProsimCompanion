@@ -42,6 +42,11 @@ public sealed class GsxGroundOpsSignalRelay : IDisposable
         {
             _signals.RaiseRefuelServiceActive();
         }
+        else if (serviceId.Equals("Refueling", StringComparison.OrdinalIgnoreCase)
+            && lifecycleEvent == GsxServiceLifecycleEvent.Completed)
+        {
+            _signals.RaiseRefuelCompleted(); // the outbound "refuel complete" (#151)
+        }
         else if (serviceId.Equals("Boarding", StringComparison.OrdinalIgnoreCase)
             && lifecycleEvent == GsxServiceLifecycleEvent.Active)
         {

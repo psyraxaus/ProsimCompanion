@@ -67,6 +67,7 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<FlightStatusOptions>(configuration);
         // Support bundle sizing (Logs page, "Export diagnostics").
         services.AddOptionSection<DiagnosticsOptions>(configuration);
+        services.AddOptionSection<NotificationOptions>(configuration);
 
         // The running build, resolved once: session headers, the log banner, the telemetry
         // summary, the update banner and the diagnostics bundle all stamp from this one object.
@@ -112,6 +113,10 @@ public static class CoreServiceCollectionExtensions
         // Landing analysis (issue #146): one `touchdown` session event per landing, read
         // back by the debrief and the logbook fold. Passive — it never writes to the aircraft.
         services.AddStartupModule<Flight.TouchdownRecorder>();
+        // Outbound event notifications (issue #151): one bounded queue + one background
+        // sender; the signal source only ever writes to the queue, so no raiser waits.
+        services.AddSingleton<Notifications.NotificationDispatcher>();
+        services.AddStartupModule<Notifications.NotificationSignalSource>();
         services.AddSingleton<ConnectionStatusStore>();
         // Written by the Sim pillar's session monitor; read by session-gated automation and
         // the web UI. Stays at Empty (phase Unknown = hold) when the Sim pillar is absent.
