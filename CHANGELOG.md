@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0-rc.9
+
+Fixes from the owner's gate report on 0.6.0-rc.8.
+
+- Fix: **"Sync to FMS (FIN)" wrote the wrong block fuel.** The MCDU got the ordered figure (8.4 t) while the final loadsheet carried the fuel actually aboard (9576 kg → 9.6 t). The block now comes from the loadsheet the ZFW comes from (final or prelim); the ordered figure stays the fallback for the live source. Test added.
+- Changed: the W&B page's big MACZFW / MACGW figures are labelled **LIVE** (ProSim's live datarefs) and show the loadsheet's figure beside them ("loadsheet FIN 27.6%") — the loadsheet's MACZFW is ProSim's own loadsheet relation, matches ProSim's EFB, and is what goes to the MCDU; the live dataref can read a little different.
+- Everything in 0.6.0-rc.8 below.
+
 ## 0.6.0-rc.8
 
 Flight Monitor board, round three (owner requests in flight on 2026-10-03).
