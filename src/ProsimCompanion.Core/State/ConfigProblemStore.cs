@@ -11,6 +11,9 @@ public static class ConfigAreas
     public const string AtcRequests = "atc-requests";
     public const string Themes = "themes";
     public const string AircraftStates = "aircraft-states";
+
+    /// <summary>The optional HTTPS listener (ADR-0013): a certificate that could not be used.</summary>
+    public const string WebHttps = "webUi.https";
 }
 
 /// <summary>One user-content file that failed to parse/load. <see cref="Message"/> is the

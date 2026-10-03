@@ -16,7 +16,7 @@ public sealed class SettingsRedactorTests
     private const string Fixture = """
         {
           "configVersion": 2,
-          "webUi": { "port": 5320, "bindToAllInterfaces": true, "accessToken": "0123456789ABCDEF0123456789ABCDEF" },
+          "webUi": { "port": 5320, "bindToAllInterfaces": true, "accessToken": "0123456789ABCDEF0123456789ABCDEF", "https": { "enabled": true, "pfxPath": "C:/certs/simpc.pfx", "pfxPassword": "plain-pfx-password" } },
           "prosim": { "host": "192.168.1.20", "apiKey": "plain-prosim-key-value" },
           "sayIntentions": { "apiKeySource": "manual", "manualApiKey": "dpapi:AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAA" },
           "briefing": { "llmEnabled": true, "llmApiKey": "sk-proj-abcdefghijklmnopqrstuvwxyz0123456789", "llmModel": "gpt-4o" },
@@ -43,8 +43,14 @@ public sealed class SettingsRedactorTests
 
         foreach (var path in SecretProtector.SecretPaths)
         {
-            var (section, key) = (path.Split(':')[0], path.Split(':')[1]);
-            Assert.Equal(SettingsRedactor.Mask, (string?)root[section]![key]);
+            // Paths may nest (webUi:https:pfxPassword, issue #150): walk every segment.
+            JsonNode? node = root;
+            foreach (var segment in path.Split(':'))
+            {
+                node = node?[segment];
+            }
+
+            Assert.Equal(SettingsRedactor.Mask, (string?)node);
         }
     }
 

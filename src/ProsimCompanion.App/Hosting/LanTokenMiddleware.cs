@@ -32,10 +32,38 @@ public sealed class LanTokenMiddleware
         _options = options;
     }
 
+    /// <summary>
+    /// The install assets a browser fetches WITHOUT the session cookie during "Add to Home
+    /// Screen" (issue #150, ADR-0013 point 6): the manifest, the touch icons and the favicon.
+    /// Public branding with no data in it, matched by exact path (the icons folder holds
+    /// only the committed PNG set). Everything else — every page, API and other static file
+    /// — keeps the token rule.
+    /// </summary>
+    internal static bool IsPublicInstallAsset(PathString path)
+    {
+        if (!path.HasValue)
+        {
+            return false;
+        }
+
+        var value = path.Value!;
+        return value is "/manifest.webmanifest" or "/favicon.svg" or "/apple-touch-icon.png" or "/apple-touch-icon-180.png"
+            || (value.StartsWith("/icons/", StringComparison.Ordinal)
+                && value.EndsWith(".png", StringComparison.Ordinal)
+                && value.IndexOf('/', "/icons/".Length) < 0
+                && !value.Contains("..", StringComparison.Ordinal));
+    }
+
     public async Task InvokeAsync(HttpContext context)
     {
         var remote = context.Connection.RemoteIpAddress;
         if (remote is null || IPAddress.IsLoopback(remote))
+        {
+            await _next(context).ConfigureAwait(false);
+            return;
+        }
+
+        if (IsPublicInstallAsset(context.Request.Path) && HttpMethods.IsGet(context.Request.Method))
         {
             await _next(context).ConfigureAwait(false);
             return;

@@ -49,6 +49,7 @@ public static class SecretProtector
         "webUi:accessToken",
         "briefing:llmApiKey",
         "speech:elevenLabsApiKey",
+        "webUi:https:pfxPassword",
     ];
 
     /// <summary>

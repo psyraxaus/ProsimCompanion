@@ -20,6 +20,90 @@
     if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
+  // Screen keep-awake (issue #150, ADR-0013): the Screen Wake Lock API, a per-DEVICE choice
+  // kept in this browser's localStorage — whether a tablet's screen stays on is that tablet's
+  // business, not a server setting. The lock exists only in a secure context (https://, or
+  // http://localhost), so over http://<lan-ip> the state reads "needs-https" and the
+  // Appearance page points at the HTTPS setup. The browser drops the lock whenever the page is
+  // hidden; it is re-acquired on visibilitychange and released on unload.
+  const WAKE_KEY = "prosimCompanion.keepAwake";
+  let wakeSentinel = null;
+  let wakeWanted = false;
+  let wakeListeners = [];
+
+  function wakeState() {
+    if (!wakeWanted) return "off";
+    if (!window.isSecureContext) return "needs-https";
+    if (!("wakeLock" in navigator)) return "not-supported";
+    return wakeSentinel && !wakeSentinel.released ? "active" : "requesting";
+  }
+
+  function notifyWake() {
+    const state = wakeState();
+    wakeListeners.forEach((ref) => {
+      try { ref.invokeMethodAsync("OnWakeLockState", state); } catch (_) { /* circuit gone */ }
+    });
+  }
+
+  async function acquireWake() {
+    if (!wakeWanted || !window.isSecureContext || !("wakeLock" in navigator)) { notifyWake(); return; }
+    if (wakeSentinel && !wakeSentinel.released) { notifyWake(); return; }
+    try {
+      wakeSentinel = await navigator.wakeLock.request("screen");
+      wakeSentinel.addEventListener("release", () => { notifyWake(); });
+    } catch (_) {
+      // Low battery, or the page is not visible: the browser said no. Try again on the next
+      // visibility change; the state shows "requesting" until then.
+      wakeSentinel = null;
+    }
+    notifyWake();
+  }
+
+  async function releaseWake() {
+    if (wakeSentinel) {
+      try { await wakeSentinel.release(); } catch (_) { /* already gone */ }
+      wakeSentinel = null;
+    }
+    notifyWake();
+  }
+
+  window.prosimCompanion.wakeLock = {
+    // What this device knows: the stored preference, the current state, and the facts the
+    // Appearance page shows ("Safari on iPad · https · standalone").
+    describe: function () {
+      return {
+        wanted: wakeWanted,
+        state: wakeState(),
+        secure: !!window.isSecureContext,
+        supported: "wakeLock" in navigator,
+        standalone: !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true,
+        scheme: location.protocol.replace(":", ""),
+        userAgent: navigator.userAgent,
+      };
+    },
+    setWanted: function (wanted) {
+      wakeWanted = !!wanted;
+      try { localStorage.setItem(WAKE_KEY, wakeWanted ? "1" : "0"); } catch (_) { /* private mode */ }
+      if (wakeWanted) acquireWake(); else releaseWake();
+    },
+    subscribe: function (dotNetRef) {
+      wakeListeners.push(dotNetRef);
+      notifyWake();
+    },
+    unsubscribe: function (dotNetRef) {
+      wakeListeners = wakeListeners.filter((r) => r !== dotNetRef);
+    },
+  };
+
+  function initWakeLock() {
+    try { wakeWanted = localStorage.getItem(WAKE_KEY) === "1"; } catch (_) { wakeWanted = false; }
+    if (wakeWanted) acquireWake();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && wakeWanted) acquireWake();
+    });
+    window.addEventListener("pagehide", () => { if (wakeSentinel) wakeSentinel.release().catch(() => {}); });
+  }
+
   // Flight Monitor board (owner decision 2026-09-23): the board is a fixed 1920×1080 stage
   // scaled as ONE piece to fit the window and centred — never reflowed, so nothing can
   // overlap at any window size. Viewport units and CSS zoom fight each other; a transform
@@ -348,6 +432,7 @@
   }
 
   initCircuitRecovery();
+  initWakeLock();
 
   // ------------------------------------------------------ server-restart watchdog (#97)
   // A server restart kills every circuit, but when the WebSocket dies SILENTLY (the app was

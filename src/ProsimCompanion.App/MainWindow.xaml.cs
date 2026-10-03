@@ -25,8 +25,9 @@ public partial class MainWindow : Window
     private int _port;
     private bool _bindAll;
     private string _token;
+    private readonly WebListenerSnapshot _listener;
 
-    public MainWindow(ConnectionStatusStore status, JsonSettingsFile settings, WebUiOptions webUi, string webUrl)
+    public MainWindow(ConnectionStatusStore status, JsonSettingsFile settings, WebUiOptions webUi, string webUrl, WebListenerSnapshot? listener = null)
     {
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(settings);
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
         _port = webUi.Port;
         _bindAll = webUi.BindToAllInterfaces;
         _token = webUi.AccessToken ?? "";
+        _listener = listener ?? WebListenerSnapshot.Empty;
 
         InitializeComponent();
         WebUrlText.Text = webUrl;
@@ -60,10 +62,18 @@ public partial class MainWindow : Window
 
     private void RefreshStatuses()
     {
-        StatusList.ItemsSource = _status
+        var lines = _status
             .Snapshot()
             .Select(pair => $"{pair.Key}: {pair.Value}")
             .ToList();
+        // The HTTPS listener (ADR-0013) is reported here, never configured here: a broken
+        // value cannot lock anyone out, so the desktop window stays a shell.
+        lines.Add(_listener.HttpsUp
+            ? $"HTTPS: on — {_listener.HttpsUrl}" + (_listener.HttpsWarningOnly ? " (certificate warning — see the web Settings banner)" : "")
+            : _listener.HttpsEnabled
+                ? "HTTPS: failed — see the banner in the web Settings"
+                : "HTTPS: off (Settings → Setup → Web Interface)");
+        StatusList.ItemsSource = lines;
     }
 
     private void OpenBrowserButton_Click(object sender, RoutedEventArgs e)
@@ -125,12 +135,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        var url = $"http://{lanAddress}:{_port}/?token={_token}";
+        // The QR carries the HTTPS address when that listener is up (ADR-0013 point 5): the
+        // tablet then lands on the secure origin that keep-awake and the installed app need.
+        var httpUrl = $"http://{lanAddress}:{_port}/?token={_token}";
+        var url = _listener.HttpsUp ? $"{_listener.HttpsUrl}/?token={_token}" : httpUrl;
         QrImage.Source = RenderQr(url);
-        QrHintText.Text = $"Scan from a device on your network, or open: {url}";
+        QrHintText.Text = _listener.HttpsUp
+            ? $"Scan from a device on your network, or open: {url}\nPlain HTTP (no keep-awake): {httpUrl}\nA device signs in once per address."
+            : _listener.HttpsProblem is { } problem
+                ? $"Scan from a device on your network, or open: {url}\nHTTPS: {problem}"
+                : $"Scan from a device on your network, or open: {url}";
     }
 
-    private static IPAddress? FindLanAddress()
+    internal static IPAddress? FindLanAddress()
         => NetworkInterface.GetAllNetworkInterfaces()
             .Where(nic => nic.OperationalStatus == OperationalStatus.Up
                 && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)

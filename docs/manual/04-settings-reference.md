@@ -18,7 +18,7 @@ is regenerated automatically (pair tablets again via the QR code).
 | Section | Page | Highlights |
 |---|---|---|
 | `prosim` | Settings → Setup | `sdkPath` (ProSimSDK.dll), `host`, optional `apiKey` |
-| `webUi` | Settings → Setup / Display / Appearance, desktop window | `port` (default 5320), `bindToAllInterfaces`, `accessToken`, theme, units, Solari animation, `showNextServiceInHeader` (off — the header NEXT SERVICE button) |
+| `webUi` | Settings → Setup / Display / Appearance, desktop window | `port` (default 5320), `bindToAllInterfaces`, `accessToken`, theme, units, Solari animation, `https` (`enabled` off, `port` 5321, `pfxPath`, `pfxPassword` encrypted — the optional secure address, see [chapter 7](07-tablet-install.md)), `showNextServiceInHeader` (off — the header NEXT SERVICE button) |
 | `gsx` | Settings → Ground Services | the whole ground pillar — see below (master switch on Setup) |
 | `audio` | Settings → Audio Control | backend (CoreAudio/VoiceMeeter), app mappings, ACP side, device blacklist, device-filter flow/state (master switch on Setup) |
 | `speech` | Settings → Voice First Officer | TTS providers/voices (Kokoro, Google and Windows on Voice Providers; ElevenLabs on its own page — see the [ElevenLabs setup guide](06-elevenlabs.md)), output/input devices, recognition, PTT/ATC-mute bindings, sterile cockpit (master switch on Setup); **Ask the First Officer** (`foQuestions`: `enabled` off, `leadIns` comma-separated, `minimumWords` 4, `timeBudgetSeconds` 6, `standBySeconds` 2) on Briefings & LLM |

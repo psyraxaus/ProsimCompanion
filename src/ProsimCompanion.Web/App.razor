@@ -12,6 +12,16 @@
     <title>ProsimCompanion</title>
     <base href="/" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    @* Installable web app (issue #150, ADR-0013): manifest + Apple home-screen tags. No service
+       worker on purpose — Blazor Server needs its live circuit, so there is no offline mode. *@
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Companion" />
+    <meta name="application-name" content="ProsimCompanion" />
     <link rel="stylesheet" href="css/app.css?v=@AssetVersion" />
     @* Per-page stylesheets for the Prosim2GSX-parity page rebuilds (kept out of app.css so
        page work stays independently editable; the host serves plain static files). *@

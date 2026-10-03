@@ -10,6 +10,8 @@
 @inject IOptionsMonitor<BriefingOptions> BriefingMonitor
 @inject IOptionsMonitor<CommandApiOptions> CommandApiMonitor
 @inject ProfileGsxMirror ProfileMirror
+@inject WebListenerStatus ListenerStatus
+@using ProsimCompanion.Core.State
 
 <PageTitle>Setup — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Setup</h1>
@@ -53,6 +55,37 @@
                  Default="_webUi.Defaults.Port" />
     <BoolField Label="Allow other devices (LAN)" Hint="Tablets and other PCs can open this page." More="They sign in with the QR code in the desktop window."
                @bind-Value="_webUi.Value.BindToAllInterfaces" />
+
+    @* The optional HTTPS listener (issue #150, ADR-0013, design A). Here and not in the desktop
+       window on purpose: a wrong value cannot lock anyone out, because HTTP keeps serving. *@
+    <div class="label-caps" style="margin:14px 0 6px;">HTTPS (optional)</div>
+    <BoolField Label="Enable HTTPS"
+               Hint="A second, secure address beside the normal one. Needed for keep-awake and the installed app on tablets. Takes effect after a restart."
+               More="You supply the certificate: a PFX file for this PC's LAN address, made with your own CA (mkcert is the easy way) and that CA installed on the tablet. The app never makes or installs certificates. If the file is missing or wrong, HTTP keeps working and a banner says why."
+               @bind-Value="_webUi.Value.Https.Enabled" />
+    <NumberField Label="HTTPS port" Hint="Beside the HTTP port above; open it on the firewall too." Min="1024" Max="65535"
+                 Disabled="@(!_webUi.Value.Https.Enabled)"
+                 @bind-Value="_webUi.Value.Https.Port"
+                 Default="_webUi.Defaults.Https.Port" />
+    <TextField Label="Certificate file (PFX)" Hint="Full path of the .pfx / .p12 file with the private key." Placeholder="C:\ProsimCompanion\certs\simpc.pfx"
+               Disabled="@(!_webUi.Value.Https.Enabled)"
+               @bind-Value="_webUi.Value.Https.PfxPath" />
+    <TextField Label="Certificate password" Hint="Stored encrypted on this PC and Windows account. Never logged." Password="true"
+               Disabled="@(!_webUi.Value.Https.Enabled)"
+               @bind-Value="_webUi.Value.Https.PfxPassword" />
+    <SecretUnreadableHint Path="webUi:https:pfxPassword" />
+    <div class="field" style="align-items:center;">
+        <label class="field-label">
+            Status
+            <FieldHint Hint="@HttpsStatusHint" />
+        </label>
+        <div class="field-control">
+            <span class="pill @HttpsTone">@HttpsLabel</span>
+        </div>
+    </div>
+    <div class="field-hint" style="max-width:640px;">
+        Tablet setup — the certificate, the CA on the iPad, add to home screen, keep-awake: <code>docs\manual\07-tablet-install.md</code> in the install folder.
+    </div>
 </Section>
 
 <Section Title="Stream Deck &amp; External Tools" Hint="Applies live">
@@ -79,6 +112,23 @@
     private OptionsDraft<BriefingOptions> _briefing = default!;
     private OptionsDraft<CommandApiOptions> _commandApi = default!;
     private bool _gsxChanged;
+
+    // ---- the HTTPS listener's live state (ADR-0013): what the host actually bound at start.
+    private WebListenerSnapshot Listener => ListenerStatus.Snapshot();
+
+    private string HttpsLabel => Listener.HttpsUp
+        ? (Listener.HttpsWarningOnly ? "HTTPS ON · WARNING" : "HTTPS ON")
+        : Listener.HttpsEnabled ? "HTTPS FAILED" : "HTTPS OFF";
+
+    private string HttpsTone => Listener.HttpsUp
+        ? (Listener.HttpsWarningOnly ? "tone-warn" : "tone-ok")
+        : Listener.HttpsEnabled ? "tone-bad" : "tone-neutral";
+
+    private string HttpsStatusHint => Listener.HttpsUp
+        ? Listener.HttpsUrl + (Listener.HttpsProblem is { } warning ? " — " + warning : "")
+        : Listener.HttpsProblem ?? (_webUi.Value.Https.Enabled && !Listener.HttpsEnabled
+            ? "Saved — restart the app to start the secure address."
+            : "Off. Plain HTTP at " + (Listener.HttpUrl.Length > 0 ? Listener.HttpUrl : "localhost:" + _webUi.Value.Port) + ".");
 
     // The bound options keep an unset API key as null; the input works in "" terms.
     private string ApiKeyInput

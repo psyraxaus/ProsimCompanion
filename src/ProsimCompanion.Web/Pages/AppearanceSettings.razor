@@ -10,6 +10,8 @@
 @inject IOptionsMonitor<WebUiOptions> WebUi
 @inject SettingsWriter Writer
 @inject ILogger<AppearanceSettings> Logger
+@inject IJSRuntime JS
+@using Microsoft.JSInterop
 
 <PageTitle>Appearance — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Appearance</h1>
@@ -76,6 +78,42 @@
                    ValueChanged="SetShowNextService" />
     </Section>
 
+    @* Screen keep-awake and the installable app (issue #150, ADR-0013, design A). Per DEVICE:
+       the choice lives in this browser's localStorage, not in settings.json — whether a
+       tablet's screen stays on is that tablet's business. The state pill is live from app.js. *@
+    <Section Title="Screen &amp; Install" Hint="For this device only — the tablet or PC you are reading this on">
+        <div class="field">
+            <label class="field-label" for="keep-awake">
+                Keep the screen awake
+                <span class="pill @WakeTone" style="margin-left:10px; vertical-align:middle;">@WakeLabel</span>
+                <FieldHint Hint="Stops this device's screen from sleeping while the app is open. Stored on this device only."
+                           More="@WakeMore" />
+                @if (_wake?.State == "needs-https")
+                {
+                    <div class="field-hint">Only a secure page can keep the screen awake. Open the app over HTTPS — <a href="settings">HTTPS setup</a> (Setup → Web Interface).</div>
+                }
+            </label>
+            <div class="field-control">
+                <input id="keep-awake" type="checkbox" class="checkbox" checked="@(_wake?.Wanted ?? false)"
+                       disabled="@(_wake is null)" @onchange="SetKeepAwake" />
+            </div>
+        </div>
+        <div class="field">
+            <label class="field-label">
+                Install as an app
+                <FieldHint Hint="Add ProsimCompanion to the home screen for a full-screen app without the browser bars."
+                           More="iPad: open the app in Safari, tap Share, then 'Add to Home Screen'. Android / Chrome: menu → 'Install app'. There is no offline mode — the app needs the sim PC. Full steps: docs/manual/07-tablet-install.md in the install folder." />
+            </label>
+            <div class="field-control">
+                <span class="pill @(_wake?.Standalone == true ? "tone-ok" : "tone-neutral")">@(_wake?.Standalone == true ? "INSTALLED" : "IN BROWSER")</span>
+            </div>
+        </div>
+        @if (_wake is not null)
+        {
+            <div class="field-hint label-caps" style="margin-top:4px;">This device: @DeviceLine</div>
+        }
+    </Section>
+
     @* Airline logos for the pop-out Flight Monitor (owner request 2026-09-23): keyed by the
        OFP's ICAO airline code so the board shows the right mark whatever theme is active. *@
     <Section Title="Airline logos" Hint="For the pop-out Flight Monitor board — matched to the flight plan's airline code">
@@ -129,6 +167,57 @@
 
     private IDisposable? _webUiSubscription;
 
+    // ---- screen keep-awake (issue #150): the browser owns the state; this page only shows it.
+    private sealed record WakeInfo(bool Wanted, string State, bool Secure, bool Supported, bool Standalone, string Scheme, string UserAgent);
+
+    private WakeInfo? _wake;
+    private DotNetObjectReference<AppearanceSettings>? _wakeRef;
+
+    private string WakeLabel => _wake?.State switch
+    {
+        "active" => "ACTIVE",
+        "requesting" => "REQUESTING",
+        "needs-https" => "NEEDS HTTPS",
+        "not-supported" => "NOT SUPPORTED",
+        null => "…",
+        _ => "OFF",
+    };
+
+    private string WakeTone => _wake?.State switch
+    {
+        "active" => "tone-ok",
+        "requesting" => "tone-active",
+        "needs-https" or "not-supported" => "tone-warn",
+        _ => "tone-neutral",
+    };
+
+    private string WakeMore => _wake?.State switch
+    {
+        "not-supported" => "This browser has no Screen Wake Lock. Safari 16.4+, Chrome and Edge have it; a secure page is still required.",
+        _ => "The browser drops the lock when the page is hidden and the app takes it again when you come back. A low battery can make the browser refuse — the pill then reads REQUESTING until the next try.",
+    };
+
+    private string DeviceLine
+    {
+        get
+        {
+            if (_wake is null)
+            {
+                return "";
+            }
+
+            var ua = _wake.UserAgent;
+            var browser = ua.Contains("CriOS", StringComparison.Ordinal) || ua.Contains("Chrome", StringComparison.Ordinal) ? "Chrome"
+                : ua.Contains("Safari", StringComparison.Ordinal) ? "Safari"
+                : ua.Contains("Firefox", StringComparison.Ordinal) ? "Firefox" : "Browser";
+            var device = ua.Contains("iPad", StringComparison.Ordinal) || (ua.Contains("Macintosh", StringComparison.Ordinal) && ua.Contains("Mobile", StringComparison.Ordinal)) ? "iPad"
+                : ua.Contains("iPhone", StringComparison.Ordinal) ? "iPhone"
+                : ua.Contains("Android", StringComparison.Ordinal) ? "Android"
+                : ua.Contains("Windows", StringComparison.Ordinal) ? "Windows" : "device";
+            return $"{browser} on {device} · {_wake.Scheme} · {(_wake.Standalone ? "standalone" : "browser tab")}";
+        }
+    }
+
     protected override void OnInitialized()
     {
         WatchChanged(h => Logos.Changed += h, h => Logos.Changed -= h, () => { });
@@ -137,10 +226,65 @@
         _webUiSubscription = WebUi.OnChange(options => _ = InvokeAsync(StateHasChanged));
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _wake = await JS.InvokeAsync<WakeInfo>("prosimCompanion.wakeLock.describe");
+            _wakeRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("prosimCompanion.wakeLock.subscribe", _wakeRef);
+            StateHasChanged();
+        }
+        catch (JSException ex)
+        {
+            Logger.LogDebug(ex, "Wake lock interop unavailable (prerender or an old app.js)");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnWakeLockState(string state)
+    {
+        if (_wake is not null)
+        {
+            _wake = _wake with { State = state, Wanted = state != "off" || _wake.Wanted };
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SetKeepAwake(ChangeEventArgs e)
+    {
+        var wanted = e.Value is bool b && b;
+        if (_wake is not null)
+        {
+            _wake = _wake with { Wanted = wanted, State = wanted ? _wake.State : "off" };
+        }
+
+        await JS.InvokeVoidAsync("prosimCompanion.wakeLock.setWanted", wanted);
+        _wake = await JS.InvokeAsync<WakeInfo>("prosimCompanion.wakeLock.describe");
+    }
+
     public override void Dispose()
     {
         base.Dispose();
         _webUiSubscription?.Dispose();
+        if (_wakeRef is not null)
+        {
+            try
+            {
+                _ = JS.InvokeVoidAsync("prosimCompanion.wakeLock.unsubscribe", _wakeRef);
+            }
+            catch (Exception)
+            {
+                // The circuit is already gone.
+            }
+
+            _wakeRef.Dispose();
+        }
     }
 
     private void Apply(string name)
