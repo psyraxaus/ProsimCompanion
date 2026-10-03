@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0-rc.10
+
+- Changed: the Flight Monitor's route-strip plane **always points at the destination** for the whole journey (owner request 2026-10-04). It used to turn with your track, so at the gate it pointed wherever the stand faced and read as flying away from the route. The track no longer turns it.
+- Everything in 0.6.0-rc.9 below.
+
 ## 0.6.0-rc.9
 
 Fixes from the owner's gate report on 0.6.0-rc.8.
