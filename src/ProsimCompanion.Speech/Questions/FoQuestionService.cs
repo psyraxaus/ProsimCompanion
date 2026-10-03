@@ -131,7 +131,8 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
 
         var question = FoQuestionCore.StripWakeWord(rawUtterance);
         var context = Context();
-        _eventLog.Record(QueryEvent, new { question, phase = context.Phase.ToString(), sterile = IsSterile(context) });
+        var mode = Mode(question);
+        _eventLog.Record(QueryEvent, new { question, mode, phase = context.Phase.ToString(), sterile = IsSterile(context) });
 
         if (IsSterile(context))
         {
@@ -176,7 +177,106 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         return true;
     }
 
+    /// <summary>"flight" (strict, fact sheet, verified) or "chat" (small talk, issue #152) —
+    /// chat only with the switch on and no flight word in the question.</summary>
+    private string Mode(string question)
+        => Options.SmallTalk && !FoQuestionCore.IsFlightQuestion(question) ? "chat" : "flight";
+
     private async Task AnswerAsync(string question)
+    {
+        if (Mode(question) == "chat")
+        {
+            var checkedInstead = await AnswerChatAsync(question).ConfigureAwait(false);
+            if (!checkedInstead)
+            {
+                return;
+            }
+
+            // The model said "Let me check." — the question was about the flight after all.
+        }
+
+        await AnswerFlightAsync(question).ConfigureAwait(false);
+    }
+
+    /// <summary>The small-talk path (issue #152): general knowledge allowed, numbers not
+    /// verified (trivia, not flight data), but every sentence passes the chat guard — a line
+    /// about THIS flight with a figure in it is refused. Returns true when the model answered
+    /// "Let me check." so the caller re-runs the strict path.</summary>
+    private async Task<bool> AnswerChatAsync(string question)
+    {
+        var options = Options;
+        var clock = Stopwatch.StartNew();
+        var personaFragment = _persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Advisory) ?? "";
+
+        using var spoken = new CancellationTokenSource();
+        using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(1, options.TimeBudgetSeconds)));
+        var standBy = StandByAsync(options, spoken.Token);
+
+        var plan = new NarrationPlan(
+            "fo.chat", FoQuestionCore.ChatSystemPrompt(personaFragment), FoQuestionCore.ChatUserPrompt(question), [], [],
+            new SpeechRequest("FO chat", SpeechPriority.Normal, TimeSpan.FromSeconds(30), Tag: Tag), [])
+        {
+            VerifyNumbers = false,
+            Guard = FoQuestionCore.ChatSentenceAllowed,
+            OnFirstSpeech = () =>
+            {
+                spoken.Cancel();
+                try
+                {
+                    budget.CancelAfter(Timeout.InfiniteTimeSpan);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Already finished.
+                }
+            },
+        };
+
+        NarrationResult? result = null;
+        var timedOut = false;
+        try
+        {
+            result = await _narrator.RunAsync(plan, budget.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (budget.IsCancellationRequested)
+        {
+            timedOut = true;
+        }
+        finally
+        {
+            spoken.Cancel();
+            await standBy.ConfigureAwait(false);
+        }
+
+        if (timedOut)
+        {
+            Speak(FoQuestionCore.NoVerifiedAnswer);
+            Record(question, FoAnswerOutcome.TimedOut, FoQuestionCore.NoVerifiedAnswer, null, null, clock.ElapsedMilliseconds, "chat");
+            return false;
+        }
+
+        if (result!.Preempted)
+        {
+            Record(question, FoAnswerOutcome.Preempted, result.Text, result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds, "chat");
+            return false;
+        }
+
+        if (result.LlmSentences > 0 && result.Takeover == TakeoverReason.None)
+        {
+            var escaped = result.Text.Trim().TrimEnd('.', '!').Equals(FoQuestionCore.LetMeCheck.TrimEnd('.'), StringComparison.OrdinalIgnoreCase);
+            Record(question, FoAnswerOutcome.Answered, result.Text, result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds, escaped ? "chat→flight" : "chat");
+            return escaped;
+        }
+
+        // Refused by the guard, or nothing said: the fixed line (no strict re-ask for chat —
+        // there is no fact to re-ask about).
+        Speak(FoQuestionCore.NoVerifiedAnswer);
+        Record(question, FoAnswerOutcome.Unverified, (result.Text + " " + FoQuestionCore.NoVerifiedAnswer).Trim(),
+            result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds, "chat");
+        return false;
+    }
+
+    private async Task AnswerFlightAsync(string question)
     {
         var options = Options;
         var clock = Stopwatch.StartNew();
@@ -231,19 +331,19 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         if (timedOut)
         {
             Speak(FoQuestionCore.NoVerifiedAnswer);
-            Record(question, FoAnswerOutcome.TimedOut, FoQuestionCore.NoVerifiedAnswer, null, null, clock.ElapsedMilliseconds);
+            Record(question, FoAnswerOutcome.TimedOut, FoQuestionCore.NoVerifiedAnswer, null, null, clock.ElapsedMilliseconds, "flight");
             return;
         }
 
         if (result!.Preempted)
         {
-            Record(question, FoAnswerOutcome.Preempted, result.Text, result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds);
+            Record(question, FoAnswerOutcome.Preempted, result.Text, result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds, "flight");
             return;
         }
 
         if (result.LlmSentences > 0 && result.Takeover == TakeoverReason.None)
         {
-            Record(question, FoAnswerOutcome.Answered, result.Text, result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds);
+            Record(question, FoAnswerOutcome.Answered, result.Text, result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds, "flight");
             return;
         }
 
@@ -253,7 +353,7 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
             // a second answer after half of a first one would be worse than the fixed line.
             Speak(FoQuestionCore.NoVerifiedAnswer);
             Record(question, FoAnswerOutcome.Unverified, result.Text + " " + FoQuestionCore.NoVerifiedAnswer,
-                result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds);
+                result.FirstTokenMs, result.FirstAudioMs, clock.ElapsedMilliseconds, "flight");
             return;
         }
 
@@ -265,14 +365,14 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
             if (retry is not null)
             {
                 Speak(retry);
-                Record(question, FoAnswerOutcome.AnsweredOnRetry, retry, result.FirstTokenMs, null, clock.ElapsedMilliseconds);
+                Record(question, FoAnswerOutcome.AnsweredOnRetry, retry, result.FirstTokenMs, null, clock.ElapsedMilliseconds, "flight");
                 return;
             }
         }
 
         Speak(FoQuestionCore.NoVerifiedAnswer);
         Record(question, budget.IsCancellationRequested ? FoAnswerOutcome.TimedOut : FoAnswerOutcome.Unverified,
-            FoQuestionCore.NoVerifiedAnswer, result.FirstTokenMs, null, clock.ElapsedMilliseconds);
+            FoQuestionCore.NoVerifiedAnswer, result.FirstTokenMs, null, clock.ElapsedMilliseconds, "flight");
     }
 
     private async Task<string?> StrictRetryAsync(string system, FoFactSheet sheet, string question, CancellationToken budget)
@@ -338,12 +438,13 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
     private void Speak(string text)
         => _ = _arbiter.EnqueueAsync(new SpeechRequest(text, SpeechPriority.Normal, TimeSpan.FromSeconds(30), Tag: Tag));
 
-    private void Record(string question, FoAnswerOutcome outcome, string text, double? firstTokenMs, double? firstAudioMs, long totalMs)
+    private void Record(string question, FoAnswerOutcome outcome, string text, double? firstTokenMs, double? firstAudioMs, long totalMs, string? mode = null)
     {
         _logger.LogInformation("FO question \"{Question}\" -> {Outcome} in {TotalMs} ms: \"{Answer}\"", question, outcome, totalMs, text);
         _eventLog.Record(AnswerEvent, new
         {
             question,
+            mode = mode ?? Mode(question),
             outcome = outcome switch
             {
                 FoAnswerOutcome.Answered => "answered",

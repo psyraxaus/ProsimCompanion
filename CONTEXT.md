@@ -213,3 +213,9 @@ _Avoid_: trigger, alert
 One place a milestone is sent to — an ntfy topic, a Discord webhook or a generic JSON
 webhook — with its own event switches. Its URL and token are secrets.
 _Avoid_: channel, endpoint, subscriber
+
+**Small talk**:
+The opt-in chat path of the FO question: a question with no flight word, answered from general
+knowledge in character, numbers not verified but a flight-data figure refused. "Let me check."
+hands the question back to the strict path.
+_Avoid_: chat mode, banter mode

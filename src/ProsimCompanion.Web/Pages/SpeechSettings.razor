@@ -580,7 +580,12 @@ else if (CurrentSection == "briefing")
                    Hint="Ask in plain words: 'what is our fuel on board', 'how long to top of descent', 'tell me the destination weather'. The FO answers from what the app knows right now."
                    More="Needs the LLM above and the LAN speech recognition server (the offline Windows engine only hears exact phrases). Every number in the answer is checked against the live facts; an unverifiable answer becomes 'I don't have a verified answer for that'. A question is tried only after every exact phrase has been ruled out, so nothing you could say before changes. In the sterile cockpit (below the sterile ceiling in climb, descent and approach) a question is heard but not answered."
                    @bind-Value="_speech.Value.FoQuestions.Enabled" />
-        <TextField Label="Question lead-ins" Hint="Comma-separated. An utterance must start with one of these to count as a question."
+        <BoolField Label="Small talk and fun facts"
+                   Hint="Ask anything: 'who is better, Chelsea or Arsenal', 'tell me a fun fact', 'what is the capital of Peru'. The FO answers from general knowledge, in character, one or two light sentences."
+                   More="A question that mentions the flight (fuel, weights, speeds, altitude, runway, weather, times, passengers…) still takes the strict path: fact sheet only, every number verified. On the small-talk path numbers are not verified — they are trivia — but a sentence about this flight with a figure in it is refused and the FO says 'I don't have a verified answer for that'. With this on, no lead-in word is needed: any sentence of four words or more that matched nothing else goes to the FO. Still speech only, still silent in the sterile cockpit."
+                   Disabled="@(!_speech.Value.FoQuestions.Enabled)"
+                   @bind-Value="_speech.Value.FoQuestions.SmallTalk" />
+        <TextField Label="Question lead-ins" Hint="Comma-separated. An utterance must start with one of these to count as a question (not needed with small talk on)."
                    Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                    @bind-Value="_speech.Value.FoQuestions.LeadIns" />
         <NumberField Label="Minimum words" Hint="Shorter utterances are never questions — they are exact phrases, misheard." Min="1" Max="10"

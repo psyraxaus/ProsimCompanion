@@ -314,4 +314,109 @@ public sealed class FoQuestionServiceTests : IDisposable
     [InlineData("whatever you say captain", false)]
     public void IsQuestion_LeadInAndLength(string utterance, bool expected)
         => Assert.Equal(expected, FoQuestionCore.IsQuestion(utterance, new FoQuestionOptions()));
+
+    // ---- small talk (issue #152) ---------------------------------------------------------
+
+    [Theory]
+    [InlineData("who is better chelsea or arsenal", false)]
+    [InlineData("tell me a fun fact", false)]
+    [InlineData("what is the capital of peru", false)]
+    [InlineData("do you like your job", false)]
+    [InlineData("what is our fuel on board", true)]
+    [InlineData("how long to top of descent", true)]
+    [InlineData("tell me the destination weather", true)]
+    [InlineData("what time do we land", true)]
+    [InlineData("how many passengers today", true)]
+    [InlineData("are we above minimum takeoff fuel", true)]
+    [InlineData("what is the gate number", true)]
+    [InlineData("", true)]
+    public void IsFlightQuestion_SortsFlightFromChat(string question, bool flight)
+        => Assert.Equal(flight, FoQuestionCore.IsFlightQuestion(question));
+
+    [Fact]
+    public void SmallTalk_DropsTheLeadInRule_KeepsTheLengthRule()
+    {
+        var on = new FoQuestionOptions { SmallTalk = true };
+        Assert.True(FoQuestionCore.IsQuestion("who is better chelsea or arsenal", on));
+        Assert.False(FoQuestionCore.IsQuestion("chelsea or arsenal", on));                 // three words
+        Assert.False(FoQuestionCore.IsQuestion("who is better chelsea or arsenal", new FoQuestionOptions()));
+    }
+
+    [Theory]
+    [InlineData("Octopuses have three hearts, Captain.", true)]
+    [InlineData("Jupiter has ninety five moons.", true)]
+    [InlineData("Arsenal won it in nineteen ninety eight, Captain.", true)]
+    [InlineData("Fuel on board is six point two tonnes.", false)]                         // flight data with a figure
+    [InlineData("We land at fourteen zero five zulu.", false)]
+    [InlineData("I'd never say Arsenal in this cockpit.", true)]
+    public void ChatGuard_RefusesFlightFiguresOnly(string sentence, bool allowed)
+        => Assert.Equal(allowed, FoQuestionCore.ChatSentenceAllowed(sentence));
+
+    [Fact]
+    public async Task SmallTalk_AnswersFromGeneralKnowledge_WithUnverifiedNumbers_AndRecordsChat()
+    {
+        _speech.FoQuestions.SmallTalk = true;
+        var handler = new SequenceHandler(Streamed("Octopuses have three hearts, Captain. ", "Jupiter has ninety five moons."));
+        using var service = Service(handler);
+
+        Assert.True(service.TryAsk("tell me a fun fact please"));
+        await Settle(service);
+
+        Assert.Equal(["Octopuses have three hearts, Captain.", "Jupiter has ninety five moons."], Spoken);
+        Assert.Contains("CAPTAIN SAYS: tell me a fun fact please", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("FACTS:", handler.RequestBodies[0], StringComparison.Ordinal);     // the fact sheet is not sent on the chat path
+        var answer = Assert.Single(Events("fo.answer")).GetProperty("payload");
+        Assert.Equal("chat", answer.GetProperty("mode").GetString());
+        Assert.Equal("answered", answer.GetProperty("outcome").GetString());
+        Assert.Equal("chat", Assert.Single(Events("fo.query")).GetProperty("payload").GetProperty("mode").GetString());
+    }
+
+    [Fact]
+    public async Task SmallTalk_AFlightFigureOnTheChatPath_IsRefused()
+    {
+        _speech.FoQuestions.SmallTalk = true;
+        var handler = new SequenceHandler(Streamed("Fuel on board is seven point five tonnes, Captain."));
+        using var service = Service(handler);
+
+        Assert.True(service.TryAsk("do you like your job here"));
+        await Settle(service);
+
+        Assert.Equal([FoQuestionCore.NoVerifiedAnswer], Spoken);
+        Assert.Equal("unverified", Assert.Single(Events("fo.answer")).GetProperty("payload").GetProperty("outcome").GetString());
+    }
+
+    [Fact]
+    public async Task SmallTalk_LetMeCheck_HandsOverToTheStrictPath()
+    {
+        _speech.FoQuestions.SmallTalk = true;
+        var handler = new SequenceHandler(
+            Streamed("Let me check."),
+            Streamed("Fuel on board is six point two tonnes."));
+        using var service = Service(handler);
+
+        Assert.True(service.TryAsk("give me the number please"));   // no flight word → chat first
+        await Settle(service);
+
+        Assert.Equal(["Let me check.", "Fuel on board is six point two tonnes."], Spoken);
+        Assert.Contains("FACTS:", handler.RequestBodies[1], StringComparison.Ordinal);
+        var answers = Events("fo.answer").Select(e => e.GetProperty("payload")).ToList();
+        Assert.Equal(2, answers.Count);
+        Assert.Equal("chat→flight", answers[0].GetProperty("mode").GetString());
+        Assert.Equal("flight", answers[1].GetProperty("mode").GetString());
+    }
+
+    [Fact]
+    public async Task SmallTalk_AFlightQuestion_StillTakesTheStrictPath()
+    {
+        _speech.FoQuestions.SmallTalk = true;
+        var handler = new SequenceHandler(Streamed("Fuel on board is seven point five tonnes."));   // not in the facts
+        using var service = Service(handler);
+
+        Assert.True(service.TryAsk("what is our fuel on board right now"));
+        await Settle(service);
+
+        Assert.Contains("FACTS:", handler.RequestBodies[0], StringComparison.Ordinal);
+        Assert.Equal("flight", Assert.Single(Events("fo.query")).GetProperty("payload").GetProperty("mode").GetString());
+        Assert.DoesNotContain("seven point five", string.Join(" ", Spoken), StringComparison.Ordinal);   // verified away
+    }
 }

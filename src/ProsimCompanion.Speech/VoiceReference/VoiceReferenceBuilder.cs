@@ -320,8 +320,8 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
             : !options.Enabled ? $"speech.foQuestions.enabled is off — {SettingsFo} → Briefings & LLM → Ask the First Officer"
             : null;
         var minimum = options.MinimumWords.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        IReadOnlyList<VoiceReferenceEntry> entries =
-        [
+        var entries = new List<VoiceReferenceEntry>
+        {
             new(["what is our fuel on board"], "Fuel on board and the planned figures.", "Fuel on board is six point two tonnes, against a planned landing fuel of three point one."),
             new(["how long to top of descent"], "Minutes to the 3:1 top-of-descent estimate.", "About twenty five minutes to top of descent."),
             new(["tell me the destination weather"], "The destination METAR as the hero card shows it.", "Schiphol: wind two seven zero at twelve knots, visibility ten kilometres or more, ceiling two thousand five hundred feet."),
@@ -330,7 +330,15 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
             new(leadIns.Count > 0 ? leadIns : ["question"],
                 $"Any question starting with one of these lead-ins and at least {minimum} words long. Answered only from live facts; the FO says \"{ProsimCompanion.Speech.Questions.FoQuestionCore.DontHaveThat}\" when the facts do not cover it. Needs the LAN speech server.",
                 null, Badges: [VoiceReferenceDescribers.Value], ValueHint: "‹your question›"),
-        ];
+        };
+        if (options.SmallTalk)
+        {
+            // Issue #152: small talk — any sentence long enough, flight questions still strict.
+            entries.Add(new(["who is better, chelsea or arsenal"], "Small talk: general knowledge, in character, no flight figures.", "Captain, I fly for a living — but I'd never say Arsenal in this cockpit."));
+            entries.Add(new(["tell me a fun fact"], "A fun fact, one or two sentences.", "Octopuses have three hearts, Captain. Two of them stop when it swims."));
+            entries.Add(new(["any sentence of " + minimum + " words or more"], "Small talk is on: no lead-in needed. A question that mentions the flight still takes the strict, verified path.", null, Badges: [VoiceReferenceDescribers.Value], ValueHint: "‹anything›"));
+        }
+
         return new VoiceReferenceGroup("foQuestions", "Ask the First Officer", VoiceReferenceTab.FirstOfficer,
             VoiceSpeaker.FirstOfficer, enabled, reason, entries);
     }

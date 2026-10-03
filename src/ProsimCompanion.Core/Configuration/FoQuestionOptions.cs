@@ -27,6 +27,13 @@ public sealed class FoQuestionOptions
     /// exact phrases other features own, misheard.</summary>
     public int MinimumWords { get; set; } = 4;
 
+    /// <summary>Small talk and fun facts (issue #152). On: any free-form sentence of
+    /// <see cref="MinimumWords"/> or more that matched nothing else goes to the FO — no
+    /// lead-in needed — and a question that is NOT about the flight is answered from general
+    /// knowledge, in character, one or two light sentences. Flight questions keep the strict,
+    /// fact-sheet-only, number-verified path. Off: lead-ins and the fact sheet only.</summary>
+    public bool SmallTalk { get; set; }
+
     /// <summary>Seconds from the question to the first spoken word of the answer before the FO
     /// gives up ("I don't have a verified answer for that").</summary>
     public int TimeBudgetSeconds { get; set; } = 6;

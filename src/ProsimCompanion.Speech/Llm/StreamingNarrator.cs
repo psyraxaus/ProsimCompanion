@@ -31,6 +31,16 @@ public sealed record NarrationPlan(
     /// (issue #149: the FO questions cancel their "stand by" timer and their time budget here).
     /// Not called when the template speaks instead.</summary>
     public Action? OnFirstSpeech { get; init; }
+
+    /// <summary>When false the number verifier is skipped for this narration — the FO's
+    /// small-talk answers (issue #152), where a figure is trivia, not flight data. The
+    /// <see cref="Guard"/> is still applied.</summary>
+    public bool VerifyNumbers { get; init; } = true;
+
+    /// <summary>An extra per-sentence check; false = refuse the sentence (the template takes
+    /// over as for a failed number). Small talk uses it to refuse a sentence that talks about
+    /// THIS flight with a figure in it.</summary>
+    public Func<string, bool>? Guard { get; init; }
 }
 
 /// <summary>What a streamed narration came to.</summary>
@@ -146,7 +156,13 @@ public sealed class StreamingNarrator
 
             bool Offer(string sentence)
             {
-                if (core.Accept(sentence))
+                if (plan.Guard is { } guard && !guard(sentence))
+                {
+                    _logger.LogWarning("{Kind}: a streamed sentence was refused by the plan's guard — the template takes over", plan.Kind);
+                    return false;
+                }
+
+                if (core.Accept(sentence, plan.VerifyNumbers))
                 {
                     Release(sentence);
                     return true;

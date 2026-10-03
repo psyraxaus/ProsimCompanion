@@ -40,6 +40,16 @@ does nothing. Below ten thousand feet in the climb, descent and approach (the st
 cockpit) a question is heard but not answered. Needs the LLM (same card) and the **LAN speech
 server** — the offline Windows engine only hears exact phrases.
 
+**Small talk and fun facts** (a second switch on the same card, off by default) lets you ask
+anything: *"who is better, Chelsea or Arsenal"*, *"tell me a fun fact"*, *"what is the
+capital of Peru"*. No lead-in word is needed — any sentence of four words or more that matched
+nothing else goes to the FO. A question that mentions the flight (fuel, weights, speeds,
+altitude, runway, weather, times, passengers…) still takes the strict path above. On the
+small-talk path the FO answers from general knowledge, in character, one or two light
+sentences; numbers there are trivia and are not verified, but a sentence about *this* flight
+with a figure in it is thrown away and you hear the fixed line instead. If the FO says *"Let
+me check."* the question turned out to be about the flight and the strict answer follows.
+
 ## Spoken checklists
 
 Say the checklist's start phrase (e.g. *"before start checklist"*). The FO reads each

@@ -42,6 +42,14 @@ public static class FoQuestionCore
             return false;
         }
 
+        // Small talk (issue #152): long enough is enough — "who is better, Chelsea or Arsenal"
+        // has no lead-in. The known phrases still win: the router asks here only after
+        // every feature, drill and checklist start declined.
+        if (options.SmallTalk)
+        {
+            return true;
+        }
+
         foreach (var leadIn in options.LeadInList())
         {
             var lead = CommandMatcher.Normalize(leadIn ?? "");
@@ -75,6 +83,96 @@ public static class FoQuestionCore
 
         return text;
     }
+
+    /// <summary>Spoken by the chat path when the model realises the question is about the
+    /// flight after all; the service then re-runs it on the strict path.</summary>
+    public const string LetMeCheck = "Let me check.";
+
+    /// <summary>Words that mark a question as being about THIS flight (issue #152). A
+    /// question with any of them takes the strict, fact-sheet-only path whatever the small-talk
+    /// switch says; one without them is conversation. Local and instant — no model round trip
+    /// to sort the question.</summary>
+    private static readonly string[] FlightWords =
+    [
+        "fuel", "fob", "kilo", "tonne", "weight", "zfw", "tow", "gross", "payload", "cargo", "passenger", "pax",
+        "altitude", "flight level", "level", "climb", "descent", "descend", "top of", "tod", "cruise",
+        "speed", "knot", "mach", "heading", "track", "distance", "mile", "nautical", "eta", "arrival", "arrive",
+        "land", "touchdown", "takeoff", "take off", "departure", "depart", "block", "flight time", "how long",
+        "runway", "gate", "stand", "taxi", "pushback", "push back", "boarding", "board", "door",
+        "weather", "metar", "atis", "wind", "visibility", "ceiling", "cloud", "temperature", "qnh", "altimeter",
+        "minimum", "minima", "decision", "approach", "loadsheet", "load sheet", "ofp", "flight plan", "route",
+        "destination", "alternate", "origin", "callsign", "flight number", "tech log", "defect", "mel",
+        "engine", "apu", "gear", "flap", "fms", "mcdu", "fcu", "gsx", "prosim", "phase", "time now", "zulu", "utc",
+        "we have", "do we", "are we", "our ",
+    ];
+
+    /// <summary>True when the question is about this flight (strict path); false = small talk.
+    /// Only meaningful with the small-talk switch on — without it every question is strict.</summary>
+    public static bool IsFlightQuestion(string question)
+    {
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            return true;
+        }
+
+        var text = " " + CommandMatcher.Normalize(question) + " ";
+        foreach (var word in FlightWords)
+        {
+            // Three-letter tokens (fob, eta, pax, apu…) and the trailing-space ones ("our ")
+            // match whole words only; longer ones match inside words ("land" → "landing").
+            var needle = word.Trim();
+            var whole = word.EndsWith(' ') || needle.Length <= 3;
+            if (whole ? text.Contains(" " + needle + " ", StringComparison.Ordinal) : text.Contains(needle, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Words that, together with a figure, make a small-talk sentence look like flight
+    /// data — such a sentence is refused on the chat path (the guard).</summary>
+    private static readonly string[] FlightDataWords =
+    [
+        "fuel", "tonne", "kilo", "feet", "knot", "flight level", "heading", "runway", "qnh", "altitude",
+        "passenger", "zulu", "eta", "descent", "weight", "nautical", "mile",
+    ];
+
+    /// <summary>The chat path's per-sentence guard: a sentence about this flight with a figure
+    /// in it is refused — the strict path is the only place figures about the flight come from.</summary>
+    public static bool ChatSentenceAllowed(string sentence)
+    {
+        if (string.IsNullOrWhiteSpace(sentence))
+        {
+            return true;
+        }
+
+        var digits = Llm.SpokenNumberText.ToDigits(sentence);
+        if (!digits.Any(char.IsAsciiDigit))
+        {
+            return true;
+        }
+
+        var text = " " + CommandMatcher.Normalize(sentence) + " ";
+        return !FlightDataWords.Any(w => text.Contains(w, StringComparison.Ordinal));
+    }
+
+    /// <summary>The chat path's instructions: in character, light, general knowledge allowed,
+    /// nothing about this flight — and a fixed escape line when the model finds the question
+    /// is about the flight after all.</summary>
+    public static string ChatSystemPrompt(string personaFragment)
+        => (personaFragment ?? "")
+            + "You are the First Officer of an Airbus A320, making conversation with the Captain on the "
+            + "flight deck. The Captain asked something that is NOT about this flight: small talk, trivia, "
+            + "a fun fact, a joke, an opinion. Answer in one or two short spoken sentences — friendly, a "
+            + "little dry humour is fine, stay in character. You may use general knowledge. Plain English "
+            + "for text-to-speech: no markdown, no lists, no emoji. Never say anything about this flight's "
+            + "fuel, weights, speeds, altitudes, times, weather, route or passengers, and never tell the "
+            + "Captain to do anything. If the question turns out to be about this flight or the aircraft "
+            + $"state, reply with exactly: \"{LetMeCheck}\" and nothing more.";
+
+    public static string ChatUserPrompt(string question) => "CAPTAIN SAYS: " + question + "\n\nReply now.";
 
     public static string SystemPrompt(string personaFragment)
         => (personaFragment ?? "")

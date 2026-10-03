@@ -59,17 +59,24 @@ public sealed partial class NarrationCore
 
     /// <summary>Verifies one model sentence. True = release it for speech (and it now counts
     /// as said); false = discard it and take over.</summary>
-    public bool Accept(string sentence)
+    public bool Accept(string sentence) => Accept(sentence, verifyNumbers: true);
+
+    /// <summary>As <see cref="Accept(string)"/>; <paramref name="verifyNumbers"/> false skips
+    /// the number check (small talk, issue #152 — a figure there is trivia, not flight data).</summary>
+    public bool Accept(string sentence, bool verifyNumbers)
     {
         ArgumentNullException.ThrowIfNull(sentence);
 
-        // Spelled-out numbers are turned back into digits for the check only; the sentence
-        // that is spoken stays the model's own text.
-        var check = NumberVerifier.Check(SpokenNumberText.ToDigits(sentence), _allowed);
-        if (!check.Ok)
+        if (verifyNumbers)
         {
-            LastOffending = check.Offending;
-            return false;
+            // Spelled-out numbers are turned back into digits for the check only; the sentence
+            // that is spoken stays the model's own text.
+            var check = NumberVerifier.Check(SpokenNumberText.ToDigits(sentence), _allowed);
+            if (!check.Ok)
+            {
+                LastOffending = check.Offending;
+                return false;
+            }
         }
 
         _spoken.Add(sentence);
