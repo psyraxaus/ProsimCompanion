@@ -1,0 +1,201 @@
+@page "/settings/notifications"
+@layout SettingsLayout
+@inherits SettingsPageBase
+@using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Notifications
+@inject IOptionsMonitor<NotificationOptions> NotificationMonitor
+@inject NotificationDispatcher Dispatcher
+@inject OfpStore Ofp
+
+<PageTitle>Notifications — ProsimCompanion</PageTitle>
+<h1 class="sr-only">Notifications</h1>
+
+@* Outbound event notifications (issue #151, design A — one card per target). The URL and the
+   token of every target are DPAPI-protected at rest and never logged; the page shows the token
+   as a password field and the result line carries the HTTP status only. *@
+
+<Section Title="Notifications" Hint="A short message to your phone or a webhook at the flight's milestones">
+    <BoolField Label="Send notifications"
+               Hint="Off: nothing leaves this PC. On: each target below gets the milestones it has ticked."
+               More="Milestones: refuel complete · boarding complete · final loadsheet sent · ready for pushback · cabin secure · deice holdover expiring · top of descent approaching · landed · on blocks · deboarding complete. Each fires once per flight; a revised final loadsheet fires again. A slow or dead target never delays the ground automation or the First Officer — sends run in the background with a 5 second limit, and a failing target is left alone for a minute."
+               @bind-Value="_options.Value.Enabled" />
+    <AdvancedFields>
+        <NumberField Label="Failure cooldown" Hint="How long a target is left alone after a failed send." Suffix="s" Min="5" Max="3600"
+                     @bind-Value="_options.Value.FailureCooldownSeconds"
+                     Default="_options.Defaults.FailureCooldownSeconds" />
+        <NumberField Label="Send timeout" Hint="Per send. A slow service is treated as failed after this." Suffix="s" Min="1" Max="30"
+                     @bind-Value="_options.Value.SendTimeoutSeconds"
+                     Default="_options.Defaults.SendTimeoutSeconds" />
+        <NumberField Label="Holdover warning" Hint="Minutes of deice holdover time left when 'holdover expiring' is sent." Suffix="min" Min="1" Max="30"
+                     @bind-Value="_options.Value.HoldoverExpiringMinutes"
+                     Default="_options.Defaults.HoldoverExpiringMinutes" />
+    </AdvancedFields>
+</Section>
+
+@for (var i = 0; i < _options.Value.Targets.Count; i++)
+{
+    var index = i;
+    var target = _options.Value.Targets[index];
+    var title = string.IsNullOrWhiteSpace(target.Name) ? $"Target {index + 1}" : target.Name;
+    <Section Title="@title" Hint="@KindHint(target.Kind)">
+        <div class="field" style="align-items:center;">
+            <label class="field-label">Status</label>
+            <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
+                <span class="pill @StatusTone(target)">@StatusLabel(target)</span>
+                <button type="button" class="btn secondary" style="padding:4px 10px;" title="Remove this target"
+                        @onclick="() => _options.Value.Targets.RemoveAt(index)">Remove</button>
+            </div>
+        </div>
+        <TextField Label="Name" Hint="Your label for it — what the log and the result line show." Placeholder="My phone"
+                   @bind-Value="target.Name" />
+        <SelectField Label="Kind" Options="KindOptions"
+                     Hint="ntfy = a topic on ntfy.sh or your own server. Discord = a channel webhook. Webhook = any https address that takes a JSON POST (schema in docs/integrations/notifications.md)."
+                     Value="@target.Kind.ToString().ToLowerInvariant()"
+                     ValueChanged="@(v => target.Kind = Enum.TryParse<NotificationTargetKind>(v, ignoreCase: true, out var k) ? k : NotificationTargetKind.Webhook)" />
+        <TextField Label="URL" Hint="@UrlHint(target.Kind)" Placeholder="@UrlPlaceholder(target.Kind)" Password="true"
+                   @bind-Value="target.Url" />
+        <SecretUnreadableHint Path="@($"notifications:targets:{index}:url")" />
+        <TextField Label="Bearer token" Hint="Optional. Sent as 'Authorization: Bearer …'. Stored encrypted on this PC; never logged." Password="true"
+                   @bind-Value="target.Token" />
+        <SecretUnreadableHint Path="@($"notifications:targets:{index}:token")" />
+        <div class="field">
+            <label class="field-label">
+                Events
+                <FieldHint Hint="Which milestones this target gets." />
+            </label>
+            <div class="field-control">
+                <div class="notify-events">
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.RefuelComplete" /> Refuel complete</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.BoardingComplete" /> Boarding complete</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.FinalLoadsheetSent" /> Final loadsheet sent</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.ReadyForPushback" /> Ready for pushback</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.CabinSecure" /> Cabin secure</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.DeiceHoldoverExpiring" /> Deice holdover expiring</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.TopOfDescentApproaching" /> Top of descent approaching</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.Landed" /> Landed</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.OnBlocks" /> On blocks</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.DeboardingComplete" /> Deboarding complete</label>
+                </div>
+            </div>
+        </div>
+        <div class="field" style="align-items:center;">
+            <label class="field-label">
+                Send test
+                <FieldHint Hint="One test message to this target now, with the values above (save first if you changed them). Works with notifications off." />
+            </label>
+            <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                <span class="field-hint @ResultTone(target)" style="margin:0;">@ResultLine(target)</span>
+                <button type="button" class="btn primary" style="padding:4px 12px;" disabled="@(_testing == index || string.IsNullOrWhiteSpace(target.Url))"
+                        @onclick="() => SendTestAsync(index)">@(_testing == index ? "Sending…" : "Send test")</button>
+            </div>
+        </div>
+    </Section>
+}
+
+@if (_options.Value.Targets.Count == 0)
+{
+    <Section Title="Targets" Hint="Where the messages go">
+        <div class="field-hint">No targets yet — add your phone's ntfy topic or a webhook.</div>
+    </Section>
+}
+
+<div style="margin:4px 0 16px;">
+    <button type="button" class="btn primary" @onclick="AddTarget">Add target</button>
+</div>
+
+<DirtyBar Visible="@BarVisible"
+          Message="@(BarMessage ?? "You have unsaved changes")"
+          Tone="BarTone"
+          OnSave="Save"
+          OnDiscard="Discard" />
+
+@code {
+    private static readonly IReadOnlyList<(string, string)> KindOptions =
+        [("ntfy", "ntfy"), ("discord", "Discord"), ("webhook", "Webhook (JSON POST)")];
+
+    private OptionsDraft<NotificationOptions> _options = default!;
+    private int? _testing;
+    private readonly Dictionary<int, NotificationSendResult> _testResults = [];
+
+    protected override void OnInitialized()
+    {
+        _options = Draft(NotificationMonitor);
+        // The dispatcher's result lines refresh through the observer base (#86), never a hand-wired event.
+        WatchChanged(h => Dispatcher.Changed += h, h => Dispatcher.Changed -= h, () => { });
+    }
+
+    private void AddTarget()
+        => _options.Value.Targets.Add(new NotificationTarget { Name = $"Target {_options.Value.Targets.Count + 1}" });
+
+    private async Task SendTestAsync(int index)
+    {
+        if (index >= _options.Value.Targets.Count)
+        {
+            return;
+        }
+
+        _testing = index;
+        try
+        {
+            var ofp = Ofp.Current;
+            var route = ofp is { OriginIcao.Length: > 0, DestinationIcao.Length: > 0 } ? $"{ofp.OriginIcao}–{ofp.DestinationIcao}" : null;
+            _testResults[index] = await Dispatcher.SendTestAsync(_options.Value.Targets[index], ofp?.Callsign, route);
+        }
+        finally
+        {
+            _testing = null;
+        }
+    }
+
+    private NotificationSendResult? LastResult(NotificationTarget target, int index)
+    {
+        if (_testResults.TryGetValue(index, out var test))
+        {
+            return test;
+        }
+
+        var key = string.IsNullOrWhiteSpace(target.Name) ? target.Kind.ToString() : target.Name.Trim();
+        return Dispatcher.LastResults.TryGetValue(key, out var last) ? last : null;
+    }
+
+    private string StatusLabel(NotificationTarget target)
+    {
+        var index = _options.Value.Targets.IndexOf(target);
+        var last = LastResult(target, index);
+        return last is null ? "NEVER SENT" : last.Ok ? "OK" : "FAILED";
+    }
+
+    private string StatusTone(NotificationTarget target)
+    {
+        var last = LastResult(target, _options.Value.Targets.IndexOf(target));
+        return last is null ? "tone-neutral" : last.Ok ? "tone-ok" : "tone-bad";
+    }
+
+    private string ResultLine(NotificationTarget target)
+        => LastResult(target, _options.Value.Targets.IndexOf(target))?.Summary ?? "";
+
+    private string ResultTone(NotificationTarget target)
+        => LastResult(target, _options.Value.Targets.IndexOf(target)) is { } r ? (r.Ok ? "notify-ok" : "notify-bad") : "";
+
+    private static string KindHint(NotificationTargetKind kind) => kind switch
+    {
+        NotificationTargetKind.Ntfy => "ntfy topic — the phone app subscribes to it",
+        NotificationTargetKind.Discord => "Discord channel webhook",
+        _ => "JSON POST to your own endpoint",
+    };
+
+    private static string UrlHint(NotificationTargetKind kind) => kind switch
+    {
+        NotificationTargetKind.Ntfy => "The full topic URL. Treat it as a secret — anyone with it can read or post; stored encrypted.",
+        NotificationTargetKind.Discord => "The channel's webhook URL from Discord → Channel settings → Integrations. It carries its own secret; stored encrypted.",
+        _ => "An https address that accepts a JSON POST. Stored encrypted.",
+    };
+
+    private static string UrlPlaceholder(NotificationTargetKind kind) => kind switch
+    {
+        NotificationTargetKind.Ntfy => "https://ntfy.sh/your-private-topic",
+        NotificationTargetKind.Discord => "https://discord.com/api/webhooks/…",
+        _ => "https://homeassistant.local:8123/api/webhook/prosim",
+    };
+
+}

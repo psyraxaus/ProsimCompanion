@@ -42,6 +42,31 @@ public sealed class GroundOpsSignals
     /// aircraft under the passengers and departure services ran mid-deboarding.</summary>
     public event Action? ArrivalCompleted;
 
+    // ---- milestones added for the outbound notifications (issue #151). Raised by the feature
+    // that owns the fact (GSX relay, GSX sequencer, cabin crew, flight progress); consumed by
+    // the Core notification source. Nothing here waits on a listener.
+
+    /// <summary>GSX reported the refuelling service completed (the truck is done).</summary>
+    public event Action? RefuelCompleted;
+
+    /// <summary>Every departure service completed or was skipped: ready for pushback.</summary>
+    public event Action? DepartureServicesCompleted;
+
+    /// <summary>The purser reported the cabin secure.</summary>
+    public event Action? CabinSecured;
+
+    /// <summary>The once-per-flight top-of-descent lead crossing (issue #145); the payload is
+    /// the estimate behind it.</summary>
+    public event Action<Flight.TodApproaching>? TodApproaching;
+
+    public void RaiseRefuelCompleted() => RefuelCompleted?.Invoke();
+
+    public void RaiseDepartureServicesCompleted() => DepartureServicesCompleted?.Invoke();
+
+    public void RaiseCabinSecured() => CabinSecured?.Invoke();
+
+    public void RaiseTodApproaching(Flight.TodApproaching estimate) => TodApproaching?.Invoke(estimate);
+
     public void RaiseRefuelServiceActive() => RefuelServiceActive?.Invoke();
 
     public void RaiseRefuelSkippedForTankering() => RefuelSkippedForTankering?.Invoke();

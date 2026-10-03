@@ -77,6 +77,7 @@ public static class SettingsNav
         new("audio", "Audio Control", "settings/audio", AudioSections),
         new("app", "Display & Flight Data", "settings/app", []),
         new("appearance", "Appearance", "settings/appearance", []),
+        new("notifications", "Notifications", "settings/notifications", []),
         new("profiles", "Aircraft Profiles", "settings/profiles", []),
         // The group link must land on a real page: there is no /settings/advanced route, so
         // the header opens the first section (clicking it gave a 404 until 2026-09-26).

@@ -172,3 +172,16 @@ A captain's statement of a figure ("altimeter one zero one three") that the FO c
 the aircraft and answers "checked" or corrects. A lead-in with no figure ("minimums check") is
 not a read-back; it belongs to the checklist or callout feature.
 _Avoid_: confirmation, challenge
+
+### Notifications
+
+**Milestone**:
+One of the ten flight moments the app can announce outward (refuel complete, boarding
+complete, final loadsheet sent, ready for pushback, cabin secure, deice holdover expiring, top
+of descent approaching, landed, on blocks, deboarding complete). Fires once per flight cycle.
+_Avoid_: trigger, alert
+
+**Target**:
+One place a milestone is sent to — an ntfy topic, a Discord webhook or a generic JSON
+webhook — with its own event switches. Its URL and token are secrets.
+_Avoid_: channel, endpoint, subscriber

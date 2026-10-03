@@ -41,10 +41,17 @@ public sealed class SettingsRedactorTests
     {
         var root = JsonNode.Parse(SettingsRedactor.Redact(Fixture))!;
 
-        foreach (var path in SecretProtector.SecretPaths)
+        // List-entry secrets (notifications:targets:*:url, issue #151) are covered by
+        // NotificationTests.Bundle_RedactsTargetUrlsAndTokens — this fixture has no list.
+        foreach (var path in SecretProtector.SecretPaths.Where(p => !p.Contains('*', StringComparison.Ordinal)))
         {
-            var (section, key) = (path.Split(':')[0], path.Split(':')[1]);
-            Assert.Equal(SettingsRedactor.Mask, (string?)root[section]![key]);
+            JsonNode? node = root;
+            foreach (var segment in path.Split(':'))
+            {
+                node = node?[segment];
+            }
+
+            Assert.Equal(SettingsRedactor.Mask, (string?)node);
         }
     }
 

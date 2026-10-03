@@ -33,6 +33,15 @@ public static partial class SettingsRedactor
     public static bool IsSecretName(string propertyName)
     {
         ArgumentNullException.ThrowIfNull(propertyName);
+        // A property named exactly "url" is a notification target's address (issue #151): an
+        // ntfy topic or a Discord webhook URL IS the credential. The service base URLs
+        // (llmBaseUrl, asrBaseUrl…) keep their longer names and stay visible — they are the
+        // first thing a support reader needs.
+        if (string.Equals(propertyName, "url", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         return SecretNameFragments.Any(fragment =>
             propertyName.Contains(fragment, StringComparison.OrdinalIgnoreCase));
     }

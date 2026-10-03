@@ -39,6 +39,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
     private readonly GsxDiagnosticsStore _gsx;
     private readonly OfpStore _ofp;
     private readonly ILogger<CabinCrewService> _logger;
+    private readonly GroundOpsSignals? _signals;
     private readonly CabinCrewCore _core = new();
     private readonly CancellationTokenSource _shutdown = new();
 
@@ -64,7 +65,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         SpeechStatusStore store,
         GsxDiagnosticsStore gsx,
         OfpStore ofp,
-        ILogger<CabinCrewService> logger)
+        ILogger<CabinCrewService> logger,
+        GroundOpsSignals? signals = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flightData);
@@ -89,6 +91,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         _gsx = gsx;
         _ofp = ofp;
         _logger = logger;
+        _signals = signals;
     }
 
     public void Start()
@@ -203,6 +206,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
             if (action == CabinAction.SecureReport)
             {
                 SetSecureState(CabinSecureState.Secure);
+                _signals?.RaiseCabinSecured(); // the outbound "cabin secure" (#151)
             }
 
             _busy = true;

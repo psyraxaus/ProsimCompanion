@@ -515,6 +515,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 _cycle.MarkComplete();
                 RecordDecision("departure sequence", "all departure services completed or skipped");
                 _eventLog.Record("gsx-departure-complete");
+                _groundOpsSignals.RaiseDepartureServicesCompleted(); // "ready for pushback" (#151)
             }
         }
         catch (Exception ex)

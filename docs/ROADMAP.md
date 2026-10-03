@@ -562,4 +562,20 @@ until a flight confirms it; the manual test steps are on each issue.
       **Unverified live** — every module.
 - [ ] Free-form FO questions
 - [ ] Installable web app and screen keep-awake
-- [ ] Outbound event notifications
+- [x] **Outbound event notifications** (#151, `feature/notifications`, design A): Core
+      `NotificationOptions` (master off, top-level `targets` list; per-target kind webhook /
+      ntfy / discord, url, token, ten boolean event switches — a nested list default is barred),
+      `NotificationFormatters` (versioned webhook JSON `prosimcompanion.notification/1`, ntfy
+      text + Title/Tags/Priority headers, Discord `content`), `NotificationDispatcher`
+      (bounded channel of 32 in Wait mode so `TryWrite` reports a full queue, one background
+      sender, 5 s per send, per-target failure cooldown 60 s, `notify.sent` / `notify.failed`
+      events, "Send test" ignores the master switch), `NotificationSignalSource` (startup
+      module; once-per-cycle latch, re-armed on flight-cycle reset; a revised final loadsheet
+      fires again; holdover warning once per deice). New `GroundOpsSignals`:
+      `RefuelCompleted` (GSX relay), `DepartureServicesCompleted` (GSX sequencer),
+      `CabinSecured` (cabin crew), `TodApproaching` (flight progress). Secrets:
+      `notifications:targets:*:url` / `:token` with a new `*` list wildcard in
+      `SecretProtector` (+ `ExpandSecretKeys` for the provider); the bundle redactor masks
+      every property named exactly `url`. `/settings/notifications` page: one card per target,
+      status pill, events grid, Send test + result line. `docs/integrations/notifications.md`.
+      **Unverified live** — every raise site on a real turnaround, and ntfy / Discord end to end.

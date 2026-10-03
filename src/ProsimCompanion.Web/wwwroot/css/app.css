@@ -1886,3 +1886,10 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .airline-logo-add { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .airline-logo-add input[type="file"] { display: none; }
 .airline-logo-add .btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Notifications settings (issue #151, design A): the per-target events grid and result tones. */
+.notify-events { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; font-size: 13px; color: var(--text-secondary); }
+.notify-events label { display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; }
+.notify-ok { color: var(--success); }
+.notify-bad { color: var(--danger); }
+@media (max-width: 720px) { .notify-events { grid-template-columns: 1fr; } }

@@ -173,6 +173,31 @@ thresholds — that most users never touch. Greyed-out fields belong to a switch
    deboarding is called and the cabin empties front-first. At shutdown the FO debriefs, the
    logbook folds the flight and the tech log carries its sectors.
 
+## Notifications on your phone
+
+Away from the flight deck during a long turnaround? **Settings → Notifications** pushes a
+short message at the milestones: refuel complete, boarding complete, final loadsheet sent,
+ready for pushback, cabin secure, deice holdover expiring, top of descent approaching,
+landed, on blocks, deboarding complete. Each fires once per flight.
+
+Turn on **Send notifications**, then **Add target**. A target is one place to notify:
+
+- **ntfy** — the easiest phone route. Install the ntfy app, subscribe to a topic with an
+  unguessable name, paste `https://ntfy.sh/<your topic>` as the URL. Treat the topic name as a
+  password — anyone with it can read your messages.
+- **Discord** — a channel's webhook URL (channel settings → Integrations → Webhooks).
+- **Webhook** — any https address that takes a JSON POST (Home Assistant, Node-RED, your own
+  script). The body is documented in `docs/integrations/notifications.md`.
+
+Tick the events the target should get, add a **Bearer token** if the service needs one, save,
+then **Send test** — the result line says `Sent · 200 OK` or why not. URLs and tokens are
+stored encrypted on the sim PC and never written to the log; the log and the diagnostics bundle
+name the target and the HTTP status only.
+
+A slow or dead target never slows the ground automation or the First Officer: messages go
+out in the background with a five-second limit, and a target that fails is left alone for a
+minute (its status pill reads `FAILED` until the next good send).
+
 ## Themes & units
 
 Thirteen built-in themes — KLM Royal Dutch (the default), Lufthansa, Swiss International,

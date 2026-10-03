@@ -33,6 +33,7 @@ is regenerated automatically (pair tablets again via the QR code).
 | `flightStatus` | Settings → Display & Flight Data → Flight Status card | gate monitor final-call thresholds (`gateFinalCallPaxPercent` 90, `gateFinalCallMinutesBeforeStd` 10), weather-card refresh (`weatherRefreshMinutes` 10), top-of-descent notice lead (`todLeadMinutes` 10, 0 = off); also drives the pop-out Flight Monitor |
 | `flightState` | Settings → Advanced → Flight Phase Engine | phase-engine thresholds and settle times (calibration data) |
 | `techLog`, `logbook`, `debrief`, `day` | Tech Log / Duty Day | MEL categories, random wear, debrief verbosity, day mode |
+| `notifications` | Settings → Notifications | `enabled` (off), `targets[]` (name, kind ntfy / discord / webhook, `url` + `token` stored encrypted, ten per-event switches), `failureCooldownSeconds` 60, `sendTimeoutSeconds` 5, `holdoverExpiringMinutes` 5 — payloads in [docs/integrations/notifications.md](../integrations/notifications.md) |
 | `updateCheck` | file | update banner enable + interval |
 | `logging` | Settings → Advanced → Logs | per-subsystem levels (hot-reload), `wireTrace` |
 | `telemetryApi` | Settings → Advanced → Logs | read-only telemetry endpoints for post-flight verification |
