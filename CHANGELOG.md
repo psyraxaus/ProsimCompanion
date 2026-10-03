@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0-rc.5
+
+- Fix: the black band under the footer in the iPad home-screen app (rc.1–rc.4). The see-through status bar made iPadOS hand the app a web view one status-bar short (screen 820, window 788, safe-top 32 on the owner's iPad); the status bar is now opaque black, so iOS paints it and the view is the right height. **Delete the home-screen icon and add it again** — iOS freezes these settings when the icon is added.
+- Everything in 0.6.0-rc.4 below.
+
 ## 0.6.0-rc.4
 
 - New: a **Viewport** line on Appearance → Screen & Install (window size, screen size, safe-area insets, display mode, shell height) — the facts for the iPad home-screen band report. Note: iOS freezes a home-screen app's settings when the icon is added; after an upgrade, delete the icon and add it again.
