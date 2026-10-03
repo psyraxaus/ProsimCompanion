@@ -164,15 +164,19 @@
             @WeightBar("Zero fuel weight (ZFW)", _zfw.Value, _zfwMax.Value, false)
             @WeightBar("Gross weight (GW)", _gross.Value, _grossMax.Value, true)
             <div class="wnb-mac inset">
+                @* Owner question 2026-10-04 ("the W&B page says 26.8, the loadsheet 27.6"): the big
+                   figure is ProSim's LIVE zfwcg dataref; the loadsheet's MACZFW comes from ProSim's
+                   own loadsheet-generator relation (gross CG minus the fuel-shift table) and is what
+                   ProSim's EFB prints and what goes to the MCDU. Both are shown and named. *@
                 <div class="wnb-mac-cell">
-                    <span class="label-caps">MACZFW</span>
+                    <span class="label-caps">MACZFW <span class="muted">· LIVE</span></span>
                     <span class="figure @(zfwCgBad ? "wnb-bad" : null)">@($"{_zfwcg.Value:F1}")<span class="figure-unit">%</span></span>
-                    <span class="wnb-total-sub @(zfwCgBad ? "wnb-bad" : null)">valid @($"{zfwMin:F1}–{zfwMax:F1}")</span>
+                    <span class="wnb-total-sub @(zfwCgBad ? "wnb-bad" : null)">valid @($"{zfwMin:F1}–{zfwMax:F1}")@(best is { MacZfw: > 0 } ? $" · loadsheet {bestTag} {best.MacZfw:F1}%" : "")</span>
                 </div>
                 <div class="wnb-mac-cell">
-                    <span class="label-caps">MACGW</span>
+                    <span class="label-caps">MACGW <span class="muted">· LIVE</span></span>
                     <span class="figure glow @(gwCgBad ? "wnb-bad" : null)">@($"{_cg.Value:F1}")<span class="figure-unit">%</span></span>
-                    <span class="wnb-total-sub @(gwCgBad ? "wnb-bad" : null)">valid @($"{gwMin:F1}–{gwMax:F1}")</span>
+                    <span class="wnb-total-sub @(gwCgBad ? "wnb-bad" : null)">valid @($"{gwMin:F1}–{gwMax:F1}")@(best is { MacTow: > 0 } ? $" · loadsheet {bestTag} {best.MacTow:F1}%" : "")</span>
                 </div>
             </div>
             <button type="button" class="btn primary" disabled="@_syncing" @onclick="SyncFms">

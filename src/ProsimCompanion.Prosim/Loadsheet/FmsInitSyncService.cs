@@ -62,12 +62,16 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
         {
             return null;
         }
-        var (source, zfwKg, zfwCgMac) = trio.Value;
+        var (source, zfwKg, zfwCgMac, loadsheetFuelKg) = trio.Value;
 
-        // Block: the crew's INIT override first, then the OFP's ordered figure, else whatever
-        // the EFB fuel page holds (one rule for every consumer — EffectiveBlockFuel).
-        var figure = EffectiveBlockFuel.Resolve(_initOverrides.Snapshot(), _ofpStore.Current, _plannedFuel.Value);
-        var blockKg = figure.Kg;
+        // Block: the loadsheet the ZFW came from carries the block that goes WITH that ZFW —
+        // on the final it is the fuel actually aboard (TOW − ZFW). The ordered figure
+        // (INIT override → OFP → EFB fuel page, EffectiveBlockFuel) is the fallback for the
+        // live source and for a loadsheet without a fuel figure. 2026-10-04 (owner, at the
+        // gate): the final said 9576 kg after a top-up, the MCDU got the ordered 8.4 t.
+        var blockKg = loadsheetFuelKg > 0
+            ? Math.Ceiling(loadsheetFuelKg / 100.0) * 100
+            : EffectiveBlockFuel.Resolve(_initOverrides.Snapshot(), _ofpStore.Current, _plannedFuel.Value).Kg;
         if (blockKg <= 0)
         {
             _logger.LogWarning("FMS sync: no block fuel figure available (no OFP, empty efb.plannedfuel) — not writing INIT B");
@@ -96,16 +100,16 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
     }
 
     /// <summary>ZFW and ZFWCG resolved together, never mixed across sources.</summary>
-    private (string Source, double ZfwKg, double ZfwCgMac)? ResolveZfwSource()
+    private (string Source, double ZfwKg, double ZfwCgMac, double LoadsheetFuelKg)? ResolveZfwSource()
     {
         var snapshot = _loadsheets.Snapshot();
         if (snapshot.Final is { Status: LoadsheetSlotStatus.Sent, ZfwKg: > 0, MacZfw: > 0 } final)
         {
-            return ("final", final.ZfwKg, final.MacZfw);
+            return ("final", final.ZfwKg, final.MacZfw, final.FuelKg);
         }
         if (snapshot.Prelim is { Status: LoadsheetSlotStatus.Sent, ZfwKg: > 0, MacZfw: > 0 } prelim)
         {
-            return ("prelim", prelim.ZfwKg, prelim.MacZfw);
+            return ("prelim", prelim.ZfwKg, prelim.MacZfw, prelim.FuelKg);
         }
 
         var liveZfw = _zfw.Value;
@@ -124,6 +128,6 @@ public sealed class FmsInitSyncService : IFmsInitSync, IDisposable
             _logger.LogWarning("FMS sync: live ZFW is 0 — dataref not populated; not writing INIT B");
             return null;
         }
-        return ("live", liveZfw, liveCg);
+        return ("live", liveZfw, liveCg, 0);
     }
 }
