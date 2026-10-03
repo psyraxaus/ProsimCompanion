@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0-rc.6
+
+Fixes from the owner's gate test on 0.6.0-rc.5.
+
+- Fix: **Ask the First Officer answers were cut off after 6 seconds** (#149). The time budget is meant to cover the wait for the first spoken word; it kept running after speech began and cancelled every answer mid-sentence (three answers, all dropped at 6.0 s). The budget now stands down at the first word and the answer plays out. Test added.
+- Fix: the **Flight Monitor and Flight Status gate strip now show the stand GSX reports** ("Gate 311") when no gate request was confirmed — the departure anchor's `gate.select` fails by design, so the board read "GATE —" through the whole turnaround.
+- Fix: the **Finnair theme hid the BOARDING word** on the Flight Monitor (its accent is the same blue as its content background). Every theme now gets a contrast-guarded `--accent-readable` colour for the boarding word and bar: the accent when it reads at 3:1, else the accent pushed away from the background, else the gold accent.
+- Changed: the Flight Monitor weather tiles read **CEILING 2,500 FT / NO CEILING** instead of the METAR shorthand "CIG".
+- Everything in 0.6.0-rc.5 below.
+
 ## 0.6.0-rc.5
 
 - Fix: the black band under the footer in the iPad home-screen app (rc.1–rc.4). The see-through status bar made iPadOS hand the app a web view one status-bar short (screen 820, window 788, safe-top 32 on the owner's iPad); the status bar is now opaque black, so iOS paints it and the view is the right height. **Delete the home-screen icon and add it again** — iOS freezes these settings when the icon is added.
