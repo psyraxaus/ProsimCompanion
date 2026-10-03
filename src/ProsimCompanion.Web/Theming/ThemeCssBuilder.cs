@@ -67,6 +67,12 @@ public static class ThemeCssBuilder
         // Restyle 2026-09-20 (ADR-0011): the warm highlight (gold in the default theme) drives
         // primary buttons, selected chips and the brand mark; the soft variant tints chips.
         // Before the restyle AccentColor was parsed but never emitted.
+        // The accent as a FIGURE colour on the content background (the BOARDING word and bar
+        // on the Flight Monitor and the Flight Status gate strip). Finnair's accent IS its
+        // content background (#003580 on #003580 — owner report 2026-10-03: "boarding" invisible
+        // during boarding), so a too-close pair is pushed apart: lightened on a dark surface,
+        // darkened on a light one, and if that still fails the gold accent takes over.
+        Set("--accent-readable", ReadableOn(colors.PrimaryColor, colors.ContentBackground, colors.AccentColor));
         Set("--accent-gold", colors.AccentColor);
         Set("--accent-gold-soft", Rgba(colors.AccentColor, 0.12));
 
@@ -102,6 +108,62 @@ public static class ThemeCssBuilder
             (int)Math.Round(ar * (1 - t) + br * t),
             (int)Math.Round(ag * (1 - t) + bg * t),
             (int)Math.Round(ab * (1 - t) + bb * t));
+    }
+
+    /// <summary>WCAG contrast ratio between two hex colours (1 = identical, 21 = black on white).</summary>
+    public static double Contrast(string a, string b)
+    {
+        var la = Luminance(a);
+        var lb = Luminance(b);
+        var (hi, lo) = la >= lb ? (la, lb) : (lb, la);
+        return (hi + 0.05) / (lo + 0.05);
+    }
+
+    private static double Luminance(string hex)
+    {
+        if (ParseHex(hex) is not var (r, g, b))
+        {
+            return 0;
+        }
+
+        static double Channel(int c)
+        {
+            var s = c / 255.0;
+            return s <= 0.03928 ? s / 12.92 : Math.Pow((s + 0.055) / 1.055, 2.4);
+        }
+
+        return 0.2126 * Channel(r) + 0.7152 * Channel(g) + 0.0722 * Channel(b);
+    }
+
+    /// <summary>The accent, made readable as text on <paramref name="surface"/>: the accent
+    /// itself when it contrasts at 3:1 or better (the large-text floor), else the accent
+    /// shifted away from the surface in 30-step moves (up to five), else the gold accent,
+    /// else plain white or black — whichever contrasts more.</summary>
+    public static string ReadableOn(string accent, string surface, string fallbackAccent)
+    {
+        const double floor = 3.0;
+        if (Contrast(accent, surface) >= floor)
+        {
+            return accent;
+        }
+
+        var lightenAccent = Luminance(surface) < 0.5;
+        var candidate = accent;
+        for (var step = 0; step < 5; step++)
+        {
+            candidate = ShiftHex(candidate, lightenAccent ? 30 : -30);
+            if (Contrast(candidate, surface) >= floor)
+            {
+                return candidate;
+            }
+        }
+
+        if (Contrast(fallbackAccent, surface) >= floor)
+        {
+            return fallbackAccent;
+        }
+
+        return Contrast("#ffffff", surface) >= Contrast("#000000", surface) ? "#ffffff" : "#000000";
     }
 
     // Shift each channel by delta (clamped) — the "raised surface" primitive shared with the

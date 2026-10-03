@@ -243,7 +243,7 @@ public static class WeatherCardFormat
     };
 
     public static string Ceiling(WxFacts facts)
-        => facts.CeilingFt is { } ceiling ? string.Create(CultureInfo.InvariantCulture, $"CIG {ceiling:N0} FT") : "NO CIG";
+        => facts.CeilingFt is { } ceiling ? string.Create(CultureInfo.InvariantCulture, $"CEILING {ceiling:N0} FT") : "NO CEILING";
 
     public static string Temperature(WxFacts facts)
         => facts.TemperatureC is { } temp ? string.Create(CultureInfo.InvariantCulture, $"{temp:+0;-0;0}°C") : "TEMP —";

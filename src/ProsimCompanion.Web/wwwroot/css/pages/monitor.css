@@ -124,7 +124,7 @@
 @keyframes mon-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .mon-state.closed, .mon-state.closed .mon-state-word { color: var(--text-secondary); }
 .mon-state.open, .mon-state.open .mon-state-word { color: var(--accent-gold); }
-.mon-state.boarding .mon-state-word { color: var(--accent); text-shadow: var(--glow); }
+.mon-state.boarding .mon-state-word { color: var(--accent-readable, var(--accent)); text-shadow: var(--glow); }
 .mon-state.final-call, .mon-state.final-call .mon-state-word { color: var(--warning); text-shadow: 0 0 12px rgba(255, 183, 3, 0.5); }
 .mon-state.closed-after, .mon-state.closed-after .mon-state-word { color: var(--success); }
 
@@ -138,7 +138,7 @@
 }
 .mon-bar-fill { height: 100%; border-radius: 999px; background: var(--text-muted); transition: width 600ms ease; }
 .mon-bar.open .mon-bar-fill { background: var(--accent-gold); }
-.mon-bar.boarding .mon-bar-fill { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.mon-bar.boarding .mon-bar-fill { background: var(--accent-readable, var(--accent)); box-shadow: 0 0 10px var(--accent-readable, var(--accent)); }
 .mon-bar.final-call .mon-bar-fill { background: var(--warning); }
 .mon-bar.closed-after .mon-bar-fill { background: var(--success); }
 

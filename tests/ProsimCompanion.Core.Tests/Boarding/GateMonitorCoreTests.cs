@@ -226,4 +226,31 @@ public sealed class GateMonitorCoreTests
     [InlineData(null, null)]
     public void GateId_OnlyFromAConfirmedRequest(string? request, string? expected)
         => Assert.Equal(expected, GateMonitorService.GateIdFrom(request));
+
+    [Theory]
+    [InlineData("Terminal 3 | Gate  311", "Gate 311")]
+    [InlineData("Gate  311", "Gate 311")]
+    [InlineData("Stand 547", "Stand 547")]
+    [InlineData("  ", null)]
+    [InlineData(null, null)]
+    public void StandLabel_IsTheStandPartOfGsxsKey(string? key, string? expected)
+        => Assert.Equal(expected, GateMonitorService.StandLabel(key));
+
+    [Fact]
+    public void GateId_FallsBackToTheOccupiedStand_WhenNoRequestIsConfirmed()
+    {
+        // Owner report 2026-10-03: the departure anchor's gate.select fails by design, so the
+        // board read "GATE —" although GSX knew the stand.
+        var unconfirmed = ProsimCompanion.Core.State.GsxDiagnosticsSnapshot.Empty with
+        {
+            GateContextKey = "Terminal 3 | Gate  311",
+            GateRequest = "Gate  311: Failed — not_found",
+        };
+        var confirmed = unconfirmed with { GateRequest = "B12: Confirmed — confirmed as B12" };
+        var nothing = ProsimCompanion.Core.State.GsxDiagnosticsSnapshot.Empty;
+
+        Assert.Equal("Gate 311", GateMonitorService.GateIdFrom(unconfirmed));
+        Assert.Equal("B12", GateMonitorService.GateIdFrom(confirmed));
+        Assert.Null(GateMonitorService.GateIdFrom(nothing));
+    }
 }

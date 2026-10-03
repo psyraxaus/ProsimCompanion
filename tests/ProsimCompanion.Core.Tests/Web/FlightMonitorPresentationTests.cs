@@ -238,7 +238,7 @@ public sealed class FlightMonitorPresentationTests
 
         Assert.Equal("250°/14 KT", WeatherCardFormat.Wind(facts));
         Assert.Equal("4 KM", WeatherCardFormat.Visibility(facts));
-        Assert.Equal("CIG 3,000 FT", WeatherCardFormat.Ceiling(facts));
+        Assert.Equal("CEILING 3,000 FT", WeatherCardFormat.Ceiling(facts));
         Assert.Equal("+17°C", WeatherCardFormat.Temperature(facts));
         Assert.Equal("Q1012", WeatherCardFormat.Qnh(facts));
         Assert.Equal("cloud-rain", WeatherCardFormat.SkyIcon(SkyCondition.Rain));

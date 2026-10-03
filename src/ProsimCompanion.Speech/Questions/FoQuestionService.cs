@@ -194,7 +194,22 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
             "fo.answer", system, FoQuestionCore.UserPrompt(sheet, question), sheet.AllowedNumbers, [],
             new SpeechRequest("FO answer", SpeechPriority.Normal, TimeSpan.FromSeconds(30), Tag: Tag), [])
         {
-            OnFirstSpeech = () => spoken.Cancel(),
+            OnFirstSpeech = () =>
+            {
+                // The first word is out: the "stand by" timer AND the time budget stand down.
+                // The budget token is the one the arbiter item was enqueued with — left armed,
+                // it cut every answer at exactly 6.0 s mid-sentence (owner's gate test
+                // 2026-10-03: three answers, totalMs 6012–6020, outcome preempted).
+                spoken.Cancel();
+                try
+                {
+                    budget.CancelAfter(Timeout.InfiniteTimeSpan);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The answer already finished.
+                }
+            },
         };
 
         NarrationResult? result = null;

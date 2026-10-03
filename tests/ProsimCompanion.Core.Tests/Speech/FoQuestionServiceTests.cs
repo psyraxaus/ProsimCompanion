@@ -196,6 +196,26 @@ public sealed class FoQuestionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task AnAnswerThatSpeaksPastTheBudget_IsNotCut()
+    {
+        // Owner's gate test 2026-10-03: every answer was dropped "cancelled" at exactly the
+        // 6 s budget although speech had begun at ~2 s. The budget covers the wait for the
+        // FIRST word only; once speaking, the answer plays out.
+        _speech.FoQuestions.TimeBudgetSeconds = 1;
+        _arbiter.SegmentDuration = TimeSpan.FromMilliseconds(700);      // two sentences ≈ 1.4 s of speech
+        var handler = new SequenceHandler(Streamed("We are in the cruise. ", "Fuel on board is six point two tonnes."));
+        using var service = Service(handler);
+
+        Assert.True(service.TryAsk("what phase are we in right now"));
+        await Settle(service);
+
+        Assert.Equal(["We are in the cruise.", "Fuel on board is six point two tonnes."], _arbiter.Segments.Select(s => s.Text));
+        var answer = Assert.Single(Events("fo.answer")).GetProperty("payload");
+        Assert.Equal("answered", answer.GetProperty("outcome").GetString());
+        Assert.True(answer.GetProperty("totalMs").GetInt64() >= 1000);
+    }
+
+    [Fact]
     public async Task StandBy_IsSpoken_WhenTheModelIsSlow_ButNotWhenItIsQuick()
     {
         _speech.FoQuestions.StandBySeconds = 1;

@@ -83,4 +83,26 @@ public sealed class ThemeCatalogTests
         Assert.Contains("--bg-inset: rgba(0,0,0,0.05);", css);
         Assert.Contains("--text-primary: #1A1614;", css);
     }
+
+    [Fact]
+    public void ReadableAccent_IsPushedApartFromTheSurface_FinnairCase()
+    {
+        // Finnair: accent #003580 ON content background #003580 (owner report 2026-10-03, the
+        // BOARDING word invisible). The readable accent must contrast at 3:1 or better.
+        var readable = ThemeCssBuilder.ReadableOn("#003580", "#003580", "#D4A373");
+        Assert.NotEqual("#003580", readable);
+        Assert.True(ThemeCssBuilder.Contrast(readable, "#003580") >= 3.0, readable);
+
+        // A pair that already contrasts is left alone (KLM cyan on navy).
+        Assert.Equal("#00d9ff", ThemeCssBuilder.ReadableOn("#00d9ff", "#0f3b6f", "#f5a623"));
+
+        // The declarations carry the token for every theme.
+        var css = ThemeCssBuilder.BuildDeclarations(new ThemeColors
+        {
+            PrimaryColor = "#003580", SecondaryColor = "#002B66", AccentColor = "#D4A373",
+            HeaderBackground = "#FFFFFF", TabBarBackground = "#FFFFFF", ContentBackground = "#003580",
+            SectionBackground = "#FFFFFF", HeaderText = "#1A1614", ContentText = "#1A1614", CategoryText = "#4B5563",
+        });
+        Assert.Contains("--accent-readable:", css, StringComparison.Ordinal);
+    }
 }

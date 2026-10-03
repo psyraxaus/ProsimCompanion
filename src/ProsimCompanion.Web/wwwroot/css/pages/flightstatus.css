@@ -374,7 +374,7 @@
 .fs-gate-state.closed .figure { color: var(--text-secondary); }
 .fs-gate-state.open { color: var(--accent-gold); }
 .fs-gate-state.open .figure { color: var(--accent-gold); }
-.fs-gate-state.boarding .figure { color: var(--accent); text-shadow: var(--glow); }
+.fs-gate-state.boarding .figure { color: var(--accent-readable, var(--accent)); text-shadow: var(--glow); }
 .fs-gate-state.final-call { color: var(--warning); }
 .fs-gate-state.final-call .figure { color: var(--warning); text-shadow: 0 0 8px rgba(255, 183, 3, 0.5); }
 .fs-gate-state.closed-after { color: var(--success); }
@@ -426,7 +426,7 @@
   transition: width 600ms ease, background 300ms ease;
 }
 .fs-gate.open .fs-gate-fill { background: var(--accent-gold); }
-.fs-gate.boarding .fs-gate-fill { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.fs-gate.boarding .fs-gate-fill { background: var(--accent-readable, var(--accent)); box-shadow: 0 0 8px var(--accent-readable, var(--accent)); }
 .fs-gate.final-call .fs-gate-fill { background: var(--warning); }
 .fs-gate.closed-after .fs-gate-fill { background: var(--success); }
 

@@ -113,7 +113,7 @@ public sealed class GateMonitorService : IDisposable
             {
                 snapshot = _core.Evaluate(
                     ReadInputs(),
-                    GateIdFrom(_diagnostics.Snapshot().GateRequest),
+                    GateIdFrom(_diagnostics.Snapshot()),
                     _options.CurrentValue.GateFinalCallPaxPercent,
                     _options.CurrentValue.GateFinalCallMinutesBeforeStd);
 
@@ -170,6 +170,32 @@ public sealed class GateMonitorService : IDisposable
 
     private static GsxServiceView? Service(GsxDiagnosticsSnapshot gsx, string id)
         => gsx.Services.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>The gate to show: a CONFIRMED gate request first ("B12: Confirmed — …" → "B12"),
+    /// else the stand GSX itself reports the aircraft on (<c>GateContextKey</c>, "Terminal 3 |
+    /// Gate  311" → "Gate 311"). Owner report 2026-10-03: the departure anchor's gate.select
+    /// fails by design (#44 family), so the request is never confirmed at the origin and the
+    /// board read "GATE —" all turnaround although GSX knew the stand. An armed-but-pending
+    /// request is still not shown as such — the occupied stand is.</summary>
+    public static string? GateIdFrom(GsxDiagnosticsSnapshot gsx)
+    {
+        ArgumentNullException.ThrowIfNull(gsx);
+        return GateIdFrom(gsx.GateRequest) ?? StandLabel(gsx.GateContextKey);
+    }
+
+    /// <summary>"Terminal 3 | Gate  311" → "Gate 311"; "Stand 547" → "Stand 547"; null for blank.
+    /// The part after the last "|" is the stand; runs of spaces collapse.</summary>
+    public static string? StandLabel(string? gateContextKey)
+    {
+        if (string.IsNullOrWhiteSpace(gateContextKey))
+        {
+            return null;
+        }
+
+        var last = gateContextKey.Split('|')[^1].Trim();
+        var collapsed = System.Text.RegularExpressions.Regex.Replace(last, @"\s{2,}", " ");
+        return collapsed.Length == 0 ? null : collapsed;
+    }
 
     /// <summary>"B12: Confirmed — confirmed as B12" → "B12". Only a confirmed request names
     /// the gate the aircraft is actually at; an armed-but-pending one is not shown.</summary>
