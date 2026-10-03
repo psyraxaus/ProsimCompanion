@@ -128,9 +128,9 @@ public sealed class MonitorRouteStripRenderTests : IDisposable
 
         Assert.Contains("class=\"mon-strip\"", html, StringComparison.Ordinal);
         Assert.Contains("viewBox=\"0 0 1200 72\"", html, StringComparison.Ordinal);
-        // 3° of 10° along the leg: x = 40 + 0.3 × 1120 = 376, on the line, turned 30° right
-        // (tracking 120 on a 090 route).
-        Assert.Contains("translate(376 36) rotate(30)", html, StringComparison.Ordinal);
+        // 3° of 10° along the leg: x = 40 + 0.3 × 1120 = 376, on the line. Tracking 120 on a
+        // 090 route no longer turns it — the plane points at the destination (owner, 2026-10-04).
+        Assert.Contains("translate(376 36) rotate(0)", html, StringComparison.Ordinal);
         Assert.Contains("mon-strip-plane", html, StringComparison.Ordinal);          // the top-down outline marker (2026-10-03)
         Assert.Contains("rotate(90) translate(-50 -50)", html, StringComparison.Ordinal);   // the single-outline plane, nose-right
         Assert.Contains("<split-flap", html, StringComparison.Ordinal);               // the Solari clock on the board

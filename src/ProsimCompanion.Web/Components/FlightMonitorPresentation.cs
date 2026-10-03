@@ -155,14 +155,12 @@ public static class FlightMonitorPresentation
             var y = Math.Clamp(
                 RouteStripView.LineY + (cross * scale),
                 RouteStripView.Edge, RouteStripView.Height - RouteStripView.Edge);
-            var rotation = 0.0;
-            if (located.TrackTrueDeg is { } track)
-            {
-                // The route's own course at the point abeam the aircraft; the marker shows
-                // the difference, so "along the route" always points right.
-                var abeam = GreatCircle.Intermediate(origin.Position, destination.Position, Math.Clamp(along / route, 0, 0.999));
-                rotation = (((track - GreatCircle.InitialBearingDeg(abeam, destination.Position)) % 360) + 540) % 360 - 180;
-            }
+            // Owner decision 2026-10-04: the plane always points along the strip towards the
+            // destination — never turned by the live track. At the gate the aircraft sits on
+            // whatever heading the stand has (145° in the photo) and the marker pointed away
+            // from the route; in flight the track rarely differs enough to read. The track is
+            // still in the view model for anything that wants it later.
+            const double rotation = 0.0;
 
             double? tod = located.DescentDistanceNm is { } descent && descent < route
                 ? left + ((route - descent) * scale)

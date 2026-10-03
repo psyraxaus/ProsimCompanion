@@ -162,18 +162,18 @@ public sealed class FlightMonitorPresentationTests
         Assert.Equal(RouteStripView.Edge, far.MarkerY!.Value, 1);
     }
 
-    [Fact]
-    public void RouteStrip_TurnsTheMarkerByTheTrackRelativeToTheRoute()
+    // Owner decision 2026-10-04: the plane points along the strip towards the destination for
+    // the whole journey — the live track (even the reciprocal, or none at all) never turns it.
+    [Theory]
+    [InlineData(120.0)]
+    [InlineData(60.0)]
+    [InlineData(270.0)]
+    [InlineData(null)]
+    public void RouteStrip_AlwaysPointsTheMarkerAtTheDestination_WhateverTheTrack(double? track)
     {
-        var turnedRight = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: 120));
-        var turnedLeft = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: 60));
-        var reciprocal = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: 270));
-        var unknown = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: null));
+        var strip = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 0, track: track));
 
-        Assert.Equal(30, turnedRight.MarkerRotationDeg, 1);
-        Assert.Equal(-30, turnedLeft.MarkerRotationDeg, 1);
-        Assert.Equal(180, Math.Abs(reciprocal.MarkerRotationDeg), 1);
-        Assert.Equal(0, unknown.MarkerRotationDeg);
+        Assert.Equal(0, strip.MarkerRotationDeg);
     }
 
     [Fact]
