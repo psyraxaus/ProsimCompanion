@@ -1987,11 +1987,12 @@
         "With an OFP navlog loaded and a takeoff time: one fuel.log.fix per navlog fix passed, in index order, none before the takeoff (the origin row carries the takeoff time as atUtc). Cross-check against the flight-sample positions: a fix's atUtc must lie within ~2 minutes of the sample where the aircraft was nearest / abeam that fix.",
         "fobKg on each row equals the FOB in the flight-sample nearest atUtc (±50 kg); deltaKg = fobKg − plannedFobKg.",
         "Several rows with the same atUtc are allowed only after a gap in the samples (reconnect, long pause) — report them.",
+        "assert-absent (clock, fixed 2026-10-05): a fuel.log.fix whose atUtc is on a different clock from its plannedAtUtc. Signature = |deltaMinutes| of hundreds on every row after the origin, equal to the sim-to-real clock offset (the event's own 'timestamp' is the real clock; the flight-times event's takeoffUtc is the sim clock). On a flight flown with sim time ≠ real time every row's atUtc must follow takeoffUtc, not 'timestamp', and deltaMinutes must be a few minutes.",
         "Consistency with the FO: a fuel.check event (navlog method) between two fixes reports plannedFobKg between those rows' plan figures and a differenceKg of the same sign and order as the neighbouring rows' deltaKg.",
         "assert-absent: fuel.log.fix after a new OFP was fetched with the OLD route's fix names; the log must restart (rows for the new plan only).",
         "The destination row stamps when the aircraft reaches the end of the final leg (fraction ≥ 0.99), i.e. around touchdown — not at the gate after taxi-in and not never."
       ],
-      "notes": "Shipped 2026-10-04 (#154, Fuel Log tab). FuelLogService ticks every 5 s in Core — runs with the voice FO off. The page's 'Fuel check now' button records a fuel.check with trigger 'page'."
+      "notes": "Shipped 2026-10-04 (#154, Fuel Log tab). FuelLogService ticks every 5 s in Core — runs with the voice FO off. The page's 'Fuel check now' button records a fuel.check with trigger 'page'. 2026-10-05 (0.6.0-rc.15, EFHK departure, sim 03:54Z / real 19:44Z): fixes were stamped with the PC clock against a sim-clock takeoff — deltaMinutes 948 on every row; FuelLogService and FuelCheckMonitor (check time, ETA fallback) now read ISimClock.UtcNowOrReal."
     },
     {
       "id": "fo-gross-error-check",

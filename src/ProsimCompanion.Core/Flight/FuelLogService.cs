@@ -13,6 +13,9 @@ namespace ProsimCompanion.Core.Flight;
 /// and the live fuel; each newly stamped fix is a <c>fuel.log.fix</c> session event. Runs
 /// with the voice FO off — the page is the consumer — and degrades to an empty log without
 /// an OFP, a position or ProSim.
+/// <para>Fix times are on the SIMULATED clock, like the takeoff time they are compared with
+/// (2026-10-05, EFHK departure flown at 03:54Z sim / 19:44Z real: every fix after the origin
+/// row was stamped with the PC clock and read 948 minutes late).</para>
 /// </summary>
 public sealed class FuelLogService : IStartupModule, IDisposable
 {
@@ -23,6 +26,7 @@ public sealed class FuelLogService : IStartupModule, IDisposable
     private readonly OfpStore _ofp;
     private readonly FlightProgressStore _progress;
     private readonly FlightTimesStore _times;
+    private readonly ISimClock _clock;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FuelLogService> _logger;
     private readonly IDataRefSubscription<double> _fuelTotal;
@@ -35,6 +39,7 @@ public sealed class FuelLogService : IStartupModule, IDisposable
         FlightProgressStore progress,
         FlightTimesStore times,
         IProsimDataRefs dataRefs,
+        ISimClock clock,
         JsonlEventLog eventLog,
         ILogger<FuelLogService> logger)
     {
@@ -43,6 +48,7 @@ public sealed class FuelLogService : IStartupModule, IDisposable
         ArgumentNullException.ThrowIfNull(progress);
         ArgumentNullException.ThrowIfNull(times);
         ArgumentNullException.ThrowIfNull(dataRefs);
+        ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -50,6 +56,7 @@ public sealed class FuelLogService : IStartupModule, IDisposable
         _ofp = ofp;
         _progress = progress;
         _times = times;
+        _clock = clock;
         _eventLog = eventLog;
         _logger = logger;
         _fuelTotal = dataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
@@ -58,10 +65,14 @@ public sealed class FuelLogService : IStartupModule, IDisposable
     public void Start()
     {
         _ofp.Changed += OnOfpChanged;
-        _timer = new Timer(_ => ProcessTick(DateTimeOffset.UtcNow), null, TimeSpan.FromSeconds(3), Poll);
+        _timer = new Timer(_ => ProcessTick(), null, TimeSpan.FromSeconds(3), Poll);
     }
 
-    private void OnOfpChanged(object? sender, EventArgs e) => ProcessTick(DateTimeOffset.UtcNow);
+    private void OnOfpChanged(object? sender, EventArgs e) => ProcessTick();
+
+    /// <summary>One evaluation on the flight clock — the simulated time when it is live, the
+    /// same clock <see cref="FlightTimesTracker"/> stamps the takeoff with.</summary>
+    public void ProcessTick() => ProcessTick(_clock.UtcNowOrReal);
 
     /// <summary>One evaluation, clock supplied; the timer calls this. Never throws past the
     /// timer thread — a failed tick is logged and the log keeps its last state.</summary>

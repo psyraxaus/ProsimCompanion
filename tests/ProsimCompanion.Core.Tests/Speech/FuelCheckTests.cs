@@ -191,9 +191,10 @@ public sealed class FuelCheckTests
         public OfpStore Ofp { get; } = new();
         public FlightProgressStore Progress { get; } = new();
         public SopOptions Sop { get; } = new();
+        public FuelCheckLogStore CheckLog { get; } = new();
         public FuelCheckMonitor Monitor { get; }
 
-        public Harness()
+        public Harness(ProsimCompanion.Core.Aircraft.ISimClock? simClock = null)
         {
             Sop.Monitoring.FuelCheck.Enabled = true;
             Sop.Monitoring.FuelCheck.IntervalMinutes = 30;
@@ -205,8 +206,42 @@ public sealed class FuelCheckTests
             Phases.Data = new FlightDataSnapshot { IsValid = true, AltitudeFt = 37000 };
             Monitor = new FuelCheckMonitor(
                 SpeechTestSupport.SopMonitor(Sop), SpeechTestSupport.SpeechMonitor(new SpeechOptions()),
-                Phases, Progress, Ofp, Refs, Arbiter, SpeechTestSupport.TempEventLog(), NullLogger<FuelCheckMonitor>.Instance);
+                Phases, Progress, Ofp, Refs, Arbiter, SpeechTestSupport.TempEventLog(), NullLogger<FuelCheckMonitor>.Instance,
+                CheckLog, simClock);
         }
+    }
+
+    // 2026-10-05 (sim 03:54Z flown at real 19:44Z): the ETA the fallback burns to is on the
+    // simulated clock, so the check must read the same clock — against the PC clock a sim ETA
+    // in the "past" gave no estimate at all, and the page showed the check at the real time.
+    [Fact]
+    public void ACheck_RunsOnTheSimClock_LikeTheEtaAndTheFuelLog()
+    {
+        var simNow = new DateTimeOffset(2020, 1, 1, 3, 54, 0, TimeSpan.Zero);
+        var clock = new Moq.Mock<ProsimCompanion.Core.Aircraft.ISimClock>();
+        clock.SetupGet(c => c.UtcNowOrReal).Returns(simNow);
+        var h = new Harness(clock.Object);
+        h.Progress.Update(_ => new FlightProgressSnapshot { Position = null, EtaUtc = simNow.AddMinutes(30) });
+
+        Assert.Null(h.Monitor.RequestNow("web"));
+
+        // 5400 kg, 2400 kg/h, 30 sim-minutes to go: 4200 at landing.
+        var spoken = Assert.Single(h.Arbiter.Requests);
+        Assert.Contains("Estimated landing fuel 4.2 tonnes", spoken.Text, StringComparison.Ordinal);
+        Assert.Equal(simNow, h.CheckLog.Snapshot().Latest!.AtUtc);
+    }
+
+    [Fact]
+    public void ThePeriodicInterval_StaysOnTheSuppliedClock_WhateverTheSimClockSays()
+    {
+        var clock = new Moq.Mock<ProsimCompanion.Core.Aircraft.ISimClock>();
+        clock.SetupGet(c => c.UtcNowOrReal).Returns(new DateTimeOffset(2020, 1, 1, 3, 54, 0, TimeSpan.Zero));
+        var h = new Harness(clock.Object);
+        h.Phases.SetPhase(FlightPhase.Cruise);
+
+        Assert.Null(h.Monitor.ProcessTick(T0));
+        Assert.Null(h.Monitor.ProcessTick(T0.AddMinutes(29)));
+        Assert.NotNull(h.Monitor.ProcessTick(T0.AddMinutes(30)));
     }
 
     [Fact]

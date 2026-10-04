@@ -33,6 +33,7 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<FuelCheckMonitor> _logger;
     private readonly FuelCheckLogStore? _checkLog;
+    private readonly ISimClock? _simClock;
     private readonly IDataRefSubscription<double> _fuelTotal;
     private readonly IDataRefSubscription<double> _flow1;
     private readonly IDataRefSubscription<double> _flow2;
@@ -54,7 +55,8 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<FuelCheckMonitor> logger,
-        FuelCheckLogStore? checkLog = null)
+        FuelCheckLogStore? checkLog = null,
+        ISimClock? simClock = null)
     {
         ArgumentNullException.ThrowIfNull(sop);
         ArgumentNullException.ThrowIfNull(speech);
@@ -75,12 +77,18 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
         _eventLog = eventLog;
         _logger = logger;
         _checkLog = checkLog;
+        _simClock = simClock;
         _fuelTotal = dataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
         _flow1 = dataRefs.Subscribe(ProsimDataRefNames.Engine1FuelFlowKgh);
         _flow2 = dataRefs.Subscribe(ProsimDataRefNames.Engine2FuelFlowKgh);
     }
 
     private FuelCheckOptions Options => _sop.CurrentValue.Monitoring.FuelCheck;
+
+    /// <summary>The flight clock: simulated time when live. The ETA the fallback burns to and
+    /// the Fuel Log rows a check sits beside are on this clock, so a check must be too
+    /// (2026-10-05: sim 03:54Z against real 19:44Z).</summary>
+    private DateTimeOffset FlightClockNow => _simClock?.UtcNowOrReal ?? DateTimeOffset.UtcNow;
 
     public bool Enabled => Options.Enabled;
 
@@ -111,7 +119,7 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
             return true;
         }
 
-        var result = Compute(DateTimeOffset.UtcNow);
+        var result = Compute(FlightClockNow);
         if (result is null)
         {
             _ = _arbiter.SpeakAsync("I don't have the fuel plan for a fuel check.", SpeechPriority.Normal);
@@ -131,7 +139,7 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
             return "No flight data for a fuel check.";
         }
 
-        var result = Compute(DateTimeOffset.UtcNow);
+        var result = Compute(FlightClockNow);
         if (result is null)
         {
             _eventLog.Record("fuel.check", new { trigger = source, spoken = false, reason = "no plan or no fuel figure" });
@@ -186,7 +194,9 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
             }
 
             _lastPeriodic = nowUtc;
-            var result = Compute(nowUtc);
+            // The INTERVAL runs on the supplied (real) clock — a sim-time change must not
+            // stall or fire it; the CHECK itself is computed on the flight clock.
+            var result = Compute(_simClock?.UtcNowOrReal ?? nowUtc);
             if (result is null)
             {
                 _eventLog.Record("fuel.check", new { trigger = "periodic", spoken = false, reason = "no plan or no fuel figure" });
@@ -234,7 +244,7 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
         });
         _ = _arbiter.EnqueueAsync(new SpeechRequest(result.Text, result.Priority, SpokenTtl, Tag: "fuel.check"));
         _checkLog?.Add(new FuelCheckRecord(
-            DateTimeOffset.UtcNow, trigger, result.Method, result.Fix, result.FuelOnBoardKg, result.PlannedFuelOnBoardKg,
+            FlightClockNow, trigger, result.Method, result.Fix, result.FuelOnBoardKg, result.PlannedFuelOnBoardKg,
             result.DifferenceKg, result.EstimatedLandingKg, result.PlannedLandingKg, result.Shortfall, result.Text));
     }
 
