@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0-rc.17
+
+From the EFHK→LKPR flight of 2026-10-04 (issue #157).
+
+- Fix: the FO no longer says *"GSX doesn't recognise our parking position"* at an arrival gate that GSX accepted. After the gate is assigned in flight, GSX shows its "Change parking or service" menu with that gate's name; the app took the menu for an unknown parking. A menu that names another stand still gives the warning.
+- Fix: **the destination airport is picked in GSX in flight.** In the air, GSX's menu opens directly on its "Select airport" page; the app looked for a "Select airport" line on a page that had none and gave up (three times on that flight). It now picks the destination row on that page.
+- Fix: **"Confirm fuel" calls the fuel truck once.** With *Refuel call: on fuel confirmed*, the confirmation released the departure sequence and the same command then called Refueling a second time 1.5 s later.
+- Changed: at the departure stand the FO waits 20 seconds before the parking warning. GSX needs a few seconds to name the stand after it connects, and the warning came 7.5 s too early. The Flight Status page shows the hold at once.
+- First accepted arrival gate on record: the gate number sent as a number, in flight (`gate.select 29` → "Gate C 29").
+- Not yet verified live.
+- Everything in 0.6.0-rc.16 below.
+
 ## 0.6.0-rc.16
 
 From the EFHK→LKPR flight of 2026-10-05.
