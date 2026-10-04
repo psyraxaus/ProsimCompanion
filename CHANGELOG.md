@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0-rc.15
+
+Code-scanner clean-up (Snyk Code, 2026-10-04). Nothing changes in how the app flies.
+
+- Security: the support reducer (`tools/ProsimCompanion.Reduce`) takes `--bundle`, `--out` and `--probes` only from below the working folder or the system temp folder. It finds each one on disk from that folder down and uses that entry, never the typed text, and it removes line breaks from everything it echoes. A path anywhere else is a usage error (exit `1`, *path refused*); the bundle, the probe catalog and the folder for `--out` must exist. Run the tool from the folder that holds the bundle.
+- Security: `tools/build-atlas.js` writes the atlas to its one fixed place and takes no output argument.
+- Housekeeping: lookup names the scanner read as credentials (`key` for an ini entry, a compass point, a flow-check id, a phrase pool) are renamed — no behaviour change. The test suite makes its stand-in API keys at run time.
+- Everything in 0.6.0-rc.14 below.
+
 ## 0.6.0-rc.14
 
 Stand knowledge and pushback direction, from the EGLL→EFHK flights of 2026-10-03/04 (owner Options A + B and pushback Option 1).
