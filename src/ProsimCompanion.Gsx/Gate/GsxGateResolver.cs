@@ -323,6 +323,20 @@ public static class GsxGateResolver
 
     /// <summary>Nearest-name suggestions for a not_found failure: exact → suffix → contains,
     /// max 3, drawn from the mirrored parkings.</summary>
+    /// <summary>The first <paramref name="count"/> distinct parking names, for the refusal
+    /// diagnostics (issue #156) — enough to see the scenery's naming shape.</summary>
+    public static IReadOnlyList<string> SampleNames(IReadOnlyList<GsxParking> parkings, int count)
+    {
+        ArgumentNullException.ThrowIfNull(parkings);
+        return parkings
+            .Select(p => p.UiGateName ?? p.UiName ?? p.BglName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(Math.Max(0, count))
+            .ToList();
+    }
+
     public static IReadOnlyList<string> NearestNames(IReadOnlyList<GsxParking> parkings, string requestedGate)
     {
         ArgumentNullException.ThrowIfNull(parkings);

@@ -40,8 +40,11 @@ public interface IDebriefFactExtractor
 /// (first title per id wins; cleared when a later cleared event names the id).</item>
 /// <item><c>flight.route</c> { role, airport, runway } — origin/destination + runways
 /// (emitted by the briefing service when a briefing resolves).</item>
-/// <item><c>fuel.check</c> { fobKg } — first/last/used. No producer exists in this codebase
-/// yet; the mapping is kept so the fuel lines light up when one arrives.</item>
+/// <item><c>flight-times</c> { takeoffFobKg, landingFobKg, onBlocksFobKg } — start fuel =
+/// takeoff, final fuel = on blocks (landing while still taxiing in), used = the difference.
+/// Issue #155 (owner's EGLL→EFHK debrief 2026-10-04: "burned 1.7 t, landing with 5.1 t"
+/// on a 5 t flight): the figures used to be the FIRST and LAST <c>fuel.check</c>, which are
+/// mid-cruise checks since #148 — never again; fuel.check is not a fuel source here.</item>
 /// <item><c>touchdown</c> { verticalSpeedFpm, iasKt, groundSpeedKt, pitchDeg, bankDeg,
 /// bounces, wentAround, outcome, accelerationYRaw* } — the touchdown recorder's one event per landing
 /// (issue #146). The first that was not a go-around supplies the landing figures; the raw
@@ -81,7 +84,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             int defectsRaised = 0, defectsRectified = 0, defectsCarried = 0;
             int radioTunes = 0, memoryDrills = 0;
             var checklists = new List<string>();
-            var fobs = new List<double>();
+            double? takeoffFob = null, landingFob = null, onBlocksFob = null;
             var advisories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string? origin = null, destination = null, depRunway = null, arrRunway = null;
             double? touchdownRate = null, touchdownIas = null, touchdownPitch = null;
@@ -303,16 +306,6 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             break;
                         }
 
-                        case "fuel.check":
-                        {
-                            if (Num(payload, "fobKg") is { } fob)
-                            {
-                                fobs.Add(fob);
-                            }
-
-                            break;
-                        }
-
                         case "touchdown":
                         {
                             // The landing that stuck: the first touchdown that was not a
@@ -339,6 +332,9 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             stampTakeoff ??= Time(payload, "takeoffUtc");
                             stampLanding ??= Time(payload, "landingUtc");
                             stampOn ??= Time(payload, "onBlocksUtc");
+                            takeoffFob ??= Num(payload, "takeoffFobKg");
+                            landingFob ??= Num(payload, "landingFobKg");
+                            onBlocksFob ??= Num(payload, "onBlocksFobKg");
                             break;
                         }
                     }
@@ -351,9 +347,9 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             int? flightMin = liftoff is { } lo && touchdown is { } td && td > lo
                 ? (int)Math.Round((td - lo).TotalMinutes)
                 : null;
-            double? startFob = fobs.Count > 0 ? fobs[0] : null;
-            double? finalFob = fobs.Count > 0 ? fobs[^1] : null;
-            double? used = fobs.Count >= 2 && fobs[0] > fobs[^1] ? fobs[0] - fobs[^1] : null;
+            double? startFob = takeoffFob;
+            double? finalFob = onBlocksFob ?? landingFob;
+            double? used = startFob is { } s0 && finalFob is { } f0 && s0 >= f0 ? s0 - f0 : null;
 
             return new DebriefFacts(
                 blockMin, flightMin, liftoffIas, touchdownGs, gates,

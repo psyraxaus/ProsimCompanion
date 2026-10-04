@@ -198,8 +198,14 @@ thresholds — that most users never touch. Greyed-out fields belong to a switch
    answering the same menu, and a line that moved before your click landed is not sent —
    every answer, and every "left for you", is in the decision log.
 6. **Flight.** The arrival gate you confirmed on the OFP page is sent to GSX (and
-   SayIntentions ATC) at cruise. The voice FO runs callouts, monitors flows, and briefs on
-   request.
+   SayIntentions ATC) at cruise. To send it, the app first has GSX load the destination
+   through GSX's own in-flight **Select airport** menu. GSX sometimes shows no menu at all in
+   flight until its toolbar panel has been opened once (issue #141): if the Status section
+   says *"menu did not appear"*, open the GSX menu from the MSFS toolbar once after takeoff and
+   the next attempt (every few minutes) goes through. If GSX then asks **Select Position at
+   …** itself after landing, the switch **Answer GSX's position menu with the arrival gate**
+   (Settings → GSX) lets the app pick your gate in that menu by name; off, the menu is yours.
+   The voice FO runs callouts, monitors flows, and briefs on request.
 7. **Arrival.** Once stably parked (engines off, brake set, beacon off): fuel is remembered
    for next session, chocks go in after a crew-realistic delay, jetway/stairs connect,
    deboarding is called and the cabin empties front-first. At shutdown the FO debriefs, the

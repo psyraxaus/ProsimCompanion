@@ -11,9 +11,18 @@ public sealed record FlightTimesSnapshot(
     DateTimeOffset? OffBlocksUtc,
     DateTimeOffset? TakeoffUtc,
     DateTimeOffset? LandingUtc,
-    DateTimeOffset? OnBlocksUtc)
+    DateTimeOffset? OnBlocksUtc,
+    double? OffBlocksFobKg = null,
+    double? TakeoffFobKg = null,
+    double? LandingFobKg = null,
+    double? OnBlocksFobKg = null)
 {
     public static FlightTimesSnapshot Empty { get; } = new(null, null, null, null);
+
+    /// <summary>Takeoff fuel minus on-blocks fuel (landing fuel while still taxiing in) —
+    /// the debrief's "fuel used" (issue #155). Null until both ends exist.</summary>
+    public double? FuelUsedKg
+        => TakeoffFobKg is { } start && (OnBlocksFobKg ?? LandingFobKg) is { } end && start >= end ? start - end : null;
 
     /// <summary>Block time so far (off-blocks → on-blocks, or → now while still on the leg).</summary>
     public TimeSpan? BlockTime(DateTimeOffset nowUtc)
@@ -52,7 +61,10 @@ public sealed class FlightTimesCore
     public void Reset() => _times = FlightTimesSnapshot.Empty;
 
     /// <summary>Applies one committed phase transition; returns the (possibly unchanged) stamps.</summary>
-    public FlightTimesSnapshot Apply(FlightPhase previous, FlightPhase current, DateTimeOffset nowUtc)
+    /// <summary>Stamps the time — and the fuel on board at that moment (issue #155: the
+    /// debrief's burn is takeoff fuel minus on-blocks fuel, never a cruise check) — for each
+    /// phase edge. <paramref name="fobKg"/> is null when ProSim has no figure; the time still stamps.</summary>
+    public FlightTimesSnapshot Apply(FlightPhase previous, FlightPhase current, DateTimeOffset nowUtc, double? fobKg = null)
     {
         // The next turnaround: shutdown (or taxi-in) → back at the gate.
         if (previous is FlightPhase.Shutdown or FlightPhase.TaxiIn && current.IsAtGate())
@@ -64,19 +76,25 @@ public sealed class FlightTimesCore
         switch (current)
         {
             case FlightPhase.PushbackAndStart or FlightPhase.TaxiOut when _times.OffBlocksUtc is null:
-                _times = _times with { OffBlocksUtc = nowUtc };
+                _times = _times with { OffBlocksUtc = nowUtc, OffBlocksFobKg = fobKg };
                 break;
             case FlightPhase.InitialClimb or FlightPhase.Climb or FlightPhase.Cruise or FlightPhase.Descent or FlightPhase.Approach
                 when _times.TakeoffUtc is null:
                 // Off-blocks may be missing when the app started on the runway: backfill so
                 // block time is never shorter than flight time.
-                _times = _times with { TakeoffUtc = nowUtc, OffBlocksUtc = _times.OffBlocksUtc ?? nowUtc };
+                _times = _times with
+                {
+                    TakeoffUtc = nowUtc,
+                    TakeoffFobKg = fobKg,
+                    OffBlocksUtc = _times.OffBlocksUtc ?? nowUtc,
+                    OffBlocksFobKg = _times.OffBlocksUtc is null ? fobKg : _times.OffBlocksFobKg,
+                };
                 break;
             case FlightPhase.LandingRollout when _times.LandingUtc is null:
-                _times = _times with { LandingUtc = nowUtc };
+                _times = _times with { LandingUtc = nowUtc, LandingFobKg = fobKg };
                 break;
             case FlightPhase.Shutdown when _times.OnBlocksUtc is null:
-                _times = _times with { OnBlocksUtc = nowUtc };
+                _times = _times with { OnBlocksUtc = nowUtc, OnBlocksFobKg = fobKg };
                 break;
         }
 
@@ -102,6 +120,8 @@ public sealed class FlightTimesTracker : IDisposable
     private readonly JsonlEventLog? _eventLog;
     private readonly FlightTimesCore _core = new();
     private readonly object _gate = new();
+    // Fuel on board at each stamp (issue #155). Optional so a host without ProSim still tracks times.
+    private readonly IDataRefSubscription<double>? _fuelTotal;
 
     public FlightTimesTracker(
         IFlightPhaseSource flight,
@@ -109,7 +129,8 @@ public sealed class FlightTimesTracker : IDisposable
         ISimClock clock,
         FlightTimesStore store,
         ILogger<FlightTimesTracker> logger,
-        JsonlEventLog? eventLog = null)
+        JsonlEventLog? eventLog = null,
+        IProsimDataRefs? dataRefs = null)
     {
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(signals);
@@ -123,6 +144,7 @@ public sealed class FlightTimesTracker : IDisposable
         _store = store;
         _logger = logger;
         _eventLog = eventLog;
+        _fuelTotal = dataRefs?.Subscribe(ProsimDataRefNames.FuelTotal);
 
         _flight.PhaseChanged += OnPhaseChanged;
         _signals.FlightCycleReset += OnFlightCycleReset;
@@ -133,7 +155,7 @@ public sealed class FlightTimesTracker : IDisposable
         FlightTimesSnapshot times;
         lock (_gate)
         {
-            times = _core.Apply(e.Previous, e.Current, _clock.UtcNowOrReal);
+            times = _core.Apply(e.Previous, e.Current, _clock.UtcNowOrReal, FuelOnBoardKg());
         }
 
         if (_store.Snapshot() != times)
@@ -153,6 +175,10 @@ public sealed class FlightTimesTracker : IDisposable
                     takeoffUtc = times.TakeoffUtc,
                     landingUtc = times.LandingUtc,
                     onBlocksUtc = times.OnBlocksUtc,
+                    offBlocksFobKg = Round(times.OffBlocksFobKg),
+                    takeoffFobKg = Round(times.TakeoffFobKg),
+                    landingFobKg = Round(times.LandingFobKg),
+                    onBlocksFobKg = Round(times.OnBlocksFobKg),
                 });
             }
         }
@@ -170,9 +196,15 @@ public sealed class FlightTimesTracker : IDisposable
         _store.Update(_ => FlightTimesSnapshot.Empty);
     }
 
+    private double? FuelOnBoardKg()
+        => _fuelTotal is { RawValue: not null, IsStale: false } sub && sub.Value > 0 ? sub.Value : null;
+
+    private static double? Round(double? kg) => kg is { } v ? Math.Round(v) : null;
+
     public void Dispose()
     {
         _flight.PhaseChanged -= OnPhaseChanged;
         _signals.FlightCycleReset -= OnFlightCycleReset;
+        _fuelTotal?.Dispose();
     }
 }

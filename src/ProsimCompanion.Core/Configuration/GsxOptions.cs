@@ -272,6 +272,15 @@ public sealed class GsxOptions : IOptionSection
     /// </summary>
     public bool AnchorDepartureGate { get; set; } = true;
 
+    /// <summary>
+    /// Answer GSX's own "Select Position at &lt;destination&gt;" menu with the arrival gate
+    /// (issue #156). GSX raises that menu itself on the landing roll when no gate was
+    /// pre-selected; with this on, the app picks the facility row whose range covers the
+    /// requested gate and then the position row that names it — text-matched only, any miss
+    /// leaves the menu for you. Off by default until the menu shape is verified live.
+    /// </summary>
+    public bool AnswerPositionMenuWithArrivalGate { get; set; }
+
     /// <summary>Turn off ProSim's own GSX auto-integration flags (efb.gsx.*) while this
     /// application drives GSX — prevents the two automations fighting each other.</summary>
     public bool DisableProsimNativeGsx { get; set; } = true;

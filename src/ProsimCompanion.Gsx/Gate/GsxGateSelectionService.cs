@@ -1,7 +1,9 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Gsx.Menu;
@@ -55,6 +57,14 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     /// GSX loads the airport in the background, so allow well beyond the 5 s default.</summary>
     private static readonly TimeSpan AirportLoadTimeout = TimeSpan.FromSeconds(20);
 
+    /// <summary>GSX's own parking question — "Select Position at EFHK/Vantaa" (issue #156).</summary>
+    internal const string PositionSelectTitle = "Select Position at";
+
+    /// <summary>GSX's positions page under a facility group — "All Apron 1W (Gates W34-W48)  positions".</summary>
+    internal const string PositionsPageTitle = "All ";
+
+    private const int PositionMenuMaxAttempts = 2;
+
     private readonly IGsxRemoteApi _api;
     private readonly GsxMenuIntentExecutor _executor;
     private readonly IFlightPhaseSource _flightState;
@@ -73,6 +83,9 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     private long _lastFailedAtTicks;
     private DateTimeOffset? _lastAirportPickAtUtc;
     private int _airportPickAttempts;
+    private int _positionMenuAttempts;
+    private bool _answeringPositionMenu;
+    private readonly IOptionsMonitor<GsxOptions>? _options;
     private Timer? _confirmationTimer;
 
     public GsxGateSelectionService(
@@ -82,7 +95,8 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         IProsimDataRefs prosim,
         ISimVars simVars,
         JsonlEventLog eventLog,
-        ILogger<GsxGateSelectionService> logger)
+        ILogger<GsxGateSelectionService> logger,
+        IOptionsMonitor<GsxOptions>? options = null)
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(executor);
@@ -97,6 +111,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         _flightState = flightState;
         _eventLog = eventLog;
         _logger = logger;
+        _options = options;
 
         _destination = prosim.Subscribe(ProsimDataRefNames.FmsDestination);
         _gateName = simVars.Subscribe(GsxLvarNames.SetGateName);
@@ -135,6 +150,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
             _tooLateReported = false;
             _airportPickAttempts = 0;
             _lastAirportPickAtUtc = null;
+            _positionMenuAttempts = 0;
         }
         SetStatus(GsxGateRequestStatus.Armed, $"armed for {gate}");
         _ = TryDispatchAsync();
@@ -413,10 +429,28 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
                 return;
 
             case "not_found":
-                var nearest = GsxGateResolver.NearestNames(_api.Mirror.Parkings, requested);
+                // Issue #156 (EFHK W40, 2026-10-04): four refusals and the log said only "gate
+                // not found" — whether the mirror had EFHK's parkings at all was unknowable.
+                // Record what the mirror held so the next refusal is conclusive.
+                var mirror = _api.Mirror;
+                var nearest = GsxGateResolver.NearestNames(mirror.Parkings, requested);
+                var sample = GsxGateResolver.SampleNames(mirror.Parkings, 8);
+                _logger.LogWarning(
+                    "Gate {Gate} not found at GSX airport {Airport} ({Count} parkings mirrored; nearest [{Nearest}]; sample [{Sample}])",
+                    requested, mirror.AirportIcao ?? "none", mirror.Parkings.Count, string.Join(", ", nearest), string.Join(", ", sample));
+                _eventLog.Record("gsx-gate-not-found", new
+                {
+                    gate = requested,
+                    airport = mirror.AirportIcao,
+                    parkings = mirror.Parkings.Count,
+                    nearest,
+                    sample,
+                });
                 Fail(nearest.Count > 0
                     ? $"gate not found; nearest: {string.Join(", ", nearest)}"
-                    : "gate not found");
+                    : mirror.Parkings.Count == 0
+                        ? $"gate not found — GSX sent no parking list for {mirror.AirportIcao ?? "the airport"}"
+                        : $"gate not found among {mirror.Parkings.Count} parkings at {mirror.AirportIcao}");
                 return;
 
             default:
@@ -519,8 +553,117 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e) => _ = TryDispatchAsync();
 
+    /// <summary>
+    /// Issue #156 fallback: GSX raised "Select Position at …" itself (landing roll, or parked
+    /// with no gate recognised) while a gate request stands unfulfilled. Answer it from the
+    /// page's own rows — the group whose range covers the token, then the position that names
+    /// it — through the intent executor, so the pick is text-resolved and the menu stays with
+    /// the pilot on any miss. At most two attempts per request; never while the executor is
+    /// already driving that menu (our own reposition step opens the same page).
+    /// </summary>
+    internal async Task TryAnswerPositionMenuAsync()
+    {
+        if (_options?.CurrentValue.AnswerPositionMenuWithArrivalGate != true)
+        {
+            return;
+        }
+
+        string requested;
+        var mirror = _api.Mirror;
+        lock (_gate)
+        {
+            if (_requestedGate is null || _answeringPositionMenu || _positionMenuAttempts >= PositionMenuMaxAttempts
+                || Status is GsxGateRequestStatus.Assigned or GsxGateRequestStatus.Confirmed or GsxGateRequestStatus.AssignedUnconfirmed
+                || !mirror.MenuShown
+                || mirror.Menu?.Title.StartsWith(PositionSelectTitle, StringComparison.OrdinalIgnoreCase) != true
+                || _executor.IsDriving(mirror.Menu.Title))
+            {
+                return;
+            }
+
+            _answeringPositionMenu = true;
+            _positionMenuAttempts++;
+            requested = _requestedGate;
+        }
+
+        try
+        {
+            var page = mirror.Menu!;
+            var pick = GsxPositionMenuPlanner.Pick(page.Entries, requested);
+            if (pick is null)
+            {
+                _logger.LogInformation(
+                    "GSX position menu '{Title}' has no single row for {Gate}; left for the pilot. Rows [{Rows}]",
+                    page.Title, requested, string.Join(" | ", page.Entries));
+                _eventLog.Record("gsx-gate-position-menu", new { gate = requested, outcome = "NoRow", title = page.Title, entries = page.Entries });
+                return;
+            }
+
+            SetStatus(GsxGateRequestStatus.Dispatching, $"answering GSX's position menu with {requested}");
+            var facility = new GsxMenuIntent
+            {
+                Name = "position menu facility",
+                TitlePrefixes = [PositionSelectTitle],
+                EntryPattern = new Regex("^" + Regex.Escape(pick.Entry) + "$", RegexOptions.IgnoreCase),
+            };
+            var intent = pick.IsPosition
+                ? facility with { Name = "position menu pick" }
+                : new GsxMenuIntent
+                {
+                    Name = "position menu pick",
+                    TitlePrefixes = [PositionsPageTitle],
+                    EntryPattern = new Regex($@"(?<![A-Z0-9]){Regex.Escape(requested)}(?![A-Z0-9])", RegexOptions.IgnoreCase),
+                    ParentMenu = facility,
+                };
+
+            var result = await _executor.ExecuteAsync(intent).ConfigureAwait(false);
+            _eventLog.Record("gsx-gate-position-menu", new
+            {
+                gate = requested,
+                outcome = result.Outcome.ToString(),
+                detail = result.Detail,
+                facility = pick.Entry,
+                direct = pick.IsPosition,
+                attempt = _positionMenuAttempts,
+                entries = _api.Mirror.MenuShown ? _api.Mirror.Menu?.Entries : null,
+            });
+
+            if (result.Succeeded)
+            {
+                _logger.LogInformation("Arrival gate {Gate} picked in GSX's position menu via '{Facility}'", requested, pick.Entry);
+                SetStatus(GsxGateRequestStatus.Assigned, "picked in GSX's position menu; awaiting confirmation");
+                StartConfirmationWindow();
+                CheckReadback();
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Answering GSX's position menu for {Gate} did not complete ({Outcome}): {Detail}; page '{Title}' rows [{Rows}]",
+                    requested, result.Outcome, result.Detail, _api.Mirror.Menu?.Title, string.Join(" | ", _api.Mirror.Menu?.Entries ?? []));
+                SetStatus(GsxGateRequestStatus.Failed, $"GSX position menu: {result.Detail} — pick the gate in the GSX menu");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Answering GSX's position menu failed unexpectedly");
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                _answeringPositionMenu = false;
+            }
+        }
+    }
+
     private void OnMirrorUpdated(string key)
     {
+        if (string.Equals(key, "menu", StringComparison.OrdinalIgnoreCase))
+        {
+            _ = TryAnswerPositionMenuAsync();
+            return;
+        }
+
         // Live GSX 4 pushes the loaded airport as the top-level /airport key (the mirror's
         // preferred source); handlerData is the fallback shape. Both must re-evaluate — the
         // pre-2026-09-21 wiring listened to handlerData only.

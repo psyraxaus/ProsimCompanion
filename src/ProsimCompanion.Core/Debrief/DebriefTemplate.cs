@@ -152,10 +152,10 @@ public static class DebriefTemplate
 
         if (facts.FinalFobKg is { } fob)
         {
-            parts.Add(new("fuel", $"Fuel on board {Tonnes(fob)} tonnes.") { Numbers = [Math.Round(fob / 1000.0, 1)], AnyOf = ["fuel"] });
+            parts.Add(new("fuel", $"Fuel on blocks {Tonnes(fob)} tonnes.") { Numbers = [Math.Round(fob / 1000.0, 1)], AnyOf = ["fuel"] });
             if (verbosity == DebriefVerbosity.Full && facts.FuelUsedKg is { } used)
             {
-                parts.Add(new("fuel-used", $"About {Tonnes(used)} tonnes used.") { Numbers = [Math.Round(used / 1000.0, 1)], AnyOf = ["used", "burn"] });
+                parts.Add(new("fuel-used", $"About {Tonnes(used)} tonnes used from takeoff.") { Numbers = [Math.Round(used / 1000.0, 1)], AnyOf = ["used", "burn"] });
             }
         }
 

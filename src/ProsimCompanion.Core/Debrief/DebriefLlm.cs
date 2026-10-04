@@ -100,8 +100,10 @@ public static class DebriefLlm
 
         Line("Radio tunes handled", Count(f.RadioTunes));
         Line("Memory-item drills called", Count(f.MemoryDrills));
-        Line("Fuel on board (tonnes)", Tonnes(f.FinalFobKg));
-        Line("Fuel used (tonnes)", Tonnes(f.FuelUsedKg));
+        // Named by moment (issue #155) so the model cannot call a takeoff figure "landing fuel".
+        Line("Fuel at takeoff (tonnes)", Tonnes(f.StartFobKg));
+        Line("Fuel on blocks after landing (tonnes)", Tonnes(f.FinalFobKg));
+        Line("Fuel used, takeoff to blocks (tonnes)", Tonnes(f.FuelUsedKg));
 
         return sb.ToString().TrimEnd();
     }

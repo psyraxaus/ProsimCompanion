@@ -72,4 +72,36 @@ public sealed class FlightTimesCoreTests
 
         Assert.Equal(FlightTimesSnapshot.Empty, core.Current);
     }
+
+    /// <summary>Issue #155: the fuel on board rides with each stamp; a missing figure leaves the
+    /// stamp alone; "used" is takeoff to on-blocks (landing while still taxiing in).</summary>
+    [Fact]
+    public void Apply_StampsTheFuelWithEachTime()
+    {
+        var core = new FlightTimesCore();
+        core.Apply(FlightPhase.Departure, FlightPhase.PushbackAndStart, T0, 9576);
+        core.Apply(FlightPhase.TakeoffRoll, FlightPhase.InitialClimb, T0.AddMinutes(16), 9350);
+        var landed = core.Apply(FlightPhase.Approach, FlightPhase.LandingRollout, T0.AddMinutes(140), 4530);
+
+        Assert.Equal(9576, landed.OffBlocksFobKg);
+        Assert.Equal(9350, landed.TakeoffFobKg);
+        Assert.Equal(4530, landed.LandingFobKg);
+        Assert.Null(landed.OnBlocksFobKg);
+        Assert.Equal(4820, landed.FuelUsedKg);
+
+        var onBlocks = core.Apply(FlightPhase.TaxiIn, FlightPhase.Shutdown, T0.AddMinutes(150), 4410);
+        Assert.Equal(4410, onBlocks.OnBlocksFobKg);
+        Assert.Equal(4940, onBlocks.FuelUsedKg);
+    }
+
+    [Fact]
+    public void Apply_WithoutAFuelFigure_StillStampsTheTime()
+    {
+        var core = new FlightTimesCore();
+        var times = core.Apply(FlightPhase.TakeoffRoll, FlightPhase.InitialClimb, T0, null);
+
+        Assert.Equal(T0, times.TakeoffUtc);
+        Assert.Null(times.TakeoffFobKg);
+        Assert.Null(times.FuelUsedKg);
+    }
 }

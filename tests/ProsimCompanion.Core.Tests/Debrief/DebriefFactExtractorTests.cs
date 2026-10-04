@@ -42,7 +42,8 @@ public sealed class DebriefFactExtractorTests : IDisposable
             .At("10:30:00").Event("checklist.voice", new { name = "after takeoff", phase = "start" })
             .At("10:31:00").Event("checklist.voice", new { name = "after takeoff", phase = "end" })
             .At("10:32:00").Event("checklist.voice", new { name = "descent", phase = "cancelled" })
-            .At("10:33:00").Event("fuel.check", new { fobKg = 8200.0 })
+            .At("10:33:00").Event("fuel.check", new { fobKg = 7900.0 })                 // a cruise check: NOT a debrief fuel source (#155)
+            .At("10:33:30").Event("flight-times", new { takeoffUtc = "2026-01-01T10:16:00Z", takeoffFobKg = 8200.0 })
             .At("10:40:00").Event("cabin.report", new { report = "cabin.ready" })
             .At("10:41:00").Event("radio.set", new { box = 1, khz = 128500 })
             .At("10:42:00").Event("radio.swapped", new { box = 1, khz = 121500 })
@@ -59,7 +60,9 @@ public sealed class DebriefFactExtractorTests : IDisposable
                 },
             })
             .At("10:45:00").Event("approach.gate", new { gate = "500", aglFt = 500.0, result = "stable", criteria = Array.Empty<object>() })
-            .At("10:46:00").Event("fuel.check", new { fobKg = 6700.0 })
+            .At("10:46:00").Event("fuel.check", new { fobKg = 7100.0 })
+            .At("10:52:30").Event("flight-times", new { landingUtc = "2026-01-01T10:52:00Z", landingFobKg = 6800.0 })
+            .At("11:00:30").Event("flight-times", new { onBlocksUtc = "2026-01-01T11:00:00Z", onBlocksFobKg = 6700.0 })
             .At("10:52:00").Phase("Approach", "LandingRollout", groundSpeedKt: 128.6)     // touchdown
             .At("10:55:00").Event("techlog.raised", new { id = "def-1", title = "x" })
             .At("10:56:00").Event("techlog.rectified", new { id = "def-0", title = "y" })
@@ -159,5 +162,35 @@ public sealed class DebriefFactExtractorTests : IDisposable
         // Simulate the live event-log writer: open for append, sharing reads only.
         using var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read);
         Assert.Equal(1, _extractor.Extract(path).CalloutsFired);
+    }
+
+    /// <summary>Issue #155: the owner's EGLL→EFHK debrief said "burned 1.7 t, landing with 5.1 t"
+    /// because the fuel came from the FIRST and LAST cruise fuel check. Cruise checks are not a
+    /// fuel source; the flight-times stamps are, and a session without them says nothing.</summary>
+    [Fact]
+    public void Extract_FuelComesFromTheFlightTimeStamps_NeverFromCruiseChecks()
+    {
+        var withChecksOnly = new SessionLogBuilder()
+            .At("22:30:41").Event("fuel.check", new { fobKg = 6827.0, fix = "GREFI" })
+            .At("23:00:51").Event("fuel.check", new { fobKg = 5953.0, fix = "LOBBI" })
+            .At("23:30:51").Event("fuel.check", new { fobKg = 5100.0, fix = "ALAMI" })
+            .Write(_dir);
+
+        var silent = _extractor.Extract(withChecksOnly);
+        Assert.Null(silent.StartFobKg);
+        Assert.Null(silent.FinalFobKg);
+        Assert.Null(silent.FuelUsedKg);
+
+        var withStamps = new SessionLogBuilder()
+            .At("21:38:10").Event("flight-times", new { takeoffUtc = "2026-10-03T06:46:26Z", takeoffFobKg = 9350.0 })
+            .At("22:30:41").Event("fuel.check", new { fobKg = 6827.0, fix = "GREFI" })
+            .At("23:30:51").Event("fuel.check", new { fobKg = 5100.0, fix = "ALAMI" })
+            .At("00:03:16").Event("flight-times", new { landingUtc = "2026-10-03T09:11:32Z", landingFobKg = 4530.0 })
+            .Write(_dir);
+
+        var landedNotYetOnBlocks = _extractor.Extract(withStamps);
+        Assert.Equal(9350.0, landedNotYetOnBlocks.StartFobKg);
+        Assert.Equal(4530.0, landedNotYetOnBlocks.FinalFobKg);      // landing fuel stands in until on blocks
+        Assert.Equal(4820.0, landedNotYetOnBlocks.FuelUsedKg);
     }
 }

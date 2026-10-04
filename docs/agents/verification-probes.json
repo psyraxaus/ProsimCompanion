@@ -75,6 +75,34 @@
       "notes": "Fixed 2026-08-22: the anchor walks an identity ladder (not_found advances, any other code stops) and nearest-matching compares the leading designator so decorations never block. The first flight that logs a ladder winner settles the gate.select contract — record it in docs/integrations/gsx-remote-api.md."
     },
     {
+      "id": "gsx-arrival-gate-position-menu",
+      "issue": 156,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gsx-gate-not-found",
+        "fields": [
+          "gate",
+          "airport",
+          "parkings",
+          "nearest",
+          "sample"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Every gate.select refusal 'not_found' now has a gsx-gate-not-found event with the mirror's airport, parkings count, nearest names and an 8-name sample. READ IT: parkings = 0 means GSX sent no parking list for that airport (the dispatch sent too early or the mirror missed the patch); parkings > 0 with a sample like 'Gate W40' while the token 'W40' was refused means GSX's own suffix search did not match — quote both, that is the next design decision.",
+        "With gsx.answerPositionMenuWithArrivalGate true and GSX raising 'Select Position at <destination>' while a gate request stood: one gsx-gate-position-menu event per attempt (max 2) with outcome Success | NoRow | ItemNotAvailable | AmbiguousMatch | MenuTitleMismatch | GsxNoResponse, the facility row picked and the page rows. Success must be followed by gsx-gate-confirmed (readback) or the Assigned(unconfirmed) status after 60 s; GSX's anchored facility (the 'Change Facility [...]' row in the next parking-change menu) must then name the requested gate.",
+        "assert-absent: a menu.pick issued on a 'Select Position at' page whose picked row does not contain the requested token or a range covering it (the planner must never guess).",
+        "In-flight airport pick (#141 symptom): gsx-gate-airport-pick with outcome GsxNoResponse 'menu did not appear' means GSX showed no menu in flight; report whether the pilot had opened the GSX toolbar menu once after takeoff (the manual's workaround) — if yes and it still failed, #141 is not the whole story."
+      ],
+      "notes": "Shipped 2026-10-04 (#156). EGLL→EFHK 2026-10-03 rc.8: airport pick ×3 'menu did not appear', gate.select 'W40' ×4 not_found with EFHK loaded, GSX parked the aircraft at Stand 401 and asked Select Position itself. The position-menu answer is off by default and unverified live; its menu shape (facility groups with '(Gates W34-W48)' ranges → 'All … positions' page) is from that flight's log."
+    },
+    {
       "id": "parking-position-unknown",
       "issue": 44,
       "state": "closed-regression-watch",
@@ -2065,6 +2093,31 @@
         "assert-absent: any ground-automation or speech stall that coincides with a slow send — the 'speech.spoken' and GSX decision cadence must not change around 'notify.*' timestamps (the dispatcher queues; it never awaits on a signal handler)."
       ],
       "notes": "Shipped 2026-10-03 (October batch package 7). Off by default. Every milestone fires once per flight cycle from the Core signal source; the cabin-secure raise rides CabinCrewService's SecureReport, the refuel raise the GSX relay's Refueling Completed edge, ready-for-pushback the sequencer's all-done, TOD the flight-progress latch (#145). 'test' events come from the Send test button and may appear at any phase."
+    },
+    {
+      "id": "debrief-fuel-figures",
+      "issue": 155,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "flight-times",
+        "fields": [
+          "takeoffUtc",
+          "takeoffFobKg"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "The flight-times event at the takeoff edge carries takeoffFobKg; the one at touchdown landingFobKg; the one at shutdown onBlocksFobKg — each within ±100 kg of ProSim's fuel at that moment (the Fuel Log's origin row / fuel.check nearest in time are cross-checks).",
+        "The debrief's spoken fuel figures (speech.segment tag debrief / the .debrief.txt) equal, to one decimal tonne, the flight-times stamps: 'on blocks' = onBlocksFobKg (landingFobKg when the session ended before shutdown), 'used' = takeoffFobKg − that figure.",
+        "assert-absent: a debrief fuel figure that equals a mid-cruise fuel.check fobKg (to 0.1 t) while differing from the flight-times stamps — the 2026-10-04 EGLL→EFHK failure mode (first/last cruise check read as takeoff/landing).",
+        "A session with no fuel stamps (ProSim had no fuel figure at the edges) must produce a debrief with NO fuel sentence, never a figure from a fuel.check."
+      ],
+      "notes": "Shipped 2026-10-04 (#155). Before this, DebriefFactExtractor took the first and last fuel.check as start/final fuel — written when no fuel.check producer existed; #148's periodic cruise checks then fed it mid-cruise figures ('burned 1.7 t, landing with 5.1 t' on a 5 t flight)."
     }
   ]
 }

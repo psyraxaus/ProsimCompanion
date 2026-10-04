@@ -41,7 +41,7 @@ public sealed class DebriefTemplateTests
             + "4 checklists complete. One defect entered in the tech log. 2 defects rectified. "
             + "12 callouts made. 2 advisories raised. 3 radio tunes handled. "
             + "1 memory-item drills called. 2 system notes. "
-            + "Fuel on board 6.7 tonnes. About 1.5 tonnes used. Good flight.",
+            + "Fuel on blocks 6.7 tonnes. About 1.5 tonnes used from takeoff. Good flight.",
             DebriefTemplate.Build(FullFacts(), DebriefVerbosity.Full));
     }
 
@@ -51,7 +51,7 @@ public sealed class DebriefTemplateTests
         var text = DebriefTemplate.Build(FullFacts(), DebriefVerbosity.Brief);
 
         Assert.Contains("Block time 60 minutes.", text, StringComparison.Ordinal);
-        Assert.Contains("Fuel on board 6.7 tonnes.", text, StringComparison.Ordinal);
+        Assert.Contains("Fuel on blocks 6.7 tonnes.", text, StringComparison.Ordinal);
         Assert.DoesNotContain("callouts made", text, StringComparison.Ordinal);
         Assert.DoesNotContain("advisories raised", text, StringComparison.Ordinal);
         Assert.DoesNotContain("radio tunes", text, StringComparison.Ordinal);

@@ -88,8 +88,8 @@ public sealed class DebriefLlmTests
         Assert.Contains("- Lift-off speed (knots): 145", block, StringComparison.Ordinal); // rounded
         Assert.Contains("- Approach gate 1000 ft: stable", block, StringComparison.Ordinal);
         Assert.Contains("- Abnormal handled: HYD G RSVR LO LVL, cleared", block, StringComparison.Ordinal);
-        Assert.Contains("- Fuel on board (tonnes): 2.3", block, StringComparison.Ordinal);
-        Assert.Contains("- Fuel used (tonnes): 4.2", block, StringComparison.Ordinal);
+        Assert.Contains("- Fuel on blocks after landing (tonnes): 2.3", block, StringComparison.Ordinal);
+        Assert.Contains("- Fuel used, takeoff to blocks (tonnes): 4.2", block, StringComparison.Ordinal);
 
         // Empty facts leave no line behind.
         Assert.DoesNotContain("Cabin reports", block, StringComparison.Ordinal);
