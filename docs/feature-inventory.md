@@ -100,6 +100,8 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       verification; interactive minimums capture deferred — /speech card instead)
 - [x] SayIntentions ATC requests + departure comms gating + radio management
       (standby-then-swap)
+- [x] SayIntentions wrong-frequency report (COM1 vs ATC's last "Contact … on …"; said once,
+      pushback to taxi-in)
 - [ ] MCDU reader ("read the MCDU") + gated MCDU actuation (RAD NAV tune, arrival
       runway/approach change)
 - [x] PF/PM role manager with duty swap (voice handover, instant take-back)

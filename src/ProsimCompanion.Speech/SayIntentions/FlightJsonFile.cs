@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ProsimCompanion.Speech.SayIntentions;
 
@@ -18,5 +20,30 @@ internal static class FlightJsonFile
             path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         return reader.ReadToEnd();
+    }
+
+    /// <summary>The API key SayIntentions keeps in flight.json (it survives between flights),
+    /// or null when the file is absent, mid-write or malformed.</summary>
+    public static string? TryReadApiKey()
+    {
+        try
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SayIntentionsAI", "flight.json");
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            var root = JsonNode.Parse(ReadAllText(path));
+            var apiKey = (root?["flight_details"] ?? root)?["api_key"]?.GetValue<string>();
+            return string.IsNullOrWhiteSpace(apiKey) ? null : apiKey;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException
+            or InvalidOperationException or FormatException)
+        {
+            return null;
+        }
     }
 }

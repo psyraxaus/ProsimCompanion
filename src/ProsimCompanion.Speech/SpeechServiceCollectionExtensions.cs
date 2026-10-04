@@ -148,6 +148,8 @@ public static class SpeechServiceCollectionExtensions
         services.AddHostedService<Day.DayBootstrapService>();
         services.AddStartupModule<SayIntentions.SayIntentionsService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<SayIntentions.SayIntentionsService>());
+        // Wrong-frequency report: COM1 against the frequency SayIntentions ATC last assigned.
+        services.AddStartupModule<SayIntentions.SayIntentionsFrequencyMonitor>();
         // Weather/CPDLC pulls are on-demand only (web Weather page) — no bootstrap Start,
         // and deliberately NOT an IVoiceFeature.
         services.AddSingleton<SayIntentions.SayIntentionsWeatherService>();

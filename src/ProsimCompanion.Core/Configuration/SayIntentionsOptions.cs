@@ -36,6 +36,18 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// calling …" acknowledgement is not optional; it is the defect fix itself.</summary>
     public bool FoSpeaksTransmission { get; set; } = true;
 
+    // ---- Wrong-frequency report ----
+
+    /// <summary>The FO says once when COM1 has stayed off the frequency SayIntentions ATC
+    /// last assigned (its "Contact … on …" instruction). SayIntentions itself never objects —
+    /// it lets you check in with whichever station you tuned (live capture 2026-10-05).
+    /// Quiet at the gate and whenever the assignment cannot be read.</summary>
+    public bool FrequencyMonitorEnabled { get; set; } = true;
+
+    /// <summary>How long COM1 may stay on another frequency before the report — long enough
+    /// for a normal hand-off and for dialling through channels. Floor 10 s.</summary>
+    public int FrequencyMonitorWaitSeconds { get; set; } = 60;
+
     // ---- Batch weather (ATIS/METAR/TAF) + CPDLC station ----
     // These need only the API key, NOT an active flight — a parked cockpit can still pull
     // weather while SayIntentions itself is between flights.

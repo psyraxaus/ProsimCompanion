@@ -322,6 +322,13 @@ else if (CurrentSection == "sayIntentions")
                      Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.DepartureGatingEnabled)"
                      @bind-Value="_sayIntentions.Value.DepartureGateDistanceNm"
                      Default="_sayIntentions.Defaults.DepartureGateDistanceNm" />
+        <BoolField Label="Wrong-frequency report" Hint="The FO tells you when COM1 is not on the frequency ATC gave you." More="It uses ATC's last 'Contact … on …' instruction and says it once. It is quiet at the gate, and when it cannot read the instruction."
+                   Disabled="@(!_sayIntentions.Value.Enabled)"
+                   @bind-Value="_sayIntentions.Value.FrequencyMonitorEnabled" />
+        <NumberField Label="Wait before the report" Hint="How long COM1 may stay on another frequency first." Suffix="s" Min="10"
+                     Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.FrequencyMonitorEnabled)"
+                     @bind-Value="_sayIntentions.Value.FrequencyMonitorWaitSeconds"
+                     Default="_sayIntentions.Defaults.FrequencyMonitorWaitSeconds" />
     </Section>
 
     <Section Title="SayIntentions Weather" Hint="ATIS, METAR, TAF and CPDLC. Needs only the API key">

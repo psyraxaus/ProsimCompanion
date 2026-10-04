@@ -16,6 +16,37 @@
   },
   "probes": [
     {
+      "id": "si-wrong-frequency-report",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "fo.wrong-frequency-advisory",
+        "fields": [
+          "text",
+          "station",
+          "assignedKhz",
+          "com1Khz",
+          "source",
+          "waitedSec"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger = a 'sayintentions.frequency-assigned' event (station, khz, source Handoff|CorrectFrequency|unknown) between pushback and taxi-in. One is expected after every ATC hand-off; list them all with their times and compare with what ATC said — a hand-off with NO matching event within ~30 s means the 'Contact … on …' wording was not read (quote the SayIntentions message if the pilot has it).",
+        "assert-present: when the pilot deliberately left COM1 on another frequency for longer than sayIntentions.frequencyMonitorWaitSeconds (default 60), exactly one 'fo.wrong-frequency-advisory' event with assignedKhz = the last assignment and com1Khz = what the radio was on, and the log line 'Wrong-frequency report: COM1 on … kHz, assigned … kHz'.",
+        "assert-absent: a second 'fo.wrong-frequency-advisory' with the same assignedKhz AND com1Khz without COM1 having returned to the assignment in between; any advisory while the phase was ColdAndDark / Preflight / Departure / Shutdown; any advisory within the wait after a new 'sayintentions.frequency-assigned'.",
+        "watch: every advisory the pilot did NOT expect is a false alarm — report it with the assignment event before it and its source. source CorrectFrequency (before the first hand-off) is the least proven path: report what SayIntentions named and whether it was right.",
+        "watch: 'SayIntentions assigned frequency unknown' log lines — each is an unreadable hand-off or 90 s without a successful getCommsHistory poll; count them.",
+        "requires-human: the FO line 'Captain, we should be on <station>, <digits>.' is heard once, names the right station, and does not talk over an ATC exchange."
+      ],
+      "notes": "Feature (owner request 2026-10-05, no issue number; unverified live). SayIntentionsFrequencyMonitor: ProSim COM1 active vs the last 'Contact … on …' of getCommsHistory (correct_frequency of getCurrentFrequencies only before the first hand-off). Checks at all times SI is in use, copilot on or off (owner Option A). Reply shapes and the two traps (SI accepts a wrong station; the frequencies[] list is the nearest airport's) are in docs/integrations/sayintentions.md. Not yet seen live: arrival and FAA hand-off wording, since_id behaviour."
+    },
+    {
       "id": "phase-startup-misclassification",
       "issue": 59,
       "state": "closed-regression-watch",
