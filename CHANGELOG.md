@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0-rc.13
+
+Fixes from the owner's EGLL→EFHK flight on 0.6.0-rc.8 (2026-10-03).
+
+- Fix: **the debrief's fuel figures** (#155). "We burned 1.7 tonnes, landing with 5.1 tonnes" on a five-tonne flight: the debrief took its fuel from the first and last cruise fuel check. The app now records the fuel on board at off-blocks, takeoff, landing and on-blocks (in the `flight-times` session event), and the debrief says *"Fuel on blocks … About … used from takeoff."* Flights recorded before this build have no stamps and the debrief says nothing about fuel for them.
+- Changed: **arrival gate diagnostics** (#156). Every refused `gate.select` now records what GSX's parking list held — airport, how many parkings, the nearest names and a sample — in the log and the session event `gsx-gate-not-found`, so the next refusal explains itself.
+- New: **Answer GSX's position menu with the arrival gate** (#156, Settings → GSX → Arrival, off by default). When GSX itself asks *Select Position at …* after landing while your arrival gate is still unselected, the app picks the facility group whose range covers the gate (*Apron 1W (Gates W34-W48)*) and then the row that names it. Text match only, two tries, the menu is left for you on any miss. Not yet verified live — every attempt is in the session log with the rows GSX showed.
+- Manual: the in-flight airport pick, the GSX "no menu in flight" workaround (open the GSX toolbar menu once after takeoff, #141) and the new switch.
+- Everything in 0.6.0-rc.12 below.
+
 ## 0.6.0-rc.12
 
 - New: **Fuel Log** tab (#154, owner request in flight) — the paper OFP's fuel column. **Plan vs actual**: fuel on board against the OFP's fuel at your exact point on the navlog, the delta with the last three fixes, the estimated landing fuel (planned landing fuel moved by the delta — the First Officer's own rule) and a holding / gaining / losing pill; **Fuel check now** makes the FO speak a check, **Open OFP** jumps to the plan. A **burn chart** (plan line, actual dots, planned landing line, where you land at the present delta). The **waypoint table** fills in as each fix is passed — planned and actual time, minutes early or late, planned and actual fuel, the difference; nothing is stamped before takeoff, the first row is the takeoff fuel at the takeoff time, a new OFP restarts the log. The **FO fuel checks** strip lists every check spoken this session with the exact words. Needs an OFP with a navlog; session only. Each stamped fix is a `fuel.log.fix` session event.
