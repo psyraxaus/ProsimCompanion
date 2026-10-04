@@ -205,4 +205,22 @@ public sealed class PrepStageMachineTests
         Assert.Equal(PrepCommand.Hold, resyncHold.Command);
         Assert.False(resyncHold.UnknownParking);
     }
+
+    /// <summary>Issue #157 (EFHK 2026-10-04): the hold was published as a conflict on its
+    /// first cycle and the FO spoke 7.5 s before GSX named Gate 35. The conflict waits for
+    /// the grace; the hold itself does not.</summary>
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(7.5, false)]
+    [InlineData(19.9, false)]
+    [InlineData(20, true)]
+    [InlineData(60, true)]
+    public void UnknownParkingHold_BecomesAConflict_OnlyAfterTheGrace(double heldSeconds, bool expected)
+        => Assert.Equal(
+            expected,
+            GsxGroundPrepCoordinator.UnknownParkingSettled(Now - TimeSpan.FromSeconds(heldSeconds), Now));
+
+    [Fact]
+    public void UnknownParkingHold_NotStarted_IsNeverAConflict()
+        => Assert.False(GsxGroundPrepCoordinator.UnknownParkingSettled(null, Now));
 }

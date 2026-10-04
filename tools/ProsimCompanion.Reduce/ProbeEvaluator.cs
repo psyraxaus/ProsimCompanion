@@ -17,7 +17,9 @@ public sealed record ProbeMachine(
     string? Type,
     IReadOnlyList<string>? Fields,
     string? Key,
-    double? WindowSeconds);
+    double? WindowSeconds,
+    IReadOnlyDictionary<string, string>? Where = null,
+    IReadOnlyDictionary<string, IReadOnlyList<string>>? FieldsWhenPresent = null);
 
 public sealed record ProbeDefinition(
     string Id,
@@ -82,7 +84,9 @@ public static class ProbeEvaluator
         Str(m, "type"),
         m.TryGetProperty("fields", out var f) && f.ValueKind == JsonValueKind.Array ? Strings(m, "fields") : null,
         Str(m, "key"),
-        m.TryGetProperty("windowSeconds", out var w) && w.ValueKind == JsonValueKind.Number ? w.GetDouble() : null);
+        m.TryGetProperty("windowSeconds", out var w) && w.ValueKind == JsonValueKind.Number ? w.GetDouble() : null,
+        ReadWhere(m),
+        ReadFieldsWhenPresent(m));
 
     private static ProbeSignature Signature(JsonElement s) => new(
         Str(s, "source") ?? "session",
@@ -158,21 +162,42 @@ public static class ProbeEvaluator
             : ("fail", [$"trigger occurred but behaviour '{machine.Signature.Contains}' was not observed"]);
     }
 
+    /// <summary><c>fields</c> must be on every event of the type. <c>where</c> (path → text)
+    /// keeps only the events whose payload reads that text there — an event type shared by
+    /// several features (fo.answer: only mode "geo" carries factSource). <c>fieldsWhenPresent</c>
+    /// (path → fields) asks for fields only on the events that carry the path — an event that
+    /// fills in edge by edge (flight-times: takeoffFobKg only once takeoffUtc is stamped).
+    /// Ticket t-20261004-2147: both probes failed on events they were never about.</summary>
     private static (string, IReadOnlyList<string>) EvaluateRequiredFields(ProbeMachine machine, IReadOnlyList<LoadedSession> sessions)
     {
-        if (machine.Type is null || machine.Fields is null || machine.Fields.Count == 0)
+        var always = machine.Fields ?? [];
+        var conditional = machine.FieldsWhenPresent ?? new Dictionary<string, IReadOnlyList<string>>();
+        if (machine.Type is null || (always.Count == 0 && conditional.Count == 0))
         {
-            return ("untested", ["machine block needs type and fields"]);
+            return ("untested", ["machine block needs type and fields (or fieldsWhenPresent)"]);
         }
 
+        var filter = machine.Where is { Count: > 0 } conditions
+            ? $" where {string.Join(", ", conditions.Select(pair => $"{pair.Key}={pair.Value}"))}"
+            : "";
         var seen = 0;
         var evidence = new List<string>();
         foreach (var session in sessions)
         {
             foreach (var line in session.Lines.Where(l => l.Type == machine.Type))
             {
+                if (machine.Where is not null
+                    && machine.Where.Any(pair => !string.Equals(PathText(line.Payload, pair.Key), pair.Value, StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
                 seen++;
-                var missing = machine.Fields.Where(path => !HasPath(line.Payload, path)).ToList();
+                var missing = always
+                    .Concat(conditional.Where(pair => HasPath(line.Payload, pair.Key)).SelectMany(pair => pair.Value))
+                    .Where(path => !HasPath(line.Payload, path))
+                    .Distinct(StringComparer.Ordinal)
+                    .ToList();
                 if (missing.Count > 0 && evidence.Count < MaxEvidence)
                 {
                     evidence.Add($"{session.File} {Stamp(line.At)} {machine.Type} missing {string.Join(", ", missing)}");
@@ -182,10 +207,10 @@ public static class ProbeEvaluator
 
         if (seen == 0)
         {
-            return ("untested", [$"no '{machine.Type}' event in the bundle"]);
+            return ("untested", [$"no '{machine.Type}' event{filter} in the bundle"]);
         }
 
-        return evidence.Count > 0 ? ("fail", evidence) : ("pass", [$"{seen} '{machine.Type}' event(s) carry every required field"]);
+        return evidence.Count > 0 ? ("fail", evidence) : ("pass", [$"{seen} '{machine.Type}' event(s){filter} carry every required field"]);
     }
 
     private static (string, IReadOnlyList<string>) EvaluateDuplicateWithin(ProbeMachine machine, IReadOnlyList<LoadedSession> sessions)
@@ -319,17 +344,61 @@ public static class ProbeEvaluator
         => hits.Count <= MaxEvidence ? hits : [.. hits.Take(MaxEvidence), $"… {hits.Count - MaxEvidence} more"];
 
     private static bool HasPath(JsonElement payload, string path)
+        => TryPath(payload, path, out var value) && value.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined;
+
+    /// <summary>The value at a dotted path as text (strings as they are, anything else as its
+    /// JSON text); null when the path is absent.</summary>
+    private static string? PathText(JsonElement payload, string path)
+        => !TryPath(payload, path, out var value) ? null
+            : value.ValueKind == JsonValueKind.String ? value.GetString()
+            : value.GetRawText();
+
+    private static bool TryPath(JsonElement payload, string path, out JsonElement value)
     {
-        var current = payload;
+        value = payload;
         foreach (var segment in path.Split('.'))
         {
-            if (current.ValueKind != JsonValueKind.Object || !current.TryGetProperty(segment, out current))
+            if (value.ValueKind != JsonValueKind.Object || !value.TryGetProperty(segment, out value))
             {
                 return false;
             }
         }
 
-        return current.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined;
+        return true;
+    }
+
+    private static Dictionary<string, string>? ReadWhere(JsonElement machine)
+    {
+        if (!machine.TryGetProperty("where", out var conditions) || conditions.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var filter = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var property in conditions.EnumerateObject())
+        {
+            filter[property.Name] = property.Value.ValueKind == JsonValueKind.String
+                ? property.Value.GetString()!
+                : property.Value.GetRawText();
+        }
+
+        return filter;
+    }
+
+    private static Dictionary<string, IReadOnlyList<string>>? ReadFieldsWhenPresent(JsonElement machine)
+    {
+        if (!machine.TryGetProperty("fieldsWhenPresent", out var map) || map.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var fields = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        foreach (var property in map.EnumerateObject())
+        {
+            fields[property.Name] = Strings(map, property.Name);
+        }
+
+        return fields;
     }
 
     private static string Stamp(DateTimeOffset? at)

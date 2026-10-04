@@ -61,7 +61,9 @@ public sealed record GsxTriggerRequest(string ServiceId, string Source)
     public bool NoConfirm { get; init; }
 
     /// <summary>How long the dispatch may wait for the slot to free before giving up with
-    /// <see cref="GsxTriggerDispatchStatus.Busy"/>. Zero = strict try-acquire.</summary>
+    /// <see cref="GsxTriggerDispatchStatus.Busy"/>. Zero = strict try-acquire. A watched
+    /// request for the service that already holds the slot never waits: it answers Busy at
+    /// once, so one service is never sent twice by two senders (issue #157).</summary>
     public TimeSpan SlotWait { get; init; } = TimeSpan.FromSeconds(3);
 
     /// <summary>Invoked exactly once when a watched trigger resolves (never for

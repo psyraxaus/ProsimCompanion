@@ -33,6 +33,7 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Core.Airports.Parking.IAirportParkingSource, Profiles.GsxProfileParkingSource>();
         services.AddSingleton<Gate.GsxGateSelectionService>();
         services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
+        services.AddSingleton<Gate.IGsxAssignedGateSource>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
         // The trigger slot (CONTEXT.md): the single serialized service.trigger path shared by
         // every sender — sequencer, on-demand commands, arrival, pushback, jetway/stairs.
         services.AddSingleton<Automation.GsxTriggerSlot>();

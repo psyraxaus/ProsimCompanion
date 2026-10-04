@@ -6,7 +6,7 @@
     "log": "CMTrace application log (logs/ProsimCompanion-*.log): component, level (type 1=info 2=warn 3=error), message.",
     "wire": "GSX wire trace (logs/ProsimCompanion-wire-*.log): only consulted when a probe names it; often disabled or huge."
   },
-  "machine": "Optional per-probe block for the support reducer (tools/ProsimCompanion.Reduce, docs/agents/support-bundle.md). A probe WITH it is evaluated deterministically; one without is handed to the LLM step untouched. kind=signature: {source: session|log, type?: <event type>, contains: <literal>, component?: <log component>, minCount?: 1} as signature (the failure/behaviour) and, for assert-present, trigger (omitted = always). kind=required-fields: every event of type carries each dotted path in fields. kind=duplicate-within: no two events of type share key within windowSeconds. kind=consecutive-duplicates: no event of type repeats its predecessor payload.",
+  "machine": "Optional per-probe block for the support reducer (tools/ProsimCompanion.Reduce, docs/agents/support-bundle.md). A probe WITH it is evaluated deterministically; one without is handed to the LLM step untouched. kind=signature: {source: session|log, type?: <event type>, contains: <literal>, component?: <log component>, minCount?: 1} as signature (the failure/behaviour) and, for assert-present, trigger (omitted = always). kind=required-fields: every event of type carries each dotted path in fields; optional where {path: text} checks only the events that read that text at the path, optional fieldsWhenPresent {path: [fields]} requires the fields only on events that carry the path. kind=duplicate-within: no two events of type share key within windowSeconds. kind=consecutive-duplicates: no event of type repeats its predecessor payload.",
   "kinds": {
     "assert-absent": "The failure signature must NOT appear. Pass = absent all session; fail = present (quote the evidence).",
     "assert-present": "The fixed/feature behaviour must appear WHEN its trigger occurred. Pass = trigger+behaviour seen; not-exercised = trigger never occurred (report as untested, not passed); fail = trigger seen without the behaviour.",
@@ -219,9 +219,12 @@
         "assert-absent: an 'fo.parking-conflict-advisory' event within 60 s after a 'gsx-decision' reposition ('repositioning at <gate>') whose position pick succeeded — the 2026-09-13 EGLL 546 and 2026-09-20 LIRF 835 signature: our own Reposition Aircraft → Select Position submenu was taken for GSX's unknown-parking prompt and the FO said 'GSX doesn't recognise our parking position' at a stand GSX had armed 90 s earlier.",
         "assert-present: when the reposition runs, the 'gsx-question' decision for the position-select menu reads 'opened by our own reposition step — GSX knows the stand; not a parking conflict'.",
         "assert-absent: an 'fo.parking-conflict-advisory' event while the phase is TakeoffRoll..TaxiIn or while any engine is running (2026-09-20 EGLL: spoken 31 s after touchdown on the landing roll). A conflict published while moving records 'fo.parking-conflict-held' instead and speaks only if it still stands once parked with engines off.",
-        "assert-present: when GSX names the parking after a conflict stood (mirror 'parking'/'handlerData' update with a gate key), the log line 'GSX identified the parking <gate> — parking conflict cleared' (2026-09-20: the Select Position conflict outlived the pilot's stand pick by the whole deboarding)."
+        "assert-present: when GSX names the parking after a conflict stood (mirror 'parking'/'handlerData' update with a gate key), the log line 'GSX identified the parking <gate> — parking conflict cleared' (2026-09-20: the Select Position conflict outlived the pilot's stand pick by the whole deboarding).",
+        "assert-absent (#157): an 'fo.parking-conflict-advisory' (or 'fo.parking-conflict-held') on an arrival where a 'gsx-gate-assigned' stands and the 'Change parking or service' menu names that gate ('Change Facility [<the gate GSX answered in the gsx-gate-assigned payload>]'). The 2026-10-04 LKPR signature: gate.select 29 → 'Gate C 29' at 21:34:52Z, menu 'Change Facility [Gate C 29]' at 21:36:29Z with the session gate unknown, FO 'GSX doesn't recognise our parking position' at 21:41:09Z, GSX identified Gate C 29 at 21:44:06Z and deboarded.",
+        "assert-present (#157): in that case the 'gsx-question' decision for the parking-change menu reads '... the arrival gate <gate> it accepted; not a parking conflict'. A facility that names ANOTHER stand must still publish the conflict.",
+        "assert-absent (#157): an 'fo.parking-conflict-advisory' less than 20 s after the first 'ground prep' decision 'holding: GSX has not identified the parking' of that hold (2026-10-04 EFHK: spoken at 18:52:24Z, GSX named Gate 35 7.5 s later). A hold that ends inside the 20 s publishes nothing."
       ],
-      "notes": "Fixed 2026-09-21 (0.4.0-rc.3): GsxMenuIntentExecutor.IsDriving (intent chain + 5 s grace) gates the Select Position handler; ParkingConflictGate.IsParkedEnginesOff gates both the catalogue publish and the FO advisory (held while moving, re-checked on the at-gate phase edge); GsxBootstrapService clears the conflict when the mirror names a parking."
+      "notes": "Fixed 2026-09-21 (0.4.0-rc.3): GsxMenuIntentExecutor.IsDriving (intent chain + 5 s grace) gates the Select Position handler; ParkingConflictGate.IsParkedEnginesOff gates both the catalogue publish and the FO advisory (held while moving, re-checked on the at-gate phase edge); GsxBootstrapService clears the conflict when the mirror names a parking. 2026-10-05 (#157): the parking-change menu is not a conflict when its facility is the assigned arrival gate (GsxGateResolver.FacilityNamesGate, whole-word compare against the gate.select payload name, else the typed token); the departure prep hold publishes the conflict only after GsxGroundPrepCoordinator.UnknownParkingGrace (20 s)."
     },
     {
       "id": "arrival-gate-in-flight-pick",
@@ -233,18 +236,18 @@
         "log"
       ],
       "checks": [
-        "When an arrival gate is armed and the phase reaches Cruise (or Descent/Approach) with GSX still reporting the departure airport: a 'gsx-gate-airport-pick' session event (payload destination, outcome, detail, attempt, entries) and the log line 'Gate request <gate>: Armed — loading <ICAO> in GSX (in-flight airport pick, attempt N)'. REPORT the page title and rows quoted in the 'In-flight airport pick ... not completed' line on failure — that is how we learn GSX's in-flight menu shape (expected: entry '^select airport' on the root menu, page 'Select airport', rows carrying the ICAO).",
+        "When an arrival gate is armed and the phase reaches Cruise (or Descent/Approach) with GSX still reporting the departure airport: a 'gsx-gate-airport-pick' session event (payload destination, outcome, detail, attempt, entries) and the log line 'Gate request <gate>: Armed — loading <ICAO> in GSX (in-flight airport pick, attempt N)'. REPORT the page title and rows quoted in the 'In-flight airport pick ... not completed' line on failure — that is how we learn GSX's in-flight menu shape. SETTLED 2026-10-04 (EFHK→LKPR, #157): in flight the GSX ROOT page is itself titled 'Select airport' and its rows carry the ICAO ('LKPR Ruzyne at 592.70 nm [PLANNED]') — there is no root entry to pick first. From the #157 fix on, outcome 'ItemNotAvailable' with detail 'no entry matches ^select airport on 'Select airport'' is a FAILURE (the pre-fix result: ItemNotAvailable at 20:03:09Z, 21:08:23Z and 21:31:44Z on that flight); expect 'Intent in-flight airport pick succeeded: picked '<ICAO> …''.",
         "On success: 'GSX loaded <ICAO> from the in-flight airport pick', then 'GSX command gate.select {\"gate\":\"<as typed>\"...} -> ok (prepared|ok)' IN THE AIR, then 'gsx-gate-assigned' and, within 60 s, 'gsx-gate-confirmed' from the SetGate LVAR readback. After landing NO 'Select Position at <destination>' menu and no parking conflict — services engage on arrival.",
         "assert-absent: a gate.select sent while parked (on ground, stopped, engines off). The planner must record 'gsx-gate-too-late' + 'too late — GSX already has the aircraft parked at a stand' instead of a send (the 2026-08-22 EGLL 313 and 2026-09-13 LIRF 829 signature).",
         "If the name send is refused not_found and a unique parking number exists: 'gsx-gate-number-fallback' + a second gate.select with \"gate\":<integer>. REPORT whether the integer was accepted.",
         "assert-absent: more than one airport-pick attempt within 2 minutes, or more than 12 in a flight."
       ],
-      "notes": "Added 2026-09-21 (0.4.0-rc.4) from the GSX Pro integration guide §8.14 + Handler Scripts guide selectGate: gate.select refuses while parked (surfaces as not_found), the token as typed resolves by suffix, and GSX only loads the destination in flight if picked from its 'Select airport' menu. First flight verifies the in-flight menu shape; the pick fails soft (menu closed again) and the ground taxi-in send still runs."
+      "notes": "Added 2026-09-21 (0.4.0-rc.4) from the GSX Pro integration guide §8.14 + Handler Scripts guide selectGate: gate.select refuses while parked (surfaces as not_found), the token as typed resolves by suffix, and GSX only loads the destination in flight if picked from its 'Select airport' menu. First flight verifies the in-flight menu shape; the pick fails soft (menu closed again) and the ground taxi-in send still runs. 2026-10-05 (#157): the executor runs the row pick directly when the page it opened is already 'Select airport' (GsxMenuIntentExecutor: a parent whose open lands on the child's page picks nothing; the title must hold for 300 ms after our own menu.open). The first ok gate.select ever was 2026-10-04 21:34:52Z, integer token 29, airborne (the three airport picks before it had failed; how GSX came to have LKPR loaded is not established — read the wire trace)."
     },
     {
       "id": "gate-select-error-detail",
       "issue": 75,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "log"
@@ -253,7 +256,7 @@
         "When any gate.select is refused: a 'GSX command gate.select failure detail: error={...} payload={...}' log line right after the 'GSX command gate.select ... -> failed (not_found)' summary. REPORT the error object verbatim — it is the only evidence we have for what GSX matches the gate token against (every shape tried 2026-08-09 → 2026-09-20 was refused: ' Gate D27', 'D27', 'D5', 'Stand 313', '313', 'Stand 546', 'Terminal 5B (531-548)|Stand 546', '546', 'Stand 829', 'Stand 835', 'Remote Stands 8XX/9XX | Stand 835', '835').",
         "When a gate.select succeeds: a 'GSX command gate.select result payload: {...}' line — record the accepted token shape in docs/integrations/gsx-remote-api.md §6 and flip this probe to closed-regression-watch."
       ],
-      "notes": "Added 2026-09-21 (0.4.0-rc.3). gate.select has never returned ok in any recorded flight; the client used to log only the result code. Also turn on logging.wireTrace for the next flight so the full frames are available."
+      "notes": "Added 2026-09-21 (0.4.0-rc.3). gate.select has never returned ok in any recorded flight; the client used to log only the result code. Also turn on logging.wireTrace for the next flight so the full frames are available. SETTLED 2026-10-04 (EFHK→LKPR, ticket t-20261004-2147): the first ok — 'gate.select {\"gate\":29}' (the parking NUMBER as an integer, sent airborne) answered ok/prepared with uiName 'Gate C 29'. Recorded in docs/integrations/gsx-remote-api.md §6; probe flipped to closed-regression-watch 2026-10-05 (#157). Regression = a refused gate.select with no 'failure detail' line, or an accepted one with no 'result payload' line."
     },
     {
       "id": "arrival-gate-persisted",
@@ -988,8 +991,9 @@
       ],
       "checks": [
         "Trigger = gsx.refuelCall = onFuelConfirmed and the departure sequence starts without a prior fuel confirmation. Behaviour = a 'hold Refueling' gsx-decision whose reason contains 'waiting for the crew to confirm the block fuel', WHILE Catering (and any other AfterCalled step) is still triggered ('trigger Catering' — 'next in departure order') and Boarding (AfterAllCompleted) holds on 'waiting for all earlier services to complete'.",
-        "assert-present: on confirmation (INIT CONFIRM FUEL / Flight Status Confirm fuel / 'fuel confirmed' / gsx.confirmFuel / gsx.requestRefuel) a 'fuel confirmed' decision with the figure and source ('INIT override' / 'OFP block fuel' / 'EFB planned fuel'), followed within one pump by 'trigger Refueling' or the command path's 'GSX service \"Refueling\": Requested'.",
-        "assert-absent: any 'trigger Refueling' from the sequencer BEFORE the 'fuel confirmed' decision in onFuelConfirmed mode.",
+        "assert-present: on confirmation (INIT CONFIRM FUEL / Flight Status Confirm fuel / 'fuel confirmed' / gsx.confirmFuel / gsx.requestRefuel) a 'fuel confirmed' decision with the figure and source ('INIT override' / 'OFP block fuel' / 'EFB planned fuel'), followed within one pump by 'trigger Refueling' or the command path's 'GSX service \"Refueling\": Requested'. SAME-TICK ORDERING: the confirmation pumps the sequencer on the same thread, so on builds up to 0.6.0-rc.16 the 'trigger Refueling — requested by sequencer' line can sit a few milliseconds BEFORE 'fuel confirmed'; both within the same second is a pass (from the #157 fix on, 'fuel confirmed' is written first).",
+        "assert-absent: any 'trigger Refueling' from the sequencer more than 1 s BEFORE the 'fuel confirmed' decision in onFuelConfirmed mode (same-second ordering: see above).",
+        "assert-absent (#157): two 'service.trigger' commands for Refueling ('GSX command service.trigger {\"service\":\"Refueling\"}' in the log, or two 'trigger Refueling — requested by …' decisions) within 5 s of each other. The 2026-10-04 EFHK signature: 18:56:44.653Z by the sequencer and 18:56:46.190Z by the command, the second sent the moment GSX confirmed the first. The second sender must read 'has already been called — awaiting GSX'. (A top-up after a COMPLETED refuel is a second call minutes later and is correct.)",
         "assert-absent: in automatic mode (the default) any 'hold Refueling' with the fuel-confirmation reason — the legacy flow must be untouched.",
         "watch: a 'force next service' decision while Refueling is held must call the NEXT eligible service, never Refueling (the hold is not force-bypassable)."
       ],
@@ -2113,6 +2117,9 @@
       "machine": {
         "kind": "required-fields",
         "type": "fo.answer",
+        "where": {
+          "mode": "geo"
+        },
         "fields": [
           "question",
           "mode",
@@ -2191,10 +2198,17 @@
       "machine": {
         "kind": "required-fields",
         "type": "flight-times",
-        "fields": [
-          "takeoffUtc",
-          "takeoffFobKg"
-        ]
+        "fieldsWhenPresent": {
+          "takeoffUtc": [
+            "takeoffFobKg"
+          ],
+          "landingUtc": [
+            "landingFobKg"
+          ],
+          "onBlocksUtc": [
+            "onBlocksFobKg"
+          ]
+        }
       },
       "sources": [
         "session",

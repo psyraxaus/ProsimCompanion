@@ -238,6 +238,113 @@ public sealed class GsxMenuIntentExecutorTests
         Assert.Equal(2, _api.Commands.Count(c => c.Verb == "menu.pick"));
     }
 
+    /// <summary>Issue #157 (EFHK→LKPR 2026-10-04): in flight GSX's root menu is itself the
+    /// "Select airport" page. The parent's "^select airport" entry does not exist there — the
+    /// child's row pick must run on the opened page, with no parent pick.</summary>
+    [Fact]
+    public async Task ParentOpen_LandsOnTheChildPage_RunsTheChildDirectly()
+    {
+        var root = Intent("", "^select airport");
+        var airportPick = Intent("Select airport", @"\bLKPR\b", root) with
+        {
+            Verify = mirror => !mirror.MenuShown,
+        };
+        var picks = new List<int?>();
+        _api.OnCommand = (verb, args) =>
+        {
+            if (verb == "menu.open")
+            {
+                ShowMenu("Select airport", "EFHK Vantaa at 301.20 nm", "LKPR Ruzyne at 592.70 nm [PLANNED]", "EETN Tallinn at 12.40 nm");
+            }
+            else if (verb == "menu.pick")
+            {
+                picks.Add((int?)args?["index"]);
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(false));
+            }
+            return new GsxCommandResult(true, "ok", null, null);
+        };
+
+        var result = await _executor.ExecuteAsync(airportPick);
+
+        Assert.Equal(GsxIntentOutcome.Success, result.Outcome);
+        Assert.Equal([1], picks); // the LKPR row only — no root pick
+    }
+
+    /// <summary>The root page that DOES carry the entry keeps the two-step path.</summary>
+    [Fact]
+    public async Task ParentOpen_LandsOnARootMenu_StillPicksTheParentEntry()
+    {
+        var root = Intent("", "^select airport") with
+        {
+            Verify = mirror => mirror.MenuShown
+                && mirror.Menu?.Title.StartsWith("Select airport", StringComparison.OrdinalIgnoreCase) == true,
+        };
+        var airportPick = Intent("Select airport", @"\bLKPR\b", root) with
+        {
+            Verify = mirror => !mirror.MenuShown,
+        };
+        var picks = new List<int?>();
+        _api.OnCommand = (verb, args) =>
+        {
+            if (verb == "menu.open")
+            {
+                ShowMenu("GSX", "Select airport", "Settings");
+            }
+            else if (verb == "menu.pick" && _api.Mirror.Menu?.Title == "GSX")
+            {
+                picks.Add((int?)args?["index"]);
+                ShowMenu("Select airport", "LKPR Ruzyne at 592.70 nm [PLANNED]");
+            }
+            else if (verb == "menu.pick")
+            {
+                picks.Add((int?)args?["index"]);
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(false));
+            }
+            return new GsxCommandResult(true, "ok", null, null);
+        };
+
+        var result = await _executor.ExecuteAsync(airportPick);
+
+        Assert.Equal(GsxIntentOutcome.Success, result.Outcome);
+        Assert.Equal([0, 0], picks);
+    }
+
+    /// <summary>A stale "Select airport" title left from an earlier open must not let the
+    /// child pick on a different menu: the title has to hold through the settle.</summary>
+    [Fact]
+    public async Task ParentOpen_StaleChildTitle_IsNotTrusted()
+    {
+        var root = Intent("", "^select airport");
+        var airportPick = Intent("Select airport", @"\bLKPR\b", root);
+        _api.Mirror.ApplyState("menu", new JsonObject
+        {
+            ["title"] = "Select airport",
+            ["entries"] = new JsonArray("LKPR Ruzyne at 592.70 nm [PLANNED]"),
+        });
+        Task? freshMenu = null;
+        _api.OnCommand = (verb, args) =>
+        {
+            if (verb == "menu.open")
+            {
+                // menuShown first; the fresh menu arrives a beat later.
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(true));
+                freshMenu = Task.Run(async () =>
+                {
+                    await Task.Delay(100);
+                    ShowMenu("Change parking or service", "Change Facility [Gate C 29]", "Request Deboarding");
+                });
+            }
+            return new GsxCommandResult(true, "ok", null, null);
+        };
+
+        var result = await _executor.ExecuteAsync(airportPick);
+
+        Assert.NotNull(freshMenu);
+        await freshMenu;
+        Assert.Equal(GsxIntentOutcome.ItemNotAvailable, result.Outcome);
+        Assert.DoesNotContain(_api.Commands, c => c.Verb == "menu.pick");
+    }
+
     /// <summary>2026-09-13/20 flights: the reposition step opens GSX's "Select Position at …"
     /// list and the question catalogue took it for the unknown-parking prompt. The executor
     /// must own up to the menus it drives — the child, its parent, and for a grace period

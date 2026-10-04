@@ -27,7 +27,7 @@ public sealed class GsxTriggerSlot : IGsxTriggerSlot, IDisposable
     /// removal pair used to go out with zero spacing — this interval is the fix.</summary>
     private static readonly TimeSpan NoConfirmSpacing = TimeSpan.FromSeconds(2);
 
-    private sealed record InFlightTrigger(string ServiceId, DateTimeOffset SentAt);
+    private sealed record InFlightTrigger(string ServiceId, DateTimeOffset SentAt, bool Watched);
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxServiceLifecycleTracker _lifecycle;
@@ -96,22 +96,31 @@ public sealed class GsxTriggerSlot : IGsxTriggerSlot, IDisposable
         while (true)
         {
             string busyServiceId;
+            var duplicate = false;
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (_inFlight is not { } occupied)
                 {
-                    _inFlight = new InFlightTrigger(request.ServiceId, DateTimeOffset.UtcNow);
+                    _inFlight = new InFlightTrigger(request.ServiceId, DateTimeOffset.UtcNow, Watched: !request.NoConfirm);
                     break;
                 }
                 busyServiceId = occupied.ServiceId;
+                duplicate = occupied.Watched
+                    && !request.NoConfirm
+                    && occupied.ServiceId.Equals(request.ServiceId, StringComparison.OrdinalIgnoreCase);
             }
             finally
             {
                 _gate.Release();
             }
 
-            if (DateTimeOffset.UtcNow >= deadline)
+            // A call for the service already in flight is never queued behind itself (issue
+            // #157, EFHK 2026-10-04 18:56:44Z): "confirm fuel" released the sequencer's hold,
+            // the sequencer sent Refueling, the command's own request waited for the slot and
+            // sent Refueling again 1.5 s later, the moment GSX confirmed the first. Toggle
+            // sends (NoConfirm) keep the wait — a retraction after a connect is a real call.
+            if (duplicate || DateTimeOffset.UtcNow >= deadline)
             {
                 return new(GsxTriggerDispatchStatus.Busy, busyServiceId);
             }
@@ -209,7 +218,7 @@ public sealed class GsxTriggerSlot : IGsxTriggerSlot, IDisposable
             if (request.RetryOnce && !isRetry)
             {
                 // Keep owning the slot with a fresh timestamp and fire the trigger once more.
-                _inFlight = new InFlightTrigger(serviceId, DateTimeOffset.UtcNow);
+                _inFlight = new InFlightTrigger(serviceId, DateTimeOffset.UtcNow, Watched: true);
                 RecordDecision(
                     $"trigger {serviceId}",
                     "not picked up by GSX within the confirm window — retrying once automatically");

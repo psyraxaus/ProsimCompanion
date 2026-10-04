@@ -287,6 +287,58 @@ public sealed class GsxTriggerSlotTests : IDisposable
         Assert.Equal(["Refueling", "Catering"], _sentServices);
     }
 
+    /// <summary>Issue #157 (EFHK 2026-10-04): "confirm fuel" let the sequencer send Refueling,
+    /// then the command's own request waited for the slot and sent Refueling a second time
+    /// the moment GSX confirmed the first. A request for the service in flight answers Busy
+    /// at once — it never waits to send the same service again.</summary>
+    [Fact]
+    public async Task SameServiceWhileInFlight_IsBusyAtOnce_AndNeverSentTwice()
+    {
+        using var slot = CreateSlot();
+        var tcs = new TaskCompletionSource<GsxTriggerResolution>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await slot.TryDispatchAsync(new GsxTriggerRequest("Refueling", "sequencer")
+        {
+            ConfirmWindow = TimeSpan.FromSeconds(5),
+            SlotWait = TimeSpan.Zero,
+            OnResolved = tcs.SetResult,
+        });
+
+        var started = DateTimeOffset.UtcNow;
+        var second = await slot.TryDispatchAsync(
+            new GsxTriggerRequest("refueling", "command") { RetryOnce = true, SlotWait = TimeSpan.FromSeconds(8) });
+
+        Assert.Equal(GsxTriggerDispatchStatus.Busy, second.Status);
+        Assert.Equal("Refueling", second.BusyServiceId);
+        Assert.True(DateTimeOffset.UtcNow - started < TimeSpan.FromSeconds(2), "the duplicate must not wait for the slot");
+
+        // GSX confirms the first call: nothing is waiting to re-send.
+        SeedService("Refueling", "requested");
+        Assert.Equal(GsxTriggerResolution.Confirmed, await WaitForResolutionAsync(tcs));
+        await Task.Delay(700);
+        Assert.Equal(["Refueling"], _sentServices);
+    }
+
+    /// <summary>A toggle send (NoConfirm) keeps the slot wait: a retraction that follows a
+    /// connect of the same service is a real second call.</summary>
+    [Fact]
+    public async Task ToggleSend_ForTheServiceInFlight_StillWaitsForTheSlot()
+    {
+        using var slot = CreateSlot();
+        await slot.TryDispatchAsync(new GsxTriggerRequest("OperateJetways", "connect")
+        {
+            ConfirmWindow = ShortWindow, // drops ~300 ms in, freeing the slot
+        });
+
+        var removal = await slot.TryDispatchAsync(new GsxTriggerRequest("OperateJetways", "removal")
+        {
+            NoConfirm = true,
+            SlotWait = TimeSpan.FromSeconds(8),
+        });
+
+        Assert.Equal(GsxTriggerDispatchStatus.Dispatched, removal.Status);
+        Assert.Equal(["OperateJetways", "OperateJetways"], _sentServices);
+    }
+
     [Fact]
     public async Task Reset_ClearsTheInFlightTrigger_AndItsWatcherNeverResolves()
     {

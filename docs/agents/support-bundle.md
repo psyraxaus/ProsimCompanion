@@ -72,7 +72,7 @@ Compact JSON, camelCase. Top level: `{ bundle, sessions, restarts, unattributedL
   - `gaps[]`: `{ from, to, seconds, beforeType, afterType }` — more than 30 s between consecutive events while the flight was live (between the first and last `flight-sample`).
 - `restarts[]`: `{ previousFile, file, previousLastEvent, previousLastType, startedAt }` — a session that began while the previous one never recorded `session-ended`.
 - `unattributedLogClusters[]`: CMTrace warnings/errors that fall in no session's time range.
-- `probes`: `{ "<probe id>": { kind, issue, state, verdict: "pass"|"fail"|"untested", evidence[] } }` for every probe with a `machine` block (see the catalog's `machine` field for the four kinds: `signature`, `required-fields`, `duplicate-within`, `consecutive-duplicates`). Evidence quotes the matching lines (at most 5).
+- `probes`: `{ "<probe id>": { kind, issue, state, verdict: "pass"|"fail"|"untested", evidence[] } }` for every probe with a `machine` block (see the catalog's `machine` field for the four kinds: `signature`, `required-fields`, `duplicate-within`, `consecutive-duplicates`). Evidence quotes the matching lines (at most 5). `required-fields` takes two optional refinements: `where` (`{ "<path>": "<text>" }` — only events whose payload reads that text at the path are checked; none matching = `untested`) and `fieldsWhenPresent` (`{ "<path>": ["<field>", …] }` — the fields are required only on events that carry a non-null value at the path, for events that fill in edge by edge such as `flight-times`).
 - `forLlm[]`: every other probe, text untouched: `{ id, issue, state, kind, sources, checks[], notes }`. The LLM step evaluates these.
 
 ### Size budget

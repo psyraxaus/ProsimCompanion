@@ -202,11 +202,16 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
                 "No block-fuel figure to confirm yet — import the SimBrief OFP or enter FUEL RAMP on the INIT page.");
         }
 
+        // The decision is recorded before the store changes: Confirm() pumps the sequencer on
+        // this thread, and its "trigger Refueling" line must not read as sent before the
+        // confirmation that released it (EFHK 2026-10-04, issue #157). The sequencer's call
+        // then holds the trigger slot, so the request below answers "already called" — it
+        // never sends Refueling a second time.
         var reconfirmed = _fuelConfirmation.Confirmed;
-        _fuelConfirmation.Confirm(figure.Kg, "confirm");
         RecordDecision(
             "fuel confirmed",
             $"{figure.Kg:F0} kg ({SourceLabel(figure.Source)}) confirmed by the crew{(reconfirmed ? " (re-confirmed)" : "")}");
+        _fuelConfirmation.Confirm(figure.Kg, "confirm");
 
         var outcome = await RequestAsync(GsxServiceAction.RequestRefuel, cancellationToken).ConfigureAwait(false);
         var prefix = $"Fuel figure {figure.Kg:F0} kg confirmed";

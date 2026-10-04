@@ -230,6 +230,45 @@ public sealed class ReduceTests : IDisposable
         Assert.Equal("n", judgement.Notes);
     }
 
+    /// <summary>Ticket t-20261004-2147: fo-where-are-we failed on every non-place answer (only
+    /// mode "geo" carries factSource) and debrief-fuel-figures on the off-blocks stamp (no
+    /// takeoff figure yet). <c>where</c> filters the events; <c>fieldsWhenPresent</c> asks for a
+    /// field only on the events that carry its edge.</summary>
+    [Fact]
+    public void Probes_RequiredFields_WhereFilter_AndPerEdgeFields()
+    {
+        var catalog = ProbeEvaluator.LoadCatalog("""
+            { "probes": [
+              { "id": "geo", "issue": 1, "state": "open", "kind": "assert-present", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "fo.answer", "where": { "mode": "geo" }, "fields": ["text", "factSource"] } },
+              { "id": "chat-only", "issue": 2, "state": "open", "kind": "assert-present", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "fo.answer", "where": { "mode": "chat" }, "fields": ["text"] } },
+              { "id": "edges", "issue": 3, "state": "open", "kind": "assert-present", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "flight-times",
+                  "fieldsWhenPresent": { "takeoffUtc": ["takeoffFobKg"], "landingUtc": ["landingFobKg"] } } },
+              { "id": "edges-fail", "issue": 4, "state": "open", "kind": "assert-present", "sources": ["session"], "checks": ["x"],
+                "machine": { "kind": "required-fields", "type": "flight-times",
+                  "fieldsWhenPresent": { "offBlocksUtc": ["onBlocksFobKg"] } } }
+            ] }
+            """);
+        var session = Session("session-c.jsonl",
+            Line("2026-10-04T18:00:00Z", "session-started"),
+            Line("2026-10-04T19:00:00Z", "flight-times", "{\"offBlocksUtc\":\"2026-10-04T19:00:00Z\",\"takeoffUtc\":null,\"landingUtc\":null,\"offBlocksFobKg\":6100,\"takeoffFobKg\":null,\"landingFobKg\":null}"),
+            Line("2026-10-04T19:12:00Z", "flight-times", "{\"offBlocksUtc\":\"2026-10-04T19:00:00Z\",\"takeoffUtc\":\"2026-10-04T19:12:00Z\",\"landingUtc\":null,\"offBlocksFobKg\":6100,\"takeoffFobKg\":5900,\"landingFobKg\":null}"),
+            Line("2026-10-04T20:00:00Z", "fo.answer", "{\"question\":\"how much fuel\",\"mode\":\"flight\",\"outcome\":\"spoken\",\"text\":\"Five tonnes.\"}"),
+            Line("2026-10-04T20:05:00Z", "fo.answer", "{\"question\":\"where are we\",\"mode\":\"geo\",\"outcome\":\"spoken\",\"text\":\"We're over Poland.\",\"factSource\":\"atlas\"}"),
+            Line("2026-10-04T21:50:00Z", "session-ended"));
+
+        var (results, _) = ProbeEvaluator.Evaluate(catalog, [session], []);
+
+        Assert.Equal("pass", results["geo"].Verdict);          // the flight-mode answer is not this probe's event
+        Assert.Contains("mode=geo", results["geo"].Evidence[0], StringComparison.Ordinal);
+        Assert.Equal("untested", results["chat-only"].Verdict); // no event passes the filter
+        Assert.Equal("pass", results["edges"].Verdict);        // the off-blocks stamp owes no takeoff figure
+        Assert.Equal("fail", results["edges-fail"].Verdict);
+        Assert.Contains("missing onBlocksFobKg", results["edges-fail"].Evidence[0], StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Probes_LogSignatures_PreferCmTraceWhenPresent()
     {

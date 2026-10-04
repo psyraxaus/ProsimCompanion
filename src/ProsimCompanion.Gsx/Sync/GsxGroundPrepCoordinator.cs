@@ -48,6 +48,13 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     /// page — one decision line per 30 s says where it sits without flooding the log.</summary>
     private static readonly TimeSpan DiagnosticInterval = TimeSpan.FromSeconds(30);
 
+    /// <summary>How long the unknown-parking hold must stand before it is published as a
+    /// parking conflict (issue #157, EFHK 2026-10-04 18:52:24Z: the hold was published on its
+    /// first cycle and the FO spoke "GSX doesn't recognise our parking position" 7.5 s before
+    /// GSX named Gate 35 — GSX was still loading the stand). Four cycles; the hold itself is
+    /// logged and shown at once, only the advisory waits.</summary>
+    internal static readonly TimeSpan UnknownParkingGrace = TimeSpan.FromSeconds(20);
+
     private readonly IGsxRemoteApi _api;
     private readonly GsxRepositionService _reposition;
     private readonly GsxGateAnchorService _gateAnchor;
@@ -67,6 +74,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private string? _sessionGateKey;
     private string? _holdReason;
     private bool _conflictPublished;
+    private DateTimeOffset? _unknownParkingSince;
     private int _running;
     private DateTimeOffset _stageEnteredAt = DateTimeOffset.UtcNow;
     private DateTimeOffset _lastWaitingLog;
@@ -212,7 +220,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
                     return;
 
                 case PrepCommand.Hold:
-                    Hold(decision.Reason!, decision.UnknownParking);
+                    Hold(decision.Reason!, decision.UnknownParking, now);
                     return;
 
                 case PrepCommand.Reset:
@@ -306,26 +314,31 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     /// line per tick would drown the file while the user sits on the main menu). An
     /// unknown-parking hold additionally publishes the parking conflict (issue #44): that is
     /// what drives the Flight Status row and the FO's spoken guidance — on the 2026-08-23
-    /// flight the hold fired twice and stayed a log line the pilot never saw.</summary>
-    private void Hold(string reason, bool unknownParking = false)
+    /// flight the hold fired twice and stayed a log line the pilot never saw. The conflict
+    /// waits for <see cref="UnknownParkingGrace"/>: GSX names the parking a few seconds after
+    /// it reports Ready, and a hold that ends inside the grace was never a conflict.</summary>
+    private void Hold(string reason, bool unknownParking, DateTimeOffset now)
     {
-        if (_holdReason == reason)
+        if (_holdReason != reason)
         {
-            return;
+            _holdReason = reason;
+            _unknownParkingSince = unknownParking ? now : null;
+            _logger.LogInformation("Ground preparation holding: {Reason}", reason);
+            _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", $"holding: {reason}"));
+            PublishStage($"holding: {reason}");
         }
 
-        _holdReason = reason;
-        _logger.LogInformation("Ground preparation holding: {Reason}", reason);
-        _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", $"holding: {reason}"));
-        PublishStage($"holding: {reason}");
-
-        if (unknownParking)
+        if (unknownParking && !_conflictPublished && UnknownParkingSettled(_unknownParkingSince, now))
         {
             _conflictPublished = true;
             _diagnostics.UpdateParkingConflict(new GsxParkingConflictView(
                 DateTimeOffset.UtcNow, FacilityFromMenu() ?? ""));
         }
     }
+
+    /// <summary>True once the unknown-parking hold has stood for the whole grace.</summary>
+    internal static bool UnknownParkingSettled(DateTimeOffset? since, DateTimeOffset now)
+        => since is { } start && now - start >= UnknownParkingGrace;
 
     private void ReleaseHold()
     {
@@ -335,6 +348,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         }
 
         _holdReason = null;
+        _unknownParkingSince = null;
         _logger.LogInformation("Ground preparation hold released");
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", "hold released"));
         if (_conflictPublished)

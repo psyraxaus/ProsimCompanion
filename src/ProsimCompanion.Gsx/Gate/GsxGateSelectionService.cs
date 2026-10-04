@@ -41,7 +41,7 @@ public enum GsxGateRequestStatus
 /// Success is provisional until the SetGate_* LVAR readback matches (60 s window, checked
 /// immediately too). A Couatl restart re-arms the last request.
 /// </summary>
-public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDisposable
+public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAssignedGateSource, IDisposable
 {
     private static readonly TimeSpan ConfirmationWindow = TimeSpan.FromSeconds(60);
 
@@ -86,6 +86,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     private int _airportPickAttempts;
     private int _positionMenuAttempts;
     private bool _answeringPositionMenu;
+    private GsxAssignedGate? _assigned;
     private readonly IOptionsMonitor<GsxOptions>? _options;
     private readonly IAirportParkingCatalog? _parkings;
     private Timer? _confirmationTimer;
@@ -138,6 +139,12 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
 
     public string StatusDetail { get; private set; } = "";
 
+    /// <inheritdoc />
+    public GsxAssignedGate? AssignedGate
+        => Status is GsxGateRequestStatus.Assigned or GsxGateRequestStatus.Confirmed or GsxGateRequestStatus.AssignedUnconfirmed
+            ? _assigned
+            : null;
+
     /// <summary>Raised on any status change, on arbitrary threads.</summary>
     public event Action? Changed;
 
@@ -150,6 +157,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         lock (_gate)
         {
             _requestedGate = gate.Trim().ToUpperInvariant();
+            _assigned = null;
             _retriedOnce = false;
             _tooLateReported = false;
             _airportPickAttempts = 0;
@@ -165,6 +173,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         lock (_gate)
         {
             _requestedGate = null;
+            _assigned = null;
         }
         _confirmationTimer?.Dispose();
         _confirmationTimer = null;
@@ -292,6 +301,10 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     /// row is matched by ICAO text, never by ordinal (§5 rule; the predecessor's row-2
     /// fallback is deliberately not carried). A menu we opened is closed again on failure;
     /// on success the gate.select that follows closes it.
+    /// <para>2026-10-04 EFHK→LKPR (issue #157): in flight GSX's ROOT menu is itself titled
+    /// "Select airport" and lists "LKPR Ruzyne at 592.70 nm [PLANNED]" — there is no root
+    /// entry to pick first. The executor runs the row pick directly when the opened page is
+    /// already this one; the root intent stays for a GSX that shows a root menu first.</para>
     /// </summary>
     private async Task<bool> PickAirportInFlightAsync(string destination)
     {
@@ -531,6 +544,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     {
         if (result.Ok || result.Code is "ok" or "prepared" or "already_selected" or "already_parked")
         {
+            _assigned = AssignedFrom(requested, result.Payload);
             _eventLog.Record("gsx-gate-assigned", new { gate = requested, code = result.Code, payload = result.Payload?.ToJsonString() });
             SetStatus(GsxGateRequestStatus.Assigned, $"assigned ({result.Code}); awaiting confirmation");
             StartConfirmationWindow();
@@ -574,6 +588,16 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
                 Fail($"gate.select failed ({result.Code})");
                 return;
         }
+    }
+
+    /// <summary>GSX's own identity for the gate it accepted, from the gate.select payload:
+    /// the documented <c>payload.gate</c> ref, else a ref at the payload root. First read
+    /// 2026-10-04 (LKPR, integer token 29 → uiName "Gate C 29").</summary>
+    internal static GsxAssignedGate AssignedFrom(string requested, JsonObject? payload)
+    {
+        var node = payload?["gate"] as JsonObject ?? payload;
+        var reference = node is null ? null : GsxGateRef.Parse(node);
+        return new GsxAssignedGate(requested, reference?.UiName ?? reference?.Gate, reference?.Number);
     }
 
     private Task<GsxCommandResult> SendSelectAsync(JsonNode? gate, bool revokeServices, bool force)
@@ -748,6 +772,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
             if (result.Succeeded)
             {
                 _logger.LogInformation("Arrival gate {Gate} picked in GSX's position menu via '{Facility}'", requested, pick.Entry);
+                _assigned = new GsxAssignedGate(requested, GsxName: null, Number: null);
                 SetStatus(GsxGateRequestStatus.Assigned, "picked in GSX's position menu; awaiting confirmation");
                 StartConfirmationWindow();
                 CheckReadback();

@@ -157,6 +157,12 @@ disabled guard → `menu.pick` → verify (poll ≤5 s, per-intent overridable �
 can exceed 5 s; verify = title moved off/onto expected prefix, against the mirror) → on any
 failure: **menu left open for the user, logged — never a wrong click**.
 
+**A parent whose open lands on the child's page picks nothing (2026-10-05, issue #157).** When
+the parent intent opens the menu and the shown title is already the child's, the child runs
+directly. After our own `menu.open` the title must hold for 300 ms first — the cached title is
+the previous menu's for a beat, and a stale title must never send the child's pick to another
+menu. Evidence: in flight GSX's root page is itself "Select airport" (§6).
+
 **Manual picks (issue #135, 2026-09-27)** ride the same pipeline: the web menu card sends
 `IGsxMenuControl.PickAsync(index, expectedEntry)`, which becomes a positional intent
 (`TitlePrefixes = [live title]`, `EntryIndex`) only after the live line at that index still
@@ -207,6 +213,11 @@ runs as (`GateDispatchPlanner`, pure):
   loaded airport becomes the destination (≤20 s). Backoff 2 min between attempts, max 12
   (the destination joins GSX's nearby list only within range). A menu we opened is closed
   again on failure; after the gate.select on success.
+  **SETTLED 2026-10-04 (EFHK→LKPR):** in flight the GSX ROOT page is itself titled
+  `Select airport` and lists `LKPR Ruzyne at 592.70 nm [PLANNED]` — there is no
+  `^select airport` entry to pick first. The root intent failed ItemNotAvailable three times
+  (20:03:09Z, 21:08:23Z, 21:31:44Z) with the right page on screen; the executor now runs the
+  row pick on that page directly (§5). The root intent stays for a GSX that shows a root menu.
 - loaded airport == destination ∧ not parked → **send now** (in the air, or on the ground
   while still rolling when GSX loaded the airport itself after landing).
 - loaded airport == destination ∧ parked (on ground, ≤1 kt, engines off) → **too late**:
@@ -248,6 +259,23 @@ The 2026-10-04 flight also showed `NumberFallback` never fired — the mirror's
 `handlerData.airport.parkings` was most likely empty/stale for the destination (§8.13: handlerData
 is patched on aircraft swap / arriving at a gate / SimBrief reload — not promised on airport
 load); the `gsx-gate-not-found` event's `parkings` count is the proof to read next flight.
+
+**FIRST ACCEPTED TOKEN (2026-10-04 21:34:52Z, EFHK→LKPR, build 0.6.0-rc.15, ticket
+t-20261004-2147):** `gate.select {"gate":29}` — the parking **number as an integer**, sent
+**airborne** with LKPR loaded — answered `ok`/`prepared` with uiName `"Gate C 29"`. This is the
+first `ok` in any recorded flight and it confirms both halves of the contract above: the
+integer identity, and the not-parked timing. The SetGate_* readback did NOT match inside the
+60 s window (status went to Assigned (unconfirmed) at 21:35:52Z) — why is not established;
+read the SetGate LVAR frames in a wire trace before changing the readback map.
+
+**The parking-change menu after an assignment is not a conflict (2026-10-05, issue #157).**
+Right after the accepted gate.select GSX's menu is "Change parking or service" with
+`Change Facility [Gate C 29]` (seen 21:36:29Z, still airborne) while the mirror's `parking`
+stays empty until the aircraft is at the stand (GSX named Gate C 29 at 21:44:06Z and
+deboarded). The question catalogue therefore compares the facility with the assigned gate
+(`GsxGateResolver.FacilityNamesGate`: GSX's own name from the gate.select payload as whole
+words, else the typed token) and publishes no parking conflict when they agree. A facility
+that names another stand is still the #44 conflict.
 
 **ARCHAEOLOGY (2026-09-21 review): the `gate` token contract was unproven then.** Every
 `gate.select` in every recorded flight from 2026-08-09 to 2026-09-20 was refused `not_found`,

@@ -9,7 +9,8 @@ namespace ProsimCompanion.Gsx.Menu;
 /// <summary>
 /// Executes menu intents through the safe-fail pipeline (docs/integrations/gsx-remote-api.md §5):
 /// readiness gate → parent navigation / menu.open (skipped when the target menu is already shown
-/// — re-opening toggles it closed) → wait on <c>menuShown &amp;&amp; title</c> (never title alone:
+/// — re-opening toggles it closed; a parent whose open lands on the child's own page picks
+/// nothing) → wait on <c>menuShown &amp;&amp; title</c> (never title alone:
 /// the title stays stale for a beat after menu.open) → title check → resolve by text →
 /// TOCTOU re-resolve → disabled guard → pick → verify against the mirror. Every failure mode
 /// degrades to "menu left open for the user" — never a wrong click.
@@ -17,6 +18,10 @@ namespace ProsimCompanion.Gsx.Menu;
 public sealed class GsxMenuIntentExecutor
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
+
+    /// <summary>How long a title read right after our own menu.open must stay the same before
+    /// it is trusted (the title stays stale for a beat after menu.open).</summary>
+    private static readonly TimeSpan OpenSettle = TimeSpan.FromMilliseconds(300);
 
     /// <summary>How long a finished intent still counts as "driving" its menus. The question
     /// dispatcher runs off the receive thread and can reach a handler a beat after the pick
@@ -130,7 +135,12 @@ public sealed class GsxMenuIntentExecutor
         }
     }
 
-    private async Task<GsxIntentResult> ExecuteCoreAsync(GsxMenuIntent intent, CancellationToken cancellationToken)
+    /// <param name="openedFor">The child intent this one is the parent of, when it runs only to
+    /// open that child's page.</param>
+    private async Task<GsxIntentResult> ExecuteCoreAsync(
+        GsxMenuIntent intent,
+        CancellationToken cancellationToken,
+        GsxMenuIntent? openedFor = null)
     {
         if (_api.Readiness != GsxReadiness.Ready)
         {
@@ -138,6 +148,7 @@ public sealed class GsxMenuIntentExecutor
         }
 
         var mirror = _api.Mirror;
+        var opened = false;
 
         // Reach the target menu.
         if (!(mirror.MenuShown && intent.TitleMatches(mirror.Menu?.Title)))
@@ -145,7 +156,7 @@ public sealed class GsxMenuIntentExecutor
             if (intent.ParentMenu is not null)
             {
                 // The parent's pick opens this submenu.
-                var parentResult = await ExecuteCoreAsync(intent.ParentMenu, cancellationToken).ConfigureAwait(false);
+                var parentResult = await ExecuteCoreAsync(intent.ParentMenu, cancellationToken, openedFor: intent).ConfigureAwait(false);
                 if (!parentResult.Succeeded)
                 {
                     return parentResult;
@@ -158,6 +169,7 @@ public sealed class GsxMenuIntentExecutor
                 {
                     return new(GsxIntentOutcome.GsxNoResponse, $"menu.open failed ({openResult.Code})");
                 }
+                opened = true;
             }
 
             // Gate on menuShown AND title — the cached title is stale for a beat after open,
@@ -172,6 +184,16 @@ public sealed class GsxMenuIntentExecutor
                     ? new(GsxIntentOutcome.MenuTitleMismatch, $"shown menu is '{mirror.Menu?.Title}', expected {string.Join("|", intent.TitlePrefixes)}")
                     : new(GsxIntentOutcome.GsxNoResponse, "menu did not appear");
             }
+        }
+
+        // GSX opened straight onto the child's page — this parent has nothing to pick (issue
+        // #157, EFHK→LKPR 2026-10-04: in flight the GSX root menu IS the "Select airport"
+        // page, so the parent's "^select airport" entry never existed and the airport pick
+        // failed ItemNotAvailable three times with the right page on screen).
+        if (openedFor is not null
+            && await IsOnChildPageAsync(openedFor, settle: opened, cancellationToken).ConfigureAwait(false))
+        {
+            return new(GsxIntentOutcome.Success, $"'{mirror.Menu?.Title}' is already the page for {openedFor.Name}");
         }
 
         // Navigation-only intents are done once the target menu is up.
@@ -242,6 +264,26 @@ public sealed class GsxMenuIntentExecutor
         return verified
             ? new(GsxIntentOutcome.Success, $"picked '{menu.Entries[index]}'")
             : new(GsxIntentOutcome.GsxNoResponse, "pick sent but the expected effect was not observed");
+    }
+
+    /// <summary>True when the shown menu is the child's own page. After our own menu.open the
+    /// cached title can be the previous menu's for a beat, so the answer must still hold
+    /// after <see cref="OpenSettle"/> — a stale title must never send the child's pick to a
+    /// different menu.</summary>
+    private async Task<bool> IsOnChildPageAsync(GsxMenuIntent child, bool settle, CancellationToken cancellationToken)
+    {
+        var mirror = _api.Mirror;
+        if (!(mirror.MenuShown && child.TitleMatches(mirror.Menu?.Title)))
+        {
+            return false;
+        }
+
+        if (settle)
+        {
+            await Task.Delay(OpenSettle, cancellationToken).ConfigureAwait(false);
+        }
+
+        return mirror.MenuShown && child.TitleMatches(mirror.Menu?.Title);
     }
 
     private static (bool Succeeded, int Index, GsxIntentResult? Result) Resolve(GsxMenuIntent intent, GsxMenuInfo menu)

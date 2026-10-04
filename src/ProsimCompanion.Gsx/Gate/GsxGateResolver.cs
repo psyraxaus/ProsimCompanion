@@ -23,6 +23,19 @@ public sealed record GsxGateRef(string? UiName, string? Gate, int? Number, strin
     }
 }
 
+/// <summary>The arrival gate GSX accepted (gate.select ok, or the pick in its own position
+/// menu) and that still stands. <see cref="GsxName"/> is GSX's own name for it from the
+/// gate.select payload ("Gate C 29"), when it sent one.</summary>
+public sealed record GsxAssignedGate(string Requested, string? GsxName, int? Number);
+
+/// <summary>Read-only view of the standing arrival-gate assignment — the seam the question
+/// catalogue asks before it takes GSX's parking-change menu for an unknown parking.</summary>
+public interface IGsxAssignedGateSource
+{
+    /// <summary>Null when no assignment stands (idle, armed, failed, cancelled).</summary>
+    GsxAssignedGate? AssignedGate { get; }
+}
+
 /// <summary>
 /// Pure gate-selection logic: normalization, disambiguation candidate picking, the SetGate_*
 /// readback letter map, and nearest-name suggestions. See docs/integrations/gsx-remote-api.md §6.
@@ -216,6 +229,106 @@ public static class GsxGateResolver
 
         var start = words.Count > 1 && KnownFacilityPrefixes.Contains(words[0]) ? 1 : 0;
         return words[start];
+    }
+
+    /// <summary>
+    /// Whether the facility GSX names in its "Change Facility [...]" menu entry is the gate an
+    /// arrival request assigned (issue #157, LKPR 2026-10-04: gate.select 29 answered
+    /// "Gate C 29", the menu then read "Change Facility [Gate C 29]" with the mirror's parking
+    /// still empty, and the FO warned of an unknown parking at the gate GSX had prepared).
+    /// With GSX's own name for the gate the two texts are compared as whole words: the name
+    /// inside the facility ("Stand 547" in "Terminal 5B (531-548) Stand 547 with Safedock©"),
+    /// or the facility as the tail of the name ("Gate C 29" for "Pier C | Gate C 29"). Without
+    /// it the typed token decides: it must be a run of whole facility words that follows a
+    /// facility word or ends the text ("C29" in "Gate C 29"; never "2" in "Gate C 29").
+    /// </summary>
+    public static bool FacilityNamesGate(string? facility, string? requestedGate, string? gsxName)
+    {
+        var facilityWords = Words(facility);
+        if (facilityWords.Count == 0)
+        {
+            return false;
+        }
+
+        var nameWords = Words(gsxName);
+        if (nameWords.Count > 0)
+        {
+            return IndexOfRun(facilityWords, nameWords) >= 0
+                || (facilityWords.Count <= nameWords.Count
+                    && facilityWords.Any(word => word.Any(char.IsDigit))
+                    && nameWords.Skip(nameWords.Count - facilityWords.Count).SequenceEqual(facilityWords, StringComparer.Ordinal));
+        }
+
+        var requested = Normalize(requestedGate);
+        if (requested.Length == 0)
+        {
+            return false;
+        }
+
+        var bare = StripFacilityPrefix(requested);
+        for (var start = 0; start < facilityWords.Count; start++)
+        {
+            var afterFacilityWord = start > 0 && KnownFacilityPrefixes.Contains(facilityWords[start - 1]);
+            var run = new StringBuilder();
+            for (var end = start; end < facilityWords.Count && run.Length < requested.Length; end++)
+            {
+                run.Append(facilityWords[end]);
+                var text = run.ToString();
+                var endsTheText = end == facilityWords.Count - 1;
+                if ((text == bare && (afterFacilityWord || endsTheText))
+                    || (text == requested && (start == 0 || afterFacilityWord || endsTheText)))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The alphanumeric words of a display name, uppercased: "Pier C | Gate C 29" →
+    /// PIER, C, GATE, C, 29. Word boundaries are what keep "Gate 2" out of "Gate 29".</summary>
+    private static List<string> Words(string? text)
+    {
+        var words = new List<string>();
+        if (string.IsNullOrEmpty(text))
+        {
+            return words;
+        }
+
+        var word = new StringBuilder();
+        foreach (var c in text)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                word.Append(char.ToUpperInvariant(c));
+            }
+            else if (word.Length > 0)
+            {
+                words.Add(word.ToString());
+                word.Clear();
+            }
+        }
+
+        if (word.Length > 0)
+        {
+            words.Add(word.ToString());
+        }
+
+        return words;
+    }
+
+    private static int IndexOfRun(List<string> words, List<string> run)
+    {
+        for (var start = 0; start + run.Count <= words.Count; start++)
+        {
+            if (words.Skip(start).Take(run.Count).SequenceEqual(run, StringComparer.Ordinal))
+            {
+                return start;
+            }
+        }
+
+        return -1;
     }
 
     private static string StripFacilityPrefix(string normalized)

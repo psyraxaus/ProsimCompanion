@@ -25,6 +25,7 @@ public sealed class GsxQuestionCatalog
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxQuestionCatalog> _logger;
     private readonly PushbackChoiceStore? _pushbackChoice;
+    private readonly Gate.IGsxAssignedGateSource? _assignedGate;
     private volatile bool _directionAutoSelected;
     private volatile bool _selectPositionSeenWhileMoving;
 
@@ -39,7 +40,8 @@ public sealed class GsxQuestionCatalog
         IFlightPhaseSource flightState,
         JsonlEventLog eventLog,
         ILogger<GsxQuestionCatalog> logger,
-        PushbackChoiceStore? pushbackChoice = null)
+        PushbackChoiceStore? pushbackChoice = null,
+        Gate.IGsxAssignedGateSource? assignedGate = null)
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(executor);
@@ -57,6 +59,7 @@ public sealed class GsxQuestionCatalog
         _eventLog = eventLog;
         _logger = logger;
         _pushbackChoice = pushbackChoice;
+        _assignedGate = assignedGate;
 
         // App-lifetime singleton — no unsubscribe needed. A Couatl engine restart starts a new
         // GSX session, so the once-per-session direction latch re-arms.
@@ -264,13 +267,30 @@ public sealed class GsxQuestionCatalog
     /// not recognize the spawn position and the pilot restarted the app four times at a state
     /// no restart can fix) the conflict is also published to the diagnostics store, which
     /// drives the Flight Status row and the FO's spoken guidance. The menu itself stays with
-    /// the user (its semantics are unverified) — the app advises, never clicks.</summary>
+    /// the user (its semantics are unverified) — the app advises, never clicks.
+    /// <para>Not a conflict (issue #157, LKPR 2026-10-04): the facility is the arrival gate
+    /// gate.select assigned. GSX shows this menu in the air right after the assignment
+    /// ("Change Facility [Gate C 29]") and names the parking in the mirror only at the stand —
+    /// the FO warned of an unknown parking at the gate GSX had prepared and then served.</para></summary>
     private Task HandleParkingConflictAsync(CancellationToken cancellationToken)
     {
         var facilityEntry = _api.Mirror.MenuShown
             ? _api.Mirror.Menu?.Entries.FirstOrDefault(e => e.StartsWith("Change Facility", StringComparison.OrdinalIgnoreCase))
             : null;
         var gateKey = _api.Mirror.GateContextKey;
+
+        if (facilityEntry is not null && gateKey is null
+            && _assignedGate?.AssignedGate is { } assigned
+            && Gate.GsxGateResolver.FacilityNamesGate(ExtractFacility(facilityEntry), assigned.Requested, assigned.GsxName))
+        {
+            RecordDecision(
+                "parking-change menu",
+                $"left for the user — GSX is anchored on '{facilityEntry}', the arrival gate {assigned.Requested} "
+                    + "it accepted; not a parking conflict");
+            _diagnostics.UpdateParkingConflict(null);
+            return Task.CompletedTask;
+        }
+
         RecordDecision(
             "parking-change menu",
             facilityEntry is null
