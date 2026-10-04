@@ -60,11 +60,16 @@ Ground behaviour, in the Ground Services rail order:
   never/always/only-jetway; remove-on-final)
 - **Ground Equipment** — GPU (with-APU option), PCA tri-state (never/always/only jetway) +
   override, arrival chock delays, gradual removal, reposition-at-start
-- **Pushback** — beacon-orchestrated sequence with randomized step delays, pushback
-  direction preference, tug question answer, pushback-when-tug-attached
+- **Pushback** — default direction mode (`pushbackPreference`: **auto** toward the departure
+  runway / **ask** the pilot / fixed tail left, tail right, straight — your own voice or
+  Korry-button choice for the flight always wins), *ask when unsure*, the beacon-orchestrated
+  sequence with randomized step delays, tug question answer, pushback-when-tug-attached
 - **Questions** — FollowMe, crew boarding, pushback confirm, de-ice fluid, operator
   preferences, company hubs
 - **Arrival / Fuel** — auto-deboard, stable-parked hold time, FOB save/restore per aircraft
+- **Stand Knowledge** — read GSX profiles and scenery for stands (`resolveGatesFromProfiles`,
+  on), the GSX profile folder (empty = `%APPDATA%\Virtuali\GSX\MSFS`), scenery package
+  folders (`;`-separated; empty = auto-detected Store/Steam locations + `UserCfg.opt`)
 - **Pax** — no-show randomization, bag weight
 
 Per-aircraft overrides: the Aircraft Profiles page stores a `gsxSettings` block per profile

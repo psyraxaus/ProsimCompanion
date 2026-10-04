@@ -22,6 +22,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
     private readonly SimVarService _simVars;
     private readonly ConnectionStatusStore _status;
     private readonly SimSessionSignals _sessionSignals;
+    private readonly Facilities.AirportFacilityService? _facilities;
     private readonly ILogger<SimConnectService> _logger;
     private readonly object _gate = new();
     private readonly Dictionary<string, RegisteredVar> _registered = new(StringComparer.OrdinalIgnoreCase);
@@ -29,12 +30,15 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
     private EventWaitHandle? _messageSignal;
     private uint _nextDefinitionId = 1;
     private volatile bool _connected;
+    private uint _lastFacilitySendId;
+    private uint _lastFacilityRequestId;
 
     public SimConnectService(
         SimVarService simVars,
         ConnectionStatusStore status,
         SimSessionSignals sessionSignals,
-        ILogger<SimConnectService> logger)
+        ILogger<SimConnectService> logger,
+        Facilities.AirportFacilityService? facilities = null)
     {
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(status);
@@ -45,11 +49,16 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         _status = status;
         _sessionSignals = sessionSignals;
         _logger = logger;
+        _facilities = facilities;
     }
 
     /// <summary>Definition/request id namespace — SimConnect wants enum types.</summary>
     private enum DefinitionId : uint
     {
+        /// <summary>The one facility definition (airport → parkings + jetways). Facility
+        /// definitions are a separate SimConnect namespace from data definitions, but the
+        /// id sits above the SimVar counter so logs never confuse the two.</summary>
+        AirportFacilities = Facilities.AirportFacilityService.RequestIdBase,
     }
 
     private enum RequestId : uint
@@ -215,6 +224,8 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         simConnect.OnRecvException += OnRecvException;
         simConnect.OnRecvSimobjectData += OnRecvSimobjectData;
         simConnect.OnRecvEvent += OnRecvEvent;
+        simConnect.OnRecvFacilityData += OnRecvFacilityData;
+        simConnect.OnRecvFacilityDataEnd += OnRecvFacilityDataEnd;
 
         loggedWaiting = false;
 
@@ -267,7 +278,78 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         }
 
         _simVars.AttachBackend(this);
+        RegisterFacilityDefinition(sender);
     }
+
+    /// <summary>Airport → TAXI_PARKING + JETWAY facility definition (Option B, 2026-10-04),
+    /// registered per connection. A field name the running sim rejects raises a SimConnect
+    /// exception asynchronously; the definition is then marked failed on the first facility
+    /// exception so the tier stays quiet instead of timing out every lookup.</summary>
+    private void RegisterFacilityDefinition(SimConnect sender)
+    {
+        if (_facilities is null)
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var field in Facilities.FacilityDefinition.Fields)
+            {
+                sender.AddToFacilityDefinition(DefinitionId.AirportFacilities, field);
+            }
+
+            sender.RegisterFacilityDataDefineStruct<Facilities.FacilityAirportRow>(SIMCONNECT_FACILITY_DATA_TYPE.AIRPORT);
+            sender.RegisterFacilityDataDefineStruct<Facilities.FacilityParkingRow>(SIMCONNECT_FACILITY_DATA_TYPE.TAXI_PARKING);
+            sender.RegisterFacilityDataDefineStruct<Facilities.FacilityJetwayRow>(SIMCONNECT_FACILITY_DATA_TYPE.JETWAY);
+            _facilities.Attach(RequestAirportFacility);
+            _logger.LogInformation("Facility definition registered ({Fields} fields): airport parkings available", Facilities.FacilityDefinition.Fields.Length);
+        }
+        catch (COMException ex)
+        {
+            _logger.LogWarning(ex, "Facility definition failed; airport parking data from the simulator disabled this session");
+            _facilities.MarkDefinitionFailed();
+        }
+    }
+
+    /// <summary>Sends one airport facility request (from any thread, under the gate).</summary>
+    private bool RequestAirportFacility(string icao, uint requestId)
+    {
+        lock (_gate)
+        {
+            if (!_connected || _simConnect is null)
+            {
+                return false;
+            }
+
+            try
+            {
+                _simConnect.RequestFacilityData(DefinitionId.AirportFacilities, (RequestId)requestId, icao, "");
+                _lastFacilitySendId = _simConnect.GetLastSentPacketID();
+                _lastFacilityRequestId = requestId;
+                _logger.LogDebug("Requested facility data for {Icao} (request {RequestId}, send {SendId})", icao, requestId, _lastFacilitySendId);
+                return true;
+            }
+            catch (COMException ex)
+            {
+                _logger.LogWarning(ex, "Facility request for {Icao} could not be sent", icao);
+                return false;
+            }
+        }
+    }
+
+    private void OnRecvFacilityData(SimConnect sender, SIMCONNECT_RECV_FACILITY_DATA data)
+    {
+        if (_facilities is null || data.Data is not [{ } row, ..])
+        {
+            return;
+        }
+
+        _facilities.OnRow(data.UserRequestId, row);
+    }
+
+    private void OnRecvFacilityDataEnd(SimConnect sender, SIMCONNECT_RECV_FACILITY_DATA_END data)
+        => _facilities?.OnEnd(data.RequestId);
 
     private void OnRecvEvent(SimConnect sender, SIMCONNECT_RECV_EVENT data)
     {
@@ -295,7 +377,22 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
     }
 
     private void OnRecvException(SimConnect sender, SIMCONNECT_RECV_EXCEPTION data)
-        => _logger.LogWarning("SimConnect exception {Exception} (sendId {SendId})", (SIMCONNECT_EXCEPTION)data.dwException, data.dwSendID);
+    {
+        var exception = (SIMCONNECT_EXCEPTION)data.dwException;
+        _logger.LogWarning("SimConnect exception {Exception} (sendId {SendId})", exception, data.dwSendID);
+
+        // A facility request that the sim rejects (unknown ICAO, a definition field the running
+        // sim does not have) comes back only as this exception — fail the pending lookup now
+        // rather than letting it time out.
+        if (_facilities is not null && data.dwSendID != 0 && data.dwSendID == _lastFacilitySendId)
+        {
+            _facilities.OnFailed(_lastFacilityRequestId, exception.ToString());
+            if (exception is SIMCONNECT_EXCEPTION.DATA_ERROR or SIMCONNECT_EXCEPTION.INVALID_DATA_TYPE or SIMCONNECT_EXCEPTION.INVALID_DATA_SIZE)
+            {
+                _facilities.MarkDefinitionFailed();
+            }
+        }
+    }
 
     private void OnRecvSimobjectData(SimConnect sender, SIMCONNECT_RECV_SIMOBJECT_DATA data)
     {
@@ -371,6 +468,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
             _connected = false;
             _simVars.DetachBackend();
             _sessionSignals.SetDisconnected();
+            _facilities?.Detach();
             _logger.LogDebug(ex, "SimConnect teardown skipped: wrapper assembly unavailable");
         }
     }
@@ -381,6 +479,7 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
         _connected = false;
         _simVars.DetachBackend();
         _sessionSignals.SetDisconnected();
+        _facilities?.Detach();
 
         var simConnect = _simConnect;
         _simConnect = null;
@@ -391,6 +490,8 @@ public sealed class SimConnectService : BackgroundService, ISimVarBackend
             simConnect.OnRecvException -= OnRecvException;
             simConnect.OnRecvSimobjectData -= OnRecvSimobjectData;
             simConnect.OnRecvEvent -= OnRecvEvent;
+            simConnect.OnRecvFacilityData -= OnRecvFacilityData;
+            simConnect.OnRecvFacilityDataEnd -= OnRecvFacilityDataEnd;
             simConnect.Dispose();
         }
 

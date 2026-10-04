@@ -610,3 +610,27 @@ until a flight confirms it; the manual test steps are on each issue.
       every property named exactly `url`. `/settings/notifications` page: one card per target,
       status pill, events grid, Send test + result line. `docs/integrations/notifications.md`.
       **Unverified live** — every raise site on a real turnaround, and ntfy / Discord end to end.
+- [x] **Airport parking catalogue + per-flight pushback direction** (#156, 2026-10-04,
+      `fix/debrief-fuel-and-arrival-gate`, 0.6.0-rc.14): `Core/Airports/Parking` — scenery
+      identity (`ParkingName` enum = SDK NAME = GSX SetGate_Name map, number, suffix),
+      `AirportParkingCatalog` merging ordered `IAirportParkingSource` tiers (GSX profile 10:
+      `.ini` stands + `.py` name templates from `%APPDATA%\Virtuali\GSX\MSFS` and the scenery
+      package; facility 20: SimConnect `AIRPORT → TAXI_PARKING → JETWAY` rows, streamed default
+      airports included), pure `ParkingTokenResolver` ("W40" → GATE_W 40 → tokens number →
+      GSX gate name → full name → default name → typed text), `ParkingDescription` for the OFP
+      page's live "GSX knows it as …" line, the arrival `gate.select` ladder sending the
+      integer number first (`gsx-gate-resolved`). Pushback: `PushbackChoiceStore` (per flight;
+      resets on flight cycle / new OFP), pure `PushbackAdvisor` (options from ini slots or live
+      lines; release headings from the profile, a compass word in the label, or ±90° of the
+      stand heading; ranked against stand → runway-threshold bearing; < 30° apart = Low),
+      `PushbackSuggestionService` (stand = GSX gate context or nearest stand within 80 m;
+      runway = FMS via `IDepartureRunwaySource` else OFP; geometry via `RunwayLocator` tiers
+      gateway → DFD), Gsx `PushbackDirectionDecider` (pilot choice → fixed legacy mode →
+      confident suggestion → ask / leave), Speech `PushbackDirectionVoiceFeature` ("push back
+      facing north", "tail left/right", "straight back", "which way is the pushback") and
+      `PushbackQuestionDialogue` ("Pushback — tail left or tail right?"), OFP Korry buttons per
+      flight + Auto, `gsx.pushbackPreference` default `auto` (+ `pushbackAskWhenUnsure`),
+      `gsx.resolveGatesFromProfiles` / `gsxProfileFolder` / `sceneryPackageFolders`.
+      `docs/integrations/gsx-profiles.md`. **Unverified live** — the facility field list, the
+      BIAS_X/BIAS_Z axis convention (catalogue logs the ini-vs-facility median offset) and
+      whether the suggested direction matches ATC's clearance.

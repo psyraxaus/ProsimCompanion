@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0-rc.14
+
+Stand knowledge and pushback direction, from the EGLL→EFHK flights of 2026-10-03/04 (owner Options A + B and pushback Option 1).
+
+- Fix: **the arrival gate is found by its scenery identity** (#156). "W40" was refused four times at EFHK because the GSX profile prints that stand as *"Gate 40"* — a profile's name template expands the number and suffix but never the gate letter. The app now reads the destination's **GSX profile** (`.ini` stand data and `.py` names, from `%APPDATA%\Virtuali\GSX\MSFS` and from inside the scenery package) and the **simulator's own parking list** (SimConnect facility data, default airports included), resolves the typed gate to the stand (GATE_W 40) and sends its **number** first, then GSX's name, then your text. Session event `gsx-gate-resolved`.
+- New: as you type the arrival gate on the OFP page the line below says what GSX calls it — *GSX knows it as Gate 40 (Apron 1W (Gates W34-W48)) · jetway · max span 65 m · VDGS*.
+- New: **Stand Knowledge** (Settings → GSX → Arrival): on/off, the GSX profile folder, the scenery package folders (auto-detected from the Store/Steam installs and `UserCfg.opt`).
+- Changed: **pushback direction is decided per flight.** Tell the FO what ATC said — *"push back facing north"*, *"tail left"*, *"tail right"*, *"straight back"* — or press a Korry button on the OFP page (now for this flight only, with an **Auto** button). Ask *"which way is the pushback"* any time.
+- New: **Auto** mode (the new default of `gsx.pushbackPreference`): the app works out which push faces the departure runway — from the stand's GSX profile routes, the stand heading and the runway threshold (ProSim gateway, then Navigraph DFD; runway from the FMS, then the OFP) — shows *Suggested: TAIL RIGHT … for runway 22L* on the OFP page and applies it when confident. When unsure the FO asks *"Pushback — tail left or tail right?"* (the stand's own labels when it has them) and GSX's menu waits for your answer. **Ask** mode always asks; the three fixed answers still work and an existing `straight`/`tailLeft`/`tailRight` setting keeps the old behaviour.
+- Changed: custom-labelled stands (*"Facing SW on Taxi AV"*) are matched by the profile's label, not by a fixed menu slot.
+- Docs: `docs/integrations/gsx-profiles.md` (profile formats, locations, the `#`/`§` rule, facility data, advisor rules); probes `gate-resolved-by-identity` and `pushback-direction-advisor`. Not yet verified live: the facility-data field list and the BIAS_X/BIAS_Z axis convention (the log says *Parking positions at … median offset*).
+- Everything in 0.6.0-rc.13 below.
+
 ## 0.6.0-rc.13
 
 Fixes from the owner's EGLL→EFHK flight on 0.6.0-rc.8 (2026-10-03).

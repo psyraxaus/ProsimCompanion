@@ -118,6 +118,17 @@ public static class CoreServiceCollectionExtensions
         // Speech pillar when it is composed in; with neither, every figure stays time-based.
         services.AddSingleton<Airports.IAirportCoordinateSource, Airports.GatewayAirportCoordinates>();
         services.AddSingleton<Airports.AirportLocator>();
+        // Airport parking knowledge (2026-10-04): the GSX pillar contributes the profile tier
+        // (.ini stands + .py names), the Sim pillar the scenery's own TAXI_PARKING list; the
+        // catalogue merges them per stand so a typed "W40" resolves by scenery identity.
+        services.AddSingleton<Airports.Parking.AirportParkingCatalog>();
+        services.AddSingleton<Airports.Parking.IAirportParkingCatalog>(p => p.GetRequiredService<Airports.Parking.AirportParkingCatalog>());
+        // Runway geometry tiers (gateway here, DFD from Speech) and the pushback advisor that
+        // ranks a stand's push directions against the departure runway (2026-10-04).
+        services.AddSingleton<Airports.IRunwayGeometrySource, Airports.GatewayRunwayGeometry>();
+        services.AddSingleton<Airports.RunwayLocator>();
+        services.AddSingleton<PushbackChoiceStore>();
+        services.AddStartupModule<Airports.Parking.PushbackSuggestionService>();
         services.AddSingleton<Flight.FlightProgressStore>();
         services.AddStartupModule<Flight.FlightProgressService>();
         // Landing analysis (issue #146): one `touchdown` session event per landing, read
@@ -219,7 +230,8 @@ public static class CoreServiceCollectionExtensions
             p.GetService<IGsxGateControl>(),
             p.GetService<Gate.ISayIntentionsGateAssign>(),
             p.GetRequiredService<ILogger<Gate.ArrivalGateCoordinator>>(),
-            p.GetRequiredService<Gate.ArrivalGateStateFile>()));
+            p.GetRequiredService<Gate.ArrivalGateStateFile>(),
+            p.GetService<Airports.Parking.IAirportParkingCatalog>()));
         services.AddSingleton<AircraftProfileService>();
         services.AddHostedService<CoreBootstrapService>();
 

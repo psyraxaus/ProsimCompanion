@@ -190,15 +190,31 @@ thresholds — that most users never touch. Greyed-out fields belong to a switch
 5. **Pushback.** The cabin crew report "cabin secure" a random while after the doors are
    closed and the beacon is on — a minimum wait plus up to a second per passenger, so a full
    cabin can still be securing at the holding point (Settings → Voice First Officer → Cabin
-   Crew). Until then a "cockpit to cabin" hail gets "still securing". GSX's questions
-   (direction, tug, de-ice) are answered per your settings — and any menu GSX leaves for you
+   Crew). Until then a "cockpit to cabin" hail gets "still securing".
+   **Pushback direction** is decided per flight, not by a saved setting: tell the FO what ATC
+   said — *"push back facing north"*, *"tail left"*, *"tail right"*, *"straight back"* — or
+   press a Korry button on the OFP page. With nothing said, the default mode (Settings → GSX →
+   Pushback Direction) applies: **Auto** works out which push faces the departure runway from
+   the stand's GSX profile routes, the stand heading and the runway position (the OFP page
+   shows *Suggested: TAIL RIGHT … for runway 22L*) and applies it when confident; when it is
+   not sure the FO asks *"Pushback — tail left or tail right?"* and GSX's menu waits for your
+   answer. **Ask** always asks. Ask *"which way is the pushback"* any time. GSX's other
+   questions (tug, de-ice) are answered per your settings — and any menu GSX leaves for you
    (an addon airport's named pushback directions, for instance) shows as buttons in the
    **GSX menu** card on Flight Status, the OFP page and Ground Services: pick a line there
    instead of opening the GSX window. The card refuses picks while the automation is
    answering the same menu, and a line that moved before your click landed is not sent —
    every answer, and every "left for you", is in the decision log.
 6. **Flight.** The arrival gate you confirmed on the OFP page is sent to GSX (and
-   SayIntentions ATC) at cruise. To send it, the app first has GSX load the destination
+   SayIntentions ATC) at cruise. Type the gate the way ATC or the OFP names it ("W40", "313",
+   "34B"): as you type, the line under the box shows what the destination's GSX profile and
+   scenery call that stand — *GSX knows it as Gate 40 (Apron 1W (Gates W34-W48)) · jetway ·
+   max span 65 m · VDGS* — because a GSX profile can print a gate under a different name
+   (EFHK prints Gate W40 as "Gate 40"). The send uses the stand's scenery identity (its
+   number) first, then GSX's own name, then your text, so the renamed stand is found.
+   Profiles are read from GSX's folder (`%APPDATA%\Virtuali\GSX\MSFS`) and from inside the
+   scenery packages; the scenery's own parking list comes from the simulator (Settings → GSX
+   → Arrival → Stand Knowledge). To send it, the app first has GSX load the destination
    through GSX's own in-flight **Select airport** menu. GSX sometimes shows no menu at all in
    flight until its toolbar panel has been opened once (issue #141): if the Status section
    says *"menu did not appear"*, open the GSX menu from the MSFS toolbar once after takeoff and

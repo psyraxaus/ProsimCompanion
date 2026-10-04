@@ -122,7 +122,10 @@ public static class SpeechServiceCollectionExtensions
         // Airport coordinates for the flight-progress store (issue #145): the fallback tier
         // behind the gateway's runway list.
         services.AddSingleton<Core.Airports.IAirportCoordinateSource, Briefings.DfdAirportCoordinates>();
+        // Runway threshold + bearing for the pushback advisor (2026-10-04), behind the gateway tier.
+        services.AddSingleton<Core.Airports.IRunwayGeometrySource, Briefings.DfdRunwayGeometry>();
         services.AddSingleton<Briefings.ProcedureSource>();
+        services.AddSingleton<Core.Airports.IDepartureRunwaySource, Briefings.FmsDepartureRunway>();
         services.AddSingleton<Briefings.MinimaCaptureDialogue>();
         services.AddStartupModule<Briefings.MissedApproachRebrief>();
         services.AddSingleton<Briefings.BriefingService>();
@@ -163,6 +166,12 @@ public static class SpeechServiceCollectionExtensions
         // through the named-command registry so voice/web/API/StreamDeck share one seam.
         services.AddSingleton<Gsx.GsxVoiceService>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Gsx.GsxVoiceService>());
+        // Pushback direction for THIS flight by voice ("push back facing north", "tail left")
+        // and the FO's "tail left or tail right?" question when the automation is unsure
+        // (2026-10-04). Writes the Core per-flight store the GSX pillar answers GSX's menu from.
+        services.AddSingleton<Gsx.PushbackDirectionVoiceFeature>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Gsx.PushbackDirectionVoiceFeature>());
+        services.AddStartupModule<Gsx.PushbackQuestionDialogue>();
         // Interphone hail dialogues ("cockpit to ground" → "go ahead, captain" → request) and
         // ground-crew upcalls on INT (ADR-0006 / issue #51). The hail feature registers AFTER
         // GsxVoiceService so single-shot phrases keep their precedence.

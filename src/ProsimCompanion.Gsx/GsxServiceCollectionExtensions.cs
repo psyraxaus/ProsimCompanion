@@ -27,6 +27,10 @@ public static class GsxServiceCollectionExtensions
         // as the automation, so a pilot's click is guarded exactly like an intent.
         services.AddSingleton<Menu.GsxMenuControl>();
         services.AddSingleton<Core.State.IGsxMenuControl>(provider => provider.GetRequiredService<Menu.GsxMenuControl>());
+        // Airport parking knowledge from GSX's own profiles (.ini stands + .py name templates):
+        // the tier of the Core parking catalogue that knows what GSX will CALL a stand before
+        // GSX has loaded the airport (issue: EFHK "W40" → "Gate 40", 2026-10-04).
+        services.AddSingleton<Core.Airports.Parking.IAirportParkingSource, Profiles.GsxProfileParkingSource>();
         services.AddSingleton<Gate.GsxGateSelectionService>();
         services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
         // The trigger slot (CONTEXT.md): the single serialized service.trigger path shared by

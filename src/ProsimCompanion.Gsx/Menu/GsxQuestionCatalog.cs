@@ -24,8 +24,12 @@ public sealed class GsxQuestionCatalog
     private readonly IFlightPhaseSource _flightState;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxQuestionCatalog> _logger;
+    private readonly PushbackChoiceStore? _pushbackChoice;
     private volatile bool _directionAutoSelected;
     private volatile bool _selectPositionSeenWhileMoving;
+
+    /// <summary>GSX's direction menu title (manual p.24).</summary>
+    internal const string PushbackDirectionTitle = "Select pushback direction";
 
     public GsxQuestionCatalog(
         IGsxRemoteApi api,
@@ -34,7 +38,8 @@ public sealed class GsxQuestionCatalog
         GsxDiagnosticsStore diagnostics,
         IFlightPhaseSource flightState,
         JsonlEventLog eventLog,
-        ILogger<GsxQuestionCatalog> logger)
+        ILogger<GsxQuestionCatalog> logger,
+        PushbackChoiceStore? pushbackChoice = null)
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(executor);
@@ -51,6 +56,7 @@ public sealed class GsxQuestionCatalog
         _flightState = flightState;
         _eventLog = eventLog;
         _logger = logger;
+        _pushbackChoice = pushbackChoice;
 
         // App-lifetime singleton — no unsubscribe needed. A Couatl engine restart starts a new
         // GSX session, so the once-per-session direction latch re-arms.
@@ -60,7 +66,32 @@ public sealed class GsxQuestionCatalog
             _selectPositionSeenWhileMoving = false;
         };
         _flightState.PhaseChanged += OnPhaseChanged;
+
+        if (_pushbackChoice is not null)
+        {
+            // The pilot answers the FO (or clicks a Korry button) while GSX's direction menu is
+            // still open: apply it now. And when the menu goes away, withdraw the open question.
+            _pushbackChoice.Observe(snapshot =>
+            {
+                if (snapshot.Choice is not null && IsPushbackDirectionMenuOpen() && !_directionAutoSelected)
+                {
+                    _ = HandlePushbackDirectionAsync(CancellationToken.None);
+                }
+            });
+            _api.Mirror.Updated += key =>
+            {
+                if ((key.Equals("menushown", StringComparison.OrdinalIgnoreCase) || key.Equals("menu", StringComparison.OrdinalIgnoreCase))
+                    && !IsPushbackDirectionMenuOpen())
+                {
+                    _pushbackChoice.ClearQuestion();
+                }
+            };
+        }
     }
+
+    private bool IsPushbackDirectionMenuOpen()
+        => _api.Mirror.MenuShown
+            && _api.Mirror.Menu?.Title.StartsWith(PushbackDirectionTitle, StringComparison.OrdinalIgnoreCase) == true;
 
     /// <summary>Registers all catalogued questions on the dispatcher.</summary>
     public void RegisterAll(GsxQuestionDispatcher dispatcher)
@@ -380,13 +411,36 @@ public sealed class GsxQuestionCatalog
             return;
         }
 
-        var pick = PushbackDirectionResolver.Resolve(menu.Entries, options.PushbackPreference);
-        if (pick is null)
+        // 2026-10-04: the pilot's choice for THIS flight (voice / Korry / API) wins; else the
+        // configured mode — auto applies the runway-facing suggestion, ask hands it to the FO.
+        var state = _pushbackChoice?.Snapshot();
+        var decision = PushbackDirectionDecider.Decide(menu.Entries, options.PushbackPreference, options.PushbackAskWhenUnsure, state);
+        _eventLog.Record("pushback-direction-decision", new
         {
-            RecordDecision(
-                "pushback direction menu",
-                $"left for the user (no entry matches preference '{options.PushbackPreference}')");
-            return;
+            kind = decision.Kind.ToString(),
+            entry = decision.Entry,
+            reason = decision.Reason,
+            entries = menu.Entries,
+            choice = state?.Choice?.Spoken,
+            suggestion = state?.Suggestion?.Option.Label,
+        });
+
+        switch (decision.Kind)
+        {
+            case PushbackDecisionKind.Ask:
+                if (_pushbackChoice is null)
+                {
+                    RecordDecision("pushback direction menu", $"left for the user ({decision.Reason}; no choice store)");
+                    return;
+                }
+
+                _pushbackChoice.AskPilot(decision.Options);
+                RecordDecision("pushback direction menu", $"asked the pilot — {decision.Reason}");
+                return;
+
+            case PushbackDecisionKind.Leave:
+                RecordDecision("pushback direction menu", $"left for the user ({decision.Reason})");
+                return;
         }
 
         // Re-match the resolved entry text exactly in the live menu (predecessor semantics): a
@@ -395,20 +449,21 @@ public sealed class GsxQuestionCatalog
             new GsxMenuIntent
             {
                 Name = "pushback direction selection",
-                TitlePrefixes = ["Select pushback direction"],
-                EntryPattern = new Regex($"^{Regex.Escape(pick.Entry)}$"),
+                TitlePrefixes = [PushbackDirectionTitle],
+                EntryPattern = new Regex($"^{Regex.Escape(decision.Entry!)}$"),
             },
             cancellationToken).ConfigureAwait(false);
 
         if (result.Succeeded)
         {
             _directionAutoSelected = true;
+            _pushbackChoice?.ClearQuestion();
         }
 
         RecordDecision(
             "pushback direction menu",
             result.Succeeded
-                ? $"picked '{pick.Entry}' ({pick.Strategy}, preference {options.PushbackPreference})"
+                ? $"picked '{decision.Entry}' — {decision.Reason}"
                 : $"{result.Outcome}: {result.Detail}");
     }
 

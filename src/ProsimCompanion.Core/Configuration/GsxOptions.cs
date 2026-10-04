@@ -122,10 +122,22 @@ public sealed class GsxOptions : IOptionSection
     /// (predecessor default).</summary>
     public string CallPushbackWhenTugAttached { get; set; } = "afterFinalLoadsheet";
 
-    /// <summary>Direction auto-picked when GSX raises the "Select pushback direction" menu:
-    /// "straight" | "tailLeft" | "tailRight" (Prosim2GSX's tri-state, set from the OFP page's
-    /// Korry buttons). Matching is by entry text; no match leaves the menu for the user.</summary>
-    public string PushbackPreference { get; set; } = "straight";
+    /// <summary>
+    /// What answers GSX's "Select pushback direction" menu when the pilot has not chosen a
+    /// direction for THIS flight (voice "tail left" / "push back facing north", the OFP page's
+    /// Korry buttons, the API — those always win):
+    /// <c>"auto"</c> (default since 2026-10-04) applies the advisor's suggestion when it is
+    /// confident — the push that faces the departure runway, from the GSX profile's routes,
+    /// the stand heading and the runway position — and otherwise asks;
+    /// <c>"ask"</c> never guesses: the FO asks "Tail left or tail right?" and the menu waits;
+    /// <c>"straight"</c> | <c>"tailLeft"</c> | <c>"tailRight"</c> are the old fixed answers
+    /// (Prosim2GSX's tri-state). Unknown values read as auto.
+    /// </summary>
+    public string PushbackPreference { get; set; } = "auto";
+
+    /// <summary>With <see cref="PushbackPreference"/> = auto and no confident suggestion, ask
+    /// the pilot by voice (on) or leave GSX's menu open silently (off).</summary>
+    public bool PushbackAskWhenUnsure { get; set; } = true;
 
     /// <summary>Accept the de-icing offer and select fluid automatically.</summary>
     public bool AutoDeIce { get; set; }
@@ -280,6 +292,26 @@ public sealed class GsxOptions : IOptionSection
     /// leaves the menu for you. Off by default until the menu shape is verified live.
     /// </summary>
     public bool AnswerPositionMenuWithArrivalGate { get; set; }
+
+    // ---- Airport parking knowledge (GSX profiles + scenery) ----
+
+    /// <summary>
+    /// Read the airport's GSX profile (<c>.ini</c> stand data + <c>.py</c> name templates) and
+    /// the scenery's parking list before sending a gate, so "W40" becomes the stand GSX knows as
+    /// "Gate 40" (EFHK, 2026-10-04: the template drops the GATE letter, and the bare token was
+    /// refused every time). Also feeds the pushback-direction suggestion. On by default.
+    /// </summary>
+    public bool ResolveGatesFromProfiles { get; set; } = true;
+
+    /// <summary>GSX's user profile folder; empty ⇒ <c>%APPDATA%\Virtuali\GSX\MSFS</c> on this
+    /// machine (set it when the app runs on a different PC from the simulator and the folder is
+    /// shared).</summary>
+    public string GsxProfileFolder { get; set; } = "";
+
+    /// <summary>MSFS package roots (the folders holding <c>Community</c> and <c>Official</c>),
+    /// searched for profiles shipped inside scenery packages. Empty ⇒ auto-detected from the
+    /// Store/Steam install locations and <c>UserCfg.opt</c> on this machine.</summary>
+    public List<string> SceneryPackageFolders { get; set; } = [];
 
     /// <summary>Turn off ProSim's own GSX auto-integration flags (efb.gsx.*) while this
     /// application drives GSX — prevents the two automations fighting each other.</summary>

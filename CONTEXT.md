@@ -56,6 +56,23 @@ The logical cycle of ground-operations milestones (loadsheets, deice, reset) tha
 observe; each milestone occurs at most once per cycle.
 _Avoid_: ground signals
 
+**Parking catalogue**:
+Everything known about an airport's stands, merged per scenery identity (name group + number
++ suffix — "GATE_W 40") from the GSX profile tier (`.ini` stand data, `.py` name templates;
+user folder over the copy shipped inside the scenery package) and the scenery tier (the
+simulator's TAXI_PARKING facility data). A stand's **GSX name** is what the template prints
+("Gate 40" for GATE_W 40 — the letter is never expanded); its **identity** is what `gate.select`
+is sent (the number first). Cached per airport for the session.
+_Avoid_: gate database, parking list (that is the Remote API mirror's `handlerData` list)
+
+**Pushback choice**:
+The pilot's pushback direction for THIS flight — by voice ("push back facing north", "tail
+left"), the OFP Korry buttons or the API — and, beneath it, the advisor's **suggestion**: the
+push whose release heading faces the departure runway, from the stand's profile routes, the
+stand heading and the runway threshold. The configured mode (`auto` / `ask` / fixed) only
+applies when the pilot has not chosen. Resets with the flight cycle and a new OFP.
+_Avoid_: pushback preference (that is the saved default mode), pushback setting
+
 ### Sim session
 
 **Session window**:

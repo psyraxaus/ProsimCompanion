@@ -271,5 +271,22 @@ internal static class VoiceReferenceDescribers
                     new(["check the aircraft state", "recheck the aircraft state", "check aircraft state", "recheck aircraft state", "check the state of the aircraft"],
                         "Re-runs the cold-and-dark check; the FO reads the verdict."),
                 ]),
+
+            [typeof(Gsx.PushbackDirectionVoiceFeature)] = new(
+                "pushbackDirection", "Pushback direction", VoiceReferenceTab.Ground, VoiceSpeaker.FirstOfficer,
+                "gsx.voiceControlEnabled is off — Settings → GSX",
+                [
+                    new(["push back tail left", "pushback tail left", "tail left", "push back nose right", "pushback nose right"],
+                        "This flight's push: GSX's 'Nose Right / Tail Left'. Applied when GSX shows the direction menu.", "Pushback tail left."),
+                    new(["push back tail right", "pushback tail right", "tail right", "push back nose left", "pushback nose left"],
+                        "This flight's push: GSX's 'Nose Left / Tail Right'.", "Pushback tail right."),
+                    new(["push back straight", "pushback straight", "straight back", "straight pushback"],
+                        "This flight's push: 'Straight pushback'.", "Pushback straight back."),
+                    new(["push back facing north", "pushback facing north", "facing north"],
+                        "Relay ATC's direction; the FO picks the route that ends facing that way (any of the eight compass points).",
+                        "Pushback facing north — that is tail right here.", [Value], "‹north | north east | east | south east | south | south west | west | north west›"),
+                    new(["which way is the pushback", "pushback direction", "which way do we push", "confirm pushback direction"],
+                        "Your choice for this flight, or the FO's suggestion toward the departure runway.", "I suggest tail right for runway 22L — it faces the runway."),
+                ]),
         };
 }

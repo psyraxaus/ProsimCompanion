@@ -215,6 +215,14 @@ runs as (`GateDispatchPlanner`, pure):
   `/airport` key is what live GSX 4 pushes — listening to handlerData alone missed it), FMS
   destination and phase changes; re-arm on `sid` change. **At most one auto-retry total.**
 
+**Resolved first (2026-10-04, see `gsx-profiles.md`).** Before the typed token goes out, the
+airport parking catalogue (GSX `.ini`/`.py` profile + the sim's facility data) resolves the
+token by SCENERY IDENTITY — "W40" = GATE_W number 40 — and the ladder sends the **number as an
+integer**, then GSX's own gate name, then its full name, then the default name, and only then
+the typed text. That is the fix for the EFHK W40 refusals: the profile template prints GATE_W
+40 as "Gate 40", so no display text ever contained the W. Event `gsx-gate-resolved` records the
+identity, GSX name, confidence and the token list. With no catalogue answer the old ladder runs:
+
 1. Plain: `{gate: "<as typed>", revokeServices:false, force:false}`
 2. `not_found` → resend `gate` = the parking **number as an integer** when exactly one
    mirrored parking's uiGateName/uiName/bglName equals or ends with the token
@@ -232,7 +240,16 @@ re-assigning the same gate may already match). Letter map: Name 0 = NONE, 10 = "
 12..37 = A..Z → "{Letter}{Number}"; Suffix −1 = unassigned. Window expiry → "Assigned
 (unconfirmed)", never a failure.
 
-**ARCHAEOLOGY (2026-09-21 review): the `gate` token contract is still unproven.** Every
+**SETTLED (2026-10-04, from the shipped manual + Couatl.log):** GSX's names for the stand are
+exactly what the profile template prints; EFHK W40 = "Apron 1W (Gates W34-W48) | Gate 40",
+EGLL 313 = "Terminal 3 | Gate  313" (two spaces). The spec is in the shipped
+`GSX_manual_MSFS.pdf` ("Couatl Remote API v2 — Developer Guide", §8.14), not only online.
+The 2026-10-04 flight also showed `NumberFallback` never fired — the mirror's
+`handlerData.airport.parkings` was most likely empty/stale for the destination (§8.13: handlerData
+is patched on aircraft swap / arriving at a gate / SimBrief reload — not promised on airport
+load); the `gsx-gate-not-found` event's `parkings` count is the proof to read next flight.
+
+**ARCHAEOLOGY (2026-09-21 review): the `gate` token contract was unproven then.** Every
 `gate.select` in every recorded flight from 2026-08-09 to 2026-09-20 was refused `not_found`,
 whatever shape was sent: `" Gate D27"`, `"D27"`, `"D5"` (EHAM); `"Stand 313"`, `"313"`,
 `"Stand 546"`, `"Terminal 5B (531-548)|Stand 546"`, `"546"` (EGLL); `"Stand 829"` (LIRF);

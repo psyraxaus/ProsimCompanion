@@ -136,6 +136,9 @@ triggered for VDGS data.
   `ProsimDataRefNames.Lvars`); after a write, the sim echoes the value on the next frame —
   treat the echo as authoritative, don't suppress it.
 - Full Remote API wire protocol: see [gsx-remote-api.md](gsx-remote-api.md).
+- GSX airport profiles (`.ini` stands, `.py` name templates, where they live, the `#`/`§`
+  template rule that renamed EFHK's W40 to "Gate 40"), the sim's facility-data parking list and
+  the pushback-direction advisor: see [gsx-profiles.md](gsx-profiles.md).
 
 ## 6. Companion tracking LVARs (issue #30 — startup resync)
 

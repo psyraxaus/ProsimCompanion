@@ -1,14 +1,15 @@
 @page "/ofp"
 @using ProsimCompanion.Core.Aircraft.Ofp
+@using ProsimCompanion.Core.Airports.Parking
 @using ProsimCompanion.Core.Deice
 @using ProsimCompanion.Core.Gate
 @using ProsimCompanion.Core.Weather
 @inherits StoreObserverComponent
 @inject OfpStore Ofp
 @inject IOptionsMonitor<GsxOptions> GsxOptionsMonitor
-@inject SettingsWriter Writer
 @inject ArrivalGateCoordinator GateCoordinator
 @inject GsxDiagnosticsStore GsxStore
+@inject PushbackChoiceStore PushbackChoices
 @inject WeatherStore Weather
 @inject IWeatherControl WeatherControl
 @inject DeiceHoldoverService Deice
@@ -95,9 +96,13 @@
             {
                 <div class="ofp-gate-row">
                     <span class="figure figure-lg">@_ofp.DestinationIcao</span>
-                    <input class="text-input ofp-gate-input" placeholder="GATE" @bind="_gate"
+                    <input class="text-input ofp-gate-input" placeholder="GATE" @bind="_gate" @bind:after="OnGateTyped"
                            aria-label="Arrival gate" />
                 </div>
+                @if (_typedStandInfo.Length > 0)
+                {
+                    <div class="field-hint ofp-gate-stand">@_typedStandInfo</div>
+                }
                 <div class="ofp-gate-buttons">
                     <button type="button" class="btn secondary" disabled="@(_gate.Trim().Length == 0)" @onclick="ConfirmGate">Confirm</button>
                     <button type="button" class="btn secondary" @onclick="CancelGate">Cancel</button>
@@ -110,6 +115,10 @@
                         <span class="fs-chip-dot live" aria-hidden="true"></span>
                         <span>@(_gateAssignment.Sent ? $"Sent {pending}" : $"Queued {pending} — auto-send at cruise")</span>
                     </div>
+                }
+                @if (_gateAssignment.StandInfo.Length > 0)
+                {
+                    <div class="field-hint">Stand: @_gateAssignment.StandInfo</div>
                 }
                 @if (_gateAssignment.AtcStatus.Length > 0)
                 {
@@ -193,19 +202,42 @@
             <div class="section-body">
                 <div class="korry-group" role="group" aria-label="Pushback direction">
                     <KorryPushbackButton Arrow="tailLeft" Label="TAIL LEFT" Subtitle="NOSE RIGHT"
-                                         IsActive="@(CurrentPreference == "tailLeft")"
-                                         Title="Auto-select 'Nose Right / Tail Left' when GSX shows the direction menu."
-                                         OnClick="@(() => SetPreference("tailLeft"))" />
+                                         IsActive="@(ActiveWish == PushbackWish.TailLeft)"
+                                         Title="This flight: pick 'Nose Right / Tail Left' when GSX shows the direction menu."
+                                         OnClick="@(() => Choose(PushbackWish.TailLeft))" />
                     <KorryPushbackButton Arrow="straight" Label="STRAIGHT" Subtitle="STRAIGHT BACK"
-                                         IsActive="@(CurrentPreference == "straight")"
-                                         Title="Auto-select 'Straight pushback' when GSX shows the direction menu."
-                                         OnClick="@(() => SetPreference("straight"))" />
+                                         IsActive="@(ActiveWish == PushbackWish.Straight)"
+                                         Title="This flight: pick 'Straight pushback' when GSX shows the direction menu."
+                                         OnClick="@(() => Choose(PushbackWish.Straight))" />
                     <KorryPushbackButton Arrow="tailRight" Label="TAIL RIGHT" Subtitle="NOSE LEFT"
-                                         IsActive="@(CurrentPreference == "tailRight")"
-                                         Title="Auto-select 'Nose Left / Tail Right' when GSX shows the direction menu."
-                                         OnClick="@(() => SetPreference("tailRight"))" />
+                                         IsActive="@(ActiveWish == PushbackWish.TailRight)"
+                                         Title="This flight: pick 'Nose Left / Tail Right' when GSX shows the direction menu."
+                                         OnClick="@(() => Choose(PushbackWish.TailRight))" />
                 </div>
-                <div class="ofp-hint ofp-hint-center">Auto-answers the GSX direction menu · saved as gsx.pushbackPreference</div>
+                @if (_pushback.Choice is { } chosen)
+                {
+                    <div class="ofp-gate-status">
+                        <span class="fs-chip-dot live" aria-hidden="true"></span>
+                        <span>This flight: @chosen.Spoken (@chosen.Source)</span>
+                        <button type="button" class="btn secondary btn-sm" @onclick="ClearChoice" title="Back to the suggestion">Auto</button>
+                    </div>
+                }
+                @if (_pushback.Suggestion is { } suggestion)
+                {
+                    <div class="field-hint">
+                        Suggested: <strong>@SuggestionWord(suggestion)</strong>@(suggestion.Confidence == PushbackConfidence.Low ? " (lean)" : "")
+                        @(_pushback.Stand is { } st ? $" at {st}" : "")@(_pushback.Runway is { } rw ? $" for runway {rw}" : "") — @suggestion.Reason
+                    </div>
+                }
+                else if (_pushback.Stand is { } stand)
+                {
+                    <div class="field-hint">Stand @stand@(_pushback.Runway is { } rw2 ? $", runway {rw2}" : ", no departure runway in the OFP") — no suggestion yet.</div>
+                }
+                @if (_pushback.Question is not null)
+                {
+                    <div class="field-hint">GSX is asking which way — tell the FO ("tail left", "tail right", "push back facing north") or press a button.</div>
+                }
+                <div class="ofp-hint ofp-hint-center">Buttons choose for this flight only · default mode: @ModeWord · Settings → GSX → Pushback</div>
                 @* Issue #135: addon airports name up to three directions per stand and the
                    Korry preference cannot reach the third — the live menu card can. *@
                 <GsxMenuCard Hint="When GSX shows 'Select pushback direction' with the stand's own named lines, pick one here — no need to open the GSX window." />
@@ -260,6 +292,8 @@
     private DeiceHoldoverSnapshot _deice = new(false, false, "", HotPrecip.None, 0, 0, 0, "Awaiting GSX deicing…");
     private double _deiceOat;
     private string _gate = "";
+    private string _typedStandInfo = "";
+    private CancellationTokenSource? _standLookup;
 
     // One label/figure cell of the hero data grid (ADR-0011).
     private static RenderFragment Datum(string label, string value, string? tone = null) => @<div class="ofp-datum">
@@ -267,7 +301,40 @@
         <span class="figure @tone">@value</span>
     </div>;
 
-    private string CurrentPreference => GsxOptionsMonitor.CurrentValue.PushbackPreference;
+    private PushbackChoiceSnapshot _pushback = PushbackChoiceSnapshot.Empty;
+
+    // The lit button: the pilot's choice for this flight, else the confident suggestion.
+    private PushbackWish ActiveWish => _pushback.Effective?.Wish ?? PushbackWish.None;
+
+    private string ModeWord => GsxOptionsMonitor.CurrentValue.PushbackPreference switch
+    {
+        "ask" => "ask the pilot",
+        "tailLeft" => "always tail left",
+        "tailRight" => "always tail right",
+        "straight" => "always straight",
+        _ => "auto (toward the runway)",
+    };
+
+    private static string SuggestionWord(PushbackSuggestion suggestion) => suggestion.Option.Kind switch
+    {
+        PushbackOptionKind.Left => "TAIL LEFT",
+        PushbackOptionKind.Right => "TAIL RIGHT",
+        PushbackOptionKind.Straight => "STRAIGHT",
+        _ => suggestion.Option.Label,
+    };
+
+    private void Choose(PushbackWish wish)
+    {
+        var choice = wish switch
+        {
+            PushbackWish.TailLeft => PushbackChoice.TailLeft("web", "OFP page Korry button"),
+            PushbackWish.TailRight => PushbackChoice.TailRight("web", "OFP page Korry button"),
+            _ => PushbackChoice.Straight("web", "OFP page Korry button"),
+        };
+        PushbackChoices.Choose(choice);
+    }
+
+    private void ClearChoice() => PushbackChoices.ClearChoice();
 
     // Predecessor formats: "{out} / {in}" with per-side "—", and FL350 / "FL---" sentinels.
     private string RunwayOutIn => _ofp is null
@@ -283,6 +350,7 @@
     protected override void OnInitialized()
     {
         Watch(GsxStore, snapshot => _gsx = snapshot);
+        Watch(PushbackChoices, snapshot => _pushback = snapshot);
         Watch(Weather, snapshot => _weather = snapshot);
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
         WatchChanged(h => GateCoordinator.Changed += h, h => GateCoordinator.Changed -= h,
@@ -294,15 +362,35 @@
         _deiceOat = _deice.OatC;
     }
 
-    private void SetPreference(string key)
-        // Korry buttons persist immediately (Prosim2GSX behaviour) — no dirty bar.
-        => Writer.Set<GsxOptions, string>(o => o.PushbackPreference, key);
-
     private void ConfirmGate()
     {
         if (_gate.Trim().Length > 0)
         {
             GateCoordinator.Confirm(_gate);
+        }
+    }
+
+    // Live hint under the input (2026-10-04): what the GSX profile / scenery call the typed
+    // stand — "GSX knows it as Gate 40 (Apron 1W …)" — so a template-renamed gate is visible
+    // before Confirm. Debounced; a newer keystroke cancels the older lookup.
+    private async Task OnGateTyped()
+    {
+        _standLookup?.Cancel();
+        var cts = _standLookup = new CancellationTokenSource();
+        var typed = _gate;
+        try
+        {
+            await Task.Delay(350, cts.Token);
+            var info = await GateCoordinator.DescribeAsync(typed, cts.Token);
+            if (!cts.IsCancellationRequested)
+            {
+                _typedStandInfo = info;
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // superseded by a newer keystroke
         }
     }
 

@@ -1,14 +1,17 @@
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft.Ofp;
+using ProsimCompanion.Core.Airports.Parking;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Gate;
 
 /// <summary>Point-in-time view of the arrival-gate workflow for the OFP page: the queued
-/// gate, whether it has been dispatched, and one status line per target (ATC via
-/// SayIntentions, GSX via gate.select).</summary>
-public sealed record ArrivalGateView(string? PendingGate, bool Sent, string AtcStatus, string GsxStatus)
+/// gate, whether it has been dispatched, one status line per target (ATC via
+/// SayIntentions, GSX via gate.select), and what the parking catalogue knows about the
+/// stand ("GSX knows it as Gate 40 (Apron 1W …) · jetway · max span 65 m"; empty while
+/// unknown).</summary>
+public sealed record ArrivalGateView(string? PendingGate, bool Sent, string AtcStatus, string GsxStatus, string StandInfo = "")
 {
     public static ArrivalGateView Empty { get; } = new(null, false, "", "");
 }
@@ -30,21 +33,28 @@ public sealed class ArrivalGateCoordinator : IDisposable
     private readonly ISayIntentionsGateAssign? _atc;
     private readonly ILogger<ArrivalGateCoordinator> _logger;
     private readonly ArrivalGateStateFile? _store;
+    private readonly IAirportParkingCatalog? _parkings;
     private readonly object _lock = new();
     private readonly ArrivalGatePlan _queue = new();
     private string _atcStatus = "";
     private string _gsxStatus = "";
+    private string _standInfo = "";
+    private string? _standInfoGate;
 
     /// <param name="store">Restart persistence for the queue (2026-09-20: two in-flight app
     /// restarts lost the confirmed gate). Null (tests, or a composition without it) keeps the
     /// queue in memory only.</param>
+    /// <param name="parkings">The airport parking catalogue (2026-10-04) — describes the
+    /// confirmed stand on the OFP page so a template-renamed gate ("W40" → "Gate 40") is
+    /// visible before the send. Null keeps the view without the line.</param>
     public ArrivalGateCoordinator(
         IFlightPhaseSource phase,
         OfpStore ofp,
         IGsxGateControl? gsxGate,
         ISayIntentionsGateAssign? sayIntentions,
         ILogger<ArrivalGateCoordinator> logger,
-        ArrivalGateStateFile? store = null)
+        ArrivalGateStateFile? store = null,
+        IAirportParkingCatalog? parkings = null)
     {
         ArgumentNullException.ThrowIfNull(phase);
         ArgumentNullException.ThrowIfNull(ofp);
@@ -56,8 +66,88 @@ public sealed class ArrivalGateCoordinator : IDisposable
         _atc = sayIntentions;
         _logger = logger;
         _store = store;
+        _parkings = parkings;
 
         _phase.PhaseChanged += OnPhaseChanged;
+    }
+
+    /// <summary>The most recent stand lookup, awaitable by tests; UI callers never block on it.</summary>
+    public Task LastStandLookup { get; private set; } = Task.CompletedTask;
+
+    /// <summary>What the catalogue knows about a gate token at the OFP destination, as one
+    /// line; empty when no source knows the airport or the token matches no stand. Used by
+    /// the OFP page for the live hint under the input and by the FO's answer.</summary>
+    public async Task<string> DescribeAsync(string? gate, CancellationToken cancellationToken = default)
+    {
+        var token = ArrivalGatePlan.Normalize(gate);
+        var icao = ArrivalGatePlan.Normalize(_ofp.Current?.DestinationIcao);
+        if (_parkings is null || token is null || icao is null)
+        {
+            return "";
+        }
+
+        try
+        {
+            var catalogue = await _parkings.GetAsync(icao, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var match = ParkingTokenResolver.Resolve(catalogue, token);
+            if (match is not null)
+            {
+                return ParkingDescription.Describe(match);
+            }
+
+            return catalogue is null
+                ? ""
+                : $"no stand '{token}' among the {catalogue.Parkings.Count} the profile/scenery list for {icao}";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Stand lookup for {Gate} at {Icao} failed", token, icao);
+            return "";
+        }
+    }
+
+    private void RefreshStandInfo(string? gate)
+    {
+        lock (_lock)
+        {
+            if (string.Equals(_standInfoGate, gate, StringComparison.Ordinal) && !string.IsNullOrEmpty(_standInfo))
+            {
+                return;
+            }
+
+            _standInfoGate = gate;
+            _standInfo = "";
+        }
+
+        if (gate is null)
+        {
+            return;
+        }
+
+        LastStandLookup = Task.Run(async () =>
+        {
+            var info = await DescribeAsync(gate).ConfigureAwait(false);
+            lock (_lock)
+            {
+                if (!string.Equals(_standInfoGate, gate, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _standInfo = info;
+            }
+
+            if (info.Length > 0)
+            {
+                _logger.LogInformation("Arrival gate {Gate}: {StandInfo}", gate, info);
+            }
+
+            RaiseChanged();
+        });
     }
 
     /// <summary>
@@ -109,6 +199,7 @@ public sealed class ArrivalGateCoordinator : IDisposable
             "Arrival gate {Gate} restored after restart ({Action}, phase {Phase})",
             gate, action, _phase.CurrentPhase);
         RaiseChanged();
+        RefreshStandInfo(gate);
 
         switch (action)
         {
@@ -152,7 +243,7 @@ public sealed class ArrivalGateCoordinator : IDisposable
     {
         lock (_lock)
         {
-            return new(_queue.PendingGate, _queue.Fired, _atcStatus, _gsxStatus);
+            return new(_queue.PendingGate, _queue.Fired, _atcStatus, _gsxStatus, _standInfo);
         }
     }
 
@@ -182,6 +273,7 @@ public sealed class ArrivalGateCoordinator : IDisposable
         _logger.LogInformation("Arrival gate {Gate} confirmed — auto-sends at cruise", queued);
         Persist(fired: false);
         RaiseChanged();
+        RefreshStandInfo(queued);
         TryAutoFire(_phase.CurrentPhase);
     }
 
@@ -202,6 +294,7 @@ public sealed class ArrivalGateCoordinator : IDisposable
 
         _logger.LogInformation("Arrival gate {Gate} — Send Now", send);
         Persist(fired: true);
+        RefreshStandInfo(send);
         LastDispatch = DispatchAsync(send, includeAtc: true);
         return LastDispatch;
     }
@@ -214,6 +307,8 @@ public sealed class ArrivalGateCoordinator : IDisposable
             _queue.Clear();
             _atcStatus = "";
             _gsxStatus = "";
+            _standInfo = "";
+            _standInfoGate = null;
         }
 
         try

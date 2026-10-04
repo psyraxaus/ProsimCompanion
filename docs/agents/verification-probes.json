@@ -103,6 +103,63 @@
       "notes": "Shipped 2026-10-04 (#156). EGLL→EFHK 2026-10-03 rc.8: airport pick ×3 'menu did not appear', gate.select 'W40' ×4 not_found with EFHK loaded, GSX parked the aircraft at Stand 401 and asked Select Position itself. The position-menu answer is off by default and unverified live; its menu shape (facility groups with '(Gates W34-W48)' ranges → 'All … positions' page) is from that flight's log."
     },
     {
+      "id": "gate-resolved-by-identity",
+      "issue": 156,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gsx-gate-resolved",
+        "fields": [
+          "gate",
+          "airport",
+          "identity",
+          "gsxName",
+          "confidence",
+          "tokens"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "When an arrival gate was armed and GSX had the destination loaded: a gsx-gate-resolved event BEFORE the first gate.select of that dispatch, carrying the scenery identity (e.g. 'Gate W40'), GSX's name ('Apron 1W (Gates W34-W48) | Gate 40'), the confidence and the token list starting with the integer number. The first gate.select command in the log must then carry that integer ({\"gate\":40}), and succeed (ok|prepared|already_selected) or be followed by the next rung — never by the bare typed token first.",
+        "Log line 'Parking catalogue for <ICAO>: N stands from <notes>' names which tiers answered (gsx-profile: <files>; facility: N parkings, M jetways). facility missing on a flight with MSFS connected = the facility definition failed — look for 'Facility definition failed' or a SimConnect exception DATA_ERROR/INVALID_DATA_TYPE/INVALID_DATA_SIZE near connect; quote the field list in FacilityDefinition.Fields for the fix.",
+        "Log line 'Parking positions at <ICAO>: N stands known to two sources, median offset X m' — X under ~30 m confirms the facility BIAS_X/BIAS_Z east/north convention; 'LARGE' means an axis is flipped (fix AirportFacilityService.Offset, then re-verify).",
+        "On the OFP page (requires-human): typing the gate shows the 'GSX knows it as …' line within a second; after Confirm the 'Stand:' line repeats it.",
+        "assert-absent: gsx-gate-not-found for a stand that a gsx-gate-resolved event named with confidence Exact — GSX refused the number of a stand the scenery has: quote both events and the mirror parkings count."
+      ],
+      "notes": "Shipped 2026-10-04 (Option A + B, unverified live). Root cause of the four 'W40' refusals: the EFHK .py template '… | Gate #§' drops the GATE letter, so GSX's name is 'Gate 40'. The resolver sends the parking NUMBER first. See docs/integrations/gsx-profiles.md."
+    },
+    {
+      "id": "pushback-direction-advisor",
+      "issue": 156,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "pushback-direction-decision",
+        "fields": [
+          "kind",
+          "reason",
+          "entries"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "While parked at the departure stand with an OFP (or FMS) runway: a pushback-suggestion event with the stand, runway, options (label, kind, heading, headingSource) and the suggestion + confidence + reason. headingSource 'profile' = the GSX ini release position; 'label' = compass word; 'geometry' = ±90° from the stand heading. REPORT whether the suggested direction was the one the pilot actually wanted (ATC's clearance) — that is the only real verdict for the advisor.",
+        "When GSX raised 'Select pushback direction': exactly one pushback-direction-decision event per menu appearance with kind Pick|Ask|Leave, the reason and the menu lines. Pick must be followed by the executor's 'pushback direction selection' success in the log and GSX pushing that way; Ask must be followed by a pushback-question event (prompt + options) and, if the pilot answered, a pushback-choice event and then a second decision with kind Pick ('pilot chose …'); an unanswered question ends with pushback-question {outcome: unanswered} and the menu left open.",
+        "Voice: 'push back facing <compass>' / 'tail left' / 'tail right' produce pushback-choice with source voice and a readback naming the matched line ('that is tail right here') or the refusal ('no route faces …'). The Korry buttons on the OFP page produce source web.",
+        "assert-absent: two pushback-direction-decision events with kind Pick in the same GSX session (the once-per-session latch), and any Pick whose entry is not one of the event's own entries.",
+        "requires-human: the FO question 'Pushback — tail left or tail right?' (or the stand's custom labels) is heard once, not repeated; the Korry buttons on the OFP page light the pilot's choice (or the confident suggestion) and the 'Suggested: …' line reads sensibly for the stand and runway."
+      ],
+      "notes": "Shipped 2026-10-04 (owner Option 1, all five suggestions incl. voice; unverified live). Default mode changed to auto — users with an explicit pushbackPreference 'straight'/'tailLeft'/'tailRight' in settings.json keep the old fixed behaviour. Advisor rules in docs/integrations/gsx-profiles.md §7."
+    },
+    {
       "id": "parking-position-unknown",
       "issue": 44,
       "state": "closed-regression-watch",

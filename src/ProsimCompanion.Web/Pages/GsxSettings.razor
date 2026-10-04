@@ -2,6 +2,7 @@
 @page "/gsx"
 @layout SettingsLayout
 @using ProsimCompanion.Core.Profiles
+@using ProsimCompanion.Core.Airports.Parking
 @inherits SettingsPageBase
 @inject IOptionsMonitor<GsxOptions> GsxMonitor
 @inject ProfileGsxMirror ProfileMirror
@@ -246,6 +247,14 @@ else if (CurrentSection == "refuel")
 }
 else if (CurrentSection == "pushback")
 {
+    <Section Title="Pushback Direction" Hint="How GSX's 'Select pushback direction' menu is answered when you have not chosen for this flight">
+        <SelectField Label="Default direction" Hint="Your own choice for the flight always wins: say 'tail left', 'tail right' or 'push back facing north' to the FO, or press a Korry button on the OFP page."
+                     More="Auto: the app works out which push faces the departure runway — from the GSX profile's pushback routes, the stand heading and the runway position — and applies it when confident. Ask: the FO always asks 'Tail left or tail right?' and GSX's menu waits for your answer. The three fixed answers behave as before 0.6.0."
+                     Options="PushbackModeOptions" @bind-Value="_gsx.Value.PushbackPreference" />
+        <BoolField Label="Ask when unsure" Hint="In Auto mode, when no confident suggestion exists, the FO asks you (on) or GSX's menu is left open quietly (off)."
+                   Disabled="@(_gsx.Value.PushbackPreference != "auto")"
+                   @bind-Value="_gsx.Value.PushbackAskWhenUnsure" />
+    </Section>
     <Section Title="Pushback">
         <BoolField Label="Beacon-orchestrated pushback sequence" Hint="Beacon on runs the pushback sequence." More="Wait for the APU, close the doors, retract the jetway, clear the equipment, then push back."
                    @bind-Value="_gsx.Value.BeaconPushbackSequenceEnabled" />
@@ -285,6 +294,19 @@ else if (CurrentSection == "arrival")
                    Hint="When GSX itself asks 'Select Position at …' after landing, pick your arrival gate in it: the facility whose range covers the gate, then the row that names it."
                    More="GSX raises that menu on the landing roll when no gate was pre-selected (and when it did not recognise the stand). The pick is by text only — if the gate is not on the page, or two rows could match, the menu is left for you exactly as today. Two tries per flight. New in 0.6.0 and not yet verified live; the session log records every attempt with the rows GSX showed."
                    @bind-Value="_gsx.Value.AnswerPositionMenuWithArrivalGate" />
+    </Section>
+    <Section Title="Stand Knowledge" Hint="Where the app learns what GSX calls each stand, its size, jetway and pushback routes">
+        <BoolField Label="Read GSX profiles and scenery for stands"
+                   Hint="Turn a typed gate like W40 into the stand the scenery and GSX know, before sending it."
+                   More="GSX airport profiles (.ini stand data and .py name templates) and the simulator's own parking list are read for the destination. A template can drop the gate letter — at EFHK the profile prints Gate W40 as 'Gate 40', so the bare 'W40' was refused four times on 2026-10-04. With this on, the stand's NUMBER is sent first, then GSX's own name; the typed text stays the last try. Also feeds the pushback-direction suggestion. Shown under the gate box on the OFP page."
+                   @bind-Value="_gsx.Value.ResolveGatesFromProfiles" />
+        <TextField Label="GSX profile folder" Hint="GSX's own airport profile folder. Empty: %APPDATA%\Virtuali\GSX\MSFS on this PC."
+                   More="Set it only when this app runs on another PC than the simulator and the folder is shared."
+                   Placeholder="@GsxProfileFolderPlaceholder" Disabled="@(!_gsx.Value.ResolveGatesFromProfiles)"
+                   @bind-Value="_gsx.Value.GsxProfileFolder" />
+        <TextField Label="Scenery package folders" Hint="MSFS package roots (the folders holding Community and Official), separated by ;. Empty: found by itself from the Store/Steam install and UserCfg.opt."
+                   More="@SceneryFoldersMore" Placeholder="@SceneryFoldersPlaceholder" Disabled="@(!_gsx.Value.ResolveGatesFromProfiles)"
+                   @bind-Value="SceneryFoldersText" />
     </Section>
     <Section Title="Fuel Memory">
         <BoolField Label="Remember fuel on board" Hint="Save the fuel on board at arrival and load it back next session."
@@ -480,12 +502,41 @@ else if (CurrentSection == "connection")
     private static readonly IReadOnlyList<(string, string)> TugAnswerOptions =
         [("ignore", "Don't answer"), ("no", "No"), ("yes", "Yes")];
 
+    private static readonly IReadOnlyList<(string, string)> PushbackModeOptions =
+        [("auto", "Auto — toward the departure runway"), ("ask", "Ask me every time"), ("tailLeft", "Always tail left"), ("tailRight", "Always tail right"), ("straight", "Always straight")];
+
     private static readonly IReadOnlyList<(string, string)> TugPushbackOptions =
         [("never", "Never"), ("afterDepartureServices", "After departure services"), ("afterFinalLoadsheet", "After final loadsheet")];
 
     private OptionsDraft<GsxOptions> _gsx = default!;
 
     protected override void OnInitialized() => _gsx = Draft(GsxMonitor);
+
+    // ---- Stand knowledge (2026-10-04) ----
+
+    private static string GsxProfileFolderPlaceholder => MsfsPackageRoots.GsxUserProfileFolder;
+
+    // The folders the app would scan right now with the box empty — shown as the placeholder
+    // and in the long hint so the pilot can see the auto-detection worked.
+    private static readonly Lazy<IReadOnlyList<string>> DetectedPackageRoots = new(MsfsPackageRoots.Detect);
+
+    private static string SceneryFoldersPlaceholder => DetectedPackageRoots.Value.Count > 0
+        ? string.Join("; ", DetectedPackageRoots.Value)
+        : @"e.g. D:\MSFS\Packages";
+
+    private static string SceneryFoldersMore => DetectedPackageRoots.Value.Count > 0
+        ? $"Found on this PC: {string.Join("; ", DetectedPackageRoots.Value)}. Add a folder only when the simulator's packages live somewhere else (another drive, another PC's share). The profile inside a package is the one the scenery developer ships, e.g. Community\\inibuilds-airport-egll-heathrow\\Official GSX Profile\\egll-24-iniBuilds.ini."
+        : "No MSFS package folder was found on this PC — enter the one(s) holding Community and Official. The profile inside a package is the one the scenery developer ships, e.g. Community\\inibuilds-airport-egll-heathrow\\Official GSX Profile\\egll-24-iniBuilds.ini.";
+
+    private string SceneryFoldersText
+    {
+        get => string.Join("; ", _gsx.Value.SceneryPackageFolders);
+        set => _gsx.Value.SceneryPackageFolders = (value ?? "")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(f => f.Trim('"'))
+            .Where(f => f.Length > 0)
+            .ToList();
+    }
 
     private void MoveService(int index, int delta)
     {
@@ -545,6 +596,7 @@ else if (CurrentSection == "connection")
             .Select(h => h.Trim().ToUpperInvariant())
             .ToList();
         value.ArrivalGate = value.ArrivalGate.Trim();
+        value.GsxProfileFolder = value.GsxProfileFolder.Trim().Trim('"');
         // fuelFobSaved is never edited here — the diff save leaves the app-maintained key alone.
     }
 

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Airports.Parking;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
@@ -86,6 +87,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     private int _positionMenuAttempts;
     private bool _answeringPositionMenu;
     private readonly IOptionsMonitor<GsxOptions>? _options;
+    private readonly IAirportParkingCatalog? _parkings;
     private Timer? _confirmationTimer;
 
     public GsxGateSelectionService(
@@ -96,7 +98,8 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         ISimVars simVars,
         JsonlEventLog eventLog,
         ILogger<GsxGateSelectionService> logger,
-        IOptionsMonitor<GsxOptions>? options = null)
+        IOptionsMonitor<GsxOptions>? options = null,
+        IAirportParkingCatalog? parkings = null)
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(executor);
@@ -112,6 +115,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         _eventLog = eventLog;
         _logger = logger;
         _options = options;
+        _parkings = parkings;
 
         _destination = prosim.Subscribe(ProsimDataRefNames.FmsDestination);
         _gateName = simVars.Subscribe(GsxLvarNames.SetGateName);
@@ -352,7 +356,25 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
     private async Task DispatchLadderAsync(string requested)
     {
         var menuWasShown = _api.Mirror.MenuShown;
-        var result = await SendSelectAsync(JsonValue.Create(requested), revokeServices: false, force: false).ConfigureAwait(false);
+
+        // 2026-10-04 (EFHK W40): resolve the token by SCENERY IDENTITY first. The GSX profile
+        // and the sim's parking list know that "W40" is GATE_W number 40 — and that GSX's
+        // template prints it as "Gate 40" — so the number goes out as an integer, the identity
+        // GSX's display template can never hide. The typed token stays the last rung.
+        var resolved = await ResolveFromCatalogueAsync(requested).ConfigureAwait(false);
+        GsxCommandResult result;
+        if (resolved is not null)
+        {
+            result = await SendResolvedLadderAsync(requested, resolved).ConfigureAwait(false);
+            if (!result.Ok && result.Code is "not_found" or "ambiguous")
+            {
+                result = await SendSelectAsync(JsonValue.Create(requested), revokeServices: false, force: false).ConfigureAwait(false);
+            }
+        }
+        else
+        {
+            result = await SendSelectAsync(JsonValue.Create(requested), revokeServices: false, force: false).ConfigureAwait(false);
+        }
 
         if (!result.Ok && !_retriedOnce)
         {
@@ -408,6 +430,101 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IDispo
         {
             _ = await _api.SendCommandAsync("menu.close", null).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>The catalogue's view of the requested gate at the airport GSX has loaded (or the
+    /// FMS destination while it has not). Null when the catalogue knows nothing or the token
+    /// matches no stand — then the typed token goes out alone, as before.</summary>
+    private async Task<ParkingMatch?> ResolveFromCatalogueAsync(string requested)
+    {
+        if (_parkings is null)
+        {
+            return null;
+        }
+
+        var icao = _api.Mirror.AirportIcao ?? _destination.Value;
+        if (string.IsNullOrWhiteSpace(icao))
+        {
+            return null;
+        }
+
+        try
+        {
+            var catalogue = await _parkings.GetAsync(icao).ConfigureAwait(false);
+            var match = ParkingTokenResolver.Resolve(catalogue, requested);
+            if (match is null)
+            {
+                if (catalogue is not null)
+                {
+                    _logger.LogInformation(
+                        "Gate {Gate} matches none of the {Count} stands the profile/scenery know at {Icao}; sending the token as typed",
+                        requested, catalogue.Parkings.Count, icao);
+                }
+
+                return null;
+            }
+
+            _logger.LogInformation(
+                "Gate {Gate} resolved at {Icao} to {Identity} (GSX name '{GsxName}', {Confidence}, sources {Sources}); will send {Tokens}",
+                requested, icao, match.Parking.Identity.DefaultDisplayName, match.Parking.DisplayName,
+                match.Confidence, match.Parking.Sources, string.Join(" → ", match.GsxTokens));
+            _eventLog.Record("gsx-gate-resolved", new
+            {
+                gate = requested,
+                airport = icao,
+                identity = match.Parking.Identity.DefaultDisplayName,
+                gsxName = match.Parking.GsxUiName ?? match.Parking.DisplayName,
+                confidence = match.Confidence.ToString(),
+                sources = match.Parking.Sources.ToString(),
+                tokens = match.GsxTokens.Select(t => t.ToString()).ToList(),
+                alternatives = match.Alternatives.Select(a => a.Identity.DefaultDisplayName).ToList(),
+            });
+            return match;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Parking catalogue lookup failed for {Icao}; sending the token as typed", icao);
+            return null;
+        }
+    }
+
+    /// <summary>Walks the resolved identities (number → GSX gate name → full name → default
+    /// name). <c>not_found</c> moves to the next rung; <c>ambiguous</c> picks the candidate
+    /// whose bglName/uiName names the resolved stand; any other outcome returns at once for
+    /// the caller's revoke/force handling.</summary>
+    private async Task<GsxCommandResult> SendResolvedLadderAsync(string requested, ParkingMatch match)
+    {
+        var result = GsxCommandResult.Synthetic("not_found");
+        foreach (var token in match.GsxTokens)
+        {
+            JsonNode node = token is int number ? JsonValue.Create(number) : JsonValue.Create(token.ToString()!);
+            result = await SendSelectAsync(node, revokeServices: false, force: false).ConfigureAwait(false);
+            if (result.Ok || result.Code is not ("not_found" or "ambiguous"))
+            {
+                return result;
+            }
+
+            if (result.Code == "ambiguous")
+            {
+                var candidates = ParseCandidates(result.Error);
+                var expectedBgl = ParkingText.Normalize(match.Parking.Identity.DefaultDisplayName);
+                var expectedUi = ParkingText.Normalize(match.Parking.GsxUiName);
+                var candidate = candidates.FirstOrDefault(c =>
+                    ParkingText.Normalize(c.BglName) == expectedBgl
+                    || (expectedUi.Length > 0 && ParkingText.Normalize(c.UiName) == expectedUi));
+                if (candidate?.ResendToken is { Length: > 0 } resend)
+                {
+                    _logger.LogInformation("Gate {Gate}: {Token} ambiguous; picking candidate {Candidate}", requested, token, resend);
+                    result = await SendSelectAsync(JsonValue.Create(resend), revokeServices: false, force: false).ConfigureAwait(false);
+                    if (result.Ok || result.Code is not ("not_found" or "ambiguous"))
+                    {
+                        return result;
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     private void HandleFinalResult(string requested, GsxCommandResult result)

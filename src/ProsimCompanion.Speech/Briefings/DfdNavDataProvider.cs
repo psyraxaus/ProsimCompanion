@@ -288,6 +288,45 @@ public sealed class DfdNavDataProvider
         return (latitude.Value, longitude.Value, elevation);
     }
 
+    /// <summary>A runway's threshold position, true bearing and length (<c>runway_latitude</c>
+    /// / <c>runway_longitude</c> / <c>runway_true_bearing</c> / <c>runway_length</c>; same column
+    /// names in both schema generations), or null when the DFD, the airport, the runway or a
+    /// coordinate is absent. Feeds the pushback advisor (2026-10-04).</summary>
+    public (double LatitudeDeg, double LongitudeDeg, double? TrueBearingDeg, double? LengthFt)? RunwayThreshold(string? airport, string? runway)
+    {
+        if (string.IsNullOrWhiteSpace(airport) || NormalizeRunway(runway) is not { } rw)
+        {
+            return null;
+        }
+
+        using var connection = Open();
+        if (connection is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var schema = DetectSchema(connection);
+            var apt = airport.Trim().ToUpperInvariant();
+            var latitude = ScalarDouble(connection, $"SELECT runway_latitude FROM {schema.Runways} WHERE airport_identifier=@a AND runway_identifier=@r LIMIT 1", ("@a", apt), ("@r", rw));
+            var longitude = ScalarDouble(connection, $"SELECT runway_longitude FROM {schema.Runways} WHERE airport_identifier=@a AND runway_identifier=@r LIMIT 1", ("@a", apt), ("@r", rw));
+            if (latitude is null || longitude is null)
+            {
+                return null;
+            }
+
+            var bearing = ScalarDouble(connection, $"SELECT runway_true_bearing FROM {schema.Runways} WHERE airport_identifier=@a AND runway_identifier=@r LIMIT 1", ("@a", apt), ("@r", rw));
+            var length = ScalarDouble(connection, $"SELECT runway_length FROM {schema.Runways} WHERE airport_identifier=@a AND runway_identifier=@r LIMIT 1", ("@a", apt), ("@r", rw));
+            return (latitude.Value, longitude.Value, bearing, length);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "DFD runway threshold lookup failed for {Airport} {Runway}", airport, runway);
+            return null;
+        }
+    }
+
     public NavDataFacts Lookup(string airport, string? runway, string? sid = null, string? star = null, string? approach = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(airport);
