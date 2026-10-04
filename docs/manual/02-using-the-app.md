@@ -68,10 +68,9 @@ The header clock is sim time. The footer dots are the real ProSim / SimConnect /
 
 **The route strip and the distance figures.** In flight the bar becomes a route strip: a
 straight line from the origin (left dot) to the destination (right dot), with the aircraft
-marker on it. The line is the great circle — the shortest way between the two airports — so a
-marker that sits above or below it is that far off the direct line, on the same scale. The
-marker points the way the aircraft is tracking; the gold **T/D EST** tick is the estimated
-top of descent. Beside it:
+marker on it. The line is the great circle — the shortest way between the two airports. The
+marker always rides the line and points at the destination, however far the real route is
+from the direct one; the gold **T/D EST** tick is the estimated top of descent. Beside it:
 
 - **TO GO … NM DIRECT** — the straight-line distance to the destination. It is *not* the
   distance along your route, so it reads short when the route has a dog-leg.

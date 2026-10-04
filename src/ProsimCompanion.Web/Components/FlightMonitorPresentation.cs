@@ -134,9 +134,8 @@ public static class FlightMonitorPresentation
     }
 
     /// <summary>Lays the leg out on the board's route strip (issue #145): the origin →
-    /// destination great circle drawn as a straight line, the aircraft at its along-track /
-    /// cross-track position on ONE scale (so an off-route marker is honestly off the line),
-    /// the marker turned by its track relative to the route. Without a position the marker
+    /// destination great circle drawn as a straight line, the aircraft at its along-track
+    /// position ON the line, pointing at the destination. Without a position the marker
     /// rides the line at the time-based fraction; with no figure at all it is absent.</summary>
     public static RouteStripView RouteStrip(FlightProgressSnapshot progress)
     {
@@ -146,15 +145,17 @@ public static class FlightMonitorPresentation
         const double right = RouteStripView.DestinationX;
         const double span = right - left;
 
-        if (progress is { RouteDistanceNm: > 0, AlongTrackNm: { } along, CrossTrackNm: { } cross } located
+        if (progress is { RouteDistanceNm: > 0, AlongTrackNm: { } along } located
             && located.Origin is { } origin && located.Destination is { } destination)
         {
             var route = located.RouteDistanceNm!.Value;
             var scale = span / route;
             var x = Math.Clamp(left + (along * scale), RouteStripView.Edge, RouteStripView.Width - RouteStripView.Edge);
-            var y = Math.Clamp(
-                RouteStripView.LineY + (cross * scale),
-                RouteStripView.Edge, RouteStripView.Height - RouteStripView.Edge);
+            // Owner decision 2026-10-05: the plane rides the line. The cross-track offset was
+            // drawn on the route's scale, so an airway route a few miles off the great circle
+            // put the marker a few px below the line — it read as a misdrawn marker, not as
+            // "off the direct route". The cross-track figure stays in the progress snapshot.
+            const double y = RouteStripView.LineY;
             // Owner decision 2026-10-04: the plane always points along the strip towards the
             // destination — never turned by the live track. At the gate the aircraft sits on
             // whatever heading the stand has (145° in the photo) and the marker pointed away
@@ -201,7 +202,7 @@ public static class FlightMonitorPresentation
 /// <summary>Geometry of the board's route strip in its own SVG user units (the viewBox is
 /// <see cref="Width"/> × <see cref="Height"/>). Null marker = nothing to place.</summary>
 /// <param name="MarkerX">Aircraft marker centre.</param>
-/// <param name="MarkerY">Aircraft marker centre; <see cref="LineY"/> = on the route.</param>
+/// <param name="MarkerY">Aircraft marker centre; always <see cref="LineY"/> (on the route).</param>
 /// <param name="MarkerRotationDeg">Clockwise turn of the marker; 0 = along the route.</param>
 /// <param name="FlownX">Right end of the "flown" part of the line.</param>
 /// <param name="TodX">The estimated top-of-descent tick, when there is one.</param>

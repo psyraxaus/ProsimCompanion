@@ -151,15 +151,18 @@ public sealed class FlightMonitorPresentationTests
         Assert.Equal(0, strip.MarkerRotationDeg, 1);    // tracking 090 along a 090 route
     }
 
-    [Fact]
-    public void RouteStrip_OffRoute_MovesTheMarkerOffTheLine_AndClampsItInsideTheStrip()
+    // Owner decision 2026-10-05: the plane rides the line — an airway route a few miles off
+    // the great circle used to put the marker a few px below it, which read as a drawing fault.
+    [Theory]
+    [InlineData(10.0)]
+    [InlineData(-500.0)]
+    [InlineData(0.0)]
+    public void RouteStrip_OffRoute_KeepsTheMarkerOnTheLine(double cross)
     {
-        // 10 nm right of track is 18.7 units below the line; 500 nm would leave the strip.
-        var right = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: 10));
-        var far = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: -500));
+        var strip = FlightMonitorPresentation.RouteStrip(Located(along: 300, cross: cross));
 
-        Assert.Equal(RouteStripView.LineY + 18.7, right.MarkerY!.Value, 1);
-        Assert.Equal(RouteStripView.Edge, far.MarkerY!.Value, 1);
+        Assert.Equal(RouteStripView.LineY, strip.MarkerY);
+        Assert.Equal(600, strip.MarkerX!.Value, 1);
     }
 
     // Owner decision 2026-10-04: the plane points along the strip towards the destination for

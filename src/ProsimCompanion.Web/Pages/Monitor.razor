@@ -83,8 +83,8 @@
             @if (Mode == MonitorMode.Flight)
             {
                 @* Route strip (issue #145): the origin → destination great circle as a
-                   straight line, the aircraft at its along/cross-track position on one
-                   scale, turned by its track. Inline SVG only — no map tiles, no network. *@
+                   straight line, the aircraft on it at its along-track position, pointing
+                   at the destination. Inline SVG only — no map tiles, no network. *@
                 var strip = Strip;
                 <svg class="mon-strip" viewBox="0 0 @RouteStripView.Px(RouteStripView.Width) @RouteStripView.Px(RouteStripView.Height)"
                      role="img" aria-label="@StripLabel">
