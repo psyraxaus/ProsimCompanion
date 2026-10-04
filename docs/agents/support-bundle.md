@@ -44,6 +44,15 @@ escaping the extraction root, an extension other than `.jsonl/.log/.json/.txt`, 
 entry over 512 MB, or more than 500 entries. A bare folder (no manifest) is scanned instead
 and `bundle.hashesVerified` is `false`.
 
+Every path (`--bundle`, `--out`, `--probes`) must be below the working folder or the system
+temp folder; any other path is a usage error (exit `1`, "path refused"). The command line is
+outside input on the support host, so the tool does not follow it to an arbitrary file. Run
+the tool from the folder that holds the bundle — with `dotnet run`, give `--project` the full
+path of `tools/ProsimCompanion.Reduce`. The bundle, the probe catalog and the folder for
+`--out` must exist: the tool finds each on disk from the allowed folder down and uses that
+entry, never the typed text. Line breaks are removed from all text the tool echoes to the
+console.
+
 The probe catalog is embedded in the build; `--probes` points at a newer copy of
 `docs/agents/verification-probes.json` when the pipeline is ahead of the release.
 

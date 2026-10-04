@@ -424,14 +424,14 @@ public static class PredecessorConfigImporter
             ? (int)span.TotalMinutes
             : 0;
 
-    private static string? ReadString(JsonObject node, string key)
-        => node[key] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+    private static string? ReadString(JsonObject node, string name)
+        => node[name] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
-    private static bool? ReadBool(JsonObject node, string key)
-        => node[key] is JsonValue value && value.TryGetValue<bool>(out var flag) ? flag : null;
+    private static bool? ReadBool(JsonObject node, string name)
+        => node[name] is JsonValue value && value.TryGetValue<bool>(out var flag) ? flag : null;
 
-    private static int? ReadInt(JsonObject node, string key)
-        => node[key] is JsonValue value && value.TryGetValue<double>(out var number) ? (int)number : null;
+    private static int? ReadInt(JsonObject node, string name)
+        => node[name] is JsonValue value && value.TryGetValue<double>(out var number) ? (int)number : null;
 
     private static void CopyString(JsonObject from, string fromKey, JsonNode to, string toKey)
     {

@@ -44,7 +44,7 @@ public sealed class SimDamageProbe : IDisposable
     /// <summary>One subscribed variable plus its read policy: <see cref="Read"/> goes through
     /// the typed handle so a value that never arrived shows the catalog's benign fallback
     /// (tyre wear 1.0 = healthy) — never a raw-coercion 0 that would read as "failed".</summary>
-    private sealed record DamageVar(string Key, IDataRefSubscription Handle, Func<double> Read);
+    private sealed record DamageVar(string Name, IDataRefSubscription Handle, Func<double> Read);
 
     public SimDamageProbe(ISimVars simVars)
     {
@@ -72,23 +72,23 @@ public sealed class SimDamageProbe : IDisposable
                 Level("exposedPartsLowestWear", _simVars.Subscribe(ProsimDataRefNames.SimVars.ExposedPartsLowestWearLevel)),
             ];
 
-            return [.. _subscriptions.Select(entry => ToEntry(entry.Key, entry.Handle, entry.Read()))];
+            return [.. _subscriptions.Select(entry => ToEntry(entry.Name, entry.Handle, entry.Read()))];
         }
     }
 
-    private static DamageVar Flag(string key, IDataRefSubscription<bool> handle)
-        => new(key, handle, () => handle.Value ? 1.0 : 0.0);
+    private static DamageVar Flag(string name, IDataRefSubscription<bool> handle)
+        => new(name, handle, () => handle.Value ? 1.0 : 0.0);
 
-    private static DamageVar Level(string key, IDataRefSubscription<double> handle)
-        => new(key, handle, () => handle.Value);
+    private static DamageVar Level(string name, IDataRefSubscription<double> handle)
+        => new(name, handle, () => handle.Value);
 
     /// <summary>Pure view assembly — exposed for tests. Value is always a double (Bool vars
     /// read 0/1) so the wire shape stays uniform for curl/browser reading.</summary>
-    public static SimDamageEntry ToEntry(string key, IDataRefSubscription subscription, double value)
+    public static SimDamageEntry ToEntry(string name, IDataRefSubscription subscription, double value)
     {
         ArgumentNullException.ThrowIfNull(subscription);
         return new SimDamageEntry(
-            key,
+            name,
             subscription.Name,
             value,
             Received: subscription.RawValue is not null,

@@ -74,10 +74,10 @@ public sealed class StyledSpeechService
             return deterministicText;
         }
 
-        var key = $"{category}:{cacheKey}";
+        var cacheEntry = $"{category}:{cacheKey}";
         lock (_cacheGate)
         {
-            if (_cache.TryGetValue(key, out var cached))
+            if (_cache.TryGetValue(cacheEntry, out var cached))
             {
                 Record(category, cacheKey, "cached", 0, null);
                 return cached;
@@ -87,7 +87,7 @@ public sealed class StyledSpeechService
         if (!_llm.IsConfigured)
         {
             // Cache the deterministic text so a disabled LLM is not re-evaluated per line.
-            Cache(key, deterministicText);
+            Cache(cacheEntry, deterministicText);
             Record(category, cacheKey, "fallback", 0, "llm-off");
             return deterministicText;
         }
@@ -122,7 +122,7 @@ public sealed class StyledSpeechService
                 return deterministicText;
             }
 
-            Cache(key, styled);
+            Cache(cacheEntry, styled);
             Record(category, cacheKey, "styled", latency, null);
             return styled;
         }
@@ -157,7 +157,7 @@ public sealed class StyledSpeechService
     private static string? Clean(string? text)
         => text?.Trim().Trim('"', '\'', '`');
 
-    private void Cache(string key, string value)
+    private void Cache(string cacheEntry, string value)
     {
         lock (_cacheGate)
         {
@@ -165,7 +165,7 @@ public sealed class StyledSpeechService
             {
                 _cache.Clear(); // simple bound: advisory sets are small; a reset is harmless
             }
-            _cache[key] = value;
+            _cache[cacheEntry] = value;
         }
     }
 

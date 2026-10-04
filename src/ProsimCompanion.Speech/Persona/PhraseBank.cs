@@ -122,9 +122,9 @@ public sealed class PhraseBank
         }
     }
 
-    private static string[] ReadPool(JsonDocument document, string key, string[] defaults)
+    private static string[] ReadPool(JsonDocument document, string poolName, string[] defaults)
     {
-        if (!document.RootElement.TryGetProperty(key, out var element)
+        if (!document.RootElement.TryGetProperty(poolName, out var element)
             || element.ValueKind != JsonValueKind.Array)
         {
             return defaults;

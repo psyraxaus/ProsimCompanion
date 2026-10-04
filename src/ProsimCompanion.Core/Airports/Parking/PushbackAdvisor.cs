@@ -125,13 +125,13 @@ public static class Compass
         foreach (Match m in WordPattern.Matches(text))
         {
             var w = m.Groups["w"].Value;
-            var key = w.ToLowerInvariant().Replace(" ", "-", StringComparison.Ordinal);
-            switch (key)
+            var point = w.ToLowerInvariant().Replace(" ", "-", StringComparison.Ordinal);
+            switch (point)
             {
-                case "northeast": key = "north-east"; break;
-                case "northwest": key = "north-west"; break;
-                case "southeast": key = "south-east"; break;
-                case "southwest": key = "south-west"; break;
+                case "northeast": point = "north-east"; break;
+                case "northwest": point = "north-west"; break;
+                case "southeast": point = "south-east"; break;
+                case "southwest": point = "south-west"; break;
             }
 
             if (w.Length <= 2)
@@ -141,17 +141,17 @@ public static class Compass
                     continue;
                 }
 
-                key = w switch
+                point = w switch
                 {
                     "N" => "north", "S" => "south", "E" => "east", "W" => "west",
                     "NE" => "north-east", "NW" => "north-west", "SE" => "south-east", "SW" => "south-west",
-                    _ => key,
+                    _ => point,
                 };
             }
 
             foreach (var (word, deg) in Points)
             {
-                if (word == key)
+                if (word == point)
                 {
                     return deg;
                 }

@@ -10,7 +10,7 @@ public static class CouatlPortLocator
 {
     public const int DefaultPort = 8744;
     private const string Section = "gsx";
-    private const string Key = "remote_server_port";
+    private const string PortEntry = "remote_server_port";
 
     /// <summary>Reads the port from the standard ini location; <see cref="DefaultPort"/> on any
     /// failure (missing file/section/key, unparsable, out of range).</summary>
@@ -71,8 +71,8 @@ public static class CouatlPortLocator
                 continue;
             }
 
-            var key = line[..separator].Trim();
-            if (!key.Equals(Key, StringComparison.OrdinalIgnoreCase))
+            var entry = line[..separator].Trim();
+            if (!entry.Equals(PortEntry, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }

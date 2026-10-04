@@ -1,10 +1,12 @@
 // Builds the offline atlas (#153) from Natural Earth + GeoNames into one gzipped JSON.
 // Sources (in this folder): countries.geojson (NE 110m admin_0), marine50.geojson (NE 50m marine
 // polys), regions50.geojson (NE 50m geography regions), cities15000.txt (GeoNames).
-// Output: ../../src/ProsimCompanion.Core/Geo/Data/atlas.json.gz  (path given as argv[2])
+// Output: src/ProsimCompanion.Core/Geo/Data/atlas.json.gz — a fixed path from this script's
+// folder, never an argument (a command-line path into a file write is a path-traversal alert).
 const fs = require("fs");
+const path = require("path");
 const zlib = require("zlib");
-const out = process.argv[2];
+const out = path.join(__dirname, "..", "src", "ProsimCompanion.Core", "Geo", "Data", "atlas.json.gz");
 const L = (f) => JSON.parse(fs.readFileSync(f, "utf8"));
 const r3 = (v) => Math.round(v * 1000) / 1000;
 

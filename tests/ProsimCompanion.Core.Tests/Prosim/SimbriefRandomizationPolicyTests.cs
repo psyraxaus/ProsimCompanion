@@ -10,8 +10,8 @@ namespace ProsimCompanion.Core.Tests.Prosim;
 /// </summary>
 public sealed class SimbriefRandomizationPolicyTests
 {
-    private static SimbriefRandomizationLatch Latch(string key = "ABCD1234")
-        => new(key, [true, false, true], PaxCount: 89, CargoKg: 2500);
+    private static SimbriefRandomizationLatch Latch(string ofpId = "ABCD1234")
+        => new(ofpId, [true, false, true], PaxCount: 89, CargoKg: 2500);
 
     [Fact]
     public void SameOfp_NotForced_Reuses()

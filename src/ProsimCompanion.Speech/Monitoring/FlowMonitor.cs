@@ -210,7 +210,7 @@ public sealed class FlowMonitor : Core.Hosting.IStartupModule, IDisposable
     /// unchanged; a rate-limited edge still marks the advisory active so it won't retry until
     /// it resolves and re-triggers.</summary>
     private void Check(
-        string key, FlowCheckSetting fc, long rateLimitMs, long nowMs,
+        string checkId, FlowCheckSetting fc, long rateLimitMs, long nowMs,
         FlightDataSnapshot s, Func<FlightDataSnapshot, bool> condition)
     {
         if (!fc.Enabled || string.IsNullOrWhiteSpace(fc.Text))
@@ -225,7 +225,7 @@ public sealed class FlowMonitor : Core.Hosting.IStartupModule, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Flow check {Key} threw", key);
+            _logger.LogDebug(ex, "Flow check {Key} threw", checkId);
             return;
         }
 
@@ -233,34 +233,34 @@ public sealed class FlowMonitor : Core.Hosting.IStartupModule, IDisposable
         // current state at dequeue (the source memoises, so this is cheap).
         bool Live() => condition(_source.Sample());
 
-        var wasActive = _active.Contains(key);
+        var wasActive = _active.Contains(checkId);
         if (now && !wasActive)
         {
-            _active.Add(key);
-            if (!_lastSpoken.TryGetValue(key, out var last) || nowMs - last >= rateLimitMs)
+            _active.Add(checkId);
+            if (!_lastSpoken.TryGetValue(checkId, out var last) || nowMs - last >= rateLimitMs)
             {
-                _lastSpoken[key] = nowMs;
+                _lastSpoken[checkId] = nowMs;
                 var priority = ParsePriority(fc.Priority);
-                _logger.LogInformation("Flow advisory: {Key} \"{Text}\" ({Priority})", key, fc.Text, priority);
+                _logger.LogInformation("Flow advisory: {Key} \"{Text}\" ({Priority})", checkId, fc.Text, priority);
                 _eventLog.Record("flow.advisory", new
                 {
-                    id = key,
+                    id = checkId,
                     text = fc.Text,
                     priority = priority.ToString().ToLowerInvariant(),
                     spoken = true,
                 });
-                _ = StyleAndEnqueueAsync(key, fc.Text, priority, Live);
+                _ = StyleAndEnqueueAsync(checkId, fc.Text, priority, Live);
             }
             else
             {
-                _logger.LogDebug("Flow advisory {Key} suppressed (rate-limited)", key);
-                _eventLog.Record("flow.advisory", new { id = key, text = fc.Text, spoken = false, reason = "rate-limited" });
+                _logger.LogDebug("Flow advisory {Key} suppressed (rate-limited)", checkId);
+                _eventLog.Record("flow.advisory", new { id = checkId, text = fc.Text, spoken = false, reason = "rate-limited" });
             }
         }
         else if (!now && wasActive)
         {
-            _active.Remove(key);
-            _eventLog.Record("flow.resolved", new { id = key });
+            _active.Remove(checkId);
+            _eventLog.Record("flow.resolved", new { id = checkId });
         }
     }
 
@@ -268,33 +268,33 @@ public sealed class FlowMonitor : Core.Hosting.IStartupModule, IDisposable
     /// — or with persona off — the deterministic text speaks unchanged; the restyle is bounded
     /// by the persona timeout and the TTL/validity still gate at dequeue, so a slow LLM only
     /// delays the advisory, never wedges it.</summary>
-    private async Task StyleAndEnqueueAsync(string key, string text, SpeechPriority priority, Func<bool> live)
+    private async Task StyleAndEnqueueAsync(string checkId, string text, SpeechPriority priority, Func<bool> live)
     {
         var spoken = text;
         if (_styledSpeech is not null)
         {
             spoken = await _styledSpeech
-                .StyleAsync(text, Persona.PersonaStyleCategory.Advisory, key)
+                .StyleAsync(text, Persona.PersonaStyleCategory.Advisory, checkId)
                 .ConfigureAwait(false);
         }
 
         _ = _arbiter.EnqueueAsync(new SpeechRequest(
-            spoken, priority, TimeSpan.FromSeconds(AdvisoryTtlSec), live, Tag: key));
+            spoken, priority, TimeSpan.FromSeconds(AdvisoryTtlSec), live, Tag: checkId));
     }
 
     /// <summary>True once <paramref name="now"/> has held for the dwell window. Never
     /// satisfied on the first true observation; any false tick restarts the clock.</summary>
-    private bool Dwell(string key, bool now, double dwellSec, long nowMs)
+    private bool Dwell(string checkId, bool now, double dwellSec, long nowMs)
     {
         if (!now)
         {
-            _sustainedSince.Remove(key);
+            _sustainedSince.Remove(checkId);
             return false;
         }
 
-        if (!_sustainedSince.TryGetValue(key, out var since))
+        if (!_sustainedSince.TryGetValue(checkId, out var since))
         {
-            _sustainedSince[key] = nowMs;
+            _sustainedSince[checkId] = nowMs;
             return false;
         }
 

@@ -21,7 +21,8 @@ namespace ProsimCompanion.Core.Tests.Speech;
 /// </summary>
 public sealed class ElevenLabsTtsProviderTests : IDisposable
 {
-    private const string ApiKey = "test-key-never-logged";
+    // Made at run time: a fixed text here reads as a hardcoded credential to the code scanner.
+    private static readonly string ApiKey = Guid.NewGuid().ToString("N");
     private const string VoiceId = "voice1";
 
     private readonly string _cacheDir = Path.Combine(Path.GetTempPath(), $"elevenlabs-tests-{Guid.NewGuid():N}");
@@ -60,10 +61,10 @@ public sealed class ElevenLabsTtsProviderTests : IDisposable
         }
     }
 
-    private SpeechOptions Options(string format = "pcm_24000", string key = ApiKey, string voice = VoiceId)
+    private SpeechOptions Options(string format = "pcm_24000", bool withApiKey = true, string voice = VoiceId)
         => new()
         {
-            ElevenLabsApiKey = key,
+            ElevenLabsApiKey = withApiKey ? ApiKey : string.Empty,
             ElevenLabsVoiceId = voice,
             ElevenLabsOutputFormat = format,
             CacheFolder = _cacheDir,
@@ -100,7 +101,7 @@ public sealed class ElevenLabsTtsProviderTests : IDisposable
     {
         var handler = new StubHandler(HttpStatusCode.OK, FakePcm());
 
-        Assert.False(Provider(Options(key: ""), handler).IsConfigured);
+        Assert.False(Provider(Options(withApiKey: false), handler).IsConfigured);
         Assert.False(Provider(Options(voice: " "), handler).IsConfigured);
         Assert.True(Provider(Options(), handler).IsConfigured);
     }

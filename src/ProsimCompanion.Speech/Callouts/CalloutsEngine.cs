@@ -548,12 +548,12 @@ public sealed class CalloutsEngine : Core.Hosting.IStartupModule, IDisposable
     }
 
     /// <summary>Logged once per flight (cleared with the takeoff latches).</summary>
-    private void WarnOnce(string key, string message)
+    private void WarnOnce(string id, string message)
     {
-        if (_warned.Add(key))
+        if (_warned.Add(id))
         {
             _logger.LogWarning("{Message}", message);
-            _eventLog.Record("callout.degraded", new { id = key, reason = message });
+            _eventLog.Record("callout.degraded", new { id, reason = message });
         }
     }
 

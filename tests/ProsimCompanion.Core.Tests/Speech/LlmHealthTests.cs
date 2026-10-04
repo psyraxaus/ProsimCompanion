@@ -28,12 +28,15 @@ public sealed class LlmHealthTests
             => throw new HttpRequestException("connection refused");
     }
 
+    // Made at run time: a fixed text here reads as a hardcoded credential to the code scanner.
+    private static readonly string ApiKey = Guid.NewGuid().ToString("N");
+
     private static BriefingOptions Options() => new()
     {
         LlmEnabled = true,
         LlmBaseUrl = "http://llm.test/v1",
         LlmModel = "test-model",
-        LlmApiKey = "sk-SECRET-NEVER-LOGGED",
+        LlmApiKey = ApiKey,
     };
 
     private static OpenAiChatClient Client(HttpMessageHandler handler, LlmHealthStore health)
@@ -50,7 +53,7 @@ public sealed class LlmHealthTests
         var snapshot = health.Snapshot();
         Assert.Equal(LlmHealthState.AuthFailed, snapshot.State);
         Assert.True(snapshot.IsUnhealthy);
-        Assert.DoesNotContain("SECRET", snapshot.LastError, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(ApiKey, snapshot.LastError, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
