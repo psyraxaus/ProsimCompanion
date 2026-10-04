@@ -120,7 +120,8 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   the sim…) or VoiceMeeter strips/buses, with per-ACP power gating and live backend switch
 
 ### Integrations & platform
-- SayIntentions (spoken ATC requests, gate push, weather/CPDLC), ActiveSky weather chain,
+- SayIntentions (spoken ATC requests, gate push, weather/CPDLC, the FO's wrong-frequency
+  report), ActiveSky weather chain,
   Elgato Stream Deck plugin, opt-in HTTP command/status API
 - EFB-style web UI (ADR-0011): icon sidebar, glass instrument cards, split-flap clock,
   bundled fonts and icons (works offline), 13 airline/basic themes on the Appearance settings page

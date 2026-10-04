@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0-rc.16
+
+From the EFHK→LKPR flight of 2026-10-05.
+
+- New: **wrong-frequency report** for SayIntentions. SayIntentions never objects when COM1 is on the wrong station — it lets you (or its own copilot) check in with whoever answers. The FO now says once *"Captain, we should be on Tallinn Control, one three four decimal three two five"* when COM1 has stayed off the frequency ATC last gave you (its *"Contact … on …"* instruction) for 60 seconds. It runs from pushback to taxi-in with the SayIntentions copilot on or off, is quiet at the gate, and says nothing when it cannot read the instruction. Settings → Voice First Officer → SayIntentions: **Wrong-frequency report** (on) and **Wait before the report** (60 s). Session events `sayintentions.frequency-assigned` and `fo.wrong-frequency-advisory`; probe `si-wrong-frequency-report`. Not yet verified live: hand-off wording on arrival and in FAA phraseology.
+- Fix: **Fuel Log times follow the simulated clock.** Every fix after the first row was stamped with the PC clock while the takeoff and the planned times were on the sim clock — on a flight flown at 03:54Z sim / 19:44Z real each row read 948 minutes late. The fuel figures were always right.
+- Fix: the FO fuel check uses the same clock — the time shown in the Fuel Log's *FO checks* strip, and the fallback estimate (flow × time to the ETA) used when there is no route position.
+- Changed: the plane on the Flight Monitor route strip **stays on the line**. It was drawn at its distance from the direct route on the route's scale, so an airway a few miles off the great circle put it a few pixels below the line and it looked misdrawn.
+- Everything in 0.6.0-rc.15 below.
+
 ## 0.6.0-rc.15
 
 Code-scanner clean-up (Snyk Code, 2026-10-04). Nothing changes in how the app flies.
