@@ -9,7 +9,8 @@ MSFS 2020/2024. It consolidates three predecessor apps into one:
   ECAM-style checklists
 - **Voice First Officer** (from Prosim2FO) — spoken checklists, SOP callouts, briefings,
   ECAM abnormals, radio/FCU voice control, cabin crew and company immersion
-- **Audio control** — ACP knobs/latches driving Windows per-app volumes or VoiceMeeter
+- **Audio control** — ACP knobs/latches and the loudspeaker dial driving Windows per-app
+  volumes or VoiceMeeter
 
 Everything is configured in a **browser** (`http://localhost:5320` by default). The desktop
 window is only a status panel plus the web-server settings (port, LAN access, QR onboarding) —
@@ -26,6 +27,7 @@ kept there so a broken web configuration can always be repaired.
 | [Troubleshooting](05-troubleshooting.md) | Logs, degraded subsystems, common problems |
 | [ElevenLabs voices](06-elevenlabs.md) | Step-by-step setup: API key, voice, plan, crew voices, cost control |
 | [Tablet: HTTPS, home screen, keep-awake](07-tablet-install.md) | Your own certificate (mkcert), trusting the CA on the iPad, Add to Home Screen, the keep-awake switch; no offline mode |
+| [Loudspeaker dial](08-loudspeaker-dial.md) | Headset sound on the cockpit speakers with the LOUD SPEAKER dial as their volume: the VoiceMeeter wiring (VBAN loop) and the mapping |
 
 ## Design principles (what to expect)
 

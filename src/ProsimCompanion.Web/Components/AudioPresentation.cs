@@ -16,6 +16,7 @@ public static class AudioPresentation
         AudioChannel.Intercom => "INT",
         AudioChannel.Cabin => "CAB",
         AudioChannel.Pa => "PA",
+        AudioChannel.Loudspeaker => "LOUDSPEAKER",
         _ => channel.ToString().ToUpperInvariant(),
     };
 

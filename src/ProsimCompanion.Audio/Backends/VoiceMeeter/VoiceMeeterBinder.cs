@@ -109,7 +109,14 @@ public sealed class VoiceMeeterBinder : IAcpVolumeSink
     {
         lock (_gate)
         {
-            if (!_targets.TryGetValue((acp, channel), out var target) || !target.Mapping.UseLatch)
+            if (!_targets.TryGetValue((acp, channel), out var target))
+            {
+                return;
+            }
+
+            // UseLatch is the REC-latch opt-in. A dial with no latch (the loudspeaker) always
+            // mutes at zero — −60 dB alone leaves the speaker faintly audible.
+            if (!target.Mapping.UseLatch && channel.HasRecLatch())
             {
                 return;
             }

@@ -118,6 +118,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 ### Audio control
 - ProSim ACP knobs/latches drive Windows per-app session volumes (vPilot, BeyondATC, GSX,
   the sim…) or VoiceMeeter strips/buses, with per-ACP power gating and live backend switch
+- The cockpit **LOUD SPEAKER** dial is a mapping channel too: with a small VoiceMeeter loop
+  it puts the headset sound on the cockpit speakers at the dial's level — step-by-step in
+  [chapter 8](docs/manual/08-loudspeaker-dial.md)
 
 ### Integrations & platform
 - SayIntentions (spoken ATC requests, gate push, weather/CPDLC, the FO's wrong-frequency

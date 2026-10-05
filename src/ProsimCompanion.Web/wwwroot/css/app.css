@@ -1462,7 +1462,7 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .audio-map-header,
 .audio-map-row {
   display: grid;
-  grid-template-columns: 90px 1.2fr 1.2fr 60px 60px 32px;
+  grid-template-columns: 136px 1.2fr 1.2fr 60px 60px 32px;
   gap: 8px;
   align-items: center;
   padding: 4px 0;
@@ -1471,7 +1471,7 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .audio-vm-header,
 .audio-vm-row {
   display: grid;
-  grid-template-columns: 90px 1.4fr 60px 32px;
+  grid-template-columns: 136px 1.4fr 60px 32px;
   gap: 8px;
   align-items: center;
   padding: 4px 0;

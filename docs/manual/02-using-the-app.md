@@ -162,7 +162,7 @@ its own address, so a refresh or a link from a warning banner lands on the right
 | **Setup** | The three master switches (GSX ground services, voice First Officer, audio control), the ProSim host/SDK path, nav data, web port/LAN access, the Stream Deck command API |
 | **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control, the live GSX menu card) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
 | **Voice First Officer** | Status (provider tests, minima card, speak test), general, listening & PTT, sterile cockpit, crew voices, ground crew, cabin crew, briefings & LLM, MCDU, SayIntentions, voice providers |
-| **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings, housekeeping |
+| **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings (ACP knobs and the loudspeaker dial — [chapter 8](08-loudspeaker-dial.md)), housekeeping |
 | **Display & Flight Data** | Units, split-flap animation, loadsheet automation, the Flight Status card (final-call thresholds, weather refresh, top-of-descent notice), checklist ticks |
 | **Appearance** | Theme swatches, the header NEXT SERVICE button toggle, your theme logos for the header, your airline logos for the Flight Monitor |
 | **Aircraft Profiles** | Per-aircraft settings profiles with automatic matching |

@@ -10,7 +10,8 @@ public interface IAcpVolumeSink
 {
     void OnVolume(AcpSide acp, AudioChannel channel, float normalized);
 
-    /// <summary>true = the REC latch is pushed in (muted).</summary>
+    /// <summary>true = the REC latch is pushed in (muted) — or, for a dial with no latch
+    /// (the loudspeaker), the dial is fully down.</summary>
     void OnMute(AcpSide acp, AudioChannel channel, bool muted);
 }
 
@@ -19,7 +20,9 @@ public interface IAcpVolumeSink
 /// for each bound (ACP, channel) key at the 250 ms tier (the predecessors' proven cadence) and
 /// fans power-gated changes out to the active backend. While an ACP is unpowered its events are
 /// suppressed (targets hold their last state); on power restoration the current values are
-/// re-emitted so targets catch up without waiting for a knob touch.
+/// re-emitted so targets catch up without waiting for a knob touch. The loudspeaker dial rides
+/// the same feed: no latch (its mute is the dial at zero) and its own power rule
+/// (<see cref="AcpPowerGate.IsPowered(AcpSide, AudioChannel, in AcpPowerInputs)"/>).
 /// </summary>
 public sealed class AcpChannelFeed : IDisposable
 {
@@ -80,13 +83,27 @@ public sealed class AcpChannelFeed : IDisposable
             _sink = sink;
             foreach (var (acp, channel) in keys.Distinct())
             {
+                if (!channel.ExistsOn(acp))
+                {
+                    // Only reachable from a hand-edited config — the settings page never
+                    // offers the key.
+                    _logger.LogWarning("ACP feed: {Acp} has no {Channel} dial — mapping skipped", acp, channel);
+                    continue;
+                }
+
                 var binding = new ChannelBinding(
                     acp,
                     channel,
                     _prosim.Subscribe(AcpDataRefCatalog.VolumeRef(acp, channel)),
-                    _prosim.Subscribe(AcpDataRefCatalog.LatchRef(acp, channel)));
+                    channel.HasRecLatch()
+                        ? _prosim.Subscribe(AcpDataRefCatalog.LatchRef(acp, channel))
+                        : null);
                 binding.Volume.ValueChanged += (_, _) => EmitVolume(binding);
-                binding.Latch.ValueChanged += (_, _) => EmitMute(binding);
+                if (binding.Latch is { } latch)
+                {
+                    latch.ValueChanged += (_, _) => EmitMute(binding);
+                }
+
                 _bindings.Add(binding);
             }
 
@@ -121,7 +138,7 @@ public sealed class AcpChannelFeed : IDisposable
         foreach (var binding in _bindings)
         {
             binding.Volume.Dispose();
-            binding.Latch.Dispose();
+            binding.Latch?.Dispose();
         }
 
         _bindings.Clear();
@@ -136,19 +153,15 @@ public sealed class AcpChannelFeed : IDisposable
             var previous = _lastPower;
             _lastPower = inputs;
 
-            // Re-emit on any closed→open ACP transition so targets catch up.
-            foreach (var acp in new[] { AcpSide.Captain, AcpSide.FirstOfficer, AcpSide.Observer })
+            // Re-emit on any closed→open transition so targets catch up. Per binding, not
+            // per ACP: the loudspeaker dial has its own power rule.
+            foreach (var binding in _bindings)
             {
-                if (!AcpPowerGate.IsPowered(acp, previous) && AcpPowerGate.IsPowered(acp, inputs))
+                if (!AcpPowerGate.IsPowered(binding.Acp, binding.Channel, previous)
+                    && AcpPowerGate.IsPowered(binding.Acp, binding.Channel, inputs))
                 {
-                    foreach (var binding in _bindings)
-                    {
-                        if (binding.Acp == acp)
-                        {
-                            EmitVolumeLocked(binding);
-                            EmitMuteLocked(binding);
-                        }
-                    }
+                    EmitVolumeLocked(binding);
+                    EmitMuteLocked(binding);
                 }
             }
         }
@@ -170,6 +183,11 @@ public sealed class AcpChannelFeed : IDisposable
         lock (_gate)
         {
             EmitVolumeLocked(binding);
+            if (binding.Latch is null)
+            {
+                // The dial is its own mute; only the crossing is worth a write.
+                EmitMuteLocked(binding, onlyOnChange: true);
+            }
         }
     }
 
@@ -185,7 +203,7 @@ public sealed class AcpChannelFeed : IDisposable
     {
         // A knob value that never arrived stays unknown — emit nothing rather than 0
         // (a spurious zero would silence the target app at startup).
-        if (_sink is null || binding.Volume.RawValue is null || !IsPowered(binding.Acp))
+        if (_sink is null || binding.Volume.RawValue is null || !IsPowered(binding))
         {
             return;
         }
@@ -193,9 +211,41 @@ public sealed class AcpChannelFeed : IDisposable
         _sink.OnVolume(binding.Acp, binding.Channel, VolumeMath.Normalize(binding.Volume.Value));
     }
 
-    private void EmitMuteLocked(ChannelBinding binding)
+    private void EmitMuteLocked(ChannelBinding binding, bool onlyOnChange = false)
     {
-        if (_sink is null || binding.Latch.RawValue is null || !IsPowered(binding.Acp))
+        if (_sink is null || !IsPowered(binding))
+        {
+            return;
+        }
+
+        if (binding.Latch is null)
+        {
+            // No latch: fully down is the mute (−60 dB on a VoiceMeeter target is still
+            // audible). Same unknown-stays-unknown rule as the knob value.
+            if (binding.Volume.RawValue is null)
+            {
+                return;
+            }
+
+            var dialMuted = VolumeMath.IsDialAtZero(binding.Volume.Value);
+            if (onlyOnChange && binding.DialMuted == dialMuted)
+            {
+                return;
+            }
+
+            if (binding.DialMuted != dialMuted)
+            {
+                // The one line that shows in a flight log that the dial reached the target.
+                _logger.LogInformation("{Acp} {Channel} dial {State}", binding.Acp, binding.Channel,
+                    dialMuted ? "fully down — target muted" : "raised — target unmuted");
+            }
+
+            binding.DialMuted = dialMuted;
+            _sink.OnMute(binding.Acp, binding.Channel, dialMuted);
+            return;
+        }
+
+        if (binding.Latch.RawValue is null)
         {
             return;
         }
@@ -204,9 +254,25 @@ public sealed class AcpChannelFeed : IDisposable
         _sink.OnMute(binding.Acp, binding.Channel, binding.Latch.Value == 0);
     }
 
-    private sealed record ChannelBinding(
-        AcpSide Acp,
-        AudioChannel Channel,
-        IDataRefSubscription<double> Volume,
-        IDataRefSubscription<int> Latch);
+    private bool IsPowered(ChannelBinding binding) =>
+        AcpPowerGate.IsPowered(binding.Acp, binding.Channel, PowerInputs);
+
+    private sealed class ChannelBinding(
+        AcpSide acp,
+        AudioChannel channel,
+        IDataRefSubscription<double> volume,
+        IDataRefSubscription<int>? latch)
+    {
+        public AcpSide Acp { get; } = acp;
+
+        public AudioChannel Channel { get; } = channel;
+
+        public IDataRefSubscription<double> Volume { get; } = volume;
+
+        /// <summary>Null for a dial with no REC latch (the loudspeaker).</summary>
+        public IDataRefSubscription<int>? Latch { get; } = latch;
+
+        /// <summary>Last dial-at-zero mute emitted for a latchless dial; null before the first.</summary>
+        public bool? DialMuted { get; set; }
+    }
 }

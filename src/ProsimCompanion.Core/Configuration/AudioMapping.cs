@@ -8,8 +8,9 @@ public enum AcpSide
     Observer,
 }
 
-/// <summary>The eight ACP channels — every one is wired end-to-end on all three ACPs.
-/// Intercom/Cabin are the panel's INT/CAB knobs (spelled out — analyzer rules).</summary>
+/// <summary>The eight ACP channels — every one is wired end-to-end on all three ACPs — plus
+/// the glareshield loudspeaker dial. Intercom/Cabin are the panel's INT/CAB knobs (spelled
+/// out — analyzer rules).</summary>
 public enum AudioChannel
 {
     Vhf1,
@@ -20,6 +21,26 @@ public enum AudioChannel
     Intercom,
     Cabin,
     Pa,
+
+    /// <summary>The cockpit LOUD SPEAKER dial — not an ACP knob: Captain and First Officer
+    /// only (no observer dial), no REC latch (the dial at zero is its mute), and no part in
+    /// the audio-switching swap. Appended last so configs that stored the enum as a number
+    /// keep their meaning.</summary>
+    Loudspeaker,
+}
+
+/// <summary>What the cockpit actually has for a channel — one rule for the knob feed and the
+/// settings page (Web cannot see the Audio project).</summary>
+public static class AudioChannelExtensions
+{
+    /// <summary>False for the one key with no dial in the cockpit (observer loudspeaker). A
+    /// hand-edited mapping for it is skipped by the feed; the settings page never offers it.</summary>
+    public static bool ExistsOn(this AudioChannel channel, AcpSide acp) =>
+        channel != AudioChannel.Loudspeaker || acp is AcpSide.Captain or AcpSide.FirstOfficer;
+
+    /// <summary>False for the loudspeaker dial: its mute is the dial fully down, never a
+    /// REC latch.</summary>
+    public static bool HasRecLatch(this AudioChannel channel) => channel != AudioChannel.Loudspeaker;
 }
 
 /// <summary>Which volume target the ACP knobs drive.</summary>

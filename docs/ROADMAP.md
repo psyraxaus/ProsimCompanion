@@ -255,6 +255,13 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
       flagged on /audio with run-as-admin guidance), ProSim native audio guard
       (aircraft.communication.windows.* cleared once per connection; PA deliberately untouched,
       predecessor parity). **Unverified live**
+- [x] Loudspeaker dial (2026-10-05, 0.6.0-rc.19): `system.analog.A_MIP_LOUDSPEAKER_CAPT/_FO`
+      as a ninth mapping channel on the Captain / First Officer lists of both backends — no
+      latch (fully down mutes), essential-bus power rule that ignores the audio-switching swap,
+      no observer dial. Headset sound on the cockpit speakers is a VoiceMeeter-side VBAN loop
+      (manual chapter 8, docs/integrations/audio.md). The VoiceMeeter wiring and the level
+      write were verified by the owner on the sim PC with a stand-in knob (CPT CAB → Bus 8);
+      the dial channel itself is **unverified live**
 
 ## Phase 5 — Voice First Officer
 
