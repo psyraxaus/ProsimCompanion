@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0-rc.20
+
+From a user report of 2026-10-05 (issues #158, #159).
+
+- Fix: **the app connects to ProSim 1.74 again.** With ProSim 1.74 the ProSim dot stayed red on every start and the log said *"Method not found: 'Void ProSimSDK.ProSimConnect..ctor(System.String)'"*. ProSim changed how its SDK is started between 1.74 and 1.75, and the app only knew the newer way. It now looks at the SDK it finds and uses the way that SDK has. Verified with ProSim 1.74-beta.8 and ProSim 1.75.1: the app connected to both.
+- Fix: **the update banner works for release candidates.** The app could not read a version such as *0.6.0-rc.18* from the release page, so it never told a release-candidate user about a newer build. It now compares the *rc* numbers too, and it offers the final release to a user on a release candidate.
+- New: when the app cannot use the ProSim SDK in the configured folder, the ProSim dot (hover it) and the **Getting Started** card on Flight Status say why, and the dot no longer reads "disconnected, retrying".
+- New: the log names the ProSim SDK build the app found: *ProSim SDK "…" loaded from "…"*. Send this line with a connection problem.
+- A ProSim API key in the settings is ignored, with a warning in the log, when your ProSim version has no API-key support.
+- 0.6.0-rc.19 was a local test build and was not published. Its change (the LOUD SPEAKER dial as an audio channel) is **not** in this build.
+- Not yet verified live: the "SDK does not match" message, and the update banner with a newer build published.
+- Everything in 0.6.0-rc.18 below.
+
 ## 0.6.0-rc.18
 
 From the LKPR departure of 2026-10-05 (issue #141).
