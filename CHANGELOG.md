@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0-rc.19
+
+Owner request, 2026-10-05: the headset sound on the cockpit speakers, with the loudspeaker dial as their volume.
+
+- New: **the cockpit LOUD SPEAKER dial is a mapping channel.** Settings → Audio Control → VoiceMeeter → CPT (or F/O) Mappings → Add mapping → Channel **LOUDSPEAKER**, and pick the strip or bus — the same list as the ACP knobs. The app reads `system.analog.A_MIP_LOUDSPEAKER_CAPT` / `_FO` and sets that target's level (−60 dB … +12 dB like the knobs).
+- The dial has no REC latch: **fully down mutes the target** (the Latch tick is shown ticked and greyed on that row). The observer has no loudspeaker dial, so the OBS list does not offer it.
+- The dial follows the essential buses and ignores the AUDIO SWITCHING selector (that swap is about the ACPs; the dial is not on one).
+- On the CoreAudio backend LOUDSPEAKER is in the channel list too and sets a program's Windows volume like any other knob.
+- New manual chapter 8, **Loudspeaker dial**: the VoiceMeeter wiring that puts the radio strips on the speakers at the dial's level — a spare bus, a VBAN loop to `127.0.0.1` and a spare strip (VoiceMeeter does not offer its own B outputs as a strip input). The app sets one level; it never changes VoiceMeeter routing or VBAN.
+- Remove any stand-in mapping to the same strip or bus first (for example CAB → Bus 8): a target can belong to one mapping only, and a clash on the captain's list turns the VoiceMeeter mappings off until fixed (the Status section says why).
+- Verified on the sim PC the same day with a stand-in knob: the wiring, the level write and "next to no delay" on the speakers. Not yet verified live: the LOUDSPEAKER channel itself. The log line to look for is *Captain Loudspeaker dial fully down — target muted* / *raised — target unmuted*.
+- Everything in 0.6.0-rc.18 below.
+
 ## 0.6.0-rc.18
 
 From the LKPR departure of 2026-10-05 (issue #141).
