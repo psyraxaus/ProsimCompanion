@@ -37,7 +37,12 @@
         }
         else if (states.GetValueOrDefault(Subsystems.Prosim) != ConnectionState.Connected)
         {
-            steps.Add(("ProSim is not connected yet. Start ProSim System, or check the host name.", "settings", "Check the ProSim connection"));
+            // The subsystem's own reason wins (issue #158): "start ProSim" is wrong advice when
+            // the SDK in the folder does not match the app.
+            steps.Add((
+                Status.ReasonOf(Subsystems.Prosim) ?? "ProSim is not connected yet. Start ProSim System, or check the host name.",
+                "settings",
+                "Check the ProSim connection"));
         }
 
         if (!GsxOptions.CurrentValue.Enabled)

@@ -16,11 +16,24 @@ shim packages (`System.ServiceModel.Primitives/Http/NetTcp` 10.0.652802) and
 `System.Security.Cryptography.Xml` 10.0.10 on modern .NET. The SDK's XML API doc ships beside the
 dll (`ProSimSDK.xml` in the ProSim System install image).
 
-**Connecting** — two API shapes exist; probe by reflection:
-- legacy: parameterless ctor + `Connect(host)`
-- beta: `ctor(apiKey)` + `Connect(host, bool synchronous)`; throws `AuthenticationException` on a bad
-  API key.
-Non-blocking `Connect(host, false)` makes the SDK retry internally — do **not** stack watchdog
+**Connecting** — two constructor shapes exist and they are **disjoint**; pick by reflection
+(`SdkConstructorSelector`), never with a direct `new ProSimConnect(...)`:
+- older (ProSim 1.74-beta.8, dll product version `1.0.0+2f0d88c188`, 2025-11): `ProSimConnect()` only.
+- newer (dll `1.0.0+626faa2df9` of 2026-07; ProSim 1.75.1, `1.0.0+1374251c6f`):
+  `ProSimConnect(string apiKey = "")` only; throws `AuthenticationException` on a bad API key.
+
+Compiled against the newer dll, `new ProSimConnect()` becomes a `.ctor(String)` member reference
+too, so a direct call binds one shape and dies with `MissingMethodException` on the other
+(issue #158, ticket t-20261005-1918). `Connect()` and `Connect(string host, bool synchronous)` are
+on **both** shapes — there is no one-parameter `Connect(host)` (an earlier version of this section
+said so; verified by reflection on all three dlls, 2026-10-06). The dll **file version is
+`1.1.1.0` on every build** and the assembly version `1.1.0.0` on the first two; only the product
+version (it carries the ProSim commit hash) tells builds apart — the app logs it at start. The
+`ActiveSchematics` subfolder of a ProSim install holds a different `ProSimSDK.dll`
+(`1.42.0+…`) — not the one to load.
+
+Non-blocking `Connect(host, false)` makes the SDK retry internally (measured on the 1.74-beta.8
+dll with ProSim off: `onFailedToConnect` every ~2.6 s from one call) — do **not** stack watchdog
 `Connect` calls on top. Default host `localhost`. The SDK owns an unjoinable foreground thread →
 process must end with `Environment.Exit` after orderly teardown.
 
@@ -34,7 +47,9 @@ historically: Critical 100 ms / Frequent 250 ms / Normal 500 ms / Infrequent 200
 On reconnect, re-register every subscription (fixes delayed-ProSim-start bugs). On disconnect, flag
 cached values stale rather than clearing them ("valid or hold previous decision").
 `DataRefNotFoundException` is expected for lazily-created refs (e.g. `efb.prelimLoadsheet` exists
-only after first write).
+only after first write). On ProSim 1.74-beta.8 an unknown name does **not** throw at `Register()`:
+the ref goes to `DataRefState.Error` and reading `.value` throws `DataRefNotReady` (seen
+2026-10-06 with a made-up name; not compared with a newer ProSim).
 
 **Writes** — go through cached write-DataRefs gated by code-level allow-lists. Momentary presses
 (write 1 → hold ~configurable ms → write 0 → inter-press gap) must be serialized through a

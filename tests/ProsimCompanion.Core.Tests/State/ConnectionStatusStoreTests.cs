@@ -26,6 +26,37 @@ public sealed class ConnectionStatusStoreTests
         Assert.Equal(ConnectionState.Disconnected, store.Snapshot().Single(p => p.Key == Subsystems.Tts).Value);
     }
 
+    /// <summary>Issue #158: a subsystem that is off says why, and the web shows it.</summary>
+    [Fact]
+    public void Set_WithReason_KeepsIt_UntilTheNextSet()
+    {
+        var store = new ConnectionStatusStore();
+
+        store.Set(Subsystems.Prosim, ConnectionState.Disabled, "  The ProSim SDK does not match.  ");
+        Assert.Equal("The ProSim SDK does not match.", store.ReasonOf(Subsystems.Prosim));
+        Assert.Equal(ConnectionState.Disabled, store.Snapshot().Single(p => p.Key == Subsystems.Prosim).Value);
+
+        store.Set(Subsystems.Prosim, ConnectionState.Connected);
+        Assert.Null(store.ReasonOf(Subsystems.Prosim));
+        Assert.Null(store.ReasonOf(Subsystems.Gsx));
+    }
+
+    [Fact]
+    public void Set_RaisesChanged_WhenOnlyTheReasonChanges()
+    {
+        var store = new ConnectionStatusStore();
+        var raised = 0;
+        store.Changed += (_, _) => raised++;
+
+        store.Set(Subsystems.Prosim, ConnectionState.Disabled, "No ProSim SDK folder is set.");
+        store.Set(Subsystems.Prosim, ConnectionState.Disabled, "No ProSim SDK folder is set.");
+        store.Set(Subsystems.Prosim, ConnectionState.Disabled, "ProSimSDK.dll was not found.");
+        store.Set(Subsystems.Prosim, ConnectionState.Disabled, " ");
+
+        Assert.Equal(3, raised);
+        Assert.Null(store.ReasonOf(Subsystems.Prosim));
+    }
+
     [Fact]
     public void Set_FirstValue_AlwaysRaises()
     {

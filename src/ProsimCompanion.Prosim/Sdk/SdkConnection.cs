@@ -68,9 +68,10 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         _status = status;
         _logger = logger;
 
-        _connection = string.IsNullOrWhiteSpace(options.ApiKey)
-            ? new ProSimConnect()
-            : new ProSimConnect(options.ApiKey);
+        // Never `new ProSimConnect(...)` here: the SDK builds in the field have disjoint
+        // constructors and a direct call binds only the one this app was compiled against
+        // (issue #158 — MissingMethodException on ProSim 1.74-beta.8).
+        _connection = (ProSimConnect)SdkConstructorSelector.Create(typeof(ProSimConnect), options.ApiKey);
 
         _connection.onConnect += OnConnect;
         _connection.onDisconnect += OnDisconnect;
@@ -83,6 +84,10 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         _registrationWorker = Task.Run(RunRegistrationWorkerAsync);
         _watchdog = new Timer(OnWatchdogTick, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
+
+    /// <summary>Identity of the ProSimSDK.dll the runtime loaded. Lives here so the owner can
+    /// log it without naming an SDK type itself.</summary>
+    public static SdkInfo DescribeSdk() => SdkConstructorSelector.Inspect(typeof(ProSimConnect));
 
     /// <summary>Completes when the session is unrecoverably wedged (a registration round-trip
     /// stalled past the configured threshold); the owner should dispose and rebuild.</summary>

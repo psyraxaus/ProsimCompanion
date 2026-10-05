@@ -87,10 +87,16 @@ public static class DiagnosticsEndpoints
     }
 
     /// <summary>Which optional dependencies were present, from the status store — cheap, no
-    /// probing. Exposed for tests.</summary>
+    /// probing. A subsystem that is off for a stated reason carries it ("ProSim: Disabled —
+    /// the ProSim SDK … does not match", issue #158). Exposed for tests.</summary>
     public static IReadOnlyList<string> DependencyLines(ConnectionStatusStore status)
     {
         ArgumentNullException.ThrowIfNull(status);
-        return [.. status.Snapshot().Select(pair => $"{pair.Key}: {pair.Value}")];
+        return
+        [
+            .. status.Snapshot().Select(pair => status.ReasonOf(pair.Key) is { } reason
+                ? $"{pair.Key}: {pair.Value} — {reason}"
+                : $"{pair.Key}: {pair.Value}"),
+        ];
     }
 }

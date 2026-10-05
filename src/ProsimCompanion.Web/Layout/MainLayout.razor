@@ -271,7 +271,8 @@
     {
         Subsystems.Asr => $"Speech recognition (LAN whisper): {(_speech.RecognizerDetail.Length > 0 ? _speech.RecognizerDetail : "unknown")}",
         Subsystems.Tts => $"Voice (Kokoro): {NetworkVoiceDetail()}",
-        _ => $"{label} connection",
+        // A subsystem that is off for a reason says it (issue #158: SDK and app do not match).
+        _ => Status.ReasonOf(subsystem) is { } reason ? $"{label}: {reason}" : $"{label} connection",
     };
 
     private string NetworkVoiceDetail()

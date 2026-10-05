@@ -41,9 +41,11 @@ public sealed class ProsimConnectionService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var failedToStart = false;
+        string? sdkDirectory = null;
         try
         {
-            var sdkDirectory = await WaitForSdkDirectoryAsync(stoppingToken).ConfigureAwait(false);
+            sdkDirectory = await WaitForSdkDirectoryAsync(stoppingToken).ConfigureAwait(false);
 
             SdkAssemblyResolver.Register(sdkDirectory);
             await RunSessionsAsync(stoppingToken).ConfigureAwait(false);
@@ -52,16 +54,45 @@ public sealed class ProsimConnectionService : BackgroundService
         {
             // Normal shutdown.
         }
+        catch (Exception ex) when (SdkIncompatibleException.IsMismatch(ex))
+        {
+            // Issue #158: a member this app binds is not in the user's ProSimSDK.dll. The CLR
+            // keeps the loaded dll for the life of the process, so the only way out is a
+            // matching dll and a restart — say so instead of "failed to start".
+            failedToStart = true;
+            _logger.LogWarning(
+                ex,
+                "The ProSimSDK.dll in {Directory} does not match this version of the app ({Detail}). " +
+                "The ProSim subsystem is off. Update ProSim, or set the ProSim SDK folder on the web " +
+                "Settings page to a matching installation, then restart the app",
+                sdkDirectory,
+                ex.Message);
+            _status.Set(
+                Subsystems.Prosim,
+                ConnectionState.Disabled,
+                "The ProSim SDK in the configured folder does not match this version of the app. " +
+                "Update ProSim or the app, then restart the app.");
+        }
         catch (Exception ex)
         {
+            failedToStart = true;
             _logger.LogError(ex, "ProSim subsystem failed to start; continuing without it");
-            _status.Set(Subsystems.Prosim, ConnectionState.Disabled);
+            _status.Set(
+                Subsystems.Prosim,
+                ConnectionState.Disabled,
+                "The ProSim connection failed to start. See the Logs page.");
         }
         finally
         {
             _connection?.Dispose();
             _connection = null;
-            _status.Set(Subsystems.Prosim, ConnectionState.Disconnected);
+
+            // A failed start stays Disabled with its reason: this line used to overwrite it
+            // with Disconnected ("will keep retrying"), which nothing was doing (issue #158).
+            if (!failedToStart)
+            {
+                _status.Set(Subsystems.Prosim, ConnectionState.Disconnected);
+            }
         }
     }
 
@@ -87,7 +118,12 @@ public sealed class ProsimConnectionService : BackgroundService
             if (!loggedGuidance)
             {
                 loggedGuidance = true;
-                _status.Set(Subsystems.Prosim, ConnectionState.Disabled);
+                _status.Set(
+                    Subsystems.Prosim,
+                    ConnectionState.Disabled,
+                    string.IsNullOrWhiteSpace(configured)
+                        ? "No ProSim SDK folder is set."
+                        : "ProSimSDK.dll was not found in the configured ProSim SDK folder.");
                 if (string.IsNullOrWhiteSpace(configured))
                 {
                     _logger.LogWarning(
@@ -125,6 +161,24 @@ public sealed class ProsimConnectionService : BackgroundService
     [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task RunSessionsAsync(CancellationToken stoppingToken)
     {
+        // The dll file version is 1.1.1.0 on every ProSim build seen so far; the product
+        // version (ProSim commit hash) and the constructor shape are what tell them apart
+        // (issue #158, ticket t-20261005-1918).
+        var sdk = SdkConnection.DescribeSdk();
+        _logger.LogInformation(
+            "ProSim SDK {Version} loaded from {Path} ({Shape} constructor)",
+            sdk.ProductVersion,
+            sdk.Location,
+            SdkConstructorSelector.Describe(sdk.Shape));
+
+        if (!string.IsNullOrWhiteSpace(_options.CurrentValue.ApiKey)
+            && !sdk.Shape.HasFlag(SdkConstructorShape.ApiKey))
+        {
+            _logger.LogWarning(
+                "A ProSim API key is set, but this ProSim SDK build has no API-key constructor; " +
+                "the key is not used");
+        }
+
         while (true)
         {
             var connection = new SdkConnection(

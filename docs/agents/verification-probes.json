@@ -1607,6 +1607,31 @@
       "notes": "Fixed 2026-09-13: OnConnect disposes the pending reconnect timer and the timer callback returns when already connected — Connect() on a live SDK session raises no onConnect, so the Connecting status it set could never clear. Pill-only bug: dataref traffic was unaffected."
     },
     {
+      "id": "prosim-sdk-shape",
+      "issue": 158,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "log",
+          "component": "ProsimConnectionService",
+          "contains": "MissingMethodException"
+        }
+      },
+      "sources": [
+        "log"
+      ],
+      "checks": [
+        "assert-absent: any ProsimConnectionService line that carries 'MissingMethodException', 'MissingMemberException' or 'TypeLoadException' — on builds up to 0.6.0-rc.19 the signature is 'ProSim subsystem failed to start; continuing without it' + \"Method not found: 'Void ProSimSDK.ProSimConnect..ctor(System.String)'\" on every start (ticket t-20261005-1918, ProSim 1.74-beta.8).",
+        "assert-present on every start with an SDK folder set: one line 'ProSim SDK \"<product version>\" loaded from \"<path>\\ProSimSDK.dll\" (\"parameterless\"|\"API-key\" constructor)' immediately before the first 'Connecting to ProSim at' line. Report the product version and the shape: they identify the user's ProSim build (the dll file version is 1.1.1.0 on every build).",
+        "assert-present when ProSim was running: 'Connected to ProSim at' after that line. With ProSim off, 'ProSim at … is not reachable yet (attempt 1); the SDK keeps retrying' is the correct outcome.",
+        "watch: 'The ProSimSDK.dll in … does not match this version of the app' (Warning) means a member other than the constructor is missing from the user's dll — quote the detail in brackets; the ProSim status must then read Disabled with the reason, not Disconnected.",
+        "watch: 'A ProSim API key is set, but this ProSim SDK build has no API-key constructor' — the user's ProSim is older than the API-key SDK; the key is dropped and the connection still runs."
+      ],
+      "notes": "Fixed 2026-10-06: SdkConstructorSelector picks the ProSimConnect constructor by reflection. Two shapes are in the field and they are disjoint: ProSim 1.74-beta.8 (dll 1.0.0+2f0d88c188, 2025-11) has only ProSimConnect(); the 2026-07 dll (1.0.0+626faa2df9) and ProSim 1.75.1 (1.0.0+1374251c6f) have only ProSimConnect(string apiKey = \"\"). Connect(string, bool) and every DataRef member the app binds are on all three. Verified on the dev machine the same day: the rc.19 build reproduced the MissingMethodException against the 1.74-beta.8 dll; the fixed build logged the 'parameterless' line and 'Connected to ProSim' 0.75 s later against a running ProSim 1.74-beta.8 (the native GSX and audio guards then read and wrote their datarefs), and the 'API-key' line + 'Connected to ProSim' 0.23 s later against a running ProSim 1.75.1 (no API key set). The mismatch warning has unit tests only. Seen on 1.74-beta.8 only, not part of the fix: Register() on an unknown dataref name does not throw DataRefNotFoundException there — the ref goes to DataRefState.Error."
+    },
+    {
       "id": "update-check-prerelease",
       "issue": 159,
       "state": "open",

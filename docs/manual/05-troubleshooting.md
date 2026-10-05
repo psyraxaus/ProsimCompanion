@@ -18,6 +18,7 @@
 | Symptom | Check |
 |---|---|
 | ProSim dot stays red | `prosim.sdkPath` set and pointing at the real `ProSimSDK.dll`? ProSim System running? Hostname right for a networked ProSim? |
+| ProSim dot is not green and ProSim is running | Hover the dot, or read the **Getting Started** card on Flight Status: when the app cannot use the SDK in the configured folder it says why. The log line `ProSim SDK "…" loaded from "…"` names the SDK build the app found. Builds up to 0.6.0-rc.19 could not connect to ProSim 1.74 (log: `Method not found: 'Void ProSimSDK.ProSimConnect..ctor(System.String)'`) — update the app. |
 | GSX dot red / no services | GSX Pro running with the Couatl Remote API enabled? The port is read live from `%APPDATA%\Virtuali\CouatlAddons.ini` — non-default ports are picked up automatically. |
 | GSX doors/services act oddly at the gate | Are the ProSim A322 GSX profiles installed (`%APPDATA%\Virtuali\Airplanes\prosim-a322-*`)? The installer offers them; without them GSX guesses the aircraft geometry. |
 | No services before pushback | The OFP gate: with *wait for OFP* enabled nothing is called until the SimBrief plan is imported or an MCDU plan exists. The status board shows the hold reason. |
