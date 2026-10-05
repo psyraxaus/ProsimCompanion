@@ -54,21 +54,12 @@ public sealed class UpdateCheckService : BackgroundService
 
     /// <summary>Pure comparison core (tested without the network): true when
     /// <paramref name="latestTag"/> (an optionally v-prefixed semver) is newer than
-    /// <paramref name="currentVersion"/>. Unparseable input is never "newer".</summary>
+    /// <paramref name="currentVersion"/>. Pre-release parts count (issue #159): rc.18 is newer
+    /// than rc.16, and 0.6.0 is newer than any 0.6.0-rc. Unparseable input is never "newer".</summary>
     public static bool IsNewer(string latestTag, string currentVersion)
-    {
-        var tag = latestTag.Trim().TrimStart('v', 'V');
-        var current = currentVersion.Trim();
-        var currentMeta = current.IndexOf('-', StringComparison.Ordinal);
-        if (currentMeta > 0)
-        {
-            current = current[..currentMeta]; // 0.2.0-beta compares as 0.2.0
-        }
-
-        return Version.TryParse(tag, out var latest)
-            && Version.TryParse(current, out var running)
-            && latest > running;
-    }
+        => ReleaseVersion.TryParse(latestTag, out var latest)
+            && ReleaseVersion.TryParse(currentVersion, out var running)
+            && latest.CompareTo(running) > 0;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

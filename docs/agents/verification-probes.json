@@ -1607,6 +1607,23 @@
       "notes": "Fixed 2026-09-13: OnConnect disposes the pending reconnect timer and the timer callback returns when already connected — Connect() on a live SDK session raises no onConnect, so the Connecting status it set could never clear. Pill-only bug: dataref traffic was unaffected."
     },
     {
+      "id": "update-check-prerelease",
+      "issue": 159,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": [
+        "log"
+      ],
+      "checks": [
+        "Trigger = an 'Update check: running \"X\", latest release \"Y\" — update available: Z' line (UpdateCheckService, about 15 s after start, then at the configured interval).",
+        "Z must be True when Y is the newer version by semver precedence, pre-release part included: running 0.6.0-rc.16 with latest v0.6.0-rc.18 is True; a final v0.6.0 over any 0.6.0-rc.N is True.",
+        "Z must be False when X and Y are the same release (build metadata after '+' ignored) or X is the newer one (a local build ahead of the published release).",
+        "The pre-fix signature (every build up to 0.6.0-rc.19): Z False with Y a later rc than X — logged 2026-10-03 and 2026-10-05 in ticket t-20261005-1918.",
+        "requires-human: when Z is True the update banner shows on the web UI with the latest version and the releases link."
+      ],
+      "notes": "Fixed 2026-10-06: UpdateCheckService.IsNewer compares ReleaseVersion values (core version, then pre-release identifiers, numeric ones as numbers). Before, the pre-release suffix was stripped from the running version only and the tag 'v0.6.0-rc.18' never parsed. Behaviour change: a final release is now offered to a user on its release candidate (the old rule ignored the suffix)."
+    },
+    {
       "id": "requires-human-checklist",
       "issue": 0,
       "state": "open",

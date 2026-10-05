@@ -8,7 +8,7 @@ from it — never version anything separately.
 | Consumer | How |
 |---|---|
 | Assemblies | MSBuild stamps `AssemblyVersion` / `FileVersion` / `InformationalVersion` from `<Version>` |
-| Update banner | `UpdateCheckService` compares the assembly informational version against the latest GitHub release tag (3-component compare, `v` prefix and `+metadata`/`-prerelease` suffixes stripped) |
+| Update banner | `UpdateCheckService` compares the assembly informational version against the latest GitHub release tag by semantic-version precedence (`ReleaseVersion`: `v` prefix and `+metadata` dropped, the `-prerelease` part compared) |
 | Installer | `installer/build-installer.ps1` reads `Directory.Build.props` and names the output `ProsimCompanion-Setup-<version>.exe` |
 | Web UI | the banner shows "running X" next to "latest Y" |
 
@@ -22,9 +22,12 @@ Semantic versioning, three components, pre-1.0 rules:
 - After 1.0: **major** = breaking `settings.json` shape (a `SettingsMigrator` step is then
   mandatory), **minor** = features, **patch** = fixes.
 
-Pre-release builds may use `-beta.N` suffixes (`0.2.0-beta.1`); the update check treats a
-pre-release as equal to its release (3-component compare), so a beta user is offered the
-final release only when the number itself grows.
+Pre-release builds use `-beta.N` / `-rc.N` suffixes (`0.6.0-rc.18`). The update check
+compares them (issue #159): `rc.18` is newer than `rc.16`, `rc.10` is newer than `rc.2`
+(numbers compare as numbers), `rc.1` is newer than `beta.9`, and the final `0.6.0` is newer
+than every `0.6.0-…` pre-release. Until 2026-10-06 the suffix was stripped from the running
+version only, the tag `v0.6.0-rc.18` never parsed, and no release-candidate user was ever
+offered an update.
 
 ## Release checklist
 
