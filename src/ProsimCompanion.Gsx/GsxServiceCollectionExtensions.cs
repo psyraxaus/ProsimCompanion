@@ -20,6 +20,9 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<IGsxRemoteApi>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
         services.AddSingleton<GsxServiceLifecycleTracker>();
+        // One way to ask for the menu (Remote API, then the legacy LVAR — issue #141), shared
+        // by the intent executor and the parking wake.
+        services.AddSingleton<Menu.GsxMenuOpener>();
         services.AddSingleton<Menu.GsxMenuIntentExecutor>();
         services.AddSingleton<Menu.GsxQuestionDispatcher>();
         services.AddSingleton<Menu.GsxQuestionCatalog>();
@@ -57,6 +60,7 @@ public static class GsxServiceCollectionExtensions
         services.AddStartupModule<Sync.GsxJetwayStairsService>();
         services.AddStartupModule<Sync.GsxRepositionService>();
         services.AddSingleton<Sync.GsxGateAnchorService>();
+        services.AddSingleton<Sync.GsxParkingWakeService>();
         services.AddStartupModule<Sync.GsxGroundPrepCoordinator>();
         services.AddSingleton<Sync.IGsxGroundPrepStatus>(provider => provider.GetRequiredService<Sync.GsxGroundPrepCoordinator>());
         services.AddStartupModule<Sync.ProsimNativeGsxGuard>();

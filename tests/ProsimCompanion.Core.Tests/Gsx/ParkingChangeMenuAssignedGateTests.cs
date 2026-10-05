@@ -32,7 +32,11 @@ public sealed class ParkingChangeMenuAssignedGateTests : IDisposable
     public ParkingChangeMenuAssignedGateTests()
     {
         var options = new FakeOptionsMonitor(new GsxOptions());
-        var executor = new GsxMenuIntentExecutor(_api, options, NullLogger<GsxMenuIntentExecutor>.Instance);
+        var executor = new GsxMenuIntentExecutor(
+            _api,
+            new GsxMenuOpener(_api, Moq.Mock.Of<ProsimCompanion.Core.Aircraft.ISimVars>(), NullLogger<GsxMenuOpener>.Instance),
+            options,
+            NullLogger<GsxMenuIntentExecutor>.Instance);
         var catalog = new GsxQuestionCatalog(
             _api, executor, options, _diagnostics, _phases, _eventLog,
             NullLogger<GsxQuestionCatalog>.Instance, pushbackChoice: null, assignedGate: _assigned);

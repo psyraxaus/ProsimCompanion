@@ -175,7 +175,13 @@ public sealed record GsxDroppedCallView(DateTimeOffset Timestamp, string Service
 /// facility GSX itself names in its "Change Facility [...]" menu entry — the strongest
 /// available hint of where GSX thinks the aircraft is. The FO advisory speaks each
 /// <see cref="Timestamp"/> once; the web Flight Status page renders it as long as it stands.</summary>
-public sealed record GsxParkingConflictView(DateTimeOffset Timestamp, string GsxFacility);
+public sealed record GsxParkingConflictView(DateTimeOffset Timestamp, string GsxFacility)
+{
+    /// <summary>True when GSX names no parking AND would not show its menu to the app (issue
+    /// #141): GSX looks for the stand only once its menu is asked for, so the one remedy is
+    /// the pilot's own toolbar click — different guidance from "pick the stand".</summary>
+    public bool MenuUnreachable { get; init; }
+}
 
 /// <summary>Arms/cancels arrival-gate requests from UI surfaces (implemented by the GSX layer;
 /// status is visible through <see cref="GsxDiagnosticsStore"/>).</summary>

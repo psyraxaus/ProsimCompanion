@@ -26,6 +26,7 @@ public sealed class GsxMenuControl : IGsxMenuControl
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxMenuIntentExecutor _executor;
+    private readonly GsxMenuOpener _opener;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
     private readonly IOptionsMonitor<GsxOptions> _options;
@@ -38,6 +39,7 @@ public sealed class GsxMenuControl : IGsxMenuControl
     public GsxMenuControl(
         IGsxRemoteApi api,
         GsxMenuIntentExecutor executor,
+        GsxMenuOpener opener,
         GsxDiagnosticsStore diagnostics,
         JsonlEventLog eventLog,
         IOptionsMonitor<GsxOptions> options,
@@ -45,6 +47,7 @@ public sealed class GsxMenuControl : IGsxMenuControl
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(executor);
+        ArgumentNullException.ThrowIfNull(opener);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(options);
@@ -52,6 +55,7 @@ public sealed class GsxMenuControl : IGsxMenuControl
 
         _api = api;
         _executor = executor;
+        _opener = opener;
         _diagnostics = diagnostics;
         _eventLog = eventLog;
         _options = options;
@@ -171,22 +175,17 @@ public sealed class GsxMenuControl : IGsxMenuControl
             return new(GsxMenuActionStatus.Done, "the GSX menu is already open");
         }
 
-        var open = await _api.SendCommandAsync("menu.open", null, cancellationToken).ConfigureAwait(false);
-        if (!open.Ok)
-        {
-            Record("web menu open", $"menu.open failed ({open.Code})", new { outcome = open.Code });
-            return new(GsxMenuActionStatus.Failed, $"menu.open failed ({open.Code})");
-        }
-
-        var appeared = await WaitForAsync(
+        // Same two rungs as the automation (issue #141): the card was as blind as the
+        // intents in a session where the in-sim GSX panel had not been opened yet.
+        var open = await _opener.OpenAsync(
             () => mirror.MenuShown,
             TimeSpan.FromMilliseconds(_options.CurrentValue.MenuOpenTimeoutMs),
             cancellationToken).ConfigureAwait(false);
-        Record("web menu open", appeared ? $"opened '{mirror.Menu?.Title}'" : "menu.open acknowledged but no menu appeared",
-            new { outcome = appeared ? "ok" : "no-menu" });
-        return appeared
+        Record("web menu open", open.Opened ? $"opened '{mirror.Menu?.Title}' ({open.Detail})" : open.Detail,
+            new { outcome = open.Opened ? "ok" : "no-menu", via = open.Outcome.ToString() });
+        return open.Opened
             ? new(GsxMenuActionStatus.Done, $"opened '{mirror.Menu?.Title}'")
-            : new(GsxMenuActionStatus.Failed, "GSX acknowledged but showed no menu");
+            : new(GsxMenuActionStatus.Failed, "GSX showed no menu");
     }
 
     public async Task<GsxMenuActionOutcome> CloseAsync(CancellationToken cancellationToken = default)

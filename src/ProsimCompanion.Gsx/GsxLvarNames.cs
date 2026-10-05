@@ -37,6 +37,12 @@ public static class GsxLvarNames
     public static readonly SimVarRef<double> BoardingCargoPercent = new("L:FSDT_GSX_BOARDING_CARGO_PERCENT", "number", DataRefTier.Normal, 0.0);
     public static readonly SimVarRef<double> DeboardingCargoPercent = new("L:FSDT_GSX_DEBOARDING_CARGO_PERCENT", "number", DataRefTier.Normal, 0.0);
 
+    // Legacy menu request (write 1 = "show the GSX menu", the toolbar click's twin; the
+    // predecessor's only menu path and never a toggle — it re-wrote 1 as its retry). Kept as
+    // the fallback for a menu.open the Remote API acknowledges without showing anything
+    // (issue #141). Write-only: no descriptor.
+    public const string MenuOpen = "L:FSDT_GSX_MENU_OPEN";
+
     // Crew/pilot boarding-question suppression (write 1 = "not boarding" — GSX then never
     // asks). Write-only: no descriptors.
     public const string CrewNotBoarding = "L:FSDT_GSX_CREW_NOT_BOARDING";

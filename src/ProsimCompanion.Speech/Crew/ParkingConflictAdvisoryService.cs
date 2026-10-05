@@ -148,7 +148,7 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
 
     private void Speak(GsxParkingConflictView conflict)
     {
-        var text = ComposeAdvisory(conflict.GsxFacility);
+        var text = conflict.MenuUnreachable ? MenuUnreachableAdvisory : ComposeAdvisory(conflict.GsxFacility);
         lock (_gate)
         {
             if (_lastSpokenConflict == conflict.Timestamp)
@@ -204,6 +204,14 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
             + offer
             + " Select the stand in the GSX menu, or reposition the aircraft.";
     }
+
+    /// <summary>The line for a parking GSX has not looked for yet (issue #141, 2026-10-05
+    /// LKPR): GSX names the stand once its menu is asked for, and the app could not make the
+    /// menu appear. "Select the stand, or reposition" was wrong advice there — the pilot's
+    /// one toolbar click was the whole remedy.</summary>
+    public const string MenuUnreachableAdvisory =
+        "Captain, GSX has not found our stand yet, and its menu won't open for me."
+        + " Open the GSX menu once from the toolbar, and I'll take it from there.";
 
     /// <summary>Strips parenthesized ranges and non-name symbols:
     /// "Terminal 5B (531-548) Stand 547 with Safedock©" → "Terminal 5B Stand 547 with Safedock".</summary>

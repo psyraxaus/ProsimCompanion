@@ -34,7 +34,11 @@ public sealed class GsxGatePositionMenuAnswerTests : IDisposable
             IntentVerifyTimeoutMs = 300,
             AnswerPositionMenuWithArrivalGate = answer,
         });
-        var executor = new GsxMenuIntentExecutor(_api, options, NullLogger<GsxMenuIntentExecutor>.Instance);
+        var executor = new GsxMenuIntentExecutor(
+            _api,
+            new GsxMenuOpener(_api, Moq.Mock.Of<ProsimCompanion.Core.Aircraft.ISimVars>(), NullLogger<GsxMenuOpener>.Instance),
+            options,
+            NullLogger<GsxMenuIntentExecutor>.Instance);
         _refs.Values[ProsimDataRefNames.FmsDestination.Name] = "EFHK";
         return new GsxGateSelectionService(_api, executor, _phases, _refs, _simVars, _eventLog,
             NullLogger<GsxGateSelectionService>.Instance, options);

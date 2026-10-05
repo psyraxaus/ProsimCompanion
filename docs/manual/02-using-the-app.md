@@ -175,6 +175,9 @@ thresholds — that most users never touch. Greyed-out fields belong to a switch
 
 1. **Cold & dark at the gate.** Ground prep runs automatically: reposition → GPU + chocks
    (+PCA per settings) → jetway or stairs. Nothing else happens until a flight plan exists.
+   GSX only looks for your stand once its menu is opened, so the app opens the GSX menu for a
+   moment by itself and closes it again — you do not have to click it first. If the menu
+   will not open for the app, the FO asks you to open it once from the MSFS toolbar.
 2. **Load the plan.** Enter the route in the MCDU (or press FETCH OFP on INIT). The SimBrief
    import writes the booked seat map, planned fuel and cargo into the ProSim EFB.
 3. **Departure services** run in your configured order (default: cleaning/lavatory on
@@ -215,9 +218,10 @@ thresholds — that most users never touch. Greyed-out fields belong to a switch
    scenery packages; the scenery's own parking list comes from the simulator (Settings → GSX
    → Arrival → Stand Knowledge). To send it, the app first has GSX load the destination
    through GSX's own in-flight **Select airport** menu. GSX sometimes shows no menu at all in
-   flight until its toolbar panel has been opened once (issue #141): if the Status section
-   says *"menu did not appear"*, open the GSX menu from the MSFS toolbar once after takeoff and
-   the next attempt (every few minutes) goes through. If GSX then asks **Select Position at
+   flight until its toolbar panel has been opened once (issue #141): the app then asks for the
+   menu a second way by itself. If the Status section still says *"menu did not appear"*, open
+   the GSX menu from the MSFS toolbar once after takeoff and the next attempt (every few
+   minutes) goes through. If GSX then asks **Select Position at
    …** itself after landing, the switch **Answer GSX's position menu with the arrival gate**
    (Settings → GSX) lets the app pick your gate in that menu by name; off, the menu is yours.
    The voice FO runs callouts, monitors flows, and briefs on request.

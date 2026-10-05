@@ -33,9 +33,11 @@ public sealed class GsxMenuControlTests : IDisposable
     public GsxMenuControlTests()
     {
         var options = new FakeOptionsMonitor(new GsxOptions { MenuOpenTimeoutMs = 300, IntentVerifyTimeoutMs = 300 });
-        var executor = new GsxMenuIntentExecutor(_api, options, NullLogger<GsxMenuIntentExecutor>.Instance);
+        var opener = new GsxMenuOpener(
+            _api, Moq.Mock.Of<ProsimCompanion.Core.Aircraft.ISimVars>(), NullLogger<GsxMenuOpener>.Instance);
+        var executor = new GsxMenuIntentExecutor(_api, opener, options, NullLogger<GsxMenuIntentExecutor>.Instance);
         _control = new GsxMenuControl(
-            _api, executor, _diagnostics,
+            _api, executor, opener, _diagnostics,
             new JsonlEventLog(_tempDir, NullLogger<JsonlEventLog>.Instance),
             options, NullLogger<GsxMenuControl>.Instance);
     }

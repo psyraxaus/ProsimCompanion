@@ -2,6 +2,8 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
+using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Gsx;
 using ProsimCompanion.Gsx.Menu;
@@ -13,11 +15,13 @@ namespace ProsimCompanion.Core.Tests.Gsx;
 public sealed class GsxMenuIntentExecutorTests
 {
     private readonly FakeGsxApi _api = new();
+    private readonly Mock<ISimVars> _simVars = new();
     private readonly GsxMenuIntentExecutor _executor;
 
     public GsxMenuIntentExecutorTests()
         => _executor = new GsxMenuIntentExecutor(
             _api,
+            new GsxMenuOpener(_api, _simVars.Object, NullLogger<GsxMenuOpener>.Instance),
             new FakeOptionsMonitor(new GsxOptions { MenuOpenTimeoutMs = 300, IntentVerifyTimeoutMs = 300 }),
             NullLogger<GsxMenuIntentExecutor>.Instance);
 
@@ -79,6 +83,70 @@ public sealed class GsxMenuIntentExecutorTests
 
         Assert.Equal(GsxIntentOutcome.Success, result.Outcome);
         Assert.Contains(_api.Commands, c => c.Verb == "menu.open");
+    }
+
+    /// <summary>Issue #141 (2026-09-27 EKCH→EGLL): menu.open answered ok three times in
+    /// flight and no menu ever appeared. The legacy menu LVAR is the second rung.</summary>
+    [Fact]
+    public async Task MenuOpenAcknowledgedButNothingShown_FallsBackToTheMenuLvar()
+    {
+        _simVars
+            .Setup(s => s.WriteAsync(GsxLvarNames.MenuOpen, 1, It.IsAny<CancellationToken>()))
+            .Callback(() => ShowMenu("Activate Services at Gate D57", "Reposition Aircraft", "Operate Jetway"))
+            .Returns(Task.CompletedTask);
+        _api.OnCommand = (verb, _) =>
+        {
+            if (verb == "menu.pick")
+            {
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(false));
+            }
+            return new GsxCommandResult(true, "ok", null, null); // menu.open: ok, shows nothing
+        };
+
+        var result = await _executor.ExecuteAsync(Intent("Activate Services at", "^operate jetway"));
+
+        Assert.Equal(GsxIntentOutcome.Success, result.Outcome);
+        _simVars.Verify(s => s.WriteAsync(GsxLvarNames.MenuOpen, 1, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task MenuShownByTheApi_NeverWritesTheMenuLvar()
+    {
+        _api.OnCommand = (verb, _) =>
+        {
+            if (verb == "menu.open")
+            {
+                ShowMenu("Activate Services at Gate D57", "Reposition Aircraft");
+            }
+            return new GsxCommandResult(true, "ok", null, null);
+        };
+
+        await _executor.ExecuteAsync(Intent("Activate Services at"));
+
+        _simVars.Verify(s => s.WriteAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task NoRungShowsAMenu_FailsSafe_MenuDidNotAppear()
+    {
+        var result = await _executor.ExecuteAsync(Intent("Activate Services at", "^operate jetway"));
+
+        Assert.Equal(GsxIntentOutcome.GsxNoResponse, result.Outcome);
+        Assert.StartsWith("menu did not appear", result.Detail);
+        Assert.DoesNotContain(_api.Commands, c => c.Verb == "menu.pick");
+    }
+
+    [Fact]
+    public async Task MsfsNotConnected_TheLvarRungIsSkippedQuietly()
+    {
+        _simVars
+            .Setup(s => s.WriteAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("MSFS is not connected"));
+
+        var result = await _executor.ExecuteAsync(Intent("Activate Services at", "^operate jetway"));
+
+        Assert.Equal(GsxIntentOutcome.GsxNoResponse, result.Outcome);
+        Assert.Contains("MSFS not connected", result.Detail);
     }
 
     [Fact]

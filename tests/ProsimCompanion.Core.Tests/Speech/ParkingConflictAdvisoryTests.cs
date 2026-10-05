@@ -29,6 +29,23 @@ public sealed class ParkingConflictAdvisoryTests
         => Assert.False(ParkingConflictAdvisoryService.IsRepeatWithinCooldown(
             "facility-less line", T0, "line naming Parking 14R", T0.AddSeconds(5)));
 
+    /// <summary>Issue #141 (2026-10-05 LKPR): when the app cannot make GSX show its menu the
+    /// remedy is one toolbar click — not "select the stand, or reposition", and never
+    /// "doesn't recognise our parking position" (GSX had not looked yet).</summary>
+    [Fact]
+    public void MenuUnreachableLine_AsksForTheToolbarClick_AndIsNewGuidance()
+    {
+        var line = ParkingConflictAdvisoryService.MenuUnreachableAdvisory;
+
+        Assert.Contains("Open the GSX menu once from the toolbar", line);
+        Assert.DoesNotContain("recognise", line);
+        Assert.DoesNotContain("reposition", line);
+
+        // "Pick the stand" after "open the menu" is different guidance — it still speaks.
+        Assert.False(ParkingConflictAdvisoryService.IsRepeatWithinCooldown(
+            line, T0, ParkingConflictAdvisoryService.ComposeAdvisory(""), T0.AddSeconds(30)));
+    }
+
     [Fact]
     public void FirstConflictOfTheSession_IsNeverARepeat()
         => Assert.False(ParkingConflictAdvisoryService.IsRepeatWithinCooldown(

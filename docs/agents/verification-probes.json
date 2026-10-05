@@ -129,7 +129,7 @@
         "Every gate.select refusal 'not_found' now has a gsx-gate-not-found event with the mirror's airport, parkings count, nearest names and an 8-name sample. READ IT: parkings = 0 means GSX sent no parking list for that airport (the dispatch sent too early or the mirror missed the patch); parkings > 0 with a sample like 'Gate W40' while the token 'W40' was refused means GSX's own suffix search did not match — quote both, that is the next design decision.",
         "With gsx.answerPositionMenuWithArrivalGate true and GSX raising 'Select Position at <destination>' while a gate request stood: one gsx-gate-position-menu event per attempt (max 2) with outcome Success | NoRow | ItemNotAvailable | AmbiguousMatch | MenuTitleMismatch | GsxNoResponse, the facility row picked and the page rows. Success must be followed by gsx-gate-confirmed (readback) or the Assigned(unconfirmed) status after 60 s; GSX's anchored facility (the 'Change Facility [...]' row in the next parking-change menu) must then name the requested gate.",
         "assert-absent: a menu.pick issued on a 'Select Position at' page whose picked row does not contain the requested token or a range covering it (the planner must never guess).",
-        "In-flight airport pick (#141 symptom): gsx-gate-airport-pick with outcome GsxNoResponse 'menu did not appear' means GSX showed no menu in flight; report whether the pilot had opened the GSX toolbar menu once after takeoff (the manual's workaround) — if yes and it still failed, #141 is not the whole story."
+        "In-flight airport pick (#141 symptom): gsx-gate-airport-pick with outcome GsxNoResponse 'menu did not appear' means GSX showed no menu in flight; report whether the pilot had opened the GSX toolbar menu once after takeoff (the manual's workaround) — if yes and it still failed, #141 is not the whole story. From the #141 fix on (2026-10-05) the detail reads 'menu did not appear (menu.open acknowledged but nothing appeared; the menu LVAR showed nothing either)' only when BOTH rungs failed — a pick that went through after 'requested through the menu LVAR' is the fix working."
       ],
       "notes": "Shipped 2026-10-04 (#156). EGLL→EFHK 2026-10-03 rc.8: airport pick ×3 'menu did not appear', gate.select 'W40' ×4 not_found with EFHK loaded, GSX parked the aircraft at Stand 401 and asked Select Position itself. The position-menu answer is off by default and unverified live; its menu shape (facility groups with '(Gates W34-W48)' ranges → 'All … positions' page) is from that flight's log."
     },
@@ -200,7 +200,7 @@
         "log"
       ],
       "checks": [
-        "When GSX does not recognize the parking (spawn at an unknown stand): a ground-prep hold with reason 'GSX has not identified the parking — select the stand in the GSX menu, or reposition' (visible on the Flight Status card), AND an 'fo.parking-conflict-advisory' spoken event, once per conflict — including when the only GSX surface is the 'Select Position at ...' menu (the 2026-08-23 gap: only the parking-CHANGE menu was wired, so the hold stayed a log line).",
+        "When GSX does not recognize the parking (spawn at an unknown stand): a ground-prep hold with reason 'GSX has not identified the parking — select the stand in the GSX menu, or reposition' (visible on the Flight Status card; from the #141 fix on it is preceded by '… opening the GSX menu so it looks for the stand' and a 'gsx-parking-wake' {outcome: 'menu-without-parking'} — see probe gsx-parking-wake), AND an 'fo.parking-conflict-advisory' spoken event, once per conflict — including when the only GSX surface is the 'Select Position at ...' menu (the 2026-08-23 gap: only the parking-CHANGE menu was wired, so the hold stayed a log line).",
         "assert-absent: repeated app restarts around a parking-change menu with session gate 'unknown' and no pilot-facing guidance (the 2026-08-17/22 signature).",
         "A 'gsx-question' decision 'position-select menu ... left for the user' when the Select Position menu appears (no more anonymous 'no question handler')."
       ],
@@ -222,9 +222,45 @@
         "assert-present: when GSX names the parking after a conflict stood (mirror 'parking'/'handlerData' update with a gate key), the log line 'GSX identified the parking <gate> — parking conflict cleared' (2026-09-20: the Select Position conflict outlived the pilot's stand pick by the whole deboarding).",
         "assert-absent (#157): an 'fo.parking-conflict-advisory' (or 'fo.parking-conflict-held') on an arrival where a 'gsx-gate-assigned' stands and the 'Change parking or service' menu names that gate ('Change Facility [<the gate GSX answered in the gsx-gate-assigned payload>]'). The 2026-10-04 LKPR signature: gate.select 29 → 'Gate C 29' at 21:34:52Z, menu 'Change Facility [Gate C 29]' at 21:36:29Z with the session gate unknown, FO 'GSX doesn't recognise our parking position' at 21:41:09Z, GSX identified Gate C 29 at 21:44:06Z and deboarded.",
         "assert-present (#157): in that case the 'gsx-question' decision for the parking-change menu reads '... the arrival gate <gate> it accepted; not a parking conflict'. A facility that names ANOTHER stand must still publish the conflict.",
-        "assert-absent (#157): an 'fo.parking-conflict-advisory' less than 20 s after the first 'ground prep' decision 'holding: GSX has not identified the parking' of that hold (2026-10-04 EFHK: spoken at 18:52:24Z, GSX named Gate 35 7.5 s later). A hold that ends inside the 20 s publishes nothing."
+        "assert-absent (#157): an 'fo.parking-conflict-advisory' less than 20 s after the first 'ground prep' decision 'holding: GSX has not identified the parking' of that hold (2026-10-04 EFHK: spoken at 18:52:24Z, GSX named Gate 35 7.5 s later). A hold that ends inside the 20 s publishes nothing.",
+        "assert-absent (#141): the line 'GSX doesn't recognise our parking position' at a stand GSX names as soon as its menu is opened (2026-10-05 LKPR rc.17: FO at 01:04:38Z, the pilot's toolbar click at 01:04:49Z, 'Gate C 28' at 01:04:50Z). The prep hold now opens the menu itself — probe gsx-parking-wake."
       ],
       "notes": "Fixed 2026-09-21 (0.4.0-rc.3): GsxMenuIntentExecutor.IsDriving (intent chain + 5 s grace) gates the Select Position handler; ParkingConflictGate.IsParkedEnginesOff gates both the catalogue publish and the FO advisory (held while moving, re-checked on the at-gate phase edge); GsxBootstrapService clears the conflict when the mirror names a parking. 2026-10-05 (#157): the parking-change menu is not a conflict when its facility is the assigned arrival gate (GsxGateResolver.FacilityNamesGate, whole-word compare against the gate.select payload name, else the typed token); the departure prep hold publishes the conflict only after GsxGroundPrepCoordinator.UnknownParkingGrace (20 s)."
+    },
+    {
+      "id": "gsx-parking-wake",
+      "issue": 141,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log",
+        "wire"
+      ],
+      "checks": [
+        "Trigger = a 'ground prep' decision 'holding: GSX has not identified the parking — opening the GSX menu so it looks for the stand' (GSX Ready, in session, at the gate, no '/parking' in the mirror — the pilot must NOT have opened the GSX menu before starting ground services). Behaviour = a 'gsx-parking-wake' event {outcome: 'opening'} on the next prep cycle (3–10 s into the hold), then {outcome: 'named'} with the stand ('GSX named the parking <gate> (menu.open; menu closed)' or '… opened through the menu LVAR …'), then 'Ground preparation hold released' and 'Ground prep -> Reposition' within two prep cycles — all without a pilot click. The 2026-10-05 LKPR rc.17 signature it replaces: hold 01:04:13Z, FO 'GSX doesn't recognise our parking position' 01:04:38Z, pilot's toolbar click 01:04:49Z, '/parking' 'Gate C 28' 01:04:50Z.",
+        "assert-absent: an 'fo.parking-conflict-advisory' between the hold and a 'gsx-parking-wake' {outcome: 'named'} — a parking GSX names once its menu is asked for was never a conflict.",
+        "Report WHICH rung worked: detail '(menu.open…' = the Remote API woke GSX on a fresh session; '…opened through the menu LVAR…' = menu.open was acknowledged with no menu (the #141 signature) and L:FSDT_GSX_MENU_OPEN did it. Either is a pass; the split settles #141's hypothesis. With the wire trace on, quote the '/state' patch (3 'taxing on ground' → 5 'Parked') and the '/parking' patch that follow the request.",
+        "assert-present: after {outcome: 'named'} the root menu is not left on screen — a 'menu.close' command follows when the shown menu is 'Activate Services at …' (the reposition step re-opens it itself).",
+        "When {outcome: 'menu-without-parking'}: the menu named in the detail stays up, nothing is picked, and the conflict guidance is the old line ('… Select the stand in the GSX menu, or reposition the aircraft.') — the genuine #44 case.",
+        "When {outcome: 'menu-unreachable'} (no rung showed a menu): the hold reason reads '… its menu did not open — open the GSX menu once from the toolbar' and the FO line is 'Captain, GSX has not found our stand yet, and its menu won't open for me. Open the GSX menu once from the toolbar, and I'll take it from there.' — at most 3 attempts per hold, 30 s apart; a later attempt that works clears the conflict.",
+        "assert-absent: a 'gsx-parking-wake' {outcome: 'opening'} while a GSX menu is already shown, while any engine runs, or while the aircraft moves.",
+        "In flight (#141's first sighting): an in-flight airport pick whose menu.open shows nothing now logs 'GSX menu: menu.open acknowledged but nothing appeared — requested through the menu LVAR'; report whether the pick then succeeded."
+      ],
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "gsx-parking-wake",
+          "contains": "opening"
+        },
+        "signature": {
+          "source": "session",
+          "type": "gsx-parking-wake",
+          "contains": "named"
+        }
+      },
+      "notes": "Built 2026-10-05 (0.6.0-rc.18). First live pass the same day, LKPR Gate C 28, new MSFS session, pilot did not touch the GSX menu: hold 01:29:28Z, 'opening' 01:29:33.860Z, menu.open ok 01:29:33.876Z, 'GSX named the parking Gate C 28 (menu.open; menu closed)' 01:29:36.391Z, hold released 01:29:38Z, prep complete 01:30:18Z, no FO advisory — the Remote API rung alone woke GSX. Root cause from the rc.17 wire trace: GSX evaluates the parking only when its menu is requested; the prep chain waited for a parking name before any step that opens the menu. GsxParkingWakeService (pure ParkingWakePlan) runs from the unknown-parking hold of GsxGroundPrepCoordinator; GsxMenuOpener (menu.open, then L:FSDT_GSX_MENU_OPEN = 1) is shared with GsxMenuIntentExecutor and the web menu card. The conflict is published only when the wake is Unresolved or MenuUnreachable AND the 20 s grace has run (GsxGroundPrepCoordinator.ConflictDue). Still unknown: whether the LVAR rung opens the menu when menu.open shows nothing (never exercised yet), and the in-flight airport pick."
     },
     {
       "id": "arrival-gate-in-flight-pick",

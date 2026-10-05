@@ -51,13 +51,16 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     /// <summary>How long the unknown-parking hold must stand before it is published as a
     /// parking conflict (issue #157, EFHK 2026-10-04 18:52:24Z: the hold was published on its
     /// first cycle and the FO spoke "GSX doesn't recognise our parking position" 7.5 s before
-    /// GSX named Gate 35 — GSX was still loading the stand). Four cycles; the hold itself is
-    /// logged and shown at once, only the advisory waits.</summary>
+    /// GSX named Gate 35). Four cycles; the hold itself is logged and shown at once, only the
+    /// advisory waits. 2026-10-05 (issue #141): the 7.5 s was the pilot's own GSX menu click,
+    /// not GSX loading — the grace now also covers the parking wake's first attempt, and the
+    /// conflict additionally waits for that attempt to fail (<see cref="ConflictDue"/>).</summary>
     internal static readonly TimeSpan UnknownParkingGrace = TimeSpan.FromSeconds(20);
 
     private readonly IGsxRemoteApi _api;
     private readonly GsxRepositionService _reposition;
     private readonly GsxGateAnchorService _gateAnchor;
+    private readonly GsxParkingWakeService _parkingWake;
     private readonly GsxGroundEquipmentService _groundEquipment;
     private readonly GsxJetwayStairsService _jetwayStairs;
     private readonly IFlightPhaseSource _flightState;
@@ -73,7 +76,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     private DateTimeOffset _settleUntil;
     private string? _sessionGateKey;
     private string? _holdReason;
-    private bool _conflictPublished;
+    private bool? _publishedMenuUnreachable;
     private DateTimeOffset? _unknownParkingSince;
     private int _running;
     private DateTimeOffset _stageEnteredAt = DateTimeOffset.UtcNow;
@@ -84,6 +87,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         IGsxRemoteApi api,
         GsxRepositionService reposition,
         GsxGateAnchorService gateAnchor,
+        GsxParkingWakeService parkingWake,
         GsxGroundEquipmentService groundEquipment,
         GsxJetwayStairsService jetwayStairs,
         IFlightPhaseSource flightState,
@@ -98,6 +102,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(reposition);
         ArgumentNullException.ThrowIfNull(gateAnchor);
+        ArgumentNullException.ThrowIfNull(parkingWake);
         ArgumentNullException.ThrowIfNull(groundEquipment);
         ArgumentNullException.ThrowIfNull(jetwayStairs);
         ArgumentNullException.ThrowIfNull(flightState);
@@ -112,6 +117,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         _api = api;
         _reposition = reposition;
         _gateAnchor = gateAnchor;
+        _parkingWake = parkingWake;
         _groundEquipment = groundEquipment;
         _jetwayStairs = jetwayStairs;
         _flightState = flightState;
@@ -220,7 +226,7 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
                     return;
 
                 case PrepCommand.Hold:
-                    Hold(decision.Reason!, decision.UnknownParking, now);
+                    await HoldAsync(decision, now).ConfigureAwait(false);
                     return;
 
                 case PrepCommand.Reset:
@@ -310,29 +316,64 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     internal static bool IsVoiceActivation(string value)
         => string.Equals(value, "voice", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>An unknown-parking hold first tries the remedy the pilot would: it asks GSX
+    /// for its menu, which is what makes GSX look for the stand (issue #141 — see
+    /// <see cref="GsxParkingWakeService"/>). Every other hold is only logged and shown.</summary>
+    private async Task HoldAsync(PrepStageMachine.PrepDecision decision, DateTimeOffset now)
+    {
+        if (!decision.UnknownParking)
+        {
+            _unknownParkingSince = null;
+            _parkingWake.Reset();
+            Hold(decision.Reason!, wake: null, now);
+            return;
+        }
+
+        _unknownParkingSince ??= now;
+        var wake = await _parkingWake.RunStepAsync(_unknownParkingSince.Value, now).ConfigureAwait(false);
+        if (wake == GsxParkingWakeStatus.Named)
+        {
+            // The next cycle reads the gate and releases the hold.
+            return;
+        }
+
+        // The wake step can take two rung waits — the grace is judged against the clock now.
+        Hold(UnknownParkingReason(decision.Reason!, wake), wake, DateTimeOffset.UtcNow);
+    }
+
     /// <summary>Logs a prep hold once per distinct reason (the cycle runs every 5 s — a log
     /// line per tick would drown the file while the user sits on the main menu). An
     /// unknown-parking hold additionally publishes the parking conflict (issue #44): that is
     /// what drives the Flight Status row and the FO's spoken guidance — on the 2026-08-23
     /// flight the hold fired twice and stayed a log line the pilot never saw. The conflict
-    /// waits for <see cref="UnknownParkingGrace"/>: GSX names the parking a few seconds after
-    /// it reports Ready, and a hold that ends inside the grace was never a conflict.</summary>
-    private void Hold(string reason, bool unknownParking, DateTimeOffset now)
+    /// waits for <see cref="UnknownParkingGrace"/> AND for the parking wake to have failed
+    /// (issue #141): a parking GSX names once its menu is asked for was never a conflict.</summary>
+    private void Hold(string reason, GsxParkingWakeStatus? wake, DateTimeOffset now)
     {
         if (_holdReason != reason)
         {
             _holdReason = reason;
-            _unknownParkingSince = unknownParking ? now : null;
             _logger.LogInformation("Ground preparation holding: {Reason}", reason);
             _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", $"holding: {reason}"));
             PublishStage($"holding: {reason}");
         }
 
-        if (unknownParking && !_conflictPublished && UnknownParkingSettled(_unknownParkingSince, now))
+        if (!ConflictDue(wake, _unknownParkingSince, now))
         {
-            _conflictPublished = true;
+            return;
+        }
+
+        // Republished when the guidance changes kind: "open the GSX menu" becomes "pick the
+        // stand" once a menu is up and GSX still names no parking.
+        var menuUnreachable = wake == GsxParkingWakeStatus.MenuUnreachable;
+        if (_publishedMenuUnreachable != menuUnreachable)
+        {
+            _publishedMenuUnreachable = menuUnreachable;
             _diagnostics.UpdateParkingConflict(new GsxParkingConflictView(
-                DateTimeOffset.UtcNow, FacilityFromMenu() ?? ""));
+                DateTimeOffset.UtcNow, FacilityFromMenu() ?? "")
+            {
+                MenuUnreachable = menuUnreachable,
+            });
         }
     }
 
@@ -340,21 +381,41 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
     internal static bool UnknownParkingSettled(DateTimeOffset? since, DateTimeOffset now)
         => since is { } start && now - start >= UnknownParkingGrace;
 
+    /// <summary>An unknown-parking hold is a conflict only when the wake could not resolve it
+    /// and the grace has run. While the wake is still waiting for its first attempt nothing
+    /// is published — 2026-10-05 LKPR: the FO spoke at a stand GSX named the moment its menu
+    /// was opened.</summary>
+    internal static bool ConflictDue(GsxParkingWakeStatus? wake, DateTimeOffset? since, DateTimeOffset now)
+        => wake is GsxParkingWakeStatus.Unresolved or GsxParkingWakeStatus.MenuUnreachable
+            && UnknownParkingSettled(since, now);
+
+    /// <summary>The pilot-facing hold reason (Flight Status page) for the unknown-parking
+    /// hold: what the app is doing about it, or the one action left to the pilot.</summary>
+    internal static string UnknownParkingReason(string machineReason, GsxParkingWakeStatus wake) => wake switch
+    {
+        GsxParkingWakeStatus.Waiting
+            => "GSX has not identified the parking — opening the GSX menu so it looks for the stand",
+        GsxParkingWakeStatus.MenuUnreachable
+            => "GSX has not identified the parking and its menu did not open — open the GSX menu once from the toolbar",
+        _ => machineReason,
+    };
+
     private void ReleaseHold()
     {
+        _unknownParkingSince = null;
+        _parkingWake.Reset();
         if (_holdReason is null)
         {
             return;
         }
 
         _holdReason = null;
-        _unknownParkingSince = null;
         _logger.LogInformation("Ground preparation hold released");
         _diagnostics.RecordDecision(new GsxDecisionView(DateTimeOffset.UtcNow, "ground prep", "hold released"));
-        if (_conflictPublished)
+        if (_publishedMenuUnreachable is not null)
         {
             // Whatever unknown-parking state stood is over (gate identified, phase moved on).
-            _conflictPublished = false;
+            _publishedMenuUnreachable = null;
             _diagnostics.UpdateParkingConflict(null);
         }
 

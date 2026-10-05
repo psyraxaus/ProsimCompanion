@@ -29,7 +29,7 @@ State values for per-service `_STATE` LVARs: `1` Callable, `4` Requested, `5` Ac
 | LVAR | Notes |
 |---|---|
 | `L:FSDT_GSX_COUATL_STARTED[_{5,6,7}_PROGRESS]` | Couatl engine alive/progress |
-| `L:FSDT_GSX_MENU_OPEN` / `MENU_CHOICE` | legacy menu; choice is 0-based |
+| `L:FSDT_GSX_MENU_OPEN` / `MENU_CHOICE` | legacy menu; choice is 0-based. `MENU_OPEN = 1` is written as the second rung of every menu open, when the Remote API's `menu.open` shows nothing (issue #141, gsx-remote-api.md §3); `MENU_CHOICE` is not used |
 | `L:FSDT_GSX_..._STATE` per service | see state values above |
 | `L:FSDT_GSX_FUELHOSE_CONNECTED` | drives refuel sync start/stop |
 | `L:FSDT_GSX_NUMPASSENGERS[_BOARDING_TOTAL\|_DEBOARDING_TOTAL]` | live pax counters → ProSim sync |

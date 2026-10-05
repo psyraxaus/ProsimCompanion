@@ -108,6 +108,28 @@ races the re-raise — flight-verified). Skip `menu.open` when the target menu i
 with a matching title. `menu.close` explicitly dismisses answered question prompts (GSX doesn't
 reliably do it) — no-op when `menuShown` is already false.
 
+**`menu.open` can be acknowledged and show nothing (issue #141).** 2026-09-27 EKCH→EGLL: three
+in-flight opens answered ok and `menuShown` stayed false for the whole wait, in a session where
+the in-sim GSX panel had not been opened yet. Every open therefore goes through
+`GsxMenuOpener`: `menu.open`, wait for the caller's effect, and when nothing came, write
+`L:FSDT_GSX_MENU_OPEN = 1` (the toolbar's own request, the predecessor's only menu path — a
+plain open, never a toggle) and wait again. First live pass (2026-10-05, LKPR, new MSFS
+session): `menu.open` alone worked at the gate; the LVAR rung has not been exercised yet
+(probe `gsx-parking-wake` reports which rung ran).
+
+**GSX evaluates the parking only when its menu is requested (2026-10-05, LKPR, rc.17 wire
+trace).** After a session loads GSX patches `/state` 3 ("Our airplane is taxing on ground")
+and `/airport`, then nothing: no `/parking`, no `handlerData.gate`, for as long as nobody asks
+for the menu (2 min 10 s on that flight). The pilot's toolbar click produced `/state` 5 ("Our
+airplane is Parked") and `/parking` "Gate C 28" 0.7 s later, and the menu 3 s later. Same edge
+on the arrival before it (menu shown 21:44:05.98Z, `/parking` "Gate C 29" 21:44:06.37Z). So
+"the mirror names no parking" means *GSX has not looked*, not *GSX does not know the stand* —
+the ground-prep hold asks for the menu itself (`GsxParkingWakeService`), closes the root
+"Activate Services at …" menu it opened once the parking is named, and treats only what
+survives that as a parking conflict: a menu that comes up while GSX still names no parking
+(left for the pilot, never picked), or no menu on either rung (the FO asks for one toolbar
+click). `/state` and `/stateText` stay unconsumed — the parking key is the signal.
+
 ### handler.set
 `args: { "target": "gate", "name": "autoSelectOperator", "value": true }` — feature-detect via
 the `handlerSet` capability. Used once per gate session (key = gate-context key + `|` +

@@ -8,9 +8,9 @@ namespace ProsimCompanion.Gsx.Menu;
 
 /// <summary>
 /// Executes menu intents through the safe-fail pipeline (docs/integrations/gsx-remote-api.md §5):
-/// readiness gate → parent navigation / menu.open (skipped when the target menu is already shown
-/// — re-opening toggles it closed; a parent whose open lands on the child's own page picks
-/// nothing) → wait on <c>menuShown &amp;&amp; title</c> (never title alone:
+/// readiness gate → parent navigation / menu open through <see cref="GsxMenuOpener"/> (skipped
+/// when the target menu is already shown — re-opening toggles it closed; a parent whose open
+/// lands on the child's own page picks nothing) → wait on <c>menuShown &amp;&amp; title</c> (never title alone:
 /// the title stays stale for a beat after menu.open) → title check → resolve by text →
 /// TOCTOU re-resolve → disabled guard → pick → verify against the mirror. Every failure mode
 /// degrades to "menu left open for the user" — never a wrong click.
@@ -30,6 +30,7 @@ public sealed class GsxMenuIntentExecutor
     internal static readonly TimeSpan RecentGrace = TimeSpan.FromSeconds(5);
 
     private readonly IGsxRemoteApi _api;
+    private readonly GsxMenuOpener _opener;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly ILogger<GsxMenuIntentExecutor> _logger;
     private readonly object _drivenGate = new();
@@ -37,14 +38,17 @@ public sealed class GsxMenuIntentExecutor
 
     public GsxMenuIntentExecutor(
         IGsxRemoteApi api,
+        GsxMenuOpener opener,
         IOptionsMonitor<GsxOptions> options,
         ILogger<GsxMenuIntentExecutor> logger)
     {
         ArgumentNullException.ThrowIfNull(api);
+        ArgumentNullException.ThrowIfNull(opener);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
         _api = api;
+        _opener = opener;
         _options = options;
         _logger = logger;
     }
@@ -164,10 +168,16 @@ public sealed class GsxMenuIntentExecutor
             }
             else
             {
-                var openResult = await _api.SendCommandAsync("menu.open", null, cancellationToken).ConfigureAwait(false);
-                if (!openResult.Ok)
+                // "A menu is shown" is all the opener waits for — whether it is the right one
+                // is the title wait's job below. The opener falls back to the legacy menu
+                // LVAR when menu.open is acknowledged and nothing appears (issue #141).
+                var openResult = await _opener.OpenAsync(
+                    () => mirror.MenuShown,
+                    TimeSpan.FromMilliseconds(_options.CurrentValue.MenuOpenTimeoutMs),
+                    cancellationToken).ConfigureAwait(false);
+                if (!openResult.Opened)
                 {
-                    return new(GsxIntentOutcome.GsxNoResponse, $"menu.open failed ({openResult.Code})");
+                    return new(GsxIntentOutcome.GsxNoResponse, $"menu did not appear ({openResult.Detail})");
                 }
                 opened = true;
             }
