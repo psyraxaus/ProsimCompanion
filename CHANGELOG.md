@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0-rc.18
+
+From the LKPR departure of 2026-10-05 (issue #141).
+
+- Fix: **ground services start without a click on the GSX menu.** GSX only looks for your stand once its menu is opened. The app waited for GSX to name the stand before it did anything, so it waited forever, the FO said *"GSX doesn't recognise our parking position"*, and everything started the moment you clicked the GSX menu yourself. The app now opens the GSX menu for a moment by itself, GSX names the stand, and the app closes the menu again. Verified live: the stand was named 3 seconds after the app asked.
+- Fix: when the GSX menu does not appear after the app asks for it, the app asks a second way (the request the MSFS toolbar itself makes). This covers the ground-services start, the in-flight destination pick (*"menu did not appear"*) and the **GSX menu** card's Open button.
+- Changed: the FO's parking warning is now only for a real problem. If GSX shows its menu and still does not know the stand, the FO says the old line (pick the stand, or reposition). If the app cannot make the menu appear at all, the FO says *"GSX has not found our stand yet, and its menu won't open for me. Open the GSX menu once from the toolbar, and I'll take it from there."* The Flight Status page shows the same reason.
+- The app never picks a stand for you, never opens the menu over one that is already on screen, and never while an engine runs or the aircraft moves.
+- Not yet verified live: the second way of opening the menu, and the in-flight destination pick.
+- Everything in 0.6.0-rc.17 below.
+
 ## 0.6.0-rc.17
 
 From the EFHK→LKPR flight of 2026-10-04 (issue #157).
