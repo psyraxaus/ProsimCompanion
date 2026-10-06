@@ -57,7 +57,7 @@
         }
         @if (_editLayout)
         {
-            <span class="fs-toolbar-hint">Drag a tile (press and hold on a touch screen), or use the arrows</span>
+            <span class="fs-toolbar-hint">Drag a tile onto another to swap them (press and hold on a touch screen), or use the arrows</span>
             <button type="button" class="btn secondary" @onclick="ResetLayout"
                     disabled="@FlightStatusTiles.IsDefault(_tileOrder)"
                     title="Put the tiles back in the default order">Reset layout</button>
@@ -414,12 +414,12 @@
 
     private void ResetLayout() => SaveTileOrder(FlightStatusTiles.DefaultOrder);
 
-    /// <summary>The drop from app.js: <paramref name="id"/> lands before or after
-    /// <paramref name="targetId"/>.</summary>
+    /// <summary>The drop from app.js: <paramref name="id"/> and <paramref name="targetId"/>
+    /// trade places.</summary>
     [JSInvokable]
-    public Task MoveTile(string id, string targetId, bool before)
+    public Task SwapTiles(string id, string targetId)
     {
-        SaveTileOrder(FlightStatusTiles.Move(_tileOrder, id, targetId, before));
+        SaveTileOrder(FlightStatusTiles.Swap(_tileOrder, id, targetId));
         return InvokeAsync(StateHasChanged);
     }
 

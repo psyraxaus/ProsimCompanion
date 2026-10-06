@@ -51,9 +51,11 @@ public static class FlightStatusTiles
     public static bool IsDefault(IReadOnlyList<string> order) =>
         Normalize(order).SequenceEqual(DefaultOrder);
 
-    /// <summary>The order after dropping <paramref name="id"/> before or after
-    /// <paramref name="targetId"/>. Unknown ids and a drop on itself change nothing.</summary>
-    public static IReadOnlyList<string> Move(IReadOnlyList<string> order, string id, string targetId, bool before)
+    /// <summary>The order after dropping <paramref name="id"/> onto <paramref name="targetId"/>:
+    /// the two tiles trade places and nothing else moves (owner pick 2026-10-07 — one
+    /// highlighted target, no before/after edge to judge, so a drop can never land one place
+    /// off). Unknown ids and a drop on itself change nothing.</summary>
+    public static IReadOnlyList<string> Swap(IReadOnlyList<string> order, string id, string targetId)
     {
         var list = Normalize(order).ToList();
         var from = list.FindIndex(t => string.Equals(t, id, StringComparison.OrdinalIgnoreCase));
@@ -63,12 +65,7 @@ public static class FlightStatusTiles
             return list;
         }
 
-        var moving = list[from];
-        var target = list[to];
-        list.RemoveAt(from);
-        // The target may have shifted one place when the moving tile sat before it.
-        to = list.IndexOf(target);
-        list.Insert(before ? to : to + 1, moving);
+        (list[from], list[to]) = (list[to], list[from]);
         return list;
     }
 

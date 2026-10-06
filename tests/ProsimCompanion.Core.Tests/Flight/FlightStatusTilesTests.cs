@@ -40,27 +40,21 @@ public sealed class FlightStatusTilesTests
     }
 
     [Fact]
-    public void Move_BeforeAnEarlierTile()
+    public void Swap_TradesTheTwoTiles_NothingElseMoves()
     {
-        var order = FlightStatusTiles.Move(FlightStatusTiles.DefaultOrder, "gsx", "sequence", before: true);
-
-        Assert.Equal(["hero", "gsx", "sequence", "sim", "app", "services"], order);
+        Assert.Equal(["hero", "gsx", "sim", "app", "sequence", "services"],
+            FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "gsx", "sequence"));
+        // The same drop the other way round gives the same result.
+        Assert.Equal(["hero", "gsx", "sim", "app", "sequence", "services"],
+            FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "sequence", "GSX"));
     }
 
     [Fact]
-    public void Move_AfterALaterTile()
+    public void Swap_OntoItselfOrUnknownId_ChangesNothing()
     {
-        var order = FlightStatusTiles.Move(FlightStatusTiles.DefaultOrder, "hero", "app", before: false);
-
-        Assert.Equal(["sequence", "sim", "app", "hero", "gsx", "services"], order);
-    }
-
-    [Fact]
-    public void Move_OntoItselfOrUnknownId_ChangesNothing()
-    {
-        Assert.Equal(FlightStatusTiles.DefaultOrder, FlightStatusTiles.Move(FlightStatusTiles.DefaultOrder, "sim", "sim", before: true));
-        Assert.Equal(FlightStatusTiles.DefaultOrder, FlightStatusTiles.Move(FlightStatusTiles.DefaultOrder, "weather", "sim", before: true));
-        Assert.Equal(FlightStatusTiles.DefaultOrder, FlightStatusTiles.Move(FlightStatusTiles.DefaultOrder, "sim", "weather", before: true));
+        Assert.Equal(FlightStatusTiles.DefaultOrder, FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "sim", "sim"));
+        Assert.Equal(FlightStatusTiles.DefaultOrder, FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "weather", "sim"));
+        Assert.Equal(FlightStatusTiles.DefaultOrder, FlightStatusTiles.Swap(FlightStatusTiles.DefaultOrder, "sim", "weather"));
     }
 
     [Fact]

@@ -227,10 +227,10 @@
 
   // Flight Status tile drag (issue #160). Pointer events, not HTML5 drag-and-drop: the latter
   // never fires on iPad touch. The DOM is NOT reordered here — Blazor owns it; the drop goes
-  // to .NET (MoveTile) and the page re-renders in the new order. While dragging, a ghost copy
-  // of the tile follows the pointer and the tile under it shows a drop edge: before when the
-  // pointer is above the tile's anti-diagonal (works for the grid and the one-column layout),
-  // after otherwise. Near the top / bottom of the window the page auto-scrolls so a tile can
+  // to .NET (SwapTiles) and the page re-renders in the new order. While dragging, a ghost copy
+  // of the tile follows the pointer and the tile under it lights up as the drop target; the
+  // drop swaps the two tiles.
+  // Near the top / bottom of the window the page auto-scrolls so a tile can
   // travel further than one screen on a tablet.
   // The whole tile is the handle (owner pick 2026-10-07, option A). Mouse: press anywhere and
   // the drag starts on the first few pixels of movement. Finger / pen: hold still for
@@ -250,16 +250,19 @@
       const container = document.getElementById(containerId);
       if (!container) return;
 
-      let drag = null;    // { id, handle, ghost, dx, dy, x, y, target, before, raf }
+      let drag = null;    // { id, handle, ghost, dx, dy, x, y, target, raf }
       let pending = null; // a press that may become a drag: { tile, x, y, pointerId, mouse, timer }
 
       const clearTarget = () => {
         if (drag && drag.target) {
-          drag.target.classList.remove("drop-before", "drop-after");
+          drag.target.classList.remove("drop-target");
           drag.target = null;
         }
       };
 
+      // One target, no edge (owner decision 2026-10-07): the tile under the pointer lights
+      // up as a whole and the drop swaps the two tiles. A before/after edge bar made a drop
+      // land one place off when the pointer sat near the middle of the target.
       const locate = () => {
         if (!drag) return;
         drag.ghost.style.transform = "translate(" + (drag.x - drag.dx) + "px, " + (drag.y - drag.dy) + "px)";
@@ -267,13 +270,10 @@
         const tile = under ? under.closest(".fs-tile") : null;
         const valid = tile && tile.parentElement === container && tile.dataset.tile !== drag.id;
         if (!valid) { clearTarget(); return; }
-        const r = tile.getBoundingClientRect();
-        const before = (drag.x - r.left) / r.width + (drag.y - r.top) / r.height < 1;
-        if (tile !== drag.target || before !== drag.before) {
+        if (tile !== drag.target) {
           clearTarget();
           drag.target = tile;
-          drag.before = before;
-          tile.classList.add(before ? "drop-before" : "drop-after");
+          tile.classList.add("drop-target");
         }
       };
 
@@ -295,9 +295,9 @@
         d.ghost.remove();
         const source = container.querySelector('.fs-tile[data-tile="' + d.id + '"]');
         if (source) source.classList.remove("dragging");
-        if (d.target) d.target.classList.remove("drop-before", "drop-after");
+        if (d.target) d.target.classList.remove("drop-target");
         if (drop && d.target) {
-          dotNetRef.invokeMethodAsync("MoveTile", d.id, d.target.dataset.tile, d.before)
+          dotNetRef.invokeMethodAsync("SwapTiles", d.id, d.target.dataset.tile)
             .catch(() => { /* circuit gone — the page reloads on its own */ });
         }
       };
@@ -322,7 +322,7 @@
         document.body.appendChild(ghost);
         tile.classList.add("dragging");
         drag = { id: tile.dataset.tile, handle: tile, ghost, dx: p.x - r.left, dy: p.y - r.top,
-          x: p.x, y: p.y, target: null, before: false, raf: 0 };
+          x: p.x, y: p.y, target: null, raf: 0 };
         try { tile.setPointerCapture(p.pointerId); } catch (_) { /* already released */ }
         drag.raf = requestAnimationFrame(tick);
       };

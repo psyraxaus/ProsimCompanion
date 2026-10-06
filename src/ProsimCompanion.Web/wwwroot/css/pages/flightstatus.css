@@ -76,29 +76,17 @@
 .fs-tile-btn:disabled { opacity: .35; cursor: default; }
 .fs-tile-grip { cursor: grab; touch-action: none; font-size: 18px; }
 .fs-tile.dragging { opacity: .35; }
-/* The drop target lights up as a whole (owner request 2026-10-07): solid accent outline and
-   a tint over the card, plus the thin bar on the edge the dragged tile will land on. */
-.fs-tiles.editing .fs-tile.drop-before,
-.fs-tiles.editing .fs-tile.drop-after {
+/* The drop target lights up as a whole (owner decisions 2026-10-07): solid accent outline,
+   glow and a tint over the card. No edge bars — the drop swaps the two tiles, so there is
+   no before/after to judge and nothing can land one place off. */
+.fs-tiles.editing .fs-tile.drop-target {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
   box-shadow: 0 0 28px var(--accent-muted);
 }
-.fs-tile.drop-before > section,
-.fs-tile.drop-after > section {
+.fs-tile.drop-target > section {
   background: linear-gradient(rgba(0, 217, 255, 0.16), rgba(0, 217, 255, 0.16)), var(--panel-gradient);
 }
-.fs-tile.drop-before::before,
-.fs-tile.drop-after::after {
-  content: "";
-  position: absolute;
-  z-index: 4;
-  background: var(--accent);
-  border-radius: 3px;
-  box-shadow: 0 0 0 2px var(--bg-primary);
-}
-.fs-tile.drop-before::before { top: -10px; left: 0; right: 0; height: 4px; }
-.fs-tile.drop-after::after { bottom: -10px; left: 0; right: 0; height: 4px; }
 .fs-tile-ghost {
   position: fixed;
   top: 0;
