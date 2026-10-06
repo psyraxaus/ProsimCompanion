@@ -159,7 +159,7 @@ its own address, so a refresh or a link from a warning banner lands on the right
 
 | Rail entry | What it holds |
 |---|---|
-| **Setup** | The three master switches (GSX ground services, voice First Officer, audio control), the ProSim host/SDK path, nav data, web port/LAN access, the Stream Deck command API |
+| **Setup** | The three master switches (GSX ground services, voice First Officer, audio control), the ProSim host/SDK path, the **ProSim Setup Check** card (below), nav data, web port/LAN access, the Stream Deck command API |
 | **Ground Services** | Status board (departure services with hold/skip reasons, decision log, gate control, the live GSX menu card) and all GSX behaviour: doors & jetway, ground equipment, departure services, refuel & boarding, pushback, arrival, operators & hubs, GSX questions, connection & timeouts |
 | **Voice First Officer** | Status (provider tests, minima card, speak test), general, listening & PTT, sterile cockpit, crew voices, ground crew, cabin crew, briefings & LLM, MCDU, SayIntentions, voice providers |
 | **Audio Control** | Status, backend choice, CoreAudio mappings, VoiceMeeter mappings (ACP knobs and the loudspeaker dial — [chapter 8](08-loudspeaker-dial.md)), housekeeping |
@@ -170,6 +170,38 @@ its own address, so a refresh or a link from a warning banner lands on the right
 
 **Show advanced settings** (top of the rail) reveals the tuning fields — timeouts, intervals,
 thresholds — that most users never touch. Greyed-out fields belong to a switch that is off.
+
+### ProSim Setup Check
+
+A few options in ProSim System's own settings (the IOS pages) decide who moves the doors,
+connects the GPU and loads the aircraft. When both ProSim and this app do it, they fight.
+The **ProSim Setup Check** card on Setup reads those options every time ProSim connects and
+shows one row per option:
+
+| Pill | Meaning |
+|---|---|
+| **OK** (green) | ProSim already has the value this app wants. |
+| **CHANGE** (amber) | ProSim has a different value. The detail says *is … · want …*. |
+| **N/A** | This ProSim build has no such option. Nothing to do. |
+| **KEPT** | You ticked **keep** on that row: it stays as it is and is never written. |
+
+The rows: **Door logic** off, **Automatic ground power** off, **Load Cargo/PAX** and **Load
+Fuel** (Datalink) off, **Refuelling rate** Realistic. Rows for a feature you switched off
+above (GSX ground services, door automation) are not shown. The card also shows the ProSim
+version and when it last read.
+
+The check **never changes anything by itself**. With amber rows you have three buttons:
+
+- **Apply recommended** writes the wanted value to every amber row, then reads them back and
+  tells you what ProSim accepted. It takes effect at once; no ProSim restart.
+- **Show me how** lists the same changes as steps for ProSim System's Config pages, if you
+  would rather do it by hand.
+- **Read again** re-reads the options after you changed them in ProSim.
+
+Tick **keep** on a row to tell the app you want that option as it is (then **Save**): the
+row turns grey and Apply leaves it alone. The Flight Status page's *Getting Started* card
+points here while amber rows exist. **Check ProSim's options on connect** turns the whole
+card off.
 
 ## A typical flight
 

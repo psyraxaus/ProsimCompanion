@@ -99,7 +99,26 @@ public sealed class ProsimGatewayClient : IProsimGateway, IDisposable
             },
             $"write {name}",
             cancellationToken).ConfigureAwait(false);
-        return response is { IsSuccessStatusCode: true };
+        if (response is not { IsSuccessStatusCode: true })
+        {
+            return false;
+        }
+
+        // The verdict is in the body (2026-10-06): HTTP 200 with writeBool:false is ProSim
+        // saying "no such dataref" — the old status-only check reported those as written.
+        var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        _wire.Trace("Gateway", "<<", text);
+        if (GraphQlMessages.WriteAccepted(text))
+        {
+            return true;
+        }
+
+        // Debug, not Warning: callers own the verdict (the native guard sees six of these on
+        // every 1.75.1 connection and sums them up in one decision line).
+        _logger.LogDebug(
+            "Gateway write {DataRef}: ProSim answered false — the dataref is unknown to this ProSim build or not writable",
+            name);
+        return false;
     }
 
     /// <inheritdoc />

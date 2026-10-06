@@ -1239,6 +1239,18 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .vr-footer-edit { font-size: 11px; color: var(--accent); text-decoration: none; }
 .vr-footer-edit:hover { text-decoration: underline; }
 
+/* ProSim setup check rows (Setup page): label | keep tick | verdict pill | detail. The pill
+   sits in its own track here — the generic .row .pill span would push the detail cell onto
+   an implicit row. A kept row greys out as a whole. */
+.setup-rows { max-width: 760px; }
+.setup-row .pill { grid-column: auto; justify-self: end; }
+.setup-row-kept .row-label, .setup-row-kept .row-detail { opacity: 0.55; }
+.setup-keep {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+}
+.setup-actions { margin-top: 10px; max-width: 760px; }
+
 /* Departure-board rows carry a fourth (detail) cell. The explicit minmax(0, …) track is
    what lets the detail ellipsize — an implicit auto track (the old grid-column:auto
    override landed the detail in one) sizes to its content and never truncates. */

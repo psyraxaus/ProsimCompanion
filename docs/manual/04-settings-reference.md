@@ -17,7 +17,7 @@ is regenerated automatically (pair tablets again via the QR code).
 
 | Section | Page | Highlights |
 |---|---|---|
-| `prosim` | Settings → Setup | `sdkPath` (ProSimSDK.dll), `host`, optional `apiKey` |
+| `prosim` | Settings → Setup | `sdkPath` (ProSimSDK.dll), `host`, optional `apiKey`; the **ProSim Setup Check** card (`setupCheckEnabled` on, `setupCheckIgnore[]` = the rows ticked "keep", by dataref name) — see [chapter 2](02-using-the-app.md#prosim-setup-check) |
 | `webUi` | Settings → Setup / Display / Appearance, desktop window | `port` (default 5320), `bindToAllInterfaces`, `accessToken`, theme, units, Solari animation, `https` (`enabled` off, `port` 5321, `pfxPath`, `pfxPassword` encrypted — the optional secure address, see [chapter 7](07-tablet-install.md)), `showNextServiceInHeader` (off — the header NEXT SERVICE button) |
 | `gsx` | Settings → Ground Services | the whole ground pillar — see below (master switch on Setup) |
 | `audio` | Settings → Audio Control | backend (CoreAudio/VoiceMeeter), app mappings, ACP side, device blacklist, device-filter flow/state (master switch on Setup); mapping channels are the eight ACP knobs plus `loudspeaker` (the cockpit LOUD SPEAKER dial, captain and first officer — see [chapter 8](08-loudspeaker-dial.md)) |

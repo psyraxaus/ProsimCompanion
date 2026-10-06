@@ -70,6 +70,14 @@ Two write paths exist (SDK vs GraphQL). The predecessors chose ad-hoc per featur
 should consolidate on SDK push/write where possible and use the gateway only for gateway-exclusive
 functionality (calculations, EFB tasks, loadsheet slots).
 
+**The write verdict is in the body, not the status (2026-10-06, ProSim 1.75.1 at 10.0.1.22).**
+Every well-formed mutation returns HTTP 200; `{"data":{"dataRef":{"writeBool":true}}}` means
+written, `writeBool:false` means "no such dataref / not writable" (`efb.gsx.autoCatering`
+answered false; `system.config.Config.DOORS` true). A query for an unknown name answers
+`value: null` — a real off is `false`, never null. `ProsimGatewayClient.WriteDataRefAsync`
+reads the verdict (`GraphQlMessages.WriteAccepted`); until then a dead write logged as done.
+Introspection (`__schema`, `__type`) is refused with 400.
+
 ## 3. Key datarefs (canonical spellings)
 
 **Fuel/refuel**: `aircraft.fuel.total.amount.kg`, `aircraft.refuel.fuelTarget[.kg]`,
@@ -104,8 +112,33 @@ present for the whole GSX push incl. engine start. Values 1/2 have never been ob
 direction variants; we treat any non-3 as active). The obvious ">0 = pushback active" reading is
 WRONG and latched the flag true for entire flights. A missing dataref must fall back to 3.
 
-**Disable ProSim's native integrations when we own them**: 8 `efb.gsx.*` flags, `efb.autoJetway`,
-`efb.autoDoor`, plus native audio channel control.
+**Disable ProSim's native integrations when we own them**: `efb.gsx.*` flags, `efb.autoJetway`,
+`efb.autoDoor`, plus native audio channel control. **On ProSim 1.75.1 none of the `efb.gsx.*`
+or `efb.autoDoor` names exist** (gateway read null, write `false`; the A322 catalogue has no
+such rows) — the native guard's "disabled 6 flags" was a no-op there until 2026-10-06. Which
+ProSim build last had them is unknown.
+
+**ProSim IOS options are datarefs: `system.config.*` (2026-10-06).** The Config / Datalink /
+Units / Audio / Dynamics pages of ProSim System are `system.config.<Page>.<Key>` rows in the
+A322 catalogue (lines ~1184–1241): tick boxes are bool, drop-downs are the exact choice text
+(`"Quick,Realistic"`, `"Disabled,Enabled"` …). Read and written through the gateway, they
+**take effect at once, no restart** (Door logic flipped true → read true → false → read false,
+live). `system.version` gives the ProSim version (`"1.75.1"`). The ones ProsimCompanion checks
+(`ProsimSetupRecommendations`; the recommended values are the owner's working config):
+
+| IOS option | Dataref | Wanted |
+|---|---|---|
+| Door logic | `system.config.Config.DOORS` | `false` (our door automation drives the doors) |
+| Automatic ground power | `system.config.Config.GROUNDPOWER` | `false` (our GPU latch) |
+| Datalink → Load Cargo/PAX | `system.config.Datalink.loadCargo` | `false` (our loadsheet boards) |
+| Datalink → Load Fuel | `system.config.Datalink.loadFuel` | `false` (our refuel sets the fuel) |
+| Refuelling rate | `system.config.Config.refuelRate` | `Realistic` |
+
+Other rows seen, not acted on: `Config.autoMute` (`Disabled`/`Enabled` — ProSim's own mute on
+GSX position freeze, see audio notes), `Config.RepositionMode`, `Config.ACT`, `Config.EPR`,
+`Units.Weight`, `Datalink.Atis`, `Datalink.Metar`, `cockpitSetup.current` (and `.load`/
+`.store`/`.delete` — write-only loaders, never to be written by us). The write gate lists the
+five names exactly; never the `system.config.` prefix.
 
 **Flight dynamics (FO pillar)**: `aircraft.speed.ias`, `aircraft.altitude[.aboveGround|.radio]`,
 `aircraft.verticalspeed`, `aircraft.gearDown`, `aircraft.flap.positionHandle`

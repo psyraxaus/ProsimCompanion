@@ -44,4 +44,19 @@ public sealed class ProsimOptions : IOptionSection
     /// a reconnect.
     /// </summary>
     public int PushSilenceWarnSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Read ProSim's IOS options on every connection and show, on the Setup page, which ones
+    /// differ from what this app wants (door logic, automatic ground power, datalink loading,
+    /// refuelling rate). The check only reads; a write happens only on the card's "Apply
+    /// recommended" click.
+    /// </summary>
+    public bool SetupCheckEnabled { get; set; } = true;
+
+    /// <summary>
+    /// IOS options the pilot has decided to keep as they are, by dataref name (e.g.
+    /// <c>system.config.Config.DOORS</c>). An ignored row shows greyed on the card and is never
+    /// written by "Apply recommended". Edited with the per-row tick boxes on the Setup page.
+    /// </summary>
+    public List<string> SetupCheckIgnore { get; set; } = [];
 }

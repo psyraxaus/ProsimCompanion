@@ -13,6 +13,14 @@ namespace ProsimCompanion.Gsx.Sync;
 /// ProSim's auto-jetway/auto-door remain untouched for now (doors keep working natively until
 /// our door automation lands). Decision-logged so the smoke test shows exactly what was turned
 /// off.
+///
+/// 2026-10-06: on ProSim 1.75.1 none of these names exist (the gateway answers
+/// <c>writeBool:false</c> and a read gives null; the A322 catalogue has no <c>efb.gsx.*</c>
+/// rows at all). Until the gateway client read the verdict this guard reported "disabled 6
+/// flags" on every connection while doing nothing. The ProSim options that matter on that
+/// build are IOS settings (<c>system.config.*</c>) and belong to the ProSim setup check on
+/// the Setup page; this guard stays for ProSim builds that still have the flags and now says
+/// so when there is nothing to disable.
 /// </summary>
 public sealed class ProsimNativeGsxGuard : IDisposable
 {
@@ -105,6 +113,12 @@ public sealed class ProsimNativeGsxGuard : IDisposable
             if (failed.Count == 0)
             {
                 RecordDecision("native GSX guard", $"disabled {NativeGsxFlags.Length} ProSim efb.gsx.* auto flags");
+            }
+            else if (failed.Count == NativeGsxFlags.Length)
+            {
+                // Every name rejected = this ProSim build has no efb.gsx.* flags (1.75.1).
+                // Nothing to disable and nothing to retry; the setup check covers the IOS options.
+                RecordDecision("native GSX guard", "this ProSim build has no efb.gsx.* flags — nothing to disable (see the ProSim setup check on the Setup page)");
             }
             else
             {

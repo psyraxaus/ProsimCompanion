@@ -59,4 +59,30 @@ public sealed class GraphQlMessagesTests
             (string)root["query"]!,
             StringComparison.Ordinal);
     }
+
+    // ---- the write verdict (2026-10-06): the bodies ProSim 1.75.1 really sent ----
+
+    [Theory]
+    [InlineData("""{"data":{"dataRef":{"writeBool":true}}}""")]      // system.config.Config.DOORS, live
+    [InlineData("""{"data":{"dataRef":{"writeString":true}}}""")]
+    [InlineData("""{"data":{"dataRef":{"writeFloat":true}}}""")]
+    public void WriteAccepted_TrueVerdict_IsAccepted(string body)
+        => Assert.True(GraphQlMessages.WriteAccepted(body));
+
+    [Theory]
+    [InlineData("""{"data":{"dataRef":{"writeBool":false}}}""")]     // efb.gsx.autoCatering, live: unknown name
+    [InlineData("""{"data":{"dataRef":{"writeString":false}}}""")]
+    public void WriteAccepted_FalseVerdict_IsRejected(string body)
+        => Assert.False(GraphQlMessages.WriteAccepted(body));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not json")]
+    [InlineData("""{"data":null}""")]
+    [InlineData("""{"data":{"dataRef":null}}""")]
+    [InlineData("""{"data":{"dataRef":{}}}""")]
+    [InlineData("""{"data":{"dataRef":{"writeBool":"yes"}}}""")]
+    public void WriteAccepted_NoVerdict_StaysAccepted_SoOlderGatewaysDoNotTurnRed(string body)
+        => Assert.True(GraphQlMessages.WriteAccepted(body));
 }

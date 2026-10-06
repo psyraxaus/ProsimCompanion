@@ -123,8 +123,9 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       status flag. Deboarding is observe-only until live counter semantics are confirmed;
       no-show randomization follows later
 - [x] GPU/chocks/PCA placement at preparation + removal on the beacon edge (chocks interlocked
-      on park brake); ProSim native efb.gsx.* auto-flags disabled per connection (verified live
-      via the gateway write path)
+      on park brake); ProSim native efb.gsx.* auto-flags disabled per connection (the gateway
+      answered 200 — but on ProSim 1.75.1 the names do not exist and the write verdict was
+      `false`; superseded 2026-10-06 by the ProSim Setup Check over `system.config.*`)
 - [x] Jetway/stairs handling: LVAR-truth selection (jetway=2 ⇒ stairs), 20 s verification with
       one fallback, pre-existing-connection detection
 - [x] Door automation + GSX door-message suppression: cargo doors follow boarding/deboarding

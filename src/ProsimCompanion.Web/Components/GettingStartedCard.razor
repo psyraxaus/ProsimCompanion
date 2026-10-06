@@ -7,10 +7,11 @@
 @inject ConnectionStatusStore Status
 @inject IOptionsMonitor<ProsimOptions> ProsimOptions
 @inject IOptionsMonitor<GsxOptions> GsxOptions
+@inject ProsimSetupStore SetupStore
 
 @if (_steps.Count > 0)
 {
-    <Section Title="Getting Started" Hint="This card goes away once everything is connected">
+    <Section Title="Getting Started" Hint="This card goes away once everything is connected and set up">
         <ol class="setup-steps">
             @foreach (var (text, href, linkText) in _steps)
             {
@@ -23,8 +24,17 @@
 @code {
     private List<(string Text, string Href, string LinkText)> _steps = [];
 
+    private int _setupMismatches;
+
     protected override void OnInitialized()
-        => WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, Refresh);
+    {
+        Watch(SetupStore, snapshot =>
+        {
+            _setupMismatches = snapshot.MismatchCount;
+            Refresh();
+        });
+        WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, Refresh);
+    }
 
     private void Refresh()
     {
@@ -38,6 +48,13 @@
         else if (states.GetValueOrDefault(Subsystems.Prosim) != ConnectionState.Connected)
         {
             steps.Add(("ProSim is not connected yet. Start ProSim System, or check the host name.", "settings", "Check the ProSim connection"));
+        }
+        else if (_setupMismatches > 0)
+        {
+            // The ProSim setup check (2026-10-06): the IOS options differ from what this app
+            // wants. The card on Setup shows which, with Apply and the manual steps.
+            var plural = _setupMismatches == 1 ? "option is" : "options are";
+            steps.Add(($"{_setupMismatches} ProSim {plural} set differently from what this app needs.", "settings", "Review the ProSim setup check"));
         }
 
         if (!GsxOptions.CurrentValue.Enabled)
