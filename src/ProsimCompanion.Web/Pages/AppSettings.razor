@@ -1,6 +1,7 @@
 @page "/settings/app"
 @layout SettingsLayout
 @inherits SettingsPageBase
+@using ProsimCompanion.Core.Flight
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
@@ -71,6 +72,19 @@
                  Hint="How long before the estimated top of descent the app records the 'top of descent approaching' moment, once per flight; 0 = off. The estimate uses the 3:1 rule on the direct distance to the destination"
                  @bind-Value="_flightStatus.Value.TodLeadMinutes"
                  Default="_flightStatus.Defaults.TodLeadMinutes" />
+    @* Tile order (issue #160): the control is the Flight Status page itself (Edit layout —
+       drag or arrows); this row shows what is saved and puts the default back. *@
+    <div class="field">
+        <label class="field-label">
+            Tile layout
+            <FieldHint Hint="The order of the tiles on the Flight Status page. Change it there with Edit layout (drag a tile by its grip, or use the arrows); it is saved for every device. Reset puts the default order back." />
+        </label>
+        <div class="field-control" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span class="row-value-mono">@TileOrderText</span>
+            <button type="button" class="btn secondary" @onclick="ResetTileOrder"
+                    disabled="@FlightStatusTiles.IsDefault(_flightStatus.Value.TileOrder)">Reset</button>
+        </div>
+    </div>
 </Section>
 
 <Section Title="Checklists">
@@ -105,4 +119,10 @@
         _checklists = Draft(ChecklistMonitor);
         _flightStatus = Draft(FlightStatusMonitor);
     }
+
+    private string TileOrderText => FlightStatusTiles.IsDefault(_flightStatus.Value.TileOrder)
+        ? "default order"
+        : string.Join(" → ", FlightStatusTiles.Normalize(_flightStatus.Value.TileOrder));
+
+    private void ResetTileOrder() => _flightStatus.Value.TileOrder = [];
 }
