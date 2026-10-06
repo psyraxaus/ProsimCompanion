@@ -41,7 +41,17 @@
    the tile instead of scrolling the page. The ghost is the tile's copy under the pointer
    (pointer-events none, so elementFromPoint sees the tile beneath); the drop edge is a
    coloured bar on the side of the tile the drag will land on. */
-.fs-tiles.editing .fs-tile { outline: 1px dashed var(--border-strong); outline-offset: 4px; border-radius: var(--radius-xl); }
+.fs-tiles.editing .fs-tile {
+  /* The whole tile is the drag handle: grab cursor, no text selection or long-press callout
+     while a finger holds it. */
+  outline: 1px dashed var(--border-strong);
+  outline-offset: 4px;
+  border-radius: var(--radius-xl);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 .fs-tiles.editing .fs-tile > section { pointer-events: none; opacity: .92; }
 .fs-tile-tools {
   /* A band of its own above the card content, so nothing on the card is covered (a strip

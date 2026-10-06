@@ -55,7 +55,8 @@ running version.
 
 The six tiles on Flight Status (the route hero, Flight sequence, Sim, App, GSX, Services)
 can be put in any order. Click **Edit layout** at the top right of the page: every tile gets
-a grip (⠿) and two arrows. Drag a tile by its grip — mouse or finger — and drop it on the
+a grip (⠿) and two arrows. Drag a tile — grab it anywhere with the mouse, or press and hold it
+with a finger, then move — and drop it on the
 tile it should go before or after (a bar shows the edge it will land on), or use the arrows
 to move it one place. **Reset layout** puts the default order back; **Done** locks the page
 again. Outside edit mode nothing moves, so a touch on a tablet never rearranges the page by

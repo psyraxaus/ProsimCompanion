@@ -232,7 +232,17 @@
   // pointer is above the tile's anti-diagonal (works for the grid and the one-column layout),
   // after otherwise. Near the top / bottom of the window the page auto-scrolls so a tile can
   // travel further than one screen on a tablet.
+  // The whole tile is the handle (owner pick 2026-10-07, option A). Mouse: press anywhere and
+  // the drag starts on the first few pixels of movement. Finger / pen: hold still for
+  // HOLD_MS, then drag — a short swipe before the hold is up stays a page scroll, because the
+  // tiles fill a tablet's screen in edit mode and there would be nothing else to scroll by.
+  // Once a touch drag is live the non-passive touchmove handler stops the browser taking the
+  // gesture for scrolling (which would end the pointer stream with pointercancel). The grip
+  // button still works and starts at once on any pointer (it has touch-action: none).
   const tileDrags = new Map(); // container id → teardown
+  const HOLD_MS = 300;
+  const MOUSE_SLOP_PX = 4;
+  const TOUCH_SLOP_PX = 10;
 
   window.prosimCompanion.tileDrag = {
     attach: function (containerId, dotNetRef) {
@@ -240,7 +250,8 @@
       const container = document.getElementById(containerId);
       if (!container) return;
 
-      let drag = null; // { id, grip, ghost, dx, dy, x, y, target, before, raf }
+      let drag = null;    // { id, handle, ghost, dx, dy, x, y, target, before, raf }
+      let pending = null; // a press that may become a drag: { tile, x, y, pointerId, mouse, timer }
 
       const clearTarget = () => {
         if (drag && drag.target) {
@@ -291,12 +302,18 @@
         }
       };
 
-      const onDown = (e) => {
-        const grip = e.target.closest(".fs-tile-grip");
-        if (!grip || drag || (e.pointerType === "mouse" && e.button !== 0)) return;
-        const tile = grip.closest(".fs-tile");
-        if (!tile || tile.parentElement !== container) return;
-        e.preventDefault();
+      const clearPending = () => {
+        if (pending) { clearTimeout(pending.timer); pending = null; }
+      };
+
+      // Starts the drag from the press recorded in `pending`: the ghost is positioned so the
+      // tile keeps its offset under the pointer, as if lifted in place.
+      const begin = () => {
+        const p = pending;
+        pending = null;
+        clearTimeout(p.timer);
+        const tile = p.tile;
+        if (!tile.isConnected) return;
         const r = tile.getBoundingClientRect();
         const ghost = tile.cloneNode(true);
         ghost.classList.add("fs-tile-ghost");
@@ -304,25 +321,53 @@
         ghost.style.height = r.height + "px";
         document.body.appendChild(ghost);
         tile.classList.add("dragging");
-        drag = { id: tile.dataset.tile, grip, ghost, dx: e.clientX - r.left, dy: e.clientY - r.top,
-          x: e.clientX, y: e.clientY, target: null, before: false, raf: 0 };
-        try { grip.setPointerCapture(e.pointerId); } catch (_) { /* already released */ }
+        drag = { id: tile.dataset.tile, handle: tile, ghost, dx: p.x - r.left, dy: p.y - r.top,
+          x: p.x, y: p.y, target: null, before: false, raf: 0 };
+        try { tile.setPointerCapture(p.pointerId); } catch (_) { /* already released */ }
         drag.raf = requestAnimationFrame(tick);
       };
-      const onMove = (e) => { if (drag) { drag.x = e.clientX; drag.y = e.clientY; } };
-      const onUp = () => finish(true);
-      const onCancel = () => finish(false);
+
+      const onDown = (e) => {
+        if (drag || pending || (e.pointerType === "mouse" && e.button !== 0)) return;
+        const tile = e.target.closest(".fs-tile");
+        if (!tile || tile.parentElement !== container) return;
+        const grip = !!e.target.closest(".fs-tile-grip");
+        // The arrows stay buttons; everything else on the tile is the handle (the card
+        // content has pointer-events: none in edit mode).
+        if (!grip && e.target.closest("button")) return;
+        const mouse = e.pointerType === "mouse";
+        pending = { tile, x: e.clientX, y: e.clientY, pointerId: e.pointerId, mouse, timer: 0 };
+        if (grip) { e.preventDefault(); begin(); return; }
+        if (mouse) { e.preventDefault(); return; }         // starts on the first movement
+        pending.timer = setTimeout(begin, HOLD_MS);         // finger / pen: hold, then drag
+      };
+      const onMove = (e) => {
+        if (drag) { drag.x = e.clientX; drag.y = e.clientY; return; }
+        if (!pending || e.pointerId !== pending.pointerId) return;
+        const moved = Math.hypot(e.clientX - pending.x, e.clientY - pending.y);
+        if (pending.mouse) { if (moved >= MOUSE_SLOP_PX) begin(); }
+        else if (moved >= TOUCH_SLOP_PX) clearPending();     // a swipe: let the page scroll
+      };
+      const onUp = () => { clearPending(); finish(true); };
+      const onCancel = () => { clearPending(); finish(false); };
+      const onTouchMove = (e) => { if (drag) e.preventDefault(); };
+      const onContextMenu = (e) => { if (drag || pending) e.preventDefault(); }; // long-press menu
 
       container.addEventListener("pointerdown", onDown);
       container.addEventListener("pointermove", onMove);
       container.addEventListener("pointerup", onUp);
       container.addEventListener("pointercancel", onCancel);
+      container.addEventListener("touchmove", onTouchMove, { passive: false });
+      container.addEventListener("contextmenu", onContextMenu);
       tileDrags.set(containerId, () => {
+        clearPending();
         finish(false);
         container.removeEventListener("pointerdown", onDown);
         container.removeEventListener("pointermove", onMove);
         container.removeEventListener("pointerup", onUp);
         container.removeEventListener("pointercancel", onCancel);
+        container.removeEventListener("touchmove", onTouchMove);
+        container.removeEventListener("contextmenu", onContextMenu);
       });
     },
     detach: function (containerId) {

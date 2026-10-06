@@ -57,7 +57,7 @@
         }
         @if (_editLayout)
         {
-            <span class="fs-toolbar-hint">Drag a tile by its grip, or use the arrows</span>
+            <span class="fs-toolbar-hint">Drag a tile (press and hold on a touch screen), or use the arrows</span>
             <button type="button" class="btn secondary" @onclick="ResetLayout"
                     disabled="@FlightStatusTiles.IsDefault(_tileOrder)"
                     title="Put the tiles back in the default order">Reset layout</button>
@@ -83,7 +83,7 @@
             <div class="fs-tile-tools">
                 <button type="button" class="fs-tile-btn" @onclick="() => ShiftTile(tileId, -1)"
                         disabled="@(tileId == _tileOrder[0])" title="Move earlier" aria-label="Move earlier">▲</button>
-                <button type="button" class="fs-tile-btn fs-tile-grip" title="Drag to move" aria-label="Drag to move">⠿</button>
+                <button type="button" class="fs-tile-btn fs-tile-grip" title="Drag to move (or drag the tile anywhere)" aria-label="Drag to move">⠿</button>
                 <button type="button" class="fs-tile-btn" @onclick="() => ShiftTile(tileId, +1)"
                         disabled="@(tileId == _tileOrder[^1])" title="Move later" aria-label="Move later">▼</button>
             </div>
