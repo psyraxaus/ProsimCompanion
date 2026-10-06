@@ -8,15 +8,86 @@
   margin: 0 auto;
 }
 
-.fs-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  /* Both cards share the row height (owner request 2026-09-20); the hero pins its live
-     figures to the bottom so the spare height sits between the route and the figures. */
+/* ---- tile rows (issue #160) ----
+   Every tile in one wrapping flex row in the saved order. Flex, not grid: tiles that share
+   a row grow to fill it, so a reordered row never leaves a hole and the order on screen is
+   exactly the saved order (a dense grid would pull a later tile forward). The bases are
+   chosen so the default pairs keep their old shape — hero + sequence at 2:1, two status
+   cards at 1:1 — and a tile that does not fit beside its neighbour takes a full row.
+   Cards in a row share its height (owner request 2026-09-20); the hero pins its live
+   figures to the bottom so the spare height sits between the route and the figures. */
+.fs-tiles {
+  display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   gap: 16px;
-  margin-bottom: 16px;
 }
+
+.fs-tile { position: relative; display: flex; flex-direction: column; min-width: 0; flex: 1 1 44%; }
+.fs-tile > section { flex: 1; }
+.fs-tile-hero { flex: 2 1 58%; }
+.fs-tile-sequence { flex: 1 1 28%; min-width: 280px; }
+
+.fs-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.fs-toolbar-hint { font-size: 12px; color: var(--text-muted); }
+
+/* Edit mode: a tool strip on every tile; the grip has touch-action none so a finger drags
+   the tile instead of scrolling the page. The ghost is the tile's copy under the pointer
+   (pointer-events none, so elementFromPoint sees the tile beneath); the drop edge is a
+   coloured bar on the side of the tile the drag will land on. */
+.fs-tiles.editing .fs-tile { outline: 1px dashed var(--border-strong); outline-offset: 4px; border-radius: var(--radius-xl); }
+.fs-tiles.editing .fs-tile > section { pointer-events: none; opacity: .92; }
+.fs-tile-tools {
+  /* A band of its own above the card content, so nothing on the card is covered (a strip
+     laid over the narrow Flight sequence card hid its title). */
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 0 8px;
+}
+.fs-tile-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-button);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.fs-tile-btn:disabled { opacity: .35; cursor: default; }
+.fs-tile-grip { cursor: grab; touch-action: none; font-size: 18px; }
+.fs-tile.dragging { opacity: .35; }
+.fs-tile.drop-before::before,
+.fs-tile.drop-after::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  background: var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px var(--bg-primary);
+}
+.fs-tile.drop-before::before { top: -10px; left: 0; right: 0; height: 4px; }
+.fs-tile.drop-after::after { bottom: -10px; left: 0; right: 0; height: 4px; }
+.fs-tile-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: .85;
+  transform-origin: top left;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .35);
+}
+.fs-tile-ghost .fs-tile-tools { display: none; }
 
 /* ---- hero ---- */
 
@@ -231,12 +302,10 @@
 
 .fs-open { text-align: center; text-decoration: none; }
 
-/* ---- diagnostic cards ---- */
-
-.fs-status { padding: 0; max-width: none; }
-
 @media (max-width: 900px) {
-  .fs-grid { grid-template-columns: minmax(0, 1fr); }
+  /* One column: every tile full width, in the saved order. */
+  .fs-tiles { flex-direction: column; }
+  .fs-tile, .fs-tile-hero, .fs-tile-sequence { flex: none; width: 100%; min-width: 0; }
   .fs-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .fs-hero-side { max-width: 45%; }
 }

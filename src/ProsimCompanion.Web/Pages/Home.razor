@@ -27,6 +27,8 @@
 @inject FlightProgressStore FlightProgress
 @inject IProsimDataRefs DataRefs
 @inject DisplayUnitService Units
+@inject IOptionsMonitor<FlightStatusOptions> FlightStatusOptionsMonitor
+@inject SettingsWriter Writer
 @inject IJSRuntime JS
 
 @* Prosim2GSX FlightStatusPanel clone: Flight Phase span card, then Sim / App / GSX /
@@ -44,11 +46,51 @@
 
 <div class="fs-page">
 
-    @* Hero + sequence row (ADR-0011, canvas "Flight Status" dashboard): the route and live
-       figures on the left, the flight sequence (the old horizontal phase strip, now a
-       vertical checklist) with the phase-engine controls on the right. *@
-    <div class="fs-grid">
+    @* Layout editing (issue #160): the six tiles below sit in one grid in the pilot's saved
+       order (flightStatus.tileOrder). Edit layout shows a grip and up/down buttons on every
+       tile; outside edit mode nothing is draggable, so a touch on a tablet never moves a
+       tile by mistake. A drop or a button press saves at once — no dirty bar. *@
+    <div class="fs-toolbar">
+        @if (_layoutNote is not null)
+        {
+            <span class="pill tone-warn" title="@_layoutNote">layout not saved</span>
+        }
+        @if (_editLayout)
+        {
+            <span class="fs-toolbar-hint">Drag a tile by its grip, or use the arrows</span>
+            <button type="button" class="btn secondary" @onclick="ResetLayout"
+                    disabled="@FlightStatusTiles.IsDefault(_tileOrder)"
+                    title="Put the tiles back in the default order">Reset layout</button>
+            <button type="button" class="btn primary" @onclick="() => SetEditLayout(false)">Done</button>
+        }
+        else
+        {
+            <button type="button" class="btn secondary" @onclick="() => SetEditLayout(true)"
+                    title="Drag the tiles on this page into your own order; the order is saved for every device">Edit layout</button>
+        }
+    </div>
 
+    @* One grid for every tile (hero 4/6, sequence 2/6, the status cards 3/6, dense flow so a
+       reordered row never leaves a hole; one column under 900 px). The hero and the flight
+       sequence (ADR-0011, canvas "Flight Status" dashboard) keep their shapes; the Sim / App /
+       GSX / Services cards are the Prosim2GSX FlightStatusPanel rows. *@
+    <div id="fs-tiles" class="fs-tiles @(_editLayout ? "editing" : null)">
+    @foreach (var tileId in _tileOrder)
+    {
+        <div @key="tileId" class="fs-tile fs-tile-@tileId" data-tile="@tileId">
+        @if (_editLayout)
+        {
+            <div class="fs-tile-tools">
+                <button type="button" class="fs-tile-btn" @onclick="() => ShiftTile(tileId, -1)"
+                        disabled="@(tileId == _tileOrder[0])" title="Move earlier" aria-label="Move earlier">▲</button>
+                <button type="button" class="fs-tile-btn fs-tile-grip" title="Drag to move" aria-label="Drag to move">⠿</button>
+                <button type="button" class="fs-tile-btn" @onclick="() => ShiftTile(tileId, +1)"
+                        disabled="@(tileId == _tileOrder[^1])" title="Move later" aria-label="Move later">▼</button>
+            </div>
+        }
+        @switch (tileId)
+        {
+        case FlightStatusTiles.Hero:
         <section class="section fs-hero">
             <svg class="fs-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -157,7 +199,9 @@
                 <span class="fs-progress-note">@FlightMonitorPresentation.ProgressCaption(_progress)</span>
             </div>
         </section>
+        break;
 
+        case FlightStatusTiles.Sequence:
         <section class="section fs-sequence">
             <div class="section-header">
                 <h3 class="section-title">Flight sequence</h3>
@@ -212,10 +256,9 @@
                 <a class="btn primary fs-open" href="checklists">Open Checklists</a>
             </div>
         </section>
-    </div>
+        break;
 
-<div class="status-panel fs-status">
-
+        case FlightStatusTiles.Sim:
     <section class="status-section">
         <div class="section-header"><h3 class="section-title">Sim</h3></div>
         <div class="section-body">
@@ -229,7 +272,9 @@
             @Kv("Aircraft", Profiles.AircraftTitle ?? "—")
         </div>
     </section>
+        break;
 
+        case FlightStatusTiles.App:
     <section class="status-section">
         <div class="section-header"><h3 class="section-title">App</h3></div>
         <div class="section-body">
@@ -248,7 +293,9 @@
             @CabinRow()
         </div>
     </section>
+        break;
 
+        case FlightStatusTiles.Gsx:
     <section class="status-section">
         <div class="section-header"><h3 class="section-title">GSX</h3></div>
         <div class="section-body">
@@ -268,7 +315,9 @@
             <GsxMenuCard />
         </div>
     </section>
+        break;
 
+        case FlightStatusTiles.Services:
     <section class="status-section">
         <div class="section-header"><h3 class="section-title">Services</h3></div>
         <div class="section-body">
@@ -292,8 +341,11 @@
             @ConnectedRow("Stairs Connected", GsxServiceIds.OperateStairs)
         </div>
     </section>
-
-</div>
+        break;
+        }
+        </div>
+    }
+    </div>
 
 </div>
 
@@ -340,6 +392,86 @@
 
     private FlightPhase _forcePhase = FlightPhase.Preflight;
     private bool _freeze = true;
+
+    // ── Tile layout (issue #160) ──────────────────────────────────────────────────────
+    // The order comes from flightStatus.tileOrder and goes back there on every move, so a
+    // second browser (the tablet) follows through the options monitor. Edit mode is per
+    // circuit: it is never saved, and the JS drag handlers exist only while it is on.
+    private IReadOnlyList<string> _tileOrder = FlightStatusTiles.DefaultOrder;
+    private IDisposable? _tileOrderChange;
+    private bool _editLayout;
+    private bool _dragAttached;
+    private DotNetObjectReference<Home>? _selfRef;
+    private string? _layoutNote;
+
+    private void SetEditLayout(bool on)
+    {
+        _editLayout = on;
+        _layoutNote = null;
+    }
+
+    private void ShiftTile(string id, int delta) => SaveTileOrder(FlightStatusTiles.Shift(_tileOrder, id, delta));
+
+    private void ResetLayout() => SaveTileOrder(FlightStatusTiles.DefaultOrder);
+
+    /// <summary>The drop from app.js: <paramref name="id"/> lands before or after
+    /// <paramref name="targetId"/>.</summary>
+    [JSInvokable]
+    public Task MoveTile(string id, string targetId, bool before)
+    {
+        SaveTileOrder(FlightStatusTiles.Move(_tileOrder, id, targetId, before));
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void SaveTileOrder(IReadOnlyList<string> order)
+    {
+        if (order.SequenceEqual(_tileOrder))
+        {
+            return;
+        }
+
+        _tileOrder = order;
+        try
+        {
+            // The default order is saved as an empty list so an untouched config stays clean.
+            Writer.Set<FlightStatusOptions, List<string>>(o => o.TileOrder,
+                FlightStatusTiles.IsDefault(order) ? [] : [.. order]);
+            _layoutNote = null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _layoutNote = $"The order could not be written to settings.json: {ex.Message}";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The grid exists in the DOM only after the first render; the drag handlers follow
+        // edit mode on and off so a locked page carries none.
+        if (_editLayout == _dragAttached)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_editLayout)
+            {
+                _selfRef ??= DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("prosimCompanion.tileDrag.attach", "fs-tiles", _selfRef);
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("prosimCompanion.tileDrag.detach", "fs-tiles");
+            }
+
+            _dragAttached = _editLayout;
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException)
+        {
+            // Interop unavailable (prerender / circuit closing): the arrow buttons still work.
+        }
+    }
 
     // ── Hero card (ADR-0011) ──────────────────────────────────────────────────────────
     // Route and flight line from the OFP; live figures from the phase engine's last sample
@@ -869,6 +1001,17 @@
         Watch(GateStatus, snapshot => _gate = snapshot);
         Watch(FlightProgress, snapshot => _progress = snapshot);
 
+        _tileOrder = FlightStatusTiles.Normalize(FlightStatusOptionsMonitor.CurrentValue.TileOrder);
+        _tileOrderChange = FlightStatusOptionsMonitor.OnChange(options =>
+        {
+            var order = FlightStatusTiles.Normalize(options.TileOrder);
+            if (!order.SequenceEqual(_tileOrder))
+            {
+                _tileOrder = order;
+                _ = InvokeAsync(StateHasChanged);
+            }
+        });
+
         _headingSub = DataRefs.Subscribe(HeadingMagneticRef);
         _fuelSub = DataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
         _metricsTimer = new System.Threading.Timer(_ => RefreshMetrics(), null,
@@ -878,6 +1021,8 @@
     public override void Dispose()
     {
         base.Dispose();
+        _tileOrderChange?.Dispose();
+        _selfRef?.Dispose();
         _confirmFuelNoteTimer?.Dispose();
         _metricsTimer?.Dispose();
         _headingSub?.Dispose();

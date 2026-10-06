@@ -225,6 +225,112 @@
     return false;
   };
 
+  // Flight Status tile drag (issue #160). Pointer events, not HTML5 drag-and-drop: the latter
+  // never fires on iPad touch. The DOM is NOT reordered here — Blazor owns it; the drop goes
+  // to .NET (MoveTile) and the page re-renders in the new order. While dragging, a ghost copy
+  // of the tile follows the pointer and the tile under it shows a drop edge: before when the
+  // pointer is above the tile's anti-diagonal (works for the grid and the one-column layout),
+  // after otherwise. Near the top / bottom of the window the page auto-scrolls so a tile can
+  // travel further than one screen on a tablet.
+  const tileDrags = new Map(); // container id → teardown
+
+  window.prosimCompanion.tileDrag = {
+    attach: function (containerId, dotNetRef) {
+      this.detach(containerId);
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      let drag = null; // { id, grip, ghost, dx, dy, x, y, target, before, raf }
+
+      const clearTarget = () => {
+        if (drag && drag.target) {
+          drag.target.classList.remove("drop-before", "drop-after");
+          drag.target = null;
+        }
+      };
+
+      const locate = () => {
+        if (!drag) return;
+        drag.ghost.style.transform = "translate(" + (drag.x - drag.dx) + "px, " + (drag.y - drag.dy) + "px)";
+        const under = document.elementFromPoint(drag.x, drag.y);
+        const tile = under ? under.closest(".fs-tile") : null;
+        const valid = tile && tile.parentElement === container && tile.dataset.tile !== drag.id;
+        if (!valid) { clearTarget(); return; }
+        const r = tile.getBoundingClientRect();
+        const before = (drag.x - r.left) / r.width + (drag.y - r.top) / r.height < 1;
+        if (tile !== drag.target || before !== drag.before) {
+          clearTarget();
+          drag.target = tile;
+          drag.before = before;
+          tile.classList.add(before ? "drop-before" : "drop-after");
+        }
+      };
+
+      const tick = () => {
+        if (!drag) return;
+        const edge = 56;
+        const h = window.innerHeight;
+        if (drag.y < edge) window.scrollBy(0, -Math.ceil((edge - drag.y) / 4));
+        else if (drag.y > h - edge) window.scrollBy(0, Math.ceil((drag.y - (h - edge)) / 4));
+        locate();
+        drag.raf = requestAnimationFrame(tick);
+      };
+
+      const finish = (drop) => {
+        if (!drag) return;
+        const d = drag;
+        drag = null;
+        cancelAnimationFrame(d.raf);
+        d.ghost.remove();
+        const source = container.querySelector('.fs-tile[data-tile="' + d.id + '"]');
+        if (source) source.classList.remove("dragging");
+        if (d.target) d.target.classList.remove("drop-before", "drop-after");
+        if (drop && d.target) {
+          dotNetRef.invokeMethodAsync("MoveTile", d.id, d.target.dataset.tile, d.before)
+            .catch(() => { /* circuit gone — the page reloads on its own */ });
+        }
+      };
+
+      const onDown = (e) => {
+        const grip = e.target.closest(".fs-tile-grip");
+        if (!grip || drag || (e.pointerType === "mouse" && e.button !== 0)) return;
+        const tile = grip.closest(".fs-tile");
+        if (!tile || tile.parentElement !== container) return;
+        e.preventDefault();
+        const r = tile.getBoundingClientRect();
+        const ghost = tile.cloneNode(true);
+        ghost.classList.add("fs-tile-ghost");
+        ghost.style.width = r.width + "px";
+        ghost.style.height = r.height + "px";
+        document.body.appendChild(ghost);
+        tile.classList.add("dragging");
+        drag = { id: tile.dataset.tile, grip, ghost, dx: e.clientX - r.left, dy: e.clientY - r.top,
+          x: e.clientX, y: e.clientY, target: null, before: false, raf: 0 };
+        try { grip.setPointerCapture(e.pointerId); } catch (_) { /* already released */ }
+        drag.raf = requestAnimationFrame(tick);
+      };
+      const onMove = (e) => { if (drag) { drag.x = e.clientX; drag.y = e.clientY; } };
+      const onUp = () => finish(true);
+      const onCancel = () => finish(false);
+
+      container.addEventListener("pointerdown", onDown);
+      container.addEventListener("pointermove", onMove);
+      container.addEventListener("pointerup", onUp);
+      container.addEventListener("pointercancel", onCancel);
+      tileDrags.set(containerId, () => {
+        finish(false);
+        container.removeEventListener("pointerdown", onDown);
+        container.removeEventListener("pointermove", onMove);
+        container.removeEventListener("pointerup", onUp);
+        container.removeEventListener("pointercancel", onCancel);
+      });
+    },
+    detach: function (containerId) {
+      const teardown = tileDrags.get(containerId);
+      if (teardown) { teardown(); tileDrags.delete(containerId); }
+    },
+  };
+
   // ------------------------------------------------------------------ split-flap
 
   const DRUM = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-/";

@@ -37,7 +37,7 @@ running version.
 
 | Page | What it does |
 |---|---|
-| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the distance row (to go, flown, ETA, top of descent — direct distances, see the Flight Monitor notes below), the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. Final-call thresholds, the weather refresh cadence and the top-of-descent notice live under Settings → Display & Flight Data → Flight Status card |
+| **Flight Status** | Route hero with two weather cards (local weather / weather at destination: sky graphic, wind, visibility, ceiling, temperature, QNH, ATIS letter, METAR time), the gate monitor strip (Gate Closed → Gate Open → Boarding → Final Call → Gate Closed, with the passenger count and the STD countdown) and its **Pop out** button, the live ground speed / altitude / vertical speed / heading / fuel figures, the distance row (to go, flown, ETA, top of descent — direct distances, see the Flight Monitor notes below), the flight sequence with the phase-engine controls, then the Sim/App/GSX/Services cards with state pills. **Edit layout** lets you drag the tiles into your own order (see below). Final-call thresholds, the weather refresh cadence and the top-of-descent notice live under Settings → Display & Flight Data → Flight Status card |
 | **Flight Monitor** (pop-out) | A second-monitor board opened from the gate strip's Pop out button (or at `/monitor`) — see below |
 | **INIT** | MCDU-style OFP display: fetch the SimBrief OFP, per-field overrides (ZFW, fuel, pax, cargo), SYNC TO FMS, confirm fuel (orders the fuel truck — unless the fuel on board already meets the figure, then it answers "Refueling is not needed" and no truck comes), flight reset |
 | **OFP** | Flight-plan hero, arrival-gate assignment, weather (METAR/TAF/ATIS), pushback-direction Korry buttons, de-ice holdover card |
@@ -50,6 +50,20 @@ running version.
 | **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode with a legs timeline |
 | **Logbook** | Your flights: totals (flights, block hours, landings, stable-approach rate, average touchdown rate), the touchdown-rate trend, a table you can sort by any column, the detail of one flight (times, runways, touchdown rate / speed / pitch, bounces, abnormals), delete (two clicks) and **Export CSV** — see below |
 | **⚙ Settings** | Everything you configure, on one rail (below) |
+
+### Arranging the Flight Status tiles
+
+The six tiles on Flight Status (the route hero, Flight sequence, Sim, App, GSX, Services)
+can be put in any order. Click **Edit layout** at the top right of the page: every tile gets
+a grip (⠿) and two arrows. Drag a tile by its grip — mouse or finger — and drop it on the
+tile it should go before or after (a bar shows the edge it will land on), or use the arrows
+to move it one place. **Reset layout** puts the default order back; **Done** locks the page
+again. Outside edit mode nothing moves, so a touch on a tablet never rearranges the page by
+accident. The order is saved the moment you drop (`flightStatus.tileOrder` in
+`config/settings.json`) and is the same on every device that opens the app. Tiles that
+share a row stretch to fill it, so a reordered row never leaves a gap; on a narrow screen
+the tiles stack in the same order. Settings → Display & Flight Data → Flight Status card
+shows the saved order and has the same Reset.
 
 ### The Flight Monitor window
 

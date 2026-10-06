@@ -26,4 +26,11 @@ public sealed class FlightStatusOptions : IOptionSection
     /// notification and an FO line off it). 0 disables the event; the figure on the Flight
     /// Monitor board and Flight Status is shown either way.</summary>
     public int TodLeadMinutes { get; set; } = 10;
+
+    /// <summary>The Flight Status tiles in the order the pilot dragged them into (issue #160):
+    /// ids from <c>FlightStatusTiles</c> ("hero", "sequence", "sim", "app", "gsx",
+    /// "services"). Written by the page itself on every drop — never through the dirty bar.
+    /// Empty = the default order; a partial or stale list is folded into a complete one, so
+    /// no tile can disappear.</summary>
+    public List<string> TileOrder { get; set; } = [];
 }
