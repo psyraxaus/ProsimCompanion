@@ -123,8 +123,9 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       status flag. Deboarding is observe-only until live counter semantics are confirmed;
       no-show randomization follows later
 - [x] GPU/chocks/PCA placement at preparation + removal on the beacon edge (chocks interlocked
-      on park brake); ProSim native efb.gsx.* auto-flags disabled per connection (verified live
-      via the gateway write path)
+      on park brake); ProSim native efb.gsx.* auto-flags disabled per connection (the gateway
+      answered 200 — but on ProSim 1.75.1 the names do not exist and the write verdict was
+      `false`; superseded 2026-10-06 by the ProSim Setup Check over `system.config.*`)
 - [x] Jetway/stairs handling: LVAR-truth selection (jetway=2 ⇒ stairs), 20 s verification with
       one fallback, pre-existing-connection detection
 - [x] Door automation + GSX door-message suppression: cargo doors follow boarding/deboarding
@@ -255,6 +256,13 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
       flagged on /audio with run-as-admin guidance), ProSim native audio guard
       (aircraft.communication.windows.* cleared once per connection; PA deliberately untouched,
       predecessor parity). **Unverified live**
+- [x] Loudspeaker dial (2026-10-05, 0.6.0-rc.19): `system.analog.A_MIP_LOUDSPEAKER_CAPT/_FO`
+      as a ninth mapping channel on the Captain / First Officer lists of both backends — no
+      latch (fully down mutes), essential-bus power rule that ignores the audio-switching swap,
+      no observer dial. Headset sound on the cockpit speakers is a VoiceMeeter-side VBAN loop
+      (manual chapter 8, docs/integrations/audio.md). The VoiceMeeter wiring and the level
+      write were verified by the owner on the sim PC with a stand-in knob (CPT CAB → Bus 8);
+      the dial channel itself is **unverified live**
 
 ## Phase 5 — Voice First Officer
 

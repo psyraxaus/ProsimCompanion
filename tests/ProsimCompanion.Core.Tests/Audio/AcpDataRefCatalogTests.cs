@@ -6,15 +6,46 @@ namespace ProsimCompanion.Core.Tests.Audio;
 
 public sealed class AcpDataRefCatalogTests
 {
+    /// <summary>The 24 ACP knob keys — the loudspeaker dial is not an ACP knob (no latch,
+    /// no observer dial) and has its own tests below.</summary>
     public static IEnumerable<object[]> AllKeys()
     {
         foreach (var acp in Enum.GetValues<AcpSide>())
         {
             foreach (var channel in Enum.GetValues<AudioChannel>())
             {
-                yield return [acp, channel];
+                if (channel.HasRecLatch())
+                {
+                    yield return [acp, channel];
+                }
             }
         }
+    }
+
+    [Theory]
+    [InlineData(AcpSide.Captain, "system.analog.A_MIP_LOUDSPEAKER_CAPT")]
+    [InlineData(AcpSide.FirstOfficer, "system.analog.A_MIP_LOUDSPEAKER_FO")]
+    public void LoudspeakerDial_MatchesTheWireNames(AcpSide acp, string expected)
+    {
+        Assert.True(AudioChannel.Loudspeaker.ExistsOn(acp));
+        Assert.Equal(expected, AcpDataRefCatalog.VolumeRef(acp, AudioChannel.Loudspeaker).Name);
+    }
+
+    [Fact]
+    public void LoudspeakerDial_HasNoLatch_AndNoObserverDial()
+    {
+        Assert.False(AudioChannel.Loudspeaker.HasRecLatch());
+        Assert.False(AudioChannel.Loudspeaker.ExistsOn(AcpSide.Observer));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => AcpDataRefCatalog.LatchRef(AcpSide.Captain, AudioChannel.Loudspeaker));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => AcpDataRefCatalog.VolumeRef(AcpSide.Observer, AudioChannel.Loudspeaker));
+    }
+
+    [Fact]
+    public void EveryAcpChannel_ExistsOnEveryPanel()
+    {
+        Assert.All(AllKeys(), key => Assert.True(((AudioChannel)key[1]).ExistsOn((AcpSide)key[0])));
     }
 
     [Theory]

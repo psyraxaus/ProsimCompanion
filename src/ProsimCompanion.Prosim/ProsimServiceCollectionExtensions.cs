@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Aircraft.Gateway;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.Hosting;
 using ProsimCompanion.Prosim.DataRefs;
 using ProsimCompanion.Prosim.Flight;
 using ProsimCompanion.Prosim.Gateway;
@@ -25,6 +26,11 @@ public static class ProsimServiceCollectionExtensions
         services.AddSingleton<ISimbriefImporter, Simbrief.SimbriefImportService>();
         services.AddSingleton<IFlightDataSource, ProsimFlightDataSource>();
         services.AddHostedService<ProsimConnectionService>();
+
+        // ProSim setup check (2026-10-06): reads the IOS options once per connection; writes
+        // only on the Setup page's "Apply recommended" click.
+        services.AddStartupModule<Setup.ProsimSetupCheckService>();
+        services.AddSingleton<Core.State.IProsimSetupCheck>(provider => provider.GetRequiredService<Setup.ProsimSetupCheckService>());
 
         // Flight-data pillar (Phase 3): in-house loadsheets + ACARS + MCDU INIT B sync.
         services.AddSingleton<Acars.AcarsUplink>();

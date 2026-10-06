@@ -25,6 +25,12 @@ public sealed class ProsimWriteGateTests
     [InlineData("system.analog.A_FC_CAPT_ROLL")]
     [InlineData("system.analog.A_FC_CAPT_PITCH")]
     [InlineData("system.analog.A_FC_CAPT_RUDDER")]
+    // ProSim setup check (2026-10-06): the five IOS options "Apply recommended" may set.
+    [InlineData("system.config.Config.DOORS")]
+    [InlineData("system.config.Config.GROUNDPOWER")]
+    [InlineData("system.config.Datalink.loadCargo")]
+    [InlineData("system.config.Datalink.loadFuel")]
+    [InlineData("system.config.Config.refuelRate")]
     public void IsAllowed_AllowListedNames_ReturnTrue(string name)
         => Assert.True(ProsimWriteGate.IsAllowed(name));
 
@@ -32,6 +38,8 @@ public sealed class ProsimWriteGateTests
     [InlineData("system.switches.S_MIP_PARKING_BRAKE")]   // cockpit switch — dataref-first rule
     [InlineData("efb.simbrief.id")]                        // identity, read-only for us
     [InlineData("aircraft.speed.ias")]                     // flight dynamics are never written
+    [InlineData("system.config.Config.EPR")]               // IOS engine type: same family as the setup check, never written
+    [InlineData("system.config.cockpitSetup.load")]        // IOS cockpit-setup loader: same family, never written
     [InlineData("")]
     public void IsAllowed_UnlistedNames_ReturnFalse(string name)
         => Assert.False(ProsimWriteGate.IsAllowed(name));

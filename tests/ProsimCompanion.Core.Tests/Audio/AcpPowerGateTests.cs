@@ -48,6 +48,28 @@ public sealed class AcpPowerGateTests
         Assert.Equal(expected, AcpPowerGate.IsPowered(AcpSide.Observer, inputs));
     }
 
+    [Theory]
+    [InlineData(AcpSide.Captain, true, false, 0, true)]       // CAPT 3 swap does not freeze the dial
+    [InlineData(AcpSide.FirstOfficer, false, true, 2, true)]  // nor does the F/O swap
+    [InlineData(AcpSide.Captain, false, false, 1, false)]     // no essential bus ⇒ dark
+    [InlineData(AcpSide.Observer, true, true, 1, false)]      // there is no observer dial
+    public void LoudspeakerDial_GatesOnEssentialBusesOnly(
+        AcpSide acp, bool acEss, bool dcEss, int switching, bool expected)
+    {
+        var inputs = new AcpPowerInputs(acEss, dcEss, Dc1: true, switching);
+
+        Assert.Equal(expected, AcpPowerGate.IsPowered(acp, AudioChannel.Loudspeaker, inputs));
+    }
+
+    [Fact]
+    public void AcpChannels_UseThePerAcpGate()
+    {
+        var swapped = new AcpPowerInputs(AcEss: true, DcEss: true, Dc1: true, AudioSwitching: 0);
+
+        Assert.False(AcpPowerGate.IsPowered(AcpSide.Captain, AudioChannel.Vhf1, swapped));
+        Assert.True(AcpPowerGate.IsPowered(AcpSide.Observer, AudioChannel.Vhf1, swapped));
+    }
+
     [Fact]
     public void Unknown_DefaultsToNormSwitching_SoDataLossNeverSwapsAcpsOut()
     {

@@ -29,4 +29,13 @@ public static class AcpPowerGate
         AcpSide.Observer => inputs.Dc1,
         _ => false,
     };
+
+    /// <summary>Channel-aware gate. The loudspeaker dial is not on the ACP, so the
+    /// audio-switching swap (which takes a pilot's ACP out of the loop) must not freeze it:
+    /// it follows the essential buses only. Every ACP channel uses the per-ACP gate above.
+    /// Our rule, not a predecessor's — the predecessors never read this dial.</summary>
+    public static bool IsPowered(AcpSide acp, AudioChannel channel, in AcpPowerInputs inputs) =>
+        channel == AudioChannel.Loudspeaker
+            ? (acp is AcpSide.Captain or AcpSide.FirstOfficer) && (inputs.AcEss || inputs.DcEss)
+            : IsPowered(acp, inputs);
 }

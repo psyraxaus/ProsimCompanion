@@ -6,6 +6,10 @@ public static class VolumeMath
     /// <summary>ProSim ACP knob analogs run 0–1024.</summary>
     public const int KnobMax = 1024;
 
+    /// <summary>Raw travel that counts as "fully down" for a dial with no latch (the
+    /// loudspeaker): 1 % of travel, so a pot that rests a few counts above zero still mutes.</summary>
+    public const double DialZeroBand = KnobMax * 0.01;
+
     public const float VoiceMeeterMinDb = -60f;
     public const float VoiceMeeterMaxDb = 12f;
 
@@ -13,6 +17,9 @@ public static class VolumeMath
     /// the scalar directly).</summary>
     public static float Normalize(double rawKnob) =>
         Math.Clamp((float)(rawKnob / KnobMax), 0f, 1f);
+
+    /// <summary>True when a latchless dial is fully down — its mute.</summary>
+    public static bool IsDialAtZero(double rawKnob) => rawKnob <= DialZeroBand;
 
     /// <summary>0..1 scalar → VoiceMeeter gain: −60 dB … +12 dB, deliberately past unity at
     /// full knob (predecessor-documented behaviour; 0 dB sits at ~83 %).</summary>

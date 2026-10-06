@@ -11,7 +11,11 @@
 @inject IOptionsMonitor<CommandApiOptions> CommandApiMonitor
 @inject ProfileGsxMirror ProfileMirror
 @inject WebListenerStatus ListenerStatus
+@inject ProsimSetupStore SetupStore
+@inject IProsimSetupCheck SetupCheck
+@inject ConnectionStatusStore Status
 @using ProsimCompanion.Core.State
+@using ProsimCompanion.Core.Aircraft.Setup
 
 <PageTitle>Setup — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Setup</h1>
@@ -42,6 +46,77 @@
                      @bind-Value="_prosim.Value.ReconnectIntervalMs"
                      Default="_prosim.Defaults.ReconnectIntervalMs" />
     </AdvancedFields>
+</Section>
+
+@* The ProSim setup check (owner request 2026-10-06). ProSim's IOS options are datarefs
+   (system.config.*): the app reads the ones it depends on at every connection and shows which
+   differ. It changes nothing on its own — "Apply recommended" is the only write, and every
+   written value is read back. "Keep as is" per row silences that row for good. *@
+<Section Title="ProSim Setup Check" Hint="@SetupCheckHint">
+    <BoolField Label="Check ProSim's options on connect"
+               Hint="Reads the IOS options this app depends on and shows which ones differ. Never changes anything by itself."
+               More="Door logic, automatic ground power, datalink loading and the refuelling rate. Rows for a feature that is switched off above are not shown."
+               @bind-Value="_prosim.Value.SetupCheckEnabled" />
+    @if (!_prosim.Value.SetupCheckEnabled)
+    {
+        <div class="field-hint">Off. Nothing is read.</div>
+    }
+    else if (!_setup.HasReading)
+    {
+        <div class="field-hint">
+            @(ProsimConnected ? "Reading ProSim's options…" : "Shown once ProSim is connected.")
+        </div>
+    }
+    else
+    {
+        <div class="setup-rows">
+            @foreach (var item in _setup.Items)
+            {
+                var kept = IsKept(item.DataRef);
+                <div class="row row-with-detail setup-row @(kept ? "setup-row-kept" : "")" title="@item.Why">
+                    <span class="row-label">@item.Label</span>
+                    <label class="setup-keep" title="Keep this option as it is. The row stays grey and Apply never touches it.">
+                        <input type="checkbox" class="checkbox" checked="@kept"
+                               @onchange="e => SetKept(item.DataRef, e.Value is true)" />
+                        keep
+                    </label>
+                    <span class="pill @Tone(item)">@Verdict(item)</span>
+                    <span class="row-detail">@Detail(item)</span>
+                </div>
+            }
+        </div>
+        <div class="row-actions setup-actions">
+            @if (_setupNote is not null)
+            {
+                <span class="pill tone-neutral" title="@_setupNote">@_setupNote</span>
+            }
+            <button type="button" class="btn secondary" disabled="@(_setup.Busy || !ProsimConnected)"
+                    @onclick="RefreshSetup" title="Read the options from ProSim again.">
+                @(_setup.Busy ? "Reading…" : "Read again")
+            </button>
+            <button type="button" class="btn secondary" disabled="@(_setup.MismatchCount == 0)"
+                    @onclick="() => _showHow = !_showHow" title="How to change the options by hand in ProSim System.">
+                @(_showHow ? "Hide the steps" : "Show me how")
+            </button>
+            <button type="button" class="btn" disabled="@(_setup.Busy || _setup.MismatchCount == 0 || !ProsimConnected)"
+                    @onclick="ApplySetup"
+                    title="Writes the recommended value to every amber row, then reads them back. Takes effect at once; no ProSim restart.">
+                @(_setup.Busy ? "Applying…" : $"Apply recommended{(_setup.MismatchCount > 0 ? $" ({_setup.MismatchCount})" : "")}")
+            </button>
+        </div>
+        @if (_showHow && _setup.MismatchCount > 0)
+        {
+            <ol class="setup-steps" style="margin-top:10px;">
+                @foreach (var item in _setup.Items.Where(row => row.NeedsWrite))
+                {
+                    <li>
+                        In ProSim System open <b>@item.IosPath</b> and set it to <b>@Pretty(item.Recommended)</b>
+                        (now @Pretty(item.Actual)). @item.Why
+                    </li>
+                }
+            </ol>
+        }
+    }
 </Section>
 
 <Section Title="Nav Data" Hint="Navigraph database for SIDs, STARs and approaches">
@@ -146,6 +221,9 @@
         _webUi = Draft(WebUiMonitor);
         _briefing = Draft(BriefingMonitor);
         _commandApi = Draft(CommandApiMonitor);
+
+        Watch(SetupStore, snapshot => _setup = snapshot);
+        WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _prosimConnected = ProsimConnectedNow());
     }
 
     protected override void OnBeforeSave()
@@ -155,6 +233,7 @@
         // Trim quotes too — Explorer's "Copy as path" wraps the path in them.
         _briefing.Value.DfdPath = _briefing.Value.DfdPath.Trim().Trim('"');
         _gsxChanged = _gsx.IsDirty;
+        _prosimChanged = _prosim.IsDirty;
     }
 
     // The gsx master switch is part of the per-profile gsx block: a save that changed it must
@@ -166,5 +245,106 @@
         {
             ProfileMirror.MirrorActiveProfile();
         }
+
+        // A changed keep list (or GSX feature switch) changes the rows: read again so the card
+        // shows the new verdicts without waiting for the next ProSim connection.
+        if ((_prosimChanged || _gsxChanged) && _prosim.Value.SetupCheckEnabled)
+        {
+            _ = SetupCheck.RefreshAsync();
+        }
+    }
+
+    // ---- ProSim setup check card ----
+    private ProsimSetupSnapshot _setup = ProsimSetupSnapshot.Empty;
+    private bool _prosimConnected;
+    private bool _prosimChanged;
+    private bool _showHow;
+    private string? _setupNote;
+    private Timer? _setupNoteTimer;
+
+    private bool ProsimConnected => _prosimConnected;
+
+    private bool ProsimConnectedNow() => Status.Snapshot()
+        .FirstOrDefault(pair => pair.Key == Subsystems.Prosim).Value == ConnectionState.Connected;
+
+    private string SetupCheckHint => _setup.HasReading
+        ? $"ProSim {_setup.ProsimVersion} · read {_setup.CheckedAtUtc!.Value.ToLocalTime():HH:mm:ss}"
+        : "Reads on every ProSim connection; writes only when you click Apply";
+
+    private bool IsKept(string dataRef)
+        => _prosim.Value.SetupCheckIgnore.Contains(dataRef, StringComparer.OrdinalIgnoreCase);
+
+    private void SetKept(string dataRef, bool kept)
+    {
+        var list = _prosim.Value.SetupCheckIgnore;
+        list.RemoveAll(name => string.Equals(name, dataRef, StringComparison.OrdinalIgnoreCase));
+        if (kept)
+        {
+            list.Add(dataRef);
+        }
+    }
+
+    private static string Tone(ProsimSetupItem item) => item.Status switch
+    {
+        ProsimSetupStatus.Ok => "tone-ok",
+        ProsimSetupStatus.Mismatch => "tone-warn",
+        _ => "tone-neutral",
+    };
+
+    private static string Verdict(ProsimSetupItem item) => item.Status switch
+    {
+        ProsimSetupStatus.Ok => "OK",
+        ProsimSetupStatus.Mismatch => "CHANGE",
+        ProsimSetupStatus.NotPresent => "N/A",
+        ProsimSetupStatus.Ignored => "KEPT",
+        _ => "—",
+    };
+
+    private static string Detail(ProsimSetupItem item) => item.Status switch
+    {
+        ProsimSetupStatus.Mismatch => $"is {Pretty(item.Actual)} · want {Pretty(item.Recommended)}",
+        ProsimSetupStatus.NotPresent => "not on this ProSim build",
+        ProsimSetupStatus.Unknown => "",
+        _ => Pretty(item.Actual),
+    };
+
+    /// <summary>Tick-box datarefs read "true"/"false"; the IOS shows a tick, so say on/off.</summary>
+    private static string Pretty(string? value) => value?.ToLowerInvariant() switch
+    {
+        null or "" => "—",
+        "true" => "on",
+        "false" => "off",
+        _ => value,
+    };
+
+    private Task RefreshSetup() => RunSetupAction(async () =>
+        await SetupCheck.RefreshAsync() ? "Read." : "ProSim is not connected.");
+
+    private Task ApplySetup() => RunSetupAction(async () =>
+        (await SetupCheck.ApplyRecommendedAsync()).Summary);
+
+    private async Task RunSetupAction(Func<Task<string>> action)
+    {
+        try
+        {
+            _setupNote = await action();
+        }
+        catch (Exception)
+        {
+            _setupNote = "Failed — see the Logs page.";
+        }
+
+        _setupNoteTimer?.Dispose();
+        _setupNoteTimer = new Timer(_ => _ = InvokeAsync(() =>
+        {
+            _setupNote = null;
+            StateHasChanged();
+        }), null, 8000, Timeout.Infinite);
+    }
+
+    public override void Dispose()
+    {
+        _setupNoteTimer?.Dispose();
+        base.Dispose();
     }
 }

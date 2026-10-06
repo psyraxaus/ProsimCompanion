@@ -6,6 +6,10 @@ namespace ProsimCompanion.Audio.Acp;
 /// <summary>
 /// Maps (ACP, channel) to the ProSim knob/latch dataref names. ACP1 = Captain, ACP2 = First
 /// Officer, ACP3 = Observer; knob analogs are 0–1024, REC latches are 0 = muted / 1 = unmuted.
+/// The loudspeaker dial rides the same keys (Captain / First Officer side) but is not an ACP
+/// knob: there is no observer dial and no latch — ask
+/// <see cref="AudioChannelExtensions.ExistsOn"/> / <see cref="AudioChannelExtensions.HasRecLatch"/>
+/// before resolving a ref.
 /// </summary>
 public static class AcpDataRefCatalog
 {
@@ -35,9 +39,13 @@ public static class AcpDataRefCatalog
         (AcpSide.Observer, AudioChannel.Intercom) => ProsimDataRefNames.Acp3IntAnalog,
         (AcpSide.Observer, AudioChannel.Cabin) => ProsimDataRefNames.Acp3CabAnalog,
         (AcpSide.Observer, AudioChannel.Pa) => ProsimDataRefNames.Acp3PaAnalog,
+        (AcpSide.Captain, AudioChannel.Loudspeaker) => ProsimDataRefNames.MipLoudspeakerCaptAnalog,
+        (AcpSide.FirstOfficer, AudioChannel.Loudspeaker) => ProsimDataRefNames.MipLoudspeakerFoAnalog,
         _ => throw new ArgumentOutOfRangeException(nameof(channel), $"{acp}/{channel}"),
     };
 
+    /// <summary>Throws for a latchless channel — check
+    /// <see cref="AudioChannelExtensions.HasRecLatch"/> first.</summary>
     public static DataRef<int> LatchRef(AcpSide acp, AudioChannel channel) => (acp, channel) switch
     {
         (AcpSide.Captain, AudioChannel.Vhf1) => ProsimDataRefNames.Acp1Vhf1Latch,

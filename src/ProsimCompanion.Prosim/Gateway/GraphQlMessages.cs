@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ProsimCompanion.Prosim.Gateway;
 
@@ -47,6 +48,47 @@ public static class GraphQlMessages
         ArgumentException.ThrowIfNullOrWhiteSpace(alias);
 
         return $"{{\"query\":\"query {{ dataRef {{{alias}: dataRef(name: \\\"{name}\\\") {{value}} }} }}\",\"variables\":{{}} }}";
+    }
+
+    /// <summary>
+    /// Reads the gateway's answer to a write mutation. ProSim returns HTTP 200 for every
+    /// well-formed mutation and puts the verdict in the body: <c>{"data":{"dataRef":{"writeBool":true}}}</c>
+    /// on success, <c>false</c> when the dataref is unknown or not writable (seen 2026-10-06
+    /// on ProSim 1.75.1: <c>efb.gsx.autoCatering</c> answered <c>false</c>, a real option
+    /// <c>true</c>). Until then the client took the status code alone and reported dead writes
+    /// as done. A body without the verdict (older gateway, GraphQL errors) still counts as
+    /// success, so nothing that worked before turns red; a GraphQL <c>errors</c> array does not.
+    /// </summary>
+    /// <returns>True when ProSim accepted the write (or gave no verdict).</returns>
+    public static bool WriteAccepted(string responseBody)
+    {
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            return true;
+        }
+
+        try
+        {
+            var dataRef = JsonNode.Parse(responseBody)?["data"]?["dataRef"]?.AsObject();
+            if (dataRef is null)
+            {
+                return true;
+            }
+
+            foreach (var (_, result) in dataRef)
+            {
+                if (result is JsonValue value && value.TryGetValue<bool>(out var accepted))
+                {
+                    return accepted;
+                }
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            return true;
+        }
     }
 
     private static string BuildStringMutation(string name, string value)

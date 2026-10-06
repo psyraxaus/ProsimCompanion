@@ -38,6 +38,16 @@ public sealed class VolumeMathTests
         Assert.Equal(normalized, roundTripped, precision: 4);
     }
 
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(10, true)]    // a pot resting a few counts above zero still mutes
+    [InlineData(11, false)]
+    [InlineData(1020, false)] // the owner's dial tops out at 1020, not 1023
+    public void IsDialAtZero_TreatsTheBottomOnePercentAsFullyDown(double raw, bool expected)
+    {
+        Assert.Equal(expected, VolumeMath.IsDialAtZero(raw));
+    }
+
     [Fact]
     public void FromVoiceMeeterGainDb_ClampsOutOfRangeGains()
     {

@@ -459,6 +459,11 @@ public static class ProsimDataRefNames
     public static readonly DataRef<int> Acp3Vhf2Latch = new("system.switches.S_ASP3_VHF_2_REC_LATCH", DataRefTier.Frequent, 1);
     public static readonly DataRef<int> Acp3Vhf3Latch = new("system.switches.S_ASP3_VHF_3_REC_LATCH", DataRefTier.Frequent, 1);
 
+    // Glareshield LOUD SPEAKER dials [0 - 1023]. The owner's hardware dial tops out at 1020
+    // (sim PC, 2026-10-05). No observer dial and no latch exist.
+    public static readonly DataRef<double> MipLoudspeakerCaptAnalog = new("system.analog.A_MIP_LOUDSPEAKER_CAPT", DataRefTier.Frequent, 0.0);
+    public static readonly DataRef<double> MipLoudspeakerFoAnalog = new("system.analog.A_MIP_LOUDSPEAKER_FO", DataRefTier.Frequent, 0.0);
+
     #endregion
 
     #region Hydraulics

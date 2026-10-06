@@ -92,7 +92,9 @@
                             <span class="field-more-body">
                                 Latch off: mute is never written, so an app muted elsewhere stays muted.
                                 An app run as administrator needs ProsimCompanion run as administrator
-                                too; the Status section flags them.
+                                too; the Status section flags them. LOUDSPEAKER is the cockpit
+                                loudspeaker dial (captain and first officer only); its Latch tick
+                                mutes the app with the dial fully down.
                             </span>
                         </details>
                     </div>
@@ -154,7 +156,11 @@
                                     <select class="cell-select" @bind="row.Channel">
                                         @foreach (var channel in Enum.GetValues<AudioChannel>())
                                         {
-                                            <option value="@channel">@AudioPresentation.ChannelLabel(channel)</option>
+                                            @* The observer has no loudspeaker dial. *@
+                                            @if (channel.ExistsOn(acp))
+                                            {
+                                                <option value="@channel">@AudioPresentation.ChannelLabel(channel)</option>
+                                            }
                                         }
                                     </select>
                                     <select class="cell-select" value="@TargetKey(row)"
@@ -164,8 +170,16 @@
                                             <option value="@key">@label</option>
                                         }
                                     </select>
-                                    <input type="checkbox" class="audio-cell-check"
-                                           title="Drive mute from the REC latch" @bind="row.UseLatch" />
+                                    @if (row.Channel.HasRecLatch())
+                                    {
+                                        <input type="checkbox" class="audio-cell-check"
+                                               title="Drive mute from the REC latch" @bind="row.UseLatch" />
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" class="audio-cell-check" checked disabled
+                                               title="No REC latch on this dial. Fully down always mutes the target." />
+                                    }
                                     <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
                                             @onclick="() => list.RemoveAt(index)">×</button>
                                 </div>
@@ -185,6 +199,18 @@
                         <span class="field-more-body">
                             Conflicting saves fall back to the captain's panel until fixed; the Status
                             section shows why. Knob travel maps to −60 dB … +12 dB; 0 dB sits near 83 %.
+                        </span>
+                    </details>
+                </div>
+                <div class="field-hint" style="max-width:640px; margin-top:8px;">
+                    LOUDSPEAKER is the cockpit loudspeaker dial, on the captain's and first officer's lists.
+                    <details class="field-more">
+                        <summary>More</summary>
+                        <span class="field-more-body">
+                            Map it to the strip or bus that feeds your cockpit speakers. The dial has
+                            no REC latch: fully down mutes the target. Manual chapter 8 (Loudspeaker
+                            dial) shows the VoiceMeeter wiring that puts the headset sound on the
+                            speakers.
                         </span>
                     </details>
                 </div>

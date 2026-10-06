@@ -37,7 +37,10 @@ time, and capture enough telemetry that anything wrong is diagnosable afterwards
    ICAO + gate context populate; the services table fills with wire states.
    *Red flags in Logs*: "protocol … only 1 is supported", "does not consume key", "undocumented
    semantic state" — none are fatal, all are wanted data.
-2. **Native guard**: the decision log should show "disabled 6 ProSim efb.gsx.* auto flags".
+2. **Native guard**: the decision log should show "disabled 6 ProSim efb.gsx.* auto flags" on
+   an older ProSim, or "this ProSim build has no efb.gsx.* flags — nothing to disable" on
+   1.75.1 (the names do not exist there). **ProSim Setup Check** (Settings → Setup): every
+   row green, the log line "ProSim setup check (ProSim <version>): 5 ok, 0 to change …".
 3. **Ground equipment**: on Preflight, GPU + chocks appear in ProSim (decision-logged).
 4. **Questions**: trigger any GSX question (e.g. call a service that asks about crew) — the
    decision log records the answer or "left for the user".

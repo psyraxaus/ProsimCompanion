@@ -2299,6 +2299,32 @@
         "A session with no fuel stamps (ProSim had no fuel figure at the edges) must produce a debrief with NO fuel sentence, never a figure from a fuel.check."
       ],
       "notes": "Shipped 2026-10-04 (#155). Before this, DebriefFactExtractor took the first and last fuel.check as start/final fuel — written when no fuel.check producer existed; #148's periodic cruise checks then fed it mid-cruise figures ('burned 1.7 t, landing with 5.1 t' on a 5 t flight)."
+    },
+    {
+      "id": "prosim-setup-check",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "prosim-setup-check",
+        "fields": [
+          "prosimVersion",
+          "items"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger: ProSim connected (log 'Connected to ProSim'). Behaviour: one 'prosim-setup-check' session event per connection with prosimVersion and one items[] row per recommended IOS option (dataRef, label, recommended, actual, status in Ok|Mismatch|NotPresent|Ignored), plus the log line 'ProSim setup check (ProSim <version>): N ok, N to change, N not on this build, N ignored'.",
+        "Count the rows: 5 with the GSX pillar and door automation on (system.config.Config.DOORS, .GROUNDPOWER, Datalink.loadCargo, Datalink.loadFuel, Config.refuelRate); 2 (the two Datalink rows) with GSX off. On ProSim 1.75.1 no row may read NotPresent — every name exists there (verified 2026-10-06); a NotPresent row on another build is information, not a failure.",
+        "assert-absent: any gateway write to a system.config.* dataref (log 'ProSim setup: ... written') WITHOUT a 'prosim-setup-apply' session event in the same minute — a write that was not the pilot's click.",
+        "When a 'prosim-setup-apply' event exists: every name in attempted[] with a status that was Mismatch is in written[] or failed[]; the next 'prosim-setup-check' (the read-back) shows the written[] rows as Ok. A 'ProSim did not accept' note with the row still Mismatch is a failure to report with the dataref name.",
+        "Native guard, same connection: the GSX decision 'native GSX guard' reads either 'disabled 6 ProSim efb.gsx.* auto flags' (older ProSim) or 'this ProSim build has no efb.gsx.* flags — nothing to disable' (1.75.1). The old wording on 1.75.1 means the gateway verdict regressed (writeBool:false ignored)."
+      ],
+      "notes": "Shipped 2026-10-06 (owner request). The IOS options are system.config.* datarefs, read and written through the port-5000 gateway without a restart (Door logic flipped true and back live on 1.75.1). Recommended values = the owner's working config. The check only reads; 'Apply recommended' on the Setup page is the only write. Unverified live in the app itself: the connection-time read, the card, the Apply click (the gateway calls were verified by hand)."
     }
   ]
 }

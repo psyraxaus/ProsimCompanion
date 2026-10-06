@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using ProsimCompanion.Core.Aircraft;
+using ProsimCompanion.Core.Aircraft.Setup;
 
 namespace ProsimCompanion.Prosim.DataRefs;
 
@@ -76,6 +77,15 @@ public static class ProsimWriteGate
         // F/O clock chrono — momentary press on the pilot's "takeoff" call and again at
         // touchdown (issue #126). Press-only via PressMomentaryAsync, like the MECH call.
         ProsimDataRefNames.MipChronoFo,
+
+        // ProSim setup check (2026-10-06): the five IOS options the Setup page card may set
+        // on the pilot's "Apply recommended" click — exact names, never the system.config.
+        // prefix (that family also holds engine type, failures and the cockpit-setup loader).
+        ProsimSetupRecommendations.DoorLogic,
+        ProsimSetupRecommendations.AutomaticGroundPower,
+        ProsimSetupRecommendations.DatalinkLoadCargo,
+        ProsimSetupRecommendations.DatalinkLoadFuel,
+        ProsimSetupRecommendations.RefuelRate,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly string[] AllowedPrefixes =
