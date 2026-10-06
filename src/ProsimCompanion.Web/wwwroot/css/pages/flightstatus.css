@@ -76,6 +76,18 @@
 .fs-tile-btn:disabled { opacity: .35; cursor: default; }
 .fs-tile-grip { cursor: grab; touch-action: none; font-size: 18px; }
 .fs-tile.dragging { opacity: .35; }
+/* The drop target lights up as a whole (owner request 2026-10-07): solid accent outline and
+   a tint over the card, plus the thin bar on the edge the dragged tile will land on. */
+.fs-tiles.editing .fs-tile.drop-before,
+.fs-tiles.editing .fs-tile.drop-after {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  box-shadow: 0 0 28px var(--accent-muted);
+}
+.fs-tile.drop-before > section,
+.fs-tile.drop-after > section {
+  background: linear-gradient(rgba(0, 217, 255, 0.16), rgba(0, 217, 255, 0.16)), var(--panel-gradient);
+}
 .fs-tile.drop-before::before,
 .fs-tile.drop-after::after {
   content: "";
