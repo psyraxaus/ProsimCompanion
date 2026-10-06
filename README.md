@@ -46,7 +46,8 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   landing performance with FMS PERF uplink; ECAM-style interactive checklists
 - Flight Status hero with **local / destination weather cards** (sky graphic, wind, visibility,
   ceiling, temperature, QNH, ATIS) and a **gate monitor** (Gate Closed → Gate Open → Boarding →
-  Final Call → Gate Closed, from GSX boarding, door 1L and the STD)
+  Final Call → Gate Closed, from GSX boarding, door 1L and the STD); **Edit layout** lets
+  you drag the page's tiles into your own order, saved for every device
 - **Pop-out Flight Monitor** — one click opens a second-monitor board that is the gate monitor
   at the stand, the flight monitor from pushback to landing and the arrival monitor after
   block-in; scales as one piece to any window and shows your own logo for the OFP's airline.
@@ -132,6 +133,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   on the Appearance page), kg/lb
   display units, system tray, single-instance, update banner from
   GitHub releases
+- **ProSim Setup Check** (Setup page): on every ProSim connection the app reads the ProSim
+  System options it depends on (door logic, automatic ground power, datalink loading, refuel
+  rate) and shows what to change, with **Apply recommended** and step-by-step instructions
 - Migrating from Prosim2GSX / Prosim2FO? Your existing configuration is **imported
   automatically on first run**
 
