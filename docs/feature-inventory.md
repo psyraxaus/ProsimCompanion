@@ -26,19 +26,25 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       wait (#134)
 - [x] Voice Reference drawer (#136): every live voice phrase from any page, five crew tabs,
       composed from the recognition grammar (IVoiceReference / VoiceReferenceBuilder)
-- [ ] Auto engine-start confirmation
-- [x] De-icing auto-answer + fluid/concentration selection (question catalogue)
+- [x] Auto engine-start confirmation (#106 — `GsxPushbackSequenceService.TryConfirmEngineStart`
+      answers "Confirm good engine start" at vehicle state 12; no on/off switch yet)
+- [x] De-icing auto-answer + fluid/concentration selection (question catalogue); auto-request
+      by weather/OAT not ported
 - [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs deferred)
 - [x] Skip GSX questions (crew, follow-me, pushback confirm; tug questions are caught by the
       generic "Do you want to request…" prefix handler, not a tug-specific entry); walkaround
       skip deferred (MSFS2024 keystroke)
-- [ ] GSX SimBrief reload for VDGS; VDGS event feed via in-sim handler
-- [ ] GSX restart on taxi-in (optional)
+- [x] VDGS display + event feed via the in-sim handler (`installer/GSXProfiles/gsx_handler.py`
+      → `/api/gsxmenu/events`, `/api/gsxmenu/flight-info`); the GSX SimBrief reload is not ported
+- [ ] GSX restart on taxi-in (optional) — restarts are detected and recovered from, never triggered
 - [x] Arrival gate assignment (retry ladder, armed at flight phase; SayIntentions source is
       Phase 6); stable-parked detection
 - [x] INT/RAD switch as universal service trigger ("smart button") + web force-next button
-- [ ] Headless remote-control mode (experimental)
-- [ ] Cabin call auto-answer (ground/air, delays); MECH call; cabin dings
+- [ ] Headless remote-control mode (experimental) — not ported
+- [x] MECH call (`GroundCrewUpcallService`, `groundCrew.mechCall`) and cabin dings
+      (`CabinDingService`, `cabin.dingOnStartup` / `dingOnFinal`); "cockpit to cabin" hail
+      answered by the purser (`CrewHailService`). Cabin-call **auto**-answer (#11) parked for a
+      write-safety review
 
 ## Flight data / EFB (Prosim2GSX + ProsimInterface → Phase 3)
 
@@ -57,12 +63,15 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       simulate-cabin dataref write deliberately dropped — GSX boarding owns occupation)
 - [x] Interactive ECAM-style visual checklists (Prosim2FO-compatible JSON, hot reload,
       gating/retreat/freeze; momentary-switch sweep support is a voice-FO concern → Phase 5)
-- [ ] EFB reset flows (full/soft)
+- [ ] EFB reset flows (full/soft) — partial: RESET FLIGHT on /init clears the overrides and
+      the loadsheet cycle; no ProSim EFB reset datarefs are written
 - [x] OOOI flight timestamps (off-blocks / takeoff / landing / on-blocks from the phase
       engine's edges, `FlightTimesTracker`, 2026-09-23; written to the session log and carried
       on each logbook flight since #146)
-- [ ] Web EFB parity: 13 pages, QR onboarding, bearer token, live updates (QR/token/live done
-      in Phase 1/2.5; remaining predecessor pages tracked by the rows above)
+- [x] Web EFB parity: QR onboarding, bearer token, live updates, and every predecessor page has
+      a home (/ofp, /loadsheet, /init, /wnb, /performance, /fuel, /checklists, /gsx …) — the
+      remaining per-page gaps are the rows above. The separate tablet `/efb` shell
+      (`feature/tablet-efb-surface`, 2026-08-30) is unmerged — owner decision pending
 
 ## Audio (Prosim2GSX → Phase 4)
 
@@ -74,12 +83,13 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 ## Voice First Officer (Prosim2FO → Phase 5)
 
 - [x] 16 spoken Airbus checklists (verify/acknowledge/number-readback; dataref verification
-      with challenge; global commands — hold/resume deferred with a leftover; hot reload;
-      next-checklist preselect not ported)
+      with challenge; global commands incl. hold/resume (`HoldUntilResumedAsync`); hot reload;
+      next-checklist preselect and per-checklist key/joystick prompts not ported)
 - [x] Flight-control check (captain sweep callouts + FO-side sweep with neutral safety;
       write gate FO-side only)
 - [x] Voice FCU actions (announce → cancel window → knob-back-off → write+verify; humanized
-      by the gate flow); MCDU actions deferred (need the display de-flicker reader)
+      by the gate flow); MCDU actions ported (`McduRadNavTuner`, `McduArrivalChanger`,
+      `McduActuator` over the settled-read `McduReader`)
 - [x] Read-backs: altimeter, V-speeds, runway, minimums (number-readback inside checklists;
       standalone read-backs delivered 2026-10, #148, off by default — unverified live)
 - [x] SOP callouts (thrust set, 100kt, V1, rotate, V2, positive climb, RA gates, minimums,
@@ -90,25 +100,30 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] Sterile cockpit suppression; periodic fuel checks, takeoff-perf gross-error check and
       destination weather watch (2026-10, #148, each off by default — unverified live);
       missed-approach auto re-brief (`MissedApproachRebrief`)
-- [x] ECAM abnormals (30 procedures, EWD cross-check; interactive per-line dialogue + status
-      review deferred); memory drills (stall, TCAS RA, windshear, EGPWS)
+- [x] ECAM abnormals (30 procedures, EWD cross-check, interactive per-line dialogue
+      `EcamDialogueCore` — confirm / verify / branch / standby / skip; status review not
+      ported); memory drills (stall, TCAS RA, windshear, EGPWS)
 - [x] Speech: LAN whisper → System.Speech offline chain (WinRT engine deferred); PTT
       keyboard/joystick; phonetic snapping; utterance interpreter
 - [x] TTS: Kokoro → ElevenLabs → Google Chirp 3 HD (both cloud voices cached, usage-tracked,
       budget-enforced) → WinRT → SAPI5; intercom filter; prewarm cache
 - [x] Briefings (departure/arrival; Navigraph DFD facts; LLM-composed with number
-      verification; interactive minimums capture deferred — /speech card instead)
+      verification, streamed sentence by sentence since #147; interactive minimums capture
+      `MinimaCaptureDialogue` + the /speech card)
 - [x] SayIntentions ATC requests + departure comms gating + radio management
       (standby-then-swap)
 - [x] SayIntentions wrong-frequency report (COM1 vs ATC's last "Contact … on …"; said once,
       pushback to taxi-in)
-- [ ] MCDU reader ("read the MCDU") + gated MCDU actuation (RAD NAV tune, arrival
-      runway/approach change)
+- [x] MCDU reader ("read the MCDU", scratchpad; two identical reads = settled) + gated MCDU
+      actuation (RAD NAV tune, arrival runway/approach change) — "MCDU" section on
+      /settings/speech. Unverified live
 - [x] PF/PM role manager with duty swap (voice handover, instant take-back)
 
 ## Immersion & company (Prosim2FO → Phase 6)
 
-- [ ] FO persona (name, chattiness, styles, small talk)
+- [x] FO persona (name, experience, formality, chattiness 0–3, style flags —
+      `PersonaOptions` + `PersonaService` / `PhraseBank` over `config/phrases.json`, 2026-08-08;
+      small talk via Ask the First Officer #152). **No web card yet** — settings.json only
 - [x] Cabin crew simulation (purser reports gated on any ACP CAB latch, cabin secure/ready,
       opt-in boarding-delay ambient, distinct purser voice + interphone filter;
       cruise-query ambient deferred)
@@ -151,8 +166,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       captain"), ground-crew upcalls on INT with MECH call, SayIntentions FO ack + audible
       transmission, airport-accent ground voices (accents.*) — all Unverified live
 - [x] Airline themes (JSON), light/dark
-- [ ] Session event log (JSONL) ✔ delivered in Phase 1; replay harness still open
-- [ ] Config importers from Prosim2GSX `AppConfig.json` and Prosim2FO `settings.json`
+- [x] Session event log (JSONL, Phase 1) + replay harness (`FlightSampleRecorder` /
+      `FlightReplay`, ADR-0008; recordings under `tests/ProsimCompanion.Core.Tests/Flight/Recordings`)
+- [x] Config importers from Prosim2GSX `AppConfig.json` and Prosim2FO `settings.json`
+      (`PredecessorConfigImporter.TryImportOnFirstRun`, marker-guarded, called from `Program.cs`)
 
 ## Deliberately not carried forward
 

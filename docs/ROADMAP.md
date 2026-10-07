@@ -36,13 +36,20 @@ aircraft state in the browser, and survives any of them being absent or restarti
       retry loop, SimVar read model behind `ISimVars`, self-degrading when MSFS absent.
       **LVAR transport deliberately deferred to the start of Phase 2** (investigate how
       CFIT.SimConnectLib reads LVARs without MobiFlight before choosing; gsx.md §5)
-- [x] **Flight phase engine** — 14-phase model (matches Prosim2FO), pure
-      `FlightPhaseEvaluator` + debounced `FlightStateEngine`, `FlightDataSnapshot` seam with
-      live ProSim source; verified live 2026-08-01
-- [ ] **State stores** — ConnectionStatusStore exists; feature stores (flight status, OFP, W&B…)
-      arrive with their features
+- [x] **Flight phase engine** — Prosim2FO's 14-phase model plus the `Departure` phase added
+      2026-09-20 ([ADR-0012](decisions/ADR-0012-departure-phase.md), 15 members in
+      `FlightPhase` incl. `Unknown`), pure `FlightPhaseEvaluator` + debounced
+      `FlightStateEngine`, `FlightDataSnapshot` seam with live ProSim source; verified live
+      2026-08-01. Rule table + replay discipline per
+      [ADR-0008](decisions/ADR-0008-phase-rule-table-and-replay.md) (2026-08): every
+      phase-engine fix ships with a replayed `flight-sample` recording
+- [x] **State stores** — 29 `*Store` classes in `Core/State` (connection, OFP, loadsheet,
+      flight progress/times, fuel log, gate, hero weather, GSX diagnostics, logbook, tech log,
+      setup check, update, …); each arrived with its feature
 - [x] **JSONL event log** — structured session record (sessions/, retain 20, non-blocking
-      writer); replay data source still to come with the replay harness
+      writer). Replay harness delivered: `FlightSampleRecorder` writes `flight-sample` events,
+      `FlightReplay` drives the evaluator from a recording; four recordings under
+      `tests/ProsimCompanion.Core.Tests/Flight/Recordings` (ADR-0008)
 - [x] **Web shell** — layout/nav, connection status page (live data, phase, profile), settings
       page, LAN access with auto-generated bearer token (loopback always exempt; cookie after
       QR/link onboarding; verified 401/token/cookie paths live), QR onboarding + web-server
@@ -50,8 +57,9 @@ aircraft state in the browser, and survives any of them being absent or restarti
 - [x] **Aircraft profiles** — model/matcher/persistence done; per-profile feature settings arrive
       with the pillars. Detection (broken in the predecessors) largely verified live 2026-08-01:
       the loaded livery/title was picked up correctly with MSFS running (`simulator.aircraft.title`
-      only populates while the sim is up). Remaining check when Phase 2 first consumes
-      `ActiveProfile`: a real configured profile matching end-to-end + re-match on aircraft change
+      only populates while the sim is up). `ActiveProfile` is consumed: `ProfileGsxApplier`
+      applies the per-profile `gsx` section and `ProfileGsxMirror` saves it back (/settings/
+      profiles). Re-match on aircraft change remains a live check, not a code gap
 
 ## Phase 2 — GSX ground automation (first feature pillar)
 
@@ -88,8 +96,10 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       on /gsx and the Home page
 - [x] Timing-critical LVAR reads: fuel hose, live boarding counter
       (`NUMPASSENGERS_BOARDING_TOTAL` vs planned — live-verified), jetway-absent truth
-      (`FSDT_GSX_JETWAY=2`, mirror lies). Pushback + de-ice LVAR timing gates still to come
-      with their features
+      (`FSDT_GSX_JETWAY=2`, mirror lies). Pushback LVARs (`PushbackStatus`,
+      `VehiclePushbackState`, `FSDT_GSX_BYPASS_PIN`) are consumed by the pushback sequencer;
+      `FSDT_GSX_DEICING_TYPE` by the ground-ops relay. `FSDT_GSX_DEICING_STATE` is not read
+      (see Open items)
 - [x] Ground-prep coordinator: deterministic reposition → settle → GPU/chocks → jetway/stairs
       before any departure service (owner-specified order, live-verified)
 - [x] Departure services — Prosim2GSX ordering system (`gsx.departureServices`, replacing the
@@ -120,8 +130,9 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       `amount` datarefs are read-only): booked map from the EFB manifest or synthesized
       capacity-proportional + randomized within zones, boarded seats written to
       `aircraft.passengers.seatOccupation.string`, cargo split by hold capacity, boarding
-      status flag. Deboarding is observe-only until live counter semantics are confirmed;
-      no-show randomization follows later
+      status flag. Deboarding writes too (`GsxBoardingSync.StartDeboarding` empties seats
+      front-first as `DEBOARDING_TOTAL` rises, cargo drained by unload %, `gsx.deboardingSync`
+      switch); no-show randomization delivered (see the pax-target item below)
 - [x] GPU/chocks/PCA placement at preparation + removal on the beacon edge (chocks interlocked
       on park brake); ProSim native efb.gsx.* auto-flags disabled per connection (the gateway
       answered 200 — but on ProSim 1.75.1 the names do not exist and the write verdict was
@@ -147,9 +158,16 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
 - [x] GSX pax-target arming (`NUMPASSENGERS` ← booked manifest before services) + optional
       crew-question LVAR suppression + opt-in pax no-show/extra randomization with bag-weight
       cargo adjustment (`gsx.randomizePaxNoShows`)
-- [ ] De-icing beyond the question catalogue (auto-request policy), walkaround skip (MSFS2024
-      keystroke — deferred), company-hub service constraints + per-service minimum flight
-      duration (deferred from the ordering system — needs hub lists and OFP duration plumbing)
+- [x] Company-hub service constraints (`GsxServiceConstraint.CompanyHub` / `NonCompanyHub`
+      against `gsx.companyHubs`) + per-step `minimumFlightMinutes` against the OFP enroute
+      time (`DepartureSequencer`; "Company Hubs" section + per-row input on /settings/gsx)
+- [x] Auto engine-start confirmation (#106): at pushback vehicle state 12 the sequencer answers
+      "Confirm good engine start" once an engine runs and the park brake is set. No switch —
+      see Open items
+- [ ] De-icing auto-request policy (request de-ice from weather/OAT — only the fluid answer and
+      the manual `gsx.requestDeice` command exist), walkaround skip (MSFS2024 keystroke —
+      walkaround is detected and holds services, never skipped), optional GSX restart on
+      taxi-in, headless remote-control mode — see Open items
 
 ## Phase 2.5 — Web UI foundation (pulled forward from Phase 7)
 
@@ -193,16 +211,18 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
 
 - [x] SimBrief OFP fetch (MCDU-triggered; identity from `efb.simbrief.id`) — delivered early in
       Phase 2. Typed OFP model (`OfpData`/`OfpStore`), fetch retry, polymorphic-alternate parse
-      and the manual force-fetch button on /flight added with the loadsheet pipeline
+      and the manual force-fetch button added with the loadsheet pipeline (the original
+      /flight page is now /ofp + /loadsheet; the Settings-UX pass of 2026-09-19 split it)
 - [x] In-house W&B/loadsheet pipeline (bit-exact ProSim formulas per
       `docs/integrations/prosim.md` §4): prelim on GSX refuel-active (via `GroundOpsSignals`),
       final after boarding-complete + 90–150 s dispatcher delay, EDNO increments/inheritance,
       REVISIONS/COMPLIANCE title with `//` flags, CG plausibility gate, JSON envelope to
       `efb.{prelim|final}Loadsheet` (3 s settle) then ACARS uplink to slots 01/02, cycle reset
-      on turnaround, manual generate/resend on /flight. **Unverified live**
+      on turnaround, manual generate/resend on /loadsheet. Verified live across the
+      2026-08/09 flights
 - [x] FMS INIT B sync (`aircraft.fms.init.{zfw,zfwcg,block}`, tonnes conversion, source
-      resolution final→prelim→live, optional auto-sync on final) — /flight button.
-      **Unverified live**
+      resolution final→prelim→live, optional auto-sync on final) — /loadsheet button. Block
+      fuel now comes from the same loadsheet as the ZFW (0.6.0-rc.9 fix)
 - [x] EFB INIT page (/init): per-field overrides with the predecessor's exact writable set
       (zfwKg → fms.init.zfw in tonnes, fuelRampKg → fms.init.block rounded-up/tonnes, cargoKg →
       efb.plannedCargoKg, passengerCount → re-synthesized booked seat map + statistics), set
@@ -212,7 +232,8 @@ frame instead of retrofitted. Reference inventory: the Prosim2GSX `Prosim2GSX.We
       (indicative A320-family outline; ZFW/GW points with fuel-travel connector, out-of-envelope
       status colour), per-tank fuel bars (5 tanks, granular `aircraft.systems.fuel.*` refs),
       collapsible passenger manifest. **Unverified live**
-- [x] Takeoff/landing performance (/perf): gateway `/efb/calculate/*` with the predecessor's
+- [x] Takeoff/landing performance (/performance/takeoff, /performance/landing): gateway
+      `/efb/calculate/*` with the predecessor's
       exact wire scales (TOW tens-of-kg, MAC ×10, Break* misspellings, LdgW tonnes, 3600 m TORA
       cap, VRB→reciprocal on landing), runway+intersection pick, METAR autofill, LDR/LDR+15%/LDA
       margin with displaced threshold, FMS PERF TO uplink (flaps/flex/V-speeds/THS sign/shift
@@ -361,8 +382,10 @@ from Phase 1 — this phase adds the speech stack and features on top.
       now voice-reachable — "open descent"/"managed descent" fixed from dead phrases). V/S
       managed-verify bug fixed (no heading indicator read). Radios: standby-then-swap only,
       deterministic 118–136.99 parser with 8.33/25 kHz channel validation, backoff/unable
-      inhibits. MCDU voice actions (RAD NAV tune, arrival change) deferred — they need the
-      display de-flicker reader. **Unverified live**
+      inhibits. MCDU voice actions delivered later in 2026-08: `McduReader` ("read the
+      MCDU", settled-read de-flicker via `WaitSettledAsync`), `McduRadNavTuner` ("tune the
+      ILS"), `McduArrivalChanger`, `McduActuator`; "MCDU" section on /settings/speech.
+      **Unverified live**
 - [x] Briefings: departure/arrival composed from FMS-first procedure resolution
       (aircraft.fms.flightPlanXml, manual-settings fallback), Navigraph DFD facts (both
       schema generations auto-detected, per-field defensive queries, user-supplied db —
@@ -371,8 +394,11 @@ from Phase 1 — this phase adds the speech stack and features on top.
       predecessor's number verifier (significant tokens vs facts within 0.06, one re-ask
       with the allowed set, template on any failure) — the deterministic template (exact
       predecessor clause structure) is always the floor. Voice: "brief the departure/
-      arrival". Interactive minima capture + missed-approach re-brief deferred (minima come
-      from the /speech card). **Unverified live**
+      arrival". Interactive minima capture (`MinimaCaptureDialogue`: prompt, capture, read
+      back, confirm; `MinimaQueryVoiceFeature`) and the missed-approach re-brief
+      (`MissedApproachRebrief` startup module on the go-around gate) delivered later in
+      2026-08 — "Minima Capture" / "Missed-Approach Re-brief" sections on /settings/speech.
+      LLM output streams sentence by sentence since #147. **Unverified live**
 - [x] ECAM abnormals + memory drills (detect-and-report only): the 30 Prosim2FO definitions
       carried verbatim (config/abnormals/*.json, user-editable) — E/WD text primary trigger,
       per-system dataref corroborating/fallback, optional master/ECAM light gate, ≥0.5 s
@@ -380,8 +406,11 @@ from Phase 1 — this phase adds the speech stack and features on top.
       cautions High, "Master warning/caution." prefix when the light is lit. The four memory
       drills (stall, EGPWS pull-up, windshear, TCAS RA) auto-fire from their system.audio.*
       refs and are voice-invocable as rehearsals; rapid items at 350 ms, spoken verbatim.
-      Interactive per-line ECAM dialogue (confirm/verify/branch) deferred with the
-      recognition leftovers. **Unverified live**
+      Interactive per-line ECAM dialogue delivered later in 2026-08 (`EcamDialogueCore`: each
+      line waits for the pilot's confirm, verifies against a dataref, handles branch /
+      standby / say again / skip; the FO never actuates). Its timeouts are constants — no
+      `abnormals` options class or settings card exists yet (see Open items). The ECAM
+      dialogue trap of 2026-08-15 (#56–#58) is fixed. **Unverified live**
 - [x] SayIntentions: flight.json polled 1 Hz for the active-flight context, data-driven ATC
       requests (config/atc-requests.json carried verbatim, {callsign}/{gate}/{runway}
       templating, ICAO/FAA phraseology) spoken via sayAs on COM1 (255-char cap), optional
@@ -390,16 +419,19 @@ from Phase 1 — this phase adds the speech stack and features on top.
       restores). SIAI L:var radio-clear gate replaced by the predecessor's own no-SimVars
       400 ms fallback for now. Radio management delivered in slice 7. Disabled by default.
       **Unverified live**
-- [ ] Phase 5 leftovers (post-verification): WinRT recognition engine, wake-on-LAN,
-      gray-band confirm sub-dialogue, hold/resume voice commands (phrases declared but kept
-      out of the grammar until routed), interactive minima capture + missed-approach re-brief,
-      interactive per-line ECAM dialogue, MCDU voice actions (RAD NAV tune / arrival change —
-      need the display de-flicker reader), ~~persona styling + config/phrases.json override~~
-      (delivered with Phase 7, 2026-08-08),
-      per-checklist FlightMonitor prompts (keyboard/joystick), Purser/Company voices + chimes,
-      web settings UI for the new sections (sop/briefing/sayIntentions and the recognition
-      bindings are hand-editable in settings.json with written defaults), SIAI L:var
-      radio-clear gate via ISimVars
+- [x] Phase 5 leftovers delivered 2026-08/09 (audit 2026-10-08 against the code): gray-band
+      confirm sub-dialogue (`UtteranceRouter` asks "did you mean …?" for 0.70–0.85 scores,
+      `speech.confirmBelowScore`), hold/resume checklist commands
+      (`SpokenChecklistEngine.HoldUntilResumedAsync`), interactive minima capture +
+      missed-approach re-brief, interactive per-line ECAM dialogue, MCDU voice actions
+      (all noted on their bullets above), persona styling + config/phrases.json (Phase 7),
+      Purser/Company voices + chimes (Phase 6), web settings UI for sop / briefing /
+      sayIntentions / recognition & PTT bindings (/settings/speech sections), LLM
+      wake-on-LAN (`WakeOnLan` + `LlmWakeOnLanStartup`, "LLM Wake-on-LAN" card)
+- [ ] Phase 5 leftovers still open — see Open items: WinRT recognition engine, wake-on-LAN
+      for the **ASR** box (only the LLM box is woken), per-checklist FlightMonitor prompts
+      (keyboard/joystick), SIAI L:var radio-clear gate via `ISimVars` (still the 400 ms
+      no-SimVars fallback)
 
 ## Phase 6 — Immersion & remaining integrations
 
@@ -432,9 +464,12 @@ from Phase 1 — this phase adds the speech stack and features on top.
       Chimes are programmatic WAV (interphone ding-dong E5→C5, ACARS double-beep C6, exact
       predecessor tone specs), played chime-then-speech in one arbiter slot, never
       intercom-filtered; one chime toggle per channel (collapses the predecessor's dead
-      voices.*Chime keys). Purser/company distinct voices still deferred (all FO voice).
-      Cruise-query ambient + response window deferred with the mic-ownership seam.
-      **Unverified live**
+      voices.*Chime keys). Purser/company distinct voices delivered in the completion batch
+      (`VoicesOptions` purser/company/ground + `RoleVoiceResolver`, "Crew Voices" card).
+      The pax-scaled cabin-secure wait (#134, 0.5.0-rc.5) and the "cockpit to cabin" hail
+      (`CrewHailService`) arrived in September. Still open: the cruise-query ambient +
+      response window (the mic-ownership seam it waited for now exists — see Open items).
+      Cabin-call auto-answer (#11) is parked for a write-safety review. **Unverified live**
 - [x] Tech log & MEL + pilot logbook + post-flight debrief (Prosim2FO semantics):
       file-backed stores in %LOCALAPPDATA%\ProsimCompanion (atomic
       temp-then-move, corrupt-aside-and-rebuild, idempotent by id/session), MEL categories
@@ -449,8 +484,10 @@ from Phase 1 — this phase adds the speech stack and features on top.
       predecessor's fragile 750/1200/1500 ms shutdown delay chain replaced by ONE ordered
       SessionFinalizer (debrief → logbook → techlog → day, failure-isolated). The completion
       batch delivered the raise/rectify voice dialogues, the post-abnormal offer, LLM debrief
-      styling and company day mode (see the Phase 6 banner); still open: procedural hooks,
-      logbook voice queries. **Unverified live**
+      styling and company day mode (see the Phase 6 banner). Logbook voice queries delivered
+      (`LogbookVoiceService`); the Logbook page, touchdown recorder and fuel stamps came with
+      #146 / #155 (Phase 8). Still open: tech-log procedural hooks (no checklist or briefing
+      consults the MEL) — see Open items. **Unverified live**
 - [x] Named-command registry + HTTP command API — the single command seam for
       web/API/StreamDeck (docs/integrations/command-api.md): typed CommandRegistry
       (duplicate-registration throws; no WPF marshalling), 18 commands over existing seams
@@ -473,12 +510,16 @@ from Phase 1 — this phase adds the speech stack and features on top.
       cache only; briefings now consume the composite). SI weather: getWX multi-ICAO batch
       (ATIS/METAR/TAF/active runway/winds) + getCurrentFrequencies CPDLC station, gated on
       the API key only (weather needs no active flight — predecessor-documented), 10 min
-      TTL / 30 s debounce / semaphore dedupe, /weather page. **Unverified live**
+      TTL / 30 s debounce / semaphore dedupe. The /weather page was folded into the Flight
+      Status hero weather cards and the Flight Monitor tiles (2026-09-22). SI's
+      `assigned_gate` is read for `{gate}` templating only — it is NOT a GSX arrival-gate
+      source (see Open items). The `weather` settings section (ActiveSky paths) has no web
+      card (see Open items). **Unverified live**
 
 ## Phase 7 — Distribution & polish
 
-> **Phase 7 delivered 2026-08-08** (all items below; installer compile + install run still to
-> be exercised on a machine with Inno Setup 6). Same batch: program icon (generated
+> **Phase 7 delivered 2026-08-08** (all items below; the installer has shipped with every
+> release since 0.3.0 — the 2026-08-15 config-clobber bug #55 is fixed). Same batch: program icon (generated
 > multi-resolution .ico), versioning pattern (docs/VERSIONING.md — `<Version>` in
 > Directory.Build.props is the single source; tag v<Version> + GitHub release feeds the
 > update banner), and the FO persona (Phase 5 leftover — persona styling + phrases.json).
@@ -498,6 +539,61 @@ from Phase 1 — this phase adds the speech stack and features on top.
       `settings.json` (marker-guarded first-run; PredecessorConfigImporter)
 - [x] Docs site / user manual — `docs/manual/` (installation, using the app, voice FO,
       settings reference, troubleshooting)
+
+## Phase 7.5 — Flight-test hardening, August–September 2026 (0.3.0 → 0.5.0)
+
+Added 2026-10-08 (roadmap audit). This work shipped between Phase 7 and the October batch
+but was never recorded here. Details per build are in GitHub issues #44–#144 and the
+memory of each flight test; from 0.5.0-rc.2 onward in `CHANGELOG.md`.
+
+- [x] **Voice-gated ground ops** ([ADR-0006](decisions/ADR-0006-voice-gated-ground-ops.md),
+      #50–#53, 0.3.0-beta.1): prep gate (`gsx.groundPrepActivation`), per-step Voice
+      activation, crew hail dialogues ("cockpit to ground" → "go ahead, captain"), ground-crew
+      upcalls on INT with MECH call, SayIntentions FO ack, airport-accent ground voices
+      (`accents.*`). Verified across the 2026-08/09 flights
+- [x] **Flight verification workflow** (#94, 0.3.0-beta.10): probe catalog
+      `docs/agents/verification-probes.json`, telemetry API, `docs/agents/flight-verification.md`;
+      every behavioural fix ships with a probe. **Diagnostics bundle** (0.5.0-rc.3): version
+      stamps, `log.*` mirror into the session, "Export diagnostics" zip, `tools/ProsimCompanion.Reduce`
+      (`docs/agents/support-bundle.md`)
+- [x] **Phase-engine hardening** (#98–#101, #103–#109, #113, #118–#121, #123–#124): Option C
+      detection, rule table + replay ([ADR-0008](decisions/ADR-0008-phase-rule-table-and-replay.md)),
+      pushback enum semantics (3 = idle, 0 = pushing), cruise-entry flapping, turnaround
+      time-only rule, flight-live arming gate (`IsLive`, #114), `Departure` phase
+      ([ADR-0012](decisions/ADR-0012-departure-phase.md)), A322 flap/gear placards (#125),
+      chrono (#126), Flight Status pill/text change log (#110), OOOI stamps (`FlightTimesTracker`,
+      2026-09-23)
+- [x] **Fuel**: FOB clobber fix (#59), EffectiveBlockFuel rule + `gsx.refuelCall` SOP hold +
+      CONFIRM FUEL (button / voice / API) + top-up (0.3.0-beta.30, Nico's INIT FUEL RAMP
+      report), tankering pre-skip (#117, #143), `{fuel}` token alias (#129), engine-start
+      (#131)
+- [x] **Speech stack**: Silero VAD v6 ([ADR-0009](decisions/ADR-0009-silero-vad.md),
+      2026-09-01), whisper.cpp ASR flavour (`speech.asrApi`, #115), LLM flavour
+      `llmApi openAi|ollama` + `llmEnableThinking` (0.3.0-beta.16), Voice Pause ear-off latch
+      (Stream Deck, 0.3.0-beta.20), phrase pack (#127) + clarifier TTL (#128), grammar race
+      fix + whisper/Kokoro re-probe + Reconnect button + footer ASR/TTS dots, PTT joystick
+      heap-overrun crash fix (0.4.0-rc.2), exact-phrase precedence (#137, 0.5.0-rc.7),
+      Approach Gates card (0.5.0-rc.12 — stable gates no longer settings.json only),
+      ElevenLabs TTS provider (0.5.0-rc.10/rc.12, `docs/manual/06-elevenlabs.md`)
+- [x] **Web UI**: Settings hub / Setup page / advanced fold
+      ([ADR-0010](decisions/ADR-0010-settings-hub.md), 0.4.0-beta.1), Superdesign "KLM navy
+      instrument panel" restyle ([ADR-0011](decisions/ADR-0011-superdesign-restyle.md),
+      0.4.0-beta.2), Appearance page + pilot-uploaded airline logos, header NEXT SERVICE button
+      (#133), Voice Reference drawer (#136, 0.5.0-rc.6), header mic pill READY / LISTENING /
+      PAUSED (0.5.0-rc.8), live GSX menu card (#135), hero weather cards + gate monitor strip
+      (0.5.0-beta.2), pop-out Flight Monitor board `/monitor` (0.5.0-rc.1), user-editable
+      content seeded into `%LOCALAPPDATA%` with keep-user-edits hashes
+      ([ADR-0007](decisions/ADR-0007-user-config-in-localappdata.md))
+- [x] **Secrets**: DPAPI protection of keys / token in `settings.json` (`SecretProtector`,
+      0.5.0-beta.1)
+- [x] **GSX arrival**: in-flight "Select airport" pick + send-as-typed (0.4.0-rc.4), our own
+      Reposition menu no longer read as "unknown parking" (0.4.0-rc.3), gate strip shows the
+      stand GSX reports, GPU cold-and-dark falling-edge latch (0.5.0-rc.2), sim-clock
+      Local-kind crash fix (0.5.0-rc.4), pax-scaled cabin-secure wait (#134)
+- [ ] **Tablet EFB surface** (`feature/tablet-efb-surface`, 3 commits, 2026-08-30): `/efb`
+      shell, nine modules, six-pane settings, envelope dots over the live reticle. **Never
+      merged, no PR open, not on `main`.** Owner decision pending: merge (needs a rebase over
+      six weeks of main) or drop
 
 ## Phase 8 — October 2026 batch
 
@@ -642,3 +738,74 @@ until a flight confirms it; the manual test steps are on each issue.
       `docs/integrations/gsx-profiles.md`. **Unverified live** — the facility field list, the
       BIAS_X/BIAS_Z axis convention (catalogue logs the ini-vs-facility median offset) and
       whether the suggested direction matches ATC's clearance.
+
+## Phase 9 — October 2026 follow-ups (0.6.0-rc.2 → rc.21)
+
+Owner requests and flight-test fixes after the batch. One line each; the full text is in
+`CHANGELOG.md`. Everything is **Unverified live** unless the changelog says otherwise.
+
+- [x] iPad home-screen app fixes — wake-lock re-request on first tap + Lock diagnostics
+      (rc.2), standalone-mode viewport band (rc.3–rc.5), Viewport line on Appearance (rc.4)
+- [x] Ask the First Officer: **small talk** (#152, rc.7) and **"what are we flying over?"**
+      (#153, rc.11 — offline Natural Earth / GeoNames atlas, optional Wikipedia facts)
+- [x] Flight Monitor round three (rc.8): split-flap clock, airliner outline marker (pinned
+      toward the destination since rc.10, kept on the route line since rc.16), text-on-page
+      colour family, live ATIS letter, "updated n min ago"
+- [x] FMS block fuel from the loadsheet the ZFW comes from; W&B LIVE labels (rc.9)
+- [x] **Fuel Log** tab `/fuellog` (#154, rc.12): plan vs actual per navlog fix, burn chart,
+      FO fuel-check strip, shared "where are we on the navlog" rule; sim-clock stamps (rc.16)
+- [x] Debrief fuel from the OOOI stamps (#155, rc.13); `gsx-gate-not-found` diagnostics +
+      opt-in Select-Position answer (#156, rc.13)
+- [x] Snyk Code clean-up (rc.15): reducer path confinement, CR/LF stripping, key-name renames
+- [x] SayIntentions **wrong-frequency report** (rc.16, probe `si-wrong-frequency-report`)
+- [x] Arrival fixes from EFHK→LKPR (#157, rc.17): assigned-gate menu not read as unknown
+      parking, in-flight airport pick on the root "Select airport" page, Confirm fuel calls the
+      truck once, 20 s departure hold before the parking warning
+- [x] **GSX parking wake** (#141, rc.18): the app opens and closes the GSX menu once so GSX
+      names the stand; second menu-open path. Startup case verified live 2026-10-05
+- [x] **Loudspeaker dial** as a ninth mapping channel + VBAN loop manual chapter (rc.19 — see
+      Phase 4)
+- [x] ProSim 1.74 SDK constructor by reflection (#158) + rc-aware update check (#159) +
+      SDK-mismatch reasons on the ProSim dot (rc.20). Verified with 1.74b8 and 1.75.1
+- [x] **ProSim Setup Check** card over `system.config.*` (Setup page) + honest gateway write
+      verdicts; **Flight Status tile order** with drag/swap edit mode (#160) (rc.21)
+
+## Open items (roadmap audit 2026-10-08)
+
+Everything below is confirmed absent or incomplete in the code on `main` at 0.6.0-rc.21.
+Nothing else on this roadmap is open. Ordered by the owner's standing rules first.
+
+**Settings with no web control** (owner rule 2026-08-14 — every option has a GUI control).
+Eight `IOptionSection` classes are never referenced by any `.razor` file, 45 properties in
+all: `company` (6: enabled, autoLoadsheet, persistLoadsheet, cruiseMessages, probability,
+chime), `day` (7), `debrief` (3), `logbook` (2), `persona` (10: name, experience, formality,
+chattiness, style flags), `techlog` (10), `updateCheck` (2), `weather` (5: ActiveSky paths /
+API). Plus two single knobs inside sections that do have a card: `speech.confirmBelowScore`
+(gray-band threshold) and the ECAM abnormal dialogue timeouts (constants — no `abnormals`
+section at all). The auto engine-start confirmation has no switch at all.
+
+**Phase 5/6 leftovers truly open**
+- WinRT speech recognition engine (Windows.Media.SpeechRecognition) — only System.Speech and
+  the LAN ASR exist
+- Wake-on-LAN for the ASR box (the LLM box is woken; `LanAsrRecognizer` is not)
+- SIAI L:var radio-clear gate via `ISimVars` (400 ms no-SimVars fallback still in place)
+- Per-checklist FlightMonitor prompts (keyboard/joystick start of a checklist)
+- Tech-log procedural hooks (MEL items consulted by checklists / briefings)
+- Purser cruise query + response window (the `IMicOwnership` seam exists now)
+- SayIntentions `assigned_gate` as a GSX arrival-gate source (gate flows app → SI only)
+
+**Phase 2 leftovers truly open**
+- De-icing auto-request policy (weather/OAT) and the `FSDT_GSX_DEICING_STATE` LVAR
+- Walkaround skip (MSFS2024 keystroke)
+- Optional GSX / Couatl restart on taxi-in
+- Headless remote-control mode
+- EFB full/soft reset flows (only RESET FLIGHT on /init)
+- GSX SimBrief reload for VDGS (the VDGS display + event feed via `gsx_handler.py` exist)
+
+**Decisions pending**
+- `feature/tablet-efb-surface` — merge or drop (Phase 7.5)
+- Cabin-call auto-answer (#11) — write-safety review
+- Ambient region facts in cruise (#122) — the on-demand half is #153; the unprompted half is open
+- Unmatched-utterance candidate tracking (#112)
+- Arrival gate lost on mid-flight restart (#102); double-fire ground-ops events (#90);
+  gate-name matching leftovers (#75, largely superseded by #156) — triage
