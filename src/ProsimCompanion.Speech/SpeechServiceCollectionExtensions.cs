@@ -160,6 +160,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<SayIntentions.SayIntentionsGateAssignService>();
         services.AddSingleton<Core.Gate.ISayIntentionsGateAssign>(
             p => p.GetRequiredService<SayIntentions.SayIntentionsGateAssignService>());
+        // The reverse direction (2026-10-08): ATC's assigned_gate as the GSX arrival gate,
+        // behind sayIntentions.arrivalGateFromAtc.
+        services.AddStartupModule<SayIntentions.SayIntentionsArrivalGateSource>();
         services.AddStartupModule<Cabin.CabinCrewService>();
         // Prosim2GSX-parity cabin dings (startup / final loadsheet) — plain chime playback,
         // deliberately outside the speech arbiter.
@@ -258,7 +261,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<UtteranceRouter>();
         services.AddStartupModule<SpokenChecklistEngine>();
         // WoL used to hide in the retired bootstrap (campaign #87).
-        services.AddStartupModule<Llm.LlmWakeOnLanStartup>();
+        // Wake-on-LAN moved to Core (2026-10-08): one `wakeOnLan.targets` list for every PC
+        // the FO depends on, sent by WakeOnLanStartup; the legacy briefing.llmWakeOnLan
+        // block is still honoured there.
 
         return services;
     }

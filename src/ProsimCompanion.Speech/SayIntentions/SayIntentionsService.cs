@@ -26,8 +26,9 @@ public sealed class AtcRequestDefinition
 /// getWX comms lookup for auto-tune via setFreq, and the departure-comms gate — a new active
 /// flight hands comms to the SI copilot (SIAI_COPILOT=1); approaching the runway
 /// (distance ≤ 0.3 nm) takes them back, tunes Tower, announces, and the takeoff request
-/// restores them. The SIAI L:var radio-clear gate is replaced by the predecessor's own
-/// no-SimVars fallback (a fixed 400 ms settle) until LVAR reads are wired here.
+/// restores them. The SIAI L:var radio-clear gate (<see cref="RadioClearGate"/>, 2026-10-08)
+/// holds a transmission while COM1 is busy; without a sim connection it is the predecessor's
+/// fixed 400 ms settle.
 /// </summary>
 public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupModule, IDisposable
 {
@@ -70,13 +71,16 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
     }
 
     /// <summary>Optional <paramref name="configProblems"/>: a malformed atc-requests.json
-    /// surfaces on the web UI (issue #74) instead of only a log warning.</summary>
+    /// surfaces on the web UI (issue #74) instead of only a log warning. Optional
+    /// <paramref name="simVars"/>: the SIAI L:vars for the radio-clear gate; null = the fixed
+    /// 400 ms settle.</summary>
     public SayIntentionsService(
         IOptionsMonitor<SayIntentionsOptions> options,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<SayIntentionsService> logger,
-        Core.State.ConfigProblemStore? configProblems = null)
+        Core.State.ConfigProblemStore? configProblems = null,
+        Core.Aircraft.ISimVars? simVars = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -88,9 +92,17 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         _eventLog = eventLog;
         _logger = logger;
         _configProblems = configProblems;
+        _radioGate = new RadioClearGate(simVars, logger);
     }
 
+    private readonly RadioClearGate _radioGate;
+
     public bool Enabled => _options.CurrentValue.Enabled;
+
+    /// <summary>flight.json's <c>assigned_gate</c> as read on every 1 Hz poll (null when
+    /// SayIntentions has no active flight). Consumed by
+    /// <see cref="SayIntentionsArrivalGateSource"/>; timer thread.</summary>
+    public event Action<string?>? AssignedGateObserved;
 
     public IEnumerable<string> Phrases => _requests.SelectMany(r => r.Phrases);
 
@@ -106,7 +118,11 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         _timer = new Timer(_ => PollFlightJson(), null, 1000, 1000);
     }
 
-    public void Dispose() => _timer?.Dispose();
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        _radioGate.Dispose();
+    }
 
     public bool TryHandle(string utterance)
     {
@@ -181,7 +197,8 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
                 await TryAutoTuneAsync(apiKey, flight, request.CommType).ConfigureAwait(false);
             }
 
-            await Task.Delay(400).ConfigureAwait(false); // radio-clear settle (no-SimVars fallback)
+            // Radio-clear gate: hold while ATC is talking on COM1 (SIAI L:vars), bounded.
+            var (radioWait, radioBusy) = await _radioGate.WaitForClearAsync().ConfigureAwait(false);
             var message = Fill(PickTemplate(request, options), flight);
 
             // The audible FO→ATC call (issue #52): the FO voices the exact transmission text
@@ -197,7 +214,13 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             }
 
             await SayAsAsync(apiKey, message).ConfigureAwait(false);
-            _eventLog.Record("sayintentions.request", new { station = request.Station, message });
+            _eventLog.Record("sayintentions.request", new
+            {
+                station = request.Station,
+                message,
+                radioWaitMs = (int)radioWait.TotalMilliseconds,
+                radioBusyAtTx = radioBusy,
+            });
 
             if (request.IsDeparture)
             {
@@ -259,6 +282,10 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
                 _flight = flight;
             }
 
+            // Every poll, raw (null while no flight): the arrival-gate source dedupes and
+            // phase-gates on its side. Raised on the timer thread.
+            AssignedGateObserved?.Invoke(flight.IsActive ? flight.Gate : null);
+
             if (becameActive && options.DepartureGatingEnabled)
             {
                 // The SI copilot owns comms on the ground and handles readbacks.
@@ -288,7 +315,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
 
             await SetVarAsync(apiKey, "SIAI_COPILOT", "0").ConfigureAwait(false);
             await TryAutoTuneAsync(apiKey, flight, "TOWER").ConfigureAwait(false);
-            await Task.Delay(400).ConfigureAwait(false);
+            await _radioGate.WaitForClearAsync().ConfigureAwait(false);
             await SayAsAsync(apiKey, Fill("Contact tower, {callsign}", flight)).ConfigureAwait(false);
             _eventLog.Record("sayintentions.departureGate", new { });
             await _arbiter.EnqueueAsync(new SpeechRequest(

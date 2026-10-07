@@ -67,7 +67,8 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         ILogger<FailureMonitor> logger,
         IMicOwnership? micOwnership = null,
         Core.State.SpeechStatusStore? statusStore = null,
-        Core.State.ConfigProblemStore? configProblems = null)
+        Core.State.ConfigProblemStore? configProblems = null,
+        IOptionsMonitor<AbnormalsOptions>? options = null)
     {
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -83,8 +84,16 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         _mic = micOwnership;
         _status = statusStore;
         _configProblems = configProblems;
-        _ecamDialogue = new EcamDialogueCore(this, eventLog);
+        _options = options;
+        _ecamDialogue = new EcamDialogueCore(this, eventLog, () => Options);
     }
+
+    /// <summary>The live <c>abnormals</c> section; defaults when the monitor was built
+    /// without it (the pre-2026-10-08 tests).</summary>
+    private AbnormalsOptions Options => _options?.CurrentValue ?? DefaultOptions;
+
+    private static readonly AbnormalsOptions DefaultOptions = new();
+    private readonly IOptionsMonitor<AbnormalsOptions>? _options;
 
     /// <summary>The running ECAM dialogue and the means to end it early. Voice abort lives in
     /// the dialogue core; this cancellation path serves the web button (user) and
@@ -191,8 +200,11 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
         lock (_lock)
         {
-            if (!_flight.IsLive)
+            if (!_flight.IsLive || !Options.Enabled)
             {
+                // Switched off (abnormals.enabled, 2026-10-08) reads like not-live: nothing
+                // detected, every latch dropped, a running dialogue ended. Drills stay
+                // voice-invocable — they do not pass through here.
                 // Flight-live gate (issue #114): with MSFS on the main menu or not running,
                 // ProSim still pushes cold-and-dark indications — unaligned IRs, unpowered
                 // packs, dead generators — and the 2026-08-29 launch test had the FO working
@@ -376,8 +388,9 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
             announcement, priority, Tag: $"abnormal:{definition.Id}"));
 
         // The announcement always plays; the interactive per-line dialogue follows only when
-        // there are action lines to work and a mic seam to hold them on.
-        if (_mic is not null && definition.Actions.Count > 0)
+        // there are action lines to work, a mic seam to hold them on, and the pilot has not
+        // switched the dialogue off (abnormals.interactiveDialogue).
+        if (_mic is not null && definition.Actions.Count > 0 && Options.InteractiveDialogue)
         {
             _ = Task.Run(() => RunEcamDialogueAsync(definition));
         }

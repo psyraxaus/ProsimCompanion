@@ -113,8 +113,8 @@
         </button>
         <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                 @onclick="WakeLlmAsync"
-                title="Sends the Wake-on-LAN magic packet to the configured LLM host — then verify with Test LLM connection">
-            @(_runningTest == "wol" ? "Sending…" : "Wake LLM server")
+                title="Sends a Wake-on-LAN magic packet to every PC on Settings → Setup → Wake-on-LAN — then verify with Test LLM connection / Reconnect voice services">
+            @(_runningTest == "wol" ? "Sending…" : "Wake PCs")
         </button>
         <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                 @onclick="ReconnectVoiceAsync"

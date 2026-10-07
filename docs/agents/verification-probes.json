@@ -16,6 +16,76 @@
   },
   "probes": [
     {
+      "id": "si-arrival-gate-from-atc",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "sayintentions.arrival-gate",
+        "fields": [
+          "gate",
+          "phase",
+          "decision"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with sayIntentions.arrivalGateFromAtc = true (off by default). Trigger = SayIntentions' flight.json assigned_gate changing after takeoff (ATC reassigns, or 'taxi to gate …' after landing).",
+        "assert-present: a 'sayintentions.arrival-gate' event with decision QueueArrival naming that gate, followed by the arrival-gate coordinator's log line 'Arrival gate <gate> assigned by SayIntentions ATC (<phase>) — sending to GSX now | queued for cruise', then the normal GSX gate.select ladder (gsx-gate-resolved / gsx-gate-not-found).",
+        "assert-present: on the ground before takeoff a DepartureGateNoted decision for the departure stand, and no QueueArrival for that same text later in the flight (SameAsDeparture is the correct decision while SI still shows it).",
+        "assert-absent: a QueueArrival while the pilot had already queued a gate on the OFP page (PilotGateWins is the correct decision); any assignGate call to SayIntentions for a gate that came FROM SayIntentions (the ATC status line reads 'Assigned by SayIntentions ATC — nothing to send back').",
+        "watch: when does SayIntentions actually change assigned_gate on arrival — on approach or only after landing? Note the phase of the QueueArrival; after landing the gate goes to GSX at once and gate.select must still be accepted (not PARKED).",
+        "requires-human: GSX parked the aircraft at the gate ATC named."
+      ],
+      "notes": "Feature 2026-10-08 (Open-items batch, no issue number; unverified live). AtcAssignedGateRule (Core, pure) + SayIntentionsArrivalGateSource (Speech) + ArrivalGateCoordinator.ConfirmFromAtc. The departure stand is remembered because flight.json carries ONE assigned_gate for the whole flight."
+    },
+    {
+      "id": "si-radio-clear-gate",
+      "issue": 0,
+      "state": "open",
+      "kind": "watch",
+      "machine": {
+        "kind": "required-fields",
+        "type": "sayintentions.request",
+        "fields": [
+          "station",
+          "message",
+          "radioWaitMs",
+          "radioBusyAtTx"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Every 'sayintentions.request' event now carries radioWaitMs and radioBusyAtTx. With MSFS connected: radioWaitMs ≥ 400 and, when ATC was mid-sentence as the pilot asked, visibly longer (up to 8000). Without MSFS: exactly the ~400 ms fallback.",
+        "watch: radioBusyAtTx = true means the gate gave up after 8 s and transmitted into a busy frequency — count them and note whether SIAI_COM1_RECEIVING really was 1 the whole time (a stuck L:var would show as every request busy).",
+        "watch: the log line 'Radio-clear gate: SIAI L:var subscription failed' — the gate is off for the session; report once.",
+        "requires-human: the FO's transmission no longer steps on the end of an ATC sentence; and a long ATC monologue does not make the FO wait more than ~8 s."
+      ],
+      "notes": "Feature 2026-10-08 (Phase 5 leftover closed; unverified live). RadioClearGate over L:SIAI_COM1_RECEIVING / L:SIAI_RADIO_PTT through ISimVars (SayIntentionsLvarNames). The sim auto-creates an unknown L:var as 0, so a SayIntentions that never writes them reads 'clear' — the predecessor's degrade."
+    },
+    {
+      "id": "wake-on-lan-targets",
+      "issue": 0,
+      "state": "open",
+      "kind": "requires-human",
+      "sources": [
+        "log"
+      ],
+      "checks": [
+        "At startup one 'Wake-on-LAN magic packet sent to <MAC> via <broadcast>:<port>' log line per enabled row of wakeOnLan.targets; a config still carrying briefing.llmWakeOnLan enabled additionally logs 'briefing.llmWakeOnLan is the old single-PC form — open Settings → Setup → Wake-on-LAN once to move it into the list'.",
+        "requires-human: after the first visit to Settings → Setup the old LLM row appears in the list and the dirty bar asks to save; after that save the legacy log line is gone on the next start.",
+        "requires-human: 'Send now' on a row wakes that PC; 'Wake PCs' on the Voice FO status section wakes them all."
+      ],
+      "notes": "Owner idea 2026-10-08: one list of PCs instead of a switch per feature. WakeTargetsOptions / WakeOnLanStartup in Core; the Speech project's LlmWakeOnLanStartup is gone."
+    },
+    {
       "id": "si-wrong-frequency-report",
       "issue": 0,
       "state": "open",

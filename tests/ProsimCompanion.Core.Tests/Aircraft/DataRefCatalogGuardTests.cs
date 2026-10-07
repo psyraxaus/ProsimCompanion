@@ -130,6 +130,8 @@ public sealed class DataRefCatalogGuardTests
             typeof(ProsimDataRefNames.SimVars),
             typeof(GsxLvarNames),
             typeof(CompanionLvarNames),
+            // SayIntentions' own L:vars for the radio-clear gate (2026-10-08).
+            typeof(ProsimCompanion.Speech.SayIntentions.SayIntentionsLvarNames),
         ];
 
         foreach (var catalog in catalogs)

@@ -61,6 +61,10 @@ public static class CoreServiceCollectionExtensions
         services.AddOptionSection<AircraftProfilesOptions>(configuration);
         services.AddOptionSection<UpdateCheckOptions>(configuration);
         services.AddOptionSection<PersonaOptions>(configuration);
+        // ECAM abnormals + drills (2026-10-08) — the dialogue's switch and timeouts.
+        services.AddOptionSection<AbnormalsOptions>(configuration);
+        // Wake-on-LAN targets list (2026-10-08) — supersedes briefing.llmWakeOnLan.
+        services.AddOptionSection<WakeTargetsOptions>(configuration);
         services.AddOptionSection<FlightStateOptions>(configuration);
         // Flight Status hero widgets (owner request 2026-09-22): gate monitor thresholds and
         // the weather-card refresh cadence, edited on Display & Flight Data.
@@ -109,6 +113,10 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Geo.IPlaceLookup>(_ => new Geo.PlaceLookup(() => Geo.Atlas.Default));
         services.AddSingleton<Geo.WikipediaSummaryClient>();
         services.AddSingleton<Geo.IPlaceSummarySource>(p => p.GetRequiredService<Geo.WikipediaSummaryClient>());
+        // Wake-on-LAN for every PC the app depends on (2026-10-08): startup packets + the
+        // Setup page's "Send now".
+        services.AddStartupModule<Network.WakeOnLanStartup>();
+        services.AddSingleton<State.IWakeOnLanControl>(p => p.GetRequiredService<Network.WakeOnLanStartup>());
         // Off/on-blocks, takeoff and landing stamps for the Flight Monitor board (2026-09-23).
         services.AddSingleton<Flight.FlightTimesStore>();
         services.AddStartupModule<Flight.FlightTimesTracker>();

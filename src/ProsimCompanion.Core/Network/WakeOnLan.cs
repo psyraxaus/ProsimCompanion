@@ -3,11 +3,12 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 
-namespace ProsimCompanion.Speech.Llm;
+namespace ProsimCompanion.Core.Network;
 
 /// <summary>
-/// Sends a Wake-on-LAN "magic packet" so the self-hosted LLM box powers itself on
-/// (Prosim2FO parity).
+/// Sends a Wake-on-LAN "magic packet" so a network PC the app depends on powers itself on
+/// (Prosim2FO parity for the LLM box; since 2026-10-08 any number of PCs through the
+/// <c>wakeOnLan.targets</c> list — moved here from the Speech project for that).
 ///
 /// Prerequisites the app CANNOT satisfy (one-time, manual setup): WoL must already be
 /// enabled in the target's BIOS/UEFI and NIC driver/power settings; the target must be on
@@ -66,7 +67,7 @@ public static class WakeOnLan
             var formatted = FormatMac(mac);
             logger.LogInformation("Wake-on-LAN magic packet sent to {Mac} via {Broadcast}:{Port}",
                 formatted, broadcast, port);
-            return $"Magic packet sent to {formatted} via {broadcast}:{port} — give the host a minute, then Test LLM connection.";
+            return $"Magic packet sent to {formatted} via {broadcast}:{port} — give the PC a minute to boot.";
         }
         catch (Exception ex)
         {

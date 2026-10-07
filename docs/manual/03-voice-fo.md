@@ -155,7 +155,8 @@ connected, real flight data).
 
 ## Persona
 
-Off by default (`persona` settings section). When enabled, the FO gets a personality:
+Off by default — Settings → Voice First Officer → **FO Persona** (the `persona` section).
+When enabled, the FO gets a personality:
 
 - **Name, experience** (junior/standard/senior), **formality** (casual/standard/formal),
   **chattiness** (0–3) colour the LLM-styled speech — briefings, the debrief and flow

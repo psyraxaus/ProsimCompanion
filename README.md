@@ -64,6 +64,13 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   refuel complete, boarding complete, final loadsheet sent, ready for pushback, cabin secure,
   deice holdover expiring, top of descent approaching, landed, on blocks and deboarding
   complete, each once per flight; URLs and tokens stored encrypted (off by default)
+- **Every setting has a page** — persona, company channel, debrief, duty day, tech log,
+  logbook, ECAM abnormals, ActiveSky, the update check; nothing is `settings.json`-only
+- **Wake-on-LAN for every PC you depend on** (Setup page) — the language-model box, the
+  speech server, an ActiveSky PC: one row each, a magic packet at startup, Send now any time
+- **SayIntentions, both ways** — your arrival gate goes to SayIntentions ATC, and (opt-in)
+  the gate ATC assigns comes back as the GSX arrival gate; the FO waits for a quiet
+  frequency before transmitting
 
 ![Flight Monitor](docs/img/flight-monitor.png)
 

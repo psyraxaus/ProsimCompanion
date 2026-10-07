@@ -354,6 +354,12 @@ public sealed class GsxPushbackSequenceService : IDisposable
             return;
         }
 
+        // Switched off (2026-10-08): the menu stays with the pilot, nothing is logged per tick.
+        if (!_options.CurrentValue.ConfirmEngineStart)
+        {
+            return;
+        }
+
         if (_confirmCooldown > 0)
         {
             _confirmCooldown--;

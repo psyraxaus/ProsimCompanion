@@ -1,4 +1,5 @@
 using ProsimCompanion.Core.Checklists;
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Speech.Recognition;
 
@@ -41,24 +42,36 @@ public interface IEcamDialogueIo
 /// </summary>
 public sealed class EcamDialogueCore
 {
-    /// <summary>Pilot-response window per prompt. Prosim2FO's
-    /// <c>abnormals.confirmTimeoutSeconds</c> default (20 s, clamped ≥ 3 there); a constant
-    /// here until an abnormals options class exists.</summary>
+    /// <summary>Default pilot-response window per prompt — Prosim2FO's
+    /// <c>abnormals.confirmTimeoutSeconds</c> default (20 s, clamped ≥ 3). Live value from
+    /// <see cref="AbnormalsOptions.ConfirmTimeoutSeconds"/> since 2026-10-08.</summary>
     public static readonly TimeSpan ConfirmTimeout = TimeSpan.FromSeconds(20);
 
     /// <summary>Re-poll window while standing by — the FO listens silently in these slices
     /// (no re-prompt between them) until a continue phrase arrives.</summary>
     public static readonly TimeSpan StandbyPollTimeout = TimeSpan.FromSeconds(30);
 
-    /// <summary>Verification mismatches tolerated before offering continue/standby
+    /// <summary>Default verification mismatches tolerated before offering continue/standby
     /// (Prosim2FO's <c>abnormals.maxVerifyRetries</c> default).</summary>
     public const int MaxVerifyRetries = 1;
 
-    /// <summary>Consecutive unanswered line windows before the FO stops re-prompting and
-    /// stands by on its own. Deliberate deviation from Prosim2FO, which re-prompted "Say
+    /// <summary>Default consecutive unanswered line windows before the FO stops re-prompting
+    /// and stands by on its own. Deliberate deviation from Prosim2FO, which re-prompted "Say
     /// again, or say standby." forever: a busy (or recognizer-less) flight deck gets three
-    /// nudges, then a quiet resumable standby instead of a nag loop.</summary>
+    /// nudges, then a quiet resumable standby instead of a nag loop. 0 = forever.</summary>
     public const int MaxSilentPrompts = 3;
+
+    private readonly Func<AbnormalsOptions> _options;
+
+    private TimeSpan ConfirmWindow
+        => TimeSpan.FromSeconds(Math.Max(3, _options().ConfirmTimeoutSeconds));
+
+    private int VerifyRetries => Math.Max(0, _options().MaxVerifyRetries);
+
+    /// <summary>0 in the options means "never give up" — mapped to int.MaxValue so the
+    /// comparison below never trips.</summary>
+    private int SilentPromptLimit
+        => _options().MaxSilentPrompts <= 0 ? int.MaxValue : _options().MaxSilentPrompts;
 
     // Global dialogue vocabulary — carried verbatim from Prosim2FO AbnormalProcedureEngine.
     internal static readonly string[] StandbyPhrases = ["standby", "stand by"];
@@ -106,14 +119,24 @@ public sealed class EcamDialogueCore
     private readonly IEcamDialogueIo _io;
     private readonly JsonlEventLog _eventLog;
 
-    public EcamDialogueCore(IEcamDialogueIo io, JsonlEventLog eventLog)
+    /// <summary>Optional <paramref name="options"/>: the live <c>abnormals</c> section; null
+    /// (tests, degraded wiring) keeps the documented defaults above.</summary>
+    public EcamDialogueCore(IEcamDialogueIo io, JsonlEventLog eventLog, Func<AbnormalsOptions>? options = null)
     {
         ArgumentNullException.ThrowIfNull(io);
         ArgumentNullException.ThrowIfNull(eventLog);
 
         _io = io;
         _eventLog = eventLog;
+        _options = options ?? (() => DefaultOptions);
     }
+
+    private static readonly AbnormalsOptions DefaultOptions = new()
+    {
+        ConfirmTimeoutSeconds = (int)ConfirmTimeout.TotalSeconds,
+        MaxVerifyRetries = MaxVerifyRetries,
+        MaxSilentPrompts = MaxSilentPrompts,
+    };
 
     /// <summary>
     /// Runs the full dialogue for an already-announced ECAM procedure: branch-gated action
@@ -197,7 +220,7 @@ public sealed class EcamDialogueCore
 
             await _io.SpeakAsync(line.Say, cancellationToken).ConfigureAwait(false);
 
-            var said = await _io.ListenAsync(grammar, ConfirmTimeout, cancellationToken).ConfigureAwait(false);
+            var said = await _io.ListenAsync(grammar, ConfirmWindow, cancellationToken).ConfigureAwait(false);
             switch (Classify(said, line))
             {
                 case LineInput.Abort:
@@ -238,7 +261,7 @@ public sealed class EcamDialogueCore
 
                 case LineInput.None:
                     silentPrompts++;
-                    if (silentPrompts >= MaxSilentPrompts)
+                    if (silentPrompts >= SilentPromptLimit)
                     {
                         silentPrompts = 0;
                         if (!await StandbyAsync(definition, "silence", cancellationToken).ConfigureAwait(false))
@@ -277,7 +300,7 @@ public sealed class EcamDialogueCore
                         line.Discrepancy ?? $"I don't yet have {line.Say} confirmed.", cancellationToken)
                         .ConfigureAwait(false);
                     discrepancies++;
-                    if (discrepancies > MaxVerifyRetries)
+                    if (discrepancies > VerifyRetries)
                     {
                         switch (await OfferStandbyAsync(cancellationToken).ConfigureAwait(false))
                         {
@@ -325,7 +348,7 @@ public sealed class EcamDialogueCore
 
         await _io.SpeakAsync($"Regarding: {line.Say}. Does this apply? Affirm or negative.", cancellationToken)
             .ConfigureAwait(false);
-        var said = await _io.ListenAsync(ConfirmVocabulary.All, ConfirmTimeout, cancellationToken)
+        var said = await _io.ListenAsync(ConfirmVocabulary.All, ConfirmWindow, cancellationToken)
             .ConfigureAwait(false);
         var apply = said is not null
             && MatchesAny(CommandMatcher.Normalize(said), ConfirmVocabulary.Affirm);
@@ -383,7 +406,7 @@ public sealed class EcamDialogueCore
     {
         await _io.SpeakAsync("Say continue to proceed, or standby.", cancellationToken).ConfigureAwait(false);
         var grammar = ContinuePhrases.Concat(StandbyPhrases).Concat(AbortPhrases).ToList();
-        var said = await _io.ListenAsync(grammar, ConfirmTimeout, cancellationToken).ConfigureAwait(false);
+        var said = await _io.ListenAsync(grammar, ConfirmWindow, cancellationToken).ConfigureAwait(false);
         if (said is null)
         {
             return LineInput.None;

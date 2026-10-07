@@ -50,15 +50,21 @@ public static class SettingsNav
     public static readonly SettingsNavItem[] SpeechSections = Items("settings/speech",
         ("status", "Status"),
         ("general", "General"),
+        ("persona", "FO Persona"),
         ("listening", "Listening & PTT"),
         ("sterile", "Sterile Cockpit"),
         ("crew", "Crew Voices"),
         ("groundCrew", "Ground Crew"),
         ("cabin", "Cabin Crew"),
+        // Company / debrief / day and tech log / logbook (2026-10-08): the eight sections
+        // that had no web card until the settings audit.
+        ("company", "Company & Debrief"),
+        ("techlog", "Tech Log & Logbook"),
         ("briefing", "Briefings & LLM"),
         ("mcdu", "MCDU"),
         ("sayIntentions", "SayIntentions"),
         ("callouts", "Callouts & Placards"),
+        ("abnormals", "Abnormals & Drills"),
         ("providers", "Voice Providers"),
         ("elevenlabs", "ElevenLabs"));
 

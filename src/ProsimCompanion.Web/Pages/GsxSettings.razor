@@ -261,6 +261,8 @@ else if (CurrentSection == "pushback")
         <BoolField Label="Call pushback at ready-for-push" Hint="Call the pushback when everything is ready." More="Off: the sequence prepares everything and leaves the call to you."
                    Disabled="@(!_gsx.Value.BeaconPushbackSequenceEnabled)"
                    @bind-Value="_gsx.Value.CallPushbackOnBeacon" />
+        <BoolField Label="Confirm good engine start" Hint="Answer GSX's 'Confirm good engine start' for you once an engine runs with the park brake set." More="Off: GSX's Interrupt-pushback menu waits until you answer it yourself. The tug stays connected until then."
+                   @bind-Value="_gsx.Value.ConfirmEngineStart" />
     </Section>
 
     <Section Title="Beacon Sequence Delays" Hint="Random waits between the steps, for realism">

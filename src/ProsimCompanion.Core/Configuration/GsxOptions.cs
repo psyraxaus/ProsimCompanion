@@ -375,6 +375,12 @@ public sealed class GsxOptions : IOptionSection
     /// ready-for-push (off = the sequence prepares everything and leaves the call to you).</summary>
     public bool CallPushbackOnBeacon { get; set; } = true;
 
+    /// <summary>Answer GSX's "Confirm good engine start" entry on the Interrupt-pushback menu
+    /// automatically once an engine runs with the park brake set (issue #106). Off leaves that
+    /// menu to the pilot — the tug waits until you answer it yourself. Had no switch until the
+    /// 2026-10-08 settings audit (owner rule: every option has a web control).</summary>
+    public bool ConfirmEngineStart { get; set; } = true;
+
     /// <summary>Randomized delay bounds (seconds) before the doors close.</summary>
     public int SeqDoorsCloseDelayMinSec { get; set; } = 10;
     public int SeqDoorsCloseDelayMaxSec { get; set; } = 20;

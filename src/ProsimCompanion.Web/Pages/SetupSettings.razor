@@ -9,6 +9,10 @@
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
 @inject IOptionsMonitor<BriefingOptions> BriefingMonitor
 @inject IOptionsMonitor<CommandApiOptions> CommandApiMonitor
+@inject IOptionsMonitor<WeatherOptions> WeatherMonitor
+@inject IOptionsMonitor<UpdateCheckOptions> UpdateCheckMonitor
+@inject IOptionsMonitor<WakeTargetsOptions> WakeMonitor
+@inject IWakeOnLanControl WakeControl
 @inject ProfileGsxMirror ProfileMirror
 @inject WebListenerStatus ListenerStatus
 @inject ProsimSetupStore SetupStore
@@ -124,6 +128,27 @@
                @bind-Value="_briefing.Value.DfdPath" />
 </Section>
 
+@* ActiveSky weather source (Phase 6) and the update check — settings.json only until the
+   2026-10-08 audit. *@
+<Section Title="Weather Sources" Hint="ActiveSky carries the weather actually in the sim, so it wins over the ProSim gateway and SayIntentions when present">
+    <TextField Label="ActiveSky snapshot file" Hint="Full path of current_wx_snapshot.txt. Empty looks in the known HiFi install folders." More="When set, the path is final: a missing file switches the snapshot tier off instead of looking elsewhere."
+               Placeholder="C:\Users\you\AppData\Roaming\HiFi\AS_MSFS\Weather\current_wx_snapshot.txt"
+               @bind-Value="_weather.Value.ActiveSkySnapshotPath" />
+    <BoolField Label="Also try the ActiveSky API" Hint="ActiveSky's local web API, when the snapshot has nothing for the airport."
+               @bind-Value="_weather.Value.UseActiveSkyApi" />
+    <AdvancedFields>
+        <TextField Label="API host" Disabled="@(!_weather.Value.UseActiveSkyApi)"
+                   @bind-Value="_weather.Value.ActiveSkyApiHost" />
+        <NumberField Label="API port" Min="1" Max="65535" Disabled="@(!_weather.Value.UseActiveSkyApi)"
+                     @bind-Value="_weather.Value.ActiveSkyApiPort"
+                     Default="_weather.Defaults.ActiveSkyApiPort" />
+        <NumberField Label="API timeout" Hint="Short on purpose: the chain moves on fast when ActiveSky is not running." Suffix="s" Min="1" Max="30"
+                     Disabled="@(!_weather.Value.UseActiveSkyApi)"
+                     @bind-Value="_weather.Value.ActiveSkyApiTimeoutSeconds"
+                     Default="_weather.Defaults.ActiveSkyApiTimeoutSeconds" />
+    </AdvancedFields>
+</Section>
+
 <Section Title="Web Interface" Hint="Port and LAN access are also editable in the desktop window">
     <NumberField Label="Port" Hint="Takes effect after an app restart." Min="1024" Max="65535"
                  @bind-Value="_webUi.Value.Port"
@@ -172,6 +197,68 @@
     </div>
 </Section>
 
+@* Wake-on-LAN (owner idea 2026-10-08): one list of PCs instead of one switch per feature.
+   The old briefing.llmWakeOnLan block is migrated into the list on this page's first load
+   (MigrateLegacyWake) and saved with the dirty bar. *@
+@for (var i = 0; i < _wake.Value.Targets.Count; i++)
+{
+    var index = i;
+    var target = _wake.Value.Targets[index];
+    var title = string.IsNullOrWhiteSpace(target.Name) ? $"Wake-on-LAN PC {index + 1}" : $"Wake-on-LAN — {target.Name}";
+    <Section Title="@title" Hint="A magic packet at startup, and on Send now">
+        <div class="field" style="align-items:center;">
+            <label class="field-label">Row</label>
+            <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
+                <span class="pill @(target.Enabled ? "tone-ok" : "tone-neutral")">@(target.Enabled ? "AT STARTUP" : "SEND NOW ONLY")</span>
+                <button type="button" class="btn secondary" style="padding:4px 10px;" title="Remove this PC"
+                        @onclick="() => _wake.Value.Targets.RemoveAt(index)">Remove</button>
+            </div>
+        </div>
+        <TextField Label="Name" Hint="Your label for it — what the log shows." Placeholder="Language-model PC"
+                   @bind-Value="target.Name" />
+        <BoolField Label="Wake at startup" Hint="Off keeps the row for the Send now button only."
+                   @bind-Value="target.Enabled" />
+        <TextField Label="MAC address" Hint="For example AA:BB:CC:DD:EE:FF." More="The PC needs Wake-on-LAN enabled in its BIOS and network driver, a wired connection, and the same network as this PC."
+                   @bind-Value="target.MacAddress" />
+        <AdvancedFields>
+            <TextField Label="Broadcast address" Hint="255.255.255.255, or your subnet's broadcast such as 192.168.1.255."
+                       @bind-Value="target.BroadcastAddress" />
+            <NumberField Label="Port" Hint="Usually 9." Min="1" Max="65535"
+                         @bind-Value="target.Port" />
+        </AdvancedFields>
+        <div class="field" style="align-items:center;">
+            <label class="field-label">
+                Send now
+                <FieldHint Hint="One packet to this PC with the values above, saved or not. The PC's own feature (Test LLM connection, Reconnect voice services) tells you when it is up." />
+            </label>
+            <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                <span class="field-hint" style="margin:0;">@(_wakeResults.TryGetValue(index, out var line) ? line : "")</span>
+                <button type="button" class="btn primary" style="padding:4px 12px;" disabled="@string.IsNullOrWhiteSpace(target.MacAddress)"
+                        @onclick="() => SendWake(index)">Send now</button>
+            </div>
+        </div>
+    </Section>
+}
+
+<Section Title="Wake-on-LAN" Hint="Power on the PCs the app depends on when it starts">
+    @if (_wake.Value.Targets.Count == 0)
+    {
+        <div class="field-hint">No PC yet. Add the language-model box, the speech server, an ActiveSky PC — as many as you like.</div>
+    }
+    <div style="margin:8px 0 4px;">
+        <button type="button" class="btn primary" @onclick="AddWakeTarget">Add PC</button>
+    </div>
+</Section>
+
+<Section Title="Updates" Hint="A banner when a newer build is on GitHub. Nothing is downloaded or installed">
+    <BoolField Label="Check for updates" Hint="Fails silently offline. Never delays startup."
+               @bind-Value="_updateCheck.Value.Enabled" />
+    <NumberField Label="Check again every" Suffix="h" Min="1" Max="168"
+                 Disabled="@(!_updateCheck.Value.Enabled)"
+                 @bind-Value="_updateCheck.Value.IntervalHours"
+                 Default="_updateCheck.Defaults.IntervalHours" />
+</Section>
+
 <DirtyBar Visible="@BarVisible"
           Message="@(BarMessage ?? "You have unsaved changes")"
           Tone="BarTone"
@@ -186,6 +273,10 @@
     private OptionsDraft<WebUiOptions> _webUi = default!;
     private OptionsDraft<BriefingOptions> _briefing = default!;
     private OptionsDraft<CommandApiOptions> _commandApi = default!;
+    private OptionsDraft<WeatherOptions> _weather = default!;
+    private OptionsDraft<UpdateCheckOptions> _updateCheck = default!;
+    private OptionsDraft<WakeTargetsOptions> _wake = default!;
+    private readonly Dictionary<int, string> _wakeResults = [];
     private bool _gsxChanged;
 
     // ---- the HTTPS listener's live state (ADR-0013): what the host actually bound at start.
@@ -221,6 +312,10 @@
         _webUi = Draft(WebUiMonitor);
         _briefing = Draft(BriefingMonitor);
         _commandApi = Draft(CommandApiMonitor);
+        _weather = Draft(WeatherMonitor);
+        _updateCheck = Draft(UpdateCheckMonitor);
+        _wake = Draft(WakeMonitor);
+        MigrateLegacyWake();
 
         Watch(SetupStore, snapshot => _setup = snapshot);
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _prosimConnected = ProsimConnectedNow());
@@ -232,6 +327,14 @@
         _prosim.Value.SdkPath = _prosim.Value.SdkPath.Trim();
         // Trim quotes too — Explorer's "Copy as path" wraps the path in them.
         _briefing.Value.DfdPath = _briefing.Value.DfdPath.Trim().Trim('"');
+        _weather.Value.ActiveSkySnapshotPath = _weather.Value.ActiveSkySnapshotPath.Trim().Trim('"');
+        _weather.Value.ActiveSkyApiHost = _weather.Value.ActiveSkyApiHost.Trim();
+        foreach (var target in _wake.Value.Targets)
+        {
+            target.Name = target.Name.Trim();
+            target.MacAddress = target.MacAddress.Trim();
+            target.BroadcastAddress = target.BroadcastAddress.Trim();
+        }
         _gsxChanged = _gsx.IsDirty;
         _prosimChanged = _prosim.IsDirty;
     }
@@ -251,6 +354,55 @@
         if ((_prosimChanged || _gsxChanged) && _prosim.Value.SetupCheckEnabled)
         {
             _ = SetupCheck.RefreshAsync();
+        }
+    }
+
+    // A discard reloads the live options, which may still carry only the legacy block —
+    // re-synthesize so the row keeps showing (same pattern as the PTT bindings).
+    protected override void OnDiscarded() => MigrateLegacyWake();
+
+    // ---- Wake-on-LAN card ----
+
+    /// <summary>One-way migration of <c>briefing.llmWakeOnLan</c> into the targets list
+    /// (2026-10-08): an enabled legacy block with a MAC that no row carries becomes a row,
+    /// and the legacy switch goes off. Both drafts dirty, so the bar prompts for the save
+    /// that persists it; until then the startup module still honours the legacy block.</summary>
+    private void MigrateLegacyWake()
+    {
+        var legacy = _briefing.Value.LlmWakeOnLan;
+        if (!legacy.Enabled || string.IsNullOrWhiteSpace(legacy.MacAddress))
+        {
+            return;
+        }
+
+        var known = _wake.Value.Targets.Any(t =>
+            string.Equals(NormalizeMac(t.MacAddress), NormalizeMac(legacy.MacAddress), StringComparison.OrdinalIgnoreCase));
+        if (!known)
+        {
+            _wake.Value.Targets.Add(new WakeTarget
+            {
+                Name = "Language-model PC",
+                Enabled = true,
+                MacAddress = legacy.MacAddress.Trim(),
+                BroadcastAddress = legacy.BroadcastAddress,
+                Port = legacy.Port,
+            });
+        }
+
+        legacy.Enabled = false;
+    }
+
+    private static string NormalizeMac(string mac)
+        => mac.Replace(":", "", StringComparison.Ordinal).Replace("-", "", StringComparison.Ordinal).Replace(" ", "", StringComparison.Ordinal).Trim();
+
+    private void AddWakeTarget()
+        => _wake.Value.Targets.Add(new WakeTarget { Name = $"PC {_wake.Value.Targets.Count + 1}" });
+
+    private void SendWake(int index)
+    {
+        if (index < _wake.Value.Targets.Count)
+        {
+            _wakeResults[index] = WakeControl.Send(_wake.Value.Targets[index]);
         }
     }
 

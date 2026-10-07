@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0-rc.22
+
+The roadmap-audit batch, 2026-10-08: every setting now has a page, the three open voice-FO items are closed, and one new idea from the owner. Everything here is **not yet verified live**.
+
+- New: **every settings section has a card.** Eight sections were `settings.json`-only until now. Voice First Officer gains **FO Persona** (name, experience, formality, chattiness, what the persona styles), **Company & Debrief** (the company ACARS channel, the post-flight debrief, company day mode), **Tech Log & Logbook** (switches, MEL repair days, file paths) and **Abnormals & Drills**; Setup gains **Weather Sources** (ActiveSky), **Updates** (the update banner) and **Wake-on-LAN**. Listening & PTT shows the recognition thresholds (phrase match score, "did you mean" score, offline engine confidence) under advanced. A build now fails when a settings section has no page.
+- New: **Abnormals & Drills** settings (`abnormals`). Failure detection can be switched off; the ECAM line-by-line dialogue can be switched off (the FO then announces the failure and leaves the ECAM to you); the answer window per line (20 s), the unanswered prompts before standby (3; 0 = ask forever) and the verify mismatches tolerated (1) are yours to set. Before this build they were constants.
+- New: **Wake-on-LAN for as many PCs as you like** (owner idea). Settings → Setup → Wake-on-LAN: add a row per PC — the language-model box, the speech server, an ActiveSky PC — with name, MAC, broadcast and port; each enabled row gets a magic packet when the app starts, and **Send now** sends one at any time. The Voice FO Status section's button is now **Wake PCs** and wakes them all. The old single "LLM Wake-on-LAN" setting still works until you open the Setup page once; it is then moved into the list for you (save when the bar asks).
+- New: **arrival gate from SayIntentions ATC** (Settings → Voice First Officer → SayIntentions → Arrival gate from ATC, off). The gate SayIntentions ATC assigns becomes the GSX arrival gate. The app remembers the departure stand (SayIntentions keeps one gate field for the whole flight) and takes only a *different* gate seen from the climb onward; a gate you set yourself on the OFP page always wins; after landing the gate goes to GSX straight away; nothing is sent back to SayIntentions. Session event `sayintentions.arrival-gate`; probe `si-arrival-gate-from-atc`.
+- New: **the FO waits for a quiet frequency before transmitting to SayIntentions.** The radio-clear gate reads SayIntentions' own `L:SIAI_COM1_RECEIVING` and `L:SIAI_RADIO_PTT` through SimConnect: 400 ms of silence, at most 8 s, then the call goes anyway. Without MSFS it is the old fixed 400 ms wait. Each `sayintentions.request` event records how long it waited; probe `si-radio-clear-gate`.
+- New: **Confirm good engine start** switch (Settings → Ground Services → Pushback, on). Off leaves GSX's Interrupt-pushback menu to you.
+- Docs: the roadmap was audited against the code — 14 items marked open were already built; the August–September work and the post-rc.1 follow-ups are recorded; the genuinely open items are listed at its end. Dropped by owner decision: WinRT recognition, per-checklist key prompts, walkaround skip, Couatl restart, headless mode, the unmerged tablet EFB branch.
+- Everything in 0.6.0-rc.21 below.
+
 ## 0.6.0-rc.21
 
 Local test build, 2026-10-07: everything that was waiting on separate branches in one build — the ProSim 1.74 fix (rc.20), the loudspeaker dial (rc.19), the ProSim setup check and the movable Flight Status tiles.

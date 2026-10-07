@@ -18,13 +18,18 @@
 ## Behaviours to preserve
 
 - Arrival gate is assigned to **both** GSX (`gate.select`) and SayIntentions (`assignGate`),
-  auto-fired at cruise.
+  auto-fired at cruise. Since 2026-10-08 the gate also flows the other way (opt-in
+  `sayIntentions.arrivalGateFromAtc`, see below).
 - Voice ATC requests (clearance, start, push+start, taxi, takeoff) with ICAO/FAA phraseology
   variants; departure comms gating (FO takes comms near the runway, tunes Tower, hands back after
   clearance).
-- Radio-clear gating before transmitting, via MobiFlight WASM LVARs `SIAI_COM1_RECEIVING` and
-  `SIAI_RADIO_PTT` (registered through `MF.SimVars.Add.(L:var)` client-data channels); fully
-  self-degrading when the WASM module is absent.
+- Radio-clear gating before transmitting. The predecessor read `SIAI_COM1_RECEIVING` and
+  `SIAI_RADIO_PTT` through MobiFlight WASM client data; ProsimCompanion reads the same two
+  L:vars natively through `ISimVars` (`SayIntentionsLvarNames`, `RadioClearGate`, 2026-10-08):
+  both 0 for 400 ms = clear, 8 s cap then transmit anyway, stale (MSFS down) = clear. The sim
+  auto-creates an unknown L:var as 0, so a SayIntentions that never writes them degrades to
+  the fixed 400 ms settle. Each `sayintentions.request` event carries `radioWaitMs` and
+  `radioBusyAtTx`.
 - Optional frequency auto-tune from `getWX` comms data — always standby-then-swap, never write the
   active frequency directly.
 
@@ -75,4 +80,28 @@ Empirical rules (2026-10-05) — keep these:
 
 Not yet seen live: hand-off wording on arrival and in FAA phraseology, `since_id` behaviour,
 `L:SIAI_COPILOT` (documented: 1 = copilot has comms) and `L:SIAI_COM1_POSITION` (0 = unknown
-station) — neither LVAR is read today.
+station) — neither of those two is read today (`SIAI_COM1_RECEIVING` / `SIAI_RADIO_PTT` are,
+for the radio-clear gate).
+
+## Arrival gate from ATC (2026-10-08, opt-in)
+
+`sayIntentions.arrivalGateFromAtc` (default off) takes flight.json's `current_flight.assigned_gate`
+as the GSX arrival gate. flight.json carries ONE `assigned_gate` for the whole flight: on the
+ground before departure it is the departure stand, and ATC's "taxi to gate …" (or an earlier
+reassignment) replaces it. `AtcAssignedGateRule` (Core, pure) therefore:
+
+- notes the gate seen in ColdAndDark … TakeoffRoll as the departure stand (`DepartureGateNoted`);
+- from InitialClimb to TaxiIn reports a *changed* gate once; the same text as the departure stand
+  is `SameAsDeparture` (ignored); a gate the pilot queued on the OFP page wins (`PilotGateWins`);
+  otherwise `QueueArrival` → `ArrivalGateCoordinator.ConfirmFromAtc`;
+- past the cruise entry (Descent/Approach/LandingRollout/TaxiIn) the gate goes to GSX at once —
+  the cruise edge the normal queue fires on has passed;
+- the ATC half is NOT sent back (status line "Assigned by SayIntentions ATC — nothing to send
+  back"); a later pilot Confirm / Send Now with a typed gate sends to both again;
+- resets on ColdAndDark / Shutdown so a turnaround back to the same stand works.
+
+Every decision but "nothing new" is a `sayintentions.arrival-gate` session event
+(`gate`, `phase`, `decision`). Unknown until a flight: when SayIntentions changes
+`assigned_gate` on arrival (approach or only after landing), and whether its pick exists in the
+loaded scenery — a miss falls into the normal `gsx-gate-not-found` diagnostics. Probe
+`si-arrival-gate-from-atc`.

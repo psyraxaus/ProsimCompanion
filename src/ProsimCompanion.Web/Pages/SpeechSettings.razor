@@ -12,6 +12,13 @@
 @inject IOptionsMonitor<AccentOptions> AccentsMonitor
 @inject IOptionsMonitor<SayIntentionsOptions> SayIntentionsMonitor
 @inject IOptionsMonitor<SopOptions> SopMonitor
+@inject IOptionsMonitor<PersonaOptions> PersonaMonitor
+@inject IOptionsMonitor<CompanyOptions> CompanyMonitor
+@inject IOptionsMonitor<DebriefOptions> DebriefMonitor
+@inject IOptionsMonitor<DayOptions> DayMonitor
+@inject IOptionsMonitor<TechLogOptions> TechLogMonitor
+@inject IOptionsMonitor<LogbookOptions> LogbookMonitor
+@inject IOptionsMonitor<AbnormalsOptions> AbnormalsMonitor
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
 @inject IElevenLabsVoiceCatalog ElevenLabsVoices
@@ -61,6 +68,46 @@ else if (CurrentSection == "general")
                      Default="_speech.Defaults.Volume" />
         <BoolField Label="Intercom filter" Hint="Make the FO sound like a headset, not a narrator."
                    @bind-Value="_speech.Value.IntercomFilter" />
+    </Section>
+}
+else if (CurrentSection == "persona")
+{
+    @* FO persona (Phase 7, 2026-08-08) — settings.json only until the 2026-10-08 audit. *@
+    <Section Title="FO Persona" Hint="Wording and tone only. A number, a callout or a checklist line is never changed">
+        <BoolField Label="Enabled" Hint="Let the persona colour what the FO says." More="With the language model off, the only effect is varied acknowledgements."
+                   @bind-Value="_persona.Value.Enabled" />
+        <TextField Label="Name" Hint="Woven into the model's style prompt (&quot;Your name is …&quot;). Empty = unnamed." Placeholder="e.g. Sam"
+                   Disabled="@(!_persona.Value.Enabled)"
+                   @bind-Value="_persona.Value.Name" />
+        <SelectField Label="Experience" Hint="How seasoned the FO sounds." Options="PersonaExperienceOptions"
+                     Disabled="@(!_persona.Value.Enabled)"
+                     @bind-Value="_persona.Value.Experience" />
+        <SelectField Label="Formality" Hint="How formal the FO is with you." Options="PersonaFormalityOptions"
+                     Disabled="@(!_persona.Value.Enabled)"
+                     @bind-Value="_persona.Value.Formality" />
+        <NumberField Label="Chattiness" Hint="0 keeps everything short. 3 allows natural warmth." More="&quot;Quiet please&quot; silences chatter for the session whatever this says." Min="0" Max="3"
+                     Disabled="@(!_persona.Value.Enabled)"
+                     @bind-Value="_persona.Value.Chattiness"
+                     Default="_persona.Defaults.Chattiness" />
+    </Section>
+
+    <Section Title="What the Persona Styles" Hint="Each one is verified against the facts; the plain text is always the fallback">
+        <BoolField Label="Briefings" Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleBriefings" />
+        <BoolField Label="Debrief" Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleDebrief" />
+        <BoolField Label="Advisories" Hint="Flow and weather advisories pass through the model before they are spoken." More="Only when the restyle returns within the time below; otherwise the plain text speaks."
+                   Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleAdvisories" />
+        <BoolField Label="Vary acknowledgements" Hint="Pick &quot;are you sure&quot; / &quot;say again&quot; lines at random from phrases.json instead of in turn."
+                   Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.VaryAcknowledgements" />
+        <AdvancedFields>
+            <NumberField Label="Advisory restyle budget" Hint="Time the model gets to restyle one advisory. The plain text speaks when it runs out." Suffix="ms" Min="500" Step="100"
+                         Disabled="@(!_persona.Value.Enabled || !_persona.Value.StyleAdvisories)"
+                         @bind-Value="_persona.Value.StyleTimeoutMs"
+                         Default="_persona.Defaults.StyleTimeoutMs" />
+        </AdvancedFields>
+        <div class="field-hint" style="max-width:640px;">
+            The phrase pools themselves are in <code>config\phrases.json</code> under
+            <code>%LOCALAPPDATA%\ProsimCompanion</code> — edit the file, the FO reloads it.
+        </div>
     </Section>
 }
 else if (CurrentSection == "listening")
@@ -117,6 +164,17 @@ else if (CurrentSection == "listening")
         <SelectField Label="Input device" Hint="The microphone the FO listens on."
                      Options="InputDeviceOptions()"
                      @bind-Value="_speech.Value.InputDevice" />
+        <AdvancedFields>
+            <NumberField Label="Phrase match score" Hint="How close a heard phrase must be to a known one before the FO acts on it." More="0.5 Levenshtein + 0.5 DoubleMetaphone. Lower hears more, mis-hears more." Step="0.05" Min="0.3" Max="1"
+                         @bind-Value="_speech.Value.SnappingThreshold"
+                         Default="_speech.Defaults.SnappingThreshold" />
+            <NumberField Label="Ask 'did you mean' below" Hint="A match between the score above and this one makes the FO ask 'Did you mean …?' instead of acting." More="Set it equal to the match score to never ask." Step="0.05" Min="0.3" Max="1"
+                         @bind-Value="_speech.Value.ConfirmBelowScore"
+                         Default="_speech.Defaults.ConfirmBelowScore" />
+            <NumberField Label="Offline engine confidence" Hint="Minimum confidence the Windows engine must report. Not used with a LAN server." Step="0.05" Min="0" Max="1"
+                         @bind-Value="_speech.Value.RecognitionConfidenceThreshold"
+                         Default="_speech.Defaults.RecognitionConfidenceThreshold" />
+        </AdvancedFields>
     </Section>
 
     <Section Title="Speech Recognition Server" Hint="A transcription server on your network. Empty uses the offline Windows engine">
@@ -294,6 +352,100 @@ else if (CurrentSection == "cabin")
         <TextField Label="Boarding delay" @bind-Value="_cabin.Value.BoardingDelayText" />
     </Section>
 }
+else if (CurrentSection == "company")
+{
+    @* company / debrief / day (Phase 6) — settings.json only until the 2026-10-08 audit. *@
+    <Section Title="Company Channel" Hint="Dispatch messages read out like ACARS: the loadsheet, and now and then a cruise message">
+        <BoolField Label="Enabled" @bind-Value="_company.Value.Enabled" />
+        <BoolField Label="Read the loadsheet automatically" Hint="Before departure, as soon as the final loadsheet is in. Off: only on &quot;request loadsheet&quot; or the web button."
+                   Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.AutoLoadsheet" />
+        <BoolField Label="ACARS chime before messages" Hint="The double beep before a company delivery."
+                   Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.Chime" />
+        <BoolField Label="Cruise messages" Hint="A short company message in the cruise, some flights." More="Deterministic template around the destination facts. Off by default."
+                   Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.CruiseMessages" />
+        <NumberField Label="Cruise message probability" Hint="0.15 is about one flight in seven, drawn once per flight." Step="0.05" Min="0" Max="1"
+                     Disabled="@(!_company.Value.Enabled || !_company.Value.CruiseMessages)"
+                     @bind-Value="_company.Value.CruiseMessageProbability"
+                     Default="_company.Defaults.CruiseMessageProbability" />
+        <AdvancedFields>
+            <BoolField Label="Save the spoken loadsheet" Hint="Written beside the session log as *.loadsheet.txt, with the raw EFB loadsheet."
+                       Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.PersistLoadsheet" />
+        </AdvancedFields>
+    </Section>
+
+    <Section Title="Post-flight Debrief" Hint="Spoken at shutdown from what the session recorded">
+        <BoolField Label="Enabled" @bind-Value="_debrief.Value.Enabled" />
+        <SelectField Label="Length" Hint="Brief leaves out the activity counts and the fuel-used lines." Options="DebriefVerbosityOptions"
+                     Disabled="@(!_debrief.Value.Enabled)"
+                     @bind-Value="_debrief.Value.Verbosity" />
+        <BoolField Label="Style with the language model" Hint="Warmer wording, every number verified. Off: the plain template." More="Uses the model configured on Briefings &amp; LLM. With that model off this has no effect."
+                   Disabled="@(!_debrief.Value.Enabled)" @bind-Value="_debrief.Value.UseLlm" />
+    </Section>
+
+    <Section Title="Company Day" Hint="Multi-sector duty tracking: block and duty figures, turnaround summaries, an end-of-day round-up. Not a flight-time-limits calculation">
+        <BoolField Label="Track duty days automatically" Hint="Off: &quot;start duty day&quot; and the /day page still work by hand."
+                   @bind-Value="_day.Value.Enabled" />
+        <BoolField Label="Start at the first preflight" Disabled="@(!_day.Value.Enabled)" @bind-Value="_day.Value.AutoStart" />
+        <BoolField Label="Speak the turnaround summary" Hint="At on-blocks: block time, schedule delta, open tech-log items."
+                   Disabled="@(!_day.Value.Enabled)" @bind-Value="_day.Value.TurnaroundSummary" />
+        <NumberField Label="Post-flight allowance" Hint="Minutes added after the last on-blocks for the duty figure." Suffix="min" Min="0"
+                     Disabled="@(!_day.Value.Enabled)"
+                     @bind-Value="_day.Value.PostFlightAllowanceMinutes"
+                     Default="_day.Defaults.PostFlightAllowanceMinutes" />
+        <NumberField Label="Auto-close after idle" Hint="Close an open day after this long idle in a turnaround. 0 = never." Suffix="min" Min="0"
+                     Disabled="@(!_day.Value.Enabled)"
+                     @bind-Value="_day.Value.AutoCloseIdleMinutes"
+                     Default="_day.Defaults.AutoCloseIdleMinutes" />
+        <AdvancedFields>
+            <TextField Label="Planned rotations folder" Hint="JSON rotation files. A relative path is under the install folder."
+                       @bind-Value="_day.Value.RotationsFolder" />
+            <TextField Label="Day-state file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\daystate.json."
+                       @bind-Value="_day.Value.Path" />
+        </AdvancedFields>
+    </Section>
+}
+else if (CurrentSection == "techlog")
+{
+    @* techLog / logbook (Phase 6) — settings.json only until the 2026-10-08 audit. *@
+    <Section Title="Tech Log &amp; MEL" Hint="The paperwork layer: deferral categories, due dates, preflight briefs. Never a failure, never a dataref write">
+        <BoolField Label="Enabled" @bind-Value="_techLog.Value.Enabled" />
+        <BoolField Label="Offer tech-log entries after an abnormal" Hint="After shutdown the FO offers to log each abnormal handled this flight. Silent on a normal flight."
+                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.OfferFromAbnormalAtShutdown" />
+        <BoolField Label="Random wear" Hint="A small chance per flight of a benign cabin defect appearing at shutdown, from the wear pool."
+                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.RandomWear" />
+        <BoolField Label="Rectify on the due date" Hint="Close open defects by itself when their MEL due date passes." More="Off by default: rectification is meant to be your maintenance action."
+                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.AutoRectifyOnDueDate" />
+        <div class="label-caps" style="margin:14px 0 6px;">MEL repair intervals</div>
+        <NumberField Label="Category A" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
+                     @bind-Value="_techLog.Value.CategoryADays" Default="_techLog.Defaults.CategoryADays" />
+        <NumberField Label="Category B" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
+                     @bind-Value="_techLog.Value.CategoryBDays" Default="_techLog.Defaults.CategoryBDays" />
+        <NumberField Label="Category C" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
+                     @bind-Value="_techLog.Value.CategoryCDays" Default="_techLog.Defaults.CategoryCDays" />
+        <NumberField Label="Category D" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
+                     @bind-Value="_techLog.Value.CategoryDDays" Default="_techLog.Defaults.CategoryDDays" />
+        <AdvancedFields>
+            <TextField Label="Tech-log file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\techlog.json."
+                       @bind-Value="_techLog.Value.Path" />
+            <TextField Label="Wear-pool file" Hint="Empty = config\techlog\wear-pool.json beside the exe."
+                       @bind-Value="_techLog.Value.WearPoolPath" />
+        </AdvancedFields>
+        <div class="field-hint" style="max-width:640px;">
+            Raise and rectify defects on the <a href="techlog">Tech Log</a> page, or by voice (&quot;raise a defect&quot;, &quot;log a snag&quot;).
+        </div>
+    </Section>
+
+    <Section Title="Pilot Logbook" Hint="Every completed flight folded in at shutdown; totals are computed when shown">
+        <BoolField Label="Enabled" @bind-Value="_logbook.Value.Enabled" />
+        <AdvancedFields>
+            <TextField Label="Logbook file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\logbook.json."
+                       @bind-Value="_logbook.Value.Path" />
+        </AdvancedFields>
+        <div class="field-hint" style="max-width:640px;">
+            The flights, the touchdown trend and the CSV export are on the <a href="logbook">Logbook</a> page.
+        </div>
+    </Section>
+}
 else if (CurrentSection == "sayIntentions")
 {
     <Section Title="SayIntentions" Hint="Online ATC: radio requests, weather, CPDLC and the arrival gate">
@@ -329,6 +481,9 @@ else if (CurrentSection == "sayIntentions")
                      Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.FrequencyMonitorEnabled)"
                      @bind-Value="_sayIntentions.Value.FrequencyMonitorWaitSeconds"
                      Default="_sayIntentions.Defaults.FrequencyMonitorWaitSeconds" />
+        <BoolField Label="Arrival gate from ATC" Hint="Use the gate SayIntentions ATC assigns as the GSX arrival gate." More="Only a gate that differs from the departure stand and appears from the climb onward counts. A gate you set yourself on the OFP page always wins. After landing the gate goes to GSX straight away. Off by default: the ATC pick may not exist in the loaded scenery."
+                   Disabled="@(!_sayIntentions.Value.Enabled)"
+                   @bind-Value="_sayIntentions.Value.ArrivalGateFromAtc" />
     </Section>
 
     <Section Title="SayIntentions Weather" Hint="ATIS, METAR, TAF and CPDLC. Needs only the API key">
@@ -619,21 +774,10 @@ else if (CurrentSection == "briefing")
                      Default="_speech.Defaults.FoQuestions.StandBySeconds" />
     </Section>
 
-    <Section Title="LLM Wake-on-LAN" Hint="Wake the LLM PC when the app starts" Advanced="true">
-        <BoolField Label="Enabled" Hint="Sends a wake-up packet when the app starts." More="The LLM PC needs Wake-on-LAN enabled in its BIOS and network driver, a wired connection, and the same network."
-                   @bind-Value="_briefing.Value.LlmWakeOnLan.Enabled" />
-        <TextField Label="MAC address" Hint="For example AA:BB:CC:DD:EE:FF."
-                   Disabled="@(!_briefing.Value.LlmWakeOnLan.Enabled)"
-                   @bind-Value="_briefing.Value.LlmWakeOnLan.MacAddress" />
-        <TextField Label="Broadcast address" Hint="255.255.255.255, or your subnet's broadcast such as 192.168.1.255."
-                   Disabled="@(!_briefing.Value.LlmWakeOnLan.Enabled)"
-                   @bind-Value="_briefing.Value.LlmWakeOnLan.BroadcastAddress" />
-        <NumberField Label="Port" Hint="Usually 9." Min="1" Max="65535"
-                     Disabled="@(!_briefing.Value.LlmWakeOnLan.Enabled)"
-                     @bind-Value="_briefing.Value.LlmWakeOnLan.Port"
-                     Default="_briefing.Defaults.LlmWakeOnLan.Port" />
+    <Section Title="Wake-on-LAN" Hint="Moved to Setup" Advanced="true">
         <div class="field-hint" style="max-width:640px;">
-            Press "Wake LLM server", then "Test LLM connection" on the <a href="settings/speech/status">Status section</a> to check the PC came up.
+            The PCs the app wakes at startup — the language-model box, the speech server, any other — are one list on
+            <a href="settings">Settings → Setup → Wake-on-LAN</a>. An old single-PC setting from this page is moved there the first time Setup opens.
         </div>
     </Section>
 }
@@ -857,6 +1001,34 @@ else if (CurrentSection == "callouts")
                      Default="_sop.Defaults.Monitoring.Readbacks.MinimumsToleranceFt" />
     </Section>
 }
+else if (CurrentSection == "abnormals")
+{
+    @* abnormals (2026-10-08): the dialogue ran on constants and had no switch before this. *@
+    <Section Title="ECAM Abnormals" Hint="The FO reads the E/WD and the system datarefs, announces a failure and works the procedure with you. It never moves a switch">
+        <BoolField Label="Detect and announce failures" Hint="Off: nothing is detected or announced. The memory drills can still be called by voice as rehearsals."
+                   @bind-Value="_abnormals.Value.Enabled" />
+        <BoolField Label="Work the ECAM line by line" Hint="Each action line waits for your confirm; a line with a check is verified against the aircraft." More="Say &quot;standby&quot;, &quot;say again&quot;, &quot;skip&quot;, &quot;fault remains&quot;, &quot;unable&quot; or &quot;cancel ecam&quot; at any line. Off: the FO announces the failure and leaves the ECAM to you."
+                   Disabled="@(!_abnormals.Value.Enabled)" @bind-Value="_abnormals.Value.InteractiveDialogue" />
+        <NumberField Label="Answer window per line" Hint="How long the FO waits for your answer before asking again." Suffix="s" Min="3" Max="120"
+                     Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
+                     @bind-Value="_abnormals.Value.ConfirmTimeoutSeconds"
+                     Default="_abnormals.Defaults.ConfirmTimeoutSeconds" />
+        <AdvancedFields>
+            <NumberField Label="Unanswered prompts before standby" Hint="After this many silent windows in a row the FO stops asking and stands by. 0 = ask forever." Min="0" Max="20"
+                         Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
+                         @bind-Value="_abnormals.Value.MaxSilentPrompts"
+                         Default="_abnormals.Defaults.MaxSilentPrompts" />
+            <NumberField Label="Verify mismatches tolerated" Hint="Discrepancies on a checked line before the FO offers continue or standby." Min="0" Max="10"
+                         Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
+                         @bind-Value="_abnormals.Value.MaxVerifyRetries"
+                         Default="_abnormals.Defaults.MaxVerifyRetries" />
+        </AdvancedFields>
+        <div class="field-hint" style="max-width:640px;">
+            The procedures themselves are JSON files under <code>%LOCALAPPDATA%\ProsimCompanion\config\abnormals</code>;
+            a file that fails to load is named in a banner. A running dialogue can be cancelled from the Status section.
+        </div>
+    </Section>
+}
 
 <DirtyBar Visible="@BarVisible"
           Message="@(BarMessage ?? "You have unsaved changes")"
@@ -1032,6 +1204,22 @@ else if (CurrentSection == "callouts")
     private OptionsDraft<AccentOptions> _accents = default!;
     private OptionsDraft<SayIntentionsOptions> _sayIntentions = default!;
     private OptionsDraft<SopOptions> _sop = default!;
+    private OptionsDraft<PersonaOptions> _persona = default!;
+    private OptionsDraft<CompanyOptions> _company = default!;
+    private OptionsDraft<DebriefOptions> _debrief = default!;
+    private OptionsDraft<DayOptions> _day = default!;
+    private OptionsDraft<TechLogOptions> _techLog = default!;
+    private OptionsDraft<LogbookOptions> _logbook = default!;
+    private OptionsDraft<AbnormalsOptions> _abnormals = default!;
+
+    private static readonly IReadOnlyList<(string, string)> PersonaExperienceOptions =
+        [("junior", "Junior"), ("standard", "Standard"), ("senior", "Senior")];
+
+    private static readonly IReadOnlyList<(string, string)> PersonaFormalityOptions =
+        [("casual", "Casual"), ("standard", "Standard"), ("formal", "Formal")];
+
+    private static readonly IReadOnlyList<(string, string)> DebriefVerbosityOptions =
+        [("full", "Full"), ("brief", "Brief")];
 
     private IReadOnlyList<string> _captureDevices = [];
     private IReadOnlyList<string> _renderDevices = [];
@@ -1231,6 +1419,13 @@ else if (CurrentSection == "callouts")
         _accents = Draft(AccentsMonitor);
         _sayIntentions = Draft(SayIntentionsMonitor);
         _sop = Draft(SopMonitor);
+        _persona = Draft(PersonaMonitor);
+        _company = Draft(CompanyMonitor);
+        _debrief = Draft(DebriefMonitor);
+        _day = Draft(DayMonitor);
+        _techLog = Draft(TechLogMonitor);
+        _logbook = Draft(LogbookMonitor);
+        _abnormals = Draft(AbnormalsMonitor);
         MigrateLegacyBindings(_speech.Value);
         _captureDevices = DeviceCatalog.GetCaptureDeviceNames();
         _renderDevices = DeviceCatalog.GetRenderDeviceNames();
@@ -1282,8 +1477,6 @@ else if (CurrentSection == "callouts")
         briefing.ArrivalRunway = briefing.ArrivalRunway.Trim().ToUpperInvariant();
         briefing.ArrivalStar = briefing.ArrivalStar.Trim().ToUpperInvariant();
         briefing.ArrivalApproach = briefing.ArrivalApproach.Trim().ToUpperInvariant();
-        briefing.LlmWakeOnLan.MacAddress = briefing.LlmWakeOnLan.MacAddress.Trim();
-        briefing.LlmWakeOnLan.BroadcastAddress = briefing.LlmWakeOnLan.BroadcastAddress.Trim();
         briefing.LlmBaseUrl = briefing.LlmBaseUrl.Trim();
         briefing.LlmApiKey = briefing.LlmApiKey.Trim();
         briefing.LlmModel = briefing.LlmModel.Trim();
@@ -1304,6 +1497,18 @@ else if (CurrentSection == "callouts")
 
         // The monitor latches fired gates by name — keep names unique and in step with heights.
         SopOptions.SyncApproachGateNames(_sop.Value.ApproachGates);
+
+        var persona = _persona.Value;
+        persona.Name = persona.Name.Trim();
+        persona.Experience = persona.Experience.Trim().ToLowerInvariant();
+        persona.Formality = persona.Formality.Trim().ToLowerInvariant();
+        _debrief.Value.Verbosity = _debrief.Value.Verbosity.Trim().ToLowerInvariant();
+        // Paths: trim quotes too — Explorer's "Copy as path" wraps them.
+        _day.Value.RotationsFolder = _day.Value.RotationsFolder.Trim().Trim('"');
+        _day.Value.Path = _day.Value.Path.Trim().Trim('"');
+        _techLog.Value.Path = _techLog.Value.Path.Trim().Trim('"');
+        _techLog.Value.WearPoolPath = _techLog.Value.WearPoolPath.Trim().Trim('"');
+        _logbook.Value.Path = _logbook.Value.Path.Trim().Trim('"');
     }
 
     protected override void OnDiscarded()

@@ -260,6 +260,7 @@ public sealed class ArrivalGateCoordinator : IDisposable
                 return;
             }
 
+            _atcOrigin = false;
             _atcStatus = _atc is null
                 ? "SayIntentions integration not available — ATC push will be skipped."
                 : _atc.IsActive
@@ -277,14 +278,76 @@ public sealed class ArrivalGateCoordinator : IDisposable
         TryAutoFire(_phase.CurrentPhase);
     }
 
+    /// <summary>
+    /// Queues a gate that ATC (SayIntentions) assigned — 2026-10-08, the reverse of the
+    /// assignGate push. Only GSX is a target: SayIntentions already holds the gate, so the
+    /// ATC half is marked "from ATC" instead of being sent back. Past the cruise entry
+    /// (reassigned on approach, "taxi to gate …" after landing) the gate goes to GSX at once,
+    /// because the cruise edge the normal queue fires on has passed. The origin is not
+    /// persisted: after an app restart the restored gate goes to both targets, and for
+    /// SayIntentions that is a same-gate assign — harmless.
+    /// </summary>
+    public void ConfirmFromAtc(string gate)
+    {
+        string? queued;
+        var phase = _phase.CurrentPhase;
+        var fireNow = ArrivalGateRestorePlan.IsPastCruiseEntry(phase);
+        lock (_lock)
+        {
+            queued = _queue.Queue(gate);
+            if (queued is null)
+            {
+                return;
+            }
+
+            _atcOrigin = true;
+            _atcStatus = "Assigned by SayIntentions ATC — nothing to send back.";
+            _gsxStatus = _gsx is null
+                ? "GSX gate control unavailable — GSX push will be skipped."
+                : fireNow
+                    ? "From ATC — sending to GSX now."
+                    : "From ATC — sends to GSX at cruise (or Send Now).";
+            if (fireNow)
+            {
+                _queue.TakeManual();
+            }
+        }
+
+        _logger.LogInformation(
+            "Arrival gate {Gate} assigned by SayIntentions ATC ({Phase}) — {Action}",
+            queued, phase, fireNow ? "sending to GSX now" : "queued for cruise");
+        Persist(fired: fireNow);
+        RaiseChanged();
+        RefreshStandInfo(queued);
+        if (fireNow)
+        {
+            LastDispatch = DispatchAsync(queued, includeAtc: false);
+        }
+        else
+        {
+            TryAutoFire(phase);
+        }
+    }
+
+    /// <summary>True while the queued gate came from ATC: dispatch skips the SayIntentions
+    /// push. Cleared by a pilot Confirm / Send Now with a gate / Cancel.</summary>
+    private bool _atcOrigin;
+
     /// <summary>Fires both targets now: an explicit gate wins over the queued one; with
     /// neither, nothing happens. Returns the dispatch task (UI callers may discard it).</summary>
     public Task SendNow(string? gate = null)
     {
         string? send;
+        bool includeAtc;
         lock (_lock)
         {
+            if (ArrivalGatePlan.Normalize(gate).Length > 0)
+            {
+                _atcOrigin = false; // the pilot typed a gate — theirs, send it everywhere
+            }
+
             send = _queue.TakeManual(gate);
+            includeAtc = !_atcOrigin;
         }
 
         if (send is null)
@@ -295,7 +358,7 @@ public sealed class ArrivalGateCoordinator : IDisposable
         _logger.LogInformation("Arrival gate {Gate} — Send Now", send);
         Persist(fired: true);
         RefreshStandInfo(send);
-        LastDispatch = DispatchAsync(send, includeAtc: true);
+        LastDispatch = DispatchAsync(send, includeAtc);
         return LastDispatch;
     }
 
@@ -305,6 +368,7 @@ public sealed class ArrivalGateCoordinator : IDisposable
         lock (_lock)
         {
             _queue.Clear();
+            _atcOrigin = false;
             _atcStatus = "";
             _gsxStatus = "";
             _standInfo = "";
@@ -342,8 +406,10 @@ public sealed class ArrivalGateCoordinator : IDisposable
     private void TryAutoFire(FlightPhase phase, FlightPhase? previous = null)
     {
         string? gate;
+        bool includeAtc;
         lock (_lock)
         {
+            includeAtc = !_atcOrigin;
             gate = _queue.TakeAuto(phase);
 
             // Startup mid-flight (a restored, unfired queue): the engine's first commit goes
@@ -366,7 +432,7 @@ public sealed class ArrivalGateCoordinator : IDisposable
 
         _logger.LogInformation("Cruise reached — auto-sending arrival gate {Gate}", gate);
         Persist(fired: true);
-        LastDispatch = DispatchAsync(gate, includeAtc: true);
+        LastDispatch = DispatchAsync(gate, includeAtc);
     }
 
     /// <summary>Mirrors the queue to disk (no-op without a store). Never throws.</summary>

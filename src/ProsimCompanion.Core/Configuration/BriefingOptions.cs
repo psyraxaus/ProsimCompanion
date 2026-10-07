@@ -90,8 +90,10 @@ public sealed class BriefingOptions : IOptionSection
     /// <summary>Hard backstop: speak at this many seconds even if gear-up is never seen.</summary>
     public int MissedApproachHardCeilingSeconds { get; set; } = 30;
 
-    /// <summary>Wake-on-LAN for the LLM host: magic packet at startup (fire-and-forget —
-    /// readiness is confirmed by reaching the endpoint, never by the send).</summary>
+    /// <summary>LEGACY (superseded 2026-10-08 by the <c>wakeOnLan.targets</c> list,
+    /// <see cref="WakeTargetsOptions"/>): the single LLM-host magic packet. Still honoured at
+    /// startup while enabled; the Setup page moves it into the list on its first visit and
+    /// switches this off. Kept so an older settings.json keeps waking its PC.</summary>
     public WakeOnLanOptions LlmWakeOnLan { get; set; } = new();
 
     // ---- Interactive minima capture (arrival-brief sub-dialogue) ----

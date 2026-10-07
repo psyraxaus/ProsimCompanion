@@ -33,6 +33,7 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
     private readonly ILogger<SpeechDiagnosticsService> _logger;
     private readonly TtsRouter? _router;
     private readonly RecognitionController? _recognition;
+    private readonly IWakeOnLanControl? _wakeOnLan;
 
     /// <param name="router">The TTS chain, for the reconnect probe; optional so a
     /// diagnostics-only composition still works.</param>
@@ -47,10 +48,12 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         ILogger<SpeechDiagnosticsService> logger,
         OpenAiChatClient? llm = null,
         TtsRouter? router = null,
-        RecognitionController? recognition = null)
+        RecognitionController? recognition = null,
+        IWakeOnLanControl? wakeOnLan = null)
     {
         _router = router;
         _recognition = recognition;
+        _wakeOnLan = wakeOnLan;
         ArgumentNullException.ThrowIfNull(providers);
         ArgumentNullException.ThrowIfNull(playback);
         ArgumentNullException.ThrowIfNull(options);
@@ -79,17 +82,12 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         return $"{asr} {tts}";
     }
 
+    /// <summary>Since 2026-10-08 this wakes every PC on the <c>wakeOnLan.targets</c> list (and
+    /// the legacy single-PC block), not only the LLM host — the panel's button reads "Wake PCs".</summary>
     public Task<string> WakeLlmServerAsync(CancellationToken cancellationToken)
-    {
-        var wol = _briefingOptions.CurrentValue.LlmWakeOnLan;
-        if (string.IsNullOrWhiteSpace(wol.MacAddress))
-        {
-            return Task.FromResult(
-                "No MAC address configured — set it under First Officer → Briefings & LLM → Wake-on-LAN.");
-        }
-
-        return Task.FromResult(WakeOnLan.Send(wol.MacAddress, wol.BroadcastAddress, wol.Port, _logger));
-    }
+        => Task.FromResult(_wakeOnLan is null
+            ? "Wake-on-LAN is not available in this build."
+            : _wakeOnLan.SendAll());
 
     public Task<string> TestNavDataAsync(CancellationToken cancellationToken)
     {

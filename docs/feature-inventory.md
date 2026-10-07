@@ -36,11 +36,9 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       skip deferred (MSFS2024 keystroke)
 - [x] VDGS display + event feed via the in-sim handler (`installer/GSXProfiles/gsx_handler.py`
       → `/api/gsxmenu/events`, `/api/gsxmenu/flight-info`); the GSX SimBrief reload is not ported
-- [ ] GSX restart on taxi-in (optional) — restarts are detected and recovered from, never triggered
 - [x] Arrival gate assignment (retry ladder, armed at flight phase; SayIntentions source is
       Phase 6); stable-parked detection
 - [x] INT/RAD switch as universal service trigger ("smart button") + web force-next button
-- [ ] Headless remote-control mode (experimental) — not ported
 - [x] MECH call (`GroundCrewUpcallService`, `groundCrew.mechCall`) and cabin dings
       (`CabinDingService`, `cabin.dingOnStartup` / `dingOnFinal`); "cockpit to cabin" hail
       answered by the purser (`CrewHailService`). Cabin-call **auto**-answer (#11) parked for a
@@ -70,8 +68,8 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       on each logbook flight since #146)
 - [x] Web EFB parity: QR onboarding, bearer token, live updates, and every predecessor page has
       a home (/ofp, /loadsheet, /init, /wnb, /performance, /fuel, /checklists, /gsx …) — the
-      remaining per-page gaps are the rows above. The separate tablet `/efb` shell
-      (`feature/tablet-efb-surface`, 2026-08-30) is unmerged — owner decision pending
+      remaining per-page gaps are the rows above (the separate tablet `/efb` shell was dropped
+      2026-10-08 — see below)
 
 ## Audio (Prosim2GSX → Phase 4)
 
@@ -113,7 +111,8 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] SayIntentions ATC requests + departure comms gating + radio management
       (standby-then-swap)
 - [x] SayIntentions wrong-frequency report (COM1 vs ATC's last "Contact … on …"; said once,
-      pushback to taxi-in)
+      pushback to taxi-in); radio-clear gate over the SIAI L:vars (2026-10-08); ATC's assigned
+      gate as the GSX arrival gate (opt-in, 2026-10-08)
 - [x] MCDU reader ("read the MCDU", scratchpad; two identical reads = settled) + gated MCDU
       actuation (RAD NAV tune, arrival runway/approach change) — "MCDU" section on
       /settings/speech. Unverified live
@@ -123,7 +122,8 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 - [x] FO persona (name, experience, formality, chattiness 0–3, style flags —
       `PersonaOptions` + `PersonaService` / `PhraseBank` over `config/phrases.json`, 2026-08-08;
-      small talk via Ask the First Officer #152). **No web card yet** — settings.json only
+      small talk via Ask the First Officer #152); **FO Persona** card on /settings/speech since
+      2026-10-08
 - [x] Cabin crew simulation (purser reports gated on any ACP CAB latch, cabin secure/ready,
       opt-in boarding-delay ambient, distinct purser voice + interphone filter;
       cruise-query ambient deferred)
@@ -173,6 +173,17 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 
 ## Deliberately not carried forward
 
+- WinRT speech recognition engine — the LAN whisper + System.Speech chain made it pointless
+  (owner decision 2026-10-08)
+- Per-checklist key/joystick prompts to start a checklist — voice, the Voice Reference drawer
+  and the Stream Deck plugin cover it (2026-10-08)
+- Walkaround skip (MSFS2024 keystroke) — fragile key injection; walkaround is detected and
+  holds services instead (2026-10-08)
+- GSX / Couatl restart on taxi-in — destructive; restarts are detected and recovered from
+  (2026-10-08)
+- Headless remote-control mode — the web-first UI (ADR-0001) replaced it (2026-10-08)
+- The separate tablet `/efb` shell (`feature/tablet-efb-surface`, 2026-08-30) — the PWA (#150),
+  the restyle and the Flight Monitor made it redundant; branch deleted 2026-10-08
 - FS2Crew Fenix-profile bridge — superseded by the built-in voice First Officer (ADR-0005)
 - The Prosim2GSX↔ProsimInterface hot-swap DLL discipline (obsolete in a single solution)
 - Dual SimBrief clients; dual ad-hoc dataref write paths (consolidated by design)

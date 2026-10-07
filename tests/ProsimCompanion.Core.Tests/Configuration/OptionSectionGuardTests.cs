@@ -47,6 +47,36 @@ public sealed class OptionSectionGuardTests
             + string.Join(", ", offenders));
     }
 
+    /// <summary>Owner rule 2026-08-14: every option ships with a web-UI control. The 2026-10-08
+    /// audit found eight whole sections (45 properties) that never reached a page. This fence
+    /// holds the section level: a section class that no .razor file binds has no card at all.
+    /// Property-level coverage stays a review concern — a dictionary or power-user list may be
+    /// JSON-edited when a visible hint names it.</summary>
+    [Fact]
+    public void EveryOptionSectionClass_IsBoundOnSomeRazorPage()
+    {
+        var razorText = string.Join('\n', RazorFiles().Select(file => File.ReadAllText(file.Absolute)));
+        var unbound = typeof(IOptionSection).Assembly.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && typeof(IOptionSection).IsAssignableFrom(t))
+            .Where(t => !ExemptFromWebCard.Contains(t.Name))
+            .Where(t => !razorText.Contains($"OptionsDraft<{t.Name}>", StringComparison.Ordinal)
+                        && !razorText.Contains($"IOptionsMonitor<{t.Name}>", StringComparison.Ordinal))
+            .Select(t => t.Name)
+            .ToList();
+
+        Assert.True(
+            unbound.Count == 0,
+            "Every settings section needs a card on a settings page (owner rule 2026-08-14). "
+            + "Sections no .razor file binds: " + string.Join(", ", unbound));
+    }
+
+    /// <summary>Sections edited through a dedicated non-form surface, named here on purpose so
+    /// a new exemption is a visible review decision.</summary>
+    private static readonly HashSet<string> ExemptFromWebCard = new(StringComparer.Ordinal)
+    {
+        // Empty on purpose as of 2026-10-08: every section has a page.
+    };
+
     [Fact]
     public void RazorPages_NeverTouchTheSettingsFileDirectly()
     {

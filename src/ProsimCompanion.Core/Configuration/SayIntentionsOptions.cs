@@ -48,6 +48,15 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// for a normal hand-off and for dialling through channels. Floor 10 s.</summary>
     public int FrequencyMonitorWaitSeconds { get; set; } = 60;
 
+    // ---- Arrival gate from ATC ----
+
+    /// <summary>Take the gate SayIntentions ATC assigns (flight.json <c>assigned_gate</c>) as
+    /// the GSX arrival gate (2026-10-08). Only a gate that differs from the departure stand
+    /// and appears from the climb onward counts; a gate you queued yourself always wins; past
+    /// the cruise entry the gate goes to GSX at once. Off by default — SayIntentions' gate
+    /// pick may not exist in the loaded scenery, and GSX's own menu is then left for you.</summary>
+    public bool ArrivalGateFromAtc { get; set; }
+
     // ---- Batch weather (ATIS/METAR/TAF) + CPDLC station ----
     // These need only the API key, NOT an active flight — a parked cockpit can still pull
     // weather while SayIntentions itself is between flights.

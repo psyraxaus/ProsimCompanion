@@ -118,10 +118,12 @@ public sealed class SpeechDiagnosticsTests
     }
 
     [Fact]
-    public async Task WakeLlm_NoMacConfigured_PointsAtTheSetting()
+    public async Task WakeLlm_WithoutTheWakeSeam_SaysSo()
     {
+        // The diagnostics-only composition has no IWakeOnLanControl — the button must still
+        // answer with a sentence, never throw (2026-10-08: the wake moved to Core's targets list).
         var result = await Service().WakeLlmServerAsync(CancellationToken.None);
-        Assert.Contains("MAC", result);
+        Assert.Contains("Wake-on-LAN", result);
     }
 
     [Theory]
@@ -132,5 +134,5 @@ public sealed class SpeechDiagnosticsTests
     [InlineData("not a mac", false)]
     [InlineData("", false)]
     public void WakeOnLan_MacParsing(string mac, bool valid)
-        => Assert.Equal(valid, ProsimCompanion.Speech.Llm.WakeOnLan.TryParseMac(mac, out _));
+        => Assert.Equal(valid, ProsimCompanion.Core.Network.WakeOnLan.TryParseMac(mac, out _));
 }

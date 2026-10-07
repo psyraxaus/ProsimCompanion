@@ -428,10 +428,12 @@ from Phase 1 — this phase adds the speech stack and features on top.
       Purser/Company voices + chimes (Phase 6), web settings UI for sop / briefing /
       sayIntentions / recognition & PTT bindings (/settings/speech sections), LLM
       wake-on-LAN (`WakeOnLan` + `LlmWakeOnLanStartup`, "LLM Wake-on-LAN" card)
-- [ ] Phase 5 leftovers still open — see Open items: WinRT recognition engine, wake-on-LAN
-      for the **ASR** box (only the LLM box is woken), per-checklist FlightMonitor prompts
-      (keyboard/joystick), SIAI L:var radio-clear gate via `ISimVars` (still the 400 ms
-      no-SimVars fallback)
+- [x] Phase 5 leftovers closed 2026-10-08 (0.6.0-rc.22): SIAI L:var radio-clear gate via
+      `ISimVars` (`RadioClearGate` over `L:SIAI_COM1_RECEIVING` / `L:SIAI_RADIO_PTT`, 400 ms
+      quiet, 8 s cap, 400 ms fallback without a sim); wake-on-LAN for any number of PCs
+      (`wakeOnLan.targets`, Setup page — replaces the LLM-only block). Dropped by owner
+      decision 2026-10-08: WinRT recognition engine, per-checklist FlightMonitor key/joystick
+      prompts (see feature-inventory "Deliberately not carried forward")
 
 ## Phase 6 — Immersion & remaining integrations
 
@@ -590,10 +592,10 @@ memory of each flight test; from 0.5.0-rc.2 onward in `CHANGELOG.md`.
       Reposition menu no longer read as "unknown parking" (0.4.0-rc.3), gate strip shows the
       stand GSX reports, GPU cold-and-dark falling-edge latch (0.5.0-rc.2), sim-clock
       Local-kind crash fix (0.5.0-rc.4), pax-scaled cabin-secure wait (#134)
-- [ ] **Tablet EFB surface** (`feature/tablet-efb-surface`, 3 commits, 2026-08-30): `/efb`
-      shell, nine modules, six-pane settings, envelope dots over the live reticle. **Never
-      merged, no PR open, not on `main`.** Owner decision pending: merge (needs a rebase over
-      six weeks of main) or drop
+- ~~Tablet EFB surface~~ (`feature/tablet-efb-surface`, 3 commits, 2026-08-30: `/efb` shell,
+      nine modules, six-pane settings). Never merged; **dropped by owner decision 2026-10-08**
+      — the PWA (#150), the restyle and the Flight Monitor made it redundant. Branch deleted;
+      the commits stay reachable from the local tag `v0.4.0-beta.1`
 
 ## Phase 8 — October 2026 batch
 
@@ -769,43 +771,48 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       SDK-mismatch reasons on the ProSim dot (rc.20). Verified with 1.74b8 and 1.75.1
 - [x] **ProSim Setup Check** card over `system.config.*` (Setup page) + honest gateway write
       verdicts; **Flight Status tile order** with drag/swap edit mode (#160) (rc.21)
+- [x] **Roadmap-audit batch** (2026-10-08, rc.22, owner approved as one build): every
+      settings section has a web card — new Voice FO sections **FO Persona**, **Company &
+      Debrief** (company / debrief / day), **Tech Log & Logbook**, **Abnormals & Drills** (new
+      `abnormals` section: switch, interactive dialogue, timeouts — the ECAM dialogue ran on
+      constants), Setup cards **Weather Sources** (ActiveSky), **Updates**, **Wake-on-LAN**;
+      recognition thresholds (snap / confirm / confidence) on Listening & PTT; GSX **Confirm
+      good engine start** switch (`gsx.confirmEngineStart`); a guard test now fails the build
+      when an `IOptionSection` class is bound by no `.razor` file. **Wake-on-LAN for any
+      number of PCs** (`wakeOnLan.targets`, owner idea — Send now per row, the legacy
+      `briefing.llmWakeOnLan` migrated on the page's first visit, "Wake PCs" on the FO status
+      section). **SayIntentions arrival gate → GSX** (`sayIntentions.arrivalGateFromAtc`, off:
+      `AtcAssignedGateRule` remembers the departure stand, a changed gate from the climb on
+      queues for GSX, the pilot's own gate wins, after landing it fires at once; probe
+      `si-arrival-gate-from-atc`). **SIAI radio-clear gate** (`RadioClearGate`; probe
+      `si-radio-clear-gate`). Tablet EFB branch dropped. **Unverified live** — every item.
 
-## Open items (roadmap audit 2026-10-08)
+## Open items (roadmap audit 2026-10-08, updated after the rc.22 batch)
 
-Everything below is confirmed absent or incomplete in the code on `main` at 0.6.0-rc.21.
-Nothing else on this roadmap is open. Ordered by the owner's standing rules first.
+Everything below is confirmed absent or incomplete in the code on `main`. Nothing else on
+this roadmap is open.
 
-**Settings with no web control** (owner rule 2026-08-14 — every option has a GUI control).
-Eight `IOptionSection` classes are never referenced by any `.razor` file, 45 properties in
-all: `company` (6: enabled, autoLoadsheet, persistLoadsheet, cruiseMessages, probability,
-chime), `day` (7), `debrief` (3), `logbook` (2), `persona` (10: name, experience, formality,
-chattiness, style flags), `techlog` (10), `updateCheck` (2), `weather` (5: ActiveSky paths /
-API). Plus two single knobs inside sections that do have a card: `speech.confirmBelowScore`
-(gray-band threshold) and the ECAM abnormal dialogue timeouts (constants — no `abnormals`
-section at all). The auto engine-start confirmation has no switch at all.
+**Settings coverage** — every section has a card (guard test
+`EveryOptionSectionClass_IsBoundOnSomeRazorPage`). Property-level residue, each named in a
+visible hint on its page: `speech.vadMinSpeechMs` / `vadPreRollMs` / `vadMaxUtteranceMs`;
+the individual `sop` callout texts and thresholds, the other flow-monitor reminders and the
+weather advisories; `commandApi.requireTokenOnLoopback`; `accents.overrides` (dictionary).
 
 **Phase 5/6 leftovers truly open**
-- WinRT speech recognition engine (Windows.Media.SpeechRecognition) — only System.Speech and
-  the LAN ASR exist
-- Wake-on-LAN for the ASR box (the LLM box is woken; `LanAsrRecognizer` is not)
-- SIAI L:var radio-clear gate via `ISimVars` (400 ms no-SimVars fallback still in place)
-- Per-checklist FlightMonitor prompts (keyboard/joystick start of a checklist)
 - Tech-log procedural hooks (MEL items consulted by checklists / briefings)
 - Purser cruise query + response window (the `IMicOwnership` seam exists now)
-- SayIntentions `assigned_gate` as a GSX arrival-gate source (gate flows app → SI only)
 
 **Phase 2 leftovers truly open**
 - De-icing auto-request policy (weather/OAT) and the `FSDT_GSX_DEICING_STATE` LVAR
-- Walkaround skip (MSFS2024 keystroke)
-- Optional GSX / Couatl restart on taxi-in
-- Headless remote-control mode
 - EFB full/soft reset flows (only RESET FLIGHT on /init)
 - GSX SimBrief reload for VDGS (the VDGS display + event feed via `gsx_handler.py` exist)
 
+**Dropped 2026-10-08 (owner decision; listed in feature-inventory "Deliberately not carried
+forward")**: WinRT speech recognition, per-checklist key/joystick prompts, walkaround skip
+keystroke, GSX/Couatl restart on taxi-in, headless remote-control mode, the tablet EFB branch.
+
 **Decisions pending**
-- `feature/tablet-efb-surface` — merge or drop (Phase 7.5)
 - Cabin-call auto-answer (#11) — write-safety review
 - Ambient region facts in cruise (#122) — the on-demand half is #153; the unprompted half is open
 - Unmatched-utterance candidate tracking (#112)
-- Arrival gate lost on mid-flight restart (#102); double-fire ground-ops events (#90);
-  gate-name matching leftovers (#75, largely superseded by #156) — triage
+- Arrival gate lost on mid-flight restart (#102) and double-fire ground-ops events (#90) — triage
