@@ -8,11 +8,18 @@ namespace ProsimCompanion.Core.Gate;
 
 /// <summary>The persisted arrival-gate queue: what was confirmed, for which destination,
 /// whether it already fired, and when. camelCase JSON in <c>arrival-gate.json</c>.</summary>
+/// <param name="AtcOrigin">Issue #102: true when SayIntentions ATC assigned the gate (the
+/// rc.22 reverse flow). Carried across the restart so the restored dispatch does not send
+/// ATC's own gate back to it; a file written before this field reads as false (pilot's gate).</param>
+/// <param name="FlightNumber">The OFP flight number at save time, a second identity beside
+/// the destination for the restore decision; null when no OFP was loaded.</param>
 public sealed record ArrivalGateState(
     string Gate,
     string? DestinationIcao,
     bool Fired,
-    DateTimeOffset SavedAtUtc);
+    DateTimeOffset SavedAtUtc,
+    bool AtcOrigin = false,
+    string? FlightNumber = null);
 
 /// <summary>
 /// Persistence for the queued arrival gate so an app restart in flight does not lose it.

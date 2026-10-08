@@ -82,6 +82,42 @@ public sealed class ArrivalGateCoordinatorTests
         _atc.Verify(a => a.AssignGateAsync("YSSY", "B12", It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>Issue #102: a short leg (or a restart) where the engine never commits Cruise —
+    /// the first commit past the cruise entry fires the queue, once.</summary>
+    [Fact]
+    public async Task ClimbToDescent_WithoutCruise_FiresOnTheDescentCommit()
+    {
+        using var coordinator = CreateCoordinator();
+        coordinator.Confirm("B12");
+        await coordinator.LastDispatch;
+        _gsx.Verify(g => g.RequestGate(It.IsAny<string>()), Times.Never);
+
+        _phase.Raise(p => p.PhaseChanged += null, _phase.Object,
+            new FlightPhaseChangedEventArgs(FlightPhase.Climb, FlightPhase.Descent));
+        await coordinator.LastDispatch;
+        _phase.Raise(p => p.PhaseChanged += null, _phase.Object,
+            new FlightPhaseChangedEventArgs(FlightPhase.Descent, FlightPhase.Approach));
+        await coordinator.LastDispatch;
+
+        _gsx.Verify(g => g.RequestGate("B12"), Times.Once);
+        _atc.Verify(a => a.AssignGateAsync("YSSY", "B12", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    /// <summary>Issue #102 first half: "A05" confirmed in the descent used to wait for a cruise
+    /// edge that had already passed until the pilot pressed Send Now.</summary>
+    [Fact]
+    public async Task Confirm_InTheDescent_FiresImmediately()
+    {
+        _phase.SetupGet(p => p.CurrentPhase).Returns(FlightPhase.Descent);
+        using var coordinator = CreateCoordinator();
+
+        coordinator.Confirm("A05");
+        await coordinator.LastDispatch;
+
+        _gsx.Verify(g => g.RequestGate("A05"), Times.Once);
+        Assert.True(coordinator.Snapshot().Sent);
+    }
+
     [Fact]
     public async Task SendNow_FiresImmediately_AndCruiseDoesNotResend()
     {

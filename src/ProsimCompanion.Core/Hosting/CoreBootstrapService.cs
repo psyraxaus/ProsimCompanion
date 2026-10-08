@@ -81,7 +81,12 @@ public sealed class CoreBootstrapService : IHostedService
             var (action, gate) = _arrivalGate.Restore();
             if (action != Gate.ArrivalGateRestoreAction.Ignore)
             {
-                _eventLog.Record("arrival-gate-restored", new { gate, action = action.ToString() });
+                _eventLog.Record("arrival-gate-restored", new
+                {
+                    gate,
+                    action = action.ToString(),
+                    phase = _flightState.CurrentPhase.ToString(),
+                });
             }
         }
         catch (Exception ex)
