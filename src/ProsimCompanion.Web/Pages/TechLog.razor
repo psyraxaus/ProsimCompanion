@@ -60,6 +60,10 @@
                                     {
                                         <span class="pill tone-warn">@defect.Placard</span>
                                     }
+                                    @if (!string.IsNullOrWhiteSpace(defect.System))
+                                    {
+                                        <span class="pill tone-neutral" title="Checklist system tag">@defect.System</span>
+                                    }
                                     @if (defect.IsOpen)
                                     {
                                         <span class="pill @(overdue ? "tone-bad" : "tone-neutral")">@(overdue ? "OVERDUE — " : "")@_techLog.DaysPhrase(defect)</span>
@@ -119,6 +123,11 @@
                     <span class="label-caps">Placard</span>
                     <input class="text-input" @bind="_placard" placeholder="optional, e.g. APU INOP" />
                 </label>
+                <label class="ops-field">
+                    <span class="label-caps">System</span>
+                    <input class="text-input" @bind="_system" placeholder="optional tag, e.g. apu, gear, autobrake" />
+                    <span class="field-hint">Matches a spoken checklist line's system tag, so the FO notes the item on that line. Blank: the title's words match instead.</span>
+                </label>
                 <button type="button" class="btn primary" disabled="@string.IsNullOrWhiteSpace(_title)" @onclick="Raise">
                     Enter in tech log
                 </button>
@@ -138,6 +147,7 @@
     private string _melReference = "";
     private string _implications = "";
     private string _placard = "";
+    private string _system = "";
 
     protected override void OnInitialized()
     {
@@ -183,12 +193,14 @@
 
         draft.OperationalImplications = _implications.Trim();
         draft.Placard = string.IsNullOrWhiteSpace(_placard) ? null : _placard.Trim();
+        draft.System = string.IsNullOrWhiteSpace(_system) ? null : _system.Trim();
         _techLog.RaiseDefect(draft);
 
         _title = "";
         _melReference = "";
         _implications = "";
         _placard = "";
+        _system = "";
         Refresh();
     }
 

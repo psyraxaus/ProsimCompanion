@@ -36,8 +36,28 @@ at them.
    **fail** (quote the exact events/log lines), and
    **untested** (the trigger never occurred this flight — never report as a pass).
 4. `watch` probes produce counts and context, not verdicts.
-5. End the report with the `requires-human-checklist` entry so the pilot knows what still
+5. List the **voice command candidates** (below) — the phrases the pilot keeps saying that
+   the FO has no action for.
+6. End the report with the `requires-human-checklist` entry so the pilot knows what still
    needs eyeballs.
+
+## Voice command candidates (issue #112)
+
+Every utterance that nothing acted on — no command, feature, checklist answer or question
+handler — is a `voice.unmatched` session event (`text`, `normalized`, `score`, `context`,
+`phase`, `reason`, `suppressed`). Read them after every flight:
+
+- Group by `normalized`, drop `suppressed = true` (sterile-phase absorptions: callouts, not
+  commands), and list every phrase heard **3+ times** as a command candidate, with its
+  `context`s. `idle` means a new command (`commands.json` / `atc-requests.json` under
+  `%LOCALAPPDATA%\ProsimCompanion\config`); `checklist: <line>` with reason `not-an-answer`
+  means that line's `acceptedPhrases` is missing the pilot's wording; `confirm-declined`
+  means the snapper guessed wrong — a phrase close to an existing one that still needs its own.
+- The support reducer pre-computes the same list per session as
+  `sessions[].voiceUnmatched.candidates` (see [`support-bundle.md`](support-bundle.md)).
+- The Voice status page (`/speech`, "Heard but not understood") shows the live list during
+  the flight; `speech.trackUnmatched` (default on) gates both the event and the page.
+- Candidates are a proposal to the owner, never an automatic edit of the command files.
 
 ## Replaying a flight through the phase engine
 

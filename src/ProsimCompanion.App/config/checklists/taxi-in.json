@@ -2,8 +2,8 @@
   "checklist": "Taxi In",
   "order": 140,
   "items": [
-    { "behavior": "acknowledge", "say": "A P U", "expectedResponse": "AS REQUIRED", "acceptedPhrases": [ "as required", "started", "on", "set" ], "verify": null, "confirmCallout": "APU, as required" },
-    { "behavior": "acknowledge", "say": "Brakes Temperature", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "Brakes temperature, checked" },
-    { "behavior": "acknowledge", "say": "Flaps", "expectedResponse": "RETRACTED", "acceptedPhrases": [ "retracted", "up", "zero" ], "verify": null, "confirmCallout": "Flaps, retracted" }
+    { "behavior": "acknowledge", "say": "A P U", "system": "apu", "expectedResponse": "AS REQUIRED", "acceptedPhrases": [ "as required", "started", "on", "set" ], "verify": null, "confirmCallout": "APU, as required" },
+    { "behavior": "acknowledge", "say": "Brakes Temperature", "system": "brakes", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "Brakes temperature, checked" },
+    { "behavior": "acknowledge", "say": "Flaps", "system": "flaps", "expectedResponse": "RETRACTED", "acceptedPhrases": [ "retracted", "up", "zero" ], "verify": null, "confirmCallout": "Flaps, retracted" }
   ]
 }

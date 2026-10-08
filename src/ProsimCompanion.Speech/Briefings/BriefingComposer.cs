@@ -10,7 +10,9 @@ namespace ProsimCompanion.Speech.Briefings;
 /// active runway (SayIntentions-sourced, via the composite weather provider) feed the LLM
 /// fact block only; the deterministic template deliberately ignores them so its clause
 /// structure stays byte-stable. AirportName is the spoken name ("Sydney") resolved by
-/// <see cref="Core.Airports.IAirportNames"/> — null falls back to the ICAO ident.</summary>
+/// <see cref="Core.Airports.IAirportNames"/> — null falls back to the ICAO ident. TechLogItems
+/// are the open tech-log defects this briefing consults (2026-10-09; already filtered for the
+/// briefing kind by <see cref="Core.TechLog.TechLogConsultation"/>) — null or empty = no clause.</summary>
 public sealed record BriefingFacts(
     bool IsDeparture,
     string? Airport,
@@ -31,7 +33,8 @@ public sealed record BriefingFacts(
     int? FlexTempC = null,
     int? VisibilityM = null,
     int? TemperatureC = null,
-    string? AirportName = null);
+    string? AirportName = null,
+    IReadOnlyList<Core.TechLog.TechLogDefect>? TechLogItems = null);
 
 /// <summary>
 /// The deterministic briefing template (Prosim2FO's exact clause structure) plus the number
@@ -160,6 +163,19 @@ public static class BriefingComposer
                 : new("minimums", "Minimums not briefed.") { AnyOf = ["minimum"] });
         }
 
+        // Tech-log consultation (2026-10-09): after every existing clause so the byte-stable
+        // structure above is untouched when the log is clean. Recognised in the model's words
+        // by the first named title (or the phrase itself), so a streamed briefing that already
+        // mentioned the deferred item is not told it twice.
+        if (f.TechLogItems is { Count: > 0 } items
+            && Core.TechLog.TechLogConsultation.BriefingClause(items, f.IsDeparture) is { } clause)
+        {
+            s.Add(new("tech-log", clause)
+            {
+                AnyOf = ["tech log", "techlog", "deferred", "MEL", items[0].Title],
+            });
+        }
+
         return s;
     }
 
@@ -271,6 +287,19 @@ public static class BriefingComposer
         AddValue(f.VisibilityM);
         AddValue(f.TemperatureC);
         AddValue(f.Minima?.AltitudeFt);
+        if (f.TechLogItems is { Count: > 0 } items)
+        {
+            // Titles are locked facts ("Engine 1 anti-ice valve"), so their digits are allowed;
+            // the "and N more" count too, in case the model says it in its own words.
+            foreach (var item in items)
+            {
+                AddDigits(item.Title);
+            }
+
+            AddValue(items.Count);
+            AddValue(Math.Max(0, items.Count - Core.TechLog.TechLogConsultation.MaxBriefedTitles));
+        }
+
         return allowed;
     }
 
@@ -343,6 +372,17 @@ public static class BriefingComposer
         if (!f.IsDeparture)
         {
             Line("Minimums", f.Minima is { } m ? MinimaCallout(m) : "NOT BRIEFED");
+        }
+
+        if (f.TechLogItems is { Count: > 0 } items)
+        {
+            // Facts, not prose: the model may mention them, never embellish them. Same cap as
+            // the template so the spoken list stays short either way.
+            var titles = items.Take(Core.TechLog.TechLogConsultation.MaxBriefedTitles)
+                .Select(d => $"{d.Title} (MEL category {d.Category})");
+            var more = items.Count - Math.Min(items.Count, Core.TechLog.TechLogConsultation.MaxBriefedTitles);
+            Line(f.IsDeparture ? "Open tech log items (deferred defects)" : "Open tech log items affecting landing",
+                string.Join("; ", titles) + (more > 0 ? $"; and {more} more" : ""));
         }
 
         return sb.ToString();

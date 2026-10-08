@@ -106,10 +106,19 @@ public sealed class UtteranceRouterTests
     private UtteranceRouter CreateRouter(params IVoiceFeature[] features) => CreateRouter(null, features);
 
     private UtteranceRouter CreateRouter(IFreeFormQuestionHandler? questions, params IVoiceFeature[] features)
+        => CreateRouter(questions, null, features);
+
+    /// <summary>The heard-but-not-understood store (issue #112) a router built with
+    /// <see cref="CreateRouter(IFreeFormQuestionHandler?, SpeechOptions?, IVoiceFeature[])"/> writes to.</summary>
+    private readonly UnmatchedUtteranceStore _unmatched = new();
+
+    private UtteranceRouter CreateRouter(IFreeFormQuestionHandler? questions, SpeechOptions? speechOptions, params IVoiceFeature[] features)
     {
-        var options = SpeechTestSupport.SpeechMonitor(new SpeechOptions());
+        var options = SpeechTestSupport.SpeechMonitor(speechOptions ?? new SpeechOptions());
         var dataRefs = Mock.Of<IProsimDataRefs>();
         var eventLog = SpeechTestSupport.TempEventLog();
+        var tracker = new UnmatchedUtteranceTracker(
+            options, _unmatched, eventLog, NullLogger<UnmatchedUtteranceTracker>.Instance);
         var router = new UtteranceRouter(
             new UtteranceInterpreter(options),
             new ChecklistService(
@@ -126,7 +135,8 @@ public sealed class UtteranceRouterTests
             SpeechTestSupport.Persona(),
             new LlmHealthStore(),
             NullLogger<UtteranceRouter>.Instance,
-            questions: questions);
+            questions: questions,
+            unmatched: tracker);
         router.Attach(_host);
         router.Start();
         return router;
@@ -385,5 +395,76 @@ public sealed class UtteranceRouterTests
         _window.Hear("what is our fuel on board right now");
 
         Assert.Empty(questions.Asked);                          // the item's own flow answers
+    }
+
+    // ---- Heard but not understood (issue #112) ----
+
+    [Fact]
+    public void IdleMiss_IsRecordedAsACandidate_WithContextAndReason()
+    {
+        using var router = CreateRouter(new ScriptedFeature("request refueling"));
+
+        _window.Hear("umm what was that noise");
+        _window.Hear("Umm, what was that noise?");
+
+        var snapshot = _unmatched.Snapshot();
+        Assert.Equal(2, snapshot.Total);
+        var group = Assert.Single(snapshot.Groups());
+        Assert.Equal(2, group.Count);                           // normalized: one phrase, two hearings
+        Assert.Equal(["idle"], group.Contexts);
+        Assert.All(snapshot.Recent, u => Assert.False(u.Suppressed));
+        Assert.All(snapshot.Recent, u => Assert.Equal("reject", u.Reason));
+    }
+
+    [Fact]
+    public void HandledUtterance_AndAnAnsweredQuestion_AreNeverUnmatched()
+    {
+        var feature = new ScriptedFeature("request refueling");
+        using var router = CreateRouter(new ScriptedQuestions(), feature);
+
+        _window.Hear("request refueling");                      // a feature took it
+        _window.Hear("what is our fuel on board right now");   // the question handler took it
+
+        Assert.Single(feature.Handled);
+        Assert.Equal(0, _unmatched.Snapshot().Total);
+    }
+
+    [Fact]
+    public void DisabledFeaturePhrase_IsUnmatched_WithTheNoHandlerReason()
+    {
+        using var router = CreateRouter(new ScriptedFeature("request refueling", enabled: false));
+
+        _window.Hear("request refueling");
+
+        var miss = Assert.Single(_unmatched.Snapshot().Recent);
+        Assert.Equal("request refueling", miss.Normalized);
+        Assert.Contains(miss.Reason, new[] { "reject", "no-handler" }); // outside the grammar, or snapped and unclaimed
+    }
+
+    [Fact]
+    public void NonAnswer_WhileAnItemIsPending_IsRecordedAgainstThatLine()
+    {
+        _host.AwaitingItem = Item("set");
+        _host.ResponsePending = true;
+        using var router = CreateRouter(new ScriptedFeature("request refueling"));
+
+        _window.Hear("umm what was that noise");
+
+        var miss = Assert.Single(_unmatched.Snapshot().Recent);
+        Assert.Equal("checklist: Test item", miss.Context);
+        Assert.Contains(miss.Reason, new[] { "reject", "not-an-answer" });
+        // Either way the item's own flow answers (NotCaught, or a Phrase that fails acceptance).
+        Assert.Single(_host.Completed);
+    }
+
+    [Fact]
+    public void TrackingOff_RecordsNothing_ButTheDidNotCatchLineStillSpeaks()
+    {
+        using var router = CreateRouter(null, new SpeechOptions { TrackUnmatched = false }, new ScriptedFeature("request refueling"));
+
+        _window.Hear("umm what was that noise");
+
+        Assert.Equal(0, _unmatched.Snapshot().Total);
+        Assert.Single(_arbiter.Requests);
     }
 }

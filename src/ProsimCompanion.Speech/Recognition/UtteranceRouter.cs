@@ -80,6 +80,8 @@ public sealed class UtteranceRouter : IDisposable
     private readonly Core.Flight.IFlightPhaseSource? _flightPhase;
     // Optional: the free-form question handler (issue #149), consulted last.
     private readonly IFreeFormQuestionHandler? _questions;
+    // Optional: the heard-but-not-understood bookkeeping (issue #112).
+    private readonly UnmatchedUtteranceTracker? _unmatched;
     private IChecklistRoutingHost? _host;
     private bool _started;
     private bool _llmOfflineAdvisoryGiven; // once per session (issue #66)
@@ -97,7 +99,8 @@ public sealed class UtteranceRouter : IDisposable
         LlmHealthStore llmHealth,
         ILogger<UtteranceRouter> logger,
         Core.Flight.IFlightPhaseSource? flightPhase = null,
-        IFreeFormQuestionHandler? questions = null)
+        IFreeFormQuestionHandler? questions = null,
+        UnmatchedUtteranceTracker? unmatched = null)
     {
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
@@ -124,6 +127,7 @@ public sealed class UtteranceRouter : IDisposable
         _logger = logger;
         _flightPhase = flightPhase;
         _questions = questions;
+        _unmatched = unmatched;
     }
 
     /// <summary>Attaches the checklist run loop; called by the engine before Start.</summary>
@@ -226,9 +230,19 @@ public sealed class UtteranceRouter : IDisposable
         // Empty-text rejections (silent PTT tap, timeout) are swallowed by design.
         if (!string.IsNullOrWhiteSpace(e.Text))
         {
+            // The engine heard words and threw them away itself (issue #112): still a miss
+            // worth listing — a phrase the offline engine keeps rejecting is a grammar gap.
+            _unmatched?.Record(e.Text, e.Confidence, ContextOf(host), UnmatchedReason.EngineReject);
             host.Complete(RoutedResponseKind.NotCaught, "");
         }
     }
+
+    /// <summary>Where the pilot's words landed, for the unmatched list (issue #112): the
+    /// awaiting checklist line, the hold loop, or idle.</summary>
+    private static string ContextOf(IChecklistRoutingHost host)
+        => host.AwaitingItem is { } item ? $"checklist: {item.Say}"
+            : host.ResponsePending ? "checklist-hold"
+            : "idle";
 
     private void RouteUtterance(IChecklistRoutingHost host, RecognizedEventArgs e)
     {
@@ -279,11 +293,12 @@ public sealed class UtteranceRouter : IDisposable
                 if (responsePending)
                 {
                     // An item (or the hold loop) owns the reply — its own flow speaks.
+                    _unmatched?.Record(e.Text, interpretation.Score, ContextOf(host), UnmatchedReason.Reject);
                     host.Complete(RoutedResponseKind.NotCaught, "");
                 }
                 else
                 {
-                    HandleIdleMiss(e.Text);
+                    HandleIdleMiss(e.Text, interpretation.Score, UnmatchedReason.Reject);
                 }
 
                 return;
@@ -291,11 +306,11 @@ public sealed class UtteranceRouter : IDisposable
             case InterpretKind.Confirm:
                 // Gray band (score 0.70–0.85, command windows only): "did you mean …?" — the
                 // predecessor's affirm-gated recovery instead of silently discarding it.
-                _ = ConfirmAndRouteAsync(host, interpretation.Text);
+                _ = ConfirmAndRouteAsync(host, interpretation.Text, e.Text, interpretation.Score);
                 return;
         }
 
-        RouteText(host, interpretation.Text, awaiting, e.Text);
+        RouteText(host, interpretation.Text, awaiting, e.Text, interpretation.Score);
     }
 
     /// <summary>True when the raw text, normalized, equals a phrase owned outside the value
@@ -339,12 +354,13 @@ public sealed class UtteranceRouter : IDisposable
     /// into the FCU's "which field?" clarifier or vanished silently. Now it gets the normal
     /// did-not-catch line — or, once per session while the LLM is known-unhealthy, the
     /// advisory that explains WHY free-form phrasing is falling flat.</summary>
-    private void HandleIdleMiss(string rawText)
+    private void HandleIdleMiss(string rawText, double score, UnmatchedReason reason)
     {
         // A free-form question (issue #149) is the last thing tried before the did-not-catch
         // line — only on the free-text engine, only when the handler takes it. It gets the
         // RAW transcription: the snapper may have bent a question towards a phrase nobody
-        // then claimed. Known phrases never reach here, so they always win.
+        // then claimed. Known phrases never reach here, so they always win. A question the
+        // model answered is NOT an unmatched utterance (issue #112).
         if (_questions is { Enabled: true } questions && _recognition.FreeFormCapable && questions.TryAsk(rawText))
         {
             return;
@@ -360,6 +376,7 @@ public sealed class UtteranceRouter : IDisposable
             or Core.Flight.FlightPhase.LandingRollout)
         {
             _logger.LogDebug("Idle miss absorbed silently (sterile phase {Phase})", _flightPhase.CurrentPhase);
+            _unmatched?.Record(rawText, score, "idle", reason, suppressed: true);
             return;
         }
 
@@ -370,8 +387,12 @@ public sealed class UtteranceRouter : IDisposable
             && view.Data is { RadioAltitudeFt: < 1000 })
         {
             _logger.LogDebug("Idle miss absorbed silently (short final)");
+            _unmatched?.Record(rawText, score, "idle", reason, suppressed: true);
             return;
         }
+
+        // The candidate list (issue #112): everything that reaches the did-not-catch line.
+        _unmatched?.Record(rawText, score, "idle", reason);
 
         var response = IdleMissPolicy.Decide(
             _llmHealth.Snapshot().State, _llmOfflineAdvisoryGiven,
@@ -389,7 +410,7 @@ public sealed class UtteranceRouter : IDisposable
     /// answer outranks the identically-named global command; a non-answer falls through to
     /// the global commands and then the voice features, so "my aircraft" or "tune the ils"
     /// still works while a checklist line is pending.</summary>
-    private void RouteText(IChecklistRoutingHost host, string text, ChecklistItemDefinition? awaiting, string? rawText = null)
+    private void RouteText(IChecklistRoutingHost host, string text, ChecklistItemDefinition? awaiting, string? rawText = null, double score = 1.0)
     {
         if (awaiting is not null && host.IsAcceptedAnswer(awaiting, text))
         {
@@ -461,6 +482,7 @@ public sealed class UtteranceRouter : IDisposable
         {
             // Not a command, not a feature — treat as the item answer (acceptance already
             // failed above, so this lands in the "didn't catch that" flow).
+            _unmatched?.Record(rawText ?? text, score, $"checklist: {awaiting.Say}", UnmatchedReason.NotAnAnswer);
             host.Complete(RoutedResponseKind.Phrase, text);
             return;
         }
@@ -484,14 +506,15 @@ public sealed class UtteranceRouter : IDisposable
 
         // Interpreted, yet no command/feature/drill/start claimed it (issue #66): answer
         // like any other idle miss instead of dropping it silently.
-        HandleIdleMiss(rawText ?? text);
+        HandleIdleMiss(rawText ?? text, score, UnmatchedReason.NoHandler);
     }
 
     /// <summary>The gray-band recovery (Prosim2FO's ConfirmAndRouteAsync): borrow the mic,
     /// ask "did you mean {candidate}?", listen 8 s on the confirm vocabulary, and route the
     /// candidate only on an affirmative. Anything else (negative, timeout, mic busy) drops it
-    /// — the borrow's disposal replays the previous window either way.</summary>
-    private async Task ConfirmAndRouteAsync(IChecklistRoutingHost host, string candidate)
+    /// — the borrow's disposal replays the previous window either way. A dropped candidate
+    /// is listed as heard-but-not-understood (issue #112) with what was actually said.</summary>
+    private async Task ConfirmAndRouteAsync(IChecklistRoutingHost host, string candidate, string heard, double score)
     {
         try
         {
@@ -502,6 +525,7 @@ public sealed class UtteranceRouter : IDisposable
             }
             catch (InvalidOperationException)
             {
+                _unmatched?.Record(heard, score, "confirm-declined", UnmatchedReason.ConfirmDeclined);
                 return; // another dialogue owns the mic — let the pilot just repeat
             }
 
@@ -519,7 +543,11 @@ public sealed class UtteranceRouter : IDisposable
             if (answer is not null
                 && ConfirmVocabulary.Affirm.Any(a => answer.Contains(a, StringComparison.OrdinalIgnoreCase)))
             {
-                RouteText(host, candidate, host.AwaitingItem);
+                RouteText(host, candidate, host.AwaitingItem, heard, score);
+            }
+            else
+            {
+                _unmatched?.Record(heard, score, "confirm-declined", UnmatchedReason.ConfirmDeclined);
             }
         }
         catch (Exception ex)
