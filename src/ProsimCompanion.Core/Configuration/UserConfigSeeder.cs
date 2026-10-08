@@ -43,6 +43,7 @@ public static class UserConfigSeeder
         "atc-requests.json",
         "commands.json",
         "phrases.json",
+        "region-facts.json",
     ];
 
     private const string ManifestFileName = ".shipped-manifest.json";

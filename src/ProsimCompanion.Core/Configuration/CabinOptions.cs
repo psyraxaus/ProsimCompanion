@@ -59,12 +59,30 @@ public sealed class CabinOptions : IOptionSection
     /// dead voices.cabinChime key — one toggle per channel.)</summary>
     public bool Chime { get; set; } = true;
 
-    /// <summary>Optional ambient cabin events (boarding-delay call). Off by default. The
-    /// purser cruise query needs the mic-ownership seam and arrives with it.</summary>
+    /// <summary>Optional ambient cabin events (boarding-delay call). Off by default.</summary>
     public bool AmbientEvents { get; set; }
 
     /// <summary>Probability (0–1) of a boarding-delay call at the gate, rolled once per flight.</summary>
     public double BoardingDelayProbability { get; set; } = 0.15;
+
+    // ---- Purser cruise query (Prosim2FO "Prompt F", over the mic-ownership seam) ----
+
+    /// <summary>Once per flight in the cruise the purser calls the flight deck (chime, CAB
+    /// latch or grace as for every report) and asks for an arrival-time or turbulence update,
+    /// then listens for the captain's reply for <see cref="CruiseQueryWindowSeconds"/>. A
+    /// reply naming a time ("about forty minutes", "on time") or the ride ("smooth", "light
+    /// chop") earns the matching acknowledgement; anything else "copied, thank you"; silence
+    /// "we'll check back later". Off by default like the other ambient cabin events. Never
+    /// writes to the aircraft.</summary>
+    public bool CruiseQuery { get; set; }
+
+    /// <summary>Minutes after the cruise begins before the purser calls, jittered ±30% once
+    /// per flight so the call does not land on the same minute every leg.</summary>
+    public int CruiseQueryDelayMinutes { get; set; } = 10;
+
+    /// <summary>How long the purser listens for the captain's reply, seconds. The mic is
+    /// borrowed for exactly this window; a running checklist holds and resumes.</summary>
+    public int CruiseQueryWindowSeconds { get; set; } = 20;
 
     // ---- Report wording (predecessor defaults, spoken verbatim in the purser role) ----
 
@@ -88,4 +106,23 @@ public sealed class CabinOptions : IOptionSection
     /// (issue #134) — the crew is busy, the report will follow.</summary>
     public string CabinSecuringReplyText { get; set; } =
         "Still securing the cabin, captain — we'll call you when we're ready.";
+
+    /// <summary>The purser's cruise query (<see cref="CruiseQuery"/>).</summary>
+    public string CruiseQueryText { get; set; } =
+        "Flight deck, cabin. Any update on arrival time or turbulence for the service?";
+
+    /// <summary>Acknowledgement when the reply named a time or an arrival estimate.</summary>
+    public string CruiseQueryEtaAckText { get; set; } =
+        "Copied, thank you. We'll plan the service around that.";
+
+    /// <summary>Acknowledgement when the reply described the ride.</summary>
+    public string CruiseQueryRideAckText { get; set; } =
+        "Copied, thank you. We'll let the cabin know about the ride.";
+
+    /// <summary>Acknowledgement for any other reply.</summary>
+    public string CruiseQueryGenericAckText { get; set; } = "Copied, thank you.";
+
+    /// <summary>Spoken when the window closed with no reply.</summary>
+    public string CruiseQueryNoReplyText { get; set; } =
+        "No worries, we'll check back later.";
 }

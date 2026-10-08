@@ -81,6 +81,9 @@
     <!-- Acknowledgement phrase pools (Prosim2FO format; user-editable, hot-reloaded — the
          persona layer draws from the same pools). -->
     <Content Include="config\phrases.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Curated cruise region facts (issue #122; user-editable, hot-reloaded). Keys: ISO 3166-1
+         alpha-2 country codes, or "sea:<name>" for open water, as the atlas names them. -->
+    <Content Include="config\region-facts.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Random-wear pool for the tech log (benign, purely procedural; techLog.randomWear). -->
     <Content Include="config\techlog\wear-pool.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

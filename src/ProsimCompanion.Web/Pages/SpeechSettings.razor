@@ -338,6 +338,18 @@ else if (CurrentSection == "cabin")
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AmbientEvents)"
                      @bind-Value="_cabin.Value.BoardingDelayProbability"
                      Default="_cabin.Defaults.BoardingDelayProbability" />
+        <BoolField Label="Purser cruise query"
+                   Hint="Once per flight in the cruise the purser calls: 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' — then listens for your answer."
+                   More="Chime and CAB channel as for every report. Answer in your own words: a time ('about forty minutes', 'on time', 'ten minutes late') or the ride ('smooth', 'light chop', 'expect some bumps') gets a matching acknowledgement, anything else 'copied, thank you', silence 'we'll check back later'. The reply is only ever acknowledged — never read as a command. A free answer needs the LAN speech server; the offline Windows engine hears a short list of likely replies. The call waits while the FO's ear is paused or another dialogue has the mic, and is skipped if the descent begins first."
+                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CruiseQuery" />
+        <NumberField Label="Cruise query after" Hint="Minutes into the cruise before the purser calls, give or take thirty percent." Suffix="min" Min="0" Max="180"
+                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CruiseQuery)"
+                     @bind-Value="_cabin.Value.CruiseQueryDelayMinutes"
+                     Default="_cabin.Defaults.CruiseQueryDelayMinutes" />
+        <NumberField Label="Cruise query reply window" Hint="How long the purser listens for your answer." Suffix="s" Min="3" Max="60"
+                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CruiseQuery)"
+                     @bind-Value="_cabin.Value.CruiseQueryWindowSeconds"
+                     Default="_cabin.Defaults.CruiseQueryWindowSeconds" />
     </Section>
 
     <Section Title="Cabin Wording" Hint="Spoken word for word">
@@ -350,6 +362,11 @@ else if (CurrentSection == "cabin")
         <TextField Label="Cabin ready" @bind-Value="_cabin.Value.CabinReadyText" />
         <TextField Label="Cabin ready — FO ack" @bind-Value="_cabin.Value.CabinReadyAckText" />
         <TextField Label="Boarding delay" @bind-Value="_cabin.Value.BoardingDelayText" />
+        <TextField Label="Cruise query" Hint="The purser's question in the cruise." @bind-Value="_cabin.Value.CruiseQueryText" />
+        <TextField Label="Cruise query — time reply" Hint="After an answer naming a time or the arrival." @bind-Value="_cabin.Value.CruiseQueryEtaAckText" />
+        <TextField Label="Cruise query — ride reply" Hint="After an answer about turbulence or a smooth ride." @bind-Value="_cabin.Value.CruiseQueryRideAckText" />
+        <TextField Label="Cruise query — any other reply" @bind-Value="_cabin.Value.CruiseQueryGenericAckText" />
+        <TextField Label="Cruise query — no reply" Hint="When the window closes in silence." @bind-Value="_cabin.Value.CruiseQueryNoReplyText" />
     </Section>
 }
 else if (CurrentSection == "company")
@@ -772,6 +789,30 @@ else if (CurrentSection == "briefing")
                      Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                      @bind-Value="_speech.Value.FoQuestions.StandBySeconds"
                      Default="_speech.Defaults.FoQuestions.StandBySeconds" />
+    </Section>
+
+    <Section Title="Region Facts" Hint="In the cruise the FO now and then offers a short fact about the country or sea below. Unprompted, spoken only">
+        <BoolField Label="Enabled"
+                   Hint="Every fifteen to thirty minutes in the cruise (your interval), the FO mentions something about the region you are over: 'We're over the Netherlands — a quarter of what you see down there sits below sea level.' Never the same region twice in a flight."
+                   More="The region comes from the same built-in atlas as 'what are we flying over?' (no internet needed). The fact comes from the language model when it is on and healthy (two sentences, the same guard as the place facts — nothing about this flight), otherwise from the curated file region-facts.json in %LOCALAPPDATA%\ProsimCompanion\config — edit it to add your own, keyed by country code (FR, GB) or 'sea:North Sea'. Silent outside the cruise, while the flight is not live, while the FO's ear is paused, in the sterile cockpit, after 'quiet please', and over places the atlas does not name. With the FO persona on, a curated fact is spoken in the persona's voice with every figure locked."
+                   @bind-Value="_speech.Value.RegionFacts.Enabled" />
+        <NumberField Label="Shortest gap" Hint="Minutes between facts, at least. The first fact comes this long (plus the random share) after the cruise begins." Suffix="min" Min="1" Max="240"
+                     Disabled="@(!_speech.Value.RegionFacts.Enabled)"
+                     @bind-Value="_speech.Value.RegionFacts.MinIntervalMinutes"
+                     Default="_speech.Defaults.RegionFacts.MinIntervalMinutes" />
+        <NumberField Label="Longest gap" Hint="Each gap is drawn at random between the two, so it never feels like a timer." Suffix="min" Min="1" Max="480"
+                     Disabled="@(!_speech.Value.RegionFacts.Enabled)"
+                     @bind-Value="_speech.Value.RegionFacts.MaxIntervalMinutes"
+                     Default="_speech.Defaults.RegionFacts.MaxIntervalMinutes" />
+        <NumberField Label="Facts per flight" Hint="At most. Resets with the cabin's once-per-flight reports (cold and dark, or a new preflight after shutdown)." Min="1" Max="20"
+                     Disabled="@(!_speech.Value.RegionFacts.Enabled)"
+                     @bind-Value="_speech.Value.RegionFacts.MaxPerFlight"
+                     Default="_speech.Defaults.RegionFacts.MaxPerFlight" />
+        <BoolField Label="Facts from the language model"
+                   Hint="Ask the LLM above for the fact when it is configured and healthy; off, or with the model down, only the curated file speaks."
+                   More="Model facts stream sentence by sentence like the place facts; a sentence about this flight with a figure in it is refused, and if the model says nothing within twenty seconds the curated file speaks instead. Numbers in a model fact are trivia and are not verified."
+                   Disabled="@(!_speech.Value.RegionFacts.Enabled)"
+                   @bind-Value="_speech.Value.RegionFacts.LlmFacts" />
     </Section>
 
     <Section Title="Wake-on-LAN" Hint="Moved to Setup" Advanced="true">

@@ -163,6 +163,9 @@ public static class SpeechServiceCollectionExtensions
         // The reverse direction (2026-10-08): ATC's assigned_gate as the GSX arrival gate,
         // behind sayIntentions.arrivalGateFromAtc.
         services.AddStartupModule<SayIntentions.SayIntentionsArrivalGateSource>();
+        // The purser's once-per-flight cruise query + reply window (2026-10-09): borrows the
+        // mic like the hails; the cabin service runs it off its own tick.
+        services.AddSingleton<Cabin.CabinCruiseQueryDialogue>();
         services.AddStartupModule<Cabin.CabinCrewService>();
         // Prosim2GSX-parity cabin dings (startup / final loadsheet) — plain chime playback,
         // deliberately outside the speech arbiter.
@@ -258,6 +261,14 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Questions.FoFactSource>();
         services.AddSingleton<Questions.FoQuestionService>();
         services.AddSingleton<IFreeFormQuestionHandler>(p => p.GetRequiredService<Questions.FoQuestionService>());
+        // Ambient region facts in the cruise (issue #122): the curated file lives in the USER
+        // config tree (seeded from {app}\config, ADR-0007); the service shares #153's atlas
+        // lookup, the narrator and the persona restyle path.
+        services.AddSingleton(p => new Immersion.RegionFactBank(
+            Core.Configuration.UserConfigPaths.Root,
+            p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Immersion.RegionFactBank>>(),
+            p.GetService<Core.State.ConfigProblemStore>()));
+        services.AddStartupModule<Immersion.RegionFactService>();
         services.AddSingleton<UtteranceRouter>();
         services.AddStartupModule<SpokenChecklistEngine>();
         // WoL used to hide in the retired bootstrap (campaign #87).
