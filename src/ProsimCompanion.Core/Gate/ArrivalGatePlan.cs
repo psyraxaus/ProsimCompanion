@@ -44,12 +44,29 @@ public sealed class ArrivalGatePlan
         Fired = false;
     }
 
-    /// <summary>Auto-fire decision for a committed phase transition: returns the gate to
-    /// dispatch when the new phase is Cruise and the pending gate has not fired yet; null
-    /// otherwise. Marks the gate fired so it dispatches at most once per queued gate.</summary>
+    /// <summary>
+    /// The phases in which a queued, unfired gate goes out: the cruise entry the predecessor
+    /// keyed on, and every later phase of the leg. Issue #102 (2026-08-22 EGLL→LGAV): the
+    /// auto-fire was Cruise-only, so after an in-flight app restart in the descent — or on a
+    /// short leg that never commits Cruise — the cruise edge was already history and a queued
+    /// gate waited forever. GSX accepts <c>gate.select</c> in the air and on the ground while
+    /// still rolling (docs/integrations/gsx-remote-api.md §6); the GSX dispatcher holds the
+    /// armed request until its own preconditions hold, so firing early is safe and firing
+    /// late is still useful until the aircraft is parked.
+    /// </summary>
+    public static bool IsAutoFirePhase(FlightPhase phase)
+        => phase is FlightPhase.Cruise or FlightPhase.Descent or FlightPhase.Approach
+            or FlightPhase.LandingRollout or FlightPhase.TaxiIn;
+
+    /// <summary>Auto-fire decision for a committed phase (a transition's new phase, or the
+    /// current phase at Confirm/Restore time): returns the gate to dispatch when the phase is
+    /// at or past the cruise entry (<see cref="IsAutoFirePhase"/>) and the pending gate has
+    /// not fired yet; null otherwise. Marks the gate fired so it dispatches at most once per
+    /// queued gate — a step-climb re-entry into Cruise, or Cruise → Descent, never
+    /// refires.</summary>
     public string? TakeAuto(FlightPhase phase)
     {
-        if (phase != FlightPhase.Cruise || PendingGate is null || Fired)
+        if (!IsAutoFirePhase(phase) || PendingGate is null || Fired)
         {
             return null;
         }

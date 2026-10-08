@@ -374,11 +374,13 @@
         "log"
       ],
       "checks": [
-        "When the app restarts in flight after an arrival gate was confirmed: an 'arrival-gate-restored' session event (payload gate + action Queue/DispatchBoth/DispatchGsxOnly) in the new session, and 'Arrival gate <gate> restored after restart' in the log — 2026-09-20 EGLL: 545R confirmed twice, two restarts in the descent, the last run landed with no gate and GSX asked 'Select Position' on the roll.",
-        "When restored past the cruise entry (Descent/Approach): the GSX 'Gate request <gate>: Armed' line follows immediately; if the earlier run had already fired, the ATC status reads 'ATC assignment already sent before the restart' and no second SayIntentions assignGate goes out.",
-        "assert-absent: a restored gate from a PREVIOUS flight (a different OFP destination, or a file older than 18 h) — the log then reads 'Persisted arrival gate ... ignored — stale or another flight'. The file is cleared on Cancel and at Shutdown."
+        "When the app restarts in flight after an arrival gate was confirmed: an 'arrival-gate-restored' session event (payload gate + action Queue/DispatchBoth/DispatchGsxOnly + phase) in the new session, and 'Arrival gate <gate> restored after restart (<action>, phase <phase>, origin pilot|ATC)' in the log — 2026-09-20 EGLL: 545R confirmed twice, two restarts in the descent, the last run landed with no gate and GSX asked 'Select Position' on the roll.",
+        "When restored past the cruise entry (Descent/Approach): an 'arrival-gate-dispatched' event with trigger=restore and the GSX 'Gate request <gate>: Armed' line follow immediately; if the earlier run had already fired, the ATC status reads 'ATC assignment already sent before the restart' and no second SayIntentions assignGate goes out. When restored at phase Unknown (the normal startup case, action Queue): the dispatch comes on the engine's first commit into Cruise/Descent/Approach/LandingRollout/TaxiIn as '<Phase> — auto-sending arrival gate <gate>' + 'arrival-gate-dispatched' trigger=auto (issue #102: the auto-fire no longer waits for a Cruise edge that already passed).",
+        "assert-absent: a restored gate of ATC origin (rc.22 arrivalGateFromAtc) being sent back to SayIntentions — the restored ATC status must read 'Assigned by SayIntentions ATC before the restart — nothing to send back' and the 'arrival-gate-dispatched' event carries includeAtc=false.",
+        "assert-absent: a restored gate from a PREVIOUS flight (a different OFP destination, a different OFP flight number for the same destination, or a file older than 18 h) — the log then reads 'Persisted arrival gate ... ignored — stale or another flight'. The file is cleared on Cancel and at Shutdown.",
+        "requires-human: after the restart the OFP page's Arrival Gate card shows the gate with the hint 'Restored from the last session' even though no OFP is loaded, and Cancel there clears it."
       ],
-      "notes": "Added 2026-09-21 (0.4.0-rc.3): ArrivalGateStateFile (%LOCALAPPDATA%\\ProsimCompanion\\arrival-gate.json) + ArrivalGateRestorePlan; CoreBootstrapService restores at startup. First in-flight restart on this build verifies it."
+      "notes": "Added 2026-09-21 (0.4.0-rc.3): ArrivalGateStateFile (%LOCALAPPDATA%\\ProsimCompanion\\arrival-gate.json) + ArrivalGateRestorePlan; CoreBootstrapService restores at startup. Extended 2026-10-09 for issue #102 (the file now carries atcOrigin + flightNumber; ArrivalGatePlan.TakeAuto fires in any phase at or past the cruise entry; the OFP page shows a restored gate without an OFP). Never exercised live yet — the first in-flight restart on a build >= this change verifies it; see probe arrival-gate-dispatched-before-touchdown for the end-to-end assertion."
     },
     {
       "id": "ground-ops-double-fire",
@@ -391,9 +393,12 @@
       "checks": [
         "No duplicated 'gsx-service' (same service+event pair) within 5 seconds.",
         "No duplicated 'ground.calling'/'ground.upcall' for the same call id within one departure/arrival cycle (a second GPU upcall after a genuine reconnect is legitimate — check the mirror context).",
-        "No repeated deice completion events for one deice pass."
+        "No repeated deice completion events for one deice pass: at most one 'Deice complete — holdover card armed' log line per turnaround, and at most one 'notify.sent' with event RefuelComplete / BoardingComplete per turnaround, even when the GSX service list emptied and came back (Couatl restart) or the mirror listed two de-ice spellings.",
+        "watch: the relay's log line 'GSX service <id>: <Event> edge not relayed — its signal already went out this cycle (issue #90)' — each occurrence is a leak path that was hit and absorbed; report the service, event and what preceded it (a tracker 'GSX service <id>: <Event>' pair with the same id earlier in the same turnaround is the mirror-vanish signature). The line must NOT appear right after a 'GSX service lifecycle cycle reset' — that would mean the relay missed the FlightCycleReset.",
+        "assert-present: after the arrival reset ('GSX service lifecycle cycle reset' in the log) the next leg's Refueling Active / Boarding Completed edges are relayed again (prelim loadsheet trigger, final loadsheet trigger, notifications) — the once-per-cycle memory re-arms on the real cycle boundary only.",
+        "watch: the phase-evidence signals (Boarding Active → Departure, Deboarding Completed → turnaround gate) are deliberately NOT latched by the relay — a repeated 'Boarding started — Preflight → Departure is now armed' log line is expected after a mirror vanish and is not a failure."
       ],
-      "notes": "Mirror-vanish reset and deice id matching can re-arm one-shot events within a cycle."
+      "notes": "Mirror-vanish reset and deice id matching can re-arm one-shot events within a cycle. FIXED 2026-10-09: GsxGroundOpsSignalRelay owns a once-per-cycle memory keyed by SIGNAL (GroundOpsSignalRelayCore, pure, tested), cleared only on GroundOpsSignals.FlightCycleReset; the tracker's vanish-reset is kept for the sequencer/sync modules that need it. Unverified live — the leak needs a Couatl restart mid-turnaround (or a profile with two de-ice services) to be exercised; a flight without the watch line is 'untested', not a pass."
     },
     {
       "id": "failure-detection-truthful",
@@ -2395,6 +2400,35 @@
         "Native guard, same connection: the GSX decision 'native GSX guard' reads either 'disabled 6 ProSim efb.gsx.* auto flags' (older ProSim) or 'this ProSim build has no efb.gsx.* flags — nothing to disable' (1.75.1). The old wording on 1.75.1 means the gateway verdict regressed (writeBool:false ignored)."
       ],
       "notes": "Shipped 2026-10-06 (owner request). The IOS options are system.config.* datarefs, read and written through the port-5000 gateway without a restart (Door logic flipped true and back live on 1.75.1). Recommended values = the owner's working config. The check only reads; 'Apply recommended' on the Setup page is the only write. Unverified live in the app itself: the connection-time read, the card, the Apply click (the gateway calls were verified by hand)."
+    },
+    {
+      "id": "arrival-gate-dispatched-before-touchdown",
+      "issue": 102,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "arrival-gate-confirmed"
+        },
+        "signature": {
+          "source": "log",
+          "contains": "GSX command gate.select"
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger: an 'arrival-gate-confirmed' session event (payload gate, phase, origin pilot|atc) in ANY session of the flight, or an 'arrival-gate-restored' event in a later session of the same flight. Behaviour: before the flight-times touchdown stamp (the 'flight-times' event carrying landingFobKg, or the phase-changed edge into LandingRollout) the log holds at least one 'GSX command gate.select {...}' line for that gate (as typed, or its catalogue-resolved number — see gsx-gate-resolved), preceded by an 'arrival-gate-dispatched' event (trigger auto|sendNow|restore|atc) and the GSX 'Gate request <gate>: Armed' line.",
+        "fail: the flight lands with the gate confirmed/restored and NO 'arrival-gate-dispatched' event in any of its sessions — the queue never fired (the pre-#102 signature: 'Arrival gate A05 confirmed' + 'Send Now' at 13:43 in the descent, app restarted 13:51, nothing further; GSX offered 'Gate A 5' on the parking menu at 14:16).",
+        "fail: an 'arrival-gate-dispatched' event exists but no 'GSX command gate.select' line follows before touchdown while GSX was Ready and the destination was loaded (mirror airport == FMS destination) — the GSX dispatcher held the armed request; read its 'Gate request <gate>: Armed — waiting (...)' / in-flight airport pick lines (probe gsx-gate-select-failure-detail, gsx-parking-wake) for why. A send that was correctly held because GSX never loaded the destination before parking (no in-flight pick possible) is a GSX-side 'untested', reported with the pick attempts, not a fail of this probe.",
+        "assert-absent: a second 'arrival-gate-dispatched' with trigger=auto for the same gate in one session (TakeAuto fires once per queued gate) — a Cruise re-entry (step climb) or Cruise → Descent must not resend. A second dispatch after a pilot re-Confirm / Send Now, or after a restart (trigger restore), is legitimate.",
+        "When the app restarted in flight: the new session's 'arrival-gate-restored' (action + phase) and 'Arrival gate <gate> restored after restart' lines, then the dispatch per the rules above — the #102 scenario proper (confirm in the descent, restart, expect gate.select before touchdown)."
+      ],
+      "notes": "Issue #102 (2026-08-22 EGLL→LGAV): 'A05' sent in the descent stayed armed in GsxGateSelectionService (destination not loaded), the app restarted for beta.13 and the in-memory request was gone; the coordinator's auto-fire was Cruise-only so nothing re-armed. Fixed 2026-10-09: ArrivalGatePlan.TakeAuto fires in Cruise/Descent/Approach/LandingRollout/TaxiIn (once per queued gate); the persisted queue (arrival-gate.json, since rc.3) now carries atcOrigin + flightNumber and is restored at startup; the OFP page shows a restored gate without an OFP; the coordinator records 'arrival-gate-confirmed' / 'arrival-gate-dispatched'. Unverified live. The machine block only proves 'a gate.select went out after a confirm'; the before-touchdown ordering and the restart case are the LLM checks."
     }
   ]
 }

@@ -88,17 +88,24 @@
     <section class="section ofp-gate">
         <div class="section-header"><h3 class="section-title">Arrival Gate</h3></div>
         <div class="section-body ofp-gate-body">
-            @if (_ofp is null)
+            @* After an in-flight app restart the OFP is normally not loaded again, but the
+               persisted gate is (issue #102) — the card stays usable whenever a gate is pending
+               so the pilot can see, re-send or cancel it. *@
+            @if (_ofp is null && _gateAssignment.PendingGate is null)
             {
                 <div class="empty">Load an OFP to enable gate assignment.</div>
             }
             else
             {
                 <div class="ofp-gate-row">
-                    <span class="figure figure-lg">@_ofp.DestinationIcao</span>
+                    <span class="figure figure-lg">@(_ofp?.DestinationIcao ?? "----")</span>
                     <input class="text-input ofp-gate-input" placeholder="GATE" @bind="_gate" @bind:after="OnGateTyped"
                            aria-label="Arrival gate" />
                 </div>
+                @if (_gateAssignment.Restored)
+                {
+                    <div class="field-hint ofp-gate-restored">Restored from the last session — this gate was confirmed before the app restarted.</div>
+                }
                 @if (_typedStandInfo.Length > 0)
                 {
                     <div class="field-hint ofp-gate-stand">@_typedStandInfo</div>
@@ -113,7 +120,7 @@
                 {
                     <div class="ofp-gate-status">
                         <span class="fs-chip-dot live" aria-hidden="true"></span>
-                        <span>@(_gateAssignment.Sent ? $"Sent {pending}" : $"Queued {pending} — auto-send at cruise")</span>
+                        <span>@(_gateAssignment.Sent ? $"Sent {pending}" : $"Queued {pending} — auto-send at cruise (or at once when already past it)")</span>
                     </div>
                 }
                 @if (_gateAssignment.StandInfo.Length > 0)
@@ -132,7 +139,7 @@
                 {
                     <div class="field-hint">GSX: @request</div>
                 }
-                <div class="field-hint">Confirm queues for auto-send at cruise. Send Now pushes to GSX + SayIntentions ATC immediately.</div>
+                <div class="field-hint">Confirm queues for auto-send at cruise (or at once when confirmed later in the flight). Send Now pushes to GSX + SayIntentions ATC immediately. A confirmed gate survives an app restart.</div>
             }
         </div>
     </section>

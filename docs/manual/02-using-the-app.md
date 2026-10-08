@@ -255,7 +255,11 @@ card off.
    answering the same menu, and a line that moved before your click landed is not sent —
    every answer, and every "left for you", is in the decision log.
 6. **Flight.** The arrival gate you confirmed on the OFP page is sent to GSX (and
-   SayIntentions ATC) at cruise. Type the gate the way ATC or the OFP names it ("W40", "313",
+   SayIntentions ATC) at cruise — or at once when you confirm it later in the flight. A
+   confirmed gate survives an app restart (an update in the descent, say): the next run
+   shows it on the OFP page as *restored from the last session* and sends it on its own
+   once the flight is past the cruise entry, even with no OFP loaded; Cancel there drops
+   it. Type the gate the way ATC or the OFP names it ("W40", "313",
    "34B"): as you type, the line under the box shows what the destination's GSX profile and
    scenery call that stand — *GSX knows it as Gate 40 (Apron 1W (Gates W34-W48)) · jetway ·
    max span 65 m · VDGS* — because a GSX profile can print a gate under a different name
