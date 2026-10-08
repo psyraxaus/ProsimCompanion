@@ -27,6 +27,19 @@ public sealed class TechLogOptions : IOptionSection
     /// when an abnormal actually fired, so a normal flight stays silent.</summary>
     public bool OfferFromAbnormalAtShutdown { get; set; } = true;
 
+    /// <summary>Let the departure and arrival briefings consult the tech log (2026-10-09):
+    /// the departure briefing names the open items (three at most, then "and N more"); the
+    /// arrival briefing only those that bear on the landing — MEL category A or B, or an item
+    /// about brakes, gear, spoilers, reversers, autobrake or anti-skid. Titles are spoken
+    /// verbatim; the LLM path receives them as facts, never as prose to improve.</summary>
+    public bool BriefOpenItemsInBriefings { get; set; } = true;
+
+    /// <summary>Let a spoken checklist flag a line whose <c>system</c> tag (checklist JSON)
+    /// matches an open tech-log item: the FO appends "note, open tech log item: …" to the
+    /// challenge, once per item per checklist run. Advisory only — the line still verifies
+    /// exactly what it always did.</summary>
+    public bool FlagChecklistItems { get; set; } = true;
+
     /// <summary>Store path override; blank = <c>%LOCALAPPDATA%\ProsimCompanion\techlog.json</c>.</summary>
     public string Path { get; set; } = "";
 

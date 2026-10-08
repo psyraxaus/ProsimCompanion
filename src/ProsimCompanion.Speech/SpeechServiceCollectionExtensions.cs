@@ -258,6 +258,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Questions.FoFactSource>();
         services.AddSingleton<Questions.FoQuestionService>();
         services.AddSingleton<IFreeFormQuestionHandler>(p => p.GetRequiredService<Questions.FoQuestionService>());
+        // Heard-but-not-understood bookkeeping (issue #112): every router fall-through becomes
+        // a voice.unmatched event and a row on the Voice page's candidate list.
+        services.AddSingleton<UnmatchedUtteranceTracker>();
         services.AddSingleton<UtteranceRouter>();
         services.AddStartupModule<SpokenChecklistEngine>();
         // WoL used to hide in the retired bootstrap (campaign #87).

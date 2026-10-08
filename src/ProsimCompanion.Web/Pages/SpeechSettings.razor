@@ -164,6 +164,8 @@ else if (CurrentSection == "listening")
         <SelectField Label="Input device" Hint="The microphone the FO listens on."
                      Options="InputDeviceOptions()"
                      @bind-Value="_speech.Value.InputDevice" />
+        <BoolField Label="Track phrases the FO did not understand" Hint="Keep what you said that nothing acted on, so you can add the commands you actually use." More="Listed under Heard but not understood on the Voice status page and written to the session log as voice.unmatched. Off: nothing is kept; the log's ASR trail still shows every utterance."
+                   @bind-Value="_speech.Value.TrackUnmatched" />
         <AdvancedFields>
             <NumberField Label="Phrase match score" Hint="How close a heard phrase must be to a known one before the FO acts on it." More="0.5 Levenshtein + 0.5 DoubleMetaphone. Lower hears more, mis-hears more." Step="0.05" Min="0.3" Max="1"
                          @bind-Value="_speech.Value.SnappingThreshold"
@@ -428,6 +430,10 @@ else if (CurrentSection == "techlog")
                    Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.RandomWear" />
         <BoolField Label="Rectify on the due date" Hint="Close open defects by itself when their MEL due date passes." More="Off by default: rectification is meant to be your maintenance action."
                    Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.AutoRectifyOnDueDate" />
+        <BoolField Label="Open items in the briefings" Hint="The departure briefing names the open items; the arrival briefing only those that affect the landing." More="Three titles at most, then 'and N more'. Landing-relevant = MEL category A or B, or an item about brakes, gear, spoilers, reversers, autobrake or anti-skid. Titles are spoken as written."
+                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.BriefOpenItemsInBriefings" />
+        <BoolField Label="Flag checklist lines" Hint="A spoken checklist line about a system with an open item gets 'note, open tech log item: …' after the challenge." More="Lines carry a system tag in the checklist JSON (apu, gear, autobrake, anti-ice, …); the shipped checklists tag the obvious ones. An item's System field on the Tech Log page, or a word of its title, is what the tag matches. Once per item per checklist run."
+                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.FlagChecklistItems" />
         <div class="label-caps" style="margin:14px 0 6px;">MEL repair intervals</div>
         <NumberField Label="Category A" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
                      @bind-Value="_techLog.Value.CategoryADays" Default="_techLog.Defaults.CategoryADays" />

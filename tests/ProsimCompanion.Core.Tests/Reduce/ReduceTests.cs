@@ -48,7 +48,7 @@ public sealed class ReduceTests : IDisposable
 
         var session = root.GetProperty("sessions").EnumerateArray()
             .First(s => s.GetProperty("file").GetString()!.StartsWith("essa-egll", StringComparison.Ordinal));
-        foreach (var key in new[] { "file", "firstEvent", "lastEvent", "eventCount", "endedCleanly", "header", "facts", "phaseTimeline", "samples", "eventsByType", "eventsByTypePerPhase", "logEvents", "cmTraceEvents", "gaps", "logSource" })
+        foreach (var key in new[] { "file", "firstEvent", "lastEvent", "eventCount", "endedCleanly", "header", "facts", "phaseTimeline", "samples", "eventsByType", "eventsByTypePerPhase", "logEvents", "cmTraceEvents", "gaps", "voiceUnmatched", "logSource" })
         {
             Assert.True(session.TryGetProperty(key, out _), $"session.{key} missing");
         }
@@ -190,6 +190,36 @@ public sealed class ReduceTests : IDisposable
 
     private static string Line(string at, string type, string payload = "null")
         => $"{{\"timestamp\":\"{at}\",\"type\":\"{type}\",\"payload\":{payload}}}";
+
+    /// <summary>Issue #112: the heard-but-not-understood events fold into the repeated-phrase
+    /// candidate list; sterile absorptions are counted, never listed; singletons stay in the file.</summary>
+    [Fact]
+    public void Session_VoiceUnmatched_ListsRepeatedPhrasesAsCandidates()
+    {
+        static string Miss(string text, string context = "idle", bool suppressed = false)
+            => $"{{\"text\":\"{text}\",\"normalized\":\"{text.ToLowerInvariant()}\",\"score\":0.4,\"context\":\"{context}\",\"phase\":\"Cruise\",\"reason\":\"reject\",\"suppressed\":{(suppressed ? "true" : "false")}}}";
+
+        var session = Session("session-b.jsonl",
+            Line("2026-10-09T10:00:00Z", "session-started"),
+            Line("2026-10-09T10:00:01Z", "voice.unmatched", Miss("gear up")),
+            Line("2026-10-09T10:00:02Z", "voice.unmatched", Miss("Gear up", "checklist: Landing Gear")),
+            Line("2026-10-09T10:00:03Z", "voice.unmatched", Miss("gear up")),
+            Line("2026-10-09T10:00:04Z", "voice.unmatched", Miss("lights off")),
+            Line("2026-10-09T10:00:05Z", "voice.unmatched", Miss("rotate", suppressed: true)),
+            Line("2026-10-09T10:00:06Z", "session-ended"));
+
+        var report = SessionReducer.Reduce(session, []);
+
+        Assert.Equal(5, report.VoiceUnmatched.Total);
+        Assert.Equal(1, report.VoiceUnmatched.Suppressed);
+        var candidate = Assert.Single(report.VoiceUnmatched.Candidates);
+        Assert.Equal(3, candidate.Count);
+        Assert.Equal(["checklist: Landing Gear", "idle"], candidate.Contexts);
+        Assert.Equal(new DateTimeOffset(2026, 10, 9, 10, 0, 3, TimeSpan.Zero), candidate.LastHeard);
+
+        var json = JsonSerializer.Serialize(report, ReduceReport.Json);
+        Assert.Contains("\"voiceUnmatched\":", json, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void Probes_SignatureSemantics_AbsentPresentUntested()

@@ -8,6 +8,8 @@
 @inject ArrivalMinimaStore Minima
 @inject IAbnormalDialogueControl AbnormalControl
 @inject IVoiceListeningControl ListeningControl
+@inject UnmatchedUtteranceStore Unmatched
+@inject IOptionsMonitor<SpeechOptions> SpeechMonitor
 
 @if (_view.ActiveAbnormal is { Length: > 0 } abnormal)
 {
@@ -180,6 +182,65 @@
     </div>
 </Section>
 
+<Section Title="Heard but not understood" Hint="What you said this session that no command, checklist answer or question handler acted on — grouped, most repeated first">
+    @{
+        var groups = _unmatched.Groups();
+    }
+    @if (!SpeechMonitor.CurrentValue.TrackUnmatched)
+    {
+        <div class="empty">Tracking is off — Settings → Voice First Officer → Recognition &amp; Push-to-Talk → "Track phrases the FO did not understand".</div>
+    }
+    else if (groups.Count == 0)
+    {
+        <div class="empty">
+            Nothing fell through yet.
+            @if (_unmatched.SuppressedTotal > 0)
+            {
+                <text> @_unmatched.SuppressedTotal absorbed silently in sterile phases (callouts, not commands).</text>
+            }
+        </div>
+    }
+    else
+    {
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
+            <span class="pill tone-neutral" title="Every miss this session, suppressed ones included">@_unmatched.Total heard</span>
+            <span class="pill @(groups.Any(g => g.Count >= 3) ? "tone-warn" : "tone-neutral")"
+                  title="A phrase heard three or more times is the one to add">@groups.Count(g => g.Count >= 3) repeated 3+</span>
+            @if (_unmatched.SuppressedTotal > 0)
+            {
+                <span class="pill tone-neutral" title="Sterile-phase absorptions: counted, never candidates">@_unmatched.SuppressedTotal sterile</span>
+            }
+            <button type="button" class="btn secondary" @onclick="ClearUnmatched">Clear</button>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Phrase</th><th>Count</th><th>Where</th><th>Last (UTC)</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in groups)
+                    {
+                        <tr>
+                            <td>@group.Example</td>
+                            <td>
+                                <span class="pill @(group.Count >= 3 ? "tone-warn" : "tone-neutral")">@group.Count</span>
+                            </td>
+                            <td class="mono" title="idle = no checklist open; checklist: … = that line was awaiting its answer; confirm-declined = the FO asked 'did you mean' and you said no">@string.Join(", ", group.Contexts)</td>
+                            <td class="mono">@group.LastHeardUtc.ToString("HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    <div class="field-hint" style="margin-top:8px; max-width:720px;">
+        To teach the FO a phrase, add it where it belongs under <code>@UserConfigPaths.Root</code>:
+        a cockpit command in <code>commands.json</code>, an ATC request in <code>atc-requests.json</code>,
+        a checklist answer in the line's <code>acceptedPhrases</code> under <code>checklists\</code>.
+        The FO reloads the files; the session log keeps every miss as <code>voice.unmatched</code>.
+    </div>
+</Section>
+
 <details class="diagnostics">
     <summary>Diagnostics — recent utterances</summary>
 <Section Title="Recent Utterances" Hint="Latest first — full history in the session event log">
@@ -214,6 +275,7 @@
 
 @code {
     private SpeechStatusSnapshot _view = SpeechStatusSnapshot.Empty;
+    private UnmatchedUtteranceSnapshot _unmatched = UnmatchedUtteranceSnapshot.Empty;
     private string _testText = "";
     private ArrivalMinima? _minima;
     private ArrivalMinimumKind _minimaKind = ArrivalMinimumKind.DecisionAltitude;
@@ -231,7 +293,11 @@
     {
         Watch(Status, snapshot => _view = snapshot);
         Watch(Minima, minima => _minima = minima);
+        Watch(Unmatched, snapshot => _unmatched = snapshot);
     }
+
+    // The list re-renders through the store's own change notification.
+    private void ClearUnmatched() => Unmatched.Clear();
 
     private void SetMinima()
     {
