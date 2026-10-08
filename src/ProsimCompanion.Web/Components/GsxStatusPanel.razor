@@ -3,8 +3,10 @@
    snapshot, automation decisions and recent commands. *@
 @inherits StoreObserverComponent
 @inject GsxDiagnosticsStore Diagnostics
+@inject DeiceRequestStore DeiceRequest
 @inject IGsxGateControl GateControl
 @inject IGsxDepartureControl DepartureControl
+@inject IGsxSimbriefReloadControl SimbriefReload
 
 <Section Title="Status">
     <div class="row">
@@ -59,7 +61,15 @@
                 title="Call the next departure service now, bypassing its activation rule — the INT/RAD smart button. Works on Manual entries too.">
             Call next service now
         </button>
+        <button type="button" class="btn secondary" @onclick="ReloadSimbrief" disabled="@_reloading"
+                title="Click GSX's own 'SimBrief' gate-menu line so its VDGS shows this flight — at the gate with GSX ready only. Same as the API command gsx.reloadSimbrief.">
+            @(_reloading ? "Reloading SimBrief…" : "Reload SimBrief in GSX")
+        </button>
     </div>
+    @if (_reloadResult is not null)
+    {
+        <div class="field-hint" style="margin-bottom:8px;">@_reloadResult</div>
+    }
     @if (_view.ServiceBoard.Count == 0)
     {
         <div class="empty">No departure sequence evaluated yet.</div>
@@ -75,6 +85,33 @@
             <span class="row-detail" title="@row.Detail">@(row.Detail ?? "")</span>
         </div>
     }
+</Section>
+
+<Section Title="De-Icing" Hint="The weather/OAT policy's verdict for this departure (Settings → Ground Services → Questions)">
+    <div class="row row-with-detail">
+        <span class="row-label">Verdict</span>
+        <span class="@GsxPresentation.DeiceVerdictLamp(_deice.Verdict)"></span>
+        <span class="row-value">@GsxPresentation.DeiceVerdictLabel(_deice)</span>
+        <span class="row-detail" title="@_deice.Reason">@_deice.Reason</span>
+    </div>
+    <div class="row">
+        <span class="row-label">Inputs</span>
+        <span class="row-value-mono">@GsxPresentation.DeiceInputs(_deice)</span>
+    </div>
+    @if (_deice.QuestionOpen(DateTimeOffset.UtcNow))
+    {
+        <div class="field-hint" style="margin:8px 0;">@_deice.Question!.Prompt</div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+            <button type="button" class="btn primary" @onclick='() => DeiceRequest.Accept("web")'>Request de-icing</button>
+            <button type="button" class="btn secondary" @onclick='() => DeiceRequest.Decline("web", "declined on the Status board")'>No de-icing</button>
+        </div>
+    }
+    <div class="row">
+        <span class="row-label">GSX de-ice LVARs</span>
+        <span class="row-value-mono" title="L:FSDT_GSX_DEICING_STATE / L:FSDT_GSX_DEICING_TYPE — read for diagnostics; the holdover card still arms from the Remote API completed edge">
+            @(_view.DeiceLvars is { } lv ? $"state {lv.StateLabel}, fluid type {lv.FluidType}" : "—")
+        </span>
+    </div>
 </Section>
 
 @* Raw diagnostics (ADR-0010): the wire tables are for triage, not for flying — folded so the
@@ -180,7 +217,10 @@
 
 @code {
     private GsxDiagnosticsSnapshot _view = GsxDiagnosticsSnapshot.Empty;
+    private DeiceRequestSnapshot _deice = DeiceRequestSnapshot.Empty;
     private string _gateInput = "";
+    private bool _reloading;
+    private string? _reloadResult;
 
     private void ArmGate()
     {
@@ -190,6 +230,36 @@
         }
     }
 
+    /// <summary>The manual SimBrief reload (2026-10-09). The control decides whether now is
+    /// a safe moment; the outcome line stays under the buttons until the next click.</summary>
+    private async Task ReloadSimbrief()
+    {
+        if (_reloading)
+        {
+            return;
+        }
+
+        _reloading = true;
+        _reloadResult = null;
+        try
+        {
+            var outcome = await SimbriefReload.ReloadAsync("web");
+            _reloadResult = outcome.Status switch
+            {
+                GsxSimbriefReloadStatus.Reloaded => $"Reloaded — {outcome.Detail}",
+                GsxSimbriefReloadStatus.SentUnconfirmed => $"Sent — {outcome.Detail}",
+                _ => $"Not performed — {outcome.Detail}",
+            };
+        }
+        finally
+        {
+            _reloading = false;
+        }
+    }
+
     protected override void OnInitialized()
-        => Watch(Diagnostics, snapshot => _view = snapshot);
+    {
+        Watch(Diagnostics, snapshot => _view = snapshot);
+        Watch(DeiceRequest, snapshot => _deice = snapshot);
+    }
 }

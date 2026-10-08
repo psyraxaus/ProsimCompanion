@@ -20,9 +20,14 @@ public static class GsxCommandHandlers
     public static void Register(
         CommandRegistry registry,
         IGsxDepartureControl? departureControl,
-        IGsxGateControl? gateControl)
+        IGsxGateControl? gateControl,
+        IGsxSimbriefReloadControl? simbriefReload = null)
     {
         ArgumentNullException.ThrowIfNull(registry);
+
+        registry.Register<EmptyCommandRequest, CommandResult>(
+            "gsx.reloadSimbrief",
+            (_, cancellationToken) => ReloadSimbriefAsync(simbriefReload, cancellationToken));
 
         registry.Register<EmptyCommandRequest, CommandResult>(
             "gsx.startDepartureServices",
@@ -97,6 +102,27 @@ public static class GsxCommandHandlers
         var gate = request.Gate.Trim();
         control.RequestGate(gate);
         return CommandResult.Ok($"Arrival gate request for '{gate}' armed.");
+    }
+
+    /// <summary><c>gsx.reloadSimbrief</c>: GSX re-reads the SimBrief plan for its VDGS. The
+    /// control itself decides whether now is a safe moment (at the gate, GSX Ready) and
+    /// reports a not-performed outcome as a precondition failure with the reason.</summary>
+    private static async Task<CommandResult> ReloadSimbriefAsync(
+        IGsxSimbriefReloadControl? control,
+        CancellationToken cancellationToken)
+    {
+        if (control is null)
+        {
+            return CommandResult.Unavailable("The GSX pillar is not running.");
+        }
+
+        var outcome = await control.ReloadAsync("command", cancellationToken).ConfigureAwait(false);
+        return outcome.Status switch
+        {
+            GsxSimbriefReloadStatus.Reloaded => CommandResult.Ok(outcome.Detail),
+            GsxSimbriefReloadStatus.SentUnconfirmed => CommandResult.Ok(outcome.Detail),
+            _ => CommandResult.PreconditionFailed(outcome.Detail),
+        };
     }
 
     private static CommandResult CancelGate(IGsxGateControl? control)

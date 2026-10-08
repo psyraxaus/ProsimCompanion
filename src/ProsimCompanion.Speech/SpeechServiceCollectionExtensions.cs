@@ -180,6 +180,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Gsx.PushbackDirectionVoiceFeature>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Gsx.PushbackDirectionVoiceFeature>());
         services.AddStartupModule<Gsx.PushbackQuestionDialogue>();
+        // The FO's "request de-icing?" question (2026-10-09, gsx.deice.autoRequest = ask):
+        // voices the Core store's question and answers it from the captain's yes/no.
+        services.AddStartupModule<Gsx.DeiceQuestionDialogue>();
         // Interphone hail dialogues ("cockpit to ground" → "go ahead, captain" → request) and
         // ground-crew upcalls on INT (ADR-0006 / issue #51). The hail feature registers AFTER
         // GsxVoiceService so single-shot phrases keep their precedence.

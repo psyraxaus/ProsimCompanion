@@ -96,6 +96,36 @@ public sealed class GsxCommandHandlerTests
                 "gsx.requestGate", new GsxRequestGateRequest()));
     }
 
+    // ---- gsx.reloadSimbrief (2026-10-09) ----
+
+    [Theory]
+    [InlineData(GsxSimbriefReloadStatus.Reloaded, CommandOutcome.Success)]
+    [InlineData(GsxSimbriefReloadStatus.SentUnconfirmed, CommandOutcome.Success)]
+    [InlineData(GsxSimbriefReloadStatus.NotPerformed, CommandOutcome.PreconditionFailed)]
+    public async Task ReloadSimbrief_MapsTheOutcome(GsxSimbriefReloadStatus status, CommandOutcome expected)
+    {
+        var reload = new Mock<IGsxSimbriefReloadControl>();
+        reload.Setup(r => r.ReloadAsync("command", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GsxSimbriefReloadOutcome(status, "detail"));
+        var registry = new CommandRegistry();
+        GsxCommandHandlers.Register(registry, null, null, reload.Object);
+
+        var result = await registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(
+            "gsx.reloadSimbrief", new EmptyCommandRequest());
+
+        Assert.Equal(expected, result.Outcome);
+        Assert.Equal("detail", result.Reason);
+    }
+
+    [Fact]
+    public async Task ReloadSimbrief_WithAbsentPillar_IsUnavailable()
+    {
+        var registry = Registry(departure: null, gate: null);
+        var result = await registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(
+            "gsx.reloadSimbrief", new EmptyCommandRequest());
+        Assert.Equal(CommandOutcome.Unavailable, result.Outcome);
+    }
+
     [Fact]
     public async Task RequestGate_TrimsAndArms()
     {

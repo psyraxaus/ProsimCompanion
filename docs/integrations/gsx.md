@@ -38,6 +38,7 @@ State values for per-service `_STATE` LVARs: `1` Callable, `4` Requested, `5` Ac
 | `L:FSDT_GSX_VEHICLE_PUSHBACK_STATE` | 8 pushing, 11 wait-shutdown, **12 awaiting engine start**, 13 disconnecting, 14 clear |
 | `L:FSDT_GSX_BYPASS_PIN` | pin inserted/removed |
 | `L:FSDT_GSX_DEICING_TYPE` | 1–4 (fluid type) |
+| `L:FSDT_GSX_DEICING_STATE` | per-service state of the de-icing crew. **First read 2026-10-09** (`GsxDeiceStateMonitor`): Prosim2GSX subscribed it as its `GsxServiceDeice` state LVAR and consumed it only through the generic per-service state machine, so the expected table is the convention above — 1 Callable, 4 Requested, 5 Active, 6 Completed (2/3 never seen, 0 = GSX absent) — but **no recorded flight has shown its values yet**. Every transition is logged (`gsx-deice-state` event, diagnostics page); the first de-iced departure settles the table and decides whether 6 is a truer holdover-arming edge than the Remote API Completed edge, which stays the arming path until then |
 | `L:FSDT_GSX_OPERATEJETWAYS_STATE` / `OPERATESTAIRS_STATE` | **unreliable/sticky — apply a 30 s grace window** |
 | `L:FSDT_GSX_SetGate_Name/Number/Suffix` | gate readback; letter map 12=A…37=Z, 10=GATE |
 | `L:FSDT_GSX_DISABLE_DOORS_MSG` | suppress GSX door prompts while we drive doors |
@@ -114,6 +115,22 @@ Behaviours that must survive the port:
   edges; the prelim loadsheet's once-per-cycle guard keeps it from re-firing.
 - Boarding: GSX counters → ProSim zone amounts + seat map, seat-level reconciliation at complete,
   optional no-show/extra randomization with cargo-weight adjustment.
+- **De-icing auto-request policy** (2026-10-09, `gsx.deice.*`, default off): once the
+  departure sequence has started, `DeiceRequestPolicy` (pure) reads ProSim's
+  `aircraft.temperature.oat` (else the METAR temperature) and the departure METAR the Flight
+  Status local card holds (no second fetch): at or below `oatThresholdC` (3) with snow /
+  freezing precipitation / ice pellets / rain / freezing fog (`FZFG|FZBR`, which the
+  precipitation classifier reads as none) / a dew-point spread ≤ 3 °C — or on the
+  temperature alone with `requirePrecipitation` off — the verdict is **Ask** (captain's
+  question on the `DeiceRequestStore`: FO dialogue + Status board buttons, 5 min TTL then
+  declined) or **Request** (auto). The sequencer shapes its step list per cycle
+  (`EffectiveSteps`): a `DeIce` step configured Skip is lifted to the END as
+  AfterAllCompleted, a missing one is appended there, a pilot-configured step stays as is;
+  an open question holds that last step (`preHold`, like the fuel confirmation — it never
+  holds boarding), a declined one skips it. No METAR for the departure ⇒ NoData, no call.
+  Verdicts: `gsx-decision` "de-ice policy" + `gsx-deice-policy` events. The GSX "Ice warning"
+  offer and `gsx.requestDeice` are unchanged; a direct call while the question stands counts
+  as "yes". **Unverified live** — the GSX de-icing crew has never been called by this app.
 
 ## 4. In-sim handler / VDGS
 
@@ -121,8 +138,21 @@ A Stackless-Python handler (`gsx_handler.py`) deployed with GSX aircraft profile
 `%APPDATA%\Virtuali\Airplanes` calls back into the companion's web server (loopback,
 **token-exempt** — Stackless Python can't carry a bearer header): `GET /api/gsxmenu/events`,
 `GET /api/gsxmenu/flight-info`. The deployer rewrites `PROSIM2GSX_PORT = <port>` inside the handler.
-Still the VDGS event source even after the Remote API migration. GSX SimBrief reload can be
-triggered for VDGS data.
+Still the VDGS event source even after the Remote API migration.
+
+**GSX SimBrief reload** (2026-10-09, `GsxSimbriefReloadService` — the Prosim2GSX
+`ReloadSimbrief` port, which was a `menu.open` + keyword match on the gate menu, itself the
+replacement for v1's fixed `Select(15)`): a keyword intent on the "Activate Services at …"
+menu picking the line matching `sim-?brief` (the exact label is still inferred — confirm it
+from the first live decision log), so GSX re-reads the plan and the VDGS shows the right
+flight number / destination / ETD. Runs once per new OFP request id behind
+`gsx.reloadSimbriefOnNewOfp` (off; armed on the OFP edge and fired when GSX is Ready and the
+aircraft is parked at the gate with engines off — never in flight, re-armed on a Couatl
+`sid` change) and on demand (Status button, `gsx.reloadSimbrief`). Verify = `handlerData`
+patched (the integration guide §8.13 promises it on a SimBrief reload) or the menu
+closed/moved; a pick acknowledged with no signal in 10 s is reported "sent, unconfirmed"
+(the predecessor never verified). A gate menu this service opened is closed again after.
+Events: `gsx-simbrief-reload` {trigger, outcome, detail, ofpRequestId}. Unverified live.
 
 ## 5. MSFS-version specifics
 
