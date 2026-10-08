@@ -85,6 +85,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private readonly GsxResyncState _resyncState;
     private readonly FuelConfirmationStore _fuelConfirmation;
     private readonly IEfbInitOverrides _initOverrides;
+    private readonly DeiceRequestStore _deiceRequest;
+    private readonly IDisposable _deiceObserver;
 
     public GsxAutomationService(
         IGsxRemoteApi api,
@@ -105,12 +107,15 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         JsonlEventLog eventLog,
         FuelConfirmationStore fuelConfirmation,
         IEfbInitOverrides initOverrides,
+        DeiceRequestStore deiceRequest,
         ILogger<GsxAutomationService> logger)
     {
         ArgumentNullException.ThrowIfNull(fuelConfirmation);
         ArgumentNullException.ThrowIfNull(initOverrides);
+        ArgumentNullException.ThrowIfNull(deiceRequest);
         _fuelConfirmation = fuelConfirmation;
         _initOverrides = initOverrides;
+        _deiceRequest = deiceRequest;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -167,6 +172,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _cycle.Changed += Pump;
         // A fuel confirmation releases the Refueling hold at once, not on the next 3 s pump.
         _fuelConfirmationObserver = _fuelConfirmation.Observe(_ => Pump());
+        // The de-icing verdict / the captain's answer reshapes the step list at once.
+        _deiceObserver = _deiceRequest.Observe(_ => Pump());
         _pumpTimer = new Timer(_ => Pump(), null, PumpInterval, PumpInterval);
     }
 
@@ -241,6 +248,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _intRadCpt.ValueChanged -= OnIntRadChanged;
         _intRadFo.ValueChanged -= OnIntRadChanged;
         _fuelConfirmationObserver.Dispose();
+        _deiceObserver.Dispose();
         _pumpTimer.Dispose();
         _bookedSeatString.Dispose();
         _fuelTotal.Dispose();
@@ -367,6 +375,13 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                     Completed: c.Completed);
             }
 
+            // The de-icing policy (2026-10-09) shapes the step list for THIS cycle: a requested
+            // de-ice wakes a skipped DeIce step (or appends one last); an open captain's
+            // question keeps the step on the board, held; a declined one skips it.
+            var now = DateTimeOffset.UtcNow;
+            var deice = _deiceRequest.Snapshot();
+            var steps = DeiceRequestPolicy.EffectiveSteps(options.DepartureServices, deice, now);
+
             // All policy — gates, ordering, sequencing — is the pure core (campaign #78);
             // this shell only gathers inputs and performs the outcome's effects.
             var outcome = DepartureAutomationCore.Evaluate(new DepartureAutomationCore.PumpInputs(
@@ -389,7 +404,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 IsTurnaround: _cycle.IsTurnaround,
                 IsCompanyHub: IsCompanyHub(options),
                 EstimatedEnroute: _ofpStore.Current?.EstimatedEnroute,
-                Steps: options.DepartureServices,
+                Steps: steps,
                 MirrorServices: _api.Mirror.Services,
                 Cycle: Cycle,
                 PreSkip: id => id.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
@@ -401,15 +416,20 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                         // The crew's INIT FUEL RAMP override is the plan when set (2026-09-19).
                         EffectiveBlockFuel.PlanKg(_initOverrides.Snapshot(), _ofpStore.Current),
                         _plannedFuel.Value)
-                    : null,
+                    : id.Equals(GsxServiceIds.DeIce, StringComparison.OrdinalIgnoreCase)
+                        ? DeiceRequestPolicy.SkipReason(deice)
+                        : null,
                 VoiceActivationMode: Sync.GsxGroundPrepCoordinator.IsVoiceActivation(options.GroundPrepActivation),
                 // Real-world SOP (2026-09-19): with gsx.refuelCall = onFuelConfirmed the truck
                 // waits for the crew's block-fuel confirmation; every other service proceeds.
+                // The DeIce step waits the same way for the captain's de-icing answer.
                 PreHold: id => id.Equals(GsxServiceIds.Refueling, StringComparison.OrdinalIgnoreCase)
                     && GsxOptions.IsRefuelOnFuelConfirmed(options.RefuelCall)
                     && !_fuelConfirmation.Confirmed
                     ? FuelConfirmationHoldReason
-                    : null));
+                    : id.Equals(GsxServiceIds.DeIce, StringComparison.OrdinalIgnoreCase)
+                        ? DeiceRequestPolicy.HoldReason(deice, now)
+                        : null));
 
             if (outcome.AutoStarted)
             {
@@ -454,7 +474,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                     plan.Trigger is not null ? $"calling {plan.Trigger}" : "nothing eligible to force right now");
             }
 
-            PublishBoard(options.DepartureServices, plan);
+            PublishBoard(steps, plan);
 
             foreach (var (serviceId, reason) in plan.Skipped)
             {

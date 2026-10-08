@@ -68,6 +68,16 @@ public static class GsxServiceCollectionExtensions
         services.AddStartupModule<Sync.GsxPushbackSequenceService>();
         services.AddStartupModule<Sync.GsxArrivalService>();
         services.AddStartupModule<Sync.GsxGroundOpsSignalRelay>();
+        // De-icing (2026-10-09): the weather/OAT auto-request policy that shapes the
+        // departure sequence, and the first read of GSX's own DEICING_STATE LVAR (evidence
+        // for the diagnostics page until a flight settles its values).
+        services.AddStartupModule<Automation.GsxDeiceRequestService>();
+        services.AddStartupModule<Sync.GsxDeiceStateMonitor>();
+        // GSX SimBrief reload for the VDGS (2026-10-09): once per new OFP behind its option,
+        // and on demand through the Core seam (Status button, gsx.reloadSimbrief).
+        services.AddStartupModule<Sync.GsxSimbriefReloadService>();
+        services.AddSingleton<Core.State.IGsxSimbriefReloadControl>(
+            provider => provider.GetRequiredService<Sync.GsxSimbriefReloadService>());
         // Startup resync (issue #30): tracking LVARs + dataref evidence seed the lifecycle
         // latches after an app restart mid-turnaround; the sequencer holds until assessed.
         services.AddStartupModule<Sync.GsxStartupResyncService>();

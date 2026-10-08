@@ -165,7 +165,17 @@ public sealed record GsxDiagnosticsSnapshot(
     /// slot's retry ran and still nothing confirmed. Stands until the next confirmed call so
     /// the pilot sees it on the Flight Status page; the FO speaks each one once.</summary>
     public GsxDroppedCallView? DroppedCall { get; init; }
+
+    /// <summary>GSX's own de-icing LVARs (<c>L:FSDT_GSX_DEICING_STATE</c> / <c>_TYPE</c>),
+    /// read for the first time in 2026-10-09; null until SimConnect has reported them.
+    /// Diagnostics only — the holdover card still arms from the Remote API Completed edge.</summary>
+    public GsxDeiceLvarView? DeiceLvars { get; init; }
 }
+
+/// <summary>The raw de-icing LVAR pair with the state label the GSX service-state convention
+/// gives the value (1 Callable, 4 Requested, 5 Active, 6 Completed — unverified for this
+/// LVAR until a de-ice is flown; see docs/integrations/gsx.md).</summary>
+public sealed record GsxDeiceLvarView(DateTimeOffset Timestamp, int State, string StateLabel, int FluidType);
 
 /// <summary>One dropped service call (issue #76). <see cref="OpenMenu"/> is the GSX menu
 /// title standing at the time, when any — the usual reason a call dies (issue #44).</summary>
@@ -283,6 +293,10 @@ public sealed class GsxDiagnosticsStore : SnapshotStore<GsxDiagnosticsSnapshot>
     public void UpdateDroppedCall(GsxDroppedCallView? droppedCall)
         => Update(snapshot => snapshot with { DroppedCall = droppedCall });
 
+    /// <summary>Replaces the de-icing LVAR view (the GSX de-ice state monitor, on change).</summary>
+    public void UpdateDeiceLvars(GsxDeiceLvarView? view)
+        => Update(snapshot => snapshot with { DeiceLvars = view });
+
     /// <summary>Records the most recent service lifecycle edge for the Flight Status row.</summary>
     public void RecordHandlerEvent(GsxHandlerEventView handlerEvent)
     {
@@ -307,6 +321,7 @@ public sealed class GsxDiagnosticsStore : SnapshotStore<GsxDiagnosticsSnapshot>
             AircraftStateCheck = current.AircraftStateCheck,
             ParkingConflict = current.ParkingConflict,
             DroppedCall = current.DroppedCall,
+            DeiceLvars = current.DeiceLvars,
         });
     }
 

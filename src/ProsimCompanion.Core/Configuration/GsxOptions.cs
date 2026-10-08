@@ -148,6 +148,22 @@ public sealed class GsxOptions : IOptionSection
     /// <summary>"75" | "100" — concentration token matched in the fluid menu entry.</summary>
     public string DeIceConcentration { get; set; } = "75";
 
+    /// <summary>The de-icing auto-request policy (2026-10-09): whether the app itself puts
+    /// de-icing on the departure sequence from the outside air temperature and the departure
+    /// METAR. The fluid and concentration answers above are reused — they are the same
+    /// crew preference whether GSX or the app raised the request.</summary>
+    public GsxDeiceOptions Deice { get; set; } = new();
+
+    /// <summary>
+    /// Click GSX's own "SimBrief" gate-menu line once per new OFP (2026-10-09, the
+    /// Prosim2GSX <c>ReloadSimbrief</c> port): GSX re-reads the SimBrief flight plan so its
+    /// VDGS / marshaller boards show the right flight number, destination and ETD. Only at
+    /// the gate with GSX Ready — never in flight — and off by default (owner's conservative
+    /// default: the pick is a text match on a menu line GSX has never shown this app live).
+    /// The Status section button and <c>gsx.reloadSimbrief</c> stay available either way.
+    /// </summary>
+    public bool ReloadSimbriefOnNewOfp { get; set; }
+
     /// <summary>Ordered operator keywords for handling/catering operator menus; the
     /// "[GSX choice]" token is always an accepted fallback. Empty list ⇒ menus are left for
     /// the user unless <see cref="AutoSelectOperator"/> suppresses them.</summary>
