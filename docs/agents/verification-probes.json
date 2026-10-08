@@ -1749,7 +1749,9 @@
         "#148 In-flight monitoring: Settings → Voice First Officer → Callouts & Placards has an 'In-flight monitoring' card with four switches (Fuel check, Gross error check, Destination weather watch, Read-backs) and their tolerances; each switch off ⇒ the matching phrases show the disabled reason in the header VOICE drawer; on ⇒ 'fuel check', 'gross error check' and the read-back lead-ins (with the value badge) are listed (web UI + ears).",
         "#149 Ask the First Officer: Settings → Voice First Officer → Briefings & LLM has the card with Enabled, the comma-separated lead-ins, minimum words, time budget and the stand-by delay; the VOICE drawer lists an Ask the First Officer group (dimmed with the settings path while off, five example questions and the lead-in row with the VALUE badge when on). With the LAN ASR: ask a four-plus-word question and hear an answer or the fixed line; ask the same on the offline engine and hear the ordinary did-not-catch line (web UI + ears).",
         "#150 Tablet install + keep-awake: on an iPad that trusts the mkcert CA, the HTTPS address opens with a padlock and the HTTP one still opens; Appearance → Screen & Install reads ACTIVE with the switch on and the screen does not sleep past the auto-lock time; switching apps and back returns ACTIVE within a second; over plain HTTP the pill reads NEEDS HTTPS with the HTTPS setup link; Share → Add to Home Screen gives a full-screen Companion app and the card then reads INSTALLED; Setup → Web Interface shows the HTTPS fields and the status pill (ON with the address / FAILED with the reason / OFF); the desktop window's QR carries the https address when HTTPS is up and its status list has an HTTPS line; a wrong PFX password shows the banner on every page and HTTP keeps working (web UI + tablet).",
-        "#151 Notifications: Settings → Notifications lists one card per target with the status pill (NEVER SENT / OK / FAILED), the Kind select, URL and Bearer token as password fields, the ten-checkbox events grid, Send test with its one-line result, Remove, and Add target below; Send test to a real ntfy topic shows on the phone within seconds and the line reads 'Sent · 200 OK · hh:mm:ss'; a wrong URL reads 'Failed · …' and the pill FAILED; the settings file on disk holds dpapi: values for url and token (web UI + phone)."
+        "#151 Notifications: Settings → Notifications lists one card per target with the status pill (NEVER SENT / OK / FAILED), the Kind select, URL and Bearer token as password fields, the ten-checkbox events grid, Send test with its one-line result, Remove, and Add target below; Send test to a real ntfy topic shows on the phone within seconds and the line reads 'Sent · 200 OK · hh:mm:ss'; a wrong URL reads 'Failed · …' and the pill FAILED; the settings file on disk holds dpapi: values for url and token (web UI + phone).",
+        "#11 Cabin-call auto-answer: Settings → Voice First Officer → Cabin Crew card shows 'FO answers cabin calls on the ground' with its ms delay (4000) and 'FO answers cabin calls in the air' with its delay (2500), both OFF after install; the delay fields grey out while their switch is off; the 'More' text names the dataref (S_ASP2_CAB_REC_LATCH) (web UI).",
+        "EFB resets: /init shows two armed buttons — RESET FLIGHT (SOFT) and UNLOAD OFP (FULL) — each needing a second press (CONFIRM RESET / CONFIRM UNLOAD) within 3 s, arming one disarms the other; after the press the fuel-note slot reads 'FLIGHT RESET — OFP KEPT' or 'OFP UNLOADED — FETCH A NEW OFP TO CONTINUE' for 8 s and the status pill flips to AWAITING OFP only after the full one; GET /api/commands lists efb.resetFlight and efb.unloadOfp (web UI)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -2429,6 +2431,64 @@
         "When the app restarted in flight: the new session's 'arrival-gate-restored' (action + phase) and 'Arrival gate <gate> restored after restart' lines, then the dispatch per the rules above — the #102 scenario proper (confirm in the descent, restart, expect gate.select before touchdown)."
       ],
       "notes": "Issue #102 (2026-08-22 EGLL→LGAV): 'A05' sent in the descent stayed armed in GsxGateSelectionService (destination not loaded), the app restarted for beta.13 and the in-memory request was gone; the coordinator's auto-fire was Cruise-only so nothing re-armed. Fixed 2026-10-09: ArrivalGatePlan.TakeAuto fires in Cruise/Descent/Approach/LandingRollout/TaxiIn (once per queued gate); the persisted queue (arrival-gate.json, since rc.3) now carries atcOrigin + flightNumber and is restored at startup; the OFP page shows a restored gate without an OFP; the coordinator records 'arrival-gate-confirmed' / 'arrival-gate-dispatched'. Unverified live. The machine block only proves 'a gate.select went out after a confirm'; the before-touchdown ordering and the restart case are the LLM checks."
+    },
+    {
+      "id": "cabin-call-auto-answer",
+      "issue": 11,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "cabin.auto-answer",
+        "fields": [
+          "phase",
+          "gate",
+          "delayMs",
+          "dataref",
+          "verdict"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with cabin.autoAnswerGround and/or cabin.autoAnswerAir = true (both off by default). Trigger = a 'cabin.calling' event whose autoAnswer field reads Ground (phase PushbackAndStart/TaxiOut) or Air (Descent/Approach) — the cabin-secure and cabin-ready calls.",
+        "assert-present: for each such call ONE 'cabin.auto-answer' event with verdict 'answered' (the FO wrote 1 to the dataref — system.switches.S_ASP2_CAB_REC_LATCH with the default left seat, S_ASP_CAB_REC_LATCH with speech.pilotSeat = right) at least delayMs after the cabin.calling event, followed by the 'cabin.report' and the FO's '.ack' speech, then a second event with verdict 'released' (the latch written back to 0) after the report. The log line 'Cabin call auto-answer (<gate>, <phase>, after <delay> ms, <dataref>): <verdict>' pairs with each event.",
+        "verdict 'pilot-answered' (CAB was already selected, or selected during the delay) and 'mic-borrowed' (a guided dialogue held the mic) are correct no-write outcomes — report them, never as failures. 'written-no-echo' means ProSim did not echo the latch within 2 s: the write went out but the panel did not follow (a hardware ACP driving the switch is the suspect) — report with the dataref name; the report still played after the grace.",
+        "assert-absent: any 'cabin.auto-answer' event, or any write to a system.switches.S_ASP* dataref (log 'Cabin call auto-answer' / a write-gate refusal naming S_ASP), while the phase is anything other than PushbackAndStart, TaxiOut, Descent or Approach — including the boarding-delay call at the gate.",
+        "assert-absent: a 'cabin.auto-answer' event while both options are off.",
+        "requires-human: with the option on, the purser report plays after the delay without touching the ACP, the FO's acknowledgement follows, and the FO panel's CAB knob shows selected during the report and deselected after (ProSim ACP page or the hardware panel)."
+      ],
+      "notes": "Shipped 2026-10-09 (issue #11, owner approval 2026-10-09; unverified live). Prosim2GSX kept the AnswerCabinCallGround/Air settings but ProsimInterface held the behaviour: it watched the real I_ASP_CAB_CALL light and pressed CAB SEND, VHF1 SEND and RESET through a MobiFlight LVAR toggle. Here the trigger is the app's own purser call (the real light is SDK read-only) and the answer is one idempotent latch write — CAB reception on the FO's panel, exactly the condition the report already waits for — released after the report. Ground window = PushbackAndStart + TaxiOut (the cabin-secure report often fires while the engines are starting; the brief said TaxiOut — widen or narrow in CabinAutoAnswer.GateFor). Allow-list: the captain's and the FO's CAB_REC_LATCH only."
+    },
+    {
+      "id": "efb-reset-flows",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "efb-reset",
+        "fields": [
+          "kind",
+          "cleared",
+          "failed"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger: the INIT page's RESET FLIGHT (SOFT) / UNLOAD OFP (FULL) buttons (second press within 3 s) or the commands efb.resetFlight / efb.unloadOfp. Behaviour: one 'efb-reset' event per press with kind soft|full, cleared[] and failed[], paired with the log line 'EFB reset: <kind> reset: cleared …' and the GSX decision 'efb reset'.",
+        "kind = soft: cleared is exactly [init-overrides, loadsheet-cycle]; NO gateway write to efb.* or aircraft.refuel.* follows other than the overrides service restoring OFP values ('EFB INIT: override … cleared — OFP value … restored'); the OFP stays on the INIT page (no 'OFP LOADED' → 'AWAITING OFP' change); no flight-cycle reset decision.",
+        "kind = full: cleared contains ofp-store, the eight datarefs in this order — efb.passengers.booked.string, efb.passengerStatistics, aircraft.refuel.fuelTarget, efb.plannedfuel, efb.plannedCargoKg, efb.simbriefPlanImported, efb.prelimLoadsheet, efb.finalLoadsheet — and flight-cycle; then the same evidence a GSX arrival reset leaves: 'loadsheet state reset for new flight cycle', 'flight cycle reset — INIT overrides cleared' (when any existed), 'Flight times' and gate-monitor resets, the pushback choice cleared. The INIT page reads AWAITING OFP afterwards.",
+        "assert-absent after a full reset: any GSX service trigger ('service.trigger' / 'gsx-service' Requested) before a new 'simbrief import: imported …' decision — the flight-plan gate must stay closed with the store empty and efb.simbriefPlanImported false. Exception: the pilot's MCDU plan still loaded opens the gate by the existing ADR-0006 rule — note it, not a failure.",
+        "failed[] non-empty (ProSim refused a write, or ProSim absent): the event still carries the app-side clears, the INIT note reads 'RESET INCOMPLETE — PROSIM REFUSED …' and the command answers failed with the names; never a silent partial reset.",
+        "requires-human: in the ProSim EFB after UNLOAD OFP the booked seat map is empty, planned fuel/cargo read 0, the W&B page shows no loadsheet, and a following FETCH OFP imports normally (the importer's 'AlreadyImported' short-circuit must not fire — the flag was cleared)."
+      ],
+      "notes": "Shipped 2026-10-09 (owner approval; no issue number; unverified live). ProsimInterface parity: ResetFlight() = soft, UnloadOfp() = full. The full reset clears exactly the SimBrief import's write set + the two loadsheet slots (all already allow-listed, no new dataref) and raises GroundOpsSignals.FlightCycleReset — the GSX arrival's own turnaround path — so every flight-cycle store resets through its existing handler. Side effect to watch: the startup-resync's handler writes the Turnaround tracking LVAR = 1, so an app restart after a first-leg unload resyncs as a turnaround (no reposition). Not reproduced from the predecessor on purpose: cancel boarding, zeroing fuel on board / cargo holds / current seat occupation, rewriting efb.flightTimestampJSON — those move aircraft state, not the plan."
     }
   ]
 }
