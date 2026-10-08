@@ -178,5 +178,22 @@ key, cached, budget-enforced), then Google Chirp HD (cached, budget-enforced), t
 voices. Cabin reports arrive on the CAB channel with the interphone chime; company messages
 with the ACARS beep.
 
+### Cabin crew
+
+The purser calls the flight deck twice a flight: *"cabin secure"* a random while after the
+doors close with the beacon on, and *"cabin secure for landing"* on approach. Each call
+rings the interphone chime, the header shows CABIN CALLING, and the purser waits until CAB
+is selected on an audio panel (or the grace runs out) before speaking; the FO acknowledges.
+
+**FO answers cabin calls** (Settings → Voice First Officer → Cabin Crew; off by default):
+on the ground — during pushback, engine start and taxi-out — and/or in the air — descent and
+approach — the FO answers the call for you after the delay you set (4 s on the ground,
+2.5 s in the air), the report plays and the FO acknowledges it, then the FO deselects CAB
+again. The answer is one write to the FO panel's CAB reception knob
+(`S_ASP2_CAB_REC_LATCH`; the captain's panel when you fly from the right seat) — nothing
+else on the ACP is touched. The FO never answers at the gate, in climb, cruise or after
+landing, never while in the middle of a dialogue with you, and never over your own CAB
+selection: select CAB during the delay and the call is yours.
+
 To set up ElevenLabs — key, voice, plan, crew voices, cost — follow the
 [ElevenLabs setup guide](06-elevenlabs.md).
