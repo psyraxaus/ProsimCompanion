@@ -1744,7 +1744,8 @@
         "#148 In-flight monitoring: Settings → Voice First Officer → Callouts & Placards has an 'In-flight monitoring' card with four switches (Fuel check, Gross error check, Destination weather watch, Read-backs) and their tolerances; each switch off ⇒ the matching phrases show the disabled reason in the header VOICE drawer; on ⇒ 'fuel check', 'gross error check' and the read-back lead-ins (with the value badge) are listed (web UI + ears).",
         "#149 Ask the First Officer: Settings → Voice First Officer → Briefings & LLM has the card with Enabled, the comma-separated lead-ins, minimum words, time budget and the stand-by delay; the VOICE drawer lists an Ask the First Officer group (dimmed with the settings path while off, five example questions and the lead-in row with the VALUE badge when on). With the LAN ASR: ask a four-plus-word question and hear an answer or the fixed line; ask the same on the offline engine and hear the ordinary did-not-catch line (web UI + ears).",
         "#150 Tablet install + keep-awake: on an iPad that trusts the mkcert CA, the HTTPS address opens with a padlock and the HTTP one still opens; Appearance → Screen & Install reads ACTIVE with the switch on and the screen does not sleep past the auto-lock time; switching apps and back returns ACTIVE within a second; over plain HTTP the pill reads NEEDS HTTPS with the HTTPS setup link; Share → Add to Home Screen gives a full-screen Companion app and the card then reads INSTALLED; Setup → Web Interface shows the HTTPS fields and the status pill (ON with the address / FAILED with the reason / OFF); the desktop window's QR carries the https address when HTTPS is up and its status list has an HTTPS line; a wrong PFX password shows the banner on every page and HTTP keeps working (web UI + tablet).",
-        "#151 Notifications: Settings → Notifications lists one card per target with the status pill (NEVER SENT / OK / FAILED), the Kind select, URL and Bearer token as password fields, the ten-checkbox events grid, Send test with its one-line result, Remove, and Add target below; Send test to a real ntfy topic shows on the phone within seconds and the line reads 'Sent · 200 OK · hh:mm:ss'; a wrong URL reads 'Failed · …' and the pill FAILED; the settings file on disk holds dpapi: values for url and token (web UI + phone)."
+        "#151 Notifications: Settings → Notifications lists one card per target with the status pill (NEVER SENT / OK / FAILED), the Kind select, URL and Bearer token as password fields, the ten-checkbox events grid, Send test with its one-line result, Remove, and Add target below; Send test to a real ntfy topic shows on the phone within seconds and the line reads 'Sent · 200 OK · hh:mm:ss'; a wrong URL reads 'Failed · …' and the pill FAILED; the settings file on disk holds dpapi: values for url and token (web UI + phone).",
+        "2026-10-09 De-icing policy + SimBrief reload: Settings → Ground Services → Questions → De-Icing shows 'Request de-icing from the weather' (Off / Ask me / Auto), 'OAT threshold' (°C) and 'Require precipitation or frost' (the two greyed while Off; the fluid/concentration selects enabled whenever Auto-accept OR the policy is on); Settings → Ground Services → Departure has a 'SimBrief / VDGS' card with 'Reload SimBrief in GSX on a new OFP' (off); the Ground Services Status section has a 'De-Icing' card (verdict lamp + reason, 'OAT … · precip · ICAO' inputs row, the question prompt with 'Request de-icing' / 'No de-icing' buttons while a question stands, and the 'GSX de-ice LVARs' row reading 'state … , fluid type …' once SimConnect reports them) and a 'Reload SimBrief in GSX' button beside 'Call next service now' whose outcome line appears under the buttons (web UI). By ear: in Ask mode the FO says 'Captain, conditions call for de-icing — OAT −2, snow. Request it?' and reads back 'Copied — requesting de-icing.' / 'Copied — no de-icing.'; after the reload GSX's VDGS shows the new flight number / destination / ETD (sim screen)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -2395,6 +2396,96 @@
         "Native guard, same connection: the GSX decision 'native GSX guard' reads either 'disabled 6 ProSim efb.gsx.* auto flags' (older ProSim) or 'this ProSim build has no efb.gsx.* flags — nothing to disable' (1.75.1). The old wording on 1.75.1 means the gateway verdict regressed (writeBool:false ignored)."
       ],
       "notes": "Shipped 2026-10-06 (owner request). The IOS options are system.config.* datarefs, read and written through the port-5000 gateway without a restart (Door logic flipped true and back live on 1.75.1). Recommended values = the owner's working config. The check only reads; 'Apply recommended' on the Setup page is the only write. Unverified live in the app itself: the connection-time read, the card, the Apply click (the gateway calls were verified by hand)."
+    },
+    {
+      "id": "gsx-deice-policy",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gsx-deice-policy",
+        "fieldsWhenPresent": {
+          "mode": [
+            "verdict",
+            "reason",
+            "precip",
+            "thresholdC",
+            "requirePrecipitation"
+          ]
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with gsx.deice.autoRequest = ask or auto (off by default — with off, the one 'gsx-deice-policy' verdict per departure reads Off and nothing else below applies). Trigger = the departure sequence started at the gate (gsx-decision 'departure sequence: started' / 'auto-started') with an OFP origin and ProSim OAT (or a METAR temperature) available.",
+        "assert-present: a 'gsx-deice-policy' event per departure cycle whose verdict is one of NoData | NotRequired | Ask | Request and whose reason names the OAT figure, its source ('ProSim OAT' or '<ICAO> METAR') and the threshold; oat/precip/icao match the Flight Status local weather card (precip in none | rain | snow | thunderstorm | freezing precipitation | ice pellets / hail | freezing fog | unknown) and the gsx-decision 'de-ice policy' line carries the same text.",
+        "Verdict rules to check against the METAR in the same session: OAT above the threshold ⇒ NotRequired whatever the METAR; at/below with snow, FZRA/FZDZ, PL/GR/GS, rain, FZFG, or a temperature/dew-point spread ≤ 3 ⇒ Ask (mode ask) / Request (mode auto); at/below with a dry METAR and a wide spread ⇒ NotRequired; at/below with NO METAR for the origin and requirePrecipitation=true ⇒ NoData (and never a request). A Request/Ask on a warm or dry day is a failure to quote.",
+        "Ask mode: after the Ask verdict a 'deice-question' event with the prompt (speech pillar; the FO speaks it, speech.spoken tag) and then one 'gsx-deice-policy' event with verdict accepted | declined and source voice | web | called | timeout; the gsx-decision 'de-ice question' line matches. While the question stands the Status board holds DeIce with 'waiting for the captain's answer — conditions call for de-icing' (gsx-decision 'hold DeIce') and Boarding is NOT held by it (its hold reason, if any, is its own activation rule).",
+        "Auto mode or an accepted question: the sequencer trigger 'DeIce' goes out LAST (gsx-decision 'trigger'/slot lines for DeIce after Boarding's Completed edge; the service-trigger wire command for DeIce follows every other departure service), then the GSX DeIce lifecycle edges (Requested/Active/Completed) and the existing deice-completed → holdover-card path. A DeIce trigger before boarding completed, with the step not configured by the pilot, is a failure.",
+        "Declined (voice 'negative', web 'No de-icing', or timeout after 5 min with no answer): gsx-decision 'skip DeIce' reads 'de-icing declined: …' when a DeIce step was configured, and 'gsx-departure-complete' follows without any DeIce trigger. assert-absent: a departure that never completes because the de-ice question was never answered (no 'gsx-departure-complete' with a standing 'hold DeIce' older than 5 min).",
+        "watch: 'gsx-deice-state' events — the first live values of L:FSDT_GSX_DEICING_STATE. Record every (previousState → state, fluidType) pair with the DeIce lifecycle edge nearest in time; the expected table is 1 Callable / 4 Requested / 5 Active / 6 Completed and the doc (docs/integrations/gsx.md §2) is updated from what was seen. A state 6 arriving BEFORE the Remote API Completed edge is the case for arming the holdover card from the LVAR.",
+        "assert-absent: the log line 'De-ice policy evaluation failed' and more than three 'de-ice policy' decision lines per departure with the same verdict (the reason uses whole degrees so a drifting OAT must not re-log).",
+        "requires-human: the Status section De-Icing card and the FO's question / read-back — see requires-human-checklist 2026-10-09."
+      ],
+      "notes": "Feature 2026-10-09 (owner approval; no issue number). DeiceRequestPolicy (Gsx, pure) + GsxDeiceRequestService (shell) + DeiceRequestStore (Core) + DeiceQuestionDialogue (Speech) + GsxDeiceStateMonitor (the first read of L:FSDT_GSX_DEICING_STATE). Never flown: the GSX de-icing crew has never been called by this app, so the DeIce service id, the lifecycle edges and the LVAR values are all first-flight evidence."
+    },
+    {
+      "id": "gsx-deice-lvar-values",
+      "issue": 0,
+      "state": "open",
+      "kind": "watch",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gsx-deice-state",
+        "fields": [
+          "state",
+          "label",
+          "fluidType",
+          "previousState"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Count the 'gsx-deice-state' events and list each (previousState → state, fluidType) with its timestamp and the nearest DeIce lifecycle edge (gsx-decision / handler event lines). With no de-ice this flight the only expected event is the first read (previousState -1 → 0 or 1) after SimConnect connects.",
+        "watch: a state value outside {0,1,4,5,6} — the convention table in docs/integrations/gsx.md §2 is unverified for this LVAR; report any 2/3 or higher with context.",
+        "watch: fluidType after a completed de-ice equals the type the fluid menu answer picked (deIceFluidType: Type I=1 … Type IV=4) — the holdover card's fluid label depends on it."
+      ],
+      "notes": "Evidence gatherer for the 2026-10-09 DEICING_STATE subscription (GsxDeiceStateMonitor). Diagnostics only until the table is settled; the holdover card still arms from the Remote API Completed edge."
+    },
+    {
+      "id": "gsx-simbrief-reload",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gsx-simbrief-reload",
+        "fields": [
+          "trigger",
+          "outcome",
+          "detail"
+        ]
+      },
+      "sources": [
+        "session",
+        "log",
+        "wire"
+      ],
+      "checks": [
+        "Trigger = gsx.reloadSimbriefOnNewOfp = true (off by default) AND a new OFP request id (ofp-imported / OfpStore change) while GSX is Ready and the aircraft is parked at the gate with engines off — OR a manual 'Reload SimBrief in GSX' click / gsx.reloadSimbrief call at any time.",
+        "assert-present: one 'gsx-simbrief-reload' event per trigger with trigger in 'new OFP' | web | command | voice, outcome in Reloaded | SentUnconfirmed | NotPerformed, detail, and ofpRequestId; the gsx-decision 'SimBrief reload' line matches. Reloaded means GSX patched handlerData (wire: a /handlerData patch within 10 s of the menu.pick) or the gate menu closed/moved; SentUnconfirmed means the pick was acknowledged with no signal — read the VDGS.",
+        "assert-present (automatic mode): exactly ONE 'new OFP' reload per OFP request id per GSX session — a second OFP fetch with the same request id must not reload again; a Couatl restart (new startup.sid) may reload the same id once more. A reload with trigger 'new OFP' while airborne, taxiing, or with an engine running is a failure (the outcome must be NotPerformed with the gate/engine reason, or absent).",
+        "assert-absent: an ItemNotAvailable / AmbiguousMatch outcome on the 'SimBrief reload' intent — the menu line regex sim-?brief did not match GSX's gate menu, or matched twice; quote the menu entries from the wire trace / menu card so the label can be fixed (the exact label was inferred from the predecessor, never read live).",
+        "watch: the first live detail text of a Reloaded outcome — which signal confirmed it (handler data patched vs menu reacted) — and whether GSX's gate menu was left open afterwards (menu.close is sent only for a menu this service opened).",
+        "requires-human: the VDGS board shows the new flight number / destination / ETD after the reload — see requires-human-checklist 2026-10-09."
+      ],
+      "notes": "Feature 2026-10-09 (owner approval; no issue number). GsxSimbriefReloadService: keyword intent 'SimBrief reload' on the 'Activate Services at' menu, handlerData-patch verify, once per OFP request id, Core seam IGsxSimbriefReloadControl for the Status button and gsx.reloadSimbrief. Never flown — the SimBrief line has not been seen on a recorded GSX menu."
     }
   ]
 }

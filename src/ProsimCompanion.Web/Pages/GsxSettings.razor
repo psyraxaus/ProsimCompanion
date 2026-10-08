@@ -111,6 +111,12 @@ else if (CurrentSection == "departure")
                    @bind-Value="_gsx.Value.RequireOfpBeforeDeparture" />
     </Section>
 
+    <Section Title="SimBrief / VDGS" Hint="GSX reads the SimBrief plan for its gate displays and marshaller">
+        <BoolField Label="Reload SimBrief in GSX on a new OFP" Hint="Click GSX's own 'SimBrief' menu line once per new flight plan, so the VDGS shows the right flight number, destination and departure time."
+                   More="Only while parked at the gate with engines off and GSX ready — never in flight; a plan fetched airborne is reloaded at the next gate. Off by default: the line is picked by its text on a GSX menu this app has not yet driven on a recorded flight, and a miss leaves the menu open for you. The Status section has a button and the API the command gsx.reloadSimbrief whatever this is set to."
+                   @bind-Value="_gsx.Value.ReloadSimbriefOnNewOfp" />
+    </Section>
+
     <Section Title="Cold &amp; Dark Check">
         <BoolField Label="Verify aircraft state at session start" Hint="Check the cockpit switches against the cold-and-dark state at session start." More="Once per session on a fresh departure, never on a turnaround. The expected switch set is the file aircraft-states\cold-and-dark.json in your config folder."
                    @bind-Value="_gsx.Value.AircraftStateCheckEnabled" />
@@ -397,12 +403,22 @@ else if (CurrentSection == "questions")
     <Section Title="De-Icing">
         <BoolField Label="Auto-accept de-ice offer" Hint="Accept GSX's de-icing offer and pick the fluid by itself."
                    @bind-Value="_gsx.Value.AutoDeIce" />
-        <SelectField Label="De-ice fluid" Options="DeIceFluidOptions"
-                     Disabled="@(!_gsx.Value.AutoDeIce)"
+        <SelectField Label="De-ice fluid" Hint="Also the fluid the app's own de-ice request answers with." Options="DeIceFluidOptions"
+                     Disabled="@(!_gsx.Value.AutoDeIce && DeiceAutoRequestIsOff)"
                      @bind-Value="_gsx.Value.DeIceFluidType" />
         <SelectField Label="Concentration" Hint="Percent." Options="DeIceConcentrationOptions"
-                     Disabled="@(!_gsx.Value.AutoDeIce)"
+                     Disabled="@(!_gsx.Value.AutoDeIce && DeiceAutoRequestIsOff)"
                      @bind-Value="_gsx.Value.DeIceConcentration" />
+        <SelectField Label="Request de-icing from the weather" Hint="Let the app decide from the outside air temperature and the departure METAR whether this departure needs de-icing."
+                     More="Off: only GSX's own offer and your 'request de-icing' exist, as before. Ask: the First Officer asks 'Captain, conditions call for de-icing — request it?' and the Status board shows the question with two buttons; the departure's last step waits up to five minutes for the answer, then counts as no. Auto: de-icing goes on the departure sequence as its last step without asking. The verdict runs once the departure services have started and is logged on the Status section. New in 0.6.0 and not yet flown — the GSX de-icing crew has never been called by this app live."
+                     Options="DeiceAutoRequestOptions" @bind-Value="_gsx.Value.Deice.AutoRequest" />
+        <NumberField Label="OAT threshold" Hint="De-icing is considered at or below this outside air temperature (ProSim's OAT, else the METAR)." Suffix="°C" Step="0.5" Min="-20" Max="15"
+                     Disabled="@DeiceAutoRequestIsOff"
+                     @bind-Value="_gsx.Value.Deice.OatThresholdC"
+                     Default="_gsx.Defaults.Deice.OatThresholdC" />
+        <BoolField Label="Require precipitation or frost" Hint="Cold alone is not enough: the departure METAR must show snow, freezing precipitation, ice pellets, rain while cold, freezing fog, or a dew-point spread of 3 °C or less." More="Off requests on the temperature alone (the cold-soaked-wing rule). With no METAR for the departure airport the app makes no request either way."
+                   Disabled="@DeiceAutoRequestIsOff"
+                   @bind-Value="_gsx.Value.Deice.RequirePrecipitation" />
     </Section>
 }
 else if (CurrentSection == "connection")
@@ -478,6 +494,17 @@ else if (CurrentSection == "connection")
 
     private static readonly IReadOnlyList<(string, string)> DeIceConcentrationOptions =
         [("75", "75 / 25"), ("100", "100")];
+
+    private static readonly IReadOnlyList<(string, string)> DeiceAutoRequestOptions =
+        [(GsxDeiceOptions.AutoRequestOff, "Off — GSX's offer and my own request only"),
+         (GsxDeiceOptions.AutoRequestAsk, "Ask me — the FO asks, the Status board shows the question"),
+         (GsxDeiceOptions.AutoRequestAuto, "Auto — put de-icing on the departure sequence")];
+
+    private bool DeiceAutoRequestIsOff
+        => string.Equals(_gsx.Value.Deice.AutoRequest, GsxDeiceOptions.AutoRequestOff, StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(_gsx.Value.Deice.AutoRequest)
+            || !(string.Equals(_gsx.Value.Deice.AutoRequest, GsxDeiceOptions.AutoRequestAsk, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(_gsx.Value.Deice.AutoRequest, GsxDeiceOptions.AutoRequestAuto, StringComparison.OrdinalIgnoreCase));
 
     private static readonly IReadOnlyList<(string, string)> CrewAnswerOptions =
         [("Nobody", "Nobody"), ("Crew", "Crew"), ("Pilots", "Pilots"), ("Both", "Both")];

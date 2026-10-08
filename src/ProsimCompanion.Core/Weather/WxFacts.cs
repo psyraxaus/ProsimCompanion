@@ -30,7 +30,8 @@ public sealed record WxFacts(
     string? ActiveRunway,
     int? CeilingFt = null,
     int? WindGustKt = null,
-    PrecipKind Precip = PrecipKind.None)
+    PrecipKind Precip = PrecipKind.None,
+    int? DewPointC = null)
 {
     /// <summary>The "no observation" value — providers return this instead of throwing.</summary>
     public static WxFacts None { get; } = new(null, null, null, null, null, null, null, null);

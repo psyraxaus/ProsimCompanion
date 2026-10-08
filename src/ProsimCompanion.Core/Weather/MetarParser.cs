@@ -15,7 +15,8 @@ public readonly record struct MetarValues(
     int? CeilingFt,
     PrecipKind Precip,
     double? QnhHpa,
-    int? TemperatureC)
+    int? TemperatureC,
+    int? DewPointC = null)
 {
     public static MetarValues Empty { get; } = new(null, null, null, null, null, PrecipKind.None, null, null);
 }
@@ -49,13 +50,15 @@ public static class MetarParser
         body = " " + body.Trim() + " ";
 
         var (dir, spd, gust) = ParseWind(body);
+        var (temperature, dewPoint) = ParseTempAndDewPoint(body);
         return new MetarValues(
             dir, spd, gust,
             ParseVisibility(body),
             ParseCeiling(body),
             ParsePrecip(body),
             ParseQnh(body),
-            ParseTemp(body));
+            temperature,
+            dewPoint);
     }
 
     /// <summary>Convenience: parse a METAR straight into <see cref="WxFacts"/> (raw text plus
@@ -66,7 +69,7 @@ public static class MetarParser
         return new WxFacts(
             string.IsNullOrWhiteSpace(metar) ? null : metar.Trim(),
             v.WindDirDeg, v.WindSpeedKt, v.VisibilityMeters, v.QnhHpa, v.TemperatureC,
-            atisLetter, activeRunway, v.CeilingFt, v.WindGustKt, v.Precip);
+            atisLetter, activeRunway, v.CeilingFt, v.WindGustKt, v.Precip, v.DewPointC);
     }
 
     private static (int? Dir, int? Spd, int? Gust) ParseWind(string body)
@@ -212,15 +215,23 @@ public static class MetarParser
         return null;
     }
 
-    private static int? ParseTemp(string body)
+    /// <summary>The <c>TT/TD</c> group: temperature and dew point, <c>M</c> = negative. The
+    /// dew point joined the result for the de-icing policy's frost rule (2026-10-09); a
+    /// missing dew point (<c>03///</c>) leaves it null and the temperature intact.</summary>
+    private static (int? Temperature, int? DewPoint) ParseTempAndDewPoint(string body)
     {
-        var t = Regex.Match(body, @"\b(M?\d{2})/(M?\d{2})\b");
+        // Lookarounds, not \b: the body is space-padded and "//" has no word boundary.
+        var t = Regex.Match(body, @"(?<=\s)(M?\d{2})/(M?\d{2}|//)(?=\s)");
         if (!t.Success)
         {
-            return null;
+            return (null, null);
         }
 
-        var s = t.Groups[1].Value;
+        return (ParseSignedTwoDigits(t.Groups[1].Value), ParseSignedTwoDigits(t.Groups[2].Value));
+    }
+
+    private static int? ParseSignedTwoDigits(string s)
+    {
         var neg = s.StartsWith('M');
         var digits = neg ? s[1..] : s;
         return int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var v) ? (neg ? -v : v) : null;

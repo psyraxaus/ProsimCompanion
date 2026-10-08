@@ -90,6 +90,19 @@ public sealed class MetarParserTests
     public void Temperature_IncludingNegative(string metar, int expected)
         => Assert.Equal(expected, MetarParser.Parse(metar).TemperatureC);
 
+    // Dew point joined the parse for the de-icing frost rule (2026-10-09).
+    [Theory]
+    [InlineData("YSSY 070800Z 27012KT CAVOK 22/10 Q1013", 10)]
+    [InlineData("ESSA 070750Z 36008KT 9999 OVC012 M05/M12 Q1005", -12)]
+    [InlineData("EGLL 090850Z 27010KT 9999 FEW030 03/// Q1030", null)]
+    public void DewPoint_IncludingNegative_AndMissing(string metar, int? expected)
+    {
+        var v = MetarParser.Parse(metar);
+        Assert.Equal(expected, v.DewPointC);
+        Assert.NotNull(v.TemperatureC); // a missing dew point never loses the temperature
+        Assert.Equal(expected, MetarParser.ToFacts(metar).DewPointC);
+    }
+
     // ---- RMK confinement ----
 
     [Fact]

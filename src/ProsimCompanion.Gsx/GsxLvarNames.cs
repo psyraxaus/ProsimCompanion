@@ -75,4 +75,12 @@ public static class GsxLvarNames
 
     // Deicing fluid type readout for the ground-ops signal relay.
     public static readonly SimVarRef<double> DeicingType = new("L:FSDT_GSX_DEICING_TYPE", "number", DataRefTier.Infrequent, 0.0);
+
+    // De-icing service state (2026-10-09, first read here; Prosim2GSX subscribed it as its
+    // GsxServiceDeice state LVAR and never consumed it beyond the generic per-service state
+    // machine). Expected to follow the per-service convention — 1 Callable, 4 Requested,
+    // 5 Active, 6 Completed — but no recorded flight has shown its values yet: the
+    // GsxDeiceStateMonitor logs every transition so the first de-iced departure settles the
+    // table in docs/integrations/gsx.md. Diagnostics only until then.
+    public static readonly SimVarRef<double> DeicingState = new("L:FSDT_GSX_DEICING_STATE", "number", DataRefTier.Normal, 0.0);
 }
