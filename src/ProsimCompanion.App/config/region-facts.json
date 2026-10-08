@@ -1,0 +1,302 @@
+{
+  "_comment": "Curated cruise region facts (ProsimCompanion issue #122). The First Officer picks one at random for the country or sea below, once per region per flight, when Settings > Voice First Officer > Briefings & LLM > Region facts is on. Keys are ISO 3166-1 alpha-2 country codes (FR, GB, US ...) or 'sea:<name>' with the sea named as the atlas names it (sea:North Sea, sea:Mediterranean Sea, sea:Bay of Biscay). Two sentences at most, aviation-passenger tone, nothing about the flight itself. Edit freely: this copy lives in %LOCALAPPDATA%\\ProsimCompanion\\config and survives updates; keys starting with an underscore are ignored.",
+
+  "GB": [
+    "We're over the United Kingdom. Down there is the home of the world's first public railway and the oldest underground network, both still running.",
+    "The United Kingdom below us has more than six thousand islands, though only about a hundred and forty are lived on.",
+    "Somewhere beneath us is Greenwich, where the prime meridian begins — every longitude on our charts is measured from a line in a London park."
+  ],
+  "IE": [
+    "We're over Ireland. Shannon, on the west coast, built the world's first duty-free shop back when transatlantic flights had to stop there for fuel.",
+    "Ireland's countryside looks that green from up here for a reason — it rarely freezes and it rarely dries out, thanks to the Gulf Stream."
+  ],
+  "FR": [
+    "We're over France, the most visited country on Earth — more people arrive here each year than actually live here.",
+    "France below us still has more than a thousand different cheeses, which is why de Gaulle once asked how anyone could govern such a country.",
+    "Somewhere down there is Le Bourget, where Lindbergh landed after the first solo crossing of the Atlantic in nineteen twenty-seven."
+  ],
+  "DE": [
+    "We're over Germany. The motorways down there are famous for stretches with no speed limit at all, and they date back to the nineteen-thirties.",
+    "Germany has more castles than any other country — well over twenty thousand, from Rhine fortresses to the fairy-tale Neuschwanstein.",
+    "Frankfurt below us is one of Europe's busiest hubs, and the city is nicknamed Mainhattan for its skyline on the river Main."
+  ],
+  "NL": [
+    "We're over the Netherlands, and a good quarter of what you see down there sits below sea level, held back by dykes and pumps.",
+    "The Netherlands has more bicycles than people, and Schiphol itself is built on the bed of a lake that was drained in the eighteen-fifties."
+  ],
+  "BE": [
+    "We're over Belgium. Brussels below is home to the European institutions and to more comic-strip heroes per square mile than anywhere else.",
+    "Belgium's motorways are famously lit at night — for years the whole network glowed so brightly it could be picked out from orbit."
+  ],
+  "LU": [
+    "We're over Luxembourg, one of Europe's smallest countries and the home of Cargolux, one of the biggest all-cargo airlines in the world.",
+    "Luxembourg below us is a grand duchy — the only one left — and most of its people speak three languages every day."
+  ],
+  "CH": [
+    "We're over Switzerland. The country has four official languages, and the train network below is so punctual the clocks are set by it, not the other way round.",
+    "Switzerland's Alps below us hold the Jungfraujoch, the highest railway station in Europe, tucked into the mountain at over eleven thousand feet."
+  ],
+  "AT": [
+    "We're over Austria, the birthplace of Mozart, Haydn and Strauss — Vienna below us still runs a concert every single night of the year.",
+    "Austria's Alps below cover more than half the country, and the Grossglockner road over them is one of the great mountain drives in Europe."
+  ],
+  "IT": [
+    "We're over Italy. The country has more UNESCO World Heritage sites than anywhere else on Earth — Rome alone would fill a list.",
+    "Italy's Vesuvius, down near Naples, is the only active volcano on the European mainland, and three million people live in its shadow.",
+    "Italy's shape is famous from the air — the boot — and the heel you may see later points towards Greece across the Adriatic."
+  ],
+  "ES": [
+    "We're over Spain. It's the second most mountainous country in Europe after Switzerland, which is why the plains look so high from here.",
+    "Spain below us is the world's biggest producer of olive oil — most of the trees you'd see in Andalusia are older than the aircraft by centuries.",
+    "Madrid, roughly in the middle of Spain, is the highest capital city in the European Union, sitting on a plateau two thousand feet up."
+  ],
+  "PT": [
+    "We're over Portugal, the oldest nation state in Europe with the same borders since the twelve-hundreds.",
+    "Portugal's navigators set out from the coast below us to map most of the world's sea routes — Lisbon was the departure point for the Age of Discovery."
+  ],
+  "DK": [
+    "We're over Denmark. No point in the country is more than about thirty miles from the sea, and the bridge to Sweden carries both road and rail across the Øresund.",
+    "Denmark below us is the home of Lego — the name comes from the Danish for play well, and the first bricks were made in a carpenter's shop in Jutland."
+  ],
+  "NO": [
+    "We're over Norway. The fjords down there were carved by glaciers, and the coastline with all its inlets is one of the longest in the world.",
+    "Norway's Bergen below us is one of the rainiest cities in Europe — the locals say there's no bad weather, only bad clothing."
+  ],
+  "SE": [
+    "We're over Sweden, a country with nearly a hundred thousand lakes — about a tenth of what you see down there is water.",
+    "Stockholm, Sweden's capital, is spread across fourteen islands, and the city's metro stations are famous for being decorated like art galleries."
+  ],
+  "FI": [
+    "We're over Finland, the land of a thousand lakes — in fact there are closer to two hundred thousand of them down there.",
+    "Finland has more saunas than cars, and it is regularly ranked the happiest country in the world."
+  ],
+  "IS": [
+    "We're over Iceland, which sits right on the seam between the European and American plates — the island is literally being pulled apart.",
+    "Iceland heats most of its homes with hot water straight out of the ground, and the capital Reykjavik is the most northerly in the world."
+  ],
+  "PL": [
+    "We're over Poland. Warsaw below us was rebuilt brick by brick after the war, so carefully that the old town is now a World Heritage site.",
+    "Poland's Białowieża forest, on the eastern border, is the last piece of the primeval woodland that once covered all of Europe."
+  ],
+  "CZ": [
+    "We're over the Czech Republic. Prague below us has a six-hundred-year-old astronomical clock that still puts on a show every hour.",
+    "The Czech Republic drinks more beer per person than any other country, and the original Pilsner was brewed in the town of Plzeň."
+  ],
+  "SK": [
+    "We're over Slovakia. The Tatra mountains on its northern border are the smallest high mountain range in the world.",
+    "Slovakia's capital Bratislava is the only capital that borders two other countries — Austria and Hungary are both a short drive away."
+  ],
+  "HU": [
+    "We're over Hungary. Budapest below us has more thermal springs than any other capital, and people have bathed in them since Roman times.",
+    "Hungary's Lake Balaton, west of Budapest, is the largest lake in central Europe and the country's unofficial seaside."
+  ],
+  "HR": [
+    "We're over Croatia, with more than a thousand islands along its Adriatic coast — the dark ones on the water are mostly covered in pine.",
+    "Croatia gave the world the necktie: Croatian soldiers in Paris wore knotted scarves, and the French called them cravates."
+  ],
+  "SI": [
+    "We're over Slovenia, one of the few countries that has Alps, Mediterranean coast and vineyards all within an hour's drive.",
+    "Slovenia's Postojna cave system has its own underground railway and a species of pale salamander the locals once took for baby dragons."
+  ],
+  "RO": [
+    "We're over Romania. Bucharest's parliament building below is the heaviest building in the world and the second largest after the Pentagon.",
+    "Romania's Transfăgărășan road winds over the Carpathians below us — built as a military route, now one of the most spectacular drives in Europe."
+  ],
+  "BG": [
+    "We're over Bulgaria, the home of the rose valley — most of the rose oil in the world's perfumes comes from the fields around Kazanlak.",
+    "Bulgaria is the oldest country in Europe to keep its original name, unchanged since the seventh century."
+  ],
+  "GR": [
+    "We're over Greece. There are more than two hundred inhabited islands down there, and the country has one of the longest coastlines in the world.",
+    "Greece below us is where the marathon began — the distance is the run from the plain of Marathon to Athens in four-ninety BC."
+  ],
+  "TR": [
+    "We're over Turkey, the only country that sits in both Europe and Asia — Istanbul straddles the Bosphorus with a foot on each continent.",
+    "Istanbul's new airport, on the Black Sea coast, was built to become one of the largest in the world, with room for six runways."
+  ],
+  "UA": [
+    "We're over Ukraine, the largest country entirely within Europe, with some of the richest farmland on the planet — the black earth.",
+    "Ukraine built the Antonov two-two-five, the heaviest aircraft ever to fly, in Kyiv — it carried the Soviet space shuttle on its back."
+  ],
+  "RU": [
+    "We're over Russia, a country that spans eleven time zones — it's possible to have breakfast and dinner on the same day in two different days.",
+    "Russia's Lake Baikal holds about a fifth of all the fresh water on the planet in a single, mile-deep lake."
+  ],
+  "EE": [
+    "We're over Estonia, one of the most digital countries in the world — almost everything from voting to tax is done online.",
+    "Estonia's capital Tallinn has one of the best-preserved medieval old towns in Europe, and Skype was written there."
+  ],
+  "LV": [
+    "We're over Latvia. Riga below us has the largest collection of Art Nouveau buildings anywhere, a whole district of them.",
+    "Latvia is more than half forest, and its Baltic coast is one long sandy beach for nearly three hundred miles."
+  ],
+  "LT": [
+    "We're over Lithuania, which contains the geographical centre of Europe, a few miles north of Vilnius.",
+    "Lithuania's Curonian Spit, on the coast, is a sixty-mile ribbon of sand dunes shared with Russia and planted with forest to stop it moving."
+  ],
+  "US": [
+    "We're over the United States. The air traffic system down there handles more flights in a day than most countries see in a month.",
+    "The United States below us invented powered flight at Kitty Hawk, and today has more airports than any other nation by a wide margin."
+  ],
+  "CA": [
+    "We're over Canada, the second-largest country on Earth with more lakes than the rest of the world put together.",
+    "Canada's Gander airport in Newfoundland was once the busiest in the world — every transatlantic flight stopped there for fuel."
+  ],
+  "MX": [
+    "We're over Mexico. Mexico City below us was built on a lake by the Aztecs, and the city is still sinking a little every year.",
+    "Mexico gave the world chocolate, vanilla and the tomato — none of them existed in Europe before the fifteen-hundreds."
+  ],
+  "BR": [
+    "We're over Brazil, which holds more than half of the Amazon rainforest and more species of plant and animal than any other country.",
+    "Brazil's Embraer, in São José dos Campos, builds more regional jets than anyone, and Santos-Dumont made Europe's first public flight in nineteen-oh-six."
+  ],
+  "AR": [
+    "We're over Argentina. Buenos Aires below has more bookshops per person than any other city in the world.",
+    "Argentina stretches from the tropics to Antarctica, and Ushuaia at its tip is the southernmost city on Earth."
+  ],
+  "AU": [
+    "We're over Australia, where Qantas began in nineteen-twenty as an outback mail service — the name stands for Queensland and Northern Territory Aerial Services.",
+    "Australia is the only country that is also a continent, and more than eighty percent of its people live within a short drive of the coast."
+  ],
+  "NZ": [
+    "We're over New Zealand, with more sheep than people and the first country in the world to see each new day.",
+    "New Zealand's Wellington is the southernmost capital in the world and famously the windiest."
+  ],
+  "JP": [
+    "We're over Japan, a chain of many thousands of islands — the four big ones are home to almost everyone.",
+    "Japan's bullet trains below us have run for sixty years without a single passenger fatality in an accident, and the average delay is under a minute."
+  ],
+  "CN": [
+    "We're over China. The Great Wall down there is not a single wall but a network of them built over two thousand years.",
+    "China is building more new airports than any other country, and its high-speed rail network is longer than the rest of the world's combined."
+  ],
+  "IN": [
+    "We're over India, home to more than a sixth of all the people on Earth and more than twenty officially recognised languages.",
+    "India's Taj Mahal below is a tomb built by an emperor for his wife, and it changes colour with the light through the day."
+  ],
+  "AE": [
+    "We're over the United Arab Emirates. Dubai below is home to the tallest building in the world and one of the busiest international airports.",
+    "The United Arab Emirates was a string of pearl-fishing villages within living memory — the oil came in the nineteen-sixties."
+  ],
+  "SA": [
+    "We're over Saudi Arabia. The Empty Quarter down there is the largest sand desert in the world, dunes the size of hills for hundreds of miles.",
+    "Saudi Arabia has no rivers at all — not one that runs all year — and gets most of its drinking water from the sea."
+  ],
+  "EG": [
+    "We're over Egypt. Almost everyone lives along the Nile below — the green ribbon in the desert is where the whole country is.",
+    "Egypt's pyramids at Giza were the tallest structures on Earth for nearly four thousand years."
+  ],
+  "MA": [
+    "We're over Morocco, where the Atlas mountains below separate the Mediterranean coast from the Sahara.",
+    "Morocco's Casablanca is one of Africa's biggest ports, and Marrakech's main square has been a market since the eleventh century."
+  ],
+  "ZA": [
+    "We're over South Africa, which has three capital cities — one each for parliament, the government and the courts.",
+    "South Africa's Table Mountain, down by Cape Town, has more plant species on it than the whole of the British Isles."
+  ],
+  "KE": [
+    "We're over Kenya. The Great Rift Valley below us runs the length of the country, and the Masai Mara hosts the biggest animal migration on Earth.",
+    "Kenya's Nairobi is the only capital with a national park inside the city limits — giraffes against the skyline."
+  ],
+  "SG": [
+    "We're over Singapore, a city, an island and a country all at once, with one of the busiest ports and best-known airports in the world.",
+    "Singapore's Changi airport has a waterfall inside it — the tallest indoor one in the world."
+  ],
+  "TH": [
+    "We're over Thailand, the only country in South-East Asia that was never colonised by a European power.",
+    "Bangkok's full ceremonial name is the longest place name in the world, over a hundred and sixty letters."
+  ],
+  "MY": [
+    "We're over Malaysia. Kuala Lumpur's Petronas towers below were the tallest buildings in the world at the turn of the century.",
+    "Malaysia's rainforests are among the oldest on Earth, older than the Amazon by tens of millions of years."
+  ],
+  "ID": [
+    "We're over Indonesia, the biggest island nation in the world with more than seventeen thousand islands across three time zones.",
+    "Indonesia has more active volcanoes than any other country — Krakatoa's eruption in eighteen eighty-three was heard three thousand miles away."
+  ],
+
+  "sea:North Sea": [
+    "We're over the North Sea, one of the busiest stretches of water in the world — the oil platforms you may see have been pumping since the seventies.",
+    "The North Sea below us was dry land ten thousand years ago — Doggerland, where people hunted on what is now the seabed."
+  ],
+  "sea:English Channel": [
+    "We're over the English Channel, the busiest shipping lane in the world — several hundred ships cross it every day.",
+    "The Channel below us was first flown by Blériot in nineteen-oh-nine, and the tunnel beneath it is the longest undersea rail tunnel anywhere."
+  ],
+  "sea:Irish Sea": [
+    "We're over the Irish Sea. The Isle of Man in the middle of it has the oldest continuous parliament in the world, the Tynwald.",
+    "The Irish Sea below has some of the biggest tides in Europe — the water level can change by thirty feet in a few hours."
+  ],
+  "sea:Bay of Biscay": [
+    "We're over the Bay of Biscay, famous among sailors for its storms — the Atlantic swell piles up on the shallow shelf here.",
+    "The Bay of Biscay below us is one of the best places in Europe to see whales and dolphins from the ferries that cross it."
+  ],
+  "sea:Mediterranean Sea": [
+    "We're over the Mediterranean, a sea that was once completely dry — it refilled through the Strait of Gibraltar in a flood that lasted a couple of years.",
+    "The Mediterranean below us is almost an inland sea, with only the narrow gap at Gibraltar to the Atlantic, which is why it's saltier than the open ocean."
+  ],
+  "sea:Adriatic Sea": [
+    "We're over the Adriatic, the long arm of the Mediterranean between Italy and the Balkans — Venice sits at its very top.",
+    "The Adriatic below us has more than a thousand Croatian islands on its eastern side and almost none on the Italian side."
+  ],
+  "sea:Tyrrhenian Sea": [
+    "We're over the Tyrrhenian Sea, between the Italian mainland, Sardinia and Sicily — Stromboli down there has been erupting continuously for two thousand years.",
+    "The Tyrrhenian Sea below us is named after the Etruscans, whom the Greeks called Tyrrhenians."
+  ],
+  "sea:Aegean Sea": [
+    "We're over the Aegean, dotted with the Greek islands — Santorini down there is the rim of a volcano that blew itself apart in the Bronze Age.",
+    "The Aegean below us is where much of Greek mythology is set — the sea is named after King Aegeus, who threw himself into it."
+  ],
+  "sea:Ionian Sea": [
+    "We're over the Ionian Sea, the deepest part of the Mediterranean — the floor is more than three miles down.",
+    "The Ionian islands below, Corfu among them, were Venetian, French and British before they joined Greece."
+  ],
+  "sea:Baltic Sea": [
+    "We're over the Baltic, one of the least salty seas in the world — in a hard winter much of it freezes over.",
+    "The Baltic below us was the trading highway of the Hanseatic League, the medieval merchant network that ran from London to Novgorod."
+  ],
+  "sea:Black Sea": [
+    "We're over the Black Sea. Below a few hundred feet its water has no oxygen at all, so ancient shipwrecks on the bottom are perfectly preserved.",
+    "The Black Sea below us is connected to the Mediterranean only by the narrow Bosphorus, which Istanbul is built around."
+  ],
+  "sea:Norwegian Sea": [
+    "We're over the Norwegian Sea, kept ice-free this far north by the last of the Gulf Stream.",
+    "The Norwegian Sea below us is where the Atlantic's deep water forms — cold, salty water sinking here drives currents all round the world."
+  ],
+  "sea:North Atlantic Ocean": [
+    "We're over the North Atlantic. The tracks across it are redrawn every day to follow the jet stream — the organised track system dates from the nineteen-sixties.",
+    "The North Atlantic below us was first flown non-stop by Alcock and Brown in nineteen-nineteen, in an open cockpit, from Newfoundland to a bog in Ireland."
+  ],
+  "sea:Red Sea": [
+    "We're over the Red Sea, one of the saltiest and warmest seas in the world, with coral reefs along almost its whole length.",
+    "The Red Sea below us is slowly widening — Africa and Arabia are drifting apart, and in a few million years it will be an ocean."
+  ],
+  "sea:Persian Gulf": [
+    "We're over the Persian Gulf, shallow and warm — its average depth is only around a hundred and fifty feet.",
+    "The Gulf below us holds the world's biggest oil fields, and the ports along it grew from pearl-diving villages within a single lifetime."
+  ],
+  "sea:Caribbean Sea": [
+    "We're over the Caribbean, home to the second-largest barrier reef in the world, off Belize.",
+    "The Caribbean below us is where hurricanes get their name — from Huracán, the storm god of the Taíno people."
+  ],
+  "sea:Gulf of Mexico": [
+    "We're over the Gulf of Mexico, where the Gulf Stream begins its long run to Europe.",
+    "The Gulf of Mexico below us was made by an asteroid — the Chicxulub crater on its rim is the one that ended the dinosaurs."
+  ],
+  "sea:Tasman Sea": [
+    "We're over the Tasman Sea, which the locals on both sides call the Ditch — the first crossing by air was Kingsford Smith in nineteen twenty-eight.",
+    "The Tasman below us is named after Abel Tasman, the Dutch navigator who sighted both Tasmania and New Zealand in sixteen forty-two."
+  ],
+  "sea:Coral Sea": [
+    "We're over the Coral Sea, home to the Great Barrier Reef — the largest living structure on Earth, visible from space.",
+    "The Coral Sea below us saw the first naval battle in history fought entirely by aircraft, in nineteen forty-two."
+  ],
+  "sea:South China Sea": [
+    "We're over the South China Sea, one of the busiest sea lanes in the world — a third of global shipping passes through it.",
+    "The South China Sea below us is shallow across much of its area and scattered with reefs and islets that several countries claim."
+  ],
+  "sea:Sea of Japan": [
+    "We're over the Sea of Japan, which barely connects to the Pacific — its straits are so shallow that its deep water is its own.",
+    "The Sea of Japan below us gives the coast of Honshu some of the heaviest snowfall of any populated place on Earth."
+  ]
+}

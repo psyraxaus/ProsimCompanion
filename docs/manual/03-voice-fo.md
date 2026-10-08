@@ -82,6 +82,25 @@ request to `en.wikipedia.org` per place, a three-second limit, cached after the 
 and nothing but the place name is sent. If the fetch fails or finds nothing, you still get the
 position and the model's own facts.
 
+### Region facts in the cruise
+
+**Region Facts** (its own card under Briefings & LLM, off by default) is the unprompted
+cousin of the question above: every fifteen to thirty minutes in the cruise — the gap is
+drawn at random between your shortest and longest setting, so it never feels like a timer —
+the FO offers a short fact about the country or sea below: *"We're over the Netherlands — a
+good quarter of what you see down there sits below sea level, held back by dykes and
+pumps."* The region comes from the same built-in atlas (no internet needed). The fact comes
+from the language model when it is on and healthy (two sentences, the same guard as the
+place facts — nothing about this flight; **Facts from the language model** turns that tier
+off) and otherwise from the curated file
+`%LOCALAPPDATA%\ProsimCompanion\config\region-facts.json` — edit it to add your own, keyed
+by country code (`"FR"`, `"GB"`) or `"sea:North Sea"`, one array of sentences per key; your
+edits survive updates. Never the same region twice in a flight, at most **Facts per flight**
+(four) per leg, and silent outside the cruise, while the flight is not live, while the mic
+pill reads PAUSED, in the sterile cockpit, after *"quiet please"*, and over water the atlas
+does not name. With the FO persona on, a curated fact is spoken in the persona's voice with
+every figure locked.
+
 The atlas: country outlines from [Natural Earth](https://www.naturalearthdata.com/) 1:110m,
 seas and natural regions from Natural Earth 1:50m (both public domain), towns from
 [GeoNames](https://www.geonames.org/) (`cities15000`, towns of 25 000 and up plus every
@@ -220,6 +239,25 @@ again. The answer is one write to the FO panel's CAB reception knob
 else on the ACP is touched. The FO never answers at the gate, in climb, cruise or after
 landing, never while in the middle of a dialogue with you, and never over your own CAB
 selection: select CAB during the delay and the call is yours.
+
+### The purser's cruise query
+
+**Purser cruise query** (Settings → Voice First Officer → Cabin Crew, off by default) has
+the purser call the flight deck once per flight: about ten minutes into the cruise (your
+setting, give or take thirty percent), the chime rings, the purser waits for CAB as for every
+report, and asks *"Flight deck, cabin. Any update on arrival time or turbulence for the
+service?"* — then listens for your answer for twenty seconds (the reply window setting).
+Answer in your own words: a time (*"about forty minutes"*, *"on time"*, *"ten minutes
+late"*) gets *"Copied, thank you. We'll plan the service around that."*; a word about the
+ride (*"smooth"*, *"light chop"*, *"expect some bumps"*) gets *"Copied, thank you. We'll let
+the cabin know about the ride."*; anything else *"Copied, thank you."*; silence *"No
+worries, we'll check back later."* All five lines are editable under Cabin Wording. The
+reply is only ever acknowledged — it is never read as a command and never reaches the
+aircraft. A free answer needs the LAN speech server; the offline Windows engine listens for
+a short list of likely replies instead. The call waits while the mic pill reads PAUSED or
+another dialogue has the microphone (a hail, the tech log), a running spoken checklist holds
+and resumes around the window, and if the descent begins first there is no call that flight.
+The VOICE drawer's Cabin tab shows the replies it understands.
 
 To set up ElevenLabs — key, voice, plan, crew voices, cost — follow the
 [ElevenLabs setup guide](06-elevenlabs.md).

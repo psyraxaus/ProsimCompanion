@@ -12,6 +12,9 @@ public static class ConfigAreas
     public const string Themes = "themes";
     public const string AircraftStates = "aircraft-states";
 
+    /// <summary>The curated cruise region facts (issue #122), <c>region-facts.json</c>.</summary>
+    public const string RegionFacts = "region-facts";
+
     /// <summary>The optional HTTPS listener (ADR-0013): a certificate that could not be used.</summary>
     public const string WebHttps = "webUi.https";
 }

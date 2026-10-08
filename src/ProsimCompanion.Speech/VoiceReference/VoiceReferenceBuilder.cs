@@ -77,6 +77,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         groups.Add(ChecklistStarts());
         groups.Add(Drills());
         groups.Add(Questions());
+        groups.Add(CruiseQueryReplies());
 
         // Tab order, then the described features in registration order.
         var ordered = groups
@@ -348,6 +349,32 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
 
         return new VoiceReferenceGroup("foQuestions", "Ask the First Officer", VoiceReferenceTab.FirstOfficer,
             VoiceSpeaker.FirstOfficer, enabled, reason, entries);
+    }
+
+    /// <summary>The purser's cruise query (2026-10-09): not a phrase the pilot starts — the
+    /// purser calls — but the drawer shows what an answer in the window can be, on the Cabin
+    /// tab, dimmed with the settings path while off.</summary>
+    private VoiceReferenceGroup CruiseQueryReplies()
+    {
+        var cabin = _cabin.CurrentValue;
+        var enabled = cabin.Enabled && cabin.CruiseQuery;
+        var reason = enabled ? null
+            : !cabin.Enabled ? $"cabin.enabled is off — {SettingsFo} → Cabin Crew"
+            : $"cabin.cruiseQuery is off — {SettingsFo} → Cabin Crew → Purser cruise query";
+        var window = cabin.CruiseQueryWindowSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return new VoiceReferenceGroup("cabinCruiseQuery", "Purser cruise query", VoiceReferenceTab.Cabin,
+            VoiceSpeaker.Purser, enabled, reason,
+            [
+                new VoiceReferenceEntry(["about forty minutes", "on time", "ten minutes late"],
+                    $"Once per flight in the cruise the purser calls — \"{cabin.CruiseQueryText}\" — and listens {window} s. A time or arrival estimate in your answer:",
+                    cabin.CruiseQueryEtaAckText, VoiceSpeaker.Purser, [VoiceReferenceDescribers.Cab, VoiceReferenceDescribers.Dialogue]),
+                new VoiceReferenceEntry(["smooth", "light chop", "expect some bumps"],
+                    "A word about the ride:", cabin.CruiseQueryRideAckText, VoiceSpeaker.Purser, [VoiceReferenceDescribers.Dialogue]),
+                new VoiceReferenceEntry(["nothing to report", "no change"],
+                    "Anything else (free answer with the LAN speech server; the offline engine hears a short list):",
+                    cabin.CruiseQueryGenericAckText, VoiceSpeaker.Purser, [VoiceReferenceDescribers.Dialogue]),
+                new VoiceReferenceEntry(["(say nothing)"], "The window closes in silence:", cabin.CruiseQueryNoReplyText, VoiceSpeaker.Purser),
+            ]);
     }
 
     /// <summary>The router's global checklist commands — in every grammar, no feature owns them.</summary>
