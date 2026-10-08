@@ -137,6 +137,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Airports.RunwayLocator>();
         services.AddSingleton<PushbackChoiceStore>();
         services.AddStartupModule<Airports.Parking.PushbackSuggestionService>();
+        // Per-departure de-icing decision (2026-10-09): the GSX policy writes the verdict and
+        // the captain's question; the FO dialogue, the Status board and the sequencer read it.
+        services.AddSingleton<DeiceRequestStore>();
         services.AddSingleton<Flight.FlightProgressStore>();
         services.AddStartupModule<Flight.FlightProgressService>();
         // Landing analysis (issue #146): one `touchdown` session event per landing, read
