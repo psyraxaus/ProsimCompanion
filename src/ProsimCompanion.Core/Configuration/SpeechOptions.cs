@@ -360,6 +360,12 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Play the short listening cue tone when a window opens for a reply.</summary>
     public bool ListeningTone { get; set; } = true;
 
+    /// <summary>Keep every utterance the FO heard but nothing acted on (issue #112): a
+    /// <c>voice.unmatched</c> session event plus the "Heard but not understood" list on the
+    /// Voice page, grouped so a phrase the pilot keeps saying stands out as a command to add.
+    /// The ASR decision trail in the log is unaffected by this switch.</summary>
+    public bool TrackUnmatched { get; set; } = true;
+
     /// <summary>FO responses to spoken engine-start and flap calls ("starting engine two",
     /// "flaps two" → placard speed check). Verbal only — the FO never moves the flap lever
     /// or engine masters (issue #67; actuation is deferred pending write-safety review).</summary>

@@ -64,6 +64,11 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     // without one simply keep the whole-reply path.
     private readonly StreamingNarrator? _narrator;
 
+    // Tech-log consultation (2026-10-09). Optional: without the service (tests) the briefing
+    // simply has no tech-log clause.
+    private readonly Core.TechLog.ITechLogService? _techLog;
+    private readonly IOptionsMonitor<TechLogOptions>? _techLogOptions;
+
     // Spoken text (campaign #81): names when the DFD is present, NATO-spelled ICAO otherwise
     // — the fallback policy lives in the module, not here (issue #70).
     private readonly Core.Speech.ISpokenText _spokenText;
@@ -83,10 +88,14 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         Core.Speech.ISpokenText spokenText,
         OpenAiChatClient? llm = null,
         Persona.PersonaService? persona = null,
-        StreamingNarrator? narrator = null)
+        StreamingNarrator? narrator = null,
+        Core.TechLog.ITechLogService? techLog = null,
+        IOptionsMonitor<TechLogOptions>? techLogOptions = null)
     {
         _persona = persona;
         _narrator = narrator;
+        _techLog = techLog;
+        _techLogOptions = techLogOptions;
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(options);
@@ -296,7 +305,47 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             departure, ids.Airport, ids.Runway, ids.Sid, ids.Star, ids.Approach, nav, v1, vr, v2,
             windDir, windSpeed, qnh, departure ? null : _minima.Current,
             atisLetter, activeRunway, flexTemp, visibility, temperature,
-            AirportName: _spokenText.Airport(ids.Airport));
+            AirportName: _spokenText.Airport(ids.Airport),
+            TechLogItems: ConsultTechLog(departure));
+    }
+
+    /// <summary>The open tech-log items this briefing names (2026-10-09): all of them for the
+    /// departure, the landing-relevant ones for the arrival. Null when the tech log is off,
+    /// the switch is off, or nothing is open — the template then has no clause at all. Records
+    /// <c>techlog.consulted</c> when items were found, so the flight report can see the briefing
+    /// read the log.</summary>
+    private IReadOnlyList<Core.TechLog.TechLogDefect>? ConsultTechLog(bool departure)
+    {
+        if (_techLog is not { IsEnabled: true } techLog
+            || _techLogOptions?.CurrentValue.BriefOpenItemsInBriefings != true)
+        {
+            return null;
+        }
+
+        try
+        {
+            var open = techLog.OpenDefects;
+            var items = departure
+                ? Core.TechLog.TechLogConsultation.DepartureItems(open)
+                : Core.TechLog.TechLogConsultation.ArrivalItems(open);
+            if (items.Count == 0)
+            {
+                return null;
+            }
+
+            _eventLog.Record("techlog.consulted", new
+            {
+                source = departure ? "departure-briefing" : "arrival-briefing",
+                open = open.Count,
+                items = items.Select(d => d.Title).ToArray(),
+            });
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Tech-log consultation failed — briefing without it");
+            return null;
+        }
     }
 
     private async Task<string> ComposeAsync(BriefingFacts facts)

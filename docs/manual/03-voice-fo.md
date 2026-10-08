@@ -20,6 +20,20 @@ INT/CAB channel, phase, value, dialogue). Type a word to filter every tab. Phras
 own `commands.json` appear under "From commands.json". Open it directly with
 `http://localhost:5320/?voice=1`.
 
+### Heard but not understood
+
+Everything you say that the FO has no action for — no command, no checklist answer, no
+question it could take — is kept on the Voice status page (`/speech`, **Heard but not
+understood**), grouped by phrase with a count and where you said it (idle, which checklist
+line was waiting, or a declined "did you mean"). A phrase at 3+ turns amber: that is the
+command to add. The hint under the list names the file for each kind (`commands.json`,
+`atc-requests.json`, a checklist line's `acceptedPhrases`) under
+`%LOCALAPPDATA%\ProsimCompanion\config`. Words absorbed during the takeoff roll, rotation,
+short final and the landing roll are counted but never listed — those were callouts. The
+session log keeps every one as `voice.unmatched`; the switch is Settings → Voice First
+Officer → Recognition & Push-to-Talk → **Track phrases the FO did not understand** (on by
+default).
+
 ### Ask the First Officer
 
 Everything above is an exact phrase. With **Ask the First Officer** switched on (Settings →
@@ -88,6 +102,14 @@ A `confirmCallout` in your checklist file may carry a live value: `{fuel}` (or
 `{flightLevel}`, `{takeoffConfig}`. A brace word the app does not know is left out, never read
 aloud (a warning names it in the log once).
 
+A line may carry a `system` tag (`"system": "apu"` — the shipped checklists tag the APU,
+gear, flaps, autobrake, brakes, anti-ice, packs, fuel, lights, engines, spoilers, radar,
+transponder, TCAS, ADIRS and flight-control lines). When an open tech-log item is about that
+system — its **System** field on the Tech Log page, or a word of its title ("APU inoperative"
+matches `apu`) — the FO challenges the line as *"A P U — note, open tech log item: APU
+inoperative."*, once per item per run; the line still verifies exactly as before. Switch:
+Settings → Voice First Officer → Tech Log & MEL → **Flag checklist lines**.
+
 ## Callouts & monitoring
 
 SOP callouts (thrust set, one hundred, V1, rotate, positive climb, transition, one-thousand-
@@ -145,7 +167,11 @@ connected, real flight data).
   template finishes the briefing without starting again. A safety callout (minimums, V1) cuts
   a briefing short for good; ask again for a fresh one. Every number is verified against the
   facts and the deterministic template is the
-  floor.
+  floor. With open tech-log items the departure briefing ends with *"Open tech log items:
+  …"* (three titles, then "and N more"); the arrival briefing names only the items that
+  bear on the landing — MEL category A or B, or anything about brakes, gear, spoilers,
+  reversers, autobrake or anti-skid (Settings → Voice First Officer → Tech Log & MEL →
+  **Open items in the briefings**).
 - Radio management: *"set one two one decimal nine"*, box selection, standby-then-swap only.
 - FCU: hand the FO pilot-flying (*"you have controls"*) and instruct — headings, altitudes,
   speeds, V/S, managed/selected modes. Announce → 3-second cancel window ("negative") →

@@ -5,7 +5,7 @@
   "items": [
     {
       "behavior": "monitorControls",
-      "say": "Flight Controls",
+      "say": "Flight Controls", "system": "flight-controls",
       "comment": "PM (FO) calls out the captain's control check, THEN the copilot performs its own sweep. CALIBRATE the signs with the Status-tab live readout: move each control to a stop and check the value sign; if 'Full up' should be spoken when the value is negative, swap full+/full- for that axis. Thresholds assume normalized ~-1..+1.",
       "mode": "reactive",
       "composition": "monitorThenSweep",

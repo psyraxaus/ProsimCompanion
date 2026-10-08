@@ -156,6 +156,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<GsxDiagnosticsStore>();
         services.AddSingleton<AudioStatusStore>();
         services.AddSingleton<SpeechStatusStore>();
+        // Utterances nothing acted on (issue #112) — written by the Speech pillar's router,
+        // read by the Voice page's "Heard but not understood" section.
+        services.AddSingleton<UnmatchedUtteranceStore>();
         // LLM endpoint health (issue #66) — written by the speech pillar's LLM client and
         // re-probe; read by the web banner and the FO's one-shot offline advisory.
         services.AddSingleton<LlmHealthStore>();

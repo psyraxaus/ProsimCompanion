@@ -82,6 +82,10 @@ public static class SessionReducer
     /// means the app (or the sim) stalled — the recorder writes at least every 10 s.</summary>
     public const double GapSeconds = 30;
 
+    /// <summary>Command candidates listed per session (issue #112) — the repeated phrases,
+    /// most frequent first; the rest stay in the session file.</summary>
+    public const int MaxVoiceCandidates = 10;
+
     private static readonly HashSet<string> AirbornePhases = new(StringComparer.Ordinal)
     {
         "InitialClimb", "Climb", "Cruise", "Descent", "Approach",
@@ -105,6 +109,7 @@ public static class SessionReducer
         var logOccurrences = new List<LogOccurrence>();
         var gaps = new List<GapReport>();
         var samples = new SampleAccumulator();
+        var unmatched = new UnmatchedAccumulator();
 
         var phase = "Unknown";
         var endedCleanly = false;
@@ -162,6 +167,10 @@ public static class SessionReducer
                 case "session-ended":
                     endedCleanly = true;
                     break;
+
+                case "voice.unmatched":
+                    unmatched.Add(line.At, line.Payload);
+                    break;
             }
 
             previous = line;
@@ -217,7 +226,56 @@ public static class SessionReducer
             byPhase.ToDictionary(p => p.Key, p => (IReadOnlyDictionary<string, int>)p.Value, StringComparer.Ordinal),
             LogClusterer.Cluster(logOccurrences),
             LogClusterer.Cluster(cmOccurrences),
-            gaps);
+            gaps,
+            unmatched.Summarize());
+    }
+
+    /// <summary>Folds the <c>voice.unmatched</c> events (issue #112) into the candidate list:
+    /// grouped by the normalized text the app wrote, sterile absorptions counted only.</summary>
+    private sealed class UnmatchedAccumulator
+    {
+        private readonly Dictionary<string, (string Example, int Count, HashSet<string> Contexts, DateTimeOffset? Last)> _groups = new(StringComparer.Ordinal);
+        private int _total;
+        private int _suppressed;
+
+        public void Add(DateTimeOffset? at, JsonElement payload)
+        {
+            _total++;
+            if (payload.ValueKind == JsonValueKind.Object
+                && payload.TryGetProperty("suppressed", out var suppressed)
+                && suppressed.ValueKind == JsonValueKind.True)
+            {
+                _suppressed++;
+                return;
+            }
+
+            var key = Str(payload, "normalized") ?? Str(payload, "text") ?? "";
+            if (key.Length == 0)
+            {
+                return;
+            }
+
+            var context = Str(payload, "context") ?? "idle";
+            if (_groups.TryGetValue(key, out var group))
+            {
+                group.Contexts.Add(context);
+                _groups[key] = (group.Example, group.Count + 1, group.Contexts, at ?? group.Last);
+            }
+            else
+            {
+                _groups[key] = (Str(payload, "text") ?? key, 1, new HashSet<string>(StringComparer.Ordinal) { context }, at);
+            }
+        }
+
+        public VoiceUnmatchedReport Summarize() => new(
+            _total,
+            _suppressed,
+            [.. _groups
+                .Where(g => g.Value.Count >= 2)
+                .OrderByDescending(g => g.Value.Count)
+                .ThenByDescending(g => g.Value.Last)
+                .Take(MaxVoiceCandidates)
+                .Select(g => new VoiceCandidate(g.Value.Example, g.Value.Count, [.. g.Value.Contexts.Order(StringComparer.Ordinal)], g.Value.Last))]);
     }
 
     /// <summary>True when the CMTrace entry falls inside this session's time range.</summary>

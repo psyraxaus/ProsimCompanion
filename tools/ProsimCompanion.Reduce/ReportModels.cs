@@ -75,6 +75,15 @@ public sealed record LogCluster(
 
 public sealed record GapReport(DateTimeOffset From, DateTimeOffset To, double Seconds, string BeforeType, string AfterType);
 
+/// <summary>One command candidate from the <c>voice.unmatched</c> events (issue #112): a
+/// phrase the pilot said that nothing acted on, with how often and where.</summary>
+public sealed record VoiceCandidate(string Text, int Count, IReadOnlyList<string> Contexts, DateTimeOffset? LastHeard);
+
+/// <summary>The heard-but-not-understood summary of a session: totals and the repeated
+/// phrases (count ≥ 2, most frequent first, at most <see cref="SessionReducer.MaxVoiceCandidates"/>).
+/// Sterile-phase absorptions are counted in <see cref="Suppressed"/> and never listed.</summary>
+public sealed record VoiceUnmatchedReport(int Total, int Suppressed, IReadOnlyList<VoiceCandidate> Candidates);
+
 public sealed record SessionReport(
     string File,
     DateTimeOffset? FirstEvent,
@@ -89,7 +98,8 @@ public sealed record SessionReport(
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> EventsByTypePerPhase,
     IReadOnlyList<LogCluster> LogEvents,
     IReadOnlyList<LogCluster> CmTraceEvents,
-    IReadOnlyList<GapReport> Gaps)
+    IReadOnlyList<GapReport> Gaps,
+    VoiceUnmatchedReport VoiceUnmatched)
 {
     /// <summary>Which stream <see cref="LogEvents"/>/<see cref="CmTraceEvents"/> came from, so the
     /// LLM step knows whether an empty list means "clean" or "not mirrored".</summary>
