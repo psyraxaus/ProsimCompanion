@@ -34,11 +34,18 @@ public static class ArrivalGateRestorePlan
     /// <param name="nowUtc">Clock.</param>
     /// <param name="phase">The committed phase at restore time (Unknown at startup is normal).</param>
     /// <param name="ofpDestinationIcao">The loaded OFP's destination, empty when no OFP.</param>
+    /// <param name="ofpFlightNumber">The loaded OFP's flight number (issue #102: a second
+    /// identity beside the destination so a different flight to the same airport within the
+    /// age window does not inherit the gate). Empty/null when no OFP, or the OFP has none —
+    /// then only the destination is compared. The SimBrief request id was deliberately NOT
+    /// used: pilots regenerate the OFP for the same leg (fuel, routing) and every regeneration
+    /// gets a new request id while the flight — and its gate — stays the same.</param>
     public static ArrivalGateRestoreAction Decide(
         ArrivalGateState? state,
         DateTimeOffset nowUtc,
         FlightPhase phase,
-        string? ofpDestinationIcao)
+        string? ofpDestinationIcao,
+        string? ofpFlightNumber = null)
     {
         if (state is null || string.IsNullOrWhiteSpace(state.Gate))
         {
@@ -58,6 +65,15 @@ public static class ArrivalGateRestorePlan
             return ArrivalGateRestoreAction.Ignore;
         }
 
+        // Same destination, different flight number: another flight (a same-day return to
+        // the same airport under a different number). Compared only when both sides know it.
+        var ofpFlight = ArrivalGatePlan.Normalize(ofpFlightNumber);
+        var savedFlight = ArrivalGatePlan.Normalize(state.FlightNumber);
+        if (ofpFlight.Length > 0 && savedFlight.Length > 0 && !string.Equals(ofpFlight, savedFlight, StringComparison.Ordinal))
+        {
+            return ArrivalGateRestoreAction.Ignore;
+        }
+
         if (state.Fired)
         {
             return ArrivalGateRestoreAction.DispatchGsxOnly;
@@ -69,8 +85,8 @@ public static class ArrivalGateRestorePlan
     }
 
     /// <summary>Phases at or after the cruise transition the auto-fire keys on — a queue
-    /// restored here would otherwise wait for a transition that already happened.</summary>
-    public static bool IsPastCruiseEntry(FlightPhase phase)
-        => phase is FlightPhase.Cruise or FlightPhase.Descent or FlightPhase.Approach
-            or FlightPhase.LandingRollout or FlightPhase.TaxiIn;
+    /// restored here would otherwise wait for a transition that already happened. The same
+    /// set as <see cref="ArrivalGatePlan.IsAutoFirePhase"/> (issue #102 made the auto-fire
+    /// itself cover these phases; the restore decision keeps its own name for its callers).</summary>
+    public static bool IsPastCruiseEntry(FlightPhase phase) => ArrivalGatePlan.IsAutoFirePhase(phase);
 }

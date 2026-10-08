@@ -42,16 +42,50 @@ public sealed class ArrivalGatePlanTests
     }
 
     [Theory]
-    [InlineData(FlightPhase.Climb)]
-    [InlineData(FlightPhase.Descent)]
+    [InlineData(FlightPhase.Unknown)]
     [InlineData(FlightPhase.Preflight)]
-    public void TakeAuto_OutsideCruise_DoesNotFire(FlightPhase phase)
+    [InlineData(FlightPhase.TaxiOut)]
+    [InlineData(FlightPhase.InitialClimb)]
+    [InlineData(FlightPhase.Climb)]
+    [InlineData(FlightPhase.Shutdown)]
+    public void TakeAuto_BeforeCruiseEntryOrAfterParking_DoesNotFire(FlightPhase phase)
     {
         var queue = new ArrivalGatePlan();
         queue.Queue("B12");
 
         Assert.Null(queue.TakeAuto(phase));
         Assert.False(queue.Fired);
+    }
+
+    /// <summary>Issue #102: the auto-fire used to key on the Cruise edge alone, so a queue
+    /// first seen in the descent (an app restart for an update, a short leg that never
+    /// commits Cruise, a Confirm made late) waited forever. Any phase at or past the cruise
+    /// entry fires, still exactly once per queued gate.</summary>
+    [Theory]
+    [InlineData(FlightPhase.Descent)]
+    [InlineData(FlightPhase.Approach)]
+    [InlineData(FlightPhase.LandingRollout)]
+    [InlineData(FlightPhase.TaxiIn)]
+    public void TakeAuto_PastCruiseEntry_FiresOnce(FlightPhase phase)
+    {
+        var queue = new ArrivalGatePlan();
+        queue.Queue("A05");
+
+        Assert.Equal("A05", queue.TakeAuto(phase));
+        Assert.True(queue.Fired);
+        Assert.Null(queue.TakeAuto(phase));
+        Assert.Null(queue.TakeAuto(FlightPhase.Approach));
+    }
+
+    [Fact]
+    public void TakeAuto_CruiseThenDescent_FiresOnlyAtCruise()
+    {
+        var queue = new ArrivalGatePlan();
+        queue.Queue("B12");
+
+        Assert.Equal("B12", queue.TakeAuto(FlightPhase.Cruise));
+        Assert.Null(queue.TakeAuto(FlightPhase.Descent));
+        Assert.Null(queue.TakeAuto(FlightPhase.Approach));
     }
 
     [Fact]

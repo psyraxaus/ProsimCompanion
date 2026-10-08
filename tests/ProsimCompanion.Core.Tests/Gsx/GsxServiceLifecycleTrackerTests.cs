@@ -132,6 +132,21 @@ public sealed class GsxServiceLifecycleTrackerTests
         Assert.Equal(2, _events.Count(e => e.Id == "GPU" && e.Event == GsxServiceLifecycleEvent.Active));
     }
 
+    /// <summary>Issue #90 leak path 1, as the tracker sees it and by design keeps it: a
+    /// Couatl restart empties the mirror, the latches go with the cycle, and the returning
+    /// Completed reading fires a second Completed in the same turnaround. The once-per-cycle
+    /// guarantee for cross-feature milestones lives in GsxGroundOpsSignalRelay, not here —
+    /// the tracker's vanish-reset is what the sequencer and sync modules rely on.</summary>
+    [Fact]
+    public void ServiceVanishing_ThenReturningCompleted_FiresCompletedAgain()
+    {
+        _tracker.Process(Services(("Boarding", GsxServiceState.Completed)));
+        _tracker.Process(Services(("GPU", GsxServiceState.Callable)));         // Boarding gone
+        _tracker.Process(Services(("Boarding", GsxServiceState.Completed)));   // back, still completed
+
+        Assert.Equal(2, _events.Count(e => e.Id == "Boarding" && e.Event == GsxServiceLifecycleEvent.Completed));
+    }
+
     [Fact]
     public void SubscriberThrowing_DoesNotBreakOtherNotifications()
     {
