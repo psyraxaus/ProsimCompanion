@@ -25,6 +25,12 @@ namespace ProsimCompanion.Speech.Cabin;
 /// pair is published on <see cref="SpeechStatusStore"/> so the Flight Status page shows
 /// "securing" and the purser answers a hail with "still securing" meanwhile.
 /// </para>
+/// <para>
+/// The purser cruise query (2026-10-09) rides the same tick: once per flight in the cruise,
+/// after the core's jittered delay, the chime-and-CAB flow runs and then
+/// <see cref="CabinCruiseQueryDialogue"/> borrows the mic for the captain's reply. A mic that
+/// is busy (hail, tech log, ECAM) hands the latch back for a retry a minute later.
+/// </para>
 /// </summary>
 public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
 {
@@ -40,6 +46,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
     private readonly OfpStore _ofp;
     private readonly ILogger<CabinCrewService> _logger;
     private readonly GroundOpsSignals? _signals;
+    private readonly CabinCruiseQueryDialogue? _cruiseQuery;
     private readonly CabinCrewCore _core = new();
     private readonly CancellationTokenSource _shutdown = new();
 
@@ -66,7 +73,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         GsxDiagnosticsStore gsx,
         OfpStore ofp,
         ILogger<CabinCrewService> logger,
-        GroundOpsSignals? signals = null)
+        GroundOpsSignals? signals = null,
+        CabinCruiseQueryDialogue? cruiseQuery = null)
     {
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flightData);
@@ -92,6 +100,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         _ofp = ofp;
         _logger = logger;
         _signals = signals;
+        _cruiseQuery = cruiseQuery;
     }
 
     public void Start()
@@ -177,11 +186,26 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
                 VerticalSpeedFpm: flightData.VerticalSpeedFpm,
                 HasBeenAirborne: _flight.Snapshot().HasBeenAirborneThisSession,
                 PaxOnBoard: PaxOnBoard(),
-                NowUtc: DateTimeOffset.UtcNow);
+                NowUtc: DateTimeOffset.UtcNow,
+                VoicePaused: _store.Snapshot().ListeningPaused);
 
             var action = _core.Evaluate(sample, options, () => Random.Shared.NextDouble());
             if (action == CabinAction.None)
             {
+                return;
+            }
+
+            if (action == CabinAction.CruiseQuery)
+            {
+                if (_cruiseQuery is null)
+                {
+                    // No dialogue in this build (the mic seam is absent) — the latch stays
+                    // spent; a call nobody can answer is worse than none.
+                    return;
+                }
+
+                _busy = true;
+                _ = RunCruiseQueryAsync();
                 return;
             }
 
@@ -255,6 +279,33 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Cabin report {Tag} failed", tag);
+        }
+        finally
+        {
+            SetCalling(false);
+            _busy = false;
+        }
+    }
+
+    private async Task RunCruiseQueryAsync()
+    {
+        try
+        {
+            var result = await _cruiseQuery!.RunAsync(async _ =>
+            {
+                SetCalling(true);
+                _eventLog.Record("cabin.calling", new { report = CabinCruiseQueryDialogue.Tag });
+                await RingAndWaitAsync().ConfigureAwait(false);
+            }, _shutdown.Token).ConfigureAwait(false);
+
+            if (result.Outcome == CruiseQueryOutcome.MicBusy)
+            {
+                _core.ReopenCruiseQuery(DateTimeOffset.UtcNow);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Purser cruise query failed");
         }
         finally
         {

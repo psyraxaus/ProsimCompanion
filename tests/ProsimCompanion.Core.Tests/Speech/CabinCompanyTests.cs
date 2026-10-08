@@ -236,6 +236,149 @@ public sealed class CabinCrewCoreTests
         Assert.Equal(CabinAction.None, core.Evaluate(
             Sample(FlightPhase.Preflight, beaconOn: false), new CabinOptions(), () => 0.0));
     }
+
+    // ---- Purser cruise query (2026-10-09) ----
+
+    private static CabinTickSample Cruise(int seconds, bool paused = false)
+        => Sample(FlightPhase.Cruise, altFt: 37000) with { NowUtc = T0.AddSeconds(seconds), VoicePaused = paused };
+
+    [Fact]
+    public void CruiseQuery_OffByDefault()
+    {
+        var core = new CabinCrewCore();
+
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(0), new CabinOptions(), () => 0.5));
+        Assert.Null(core.CruiseQueryDueAtUtc);
+    }
+
+    [Fact]
+    public void CruiseQuery_ArmsOnTheFirstCruiseTick_FiresOnceWhenDue()
+    {
+        // 10 min × (0.7 + 0.6 × 0.5) = 10 min exactly with a mid roll.
+        var core = new CabinCrewCore();
+        var options = new CabinOptions { CruiseQuery = true, CruiseQueryDelayMinutes = 10 };
+
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(0), options, () => 0.5));
+        Assert.Equal(600, core.CruiseQueryDelaySeconds);
+        Assert.Equal(T0.AddSeconds(600), core.CruiseQueryDueAtUtc);
+
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(599), options, NeverRoll));
+        Assert.Equal(CabinAction.CruiseQuery, core.Evaluate(Cruise(600), options, NeverRoll));
+        Assert.Null(core.CruiseQueryDueAtUtc);
+
+        // Once per flight.
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(1200), options, NeverRoll));
+    }
+
+    [Theory]
+    [InlineData(10, 0.0, 420)]   // -30 %
+    [InlineData(10, 1.0, 780)]   // +30 %
+    [InlineData(0, 1.0, 0)]      // call at once
+    [InlineData(-5, 0.5, 0)]     // misconfigured negative reads as 0
+    public void CruiseQueryDelay_IsTheMinutesPlusMinusThirtyPercent(int minutes, double roll, int expected)
+        => Assert.Equal(expected, CabinCrewCore.CruiseQueryDelay(new CabinOptions { CruiseQueryDelayMinutes = minutes }, roll));
+
+    [Fact]
+    public void CruiseQuery_WaitsOutTheVoicePauseLatch_NeverCancels()
+    {
+        var core = new CabinCrewCore();
+        var options = new CabinOptions { CruiseQuery = true, CruiseQueryDelayMinutes = 10 };
+        core.Evaluate(Cruise(0), options, () => 0.5);
+
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(600, paused: true), options, NeverRoll));
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(900, paused: true), options, NeverRoll));
+        Assert.Equal(CabinAction.CruiseQuery, core.Evaluate(Cruise(901), options, NeverRoll));
+    }
+
+    [Fact]
+    public void CruiseQuery_OnlyInTheCruise_AStepClimbHoldsIt_ADescentSkipsIt()
+    {
+        var core = new CabinCrewCore();
+        var options = new CabinOptions { CruiseQuery = true, CruiseQueryDelayMinutes = 10 };
+        core.Evaluate(Cruise(0), options, () => 0.5);
+
+        // Step climb across the due moment: the timer keeps running, the call waits for cruise.
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(600) with { Phase = FlightPhase.Climb }, options, NeverRoll));
+        Assert.Equal(CabinAction.CruiseQuery, core.Evaluate(Cruise(700), options, NeverRoll));
+
+        // A new flight: descent before the due moment means no call at all.
+        core.OnPhaseChanged(FlightPhase.Shutdown, FlightPhase.ColdAndDark);
+        core.Evaluate(Cruise(0), options, () => 0.5);
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(900) with { Phase = FlightPhase.Descent, AltitudeFt = 20000 }, options, NeverRoll));
+    }
+
+    [Fact]
+    public void CruiseQuery_ReopenRetriesAMinuteLater_RearmClearsIt()
+    {
+        var core = new CabinCrewCore();
+        var options = new CabinOptions { CruiseQuery = true, CruiseQueryDelayMinutes = 0 };
+
+        Assert.Equal(CabinAction.CruiseQuery, core.Evaluate(Cruise(0), options, NeverRoll));
+
+        // The shell found the mic busy: the latch comes back, due in 60 s.
+        core.ReopenCruiseQuery(T0.AddSeconds(5));
+        Assert.Equal(T0.AddSeconds(65), core.CruiseQueryDueAtUtc);
+        Assert.Equal(CabinAction.None, core.Evaluate(Cruise(30), options, NeverRoll));
+        Assert.Equal(CabinAction.CruiseQuery, core.Evaluate(Cruise(65), options, NeverRoll));
+
+        // Turnaround Preflight re-arms for the next leg, like the other reports.
+        core.OnPhaseChanged(FlightPhase.TaxiIn, FlightPhase.Preflight);
+        Assert.Equal(0, core.CruiseQueryDelaySeconds);
+        Assert.Equal(CabinAction.CruiseQuery, core.Evaluate(Cruise(3600), options, NeverRoll));
+    }
+}
+
+/// <summary>The reply classifier behind the purser's cruise query: keyword-based, whole
+/// words, nothing parsed into the aircraft.</summary>
+public sealed class CabinCruiseQueryCoreTests
+{
+    [Theory]
+    [InlineData(null, CruiseReplyKind.Silence)]
+    [InlineData("   ", CruiseReplyKind.Silence)]
+    [InlineData("about forty minutes", CruiseReplyKind.Eta)]
+    [InlineData("we're on time", CruiseReplyKind.Eta)]
+    [InlineData("running about ten minutes late", CruiseReplyKind.Eta)]
+    [InlineData("landing at fourteen twenty zulu", CruiseReplyKind.Eta)]
+    [InlineData("should be smooth all the way", CruiseReplyKind.Ride)]
+    [InlineData("expect some light chop over the alps", CruiseReplyKind.Ride)]
+    [InlineData("it'll be bumpy for a while", CruiseReplyKind.Ride)]
+    [InlineData("on time and smooth", CruiseReplyKind.Both)]
+    [InlineData("nothing to report", CruiseReplyKind.Generic)]
+    [InlineData("we're through the worst of it", CruiseReplyKind.Generic)]   // "through" holds "rough"
+    [InlineData("take pride in the service", CruiseReplyKind.Generic)]      // "pride" holds "ride"
+    public void Classify_ReadsTimeAndRideWords(string? heard, CruiseReplyKind expected)
+        => Assert.Equal(expected, CabinCruiseQueryCore.Classify(heard));
+
+    [Fact]
+    public void Acknowledgement_ComesFromTheWordingOptions()
+    {
+        var options = new CabinOptions
+        {
+            CruiseQueryEtaAckText = "ETA",
+            CruiseQueryRideAckText = "RIDE",
+            CruiseQueryGenericAckText = "GENERIC",
+            CruiseQueryNoReplyText = "SILENCE",
+        };
+
+        Assert.Equal("ETA", CabinCruiseQueryCore.Acknowledgement(CruiseReplyKind.Eta, options));
+        Assert.Equal("ETA", CabinCruiseQueryCore.Acknowledgement(CruiseReplyKind.Both, options));
+        Assert.Equal("RIDE", CabinCruiseQueryCore.Acknowledgement(CruiseReplyKind.Ride, options));
+        Assert.Equal("GENERIC", CabinCruiseQueryCore.Acknowledgement(CruiseReplyKind.Generic, options));
+        Assert.Equal("SILENCE", CabinCruiseQueryCore.Acknowledgement(CruiseReplyKind.Silence, options));
+    }
+
+    [Fact]
+    public void OfflineGrammar_EveryPhraseClassifiesAsItReads()
+    {
+        // The closed grammar must never hand the classifier a phrase it reads as silence.
+        foreach (var phrase in CabinCruiseQueryCore.OfflineGrammar)
+        {
+            Assert.NotEqual(CruiseReplyKind.Silence, CabinCruiseQueryCore.Classify(phrase));
+        }
+
+        Assert.Equal(CruiseReplyKind.Eta, CabinCruiseQueryCore.Classify("on time"));
+        Assert.Equal(CruiseReplyKind.Ride, CabinCruiseQueryCore.Classify("light chop"));
+    }
 }
 
 public sealed class CompanyChannelTests

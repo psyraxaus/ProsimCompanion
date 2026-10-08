@@ -101,6 +101,9 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Free-form questions to the FO, answered by the LLM from live facts (issue #149).</summary>
     public FoQuestionOptions FoQuestions { get; set; } = new();
 
+    /// <summary>Unprompted facts about the region below, in the cruise (issue #122).</summary>
+    public RegionFactsOptions RegionFacts { get; set; } = new();
+
     /// <summary>Hard "local only" mode: network TTS providers (Kokoro, ElevenLabs, Google)
     /// are excluded regardless of their own configuration.</summary>
     public bool LocalOnly { get; set; }

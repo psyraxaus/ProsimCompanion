@@ -1744,7 +1744,9 @@
         "#148 In-flight monitoring: Settings → Voice First Officer → Callouts & Placards has an 'In-flight monitoring' card with four switches (Fuel check, Gross error check, Destination weather watch, Read-backs) and their tolerances; each switch off ⇒ the matching phrases show the disabled reason in the header VOICE drawer; on ⇒ 'fuel check', 'gross error check' and the read-back lead-ins (with the value badge) are listed (web UI + ears).",
         "#149 Ask the First Officer: Settings → Voice First Officer → Briefings & LLM has the card with Enabled, the comma-separated lead-ins, minimum words, time budget and the stand-by delay; the VOICE drawer lists an Ask the First Officer group (dimmed with the settings path while off, five example questions and the lead-in row with the VALUE badge when on). With the LAN ASR: ask a four-plus-word question and hear an answer or the fixed line; ask the same on the offline engine and hear the ordinary did-not-catch line (web UI + ears).",
         "#150 Tablet install + keep-awake: on an iPad that trusts the mkcert CA, the HTTPS address opens with a padlock and the HTTP one still opens; Appearance → Screen & Install reads ACTIVE with the switch on and the screen does not sleep past the auto-lock time; switching apps and back returns ACTIVE within a second; over plain HTTP the pill reads NEEDS HTTPS with the HTTPS setup link; Share → Add to Home Screen gives a full-screen Companion app and the card then reads INSTALLED; Setup → Web Interface shows the HTTPS fields and the status pill (ON with the address / FAILED with the reason / OFF); the desktop window's QR carries the https address when HTTPS is up and its status list has an HTTPS line; a wrong PFX password shows the banner on every page and HTTP keeps working (web UI + tablet).",
-        "#151 Notifications: Settings → Notifications lists one card per target with the status pill (NEVER SENT / OK / FAILED), the Kind select, URL and Bearer token as password fields, the ten-checkbox events grid, Send test with its one-line result, Remove, and Add target below; Send test to a real ntfy topic shows on the phone within seconds and the line reads 'Sent · 200 OK · hh:mm:ss'; a wrong URL reads 'Failed · …' and the pill FAILED; the settings file on disk holds dpapi: values for url and token (web UI + phone)."
+        "#151 Notifications: Settings → Notifications lists one card per target with the status pill (NEVER SENT / OK / FAILED), the Kind select, URL and Bearer token as password fields, the ten-checkbox events grid, Send test with its one-line result, Remove, and Add target below; Send test to a real ntfy topic shows on the phone within seconds and the line reads 'Sent · 200 OK · hh:mm:ss'; a wrong URL reads 'Failed · …' and the pill FAILED; the settings file on disk holds dpapi: values for url and token (web UI + phone).",
+        "#122 Region facts by ear (2026-10-09): with Settings → Voice First Officer → Briefings & LLM → Region Facts on, an unprompted two-sentence fact about the country or sea below arrives in the cruise after the first gap, in the FO voice (persona voice for a curated fact), never twice for the same region, never while the mic pill reads PAUSED, never after 'quiet please'; the card shows Enabled, Shortest gap, Longest gap, Facts per flight, Facts from the language model (web UI + ears).",
+        "Purser cruise query by ear (2026-10-09): with Settings → Voice First Officer → Cabin Crew → Purser cruise query on, once in the cruise: chime, CAB wait, 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' in the purser voice, the listening tone, then the acknowledgement that fits the answer (time / ride / generic / 'we'll check back later'); a running checklist resumes afterwards; the Cabin Crew card shows the switch, 'Cruise query after' and 'Cruise query reply window', Cabin Wording the five lines; the VOICE drawer's Cabin tab lists the 'Purser cruise query' group (web UI + ears)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -2395,6 +2397,70 @@
         "Native guard, same connection: the GSX decision 'native GSX guard' reads either 'disabled 6 ProSim efb.gsx.* auto flags' (older ProSim) or 'this ProSim build has no efb.gsx.* flags — nothing to disable' (1.75.1). The old wording on 1.75.1 means the gateway verdict regressed (writeBool:false ignored)."
       ],
       "notes": "Shipped 2026-10-06 (owner request). The IOS options are system.config.* datarefs, read and written through the port-5000 gateway without a restart (Door logic flipped true and back live on 1.75.1). Recommended values = the owner's working config. The check only reads; 'Apply recommended' on the Setup page is the only write. Unverified live in the app itself: the connection-time read, the card, the Apply click (the gateway calls were verified by hand)."
+    },
+    {
+      "id": "fo-region-facts",
+      "issue": 122,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "fo.region-fact",
+        "fields": [
+          "outcome",
+          "phase",
+          "countThisFlight"
+        ],
+        "fieldsWhenPresent": {
+          "text": [
+            "regionKey",
+            "region",
+            "source"
+          ]
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with speech.regionFacts.enabled = true (off by default). Trigger = a cruise of at least the shortest gap (default 15 min) over a country or a named sea.",
+        "assert-present: 'fo.region-fact' events with outcome 'spoken', each carrying regionKey (ISO code such as FR, or sea:<name>), region, source ('model' | 'curated'), text, lat/lon and countThisFlight; phase is Cruise on every one. The log line 'Region fact (<source>) for <region>: ...' matches each. The regionKey must agree with the lat/lon on the event — a fact about France at 52N 5E is a failure.",
+        "assert-absent: two 'spoken' events with the same regionKey in one flight (the no-repeat rule); more 'spoken' events than speech.regionFacts.maxPerFlight (default 4); two 'spoken' events closer together than minIntervalMinutes; any fo.region-fact event in a phase other than Cruise; any 'speech.spoken' with tag fo.region-fact while the mic pill read PAUSED, in a sterile phase, or after a 'smalltalk.silenced' event.",
+        "assert-absent: with speech.regionFacts.enabled = false, any 'fo.region-fact' event at all; the log holds exactly one 'Region facts disabled (speech.regionFacts.enabled)' line per start (zero log noise beyond it).",
+        "watch: outcome 'unresolved' (open water the atlas does not name, e.g. the North Atlantic) and 'no-position' — count them; 'repeated' is normal on a long leg inside one country. Outcome 'no-fact' = the model was up but said nothing and the curated file had no entry for that regionKey — list the keys so the seed file can grow.",
+        "source 'model' only when the LLM was on and healthy (llm.stream events of kind fo.region-fact precede it); source 'curated' otherwise, and always when speech.regionFacts.llmFacts = false. A 'model' fact never contains a figure next to a flight-data word (the #153 guard refuses the sentence; a refusal shows as the llm.stream takeover with the curated fact spoken instead).",
+        "requires-human: the fact is true of the place below and reads as a passenger-tone aside, not a briefing; a curated fact with the persona on is spoken in the persona's voice with the same figures."
+      ],
+      "notes": "Feature 2026-10-09 (issue #122, feature/cruise-immersion; unverified live). RegionFactCore (pure scheduler: jittered gap min..max, per-flight cap, no repeat per region, re-arm with the cabin latches) + RegionFactService (30 s tick; atlas lookup via IPlaceLookup from #153; model tier through StreamingNarrator under the ChatSentenceAllowed guard, VerifyNumbers off like every trivia path; curated tier = region-facts.json in %LOCALAPPDATA%\\ProsimCompanion\\config, seeded from {app}\\config, persona-restyled with figures locked). Low priority, tag fo.region-fact, IsStillValid = still in Cruise and ear not paused. Decision: the model is the preferred tier when up (variety), the curated file the floor."
+    },
+    {
+      "id": "cabin-cruise-query",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "cabin.cruise-reply",
+        "fields": [
+          "kind",
+          "ack"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with cabin.cruiseQuery = true (off by default) and cabin.enabled. Trigger = a cruise longer than cabin.cruiseQueryDelayMinutes (default 10, jittered +/-30 %) with the flight live.",
+        "assert-present: exactly ONE 'cabin.cruise-query' event per flight (text, windowSeconds, freeForm, phase = Cruise), preceded by 'cabin.calling' with report cabin.cruise-query, then exactly one 'cabin.cruise-reply' (heard, kind in silence|eta|ride|eta+ride|generic, ack). The log lines 'Purser cruise query: ...' and 'Purser cruise reply: <kind> (\"<heard>\") -> \"<ack>\"' match. The two speech.spoken items carry tag cabin.cruise-query and role Purser.",
+        "assert-present: kind matches what was said — 'about forty minutes' / 'on time' / 'ten minutes late' => eta; 'smooth' / 'light chop' / 'expect turbulence' => ride; both in one breath => eta+ride; anything else => generic; nothing => silence with the no-reply line. A reply read as the wrong kind is a classifier failure: quote heard + kind.",
+        "assert-absent: a second cabin.cruise-query in the same flight (the once-per-flight latch; a new flight = ColdAndDark or a Preflight after Shutdown/TaxiIn); a cabin.cruise-query outside Cruise; one while the mic pill read PAUSED; a 'speech.spoken' for the query text with IsStillValid dropped (outcome Dropped) — the question must not be asked after a descent began.",
+        "assert-absent: any dataref write, GSX call, radio or MCDU action in the seconds after the reply — the reply is acknowledged only, never acted on.",
+        "watch: 'Purser cruise query deferred — another dialogue owns the microphone' means the latch was handed back and the call retried a minute later; count the deferrals. freeForm = false means the offline engine was active and the window carried the closed reply grammar — note whether the pilot's reply was heard at all.",
+        "requires-human: the chime, then the purser's question in the purser voice after CAB was selected (or the grace); the listening tone; the acknowledgement that fits the answer; a running spoken checklist held and resumed untouched around the window."
+      ],
+      "notes": "Feature 2026-10-09 (ROADMAP open item 'Purser cruise query + response window', feature/cruise-immersion; unverified live). CabinCrewCore arms the once-per-flight latch on the first cruise tick (delay = minutes x (0.7 + 0.6 x roll)), fires on the first cruise tick at/after it with the ear on; CabinCrewService runs the chime + CAB latch-or-grace flow, then CabinCruiseQueryDialogue borrows the mic (IMicOwnership) for cabin.cruiseQueryWindowSeconds (default 20) — empty grammar (free-form) when the LAN transcriber is active, CabinCruiseQueryCore.OfflineGrammar otherwise — and CabinCruiseQueryCore classifies the reply by whole-word keyword lists. Predecessor Prosim2FO asked about the weather ahead with an 8 s window and a probability roll; this design asks about the arrival time / turbulence after a delay, once per flight, no roll."
     }
   ]
 }
