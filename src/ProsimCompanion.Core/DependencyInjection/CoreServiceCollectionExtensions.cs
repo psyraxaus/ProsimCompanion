@@ -242,7 +242,8 @@ public static class CoreServiceCollectionExtensions
             p.GetService<Gate.ISayIntentionsGateAssign>(),
             p.GetRequiredService<ILogger<Gate.ArrivalGateCoordinator>>(),
             p.GetRequiredService<Gate.ArrivalGateStateFile>(),
-            p.GetService<Airports.Parking.IAirportParkingCatalog>()));
+            p.GetService<Airports.Parking.IAirportParkingCatalog>(),
+            p.GetRequiredService<EventLog.JsonlEventLog>()));
         services.AddSingleton<AircraftProfileService>();
         services.AddHostedService<CoreBootstrapService>();
 

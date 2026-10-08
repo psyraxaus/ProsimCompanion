@@ -65,6 +65,36 @@ public sealed class ArrivalGateRestoreTests : IDisposable
             ArrivalGateRestoreAction.DispatchGsxOnly,
             ArrivalGateRestorePlan.Decide(State(fired: true), Now, FlightPhase.Climb, "EGLL"));
 
+    /// <summary>Issue #102: same destination, different flight number = another flight.</summary>
+    [Fact]
+    public void Decide_SameDestinationOtherFlightNumber_Ignores()
+    {
+        var state = State() with { FlightNumber = "BAW123" };
+
+        Assert.Equal(ArrivalGateRestoreAction.Ignore, ArrivalGateRestorePlan.Decide(state, Now, FlightPhase.Descent, "EGLL", "BAW456"));
+        Assert.Equal(ArrivalGateRestoreAction.DispatchBoth, ArrivalGateRestorePlan.Decide(state, Now, FlightPhase.Descent, "EGLL", "baw123"));
+        // Either side without a flight number: the destination alone decides.
+        Assert.Equal(ArrivalGateRestoreAction.DispatchBoth, ArrivalGateRestorePlan.Decide(state, Now, FlightPhase.Descent, "EGLL", ""));
+        Assert.Equal(ArrivalGateRestoreAction.DispatchBoth, ArrivalGateRestorePlan.Decide(State(), Now, FlightPhase.Descent, "EGLL", "BAW456"));
+    }
+
+    /// <summary>A file written by a build before the AtcOrigin/FlightNumber fields reads as a
+    /// pilot's gate with no flight identity — never a parse failure.</summary>
+    [Fact]
+    public void StateFile_PreIssue102Shape_StillLoads()
+    {
+        File.WriteAllText(_path, """{"gate":"A05","destinationIcao":"LGAV","fired":true,"savedAtUtc":"2026-08-22T13:43:51+00:00"}""");
+        var file = new ArrivalGateStateFile(NullLogger<ArrivalGateStateFile>.Instance, _path);
+
+        var loaded = file.Load();
+
+        Assert.NotNull(loaded);
+        Assert.Equal("A05", loaded.Gate);
+        Assert.True(loaded.Fired);
+        Assert.False(loaded.AtcOrigin);
+        Assert.Null(loaded.FlightNumber);
+    }
+
     [Fact]
     public void StateFile_RoundTrips_AndClears()
     {
@@ -180,6 +210,101 @@ public sealed class ArrivalGateRestoreTests : IDisposable
         await coordinator.LastDispatch;
 
         gsx.Verify(g => g.RequestGate("545R"), Times.Once);
+    }
+
+    /// <summary>Issue #102 as flown 2026-08-22 EGLL→LGAV: "A05" confirmed + Send Now in the
+    /// descent, GSX armed but not dispatched (destination not loaded), app restarted for an
+    /// update, the gate was gone. Now the second run re-arms GSX at startup — no OFP needed,
+    /// since after an in-flight restart none is loaded — without a second ATC send, and the
+    /// page shows the gate as restored.</summary>
+    [Fact]
+    public async Task Coordinator_Issue102_SendNowInDescent_RestartReArmsGsx()
+    {
+        var phase = new Mock<IFlightPhaseSource>();
+        phase.SetupGet(p => p.CurrentPhase).Returns(FlightPhase.Descent);
+        var gsx = new Mock<IGsxGateControl>();
+        var atc = new Mock<ISayIntentionsGateAssign>();
+        atc.SetupGet(a => a.IsActive).Returns(true);
+        atc.Setup(a => a.AssignGateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SayIntentionsGateAssignResult(true, false, "A05"));
+        var ofp = new OfpStore();
+        ofp.Set(new OfpData { DestinationIcao = "LGAV", FlightNumber = "AEE123", FetchedAtUtc = DateTimeOffset.UtcNow });
+        var file = new ArrivalGateStateFile(NullLogger<ArrivalGateStateFile>.Instance, _path);
+
+        using (var first = new ArrivalGateCoordinator(phase.Object, ofp, gsx.Object, atc.Object,
+            NullLogger<ArrivalGateCoordinator>.Instance, file))
+        {
+            first.Confirm("A05");
+            await first.LastDispatch;   // past the cruise entry: Confirm alone fires now (#102)
+            await first.SendNow();
+        }
+        gsx.Verify(g => g.RequestGate("A05"), Times.Exactly(2));
+        var persisted = file.Load();
+        Assert.NotNull(persisted);
+        Assert.True(persisted.Fired);
+        Assert.Equal("AEE123", persisted.FlightNumber);
+
+        // Run 2: restarted for the update, phase Unknown until the engine's first commit,
+        // and the OFP store is empty (no re-import in flight).
+        gsx.Invocations.Clear();
+        atc.Invocations.Clear();
+        phase.SetupGet(p => p.CurrentPhase).Returns(FlightPhase.Unknown);
+        using var second = new ArrivalGateCoordinator(phase.Object, new OfpStore(), gsx.Object, atc.Object,
+            NullLogger<ArrivalGateCoordinator>.Instance, file);
+        var (action, gate) = second.Restore();
+        await second.LastDispatch;
+
+        Assert.Equal(ArrivalGateRestoreAction.DispatchGsxOnly, action);
+        Assert.Equal("A05", gate);
+        gsx.Verify(g => g.RequestGate("A05"), Times.Once);
+        atc.Verify(a => a.AssignGateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        var view = second.Snapshot();
+        Assert.True(view.Restored);
+        Assert.True(view.Sent);
+        Assert.Equal("ATC assignment already sent before the restart.", view.AtcStatus);
+
+        // The engine's first commit lands in the descent: no second dispatch.
+        phase.Raise(p => p.PhaseChanged += null, phase.Object,
+            new FlightPhaseChangedEventArgs(FlightPhase.Unknown, FlightPhase.Descent));
+        await second.LastDispatch;
+        gsx.Verify(g => g.RequestGate("A05"), Times.Once);
+
+        // A pilot action ends the "restored" state.
+        second.Confirm("A06");
+        Assert.False(second.Snapshot().Restored);
+    }
+
+    /// <summary>The rc.22 ATC-origin gate keeps its origin across the restart: SayIntentions
+    /// must not be handed its own assignment back.</summary>
+    [Fact]
+    public async Task Coordinator_AtcOriginGate_RestoredWithoutResendingToAtc()
+    {
+        var phase = new Mock<IFlightPhaseSource>();
+        phase.SetupGet(p => p.CurrentPhase).Returns(FlightPhase.Climb);
+        var gsx = new Mock<IGsxGateControl>();
+        var atc = new Mock<ISayIntentionsGateAssign>();
+        atc.SetupGet(a => a.IsActive).Returns(true);
+        var ofp = new OfpStore();
+        ofp.Set(new OfpData { DestinationIcao = "EGLL", FetchedAtUtc = DateTimeOffset.UtcNow });
+        var file = new ArrivalGateStateFile(NullLogger<ArrivalGateStateFile>.Instance, _path);
+
+        using (var first = new ArrivalGateCoordinator(phase.Object, ofp, gsx.Object, atc.Object,
+            NullLogger<ArrivalGateCoordinator>.Instance, file))
+        {
+            first.ConfirmFromAtc("545R");   // queued for the cruise entry
+        }
+        Assert.True(file.Load()!.AtcOrigin);
+
+        phase.SetupGet(p => p.CurrentPhase).Returns(FlightPhase.Descent);
+        using var second = new ArrivalGateCoordinator(phase.Object, ofp, gsx.Object, atc.Object,
+            NullLogger<ArrivalGateCoordinator>.Instance, file);
+        var (action, _) = second.Restore();
+        await second.LastDispatch;
+
+        Assert.Equal(ArrivalGateRestoreAction.DispatchBoth, action);
+        gsx.Verify(g => g.RequestGate("545R"), Times.Once);
+        atc.Verify(a => a.AssignGateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Equal("Assigned by SayIntentions ATC before the restart — nothing to send back.", second.Snapshot().AtcStatus);
     }
 
     [Fact]
