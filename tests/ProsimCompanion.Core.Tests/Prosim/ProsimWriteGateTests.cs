@@ -31,6 +31,10 @@ public sealed class ProsimWriteGateTests
     [InlineData("system.config.Datalink.loadCargo")]
     [InlineData("system.config.Datalink.loadFuel")]
     [InlineData("system.config.Config.refuelRate")]
+    // Cabin-call auto-answer (#11): the CAB reception latch on the captain's and the FO's
+    // panel only (seat-relative pick), never the observer's or any other ACP key.
+    [InlineData("system.switches.S_ASP_CAB_REC_LATCH")]
+    [InlineData("system.switches.S_ASP2_CAB_REC_LATCH")]
     public void IsAllowed_AllowListedNames_ReturnTrue(string name)
         => Assert.True(ProsimWriteGate.IsAllowed(name));
 
@@ -40,6 +44,11 @@ public sealed class ProsimWriteGateTests
     [InlineData("aircraft.speed.ias")]                     // flight dynamics are never written
     [InlineData("system.config.Config.EPR")]               // IOS engine type: same family as the setup check, never written
     [InlineData("system.config.cockpitSetup.load")]        // IOS cockpit-setup loader: same family, never written
+    [InlineData("system.switches.S_ASP3_CAB_REC_LATCH")]   // observer ACP: not the FO's panel on either seat (#11)
+    [InlineData("system.switches.S_ASP2_CAB_REC")]         // the momentary CAB key: the latch is written, never the press (#11)
+    [InlineData("system.switches.S_ASP2_CAB_SEND")]        // the predecessor's CAB transmit press: changes the transmit channel (#11)
+    [InlineData("system.switches.S_ASP2_RESET")]           // ACP RESET: never pressed by the app (#11)
+    [InlineData("system.switches.S_ASP2_INT_REC_LATCH")]   // any other reception latch (#11)
     [InlineData("")]
     public void IsAllowed_UnlistedNames_ReturnFalse(string name)
         => Assert.False(ProsimWriteGate.IsAllowed(name));

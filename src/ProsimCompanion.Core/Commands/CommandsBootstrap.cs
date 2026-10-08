@@ -35,6 +35,7 @@ public static class CommandsBootstrap
             services.GetService<ILoadsheetControl>(),
             services.GetService<IFmsInitSync>());
         OfpCommandHandlers.Register(registry, services.GetService<ISimbriefImporter>());
+        EfbCommandHandlers.Register(registry, services.GetService<IEfbResetControl>());
         MinimaCommandHandlers.Register(registry, services.GetService<ArrivalMinimaStore>());
         SpeechCommandHandlers.Register(
             registry,

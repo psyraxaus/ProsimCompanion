@@ -42,6 +42,8 @@ public static class ProsimServiceCollectionExtensions
         services.AddSingleton<Core.Aircraft.IEfbInitOverrides>(provider => provider.GetRequiredService<Loadsheet.EfbInitOverridesService>());
         services.AddSingleton<Loadsheet.LoadsheetService>();
         services.AddSingleton<Core.State.ILoadsheetControl>(provider => provider.GetRequiredService<Loadsheet.LoadsheetService>());
+        services.AddSingleton<Loadsheet.EfbResetService>();
+        services.AddSingleton<Core.State.IEfbResetControl>(provider => provider.GetRequiredService<Loadsheet.EfbResetService>());
         services.AddHostedService<Loadsheet.FlightDataBootstrapService>();
 
         // W&B passenger SIMULATE tool (headless cabin loading; resolved optionally by the web UI).

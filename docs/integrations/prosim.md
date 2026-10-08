@@ -202,6 +202,25 @@ acceleration, so a dead ref is a blank figure. Two things are **unverified live*
 ACP audio `system.analog.A_ASP{1|2|3}_*_VOLUME` (0–1024) and
 `system.switches.S_ASP*_*_REC_LATCH`.
 
+**ACP cabin call (issue #11, 2026-10-09).** The CAB family per panel (`S_ASP_` captain,
+`S_ASP2_` FO, `S_ASP3_` observer): `S_ASP*_CAB_REC` is the momentary reception-knob push
+(`[0:Off, 1:Pushed]`), `S_ASP*_CAB_REC_LATCH` the knob's state (`[0:Off, 1:On]` — CAB
+reception selected), `S_ASP*_CAB_SEND` the momentary transmission key, `S_ASP*_RESET` the
+RESET key; `I_ASP*_CAB_CALL` is the CALL light and is **read-only** (the catalog says so and
+the SDK refuses it), so the app's own purser call shows as the web "CABIN CALLING" banner
+instead. ProsimInterface answered ProSim's own call (it watched `L:I_ASP_CAB_CALL`) with a
+three-press chain through MobiFlight LVAR toggles — CAB SEND, delay, VHF1 SEND, RESET — which
+flips the transmit channel twice. ProsimCompanion's auto-answer answers its OWN cabin call
+with **one idempotent latch write**: `S_ASP2_CAB_REC_LATCH = 1` (the captain's `S_ASP_…`
+when `speech.pilotSeat = right` — the FO's panel is seat-relative), because "CAB reception
+selected on any panel" is exactly what the purser report already waits for, and written back
+to 0 after the report. Not a momentary press: `S_ASP*_CAB_REC` would *toggle* (a second push
+deselects), the latch sets a known state. Only those two latches are on the write allow-list.
+**Unverified live**: that a gateway/SDK write of the latch is echoed back on the subscription
+(a hardware ACP that drives the switch each scan may override it — the `cabin.auto-answer`
+verdict `written-no-echo` flags that case), and whether ProSim's audio routing or the CALL
+light care about the latch at all.
+
 **Baro sync ProSim→MSFS** (initial EFIS sync at connect): SimConnect event `KOHLSMAN_SET`,
 value = hPa × 16, index 0 = captain.
 

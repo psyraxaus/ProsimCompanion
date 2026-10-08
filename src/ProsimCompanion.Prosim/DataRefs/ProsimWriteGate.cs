@@ -86,6 +86,18 @@ public static class ProsimWriteGate
         ProsimSetupRecommendations.DatalinkLoadCargo,
         ProsimSetupRecommendations.DatalinkLoadFuel,
         ProsimSetupRecommendations.RefuelRate,
+
+        // Cabin-call auto-answer (issue #11, 2026-10-09, off by default): the FO's CAB
+        // reception latch — the ONE dataref the cabin feature may write. Latch, not press:
+        // "CAB selected on a panel" is the exact condition the purser report waits for, so
+        // writing the latch to 1 answers the call idempotently (a momentary S_ASP*_CAB_REC
+        // press would toggle, and the predecessor's CAB_SEND + RESET press chain changes the
+        // transmit channel). Written back to 0 after the report. Both panels are listed
+        // because the FO's panel is seat-relative (speech.pilotSeat): ASP2 with the human on
+        // the left, ASP1 with the human on the right — CabinAutoAnswer.LatchFor picks one; the
+        // observer panel (ASP3) and every other ACP key stay unwritable.
+        ProsimDataRefNames.Acp1CabLatch.Name,
+        ProsimDataRefNames.Acp2CabLatch.Name,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly string[] AllowedPrefixes =
