@@ -7,7 +7,7 @@
 @inject IEfbInitOverrides Overrides
 @inject IFmsInitSync FmsSync
 @inject ISimbriefImporter Simbrief
-@inject ILoadsheetControl LoadsheetControl
+@inject IEfbResetControl EfbReset
 @inject IGsxServiceControl ServiceControl
 @inject FuelConfirmationStore FuelConfirmation
 @inject DisplayUnitService Units
@@ -136,9 +136,20 @@
                     disabled="@(_busy is not null || _overrides.Count == 0)" @onclick="ClearOverrides">
                 @(_busy == "clear" ? "CLEARING…" : "CLEAR OVERRIDES")
             </button>
+            @* Two resets (ProsimInterface parity, 2026-10-09). Soft: restart the leg on the same
+               OFP — overrides and loadsheet cycle only, the EFB keeps the plan. Full: unload
+               the OFP from the ProSim EFB (seat map, pax statistics, planned fuel/cargo,
+               loadsheet slots) and reset every flight-cycle store, so nothing is called until a
+               new OFP arrives. Both two-click armed, the full one is the destructive one. *@
             <button type="button" class="btn danger init-btn-flex"
-                    disabled="@(_busy is not null)" @onclick="ResetFlight">
-                @(_busy == "reset" ? "RESETTING…" : _resetArmed ? "CONFIRM RESET" : "RESET FLIGHT")
+                    disabled="@(_busy is not null)" @onclick="ResetFlight"
+                    title="Restart this leg on the same OFP: clears the INIT overrides and the loadsheet cycle; the ProSim EFB keeps the plan">
+                @(_busy == "reset" ? "RESETTING…" : _resetArmed ? "CONFIRM RESET" : "RESET FLIGHT (SOFT)")
+            </button>
+            <button type="button" class="btn danger init-btn-flex"
+                    disabled="@(_busy is not null)" @onclick="UnloadOfp"
+                    title="Unload the OFP from the ProSim EFB (seat map, pax, planned fuel and cargo, loadsheets) and reset the flight cycle — no GSX service is called until a new OFP is fetched">
+                @(_busy == "unload" ? "UNLOADING…" : _unloadArmed ? "CONFIRM UNLOAD" : "UNLOAD OFP (FULL)")
             </button>
         </div>
     </section>
@@ -171,9 +182,10 @@
     private OfpData? _ofp;
     private IReadOnlyDictionary<string, double> _overrides = new Dictionary<string, double>();
 
-    private string? _busy; // "fetch" | "sync" | "clear" | "reset" | null
+    private string? _busy; // "fetch" | "sync" | "fuel" | "clear" | "reset" | "unload" | null
     private string? _lastFetchError;
     private bool _resetArmed;
+    private bool _unloadArmed;
 
     // Inline-editor state. Only one row is ever in edit mode at a time.
     private string? _editingField;
@@ -487,30 +499,84 @@
         // Two-click arm: first press shows CONFIRM RESET, auto-disarms after 3 s.
         if (!_resetArmed)
         {
+            _unloadArmed = false;
             _resetArmed = true;
-            _resetDisarmTimer?.Dispose();
-            _resetDisarmTimer = new Timer(_ => _ = InvokeAsync(() =>
-            {
-                _resetArmed = false;
-                StateHasChanged();
-            }), null, 3000, Timeout.Infinite);
+            ArmDisarmTimer(() => _resetArmed = false);
             return;
         }
 
-        _resetDisarmTimer?.Dispose();
-        _resetDisarmTimer = null;
-        _resetArmed = false;
+        DisarmResets();
         _busy = "reset";
         try
         {
-            await Overrides.ClearAllAsync();
-            LoadsheetControl.ResetCycle();
+            var result = await EfbReset.ResetFlightAsync();
             _overrides = Overrides.Snapshot();
+            ShowResetNote(result);
         }
         finally
         {
             _busy = null;
         }
+    }
+
+    private async Task UnloadOfp()
+    {
+        // Same two-click arm as the soft reset (and the Logbook delete); only one of the two
+        // reset buttons is ever armed at a time.
+        if (!_unloadArmed)
+        {
+            _resetArmed = false;
+            _unloadArmed = true;
+            ArmDisarmTimer(() => _unloadArmed = false);
+            return;
+        }
+
+        DisarmResets();
+        _busy = "unload";
+        try
+        {
+            var result = await EfbReset.UnloadOfpAsync();
+            _overrides = Overrides.Snapshot();
+            _lastFetchError = null;
+            ShowResetNote(result);
+        }
+        finally
+        {
+            _busy = null;
+        }
+    }
+
+    private void ArmDisarmTimer(Action disarm)
+    {
+        _resetDisarmTimer?.Dispose();
+        _resetDisarmTimer = new Timer(_ => _ = InvokeAsync(() =>
+        {
+            disarm();
+            StateHasChanged();
+        }), null, 3000, Timeout.Infinite);
+    }
+
+    private void DisarmResets()
+    {
+        _resetDisarmTimer?.Dispose();
+        _resetDisarmTimer = null;
+        _resetArmed = false;
+        _unloadArmed = false;
+    }
+
+    /// <summary>A partial reset is shown, not hidden: the note names what ProSim refused
+    /// (the fuel-confirm note's slot and timing).</summary>
+    private void ShowResetNote(EfbResetResult result)
+    {
+        _fuelNote = result.Ok
+            ? (result.Kind == EfbResetKind.Soft ? "FLIGHT RESET — OFP KEPT" : "OFP UNLOADED — FETCH A NEW OFP TO CONTINUE")
+            : $"RESET INCOMPLETE — PROSIM REFUSED {string.Join(", ", result.Failed).ToUpperInvariant()}";
+        _fuelNoteTimer?.Dispose();
+        _fuelNoteTimer = new Timer(_ => _ = InvokeAsync(() =>
+        {
+            _fuelNote = null;
+            StateHasChanged();
+        }), null, 8000, Timeout.Infinite);
     }
 
     // ── Derived display values ─────────────────────────────────────────────

@@ -327,6 +327,19 @@ else if (CurrentSection == "cabin")
                          @bind-Value="_cabin.Value.CabChannelGraceSeconds"
                          Default="_cabin.Defaults.CabChannelGraceSeconds" />
         </AdvancedFields>
+        <BoolField Label="FO answers cabin calls on the ground" Hint="During pushback, engine start and taxi-out the FO selects CAB on the FO's audio panel after the delay, so the report plays without you touching the ACP."
+                   More="This is the one place the cabin crew writes to the aircraft: the FO panel's CAB reception latch (S_ASP2_CAB_REC_LATCH; the captain's panel when you fly from the right seat), set on and released after the report. Never while the FO is mid-dialogue with you, never in any other phase. Off by default."
+                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AutoAnswerGround" />
+        <NumberField Label="Ground answer delay" Suffix="ms" Min="0" Step="100"
+                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AutoAnswerGround)"
+                     @bind-Value="_cabin.Value.AutoAnswerGroundDelayMs"
+                     Default="_cabin.Defaults.AutoAnswerGroundDelayMs" />
+        <BoolField Label="FO answers cabin calls in the air" Hint="In descent and approach the FO answers the cabin-ready call after the delay."
+                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AutoAnswerAir" />
+        <NumberField Label="Air answer delay" Suffix="ms" Min="0" Step="100"
+                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AutoAnswerAir)"
+                     @bind-Value="_cabin.Value.AutoAnswerAirDelayMs"
+                     Default="_cabin.Defaults.AutoAnswerAirDelayMs" />
         <BoolField Label="Interphone chime before calls" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.Chime" />
         <BoolField Label="Ding on startup" Hint="Cabin chime when the app starts."
                    @bind-Value="_cabin.Value.DingOnStartup" />

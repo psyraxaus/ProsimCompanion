@@ -46,6 +46,28 @@ public sealed class CabinOptions : IOptionSection
     /// <summary>Grace (s) to wait for CAB selection before speaking anyway — a report is never lost.</summary>
     public int CabChannelGraceSeconds { get; set; } = 25;
 
+    /// <summary>
+    /// The FO answers a cabin call on the ground (pushback/engine start and taxi-out — the
+    /// cabin-secure window) after <see cref="AutoAnswerGroundDelayMs"/>, by selecting CAB
+    /// reception on the FO's audio panel (issue #11, Prosim2GSX's AnswerCabinCallGround). Off
+    /// by default (owner decision 2026-10-09): this is the one place the cabin feature writes
+    /// to the aircraft. Never answers while a guided dialogue holds the microphone, and never
+    /// in any other phase.
+    /// </summary>
+    public bool AutoAnswerGround { get; set; }
+
+    /// <summary>Wait (ms) between the chime and the FO's answer on the ground — the
+    /// predecessor's 4000 ms: the FO is busy with the start/taxi.</summary>
+    public int AutoAnswerGroundDelayMs { get; set; } = 4000;
+
+    /// <summary>The FO answers a cabin call in descent/approach (the cabin-ready window) after
+    /// <see cref="AutoAnswerAirDelayMs"/>. Off by default; same write as the ground answer.</summary>
+    public bool AutoAnswerAir { get; set; }
+
+    /// <summary>Wait (ms) between the chime and the FO's answer in the air — the
+    /// predecessor's 2500 ms.</summary>
+    public int AutoAnswerAirDelayMs { get; set; } = 2500;
+
     /// <summary>Cabin ding when the application starts (Prosim2GSX's DingOnStartup).</summary>
     public bool DingOnStartup { get; set; }
 
