@@ -62,6 +62,12 @@ public sealed class ChecklistItemDefinition
     /// of failing deserialization (same rationale as <see cref="Behavior"/>).</summary>
     public string Kind { get; set; } = "normal";
 
+    /// <summary>Optional aircraft-system tag ("apu", "gear", "autobrake", "anti-ice") for the
+    /// tech-log hook (2026-10-09): when an open tech-log item is about the same system, the
+    /// spoken FO appends "note, open tech log item: …" to this line's challenge. Absent on
+    /// most lines and on every pre-existing file — purely additive, never a verification change.</summary>
+    public string? System { get; set; }
+
     /// <summary>True for separator/note rows — display furniture, never a gate.</summary>
     [JsonIgnore]
     public bool IsDisplayOnly =>

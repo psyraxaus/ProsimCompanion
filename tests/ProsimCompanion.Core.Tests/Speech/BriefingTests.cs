@@ -218,4 +218,51 @@ public sealed class BriefingTests
         Assert.True(MinimaParser.IsNotBriefed("minimums not briefed"));
         Assert.False(MinimaParser.IsNotBriefed("decision altitude 320"));
     }
+
+    // ---- Tech-log consultation (2026-10-09) ----
+
+    private static Core.TechLog.TechLogDefect Defect(string title, Core.TechLog.MelCategory category = Core.TechLog.MelCategory.C)
+        => new() { Id = title, Title = title, Category = category, Status = Core.TechLog.DefectStatus.Deferred };
+
+    [Fact]
+    public void TechLogClause_ComesAfterEveryExistingClause_AndIsAbsentWhenTheLogIsClean()
+    {
+        var clean = BriefingComposer.Template(Departure());
+        var withItems = BriefingComposer.Template(Departure() with
+        {
+            TechLogItems = [Defect("APU inoperative"), Defect("Galley oven 2 inoperative")],
+        });
+
+        Assert.DoesNotContain("tech log", clean, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith(clean, withItems, StringComparison.Ordinal);
+        Assert.EndsWith("Open tech log items: APU inoperative, and Galley oven 2 inoperative.", withItems, StringComparison.Ordinal);
+        Assert.Equal("tech-log", BriefingComposer.Sections(Departure() with { TechLogItems = [Defect("APU inoperative")] })[^1].Key);
+    }
+
+    [Fact]
+    public void TechLogItems_ReachTheFactBlock_AndTheirDigitsAreAllowedNumbers()
+    {
+        var facts = Departure() with { TechLogItems = [Defect("Engine 1 anti-ice valve, ref 302")] };
+
+        var block = BriefingComposer.FactBlock(facts);
+        Assert.Contains("- Open tech log items (deferred defects): Engine 1 anti-ice valve, ref 302 (MEL category C)", block, StringComparison.Ordinal);
+
+        // The verifier must not reject the model for repeating a locked title.
+        var (offending, _) = BriefingComposer.VerifyNumbers(
+            "Note the open tech log item, engine one anti-ice valve reference 302.", facts);
+        Assert.Empty(offending);
+    }
+
+    [Fact]
+    public void ArrivalTechLogClause_UsesTheLandingWording()
+    {
+        var facts = Departure() with
+        {
+            IsDeparture = false,
+            TechLogItems = [Defect("Autobrake LO mode inoperative")],
+        };
+
+        Assert.EndsWith("Open tech log items affecting landing: Autobrake LO mode inoperative.", BriefingComposer.Template(facts), StringComparison.Ordinal);
+        Assert.Contains("- Open tech log items affecting landing: Autobrake LO mode inoperative (MEL category C)", BriefingComposer.FactBlock(facts), StringComparison.Ordinal);
+    }
 }

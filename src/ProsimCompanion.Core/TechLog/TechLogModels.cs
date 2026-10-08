@@ -44,6 +44,12 @@ public sealed class TechLogDefect
 
     public string? Description { get; set; }
 
+    /// <summary>Optional system tag ("apu", "gear", "autobrake") that a checklist line's
+    /// <c>system</c> tag is matched against (2026-10-09, <see cref="TechLogConsultation"/>).
+    /// Blank on voice-raised and wear-pool items: those match by their title's words instead,
+    /// so "APU inoperative" still flags the "A P U" line without a tag.</summary>
+    public string? System { get; set; }
+
     /// <summary>Simulated MEL reference — locked, e.g. "MEL (SIM) CAT C".</summary>
     public string MelReference { get; set; } = "";
 

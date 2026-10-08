@@ -2,8 +2,8 @@
   "checklist": "Cockpit Preparation",
   "order": 10,
   "items": [
-    { "behavior": "acknowledge", "say": "Gear Pins and Covers", "expectedResponse": "REMOVED", "acceptedPhrases": [ "removed" ], "verify": null, "confirmCallout": "Gear pins and covers, removed" },
-    { "behavior": "acknowledge", "say": "Fuel Quantity", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "Fuel quantity, checked" },
+    { "behavior": "acknowledge", "say": "Gear Pins and Covers", "system": "gear", "expectedResponse": "REMOVED", "acceptedPhrases": [ "removed" ], "verify": null, "confirmCallout": "Gear pins and covers, removed" },
+    { "behavior": "acknowledge", "say": "Fuel Quantity", "system": "fuel", "expectedResponse": "CHECKED", "acceptedPhrases": [ "checked", "check" ], "verify": null, "confirmCallout": "Fuel quantity, checked" },
     {
       "behavior": "verify",
       "say": "Signs",
@@ -21,7 +21,7 @@
     },
     {
       "behavior": "verify",
-      "say": "A D I R S",
+      "say": "A D I R S", "system": "adirs",
       "expectedResponse": "NAV",
       "acceptedPhrases": [ "nav", "set" ],
       "comment": "Compound: all three IR mode selectors in NAV (1). For 'any one in NAV', change logic to 'or'.",

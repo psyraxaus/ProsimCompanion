@@ -1744,7 +1744,9 @@
         "#148 In-flight monitoring: Settings → Voice First Officer → Callouts & Placards has an 'In-flight monitoring' card with four switches (Fuel check, Gross error check, Destination weather watch, Read-backs) and their tolerances; each switch off ⇒ the matching phrases show the disabled reason in the header VOICE drawer; on ⇒ 'fuel check', 'gross error check' and the read-back lead-ins (with the value badge) are listed (web UI + ears).",
         "#149 Ask the First Officer: Settings → Voice First Officer → Briefings & LLM has the card with Enabled, the comma-separated lead-ins, minimum words, time budget and the stand-by delay; the VOICE drawer lists an Ask the First Officer group (dimmed with the settings path while off, five example questions and the lead-in row with the VALUE badge when on). With the LAN ASR: ask a four-plus-word question and hear an answer or the fixed line; ask the same on the offline engine and hear the ordinary did-not-catch line (web UI + ears).",
         "#150 Tablet install + keep-awake: on an iPad that trusts the mkcert CA, the HTTPS address opens with a padlock and the HTTP one still opens; Appearance → Screen & Install reads ACTIVE with the switch on and the screen does not sleep past the auto-lock time; switching apps and back returns ACTIVE within a second; over plain HTTP the pill reads NEEDS HTTPS with the HTTPS setup link; Share → Add to Home Screen gives a full-screen Companion app and the card then reads INSTALLED; Setup → Web Interface shows the HTTPS fields and the status pill (ON with the address / FAILED with the reason / OFF); the desktop window's QR carries the https address when HTTPS is up and its status list has an HTTPS line; a wrong PFX password shows the banner on every page and HTTP keeps working (web UI + tablet).",
-        "#151 Notifications: Settings → Notifications lists one card per target with the status pill (NEVER SENT / OK / FAILED), the Kind select, URL and Bearer token as password fields, the ten-checkbox events grid, Send test with its one-line result, Remove, and Add target below; Send test to a real ntfy topic shows on the phone within seconds and the line reads 'Sent · 200 OK · hh:mm:ss'; a wrong URL reads 'Failed · …' and the pill FAILED; the settings file on disk holds dpapi: values for url and token (web UI + phone)."
+        "#151 Notifications: Settings → Notifications lists one card per target with the status pill (NEVER SENT / OK / FAILED), the Kind select, URL and Bearer token as password fields, the ten-checkbox events grid, Send test with its one-line result, Remove, and Add target below; Send test to a real ntfy topic shows on the phone within seconds and the line reads 'Sent · 200 OK · hh:mm:ss'; a wrong URL reads 'Failed · …' and the pill FAILED; the settings file on disk holds dpapi: values for url and token (web UI + phone).",
+        "#112 Heard but not understood: say something the FO has no command for, three times — the Voice status page (/speech) lists it under 'Heard but not understood' with count 3 (amber pill), the Where column reads idle, and the session log holds three voice.unmatched events with the same normalized text; a phrase the FO acted on, and a question the LLM answered, never appear; Clear empties the list; Settings → Voice First Officer → Recognition & Push-to-Talk → 'Track phrases the FO did not understand' OFF leaves the list empty while the ASR trail still logs (web UI).",
+        "2026-10-09 Tech-log hooks by ear: with an open tech-log item, 'brief the departure' ends with 'Open tech log items: <title>.' (three titles at most, then 'and N more'); 'brief the arrival' names it only when it is category A/B or about brakes/gear/spoilers/reversers/autobrake/anti-skid; a spoken checklist line whose system tag matches (e.g. the APU line with 'APU inoperative' open) is challenged as '<line> — note, open tech log item: <title>.' once per run, and a say-again repeats the plain line; Settings → Voice First Officer → Tech Log & MEL shows 'Open items in the briefings' and 'Flag checklist lines'; the Tech Log page's raise form has the System field and shows the tag as a pill (web UI + ears)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -2395,6 +2397,62 @@
         "Native guard, same connection: the GSX decision 'native GSX guard' reads either 'disabled 6 ProSim efb.gsx.* auto flags' (older ProSim) or 'this ProSim build has no efb.gsx.* flags — nothing to disable' (1.75.1). The old wording on 1.75.1 means the gateway verdict regressed (writeBool:false ignored)."
       ],
       "notes": "Shipped 2026-10-06 (owner request). The IOS options are system.config.* datarefs, read and written through the port-5000 gateway without a restart (Door logic flipped true and back live on 1.75.1). Recommended values = the owner's working config. The check only reads; 'Apply recommended' on the Setup page is the only write. Unverified live in the app itself: the connection-time read, the card, the Apply click (the gateway calls were verified by hand)."
+    },
+    {
+      "id": "voice-unmatched-candidates",
+      "issue": 112,
+      "state": "open",
+      "kind": "watch",
+      "machine": {
+        "kind": "required-fields",
+        "type": "voice.unmatched",
+        "fields": [
+          "text",
+          "normalized",
+          "context",
+          "phase",
+          "reason",
+          "suppressed"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "watch: count the 'voice.unmatched' events per flight and group them by normalized; list every phrase heard 3+ times (suppressed = false) as a COMMAND CANDIDATE with its contexts (idle / checklist: <line> / checklist-hold / confirm-declined) and reasons — these are the phrases the pilot actually uses that the FO has no action for. The support reducer pre-computes this as sessions[].voiceUnmatched.candidates.",
+        "watch: suppressed = true events are sterile-phase absorptions (TakeoffRoll / InitialClimb / LandingRollout / short final) — count them, never list them as candidates; a large count in Cruise would mean the sterile gate misfired.",
+        "watch: context 'checklist: <line>' with reason not-an-answer = the pilot's answer to that line is not in its acceptedPhrases (an answer-phrase candidate for that checklist file, not a command).",
+        "Cross-check: every voice.unmatched event has a matching Debug line 'ASR heard \"<text>\" … -> Reject|Resolved' just before it; a question the handler took (an 'fo.query' event for that text) must NOT also be a voice.unmatched event.",
+        "assert-absent: a voice.unmatched event for a phrase that a feature actually handled in the same second (the same text appearing in a feature's own session event) — double-counting."
+      ],
+      "notes": "Issue #112, built 2026-10-09 (unverified live). UnmatchedUtteranceTracker (Speech) at every UtteranceRouter fall-through: engine reject, interpreter reject, no handler after snapping, a non-answer while a line awaits, a declined 'did you mean'. speech.trackUnmatched (default on) gates the event and the Voice page list; the ASR Debug trail is independent of it. The post-flight pass is described in docs/agents/flight-verification.md ('Voice command candidates')."
+    },
+    {
+      "id": "techlog-consulted",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "techlog.consulted",
+        "fields": [
+          "source",
+          "items"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger: a 'briefing.spoken' event while the tech log held an open item (a 'techlog.raised' / 'techlog.wear' earlier with no 'techlog.rectified' for that id, or the Tech Log page shows it open) and techLog.briefOpenItemsInBriefings = true. Behaviour: a 'techlog.consulted' event with source departure-briefing just before the departure's briefing.spoken, items[] naming the open titles (max 3 named in the narrative, the rest as 'and N more'), and the briefing narrative (templated or LLM) containing 'tech log' and the first title.",
+        "Arrival: a 'techlog.consulted' with source arrival-briefing ONLY when an open item is MEL category A/B or about brakes/gear/spoilers/reversers/autobrake/anti-skid; a clean or cabin-only log at arrival means NO arrival event (report as pass-by-absence when the trigger was a cabin-only item).",
+        "Checklist: with techLog.flagChecklistItems = true, a 'checklist.voice' start for a checklist holding a tagged line (system = apu/gear/autobrake/…) while a matching item is open yields ONE 'techlog.consulted' with source checklist, checklist, item, system and items[] — and the matching 'speech.segment'/arbiter utterance for that line ends with 'note, open tech log item: <title>.' A second tagged line about the same system in the same run, and a say-again, produce no second event.",
+        "assert-absent: a techlog.consulted event while techLog.enabled = false or the matching switch is off; a checklist.voice.item result that changed because of the note (the line's verification is untouched).",
+        "Number verifier: no 'Briefing number verification failed' warning whose unverified token comes from a tech-log title (titles' digits are in the allowed set)."
+      ],
+      "notes": "ROADMAP 'Tech-log procedural hooks', built 2026-10-09 (unverified live). TechLogConsultation (Core, pure): departure = every open item, arrival = category A/B or landing keywords, checklist = line system tag vs the item's System field or a whole word of its title. BriefingComposer appends the 'tech-log' NarrationSection after every existing clause and lists the items in the LLM fact block; SpokenChecklistEngine.SpeakChallenge appends the note once per item per run."
     }
   ]
 }

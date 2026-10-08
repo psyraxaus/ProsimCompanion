@@ -5,6 +5,7 @@ using ProsimCompanion.Core.Checklists;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.TechLog;
 using ProsimCompanion.Speech.Abnormals;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
@@ -58,6 +59,13 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     private readonly object _gate = new();
     private readonly Dictionary<string, IDataRefSubscription> _verifyReads = new(StringComparer.Ordinal);
 
+    // Tech-log hook (2026-10-09): optional so hand-built engines (tests) need no tech log.
+    private readonly ITechLogService? _techLog;
+    private readonly IOptionsMonitor<TechLogOptions>? _techLogOptions;
+    // Defect ids already noted in the current run (guarded by _gate; reset at run start).
+    private readonly HashSet<string> _notedDefects = new(StringComparer.Ordinal);
+    private string _runChecklistName = "";
+
     private CancellationTokenSource? _run;
     private TaskCompletionSource<EngineResponse>? _response;
     private ChecklistItemDefinition? _awaitingItem;
@@ -82,8 +90,12 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
         Briefings.MinimaCaptureDialogue minimaCapture,
         Persona.PhraseBank phrases,
         Persona.PersonaService persona,
-        Commands.SpokenTokenSource tokens)
+        Commands.SpokenTokenSource tokens,
+        ITechLogService? techLog = null,
+        IOptionsMonitor<TechLogOptions>? techLogOptions = null)
     {
+        _techLog = techLog;
+        _techLogOptions = techLogOptions;
         ArgumentNullException.ThrowIfNull(minimaCapture);
         ArgumentNullException.ThrowIfNull(phrases);
         ArgumentNullException.ThrowIfNull(persona);
@@ -258,6 +270,12 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     {
         _store.Update(s => s with { SpokenChecklist = definition.Checklist, SpokenChecklistItem = "" });
         _eventLog.Record("checklist.voice", new { name = definition.Checklist, phase = "start" });
+        lock (_gate)
+        {
+            // Once per item per run (tech-log hook): a restart re-notes, a say-again does not.
+            _notedDefects.Clear();
+            _runChecklistName = definition.Checklist;
+        }
 
         // Drive the visual /checklists page alongside the spoken run: open the same checklist
         // there, then mark each line as the dialogue completes it (voice-freeze semantics, so
@@ -324,12 +342,12 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
             && !item.Expects.Equals("number", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogWarning("Checklist item \"{Item}\" has no accepted phrases — auto-acknowledged", item.Say);
-            await Speak(item.Say).ConfigureAwait(false);
+            await SpeakChallenge(item).ConfigureAwait(false);
             await SpeakConfirm(item).ConfigureAwait(false);
             return true;
         }
 
-        await Speak(item.Say).ConfigureAwait(false);
+        await SpeakChallenge(item).ConfigureAwait(false);
         var answer = await AwaitAcceptedAsync(item, ct).ConfigureAwait(false);
         if (answer is null)
         {
@@ -346,7 +364,7 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     /// the decision.</summary>
     private async Task<bool> RunCaptureMinimaAsync(ChecklistItemDefinition item, CancellationToken ct)
     {
-        await Speak(item.Say).ConfigureAwait(false);
+        await SpeakChallenge(item).ConfigureAwait(false);
         var minima = await _minimaCapture.RunAsync(ct).ConfigureAwait(false);
         if (minima is null)
         {
@@ -359,7 +377,7 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
 
     private async Task<bool> RunVerifyAsync(ChecklistItemDefinition item, CancellationToken ct)
     {
-        await Speak(item.Say).ConfigureAwait(false);
+        await SpeakChallenge(item).ConfigureAwait(false);
         var retries = 0;
         var max = item.MaxRetries ?? DefaultMaxRetries;
         while (true)
@@ -394,7 +412,7 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
 
     private async Task<bool> RunActionAsync(ChecklistItemDefinition item, CancellationToken ct)
     {
-        await Speak(item.Say).ConfigureAwait(false);
+        await SpeakChallenge(item).ConfigureAwait(false);
         var answer = await AwaitAcceptedAsync(item, ct).ConfigureAwait(false);
         if (answer is null)
         {
@@ -412,7 +430,7 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
 
     private async Task<bool> RunMonitorControlsAsync(ChecklistItemDefinition item, CancellationToken ct)
     {
-        await Speak(item.Say).ConfigureAwait(false);
+        await SpeakChallenge(item).ConfigureAwait(false);
 
         var composition = (item.Composition ?? "monitorThenSweep").ToLowerInvariant();
         if (composition != "sweeponly")
@@ -783,6 +801,64 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
     private async Task Speak(string text)
         => await _arbiter.EnqueueAsync(new SpeechRequest(text, SpeechPriority.Normal, Tag: "checklist"))
             .ConfigureAwait(false);
+
+    /// <summary>The first challenge of a line: its text plus, when the line's <c>system</c> tag
+    /// matches an open tech-log item, "— note, open tech log item: …" (2026-10-09). Each item
+    /// is noted once per checklist run, so a re-challenge (say again, after a hold) or a second
+    /// tagged line about the same system stays plain. Advisory words only — acceptance,
+    /// verification and the confirm callout are untouched.</summary>
+    private async Task SpeakChallenge(ChecklistItemDefinition item)
+    {
+        var text = item.Say;
+        try
+        {
+            text += TechLogNote(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Tech-log note lookup failed for \"{Item}\"", item.Say);
+        }
+
+        await Speak(text).ConfigureAwait(false);
+    }
+
+    private string TechLogNote(ChecklistItemDefinition item)
+    {
+        if (_techLog is not { IsEnabled: true } techLog
+            || _techLogOptions?.CurrentValue.FlagChecklistItems != true
+            || string.IsNullOrWhiteSpace(item.System))
+        {
+            return "";
+        }
+
+        var matches = TechLogConsultation.MatchesForChecklistLine(item.System, techLog.OpenDefects);
+        var fresh = new List<TechLogDefect>();
+        lock (_gate)
+        {
+            foreach (var defect in matches)
+            {
+                if (_notedDefects.Add(defect.Id))
+                {
+                    fresh.Add(defect);
+                }
+            }
+        }
+
+        if (fresh.Count == 0)
+        {
+            return "";
+        }
+
+        _eventLog.Record("techlog.consulted", new
+        {
+            source = "checklist",
+            checklist = _runChecklistName,
+            item = item.Say,
+            system = item.System,
+            items = fresh.Select(d => d.Title).ToArray(),
+        });
+        return string.Concat(fresh.Select(TechLogConsultation.ChecklistNote));
+    }
 
     /// <summary>Speak with an explicit tag — clarifier/reject lines must be attributable in
     /// the session jsonl (issue #66), not lumped under "checklist".</summary>
