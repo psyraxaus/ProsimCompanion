@@ -24,7 +24,7 @@ Two failures follow from that layout, and the 2026-08-15 flight test hit one (is
 
 - User-editable content files are read ONLY from `%LOCALAPPDATA%\ProsimCompanion\config`
   (`UserConfigPaths`). Covered: `checklists\` (+ `sets\`), `abnormals\`, `themes\`,
-  `atc-requests.json`, `commands.json`, `phrases.json`.
+  `atc-requests.json`, `commands.json`, `phrases.json`, `region-facts.json` (2026-10-09, #122).
 - Shipped defaults continue to deploy to `{app}\config\` untouched; the installer may
   overwrite them freely — they are now app-owned source material, not the live copies.
 - At every startup, before the host builds, `UserConfigSeeder` mirrors the shipped defaults

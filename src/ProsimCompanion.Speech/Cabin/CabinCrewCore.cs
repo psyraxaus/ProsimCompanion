@@ -21,6 +21,10 @@ public enum CabinAction
 
     /// <summary>Ambient boarding-delay call at the gate (opt-in, one dice roll per flight).</summary>
     BoardingDelay,
+
+    /// <summary>The purser's once-per-flight cruise query ("any update on arrival time or
+    /// turbulence?") with its reply window — due now; the shell runs the dialogue.</summary>
+    CruiseQuery,
 }
 
 /// <summary>Inputs for one cabin tick — sampled by the shell, judged here.
@@ -29,7 +33,8 @@ public enum CabinAction
 /// bogus startup Approach classification fired "secure for landing" at the gate).
 /// <paramref name="PaxOnBoard"/> scales the cabin-secure wait (issue #134); <paramref name="NowUtc"/>
 /// is the tick's clock so the timer is testable without waiting — default means "use the
-/// wall clock".</summary>
+/// wall clock". <paramref name="VoicePaused"/> is the pilot's "ear off" latch: the cruise
+/// query waits it out rather than calling a flight deck that cannot answer.</summary>
 public sealed record CabinTickSample(
     FlightPhase Phase,
     bool DoorsClosed,
@@ -39,7 +44,8 @@ public sealed record CabinTickSample(
     double VerticalSpeedFpm = 0,
     bool HasBeenAirborne = false,
     int PaxOnBoard = 0,
-    DateTimeOffset NowUtc = default);
+    DateTimeOffset NowUtc = default,
+    bool VoicePaused = false);
 
 /// <summary>
 /// The pure once-per-flight trigger logic of the cabin-crew simulation (Prosim2FO semantics,
@@ -56,14 +62,27 @@ public sealed record CabinTickSample(
 /// holds the report, it never cancels the timer). So the cabin is sometimes ready right
 /// after pushback and sometimes still securing at the holding point, like a real crew.
 /// </para>
+/// <para>
+/// The purser cruise query (Prosim2FO "Prompt F", 2026-10-09) is armed on the first cruise
+/// tick with a jittered delay drawn once per flight, and fires on the first cruise tick at or
+/// after that moment with the pilot's ear on. A step climb between the two is harmless — the
+/// timer keeps running and the call waits for the next cruise tick. The query is only ever
+/// made in the cruise: a descent before it is due means no call this flight.
+/// </para>
 /// </summary>
 public sealed class CabinCrewCore
 {
+    /// <summary>How long the shell's retry waits when the mic was busy at the due moment.</summary>
+    public static readonly TimeSpan CruiseQueryRetry = TimeSpan.FromSeconds(60);
+
     private bool _secureDone;
     private bool _secureArmed;
     private DateTimeOffset _secureDueAtUtc;
     private bool _readyDone;
     private bool _boardingRolled;
+    private bool _cruiseQueryDone;
+    private bool _cruiseQueryArmed;
+    private DateTimeOffset _cruiseQueryDueAtUtc;
 
     /// <summary>The wait drawn for this flight's cabin-secure report (0 until armed).</summary>
     public int SecureDelaySeconds { get; private set; }
@@ -71,6 +90,12 @@ public sealed class CabinCrewCore
     /// <summary>When the running cabin-secure timer expires; null when not armed or already
     /// reported.</summary>
     public DateTimeOffset? SecureDueAtUtc => _secureArmed && !_secureDone ? _secureDueAtUtc : null;
+
+    /// <summary>The delay drawn for this flight's purser cruise query (0 until armed).</summary>
+    public int CruiseQueryDelaySeconds { get; private set; }
+
+    /// <summary>When the purser will call; null when not armed or already called.</summary>
+    public DateTimeOffset? CruiseQueryDueAtUtc => _cruiseQueryArmed && !_cruiseQueryDone ? _cruiseQueryDueAtUtc : null;
 
     public void OnPhaseChanged(FlightPhase from, FlightPhase to)
     {
@@ -82,7 +107,30 @@ public sealed class CabinCrewCore
             SecureDelaySeconds = 0;
             _readyDone = false;
             _boardingRolled = false;
+            _cruiseQueryDone = false;
+            _cruiseQueryArmed = false;
+            CruiseQueryDelaySeconds = 0;
         }
+    }
+
+    /// <summary>The cruise-query delay for one flight: the configured minutes, ±30% from the
+    /// 0–1 <paramref name="roll"/>. A negative setting reads as 0 (call at once).</summary>
+    public static int CruiseQueryDelay(CabinOptions options, double roll)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var minutes = Math.Max(0, options.CruiseQueryDelayMinutes);
+        var factor = 0.7 + 0.6 * Math.Clamp(roll, 0, 1);
+        return (int)Math.Round(minutes * 60 * factor);
+    }
+
+    /// <summary>The shell found the microphone borrowed by another dialogue at the due
+    /// moment: the once-per-flight latch is handed back and the call retried a minute later,
+    /// so a tech-log entry or a hail in progress never costs the flight its purser call.</summary>
+    public void ReopenCruiseQuery(DateTimeOffset nowUtc)
+    {
+        _cruiseQueryDone = false;
+        _cruiseQueryArmed = true;
+        _cruiseQueryDueAtUtc = nowUtc + CruiseQueryRetry;
     }
 
     /// <summary>The cabin-secure wait for one flight: the configured minimum plus a random
@@ -154,6 +202,25 @@ public sealed class CabinCrewCore
             if (roll() < Math.Clamp(options.BoardingDelayProbability, 0, 1))
             {
                 return CabinAction.BoardingDelay;
+            }
+        }
+
+        if (options.CruiseQuery && !_cruiseQueryDone && sample.Phase == FlightPhase.Cruise)
+        {
+            var now = sample.NowUtc == default ? DateTimeOffset.UtcNow : sample.NowUtc;
+            if (!_cruiseQueryArmed)
+            {
+                _cruiseQueryArmed = true;
+                CruiseQueryDelaySeconds = CruiseQueryDelay(options, roll());
+                _cruiseQueryDueAtUtc = now.AddSeconds(CruiseQueryDelaySeconds);
+            }
+
+            // The ear-off latch holds the call, never cancels it: the purser calls on the
+            // first cruise tick after the pilot can hear and answer again.
+            if (now >= _cruiseQueryDueAtUtc && !sample.VoicePaused)
+            {
+                _cruiseQueryDone = true;
+                return CabinAction.CruiseQuery;
             }
         }
 

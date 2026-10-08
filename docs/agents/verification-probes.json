@@ -1753,7 +1753,9 @@
         "#11 Cabin-call auto-answer: Settings → Voice First Officer → Cabin Crew card shows 'FO answers cabin calls on the ground' with its ms delay (4000) and 'FO answers cabin calls in the air' with its delay (2500), both OFF after install; the delay fields grey out while their switch is off; the 'More' text names the dataref (S_ASP2_CAB_REC_LATCH) (web UI).",
         "EFB resets: /init shows two armed buttons — RESET FLIGHT (SOFT) and UNLOAD OFP (FULL) — each needing a second press (CONFIRM RESET / CONFIRM UNLOAD) within 3 s, arming one disarms the other; after the press the fuel-note slot reads 'FLIGHT RESET — OFP KEPT' or 'OFP UNLOADED — FETCH A NEW OFP TO CONTINUE' for 8 s and the status pill flips to AWAITING OFP only after the full one; GET /api/commands lists efb.resetFlight and efb.unloadOfp (web UI).",
         "#112 Heard but not understood: say something the FO has no command for, three times — the Voice status page (/speech) lists it under 'Heard but not understood' with count 3 (amber pill), the Where column reads idle, and the session log holds three voice.unmatched events with the same normalized text; a phrase the FO acted on, and a question the LLM answered, never appear; Clear empties the list; Settings → Voice First Officer → Recognition & Push-to-Talk → 'Track phrases the FO did not understand' OFF leaves the list empty while the ASR trail still logs (web UI).",
-        "2026-10-09 Tech-log hooks by ear: with an open tech-log item, 'brief the departure' ends with 'Open tech log items: <title>.' (three titles at most, then 'and N more'); 'brief the arrival' names it only when it is category A/B or about brakes/gear/spoilers/reversers/autobrake/anti-skid; a spoken checklist line whose system tag matches (e.g. the APU line with 'APU inoperative' open) is challenged as '<line> — note, open tech log item: <title>.' once per run, and a say-again repeats the plain line; Settings → Voice First Officer → Tech Log & MEL shows 'Open items in the briefings' and 'Flag checklist lines'; the Tech Log page's raise form has the System field and shows the tag as a pill (web UI + ears)."
+        "2026-10-09 Tech-log hooks by ear: with an open tech-log item, 'brief the departure' ends with 'Open tech log items: <title>.' (three titles at most, then 'and N more'); 'brief the arrival' names it only when it is category A/B or about brakes/gear/spoilers/reversers/autobrake/anti-skid; a spoken checklist line whose system tag matches (e.g. the APU line with 'APU inoperative' open) is challenged as '<line> — note, open tech log item: <title>.' once per run, and a say-again repeats the plain line; Settings → Voice First Officer → Tech Log & MEL shows 'Open items in the briefings' and 'Flag checklist lines'; the Tech Log page's raise form has the System field and shows the tag as a pill (web UI + ears).",
+        "#122 Region facts by ear (2026-10-09): with Settings → Voice First Officer → Briefings & LLM → Region Facts on, an unprompted two-sentence fact about the country or sea below arrives in the cruise after the first gap, in the FO voice (persona voice for a curated fact), never twice for the same region, never while the mic pill reads PAUSED, never after 'quiet please'; the card shows Enabled, Shortest gap, Longest gap, Facts per flight, Facts from the language model (web UI + ears).",
+        "Purser cruise query by ear (2026-10-09): with Settings → Voice First Officer → Cabin Crew → Purser cruise query on, once in the cruise: chime, CAB wait, 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' in the purser voice, the listening tone, then the acknowledgement that fits the answer (time / ride / generic / 'we'll check back later'); a running checklist resumes afterwards; the Cabin Crew card shows the switch, 'Cruise query after' and 'Cruise query reply window', Cabin Wording the five lines; the VOICE drawer's Cabin tab lists the 'Purser cruise query' group (web UI + ears)."
       ],
       "notes": "Issue 0 = not a real issue number; this entry is the pilot's eyeball list appended to every flight report."
     },
@@ -2547,6 +2549,70 @@
         "Number verifier: no 'Briefing number verification failed' warning whose unverified token comes from a tech-log title (titles' digits are in the allowed set)."
       ],
       "notes": "ROADMAP 'Tech-log procedural hooks', built 2026-10-09 (unverified live). TechLogConsultation (Core, pure): departure = every open item, arrival = category A/B or landing keywords, checklist = line system tag vs the item's System field or a whole word of its title. BriefingComposer appends the 'tech-log' NarrationSection after every existing clause and lists the items in the LLM fact block; SpokenChecklistEngine.SpeakChallenge appends the note once per item per run."
+    },
+    {
+      "id": "fo-region-facts",
+      "issue": 122,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "fo.region-fact",
+        "fields": [
+          "outcome",
+          "phase",
+          "countThisFlight"
+        ],
+        "fieldsWhenPresent": {
+          "text": [
+            "regionKey",
+            "region",
+            "source"
+          ]
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with speech.regionFacts.enabled = true (off by default). Trigger = a cruise of at least the shortest gap (default 15 min) over a country or a named sea.",
+        "assert-present: 'fo.region-fact' events with outcome 'spoken', each carrying regionKey (ISO code such as FR, or sea:<name>), region, source ('model' | 'curated'), text, lat/lon and countThisFlight; phase is Cruise on every one. The log line 'Region fact (<source>) for <region>: ...' matches each. The regionKey must agree with the lat/lon on the event — a fact about France at 52N 5E is a failure.",
+        "assert-absent: two 'spoken' events with the same regionKey in one flight (the no-repeat rule); more 'spoken' events than speech.regionFacts.maxPerFlight (default 4); two 'spoken' events closer together than minIntervalMinutes; any fo.region-fact event in a phase other than Cruise; any 'speech.spoken' with tag fo.region-fact while the mic pill read PAUSED, in a sterile phase, or after a 'smalltalk.silenced' event.",
+        "assert-absent: with speech.regionFacts.enabled = false, any 'fo.region-fact' event at all; the log holds exactly one 'Region facts disabled (speech.regionFacts.enabled)' line per start (zero log noise beyond it).",
+        "watch: outcome 'unresolved' (open water the atlas does not name, e.g. the North Atlantic) and 'no-position' — count them; 'repeated' is normal on a long leg inside one country. Outcome 'no-fact' = the model was up but said nothing and the curated file had no entry for that regionKey — list the keys so the seed file can grow.",
+        "source 'model' only when the LLM was on and healthy (llm.stream events of kind fo.region-fact precede it); source 'curated' otherwise, and always when speech.regionFacts.llmFacts = false. A 'model' fact never contains a figure next to a flight-data word (the #153 guard refuses the sentence; a refusal shows as the llm.stream takeover with the curated fact spoken instead).",
+        "requires-human: the fact is true of the place below and reads as a passenger-tone aside, not a briefing; a curated fact with the persona on is spoken in the persona's voice with the same figures."
+      ],
+      "notes": "Feature 2026-10-09 (issue #122, feature/cruise-immersion; unverified live). RegionFactCore (pure scheduler: jittered gap min..max, per-flight cap, no repeat per region, re-arm with the cabin latches) + RegionFactService (30 s tick; atlas lookup via IPlaceLookup from #153; model tier through StreamingNarrator under the ChatSentenceAllowed guard, VerifyNumbers off like every trivia path; curated tier = region-facts.json in %LOCALAPPDATA%\\ProsimCompanion\\config, seeded from {app}\\config, persona-restyled with figures locked). Low priority, tag fo.region-fact, IsStillValid = still in Cruise and ear not paused. Decision: the model is the preferred tier when up (variety), the curated file the floor."
+    },
+    {
+      "id": "cabin-cruise-query",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "cabin.cruise-reply",
+        "fields": [
+          "kind",
+          "ack"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with cabin.cruiseQuery = true (off by default) and cabin.enabled. Trigger = a cruise longer than cabin.cruiseQueryDelayMinutes (default 10, jittered +/-30 %) with the flight live.",
+        "assert-present: exactly ONE 'cabin.cruise-query' event per flight (text, windowSeconds, freeForm, phase = Cruise), preceded by 'cabin.calling' with report cabin.cruise-query, then exactly one 'cabin.cruise-reply' (heard, kind in silence|eta|ride|eta+ride|generic, ack). The log lines 'Purser cruise query: ...' and 'Purser cruise reply: <kind> (\"<heard>\") -> \"<ack>\"' match. The two speech.spoken items carry tag cabin.cruise-query and role Purser.",
+        "assert-present: kind matches what was said — 'about forty minutes' / 'on time' / 'ten minutes late' => eta; 'smooth' / 'light chop' / 'expect turbulence' => ride; both in one breath => eta+ride; anything else => generic; nothing => silence with the no-reply line. A reply read as the wrong kind is a classifier failure: quote heard + kind.",
+        "assert-absent: a second cabin.cruise-query in the same flight (the once-per-flight latch; a new flight = ColdAndDark or a Preflight after Shutdown/TaxiIn); a cabin.cruise-query outside Cruise; one while the mic pill read PAUSED; a 'speech.spoken' for the query text with IsStillValid dropped (outcome Dropped) — the question must not be asked after a descent began.",
+        "assert-absent: any dataref write, GSX call, radio or MCDU action in the seconds after the reply — the reply is acknowledged only, never acted on.",
+        "watch: 'Purser cruise query deferred — another dialogue owns the microphone' means the latch was handed back and the call retried a minute later; count the deferrals. freeForm = false means the offline engine was active and the window carried the closed reply grammar — note whether the pilot's reply was heard at all.",
+        "requires-human: the chime, then the purser's question in the purser voice after CAB was selected (or the grace); the listening tone; the acknowledgement that fits the answer; a running spoken checklist held and resumed untouched around the window."
+      ],
+      "notes": "Feature 2026-10-09 (ROADMAP open item 'Purser cruise query + response window', feature/cruise-immersion; unverified live). CabinCrewCore arms the once-per-flight latch on the first cruise tick (delay = minutes x (0.7 + 0.6 x roll)), fires on the first cruise tick at/after it with the ear on; CabinCrewService runs the chime + CAB latch-or-grace flow, then CabinCruiseQueryDialogue borrows the mic (IMicOwnership) for cabin.cruiseQueryWindowSeconds (default 20) — empty grammar (free-form) when the LAN transcriber is active, CabinCruiseQueryCore.OfflineGrammar otherwise — and CabinCruiseQueryCore classifies the reply by whole-word keyword lists. Predecessor Prosim2FO asked about the weather ahead with an 8 s window and a probability roll; this design asks about the arrival time / turbulence after a delay, once per flight, no roll."
     }
   ]
 }
