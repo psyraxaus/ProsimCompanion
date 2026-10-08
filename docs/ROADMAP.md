@@ -164,10 +164,13 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
 - [x] Auto engine-start confirmation (#106): at pushback vehicle state 12 the sequencer answers
       "Confirm good engine start" once an engine runs and the park brake is set. No switch —
       see Open items
-- [ ] De-icing auto-request policy (request de-ice from weather/OAT — only the fluid answer and
-      the manual `gsx.requestDeice` command exist), walkaround skip (MSFS2024 keystroke —
-      walkaround is detected and holds services, never skipped), optional GSX restart on
-      taxi-in, headless remote-control mode — see Open items
+- [x] De-icing auto-request policy (2026-10-09, rc.23): pure `DeiceRequestPolicy` over the
+      ProSim OAT + the origin METAR (precipitation / freezing fog / dew-point spread),
+      `gsx.deice.autoRequest` off / ask / auto, the FO's question via `DeiceQuestionDialogue`,
+      the de-ice step lifted to the end of the departure list; `L:FSDT_GSX_DEICING_STATE`
+      read (`GsxDeiceStateMonitor`) and shown on /gsx — values unproven, holdover still arms
+      from the completed edge. Walkaround skip, GSX restart on taxi-in and headless mode
+      were dropped 2026-10-08 (see Open items)
 
 ## Phase 2.5 — Web UI foundation (pulled forward from Phase 7)
 
@@ -469,9 +472,10 @@ from Phase 1 — this phase adds the speech stack and features on top.
       voices.*Chime keys). Purser/company distinct voices delivered in the completion batch
       (`VoicesOptions` purser/company/ground + `RoleVoiceResolver`, "Crew Voices" card).
       The pax-scaled cabin-secure wait (#134, 0.5.0-rc.5) and the "cockpit to cabin" hail
-      (`CrewHailService`) arrived in September. Still open: the cruise-query ambient +
-      response window (the mic-ownership seam it waited for now exists — see Open items).
-      Cabin-call auto-answer (#11) is parked for a write-safety review. **Unverified live**
+      (`CrewHailService`) arrived in September. The purser cruise query + reply window
+      (`CabinCruiseQueryDialogue` over `IMicOwnership`) and the cabin-call auto-answer (#11,
+      `CabinAutoAnswer`, one `S_ASP*_CAB_REC_LATCH` write) landed 2026-10-09 (rc.23).
+      **Unverified live**
 - [x] Tech log & MEL + pilot logbook + post-flight debrief (Prosim2FO semantics):
       file-backed stores in %LOCALAPPDATA%\ProsimCompanion (atomic
       temp-then-move, corrupt-aside-and-rebuild, idempotent by id/session), MEL categories
@@ -488,8 +492,8 @@ from Phase 1 — this phase adds the speech stack and features on top.
       batch delivered the raise/rectify voice dialogues, the post-abnormal offer, LLM debrief
       styling and company day mode (see the Phase 6 banner). Logbook voice queries delivered
       (`LogbookVoiceService`); the Logbook page, touchdown recorder and fuel stamps came with
-      #146 / #155 (Phase 8). Still open: tech-log procedural hooks (no checklist or briefing
-      consults the MEL) — see Open items. **Unverified live**
+      #146 / #155 (Phase 8). Tech-log procedural hooks (`TechLogConsultation`: briefing
+      clause, checklist `system` tag note) landed 2026-10-09 (rc.23). **Unverified live**
 - [x] Named-command registry + HTTP command API — the single command seam for
       web/API/StreamDeck (docs/integrations/command-api.md): typed CommandRegistry
       (duplicate-registration throws; no WPF marshalling), 18 commands over existing seams
@@ -786,11 +790,24 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       queues for GSX, the pilot's own gate wins, after landing it fires at once; probe
       `si-arrival-gate-from-atc`). **SIAI radio-clear gate** (`RadioClearGate`; probe
       `si-radio-clear-gate`). Tablet EFB branch dropped. **Unverified live** — every item.
+- [x] **Last-open-items batch** (2026-10-09, rc.23, owner decision "build all of it"; five
+      branches merged): **cabin-call auto-answer** (#11, off — one latch write,
+      `S_ASP*_CAB_REC_LATCH`, ground = pushback/start/taxi-out, air = descent/approach);
+      **region facts in cruise** (#122, off — `speech.regionFacts`, model first then the
+      seeded `region-facts.json`); **purser cruise query + reply window** (off —
+      `cabin.cruiseQuery`, `IMicOwnership` window, offline grammar fallback);
+      **heard-but-not-understood** (#112, on — `voice.unmatched`, Voice status page section,
+      reducer `voiceUnmatched`); **tech-log hooks** (on — briefing clause, checklist `system`
+      tag, `techlog.consulted`); **arrival gate survives a restart + fires past cruise**
+      (#102); **ground-ops milestones once per cycle** (#90, `GroundOpsSignalRelayCore`);
+      **de-icing policy** (`gsx.deice.autoRequest` off/ask/auto, `L:FSDT_GSX_DEICING_STATE`
+      read and shown, values unproven); **GSX SimBrief reload for the VDGS**
+      (`gsx.reloadSimbriefOnNewOfp` off, `gsx.reloadSimbrief` command); **EFB soft/full
+      reset** (`efb.resetFlight` / `efb.unloadOfp`). **Unverified live** — every item.
 
-## Open items (roadmap audit 2026-10-08, updated after the rc.22 batch)
+## Open items (after the rc.23 batch, 2026-10-09)
 
-Everything below is confirmed absent or incomplete in the code on `main`. Nothing else on
-this roadmap is open.
+Nothing on this roadmap is open as code. What remains:
 
 **Settings coverage** — every section has a card (guard test
 `EveryOptionSectionClass_IsBoundOnSomeRazorPage`). Property-level residue, each named in a
@@ -798,21 +815,12 @@ visible hint on its page: `speech.vadMinSpeechMs` / `vadPreRollMs` / `vadMaxUtte
 the individual `sop` callout texts and thresholds, the other flow-monitor reminders and the
 weather advisories; `commandApi.requireTokenOnLoopback`; `accents.overrides` (dictionary).
 
-**Phase 5/6 leftovers truly open**
-- Tech-log procedural hooks (MEL items consulted by checklists / briefings)
-- Purser cruise query + response window (the `IMicOwnership` seam exists now)
-
-**Phase 2 leftovers truly open**
-- De-icing auto-request policy (weather/OAT) and the `FSDT_GSX_DEICING_STATE` LVAR
-- EFB full/soft reset flows (only RESET FLIGHT on /init)
-- GSX SimBrief reload for VDGS (the VDGS display + event feed via `gsx_handler.py` exist)
-
 **Dropped 2026-10-08 (owner decision; listed in feature-inventory "Deliberately not carried
 forward")**: WinRT speech recognition, per-checklist key/joystick prompts, walkaround skip
 keystroke, GSX/Couatl restart on taxi-in, headless remote-control mode, the tablet EFB branch.
 
-**Decisions pending**
-- Cabin-call auto-answer (#11) — write-safety review
-- Ambient region facts in cruise (#122) — the on-demand half is #153; the unprompted half is open
-- Unmatched-utterance candidate tracking (#112)
-- Arrival gate lost on mid-flight restart (#102) and double-fire ground-ops events (#90) — triage
+**Before 1.0.0**: one full sim-verified pass of every "Unverified live" marker (the rc.22
+and rc.23 batches above in particular — see `scratchpad/rc22-flight-test-proc.md` for the
+flight procedure), then the screenshot refresh and the release per `docs/VERSIONING.md`.
+The `FSDT_GSX_DEICING_STATE` value table in `docs/integrations/gsx.md` is to be corrected
+from the first flight that de-ices.

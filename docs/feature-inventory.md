@@ -29,20 +29,23 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] Auto engine-start confirmation (#106 — `GsxPushbackSequenceService.TryConfirmEngineStart`
       answers "Confirm good engine start" at vehicle state 12; no on/off switch yet)
 - [x] De-icing auto-answer + fluid/concentration selection (question catalogue); auto-request
-      by weather/OAT not ported
+      by weather/OAT (`gsx.deice.autoRequest` off / ask / auto, rc.23) with the
+      `FSDT_GSX_DEICING_STATE` LVAR read and shown
 - [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs deferred)
 - [x] Skip GSX questions (crew, follow-me, pushback confirm; tug questions are caught by the
       generic "Do you want to request…" prefix handler, not a tug-specific entry); walkaround
       skip deferred (MSFS2024 keystroke)
 - [x] VDGS display + event feed via the in-sim handler (`installer/GSXProfiles/gsx_handler.py`
-      → `/api/gsxmenu/events`, `/api/gsxmenu/flight-info`); the GSX SimBrief reload is not ported
+      → `/api/gsxmenu/events`, `/api/gsxmenu/flight-info`); GSX SimBrief reload
+      (`GsxSimbriefReloadService`, `gsx.reloadSimbriefOnNewOfp` off, `gsx.reloadSimbrief`
+      command, rc.23)
 - [x] Arrival gate assignment (retry ladder, armed at flight phase; SayIntentions source is
       Phase 6); stable-parked detection
 - [x] INT/RAD switch as universal service trigger ("smart button") + web force-next button
 - [x] MECH call (`GroundCrewUpcallService`, `groundCrew.mechCall`) and cabin dings
       (`CabinDingService`, `cabin.dingOnStartup` / `dingOnFinal`); "cockpit to cabin" hail
-      answered by the purser (`CrewHailService`). Cabin-call **auto**-answer (#11) parked for a
-      write-safety review
+      answered by the purser (`CrewHailService`). Cabin-call **auto**-answer (#11,
+      `CabinAutoAnswer`, off; one `S_ASP*_CAB_REC_LATCH` write, rc.23)
 
 ## Flight data / EFB (Prosim2GSX + ProsimInterface → Phase 3)
 
@@ -61,8 +64,10 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       simulate-cabin dataref write deliberately dropped — GSX boarding owns occupation)
 - [x] Interactive ECAM-style visual checklists (Prosim2FO-compatible JSON, hot reload,
       gating/retreat/freeze; momentary-switch sweep support is a voice-FO concern → Phase 5)
-- [ ] EFB reset flows (full/soft) — partial: RESET FLIGHT on /init clears the overrides and
-      the loadsheet cycle; no ProSim EFB reset datarefs are written
+- [x] EFB reset flows (full/soft, rc.23): RESET FLIGHT (SOFT) clears the overrides and the
+      loadsheet cycle; UNLOAD OFP (FULL) also clears the SimBrief import's write set in the
+      ProSim EFB and raises the flight-cycle reset (`EfbResetService`, commands
+      `efb.resetFlight` / `efb.unloadOfp`)
 - [x] OOOI flight timestamps (off-blocks / takeoff / landing / on-blocks from the phase
       engine's edges, `FlightTimesTracker`, 2026-09-23; written to the session log and carried
       on each logbook flight since #146)
