@@ -82,6 +82,9 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       × 3 ACPs; CoreAudio listens to one configurable ACP, VoiceMeeter to any combination
 - [x] VoiceMeeter strips/buses backend; live backend switch
 - [x] Device blacklist; elevated-process detection
+- [x] Remote mixer (2026-10-10): a Voicemeeter on another PC through the VoicemeeterBridge
+      agent — ProSim value → strip/bus Gain/Mute mappings (level or toggle, invert), status
+      card with mute buttons, Test connection; off by default — unverified live
 
 ## Voice First Officer (Prosim2FO → Phase 5)
 
