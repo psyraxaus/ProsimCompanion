@@ -282,6 +282,17 @@ public sealed class SpeechOptions : IOptionSection
     /// segmentation restarts immediately.</summary>
     public int VadMaxUtteranceMs { get; set; } = 15_000;
 
+    /// <summary>Ignore the microphone while the FO speaks (and for
+    /// <see cref="MicTailAfterSpeakingMs"/> after), so the FO's own voice on the cockpit
+    /// speakers can never become a question it then answers (2026-10-10: a VBAN loop put
+    /// the FO on the speakers and it chatted with itself for minutes). A transcript that
+    /// matches what the FO just said is dropped as well, whatever the timing.</summary>
+    public bool MuteMicWhileSpeaking { get; set; } = true;
+
+    /// <summary>How long after the FO's last word the microphone stays ignored — room
+    /// reverb plus the audio device's own delay.</summary>
+    public int MicTailAfterSpeakingMs { get; set; } = 700;
+
     /// <summary>FO push-to-talk binding (key OR joystick button, Prosim2FO process). When
     /// unset, the legacy flat fields below still apply, so pre-binding configs migrate
     /// silently.</summary>

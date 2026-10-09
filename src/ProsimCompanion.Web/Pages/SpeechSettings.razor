@@ -188,7 +188,14 @@ else if (CurrentSection == "listening")
         <SelectField Label="Voice activity detection" Hint="How the FO decides you are speaking." More="Silero ignores engine noise and the FO's own voice and hears quiet commands. RMS is the older energy gate and the fallback if the Silero model cannot load. Applies from the next listening start. Further knobs (vadMinSpeechMs, vadPreRollMs, vadMaxUtteranceMs) are file-only in settings.json." Options="VadEngineOptions"
                      Disabled="@(string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl))"
                      @bind-Value="_speech.Value.VadEngine" />
+        <BoolField Label="Ignore the microphone while the FO speaks" Hint="On: the FO cannot hear its own voice from the cockpit speakers and answer itself. Off only if you must talk over the FO."
+                   More="Also drops a transcript that repeats what the FO just said, whatever the timing. On 2026-10-10 a VBAN loop put the FO on the speakers and it chatted with itself for minutes."
+                   @bind-Value="_speech.Value.MuteMicWhileSpeaking" />
         <AdvancedFields>
+            <NumberField Label="Microphone tail after the FO speaks" Hint="How long the microphone stays ignored after the FO's last word. Raise it for a loud, echoey cockpit; lower it if your quick replies are missed." Suffix="ms" Min="0" Max="3000" Step="50"
+                         Disabled="@(!_speech.Value.MuteMicWhileSpeaking)"
+                         @bind-Value="_speech.Value.MicTailAfterSpeakingMs"
+                         Default="_speech.Defaults.MicTailAfterSpeakingMs" />
             <NumberField Label="VAD threshold" Hint="Raise it if noise triggers the FO. Lower it if quiet commands are missed." Step="0.05" Min="0.1" Max="0.95"
                          Disabled="@(!SileroSelected)"
                          @bind-Value="_speech.Value.VadThreshold"

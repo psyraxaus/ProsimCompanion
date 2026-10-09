@@ -457,7 +457,7 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
 
     private IVoiceRecognizer BuildLanRecognizer()
         => _seams.LanFactory?.Invoke()
-           ?? new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog);
+           ?? new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog, _store);
 
     private IVoiceRecognizer BuildOfflineRecognizer()
         => _seams.OfflineFactory?.Invoke()

@@ -2704,6 +2704,19 @@
         "requires-human: the VDGS board shows the new flight number / destination / ETD after the reload — see requires-human-checklist 2026-10-09."
       ],
       "notes": "Feature 2026-10-09 (owner approval; no issue number). GsxSimbriefReloadService: keyword intent 'SimBrief reload' on the 'Activate Services at' menu, handlerData-patch verify, once per OFP request id, Core seam IGsxSimbriefReloadControl for the Status button and gsx.reloadSimbrief. Never flown — the SimBrief line has not been seen on a recorded GSX menu."
+    },
+    {
+      "id": "asr-self-echo",
+      "issue": null,
+      "title": "The FO never answers its own voice heard back from the speakers",
+      "status": "fixed-unverified",
+      "checks": [
+        "assert-absent: a fo.query whose question (normalised) shares 60 % or more of its words with the text of a fo.answer or speech.spoken event in the previous 30 s — that is the FO answering itself (2026-10-10: a VBAN loop put the FO on the cockpit speakers; 23 queries in 90 s, every one a line the FO had just said).",
+        "assert-present (when bleed happened): asr.self-echo events, each text matching a recent speech.spoken / fo.answer text — the second guard caught what the mic gate missed; count them and note the audio routing that let the FO reach the mic.",
+        "watch: log lines `ASR mic ignored while the FO speaks (episode N)` at Debug — one per FO line is normal; none at all while the FO spoke with the mic open means the SpeechStatusStore watch is not wired.",
+        "watch: pilot commands spoken right after an FO line that were NOT heard (nothing in asr.utterance within the tail) — if common, speech.micTailAfterSpeakingMs (700) is too long for that cockpit."
+      ],
+      "notes": "Fix 2026-10-10 (no issue number): LanAsrRecognizer ignores the mic while SpeechStatusStore.NowPlaying is set and for speech.micTailAfterSpeakingMs after (segmenter Reset on entry), and drops a transcript whose words are ≥ 60 % contained in a line spoken in the last 30 s (SelfEchoGuard, session event asr.self-echo). Both behind speech.muteMicWhileSpeaking (on). Never flown."
     }
   ]
 }
