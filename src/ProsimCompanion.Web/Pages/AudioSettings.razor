@@ -258,10 +258,36 @@
                 </Section>
 
                 <Section Title="Status Panel" Hint="Which strips and buses the Status section shows, with mute buttons">
-                    <TextField Label="Strips" Hint="Strip numbers as Voicemeeter shows them (1 = first), comma separated. Example: 1, 2, 3"
-                               Value="@_mixerStripsText" ValueChanged="SetMixerStrips" />
-                    <TextField Label="Buses" Hint="Bus numbers (1 = A1), comma separated. Example: 1, 4"
-                               Value="@_mixerBusesText" ValueChanged="SetMixerBuses" />
+                    @if (Mixer.Channels.Count > 0)
+                    {
+                        <div class="mixer-channel-grid">
+                            @foreach (var channel in Mixer.Channels)
+                            {
+                                var picked = IsPanelChannel(channel);
+                                <label class="mixer-channel-pick">
+                                    <input type="checkbox" class="checkbox" checked="@picked"
+                                           @onchange="e => SetPanelChannel(channel, e.Value is true)" />
+                                    <span>@channel.DisplayName(MixerKind)</span>
+                                </label>
+                            }
+                        </div>
+                        <FieldHint Hint="Tick the strips and buses to show. Names come from the mixer PC's Voicemeeter." />
+                    }
+                    else
+                    {
+                        <TextField Label="Strips" Hint="Strip numbers as Voicemeeter shows them (1 = first), comma separated. Example: 1, 2, 3"
+                                   Value="@_mixerStripsText" ValueChanged="SetMixerStrips" />
+                        <TextField Label="Buses" Hint="Bus numbers (1 = A1), comma separated. Example: 1, 4"
+                                   Value="@_mixerBusesText" ValueChanged="SetMixerBuses" />
+                        <FieldHint Hint="Once the agent is connected the strips and buses appear here by name, as tick boxes." />
+                    }
+                    <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn secondary" disabled="@_mixerReloadBusy" @onclick="ReloadMixerChannels"
+                                title="Read the strip and bus names from the mixer PC again (after renaming one in Voicemeeter).">
+                            @(_mixerReloadBusy ? "Reading…" : "Reload channels")
+                        </button>
+                        <span class="field-hint">@MixerChannelSummary</span>
+                    </div>
                 </Section>
 
                 <Section Title="Mappings" Hint="A ProSim value drives one Voicemeeter parameter on the mixer PC">
@@ -304,9 +330,27 @@
                                                 <input class="cell-input" style="margin-top:4px;" placeholder="Type the ProSim dataref name" @bind="row.Source" />
                                             }
                                         </div>
+                                        @{ var rawParameter = IsRawParameter(row); }
+                                        <div class="mixer-map-cell">
+                                            <span class="mixer-map-label">Strip / bus</span>
+                                            <select class="cell-select" value="@ChannelKey(row)" @onchange="e => SetChannel(row, e.Value as string)">
+                                                @foreach (var (key, label) in ChannelOptions())
+                                                {
+                                                    <option value="@key">@label</option>
+                                                }
+                                                <option value="@CustomParameterKey">Other parameter…</option>
+                                            </select>
+                                            @if (rawParameter)
+                                            {
+                                                <input class="cell-input" style="margin-top:4px;" placeholder="Strip[2].Gain" @bind="row.Parameter" />
+                                            }
+                                        </div>
                                         <label class="mixer-map-cell">
-                                            <span class="mixer-map-label">Parameter</span>
-                                            <input class="cell-input" placeholder="Strip[2].Gain" @bind="row.Parameter" />
+                                            <span class="mixer-map-label">Property</span>
+                                            <select class="cell-select" value="@PropertyKey(row)" disabled="@rawParameter" @onchange="e => SetProperty(row, e.Value as string)">
+                                                <option value="Gain">Gain</option>
+                                                <option value="Mute">Mute</option>
+                                            </select>
                                         </label>
                                         <label class="mixer-map-cell">
                                             <span class="mixer-map-label">Type</span>
@@ -368,9 +412,9 @@
                     </div>
                     <div class="field-hint" style="margin-top:8px; max-width:640px;">
                         A new row starts with the captain's VHF1 knob or REC button on the first strip; pick
-                        another source from the list (or "Other dataref…" to type one) and set the strip or bus.
-                        Parameter is a Voicemeeter Remote API name such as Strip[2].Gain or Bus[0].Mute —
-                        Strip[0] is the first strip, Bus[0] is A1.
+                        another source from the list (or "Other dataref…" to type one), then the strip or bus
+                        by its Voicemeeter name and the property (Gain or Mute). "Other parameter…" takes any
+                        Remote API name, such as Strip[2].Comp.
                         <details class="field-more">
                             <summary>More</summary>
                             <span class="field-more-body">
@@ -601,6 +645,126 @@
         row.Source = key is null or CustomSourceKey ? "" : key;
     }
 
+    // ---- Parameter = strip/bus + property, from the remote Voicemeeter's own names ----
+
+    private const string CustomParameterKey = "__raw";
+    private readonly HashSet<MixerMapping> _rawParameterRows = [];
+    private bool _mixerReloadBusy;
+
+    private string? MixerKind => _mixerLive.Voicemeeter.Kind;
+
+    private string MixerChannelSummary => Mixer.Channels.Count > 0
+        ? $"{Mixer.Channels.Count(c => !c.IsBus)} strips / {Mixer.Channels.Count(c => c.IsBus)} buses on the mixer PC"
+        : _mixerLive.State == MixerConnectionState.Connected
+            ? "Reading the strips and buses…"
+            : "Agent not connected — generic strip/bus numbers shown";
+
+    /// <summary>Channels to offer: the remote inventory when known, else Potato-sized generic
+    /// numbers (8 strips / 8 buses) so a mapping can be prepared before the first connect.</summary>
+    private IReadOnlyList<(string Key, string Label)> ChannelOptions()
+    {
+        var options = new List<(string, string)>();
+        if (Mixer.Channels.Count > 0)
+        {
+            foreach (var channel in Mixer.Channels)
+            {
+                options.Add((ChannelKey(channel.IsBus, channel.Index), channel.DisplayName(MixerKind)));
+            }
+
+            return options;
+        }
+
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            options.Add((ChannelKey(false, i), MixerChannelNames.Name(false, i, MixerKind)));
+        }
+
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            options.Add((ChannelKey(true, i), MixerChannelNames.Name(true, i, MixerKind)));
+        }
+
+        return options;
+    }
+
+    private static string ChannelKey(bool isBus, int index) => $"{(isBus ? "bus" : "strip")}:{index}";
+
+    private bool IsRawParameter(MixerMapping row) =>
+        _rawParameterRows.Contains(row)
+        || !(MixerChannelNames.TryParse(row.Parameter, out _, out _, out var property) && IsKnownProperty(property));
+
+    private static bool IsKnownProperty(string property) =>
+        property.Equals("Gain", StringComparison.OrdinalIgnoreCase) || property.Equals("Mute", StringComparison.OrdinalIgnoreCase);
+
+    private string ChannelKey(MixerMapping row) =>
+        !IsRawParameter(row) && MixerChannelNames.TryParse(row.Parameter, out var isBus, out var index, out _)
+            ? ChannelKey(isBus, index)
+            : CustomParameterKey;
+
+    private string PropertyKey(MixerMapping row) =>
+        MixerChannelNames.TryParse(row.Parameter, out _, out _, out var property) && property.Equals("Mute", StringComparison.OrdinalIgnoreCase)
+            ? "Mute"
+            : "Gain";
+
+    private void SetChannel(MixerMapping row, string? key)
+    {
+        if (key is null or CustomParameterKey)
+        {
+            _rawParameterRows.Add(row);
+            return;
+        }
+
+        _rawParameterRows.Remove(row);
+        var parts = key.Split(':');
+        if (parts.Length != 2 || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var index))
+        {
+            return;
+        }
+
+        // Keep the property the row had; a fresh row follows its type (level → Gain, toggle → Mute).
+        var property = MixerChannelNames.TryParse(row.Parameter, out _, out _, out var current) && IsKnownProperty(current)
+            ? current
+            : row.Kind == MixerMappingKind.Toggle ? "Mute" : "Gain";
+        row.Parameter = MixerChannelNames.Parameter(parts[0] == "bus", index, property);
+    }
+
+    private static void SetProperty(MixerMapping row, string? property)
+    {
+        if (MixerChannelNames.TryParse(row.Parameter, out var isBus, out var index, out _) && property is { Length: > 0 })
+        {
+            row.Parameter = MixerChannelNames.Parameter(isBus, index, property);
+        }
+    }
+
+    private bool IsPanelChannel(MixerChannel channel) =>
+        channel.IsBus ? _mixer.Value.PanelBuses.Contains(channel.Index) : _mixer.Value.PanelStrips.Contains(channel.Index);
+
+    private void SetPanelChannel(MixerChannel channel, bool picked)
+    {
+        var list = channel.IsBus ? _mixer.Value.PanelBuses : _mixer.Value.PanelStrips;
+        list.Remove(channel.Index);
+        if (picked)
+        {
+            list.Add(channel.Index);
+            list.Sort();
+        }
+
+        SyncMixerPanelText();
+    }
+
+    private async Task ReloadMixerChannels()
+    {
+        _mixerReloadBusy = true;
+        try
+        {
+            await Mixer.RefreshChannelsAsync();
+        }
+        finally
+        {
+            _mixerReloadBusy = false;
+        }
+    }
+
     private async Task TestMixer()
     {
         _mixerTestBusy = true;
@@ -710,6 +874,8 @@
         NormalizeVoiceMeeterKeys();
         SyncMixerPanelText();
         Watch(MixerStatus, snapshot => _mixerLive = snapshot);
+        // The strip/bus names arrive after each connect (and on Reload) — re-render then.
+        WatchChanged(h => Mixer.ChannelsChanged += h, h => Mixer.ChannelsChanged -= h, () => { });
         ReloadTargets();
         LoadProcessSuggestions();
         _deviceSuggestions = DeviceCatalog.GetRenderDeviceNames();

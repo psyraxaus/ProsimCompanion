@@ -1508,9 +1508,22 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 }
 .mixer-map-row {
   display: grid;
-  grid-template-columns: 40px minmax(200px, 1.6fr) minmax(120px, 1fr) 110px 56px 32px;
+  grid-template-columns: 40px minmax(190px, 1.5fr) minmax(150px, 1.2fr) 96px 104px 56px 32px;
   gap: 8px;
   align-items: end;
+}
+.mixer-channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 12px;
+  margin: 4px 0 8px;
+}
+.mixer-channel-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
 }
 .mixer-map-sub {
   display: grid;

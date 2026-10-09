@@ -13,8 +13,10 @@ public sealed record MixerWelcomeFrame(int Protocol, MixerVoicemeeterStatus Voic
 
 public sealed record MixerStatusFrame(MixerVoicemeeterStatus Voicemeeter) : MixerInboundFrame;
 
-/// <summary>Reply to <c>watch</c> (snapshot) and <c>get</c> (values) — same shape.</summary>
+/// <summary>Reply to <c>watch</c> (snapshot, no id) and <c>get</c> (values, echoed id) —
+/// same shape.</summary>
 public sealed record MixerValuesFrame(
+    string? Id,
     IReadOnlyDictionary<string, MixerValue> Values,
     IReadOnlyDictionary<string, string> Errors) : MixerInboundFrame;
 
@@ -56,6 +58,9 @@ public static class MixerFrame
     public static string BuildSet(string id, string parameter, double value) =>
         JsonSerializer.Serialize(new { op = "set", id, param = parameter, value }, Compact);
 
+    public static string BuildGet(string id, IEnumerable<string> parameters) =>
+        JsonSerializer.Serialize(new { op = "get", id, @params = parameters.ToArray() }, Compact);
+
     public static string BuildPing() => "{\"op\":\"ping\"}";
 
     /// <summary>Parses one agent frame; null for invalid JSON, a missing op or an op this
@@ -87,7 +92,10 @@ public static class MixerFrame
                 return new MixerStatusFrame(ParseVoicemeeter(obj["voicemeeter"] as JsonObject));
             case "snapshot":
             case "values":
-                return new MixerValuesFrame(ParseValues(obj["values"] as JsonObject), ParseErrors(obj["errors"] as JsonObject));
+                return new MixerValuesFrame(
+                    obj["id"]?.GetValue<string>(),
+                    ParseValues(obj["values"] as JsonObject),
+                    ParseErrors(obj["errors"] as JsonObject));
             case "changed":
                 return obj["param"]?.GetValue<string>() is { Length: > 0 } param && ParseValue(obj["value"]) is { } value
                     ? new MixerChangedFrame(param, value)

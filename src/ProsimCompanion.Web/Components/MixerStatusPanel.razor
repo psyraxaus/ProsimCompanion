@@ -117,14 +117,24 @@
     {
         var options = Options.CurrentValue;
         var rows = new List<PanelRow>();
+        // "Bus A1" / "Bus B2" needs the edition from the welcome; before it, plain numbers.
+        var kind = _view.Voicemeeter.Kind;
         foreach (var strip in options.PanelStrips.Distinct().OrderBy(i => i))
         {
-            rows.Add(new PanelRow($"Strip {strip + 1}", $"Strip[{strip}].Label", $"Strip[{strip}].Gain", $"Strip[{strip}].Mute"));
+            rows.Add(new PanelRow(
+                MixerChannelNames.Name(false, strip, kind),
+                MixerChannelNames.Parameter(false, strip, "Label"),
+                MixerChannelNames.Parameter(false, strip, "Gain"),
+                MixerChannelNames.Parameter(false, strip, "Mute")));
         }
 
         foreach (var bus in options.PanelBuses.Distinct().OrderBy(i => i))
         {
-            rows.Add(new PanelRow($"Bus {bus + 1}", $"Bus[{bus}].Label", $"Bus[{bus}].Gain", $"Bus[{bus}].Mute"));
+            rows.Add(new PanelRow(
+                MixerChannelNames.Name(true, bus, kind),
+                MixerChannelNames.Parameter(true, bus, "Label"),
+                MixerChannelNames.Parameter(true, bus, "Gain"),
+                MixerChannelNames.Parameter(true, bus, "Mute")));
         }
 
         return rows;

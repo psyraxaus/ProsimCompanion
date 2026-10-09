@@ -24,6 +24,17 @@ public sealed class MixerFrameTests
     }
 
     [Fact]
+    public void BuildGet_AndValuesReply_CarryTheId()
+    {
+        Assert.Equal("{\"op\":\"get\",\"id\":\"g1\",\"params\":[\"Strip[0].Label\"]}", MixerFrame.BuildGet("g1", ["Strip[0].Label"]));
+
+        var reply = Assert.IsType<MixerValuesFrame>(MixerFrame.Parse("{\"op\":\"values\",\"id\":\"g1\",\"values\":{\"Strip[0].Label\":\"Mic\"},\"errors\":{\"Bus[7].Label\":\"unknown parameter\"}}"));
+        Assert.Equal("g1", reply.Id);
+        Assert.Equal("Mic", reply.Values["Strip[0].Label"].Text);
+        Assert.Null(Assert.IsType<MixerValuesFrame>(MixerFrame.Parse("{\"op\":\"snapshot\",\"values\":{}}")).Id);
+    }
+
+    [Fact]
     public void Parse_Welcome_WithAndWithoutVoicemeeter()
     {
         var up = Assert.IsType<MixerWelcomeFrame>(MixerFrame.Parse(

@@ -33,6 +33,9 @@ public sealed class MixerClient : BackgroundService, IMixerClient
     private readonly ILogger<MixerClient> _logger;
 
     private readonly ConcurrentDictionary<string, TaskCompletionSource<MixerSetResult>> _pending = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<MixerValuesFrame>> _pendingGets = new(StringComparer.Ordinal);
+    private IReadOnlyList<MixerChannel> _channels = [];
+    private long _getCounter;
     private readonly ConcurrentDictionary<string, MixerValue> _values = new(StringComparer.Ordinal);
     private readonly HashSet<string> _watchList = new(StringComparer.Ordinal);
     private readonly HashSet<string> _warnedUnreadable = new(StringComparer.Ordinal);
@@ -88,6 +91,10 @@ public sealed class MixerClient : BackgroundService, IMixerClient
     public event EventHandler? StateChanged;
 
     public event EventHandler<MixerParameterChangedEventArgs>? ParameterChanged;
+
+    public IReadOnlyList<MixerChannel> Channels => _channels;
+
+    public event EventHandler? ChannelsChanged;
 
     public bool TryGetValue(string parameter, out MixerValue value) => _values.TryGetValue(parameter, out value);
 
@@ -385,6 +392,14 @@ public sealed class MixerClient : BackgroundService, IMixerClient
                     Publish(parameter, value);
                 }
 
+                if (values.Id is { Length: > 0 } getId && _pendingGets.TryRemove(getId, out var getWaiter))
+                {
+                    // A get's errors are the caller's business (the channel probe expects
+                    // them for the indices this edition lacks) — no warning.
+                    getWaiter.TrySetResult(values);
+                    break;
+                }
+
                 foreach (var (parameter, reason) in values.Errors)
                 {
                     if (_warnedUnreadable.Add(parameter))
@@ -440,6 +455,77 @@ public sealed class MixerClient : BackgroundService, IMixerClient
         if (watched.Length > 0 && _socket is { } socket)
         {
             FireAndForget(SendTextAsync(socket, MixerFrame.BuildWatch(watched), CancellationToken.None), "watch replay");
+        }
+
+        // Strip/bus names for the editors — one get per session, off the receive path.
+        _ = RefreshChannelsAsync(CancellationToken.None);
+    }
+
+    public async Task<IReadOnlyList<MixerChannel>> RefreshChannelsAsync(CancellationToken cancellationToken = default)
+    {
+        var names = new List<string>(MixerChannelNames.MaxIndex * 2);
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            names.Add(MixerChannelNames.Parameter(false, i, "Label"));
+            names.Add(MixerChannelNames.Parameter(true, i, "Label"));
+        }
+
+        var reply = await GetValuesAsync(names, cancellationToken).ConfigureAwait(false);
+        if (reply is null)
+        {
+            return _channels;
+        }
+
+        var channels = new List<MixerChannel>();
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            if (reply.Values.TryGetValue(MixerChannelNames.Parameter(false, i, "Label"), out var strip))
+            {
+                channels.Add(new MixerChannel(false, i, strip.Text ?? ""));
+            }
+        }
+
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            if (reply.Values.TryGetValue(MixerChannelNames.Parameter(true, i, "Label"), out var bus))
+            {
+                channels.Add(new MixerChannel(true, i, bus.Text ?? ""));
+            }
+        }
+
+        _channels = channels;
+        _logger.LogInformation(
+            "Mixer channels: {Strips} strips, {Buses} buses",
+            channels.Count(c => !c.IsBus),
+            channels.Count(c => c.IsBus));
+        ChannelsChanged?.Invoke(this, EventArgs.Empty);
+        return channels;
+    }
+
+    /// <summary>One <c>get</c>, correlated by id; null when not connected, on timeout, or when
+    /// the session drops first — never throws.</summary>
+    private async Task<MixerValuesFrame?> GetValuesAsync(IReadOnlyList<string> parameters, CancellationToken cancellationToken)
+    {
+        var socket = _socket;
+        if (socket is null || socket.State != WebSocketState.Open || !_welcomed)
+        {
+            return null;
+        }
+
+        var id = $"g{Interlocked.Increment(ref _getCounter)}";
+        var waiter = new TaskCompletionSource<MixerValuesFrame>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingGets[id] = waiter;
+        try
+        {
+            await SendTextAsync(socket, MixerFrame.BuildGet(id, parameters), cancellationToken).ConfigureAwait(false);
+            var timeout = TimeSpan.FromMilliseconds(Math.Max(250, _options.CurrentValue.SetTimeoutMs));
+            return await waiter.Task.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is TimeoutException or OperationCanceledException or WebSocketException or ObjectDisposedException or InvalidOperationException)
+        {
+            _pendingGets.TryRemove(id, out _);
+            _logger.LogDebug("Mixer get ({Id}) failed: {Message}", id, ex.Message);
+            return null;
         }
     }
 
@@ -545,12 +631,20 @@ public sealed class MixerClient : BackgroundService, IMixerClient
         _welcomed = false;
         socket?.Dispose();
 
-        // Complete every in-flight set so callers never hang across a reconnect.
+        // Complete every in-flight set and get so callers never hang across a reconnect.
         foreach (var id in _pending.Keys.ToArray())
         {
             if (_pending.TryRemove(id, out var waiter))
             {
                 waiter.TrySetResult(MixerSetResult.Failed("not_connected"));
+            }
+        }
+
+        foreach (var id in _pendingGets.Keys.ToArray())
+        {
+            if (_pendingGets.TryRemove(id, out var waiter))
+            {
+                waiter.TrySetCanceled();
             }
         }
 
