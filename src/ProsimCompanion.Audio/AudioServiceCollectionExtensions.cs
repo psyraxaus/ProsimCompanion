@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ProsimCompanion.Audio.Acp;
 using ProsimCompanion.Audio.Backends.CoreAudio;
 using ProsimCompanion.Audio.Backends.VoiceMeeter;
+using ProsimCompanion.Audio.Mixer;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Audio;
@@ -23,6 +24,13 @@ public static class AudioServiceCollectionExtensions
         services.AddSingleton<AudioControlService>();
         services.AddSingleton<IAudioControl>(p => p.GetRequiredService<AudioControlService>());
         services.AddHostedService<AudioBootstrapService>();
+
+        // Remote mixer (VoicemeeterBridge on another PC, 2026-10-10). Both services sleep
+        // while mixer.enabled is false — no socket, no dataref subscriptions.
+        services.AddSingleton<MixerClient>();
+        services.AddSingleton<IMixerClient>(p => p.GetRequiredService<MixerClient>());
+        services.AddHostedService(p => p.GetRequiredService<MixerClient>());
+        services.AddHostedService<MixerMappingService>();
 
         return services;
     }
