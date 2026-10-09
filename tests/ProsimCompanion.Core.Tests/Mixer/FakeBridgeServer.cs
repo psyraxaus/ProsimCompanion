@@ -86,7 +86,10 @@ internal sealed class FakeBridgeServer : IAsyncDisposable
                 return;
             }
 
+            // RFC 6455 §4.2.2 mandates SHA-1 for the accept key — not a security use.
+#pragma warning disable CA5350
             var accept = Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
+#pragma warning restore CA5350
             var response = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
                 + $"Sec-WebSocket-Accept: {accept}\r\n\r\n";
             await stream.WriteAsync(Encoding.ASCII.GetBytes(response), _cts.Token);
@@ -153,7 +156,7 @@ internal sealed class FakeBridgeServer : IAsyncDisposable
 
         foreach (var session in sessions)
         {
-            session.Abort();
+            session.Dispose();
         }
 
         if (_acceptLoop is not null)
@@ -172,7 +175,7 @@ internal sealed class FakeBridgeServer : IAsyncDisposable
 }
 
 /// <summary>One accepted connection of the fake agent.</summary>
-internal sealed class FakeBridgeSession
+internal sealed class FakeBridgeSession : IDisposable
 {
     private readonly FakeBridgeServer _server;
     private readonly WebSocket _socket;
@@ -231,6 +234,13 @@ internal sealed class FakeBridgeSession
         Closed = true;
         _socket.Abort();
         _tcp.Dispose();
+    }
+
+    public void Dispose()
+    {
+        Abort();
+        _socket.Dispose();
+        _sendLock.Dispose();
     }
 
     public async Task RunAsync(CancellationToken ct)

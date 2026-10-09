@@ -73,6 +73,8 @@ public static class SettingsNav
         ("general", "General"),
         ("coreaudio", "CoreAudio"),
         ("voicemeeter", "VoiceMeeter"),
+        // Remote mixer (VoicemeeterBridge on another PC, 2026-10-10).
+        ("mixer", "Remote Mixer"),
         ("advanced", "Housekeeping"));
 
     public static readonly SettingsNavGroup[] Groups =

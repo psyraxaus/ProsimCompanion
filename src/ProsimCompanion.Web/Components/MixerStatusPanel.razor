@@ -1,0 +1,168 @@
+@* Live remote-mixer panel (VoicemeeterBridge, 2026-10-10): the agent link, Voicemeeter on
+   the mixer PC, and the configured strips/buses with gain + mute, updated from the client's
+   changed events. Mute buttons write through SetAsync. Renders nothing while the feature is
+   off, so the Audio Status section can include it unconditionally. *@
+@inherits StoreObserverComponent
+@inject MixerStatusStore Status
+@inject IMixerClient Client
+@inject IOptionsMonitor<MixerOptions> Options
+
+@if (_view.Enabled)
+{
+    <Section Title="Remote Mixer" Hint="Voicemeeter on the mixer PC, through VoicemeeterBridge">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <span class="pill @StateTone(_view.State)">@StateLabel(_view.State)</span>
+            @if (_view.State == MixerConnectionState.Connected)
+            {
+                <span class="pill @(_view.Voicemeeter.Connected ? "tone-ok" : "tone-warn")">
+                    @(_view.Voicemeeter.Connected
+                        ? $"Voicemeeter {_view.Voicemeeter.Kind} {_view.Voicemeeter.Version}"
+                        : "Voicemeeter not running on the mixer PC")
+                </span>
+            }
+            <span class="pill tone-neutral mono" title="Agent endpoint">@_view.Endpoint</span>
+            @if (_view.FailedSets > 0)
+            {
+                <span class="pill tone-warn" title="Writes the agent refused or that timed out since start">@_view.FailedSets failed @(_view.FailedSets == 1 ? "write" : "writes")</span>
+            }
+        </div>
+        @if (_view.LastError is { Length: > 0 } error && _view.State != MixerConnectionState.Connected)
+        {
+            <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">Last error: @error</div>
+        }
+        @if (_setMessage is not null)
+        {
+            <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">@_setMessage</div>
+        }
+
+        @{ var rows = Rows(); }
+        @if (rows.Count == 0)
+        {
+            <div class="empty" style="margin-top:8px;">
+                No strips or buses chosen — <a href="settings/audio/mixer">pick them in the Remote Mixer section</a>.
+            </div>
+        }
+        else
+        {
+            <div class="table-scroll" style="margin-top:8px;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Channel</th><th>Label</th><th>Gain</th><th>Mute</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in rows)
+                        {
+                            var muted = Value(row.MuteParam)?.AsDouble() >= 0.5;
+                            var known = Value(row.MuteParam) is not null;
+                            <tr>
+                                <td>@row.Name</td>
+                                <td>@(Value(row.LabelParam)?.Text ?? "—")</td>
+                                <td class="mono">@(Value(row.GainParam) is { Number: { } g } ? $"{g:F1} dB" : "—")</td>
+                                <td>
+                                    <span class="pill @(known ? (muted ? "tone-warn" : "tone-ok") : "tone-neutral")">
+                                        @(known ? (muted ? "Muted" : "Open") : "—")
+                                    </span>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn secondary" style="padding:4px 10px;"
+                                            disabled="@(_view.State != MixerConnectionState.Connected || _busyParam is not null)"
+                                            @onclick="() => ToggleMute(row.MuteParam, muted)">
+                                        @(_busyParam == row.MuteParam ? "…" : muted ? "Unmute" : "Mute")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </Section>
+}
+
+@code {
+    private MixerStatusSnapshot _view = MixerStatusSnapshot.Empty;
+    private string? _busyParam;
+    private string? _setMessage;
+
+    private sealed record PanelRow(string Name, string LabelParam, string GainParam, string MuteParam);
+
+    protected override void OnInitialized()
+    {
+        Watch(Status, snapshot =>
+        {
+            _view = snapshot;
+            EnsureWatched();
+        });
+        // Parameter values live in the client cache; every changed event re-renders. Events
+        // fire on the receive thread — the observer base marshals into the circuit.
+        WatchChanged<MixerParameterChangedEventArgs>(
+            h => Client.ParameterChanged += h,
+            h => Client.ParameterChanged -= h,
+            () => { });
+    }
+
+    /// <summary>Watching is idempotent in the client, so re-asking on every snapshot is the
+    /// cheap way to follow a saved strip/bus list change.</summary>
+    private void EnsureWatched()
+    {
+        if (!_view.Enabled)
+        {
+            return;
+        }
+
+        Client.Watch(Rows().SelectMany(r => new[] { r.LabelParam, r.GainParam, r.MuteParam }));
+    }
+
+    private List<PanelRow> Rows()
+    {
+        var options = Options.CurrentValue;
+        var rows = new List<PanelRow>();
+        foreach (var strip in options.PanelStrips.Distinct().OrderBy(i => i))
+        {
+            rows.Add(new PanelRow($"Strip {strip + 1}", $"Strip[{strip}].Label", $"Strip[{strip}].Gain", $"Strip[{strip}].Mute"));
+        }
+
+        foreach (var bus in options.PanelBuses.Distinct().OrderBy(i => i))
+        {
+            rows.Add(new PanelRow($"Bus {bus + 1}", $"Bus[{bus}].Label", $"Bus[{bus}].Gain", $"Bus[{bus}].Mute"));
+        }
+
+        return rows;
+    }
+
+    private MixerValue? Value(string parameter) => Client.TryGetValue(parameter, out var value) ? value : null;
+
+    private async Task ToggleMute(string parameter, bool currentlyMuted)
+    {
+        _busyParam = parameter;
+        _setMessage = null;
+        try
+        {
+            var result = await Client.SetAsync(parameter, currentlyMuted ? 0 : 1);
+            if (!result.Ok)
+            {
+                _setMessage = $"{parameter}: {result.Code}";
+            }
+        }
+        finally
+        {
+            _busyParam = null;
+        }
+    }
+
+    private static string StateLabel(MixerConnectionState state) => state switch
+    {
+        MixerConnectionState.Connected => "Agent connected",
+        MixerConnectionState.Connecting => "Connecting…",
+        MixerConnectionState.Disconnected => "Agent unreachable — retrying",
+        _ => "Off",
+    };
+
+    private static string StateTone(MixerConnectionState state) => state switch
+    {
+        MixerConnectionState.Connected => "tone-ok",
+        MixerConnectionState.Connecting => "tone-active",
+        MixerConnectionState.Disconnected => "tone-warn",
+        _ => "tone-neutral",
+    };
+}

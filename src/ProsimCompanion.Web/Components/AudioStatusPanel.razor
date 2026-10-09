@@ -111,6 +111,9 @@ else
     </Section>
 }
 
+@* The remote mixer (another PC's Voicemeeter) renders its own card here while it is on. *@
+<MixerStatusPanel />
+
 @code {
     private AudioStatusSnapshot _view = AudioStatusSnapshot.Empty;
 
