@@ -298,19 +298,19 @@
                                         var live = _mixerLive.Mappings.FirstOrDefault(m => m.Source == row.Source && m.Parameter == row.Parameter);
                                         <tr>
                                             <td><input type="checkbox" class="audio-cell-check" @bind="row.Enabled" /></td>
-                                            <td><input class="cell-input" style="min-width:260px;" placeholder="system.analog.A_ASP_VHF_1_VOLUME" list="mixer-source-suggestions" @bind="row.Source" /></td>
-                                            <td><input class="cell-input" style="min-width:130px;" placeholder="Strip[2].Gain" @bind="row.Parameter" /></td>
+                                            <td><input class="cell-input" style="min-width:230px;" placeholder="system.analog.A_ASP_VHF_1_VOLUME" list="mixer-source-suggestions" @bind="row.Source" /></td>
+                                            <td><input class="cell-input" style="min-width:118px;" placeholder="Strip[2].Gain" @bind="row.Parameter" /></td>
                                             <td>
-                                                <select class="cell-select" @bind="row.Kind">
+                                                <select class="cell-select" style="min-width:92px;" @bind="row.Kind">
                                                     <option value="@MixerMappingKind.Level">Level</option>
                                                     <option value="@MixerMappingKind.Toggle">Toggle</option>
                                                 </select>
                                             </td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@isToggle" @bind="row.InputMin" /></td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@isToggle" @bind="row.InputMax" /></td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@isToggle" @bind="row.OutputMinDb" /></td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@isToggle" @bind="row.OutputMaxDb" /></td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@(!isToggle)" @bind="row.Threshold" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@isToggle" @bind="row.InputMin" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@isToggle" @bind="row.InputMax" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@isToggle" @bind="row.OutputMinDb" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@isToggle" @bind="row.OutputMaxDb" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@(!isToggle)" @bind="row.Threshold" /></td>
                                             <td><input type="checkbox" class="audio-cell-check" @bind="row.Invert" /></td>
                                             <td class="mono" title="Last value in → out, and the agent's answer">
                                                 @(live is null ? "—" : $"{Fmt(live.LastInput)} → {Fmt(live.LastOutput)}{(live.LastResult is { } r && r != "ok" ? $" ({r})" : "")}")
