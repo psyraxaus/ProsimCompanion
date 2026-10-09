@@ -57,42 +57,27 @@ in the log or the wire trace (the hello frame is traced with the token redacted)
   "reconnectDelayMs": 3000,
   "reconnectMaxDelayMs": 30000,
   "setTimeoutMs": 3000,
+  "gainMinDb": -60,
+  "gainMaxDb": 12,
   "panelStrips": [0, 1, 2],
   "panelBuses": [0],
   "mappings": [
-    {
-      "enabled": true,
-      "source": "system.analog.A_ASP_VHF_1_VOLUME",
-      "parameter": "Strip[2].Gain",
-      "kind": "level",
-      "inputMin": 0,
-      "inputMax": 1024,
-      "outputMinDb": -60,
-      "outputMaxDb": 12,
-      "invert": false
-    },
-    {
-      "enabled": true,
-      "source": "system.switches.S_ASP_VHF_1_REC_LATCH",
-      "parameter": "Strip[2].Mute",
-      "kind": "toggle",
-      "threshold": 0.5,
-      "invert": true
-    }
+    { "enabled": true, "acp": "captain", "channel": "vhf1", "stripIndex": 2, "isBus": false, "useLatch": true },
+    { "enabled": true, "acp": "firstOfficer", "channel": "loudspeaker", "stripIndex": 0, "isBus": true, "useLatch": true }
   ]
 }
 ```
 
 | Field | Meaning |
 |---|---|
-| `source` | A ProSim dataref name. The page's drop-down offers the ACP knobs (`system.analog.A_ASP*_*_VOLUME`, 0–1024), the REC latches (`system.switches.S_ASP*_*_REC_LATCH`, 1 = unmuted) and the loudspeaker dials; any readable dataref works. `A_ASP_` is the captain's panel, `A_ASP2_` the first officer's, `A_ASP3_` the observer's. |
-| `parameter` | A Voicemeeter Remote API name: `Strip[n].Gain`, `Strip[n].Mute`, `Bus[n].Gain`, `Bus[n].Mute`, … `n` is 0-based (Voicemeeter's "Strip 1" is `Strip[0]`). The agent rejects names it does not know; the row's **Last** column then shows `unknown parameter`. |
-| `kind` | `level`: scale the input range onto the dB range, clamped. `toggle`: send 1 when the input is at or above `threshold`, else 0. |
-| `inputMin` / `inputMax` | Level only. The input values that map to `outputMinDb` / `outputMaxDb`. |
-| `outputMinDb` / `outputMaxDb` | Level only. Defaults −60 … +12 dB, the same span as the local VoiceMeeter backend (0 dB sits near 83 % of the knob). Use `-60 … 0` for a strip that must never go past unity. |
-| `threshold` | Toggle only. Default 0.5. |
-| `invert` | Level: run from `outputMaxDb` down to `outputMinDb`. Toggle: swap 1 and 0. A REC latch reads 1 when the channel is open, so a latch → `Mute` mapping needs `invert: true`. |
-| `panelStrips` / `panelBuses` | 0-based indices shown on the Status card (the page edits them as 1-based numbers). |
+| `acp` | `captain`, `firstOfficer` or `observer` — which audio panel the channel is read from. The knob is `system.analog.A_ASP{,2,3}_<CH>_VOLUME` (0–1024), the push-button `system.switches.S_ASP{,2,3}_<CH>_REC_LATCH` (1 = open), the same catalog refs the local backends use (`AcpDataRefCatalog`). |
+| `channel` | `vhf1`, `vhf2`, `vhf3`, `hf1`, `hf2`, `intercom`, `cabin`, `pa`, or `loudspeaker` (captain / first officer only — the cockpit LOUD SPEAKER dial, no push-button). |
+| `stripIndex` / `isBus` | The target as the Remote API counts: 0-based strip, or bus with `isBus: true` (bus 0 = A1). The page shows the mixer PC's own names. |
+| `useLatch` | Drive the target's `Mute` from the REC push-button (latch 0 → Mute 1). Off: the mute is never written. The loudspeaker dial mutes fully down (bottom 1 % of travel) instead. |
+| `gainMinDb` / `gainMaxDb` | Section-wide knob → `Gain` span, default −60 … +12 dB like the local VoiceMeeter backend (0 dB near 83 % of the knob). |
+| `panelStrips` / `panelBuses` | 0-based indices shown on the Status card (the page offers them as tick boxes by name once connected). |
+
+Parameters written: `Strip[n].Gain` / `Bus[n].Gain` and, with `useLatch`, `Strip[n].Mute` / `Bus[n].Mute`.
 
 Channel names: after every `welcome` the client sends one `get` for `Strip[0..7].Label` and
 `Bus[0..7].Label`; names the agent answers in `errors` do not exist in that edition and are

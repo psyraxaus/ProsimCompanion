@@ -254,6 +254,10 @@
                                      @bind-Value="_mixer.Value.ReconnectMaxDelayMs" Default="_mixer.Defaults.ReconnectMaxDelayMs" />
                         <NumberField Label="Write timeout" Hint="How long a write waits for the agent's answer." Suffix="ms" Min="250"
                                      @bind-Value="_mixer.Value.SetTimeoutMs" Default="_mixer.Defaults.SetTimeoutMs" />
+                        <NumberField Label="Gain, knob fully down" Hint="−60 dB is as good as silent." Suffix="dB" Step="0.5"
+                                     @bind-Value="_mixer.Value.GainMinDb" Default="_mixer.Defaults.GainMinDb" />
+                        <NumberField Label="Gain, knob fully up" Hint="+12 dB like the local backend (0 dB near 83 % of the knob). Set 0 for a strip that must never go past unity." Suffix="dB" Step="0.5"
+                                     @bind-Value="_mixer.Value.GainMaxDb" Default="_mixer.Defaults.GainMaxDb" />
                     </AdvancedFields>
                 </Section>
 
@@ -290,140 +294,79 @@
                     </div>
                 </Section>
 
-                <Section Title="Mappings" Hint="A ProSim value drives one Voicemeeter parameter on the mixer PC">
+                <Section Title="Mappings" Hint="An audio-panel channel drives one strip or bus on the mixer PC">
                     @if (_mixer.Value.Mappings.Count == 0)
                     {
-                        <div class="empty">No mappings yet. Add a knob or a latch below.</div>
+                        <div class="empty">No mappings yet. Add one below.</div>
                     }
                     else
                     {
-                        <div class="mixer-map-list">
-                            @for (var i = 0; i < _mixer.Value.Mappings.Count; i++)
-                            {
-                                var index = i;
-                                var row = _mixer.Value.Mappings[index];
-                                var isToggle = row.Kind == MixerMappingKind.Toggle;
-                                var customSource = !IsCatalogSource(row.Source);
-                                var live = _mixerLive.Mappings.FirstOrDefault(m => m.Source == row.Source && m.Parameter == row.Parameter);
-                                <div class="mixer-map-block">
-                                    <div class="mixer-map-row">
-                                        <label class="mixer-map-cell">
-                                            <span class="mixer-map-label">On</span>
-                                            <input type="checkbox" class="audio-cell-check" title="Off keeps the row without using it" @bind="row.Enabled" />
-                                        </label>
-                                        <div class="mixer-map-cell">
-                                            <span class="mixer-map-label">ProSim source</span>
-                                            <select class="cell-select" value="@SourceKey(row.Source)" @onchange="e => SetSource(row, e.Value as string)">
-                                                @foreach (var (side, sideLabel) in MixerSourceSides)
-                                                {
-                                                    <optgroup label="@sideLabel">
-                                                        @foreach (var source in MixerSourceSuggestions.Where(s => s.Side == side))
-                                                        {
-                                                            <option value="@source.Name">@source.Label</option>
-                                                        }
-                                                    </optgroup>
-                                                }
-                                                <option value="@CustomSourceKey">Other dataref…</option>
-                                            </select>
-                                            @if (customSource)
-                                            {
-                                                <input class="cell-input" style="margin-top:4px;" placeholder="Type the ProSim dataref name" @bind="row.Source" />
-                                            }
-                                        </div>
-                                        @{ var rawParameter = IsRawParameter(row); }
-                                        <div class="mixer-map-cell">
-                                            <span class="mixer-map-label">Strip / bus</span>
-                                            <select class="cell-select" value="@ChannelKey(row)" @onchange="e => SetChannel(row, e.Value as string)">
-                                                @foreach (var (key, label) in ChannelOptions())
-                                                {
-                                                    <option value="@key">@label</option>
-                                                }
-                                                <option value="@CustomParameterKey">Other parameter…</option>
-                                            </select>
-                                            @if (rawParameter)
-                                            {
-                                                <input class="cell-input" style="margin-top:4px;" placeholder="Strip[2].Gain" @bind="row.Parameter" />
-                                            }
-                                        </div>
-                                        <label class="mixer-map-cell">
-                                            <span class="mixer-map-label">Property</span>
-                                            <select class="cell-select" value="@PropertyKey(row)" disabled="@rawParameter" @onchange="e => SetProperty(row, e.Value as string)">
-                                                <option value="Gain">Gain</option>
-                                                <option value="Mute">Mute</option>
-                                            </select>
-                                        </label>
-                                        <label class="mixer-map-cell">
-                                            <span class="mixer-map-label">Type</span>
-                                            <select class="cell-select" @bind="row.Kind">
-                                                <option value="@MixerMappingKind.Level">Level</option>
-                                                <option value="@MixerMappingKind.Toggle">Toggle</option>
-                                            </select>
-                                        </label>
-                                        <label class="mixer-map-cell">
-                                            <span class="mixer-map-label">Invert</span>
-                                            <input type="checkbox" class="audio-cell-check" title="Flip the result. A REC push-button (1 = open) driving a Mute parameter needs this." @bind="row.Invert" />
-                                        </label>
-                                        <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
-                                                @onclick="() => _mixer.Value.Mappings.RemoveAt(index)">×</button>
-                                    </div>
-                                    <div class="mixer-map-sub">
-                                        @if (isToggle)
-                                        {
-                                            <label class="mixer-map-cell">
-                                                <span class="mixer-map-label">Threshold</span>
-                                                <input class="cell-input" type="number" step="any" title="Input at or above this sends 1" @bind="row.Threshold" />
-                                            </label>
-                                        }
-                                        else
-                                        {
-                                            <label class="mixer-map-cell">
-                                                <span class="mixer-map-label">In min</span>
-                                                <input class="cell-input" type="number" step="any" title="Input value that maps to Out min" @bind="row.InputMin" />
-                                            </label>
-                                            <label class="mixer-map-cell">
-                                                <span class="mixer-map-label">In max</span>
-                                                <input class="cell-input" type="number" step="any" title="Input value that maps to Out max" @bind="row.InputMax" />
-                                            </label>
-                                            <label class="mixer-map-cell">
-                                                <span class="mixer-map-label">Out min dB</span>
-                                                <input class="cell-input" type="number" step="any" title="Gain sent at In min" @bind="row.OutputMinDb" />
-                                            </label>
-                                            <label class="mixer-map-cell">
-                                                <span class="mixer-map-label">Out max dB</span>
-                                                <input class="cell-input" type="number" step="any" title="Gain sent at In max" @bind="row.OutputMaxDb" />
-                                            </label>
-                                        }
-                                        <div class="mixer-map-cell mixer-map-last">
-                                            <span class="mixer-map-label">Last</span>
-                                            <span class="mono" title="Last value in → out, and the agent's answer">
-                                                @(live is null ? "—" : $"{Fmt(live.LastInput)} → {Fmt(live.LastOutput)}{(live.LastResult is { } r && r != "ok" ? $" ({r})" : "")}")
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
+                        <div class="mixer-map-header">
+                            <span>On</span><span>Panel</span><span>Channel</span><span>Strip / bus</span>
+                            <span title="Drive the target's Mute from the REC push-button">Latch</span><span>Live</span><span></span>
                         </div>
+                        @for (var i = 0; i < _mixer.Value.Mappings.Count; i++)
+                        {
+                            var index = i;
+                            var row = _mixer.Value.Mappings[index];
+                            var live = _mixerLive.Mappings.FirstOrDefault(m =>
+                                m.Acp == row.Acp && m.Channel == row.Channel && m.IsBus == row.IsBus && m.StripIndex == row.StripIndex);
+                            <div class="mixer-map-row">
+                                <input type="checkbox" class="audio-cell-check" title="Off keeps the row without using it" @bind="row.Enabled" />
+                                <select class="cell-select" @bind="row.Acp">
+                                    @foreach (var acp in Enum.GetValues<AcpSide>())
+                                    {
+                                        <option value="@acp">@AudioPresentation.AcpLabel(acp)</option>
+                                    }
+                                </select>
+                                <select class="cell-select" @bind="row.Channel">
+                                    @foreach (var channel in Enum.GetValues<AudioChannel>())
+                                    {
+                                        @* The observer has no loudspeaker dial. *@
+                                        @if (channel.ExistsOn(row.Acp))
+                                        {
+                                            <option value="@channel">@AudioPresentation.ChannelLabel(channel)</option>
+                                        }
+                                    }
+                                </select>
+                                <select class="cell-select" value="@TargetKey(row)" @onchange="e => SetTarget(row, e.Value as string)">
+                                    @foreach (var (key, label) in ChannelOptions())
+                                    {
+                                        <option value="@key">@label</option>
+                                    }
+                                </select>
+                                @if (row.Channel.HasRecLatch())
+                                {
+                                    <input type="checkbox" class="audio-cell-check" title="Drive the target's Mute from the REC push-button" @bind="row.UseLatch" />
+                                }
+                                else
+                                {
+                                    <input type="checkbox" class="audio-cell-check" checked disabled
+                                           title="No REC push-button on this dial. Fully down always mutes the target." />
+                                }
+                                <span class="mono" title="Gain and mute last sent, and the agent's answer">@LiveText(live)</span>
+                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                        @onclick="() => _mixer.Value.Mappings.RemoveAt(index)">×</button>
+                            </div>
+                        }
                     }
-                    <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
-                        <button type="button" class="btn secondary" @onclick="AddKnobMapping"
-                                title="A volume knob (0–1024) onto a gain, −60 dB to +12 dB.">Add knob mapping</button>
-                        <button type="button" class="btn secondary" @onclick="AddLatchMapping"
-                                title="A REC latch (1 = unmuted) onto a Mute parameter, inverted.">Add latch mapping</button>
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn secondary" @onclick="AddMixerMapping">Add mapping</button>
                     </div>
                     <div class="field-hint" style="margin-top:8px; max-width:640px;">
-                        A new row starts with the captain's VHF1 knob or REC button on the first strip; pick
-                        another source from the list (or "Other dataref…" to type one), then the strip or bus
-                        by its Voicemeeter name and the property (Gain or Mute). "Other parameter…" takes any
-                        Remote API name, such as Strip[2].Comp.
+                        The knob sets the strip or bus gain; Latch ticked, the REC push-button mutes it.
+                        Strip and bus names come from the mixer PC once the agent is connected.
                         <details class="field-more">
                             <summary>More</summary>
                             <span class="field-more-body">
-                                Level: the input range maps onto the dB range, clamped; Invert runs it the
-                                other way. Toggle: input at or above Threshold sends 1, else 0; Invert swaps
-                                them — a REC latch reads 1 when open, so a Mute mapping needs Invert on.
-                                Writes go out at most 20 times a second per parameter, latest value wins.
-                                The knob value goes out whether the audio panel is powered or not. The
-                                "Last" column shows the live values once the agent is connected.
+                                Knob travel maps to the gain range under the connection card's advanced
+                                fields (−60 dB … +12 dB by default, like the local VoiceMeeter backend;
+                                0 dB sits near 83 %). Latch off: the mute is never written, so a strip
+                                muted on the mixer PC stays muted. LOUDSPEAKER is the cockpit dial: no
+                                push-button, fully down mutes the target. Writes go out at most 20 times a
+                                second per parameter, latest value wins. The knob value goes out whether
+                                the audio panel is powered or not. Two rows on one strip: the last one
+                                to move wins.
                             </span>
                         </details>
                     </div>
@@ -537,233 +480,9 @@
     private MixerStatusSnapshot _mixerLive = MixerStatusSnapshot.Empty;
     private bool _mixerTestBusy;
     private MixerProbeResult? _mixerTestResult;
+    private bool _mixerReloadBusy;
     private string _mixerStripsText = "";
     private string _mixerBusesText = "";
-
-    private enum MixerSourceKind { Knob, Latch, Dial }
-
-    /// <summary>Side + channel order of the drop-down: VHF1 … PA as on the panel, knob then
-    /// REC button per channel, the loudspeaker dial last.</summary>
-    private sealed record MixerSource(string Name, string Label, MixerSourceKind Kind, AcpSide Side, int Order);
-
-    private static readonly IReadOnlyList<(AcpSide Side, string Label)> MixerSourceSides =
-    [
-        (AcpSide.Captain, "Captain (ACP1)"),
-        (AcpSide.FirstOfficer, "First Officer (ACP2)"),
-        (AcpSide.Observer, "Observer (ACP3)"),
-    ];
-
-    private static readonly string[] MixerChannelOrder = ["VHF1", "VHF2", "VHF3", "HF1", "HF2", "INT", "CAB", "PA"];
-
-    /// <summary>Select value for "a dataref not in the list" — the row then shows a text box.</summary>
-    private const string CustomSourceKey = "__custom";
-
-    /// <summary>The ACP knob / REC-latch / loudspeaker dataref names from the catalog, as the
-    /// source drop-down: nothing here is invented, the names are the typed constants the
-    /// audio pillar already subscribes to.</summary>
-    private static readonly IReadOnlyList<MixerSource> MixerSourceSuggestions = BuildMixerSourceSuggestions();
-
-    private static IReadOnlyList<MixerSource> BuildMixerSourceSuggestions()
-    {
-        var list = new List<MixerSource>();
-        foreach (var field in typeof(ProsimDataRefNames).GetFields(BindingFlags.Public | BindingFlags.Static))
-        {
-            // Only the three panels' knobs/latches and the two loudspeaker dials — not the
-            // ACP send switches that also start with "Acp".
-            var isPanel = field.Name.Length > 4
-                && field.Name.StartsWith("Acp", StringComparison.Ordinal)
-                && char.IsAsciiDigit(field.Name[3])
-                && (field.Name.EndsWith("Analog", StringComparison.Ordinal) || field.Name.EndsWith("Latch", StringComparison.Ordinal));
-            if (!isPanel && !field.Name.StartsWith("MipLoudspeaker", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var value = field.GetValue(null);
-            if (value?.GetType().GetProperty("Name")?.GetValue(value) is not string name)
-            {
-                continue;
-            }
-
-            // Field names are "Acp1Vhf1Analog", "Acp2IntLatch", "MipLoudspeakerCaptAnalog":
-            // side + channel + kind, turned into "Captain VHF1", "First Officer INT REC",
-            // "Loudspeaker captain".
-            MixerSourceKind kind;
-            AcpSide side;
-            string label;
-            int order;
-            if (field.Name.StartsWith("MipLoudspeaker", StringComparison.Ordinal))
-            {
-                kind = MixerSourceKind.Dial;
-                side = field.Name.Contains("Capt", StringComparison.Ordinal) ? AcpSide.Captain : AcpSide.FirstOfficer;
-                label = $"{SideLabel(side)} loudspeaker dial";
-                order = 1000;
-            }
-            else
-            {
-                kind = field.Name.EndsWith("Latch", StringComparison.Ordinal) ? MixerSourceKind.Latch : MixerSourceKind.Knob;
-                side = field.Name[..4] switch
-                {
-                    "Acp1" => AcpSide.Captain,
-                    "Acp2" => AcpSide.FirstOfficer,
-                    _ => AcpSide.Observer,
-                };
-                var channel = field.Name[4..]
-                    .Replace("Analog", "", StringComparison.Ordinal)
-                    .Replace("Latch", "", StringComparison.Ordinal)
-                    .ToUpperInvariant();
-                var channelIndex = Array.IndexOf(MixerChannelOrder, channel);
-                order = ((channelIndex < 0 ? MixerChannelOrder.Length : channelIndex) * 2) + (kind == MixerSourceKind.Latch ? 1 : 0);
-                label = kind == MixerSourceKind.Latch
-                    ? $"{SideLabel(side)} {channel} REC button"
-                    : $"{SideLabel(side)} {channel} knob";
-            }
-
-            list.Add(new MixerSource(name, $"{label}  ({name})", kind, side, order));
-        }
-
-        return list.OrderBy(s => s.Side).ThenBy(s => s.Order).ToList();
-    }
-
-    private static string SideLabel(AcpSide side) => side switch
-    {
-        AcpSide.Captain => "Captain",
-        AcpSide.FirstOfficer => "First Officer",
-        _ => "Observer",
-    };
-
-
-    private static bool IsCatalogSource(string source) =>
-        MixerSourceSuggestions.Any(s => s.Name == source);
-
-    private static string SourceKey(string source) =>
-        IsCatalogSource(source) ? source : CustomSourceKey;
-
-    private static void SetSource(MixerMapping row, string? key)
-    {
-        // "Other dataref…" clears the name so the text box appears; a list pick stores the name.
-        row.Source = key is null or CustomSourceKey ? "" : key;
-    }
-
-    // ---- Parameter = strip/bus + property, from the remote Voicemeeter's own names ----
-
-    private const string CustomParameterKey = "__raw";
-    private readonly HashSet<MixerMapping> _rawParameterRows = [];
-    private bool _mixerReloadBusy;
-
-    private string? MixerKind => _mixerLive.Voicemeeter.Kind;
-
-    private string MixerChannelSummary => Mixer.Channels.Count > 0
-        ? $"{Mixer.Channels.Count(c => !c.IsBus)} strips / {Mixer.Channels.Count(c => c.IsBus)} buses on the mixer PC"
-        : _mixerLive.State == MixerConnectionState.Connected
-            ? "Reading the strips and buses…"
-            : "Agent not connected — generic strip/bus numbers shown";
-
-    /// <summary>Channels to offer: the remote inventory when known, else Potato-sized generic
-    /// numbers (8 strips / 8 buses) so a mapping can be prepared before the first connect.</summary>
-    private IReadOnlyList<(string Key, string Label)> ChannelOptions()
-    {
-        var options = new List<(string, string)>();
-        if (Mixer.Channels.Count > 0)
-        {
-            foreach (var channel in Mixer.Channels)
-            {
-                options.Add((ChannelKey(channel.IsBus, channel.Index), channel.DisplayName(MixerKind)));
-            }
-
-            return options;
-        }
-
-        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
-        {
-            options.Add((ChannelKey(false, i), MixerChannelNames.Name(false, i, MixerKind)));
-        }
-
-        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
-        {
-            options.Add((ChannelKey(true, i), MixerChannelNames.Name(true, i, MixerKind)));
-        }
-
-        return options;
-    }
-
-    private static string ChannelKey(bool isBus, int index) => $"{(isBus ? "bus" : "strip")}:{index}";
-
-    private bool IsRawParameter(MixerMapping row) =>
-        _rawParameterRows.Contains(row)
-        || !(MixerChannelNames.TryParse(row.Parameter, out _, out _, out var property) && IsKnownProperty(property));
-
-    private static bool IsKnownProperty(string property) =>
-        property.Equals("Gain", StringComparison.OrdinalIgnoreCase) || property.Equals("Mute", StringComparison.OrdinalIgnoreCase);
-
-    private string ChannelKey(MixerMapping row) =>
-        !IsRawParameter(row) && MixerChannelNames.TryParse(row.Parameter, out var isBus, out var index, out _)
-            ? ChannelKey(isBus, index)
-            : CustomParameterKey;
-
-    private string PropertyKey(MixerMapping row) =>
-        MixerChannelNames.TryParse(row.Parameter, out _, out _, out var property) && property.Equals("Mute", StringComparison.OrdinalIgnoreCase)
-            ? "Mute"
-            : "Gain";
-
-    private void SetChannel(MixerMapping row, string? key)
-    {
-        if (key is null or CustomParameterKey)
-        {
-            _rawParameterRows.Add(row);
-            return;
-        }
-
-        _rawParameterRows.Remove(row);
-        var parts = key.Split(':');
-        if (parts.Length != 2 || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var index))
-        {
-            return;
-        }
-
-        // Keep the property the row had; a fresh row follows its type (level → Gain, toggle → Mute).
-        var property = MixerChannelNames.TryParse(row.Parameter, out _, out _, out var current) && IsKnownProperty(current)
-            ? current
-            : row.Kind == MixerMappingKind.Toggle ? "Mute" : "Gain";
-        row.Parameter = MixerChannelNames.Parameter(parts[0] == "bus", index, property);
-    }
-
-    private static void SetProperty(MixerMapping row, string? property)
-    {
-        if (MixerChannelNames.TryParse(row.Parameter, out var isBus, out var index, out _) && property is { Length: > 0 })
-        {
-            row.Parameter = MixerChannelNames.Parameter(isBus, index, property);
-        }
-    }
-
-    private bool IsPanelChannel(MixerChannel channel) =>
-        channel.IsBus ? _mixer.Value.PanelBuses.Contains(channel.Index) : _mixer.Value.PanelStrips.Contains(channel.Index);
-
-    private void SetPanelChannel(MixerChannel channel, bool picked)
-    {
-        var list = channel.IsBus ? _mixer.Value.PanelBuses : _mixer.Value.PanelStrips;
-        list.Remove(channel.Index);
-        if (picked)
-        {
-            list.Add(channel.Index);
-            list.Sort();
-        }
-
-        SyncMixerPanelText();
-    }
-
-    private async Task ReloadMixerChannels()
-    {
-        _mixerReloadBusy = true;
-        try
-        {
-            await Mixer.RefreshChannelsAsync();
-        }
-        finally
-        {
-            _mixerReloadBusy = false;
-        }
-    }
 
     private async Task TestMixer()
     {
@@ -778,6 +497,78 @@
         {
             _mixerTestBusy = false;
         }
+    }
+
+    private string? MixerKind => _mixerLive.Voicemeeter.Kind;
+
+    private string MixerChannelSummary => Mixer.Channels.Count > 0
+        ? $"{Mixer.Channels.Count(c => !c.IsBus)} strips / {Mixer.Channels.Count(c => c.IsBus)} buses on the mixer PC"
+        : _mixerLive.State == MixerConnectionState.Connected
+            ? "Reading the strips and buses…"
+            : "Agent not connected — generic strip/bus numbers shown";
+
+    /// <summary>Targets to offer: the remote inventory when known, else Potato-sized generic
+    /// numbers (8 strips / 8 buses) so a mapping can be prepared before the first connect.</summary>
+    private IReadOnlyList<(string Key, string Label)> ChannelOptions()
+    {
+        var options = new List<(string, string)>();
+        if (Mixer.Channels.Count > 0)
+        {
+            foreach (var channel in Mixer.Channels)
+            {
+                options.Add((TargetKey(channel.IsBus, channel.Index), channel.DisplayName(MixerKind)));
+            }
+
+            return options;
+        }
+
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            options.Add((TargetKey(false, i), MixerChannelNames.Name(false, i, MixerKind)));
+        }
+
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            options.Add((TargetKey(true, i), MixerChannelNames.Name(true, i, MixerKind)));
+        }
+
+        return options;
+    }
+
+    private static string TargetKey(bool isBus, int index) => $"{(isBus ? "bus" : "strip")}:{index}";
+
+    private static string TargetKey(MixerMapping row) => TargetKey(row.IsBus, row.StripIndex);
+
+    private static void SetTarget(MixerMapping row, string? key)
+    {
+        var parts = (key ?? "").Split(':');
+        if (parts.Length == 2 && int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var index))
+        {
+            row.IsBus = parts[0] == "bus";
+            row.StripIndex = index;
+        }
+    }
+
+    /// <summary>A new row takes the first captain channel that is not mapped yet, onto the
+    /// first strip, Latch on — so nothing starts blank (owner feedback 2026-10-10).</summary>
+    private void AddMixerMapping()
+    {
+        var taken = _mixer.Value.Mappings.Where(m => m.Acp == AcpSide.Captain).Select(m => m.Channel).ToHashSet();
+        var channel = Enum.GetValues<AudioChannel>().FirstOrDefault(c => c.ExistsOn(AcpSide.Captain) && !taken.Contains(c), AudioChannel.Vhf1);
+        _mixer.Value.Mappings.Add(new MixerMapping { Acp = AcpSide.Captain, Channel = channel, StripIndex = 0, IsBus = false, UseLatch = true });
+    }
+
+    private static string LiveText(MixerMappingStatus? live)
+    {
+        if (live is null || (live.GainDb is null && live.Muted is null))
+        {
+            return "—";
+        }
+
+        var gain = live.GainDb is { } g ? g.ToString("0.0", CultureInfo.InvariantCulture) + " dB" : "—";
+        var mute = live.Muted is { } m ? (m ? " · muted" : " · open") : "";
+        var result = live.LastResult is { } r && r != "ok" ? $" ({r})" : "";
+        return gain + mute + result;
     }
 
     private void SyncMixerPanelText()
@@ -807,29 +598,34 @@
             .OrderBy(n => n)
             .ToList();
 
-    // New rows come complete (owner feedback 2026-10-10: a blank source looked chosen but was
-    // not): the captain's VHF1 knob / REC button onto the first strip — change what differs.
-    private void AddKnobMapping() => _mixer.Value.Mappings.Add(new MixerMapping
-    {
-        Source = ProsimDataRefNames.Acp1Vhf1Analog.Name,
-        Parameter = "Strip[0].Gain",
-        Kind = MixerMappingKind.Level,
-        InputMin = 0,
-        InputMax = 1024,
-        OutputMinDb = -60,
-        OutputMaxDb = 12,
-    });
+    private bool IsPanelChannel(MixerChannel channel) =>
+        channel.IsBus ? _mixer.Value.PanelBuses.Contains(channel.Index) : _mixer.Value.PanelStrips.Contains(channel.Index);
 
-    private void AddLatchMapping() => _mixer.Value.Mappings.Add(new MixerMapping
+    private void SetPanelChannel(MixerChannel channel, bool picked)
     {
-        Source = ProsimDataRefNames.Acp1Vhf1Latch.Name,
-        Parameter = "Strip[0].Mute",
-        Kind = MixerMappingKind.Toggle,
-        Threshold = 0.5,
-        Invert = true,
-    });
+        var list = channel.IsBus ? _mixer.Value.PanelBuses : _mixer.Value.PanelStrips;
+        list.Remove(channel.Index);
+        if (picked)
+        {
+            list.Add(channel.Index);
+            list.Sort();
+        }
 
-    private static string Fmt(double? value) => value is { } v ? v.ToString("0.#", CultureInfo.InvariantCulture) : "—";
+        SyncMixerPanelText();
+    }
+
+    private async Task ReloadMixerChannels()
+    {
+        _mixerReloadBusy = true;
+        try
+        {
+            await Mixer.RefreshChannelsAsync();
+        }
+        finally
+        {
+            _mixerReloadBusy = false;
+        }
+    }
 
     private static string MixerStateLabel(MixerStatusSnapshot live) => live.State switch
     {
@@ -1022,13 +818,11 @@
         var mixer = _mixer.Value;
         mixer.Host = mixer.Host.Trim();
         mixer.Token = mixer.Token.Trim();
-        // Rows with neither a source nor a parameter are blanks; the rest save trimmed.
-        mixer.Mappings.RemoveAll(m => string.IsNullOrWhiteSpace(m.Source) && string.IsNullOrWhiteSpace(m.Parameter));
-        foreach (var mapping in mixer.Mappings)
-        {
-            mapping.Source = mapping.Source.Trim();
-            mapping.Parameter = mapping.Parameter.Trim();
-        }
+        // A channel the panel does not have (observer loudspeaker) cannot be reached from the
+        // editor; it only survives a hand edit — drop it rather than subscribe a missing ref.
+        mixer.Mappings.RemoveAll(m => !m.Channel.ExistsOn(m.Acp));
+        mixer.PanelStrips = mixer.PanelStrips.Distinct().OrderBy(i => i).ToList();
+        mixer.PanelBuses = mixer.PanelBuses.Distinct().OrderBy(i => i).ToList();
     }
 
     // A discard re-clones from the live options, so the key normalization must run again.

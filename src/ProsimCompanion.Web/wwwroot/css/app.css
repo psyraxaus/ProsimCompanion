@@ -1500,17 +1500,26 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 
 .audio-cell-check { justify-self: center; }
 
-/* Remote mixer mappings (2026-10-10): two lines per mapping so every box has room to be
-   read — the identity line (source, parameter, type, invert) and the numbers line. */
+/* Remote mixer mappings (2026-10-10): one line per audio-panel channel, like the local
+   VoiceMeeter editor — On | Panel | Channel | Strip/bus | Latch | Live | remove. */
+.mixer-map-header,
+.mixer-map-row {
+  display: grid;
+  grid-template-columns: 40px 128px 128px minmax(170px, 1.4fr) 56px minmax(120px, 1fr) 32px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+.mixer-map-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
 .mixer-map-block {
   padding: 8px 0;
   border-bottom: 1px dashed var(--border);
-}
-.mixer-map-row {
-  display: grid;
-  grid-template-columns: 40px minmax(190px, 1.5fr) minmax(150px, 1.2fr) 96px 104px 56px 32px;
-  gap: 8px;
-  align-items: end;
 }
 .mixer-channel-grid {
   display: grid;
@@ -1678,7 +1687,14 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
     border-bottom: 1px dashed var(--border);
   }
   .audio-cell-check { justify-self: start; }
-  .mixer-map-row, .mixer-map-sub { grid-template-columns: 1fr; }
+  .mixer-map-header { display: none; }
+  .mixer-map-row, .mixer-map-sub {
+    grid-template-columns: 1fr;
+    grid-auto-flow: row;
+    gap: 6px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+  }
   .mixer-map-last { grid-column: auto; }
 }
 

@@ -40,56 +40,42 @@ public sealed class MixerOptions : IOptionSection
     /// <summary>Bus indices (0-based) the mixer status panel shows and watches.</summary>
     public List<int> PanelBuses { get; set; } = [];
 
-    /// <summary>ProSim value → Voicemeeter parameter bindings. Empty by default.</summary>
+    /// <summary>Gain sent with the knob fully down. −60 dB is as good as silent.</summary>
+    public double GainMinDb { get; set; } = -60;
+
+    /// <summary>Gain sent with the knob fully up. +12 dB mirrors the local VoiceMeeter backend
+    /// (past unity; 0 dB sits near 83 % of the knob). Set 0 for a strip that must never go
+    /// past unity.</summary>
+    public double GainMaxDb { get; set; } = 12;
+
+    /// <summary>Audio-panel channel → strip/bus bindings, one row per channel. Empty by default.</summary>
     public List<MixerMapping> Mappings { get; set; } = [];
 }
 
-/// <summary>How a mapping turns its ProSim value into the parameter value it sends.</summary>
-public enum MixerMappingKind
-{
-    /// <summary>Linear scale from the input range onto the output dB range (knob → gain).</summary>
-    Level,
-
-    /// <summary>Input at or above the threshold sends 1, below sends 0 (latch → mute).</summary>
-    Toggle,
-}
-
 /// <summary>
-/// One ProSim value bound to one Voicemeeter parameter. The source is a raw ProSim dataref
-/// name (the page offers the ACP knob and REC-latch names; any readable dataref works).
-/// Input/output ranges are plain numbers so the maths is testable and the JSON is readable.
+/// One audio-panel channel bound to one strip or bus on the mixer PC, shaped like the local
+/// <see cref="VoiceMeeterTargetMapping"/> (owner request 2026-10-10: same editor as the
+/// VoiceMeeter page, a Latch tick instead of separate mute rows). The knob drives the
+/// target's Gain over <see cref="MixerOptions.GainMinDb"/>…<see cref="MixerOptions.GainMaxDb"/>;
+/// with <see cref="UseLatch"/> the REC push-button drives its Mute (the loudspeaker dial,
+/// which has no button, mutes fully down).
 /// </summary>
 public sealed class MixerMapping
 {
-    /// <summary>Off keeps the row without subscribing its source.</summary>
+    /// <summary>Off keeps the row without subscribing its knob.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>ProSim dataref name, e.g. <c>system.analog.A_ASP_VHF_1_VOLUME</c>.</summary>
-    public string Source { get; set; } = "";
+    /// <summary>Which audio panel the channel is read from.</summary>
+    public AcpSide Acp { get; set; } = AcpSide.Captain;
 
-    /// <summary>Voicemeeter Remote API parameter name, e.g. <c>Strip[2].Gain</c> or
-    /// <c>Bus[0].Mute</c>. The agent validates the spelling.</summary>
-    public string Parameter { get; set; } = "";
+    public AudioChannel Channel { get; set; } = AudioChannel.Vhf1;
 
-    public MixerMappingKind Kind { get; set; } = MixerMappingKind.Level;
+    /// <summary>0-based strip/bus index as the Remote API counts (UI shows the mixer PC's names).</summary>
+    public int StripIndex { get; set; }
 
-    /// <summary>Input value that maps to <see cref="OutputMinDb"/> (ACP knobs run 0–1024).</summary>
-    public double InputMin { get; set; }
+    /// <summary>Target a bus instead of a strip.</summary>
+    public bool IsBus { get; set; }
 
-    /// <summary>Input value that maps to <see cref="OutputMaxDb"/>.</summary>
-    public double InputMax { get; set; } = 1024;
-
-    /// <summary>Level only: gain sent at <see cref="InputMin"/>.</summary>
-    public double OutputMinDb { get; set; } = -60;
-
-    /// <summary>Level only: gain sent at <see cref="InputMax"/> (+12 dB mirrors the local
-    /// VoiceMeeter backend: full knob sits past unity, 0 dB near 83 %).</summary>
-    public double OutputMaxDb { get; set; } = 12;
-
-    /// <summary>Toggle only: input at or above this sends 1 (before <see cref="Invert"/>).</summary>
-    public double Threshold { get; set; } = 0.5;
-
-    /// <summary>Flip the result: a level runs max→min across the input range; a toggle sends
-    /// 0 where it would send 1. A REC latch (1 = unmuted) driving a Mute parameter needs this.</summary>
-    public bool Invert { get; set; }
+    /// <summary>Drive the target's Mute from the channel's REC push-button.</summary>
+    public bool UseLatch { get; set; } = true;
 }
