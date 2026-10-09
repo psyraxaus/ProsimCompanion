@@ -288,24 +288,15 @@
                                         <div class="mixer-map-cell">
                                             <span class="mixer-map-label">ProSim source</span>
                                             <select class="cell-select" value="@SourceKey(row.Source)" @onchange="e => SetSource(row, e.Value as string)">
-                                                <optgroup label="Volume knobs (0–1024)">
-                                                    @foreach (var source in MixerSourceSuggestions.Where(s => s.Kind == MixerSourceKind.Knob))
-                                                    {
-                                                        <option value="@source.Name">@source.Label</option>
-                                                    }
-                                                </optgroup>
-                                                <optgroup label="REC push-buttons (1 = open, 0 = muted)">
-                                                    @foreach (var source in MixerSourceSuggestions.Where(s => s.Kind == MixerSourceKind.Latch))
-                                                    {
-                                                        <option value="@source.Name">@source.Label</option>
-                                                    }
-                                                </optgroup>
-                                                <optgroup label="Loudspeaker dials (0–1024)">
-                                                    @foreach (var source in MixerSourceSuggestions.Where(s => s.Kind == MixerSourceKind.Dial))
-                                                    {
-                                                        <option value="@source.Name">@source.Label</option>
-                                                    }
-                                                </optgroup>
+                                                @foreach (var (side, sideLabel) in MixerSourceSides)
+                                                {
+                                                    <optgroup label="@sideLabel">
+                                                        @foreach (var source in MixerSourceSuggestions.Where(s => s.Side == side))
+                                                        {
+                                                            <option value="@source.Name">@source.Label</option>
+                                                        }
+                                                    </optgroup>
+                                                }
                                                 <option value="@CustomSourceKey">Other dataref…</option>
                                             </select>
                                             @if (customSource)
@@ -507,7 +498,18 @@
 
     private enum MixerSourceKind { Knob, Latch, Dial }
 
-    private sealed record MixerSource(string Name, string Label, MixerSourceKind Kind);
+    /// <summary>Side + channel order of the drop-down: VHF1 … PA as on the panel, knob then
+    /// REC button per channel, the loudspeaker dial last.</summary>
+    private sealed record MixerSource(string Name, string Label, MixerSourceKind Kind, AcpSide Side, int Order);
+
+    private static readonly IReadOnlyList<(AcpSide Side, string Label)> MixerSourceSides =
+    [
+        (AcpSide.Captain, "Captain (ACP1)"),
+        (AcpSide.FirstOfficer, "First Officer (ACP2)"),
+        (AcpSide.Observer, "Observer (ACP3)"),
+    ];
+
+    private static readonly string[] MixerChannelOrder = ["VHF1", "VHF2", "VHF3", "HF1", "HF2", "INT", "CAB", "PA"];
 
     /// <summary>Select value for "a dataref not in the list" — the row then shows a text box.</summary>
     private const string CustomSourceKey = "__custom";
@@ -522,7 +524,13 @@
         var list = new List<MixerSource>();
         foreach (var field in typeof(ProsimDataRefNames).GetFields(BindingFlags.Public | BindingFlags.Static))
         {
-            if (!field.Name.StartsWith("Acp", StringComparison.Ordinal) && !field.Name.StartsWith("MipLoudspeaker", StringComparison.Ordinal))
+            // Only the three panels' knobs/latches and the two loudspeaker dials — not the
+            // ACP send switches that also start with "Acp".
+            var isPanel = field.Name.Length > 4
+                && field.Name.StartsWith("Acp", StringComparison.Ordinal)
+                && char.IsAsciiDigit(field.Name[3])
+                && (field.Name.EndsWith("Analog", StringComparison.Ordinal) || field.Name.EndsWith("Latch", StringComparison.Ordinal));
+            if (!isPanel && !field.Name.StartsWith("MipLoudspeaker", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -537,34 +545,49 @@
             // side + channel + kind, turned into "Captain VHF1", "First Officer INT REC",
             // "Loudspeaker captain".
             MixerSourceKind kind;
+            AcpSide side;
             string label;
+            int order;
             if (field.Name.StartsWith("MipLoudspeaker", StringComparison.Ordinal))
             {
                 kind = MixerSourceKind.Dial;
-                label = field.Name.Contains("Capt", StringComparison.Ordinal) ? "Loudspeaker captain" : "Loudspeaker first officer";
+                side = field.Name.Contains("Capt", StringComparison.Ordinal) ? AcpSide.Captain : AcpSide.FirstOfficer;
+                label = $"{SideLabel(side)} loudspeaker dial";
+                order = 1000;
             }
             else
             {
                 kind = field.Name.EndsWith("Latch", StringComparison.Ordinal) ? MixerSourceKind.Latch : MixerSourceKind.Knob;
-                var side = field.Name[..4] switch
+                side = field.Name[..4] switch
                 {
-                    "Acp1" => "Captain",
-                    "Acp2" => "First Officer",
-                    _ => "Observer",
+                    "Acp1" => AcpSide.Captain,
+                    "Acp2" => AcpSide.FirstOfficer,
+                    _ => AcpSide.Observer,
                 };
                 var channel = field.Name[4..]
                     .Replace("Analog", "", StringComparison.Ordinal)
                     .Replace("Latch", "", StringComparison.Ordinal)
                     .ToUpperInvariant();
-                label = kind == MixerSourceKind.Latch ? $"{side} {channel} REC" : $"{side} {channel}";
+                var channelIndex = Array.IndexOf(MixerChannelOrder, channel);
+                order = ((channelIndex < 0 ? MixerChannelOrder.Length : channelIndex) * 2) + (kind == MixerSourceKind.Latch ? 1 : 0);
+                label = kind == MixerSourceKind.Latch
+                    ? $"{SideLabel(side)} {channel} REC button"
+                    : $"{SideLabel(side)} {channel} knob";
             }
 
-            list.Add(new MixerSource(name, $"{label}  ({name})", kind));
+            list.Add(new MixerSource(name, $"{label}  ({name})", kind, side, order));
         }
 
-        // Catalog declaration order already groups captain / first officer / observer.
-        return list;
+        return list.OrderBy(s => s.Side).ThenBy(s => s.Order).ToList();
     }
+
+    private static string SideLabel(AcpSide side) => side switch
+    {
+        AcpSide.Captain => "Captain",
+        AcpSide.FirstOfficer => "First Officer",
+        _ => "Observer",
+    };
+
 
     private static bool IsCatalogSource(string source) =>
         MixerSourceSuggestions.Any(s => s.Name == source);
