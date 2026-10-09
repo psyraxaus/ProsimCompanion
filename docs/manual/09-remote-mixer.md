@@ -68,56 +68,37 @@ macro button.
 (The picture was taken with the agent unreachable — *Connecting…* and dashes. With the link
 up the pill is green and the rows show the real labels, gains and mute states.)
 
-## 9.5 Map a knob and its push-button
+## 9.5 Map a channel
 
-Settings → Audio Control → Remote Mixer → **Mappings**. Each row sends one ProSim value to
-one Voicemeeter parameter.
+Settings → Audio Control → Remote Mixer → **Mappings**. The editor works like the local
+VoiceMeeter one: one row per audio-panel channel.
 
-Each mapping takes two lines: the first says *what* (source, parameter, type, invert), the
-second holds the numbers.
-
-**A volume knob → a strip gain**
-
-1. Click **Add knob mapping**. The row comes filled in: source *Captain VHF1*
-   (`system.analog.A_ASP_VHF_1_VOLUME`), parameter `Strip[0].Gain`, type *Level*, input
-   0 … 1024 (the knob's travel), output −60 … +12 dB.
-2. **ProSim source**: the drop-down lists every knob, REC push-button and loudspeaker dial
-   by panel — *Captain*, *First Officer*, *Observer*. Pick another one if VHF1 is not the
-   channel you want. The last entry, *Other dataref…*, opens a text box for a name that is
-   not in the list.
-3. **Strip / bus**: pick the channel by its Voicemeeter name — *Strip 3 — vPilot*,
+1. Click **Add mapping**. The row comes filled in: *Captain*, the first channel not yet
+   mapped (VHF1 to start), the first strip, **Latch** ticked.
+2. **Panel**: Captain, First Officer or Observer. **Channel**: VHF1 … PA, or LOUDSPEAKER
+   on the captain's and first officer's panels.
+3. **Strip / bus**: pick the target by its Voicemeeter name — *Strip 3 — vPilot*,
    *Bus A1 — Headset*. The names come from the mixer PC; before the first connect the
-   list shows plain numbers. **Property**: *Gain* for a knob.
-   *Other parameter…* opens a text box for any other Remote API name
-   (`Strip[2].Comp`, say) — you will rarely need it.
+   list shows plain numbers.
+4. **Latch**: ticked, the channel's REC push-button mutes and unmutes the target. Unticked,
+   the mute is never written, so a strip you muted on the mixer PC stays muted. The
+   LOUDSPEAKER dial has no push-button: fully down always mutes its target.
 
-**The REC push-button → the strip mute**
-
-1. Click **Add latch mapping**. The row comes filled in too: *Captain VHF1 REC*
-   (`system.switches.S_ASP_VHF_1_REC_LATCH`) onto the first strip's *Mute*, type *Toggle*,
-   **Invert** already ticked.
-2. Pick the push-button that matches the knob above, and the same strip.
-
-Why Invert: ProSim reports the latch as 1 when the channel is **open** (button out), and
-Voicemeeter's Mute wants 1 when **muted**. Invert swaps them.
-
-Save. Turn the knob: the **Last** column shows the value in and the value out (for example
-`612 → -17`) and, if the agent refused the write, why (`unknown parameter` means the
-strip or bus does not exist in that Voicemeeter edition — check the number).
+Save. Turn the knob: the **Live** column shows the gain last sent and the mute state, for
+example `-17.0 dB · open`, and, if the agent refused the write, why (`unknown parameter`
+means the strip or bus does not exist in that Voicemeeter edition).
 
 ### Fine-tuning
 
-- **Out max dB**: +12 dB means the knob fully up is louder than unity, like the local
-  backend; 0 dB sits at about 83 % of the knob. Set it to 0 for a strip that must never go
-  past unity.
-- **Out min dB**: −60 dB is as good as silent. Use the latch mapping for a true mute.
-- **In min / In max**: for a source that is not a 0 … 1024 knob, enter its real range.
-- **Threshold** (toggle only): the input value at or above which the toggle sends 1.
-  0.5 fits a 0/1 switch.
+- The knob's travel maps to −60 … +12 dB, like the local backend: fully up is louder than
+  unity, 0 dB sits at about 83 % of the knob. Both ends are under the connection card's
+  advanced fields (**Show advanced settings** in the rail): set the top to 0 dB for a
+  strip that must never go past unity.
 - **On**: untick a row to keep it without using it.
 - The knob value goes out whether the audio panel is powered or not.
 - Writes are limited to 20 per second per parameter; a knob at rest sends nothing. After a
   reconnect every current value is sent once, so the mixer catches up on its own.
+- Two rows on one strip: the last knob to move wins.
 
 ## 9.6 If it does not work
 
@@ -127,8 +108,8 @@ strip or bus does not exist in that Voicemeeter edition — check the number).
 | Test says *unauthorized* | Copy the token again from the agent's tray menu and paste it fresh. |
 | Pill says *Connected — Voicemeeter not running on the mixer PC* | Start Voicemeeter there. The agent reconnects to it by itself and the pill turns green. |
 | Status card shows `—` for a channel | That strip or bus number does not exist in this Voicemeeter edition (Standard has 3 strips, Banana 5, Potato 8). The log says `parameter Strip[7].Gain cannot be read`. |
-| Knob moves, nothing happens | Is the row **On**? Does the **Last** column show a value? `not_connected` means the link is down; `unknown parameter` means the parameter name; no value at all means the source name is wrong (pick it from the list). |
-| The REC button mutes the wrong way | Tick or untick **Invert** on that row. |
+| Knob moves, nothing happens | Is the row **On**? Does the **Live** column show a value? `not_connected` means the link is down; `unknown parameter` means that strip or bus does not exist in this Voicemeeter edition; a dash means no knob value has arrived from ProSim yet. |
+| The REC button does not mute | Is **Latch** ticked on that row? The LOUDSPEAKER dial has no button: it mutes fully down. |
 | The level jumps between two values | Two rows send to the same parameter. Keep one. |
 
 The log (Settings → Logs) prefixes every line with `Mixer`. The wire trace channel is

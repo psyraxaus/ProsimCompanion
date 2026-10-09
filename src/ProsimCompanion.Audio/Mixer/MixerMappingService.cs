@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ProsimCompanion.Audio.Acp;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
@@ -8,9 +9,11 @@ using ProsimCompanion.Core.State;
 namespace ProsimCompanion.Audio.Mixer;
 
 /// <summary>
-/// Binds ProSim values to remote mixer parameters: one dynamic dataref subscription per
-/// enabled mapping, the pure maths in <see cref="MixerMappingMath"/>, and the 50 ms
-/// <see cref="LatestValueCoalescer"/> tick that caps writes at ~20 per second per parameter.
+/// Binds audio-panel channels to strips/buses on the mixer PC: per enabled mapping the knob
+/// analog (typed catalog subscription, same refs as the local backends) drives the target's
+/// Gain, and — with Latch ticked — the REC push-button drives its Mute (the loudspeaker dial
+/// mutes fully down instead). The pure maths lives in <see cref="MixerMappingMath"/>; the
+/// 50 ms <see cref="LatestValueCoalescer"/> tick caps writes at ~20 per second per parameter.
 /// Dataref callbacks arrive on the SDK thread and only drop a number into the coalescer; the
 /// tick loop does the sends. No ACP power gate (owner decision 2026-10-10: the knob value goes
 /// out whether the panel is powered or not). While the feature is off, or has no enabled
@@ -59,10 +62,10 @@ public sealed class MixerMappingService : BackgroundService
 
                 var options = _options.CurrentValue;
                 var active = options.Enabled
-                    ? options.Mappings.Where(IsUsable).ToList()
+                    ? options.Mappings.Where(m => m.Enabled && m.Channel.ExistsOn(m.Acp)).ToList()
                     : [];
 
-                Bind(active);
+                Bind(active, options);
                 try
                 {
                     if (active.Count == 0)
@@ -87,7 +90,7 @@ public sealed class MixerMappingService : BackgroundService
         finally
         {
             _client.StateChanged -= OnClientStateChanged;
-            Bind([]);
+            Bind([], _options.CurrentValue);
         }
     }
 
@@ -124,7 +127,7 @@ public sealed class MixerMappingService : BackgroundService
         {
             foreach (var binding in _bindings)
             {
-                if (binding.Mapping.Parameter == parameter)
+                if (binding.GainParameter == parameter || binding.MuteParameter == parameter)
                 {
                     binding.LastResult = result.Code;
                 }
@@ -154,20 +157,20 @@ public sealed class MixerMappingService : BackgroundService
         {
             foreach (var binding in _bindings)
             {
-                if (binding.LastOutput is { } output)
+                if (binding.GainDb is { } gain)
                 {
-                    _coalescer.Offer(binding.Mapping.Parameter, output);
+                    _coalescer.Offer(binding.GainParameter, gain);
+                }
+
+                if (binding.Muted is { } muted)
+                {
+                    _coalescer.Offer(binding.MuteParameter, muted ? 1 : 0);
                 }
             }
         }
     }
 
-    private static bool IsUsable(MixerMapping mapping) =>
-        mapping.Enabled
-        && !string.IsNullOrWhiteSpace(mapping.Source)
-        && !string.IsNullOrWhiteSpace(mapping.Parameter);
-
-    private void Bind(IReadOnlyList<MixerMapping> mappings)
+    private void Bind(IReadOnlyList<MixerMapping> mappings, MixerOptions options)
     {
         lock (_gate)
         {
@@ -181,18 +184,23 @@ public sealed class MixerMappingService : BackgroundService
 
             foreach (var mapping in mappings)
             {
-                // Escape hatch: the source is a user-typed dataref name (the page offers the ACP
-                // knob/latch names; any readable dataref works). Frequent tier — knobs move fast.
-                var subscription = _prosim.SubscribeDynamic(mapping.Source.Trim(), DataRefTier.Frequent);
-                var binding = new Binding(mapping, subscription);
-                subscription.ValueChanged += (_, _) => OnSourceChanged(binding);
+                // Typed catalog refs — the same knob/latch names the local backends subscribe.
+                var volume = _prosim.Subscribe(AcpDataRefCatalog.VolumeRef(mapping.Acp, mapping.Channel));
+                var latch = mapping.UseLatch && mapping.Channel.HasRecLatch()
+                    ? _prosim.Subscribe(AcpDataRefCatalog.LatchRef(mapping.Acp, mapping.Channel))
+                    : null;
+                var binding = new Binding(mapping, volume, latch, options.GainMinDb, options.GainMaxDb);
+                volume.ValueChanged += (_, _) => OnVolumeChanged(binding);
+                if (latch is not null)
+                {
+                    latch.ValueChanged += (_, _) => OnLatchChanged(binding);
+                }
+
                 _bindings.Add(binding);
 
                 // A shared registration may already hold a value — seed from it.
-                if (subscription.RawValue is not null)
-                {
-                    OnSourceChanged(binding);
-                }
+                OnVolumeChanged(binding);
+                OnLatchChanged(binding);
             }
 
             if (_bindings.Count > 0)
@@ -204,24 +212,38 @@ public sealed class MixerMappingService : BackgroundService
         PublishRows();
     }
 
-    private void OnSourceChanged(Binding binding)
+    private void OnVolumeChanged(Binding binding)
     {
-        var raw = binding.Subscription.RawValue;
-        if (raw is null)
+        // A knob value that never arrived stays unknown — send nothing rather than silence
+        // the target at startup.
+        if (binding.Volume.RawValue is null)
         {
             return;
         }
 
-        var input = binding.Subscription.GetValue(double.NaN);
-        if (double.IsNaN(input))
+        var raw = binding.Volume.Value;
+        binding.GainDb = MixerMappingMath.GainDb(raw, binding.MinDb, binding.MaxDb);
+        _coalescer.Offer(binding.GainParameter, binding.GainDb.Value);
+
+        // No push-button (the loudspeaker): the dial is its own mute.
+        if (binding.Mapping.UseLatch && binding.Latch is null)
+        {
+            var mute = MixerMappingMath.MuteFromDial(raw);
+            binding.Muted = mute >= 0.5;
+            _coalescer.Offer(binding.MuteParameter, mute);
+        }
+    }
+
+    private void OnLatchChanged(Binding binding)
+    {
+        if (binding.Latch is null || binding.Latch.RawValue is null)
         {
             return;
         }
 
-        var output = MixerMappingMath.Apply(binding.Mapping, input);
-        binding.LastInput = input;
-        binding.LastOutput = output;
-        _coalescer.Offer(binding.Mapping.Parameter, output);
+        var mute = MixerMappingMath.MuteFromLatch(binding.Latch.Value);
+        binding.Muted = mute >= 0.5;
+        _coalescer.Offer(binding.MuteParameter, mute);
     }
 
     private void PublishRows()
@@ -230,24 +252,44 @@ public sealed class MixerMappingService : BackgroundService
         lock (_gate)
         {
             rows = [.. _bindings.Select(b => new MixerMappingStatus(
-                b.Mapping.Source, b.Mapping.Parameter, b.LastInput, b.LastOutput, b.LastResult))];
+                b.Mapping.Acp, b.Mapping.Channel, b.Mapping.IsBus, b.Mapping.StripIndex, b.GainDb, b.Muted, b.LastResult))];
         }
 
         _store.Update(s => s with { Mappings = rows });
     }
 
-    private sealed class Binding(MixerMapping mapping, IDataRefSubscription subscription) : IDisposable
+    private sealed class Binding(
+        MixerMapping mapping,
+        IDataRefSubscription<double> volume,
+        IDataRefSubscription<int>? latch,
+        double minDb,
+        double maxDb) : IDisposable
     {
         public MixerMapping Mapping { get; } = mapping;
 
-        public IDataRefSubscription Subscription { get; } = subscription;
+        public IDataRefSubscription<double> Volume { get; } = volume;
 
-        public double? LastInput { get; set; }
+        /// <summary>Null when Latch is off or the channel has no push-button (the loudspeaker).</summary>
+        public IDataRefSubscription<int>? Latch { get; } = latch;
 
-        public double? LastOutput { get; set; }
+        public double MinDb { get; } = minDb;
+
+        public double MaxDb { get; } = maxDb;
+
+        public string GainParameter { get; } = MixerChannelNames.Parameter(mapping.IsBus, mapping.StripIndex, "Gain");
+
+        public string MuteParameter { get; } = MixerChannelNames.Parameter(mapping.IsBus, mapping.StripIndex, "Mute");
+
+        public double? GainDb { get; set; }
+
+        public bool? Muted { get; set; }
 
         public string? LastResult { get; set; }
 
-        public void Dispose() => Subscription.Dispose();
+        public void Dispose()
+        {
+            Volume.Dispose();
+            Latch?.Dispose();
+        }
     }
 }

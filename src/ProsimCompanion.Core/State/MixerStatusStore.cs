@@ -1,12 +1,14 @@
 namespace ProsimCompanion.Core.State;
 
-/// <summary>Live state of one mapping row, for the settings page: what came in from ProSim,
-/// what went out, and how the agent answered the last write.</summary>
+/// <summary>Live state of one mapping row, for the settings page: the gain and mute last
+/// sent for the channel's target, and how the agent answered the last write.</summary>
 public sealed record MixerMappingStatus(
-    string Source,
-    string Parameter,
-    double? LastInput,
-    double? LastOutput,
+    Configuration.AcpSide Acp,
+    Configuration.AudioChannel Channel,
+    bool IsBus,
+    int StripIndex,
+    double? GainDb,
+    bool? Muted,
     string? LastResult);
 
 /// <summary>Snapshot the web UI renders for the remote mixer.</summary>
