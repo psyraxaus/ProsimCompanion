@@ -22,6 +22,7 @@ public sealed class SettingsRedactorTests
           "briefing": { "llmEnabled": true, "llmApiKey": "sk-proj-abcdefghijklmnopqrstuvwxyz0123456789", "llmModel": "gpt-4o" },
           "speech": { "elevenLabsApiKey": "short-key", "elevenLabsVoiceId": "JBFqnCBsd6RMkjVDRZzb", "elevenLabsModelId": "eleven_flash_v2_5" },
           "telemetryApi": { "enabled": true, "requireTokenOnLoopback": false },
+          "mixer": { "enabled": true, "host": "192.168.1.30", "port": 5088, "token": "plain-bridge-token" },
           "gsx": { "operatorPreferences": ["Swissport", "dnata"], "pushbackPreference": "auto" },
           "custom": {
             "bearerHeader": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abc",
