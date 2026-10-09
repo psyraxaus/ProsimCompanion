@@ -72,6 +72,8 @@ public static class CoreServiceCollectionExtensions
         // Support bundle sizing (Logs page, "Export diagnostics").
         services.AddOptionSection<DiagnosticsOptions>(configuration);
         services.AddOptionSection<NotificationOptions>(configuration);
+        // Remote mixer client (VoicemeeterBridge on another PC, 2026-10-10).
+        services.AddOptionSection<MixerOptions>(configuration);
 
         // The running build, resolved once: session headers, the log banner, the telemetry
         // summary, the update banner and the diagnostics bundle all stamp from this one object.
@@ -83,6 +85,7 @@ public static class CoreServiceCollectionExtensions
         // hand-written section/key strings.
         services.AddSingleton<SettingsWriter>();
         services.AddSingleton<WeatherStore>();
+        services.AddSingleton<MixerStatusStore>();
         // Weather-provider chain — registration order of the array IS the tier order:
         // ActiveSky (file → API, the injected sim weather wins) → ProSim gateway METAR →
         // the SayIntentions store cache (never a network call).
