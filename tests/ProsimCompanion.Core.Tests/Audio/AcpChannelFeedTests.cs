@@ -21,12 +21,64 @@ public sealed class AcpChannelFeedTests : IDisposable
     private readonly RecordingSink _sink = new();
     private readonly AcpChannelFeed _feed;
 
+    private readonly FakeAudioOptions _options = new();
+
     public AcpChannelFeedTests()
     {
-        _feed = new AcpChannelFeed(_prosim, NullLogger<AcpChannelFeed>.Instance);
+        _feed = new AcpChannelFeed(_prosim, _options, NullLogger<AcpChannelFeed>.Instance);
     }
 
     public void Dispose() => _feed.Dispose();
+
+    [Fact]
+    public void PowerGateOff_EmitsWhileThePanelIsUnpowered_AndReemitsWhenFlippedLive()
+    {
+        // No AC ESS pushed → the captain's panel is unpowered under the default gate.
+        _feed.Bind([(AcpSide.Captain, AudioChannel.Loudspeaker)], _sink);
+        _prosim.Push(CaptLoudspeaker, 512);
+        Assert.Empty(_sink.Volumes);
+        Assert.False(_feed.IsPowered(AcpSide.Captain));
+
+        // Owner option 2026-10-10: gate off → the value already held goes out at once …
+        _options.Set(new AudioOptions { RequireAcpPower = false });
+        Assert.Single(_sink.Volumes);
+        Assert.Equal(0.5f, _sink.Volumes[^1].Normalized, precision: 3);
+        Assert.True(_feed.IsPowered(AcpSide.Captain));
+
+        // … and later knob moves follow with no power at all.
+        _prosim.Push(CaptLoudspeaker, 1024);
+        Assert.Equal(1f, _sink.Volumes[^1].Normalized, precision: 3);
+
+        // Gate back on: unpowered again, so a move is held.
+        _options.Set(new AudioOptions { RequireAcpPower = true });
+        var before = _sink.Volumes.Count;
+        _prosim.Push(CaptLoudspeaker, 256);
+        Assert.Equal(before, _sink.Volumes.Count);
+    }
+
+    private sealed class FakeAudioOptions : Microsoft.Extensions.Options.IOptionsMonitor<AudioOptions>
+    {
+        private readonly List<Action<AudioOptions, string?>> _listeners = [];
+
+        public AudioOptions CurrentValue { get; private set; } = new();
+
+        public AudioOptions Get(string? name) => CurrentValue;
+
+        public IDisposable? OnChange(Action<AudioOptions, string?> listener)
+        {
+            _listeners.Add(listener);
+            return null;
+        }
+
+        public void Set(AudioOptions options)
+        {
+            CurrentValue = options;
+            foreach (var listener in _listeners.ToArray())
+            {
+                listener(options, null);
+            }
+        }
+    }
 
     [Fact]
     public void LoudspeakerDial_EmitsVolume_AndSubscribesNoLatch()

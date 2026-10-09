@@ -17,6 +17,12 @@ public sealed class AudioOptions : IOptionSection
     /// CoreAudio session volumes are restored, VoiceMeeter strips reset to 0 dB.</summary>
     public AudioBackend Backend { get; set; } = AudioBackend.CoreAudio;
 
+    /// <summary>Follow the knobs and latches only while their audio panel is powered (AC/DC
+    /// ESS, DC1, audio switching — docs/integrations/audio.md). Off (owner option 2026-10-10,
+    /// to match the remote mixer): the knobs drive the targets whatever the aircraft's
+    /// electrical state, which a home sim without cold-and-dark usually wants.</summary>
+    public bool RequireAcpPower { get; set; } = true;
+
     // ---- CoreAudio backend ----
 
     /// <summary>Which ACP the CoreAudio mappings listen to (the VoiceMeeter backend instead

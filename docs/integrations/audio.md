@@ -11,6 +11,9 @@ From Prosim2GSX (`AudioController`, CoreAudio 1.40.0 + VoiceMeeter).
   see "Loudspeaker dial" below.
 - **Power gating** (ignore knob values when the ACP is unpowered):
   CPT — AC/DC ESS present and audio-switching ≠ 0; FO — audio-switching ≠ 2; OBS — DC1.
+  Switchable since 0.7.0-rc.1: `audio.requireAcpPower` (default on). Off, the feed treats
+  every panel as powered — knobs and latches always apply, as the remote mixer does — and
+  flipping it live re-emits the current values so the targets catch up at once.
 
 ## Targets
 
