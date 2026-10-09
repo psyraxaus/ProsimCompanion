@@ -152,6 +152,11 @@
         <div class="footer-links">
             @foreach (var (label, subsystem) in FooterLinks)
             {
+                @* The remote mixer is an opt-in extra: no dot at all while it is off. *@
+                @if (subsystem == Subsystems.Mixer && StateOf(subsystem) == ConnectionState.Disabled)
+                {
+                    continue;
+                }
                 <span class="footer-link" title="@FooterTitle(label, subsystem)">
                     <span class="conn-dot @DotClass(subsystem)"></span>
                     <span>@label</span>
@@ -263,7 +268,11 @@
         ("GSX", Subsystems.Gsx),
         ("ASR", Subsystems.Asr),
         ("TTS", Subsystems.Tts),
+        ("Mixer", Subsystems.Mixer),
     ];
+
+    private ConnectionState StateOf(string subsystem) => Status.Snapshot()
+        .FirstOrDefault(pair => pair.Key == subsystem).Value;
 
     /// <summary>Hover text per dot: the voice dots carry the engine reality the speech
     /// pillar publishes ("offline engine covering — retrying …"); the others name the link.</summary>

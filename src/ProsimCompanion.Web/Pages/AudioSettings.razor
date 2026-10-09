@@ -1,11 +1,17 @@
 @page "/settings/audio/{Section?}"
 @page "/audio"
 @layout SettingsLayout
+@using System.Globalization
+@using System.Reflection
 @using System.Text.Json
+@using ProsimCompanion.Core.Aircraft
 @inherits SettingsPageBase
 @inject IOptionsMonitor<AudioOptions> AudioMonitor
 @inject IAudioControl AudioControl
 @inject IAudioDeviceCatalog DeviceCatalog
+@inject IOptionsMonitor<MixerOptions> MixerMonitor
+@inject IMixerClient Mixer
+@inject MixerStatusStore MixerStatus
 
 <PageTitle>Audio Control — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Audio Control</h1>
@@ -215,6 +221,140 @@
                     </details>
                 </div>
             }
+            else if (CurrentSection == "mixer")
+            {
+                <Section Title="Remote Mixer" Hint="Voicemeeter on another PC, through the VoicemeeterBridge agent">
+                    <BoolField Label="Enable remote mixer" Hint="Connects to the agent and drives the mappings below. Off opens no connection."
+                               More="The local VoiceMeeter backend above drives the VoiceMeeter on this PC. This card drives a VoiceMeeter on another PC, for example the one running vPilot. Setup for both PCs: docs/integrations/voicemeeter-bridge.md."
+                               @bind-Value="_mixer.Value.Enabled" />
+                    <TextField Label="Host" Hint="Name or IP address of the PC running VoicemeeterBridge." Placeholder="192.168.1.20"
+                               @bind-Value="_mixer.Value.Host" />
+                    <NumberField Label="Port" Hint="The agent's port. 5088 unless you changed it there." Min="1" Max="65535"
+                                 @bind-Value="_mixer.Value.Port" Default="_mixer.Defaults.Port" />
+                    <TextField Label="Token" Hint="From the agent's tray menu, Copy token. Stored encrypted, never logged." Password="true"
+                               @bind-Value="_mixer.Value.Token" />
+                    <SecretUnreadableHint Path="mixer:token" />
+                    <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn secondary" disabled="@_mixerTestBusy" @onclick="TestMixer"
+                                title="Open a connection with the values above, saved or not, and read the agent's welcome.">
+                            @(_mixerTestBusy ? "Testing…" : "Test connection")
+                        </button>
+                        @if (_mixerTestResult is { } test)
+                        {
+                            <span class="pill @(test.Ok ? "tone-ok" : "tone-bad")">@test.Message</span>
+                        }
+                        <span class="pill @MixerStateTone(_mixerLive.State)" title="Live state of the saved connection">
+                            @MixerStateLabel(_mixerLive)
+                        </span>
+                    </div>
+                    <AdvancedFields>
+                        <NumberField Label="Reconnect delay" Hint="First retry after a drop. Doubles up to the maximum." Suffix="ms" Min="500"
+                                     @bind-Value="_mixer.Value.ReconnectDelayMs" Default="_mixer.Defaults.ReconnectDelayMs" />
+                        <NumberField Label="Reconnect maximum" Suffix="ms" Min="1000"
+                                     @bind-Value="_mixer.Value.ReconnectMaxDelayMs" Default="_mixer.Defaults.ReconnectMaxDelayMs" />
+                        <NumberField Label="Write timeout" Hint="How long a write waits for the agent's answer." Suffix="ms" Min="250"
+                                     @bind-Value="_mixer.Value.SetTimeoutMs" Default="_mixer.Defaults.SetTimeoutMs" />
+                    </AdvancedFields>
+                </Section>
+
+                <Section Title="Status Panel" Hint="Which strips and buses the Status section shows, with mute buttons">
+                    <TextField Label="Strips" Hint="Strip numbers as Voicemeeter shows them (1 = first), comma separated. Example: 1, 2, 3"
+                               Value="@_mixerStripsText" ValueChanged="SetMixerStrips" />
+                    <TextField Label="Buses" Hint="Bus numbers (1 = A1), comma separated. Example: 1, 4"
+                               Value="@_mixerBusesText" ValueChanged="SetMixerBuses" />
+                </Section>
+
+                <Section Title="Mappings" Hint="A ProSim value drives one Voicemeeter parameter on the mixer PC">
+                    @if (_mixer.Value.Mappings.Count == 0)
+                    {
+                        <div class="empty">No mappings yet. Add a knob or a latch below.</div>
+                    }
+                    else
+                    {
+                        <div class="table-scroll">
+                            <table class="data-table mixer-map-table">
+                                <thead>
+                                    <tr>
+                                        <th title="Off keeps the row without using it">On</th>
+                                        <th>ProSim source</th>
+                                        <th>Parameter</th>
+                                        <th>Type</th>
+                                        <th title="Input value that maps to the minimum (level) — unused for a toggle">In min</th>
+                                        <th title="Input value that maps to the maximum (level) — unused for a toggle">In max</th>
+                                        <th title="Gain sent at the input minimum (level)">Out min dB</th>
+                                        <th title="Gain sent at the input maximum (level)">Out max dB</th>
+                                        <th title="Toggle: input at or above this sends 1">Threshold</th>
+                                        <th title="Flip the result. A REC latch (1 = unmuted) driving a Mute parameter needs this.">Invert</th>
+                                        <th>Last</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (var i = 0; i < _mixer.Value.Mappings.Count; i++)
+                                    {
+                                        var index = i;
+                                        var row = _mixer.Value.Mappings[index];
+                                        var isToggle = row.Kind == MixerMappingKind.Toggle;
+                                        var live = _mixerLive.Mappings.FirstOrDefault(m => m.Source == row.Source && m.Parameter == row.Parameter);
+                                        <tr>
+                                            <td><input type="checkbox" class="audio-cell-check" @bind="row.Enabled" /></td>
+                                            <td><input class="cell-input" style="min-width:260px;" placeholder="system.analog.A_ASP_VHF_1_VOLUME" list="mixer-source-suggestions" @bind="row.Source" /></td>
+                                            <td><input class="cell-input" style="min-width:130px;" placeholder="Strip[2].Gain" @bind="row.Parameter" /></td>
+                                            <td>
+                                                <select class="cell-select" @bind="row.Kind">
+                                                    <option value="@MixerMappingKind.Level">Level</option>
+                                                    <option value="@MixerMappingKind.Toggle">Toggle</option>
+                                                </select>
+                                            </td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@isToggle" @bind="row.InputMin" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@isToggle" @bind="row.InputMax" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@isToggle" @bind="row.OutputMinDb" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@isToggle" @bind="row.OutputMaxDb" /></td>
+                                            <td><input class="cell-input" type="number" step="any" style="width:80px;" disabled="@(!isToggle)" @bind="row.Threshold" /></td>
+                                            <td><input type="checkbox" class="audio-cell-check" @bind="row.Invert" /></td>
+                                            <td class="mono" title="Last value in → out, and the agent's answer">
+                                                @(live is null ? "—" : $"{Fmt(live.LastInput)} → {Fmt(live.LastOutput)}{(live.LastResult is { } r && r != "ok" ? $" ({r})" : "")}")
+                                            </td>
+                                            <td>
+                                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                                        @onclick="() => _mixer.Value.Mappings.RemoveAt(index)">×</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn secondary" @onclick="AddKnobMapping"
+                                title="A volume knob (0–1024) onto a gain, −60 dB to +12 dB.">Add knob mapping</button>
+                        <button type="button" class="btn secondary" @onclick="AddLatchMapping"
+                                title="A REC latch (1 = unmuted) onto a Mute parameter, inverted.">Add latch mapping</button>
+                    </div>
+                    <div class="field-hint" style="margin-top:8px; max-width:640px;">
+                        Source is a ProSim dataref name; the list offers the audio panel knobs and latches.
+                        Parameter is a Voicemeeter Remote API name such as Strip[2].Gain or Bus[0].Mute.
+                        <details class="field-more">
+                            <summary>More</summary>
+                            <span class="field-more-body">
+                                Level: the input range maps onto the dB range, clamped; Invert runs it the
+                                other way. Toggle: input at or above Threshold sends 1, else 0; Invert swaps
+                                them — a REC latch reads 1 when open, so a Mute mapping needs Invert on.
+                                Writes go out at most 20 times a second per parameter, latest value wins.
+                                The knob value goes out whether the audio panel is powered or not. The
+                                "Last" column shows the live values once the agent is connected.
+                            </span>
+                        </details>
+                    </div>
+                </Section>
+
+                <datalist id="mixer-source-suggestions">
+                    @foreach (var (name, label) in MixerSourceSuggestions)
+                    {
+                        <option value="@name">@label</option>
+                    }
+                </datalist>
+            }
             else
             {
                 <Section Title="Housekeeping" Hint="Proven timings. Rarely need changing" Advanced="true">
@@ -316,6 +456,127 @@
     private OptionsDraft<AudioOptions> _audio = default!;
     private IReadOnlyList<VoiceMeeterTargetView> _vmTargets = [];
 
+    // ---- Remote mixer (VoicemeeterBridge, 2026-10-10) ----
+
+    private OptionsDraft<MixerOptions> _mixer = default!;
+    private MixerStatusSnapshot _mixerLive = MixerStatusSnapshot.Empty;
+    private bool _mixerTestBusy;
+    private MixerProbeResult? _mixerTestResult;
+    private string _mixerStripsText = "";
+    private string _mixerBusesText = "";
+
+    /// <summary>The ACP knob / REC-latch / loudspeaker dataref names from the catalog, as the
+    /// source datalist: nothing here is invented, the names are the typed constants the
+    /// audio pillar already subscribes to.</summary>
+    private static readonly IReadOnlyList<(string Name, string Label)> MixerSourceSuggestions = BuildMixerSourceSuggestions();
+
+    private static IReadOnlyList<(string, string)> BuildMixerSourceSuggestions()
+    {
+        var list = new List<(string, string)>();
+        foreach (var field in typeof(ProsimDataRefNames).GetFields(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (!field.Name.StartsWith("Acp", StringComparison.Ordinal) && !field.Name.StartsWith("MipLoudspeaker", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var value = field.GetValue(null);
+            if (value?.GetType().GetProperty("Name")?.GetValue(value) is not string name)
+            {
+                continue;
+            }
+
+            var label = field.Name
+                .Replace("Analog", " knob", StringComparison.Ordinal)
+                .Replace("Latch", " REC latch", StringComparison.Ordinal)
+                .Replace("Acp1", "Captain ", StringComparison.Ordinal)
+                .Replace("Acp2", "First Officer ", StringComparison.Ordinal)
+                .Replace("Acp3", "Observer ", StringComparison.Ordinal)
+                .Replace("MipLoudspeaker", "Loudspeaker ", StringComparison.Ordinal);
+            list.Add((name, label));
+        }
+
+        return list.OrderBy(entry => entry.Item1, StringComparer.Ordinal).ToList();
+    }
+
+    private async Task TestMixer()
+    {
+        _mixerTestBusy = true;
+        _mixerTestResult = null;
+        try
+        {
+            var draft = _mixer.Value;
+            _mixerTestResult = await Mixer.ProbeAsync(draft.Host.Trim(), draft.Port, draft.Token);
+        }
+        finally
+        {
+            _mixerTestBusy = false;
+        }
+    }
+
+    private void SyncMixerPanelText()
+    {
+        _mixerStripsText = string.Join(", ", _mixer.Value.PanelStrips.Select(i => i + 1));
+        _mixerBusesText = string.Join(", ", _mixer.Value.PanelBuses.Select(i => i + 1));
+    }
+
+    private void SetMixerStrips(string text)
+    {
+        _mixerStripsText = text;
+        _mixer.Value.PanelStrips = ParseOneBasedList(text);
+    }
+
+    private void SetMixerBuses(string text)
+    {
+        _mixerBusesText = text;
+        _mixer.Value.PanelBuses = ParseOneBasedList(text);
+    }
+
+    /// <summary>"1, 2, 4" (as Voicemeeter numbers them) → [0, 1, 3]; junk is ignored.</summary>
+    private static List<int> ParseOneBasedList(string text) =>
+        text.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(part => int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n - 1 : -1)
+            .Where(n => n >= 0 && n < 64)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+
+    private void AddKnobMapping() => _mixer.Value.Mappings.Add(new MixerMapping
+    {
+        Kind = MixerMappingKind.Level,
+        InputMin = 0,
+        InputMax = 1024,
+        OutputMinDb = -60,
+        OutputMaxDb = 12,
+    });
+
+    private void AddLatchMapping() => _mixer.Value.Mappings.Add(new MixerMapping
+    {
+        Kind = MixerMappingKind.Toggle,
+        Threshold = 0.5,
+        Invert = true,
+    });
+
+    private static string Fmt(double? value) => value is { } v ? v.ToString("0.#", CultureInfo.InvariantCulture) : "—";
+
+    private static string MixerStateLabel(MixerStatusSnapshot live) => live.State switch
+    {
+        MixerConnectionState.Connected => live.Voicemeeter.Connected
+            ? $"Connected — Voicemeeter {live.Voicemeeter.Kind} {live.Voicemeeter.Version}"
+            : "Connected — Voicemeeter not running on the mixer PC",
+        MixerConnectionState.Connecting => "Connecting…",
+        MixerConnectionState.Disconnected => live.LastError is { Length: > 0 } error ? $"Unreachable — {error}" : "Unreachable — retrying",
+        _ => live.Enabled ? "Off — no host" : "Off",
+    };
+
+    private static string MixerStateTone(MixerConnectionState state) => state switch
+    {
+        MixerConnectionState.Connected => "tone-ok",
+        MixerConnectionState.Connecting => "tone-active",
+        MixerConnectionState.Disconnected => "tone-warn",
+        _ => "tone-neutral",
+    };
+
     // The select works in camelCase-key terms; the draft stores the enum.
     private string BackendKey
     {
@@ -337,7 +598,10 @@
     protected override void OnInitialized()
     {
         _audio = Draft(AudioMonitor);
+        _mixer = Draft(MixerMonitor);
         NormalizeVoiceMeeterKeys();
+        SyncMixerPanelText();
+        Watch(MixerStatus, snapshot => _mixerLive = snapshot);
         ReloadTargets();
         LoadProcessSuggestions();
         _deviceSuggestions = DeviceCatalog.GetRenderDeviceNames();
@@ -480,8 +744,23 @@
 
         audio.VoiceMeeterDllPath = audio.VoiceMeeterDllPath.Trim();
         audio.ActiveAcps = audio.ActiveAcps.Distinct().ToList();
+
+        var mixer = _mixer.Value;
+        mixer.Host = mixer.Host.Trim();
+        mixer.Token = mixer.Token.Trim();
+        // Rows with neither a source nor a parameter are blanks; the rest save trimmed.
+        mixer.Mappings.RemoveAll(m => string.IsNullOrWhiteSpace(m.Source) && string.IsNullOrWhiteSpace(m.Parameter));
+        foreach (var mapping in mixer.Mappings)
+        {
+            mapping.Source = mapping.Source.Trim();
+            mapping.Parameter = mapping.Parameter.Trim();
+        }
     }
 
     // A discard re-clones from the live options, so the key normalization must run again.
-    protected override void OnDiscarded() => NormalizeVoiceMeeterKeys();
+    protected override void OnDiscarded()
+    {
+        NormalizeVoiceMeeterKeys();
+        SyncMixerPanelText();
+    }
 }
