@@ -8,7 +8,8 @@
   never bundles it)
 - MSFS 2020 or 2024 with **GSX Pro** (for the ground-services pillar; optional)
 - Optional: VoiceMeeter (audio routing), a Kokoro/faster-whisper LAN box (local TTS/ASR),
-  Navigraph DFD database (briefing procedures), SayIntentions (ATC integration)
+  Navigraph DFD database (briefing procedures), SayIntentions (ATC integration),
+  VoicemeeterBridge on a second PC's Voicemeeter ([chapter 9](09-remote-mixer.md))
 
 ## Running the installer
 

@@ -131,7 +131,8 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   [chapter 8](docs/manual/08-loudspeaker-dial.md)
 - **Remote mixer**: a Voicemeeter on *another* PC (the vPilot box) through the
   VoicemeeterBridge agent — knobs and REC latches onto its strip/bus gains and mutes, a
-  status card with mute buttons — [setup note](docs/integrations/voicemeeter-bridge.md)
+  status card with mute buttons — step by step in
+  [chapter 9](docs/manual/09-remote-mixer.md)
 
 ### Integrations & platform
 - SayIntentions (spoken ATC requests, gate push, weather/CPDLC, the FO's wrong-frequency
