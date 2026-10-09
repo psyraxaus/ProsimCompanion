@@ -39,6 +39,8 @@ public sealed class DataRefCatalogGuardTests
         @"src\ProsimCompanion.Speech\Briefings\ProcedureSource.cs",
         // #49: verify datarefs come from the user-editable commands.json.
         @"src\ProsimCompanion.Speech\Commands\ConfiguredVoiceCommands.cs",
+        // Remote mixer (2026-10-10): mapping sources are user-typed dataref names.
+        @"src\ProsimCompanion.Audio\Mixer\MixerMappingService.cs",
     ];
 
     [Fact]
