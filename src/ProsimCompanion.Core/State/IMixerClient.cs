@@ -54,6 +54,100 @@ public sealed record MixerSetResult(bool Ok, string Code)
 /// saved ones.</summary>
 public sealed record MixerProbeResult(bool Ok, string Message, MixerVoicemeeterStatus? Voicemeeter);
 
+/// <summary>One strip or bus of the remote Voicemeeter, as read after each connect
+/// (<c>Strip[n].Label</c> / <c>Bus[n].Label</c> via <c>get</c>; names the agent reports as
+/// unknown are left out, so the list matches the edition that is running).</summary>
+public sealed record MixerChannel(bool IsBus, int Index, string Label)
+{
+    /// <summary>"Strip 3" or "Bus A1" — Voicemeeter's own numbering for the edition.</summary>
+    public string Name(string? kind) => MixerChannelNames.Name(IsBus, Index, kind);
+
+    /// <summary>Name plus the label the pilot gave the channel, when there is one.</summary>
+    public string DisplayName(string? kind) =>
+        string.IsNullOrWhiteSpace(Label) ? Name(kind) : $"{Name(kind)} — {Label}";
+
+    public string GainParameter => MixerChannelNames.Parameter(IsBus, Index, "Gain");
+
+    public string MuteParameter => MixerChannelNames.Parameter(IsBus, Index, "Mute");
+
+    public string LabelParameter => MixerChannelNames.Parameter(IsBus, Index, "Label");
+}
+
+/// <summary>Voicemeeter's channel numbering per edition: strips count from 1; buses are
+/// A1…An then B1…Bm (Standard 1+1, Banana 3+2, Potato 5+3). Unknown edition → "Bus n".</summary>
+public static class MixerChannelNames
+{
+    /// <summary>Highest index this client probes — Potato has 8 strips and 8 buses.</summary>
+    public const int MaxIndex = 8;
+
+    public static string Parameter(bool isBus, int index, string property) =>
+        $"{(isBus ? "Bus" : "Strip")}[{index}].{property}";
+
+    public static string Name(bool isBus, int index, string? kind)
+    {
+        if (!isBus)
+        {
+            return $"Strip {index + 1}";
+        }
+
+        var physical = kind?.ToLowerInvariant() switch
+        {
+            "standard" => 1,
+            "banana" => 3,
+            "potato" => 5,
+            _ => -1,
+        };
+        if (physical < 0)
+        {
+            return $"Bus {index + 1}";
+        }
+
+        return index < physical ? $"Bus A{index + 1}" : $"Bus B{index - physical + 1}";
+    }
+
+    /// <summary>Parses "Strip[2].Gain" / "Bus[0].Mute" back into its parts; false for any
+    /// other shape (a hand-typed parameter the editor shows as free text).</summary>
+    public static bool TryParse(string? parameter, out bool isBus, out int index, out string property)
+    {
+        isBus = false;
+        index = 0;
+        property = "";
+        if (string.IsNullOrWhiteSpace(parameter))
+        {
+            return false;
+        }
+
+        var open = parameter.IndexOf('[', StringComparison.Ordinal);
+        var close = parameter.IndexOf("].", StringComparison.Ordinal);
+        if (open <= 0 || close < open || close + 2 >= parameter.Length)
+        {
+            return false;
+        }
+
+        var kind = parameter[..open];
+        if (kind.Equals("Strip", StringComparison.OrdinalIgnoreCase))
+        {
+            isBus = false;
+        }
+        else if (kind.Equals("Bus", StringComparison.OrdinalIgnoreCase))
+        {
+            isBus = true;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (!int.TryParse(parameter[(open + 1)..close], System.Globalization.NumberStyles.None, CultureInfo.InvariantCulture, out index))
+        {
+            return false;
+        }
+
+        property = parameter[(close + 2)..];
+        return property.Length > 0 && !property.Contains('.', StringComparison.Ordinal) && !property.Contains('[', StringComparison.Ordinal);
+    }
+}
+
 public sealed class MixerParameterChangedEventArgs(string parameter, MixerValue value) : EventArgs
 {
     public string Parameter { get; } = parameter;
@@ -78,6 +172,18 @@ public interface IMixerClient
 
     /// <summary>Raised for every <c>snapshot</c>/<c>changed</c> value from the agent.</summary>
     event EventHandler<MixerParameterChangedEventArgs>? ParameterChanged;
+
+    /// <summary>The remote Voicemeeter's strips and buses with their labels, read after each
+    /// connect; empty until the first successful read (the editors then fall back to generic
+    /// numbers). Kept across a drop so a page still shows names while reconnecting.</summary>
+    IReadOnlyList<MixerChannel> Channels { get; }
+
+    /// <summary>Raised after <see cref="Channels"/> was (re)read.</summary>
+    event EventHandler? ChannelsChanged;
+
+    /// <summary>Reads the labels again (the pilot renamed a strip in Voicemeeter, or picked
+    /// another edition). Returns the fresh list, or the cached one when not connected.</summary>
+    Task<IReadOnlyList<MixerChannel>> RefreshChannelsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Last known value of a parameter this client has seen.</summary>
     bool TryGetValue(string parameter, out MixerValue value);

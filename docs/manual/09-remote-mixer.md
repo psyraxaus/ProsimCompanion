@@ -50,11 +50,13 @@ The token is stored encrypted in `settings.json` and never written to the log.
 
 ## 9.4 Pick the strips and buses for the status card
 
-Still on the Remote Mixer section, **Status Panel**:
+Still on the Remote Mixer section, **Status Panel**. Once the agent is connected the app
+has read the strip and bus names from the mixer PC, and they appear as tick boxes:
+*Strip 3 — vPilot*, *Bus A1 — Headset*, and so on. Tick the ones you want on the card.
+**Reload channels** reads the names again after you rename a strip in Voicemeeter.
 
-- **Strips**: the strip numbers to show, as Voicemeeter numbers them from the left.
-  `1, 2, 3` shows the first three.
-- **Buses**: `1` is A1, `2` is A2, and so on through the B buses.
+Before the first connect the section shows two text boxes instead: strip numbers as
+Voicemeeter counts them from the left (`1, 2, 3`), and bus numbers (`1` is A1).
 
 Save. Settings → Audio Control → **Status** now has a **Remote Mixer** card with each
 channel's Voicemeeter label, gain and mute state, live, and a **Mute** / **Unmute** button.
@@ -83,16 +85,18 @@ second holds the numbers.
    by panel — *Captain*, *First Officer*, *Observer*. Pick another one if VHF1 is not the
    channel you want. The last entry, *Other dataref…*, opens a text box for a name that is
    not in the list.
-3. **Parameter**: the strip or bus, as the Voicemeeter Remote API names it:
-   `Strip[0].Gain` is the **first** strip (counting starts at 0), `Strip[2].Gain` the third,
-   `Bus[0].Gain` is A1. Change the number to your vPilot strip.
+3. **Strip / bus**: pick the channel by its Voicemeeter name — *Strip 3 — vPilot*,
+   *Bus A1 — Headset*. The names come from the mixer PC; before the first connect the
+   list shows plain numbers. **Property**: *Gain* for a knob.
+   *Other parameter…* opens a text box for any other Remote API name
+   (`Strip[2].Comp`, say) — you will rarely need it.
 
 **The REC push-button → the strip mute**
 
 1. Click **Add latch mapping**. The row comes filled in too: *Captain VHF1 REC*
-   (`system.switches.S_ASP_VHF_1_REC_LATCH`) onto `Strip[0].Mute`, type *Toggle*,
+   (`system.switches.S_ASP_VHF_1_REC_LATCH`) onto the first strip's *Mute*, type *Toggle*,
    **Invert** already ticked.
-2. Pick the push-button that matches the knob above, and set the same strip number.
+2. Pick the push-button that matches the knob above, and the same strip.
 
 Why Invert: ProSim reports the latch as 1 when the channel is **open** (button out), and
 Voicemeeter's Mute wants 1 when **muted**. Invert swaps them.

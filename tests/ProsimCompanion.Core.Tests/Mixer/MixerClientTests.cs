@@ -45,6 +45,7 @@ public sealed class MixerClientTests
 
         var first = await server.NextSessionAsync(Wait);
         _ = await first.NextFrameAsync(Wait); // hello
+        _ = await first.NextFrameAsync(Wait); // the channel-label get every session starts with
         await WaitUntilAsync(() => fixture.Client.State == MixerConnectionState.Connected);
 
         fixture.Client.Watch(["Strip[0].Gain", "Bus[1].Mute"]);
@@ -78,6 +79,7 @@ public sealed class MixerClientTests
 
         var session = await server.NextSessionAsync(Wait);
         _ = await session.NextFrameAsync(Wait); // hello
+        _ = await session.NextFrameAsync(Wait); // channel-label get
         await WaitUntilAsync(() => fixture.Client.State == MixerConnectionState.Connected);
 
         var setA = fixture.Client.SetAsync("Strip[0].Gain", -3);
@@ -163,6 +165,43 @@ public sealed class MixerClientTests
         await WaitUntilAsync(() => !fixture.Client.Voicemeeter.Connected);
         Assert.True(raised >= 1);
         Assert.Equal(MixerConnectionState.Connected, fixture.Client.State); // the agent link itself is fine
+    }
+
+    [Fact]
+    public async Task Channels_AreReadAfterWelcome_FromTheLabelsTheEditionHas()
+    {
+        await using var server = new FakeBridgeServer();
+        // A Banana: 5 strips, 5 buses; the rest answer "unknown parameter".
+        for (var i = 0; i < 5; i++)
+        {
+            server.Texts[$"Strip[{i}].Label"] = i == 2 ? "Mic" : "";
+            server.Texts[$"Bus[{i}].Label"] = i == 0 ? "Headset" : "";
+        }
+
+        server.Start();
+        await using var fixture = await ClientFixture.StartAsync(server, server.Token);
+
+        var session = await server.NextSessionAsync(Wait);
+        _ = await session.NextFrameAsync(Wait); // hello
+        var get = await session.NextFrameAsync(Wait);
+        Assert.Equal("get", get["op"]?.GetValue<string>());
+        Assert.Equal(16, get["params"]!.AsArray().Count);
+
+        await WaitUntilAsync(() => fixture.Client.Channels.Count == 10);
+        var strips = fixture.Client.Channels.Where(c => !c.IsBus).ToList();
+        var buses = fixture.Client.Channels.Where(c => c.IsBus).ToList();
+        Assert.Equal(5, strips.Count);
+        Assert.Equal(5, buses.Count);
+        Assert.Equal("Mic", strips[2].Label);
+        Assert.Equal("Strip 3 — Mic", strips[2].DisplayName("banana"));
+        Assert.Equal("Bus A1 — Headset", buses[0].DisplayName("banana"));
+        Assert.Equal("Bus B2", buses[4].DisplayName("banana"));
+        Assert.Equal("Strip[2].Gain", strips[2].GainParameter);
+
+        // On demand too — and the label change is picked up.
+        server.Texts["Strip[2].Label"] = "vPilot";
+        var refreshed = await fixture.Client.RefreshChannelsAsync().WaitAsync(Wait);
+        Assert.Equal("vPilot", refreshed.First(c => !c.IsBus && c.Index == 2).Label);
     }
 
     [Fact]

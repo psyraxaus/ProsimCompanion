@@ -36,6 +36,9 @@ internal sealed class FakeBridgeServer : IAsyncDisposable
     /// <summary>Values the snapshot reports for watched names (unknown names → errors).</summary>
     public Dictionary<string, double> Values { get; } = new(StringComparer.Ordinal);
 
+    /// <summary>Text parameters (labels, device names) for snapshot / get replies.</summary>
+    public Dictionary<string, string> Texts { get; } = new(StringComparer.Ordinal);
+
     public bool VoicemeeterConnected { get; set; } = true;
 
     public int Port { get; private set; }
@@ -299,6 +302,9 @@ internal sealed class FakeBridgeSession : IDisposable
                     case "watch":
                         await SendSnapshotAsync(frame);
                         break;
+                    case "get":
+                        await SendValuesAsync(frame);
+                        break;
                     case "set" when _server.AutoReplySet:
                         var id = frame["id"]?.GetValue<string>();
                         var param = frame["param"]?.GetValue<string>() ?? "";
@@ -322,11 +328,16 @@ internal sealed class FakeBridgeSession : IDisposable
         }
     }
 
-    private async Task SendSnapshotAsync(JsonObject watch)
+    private Task SendSnapshotAsync(JsonObject watch) => SendValuesLikeAsync("snapshot", null, watch);
+
+    private Task SendValuesAsync(JsonObject get) => SendValuesLikeAsync("values", get["id"]?.GetValue<string>(), get);
+
+    /// <summary>snapshot / values share one shape: known numbers and texts, errors for the rest.</summary>
+    private async Task SendValuesLikeAsync(string op, string? id, JsonObject request)
     {
         var values = new JsonObject();
         var errors = new JsonObject();
-        if (watch["params"] is JsonArray names)
+        if (request["params"] is JsonArray names)
         {
             foreach (var node in names)
             {
@@ -335,6 +346,10 @@ internal sealed class FakeBridgeSession : IDisposable
                 {
                     values[name] = value;
                 }
+                else if (_server.Texts.TryGetValue(name, out var text))
+                {
+                    values[name] = text;
+                }
                 else
                 {
                     errors[name] = "unknown parameter";
@@ -342,7 +357,13 @@ internal sealed class FakeBridgeSession : IDisposable
             }
         }
 
-        var frame = new JsonObject { ["op"] = "snapshot", ["values"] = values };
+        var frame = new JsonObject { ["op"] = op };
+        if (id is not null)
+        {
+            frame["id"] = id;
+        }
+
+        frame["values"] = values;
         if (errors.Count > 0)
         {
             frame["errors"] = errors;

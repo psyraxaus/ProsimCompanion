@@ -94,6 +94,12 @@ in the log or the wire trace (the hello frame is traced with the token redacted)
 | `invert` | Level: run from `outputMaxDb` down to `outputMinDb`. Toggle: swap 1 and 0. A REC latch reads 1 when the channel is open, so a latch → `Mute` mapping needs `invert: true`. |
 | `panelStrips` / `panelBuses` | 0-based indices shown on the Status card (the page edits them as 1-based numbers). |
 
+Channel names: after every `welcome` the client sends one `get` for `Strip[0..7].Label` and
+`Bus[0..7].Label`; names the agent answers in `errors` do not exist in that edition and are
+dropped, so the inventory matches the running Voicemeeter (Standard 3/2, Banana 5/5,
+Potato 8/8). The settings page builds its strip/bus drop-downs and the status-card tick
+boxes from it; **Reload channels** repeats the `get`. No agent change was needed for this.
+
 Rules the mapping layer follows:
 
 - Values are debounced: one write per parameter per 50 ms, carrying the latest value; a value
