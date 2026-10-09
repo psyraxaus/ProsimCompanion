@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NAudio.Wave;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Recognition.Vad;
 
 namespace ProsimCompanion.Speech.Recognition;
@@ -43,12 +44,21 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
     private int _serverFailureLogged;
     private int _droppedSegments;
 
+    private readonly SelfEchoGuard _echoGuard = new();
+    private readonly IDisposable? _speechStatusWatch;
+    private volatile IReadOnlyList<string> _recentlySpoken = [];
+    private bool _suppressing;
+    private long _suppressedEpisodes;
+
     /// <param name="eventLog">Session JSONL for per-utterance VAD diagnostics; null (tests,
     /// degraded mode) simply skips the records.</param>
+    /// <param name="speechStatus">The arbiter's playing state and recent lines, for the
+    /// self-echo guard; null (tests) leaves the mic open.</param>
     public LanAsrRecognizer(
         IOptionsMonitor<SpeechOptions> options,
         ILogger<LanAsrRecognizer> logger,
-        Core.EventLog.JsonlEventLog? eventLog = null)
+        Core.EventLog.JsonlEventLog? eventLog = null,
+        SpeechStatusStore? speechStatus = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
@@ -56,6 +66,30 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         _options = options;
         _logger = logger;
         _eventLog = eventLog;
+        _speechStatusWatch = speechStatus?.Observe(OnSpeechStatus);
+    }
+
+    /// <summary>Arbiter state → the guard: NowPlaying is set from dequeue to the end of the
+    /// last segment; the recent lines (Spoken / Segment outcomes) feed the text check.</summary>
+    private void OnSpeechStatus(SpeechStatusSnapshot snapshot)
+    {
+        _echoGuard.Update(snapshot.NowPlaying is not null, DateTimeOffset.UtcNow);
+        var cutoff = DateTimeOffset.UtcNow - SelfEchoGuard.OwnSpeechWindow;
+        List<string> recent = [];
+        if (snapshot.NowPlaying is { Length: > 0 } playing)
+        {
+            recent.Add(playing);
+        }
+
+        foreach (var line in snapshot.RecentUtterances)
+        {
+            if (line.TimestampUtc >= cutoff && line.Outcome is "Spoken" or "Segment")
+            {
+                recent.Add(line.Text);
+            }
+        }
+
+        _recentlySpoken = recent;
     }
 
     public event EventHandler<RecognizedEventArgs>? Accepted;
@@ -154,6 +188,7 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
 
     public void Dispose()
     {
+        _speechStatusWatch?.Dispose();
         StopListening();
         lock (_gate)
         {
@@ -246,7 +281,28 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
     {
         lock (_gate)
         {
-            _segmenter?.Push(e.Buffer, e.BytesRecorded);
+            if (_segmenter is null)
+            {
+                return;
+            }
+
+            var options = _options.CurrentValue;
+            if (options.MuteMicWhileSpeaking && _echoGuard.IsSuppressed(DateTimeOffset.UtcNow, options.MicTailAfterSpeakingMs))
+            {
+                if (!_suppressing)
+                {
+                    // Entering suppression: anything half-captured is the FO's own voice
+                    // starting up — discard it rather than let it close as an utterance.
+                    _suppressing = true;
+                    _segmenter.Reset();
+                    _logger.LogDebug("ASR mic ignored while the FO speaks (episode {Episode})", Interlocked.Increment(ref _suppressedEpisodes));
+                }
+
+                return;
+            }
+
+            _suppressing = false;
+            _segmenter.Push(e.Buffer, e.BytesRecorded);
         }
     }
 
@@ -295,6 +351,16 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
             NoteServerRecovered(url);
             if (transcript.Text.Length == 0)
             {
+                Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, transcript.NoSpeechProb));
+                return;
+            }
+
+            // The FO's own words came back through the speakers (bleed the timing gate missed,
+            // or the gate is off): drop them, never answer them.
+            if (options.MuteMicWhileSpeaking && SelfEchoGuard.LooksLikeOwnSpeech(transcript.Text, _recentlySpoken))
+            {
+                _logger.LogInformation("ASR dropped the FO's own words heard back from the speakers: {Text}", transcript.Text);
+                _eventLog?.Record("asr.self-echo", new { text = transcript.Text });
                 Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, transcript.NoSpeechProb));
                 return;
             }
