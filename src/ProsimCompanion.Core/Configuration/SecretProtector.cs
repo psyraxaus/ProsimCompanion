@@ -55,6 +55,8 @@ public static class SecretProtector
         // an ntfy topic nobody should learn) as much as its token does. `*` = every target.
         "notifications:targets:*:url",
         "notifications:targets:*:token",
+        // Remote mixer (2026-10-10): the VoicemeeterBridge shared secret.
+        "mixer:token",
     ];
 
     /// <summary>

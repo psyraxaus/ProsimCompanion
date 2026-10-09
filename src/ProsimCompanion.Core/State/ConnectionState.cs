@@ -32,4 +32,9 @@ public static class Subsystems
     /// succeeded; Disconnected = cooling down after a failure; Connecting = configured, not
     /// yet exercised; Disabled = not configured or local-only mode.</summary>
     public const string Tts = "TTS";
+
+    /// <summary>The VoicemeeterBridge agent on the remote mixer PC. Connected = hello accepted;
+    /// Connecting = socket open, no welcome yet; Disconnected = retrying; Disabled = feature
+    /// off or no host configured.</summary>
+    public const string Mixer = "Mixer";
 }
