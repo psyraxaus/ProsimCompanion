@@ -129,6 +129,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - The cockpit **LOUD SPEAKER** dial is a mapping channel too: with a small VoiceMeeter loop
   it puts the headset sound on the cockpit speakers at the dial's level — step-by-step in
   [chapter 8](docs/manual/08-loudspeaker-dial.md)
+- **Remote mixer**: a Voicemeeter on *another* PC (the vPilot box) through the
+  VoicemeeterBridge agent — knobs and REC latches onto its strip/bus gains and mutes, a
+  status card with mute buttons — [setup note](docs/integrations/voicemeeter-bridge.md)
 
 ### Integrations & platform
 - SayIntentions (spoken ATC requests, gate push, weather/CPDLC, the FO's wrong-frequency
