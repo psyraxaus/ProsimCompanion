@@ -271,58 +271,102 @@
                     }
                     else
                     {
-                        <div class="table-scroll">
-                            <table class="data-table mixer-map-table">
-                                <thead>
-                                    <tr>
-                                        <th title="Off keeps the row without using it">On</th>
-                                        <th>ProSim source</th>
-                                        <th>Parameter</th>
-                                        <th>Type</th>
-                                        <th title="Input value that maps to the minimum (level) — unused for a toggle">In min</th>
-                                        <th title="Input value that maps to the maximum (level) — unused for a toggle">In max</th>
-                                        <th title="Gain sent at the input minimum (level)">Out min dB</th>
-                                        <th title="Gain sent at the input maximum (level)">Out max dB</th>
-                                        <th title="Toggle: input at or above this sends 1">Threshold</th>
-                                        <th title="Flip the result. A REC latch (1 = unmuted) driving a Mute parameter needs this.">Invert</th>
-                                        <th>Last</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (var i = 0; i < _mixer.Value.Mappings.Count; i++)
-                                    {
-                                        var index = i;
-                                        var row = _mixer.Value.Mappings[index];
-                                        var isToggle = row.Kind == MixerMappingKind.Toggle;
-                                        var live = _mixerLive.Mappings.FirstOrDefault(m => m.Source == row.Source && m.Parameter == row.Parameter);
-                                        <tr>
-                                            <td><input type="checkbox" class="audio-cell-check" @bind="row.Enabled" /></td>
-                                            <td><input class="cell-input" style="min-width:230px;" placeholder="system.analog.A_ASP_VHF_1_VOLUME" list="mixer-source-suggestions" @bind="row.Source" /></td>
-                                            <td><input class="cell-input" style="min-width:118px;" placeholder="Strip[2].Gain" @bind="row.Parameter" /></td>
-                                            <td>
-                                                <select class="cell-select" style="min-width:92px;" @bind="row.Kind">
-                                                    <option value="@MixerMappingKind.Level">Level</option>
-                                                    <option value="@MixerMappingKind.Toggle">Toggle</option>
-                                                </select>
-                                            </td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@isToggle" @bind="row.InputMin" /></td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@isToggle" @bind="row.InputMax" /></td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@isToggle" @bind="row.OutputMinDb" /></td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@isToggle" @bind="row.OutputMaxDb" /></td>
-                                            <td><input class="cell-input" type="number" step="any" style="width:68px;" disabled="@(!isToggle)" @bind="row.Threshold" /></td>
-                                            <td><input type="checkbox" class="audio-cell-check" @bind="row.Invert" /></td>
-                                            <td class="mono" title="Last value in → out, and the agent's answer">
+                        <div class="mixer-map-list">
+                            @for (var i = 0; i < _mixer.Value.Mappings.Count; i++)
+                            {
+                                var index = i;
+                                var row = _mixer.Value.Mappings[index];
+                                var isToggle = row.Kind == MixerMappingKind.Toggle;
+                                var customSource = !IsCatalogSource(row.Source);
+                                var live = _mixerLive.Mappings.FirstOrDefault(m => m.Source == row.Source && m.Parameter == row.Parameter);
+                                <div class="mixer-map-block">
+                                    <div class="mixer-map-row">
+                                        <label class="mixer-map-cell">
+                                            <span class="mixer-map-label">On</span>
+                                            <input type="checkbox" class="audio-cell-check" title="Off keeps the row without using it" @bind="row.Enabled" />
+                                        </label>
+                                        <div class="mixer-map-cell">
+                                            <span class="mixer-map-label">ProSim source</span>
+                                            <select class="cell-select" value="@SourceKey(row.Source)" @onchange="e => SetSource(row, e.Value as string)">
+                                                <optgroup label="Volume knobs (0–1024)">
+                                                    @foreach (var source in MixerSourceSuggestions.Where(s => s.Kind == MixerSourceKind.Knob))
+                                                    {
+                                                        <option value="@source.Name">@source.Label</option>
+                                                    }
+                                                </optgroup>
+                                                <optgroup label="REC push-buttons (1 = open, 0 = muted)">
+                                                    @foreach (var source in MixerSourceSuggestions.Where(s => s.Kind == MixerSourceKind.Latch))
+                                                    {
+                                                        <option value="@source.Name">@source.Label</option>
+                                                    }
+                                                </optgroup>
+                                                <optgroup label="Loudspeaker dials (0–1024)">
+                                                    @foreach (var source in MixerSourceSuggestions.Where(s => s.Kind == MixerSourceKind.Dial))
+                                                    {
+                                                        <option value="@source.Name">@source.Label</option>
+                                                    }
+                                                </optgroup>
+                                                <option value="@CustomSourceKey">Other dataref…</option>
+                                            </select>
+                                            @if (customSource)
+                                            {
+                                                <input class="cell-input" style="margin-top:4px;" placeholder="Type the ProSim dataref name" @bind="row.Source" />
+                                            }
+                                        </div>
+                                        <label class="mixer-map-cell">
+                                            <span class="mixer-map-label">Parameter</span>
+                                            <input class="cell-input" placeholder="Strip[2].Gain" @bind="row.Parameter" />
+                                        </label>
+                                        <label class="mixer-map-cell">
+                                            <span class="mixer-map-label">Type</span>
+                                            <select class="cell-select" @bind="row.Kind">
+                                                <option value="@MixerMappingKind.Level">Level</option>
+                                                <option value="@MixerMappingKind.Toggle">Toggle</option>
+                                            </select>
+                                        </label>
+                                        <label class="mixer-map-cell">
+                                            <span class="mixer-map-label">Invert</span>
+                                            <input type="checkbox" class="audio-cell-check" title="Flip the result. A REC push-button (1 = open) driving a Mute parameter needs this." @bind="row.Invert" />
+                                        </label>
+                                        <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                                @onclick="() => _mixer.Value.Mappings.RemoveAt(index)">×</button>
+                                    </div>
+                                    <div class="mixer-map-sub">
+                                        @if (isToggle)
+                                        {
+                                            <label class="mixer-map-cell">
+                                                <span class="mixer-map-label">Threshold</span>
+                                                <input class="cell-input" type="number" step="any" title="Input at or above this sends 1" @bind="row.Threshold" />
+                                            </label>
+                                        }
+                                        else
+                                        {
+                                            <label class="mixer-map-cell">
+                                                <span class="mixer-map-label">In min</span>
+                                                <input class="cell-input" type="number" step="any" title="Input value that maps to Out min" @bind="row.InputMin" />
+                                            </label>
+                                            <label class="mixer-map-cell">
+                                                <span class="mixer-map-label">In max</span>
+                                                <input class="cell-input" type="number" step="any" title="Input value that maps to Out max" @bind="row.InputMax" />
+                                            </label>
+                                            <label class="mixer-map-cell">
+                                                <span class="mixer-map-label">Out min dB</span>
+                                                <input class="cell-input" type="number" step="any" title="Gain sent at In min" @bind="row.OutputMinDb" />
+                                            </label>
+                                            <label class="mixer-map-cell">
+                                                <span class="mixer-map-label">Out max dB</span>
+                                                <input class="cell-input" type="number" step="any" title="Gain sent at In max" @bind="row.OutputMaxDb" />
+                                            </label>
+                                        }
+                                        <div class="mixer-map-cell mixer-map-last">
+                                            <span class="mixer-map-label">Last</span>
+                                            <span class="mono" title="Last value in → out, and the agent's answer">
                                                 @(live is null ? "—" : $"{Fmt(live.LastInput)} → {Fmt(live.LastOutput)}{(live.LastResult is { } r && r != "ok" ? $" ({r})" : "")}")
-                                            </td>
-                                            <td>
-                                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
-                                                        @onclick="() => _mixer.Value.Mappings.RemoveAt(index)">×</button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     }
                     <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
@@ -332,8 +376,10 @@
                                 title="A REC latch (1 = unmuted) onto a Mute parameter, inverted.">Add latch mapping</button>
                     </div>
                     <div class="field-hint" style="margin-top:8px; max-width:640px;">
-                        Source is a ProSim dataref name; the list offers the audio panel knobs and latches.
-                        Parameter is a Voicemeeter Remote API name such as Strip[2].Gain or Bus[0].Mute.
+                        A new row starts with the captain's VHF1 knob or REC button on the first strip; pick
+                        another source from the list (or "Other dataref…" to type one) and set the strip or bus.
+                        Parameter is a Voicemeeter Remote API name such as Strip[2].Gain or Bus[0].Mute —
+                        Strip[0] is the first strip, Bus[0] is A1.
                         <details class="field-more">
                             <summary>More</summary>
                             <span class="field-more-body">
@@ -348,12 +394,6 @@
                     </div>
                 </Section>
 
-                <datalist id="mixer-source-suggestions">
-                    @foreach (var (name, label) in MixerSourceSuggestions)
-                    {
-                        <option value="@name">@label</option>
-                    }
-                </datalist>
             }
             else
             {
@@ -465,14 +505,21 @@
     private string _mixerStripsText = "";
     private string _mixerBusesText = "";
 
-    /// <summary>The ACP knob / REC-latch / loudspeaker dataref names from the catalog, as the
-    /// source datalist: nothing here is invented, the names are the typed constants the
-    /// audio pillar already subscribes to.</summary>
-    private static readonly IReadOnlyList<(string Name, string Label)> MixerSourceSuggestions = BuildMixerSourceSuggestions();
+    private enum MixerSourceKind { Knob, Latch, Dial }
 
-    private static IReadOnlyList<(string, string)> BuildMixerSourceSuggestions()
+    private sealed record MixerSource(string Name, string Label, MixerSourceKind Kind);
+
+    /// <summary>Select value for "a dataref not in the list" — the row then shows a text box.</summary>
+    private const string CustomSourceKey = "__custom";
+
+    /// <summary>The ACP knob / REC-latch / loudspeaker dataref names from the catalog, as the
+    /// source drop-down: nothing here is invented, the names are the typed constants the
+    /// audio pillar already subscribes to.</summary>
+    private static readonly IReadOnlyList<MixerSource> MixerSourceSuggestions = BuildMixerSourceSuggestions();
+
+    private static IReadOnlyList<MixerSource> BuildMixerSourceSuggestions()
     {
-        var list = new List<(string, string)>();
+        var list = new List<MixerSource>();
         foreach (var field in typeof(ProsimDataRefNames).GetFields(BindingFlags.Public | BindingFlags.Static))
         {
             if (!field.Name.StartsWith("Acp", StringComparison.Ordinal) && !field.Name.StartsWith("MipLoudspeaker", StringComparison.Ordinal))
@@ -486,17 +533,49 @@
                 continue;
             }
 
-            var label = field.Name
-                .Replace("Analog", " knob", StringComparison.Ordinal)
-                .Replace("Latch", " REC latch", StringComparison.Ordinal)
-                .Replace("Acp1", "Captain ", StringComparison.Ordinal)
-                .Replace("Acp2", "First Officer ", StringComparison.Ordinal)
-                .Replace("Acp3", "Observer ", StringComparison.Ordinal)
-                .Replace("MipLoudspeaker", "Loudspeaker ", StringComparison.Ordinal);
-            list.Add((name, label));
+            // Field names are "Acp1Vhf1Analog", "Acp2IntLatch", "MipLoudspeakerCaptAnalog":
+            // side + channel + kind, turned into "Captain VHF1", "First Officer INT REC",
+            // "Loudspeaker captain".
+            MixerSourceKind kind;
+            string label;
+            if (field.Name.StartsWith("MipLoudspeaker", StringComparison.Ordinal))
+            {
+                kind = MixerSourceKind.Dial;
+                label = field.Name.Contains("Capt", StringComparison.Ordinal) ? "Loudspeaker captain" : "Loudspeaker first officer";
+            }
+            else
+            {
+                kind = field.Name.EndsWith("Latch", StringComparison.Ordinal) ? MixerSourceKind.Latch : MixerSourceKind.Knob;
+                var side = field.Name[..4] switch
+                {
+                    "Acp1" => "Captain",
+                    "Acp2" => "First Officer",
+                    _ => "Observer",
+                };
+                var channel = field.Name[4..]
+                    .Replace("Analog", "", StringComparison.Ordinal)
+                    .Replace("Latch", "", StringComparison.Ordinal)
+                    .ToUpperInvariant();
+                label = kind == MixerSourceKind.Latch ? $"{side} {channel} REC" : $"{side} {channel}";
+            }
+
+            list.Add(new MixerSource(name, $"{label}  ({name})", kind));
         }
 
-        return list.OrderBy(entry => entry.Item1, StringComparer.Ordinal).ToList();
+        // Catalog declaration order already groups captain / first officer / observer.
+        return list;
+    }
+
+    private static bool IsCatalogSource(string source) =>
+        MixerSourceSuggestions.Any(s => s.Name == source);
+
+    private static string SourceKey(string source) =>
+        IsCatalogSource(source) ? source : CustomSourceKey;
+
+    private static void SetSource(MixerMapping row, string? key)
+    {
+        // "Other dataref…" clears the name so the text box appears; a list pick stores the name.
+        row.Source = key is null or CustomSourceKey ? "" : key;
     }
 
     private async Task TestMixer()
@@ -541,8 +620,12 @@
             .OrderBy(n => n)
             .ToList();
 
+    // New rows come complete (owner feedback 2026-10-10: a blank source looked chosen but was
+    // not): the captain's VHF1 knob / REC button onto the first strip — change what differs.
     private void AddKnobMapping() => _mixer.Value.Mappings.Add(new MixerMapping
     {
+        Source = ProsimDataRefNames.Acp1Vhf1Analog.Name,
+        Parameter = "Strip[0].Gain",
         Kind = MixerMappingKind.Level,
         InputMin = 0,
         InputMax = 1024,
@@ -552,6 +635,8 @@
 
     private void AddLatchMapping() => _mixer.Value.Mappings.Add(new MixerMapping
     {
+        Source = ProsimDataRefNames.Acp1Vhf1Latch.Name,
+        Parameter = "Strip[0].Mute",
         Kind = MixerMappingKind.Toggle,
         Threshold = 0.5,
         Invert = true,

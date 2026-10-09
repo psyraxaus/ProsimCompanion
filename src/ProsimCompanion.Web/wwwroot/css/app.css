@@ -1500,6 +1500,43 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 
 .audio-cell-check { justify-self: center; }
 
+/* Remote mixer mappings (2026-10-10): two lines per mapping so every box has room to be
+   read — the identity line (source, parameter, type, invert) and the numbers line. */
+.mixer-map-block {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.mixer-map-row {
+  display: grid;
+  grid-template-columns: 40px minmax(200px, 1.6fr) minmax(120px, 1fr) 110px 56px 32px;
+  gap: 8px;
+  align-items: end;
+}
+.mixer-map-sub {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(72px, 1fr)) minmax(150px, 1.4fr);
+  gap: 8px;
+  align-items: end;
+  margin-top: 6px;
+}
+.mixer-map-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.mixer-map-cell .cell-select,
+.mixer-map-cell .cell-input { width: 100%; min-width: 0; }
+.mixer-map-cell .audio-cell-check { justify-self: start; margin: 7px 0; }
+.mixer-map-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.mixer-map-last { grid-column: 5; }
+.mixer-map-row .remove-btn { margin-bottom: 2px; }
+
 /* -------------------------------------------------------------- data tables */
 
 .table-scroll { overflow-x: auto; }
@@ -1628,6 +1665,8 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
     border-bottom: 1px dashed var(--border);
   }
   .audio-cell-check { justify-self: start; }
+  .mixer-map-row, .mixer-map-sub { grid-template-columns: 1fr; }
+  .mixer-map-last { grid-column: auto; }
 }
 
 @media (max-width: 540px) {

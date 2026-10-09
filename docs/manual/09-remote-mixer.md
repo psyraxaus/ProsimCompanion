@@ -71,22 +71,28 @@ up the pill is green and the rows show the real labels, gains and mute states.)
 Settings → Audio Control → Remote Mixer → **Mappings**. Each row sends one ProSim value to
 one Voicemeeter parameter.
 
+Each mapping takes two lines: the first says *what* (source, parameter, type, invert), the
+second holds the numbers.
+
 **A volume knob → a strip gain**
 
-1. Click **Add knob mapping**. The row comes with the right defaults: type *Level*, input
+1. Click **Add knob mapping**. The row comes filled in: source *Captain VHF1*
+   (`system.analog.A_ASP_VHF_1_VOLUME`), parameter `Strip[0].Gain`, type *Level*, input
    0 … 1024 (the knob's travel), output −60 … +12 dB.
-2. **ProSim source**: open the list and pick the knob, for example *Captain Vhf1 knob*
-   (`system.analog.A_ASP_VHF_1_VOLUME`). The first officer's knobs are `A_ASP2_…`, the
-   observer's `A_ASP3_…`.
+2. **ProSim source**: the drop-down lists every knob, REC push-button and loudspeaker dial
+   by panel — *Captain*, *First Officer*, *Observer*. Pick another one if VHF1 is not the
+   channel you want. The last entry, *Other dataref…*, opens a text box for a name that is
+   not in the list.
 3. **Parameter**: the strip or bus, as the Voicemeeter Remote API names it:
-   `Strip[2].Gain` is the **third** strip (counting starts at 0), `Bus[0].Gain` is A1.
+   `Strip[0].Gain` is the **first** strip (counting starts at 0), `Strip[2].Gain` the third,
+   `Bus[0].Gain` is A1. Change the number to your vPilot strip.
 
 **The REC push-button → the strip mute**
 
-1. Click **Add latch mapping**. The row is type *Toggle* with **Invert** already ticked.
-2. **ProSim source**: pick the matching latch, for example *Captain Vhf1 REC latch*
-   (`system.switches.S_ASP_VHF_1_REC_LATCH`).
-3. **Parameter**: `Strip[2].Mute`.
+1. Click **Add latch mapping**. The row comes filled in too: *Captain VHF1 REC*
+   (`system.switches.S_ASP_VHF_1_REC_LATCH`) onto `Strip[0].Mute`, type *Toggle*,
+   **Invert** already ticked.
+2. Pick the push-button that matches the knob above, and set the same strip number.
 
 Why Invert: ProSim reports the latch as 1 when the channel is **open** (button out), and
 Voicemeeter's Mute wants 1 when **muted**. Invert swaps them.
