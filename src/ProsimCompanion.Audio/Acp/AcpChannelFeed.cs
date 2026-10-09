@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 
@@ -27,8 +28,11 @@ public interface IAcpVolumeSink
 public sealed class AcpChannelFeed : IDisposable
 {
     private readonly IProsimDataRefs _prosim;
+    private readonly IOptionsMonitor<AudioOptions> _options;
+    private readonly IDisposable? _optionsChange;
     private readonly ILogger<AcpChannelFeed> _logger;
     private readonly object _gate = new();
+    private volatile bool _requirePower = true;
 
     private readonly IDataRefSubscription<bool> _acEss;
     private readonly IDataRefSubscription<bool> _dcEss;
@@ -42,13 +46,35 @@ public sealed class AcpChannelFeed : IDisposable
     /// <summary>Raised (on the SDK thread) whenever any ACP's powered state may have changed.</summary>
     public event EventHandler? PowerChanged;
 
-    public AcpChannelFeed(IProsimDataRefs prosim, ILogger<AcpChannelFeed> logger)
+    public AcpChannelFeed(IProsimDataRefs prosim, IOptionsMonitor<AudioOptions> options, ILogger<AcpChannelFeed> logger)
     {
         ArgumentNullException.ThrowIfNull(prosim);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
         _prosim = prosim;
+        _options = options;
         _logger = logger;
+
+        // Flipping the power gate live (owner option 2026-10-10) re-emits every bound value so
+        // the targets catch up at once, the same way a power restoration does.
+        _optionsChange = options.OnChange(o =>
+        {
+            if (o.RequireAcpPower == _requirePower)
+            {
+                return;
+            }
+
+            _requirePower = o.RequireAcpPower;
+            _logger.LogInformation("ACP power gate {State}", _requirePower ? "on — knobs follow panel power" : "off — knobs always apply");
+            lock (_gate)
+            {
+                EmitCurrentLocked();
+            }
+
+            PowerChanged?.Invoke(this, EventArgs.Empty);
+        });
+        _requirePower = options.CurrentValue.RequireAcpPower;
 
         _acEss = prosim.Subscribe(ProsimDataRefNames.ElecBusPowerAcEss);
         _dcEss = prosim.Subscribe(ProsimDataRefNames.ElecBusPowerDcEss);
@@ -68,7 +94,9 @@ public sealed class AcpChannelFeed : IDisposable
         // NORM fallback (in the catalog descriptor): an unreadable switch must never gate out ACP1/ACP2.
         AudioSwitching: _audioSwitching.Value);
 
-    public bool IsPowered(AcpSide acp) => AcpPowerGate.IsPowered(acp, PowerInputs);
+    /// <summary>The effective gate: always true while <see cref="AudioOptions.RequireAcpPower"/>
+    /// is off, else the electrical rule for that panel.</summary>
+    public bool IsPowered(AcpSide acp) => !_requirePower || AcpPowerGate.IsPowered(acp, PowerInputs);
 
     /// <summary>Replaces the bound key set and sink, then seeds the sink with current values
     /// for every powered ACP (an unpowered ACP contributes nothing until power returns).</summary>
@@ -122,6 +150,7 @@ public sealed class AcpChannelFeed : IDisposable
 
     public void Dispose()
     {
+        _optionsChange?.Dispose();
         Unbind();
         _acEss.ValueChanged -= OnPowerRefChanged;
         _dcEss.ValueChanged -= OnPowerRefChanged;
@@ -255,7 +284,7 @@ public sealed class AcpChannelFeed : IDisposable
     }
 
     private bool IsPowered(ChannelBinding binding) =>
-        AcpPowerGate.IsPowered(binding.Acp, binding.Channel, PowerInputs);
+        !_requirePower || AcpPowerGate.IsPowered(binding.Acp, binding.Channel, PowerInputs);
 
     private sealed class ChannelBinding(
         AcpSide acp,

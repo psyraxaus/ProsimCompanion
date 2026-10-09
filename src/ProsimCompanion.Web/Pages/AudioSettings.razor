@@ -30,6 +30,9 @@
                                  @bind-Value="BackendKey" />
                     <BoolField Label="Disable ProSim native audio control" Hint="Turn off ProSim's own Windows volume control so the two never fight."
                                @bind-Value="_audio.Value.DisableProsimNativeAudio" />
+                    <BoolField Label="Only while the audio panel is powered" Hint="On: knobs and latches apply only with the panel's bus powered, like the real aircraft. Off: they always apply, like the remote mixer."
+                               More="Power is AC/DC ESS plus the audio switching knob for the captain, audio switching for the first officer, DC1 for the observer. Switching this applies at once: the current knob values are sent again."
+                               @bind-Value="_audio.Value.RequireAcpPower" />
                 </Section>
             }
             else if (CurrentSection == "coreaudio")
