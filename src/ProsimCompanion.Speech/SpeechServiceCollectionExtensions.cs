@@ -150,6 +150,8 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<SayIntentions.SayIntentionsService>());
         // Wrong-frequency report: COM1 against the frequency SayIntentions ATC last assigned.
         services.AddStartupModule<SayIntentions.SayIntentionsFrequencyMonitor>();
+        // PTT relay (2026-10-10): a ProSim push-to-talk switch keys the SI control LVAR.
+        services.AddStartupModule<SayIntentions.SayIntentionsPttRelay>();
         // Weather/CPDLC pulls are on-demand only (web Weather page) — no bootstrap Start,
         // and deliberately NOT an IVoiceFeature.
         services.AddSingleton<SayIntentions.SayIntentionsWeatherService>();

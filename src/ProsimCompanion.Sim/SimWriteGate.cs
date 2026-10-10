@@ -19,12 +19,34 @@ public static class SimWriteGate
         CompanionLvarNames.Prefix,
     ];
 
+    /// <summary>Exact names (no wildcard, owner rule 2026-10-10): the SayIntentions PTT control
+    /// LVARs the SI client lists under Controls → "Map PTT inside the sim" — 1 to talk, 0 to
+    /// stop. Keyed from a ProSim PTT switch by the SayIntentions PTT relay.</summary>
+    private static readonly string[] AllowedExact =
+    [
+        "L:SIAI_CONTROL_PTT_COM",
+        "L:SIAI_CONTROL_PTT_COM1",
+        "L:SIAI_CONTROL_PTT_COM2",
+        "L:SIAI_CONTROL_PTT_INTERCOM1",
+        "L:SIAI_CONTROL_PTT_INTERCOM2",
+        "L:SIAI_CONTROL_PTT_INTERCOM3",
+        "L:SIAI_CONTROL_PTT_GROUP",
+    ];
+
     /// <summary>True when the name may be written by this application.</summary>
     public static bool IsAllowed(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             return false;
+        }
+
+        foreach (var exact in AllowedExact)
+        {
+            if (name.Equals(exact, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
         }
 
         foreach (var prefix in AllowedPrefixes)

@@ -57,6 +57,19 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// pick may not exist in the loaded scenery, and GSX's own menu is then left for you.</summary>
     public bool ArrivalGateFromAtc { get; set; }
 
+    /// <summary>Which ProSim push-to-talk switch keys SayIntentions (2026-10-10, the sidestick
+    /// PTT on the second PC bound to a ProSim dataref): <c>none</c> (default),
+    /// <c>captainSidestick</c>, <c>foSidestick</c>, <c>captainHandMic</c>, <c>foHandMic</c>,
+    /// <c>observerHandMic</c>. Each edge writes <see cref="PttLvar"/> (1 pushed, 0 released)
+    /// through SimConnect — the SayIntentions client's "Map PTT inside the sim with an LVAR".
+    /// No joystick polling involved.</summary>
+    public string PttSource { get; set; } = "none";
+
+    /// <summary>The SayIntentions control LVAR to key: <c>L:SIAI_CONTROL_PTT_COM</c> (the
+    /// selected radio), <c>…_COM1</c> / <c>…_COM2</c> (forced), <c>…_INTERCOM1..3</c>,
+    /// <c>…_GROUP</c> — the names the client lists under Controls.</summary>
+    public string PttLvar { get; set; } = "L:SIAI_CONTROL_PTT_COM";
+
     // ---- Batch weather (ATIS/METAR/TAF) + CPDLC station ----
     // These need only the API key, NOT an active flight — a parked cockpit can still pull
     // weather while SayIntentions itself is between flights.

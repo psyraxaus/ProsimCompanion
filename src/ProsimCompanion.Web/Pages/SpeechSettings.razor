@@ -501,6 +501,14 @@ else if (CurrentSection == "sayIntentions")
                    Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.ApiKeySource != "manual")"
                    @bind-Value="_sayIntentions.Value.ManualApiKey" />
         <SecretUnreadableHint Path="sayIntentions:manualApiKey" />
+        <SelectField Label="Push-to-talk from the cockpit" Hint="A ProSim PTT switch keys SayIntentions. Bind your sidestick or hand-mic button to that switch in ProSim first." More="On each press the app sets the SayIntentions control LVAR to 1, on release to 0, through SimConnect — the client's 'Map PTT inside the sim with an LVAR'. No joystick polling. Needs MSFS running. The session log shows each press and whether SayIntentions transmitted."
+                     Options="SiPttSourceOptions"
+                     Disabled="@(!_sayIntentions.Value.Enabled)"
+                     @bind-Value="_sayIntentions.Value.PttSource" />
+        <SelectField Label="SayIntentions PTT control" Hint="Which SayIntentions radio or intercom the button keys. COM radio PTT is the one almost everybody needs."
+                     Options="SiPttLvarOptions"
+                     Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.PttSource == "none")"
+                     @bind-Value="_sayIntentions.Value.PttLvar" />
         <SelectField Label="Phraseology" Options="PhraseologyOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled)"
                      @bind-Value="_sayIntentions.Value.Phraseology" />
@@ -1143,6 +1151,29 @@ else if (CurrentSection == "abnormals")
     private bool GoogleOff => string.IsNullOrWhiteSpace(_speech.Value.GoogleKeyFilePath);
 
     private bool ElevenLabsOff => string.IsNullOrWhiteSpace(_speech.Value.ElevenLabsApiKey);
+
+    // SayIntentions PTT relay (2026-10-10). Keys match SayIntentionsPttRelay.SourceRef; the
+    // LVAR names are the ones the SI client lists under Controls → "Map PTT inside the sim".
+    private static readonly IReadOnlyList<(string, string)> SiPttSourceOptions =
+    [
+        ("none", "Off"),
+        ("captainSidestick", "Captain sidestick PTT"),
+        ("foSidestick", "First Officer sidestick PTT"),
+        ("captainHandMic", "Captain hand mic PTT"),
+        ("foHandMic", "First Officer hand mic PTT"),
+        ("observerHandMic", "Observer hand mic PTT"),
+    ];
+
+    private static readonly IReadOnlyList<(string, string)> SiPttLvarOptions =
+    [
+        ("L:SIAI_CONTROL_PTT_COM", "COM radio PTT (the selected radio)"),
+        ("L:SIAI_CONTROL_PTT_COM1", "COM1 PTT (forced)"),
+        ("L:SIAI_CONTROL_PTT_COM2", "COM2 PTT (forced)"),
+        ("L:SIAI_CONTROL_PTT_INTERCOM1", "Intercom PTT — channel 1"),
+        ("L:SIAI_CONTROL_PTT_INTERCOM2", "Intercom PTT — channel 2"),
+        ("L:SIAI_CONTROL_PTT_INTERCOM3", "Intercom PTT — channel 3"),
+        ("L:SIAI_CONTROL_PTT_GROUP", "Group flight PTT"),
+    ];
 
     // The voice picker works off the DRAFT key so a first-time setup can list voices before
     // the key is saved; the list is per page visit, never persisted.

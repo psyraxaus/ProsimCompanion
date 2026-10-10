@@ -632,6 +632,14 @@ public static class ProsimDataRefNames
     /// </summary>
     public static readonly DataRef<int> AudioSwitching = new("system.switches.S_AUDIO_SWITCHING", DataRefTier.Frequent, 1);
 
+    // Push-to-talk switches (0 normal, 1 pushed) — the SayIntentions PTT relay (2026-10-10)
+    // keys the SI control LVAR from one of these. Critical tier: a PTT must not lag.
+    public static readonly DataRef<int> SidestickPttCapt = new("system.switches.S_SIDESTICK_PTT_CAPT", DataRefTier.Critical, 0);
+    public static readonly DataRef<int> SidestickPttFo = new("system.switches.S_SIDESTICK_PTT_FO", DataRefTier.Critical, 0);
+    public static readonly DataRef<int> HandMicPttCapt = new("system.switches.S_HAND_MIC_PTT_CAPT", DataRefTier.Critical, 0);
+    public static readonly DataRef<int> HandMicPttFo = new("system.switches.S_HAND_MIC_PTT_FO", DataRefTier.Critical, 0);
+    public static readonly DataRef<int> HandMicPttObs = new("system.switches.S_HAND_MIC_PTT_OBS", DataRefTier.Critical, 0);
+
     #endregion
 
     #region Pneumatics

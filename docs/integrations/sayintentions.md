@@ -83,6 +83,22 @@ Not yet seen live: hand-off wording on arrival and in FAA phraseology, `since_id
 station) — neither of those two is read today (`SIAI_COM1_RECEIVING` / `SIAI_RADIO_PTT` are,
 for the radio-clear gate).
 
+## Push-to-talk from a ProSim switch (2026-10-10, opt-in)
+
+`sayIntentions.pttSource` (default `none`; `captainSidestick`, `foSidestick`, `captainHandMic`,
+`foHandMic`, `observerHandMic`) keys SayIntentions from a ProSim PTT switch
+(`S_SIDESTICK_PTT_CAPT/_FO`, `S_HAND_MIC_PTT_CAPT/_FO/_OBS`, 0 normal / 1 pushed, Critical
+tier). Each edge writes `sayIntentions.pttLvar` (default `L:SIAI_CONTROL_PTT_COM`) through
+SimConnect: 1 to talk, 0 to stop — the SI client's **Controls → Map PTT inside the sim with
+an LVAR or dataref**, which lists `SIAI_CONTROL_PTT_COM`, `_COM1`, `_COM2` (forced),
+`_INTERCOM1..3`, `_GROUP`. Those seven names are NOT in the published LVAR reference (which
+only has the read-only `SIAI_RADIO_PTT` / `SIAI_INTERCOM_PTT` status flags) — they were read
+off the client on 2026-10-10. They sit on `SimWriteGate` by exact name. The relay watches
+`L:SIAI_RADIO_PTT` while the button is held and the release event `sayintentions.ptt`
+carries `transmitted` — the live proof the LVAR keyed the client. Why: the sidestick PTT is
+on the second PC and reaches ProSim as a dataref; this path needs no joystick polling in
+our process (the winmm/dinput heap-corruption suspect of the 2026-10-10 crash).
+
 ## Arrival gate from ATC (2026-10-08, opt-in)
 
 `sayIntentions.arrivalGateFromAtc` (default off) takes flight.json's `current_flight.assigned_gate`
