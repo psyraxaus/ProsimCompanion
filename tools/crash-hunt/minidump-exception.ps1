@@ -1,8 +1,8 @@
 param([string]$Path)
 # Reads the MINIDUMP exception stream (type 6) and module list (type 4) — enough to name the
 # faulting thread, the exception code and the module the faulting address falls in.
-$bytes = [System.IO.File]::ReadAllBytes($Path)
-$br = New-Object System.IO.BinaryReader([System.IO.MemoryStream]::new($bytes))
+# A FileStream, not ReadAllBytes: full dumps with page heap on pass 2 GB (2026-10-11: 2.3 GB).
+$br = New-Object System.IO.BinaryReader([System.IO.File]::OpenRead($Path))
 $sig = $br.ReadUInt32(); $ver = $br.ReadUInt32(); $numStreams = $br.ReadUInt32(); $dirRva = $br.ReadUInt32()
 "signature=0x{0:X} streams={1}" -f $sig, $numStreams
 $streams = @{}

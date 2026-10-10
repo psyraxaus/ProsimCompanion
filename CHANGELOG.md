@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: **opening the Voice First Officer settings page could crash the app** (sim PC, 2026-10-11, in the climb; the 2026-09-20 and 2026-10-10 crashes were the same Windows component). The Listening & PTT card listed the joysticks on this PC as it opened, through Windows' joystick layer (`joyGetPosEx`), and on that PC that call corrupts memory — this time with no joystick binding at all and the poller idle. The page no longer touches the joystick layer on its own: **Joysticks on this PC** reads "Not scanned." until you press **Scan for joysticks**, and **Set** watches joystick buttons only while **Also listen for joystick buttons** is ticked (on by itself when a binding already names a joystick). A ProSim switch for push-to-talk and ATC mute needs none of it.
 - Fix: **"ProSim did not accept" after Apply recommended, when ProSim had accepted** (sim PC, 2026-10-11, ProSim 1.75.1). ProSim acknowledges a System-options write before it applies it, so the read-back in the same millisecond still saw the old values and every row was reported refused — while the next check read them all as OK. Apply now re-reads for up to 5 s until the rows agree; the two new rc.1 probes (`asr-self-echo`, `sayintentions-remote-ptt`) also carry the standard state fields so the evaluator no longer skips them.
 
 ## 0.7.0-rc.3

@@ -20,9 +20,17 @@ public sealed record PttInputCaptureResult(string? KeyName, int? JoystickId, int
 /// </summary>
 public interface IPttInputCapture
 {
-    /// <summary>Currently connected joystick devices (winmm ids 0–15 that answer a position
-    /// probe), with their product names. Empty when none are connected.</summary>
+    /// <summary>The joystick devices the last <see cref="ScanJoysticksAsync"/> found (winmm ids
+    /// 0–15 with their product names). Never touches the joystick layer itself: empty until a
+    /// scan has run. Windows' winmm/dinput joystick API has crashed the process three times
+    /// on the owner's sim PC (2026-09-20, 2026-10-10, 2026-10-11 — the last one from this very
+    /// list being built while the Voice FO settings page opened), so nothing calls it unless
+    /// the pilot asks.</summary>
     IReadOnlyList<JoystickDeviceView> GetJoysticks();
+
+    /// <summary>Probes the sixteen winmm ids off the caller's thread and returns the connected
+    /// devices — the pilot's explicit "scan" or a joystick capture, never a page load.</summary>
+    Task<IReadOnlyList<JoystickDeviceView>> ScanJoysticksAsync(CancellationToken cancellationToken);
 
     /// <summary>Waits for the next key press (and joystick button press when
     /// <paramref name="includeJoysticks"/> is set) and returns it, or null when nothing was

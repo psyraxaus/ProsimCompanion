@@ -12,3 +12,10 @@ PC keeps a dump per crash in `%LOCALAPPDATA%\CrashDumps\ProsimCompanion.exe.<pid
 2026-10-10: crash dump `25588` was `0xC0000374` found by the JIT allocating; prime suspect is
 DirectInput overrunning inside `joyGetPosEx` during game-controller re-enumeration (same code
 and config as the 2026-09-20 crash). Page heap was enabled on the sim PC to prove it.
+
+2026-10-11: dump `26396` (page heap on, 2.3 GB) settled it — `0xC0000005` in coreclr under
+`winmm!joyGetPosEx` on the Blazor render thread, called from `SpeechSettings.OnInitialized →
+PushToTalkService.GetJoysticks` the moment the Voice FO settings page opened, with NO joystick
+binding and the poller idle. Any call into the winmm joystick layer on that PC can kill the
+process; the app now enters it only on the pilot's explicit Scan / joystick capture (issue #165).
+`minidump-exception.ps1` streams the file since then — `ReadAllBytes` stops at 2 GB.
