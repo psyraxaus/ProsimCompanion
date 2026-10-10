@@ -15,8 +15,10 @@ both at the same time.
 ## 9.1 What you need
 
 - Voicemeeter (Standard, Banana or Potato) running on the mixer PC.
-- **VoicemeeterBridge** installed and running on that same PC (follow its own install
-  guide). It shows a tray icon.
+- **VoicemeeterBridge** installed and running on that same PC. Download
+  `VoicemeeterBridge-Setup-<version>.exe` from
+  <https://github.com/psyraxaus/VoicemeeterBridge/releases> and follow its own install
+  guide (the README in that repository). It shows a tray icon.
 - Both PCs on the same network. The sim PC must reach the mixer PC on the agent's port
   (**5088** unless you changed it in the agent).
 

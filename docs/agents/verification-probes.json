@@ -150,7 +150,7 @@
     {
       "id": "pax-target-thrash",
       "issue": 64,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-absent",
       "sources": [
         "session"
@@ -1588,7 +1588,7 @@
     {
       "id": "chrono-takeoff-landing",
       "issue": 126,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "sources": [
         "session",
@@ -2272,7 +2272,7 @@
     {
       "id": "fo-where-are-we",
       "issue": 153,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",
@@ -2353,7 +2353,7 @@
     {
       "id": "debrief-fuel-figures",
       "issue": 155,
-      "state": "open",
+      "state": "closed-regression-watch",
       "kind": "assert-present",
       "machine": {
         "kind": "required-fields",

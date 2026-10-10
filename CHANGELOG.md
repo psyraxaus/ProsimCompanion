@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased (after 0.7.0-rc.1)
+## 0.7.0-rc.2
 
-Flight report EFHK → EGCC 2026-10-10 (support ticket t-20261010-0726). All fixes are proven by unit tests and by replaying the recorded flight; **not yet verified live**.
+Flight report EFHK → EGCC 2026-10-10 (support ticket t-20261010-0726), released 2026-10-10. All fixes are proven by unit tests and by replaying the recorded flight; **not yet verified live**.
 
 - Fix: **a fixed pushback preference no longer leaves GSX's direction menu open silently** (issue #161). With "Always tail right" set and a stand that offers a single custom route ("Facing SW on Taxi AT" beside QuickEdit and straight lines — EFHK Gate 46), the app left the menu to the pilot twice. The fixed answer now reads the stand's route kinds first, then the menu text, then takes the only direction offered, and otherwise asks — never a silent leave. Probe `pushback-legacy-single-direction`.
 - Fix: **the phase no longer drops from PUSHBACK to PREFLIGHT mid-push** (issue #161; regression of #110). Re-setting the brake for the tug, or GSX freezing the position (ground speed reading 11–22 kt), let the departure catch-all walk the phase back for a second, twice in one push. A push in progress with engines off now holds PushbackAndStart. Probe `pushback-phase-hold`; recording `efhk-egcc-2026-10-10-0.7.0-rc1` replays clean.
