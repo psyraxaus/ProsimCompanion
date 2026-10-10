@@ -27,7 +27,16 @@ public sealed class ProsimSetupCheckService : IProsimSetupCheck, IDisposable
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<ProsimSetupCheckService> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly Func<TimeSpan, CancellationToken, Task> _delay;
     private bool _readThisConnection;
+
+    /// <summary>How long Apply keeps re-reading before it calls a write refused. 2026-10-11 (sim PC,
+    /// ProSim 1.75.1): the gateway answered every write with 200/accepted, but a query sent in the
+    /// same millisecond still returned the OLD value, so all five rows were reported "did not
+    /// accept" while the very next check read them as Ok. ProSim applies a system.config.* write
+    /// a moment after it acknowledges it; the verdict must wait for the read-back to agree.</summary>
+    private static readonly TimeSpan ReadBackWindow = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan ReadBackStep = TimeSpan.FromMilliseconds(500);
 
     public ProsimSetupCheckService(
         IProsimGateway gateway,
@@ -36,7 +45,8 @@ public sealed class ProsimSetupCheckService : IProsimSetupCheck, IDisposable
         IOptionsMonitor<ProsimOptions> prosimOptions,
         IOptionsMonitor<GsxOptions> gsxOptions,
         JsonlEventLog eventLog,
-        ILogger<ProsimSetupCheckService> logger)
+        ILogger<ProsimSetupCheckService> logger,
+        Func<TimeSpan, CancellationToken, Task>? delay = null)
     {
         ArgumentNullException.ThrowIfNull(gateway);
         ArgumentNullException.ThrowIfNull(status);
@@ -53,6 +63,7 @@ public sealed class ProsimSetupCheckService : IProsimSetupCheck, IDisposable
         _gsxOptions = gsxOptions;
         _eventLog = eventLog;
         _logger = logger;
+        _delay = delay ?? Task.Delay;
 
         _status.Changed += OnStatusChanged;
     }
@@ -150,7 +161,18 @@ public sealed class ProsimSetupCheckService : IProsimSetupCheck, IDisposable
             }
 
             // Read everything back: the verdict is what ProSim now reports, not what we sent.
+            // ProSim acknowledges before it applies (see ReadBackWindow), so keep reading until
+            // every accepted write shows up, or the window runs out.
+            var pending = toWrite.Where(item => !rejected.Contains(item.Label)).Select(item => item.DataRef).ToHashSet(StringComparer.Ordinal);
+            var deadline = DateTimeOffset.UtcNow + ReadBackWindow;
             var items = await ReadRowsAsync(cancellationToken).ConfigureAwait(false);
+            while (items is not null
+                && pending.Any(dataRef => items.FirstOrDefault(row => row.DataRef == dataRef)?.Status != ProsimSetupStatus.Ok)
+                && DateTimeOffset.UtcNow < deadline)
+            {
+                await _delay(ReadBackStep, cancellationToken).ConfigureAwait(false);
+                items = await ReadRowsAsync(cancellationToken).ConfigureAwait(false);
+            }
             var written = new List<string>();
             var failed = new List<string>(rejected);
             foreach (var item in toWrite)
