@@ -97,15 +97,7 @@ public sealed class SayIntentionsPttRelay : IStartupModule, IDisposable
 
     /// <summary>The ProSim switch behind a <see cref="SayIntentionsOptions.PttSource"/> key;
     /// null for <c>none</c> or an unknown key.</summary>
-    public static DataRef<int>? SourceRef(string? source) => source?.Trim().ToLowerInvariant() switch
-    {
-        "captainsidestick" => ProsimDataRefNames.SidestickPttCapt,
-        "fosidestick" => ProsimDataRefNames.SidestickPttFo,
-        "captainhandmic" => ProsimDataRefNames.HandMicPttCapt,
-        "fohandmic" => ProsimDataRefNames.HandMicPttFo,
-        "observerhandmic" => ProsimDataRefNames.HandMicPttObs,
-        _ => null,
-    };
+    public static DataRef<int>? SourceRef(string? source) => Recognition.ProsimPttSwitches.SourceRef(source);
 
     public void Start()
     {
