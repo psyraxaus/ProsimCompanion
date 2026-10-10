@@ -20,9 +20,22 @@ public sealed class SingleInstanceGuard : IDisposable
         _mutex = mutex;
         _showEvent = showEvent;
         // executeOnlyOnce: false — every later second-launch signal re-fires the callback.
+        // The callback runs on a thread-pool thread: an exception there is unhandled and
+        // terminates the process (2026-10-10 08:35 crash dump). Showing the window is a
+        // courtesy, never worth the process — swallow whatever the UI side throws.
         _showWait = ThreadPool.RegisterWaitForSingleObject(
             _showEvent,
-            (_, _) => _onShowRequested?.Invoke(),
+            (_, _) =>
+            {
+                try
+                {
+                    _onShowRequested?.Invoke();
+                }
+                catch (Exception)
+                {
+                    // Dispatcher gone, window disposed, shutdown in progress: ignore.
+                }
+            },
             null,
             Timeout.Infinite,
             executeOnlyOnce: false);

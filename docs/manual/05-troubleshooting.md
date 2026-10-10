@@ -35,6 +35,7 @@
 | No update banner | The check needs internet + a published GitHub release; it fails silently offline (by design, `updateCheck` section). |
 | Web UI unreachable from phone | LAN binding enabled + restart? Token in the URL (scan the QR again after regenerating)? Windows Firewall may prompt on first LAN bind. |
 | Remote page (iPad) stops updating | Mobile Safari drops the live connection on screen lock/app switch. The page recovers by itself: it reconnects to the session (kept 15 min) or reloads automatically — "Session expired — reloading…" flashing briefly is normal. If it ever sits stale, pull-to-refresh and report it. |
+| The app vanishes (hard crash, no error in the log) | Windows keeps a dump in `%LOCALAPPDATA%\CrashDumps`. Send it with the diagnostics bundle. A `0xC0000374` heap-corruption crash means native code (joystick, audio, Voicemeeter, SimConnect) wrote past a buffer; `tools\crash-hunt\enable-page-heap.ps1` (run as administrator on the sim PC) makes the next dump name the culprit. |
 | Two instances / port conflict | Starting the app twice just activates the running window — if a stale process is stuck, end it in Task Manager. |
 
 ## Resetting things

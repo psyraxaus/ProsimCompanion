@@ -44,14 +44,34 @@ internal sealed class TrayIcon : IDisposable
         };
     }
 
-    /// <summary>Restores the window from the tray (also the second-launch activation path).</summary>
+    /// <summary>Restores the window from the tray (also the second-launch activation path).
+    /// Posted, never awaited: the second-launch signal arrives on a thread-pool thread, and a
+    /// blocking Invoke against a dispatcher that is already shutting down threw
+    /// TaskCanceledException unhandled and killed the (exiting) process with a crash dump
+    /// (sim PC 2026-10-10 08:35, a reinstall relaunching over the closing instance).</summary>
     public static void Restore(Window window)
-        => window.Dispatcher.Invoke(() =>
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        var dispatcher = window.Dispatcher;
+        if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
         {
-            window.Show();
-            window.WindowState = WindowState.Normal;
-            window.Activate();
-        });
+            return;
+        }
+
+        try
+        {
+            _ = dispatcher.InvokeAsync(() =>
+            {
+                window.Show();
+                window.WindowState = WindowState.Normal;
+                window.Activate();
+            });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
+        {
+            // The dispatcher went away between the check and the post — nothing to restore.
+        }
+    }
 
     private static System.Drawing.Icon LoadAppIcon()
         => (Environment.ProcessPath is { } exe ? System.Drawing.Icon.ExtractAssociatedIcon(exe) : null)
