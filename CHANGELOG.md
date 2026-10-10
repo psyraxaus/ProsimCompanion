@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0-rc.3
+
+Released 2026-10-11, superseding 0.7.0-rc.2 (whose notes follow below — every rc.2 change is in this build). **Not yet verified live.**
+
+- Fix: **the Duty Day page no longer shows "---- → ----" and "Leg 1 · ? → ?"** (issue #164; Mario and the owner, 2026-10-10). A progressive leg learned its airports only at shutdown, so the FROM / TO card was blank for the whole flight, and a pilot with speech off never got them at all (no briefing → no route on record). Every open leg now takes FROM, TO and the flight number from the loaded OFP the moment the day or the next leg starts, and again when a new OFP loads; a finished leg never changes, and what you actually flew still wins at shutdown. Probe `day-leg-route-seeded`.
+- Fix: **logbook and debrief entries carry the route even without a briefing** (issue #164). A new `ofp.loaded` session event records each plan once; the fact extractor falls back to the last plan loaded before the landing when no briefing named the airports.
+- Duty Day: **block and duty read as h:mm with an HRS unit** ("1:42 HRS") instead of the spoken "1 hour 42 minutes" that was cut off to "1 hour 42 …" in the card; the long form is the hover text.
+
 ## 0.7.0-rc.2
 
 Flight report EFHK → EGCC 2026-10-10 (support ticket t-20261010-0726), released 2026-10-10. All fixes are proven by unit tests and by replaying the recorded flight; **not yet verified live**.
