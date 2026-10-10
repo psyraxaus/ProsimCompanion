@@ -2717,6 +2717,20 @@
         "watch: pilot commands spoken right after an FO line that were NOT heard (nothing in asr.utterance within the tail) — if common, speech.micTailAfterSpeakingMs (700) is too long for that cockpit."
       ],
       "notes": "Fix 2026-10-10 (no issue number): LanAsrRecognizer ignores the mic while SpeechStatusStore.NowPlaying is set and for speech.micTailAfterSpeakingMs after (segmenter Reset on entry), and drops a transcript whose words are ≥ 60 % contained in a line spoken in the last 30 s (SelfEchoGuard, session event asr.self-echo). Both behind speech.muteMicWhileSpeaking (on). Never flown."
+    },
+    {
+      "id": "sayintentions-remote-ptt",
+      "issue": null,
+      "title": "A ProSim PTT switch keys SayIntentions through its control LVAR",
+      "status": "fixed-unverified",
+      "checks": [
+        "assert-present: sayintentions.ptt events in pairs — pressed:true then pressed:false with the same lvar and source — one pair per button press; a press with no release within 30 s means the release edge was lost (dataref push dropped, or the binding was torn down while held — the relay then writes 0 itself).",
+        "assert-present: on the pressed:false events, transmitted:true — SI set L:SIAI_RADIO_PTT to 1 while the button was held, so the control LVAR really keyed the client. transmitted:false on every release = the LVAR name is wrong for this client build or SI was not running; quote the client's Controls page.",
+        "assert-absent: log 'SayIntentions PTT not relayed to … — retrying on the next press' while MSFS was connected (SimConnect dot green) — the name failed the sim write allow-list or the write path; one such line while MSFS was down is expected.",
+        "watch: the gap between the ProSim edge and SI's transmit echo (timestamp of pressed:true vs the first RadioPtt=1) — Critical tier is 100 ms; anything over ~300 ms is worth a note.",
+        "watch: whether the sim PC's joystick ATC-mute binding was cleared afterwards (no 'Joystick poll pass' lines at all) — the point of the feature is to retire winmm/dinput polling (crash suspect, crashes-2026-10-10)."
+      ],
+      "notes": "Feature 2026-10-10 (owner idea after the 0xC0000374 crash; no issue number). SayIntentionsPttRelay: sayIntentions.pttSource (none | captainSidestick | foSidestick | captainHandMic | foHandMic | observerHandMic) → typed subscription to S_SIDESTICK_PTT_* / S_HAND_MIC_PTT_* (Critical tier) → ISimVars.WriteAsync(sayIntentions.pttLvar, 1|0); the seven L:SIAI_CONTROL_PTT_* names are on SimWriteGate by exact name. The LVARs are listed in the SI client under Controls → Map PTT inside the sim, not in the published LVAR reference. Never run live."
     }
   ]
 }
