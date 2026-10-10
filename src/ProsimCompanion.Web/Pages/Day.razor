@@ -62,13 +62,15 @@
                 </div>
 
                 <div class="ops-figures">
+                    @* h:mm digits + a small unit, like every other EFB figure — the spoken
+                       "1 hour 42 minutes" ellipsized in the cell (Mario, 2026-10-10). *@
                     <div class="ops-figure">
                         <span class="label-caps">Block</span>
-                        <span class="figure figure-lg glow">@DayMath.FormatHoursMinutes(view.BlockMinutes)</span>
+                        <span class="figure figure-lg glow" title="@DayMath.FormatHoursMinutes(view.BlockMinutes)">@DayMath.FormatClock(view.BlockMinutes)<span class="figure-unit">HRS</span></span>
                     </div>
                     <div class="ops-figure">
                         <span class="label-caps">Duty</span>
-                        <span class="figure figure-lg">@DayMath.FormatHoursMinutes(view.DutyMinutes)</span>
+                        <span class="figure figure-lg" title="@DayMath.FormatHoursMinutes(view.DutyMinutes)">@DayMath.FormatClock(view.DutyMinutes)<span class="figure-unit">HRS</span></span>
                     </div>
                     <div class="ops-figure">
                         <span class="label-caps">Schedule</span>

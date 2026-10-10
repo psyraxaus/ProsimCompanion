@@ -40,6 +40,12 @@ public interface IDebriefFactExtractor
 /// (first title per id wins; cleared when a later cleared event names the id).</item>
 /// <item><c>flight.route</c> { role, airport, runway } — origin/destination + runways
 /// (emitted by the briefing service when a briefing resolves).</item>
+/// <item><c>ofp.loaded</c> { origin, destination, flightNumber } / legacy
+/// <c>airport-coordinates</c> { origin.icao, destination.icao } — the PLANNED route, used
+/// for origin/destination only when no <c>flight.route</c> named them (issue #164: with
+/// speech off no briefing ever ran, so the logbook, debrief and duty-day leg had no
+/// airports). Last plan loaded before the landing wins; a plan loaded after landing is
+/// the next sector's and is ignored.</item>
 /// <item><c>flight-times</c> { takeoffFobKg, landingFobKg, onBlocksFobKg } — start fuel =
 /// takeoff, final fuel = on blocks (landing while still taxiing in), used = the difference.
 /// Issue #155 (owner's EGLL→EFHK debrief 2026-10-04: "burned 1.7 t, landing with 5.1 t"
@@ -87,6 +93,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             double? takeoffFob = null, landingFob = null, onBlocksFob = null;
             var advisories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string? origin = null, destination = null, depRunway = null, arrRunway = null;
+            string? plannedOrigin = null, plannedDestination = null; // ofp.loaded fallback (#164)
             double? touchdownRate = null, touchdownIas = null, touchdownPitch = null;
             int? bounces = null;
             bool touchdownSeen = false, touchdownSettled = false;
@@ -306,6 +313,32 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             break;
                         }
 
+                        case "ofp.loaded":
+                        case "airport-coordinates":
+                        {
+                            // The planned route (#164). Only plans loaded before the landing
+                            // count: one loaded after it is the next sector's (Mario's
+                            // EDDM→LHDC session saw LHDC→EDDM arrive during the turnaround).
+                            if (touchdown is not null || stampLanding is not null || touchdownSettled)
+                            {
+                                break;
+                            }
+
+                            var plannedFrom = Str(payload, "origin") ?? Nested(payload, "origin", "icao");
+                            var plannedTo = Str(payload, "destination") ?? Nested(payload, "destination", "icao");
+                            if (!string.IsNullOrWhiteSpace(plannedFrom))
+                            {
+                                plannedOrigin = plannedFrom;
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(plannedTo))
+                            {
+                                plannedDestination = plannedTo;
+                            }
+
+                            break;
+                        }
+
                         case "touchdown":
                         {
                             // The landing that stuck: the first touchdown that was not a
@@ -356,7 +389,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 callouts, suppressed, checklists.Count, checklists,
                 startFob, finalFob, used, advisories.ToList(), degradations,
                 abnormalOrder.Select(id => new AbnormalFact(abnormals[id].Title, abnormals[id].Cleared)).ToList(),
-                origin, destination, depRunway, arrRunway, cabinReports,
+                origin ?? plannedOrigin, destination ?? plannedDestination, depRunway, arrRunway, cabinReports,
                 defectsRaised, defectsRectified, defectsCarried, radioTunes, memoryDrills,
                 touchdownRate, touchdownIas, touchdownPitch, bounces,
                 stampOff, stampTakeoff, stampLanding, stampOn);
@@ -376,6 +409,15 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             && payload.TryGetProperty(field, out var v)
             && v.ValueKind == JsonValueKind.String
                 ? v.GetString()
+                : null;
+
+    /// <summary>A string one object deep: <c>payload.outer.field</c> (the legacy
+    /// <c>airport-coordinates</c> shape, origin { icao }).</summary>
+    private static string? Nested(JsonElement payload, string outer, string field)
+        => payload.ValueKind == JsonValueKind.Object
+            && payload.TryGetProperty(outer, out var o)
+            && o.ValueKind == JsonValueKind.Object
+                ? Str(o, field)
                 : null;
 
     private static double? Num(JsonElement payload, string field)

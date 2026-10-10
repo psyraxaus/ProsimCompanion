@@ -193,4 +193,47 @@ public sealed class DebriefFactExtractorTests : IDisposable
         Assert.Equal(4530.0, landedNotYetOnBlocks.FinalFobKg);      // landing fuel stands in until on blocks
         Assert.Equal(4820.0, landedNotYetOnBlocks.FuelUsedKg);
     }
+
+    /// <summary>Issue #164 (Mario, speech off, EDDM→LHDC 2026-10-10): no briefing ran, so no
+    /// flight.route was written and the logbook, debrief and duty-day leg had no airports. The
+    /// planned route from ofp.loaded (or the legacy airport-coordinates shape) stands in; the
+    /// last plan loaded BEFORE the landing wins and the return plan loaded after it is ignored.</summary>
+    [Fact]
+    public void Extract_FallsBackToThePlannedRoute_WhenNoBriefingNamedIt()
+    {
+        var ofpOnly = new SessionLogBuilder()
+            .At("09:18:48").Event("ofp.loaded", new { requestId = "1", origin = "EDDM", destination = "LHBP", flightNumber = "DLH1687" })
+            .At("09:20:00").Event("ofp.loaded", new { requestId = "2", origin = "EDDM", destination = "LHDC", flightNumber = "DLH1687" }) // re-planned before departure
+            .At("10:25:45").Phase("Preflight", "PushbackAndStart")
+            .At("11:56:14").Phase("Approach", "LandingRollout", groundSpeedKt: 130.0)
+            .At("12:07:55").Phase("TaxiIn", "Shutdown")
+            .At("12:09:05").Event("ofp.loaded", new { requestId = "3", origin = "LHDC", destination = "EDDM", flightNumber = "DLH1688" }) // next sector's plan
+            .Write(_dir, "session-ofp-only");
+
+        var planned = _extractor.Extract(ofpOnly);
+        Assert.Equal("EDDM", planned.Origin);
+        Assert.Equal("LHDC", planned.Destination);
+
+        var legacyShape = new SessionLogBuilder()
+            .At("09:18:48").Event("airport-coordinates", new
+            {
+                attempt = 1,
+                origin = new { icao = "EDDM", found = true },
+                destination = new { icao = "LHDC", found = true },
+            })
+            .Write(_dir, "session-legacy");
+
+        var legacy = _extractor.Extract(legacyShape);
+        Assert.Equal("EDDM", legacy.Origin);
+        Assert.Equal("LHDC", legacy.Destination);
+
+        var briefed = new SessionLogBuilder()
+            .At("09:18:48").Event("ofp.loaded", new { requestId = "1", origin = "EDDM", destination = "LHDC" })
+            .At("11:00:00").Event("flight.route", new { role = "arrival", airport = "LHBP", runway = "31L" }) // diverted
+            .Write(_dir, "session-briefed");
+
+        var reality = _extractor.Extract(briefed);
+        Assert.Equal("EDDM", reality.Origin);      // plan fills the gap the briefing left
+        Assert.Equal("LHBP", reality.Destination); // the briefing's route wins where it exists
+    }
 }
