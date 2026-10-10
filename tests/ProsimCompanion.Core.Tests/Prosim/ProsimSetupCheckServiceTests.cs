@@ -35,6 +35,11 @@ public sealed class ProsimSetupCheckServiceTests : IDisposable
     private readonly GsxOptions _gsxOptions = new();
     private readonly JsonlEventLog _eventLog;
     private bool _rejectWrites;
+    /// <summary>Reads that still show the old value after a write (ProSim applies a beat after it
+    /// acknowledges; sim PC 2026-10-11).</summary>
+    private int _staleReadsAfterWrite;
+    private readonly Dictionary<string, string?> _applied = new(StringComparer.Ordinal);
+    private int _delays;
 
     public ProsimSetupCheckServiceTests()
     {
@@ -43,7 +48,18 @@ public sealed class ProsimSetupCheckServiceTests : IDisposable
 
         _gateway.Setup(g => g.IsReachableAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _gateway.Setup(g => g.QueryDataRefAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string name, CancellationToken _) => _prosim.GetValueOrDefault(name));
+            .ReturnsAsync((string name, CancellationToken _) =>
+            {
+                // The version query starts every read-back pass: count passes there and let the
+                // pending writes land once the stale passes are used up.
+                if (name == ProsimSetupRecommendations.ProsimVersion && _applied.Count > 0 && _staleReadsAfterWrite-- <= 0)
+                {
+                    foreach (var pair in _applied) { _prosim[pair.Key] = pair.Value; }
+                    _applied.Clear();
+                }
+
+                return _prosim.GetValueOrDefault(name);
+            });
         _gateway.Setup(g => g.WriteDataRefAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string name, object value, CancellationToken _) =>
             {
@@ -53,7 +69,16 @@ public sealed class ProsimSetupCheckServiceTests : IDisposable
                     return false;
                 }
 
-                _prosim[name] = value is bool b ? (b ? "true" : "false") : value.ToString();
+                var text = value is bool b ? (b ? "true" : "false") : value.ToString();
+                if (_staleReadsAfterWrite > 0)
+                {
+                    _applied[name] = text;
+                }
+                else
+                {
+                    _prosim[name] = text;
+                }
+
                 return true;
             });
     }
@@ -71,7 +96,8 @@ public sealed class ProsimSetupCheckServiceTests : IDisposable
         new FakeMonitor<ProsimOptions>(_prosimOptions),
         new FakeMonitor<GsxOptions>(_gsxOptions),
         _eventLog,
-        NullLogger<ProsimSetupCheckService>.Instance);
+        NullLogger<ProsimSetupCheckService>.Instance,
+        (_, _) => { _delays++; return Task.CompletedTask; });
 
     private async Task ConnectAndWaitForReadAsync()
     {
@@ -187,6 +213,26 @@ public sealed class ProsimSetupCheckServiceTests : IDisposable
         Assert.Equal("Set 2 options in ProSim.", result.Summary);
         Assert.All(_store.Snapshot().Items, item => Assert.Equal(ProsimSetupStatus.Ok, item.Status));
         Assert.False(_store.Snapshot().Busy);
+    }
+
+    [Fact]
+    public async Task Apply_WriteAcceptedButAppliedLate_WaitsForTheReadBack_AndReportsWritten()
+    {
+        // Sim PC 2026-10-11: every write came back accepted, the read-back in the same
+        // millisecond still read the old values, and the card said "ProSim did not accept"
+        // while the next check read five Ok rows.
+        _prosim[ProsimSetupRecommendations.DoorLogic] = "true";
+        _prosim[ProsimSetupRecommendations.RefuelRate] = "Quick";
+        _staleReadsAfterWrite = 2;
+        using var service = Create();
+        await ConnectAndWaitForReadAsync();
+
+        var result = await service.ApplyRecommendedAsync();
+
+        Assert.Equal(["Door logic", "Refuelling rate"], result.Written);
+        Assert.Empty(result.Failed);
+        Assert.Equal(2, _delays);
+        Assert.All(_store.Snapshot().Items, item => Assert.Equal(ProsimSetupStatus.Ok, item.Status));
     }
 
     [Fact]

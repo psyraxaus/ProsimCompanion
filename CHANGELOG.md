@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix: **"ProSim did not accept" after Apply recommended, when ProSim had accepted** (sim PC, 2026-10-11, ProSim 1.75.1). ProSim acknowledges a System-options write before it applies it, so the read-back in the same millisecond still saw the old values and every row was reported refused — while the next check read them all as OK. Apply now re-reads for up to 5 s until the rows agree; the two new rc.1 probes (`asr-self-echo`, `sayintentions-remote-ptt`) also carry the standard state fields so the evaluator no longer skips them.
+
 ## 0.7.0-rc.3
 
 Released 2026-10-11, superseding 0.7.0-rc.2 (whose notes follow below — every rc.2 change is in this build). **Not yet verified live.**
