@@ -2707,9 +2707,13 @@
     },
     {
       "id": "asr-self-echo",
-      "issue": null,
-      "title": "The FO never answers its own voice heard back from the speakers",
-      "status": "fixed-unverified",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-absent",
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "assert-absent: a fo.query whose question (normalised) shares 60 % or more of its words with the text of a fo.answer or speech.spoken event in the previous 30 s — that is the FO answering itself (2026-10-10: a VBAN loop put the FO on the cockpit speakers; 23 queries in 90 s, every one a line the FO had just said).",
         "assert-present (when bleed happened): asr.self-echo events, each text matching a recent speech.spoken / fo.answer text — the second guard caught what the mic gate missed; count them and note the audio routing that let the FO reach the mic.",
@@ -2720,9 +2724,13 @@
     },
     {
       "id": "sayintentions-remote-ptt",
-      "issue": null,
-      "title": "A ProSim PTT switch keys SayIntentions through its control LVAR",
-      "status": "fixed-unverified",
+      "issue": 0,
+      "state": "open",
+      "kind": "assert-present",
+      "sources": [
+        "session",
+        "log"
+      ],
       "checks": [
         "assert-present: sayintentions.ptt events in pairs — pressed:true then pressed:false with the same lvar and source — one pair per button press; a press with no release within 30 s means the release edge was lost (dataref push dropped, or the binding was torn down while held — the relay then writes 0 itself).",
         "assert-present: on the pressed:false events, transmitted:true — SI set L:SIAI_RADIO_PTT to 1 while the button was held, so the control LVAR really keyed the client. transmitted:false on every release = the LVAR name is wrong for this client build or SI was not running; quote the client's Controls page.",
