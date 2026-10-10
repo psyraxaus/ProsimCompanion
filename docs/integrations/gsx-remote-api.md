@@ -290,6 +290,23 @@ integer identity, and the not-parked timing. The SetGate_* readback did NOT matc
 60 s window (status went to Assigned (unconfirmed) at 21:35:52Z) — why is not established;
 read the SetGate LVAR frames in a wire trace before changing the readback map.
 
+**SECOND ACCEPTED TOKEN (2026-10-10 07:09:09Z, EFHK→EGCC, build 0.7.0-rc.1, ticket
+t-20261010-0726):** `gate.select {"gate":43}` — the parking **number as an integer** again, sent
+**airborne** on the approach the moment the mirror reported EGCC loaded — answered `ok`/`prepared`
+with uiName `"Gate 43"` (`{"code":"ok","status":"prepared","gate":{"uiName":"Gate 43","gate":"Gate
+43","number":43,"bglName":"Gate 43"},"warnings":[]}`). The same flight's departure anchor sends
+(`"Gate 46"`, `"Apron 1W (Gates W34-W48) | Gate 46"`, `"46"` — strings, parked) were all refused
+`not_found`, as the rule above predicts. Two flights, two airports, same shape: the contract is
+settled. **In-flight airport pick, same flight:** three attempts. #1 failed because the mirror
+showed the opened menu with an EMPTY title for a beat while its rows were already the airport
+list (the executor now waits the open timeout for a title before judging whose page it is). #2 and
+#3 picked the `EGCC Manchester at … nm [PLANNED]` row and GSX answered at once with its own
+**"Select Position at EGCC/Manchester"** page — yet the `airport` patch naming EGCC arrived only
+7 minutes after #3, so both were logged `GsxNoResponse` after the 20 s wait. From this fix on that
+page, naming the destination, counts as the pick having worked and the gate.select ladder runs
+immediately; **whether GSX accepts the integer while still loading the airport is unproven** — a
+`not_found` right after a Select-Position success means the ladder must wait for the patch.
+
 **The parking-change menu after an assignment is not a conflict (2026-10-05, issue #157).**
 Right after the accepted gate.select GSX's menu is "Change parking or service" with
 `Change Facility [Gate C 29]` (seen 21:36:29Z, still airborne) while the mirror's `parking`

@@ -131,7 +131,9 @@ public sealed class GsxOptions : IOptionSection
     /// the stand heading and the runway position — and otherwise asks;
     /// <c>"ask"</c> never guesses: the FO asks "Tail left or tail right?" and the menu waits;
     /// <c>"straight"</c> | <c>"tailLeft"</c> | <c>"tailRight"</c> are the old fixed answers
-    /// (Prosim2GSX's tri-state). Unknown values read as auto.
+    /// (Prosim2GSX's tri-state); when the stand does not offer the fixed answer the FO takes
+    /// the only direction on the menu or asks (issue #161) — the menu is never left silently.
+    /// Unknown values read as auto.
     /// </summary>
     public string PushbackPreference { get; set; } = "auto";
 

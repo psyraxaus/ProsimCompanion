@@ -6,8 +6,15 @@ using ProsimCompanion.Core.Logging;
 namespace ProsimCompanion.Reduce;
 
 /// <summary>A literal signature: which stream, an optional session event type, a substring,
-/// an optional component (log stream) and how many hits count as "present".</summary>
-public sealed record ProbeSignature(string Source, string? Type, string Contains, string? Component, int MinCount);
+/// an optional component (log stream), how many hits count as "present" and, for session
+/// events, an optional <c>where</c> (payload path → text) every hit must read.</summary>
+public sealed record ProbeSignature(
+    string Source,
+    string? Type,
+    string Contains,
+    string? Component,
+    int MinCount,
+    IReadOnlyDictionary<string, string>? Where = null);
 
 /// <summary>The optional <c>machine</c> block of a probe. Probes without one go to forLlm.</summary>
 public sealed record ProbeMachine(
@@ -93,7 +100,8 @@ public static class ProbeEvaluator
         Str(s, "type"),
         Str(s, "contains") ?? "",
         Str(s, "component"),
-        s.TryGetProperty("minCount", out var c) && c.ValueKind == JsonValueKind.Number ? c.GetInt32() : 1);
+        s.TryGetProperty("minCount", out var c) && c.ValueKind == JsonValueKind.Number ? c.GetInt32() : 1,
+        ReadWhere(s));
 
     /// <summary>Evaluates the catalog over the whole bundle.</summary>
     public static (IReadOnlyDictionary<string, ProbeResult> Results, IReadOnlyList<ProbeForLlm> ForLlm) Evaluate(
@@ -184,14 +192,8 @@ public static class ProbeEvaluator
         var evidence = new List<string>();
         foreach (var session in sessions)
         {
-            foreach (var line in session.Lines.Where(l => l.Type == machine.Type))
+            foreach (var line in session.Lines.Where(l => l.Type == machine.Type && Matches(machine.Where, l.Payload)))
             {
-                if (machine.Where is not null
-                    && machine.Where.Any(pair => !string.Equals(PathText(line.Payload, pair.Key), pair.Value, StringComparison.Ordinal)))
-                {
-                    continue;
-                }
-
                 seen++;
                 var missing = always
                     .Concat(conditional.Where(pair => HasPath(line.Payload, pair.Key)).SelectMany(pair => pair.Value))
@@ -225,7 +227,7 @@ public static class ProbeEvaluator
         foreach (var session in sessions)
         {
             var lastByKey = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
-            foreach (var line in session.Timed.Where(l => l.Type == machine.Type))
+            foreach (var line in session.Timed.Where(l => l.Type == machine.Type && Matches(machine.Where, l.Payload)))
             {
                 seen++;
                 var key = Str(line.Payload, machine.Key);
@@ -265,7 +267,7 @@ public static class ProbeEvaluator
         foreach (var session in sessions)
         {
             string? previous = null;
-            foreach (var line in session.Lines.Where(l => l.Type == machine.Type))
+            foreach (var line in session.Lines.Where(l => l.Type == machine.Type && Matches(machine.Where, l.Payload)))
             {
                 seen++;
                 var payload = line.Payload.ValueKind == JsonValueKind.Undefined ? "" : line.Payload.GetRawText();
@@ -330,7 +332,8 @@ public static class ProbeEvaluator
             foreach (var line in session.Lines)
             {
                 if ((signature.Type is null || line.Type == signature.Type)
-                    && line.Raw.Contains(signature.Contains, StringComparison.Ordinal))
+                    && line.Raw.Contains(signature.Contains, StringComparison.Ordinal)
+                    && Matches(signature.Where, line.Payload))
                 {
                     hits.Add($"{session.File} {Stamp(line.At)} {Truncate(line.Raw, 240)}");
                 }
@@ -339,6 +342,12 @@ public static class ProbeEvaluator
 
         return hits;
     }
+
+    /// <summary>The <c>where</c> filter (payload path → text): absent = every event; a path
+    /// the payload lacks never matches. Booleans/numbers compare as their JSON text ("true").</summary>
+    private static bool Matches(IReadOnlyDictionary<string, string>? where, JsonElement payload)
+        => where is null
+            || where.All(pair => string.Equals(PathText(payload, pair.Key), pair.Value, StringComparison.Ordinal));
 
     private static List<string> Quote(List<string> hits)
         => hits.Count <= MaxEvidence ? hits : [.. hits.Take(MaxEvidence), $"… {hits.Count - MaxEvidence} more"];
@@ -401,8 +410,11 @@ public static class ProbeEvaluator
         return fields;
     }
 
+    /// <summary>Evidence stamps are UTC whatever the source: session events are written in
+    /// UTC, the CMTrace log in the sim PC's local time (+660 on the owner's machine). Mixed
+    /// offsets made the 2026-10-10 report read eleven hours apart (ticket t-20261010-0726).</summary>
     private static string Stamp(DateTimeOffset? at)
-        => at?.ToString("yyyy-MM-ddTHH:mm:ss.fffK", CultureInfo.InvariantCulture) ?? "(no timestamp)";
+        => at?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fff'Z'", CultureInfo.InvariantCulture) ?? "(no timestamp)";
 
     private static string FirstLine(string text) => Truncate(text.Split('\n', 2)[0].TrimEnd('\r'), 240);
 

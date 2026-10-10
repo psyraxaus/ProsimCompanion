@@ -118,4 +118,79 @@ public sealed class PushbackDirectionDeciderTests
         var decision = PushbackDirectionDecider.Decide(DefaultMenu, "auto", true, null);
         Assert.Equal(PushbackDecisionKind.Ask, decision.Kind);
     }
+
+    // ---- Issue #161: EFHK Gate 46, 2026-10-10 (ticket t-20261010-0726) ----
+
+    /// <summary>GSX's exact menu for Gate 46: one custom route next to QuickEdit and the two
+    /// straight lines. The fixed-index fallback refuses (entry 1 is a meta line); the live
+    /// build left the menu open twice with "no entry matches preference 'tailRight'".</summary>
+    private static readonly string[] EfhkGate46Menu =
+    [
+        "Facing SW on Taxi AT",
+        "QuickEdit Pushback",
+        "QuickEdit Pushback on Map",
+        "Straight pushback (manual stop, max 100 m)",
+        "Straight Pull pushback (manual stop, max 100 m)",
+    ];
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void LegacyPreference_NotOffered_SingleDirection_PicksIt_NeverLeaves(bool askWhenUnsure)
+    {
+        var known = new[] { new PushbackOption("Facing SW on Taxi AT", PushbackOptionKind.Left, 227, "profile") };
+        var suggestion = new PushbackSuggestion(known[0], PushbackConfidence.High, "the stand offers one direction: Facing SW on Taxi AT", null);
+
+        var decision = PushbackDirectionDecider.Decide(EfhkGate46Menu, "tailRight", askWhenUnsure, State(suggestion: suggestion, options: known));
+
+        Assert.Equal(PushbackDecisionKind.Pick, decision.Kind);
+        Assert.Equal("Facing SW on Taxi AT", decision.Entry);
+        Assert.Contains("not offered", decision.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LegacyPreference_NotOffered_NoProfile_StillPicksTheOnlyDirection()
+    {
+        var decision = PushbackDirectionDecider.Decide(EfhkGate46Menu, "tailRight", false, State());
+
+        Assert.Equal(PushbackDecisionKind.Pick, decision.Kind);
+        Assert.Equal("Facing SW on Taxi AT", decision.Entry);
+    }
+
+    [Fact]
+    public void LegacyPreference_MatchesTheProfileSlotKind_OnCustomLines()
+    {
+        // tailLeft on the same stand IS the Left slot the profile named "Facing SW on Taxi AT".
+        var known = new[] { new PushbackOption("Facing SW on Taxi AT", PushbackOptionKind.Left, 227, "profile") };
+
+        var decision = PushbackDirectionDecider.Decide(EfhkGate46Menu, "tailLeft", false, State(options: known));
+
+        Assert.Equal(PushbackDecisionKind.Pick, decision.Kind);
+        Assert.Equal("Facing SW on Taxi AT", decision.Entry);
+        Assert.Contains("option kind", decision.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LegacyPreference_NotOffered_SeveralDirections_Asks_NeverLeaves()
+    {
+        string[] menu = ["Facing SW on Taxi AT", "QuickEdit Pushback", "Facing NE on Taxi AV", "Straight pushback"];
+
+        var decision = PushbackDirectionDecider.Decide(menu, "tailRight", false, State());
+
+        Assert.Equal(PushbackDecisionKind.Ask, decision.Kind);
+        Assert.Null(decision.Entry);
+    }
+
+    [Fact]
+    public void LegacyPreference_IsNeverLeave()
+    {
+        foreach (var preference in new[] { "tailLeft", "tailRight", "straight" })
+        {
+            foreach (var menu in new[] { DefaultMenu, EfhkMenu, EfhkGate46Menu, new[] { "QuickEdit Pushback" } })
+            {
+                var decision = PushbackDirectionDecider.Decide(menu, preference, false, State());
+                Assert.NotEqual(PushbackDecisionKind.Leave, decision.Kind);
+            }
+        }
+    }
 }

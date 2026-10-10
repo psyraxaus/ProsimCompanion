@@ -45,7 +45,7 @@ public static class Reducer
         // session file, or clock skew) — clustered so they are not lost.
         var unattributed = LogClusterer.Cluster(cmTrace
             .Where(e => e.Severity >= CmTraceFormat.SeverityWarning && !sessions.Any(s => SessionReducer.Covers(s, e.Timestamp)))
-            .Select(e => new LogOccurrence(e.Timestamp, e.Level, e.Component, e.Message, null, null)));
+            .Select(e => new LogOccurrence(e.Timestamp.ToUniversalTime(), e.Level, e.Component, e.Message, null, null)));
 
         var restarts = new List<RestartReport>();
         for (var i = 1; i < sessions.Count; i++)

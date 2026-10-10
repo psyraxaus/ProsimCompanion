@@ -207,7 +207,7 @@ public static class SessionReducer
                 if (entry.Severity >= CmTraceFormat.SeverityWarning && entry.Timestamp >= first && entry.Timestamp <= last)
                 {
                     cmOccurrences.Add(new LogOccurrence(
-                        entry.Timestamp, entry.Level, entry.Component, entry.Message, null, PhaseAt(timeline, entry.Timestamp)));
+                        entry.Timestamp.ToUniversalTime(), entry.Level, entry.Component, entry.Message, null, PhaseAt(timeline, entry.Timestamp)));
                 }
             }
         }

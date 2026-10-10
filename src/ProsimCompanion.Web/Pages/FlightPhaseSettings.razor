@@ -93,6 +93,10 @@
                      Hint="A VS blip at cruise is turbulence; a step climb sustains"
                      @bind-Value="_o.Value.CruiseToClimbSettleSeconds"
                      Default="_o.Defaults.CruiseToClimbSettleSeconds" />
+        <NumberField Label="Descent → Climb" Suffix="s" Min="0"
+                     Hint="A level-off in the descent wobbles upward for a few seconds; a climb-back on ATC instruction sustains"
+                     @bind-Value="_o.Value.DescentToClimbSettleSeconds"
+                     Default="_o.Defaults.DescentToClimbSettleSeconds" />
         <NumberField Label="Go-around" Suffix="s" Min="0" @bind-Value="_o.Value.GoAroundSettleSeconds"
                      Default="_o.Defaults.GoAroundSettleSeconds" />
         <NumberField Label="Departure regression" Suffix="s" Min="0"

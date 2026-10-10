@@ -23,7 +23,8 @@ public sealed record PushbackDecision(PushbackDecisionKind Kind, string? Entry, 
 /// pick / ask / leave. Precedence (2026-10-04): the pilot's choice for this flight (voice,
 /// OFP Korry buttons, API) → the fixed legacy preference when configured → the advisor's
 /// confident suggestion (mode auto) → ask (mode ask, or auto when unsure and asking is on) →
-/// leave. A menu with a single direction line is picked in every mode but "ask".
+/// leave. A menu with a single direction line is picked in every mode but "ask". A fixed
+/// preference the stand does not offer asks (issue #161) — it never leaves the menu silently.
 /// </summary>
 public static class PushbackDirectionDecider
 {
@@ -54,13 +55,39 @@ public static class PushbackDirectionDecider
                 : new PushbackDecision(PushbackDecisionKind.Leave, null, why, options);
         }
 
-        // 2. The old fixed answers.
+        // 2. The old fixed answers. The live options' kinds come first: a profile route with a
+        // custom label ("Facing SW on Taxi AT") carries its LEFT/RIGHT slot through
+        // LiveOptions, which the text/fixed-index resolver cannot see.
         if (mode is "tailLeft" or "tailRight" or "straight")
         {
+            var wantedKind = mode switch
+            {
+                "tailLeft" => PushbackOptionKind.Left,
+                "tailRight" => PushbackOptionKind.Right,
+                _ => PushbackOptionKind.Straight,
+            };
+            var byKind = options.Where(o => o.Kind == wantedKind).ToList();
+            if (byKind.Count == 1)
+            {
+                return new PushbackDecision(PushbackDecisionKind.Pick, byKind[0].Label, $"preference {mode} (option kind)", options);
+            }
+
             var legacy = PushbackDirectionResolver.Resolve(menuEntries, mode);
-            return legacy is null
-                ? new PushbackDecision(PushbackDecisionKind.Leave, null, $"no entry matches preference '{mode}'", options)
-                : new PushbackDecision(PushbackDecisionKind.Pick, legacy.Entry, $"preference {mode} ({legacy.Strategy})", options);
+            if (legacy is not null)
+            {
+                return new PushbackDecision(PushbackDecisionKind.Pick, legacy.Entry, $"preference {mode} ({legacy.Strategy})", options);
+            }
+
+            // Issue #161 (EFHK Gate 46, 2026-10-10): the stand offered ONE direction ("Facing
+            // SW on Taxi AT" next to QuickEdit/Straight lines) and the fixed-index fallback
+            // refused, so the menu was left open silently twice. A single direction is picked
+            // in every mode but ask; with several and no match the FO asks — never a Leave.
+            if (turning.Count == 1)
+            {
+                return new PushbackDecision(PushbackDecisionKind.Pick, turning[0].Label, $"preference {mode} not offered — the only direction is '{turning[0].Label}'", options);
+            }
+
+            return new PushbackDecision(PushbackDecisionKind.Ask, null, $"preference {mode} not offered and {turning.Count} directions on the menu", options);
         }
 
         // 3. Ask, always.

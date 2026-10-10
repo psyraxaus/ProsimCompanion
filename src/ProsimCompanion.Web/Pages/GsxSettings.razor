@@ -255,7 +255,7 @@ else if (CurrentSection == "pushback")
 {
     <Section Title="Pushback Direction" Hint="How GSX's 'Select pushback direction' menu is answered when you have not chosen for this flight">
         <SelectField Label="Default direction" Hint="Your own choice for the flight always wins: say 'tail left', 'tail right' or 'push back facing north' to the FO, or press a Korry button on the OFP page."
-                     More="Auto: the app works out which push faces the departure runway — from the GSX profile's pushback routes, the stand heading and the runway position — and applies it when confident. Ask: the FO always asks 'Tail left or tail right?' and GSX's menu waits for your answer. The three fixed answers behave as before 0.6.0."
+                     More="Auto: the app works out which push faces the departure runway — from the GSX profile's pushback routes, the stand heading and the runway position — and applies it when confident. Ask: the FO always asks 'Tail left or tail right?' and GSX's menu waits for your answer. The three fixed answers behave as before 0.6.0 — except that when the stand does not offer your fixed answer, the FO takes the only direction on the menu, or asks you; the menu is never left open silently."
                      Options="PushbackModeOptions" @bind-Value="_gsx.Value.PushbackPreference" />
         <BoolField Label="Ask when unsure" Hint="In Auto mode, when no confident suggestion exists, the FO asks you (on) or GSX's menu is left open quietly (off)."
                    Disabled="@(_gsx.Value.PushbackPreference != "auto")"
