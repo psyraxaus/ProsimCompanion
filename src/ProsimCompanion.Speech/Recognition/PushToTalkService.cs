@@ -34,6 +34,13 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
     // died. Now: ONE dedicated thread (no pile-up), present ids polled every 25 ms, absent ids
     // re-probed every 2 s, no polling at all without a joystick binding, every winmm call
     // under one gate, and a slow-pass warning so the next re-enumeration storm is visible.
+    //
+    // 2026-10-11 (EFHK→EGCC climb, dump ProsimCompanion.exe.26396.dmp, page heap on): NO
+    // joystick binding, poller idle — and the process still died with 0xC0000005 under
+    // joyGetPosEx, on the Blazor render thread: SpeechSettings.OnInitialized → GetJoysticks →
+    // ProductNameOf → ReadButtons. Opening the Voice FO settings page was enough. So the
+    // device list is now a cache filled only by ScanJoysticksAsync (the pilot's click, or a
+    // capture that pressed a button); a page load never enters winmm.
     private const int PollIntervalMs = 25;
     private const int AbsentRescanIntervalMs = 2000;
     private const int SlowPollWarnMs = 100;
@@ -321,7 +328,26 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
         : CanonicalKeyNames.TryGetValue(vk, out var name) ? name
         : vk.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    public IReadOnlyList<JoystickDeviceView> GetJoysticks()
+    private volatile IReadOnlyList<JoystickDeviceView> _knownJoysticks = [];
+
+    /// <inheritdoc />
+    public IReadOnlyList<JoystickDeviceView> GetJoysticks() => _knownJoysticks;
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<JoystickDeviceView>> ScanJoysticksAsync(CancellationToken cancellationToken)
+    {
+        return Task.Run(() =>
+        {
+            _logger.LogInformation("Joystick scan requested — probing the winmm joystick layer (the 2026-10-11 crash site)");
+            var found = ProbeJoysticks();
+            _knownJoysticks = found;
+            _logger.LogInformation("Joystick scan found {Count} device(s): {Names}", found.Count, string.Join(", ", found.Select(d => d.Name)));
+            return found;
+        }, cancellationToken);
+    }
+
+    /// <summary>The sixteen-slot winmm probe. Only ever called from <see cref="ScanJoysticksAsync"/>.</summary>
+    private static IReadOnlyList<JoystickDeviceView> ProbeJoysticks()
     {
         var result = new List<JoystickDeviceView>();
         for (var id = 0; id < MaxJoysticks; id++)

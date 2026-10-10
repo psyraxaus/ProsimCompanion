@@ -161,9 +161,26 @@ else if (CurrentSection == "listening")
         {
             <div class="field-hint">@_captureMessage</div>
         }
+        <BoolField Label="Also listen for joystick buttons" Hint="Off: Set captures a keyboard key only. On: Set also watches the joystick buttons on this PC."
+                   More="Windows' joystick layer has crashed the app on some PCs (2026-09-20, 2026-10-10, 2026-10-11 — the last time just from listing the devices when this page opened). The page now talks to it only while this is on or when you press Scan. A ProSim switch (above, and on the SayIntentions section) needs no joystick on this PC."
+                   @bind-Value="_listenJoysticks" />
+        <div class="field">
+            <label class="field-label">
+                Joysticks on this PC
+                <span class="field-hint">@(_joysticks.Count == 0 ? "Not scanned." : string.Join(", ", _joysticks.Select(j => $"{j.Name} (id {j.Id})")))</span>
+            </label>
+            <div class="field-control">
+                <button type="button" class="btn secondary" disabled="@(_capturing is not null || _scanMessage == "Scanning…")"
+                        @onclick="ScanJoysticksAsync">Scan for joysticks</button>
+                @if (_scanMessage is not null)
+                {
+                    <span class="field-hint">@_scanMessage</span>
+                }
+            </div>
+        </div>
         <div class="field-hint" style="max-width:640px;">
-            Set waits ten seconds for a key or a joystick button. Save afterwards; the lamps
-            light for the saved bindings only.
+            Set waits ten seconds for a key (and a joystick button when ticked above). Save
+            afterwards; the lamps light for the saved bindings only.
         </div>
         <SelectField Label="Input device" Hint="The microphone the FO listens on."
                      Options="InputDeviceOptions()"
@@ -1370,6 +1387,12 @@ else if (CurrentSection == "abnormals")
     }
 
     private IReadOnlyList<JoystickDeviceView> _joysticks = [];
+    /// <summary>Set listens for joystick buttons only when this is ticked: the winmm joystick
+    /// layer crashed the app on 2026-10-11 from this page's own device listing, so the page
+    /// touches it only on the pilot's say-so. Defaults to on when a binding already names a
+    /// joystick.</summary>
+    private bool _listenJoysticks;
+    private string? _scanMessage;
     private string? _capturing;
     private string? _captureMessage;
 
@@ -1402,7 +1425,7 @@ else if (CurrentSection == "abnormals")
         try
         {
             var result = await PttCapture.CaptureAsync(
-                includeJoysticks: true, TimeSpan.FromSeconds(10), CancellationToken.None);
+                includeJoysticks: _listenJoysticks, TimeSpan.FromSeconds(10), CancellationToken.None);
             if (result is null)
             {
                 _captureMessage = "Nothing pressed within ten seconds.";
@@ -1412,7 +1435,7 @@ else if (CurrentSection == "abnormals")
             var binding = target == "atc" ? _speech.Value.AtcMuteBinding : _speech.Value.PttBinding;
             if (result.IsJoystick)
             {
-                _joysticks = PttCapture.GetJoysticks(); // the pressed device is connected — relist
+                _joysticks = await PttCapture.ScanJoysticksAsync(CancellationToken.None); // the pressed device is connected — relist
                 binding.Kind = "joystickButton";
                 binding.Key = "";
                 binding.JoystickDevice = result.JoystickId;
@@ -1437,6 +1460,25 @@ else if (CurrentSection == "abnormals")
         finally
         {
             _capturing = null;
+        }
+    }
+
+    private static bool IsJoystick(PttBindingOptions binding)
+        => binding.IsSet && binding.Kind.Equals("joystickButton", StringComparison.OrdinalIgnoreCase);
+
+    private async Task ScanJoysticksAsync()
+    {
+        _scanMessage = "Scanning…";
+        try
+        {
+            _joysticks = await PttCapture.ScanJoysticksAsync(CancellationToken.None);
+            _scanMessage = _joysticks.Count == 0
+                ? "No joystick answered."
+                : "Found: " + string.Join(", ", _joysticks.Select(j => $"{j.Name} (id {j.Id})")) + ".";
+        }
+        catch (Exception)
+        {
+            _scanMessage = "Scan failed — see the Logs page.";
         }
     }
 
@@ -1547,7 +1589,8 @@ else if (CurrentSection == "abnormals")
         MigrateLegacyBindings(_speech.Value);
         _captureDevices = DeviceCatalog.GetCaptureDeviceNames();
         _renderDevices = DeviceCatalog.GetRenderDeviceNames();
-        _joysticks = PttCapture.GetJoysticks();
+        _joysticks = PttCapture.GetJoysticks(); // the cached list — a page load never probes winmm (2026-10-11 crash)
+        _listenJoysticks = IsJoystick(_speech.Value.PttBinding) || IsJoystick(_speech.Value.AtcMuteBinding);
         PttCapture.PressedChanged += OnPressedChanged;
     }
 
