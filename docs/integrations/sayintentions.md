@@ -98,6 +98,11 @@ off the client on 2026-10-10. They sit on `SimWriteGate` by exact name. The rela
 carries `transmitted` — the live proof the LVAR keyed the client. Why: the sidestick PTT is
 on the second PC and reaches ProSim as a dataref; this path needs no joystick polling in
 our process (the winmm/dinput heap-corruption suspect of the 2026-10-10 crash).
+The same switch is also offered as the **ATC mute** (`speech.atcMuteSource`, same keys;
+`PushToTalkService` OR-s the dataref into the ATC-mute state next to the key/joystick
+binding, so the FO ignores the mic while the pilot talks to ATC). The settings page sets
+`atcMuteSource` to the chosen SI switch when it is still `none`. With both set and no
+joystick bindings left, `JoystickPollingWanted` is false and winmm/dinput are never touched.
 
 ## Arrival gate from ATC (2026-10-08, opt-in)
 

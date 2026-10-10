@@ -301,6 +301,14 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>ATC-mute binding — same shape; while held the FO ignores everything.</summary>
     public PttBindingOptions AtcMuteBinding { get; set; } = new();
 
+    /// <summary>ATC mute from a ProSim push-to-talk switch (2026-10-10): <c>none</c> (default),
+    /// <c>captainSidestick</c>, <c>foSidestick</c>, <c>captainHandMic</c>, <c>foHandMic</c>,
+    /// <c>observerHandMic</c>. While that switch reads 1 the FO ignores everything, exactly
+    /// like the key/joystick binding — OR-ed with it. The same switch usually keys
+    /// SayIntentions (<c>sayIntentions.pttSource</c>); with both set, no joystick polling is
+    /// needed on the sim PC.</summary>
+    public string AtcMuteSource { get; set; } = "none";
+
     /// <summary>LEGACY push-to-talk key (pre-binding configs): a virtual-key name ("F12",
     /// "RightCtrl", "Space", a letter) or a decimal VK code; empty disables keyboard PTT.
     /// Ignored once <see cref="PttBinding"/> is set.</summary>

@@ -153,6 +153,10 @@ else if (CurrentSection == "listening")
                 </div>
             </div>
         </div>
+        <SelectField Label="ATC mute from a ProSim switch" Hint="A sidestick or hand-mic PTT switch in ProSim. While it reads pushed, the FO does not listen — same as the key or button above, and it needs no joystick on this PC."
+                     More="Bind your button to the switch in ProSim (it can live on another PC). Choosing a SayIntentions push-to-talk switch on the SayIntentions section sets this to the same switch when it is still Off."
+                     Options="PttSwitchOptions"
+                     @bind-Value="_speech.Value.AtcMuteSource" />
         @if (_captureMessage is not null)
         {
             <div class="field-hint">@_captureMessage</div>
@@ -502,9 +506,9 @@ else if (CurrentSection == "sayIntentions")
                    @bind-Value="_sayIntentions.Value.ManualApiKey" />
         <SecretUnreadableHint Path="sayIntentions:manualApiKey" />
         <SelectField Label="Push-to-talk from the cockpit" Hint="A ProSim PTT switch keys SayIntentions. Bind your sidestick or hand-mic button to that switch in ProSim first." More="On each press the app sets the SayIntentions control LVAR to 1, on release to 0, through SimConnect — the client's 'Map PTT inside the sim with an LVAR'. No joystick polling. Needs MSFS running. The session log shows each press and whether SayIntentions transmitted."
-                     Options="SiPttSourceOptions"
+                     Options="PttSwitchOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled)"
-                     @bind-Value="_sayIntentions.Value.PttSource" />
+                     @bind-Value="SiPttSource" />
         <SelectField Label="SayIntentions PTT control" Hint="Which SayIntentions radio or intercom the button keys. COM radio PTT is the one almost everybody needs."
                      Options="SiPttLvarOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.PttSource == "none")"
@@ -1154,7 +1158,23 @@ else if (CurrentSection == "abnormals")
 
     // SayIntentions PTT relay (2026-10-10). Keys match SayIntentionsPttRelay.SourceRef; the
     // LVAR names are the ones the SI client lists under Controls → "Map PTT inside the sim".
-    private static readonly IReadOnlyList<(string, string)> SiPttSourceOptions =
+    /// <summary>Picking a SayIntentions PTT switch also sets the ATC mute to the same switch
+    /// while that is still Off — the FO must not listen while the pilot talks to ATC. Both
+    /// drafts save in the one Save.</summary>
+    private string SiPttSource
+    {
+        get => _sayIntentions.Value.PttSource;
+        set
+        {
+            _sayIntentions.Value.PttSource = value;
+            if (value != "none" && _speech.Value.AtcMuteSource == "none")
+            {
+                _speech.Value.AtcMuteSource = value;
+            }
+        }
+    }
+
+    private static readonly IReadOnlyList<(string, string)> PttSwitchOptions =
     [
         ("none", "Off"),
         ("captainSidestick", "Captain sidestick PTT"),

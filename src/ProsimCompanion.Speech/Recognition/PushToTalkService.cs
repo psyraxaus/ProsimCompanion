@@ -153,14 +153,85 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
     private bool _ownPressed;
     private bool _atcPressed;
 
-    public PushToTalkService(IOptionsMonitor<SpeechOptions> options, ILogger<PushToTalkService> logger)
+    // ATC mute from a ProSim PTT switch (speech.atcMuteSource, 2026-10-10): one typed
+    // subscription, OR-ed into the ATC-mute state next to the key/joystick binding. No winmm.
+    private readonly Core.Aircraft.IProsimDataRefs? _prosim;
+    private readonly object _externalGate = new();
+    private Core.Aircraft.IDataRefSubscription<int>? _externalAtcSwitch;
+    private string _externalAtcSource = ProsimPttSwitches.None;
+    private volatile bool _externalAtcPressed;
+
+    public PushToTalkService(
+        IOptionsMonitor<SpeechOptions> options,
+        ILogger<PushToTalkService> logger,
+        Core.Aircraft.IProsimDataRefs? prosim = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
         _logger = logger;
+        _prosim = prosim;
         _hookProc = HookCallback;
+    }
+
+    /// <summary>Binds (or re-binds) the ProSim ATC-mute switch named by the options; a change
+    /// of source drops the old subscription and clears its pressed state.</summary>
+    private void BindExternalAtcMute()
+    {
+        var source = _options.CurrentValue.AtcMuteSource;
+        lock (_externalGate)
+        {
+            if (string.Equals(source, _externalAtcSource, StringComparison.OrdinalIgnoreCase) && (_externalAtcSwitch is not null || ProsimPttSwitches.IsOff(source)))
+            {
+                return;
+            }
+
+            UnbindExternalAtcMuteLocked();
+            _externalAtcSource = source;
+            var dataRef = ProsimPttSwitches.SourceRef(source);
+            if (dataRef is null || _prosim is null)
+            {
+                if (!ProsimPttSwitches.IsOff(source))
+                {
+                    _logger.LogWarning("ATC mute source {Source}: {Reason}", source, _prosim is null ? "no ProSim layer" : "unknown switch — ignored");
+                }
+
+                return;
+            }
+
+            _externalAtcSwitch = Core.Aircraft.TypedSubscriptionExtensions.Subscribe(_prosim, dataRef.Value);
+            _externalAtcSwitch.ValueChanged += OnExternalAtcChanged;
+            _logger.LogInformation("ATC mute follows ProSim switch {Dataref}", dataRef.Value.Name);
+        }
+
+        OnExternalAtcChanged(null, EventArgs.Empty);
+    }
+
+    private void UnbindExternalAtcMuteLocked()
+    {
+        if (_externalAtcSwitch is not null)
+        {
+            _externalAtcSwitch.ValueChanged -= OnExternalAtcChanged;
+            _externalAtcSwitch.Dispose();
+            _externalAtcSwitch = null;
+        }
+
+        _externalAtcPressed = false;
+    }
+
+    private void OnExternalAtcChanged(object? sender, EventArgs e)
+    {
+        var subscription = _externalAtcSwitch;
+        // A value that never arrived is "not pushed" — never a stuck mute at startup.
+        var pressed = subscription is { RawValue: not null } && subscription.Value != 0;
+        if (pressed == _externalAtcPressed)
+        {
+            return;
+        }
+
+        _externalAtcPressed = pressed;
+        Recompute();
     }
 
     /// <summary>Edge events: true on press, false on release.</summary>
@@ -189,12 +260,22 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
         // Without this a saved binding change (or a mode flip's cleared binding) only took
         // effect on the next physical input edge — a stuck "pressed" ATC-mute would silence
         // recognition until then.
-        _optionsSubscription = _options.OnChange(_ => Recompute());
+        BindExternalAtcMute();
+        _optionsSubscription = _options.OnChange(_ =>
+        {
+            BindExternalAtcMute();
+            Recompute();
+        });
     }
 
     public void Dispose()
     {
         _optionsSubscription?.Dispose();
+        lock (_externalGate)
+        {
+            UnbindExternalAtcMuteLocked();
+        }
+
         _pollStop.Set();
         _pollThread?.Join(TimeSpan.FromSeconds(1));
         if (_hookThreadId != 0)
@@ -556,7 +637,8 @@ public sealed class PushToTalkService : Core.Hosting.IStartupModule, IDisposable
             var own = Matches(options.PttBinding, options.PttKey,
                 options.PttJoystickDeviceName, options.PttJoystickDevice, options.PttJoystickButton);
             var atc = Matches(options.AtcMuteBinding, options.AtcMuteKey,
-                options.AtcMuteJoystickDeviceName, options.AtcMuteJoystickDevice, options.AtcMuteJoystickButton);
+                options.AtcMuteJoystickDeviceName, options.AtcMuteJoystickDevice, options.AtcMuteJoystickButton)
+                || _externalAtcPressed;
 
             var pressedEdge = own != _ownPressed || atc != _atcPressed;
             if (own != _ownPressed)
