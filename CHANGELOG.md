@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased (after 0.7.0-rc.1)
+
+Flight report EFHK → EGCC 2026-10-10 (support ticket t-20261010-0726). All fixes are proven by unit tests and by replaying the recorded flight; **not yet verified live**.
+
+- Fix: **a fixed pushback preference no longer leaves GSX's direction menu open silently** (issue #161). With "Always tail right" set and a stand that offers a single custom route ("Facing SW on Taxi AT" beside QuickEdit and straight lines — EFHK Gate 46), the app left the menu to the pilot twice. The fixed answer now reads the stand's route kinds first, then the menu text, then takes the only direction offered, and otherwise asks — never a silent leave. Probe `pushback-legacy-single-direction`.
+- Fix: **the phase no longer drops from PUSHBACK to PREFLIGHT mid-push** (issue #161; regression of #110). Re-setting the brake for the tug, or GSX freezing the position (ground speed reading 11–22 kt), let the departure catch-all walk the phase back for a second, twice in one push. A push in progress with engines off now holds PushbackAndStart. Probe `pushback-phase-hold`; recording `efhk-egcc-2026-10-10-0.7.0-rc1` replays clean.
+- Fix: **a level-off wobble in the descent no longer reads as a climb** (issue #163). Three seconds of +300 fpm at 6,000 ft committed Climb, the FO said "Flaps are still extended", and the pill read CLIMB for 2.5 minutes of the approach. New settle **Descent → Climb** (Flight Phase settings → Settle times, 10 s) beside Cruise → Climb; the 2026-09-13 recording's identical wobble disappears too. Probe `descent-level-off-climb-blip`.
+- Fix: **the debrief keeps the off-blocks, takeoff and landing times** (ticket). The GSX arrival reset fired two milliseconds before the on-blocks stamp and wiped the other three; a cycle reset during the arrival is now ignored (the next at-gate edge clears the leg), and a turnaround straight from Shutdown into the next push starts a fresh leg.
+- Fix: **in-flight airport pick** (issue #75). The opened GSX menu can show an empty title for a beat — the executor now waits for the title before judging the page (attempt 1 of the flight failed on that beat). GSX answering the row pick with its own "Select Position at <destination>" page now counts as success (attempts 2 and 3 waited 20 s for an airport report that came 7 minutes later); the gate.select follows at once. The accepted integer `gate.select` token is confirmed a second time (EGCC Gate 43, airborne) in `docs/integrations/gsx-remote-api.md` §6.
+- Support reducer: `where` filters now apply to every session-event probe kind (including `signature`), and every evidence and log timestamp is printed in UTC (the CMTrace log is written in the sim PC's local time).
+- Probes: `app-unhandled-exception` (issue #162, the second-launch crash fixed in rc.1) added; `sim-clock-local-kind-crash` narrowed to its own exception; `good-engine-start-confirm` narrowed to a pending engine-start confirmation; `isa-advisory-phase-blind` exempts the ISA "step-climb performance" wording; `departure-phase-on-boarding` widened to the mid-push regressions.
+
 ## 0.7.0-rc.1
 
 Remote mixer, 2026-10-10. A new feature with a new settings section, so a minor bump (`docs/VERSIONING.md`); the 0.6.0 release candidates below roll into 0.7.0. **Off by default**, **not yet verified against a real agent**.

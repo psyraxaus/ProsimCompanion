@@ -306,6 +306,28 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
     /// entry to pick first. The executor runs the row pick directly when the opened page is
     /// already this one; the root intent stays for a GSX that shows a root menu first.</para>
     /// </summary>
+    /// <summary>
+    /// The observable effect of the in-flight airport row pick. GSX either patches the loaded
+    /// airport to the destination, or — 2026-10-10 EGCC, attempts 2 and 3 — answers at once
+    /// with its own "Select Position at EGCC/Manchester" page and reports the airport only
+    /// minutes later (both picks were logged GsxNoResponse after 20 s with the right page on
+    /// screen). That page names the destination, so it is the pick having worked; the
+    /// gate.select that follows is GSX's answer to it (ticket t-20261010-0726).
+    /// </summary>
+    internal static bool AirportPickVerified(GsxStateMirror mirror, string destination)
+    {
+        ArgumentNullException.ThrowIfNull(mirror);
+        if (string.Equals(mirror.AirportIcao, destination, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var title = mirror.MenuShown ? mirror.Menu?.Title : null;
+        return title is not null
+            && title.StartsWith(PositionSelectTitle, StringComparison.OrdinalIgnoreCase)
+            && title.Contains(destination, StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task<bool> PickAirportInFlightAsync(string destination)
     {
         var menuWasShown = _api.Mirror.MenuShown;
@@ -323,7 +345,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
             TitlePrefixes = [AirportSelectTitle],
             EntryPattern = new Regex($@"\b{Regex.Escape(destination)}\b", RegexOptions.IgnoreCase),
             ParentMenu = rootMenu,
-            Verify = mirror => string.Equals(mirror.AirportIcao, destination, StringComparison.OrdinalIgnoreCase),
+            Verify = mirror => AirportPickVerified(mirror, destination),
             VerifyTimeout = AirportLoadTimeout,
         };
 

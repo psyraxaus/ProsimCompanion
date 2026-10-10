@@ -1,3 +1,6 @@
+# 2026-10-10 (issue #163): the Descent -> Climb -> Descent pair at 03:27:04Z (VS +438/+619/+259 for three
+# seconds, 30 ft gained, back in the descent at 03:27:08Z) was a level-off wobble; the Descent -> Climb settle
+# (DescentToClimbSettleSeconds) removes it. Every other edge unchanged.
 Unknown -> Preflight
 Preflight -> ColdAndDark
 ColdAndDark -> Preflight
@@ -9,8 +12,6 @@ TakeoffRoll -> InitialClimb
 InitialClimb -> Climb
 Climb -> Cruise
 Cruise -> Descent
-Descent -> Climb
-Climb -> Descent
 Descent -> Approach
 Approach -> LandingRollout
 LandingRollout -> TaxiIn

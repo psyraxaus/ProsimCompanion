@@ -200,10 +200,20 @@ public sealed class GsxMenuIntentExecutor
         // #157, EFHK→LKPR 2026-10-04: in flight the GSX root menu IS the "Select airport"
         // page, so the parent's "^select airport" entry never existed and the airport pick
         // failed ItemNotAvailable three times with the right page on screen).
-        if (openedFor is not null
-            && await IsOnChildPageAsync(openedFor, settle: opened, cancellationToken).ConfigureAwait(false))
+        if (openedFor is not null)
         {
-            return new(GsxIntentOutcome.Success, $"'{mirror.Menu?.Title}' is already the page for {openedFor.Name}");
+            // The title lags menuShown by a beat after our own open (2026-10-10 EGCC, attempt
+            // 1: title '' while the rows were already the airport list) — give it the open
+            // timeout before deciding whose page this is.
+            await WaitForAsync(
+                () => !mirror.MenuShown || !string.IsNullOrEmpty(mirror.Menu?.Title),
+                TimeSpan.FromMilliseconds(_options.CurrentValue.MenuOpenTimeoutMs),
+                cancellationToken).ConfigureAwait(false);
+
+            if (await IsOnChildPageAsync(openedFor, settle: opened, cancellationToken).ConfigureAwait(false))
+            {
+                return new(GsxIntentOutcome.Success, $"'{mirror.Menu?.Title}' is already the page for {openedFor.Name}");
+            }
         }
 
         // Navigation-only intents are done once the target menu is up.

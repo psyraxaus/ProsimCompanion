@@ -163,6 +163,15 @@ public static class FlightPhaseRules
         Hold("start-complete-hold", Set(PushbackAndStart),
             (_, s, _) => s.AnyEngineRunning && s.GroundSpeedKt < StartCompleteGroundSpeedKt && s.ParkBrakeSet),
 
+        // A push in progress IS PushbackAndStart, whatever the brake and the ground speed say
+        // (issue #161, EFHK Gate 46 2026-10-10): the pilot re-set the brake for the tug at
+        // 04:12:42Z and GSX froze the position (ground speed 11–22 kt, lat/lon static) at
+        // 04:15:44Z — both times the catch-all below walked the phase back to Preflight for a
+        // second. The push-evidence entry rule stays strict; this hold only keeps a phase the
+        // pushback flag still justifies. Engines running leave it to taxi-out as before.
+        Hold("pushback-hold", Set(PushbackAndStart),
+            (_, s, _) => s.PushbackActive && !s.AnyEngineRunning),
+
         Rule("taxi-out", null, TaxiOut,
             (_, s, _) => s.AnyEngineRunning,
             DefaultDebounce,
@@ -242,6 +251,10 @@ public static class FlightPhaseRules
                 // A VS blip at cruise (turbulence, altimetry) must not flip to Climb; a real
                 // step climb sustains its rate far past the settle (issue #105).
                 Cruise => TimeSpan.FromSeconds(o.CruiseToClimbSettleSeconds),
+                // A level-off in the descent wobbles +300 fpm for a few seconds (issue #163,
+                // EGCC 2026-10-10: three samples at 5,916 ft flipped Descent → Climb and the
+                // FO announced the flaps). A climb-back on ATC instruction sustains.
+                Descent => TimeSpan.FromSeconds(o.DescentToClimbSettleSeconds),
                 Unknown => TimeSpan.FromSeconds(o.FirstAirborneClassificationSeconds),
                 _ => TimeSpan.FromSeconds(o.DefaultDebounceSeconds),
             },

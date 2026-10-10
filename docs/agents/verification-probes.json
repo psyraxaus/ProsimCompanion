@@ -6,7 +6,7 @@
     "log": "CMTrace application log (logs/ProsimCompanion-*.log): component, level (type 1=info 2=warn 3=error), message.",
     "wire": "GSX wire trace (logs/ProsimCompanion-wire-*.log): only consulted when a probe names it; often disabled or huge."
   },
-  "machine": "Optional per-probe block for the support reducer (tools/ProsimCompanion.Reduce, docs/agents/support-bundle.md). A probe WITH it is evaluated deterministically; one without is handed to the LLM step untouched. kind=signature: {source: session|log, type?: <event type>, contains: <literal>, component?: <log component>, minCount?: 1} as signature (the failure/behaviour) and, for assert-present, trigger (omitted = always). kind=required-fields: every event of type carries each dotted path in fields; optional where {path: text} checks only the events that read that text at the path, optional fieldsWhenPresent {path: [fields]} requires the fields only on events that carry the path. kind=duplicate-within: no two events of type share key within windowSeconds. kind=consecutive-duplicates: no event of type repeats its predecessor payload.",
+  "machine": "Optional per-probe block for the support reducer (tools/ProsimCompanion.Reduce, docs/agents/support-bundle.md). A probe WITH it is evaluated deterministically; one without is handed to the LLM step untouched. kind=signature: {source: session|log, type?: <event type>, contains: <literal>, component?: <log component>, minCount?: 1, where?: {path: text} (session only; contains may be '' when the where filter alone selects the events)} as signature (the failure/behaviour) and, for assert-present, trigger (omitted = always). where {path: text} is honoured by every session-event kind. kind=required-fields: every event of type carries each dotted path in fields; optional where {path: text} checks only the events that read that text at the path, optional fieldsWhenPresent {path: [fields]} requires the fields only on events that carry the path. kind=duplicate-within: no two events of type share key within windowSeconds. kind=consecutive-duplicates: no event of type repeats its predecessor payload.",
   "kinds": {
     "assert-absent": "The failure signature must NOT appear. Pass = absent all session; fail = present (quote the evidence).",
     "assert-present": "The fixed/feature behaviour must appear WHEN its trigger occurred. Pass = trigger+behaviour seen; not-exercised = trigger never occurred (report as untested, not passed); fail = trigger seen without the behaviour.",
@@ -343,12 +343,12 @@
       ],
       "checks": [
         "When an arrival gate is armed and the phase reaches Cruise (or Descent/Approach) with GSX still reporting the departure airport: a 'gsx-gate-airport-pick' session event (payload destination, outcome, detail, attempt, entries) and the log line 'Gate request <gate>: Armed — loading <ICAO> in GSX (in-flight airport pick, attempt N)'. REPORT the page title and rows quoted in the 'In-flight airport pick ... not completed' line on failure — that is how we learn GSX's in-flight menu shape. SETTLED 2026-10-04 (EFHK→LKPR, #157): in flight the GSX ROOT page is itself titled 'Select airport' and its rows carry the ICAO ('LKPR Ruzyne at 592.70 nm [PLANNED]') — there is no root entry to pick first. From the #157 fix on, outcome 'ItemNotAvailable' with detail 'no entry matches ^select airport on 'Select airport'' is a FAILURE (the pre-fix result: ItemNotAvailable at 20:03:09Z, 21:08:23Z and 21:31:44Z on that flight); expect 'Intent in-flight airport pick succeeded: picked '<ICAO> …''.",
-        "On success: 'GSX loaded <ICAO> from the in-flight airport pick', then 'GSX command gate.select {\"gate\":\"<as typed>\"...} -> ok (prepared|ok)' IN THE AIR, then 'gsx-gate-assigned' and, within 60 s, 'gsx-gate-confirmed' from the SetGate LVAR readback. After landing NO 'Select Position at <destination>' menu and no parking conflict — services engage on arrival.",
+        "On success: 'GSX loaded <ICAO> from the in-flight airport pick' (detail 'picked …' — either the mirror's airport became the destination, or GSX showed its own 'Select Position at <ICAO>/…' page right after the row pick, accepted as success since 2026-10-10), then 'GSX command gate.select {\"gate\":\"<as typed>\"...} -> ok (prepared|ok)' IN THE AIR, then 'gsx-gate-assigned' and, within 60 s, 'gsx-gate-confirmed' from the SetGate LVAR readback. After landing NO 'Select Position at <destination>' menu and no parking conflict — services engage on arrival.",
         "assert-absent: a gate.select sent while parked (on ground, stopped, engines off). The planner must record 'gsx-gate-too-late' + 'too late — GSX already has the aircraft parked at a stand' instead of a send (the 2026-08-22 EGLL 313 and 2026-09-13 LIRF 829 signature).",
         "If the name send is refused not_found and a unique parking number exists: 'gsx-gate-number-fallback' + a second gate.select with \"gate\":<integer>. REPORT whether the integer was accepted.",
         "assert-absent: more than one airport-pick attempt within 2 minutes, or more than 12 in a flight."
       ],
-      "notes": "Added 2026-09-21 (0.4.0-rc.4) from the GSX Pro integration guide §8.14 + Handler Scripts guide selectGate: gate.select refuses while parked (surfaces as not_found), the token as typed resolves by suffix, and GSX only loads the destination in flight if picked from its 'Select airport' menu. First flight verifies the in-flight menu shape; the pick fails soft (menu closed again) and the ground taxi-in send still runs. 2026-10-05 (#157): the executor runs the row pick directly when the page it opened is already 'Select airport' (GsxMenuIntentExecutor: a parent whose open lands on the child's page picks nothing; the title must hold for 300 ms after our own menu.open). The first ok gate.select ever was 2026-10-04 21:34:52Z, integer token 29, airborne (the three airport picks before it had failed; how GSX came to have LKPR loaded is not established — read the wire trace)."
+      "notes": "Added 2026-09-21 (0.4.0-rc.4) from the GSX Pro integration guide §8.14 + Handler Scripts guide selectGate: gate.select refuses while parked (surfaces as not_found), the token as typed resolves by suffix, and GSX only loads the destination in flight if picked from its 'Select airport' menu. First flight verifies the in-flight menu shape; the pick fails soft (menu closed again) and the ground taxi-in send still runs. 2026-10-05 (#157): the executor runs the row pick directly when the page it opened is already 'Select airport' (GsxMenuIntentExecutor: a parent whose open lands on the child's page picks nothing; the title must hold for 300 ms after our own menu.open). The first ok gate.select ever was 2026-10-04 21:34:52Z, integer token 29, airborne (the three airport picks before it had failed; how GSX came to have LKPR loaded is not established — read the wire trace). 2026-10-10 EFHK→EGCC (ticket t-20261010-0726), three attempts: #1 04:47:16Z ItemNotAvailable 'no entry matches ^select airport on ''' — the mirror showed the menu with an EMPTY title for a beat while the rows were already the airport list (the executor now waits the open timeout for a title before judging the page); #2 06:34:38Z and #3 07:02:20Z GsxNoResponse 'pick sent but the expected effect was not observed' with GSX's own 'Select Position at EGCC/Manchester' page on screen at once — GSX answers the row pick with that page and reports the airport only later (07:09:09Z here, 7 min after #3). From this fix on that page, naming the destination, IS the pick having worked (GsxGateSelectionService.AirportPickVerified) and the gate.select ladder follows at once; whether GSX accepts the integer gate.select while it is still loading the airport is the thing to read next flight — a not_found there means 'wait for the airport patch' is still needed."
     },
     {
       "id": "gate-select-error-detail",
@@ -362,7 +362,7 @@
         "When any gate.select is refused: a 'GSX command gate.select failure detail: error={...} payload={...}' log line right after the 'GSX command gate.select ... -> failed (not_found)' summary. REPORT the error object verbatim — it is the only evidence we have for what GSX matches the gate token against (every shape tried 2026-08-09 → 2026-09-20 was refused: ' Gate D27', 'D27', 'D5', 'Stand 313', '313', 'Stand 546', 'Terminal 5B (531-548)|Stand 546', '546', 'Stand 829', 'Stand 835', 'Remote Stands 8XX/9XX | Stand 835', '835').",
         "When a gate.select succeeds: a 'GSX command gate.select result payload: {...}' line — record the accepted token shape in docs/integrations/gsx-remote-api.md §6 and flip this probe to closed-regression-watch."
       ],
-      "notes": "Added 2026-09-21 (0.4.0-rc.3). gate.select has never returned ok in any recorded flight; the client used to log only the result code. Also turn on logging.wireTrace for the next flight so the full frames are available. SETTLED 2026-10-04 (EFHK→LKPR, ticket t-20261004-2147): the first ok — 'gate.select {\"gate\":29}' (the parking NUMBER as an integer, sent airborne) answered ok/prepared with uiName 'Gate C 29'. Recorded in docs/integrations/gsx-remote-api.md §6; probe flipped to closed-regression-watch 2026-10-05 (#157). Regression = a refused gate.select with no 'failure detail' line, or an accepted one with no 'result payload' line."
+      "notes": "Added 2026-09-21 (0.4.0-rc.3). gate.select has never returned ok in any recorded flight; the client used to log only the result code. Also turn on logging.wireTrace for the next flight so the full frames are available. SETTLED 2026-10-04 (EFHK→LKPR, ticket t-20261004-2147): the first ok — 'gate.select {\"gate\":29}' (the parking NUMBER as an integer, sent airborne) answered ok/prepared with uiName 'Gate C 29'. Recorded in docs/integrations/gsx-remote-api.md §6; probe flipped to closed-regression-watch 2026-10-05 (#157). Regression = a refused gate.select with no 'failure detail' line, or an accepted one with no 'result payload' line. SECOND ACCEPTANCE 2026-10-10 07:09:09Z (EFHK→EGCC, 0.7.0-rc.1, ticket t-20261010-0726): 'gate.select {\"gate\":43}' — again the parking NUMBER as an integer, sent airborne on the approach once GSX reported EGCC loaded — answered ok/prepared with uiName 'Gate 43'. The departure anchor sends the same flight (Gate 46 / full name / '46', all strings, all parked) were refused not_found as designed. The integer-in-flight contract holds; recorded in gsx-remote-api.md §6."
     },
     {
       "id": "arrival-gate-persisted",
@@ -565,9 +565,9 @@
         "session"
       ],
       "checks": [
-        "No 'speech.spoken' containing 'climb performance' while the committed phase is Cruise or later."
+        "No 'speech.spoken' containing 'climb performance' while the committed phase is Cruise or later — EXCEPT the ISA-deviation advisory's 'step-climb performance' (tag isaDeviation: 'ISA plus 10 today — expect reduced step-climb performance and a lower optimum level'), which is about the cruise and is correct there (2026-10-10 05:31:37Z in Cruise; exempted, ticket t-20261010-0726)."
       ],
-      "notes": "Wording should become phase-aware; the spoken text in the session log is the normalizer's final output, so this is directly checkable."
+      "notes": "Wording should become phase-aware; the spoken text in the session log is the normalizer's final output, so this is directly checkable. The step-climb exemption: match 'climb performance' only when the spoken text does not contain 'step-climb'."
     },
     {
       "id": "winds-pronunciation",
@@ -954,7 +954,7 @@
       ],
       "checks": [
         "During a pushback with engine start: after 'vehicle state 12 (awaiting good-engine-start confirmation)', a 'confirmed good engine start — tug clear to disconnect' decision appears without any pilot menu interaction.",
-        "assert-absent: 'GSX menu '\"Interrupt pushback?\"' has no question handler' (the 2026-08-23 signature — the pilot had to answer by hand).",
+        "assert-absent: 'GSX menu '\"Interrupt pushback?\"' has no question handler' AFTER a 'vehicle state 12 (awaiting good-engine-start confirmation)' line in the same push (the 2026-08-23 signature — the pilot had to answer by hand). The same line BEFORE any engine start (GSX offers 'Interrupt pushback?' during a plain push too; 2026-10-10 EFHK 04:13:04Z, no start pending) is the dispatcher's one-per-session note, not this probe's failure — narrowed 2026-10-10 (ticket t-20261010-0726).",
         "A 'good-engine-start confirm failed ... leaving the menu to the pilot' line is the honest give-up path — report it as a menu-shape finding, not a regression."
       ],
       "notes": "Auto-confirm gates (Prosim2GSX parity): park brake set, an engine stably running (any — single-engine taxi is real), none mid-start; entry pattern '^confirm good engine' on the Interrupt-pushback menu, retry-capped, fails safe to the pilot."
@@ -1418,7 +1418,7 @@
       ],
       "checks": [
         "assert-present when a 'gsx-service' Boarding/Active event occurs while the phase is Preflight: a 'phase-changed' Preflight->Departure with rule 'boarding' within 3 s of it (1 s default settle + tick). The log carries 'Boarding started — Preflight → Departure is now armed' at the signal.",
-        "assert-absent: any 'phase-changed' Departure->Preflight. Departure leaves only to PushbackAndStart (push-evidence / engine-start), TaxiOut (taxi-out), TakeoffRoll or ColdAndDark (power-off). A Departure->Preflight edge is the hold rule failing.",
+        "assert-absent (widened 2026-10-10, ticket t-20261010-0726): any 'phase-changed' Departure->Preflight, AND any 'phase-changed' PushbackAndStart->Preflight whose snapshot carries pushback:true, AND any Preflight->Departure re-entry after the first push edge of the leg — the 2026-10-10 EFHK Gate 46 signature (04:12:42Z brake re-set, 04:15:44Z GSX position freeze: PUSHBACK → PREFLIGHT → DEPARTURE on the pill, issue #161; fixed by the pushback-hold rule, probe pushback-phase-hold). Departure leaves only to PushbackAndStart (push-evidence / engine-start), TaxiOut (taxi-out), TakeoffRoll or ColdAndDark (power-off). A Departure->Preflight edge is the hold rule failing.",
         "assert-present: the first 'phase-changed' out of Departure is PushbackAndStart or TaxiOut on a normal departure, and the GSX 'Departure' (pushback) service Active precedes or coincides with it.",
         "flight-sample events after the boarding edge carry brd=true until the aircraft leaves the pre-taxi window (TaxiOut and later must not carry it); the Preflight of a second leg starts without it.",
         "FlightReplay of the session reproduces the Preflight->Departure edge at the same second (the harness re-derives the signal from the gsx-service event when brd is absent).",
@@ -1460,7 +1460,7 @@
         "kind": "signature",
         "signature": {
           "source": "log",
-          "contains": "Unhandled exception (terminating",
+          "contains": "The UTC Offset of the local dateTime parameter does not match the offset argument",
           "minCount": 1
         }
       },
@@ -1469,7 +1469,7 @@
         "session"
       ],
       "checks": [
-        "No 'Unhandled exception (terminating: True)' line in the CMTrace log and no 'log.fatal' session event — the process must never die from a timer thread.",
+        "No 'Unhandled exception (terminating: True)' line whose exception is the sim-clock ArgumentException below — any OTHER terminating exception belongs to the probe app-unhandled-exception, not here (narrowed 2026-10-10, ticket t-20261010-0726: the TrayIcon.Restore crash of 2026-10-09 21:35Z was reported under this probe).",
         "No 'The UTC Offset of the local dateTime parameter does not match the offset argument' anywhere in the log (the 2026-09-26 signature: SimClock.SimUtcNow composing a Local-kind simulator.time date on a UTC+10 machine).",
         "watch: 'Flight monitor tick failed' or 'STD prelim tick failed' warnings — the new guards catching something. Zero is expected; any hit is a new bug to quote with its exception.",
         "assert-present after a ProSim reconnect ('Lost connection to ProSim; reconnecting'): the Monitor page clock and the loadsheet STD countdown keep running (sim time still shown on /monitor, 'Gate monitor:' lines continue) — the clock is live again, not stuck on the real UTC fallback."
@@ -2731,6 +2731,114 @@
         "watch: whether the sim PC's joystick ATC-mute binding was cleared afterwards (no 'Joystick poll pass' lines at all) — the point of the feature is to retire winmm/dinput polling (crash suspect, crashes-2026-10-10)."
       ],
       "notes": "Feature 2026-10-10 (owner idea after the 0xC0000374 crash; no issue number). SayIntentionsPttRelay: sayIntentions.pttSource (none | captainSidestick | foSidestick | captainHandMic | foHandMic | observerHandMic) → typed subscription to S_SIDESTICK_PTT_* / S_HAND_MIC_PTT_* (Critical tier) → ISimVars.WriteAsync(sayIntentions.pttLvar, 1|0); the seven L:SIAI_CONTROL_PTT_* names are on SimWriteGate by exact name. The LVARs are listed in the SI client under Controls → Map PTT inside the sim, not in the published LVAR reference. Never run live."
+    },
+    {
+      "id": "pushback-phase-hold",
+      "issue": 161,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "phase-changed",
+          "contains": "",
+          "where": {
+            "previous": "PushbackAndStart",
+            "current": "Preflight",
+            "snapshot.pushback": "true"
+          },
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "assert-absent: any 'phase-changed' PushbackAndStart->Preflight whose snapshot carries pushback:true. The 2026-10-10 EFHK Gate 46 signature (session-20261010-032159): 04:12:42Z 'engines off, no start, no push — sustained contradiction of PushbackAndStart' with the brake re-set for the tug, and 04:15:44Z the same with ground speed 16.8 kt while GSX had the position frozen (lat/lon static 04:15:29–04:16:29Z). Each was followed by Preflight->Departure a second later.",
+        "assert-present when a push occurs: exactly ONE Departure->PushbackAndStart (or Preflight->PushbackAndStart) edge per leg, rule push-evidence or engine-start; the next edge out of PushbackAndStart is TaxiOut.",
+        "FlightReplay of the session shows no PushbackAndStart->Preflight edge (the recording efhk-egcc-2026-10-10-0.7.0-rc1 under Flight/Recordings is the regression guard).",
+        "watch: a PushbackAndStart->Preflight edge with pushback:false and engines off — the catch-all still doing its issue #59 job after a push that was cancelled; report with the GSX pushback service event around it."
+      ],
+      "notes": "Added 2026-10-10 (ticket t-20261010-0726, issue #161). FlightPhaseRules gained 'pushback-hold' (From PushbackAndStart, when PushbackActive && !AnyEngineRunning) between start-complete-hold and taxi-out: the push-evidence ENTRY rule keeps its strict brake/speed gates (#100/#104); the hold only keeps a phase the pushback flag still justifies. Engines running leave to taxi-out exactly as before (#138 tug-speed flap untouched)."
+    },
+    {
+      "id": "pushback-legacy-single-direction",
+      "issue": 161,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "pushback-direction-decision",
+          "contains": "no entry matches preference",
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-absent: any 'pushback-direction-decision' with kind 'Leave' when exactly one turning line exists on the menu (entries minus QuickEdit/Straight/Straight Pull lines) and gsx.pushbackPreference is not 'ask'. The 2026-10-10 EFHK Gate 46 signature: kind Leave, reason \"no entry matches preference 'tailRight'\", entries ['Facing SW on Taxi AT', 'QuickEdit Pushback', 'QuickEdit Pushback on Map', 'Straight pushback (manual stop, max 100 m)', 'Straight Pull pushback (manual stop, max 100 m)'], suggestion 'Facing SW on Taxi AT' — twice (04:11:10Z, 04:14:02Z).",
+        "assert-absent: the reason text 'no entry matches preference' at all — the legacy branch no longer produces it (machine signature).",
+        "assert-present under a fixed preference (tailLeft/tailRight/straight) when the menu appears: a decision with kind 'Pick' (reason 'preference <mode> (option kind|exact|starts-with|contains|fixed-index)' or 'preference <mode> not offered — the only direction is …') or kind 'Ask' (reason 'preference <mode> not offered and N directions on the menu') — never 'Leave'.",
+        "On the pick: the GSX pushback menu closes and 'gsx-service' Departure (pushback) proceeds without the pilot touching the menu."
+      ],
+      "notes": "Added 2026-10-10 (ticket t-20261010-0726, issue #161). PushbackDirectionDecider step 2 now reads the LiveOptions kinds first (a profile route with a custom label carries its LEFT/RIGHT slot across), then the text/fixed-index resolver, then the single turning line, then Ask. The fixed-index fallback refused on Gate 46 because entry 1 was a QuickEdit meta line."
+    },
+    {
+      "id": "descent-level-off-climb-blip",
+      "issue": 163,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "phase-changed",
+          "contains": "",
+          "where": {
+            "previous": "Descent",
+            "current": "Climb"
+          },
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "assert-absent: any 'phase-changed' Descent->Climb whose altitude gain (snapshot.altitudeFt at the edge vs the next Climb->Descent or Climb->Approach edge, or the highest flight-sample alt in between) is under 200 ft. The 2026-10-10 EGCC signature: 06:59:34Z 'climbing 357 fpm' at 5,916 ft, VS +257/+348/+308 for three samples then +21/−303, Climb->Descent at 07:01:59Z at 5,884 ft — 2.5 min of CLIMB on the approach platform. The machine signature flags EVERY Descent->Climb; a genuine climb-back (ATC 'climb FL…', sustained +VS and hundreds of feet gained) is a false fail to explain, not a regression.",
+        "assert-absent: 'flow.advisory' flapsNotRetracted ('Flaps are still extended') within 60 s after a Descent->Climb edge — the 06:59:35Z consequence of the blip.",
+        "FlightReplay of the session shows no Descent->Climb edge (recordings efhk-egcc-2026-10-10-0.7.0-rc1 and egll-lirf-2026-09-13-beta28 — the latter's 03:27:04Z pair was the same wobble, 30 ft gained)."
+      ],
+      "notes": "Added 2026-10-10 (ticket t-20261010-0726, issue #163). The 'climb' rule debounced with DefaultDebounceSeconds (1 s) from Descent; flightState.descentToClimbSettleSeconds (default 10, Flight Phase settings → Settle times → 'Descent → Climb') now gates it like Cruise → Climb (issue #105)."
+    },
+    {
+      "id": "app-unhandled-exception",
+      "issue": 162,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "log",
+          "contains": "Unhandled exception (terminating",
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "log",
+        "session"
+      ],
+      "checks": [
+        "assert-absent: any 'Unhandled exception (terminating: True)' line in the CMTrace log, and any 'log.fatal' session event — the process must never die from a background thread. QUOTE the exception type and the first three stack frames; the frames decide which issue it belongs to (sim-clock ArgumentException → sim-clock-local-kind-crash; TaskCanceledException under TrayIcon.Restore ← SingleInstanceGuard → issue #162).",
+        "assert-absent: a 'session-started' event whose previous session has no 'session.finalized'/'session-ended' within a minute of its last event while MSFS was still running (a silent native crash — 0xC0000374 heap corruption on 2026-10-10 11:20 local left no log line at all; check %LOCALAPPDATA%\\CrashDumps on the sim PC).",
+        "requires-human after a second launch over a closing instance (reinstall): no new dump in CrashDumps, the first instance exits cleanly, the second shows its window."
+      ],
+      "notes": "Added 2026-10-10 (ticket t-20261010-0726, issue #162). The TrayIcon.Restore crash of 2026-10-09 21:35:29Z (Dispatcher.Invoke from the SingleInstanceGuard thread-pool callback while the dispatcher shut down) is fixed in d4df248 (InvokeAsync, HasShutdownStarted check, try/catch in the guard callback). This probe is the catch-all for the terminating line; sim-clock-local-kind-crash keeps only its own ArgumentException signature."
     }
   ]
 }

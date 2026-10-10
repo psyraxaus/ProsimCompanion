@@ -338,6 +338,49 @@ public sealed class GsxMenuIntentExecutorTests
         Assert.Equal([1], picks); // the LKPR row only — no root pick
     }
 
+    /// <summary>2026-10-10 EGCC attempt 1 (ticket t-20261010-0726): after our menu.open the
+    /// mirror showed the menu with an EMPTY title for a beat while the rows were already the
+    /// airport list; the parent resolved "^select airport" against that beat and failed
+    /// ItemNotAvailable "on ''". The title must be waited for before the page is judged.</summary>
+    [Fact]
+    public async Task ParentOpen_TitleLagsMenuShown_WaitsAndRunsTheChild()
+    {
+        var root = Intent("", "^select airport");
+        var airportPick = Intent("Select airport", @"\bEGCC\b", root) with
+        {
+            Verify = mirror => !mirror.MenuShown,
+        };
+        var picks = new List<int?>();
+        _api.OnCommand = (verb, args) =>
+        {
+            if (verb == "menu.open")
+            {
+                _api.Mirror.ApplyState("menu", new JsonObject
+                {
+                    ["title"] = "",
+                    ["entries"] = new JsonArray("Moving Map", "EGCC Manchester at 878.43 nm [PLANNED]", "EFQI7 at 15.26 nm"),
+                });
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(true));
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(120);
+                    ShowMenu("Select airport", "Moving Map", "EGCC Manchester at 878.43 nm [PLANNED]", "EFQI7 at 15.26 nm");
+                });
+            }
+            else if (verb == "menu.pick")
+            {
+                picks.Add((int?)args?["index"]);
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(false));
+            }
+            return new GsxCommandResult(true, "ok", null, null);
+        };
+
+        var result = await _executor.ExecuteAsync(airportPick);
+
+        Assert.Equal(GsxIntentOutcome.Success, result.Outcome);
+        Assert.Equal([1], picks); // the EGCC row only — nothing picked on the untitled beat
+    }
+
     /// <summary>The root page that DOES carry the entry keeps the two-step path.</summary>
     [Fact]
     public async Task ParentOpen_LandsOnARootMenu_StillPicksTheParentEntry()

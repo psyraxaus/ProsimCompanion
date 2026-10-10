@@ -89,6 +89,10 @@ public sealed class FlightStateOptions : IOptionSection
     /// <summary>Cruise → Climb: a VS blip at cruise is turbulence; a step climb sustains.</summary>
     public double CruiseToClimbSettleSeconds { get; set; } = 10;
 
+    /// <summary>Descent → Climb: a level-off wobbles +300 fpm for a few seconds (issue #163,
+    /// 2026-10-10 EGCC at 6,000 ft); a climb-back on ATC instruction sustains.</summary>
+    public double DescentToClimbSettleSeconds { get; set; } = 10;
+
     /// <summary>Approach → go-around: second layer behind the VS gate (issue #99).</summary>
     public double GoAroundSettleSeconds { get; set; } = 5;
 

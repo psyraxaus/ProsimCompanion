@@ -1,0 +1,20 @@
+# EFHK Gate 46 -> EGCC, 2026-10-10, build 0.7.0-rc.1 (cf93164), session-20261010-032159 (ticket t-20261010-0726).
+# Live engine recorded two PushbackAndStart -> Preflight -> Departure bounces during the push
+# (04:12:42Z brake re-set, 04:15:44Z GSX position freeze; issue #161) and a Descent -> Climb -> Descent
+# blip at 5,916 ft (06:59:34Z, issue #163). The pushback-hold and the Descent -> Climb settle remove
+# all five edges; every other edge replays at the recorded second. The recorded ColdAndDark -> Unknown
+# (MSFS session end at 03:30:53Z) is a session signal the replay harness does not model.
+Unknown -> ColdAndDark
+ColdAndDark -> Preflight
+Preflight -> Departure
+Departure -> PushbackAndStart
+PushbackAndStart -> TaxiOut
+TaxiOut -> TakeoffRoll
+TakeoffRoll -> InitialClimb
+InitialClimb -> Climb
+Climb -> Cruise
+Cruise -> Descent
+Descent -> Approach
+Approach -> LandingRollout
+LandingRollout -> TaxiIn
+TaxiIn -> Shutdown

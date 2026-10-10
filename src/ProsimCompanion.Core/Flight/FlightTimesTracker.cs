@@ -55,22 +55,50 @@ public sealed class FlightTimesStore : SnapshotStore<FlightTimesSnapshot>
 public sealed class FlightTimesCore
 {
     private FlightTimesSnapshot _times = FlightTimesSnapshot.Empty;
+    private FlightPhase _phase = FlightPhase.Unknown;
 
     public FlightTimesSnapshot Current => _times;
 
     public void Reset() => _times = FlightTimesSnapshot.Empty;
 
-    /// <summary>Applies one committed phase transition; returns the (possibly unchanged) stamps.</summary>
-    /// <summary>Stamps the time — and the fuel on board at that moment (issue #155: the
-    /// debrief's burn is takeoff fuel minus on-blocks fuel, never a cruise check) — for each
-    /// phase edge. <paramref name="fobKg"/> is null when ProSim has no figure; the time still stamps.</summary>
+    /// <summary>
+    /// A cross-feature cycle reset (<c>GroundOpsSignals.FlightCycleReset</c>) clears the
+    /// stamps — unless the leg is still being closed out. The GSX automation raises that reset
+    /// on the very edge that stamps on-blocks (TaxiIn → Shutdown, ticket t-20261010-0726:
+    /// 07:15:22.396Z reset, 07:15:22.398Z stamp), so honouring it then wiped off-blocks,
+    /// takeoff and landing two milliseconds before the fourth stamp landed and the debrief
+    /// lost its block and flight times. While the last committed phase is an arrival phase
+    /// the stamps belong to the leg that just ended; the next at-gate edge clears them.
+    /// </summary>
+    /// <returns>True when the stamps were cleared.</returns>
+    public bool ResetForNewCycle()
+    {
+        if (_phase is FlightPhase.LandingRollout or FlightPhase.TaxiIn or FlightPhase.Shutdown)
+        {
+            return false;
+        }
+
+        _times = FlightTimesSnapshot.Empty;
+        return true;
+    }
+
+    /// <summary>Applies one committed phase transition and stamps the time — and the fuel on
+    /// board at that moment (issue #155: the debrief's burn is takeoff fuel minus on-blocks
+    /// fuel, never a cruise check) — for each phase edge. <paramref name="fobKg"/> is null
+    /// when ProSim has no figure; the time still stamps. Returns the (possibly unchanged) stamps.</summary>
     public FlightTimesSnapshot Apply(FlightPhase previous, FlightPhase current, DateTimeOffset nowUtc, double? fobKg = null)
     {
-        // The next turnaround: shutdown (or taxi-in) → back at the gate.
-        if (previous is FlightPhase.Shutdown or FlightPhase.TaxiIn && current.IsAtGate())
+        _phase = current;
+
+        // The next turnaround: shutdown (or taxi-in) → back at the gate, or straight into the
+        // next push/start (turnaround-start) — a new leg either way.
+        if (previous is FlightPhase.Shutdown or FlightPhase.TaxiIn && (current.IsAtGate() || current == FlightPhase.PushbackAndStart))
         {
             _times = FlightTimesSnapshot.Empty;
-            return _times;
+            if (current != FlightPhase.PushbackAndStart)
+            {
+                return _times;
+            }
         }
 
         switch (current)
@@ -188,9 +216,16 @@ public sealed class FlightTimesTracker : IDisposable
 
     private void OnFlightCycleReset()
     {
+        bool cleared;
         lock (_gate)
         {
-            _core.Reset();
+            cleared = _core.ResetForNewCycle();
+        }
+
+        if (!cleared)
+        {
+            _logger.LogDebug("Flight times: cycle reset ignored — the arrival is still being stamped");
+            return;
         }
 
         _store.Update(_ => FlightTimesSnapshot.Empty);

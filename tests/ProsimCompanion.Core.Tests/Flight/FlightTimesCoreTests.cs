@@ -30,6 +30,66 @@ public sealed class FlightTimesCoreTests
         Assert.Equal(TimeSpan.FromMinutes(124), times.FlightTime(T0.AddHours(9)));
     }
 
+    // ---- Ticket t-20261010-0726: the GSX arrival reset fires on the Shutdown edge ----
+
+    [Fact]
+    public void CycleReset_DuringTheArrival_KeepsTheStamps()
+    {
+        var core = new FlightTimesCore();
+        core.Apply(FlightPhase.Departure, FlightPhase.PushbackAndStart, T0, 9788);
+        core.Apply(FlightPhase.TakeoffRoll, FlightPhase.InitialClimb, T0.AddMinutes(16), 9522);
+        core.Apply(FlightPhase.Approach, FlightPhase.LandingRollout, T0.AddMinutes(178), 4074);
+        core.Apply(FlightPhase.LandingRollout, FlightPhase.TaxiIn, T0.AddMinutes(179));
+
+        // 07:15:22.396Z: GsxAutomationService raised FlightCycleReset 2 ms before the Shutdown stamp.
+        Assert.False(core.ResetForNewCycle());
+        var times = core.Apply(FlightPhase.TaxiIn, FlightPhase.Shutdown, T0.AddMinutes(183), 4003);
+
+        Assert.Equal(T0, times.OffBlocksUtc);
+        Assert.Equal(T0.AddMinutes(16), times.TakeoffUtc);
+        Assert.Equal(T0.AddMinutes(178), times.LandingUtc);
+        Assert.Equal(T0.AddMinutes(183), times.OnBlocksUtc);
+        Assert.Equal(9522 - 4003, times.FuelUsedKg);
+    }
+
+    [Fact]
+    public void CycleReset_AtShutdown_KeepsTheStamps_UntilTheNextLegEdge()
+    {
+        var core = new FlightTimesCore();
+        core.Apply(FlightPhase.Departure, FlightPhase.TaxiOut, T0);
+        core.Apply(FlightPhase.TaxiIn, FlightPhase.Shutdown, T0.AddMinutes(150));
+
+        Assert.False(core.ResetForNewCycle());
+        Assert.Equal(T0.AddMinutes(150), core.Current.OnBlocksUtc);
+
+        var next = core.Apply(FlightPhase.Shutdown, FlightPhase.Preflight, T0.AddMinutes(200));
+        Assert.Equal(FlightTimesSnapshot.Empty, next);
+    }
+
+    [Fact]
+    public void CycleReset_AtTheGateBeforeTheLeg_Clears()
+    {
+        var core = new FlightTimesCore();
+        core.Apply(FlightPhase.ColdAndDark, FlightPhase.Preflight, T0);
+        core.Apply(FlightPhase.Preflight, FlightPhase.Departure, T0.AddMinutes(10));
+
+        Assert.True(core.ResetForNewCycle());
+        Assert.Equal(FlightTimesSnapshot.Empty, core.Current);
+    }
+
+    [Fact]
+    public void TurnaroundStart_StraightFromShutdown_BeginsANewLeg()
+    {
+        var core = new FlightTimesCore();
+        core.Apply(FlightPhase.Departure, FlightPhase.TaxiOut, T0);
+        core.Apply(FlightPhase.TaxiIn, FlightPhase.Shutdown, T0.AddMinutes(150));
+
+        var next = core.Apply(FlightPhase.Shutdown, FlightPhase.PushbackAndStart, T0.AddMinutes(200));
+
+        Assert.Equal(T0.AddMinutes(200), next.OffBlocksUtc);
+        Assert.Null(next.OnBlocksUtc);
+    }
+
     [Fact]
     public void BlockTime_RunsWhileOnTheLeg()
     {

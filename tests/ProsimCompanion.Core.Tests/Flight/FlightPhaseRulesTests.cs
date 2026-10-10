@@ -162,6 +162,64 @@ public sealed class FlightPhaseRulesTests
         Assert.Contains("88", decision.Reason);
     }
 
+    // ---- Issue #161: a push in progress holds PushbackAndStart (EFHK Gate 46, 2026-10-10) ----
+
+    [Fact]
+    public void PushbackAndStart_BrakeReSetDuringThePush_Holds()
+    {
+        // 04:12:42Z: brake set for the tug, gs 0.5, beacon on, pushback flag true, engines off.
+        var pushing = Parked() with { BeaconOn = true, ApuRunning = true, PushbackActive = true, GroundSpeedKt = 0.5 };
+
+        Assert.Null(Decide(pushing, FlightPhase.PushbackAndStart));
+    }
+
+    [Fact]
+    public void PushbackAndStart_SpuriousGroundSpeedDuringThePush_Holds()
+    {
+        // 04:15:44Z: GSX froze the position, ground speed read 16.8 kt above PushbackMaxGroundSpeedKt.
+        var pushing = Parked() with { BeaconOn = true, ApuRunning = true, PushbackActive = true, ParkBrakeSet = false, GroundSpeedKt = 16.8 };
+
+        Assert.Null(Decide(pushing, FlightPhase.PushbackAndStart));
+    }
+
+    [Fact]
+    public void PushbackAndStart_PushFlagDropsWithEnginesOff_StillRegressesAfterTheLongDebounce()
+    {
+        // Without the flag the catch-all keeps its job (issue #59 semantics unchanged).
+        var decision = Decide(Parked(), FlightPhase.PushbackAndStart);
+
+        Assert.Equal(FlightPhase.Preflight, decision?.Target);
+        Assert.Equal("preflight", decision?.RuleId);
+    }
+
+    [Fact]
+    public void PushbackAndStart_EnginesRunningAndRolling_StillLeavesToTaxiOut()
+    {
+        // The hold needs engines OFF: with them running and the aircraft past tug speed the
+        // taxi-out rule decides exactly as before (push-evidence still wins below tug speed, #138).
+        var rolling = Parked() with { BeaconOn = true, PushbackActive = true, ParkBrakeSet = false, AnyEngineRunning = true, GroundSpeedKt = 12 };
+
+        var decision = Decide(rolling, FlightPhase.PushbackAndStart);
+
+        Assert.Equal(FlightPhase.TaxiOut, decision?.Target);
+        Assert.Equal("taxi-out", decision?.RuleId);
+    }
+
+    // ---- Issue #163: a level-off wobble in the descent is not a climb (EGCC 2026-10-10) ----
+
+    [Fact]
+    public void Descent_ClimbRate_CarriesTheDescentToClimbSettle()
+    {
+        var levelOff = new FlightDataSnapshot { IsValid = true, AircraftPowered = true, AnyEngineRunning = true, AltitudeFt = 5916, RadioAltitudeFt = 5360, VerticalSpeedFpm = 357 };
+
+        var decision = Decide(levelOff, FlightPhase.Descent);
+
+        Assert.Equal(FlightPhase.Climb, decision?.Target);
+        Assert.Equal("climb", decision?.RuleId);
+        Assert.Equal(TimeSpan.FromSeconds(FlightStateOptions.Default.DescentToClimbSettleSeconds), decision?.Debounce);
+        Assert.True(FlightStateOptions.Default.DescentToClimbSettleSeconds >= 5, "the settle must outlive a three-second wobble");
+    }
+
     [Fact]
     public void DepartureRegression_CarriesTheLongDebounce()
     {
