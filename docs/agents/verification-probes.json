@@ -2839,6 +2839,37 @@
         "requires-human after a second launch over a closing instance (reinstall): no new dump in CrashDumps, the first instance exits cleanly, the second shows its window."
       ],
       "notes": "Added 2026-10-10 (ticket t-20261010-0726, issue #162). The TrayIcon.Restore crash of 2026-10-09 21:35:29Z (Dispatcher.Invoke from the SingleInstanceGuard thread-pool callback while the dispatcher shut down) is fixed in d4df248 (InvokeAsync, HasShutdownStarted check, try/catch in the guard callback). This probe is the catch-all for the terminating line; sim-clock-local-kind-crash keeps only its own ArgumentException signature."
+    },
+    {
+      "id": "day-leg-route-seeded",
+      "issue": 164,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "day.started",
+          "contains": ""
+        },
+        "signature": {
+          "source": "session",
+          "type": "day.leg.route",
+          "contains": "\"source\":\"ofp\"",
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "assert-present: after every 'day.started' or 'day.leg.started' (or a 'day.resumed' with an open leg) while an OFP is loaded ('ofp.loaded' earlier in this or a previous session), a 'day.leg.route' {leg, from, to, flightNo, source:'ofp'} names the same leg with the OFP's origin/destination — within seconds when the OFP was already loaded, else at the next 'ofp.loaded'.",
+        "assert-present: every 'ofp.loaded' event carries origin and destination (requestId, flightNumber when SimBrief has one); one per distinct plan, no repeats for the same requestId+route.",
+        "assert-absent: a 'day.leg.route' for a leg that already has a 'day.leg.completed' — a completed leg never takes a later OFP (the return plan loaded in the turnaround belongs to the next leg).",
+        "assert-present: a session with NO 'flight.route' (speech off, no briefing) but an 'ofp.loaded' before the landing still folds with origin/destination — 'logbook.folded' {origin, destination} present (Mario's 2026-10-10 session-20261010-091717 folded with neither).",
+        "requires-human: Duty Day page FROM/TO card and the legs rail show the ICAO codes from the first minute of the day (not '---- → ----' / 'Leg 1 · ? → ?'); block and duty figures read as h:mm with an HRS unit and never ellipsize."
+      ],
+      "notes": "Added 2026-10-11 (issue #164, Mario + owner reports 2026-10-10). Progressive legs now take From/To/FlightNo from the OfpStore at day start, next-leg start, resume and on every OFP change while the leg is open (planned legs only fill gaps). Core's OfpEventRecorder writes 'ofp.loaded'; DebriefFactExtractor falls back to the last plan loaded before the landing when no 'flight.route' exists."
     }
   ]
 }

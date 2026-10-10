@@ -102,6 +102,17 @@ public static class DayMath
             : $"{hours} hour{Plural(hours)} {rest} minute{Plural(rest)}";
     }
 
+    /// <summary>"1:42" / "0:45" / "12:05" — the h:mm figure the web page shows. The spoken
+    /// form ("1 hour 42 minutes") in a 32 px mono figure overflowed its grid cell and
+    /// ellipsized to "1 hour 42 …" (Mario's screenshot, 2026-10-10); the page now renders
+    /// digits plus a small unit like every other EFB figure, and keeps the spoken form as
+    /// the hover title.</summary>
+    public static string FormatClock(int minutes)
+    {
+        minutes = Math.Max(0, minutes);
+        return string.Create(CultureInfo.InvariantCulture, $"{minutes / 60}:{minutes % 60:00}");
+    }
+
     /// <summary>"" for 1, "s" otherwise — the pluralization used across the day texts.</summary>
     public static string Plural(int n) => n == 1 ? "" : "s";
 }

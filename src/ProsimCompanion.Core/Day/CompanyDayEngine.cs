@@ -135,6 +135,55 @@ public sealed class CompanyDayEngine
     }
 
     /// <summary>
+    /// Seeds the OPEN leg's route from the loaded OFP (issue #164). Before this, a progressive
+    /// leg had no From/To until the Order-40 finalization step filled them at shutdown — the
+    /// Duty Day page showed "---- → ----" for the whole flight (owner, EFHK→EGCC 2026-10-10)
+    /// and, for a pilot with speech off, forever (Mario, EDDM→LHDC: no briefing → no
+    /// <c>flight.route</c> → no airports, ever). Rules: only the current leg, only while it is
+    /// open (no actual on-blocks) and the day is on a leg; a progressive leg follows the OFP
+    /// (a wrong-then-right OFP ends right); a planned leg keeps its plan and only fills gaps
+    /// (so a destination deviation stays detectable). Reality still wins at shutdown via
+    /// <see cref="ApplyLegFacts"/>. Returns the leg when anything changed, else null.
+    /// </summary>
+    public DayLeg? SeedRouteFromOfp(string? origin, string? destination, string? flightNo)
+    {
+        if (Day is not { IsOpen: true, State: DayPhase.OnLeg } day
+            || day.Current is not { ActualOnUtc: null } leg)
+        {
+            return null;
+        }
+
+        var changed = false;
+        var planned = day.Mode == DayMode.Planned;
+        changed |= Apply(origin, leg.From, planned, v => leg.From = v);
+        changed |= Apply(destination, leg.To, planned, v => leg.To = v);
+        changed |= Apply(flightNo, leg.FlightNo, planned, v => leg.FlightNo = v);
+        return changed ? leg : null;
+
+        static bool Apply(string? value, string? current, bool fillGapsOnly, Action<string> set)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            var next = value.Trim().ToUpperInvariant();
+            if (fillGapsOnly && !string.IsNullOrEmpty(current))
+            {
+                return false;
+            }
+
+            if (string.Equals(current, next, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            set(next);
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Fills a completed leg's facts from its session log extraction, keyed by session id so a
     /// late or replayed finalization can never write into the wrong leg. Route follows reality
     /// (extracted origin/destination win); in planned mode a destination mismatch records the

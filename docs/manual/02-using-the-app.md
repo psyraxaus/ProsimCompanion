@@ -47,7 +47,7 @@ running version.
 | **Fuel Log** | The paper OFP's fuel column: plan vs actual at your point on the navlog, estimated landing fuel, a burn chart, the waypoint table that fills in as you pass each fix, and the First Officer's spoken fuel checks — see below |
 | **Performance** | Takeoff and Landing switch — airport/runway card with runway chips, runway diagram and wind components, weather, aircraft config, FMGC figures, FMS PERF uplink |
 | **Checklists** | ECAM-style interactive checklists with a completion bar and the checklist sequence rail (visual runner; the voice FO runs beside it) |
-| **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode with a legs timeline |
+| **Tech Log / Duty Day** | MEL & tech log, multi-leg company day mode with a legs timeline — each leg takes its FROM / TO and flight number from the loaded OFP the moment the day (or the next leg) starts, and keeps whatever you actually flew once the leg is on blocks |
 | **Logbook** | Your flights: totals (flights, block hours, landings, stable-approach rate, average touchdown rate), the touchdown-rate trend, a table you can sort by any column, the detail of one flight (times, runways, touchdown rate / speed / pitch, bounces, abnormals), delete (two clicks) and **Export CSV** — see below |
 | **⚙ Settings** | Everything you configure, on one rail (below) |
 

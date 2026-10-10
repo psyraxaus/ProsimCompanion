@@ -36,6 +36,7 @@ public sealed class CompanyDayServiceTests : IDisposable
     private readonly FakeArbiter _arbiter = new();
     private readonly FakeCompanyChannel _company = new();
     private readonly DayStatusStore _store = new();
+    private readonly ProsimCompanion.Core.Aircraft.Ofp.OfpStore _ofp = new();
     private readonly Mock<IDebriefFactExtractor> _extractor = new();
     private readonly Mock<ITechLogService> _techLog = new();
     private readonly Mock<ILogbookService> _logbook = new();
@@ -73,7 +74,8 @@ public sealed class CompanyDayServiceTests : IDisposable
         _arbiter,
         OptionsSupport.Monitor(_options),
         NullLogger<CompanyDayService>.Instance,
-        new ProsimCompanion.Core.Speech.SpokenText());
+        new ProsimCompanion.Core.Speech.SpokenText(),
+        _ofp);
 
     public void Dispose()
     {
@@ -414,6 +416,103 @@ public sealed class CompanyDayServiceTests : IDisposable
             second.Start();
             Assert.Equal("Turnaround", _store.Snapshot().View!.State);
             Assert.Equal("Leg 1 complete.", second.DebriefContextLine);
+        }
+        finally
+        {
+            second.Dispose();
+        }
+    }
+
+    // ---- OFP → open leg route (issue #164) ----
+
+    private static ProsimCompanion.Core.Aircraft.Ofp.OfpData Ofp(string from, string to, string flightNo, string id = "1")
+        => new() { RequestId = id, OriginIcao = from, DestinationIcao = to, FlightNumber = flightNo };
+
+    /// <summary>Mario's 2026-10-10 screenshot: "---- → ----" and "Leg 1 · ? → ?" with the OFP
+    /// (EDDM→LHDC, DLH1687) loaded from the first minute. The leg now shows it at once.</summary>
+    [Fact]
+    public void StartDay_SeedsLegOneFromTheLoadedOfp()
+    {
+        _ofp.Set(Ofp("EDDM", "LHDC", "DLH1687"));
+        _service.TryStartDay("web", T0);
+
+        var snapshot = _store.Snapshot();
+        Assert.Equal("EDDM", snapshot.View!.From);
+        Assert.Equal("LHDC", snapshot.View.To);
+        var leg = snapshot.Legs.Single();
+        Assert.Equal("EDDM", leg.From);
+        Assert.Equal("LHDC", leg.To);
+        Assert.Equal("DLH1687", leg.FlightNo);
+    }
+
+    [Fact]
+    public void OfpLoadedLater_SeedsTheOpenLeg_NeverACompletedOne()
+    {
+        _service.Start(); // subscribes to the OFP store
+        _service.TryStartDay("web", T0);
+        Assert.Null(_store.Snapshot().View!.From);
+
+        _ofp.Set(Ofp("EDDM", "LHDC", "DLH1687"));
+        Assert.Equal("EDDM", _store.Snapshot().View!.From);
+        Assert.Equal("LHDC", _store.Snapshot().View!.To);
+
+        // A wrong-then-right OFP ends right while the leg is open.
+        _ofp.Set(Ofp("EDDM", "LHBP", "DLH1687", id: "2"));
+        Assert.Equal("LHBP", _store.Snapshot().View!.To);
+
+        // Speech off: no flight.route, so the facts carry no airports — the seed survives.
+        CompleteLegOne(T0.AddMinutes(102), DebriefFacts.Empty with { BlockMinutes = 102 });
+        var completed = _store.Snapshot().Legs.Single();
+        Assert.Equal("EDDM", completed.From);
+        Assert.Equal("LHBP", completed.To);
+
+        // The return OFP arrives in the turnaround: the completed leg must not move.
+        _ofp.Set(Ofp("LHBP", "EDDM", "DLH1688", id: "3"));
+        Assert.Equal("LHBP", _store.Snapshot().Legs.Single().To);
+
+        // Next leg: From chains, To and the flight number come from the OFP.
+        _service.HandlePhase(FlightPhase.Preflight, T0.AddMinutes(150));
+        var next = _store.Snapshot().Legs.Single(l => l.Index == 2);
+        Assert.Equal("LHBP", next.From);
+        Assert.Equal("EDDM", next.To);
+        Assert.Equal("DLH1688", next.FlightNo);
+        Assert.Equal("EDDM", _store.Snapshot().View!.To);
+    }
+
+    [Fact]
+    public void ExtractedRoute_StillWinsOverTheOfpSeed_AtShutdown()
+    {
+        _ofp.Set(Ofp("EDDM", "LHDC", "DLH1687"));
+        _service.TryStartDay("web", T0);
+        CompleteLegOne(T0.AddMinutes(102), DebriefFacts.Empty with { BlockMinutes = 102, Destination = "LHBP" });
+
+        Assert.Equal("LHBP", _store.Snapshot().Legs.Single().To); // diverted: reality wins
+    }
+
+    [Fact]
+    public void PlannedDay_KeepsItsPlan_OnlyFillsGapsFromTheOfp()
+    {
+        WritePlannedRotation(); // EGLL→EGCC BA123
+        _ofp.Set(Ofp("EGLL", "EGBB", "BA999"));
+        _service.TryStartDay("web", T0);
+
+        var leg = _store.Snapshot().Legs.Single(l => l.Index == 1);
+        Assert.Equal("EGCC", leg.To);      // the plan stands — a mismatch stays a detectable deviation
+        Assert.Equal("BA123", leg.FlightNo);
+    }
+
+    [Fact]
+    public void Restart_SeedsTheResumedOpenLegFromTheOfp()
+    {
+        _service.TryStartDay("web", T0);
+        _ofp.Set(Ofp("EDDM", "LHDC", "DLH1687"));
+
+        var second = Create();
+        try
+        {
+            second.Start();
+            Assert.Equal("EDDM", _store.Snapshot().View!.From);
+            Assert.Equal("LHDC", _store.Snapshot().View!.To);
         }
         finally
         {

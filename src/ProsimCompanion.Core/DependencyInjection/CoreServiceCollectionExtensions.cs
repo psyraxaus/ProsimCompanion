@@ -175,6 +175,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<WebListenerStatus>();
         services.AddSingleton<ArrivalMinimaStore>();
         services.AddSingleton<Aircraft.Ofp.OfpStore>();
+        // ofp.loaded session event (issue #164): the planned route on record whether or not a
+        // briefing is ever spoken — the extractor's fallback for logbook/debrief/duty-day legs.
+        services.AddHostedService<Aircraft.Ofp.OfpEventRecorder>();
         services.AddSingleton<LoadsheetStore>();
         // The last takeoff performance result (issue #148): the Takeoff page writes it, the
         // gross-error check reads it.

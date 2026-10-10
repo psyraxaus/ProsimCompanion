@@ -51,6 +51,10 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     private readonly IOptionsMonitor<DayOptions> _options;
     private readonly ILogger<CompanyDayService> _logger;
 
+    // The loaded OFP seeds the open leg's route (issue #164) — the page was "---- → ----"
+    // until shutdown, and forever for a pilot with speech off.
+    private readonly Core.Aircraft.Ofp.OfpStore _ofp;
+
     // Optional: with no name source, airports stay spelled ("E G L L") — issue #70.
     private readonly Core.Speech.ISpokenText _spokenText;
 
@@ -73,10 +77,13 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
         ISpeechArbiter arbiter,
         IOptionsMonitor<DayOptions> options,
         ILogger<CompanyDayService> logger,
-        Core.Speech.ISpokenText spokenText)
+        Core.Speech.ISpokenText spokenText,
+        Core.Aircraft.Ofp.OfpStore ofp)
     {
         ArgumentNullException.ThrowIfNull(spokenText);
+        ArgumentNullException.ThrowIfNull(ofp);
         _spokenText = spokenText;
+        _ofp = ofp;
         ArgumentNullException.ThrowIfNull(flight);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(extractor);
@@ -146,6 +153,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
             _started = true;
             _engine.Resume(_stateFile.Load());
             _flight.PhaseChanged += OnPhaseChanged;
+            _ofp.Changed += OnOfpChanged;
             _timer = new Timer(_ => TimerTick(), null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
 
             if (_engine.Day is { IsOpen: true } day)
@@ -154,6 +162,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
                 _lastActivityUtc = DateTimeOffset.UtcNow;
                 legIndex = day.CurrentLegIndex;
                 legCount = day.Legs.Count;
+                SeedRouteFromOfpLocked(); // a resumed open leg takes the OFP already loaded
             }
 
             snapshot = _engine.BuildSnapshot(DateTimeOffset.UtcNow);
@@ -185,7 +194,61 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     public void Dispose()
     {
         _flight.PhaseChanged -= OnPhaseChanged;
+        _ofp.Changed -= OnOfpChanged;
         _timer?.Dispose();
+    }
+
+    // ---- OFP → open leg route (issue #164) ----
+
+    private void OnOfpChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            DaySnapshot? snapshot = null;
+            lock (_gate)
+            {
+                if (SeedRouteFromOfpLocked() is not null)
+                {
+                    snapshot = _engine.BuildSnapshot(DateTimeOffset.UtcNow);
+                }
+            }
+
+            if (snapshot is not null)
+            {
+                _store.Update(snapshot);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Day OFP route seed failed");
+        }
+    }
+
+    /// <summary>Seeds the open leg from the loaded OFP; call under <c>_gate</c>. Persists and
+    /// records <c>day.leg.route</c> when anything changed; callers publish the snapshot.</summary>
+    private DayLeg? SeedRouteFromOfpLocked()
+    {
+        if (_ofp.Current is not { } ofp || _engine.Day is not { } day)
+        {
+            return null;
+        }
+
+        var leg = _engine.SeedRouteFromOfp(ofp.OriginIcao, ofp.DestinationIcao, ofp.FlightNumber);
+        if (leg is null)
+        {
+            return null;
+        }
+
+        _stateFile.Save(day);
+        _eventLog.Record("day.leg.route", new
+        {
+            leg = leg.Index,
+            from = leg.From,
+            to = leg.To,
+            flightNo = leg.FlightNo,
+            source = "ofp",
+        });
+        return leg;
     }
 
     // ---- phase-driven state machine (never modifies the flight phases) ----
@@ -253,6 +316,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
                         {
                             _stateFile.Save(day);
                             _eventLog.Record("day.leg.started", new { leg = leg.Index });
+                            SeedRouteFromOfpLocked(); // the next sector's OFP is usually loaded by now
                             snapshot = _engine.BuildSnapshot(nowUtc);
                             speak = $"Leg {leg.Index}. New sector.";
                             if (day.Mode == DayMode.Planned)
@@ -411,6 +475,7 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
                 source,
                 legs = day.Legs.Count,
             });
+            SeedRouteFromOfpLocked(); // leg 1 shows the OFP route from the first minute (#164)
             snapshot = _engine.BuildSnapshot(nowUtc);
             speak = day.Mode == DayMode.Planned
                 ? $"Duty day started — {day.Legs.Count} sectors planned."

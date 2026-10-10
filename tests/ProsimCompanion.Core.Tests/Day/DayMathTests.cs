@@ -111,4 +111,16 @@ public sealed class DayMathTests
     [InlineData(460, "7 hours 40 minutes")]
     public void FormatHoursMinutes_SpeaksNaturally(int minutes, string expected)
         => Assert.Equal(expected, DayMath.FormatHoursMinutes(minutes));
+
+    /// <summary>The page figure (issue #164 tidy-up): digits that fit the cell, never the
+    /// spoken words that ellipsized to "1 hour 42 …".</summary>
+    [Theory]
+    [InlineData(0, "0:00")]
+    [InlineData(45, "0:45")]
+    [InlineData(102, "1:42")]
+    [InlineData(206, "3:26")]
+    [InlineData(725, "12:05")]
+    [InlineData(-5, "0:00")]
+    public void FormatClock_IsHoursColonMinutes(int minutes, string expected)
+        => Assert.Equal(expected, DayMath.FormatClock(minutes));
 }
