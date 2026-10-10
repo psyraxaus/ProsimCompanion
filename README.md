@@ -130,7 +130,7 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   it puts the headset sound on the cockpit speakers at the dial's level — step-by-step in
   [chapter 8](docs/manual/08-loudspeaker-dial.md)
 - **Remote mixer**: a Voicemeeter on *another* PC (the vPilot box) through the
-  VoicemeeterBridge agent — knobs and REC latches onto its strip/bus gains and mutes, a
+  VoicemeeterBridge agent ([releases](https://github.com/psyraxaus/VoicemeeterBridge/releases)) — knobs and REC latches onto its strip/bus gains and mutes, a
   status card with mute buttons — step by step in
   [chapter 9](docs/manual/09-remote-mixer.md)
 
