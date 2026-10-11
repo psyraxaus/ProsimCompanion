@@ -20,7 +20,8 @@ public sealed record SettingsNavGroup(string Key, string Label, string Href, IRe
     /// <summary>The active item for <paramref name="path"/>: an exact href match, else the
     /// first item (the group's landing section).</summary>
     public SettingsNavItem? ActiveItem(string path)
-        => Items.FirstOrDefault(item => item.Href.Equals(path, StringComparison.OrdinalIgnoreCase))
+        => Items.FirstOrDefault(item => item.Href.Equals(path, StringComparison.OrdinalIgnoreCase)
+                                        || path.StartsWith(item.Href + "/", StringComparison.OrdinalIgnoreCase))
            ?? Items.FirstOrDefault();
 }
 

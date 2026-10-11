@@ -10,18 +10,16 @@ Available from **0.5.0-rc.12**.
 
 ## Before you start
 
-**How the app picks a voice.** Voices are tried in a fixed order:
+**How the app picks a voice.** Since 0.7.0-rc.6 every voice names its provider: you pick
+the First Officer and the crew voices on **Settings → Voice First Officer → Voices** from
+one list over every connected provider, and the provider you picked speaks that role. So an
+ElevenLabs First Officer works even with a Kokoro server configured — Kokoro then only
+covers when ElevenLabs is down, over budget or not answering, with its own fallback voice.
+The full walk-through is [chapter 10](10-voices.md). Two things to know:
 
-1. Kokoro (your own local server)
-2. **ElevenLabs**
-3. Google
-4. Windows voices
-
-The first one that is set up and working speaks. Two things follow from that:
-
-- If you have a **Kokoro** server configured, Kokoro speaks and ElevenLabs is only the
-  backup. To make ElevenLabs the main voice, clear the Kokoro *Base URL* (Settings → Voice
-  First Officer → Voice Providers).
+- When ElevenLabs cannot speak, the chain covers in this order: Kokoro, Google, then the
+  Windows voices. The **Status** page shows which provider spoke last and why one was
+  skipped.
 - **Local only** (Settings → Voice First Officer → General) switches every network voice
   off, ElevenLabs included. Leave it unticked.
 

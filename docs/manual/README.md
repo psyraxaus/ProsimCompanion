@@ -25,6 +25,7 @@ kept there so a broken web configuration can always be repaired.
 | [Voice First Officer](03-voice-fo.md) | PTT, spoken checklists, callouts, briefings, persona |
 | [Settings reference](04-settings-reference.md) | Every settings section, including the hand-editable ones |
 | [Troubleshooting](05-troubleshooting.md) | Logs, degraded subsystems, common problems |
+| [Voices: setting up the First Officer and crew voices](10-voices.md) | The Voices page and the provider tabs: connect Kokoro, ElevenLabs, Google or the Windows voices, pick the First Officer and crew voices from live lists, fallback voices, troubleshooting |
 | [ElevenLabs voices](06-elevenlabs.md) | Step-by-step setup: API key, voice, plan, crew voices, cost control |
 | [Tablet: HTTPS, home screen, keep-awake](07-tablet-install.md) | Your own certificate (mkcert), trusting the CA on the iPad, Add to Home Screen, the keep-awake switch; no offline mode |
 | [Loudspeaker dial](08-loudspeaker-dial.md) | Headset sound on the cockpit speakers with the LOUD SPEAKER dial as their volume: the VoiceMeeter wiring (VBAN loop) and the mapping |

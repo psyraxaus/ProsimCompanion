@@ -336,5 +336,6 @@ another dialogue has the microphone (a hail, the tech log), a running spoken che
 and resumes around the window, and if the descent begins first there is no call that flight.
 The VOICE drawer's Cabin tab shows the replies it understands.
 
-To set up ElevenLabs — key, voice, plan, crew voices, cost — follow the
+To pick the First Officer and crew voices from every provider, follow [chapter 10](10-voices.md).
+To set up ElevenLabs — key, plan, cost — follow the
 [ElevenLabs setup guide](06-elevenlabs.md).

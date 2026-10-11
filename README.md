@@ -111,7 +111,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
   and an intercom filter; LAN faster-whisper or offline recognition; PTT on keyboard or joystick.
   ElevenLabs: bring your own key; the default MP3 output works on the Free plan (no commercial
   licence there), PCM output needs a paid plan; a monthly character budget keeps the bill in check
-  — step-by-step in the [ElevenLabs setup guide](docs/manual/06-elevenlabs.md)
+  — step-by-step in the [ElevenLabs setup guide](docs/manual/06-elevenlabs.md). Voices for the FO,
+  purser, company and ground crew are picked on one **Voices** page from live lists of every
+  connected provider — [chapter 10](docs/manual/10-voices.md)
 - An optional **persona** (name, experience, formality, chattiness) colours the FO's
   wording — numbers verified and locked, deterministic texts always the floor
 - **On a tablet**: add the EFB to the home screen as a full-screen app and keep the screen awake

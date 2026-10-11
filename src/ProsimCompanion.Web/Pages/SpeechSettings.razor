@@ -1,4 +1,4 @@
-@page "/settings/speech/{Section?}"
+@page "/settings/speech/{Section?}/{Tab?}"
 @page "/speech"
 @layout SettingsLayout
 @using System.Text.Json
@@ -24,6 +24,7 @@
 @inject IPttInputCapture PttCapture
 @inject IVoiceCatalog VoiceCatalog
 @inject ITtsUsageReadout TtsUsage
+@inject NavigationManager Nav
 
 <PageTitle>Voice First Officer — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Voice First Officer</h1>
@@ -665,7 +666,7 @@ else if (CurrentSection == "providers")
         {
             <button type="button" class="subtab @(ProviderTab == tab.Key ? "active" : "")" role="tab"
                     aria-selected="@(ProviderTab == tab.Key ? "true" : "false")"
-                    @onclick="() => ProviderTab = tab.Key">@tab.Label</button>
+                    @onclick='() => OpenProviderTab(tab.Key)'>@tab.Label</button>
         }
     </div>
 
@@ -1267,6 +1268,19 @@ else if (CurrentSection == "abnormals")
     [Parameter]
     public string? Section { get; set; }
 
+    /// <summary>Provider tab for /settings/speech/providers/{tab} — deep links from the manual (2026-10-12).</summary>
+    [Parameter]
+    public string? Tab { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (CurrentSection == "providers" && !string.IsNullOrWhiteSpace(Tab))
+        {
+            ProviderTab = Tab.ToLowerInvariant();
+        }
+    }
+
     /// <summary>The old "crew" and "elevenlabs" routes (manual, bookmarks) land on the Voices page
     /// and the ElevenLabs provider tab (2026-10-12).</summary>
     private string CurrentSection => Section?.ToLowerInvariant() switch
@@ -1332,6 +1346,13 @@ else if (CurrentSection == "abnormals")
     {
         get => _providerTab;
         set => _providerTab = ProviderTabs.Any(t => t.Key == value) ? value : "kokoro";
+    }
+
+    /// <summary>Switches the tab and puts it in the URL, so a refresh and the Back button keep it.</summary>
+    private void OpenProviderTab(string key)
+    {
+        ProviderTab = key;
+        Nav.NavigateTo($"settings/speech/providers/{key}", replace: true);
     }
 
     private const string VoicesEmptyHint = "No voices listed yet. Connect a provider under Voice Providers and press Refresh.";
