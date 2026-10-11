@@ -147,12 +147,16 @@ public sealed class VoiceReferenceBuilderTests
 
         Assert.Contains("fuel check", fuel.Entries.SelectMany(e => e.Phrases));
         Assert.Contains("gross error check", gross.Entries.SelectMany(e => e.Phrases));
-        Assert.Equal(4, readbacks.Entries.Length);
-        Assert.All(readbacks.Entries, e =>
+        // Four read-backs with a figure, plus the figure-less "altimeter standard" (#148, 2026-10-11).
+        Assert.Equal(5, readbacks.Entries.Length);
+        var withFigure = readbacks.Entries.Where(e => !e.Phrases.Contains("altimeter standard")).ToList();
+        Assert.Equal(4, withFigure.Count);
+        Assert.All(withFigure, e =>
         {
             Assert.Contains(VoiceReferenceDescribers.Value, e.Badges!);
             Assert.NotNull(e.ValueHint);
         });
+        Assert.Contains(readbacks.Entries, e => e.Phrases.Contains("read back altimeter"));
         // Every described lead-in is one the parser accepts.
         Assert.All(readbacks.Entries.SelectMany(e => e.Phrases), p => Assert.Contains(p, ProsimCompanion.Speech.Monitoring.ReadbackCore.LeadIns));
     }

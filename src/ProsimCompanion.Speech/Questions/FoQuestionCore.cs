@@ -50,14 +50,22 @@ public static class FoQuestionCore
             return false;
         }
 
-        // Small talk (issue #152): long enough is enough — "who is better, Chelsea or Arsenal"
-        // has no lead-in. The known phrases still win: the router asks here only after
-        // every feature, drill and checklist start declined.
-        if (options.SmallTalk)
+        if (StartsWithLeadIn(normalized, options))
         {
             return true;
         }
 
+        // Small talk (issue #152): no lead-in needed — "who is better, Chelsea or Arsenal".
+        // But it must still be SHAPED like a question (issue #176, 2026-10-10: "No questions.
+        // Thank you for the briefing." and "I don't know, it did." went to the model): a
+        // question word up front, or the recognizer's own question mark at the end. The known
+        // phrases still win: the router asks here only after every feature, drill and
+        // checklist start declined.
+        return options.SmallTalk && HasQuestionShape(utterance, words);
+    }
+
+    private static bool StartsWithLeadIn(string normalized, FoQuestionOptions options)
+    {
         foreach (var leadIn in options.LeadInList())
         {
             var lead = CommandMatcher.Normalize(leadIn ?? "");
@@ -74,6 +82,71 @@ public static class FoQuestionCore
         }
 
         return false;
+    }
+
+    /// <summary>The words that open a question when no lead-in does.</summary>
+    private static readonly HashSet<string> QuestionWords = new(StringComparer.Ordinal)
+    {
+        "what", "how", "where", "when", "why", "which", "who", "whose", "whom",
+        "can", "could", "is", "are", "do", "does", "did", "any", "would", "should",
+    };
+
+    /// <summary>Filler the pilot may put before the question word ("so, what…", "okay, how…").</summary>
+    private static readonly HashSet<string> Fillers = new(StringComparer.Ordinal)
+    {
+        "so", "and", "but", "well", "hey", "ok", "okay", "um", "uh", "oh", "right", "now", "hmm", "captain", "then",
+    };
+
+    /// <summary>A question shape (issue #176): a question word as the first word (or right
+    /// after one filler word), or the ASR's trailing "?". Exposed for tests.</summary>
+    public static bool HasQuestionShape(string utterance, IReadOnlyList<string> normalizedWords)
+    {
+        ArgumentNullException.ThrowIfNull(normalizedWords);
+        if ((utterance ?? "").TrimEnd().EndsWith('?'))
+        {
+            return true;
+        }
+
+        if (normalizedWords.Count == 0)
+        {
+            return false;
+        }
+
+        if (QuestionWords.Contains(normalizedWords[0]))
+        {
+            return true;
+        }
+
+        return normalizedWords.Count > 1 && Fillers.Contains(normalizedWords[0]) && QuestionWords.Contains(normalizedWords[1]);
+    }
+
+    /// <summary>The fixed one-word acknowledgement (with <c>acknowledgeSmallTalk</c> on).</summary>
+    public const string AckWord = "Roger.";
+
+    /// <summary>Every word a plain acknowledgement is made of; a sentence built only of these
+    /// (and short enough) is an acknowledgement, not a question.</summary>
+    private static readonly HashSet<string> AckWords = new(StringComparer.Ordinal)
+    {
+        "no", "none", "nothing", "questions", "question", "further", "more", "else",
+        "thank", "thanks", "thankyou", "you", "very", "much", "for", "the", "that", "this", "briefing", "brief", "update", "info",
+        "copied", "copy", "roger", "wilco", "ok", "okay", "understood", "noted", "got", "it", "cheers", "ta",
+        "great", "good", "fine", "alright", "all", "right", "lovely", "brilliant", "excellent", "perfect", "nice", "cool", "super",
+        "yes", "yep", "yeah", "sure", "affirm", "affirmative", "will", "do", "appreciated", "appreciate", "a", "lot",
+        "s", "i", "m", "happy", "with", "clear", "crystal",
+    };
+
+    /// <summary>True for "no questions, thank you for the briefing", "copied", "roger that",
+    /// "okay thanks" — words only from the acknowledgement vocabulary, at most eight of them,
+    /// and no question shape. "I don't know, it did." is NOT one (it is simply not a question).</summary>
+    public static bool IsAcknowledgement(string utterance)
+    {
+        if (string.IsNullOrWhiteSpace(utterance) || utterance.TrimEnd().EndsWith('?'))
+        {
+            return false;
+        }
+
+        var words = CommandMatcher.Normalize(utterance).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length is >= 1 and <= 8 && words.All(AckWords.Contains) && !HasQuestionShape(utterance, words);
     }
 
     /// <summary>The question with a leading "question" lead-in word removed ("question, what is

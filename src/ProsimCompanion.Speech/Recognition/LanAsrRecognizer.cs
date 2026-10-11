@@ -46,7 +46,8 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
 
     private readonly SelfEchoGuard _echoGuard = new();
     private readonly IDisposable? _speechStatusWatch;
-    private volatile IReadOnlyList<string> _recentlySpoken = [];
+    private readonly IExpectedReplyProvider? _expectedReplies;
+    private volatile IReadOnlyList<SelfEchoGuard.SpokenLine> _recentlySpoken = [];
     private bool _suppressing;
     private long _suppressedEpisodes;
 
@@ -54,11 +55,14 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
     /// degraded mode) simply skips the records.</param>
     /// <param name="speechStatus">The arbiter's playing state and recent lines, for the
     /// self-echo guard; null (tests) leaves the mic open.</param>
+    /// <param name="expectedReplies">What the FO is waiting to hear (issue #172) — those
+    /// replies are never taken for the FO's own voice; null = no exemptions.</param>
     public LanAsrRecognizer(
         IOptionsMonitor<SpeechOptions> options,
         ILogger<LanAsrRecognizer> logger,
         Core.EventLog.JsonlEventLog? eventLog = null,
-        SpeechStatusStore? speechStatus = null)
+        SpeechStatusStore? speechStatus = null,
+        IExpectedReplyProvider? expectedReplies = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
@@ -66,26 +70,30 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
         _options = options;
         _logger = logger;
         _eventLog = eventLog;
+        _expectedReplies = expectedReplies;
         _speechStatusWatch = speechStatus?.Observe(OnSpeechStatus);
     }
 
     /// <summary>Arbiter state → the guard: NowPlaying is set from dequeue to the end of the
-    /// last segment; the recent lines (Spoken / Segment outcomes) feed the text check.</summary>
+    /// last segment; the recent lines feed the text check WITH their own stamps — the window
+    /// is applied at transcript time (issue #172), never here, because this runs only when the
+    /// arbiter publishes and a quiet minute left the list a minute stale. Spoken / Segment
+    /// outcomes (and the line playing now) are the ones that reached the playback device.</summary>
     private void OnSpeechStatus(SpeechStatusSnapshot snapshot)
     {
-        _echoGuard.Update(snapshot.NowPlaying is not null, DateTimeOffset.UtcNow);
-        var cutoff = DateTimeOffset.UtcNow - SelfEchoGuard.OwnSpeechWindow;
-        List<string> recent = [];
+        var now = DateTimeOffset.UtcNow;
+        _echoGuard.Update(snapshot.NowPlaying is not null, now);
+        List<SelfEchoGuard.SpokenLine> recent = [];
         if (snapshot.NowPlaying is { Length: > 0 } playing)
         {
-            recent.Add(playing);
+            recent.Add(new SelfEchoGuard.SpokenLine(playing, now, PlayedAloud: true));
         }
 
         foreach (var line in snapshot.RecentUtterances)
         {
-            if (line.TimestampUtc >= cutoff && line.Outcome is "Spoken" or "Segment")
+            if (line.Outcome is "Spoken" or "Segment")
             {
-                recent.Add(line.Text);
+                recent.Add(new SelfEchoGuard.SpokenLine(line.Text, line.TimestampUtc, PlayedAloud: true));
             }
         }
 
@@ -357,10 +365,13 @@ public sealed class LanAsrRecognizer : IVoiceRecognizer
 
             // The FO's own words came back through the speakers (bleed the timing gate missed,
             // or the gate is off): drop them, never answer them.
-            if (options.MuteMicWhileSpeaking && SelfEchoGuard.LooksLikeOwnSpeech(transcript.Text, _recentlySpoken))
+            if (options.MuteMicWhileSpeaking && SelfEchoGuard.LooksLikeOwnSpeech(
+                    transcript.Text, _recentlySpoken, DateTimeOffset.UtcNow,
+                    TimeSpan.FromSeconds(Math.Max(0, options.SelfEchoWindowSeconds)),
+                    _expectedReplies?.ExpectedReplies ?? []))
             {
                 _logger.LogInformation("ASR dropped the FO's own words heard back from the speakers: {Text}", transcript.Text);
-                _eventLog?.Record("asr.self-echo", new { text = transcript.Text });
+                _eventLog?.Record("asr.self-echo", new { text = transcript.Text, windowSeconds = options.SelfEchoWindowSeconds });
                 Rejected?.Invoke(this, new RecognizedEventArgs("", 0, null, transcript.NoSpeechProb));
                 return;
             }

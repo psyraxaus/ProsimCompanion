@@ -14,6 +14,9 @@ public sealed class PilotAnnouncementTests
     [InlineData("manflex srs runway navblue", FlightPhase.TakeoffRoll)]
     [InlineData("man flex srs runway nav blue", FlightPhase.InitialClimb)]
     [InlineData("man toga srs runway", FlightPhase.TakeoffRoll)]
+    // 2026-10-11 EFHK→LKPR 00:13:37Z (issue #177): "AntFlex SRS Runway NavBlue." scored 0.80 → clarifier during the roll.
+    [InlineData("antflex srs runway navblue", FlightPhase.TakeoffRoll)]
+    [InlineData("ant flex", FlightPhase.TakeoffRoll)]
     public void TakeoffFmaReads_AreAcknowledged(string normalized, FlightPhase phase)
         => Assert.Equal(
             PilotAnnouncementFeature.AnnouncementKind.TakeoffFma,
@@ -29,10 +32,27 @@ public sealed class PilotAnnouncementTests
     [InlineData("glideslope capture", FlightPhase.Approach)]
     [InlineData("altstar", FlightPhase.Descent)]
     [InlineData("alt star", FlightPhase.Approach)]
+    // 2026-10-11 02:39:11Z (issue #177): "Glideslap capture lock" scored 0.72 → clarifier → declined.
+    [InlineData("glideslap capture lock", FlightPhase.Descent)]
+    [InlineData("glide slop star", FlightPhase.Approach)]
     public void CaptureCalls_AreAcknowledged(string normalized, FlightPhase phase)
         => Assert.Equal(
             PilotAnnouncementFeature.AnnouncementKind.CaptureFma,
             PilotAnnouncementFeature.Classify(normalized, phase));
+
+    [Fact]
+    public void TheJunctions_AreCataloguePhrases_AndTheFeatureIsAcknowledgeOnly()
+    {
+        // Exact phrases score 1.0 — no gray band, no "did you mean" (issue #177).
+        var feature = new PilotAnnouncementFeature(new FakeArbiter(), new FakePhaseSource(), SpeechTestSupport.TempEventLog());
+
+        Assert.Contains("antflex", feature.Phrases);
+        Assert.Contains("ant flex", feature.Phrases);
+        Assert.Contains("glideslap", feature.Phrases);
+        Assert.Contains("glide slop", feature.Phrases);
+        Assert.Contains("man flex", feature.Phrases);
+        Assert.True(((IVoiceFeature)feature).AcknowledgeOnly);
+    }
 
     [Fact]
     public void ManualFlight_IsAcknowledged()

@@ -128,10 +128,34 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
     /// <summary>Clock for the budget timers; tests shorten it.</summary>
     internal Func<TimeSpan, CancellationToken, Task> Delay { get; init; } = Task.Delay;
 
+    public const string AckEvent = "fo.ack";
+
     public bool TryAsk(string rawUtterance)
     {
         var options = Options;
-        if (!options.Enabled || !FoQuestionCore.IsQuestion(rawUtterance, options))
+        if (!options.Enabled)
+        {
+            return false;
+        }
+
+        // A plain acknowledgement is not a question (issue #176, 2026-10-10: "No questions.
+        // Thank you for the briefing." went to the model as small talk and came back as
+        // "Let's get this show on the road."). Consumed here: one fixed word, or nothing —
+        // never the model, never a "didn't catch that".
+        if (FoQuestionCore.IsAcknowledgement(rawUtterance))
+        {
+            var response = options.AcknowledgeSmallTalk ? FoQuestionCore.AckWord : "";
+            _logger.LogInformation("FO acknowledgement \"{Text}\" -> \"{Response}\"", rawUtterance, response);
+            _eventLog.Record(AckEvent, new { text = rawUtterance, response });
+            if (response.Length > 0)
+            {
+                Speak(response);
+            }
+
+            return true;
+        }
+
+        if (!FoQuestionCore.IsQuestion(rawUtterance, options))
         {
             return false;
         }
@@ -232,9 +256,10 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         var clock = Stopwatch.StartNew();
         var personaFragment = _persona?.SystemPromptFragment(Persona.PersonaStyleCategory.Advisory) ?? "";
 
-        using var spoken = new CancellationTokenSource();
+        using var audio = new CancellationTokenSource();
         using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(1, options.TimeBudgetSeconds)));
-        var standBy = StandByAsync(options, spoken.Token);
+        var latch = new FirstAudioLatch();
+        var standBy = StandByAsync(options, latch, audio.Token);
 
         var plan = new NarrationPlan(
             "fo.chat", FoQuestionCore.ChatSystemPrompt(personaFragment), FoQuestionCore.ChatUserPrompt(question), [], [],
@@ -242,18 +267,8 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         {
             VerifyNumbers = false,
             Guard = FoQuestionCore.ChatSentenceAllowed,
-            OnFirstSpeech = () =>
-            {
-                spoken.Cancel();
-                try
-                {
-                    budget.CancelAfter(Timeout.InfiniteTimeSpan);
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Already finished.
-                }
-            },
+            OnFirstSpeech = () => StandDown(budget),
+            OnFirstAudio = () => latch.Mark(audio),
         };
 
         NarrationResult? result = null;
@@ -268,7 +283,7 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         }
         finally
         {
-            spoken.Cancel();
+            latch.Mark(audio);
             await standBy.ConfigureAwait(false);
         }
 
@@ -398,31 +413,24 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         var system = FoQuestionCore.SystemPrompt(personaFragment);
 
         // The budget runs until the first spoken word, then the answer plays out. The
-        // "stand by" line fills the gap when the model is slow but still inside the budget.
-        using var spoken = new CancellationTokenSource();
+        // "stand by" line fills the gap when the model (or the synthesizer) is slow but still
+        // inside the budget — measured to the first AUDIO (issue #176).
+        using var audio = new CancellationTokenSource();
         using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(1, options.TimeBudgetSeconds)));
-        var standBy = StandByAsync(options, spoken.Token);
+        var latch = new FirstAudioLatch();
+        var standBy = StandByAsync(options, latch, audio.Token);
 
         var plan = new NarrationPlan(
             "fo.answer", system, FoQuestionCore.UserPrompt(sheet, question), sheet.AllowedNumbers, [],
             new SpeechRequest("FO answer", SpeechPriority.Normal, TimeSpan.FromSeconds(30), Tag: Tag), [])
         {
-            OnFirstSpeech = () =>
-            {
-                // The first word is out: the "stand by" timer AND the time budget stand down.
-                // The budget token is the one the arbiter item was enqueued with — left armed,
-                // it cut every answer at exactly 6.0 s mid-sentence (owner's gate test
-                // 2026-10-03: three answers, totalMs 6012–6020, outcome preempted).
-                spoken.Cancel();
-                try
-                {
-                    budget.CancelAfter(Timeout.InfiniteTimeSpan);
-                }
-                catch (ObjectDisposedException)
-                {
-                    // The answer already finished.
-                }
-            },
+            // The first sentence is handed over: the time budget stands down. The budget token
+            // is the one the arbiter item was enqueued with — left armed, it cut every answer
+            // at exactly 6.0 s mid-sentence (owner's gate test 2026-10-03: three answers,
+            // totalMs 6012–6020, outcome preempted).
+            OnFirstSpeech = () => StandDown(budget),
+            // The first word is actually heard: the "stand by" timer stands down.
+            OnFirstAudio = () => latch.Mark(audio),
         };
 
         NarrationResult? result = null;
@@ -437,7 +445,7 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         }
         finally
         {
-            spoken.Cancel();
+            latch.Mark(audio);
             await standBy.ConfigureAwait(false);
         }
 
@@ -518,7 +526,15 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
         }
     }
 
-    private async Task StandByAsync(FoQuestionOptions options, CancellationToken spoken)
+    /// <summary>The arbiter tag of the "Stand by." filler, so the flight review can tell it
+    /// from the answer.</summary>
+    public const string StandByTag = "fo.standby";
+
+    /// <summary>"Stand by." when no AUDIO of the answer has started by the deadline (issue
+    /// #176). Low priority and a validity check: the arbiter drops it unspoken if the answer
+    /// started playing (or ended) before it reached the front of the queue — it is a filler,
+    /// never a line after the answer. A separate fixed line, never a segment of the answer.</summary>
+    private async Task StandByAsync(FoQuestionOptions options, FirstAudioLatch latch, CancellationToken audio)
     {
         if (options.StandBySeconds <= 0)
         {
@@ -527,12 +543,57 @@ public sealed class FoQuestionService : IFreeFormQuestionHandler, IDisposable
 
         try
         {
-            await Delay(TimeSpan.FromSeconds(options.StandBySeconds), spoken).ConfigureAwait(false);
-            Speak(FoQuestionCore.StandBy);
+            await Delay(TimeSpan.FromSeconds(options.StandBySeconds), audio).ConfigureAwait(false);
+            if (latch.Started)
+            {
+                return;
+            }
+
+            _logger.LogInformation("FO answer: no audio {Seconds} s after the question — saying stand by", options.StandBySeconds);
+            _ = _arbiter.EnqueueAsync(new SpeechRequest(
+                FoQuestionCore.StandBy, SpeechPriority.Low,
+                Ttl: TimeSpan.FromSeconds(Math.Max(1, options.TimeBudgetSeconds)),
+                IsStillValid: () => !latch.Started,
+                Tag: StandByTag), CancellationToken.None);
         }
         catch (OperationCanceledException)
         {
             // The answer began (or ended) first.
+        }
+    }
+
+    /// <summary>The time budget is withdrawn once the model's first sentence is on its way.</summary>
+    private static void StandDown(CancellationTokenSource budget)
+    {
+        try
+        {
+            budget.CancelAfter(Timeout.InfiniteTimeSpan);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The answer already finished.
+        }
+    }
+
+    /// <summary>Set once the answer's first audio plays — or the answer is over, whichever
+    /// comes first; either way the "stand by" stands down.</summary>
+    private sealed class FirstAudioLatch
+    {
+        private volatile bool _started;
+
+        public bool Started => _started;
+
+        public void Mark(CancellationTokenSource audio)
+        {
+            _started = true;
+            try
+            {
+                audio.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // The answer already finished and the token with it.
+            }
         }
     }
 

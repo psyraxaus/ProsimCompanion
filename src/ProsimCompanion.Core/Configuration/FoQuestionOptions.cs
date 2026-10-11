@@ -52,6 +52,15 @@ public sealed class FoQuestionOptions
     /// gives up ("I don't have a verified answer for that").</summary>
     public int TimeBudgetSeconds { get; set; } = 6;
 
-    /// <summary>Seconds of silence after the question before the FO says "Stand by" (0 = never).</summary>
+    /// <summary>Seconds of silence after the question before the FO says "Stand by" (0 = never).
+    /// Measured to the first AUDIO of the answer, not to the model's first sentence (issue
+    /// #176: the 2026-10-10 answers started playing 1–4 s after the model's first sentence
+    /// and no "Stand by" was ever heard).</summary>
     public int StandBySeconds { get; set; } = 2;
+
+    /// <summary>What the FO does with a plain acknowledgement that is not a question — "no
+    /// questions, thank you for the briefing", "copied", "roger", "okay" (issue #176). On: a
+    /// fixed one-word "Roger." Off (default): nothing at all. Either way the words never go
+    /// to the language model and never earn a "didn't catch that".</summary>
+    public bool AcknowledgeSmallTalk { get; set; }
 }

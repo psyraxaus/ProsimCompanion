@@ -32,6 +32,12 @@ public sealed record NarrationPlan(
     /// Not called when the template speaks instead.</summary>
     public Action? OnFirstSpeech { get; init; }
 
+    /// <summary>Called once, when the first segment actually starts PLAYING (issue #176: the
+    /// FO questions measure their "stand by" against this, not against the first sentence —
+    /// on 2026-10-10 synthesis put 1–4 s between the two and no "Stand by" was ever heard).
+    /// Not called when the stream ends without audio. Runs on a pool thread.</summary>
+    public Action? OnFirstAudio { get; init; }
+
     /// <summary>When false the number verifier is skipped for this narration — the FO's
     /// small-talk answers (issue #152), where a figure is trivia, not flight data. The
     /// <see cref="Guard"/> is still applied.</summary>
@@ -145,6 +151,15 @@ public sealed class StreamingNarrator
                 {
                     stream = new StreamedUtterance();
                     stream.TryWrite(new SpeechSegment(sentence, Cacheable: false));
+                    if (plan.OnFirstAudio is { } onFirstAudio)
+                    {
+                        // A cancelled FirstAudio (no audio ever) runs nothing; the
+                        // continuation itself is then cancelled, never faulted.
+                        _ = stream.FirstAudio.ContinueWith(
+                            _ => onFirstAudio(), CancellationToken.None,
+                            TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+                    }
+
                     speaking = _arbiter.EnqueueAsync(plan.Header with { Stream = stream }, cancellationToken);
                     plan.OnFirstSpeech?.Invoke();
                 }

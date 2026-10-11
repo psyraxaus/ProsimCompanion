@@ -293,6 +293,15 @@ public sealed class SpeechOptions : IOptionSection
     /// reverb plus the audio device's own delay.</summary>
     public int MicTailAfterSpeakingMs { get; set; } = 700;
 
+    /// <summary>How long after the FO spoke a line a transcript can still be taken for that
+    /// line heard back (the self-echo text check, issue #172). The window is measured at
+    /// transcript time from each line's own spoken-at stamp: on 2026-10-10 "Taxi checklist."
+    /// was dropped 71 s after "Taxi checklist complete." because the recent-lines list was
+    /// only rebuilt when the arbiter published a new snapshot. A pilot reply that repeats the
+    /// FO's pending "did you mean …?" candidate or the open checklist item's accepted phrase
+    /// is never an echo, whatever the window.</summary>
+    public int SelfEchoWindowSeconds { get; set; } = 15;
+
     /// <summary>FO push-to-talk binding (key OR joystick button, Prosim2FO process). When
     /// unset, the legacy flat fields below still apply, so pre-binding configs migrate
     /// silently.</summary>
@@ -378,6 +387,14 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Snapped command scores in [threshold, this) trigger a "did you mean …?"
     /// confirmation instead of firing.</summary>
     public double ConfirmBelowScore { get; set; } = 0.85;
+
+    /// <summary>Below this radio altitude (feet, airborne) the FO never asks "did you mean …?"
+    /// (issue #177, 2026-10-11: "did you mean gear up?" in the initial climb, and a clarifier
+    /// over the takeoff roll's FMA read). The takeoff roll, initial climb and landing rollout
+    /// are sterile whatever the height. In those sterile moments a gray-band match on an
+    /// acknowledge-only announcement phrase (the FMA reads, capture calls) at 0.70 or better
+    /// is accepted without the question; anything else is absorbed silently.</summary>
+    public int ClarifierMinAglFt { get; set; } = 1000;
 
     /// <summary>Play the short listening cue tone when a window opens for a reply.</summary>
     public bool ListeningTone { get; set; } = true;

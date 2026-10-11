@@ -90,7 +90,9 @@ public sealed class StandaloneReadbacks : IVoiceFeature, IDisposable
         _eventLog.Record("fo.readback", new
         {
             kind = request.Kind.ToString().ToLowerInvariant(),
-            said = request.Runway ?? string.Join("/", request.Numbers.Select(n => n.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))),
+            said = request.Standard
+                ? "standard"
+                : request.Runway ?? string.Join("/", request.Numbers.Select(n => n.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))),
             outcome = answer.Outcome,
             text = answer.Text,
         });

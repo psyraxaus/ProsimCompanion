@@ -23,6 +23,11 @@ public enum UnmatchedReason
 
     /// <summary>The recognizer itself rejected it (offline-engine confidence).</summary>
     EngineReject,
+
+    /// <summary>A gray-band match in a sterile moment (takeoff roll, initial climb, rollout,
+    /// or below the clarifier floor) that was neither an acknowledge-only phrase nor good
+    /// enough to fire — the "did you mean …?" was withheld (issue #177).</summary>
+    ClarifierWithheld,
 }
 
 /// <summary>
@@ -110,6 +115,7 @@ public sealed class UnmatchedUtteranceTracker
         UnmatchedReason.NotAnAnswer => "not-an-answer",
         UnmatchedReason.ConfirmDeclined => "confirm-declined",
         UnmatchedReason.EngineReject => "engine-reject",
+        UnmatchedReason.ClarifierWithheld => "clarifier-withheld",
         _ => "unknown",
     };
 }
