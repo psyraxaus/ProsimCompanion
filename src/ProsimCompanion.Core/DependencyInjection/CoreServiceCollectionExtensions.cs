@@ -110,6 +110,7 @@ public static class CoreServiceCollectionExtensions
         // spoken fuel checks kept for the same page.
         services.AddSingleton<Flight.FuelLogStore>();
         services.AddStartupModule<Flight.FuelLogService>();
+        services.AddSingleton<Flight.IFlightStatePart>(p => p.GetRequiredService<Flight.FuelLogService>());
         services.AddSingleton<Flight.FuelCheckLogStore>();
         // "What are we flying over?" (#153): the shipped atlas, read on the first question,
         // and the optional Wikipedia summary source behind it.
@@ -123,6 +124,7 @@ public static class CoreServiceCollectionExtensions
         // Off/on-blocks, takeoff and landing stamps for the Flight Monitor board (2026-09-23).
         services.AddSingleton<Flight.FlightTimesStore>();
         services.AddStartupModule<Flight.FlightTimesTracker>();
+        services.AddSingleton<Flight.IFlightStatePart>(p => p.GetRequiredService<Flight.FlightTimesTracker>());
         // Position-based flight progress (issue #145): distance flown / to go, ground-speed
         // ETA and the top-of-descent estimate. Airport coordinates come from the ordered
         // IAirportCoordinateSource tiers — the gateway here, the Navigraph DFD from the
@@ -159,6 +161,7 @@ public static class CoreServiceCollectionExtensions
         // sender; the signal source only ever writes to the queue, so no raiser waits.
         services.AddSingleton<Notifications.NotificationDispatcher>();
         services.AddStartupModule<Notifications.NotificationSignalSource>();
+        services.AddSingleton<Flight.IFlightStatePart>(p => p.GetRequiredService<Notifications.NotificationSignalSource>());
         services.AddSingleton<ConnectionStatusStore>();
         // The ProSim setup check (2026-10-06): written by the ProSim pillar after each read of
         // the IOS options, read by the Setup page card and the Getting Started card.
@@ -236,6 +239,17 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Sessions.ISessionFinalizationStep>(p => p.GetRequiredService<TechLog.TechLogService>());
         services.AddSingleton<Sessions.SessionFinalizer>();
         services.AddHostedService<Hosting.PostFlightBootstrapService>();
+
+        // Flight state across an app restart (issue #167): the OFP, minima and departure-cycle
+        // parts are adapters over their stores; the trackers above register themselves. The
+        // service goes LAST among the Core modules so every part (the Speech pillar adds the
+        // chrono and cabin latches) exists when it starts; it waits for ProSim's aircraft
+        // title and EFB flag before restoring, so startup order never races the evidence.
+        services.AddSingleton<Flight.FlightStateSnapshotStore>();
+        services.AddSingleton<Flight.IFlightStatePart, Flight.OfpSnapshotPart>();
+        services.AddSingleton<Flight.IFlightStatePart, Flight.ArrivalMinimaSnapshotPart>();
+        services.AddSingleton<Flight.IFlightStatePart, Flight.DepartureCycleSnapshotPart>();
+        services.AddStartupModule<Flight.FlightStateSnapshotService>();
 
         // IFlightDataSource and IProsimDataRefs come from the Prosim project's registrations.
         services.AddSingleton<FlightStateEngine>();

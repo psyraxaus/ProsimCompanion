@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
@@ -17,9 +19,21 @@ namespace ProsimCompanion.Core.Notifications;
 /// "boarding completed" from a GSX re-sync, or a loadsheet re-sent as the same edition, is
 /// swallowed; a <see cref="GroundOpsSignals.FlightCycleReset"/> re-arms everything. All work
 /// here is a dictionary check and a channel write: a raiser is never delayed.
+/// <para>
+/// The flight-times milestones are EDGES, not levels (2026-10-10 flight, issue #151):
+/// "landed" is raised when the landing stamp appears, never again when the same snapshot
+/// changes for the on-blocks stamp — the GSX arrival reset had cleared the once-per-cycle
+/// set in between and the level check re-sent "landed" six minutes after touchdown, twice
+/// per leg. The once-per-cycle set, the final-loadsheet edition and the holdover warning
+/// are also the <c>notifications</c> part of the flight-state snapshot (issue #167), so a
+/// restart does not replay "final loadsheet sent" for the edition the EFB restores.
+/// </para>
 /// </summary>
-public sealed class NotificationSignalSource : IStartupModule, IDisposable
+public sealed class NotificationSignalSource : IStartupModule, IDisposable, IFlightStatePart
 {
+    /// <summary>What the snapshot part persists.</summary>
+    public sealed record LatchState(IReadOnlyList<string> Fired, int LastFinalEdition, bool HoldoverWarned);
+
     private readonly NotificationDispatcher _dispatcher;
     private readonly GroundOpsSignals _signals;
     private readonly LoadsheetStore _loadsheet;
@@ -35,6 +49,7 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable
     private readonly List<IDisposable> _subscriptions = [];
     private int _lastFinalEdition;
     private bool _holdoverWarned;
+    private FlightTimesSnapshot _lastTimes = FlightTimesSnapshot.Empty;
 
     public NotificationSignalSource(
         NotificationDispatcher dispatcher,
@@ -179,12 +194,21 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable
 
     private void OnTimes(FlightTimesSnapshot times)
     {
-        if (times.LandingUtc is { } landing)
+        bool landedEdge, onBlocksEdge;
+        lock (_gate)
+        {
+            // Edges only: a stamp that was already there is not news (see the class remarks).
+            landedEdge = times.LandingUtc is not null && _lastTimes.LandingUtc is null;
+            onBlocksEdge = times.OnBlocksUtc is not null && _lastTimes.OnBlocksUtc is null;
+            _lastTimes = times;
+        }
+
+        if (landedEdge && times.LandingUtc is { } landing)
         {
             Raise(FlightEvent.Landed, "Landed", $"Landed at {landing:HH:mm} zulu.", at: landing);
         }
 
-        if (times.OnBlocksUtc is { } onBlocks)
+        if (onBlocksEdge && times.OnBlocksUtc is { } onBlocks)
         {
             var block = times.OffBlocksUtc is { } off ? $" Block time {Duration(onBlocks - off)}." : "";
             Raise(FlightEvent.OnBlocks, "On blocks", $"On blocks at {onBlocks:HH:mm} zulu.{block}", at: onBlocks,
@@ -196,11 +220,37 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable
     {
         var snapshot = _holdover!.Snapshot();
         var threshold = Math.Max(1, _options.CurrentValue.HoldoverExpiringMinutes) * 60;
+        bool rearmed;
         lock (_gate)
         {
-            if (!snapshot.Active)
+            if (!snapshot.Active && !snapshot.Expired)
             {
+                rearmed = _holdoverWarned;
                 _holdoverWarned = false; // a new deice re-arms the warning
+            }
+            else
+            {
+                rearmed = false;
+            }
+        }
+
+        if (rearmed)
+        {
+            Changed?.Invoke(); // outside the lock: the snapshot part captures under it
+        }
+
+        lock (_gate)
+        {
+            if (!snapshot.Active && !snapshot.Expired)
+            {
+                return;
+            }
+
+            // Only a real holdover can expire: with no precipitation entered (or below the
+            // fluid's LOUT) the card shows no window and the remaining figures read 0 — that
+            // is "no holdover", not "0 minutes left" (issue #151, 2026-10-10 20:15:46Z).
+            if (!snapshot.HasHoldover)
+            {
                 return;
             }
 
@@ -236,6 +286,62 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable
             _lastFinalEdition = 0;
             _holdoverWarned = false;
         }
+
+        Changed?.Invoke();
+    }
+
+    // ---- flight-state snapshot part (#167) ----------------------------------------------------
+
+    public string Key => "notifications";
+
+    /// <summary>Before every store-backed part: the latches must be in place when the
+    /// restored loadsheet edition and landing stamp are published.</summary>
+    public int RestoreOrder => 5;
+
+    public event Action? Changed;
+
+    public JsonNode? Capture()
+    {
+        LatchState state;
+        lock (_gate)
+        {
+            state = new LatchState(
+                _firedThisCycle.Select(NotificationMessage.WireName).OrderBy(n => n, StringComparer.Ordinal).ToList(),
+                _lastFinalEdition,
+                _holdoverWarned);
+        }
+
+        return state is { Fired.Count: 0, LastFinalEdition: 0, HoldoverWarned: false }
+            ? null
+            : JsonSerializer.SerializeToNode(state, FlightStateSnapshotStore.JsonOptions);
+    }
+
+    public void Restore(JsonNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        var state = node.Deserialize<LatchState>(FlightStateSnapshotStore.JsonOptions);
+        if (state is null)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            foreach (var name in state.Fired)
+            {
+                if (NotificationMessage.TryParseName(name, out var flightEvent))
+                {
+                    _firedThisCycle.Add(flightEvent);
+                }
+            }
+
+            _lastFinalEdition = Math.Max(_lastFinalEdition, state.LastFinalEdition);
+            _holdoverWarned |= state.HoldoverWarned;
+        }
+
+        _logger.LogInformation(
+            "Notification latches restored from the flight-state snapshot: {Fired} already sent, final loadsheet edition {Edition}",
+            state.Fired.Count == 0 ? "nothing" : string.Join(", ", state.Fired), state.LastFinalEdition);
     }
 
     // ---- the one gate ------------------------------------------------------------------------
@@ -251,6 +357,8 @@ public sealed class NotificationSignalSource : IStartupModule, IDisposable
                 return false;
             }
         }
+
+        Changed?.Invoke();
 
         var ofp = _ofp.Current;
         var route = ofp is { OriginIcao.Length: > 0, DestinationIcao.Length: > 0 } ? $"{ofp.OriginIcao}–{ofp.DestinationIcao}" : "";

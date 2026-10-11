@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.EventLog;
@@ -15,10 +17,14 @@ namespace ProsimCompanion.Speech.Callouts;
 /// The stop press only fires when THIS feature started the chrono: a blind press at touchdown
 /// would START a chrono the pilot never ran. Handled only in TaxiOut/TakeoffRoll so "takeoff"
 /// said anywhere else routes on normally; before this feature the 2026-09-05 lineup answered
-/// the pilot's "Take off." with "Repeat please.".
+/// the pilot's "Take off." with "Repeat please.". The running latch is the <c>chrono</c> part
+/// of the flight-state snapshot (issue #167): a restart in the cruise still stops the clock
+/// at touchdown.
 /// </summary>
-public sealed class ChronoCallFeature : IVoiceFeature, Core.Hosting.IStartupModule, IDisposable
+public sealed class ChronoCallFeature : IVoiceFeature, Core.Hosting.IStartupModule, IDisposable, IFlightStatePart
 {
+    private sealed record ChronoState(bool Running);
+
     private static readonly string[] CallPhrases = ["takeoff", "take off"];
 
     private readonly IProsimDataRefs _dataRefs;
@@ -51,6 +57,30 @@ public sealed class ChronoCallFeature : IVoiceFeature, Core.Hosting.IStartupModu
     public void Start() => _flight.PhaseChanged += OnPhaseChanged;
 
     public void Dispose() => _flight.PhaseChanged -= OnPhaseChanged;
+
+    // ---- flight-state snapshot part (#167) ----------------------------------------------------
+
+    public string Key => "chrono";
+
+    public int RestoreOrder => 60;
+
+    public event Action? Changed;
+
+    public JsonNode? Capture()
+        => _chronoRunning ? JsonSerializer.SerializeToNode(new ChronoState(true), FlightStateSnapshotStore.JsonOptions) : null;
+
+    public void Restore(JsonNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        var state = node.Deserialize<ChronoState>(FlightStateSnapshotStore.JsonOptions);
+        if (state is not { Running: true })
+        {
+            return;
+        }
+
+        _chronoRunning = true;
+        _logger.LogInformation("Chrono latch restored from the flight-state snapshot — the touchdown stop press is armed");
+    }
 
     public bool Enabled => true;
 
@@ -93,6 +123,7 @@ public sealed class ChronoCallFeature : IVoiceFeature, Core.Hosting.IStartupModu
             // on the next touchdown could start a fresh chrono instead of stopping one.
             _chronoRunning = false;
             _logger.LogInformation("Session ended — chrono latch reset without a stop press");
+            Changed?.Invoke();
         }
     }
 
@@ -114,6 +145,8 @@ public sealed class ChronoCallFeature : IVoiceFeature, Core.Hosting.IStartupModu
             _chronoRunning = false;
             _logger.LogError(ex, "Chrono press failed ({Action})", start ? "start" : "stop");
         }
+
+        Changed?.Invoke();
     }
 
     private void Speak(string text)

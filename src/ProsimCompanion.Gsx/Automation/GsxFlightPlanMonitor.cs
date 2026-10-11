@@ -106,13 +106,10 @@ public sealed class GsxFlightPlanMonitor : IGsxFlightPlanStatus, IDisposable
     public static bool IsFlightPlanAvailable(bool ofpImportedDataref, bool fmsPlanPresent, bool ofpHeldThisSession)
         => fmsPlanPresent || (ofpImportedDataref && ofpHeldThisSession);
 
-    /// <summary>The MCDU FMS origin/destination datarefs carry a valid 4-char ICAO once the
-    /// pilot loads a plan — but read "----" before that, and have been observed returning the
-    /// literal string "Null" (predecessor archaeology, TakeoffPerfService).</summary>
-    public static bool IsValidIcao(string? value)
-        => value is { Length: 4 }
-            && value != "----"
-            && !value.Equals("Null", StringComparison.OrdinalIgnoreCase);
+    /// <summary>The MCDU plan rule, kept here for the existing callers; the reading itself
+    /// lives in Core (<see cref="FmsPlanRules"/>) since the flight-state snapshot (#167)
+    /// applies it too.</summary>
+    public static bool IsValidIcao(string? value) => FmsPlanRules.IsValidIcao(value);
 
     public void Dispose()
     {

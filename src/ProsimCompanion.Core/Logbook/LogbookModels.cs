@@ -50,6 +50,10 @@ public sealed class LogbookFlight
 
     public DateTimeOffset? OnBlocksUtc { get; set; }
 
+    /// <summary>The takeoff stamp is missing because the app was started in flight (issue
+    /// #167) — the Logbook page says so instead of showing an empty cell.</summary>
+    public bool TakeoffUnknown { get; set; }
+
     /// <summary>True when the flight touched down (a landing).</summary>
     public bool Landed { get; set; }
 

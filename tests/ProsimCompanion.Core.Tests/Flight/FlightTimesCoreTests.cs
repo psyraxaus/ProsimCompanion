@@ -100,14 +100,117 @@ public sealed class FlightTimesCoreTests
         Assert.Null(times.FlightTime(T0.AddMinutes(30)));
     }
 
+    /// <summary>Issue #167 (2026-10-10, restart in the climb): the first commit Unknown → Cruise
+    /// used to seed takeoff = now with the fuel of that moment — "0.7 t used" for a 5.2 t leg.
+    /// Now the takeoff is recorded as unknown and nothing is invented.</summary>
     [Fact]
-    public void AppStartedAirborne_BackfillsOffBlocks()
+    public void AppStartedAirborne_LeavesTheTakeoffUnknown_NeverSeedsNow()
     {
         var core = new FlightTimesCore();
+        var times = core.Apply(FlightPhase.Unknown, FlightPhase.Cruise, T0, 7976);
+
+        Assert.True(times.TakeoffUnknown);
+        Assert.Null(times.TakeoffUtc);
+        Assert.Null(times.TakeoffFobKg);
+        Assert.Null(times.OffBlocksUtc);
+        Assert.Null(times.FuelUsedKg);
+
+        // The rest of the leg still stamps; the flag stays so the debrief can say why.
+        var landed = core.Apply(FlightPhase.Approach, FlightPhase.LandingRollout, T0.AddHours(2), 4433);
+        Assert.Equal(T0.AddHours(2), landed.LandingUtc);
+        Assert.True(landed.TakeoffUnknown);
+        Assert.Null(landed.FuelUsedKg);
+    }
+
+    [Fact]
+    public void AppStartedOnTheRunway_StillStampsTheRealTakeoffEdge()
+    {
+        var core = new FlightTimesCore();
+        core.Apply(FlightPhase.Unknown, FlightPhase.TakeoffRoll, T0);
+        var times = core.Apply(FlightPhase.TakeoffRoll, FlightPhase.InitialClimb, T0.AddMinutes(1), 9580);
+
+        Assert.Equal(T0.AddMinutes(1), times.TakeoffUtc);
+        Assert.Equal(T0.AddMinutes(1), times.OffBlocksUtc); // backfilled so block ≥ flight time
+        Assert.False(times.TakeoffUnknown);
+    }
+
+    // ---- Issue #167: stamps restored from the flight-state snapshot ----
+
+    private static FlightTimesSnapshot Airborne() => new(T0, T0.AddMinutes(14), null, null, 9879, 9580);
+
+    [Fact]
+    public void Restore_BeforeTheFirstCommit_IsJudgedByThatCommit()
+    {
+        var core = new FlightTimesCore();
+        Assert.Equal(FlightTimesSnapshot.Empty, core.Restore(Airborne(), T0.AddHours(1)));
+
+        var times = core.Apply(FlightPhase.Unknown, FlightPhase.Cruise, T0.AddHours(1), 7976);
+
+        Assert.Equal(T0.AddMinutes(14), times.TakeoffUtc);
+        Assert.Equal(9580, times.TakeoffFobKg);
+        Assert.Equal(T0, times.OffBlocksUtc);
+        Assert.False(times.TakeoffUnknown);
+
+        var onBlocks = core.Apply(FlightPhase.TaxiIn, FlightPhase.Shutdown, T0.AddHours(3), 4351);
+        Assert.Equal(9580 - 4351, onBlocks.FuelUsedKg);
+    }
+
+    [Fact]
+    public void Restore_AfterTheFirstCommit_IsJudgedAtOnce()
+    {
+        var core = new FlightTimesCore();
+        core.Apply(FlightPhase.Unknown, FlightPhase.Descent, T0.AddHours(2));
+        Assert.True(core.Current.TakeoffUnknown);
+
+        var times = core.Restore(Airborne(), T0.AddHours(2));
+
+        Assert.Equal(T0.AddMinutes(14), times.TakeoffUtc);
+        Assert.False(times.TakeoffUnknown);
+    }
+
+    [Fact]
+    public void Accept_InTheAir_KeepsOffBlocksAndTakeoff_RefusesALandedLeg()
+    {
+        var landed = Airborne() with { LandingUtc = T0.AddHours(2), LandingFobKg = 4433 };
+
+        Assert.Equal(Airborne(), FlightTimesCore.Accept(Airborne(), FlightPhase.Cruise, T0.AddHours(1)));
+        Assert.Equal(FlightTimesSnapshot.Empty, FlightTimesCore.Accept(landed, FlightPhase.Cruise, T0.AddHours(3)));
+    }
+
+    [Fact]
+    public void Accept_TaxiingIn_KeepsTheLanding_Shutdown_KeepsARecentOnBlocks()
+    {
+        var landed = Airborne() with { LandingUtc = T0.AddHours(2), LandingFobKg = 4433 };
+        var onBlocks = landed with { OnBlocksUtc = T0.AddHours(2.2), OnBlocksFobKg = 4351 };
+
+        Assert.Equal(landed, FlightTimesCore.Accept(landed, FlightPhase.TaxiIn, T0.AddHours(2.1)));
+        // An on-blocks stamp while still taxiing in belongs to an older leg: nothing comes back.
+        Assert.Equal(FlightTimesSnapshot.Empty, FlightTimesCore.Accept(onBlocks, FlightPhase.TaxiIn, T0.AddHours(2.1)));
+        Assert.Equal(onBlocks, FlightTimesCore.Accept(onBlocks, FlightPhase.Shutdown, T0.AddHours(2.5)));
+        Assert.Equal(FlightTimesSnapshot.Empty, FlightTimesCore.Accept(onBlocks, FlightPhase.Shutdown, T0.AddHours(9)));
+    }
+
+    [Fact]
+    public void Accept_AtTheGate_KeepsNothing_PushingKeepsOffBlocksOnly()
+    {
+        var pushing = new FlightTimesSnapshot(T0, null, null, null, 9879);
+
+        Assert.Equal(FlightTimesSnapshot.Empty, FlightTimesCore.Accept(Airborne(), FlightPhase.Preflight, T0.AddHours(5)));
+        Assert.Equal(FlightTimesSnapshot.Empty, FlightTimesCore.Accept(Airborne(), FlightPhase.ColdAndDark, T0.AddHours(5)));
+        Assert.Equal(pushing, FlightTimesCore.Accept(pushing, FlightPhase.TaxiOut, T0.AddMinutes(3)));
+        // A takeoff stamp while still taxiing out is an older leg's: nothing comes back.
+        Assert.Equal(FlightTimesSnapshot.Empty, FlightTimesCore.Accept(Airborne(), FlightPhase.TaxiOut, T0.AddMinutes(3)));
+    }
+
+    [Fact]
+    public void Restore_WithATakeoffUnknownSnapshot_KeepsTheFlag()
+    {
+        var core = new FlightTimesCore();
+        core.Restore(new FlightTimesSnapshot(null, null, null, null, TakeoffUnknown: true), T0);
         var times = core.Apply(FlightPhase.Unknown, FlightPhase.Cruise, T0);
 
-        Assert.Equal(T0, times.TakeoffUtc);
-        Assert.Equal(T0, times.OffBlocksUtc);
+        Assert.True(times.TakeoffUnknown);
+        Assert.Null(times.TakeoffUtc);
     }
 
     [Fact]

@@ -57,6 +57,24 @@ public sealed record NotificationMessage(
         _ => "test",
     };
 
+    /// <summary>The inverse of <see cref="WireName"/>, for the latches persisted in the
+    /// flight-state snapshot (issue #167). An unknown name (a milestone removed in a later
+    /// build) is simply not a latch.</summary>
+    public static bool TryParseName(string? name, out FlightEvent flightEvent)
+    {
+        foreach (var candidate in Enum.GetValues<FlightEvent>())
+        {
+            if (string.Equals(WireName(candidate), name, StringComparison.Ordinal))
+            {
+                flightEvent = candidate;
+                return true;
+            }
+        }
+
+        flightEvent = default;
+        return false;
+    }
+
     /// <summary>Whether a target's switches include this event (the test event always passes).</summary>
     public static bool Wants(NotificationEventSwitches switches, FlightEvent flightEvent)
     {

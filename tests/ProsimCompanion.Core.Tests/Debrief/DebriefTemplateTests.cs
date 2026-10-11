@@ -45,6 +45,20 @@ public sealed class DebriefTemplateTests
             DebriefTemplate.Build(FullFacts(), DebriefVerbosity.Full));
     }
 
+    /// <summary>Issue #167: an app started in flight has no takeoff — the debrief says so and
+    /// gives no fuel-used figure, instead of the "0.7 t used" the seeded takeoff produced.</summary>
+    [Fact]
+    public void Build_TakeoffUnknown_SaysSo_AndGivesNoFuelUsed()
+    {
+        var facts = FullFacts() with { StartFobKg = null, FuelUsedKg = null, TakeoffUnknown = true };
+
+        var text = DebriefTemplate.Build(facts, DebriefVerbosity.Full);
+
+        Assert.Contains("Takeoff time unknown, the app started in flight.", text, StringComparison.Ordinal);
+        Assert.Contains("Fuel on blocks 6.7 tonnes.", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("tonnes used", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Build_BriefVerbosity_OmitsCountsAndFuelUsed()
     {

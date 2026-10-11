@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
@@ -34,8 +36,13 @@ namespace ProsimCompanion.Speech.Cabin;
 /// <see cref="CabinCruiseQueryDialogue"/> borrows the mic for the captain's reply. A mic that
 /// is busy (hail, tech log, ECAM) hands the latch back for a retry a minute later.
 /// </para>
+/// <para>
+/// The core's once-per-flight latches are the <c>cabin</c> part of the flight-state
+/// snapshot (issue #167): after a restart the cabin does not report secure a second time
+/// and the purser's pending cruise call survives.
+/// </para>
 /// </summary>
-public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
+public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable, IFlightStatePart
 {
     private readonly IProsimDataRefs _dataRefs;
     private readonly IFlightDataSource _flightData;
@@ -145,6 +152,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
 
     private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
     {
+        var before = _core.Capture();
         _core.OnPhaseChanged(e.Previous, e.Current);
         // The core's re-arm (cold-and-dark / turnaround Preflight) is the same edge that
         // clears the published state — a stale "secure" must not carry into the next leg.
@@ -152,6 +160,52 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
         {
             SetSecureState(CabinSecureState.None);
         }
+
+        if (before != _core.Capture())
+        {
+            Changed?.Invoke();
+        }
+    }
+
+    // ---- flight-state snapshot part (#167) ----------------------------------------------------
+
+    public string Key => "cabin";
+
+    public int RestoreOrder => 60;
+
+    public event Action? Changed;
+
+    public JsonNode? Capture()
+    {
+        var state = _core.Capture();
+        return state == CabinCrewCore.LatchState.Empty ? null : JsonSerializer.SerializeToNode(state, FlightStateSnapshotStore.JsonOptions);
+    }
+
+    public void Restore(JsonNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        var state = node.Deserialize<CabinCrewCore.LatchState>(FlightStateSnapshotStore.JsonOptions);
+        if (state is null)
+        {
+            return;
+        }
+
+        _core.Restore(state);
+        if (state.SecureDone)
+        {
+            SetSecureState(CabinSecureState.Secure);
+        }
+        else if (state.SecureArmed)
+        {
+            SetSecureState(CabinSecureState.Securing);
+        }
+
+        _logger.LogInformation(
+            "Cabin latches restored from the flight-state snapshot: secure {Secure}, ready {Ready}, boarding roll {Boarding}, cruise query {Cruise}",
+            state.SecureDone ? "reported" : state.SecureArmed ? "armed" : "pending",
+            state.ReadyDone ? "reported" : "pending",
+            state.BoardingRolled ? "used" : "pending",
+            state.CruiseQueryDone ? "done" : state.CruiseQueryArmed ? "armed" : "pending");
     }
 
     /// <summary>Passengers on board for the cabin-secure wait: GSX's boarded count (the truth
@@ -198,7 +252,13 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable
                 NowUtc: DateTimeOffset.UtcNow,
                 VoicePaused: _store.Snapshot().ListeningPaused);
 
+            var before = _core.Capture();
             var action = _core.Evaluate(sample, options, () => Random.Shared.NextDouble());
+            if (before != _core.Capture())
+            {
+                Changed?.Invoke();
+            }
+
             if (action == CabinAction.None)
             {
                 return;

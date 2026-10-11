@@ -6,6 +6,7 @@
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
 @inject IOptionsMonitor<FlightStatusOptions> FlightStatusMonitor
+@inject IOptionsMonitor<FlightStateOptions> FlightStateMonitor
 
 <PageTitle>Display &amp; Flight Data — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Display and Flight Data</h1>
@@ -87,6 +88,17 @@
     </div>
 </Section>
 
+<Section Title="After a restart in flight" Hint="The leg's state is kept in a file and taken back when the app starts again inside the same flight">
+    <BoolField Label="Remember the flight across a restart"
+               Hint="Keeps the OFP, block and flight times, fuel log, minima, chrono and the once-per-flight latches; restored only when the aircraft and the EFB still match the saved flight. Nothing is written to the EFB on restore"
+               @bind-Value="_flightState.Value.SnapshotEnabled" />
+    <NumberField Label="Ignore a saved flight older than" Suffix="h" Min="1" Max="72"
+                 Hint="A saved flight older than this is dropped at startup — the flight it belonged to is over"
+                 Disabled="@(!_flightState.Value.SnapshotEnabled)"
+                 @bind-Value="_flightState.Value.SnapshotMaxAgeHours"
+                 Default="_flightState.Defaults.SnapshotMaxAgeHours" />
+</Section>
+
 <Section Title="Checklists">
     <BoolField Label="Allow manual ticks"
                Hint="Hand-tick auto-detected items on the Checklists page"
@@ -111,6 +123,9 @@
     private OptionsDraft<FlightDataOptions> _flightData = default!;
     private OptionsDraft<ChecklistOptions> _checklists = default!;
     private OptionsDraft<FlightStatusOptions> _flightStatus = default!;
+    // The flightState section is also edited on the Flight phases page (thresholds); the
+    // writer saves changed top-level keys only, so the two pages never clobber each other.
+    private OptionsDraft<FlightStateOptions> _flightState = default!;
 
     protected override void OnInitialized()
     {
@@ -118,6 +133,7 @@
         _flightData = Draft(FlightDataMonitor);
         _checklists = Draft(ChecklistMonitor);
         _flightStatus = Draft(FlightStatusMonitor);
+        _flightState = Draft(FlightStateMonitor);
     }
 
     private string TileOrderText => FlightStatusTiles.IsDefault(_flightStatus.Value.TileOrder)

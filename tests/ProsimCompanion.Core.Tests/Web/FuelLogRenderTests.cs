@@ -103,7 +103,7 @@ public sealed class FuelLogRenderTests
         };
         foreach (var (lat, lon, fobKg, min) in actuals)
         {
-            (log, _) = FuelLogCore.Advance(log, ofp, new GeoPoint(lat, lon), fobKg, Takeoff, Takeoff.AddMinutes(min));
+            (log, _, _) = FuelLogCore.Advance(log, ofp, new GeoPoint(lat, lon), fobKg, Takeoff, Takeoff.AddMinutes(min));
         }
 
         store.Update(_ => log);

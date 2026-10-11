@@ -305,6 +305,21 @@ card off.
    deboarding is called and the cabin empties front-first. At shutdown the FO debriefs, the
    logbook folds the flight and the tech log carries its sectors.
 
+**After a restart in flight.** If the app is closed or crashes while you are flying and you
+start it again, it picks the leg up where it left off: the OFP (as it was imported, same
+passenger count — nothing is written to the EFB again), the off-blocks and takeoff times with
+their fuel, the Fuel Log rows already stamped, the arrival minima you entered, the running
+chrono and the once-per-flight items that already happened (cabin secure, the final loadsheet
+notification). The state lives in `%LOCALAPPDATA%\ProsimCompanion\state\flight-state.json`;
+it is restored only when ProSim reports the same aircraft and the EFB (or the MCDU route)
+still shows the same flight, and never when the file is older than the limit on **Settings →
+Display & Flight Data → After a restart in flight** (18 hours by default; the card also has
+the switch). Without a saved state the app no longer invents a takeoff time: the debrief and
+the logbook say *takeoff time unknown (app started in flight)*, the Fuel Log marks the fixes
+already behind you as *not recorded* and, if the MCDU has a plan, the OFP is fetched from
+SimBrief for the app's own bookkeeping only — **Fetch OFP** on the INIT page remains the full
+import.
+
 ## Notifications on your phone
 
 Away from the flight deck during a long turnaround? **Settings → Notifications** pushes a

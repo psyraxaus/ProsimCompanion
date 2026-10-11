@@ -72,6 +72,24 @@ public sealed record CabinTickSample(
 /// </summary>
 public sealed class CabinCrewCore
 {
+    /// <summary>The once-per-flight latches and timers as persisted in the flight-state
+    /// snapshot (issue #167): a restart after the cabin-secure report must not ring the
+    /// purser a second time, and a restart in the cruise keeps the purser's pending call.</summary>
+    public sealed record LatchState(
+        bool SecureDone,
+        bool SecureArmed,
+        DateTimeOffset? SecureDueAtUtc,
+        int SecureDelaySeconds,
+        bool ReadyDone,
+        bool BoardingRolled,
+        bool CruiseQueryDone,
+        bool CruiseQueryArmed,
+        DateTimeOffset? CruiseQueryDueAtUtc,
+        int CruiseQueryDelaySeconds)
+    {
+        public static LatchState Empty { get; } = new(false, false, null, 0, false, false, false, false, null, 0);
+    }
+
     /// <summary>How long the shell's retry waits when the mic was busy at the due moment.</summary>
     public static readonly TimeSpan CruiseQueryRetry = TimeSpan.FromSeconds(60);
 
@@ -96,6 +114,29 @@ public sealed class CabinCrewCore
 
     /// <summary>When the purser will call; null when not armed or already called.</summary>
     public DateTimeOffset? CruiseQueryDueAtUtc => _cruiseQueryArmed && !_cruiseQueryDone ? _cruiseQueryDueAtUtc : null;
+
+    /// <summary>The latches as they stand (snapshot part, issue #167).</summary>
+    public LatchState Capture() => new(
+        _secureDone, _secureArmed, _secureArmed ? _secureDueAtUtc : null, SecureDelaySeconds,
+        _readyDone, _boardingRolled,
+        _cruiseQueryDone, _cruiseQueryArmed, _cruiseQueryArmed ? _cruiseQueryDueAtUtc : null, CruiseQueryDelaySeconds);
+
+    /// <summary>Takes persisted latches back. A due time in the past still fires on the next
+    /// qualifying tick — the report is late, not lost.</summary>
+    public void Restore(LatchState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        _secureDone = state.SecureDone;
+        _secureArmed = state.SecureArmed;
+        _secureDueAtUtc = state.SecureDueAtUtc ?? default;
+        SecureDelaySeconds = state.SecureDelaySeconds;
+        _readyDone = state.ReadyDone;
+        _boardingRolled = state.BoardingRolled;
+        _cruiseQueryDone = state.CruiseQueryDone;
+        _cruiseQueryArmed = state.CruiseQueryArmed;
+        _cruiseQueryDueAtUtc = state.CruiseQueryDueAtUtc ?? default;
+        CruiseQueryDelaySeconds = state.CruiseQueryDelaySeconds;
+    }
 
     public void OnPhaseChanged(FlightPhase from, FlightPhase to)
     {

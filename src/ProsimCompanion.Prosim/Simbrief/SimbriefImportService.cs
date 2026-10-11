@@ -138,6 +138,49 @@ public sealed class SimbriefImportService : ISimbriefImporter, IDisposable
         }
     }
 
+    public async Task<OfpData?> TryFetchPlanOnlyAsync(string source = "unspecified", CancellationToken cancellationToken = default)
+    {
+        if (!await _importLock.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        {
+            return null; // an import is already running — it will publish the plan itself
+        }
+
+        try
+        {
+            _logger.LogDebug("SimBrief plan-only fetch (source {Source})", source);
+            var pilotId = _pilotId.Value?.Trim();
+            if (string.IsNullOrEmpty(pilotId) || pilotId == "0")
+            {
+                RecordDecision("simbrief plan fetch", "no pilot id in ProSim (efb.simbrief.id) — set it in the ProSim EFB");
+                return null;
+            }
+
+            var ofp = await FetchOfpAsync(pilotId, cancellationToken).ConfigureAwait(false);
+            if (ofp is null)
+            {
+                return null;
+            }
+
+            var parsed = ParseOfp(ofp);
+            if (parsed.OriginIcao.Length == 0 || parsed.DestinationIcao.Length == 0)
+            {
+                RecordDecision("simbrief plan fetch", "OFP carries no origin/destination — ignored");
+                return null;
+            }
+
+            // Nothing is written to the EFB here, on purpose: the plan is for the app's own
+            // bookkeeping (fuel log, loadsheet figures, route) after an in-flight start.
+            RecordDecision(
+                "simbrief plan fetch",
+                $"parsed {parsed.OriginIcao}->{parsed.DestinationIcao} ({parsed.FlightNumber}) — plan only, EFB untouched");
+            return parsed;
+        }
+        finally
+        {
+            _importLock.Release();
+        }
+    }
+
     private async Task<JsonObject?> FetchOfpAsync(string pilotId, CancellationToken cancellationToken)
     {
         var idParameter = pilotId.All(char.IsDigit) ? "userid" : "username";

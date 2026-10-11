@@ -116,4 +116,18 @@ public sealed class FlightStateOptions : IOptionSection
 
     /// <summary>Maximum silence between two identical samples in the recording.</summary>
     public double SampleKeepAliveSeconds { get; set; } = 10;
+
+    // ---- Flight state across an app restart (issue #167) ----
+
+    /// <summary>Keep the leg's state (OFP, block/flight stamps, fuel log, minima, chrono,
+    /// once-per-flight latches) in <c>state/flight-state.json</c> and restore it when the app
+    /// starts again inside the same flight. Off: a restart in flight starts the leg's
+    /// bookkeeping from nothing, as before 0.7.0.</summary>
+    public bool SnapshotEnabled { get; set; } = true;
+
+    /// <summary>A snapshot older than this is ignored (and removed) at startup — the flight
+    /// it belonged to is over. Eighteen hours covers a long-haul leg plus a night's sleep
+    /// before the next session; the EFB's "plan imported" flag and the aircraft title must
+    /// agree too, so the age is only the outer fence.</summary>
+    public double SnapshotMaxAgeHours { get; set; } = 18;
 }

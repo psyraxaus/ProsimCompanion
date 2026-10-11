@@ -104,6 +104,8 @@ public static class DebriefLlm
         Line("Fuel at takeoff (tonnes)", Tonnes(f.StartFobKg));
         Line("Fuel on blocks after landing (tonnes)", Tonnes(f.FinalFobKg));
         Line("Fuel used, takeoff to blocks (tonnes)", Tonnes(f.FuelUsedKg));
+        // Issue #167: the model must say this rather than guess a burn from the figures it has.
+        Line("Takeoff time", f.TakeoffUnknown ? "unknown — the app was started in flight; say so and give no fuel-used figure" : null);
 
         return sb.ToString().TrimEnd();
     }

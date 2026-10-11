@@ -142,7 +142,7 @@ else
     <section class="section fuellog-table-card">
         <div class="section-header">
             <h3 class="section-title">Fuel log</h3>
-            <span class="section-hint">@log.PassedCount of @log.Rows.Count fixes passed@(takeoff is null ? " · stamps start at takeoff" : "")</span>
+            <span class="section-hint">@log.PassedCount of @log.Rows.Count fixes passed@(log.TakeoffUnknown ? " · takeoff time unknown (app started in flight)" : takeoff is null ? " · stamps start at takeoff" : "")</span>
         </div>
         <div class="fuellog-table-wrap">
             <table class="data-table fuellog-table">
@@ -162,10 +162,10 @@ else
                     {
                         var isLast = last is not null && row.Index == last.Index;
                         var dMin = row.DeltaMinutes(takeoff);
-                        <tr class="@(row.Passed ? (isLast ? "now" : "") : "future")">
+                        <tr class="@(row.Passed ? (isLast ? "now" : "") : row.NotRecorded ? "" : "future")">
                             <td class="mono fuellog-fix">@row.Ident @if (isLast) { <span class="pill tone-active">last</span> }</td>
                             <td class="mono num">@PlanTime(row, takeoff)</td>
-                            <td class="mono num">@Clock(row.ActualTimeUtc)</td>
+                            <td class="mono num">@(row.NotRecorded ? "not recorded" : Clock(row.ActualTimeUtc))</td>
                             <td class="mono num @(dMin is > 0 ? "fuellog-neg" : dMin is < 0 ? "fuellog-pos" : "")">@(dMin is { } m ? (m > 0 ? "+" : "") + m : "—")</td>
                             <td class="mono num">@Kg(row.PlannedFobKg)</td>
                             <td class="mono num @(row.Passed ? "glow" : "")">@Kg(row.ActualFobKg)</td>
