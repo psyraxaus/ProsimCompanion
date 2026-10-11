@@ -24,6 +24,13 @@ public enum GateDispatchStep
 }
 
 /// <summary>Inputs to <see cref="GateDispatchPlanner.Decide"/>; all read from stores.</summary>
+/// <param name="LastAirportPickAttemptUtc">When the last in-flight pick was tried at all
+/// (menu may not have appeared).</param>
+/// <param name="AirportPickAttempts">How many REAL page walks of "Select airport" have run
+/// this flight (issue #75: only a walk counts toward the cap).</param>
+/// <param name="LastAirportWalkUtc">When the last real page walk ran — a walk that reached
+/// the list and picked (or found no row) is followed by a long quiet time: GSX loads the
+/// airport in the background and re-picking only re-opens the menu at the pilot.</param>
 public sealed record GateDispatchInputs(
     bool GsxReady,
     string? LoadedAirportIcao,
@@ -32,7 +39,8 @@ public sealed record GateDispatchInputs(
     FlightDataSnapshot? Data,
     DateTimeOffset NowUtc,
     DateTimeOffset? LastAirportPickAttemptUtc,
-    int AirportPickAttempts);
+    int AirportPickAttempts,
+    DateTimeOffset? LastAirportWalkUtc = null);
 
 /// <summary>
 /// Pure decision core for the arrival-gate dispatch (2026-09-21 review, issue #44/#75).
@@ -45,13 +53,18 @@ public sealed record GateDispatchInputs(
 /// </summary>
 public static class GateDispatchPlanner
 {
-    /// <summary>Quiet time between in-flight airport picks: the destination joins GSX's
-    /// nearby list only within range, and each attempt opens the GSX menu on screen.</summary>
+    /// <summary>Quiet time after a pick attempt that never reached the airport list (menu did
+    /// not appear — the #141 toolbar case): short, so the pilot's toolbar click is picked up.</summary>
     public static readonly TimeSpan AirportPickBackoff = TimeSpan.FromMinutes(2);
 
-    /// <summary>Attempts before giving up on the in-flight pick (the ground taxi-in path
+    /// <summary>Quiet time after a REAL page walk (issue #75, 2026-10-10: five picks reported
+    /// Success on GSX's own "Select Position at EGCC" page two minutes apart while GSX was
+    /// still loading the airport, and every gate.select in between answered no_airport).</summary>
+    public static readonly TimeSpan AirportWalkBackoff = TimeSpan.FromMinutes(10);
+
+    /// <summary>Page walks before giving up on the in-flight pick (the ground taxi-in path
     /// still runs when GSX loads the airport itself after landing).</summary>
-    public const int MaxAirportPickAttempts = 12;
+    public const int MaxAirportPickAttempts = 3;
 
     public static GateDispatchStep Decide(GateDispatchInputs inputs)
     {
@@ -75,6 +88,11 @@ public static class GateDispatchPlanner
         }
 
         if (inputs.AirportPickAttempts >= MaxAirportPickAttempts)
+        {
+            return GateDispatchStep.Wait;
+        }
+
+        if (inputs.LastAirportWalkUtc is { } walk && inputs.NowUtc - walk < AirportWalkBackoff)
         {
             return GateDispatchStep.Wait;
         }

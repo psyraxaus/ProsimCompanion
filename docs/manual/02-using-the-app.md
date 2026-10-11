@@ -278,7 +278,17 @@ card off.
    flight until its toolbar panel has been opened once (issue #141): the app then asks for the
    menu a second way by itself. If the Status section still says *"menu did not appear"*, open
    the GSX menu from the MSFS toolbar once after takeoff and the next attempt (every few
-   minutes) goes through. If GSX then asks **Select Position at
+   minutes) goes through. The airport list shows only the planned airport and the nearest
+   fields on its first page, so the app turns its pages (Settings → GSX → *Airport list
+   pages to search*); it walks the list at most three times per flight, ten minutes apart,
+   and a *"no airport loaded"* answer from GSX only means the destination is still loading —
+   the gate goes out when it has. When the scenery has your gate only as suffix variants
+   (W36 is 36A and 36B at EFHK) the app takes the suffix you typed, else the one variant with
+   a jetway; otherwise it asks you — buttons on the OFP page and the Status section, and the
+   FO's *"W36 is 36 Alpha or 36 Bravo in this scenery — which?"* — and takes the first variant
+   at taxi-in if nobody answers (*Ask which stand when GSX splits the gate*, on by default).
+   Should GSX settle on one of the variants itself, the app adopts it and raises no parking
+   warning. If GSX then asks **Select Position at
    …** itself after landing, the switch **Answer GSX's position menu with the arrival gate**
    (Settings → GSX) lets the app pick your gate in that menu by name; off, the menu is yours.
    The voice FO runs callouts, monitors flows, and briefs on request.

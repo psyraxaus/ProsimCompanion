@@ -91,6 +91,34 @@ public sealed class ParkingChangeMenuAssignedGateTests : IDisposable
         Assert.Equal("Gate C 29", _diagnostics.Snapshot().ParkingConflict?.GsxFacility);
     }
 
+    /// <summary>Issue #156 (EFHK 2026-10-11): W36 was refused, GSX anchored on 36B and serviced
+    /// it, the FO said "GSX doesn't recognise our parking position". Same number, different
+    /// suffix = not a conflict — the request adopts GSX's pick.</summary>
+    [Fact]
+    public async Task FacilityIsASuffixVariantOfTheRequest_IsAdopted_NotAConflict()
+    {
+        _assigned.Requested = "W36";
+
+        await ShowParkingChangeMenuAsync("Apron 1W (Gates W34-W48)   Gate 36B with Safedock©");
+
+        Assert.Null(_diagnostics.Snapshot().ParkingConflict);
+        Assert.Equal(["Gate 36B"], _assigned.Adopted);
+        Assert.Contains(
+            _diagnostics.Snapshot().RecentDecisions,
+            d => d.Action == "parking-change menu" && d.Reason.Contains("same number, different suffix = not a conflict", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task FacilityIsAnotherNumber_WithARequestStanding_StillAConflict()
+    {
+        _assigned.Requested = "W36";
+
+        await ShowParkingChangeMenuAsync("Apron 1W (Gates W34-W48)   Gate 40 with Safedock©");
+
+        Assert.NotNull(_diagnostics.Snapshot().ParkingConflict);
+        Assert.Empty(_assigned.Adopted);
+    }
+
     [Theory]
     // GSX's own name for the assigned gate (gate.select payload) against the facility text.
     [InlineData("Gate C 29", "C29", "Gate C 29", true)]
@@ -133,6 +161,25 @@ public sealed class ParkingChangeMenuAssignedGateTests : IDisposable
     private sealed class StubAssignedGate : IGsxAssignedGateSource
     {
         public GsxAssignedGate? AssignedGate { get; set; }
+
+        /// <summary>The request the stub stands for ("W36") — a facility naming its number
+        /// with another suffix is adopted, as the real service does.</summary>
+        public string? Requested { get; set; }
+
+        public List<string> Adopted { get; } = [];
+
+        public bool TryAdoptFacility(string facility)
+        {
+            var variant = GsxGateResolver.SuffixVariantIn(facility, Requested);
+            if (variant is null)
+            {
+                return false;
+            }
+
+            Adopted.Add(variant);
+            AssignedGate = new GsxAssignedGate(Requested!, variant, null);
+            return true;
+        }
     }
 
     private sealed class FakeGsxApi : IGsxRemoteApi

@@ -18,8 +18,8 @@ public sealed class GateDispatchPlannerTests
     private static GateDispatchInputs Inputs(
         bool ready = true, string? loaded = "LIRF", string? destination = "EGLL",
         FlightPhase phase = FlightPhase.Cruise, FlightDataSnapshot? data = null,
-        DateTimeOffset? lastPick = null, int attempts = 0)
-        => new(ready, loaded, destination, phase, data ?? Air(), Now, lastPick, attempts);
+        DateTimeOffset? lastPick = null, int attempts = 0, DateTimeOffset? lastWalk = null)
+        => new(ready, loaded, destination, phase, data ?? Air(), Now, lastPick, attempts, lastWalk);
 
     [Fact]
     public void NotReady_OrNoDestination_Waits()
@@ -58,6 +58,18 @@ public sealed class GateDispatchPlannerTests
     public void PickAttempts_Exhausted_Waits()
         => Assert.Equal(GateDispatchStep.Wait, GateDispatchPlanner.Decide(Inputs(
             lastPick: Now - TimeSpan.FromHours(1), attempts: GateDispatchPlanner.MaxAirportPickAttempts)));
+
+    /// <summary>Issue #75 (2026-10-10): five page walks two minutes apart while GSX was still
+    /// loading the airport. A real walk is followed by ten quiet minutes; three walks per flight.</summary>
+    [Fact]
+    public void WalkBackoff_HoldsForTenMinutes_ThenTriesAgain()
+    {
+        Assert.Equal(GateDispatchStep.Wait, GateDispatchPlanner.Decide(Inputs(
+            lastPick: Now - TimeSpan.FromMinutes(5), attempts: 1, lastWalk: Now - TimeSpan.FromMinutes(5))));
+        Assert.Equal(GateDispatchStep.PickAirport, GateDispatchPlanner.Decide(Inputs(
+            lastPick: Now - TimeSpan.FromMinutes(11), attempts: 1, lastWalk: Now - TimeSpan.FromMinutes(11))));
+        Assert.Equal(3, GateDispatchPlanner.MaxAirportPickAttempts);
+    }
 
     [Fact]
     public void DestinationLoaded_InTheAir_Sends()

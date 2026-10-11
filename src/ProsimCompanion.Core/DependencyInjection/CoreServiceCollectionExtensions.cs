@@ -140,6 +140,10 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Airports.RunwayLocator>();
         services.AddSingleton<PushbackChoiceStore>();
         services.AddStartupModule<Airports.Parking.PushbackSuggestionService>();
+        // Arrival-gate suffix question (issue #156, 2026-10-11): GSX's "W36 is 36A or 36B?"
+        // asked here by the GSX pillar, answered by the FO dialogue, the OFP page or the
+        // Status card.
+        services.AddSingleton<GateChoiceStore>();
         // Per-departure de-icing decision (2026-10-09): the GSX policy writes the verdict and
         // the captain's question; the FO dialogue, the Status board and the sequencer read it.
         services.AddSingleton<DeiceRequestStore>();

@@ -87,11 +87,15 @@ public enum ParkingMatchConfidence
 /// <param name="GsxTokens">The identities to send to <c>gate.select</c>, best first: the parking
 /// NUMBER as an integer (GSX's most robust key — the display template cannot hide it), then
 /// GSX's gate name when the profile knows it, then the default scenery name.</param>
+/// <param name="Caveat">Why the match is weaker than its shape suggests (issue #156, EFHK W36:
+/// the GSX profile names "Gate 36" but the scenery only has 36A and 36B, so the number alone
+/// answers <c>ambiguous</c>) — null when the sources agree.</param>
 public sealed record ParkingMatch(
     AirportParking Parking,
     ParkingMatchConfidence Confidence,
     IReadOnlyList<AirportParking> Alternatives,
-    IReadOnlyList<object> GsxTokens);
+    IReadOnlyList<object> GsxTokens,
+    string? Caveat = null);
 
 /// <summary>
 /// Pure: maps what the pilot typed or said ("W40") to a stand of the catalogue, by scenery
@@ -101,7 +105,47 @@ public sealed record ParkingMatch(
 /// </summary>
 public static class ParkingTokenResolver
 {
+    /// <summary>Resolves the token, then weighs the answer against the sources (issue #156,
+    /// EFHK W36 2026-10-11): a stand the GSX profile names that the scenery does not list
+    /// (the scenery has 36A and 36B instead) is only a <see cref="ParkingMatchConfidence.Likely"/>
+    /// match with the scenery's suffix variants as alternatives — the number alone will be
+    /// refused <c>ambiguous</c>. A stand the scenery lists that the profile does not name is
+    /// left alone: GSX reads the same facility data and finds it by number.</summary>
     public static ParkingMatch? Resolve(AirportParkings? catalogue, string? token)
+    {
+        var match = ResolveCore(catalogue, token);
+        if (match is null || catalogue is null)
+        {
+            return match;
+        }
+
+        var profileTiers = ParkingDataSources.GsxIni | ParkingDataSources.GsxPy;
+        var bothTiersAnswered = (catalogue.Sources & profileTiers) != 0 && catalogue.Sources.HasFlag(ParkingDataSources.Facility);
+        if (!bothTiersAnswered || match.Parking.Sources.HasFlag(ParkingDataSources.Facility))
+        {
+            return match;
+        }
+
+        var identity = match.Parking.Identity;
+        var sceneryVariants = catalogue.Parkings
+            .Where(p => p.Sources.HasFlag(ParkingDataSources.Facility)
+                && p.Identity.Number == identity.Number
+                && (p.Identity.Name == identity.Name || p.Identity.GateLetter == identity.GateLetter)
+                && !ReferenceEquals(p, match.Parking))
+            .OrderBy(p => p.Identity.Suffix, StringComparer.Ordinal)
+            .ToList();
+        var caveat = sceneryVariants.Count > 0
+            ? $"known to the GSX profile only — the scenery lists {string.Join(", ", sceneryVariants.Select(v => v.Identity.Designator))}"
+            : "known to the GSX profile only — not in the scenery's parking list";
+        return match with
+        {
+            Confidence = match.Confidence == ParkingMatchConfidence.Exact ? ParkingMatchConfidence.Likely : match.Confidence,
+            Alternatives = match.Alternatives.Count > 0 ? match.Alternatives : sceneryVariants,
+            Caveat = caveat,
+        };
+    }
+
+    private static ParkingMatch? ResolveCore(AirportParkings? catalogue, string? token)
     {
         if (catalogue is null || catalogue.Parkings.Count == 0)
         {

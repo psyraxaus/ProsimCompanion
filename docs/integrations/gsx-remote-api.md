@@ -307,6 +307,48 @@ page, naming the destination, counts as the pick having worked and the gate.sele
 immediately; **whether GSX accepts the integer while still loading the airport is unproven** — a
 `not_found` right after a Select-Position success means the ladder must wait for the patch.
 
+**The in-flight list is PAGED and `no_airport` means "still loading" (2026-10-11, EGCC→EFHK,
+issues #75/#174).** The "Select airport" page is `Moving Map`, the `[PLANNED]` airport (which
+is whatever SimBrief plan GSX last read — the previous leg's EGCC when the reload of #174
+failed), the nearest fields within ~13 nm, and `Next Page ▶`; EFHK was never on page 1
+(00:30:11Z, 02:18:15Z, 02:39:41Z, three `ItemNotAvailable`). The pick now walks the pages
+(`gsx.airportPickMenuPages`, default 4; `GsxMenuPaging` turns "Next Page" as a keyword
+intent verified by "rows changed, title same") and, when the page offers a `Search…` row,
+sends `menu.search {"text": "<ICAO>"}` first (manual §8.11 — **unverified on this page**).
+Only a walk that reached the list counts as an attempt: **3 walks per flight, 10 min apart**
+(`GateDispatchPlanner.AirportWalkBackoff`); a try whose menu never appeared keeps the 2 min
+pacing for the #141 toolbar case. On leg 1 the pick reported Success five times (22:32:30Z …
+23:01:54Z) because GSX answered the row with its own "Select Position at EGCC/Manchester"
+page, and every gate.select in between was refused
+`{"code":"no_airport","message":"no airport loaded"}` — GSX had EGCC only at 23:07:23Z. So:
+that page is still the pick having worked, a **`no_airport` answer is "armed, airport
+pending"** (no failure, no attempt counted, one send per minute at most, the `/airport` patch
+ends the wait) and a request already on that page picks nothing again.
+
+**`ambiguous` with suffix variants (2026-10-11, EFHK, issue #156).** Pilot gate W36 → the
+MKStudios `.py` names `GATE_W 36` ("Gate 36", Exact) but the scenery has only 36A and 36B:
+`gate.select {"gate":36}` → `{"code":"ambiguous","message":"multiple parkings match '36'",
+"candidates":[{"uiName":"Apron 1W (Gates W34-W48) | Gate 36A","gate":" Gate 36A","number":36,
+"bglName":"Gate W 36A"},{… 36B …}]}` (02:45:03Z); "Gate 36", the full name, "Gate W36" and
+"W36" were then all `not_found`, `gsx-gate-not-found` listed `nearest []`, and GSX anchored on
+36B itself ("Change Facility [Apron 1W (Gates W34-W48)   Gate 36B with Safedock©]") while the
+FO announced an unrecognised parking. Rules since: (a) when every candidate is the request's
+number plus a trailing letter (`GsxGateResolver.SuffixVariants`) the ladder stops and decides
+there — the pilot's/ATC's suffix wins ("36A"); else the one variant with a jetway/Safedock in
+the catalogue (logged Likely); else the pilot is asked once (`GateChoiceStore`: OFP page and
+Status card buttons, the FO's "W36 is 36 Alpha or 36 Bravo in this scenery — which?") and the
+first variant goes out at TaxiIn without an answer (`gsx.askPilotOnAmbiguousGate`, off = first
+variant at once); the resend is the candidate's `bglName`. Event `gsx-gate-suffix-choice`
+{gate, candidates, decision pilotSuffix|jetway|asked|default|web|voice|"default at taxi-in",
+chosen}. (b) `NearestNames` compares the NUMBER as a whole word, so " Gate 36A"/" Gate 36B"
+surface for "W36". (c) A parking-change facility naming the request's number with another
+suffix is **adopted** (`IGsxAssignedGateSource.TryAdoptFacility`, event `gsx-gate-adopted`,
+log "GSX picked Gate 36B for our W36") — same number, different suffix = not a conflict. (d) A
+stand the GSX profile names that the scenery does not list resolves **Likely** with the
+scenery's variants as alternatives and the caveat on the OFP page ("known to the GSX profile
+only — the scenery lists W36A, W36B"); a scenery stand the profile does not name stays Exact
+(GSX reads the same facility data).
+
 **The parking-change menu after an assignment is not a conflict (2026-10-05, issue #157).**
 Right after the accepted gate.select GSX's menu is "Change parking or service" with
 `Change Facility [Gate C 29]` (seen 21:36:29Z, still airborne) while the mirror's `parking`

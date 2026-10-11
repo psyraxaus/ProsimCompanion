@@ -7,6 +7,7 @@
 @inject IGsxGateControl GateControl
 @inject IGsxDepartureControl DepartureControl
 @inject IGsxSimbriefReloadControl SimbriefReload
+@inject GateChoiceStore GateChoices
 
 <Section Title="Status">
     <div class="row">
@@ -47,6 +48,22 @@
         <button type="button" class="btn primary" @onclick="ArmGate">Arm gate</button>
         <button type="button" class="btn secondary" @onclick="GateControl.Cancel">Cancel</button>
     </div>
+    @if (_gateChoice.Question is { } gateQuestion)
+    {
+        @* GSX split the gate into suffix variants (issue #156): pick one here, on the OFP page,
+           or by telling the FO; the first goes out at taxi-in otherwise. *@
+        <div class="field-hint" style="margin-top:8px;">@gateQuestion.Prompt</div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:4px; flex-wrap:wrap;">
+            @foreach (var candidate in gateQuestion.Candidates)
+            {
+                var label = candidate.Label;
+                <button type="button" class="btn secondary" @onclick="() => ChooseGateVariant(label)"
+                        title="@(candidate.Detail is null ? "no jetway or VDGS known for this stand" : $"{candidate.Detail} at this stand")">
+                    @candidate.Label@(candidate.Detail is null ? "" : $" · {candidate.Detail}")
+                </button>
+            }
+        </div>
+    }
 </Section>
 
 <Section Title="Departure Status Board">
@@ -69,6 +86,14 @@
     @if (_reloadResult is not null)
     {
         <div class="field-hint" style="margin-bottom:8px;">@_reloadResult</div>
+    }
+    @if (_view.SimbriefReload is { } simbrief)
+    {
+        @* The last reload verdict (issue #174). RowMissing = this GSX shows no SimBrief row on
+           any page the walk read — said once per app session, never retried for that plan. *@
+        <div class="field-hint" style="margin-bottom:8px;">
+            SimBrief reload: @(simbrief.RowMissing ? simbrief.Detail : $"{simbrief.Status} — {simbrief.Detail}")
+        </div>
     }
     @if (_view.ServiceBoard.Count == 0)
     {
@@ -218,9 +243,14 @@
 @code {
     private GsxDiagnosticsSnapshot _view = GsxDiagnosticsSnapshot.Empty;
     private DeiceRequestSnapshot _deice = DeiceRequestSnapshot.Empty;
+    private GateChoiceSnapshot _gateChoice = GateChoiceSnapshot.Empty;
     private string _gateInput = "";
     private bool _reloading;
     private string? _reloadResult;
+
+    // The suffix-variant buttons (issue #156): the store matches the label; the GSX gate
+    // service sends the chosen stand.
+    private void ChooseGateVariant(string label) => GateChoices.Choose(label, "web");
 
     private void ArmGate()
     {
@@ -261,5 +291,6 @@
     {
         Watch(Diagnostics, snapshot => _view = snapshot);
         Watch(DeiceRequest, snapshot => _deice = snapshot);
+        Watch(GateChoices, snapshot => _gateChoice = snapshot);
     }
 }

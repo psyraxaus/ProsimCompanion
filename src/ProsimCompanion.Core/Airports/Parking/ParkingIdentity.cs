@@ -1,7 +1,20 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ProsimCompanion.Core.Airports.Parking;
+
+/// <summary>The pieces of a scenery-shaped parking name (<see cref="ParkingIdentity.TryParseSceneryName"/>):
+/// the name group when the words are a known parking name (null for a profile's own word such
+/// as "Stand"), the number and the upper-cased suffix ("" when none).</summary>
+public sealed record SceneryNameParts(ParkingName? Name, int Number, string Suffix)
+{
+    /// <summary>The GATE letter when <see cref="Name"/> is a lettered gate.</summary>
+    public char? GateLetter => Name is >= ParkingName.GateA and <= ParkingName.GateZ ? (char)('A' + (Name.Value - ParkingName.GateA)) : null;
+
+    /// <summary>"36A" — the number plus suffix a pilot would say.</summary>
+    public string Designator => string.Create(CultureInfo.InvariantCulture, $"{Number}{Suffix}");
+}
 
 /// <summary>
 /// The MSFS scenery NAME enum of a parking spot (SDK <c>TAXI_PARKING.NAME</c>). The numeric
@@ -118,6 +131,51 @@ public sealed record ParkingIdentity(ParkingName Name, int Number, string Suffix
     /// <summary>The short designator a pilot says or types: "W40", "34B", "313", "A12".</summary>
     public string Designator
         => string.Create(CultureInfo.InvariantCulture, $"{GateLetter}{Number}{Suffix}");
+
+    /// <summary>
+    /// Parses a scenery-shaped display name — GSX's <c>bglName</c> ("Gate W 36A", "Gate 36",
+    /// "Parking 401", "N Parking 5") or an uncustomised menu name ("Gate W40") — into its
+    /// name words, number and suffix. The name words map through <see cref="ParseIniNameWords"/>;
+    /// words that are no parking name ("Stand 401", a profile template's choice) still yield
+    /// the number and suffix with <c>Name</c> null, which is what the gate.select
+    /// <c>ambiguous</c> candidates need (issue #156: W36 → " Gate 36A" / " Gate 36B").
+    /// Null when the text carries no number.
+    /// </summary>
+    public static SceneryNameParts? TryParseSceneryName(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var match = SceneryShape.Match(text);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var number = int.Parse(match.Groups["number"].Value, CultureInfo.InvariantCulture);
+        var suffix = match.Groups["suffix"].Success ? match.Groups["suffix"].Value.ToUpperInvariant() : "";
+        var words = match.Groups["words"].Success
+            ? Regex.Replace(match.Groups["words"].Value.Trim(), @"\s+", " ")
+            : "";
+        ParkingName? name = words.Length == 0 ? null : ParseIniNameWords(words);
+        if (name is null && words.Length > 0)
+        {
+            // "Gate W40": the letter glued to the number is the GATE letter group.
+            var glued = Regex.Match(words, @"^(?<base>.+?)\s*(?<letter>[A-Za-z])$");
+            if (glued.Success && ParseIniNameWords(glued.Groups["base"].Value) is ParkingName.Gate)
+            {
+                name = ParkingName.GateA + (char.ToUpperInvariant(glued.Groups["letter"].Value[0]) - 'A');
+            }
+        }
+
+        return new SceneryNameParts(name, number, suffix);
+    }
+
+    private static readonly Regex SceneryShape = new(
+        @"^\s*(?<words>[A-Za-z]+(?:\s+[A-Za-z]+)*?)?\s*(?<number>\d{1,4})\s*(?<suffix>[A-Za-z]{1,2})?\s*$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>Parses the GSX <c>.py</c> group key (<c>GATE_W</c>, <c>PARKING</c>, <c>0</c>…)
     /// into a name; null for anything that is not a parking group (e.g. <c>FUEL</c>).</summary>

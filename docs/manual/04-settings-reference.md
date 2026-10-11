@@ -54,7 +54,18 @@ Ground behaviour, in the Ground Services rail order:
   and marshaller boards show the right flight number, destination and ETD — only while
   parked at the gate with engines off and GSX ready, never in flight. The Status section's
   *Reload SimBrief in GSX* button and the `gsx.reloadSimbrief` command do the same on demand
-  whatever this is set to
+  whatever this is set to. *Additional Services pages to search* (`simbriefReloadMenuPages`,
+  4): the row sits on neither the gate menu nor the first Additional Services page, so the
+  reload walks that many further pages; when no page has it, the Status section says so once
+  and the plan is not retried — GSX only offers the row with a SimBrief username set in its
+  own settings
+- **Arrival & Deboarding** — besides the gate and position-menu switches: *Airport list pages
+  to search* (`airportPickMenuPages`, 4) for the in-flight "Select airport" walk (three walks
+  per flight, ten minutes apart; a "no airport loaded" answer waits for the destination to
+  load) and *Ask which stand when GSX splits the gate* (`askPilotOnAmbiguousGate`, on): when
+  GSX answers the gate number with suffix variants (W36 → 36A / 36B) and neither your suffix
+  nor a lone jetway decides, you are asked (OFP page / Status buttons, the FO) and the first
+  variant goes at taxi-in without an answer; off takes the first variant at once
 - **Departure Service Order** — ordered steps, each with an activation rule (previous
   called/requested/active/completed, all completed, manual, skip), a leg constraint
   (always / first leg / turnaround / company hub / non-hub) and a minimum flight time

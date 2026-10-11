@@ -142,17 +142,38 @@ Still the VDGS event source even after the Remote API migration.
 
 **GSX SimBrief reload** (2026-10-09, `GsxSimbriefReloadService` — the Prosim2GSX
 `ReloadSimbrief` port, which was a `menu.open` + keyword match on the gate menu, itself the
-replacement for v1's fixed `Select(15)`): a keyword intent on the "Activate Services at …"
-menu picking the line matching `sim-?brief` (the exact label is still inferred — confirm it
-from the first live decision log), so GSX re-reads the plan and the VDGS shows the right
+replacement for v1's fixed `Select(15)`): a keyword intent that walks the "Activate Services
+at …" menu, then "Additional Services ▶" and its "Next Page ▶" pages
+(`gsx.simbriefReloadMenuPages`, default 4) and picks the first row matching
+`sim-?brief|flight\s*plan|reload.*plan`, so GSX re-reads the plan and the VDGS shows the right
 flight number / destination / ETD. Runs once per new OFP request id behind
 `gsx.reloadSimbriefOnNewOfp` (off; armed on the OFP edge and fired when GSX is Ready and the
 aircraft is parked at the gate with engines off — never in flight, re-armed on a Couatl
 `sid` change) and on demand (Status button, `gsx.reloadSimbrief`). Verify = `handlerData`
 patched (the integration guide §8.13 promises it on a SimBrief reload) or the menu
 closed/moved; a pick acknowledged with no signal in 10 s is reported "sent, unconfirmed"
-(the predecessor never verified). A gate menu this service opened is closed again after.
-Events: `gsx-simbrief-reload` {trigger, outcome, detail, ofpRequestId}. Unverified live.
+(the predecessor never verified). A menu this service opened is closed again after, pages
+walked or not; one the pilot had open stays where the walk left it. Events:
+`gsx-simbrief-reload` {trigger, outcome, detail, ofpRequestId, pagesSeen, rowMissing}.
+
+**Where the row is (issue #174, 2026-10-11 EGCC/EFHK, 0.7.0-rc.3/rc.4).** Two reloads failed
+`ItemNotAvailable: no entry matches sim-?brief on 'Activate Services at …'` (19:35:19Z EFHK,
+23:25:22Z EGCC). The recorded gate menu: Request Deboarding, Request Catering service, Request
+Refueling, Request Boarding, Prepare for Push-back and Departure, No Jetways here, Operate
+Stairs, Additional Services ▶, Customize this Parking position, Reposition Aircraft. Page 1 of
+"Additional Services": Request GPU, Request DeIce, Request Lavatory service, Request Water
+service, Request Cleaning service, Cameras ▶, Show EGCC airport diagram, Spawn vehicle
+(debug) ▶, Next Page ▶, ↑ Back — **page 2 was never opened**, so the row's real page is still
+unseen. The GSX manual (text dump `Prosim2GSX\gsx_manual.txt`, PMDG integration section)
+calls it the **"Reload Simbrief" button on GSX menu** ("press the 'Reload Simbrief' button on
+GSX menu. This will trigger a VGDS reset") and ties the whole SimBrief integration to the
+**SimBrief username** field in GSX's own Settings → Simulation page; the predecessor's
+`(?i)simbrief` keyword was never confirmed live either. Working assumption: the row exists only
+with the username set in GSX, on a page the walk now reads (Additional Services p2+); if the
+walk reads every page and finds nothing, the Status card says "this GSX version shows no
+SimBrief row" once per app session and the OFP is not retried. Knock-on of the miss: GSX's
+`[PLANNED]` airport in the in-flight "Select airport" list stayed the previous leg's (EGCC on
+leg 2), which is why the airport pick had to page (#75).
 
 ## 5. MSFS-version specifics
 
