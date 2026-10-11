@@ -552,9 +552,12 @@
         "Wire log growth: report final size; > 50 MB in one session = the logging-reload storm signature.",
         "Any GSX trigger sent ('trigger sent — waiting for GSX to confirm') with no confirmation within 60 s = dropped request (the #76 GPU case).",
         "Any turnaround LVAR write followed by a SimConnect disconnect within 2 s (write may be lost).",
-        "Count GSX retry-noise warning lines."
+        "Count GSX retry-noise warning lines.",
+        "assert-absent (issue #175): more than 5 'sayintentions.arrival-gate' events with decision DepartureGateNoted and the same gate text in one leg — AtcAssignedGateRule now reports a departure stand once per distinct text (the 2026-10-10 leg had 951 for 'PIER 2 GATE STAND 208').",
+        "assert-absent (issue #175): more than 60 'Procedure source (' log lines (component ProcedureSource) in any one hour — the line is logged only when the resolved identifiers change; count 'Gateway \"runways <ICAO>\"' lines too: more than 12 for one airport in an hour means the pushback advisor's miss cache (RunwayLookupCache, 5 min) or its 3 s GSX-trigger throttle regressed.",
+        "assert-absent (issue #175): more than 1 'Clearing ProSim native audio bindings failed' warning per ProSim connection — on ProSim 1.75.1 the expected line is the single Information 'ProSim native audio window bindings (aircraft.communication.windows.*) are not on this ProSim build — nothing to clear'; a partial failure retries at most 3 times then 'giving up'."
       ],
-      "notes": "Four sub-items from the 2026-08-16 log review; each occurrence is evidence for prioritizing the fix."
+      "notes": "Four sub-items from the 2026-08-16 log review; each occurrence is evidence for prioritizing the fix. Three flood signatures added 2026-10-11 (issue #175, diagnostics bundle 20261011-025500): 951 DepartureGateNoted events, 11 113 ProcedureSource lines / 1 435 runways round-trips, 14 native-audio retries."
     },
     {
       "id": "isa-advisory-phase-blind",
@@ -2880,6 +2883,60 @@
         "requires-human: Duty Day page FROM/TO card and the legs rail show the ICAO codes from the first minute of the day (not '---- → ----' / 'Leg 1 · ? → ?'); block and duty figures read as h:mm with an HRS unit and never ellipsize."
       ],
       "notes": "Added 2026-10-11 (issue #164, Mario + owner reports 2026-10-10). Progressive legs now take From/To/FlightNo from the OfpStore at day start, next-leg start, resume and on every OFP change while the leg is open (planned legs only fill gaps). Core's OfpEventRecorder writes 'ofp.loaded'; DebriefFactExtractor falls back to the last plan loaded before the landing when no 'flight.route' exists."
+    },
+    {
+      "id": "si-request-stand-fragment",
+      "issue": 140,
+      "state": "open",
+      "kind": "assert-absent",
+      "machine": {
+        "kind": "signature",
+        "signature": {
+          "source": "session",
+          "type": "sayintentions.request",
+          "contains": "stand ,"
+        }
+      },
+      "sources": [
+        "session"
+      ],
+      "checks": [
+        "assert-absent: any 'sayintentions.request' whose message contains 'stand ,', 'gate ,', ', ,' or ends in ',' — a clause whose value is unknown is dropped whole by AtcRequestTemplate (all four requests of the 2026-10-10 flight read 'Ground, Finnair-one-three-six-one, stand , request push and start').",
+        "watch: the event's standFrom field — 'sayintentions' (flight.json assigned_gate), 'gsx' (the pushback advisor's resolved stand or the GSX gate context, label stripped: 'stand 208') or 'none' (clause dropped). Note which one each ground request used; 'none' with GSX parked at a named stand means the fallback did not see it.",
+        "requires-human: SayIntentions ATC accepted the stand as transmitted (a GSX 'Stand 546R' reads 'stand 546R')."
+      ],
+      "notes": "Added 2026-10-11 (issue #140). The templater is pure (AtcRequestTemplate, tests with the shipped atc-requests.json strings); the fallback order is flight.json first, then PushbackChoiceStore.Stand, then GsxDiagnosticsStore.GateContextKey's last '|' segment, ground phases only."
+    },
+    {
+      "id": "si-comms-handover",
+      "issue": 171,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "sayintentions.comms",
+        "fields": [
+          "owner",
+          "trigger",
+          "phase",
+          "text"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with sayIntentions.commsHandover.enabled = true (off by default; the legacy departureGatingEnabled gate is then ignored). Trigger = a SayIntentions flight active while the phase engine runs a departure.",
+        "assert-present: a 'sayintentions.comms' {owner:'copilot', trigger:'flight-active'} on the ground when the flight became active, then {owner:'captain', trigger:'holding-point', phase:'TaxiOut'} before the TakeoffRoll edge, then {owner:'copilot', trigger:'climb'} at the Climb edge (or trigger 'cruise' when the Climb edge was skipped); each with the matching log line 'Comms hand-over: <Owner> has the radios (<trigger>, <phase>)'. The SIAI_COPILOT setVar is not logged — the FO line in 'text' and the SI client's copilot state are the evidence.",
+        "assert-present on arrival: {owner:'captain', trigger:'approach'} at the Approach edge OR {trigger:'tower-handoff', phase:'Descent'} earlier (then the Approach edge is silent), and {owner:'copilot', trigger:'taxi-in'} at the TaxiIn edge.",
+        "assert-absent: two 'sayintentions.comms' events with the same trigger inside one phase (duplicates); a 'holding-point' event outside TaxiOut; any 'sayintentions.departureGate' event while the hand-over is on (legacy path must be inert).",
+        "assert-present when the holding point never fired: the log line 'Comms hand-over: departure runway <ICAO> <RWY> threshold unknown — no holding-point hand-over' explains it (no runway geometry from the gateway or the DFD); otherwise quote the distance evidence (flight-sample positions against the threshold).",
+        "watch: 'sayintentions.atc-readout' {kind: handoff|taxi, text, source} — the FO's taxi-clearance readout and hand-off announcements while the copilot owns the radios; note the lag against the ATC line's stamp (20 s history poll).",
+        "watch: trigger 'voice' events — the pilot's 'I have the radios' / 'you have the radios' overrides; check the FO's own 'I have the radios.' line never came back as a voice override (self-echo).",
+        "requires-human: the SI copilot really stopped talking at the holding point and resumed in the climb; Tower was on COM1 after the holding-point hand-over when a Tower frequency was known."
+      ],
+      "notes": "Added 2026-10-11 (issue #171). CommsHandoverCore (Speech, pure; tests script the 2026-10-10 EGCC leg's phase timeline) decides from the app's phase edges, RunwayLocator geometry (gateway → DFD, cached per runway) and the frequency monitor's hand-off history — never flight.json's distance_to_runway, which was absent on both 2026-10-10 departures and left the legacy gate dead (zero sayintentions.departureGate events)."
     }
   ]
 }

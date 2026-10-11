@@ -192,6 +192,15 @@ connected, real flight data).
   reversers, autobrake or anti-skid (Settings → Voice First Officer → Tech Log & MEL →
   **Open items in the briefings**).
 - Radio management: *"set one two one decimal nine"*, box selection, standby-then-swap only.
+- SayIntentions comms hand-over (Settings → Voice First Officer → SayIntentions → **Comms
+  hand-over**, off by default): the SayIntentions copilot works the radios at the gate, on
+  the taxi and in the cruise; the FO reads the taxi clearance and announces each hand-off.
+  Close to the departure runway the FO says *"Comms are yours, Captain"* — the takeoff
+  request and clearance are yours — and takes them back in the climb (*"I have the
+  radios"*); on the approach they are yours again for the landing, and the copilot has them
+  once you are off the runway. *"I have the radios"* / *"you have the radios"* overrides at
+  any time. Every step is its own switch and every line is editable. The older *Departure
+  comms gate* is ignored while this is on.
 - FCU: hand the FO pilot-flying (*"you have controls"*) and instruct — headings, altitudes,
   speeds, V/S, managed/selected modes. Announce → 3-second cancel window ("negative") →
   action with verification. Take back controls instantly with *"I have controls"*.

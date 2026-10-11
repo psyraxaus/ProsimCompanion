@@ -20,11 +20,18 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// <summary>Auto-tune the matched station frequency before transmitting a request.</summary>
     public bool AutoTuneFrequency { get; set; }
 
-    /// <summary>Take comms back from the SI copilot approaching the runway.</summary>
+    /// <summary>Legacy departure gate (Prosim2FO semantics): take comms back from the SI copilot
+    /// when flight.json's <c>distance_to_runway</c> falls under <see cref="DepartureGateDistanceNm"/>.
+    /// Ignored while <see cref="CommsHandover"/> is on — that flow uses the app's own runway
+    /// geometry and the flight phase instead (issue #171: <c>distance_to_runway</c> was absent
+    /// on both 2026-10-10 departures and the legacy gate never tripped).</summary>
     public bool DepartureGatingEnabled { get; set; } = true;
 
-    /// <summary>Distance to the runway (nm) at which the departure gate trips.</summary>
+    /// <summary>Distance to the runway (nm) at which the legacy departure gate trips.</summary>
     public double DepartureGateDistanceNm { get; set; } = 0.3;
+
+    /// <summary>Comms hand-over by flight phase (issue #171).</summary>
+    public CommsHandoverOptions CommsHandover { get; set; } = new();
 
     /// <summary>"icao" or "faa" request phraseology.</summary>
     public string Phraseology { get; set; } = "icao";
@@ -84,4 +91,74 @@ public sealed class SayIntentionsOptions : IOptionSection
     /// <summary>Forced-refresh debounce — protects the API from button-spam and concurrent
     /// browser clients (predecessor-proven policy).</summary>
     public int WeatherRefreshDebounceSeconds { get; set; } = 30;
+}
+
+/// <summary>
+/// Who works the radios in each phase (issue #171, 2026-10-11; master off by default). The
+/// SayIntentions copilot (<c>L:SIAI_COPILOT</c> = 1 through the setVar API) owns comms at the
+/// gate, on the taxi out and from the climb to the descent; the captain takes them at the
+/// holding point (takeoff clearance and the first departure hand-off are the captain's), and
+/// again on the approach for the landing clearance; the copilot regains them at the climb and
+/// on the taxi in. Every step is its own switch; every hand-over is one FO line and a
+/// <c>sayintentions.comms</c> event, never more than one per phase edge. Replaces the legacy
+/// <see cref="SayIntentionsOptions.DepartureGatingEnabled"/> gate, which depended on
+/// flight.json's <c>distance_to_runway</c> — absent on both 2026-10-10 departures.
+/// </summary>
+public sealed class CommsHandoverOptions
+{
+    /// <summary>Master switch. Off = the legacy departure gate (if on) is the only automation.</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>(a) A new SayIntentions flight on the ground: the copilot owns clearance,
+    /// push and start.</summary>
+    public bool GateToCopilot { get; set; } = true;
+
+    /// <summary>(b) While the copilot owns comms, the FO reads ATC's taxi clearance out to the
+    /// captain and announces each "Contact … on …" hand-off (from getCommsHistory, polled
+    /// every 20 s — a line may lag the exchange by that much).</summary>
+    public bool AnnounceHandoffs { get; set; } = true;
+
+    /// <summary>(b) The FO reads ATC's taxi instruction out (the English text, capped).</summary>
+    public bool ReadTaxiClearance { get; set; } = true;
+
+    /// <summary>(c) Holding point: in TaxiOut within <see cref="HoldingPointDistanceNm"/> of the
+    /// departure runway's threshold the captain takes comms (<c>SIAI_COPILOT</c> = 0).</summary>
+    public bool HoldingPointToCaptain { get; set; } = true;
+
+    /// <summary>(c) Distance to the departure runway threshold that counts as the holding
+    /// point. The threshold comes from the gateway runway list or the DFD; the runway from the
+    /// FMS (briefing procedure source), else flight.json.</summary>
+    public double HoldingPointDistanceNm { get; set; } = 0.3;
+
+    /// <summary>(c) Tune Tower on COM1 when the captain takes comms at the holding point and a
+    /// Tower frequency is known (ATC's last "Contact Tower on …", else the airport's comms
+    /// list). Through the SayIntentions setFreq API, never a cockpit switch.</summary>
+    public bool TuneTowerAtHoldingPoint { get; set; } = true;
+
+    /// <summary>(d) Climb phase edge: the copilot regains comms after the takeoff clearance and
+    /// the first departure hand-off.</summary>
+    public bool ClimbToCopilot { get; set; } = true;
+
+    /// <summary>(f) Approach phase edge (or the first Tower hand-off heard in the descent): the
+    /// captain takes comms for the landing clearance.</summary>
+    public bool ApproachToCaptain { get; set; } = true;
+
+    /// <summary>(g) TaxiIn phase edge after the rollout: the copilot regains comms.</summary>
+    public bool TaxiInToCopilot { get; set; } = true;
+
+    /// <summary>Voice override: "I have the radios" (captain takes) / "you have the radios"
+    /// (copilot takes) flips the owner at any time.</summary>
+    public bool VoiceOverride { get; set; } = true;
+
+    /// <summary>The FO's line when the captain takes comms at the holding point.</summary>
+    public string HoldingPointLine { get; set; } = "Comms are yours, Captain — call the takeoff request when ready.";
+
+    /// <summary>The FO's line when the captain takes comms for the landing.</summary>
+    public string ApproachLine { get; set; } = "Comms are yours for the landing, Captain.";
+
+    /// <summary>The FO's line whenever the copilot takes the radios.</summary>
+    public string CopilotLine { get; set; } = "I have the radios.";
+
+    /// <summary>The FO's line when the captain takes the radios by voice.</summary>
+    public string CaptainLine { get; set; } = "Your radios.";
 }

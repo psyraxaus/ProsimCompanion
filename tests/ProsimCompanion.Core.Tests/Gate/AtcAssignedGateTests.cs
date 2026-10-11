@@ -18,7 +18,24 @@ public sealed class AtcAssignedGateTests
         var rule = new AtcAssignedGateRule();
 
         Assert.Equal(AtcGateDecision.DepartureGateNoted, rule.Observe("B12", FlightPhase.Preflight, null));
-        Assert.Equal(AtcGateDecision.DepartureGateNoted, rule.Observe("B12", FlightPhase.TaxiOut, null));
+        // The same stand on every later poll is nothing new (issue #175: 951 events in one leg).
+        Assert.Equal(AtcGateDecision.None, rule.Observe("B12", FlightPhase.Preflight, null));
+        Assert.Equal(AtcGateDecision.None, rule.Observe("B12", FlightPhase.TaxiOut, null));
+        // A reassignment on the ground is a new stand: noted once more.
+        Assert.Equal(AtcGateDecision.DepartureGateNoted, rule.Observe("B14", FlightPhase.TaxiOut, null));
+        Assert.Equal(AtcGateDecision.None, rule.Observe("B14", FlightPhase.TaxiOut, null));
+        // Airborne, still the same text: SayIntentions has not reassigned yet.
+        Assert.Equal(AtcGateDecision.SameAsDeparture, rule.Observe("B14", FlightPhase.Cruise, null));
+        Assert.Equal(AtcGateDecision.None, rule.Observe("B14", FlightPhase.Cruise, null));
+    }
+
+    [Fact]
+    public void Rule_DepartureStand_StillShieldsTheOriginalText()
+    {
+        var rule = new AtcAssignedGateRule();
+        rule.Observe("B12", FlightPhase.Preflight, null);
+        rule.Observe("B12", FlightPhase.TaxiOut, null);
+
         // Airborne, still the same text: SayIntentions has not reassigned yet.
         Assert.Equal(AtcGateDecision.SameAsDeparture, rule.Observe("B12", FlightPhase.Cruise, null));
         Assert.Equal(AtcGateDecision.None, rule.Observe("B12", FlightPhase.Cruise, null));

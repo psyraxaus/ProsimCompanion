@@ -1,9 +1,13 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ProsimCompanion.Core.Airports;
 using ProsimCompanion.Core.Checklists;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -23,23 +27,49 @@ public sealed class AtcRequestDefinition
 /// <summary>
 /// SayIntentions integration (Prosim2FO semantics): flight.json polled at 1 Hz for the active
 /// flight context, ATC requests transmitted via GET sayAs on COM1 (255-char cap), optional
-/// getWX comms lookup for auto-tune via setFreq, and the departure-comms gate — a new active
-/// flight hands comms to the SI copilot (SIAI_COPILOT=1); approaching the runway
-/// (distance ≤ 0.3 nm) takes them back, tunes Tower, announces, and the takeoff request
-/// restores them. The SIAI L:var radio-clear gate (<see cref="RadioClearGate"/>, 2026-10-08)
-/// holds a transmission while COM1 is busy; without a sim connection it is the predecessor's
-/// fixed 400 ms settle.
+/// getWX comms lookup for auto-tune via setFreq, and who works the radios:
+/// <list type="bullet">
+/// <item>the comms hand-over by flight phase (issue #171, <c>sayIntentions.commsHandover.*</c>,
+/// off by default) — <see cref="CommsHandoverCore"/> decides from the app's own phase edges,
+/// its runway geometry and ATC's hand-offs; this shell writes <c>SIAI_COPILOT</c>, speaks the
+/// one FO line and records <c>sayintentions.comms</c>;</item>
+/// <item>the legacy departure gate (<c>departureGatingEnabled</c>): a new active flight hands
+/// comms to the SI copilot (SIAI_COPILOT=1); flight.json's <c>distance_to_runway</c> ≤ 0.3 nm
+/// takes them back, tunes Tower, announces, and the takeoff request restores them. Ignored
+/// while the hand-over is on.</item>
+/// </list>
+/// The SIAI L:var radio-clear gate (<see cref="RadioClearGate"/>, 2026-10-08) holds a
+/// transmission while COM1 is busy; without a sim connection it is the predecessor's fixed
+/// 400 ms settle. Request text comes from <see cref="AtcRequestTemplate"/> (issue #140): a
+/// stand SayIntentions has not named yet falls back to the stand GSX loaded, and a clause
+/// with no value is dropped whole.
 /// </summary>
 public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupModule, IDisposable
 {
     private const string ApiBase = "https://apipri.sayintentions.ai/sapi";
+    private const int ReadoutMaxChars = 220;
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
+
+    private static readonly string[] CaptainOverridePhrases =
+        ["i have the radios", "i have comms", "my radios"];
+
+    private static readonly string[] CopilotOverridePhrases =
+        ["you have the radios", "you have comms", "your radios"];
 
     private readonly IOptionsMonitor<SayIntentionsOptions> _options;
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<SayIntentionsService> _logger;
     private readonly Core.State.ConfigProblemStore? _configProblems;
+    private readonly IFlightPhaseSource? _phase;
+    private readonly RunwayLocator? _runways;
+    private readonly IDepartureRunwaySource? _departureRunway;
+    private readonly PushbackChoiceStore? _pushback;
+    private readonly GsxDiagnosticsStore? _gsx;
+    private readonly SayIntentionsFrequencyMonitor? _frequencyMonitor;
+    private readonly RadioClearGate _radioGate;
+    private readonly CommsHandoverCore _handover = new();
+    private readonly RunwayLookupCache _runwayCache = new();
     private readonly object _gate = new();
 
     private List<AtcRequestDefinition> _requests = [];
@@ -47,6 +77,8 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
     private FlightContext _flight = FlightContext.Empty;
     private bool _wasActive;
     private DepartureState _departure = DepartureState.Idle;
+    private RunwayGeometry? _departureThreshold;
+    private int _runwayLookupBusy;
 
     private enum DepartureState
     {
@@ -73,14 +105,23 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
     /// <summary>Optional <paramref name="configProblems"/>: a malformed atc-requests.json
     /// surfaces on the web UI (issue #74) instead of only a log warning. Optional
     /// <paramref name="simVars"/>: the SIAI L:vars for the radio-clear gate; null = the fixed
-    /// 400 ms settle.</summary>
+    /// 400 ms settle. The remaining optional collaborators serve the comms hand-over (issue
+    /// #171: phase edges, runway geometry) and the stand fallback (issue #140: the stand GSX
+    /// loaded, via the pushback advisor's store or the GSX gate context); each is null in a
+    /// composition that lacks it and the feature degrades to "unknown".</summary>
     public SayIntentionsService(
         IOptionsMonitor<SayIntentionsOptions> options,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
         ILogger<SayIntentionsService> logger,
         Core.State.ConfigProblemStore? configProblems = null,
-        Core.Aircraft.ISimVars? simVars = null)
+        Core.Aircraft.ISimVars? simVars = null,
+        IFlightPhaseSource? phase = null,
+        RunwayLocator? runways = null,
+        IDepartureRunwaySource? departureRunway = null,
+        PushbackChoiceStore? pushback = null,
+        GsxDiagnosticsStore? gsx = null,
+        SayIntentionsFrequencyMonitor? frequencyMonitor = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -92,10 +133,14 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         _eventLog = eventLog;
         _logger = logger;
         _configProblems = configProblems;
+        _phase = phase;
+        _runways = runways;
+        _departureRunway = departureRunway;
+        _pushback = pushback;
+        _gsx = gsx;
+        _frequencyMonitor = frequencyMonitor;
         _radioGate = new RadioClearGate(simVars, logger);
     }
-
-    private readonly RadioClearGate _radioGate;
 
     public bool Enabled => _options.CurrentValue.Enabled;
 
@@ -104,23 +149,65 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
     /// <see cref="SayIntentionsArrivalGateSource"/>; timer thread.</summary>
     public event Action<string?>? AssignedGateObserved;
 
-    public IEnumerable<string> Phrases => _requests.SelectMany(r => r.Phrases);
+    public IEnumerable<string> Phrases
+    {
+        get
+        {
+            var phrases = _requests.SelectMany(r => r.Phrases);
+            var handover = _options.CurrentValue.CommsHandover;
+            return handover.Enabled && handover.VoiceOverride
+                ? phrases.Concat(CaptainOverridePhrases).Concat(CopilotOverridePhrases)
+                : phrases;
+        }
+    }
 
     /// <summary>The loaded request phrasebook (atc-requests.json) — the Voice Reference drawer
     /// (issue #136) shows each request with its station and transmission.</summary>
     public IReadOnlyList<AtcRequestDefinition> Requests => _requests;
+
+    /// <summary>Who has the radios as far as the hand-over knows (status surfaces).</summary>
+    public CommsOwner CommsOwner
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _handover.Owner;
+            }
+        }
+    }
 
     public bool ValueParse => false;
 
     public void Start()
     {
         LoadRequests();
+        if (_phase is not null)
+        {
+            _phase.PhaseChanged += OnPhaseChanged;
+        }
+
+        if (_frequencyMonitor is not null)
+        {
+            _frequencyMonitor.AtcTransmissionObserved += OnAtcTransmission;
+        }
+
         _timer = new Timer(_ => PollFlightJson(), null, 1000, 1000);
     }
 
     public void Dispose()
     {
         _timer?.Dispose();
+        if (_phase is not null)
+        {
+            _phase.PhaseChanged -= OnPhaseChanged;
+        }
+
+        if (_frequencyMonitor is not null)
+        {
+            _frequencyMonitor.AtcTransmissionObserved -= OnAtcTransmission;
+        }
+
         _radioGate.Dispose();
     }
 
@@ -133,6 +220,11 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         }
 
         var text = CommandMatcher.Normalize(utterance);
+        if (options.CommsHandover is { Enabled: true, VoiceOverride: true } && TryHandleOverride(text, options))
+        {
+            return true;
+        }
+
         var request = _requests.FirstOrDefault(r =>
             r.Phrases.Any(p => CommandMatcher.Normalize(p).Equals(text, StringComparison.Ordinal)));
         if (request is null)
@@ -161,6 +253,49 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             Tag: "sayintentions.ack"));
 
         _ = TransmitRequestAsync(request, flight, options);
+        return true;
+    }
+
+    /// <summary>"I have the radios" / "you have the radios": the pilot flips the owner.</summary>
+    private bool TryHandleOverride(string normalized, SayIntentionsOptions options)
+    {
+        CommsOwner wanted;
+        if (CaptainOverridePhrases.Any(p => CommandMatcher.Normalize(p).Equals(normalized, StringComparison.Ordinal)))
+        {
+            wanted = CommsOwner.Captain;
+        }
+        else if (CopilotOverridePhrases.Any(p => CommandMatcher.Normalize(p).Equals(normalized, StringComparison.Ordinal)))
+        {
+            wanted = CommsOwner.Copilot;
+        }
+        else
+        {
+            return false;
+        }
+
+        FlightContext flight;
+        CommsHandoverDecision? decision;
+        lock (_gate)
+        {
+            flight = _flight;
+            decision = _handover.Override(wanted);
+        }
+
+        if (!flight.IsActive)
+        {
+            _ = _arbiter.SpeakAsync("SayIntentions has no active flight.", SpeechPriority.Normal);
+            return true;
+        }
+
+        if (decision is null)
+        {
+            _ = _arbiter.SpeakAsync(
+                wanted == CommsOwner.Captain ? "The radios are already yours." : "I already have the radios.",
+                SpeechPriority.Normal);
+            return true;
+        }
+
+        _ = ApplyHandoverAsync(decision, flight, options);
         return true;
     }
 
@@ -199,7 +334,8 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
 
             // Radio-clear gate: hold while ATC is talking on COM1 (SIAI L:vars), bounded.
             var (radioWait, radioBusy) = await _radioGate.WaitForClearAsync().ConfigureAwait(false);
-            var message = Fill(PickTemplate(request, options), flight);
+            var (values, standFrom) = Values(flight);
+            var message = AtcRequestTemplate.Fill(PickTemplate(request, options), values);
 
             // The audible FO→ATC call (issue #52): the FO voices the exact transmission text
             // locally, awaited so it finishes before sayAs makes ATC react. Off when
@@ -220,9 +356,13 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
                 message,
                 radioWaitMs = (int)radioWait.TotalMilliseconds,
                 radioBusyAtTx = radioBusy,
+                standFrom,
             });
 
-            if (request.IsDeparture)
+            // Legacy gate only: the takeoff request hands the radios back so the SI copilot
+            // reads the clearance back. Under the hand-over the captain keeps them through
+            // the takeoff clearance and the first departure hand-off (issue #171, step d).
+            if (request.IsDeparture && !options.CommsHandover.Enabled)
             {
                 lock (_gate)
                 {
@@ -244,6 +384,54 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         }
     }
 
+    /// <summary>The template values for <paramref name="flight"/>, with the stand fallback
+    /// (issue #140): SayIntentions' <c>assigned_gate</c>, else the stand GSX loaded — only on
+    /// the ground before the takeoff roll, where every request that names a stand is made.</summary>
+    private (AtcRequestValues Values, string StandFrom) Values(FlightContext flight)
+    {
+        var gate = flight.Gate?.Trim();
+        var standFrom = "none";
+        if (!string.IsNullOrWhiteSpace(gate))
+        {
+            standFrom = "sayintentions";
+        }
+        else if (GsxStandName() is { } gsxStand)
+        {
+            gate = gsxStand;
+            standFrom = "gsx";
+        }
+
+        return (new AtcRequestValues(flight.Callsign, gate, flight.DepartureRunway, flight.Airport, flight.Origin), standFrom);
+    }
+
+    /// <summary>The departure stand as GSX knows it: the pushback advisor's resolved stand
+    /// ("Gate 208", the parking catalogue's display name), else the GSX gate context's last
+    /// segment ("Terminal 5B (531-548)|Stand 546R" → "Stand 546R"). Null after the takeoff
+    /// roll — the arrival stand is a different question.</summary>
+    private string? GsxStandName()
+    {
+        var phase = _phase?.CurrentPhase ?? FlightPhase.Unknown;
+        if (!(phase.IsBeforeTaxiOut() || phase is FlightPhase.TaxiOut or FlightPhase.Unknown))
+        {
+            return null;
+        }
+
+        var stand = _pushback?.Snapshot().Stand;
+        if (!string.IsNullOrWhiteSpace(stand))
+        {
+            return stand.Trim();
+        }
+
+        var context = _gsx?.Snapshot().GateContextKey;
+        if (string.IsNullOrWhiteSpace(context))
+        {
+            return null;
+        }
+
+        var last = context.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault();
+        return string.IsNullOrWhiteSpace(last) ? null : last;
+    }
+
     private void PollFlightJson()
     {
         try
@@ -258,20 +446,28 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "SayIntentionsAI", "flight.json");
             var flight = ReadFlightJson(path);
+            var handover = options.CommsHandover;
+            var legacyGate = options.DepartureGatingEnabled && !handover.Enabled;
 
             bool becameActive;
             bool gateTripped;
+            var needRunway = false;
+            CommsHandoverDecision? decision = null;
             lock (_gate)
             {
                 becameActive = flight.IsActive && !_wasActive;
                 if (!flight.IsActive)
                 {
                     _departure = DepartureState.Idle;
+                    if (_wasActive)
+                    {
+                        _handover.Reset();
+                    }
                 }
 
                 gateTripped = flight.IsActive
                     && _departure == DepartureState.Idle
-                    && options.DepartureGatingEnabled
+                    && legacyGate
                     && flight.DistanceToRunway <= options.DepartureGateDistanceNm;
                 if (gateTripped)
                 {
@@ -280,13 +476,30 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
 
                 _wasActive = flight.IsActive;
                 _flight = flight;
+
+                if (handover.Enabled && flight.IsActive)
+                {
+                    var rules = CommsHandoverRules.From(handover);
+                    if (becameActive)
+                    {
+                        decision = _handover.OnFlightActive(_phase?.CurrentPhase ?? FlightPhase.Unknown, rules);
+                    }
+
+                    needRunway = _handover.Phase == FlightPhase.TaxiOut && _departureThreshold is null;
+                    decision ??= _handover.OnDistanceToRunway(DistanceToDepartureRunwayNm(), rules);
+                }
+            }
+
+            if (needRunway)
+            {
+                _ = PrimeDepartureRunwayAsync();
             }
 
             // Every poll, raw (null while no flight): the arrival-gate source dedupes and
             // phase-gates on its side. Raised on the timer thread.
             AssignedGateObserved?.Invoke(flight.IsActive ? flight.Gate : null);
 
-            if (becameActive && options.DepartureGatingEnabled)
+            if (becameActive && legacyGate)
             {
                 // The SI copilot owns comms on the ground and handles readbacks.
                 _ = WithApiKey(flight, options, key => SetVarAsync(key, "SIAI_COPILOT", "1"));
@@ -296,12 +509,289 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             {
                 _ = TakeCommsForDepartureAsync(flight, options);
             }
+
+            if (decision is not null)
+            {
+                _ = ApplyHandoverAsync(decision, flight, options);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "flight.json poll failed");
         }
     }
+
+    // ---- Comms hand-over (issue #171) ----
+
+    private void OnPhaseChanged(object? sender, FlightPhaseChangedEventArgs e)
+    {
+        try
+        {
+            var options = _options.CurrentValue;
+            if (!options.Enabled || !options.CommsHandover.Enabled)
+            {
+                return;
+            }
+
+            if (e.Current == FlightPhase.TaxiOut)
+            {
+                _ = PrimeDepartureRunwayAsync();
+            }
+
+            FlightContext flight;
+            CommsHandoverDecision? decision;
+            lock (_gate)
+            {
+                flight = _flight;
+                decision = _handover.OnPhaseChanged(e.Current, CommsHandoverRules.From(options.CommsHandover));
+            }
+
+            if (decision is null)
+            {
+                return;
+            }
+
+            if (!flight.IsActive)
+            {
+                _logger.LogDebug("Comms hand-over {Trigger} skipped — SayIntentions has no active flight", decision.Trigger);
+                return;
+            }
+
+            _ = ApplyHandoverAsync(decision, flight, options);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Comms hand-over on phase change failed");
+        }
+    }
+
+    private void OnAtcTransmission(SayIntentionsFrequencyMonitor.AtcTransmission tx)
+    {
+        try
+        {
+            var options = _options.CurrentValue;
+            var handover = options.CommsHandover;
+            if (!options.Enabled || !handover.Enabled)
+            {
+                return;
+            }
+
+            FlightContext flight;
+            CommsHandoverDecision? decision = null;
+            CommsOwner owner;
+            FlightPhase phase;
+            lock (_gate)
+            {
+                flight = _flight;
+                owner = _handover.Owner;
+                phase = _handover.Phase;
+                if (tx.Handoff is { } handoff && handoff.Station.Contains("tower", StringComparison.OrdinalIgnoreCase))
+                {
+                    decision = _handover.OnTowerHandoff(CommsHandoverRules.From(handover));
+                }
+            }
+
+            if (decision is not null && flight.IsActive)
+            {
+                _ = ApplyHandoverAsync(decision, flight, options);
+                return;
+            }
+
+            // The captain heard ATC himself; the FO relays only while the copilot has the radios.
+            if (owner != CommsOwner.Copilot)
+            {
+                return;
+            }
+
+            if (tx.Handoff is { } assigned)
+            {
+                if (!handover.AnnounceHandoffs)
+                {
+                    return;
+                }
+
+                var frequency = Callouts.Aviation.ToDigits(
+                    (assigned.Khz / 1000.0).ToString("F3", CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.'));
+                var station = SayIntentionsFrequencyMonitor.SpeakableStation(assigned.Station);
+                Readout("handoff", $"ATC handed us to {station}, {frequency}.", tx.Text);
+                return;
+            }
+
+            if (handover.ReadTaxiClearance
+                && phase is FlightPhase.PushbackAndStart or FlightPhase.TaxiOut
+                && tx.Text.Contains("taxi", StringComparison.OrdinalIgnoreCase))
+            {
+                var text = tx.Text.Length > ReadoutMaxChars ? tx.Text[..ReadoutMaxChars].TrimEnd() + "…" : tx.Text;
+                Readout("taxi", $"Taxi clearance: {text}", tx.Text);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "ATC transmission readout failed");
+        }
+    }
+
+    private void Readout(string kind, string spoken, string source)
+    {
+        _eventLog.Record("sayintentions.atc-readout", new { kind, text = spoken, source });
+        _ = _arbiter.EnqueueAsync(new SpeechRequest(
+            spoken, SpeechPriority.Normal, Ttl: TimeSpan.FromSeconds(45), Tag: "sayintentions.readout"));
+    }
+
+    /// <summary>One hand-over: the setVar write, Tower at the holding point, the FO line and
+    /// the <c>sayintentions.comms</c> event. Failures log and leave the core's owner as decided
+    /// — the next edge corrects it.</summary>
+    private async Task ApplyHandoverAsync(CommsHandoverDecision decision, FlightContext flight, SayIntentionsOptions options)
+    {
+        var handover = options.CommsHandover;
+        var line = decision.Owner == CommsOwner.Copilot
+            ? handover.CopilotLine
+            : decision.Trigger switch
+            {
+                "holding-point" => handover.HoldingPointLine,
+                "approach" or "tower-handoff" => handover.ApproachLine,
+                _ => handover.CaptainLine,
+            };
+
+        _logger.LogInformation(
+            "Comms hand-over: {Owner} has the radios ({Trigger}, {Phase})",
+            decision.Owner, decision.Trigger, decision.Phase);
+        _eventLog.Record("sayintentions.comms", new
+        {
+            owner = decision.Owner.ToString().ToLowerInvariant(),
+            trigger = decision.Trigger,
+            phase = decision.Phase.ToString(),
+            text = line,
+        });
+
+        try
+        {
+            var apiKey = ResolveApiKey(flight, options);
+            if (apiKey is null)
+            {
+                _logger.LogWarning("Comms hand-over {Trigger} not sent — no API key", decision.Trigger);
+                return;
+            }
+
+            await SetVarAsync(apiKey, "SIAI_COPILOT", decision.Owner == CommsOwner.Copilot ? "1" : "0").ConfigureAwait(false);
+            if (decision.Trigger == "holding-point" && handover.TuneTowerAtHoldingPoint)
+            {
+                await TuneTowerAsync(apiKey, flight).ConfigureAwait(false);
+            }
+
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                await _arbiter.EnqueueAsync(new SpeechRequest(
+                    line.Trim(), SpeechPriority.Normal, Ttl: TimeSpan.FromSeconds(45), Tag: "sayintentions.comms")).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Comms hand-over {Trigger} failed", decision.Trigger);
+        }
+    }
+
+    /// <summary>Tower on COM1: ATC's last hand-off when it named a Tower, else the airport's
+    /// comms list (getWX). Nothing known = nothing tuned.</summary>
+    private async Task TuneTowerAsync(string apiKey, FlightContext flight)
+    {
+        var assigned = _frequencyMonitor?.CurrentAssignment;
+        if (assigned is not null && assigned.Station.Contains("tower", StringComparison.OrdinalIgnoreCase))
+        {
+            await SetFreqAsync(apiKey, (assigned.Khz / 1000.0).ToString("F3", CultureInfo.InvariantCulture)).ConfigureAwait(false);
+            return;
+        }
+
+        await TryAutoTuneAsync(apiKey, flight, "TOWER").ConfigureAwait(false);
+    }
+
+    /// <summary>Resolves the departure runway threshold once per (airport, runway) — the FMS
+    /// runway via the briefing procedure source when the Speech pillar has it, else
+    /// flight.json's — through the same gateway/DFD tiers as the pushback advisor.</summary>
+    private async Task PrimeDepartureRunwayAsync()
+    {
+        if (_runways is null || Interlocked.Exchange(ref _runwayLookupBusy, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            FlightContext flight;
+            lock (_gate)
+            {
+                flight = _flight;
+            }
+
+            string? icao = null, runway = null;
+            if (_departureRunway?.Current() is { } live)
+            {
+                (icao, runway) = live;
+            }
+            else if (RunwayLocator.NormalizeIdent(flight.DepartureRunway) is { } ident)
+            {
+                icao = flight.Origin ?? flight.Airport;
+                runway = ident;
+            }
+
+            if (string.IsNullOrWhiteSpace(icao) || string.IsNullOrWhiteSpace(runway))
+            {
+                return;
+            }
+
+            var key = RunwayLookupCache.Key(icao, runway, null);
+            RunwayGeometry? geometry;
+            lock (_gate)
+            {
+                if (_runwayCache.TryGet(key, DateTimeOffset.UtcNow, out geometry))
+                {
+                    _departureThreshold = geometry;
+                    return;
+                }
+            }
+
+            geometry = await _runways.FindAsync(icao, runway).ConfigureAwait(false);
+            lock (_gate)
+            {
+                _runwayCache.Store(key, geometry, DateTimeOffset.UtcNow);
+                _departureThreshold = geometry;
+            }
+
+            _logger.LogInformation(
+                "Comms hand-over: departure runway {Icao} {Runway} threshold {Result}",
+                icao, runway, geometry is null ? "unknown — no holding-point hand-over" : $"from {geometry.Source}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Departure runway lookup for the comms hand-over failed");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _runwayLookupBusy, 0);
+        }
+    }
+
+    /// <summary>Great-circle distance from the aircraft to the departure runway threshold,
+    /// null while either is unknown. Called under the lock on the poll thread; a missing
+    /// threshold is primed outside the lock by the caller (the cache keeps a miss from hitting
+    /// the gateway every second).</summary>
+    private double? DistanceToDepartureRunwayNm()
+    {
+        if (_phase is null || _handover.Phase != FlightPhase.TaxiOut || _departureThreshold is null)
+        {
+            return null;
+        }
+
+        var view = _phase.Snapshot();
+        if (!view.IsLive || view.Data?.Position is not { } position)
+        {
+            return null;
+        }
+
+        return GreatCircle.DistanceNm(position, _departureThreshold.Threshold);
+    }
+
+    // ---- Legacy departure gate ----
 
     private async Task TakeCommsForDepartureAsync(FlightContext flight, SayIntentionsOptions options)
     {
@@ -316,7 +806,7 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             await SetVarAsync(apiKey, "SIAI_COPILOT", "0").ConfigureAwait(false);
             await TryAutoTuneAsync(apiKey, flight, "TOWER").ConfigureAwait(false);
             await _radioGate.WaitForClearAsync().ConfigureAwait(false);
-            await SayAsAsync(apiKey, Fill("Contact tower, {callsign}", flight)).ConfigureAwait(false);
+            await SayAsAsync(apiKey, AtcRequestTemplate.Fill("Contact tower, {callsign}", Values(flight).Values)).ConfigureAwait(false);
             _eventLog.Record("sayintentions.departureGate", new { });
             await _arbiter.EnqueueAsync(new SpeechRequest(
                 "Comms are ours — call the takeoff request when ready.", SpeechPriority.Normal,
@@ -350,15 +840,20 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             var freq = FindCommFrequency(doc.RootElement, commType);
             if (freq is not null)
             {
-                using var tune = await Http.GetAsync(
-                    $"{ApiBase}/setFreq?api_key={Uri.EscapeDataString(apiKey)}&freq={Uri.EscapeDataString(freq)}&com=1&mode=active")
-                    .ConfigureAwait(false);
+                await SetFreqAsync(apiKey, freq).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Auto-tune failed");
         }
+    }
+
+    private static async Task SetFreqAsync(string apiKey, string freq)
+    {
+        using var tune = await Http.GetAsync(
+            $"{ApiBase}/setFreq?api_key={Uri.EscapeDataString(apiKey)}&freq={Uri.EscapeDataString(freq)}&com=1&mode=active")
+            .ConfigureAwait(false);
     }
 
     private static string? FindCommFrequency(JsonElement root, string commType)
@@ -441,16 +936,6 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
             && !string.IsNullOrWhiteSpace(request.Faa)
             ? request.Faa
             : request.Icao;
-
-    private static string Fill(string template, FlightContext flight)
-        => template
-            .Replace("{callsign}", flight.Callsign ?? "", StringComparison.Ordinal)
-            .Replace("{gate}", flight.Gate ?? "", StringComparison.Ordinal)
-            .Replace("{runway}", flight.DepartureRunway ?? "", StringComparison.Ordinal)
-            .Replace("{airport}", flight.Airport ?? "", StringComparison.Ordinal)
-            .Replace("{origin}", flight.Origin ?? "", StringComparison.Ordinal)
-            .Replace("  ", " ", StringComparison.Ordinal)
-            .Trim();
 
     private static FlightContext ReadFlightJson(string path)
     {
