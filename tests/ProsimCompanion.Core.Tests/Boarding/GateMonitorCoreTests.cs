@@ -208,6 +208,98 @@ public sealed class GateMonitorCoreTests
         Assert.Equal(GateState.Closed, Eval(core, Inputs()).State);
     }
 
+    // ---- issue #173: the turnaround leg (EGCC 2026-10-11) ----
+
+    [Fact]
+    public void CycleResetInShutdown_StaysClosed_UntilTheNextLegsBoardingIsCalled()
+    {
+        // The arrival reset lands in Shutdown; the old past-gate rule re-closed the strip on
+        // the very next tick and the stale 122/122 counter then blocked the Preflight reset.
+        var core = new GateMonitorCore();
+        Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 122, boarded: 122, door: false));
+        Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Cruise));
+        Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Shutdown));
+        Assert.Equal(GateState.ClosedAfterBoarding, core.State);
+
+        core.Reset(T0.AddHours(3));
+        var afterReset = Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Shutdown, now: T0.AddHours(3)));
+        Assert.Equal(GateState.Closed, afterReset.State);
+        Assert.False(afterReset.Dimmed);
+
+        // Preflight with last leg's counter still showing: still "Not called".
+        var preflight = Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Preflight, now: T0.AddHours(3.2)));
+        Assert.Equal(GateState.Closed, preflight.State);
+    }
+
+    [Fact]
+    public void SecondBoardingInOneSession_ProducesANewChain()
+    {
+        var core = new GateMonitorCore();
+        // Leg 1.
+        Eval(core, Inputs(stage: GsxServiceStage.Called, target: 122, boarded: 0));
+        Eval(core, Inputs(stage: GsxServiceStage.Active, target: 122, boarded: 60));
+        Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 122, boarded: 122, door: false));
+        Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Cruise));
+        Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Shutdown));
+        Assert.Equal(GateState.ClosedAfterBoarding, core.State);
+
+        // Arrival reset, then leg 2 boards.
+        core.Reset(T0.AddHours(3));
+        var chain = new List<GateState>();
+        chain.Add(Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Shutdown, now: T0.AddHours(3))).State);
+        chain.Add(Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Preflight, now: T0.AddHours(3.2))).State);
+        chain.Add(Eval(core, Inputs(stage: GsxServiceStage.Called, target: 130, boarded: 0, phase: FlightPhase.Preflight, now: T0.AddHours(3.3), std: T0.AddHours(4.5))).State);
+        chain.Add(Eval(core, Inputs(stage: GsxServiceStage.Active, target: 130, boarded: 40, phase: FlightPhase.Departure, now: T0.AddHours(3.4), std: T0.AddHours(4.5))).State);
+        chain.Add(Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 130, boarded: 130, door: false, phase: FlightPhase.Departure, now: T0.AddHours(3.6), std: T0.AddHours(4.5))).State);
+
+        Assert.Equal(
+            [GateState.Closed, GateState.Closed, GateState.Open, GateState.Boarding, GateState.ClosedAfterBoarding],
+            chain);
+    }
+
+    [Fact]
+    public void StaleCounterWithoutABoardingStage_IsNotPaxEvidence()
+    {
+        // App restart mid-turnaround: GSX still reports last leg's 122/122, stage Waiting.
+        var s = Eval(new GateMonitorCore(), Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122));
+
+        Assert.Equal(GateState.Closed, s.State);
+        Assert.Equal("Not called", s.Detail);
+    }
+
+    [Fact]
+    public void NewOfpRequestId_ResetsAClosedLatch_FromThePreviousPlan()
+    {
+        // Restart in flight: the strip restores ClosedAfterBoarding from leg 1's plan; leg 2's
+        // OFP arrives during the turnaround and must start its own chain.
+        var core = new GateMonitorCore();
+        Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 122, boarded: 122, phase: FlightPhase.Cruise) with { OfpRequestId = "189301241" });
+        Eval(core, Inputs(stage: GsxServiceStage.Completed, target: 122, boarded: 122, phase: FlightPhase.Shutdown) with { OfpRequestId = "189301241" });
+        Assert.Equal(GateState.ClosedAfterBoarding, core.State);
+
+        // Leg 2's plan arrives; GSX's arrival reset has put Boarding back to Waiting, the
+        // counter still shows last leg's 122/122.
+        var s = Eval(core, Inputs(stage: GsxServiceStage.Waiting, target: 122, boarded: 122, phase: FlightPhase.Shutdown, now: T0.AddHours(3)) with { OfpRequestId = "189328867" });
+
+        Assert.Equal(GateState.Closed, s.State);
+
+        // The same id afterwards keeps the forward-only latch within the leg.
+        Eval(core, Inputs(stage: GsxServiceStage.Active, target: 130, boarded: 20, phase: FlightPhase.Departure, now: T0.AddHours(3.5), std: T0.AddHours(4.5)) with { OfpRequestId = "189328867" });
+        Assert.Equal(GateState.Boarding, core.State);
+        Eval(core, Inputs(stage: GsxServiceStage.Active, target: 130, boarded: 20, phase: FlightPhase.Departure, now: T0.AddHours(3.6), std: T0.AddHours(4.5)) with { OfpRequestId = "189328867" });
+        Assert.Equal(GateState.Boarding, core.State);
+    }
+
+    [Fact]
+    public void NoOfpId_NeverResets()
+    {
+        var core = new GateMonitorCore();
+        Eval(core, Inputs(stage: GsxServiceStage.Active, target: 130, boarded: 20) with { OfpRequestId = "1" });
+        Eval(core, Inputs(stage: GsxServiceStage.Active, target: 130, boarded: 25) with { OfpRequestId = null });
+
+        Assert.Equal(GateState.Boarding, core.State);
+    }
+
     [Fact]
     public void UnchangedInputs_ReturnEqualSnapshots()
     {

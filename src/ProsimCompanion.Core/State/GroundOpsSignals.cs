@@ -73,11 +73,32 @@ public sealed class GroundOpsSignals
 
     public void RaiseArrivalCompleted() => ArrivalCompleted?.Invoke();
 
-    public void RaiseBoardingStarted() => BoardingStarted?.Invoke();
+    /// <summary>True from GSX Boarding going Active until it completes or the cycle resets.
+    /// A queryable latch beside the <see cref="BoardingStarted"/> edge (issue #168): the phase
+    /// engine re-raises its own boarding latch from this after a genuine session reset, so a
+    /// Preflight re-classified mid-boarding goes back to Departure instead of sitting on
+    /// PREFLIGHT until the push (EGCC 2026-10-11: 26 minutes).</summary>
+    public bool BoardingUnderway => Volatile.Read(ref _boardingUnderway) == 1;
 
-    public void RaiseBoardingCompleted() => BoardingCompleted?.Invoke();
+    private int _boardingUnderway;
 
-    public void RaiseFlightCycleReset() => FlightCycleReset?.Invoke();
+    public void RaiseBoardingStarted()
+    {
+        Volatile.Write(ref _boardingUnderway, 1);
+        BoardingStarted?.Invoke();
+    }
+
+    public void RaiseBoardingCompleted()
+    {
+        Volatile.Write(ref _boardingUnderway, 0);
+        BoardingCompleted?.Invoke();
+    }
+
+    public void RaiseFlightCycleReset()
+    {
+        Volatile.Write(ref _boardingUnderway, 0);
+        FlightCycleReset?.Invoke();
+    }
 
     public void RaiseDeiceCompleted(int fluidType) => DeiceCompleted?.Invoke(fluidType);
 }

@@ -498,6 +498,284 @@ public sealed class FlightStateEngineTests
         Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
     }
 
+    // ---- MSFS pause (issue #168, EGCC 2026-10-11 23:35Z) ----
+
+    /// <summary>The Escape menu as SimSessionService reports it: camera 34, sim running,
+    /// pause flag set.</summary>
+    private static void SetPausedOutOfSession(SimSessionStore store)
+        => store.Publish(new SimSessionSnapshot(SimSessionPhase.NotInSession, SimRunning: true, Paused: true, CameraState: 34, SimVersion: null));
+
+    private static readonly GeoPoint Stand = GeoPoint.FromRaw(53.3537, -2.2750)!.Value;
+
+    /// <summary>Powered at the gate with GSX boarding latched — the Departure the pause must keep.</summary>
+    private static FlightDataSnapshot AtStand(double fuelKg = 6200, GeoPoint? position = null)
+        => ReadyGround() with { Position = position ?? Stand, FuelOnBoardKg = fuelKg };
+
+    private static FlightStateEngine CreateWithGroundOps(out SimSessionStore session, out GroundOpsSignals groundOps)
+    {
+        session = new SimSessionStore();
+        groundOps = new GroundOpsSignals();
+        return new FlightStateEngine(
+            new NullFlightSource(), session, NullLogger<FlightStateEngine>.Instance,
+            new FixedOptionsMonitor<FlightStateOptions>(FlightStateOptions.Default), groundOps);
+    }
+
+    [Fact]
+    public void Pause_WithinTheGrace_KeepsThePhaseAndLatches_AndRaisesPausedThenResumed()
+    {
+        var engine = CreateWithGroundOps(out var session, out var groundOps);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, AtStand(), T0, TimeSpan.FromSeconds(2));
+        groundOps.RaiseBoardingStarted();
+        now = Drive(engine, AtStand(), now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+
+        var edges = new List<FlightPhaseChangedEventArgs>();
+        var pauses = new List<FlightPauseChange>();
+        var resets = 0;
+        var live = new List<bool>();
+        engine.PhaseChanged += (_, e) => edges.Add(e);
+        engine.PauseChanged += pauses.Add;
+        engine.SessionReset += () => resets++;
+        engine.LiveChanged += live.Add;
+
+        // Escape: five seconds in the pause menu, ProSim keeps pushing the same sample.
+        SetPausedOutOfSession(session);
+        now = Drive(engine, AtStand(), now, TimeSpan.FromSeconds(5));
+        Assert.True(engine.IsPaused);
+        Assert.False(engine.IsLive);
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+
+        SetSession(session, SimSessionPhase.InSession);
+        now = Drive(engine, AtStand(), now, TimeSpan.FromSeconds(3));
+
+        Assert.False(engine.IsPaused);
+        Assert.True(engine.IsLive);
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+        Assert.Empty(edges); // no session-ended, no Unknown -> Preflight
+        Assert.Equal(0, resets);
+        Assert.Equal([FlightPauseEvent.Paused, FlightPauseEvent.Resumed], pauses.Select(p => p.Kind));
+        Assert.Equal([false, true], live);
+        Assert.Contains("within 50 m", pauses[1].Detail);
+        Assert.Contains("within 50 kg", pauses[1].Detail);
+        Assert.True(engine.Snapshot().Data!.BoardingStarted, "the boarding latch must survive the pause");
+    }
+
+    [Fact]
+    public void Pause_KeepsTheAirborneLatch()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var cruise = new FlightDataSnapshot
+        {
+            IsValid = true,
+            IsReady = true,
+            OnGround = false,
+            AircraftPowered = true,
+            AnyEngineRunning = true,
+            RadioAltitudeFt = 30000,
+            AltitudeFt = 36000,
+            IndicatedAirspeedKt = 270,
+            FmsCruiseAltFt = 36000,
+            Position = Stand,
+            FuelOnBoardKg = 5000,
+        };
+        var now = Drive(engine, cruise, T0, TimeSpan.FromSeconds(12));
+        Assert.Equal(FlightPhase.Cruise, engine.CurrentPhase);
+        Assert.True(engine.HasBeenAirborneThisSession);
+
+        SetPausedOutOfSession(session);
+        now = Drive(engine, cruise, now, TimeSpan.FromSeconds(20));
+        SetSession(session, SimSessionPhase.InSession);
+        Drive(engine, cruise, now, TimeSpan.FromSeconds(2));
+
+        Assert.True(engine.HasBeenAirborneThisSession);
+        Assert.Equal(FlightPhase.Cruise, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void Pause_LongerThanTheGrace_IsASessionEnd()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, AtStand(), T0, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+
+        var pauses = new List<FlightPauseChange>();
+        var resets = 0;
+        FlightPhaseChangedEventArgs? last = null;
+        engine.PauseChanged += pauses.Add;
+        engine.SessionReset += () => resets++;
+        engine.PhaseChanged += (_, e) => last = e;
+
+        SetPausedOutOfSession(session);
+        Drive(engine, AtStand(), now, TimeSpan.FromSeconds(61));
+
+        Assert.False(engine.IsPaused);
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+        Assert.Equal(FlightStateEngine.SessionEndedRuleId, last?.RuleId);
+        Assert.Equal(1, resets); // one edge, however long NotInSession persists
+        Assert.Equal([FlightPauseEvent.Paused, FlightPauseEvent.Ended], pauses.Select(p => p.Kind));
+        Assert.Contains("longer than the 60 s grace", pauses[1].Detail);
+    }
+
+    [Fact]
+    public void Pause_ThatComesBackElsewhere_IsARespawn()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, AtStand(), T0, TimeSpan.FromSeconds(2));
+
+        var pauses = new List<FlightPauseChange>();
+        engine.PauseChanged += pauses.Add;
+        SetPausedOutOfSession(session);
+        now = Drive(engine, AtStand(), now, TimeSpan.FromSeconds(10));
+        SetSession(session, SimSessionPhase.InSession);
+
+        // Same fuel, but a stand 300 m away: a new flight loaded at the next gate.
+        var elsewhere = AtStand(position: GeoPoint.FromRaw(53.3564, -2.2750));
+        engine.ProcessTick(elsewhere, now);
+
+        Assert.False(engine.IsPaused);
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+        Assert.Equal(FlightPauseEvent.Ended, pauses[^1].Kind);
+        Assert.StartsWith("respawn", pauses[^1].Detail);
+        Assert.Contains("beyond 50 m", pauses[^1].Detail);
+
+        // …and classification continues from Unknown in the new session.
+        Drive(engine, elsewhere, now + Tick, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void Pause_ThatComesBackWithOtherFuel_IsARespawn()
+    {
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, AtStand(fuelKg: 6200), T0, TimeSpan.FromSeconds(2));
+
+        SetPausedOutOfSession(session);
+        now = Drive(engine, AtStand(fuelKg: 6200), now, TimeSpan.FromSeconds(10));
+        SetSession(session, SimSessionPhase.InSession);
+        engine.ProcessTick(AtStand(fuelKg: 9800), now);
+
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void Pause_WithoutPositionOrFuel_TrustsTheGrace()
+    {
+        // Older data shape (no position ref, fuel not reported): the comparison is skipped and
+        // the round-trip within the grace still resumes.
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, ReadyGround(), T0, TimeSpan.FromSeconds(2));
+
+        var pauses = new List<FlightPauseChange>();
+        engine.PauseChanged += pauses.Add;
+        SetPausedOutOfSession(session);
+        now = Drive(engine, ReadyGround(), now, TimeSpan.FromSeconds(5));
+        SetSession(session, SimSessionPhase.InSession);
+        engine.ProcessTick(ReadyGround(), now);
+
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+        Assert.Equal(FlightPauseEvent.Resumed, pauses[^1].Kind);
+        Assert.Contains("no position to compare", pauses[^1].Detail);
+        Assert.Contains("no fuel to compare", pauses[^1].Detail);
+    }
+
+    [Fact]
+    public void NotInSession_WithoutThePauseFlag_ResetsAtOnce()
+    {
+        // World map / aircraft reload: the pre-#168 behaviour, no pause events at all.
+        var engine = Create(out var session);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, AtStand(), T0, TimeSpan.FromSeconds(2));
+
+        var pauses = new List<FlightPauseChange>();
+        engine.PauseChanged += pauses.Add;
+        SetSession(session, SimSessionPhase.NotInSession); // Paused: false
+        engine.ProcessTick(AtStand(), now);
+
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+        Assert.Empty(pauses);
+    }
+
+    [Fact]
+    public void Pause_GraceZero_ResetsAtOnce()
+    {
+        var session = new SimSessionStore();
+        var engine = new FlightStateEngine(
+            new NullFlightSource(), session, NullLogger<FlightStateEngine>.Instance,
+            new FixedOptionsMonitor<FlightStateOptions>(new FlightStateOptions { PauseGraceSeconds = 0 }));
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, AtStand(), T0, TimeSpan.FromSeconds(2));
+
+        SetPausedOutOfSession(session);
+        engine.ProcessTick(AtStand(), now);
+
+        Assert.False(engine.IsPaused);
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void GenuineReset_MidBoarding_ReRaisesTheBoardingLatch_SoPreflightStepsOnToDeparture()
+    {
+        var engine = CreateWithGroundOps(out var session, out var groundOps);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, AtStand(), T0, TimeSpan.FromSeconds(2));
+        groundOps.RaiseBoardingStarted();
+        now = Drive(engine, AtStand(), now, TimeSpan.FromSeconds(2));
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+
+        // Out to the world map (no pause flag) while GSX is still boarding.
+        var edges = new List<string>();
+        engine.PhaseChanged += (_, e) => edges.Add($"{e.Previous} -> {e.Current}");
+        SetSession(session, SimSessionPhase.NotInSession);
+        engine.ProcessTick(AtStand(), now);
+        Assert.Equal(FlightPhase.Unknown, engine.CurrentPhase);
+
+        SetSession(session, SimSessionPhase.InSession);
+        Drive(engine, AtStand(), now + Tick, TimeSpan.FromSeconds(4));
+
+        Assert.Equal(FlightPhase.Departure, engine.CurrentPhase);
+        Assert.Equal(["Departure -> Unknown", "Unknown -> Preflight", "Preflight -> Departure"], edges);
+    }
+
+    [Fact]
+    public void GenuineReset_AfterBoardingCompleted_DoesNotReRaiseTheLatch()
+    {
+        var engine = CreateWithGroundOps(out var session, out var groundOps);
+        SetSession(session, SimSessionPhase.InSession);
+        var now = Drive(engine, AtStand(), T0, TimeSpan.FromSeconds(2));
+        groundOps.RaiseBoardingStarted();
+        groundOps.RaiseBoardingCompleted();
+        groundOps.RaiseFlightCycleReset(); // next leg, nothing boarding
+
+        SetSession(session, SimSessionPhase.NotInSession);
+        engine.ProcessTick(AtStand(), now);
+        SetSession(session, SimSessionPhase.InSession);
+        Drive(engine, AtStand(), now + Tick, TimeSpan.FromSeconds(4));
+
+        Assert.Equal(FlightPhase.Preflight, engine.CurrentPhase);
+    }
+
+    [Fact]
+    public void IsSameFlight_ComparesPositionAndFuel_SkippingWhatIsUnknown()
+    {
+        var options = FlightStateOptions.Default;
+        var before = AtStand(fuelKg: 6200);
+
+        Assert.True(FlightStateEngine.IsSameFlight(before, AtStand(fuelKg: 6230), options, out var detail));
+        Assert.Contains("moved 0 m", detail);
+
+        Assert.False(FlightStateEngine.IsSameFlight(before, AtStand(fuelKg: 6300), options, out detail));
+        Assert.Contains("fuel changed 100 kg (beyond 50 kg)", detail);
+
+        Assert.True(FlightStateEngine.IsSameFlight(null, AtStand(), options, out detail));
+        Assert.Equal("no position to compare, no fuel to compare", detail);
+    }
+
     [Fact]
     public void Shutdown_ParkedWithBeaconOff_TurnsAroundAfterTheHold_OnceTheArrivalIsComplete()
     {

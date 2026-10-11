@@ -24,6 +24,7 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<ParkingConflictAdvisoryService> _logger;
+    private readonly SpokenAdvisories? _advisories;
     private readonly object _gate = new();
     private DateTimeOffset? _lastSpokenConflict;
     private string? _lastSpokenText;
@@ -36,7 +37,8 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
         IFlightPhaseSource flightState,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<ParkingConflictAdvisoryService> logger)
+        ILogger<ParkingConflictAdvisoryService> logger,
+        SpokenAdvisories? advisories = null)
     {
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(flightState);
@@ -49,6 +51,7 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _advisories = advisories;
     }
 
     public void Start()
@@ -240,17 +243,22 @@ public sealed class ParkingConflictAdvisoryService : Core.Hosting.IStartupModule
 
     private async Task SpeakAsync(string text)
     {
+        var token = _advisories?.Begin("fo.parking-conflict") ?? CancellationToken.None; // "disregard" (#168)
         try
         {
             // Advisory band with a shelf life: after minutes of the pilot working the GSX
             // menus this line is stale context, not information.
             await _arbiter.EnqueueAsync(new SpeechRequest(
                 text, SpeechPriority.Normal, Ttl: TimeSpan.FromMinutes(2),
-                Tag: "fo.parking-conflict")).ConfigureAwait(false);
+                Tag: "fo.parking-conflict"), token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Parking conflict advisory could not be spoken");
+        }
+        finally
+        {
+            _advisories?.End(token);
         }
     }
 }

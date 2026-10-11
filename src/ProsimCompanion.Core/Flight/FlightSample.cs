@@ -65,6 +65,12 @@ public sealed record FlightSample
     [JsonPropertyName("lon"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? LongitudeDeg { get; init; }
 
+    /// <summary>Fuel on board, whole kg, omitted while unknown (issue #168): the replay's
+    /// pause-vs-respawn check needs it; recordings made before 2026-10-11 parse unchanged and
+    /// skip the fuel half of that check.</summary>
+    [JsonPropertyName("fob"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? FuelOnBoardKg { get; init; }
+
     /// <summary>Builds the record from the engine's view. Values are rounded to what the rule
     /// table can distinguish so unchanged flight states compare equal and are not re-written.</summary>
     public static FlightSample From(FlightStateView view)
@@ -104,6 +110,7 @@ public sealed record FlightSample
             BoardingStarted = s.BoardingStarted,
             LatitudeDeg = s.Position is { } latitude ? Math.Round(latitude.LatitudeDeg, 4) : null,
             LongitudeDeg = s.Position is { } longitude ? Math.Round(longitude.LongitudeDeg, 4) : null,
+            FuelOnBoardKg = s.FuelOnBoardKg is { } fuel && double.IsFinite(fuel) ? Math.Round(fuel) : null,
         };
     }
 
@@ -143,5 +150,6 @@ public sealed record FlightSample
         Position = LatitudeDeg is { } latitude && LongitudeDeg is { } longitude
             ? GeoPoint.FromRaw(latitude, longitude)
             : null,
+        FuelOnBoardKg = FuelOnBoardKg,
     };
 }

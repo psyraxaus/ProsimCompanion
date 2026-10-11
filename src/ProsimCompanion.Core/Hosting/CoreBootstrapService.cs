@@ -65,6 +65,7 @@ public sealed class CoreBootstrapService : IHostedService
         _eventLog.Record(SessionHeader.StartedEvent, BuildHeader(_eventLog.Path));
         _eventLog.SessionRotated += OnSessionRotated;
         _flightState.PhaseChanged += OnPhaseChanged;
+        _flightState.PauseChanged += OnPauseChanged;
         _status.Changed += OnStatusChanged;
         _profiles.Changed += OnProfileChanged;
         _flightState.Start();
@@ -99,6 +100,7 @@ public sealed class CoreBootstrapService : IHostedService
     {
         _eventLog.SessionRotated -= OnSessionRotated;
         _flightState.PhaseChanged -= OnPhaseChanged;
+        _flightState.PauseChanged -= OnPauseChanged;
         _status.Changed -= OnStatusChanged;
         _profiles.Changed -= OnProfileChanged;
         _eventLog.Record("session-ended");
@@ -169,6 +171,27 @@ public sealed class CoreBootstrapService : IHostedService
             },
         });
     }
+
+    /// <summary>The MSFS pause round-trip (issue #168): 'sim-paused' when the session leaves
+    /// the flight with the pause flag set, 'sim-resumed' when it comes back within the grace
+    /// at the same stand, 'sim-pause-ended' when it turned out to be a real end (the
+    /// 'session-ended' phase edge follows it). The replay harness feeds the first two back
+    /// through the session store.</summary>
+    private void OnPauseChanged(FlightPauseChange change)
+        => _eventLog.Record(
+            change.Kind switch
+            {
+                FlightPauseEvent.Paused => "sim-paused",
+                FlightPauseEvent.Resumed => "sim-resumed",
+                _ => "sim-pause-ended",
+            },
+            new
+            {
+                phase = change.Phase.ToString(),
+                elapsedSeconds = Math.Round(change.Elapsed.TotalSeconds, 1),
+                graceSeconds = change.GraceSeconds,
+                detail = change.Detail,
+            });
 
     private void OnProfileChanged(object? sender, EventArgs e)
         => _eventLog.Record("profile-changed", new

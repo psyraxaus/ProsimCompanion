@@ -131,6 +131,56 @@ public sealed class FlightReplayTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Replay_FeedsThePauseRoundTripThroughTheSessionStore_AndHoldsThePhase()
+    {
+        // Issue #168: the recorder stops while not live, so a pause leaves no samples — the
+        // harness replays sim-paused / sim-resumed as session edges and the engine's grace
+        // keeps the phase across them (Departure held, no session-ended edge).
+        var atStand = Ground(phase: "Preflight") with { LatitudeDeg = 53.3537, LongitudeDeg = -2.275, FuelOnBoardKg = 6200 };
+        var lines = new[]
+        {
+            Envelope(0, "flight-sample", Ground(phase: "Unknown") with { LatitudeDeg = 53.3537, LongitudeDeg = -2.275, FuelOnBoardKg = 6200 }),
+            Envelope(8, "gsx-service", new { service = "Boarding", @event = "Active" }),
+            Envelope(20, "flight-sample", atStand with { Phase = "Departure" }),
+            Envelope(30, "sim-paused", new { phase = "Departure" }),
+            Envelope(35, "sim-resumed", new { phase = "Departure" }),
+            Envelope(50, "flight-sample", atStand with { Phase = "Departure" }),
+        };
+
+        var result = FlightReplay.Run(lines);
+        output.WriteLine(result.Describe());
+
+        Assert.Equal(["Unknown -> Preflight", "Preflight -> Departure"], result.Commits.Select(c => c.Edge));
+        Assert.Equal(1, result.PauseRoundTrips);
+        Assert.Contains("1 pause round-trip(s) replayed", result.Describe());
+    }
+
+    [Fact]
+    public void Replay_PauseLongerThanTheGrace_ResetsLikeASessionEnd()
+    {
+        var atStand = Ground(phase: "Departure") with { LatitudeDeg = 53.3537, LongitudeDeg = -2.275 };
+        var lines = new[]
+        {
+            Envelope(0, "flight-sample", Ground(phase: "Unknown")),
+            Envelope(8, "gsx-service", new { service = "Boarding", @event = "Active" }),
+            Envelope(20, "flight-sample", atStand),
+            Envelope(30, "sim-paused", new { phase = "Departure" }),
+            Envelope(100, "sim-resumed", new { phase = "Departure" }),
+            Envelope(101, "flight-sample", atStand),
+            Envelope(110, "flight-sample", atStand),
+        };
+
+        var result = FlightReplay.Run(lines);
+        output.WriteLine(result.Describe());
+
+        // Reset at the grace, then — GSX still boarding — Preflight steps straight on to Departure.
+        Assert.Equal(
+            ["Unknown -> Preflight", "Preflight -> Departure", "Departure -> Unknown", "Unknown -> Preflight", "Preflight -> Departure"],
+            result.Commits.Select(c => c.Edge));
+        Assert.Equal(FlightStateEngine.SessionEndedRuleId, result.Commits[2].RuleId);
+    }
+
+    [Fact]
     public void Replay_WithOptions_ChangesTheVerdict()
     {
         // A 60 s cruise settle: level from 90 s to 120 s never commits Cruise.
@@ -148,6 +198,26 @@ public sealed class FlightReplayTests(ITestOutputHelper output)
         var result = FlightReplay.Run(lines);
 
         Assert.Equal(SyntheticFlight().Count, result.SampleCount);
+    }
+
+    [Fact]
+    public void EgccRecording_HoldsDepartureAcrossTheEscapePause()
+    {
+        // Issue #168: the 2026-10-11 EGCC turnaround. The live rc.4 engine went Departure ->
+        // Unknown -> Preflight across a five-second Escape at 23:35:16Z; the recording carries
+        // the pause round-trip (synthesized from the CMTrace log) and the replay must ride it.
+        var path = Path.Combine(AppContext.BaseDirectory, "Flight", "Recordings", "egcc-efhk-2026-10-11-0.7.0-rc4.jsonl");
+        var result = FlightReplay.RunFile(path);
+        output.WriteLine(result.Describe());
+
+        Assert.Equal(1, result.PauseRoundTrips);
+        var departure = Assert.Single(result.Commits, c => c.Current == FlightPhase.Departure);
+        var push = Assert.Single(result.Commits, c => c.Current == FlightPhase.PushbackAndStart);
+        Assert.Equal(FlightPhase.Departure, push.Previous);
+        Assert.DoesNotContain(result.Commits, c => c.At > departure.At && c.At < push.At);
+        Assert.DoesNotContain(result.Commits, c => c.RuleId == FlightStateEngine.SessionEndedRuleId);
+        // What the live engine did instead, for the record.
+        Assert.Contains(result.RecordedCommits, c => c.Edge == "Departure -> Unknown");
     }
 
     [Fact]

@@ -82,6 +82,8 @@ public sealed class GateMonitorService : IDisposable
         _diagnosticsSubscription = diagnostics.Observe(_ => Evaluate());
         _flight.PhaseChanged += OnPhaseChanged;
         _signals.FlightCycleReset += OnFlightCycleReset;
+        // A new OFP is a new leg (issue #173): the core resets its latch on the new request id.
+        _ofp.Changed += OnEvidenceChanged;
         // The countdown and the STD trigger are time-driven; the tick is cheap (one record
         // compare) and the store swallows unchanged results.
         _timer = new Timer(_ => Evaluate(), null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(1));
@@ -155,6 +157,7 @@ public sealed class GateMonitorService : IDisposable
         var gsxConnected = _connections.Snapshot()
             .Any(pair => pair.Key == Subsystems.Gsx && pair.Value == ConnectionState.Connected);
         var now = _clock.UtcNowOrReal;
+        var ofp = _ofp.Current;
 
         return new GateMonitorInputs(
             boarding?.Stage,
@@ -163,9 +166,10 @@ public sealed class GateMonitorService : IDisposable
             _door1L.RawValue is null ? null : _door1L.Value,
             bridge,
             _flight.CurrentPhase,
-            ScheduledDeparture.Effective(_loadsheet.Snapshot().StdOverrideUtc, _ofp.Current?.ScheduledOutUtc, now),
+            ScheduledDeparture.Effective(_loadsheet.Snapshot().StdOverrideUtc, ofp?.ScheduledOutUtc, now),
             now,
-            gsxConnected);
+            gsxConnected,
+            string.IsNullOrWhiteSpace(ofp?.RequestId) ? null : ofp.RequestId);
     }
 
     private static GsxServiceView? Service(GsxDiagnosticsSnapshot gsx, string id)
@@ -221,6 +225,7 @@ public sealed class GateMonitorService : IDisposable
     public void Dispose()
     {
         _timer.Dispose();
+        _ofp.Changed -= OnEvidenceChanged;
         _signals.FlightCycleReset -= OnFlightCycleReset;
         _flight.PhaseChanged -= OnPhaseChanged;
         _diagnosticsSubscription.Dispose();

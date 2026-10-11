@@ -26,7 +26,20 @@ internal sealed class FakePhaseSource : IFlightPhaseSource
 
     public event Action<bool>? LiveChanged;
 
+    public bool IsPaused => false;
+
+    public event Action<FlightPauseChange>? PauseChanged
+    {
+        add { }
+        remove { }
+    }
+
+    public event Action? SessionReset;
+
     public FlightStateView Snapshot() => new(CurrentPhase, Data, HasBeenAirborneThisSession, IsLive);
+
+    /// <summary>A genuine session end as the engine would report it (issue #168).</summary>
+    public void RaiseSessionReset() => SessionReset?.Invoke();
 
     public void SetLive(bool live)
     {
