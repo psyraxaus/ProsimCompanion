@@ -100,6 +100,16 @@ public sealed class GsxDeiceStateMonitor : Core.Hosting.IStartupModule, IDisposa
                     "GSX de-icing LVARs: state {State} ({Label}), fluid type {Type} (was state {Previous})",
                     state, Label(state), type, previous);
                 _eventLog.Record("gsx-deice-state", new { state, label = Label(state), fluidType = type, previousState = previous });
+
+                // EFHK 2026-10-10 (issue #166): state 6 arrived 43 s BEFORE the Remote API's
+                // Completed edge and the fluid type read 0 throughout. Logged as the early
+                // signal it is; the holdover card still arms once, on the API edge.
+                if (state == 6)
+                {
+                    _logger.LogInformation(
+                        "GSX de-icing LVAR reports Completed (state 6) ahead of the Remote API edge — early-completed signal only; the holdover card arms on the API Completed edge (fluid type LVAR {Type})",
+                        type);
+                }
             }
         }
         catch (Exception ex)

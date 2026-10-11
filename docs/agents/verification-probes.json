@@ -1550,9 +1550,11 @@
         "No 'abnormal.started' whose matching 'failure.cleared' (same id) arrives within 5 seconds — a dialogue that starts and dies inside the transit/blip window is the 2026-09-05 signature (fctl-altn-law twice in preflight, lg-gear-not-downlocked during normal gear extension).",
         "No 'speech.dropped' with tag 'abnormal' and reason 'caller cancelled' within seconds of a failure.cleared — the mic-borrowed-then-cut pattern is the audible half of the same transient.",
         "assert-present when a failure genuinely persists: 'failure.detected' still fires after the definition's hold time — the debounce must delay, not suppress.",
-        "No 'failure.detected lg-gear-not-downlocked' within 30 s of a gear-down command/lever movement whose gears then lock normally; no 'failure.detected fctl-altn-law' while on the ground before TaxiOut (the definition no longer arms in ColdAndDark/Preflight/PushbackAndStart)."
+        "No 'failure.detected lg-gear-not-downlocked' within 30 s of a gear-down command/lever movement whose gears then lock normally; no 'failure.detected fctl-altn-law' while on the ground before TaxiOut (the definition no longer arms in ColdAndDark/Preflight/PushbackAndStart).",
+        "No 'failure.detected' pack-1-fault / pack-2-fault whose 'failure.cleared' follows within 5 s (the 2026-10-10 EFHK signature: 3.98 s, three ECAM lines spoken) — the shipped pack definitions now debounce 5 s.",
+        "assert-absent while GSX de-ices: no 'failure.detected' pack-1-fault / pack-2-fault between the DeIce lifecycle Requested edge and its Completed edge (gsx-decision / handler lines; the Core DeiceActivityStore stage). The crew switches the packs OFF for the treatment — the definitions carry holdDuringDeice and the log reads 'Abnormal pack-1-fault held — GSX de-icing in progress' once per treatment. A pack fault that persists AFTER the Completed edge must still fire (after its 5 s debounce) — the hold must not suppress a real fault."
       ],
-      "notes": "Fixed 2026-09-05 (correction to the issue text: FailureMonitor DID have a per-definition debounce — the transients outlived the 2 s values). Definition tuning: lg-gear-not-downlocked debounce 2->30 s (covers the normal transit), fctl-altn-law debounce 2->5 s AND phases restricted to TaxiOut..TaxiIn (powered-preflight alternate law with hydraulics down is normal, not a fault; the 2-3 s master-caution blips rode through the corroborate there). Seeds propagate via ADR-0007 unless the user edited those files."
+      "notes": "Fixed 2026-09-05 (correction to the issue text: FailureMonitor DID have a per-definition debounce — the transients outlived the 2 s values). Definition tuning: lg-gear-not-downlocked debounce 2->30 s (covers the normal transit), fctl-altn-law debounce 2->5 s AND phases restricted to TaxiOut..TaxiIn (powered-preflight alternate law with hydraulics down is normal, not a fault; the 2-3 s master-caution blips rode through the corroborate there). Seeds propagate via ADR-0007 unless the user edited those files. Reopened 2026-10-11 (EFHK de-icing, issue #166 flight): pack-1/pack-2 debounce 2->5 s and a hold while the GSX de-icing crew is Requested/Active (FailureMonitor reads the Core DeiceActivityStore the GSX relay writes — Speech never references Gsx)."
     },
     {
       "id": "fob-startup-restore",
@@ -2640,17 +2642,21 @@
         "log"
       ],
       "checks": [
-        "Only with gsx.deice.autoRequest = ask or auto (off by default — with off, the one 'gsx-deice-policy' verdict per departure reads Off and nothing else below applies). Trigger = the departure sequence started at the gate (gsx-decision 'departure sequence: started' / 'auto-started') with an OFP origin and ProSim OAT (or a METAR temperature) available.",
-        "assert-present: a 'gsx-deice-policy' event per departure cycle whose verdict is one of NoData | NotRequired | Ask | Request and whose reason names the OAT figure, its source ('ProSim OAT' or '<ICAO> METAR') and the threshold; oat/precip/icao match the Flight Status local weather card (precip in none | rain | snow | thunderstorm | freezing precipitation | ice pellets / hail | freezing fog | unknown) and the gsx-decision 'de-ice policy' line carries the same text.",
+        "Only with gsx.deice.autoRequest = ask or auto (off by default — with off, the one 'gsx-deice-policy' verdict per departure reads Off and nothing else below applies). Trigger (issue #166, changed 2026-10-11) = the DeIce step's turn on the departure sequence — gsx-decision 'de-ice step next' ('every earlier service done — the de-icing policy decides now') — or, with gsx.deice.askWhen = afterBoardingComplete, the Boarding Completed edge. The payload carries askWhen, questionTimeoutMinutes and stepNext.",
+        "assert-absent (the 2026-10-10 EFHK signature): a 'gsx-deice-policy' verdict or a 'deice-question' within 60 s of gsx-decision 'departure sequence: started' / 'auto-started' unless every other departure step was already settled. Before the trigger the Status board shows the DeIce row last, held with 'de-icing policy — decided when this step's turn comes' (gsx-decision 'hold DeIce'), and no verdict event exists.",
+        "assert-present: a 'gsx-deice-policy' event per departure cycle whose verdict is one of NoData | NotRequired | Ask | Request and whose reason names the OAT figure, its source ('ProSim OAT' or '<ICAO> METAR') and the threshold; oat/precip/icao match the Flight Status local weather card (precip in none | rain | snow | thunderstorm | freezing precipitation | ice pellets / hail | freezing fog | unknown) and the gsx-decision 'de-ice policy' line carries the same text. The verdict event's timestamp is at or after the 'de-ice step next' decision (whenStepIsNext) or the Boarding Completed edge (afterBoardingComplete).",
         "Verdict rules to check against the METAR in the same session: OAT above the threshold ⇒ NotRequired whatever the METAR; at/below with snow, FZRA/FZDZ, PL/GR/GS, rain, FZFG, or a temperature/dew-point spread ≤ 3 ⇒ Ask (mode ask) / Request (mode auto); at/below with a dry METAR and a wide spread ⇒ NotRequired; at/below with NO METAR for the origin and requirePrecipitation=true ⇒ NoData (and never a request). A Request/Ask on a warm or dry day is a failure to quote.",
-        "Ask mode: after the Ask verdict a 'deice-question' event with the prompt (speech pillar; the FO speaks it, speech.spoken tag) and then one 'gsx-deice-policy' event with verdict accepted | declined and source voice | web | called | timeout; the gsx-decision 'de-ice question' line matches. While the question stands the Status board holds DeIce with 'waiting for the captain's answer — conditions call for de-icing' (gsx-decision 'hold DeIce') and Boarding is NOT held by it (its hold reason, if any, is its own activation rule).",
+        "Ask mode: after the Ask verdict a 'deice-question' event with the prompt and attempt (speech pillar; the FO speaks it, speech.spoken tag) and eventually one 'gsx-deice-policy' event with verdict accepted | declined and source voice | web | called | timeout; the gsx-decision 'de-ice question' line matches. While the question stands the Status board holds DeIce with 'waiting for the captain's answer — conditions call for de-icing' (gsx-decision 'hold DeIce') and Boarding is NOT held by it (its hold reason, if any, is its own activation rule).",
+        "Silence rule (issue #166): a 'deice-question' {outcome unanswered, questionOpen true, expiresAtUtc} is followed by the FO's 'Your call — the question stands…' line and by NO 'gsx-deice-policy' declined event from source voice — the question stays open (the Status board shows 'open · counts as no at HH:MM'). The only decline without a pilot answer is source timeout, at or after expiresAtUtc (gsx.deice.questionTimeoutMinutes, default 5), reason 'no answer within N minutes'. A declined event with source voice and reason 'no answer to the FO's question' is the old bug.",
+        "afterBoardingComplete only: a question still open when the step's turn comes is re-raised once — a second 'deice-question' with attempt 2, the FO's 'Captain, de-icing is the last item before pushback and still needs your call…', a fresh expiresAtUtc. Never a third ask.",
+        "Voice answers outside the listen window: 'no de-icing' / 'negative de-icing' / 'decline de-icing' / 'de-icing not required' → command gsx.declineDeice → 'gsx-deice-policy' declined source voice, reason 'declined by the captain (voice)'; 'request de-icing' → the direct call → accepted source called.",
         "Auto mode or an accepted question: the sequencer trigger 'DeIce' goes out LAST (gsx-decision 'trigger'/slot lines for DeIce after Boarding's Completed edge; the service-trigger wire command for DeIce follows every other departure service), then the GSX DeIce lifecycle edges (Requested/Active/Completed) and the existing deice-completed → holdover-card path. A DeIce trigger before boarding completed, with the step not configured by the pilot, is a failure.",
-        "Declined (voice 'negative', web 'No de-icing', or timeout after 5 min with no answer): gsx-decision 'skip DeIce' reads 'de-icing declined: …' when a DeIce step was configured, and 'gsx-departure-complete' follows without any DeIce trigger. assert-absent: a departure that never completes because the de-ice question was never answered (no 'gsx-departure-complete' with a standing 'hold DeIce' older than 5 min).",
-        "watch: 'gsx-deice-state' events — the first live values of L:FSDT_GSX_DEICING_STATE. Record every (previousState → state, fluidType) pair with the DeIce lifecycle edge nearest in time; the expected table is 1 Callable / 4 Requested / 5 Active / 6 Completed and the doc (docs/integrations/gsx.md §2) is updated from what was seen. A state 6 arriving BEFORE the Remote API Completed edge is the case for arming the holdover card from the LVAR.",
+        "Declined (voice, web 'No de-icing', or timeout): gsx-decision 'skip DeIce' reads 'de-icing declined: …' when a DeIce step was configured, and 'gsx-departure-complete' follows without any DeIce trigger. assert-absent: a departure that never completes because the de-ice question was never answered (no 'gsx-departure-complete' with a standing 'hold DeIce' older than the timeout). assert-absent (issue #166): a 'gsx-question' 'de-icing offer' answered 'Yes' after a declined verdict — with gsx.autoDeIce on the offer is answered No ('the captain declined de-icing'), left for the user while the question is open, Yes only when de-icing is requested this cycle or the policy never asked.",
+        "watch: 'gsx-deice-state' events — the live values of L:FSDT_GSX_DEICING_STATE. Record every (previousState → state, fluidType) pair with the DeIce lifecycle edge nearest in time; 2026-10-10 EFHK saw 0→4 (offer answered) →5 (25 s AFTER the API Active) →6 (43 s BEFORE the API Completed) →0, fluid type 0 throughout. State 6 is logged as an early-completed signal only; the holdover card arms once, on the API edge.",
         "assert-absent: the log line 'De-ice policy evaluation failed' and more than three 'de-ice policy' decision lines per departure with the same verdict (the reason uses whole degrees so a drifting OAT must not re-log).",
-        "requires-human: the Status section De-Icing card and the FO's question / read-back — see requires-human-checklist 2026-10-09."
+        "requires-human: the Status section De-Icing card (verdict, 'Question … counts as no at' row, the new When-to-ask / Answer-timeout / Packs-procedure settings) and the FO's question / read-back — see requires-human-checklist 2026-10-09."
       ],
-      "notes": "Feature 2026-10-09 (owner approval; no issue number). DeiceRequestPolicy (Gsx, pure) + GsxDeiceRequestService (shell) + DeiceRequestStore (Core) + DeiceQuestionDialogue (Speech) + GsxDeiceStateMonitor (the first read of L:FSDT_GSX_DEICING_STATE). Never flown: the GSX de-icing crew has never been called by this app, so the DeIce service id, the lifecycle edges and the LVAR values are all first-flight evidence."
+      "notes": "Feature 2026-10-09 (owner approval; no issue number). DeiceRequestPolicy (Gsx, pure) + GsxDeiceRequestService (shell) + DeiceRequestStore (Core) + DeiceQuestionDialogue (Speech) + GsxDeiceStateMonitor. First flown 2026-10-10 EFHK→EGCC (issue #166): the question fired 1 ms after the cycle-started edge, 32 s of silence declined it, and autoDeIce then accepted GSX's own offer against the decline. 2026-10-11 fix: the policy arms on the sequencer's HeldAtTurn (DepartureSequencer reports the DeIce step's turn; the shell marks DeiceRequestStore.MarkStepNext after the pump lock) or on Boarding Completed (askWhen); silence leaves the question open; only the TTL sweep declines (source timeout); gsx.declineDeice voice command; the Ice-warning handler obeys the verdict."
     },
     {
       "id": "gsx-deice-lvar-values",
@@ -2673,10 +2679,11 @@
       ],
       "checks": [
         "Count the 'gsx-deice-state' events and list each (previousState → state, fluidType) with its timestamp and the nearest DeIce lifecycle edge (gsx-decision / handler event lines). With no de-ice this flight the only expected event is the first read (previousState -1 → 0 or 1) after SimConnect connects.",
-        "watch: a state value outside {0,1,4,5,6} — the convention table in docs/integrations/gsx.md §2 is unverified for this LVAR; report any 2/3 or higher with context.",
-        "watch: fluidType after a completed de-ice equals the type the fluid menu answer picked (deIceFluidType: Type I=1 … Type IV=4) — the holdover card's fluid label depends on it."
+        "watch: a state value outside {0,1,4,5,6} — the convention table in docs/integrations/gsx.md §2 is unverified for this LVAR; report any 2/3 or higher with context. Settled so far (EFHK 2026-10-10): 0 → 4 at the 'de-icing offer' answer, 4 → 5 twenty-five seconds AFTER the Remote API Active edge, 5 → 6 forty-three seconds BEFORE the API Completed edge, 6 → 0 ten seconds after the API Completed. Report the offsets again — they decide whether the LVAR ever becomes the arming edge.",
+        "assert-present: on the 5 → 6 edge the log line 'GSX de-icing LVAR reports Completed (state 6) ahead of the Remote API edge — early-completed signal only'; assert-absent: a second 'holdover card armed' line for the same treatment (the card arms exactly once, on the API Completed edge).",
+        "watch: fluidType — EFHK read 0 through the whole treatment (GSX never set L:FSDT_GSX_DEICING_TYPE, or sets it only on a fluid-menu pick). After a de-ice whose fluid menus the app answered (probe deice-fluid-answer), report whether the LVAR now equals the pick (Type I=1 … Type IV=4). Non-zero ⇒ the holdover card's 'Fluid from: GSX'; zero ⇒ 'menu answer' (or 'settings (unconfirmed)' with the warning 'fluid type unconfirmed')."
       ],
-      "notes": "Evidence gatherer for the 2026-10-09 DEICING_STATE subscription (GsxDeiceStateMonitor). Diagnostics only until the table is settled; the holdover card still arms from the Remote API Completed edge."
+      "notes": "Evidence gatherer for the 2026-10-09 DEICING_STATE subscription (GsxDeiceStateMonitor). First values 2026-10-10 (issue #166). Diagnostics only; the holdover card arms from the Remote API Completed edge and state 6 is logged as the early signal it is."
     },
     {
       "id": "gsx-simbrief-reload",
@@ -2880,6 +2887,61 @@
         "requires-human: Duty Day page FROM/TO card and the legs rail show the ICAO codes from the first minute of the day (not '---- → ----' / 'Leg 1 · ? → ?'); block and duty figures read as h:mm with an HRS unit and never ellipsize."
       ],
       "notes": "Added 2026-10-11 (issue #164, Mario + owner reports 2026-10-10). Progressive legs now take From/To/FlightNo from the OfpStore at day start, next-leg start, resume and on every OFP change while the leg is open (planned legs only fill gaps). Core's OfpEventRecorder writes 'ofp.loaded'; DebriefFactExtractor falls back to the last plan loaded before the landing when no 'flight.route' exists."
+    },
+    {
+      "id": "deice-fluid-answer",
+      "issue": 166,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gsx-deice-fluid",
+        "fields": [
+          "asked",
+          "answered",
+          "source"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger = a GSX de-icing whose fluid menus GSX raises ('Select fluid type' then 'Select concentration' — EFHK 2026-10-10: 62 s and 73 s after the DeIce Active edge) while gsx.autoDeIce is on OR the app requested de-icing this cycle (accepted question / auto verdict).",
+        "assert-present: a 'gsx-deice-fluid' event {asked fluidType, answered true, fluidType 1..4, picked, entries, source settings} and one {asked concentration, answered true, concentration, picked, entries} with the matching gsx-question 'de-icing fluidType menu' / 'de-icing concentration menu' decision lines reading picked '<entry>' for <configured value>. The picked fluid entry names the configured deIceFluidType (Type IV never matched by 'Type I'); the picked concentration entry carries the configured figure (75 matches '75%' / '75/25', never '175').",
+        "assert-absent: the log line \"GSX menu 'Select fluid type' has no question handler\" / \"'Select concentration' has no question handler\" (the 2026-10-10 signature) while the trigger holds. With autoDeIce off and no app request, a 'gsx-deice-fluid' {answered false, source user} and the decision 'left for the user (auto-accept off and the app did not request de-icing)' is the correct outcome.",
+        "watch: the 'entries' arrays — the exact wording of GSX's two menus was never captured (the wire trace had no frames for that window); record them so the matchers can be tightened to literal entries.",
+        "Holdover card: after the DeIce Completed edge the log reads 'Deice complete — holdover card armed (Type <roman> <conc>%, from GSX | menu answer)'; the warning 'holdover card armed … from the settings: fluid type unconfirmed' appears ONLY when the LVAR read 0 and no menu was answered by the app (then report it as the gap it is). The OFP page's fluid line shows the source in brackets.",
+        "requires-human: GSX's de-icing trucks visibly spray the configured fluid (GSX names the fluid in its status text)."
+      ],
+      "notes": "Issue #166 (EFHK 2026-10-10): the catalogue only knew the predecessor's combined 'Select de-icing type' title, so both of GSX's separate menus were left for the user, GSX sprayed its default, and the holdover card armed with the configured 'Type IV 75%' while L:FSDT_GSX_DEICING_TYPE read 0. Fix 2026-10-11: GsxQuestionCatalog answers 'Select fluid type' / 'Select concentration' from gsx.deIceFluidType / deIceConcentration (word-boundary roman numeral + figure matchers, re-found exactly), records the answers on the Core DeiceActivityStore, and DeiceHoldoverService.ResolveFluid arms LVAR → menu answer → settings (warning)."
+    },
+    {
+      "id": "deice-packs-procedure",
+      "issue": 166,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "deice-procedure",
+        "fields": [
+          "stage"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with gsx.deice.packsProcedure = true (off by default) and the flight live. Trigger = the GSX DeIce lifecycle Requested or Active edge (whichever the relay sees first), then its Completed edge.",
+        "assert-present: at the first edge a 'deice-procedure' {stage Requested|Active, spoken 'De-icing starting — packs off, ditching on.'} and the FO's speech.spoken line; ~20 s later a second 'deice-procedure' for the same stage with verified true|false, pack1Off/pack2Off/ditchingOn booleans and either 'Packs off, ditching on — checked.' or ONE 'Reminder — <items>. For de-icing: packs off, ditching on.' Never a second reminder.",
+        "assert-present: at the Completed edge {stage Completed, spoken 'De-icing complete — packs on, ditching off.'} and ~20 s later the matching check ('Packs on, ditching off — checked.' or one reminder naming what is still off/on).",
+        "assert-absent: any write to system.switches.S_OH_PNEUMATIC_PACK_1/2 or S_OH_PNEUMATIC_DITCHING in the log (the procedure is read-only; the lights I_OH_PNEUMATIC_PACK_1_L / PACK_2_L / DITCHING_L are read). A 'deice-procedure' {verified null, reason 'lights not reported'} means ProSim never pushed the lights — report it.",
+        "assert-absent: 'failure.detected' pack-1-fault / pack-2-fault between the two edges (probe abnormal-transient-debounce, the holdDuringDeice rule) — switching the packs off for the treatment is exactly what the FO asked for.",
+        "watch: do the pack OFF lights and the DITCHING ON light read as expected on the ProSim A322 (PACK lower LED = OFF legend, DITCHING lower LED = ON legend)? A 'checked' spoken while the crew had NOT moved the switches, or a reminder while they had, means the light sense is wrong for this aircraft — quote the booleans.",
+        "requires-human: the calls come at a sensible moment (not over the de-icing crew's own announcements) and the reminder names the right item."
+      ],
+      "notes": "Issue #166 part 5 (owner's real-ops note 2026-10-10: packs off + ditching on before de-icing, reversed after — the 'pack faults' at 20:14:23Z were the crew doing exactly that). DeicePacksProcedureCore (pure: calls, discrepancy list, phrases) + DeicePacksProcedure (Speech, edges from the Core DeiceActivityStore written by GsxDeiceActivityRelay). Unverified live; the light sense is the thing to confirm first."
     }
   ]
 }

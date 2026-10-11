@@ -5,6 +5,9 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Deice;
 
+/// <param name="FluidSource">Where the fluid figures came from (issue #166): "GSX" (the
+/// <c>L:FSDT_GSX_DEICING_TYPE</c> LVAR), "menu answer" (what the app picked on GSX's fluid /
+/// concentration menus) or "settings (unconfirmed)" (nothing confirmed what GSX sprayed).</param>
 public sealed record DeiceHoldoverSnapshot(
     bool Active,
     bool Expired,
@@ -13,17 +16,23 @@ public sealed record DeiceHoldoverSnapshot(
     double OatC,
     int RemainingLowSeconds,
     int RemainingHighSeconds,
-    string Status);
+    string Status,
+    string FluidSource = "");
 
 /// <summary>
 /// The deice holdover-time card: armed by the GSX deice-complete edge (via
 /// <see cref="GroundOpsSignals"/>), counts the representative HOT window down each second.
 /// Read-only by design — it never writes an icing dataref; it is a HOT card, not an icing
 /// model. The crew supplies precipitation and OAT exactly as with a paper card.
+/// <para>The fluid (issue #166, EFHK 2026-10-10): the card armed as "Type IV 75%" from the
+/// settings while GSX had sprayed Type I — the fluid menus had gone unanswered and the LVAR
+/// read 0 throughout. The arming now takes the LVAR when it is non-zero, else the menu entry
+/// the app answered, else the settings with a warning; the card says which.</para>
 /// </summary>
 public sealed class DeiceHoldoverService : IDisposable
 {
     private readonly GroundOpsSignals _signals;
+    private readonly DeiceActivityStore _activity;
     private readonly IOptionsMonitor<GsxOptions> _gsxOptions;
     private readonly ILogger<DeiceHoldoverService> _logger;
     private readonly Timer _timer;
@@ -34,6 +43,7 @@ public sealed class DeiceHoldoverService : IDisposable
     private DateTimeOffset _startedUtc;
     private int _fluidType = 4;
     private int _concentration = 100;
+    private string _fluidSource = "";
     private HotPrecip _precip = HotPrecip.None;
     private double _oatC;
 
@@ -41,13 +51,16 @@ public sealed class DeiceHoldoverService : IDisposable
 
     public DeiceHoldoverService(
         GroundOpsSignals signals,
+        DeiceActivityStore activity,
         IOptionsMonitor<GsxOptions> gsxOptions,
         ILogger<DeiceHoldoverService> logger)
     {
         ArgumentNullException.ThrowIfNull(signals);
+        ArgumentNullException.ThrowIfNull(activity);
         ArgumentNullException.ThrowIfNull(gsxOptions);
         ArgumentNullException.ThrowIfNull(logger);
         _signals = signals;
+        _activity = activity;
         _gsxOptions = gsxOptions;
         _logger = logger;
 
@@ -89,24 +102,74 @@ public sealed class DeiceHoldoverService : IDisposable
         lock (_lock)
         {
             var (low, high, status) = Compute();
-            return new DeiceHoldoverSnapshot(_active, _expired, FluidLabel(), _precip, _oatC, low, high, status);
+            return new DeiceHoldoverSnapshot(_active, _expired, FluidLabel(), _precip, _oatC, low, high, status, _fluidSource);
         }
+    }
+
+    /// <summary>The fluid the card arms with, in order of trust: GSX's own LVAR (type only —
+    /// GSX never exposes the concentration), the menu entries the app answered, the settings.
+    /// Pure, for tests.</summary>
+    /// <param name="gsxFluidType"><c>L:FSDT_GSX_DEICING_TYPE</c> at the completed edge (0 = not reported).</param>
+    /// <param name="menuFluidType">The fluid-type menu pick this cycle, if the app answered it.</param>
+    /// <param name="menuConcentration">The concentration menu pick this cycle, if the app answered it.</param>
+    /// <param name="configuredFluidType"><c>gsx.deIceFluidType</c> ("Type IV").</param>
+    /// <param name="configuredConcentration"><c>gsx.deIceConcentration</c> ("75").</param>
+    public static (int FluidType, int Concentration, string Source, bool Unconfirmed) ResolveFluid(
+        int gsxFluidType,
+        int? menuFluidType,
+        int? menuConcentration,
+        string configuredFluidType,
+        string configuredConcentration)
+    {
+        ArgumentNullException.ThrowIfNull(configuredFluidType);
+        ArgumentNullException.ThrowIfNull(configuredConcentration);
+
+        var configuredConc = int.TryParse(configuredConcentration, out var c) ? c : 100;
+        var concentration = menuConcentration is >= 1 and <= 100 ? menuConcentration.Value : configuredConc;
+
+        if (gsxFluidType is >= 1 and <= 4)
+        {
+            // Type I is a heated single-table fluid: whatever the menu or settings said about
+            // concentration is immaterial, but the label keeps the figure that was answered.
+            return (gsxFluidType, concentration, "GSX", false);
+        }
+
+        if (menuFluidType is >= 1 and <= 4)
+        {
+            return (menuFluidType.Value, concentration, "menu answer", false);
+        }
+
+        return (ParseFluidType(configuredFluidType), concentration, "settings (unconfirmed)", true);
     }
 
     private void OnDeiceCompleted(int gsxFluidType)
     {
         var options = _gsxOptions.CurrentValue;
+        var activity = _activity.Snapshot();
+        var (fluidType, concentration, source, unconfirmed) = ResolveFluid(
+            gsxFluidType, activity.MenuFluidType, activity.MenuConcentration, options.DeIceFluidType, options.DeIceConcentration);
+
         lock (_lock)
         {
-            // GSX exposes the applied fluid TYPE but not the concentration; concentration comes
-            // from the configured auto-answer (what we drove into the menu).
-            _fluidType = gsxFluidType is >= 1 and <= 4 ? gsxFluidType : ParseFluidType(options.DeIceFluidType);
-            _concentration = int.TryParse(options.DeIceConcentration, out var concentration) ? concentration : 100;
+            _fluidType = fluidType;
+            _concentration = concentration;
+            _fluidSource = source;
             _active = true;
             _expired = false;
             _startedUtc = DateTimeOffset.UtcNow;
         }
-        _logger.LogInformation("Deice complete — holdover card armed ({Fluid})", FluidLabel());
+
+        if (unconfirmed)
+        {
+            _logger.LogWarning(
+                "Deice complete — holdover card armed ({Fluid}) from the settings: fluid type unconfirmed (L:FSDT_GSX_DEICING_TYPE read {Lvar}, the fluid menus were not answered by the app)",
+                FluidLabel(), gsxFluidType);
+        }
+        else
+        {
+            _logger.LogInformation("Deice complete — holdover card armed ({Fluid}, from {Source})", FluidLabel(), source);
+        }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -179,11 +242,16 @@ public sealed class DeiceHoldoverService : IDisposable
         return $"Type {roman} {_concentration}%";
     }
 
-    private static int ParseFluidType(string configured) => configured.Trim().ToUpperInvariant() switch
+    /// <summary>"Type I" … "Type IV" → 1 … 4; anything else reads as Type IV (the shipped default).</summary>
+    public static int ParseFluidType(string configured)
     {
-        "TYPE I" => 1,
-        "TYPE II" => 2,
-        "TYPE III" => 3,
-        _ => 4,
-    };
+        ArgumentNullException.ThrowIfNull(configured);
+        return configured.Trim().ToUpperInvariant() switch
+        {
+            "TYPE I" => 1,
+            "TYPE II" => 2,
+            "TYPE III" => 3,
+            _ => 4,
+        };
+    }
 }

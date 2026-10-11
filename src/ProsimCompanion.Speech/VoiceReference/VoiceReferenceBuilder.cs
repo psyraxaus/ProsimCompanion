@@ -211,6 +211,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         "gsx.requestCatering" => "Request catering.",
         "gsx.requestPushback" => "Request pushback (beacon sequence permitting).",
         "gsx.requestDeice" => "Request de-icing.",
+        "gsx.declineDeice" => "Decline the First Officer's de-icing question — no de-icing this departure.",
         _ => command,
     };
 

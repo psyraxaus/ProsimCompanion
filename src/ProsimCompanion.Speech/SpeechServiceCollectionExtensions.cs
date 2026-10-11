@@ -185,6 +185,9 @@ public static class SpeechServiceCollectionExtensions
         // The FO's "request de-icing?" question (2026-10-09, gsx.deice.autoRequest = ask):
         // voices the Core store's question and answers it from the captain's yes/no.
         services.AddStartupModule<Gsx.DeiceQuestionDialogue>();
+        // The FO's packs-off / ditching-on calls and read-only checks around a GSX de-icing
+        // (issue #166, opt-in gsx.deice.packsProcedure). Edges from the Core activity seam.
+        services.AddStartupModule<Gsx.DeicePacksProcedure>();
         // Interphone hail dialogues ("cockpit to ground" → "go ahead, captain" → request) and
         // ground-crew upcalls on INT (ADR-0006 / issue #51). The hail feature registers AFTER
         // GsxVoiceService so single-shot phrases keep their precedence.

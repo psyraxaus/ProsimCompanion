@@ -27,7 +27,42 @@ public sealed class GsxDeiceOptions
     /// With no METAR for the departure the policy makes no request at all (no data, no call).</summary>
     public bool RequirePrecipitation { get; set; } = true;
 
+    /// <summary>When the policy runs and the captain is asked (issue #166, EFHK 2026-10-10:
+    /// the question fired one millisecond after "departure sequence started" — before ground
+    /// prep, before the OFP, sixteen minutes before boarding — and nobody was ready for it).
+    /// <c>"whenStepIsNext"</c> (default): when the DeIce step's turn comes on the departure
+    /// sequence — every earlier service done, the OFP loaded, the weather known.
+    /// <c>"afterBoardingComplete"</c>: on the boarding-completed edge, so the captain decides
+    /// while the last services finish; the question is re-asked once when the step's turn
+    /// comes if it is still unanswered.</summary>
+    public string AskWhen { get; set; } = AskWhenStepIsNext;
+
+    /// <summary>How long an unanswered question stands before it counts as declined (source
+    /// <c>timeout</c>). Silence from the FO's listen never declines — only this expiry does;
+    /// the Status board buttons and "request de-icing" / "no de-icing" answer it meanwhile.</summary>
+    public int QuestionTimeoutMinutes { get; set; } = 5;
+
+    /// <summary>Off by default. On, the FO runs the cockpit side of the treatment the way
+    /// real crews do: at the de-icing crew's Requested/Active edge "De-icing starting — packs
+    /// off, ditching on", twenty seconds later a read-only check of the pack OFF lights and
+    /// the DITCHING ON light with one reminder if they do not agree; at the Completed edge
+    /// "De-icing complete — packs on, ditching off" with the same check. The FO never moves
+    /// those switches.</summary>
+    public bool PacksProcedure { get; set; }
+
     public const string AutoRequestOff = "off";
     public const string AutoRequestAsk = "ask";
     public const string AutoRequestAuto = "auto";
+
+    public const string AskWhenStepIsNext = "whenStepIsNext";
+    public const string AskWhenAfterBoardingComplete = "afterBoardingComplete";
+
+    /// <summary>True for <see cref="AskWhenAfterBoardingComplete"/>; every other value (the
+    /// default, a typo) reads as <see cref="AskWhenStepIsNext"/>.</summary>
+    public static bool AsksAfterBoarding(string? askWhen)
+        => string.Equals(askWhen, AskWhenAfterBoardingComplete, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The question TTL the options describe, floored at one minute so a zero in the
+    /// file can never decline a question the moment it is asked.</summary>
+    public TimeSpan QuestionTtl => TimeSpan.FromMinutes(Math.Max(1, QuestionTimeoutMinutes));
 }

@@ -249,12 +249,15 @@ card off.
    not sure the FO asks *"Pushback — tail left or tail right?"* and GSX's menu waits for your
    answer. **Ask** always asks. Ask *"which way is the pushback"* any time.
    **De-icing** can be the app's call too (Settings → Ground Services → Questions →
-   De-Icing, off by default): with the departure services running it reads the outside air
+   De-Icing, off by default): when the de-icing step's turn comes — every other departure
+   service done, or at boarding complete if you prefer — it reads the outside air
    temperature and the departure METAR, and in cold precipitation, freezing fog or
    frost-likely conditions the FO asks *"Captain, conditions call for de-icing — request
    it?"* (answer *yes* / *negative*, or use the buttons on the Ground Services Status
-   section) — or, on **auto**, de-icing simply becomes the last departure service. GSX's
-   other questions (tug, de-ice fluid) are answered per your settings — and any menu GSX leaves for you
+   section; if you say nothing the question simply stands — *request de-icing* or *no
+   de-icing* answers it any time until the answer timeout) — or, on **auto**, de-icing simply
+   becomes the last departure service. GSX's
+   other questions (tug, de-ice fluid and concentration) are answered per your settings — and any menu GSX leaves for you
    (an addon airport's named pushback directions, for instance) shows as buttons in the
    **GSX menu** card on Flight Status, the OFP page and Ground Services: pick a line there
    instead of opening the GSX window. The card refuses picks while the automation is

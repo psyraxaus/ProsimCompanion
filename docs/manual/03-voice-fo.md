@@ -144,6 +144,17 @@ advisories (landing lights, flaps/gear ceilings, parking brake with thrust, seat
 conditions, anti-ice left on, ISA deviation) once per condition with a cooldown. Sterile
 cockpit suppresses chatter below 10,000 ft in climb/descent phases.
 
+**De-icing packs procedure** (Settings → Ground Services → Questions → De-Icing → *Packs
+procedure*, off by default): when the GSX de-icing crew is called the FO says *"De-icing
+starting — packs off, ditching on"*, waits twenty seconds and checks the overhead PACK OFF
+and DITCHING ON lights — *"Packs off, ditching on — checked"*, or one reminder naming what
+is still wrong. When the crew leaves: *"De-icing complete — packs on, ditching off"* with the
+same check. Read-only: the FO never touches the switches. While the trucks spray, the PACK
+FAULT abnormals are held — packs off is the procedure, not a failure. The FO's own de-icing
+question (*"Captain, conditions call for de-icing — request it?"*) is answered with *yes* /
+*request de-icing* or *negative* / *no de-icing*; silence leaves it standing until the
+answer timeout.
+
 ### In-flight monitoring
 
 Four extra monitors live on the same page under **In-flight monitoring**. Each has its own

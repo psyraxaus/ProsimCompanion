@@ -143,6 +143,10 @@ public static class CoreServiceCollectionExtensions
         // Per-departure de-icing decision (2026-10-09): the GSX policy writes the verdict and
         // the captain's question; the FO dialogue, the Status board and the sequencer read it.
         services.AddSingleton<DeiceRequestStore>();
+        // The de-icing activity seam (issue #166): the GSX relay writes the crew's lifecycle
+        // stage and the fluid/concentration menu answers; the abnormal monitor, the FO's
+        // packs/ditching procedure and the holdover card read them.
+        services.AddSingleton<DeiceActivityStore>();
         services.AddSingleton<Flight.FlightProgressStore>();
         services.AddStartupModule<Flight.FlightProgressService>();
         // Landing analysis (issue #146): one `touchdown` session event per landing, read

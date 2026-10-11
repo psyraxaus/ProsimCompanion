@@ -68,7 +68,8 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         IMicOwnership? micOwnership = null,
         Core.State.SpeechStatusStore? statusStore = null,
         Core.State.ConfigProblemStore? configProblems = null,
-        IOptionsMonitor<AbnormalsOptions>? options = null)
+        IOptionsMonitor<AbnormalsOptions>? options = null,
+        Core.State.DeiceActivityStore? deiceActivity = null)
     {
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(dataRefs);
@@ -85,8 +86,16 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
         _status = statusStore;
         _configProblems = configProblems;
         _options = options;
+        _deiceActivity = deiceActivity;
         _ecamDialogue = new EcamDialogueCore(this, eventLog, () => Options);
     }
+
+    /// <summary>Optional seam (issue #123 reopened): definitions flagged
+    /// <see cref="AbnormalTrigger.HoldDuringDeice"/> are held while the GSX de-icing crew is
+    /// Requested/Active. Null (degraded mode, the older tests) never holds.</summary>
+    private readonly Core.State.DeiceActivityStore? _deiceActivity;
+
+    private bool DeiceInProgress => _deiceActivity?.Snapshot().InProgress == true;
 
     /// <summary>The live <c>abnormals</c> section; defaults when the monitor was built
     /// without it (the pre-2026-10-08 tests).</summary>
@@ -271,6 +280,27 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
                     NoteHeldUnpowered(definition, state, phase, ewdText);
                     continue;
                 }
+
+                // Packs OFF for the de-icing treatment is the procedure, not a fault (issue
+                // #123 reopened, EFHK 2026-10-10: pack-1/pack-2 FAULT for 3.98 s while the
+                // trucks sprayed, three ECAM lines spoken). A flagged definition is held — its
+                // rising edge forgotten — from the crew's Requested edge to Completed; a
+                // fault already latched before de-icing clears on its own rule as usual.
+                if (definition.Trigger?.HoldDuringDeice == true && !state.Fired && DeiceInProgress)
+                {
+                    state.RisingSinceUtc = null;
+                    if (!state.HeldDeiceLogged)
+                    {
+                        state.HeldDeiceLogged = true;
+                        _logger.LogInformation(
+                            "Abnormal {Id} held — GSX de-icing in progress (packs off is the procedure, not a fault)",
+                            definition.Id);
+                    }
+
+                    continue;
+                }
+
+                state.HeldDeiceLogged = false;
 
                 var signal = EvaluateTrigger(definition, ewdText, out var corroborateSuppressed);
                 if (corroborateSuppressed && !state.SuppressionLogged)
@@ -766,6 +796,9 @@ public sealed class FailureMonitor : IEcamDialogueIo, Core.State.IAbnormalDialog
 
         /// <summary>One "held, unpowered" line per cold-and-dark episode (issue #116).</summary>
         public bool HeldUnpoweredLogged { get; set; }
+
+        /// <summary>One "held, de-icing in progress" line per treatment (issue #123).</summary>
+        public bool HeldDeiceLogged { get; set; }
     }
 }
 

@@ -30,6 +30,7 @@ public static class CommandsBootstrap
             services.GetService<IGsxGateControl>(),
             services.GetService<IGsxSimbriefReloadControl>());
         GsxServiceCommandHandlers.Register(registry, services.GetService<IGsxServiceControl>());
+        DeiceCommandHandlers.Register(registry, services.GetService<DeiceRequestStore>());
         ChecklistCommandHandlers.Register(registry, services.GetService<ChecklistService>());
         LoadsheetCommandHandlers.Register(
             registry,

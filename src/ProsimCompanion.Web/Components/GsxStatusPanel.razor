@@ -101,6 +101,12 @@
     @if (_deice.QuestionOpen(DateTimeOffset.UtcNow))
     {
         <div class="field-hint" style="margin:8px 0;">@_deice.Question!.Prompt</div>
+        <div class="row">
+            <span class="row-label">Question</span>
+            <span class="row-value-mono" title="Silence never declines it — only this expiry does (Settings → Ground Services → De-Icing → Answer timeout)">
+                @(_deice.Question!.Attempt > 1 ? "re-asked (step is next)" : "open") · counts as no at @_deice.Question!.ExpiresAtUtc.ToLocalTime().ToString("HH:mm")
+            </span>
+        </div>
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
             <button type="button" class="btn primary" @onclick='() => DeiceRequest.Accept("web")'>Request de-icing</button>
             <button type="button" class="btn secondary" @onclick='() => DeiceRequest.Decline("web", "declined on the Status board")'>No de-icing</button>

@@ -179,12 +179,78 @@ public sealed class DeiceRequestPolicyTests
     private static List<DepartureServiceStep> Classic()
         => [.. GsxOptions.DefaultDepartureServices];
 
-    [Fact]
-    public void NotRequested_ReturnsTheConfiguredListUntouched()
+    [Theory]
+    [InlineData(DeicePolicyVerdict.Off)]
+    [InlineData(DeicePolicyVerdict.NoData)]
+    [InlineData(DeicePolicyVerdict.NotRequired)]
+    public void DecidedAgainst_ReturnsTheConfiguredListUntouched(DeicePolicyVerdict verdict)
     {
         var configured = Classic();
-        var steps = DeiceRequestPolicy.EffectiveSteps(configured, DeiceRequestSnapshot.Empty, Now);
+        var steps = DeiceRequestPolicy.EffectiveSteps(configured, DeiceRequestSnapshot.Empty with { Verdict = verdict }, Now);
         Assert.Same(configured, steps);
+    }
+
+    /// <summary>Issue #166: the policy runs when the step's turn comes, so an undecided cycle
+    /// keeps the step on the board (last, held) — otherwise the departure would complete
+    /// before the verdict. Once the turn was reported and nothing decided (no evaluator
+    /// alive), the step leaves the list so the departure never deadlocks.</summary>
+    [Fact]
+    public void Undecided_PlacesTheStepLast_AndHoldsIt_UntilTheStepsTurn()
+    {
+        var pending = DeiceRequestSnapshot.Empty;
+        var steps = DeiceRequestPolicy.EffectiveSteps(Classic(), pending, Now);
+        Assert.Equal(GsxServiceIds.DeIce, steps[^1].Service);
+        Assert.Equal(GsxServiceActivation.AfterAllCompleted, steps[^1].Activation);
+        Assert.Contains("decided when this step's turn comes", DeiceRequestPolicy.HoldReason(pending, Now));
+        Assert.Null(DeiceRequestPolicy.SkipReason(pending));
+
+        var turnCameNobodyDecided = pending with { StepNext = true };
+        Assert.Equal(Classic().Count, DeiceRequestPolicy.EffectiveSteps(Classic(), turnCameNobodyDecided, Now).Count);
+        Assert.Null(DeiceRequestPolicy.HoldReason(turnCameNobodyDecided, Now));
+    }
+
+    [Fact]
+    public void Sequencer_ReportsTheUndecidedStepAtTurn_OnlyOnceEverythingEarlierSettled()
+    {
+        var pending = DeiceRequestSnapshot.Empty;
+        var steps = DeiceRequestPolicy.EffectiveSteps(
+            [new("Refueling", GsxServiceActivation.AfterCalled), new("Boarding", GsxServiceActivation.AfterAllCompleted)],
+            pending,
+            Now);
+        var services = new Dictionary<string, GsxServiceInfo>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Refueling"] = new("Refueling", "Refueling", null, GsxServiceState.Completed, false, false, null, null),
+            ["Boarding"] = new("Boarding", "Boarding", null, GsxServiceState.Callable, true, false, null, null),
+            ["DeIce"] = new("DeIce", "De-icing", null, GsxServiceState.Callable, true, false, null, null),
+        };
+        var done = new DepartureCycleView(true, true, true, true);
+        Func<string, string?> preHold = id => id == GsxServiceIds.DeIce ? DeiceRequestPolicy.HoldReason(pending, Now) : null;
+
+        // Boarding still to run: DeIce is held but its turn has not come.
+        var plan = DepartureSequencer.Next(
+            steps, services, id => id == "Refueling" ? done : default,
+            awaitingConfirmation: null, flightPlanAvailable: true, requireOfp: true, isTurnaround: false, forceNext: false,
+            preHold: preHold);
+        Assert.Equal("Boarding", plan.Trigger);
+        Assert.Contains(plan.Holds, h => h.ServiceId == GsxServiceIds.DeIce);
+        Assert.Empty(plan.HeldAtTurn);
+        Assert.False(plan.AllDone);
+
+        // Boarding done: the turn has come — the shell marks the store and the policy runs.
+        var plan2 = DepartureSequencer.Next(
+            steps, services, id => id is "Refueling" or "Boarding" ? done : default,
+            awaitingConfirmation: null, flightPlanAvailable: true, requireOfp: true, isTurnaround: false, forceNext: false,
+            preHold: preHold);
+        Assert.Null(plan2.Trigger);
+        Assert.Equal([GsxServiceIds.DeIce], plan2.HeldAtTurn);
+        Assert.False(plan2.AllDone);
+
+        // No plan yet: the plan gate comes first — never "at turn" before the OFP.
+        var plan3 = DepartureSequencer.Next(
+            steps, services, id => id is "Refueling" or "Boarding" ? done : default,
+            awaitingConfirmation: null, flightPlanAvailable: false, requireOfp: true, isTurnaround: false, forceNext: false,
+            preHold: preHold);
+        Assert.Empty(plan3.HeldAtTurn);
     }
 
     [Fact]

@@ -61,6 +61,17 @@ public static class GsxVoicePhrases
                 "gsx.requestPushback", "Pushback requested.", "Copied — standing by for pushback."),
             ["request de-icing"] = new(
                 "gsx.requestDeice", "De-icing requested.", "Copied — de-icing crew on the way."),
+            // The captain's "no" to the FO's de-icing question at any time while it stands
+            // (issue #166): the listen window no longer decides it, so a later standalone
+            // answer needs its own phrase. Store write, not a GSX call.
+            ["no de-icing"] = new(
+                "gsx.declineDeice", "Copied — no de-icing.", "Copied — no de-icing today."),
+            ["negative de-icing"] = new(
+                "gsx.declineDeice", "Copied — no de-icing.", "Copied — no de-icing today."),
+            ["decline de-icing"] = new(
+                "gsx.declineDeice", "Copied — no de-icing.", "Copied — no de-icing today."),
+            ["de-icing not required"] = new(
+                "gsx.declineDeice", "Copied — no de-icing.", "Copied — no de-icing today."),
         };
 
     /// <summary>The ground-side hail grammar: every service phrase, the start phrases, and the

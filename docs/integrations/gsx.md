@@ -115,22 +115,45 @@ Behaviours that must survive the port:
   edges; the prelim loadsheet's once-per-cycle guard keeps it from re-firing.
 - Boarding: GSX counters → ProSim zone amounts + seat map, seat-level reconciliation at complete,
   optional no-show/extra randomization with cargo-weight adjustment.
-- **De-icing auto-request policy** (2026-10-09, `gsx.deice.*`, default off): once the
-  departure sequence has started, `DeiceRequestPolicy` (pure) reads ProSim's
-  `aircraft.temperature.oat` (else the METAR temperature) and the departure METAR the Flight
-  Status local card holds (no second fetch): at or below `oatThresholdC` (3) with snow /
-  freezing precipitation / ice pellets / rain / freezing fog (`FZFG|FZBR`, which the
-  precipitation classifier reads as none) / a dew-point spread ≤ 3 °C — or on the
-  temperature alone with `requirePrecipitation` off — the verdict is **Ask** (captain's
-  question on the `DeiceRequestStore`: FO dialogue + Status board buttons, 5 min TTL then
-  declined) or **Request** (auto). The sequencer shapes its step list per cycle
-  (`EffectiveSteps`): a `DeIce` step configured Skip is lifted to the END as
-  AfterAllCompleted, a missing one is appended there, a pilot-configured step stays as is;
-  an open question holds that last step (`preHold`, like the fuel confirmation — it never
-  holds boarding), a declined one skips it. No METAR for the departure ⇒ NoData, no call.
-  Verdicts: `gsx-decision` "de-ice policy" + `gsx-deice-policy` events. The GSX "Ice warning"
-  offer and `gsx.requestDeice` are unchanged; a direct call while the question stands counts
-  as "yes". **Unverified live** — the GSX de-icing crew has never been called by this app.
+- **De-icing auto-request policy** (2026-10-09, `gsx.deice.*`, default off): when the
+  DeIce step's turn comes on the departure sequence (`gsx.deice.askWhen = whenStepIsNext`,
+  default — or on the Boarding Completed edge with `afterBoardingComplete`; issue #166:
+  the first flight asked 1 ms after the cycle-started edge, before the OFP and 16 min before
+  boarding), `DeiceRequestPolicy` (pure) reads ProSim's `aircraft.temperature.oat` (else the
+  METAR temperature) and the departure METAR the Flight Status local card holds (no second
+  fetch): at or below `oatThresholdC` (3) with snow / freezing precipitation / ice pellets /
+  rain / freezing fog (`FZFG|FZBR`, which the precipitation classifier reads as none) / a
+  dew-point spread ≤ 3 °C — or on the temperature alone with `requirePrecipitation` off —
+  the verdict is **Ask** (captain's question on the `DeiceRequestStore`: FO dialogue +
+  Status board buttons + `gsx.declineDeice` voice phrases; **silence never declines** — only
+  the TTL sweep does, source `timeout`, `questionTimeoutMinutes` 5) or **Request** (auto).
+  The sequencer shapes its step list per cycle (`EffectiveSteps`): a `DeIce` step configured
+  Skip is lifted to the END as AfterAllCompleted, a missing one is appended there, a
+  pilot-configured step stays as is; while the policy is undecided or the question is open
+  that last step is pre-held (like the fuel confirmation — it never holds boarding) and the
+  sequencer reports it in `DeparturePlan.HeldAtTurn` once every earlier step has settled —
+  the shell then calls `DeiceRequestStore.MarkStepNext()` AFTER releasing the pump lock
+  (a nested pump bounces off the semaphore), which arms the policy and re-asks an open
+  question once; a declined question skips the step. No METAR for the departure ⇒ NoData,
+  no call. Verdicts: `gsx-decision` "de-ice policy" + `gsx-deice-policy` events (with
+  `askWhen`, `stepNext`). The GSX "Ice warning" offer (`gsx.autoDeIce`) obeys the verdict:
+  No after a decline, left open while the question stands, Yes when requested or when the
+  policy never asked. A direct call while the question stands counts as "yes".
+- **De-icing fluid menus** (issue #166, EFHK 2026-10-10): GSX asks the fluid and the
+  concentration as TWO menus — `Select fluid type` 62 s after the DeIce Active edge, then
+  `Select concentration` 11 s later (entry wording not yet captured; the `gsx-deice-fluid`
+  event records it). The predecessor's combined `Select de-icing type` title is kept for
+  older builds. `GsxQuestionCatalog` answers both from `deIceFluidType` / `deIceConcentration`
+  (roman numeral on a word boundary, figure not inside a longer number, re-found exactly) when
+  `autoDeIce` is on or the app requested de-icing, and records the picks on the Core
+  `DeiceActivityStore`. `L:FSDT_GSX_DEICING_TYPE` read **0 throughout** that treatment; the
+  holdover card arms LVAR → menu answer → settings (with a "fluid type unconfirmed" warning)
+  and shows the source. `L:FSDT_GSX_DEICING_STATE` went 0→4 (offer answered) →5 (25 s
+  AFTER the API Active) →6 (43 s BEFORE the API Completed) →0: state 6 is logged as an
+  early-completed signal only; the card arms once, on the API edge. The crew's lifecycle
+  edges are relayed to the `DeiceActivityStore` (`GsxDeiceActivityRelay`): the Speech
+  pillar holds the pack-fault abnormals while the trucks spray (`holdDuringDeice`) and runs
+  the opt-in packs-off / ditching-on calls (`gsx.deice.packsProcedure`, read-only).
 
 ## 4. In-sim handler / VDGS
 

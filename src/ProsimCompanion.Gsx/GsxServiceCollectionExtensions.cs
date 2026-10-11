@@ -73,6 +73,9 @@ public static class GsxServiceCollectionExtensions
         // for the diagnostics page until a flight settles its values).
         services.AddStartupModule<Automation.GsxDeiceRequestService>();
         services.AddStartupModule<Sync.GsxDeiceStateMonitor>();
+        // The de-icing crew's lifecycle edges onto the Core activity seam (issue #166): the
+        // pack-fault hold and the FO's packs/ditching procedure read it from Speech.
+        services.AddStartupModule<Sync.GsxDeiceActivityRelay>();
         // GSX SimBrief reload for the VDGS (2026-10-09): once per new OFP behind its option,
         // and on demand through the Core seam (Status button, gsx.reloadSimbrief).
         services.AddStartupModule<Sync.GsxSimbriefReloadService>();

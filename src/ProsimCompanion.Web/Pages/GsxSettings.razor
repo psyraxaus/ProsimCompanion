@@ -401,12 +401,13 @@ else if (CurrentSection == "questions")
                      @bind-Value="_gsx.Value.CallPushbackWhenTugAttached" />
     </Section>
     <Section Title="De-Icing">
-        <BoolField Label="Auto-accept de-ice offer" Hint="Accept GSX's de-icing offer and pick the fluid by itself."
+        <BoolField Label="Auto-accept de-ice offer" Hint="Accept GSX's own 'Ice warning' offer and pick the fluid by itself."
+                   More="The answer obeys your decision on the app's question: a declined question answers GSX with No, a question still open is left for you (your pick on GSX's menu is then your answer), an accepted one answers Yes. With the weather policy off, GSX's own icing judgement stands and the offer is accepted."
                    @bind-Value="_gsx.Value.AutoDeIce" />
-        <SelectField Label="De-ice fluid" Hint="Also the fluid the app's own de-ice request answers with." Options="DeIceFluidOptions"
+        <SelectField Label="De-ice fluid" Hint="Answers GSX's 'Select fluid type' menu — for GSX's offer and the app's own request alike." Options="DeIceFluidOptions"
                      Disabled="@(!_gsx.Value.AutoDeIce && DeiceAutoRequestIsOff)"
                      @bind-Value="_gsx.Value.DeIceFluidType" />
-        <SelectField Label="Concentration" Hint="Percent." Options="DeIceConcentrationOptions"
+        <SelectField Label="Concentration" Hint="Answers GSX's 'Select concentration' menu (percent). The holdover card says where its fluid came from: GSX's own LVAR, these menu answers, or the settings when nothing confirmed it." Options="DeIceConcentrationOptions"
                      Disabled="@(!_gsx.Value.AutoDeIce && DeiceAutoRequestIsOff)"
                      @bind-Value="_gsx.Value.DeIceConcentration" />
         <SelectField Label="Request de-icing from the weather" Hint="Let the app decide from the outside air temperature and the departure METAR whether this departure needs de-icing."
@@ -416,9 +417,24 @@ else if (CurrentSection == "questions")
                      Disabled="@DeiceAutoRequestIsOff"
                      @bind-Value="_gsx.Value.Deice.OatThresholdC"
                      Default="_gsx.Defaults.Deice.OatThresholdC" />
+        @if (_gsx.Value.Deice.OatThresholdC > 10)
+        {
+            <div class="field-hint" style="margin:-4px 0 10px;">A threshold above 10 °C asks on nearly every flight — most of Europe sits below it for half the year. 3 °C is the usual rule.</div>
+        }
         <BoolField Label="Require precipitation or frost" Hint="Cold alone is not enough: the departure METAR must show snow, freezing precipitation, ice pellets, rain while cold, freezing fog, or a dew-point spread of 3 °C or less." More="Off requests on the temperature alone (the cold-soaked-wing rule). With no METAR for the departure airport the app makes no request either way."
                    Disabled="@DeiceAutoRequestIsOff"
                    @bind-Value="_gsx.Value.Deice.RequirePrecipitation" />
+        <SelectField Label="When to ask" Hint="When the policy runs and the First Officer asks."
+                     More="When the de-icing step is next (default): every earlier departure service is done, the flight plan is loaded and the weather is known — de-icing is the last thing before pushback, so this is when the answer matters. After boarding complete: the question comes on the boarding-completed edge, while the last services finish, and is repeated once when the step's turn comes if you have not answered. Either way it is never asked the moment the departure sequence starts (0.7.0-rc.4 did, before the OFP and sixteen minutes before boarding)."
+                     Options="DeiceAskWhenOptions" Disabled="@DeiceAutoRequestIsOff"
+                     @bind-Value="_gsx.Value.Deice.AskWhen" />
+        <NumberField Label="Answer timeout" Hint="How long the question stands before it counts as no. The FO's silence never decides it — say 'request de-icing' or 'no de-icing', or use the Status board buttons, until this runs out." Suffix="min" Min="1" Max="30"
+                     Disabled="@DeiceAutoRequestIsOff"
+                     @bind-Value="_gsx.Value.Deice.QuestionTimeoutMinutes"
+                     Default="_gsx.Defaults.Deice.QuestionTimeoutMinutes" />
+        <BoolField Label="Packs procedure" Hint="The FO calls 'De-icing starting — packs off, ditching on' when the de-icing crew arrives and 'De-icing complete — packs on, ditching off' when it leaves, and checks the overhead lights twenty seconds later (one reminder if they disagree)."
+                   More="Read-only: the FO never moves the pack or ditching switches. Off by default. Works for any de-icing GSX runs — the app's request, GSX's offer or your own call."
+                   @bind-Value="_gsx.Value.Deice.PacksProcedure" />
     </Section>
 }
 else if (CurrentSection == "connection")
@@ -499,6 +515,10 @@ else if (CurrentSection == "connection")
         [(GsxDeiceOptions.AutoRequestOff, "Off — GSX's offer and my own request only"),
          (GsxDeiceOptions.AutoRequestAsk, "Ask me — the FO asks, the Status board shows the question"),
          (GsxDeiceOptions.AutoRequestAuto, "Auto — put de-icing on the departure sequence")];
+
+    private static readonly IReadOnlyList<(string, string)> DeiceAskWhenOptions =
+        [(GsxDeiceOptions.AskWhenStepIsNext, "When the de-icing step is next (every earlier service done)"),
+         (GsxDeiceOptions.AskWhenAfterBoardingComplete, "After boarding complete (re-asked once when the step is next)")];
 
     private bool DeiceAutoRequestIsOff
         => string.Equals(_gsx.Value.Deice.AutoRequest, GsxDeiceOptions.AutoRequestOff, StringComparison.OrdinalIgnoreCase)

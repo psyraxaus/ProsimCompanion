@@ -15,14 +15,23 @@ namespace ProsimCompanion.Gsx.Automation;
 /// The de-icing policy's shell (2026-10-09): gathers the ProSim OAT (one subscription, cached
 /// reads), the departure airport's observation from the Flight Status weather cards (the
 /// same figures the pilot sees — no second fetch) and the <c>gsx.deice.*</c> options, runs
-/// the pure <see cref="DeiceRequestPolicy"/> once the departure sequence has started, and
-/// publishes the verdict on the <see cref="DeiceRequestStore"/>. Every verdict change is a
-/// <c>gsx-decision</c> and a <c>gsx-deice-policy</c> session event. An <c>ask</c> verdict
-/// raises the captain's question (the FO voices it, the Status board shows it); a question
-/// nobody answers within <see cref="DeiceRequestSnapshot.QuestionTtl"/> is declined here so
-/// the departure never waits forever. A de-ice the crew calls directly (voice, web, GSX
-/// menu) while the question stands counts as "yes". Startup module: construction wires the
-/// events; the host calls <see cref="Start"/>.
+/// the pure <see cref="DeiceRequestPolicy"/> and publishes the verdict on the
+/// <see cref="DeiceRequestStore"/>. Every verdict change is a <c>gsx-decision</c> and a
+/// <c>gsx-deice-policy</c> session event. An <c>ask</c> verdict raises the captain's question
+/// (the FO voices it, the Status board shows it).
+/// <para>Timing (issue #166, EFHK 2026-10-10): the policy no longer runs on the cycle-started
+/// edge — it fired one millisecond after "departure sequence started", before ground prep,
+/// before the OFP, sixteen minutes before boarding. It is ARMED by the departure sequencer
+/// reporting the DeIce step's turn has come (<see cref="DeiceRequestStore.MarkStepNext"/>:
+/// every earlier service done, the plan gate passed) or, with
+/// <c>gsx.deice.askWhen = afterBoardingComplete</c>, by the boarding-completed edge; until
+/// then the verdict stays Pending and the step waits last on the board. Once armed it
+/// re-evaluates on every input change until the cycle completes (a question withdrawn when
+/// the OAT climbs, raised when it drops).</para>
+/// <para>Silence never declines: the FO's listen window leaves the question standing; only
+/// the TTL sweep here declines it (source <c>timeout</c>, <c>gsx.deice.questionTimeoutMinutes</c>).
+/// A de-ice the crew calls directly (voice, web, GSX menu) while the question stands counts
+/// as "yes". Startup module: construction wires the events; the host calls <see cref="Start"/>.</para>
 /// </summary>
 public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDisposable
 {
@@ -37,6 +46,7 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
     private readonly IGsxServiceControl _serviceControl;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
+    private readonly GroundOpsSignals _signals;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxDeiceRequestService> _logger;
     private readonly IDataRefSubscription<double> _oat;
@@ -57,6 +67,7 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         IProsimDataRefs prosim,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
+        GroundOpsSignals signals,
         JsonlEventLog eventLog,
         ILogger<GsxDeiceRequestService> logger)
     {
@@ -70,6 +81,7 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(signals);
         ArgumentNullException.ThrowIfNull(eventLog);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -82,6 +94,7 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         _serviceControl = serviceControl;
         _options = options;
         _diagnostics = diagnostics;
+        _signals = signals;
         _eventLog = eventLog;
         _logger = logger;
 
@@ -99,6 +112,8 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         _weatherObserver = _weather.Observe(_ => Evaluate());
         _lifecycle.ServiceEvent += OnServiceEvent;
         _store.Answered += OnAnswered;
+        _store.StepBecameNext += OnStepBecameNext;
+        _signals.FlightCycleReset += OnFlightCycleReset;
         _ttlTimer.Change(TtlSweep, TtlSweep);
         Evaluate();
     }
@@ -111,6 +126,8 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         _weatherObserver?.Dispose();
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _store.Answered -= OnAnswered;
+        _store.StepBecameNext -= OnStepBecameNext;
+        _signals.FlightCycleReset -= OnFlightCycleReset;
         _ttlTimer.Dispose();
         _oat.Dispose();
     }
@@ -119,19 +136,40 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
 
     private void OnOatChanged(object? sender, EventArgs e) => Evaluate();
 
+    private void OnStepBecameNext(object? sender, EventArgs e) => Evaluate();
+
+    /// <summary>The store is back to Pending for the new cycle — the "Off" verdict (or the
+    /// per-cycle log line) must be published again, and the log dedupe starts over.</summary>
+    private void OnFlightCycleReset()
+    {
+        lock (_gate)
+        {
+            _lastLoggedVerdict = DeicePolicyVerdict.Pending;
+            _lastLoggedReason = null;
+        }
+
+        Evaluate();
+    }
+
     /// <summary>A de-ice the crew called themselves while the question stood is the
     /// captain's answer — withdraw the question and let the sequencer treat the step as
-    /// running (it is).</summary>
+    /// running (it is). Boarding completing is the <c>afterBoardingComplete</c> trigger.</summary>
     private void OnServiceEvent(string serviceId, GsxServiceLifecycleEvent lifecycleEvent)
     {
-        if (!serviceId.Replace("-", "").Contains("deic", StringComparison.OrdinalIgnoreCase))
+        if (serviceId.Replace("-", "").Contains("deic", StringComparison.OrdinalIgnoreCase))
         {
+            if (_store.Snapshot().Question is not null)
+            {
+                _store.Accept("called");
+            }
+
             return;
         }
 
-        if (_store.Snapshot().Question is not null)
+        if (serviceId.Equals(GsxServiceIds.Boarding, StringComparison.OrdinalIgnoreCase)
+            && lifecycleEvent == GsxServiceLifecycleEvent.Completed)
         {
-            _store.Accept("called");
+            Evaluate();
         }
     }
 
@@ -148,6 +186,7 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
             verdict = answer.Accepted ? "accepted" : "declined",
             source = answer.Source,
             reason = _store.Snapshot().Declined,
+            askWhen = AskWhen(_options.CurrentValue),
         });
 
         if (answer.Accepted && _cycle.Complete && answer.Source != "called")
@@ -169,6 +208,14 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         }
     }
 
+    /// <summary>True once the policy may decide this cycle: the sequencer reported the DeIce
+    /// step's turn, or (afterBoardingComplete) boarding is done. Pure, for tests.</summary>
+    public static bool Armed(DeiceRequestSnapshot snapshot, string? askWhen, bool boardingCompleted)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        return snapshot.StepNext || (GsxDeiceOptions.AsksAfterBoarding(askWhen) && boardingCompleted);
+    }
+
     /// <summary>One evaluation. Serialized; cheap when nothing changed (the store notifies
     /// only on a real change and the log dedupes on verdict + reason).</summary>
     private void Evaluate()
@@ -181,15 +228,34 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
                 var ofp = _ofpStore.Current;
                 var origin = string.IsNullOrWhiteSpace(ofp?.OriginIcao) ? null : ofp!.OriginIcao;
                 var weather = DepartureWeather(origin);
+                var modeOff = !string.Equals(options.Deice.AutoRequest, GsxDeiceOptions.AutoRequestAsk, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(options.Deice.AutoRequest, GsxDeiceOptions.AutoRequestAuto, StringComparison.OrdinalIgnoreCase);
 
-                // The policy runs for a departure in preparation. Before the departure
-                // sequence has started the verdict is premature (no plan, no weather, and a
-                // question nobody is ready for); once it is complete the decision stands
-                // (a late "yes" is handled by OnAnswered); airborne or arriving it is
-                // meaningless.
-                if (!_cycle.Started || _cycle.Complete || !_flightState.CurrentPhase.IsAtGate())
+                // Off is published whenever it is the mode (no step on the board, ever). For
+                // ask/auto the policy runs for a departure in preparation, and only once armed:
+                // the step's turn, or boarding complete — never the cycle-started edge (#166).
+                // Once the cycle is complete the decision stands (a late "yes" is handled by
+                // OnAnswered); airborne or arriving it is meaningless.
+                if (modeOff)
                 {
-                    return;
+                    // Already said so this cycle: a re-publish would only stamp a new
+                    // DecidedAtUtc and wake every observer on each OAT tick.
+                    if (_store.Snapshot().Verdict == DeicePolicyVerdict.Off)
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    if (!_cycle.Started || _cycle.Complete || !_flightState.CurrentPhase.IsAtGate())
+                    {
+                        return;
+                    }
+
+                    if (!Armed(_store.Snapshot(), options.Deice.AskWhen, BoardingCompletedThisCycle()))
+                    {
+                        return;
+                    }
                 }
 
                 var result = DeiceRequestPolicy.Evaluate(new DeiceRequestPolicy.Inputs(
@@ -200,7 +266,7 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
                     Weather: weather,
                     Icao: origin));
 
-                _store.Publish(result.Verdict, result.Reason, result.OatC, result.Precip, origin, DeiceRequestPolicy.Prompt(result));
+                _store.Publish(result.Verdict, result.Reason, result.OatC, result.Precip, origin, DeiceRequestPolicy.Prompt(result), options.Deice.QuestionTtl);
 
                 if (result.Verdict != _lastLoggedVerdict || !string.Equals(result.Reason, _lastLoggedReason, StringComparison.Ordinal))
                 {
@@ -217,6 +283,9 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
                         mode = options.Deice.AutoRequest,
                         thresholdC = options.Deice.OatThresholdC,
                         requirePrecipitation = options.Deice.RequirePrecipitation,
+                        askWhen = AskWhen(options),
+                        questionTimeoutMinutes = (int)options.Deice.QuestionTtl.TotalMinutes,
+                        stepNext = _store.Snapshot().StepNext,
                     });
                 }
             }
@@ -226,6 +295,14 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
             _logger.LogError(ex, "De-ice policy evaluation failed");
         }
     }
+
+    private bool BoardingCompletedThisCycle()
+        => _lifecycle.SnapshotCycles().TryGetValue(GsxServiceIds.Boarding, out var boarding) && boarding.Completed;
+
+    private static string AskWhen(GsxOptions options)
+        => GsxDeiceOptions.AsksAfterBoarding(options.Deice.AskWhen)
+            ? GsxDeiceOptions.AskWhenAfterBoardingComplete
+            : GsxDeiceOptions.AskWhenStepIsNext;
 
     /// <summary>The departure airport's observation as the Flight Status local card holds it
     /// — only while that card IS the departure (it moves to the destination from descent).</summary>
@@ -246,15 +323,15 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
 
     /// <summary>An unanswered question past its TTL is declined here (degrade, not fail):
     /// the step leaves the sequence and the departure can complete; "request de-icing" still
-    /// works afterwards.</summary>
+    /// works afterwards. This is the ONLY path that declines on silence (#166).</summary>
     private void SweepQuestionTtl()
     {
         try
         {
             var snapshot = _store.Snapshot();
-            if (snapshot.Question is not null && !snapshot.QuestionOpen(DateTimeOffset.UtcNow))
+            if (snapshot.Question is { } question && !snapshot.QuestionOpen(DateTimeOffset.UtcNow))
             {
-                _store.Decline("timeout", $"no answer within {DeiceRequestSnapshot.QuestionTtl.TotalMinutes:0} minutes");
+                _store.Decline("timeout", $"no answer within {question.Ttl.TotalMinutes:0} minutes (gsx.deice.questionTimeoutMinutes)");
             }
         }
         catch (Exception ex)
