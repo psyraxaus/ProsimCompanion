@@ -259,6 +259,16 @@ key, cached, budget-enforced), then Google Chirp HD (cached, budget-enforced), t
 voices. Cabin reports arrive on the CAB channel with the interphone chime; company messages
 with the ACARS beep.
 
+Kokoro voices are picked from a dropdown grouped by region (American English, British
+English, then the other languages), with Kokoro's own quality grade (A down to F) beside each
+name and a details line under the picker (gender, grade, how much training audio the voice
+had). The list is read from your Kokoro server when the page opens, so blended or legacy
+`v0` voices appear too; *Refresh from server* re-reads it. *Other voice id* takes an
+ElevenLabs or Google id for the crew voices. The British and American voices make a usable
+First Officer; the other languages read English with their own sounds.
+
+![Voice Providers page with the Kokoro voice picker](../img/voice-providers.png)
+
 ### Ground crew
 
 Hail the ground crew with "cockpit to ground" — or "flight deck to ground", "ground from

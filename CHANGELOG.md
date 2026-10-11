@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0-rc.6
+
+Kokoro voice picker, 2026-10-12. A local beta build on top of rc.5; **not yet verified live**.
+
+- New: **Kokoro voices are picked from a dropdown** (Settings → Voice First Officer → Voice Providers → Voice, and the three Crew Voices). Users reported that typing voice names was cumbersome. The list is grouped by region — American English, British English, then Japanese, Mandarin Chinese, Spanish, French, Hindi, Italian, Brazilian Portuguese — with Kokoro's own quality grade beside each name ("George (male), grade C"), and a details line under the picker: region, gender, overall grade, reference audio quality, how much training audio the voice had, and a warning on the non-English voices (they read English with their own language's sounds). The list is read from your Kokoro server (`GET /v1/audio/voices`) when the page opens, so the legacy `v0` voices and your own blends appear too; **Refresh from server** re-reads it; without a server answer the published Kokoro sheet is shown. **Other voice id…** opens a text box for an ElevenLabs voice id or a Google name on the crew voices; blank stays "Same voice as the First Officer". Grades are from Kokoro's VOICES.md (hexgrad/Kokoro-82M, read 2026-10-12): the author's estimate of training-data quality and quantity, not a listening test.
+- Everything in 0.7.0-rc.5 below.
+
 ## 0.7.0-rc.5
 
 The 1.0 sign-off flight of 2026-10-10/11 (EFHK → EGCC → EFHK on rc.3/rc.4, two legs with a turnaround) found nine faults and the owner reported eight notes. Every one is fixed here, in seven branches merged into one build. Everything is **not yet verified live**. New switches are **off by default** unless it says otherwise.

@@ -26,6 +26,7 @@ public static class SpeechServiceCollectionExtensions
         // Core-facing read-outs for the settings pages (Web references only Core).
         services.AddSingleton<Core.State.ITtsUsageReadout, TtsUsageReadout>();
         services.AddSingleton<Core.State.IElevenLabsVoiceCatalog, ElevenLabsVoiceCatalog>();
+        services.AddSingleton<Core.State.IKokoroVoiceCatalog, KokoroVoiceCatalog>();
         services.AddSingleton<ITtsProvider, KokoroTtsProvider>();
         services.AddSingleton<ITtsProvider, ElevenLabsTtsProvider>();
         services.AddSingleton<ITtsProvider, GoogleTtsProvider>();

@@ -1,0 +1,137 @@
+@* Voice picker over Kokoro's regional voice groups, with a details line for the chosen voice
+   and an "Other voice id" escape hatch for ElevenLabs / Google ids (the crew voices accept any
+   provider's id). Replaces the free-text voice fields users found cumbersome (2026-10-12).
+   Binds the text escape on INPUT like TextField so type-then-Save never loses the value (#20). *@
+@using ProsimCompanion.Core.Speech
+<div class="field">
+    <label class="field-label" for="@_id">
+        @Label
+        <FieldHint Hint="@Hint" More="@More" />
+    </label>
+    <div class="field-control">
+        <select id="@_id" class="select" style="max-width:360px;" disabled="@Disabled" value="@SelectValue" @onchange="OnPickedAsync">
+            @if (BlankLabel is not null)
+            {
+                <option value="" selected="@(SelectValue == "")">@BlankLabel</option>
+            }
+            else if (SelectValue == "")
+            {
+                <option value="" selected>Pick a voice…</option>
+            }
+            @foreach (var group in Groups)
+            {
+                <optgroup label="@group.Region">
+                    @foreach (var voice in group.Voices)
+                    {
+                        <option value="@voice.Id" selected="@(voice.Id == SelectValue)">@voice.Label</option>
+                    }
+                </optgroup>
+            }
+            <option value="@CustomKey" selected="@(SelectValue == CustomKey)">Other voice id…</option>
+        </select>
+        @if (SelectValue == CustomKey)
+        {
+            <input type="text" class="text-input" style="margin-top:6px;" value="@Value" disabled="@Disabled"
+                   placeholder="Voice id from your provider"
+                   autocomplete="off" autocapitalize="off" spellcheck="false"
+                   @oninput="OnTypedAsync" />
+        }
+        @if (Details is not null)
+        {
+            <div class="field-hint" style="margin-top:6px; max-width:520px;">@Details</div>
+        }
+    </div>
+</div>
+
+@code {
+    private const string CustomKey = "__other__";
+    private readonly string _id = $"f{Guid.NewGuid():N}";
+    private bool _custom;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    /// <summary>Longer explanation behind a "More" fold under the hint (ADR-0010).</summary>
+    [Parameter]
+    public string? More { get; set; }
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Region groups from <see cref="KokoroVoices.Group"/>.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<(string Region, IReadOnlyList<KokoroVoices.Voice> Voices)> Groups { get; set; } = [];
+
+    /// <summary>When set, a blank value is a listed choice with this label (crew voices: blank =
+    /// the First Officer's voice). When null, blank shows a "Pick a voice" placeholder.</summary>
+    [Parameter]
+    public string? BlankLabel { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private bool IsListed(string id)
+        => Groups.Any(g => g.Voices.Any(v => string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase)));
+
+    private string SelectValue
+    {
+        get
+        {
+            if (_custom) return CustomKey;
+            var value = Value.Trim();
+            if (value.Length == 0) return "";
+            return IsListed(value) ? value : CustomKey;
+        }
+    }
+
+    private string? Details
+    {
+        get
+        {
+            var value = Value.Trim();
+            if (value.Length == 0) return null;
+            if (IsListed(value) || KokoroVoices.IsKnown(value)) return KokoroVoices.Describe(value).Blurb;
+            var guess = KokoroVoices.Describe(value);
+            return guess.Region == KokoroVoices.Other
+                ? "Not a Kokoro voice. Sent as typed to the provider that speaks (ElevenLabs or Google)."
+                : $"{guess.Region}, {guess.Gender}. Not in the list from the server. Sent as typed.";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // A discard or a server refresh can make the current value a listed voice again —
+        // then the text box closes. The flag only lives while the pilot is typing an id.
+        if (_custom && Value.Trim().Length > 0 && IsListed(Value.Trim()))
+        {
+            _custom = false;
+        }
+    }
+
+    private async Task OnPickedAsync(ChangeEventArgs e)
+    {
+        var picked = e.Value?.ToString() ?? "";
+        if (picked == CustomKey)
+        {
+            _custom = true;
+            // A listed voice id would be misleading in the box, so start it blank.
+            if (IsListed(Value.Trim()))
+            {
+                await ValueChanged.InvokeAsync("");
+            }
+            return;
+        }
+
+        _custom = false;
+        await ValueChanged.InvokeAsync(picked);
+    }
+
+    private Task OnTypedAsync(ChangeEventArgs e)
+        => ValueChanged.InvokeAsync(e.Value?.ToString() ?? "");
+}
