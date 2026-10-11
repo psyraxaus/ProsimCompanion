@@ -232,6 +232,19 @@ key, cached, budget-enforced), then Google Chirp HD (cached, budget-enforced), t
 voices. Cabin reports arrive on the CAB channel with the interphone chime; company messages
 with the ACARS beep.
 
+### Ground crew
+
+Hail the ground crew with "cockpit to ground" — or "flight deck to ground", "ground from
+cockpit", "ground, cockpit" or "ground crew" — and ask for anything the ground side does:
+boarding, refueling (or "fuel confirmed"), catering, ground power ("connect ground power",
+"connect the GPU", "request ground power", "connect external power"; "disconnect ground
+power" / "remove the GPU" takes it away, never while EXT PWR still feeds the aircraft),
+pushback or de-icing. Where GSX offers no GPU at the stand, the ProSim ground power unit is
+connected instead and the crew says so; the usual "ground power connected" upcall follows.
+A request the crew cannot place gets "Say again — I can do boarding, fuel, catering, ground
+power, pushback or de-icing" and one more listening window. The Voice Reference drawer
+lists every phrase live.
+
 ### Cabin crew
 
 The purser calls the flight deck twice a flight: *"cabin secure"* a random while after the

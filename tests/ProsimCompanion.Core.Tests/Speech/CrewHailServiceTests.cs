@@ -130,6 +130,77 @@ public sealed class CrewHailServiceTests : IDisposable
             r.Role == SpeechRole.GroundCrew && r.Text == "Copied — fuel truck on the way.");
     }
 
+    [Theory]
+    [InlineData("ground from cockpit")]
+    [InlineData("ground, cockpit")]
+    [InlineData("ground crew")]
+    public void GroundHailAliases_OpenTheGroundDialogue(string hail)
+    {
+        // Issue #170: "Ground from cockpit." was refused on 2026-10-11.
+        Handler("gsx.requestGpu", CommandResult.Ok("requested"));
+        var service = CreateService("connect ground power");
+
+        Assert.True(service.TryHandle(hail));
+        WaitFor(() => _arbiter.Requests.Count >= 2);
+
+        Assert.Equal(["gsx.requestGpu"], _executed);
+        Assert.Contains(_arbiter.Requests, r =>
+            r.Role == SpeechRole.GroundCrew && r.Text == "Copied — ground power coming up.");
+    }
+
+    [Fact]
+    public void GroundHail_UnmappedRequest_SaysAgainThenListensOnceMore()
+    {
+        // Issue #170: "please connect the ground power unit" earned "Standing by." The crew
+        // now says what it can do and the window re-opens once — the rephrase succeeds.
+        Handler("gsx.requestGpu", CommandResult.Ok("requested"));
+        var heard = new Queue<string?>(["please connect the ground power unit", "connect the ground power unit"]);
+        var service = CreateService(heardUtterance: null);
+        _mic.Setup(m => m.ListenAsync(
+                It.IsAny<IReadOnlyList<string>>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => heard.Count > 0 ? heard.Dequeue() : null);
+
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _executed.Count > 0);
+        WaitFor(() => _arbiter.Requests.Count >= 3);
+
+        Assert.Equal(["gsx.requestGpu"], _executed);
+        Assert.Contains(_arbiter.Requests, r =>
+            r.Role == SpeechRole.GroundCrew && r.Text == GsxVoicePhrases.UnmappedRequestText);
+        Assert.DoesNotContain(_arbiter.Requests, r => r.Text == _groundOptions.StandingByText);
+    }
+
+    [Fact]
+    public void GroundHail_UnmappedTwice_StandsBy()
+    {
+        var service = CreateService("please do something else");
+
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => _arbiter.Requests.Count >= 3);
+
+        Assert.Empty(_executed);
+        Assert.Single(_arbiter.Requests, r => r.Text == GsxVoicePhrases.UnmappedRequestText);
+        Assert.Contains(_arbiter.Requests, r => r.Text == _groundOptions.StandingByText);
+    }
+
+    [Fact]
+    public void GroundHail_DispatchesUnderTheHailSource()
+    {
+        // Issue #169: the departure start names who started it — a hail reads as "hail".
+        string? seen = null;
+        _registry.Register<EmptyCommandRequest, CommandResult>("gsx.requestBoarding", (_, _) =>
+        {
+            seen = CommandRegistry.CurrentSource;
+            return Task.FromResult(CommandResult.Ok("requested"));
+        });
+        var service = CreateService("request boarding");
+
+        Assert.True(service.TryHandle("cockpit to ground"));
+        WaitFor(() => seen is not null);
+
+        Assert.Equal("hail", seen);
+    }
+
     [Fact]
     public void GroundHail_Timeout_SpeaksStandingBy_NoDispatch()
     {

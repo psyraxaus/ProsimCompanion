@@ -148,9 +148,11 @@ public sealed class GsxVoiceService : IVoiceFeature
         }
     }
 
-    /// <summary>Shared with the hail dialogues so both paths execute identically.</summary>
-    internal Task<CommandResult> ExecuteAsync(string command)
-        => _registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(command, new EmptyCommandRequest());
+    /// <summary>Shared with the hail dialogues so both paths execute identically; the source
+    /// ("voice" here, "hail" from a hail) rides the registry's async-local so the departure
+    /// start can name who started it (issue #169).</summary>
+    internal Task<CommandResult> ExecuteAsync(string command, string source = "voice")
+        => _registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(command, new EmptyCommandRequest(), source: source);
 
     private void Speak(string text)
         => _ = _arbiter.EnqueueAsync(new SpeechRequest(

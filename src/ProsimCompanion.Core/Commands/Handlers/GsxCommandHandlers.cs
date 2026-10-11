@@ -58,7 +58,9 @@ public static class GsxCommandHandlers
             return CommandResult.AlreadySatisfied("The departure service sequence is already started.");
         }
 
-        control.Start();
+        // The invoking surface rides the registry's async-local (voice / hail / api /
+        // streamdeck); a direct registry call with no source is "command".
+        control.Start(CommandRegistry.CurrentSource ?? "command");
         return CommandResult.Ok("Departure service sequence started.");
     }
 

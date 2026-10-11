@@ -232,6 +232,14 @@ card off.
    switch, the header's NEXT SERVICE button (opt-in) or the GSX page's button force-calls
    the next service. Refuel steps the ProSim
    fuel while the GSX hose is connected; boarding fills seats as GSX counts pax aboard.
+   With *Ground preparation start* on a voice option nothing runs until you say "commence
+   ground services" or press Start; the *Voice on a cold start, automatic on a turnaround*
+   option keeps that for the first leg and starts a turnaround by itself once the next
+   flight plan is loaded at the stand with the engines off (after the settle delay, or on
+   your "yes" to the FO's question with *Ask before a turnaround starts*). Hailing the
+   ground crew for boarding or fuel before you have commenced also starts the sequence —
+   with the passenger count sent to GSX from the current plan first — or refuses with
+   "No flight plan loaded yet" when there is none.
 4. **Loadsheets.** The preliminary loadsheet arrives when refuel starts; the final one after
    boarding completes (dispatcher delay). Doors close and the jetway retracts on final —
    or, with the beacon sequence enabled, everything runs off the beacon: APU up → doors →

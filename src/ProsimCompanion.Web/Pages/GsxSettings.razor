@@ -105,8 +105,14 @@ else if (CurrentSection == "departure")
                    @bind-Value="_gsx.Value.AutomationEnabled" />
         <BoolField Label="Auto-start departure services" Hint="Start the departure services by itself once the aircraft is ready." More="Off: press Start on the Status section, or ask the First Officer."
                    @bind-Value="_gsx.Value.AutoStartDepartureServices" />
-        <SelectField Label="Ground preparation start" Hint="When ground preparation (reposition, ground power, jetway) begins." More="Voice command waits for &quot;commence ground services&quot; or the Start button." Options="GroundPrepActivationOptions"
+        <SelectField Label="Ground preparation start" Hint="When ground preparation (reposition, ground power, jetway) begins." More="Voice command waits for &quot;commence ground services&quot; or the Start button. &quot;Voice on a cold start, automatic on a turnaround&quot; keeps that wait for the first leg and starts a turnaround by itself once the next flight plan is loaded at the stand with the engines off." Options="GroundPrepActivationOptions"
                      @bind-Value="_gsx.Value.GroundPrepActivation" />
+        <NumberField Label="Turnaround auto-start delay" Hint="How long the next flight plan must have been loaded at the stand before a turnaround starts itself." More="Only with the turnaround option above. Gives the SimBrief import time to settle and you a moment to object." Suffix="s" Min="0"
+                     Disabled="@(!GsxOptions.IsVoiceThenAuto(_gsx.Value.GroundPrepActivation))"
+                     @bind-Value="_gsx.Value.TurnaroundAutoStartDelaySeconds" />
+        <BoolField Label="Ask before a turnaround starts" Hint="The First Officer asks &quot;Next plan loaded — commence ground services?&quot; and starts on yes." More="Only with the turnaround option above. No answer leaves it to you: say &quot;commence ground services&quot; or press Start."
+                   Disabled="@(!GsxOptions.IsVoiceThenAuto(_gsx.Value.GroundPrepActivation))"
+                   @bind-Value="_gsx.Value.TurnaroundAskFirst" />
         <BoolField Label="Wait for OFP before departure services" Hint="Wait for the SimBrief flight plan before calling any service."
                    @bind-Value="_gsx.Value.RequireOfpBeforeDeparture" />
     </Section>
@@ -510,7 +516,8 @@ else if (CurrentSection == "connection")
         [("Nobody", "Nobody"), ("Crew", "Crew"), ("Pilots", "Pilots"), ("Both", "Both")];
 
     private static readonly IReadOnlyList<(string, string)> GroundPrepActivationOptions =
-        [("auto", "Automatic (session start)"), ("voice", "Voice command / Start button")];
+        [("auto", "Automatic (session start)"), ("voice", "Voice command / Start button"),
+         (GsxOptions.GroundPrepActivationVoiceThenAuto, "Voice on a cold start, automatic on a turnaround")];
 
     private static readonly IReadOnlyList<(string, string)> RemoveStairsOptions =
         [("never", "Never"), ("always", "Always"), ("onlyJetway", "Only jetway stands")];

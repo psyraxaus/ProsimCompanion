@@ -67,9 +67,129 @@ public sealed class DepartureAutomationCoreTests
     [Fact]
     public void AutoMode_StillAutoStarts()
     {
-        var inputs = Ready() with { CycleStarted = false, AutoStartOption = true };
+        var outcome = DepartureAutomationCore.Evaluate(Ready() with { CycleStarted = false, AutoStartOption = true });
 
-        Assert.True(DepartureAutomationCore.Evaluate(inputs).AutoStarted);
+        Assert.True(outcome.AutoStarted);
+        Assert.Equal(DepartureAutomationCore.AutoStartSource, outcome.AutoStartSource);
+    }
+
+    // ---- voiceThenAuto turnaround start (issue #169, 2026-10-11 EGCC turnaround) ----
+
+    private static readonly DateTimeOffset T0 = new(2026, 10, 10, 23, 25, 21, TimeSpan.Zero);
+
+    private static DepartureAutomationCore.TurnaroundStartInputs Turnaround(
+        DateTimeOffset? readySince = null,
+        DateTimeOffset? now = null,
+        bool nextLegOfpLoaded = true,
+        bool askFirst = false,
+        bool questionAsked = false,
+        bool declined = false)
+        => new(
+            Enabled: true,
+            NextLegOfpLoaded: nextLegOfpLoaded,
+            ReadySinceUtc: readySince,
+            Now: now ?? T0,
+            Delay: TimeSpan.FromSeconds(30),
+            AskFirst: askFirst,
+            QuestionAsked: questionAsked,
+            Declined: declined);
+
+    /// <summary>The voice gate held for the turnaround on the flight: engines off at the
+    /// stand, OFP loaded, autoStart on — nothing started until the web button.</summary>
+    private static DepartureAutomationCore.PumpInputs TurnaroundReady()
+        => Ready() with { CycleStarted = false, AutoStartOption = true, VoiceActivationMode = true, IsTurnaround = true };
+
+    [Fact]
+    public void VoiceThenAuto_FirstLeg_StaysOnTheVoiceGate()
+    {
+        var inputs = TurnaroundReady() with { IsTurnaround = false, Turnaround = Turnaround() };
+
+        var outcome = DepartureAutomationCore.Evaluate(inputs);
+
+        Assert.False(outcome.AutoStarted);
+        Assert.Null(outcome.TurnaroundReadySinceUtc);
+        Assert.Equal("departure sequence not started", outcome.WaitingBoard);
+    }
+
+    [Fact]
+    public void VoiceThenAuto_TurnaroundWithTheNextPlan_StampsReadyButWaitsOutTheDelay()
+    {
+        var outcome = DepartureAutomationCore.Evaluate(TurnaroundReady() with { Turnaround = Turnaround() });
+
+        Assert.False(outcome.AutoStarted);
+        Assert.Equal(T0, outcome.TurnaroundReadySinceUtc);
+        Assert.False(outcome.AskTurnaroundStart);
+    }
+
+    [Fact]
+    public void VoiceThenAuto_TurnaroundSettled_AutoStartsAsTurnaround()
+    {
+        var inputs = TurnaroundReady() with { Turnaround = Turnaround(readySince: T0, now: T0.AddSeconds(30)) };
+
+        var outcome = DepartureAutomationCore.Evaluate(inputs);
+
+        Assert.True(outcome.AutoStarted);
+        Assert.Equal(DepartureAutomationCore.TurnaroundAutoStartSource, outcome.AutoStartSource);
+        Assert.Equal("Refueling", outcome.Trigger); // the sequence runs on in the same evaluation
+    }
+
+    [Fact]
+    public void VoiceThenAuto_WithoutTheNextLegsPlan_NeverStarts()
+    {
+        var inputs = TurnaroundReady() with { Turnaround = Turnaround(readySince: T0, now: T0.AddMinutes(10), nextLegOfpLoaded: false) };
+
+        var outcome = DepartureAutomationCore.Evaluate(inputs);
+
+        Assert.False(outcome.AutoStarted);
+        Assert.Null(outcome.TurnaroundReadySinceUtc); // the stamp lapses with the conditions
+    }
+
+    [Fact]
+    public void VoiceThenAuto_AskFirst_RaisesTheQuestionOnceInsteadOfStarting()
+    {
+        var settled = Turnaround(readySince: T0, now: T0.AddSeconds(45), askFirst: true);
+
+        var first = DepartureAutomationCore.Evaluate(TurnaroundReady() with { Turnaround = settled });
+        var again = DepartureAutomationCore.Evaluate(TurnaroundReady() with { Turnaround = settled with { QuestionAsked = true } });
+
+        Assert.False(first.AutoStarted);
+        Assert.True(first.AskTurnaroundStart);
+        Assert.False(again.AskTurnaroundStart);
+        Assert.False(again.AutoStarted);
+    }
+
+    [Fact]
+    public void VoiceThenAuto_Declined_StaysOnTheVoiceGate()
+    {
+        var inputs = TurnaroundReady() with { Turnaround = Turnaround(readySince: T0, now: T0.AddMinutes(5), declined: true) };
+
+        var outcome = DepartureAutomationCore.Evaluate(inputs);
+
+        Assert.False(outcome.AutoStarted);
+        Assert.False(outcome.AskTurnaroundStart);
+        Assert.Null(outcome.TurnaroundReadySinceUtc);
+    }
+
+    [Fact]
+    public void PlainVoiceMode_TurnaroundNeverAutoStarts()
+    {
+        // gsx.groundPrepActivation = voice: the shell passes no turnaround inputs.
+        var outcome = DepartureAutomationCore.Evaluate(TurnaroundReady());
+
+        Assert.False(outcome.AutoStarted);
+        Assert.Null(outcome.AutoStartSource);
+    }
+
+    [Fact]
+    public void VoiceThenAuto_NotInPreparation_NeverStarts()
+    {
+        var inputs = TurnaroundReady() with
+        {
+            Phase = GsxAutomationPhase.Arrival,
+            Turnaround = Turnaround(readySince: T0, now: T0.AddMinutes(5)),
+        };
+
+        Assert.False(DepartureAutomationCore.Evaluate(inputs).AutoStarted);
     }
 
     [Fact]

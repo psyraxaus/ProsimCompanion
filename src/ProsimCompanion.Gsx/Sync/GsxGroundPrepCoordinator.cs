@@ -311,10 +311,10 @@ public sealed class GsxGroundPrepCoordinator : IDisposable, IGsxGroundPrepStatus
         }
     }
 
-    /// <summary>Unknown values read as auto — a typo in settings.json must not silently park
-    /// the whole prep chain.</summary>
-    internal static bool IsVoiceActivation(string value)
-        => string.Equals(value, "voice", StringComparison.OrdinalIgnoreCase);
+    /// <summary>Both voice modes hold the chain (voiceThenAuto releases it on a turnaround by
+    /// marking the cycle started — issue #169). Unknown values read as auto — a typo in
+    /// settings.json must not silently park the whole prep chain.</summary>
+    internal static bool IsVoiceActivation(string value) => GsxOptions.IsVoiceGated(value);
 
     /// <summary>An unknown-parking hold first tries the remedy the pilot would: it asks GSX
     /// for its menu, which is what makes GSX look for the stand (issue #141 — see

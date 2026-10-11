@@ -12,6 +12,12 @@ namespace ProsimCompanion.Gsx.Automation;
 /// </summary>
 internal static class DepartureAutomationCore
 {
+    /// <summary>Start source recorded when the Preparation-phase auto-start fires.</summary>
+    internal const string AutoStartSource = "auto";
+
+    /// <summary>Start source recorded when a turnaround starts itself (issue #169).</summary>
+    internal const string TurnaroundAutoStartSource = "auto-turnaround";
+
     internal sealed record PumpInputs(
         bool AutomationEnabled,
         bool GsxReady,
@@ -37,11 +43,40 @@ internal static class DepartureAutomationCore
         Func<string, DepartureCycleView> Cycle,
         Func<string, string?>? PreSkip = null,
         bool VoiceActivationMode = false,
-        Func<string, string?>? PreHold = null);
+        Func<string, string?>? PreHold = null,
+        TurnaroundStartInputs? Turnaround = null);
+
+    /// <summary>The voiceThenAuto turnaround start (issue #169). All times UTC.</summary>
+    /// <param name="Enabled"><c>gsx.groundPrepActivation = voiceThenAuto</c>.</param>
+    /// <param name="NextLegOfpLoaded">An OFP other than the one flown in is loaded (new
+    /// SimBrief request id, or any OFP after a resync-recovered turnaround).</param>
+    /// <param name="ReadySinceUtc">When the conditions first held, as the previous evaluation
+    /// reported it (null = they did not hold).</param>
+    /// <param name="Now">The evaluation instant.</param>
+    /// <param name="Delay"><c>gsx.turnaroundAutoStartDelaySeconds</c>.</param>
+    /// <param name="AskFirst"><c>gsx.turnaroundAskFirst</c>.</param>
+    /// <param name="QuestionAsked">The FO's question was raised this cycle (ask-first only).</param>
+    /// <param name="Declined">The captain declined (or nobody answered) — stay on the voice gate.</param>
+    internal sealed record TurnaroundStartInputs(
+        bool Enabled,
+        bool NextLegOfpLoaded,
+        DateTimeOffset? ReadySinceUtc,
+        DateTimeOffset Now,
+        TimeSpan Delay,
+        bool AskFirst,
+        bool QuestionAsked,
+        bool Declined);
 
     /// <summary>What one evaluation decided. Effects run in the shell, in this order:
     /// auto-start decision → waiting board (stop) → hold decision → import/diagnostic/pax →
     /// board publish + skip/hold decisions → trigger dispatch → all-done.</summary>
+    /// <param name="AutoStartSource">Non-null when this evaluation starts the cycle itself:
+    /// <see cref="DepartureAutomationCore.AutoStartSource"/> or
+    /// <see cref="TurnaroundAutoStartSource"/>.</param>
+    /// <param name="AskTurnaroundStart">Raise the FO's "commence ground services?" question
+    /// (ask-first turnaround, conditions settled, not asked yet).</param>
+    /// <param name="TurnaroundReadySinceUtc">The settle stamp the shell must remember for the
+    /// next evaluation (null = conditions do not hold).</param>
     internal sealed record PumpOutcome(
         bool AutoStarted,
         string? WaitingBoard,
@@ -52,7 +87,10 @@ internal static class DepartureAutomationCore
         DeparturePlan? Plan,
         bool ConsumedForce,
         string? Trigger,
-        bool AllDone)
+        bool AllDone,
+        string? AutoStartSource = null,
+        bool AskTurnaroundStart = false,
+        DateTimeOffset? TurnaroundReadySinceUtc = null)
     {
         internal static readonly PumpOutcome Idle = new(
             false, null, null, false, null, false, null, false, null, false);
@@ -76,10 +114,37 @@ internal static class DepartureAutomationCore
         // Voice activation mode (ADR-0006) owns the start: an auto-start here marked the
         // cycle Started, which silently released the prep chain's "commence ground
         // services" hold (2026-08-29 ESSA turnaround — prep and services ran unasked).
-        var autoStarted = !inputs.CycleStarted
+        var autoStartSource = !inputs.CycleStarted
             && inputs.AutoStartOption
             && !inputs.VoiceActivationMode
+            && inputs.Phase == GsxAutomationPhase.Preparation
+                ? AutoStartSource
+                : null;
+
+        // voiceThenAuto (issue #169, 2026-10-11 EGCC turnaround): the voice gate is for the
+        // cold start; a turnaround with the next leg's plan loaded at the stand starts itself
+        // once the conditions have stood for the settle delay — or asks the captain once.
+        var turnaround = inputs.Turnaround;
+        var turnaroundEligible = turnaround is { Enabled: true, NextLegOfpLoaded: true, Declined: false }
+            && !inputs.CycleStarted
+            && inputs.IsTurnaround
             && inputs.Phase == GsxAutomationPhase.Preparation;
+        var readySince = turnaroundEligible ? (turnaround!.ReadySinceUtc ?? turnaround.Now) : (DateTimeOffset?)null;
+        var settled = turnaroundEligible && turnaround!.Now - readySince!.Value >= turnaround.Delay;
+        var askTurnaround = false;
+        if (settled && autoStartSource is null)
+        {
+            if (!turnaround!.AskFirst)
+            {
+                autoStartSource = TurnaroundAutoStartSource;
+            }
+            else if (!turnaround.QuestionAsked)
+            {
+                askTurnaround = true;
+            }
+        }
+
+        var autoStarted = autoStartSource is not null;
         var started = inputs.CycleStarted || autoStarted;
 
         if (!started || inputs.CycleComplete
@@ -88,6 +153,9 @@ internal static class DepartureAutomationCore
             return PumpOutcome.Idle with
             {
                 AutoStarted = autoStarted,
+                AutoStartSource = autoStartSource,
+                AskTurnaroundStart = askTurnaround,
+                TurnaroundReadySinceUtc = readySince,
                 WaitingBoard = inputs.CycleComplete ? null : "departure sequence not started",
             };
         }
@@ -99,6 +167,7 @@ internal static class DepartureAutomationCore
             return PumpOutcome.Idle with
             {
                 AutoStarted = autoStarted,
+                AutoStartSource = autoStartSource,
                 WaitingBoard = "ground preparation running",
                 HoldReason = "waiting for ground preparation to complete",
             };
@@ -138,6 +207,7 @@ internal static class DepartureAutomationCore
             Plan: plan,
             ConsumedForce: inputs.Forced,
             Trigger: inputs.InFlightServiceId is null ? plan.Trigger : null,
-            AllDone: plan.AllDone);
+            AllDone: plan.AllDone,
+            AutoStartSource: autoStartSource);
     }
 }

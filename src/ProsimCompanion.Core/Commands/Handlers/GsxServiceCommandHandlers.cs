@@ -24,6 +24,7 @@ public static class GsxServiceCommandHandlers
             ["gsx.requestStairs"] = GsxServiceAction.RequestStairs,
             ["gsx.retractStairs"] = GsxServiceAction.RetractStairs,
             ["gsx.requestGpu"] = GsxServiceAction.RequestGpu,
+            ["gsx.disconnectGpu"] = GsxServiceAction.DisconnectGpu,
             ["gsx.requestDeice"] = GsxServiceAction.RequestDeice,
             ["gsx.requestPushback"] = GsxServiceAction.RequestPushback,
             ["gsx.confirmFuel"] = GsxServiceAction.ConfirmFuel,

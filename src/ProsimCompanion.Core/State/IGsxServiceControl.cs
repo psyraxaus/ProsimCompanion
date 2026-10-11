@@ -16,6 +16,12 @@ public enum GsxServiceAction
     RequestStairs,
     RetractStairs,
     RequestGpu,
+
+    /// <summary>Take the ground power unit away (issue #170): the ProSim ground-power
+    /// dataref goes off — the same write the beacon-edge equipment removal makes — behind an
+    /// external-power interlock (never while EXT PWR still feeds the buses). GSX's own GPU
+    /// service is not re-triggered; its truck follows the aircraft state.</summary>
+    DisconnectGpu,
     RequestDeice,
     RequestPushback,
 

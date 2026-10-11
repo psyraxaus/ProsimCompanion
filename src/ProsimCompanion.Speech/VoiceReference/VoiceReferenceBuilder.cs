@@ -211,6 +211,8 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         "gsx.requestCatering" => "Request catering.",
         "gsx.requestPushback" => "Request pushback (beacon sequence permitting).",
         "gsx.requestDeice" => "Request de-icing.",
+        "gsx.requestGpu" => "Connect ground power — GSX's GPU, or the ProSim unit when the stand has none; the ground crew reports it connected.",
+        "gsx.disconnectGpu" => "Take the ground power unit away (not while EXT PWR still feeds the aircraft).",
         _ => command,
     };
 
@@ -218,7 +220,9 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
     /// channel rule from the options.</summary>
     private IEnumerable<VoiceReferenceGroup> HailGroups(IVoiceFeature feature, List<string> live)
     {
-        var groundHails = live.Where(p => p.EndsWith(" to ground", StringComparison.OrdinalIgnoreCase)).ToList();
+        // The hail lists are the feature's own (issue #170 added "ground from cockpit",
+        // "ground, cockpit", "ground crew" — an " to ground" suffix test would hide them).
+        var groundHails = live.Where(p => Crew.CrewHailService.GroundHailPhrases.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList();
         var cabinHails = live.Where(p => !groundHails.Contains(p)).ToList();
         var gating = _speech.CurrentValue.AcpTransmitGating;
         var ground = _groundCrew.CurrentValue;

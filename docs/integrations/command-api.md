@@ -28,7 +28,7 @@ Naming convention: dotted lowercase area + camelCase verb — `gsx.forceNextServ
 
 | Command | Body | Notes |
 |---|---|---|
-| `gsx.startDepartureServices` | — | Idempotent; `alreadySatisfied` once started. |
+| `gsx.startDepartureServices` | — | Idempotent; `alreadySatisfied` once started. The start is recorded with its source — `web`, `voice`, `hail`, `command`, `api`, `streamdeck`, `auto`, `auto-turnaround` — on the decision and the `gsx-departure-started` session event (issue #169). HTTP callers may name themselves with an `X-Source` header (letters/digits/dashes); a Stream Deck User-Agent reads as `streamdeck`, anything else as `api`. |
 | `gsx.forceNextService` | — | The INT/RAD "smart button": bypasses the next service's activation rule. |
 | `gsx.requestGate` | `{"gate":"B12"}` | Arms an arrival gate request. |
 | `gsx.cancelGate` | — | |
@@ -36,13 +36,14 @@ Naming convention: dotted lowercase area + camelCase verb — `gsx.forceNextServ
 | `gsx.requestRefuel` | — | Per-service calls (this row and the next ten) go through the `IGsxServiceControl` seam — the SAME serialized single-slot `service.trigger` path the departure automation uses, mirror-checked first, never a second writer and never raw menu ordinals. Outcomes: already requested/active/completed (or already called and awaiting GSX) → `alreadySatisfied`; GSX absent/not running → `unavailable`; not offered / not callable / slot busy with another service → `preconditionFailed` with the reason; GSX rejection → `failed`. |
 | `gsx.confirmFuel` | — | Real-world SOP (2026-09-19): confirms the block fuel — the INIT page FUEL RAMP override, else the OFP block fuel, else `efb.plannedfuel` — and orders the truck on it. The confirmation is recorded FIRST (it releases the `gsx.refuelCall = "onFuelConfirmed"` departure hold even when the call itself is refused by the plan gate or a busy slot), then the request runs as `gsx.requestRefuel`. After a completed refuel it orders a **top-up** when the fuel on board is more than 25 kg short of the figure (the Refueling lifecycle cycle is re-armed so the refuel sync latches the new target and the crew upcall fires again); FOB already at the figure → `alreadySatisfied` "no top-up needed". A plain `gsx.requestRefuel` implies the confirmation and also takes the top-up path. |
 | `gsx.requestCatering` | — | |
-| `gsx.requestBoarding` | — | |
+| `gsx.requestBoarding` | — | Before the departure sequence has started, this call (and `gsx.requestRefuel` / `gsx.confirmFuel`) first arms GSX's pax target from the current plan and marks the cycle started under the caller's source — the sequencer then runs the remaining steps (issue #169: a hail boarded the previous leg's stale GSX count). With no plan loaded, or no booked manifest for Boarding, it answers `preconditionFailed` "No flight plan loaded yet — load the OFP first". |
 | `gsx.requestDeboarding` | — | Normally auto-called on stable-parked arrival (`gsx.autoCallDeboardOnArrival`); this is the manual path. |
 | `gsx.requestJetway` | — | The operate trigger is a **toggle**: connected (Active/Completed) answers `alreadySatisfied`, never re-fires. `preconditionFailed` at jetway-less stands (jetway LVAR = 2 — GSX lists and acks the service but nothing moves; use `gsx.requestStairs`), and while ground preparation is still connecting jetway/stairs itself (single-writer rule; only during the Preflight/ColdAndDark prep window). |
 | `gsx.retractJetway` | — | Triggers the toggle only when connected; otherwise `alreadySatisfied` ("nothing to retract"). `preconditionFailed` when GSX reports it cannot trigger (fall back to the gate menu). |
 | `gsx.requestStairs` | — | Same toggle semantics as the jetway. |
 | `gsx.retractStairs` | — | |
-| `gsx.requestGpu` | — | Triggers GSX's `GPU` service (the visual truck). ProSim-side ground power/chocks are placed by the ground-equipment automation independently of this. |
+| `gsx.requestGpu` | — | Triggers GSX's `GPU` service (the visual truck). When GSX offers no GPU at the stand (service absent, `unavailable` or `bypassed`) the ProSim ground-power unit is connected instead and the reason says so (issue #170). ProSim-side ground power/chocks are otherwise placed by the ground-equipment automation independently of this. |
+| `gsx.disconnectGpu` | — | Takes the ProSim ground power unit away (the same dataref the beacon-edge equipment removal writes). `preconditionFailed` while external power still feeds the buses — switch EXT PWR off first. GSX's GPU service is never re-triggered (issue #170). |
 | `gsx.requestDeice` | — | Triggers the `DeIce` service when GSX offers it; fluid/concentration questions are answered per `gsx.autoDeIce`/`deIceFluidType`. While the de-icing policy's question stands (`gsx.deice.autoRequest = ask`), a call observed on the mirror counts as the captain's "yes". |
 | `gsx.requestPushback` | — | **Always `preconditionFailed` — by design.** Pushback is beacon-orchestrated (`GsxPushbackSequenceService`): departure services complete + beacon on → doors close, jetway retracts, equipment clears on crew-realism delays, then the pushback call goes out (`gsx.callPushbackOnBeacon`). A direct trigger would race that sequence or push with the jetway attached. The reason text explains the flow (and points at the GSX menu when the beacon sequence is disabled). |
 | `checklists.select` | `{"name":"Before Start"}` | Case-insensitive; unknown name → 400. |
@@ -112,6 +113,9 @@ in `GsxVoicePhrases` — one catalog shared with the hail dialogues below (ADR-0
 | "request boarding" | `gsx.requestBoarding` |
 | "start boarding", "cabin crew start boarding" | `gsx.requestBoarding` + a purser "Boarding underway." ack (tag `cabin.boarding.ack`) only on success/alreadySatisfied |
 | "request refueling", "call the fuel truck" | `gsx.requestRefuel` |
+| "connect ground power", "connect the gpu", "connect the ground power unit", "request ground power", "connect external power" | `gsx.requestGpu` — crew ack "Copied — ground power coming up." (issue #170) |
+| "disconnect ground power", "remove the gpu" | `gsx.disconnectGpu` — crew ack "Copied — ground power coming off." |
+| "cockpit to ground", "flight deck to ground", "ground from cockpit", "ground, cockpit", "ground crew" | The ground hail (not a command): opens the request window. A request nothing maps to earns "Say again — I can do boarding, fuel, catering, ground power, pushback or de-icing." and one more window; everything a hail dispatches carries source `hail`. |
 | "fuel confirmed", "fuel figure confirmed", "confirm fuel figure" | `gsx.confirmFuel` — the SOP confirmation of the block fuel; the FO answers "Fuel figure confirmed — refueling requested.", a hail answers "Copied — fuel truck on the way with the confirmed figure." |
 | "request catering" | `gsx.requestCatering` |
 | "request pushback" | `gsx.requestPushback` |

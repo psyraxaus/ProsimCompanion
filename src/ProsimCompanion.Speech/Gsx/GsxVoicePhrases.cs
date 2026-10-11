@@ -29,6 +29,15 @@ public static class GsxVoicePhrases
     public static readonly IReadOnlyList<string> CancelPhrases =
         ["disregard", "cancel", "cancel that", "nothing", "never mind"];
 
+    /// <summary>The ground crew's answer to a hail request nothing maps to (issue #170:
+    /// "please connect the ground power unit" earned a "Standing by."). Names what the hail
+    /// can do so the captain rephrases instead of guessing; the window re-opens once.</summary>
+    public const string UnmappedRequestText =
+        "Say again — I can do boarding, fuel, catering, ground power, pushback or de-icing.";
+
+    private const string GpuAck = "Copied — ground power coming up.";
+    private const string GpuOffAck = "Copied — ground power coming off.";
+
     public static IReadOnlyDictionary<string, GsxVoiceBinding> Bindings { get; } =
         new Dictionary<string, GsxVoiceBinding>(StringComparer.OrdinalIgnoreCase)
         {
@@ -61,6 +70,17 @@ public static class GsxVoicePhrases
                 "gsx.requestPushback", "Pushback requested.", "Copied — standing by for pushback."),
             ["request de-icing"] = new(
                 "gsx.requestDeice", "De-icing requested.", "Copied — de-icing crew on the way."),
+            // Ground power (issue #170, 2026-10-11 EGCC turnaround: "please connect the ground
+            // power unit" through a hail earned "Standing by."). gsx.requestGpu calls GSX's
+            // GPU, or the ProSim unit when GSX offers none at the stand; the existing
+            // ground-crew upcall reports it connected. gsx.disconnectGpu takes it away.
+            ["connect ground power"] = new("gsx.requestGpu", "Ground power requested.", GpuAck),
+            ["connect the gpu"] = new("gsx.requestGpu", "Ground power requested.", GpuAck),
+            ["connect the ground power unit"] = new("gsx.requestGpu", "Ground power requested.", GpuAck),
+            ["request ground power"] = new("gsx.requestGpu", "Ground power requested.", GpuAck),
+            ["connect external power"] = new("gsx.requestGpu", "Ground power requested.", GpuAck),
+            ["disconnect ground power"] = new("gsx.disconnectGpu", "Ground power disconnected.", GpuOffAck),
+            ["remove the gpu"] = new("gsx.disconnectGpu", "Ground power disconnected.", GpuOffAck),
         };
 
     /// <summary>The ground-side hail grammar: every service phrase, the start phrases, and the

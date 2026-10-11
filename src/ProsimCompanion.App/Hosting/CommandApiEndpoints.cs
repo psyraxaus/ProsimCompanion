@@ -107,7 +107,10 @@ public static class CommandApiEndpoints
         var logger = loggerFactory.CreateLogger(typeof(CommandApiEndpoints));
         try
         {
-            var result = await registry.ExecuteUntypedAsync(name, request, context.RequestAborted)
+            // Who is calling (issue #169: the departure start names its source). A client may
+            // say so with X-Source (the Stream Deck plugin sends "streamdeck"); a User-Agent
+            // naming the Stream Deck counts too; everything else is "api".
+            var result = await registry.ExecuteUntypedAsync(name, request, context.RequestAborted, CallerSource(context))
                 .ConfigureAwait(false);
 
             if (result is CommandResult commandResult)
@@ -151,6 +154,25 @@ public static class CommandApiEndpoints
     /// <summary>Shared route gate. Returns the refusal result, or null (with the registry) when
     /// the request may proceed. Order matters: a disabled API answers 404 before any auth
     /// probing, so scanners cannot even confirm the surface exists.</summary>
+    /// <summary>The surface behind an HTTP command: an explicit <c>X-Source</c> header wins
+    /// (lower-cased, letters/digits/dashes only so it can be logged as-is), else a Stream
+    /// Deck User-Agent reads as <c>streamdeck</c>, else <c>api</c>.</summary>
+    internal static string CallerSource(HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var header = context.Request.Headers["X-Source"].ToString().Trim().ToLowerInvariant();
+        if (header.Length is > 0 and <= 32 && header.All(c => char.IsAsciiLetterOrDigit(c) || c == '-'))
+        {
+            return header;
+        }
+
+        var userAgent = context.Request.Headers.UserAgent.ToString();
+        return userAgent.Contains("streamdeck", StringComparison.OrdinalIgnoreCase)
+            || userAgent.Contains("stream deck", StringComparison.OrdinalIgnoreCase)
+            ? "streamdeck"
+            : "api";
+    }
+
     private static IResult? Gate(
         HttpContext context,
         CommandApiOptions apiOptions,

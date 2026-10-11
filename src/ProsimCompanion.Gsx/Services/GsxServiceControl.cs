@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Aircraft.Ofp;
+using ProsimCompanion.Core.Commands;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
@@ -48,6 +49,8 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
     private readonly OfpStore _ofpStore;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly GroundOpsSignals _groundOpsSignals;
+    private readonly IGsxDepartureStarter _departure;
+    private readonly IGroundPowerEquipment _groundPower;
     private readonly ILogger<GsxServiceControl> _logger;
     private readonly IDataRefSubscription<double> _jetwayLvar;
     private readonly IDataRefSubscription<double> _fuelTotal;
@@ -69,8 +72,14 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         GsxDiagnosticsStore diagnostics,
         GroundOpsSignals groundOpsSignals,
         IOptionsMonitor<GsxOptions> options,
+        IGsxDepartureStarter departure,
+        IGroundPowerEquipment groundPower,
         ILogger<GsxServiceControl> logger)
     {
+        ArgumentNullException.ThrowIfNull(departure);
+        ArgumentNullException.ThrowIfNull(groundPower);
+        _departure = departure;
+        _groundPower = groundPower;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(slot);
@@ -180,8 +189,58 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
             GsxServiceAction.RetractJetway => await RetractAsync(JetwayServiceId, "jetway", cancellationToken).ConfigureAwait(false),
             GsxServiceAction.RetractStairs => await RetractAsync(StairsServiceId, "stairs", cancellationToken).ConfigureAwait(false),
             GsxServiceAction.ConfirmFuel => await ConfirmFuelAsync(cancellationToken).ConfigureAwait(false),
+            GsxServiceAction.DisconnectGpu => await DisconnectGpuAsync(cancellationToken).ConfigureAwait(false),
             _ => await RequestAsync(action, cancellationToken).ConfigureAwait(false),
         };
+    }
+
+    /// <summary>The surface behind this call: the command registry's async-local when the
+    /// call came through a command (voice / hail / api / streamdeck / command), else a
+    /// direct seam call from a web page.</summary>
+    private static string CallSource => CommandRegistry.CurrentSource ?? "web";
+
+    /// <summary>"Disconnect ground power" (issue #170): the ProSim GPU goes away behind the
+    /// external-power interlock. GSX's GPU service is not triggered — its truck follows.</summary>
+    private async Task<GsxServiceCallOutcome> DisconnectGpuAsync(CancellationToken cancellationToken)
+    {
+        var (result, detail) = await _groundPower.DisconnectGpuAsync(cancellationToken).ConfigureAwait(false);
+        return result switch
+        {
+            GroundPowerResult.Written => new(GsxServiceCallStatus.Called, detail),
+            GroundPowerResult.AlreadyThere => new(GsxServiceCallStatus.AlreadySatisfied, detail),
+            GroundPowerResult.Interlocked => new(GsxServiceCallStatus.NotCallable, detail),
+            _ => new(GsxServiceCallStatus.Rejected, detail),
+        };
+    }
+
+    /// <summary>GSX offers no GPU service at this stand (or lists it as unavailable): the
+    /// crew still gets ground power — the ProSim unit the preparation chain would place — and
+    /// is told which one answered (issue #170).</summary>
+    private async Task<GsxServiceCallOutcome> ConnectProsimGpuAsync(string why, CancellationToken cancellationToken)
+    {
+        var (result, detail) = await _groundPower.ConnectGpuAsync(cancellationToken).ConfigureAwait(false);
+        return result switch
+        {
+            GroundPowerResult.Written => new(GsxServiceCallStatus.Called, $"{why} — ProSim ground power connected instead."),
+            GroundPowerResult.AlreadyThere => new(GsxServiceCallStatus.AlreadySatisfied, $"{why} — {Decapitalize(detail)}"),
+            _ => new(GsxServiceCallStatus.Rejected, $"{why} — {Decapitalize(detail)}"),
+        };
+    }
+
+    /// <summary>Boarding / Refueling called before the departure sequence started (issue
+    /// #169): the cycle starts now, with the pax target armed from the current plan first —
+    /// never GSX's stale count from the previous leg. Returns the refusal when it cannot.</summary>
+    private async Task<GsxServiceCallOutcome?> StartCycleForAsync(GsxServiceAction action, CancellationToken cancellationToken)
+    {
+        if (action is not (GsxServiceAction.RequestBoarding or GsxServiceAction.RequestRefuel) || _departure.Started)
+        {
+            return null;
+        }
+
+        var start = await _departure
+            .StartForServiceCallAsync(CallSource, requirePaxTarget: action == GsxServiceAction.RequestBoarding, cancellationToken)
+            .ConfigureAwait(false);
+        return start.Started ? null : new(GsxServiceCallStatus.NotCallable, start.Refusal ?? "The departure sequence could not be started.");
     }
 
     /// <summary>
@@ -303,7 +362,24 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
             }
         }
 
+        // Issue #169: a hail/command that calls Boarding or Refueling first starts the cycle
+        // (pax target armed from THIS plan), after the plan gate above and before any GSX
+        // state check — a refusal here must read as "load the OFP", not "not callable".
+        if (await StartCycleForAsync(action, cancellationToken).ConfigureAwait(false) is { } startRefusal)
+        {
+            return startRefusal;
+        }
+
         var service = _api.Mirror.Services.GetValueOrDefault(serviceId);
+        if (action == GsxServiceAction.RequestGpu
+            && (service is null || service.State is GsxServiceState.NotAvailable or GsxServiceState.Bypassed))
+        {
+            // Issue #170: no GSX GPU at this stand — the ProSim unit answers the hail instead.
+            return await ConnectProsimGpuAsync(
+                service is null ? "GSX offers no GPU service at this stand" : $"GSX reports its GPU as {service.SemanticState ?? service.State.ToString()}",
+                cancellationToken).ConfigureAwait(false);
+        }
+
         if (service is null)
         {
             return new(
@@ -539,6 +615,7 @@ public sealed class GsxServiceControl : IGsxServiceControl, IDisposable
         GsxServiceAction.RequestJetway => "jetway",
         GsxServiceAction.RequestStairs => "stairs",
         GsxServiceAction.RequestGpu => "the GPU",
+        GsxServiceAction.DisconnectGpu => "the GPU",
         GsxServiceAction.RequestDeice => "de-icing",
         _ => action.ToString(),
     };
