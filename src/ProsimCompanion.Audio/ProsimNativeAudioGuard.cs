@@ -26,6 +26,7 @@ public sealed class ProsimNativeAudioGuard : IDisposable
     private readonly IOptionsMonitor<AudioOptions> _options;
     private readonly ILogger<ProsimNativeAudioGuard> _logger;
     private bool _appliedThisConnection;
+    private int _attemptsThisConnection;
 
     public ProsimNativeAudioGuard(
         IProsimGateway gateway,
@@ -57,6 +58,7 @@ public sealed class ProsimNativeAudioGuard : IDisposable
         {
             // Re-apply on the next connection (a ProSim restart restores its own bindings).
             _appliedThisConnection = false;
+            _attemptsThisConnection = 0;
             return;
         }
 
@@ -91,22 +93,45 @@ public sealed class ProsimNativeAudioGuard : IDisposable
                 }
             }
 
-            if (failed.Count == 0)
+            // Issue #175: the verdict decides whether a failure is worth another attempt. A
+            // reachable gateway refusing every window is ProSim saying the datarefs do not
+            // exist on this build (1.75.1) — one Information line per connection, no retry.
+            var attempt = ++_attemptsThisConnection;
+            var reachable = failed.Count > 0 && await _gateway.IsReachableAsync().ConfigureAwait(false);
+            switch (NativeAudioGuardPolicy.Decide(failed.Count, NativeAudioWindows.Length, reachable, attempt))
             {
-                _logger.LogInformation(
-                    "Cleared {Count} ProSim native audio window bindings", NativeAudioWindows.Length);
-            }
-            else
-            {
-                _appliedThisConnection = false; // retry on the next status change
-                _logger.LogWarning(
-                    "Clearing ProSim native audio bindings failed for: {Windows} — will retry",
-                    string.Join(", ", failed));
+                case NativeAudioGuardVerdict.Cleared:
+                    _logger.LogInformation(
+                        "Cleared {Count} ProSim native audio window bindings", NativeAudioWindows.Length);
+                    break;
+
+                case NativeAudioGuardVerdict.NotPresent:
+                    _logger.LogInformation(
+                        "ProSim native audio window bindings ({Prefix}*) are not on this ProSim build — nothing to clear; skipping until the next connection",
+                        ProsimDataRefNames.AudioWindowsPrefix);
+                    break;
+
+                case NativeAudioGuardVerdict.Retry:
+                    _appliedThisConnection = false; // retry on the next status change
+                    _logger.LogWarning(
+                        "Clearing ProSim native audio bindings failed for: {Windows} (attempt {Attempt} of {Max}) — will retry",
+                        string.Join(", ", failed), attempt, NativeAudioGuardPolicy.MaxAttempts);
+                    break;
+
+                case NativeAudioGuardVerdict.GaveUp:
+                    _logger.LogWarning(
+                        "Clearing ProSim native audio bindings failed for: {Windows} after {Attempt} attempts — giving up until the next ProSim connection",
+                        string.Join(", ", failed), attempt);
+                    break;
             }
         }
         catch (Exception ex)
         {
-            _appliedThisConnection = false;
+            if (++_attemptsThisConnection < NativeAudioGuardPolicy.MaxAttempts)
+            {
+                _appliedThisConnection = false;
+            }
+
             _logger.LogError(ex, "Clearing ProSim native audio bindings failed");
         }
     }

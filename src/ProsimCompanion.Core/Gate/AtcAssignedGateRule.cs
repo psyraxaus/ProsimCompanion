@@ -9,7 +9,8 @@ public enum AtcGateDecision
     None,
 
     /// <summary>A gate seen on the ground before takeoff — the departure stand. Remembered so
-    /// the same text is never taken for the arrival gate later.</summary>
+    /// the same text is never taken for the arrival gate later. Reported once per distinct
+    /// stand; the unchanged reading on every later poll is <see cref="None"/> (issue #175).</summary>
     DepartureGateNoted,
 
     /// <summary>Airborne or after landing, a gate that differs from the departure one, and the
@@ -65,9 +66,13 @@ public sealed class AtcAssignedGateRule
 
         if (IsBeforeTakeoff(phase))
         {
+            // Once per distinct stand (issue #175): flight.json is polled every second and the
+            // 2026-10-10 leg logged the same departure stand 951 times. The stand is still
+            // remembered on every reading; only a change is a new fact worth an event.
+            var noted = !string.Equals(gate, _departureGate, StringComparison.Ordinal);
             _departureGate = gate;
             _lastSeen = gate;
-            return AtcGateDecision.DepartureGateNoted;
+            return noted ? AtcGateDecision.DepartureGateNoted : AtcGateDecision.None;
         }
 
         if (!IsArrivalCandidatePhase(phase))

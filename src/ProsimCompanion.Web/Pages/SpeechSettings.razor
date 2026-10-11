@@ -539,11 +539,11 @@ else if (CurrentSection == "sayIntentions")
         <BoolField Label="Auto-tune frequency" Hint="Tune the matched station before transmitting."
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.AutoTuneFrequency" />
-        <BoolField Label="Departure comms gate" Hint="You make the takeoff request, not the SayIntentions copilot." More="Comms come back to you when you get close to the runway."
-                   Disabled="@(!_sayIntentions.Value.Enabled)"
+        <BoolField Label="Departure comms gate (legacy)" Hint="Legacy: comms come back to you near the runway, using SayIntentions' own distance figure." More="Ignored while the Comms hand-over card below is on — that flow uses the app's runway data and the flight phase, which the legacy gate lacked on the 2026-10-10 flight (it never tripped)."
+                   Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.DepartureGatingEnabled" />
-        <NumberField Label="Gate distance" Hint="Distance from the runway where comms come back to you." Suffix="nm" Step="0.1" Min="0"
-                     Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.DepartureGatingEnabled)"
+        <NumberField Label="Gate distance (legacy)" Hint="Distance from the runway where the legacy gate hands comms back to you." Suffix="nm" Step="0.1" Min="0"
+                     Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.DepartureGatingEnabled || _sayIntentions.Value.CommsHandover.Enabled)"
                      @bind-Value="_sayIntentions.Value.DepartureGateDistanceNm"
                      Default="_sayIntentions.Defaults.DepartureGateDistanceNm" />
         <BoolField Label="Wrong-frequency report" Hint="The FO tells you when COM1 is not on the frequency ATC gave you." More="It uses ATC's last 'Contact … on …' instruction and says it once. It is quiet at the gate, and when it cannot read the instruction."
@@ -556,6 +556,55 @@ else if (CurrentSection == "sayIntentions")
         <BoolField Label="Arrival gate from ATC" Hint="Use the gate SayIntentions ATC assigns as the GSX arrival gate." More="Only a gate that differs from the departure stand and appears from the climb onward counts. A gate you set yourself on the OFP page always wins. After landing the gate goes to GSX straight away. Off by default: the ATC pick may not exist in the loaded scenery."
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.ArrivalGateFromAtc" />
+    </Section>
+
+    <Section Title="Comms hand-over" Hint="Who works the radios in each phase: you or the SayIntentions copilot">
+        <BoolField Label="Hand the radios over by flight phase" Hint="The copilot has them at the gate, on the taxi and in the cruise; you take them at the holding point and on the approach." More="Each hand-over is one FO line and a session event. Say 'I have the radios' or 'you have the radios' to override at any time. Turning this on makes the legacy departure comms gate above irrelevant."
+                   Disabled="@(!_sayIntentions.Value.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.Enabled" />
+        <BoolField Label="Gate: copilot takes the radios" Hint="When SayIntentions starts a flight on the ground the copilot handles clearance, push and start."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.GateToCopilot" />
+        <BoolField Label="FO reads the taxi clearance" Hint="While the copilot has the radios, the FO reads ATC's taxi instruction out to you." More="From SayIntentions' comms history, checked every 20 seconds — the line can lag the exchange by that much."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.ReadTaxiClearance" />
+        <BoolField Label="FO announces hand-offs" Hint="While the copilot has the radios, the FO tells you each 'Contact … on …' ATC gives, on the ground and in the air."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.AnnounceHandoffs" />
+        <BoolField Label="Holding point: you take the radios" Hint="Taxiing out, close to the departure runway, the radios become yours for the takeoff request and clearance." More="The runway comes from the FMS (else SayIntentions' plan) and its threshold from ProSim's runway list or the Navigraph data. Without a known runway this step cannot fire."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointToCaptain" />
+        <NumberField Label="Holding point distance" Hint="How close to the runway threshold counts as the holding point." Suffix="nm" Step="0.05" Min="0.05" Max="2"
+                     Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled || !_sayIntentions.Value.CommsHandover.HoldingPointToCaptain)"
+                     @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointDistanceNm"
+                     Default="_sayIntentions.Defaults.CommsHandover.HoldingPointDistanceNm" />
+        <BoolField Label="Tune Tower at the holding point" Hint="COM1 goes to Tower when you take the radios there, if a Tower frequency is known." More="ATC's last 'Contact Tower on …' first, else the airport's frequency list. Through SayIntentions, never a cockpit switch."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled || !_sayIntentions.Value.CommsHandover.HoldingPointToCaptain)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.TuneTowerAtHoldingPoint" />
+        <BoolField Label="Climb: copilot takes the radios back" Hint="After the takeoff clearance and the first departure hand-off, at the climb."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.ClimbToCopilot" />
+        <BoolField Label="Approach: you take the radios" Hint="For the landing clearance — at the approach, or as soon as ATC hands you to Tower in the descent."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.ApproachToCaptain" />
+        <BoolField Label="Taxi in: copilot takes the radios back" Hint="Once you are off the runway."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.TaxiInToCopilot" />
+        <BoolField Label="Voice override" Hint="'I have the radios' / 'you have the radios' flips who has them, at any time."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.VoiceOverride" />
+        <TextField Label="FO line at the holding point" Hint="Spoken when you take the radios at the holding point."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointLine" />
+        <TextField Label="FO line on the approach" Hint="Spoken when you take the radios for the landing."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.ApproachLine" />
+        <TextField Label="FO line when the copilot takes the radios" Hint="Spoken at the gate, in the climb and on the taxi in."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.CopilotLine" />
+        <TextField Label="FO line when you take the radios by voice" Hint="Spoken after 'I have the radios'."
+                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
+                   @bind-Value="_sayIntentions.Value.CommsHandover.CaptainLine" />
     </Section>
 
     <Section Title="SayIntentions Weather" Hint="ATIS, METAR, TAF and CPDLC. Needs only the API key">

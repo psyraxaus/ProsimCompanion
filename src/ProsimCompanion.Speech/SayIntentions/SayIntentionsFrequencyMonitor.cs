@@ -25,6 +25,10 @@ namespace ProsimCompanion.Speech.SayIntentions;
 /// </summary>
 public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule, IDisposable
 {
+    /// <summary>One ATC → pilot line on COM1 (English text when SayIntentions gives it, else
+    /// the spoken form) with the hand-off it carries, if any.</summary>
+    internal sealed record AtcTransmission(long Id, string Text, AssignedFrequency? Handoff);
+
     private const string ApiBase = "https://apipri.sayintentions.ai/sapi";
     private const int TickMs = 5000;
 
@@ -56,6 +60,16 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
     private DateTimeOffset _lastHistoryOkUtc = DateTimeOffset.MinValue;
     private DateTimeOffset _lastCorrectPollUtc = DateTimeOffset.MinValue;
     private AssignedFrequency? _announcedAssignment;
+    private bool _historySeeded;
+
+    /// <summary>One ATC → pilot transmission on COM1 from the comms history, with its hand-off
+    /// when the text carries one. Raised on the monitor's tick thread for every entry newer
+    /// than the last poll — never for the backlog of the first poll. The comms hand-over
+    /// (issue #171) reads taxi clearances and announces hand-offs from it.</summary>
+    internal event Action<AtcTransmission>? AtcTransmissionObserved;
+
+    /// <summary>The frequency ATC last assigned, as the tracker knows it (null = unknown).</summary>
+    internal AssignedFrequency? CurrentAssignment => _tracker.Current;
 
     public SayIntentionsFrequencyMonitor(
         IOptionsMonitor<SayIntentionsOptions> options,
@@ -135,7 +149,10 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         {
             var options = _options.CurrentValue;
             // Flight-live gate (issue #114): ProSim pushes plausible data with no MSFS session.
-            if (!options.Enabled || !options.FrequencyMonitorEnabled
+            // The history poll also serves the comms hand-over (issue #171), so it runs while
+            // either feature is on; the advisory itself stays behind its own switch.
+            var historyWanted = options.FrequencyMonitorEnabled || options.CommsHandover.Enabled;
+            if (!options.Enabled || !historyWanted
                 || !_flight.IsLive || !IsWatchedPhase(_flight.CurrentPhase))
             {
                 _watch.Reset();
@@ -173,7 +190,11 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
                 ? (int)Math.Round(com1.Value)
                 : 0;
             var wait = TimeSpan.FromSeconds(Math.Max(10, options.FrequencyMonitorWaitSeconds));
-            if (_watch.Step(now, assigned, com1Khz, wait) is { } advisory)
+            if (!options.FrequencyMonitorEnabled)
+            {
+                _watch.Reset();
+            }
+            else if (_watch.Step(now, assigned, com1Khz, wait) is { } advisory)
             {
                 Speak(advisory);
             }
@@ -209,8 +230,18 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
 
             var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var (flightId, entries) = CommHistory.Parse(body);
+            var sinceId = _tracker.LastId;
             _tracker.ApplyHistory(flightId, entries);
             _lastHistoryOkUtc = DateTimeOffset.UtcNow;
+
+            // The first poll of a session returns the flight's whole backlog — seed only.
+            // A new SayIntentions flight resets the tracker's id, which re-seeds.
+            if (_historySeeded && _tracker.LastId > sinceId)
+            {
+                RaiseTransmissions(entries, sinceId);
+            }
+
+            _historySeeded = true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -219,6 +250,41 @@ public sealed class SayIntentionsFrequencyMonitor : Core.Hosting.IStartupModule,
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "SayIntentions getCommsHistory failed");
+        }
+    }
+
+    /// <summary>Hands every new COM1 ATC transmission (id above <paramref name="sinceId"/>, in
+    /// id order) to <see cref="AtcTransmissionObserved"/>; a handler fault never stops the poll.</summary>
+    private void RaiseTransmissions(IReadOnlyList<CommEntry> entries, long sinceId)
+    {
+        var handler = AtcTransmissionObserved;
+        if (handler is null)
+        {
+            return;
+        }
+
+        foreach (var entry in entries.Where(e => e.Id > sinceId).OrderBy(e => e.Id))
+        {
+            if (!entry.Channel.Equals("COM1", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var text = string.IsNullOrWhiteSpace(entry.OutgoingEnglish) ? entry.Outgoing : entry.OutgoingEnglish;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                continue; // pilot → ATC, or an empty line
+            }
+
+            var handoff = HandoffParser.Parse(entry.Outgoing) ?? HandoffParser.Parse(entry.OutgoingEnglish);
+            try
+            {
+                handler(new AtcTransmission(entry.Id, text.Trim(), handoff));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "ATC transmission handler failed");
+            }
         }
     }
 

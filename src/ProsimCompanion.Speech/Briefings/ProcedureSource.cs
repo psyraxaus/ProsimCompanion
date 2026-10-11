@@ -37,6 +37,15 @@ public sealed class ProcedureSource : IDisposable
     private string? _lastXml;
     private FmsPlan _cachedPlan = FmsPlan.Empty;
 
+    // Issue #175: Resolve is called by tick-driven consumers (the pushback advisor on every
+    // GSX store push — 11 113 "Procedure source" lines on 2026-10-11, 447 in one minute), so
+    // the result is logged only when it differs from the last one for that role, and the
+    // flight.json tier is read from disk at most once a second.
+    private readonly string?[] _lastLogged = new string?[2];
+    private FlightJsonRoute? _flightJsonMemo;
+    private DateTimeOffset _flightJsonMemoAtUtc;
+    private static readonly TimeSpan FlightJsonMemoTtl = TimeSpan.FromSeconds(1);
+
     public ProcedureSource(
         IOptionsMonitor<BriefingOptions> options,
         IProsimDataRefs dataRefs,
@@ -55,7 +64,24 @@ public sealed class ProcedureSource : IDisposable
     }
 
     public ProcedureIdentifiers Resolve(bool departure)
-        => Resolve(departure, FlightJsonRouteReader.Read());
+        => Resolve(departure, FlightJsonTier());
+
+    /// <summary>flight.json, re-read at most once per <see cref="FlightJsonMemoTtl"/>: the
+    /// file changes about once a second and the callers tick far more often than that.</summary>
+    private FlightJsonRoute FlightJsonTier()
+    {
+        lock (_gate)
+        {
+            var now = DateTimeOffset.UtcNow;
+            if (_flightJsonMemo is null || now - _flightJsonMemoAtUtc >= FlightJsonMemoTtl)
+            {
+                _flightJsonMemo = FlightJsonRouteReader.Read();
+                _flightJsonMemoAtUtc = now;
+            }
+
+            return _flightJsonMemo;
+        }
+    }
 
     /// <summary>Testable core — the flight.json tier is injected.</summary>
     public ProcedureIdentifiers Resolve(bool departure, FlightJsonRoute flightJson)
@@ -126,10 +152,23 @@ public sealed class ProcedureSource : IDisposable
             }
         }
 
-        _logger.LogInformation("Procedure source ({Role}, {Mode}): {Airport}/{Runway} sid={Sid} star={Star} appr={Appr} [{Provenance}]",
-            departure ? "departure" : "arrival", options.ProcedureSource,
-            airport ?? "-", runway ?? "-", sid ?? "-", star ?? "-", approach ?? "-",
-            string.Join(", ", provenance.Select(p => $"{p.Key}={p.Value}")));
+        var provenanceText = string.Join(", ", provenance.Select(p => $"{p.Key}={p.Value}"));
+        var signature = $"{options.ProcedureSource}|{airport}|{runway}|{sid}|{star}|{approach}|{provenanceText}";
+        var slot = departure ? 0 : 1;
+        bool changed;
+        lock (_gate)
+        {
+            changed = !string.Equals(signature, _lastLogged[slot], StringComparison.Ordinal);
+            _lastLogged[slot] = signature;
+        }
+
+        if (changed)
+        {
+            _logger.LogInformation("Procedure source ({Role}, {Mode}): {Airport}/{Runway} sid={Sid} star={Star} appr={Appr} [{Provenance}]",
+                departure ? "departure" : "arrival", options.ProcedureSource,
+                airport ?? "-", runway ?? "-", sid ?? "-", star ?? "-", approach ?? "-", provenanceText);
+        }
+
         return new ProcedureIdentifiers(airport, runway, sid, star, approach, provenance);
     }
 
@@ -156,11 +195,18 @@ public sealed class ProcedureSource : IDisposable
             if (xml != _lastXml)
             {
                 _lastXml = xml;
-                _cachedPlan = FmsPlanParser.Parse(xml);
-                _logger.LogInformation("FMS plan: {Origin}/{DepRwy} {Sid} → {Dest}/{ArrRwy} {Star} alt {Alt}",
-                    _cachedPlan.Origin ?? "-", _cachedPlan.OriginRunway ?? "-", _cachedPlan.Sid ?? "-",
-                    _cachedPlan.Destination ?? "-", _cachedPlan.DestinationRunway ?? "-",
-                    _cachedPlan.Star ?? "-", _cachedPlan.Alternate ?? "-");
+                var parsed = FmsPlanParser.Parse(xml);
+                // The raw XML changes with the aircraft's progress (every second in the
+                // 2026-10-11 log) while the identifiers do not — log the parse, not the bytes.
+                if (parsed != _cachedPlan)
+                {
+                    _logger.LogInformation("FMS plan: {Origin}/{DepRwy} {Sid} → {Dest}/{ArrRwy} {Star} alt {Alt}",
+                        parsed.Origin ?? "-", parsed.OriginRunway ?? "-", parsed.Sid ?? "-",
+                        parsed.Destination ?? "-", parsed.DestinationRunway ?? "-",
+                        parsed.Star ?? "-", parsed.Alternate ?? "-");
+                }
+
+                _cachedPlan = parsed;
             }
 
             return _cachedPlan;

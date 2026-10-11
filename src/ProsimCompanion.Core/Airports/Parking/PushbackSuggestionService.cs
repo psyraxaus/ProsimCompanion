@@ -74,7 +74,7 @@ public sealed class PushbackSuggestionService : IStartupModule, IDisposable
     public void Start()
     {
         _ofp.Changed += OnTrigger;
-        _gsxSubscription = _gsx.Observe(_ => OnTrigger(this, EventArgs.Empty));
+        _gsxSubscription = _gsx.Observe(_ => OnGsxTrigger());
         _loop = Task.Run(LoopAsync);
     }
 
@@ -88,6 +88,27 @@ public sealed class PushbackSuggestionService : IStartupModule, IDisposable
     }
 
     private void OnTrigger(object? sender, EventArgs e) => _ = EvaluateAsync();
+
+    /// <summary>GSX store pushes arrive several times a second while a service runs (every
+    /// seat write on the 2026-10-10 leg); each one used to re-resolve the departure runway and
+    /// re-log the procedure source (issue #175). The stand or gate context cannot change that
+    /// often — one evaluation per <see cref="GsxTriggerMinInterval"/> is plenty, and the 15 s
+    /// tick catches anything that fell between.</summary>
+    private static readonly TimeSpan GsxTriggerMinInterval = TimeSpan.FromSeconds(3);
+    private long _lastGsxTriggerTicks;
+
+    private void OnGsxTrigger()
+    {
+        var now = DateTimeOffset.UtcNow.UtcTicks;
+        var last = Interlocked.Read(ref _lastGsxTriggerTicks);
+        if (now - last < GsxTriggerMinInterval.Ticks)
+        {
+            return;
+        }
+
+        Interlocked.Exchange(ref _lastGsxTriggerTicks, now);
+        _ = EvaluateAsync();
+    }
 
     private async Task LoopAsync()
     {
@@ -216,10 +237,13 @@ public sealed class PushbackSuggestionService : IStartupModule, IDisposable
         });
     }
 
-    private (string Key, RunwayGeometry? Geometry)? _runwayCache;
+    private readonly RunwayLookupCache _runwayCache = new();
 
-    /// <summary>Runway geometry, remembered per (airport, runway) so the 15 s tick never
-    /// re-queries the gateway or the DFD for the same answer; a null answer is retried.</summary>
+    /// <summary>Runway geometry, remembered per (airport, runway, OFP request) so neither the
+    /// 15 s tick nor a GSX store push re-queries the gateway or the DFD for an answer it has —
+    /// a miss included (issue #175: a null answer used to be retried on every evaluation,
+    /// 1 435 gateway round-trips in one leg). A miss is asked again after
+    /// <see cref="RunwayLookupCache.MissRetryAfter"/>.</summary>
     private async Task<RunwayGeometry?> RunwayAsync(string icao, string? runwayIdent)
     {
         if (runwayIdent is null)
@@ -227,14 +251,15 @@ public sealed class PushbackSuggestionService : IStartupModule, IDisposable
             return null;
         }
 
-        var key = $"{icao}|{runwayIdent}";
-        if (_runwayCache is { } cached && cached.Key == key && cached.Geometry is not null)
+        var key = RunwayLookupCache.Key(icao, runwayIdent, _ofp.Current?.RequestId);
+        var now = DateTimeOffset.UtcNow;
+        if (_runwayCache.TryGet(key, now, out var cached))
         {
-            return cached.Geometry;
+            return cached;
         }
 
         var geometry = await _runways.FindAsync(icao, runwayIdent, _stopping.Token).ConfigureAwait(false);
-        _runwayCache = (key, geometry);
+        _runwayCache.Store(key, geometry, DateTimeOffset.UtcNow);
         return geometry;
     }
 

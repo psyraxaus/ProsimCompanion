@@ -122,7 +122,51 @@ reassignment) replaces it. `AtcAssignedGateRule` (Core, pure) therefore:
 - resets on ColdAndDark / Shutdown so a turnaround back to the same stand works.
 
 Every decision but "nothing new" is a `sayintentions.arrival-gate` session event
-(`gate`, `phase`, `decision`). Unknown until a flight: when SayIntentions changes
-`assigned_gate` on arrival (approach or only after landing), and whether its pick exists in the
-loaded scenery — a miss falls into the normal `gsx-gate-not-found` diagnostics. Probe
-`si-arrival-gate-from-atc`.
+(`gate`, `phase`, `decision`). `DepartureGateNoted` is reported once per distinct stand text
+(issue #175 — the 2026-10-10 leg logged it 951 times, once per poll). Unknown until a flight:
+when SayIntentions changes `assigned_gate` on arrival (approach or only after landing), and
+whether its pick exists in the loaded scenery — a miss falls into the normal
+`gsx-gate-not-found` diagnostics. Probe `si-arrival-gate-from-atc`.
+
+## Request text and the stand (issue #140, 2026-10-11)
+
+`atc-requests.json` templates are filled by `AtcRequestTemplate` (Speech, pure): a template
+is a list of comma-separated clauses and a clause whose token has no value is dropped whole —
+all four requests of the 2026-10-10 flight went out as "Ground, Finnair-one-three-six-one,
+stand , request push and start" because `assigned_gate` was empty when the pilot asked.
+`{gate}` falls back to the stand GSX loaded when SayIntentions has none: the pushback
+advisor's resolved stand (`PushbackChoiceStore.Stand`, "Gate 208"), else the GSX gate
+context's last `|` segment ("Stand 546R"); a "stand {gate}" / "gate {gate}" label strips the
+value's own Gate/Stand word ("stand 208"). Ground phases only. The `sayintentions.request`
+event carries `standFrom` (`sayintentions` | `gsx` | `none`). Probe `si-request-stand-fragment`.
+
+## Comms hand-over by flight phase (issue #171, 2026-10-11, opt-in)
+
+`sayIntentions.commsHandover.*` (master `enabled`, off by default; every step its own switch,
+texts editable) decides who works the radios from the app's own facts — the committed phase
+edges, the departure runway threshold (FMS runway via the briefing procedure source, else
+flight.json's; geometry from the gateway runway list, else the DFD; cached per runway) and
+ATC's hand-offs from the comms history — never flight.json's `distance_to_runway`, which was
+absent on both 2026-10-10 departures and left the legacy `departureGatingEnabled` gate dead
+(zero `sayintentions.departureGate` events, no `SIAI_COPILOT` writes). With the master on the
+legacy gate is ignored; the voice takeoff request no longer hands the radios back either.
+
+| Step | Trigger | `SIAI_COPILOT` | FO line (default) |
+|---|---|---|---|
+| (a) gate | new active SI flight on the ground | 1 | "I have the radios." |
+| (b) taxi | copilot owns; new COM1 ATC lines from `getCommsHistory` | — | "Taxi clearance: …" / "ATC handed us to Tower, one one niner decimal seven." |
+| (c) holding point | TaxiOut and ≤ `holdingPointDistanceNm` (0.3) from the threshold, once per taxi | 0, Tower tuned via setFreq when known | "Comms are yours, Captain — call the takeoff request when ready." |
+| (d) climb | Climb phase edge (Cruise edge as the safety net when Climb was skipped) | 1 | "I have the radios." |
+| (e) cruise/descent | copilot owns; hand-offs announced, wrong-frequency report as before | — | |
+| (f) approach | Approach phase edge, or the first Tower hand-off heard in Descent | 0 | "Comms are yours for the landing, Captain." |
+| (g) taxi in | TaxiIn phase edge | 1 | "I have the radios." |
+| override | "I have the radios" / "you have the radios" (voice) | 0 / 1 | "Your radios." / "I have the radios." |
+
+`CommsHandoverCore` (Speech, pure) holds the owner and emits at most one decision per call,
+never more than one automatic hand-over per phase edge; the shell in `SayIntentionsService`
+writes the setVar, speaks the line and records `sayintentions.comms` {`owner`, `trigger`,
+`phase`, `text`}. The readouts are `sayintentions.atc-readout` {`kind`, `text`, `source`};
+they come from `SayIntentionsFrequencyMonitor`'s history poll (20 s), which now runs while
+either feature is on, and only while the copilot owns the radios. Unverified live: whether
+the SI copilot really goes quiet on `SIAI_COPILOT=0` mid-taxi and resumes on 1, and whether
+the FO's own "I have the radios." line survives the self-echo guard. Probe `si-comms-handover`.
