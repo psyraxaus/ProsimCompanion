@@ -194,6 +194,9 @@ else if (CurrentSection == "listening")
             <NumberField Label="Ask 'did you mean' below" Hint="A match between the score above and this one makes the FO ask 'Did you mean …?' instead of acting." More="Set it equal to the match score to never ask." Step="0.05" Min="0.3" Max="1"
                          @bind-Value="_speech.Value.ConfirmBelowScore"
                          Default="_speech.Defaults.ConfirmBelowScore" />
+            <NumberField Label="No 'did you mean' below" Hint="Airborne below this radio height the FO never asks 'Did you mean …?'. The takeoff roll, initial climb and landing rollout are always quiet." More="In those moments an FMA read or capture call that matched at 0.70 or better is simply acknowledged ('Checked.'), and anything else is let go without a word — a question over the roll or 'did you mean gear up?' in the climb is the worst chatter there is. 0 = only the three phases." Suffix="ft" Min="0" Max="5000" Step="100"
+                         @bind-Value="_speech.Value.ClarifierMinAglFt"
+                         Default="_speech.Defaults.ClarifierMinAglFt" />
             <NumberField Label="Offline engine confidence" Hint="Minimum confidence the Windows engine must report. Not used with a LAN server." Step="0.05" Min="0" Max="1"
                          @bind-Value="_speech.Value.RecognitionConfidenceThreshold"
                          Default="_speech.Defaults.RecognitionConfidenceThreshold" />
@@ -217,6 +220,10 @@ else if (CurrentSection == "listening")
                          Disabled="@(!_speech.Value.MuteMicWhileSpeaking)"
                          @bind-Value="_speech.Value.MicTailAfterSpeakingMs"
                          Default="_speech.Defaults.MicTailAfterSpeakingMs" />
+            <NumberField Label="Own-words window" Hint="How long after the FO said something a transcript repeating it is taken for the FO's own voice and dropped. Lower it if your replies that echo the FO's words are lost; raise it for a long speaker delay." More="Your answer to a 'did you mean …?' and the open checklist line's expected reply are never dropped, whatever the window." Suffix="s" Min="0" Max="120" Step="1"
+                         Disabled="@(!_speech.Value.MuteMicWhileSpeaking)"
+                         @bind-Value="_speech.Value.SelfEchoWindowSeconds"
+                         Default="_speech.Defaults.SelfEchoWindowSeconds" />
             <NumberField Label="VAD threshold" Hint="Raise it if noise triggers the FO. Lower it if quiet commands are missed." Step="0.05" Min="0.1" Max="0.95"
                          Disabled="@(!SileroSelected)"
                          @bind-Value="_speech.Value.VadThreshold"
@@ -865,9 +872,14 @@ else if (CurrentSection == "briefing")
                    @bind-Value="_speech.Value.FoQuestions.Enabled" />
         <BoolField Label="Small talk and fun facts"
                    Hint="Ask anything: 'who is better, Chelsea or Arsenal', 'tell me a fun fact', 'what is the capital of Peru'. The FO answers from general knowledge, in character, one or two light sentences."
-                   More="A question that mentions the flight (fuel, weights, speeds, altitude, runway, weather, times, passengers…) still takes the strict path: fact sheet only, every number verified. On the small-talk path numbers are not verified — they are trivia — but a sentence about this flight with a figure in it is refused and the FO says 'I don't have a verified answer for that'. With this on, no lead-in word is needed: any sentence of four words or more that matched nothing else goes to the FO. Still speech only, still silent in the sterile cockpit."
+                   More="A question that mentions the flight (fuel, weights, speeds, altitude, runway, weather, times, passengers…) still takes the strict path: fact sheet only, every number verified. On the small-talk path numbers are not verified — they are trivia — but a sentence about this flight with a figure in it is refused and the FO says 'I don't have a verified answer for that'. With this on, no lead-in word is needed: any sentence of four words or more that matched nothing else and is shaped like a question (a question word up front, or the recognizer's question mark) goes to the FO; a plain remark is not sent. Still speech only, still silent in the sterile cockpit."
                    Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                    @bind-Value="_speech.Value.FoQuestions.SmallTalk" />
+        <BoolField Label="Answer acknowledgements with 'Roger'"
+                   Hint="'No questions, thank you for the briefing', 'copied', 'okay thanks': on, the FO says 'Roger.'; off, nothing at all."
+                   More="Either way such words never go to the language model and never earn a 'didn't catch that'. With small talk on, only something shaped like a question (a question word up front, or a question mark from the recognizer) is sent to the model."
+                   Disabled="@(!_speech.Value.FoQuestions.Enabled)"
+                   @bind-Value="_speech.Value.FoQuestions.AcknowledgeSmallTalk" />
         <BoolField Label="'What are we flying over?'"
                    Hint="Ask 'what are we flying over', 'where are we', 'what is that city on the left'. The FO names the country, the mountains or sea, and the nearest towns with distance and side — at once, from an atlas in the app — then adds a fact or two about them."
                    More="The position line comes from a built-in offline atlas (Natural Earth outlines, GeoNames towns — see the manual for the attribution), never from the language model, so it needs no internet and is always the same for the same spot. The facts after it come from the LLM: with 'Wikipedia facts' off, from its own knowledge, like small talk (numbers unverified, nothing about this flight). No lead-in word or minimum length is needed for these phrases. Works with small talk off."

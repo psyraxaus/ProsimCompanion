@@ -42,6 +42,45 @@ public sealed class SpokenNumberTextTests
         Assert.Equal("163. 250", SpokenNumberText.ToDigits("one six three. two five zero"));
     }
 
+    // ---- issue #177: the V-speed designator glued to its figure (2026-10-10 23:47:51 departure briefing) ----
+
+    [Theory]
+    [InlineData("V one one four four, rotate one five zero, V two one five four", "V1 144, rotate 150, V2 154")]
+    [InlineData("vee one one four four", "V1 144")]
+    [InlineData("V-one one four four", "V1 144")]
+    [InlineData("V two 154", "V2 154")]
+    [InlineData("V one, rotate, V two", "V one, rotate, V two")]
+    [InlineData("v r one five zero", "v r 150")]
+    public void AVSpeedDesignator_IsSplitFromItsFigure(string text, string expected)
+        => Assert.Equal(expected, SpokenNumberText.ToDigits(text));
+
+    [Fact]
+    public void TheVerifier_PassesTheBriefingsVSpeeds_InsteadOfReading1144()
+    {
+        double[] allowed = [144, 150, 154, 1013];
+        var sentence = "V one one four four, rotate one five zero, V two one five four.";
+
+        var check = NumberVerifier.Check(SpokenNumberText.ToDigits(sentence), allowed);
+
+        Assert.True(check.Ok, string.Join(", ", check.Offending));
+        // A genuinely wrong V-speed is still caught.
+        Assert.False(NumberVerifier.Check(SpokenNumberText.ToDigits("V one one four six."), allowed).Ok);
+    }
+
+    [Theory]
+    [InlineData("V1144 and V2154", "V1 144 and V2 154")]
+    [InlineData("VR150", "VR 150")]
+    [InlineData("V1 144", "V1 144")]
+    [InlineData("flight level 1144", "flight level 1144")]
+    public void DigitForm_V1144_IsSplitForTheVerifier(string narrative, string expected)
+    {
+        Assert.Equal(expected, NumberVerifier.SplitVSpeedDigits(narrative));
+        if (narrative.StartsWith("V1144", StringComparison.Ordinal))
+        {
+            Assert.True(NumberVerifier.Check(narrative, [144, 154]).Ok);
+        }
+    }
+
     [Fact]
     public void AnAndThatIsNotInsideAMagnitude_IsJustAWord()
         => Assert.Equal("250 and 14", SpokenNumberText.ToDigits("two five zero and one four"));

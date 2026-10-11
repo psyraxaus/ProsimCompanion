@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Checklists;
+using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Checklists;
@@ -82,6 +85,10 @@ public sealed class UtteranceRouter : IDisposable
     private readonly IFreeFormQuestionHandler? _questions;
     // Optional: the heard-but-not-understood bookkeeping (issue #112).
     private readonly UnmatchedUtteranceTracker? _unmatched;
+    // Optional: the live speech options — the clarifier's altitude floor (issue #177).
+    private readonly IOptionsMonitor<SpeechOptions>? _options;
+    // Optional: what the FO is waiting to hear, for the self-echo guard (issue #172).
+    private readonly ExpectedReplyStore? _expectedReplies;
     private IChecklistRoutingHost? _host;
     private bool _started;
     private bool _llmOfflineAdvisoryGiven; // once per session (issue #66)
@@ -100,7 +107,9 @@ public sealed class UtteranceRouter : IDisposable
         ILogger<UtteranceRouter> logger,
         Core.Flight.IFlightPhaseSource? flightPhase = null,
         IFreeFormQuestionHandler? questions = null,
-        UnmatchedUtteranceTracker? unmatched = null)
+        UnmatchedUtteranceTracker? unmatched = null,
+        IOptionsMonitor<SpeechOptions>? options = null,
+        ExpectedReplyStore? expectedReplies = null)
     {
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
@@ -128,13 +137,29 @@ public sealed class UtteranceRouter : IDisposable
         _flightPhase = flightPhase;
         _questions = questions;
         _unmatched = unmatched;
+        _options = options;
+        _expectedReplies = expectedReplies;
     }
 
-    /// <summary>Attaches the checklist run loop; called by the engine before Start.</summary>
+    /// <summary>Attaches the checklist run loop; called by the engine before Start. The open
+    /// item's accepted phrases and expected response become expected replies for the
+    /// self-echo guard (issue #172) — read lazily, so always the item open at that instant.</summary>
     public void Attach(IChecklistRoutingHost host)
     {
         ArgumentNullException.ThrowIfNull(host);
         _host = host;
+        _expectedReplies?.RegisterAwaitingSource(() =>
+        {
+            var item = host.AwaitingItem;
+            if (item is null)
+            {
+                return [];
+            }
+
+            return item.ExpectedResponse is { Length: > 0 } expected
+                ? [.. item.AcceptedPhrases, expected]
+                : item.AcceptedPhrases;
+        });
     }
 
     /// <summary>Subscribes recognition + mic events and opens the idle window. Driven by the
@@ -306,6 +331,28 @@ public sealed class UtteranceRouter : IDisposable
             case InterpretKind.Confirm:
                 // Gray band (score 0.70–0.85, command windows only): "did you mean …?" — the
                 // predecessor's affirm-gated recovery instead of silently discarding it.
+                // In a sterile moment (issue #177, 2026-10-11: a clarifier over the takeoff
+                // roll's FMA read, "did you mean gear up?" in the initial climb) there is no
+                // question: an acknowledge-only phrase at the sterile floor or better fires
+                // as heard — a wrong guess costs one "Checked." — and anything else is absorbed.
+                if (IsSterileForClarifier())
+                {
+                    if (interpretation.Score >= SterileAcceptScore && IsAcknowledgeOnlyPhrase(interpretation.Text))
+                    {
+                        _logger.LogInformation(
+                            "Gray-band match \"{Candidate}\" ({Score:F2}) accepted without a clarifier in a sterile moment ({Phase})",
+                            interpretation.Text, interpretation.Score, _flightPhase?.CurrentPhase);
+                        RouteText(host, interpretation.Text, awaiting, e.Text, interpretation.Score);
+                        return;
+                    }
+
+                    _logger.LogDebug(
+                        "Clarifier for \"{Candidate}\" ({Score:F2}) withheld in a sterile moment ({Phase})",
+                        interpretation.Text, interpretation.Score, _flightPhase?.CurrentPhase);
+                    _unmatched?.Record(e.Text, interpretation.Score, "idle", UnmatchedReason.ClarifierWithheld, suppressed: true);
+                    return;
+                }
+
                 _ = ConfirmAndRouteAsync(host, interpretation.Text, e.Text, interpretation.Score);
                 return;
         }
@@ -356,12 +403,28 @@ public sealed class UtteranceRouter : IDisposable
     /// advisory that explains WHY free-form phrasing is falling flat.</summary>
     private void HandleIdleMiss(string rawText, double score, UnmatchedReason reason)
     {
+        // "Read back …" is a read-back, whatever the figure parser made of it (issue #148,
+        // 2026-10-10: "Read back altimeter 1013." went to the language model, which had
+        // nothing to say). The value parsers get one more look at it here, and it never
+        // becomes a question — with read-backs switched off it ends on the did-not-catch line.
+        var readBackPrefixed = Monitoring.ReadbackCore.HasReadBackPrefix(rawText);
+        if (readBackPrefixed)
+        {
+            foreach (var feature in _features.Where(f => f.Enabled && f.ValueParse))
+            {
+                if (feature.TryHandle(rawText))
+                {
+                    return;
+                }
+            }
+        }
+
         // A free-form question (issue #149) is the last thing tried before the did-not-catch
         // line — only on the free-text engine, only when the handler takes it. It gets the
         // RAW transcription: the snapper may have bent a question towards a phrase nobody
         // then claimed. Known phrases never reach here, so they always win. A question the
         // model answered is NOT an unmatched utterance (issue #112).
-        if (_questions is { Enabled: true } questions && _recognition.FreeFormCapable && questions.TryAsk(rawText))
+        if (!readBackPrefixed && _questions is { Enabled: true } questions && _recognition.FreeFormCapable && questions.TryAsk(rawText))
         {
             return;
         }
@@ -532,16 +595,30 @@ public sealed class UtteranceRouter : IDisposable
             string? answer;
             using (scope)
             {
-                await _arbiter.EnqueueAsync(new SpeechRequest(
-                    $"Say again — did you mean {candidate}?", SpeechPriority.Normal, Tag: "clarifier"))
-                    .ConfigureAwait(false);
-                answer = await _micOwnership.ListenAsync(
-                    ConfirmVocabulary.All, TimeSpan.FromSeconds(8), CancellationToken.None)
-                    .ConfigureAwait(false);
+                // The candidate is what the pilot is about to say back (issue #172): the
+                // self-echo guard must not take "flight directors off" for the FO's own
+                // "did you mean flight directors off?" heard through the speakers.
+                _expectedReplies?.SetClarifier(candidate);
+                try
+                {
+                    await _arbiter.EnqueueAsync(new SpeechRequest(
+                        $"Say again — did you mean {candidate}?", SpeechPriority.Normal, Tag: "clarifier"))
+                        .ConfigureAwait(false);
+                    answer = await _micOwnership.ListenAsync(
+                        [.. ConfirmVocabulary.All, candidate], TimeSpan.FromSeconds(8), CancellationToken.None)
+                        .ConfigureAwait(false);
+                }
+                finally
+                {
+                    _expectedReplies?.SetClarifier(null);
+                }
             }
 
+            // "Yes" — or the candidate said again, clearly this time (2026-10-10: the pilot
+            // answered "Flight directors off." and lost the command to a "no").
             if (answer is not null
-                && ConfirmVocabulary.Affirm.Any(a => answer.Contains(a, StringComparison.OrdinalIgnoreCase)))
+                && (ConfirmVocabulary.Affirm.Any(a => answer.Contains(a, StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(CommandMatcher.Normalize(answer), CommandMatcher.Normalize(candidate), StringComparison.Ordinal)))
             {
                 RouteText(host, candidate, host.AwaitingItem, heard, score);
             }
@@ -554,6 +631,44 @@ public sealed class UtteranceRouter : IDisposable
         {
             _logger.LogWarning(ex, "Confirm dialogue failed for {Candidate}", candidate);
         }
+    }
+
+    /// <summary>The gray-band floor at which an acknowledge-only phrase fires without the
+    /// clarifier in a sterile moment (issue #177) — the snapper's own floor, where "did you
+    /// mean" would otherwise begin.</summary>
+    internal const double SterileAcceptScore = 0.70;
+
+    /// <summary>No "did you mean …?" here: the takeoff roll, initial climb and landing rollout
+    /// whatever the height, and airborne below <c>speech.clarifierMinAglFt</c> on the radio
+    /// altimeter (issue #177). Without a phase source (bare router) never sterile.</summary>
+    private bool IsSterileForClarifier()
+    {
+        if (_flightPhase is null)
+        {
+            return false;
+        }
+
+        var view = _flightPhase.Snapshot();
+        if (view.Phase is Core.Flight.FlightPhase.TakeoffRoll
+            or Core.Flight.FlightPhase.InitialClimb
+            or Core.Flight.FlightPhase.LandingRollout)
+        {
+            return true;
+        }
+
+        var floor = _options?.CurrentValue.ClarifierMinAglFt ?? 1000;
+        return floor > 0
+            && view.Phase.IsAirborne()
+            && view.Data is { IsValid: true, OnGround: false } data
+            && data.RadioAltitudeFt < floor;
+    }
+
+    /// <summary>True when the (snapped) phrase belongs to an enabled acknowledge-only feature.</summary>
+    private bool IsAcknowledgeOnlyPhrase(string phrase)
+    {
+        var normalized = CommandMatcher.Normalize(phrase);
+        return _features.Any(f => f.Enabled && f.AcknowledgeOnly
+            && f.Phrases.Any(p => string.Equals(CommandMatcher.Normalize(p), normalized, StringComparison.Ordinal)));
     }
 
     /// <summary>

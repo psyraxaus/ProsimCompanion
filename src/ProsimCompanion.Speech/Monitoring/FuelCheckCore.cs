@@ -13,6 +13,10 @@ namespace ProsimCompanion.Speech.Monitoring;
 /// <param name="Navlog">The OFP navlog (may be empty).</param>
 /// <param name="PlannedLandingKg">OFP planned landing fuel; 0 when unknown.</param>
 /// <param name="EtaUtc">Estimated arrival (the flight-progress store's), for the fallback.</param>
+/// <param name="Airborne">False on the ground before the flight (issue #148, 2026-10-10: a
+/// "fuel check" at the gate during refuelling answered "Passing HK911, FOB 6.8 t, 2.1 t below
+/// plan" — the navlog arithmetic from the stand). Default true keeps every in-flight caller.</param>
+/// <param name="PlannedBlockKg">OFP block (ramp) fuel; 0 when unknown. Only the ground answer reads it.</param>
 public sealed record FuelCheckInputs(
     double? FuelOnBoardKg,
     double FuelFlowKgPerHour,
@@ -20,7 +24,9 @@ public sealed record FuelCheckInputs(
     IReadOnlyList<OfpFix> Navlog,
     double PlannedLandingKg,
     DateTimeOffset NowUtc,
-    DateTimeOffset? EtaUtc);
+    DateTimeOffset? EtaUtc,
+    bool Airborne = true,
+    double PlannedBlockKg = 0);
 
 /// <summary>One fuel check, ready to speak and to log.</summary>
 public sealed record FuelCheckResult(
@@ -59,6 +65,19 @@ public static class FuelCheckCore
         }
 
         var plannedLanding = inputs.PlannedLandingKg > 0 ? inputs.PlannedLandingKg : (double?)null;
+
+        if (!inputs.Airborne)
+        {
+            // On the ground the navlog has not started: the only honest figures are what is
+            // in the tanks and what the plan asks for at the ramp.
+            var plannedBlock = inputs.PlannedBlockKg > 0 ? inputs.PlannedBlockKg : (double?)null;
+            var groundText = plannedBlock is { } block
+                ? $"Not airborne yet — fuel on board {Tonnes(fob)} tonnes, plan {Tonnes(block)} tonnes."
+                : $"Not airborne yet — fuel on board {Tonnes(fob)} tonnes.";
+            return new FuelCheckResult(
+                groundText, SpeechPriority.Normal, "ground", null,
+                fob, plannedBlock, plannedBlock is { } b ? fob - b : null, null, plannedLanding, Shortfall: false);
+        }
 
         if (inputs.Position is { } position && LastFixPassed(inputs.Navlog, position) is { } passed
             && PlannedFuelAt(inputs.Navlog, passed.Index, passed.Fraction) is { } plannedHere)

@@ -39,6 +39,28 @@ public static partial class SpokenNumberText
     [GeneratedRegex(@"[A-Za-z]+|[^A-Za-z]+")]
     private static partial Regex TokenPattern();
 
+    // "V one one four four" — the V-speed's own digit followed by its figure (issue #177,
+    // 2026-10-10: the departure briefing's "V one one four four … V two one five four" came
+    // out as 1144 / 2154, failed verification and handed the briefing to the template). The
+    // designator is joined to the V only when a figure follows it, so "V one, rotate, V two"
+    // stays exactly as written.
+    [GeneratedRegex(
+        @"\b[Vv](?:ee)?[\s-]+(?<designator>one|two|1|2)(?=[\s-]+(?:zero|one|two|three|four|five|six|seven|eight|nine|niner|\d))",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex VSpeedDesignatorPattern();
+
+    /// <summary>"V one one four four" → "V1 one four four", "vee two one five four" → "V2 one
+    /// five four"; anything else untouched. Applied before the number run is read.</summary>
+    public static string SplitVSpeedDesignators(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return VSpeedDesignatorPattern().Replace(text, m => m.Groups["designator"].Value.ToLowerInvariant() switch
+        {
+            "one" or "1" => "V1",
+            _ => "V2",
+        });
+    }
+
     /// <summary>Rewrites every spelled number in <paramref name="text"/> as digits.</summary>
     /// <param name="includeSingles">Also rewrite a lone digit word ("one defect" → "1 defect").
     /// For matching what was said, never for verification.</param>
@@ -46,6 +68,7 @@ public static partial class SpokenNumberText
     {
         ArgumentNullException.ThrowIfNull(text);
 
+        text = SplitVSpeedDesignators(text);
         var tokens = TokenPattern().Matches(text).Select(m => m.Value).ToList();
         var output = new StringBuilder(text.Length);
         var i = 0;

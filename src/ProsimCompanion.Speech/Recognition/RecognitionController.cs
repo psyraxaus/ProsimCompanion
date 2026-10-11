@@ -48,6 +48,7 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
     private readonly PushToTalkService _ptt;
     private readonly SpeechStatusStore _store;
     private readonly ConnectionStatusStore? _connections;
+    private readonly IExpectedReplyProvider? _expectedReplies;
     private readonly ILogger<RecognitionController> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IReadOnlyList<TimeSpan> _retryBackoff;
@@ -86,7 +87,8 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         IReadOnlyList<TimeSpan>? retryBackoff = null,
         Core.EventLog.JsonlEventLog? eventLog = null,
         ConnectionStatusStore? connections = null,
-        RecognitionEngineSeams? seams = null)
+        RecognitionEngineSeams? seams = null,
+        IExpectedReplyProvider? expectedReplies = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(ptt);
@@ -97,6 +99,7 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
         _ptt = ptt;
         _store = store;
         _connections = connections;
+        _expectedReplies = expectedReplies;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<RecognitionController>();
         _retryBackoff = retryBackoff is { Count: > 0 } ? retryBackoff : DefaultRetryBackoff;
@@ -457,7 +460,7 @@ public sealed class RecognitionController : IRecognitionWindow, IVoiceListeningC
 
     private IVoiceRecognizer BuildLanRecognizer()
         => _seams.LanFactory?.Invoke()
-           ?? new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog, _store);
+           ?? new LanAsrRecognizer(_options, _loggerFactory.CreateLogger<LanAsrRecognizer>(), _eventLog, _store, _expectedReplies);
 
     private IVoiceRecognizer BuildOfflineRecognizer()
         => _seams.OfflineFactory?.Invoke()

@@ -7,7 +7,14 @@
   available for boom-mic setups.
 - **Recognition** tries your LAN faster-whisper box first (if configured) and falls back to
   Windows offline recognition. Misheard phrases snap to the nearest expected phrase; a
-  genuinely unclear response gets a "say again?".
+  genuinely unclear response gets a "say again?". A near miss earns *"did you mean …?"* —
+  answer *yes*, or just say the command again. Never on the takeoff roll, in the initial
+  climb, on the rollout or airborne below 1,000 ft radio height (**No 'did you mean' below**,
+  advanced): there an FMA read or capture call that nearly matched is simply acknowledged and
+  anything else is let go without a word.
+- The FO ignores the microphone while it speaks and drops a transcript that repeats what it
+  said in the last 15 seconds (**Own-words window**, advanced) — your answer to a "did you
+  mean" and the open checklist line's reply are never dropped.
 - A separate **ATC-mute** binding silences the FO while you transmit to online ATC.
 
 ## What can I say?
@@ -47,8 +54,12 @@ fuel and plan figures, weights, distance and ETA, block and flight times, the we
 the briefed minima, the OFP basics, open tech-log items) and from nothing else: *"I don't have
 that."* when the facts do not cover it. Every number in the answer is checked against those
 facts; an answer that fails the check is asked for once more, strictly, and after that you
-hear *"I don't have a verified answer for that."* After two seconds of silence the FO says
-*"Stand by."*; after six seconds without an answer, the fixed line. The answer is only ever
+hear *"I don't have a verified answer for that."* If nothing is heard two seconds after the
+question — the model thinking, or the voice still being made — the FO says *"Stand by."*
+(dropped unspoken if the answer starts first); after six seconds without an answer, the fixed
+line. A plain acknowledgement (*"no questions, thank you for the briefing"*, *"copied"*,
+*"okay thanks"*) is never sent to the model: the FO says *"Roger."* with **Answer
+acknowledgements with 'Roger'** on, otherwise nothing. The answer is only ever
 spoken — it is never read as a command, so an answer that happens to contain "set heading"
 does nothing. Below ten thousand feet in the climb, descent and approach (the sterile
 cockpit) a question is heard but not answered. Needs the LLM (same card) and the **LAN speech
@@ -57,7 +68,8 @@ server** — the offline Windows engine only hears exact phrases.
 **Small talk and fun facts** (a second switch on the same card, off by default) lets you ask
 anything: *"who is better, Chelsea or Arsenal"*, *"tell me a fun fact"*, *"what is the
 capital of Peru"*. No lead-in word is needed — any sentence of four words or more that matched
-nothing else goes to the FO. A question that mentions the flight (fuel, weights, speeds,
+nothing else and is shaped like a question (a question word up front, or the recognizer's
+question mark) goes to the FO; a plain remark is not sent. A question that mentions the flight (fuel, weights, speeds,
 altitude, runway, weather, times, passengers…) still takes the strict path above. On the
 small-talk path the FO answers from general knowledge, in character, one or two light
 sentences; numbers there are trivia and are not verified, but a sentence about *this* flight
@@ -156,7 +168,9 @@ connected, real flight data).
   planned figure: *"Fuel check. Past KONAN, fuel on board 6.2 tonnes, 200 kilos below plan.
   Estimated landing fuel 2.9 tonnes, planned 3.1."* A shortfall beyond your margin is spoken
   with priority. The check needs the SimBrief OFP (the navlog comes with it) and the aircraft
-  position; without them it falls back to burn rate × time to the ETA.
+  position; without them it falls back to burn rate × time to the ETA. On the ground before
+  the flight the answer is the plain figure: *"Not airborne yet — fuel on board 6.8 tonnes,
+  plan 9.8 tonnes."*
 - **Gross error check.** Once the final loadsheet has been sent and the FMS PERF TO page has
   V-speeds, the FO compares the aircraft's zero fuel weight and fuel with the loadsheet, and
   the FMS flaps, flex and V1/VR/V2 with the result on the **Takeoff** performance page —
@@ -173,7 +187,9 @@ connected, real flight data).
   PERF TO), *"runway two seven right"* (the briefed departure or arrival runway), *"minimums
   four one zero"* (the minima you entered). The answer is *"QNH one zero one three, checked."*
   or *"Negative. I read QNH one zero one seven."* A lead-in with no figure (*"minimums check"*)
-  is still the checklist's.
+  is still the checklist's. *"Read back …"*, *"check …"* or *"confirm …"* may lead in
+  (*"read back altimeter one zero one three"*), and *"altimeter standard"* is checked
+  against 1013 — *"Standard, checked."*
 
 ## Briefings, radios, FCU
 

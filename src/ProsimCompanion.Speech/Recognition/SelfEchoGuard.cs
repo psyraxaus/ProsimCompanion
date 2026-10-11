@@ -19,7 +19,8 @@ public sealed class SelfEchoGuard
     /// <summary>Token overlap at or above which a transcript counts as the FO's own words.</summary>
     public const double OwnSpeechThreshold = 0.6;
 
-    /// <summary>How long a spoken line stays eligible for the overlap check.</summary>
+    /// <summary>The window the clock-less overload uses (the recognizer passes
+    /// <c>speech.selfEchoWindowSeconds</c> instead, issue #172).</summary>
     public static TimeSpan OwnSpeechWindow { get; } = TimeSpan.FromSeconds(30);
 
     private readonly object _gate = new();
@@ -54,13 +55,43 @@ public sealed class SelfEchoGuard
     /// the FO just used ("set flaps one" after "Flaps one set") is not an echo.</summary>
     public const int ShortPhraseWords = 4;
 
-    /// <summary>True when the transcript is the FO's own recent line heard back: a short one
-    /// (≤ 4 words) sits inside the line as a phrase, a longer one shares at least 60 % of its
-    /// words with it — "You too. See you at the next line up." heard back as "See you at the
-    /// next line-up. Didn't catch that." counts; a genuine "yes" or "set flaps one" never does.</summary>
+    /// <summary>One FO line as the guard sees it (issue #172).</summary>
+    /// <param name="Text">What the FO said.</param>
+    /// <param name="SpokenAtUtc">When the arbiter disposed of it — the window is measured from here.</param>
+    /// <param name="PlayedAloud">True when the line actually went out through the playback
+    /// device (arbiter outcome Spoken / Segment, or playing now). A deferred, dropped or
+    /// suppressed line never reached a speaker and cannot have been heard back.</param>
+    public sealed record SpokenLine(string Text, DateTimeOffset SpokenAtUtc, bool PlayedAloud);
+
+    /// <summary>Convenience for callers (and the original tests) with no clock: every line
+    /// counts as played aloud just now, with nothing expected.</summary>
     public static bool LooksLikeOwnSpeech(string heard, IEnumerable<string> recentlySpoken)
     {
         ArgumentNullException.ThrowIfNull(recentlySpoken);
+        var now = DateTimeOffset.UtcNow;
+        return LooksLikeOwnSpeech(
+            heard, recentlySpoken.Select(s => new SpokenLine(s, now, PlayedAloud: true)), now, OwnSpeechWindow, []);
+    }
+
+    /// <summary>True when the transcript is the FO's own recent line heard back: a short one
+    /// (≤ 4 words) sits inside a line that was played aloud, a longer one shares at least 60 %
+    /// of its words with a line — "You too. See you at the next line up." heard back as "See
+    /// you at the next line-up. Didn't catch that." counts; a genuine "yes" or "set flaps one"
+    /// never does. Lines older than <paramref name="window"/> at <paramref name="nowUtc"/> are
+    /// ignored (pruned here, at transcript time — never from a stale list: 2026-10-10 "Taxi
+    /// checklist." was dropped 71 s after "Taxi checklist complete."), and a transcript that
+    /// is one of the <paramref name="expectedReplies"/> (the pending clarifier's candidate, the
+    /// open checklist item's accepted phrases) is the pilot answering, not an echo, however
+    /// recently the FO said those very words.</summary>
+    public static bool LooksLikeOwnSpeech(
+        string heard,
+        IEnumerable<SpokenLine> recentlySpoken,
+        DateTimeOffset nowUtc,
+        TimeSpan window,
+        IEnumerable<string> expectedReplies)
+    {
+        ArgumentNullException.ThrowIfNull(recentlySpoken);
+        ArgumentNullException.ThrowIfNull(expectedReplies);
         var heardTokens = Tokens(heard);
         if (heardTokens.Count < 2)
         {
@@ -68,9 +99,31 @@ public sealed class SelfEchoGuard
         }
 
         var heardPhrase = " " + string.Join(' ', heardTokens) + " ";
-        foreach (var spoken in recentlySpoken)
+        foreach (var expected in expectedReplies)
         {
-            var spokenTokens = Tokens(spoken);
+            var expectedTokens = Tokens(expected);
+            if (expectedTokens.Count == 0)
+            {
+                continue;
+            }
+
+            var expectedPhrase = " " + string.Join(' ', expectedTokens) + " ";
+            if (expectedPhrase.Contains(heardPhrase, StringComparison.Ordinal)
+                || heardPhrase.Contains(expectedPhrase, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        var cutoff = nowUtc - (window < TimeSpan.Zero ? TimeSpan.Zero : window);
+        foreach (var line in recentlySpoken)
+        {
+            if (line.SpokenAtUtc < cutoff)
+            {
+                continue;
+            }
+
+            var spokenTokens = Tokens(line.Text);
             if (spokenTokens.Count == 0)
             {
                 continue;
@@ -78,6 +131,11 @@ public sealed class SelfEchoGuard
 
             if (heardTokens.Count <= ShortPhraseWords)
             {
+                if (!line.PlayedAloud)
+                {
+                    continue;
+                }
+
                 var spokenPhrase = " " + string.Join(' ', spokenTokens) + " ";
                 if (spokenPhrase.Contains(heardPhrase, StringComparison.Ordinal))
                 {

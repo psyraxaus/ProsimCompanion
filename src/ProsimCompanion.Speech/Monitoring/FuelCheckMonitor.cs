@@ -214,9 +214,17 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
         var progress = _progress.Snapshot();
         var fob = _fuelTotal.RawValue is null || _fuelTotal.IsStale ? (double?)null : _fuelTotal.Value;
         var flow = Math.Max(0, _flow1.Value) + Math.Max(0, _flow2.Value);
+        // On the ground before the flight has ever been airborne the check is a ground figure
+        // (issue #148); after landing the navlog arithmetic still applies (the aircraft is past
+        // its fixes), and an Unknown phase keeps the in-flight answer rather than guessing.
+        var state = _flight.Snapshot();
+        var onGroundBeforeTakeoff = !state.HasBeenAirborneThisSession
+            && (state.Phase.IsBeforeTaxiOut() || state.Phase is FlightPhase.TaxiOut or FlightPhase.TakeoffRoll);
+        var airborne = !onGroundBeforeTakeoff;
         return FuelCheckCore.Compute(
             new FuelCheckInputs(
-                fob, flow, progress.Position, ofp?.Navlog ?? [], ofp?.FuelPlanLandingKg ?? 0, nowUtc, progress.EtaUtc),
+                fob, flow, progress.Position, ofp?.Navlog ?? [], ofp?.FuelPlanLandingKg ?? 0, nowUtc, progress.EtaUtc,
+                Airborne: airborne, PlannedBlockKg: ofp?.FuelPlanRampKg ?? 0),
             Options);
     }
 

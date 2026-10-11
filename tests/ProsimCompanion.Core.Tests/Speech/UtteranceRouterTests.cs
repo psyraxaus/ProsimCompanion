@@ -3,6 +3,7 @@ using Moq;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Checklists;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Abnormals;
 using ProsimCompanion.Speech.Checklists;
@@ -112,6 +113,13 @@ public sealed class UtteranceRouterTests
     /// <see cref="CreateRouter(IFreeFormQuestionHandler?, SpeechOptions?, IVoiceFeature[])"/> writes to.</summary>
     private readonly UnmatchedUtteranceStore _unmatched = new();
 
+    /// <summary>The phase source every router built here reads (issue #177: the sterile
+    /// clarifier rule) — Unknown and live by default, so the existing cases see no change.</summary>
+    private readonly FakePhaseSource _phases = new();
+
+    /// <summary>What the FO is waiting to hear (issue #172) — the router writes it.</summary>
+    private readonly ExpectedReplyStore _expectedReplies = new();
+
     private UtteranceRouter CreateRouter(IFreeFormQuestionHandler? questions, SpeechOptions? speechOptions, params IVoiceFeature[] features)
     {
         var options = SpeechTestSupport.SpeechMonitor(speechOptions ?? new SpeechOptions());
@@ -126,7 +134,7 @@ public sealed class UtteranceRouterTests
                 SpeechTestSupport.ChecklistMonitor(new ChecklistOptions()),
                 NullLogger<ChecklistService>.Instance),
             new FailureMonitor(
-                _arbiter, dataRefs, new FakePhaseSource(), eventLog, NullLogger<FailureMonitor>.Instance),
+                _arbiter, dataRefs, _phases, eventLog, NullLogger<FailureMonitor>.Instance),
             features,
             _window,
             _mic,
@@ -135,11 +143,178 @@ public sealed class UtteranceRouterTests
             SpeechTestSupport.Persona(),
             new LlmHealthStore(),
             NullLogger<UtteranceRouter>.Instance,
+            flightPhase: _phases,
             questions: questions,
-            unmatched: tracker);
+            unmatched: tracker,
+            options: options,
+            expectedReplies: _expectedReplies);
         router.Attach(_host);
         router.Start();
         return router;
+    }
+
+    /// <summary>A words-only feature (the FMA acknowledgements) with one catalogue phrase;
+    /// handles the phrase exactly, like <see cref="ScriptedFeature"/>.</summary>
+    private sealed class AcknowledgeOnlyFeature(string phrase) : IVoiceFeature
+    {
+        public List<string> Handled { get; } = [];
+        public bool Enabled => true;
+        public IEnumerable<string> Phrases => [phrase];
+        public bool ValueParse => false;
+        public bool AcknowledgeOnly => true;
+
+        public bool TryHandle(string utterance)
+        {
+            if (!string.Equals(utterance.Trim(), phrase, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            Handled.Add(utterance);
+            return true;
+        }
+    }
+
+    private const string FmaPhrase = "man flex srs runway nav blue";
+
+    /// <summary>The 2026-10-11 00:13:37Z transcript: 0.80 against <see cref="FmaPhrase"/>, the gray band.</summary>
+    private const string FmaHeard = "antflex srs runway navblue";
+
+    private bool ClarifierAsked => _arbiter.Requests.Any(r => r.Tag == "clarifier");
+
+    private static async Task WaitUntil(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (!condition() && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(20);
+        }
+    }
+
+    // ---- issue #177: no "did you mean" in sterile moments ----------------------------------
+
+    [Fact]
+    public void GrayBandFmaRead_DuringTheTakeoffRoll_FiresWithoutTheClarifier()
+    {
+        var fma = new AcknowledgeOnlyFeature(FmaPhrase);
+        using var router = CreateRouter(fma);
+        _phases.SetPhase(FlightPhase.TakeoffRoll);
+
+        _window.Hear(FmaHeard);
+
+        Assert.Equal([FmaPhrase], fma.Handled);
+        Assert.False(ClarifierAsked);
+    }
+
+    [Fact]
+    public void GrayBandMatch_OnAFeatureThatActuates_IsWithheldInASterileMoment_NotAsked()
+    {
+        // The same words, but the phrase belongs to a feature that moves something: no fire,
+        // no question either — "did you mean gear up?" in the initial climb was the signature.
+        var lever = new ScriptedFeature(FmaPhrase);
+        using var router = CreateRouter(lever);
+        _phases.SetPhase(FlightPhase.InitialClimb);
+
+        _window.Hear(FmaHeard);
+
+        Assert.Empty(lever.Handled);
+        Assert.False(ClarifierAsked);
+        var miss = Assert.Single(_unmatched.Snapshot().Recent);
+        Assert.Equal("clarifier-withheld", miss.Reason);
+        Assert.True(miss.Suppressed);
+    }
+
+    [Fact]
+    public void BelowTheClarifierFloor_OnApproach_TheQuestionIsWithheld_AboveItIsAsked()
+    {
+        var lever = new ScriptedFeature(FmaPhrase);
+        using var router = CreateRouter(lever);
+        _phases.SetPhase(FlightPhase.Approach);
+
+        _phases.Data = new FlightDataSnapshot { IsValid = true, OnGround = false, RadioAltitudeFt = 500, AltitudeFt = 1500 };
+        _window.Hear(FmaHeard);
+        Assert.False(ClarifierAsked);
+
+        _phases.Data = new FlightDataSnapshot { IsValid = true, OnGround = false, RadioAltitudeFt = 2500, AltitudeFt = 3500 };
+        _window.Hear(FmaHeard);
+        Assert.True(ClarifierAsked);
+    }
+
+    [Fact]
+    public void TheFloorIsAnOption_ZeroLeavesOnlyTheThreePhases()
+    {
+        var lever = new ScriptedFeature(FmaPhrase);
+        using var router = CreateRouter(null, new SpeechOptions { ClarifierMinAglFt = 0 }, lever);
+        _phases.SetPhase(FlightPhase.Approach);
+        _phases.Data = new FlightDataSnapshot { IsValid = true, OnGround = false, RadioAltitudeFt = 300, AltitudeFt = 1300 };
+
+        _window.Hear(FmaHeard);
+
+        Assert.True(ClarifierAsked);
+    }
+
+    // ---- issue #172: the clarifier's candidate is an expected reply, and saying it is a yes ----
+
+    [Fact]
+    public async Task WhileTheClarifierListens_TheCandidateIsAnExpectedReply_AndRepeatingItFires()
+    {
+        var feature = new ScriptedFeature(FmaPhrase);
+        using var router = CreateRouter(feature);
+        _phases.SetPhase(FlightPhase.Cruise);
+
+        _window.Hear(FmaHeard);
+        Assert.True(ClarifierAsked);
+        Assert.Contains(FmaPhrase, _expectedReplies.ExpectedReplies);
+
+        // 2026-10-10 23:07:34: the pilot answered with the command itself, not "yes".
+        _window.Hear("Man flex SRS runway nav blue.");
+        await WaitUntil(() => feature.Handled.Count > 0);
+
+        Assert.Equal([FmaPhrase], feature.Handled);
+        Assert.Empty(_expectedReplies.ExpectedReplies);
+        Assert.DoesNotContain(_unmatched.Snapshot().Recent, u => u.Reason == "confirm-declined");
+    }
+
+    [Fact]
+    public void TheOpenChecklistItemsPhrases_AreExpectedReplies()
+    {
+        using var router = CreateRouter();
+        Assert.Empty(_expectedReplies.ExpectedReplies);
+
+        _host.AwaitingItem = new ChecklistItemDefinition { Say = "Chocks", ExpectedResponse = "as required", AcceptedPhrases = ["as required", "set"] };
+        Assert.Equal(["as required", "set", "as required"], _expectedReplies.ExpectedReplies);
+
+        _host.AwaitingItem = null;
+        Assert.Empty(_expectedReplies.ExpectedReplies);
+    }
+
+    // ---- issue #148: "read back …" never becomes a question --------------------------------
+
+    [Fact]
+    public void AReadBackPrefixedUtterance_IsNeverOfferedToTheQuestionHandler()
+    {
+        // 2026-10-10 20:35:47: "Read back Altimeter 1013." → fo.query → "I don't have that."
+        var questions = new ScriptedQuestions();
+        using var router = CreateRouter(questions);
+
+        _window.Hear("Read back Altimeter 1013.");
+        _window.Hear("read back altimeter standard");
+
+        Assert.Empty(questions.Asked);
+        Assert.Equal(2, _unmatched.Snapshot().Total);
+    }
+
+    [Fact]
+    public void AReadBackPrefixedUtterance_GoesToTheValueParsers_OnceMore()
+    {
+        var questions = new ScriptedQuestions();
+        var readbacks = new GreedyValueFeature("altimeter");
+        using var router = CreateRouter(questions, readbacks);
+
+        _window.Hear("Read back Altimeter 1013.");
+
+        Assert.Equal(["Read back Altimeter 1013."], readbacks.Handled);
+        Assert.Empty(questions.Asked);
     }
 
     private static ChecklistItemDefinition Item(params string[] accepted)

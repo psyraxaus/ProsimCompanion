@@ -30,6 +30,11 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
         "lockstar", "locstar", "glidestar",
         "localizer capture", "loc capture", "glideslope capture", "glide slope capture",
         "alt star", "altstar", "altitude star", "alt capture",
+        // 2026-10-11 EFHK→LKPR (issue #177): "AntFlex SRS Runway NavBlue." scored 0.80
+        // against "man flex srs runway nav blue" and earned a clarifier DURING THE ROLL;
+        // "Glideslap capture lock" scored 0.72. The junctions are catalogue phrases now.
+        "antflex", "ant flex", "antflex srs runway navblue", "ant flex srs runway nav blue",
+        "glideslap", "glide slop", "glideslap capture", "glide slop capture", "glideslap star", "glide slop star",
         "manual flight", "manual control", "continue",
     ];
 
@@ -65,14 +70,21 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
 
     public bool ValueParse => false;
 
+    /// <summary>Words only — "Checked." / an echo; nothing here touches the aircraft, so the
+    /// router may fire a gray-band match without the clarifier in a sterile moment (#177).</summary>
+    public bool AcknowledgeOnly => true;
+
     /// <summary>Pure classification — exposed for tests. The ASR runs words together
-    /// ("Manflex SRS Runway Navblue", "Lockstar" on 2026-09-06), so FMA matching is
-    /// substring-based over the normalized text, while the decision calls stay exact.</summary>
+    /// ("Manflex SRS Runway Navblue", "Lockstar" on 2026-09-06; "AntFlex", "Glideslap" on
+    /// 2026-10-11), so FMA matching is substring-based over the normalized text, while the
+    /// decision calls stay exact.</summary>
     internal static AnnouncementKind? Classify(string normalized, FlightPhase phase)
     {
         if (phase is FlightPhase.TakeoffRoll or FlightPhase.InitialClimb
             && (normalized.Contains("man flex", StringComparison.Ordinal)
                 || normalized.Contains("manflex", StringComparison.Ordinal)
+                || normalized.Contains("ant flex", StringComparison.Ordinal)
+                || normalized.Contains("antflex", StringComparison.Ordinal)
                 || normalized.Contains("man toga", StringComparison.Ordinal)
                 || normalized.Contains("srs", StringComparison.Ordinal)
                 || normalized.Contains("nav blue", StringComparison.Ordinal)
@@ -93,6 +105,8 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
                 || normalized.Contains("loc capture", StringComparison.Ordinal)
                 || normalized.Contains("glideslope capture", StringComparison.Ordinal)
                 || normalized.Contains("glide slope capture", StringComparison.Ordinal)
+                || normalized.Contains("glideslap", StringComparison.Ordinal)
+                || normalized.Contains("glide slop", StringComparison.Ordinal)
                 || normalized.Contains("alt star", StringComparison.Ordinal)
                 || normalized.Contains("altstar", StringComparison.Ordinal)
                 || normalized.Contains("altitude star", StringComparison.Ordinal)

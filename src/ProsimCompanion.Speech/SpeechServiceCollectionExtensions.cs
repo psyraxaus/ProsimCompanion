@@ -62,6 +62,10 @@ public static class SpeechServiceCollectionExtensions
         // registry and the web panel reach the controller through.
         services.AddSingleton<IVoiceListeningControl>(p => p.GetRequiredService<RecognitionController>());
         services.AddSingleton<IMicOwnership, MicOwnership>();
+        // What the FO is waiting to hear (issue #172): the router writes the clarifier
+        // candidate and the open checklist item, the LAN recognizer's self-echo guard reads.
+        services.AddSingleton<ExpectedReplyStore>();
+        services.AddSingleton<IExpectedReplyProvider>(p => p.GetRequiredService<ExpectedReplyStore>());
         services.AddSingleton<UtteranceInterpreter>();
         services.AddSingleton<ControlMonitor>();
         services.AddSingleton<ControlSweepService>();

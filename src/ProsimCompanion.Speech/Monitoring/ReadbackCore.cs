@@ -18,7 +18,9 @@ public enum ReadbackKind
 /// <summary>A parsed read-back: the figures the captain said.</summary>
 /// <param name="Numbers">Altimeter / minimums: one value; V-speeds: up to three (V1, VR, V2).</param>
 /// <param name="Runway">Runway designator as said ("27R"), runway read-backs only.</param>
-public sealed record ReadbackRequest(ReadbackKind Kind, IReadOnlyList<double> Numbers, string? Runway);
+/// <param name="Standard">Altimeter only: the captain said "standard" / "STD" rather than a
+/// figure (issue #148) — <see cref="StandardHpa"/> is the number compared.</param>
+public sealed record ReadbackRequest(ReadbackKind Kind, IReadOnlyList<double> Numbers, string? Runway, bool Standard = false);
 
 /// <summary>What the aircraft says. Nulls / zeros = not available.</summary>
 public sealed record ReadbackActuals(
@@ -41,17 +43,37 @@ public sealed record ReadbackAnswer(bool Ok, string Text, string Outcome);
 /// </summary>
 public static partial class ReadbackCore
 {
-    [GeneratedRegex(@"^(?:altimeter|qnh|q\s*n\s*h|baro)\b(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    /// <summary>Standard pressure, what "altimeter standard" / "STD" means (issue #148,
+    /// 2026-10-10: "Read back altimeter standard." had no figure and went to the model).</summary>
+    public const double StandardHpa = 1013.2;
+
+    // An optional lead-in before every kind (issue #148, 2026-10-10: "Read back Altimeter
+    // 1013." was anchored out and became a question to the language model). The text is
+    // normalized first, so "read-back" and "readback" arrive as "read back" / "readback".
+    private const string Prefix = @"^(?:(?:read\s*back|check|confirm)\s+)?";
+
+    [GeneratedRegex(Prefix + @"(?:altimeter|qnh|q\s*n\s*h|baro)\b(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex AltimeterPattern();
 
-    [GeneratedRegex(@"^(?:v\s*speeds?|vee\s*speeds?|v\s*one|vee\s*one)\b(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(Prefix + @"(?:v\s*speeds?|vee\s*speeds?|v\s*one|vee\s*one)\b(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex VSpeedsPattern();
 
-    [GeneratedRegex(@"^runway\b(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(Prefix + @"runway\b(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RunwayPattern();
 
-    [GeneratedRegex(@"^(?:minimums?|minima|decision altitude|decision height|minimum descent altitude)\b(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(Prefix + @"(?:minimums?|minima|decision altitude|decision height|minimum descent altitude)\b(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex MinimumsPattern();
+
+    [GeneratedRegex(@"^\s*(?:standard|std|standard pressure)\s*(?:set)?\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex StandardPattern();
+
+    [GeneratedRegex(@"^read\s*back\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ReadBackPrefixPattern();
+
+    /// <summary>True when the utterance opens with "read back" (any spelling) — the router
+    /// sends such an utterance to the read-back feature and never to the question handler.</summary>
+    public static bool HasReadBackPrefix(string? utterance)
+        => !string.IsNullOrWhiteSpace(utterance) && ReadBackPrefixPattern().IsMatch(CommandMatcher.Normalize(utterance));
 
     [GeneratedRegex(@",|\band\b|\brotate\b|\bv\s*(?:r|two|2)\b|\bvee\s*(?:r|two)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex VSpeedSeparators();
@@ -62,7 +84,12 @@ public static partial class ReadbackCore
     /// <summary>The lead-in words the recognizer's closed grammar gets; the figures come from
     /// its digit grammar.</summary>
     public static IReadOnlyList<string> LeadIns { get; } =
-        ["altimeter", "qnh", "v speeds", "v one", "runway", "minimums", "decision altitude", "decision height"];
+    [
+        "altimeter", "qnh", "v speeds", "v one", "runway", "minimums", "decision altitude", "decision height",
+        // The "read back" forms and the figure-less standard setting (issue #148).
+        "read back altimeter", "read back v speeds", "read back runway", "read back minimums",
+        "altimeter standard", "read back altimeter standard",
+    ];
 
     /// <summary>A read-back when the utterance is one — a lead-in followed by a figure. Null
     /// for anything else (including a bare lead-in such as "minimums check", which another
@@ -76,10 +103,17 @@ public static partial class ReadbackCore
 
         var text = CommandMatcher.Normalize(utterance);
 
-        if (AltimeterPattern().Match(text) is { Success: true } altimeter
-            && First(altimeter.Groups["rest"].Value) is { } hpa)
+        if (AltimeterPattern().Match(text) is { Success: true } altimeter)
         {
-            return new ReadbackRequest(ReadbackKind.Altimeter, [hpa], null);
+            if (StandardPattern().IsMatch(altimeter.Groups["rest"].Value))
+            {
+                return new ReadbackRequest(ReadbackKind.Altimeter, [StandardHpa], null, Standard: true);
+            }
+
+            if (First(altimeter.Groups["rest"].Value) is { } hpa)
+            {
+                return new ReadbackRequest(ReadbackKind.Altimeter, [hpa], null);
+            }
         }
 
         if (VSpeedsPattern().Match(text) is { Success: true } speeds)
@@ -132,7 +166,17 @@ public static partial class ReadbackCore
                 }
 
                 var spoken = Callouts.Aviation.ToDigits(Math.Round(baro).ToString("0", CultureInfo.InvariantCulture));
-                return Math.Abs(request.Numbers[0] - baro) <= options.AltimeterToleranceHpa
+                var ok = Math.Abs(request.Numbers[0] - baro) <= options.AltimeterToleranceHpa;
+                if (request.Standard)
+                {
+                    // "Standard" is read against 1013.2 with the same tolerance (a baro of
+                    // 1013 or 1013.25 both pass); the mismatch quotes the setting read.
+                    return ok
+                        ? new ReadbackAnswer(true, "Standard, checked.", "checked")
+                        : new ReadbackAnswer(false, $"Negative. I read QNH {spoken}, not standard.", "mismatch");
+                }
+
+                return ok
                     ? new ReadbackAnswer(true, $"QNH {spoken}, checked.", "checked")
                     : new ReadbackAnswer(false, $"Negative. I read QNH {spoken}.", "mismatch");
             }

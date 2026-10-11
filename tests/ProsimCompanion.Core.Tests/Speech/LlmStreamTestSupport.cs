@@ -148,6 +148,10 @@ internal sealed class DrainingArbiter : ISpeechArbiter
     /// <summary>How long one segment takes to speak.</summary>
     public TimeSpan SegmentDuration { get; set; } = TimeSpan.Zero;
 
+    /// <summary>Synthesis latency before the FIRST segment starts playing (issue #176: the
+    /// gap between the model's first sentence and the first audio the pilot hears).</summary>
+    public TimeSpan FirstAudioDelay { get; set; } = TimeSpan.Zero;
+
     /// <summary>Cut the item (as a Critical would) once this many segments were spoken.</summary>
     public int? AbortAfterSegments { get; set; }
 
@@ -207,6 +211,11 @@ internal sealed class DrainingArbiter : ISpeechArbiter
             stream.MarkFed();
             if (spoken == 0)
             {
+                if (FirstAudioDelay > TimeSpan.Zero)
+                {
+                    await Task.Delay(FirstAudioDelay, CancellationToken.None);
+                }
+
                 stream.MarkFirstAudio(DateTimeOffset.UtcNow);
             }
 

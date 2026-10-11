@@ -133,4 +133,84 @@ public sealed class ReadbackCoreTests
     [InlineData("RW", null)]
     [InlineData(null, null)]
     public void NormalizeRunway(string? raw, string? expected) => Assert.Equal(expected, ReadbackCore.NormalizeRunway(raw));
+
+    // ---- issue #148 follow-up (2026-10-10 EFHK→LKPR): the "read back" lead-in and "standard" ----
+
+    [Theory]
+    // 20:35:47Z and 20:36:02Z — both became fo.query → "I don't have that."
+    [InlineData("Read back Altimeter 1013.", ReadbackKind.Altimeter, 1013)]
+    [InlineData("readback qnh one zero one three", ReadbackKind.Altimeter, 1013)]
+    [InlineData("read-back altimeter 1013", ReadbackKind.Altimeter, 1013)]
+    [InlineData("check altimeter 1013", ReadbackKind.Altimeter, 1013)]
+    [InlineData("confirm minimums four one zero", ReadbackKind.Minimums, 410)]
+    public void Parse_AcceptsAReadBackLeadIn(string said, ReadbackKind kind, double number)
+    {
+        var request = ReadbackCore.Parse(said);
+
+        Assert.NotNull(request);
+        Assert.Equal(kind, request.Kind);
+        Assert.Equal(number, Assert.Single(request.Numbers));
+        Assert.False(request.Standard);
+    }
+
+    [Fact]
+    public void Parse_ReadBackLeadIn_ForVSpeedsAndRunway()
+    {
+        Assert.Equal([141, 144, 147], ReadbackCore.Parse("read back v speeds 141 144 147")!.Numbers);
+        Assert.Equal("27R", ReadbackCore.Parse("confirm runway two seven right")!.Runway);
+    }
+
+    [Theory]
+    [InlineData("Read back altimeter standard.")]
+    [InlineData("altimeter standard")]
+    [InlineData("altimeter STD")]
+    [InlineData("qnh standard set")]
+    [InlineData("check altimeter standard pressure")]
+    public void Parse_Standard_IsStandardPressure(string said)
+    {
+        var request = ReadbackCore.Parse(said);
+
+        Assert.NotNull(request);
+        Assert.Equal(ReadbackKind.Altimeter, request.Kind);
+        Assert.True(request.Standard);
+        Assert.Equal(ReadbackCore.StandardHpa, Assert.Single(request.Numbers));
+    }
+
+    [Fact]
+    public void Answer_Standard_ChecksAgainst1013()
+    {
+        var request = ReadbackCore.Parse("read back altimeter standard")!;
+
+        var ok = ReadbackCore.Answer(request, Actuals(baro: 1013), Options);
+        var precise = ReadbackCore.Answer(request, Actuals(baro: 1013.25), Options);
+        var wrong = ReadbackCore.Answer(request, Actuals(baro: 1017), Options);
+
+        Assert.Equal(("checked", "Standard, checked."), (ok.Outcome, ok.Text));
+        Assert.Equal("checked", precise.Outcome);
+        Assert.Equal("mismatch", wrong.Outcome);
+        Assert.Equal("Negative. I read QNH one zero one seven, not standard.", wrong.Text);
+    }
+
+    [Theory]
+    [InlineData("read back altimeter 1013", true)]
+    [InlineData("Read-back altimeter standard.", true)]
+    [InlineData("readback runway two seven", true)]
+    [InlineData("altimeter one zero one three", false)]
+    [InlineData("what is our fuel on board", false)]
+    [InlineData("", false)]
+    public void HasReadBackPrefix(string said, bool expected) => Assert.Equal(expected, ReadbackCore.HasReadBackPrefix(said));
+
+    [Fact]
+    public void ThePrefixedForms_AreInTheLeadIns_ForTheGrammarAndTheDrawer()
+    {
+        Assert.Contains("read back altimeter", ReadbackCore.LeadIns);
+        Assert.Contains("altimeter standard", ReadbackCore.LeadIns);
+        Assert.Contains("read back v speeds", ReadbackCore.LeadIns);
+        Assert.Contains("read back runway", ReadbackCore.LeadIns);
+        Assert.Contains("read back minimums", ReadbackCore.LeadIns);
+    }
+
+    [Fact]
+    public void ABareReadBackLeadIn_WithNoFigure_IsStillNotAReadback()
+        => Assert.Null(ReadbackCore.Parse("read back minimums check"));
 }

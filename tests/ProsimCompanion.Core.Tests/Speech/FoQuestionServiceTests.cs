@@ -9,6 +9,7 @@ using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Geo;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Core.Weather;
+using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Llm;
 using ProsimCompanion.Speech.Questions;
 using Xunit;
@@ -371,6 +372,105 @@ public sealed class FoQuestionServiceTests : IDisposable
         Assert.False(FoQuestionCore.IsQuestion("who is better chelsea or arsenal", new FoQuestionOptions()));
     }
 
+    // ---- issue #176: small talk needs a question shape; acknowledgements are not questions ----
+
+    [Theory]
+    // 2026-10-10 signatures: both went to the model as chat.
+    [InlineData("No questions. Thank you for the briefing.", false)]
+    [InlineData("I don't know, it did.", false)]
+    // What small talk is for.
+    [InlineData("who is better chelsea or arsenal", true)]
+    [InlineData("What do you think about Arsenal and Chelsea?", true)]
+    [InlineData("They are refueling the plane right now, aren't they?", true)]     // the ASR's question mark
+    [InlineData("so what is the capital of peru", true)]                             // one filler word first
+    [InlineData("tell me a fun fact about finland", true)]                           // a lead-in
+    [InlineData("do you like your job captain", true)]
+    [InlineData("the weather looks lovely today captain", false)]
+    public void SmallTalk_RequiresAQuestionShape(string utterance, bool expected)
+        => Assert.Equal(expected, FoQuestionCore.IsQuestion(utterance, new FoQuestionOptions { SmallTalk = true }));
+
+    [Theory]
+    [InlineData("No questions. Thank you for the briefing.", true)]
+    [InlineData("copied", true)]
+    [InlineData("roger that", true)]
+    [InlineData("okay thanks", true)]
+    [InlineData("thank you very much", true)]
+    [InlineData("nothing further", true)]
+    [InlineData("will do", true)]
+    [InlineData("I don't know, it did.", false)]
+    [InlineData("no questions, but what is our fuel?", false)]
+    [InlineData("what is our fuel on board", false)]
+    [InlineData("", false)]
+    public void IsAcknowledgement(string utterance, bool expected)
+        => Assert.Equal(expected, FoQuestionCore.IsAcknowledgement(utterance));
+
+    [Fact]
+    public async Task AnAcknowledgement_IsConsumedWithoutTheModel_SilentByDefault()
+    {
+        var handler = new SequenceHandler();      // any request would hang: the model must not be asked
+        _speech.FoQuestions.SmallTalk = true;
+        using var service = Service(handler);
+
+        Assert.True(service.TryAsk("No questions. Thank you for the briefing."));
+        await Settle(service);
+
+        Assert.Empty(Spoken);
+        Assert.Empty(handler.RequestBodies);
+        Assert.Empty(Events("fo.query"));
+        var ack = Assert.Single(Events("fo.ack")).GetProperty("payload");
+        Assert.Equal("No questions. Thank you for the briefing.", ack.GetProperty("text").GetString());
+        Assert.Equal("", ack.GetProperty("response").GetString());
+    }
+
+    [Fact]
+    public async Task AnAcknowledgement_GetsRoger_WhenSwitchedOn()
+    {
+        var handler = new SequenceHandler();
+        _speech.FoQuestions.AcknowledgeSmallTalk = true;
+        using var service = Service(handler);
+
+        Assert.True(service.TryAsk("copied"));
+        await Settle(service);
+
+        Assert.Equal([FoQuestionCore.AckWord], Spoken);
+        Assert.Equal("fo.answer", Assert.Single(_arbiter.Requests).Tag);
+        Assert.Equal(FoQuestionCore.AckWord, Assert.Single(Events("fo.ack")).GetProperty("payload").GetProperty("response").GetString());
+    }
+
+    [Fact]
+    public void ARemarkWithNoQuestionShape_IsNotTaken_EvenWithSmallTalkOn()
+    {
+        var handler = new SequenceHandler();
+        _speech.FoQuestions.SmallTalk = true;
+        using var service = Service(handler);
+
+        Assert.False(service.TryAsk("I don't know, it did."));
+        Assert.Empty(Events("fo.query"));
+    }
+
+    [Fact]
+    public async Task StandBy_IsSpoken_WhenTheFirstAudioIsLate_EvenThoughTheFirstSentenceWasQuick()
+    {
+        // 2026-10-10 19:44:03: first token 840 ms, first audio 4244 ms, no "Stand by." — the timer
+        // was cancelled by the first SENTENCE. Now it is the first AUDIO that cancels it.
+        _speech.FoQuestions.StandBySeconds = 1;
+        _speech.FoQuestions.TimeBudgetSeconds = 5;
+        _arbiter.FirstAudioDelay = TimeSpan.FromMilliseconds(1800);
+        var handler = new SequenceHandler(Streamed("We are in the cruise."));
+        using var service = Service(handler);
+
+        Assert.True(service.TryAsk("what phase of flight are we in"));
+        await Settle(service);
+
+        var standBy = Assert.Single(_arbiter.Requests, r => r.Text == FoQuestionCore.StandBy);
+        Assert.Equal(SpeechPriority.Low, standBy.Priority);
+        Assert.Equal(FoQuestionService.StandByTag, standBy.Tag);
+        Assert.NotNull(standBy.IsStillValid);
+        Assert.False(standBy.IsStillValid!(), "once the answer has played the filler must drop at its turn");
+        Assert.Equal(["We are in the cruise."], _arbiter.Segments.Select(s => s.Text));
+        Assert.Equal("answered", Assert.Single(Events("fo.answer")).GetProperty("payload").GetProperty("outcome").GetString());
+    }
+
     [Theory]
     [InlineData("Octopuses have three hearts, Captain.", true)]
     [InlineData("Jupiter has ninety five moons.", true)]
@@ -423,7 +523,7 @@ public sealed class FoQuestionServiceTests : IDisposable
             Streamed("Fuel on board is six point two tonnes."));
         using var service = Service(handler);
 
-        Assert.True(service.TryAsk("give me the number please"));   // no flight word → chat first
+        Assert.True(service.TryAsk("can you give me the number please"));   // a question shape, no flight word → chat first
         await Settle(service);
 
         Assert.Equal(["Let me check.", "Fuel on board is six point two tonnes."], Spoken);

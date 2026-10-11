@@ -28,6 +28,45 @@ public sealed class FuelCheckTests
     private static FuelCheckInputs Inputs(double? fob, double? lon, double flow = 2400, double plannedLanding = 4800, DateTimeOffset? eta = null, IReadOnlyList<OfpFix>? navlog = null)
         => new(fob, flow, lon is { } l ? new GeoPoint(0, l) : null, navlog ?? Navlog, plannedLanding, T0, eta);
 
+    // ---- issue #148 follow-up: a fuel check on the ground (2026-10-10 19:43:11, parked, refuelling) ----
+
+    [Fact]
+    public void OnTheGround_BeforeTheFlight_TheCheckIsThePlainFigure_NeverANavlogFix()
+    {
+        // The stand sits on the first leg's line: airborne, this would read "Passing ALPHA, … below plan".
+        var ground = Inputs(fob: 6800, lon: 10) with { Airborne = false, PlannedBlockKg = 9800 };
+
+        var result = FuelCheckCore.Compute(ground, Options);
+
+        Assert.NotNull(result);
+        Assert.Equal("ground", result.Method);
+        Assert.Null(result.Fix);
+        Assert.Equal("Not airborne yet — fuel on board 6.8 tonnes, plan 9.8 tonnes.", result.Text);
+        Assert.Equal(SpeechPriority.Normal, result.Priority);
+        Assert.False(result.Shortfall);
+        Assert.Equal(9800, result.PlannedFuelOnBoardKg);
+        Assert.Equal(-3000, result.DifferenceKg);
+        Assert.Null(result.EstimatedLandingKg);
+    }
+
+    [Fact]
+    public void OnTheGround_WithoutAnOfp_TheCheckNamesTheFuelAlone()
+    {
+        var result = FuelCheckCore.Compute(Inputs(fob: 6800, lon: null, plannedLanding: 0) with { Airborne = false }, Options);
+
+        Assert.NotNull(result);
+        Assert.Equal("Not airborne yet — fuel on board 6.8 tonnes.", result.Text);
+        Assert.Null(result.PlannedFuelOnBoardKg);
+    }
+
+    [Fact]
+    public void Airborne_StaysTheNavlogCheck()
+    {
+        var result = FuelCheckCore.Compute(Inputs(fob: 5400, lon: 13) with { Airborne = true, PlannedBlockKg = 9800 }, Options);
+
+        Assert.Equal("navlog", result!.Method);
+    }
+
     // ---- last fix passed ----
 
     [Fact]
@@ -317,5 +356,28 @@ public sealed class FuelCheckTests
         Assert.Equal("I don't have the fuel plan for a fuel check.", h.Arbiter.Requests[^1].Text);
 
         Assert.False(h.Monitor.TryHandle("fuel pump check"));
+    }
+
+    [Fact]
+    public void Voice_FuelCheck_AtTheGate_IsTheGroundFigure_NotANavlogFix()
+    {
+        // 2026-10-10 19:43:11 (issue #148): parked and refuelling, the FO said "Passing HK911,
+        // FOB 6.8 t, 2.1 t below plan" — the stand happened to lie on the first leg's line.
+        var h = new Harness();
+        h.Ofp.Set(new OfpData { FuelPlanLandingKg = 4800, FuelPlanRampKg = 9800, Navlog = Navlog });
+        h.Phases.SetPhase(FlightPhase.Preflight);
+
+        Assert.True(h.Monitor.TryHandle("fuel check"));
+        Assert.Equal("Not airborne yet — fuel on board 5.4 tonnes, plan 9.8 tonnes.", h.Arbiter.Requests[^1].Text);
+
+        // Taxiing out is still the ground; the same ask after landing is the navlog check.
+        h.Phases.SetPhase(FlightPhase.TaxiOut);
+        Assert.True(h.Monitor.TryHandle("fuel check"));
+        Assert.StartsWith("Not airborne yet", h.Arbiter.Requests[^1].Text, StringComparison.Ordinal);
+
+        h.Phases.HasBeenAirborneThisSession = true;
+        h.Phases.SetPhase(FlightPhase.TaxiIn);
+        Assert.True(h.Monitor.TryHandle("fuel check"));
+        Assert.StartsWith("Fuel check. Past BRAVO", h.Arbiter.Requests[^1].Text, StringComparison.Ordinal);
     }
 }

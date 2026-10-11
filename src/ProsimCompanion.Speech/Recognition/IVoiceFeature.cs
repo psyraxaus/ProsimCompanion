@@ -24,4 +24,11 @@ public interface IVoiceFeature
 
     /// <summary>Handles the utterance; true = consumed. Not called while disabled.</summary>
     bool TryHandle(string utterance);
+
+    /// <summary>True for a feature that only ever answers with words — nothing it does moves a
+    /// switch, a lever or a setting (the FMA / capture-call acknowledgements). The router may
+    /// fire such a feature on a gray-band match without the "did you mean …?" round trip in a
+    /// sterile moment (issue #177): a wrong guess costs one "Checked.", never an actuation.
+    /// Default false — every feature that writes anywhere keeps the clarifier.</summary>
+    bool AcknowledgeOnly => false;
 }

@@ -34,7 +34,7 @@ public static class NumberVerifier
         ArgumentNullException.ThrowIfNull(allowed);
 
         var offending = new List<string>();
-        foreach (Match match in Regex.Matches(narrative, @"\d+(?:\.\d+)?"))
+        foreach (Match match in Regex.Matches(SplitVSpeedDigits(narrative), @"\d+(?:\.\d+)?"))
         {
             var token = match.Value;
             var significant = token.Contains('.', StringComparison.Ordinal)
@@ -52,6 +52,15 @@ public static class NumberVerifier
         }
 
         return new NumberCheck(offending.Count == 0, offending, allowed);
+    }
+
+    /// <summary>"V1144" / "V2154" / "VR150" → "V1 144" / "V2 154" / "VR 150" (issue #177): a
+    /// V-speed designator the model glued to its figure is not a four-digit number. Only the
+    /// text handed to the digit scan is rewritten.</summary>
+    public static string SplitVSpeedDigits(string narrative)
+    {
+        ArgumentNullException.ThrowIfNull(narrative);
+        return Regex.Replace(narrative, @"\b([Vv])([12Rr])(\d{2,3})\b", "$1$2 $3");
     }
 
     /// <summary>The allowed set rendered for a strict re-ask prompt ("140, 110.3, …"),
