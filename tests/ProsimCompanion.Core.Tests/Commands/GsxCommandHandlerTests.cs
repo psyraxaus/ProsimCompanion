@@ -26,7 +26,22 @@ public sealed class GsxCommandHandlerTests
             "gsx.startDepartureServices", new EmptyCommandRequest());
 
         Assert.Equal(CommandOutcome.Success, result.Outcome);
-        departure.Verify(d => d.Start(), Times.Once);
+        // No source named on the registry call → the handler records "command" (issue #169).
+        departure.Verify(d => d.Start("command"), Times.Once);
+    }
+
+    [Fact]
+    public async Task StartDepartureServices_CarriesTheCallersSource()
+    {
+        var departure = new Mock<IGsxDepartureControl>();
+        departure.SetupGet(d => d.Started).Returns(false);
+        var registry = Registry(departure.Object, gate: null);
+
+        _ = await registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(
+            "gsx.startDepartureServices", new EmptyCommandRequest(), source: "hail");
+
+        departure.Verify(d => d.Start("hail"), Times.Once);
+        Assert.Null(CommandRegistry.CurrentSource); // restored once the command returns
     }
 
     [Fact]
@@ -40,7 +55,7 @@ public sealed class GsxCommandHandlerTests
             "gsx.startDepartureServices", new EmptyCommandRequest());
 
         Assert.Equal(CommandOutcome.AlreadySatisfied, result.Outcome);
-        departure.Verify(d => d.Start(), Times.Never);
+        departure.Verify(d => d.Start(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

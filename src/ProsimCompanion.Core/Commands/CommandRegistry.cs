@@ -30,6 +30,15 @@ public sealed class CommandRegistry
 
     private readonly ConcurrentDictionary<string, Registration> _handlers = new(StringComparer.Ordinal);
 
+    private static readonly AsyncLocal<string?> Source = new();
+
+    /// <summary>The surface that invoked the command currently executing on this async flow
+    /// (<c>voice</c>, <c>hail</c>, <c>api</c>, <c>streamdeck</c>, …), or <c>command</c> when
+    /// the caller named none; null outside a command. Handlers that record WHO started
+    /// something (issue #169: the departure sequence's start source) read it instead of
+    /// growing a source parameter on every request DTO.</summary>
+    public static string? CurrentSource => Source.Value;
+
     /// <summary>Registered command names, sorted ordinally — for the diagnostics listing
     /// (<c>GET /api/commands</c>, later a /commands web page).</summary>
     public IReadOnlyList<string> Names
@@ -76,7 +85,8 @@ public sealed class CommandRegistry
     public async Task<TRes> ExecuteAsync<TReq, TRes>(
         string name,
         TReq request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? source = null)
     {
         if (!_handlers.TryGetValue(name, out var registration))
         {
@@ -89,7 +99,16 @@ public sealed class CommandRegistry
                 $"Command '{name}' is registered with a different signature than requested.");
         }
 
-        return await handler(request, cancellationToken).ConfigureAwait(false);
+        var outer = Source.Value;
+        Source.Value = source ?? outer ?? "command";
+        try
+        {
+            return await handler(request, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Source.Value = outer;
+        }
     }
 
     /// <summary>
@@ -99,13 +118,28 @@ public sealed class CommandRegistry
     /// instance of that type (or null for a fresh empty request).
     /// </summary>
     /// <exception cref="CommandNotFoundException">No handler carries this name.</exception>
-    public Task<object?> ExecuteUntypedAsync(
+    public async Task<object?> ExecuteUntypedAsync(
         string name,
         object? request,
-        CancellationToken cancellationToken = default)
-        => _handlers.TryGetValue(name, out var registration)
-            ? registration.Invoke(request, cancellationToken)
-            : throw new CommandNotFoundException(name);
+        CancellationToken cancellationToken = default,
+        string? source = null)
+    {
+        if (!_handlers.TryGetValue(name, out var registration))
+        {
+            throw new CommandNotFoundException(name);
+        }
+
+        var outer = Source.Value;
+        Source.Value = source ?? outer ?? "command";
+        try
+        {
+            return await registration.Invoke(request, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Source.Value = outer;
+        }
+    }
 
     /// <summary>True when a handler with the given name is registered — for diagnostics and
     /// conditional UI rendering.</summary>

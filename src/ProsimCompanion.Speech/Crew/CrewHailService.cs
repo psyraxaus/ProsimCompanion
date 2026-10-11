@@ -29,11 +29,22 @@ namespace ProsimCompanion.Speech.Crew;
 /// </summary>
 public sealed class CrewHailService : IVoiceFeature, IDisposable
 {
-    private static readonly string[] GroundHails =
-        ["cockpit to ground", "flight deck to ground"];
+    /// <summary>The ground hail and its aliases (issue #170: "Ground from cockpit." and
+    /// "ground." were refused on 2026-10-11 — the captain's natural wordings). The comma-less
+    /// forms cover an ASR that drops punctuation. Public for the Voice Reference drawer.</summary>
+    public static readonly IReadOnlyList<string> GroundHailPhrases =
+    [
+        "cockpit to ground", "flight deck to ground",
+        "ground from cockpit", "ground, cockpit", "ground cockpit", "ground crew",
+    ];
 
-    private static readonly string[] CabinHails =
+    /// <summary>The cabin hail and its aliases. Public for the Voice Reference drawer.</summary>
+    public static readonly IReadOnlyList<string> CabinHailPhrases =
         ["cockpit to crew", "flight deck to crew", "cockpit to cabin", "flight deck to cabin"];
+
+    private static readonly string[] GroundHails = [.. GroundHailPhrases];
+
+    private static readonly string[] CabinHails = [.. CabinHailPhrases];
 
     // One coaching line per session (AcpHailGateCore tracks the spend) — after that an
     // unkeyed hail is simply not answered, like the real interphone.
@@ -283,43 +294,54 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
                 .ConfigureAwait(false);
 
             var timeout = TimeSpan.FromSeconds(Math.Max(3, _groundOptions.CurrentValue.HailListenTimeoutSeconds));
-            string? heard;
-            try
+            // Two listens at most (issue #170): a request nothing maps to gets "say again —
+            // I can do …" and ONE more window; a free-form ASR (whisper) returns anything,
+            // so "the grammar IS the catalog" no longer holds and "Standing by." was wrong.
+            for (var attempt = 0; attempt < 2; attempt++)
             {
-                heard = await _mic.ListenAsync(grammar, timeout, hangUp.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (!_shutdown.IsCancellationRequested)
-            {
-                // The pilot moved the selector off the channel mid-call — end politely on
-                // the existing dialogue-end path (they may still have the REC latch open).
-                _eventLog.Record("crew.hail.hangup", new { channel = ground ? "ground" : "cabin" });
-                await SpeakAsync(standingBy, tag, role).ConfigureAwait(false);
-                return;
+                string? heard;
+                try
+                {
+                    heard = await _mic.ListenAsync(grammar, timeout, hangUp.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!_shutdown.IsCancellationRequested)
+                {
+                    // The pilot moved the selector off the channel mid-call — end politely on
+                    // the existing dialogue-end path (they may still have the REC latch open).
+                    _eventLog.Record("crew.hail.hangup", new { channel = ground ? "ground" : "cabin" });
+                    await SpeakAsync(standingBy, tag, role).ConfigureAwait(false);
+                    return;
+                }
+
+                if (heard is null
+                    || GsxVoicePhrases.CancelPhrases.Any(c => string.Equals(c, heard, StringComparison.OrdinalIgnoreCase)))
+                {
+                    await SpeakAsync(standingBy, tag, role).ConfigureAwait(false);
+                    return;
+                }
+
+                _eventLog.Record("crew.hail.request", new { channel = ground ? "ground" : "cabin", heard });
+
+                if (GsxVoicePhrases.StartGroundServicesPhrases.Any(
+                        p => string.Equals(p, heard, StringComparison.OrdinalIgnoreCase)))
+                {
+                    await HandleStartAsync(tag, role).ConfigureAwait(false);
+                    return;
+                }
+
+                if (GsxVoicePhrases.Bindings.TryGetValue(heard, out var binding))
+                {
+                    await HandleServiceRequestAsync(binding, tag, role).ConfigureAwait(false);
+                    return;
+                }
+
+                _eventLog.Record("crew.hail.unmapped", new { channel = ground ? "ground" : "cabin", heard, attempt = attempt + 1 });
+                if (attempt == 0)
+                {
+                    await SpeakAsync(GsxVoicePhrases.UnmappedRequestText, tag, role).ConfigureAwait(false);
+                }
             }
 
-            if (heard is null
-                || GsxVoicePhrases.CancelPhrases.Any(c => string.Equals(c, heard, StringComparison.OrdinalIgnoreCase)))
-            {
-                await SpeakAsync(standingBy, tag, role).ConfigureAwait(false);
-                return;
-            }
-
-            _eventLog.Record("crew.hail.request", new { channel = ground ? "ground" : "cabin", heard });
-
-            if (GsxVoicePhrases.StartGroundServicesPhrases.Any(
-                    p => string.Equals(p, heard, StringComparison.OrdinalIgnoreCase)))
-            {
-                await HandleStartAsync(tag, role).ConfigureAwait(false);
-                return;
-            }
-
-            if (GsxVoicePhrases.Bindings.TryGetValue(heard, out var binding))
-            {
-                await HandleServiceRequestAsync(binding, tag, role).ConfigureAwait(false);
-                return;
-            }
-
-            // A grammar phrase we do not map (should not happen — the grammar IS the catalog).
             await SpeakAsync(standingBy, tag, role).ConfigureAwait(false);
         }
         finally
@@ -333,7 +355,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
 
     private async Task HandleStartAsync(string tag, SpeechRole role)
     {
-        var result = await _gsxVoice.ExecuteAsync("gsx.startDepartureServices").ConfigureAwait(false);
+        var result = await _gsxVoice.ExecuteAsync("gsx.startDepartureServices", HailSource).ConfigureAwait(false);
         var line = result.Outcome switch
         {
             CommandOutcome.Success => "Copied — commencing ground services.",
@@ -352,9 +374,13 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         }
     }
 
+    /// <summary>Command source recorded for everything a hail dispatches (issue #169: the
+    /// departure-started event names it; the service control starts the cycle under it).</summary>
+    private const string HailSource = "hail";
+
     private async Task HandleServiceRequestAsync(GsxVoiceBinding binding, string tag, SpeechRole role)
     {
-        var result = await _gsxVoice.ExecuteAsync(binding.Command).ConfigureAwait(false);
+        var result = await _gsxVoice.ExecuteAsync(binding.Command, HailSource).ConfigureAwait(false);
         _logger.LogInformation(
             "Hail request {Command} → {Outcome}: {Reason}", binding.Command, result.Outcome, result.Reason);
 

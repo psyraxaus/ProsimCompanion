@@ -43,6 +43,9 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Automation.IGsxTriggerSlot>(provider => provider.GetRequiredService<Automation.GsxTriggerSlot>());
         services.AddSingleton<Automation.GsxAutomationService>();
         services.AddSingleton<Core.State.IGsxDepartureControl>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
+        // The on-demand path's way into the cycle (issue #169): a hail that calls Boarding
+        // before "commence ground services" arms the pax target and starts the cycle first.
+        services.AddSingleton<Automation.IGsxDepartureStarter>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
         // One flight-plan rule for the sequencer gate AND the on-demand path (ADR-0006).
         services.AddSingleton<Automation.GsxFlightPlanMonitor>();
         services.AddSingleton<Automation.IGsxFlightPlanStatus>(provider => provider.GetRequiredService<Automation.GsxFlightPlanMonitor>());
@@ -57,6 +60,9 @@ public static class GsxServiceCollectionExtensions
         services.AddStartupModule<Sync.GsxRefuelSync>();
         services.AddStartupModule<Sync.GsxBoardingSync>();
         services.AddStartupModule<Sync.GsxGroundEquipmentService>();
+        // Manual ground-power connect/disconnect (issue #170): the hail's "connect ground
+        // power" falls back to the ProSim GPU when GSX offers none at the stand.
+        services.AddSingleton<Sync.IGroundPowerEquipment>(provider => provider.GetRequiredService<Sync.GsxGroundEquipmentService>());
         services.AddStartupModule<Sync.GsxJetwayStairsService>();
         services.AddStartupModule<Sync.GsxRepositionService>();
         services.AddSingleton<Sync.GsxGateAnchorService>();

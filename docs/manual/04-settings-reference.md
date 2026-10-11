@@ -48,7 +48,13 @@ is regenerated automatically (pair tablets again via the QR code).
 
 Ground behaviour, in the Ground Services rail order:
 
-- **Automation** — master switch, auto-start departure services, wait-for-OFP gate
+- **Automation** — master switch, auto-start departure services, wait-for-OFP gate,
+  *Ground preparation start* (`groundPrepActivation`: `auto` | `voice` | `voiceThenAuto` —
+  the last keeps the "commence ground services" wait for the first leg and starts a
+  turnaround by itself once the next flight plan is loaded at the stand with the engines
+  off), *Turnaround auto-start delay* (`turnaroundAutoStartDelaySeconds`, 30) and *Ask
+  before a turnaround starts* (`turnaroundAskFirst`, off: the FO asks "Next plan loaded —
+  commence ground services?" and starts on yes)
 - **SimBrief / VDGS** — *Reload SimBrief in GSX on a new OFP* (`reloadSimbriefOnNewOfp`,
   off): clicks GSX's own "SimBrief" gate-menu line once per new flight plan so the VDGS
   and marshaller boards show the right flight number, destination and ETD — only while

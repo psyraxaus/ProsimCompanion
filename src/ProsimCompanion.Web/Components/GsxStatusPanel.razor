@@ -51,7 +51,7 @@
 
 <Section Title="Departure Status Board">
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
-        <button type="button" class="btn primary" @onclick="DepartureControl.Start"
+        <button type="button" class="btn primary" @onclick="@(() => DepartureControl.Start("web"))"
                 disabled="@DepartureControl.Started">
             @(DepartureControl.Complete ? "Departure complete"
                 : DepartureControl.Started ? "Departure running" : "Start departure services")

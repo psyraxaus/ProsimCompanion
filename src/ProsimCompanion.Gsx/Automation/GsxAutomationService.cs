@@ -25,7 +25,7 @@ namespace ProsimCompanion.Gsx.Automation;
 /// recorded with its reason (decision log + session event log), deduplicated so a stable
 /// state does not spam.
 /// </summary>
-public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
+public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IGsxDepartureStarter
 {
     private static readonly TimeSpan PumpInterval = TimeSpan.FromSeconds(3);
 
@@ -87,6 +87,20 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     private readonly IEfbInitOverrides _initOverrides;
     private readonly DeiceRequestStore _deiceRequest;
     private readonly IDisposable _deiceObserver;
+    private readonly TurnaroundStartStore _turnaroundStart;
+
+    /// <summary>The plan that was current when the aircraft arrived (issue #169): the next
+    /// leg's OFP is "loaded" once the store holds a different one. Null with
+    /// <see cref="_arrivalOfpKnown"/> true after a resync-recovered turnaround — the store is
+    /// in-memory, so whatever it holds was imported after the restart and counts as new.</summary>
+    private OfpData? _arrivalOfp;
+    private bool _arrivalOfpKnown;
+
+    /// <summary>voiceThenAuto settle stamp: when the turnaround auto-start conditions first
+    /// held (carried between evaluations by the pure core).</summary>
+    private DateTimeOffset? _turnaroundReadySinceUtc;
+    private bool _turnaroundQuestionAsked;
+    private bool _turnaroundDeclined;
 
     public GsxAutomationService(
         IGsxRemoteApi api,
@@ -108,14 +122,17 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         FuelConfirmationStore fuelConfirmation,
         IEfbInitOverrides initOverrides,
         DeiceRequestStore deiceRequest,
+        TurnaroundStartStore turnaroundStart,
         ILogger<GsxAutomationService> logger)
     {
         ArgumentNullException.ThrowIfNull(fuelConfirmation);
         ArgumentNullException.ThrowIfNull(initOverrides);
         ArgumentNullException.ThrowIfNull(deiceRequest);
+        ArgumentNullException.ThrowIfNull(turnaroundStart);
         _fuelConfirmation = fuelConfirmation;
         _initOverrides = initOverrides;
         _deiceRequest = deiceRequest;
+        _turnaroundStart = turnaroundStart;
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(slot);
         ArgumentNullException.ThrowIfNull(lifecycle);
@@ -174,6 +191,8 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _fuelConfirmationObserver = _fuelConfirmation.Observe(_ => Pump());
         // The de-icing verdict / the captain's answer reshapes the step list at once.
         _deiceObserver = _deiceRequest.Observe(_ => Pump());
+        // The captain's answer to "commence ground services?" (issue #169, ask-first).
+        _turnaroundStart.Answered += OnTurnaroundStartAnswered;
         _pumpTimer = new Timer(_ => Pump(), null, PumpInterval, PumpInterval);
     }
 
@@ -184,9 +203,34 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         if (_resyncState.TurnaroundDetected && !_cycle.IsTurnaround)
         {
             _cycle.MarkTurnaround();
+            // The OFP store is per process: anything it holds (or receives) after this
+            // restart is the next leg's plan as far as the turnaround auto-start is concerned.
+            _arrivalOfp = null;
+            _arrivalOfpKnown = true;
             RecordDecision("turnaround", "recovered from tracking LVARs by the startup resync");
         }
 
+        Pump();
+    }
+
+    /// <summary>Ask-first turnaround (issue #169): yes starts the sequence as a voice start;
+    /// no (or no answer) leaves the voice gate exactly as it was.</summary>
+    private void OnTurnaroundStartAnswered(object? sender, (bool Accepted, string Source) answer)
+    {
+        if (answer.Accepted)
+        {
+            if (!_cycle.Started)
+            {
+                StartDepartureServices(answer.Source);
+            }
+
+            return;
+        }
+
+        _turnaroundDeclined = true;
+        RecordDecision(
+            "departure sequence",
+            $"turnaround auto-start declined ({answer.Source}) — waiting for 'commence ground services' or the Start button");
         Pump();
     }
 
@@ -204,21 +248,39 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
 
     bool IGsxDepartureControl.Complete => _cycle.Complete;
 
-    void IGsxDepartureControl.Start() => StartDepartureServices();
+    void IGsxDepartureControl.Start(string source) => StartDepartureServices(source);
 
     void IGsxDepartureControl.ForceNext() => ForceNextService("web");
 
-    /// <summary>Starts the departure service sequence (idempotent).</summary>
-    public void StartDepartureServices()
+    /// <summary>Starts the departure service sequence (idempotent). The source — web, voice,
+    /// hail, command, api, streamdeck, auto, auto-turnaround — goes on the decision and the
+    /// <c>gsx-departure-started</c> session event (issue #169).</summary>
+    public void StartDepartureServices(string source)
     {
-        if (_cycle.Started)
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        if (!MarkStarted(source))
         {
             return;
         }
 
-        _cycle.MarkStarted();
-        RecordDecision("departure sequence", "started");
         Pump();
+    }
+
+    /// <summary>The one place the cycle is marked started: records the source, settles an
+    /// open ask-first question (any other trigger is an implicit yes) and raises the event.
+    /// False when already started.</summary>
+    private bool MarkStarted(string source)
+    {
+        if (_cycle.Started)
+        {
+            return false;
+        }
+
+        _cycle.MarkStarted();
+        RecordDecision("departure sequence", $"started (source: {source})");
+        _eventLog.Record("gsx-departure-started", new { source, turnaround = _cycle.IsTurnaround });
+        _turnaroundStart.Accept(source);
+        return true;
     }
 
     /// <summary>Single-shot force-next (INT/RAD / web button): the next evaluation bypasses the
@@ -249,6 +311,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
         _intRadFo.ValueChanged -= OnIntRadChanged;
         _fuelConfirmationObserver.Dispose();
         _deiceObserver.Dispose();
+        _turnaroundStart.Answered -= OnTurnaroundStartAnswered;
         _pumpTimer.Dispose();
         _bookedSeatString.Dispose();
         _fuelTotal.Dispose();
@@ -305,6 +368,13 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 _tankeringPrelimRaised = false;
                 _planAvailableSinceUtc = null;
                 _forceNext = false;
+                // Turnaround auto-start bookkeeping (issue #169): the plan we flew in on is
+                // the baseline — the next leg's OFP is whatever replaces it.
+                _arrivalOfp = _ofpStore.Current;
+                _arrivalOfpKnown = true;
+                _turnaroundReadySinceUtc = null;
+                _turnaroundQuestionAsked = false;
+                _turnaroundDeclined = false;
                 _slot.Reset("service cycles reset after arrival");
                 lock (_triggerAttempts)
                 {
@@ -429,12 +499,48 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                     ? FuelConfirmationHoldReason
                     : id.Equals(GsxServiceIds.DeIce, StringComparison.OrdinalIgnoreCase)
                         ? DeiceRequestPolicy.HoldReason(deice, now)
-                        : null));
+                        : null,
+                Turnaround: new DepartureAutomationCore.TurnaroundStartInputs(
+                    Enabled: GsxOptions.IsVoiceThenAuto(options.GroundPrepActivation),
+                    NextLegOfpLoaded: NextLegOfpLoaded(),
+                    ReadySinceUtc: _turnaroundReadySinceUtc,
+                    Now: now,
+                    Delay: TimeSpan.FromSeconds(Math.Max(0, options.TurnaroundAutoStartDelaySeconds)),
+                    AskFirst: options.TurnaroundAskFirst,
+                    QuestionAsked: _turnaroundQuestionAsked,
+                    Declined: _turnaroundDeclined)));
 
-            if (outcome.AutoStarted)
+            // Settle stamp for the next evaluation: the core reports when the turnaround
+            // conditions first held (or null once they lapse).
+            if (_turnaroundReadySinceUtc is null && outcome.TurnaroundReadySinceUtc is { } readySince)
             {
-                _cycle.MarkStarted();
-                RecordDecision("departure sequence", "auto-started (Preparation phase)");
+                RecordDecision(
+                    "departure sequence",
+                    $"turnaround with the next plan loaded — auto-start in {Math.Max(0, options.TurnaroundAutoStartDelaySeconds)} s"
+                    + (options.TurnaroundAskFirst ? " (the FO will ask first)" : ""));
+                _turnaroundReadySinceUtc = readySince;
+            }
+            else if (outcome.TurnaroundReadySinceUtc is null)
+            {
+                _turnaroundReadySinceUtc = null;
+            }
+
+            if (outcome.AutoStartSource is { } autoSource)
+            {
+                MarkStarted(autoSource);
+                RecordDecision(
+                    "departure sequence",
+                    autoSource == DepartureAutomationCore.TurnaroundAutoStartSource
+                        ? "auto-started (turnaround)"
+                        : "auto-started (Preparation phase)");
+            }
+
+            if (outcome.AskTurnaroundStart && !_turnaroundQuestionAsked)
+            {
+                _turnaroundQuestionAsked = true;
+                RecordDecision("departure sequence", "turnaround — asking the captain to commence ground services");
+                _eventLog.Record("gsx-turnaround-question", new { prompt = TurnaroundStartPrompt });
+                _turnaroundStart.Ask(TurnaroundStartPrompt);
             }
 
             if (outcome.HoldReason is not null)
@@ -610,27 +716,30 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
     /// per departure — GSX then boards OUR manifest (incl. any no-show randomization) instead
     /// of its own SimBrief figure (predecessor: SetPaxTarget before services). Optionally also
     /// writes the crew/pilot skip flags so GSX never asks the crew question.</summary>
-    private void ArmGsxPaxTarget()
+    private void ArmGsxPaxTarget() => _ = TryArmGsxPaxTargetAsync();
+
+    /// <summary>The booked passenger count from ProSim's seat map — 0 while the OFP has not
+    /// written the manifest yet.</summary>
+    private int BookedPax()
+        => ProsimCompanion.Core.Aircraft.SeatMap.Parse(_bookedSeatString.Value).Count(seat => seat);
+
+    /// <summary>Arms the pax target once per cycle and reports whether it is armed now (already
+    /// armed counts). False = the booked map is not written yet, or MSFS is not connected —
+    /// the sequencer retries on a later pump; an on-demand Boarding call must not proceed.</summary>
+    private async Task<bool> TryArmGsxPaxTargetAsync()
     {
         if (_paxTargetArmed)
         {
-            return;
+            return true;
         }
 
-        var booked = ProsimCompanion.Core.Aircraft.SeatMap
-            .Parse(_bookedSeatString.Value)
-            .Count(seat => seat);
+        var booked = BookedPax();
         if (booked <= 0)
         {
-            return; // booked map not written yet — retry on a later pump
+            return false; // booked map not written yet — retry on a later pump
         }
 
         _paxTargetArmed = true;
-        _ = ArmGsxPaxTargetAsync(booked);
-    }
-
-    private async Task ArmGsxPaxTargetAsync(int booked)
-    {
         try
         {
             await _simVars.WriteAsync(GsxLvarNames.NumPassengers.Name, booked).ConfigureAwait(false);
@@ -644,13 +753,83 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl
                 await _simVars.WriteAsync(GsxLvarNames.PilotsNotDeboarding, 1).ConfigureAwait(false);
                 RecordDecision("pax target", "crew/pilot boarding questions suppressed via LVARs");
             }
+
+            return true;
         }
         catch (InvalidOperationException ex)
         {
             _paxTargetArmed = false; // MSFS not connected yet — retry on a later pump
             _logger.LogDebug("Pax target arming deferred: {Reason}", ex.Message);
+            return false;
         }
     }
+
+    bool IGsxDepartureStarter.Started => _cycle.Started;
+
+    /// <summary>Hail/command path into the cycle (issue #169): the pax target is armed from
+    /// the current plan BEFORE the cycle is marked started, so a Boarding call never boards
+    /// GSX's stale count; with no plan at all the call is refused. The sequencer then takes
+    /// over the remaining steps exactly as after "commence ground services".</summary>
+    public async Task<DepartureStartForCallOutcome> StartForServiceCallAsync(
+        string source, bool requirePaxTarget, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_cycle.Started)
+        {
+            return DepartureStartForCallOutcome.Ok;
+        }
+
+        if (_ofpStore.Current is null && !_flightPlan.FlightPlanAvailable)
+        {
+            return DepartureStartForCallOutcome.Refused("No flight plan loaded yet — load the OFP first.");
+        }
+
+        var armed = await TryArmGsxPaxTargetAsync().ConfigureAwait(false);
+        if (requirePaxTarget && !armed)
+        {
+            return DepartureStartForCallOutcome.Refused(
+                BookedPax() <= 0
+                    ? "No flight plan loaded yet — load the OFP first (the passenger manifest is empty)."
+                    : "The passenger count could not be sent to GSX yet (MSFS not connected) — try again in a moment.");
+        }
+
+        if (MarkStarted(source))
+        {
+            Pump();
+        }
+
+        return DepartureStartForCallOutcome.Ok;
+    }
+
+    /// <summary>True once the OFP store holds a plan other than the one the aircraft arrived
+    /// with (issue #169). Before any arrival this session nothing counts — the first leg stays
+    /// on the voice gate by design.</summary>
+    private bool NextLegOfpLoaded()
+    {
+        if (!_arrivalOfpKnown || _ofpStore.Current is not { } current)
+        {
+            return false;
+        }
+
+        if (_arrivalOfp is null)
+        {
+            return true;
+        }
+
+        if (ReferenceEquals(current, _arrivalOfp))
+        {
+            return false;
+        }
+
+        // Same SimBrief request id = the same plan re-imported (or re-fetched), not a new leg.
+        return current.RequestId.Length == 0
+            || !string.Equals(current.RequestId, _arrivalOfp.RequestId, StringComparison.Ordinal);
+    }
+
+    /// <summary>The FO's ask-first question text (issue #169). Probed by
+    /// <c>turnaround-auto-start</c> — keep the wording stable.</summary>
+    internal const string TurnaroundStartPrompt = "Next plan loaded — commence ground services?";
 
     /// <summary>Fires the SimBrief import in the background with a 60 s cooldown; the importer
     /// itself decision-logs its progress, and a success re-pumps the sequencer. Only invoked

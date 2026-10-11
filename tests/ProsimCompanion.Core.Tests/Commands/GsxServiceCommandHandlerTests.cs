@@ -19,7 +19,7 @@ public sealed class GsxServiceCommandHandlerTests
         => registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(name, new EmptyCommandRequest());
 
     [Fact]
-    public void AllTwelveCommands_AreRegistered()
+    public void AllThirteenCommands_AreRegistered()
     {
         var registry = Registry(control: null);
 
@@ -27,10 +27,10 @@ public sealed class GsxServiceCommandHandlerTests
         [
             "gsx.requestRefuel", "gsx.requestCatering", "gsx.requestBoarding",
             "gsx.requestDeboarding", "gsx.requestJetway", "gsx.retractJetway",
-            "gsx.requestStairs", "gsx.retractStairs", "gsx.requestGpu",
+            "gsx.requestStairs", "gsx.retractStairs", "gsx.requestGpu", "gsx.disconnectGpu",
             "gsx.requestDeice", "gsx.requestPushback", "gsx.confirmFuel",
         ];
-        Assert.Equal(12, GsxServiceCommandHandlers.Commands.Count);
+        Assert.Equal(13, GsxServiceCommandHandlers.Commands.Count);
         foreach (var name in expected)
         {
             Assert.True(registry.IsRegistered(name), $"{name} should be registered");
@@ -57,6 +57,7 @@ public sealed class GsxServiceCommandHandlerTests
     [InlineData("gsx.requestStairs", GsxServiceAction.RequestStairs)]
     [InlineData("gsx.retractStairs", GsxServiceAction.RetractStairs)]
     [InlineData("gsx.requestGpu", GsxServiceAction.RequestGpu)]
+    [InlineData("gsx.disconnectGpu", GsxServiceAction.DisconnectGpu)]
     [InlineData("gsx.requestDeice", GsxServiceAction.RequestDeice)]
     [InlineData("gsx.requestPushback", GsxServiceAction.RequestPushback)]
     public async Task EachCommand_RoutesItsAction(string name, GsxServiceAction expected)

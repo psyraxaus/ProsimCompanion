@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Aircraft.Ofp;
+using ProsimCompanion.Core.Commands;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
@@ -38,6 +39,11 @@ public sealed class GsxServiceControlTests
     private readonly GroundOpsSignals _signals = new();
     private readonly FuelConfirmationStore _fuelConfirmation;
     private readonly GsxDiagnosticsStore _diagnostics = new();
+
+    // Issue #169 (cycle start from a hail) and #170 (ground power): the departure starter
+    // answers "started" unless a test says otherwise; the ProSim GPU seam records its calls.
+    private readonly Mock<IGsxDepartureStarter> _departure = new();
+    private readonly Mock<IGroundPowerEquipment> _groundPower = new();
     private double _fob;
     private double _plannedFuelKg;
     private Dictionary<string, double> _overrides = new(StringComparer.OrdinalIgnoreCase);
@@ -80,6 +86,20 @@ public sealed class GsxServiceControlTests
                 It.IsAny<GsxTriggerRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GsxTriggerDispatch(GsxTriggerDispatchStatus.Dispatched));
 
+        // Default: the cycle is already running, so the pre-#169 tests see no start step. A
+        // test that cares re-sets Started / the start outcome AFTER CreateControl (Moq takes
+        // the latest setup).
+        _departure.SetupGet(d => d.Started).Returns(true);
+        _departure
+            .Setup(d => d.StartForServiceCallAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DepartureStartForCallOutcome.Ok);
+        _groundPower
+            .Setup(g => g.ConnectGpuAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GroundPowerResult.Written, "Ground power connected."));
+        _groundPower
+            .Setup(g => g.DisconnectGpuAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GroundPowerResult.Written, "Ground power disconnected."));
+
         return new GsxServiceControl(
             _api.Object,
             _lifecycle,
@@ -96,6 +116,8 @@ public sealed class GsxServiceControlTests
             _diagnostics,
             _signals,
             options.Object,
+            _departure.Object,
+            _groundPower.Object,
             NullLogger<GsxServiceControl>.Instance);
     }
 
@@ -460,6 +482,148 @@ public sealed class GsxServiceControlTests
         _dispatcher.Verify(
             d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "GPU"), It.IsAny<CancellationToken>()),
             Times.Once);
+        _groundPower.Verify(g => g.ConnectGpuAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ---- Ground power (issue #170) ----
+
+    [Fact]
+    public async Task RequestGpu_WhenGsxOffersNoGpuAtTheStand_ConnectsTheProsimUnitAndSaysSo()
+    {
+        var control = CreateControl();
+        SeedService("Refueling", "available"); // a gate context without a GPU service
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestGpu);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        Assert.Contains("ProSim ground power connected instead", outcome.Detail, StringComparison.Ordinal);
+        _groundPower.Verify(g => g.ConnectGpuAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _dispatcher.Verify(
+            d => d.TryDispatchAsync(It.IsAny<GsxTriggerRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RequestGpu_WhenGsxListsTheGpuAsUnavailable_FallsBackToProsim()
+    {
+        var control = CreateControl();
+        SeedService("GPU", "unavailable", canTrigger: false);
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestGpu);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        _groundPower.Verify(g => g.ConnectGpuAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DisconnectGpu_WritesTheProsimUnitOff_NeverTriggersGsx()
+    {
+        var control = CreateControl();
+        SeedService("GPU", "performing");
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.DisconnectGpu);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        _groundPower.Verify(g => g.DisconnectGpuAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _dispatcher.Verify(
+            d => d.TryDispatchAsync(It.IsAny<GsxTriggerRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DisconnectGpu_Interlocked_IsNotCallableWithTheReason()
+    {
+        var control = CreateControl();
+        _groundPower
+            .Setup(g => g.DisconnectGpuAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GroundPowerResult.Interlocked, "External power is still feeding the aircraft — switch EXT PWR off first."));
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.DisconnectGpu);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        Assert.Contains("EXT PWR", outcome.Detail, StringComparison.Ordinal);
+    }
+
+    // ---- Cycle start from an on-demand call (issue #169) ----
+
+    [Fact]
+    public async Task RequestBoarding_BeforeTheCycleStarted_StartsItWithThePaxTargetArmedFirst()
+    {
+        var control = CreateControl();
+        _departure.SetupGet(d => d.Started).Returns(false);
+        SeedService("Boarding", "available");
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestBoarding);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        // A direct seam call (web page) carries no command source → "web"; Boarding
+        // requires the pax target to be armed before the trigger goes out.
+        _departure.Verify(d => d.StartForServiceCallAsync("web", true, It.IsAny<CancellationToken>()), Times.Once);
+        _dispatcher.Verify(
+            d => d.TryDispatchAsync(It.Is<GsxTriggerRequest>(r => r.ServiceId == "Boarding"), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestBoarding_WhenTheStartIsRefused_NeverReachesGsx()
+    {
+        var control = CreateControl();
+        _departure.SetupGet(d => d.Started).Returns(false);
+        _departure
+            .Setup(d => d.StartForServiceCallAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DepartureStartForCallOutcome.Refused("No flight plan loaded yet — load the OFP first."));
+        SeedService("Boarding", "available");
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestBoarding);
+
+        Assert.Equal(GsxServiceCallStatus.NotCallable, outcome.Status);
+        Assert.Contains("load the OFP first", outcome.Detail, StringComparison.Ordinal);
+        _dispatcher.Verify(
+            d => d.TryDispatchAsync(It.IsAny<GsxTriggerRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RequestRefuel_BeforeTheCycleStarted_StartsItWithoutRequiringThePaxTarget()
+    {
+        var control = CreateControl();
+        _departure.SetupGet(d => d.Started).Returns(false);
+        SeedService("Refueling", "available");
+        SeedOfp(6000);
+        _fob = 1000;
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestRefuel);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        _departure.Verify(d => d.StartForServiceCallAsync("web", false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestBoarding_ThroughACommand_CarriesTheCommandSource()
+    {
+        var control = CreateControl();
+        _departure.SetupGet(d => d.Started).Returns(false);
+        SeedService("Boarding", "available");
+        var registry = new CommandRegistry();
+        registry.Register<EmptyCommandRequest, CommandResult>(
+            "gsx.requestBoarding",
+            async (_, ct) => CommandResult.Ok((await control.TryCallAsync(GsxServiceAction.RequestBoarding, ct)).Detail));
+
+        _ = await registry.ExecuteAsync<EmptyCommandRequest, CommandResult>(
+            "gsx.requestBoarding", new EmptyCommandRequest(), source: "hail");
+
+        _departure.Verify(d => d.StartForServiceCallAsync("hail", true, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestCatering_BeforeTheCycleStarted_DoesNotStartIt()
+    {
+        var control = CreateControl();
+        _departure.SetupGet(d => d.Started).Returns(false);
+        SeedService("Catering", "available");
+
+        var outcome = await control.TryCallAsync(GsxServiceAction.RequestCatering);
+
+        Assert.Equal(GsxServiceCallStatus.Called, outcome.Status);
+        _departure.Verify(
+            d => d.StartForServiceCallAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // ---- Fuel confirmation + top-up (2026-09-19, real-world SOP) ----

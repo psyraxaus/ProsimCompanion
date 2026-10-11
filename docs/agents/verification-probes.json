@@ -156,9 +156,11 @@
         "session"
       ],
       "checks": [
-        "Between 'gsx-service' {Boarding, Requested} and {Boarding, Completed}, at most 2 distinct passenger counts across 'gsx-decision' events with action 'pax target' (reason contains 'armed GSX with N passengers')."
+        "Between 'gsx-service' {Boarding, Requested} and {Boarding, Completed}, at most 2 distinct passenger counts across 'gsx-decision' events with action 'pax target' (reason contains 'armed GSX with N passengers').",
+        "assert-present (issue #169): for EVERY departure cycle a 'gsx-decision' {action:'pax target', reason 'armed GSX with N passengers (booked manifest)'} precedes the first 'gsx-service' {Boarding, Requested} of that cycle — whether Boarding was called by the sequencer, a hail, a command or the web. N must equal the pax count of the 'ofp.loaded' current at that time (the 2026-10-11 bug: pax target 128 armed 15 s AFTER boarding had completed on GSX's stale 122).",
+        "assert-absent: a 'gsx-service' {Boarding, Requested} with no 'pax target' decision earlier in the same cycle (after the last 'turnaround' reset)."
       ],
-      "notes": "2026-08-16 flight thrashed 89→91→88→85→91→89 from SimBrief pax randomization re-imports during boarding."
+      "notes": "2026-08-16 flight thrashed 89→91→88→85→91→89 from SimBrief pax randomization re-imports during boarding. 2026-10-11 (issue #169): an on-demand Boarding/Refueling call before the cycle started now arms the target first (IGsxDepartureStarter) or is refused."
     },
     {
       "id": "gate-name-matching",
@@ -701,9 +703,12 @@
         "log"
       ],
       "checks": [
-        "When the Voice activation mode is configured: departure services must not auto-start without the voice trigger — 'gsx-decision' shows the gate holding until the pilot's call; with automation mode, auto-start decisions appear as before."
+        "When the Voice activation mode is configured: departure services must not auto-start without the voice trigger — 'gsx-decision' shows the gate holding until the pilot's call; with automation mode, auto-start decisions appear as before.",
+        "Per mode on a TURNAROUND (a 'gsx-decision' {action:'turnaround', reason:'service cycles reset after arrival'} earlier in the session, or recovered by the resync): groundPrepActivation=voice → the board holds \"waiting for 'commence ground services' (voice activation mode)\" and the only 'gsx-departure-started' has source voice|hail|web|command|api|streamdeck (never auto-turnaround); groundPrepActivation=voiceThenAuto → after an 'ofp.loaded' with a requestId other than the inbound leg's, a 'gsx-decision' {action:'departure sequence', reason starts 'turnaround with the next plan loaded — auto-start in N s'} then (turnaroundAskFirst off) 'gsx-departure-started' {source:'auto-turnaround'} ≥ N s later, or (turnaroundAskFirst on) a 'gsx-turnaround-question' / 'turnaround-start-question' pair and the start under source voice; groundPrepActivation=auto → 'gsx-departure-started' {source:'auto'} as before.",
+        "assert-absent (voiceThenAuto): a 'gsx-departure-started' {source:'auto-turnaround'} on the first leg of the session (no turnaround decision before it), or before any 'ofp.loaded' with a new requestId.",
+        "assert-present (any mode): every 'gsx-decision' {action:'departure sequence', reason starts 'started'} is accompanied by a 'gsx-departure-started' event naming a source — a start with no source is the 2026-10-11 bug (issue #169)."
       ],
-      "notes": "Trigger-dependent: only evaluable in sessions where voice gating was enabled."
+      "notes": "Trigger-dependent: only evaluable in sessions where voice gating was enabled. 2026-10-11 (issue #169): the turnaround on groundPrepActivation=voice never auto-started (by design) and the pilot hailed services by hand; voiceThenAuto + turnaroundAutoStartDelaySeconds + turnaroundAskFirst added, the start source is now logged."
     },
     {
       "id": "voice-ground-ops-wp2-upcalls",
@@ -714,9 +719,13 @@
         "session"
       ],
       "checks": [
-        "Ground-crew upcalls fire on their triggers: 'ground.upcall.gpu' after GPU connect, 'ground.upcall.refuel' after Refueling Completed, 'ground.upcall.catering' after Catering Completed; crew hail dialogues respond on INT."
+        "Ground-crew upcalls fire on their triggers: 'ground.upcall.gpu' after GPU connect, 'ground.upcall.refuel' after Refueling Completed, 'ground.upcall.catering' after Catering Completed; crew hail dialogues respond on INT.",
+        "assert-present (issue #170, GPU request): a 'crew.hail.request' whose heard text is one of 'connect ground power' / 'connect the gpu' / 'connect the ground power unit' / 'request ground power' / 'connect external power' is followed by the log line 'Hail request gsx.requestGpu → Success|AlreadySatisfied' and, on Success, the ground-power dataref rising and a 'ground.upcall.gpu' speech — through GSX's GPU service, or (log reason 'GSX offers no GPU service at this stand — ProSim ground power connected instead') through the ProSim unit.",
+        "assert-present: a 'crew.hail' opened by an alias ('ground from cockpit', 'ground, cockpit', 'ground crew') behaves exactly like 'cockpit to ground'.",
+        "assert-absent: a 'crew.hail.request' heard text that no binding maps answered with the standing-by text alone — the correct answer is a 'crew.hail.unmapped' event {heard, attempt:1} plus the spoken 'Say again — I can do boarding, fuel, catering, ground power, pushback or de-icing.' and a second listen (attempt 2 → standing by). 2026-10-11 23:29:27Z: 'please connect the ground power unit' → 'Standing by.'",
+        "watch: 'disconnect ground power' / 'remove the gpu' → gsx.disconnectGpu; a 'preconditionFailed' with 'EXT PWR' in the reason means the interlock held because external power was still on the buses — report whether that matched the cockpit state."
       ],
-      "notes": "Upcalls verified live 2026-08-17 (GPU/refuel/catering all spoke). Hail dialogues still unverified — exercise one 'cockpit to ground' hail."
+      "notes": "Upcalls verified live 2026-08-17 (GPU/refuel/catering all spoke). Hail dialogues verified live 2026-10-11 (request boarding / catering through hails). GPU phrases, hail aliases and the say-again answer added 2026-10-11 (issue #170) — unverified live."
     },
     {
       "id": "accent-localization",
@@ -2880,6 +2889,33 @@
         "requires-human: Duty Day page FROM/TO card and the legs rail show the ICAO codes from the first minute of the day (not '---- → ----' / 'Leg 1 · ? → ?'); block and duty figures read as h:mm with an HRS unit and never ellipsize."
       ],
       "notes": "Added 2026-10-11 (issue #164, Mario + owner reports 2026-10-10). Progressive legs now take From/To/FlightNo from the OfpStore at day start, next-leg start, resume and on every OFP change while the leg is open (planned legs only fill gaps). Core's OfpEventRecorder writes 'ofp.loaded'; DebriefFactExtractor falls back to the last plan loaded before the landing when no 'flight.route' exists."
+    },
+    {
+      "id": "turnaround-auto-start",
+      "issue": 169,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "gsx-departure-started",
+        "fields": [
+          "source",
+          "turnaround"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "assert-present (every mode): each 'gsx-decision' {action:'departure sequence', reason starts 'started'} has a 'gsx-departure-started' {source, turnaround} at the same instant; source ∈ voice|web|command|api|streamdeck|auto|auto-turnaround|hail. The decision reason reads 'started (source: X)'.",
+        "assert-present (gsx.groundPrepActivation = voiceThenAuto, turnaroundAskFirst off): on a turnaround — 'gsx-decision' {action:'turnaround', reason:'service cycles reset after arrival'} (or the resync's 'recovered from tracking LVARs'), then 'phase-changed' to Preflight / 'gsx-automation-phase' Preparation, then an 'ofp.loaded' whose requestId differs from the inbound leg's — a 'gsx-decision' {action:'departure sequence', reason starts 'turnaround with the next plan loaded — auto-start in N s'} appears within one pump (≤ 3 s) of the last of those, and 'gsx-departure-started' {source:'auto-turnaround', turnaround:true} follows no sooner than N s later (N = gsx.turnaroundAutoStartDelaySeconds), with 'gsx-decision' {reason:'auto-started (turnaround)'}. The ground-prep chain then runs ('gsx-ground-prep-stage' GroundEquipment → JetwayStairs → Complete, skipping Reposition) and the sequence calls its first service.",
+        "assert-present (voiceThenAuto, turnaroundAskFirst on): the same lead-in, then 'gsx-turnaround-question' {prompt:'Next plan loaded — commence ground services?'} and the Speech pillar's 'turnaround-start-question' {prompt} followed by {outcome:accepted|declined|unanswered, heard}; accepted → 'gsx-departure-started' {source:'voice'}; declined/unanswered → 'gsx-decision' {reason starts 'turnaround auto-start declined'} and NO auto-turnaround start for the rest of the cycle — a later 'commence ground services' / Start button starts it normally.",
+        "assert-absent (voiceThenAuto): 'gsx-departure-started' {source:'auto-turnaround'} with turnaround:false; or any auto-turnaround start before an 'ofp.loaded' with a new requestId; or an auto-turnaround start while 'gsx-automation-phase' is not Preparation.",
+        "assert-present (any voice mode, hail-before-start): a 'crew.hail.request' {heard:'request boarding'|'request refueling'|…} or a gsx.requestBoarding/gsx.requestRefuel command while no 'gsx-departure-started' exists for the cycle produces, in order: 'gsx-decision' {action:'pax target', reason 'armed GSX with N passengers (booked manifest)'} → 'gsx-departure-started' {source:'hail'|'voice'|'command'|'api'|'web'} → 'gsx-service' {Boarding|Refueling, Requested}. With no OFP loaded the hail is refused with 'No flight plan loaded yet — load the OFP first' (log 'Hail request gsx.requestBoarding → PreconditionFailed') and no 'gsx-service' Boarding Requested follows.",
+        "requires-human: the FINAL loadsheet pax figure equals the OFP's pax count on the turnaround leg (2026-10-11: 122 on the loadsheet vs 128 in the OFP)."
+      ],
+      "notes": "Added 2026-10-11 (issue #169, LIRF→EGCC→EFHK owner flight on 0.7.0-rc.4): with groundPrepActivation=voice the turnaround held for 'commence ground services' by design, the pilot drove services by hail/button, and the web Start at 23:53:26Z armed the pax target after boarding had completed on GSX's stale 122. DepartureAutomationCore.TurnaroundStartInputs (pure, table-tested) + GsxAutomationService bookkeeping (arrival OFP baseline, settle stamp) + IGsxDepartureStarter for the on-demand path + TurnaroundStartStore/TurnaroundStartDialogue for ask-first. Unverified live."
     }
   ]
 }

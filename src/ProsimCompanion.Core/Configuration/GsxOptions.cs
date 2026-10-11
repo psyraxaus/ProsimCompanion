@@ -43,8 +43,42 @@ public sealed class GsxOptions : IOptionSection
     /// jetway) may begin: <c>"auto"</c> runs it as soon as its preconditions hold (default);
     /// <c>"voice"</c> holds the whole chain until departure services are started — "commence
     /// ground services", the web Start button, or the API all release it (ADR-0006: voice is
-    /// an additional trigger, never the only one). Unknown values read as auto.</summary>
+    /// an additional trigger, never the only one); <c>"voiceThenAuto"</c> (issue #169) keeps
+    /// the voice gate for the first leg of the session and starts a turnaround by itself once
+    /// the next leg's OFP is loaded at the stand (after
+    /// <see cref="TurnaroundAutoStartDelaySeconds"/>, or on the captain's yes with
+    /// <see cref="TurnaroundAskFirst"/>). Unknown values read as auto.</summary>
     public string GroundPrepActivation { get; set; } = "auto";
+
+    /// <summary>The <see cref="GroundPrepActivation"/> value that holds for the crew's call.</summary>
+    public const string GroundPrepActivationVoice = "voice";
+
+    /// <summary>The <see cref="GroundPrepActivation"/> value that holds for the crew's call on
+    /// a cold start and starts turnarounds itself (issue #169).</summary>
+    public const string GroundPrepActivationVoiceThenAuto = "voiceThenAuto";
+
+    /// <summary>True when the value holds ground preparation and the departure sequence for
+    /// the crew's "commence ground services" (both voice modes). Unknown values read as auto —
+    /// a typo in settings.json must not silently park the whole prep chain.</summary>
+    public static bool IsVoiceGated(string? groundPrepActivation)
+        => string.Equals(groundPrepActivation, GroundPrepActivationVoice, StringComparison.OrdinalIgnoreCase)
+            || IsVoiceThenAuto(groundPrepActivation);
+
+    /// <summary>True when a turnaround starts itself (issue #169).</summary>
+    public static bool IsVoiceThenAuto(string? groundPrepActivation)
+        => string.Equals(groundPrepActivation, GroundPrepActivationVoiceThenAuto, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>With <see cref="GroundPrepActivation"/> = voiceThenAuto: how long the
+    /// turnaround conditions (at the stand, engines off, next leg's OFP loaded) must stand
+    /// before the departure sequence starts itself — the import needs to settle and the crew
+    /// a moment to object. 2026-10-11 evidence (issue #169): the second OFP landed 21 s
+    /// before the Preflight edge.</summary>
+    public int TurnaroundAutoStartDelaySeconds { get; set; } = 30;
+
+    /// <summary>With voiceThenAuto: instead of starting the turnaround by itself the FO asks
+    /// once — "Next plan loaded — commence ground services?" — and starts on yes. No answer
+    /// leaves the voice gate as it was ("commence ground services" / the Start button).</summary>
+    public bool TurnaroundAskFirst { get; set; }
 
     /// <summary>The out-of-the-box departure queue (fresh instances per call — the steps are
     /// mutable). Legacy Prosim2GSX defaults: Cleaning + Lavatory on turnarounds only, Refuel +

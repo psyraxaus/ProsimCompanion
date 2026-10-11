@@ -7,6 +7,37 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Gsx.Sync;
 
+/// <summary>Outcome of a manual ground-power write (issue #170).</summary>
+public enum GroundPowerResult
+{
+    /// <summary>The dataref write went out.</summary>
+    Written,
+
+    /// <summary>The requested state already holds.</summary>
+    AlreadyThere,
+
+    /// <summary>Refused by an interlock — see the detail.</summary>
+    Interlocked,
+
+    /// <summary>The write failed (ProSim not connected / not writable).</summary>
+    Failed,
+}
+
+/// <summary>The manual ground-power seam (issue #170): the crew's "connect ground power" when
+/// GSX offers no GPU service at the stand, and "disconnect ground power" at any time — the
+/// same ProSim dataref the ground-preparation chain and the beacon-edge removal write.</summary>
+public interface IGroundPowerEquipment
+{
+    /// <summary>Connects the ProSim ground power unit (the allow-listed dataref write the
+    /// prep chain makes). No automation option gates it — it is an explicit crew request.</summary>
+    Task<(GroundPowerResult Result, string Detail)> ConnectGpuAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Takes the ground power unit away. Interlock: never while external power is
+    /// still feeding the buses — the crew switches EXT PWR off first, as on the beacon-edge
+    /// removal the APU is already carrying the load.</summary>
+    Task<(GroundPowerResult Result, string Detail)> DisconnectGpuAsync(CancellationToken cancellationToken = default);
+}
+
 /// <summary>
 /// Ground equipment automation: places GPU + chocks (+ PCA per the tri-state) once per ground
 /// session when preparation begins, and removes them on the beacon-on edge before pushback.
@@ -17,7 +48,7 @@ namespace ProsimCompanion.Gsx.Sync;
 /// park-brake-set during the pushback phase. Safety interlocks from the predecessors: chocks
 /// are never removed with the park brake off, and everything is decision-logged.
 /// </summary>
-public sealed class GsxGroundEquipmentService : IDisposable
+public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipment
 {
     /// <summary>L:FSDT_GSX_JETWAY value meaning "no jetway at this stand" (GsxServiceState
     /// NotAvailable — the same predicate Prosim2GSX used for "only on jetway stand").</summary>
@@ -308,6 +339,50 @@ public sealed class GsxGroundEquipmentService : IDisposable
             _removedThisSession = false; // chocks still down — retry on the next beacon edge
             RecordDecision("ground equipment", "chocks kept — park brake is not set");
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<(GroundPowerResult Result, string Detail)> ConnectGpuAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_gpuConnected.Value)
+        {
+            return (GroundPowerResult.AlreadyThere, "Ground power is already connected.");
+        }
+
+        RecordDecision("ground equipment", "crew request — connecting the GPU (ProSim ground power)");
+        var ok = await _writer.WriteAsync(ProsimDataRefNames.GroundPower.Name, true).ConfigureAwait(false);
+        if (!ok)
+        {
+            return (GroundPowerResult.Failed, "The ground-power write to ProSim failed — see the log.");
+        }
+
+        // A manual placement starts the gradual-removal falling-edge latch fresh.
+        ResetGpuLatch();
+        return (GroundPowerResult.Written, "Ground power connected.");
+    }
+
+    /// <inheritdoc />
+    public async Task<(GroundPowerResult Result, string Detail)> DisconnectGpuAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_gpuConnected.Value)
+        {
+            return (GroundPowerResult.AlreadyThere, "Ground power is not connected — nothing to remove.");
+        }
+
+        if (_externalPowerConnected.Value)
+        {
+            RecordDecision("ground equipment", "crew request — GPU kept, external power is still feeding the aircraft");
+            return (GroundPowerResult.Interlocked,
+                "External power is still feeding the aircraft — switch EXT PWR off (APU or engines on the buses) first.");
+        }
+
+        RecordDecision("ground equipment", "crew request — removing the GPU (ProSim ground power)");
+        var ok = await _writer.WriteAsync(ProsimDataRefNames.GroundPower.Name, false).ConfigureAwait(false);
+        return ok
+            ? (GroundPowerResult.Written, "Ground power disconnected.")
+            : (GroundPowerResult.Failed, "The ground-power write to ProSim failed — see the log.");
     }
 
     /// <summary>Forgets that external power was ever seen — the next gradual-removal pass
