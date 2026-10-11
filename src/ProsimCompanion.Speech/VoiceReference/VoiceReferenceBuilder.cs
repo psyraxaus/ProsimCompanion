@@ -213,6 +213,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         "gsx.requestDeice" => "Request de-icing.",
         "gsx.requestGpu" => "Connect ground power — GSX's GPU, or the ProSim unit when the stand has none; the ground crew reports it connected.",
         "gsx.disconnectGpu" => "Take the ground power unit away (not while EXT PWR still feeds the aircraft).",
+        "gsx.declineDeice" => "Decline the First Officer's de-icing question — no de-icing this departure.",
         _ => command,
     };
 

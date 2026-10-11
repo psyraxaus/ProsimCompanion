@@ -7,7 +7,8 @@
   "trigger": {
     "ewdText": [ "AIR PACK 2 FAULT", "PACK 2 FAULT", "PACK 2 OVHT" ],
     "logic": "any",
-    "debounceSeconds": 2.0
+    "debounceSeconds": 5.0,
+    "holdDuringDeice": true
   },
   "announce": "ECAM, air, pack 2 fault.",
   "actions": [

@@ -416,6 +416,11 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
             return; // a pump is already running; state changes re-trigger us anyway
         }
 
+        // Issue #166: the de-icing policy runs when the DeIce step's turn comes. The store is
+        // marked AFTER the pump lock is released — its observers pump again, and a nested
+        // pump would bounce off the lock and lose the verdict until the next unrelated edge.
+        var markDeiceNext = false;
+
         try
         {
             var options = _options.CurrentValue;
@@ -559,6 +564,13 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
                 return; // gated before sequencing with no board to publish (disabled / complete)
             }
 
+            if (!deice.StepNext
+                && plan.HeldAtTurn.Any(id => id.Equals(GsxServiceIds.DeIce, StringComparison.OrdinalIgnoreCase)))
+            {
+                markDeiceNext = true;
+                RecordDecisionOnce("de-ice step next", "every earlier service done — the de-icing policy decides now");
+            }
+
             if (outcome.StartSimbriefImport)
             {
                 TryStartSimbriefImport();
@@ -651,6 +663,11 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         finally
         {
             _pumpLock.Release();
+        }
+
+        if (markDeiceNext)
+        {
+            _deiceRequest.MarkStepNext();
         }
     }
 

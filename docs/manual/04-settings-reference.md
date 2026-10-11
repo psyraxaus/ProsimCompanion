@@ -97,16 +97,27 @@ Ground behaviour, in the Ground Services rail order:
 - **De-Icing** — *Auto-accept de-ice offer* (GSX's own "Ice warning" question), the fluid
   and concentration (shared by GSX's offer and the app's own request), and the
   weather/OAT auto-request policy (`deice.autoRequest`: **off** default / **ask** / **auto**;
-  `deice.oatThresholdC` 3 °C; `deice.requirePrecipitation` on). Once the departure services
-  have started, the app reads ProSim's OAT (else the METAR temperature) and the departure
-  METAR shown on the Flight Status weather card: at or below the threshold with snow,
-  freezing precipitation, ice pellets, rain, freezing fog or a dew-point spread of 3 °C or
-  less it either asks the captain (the FO: *"Captain, conditions call for de-icing — OAT −2,
-  snow. Request it?"*; the Ground Services Status section shows the question with
-  *Request de-icing* / *No de-icing* buttons; five minutes without an answer counts as no)
-  or, on **auto**, puts the GSX `DeIce` service on the departure sequence as its last step.
-  With no METAR for the departure the policy makes no request (no data, no call). Every
-  verdict is on the Status section's De-Icing row and in the decision log
+  `deice.oatThresholdC` 3 °C — above 10 °C the card warns it will ask on nearly every
+  flight; `deice.requirePrecipitation` on). The policy runs **when the de-icing step's turn
+  comes** on the departure sequence (*When to ask*, `deice.askWhen`: `whenStepIsNext`
+  default — every earlier service done, the plan loaded, the weather known — or
+  `afterBoardingComplete`, which asks on the boarding-completed edge and repeats the
+  question once when the step is next if you have not answered). It reads ProSim's OAT (else
+  the METAR temperature) and the departure METAR shown on the Flight Status weather card: at
+  or below the threshold with snow, freezing precipitation, ice pellets, rain, freezing fog or
+  a dew-point spread of 3 °C or less it either asks the captain (the FO: *"Captain, conditions
+  call for de-icing — OAT −2, snow. Request it?"*; the Ground Services Status section shows
+  the question with *Request de-icing* / *No de-icing* buttons) or, on **auto**, puts the GSX
+  `DeIce` service on the departure sequence as its last step. Silence is not an answer: the
+  FO hands the question back (*"Your call — the question stands…"*) and it stays open —
+  say *request de-icing* or *no de-icing*, or use the buttons — until the *Answer timeout*
+  (`deice.questionTimeoutMinutes`, 5) runs out, which counts as no. With no METAR for the
+  departure the policy makes no request (no data, no call). Every verdict is on the Status
+  section's De-Icing row and in the decision log. *Auto-accept de-ice offer* obeys your
+  decision: a declined question answers GSX's own offer with No, an open one is left for
+  you, an accepted one with Yes. *Packs procedure* (`deice.packsProcedure`, off): the FO calls
+  *packs off, ditching on* when the crew arrives and *packs on, ditching off* when it leaves,
+  checking the overhead lights twenty seconds later — it never moves the switches
 - **Arrival / Fuel** — auto-deboard, stable-parked hold time, FOB save/restore per aircraft
 - **Stand Knowledge** — read GSX profiles and scenery for stands (`resolveGatesFromProfiles`,
   on), the GSX profile folder (empty = `%APPDATA%\Virtuali\GSX\MSFS`), scenery package

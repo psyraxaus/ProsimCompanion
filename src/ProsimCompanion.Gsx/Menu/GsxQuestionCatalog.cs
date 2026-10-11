@@ -26,11 +26,22 @@ public sealed class GsxQuestionCatalog
     private readonly ILogger<GsxQuestionCatalog> _logger;
     private readonly PushbackChoiceStore? _pushbackChoice;
     private readonly Gate.IGsxAssignedGateSource? _assignedGate;
+    private readonly DeiceRequestStore? _deiceRequest;
+    private readonly DeiceActivityStore? _deiceActivity;
     private volatile bool _directionAutoSelected;
     private volatile bool _selectPositionSeenWhileMoving;
 
     /// <summary>GSX's direction menu title (manual p.24).</summary>
     internal const string PushbackDirectionTitle = "Select pushback direction";
+
+    /// <summary>GSX's two de-icing menus as the 2026-10-10 EFHK log shows them (issue #166):
+    /// the fluid and the concentration are asked SEPARATELY — "Select fluid type" 62 s after
+    /// the crew went Active, "Select concentration" 11 s later. The catalogue only knew the
+    /// predecessor's combined "Select de-icing type" title, so both were "left for the user"
+    /// and GSX sprayed its default while the holdover card armed with the configured fluid.</summary>
+    internal const string FluidTypeTitle = "Select fluid type";
+    internal const string ConcentrationTitle = "Select concentration";
+    internal const string LegacyDeiceTypeTitle = "Select de-icing type";
 
     public GsxQuestionCatalog(
         IGsxRemoteApi api,
@@ -41,7 +52,9 @@ public sealed class GsxQuestionCatalog
         JsonlEventLog eventLog,
         ILogger<GsxQuestionCatalog> logger,
         PushbackChoiceStore? pushbackChoice = null,
-        Gate.IGsxAssignedGateSource? assignedGate = null)
+        Gate.IGsxAssignedGateSource? assignedGate = null,
+        DeiceRequestStore? deiceRequest = null,
+        DeiceActivityStore? deiceActivity = null)
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(executor);
@@ -60,6 +73,8 @@ public sealed class GsxQuestionCatalog
         _logger = logger;
         _pushbackChoice = pushbackChoice;
         _assignedGate = assignedGate;
+        _deiceRequest = deiceRequest;
+        _deiceActivity = deiceActivity;
 
         // App-lifetime singleton — no unsubscribe needed. A Couatl engine restart starts a new
         // GSX session, so the once-per-session direction latch re-arms.
@@ -135,19 +150,15 @@ public sealed class GsxQuestionCatalog
             closeAfter: true,
             ct));
 
-        dispatcher.Register("Ice warning", ct => AnswerIfAsync(
-            () => _options.CurrentValue.AutoDeIce,
-            "de-icing offer",
-            "Ice warning",
-            "^yes",
-            closeAfter: false,
-            ct));
+        dispatcher.Register("Ice warning", HandleIceWarningAsync);
 
         // Menu title from Prosim2GSX GsxConstants.MenuTugAttach — verified constant, not guessed.
         dispatcher.Register("Attach Pushback Tug", HandleTugQuestionAsync);
 
         dispatcher.Register("Select pushback direction", HandlePushbackDirectionAsync);
-        dispatcher.Register("Select de-icing type", HandleDeIceTypeAsync);
+        dispatcher.Register(FluidTypeTitle, HandleFluidTypeMenuAsync);
+        dispatcher.Register(ConcentrationTitle, HandleConcentrationMenuAsync);
+        dispatcher.Register(LegacyDeiceTypeTitle, HandleDeIceTypeAsync);
 
         // Facility/parking-conflict surfaces (issue #44): GSX raises these when its remembered
         // parking disagrees with the aircraft's stand (or a parking change is attempted while
@@ -501,22 +512,221 @@ public sealed class GsxQuestionCatalog
                 : $"{result.Outcome}: {result.Detail}");
     }
 
-    private async Task HandleDeIceTypeAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// GSX's own "Ice warning: do you request the de-icing treatment?" offer. With
+    /// <c>gsx.autoDeIce</c> off it is left for the user, as before. On, the answer obeys the
+    /// app's own de-icing decision (issue #166, EFHK 2026-10-10: the captain's question had
+    /// been declined, yet this handler picked 'Yes' and the trucks came anyway): a declined
+    /// question answers <b>No</b>; a question still standing is left open (the pilot's pick on
+    /// GSX's menu is then their answer — a direct call counts as "yes"); an accepted or
+    /// auto-requested de-ice answers Yes. With the policy off, or a verdict that never asked
+    /// (not required / no data), GSX's own icing judgement stands and the legacy Yes applies.
+    /// </summary>
+    private async Task HandleIceWarningAsync(CancellationToken cancellationToken)
     {
         var options = _options.CurrentValue;
         if (!options.AutoDeIce)
         {
-            RecordDecision("de-icing type menu", "left for the user (AutoDeIce off)");
+            RecordDecision("de-icing offer", "left for the user (disabled in settings)");
+            return;
+        }
+
+        var deice = _deiceRequest?.Snapshot() ?? DeiceRequestSnapshot.Empty;
+        var answer = IceWarningAnswer(deice, DateTimeOffset.UtcNow);
+        if (answer is null)
+        {
+            RecordDecision(
+                "de-icing offer",
+                "left for the user — the captain's de-icing question is still open (answer it, or pick on GSX's menu: a direct call counts as yes)");
+            return;
+        }
+
+        var result = await _executor.ExecuteAsync(
+            new GsxMenuIntent
+            {
+                Name = "de-icing offer",
+                TitlePrefixes = ["Ice warning"],
+                EntryPattern = new Regex(answer.Value ? "^yes" : "^no", RegexOptions.IgnoreCase),
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        var why = deice.Declined is not null
+            ? $"the captain declined de-icing ({deice.Declined})"
+            : deice.RequestThisCycle
+                ? "de-icing is requested this departure"
+                : $"policy verdict {deice.Verdict} — GSX's own icing judgement stands";
+        RecordDecision(
+            "de-icing offer",
+            result.Succeeded ? $"answered: {result.Detail} — {why}" : $"{result.Outcome}: {result.Detail}");
+
+        if (result.Succeeded && !answer.Value)
+        {
+            // GSX does not reliably dismiss question prompts after a pick — close explicitly.
+            _ = await _api.SendCommandAsync("menu.close", null, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>true = Yes, false = No, null = leave the offer for the user. Pure, for tests.</summary>
+    public static bool? IceWarningAnswer(DeiceRequestSnapshot deice, DateTimeOffset nowUtc)
+    {
+        ArgumentNullException.ThrowIfNull(deice);
+        if (deice.RequestThisCycle)
+        {
+            return true;
+        }
+
+        if (deice.Declined is not null)
+        {
+            return false;
+        }
+
+        return deice.QuestionOpen(nowUtc) ? null : true;
+    }
+
+    /// <summary>The fluid-type menu ("Type I" … "Type IV" entries): answered from
+    /// <c>gsx.deIceFluidType</c> when the offer is auto-accepted OR the app itself requested
+    /// de-icing this cycle (the settings hint promises the same fluid for both). A de-ice the
+    /// pilot ordered from the GSX menu with auto-accept off stays theirs to answer.</summary>
+    private Task HandleFluidTypeMenuAsync(CancellationToken cancellationToken)
+        => HandleDeiceFluidMenuAsync(
+            "fluidType",
+            FluidTypeTitle,
+            options => FluidTypePattern(options.DeIceFluidType),
+            options => $"{options.DeIceFluidType}",
+            cancellationToken);
+
+    /// <summary>The concentration menu ("100%", "75%" … entries) from <c>gsx.deIceConcentration</c>.</summary>
+    private Task HandleConcentrationMenuAsync(CancellationToken cancellationToken)
+        => HandleDeiceFluidMenuAsync(
+            "concentration",
+            ConcentrationTitle,
+            options => ConcentrationPattern(options.DeIceConcentration),
+            options => $"{options.DeIceConcentration}%",
+            cancellationToken);
+
+    private async Task HandleDeiceFluidMenuAsync(
+        string asked,
+        string title,
+        Func<GsxOptions, Regex> pattern,
+        Func<GsxOptions, string> wanted,
+        CancellationToken cancellationToken)
+    {
+        var options = _options.CurrentValue;
+        var deice = _deiceRequest?.Snapshot();
+        var action = $"de-icing {asked} menu";
+        if (!options.AutoDeIce && deice?.RequestThisCycle != true)
+        {
+            RecordDecision(action, "left for the user (auto-accept off and the app did not request de-icing)");
+            _eventLog.Record("gsx-deice-fluid", new { asked, answered = false, source = "user", entries = _api.Mirror.Menu?.Entries });
+            return;
+        }
+
+        var menu = _api.Mirror.Menu;
+        if (menu is null || !_api.Mirror.MenuShown)
+        {
+            return;
+        }
+
+        var regex = pattern(options);
+        var picked = menu.Entries.FirstOrDefault(regex.IsMatch);
+        if (picked is null)
+        {
+            RecordDecision(action, $"left for the user — no entry matches {wanted(options)} among [{string.Join(" | ", menu.Entries)}]");
+            _eventLog.Record("gsx-deice-fluid", new { asked, answered = false, source = "settings", wanted = wanted(options), entries = menu.Entries });
+            return;
+        }
+
+        // Re-find by exact entry text (TOCTOU-safe: the intent resolves against the live menu).
+        var result = await _executor.ExecuteAsync(
+            new GsxMenuIntent
+            {
+                Name = $"de-icing {asked} selection",
+                TitlePrefixes = [title],
+                EntryPattern = new Regex($"^{Regex.Escape(picked)}$"),
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        RecordDecision(
+            action,
+            result.Succeeded ? $"picked '{picked}' for {wanted(options)} (settings)" : $"{result.Outcome}: {result.Detail}");
+
+        if (result.Succeeded)
+        {
+            var fluidType = asked == "fluidType" ? FluidTypeOf(picked) : null;
+            var concentration = asked == "concentration" ? ConcentrationOf(picked) : null;
+            _deiceActivity?.RecordMenuAnswer(fluidType, concentration);
+            _eventLog.Record("gsx-deice-fluid", new
+            {
+                asked,
+                answered = true,
+                fluidType = fluidType ?? _deiceActivity?.Snapshot().MenuFluidType,
+                concentration = concentration ?? _deiceActivity?.Snapshot().MenuConcentration,
+                source = "settings",
+                picked,
+                entries = menu.Entries,
+            });
+        }
+    }
+
+    /// <summary>"Type IV" → matches "Type IV", "Type IV (100%)", never "Type I"/"Type II"
+    /// — the roman numeral must end at a word boundary. Public and pure for tests.</summary>
+    public static Regex FluidTypePattern(string configuredFluidType)
+    {
+        ArgumentNullException.ThrowIfNull(configuredFluidType);
+        var roman = Core.Deice.DeiceHoldoverService.ParseFluidType(configuredFluidType) switch
+        {
+            1 => "I",
+            2 => "II",
+            3 => "III",
+            _ => "IV",
+        };
+        return new Regex($@"(?<![A-Z])Type\s*{roman}(?![IV])", RegexOptions.IgnoreCase);
+    }
+
+    /// <summary>"75" → matches "75%", "75 %", "75/25", "Type IV 75%"; never "175".</summary>
+    public static Regex ConcentrationPattern(string configuredConcentration)
+    {
+        ArgumentNullException.ThrowIfNull(configuredConcentration);
+        var digits = new string(configuredConcentration.Where(char.IsDigit).ToArray());
+        return new Regex($@"(?<!\d){(digits.Length == 0 ? "100" : digits)}(?!\d)");
+    }
+
+    /// <summary>The fluid type a menu entry names (1–4), null when none.</summary>
+    public static int? FluidTypeOf(string entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        var m = Regex.Match(entry, @"(?<![A-Z])Type\s*(IV|III|II|I)(?![IV])", RegexOptions.IgnoreCase);
+        return m.Success
+            ? m.Groups[1].Value.ToUpperInvariant() switch { "I" => 1, "II" => 2, "III" => 3, _ => 4 }
+            : null;
+    }
+
+    /// <summary>The concentration a menu entry names (first 1–100 figure), null when none.</summary>
+    public static int? ConcentrationOf(string entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        var m = Regex.Match(entry, @"(?<!\d)(\d{1,3})(?!\d)");
+        return m.Success && int.TryParse(m.Groups[1].Value, out var value) && value is >= 1 and <= 100 ? value : null;
+    }
+
+    /// <summary>The predecessor's combined "Select de-icing type" menu (one entry carrying
+    /// both tokens) — kept for GSX builds that still show it.</summary>
+    private async Task HandleDeIceTypeAsync(CancellationToken cancellationToken)
+    {
+        var options = _options.CurrentValue;
+        if (!options.AutoDeIce && _deiceRequest?.Snapshot().RequestThisCycle != true)
+        {
+            RecordDecision("de-icing type menu", "left for the user (auto-accept off and the app did not request de-icing)");
             return;
         }
 
         // The entry must carry both the fluid-type token and the concentration token.
-        var pattern = $"(?=.*{Regex.Escape(options.DeIceFluidType)})(?=.*{Regex.Escape(options.DeIceConcentration)})";
+        var pattern = $"(?=.*{FluidTypePattern(options.DeIceFluidType)})(?=.*{ConcentrationPattern(options.DeIceConcentration)})";
         var result = await _executor.ExecuteAsync(
             new GsxMenuIntent
             {
                 Name = "de-icing type selection",
-                TitlePrefixes = ["Select de-icing type"],
+                TitlePrefixes = [LegacyDeiceTypeTitle],
                 EntryPattern = new Regex(pattern, RegexOptions.IgnoreCase),
             },
             cancellationToken).ConfigureAwait(false);
@@ -526,6 +736,21 @@ public sealed class GsxQuestionCatalog
             result.Succeeded
                 ? $"selected {options.DeIceFluidType} {options.DeIceConcentration}%: {result.Detail}"
                 : $"{result.Outcome}: {result.Detail}");
+
+        if (result.Succeeded)
+        {
+            _deiceActivity?.RecordMenuAnswer(
+                Core.Deice.DeiceHoldoverService.ParseFluidType(options.DeIceFluidType),
+                int.TryParse(options.DeIceConcentration, out var c) ? c : null);
+            _eventLog.Record("gsx-deice-fluid", new
+            {
+                asked = "combined",
+                answered = true,
+                fluidType = Core.Deice.DeiceHoldoverService.ParseFluidType(options.DeIceFluidType),
+                concentration = options.DeIceConcentration,
+                source = "settings",
+            });
+        }
     }
 
     private async Task HandleOperatorMenuAsync(string menuKind, CancellationToken cancellationToken)

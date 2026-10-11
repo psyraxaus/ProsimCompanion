@@ -298,7 +298,7 @@
                             <text>—</text>
                         }
                     </span>
-                    <span class="ofp-deice-fluid">Fluid: <span class="mono">@(_deice.Active || _deice.Expired ? _deice.FluidLabel : "—")</span></span>
+                    <span class="ofp-deice-fluid" title="@(string.IsNullOrEmpty(_deice.FluidSource) ? null : $"Fluid from: {_deice.FluidSource}")">Fluid: <span class="mono">@(_deice.Active || _deice.Expired ? _deice.FluidLabel : "—")</span>@if ((_deice.Active || _deice.Expired) && !string.IsNullOrEmpty(_deice.FluidSource)) { <span class="mono"> (@_deice.FluidSource)</span> }</span>
                     <span class="ofp-deice-status @(_deice.Expired ? "ofp-deice-expired" : null)">@_deice.Status</span>
                     <span class="ofp-deice-note">Immersion only — not for real-world dispatch</span>
                 </div>

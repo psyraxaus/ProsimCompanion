@@ -198,6 +198,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<Gsx.DeiceQuestionDialogue>();
         // The turnaround "commence ground services?" question (issue #169, ask-first).
         services.AddStartupModule<Gsx.TurnaroundStartDialogue>();
+        // The FO's packs-off / ditching-on calls and read-only checks around a GSX de-icing
+        // (issue #166, opt-in gsx.deice.packsProcedure). Edges from the Core activity seam.
+        services.AddStartupModule<Gsx.DeicePacksProcedure>();
         // Interphone hail dialogues ("cockpit to ground" → "go ahead, captain" → request) and
         // ground-crew upcalls on INT (ADR-0006 / issue #51). The hail feature registers AFTER
         // GsxVoiceService so single-shot phrases keep their precedence.

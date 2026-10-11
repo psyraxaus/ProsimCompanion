@@ -73,16 +73,42 @@ public sealed class DeiceQuestionDialogueTests : IDisposable
         Assert.Equal("Copied — no de-icing.", _arbiter.Requests[^1].Text);
     }
 
+    /// <summary>Issue #166 (EFHK 2026-10-10): 32 s of silence declined the question and GSX's
+    /// own offer was then accepted against that decline. Silence leaves the question open.</summary>
     [Fact]
-    public async Task NoAnswer_DeclinesAndHandsItBack()
+    public async Task NoAnswer_LeavesTheQuestionOpen_AndHandsItBack()
     {
         var dialogue = Create(null);
-        await dialogue.RunAsync(Ask());
+        var question = Ask();
+        await dialogue.RunAsync(question);
 
         Assert.False(_store.Snapshot().RequestThisCycle);
-        Assert.Equal("no answer to the FO's question", _store.Snapshot().Declined);
-        Assert.Equal("Your call — de-icing not requested. Say request de-icing if you want it.", _arbiter.Requests[^1].Text);
+        Assert.Null(_store.Snapshot().Declined);
+        Assert.NotNull(_store.Snapshot().Question);
+        Assert.True(_store.Snapshot().QuestionOpen(DateTimeOffset.UtcNow));
+        Assert.Equal(DeiceQuestionDialogue.QuestionStandsPhrase, _arbiter.Requests[^1].Text);
+
+        // The web button (or a voice command, or the TTL sweep) answers it afterwards.
+        _store.Decline("web", "declined on the Status board");
+        Assert.Equal("declined on the Status board", _store.Snapshot().Declined);
     }
+
+    [Fact]
+    public void ReAsk_SaysItIsTheLastItem()
+    {
+        var first = new DeiceQuestion(DateTimeOffset.UtcNow, "Request it?", TimeSpan.FromMinutes(5));
+        Assert.Equal("Request it?", DeiceQuestionDialogue.SpokenPrompt(first));
+
+        var again = first with { Attempt = 2 };
+        Assert.StartsWith("Captain, de-icing is the last item before pushback and still needs your call.", DeiceQuestionDialogue.SpokenPrompt(again), StringComparison.Ordinal);
+        Assert.EndsWith("Request it?", DeiceQuestionDialogue.SpokenPrompt(again), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("negative de-icing", false)]
+    [InlineData("decline de-icing", false)]
+    public void Interpret_ClassifiesTheNewDeclinePhrases(string heard, bool? expected)
+        => Assert.Equal(expected, DeiceQuestionDialogue.Interpret(heard));
 
     [Fact]
     public async Task VoiceControlOff_LeavesTheQuestionForTheWebButtons()

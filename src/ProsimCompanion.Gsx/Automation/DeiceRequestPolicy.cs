@@ -119,18 +119,21 @@ public static class DeiceRequestPolicy
 
     /// <summary>
     /// The departure step list for this cycle. With de-icing requested (an <c>auto</c>
-    /// verdict or the captain's "yes"), or while the captain's question is still OPEN, the
-    /// list carries a <c>DeIce</c> step as its LAST entry with
-    /// <see cref="GsxServiceActivation.AfterAllCompleted"/>: a configured step with
-    /// activation Skip is lifted out of its place and re-added at the end, and a list without
-    /// one gets the step appended. Last on purpose — de-icing is the final thing before
-    /// pushback, and an open question must only hold the departure's "all done", never a
-    /// boarding configured behind a mid-list DeIce row (the shell's <c>preHold</c> keeps an
-    /// unanswered step unsettled, exactly like the fuel confirmation). A step the pilot
-    /// configured with any other activation stays where and as it is (their order wins).
-    /// Every other state returns the configured list untouched, so a declined or
-    /// not-required de-ice changes nothing. Fresh instances — the configured steps are never
-    /// mutated.
+    /// verdict or the captain's "yes"), while the captain's question is still OPEN, or while
+    /// the policy is still UNDECIDED (issue #166: it runs when the step's turn comes, so the
+    /// step must be on the board for that turn to come), the list carries a <c>DeIce</c>
+    /// step as its LAST entry with <see cref="GsxServiceActivation.AfterAllCompleted"/>: a
+    /// configured step with activation Skip is lifted out of its place and re-added at the
+    /// end, and a list without one gets the step appended. Last on purpose — de-icing is the
+    /// final thing before pushback, and an open question must only hold the departure's "all
+    /// done", never a boarding configured behind a mid-list DeIce row (the shell's
+    /// <c>preHold</c> keeps an unanswered step unsettled, exactly like the fuel confirmation).
+    /// A step the pilot configured with any other activation stays where and as it is (their
+    /// order wins). Every other state returns the configured list untouched, so a declined or
+    /// not-required de-ice changes nothing — and so does a policy that never answered the
+    /// step's turn (<see cref="DeiceRequestSnapshot.StepNext"/> set, verdict still Pending:
+    /// no evaluator alive; the departure must not deadlock on it). Fresh instances — the
+    /// configured steps are never mutated.
     /// </summary>
     public static IReadOnlyList<DepartureServiceStep> EffectiveSteps(
         IReadOnlyList<DepartureServiceStep> configured,
@@ -140,7 +143,7 @@ public static class DeiceRequestPolicy
         ArgumentNullException.ThrowIfNull(configured);
         ArgumentNullException.ThrowIfNull(deice);
 
-        var place = deice.RequestThisCycle || deice.QuestionOpen(nowUtc);
+        var place = deice.RequestThisCycle || deice.QuestionOpen(nowUtc) || deice.Undecided;
         if (!place)
         {
             return configured;
@@ -172,12 +175,24 @@ public static class DeiceRequestPolicy
     }
 
     /// <summary>The sequencer's hold reason for the DeIce step while the captain's question
-    /// stands; null otherwise. Probed by <c>gsx-deice-policy</c> — keep the wording stable.</summary>
+    /// stands, or while the policy has not run yet (it runs when this step's turn comes —
+    /// the shell marks the store from the plan's <c>HeldAtTurn</c>); null otherwise. Probed
+    /// by <c>gsx-deice-policy</c> — keep the wording stable.</summary>
     public static string? HoldReason(DeiceRequestSnapshot deice, DateTimeOffset nowUtc)
     {
         ArgumentNullException.ThrowIfNull(deice);
-        return deice.QuestionOpen(nowUtc) && !deice.RequestThisCycle
-            ? "waiting for the captain's answer — conditions call for de-icing (say 'request de-icing' / 'negative', or use the Status board)"
+        if (deice.RequestThisCycle)
+        {
+            return null;
+        }
+
+        if (deice.QuestionOpen(nowUtc))
+        {
+            return "waiting for the captain's answer — conditions call for de-icing (say 'request de-icing' / 'no de-icing', or use the Status board)";
+        }
+
+        return deice.Undecided
+            ? "de-icing policy — decided when this step's turn comes (OAT and departure weather read then)"
             : null;
     }
 

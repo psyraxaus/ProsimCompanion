@@ -35,9 +35,12 @@ public sealed class GsxVoicePhrasesTests
     [Fact]
     public void EveryBoundCommand_IsARegisteredGsxCommand()
     {
-        // gsx.forceNextService is a GsxCommandHandlers command; every other binding is a
-        // per-service command — a typo here would answer "not registered" at the mic.
-        var known = GsxServiceCommandHandlers.Commands.Keys.Append("gsx.forceNextService").ToHashSet(StringComparer.Ordinal);
+        // gsx.forceNextService is a GsxCommandHandlers command and the two de-icing answers
+        // (issue #166) are Core store writes; every other binding is a per-service command —
+        // a typo here would answer "not registered" at the mic.
+        var known = GsxServiceCommandHandlers.Commands.Keys
+            .Append("gsx.forceNextService").Append("gsx.declineDeice").Append("gsx.acceptDeice")
+            .ToHashSet(StringComparer.Ordinal);
         var unknown = GsxVoicePhrases.Bindings.Values.Select(b => b.Command).Distinct().Where(c => !known.Contains(c)).ToList();
 
         Assert.True(unknown.Count == 0, "Bound to no command: " + string.Join(", ", unknown));

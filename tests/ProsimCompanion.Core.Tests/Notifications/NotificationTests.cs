@@ -396,7 +396,7 @@ public sealed class NotificationTests : IDisposable
         var signals = new GroundOpsSignals();
         var gsx = new Mock<IOptionsMonitor<GsxOptions>>();
         gsx.SetupGet(m => m.CurrentValue).Returns(new GsxOptions());
-        using var holdover = new Core.Deice.DeiceHoldoverService(signals, gsx.Object, NullLogger<Core.Deice.DeiceHoldoverService>.Instance);
+        using var holdover = new Core.Deice.DeiceHoldoverService(signals, new DeiceActivityStore(signals), gsx.Object, NullLogger<Core.Deice.DeiceHoldoverService>.Instance);
         var monitor = new Mock<IOptionsMonitor<NotificationOptions>>();
         monitor.SetupGet(m => m.CurrentValue).Returns(() => _options);
         using var source = new NotificationSignalSource(dispatcher, signals, new LoadsheetStore(), new FlightTimesStore(), new OfpStore(), monitor.Object,

@@ -58,6 +58,12 @@ public sealed class AbnormalTrigger
 
     /// <summary>Rising edge must hold this long (clamped ≥ 0.5 s at load).</summary>
     public double DebounceSeconds { get; set; } = 2.0;
+
+    /// <summary>Hold the trigger while GSX de-icing is in progress (crew Requested → Completed,
+    /// from the Core de-icing activity seam). Shipped on the pack-fault definitions (issue
+    /// #123 reopened, EFHK 2026-10-10): the crew switches the packs OFF for the treatment, and
+    /// the FO read the resulting PACK FAULT lines as an abnormal.</summary>
+    public bool HoldDuringDeice { get; set; }
 }
 
 public sealed class AbnormalAction

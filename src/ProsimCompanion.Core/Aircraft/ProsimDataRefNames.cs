@@ -651,9 +651,14 @@ public static class ProsimDataRefNames
     public static readonly DataRef<int> OhPneumaticWingAntiIce = new("system.switches.S_OH_PNEUMATIC_WING_ANTI_ICE", DataRefTier.Normal, 0);
     public const string OhPneumaticXbleedSelector = "system.switches.S_OH_PNEUMATIC_XBLEED_SELECTOR"; // 0=Shut 1=Auto 2=Open
 
-    // Pneumatic Indicators
-    public const string PneumaticPack1Indicator = "system.indicators.I_OH_PNEUMATIC_PACK_1_L";
-    public const string PneumaticPack2Indicator = "system.indicators.I_OH_PNEUMATIC_PACK_2_L";
+    // Pneumatic Indicators. The de-icing packs/ditching procedure (issue #166) reads the
+    // overhead LIGHTS, not the pushbuttons: the PACK pb's lower half is its OFF legend (lit =
+    // pack switched off), the DITCHING pb's lower half is its ON legend (lit = ditching
+    // pushed). The S_OH_* switch datarefs carry a Normal/Pushed value whose sense differs per
+    // button; the lights say what the crew sees. Read-only — the FO never writes them.
+    public static readonly DataRef<int> PneumaticPack1Indicator = new("system.indicators.I_OH_PNEUMATIC_PACK_1_L", DataRefTier.Normal, 0);
+    public static readonly DataRef<int> PneumaticPack2Indicator = new("system.indicators.I_OH_PNEUMATIC_PACK_2_L", DataRefTier.Normal, 0);
+    public static readonly DataRef<int> PneumaticDitchingIndicator = new("system.indicators.I_OH_PNEUMATIC_DITCHING_L", DataRefTier.Normal, 0);
     public const string WingAntiIceIndicator = "system.indicators.I_OH_PNEUMATIC_WING_ANTI_ICE_L";
     public const string Eng1AntiIceIndicator = "system.indicators.I_OH_PNEUMATIC_ENG1_ANTI_ICE_L";
     public const string Eng2AntiIceIndicator = "system.indicators.I_OH_PNEUMATIC_ENG2_ANTI_ICE_L";

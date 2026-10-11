@@ -152,6 +152,10 @@ public static class CoreServiceCollectionExtensions
         // Turnaround "commence ground services?" question (issue #169): the GSX automation
         // asks, the FO voice dialogue answers.
         services.AddSingleton<TurnaroundStartStore>();
+        // The de-icing activity seam (issue #166): the GSX relay writes the crew's lifecycle
+        // stage and the fluid/concentration menu answers; the abnormal monitor, the FO's
+        // packs/ditching procedure and the holdover card read them.
+        services.AddSingleton<DeiceActivityStore>();
         services.AddSingleton<Flight.FlightProgressStore>();
         services.AddStartupModule<Flight.FlightProgressService>();
         // Landing analysis (issue #146): one `touchdown` session event per landing, read

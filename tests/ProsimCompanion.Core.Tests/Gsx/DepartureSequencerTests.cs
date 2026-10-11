@@ -582,6 +582,38 @@ public sealed class DepartureSequencerTests
     private static readonly Func<string, string?> HoldRefuel =
         id => id == "Refueling" ? "waiting for the crew to confirm the block fuel" : null;
 
+    /// <summary>Issue #166: a pre-held step is reported "at turn" only when nothing earlier
+    /// owns the cursor and its own activation rule is satisfied — the de-icing policy keys on
+    /// it. The hold stays transparent and unsettled either way.</summary>
+    [Fact]
+    public void PreHold_ReportsHeldAtTurn_WhenTheHoldIsAllThatStopsTheStep()
+    {
+        var steps = new[] { Step("Refueling"), Step("Catering"), Step("Boarding", GsxServiceActivation.AfterAllCompleted) };
+        var services = Services(
+            ("Refueling", GsxServiceState.Callable, true),
+            ("Catering", GsxServiceState.Callable, true),
+            ("Boarding", GsxServiceState.Callable, true));
+
+        // First in order, nothing earlier: its turn is now — only the hold stops it.
+        var first = NextWithHold(steps, services, HoldRefuel);
+        Assert.Equal(["Refueling"], first.HeldAtTurn);
+        Assert.Equal("Catering", first.Trigger); // transparent to the next step
+
+        // Held step BEHIND a step that owns the cursor: not at turn.
+        var holdCatering = (Func<string, string?>)(id => id == "Catering" ? "held" : null);
+        var behind = NextWithHold(steps, services, holdCatering, cycles: new() { });
+        Assert.Equal("Refueling", behind.Trigger);
+        Assert.Empty(behind.HeldAtTurn);
+
+        // AfterAllCompleted barrier not yet satisfied: not at turn; satisfied: at turn.
+        var holdBoarding = (Func<string, string?>)(id => id == "Boarding" ? "held" : null);
+        var barrierOpen = NextWithHold(steps, services, holdBoarding, cycles: new() { ["Refueling"] = Done });
+        Assert.Empty(barrierOpen.HeldAtTurn);
+        var barrierMet = NextWithHold(steps, services, holdBoarding, cycles: new() { ["Refueling"] = Done, ["Catering"] = Done });
+        Assert.Equal(["Boarding"], barrierMet.HeldAtTurn);
+        Assert.False(barrierMet.AllDone);
+    }
+
     [Fact]
     public void PreHold_ParksTheStep_WhileTheNextStepTakesTheTurn()
     {

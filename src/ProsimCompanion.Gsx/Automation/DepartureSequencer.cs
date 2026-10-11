@@ -16,12 +16,20 @@ public readonly record struct DepartureCycleView(
 /// <summary>One evaluation's outcome: at most ONE service to trigger now (GSX drops rapid-fire
 /// requests — dispatch is strictly one confirmed call at a time), services holding and skipped
 /// with reasons, and overall completion.</summary>
+/// <param name="HeldAtTurn">The pre-held steps whose turn has come (issue #166): nothing
+/// earlier owns the cursor, the plan gate and the activation rule are satisfied, and only the
+/// shell's situational hold stands between the step and its trigger. The de-icing policy
+/// evaluates (and the captain's question is re-asked) when the DeIce step first appears here.</param>
 public sealed record DeparturePlan(
     string? Trigger,
     string? TriggerReason,
     IReadOnlyList<(string ServiceId, string Reason)> Holds,
     IReadOnlyList<(string ServiceId, string Reason)> Skipped,
-    bool AllDone);
+    bool AllDone,
+    IReadOnlyList<string>? HeldAtTurn = null)
+{
+    public IReadOnlyList<string> HeldAtTurn { get; init; } = HeldAtTurn ?? [];
+}
 
 /// <summary>
 /// Pure departure sequencing — the Prosim2GSX cursor model. The ordered step list is walked
@@ -73,6 +81,7 @@ public static class DepartureSequencer
 
         var holds = new List<(string, string)>();
         var skipped = new List<(string, string)>();
+        var heldAtTurn = new List<string>();
         string? trigger = null;
         string? triggerReason = null;
 
@@ -194,6 +203,17 @@ public static class DepartureSequencer
             if (preHold?.Invoke(id) is { } preHoldReason)
             {
                 holds.Add((id, preHoldReason));
+
+                // Its turn has come when nothing earlier owns the cursor and the plan gate and
+                // activation rule would let it trigger (issue #166: the de-icing policy runs
+                // here, not on the cycle-started edge). Still transparent and unsettled.
+                if (!cursorSeen
+                    && !(requireOfp && !flightPlanAvailable)
+                    && EvaluateActivation(step.Activation, prev, allEarlierSettled, forceNext) is null)
+                {
+                    heldAtTurn.Add(id);
+                }
+
                 allEarlierSettled = false;
                 continue;
             }
@@ -243,7 +263,7 @@ public static class DepartureSequencer
                 : $"next in departure order ({step.Activation})";
         }
 
-        return new DeparturePlan(trigger, triggerReason, holds, skipped, settled == ordered.Count);
+        return new DeparturePlan(trigger, triggerReason, holds, skipped, settled == ordered.Count, heldAtTurn);
     }
 
     /// <summary>Null = the activation rule is satisfied; otherwise the hold reason. The first

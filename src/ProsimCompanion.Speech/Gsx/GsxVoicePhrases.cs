@@ -81,6 +81,17 @@ public static class GsxVoicePhrases
             ["connect external power"] = new("gsx.requestGpu", "Ground power requested.", GpuAck),
             ["disconnect ground power"] = new("gsx.disconnectGpu", "Ground power disconnected.", GpuOffAck),
             ["remove the gpu"] = new("gsx.disconnectGpu", "Ground power disconnected.", GpuOffAck),
+            // The captain's "no" to the FO's de-icing question at any time while it stands
+            // (issue #166): the listen window no longer decides it, so a later standalone
+            // answer needs its own phrase. Store write, not a GSX call.
+            ["no de-icing"] = new(
+                "gsx.declineDeice", "Copied — no de-icing.", "Copied — no de-icing today."),
+            ["negative de-icing"] = new(
+                "gsx.declineDeice", "Copied — no de-icing.", "Copied — no de-icing today."),
+            ["decline de-icing"] = new(
+                "gsx.declineDeice", "Copied — no de-icing.", "Copied — no de-icing today."),
+            ["de-icing not required"] = new(
+                "gsx.declineDeice", "Copied — no de-icing.", "Copied — no de-icing today."),
         };
 
     /// <summary>The ground-side hail grammar: every service phrase, the start phrases, and the
