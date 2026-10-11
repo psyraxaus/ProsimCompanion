@@ -98,6 +98,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
             int? bounces = null;
             bool touchdownSeen = false, touchdownSettled = false;
             DateTimeOffset? stampOff = null, stampTakeoff = null, stampLanding = null, stampOn = null;
+            var takeoffUnknown = false; // the app started in flight (issue #167): no takeoff edge, no takeoff fuel
 
             // failure id → (title, cleared); insertion-ordered so the debrief reads them in
             // the order they happened.
@@ -368,6 +369,7 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                             takeoffFob ??= Num(payload, "takeoffFobKg");
                             landingFob ??= Num(payload, "landingFobKg");
                             onBlocksFob ??= Num(payload, "onBlocksFobKg");
+                            takeoffUnknown |= Flag(payload, "takeoffUnknown");
                             break;
                         }
                     }
@@ -392,7 +394,9 @@ public sealed class DebriefFactExtractor : IDebriefFactExtractor
                 origin ?? plannedOrigin, destination ?? plannedDestination, depRunway, arrRunway, cabinReports,
                 defectsRaised, defectsRectified, defectsCarried, radioTunes, memoryDrills,
                 touchdownRate, touchdownIas, touchdownPitch, bounces,
-                stampOff, stampTakeoff, stampLanding, stampOn);
+                stampOff, stampTakeoff, stampLanding, stampOn,
+                // A restored stamp (same session file) outranks the flag: the takeoff IS known.
+                takeoffUnknown && stampTakeoff is null);
         }
         catch (Exception ex)
         {

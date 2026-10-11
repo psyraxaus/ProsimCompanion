@@ -56,7 +56,7 @@ public sealed class FuelLogServiceTests
 
         simNow = SimTakeoff.AddMinutes(14);
         refs.Values[ProsimDataRefNames.FuelTotal.Name] = 7700.0;
-        progress.Update(_ => new FlightProgressSnapshot { Position = new GeoPoint(50, 1.4) });
+        progress.Update(_ => new FlightProgressSnapshot { Position = new GeoPoint(50, 1.2) });
         service.ProcessTick();
 
         var log = store.Snapshot();

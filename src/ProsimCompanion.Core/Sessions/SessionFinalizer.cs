@@ -147,10 +147,24 @@ public sealed class SessionFinalizer : IDisposable
             }
 
             _eventLog.Record("session.finalized", new { steps = _steps.Select(s => s.Name).ToArray() });
+            try
+            {
+                Finalized?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "A Finalized subscriber threw");
+            }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Session finalization failed");
         }
     }
+
+    /// <summary>Raised on the finalizer's own thread once every step has run for a Shutdown:
+    /// the leg's bookkeeping is on disk. The flight-state snapshot (issue #167) drops its
+    /// file here — restoring a finished leg's stamps into the next one would be worse than
+    /// restoring nothing.</summary>
+    public event Action? Finalized;
 }

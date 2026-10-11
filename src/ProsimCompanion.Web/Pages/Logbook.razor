@@ -176,7 +176,7 @@
                 @Detail("Date", detail.Date.Length > 0 ? detail.Date : "—")
                 @Detail("Runways", $"{detail.DepartureRunway ?? "—"} / {detail.ArrivalRunway ?? "—"}")
                 @Detail("Off blocks", LogbookPresentation.Stamp(detail.OffBlocksUtc))
-                @Detail("Takeoff", LogbookPresentation.Stamp(detail.TakeoffUtc))
+                @Detail("Takeoff", detail.TakeoffUnknown && detail.TakeoffUtc is null ? "unknown (app started in flight)" : LogbookPresentation.Stamp(detail.TakeoffUtc))
                 @Detail("Landing", LogbookPresentation.Stamp(detail.LandingUtc))
                 @Detail("On blocks", LogbookPresentation.Stamp(detail.OnBlocksUtc))
                 @Detail("Block time", LogbookPresentation.Minutes(detail.BlockMinutes))

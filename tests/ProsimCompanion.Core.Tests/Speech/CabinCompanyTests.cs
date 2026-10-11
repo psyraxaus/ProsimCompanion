@@ -93,6 +93,29 @@ public sealed class CabinCrewCoreTests
         Assert.Equal(expected, CabinCrewCore.SecureDelay(options, pax, roll));
     }
 
+    /// <summary>Issue #167: the once-per-flight latches survive a restart — the cabin that
+    /// already reported secure does not ring again, the armed purser call keeps its due time.</summary>
+    [Fact]
+    public void Latches_RoundTripThroughCaptureAndRestore()
+    {
+        var core = new CabinCrewCore();
+        var options = new CabinOptions { CabinSecureMinDelaySeconds = 0, CabinSecureSecondsPerPax = 0, CruiseQuery = true, CruiseQueryDelayMinutes = 10 };
+        Assert.Equal(CabinAction.SecureReport, core.Evaluate(Sample(FlightPhase.TaxiOut) with { NowUtc = T0 }, options, NeverRoll));
+        Assert.Equal(CabinAction.None, core.Evaluate(Sample(FlightPhase.Cruise) with { NowUtc = T0.AddMinutes(30) }, options, NeverRoll));
+        var state = core.Capture();
+        Assert.True(state.SecureDone);
+        Assert.True(state.CruiseQueryArmed);
+        Assert.Equal(T0.AddMinutes(30).AddSeconds(core.CruiseQueryDelaySeconds), state.CruiseQueryDueAtUtc);
+
+        var restored = new CabinCrewCore();
+        restored.Restore(state);
+
+        Assert.Equal(state, restored.Capture());
+        Assert.Equal(CabinAction.None, restored.Evaluate(Sample(FlightPhase.TaxiOut) with { NowUtc = T0.AddMinutes(31) }, options, NeverRoll));
+        Assert.Equal(CabinAction.CruiseQuery, restored.Evaluate(Sample(FlightPhase.Cruise) with { NowUtc = T0.AddMinutes(60) }, options, NeverRoll));
+        Assert.Equal(CabinCrewCore.LatchState.Empty, new CabinCrewCore().Capture());
+    }
+
     [Fact]
     public void Rearm_ClearsTheSecureTimer()
     {

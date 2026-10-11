@@ -54,7 +54,8 @@ public sealed record DebriefFacts(
     DateTimeOffset? OffBlocksUtc = null,
     DateTimeOffset? TakeoffUtc = null,
     DateTimeOffset? LandingUtc = null,
-    DateTimeOffset? OnBlocksUtc = null)
+    DateTimeOffset? OnBlocksUtc = null,
+    bool TakeoffUnknown = false)
 {
     public static DebriefFacts Empty { get; } = new(
         null, null, null, null, [], 0, 0, 0, [],

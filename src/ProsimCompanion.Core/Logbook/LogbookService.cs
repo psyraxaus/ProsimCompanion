@@ -368,6 +368,7 @@ public sealed class LogbookService : ILogbookService, ISessionFinalizationStep
             TakeoffUtc = facts.TakeoffUtc,
             LandingUtc = facts.LandingUtc,
             OnBlocksUtc = facts.OnBlocksUtc,
+            TakeoffUnknown = facts.TakeoffUnknown,
             Landed = landed,
             ApproachResult = OverallApproach(facts),
             Abnormals = facts.Abnormals.Select(a => a.Title).ToList(),

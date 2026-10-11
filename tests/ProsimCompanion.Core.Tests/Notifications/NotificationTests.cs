@@ -335,6 +335,85 @@ public sealed class NotificationTests : IDisposable
         Assert.Contains(_handler.Requests, r => r.Body.Contains("Block time 2h 08m", StringComparison.Ordinal));
     }
 
+    /// <summary>Issue #151 (2026-10-10, both legs): "landed" went out at touchdown and again
+    /// at on-blocks — the GSX arrival reset had cleared the once-per-cycle set in between, and
+    /// the level check re-raised it when the same snapshot changed for the on-blocks stamp.</summary>
+    [Fact]
+    public async Task Landed_IsAnEdge_NotReplayedByTheOnBlocksChange_EvenAfterTheArrivalReset()
+    {
+        var h = new Harness(this);
+
+        h.Times.Update(_ => new FlightTimesSnapshot(T0.AddHours(-2), T0.AddHours(-1.8), T0, null));
+        await WaitForRequests(1);
+        h.Signals.RaiseFlightCycleReset();                       // GsxAutomationService on the Shutdown edge
+        h.Times.Update(t => t with { OnBlocksUtc = T0.AddMinutes(6) });
+        await WaitForRequests(1);
+        await Task.Delay(200);
+
+        var titles = _handler.Requests.Select(r => r.Headers["Title"]).ToList();
+        Assert.Single(titles, t => t == "BAW552 - Landed");
+        Assert.Single(titles, t => t == "BAW552 - On blocks");
+    }
+
+    /// <summary>Issue #167: the EFB restores the final loadsheet after a restart (20:57:58Z,
+    /// same edition as 20:01:01Z) — with the latches restored from the snapshot it is not
+    /// news, and a restored landing stamp does not raise "landed" again either.</summary>
+    [Fact]
+    public async Task RestoredLatches_DoNotReplayTheFinalLoadsheet_OrARestoredLanding()
+    {
+        var first = new Harness(this);
+        first.Loadsheet.SetFinal(new LoadsheetSlotView(LoadsheetSlotStatus.Sent, 1, T0, 58800, 66900, 28, 27, 8100, 148, null));
+        first.Signals.RaiseBoardingCompleted();
+        await WaitForRequests(2);
+        var captured = first.Source.Capture()!;
+        var state = captured.Deserialize<NotificationSignalSource.LatchState>(FlightStateSnapshotStore.JsonOptions)!;
+        Assert.Equal(["boarding-complete", "final-loadsheet-sent"], state.Fired);
+        Assert.Equal(1, state.LastFinalEdition);
+        first.Source.Dispose();
+
+        // "Restart": a fresh source takes the latches back BEFORE the stores publish.
+        var second = new Harness(this);
+        second.Source.Restore(captured);
+        second.Loadsheet.SetFinal(new LoadsheetSlotView(LoadsheetSlotStatus.Sent, 1, T0, 58800, 66900, 28, 27, 8100, 148, null));
+        second.Signals.RaiseBoardingCompleted();
+        second.Loadsheet.SetFinal(new LoadsheetSlotView(LoadsheetSlotStatus.Sent, 2, T0, 59000, 67100, 28, 27, 8100, 149, null)); // a REVISED final is news
+        await WaitForRequests(1);
+        await Task.Delay(200);
+
+        Assert.Equal(3, _handler.Requests.Count);
+        Assert.Contains("edition 2", _handler.Requests[^1].Body, StringComparison.Ordinal);
+    }
+
+    /// <summary>Issue #151: the holdover-expiring notification fired in the same second as
+    /// the card armed (2026-10-10 20:15:46Z) — no precipitation was entered, so the card had
+    /// no window and its "0 s remaining" was read as "0 minutes left".</summary>
+    [Fact]
+    public async Task HoldoverExpiring_DoesNotFireAtArmTime_WithoutAHoldoverWindow()
+    {
+        _options.Targets = [Target("Phone", NotificationTargetKind.Ntfy, "https://ntfy.test/t")];
+        _options.HoldoverExpiringMinutes = 5;
+        var dispatcher = Dispatcher();
+        var signals = new GroundOpsSignals();
+        var gsx = new Mock<IOptionsMonitor<GsxOptions>>();
+        gsx.SetupGet(m => m.CurrentValue).Returns(new GsxOptions());
+        using var holdover = new Core.Deice.DeiceHoldoverService(signals, gsx.Object, NullLogger<Core.Deice.DeiceHoldoverService>.Instance);
+        var monitor = new Mock<IOptionsMonitor<NotificationOptions>>();
+        monitor.SetupGet(m => m.CurrentValue).Returns(() => _options);
+        using var source = new NotificationSignalSource(dispatcher, signals, new LoadsheetStore(), new FlightTimesStore(), new OfpStore(), monitor.Object,
+            NullLogger<NotificationSignalSource>.Instance, holdover, clock: () => _now);
+        source.Start();
+
+        signals.RaiseDeiceCompleted(4);                           // armed, precipitation "none": no holdover
+        await Task.Delay(300);
+        Assert.Empty(_handler.Requests);
+
+        holdover.SetOat(-5);
+        holdover.SetPrecip(Core.Deice.HotPrecip.Snow);           // a real window, well above 5 min
+        await Task.Delay(300);
+        Assert.Empty(_handler.Requests);
+        Assert.True(holdover.Snapshot().HasHoldover);
+    }
+
     [Fact]
     public async Task TopOfDescent_CarriesTheEstimate()
     {

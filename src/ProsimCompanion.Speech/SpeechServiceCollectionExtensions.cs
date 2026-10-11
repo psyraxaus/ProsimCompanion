@@ -98,6 +98,8 @@ public static class SpeechServiceCollectionExtensions
         // the first utterance.
         services.AddStartupModule<Callouts.ChronoCallFeature>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Callouts.ChronoCallFeature>());
+        // The chrono's running latch rides in the flight-state snapshot (issue #167).
+        services.AddSingleton<Core.Flight.IFlightStatePart>(p => p.GetRequiredService<Callouts.ChronoCallFeature>());
         // PF announcement acknowledgements (issue #127): FMA reads ("man flex, SRS…",
         // "localizer star"), "manual flight", and the "continue" decision at minimums —
         // verbal only, phase-gated, never writes.
@@ -169,6 +171,8 @@ public static class SpeechServiceCollectionExtensions
         // mic like the hails; the cabin service runs it off its own tick.
         services.AddSingleton<Cabin.CabinCruiseQueryDialogue>();
         services.AddStartupModule<Cabin.CabinCrewService>();
+        // The cabin's once-per-flight latches ride in the flight-state snapshot (issue #167).
+        services.AddSingleton<Core.Flight.IFlightStatePart>(p => p.GetRequiredService<Cabin.CabinCrewService>());
         // Prosim2GSX-parity cabin dings (startup / final loadsheet) — plain chime playback,
         // deliberately outside the speech arbiter.
         services.AddHostedService<Cabin.CabinDingService>();

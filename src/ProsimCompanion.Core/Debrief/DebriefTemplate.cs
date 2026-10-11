@@ -159,6 +159,12 @@ public static class DebriefTemplate
             }
         }
 
+        if (facts.TakeoffUnknown)
+        {
+            // Issue #167: said instead of a figure, never a figure from the restart's second.
+            parts.Add(new("takeoff-unknown", "Takeoff time unknown, the app started in flight.") { AnyOf = ["takeoff time unknown", "started in flight"] });
+        }
+
         parts.Add(new("sign-off", "Good flight.") { IsClosing = true });
         return parts;
     }

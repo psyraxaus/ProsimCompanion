@@ -27,4 +27,15 @@ public interface ISimbriefImporter
     /// logged per attempt so a re-import storm is diagnosable from the log alone (issue #64:
     /// six imports in eight minutes with no way to tell which caller fired them).</param>
     Task<SimbriefImportOutcome> TryImportAsync(bool force = false, string source = "unspecified", CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fetches and parses the pilot's current OFP WITHOUT touching the EFB (issue #167): no
+    /// seat map, no fuel target, no <c>efb.simbriefPlanImported</c>, no pax randomisation —
+    /// the plan as SimBrief published it. For an app started in flight, where the EFB was
+    /// imported hours ago by a run that is gone and a full re-import would re-roll the
+    /// passengers mid-cruise. The caller publishes the result to the <see cref="Ofp.OfpStore"/>
+    /// once it has checked the route against the MCDU. Null when there is no pilot id, no
+    /// OFP, or the fetch failed (each reason logged).
+    /// </summary>
+    Task<Ofp.OfpData?> TryFetchPlanOnlyAsync(string source = "unspecified", CancellationToken cancellationToken = default);
 }

@@ -5,6 +5,11 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Core.Deice;
 
+/// <param name="HasHoldover">A holdover window exists for the fluid, OAT and precipitation
+/// the crew entered (issue #151): with no active precipitation, or below the fluid's LOUT,
+/// there is no holdover at all — the remaining figures then read 0 but nothing is
+/// "expiring". The expiring notification fired at arm time on 2026-10-10 (20:15:46Z, the
+/// same second as the card) because it read that 0 as "0 minutes left".</param>
 public sealed record DeiceHoldoverSnapshot(
     bool Active,
     bool Expired,
@@ -13,7 +18,8 @@ public sealed record DeiceHoldoverSnapshot(
     double OatC,
     int RemainingLowSeconds,
     int RemainingHighSeconds,
-    string Status);
+    string Status,
+    bool HasHoldover = false);
 
 /// <summary>
 /// The deice holdover-time card: armed by the GSX deice-complete edge (via
@@ -89,7 +95,8 @@ public sealed class DeiceHoldoverService : IDisposable
         lock (_lock)
         {
             var (low, high, status) = Compute();
-            return new DeiceHoldoverSnapshot(_active, _expired, FluidLabel(), _precip, _oatC, low, high, status);
+            var hasHoldover = (_active || _expired) && HotMatrix.Lookup(_fluidType, _concentration, _oatC, _precip) is not null;
+            return new DeiceHoldoverSnapshot(_active, _expired, FluidLabel(), _precip, _oatC, low, high, status, hasHoldover);
         }
     }
 

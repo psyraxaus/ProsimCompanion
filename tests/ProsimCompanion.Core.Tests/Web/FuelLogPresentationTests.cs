@@ -29,7 +29,9 @@ public sealed class FuelLogPresentationTests
     public void Header_PlanAtThisPoint_IsInterpolated_AndTheLandingEstimateFollowsTheDelta()
     {
         var ofp = Ofp();
-        var (log, _) = FuelLogCore.Advance(FuelLogSnapshot.Empty, ofp, new GeoPoint(50, 1.5), 7400, Takeoff, Takeoff.AddMinutes(15));
+        // Just past BBB first (a fix further behind than the stamp lag is "not recorded", #167), then halfway to CCC.
+        var (log, _, _) = FuelLogCore.Advance(FuelLogSnapshot.Empty, ofp, new GeoPoint(50, 1.1), 7900, Takeoff, Takeoff.AddMinutes(11));
+        (log, _, _) = FuelLogCore.Advance(log, ofp, new GeoPoint(50, 1.5), 7400, Takeoff, Takeoff.AddMinutes(15));
 
         var header = FuelLogPresentation.Header(log, ofp.Navlog, new GeoPoint(50, 1.5), 7400);
 
@@ -55,7 +57,9 @@ public sealed class FuelLogPresentationTests
     public void Chart_LaysOutPlanAndActual_InAFixedViewBox()
     {
         var ofp = Ofp();
-        var (log, _) = FuelLogCore.Advance(FuelLogSnapshot.Empty, ofp, new GeoPoint(50, 1.5), 7400, Takeoff, Takeoff.AddMinutes(15));
+        // Just past BBB first (a fix further behind than the stamp lag is "not recorded", #167), then halfway to CCC.
+        var (log, _, _) = FuelLogCore.Advance(FuelLogSnapshot.Empty, ofp, new GeoPoint(50, 1.1), 7900, Takeoff, Takeoff.AddMinutes(11));
+        (log, _, _) = FuelLogCore.Advance(log, ofp, new GeoPoint(50, 1.5), 7400, Takeoff, Takeoff.AddMinutes(15));
 
         var chart = FuelLogPresentation.Chart(log, 7400, 4900)!;
 

@@ -194,6 +194,34 @@ public sealed class DebriefFactExtractorTests : IDisposable
         Assert.Equal(4820.0, landedNotYetOnBlocks.FuelUsedKg);
     }
 
+    /// <summary>Issue #167 (2026-10-10 restart in the climb): the tracker now writes
+    /// takeoffUnknown instead of a seeded takeoff stamp; the facts carry the flag, no start
+    /// fuel and no burn. A later stamp in the same session (a restored snapshot) wins.</summary>
+    [Fact]
+    public void Extract_TakeoffUnknown_CarriesTheFlag_AndNoBurn()
+    {
+        var startedInFlight = new SessionLogBuilder()
+            .At("20:58:10").Event("flight-times", new { takeoffUnknown = true })
+            .At("23:08:33").Event("flight-times", new { landingUtc = "2026-10-10T08:01:04Z", landingFobKg = 4433.0, takeoffUnknown = true })
+            .Write(_dir);
+
+        var facts = _extractor.Extract(startedInFlight);
+        Assert.True(facts.TakeoffUnknown);
+        Assert.Null(facts.TakeoffUtc);
+        Assert.Null(facts.StartFobKg);
+        Assert.Null(facts.FuelUsedKg);
+        Assert.Equal(4433.0, facts.FinalFobKg);
+
+        var restored = new SessionLogBuilder()
+            .At("20:58:10").Event("flight-times", new { takeoffUnknown = true })
+            .At("20:58:12").Event("flight-times", new { takeoffUtc = "2026-10-10T05:23:57Z", takeoffFobKg = 9580.0 })
+            .Write(_dir, "session-20260808-100001");
+
+        var withStamp = _extractor.Extract(restored);
+        Assert.False(withStamp.TakeoffUnknown);
+        Assert.Equal(9580.0, withStamp.StartFobKg);
+    }
+
     /// <summary>Issue #164 (Mario, speech off, EDDM→LHDC 2026-10-10): no briefing ran, so no
     /// flight.route was written and the logbook, debrief and duty-day leg had no airports. The
     /// planned route from ofp.loaded (or the legacy airport-coordinates shape) stands in; the
