@@ -121,6 +121,10 @@ else if (CurrentSection == "departure")
         <BoolField Label="Reload SimBrief in GSX on a new OFP" Hint="Click GSX's own 'SimBrief' menu line once per new flight plan, so the VDGS shows the right flight number, destination and departure time."
                    More="Only while parked at the gate with engines off and GSX ready — never in flight; a plan fetched airborne is reloaded at the next gate. Off by default: the line is picked by its text on a GSX menu this app has not yet driven on a recorded flight, and a miss leaves the menu open for you. The Status section has a button and the API the command gsx.reloadSimbrief whatever this is set to."
                    @bind-Value="_gsx.Value.ReloadSimbriefOnNewOfp" />
+        <NumberField Label="Additional Services pages to search" Hint="How many 'Next Page' turns of GSX's Additional Services menu the reload walks looking for the 'Reload Simbrief' row."
+                     More="On the recorded flights the row was on neither the gate menu nor page 1 of Additional Services, and page 2 had never been opened. The walk reads the gate menu, then Additional Services and up to this many further pages, picks the first row naming SimBrief or the flight plan, and closes a menu it opened itself. When no page has the row, the Status section says so once and the plan is not retried — GSX only offers the row when a SimBrief username is set in GSX's own settings." Min="0"
+                     @bind-Value="_gsx.Value.SimbriefReloadMenuPages"
+                     Default="_gsx.Defaults.SimbriefReloadMenuPages" />
     </Section>
 
     <Section Title="Cold &amp; Dark Check">
@@ -308,6 +312,14 @@ else if (CurrentSection == "arrival")
                    Hint="When GSX itself asks 'Select Position at …' after landing, pick your arrival gate in it: the facility whose range covers the gate, then the row that names it."
                    More="GSX raises that menu on the landing roll when no gate was pre-selected (and when it did not recognise the stand). The pick is by text only — if the gate is not on the page, or two rows could match, the menu is left for you exactly as today. Two tries per flight. New in 0.6.0 and not yet verified live; the session log records every attempt with the rows GSX showed."
                    @bind-Value="_gsx.Value.AnswerPositionMenuWithArrivalGate" />
+        <NumberField Label="Airport list pages to search" Hint="How many 'Next Page' turns of GSX's in-flight 'Select airport' list the app walks looking for the destination."
+                     More="Page 1 shows the planned airport and the nearest fields only — on 2026-10-11 EFHK was never on it and three picks found nothing. The app now turns the pages (and uses GSX's own search row when the list offers one), counts only a walk that reached the list as an attempt, makes at most three walks per flight ten minutes apart, and treats a 'no airport loaded' answer as GSX still loading the destination, not as a failure." Min="1"
+                     @bind-Value="_gsx.Value.AirportPickMenuPages"
+                     Default="_gsx.Defaults.AirportPickMenuPages" />
+        <BoolField Label="Ask which stand when GSX splits the gate"
+                   Hint="When the scenery has the gate only as suffix variants (W36 → 36A / 36B) and neither your text nor a lone jetway decides, ask you once — buttons on the OFP page and the Status section, and the FO's question."
+                   More="GSX answers the gate number with 'ambiguous' and both variants. A suffix you typed (36A) wins outright; else the one variant with a jetway or Safedock in the stand data is taken; else, with this on, you are asked and the first variant goes out at taxi-in if nobody answers. Off: the first variant goes out at once. When GSX anchors on one of the variants itself (its parking-change menu names Gate 36B), the app adopts it and raises no parking conflict."
+                   @bind-Value="_gsx.Value.AskPilotOnAmbiguousGate" />
     </Section>
     <Section Title="Stand Knowledge" Hint="Where the app learns what GSX calls each stand, its size, jetway and pushback routes">
         <BoolField Label="Read GSX profiles and scenery for stands"

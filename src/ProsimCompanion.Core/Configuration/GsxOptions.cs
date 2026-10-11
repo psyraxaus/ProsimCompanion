@@ -200,6 +200,12 @@ public sealed class GsxOptions : IOptionSection
     /// </summary>
     public bool ReloadSimbriefOnNewOfp { get; set; }
 
+    /// <summary>How many "Next Page" turns of GSX's "Additional Services" menu the SimBrief
+    /// reload walks looking for the "Reload Simbrief" row (issue #174, 2026-10-11: the row is
+    /// on neither the gate menu nor page 1 of Additional Services on the recorded flights;
+    /// page 2 had never been opened). Bounded so a GSX without the row never loops.</summary>
+    public int SimbriefReloadMenuPages { get; set; } = 4;
+
     /// <summary>Ordered operator keywords for handling/catering operator menus; the
     /// "[GSX choice]" token is always an accepted fallback. Empty list ⇒ menus are left for
     /// the user unless <see cref="AutoSelectOperator"/> suppresses them.</summary>
@@ -344,6 +350,17 @@ public sealed class GsxOptions : IOptionSection
     /// leaves the menu for you. Off by default until the menu shape is verified live.
     /// </summary>
     public bool AnswerPositionMenuWithArrivalGate { get; set; }
+
+    /// <summary>How many "Next Page" turns of GSX's in-flight "Select airport" list the
+    /// airport pick walks looking for the destination row (issue #75, 2026-10-11: page 1
+    /// lists the PLANNED airport and the nearest fields only; EFHK was never on it).</summary>
+    public int AirportPickMenuPages { get; set; } = 4;
+
+    /// <summary>When GSX answers the arrival gate with suffix variants (W36 → 36A / 36B) and
+    /// neither the pilot's text nor a lone jetway decides: ask the pilot once (web buttons +
+    /// the FO's question) and take the first variant at taxi-in without an answer. Off: take
+    /// the first variant at once.</summary>
+    public bool AskPilotOnAmbiguousGate { get; set; } = true;
 
     // ---- Airport parking knowledge (GSX profiles + scenery) ----
 

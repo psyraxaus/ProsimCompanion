@@ -10,6 +10,7 @@
 @inject ArrivalGateCoordinator GateCoordinator
 @inject GsxDiagnosticsStore GsxStore
 @inject PushbackChoiceStore PushbackChoices
+@inject GateChoiceStore GateChoices
 @inject WeatherStore Weather
 @inject IWeatherControl WeatherControl
 @inject DeiceHoldoverService Deice
@@ -138,6 +139,22 @@
                 @if (_gsx.GateRequest is { } request)
                 {
                     <div class="field-hint">GSX: @request</div>
+                }
+                @if (_gateChoice.Question is { } gateQuestion)
+                {
+                    @* GSX split the gate into suffix variants (issue #156): the pilot picks here,
+                       on the Status card, or by telling the FO; the first goes at taxi-in otherwise. *@
+                    <div class="field-hint ofp-gate-stand">@gateQuestion.Prompt</div>
+                    <div class="ofp-gate-buttons">
+                        @foreach (var candidate in gateQuestion.Candidates)
+                        {
+                            var label = candidate.Label;
+                            <button type="button" class="btn secondary" @onclick="() => ChooseGateVariant(label)"
+                                    title="@(candidate.Detail is null ? "no jetway or VDGS known for this stand" : $"{candidate.Detail} at this stand")">
+                                @candidate.Label@(candidate.Detail is null ? "" : $" · {candidate.Detail}")
+                            </button>
+                        }
+                    </div>
                 }
                 <div class="field-hint">Confirm queues for auto-send at cruise (or at once when confirmed later in the flight). Send Now pushes to GSX + SayIntentions ATC immediately. A confirmed gate survives an app restart.</div>
             }
@@ -295,6 +312,7 @@
     private OfpData? _ofp;
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
     private ArrivalGateView _gateAssignment = ArrivalGateView.Empty;
+    private GateChoiceSnapshot _gateChoice = GateChoiceSnapshot.Empty;
     private WeatherSnapshot _weather = WeatherSnapshot.Empty;
     private DeiceHoldoverSnapshot _deice = new(false, false, "", HotPrecip.None, 0, 0, 0, "Awaiting GSX deicing…");
     private double _deiceOat;
@@ -358,6 +376,7 @@
     {
         Watch(GsxStore, snapshot => _gsx = snapshot);
         Watch(PushbackChoices, snapshot => _pushback = snapshot);
+        Watch(GateChoices, snapshot => _gateChoice = snapshot);
         Watch(Weather, snapshot => _weather = snapshot);
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
         WatchChanged(h => GateCoordinator.Changed += h, h => GateCoordinator.Changed -= h,
@@ -405,6 +424,10 @@
     private void SendNowGate() => _ = GateCoordinator.SendNow(_gate.Trim().Length > 0 ? _gate : null);
 
     private void CancelGate() => GateCoordinator.Cancel();
+
+    // The suffix-variant buttons (issue #156): the store matches the label; the GSX gate
+    // service sends the chosen stand.
+    private void ChooseGateVariant(string label) => GateChoices.Choose(label, "web");
 
     private async Task RefreshWeather() => await WeatherControl.RefreshAsync();
 

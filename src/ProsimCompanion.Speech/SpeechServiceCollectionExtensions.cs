@@ -186,6 +186,9 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Gsx.PushbackDirectionVoiceFeature>();
         services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Gsx.PushbackDirectionVoiceFeature>());
         services.AddStartupModule<Gsx.PushbackQuestionDialogue>();
+        // The FO's "W36 is 36 Alpha or 36 Bravo — which?" question when GSX splits the arrival
+        // gate into suffix variants (issue #156, 2026-10-11); answers the Core GateChoiceStore.
+        services.AddStartupModule<Gsx.GateChoiceDialogue>();
         // The FO's "request de-icing?" question (2026-10-09, gsx.deice.autoRequest = ask):
         // voices the Core store's question and answers it from the captain's yes/no.
         services.AddStartupModule<Gsx.DeiceQuestionDialogue>();

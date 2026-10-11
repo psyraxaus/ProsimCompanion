@@ -135,7 +135,7 @@ public sealed class GsxSimbriefReloadServiceTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task NoSimbriefLine_IsNotPerformed_AndTheMenuStaysForTheUser()
+    public async Task NoSimbriefLine_AndNoAdditionalServices_IsNotPerformed_RowMissing()
     {
         _ofp.Set(new OfpData { RequestId = "A", OriginIcao = "EGLL" });
         _api.OnCommand = (verb, _) =>
@@ -144,14 +144,113 @@ public sealed class GsxSimbriefReloadServiceTests : IAsyncDisposable
             {
                 ShowMenu("Activate Services at Gate D57", "Reposition Aircraft", "Operate Jetway");
             }
+            if (verb == "menu.close")
+            {
+                _api.Mirror.ApplyState("menuShown", JsonValue.Create(false));
+            }
             return new GsxCommandResult(true, "ok", null, null);
         };
 
         var outcome = await _service.ReloadAsync("web");
 
         Assert.Equal(GsxSimbriefReloadStatus.NotPerformed, outcome.Status);
-        Assert.Contains("ItemNotAvailable", outcome.Detail);
-        Assert.DoesNotContain(_api.Commands, c => c.Verb is "menu.pick" or "menu.close");
+        Assert.Contains("no SimBrief row", outcome.Detail);
+        Assert.DoesNotContain(_api.Commands, c => c.Verb == "menu.pick");
+        Assert.Contains(_api.Commands, c => c.Verb == "menu.close"); // we opened it, we close it (issue #174)
+        Assert.True(_diagnostics.Snapshot().SimbriefReload?.RowMissing);
+    }
+
+    private const string NextPage = "Next Page ▶";
+
+    /// <summary>GSX as recorded on 2026-10-11 (EGCC): the gate menu with "Additional Services ▶",
+    /// its page 1 without a SimBrief row and a "Next Page ▶"; page 2 as the test decides.</summary>
+    private void GsxWithAdditionalServices(bool rowOnPageTwo)
+        => _api.OnCommand = (verb, args) =>
+        {
+            switch (verb)
+            {
+                case "menu.open":
+                    ShowMenu("Activate Services at EGCC/Manchester", "Request Deboarding", "Request Catering service", "Request Refueling", "Request Boarding",
+                        "Prepare for Push-back and Departure", "No Jetways here", "Operate Stairs", "Additional Services ▶", "Customize this Parking position", "Reposition Aircraft");
+                    break;
+                case "menu.pick":
+                    var entry = _api.Mirror.Menu!.Entries[args!["index"]!.GetValue<int>()];
+                    if (entry.StartsWith("Additional Services", StringComparison.Ordinal))
+                    {
+                        ShowMenu("Additional Services", "Request GPU", "Request DeIce", "Request Lavatory service", "Request Water service", "Request Cleaning service",
+                            "Cameras ▶", "Show EGCC airport diagram", "Spawn vehicle (debug) ▶", NextPage, "↑ Back");
+                    }
+                    else if (entry == NextPage)
+                    {
+                        ShowMenu("Additional Services", rowOnPageTwo ? "Reload Simbrief" : "Handler Script Editor", "↑ Back");
+                    }
+                    else if (entry == "Reload Simbrief")
+                    {
+                        _api.Mirror.ApplyState("handlerData", new JsonObject { ["airport"] = new JsonObject { ["icao"] = "EGCC" } });
+                    }
+                    break;
+                case "menu.close":
+                    _api.Mirror.ApplyState("menuShown", JsonValue.Create(false));
+                    break;
+            }
+
+            return new GsxCommandResult(true, "ok", null, null);
+        };
+
+    private List<int> Picks() => _api.Commands.Where(c => c.Verb == "menu.pick").Select(c => c.Args!["index"]!.GetValue<int>()).ToList();
+
+    [Fact]
+    public async Task RowOnAdditionalServicesPageTwo_IsWalkedTo_AndReloaded()
+    {
+        _ofp.Set(new OfpData { RequestId = "A", OriginIcao = "EGCC" });
+        GsxWithAdditionalServices(rowOnPageTwo: true);
+
+        var outcome = await _service.ReloadAsync("web");
+
+        Assert.Equal(GsxSimbriefReloadStatus.Reloaded, outcome.Status);
+        Assert.Equal([7, 8, 0], Picks());                                 // Additional Services, Next Page, Reload Simbrief
+        Assert.Contains("'Additional Services'", outcome.Detail);
+        Assert.Contains(_api.Commands, c => c.Verb == "menu.close");
+        Assert.False(_diagnostics.Snapshot().SimbriefReload?.RowMissing);
+    }
+
+    [Fact]
+    public async Task RowOnNoPage_IsRowMissing_SaidOnce_AndNotRetriedForThatOfp()
+    {
+        _options.ReloadSimbriefOnNewOfp = true;
+        GsxWithAdditionalServices(rowOnPageTwo: false);
+        _service.Start();
+
+        _ofp.Set(new OfpData { RequestId = "A", OriginIcao = "EGCC" });
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+        while (DateTimeOffset.UtcNow < deadline && _diagnostics.Snapshot().SimbriefReload is null)
+        {
+            await Task.Delay(25);
+        }
+
+        var view = _diagnostics.Snapshot().SimbriefReload;
+        Assert.NotNull(view);
+        Assert.True(view.RowMissing);
+        Assert.Equal([7, 8], Picks());                                    // both hops, no row pick
+        Assert.Contains(_api.Commands, c => c.Verb == "menu.close");
+        Assert.Single(_api.Commands, c => c.Verb == "menu.open");
+
+        _flight.Raise(f => f.PhaseChanged += null, _flight.Object, new FlightPhaseChangedEventArgs(FlightPhase.ColdAndDark, FlightPhase.Preflight));
+        await Task.Delay(200);
+        Assert.Single(_api.Commands, c => c.Verb == "menu.open");         // same OFP: no second walk
+    }
+
+    [Fact]
+    public async Task PageBound_LimitsTheWalk()
+    {
+        _options.SimbriefReloadMenuPages = 0;
+        _ofp.Set(new OfpData { RequestId = "A", OriginIcao = "EGCC" });
+        GsxWithAdditionalServices(rowOnPageTwo: true);
+
+        var outcome = await _service.ReloadAsync("web");
+
+        Assert.Equal(GsxSimbriefReloadStatus.NotPerformed, outcome.Status);
+        Assert.Equal([7], Picks());                                       // Additional Services page 1 read, no page turn
     }
 
     [Theory]

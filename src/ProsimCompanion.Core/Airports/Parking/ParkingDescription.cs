@@ -19,7 +19,11 @@ public static class ParkingDescription
             ? $"GSX knows it as {name}{(group is null ? "" : $" ({group})")}"
             : $"scenery stand {name}");
 
-        if (match.Confidence == ParkingMatchConfidence.Likely)
+        if (match.Caveat is { Length: > 0 } caveat)
+        {
+            parts.Add(caveat);
+        }
+        else if (match.Confidence == ParkingMatchConfidence.Likely)
         {
             parts.Add("best match");
         }

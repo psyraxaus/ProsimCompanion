@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+using ProsimCompanion.Core.Airports.Parking;
 using ProsimCompanion.Gsx.Mirror;
 using ProsimCompanion.Gsx.Protocol;
 
@@ -34,6 +36,16 @@ public interface IGsxAssignedGateSource
 {
     /// <summary>Null when no assignment stands (idle, armed, failed, cancelled).</summary>
     GsxAssignedGate? AssignedGate { get; }
+
+    /// <summary>
+    /// GSX anchored itself on a stand with the SAME NUMBER as the requested gate and another
+    /// suffix ("Change Facility [… Gate 36B with Safedock©]" for our W36 — EFHK 2026-10-11,
+    /// issue #156, where the request itself had failed <c>not_found</c>): the request adopts
+    /// it as its assignment, so no parking conflict is raised for a stand GSX chose for us.
+    /// False when no request stands, the facility is another stand, or the gate is already
+    /// confirmed by the readback.
+    /// </summary>
+    bool TryAdoptFacility(string facility);
 }
 
 /// <summary>
@@ -475,6 +487,151 @@ public static class GsxGateResolver
                 && Normalize(n) != requested),
         ];
 
+        // Suffix variants (issue #156, EFHK 2026-10-11): "W36" was refused with nearest []
+        // while the mirror held " Gate 36A" and " Gate 36B" — the GATE letter the pilot typed
+        // is not in GSX's display name and the suffix is. Compare the NUMBER as a whole word.
+        if (ParkingToken.Parse(requestedGate) is { } token)
+        {
+            var number = new Regex($@"(?<![0-9]){token.Number}(?![0-9])");
+            ranked.AddRange(names.Where(n => !ranked.Contains(n, StringComparer.Ordinal) && number.IsMatch(Normalize(n))));
+        }
+
         return [.. ranked.Take(3)];
+    }
+
+    /// <summary>The scenery-name pieces of a gate.select candidate: its bglName ("Gate W 36A")
+    /// first, then the gate name, then the tail of the full name; GSX's own <c>number</c>
+    /// when no text parses.</summary>
+    public static SceneryNameParts? CandidateParts(GsxGateRef candidate)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        var gateName = candidate.UiName is { } ui && ui.Contains('|') ? ui[(ui.LastIndexOf('|') + 1)..] : candidate.UiName;
+        var parts = ParkingIdentity.TryParseSceneryName(candidate.BglName)
+            ?? ParkingIdentity.TryParseSceneryName(candidate.Gate)
+            ?? ParkingIdentity.TryParseSceneryName(gateName);
+        if (parts is null && candidate.Number is { } number)
+        {
+            parts = new SceneryNameParts(null, number, "");
+        }
+
+        return parts;
+    }
+
+    /// <summary>
+    /// The <c>ambiguous</c> candidates when EVERY one of them is the requested gate plus a
+    /// trailing letter — EFHK 2026-10-11: <c>gate.select {"gate":36}</c> for W36 answered
+    /// " Gate 36A" / " Gate 36B" (bglName "Gate W 36A"/"Gate W 36B"), the scenery splits the
+    /// stand the profile calls "Gate 36". Null when any candidate has another number, no
+    /// suffix, or a different GATE letter — then the old unique-candidate rule applies.
+    /// </summary>
+    public static IReadOnlyList<GsxGateRef>? SuffixVariants(IReadOnlyList<GsxGateRef> candidates, string requestedGate)
+    {
+        ArgumentNullException.ThrowIfNull(candidates);
+        if (candidates.Count == 0 || ParkingToken.Parse(requestedGate) is not { } requested)
+        {
+            return null;
+        }
+
+        var variants = new List<GsxGateRef>(candidates.Count);
+        foreach (var candidate in candidates)
+        {
+            var parts = CandidateParts(candidate);
+            if (parts is null || parts.Number != requested.Number || parts.Suffix.Length == 0)
+            {
+                return null;
+            }
+
+            if (parts.GateLetter is { } letter && requested.Letter is { } wanted && letter != wanted)
+            {
+                return null;
+            }
+
+            variants.Add(candidate);
+        }
+
+        return variants;
+    }
+
+    /// <summary>The variant whose suffix the pilot (or ATC) typed — "36A" picks " Gate 36A".
+    /// Null without a suffix in the request or without exactly one match.</summary>
+    public static GsxGateRef? PickBySuffix(IReadOnlyList<GsxGateRef> variants, string requestedGate)
+    {
+        ArgumentNullException.ThrowIfNull(variants);
+        if (ParkingToken.Parse(requestedGate) is not { Suffix.Length: > 0 } requested)
+        {
+            return null;
+        }
+
+        var hits = variants
+            .Where(v => string.Equals(CandidateParts(v)?.Suffix, requested.Suffix, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        return hits.Count == 1 ? hits[0] : null;
+    }
+
+    /// <summary>"36A" for a candidate — what the pilot says and the buttons print; the resend
+    /// token when the name does not parse.</summary>
+    public static string CandidateLabel(GsxGateRef candidate)
+        => CandidateParts(candidate)?.Designator ?? TrimToken(candidate.ResendToken ?? "?");
+
+    private static readonly Regex DesignatorWord = new(@"^(?<letter>[A-Z])?(?<number>\d{1,4})(?<suffix>[A-Z]{1,2})$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// The stand GSX names in a facility text when it is the requested gate's NUMBER with
+    /// ANOTHER suffix — "Apron 1W (Gates W34-W48)   Gate 36B with Safedock©" for "W36" →
+    /// "Gate 36B" (issue #156: GSX anchored on 36B after refusing W36, and the FO called it an
+    /// unrecognised parking). The designator must follow a facility word ("Gate 36B") or a
+    /// lone GATE letter after one ("Gate W 36B"), so the "(Gates W34-W48)" range never
+    /// matches; a facility that names the gate itself is <see cref="FacilityNamesGate"/>'s
+    /// business and answers null here. Null otherwise.
+    /// </summary>
+    public static string? SuffixVariantIn(string? facility, string? requestedGate)
+    {
+        if (ParkingToken.Parse(requestedGate) is not { } requested)
+        {
+            return null;
+        }
+
+        var words = Words(facility);
+        for (var i = 1; i < words.Count; i++)
+        {
+            var match = DesignatorWord.Match(words[i]);
+            if (!match.Success || !int.TryParse(match.Groups["number"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+                || number != requested.Number)
+            {
+                continue;
+            }
+
+            var suffix = match.Groups["suffix"].Value;
+            if (suffix.Equals(requested.Suffix, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (match.Groups["letter"].Success && requested.Letter is { } wanted && match.Groups["letter"].Value[0] != wanted)
+            {
+                continue;
+            }
+
+            var previous = words[i - 1];
+            string? facilityWord = null;
+            if (KnownFacilityPrefixes.Contains(previous))
+            {
+                facilityWord = previous;
+            }
+            else if (previous.Length == 1 && i >= 2 && KnownFacilityPrefixes.Contains(words[i - 2])
+                && (requested.Letter is null || previous[0] == requested.Letter))
+            {
+                facilityWord = words[i - 2];
+            }
+
+            if (facilityWord is null)
+            {
+                continue;
+            }
+
+            return $"{facilityWord[0]}{facilityWord[1..].ToLowerInvariant()} {number}{suffix}";
+        }
+
+        return null;
     }
 }

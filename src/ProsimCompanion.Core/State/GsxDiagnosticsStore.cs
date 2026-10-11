@@ -170,7 +170,16 @@ public sealed record GsxDiagnosticsSnapshot(
     /// read for the first time in 2026-10-09; null until SimConnect has reported them.
     /// Diagnostics only — the holdover card still arms from the Remote API Completed edge.</summary>
     public GsxDeiceLvarView? DeiceLvars { get; init; }
+
+    /// <summary>The last GSX SimBrief reload verdict (issue #174): what the walk through the
+    /// gate menu and the "Additional Services" pages found. <see cref="GsxSimbriefReloadView.RowMissing"/>
+    /// means this GSX shows no SimBrief row at all — the Status card says so once per app
+    /// session instead of re-raising the menu on every OFP.</summary>
+    public GsxSimbriefReloadView? SimbriefReload { get; init; }
 }
+
+/// <summary>One SimBrief reload verdict for the Status card (issue #174).</summary>
+public sealed record GsxSimbriefReloadView(DateTimeOffset Timestamp, string Status, string Detail, bool RowMissing);
 
 /// <summary>The raw de-icing LVAR pair with the state label the GSX service-state convention
 /// gives the value (1 Callable, 4 Requested, 5 Active, 6 Completed — unverified for this
@@ -298,6 +307,9 @@ public sealed class GsxDiagnosticsStore : SnapshotStore<GsxDiagnosticsSnapshot>
         => Update(snapshot => snapshot with { DroppedCall = droppedCall });
 
     /// <summary>Replaces the de-icing LVAR view (the GSX de-ice state monitor, on change).</summary>
+    public void UpdateSimbriefReload(GsxSimbriefReloadView? view)
+        => Update(s => s with { SimbriefReload = view });
+
     public void UpdateDeiceLvars(GsxDeiceLvarView? view)
         => Update(snapshot => snapshot with { DeiceLvars = view });
 

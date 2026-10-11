@@ -291,6 +291,20 @@ public sealed class GsxQuestionCatalog
             return Task.CompletedTask;
         }
 
+        // Same number, different suffix = not a conflict (issue #156, EFHK 2026-10-11): W36
+        // was refused, GSX anchored on "Gate 36B with Safedock©" and serviced it, and the FO
+        // announced an unrecognised parking. The request adopts GSX's pick.
+        if (facilityEntry is not null && gateKey is null
+            && _assignedGate?.TryAdoptFacility(ExtractFacility(facilityEntry)) == true)
+        {
+            RecordDecision(
+                "parking-change menu",
+                $"left for the user — GSX is anchored on '{facilityEntry}', our arrival gate's number with "
+                    + "another suffix; adopted as the assignment (same number, different suffix = not a conflict)");
+            _diagnostics.UpdateParkingConflict(null);
+            return Task.CompletedTask;
+        }
+
         RecordDecision(
             "parking-change menu",
             facilityEntry is null
