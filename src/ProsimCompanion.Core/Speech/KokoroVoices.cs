@@ -141,8 +141,8 @@ public static class KokoroVoices
     private static readonly Dictionary<string, Voice> KnownById =
         Sheet.ToDictionary(s => s.Id, s => Build(s.Id, s.Grade, s.Quality, s.Training, s.Note), StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>The v1.0 sheet voices, in sheet order — the picker's list when no server has
-    /// answered yet (or Kokoro is off).</summary>
+    /// <summary>The v1.0 sheet voices, in sheet order. Metadata only (grades for the blurb) —
+    /// never shown as a list: the picker lists only what the server reports (owner, 2026-10-12).</summary>
     public static IReadOnlyList<Voice> Known { get; } = Sheet.Select(s => KnownById[s.Id]).ToArray();
 
     /// <summary>Describes any id: a sheet voice with its grades, or a prefix-only reading for an

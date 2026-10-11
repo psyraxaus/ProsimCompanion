@@ -267,15 +267,15 @@ else if (CurrentSection == "sterile")
 else if (CurrentSection == "crew")
 {
     <Section Title="Crew Voices" Hint="Pick a Kokoro voice from the list. Choose Other voice id for an ElevenLabs voice id or a Google name such as en-AU-Chirp3-HD-Aoede">
-        <VoicePickerField Label="Purser voice" Hint="Cabin reports on the cabin interphone." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer"
+        <VoicePickerField Label="Purser voice" Hint="Cabin reports on the cabin interphone." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="No voice list yet. Open Voice Providers and press Refresh from server."
                    @bind-Value="_voices.Value.Purser" />
         <BoolField Label="Purser intercom filter" Hint="Headset sound on the purser."
                    @bind-Value="_voices.Value.PurserIntercomFilter" />
-        <VoicePickerField Label="Company voice" Hint="Dispatch messages, read out like ACARS." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer"
+        <VoicePickerField Label="Company voice" Hint="Dispatch messages, read out like ACARS." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="No voice list yet. Open Voice Providers and press Refresh from server."
                    @bind-Value="_voices.Value.Company" />
         <BoolField Label="Company intercom filter" Hint="Off by default. A company message is a printout, not a phone call."
                    @bind-Value="_voices.Value.CompanyIntercomFilter" />
-        <VoicePickerField Label="Ground crew voice" Hint="Ground crew replies and calls on the interphone." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer"
+        <VoicePickerField Label="Ground crew voice" Hint="Ground crew replies and calls on the interphone." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="No voice list yet. Open Voice Providers and press Refresh from server."
                    @bind-Value="_voices.Value.Ground" />
         <BoolField Label="Ground intercom filter"
                    @bind-Value="_voices.Value.GroundIntercomFilter" />
@@ -638,7 +638,7 @@ else if (CurrentSection == "providers")
         <TextField Label="Base URL" Hint="Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off."
                    @bind-Value="_speech.Value.KokoroBaseUrl" />
         <TextField Label="Model" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroModel" />
-        <VoicePickerField Label="Voice" Hint="The First Officer. Grouped by region, with Kokoro's own quality grade beside each name." More="The grade is Kokoro's estimate of how much and how clean the training audio was, A down to F. British and American voices make a usable First Officer; the other languages read English badly." Groups="_kokoroGroups" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroVoice" />
+        <VoicePickerField Label="Voice" Hint="The First Officer. Grouped by region, with Kokoro's own quality grade beside each name." More="The grade is Kokoro's estimate of how much and how clean the training audio was, A down to F. British and American voices make a usable First Officer; the other languages read English badly." Groups="_kokoroGroups" EmptyListHint="No voice list yet. Press Refresh from server below." Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroVoice" />
         <div class="field">
             <label class="field-label">
                 Voice list
@@ -1250,11 +1250,10 @@ else if (CurrentSection == "abnormals")
 
     private bool KokoroOff => string.IsNullOrWhiteSpace(_speech.Value.KokoroBaseUrl);
 
-    // Kokoro voice picker (2026-10-12). The list starts as Kokoro's published sheet and is
-    // replaced by the server's own list once GET /v1/audio/voices answers (legacy v0 voices,
-    // blends). Fetched off the DRAFT base URL so a first-time setup can pick before saving.
-    private IReadOnlyList<(string Region, IReadOnlyList<KokoroVoices.Voice> Voices)> _kokoroGroups =
-        KokoroVoices.Group(KokoroVoices.Known.Select(v => v.Id));
+    // Kokoro voice picker (2026-10-12). The list is ONLY what the server reports (owner: no
+    // pre-populated names that may not exist on this server) — empty until GET /v1/audio/voices
+    // answers. Fetched off the DRAFT base URL so a first-time setup can pick before saving.
+    private IReadOnlyList<(string Region, IReadOnlyList<KokoroVoices.Voice> Voices)> _kokoroGroups = [];
     private bool _fetchingKokoroVoices;
     private string? _kokoroVoiceNote;
 
@@ -1282,7 +1281,7 @@ else if (CurrentSection == "abnormals")
             var ids = await KokoroCatalog.ListVoiceIdsAsync(_speech.Value.KokoroBaseUrl, cts.Token);
             if (ids.Count == 0)
             {
-                _kokoroVoiceNote = "The server listed no voices. Showing Kokoro's published list.";
+                _kokoroVoiceNote = "The server listed no voices.";
             }
             else
             {
@@ -1292,7 +1291,7 @@ else if (CurrentSection == "abnormals")
         }
         catch (Exception ex)
         {
-            _kokoroVoiceNote = "Could not list voices from the server. Showing Kokoro's published list. " + ex.Message;
+            _kokoroVoiceNote = "Could not list voices from the server. " + ex.Message;
         }
         finally
         {

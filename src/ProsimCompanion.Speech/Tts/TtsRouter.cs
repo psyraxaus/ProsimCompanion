@@ -11,7 +11,7 @@ namespace ProsimCompanion.Speech.Tts;
 /// slow dead LAN host must not add its timeout to every utterance. Provider health is
 /// published to the <see cref="SpeechStatusStore"/> for the /speech page.
 /// </summary>
-public sealed class TtsRouter
+public sealed class TtsRouter : IDisposable
 {
     /// <summary>How long a failed provider is skipped before it gets another chance.</summary>
     private static readonly TimeSpan FailureCooldown = TimeSpan.FromSeconds(60);
@@ -25,6 +25,7 @@ public sealed class TtsRouter
     private readonly object _gate = new();
 
     private readonly ConnectionStatusStore? _connections;
+    private readonly IDisposable? _optionsChange;
 
     /// <param name="connections">Footer/status dot for the network voice
     /// (<see cref="Subsystems.Tts"/>); optional so tests need no store.</param>
@@ -45,6 +46,10 @@ public sealed class TtsRouter
         _store = store;
         _logger = logger;
         _connections = connections;
+        // A save on the settings page (a Kokoro URL, an ElevenLabs key) must show on the Status
+        // page at once, not after the FO next speaks (owner, 2026-10-12). Null from a bare
+        // test mock is fine.
+        _optionsChange = options.OnChange(_ => PublishHealth());
         PublishHealth();
     }
 
@@ -220,6 +225,29 @@ public sealed class TtsRouter
 
         return views;
     }
+
+    /// <summary>Records the outcome of a synthesis made OUTSIDE the chain — the Status page's
+    /// per-provider Test button (2026-10-12: a provider configured and tested fine still read
+    /// "Disabled / not configured" until the FO next spoke). A success counts like a chain
+    /// success: the provider is marked healthy and any cooldown is cleared. A failure only
+    /// republishes — the test is the pilot's probe, not an utterance, so it never starts a
+    /// cooldown that would silence the provider for a minute.</summary>
+    public void RecordDirectResult(string providerName, bool succeeded)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(providerName);
+        if (succeeded)
+        {
+            lock (_gate)
+            {
+                _cooldownUntil.Remove(providerName);
+                _succeeded.Add(providerName);
+            }
+        }
+
+        PublishHealth();
+    }
+
+    public void Dispose() => _optionsChange?.Dispose();
 
     private void PublishHealth()
     {

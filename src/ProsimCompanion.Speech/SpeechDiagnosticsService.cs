@@ -148,6 +148,7 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
             var audio = await provider.SynthesizeAsync(sampleText, cancellationToken).ConfigureAwait(false);
             stopwatch.Stop();
             await _playback.PlayAsync(audio.WavBytes, cancellationToken).ConfigureAwait(false);
+            _router?.RecordDirectResult(provider.Name, succeeded: true);
             return $"{provider.Name}: synthesized in {stopwatch.ElapsedMilliseconds} ms and played.";
         }
         catch (OperationCanceledException)
@@ -157,6 +158,7 @@ public sealed class SpeechDiagnosticsService : ISpeechDiagnostics
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "TTS provider test failed for {Provider}", provider.Name);
+            _router?.RecordDirectResult(provider.Name, succeeded: false);
             return $"{provider.Name} failed: {ex.Message}";
         }
     }

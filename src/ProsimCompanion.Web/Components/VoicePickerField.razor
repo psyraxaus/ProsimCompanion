@@ -1,6 +1,8 @@
-@* Voice picker over Kokoro's regional voice groups, with a details line for the chosen voice
-   and an "Other voice id" escape hatch for ElevenLabs / Google ids (the crew voices accept any
-   provider's id). Replaces the free-text voice fields users found cumbersome (2026-10-12).
+@* Voice picker over the LIVE voice list of a Kokoro server, grouped by region, with a details
+   line for the chosen voice and an "Other voice id" escape hatch for ElevenLabs / Google ids
+   (the crew voices accept any provider's id). Replaces the free-text voice fields users found
+   cumbersome (2026-10-12). Nothing is pre-populated: until the server has answered, the list
+   holds only the saved value (owner, 2026-10-12 — no defunct names from a built-in sheet).
    Binds the text escape on INPUT like TextField so type-then-Save never loses the value (#20). *@
 @using ProsimCompanion.Core.Speech
 <div class="field">
@@ -17,6 +19,10 @@
             else if (SelectValue == "")
             {
                 <option value="" selected>Pick a voice…</option>
+            }
+            @if (ShowSavedOnly)
+            {
+                <option value="@Value.Trim()" selected>@KokoroVoices.Describe(Value).Label (saved)</option>
             }
             @foreach (var group in Groups)
             {
@@ -39,6 +45,10 @@
         @if (Details is not null)
         {
             <div class="field-hint" style="margin-top:6px; max-width:520px;">@Details</div>
+        }
+        @if (Groups.Count == 0 && EmptyListHint is not null)
+        {
+            <div class="field-hint field-hint-warn" style="margin-top:6px; max-width:520px;">@EmptyListHint</div>
         }
     </div>
 </div>
@@ -64,7 +74,8 @@
     [Parameter]
     public EventCallback<string> ValueChanged { get; set; }
 
-    /// <summary>Region groups from <see cref="KokoroVoices.Group"/>.</summary>
+    /// <summary>Region groups from <see cref="KokoroVoices.Group"/> over the server's list;
+    /// empty until the server has answered.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<(string Region, IReadOnlyList<KokoroVoices.Voice> Voices)> Groups { get; set; } = [];
 
@@ -73,11 +84,22 @@
     [Parameter]
     public string? BlankLabel { get; set; }
 
+    /// <summary>Shown under the picker while <see cref="Groups"/> is empty — where to get the
+    /// list from.</summary>
+    [Parameter]
+    public string? EmptyListHint { get; set; }
+
     [Parameter]
     public bool Disabled { get; set; }
 
     private bool IsListed(string id)
         => Groups.Any(g => g.Voices.Any(v => string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase)));
+
+    /// <summary>No list yet and a saved Kokoro-shaped id: show it as the one choice rather than
+    /// dropping into the text box (which would read as "something is wrong").</summary>
+    private bool ShowSavedOnly
+        => !_custom && Groups.Count == 0 && Value.Trim().Length > 0
+           && KokoroVoices.Describe(Value).Region != KokoroVoices.Other;
 
     private string SelectValue
     {
@@ -86,6 +108,7 @@
             if (_custom) return CustomKey;
             var value = Value.Trim();
             if (value.Length == 0) return "";
+            if (ShowSavedOnly) return value;
             return IsListed(value) ? value : CustomKey;
         }
     }
@@ -96,11 +119,16 @@
         {
             var value = Value.Trim();
             if (value.Length == 0) return null;
-            if (IsListed(value) || KokoroVoices.IsKnown(value)) return KokoroVoices.Describe(value).Blurb;
-            var guess = KokoroVoices.Describe(value);
-            return guess.Region == KokoroVoices.Other
-                ? "Not a Kokoro voice. Sent as typed to the provider that speaks (ElevenLabs or Google)."
-                : $"{guess.Region}, {guess.Gender}. Not in the list from the server. Sent as typed.";
+            var voice = KokoroVoices.Describe(value);
+            if (voice.Region == KokoroVoices.Other)
+            {
+                return "Not a Kokoro voice. Sent as typed to the provider that speaks (ElevenLabs or Google).";
+            }
+            if (Groups.Count > 0 && !IsListed(value))
+            {
+                return $"{voice.Blurb} Not in the list from the server — check the name.";
+            }
+            return voice.Blurb;
         }
     }
 
