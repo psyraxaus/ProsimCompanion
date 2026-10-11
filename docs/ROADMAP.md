@@ -805,7 +805,24 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       (`gsx.reloadSimbriefOnNewOfp` off, `gsx.reloadSimbrief` command); **EFB soft/full
       reset** (`efb.resetFlight` / `efb.unloadOfp`). **Unverified live** — every item.
 
-## Open items (after the rc.23 batch, 2026-10-09)
+- [x] **Sign-off flight fixes** (2026-10-11, 0.7.0-rc.5; flight EFHK→EGCC→EFHK on rc.3/rc.4,
+      issues #166–#177 + #123/#148/#151/#156/#75/#140 reopened or commented; seven branches
+      merged): de-icing asked when the step is next, silence keeps the question open, GSX's
+      offer obeys the answer, fluid/concentration menus answered, holdover from the real fluid,
+      opt-in packs/ditching procedure, pack-fault hold during de-icing; an MSFS pause is not a
+      session end (phase + latches held, no state-check re-run, "disregard" voice command,
+      EGCC→EFHK recording); gate monitor re-arms on the turnaround leg; `voiceThenAuto`
+      ground-prep activation + hail/command arms the pax target first + start source logged;
+      ground-power hail phrases + hail aliases; **flight-state snapshot** across an in-flight
+      restart (OFP, OOOI stamps, minima, fuel log, chrono, latches; plan-only fetch; takeoff
+      unknown instead of seeded); notifications once per cycle; self-echo guard spares the
+      pilot's replies; read-back prefix + standard; Stand by + question shape; V-speed token
+      split + sterile FMA acceptance; SimBrief-row menu walk; airport-list paging +
+      `no_airport` pending; suffix-split gate settlement (W36 → 36A/36B); SayIntentions comms
+      hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
+      **Unverified live** — every item.
+
+## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:
 
@@ -819,8 +836,8 @@ weather advisories; `commandApi.requireTokenOnLoopback`; `accents.overrides` (di
 forward")**: WinRT speech recognition, per-checklist key/joystick prompts, walkaround skip
 keystroke, GSX/Couatl restart on taxi-in, headless remote-control mode, the tablet EFB branch.
 
-**Before 1.0.0**: one full sim-verified pass of every "Unverified live" marker (the rc.22
-and rc.23 batches above in particular — see `scratchpad/rc22-flight-test-proc.md` for the
+**Before 1.0.0**: one full sim-verified pass of every "Unverified live" marker (the rc.22,
+rc.23 and rc.5 batches above in particular — see `scratchpad/rc22-flight-test-proc.md` for the
 flight procedure), then the screenshot refresh and the release per `docs/VERSIONING.md`.
 The `FSDT_GSX_DEICING_STATE` value table in `docs/integrations/gsx.md` is to be corrected
 from the first flight that de-ices.

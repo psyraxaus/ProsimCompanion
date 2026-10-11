@@ -28,9 +28,11 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       composed from the recognition grammar (IVoiceReference / VoiceReferenceBuilder)
 - [x] Auto engine-start confirmation (#106 — `GsxPushbackSequenceService.TryConfirmEngineStart`
       answers "Confirm good engine start" at vehicle state 12; no on/off switch yet)
-- [x] De-icing auto-answer + fluid/concentration selection (question catalogue); auto-request
-      by weather/OAT (`gsx.deice.autoRequest` off / ask / auto, rc.23) with the
-      `FSDT_GSX_DEICING_STATE` LVAR read and shown
+- [x] De-icing auto-answer + fluid/concentration selection (GSX's "Select fluid type" /
+      "Select concentration" menus answered since rc.5); auto-request by weather/OAT
+      (`gsx.deice.autoRequest` off / ask / auto, asked when the step is next, silence keeps the
+      question open, GSX's own offer obeys the answer) with the `FSDT_GSX_DEICING_STATE` LVAR
+      read and shown; opt-in packs/ditching procedure (rc.5)
 - [x] Operator auto-selection with preference list ([GSX choice] fallback; company hubs deferred)
 - [x] Skip GSX questions (crew, follow-me, pushback confirm; tug questions are caught by the
       generic "Do you want to request…" prefix handler, not a tug-specific entry); walkaround
