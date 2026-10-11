@@ -13,7 +13,10 @@ namespace ProsimCompanion.Gsx.Sync;
 /// <summary>Everything the aircraft state check can observe, gathered by the service so the
 /// verdict logic stays pure and testable (issue #63, same split as the startup resync).
 /// <paramref name="Read"/> returns null for a dataref that has not reported (or is stale) —
-/// the assessor skips that item instead of fail-closing it into a false mismatch.</summary>
+/// the assessor skips that item instead of fail-closing it into a false mismatch.
+/// <paramref name="DepartureUnderway"/> is the departure cycle's own word (issue #168): a
+/// turnaround continuation, or a departure sequence already started or completed — the
+/// aircraft is legitimately powered and nothing about it is "cold and dark" to verify.</summary>
 public sealed record AircraftStateCheckContext(
     bool Enabled,
     bool AnnounceMismatches,
@@ -21,7 +24,8 @@ public sealed record AircraftStateCheckContext(
     bool TurnaroundDetected,
     FlightPhase Phase,
     AircraftStateDefinition? Definition,
-    Func<string, double?> Read);
+    Func<string, double?> Read,
+    bool DepartureUnderway = false);
 
 /// <summary>
 /// The pure cold-and-dark verdict (issue #63). Policy: the check only judges a FRESH departure
@@ -57,6 +61,11 @@ public static class AircraftStateCheck
         if (context.TurnaroundDetected)
         {
             return Skipped("turnaround leg — aircraft legitimately powered");
+        }
+
+        if (context.DepartureUnderway)
+        {
+            return Skipped("departure already underway this cycle (turnaround, or services started) — not a fresh start");
         }
 
         if (context.Definition is null)
@@ -145,6 +154,7 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
     private readonly SimSessionStore _simSession;
     private readonly IFlightPhaseSource _flightState;
     private readonly GsxResyncState _resyncState;
+    private readonly DepartureCycleState _cycle;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly JsonlEventLog _eventLog;
     private readonly IOptionsMonitor<GsxOptions> _options;
@@ -168,6 +178,7 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
         SimSessionStore simSession,
         IFlightPhaseSource flightState,
         GsxResyncState resyncState,
+        DepartureCycleState cycle,
         GsxDiagnosticsStore diagnostics,
         ConfigProblemStore configProblems,
         JsonlEventLog eventLog,
@@ -178,6 +189,7 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
         ArgumentNullException.ThrowIfNull(simSession);
         ArgumentNullException.ThrowIfNull(flightState);
         ArgumentNullException.ThrowIfNull(resyncState);
+        ArgumentNullException.ThrowIfNull(cycle);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(configProblems);
         ArgumentNullException.ThrowIfNull(eventLog);
@@ -187,6 +199,7 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
         _simSession = simSession;
         _flightState = flightState;
         _resyncState = resyncState;
+        _cycle = cycle;
         _diagnostics = diagnostics;
         _eventLog = eventLog;
         _options = options;
@@ -212,7 +225,10 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
             }
         }
 
-        _simSession.SessionEnded += OnSessionEnded;
+        // Re-arm on the engine's GENUINE session reset, not the store's raw SessionEnded
+        // (issue #168): a five-second Escape mid-boarding fires the latter, and the re-armed
+        // check then judged a turnaround leg as a fresh start and nagged seven mismatches.
+        _flightState.SessionReset += OnSessionReset;
         _flightState.PhaseChanged += OnPhaseChanged;
         _settleWindow = simSession.OpenWindow(SettleTimeout);
         _timer = new Timer(_ => Tick(), null, TickInterval, TickInterval);
@@ -221,7 +237,7 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
     public void Dispose()
     {
         _timer.Dispose();
-        _simSession.SessionEnded -= OnSessionEnded;
+        _flightState.SessionReset -= OnSessionReset;
         _flightState.PhaseChanged -= OnPhaseChanged;
         _settleWindow.Dispose();
         foreach (var subscription in _reads.Values)
@@ -244,10 +260,12 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
         }
     }
 
-    /// <summary>Re-arms the check when the pilot leaves the flight session (menu/world map):
-    /// the next session gets a fresh verdict, and the stale one is withdrawn so the status
-    /// page never shows last flight's aircraft state against a new spawn.</summary>
-    private void OnSessionEnded()
+    /// <summary>Re-arms the check when the flight session genuinely ended (menu/world map
+    /// longer than the pause grace, or a respawn — the engine's verdict, issue #168): the
+    /// next session gets a fresh verdict, and the stale one is withdrawn so the status page
+    /// never shows last flight's aircraft state against a new spawn. A pause round-trip never
+    /// lands here, so it never re-announces.</summary>
+    private void OnSessionReset()
     {
         lock (_tickGate)
         {
@@ -328,6 +346,14 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
                 }
             }
 
+            var departureUnderway = _cycle.IsTurnaround || _cycle.Started || _cycle.Complete;
+            if (departureUnderway)
+            {
+                _logger.LogInformation(
+                    "Aircraft state check: departure cycle already underway (turnaround {Turnaround}, started {Started}, complete {Complete}) — skipping the cold-and-dark verdict",
+                    _cycle.IsTurnaround, _cycle.Started, _cycle.Complete);
+            }
+
             var context = new AircraftStateCheckContext(
                 Enabled: options.AircraftStateCheckEnabled,
                 AnnounceMismatches: options.AircraftStateCheckAnnounce,
@@ -337,7 +363,8 @@ public sealed class AircraftStateCheckService : IAircraftStateCheckControl, IDis
                     || _resyncState.LoadsheetFinalSent,
                 Phase: _flightState.CurrentPhase,
                 Definition: _definition,
-                Read: ReadCached);
+                Read: ReadCached,
+                DepartureUnderway: departureUnderway);
 
             var verdict = AircraftStateCheck.Assess(context, DateTimeOffset.UtcNow);
             if (forceAnnounce)

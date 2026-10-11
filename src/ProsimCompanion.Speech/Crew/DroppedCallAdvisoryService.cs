@@ -17,6 +17,7 @@ public sealed class DroppedCallAdvisoryService : Core.Hosting.IStartupModule, ID
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<DroppedCallAdvisoryService> _logger;
+    private readonly SpokenAdvisories? _advisories;
     private readonly object _gate = new();
     private DateTimeOffset? _lastSpoken;
     private IDisposable? _subscription;
@@ -25,7 +26,8 @@ public sealed class DroppedCallAdvisoryService : Core.Hosting.IStartupModule, ID
         GsxDiagnosticsStore diagnostics,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<DroppedCallAdvisoryService> logger)
+        ILogger<DroppedCallAdvisoryService> logger,
+        SpokenAdvisories? advisories = null)
     {
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -36,6 +38,7 @@ public sealed class DroppedCallAdvisoryService : Core.Hosting.IStartupModule, ID
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _advisories = advisories;
     }
 
     public void Start() => _subscription = _diagnostics.Observe(OnDiagnosticsChanged);
@@ -108,15 +111,20 @@ public sealed class DroppedCallAdvisoryService : Core.Hosting.IStartupModule, ID
 
     private async Task SpeakAsync(string text)
     {
+        var token = _advisories?.Begin("fo.dropped-call") ?? CancellationToken.None; // "disregard" (#168)
         try
         {
             await _arbiter.EnqueueAsync(new SpeechRequest(
                 text, SpeechPriority.High, Ttl: TimeSpan.FromSeconds(30),
-                Tag: "fo.dropped-call")).ConfigureAwait(false);
+                Tag: "fo.dropped-call"), token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Dropped-call advisory speech failed");
+        }
+        finally
+        {
+            _advisories?.End(token);
         }
     }
 }

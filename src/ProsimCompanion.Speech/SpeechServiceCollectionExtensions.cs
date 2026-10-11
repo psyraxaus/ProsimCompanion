@@ -226,6 +226,10 @@ public static class SpeechServiceCollectionExtensions
             p.GetService<Core.State.IAircraftStateCheckControl>(),
             p.GetRequiredService<ISpeechArbiter>(),
             p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Crew.AircraftStateVoiceService>>()));
+        // "Disregard" / "cancel that" while idle (issue #168): silences the advisory being
+        // spoken (the advisories register their line with SpokenAdvisories) and acknowledges.
+        services.AddSingleton<Crew.SpokenAdvisories>();
+        services.AddSingleton<IVoiceFeature, Crew.DisregardVoiceFeature>();
         // Accent localization (issue #53): airport-country → per-provider ground-crew voice,
         // consumed by the arbiter at render time. Registered BEFORE the arbiter resolves.
         services.AddSingleton<Crew.AccentVoiceResolver>();

@@ -29,8 +29,34 @@ public sealed class GsxResyncState
     }
 
     /// <summary>The tracking LVARs say an arrival happened this sim session — this leg is a
-    /// turnaround even though the in-memory flag was lost with the previous process.</summary>
-    public bool TurnaroundDetected { get; private set; }
+    /// turnaround even though the in-memory flag was lost with the previous process. Also
+    /// set by <see cref="MarkTurnaround"/> when the arrival happens AFTER the assessment
+    /// (issue #168): an app started in flight assesses "no turnaround" at 33,000 ft and must
+    /// still learn the turnaround from the arrival reset, or the cold-and-dark check judges
+    /// the second leg as a fresh start.</summary>
+    public bool TurnaroundDetected
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _turnaroundDetected;
+            }
+        }
+    }
+
+    private bool _turnaroundDetected;
+
+    /// <summary>The arrival boundary passed in this process (GSX arrival reset): from here on
+    /// the leg is a turnaround whatever the one-shot assessment concluded. Sticky until
+    /// process end, like <see cref="DepartureCycleState.MarkTurnaround"/>.</summary>
+    public void MarkTurnaround()
+    {
+        lock (_gate)
+        {
+            _turnaroundDetected = true;
+        }
+    }
 
     /// <summary>Preliminary-loadsheet edition recovered from the tracking LVARs; 0 = none.</summary>
     public int LoadsheetPrelimEdition { get; private set; }
@@ -57,7 +83,7 @@ public sealed class GsxResyncState
             }
 
             _assessed = true;
-            TurnaroundDetected = turnaroundDetected;
+            _turnaroundDetected |= turnaroundDetected; // an arrival seen before the assessment stays
             LoadsheetPrelimEdition = loadsheetPrelimEdition;
             LoadsheetFinalSent = loadsheetFinalSent;
             BoardingProven = boardingProven;

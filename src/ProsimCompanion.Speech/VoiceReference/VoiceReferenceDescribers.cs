@@ -265,6 +265,14 @@ internal static class VoiceReferenceDescribers
                         "Silences chatter for the rest of the session (checklists and callouts still speak).", "Righto, I'll keep it quiet."),
                 ]),
 
+            [typeof(Crew.DisregardVoiceFeature)] = new(
+                "disregard", "Disregard", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer, null,
+                [
+                    new(["disregard", "cancel that", "belay that", "never mind"],
+                        "Silences the advisory the FO is speaking (aircraft state, parking, dropped call) and acknowledges — with nothing playing, just the acknowledgement.",
+                        Crew.DisregardVoiceFeature.Acknowledgement),
+                ]),
+
             [typeof(Crew.AircraftStateVoiceService)] = new(
                 "aircraftState", "Aircraft state", VoiceReferenceTab.Ground, VoiceSpeaker.FirstOfficer,
                 "GSX pillar not running",

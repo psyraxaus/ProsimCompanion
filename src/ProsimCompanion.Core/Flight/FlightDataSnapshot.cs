@@ -35,6 +35,12 @@ public sealed record FlightDataSnapshot
     /// <summary>True track over the ground, degrees 0–360; null when unknown.</summary>
     public double? TrackTrueDeg { get; init; }
 
+    /// <summary>Fuel on board (aircraft.fuel.total.amount.kg), or null while the ref has not
+    /// reported. Never phase evidence: with <see cref="Position"/> it tells a paused flight
+    /// from a respawn when the MSFS session comes back (issue #168) — a reloaded flight lands
+    /// with different fuel even when it spawns on the same stand.</summary>
+    public double? FuelOnBoardKg { get; init; }
+
     /// <summary>Electrical power available (battery/external) — cold-and-dark discriminator.</summary>
     public bool AircraftPowered { get; init; }
 

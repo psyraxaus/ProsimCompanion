@@ -66,7 +66,8 @@ public sealed class AircraftStateCheckTests
         bool turnaround = false,
         FlightPhase phase = FlightPhase.ColdAndDark,
         AircraftStateDefinition? definition = null,
-        bool noDefinition = false)
+        bool noDefinition = false,
+        bool departureUnderway = false)
         => new(
             Enabled: enabled,
             AnnounceMismatches: announce,
@@ -76,7 +77,24 @@ public sealed class AircraftStateCheckTests
             Definition: noDefinition ? null : definition ?? Definition(),
             Read: name => values is not null && values.TryGetValue(name, out var value)
                 ? value
-                : null);
+                : null,
+            DepartureUnderway: departureUnderway);
+
+    [Fact]
+    public void Skipped_WhenTheDepartureCycleIsAlreadyUnderway()
+    {
+        // Issue #168 (EGCC 2026-10-11 23:35:27Z): a turnaround leg whose resync had assessed
+        // "no turnaround" in flight — the departure cycle's own flags exclude it, mismatches
+        // or not.
+        var values = new Dictionary<string, double>(ColdAndDarkValues) { ["system.switches.S_OH_ELEC_BAT1"] = 1 };
+
+        var verdict = AircraftStateCheck.Assess(Context(values, phase: FlightPhase.Preflight, departureUnderway: true), Now);
+
+        Assert.Equal(AircraftStateCheckStatus.Skipped, verdict.Status);
+        Assert.Contains("departure already underway", verdict.Reason);
+        Assert.False(verdict.Announce);
+        Assert.Empty(verdict.Mismatches);
+    }
 
     private static readonly Dictionary<string, double> ColdAndDarkValues = new()
     {

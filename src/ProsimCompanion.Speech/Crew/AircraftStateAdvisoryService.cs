@@ -26,6 +26,7 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
     private readonly ISpeechArbiter _arbiter;
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<AircraftStateAdvisoryService> _logger;
+    private readonly SpokenAdvisories? _advisories;
     private readonly object _gate = new();
     private DateTimeOffset? _lastSpokenVerdict;
     private IDisposable? _subscription;
@@ -34,7 +35,8 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
         GsxDiagnosticsStore diagnostics,
         ISpeechArbiter arbiter,
         JsonlEventLog eventLog,
-        ILogger<AircraftStateAdvisoryService> logger)
+        ILogger<AircraftStateAdvisoryService> logger,
+        SpokenAdvisories? advisories = null)
     {
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -45,6 +47,7 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
         _arbiter = arbiter;
         _eventLog = eventLog;
         _logger = logger;
+        _advisories = advisories;
     }
 
     public void Start() => _subscription = _diagnostics.Observe(OnDiagnosticsChanged);
@@ -135,17 +138,24 @@ public sealed class AircraftStateAdvisoryService : Core.Hosting.IStartupModule, 
 
     private async Task SpeakAsync(string text)
     {
+        // "Disregard" (issue #168) cancels this token: mid-utterance playback stops, a queued
+        // line is withdrawn.
+        var token = _advisories?.Begin("fo.aircraft-state") ?? CancellationToken.None;
         try
         {
             // Advisory band with a shelf life: pointless to hear it after the pilot has been
             // reconfiguring the aircraft for minutes anyway.
             await _arbiter.EnqueueAsync(new SpeechRequest(
                 text, SpeechPriority.Normal, Ttl: TimeSpan.FromMinutes(2),
-                Tag: "fo.aircraft-state")).ConfigureAwait(false);
+                Tag: "fo.aircraft-state"), token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Aircraft state advisory could not be spoken");
+        }
+        finally
+        {
+            _advisories?.End(token);
         }
     }
 }

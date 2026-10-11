@@ -825,9 +825,11 @@
         "session"
       ],
       "checks": [
-        "Each session with a sim flight has exactly one initial 'aircraft-state-check' event (Pass/Mismatch/Skipped with an honest reason); a Mismatch produces the FO advisory when announce is on."
+        "Each session with a sim flight has exactly one initial 'aircraft-state-check' event (Pass/Mismatch/Skipped with an honest reason); a Mismatch produces the FO advisory when announce is on.",
+        "assert-absent (issue #168, EGCC 2026-10-11 23:35:27Z): an 'aircraft-state-check' with status Mismatch (or Pass) after the GSX arrival reset of the same app session (the 'gsx-automation-phase' Arrival event / 'turnaround' decision), after any 'gsx-service' Departure-sequence event, or between a 'sim-paused' and the following 'sim-resumed' round-trip. The only legitimate verdict there is Skipped with reason 'departure already underway this cycle …' or 'turnaround leg …' — the log carries 'Aircraft state check: departure cycle already underway (turnaround …, started …, complete …)'.",
+        "assert-absent: a second 'aircraft-state-check' in one session whose only trigger was a 'sim-paused'/'sim-resumed' pair (the check re-arms on the engine's genuine SessionReset — a 'sim-pause-ended' or an unpaused session end — never on the raw store edge)."
       ],
-      "notes": "Verified live 2026-08-17."
+      "notes": "Verified live 2026-08-17. Widened 2026-10-11 (issue #168): the 0.7.0-rc.4 flight re-armed on the raw SessionEnded of a five-second Escape, the resync had assessed 'no turnaround' at cruise (app started in flight) and the pause had reset the airborne latch, so the check judged the turnaround as a fresh start and the FO read seven mismatches mid-boarding. Now: DepartureCycleState (IsTurnaround/Started/Complete) excludes the leg, GsxResyncState.MarkTurnaround learns the arrival after the one-shot assessment, and re-arm follows IFlightPhaseSource.SessionReset."
     },
     {
       "id": "listening-at-startup",
@@ -1306,9 +1308,11 @@
       ],
       "checks": [
         "When MSFS leaves the flight (menu / world map) after a phase was committed, a 'phase-changed' <phase> -> Unknown with rule 'session-ended' is recorded and the log carries 'MSFS flight session ended'; the next session's first commit starts from Unknown.",
-        "assert-absent: a new session's first 'phase-changed' whose previous phase is anything but Unknown."
+        "assert-absent: a new session's first 'phase-changed' whose previous phase is anything but Unknown.",
+        "Pause vs end (issue #168): a log 'MSFS session InSession -> NotInSession (… paused True)' that returns to InSession within flightState.pauseGraceSeconds (60) is a PAUSE — it produces 'sim-paused' then 'sim-resumed' and NO 'session-ended' phase edge (see probe sim-pause-roundtrip). The 'session-ended' edge is correct only when the absence outlasts the grace ('sim-pause-ended' with detail 'away for N s, longer than …'), the aircraft comes back elsewhere / with other fuel ('sim-pause-ended' with detail 'respawn — …'), or the session left WITHOUT the pause flag (paused False: world map, aircraft reload) — then the edge follows at once as before.",
+        "assert-absent: a 'session-ended' phase edge within 60 s of a 'sim-paused' with no 'sim-pause-ended' before it."
       ],
-      "notes": "2026-08-29: previously only the airborne latch reset on NotInSession and the phase leaked into the next flight."
+      "notes": "2026-08-29: previously only the airborne latch reset on NotInSession and the phase leaked into the next flight. 2026-10-11 (issue #168): a NotInSession with MSFS's pause flag is held for the grace (FlightStateOptions.PauseGraceSeconds, Flight Phase settings → MSFS pause) and judged on return by position (PauseSamePositionMetres) and fuel (PauseSameFuelKg); the FlightReplay harness replays sim-paused/sim-resumed through the session store."
     },
     {
       "id": "phase-manual-override",
@@ -1438,6 +1442,8 @@
         "assert-present: the first 'phase-changed' out of Departure is PushbackAndStart or TaxiOut on a normal departure, and the GSX 'Departure' (pushback) service Active precedes or coincides with it.",
         "flight-sample events after the boarding edge carry brd=true until the aircraft leaves the pre-taxi window (TaxiOut and later must not carry it); the Preflight of a second leg starts without it.",
         "FlightReplay of the session reproduces the Preflight->Departure edge at the same second (the harness re-derives the signal from the gsx-service event when brd is absent).",
+        "assert-absent (issue #168, EGCC 2026-10-11 23:35:16Z): a 'phase-changed' Departure->Unknown with rule 'session-ended' between a 'sim-paused' and its 'sim-resumed' — an Escape pause mid-boarding keeps Departure and the brd latch (flight-sample brd=true continues after 'sim-resumed'). The live rc.4 engine went Departure -> Unknown -> Preflight and showed PREFLIGHT for 26 min until the push.",
+        "assert-present: when a GENUINE reset ('session-ended' edge, or 'sim-pause-ended') happens while GSX Boarding is Active (Boarding Active seen, no Boarding Completed yet), the re-classification is Unknown -> Preflight -> Departure within ~3 s and the log carries 'Boarding latch re-raised — GSX Boarding is still underway' — never a Preflight that lasts until the push.",
         "requires-human: the Flight Status sequence shows DEPARTURE with the sub-line 'Boarding' then 'Boarding complete'; the phase text reads DEPARTURE at the same time (never PREFLIGHT)."
       ],
       "notes": "Owner decision 2026-09-20 after the 2026-09-19 EGLL session (session-20260919-235732): the phase text said PREFLIGHT for 44 min (00:01–00:45 UTC) across catering, refuel, boarding (00:16–00:25) and the 20-min wait for the push. Departure is a real FlightPhase between Preflight and PushbackAndStart, entered on GroundOpsSignals.BoardingStarted (GSX Boarding Active, relayed by GsxGroundOpsSignalRelay) and held by 'departure-hold' until push/start/thrust/power-off. Every at-gate consumer now goes through FlightPhase.IsAtGate()/IsBeforeTaxiOut(). No ProSim-side boarding fallback yet (efb.efb.boardingStatus values unverified) — a flight without GSX boarding stays Preflight until the push, which is the pre-2026-09-20 behaviour, not a failure."
@@ -1795,9 +1801,12 @@
         "No 'gate-status-changed' event moves BACKWARDS (Boarding → Open, ClosedAfterBoarding → Boarding …) without an intervening flight-cycle reset (the GSX 'flight-cycle-reset' decision / a new Preflight). A backwards edge is the forward-only latch failing.",
         "If the leg reached ≥ flightStatus.gateFinalCallPaxPercent boarded OR came within gateFinalCallMinutesBeforeStd of STD while still boarding, a FinalCall event exists between Boarding and ClosedAfterBoarding; if boarding completed before either threshold, FinalCall is legitimately absent (report as skipped, not failed).",
         "Log lines 'Gate monitor: <State> (was <Previous>)' match the session events one-to-one.",
-        "'hero-weather-refreshed' events appear after every OFP fetch and at the configured cadence; a local/second status other than Found is a weather-chain outcome to report with its icao, not a widget failure."
+        "'hero-weather-refreshed' events appear after every OFP fetch and at the configured cadence; a local/second status other than Found is a weather-chain outcome to report with its icao, not a widget failure.",
+        "assert-present (issue #173, EGCC 2026-10-11): a SECOND 'gsx-service' Boarding Active in one app session (a turnaround leg) produces a NEW chain of 'gate-status-changed' events — a Closed (previous ClosedAfterBoarding) at the GSX arrival reset or the new 'ofp.loaded' requestId, then Open and/or Boarding, (FinalCall), ClosedAfterBoarding — with its own timestamps after the second Boarding Active. Zero gate events for the second leg is the latch failing (rc.4: the strip stayed ClosedAfterBoarding from 22:37:43Z through leg 2's boarding at 23:33:57Z).",
+        "assert-absent: a 'gate-status-changed' to Boarding/Open while the GSX Boarding stage is Waiting/Held and the only pax evidence is last leg's counter (paxBoarded == paxTarget of the previous leg, no Boarding Called/Active edge since the reset) — stale counters are not evidence.",
+        "assert-absent: a ClosedAfterBoarding reported immediately after a Closed at the arrival reset with the phase still Shutdown (the reset undone by the past-gate rule)."
       ],
-      "notes": "Feature shipped 2026-09-22 (owner sign-off on the canvas draft 'Weather Card Title Line' v3). Issue 0 until the tracking issue is filed. Thresholds: flightStatus.gateFinalCallPaxPercent (90) / gateFinalCallMinutesBeforeStd (10)."
+      "notes": "Feature shipped 2026-09-22 (owner sign-off on the canvas draft 'Weather Card Title Line' v3). Issue 0 until the tracking issue is filed. Thresholds: flightStatus.gateFinalCallPaxPercent (90) / gateFinalCallMinutesBeforeStd (10). 2026-10-11 (issue #173): the core resets on GroundOpsSignals.FlightCycleReset AND on a new OFP request id, Shutdown no longer counts as past-the-gate for the auto-close, and GSX's boarded counter is pax evidence only while the latched Boarding stage is Called/Requested/Active/Completed (it keeps last leg's 122/122 until the next call)."
     },
     {
       "id": "header-next-service",
@@ -3054,6 +3063,41 @@
         "requires-human: Flight Monitor / Flight Status show the original off-blocks and takeoff times after the restart; the Fuel Log page keeps the earlier rows' times and shows 'not recorded' for fixes passed during the outage, the header saying 'takeoff time unknown (app started in flight)' only when nothing was restored; Settings → Display & Flight Data → 'After a restart in flight' card (switch + max age); the Logbook detail reads 'unknown (app started in flight)' for the takeoff of a leg the app joined in the air without a snapshot."
       ],
       "notes": "Added 2026-10-11 (issue #167, owner's 2026-10-10 FIN1361/1362 flight: crash at 20:42Z, restarts in the climb 20:57:53Z and in the descent 22:37:41Z lost the OFP, the stamps, the fuel log and the minima). FlightStateSnapshotService (Core) writes %LOCALAPPDATA%\\ProsimCompanion\\state\\flight-state.json on change (debounced 1.5 s, atomic) and restores at startup once ProSim's aircraft title and efb.simbriefPlanImported (or the MCDU route) confirm the flight and the file is younger than flightState.snapshotMaxAgeHours (18). Parts: ofp, flightTimes, fuelLog, minima, departureCycle, notifications (Core), chrono, cabin (Speech). The in-flight plan-only fetch uses ISimbriefImporter.TryFetchPlanOnlyAsync; the ground importer and the Fetch OFP button are unchanged."
+    },
+    {
+      "id": "sim-pause-roundtrip",
+      "issue": 168,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "signature",
+        "trigger": {
+          "source": "session",
+          "type": "sim-paused",
+          "contains": ""
+        },
+        "signature": {
+          "source": "session",
+          "type": "sim-resumed",
+          "contains": "",
+          "minCount": 1
+        }
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Trigger = the pilot pressed Escape in MSFS during a live flight: log 'Pause event: flags=8' then 'MSFS session InSession -> NotInSession (camera 34, … paused True)'. assert-present: a 'sim-paused' event {phase, graceSeconds, detail 'camera left the flight with the pause flag set'} and the log 'MSFS paused … holding phase <phase> for up to 60 s'; 'Flight live false' follows as before.",
+        "assert-present: when the session returns within flightState.pauseGraceSeconds at the same stand, a 'sim-resumed' {phase (the same), elapsedSeconds, detail 'moved N m (within 50 m), fuel changed N kg (within 50 kg)' — or 'no fuel to compare' on a build/recording without fob} and the log 'MSFS resumed after N s — phase <phase> and its latches kept'; 'Flight live true' follows.",
+        "assert-absent between a 'sim-paused' and its 'sim-resumed': any 'phase-changed' (in particular <phase> -> Unknown with rule 'session-ended'), any 'aircraft-state-check', any 'fo.aircraft-state-advisory', any 'gsx-ground-prep-stage' reset. After the resume: the phase, the brd latch (flight-sample brd) and the airborne latch are what they were — e.g. a Departure stays Departure, a Cruise stays Cruise and the FOB restore / cabin landing report still arm.",
+        "assert-present: a pause that outlives the grace, or a return elsewhere, writes 'sim-pause-ended' {detail 'away for N s, longer than the 60 s grace' | 'respawn — moved N m (beyond 50 m) …'} and THEN the normal 'session-ended' phase edge — never a silent reset. A NotInSession with paused False (world map, aircraft reload) still resets at once with no 'sim-paused' at all.",
+        "assert-present (idle 'Disregard.' / 'cancel that' / 'belay that' / 'never mind'): a 'voicecommand.disregard' {cancelled, advisory} event and a 'speech.enqueued' tagged fo.disregard with text 'Disregarded.'; the utterance must NOT appear in 'voice.unmatched' (rc.4: reason no-handler at 23:35:47Z). With an advisory mid-utterance (fo.aircraft-state / fo.parking-conflict / fo.dropped-call) its speech event ends Cancelled/withdrawn after the disregard.",
+        "FlightReplay of the session (which feeds sim-paused/sim-resumed through the session store) holds the phase across the pause; the checked-in recording egcc-efhk-2026-10-11-0.7.0-rc4 carries the two events synthesized from the CMTrace log and expects Departure held through 23:35Z.",
+        "watch: pauses longer than the grace (a 'sim-pause-ended' with 'longer than') — count them; a pilot who routinely pauses for 2–3 minutes wants the grace raised on the Flight Phase settings page, not a reset.",
+        "requires-human: the Flight Status pill stays DEPARTURE across an Escape; the 'Flight live' dot goes off and back on; the Voice Reference drawer lists 'disregard / cancel that / belay that / never mind' under Disregard with the answer 'Disregarded.'."
+      ],
+      "notes": "Added 2026-10-11 (issue #168, EGCC→EFHK 0.7.0-rc.4 session-20261010-232521). Engine: FlightStateEngine.HandleOutOfSession/TryResolvePause; options flightState.pauseGraceSeconds (60) / pauseSamePositionMetres (50) / pauseSameFuelKg (50) on Flight Phase settings → MSFS pause; IFlightPhaseSource.IsPaused/PauseChanged/SessionReset; CoreBootstrapService records the events; FlightSample gained fob. Unverified live. Not changed (out of scope, worth a look): GsxGroundPrepCoordinator and GsxStartupResyncService still reset on the raw SimSessionStore.SessionEnded, so a pause still resets the prep chain ('Ground preparation sequence reset (sim session ended)') — harmless on a turnaround (reposition skipped) but a first-leg pause mid-boarding re-runs prep when it resumes."
     }
   ]
 }

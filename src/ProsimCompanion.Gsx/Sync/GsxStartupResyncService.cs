@@ -365,6 +365,10 @@ public sealed class GsxStartupResyncService : IDisposable
     private void OnFlightCycleReset()
     {
         _prepLvarLatched = false;
+        // The verdict is one-shot, but the arrival is not (issue #168): an app started in
+        // flight assessed "no turnaround" at cruise; the next leg's cold-and-dark check must
+        // still see a turnaround, not a fresh start.
+        _resyncState.MarkTurnaround();
         _ = Task.Run(async () =>
         {
             await WriteLvarAsync(CompanionLvarNames.Turnaround.Name, 1).ConfigureAwait(false);

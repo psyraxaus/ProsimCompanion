@@ -1,0 +1,25 @@
+# EGCC -> EFHK (FIN1362), 2026-10-10/11, build 0.7.0-rc.4 (ebab8f8), session-20261010-232521 (issue #168).
+# Trimmed to flight-sample + phase-changed + gsx-service + session-rotated, plus TWO SYNTHESIZED events
+# (payload field "synthesized" says so): sim-paused 23:35:16.796Z and sim-resumed 23:35:21.785Z, taken from
+# the CMTrace log (SimSessionService InSession -> NotInSession camera 34 paused True, and back to InSession
+# five seconds later) because the build that flew did not write them yet. The live engine recorded
+# Departure -> Unknown (session-ended) -> Preflight across that Escape; the pause grace holds Departure
+# through it (Describe() reports 1 pause round-trip replayed and no edge between 23:33:58Z and 00:01:36Z)
+# and the push takes it on at 00:01:36Z, as the live engine's PREFLIGHT -> PushbackAndStart did. Every
+# other edge replays at the recorded second. Describe() says "DIVERGES at edge #1" only because this is
+# a ROTATED session file: the live Shutdown -> Preflight (23:25:21.75Z) precedes the first sample
+# (23:25:22Z) and is filtered out of the recorded list, so the recording starts at Preflight -> Departure
+# while the replay starts from Unknown; the real divergence (the two session-ended edges) comes after.
+Unknown -> Preflight
+Preflight -> Departure
+Departure -> PushbackAndStart
+PushbackAndStart -> TaxiOut
+TaxiOut -> TakeoffRoll
+TakeoffRoll -> InitialClimb
+InitialClimb -> Climb
+Climb -> Cruise
+Cruise -> Descent
+Descent -> Approach
+Approach -> LandingRollout
+LandingRollout -> TaxiIn
+TaxiIn -> Shutdown

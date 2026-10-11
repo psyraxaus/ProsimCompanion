@@ -104,6 +104,10 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     private readonly IDataRefSubscription<double> _longitude;
     private readonly IDataRefSubscription<double> _trackTrue;
 
+    // Fuel on board (issue #168). NOT phase-critical: it only tells a pause from a respawn;
+    // absent, the engine judges the resume on position alone.
+    private readonly IDataRefSubscription<double> _fuelTotal;
+
     private readonly IDataRefSubscription[] _phaseCritical;
     private readonly IDataRefSubscription[] _all;
 
@@ -163,6 +167,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _latitude = dataRefs.Subscribe(ProsimDataRefNames.Latitude);
         _longitude = dataRefs.Subscribe(ProsimDataRefNames.Longitude);
         _trackTrue = dataRefs.Subscribe(ProsimDataRefNames.TrackTrue);
+        _fuelTotal = dataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
 
         // Must cover the same refs, in the same order, as PhaseCriticalRefs above.
         _phaseCritical =
@@ -184,7 +189,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             _altitudeAgl, _landingLightL, _landingLightR, _seatbeltSigns, _beacon,
             _speedbrakeArmed, _xpdrMode, _tat, _oat, _inCloud, _visibility,
             _engAntiIce1, _engAntiIce2, _wingAntiIce,
-            _latitude, _longitude, _trackTrue,
+            _latitude, _longitude, _trackTrue, _fuelTotal,
         ];
     }
 
@@ -268,6 +273,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             AnyEngineRunningRaw = anyRunningRaw,
             Position = ReadPosition(),
             TrackTrueDeg = ReadTrack(),
+            FuelOnBoardKg = _fuelTotal.RawValue is null || _fuelTotal.IsStale ? null : _fuelTotal.Value,
         };
     }
 

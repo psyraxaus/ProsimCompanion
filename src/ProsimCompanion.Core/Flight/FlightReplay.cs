@@ -29,14 +29,20 @@ public sealed class FlightReplayResult
         IReadOnlyList<RecordedCommit> recorded,
         int sampleCount,
         DateTimeOffset? firstSampleAt,
-        DateTimeOffset? lastSampleAt)
+        DateTimeOffset? lastSampleAt,
+        int pauseRoundTrips = 0)
     {
         Commits = commits;
         RecordedCommits = recorded;
         SampleCount = sampleCount;
         FirstSampleAt = firstSampleAt;
         LastSampleAt = lastSampleAt;
+        PauseRoundTrips = pauseRoundTrips;
     }
+
+    /// <summary>How many 'sim-paused' edges the harness fed through the session store (issue
+    /// #168) — the proof that a recording's pause path was exercised, not just absent.</summary>
+    public int PauseRoundTrips { get; }
 
     /// <summary>What this build's rule table decided, in order.</summary>
     public IReadOnlyList<ReplayCommit> Commits { get; }
@@ -81,6 +87,11 @@ public sealed class FlightReplayResult
         if (FirstSampleAt is { } first && LastSampleAt is { } last)
         {
             sb.Append(CultureInfo.InvariantCulture, $" from {first:HH:mm:ss} to {last:HH:mm:ss}");
+        }
+
+        if (PauseRoundTrips > 0)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $", {PauseRoundTrips} pause round-trip(s) replayed");
         }
 
         sb.AppendLine();
@@ -128,10 +139,13 @@ public static class FlightReplay
 
         var samples = new List<(DateTimeOffset At, FlightSample Sample)>();
         var recorded = new List<RecordedCommit>();
-        // Ground-ops edges the live engine received as signals, not samples. Re-derived from
-        // the session's GSX service events so recordings made before the sample carried the
-        // boarding latch (2026-09-20) still exercise the Departure rule.
-        var boardingStarts = new List<DateTimeOffset>();
+        // Edges the live engine received as signals, not samples: the GSX Boarding
+        // Active/Completed events (re-derived so recordings made before the sample carried the
+        // boarding latch, 2026-09-20, still exercise the Departure rule — and so the
+        // ground-ops layer's BoardingUnderway latch is real for the re-raise after a reset)
+        // and the MSFS pause round-trip (sim-paused / sim-resumed, issue #168) that the live
+        // engine saw through the session store.
+        var signals = new List<ReplaySignal>();
         foreach (var line in jsonlLines)
         {
             if (string.IsNullOrWhiteSpace(line))
@@ -168,10 +182,24 @@ public static class FlightReplay
                 }
                 else if (type == "gsx-service" && root.TryGetProperty("payload", out var service)
                     && service.TryGetProperty("service", out var serviceEl) && service.TryGetProperty("event", out var eventEl)
-                    && string.Equals(serviceEl.GetString(), "Boarding", StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(eventEl.GetString(), "Active", StringComparison.OrdinalIgnoreCase))
+                    && string.Equals(serviceEl.GetString(), "Boarding", StringComparison.OrdinalIgnoreCase))
                 {
-                    boardingStarts.Add(at);
+                    if (string.Equals(eventEl.GetString(), "Active", StringComparison.OrdinalIgnoreCase))
+                    {
+                        signals.Add(new ReplaySignal(at, ReplaySignalKind.BoardingStarted));
+                    }
+                    else if (string.Equals(eventEl.GetString(), "Completed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        signals.Add(new ReplaySignal(at, ReplaySignalKind.BoardingCompleted));
+                    }
+                }
+                else if (type == "sim-paused")
+                {
+                    signals.Add(new ReplaySignal(at, ReplaySignalKind.SimPaused));
+                }
+                else if (type == "sim-resumed")
+                {
+                    signals.Add(new ReplaySignal(at, ReplaySignalKind.SimResumed));
                 }
             }
             catch (JsonException)
@@ -188,16 +216,18 @@ public static class FlightReplay
         }
 
         var session = new SimSessionStore();
-        session.Publish(new SimSessionSnapshot(SimSessionPhase.InSession, SimRunning: true, Paused: false, CameraState: null, SimVersion: null));
+        session.Publish(InSession);
+        var groundOps = new GroundOpsSignals();
         using var engine = new FlightStateEngine(
             new HeldSource(), session, NullLogger<FlightStateEngine>.Instance,
-            new FixedOptionsMonitor<FlightStateOptions>(options));
+            new FixedOptionsMonitor<FlightStateOptions>(options), groundOps);
 
         var now = samples[0].At;
         engine.PhaseChanged += (_, e) => commits.Add(new ReplayCommit(now, e.Previous, e.Current, e.RuleId, e.Reason));
 
-        boardingStarts.Sort();
+        signals.Sort((a, b) => a.At.CompareTo(b.At));
         var nextSignal = 0;
+        var pauses = 0;
         FlightDataSnapshot? held = null;
         foreach (var (at, sample) in samples)
         {
@@ -210,7 +240,7 @@ public static class FlightReplay
                     for (var t = now + FlightStateEngine.TickInterval; t < at; t += FlightStateEngine.TickInterval)
                     {
                         now = t;
-                        RaiseSignalsDue(engine, boardingStarts, ref nextSignal, t);
+                        RaiseSignalsDue(engine, session, groundOps, signals, ref nextSignal, ref pauses, t, held);
                         engine.ProcessTick(held, t);
                     }
                 }
@@ -218,23 +248,72 @@ public static class FlightReplay
 
             held = sample.ToSnapshot();
             now = at;
-            RaiseSignalsDue(engine, boardingStarts, ref nextSignal, at);
+            RaiseSignalsDue(engine, session, groundOps, signals, ref nextSignal, ref pauses, at, held);
             engine.ProcessTick(held, at);
         }
 
         var firstAt = samples[0].At;
         var recordedInWindow = recorded.Where(c => c.At >= firstAt).ToList();
-        return new FlightReplayResult(commits, recordedInWindow, samples.Count, firstAt, samples[^1].At);
+        return new FlightReplayResult(commits, recordedInWindow, samples.Count, firstAt, samples[^1].At, pauses);
     }
 
-    /// <summary>Delivers every boarding-started signal stamped at or before <paramref name="now"/>
-    /// to the engine, in order, exactly once — the same latch the live relay would have set.</summary>
-    private static void RaiseSignalsDue(FlightStateEngine engine, List<DateTimeOffset> boardingStarts, ref int next, DateTimeOffset now)
+    private static readonly SimSessionSnapshot InSession =
+        new(SimSessionPhase.InSession, SimRunning: true, Paused: false, CameraState: null, SimVersion: null);
+
+    /// <summary>The Escape menu as the session monitor reports it: camera 34, sim running,
+    /// Pause_EX1 flags set (CMTrace 2026-10-11 10:35:16 local).</summary>
+    private static readonly SimSessionSnapshot PausedOutOfSession =
+        new(SimSessionPhase.NotInSession, SimRunning: true, Paused: true, CameraState: 34, SimVersion: null);
+
+    private enum ReplaySignalKind
     {
-        while (next < boardingStarts.Count && boardingStarts[next] <= now)
+        BoardingStarted,
+        BoardingCompleted,
+        SimPaused,
+        SimResumed,
+    }
+
+    private sealed record ReplaySignal(DateTimeOffset At, ReplaySignalKind Kind);
+
+    /// <summary>Delivers every signal stamped at or before <paramref name="now"/>, in order,
+    /// exactly once: boarding edges through the ground-ops hub (the same latch the live relay
+    /// would have set) and pause edges through the session store. A session edge is followed
+    /// by one engine tick at its own time with the held sample, so the engine registers the
+    /// pause even when the recording has no sample between pause and resume (the recorder
+    /// stops while not live) or the gap is too long to tick-fill.</summary>
+    private static void RaiseSignalsDue(
+        FlightStateEngine engine, SimSessionStore session, GroundOpsSignals groundOps,
+        List<ReplaySignal> signals, ref int next, ref int pauses, DateTimeOffset now, FlightDataSnapshot? held)
+    {
+        while (next < signals.Count && signals[next].At <= now)
         {
-            engine.NotifyBoardingStarted();
-            next++;
+            var signal = signals[next++];
+            switch (signal.Kind)
+            {
+                case ReplaySignalKind.BoardingStarted:
+                    groundOps.RaiseBoardingStarted();
+                    break;
+                case ReplaySignalKind.BoardingCompleted:
+                    groundOps.RaiseBoardingCompleted();
+                    break;
+                case ReplaySignalKind.SimPaused:
+                    pauses++;
+                    session.Publish(PausedOutOfSession);
+                    if (held is not null)
+                    {
+                        engine.ProcessTick(held, signal.At);
+                    }
+
+                    break;
+                case ReplaySignalKind.SimResumed:
+                    session.Publish(InSession);
+                    if (held is not null)
+                    {
+                        engine.ProcessTick(held, signal.At);
+                    }
+
+                    break;
+            }
         }
     }
 

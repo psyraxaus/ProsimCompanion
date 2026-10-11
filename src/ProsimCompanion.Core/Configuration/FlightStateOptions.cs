@@ -74,6 +74,25 @@ public sealed class FlightStateOptions : IOptionSection
     /// <summary>Interval of the "still thinking" log line while live (0 disables).</summary>
     public double HeartbeatSeconds { get; set; } = 60;
 
+    // ---- MSFS pause (issue #168) ----
+
+    /// <summary>A NotInSession that carries MSFS's pause flag (Escape menu) and returns within
+    /// this many seconds with the aircraft where it was is a PAUSE: the engine keeps its phase
+    /// and latches instead of resetting to Unknown. Longer than this (or a respawn) is a real
+    /// session end. 0 disables the grace and every NotInSession resets at once — the
+    /// pre-2026-10-11 behaviour (EGCC 2026-10-11: a 5 s Escape mid-boarding reset Departure
+    /// to Unknown → Preflight, re-ran the cold-and-dark check and nagged the pilot).</summary>
+    public double PauseGraceSeconds { get; set; } = 60;
+
+    /// <summary>On resume, the aircraft must be within this many metres of where it was when
+    /// the pause began; farther is a respawn (new flight loaded) and resets like a session end.</summary>
+    public double PauseSamePositionMetres { get; set; } = 50;
+
+    /// <summary>On resume, the fuel on board must be within this many kg of the pre-pause
+    /// figure; a bigger jump is a reload (new fuel state) and resets like a session end.
+    /// Ignored while the fuel dataref has not reported.</summary>
+    public double PauseSameFuelKg { get; set; } = 50;
+
     // ---- Debounce (seconds) ----
 
     /// <summary>Hold applied to any transition without a specific settle below.</summary>

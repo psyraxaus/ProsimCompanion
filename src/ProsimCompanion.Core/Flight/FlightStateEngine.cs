@@ -45,7 +45,52 @@ public interface IFlightPhaseSource
     /// timer thread. Modules that hold state across a flight (fault latches, dialogues) reset
     /// on the false edge so the next session starts clean.</summary>
     event Action<bool>? LiveChanged;
+
+    /// <summary>True while an MSFS pause is being ridden out (issue #168): the session left
+    /// the flight with the pause flag set and the engine is holding its phase and latches
+    /// for up to <see cref="Configuration.FlightStateOptions.PauseGraceSeconds"/>.
+    /// <see cref="IsLive"/> is false meanwhile.</summary>
+    bool IsPaused { get; }
+
+    /// <summary>Raised on the engine's timer thread when a pause begins, resumes, or turns
+    /// out to be a real session end (issue #168). The session recorder writes
+    /// <c>sim-paused</c> / <c>sim-resumed</c> / <c>sim-pause-ended</c> from it.</summary>
+    event Action<FlightPauseChange>? PauseChanged;
+
+    /// <summary>Raised once, on the engine's timer thread, when the flight session GENUINELY
+    /// ended and the engine reset itself (phase to Unknown, latches cleared) — never for a
+    /// pause round-trip. Session-scoped consumers (the aircraft state check) re-arm on this,
+    /// not on the raw <see cref="State.SimSessionStore.SessionEnded"/>, which also fires for
+    /// a five-second Escape (issue #168).</summary>
+    event Action? SessionReset;
 }
+
+/// <summary>What happened to an MSFS pause (issue #168).</summary>
+public enum FlightPauseEvent
+{
+    /// <summary>The session left the flight with the pause flag set; the phase is held.</summary>
+    Paused,
+
+    /// <summary>The session came back within the grace with the aircraft where it was.</summary>
+    Resumed,
+
+    /// <summary>The pause outlived the grace, or the aircraft came back somewhere else /
+    /// with other fuel (respawn): the engine reset as for a session end.</summary>
+    Ended,
+}
+
+/// <summary>Payload of <see cref="IFlightPhaseSource.PauseChanged"/>.</summary>
+/// <param name="Kind">Which edge this is.</param>
+/// <param name="Phase">The phase being held (or that was held).</param>
+/// <param name="Elapsed">How long the session had been away at this edge.</param>
+/// <param name="GraceSeconds">The grace in force.</param>
+/// <param name="Detail">Why — the position/fuel comparison, or the grace verdict.</param>
+public sealed record FlightPauseChange(
+    FlightPauseEvent Kind,
+    FlightPhase Phase,
+    TimeSpan Elapsed,
+    double GraceSeconds,
+    string Detail);
 
 /// <summary>
 /// The pilot's escape hatch when the phase is wrong (Prosim2FO <c>ForcePhase</c> parity):
@@ -134,6 +179,13 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
     // once the aircraft leaves the pre-taxi window (taxi, flight, shutdown, session end) so
     // the next leg's Preflight starts clean.
     private bool _boardingStarted;
+
+    // MSFS pause (issue #168): when the session left the flight with the pause flag set, and
+    // the last live sample before it — position and fuel decide "same flight" on return.
+    private DateTimeOffset? _pausedAt;
+    private FlightDataSnapshot? _pausedSnapshot;
+    private FlightDataSnapshot? _lastLiveSnapshot;
+    private bool _resetNotified;
 
     /// <summary>Defaults-only construction — tests and the replay harness.</summary>
     public FlightStateEngine(IFlightDataSource source, SimSessionStore session, ILogger<FlightStateEngine> logger)
@@ -243,6 +295,15 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
     public event Action<bool>? LiveChanged;
 
     /// <inheritdoc />
+    public bool IsPaused { get; private set; }
+
+    /// <inheritdoc />
+    public event Action<FlightPauseChange>? PauseChanged;
+
+    /// <inheritdoc />
+    public event Action? SessionReset;
+
+    /// <inheritdoc />
     public bool IsFrozen => _frozen;
 
     /// <inheritdoc />
@@ -310,9 +371,17 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         var options = _options.CurrentValue;
 
         var session = _session.Snapshot();
-        if (session.Phase == SimSessionPhase.NotInSession)
+        if (!session.DataIsMeaningful)
         {
-            OnSessionLeft(snapshot);
+            HandleOutOfSession(session, snapshot, nowUtc, options);
+        }
+        else
+        {
+            _resetNotified = false;
+            if (_pausedAt is { } pausedAt && !TryResolvePause(pausedAt, snapshot, nowUtc, options))
+            {
+                return; // still paused: the sample is not ready to compare yet, grace permitting
+            }
         }
 
         // Classification gate (issue #59, flight test 2026-08-16): at app startup the engine
@@ -352,6 +421,11 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
             _groundDisagreeSamples = 0;
             return;
         }
+
+        // The pause-vs-respawn comparison needs the last sample the engine trusted, not the
+        // first one after the camera left (ProSim keeps pushing through the Escape menu).
+        _lastLiveSnapshot = snapshot;
+        RearmBoardingLatchFromGroundOps();
 
         var classified = ApplyGroundContactFilter(snapshot, options);
         if (CurrentPhase == FlightPhase.Shutdown && _arrivalComplete)
@@ -481,6 +555,10 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
     /// released too: it belonged to the flight that just ended.</summary>
     private void OnSessionLeft(FlightDataSnapshot snapshot)
     {
+        _pausedAt = null;
+        _pausedSnapshot = null;
+        IsPaused = false;
+
         if (HasBeenAirborneThisSession)
         {
             HasBeenAirborneThisSession = false;
@@ -497,6 +575,195 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         {
             Commit(FlightPhase.Unknown, SessionEndedRuleId, "MSFS flight session ended", snapshot);
         }
+
+        if (_resetNotified)
+        {
+            return; // NotInSession persists tick after tick; the reset is one edge
+        }
+
+        _resetNotified = true;
+        try
+        {
+            SessionReset?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "A SessionReset subscriber threw");
+        }
+    }
+
+    // ---- MSFS pause (issue #168) -------------------------------------------------------------
+
+    /// <summary>The session is not live. A NotInSession with MSFS's pause flag set (the
+    /// Escape menu: camera 34, Pause_EX1 flags=8) opens a pause instead of resetting — EGCC
+    /// 2026-10-11: a five-second Escape mid-boarding reset Departure to Unknown → Preflight,
+    /// dropped the boarding latch, re-ran the cold-and-dark check and had the FO nag a pilot
+    /// who was 26 minutes into a turnaround. A pause that outlives the grace is a real end;
+    /// an unpaused NotInSession (world map, aircraft reload) resets at once as before; Unknown
+    /// (SimConnect gone) still holds whatever state exists.</summary>
+    private void HandleOutOfSession(SimSessionSnapshot session, FlightDataSnapshot snapshot, DateTimeOffset nowUtc, FlightStateOptions options)
+    {
+        var grace = TimeSpan.FromSeconds(Math.Max(0, options.PauseGraceSeconds));
+        if (_pausedAt is { } pausedAt)
+        {
+            if (nowUtc - pausedAt >= grace)
+            {
+                EndPause(nowUtc - pausedAt, options, $"away for {(nowUtc - pausedAt).TotalSeconds:F0} s, longer than the {grace.TotalSeconds:F0} s grace", snapshot);
+            }
+
+            return;
+        }
+
+        if (session.Phase != SimSessionPhase.NotInSession)
+        {
+            return;
+        }
+
+        if (session.Paused && grace > TimeSpan.Zero && HasStateWorthKeeping)
+        {
+            BeginPause(nowUtc, options, snapshot);
+            return;
+        }
+
+        OnSessionLeft(snapshot);
+    }
+
+    /// <summary>A pause only matters when something would be lost by a reset.</summary>
+    private bool HasStateWorthKeeping
+        => CurrentPhase != FlightPhase.Unknown || HasBeenAirborneThisSession || _boardingStarted || _frozen;
+
+    private void BeginPause(DateTimeOffset nowUtc, FlightStateOptions options, FlightDataSnapshot snapshot)
+    {
+        _pausedAt = nowUtc;
+        _pausedSnapshot = _lastLiveSnapshot ?? snapshot;
+        IsPaused = true;
+        _logger.LogInformation(
+            "MSFS paused (session left the flight with the pause flag set) — holding phase {Phase} for up to {GraceSeconds:F0} s (airborne latch {Airborne}, boarding latch {Boarding})",
+            CurrentPhase, options.PauseGraceSeconds, HasBeenAirborneThisSession, _boardingStarted);
+        RaisePauseChanged(new FlightPauseChange(
+            FlightPauseEvent.Paused, CurrentPhase, TimeSpan.Zero, options.PauseGraceSeconds,
+            "camera left the flight with the pause flag set"));
+    }
+
+    /// <summary>The session is live again after a pause. True when the engine may classify
+    /// this tick (resumed, or ended and reset); false while the sample is not yet comparable
+    /// and the grace still runs.</summary>
+    private bool TryResolvePause(DateTimeOffset pausedAt, FlightDataSnapshot snapshot, DateTimeOffset nowUtc, FlightStateOptions options)
+    {
+        var elapsed = nowUtc - pausedAt;
+        var grace = TimeSpan.FromSeconds(Math.Max(0, options.PauseGraceSeconds));
+        if (elapsed >= grace)
+        {
+            EndPause(elapsed, options, $"away for {elapsed.TotalSeconds:F0} s, longer than the {grace.TotalSeconds:F0} s grace", snapshot);
+            return true;
+        }
+
+        if (!snapshot.IsValid || !snapshot.IsReady)
+        {
+            return false; // a respawn re-registers the refs; the grace bounds this wait
+        }
+
+        var same = IsSameFlight(_pausedSnapshot, snapshot, options, out var detail);
+        if (!same)
+        {
+            EndPause(elapsed, options, $"respawn — {detail}", snapshot);
+            return true;
+        }
+
+        _pausedAt = null;
+        _pausedSnapshot = null;
+        IsPaused = false;
+        _pendingTarget = CurrentPhase;
+        _pendingSince = nowUtc;
+        _logger.LogInformation(
+            "MSFS resumed after {ElapsedSeconds:F0} s — phase {Phase} and its latches kept ({Detail})",
+            elapsed.TotalSeconds, CurrentPhase, detail);
+        RaisePauseChanged(new FlightPauseChange(
+            FlightPauseEvent.Resumed, CurrentPhase, elapsed, options.PauseGraceSeconds, detail));
+        return true;
+    }
+
+    private void EndPause(TimeSpan elapsed, FlightStateOptions options, string reason, FlightDataSnapshot snapshot)
+    {
+        var held = CurrentPhase;
+        _logger.LogWarning("MSFS pause ended as a session end: {Reason} — resetting from {Phase}", reason, held);
+        RaisePauseChanged(new FlightPauseChange(
+            FlightPauseEvent.Ended, held, elapsed, options.PauseGraceSeconds, reason));
+        OnSessionLeft(snapshot);
+    }
+
+    private void RaisePauseChanged(FlightPauseChange change)
+    {
+        try
+        {
+            PauseChanged?.Invoke(change);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "A PauseChanged subscriber threw");
+        }
+    }
+
+    /// <summary>Same flight = same stand and same fuel. Either comparison is skipped when a
+    /// side has no value (no position ref, fuel not reported); with neither available the
+    /// grace alone decides. Pure; public so tests and the Status page can quote it.</summary>
+    public static bool IsSameFlight(FlightDataSnapshot? before, FlightDataSnapshot after, FlightStateOptions options, out string detail)
+    {
+        ArgumentNullException.ThrowIfNull(after);
+        ArgumentNullException.ThrowIfNull(options);
+
+        var parts = new List<string>(2);
+        var same = true;
+
+        if (before?.Position is { } from && after.Position is { } to)
+        {
+            var metres = GreatCircle.DistanceNm(from, to) * 1852.0;
+            var within = metres <= options.PauseSamePositionMetres;
+            same &= within;
+            parts.Add($"moved {metres:F0} m ({(within ? "within" : "beyond")} {options.PauseSamePositionMetres:F0} m)");
+        }
+        else
+        {
+            parts.Add("no position to compare");
+        }
+
+        if (before?.FuelOnBoardKg is { } fuelBefore && after.FuelOnBoardKg is { } fuelAfter
+            && double.IsFinite(fuelBefore) && double.IsFinite(fuelAfter))
+        {
+            var delta = Math.Abs(fuelAfter - fuelBefore);
+            var within = delta <= options.PauseSameFuelKg;
+            same &= within;
+            parts.Add($"fuel changed {delta:F0} kg ({(within ? "within" : "beyond")} {options.PauseSameFuelKg:F0} kg)");
+        }
+        else
+        {
+            parts.Add("no fuel to compare");
+        }
+
+        detail = string.Join(", ", parts);
+        return same;
+    }
+
+    /// <summary>After a genuine reset the boarding latch is gone with the phase, but GSX may
+    /// still be boarding (issue #168): re-raise it from the ground-ops layer's queryable
+    /// latch so the fresh Preflight steps on to Departure instead of showing PREFLIGHT for
+    /// the rest of the turnaround.</summary>
+    private void RearmBoardingLatchFromGroundOps()
+    {
+        if (_boardingStarted || _groundOps is not { BoardingUnderway: true })
+        {
+            return;
+        }
+
+        if (CurrentPhase != FlightPhase.Unknown && !CurrentPhase.IsBeforeTaxiOut())
+        {
+            return;
+        }
+
+        _boardingStarted = true;
+        _logger.LogInformation(
+            "Boarding latch re-raised — GSX Boarding is still underway (phase {Phase}); Preflight → Departure is armed again",
+            CurrentPhase);
     }
 
     /// <summary>The raw on-ground flag must agree for <see cref="FlightStateOptions.GroundContactAgreeSamples"/>
