@@ -1987,3 +1987,16 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .notify-ok { color: var(--success); }
 .notify-bad { color: var(--danger); }
 @media (max-width: 720px) { .notify-events { grid-template-columns: 1fr; } }
+
+/* ---------------------------------------------------------- settings sub-tabs */
+/* Voice Providers (2026-10-12): one tab per provider inside the section, same look as the
+   Voice Reference drawer tabs so it reads as the app's own tab strip. */
+.subtabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 14px; border-bottom: 1px solid var(--border); }
+.subtab {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--text-muted); font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; padding: 8px 12px; cursor: pointer;
+}
+.subtab:hover { color: var(--text-primary); }
+.subtab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); background: var(--accent-gold-soft); border-radius: 6px 6px 0 0; }
+.subtab .pill { margin-left: 6px; }

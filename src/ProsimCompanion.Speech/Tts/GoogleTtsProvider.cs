@@ -2,6 +2,8 @@ using Google.Cloud.TextToSpeech.V1;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Speech;
+using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Speech.Tts;
 
@@ -13,7 +15,7 @@ namespace ProsimCompanion.Speech.Tts;
 /// file per utterance); the monthly character budget is enforced BEFORE the call so the router
 /// falls through to offline voices instead of billing.
 /// </summary>
-public sealed class GoogleTtsProvider : ITtsProvider, IDisposable
+public sealed class GoogleTtsProvider : ITtsProvider, IVoiceListingTtsProvider, IDisposable
 {
     private const int SampleRateHz = 24_000;
 
@@ -98,6 +100,48 @@ public sealed class GoogleTtsProvider : ITtsProvider, IDisposable
     }
 
     public void Dispose() => _optionsSubscription?.Dispose();
+
+    /// <summary>Lists Google's Chirp 3 HD voices (the family this provider speaks with) off the
+    /// DRAFT key file — a fresh client, not the latched one, so a first-time setup can list
+    /// before saving and a fixed key path is picked up at once.</summary>
+    public async Task<IReadOnlyList<VoiceEntry>> ListVoicesAsync(SpeechOptions draft, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+        if (string.IsNullOrWhiteSpace(draft.GoogleKeyFilePath))
+        {
+            return [];
+        }
+
+        if (!File.Exists(draft.GoogleKeyFilePath))
+        {
+            throw new FileNotFoundException("Google key file not found at the path given.");
+        }
+
+        TextToSpeechClient client;
+        try
+        {
+            client = await new TextToSpeechClientBuilder
+            {
+                GoogleCredential = Google.Apis.Auth.OAuth2.CredentialFactory
+                    .FromFile<Google.Apis.Auth.OAuth2.ServiceAccountCredential>(draft.GoogleKeyFilePath)
+                    .ToGoogleCredential(),
+            }.BuildAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new InvalidOperationException("The Google key file could not be used: " + ex.Message, ex);
+        }
+
+        var response = await client.ListVoicesAsync(new ListVoicesRequest(), cancellationToken).ConfigureAwait(false);
+        var voices = response.Voices
+            .Where(v => v.Name.Contains("Chirp3-HD", StringComparison.OrdinalIgnoreCase))
+            .Select(v => VoiceCatalog.FromGoogle(v.Name, v.LanguageCodes.FirstOrDefault(), v.SsmlGender.ToString()))
+            .OrderBy(e => e.Region, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        _logger.LogInformation("Google voice list: {Count} Chirp 3 HD voices", voices.Length);
+        return voices;
+    }
 
     private TextToSpeechClient? Client(SpeechOptions options)
     {

@@ -2,6 +2,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Checklists;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Speech;
+using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Callouts;
 
 namespace ProsimCompanion.Speech.Tts;
@@ -214,16 +216,29 @@ public sealed class TtsPrewarmService : Core.Hosting.IStartupModule, IDisposable
 
             // Role voices are warmed on the same provider with an override — the provider's
             // per-voice cache namespacing keeps them isolated from the FO phrases above.
-            var foVoice = provider.Name switch
+            // The FO voice on this provider: speech.foVoice when it names this provider, else
+            // the provider's own fallback field. FO phrases are warmed with that exact id so
+            // the cache hits. A role voice naming ANOTHER provider is not warmed here — that
+            // provider speaks it (provider:id, owner 2026-10-12).
+            var speech = _speech.CurrentValue;
+            var fallbackFoVoice = provider.Name switch
             {
-                "google" => _speech.CurrentValue.GoogleVoice,
-                "elevenlabs" => _speech.CurrentValue.ElevenLabsVoiceId,
-                _ => _speech.CurrentValue.KokoroVoice,
+                "google" => speech.GoogleVoice,
+                "elevenlabs" => speech.ElevenLabsVoiceId,
+                _ => speech.KokoroVoice,
             };
-            var work = phrases.Select(p => (Voice: (string?)null, Phrase: p))
-                .Concat(CollectRolePhrases(_cabin.CurrentValue, _voices.CurrentValue, foVoice)
-                    .Select(rp => (Voice: (string?)rp.Voice, Phrase: rp.Phrase)))
-                .ToList();
+            VoiceRef.TryVoiceFor(speech.FoVoice, provider.Name, out var foOnThisProvider);
+            var foVoice = foOnThisProvider ?? fallbackFoVoice;
+            var work = phrases.Select(p => (Voice: foOnThisProvider, Phrase: p)).ToList();
+            foreach (var (roleVoice, phrase) in CollectRolePhrases(_cabin.CurrentValue, _voices.CurrentValue, foVoice))
+            {
+                if (VoiceRef.TryVoiceFor(roleVoice, provider.Name, out var onThisProvider)
+                    && onThisProvider is not null
+                    && !string.Equals(onThisProvider, foVoice, StringComparison.Ordinal))
+                {
+                    work.Add((onThisProvider, phrase));
+                }
+            }
 
             var fingerprint = provider.Name + "\n"
                 + string.Join("\n", work.Select(w => (w.Voice is null ? "" : w.Voice + "|") + w.Phrase));

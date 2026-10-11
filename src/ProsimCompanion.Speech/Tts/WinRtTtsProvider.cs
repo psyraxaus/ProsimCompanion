@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Speech;
+using ProsimCompanion.Core.State;
 using Windows.Media.SpeechSynthesis;
 
 namespace ProsimCompanion.Speech.Tts;
@@ -11,11 +13,10 @@ namespace ProsimCompanion.Speech.Tts;
 /// configured: it needs no external service, only a Windows voice. One disposable synthesizer
 /// per call. No cache — synthesis is local and fast.
 /// </summary>
-public sealed class WinRtTtsProvider : ITtsProvider
+public sealed class WinRtTtsProvider : ITtsProvider, IVoiceListingTtsProvider
 {
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ILogger<WinRtTtsProvider> _logger;
-    private int _overrideIgnoredLogged;
 
     public WinRtTtsProvider(IOptionsMonitor<SpeechOptions> options, ILogger<WinRtTtsProvider> logger)
     {
@@ -32,21 +33,29 @@ public sealed class WinRtTtsProvider : ITtsProvider
 
     public bool IsNetworkProvider => false;
 
+    /// <summary>Every installed Windows voice (incl. the Windows 11 neural "Natural" ones),
+    /// by display name — the id the synthesizer above matches on.</summary>
+    public Task<IReadOnlyList<VoiceEntry>> ListVoicesAsync(SpeechOptions draft, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<VoiceEntry> voices = SpeechSynthesizer.AllVoices
+            .Select(v => VoiceCatalog.FromWindows("winrt", v.DisplayName, v.Language, v.Gender.ToString()))
+            .OrderBy(e => e.Region, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return Task.FromResult(voices);
+    }
+
     public async Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Role voice ids are Kokoro/Google vocabulary — meaningless to Windows voices, so the
-        // override is ignored here (once-logged, not per utterance).
-        if (voiceOverride is not null && Interlocked.Exchange(ref _overrideIgnoredLogged, 1) == 0)
-        {
-            _logger.LogDebug("WinRT TTS has no per-role voices — role voice overrides are ignored");
-        }
 
         using var synthesizer = new SpeechSynthesizer();
 
-        var wanted = _options.CurrentValue.WinRtVoice;
+        var wanted = string.IsNullOrWhiteSpace(voiceOverride) ? _options.CurrentValue.WinRtVoice : voiceOverride;
         if (!string.IsNullOrWhiteSpace(wanted))
         {
             var voice = SpeechSynthesizer.AllVoices.FirstOrDefault(v =>

@@ -259,15 +259,33 @@ key, cached, budget-enforced), then Google Chirp HD (cached, budget-enforced), t
 voices. Cabin reports arrive on the CAB channel with the interphone chime; company messages
 with the ACARS beep.
 
-Kokoro voices are picked from a dropdown grouped by region (American English, British
-English, then the other languages), with Kokoro's own quality grade (A down to F) beside each
-name and a details line under the picker (gender, grade, how much training audio the voice
-had). The list holds only what your Kokoro server reports, read when the page opens, so blended or legacy
-`v0` voices appear too; *Refresh from server* re-reads it. *Other voice id* takes an
-ElevenLabs or Google id for the crew voices. The British and American voices make a usable
-First Officer; the other languages read English with their own sounds.
+### Picking voices
 
-![Voice Providers page with the Kokoro voice picker](../img/voice-providers.png)
+**Settings → Voice First Officer → Voices** holds four dropdowns: the **First Officer**, the
+**purser**, the **company** voice and the **ground crew**. Each lists every voice from every
+connected provider, grouped by provider and then region ("Kokoro · British English",
+"Google · English (Australia)", "ElevenLabs · American", "Windows · English (United
+Kingdom)"), with a details line under the picker: region, gender, Kokoro's published quality
+grade (A down to F) where there is one, and whether the voice is billed or offline. Nothing is
+pre-filled: each list holds only what that service reports — read when the page opens, and
+again with **Refresh all voices** — so a name that does not exist on your server can never be
+offered. Until a service answers, the picker shows only the saved voice, marked "(saved)".
+*Other voice id* takes a typed `provider:id` for a voice the list does not show.
+
+A voice names its provider (`google:en-AU-Chirp3-HD-Aoede`, `kokoro:bm_george`). The named
+provider speaks that role first; when it is down, not configured or shut out by *Local only*,
+the chain falls back as before — Kokoro, ElevenLabs, Google, then the Windows voices — each
+with its own **fallback voice**. The fallback voices live on the provider tabs under
+**Voice Providers** (Kokoro | ElevenLabs | Google | Windows), beside that provider's
+connection settings and its own **Refresh voices** button. Picking an ElevenLabs or Google
+voice for the First Officer fills that provider's empty fallback field for you, so it counts
+as configured. Old plain names (`af_heart`, an ElevenLabs id) keep working: they are handed
+to whichever provider speaks. The British and American Kokoro voices make a usable First
+Officer; the other languages read English with their own sounds.
+
+![Voices page: the First Officer and crew voices over every provider](../img/voices.png)
+
+![Voice Providers page with one tab per provider](../img/voice-providers.png)
 
 ### Ground crew
 

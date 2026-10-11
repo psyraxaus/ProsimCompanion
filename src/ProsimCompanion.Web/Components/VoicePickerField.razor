@@ -1,17 +1,18 @@
-@* Voice picker over the LIVE voice list of a Kokoro server, grouped by region, with a details
-   line for the chosen voice and an "Other voice id" escape hatch for ElevenLabs / Google ids
-   (the crew voices accept any provider's id). Replaces the free-text voice fields users found
-   cumbersome (2026-10-12). Nothing is pre-populated: until the server has answered, the list
-   holds only the saved value (owner, 2026-10-12 — no defunct names from a built-in sheet).
+@* Voice picker over the LIVE voice lists of the connected providers, grouped by provider then
+   region, with a details line for the chosen voice and an "Other voice id" escape hatch.
+   Nothing is pre-populated: until a provider has answered, the list holds only the saved value
+   (owner, 2026-10-12 — no defunct names from a built-in sheet). Values are provider:id
+   (VoiceRef) unless PlainIds is set — the per-provider fallback fields store the bare id.
    Binds the text escape on INPUT like TextField so type-then-Save never loses the value (#20). *@
 @using ProsimCompanion.Core.Speech
+@using ProsimCompanion.Core.State
 <div class="field">
     <label class="field-label" for="@_id">
         @Label
         <FieldHint Hint="@Hint" More="@More" />
     </label>
     <div class="field-control">
-        <select id="@_id" class="select" style="max-width:360px;" disabled="@Disabled" value="@SelectValue" @onchange="OnPickedAsync">
+        <select id="@_id" class="select" style="max-width:380px;" disabled="@Disabled" value="@SelectValue" @onchange="OnPickedAsync">
             @if (BlankLabel is not null)
             {
                 <option value="" selected="@(SelectValue == "")">@BlankLabel</option>
@@ -22,14 +23,15 @@
             }
             @if (ShowSavedOnly)
             {
-                <option value="@Value.Trim()" selected>@KokoroVoices.Describe(Value).Label (saved)</option>
+                <option value="@Value.Trim()" selected>@SavedLabel</option>
             }
             @foreach (var group in Groups)
             {
-                <optgroup label="@group.Region">
+                <optgroup label="@group.Label">
                     @foreach (var voice in group.Voices)
                     {
-                        <option value="@voice.Id" selected="@(voice.Id == SelectValue)">@voice.Label</option>
+                        var key = KeyOf(voice);
+                        <option value="@key" selected="@(key == SelectValue)">@voice.Label</option>
                     }
                 </optgroup>
             }
@@ -38,17 +40,17 @@
         @if (SelectValue == CustomKey)
         {
             <input type="text" class="text-input" style="margin-top:6px;" value="@Value" disabled="@Disabled"
-                   placeholder="Voice id from your provider"
+                   placeholder="@(PlainIds ? "Voice id for this provider" : "provider:voice id, for example google:en-AU-Chirp3-HD-Aoede")"
                    autocomplete="off" autocapitalize="off" spellcheck="false"
                    @oninput="OnTypedAsync" />
         }
         @if (Details is not null)
         {
-            <div class="field-hint" style="margin-top:6px; max-width:520px;">@Details</div>
+            <div class="field-hint" style="margin-top:6px; max-width:560px;">@Details</div>
         }
         @if (Groups.Count == 0 && EmptyListHint is not null)
         {
-            <div class="field-hint field-hint-warn" style="margin-top:6px; max-width:520px;">@EmptyListHint</div>
+            <div class="field-hint field-hint-warn" style="margin-top:6px; max-width:560px;">@EmptyListHint</div>
         }
     </div>
 </div>
@@ -74,10 +76,14 @@
     [Parameter]
     public EventCallback<string> ValueChanged { get; set; }
 
-    /// <summary>Region groups from <see cref="KokoroVoices.Group"/> over the server's list;
-    /// empty until the server has answered.</summary>
+    /// <summary>Provider · region groups; empty until a provider has answered.</summary>
     [Parameter, EditorRequired]
-    public IReadOnlyList<(string Region, IReadOnlyList<KokoroVoices.Voice> Voices)> Groups { get; set; } = [];
+    public IReadOnlyList<VoiceGroup> Groups { get; set; } = [];
+
+    /// <summary>Store the bare voice id instead of provider:id — the per-provider fallback
+    /// fields, whose provider is fixed.</summary>
+    [Parameter]
+    public bool PlainIds { get; set; }
 
     /// <summary>When set, a blank value is a listed choice with this label (crew voices: blank =
     /// the First Officer's voice). When null, blank shows a "Pick a voice" placeholder.</summary>
@@ -92,14 +98,50 @@
     [Parameter]
     public bool Disabled { get; set; }
 
-    private bool IsListed(string id)
-        => Groups.Any(g => g.Voices.Any(v => string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase)));
+    private string KeyOf(VoiceEntry voice) => PlainIds ? voice.Id : voice.Value;
 
-    /// <summary>No list yet and a saved Kokoro-shaped id: show it as the one choice rather than
-    /// dropping into the text box (which would read as "something is wrong").</summary>
-    private bool ShowSavedOnly
-        => !_custom && Groups.Count == 0 && Value.Trim().Length > 0
-           && KokoroVoices.Describe(Value).Region != KokoroVoices.Other;
+    /// <summary>The listed row for a value. A legacy plain id ("af_heart", no provider prefix)
+    /// matches the first provider that lists that id — chain order, so Kokoro first — and the
+    /// dropdown shows it as that row rather than dropping into the text box.</summary>
+    private VoiceEntry? Find(string value)
+    {
+        var all = Groups.SelectMany(g => g.Voices);
+        var direct = all.FirstOrDefault(v => string.Equals(KeyOf(v), value, StringComparison.OrdinalIgnoreCase));
+        if (direct is not null || PlainIds || VoiceRef.Parse(value).HasProvider)
+        {
+            return direct;
+        }
+
+        return all.FirstOrDefault(v => string.Equals(v.Id, value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool IsListed(string value) => Find(value) is not null;
+
+    /// <summary>No list yet and a saved value: show it as the one choice rather than dropping
+    /// into the text box (which would read as "something is wrong").</summary>
+    private bool ShowSavedOnly => !_custom && Groups.Count == 0 && Value.Trim().Length > 0;
+
+    private string SavedLabel
+    {
+        get
+        {
+            var value = Value.Trim();
+            if (PlainIds)
+            {
+                var kokoro = KokoroVoices.Describe(value);
+                return kokoro.Region != KokoroVoices.Other ? $"{kokoro.Label} (saved)" : $"{value} (saved)";
+            }
+
+            var parsed = VoiceRef.Parse(value);
+            if (parsed.HasProvider)
+            {
+                return $"{parsed.Id} ({VoiceRef.DisplayName(parsed.Provider!)}, saved)";
+            }
+
+            var legacy = KokoroVoices.Describe(value);
+            return legacy.Region != KokoroVoices.Other ? $"{legacy.Label} (saved)" : $"{value} (saved)";
+        }
+    }
 
     private string SelectValue
     {
@@ -109,7 +151,8 @@
             var value = Value.Trim();
             if (value.Length == 0) return "";
             if (ShowSavedOnly) return value;
-            return IsListed(value) ? value : CustomKey;
+            var listed = Find(value);
+            return listed is not null ? KeyOf(listed) : CustomKey;
         }
     }
 
@@ -119,23 +162,30 @@
         {
             var value = Value.Trim();
             if (value.Length == 0) return null;
-            var voice = KokoroVoices.Describe(value);
-            if (voice.Region == KokoroVoices.Other)
+
+            var listed = Find(value);
+            if (listed is not null) return listed.Blurb;
+
+            var parsed = PlainIds ? new VoiceRef(null, value) : VoiceRef.Parse(value);
+            if (parsed.HasProvider)
             {
-                return "Not a Kokoro voice. Sent as typed to the provider that speaks (ElevenLabs or Google).";
+                return $"{VoiceRef.DisplayName(parsed.Provider!)} voice \"{parsed.Id}\". Not in that provider's list — check the name, or refresh the voices.";
             }
-            if (Groups.Count > 0 && !IsListed(value))
+
+            var kokoro = KokoroVoices.Describe(parsed.Id);
+            if (kokoro.Region != KokoroVoices.Other)
             {
-                return $"{voice.Blurb} Not in the list from the server — check the name.";
+                return Groups.Count == 0 ? kokoro.Blurb : $"{kokoro.Blurb} Not in the list from the server — check the name.";
             }
-            return voice.Blurb;
+
+            return "Plain voice id. Sent as typed to whichever provider speaks.";
         }
     }
 
     protected override void OnParametersSet()
     {
-        // A discard or a server refresh can make the current value a listed voice again —
-        // then the text box closes. The flag only lives while the pilot is typing an id.
+        // A discard or a refresh can make the current value a listed voice again — then the
+        // text box closes. The flag only lives while the pilot is typing an id.
         if (_custom && Value.Trim().Length > 0 && IsListed(Value.Trim()))
         {
             _custom = false;
@@ -148,7 +198,7 @@
         if (picked == CustomKey)
         {
             _custom = true;
-            // A listed voice id would be misleading in the box, so start it blank.
+            // A listed voice would be misleading in the box, so start it blank.
             if (IsListed(Value.Trim()))
             {
                 await ValueChanged.InvokeAsync("");

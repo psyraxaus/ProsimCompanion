@@ -22,9 +22,8 @@
 @inject IOptionsMonitor<AbnormalsOptions> AbnormalsMonitor
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IPttInputCapture PttCapture
-@inject IElevenLabsVoiceCatalog ElevenLabsVoices
+@inject IVoiceCatalog VoiceCatalog
 @inject ITtsUsageReadout TtsUsage
-@inject IKokoroVoiceCatalog KokoroCatalog
 
 <PageTitle>Voice First Officer — ProsimCompanion</PageTitle>
 <h1 class="sr-only">Voice First Officer</h1>
@@ -264,18 +263,42 @@ else if (CurrentSection == "sterile")
                    @bind-Value="_speech.Value.SterileExemptCabinReports" />
     </Section>
 }
-else if (CurrentSection == "crew")
+else if (CurrentSection == "voices")
 {
-    <Section Title="Crew Voices" Hint="Pick a Kokoro voice from the list. Choose Other voice id for an ElevenLabs voice id or a Google name such as en-AU-Chirp3-HD-Aoede">
-        <VoicePickerField Label="Purser voice" Hint="Cabin reports on the cabin interphone." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="No voice list yet. Open Voice Providers and press Refresh from server."
+    <Section Title="First Officer Voice" Hint="One list over every connected provider, grouped by provider and region. Nothing is pre-filled: only what each service reports">
+        <VoicePickerField Label="First Officer" Hint="The provider it names speaks first. The others cover when it is down." More="Pick from any connected provider. Each provider also keeps a fallback voice on its own tab under Voice Providers, used when it covers for the one named here. Empty keeps the old behaviour: every provider speaks with its own fallback voice." Groups="_allVoiceGroups" EmptyListHint="@VoicesEmptyHint"
+                          @bind-Value="_speech.Value.FoVoice" />
+        <div class="field">
+            <label class="field-label">
+                Voice lists
+                <span class="field-hint">Read from each connected provider when the page opens.</span>
+            </label>
+            <div class="field-control">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <button type="button" class="btn secondary" disabled="@_refreshingVoices" @onclick="() => RefreshVoicesAsync(null)">
+                        @(_refreshingVoices ? "Refreshing…" : "Refresh all voices")
+                    </button>
+                </div>
+                <div class="field-hint" style="margin-top:6px;">
+                    @foreach (var provider in VoiceRef.Providers)
+                    {
+                        <div><span class="mono">@VoiceRef.DisplayName(provider)</span>: @VoiceNote(provider)</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </Section>
+
+    <Section Title="Crew Voices" Hint="Who speaks for the cabin, the company and the ground crew. Blank is the First Officer's voice">
+        <VoicePickerField Label="Purser voice" Hint="Cabin reports on the cabin interphone." Groups="_allVoiceGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="@VoicesEmptyHint"
                    @bind-Value="_voices.Value.Purser" />
         <BoolField Label="Purser intercom filter" Hint="Headset sound on the purser."
                    @bind-Value="_voices.Value.PurserIntercomFilter" />
-        <VoicePickerField Label="Company voice" Hint="Dispatch messages, read out like ACARS." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="No voice list yet. Open Voice Providers and press Refresh from server."
+        <VoicePickerField Label="Company voice" Hint="Dispatch messages, read out like ACARS." Groups="_allVoiceGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="@VoicesEmptyHint"
                    @bind-Value="_voices.Value.Company" />
         <BoolField Label="Company intercom filter" Hint="Off by default. A company message is a printout, not a phone call."
                    @bind-Value="_voices.Value.CompanyIntercomFilter" />
-        <VoicePickerField Label="Ground crew voice" Hint="Ground crew replies and calls on the interphone." Groups="_kokoroGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="No voice list yet. Open Voice Providers and press Refresh from server."
+        <VoicePickerField Label="Ground crew voice" Hint="Ground crew replies and calls on the interphone." Groups="_allVoiceGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="@VoicesEmptyHint"
                    @bind-Value="_voices.Value.Ground" />
         <BoolField Label="Ground intercom filter"
                    @bind-Value="_voices.Value.GroundIntercomFilter" />
@@ -634,11 +657,26 @@ else if (CurrentSection == "sayIntentions")
 }
 else if (CurrentSection == "providers")
 {
-    <Section Title="Kokoro (local neural TTS)" Hint="Free neural voices from a Kokoro server on this PC or your network">
+    @* One tab per provider (owner, 2026-10-12): connection settings only. Who sounds like what
+       is picked on the Voices page; each tab keeps a fallback voice for when this provider
+       covers for the one a role names. *@
+    <div class="subtabs" role="tablist">
+        @foreach (var tab in ProviderTabs)
+        {
+            <button type="button" class="subtab @(ProviderTab == tab.Key ? "active" : "")" role="tab"
+                    aria-selected="@(ProviderTab == tab.Key ? "true" : "false")"
+                    @onclick="() => ProviderTab = tab.Key">@tab.Label</button>
+        }
+    </div>
+
+    @if (ProviderTab == "kokoro")
+    {
+    <Section Title="Kokoro (local neural TTS)" Hint="Free neural voices from a Kokoro server on this PC or your network. Tried first">
         <TextField Label="Base URL" Hint="Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off."
                    @bind-Value="_speech.Value.KokoroBaseUrl" />
         <TextField Label="Model" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroModel" />
-        <VoicePickerField Label="Voice" Hint="The First Officer. Grouped by region, with Kokoro's own quality grade beside each name." More="The grade is Kokoro's estimate of how much and how clean the training audio was, A down to F. British and American voices make a usable First Officer; the other languages read English badly." Groups="_kokoroGroups" EmptyListHint="No voice list yet. Press Refresh from server below." Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroVoice" />
+        <VoicePickerField Label="Fallback voice" Hint="Used when Kokoro covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="The grade is Kokoro's estimate of how much and how clean the training audio was, A down to F. British and American voices make a usable First Officer; the other languages read English badly." Groups='@GroupsFor("kokoro")' PlainIds="true" EmptyListHint="No voice list yet. Enter the server address and press Refresh voices." Disabled="@KokoroOff"
+                          @bind-Value="_speech.Value.KokoroVoice" />
         <div class="field">
             <label class="field-label">
                 Voice list
@@ -646,14 +684,10 @@ else if (CurrentSection == "providers")
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <button type="button" class="btn secondary" disabled="@(KokoroOff || _fetchingKokoroVoices)"
-                            @onclick="RefreshKokoroVoicesAsync">
-                        @(_fetchingKokoroVoices ? "Refreshing…" : "Refresh from server")
+                    <button type="button" class="btn secondary" disabled="@(KokoroOff || _refreshingVoices)" @onclick='() => RefreshVoicesAsync("kokoro")'>
+                        @(_refreshingVoices ? "Refreshing…" : "Refresh voices")
                     </button>
-                    @if (_kokoroVoiceNote is not null)
-                    {
-                        <span class="field-hint">@_kokoroVoiceNote</span>
-                    }
+                    <span class="field-hint">@VoiceNote("kokoro")</span>
                 </div>
             </div>
         </div>
@@ -672,67 +706,27 @@ else if (CurrentSection == "providers")
                          Default="_speech.Defaults.KokoroMaxCacheMbPerVoice" />
         </AdvancedFields>
     </Section>
-
-    <Section Title="Google Cloud TTS (Chirp 3 HD)" Hint="Paid neural voices. Cached, with a monthly budget">
-        <TextField Label="Service-account key file" Hint="Path to the service-account JSON key. Empty turns Google off. Never logged."
-                   @bind-Value="_speech.Value.GoogleKeyFilePath" />
-        <TextField Label="Voice" Hint="For example en-AU-Chirp3-HD-Charon." Disabled="@GoogleOff" @bind-Value="_speech.Value.GoogleVoice" />
-        <NumberField Label="Monthly character budget" Hint="Google stops for the month at this many characters. 0 is no limit." More="The free tier is 1,000,000 characters. The offline voices take over." Min="0"
-                     Disabled="@GoogleOff"
-                     @bind-Value="_speech.Value.GoogleMonthlyCharBudget"
-                     Default="_speech.Defaults.GoogleMonthlyCharBudget" />
-    </Section>
-
-    <Section Title="Windows Voices" Hint="Offline voices, always available">
-        <TextField Label="WinRT voice" Hint="Voice name. Empty uses the Windows default." More="This reaches the Windows 11 &quot;Natural&quot; voices."
-                   @bind-Value="_speech.Value.WinRtVoice" />
-        <TextField Label="SAPI5 voice" Hint="Last-resort voice. Empty uses the Windows default."
-                   @bind-Value="_speech.Value.SapiVoice" />
-    </Section>
-
-    <Section Title="Cache" Advanced="true">
-        <TextField Label="TTS cache folder" Hint="Empty uses the app's cache folder." More="%LOCALAPPDATA%\ProsimCompanion\cache\tts, one folder per provider and voice. The usage counter lives there too."
-                   @bind-Value="_speech.Value.CacheFolder" />
-    </Section>
-}
-else if (CurrentSection == "elevenlabs")
-{
+    }
+    else if (ProviderTab == "elevenlabs")
+    {
     <Section Title="ElevenLabs" Hint="Paid cloud neural voices with your own key. Cached, with a monthly budget. Tried after Kokoro and before Google">
         <TextField Label="API key" Hint="From elevenlabs.io, your profile, API keys. Empty turns ElevenLabs off. Never logged." More="The Free plan works for testing but has no commercial licence. Starter and up are licensed." Password="true"
                    @bind-Value="_speech.Value.ElevenLabsApiKey" />
         <SecretUnreadableHint Path="speech:elevenLabsApiKey" />
-        <TextField Label="Voice id" Hint="An ElevenLabs voice_id. Pick one below or paste it." More="Crew voices (purser, company, ground) must be ElevenLabs voice ids too while this provider is active."
-                   Disabled="@ElevenLabsOff"
-                   @bind-Value="_speech.Value.ElevenLabsVoiceId" />
+        <VoicePickerField Label="Fallback voice" Hint="Used when ElevenLabs covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="ElevenLabs needs a voice here to count as configured; picking an ElevenLabs voice for the First Officer fills it for you." Groups='@GroupsFor("elevenlabs")' PlainIds="true" EmptyListHint="No voice list yet. Enter the key and press Refresh voices." Disabled="@ElevenLabsOff"
+                          @bind-Value="_speech.Value.ElevenLabsVoiceId" />
         <div class="field">
             <label class="field-label">
-                Fetch voices
-                <span class="field-hint">Lists the ElevenLabs premade voices with the key above. Picking one fills the voice id.</span>
+                Voice list
+                <span class="field-hint">The ElevenLabs premade voices, read with the key above.</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <button type="button" class="btn secondary" disabled="@(ElevenLabsOff || _fetchingVoices)"
-                            @onclick="FetchElevenLabsVoicesAsync">
-                        @(_fetchingVoices ? "Fetching…" : "Fetch voices")
+                    <button type="button" class="btn secondary" disabled="@(ElevenLabsOff || _refreshingVoices)" @onclick='() => RefreshVoicesAsync("elevenlabs")'>
+                        @(_refreshingVoices ? "Refreshing…" : "Refresh voices")
                     </button>
-                    @if (_elevenLabsVoices.Count > 0)
-                    {
-                        <select class="select" value="@_speech.Value.ElevenLabsVoiceId" @onchange="OnElevenLabsVoicePicked">
-                            @if (!_elevenLabsVoices.Any(v => v.Id == _speech.Value.ElevenLabsVoiceId))
-                            {
-                                <option value="" selected>Pick a voice…</option>
-                            }
-                            @foreach (var voice in _elevenLabsVoices)
-                            {
-                                <option value="@voice.Id" selected="@(voice.Id == _speech.Value.ElevenLabsVoiceId)">@VoiceLabel(voice)</option>
-                            }
-                        </select>
-                    }
+                    <span class="field-hint">@VoiceNote("elevenlabs")</span>
                 </div>
-                @if (_voiceFetchError is not null)
-                {
-                    <div class="field-hint field-hint-warn" style="margin-top:6px;">@_voiceFetchError</div>
-                }
             </div>
         </div>
         <SelectField Label="Model" Hint="Flash is fast and costs half. v3 is the most expressive, slower and full price." Options="ElevenLabsModelOptions"
@@ -777,6 +771,62 @@ else if (CurrentSection == "elevenlabs")
                          @bind-Value="_speech.Value.ElevenLabsTimeoutMs"
                          Default="_speech.Defaults.ElevenLabsTimeoutMs" />
         </AdvancedFields>
+    </Section>
+    }
+    else if (ProviderTab == "google")
+    {
+    <Section Title="Google Cloud TTS (Chirp 3 HD)" Hint="Paid neural voices. Cached, with a monthly budget. Tried after ElevenLabs">
+        <TextField Label="Service-account key file" Hint="Path to the service-account JSON key. Empty turns Google off. Never logged."
+                   @bind-Value="_speech.Value.GoogleKeyFilePath" />
+        <VoicePickerField Label="Fallback voice" Hint="Used when Google covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="Google needs a voice here to count as configured; picking a Google voice for the First Officer fills it for you. The accent localization persona (Voices page) is a Google voice too." Groups='@GroupsFor("google")' PlainIds="true" EmptyListHint="No voice list yet. Enter the key file path and press Refresh voices." Disabled="@GoogleOff"
+                          @bind-Value="_speech.Value.GoogleVoice" />
+        <div class="field">
+            <label class="field-label">
+                Voice list
+                <span class="field-hint">Google's Chirp 3 HD voices, read with the key file above.</span>
+            </label>
+            <div class="field-control">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <button type="button" class="btn secondary" disabled="@(GoogleOff || _refreshingVoices)" @onclick='() => RefreshVoicesAsync("google")'>
+                        @(_refreshingVoices ? "Refreshing…" : "Refresh voices")
+                    </button>
+                    <span class="field-hint">@VoiceNote("google")</span>
+                </div>
+            </div>
+        </div>
+        <NumberField Label="Monthly character budget" Hint="Google stops for the month at this many characters. 0 is no limit." More="The free tier is 1,000,000 characters. The offline voices take over." Min="0"
+                     Disabled="@GoogleOff"
+                     @bind-Value="_speech.Value.GoogleMonthlyCharBudget"
+                     Default="_speech.Defaults.GoogleMonthlyCharBudget" />
+    </Section>
+    }
+    else
+    {
+    <Section Title="Windows Voices" Hint="Offline voices on this PC, always available. The last two in the chain">
+        <VoicePickerField Label="WinRT fallback voice" Hint="Empty uses the Windows default." More="This reaches the Windows 11 &quot;Natural&quot; voices." Groups='@GroupsFor("winrt")' PlainIds="true" BlankLabel="Windows default voice" EmptyListHint="No voice list yet. Press Refresh voices."
+                          @bind-Value="_speech.Value.WinRtVoice" />
+        <VoicePickerField Label="SAPI5 fallback voice" Hint="Last-resort voice. Empty uses the Windows default." Groups='@GroupsFor("sapi")' PlainIds="true" BlankLabel="Windows default voice" EmptyListHint="No voice list yet. Press Refresh voices."
+                          @bind-Value="_speech.Value.SapiVoice" />
+        <div class="field">
+            <label class="field-label">
+                Voice list
+                <span class="field-hint">The voices installed on this PC.</span>
+            </label>
+            <div class="field-control">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <button type="button" class="btn secondary" disabled="@_refreshingVoices" @onclick='() => RefreshVoicesAsync("windows")'>
+                        @(_refreshingVoices ? "Refreshing…" : "Refresh voices")
+                    </button>
+                    <span class="field-hint">WinRT: @VoiceNote("winrt"). SAPI5: @VoiceNote("sapi").</span>
+                </div>
+            </div>
+        </div>
+    </Section>
+    }
+
+    <Section Title="Cache" Advanced="true">
+        <TextField Label="TTS cache folder" Hint="Empty uses the app's cache folder." More="%LOCALAPPDATA%\ProsimCompanion\cache\tts, one folder per provider and voice. The usage counter lives there too."
+                   @bind-Value="_speech.Value.CacheFolder" />
     </Section>
 }
 else if (CurrentSection == "mcdu")
@@ -1217,7 +1267,14 @@ else if (CurrentSection == "abnormals")
     [Parameter]
     public string? Section { get; set; }
 
-    private string CurrentSection => SettingsNav.ResolveSection(SettingsNav.SpeechSections, Section);
+    /// <summary>The old "crew" and "elevenlabs" routes (manual, bookmarks) land on the Voices page
+    /// and the ElevenLabs provider tab (2026-10-12).</summary>
+    private string CurrentSection => Section?.ToLowerInvariant() switch
+    {
+        "crew" => "voices",
+        "elevenlabs" => "providers",
+        _ => SettingsNav.ResolveSection(SettingsNav.SpeechSections, Section),
+    };
 
     private void ResetFlapPlacards() => _sop.Value.FlapPlacards = [.. SopOptions.DefaultFlapPlacards];
 
@@ -1250,52 +1307,127 @@ else if (CurrentSection == "abnormals")
 
     private bool KokoroOff => string.IsNullOrWhiteSpace(_speech.Value.KokoroBaseUrl);
 
-    // Kokoro voice picker (2026-10-12). The list is ONLY what the server reports (owner: no
-    // pre-populated names that may not exist on this server) — empty until GET /v1/audio/voices
-    // answers. Fetched off the DRAFT base URL so a first-time setup can pick before saving.
-    private IReadOnlyList<(string Region, IReadOnlyList<KokoroVoices.Voice> Voices)> _kokoroGroups = [];
-    private bool _fetchingKokoroVoices;
-    private string? _kokoroVoiceNote;
+    // Voices (owner, 2026-10-12): one live list per provider, read off the DRAFT options so a
+    // first-time setup can pick before saving. Nothing is pre-populated — only what each
+    // service reports. The Voices page shows every provider's list grouped provider → region;
+    // each provider tab shows its own list for the fallback voice.
+    private readonly Dictionary<string, IReadOnlyList<VoiceEntry>> _voiceLists = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _voiceNotes = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<VoiceGroup> _allVoiceGroups = [];
+    private bool _refreshingVoices;
+
+    private static readonly (string Key, string Label)[] ProviderTabs =
+    [
+        ("kokoro", "Kokoro"),
+        ("elevenlabs", "ElevenLabs"),
+        ("google", "Google"),
+        ("windows", "Windows"),
+    ];
+
+    private string _providerTab = "kokoro";
+
+    /// <summary>The open provider tab; the old /settings/speech/elevenlabs route (manual,
+    /// bookmarks) opens the ElevenLabs tab.</summary>
+    private string ProviderTab
+    {
+        get => _providerTab;
+        set => _providerTab = ProviderTabs.Any(t => t.Key == value) ? value : "kokoro";
+    }
+
+    private const string VoicesEmptyHint = "No voices listed yet. Connect a provider under Voice Providers and press Refresh.";
+
+    private bool IsProviderConfigured(string provider) => provider switch
+    {
+        "kokoro" => !KokoroOff,
+        "elevenlabs" => !ElevenLabsOff,
+        "google" => !GoogleOff,
+        _ => true,
+    };
+
+    private string VoiceNote(string provider)
+        => _voiceNotes.TryGetValue(provider, out var note) ? note
+            : IsProviderConfigured(provider) ? "not listed yet" : "not configured";
+
+    private IReadOnlyList<VoiceGroup> GroupsFor(string provider) => BuildGroups([provider]);
+
+    /// <summary>Provider order = chain order; regions with "English" first (the only ones that
+    /// make a usable First Officer), then alphabetical; rows as the provider listed them.</summary>
+    private IReadOnlyList<VoiceGroup> BuildGroups(IEnumerable<string> providers)
+    {
+        var groups = new List<VoiceGroup>();
+        foreach (var provider in providers)
+        {
+            if (!_voiceLists.TryGetValue(provider, out var voices) || voices.Count == 0)
+            {
+                continue;
+            }
+
+            var byRegion = voices
+                .GroupBy(v => v.Region, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g.Key.Contains("English", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+            foreach (var region in byRegion)
+            {
+                groups.Add(new VoiceGroup($"{VoiceRef.DisplayName(provider)} · {region.Key}", region.ToArray()));
+            }
+        }
+
+        return groups;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !KokoroOff)
+        if (firstRender)
         {
-            await RefreshKokoroVoicesAsync();
+            await RefreshVoicesAsync(null);
             StateHasChanged();
         }
     }
 
-    private async Task RefreshKokoroVoicesAsync()
+    /// <summary>Lists one provider ("windows" = both Windows providers) or, with null, every
+    /// provider in parallel. Continuations run on the circuit's context, so the dictionaries
+    /// are written one at a time.</summary>
+    private async Task RefreshVoicesAsync(string? only)
     {
-        if (KokoroOff)
-        {
-            return;
-        }
-
-        _fetchingKokoroVoices = true;
-        _kokoroVoiceNote = null;
+        _refreshingVoices = true;
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
-            var ids = await KokoroCatalog.ListVoiceIdsAsync(_speech.Value.KokoroBaseUrl, cts.Token);
-            if (ids.Count == 0)
+            IEnumerable<string> targets = only switch
             {
-                _kokoroVoiceNote = "The server listed no voices.";
-            }
-            else
-            {
-                _kokoroGroups = KokoroVoices.Group(ids);
-                _kokoroVoiceNote = $"{ids.Count} voices from the server.";
-            }
-        }
-        catch (Exception ex)
-        {
-            _kokoroVoiceNote = "Could not list voices from the server. " + ex.Message;
+                null => VoiceRef.Providers,
+                "windows" => ["winrt", "sapi"],
+                _ => [only],
+            };
+            await Task.WhenAll(targets.Select(ListOneProviderAsync));
+            _allVoiceGroups = BuildGroups(VoiceRef.Providers);
         }
         finally
         {
-            _fetchingKokoroVoices = false;
+            _refreshingVoices = false;
+        }
+    }
+
+    private async Task ListOneProviderAsync(string provider)
+    {
+        if (!IsProviderConfigured(provider))
+        {
+            _voiceLists.Remove(provider);
+            _voiceNotes[provider] = "not configured";
+            return;
+        }
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var list = await VoiceCatalog.ListVoicesAsync(provider, _speech.Value, cts.Token);
+            _voiceLists[provider] = list;
+            _voiceNotes[provider] = list.Count == 0 ? "no voices reported" : $"{list.Count} voices";
+        }
+        catch (Exception ex)
+        {
+            // Status + body snippet from the catalog; keys are never in the message.
+            _voiceLists.Remove(provider);
+            _voiceNotes[provider] = "could not list voices — " + ex.Message;
         }
     }
 
@@ -1342,11 +1474,6 @@ else if (CurrentSection == "abnormals")
         ("L:SIAI_CONTROL_PTT_GROUP", "Group flight PTT"),
     ];
 
-    // The voice picker works off the DRAFT key so a first-time setup can list voices before
-    // the key is saved; the list is per page visit, never persisted.
-    private IReadOnlyList<(string Id, string Name, string? Accent, string? Gender, string? PreviewUrl)> _elevenLabsVoices = [];
-    private bool _fetchingVoices;
-    private string? _voiceFetchError;
 
     private int ElevenLabsUsageThisMonth
     {
@@ -1375,40 +1502,7 @@ else if (CurrentSection == "abnormals")
         ("pcm_24000", "pcm_24000 (paid plans)"),
     ];
 
-    private static string VoiceLabel((string Id, string Name, string? Accent, string? Gender, string? PreviewUrl) voice)
-    {
-        var traits = string.Join(", ", new[] { voice.Accent, voice.Gender }.Where(t => !string.IsNullOrWhiteSpace(t)));
-        return traits.Length > 0 ? $"{voice.Name} ({traits})" : voice.Name;
-    }
 
-    private async Task FetchElevenLabsVoicesAsync()
-    {
-        _fetchingVoices = true;
-        _voiceFetchError = null;
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            _elevenLabsVoices = await ElevenLabsVoices.FetchPremadeVoicesAsync(
-                _speech.Value.ElevenLabsBaseUrl, _speech.Value.ElevenLabsApiKey, cts.Token);
-            if (_elevenLabsVoices.Count == 0)
-            {
-                _voiceFetchError = "No premade voices came back.";
-            }
-        }
-        catch (Exception ex)
-        {
-            // Status + body snippet from the catalog; the key is never in the message.
-            _elevenLabsVoices = [];
-            _voiceFetchError = "Fetch failed: " + ex.Message;
-        }
-        finally
-        {
-            _fetchingVoices = false;
-        }
-    }
-
-    private void OnElevenLabsVoicePicked(ChangeEventArgs e)
-        => _speech.Value.ElevenLabsVoiceId = e.Value?.ToString() ?? "";
 
     private static readonly IReadOnlyList<(string, string)> RecognitionModeOptions =
     [
@@ -1716,6 +1810,10 @@ else if (CurrentSection == "abnormals")
         _techLog = Draft(TechLogMonitor);
         _logbook = Draft(LogbookMonitor);
         _abnormals = Draft(AbnormalsMonitor);
+        if (string.Equals(Section, "elevenlabs", StringComparison.OrdinalIgnoreCase))
+        {
+            ProviderTab = "elevenlabs";
+        }
         MigrateLegacyBindings(_speech.Value);
         _captureDevices = DeviceCatalog.GetCaptureDeviceNames();
         _renderDevices = DeviceCatalog.GetRenderDeviceNames();
@@ -1735,6 +1833,31 @@ else if (CurrentSection == "abnormals")
         speech.KokoroBaseUrl = speech.KokoroBaseUrl.Trim();
         speech.KokoroModel = speech.KokoroModel.Trim();
         speech.KokoroVoice = speech.KokoroVoice.Trim();
+        speech.FoVoice = speech.FoVoice.Trim();
+        // The FO voice names a provider: that provider must read "configured" (ElevenLabs and
+        // Google need a voice for that), so an empty fallback field takes the same id.
+        var fo = VoiceRef.Parse(speech.FoVoice);
+        if (fo.HasProvider && !fo.IsEmpty)
+        {
+            switch (fo.Provider)
+            {
+                case "kokoro" when string.IsNullOrWhiteSpace(speech.KokoroVoice):
+                    speech.KokoroVoice = fo.Id;
+                    break;
+                case "elevenlabs" when string.IsNullOrWhiteSpace(speech.ElevenLabsVoiceId):
+                    speech.ElevenLabsVoiceId = fo.Id;
+                    break;
+                case "google" when string.IsNullOrWhiteSpace(speech.GoogleVoice):
+                    speech.GoogleVoice = fo.Id;
+                    break;
+                case "winrt" when string.IsNullOrWhiteSpace(speech.WinRtVoice):
+                    speech.WinRtVoice = fo.Id;
+                    break;
+                case "sapi" when string.IsNullOrWhiteSpace(speech.SapiVoice):
+                    speech.SapiVoice = fo.Id;
+                    break;
+            }
+        }
         speech.GoogleKeyFilePath = speech.GoogleKeyFilePath.Trim();
         speech.GoogleVoice = speech.GoogleVoice.Trim();
         speech.ElevenLabsApiKey = speech.ElevenLabsApiKey.Trim();

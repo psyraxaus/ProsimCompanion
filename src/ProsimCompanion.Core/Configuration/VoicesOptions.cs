@@ -1,8 +1,10 @@
 namespace ProsimCompanion.Core.Configuration;
 
 /// <summary>
-/// Distinct speaker-role voices for non-FO speech (cabin purser, company/dispatch), carried
-/// from Prosim2FO's voices settings. Voice ids are provider-specific and must match whatever
+/// Distinct speaker-role voices for non-FO speech (cabin purser, company/dispatch, ground), carried
+/// from Prosim2FO's voices settings. Since 2026-10-12 a voice is <c>provider:id</c> (see
+/// <c>Core.Speech.VoiceRef</c>): the named provider speaks that role first and the chain covers
+/// when it is down. A plain id (no known prefix) is legacy: provider-specific and must match whatever
 /// TTS provider actually serves the utterance (Kokoro ids like "af_heart" for a Kokoro chain,
 /// Google names like "en-AU-Chirp3-HD-Aoede" for a Google chain) — the id is passed to the
 /// first willing provider verbatim. A blank id falls back to that provider's First Officer
@@ -13,14 +15,14 @@ public sealed class VoicesOptions : IOptionSection
     public static string SectionName => "voices";
 
     /// <summary>Cabin purser voice id (default is a Kokoro id). Blank = FO voice.</summary>
-    public string Purser { get; set; } = "af_heart";
+    public string Purser { get; set; } = "kokoro:af_heart";
 
     /// <summary>Company / dispatch voice id (default is a Kokoro id). Blank = FO voice.</summary>
-    public string Company { get; set; } = "am_onyx";
+    public string Company { get; set; } = "kokoro:am_onyx";
 
     /// <summary>Ground-crew voice id (default is a Kokoro id). Blank = FO voice. May be
     /// overridden per airport by accent localization (<see cref="AccentOptions"/>).</summary>
-    public string Ground { get; set; } = "am_michael";
+    public string Ground { get; set; } = "kokoro:am_michael";
 
     /// <summary>Apply the interphone band-pass to purser speech (matches the real interphone
     /// timbre), regardless of the FO's own intercom-filter setting.</summary>

@@ -43,11 +43,13 @@ Creator is the realistic choice.
 
 1. **Get your API key.** Sign in at <https://elevenlabs.io>, open your profile, then
    **API keys**, and create a key. Copy it.
-2. In ProsimCompanion open **Settings → Voice First Officer → ElevenLabs**
-   (`http://localhost:5320/settings/speech/elevenlabs`).
+2. In ProsimCompanion open **Settings → Voice First Officer → Voice Providers** and pick the
+   **ElevenLabs** tab (`http://localhost:5320/settings/speech/elevenlabs` still lands there).
 3. Paste the key into **API key**. The other fields unlock.
-4. Press **Fetch voices**. A list of the ElevenLabs premade voices appears, each with its
-   accent and gender. Pick one. The **Voice id** field fills in by itself.
+4. Press **Refresh voices**. The ElevenLabs premade voices are read with the key, each with
+   its accent and gender. Pick a **Fallback voice** — the voice ElevenLabs uses when it covers
+   for another provider. Then open **Voices** and pick the First Officer from the
+   "ElevenLabs · …" groups; that is the voice that speaks.
    You can also paste a voice id by hand — for example a voice from your own ElevenLabs
    voice library.
 5. Leave **Model** on `eleven_flash_v2_5` and **Output format** on `mp3_44100_128`. These
@@ -85,18 +87,18 @@ The footer of every page has a **TTS** dot. Green means a voice provider is read
 
 ## Crew voices
 
-The purser, the company voice and the ground crew each have their own voice field
-(**Settings → Voice First Officer → Crew Voices**). While ElevenLabs is the voice that
-speaks, these fields must hold **ElevenLabs voice ids**. A Kokoro name such as `af_heart` or
-a Google name will not work there.
+The purser, the company voice and the ground crew each have their own dropdown on
+**Settings → Voice First Officer → Voices**, listing every connected provider's voices.
+Pick any voice from the "ElevenLabs · …" groups; the voice names its provider, so ElevenLabs
+speaks that crew member even while Kokoro speaks the First Officer (and the other way round).
+If ElevenLabs is down or over budget, the chain covers with the next provider's fallback
+voice.
 
 To give each crew member a different voice:
 
-1. On the ElevenLabs page press **Fetch voices** and pick the voice you want for the purser.
-2. Copy the id that appears in **Voice id**.
-3. Paste it into **Purser voice** on the Crew Voices page.
-4. Repeat for the company and the ground crew.
-5. Go back and pick the First Officer's voice again, then **Save**.
+1. On the Voices page, open **Purser voice** and pick from the "ElevenLabs · …" groups.
+2. Repeat for the company and the ground crew.
+3. **Save**.
 
 A blank crew field uses the First Officer's voice. The ground crew's *Accent Localization*
 needs Google; with ElevenLabs the ground crew keeps the voice you set here.
@@ -128,9 +130,9 @@ or a Windows voice) takes over until the next month.
 |---|---|---|
 | "Fetch failed: … 401" | The key is wrong or was deleted at ElevenLabs. | Paste the key again and Save. |
 | The `elevenlabs` row on the Status page shows a failure after a 401 | Same. The app stops calling ElevenLabs until the settings change. | Paste a good key and Save. |
-| The Test works but the FO still sounds like before | Kokoro is configured and comes first, or the phrase came from an older cache. | Clear the Kokoro Base URL. |
-| No ElevenLabs voice at all | *Local only* is ticked, or the voice id is empty. | Untick Local only; pick a voice; Save. |
-| The purser or ground crew has the wrong voice or a Windows voice | The crew voice field holds a Kokoro or Google name. | Put an ElevenLabs voice id there, or leave it blank. |
+| The Test works but the FO still sounds like before | The First Officer voice on the Voices page names another provider, or the phrase came from an older cache. | Pick an ElevenLabs voice for the First Officer on the Voices page. |
+| No ElevenLabs voice at all | *Local only* is ticked, or no fallback voice is set. | Untick Local only; pick a fallback voice on the ElevenLabs tab; Save. |
+| The purser or ground crew has the wrong voice | The crew voice names a provider that is down, over budget or not configured, so the chain covered with a fallback voice. | Check the Status page pills; pick the voice again on the Voices page. |
 | ElevenLabs stopped mid-month | The monthly budget was reached. | Raise the budget, or wait for the new month. |
 | Long briefings use another voice | The text is longer than *Max characters per request*. | Raise the figure if your plan allows longer generations. |
 | An error after you chose `pcm_24000` | Your plan does not include PCM output. | Go back to `mp3_44100_128`. |

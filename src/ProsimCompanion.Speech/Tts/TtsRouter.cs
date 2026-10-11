@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Speech;
 using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Speech.Tts;
@@ -114,10 +115,24 @@ public sealed class TtsRouter : IDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
-        var localOnly = _options.CurrentValue.LocalOnly;
+        var options = _options.CurrentValue;
+        var localOnly = options.LocalOnly;
         var now = DateTimeOffset.UtcNow;
 
-        foreach (var provider in _providers)
+        // The role's voice, else the First Officer's cross-provider voice (speech.foVoice), as
+        // provider:id. A provider-qualified voice promotes that provider to the front of the
+        // chain for this utterance and the others fall back to their own configured voice
+        // (owner, 2026-10-12). A plain id keeps the legacy behaviour: handed to every provider.
+        var requested = !string.IsNullOrWhiteSpace(voiceOverride) ? voiceOverride
+            : !string.IsNullOrWhiteSpace(options.FoVoice) ? options.FoVoice
+            : null;
+        var wanted = VoiceRef.Parse(requested);
+        var order = wanted.HasProvider
+            ? _providers.Where(p => p.Name.Equals(wanted.Provider, StringComparison.OrdinalIgnoreCase))
+                .Concat(_providers.Where(p => !p.Name.Equals(wanted.Provider, StringComparison.OrdinalIgnoreCase)))
+            : _providers;
+
+        foreach (var provider in order)
         {
             if (!provider.IsConfigured || (localOnly && provider.IsNetworkProvider))
             {
@@ -134,7 +149,10 @@ public sealed class TtsRouter : IDisposable
 
             try
             {
-                var effectiveVoice = voiceForProvider?.Invoke(provider.Name) ?? voiceOverride;
+                var effectiveVoice = voiceForProvider?.Invoke(provider.Name)
+                    ?? (wanted.HasProvider
+                        ? (provider.Name.Equals(wanted.Provider, StringComparison.OrdinalIgnoreCase) ? wanted.Id : null)
+                        : (wanted.IsEmpty ? null : wanted.Id));
                 var audio = await provider.SynthesizeAsync(text, cancellationToken, effectiveVoice).ConfigureAwait(false);
                 lock (_gate)
                 {

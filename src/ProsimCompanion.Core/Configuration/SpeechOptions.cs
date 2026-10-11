@@ -129,6 +129,13 @@ public sealed class SpeechOptions : IOptionSection
     /// inflating their priority).</summary>
     public bool SterileExemptCabinReports { get; set; } = true;
 
+    /// <summary>The First Officer's voice across providers as <c>provider:id</c> (for example
+    /// <c>google:en-AU-Chirp3-HD-Charon</c>), picked on the Voices page from every connected
+    /// provider's list (owner, 2026-10-12). The named provider speaks the FO first; when it is
+    /// down the chain falls back to each provider's own fallback voice below. Empty = legacy:
+    /// each provider speaks with its own voice field.</summary>
+    public string FoVoice { get; set; } = "";
+
     // ---- Kokoro (local neural TTS, kokoro-fastapi) ----
 
     /// <summary>Base URL of a kokoro-fastapi instance; empty disables the provider.</summary>

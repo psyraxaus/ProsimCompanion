@@ -53,7 +53,7 @@ public static class SettingsNav
         ("persona", "FO Persona"),
         ("listening", "Listening & PTT"),
         ("sterile", "Sterile Cockpit"),
-        ("crew", "Crew Voices"),
+        ("voices", "Voices"),
         ("groundCrew", "Ground Crew"),
         ("cabin", "Cabin Crew"),
         // Company / debrief / day and tech log / logbook (2026-10-08): the eight sections
@@ -65,8 +65,7 @@ public static class SettingsNav
         ("sayIntentions", "SayIntentions"),
         ("callouts", "Callouts & Placards"),
         ("abnormals", "Abnormals & Drills"),
-        ("providers", "Voice Providers"),
-        ("elevenlabs", "ElevenLabs"));
+        ("providers", "Voice Providers"));
 
     public static readonly SettingsNavItem[] AudioSections = Items("settings/audio",
         ("status", "Status"),

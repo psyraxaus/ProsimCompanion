@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
+using ProsimCompanion.Core.Speech;
+using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Speech.Tts;
 
@@ -9,11 +11,10 @@ namespace ProsimCompanion.Speech.Tts;
 /// synchronous, so it runs on the thread pool; the token only prevents scheduling — an
 /// in-flight Speak() is not interruptible (acceptable for a provider of last resort).
 /// </summary>
-public sealed class Sapi5TtsProvider : ITtsProvider
+public sealed class Sapi5TtsProvider : ITtsProvider, IVoiceListingTtsProvider
 {
     private readonly IOptionsMonitor<SpeechOptions> _options;
     private readonly ILogger<Sapi5TtsProvider> _logger;
-    private int _overrideIgnoredLogged;
 
     public Sapi5TtsProvider(IOptionsMonitor<SpeechOptions> options, ILogger<Sapi5TtsProvider> logger)
     {
@@ -30,22 +31,31 @@ public sealed class Sapi5TtsProvider : ITtsProvider
 
     public bool IsNetworkProvider => false;
 
+    /// <summary>Every enabled SAPI5 voice by name — the id <c>SelectVoice</c> above wants.</summary>
+    public Task<IReadOnlyList<VoiceEntry>> ListVoicesAsync(SpeechOptions draft, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+        cancellationToken.ThrowIfCancellationRequested();
+        using var synthesizer = new System.Speech.Synthesis.SpeechSynthesizer();
+        IReadOnlyList<VoiceEntry> voices = synthesizer.GetInstalledVoices()
+            .Where(v => v.Enabled)
+            .Select(v => VoiceCatalog.FromWindows("sapi", v.VoiceInfo.Name, v.VoiceInfo.Culture?.Name, v.VoiceInfo.Gender.ToString()))
+            .OrderBy(e => e.Region, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return Task.FromResult(voices);
+    }
+
     public Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
-        // Role voice ids are Kokoro/Google vocabulary — meaningless to SAPI5, so the override
-        // is ignored here (once-logged, not per utterance).
-        if (voiceOverride is not null && Interlocked.Exchange(ref _overrideIgnoredLogged, 1) == 0)
-        {
-            _logger.LogDebug("SAPI5 TTS has no per-role voices — role voice overrides are ignored");
-        }
 
         return Task.Run(() =>
         {
             using var synthesizer = new System.Speech.Synthesis.SpeechSynthesizer();
 
-            var wanted = _options.CurrentValue.SapiVoice;
+            var wanted = string.IsNullOrWhiteSpace(voiceOverride) ? _options.CurrentValue.SapiVoice : voiceOverride;
             if (!string.IsNullOrWhiteSpace(wanted))
             {
                 try

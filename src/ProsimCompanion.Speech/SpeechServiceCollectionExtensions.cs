@@ -27,6 +27,7 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Core.State.ITtsUsageReadout, TtsUsageReadout>();
         services.AddSingleton<Core.State.IElevenLabsVoiceCatalog, ElevenLabsVoiceCatalog>();
         services.AddSingleton<Core.State.IKokoroVoiceCatalog, KokoroVoiceCatalog>();
+        services.AddSingleton<Core.State.IVoiceCatalog, VoiceCatalog>();
         services.AddSingleton<ITtsProvider, KokoroTtsProvider>();
         services.AddSingleton<ITtsProvider, ElevenLabsTtsProvider>();
         services.AddSingleton<ITtsProvider, GoogleTtsProvider>();
