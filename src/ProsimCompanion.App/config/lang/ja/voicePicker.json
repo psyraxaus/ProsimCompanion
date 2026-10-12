@@ -1,0 +1,13 @@
+{
+  "voicePicker": {
+    "pick": "音声を選択…",
+    "other": "その他の音声ID…",
+    "placeholderPlain": "このプロバイダーの音声ID",
+    "placeholderRef": "プロバイダー:音声ID、例: google:en-AU-Chirp3-HD-Aoede",
+    "saved": "{0}（保存済み）",
+    "savedWithProvider": "{0}（{1}、保存済み）",
+    "notInProviderList": "{0} の音声 \"{1}\"。そのプロバイダーの一覧にありません — 名前を確認するか、音声一覧を更新してください。",
+    "notInServerList": "{0} サーバーの一覧にありません — 名前を確認してください。",
+    "plainId": "プロバイダー指定なしの音声ID。入力したまま、発話するプロバイダーに送られます。"
+  }
+}

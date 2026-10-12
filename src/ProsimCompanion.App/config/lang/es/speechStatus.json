@@ -1,0 +1,115 @@
+{
+  "speechStatus": {
+    "ecam": {
+      "running": "DIÁLOGO ECAM EN CURSO — {0}",
+      "cancel": "Cancelar el diálogo ECAM"
+    },
+    "cabinCalling": {
+      "text": "CABINA LLAMANDO — selecciona CAB en el panel de audio",
+      "title": "La luz CAB-CALL real del ACP es de solo lectura en el SDK — este aviso sustituye al parpadeo"
+    },
+    "fo": {
+      "title": "Primer Oficial de voz",
+      "hint": "Estado del árbitro, la cadena TTS y la reproducción",
+      "enabled": "Activado",
+      "disabled": "Desactivado",
+      "sterileTitle": "Por debajo del techo estéril en una fase de carga de trabajo, la voz de prioridad Low se descarta y la Normal sigue la política configurada",
+      "sterile": "Cabina estéril",
+      "notSterile": "No estéril",
+      "listeningTitle": "Verdad del motor: Escuchando significa que el reconocedor está capturando de verdad; En pausa es el cierre de oído del piloto (tecla Voice Pause del Stream Deck / el botón de aquí)",
+      "paused": "Voz en pausa",
+      "listening": "Escuchando",
+      "notListening": "Sin escuchar",
+      "toggleTitle": "Silencia el oído del FO mientras hablas con una persona real — el FO sigue hablando. Silencioso: sin confirmación en ningún sentido. Se borra al reiniciar la app",
+      "resume": "Reanudar escucha",
+      "pause": "Pausar escucha",
+      "earWhisper": "Oído: whisper (LAN)",
+      "earOffline": "Oído: motor sin conexión",
+      "queue": "Cola {0}",
+      "speaking": "Hablando"
+    },
+    "tts": {
+      "title": "Proveedores TTS",
+      "hint": "Se prueban en orden; un proveedor fallido se enfría 60 s. Probar habla exactamente con ese proveedor — sin respaldo",
+      "colProvider": "Proveedor",
+      "colState": "Estado",
+      "colDetail": "Detalle",
+      "testing": "Probando…",
+      "test": "Probar",
+      "health": {
+        "healthy": "Sano",
+        "coolingDown": "Enfriándose",
+        "disabled": "Desactivado",
+        "untried": "Sin probar"
+      }
+    },
+    "tests": {
+      "title": "Pruebas de componentes",
+      "hint": "Verifica el punto final del LLM, el micrófono y la base de datos de navegación sin volar un sector",
+      "llm": "Probar la conexión LLM",
+      "micListening": "Escuchando… habla ahora",
+      "mic": "Probar el micrófono",
+      "navData": "Probar los datos de navegación",
+      "wakeTitle": "Envía un paquete mágico Wake-on-LAN a cada PC de Ajustes → Configuración → Wake-on-LAN — luego verifica con Probar la conexión LLM / Reconectar los servicios de voz",
+      "sending": "Enviando…",
+      "wake": "Despertar PCs",
+      "reconnectTitle": "Comprueba whisper y Kokoro ahora. Devuelve el reconocimiento a whisper si responde y borra un enfriamiento de Kokoro — la app también reintenta whisper cada 30 s por sí sola",
+      "checking": "Comprobando…",
+      "reconnect": "Reconectar los servicios de voz",
+      "resultVoice": "Servicios de voz: {0}",
+      "resultLlm": "LLM: {0}",
+      "resultMic": "Micrófono: {0}",
+      "resultNavData": "Datos de navegación: {0}",
+      "resultWake": "Wake-on-LAN: {0}",
+      "failed": "La prueba falló de forma inesperada — mira la página Registros."
+    },
+    "minima": {
+      "title": "Mínimos de llegada",
+      "hint": "No existe ningún dataref de DH/MDA — introduce los mínimos del briefing para armar los avisos de mínimos",
+      "clear": "Borrar",
+      "da": "DA (baro, ft MSL)",
+      "dh": "DH (radio, ft)",
+      "mda": "MDA (baro, ft MSL)",
+      "altitude": "Altitud ft",
+      "set": "Fijar",
+      "untilSet": "Hasta que se fijen, \"one hundred above\"/\"minimums\" quedan desactivados (se registra una vez por vuelo)."
+    },
+    "speak": {
+      "title": "Prueba de voz",
+      "hint": "Recorre la ruta completa árbitro → TTS → reproducción con prioridad Normal",
+      "placeholder": "Algo que el FO diga",
+      "button": "Hablar"
+    },
+    "unmatched": {
+      "title": "Oído pero no entendido",
+      "hint": "Lo que dijiste en esta sesión sobre lo que ningún comando, respuesta de lista o gestor de preguntas actuó — agrupado, lo más repetido primero",
+      "trackingOff": "El seguimiento está apagado — Ajustes → Primer Oficial de voz → Reconocimiento y Push-to-Talk → \"Registrar frases que el FO no entendió\".",
+      "nothing": "Todavía no se ha escapado nada.",
+      "absorbed": "{0} absorbidas en silencio en fases estériles (avisos, no comandos).",
+      "heardTitle": "Cada fallo de esta sesión, incluidos los suprimidos",
+      "heard": "{0} oídas",
+      "repeatedTitle": "Una frase oída tres veces o más es la que conviene añadir",
+      "repeated": "{0} repetidas 3+",
+      "sterileTitle": "Absorciones en fase estéril: contadas, nunca candidatas",
+      "sterile": "{0} estériles",
+      "clear": "Borrar",
+      "colPhrase": "Frase",
+      "colCount": "Veces",
+      "colWhere": "Dónde",
+      "colLast": "Última (UTC)",
+      "contextTitle": "idle = ninguna lista abierta; checklist: … = esa línea esperaba su respuesta; confirm-declined = el FO preguntó 'did you mean' y dijiste que no",
+      "teach": "Para enseñarle una frase al FO, añádela donde corresponda bajo {0}: un comando de cabina en {1}, una petición ATC en {2}, una respuesta de lista en {3} de la línea bajo {4}. El FO recarga los archivos; el registro de sesión guarda cada fallo como {5}."
+    },
+    "recent": {
+      "summary": "Diagnóstico — frases recientes",
+      "title": "Frases recientes",
+      "hint": "La más reciente primero — el historial completo está en el registro de eventos de la sesión",
+      "nothing": "Todavía no se ha dicho nada.",
+      "colTime": "Hora (UTC)",
+      "colOutcome": "Resultado",
+      "colPriority": "Prioridad",
+      "colTag": "Etiqueta",
+      "colText": "Texto"
+    }
+  }
+}

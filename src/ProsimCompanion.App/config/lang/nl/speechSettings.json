@@ -1,0 +1,1313 @@
+{
+  "speechSettings": {
+    "pageTitle": "Spraak-First Officer — ProsimCompanion",
+    "heading": "Spraak-First Officer",
+    "common": {
+      "enabled": "Aan",
+      "set": "Instellen",
+      "clear": "Wissen",
+      "remove": "Verwijderen",
+      "refreshVoices": "Stemmen verversen",
+      "refreshing": "Verversen…",
+      "voiceList": "Stemmenlijst",
+      "fallbackVoice": "Terugvalstem",
+      "sameAsFo": "Dezelfde stem als de First Officer",
+      "windowsDefaultVoice": "Standaardstem van Windows",
+      "noListPressRefresh": "Nog geen stemmenlijst. Druk op Stemmen verversen.",
+      "emptyUsesFileShown": "Leeg gebruikt het getoonde bestand.",
+      "baseUrl": "Basis-URL",
+      "model": "Model",
+      "apiKey": "API-sleutel",
+      "timeout": "Time-out",
+      "monthlyCharBudget": "Maandelijks tekenbudget",
+      "hailReply": "Antwoord op oproep",
+      "cateringComplete": "Catering gereed",
+      "cruiseQuery": "Cruise-vraag",
+      "vSpeedTolerance": "V-speed-tolerantie",
+      "pressNow": "Druk nu op de toets of knop…",
+      "lampTitle": "Brandt zolang de gekoppelde invoer wordt vastgehouden"
+    },
+    "general": {
+      "title": "Spraak-First Officer",
+      "hint": "Stemmen worden op volgorde geprobeerd: Kokoro, ElevenLabs, Google, dan Windows",
+      "localOnly": {
+        "label": "Alleen lokaal",
+        "hint": "Nooit netwerkstemmen gebruiken. Spraak verlaat deze pc nooit.",
+        "more": "Kokoro, ElevenLabs en Google worden op elk pad overgeslagen."
+      },
+      "seat": {
+        "label": "Jouw stoel",
+        "hint": "De stoel van waaruit je vliegt. De First Officer bedient de andere kant.",
+        "more": "Links: de FO gebruikt de rechter MCDU, EFIS en bediening. Rechts: de FO gebruikt de kant van de gezagvoerder. De MCDU-kant verandert na een herstart van de app."
+      },
+      "engineFlap": {
+        "label": "Antwoorden op motor- & flapcalls",
+        "hint": "De FO antwoordt op je calls voor motorstart en flaps.",
+        "more": "Flapcalls worden getoetst aan de placardsnelheden. Alleen verbaal: de FO beweegt nooit de hendels."
+      },
+      "engineStart": {
+        "label": "Motorstart bewaken",
+        "hint": "De FO roept elke motorstart: starting, available, both stabilized.",
+        "more": "Op de grond gelezen uit de motorgegevens, eenmaal per start. Geen call van de piloot nodig."
+      },
+      "pacing": {
+        "title": "Menselijk tempo",
+        "hint": "Knopdrukken in een menselijk tempo",
+        "humanize": {
+          "label": "Knoptiming vermenselijken",
+          "hint": "Voeg kleine menselijke pauzes toe tussen knopdrukken.",
+          "more": "Uit: alleen de minimale vertragingen."
+        },
+        "tempo": {
+          "label": "Tempo",
+          "hint": "1.0 is normaal, 2.0 is twee keer zo langzaam."
+        }
+      },
+      "playback": {
+        "title": "Weergave",
+        "outputDevice": {
+          "label": "Uitvoerapparaat",
+          "hint": "Waar de stem van de First Officer wordt afgespeeld."
+        },
+        "volume": "Volume",
+        "intercomFilter": {
+          "label": "Intercomfilter",
+          "hint": "Laat de FO klinken als een headset, niet als een verteller."
+        }
+      }
+    },
+    "persona": {
+      "title": "FO-persona",
+      "hint": "Alleen woordkeus en toon. Een getal, een callout of een checklistregel wordt nooit veranderd",
+      "enabled": {
+        "hint": "Laat de persona kleur geven aan wat de FO zegt.",
+        "more": "Met het taalmodel uit is het enige effect gevarieerde bevestigingen."
+      },
+      "name": {
+        "label": "Naam",
+        "hint": "Verweven in de stijlprompt van het model (\"Your name is …\"). Leeg = naamloos.",
+        "placeholder": "bijv. Sam"
+      },
+      "experience": {
+        "label": "Ervaring",
+        "hint": "Hoe ervaren de FO klinkt."
+      },
+      "formality": {
+        "label": "Formaliteit",
+        "hint": "Hoe formeel de FO tegen je is."
+      },
+      "chattiness": {
+        "label": "Spraakzaamheid",
+        "hint": "0 houdt alles kort. 3 laat natuurlijke warmte toe.",
+        "more": "\"Quiet please\" legt het praten voor de sessie stil, wat hier ook staat."
+      },
+      "styles": {
+        "title": "Wat de persona stileert",
+        "hint": "Elk wordt getoetst aan de feiten; de kale tekst is altijd de terugval",
+        "briefings": "Briefings",
+        "debrief": "Debriefing",
+        "advisories": {
+          "label": "Adviezen",
+          "hint": "Flow- en weeradviezen gaan door het model voordat ze worden uitgesproken.",
+          "more": "Alleen als de herformulering binnen de tijd hieronder terugkomt; anders spreekt de kale tekst."
+        },
+        "vary": {
+          "label": "Bevestigingen variëren",
+          "hint": "Kies \"are you sure\"- / \"say again\"-regels willekeurig uit phrases.json in plaats van om de beurt."
+        },
+        "budget": {
+          "label": "Tijdbudget voor adviesherformulering",
+          "hint": "Tijd die het model krijgt om één advies te herformuleren. Als die op is, spreekt de kale tekst."
+        },
+        "poolsBefore": "De zinnenpools zelf staan in",
+        "poolsMiddle": "onder",
+        "poolsAfter": "— bewerk het bestand, de FO laadt het opnieuw."
+      }
+    },
+    "listening": {
+      "title": "Herkenning & Push-to-Talk",
+      "hint": "Hoe de First Officer je hoort",
+      "mode": {
+        "label": "Luistermodus",
+        "hint": "Push-to-talk: de FO luistert alleen zolang je je FO-toets vasthoudt.",
+        "more": "Continu: de FO luistert wanneer hij een antwoord verwacht, behalve zolang de ATC-toets wordt vastgehouden. Op een netwerk (VATSIM, IVAO, SayIntentions) altijd je ATC-zendtoets hieronder koppelen, zodat de FO nooit hoort wat je tegen ATC zegt."
+      },
+      "foPtt": {
+        "label": "FO push-to-talk",
+        "hint": "De toets of knop waarmee je met de First Officer praat. Nooit je ATC-toets."
+      },
+      "atcPtt": {
+        "label": "ATC push-to-talk (dempen)",
+        "hint": "De toets of knop waarmee je met ATC praat. Zolang die is ingedrukt, luistert de FO niet."
+      },
+      "atcMuteSource": {
+        "label": "ATC dempen via een ProSim-schakelaar",
+        "hint": "Een sidestick- of handmicrofoon-PTT-schakelaar in ProSim. Zolang die als ingedrukt wordt gelezen, luistert de FO niet — net als de toets of knop hierboven, en zonder joystick op deze pc.",
+        "more": "Koppel je knop in ProSim aan de schakelaar (die mag op een andere pc zitten). Een SayIntentions-push-to-talk-schakelaar kiezen in de sectie SayIntentions zet dit op dezelfde schakelaar zolang het nog op Uit staat."
+      },
+      "joystickButtons": {
+        "label": "Ook naar joystickknoppen luisteren",
+        "hint": "Uit: Instellen vangt alleen een toetsenbordtoets. Aan: Instellen kijkt ook naar de joystickknoppen op deze pc.",
+        "more": "De joysticklaag van Windows heeft de app op sommige pc's laten crashen (2026-09-20, 2026-10-10, 2026-10-11 — de laatste keer alleen al door de apparaten te tonen bij het openen van deze pagina). De pagina praat er nu alleen mee zolang dit aan staat of wanneer je op Scannen drukt. Een ProSim-schakelaar (hierboven, en in de sectie SayIntentions) heeft geen joystick op deze pc nodig."
+      },
+      "joysticks": {
+        "label": "Joysticks op deze pc",
+        "notScanned": "Niet gescand.",
+        "scan": "Naar joysticks scannen"
+      },
+      "setHint": "Instellen wacht tien seconden op een toets (en een joystickknop als hierboven aangevinkt). Sla daarna op; de lampjes branden alleen voor de opgeslagen koppelingen.",
+      "inputDevice": {
+        "label": "Invoerapparaat",
+        "hint": "De microfoon waarop de FO luistert."
+      },
+      "trackUnmatched": {
+        "label": "Zinnen bewaren die de FO niet begreep",
+        "hint": "Bewaar wat je zei waar niets op reageerde, zodat je de commando's kunt toevoegen die je echt gebruikt.",
+        "more": "Staat onder Gehoord maar niet begrepen op de spraakstatuspagina en wordt als voice.unmatched naar het sessielogboek geschreven. Uit: niets wordt bewaard; het ASR-spoor in het logboek toont nog steeds elke uiting."
+      },
+      "matchScore": {
+        "label": "Zinsovereenkomstscore",
+        "hint": "Hoe dicht een gehoorde zin bij een bekende moet liggen voordat de FO erop reageert.",
+        "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. Lager hoort meer, verstaat meer verkeerd."
+      },
+      "confirmBelow": {
+        "label": "'did you mean' vragen onder",
+        "hint": "Een overeenkomst tussen de score hierboven en deze laat de FO 'Did you mean …?' vragen in plaats van te handelen.",
+        "more": "Zet hem gelijk aan de overeenkomstscore om nooit te vragen."
+      },
+      "noConfirmBelow": {
+        "label": "Geen 'did you mean' onder",
+        "hint": "In de lucht onder deze radiohoogte vraagt de FO nooit 'Did you mean …?'. De startrol, de eerste klim en de uitrol na landing zijn altijd stil.",
+        "more": "Op die momenten wordt een FMA-aflezing of capture-call die op 0.70 of beter paste gewoon bevestigd ('Checked.'), en alles anders wordt zonder een woord losgelaten — een vraag tijdens de rol of 'did you mean gear up?' in de klim is het ergste gebabbel dat er is. 0 = alleen de drie fasen."
+      },
+      "offlineConfidence": {
+        "label": "Betrouwbaarheid offline-engine",
+        "hint": "Minimale betrouwbaarheid die de Windows-engine moet melden. Niet gebruikt met een LAN-server."
+      },
+      "server": {
+        "title": "Spraakherkenningsserver",
+        "hint": "Een transcriptieserver op je netwerk. Leeg gebruikt de offline Windows-engine",
+        "asrUrl": {
+          "label": "LAN-ASR-URL",
+          "hint": "Serveradres, bijvoorbeeld http://192.168.1.50:8000."
+        },
+        "flavour": {
+          "label": "Type LAN-ASR-server",
+          "hint": "Moet overeenkomen met het servertype dat op dat adres draait.",
+          "more": "Het verkeerde type antwoordt 404 op alles terwijl de gezondheidscontrole groen blijft. Als dat gebeurt wordt een waarschuwing gelogd."
+        },
+        "vad": {
+          "label": "Spraakactiviteitsdetectie",
+          "hint": "Hoe de FO bepaalt dat je spreekt.",
+          "more": "Silero negeert motorgeluid en de eigen stem van de FO en hoort zachte commando's. RMS is de oudere energiepoort en de terugval als het Silero-model niet laadt. Geldt vanaf de volgende luisterstart. Verdere knoppen (vadMinSpeechMs, vadPreRollMs, vadMaxUtteranceMs) staan alleen in settings.json."
+        },
+        "muteMic": {
+          "label": "Microfoon negeren terwijl de FO spreekt",
+          "hint": "Aan: de FO kan zijn eigen stem uit de cockpitluidsprekers niet horen en zichzelf antwoorden. Alleen uit als je over de FO heen moet praten.",
+          "more": "Laat ook een transcript vallen dat herhaalt wat de FO net zei, ongeacht de timing. Op 2026-10-10 zette een VBAN-lus de FO op de luidsprekers en kletste hij minutenlang met zichzelf."
+        },
+        "micTail": {
+          "label": "Microfoonstaart na FO-spraak",
+          "hint": "Hoe lang de microfoon genegeerd blijft na het laatste woord van de FO. Verhoog voor een luide, galmende cockpit; verlaag als je snelle antwoorden worden gemist."
+        },
+        "ownWords": {
+          "label": "Venster eigen woorden",
+          "hint": "Hoe lang na een FO-uiting een transcript dat die herhaalt voor de eigen stem van de FO wordt gehouden en wordt weggegooid. Verlaag als je antwoorden die de woorden van de FO herhalen verloren gaan; verhoog bij een lange luidsprekervertraging.",
+          "more": "Je antwoord op een 'did you mean …?' en het verwachte antwoord van de open checklistregel worden nooit weggegooid, hoe groot het venster ook is."
+        },
+        "vadThreshold": {
+          "label": "VAD-drempel",
+          "hint": "Verhoog als lawaai de FO triggert. Verlaag als zachte commando's worden gemist."
+        },
+        "endSilence": {
+          "label": "Stilte aan zinseinde",
+          "hint": "Stilte die je zin beëindigt. Verhoog als pauzes je zinnen splitsen."
+        }
+      },
+      "interphone": {
+        "title": "Interphone zenden",
+        "hint": "Crew-oproepen volgen het audiopaneel van de gezagvoerder",
+        "acpGating": {
+          "label": "ACP-zendvergrendeling",
+          "hint": "Oproepen naar grond of cabine hebben INT of CAB geselecteerd op het audiopaneel nodig.",
+          "more": "De keuzeschakelaar midden in een oproep wegdraaien hangt op. Uit, of een oudere ProSim: oproepen worden altijd geaccepteerd."
+        },
+        "intRequired": {
+          "label": "INT-toets ingedrukt vereisen",
+          "hint": "Grondoproepen hebben ook de INT-toets vastgehouden nodig terwijl je spreekt.",
+          "more": "Laat uit tenzij je paneel de toets heeft."
+        }
+      }
+    },
+    "sterile": {
+      "title": "Sterile cockpit",
+      "hint": "Een rustige cockpit in de drukke fasen",
+      "enabledHint": "De FO houdt niet-essentiële spraak onder het plafond vast.",
+      "ceiling": {
+        "label": "Plafond",
+        "hint": "Steriel onder deze hoogte in klim, daling en nadering.",
+        "more": "Cruise en grond zijn nooit steriel."
+      },
+      "dropLow": {
+        "label": "Spraak met prioriteit Low weggooien",
+        "hint": "Adviezen worden in steriel weggegooid, nooit herhaald."
+      },
+      "normalPolicy": {
+        "label": "Beleid voor prioriteit Normal",
+        "hint": "Wat er met normale spraak gebeurt in steriel.",
+        "more": "Toestaan is de veilige standaard. Checklists en briefings hebben normale prioriteit en zijn nodig op een lage nadering."
+      },
+      "exemptCabin": {
+        "label": "Cabinerapporten uitzonderen",
+        "hint": "Cabinerapporten komen in steriel nog steeds door."
+      }
+    },
+    "voices": {
+      "fo": {
+        "title": "Stem van de First Officer",
+        "hint": "Eén lijst over elke verbonden aanbieder, gegroepeerd per aanbieder en regio. Niets is vooraf ingevuld: alleen wat elke dienst meldt",
+        "picker": {
+          "label": "First Officer",
+          "hint": "De aanbieder die hij noemt spreekt eerst. De anderen vallen in als die uitvalt.",
+          "more": "Kies uit elke verbonden aanbieder. Elke aanbieder houdt ook een terugvalstem op zijn eigen tab onder Stemaanbieders, gebruikt wanneer hij invalt voor de hier genoemde. Leeg houdt het oude gedrag: elke aanbieder spreekt met zijn eigen terugvalstem."
+        },
+        "lists": {
+          "label": "Stemmenlijsten",
+          "hint": "Gelezen van elke verbonden aanbieder bij het openen van de pagina."
+        },
+        "refreshAll": "Alle stemmen verversen"
+      },
+      "crew": {
+        "title": "Crewstemmen",
+        "hint": "Wie spreekt voor de cabine, de maatschappij en de grondcrew. Leeg is de stem van de First Officer",
+        "purser": {
+          "label": "Purserstem",
+          "hint": "Cabinerapporten op de cabine-interphone."
+        },
+        "purserFilter": {
+          "label": "Intercomfilter purser",
+          "hint": "Headsetgeluid bij de purser."
+        },
+        "company": {
+          "label": "Maatschappijstem",
+          "hint": "Dispatchberichten, voorgelezen als ACARS."
+        },
+        "companyFilter": {
+          "label": "Intercomfilter maatschappij",
+          "hint": "Standaard uit. Een maatschappijbericht is een afdruk, geen telefoontje."
+        },
+        "ground": {
+          "label": "Grondcrewstem",
+          "hint": "Antwoorden en oproepen van de grondcrew op de interphone."
+        },
+        "groundFilter": "Intercomfilter grond"
+      },
+      "accents": {
+        "title": "Accentlokalisatie",
+        "hint": "Het accent van de grondcrew volgt het land van de luchthaven",
+        "enabled": {
+          "hint": "Alleen grondcrew. Purser en maatschappij houden de stemmen hierboven.",
+          "more": "Heeft voor de meeste accenten de Google-aanbieder nodig. De modus Alleen lokaal valt terug op US of UK."
+        },
+        "persona": {
+          "label": "Chirp 3 HD-persona",
+          "hint": "Google-stempersona, bijvoorbeeld Charon."
+        },
+        "overridesBefore": "Overschrijvingen per luchthaven staan alleen in het bestand:",
+        "overridesAfter": "in config/settings.json (luchthavencode-voorvoegsel naar stemlocale)."
+      }
+    },
+    "groundCrew": {
+      "title": "Grondcrew",
+      "hint": "Roep de grondcrew op en hoor hun oproepen",
+      "requireInt": {
+        "label": "INT geselecteerd vereisen",
+        "hint": "Grondspraak wacht tot INT is geselecteerd op een audiopaneel."
+      },
+      "intGrace": {
+        "label": "INT-respijt",
+        "hint": "Na deze wachttijd speelt de oproep toch."
+      },
+      "mechCall": {
+        "label": "MECH-call bij oproepen van beneden",
+        "hint": "Laat het MECH-lampje knipperen wanneer de grondcrew je oproept."
+      },
+      "hailWindow": {
+        "label": "Luistervenster na oproep",
+        "hint": "Hoe lang de crew na het antwoorden op je verzoek wacht."
+      },
+      "upcalls": {
+        "title": "Oproepen van beneden",
+        "hint": "Elke oproep komt eenmaal per turnaround",
+        "groundPower": "Grondstroom aangesloten",
+        "chocks": "Blokken geplaatst",
+        "refuel": {
+          "label": "Tanken gereed",
+          "hint": "Inclusief de brandstofhoeveelheid."
+        }
+      },
+      "wording": {
+        "title": "Bewoording grondcrew",
+        "hint": "Woord voor woord uitgesproken. {fuel} wordt de tonnen aan boord",
+        "standingBy": "Standing by",
+        "groundPower": "Grondstroom",
+        "chocks": "Blokken",
+        "refuelComplete": "Tanken gereed"
+      }
+    },
+    "cabin": {
+      "title": "Cabinecrew",
+      "hint": "Purserrapporten op de cabine-interphone",
+      "secure": {
+        "label": "Rapport cabine gezekerd",
+        "hint": "Voor de start, zodra de deuren dicht zijn en het beacon aan is."
+      },
+      "secureMinWait": {
+        "label": "Cabine gezekerd: minimale wachttijd",
+        "hint": "De crew heeft zo lang nodig na deuren dicht + beacon aan voor het rapport. 0 = direct."
+      },
+      "securePerPax": {
+        "label": "Cabine gezekerd: extra per passagier",
+        "hint": "Een willekeurig deel van pax × dit komt erbij, eenmaal per vlucht getrokken — soms klaar na de pushback, soms pas bij de baan.",
+        "more": "Passagiers = het ingestapte aantal van GSX, anders het OFP-cijfer. Met 45 s en 1 s/pax wacht een volle A320 tussen 45 s en ongeveer 4 minuten. 0 = alleen het minimum."
+      },
+      "ready": {
+        "label": "Rapport cabine gereed",
+        "hint": "In de nadering, onder de hier ingestelde hoogte."
+      },
+      "readyBelow": "Cabine gereed onder",
+      "foAck": "FO bevestigt rapporten",
+      "requireCab": {
+        "label": "CAB geselecteerd vereisen",
+        "hint": "De purser wacht tot CAB is geselecteerd op een audiopaneel, of op de respijttijd."
+      },
+      "cabGrace": "CAB-respijt",
+      "autoGround": {
+        "label": "FO neemt cabineoproepen op de grond aan",
+        "hint": "Tijdens pushback, motorstart en taxi-out selecteert de FO na de vertraging CAB op het FO-audiopaneel, zodat het rapport speelt zonder dat jij de ACP aanraakt.",
+        "more": "Dit is de enige plek waar de cabinecrew naar het vliegtuig schrijft: de CAB-ontvangstvergrendeling van het FO-paneel (S_ASP2_CAB_REC_LATCH; het paneel van de gezagvoerder als je vanuit de rechterstoel vliegt), aangezet en na het rapport losgelaten. Nooit terwijl de FO midden in een dialoog met je zit, nooit in een andere fase. Standaard uit."
+      },
+      "groundDelay": "Antwoordvertraging op de grond",
+      "autoAir": {
+        "label": "FO neemt cabineoproepen in de lucht aan",
+        "hint": "In daling en nadering neemt de FO de cabine-gereed-oproep na de vertraging aan."
+      },
+      "airDelay": "Antwoordvertraging in de lucht",
+      "chime": "Interphone-gong voor oproepen",
+      "dingStartup": {
+        "label": "Gong bij opstarten",
+        "hint": "Cabinegong wanneer de app start."
+      },
+      "dingFinal": {
+        "label": "Gong bij definitieve loadsheet",
+        "hint": "Cabinegong wanneer de definitieve loadsheet wordt verzonden."
+      },
+      "ambient": {
+        "label": "Sfeergebeurtenissen",
+        "hint": "Af en toe meldt de purser een boardingvertraging."
+      },
+      "boardingDelayProb": {
+        "label": "Kans op boardingvertraging",
+        "hint": "0.2 is één vlucht op vijf."
+      },
+      "cruiseQuery": {
+        "label": "Purser-vraag in de cruise",
+        "hint": "Eenmaal per vlucht in de cruise belt de purser: 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' — en luistert dan naar je antwoord.",
+        "more": "Gong en CAB-kanaal als bij elk rapport. Antwoord in je eigen woorden: een tijd ('about forty minutes', 'on time', 'ten minutes late') of het comfort ('smooth', 'light chop', 'expect some bumps') krijgt een passende bevestiging, alles anders 'copied, thank you', stilte 'we'll check back later'. Het antwoord wordt alleen bevestigd — nooit als commando gelezen. Een vrij antwoord heeft de LAN-spraakserver nodig; de offline Windows-engine hoort een korte lijst waarschijnlijke antwoorden. De oproep wacht zolang het oor van de FO gepauzeerd is of een andere dialoog de microfoon heeft, en wordt overgeslagen als de daling eerder begint."
+      },
+      "cruiseQueryAfter": {
+        "label": "Cruise-vraag na",
+        "hint": "Minuten in de cruise voordat de purser belt, plus of min dertig procent."
+      },
+      "cruiseQueryWindow": {
+        "label": "Antwoordvenster cruise-vraag",
+        "hint": "Hoe lang de purser naar je antwoord luistert."
+      },
+      "wording": {
+        "title": "Bewoording cabine",
+        "hint": "Woord voor woord uitgesproken",
+        "hailReplyHint": "Antwoord op \"cockpit to cabin\".",
+        "securingReply": {
+          "label": "Antwoord op oproep tijdens zekeren",
+          "hint": "Antwoord op een oproep terwijl de wachttijd cabine gezekerd nog loopt."
+        },
+        "secure": "Cabine gezekerd",
+        "secureAck": "Cabine gezekerd — FO-bevestiging",
+        "ready": "Cabine gereed",
+        "readyAck": "Cabine gereed — FO-bevestiging",
+        "boardingDelay": "Boardingvertraging",
+        "cruiseQueryHint": "De vraag van de purser in de cruise.",
+        "eta": {
+          "label": "Cruise-vraag — tijdantwoord",
+          "hint": "Na een antwoord dat een tijd of de aankomst noemt."
+        },
+        "ride": {
+          "label": "Cruise-vraag — comfortantwoord",
+          "hint": "Na een antwoord over turbulentie of een rustige vlucht."
+        },
+        "generic": "Cruise-vraag — elk ander antwoord",
+        "noReply": {
+          "label": "Cruise-vraag — geen antwoord",
+          "hint": "Wanneer het venster in stilte sluit."
+        }
+      }
+    },
+    "company": {
+      "title": "Maatschappijkanaal",
+      "hint": "Dispatchberichten voorgelezen als ACARS: de loadsheet, en af en toe een cruisebericht",
+      "autoLoadsheet": {
+        "label": "Loadsheet automatisch voorlezen",
+        "hint": "Voor vertrek, zodra de definitieve loadsheet binnen is. Uit: alleen op \"request loadsheet\" of de webknop."
+      },
+      "chime": {
+        "label": "ACARS-gong voor berichten",
+        "hint": "De dubbele piep voor een maatschappijlevering."
+      },
+      "cruiseMessages": {
+        "label": "Cruiseberichten",
+        "hint": "Een kort maatschappijbericht in de cruise, op sommige vluchten.",
+        "more": "Deterministisch sjabloon rond de bestemmingsfeiten. Standaard uit."
+      },
+      "cruiseProb": {
+        "label": "Kans op cruisebericht",
+        "hint": "0.15 is ongeveer één vlucht op zeven, eenmaal per vlucht getrokken."
+      },
+      "persist": {
+        "label": "Gesproken loadsheet opslaan",
+        "hint": "Naast het sessielogboek geschreven als *.loadsheet.txt, met de ruwe EFB-loadsheet."
+      },
+      "debrief": {
+        "title": "Debriefing na de vlucht",
+        "hint": "Uitgesproken bij shutdown uit wat de sessie heeft vastgelegd",
+        "length": {
+          "label": "Lengte",
+          "hint": "Kort laat de activiteitstellingen en de brandstofverbruikregels weg."
+        },
+        "style": {
+          "label": "Stileren met het taalmodel",
+          "hint": "Warmere bewoording, elk getal geverifieerd. Uit: het kale sjabloon.",
+          "more": "Gebruikt het model dat onder Briefings & LLM is ingesteld. Met dat model uit heeft dit geen effect."
+        }
+      },
+      "day": {
+        "title": "Maatschappijdag",
+        "hint": "Dienstregistratie over meerdere sectoren: blok- en diensttijden, turnaround-samenvattingen, een dagafsluiting. Geen berekening van vliegtijdlimieten",
+        "track": {
+          "label": "Dienstdagen automatisch bijhouden",
+          "hint": "Uit: \"start duty day\" en de pagina /day werken nog met de hand."
+        },
+        "autoStart": "Beginnen bij de eerste preflight",
+        "turnaround": {
+          "label": "De turnaround-samenvatting uitspreken",
+          "hint": "Bij on-blocks: bloktijd, afwijking van het schema, open tech-log-items."
+        },
+        "allowance": {
+          "label": "Toeslag na de vlucht",
+          "hint": "Minuten opgeteld na de laatste on-blocks voor de diensttijd."
+        },
+        "autoClose": {
+          "label": "Automatisch sluiten na inactiviteit",
+          "hint": "Sluit een open dag na zo lang inactief in een turnaround. 0 = nooit."
+        },
+        "rotations": {
+          "label": "Map met geplande rotaties",
+          "hint": "Eén JSON-bestand per geplande dag. De README.txt in de map toont het formaat. Leeg gebruikt de getoonde map."
+        },
+        "stateFile": "Dagstatusbestand"
+      }
+    },
+    "techLog": {
+      "title": "Tech Log & MEL",
+      "hint": "De papierlaag: uitstelcategorieën, vervaldata, preflight-briefings. Nooit een storing, nooit een dataref-schrijfactie",
+      "offer": {
+        "label": "Tech-log-items aanbieden na een abnormal",
+        "hint": "Na shutdown biedt de FO aan elke op deze vlucht afgehandelde abnormal te loggen. Stil op een normale vlucht."
+      },
+      "wear": {
+        "label": "Willekeurige slijtage",
+        "hint": "Een kleine kans per vlucht dat bij shutdown een onschuldig cabinedefect uit de slijtagepool verschijnt."
+      },
+      "rectify": {
+        "label": "Herstellen op de vervaldatum",
+        "hint": "Open defecten vanzelf sluiten wanneer hun MEL-vervaldatum voorbij is.",
+        "more": "Standaard uit: herstel is bedoeld als jouw onderhoudshandeling."
+      },
+      "openItems": {
+        "label": "Open items in de briefings",
+        "hint": "De vertrekbriefing noemt de open items; de aankomstbriefing alleen die de landing raken.",
+        "more": "Hoogstens drie titels, dan 'and N more'. Landingsrelevant = MEL-categorie A of B, of een item over remmen, landingsgestel, spoilers, reversers, autobrake of anti-skid. Titels worden uitgesproken zoals geschreven."
+      },
+      "flagLines": {
+        "label": "Checklistregels markeren",
+        "hint": "Een uitgesproken checklistregel over een systeem met een open item krijgt 'note, open tech log item: …' na de challenge.",
+        "more": "Regels dragen een systeemtag in de checklist-JSON (apu, gear, autobrake, anti-ice, …); de meegeleverde checklists taggen de voor de hand liggende. Het veld Systeem van een item op de Tech Log-pagina, of een woord uit zijn titel, is waar de tag op matcht. Eenmaal per item per checklistrun."
+      },
+      "intervals": "MEL-reparatietermijnen",
+      "categoryA": "Categorie A",
+      "categoryB": "Categorie B",
+      "categoryC": "Categorie C",
+      "categoryD": "Categorie D",
+      "file": "Tech-log-bestand",
+      "wearPool": {
+        "label": "Slijtagepoolbestand",
+        "hint": "Leeg gebruikt de meegeleverde pool naast de exe."
+      },
+      "raiseBefore": "Meld en herstel defecten op de pagina",
+      "raiseLink": "Tech Log",
+      "raiseAfter": "of met spraak (\"raise a defect\", \"log a snag\").",
+      "logbook": {
+        "title": "Pilotenlogboek",
+        "hint": "Elke voltooide vlucht wordt bij shutdown ingevouwen; totalen worden berekend bij het tonen",
+        "file": "Logboekbestand",
+        "flightsBefore": "De vluchten, de touchdown-trend en de CSV-export staan op de pagina",
+        "flightsLink": "Logboek",
+        "flightsAfter": "."
+      }
+    },
+    "sayIntentions": {
+      "title": "SayIntentions",
+      "hint": "Online ATC: radioverzoeken, weer, CPDLC en de aankomstgate",
+      "use": {
+        "label": "SayIntentions gebruiken",
+        "hint": "Zet elke SayIntentions-functie aan.",
+        "more": "Spraakverzoeken hebben een draaiende SayIntentions met een actieve vlucht nodig. Weer heeft alleen de API-sleutel nodig."
+      },
+      "apiKeySourceHint": "Auto leest de sleutel uit de flight.json van SayIntentions.",
+      "manualKey": {
+        "label": "Handmatige API-sleutel",
+        "hint": "Alleen gebruikt met Handmatig. Nooit gelogd."
+      },
+      "ptt": {
+        "label": "Push-to-talk vanuit de cockpit",
+        "hint": "Een ProSim-PTT-schakelaar bedient SayIntentions. Koppel eerst in ProSim je sidestick- of handmicrofoonknop aan die schakelaar.",
+        "more": "Bij elke druk zet de app de SayIntentions-besturings-LVAR op 1, bij loslaten op 0, via SimConnect — de 'Map PTT inside the sim with an LVAR' van de client. Geen joystick-polling. Heeft een draaiende MSFS nodig. Het sessielogboek toont elke druk en of SayIntentions heeft gezonden."
+      },
+      "pttControl": {
+        "label": "SayIntentions-PTT-besturing",
+        "hint": "Welke SayIntentions-radio of -intercom de knop bedient. COM-radio-PTT is wat bijna iedereen nodig heeft."
+      },
+      "phraseology": "Fraseologie",
+      "foSpeaks": {
+        "label": "FO spreekt de uitzending",
+        "hint": "De FO zegt de radiocall hardop voordat hij wordt verzonden.",
+        "more": "Zet uit als SayIntentions hem ook afspeelt (dubbel geluid)."
+      },
+      "autoTune": {
+        "label": "Frequentie automatisch afstemmen",
+        "hint": "Stem het bijpassende station af voor het zenden."
+      },
+      "departureGate": {
+        "label": "Vertrek-comms-poort (oud)",
+        "hint": "Oud: de comms komen bij jou terug nabij de baan, met de eigen afstandswaarde van SayIntentions.",
+        "more": "Genegeerd zolang de kaart Comms-overdracht hieronder aan staat — die flow gebruikt de baangegevens van de app en de vluchtfase, die de oude poort op de vlucht van 2026-10-10 miste (hij ging nooit af)."
+      },
+      "gateDistance": {
+        "label": "Poortafstand (oud)",
+        "hint": "Afstand tot de baan waar de oude poort de comms aan jou teruggeeft."
+      },
+      "wrongFreq": {
+        "label": "Melding verkeerde frequentie",
+        "hint": "De FO vertelt je wanneer COM1 niet op de frequentie staat die ATC je gaf.",
+        "more": "Gebruikt de laatste 'Contact … on …'-instructie van ATC en zegt het eenmaal. Hij zwijgt aan de gate, en wanneer hij de instructie niet kan lezen."
+      },
+      "waitBefore": {
+        "label": "Wachttijd voor de melding",
+        "hint": "Hoe lang COM1 eerst op een andere frequentie mag blijven."
+      },
+      "arrivalGate": {
+        "label": "Aankomstgate van ATC",
+        "hint": "Gebruik de gate die SayIntentions-ATC toewijst als GSX-aankomstgate.",
+        "more": "Alleen een gate die verschilt van de vertrekopstelplaats en vanaf de klim verschijnt telt. Een gate die je zelf op de OFP-pagina instelt wint altijd. Na de landing gaat de gate meteen naar GSX. Standaard uit: de ATC-keuze bestaat misschien niet in de geladen scenery."
+      },
+      "handover": {
+        "title": "Comms-overdracht",
+        "hint": "Wie de radio's bedient in elke fase: jij of de SayIntentions-copiloot",
+        "enabled": {
+          "label": "Radio's overdragen per vluchtfase",
+          "hint": "De copiloot heeft ze aan de gate, bij het taxiën en in de cruise; jij neemt ze over bij het wachtpunt en in de nadering.",
+          "more": "Elke overdracht is één FO-regel en een sessiegebeurtenis. Zeg 'I have the radios' of 'you have the radios' om op elk moment te overrulen. Dit aanzetten maakt de oude vertrek-comms-poort hierboven irrelevant."
+        },
+        "gate": {
+          "label": "Gate: copiloot neemt de radio's",
+          "hint": "Wanneer SayIntentions een vlucht op de grond start, regelt de copiloot klaring, push en start."
+        },
+        "taxi": {
+          "label": "FO leest de taxiklaring voor",
+          "hint": "Zolang de copiloot de radio's heeft, leest de FO je de taxi-instructie van ATC voor.",
+          "more": "Uit de comms-geschiedenis van SayIntentions, elke 20 seconden gecontroleerd — de regel kan zoveel achterlopen op het gesprek."
+        },
+        "handoffs": {
+          "label": "FO kondigt overdrachten aan",
+          "hint": "Zolang de copiloot de radio's heeft, zegt de FO je elke 'Contact … on …' die ATC geeft, op de grond en in de lucht."
+        },
+        "holding": {
+          "label": "Wachtpunt: jij neemt de radio's",
+          "hint": "Bij het uittaxiën, dicht bij de vertrekbaan, worden de radio's van jou voor het startverzoek en de klaring.",
+          "more": "De baan komt uit de FMS (anders uit het plan van SayIntentions) en de drempel uit de baanlijst van ProSim of de Navigraph-gegevens. Zonder bekende baan kan deze stap niet afgaan."
+        },
+        "holdingDistance": {
+          "label": "Wachtpuntafstand",
+          "hint": "Hoe dicht bij de baandrempel als wachtpunt telt."
+        },
+        "tuneTower": {
+          "label": "Tower afstemmen bij het wachtpunt",
+          "hint": "COM1 gaat naar Tower wanneer je daar de radio's overneemt, als een Tower-frequentie bekend is.",
+          "more": "Eerst de laatste 'Contact Tower on …' van ATC, anders de frequentielijst van de luchthaven. Via SayIntentions, nooit een cockpitschakelaar."
+        },
+        "climb": {
+          "label": "Klim: copiloot neemt de radio's terug",
+          "hint": "Na de startklaring en de eerste vertrekoverdracht, in de klim."
+        },
+        "approach": {
+          "label": "Nadering: jij neemt de radio's",
+          "hint": "Voor de landingsklaring — in de nadering, of zodra ATC je in de daling aan Tower overdraagt."
+        },
+        "taxiIn": {
+          "label": "Intaxiën: copiloot neemt de radio's terug",
+          "hint": "Zodra je de baan af bent."
+        },
+        "voiceOverride": {
+          "label": "Spraakoverrule",
+          "hint": "'I have the radios' / 'you have the radios' wisselt wie ze heeft, op elk moment."
+        },
+        "holdingLine": {
+          "label": "FO-regel bij het wachtpunt",
+          "hint": "Uitgesproken wanneer je bij het wachtpunt de radio's overneemt."
+        },
+        "approachLine": {
+          "label": "FO-regel in de nadering",
+          "hint": "Uitgesproken wanneer je de radio's voor de landing overneemt."
+        },
+        "copilotLine": {
+          "label": "FO-regel wanneer de copiloot de radio's neemt",
+          "hint": "Uitgesproken aan de gate, in de klim en bij het intaxiën."
+        },
+        "captainLine": {
+          "label": "FO-regel wanneer je de radio's met spraak neemt",
+          "hint": "Uitgesproken na 'I have the radios'."
+        }
+      },
+      "weather": {
+        "title": "SayIntentions-weer",
+        "hint": "ATIS, METAR, TAF en CPDLC. Heeft alleen de API-sleutel nodig",
+        "cacheTtl": {
+          "label": "Cache-levensduur",
+          "hint": "Hoe lang een weerbericht wordt bewaard."
+        },
+        "debounce": {
+          "label": "Verversingsdemping",
+          "hint": "Kortste tussenruimte tussen verversingen."
+        }
+      }
+    },
+    "providers": {
+      "kokoro": {
+        "title": "Kokoro (lokale neurale TTS)",
+        "hint": "Gratis neurale stemmen van een Kokoro-server op deze pc of je netwerk. Als eerste geprobeerd",
+        "baseUrl": {
+          "tally": "Kokoro-basis-URL",
+          "hint": "Serveradres, bijvoorbeeld http://192.168.1.50:8880. Leeg zet Kokoro uit."
+        },
+        "fallback": {
+          "hint": "Gebruikt wanneer Kokoro invalt voor de aanbieder die de First Officer of een crewstem noemt. Kies de hoofdstemmen op de pagina Stemmen.",
+          "more": "De graad is Kokoro's schatting van hoeveel en hoe schoon het trainingsgeluid was, A tot F. Britse en Amerikaanse stemmen geven een bruikbare First Officer; de andere talen lezen Engels slecht.",
+          "empty": "Nog geen stemmenlijst. Voer het serveradres in en druk op Stemmen verversen."
+        },
+        "listHint": "Gelezen van de server bij het openen van de pagina. Ververs nadat je een gemengde stem hebt toegevoegd.",
+        "connectTimeout": {
+          "label": "Verbindingstime-out",
+          "hint": "Wachttijd tot de server antwoordt.",
+          "more": "Bewust kort. Een slapende server valt door naar de volgende stem in plaats van een callout op te houden."
+        },
+        "bodyTimeout": {
+          "label": "Body-time-out",
+          "hint": "Toegestane tijd tot het geluid aankomt.",
+          "more": "Plus 100 ms per teken, zodat een lange briefing nooit de 60 s-afkoeling triggert."
+        },
+        "cacheCap": {
+          "label": "Cacheplafond per stem",
+          "hint": "0 is onbeperkt."
+        }
+      },
+      "elevenLabs": {
+        "title": "ElevenLabs",
+        "hint": "Betaalde neurale cloudstemmen met je eigen sleutel. Gecachet, met een maandbudget. Geprobeerd na Kokoro en voor Google",
+        "apiKey": {
+          "hint": "Van elevenlabs.io, je profiel, API keys. Leeg zet ElevenLabs uit. Nooit gelogd.",
+          "more": "Het Free-plan werkt om te testen maar heeft geen commerciële licentie. Starter en hoger zijn gelicentieerd."
+        },
+        "fallback": {
+          "hint": "Gebruikt wanneer ElevenLabs invalt voor de aanbieder die de First Officer of een crewstem noemt. Kies de hoofdstemmen op de pagina Stemmen.",
+          "more": "ElevenLabs heeft hier een stem nodig om als ingesteld te tellen; een ElevenLabs-stem kiezen voor de First Officer vult hem voor je in.",
+          "empty": "Nog geen stemmenlijst. Voer de sleutel in en druk op Stemmen verversen."
+        },
+        "listHint": "De voorgemaakte ElevenLabs-stemmen, gelezen met de sleutel hierboven.",
+        "modelHint": "Flash is snel en kost de helft. v3 is het expressiefst, langzamer en volle prijs.",
+        "format": {
+          "label": "Uitvoerformaat",
+          "hint": "MP3 werkt op elk plan en wordt op deze pc gedecodeerd. PCM heeft een betaald plan nodig en slaat het decoderen over."
+        },
+        "stability": {
+          "label": "Stabiliteit",
+          "hint": "0 tot 1. Hoger is gelijkmatiger en minder expressief."
+        },
+        "similarity": {
+          "label": "Gelijkenis",
+          "hint": "0 tot 1. Hoe dicht de uitvoer de originele stem volgt."
+        },
+        "speed": {
+          "label": "Snelheid",
+          "hint": "0.7 tot 1.2. 1.0 is het natuurlijke tempo van de stem."
+        },
+        "budget": {
+          "hint": "ElevenLabs stopt voor de maand bij zoveel tekens. 0 is onbeperkt.",
+          "more": "Plan-credits per maand: Free 10.000, Starter 30.000, Creator 121.000. Flash kost ongeveer een halve credit per teken. De volgende stem in de keten neemt over."
+        },
+        "maxChars": {
+          "label": "Max. tekens per verzoek",
+          "hint": "Langere teksten slaan ElevenLabs over en gebruiken de volgende stem. 0 is onbeperkt.",
+          "more": "Het Free-plan begrenst één generatie op ongeveer 2.500 tekens."
+        },
+        "normalisation": {
+          "label": "Tekstnormalisatie",
+          "hint": "Laat ElevenLabs zelf getallen en afkortingen uitschrijven.",
+          "more": "Uit is juist voor de FO: de app schrijft getallen al zoals ze gezegd worden, en de ElevenLabs-normalisator verhaspelt luchtvaartwoorden."
+        },
+        "usageBefore": "Verbruik deze maand:",
+        "usageMiddle": "tekens (geteld in",
+        "usageAfter": "in de cachemap).",
+        "baseUrl": {
+          "tally": "ElevenLabs-basis-URL",
+          "hint": "Verander dit alleen voor een proxy of een regionaal eindpunt."
+        },
+        "timeoutHint": "Hele verzoek. De volgende stem neemt over als die op is."
+      },
+      "google": {
+        "title": "Google Cloud TTS (Chirp 3 HD)",
+        "hint": "Betaalde neurale stemmen. Gecachet, met een maandbudget. Geprobeerd na ElevenLabs",
+        "keyFile": {
+          "label": "Sleutelbestand van het serviceaccount",
+          "hint": "Pad naar de JSON-sleutel van het serviceaccount. Leeg zet Google uit. Nooit gelogd."
+        },
+        "fallback": {
+          "hint": "Gebruikt wanneer Google invalt voor de aanbieder die de First Officer of een crewstem noemt. Kies de hoofdstemmen op de pagina Stemmen.",
+          "more": "Google heeft hier een stem nodig om als ingesteld te tellen; een Google-stem kiezen voor de First Officer vult hem voor je in. De persona van de accentlokalisatie (pagina Stemmen) is ook een Google-stem.",
+          "empty": "Nog geen stemmenlijst. Voer het pad van het sleutelbestand in en druk op Stemmen verversen."
+        },
+        "listHint": "De Chirp 3 HD-stemmen van Google, gelezen met het sleutelbestand hierboven.",
+        "budget": {
+          "hint": "Google stopt voor de maand bij zoveel tekens. 0 is onbeperkt.",
+          "more": "De gratis laag is 1.000.000 tekens. De offline stemmen nemen over."
+        }
+      },
+      "windows": {
+        "title": "Windows-stemmen",
+        "hint": "Offline stemmen op deze pc, altijd beschikbaar. De laatste twee in de keten",
+        "winrt": {
+          "label": "WinRT-terugvalstem",
+          "hint": "Leeg gebruikt de Windows-standaard.",
+          "more": "Dit bereikt de \"Natural\"-stemmen van Windows 11."
+        },
+        "sapi": {
+          "label": "SAPI5-terugvalstem",
+          "hint": "Stem als laatste redmiddel. Leeg gebruikt de Windows-standaard."
+        },
+        "listHint": "De stemmen die op deze pc zijn geïnstalleerd.",
+        "note": "WinRT: {0}. SAPI5: {1}."
+      },
+      "cache": {
+        "title": "Cache",
+        "folder": {
+          "label": "TTS-cachemap",
+          "hint": "Leeg gebruikt de getoonde map.",
+          "more": "Eén map per aanbieder en stem. De verbruiksteller woont er ook."
+        }
+      }
+    },
+    "mcdu": {
+      "title": "MCDU",
+      "hint": "Spraak-MCDU: lezen werkt altijd, toetsdrukken moeten worden vrijgegeven",
+      "enabledHint": "Lees de MCDU, stem de ILS af en wijzig de landingsbaan met spraak.",
+      "actuation": {
+        "label": "Bediening toestaan",
+        "hint": "Laat de FO MCDU-toetsen indrukken.",
+        "more": "Uit: alleen lezen. Commando's antwoorden dat toetsdrukken uit staan."
+      },
+      "verifyPause": {
+        "label": "Verificatiepauze",
+        "hint": "De FO kondigt de wijziging aan en wacht dan zo lang zodat je kunt annuleren."
+      }
+    },
+    "briefing": {
+      "title": "Briefings",
+      "hint": "Vertrek- en aankomstbriefings uit navdata en weer",
+      "source": {
+        "label": "Procedurebron",
+        "hint": "Waar de baan, SID, STAR en nadering vandaan komen.",
+        "more": "Auto probeert het FMS-plan, dan SayIntentions, dan de handmatige invoer hieronder, veld voor veld."
+      },
+      "verify": {
+        "label": "Getallen in LLM-uitvoer verifiëren",
+        "hint": "Elk cijfer dat de LLM schrijft wordt getoetst aan de feiten.",
+        "more": "Een mislukte toets valt terug op het kale sjabloon."
+      },
+      "dfdBefore": "Het pad van de Navigraph-DFD-database staat onder",
+      "dfdLink": "Setup → Navdata",
+      "dfdAfter": ".",
+      "manual": {
+        "title": "Handmatige procedure-overschrijvingen",
+        "hint": "Gebruikt wanneer de FMS of SayIntentions een veld niet kan vullen, of altijd in de modus Handmatig",
+        "depAirport": {
+          "label": "Vertrekluchthaven",
+          "hint": "ICAO, bijv. YSSY"
+        },
+        "depRunway": {
+          "label": "Vertrekbaan",
+          "hint": "bijv. 16R"
+        },
+        "sid": {
+          "label": "SID",
+          "hint": "Identifier, bijv. FISHA1"
+        },
+        "arrAirport": {
+          "label": "Aankomstluchthaven",
+          "hint": "ICAO, bijv. YMML"
+        },
+        "arrRunway": {
+          "label": "Landingsbaan",
+          "hint": "bijv. 34"
+        },
+        "star": {
+          "label": "STAR",
+          "hint": "Identifier, bijv. RAZZI4"
+        },
+        "approach": {
+          "label": "Nadering",
+          "hint": "Bijvoorbeeld I16R. Leeg kiest de beste gepubliceerde nadering, ILS eerst.",
+          "more": "Vraag de FO \"which approach\" om de kandidaten te horen."
+        }
+      },
+      "minima": {
+        "title": "Minima vastleggen",
+        "hint": "De FO vraagt tijdens de aankomstbriefing naar de minimums",
+        "interactive": {
+          "label": "Interactief vastleggen",
+          "hint": "De FO vraagt, leest terug en stelt de minimums-callouts scherp.",
+          "more": "Een waarde die al in de sectie Status is ingesteld slaat de vraag over. Werkt het best met een transcriptieserver."
+        },
+        "listenTimeout": {
+          "label": "Luistertime-out",
+          "hint": "Hoe lang de FO op je antwoord wacht."
+        },
+        "maxRetries": {
+          "label": "Max. pogingen",
+          "hint": "Mislukte pogingen voordat de briefing doorgaat als niet gebrieft."
+        }
+      },
+      "missed": {
+        "title": "Herbriefing afgebroken nadering",
+        "hint": "Na een go-around leest de FO de afgebroken nadering voor",
+        "enabled": {
+          "hint": "Wacht op de vertraging en gear up, zodat je eerst vliegt.",
+          "more": "Zonder gepubliceerde legs geeft de FO in plaats daarvan een geheugensteun."
+        },
+        "delay": "Vertraging",
+        "hardCeiling": {
+          "label": "Harde bovengrens",
+          "hint": "Spreekt uiterlijk op dit moment, ook als het landingsgestel nooit omhoog komt."
+        }
+      },
+      "llm": {
+        "title": "LLM-stilering",
+        "hint": "Eén taalmodel voor de proza van briefing en debriefing",
+        "enabledHint": "Uit: alleen kale sjablonen. Niets verlaat deze pc.",
+        "stream": {
+          "label": "Spreken terwijl het model schrijft",
+          "hint": "De FO begint te spreken na de eerste zin, niet na het hele antwoord. Elke zin wordt gecontroleerd voordat hij wordt uitgesproken.",
+          "more": "Als een zin een verkeerd getal heeft, of het model stopt, maakt het kale sjabloon de briefing af. Niets begint opnieuw van voren. Uit: de FO wacht op het hele antwoord (het oude gedrag)."
+        },
+        "apiFlavour": {
+          "label": "API-type",
+          "hint": "Kies Ollama wanneer het adres een Ollama-server is.",
+          "more": "Alleen het Ollama-type kan het denken van het model uitzetten."
+        },
+        "baseUrl": {
+          "tally": "LLM-basis-URL",
+          "hint": "OpenAI-stijl: de API-root, bijv. https://api.openai.com/v1. Ollama: de server-root, bijv. http://localhost:11434."
+        },
+        "apiKeyHint": "Nooit gelogd. Leeg voor lokale servers zonder sleutel.",
+        "modelHint": "Modelnaam, bijv. gpt-4o-mini of qwen3.6:27b. Leeg zet stilering uit.",
+        "thinking": {
+          "label": "Modeldenken inschakelen (langzamer, dieper redeneren)",
+          "hint": "Laat een denkend model eerst redeneren. Langzaam: vaak 10 s of meer.",
+          "more": "Alleen Ollama. Laat uit voor briefings."
+        },
+        "maxTokens": "Max. tokens",
+        "timeoutHint": "Per aanroep. Een gestileerde briefing kan twee aanroepen doen.",
+        "testBefore": "Sla op en druk dan op \"LLM-verbinding testen\" in de",
+        "testLink": "sectie Status",
+        "testAfter": "."
+      },
+      "ask": {
+        "title": "Vraag het de First Officer",
+        "hint": "Vrije vragen, beantwoord door het taalmodel uit live feiten. Alleen gesproken — nooit uitgevoerd",
+        "enabled": {
+          "hint": "Vraag in gewone woorden: 'what is our fuel on board', 'how long to top of descent', 'tell me the destination weather'. De FO antwoordt uit wat de app nu weet.",
+          "more": "Heeft de LLM hierboven en de LAN-spraakherkenningsserver nodig (de offline Windows-engine hoort alleen exacte zinnen). Elk getal in het antwoord wordt getoetst aan de live feiten; een onverifieerbaar antwoord wordt 'I don't have a verified answer for that'. Een vraag wordt pas geprobeerd nadat elke exacte zin is uitgesloten, dus niets van wat je eerder kon zeggen verandert. In de sterile cockpit (onder het sterile plafond in klim, daling en nadering) wordt een vraag gehoord maar niet beantwoord."
+        },
+        "smallTalk": {
+          "label": "Small talk en weetjes",
+          "hint": "Vraag wat je wilt: 'who is better, Chelsea or Arsenal', 'tell me a fun fact', 'what is the capital of Peru'. De FO antwoordt uit algemene kennis, in zijn rol, in één of twee lichte zinnen.",
+          "more": "Een vraag die de vlucht noemt (brandstof, gewichten, snelheden, hoogte, baan, weer, tijden, passagiers…) volgt nog steeds het strikte pad: alleen het feitenblad, elk getal geverifieerd. Op het small-talk-pad worden getallen niet geverifieerd — het zijn weetjes — maar een zin over deze vlucht met een cijfer erin wordt geweigerd en de FO zegt 'I don't have a verified answer for that'. Met dit aan is geen aanloopwoord nodig: elke zin van vier woorden of meer die nergens anders op paste en de vorm van een vraag heeft (een vraagwoord voorop, of het vraagteken van de herkenner) gaat naar de FO; een gewone opmerking wordt niet verstuurd. Nog steeds alleen spraak, nog steeds stil in de sterile cockpit."
+        },
+        "roger": {
+          "label": "Bevestigingen beantwoorden met 'Roger'",
+          "hint": "'No questions, thank you for the briefing', 'copied', 'okay thanks': aan, de FO zegt 'Roger.'; uit, helemaal niets.",
+          "more": "Hoe dan ook gaan zulke woorden nooit naar het taalmodel en verdienen ze nooit een 'didn't catch that'. Met small talk aan wordt alleen iets dat de vorm van een vraag heeft (een vraagwoord voorop, of een vraagteken van de herkenner) naar het model gestuurd."
+        },
+        "flyingOver": {
+          "label": "'What are we flying over?'",
+          "hint": "Vraag 'what are we flying over', 'where are we', 'what is that city on the left'. De FO noemt het land, de bergen of zee, en de dichtstbijzijnde plaatsen met afstand en kant — meteen, uit een atlas in de app — en voegt dan een feit of twee over ze toe.",
+          "more": "De positieregel komt uit een ingebouwde offline atlas (Natural Earth-contouren, GeoNames-plaatsen — zie de handleiding voor de bronvermelding), nooit uit het taalmodel, dus er is geen internet nodig en hij is altijd hetzelfde voor dezelfde plek. De feiten erna komen van de LLM: met 'Wikipedia-feiten' uit, uit zijn eigen kennis, zoals small talk (getallen ongeverifieerd, niets over deze vlucht). Voor deze zinnen is geen aanloopwoord of minimale lengte nodig. Werkt met small talk uit."
+        },
+        "wikipedia": {
+          "label": "Wikipedia-feiten",
+          "hint": "Met de schakelaar hierboven: haal een korte Wikipedia-samenvatting van de dichtstbijzijnde plaats op en laat de FO zijn feiten daaruit halen in plaats van uit het geheugen van het model.",
+          "more": "Eén klein verzoek naar en.wikipedia.org per plaats, limiet van drie seconden, na de eerste keer beantwoord uit een cache. Als het mislukt of niets vindt, geeft de FO toch de positie en valt terug op de eigen kennis van het model. Niets over jou of de vlucht wordt verstuurd — alleen de plaatsnaam."
+        },
+        "leadIns": {
+          "label": "Vraaginleidingen",
+          "hint": "Kommagescheiden. Een uiting moet met een ervan beginnen om als vraag te tellen (niet nodig met small talk aan)."
+        },
+        "minWords": {
+          "label": "Minimum aantal woorden",
+          "hint": "Kortere uitingen zijn nooit vragen — het zijn verkeerd gehoorde exacte zinnen."
+        },
+        "timeBudget": {
+          "label": "Tijdbudget",
+          "hint": "Van de vraag tot het eerste gesproken woord. Daarna geeft de FO op met de vaste regel."
+        },
+        "standBy": {
+          "label": "'Stand by' na",
+          "hint": "Stilte voordat de FO 'Stand by' zegt. 0 = nooit."
+        }
+      },
+      "regionFacts": {
+        "title": "Regiofeiten",
+        "hint": "In de cruise biedt de FO af en toe een kort feit over het land of de zee beneden aan. Ongevraagd, alleen gesproken",
+        "enabled": {
+          "hint": "Elke vijftien tot dertig minuten in de cruise (jouw interval) noemt de FO iets over de regio waar je boven bent: 'We're over the Netherlands — a quarter of what you see down there sits below sea level.' Nooit dezelfde regio twee keer in een vlucht.",
+          "more": "De regio komt uit dezelfde ingebouwde atlas als 'what are we flying over?' (geen internet nodig). Het feit komt van het taalmodel wanneer het aan en gezond is (twee zinnen, dezelfde bewaking als de plaatsfeiten — niets over deze vlucht), anders uit het gecureerde bestand region-facts.json in %LOCALAPPDATA%\\ProsimCompanion\\config — bewerk het om je eigen toe te voegen, per landcode (FR, GB) of 'sea:North Sea'. Stil buiten de cruise, zolang de vlucht niet live is, zolang het oor van de FO gepauzeerd is, in de sterile cockpit, na 'quiet please', en boven plaatsen die de atlas niet benoemt. Met de FO-persona aan wordt een gecureerd feit in de stem van de persona uitgesproken met elk cijfer vastgezet."
+        },
+        "shortest": {
+          "label": "Kortste tussenruimte",
+          "hint": "Minuten tussen feiten, minimaal. Het eerste feit komt zo lang (plus het willekeurige deel) na het begin van de cruise."
+        },
+        "longest": {
+          "label": "Langste tussenruimte",
+          "hint": "Elke tussenruimte wordt willekeurig tussen de twee getrokken, zodat het nooit als een timer voelt."
+        },
+        "perFlight": {
+          "label": "Feiten per vlucht",
+          "hint": "Hoogstens. Reset met de eenmaal-per-vlucht-rapporten van de cabine (cold and dark, of een nieuwe preflight na shutdown)."
+        },
+        "llmFacts": {
+          "label": "Feiten van het taalmodel",
+          "hint": "Vraag de LLM hierboven om het feit wanneer die is ingesteld en gezond; uit, of met het model down, spreekt alleen het gecureerde bestand.",
+          "more": "Modelfeiten stromen zin voor zin zoals de plaatsfeiten; een zin over deze vlucht met een cijfer erin wordt geweigerd, en als het model binnen twintig seconden niets zegt spreekt het gecureerde bestand in plaats daarvan. Getallen in een modelfeit zijn weetjes en worden niet geverifieerd."
+        }
+      },
+      "wol": {
+        "title": "Wake-on-LAN",
+        "hint": "Verplaatst naar Setup",
+        "before": "De pc's die de app bij het opstarten wekt — de taalmodelmachine, de spraakserver, elke andere — zijn één lijst onder",
+        "link": "Instellingen → Setup → Wake-on-LAN",
+        "after": ". Een oude instelling voor één pc van deze pagina wordt daarheen verplaatst zodra Setup voor het eerst opent."
+      }
+    },
+    "callouts": {
+      "title": "Standaard-callouts",
+      "hint": "De snelheids-, hoogte- en uitrolcalls van de FO.",
+      "enabled": {
+        "label": "Callouts aan",
+        "hint": "Hoofdschakelaar voor elke standaard-callout.",
+        "more": "Geldt live. De afzonderlijke callout-teksten, hoogte-callouts, de andere flow-monitor-herinneringen en de weeradviezen worden voorlopig bewerkt in de sectie sop van settings.json."
+      },
+      "placards": {
+        "title": "Flap-placards",
+        "hint": "Maximumsnelheid per flaphendelstand (VFE). De FO waarschuwt wanneer je hem benadert of overschrijdt, en toetst je flapcalls eraan.",
+        "leverHint": "ProSim meldt de hendel in zes stappen: UP, 1, 1+F, 2, 3, FULL. Hendel 1 geeft 1+F op de grond en bij de start; de FO leest de stap die ProSim meldt.",
+        "lever": "Hendel",
+        "limit": "Limiet (kt)",
+        "resetTitle": "A322-waarden: 230 / 215 / 200 / 185 / 177",
+        "reset": "Terug naar A320-standaard"
+      },
+      "gear": {
+        "title": "Landingsgestellimieten",
+        "hint": "VLE is de limiet met het landingsgestel uit. VLO is de limiet terwijl het landingsgestel beweegt; de FO weigert daarboven een gearcall.",
+        "vle": {
+          "label": "Landingsgestel uit (VLE)",
+          "hint": "De FO waarschuwt wanneer je sneller vliegt dan dit met het landingsgestel uit. 0 zet de waarschuwing uit."
+        },
+        "vloDown": {
+          "label": "Landingsgestel uitlaten (VLO down)",
+          "hint": "\"Gear down\" wordt boven deze snelheid geweigerd. 0 zet de controle uit."
+        },
+        "vloUp": {
+          "label": "Landingsgestel intrekken (VLO up)",
+          "hint": "\"Gear up\" wordt boven deze snelheid geweigerd. 0 zet de controle uit."
+        },
+        "stillDown": {
+          "label": "Herinnering landingsgestel nog uit",
+          "hint": "De FO zegt \"gear still down\" wanneer je klimt met het landingsgestel uit."
+        },
+        "upBy": {
+          "label": "Landingsgestel in vóór",
+          "hint": "De herinnering komt wanneer je boven deze hoogte klimt met het landingsgestel uit."
+        }
+      },
+      "gates": {
+        "title": "Naderingspoorten",
+        "hint": "De hoogtes waarop de FO controleert of de nadering stabiel is. Maatschappijen verschillen — stel je eigen SOP in.",
+        "stable": {
+          "label": "Controle gestabiliseerde nadering",
+          "hint": "Bij elke poort controleert de FO snelheid, daalsnelheid, landingsgestel en flaps, en roept een onstabiele nadering.",
+          "more": "Een poort wordt eenmaal gecontroleerd, wanneer je door zijn hoogte daalt op de radiohoogtemeter. De hoogste poort wordt eerst gecontroleerd. De snelheidsband wordt gemeten vanaf VLS."
+        },
+        "gateTitle": "Poort {0} — {1} ft",
+        "removeTitle": "Deze poort verwijderen",
+        "inUse": "Poort in gebruik",
+        "height": {
+          "label": "Hoogte",
+          "hint": "Radiohoogte van de poort. 0 zet de poort uit."
+        },
+        "gearDown": "Landingsgestel uit vereist",
+        "minFlap": {
+          "label": "Minimale flaphendel",
+          "hint": "De flaphendel moet op deze stand of verder staan."
+        },
+        "belowVls": "Toegestane snelheid onder VLS",
+        "aboveVls": "Toegestane snelheid boven VLS",
+        "sink": "Maximale daalsnelheid",
+        "announce": {
+          "label": "\"stabilized\" zeggen wanneer de poort passeert",
+          "hint": "Uit: de FO spreekt bij deze poort alleen wanneer de nadering onstabiel is."
+        },
+        "addTitle": "Een poort toevoegen, bijvoorbeeld een 1500 ft-poort",
+        "add": "Poort toevoegen",
+        "resetTitle": "Twee poorten: 1000 ft (flap 2 of meer) en 500 ft (flap 3 of meer), landingsgestel uit bij beide",
+        "reset": "Terug naar standaard",
+        "advancedLabel": "Bewoording en stuwkrachtcontrole verborgen",
+        "stableCall": "Stabiel-call",
+        "unstableCall": "Onstabiel-call",
+        "thrust": {
+          "label": "Stuwkracht moet opgespoeld zijn",
+          "hint": "Voegt aan elke poort een stuwkrachtcontrole toe: de gemiddelde N1 moet op of boven het cijfer hieronder liggen."
+        },
+        "minN1": "Minimale N1"
+      },
+      "advisories": {
+        "title": "Placard-adviezen",
+        "hint": "Wat de FO zegt wanneer een limiet nabij is of overschreden",
+        "warnWithin": {
+          "label": "Waarschuwen binnen",
+          "hint": "Spreek de naderingscall zo dicht onder de limiet, tijdens het versnellen."
+        },
+        "cooldown": {
+          "label": "Afkoeltijd",
+          "hint": "Minimale tijd tussen twee adviezen van dezelfde soort."
+        },
+        "approaching": "Flaplimiet nadert",
+        "exceeded": "Flaplimiet overschreden",
+        "gearExceeded": "Landingsgestellimiet overschreden"
+      },
+      "monitoring": {
+        "title": "Bewaking tijdens de vlucht",
+        "hint": "Vier FO-taken die uit staan tot je ze aanzet. Elk heeft een live vlucht nodig en spreekt alleen.",
+        "fuelCheck": {
+          "label": "Fuel check",
+          "hint": "In de cruise vergelijkt de FO de brandstof aan boord met het SimBrief-plan op je positie en geeft de geschatte landingsbrandstof. Ook op 'fuel check'.",
+          "more": "Heeft een SimBrief-OFP met navlog en de vliegtuigpositie nodig. Zonder die: brandstof aan boord min brandstofstroom maal de tijd tot de ETA. Een tekort boven de marge wordt op High uitgesproken. Stil in sterile fasen."
+        },
+        "fuelEvery": {
+          "label": "Fuel check elke",
+          "hint": "Minuten tussen automatische controles in de cruise; 0 = alleen op verzoek"
+        },
+        "shortfall": {
+          "label": "Tekortmarge",
+          "hint": "Zoveel onder plan (of meer) wordt de controle als waarschuwing uitgesproken"
+        },
+        "onPlan": {
+          "label": "Telt als op plan binnen",
+          "hint": "Kleinere verschillen zijn 'on plan' in plaats van een cijfer"
+        },
+        "grossError": {
+          "label": "Grove-foutcontrole voor de start",
+          "hint": "Eén regel voor de start: de vliegtuiggewichten tegen de definitieve loadsheet, en de FMS-flaps, flex en V-speeds tegen de laatste startprestatieberekening. Ook op 'gross error check'.",
+          "more": "Draait eenmaal per vertrek wanneer de definitieve loadsheet uit is en de V-speeds in de FMS staan. De FMS-INIT-gewichten kunnen niet uit ProSim worden gelezen, dus het eigen zero fuel weight van het vliegtuig en de brandstof aan boord staan ervoor in. De prestatiecijfers komen uit de laatste berekening van de pagina Performance."
+        },
+        "automatic": {
+          "label": "Automatisch",
+          "hint": "Uit = alleen wanneer je erom vraagt"
+        },
+        "zfw": "Zero-fuel-weight-tolerantie",
+        "blockFuel": "Blokbrandstof-tolerantie",
+        "flex": "Flex-tolerantie",
+        "destWx": {
+          "label": "Bestemmingsweerbewaking",
+          "hint": "Vanaf de cruise vertelt de FO je wanneer het zicht of de wolkenbasis op de bestemming je limiet kruist, wanneer de ATIS-letter verandert, of wanneer de wind op de geplande landingsbaan rugwind wordt.",
+          "more": "Gebruikt de eigen verversing van de weerkaarten, geen extra polling. Het weer van het uitwijkveld komt erbij zodra de bestemming onder een limiet zit. Elke soort verandering wordt hoogstens eenmaal per rustperiode uitgesproken."
+        },
+        "visibility": "Zichtlimiet",
+        "ceiling": "Wolkenbasislimiet",
+        "tailwind": {
+          "label": "Rugwindlimiet",
+          "hint": "Een rugwindcomponent hierboven op de geplande landingsbaan wordt aangekondigd"
+        },
+        "quiet": "Rustperiode per verandering",
+        "atis": "ATIS-letterwijzigingen aankondigen",
+        "readbacks": {
+          "label": "Read-backs",
+          "hint": "Zeg 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' of 'minimums two one zero' en de FO toetst het aan het vliegtuig.",
+          "more": "De hoogtemeter wordt getoetst aan je baro-instelling, de V-speeds aan de FMS PERF-pagina, de baan aan het FMS-plan (vertrek voor de start, aankomst erna), de minimums aan de gebriefte. De FO antwoordt 'checked' of de waarde die hij afleest."
+        },
+        "altimeter": "Hoogtemetertolerantie",
+        "minimums": "Minimumstolerantie"
+      }
+    },
+    "abnormals": {
+      "title": "ECAM-abnormals",
+      "hint": "De FO leest de E/WD en de systeemdatarefs, kondigt een storing aan en werkt de procedure met je af. Hij beweegt nooit een schakelaar",
+      "detect": {
+        "label": "Storingen detecteren en aankondigen",
+        "hint": "Uit: niets wordt gedetecteerd of aangekondigd. De memory drills kunnen nog met spraak als oefening worden opgeroepen."
+      },
+      "lineByLine": {
+        "label": "De ECAM regel voor regel afwerken",
+        "hint": "Elke actieregel wacht op je bevestiging; een regel met een controle wordt getoetst aan het vliegtuig.",
+        "more": "Zeg \"standby\", \"say again\", \"skip\", \"fault remains\", \"unable\" of \"cancel ecam\" bij elke regel. Uit: de FO kondigt de storing aan en laat de ECAM aan jou."
+      },
+      "answerWindow": {
+        "label": "Antwoordvenster per regel",
+        "hint": "Hoe lang de FO op je antwoord wacht voordat hij opnieuw vraagt."
+      },
+      "silentPrompts": {
+        "label": "Onbeantwoorde vragen voor standby",
+        "hint": "Na zoveel stille vensters op rij stopt de FO met vragen en staat stand-by. 0 = eindeloos vragen."
+      },
+      "mismatches": {
+        "label": "Getolereerde verificatieafwijkingen",
+        "hint": "Afwijkingen op een gecontroleerde regel voordat de FO doorgaan of standby aanbiedt."
+      },
+      "filesBefore": "De procedures zelf zijn JSON-bestanden onder",
+      "filesAfter": "; een bestand dat niet laadt wordt in een banner genoemd. Een lopende dialoog kan vanuit de sectie Status worden geannuleerd."
+    },
+    "options": {
+      "recognitionMode": {
+        "pushToTalk": "Push-to-talk (eigen FO-toets)",
+        "continuous": "Continu (ATC dempen tijdens zenden)"
+      },
+      "seat": {
+        "left": "Linkerstoel (FO bedient de rechterkant)",
+        "right": "Rechterstoel (virtuele piloot bedient de linkerkant)"
+      },
+      "llmApi": {
+        "openAi": "OpenAI-compatibel (/chat/completions)",
+        "ollama": "Ollama natief (/api/chat — denkbesturing)"
+      },
+      "asrApi": {
+        "fasterWhisper": "faster-whisper-wrapper (/transcribe)",
+        "whisperCpp": "whisper.cpp-server (/v1/audio/transcriptions)"
+      },
+      "vad": {
+        "silero": "Silero VAD (neuraal, aanbevolen)",
+        "rms": "RMS-energiepoort (oud)"
+      },
+      "procedureSource": {
+        "auto": "Auto (FMS → flight.json → handmatig)",
+        "manual": "Alleen handmatige invoer",
+        "flightJson": "Alleen SayIntentions flight.json"
+      },
+      "normalPolicy": {
+        "allow": "Toestaan (normaal spreken)",
+        "defer": "Uitstellen (herhalen als steriel eindigt)",
+        "suppress": "Onderdrukken (weggooien)"
+      },
+      "apiKeySource": {
+        "auto": "Auto (uit flight.json)",
+        "manual": "Handmatig (hieronder ingevoerd)"
+      },
+      "elevenLabsModel": {
+        "flash": "eleven_flash_v2_5 (snel, halve kosten)",
+        "v3": "eleven_v3 (expressief, volle kosten)"
+      },
+      "elevenLabsFormat": {
+        "mp3": "mp3_44100_128 (alle plannen)",
+        "pcm": "pcm_24000 (betaalde plannen)"
+      },
+      "experience": {
+        "junior": "Junior",
+        "standard": "Standaard",
+        "senior": "Senior"
+      },
+      "formality": {
+        "casual": "Informeel",
+        "standard": "Standaard",
+        "formal": "Formeel"
+      },
+      "verbosity": {
+        "full": "Volledig",
+        "brief": "Kort"
+      },
+      "pttSwitch": {
+        "off": "Uit",
+        "captainSidestick": "Sidestick-PTT gezagvoerder",
+        "foSidestick": "Sidestick-PTT First Officer",
+        "captainHandMic": "Handmicrofoon-PTT gezagvoerder",
+        "foHandMic": "Handmicrofoon-PTT First Officer",
+        "observerHandMic": "Handmicrofoon-PTT waarnemer"
+      },
+      "siPtt": {
+        "com": "COM-radio-PTT (de geselecteerde radio)",
+        "com1": "COM1-PTT (geforceerd)",
+        "com2": "COM2-PTT (geforceerd)",
+        "intercom1": "Intercom-PTT — kanaal 1",
+        "intercom2": "Intercom-PTT — kanaal 2",
+        "intercom3": "Intercom-PTT — kanaal 3",
+        "group": "Groepsvlucht-PTT"
+      }
+    },
+    "devices": {
+      "defaultCapture": "Standaard-opnameapparaat",
+      "systemDefault": "Systeemstandaard",
+      "notDetected": "{0} (nu niet gedetecteerd)"
+    },
+    "binding": {
+      "unset": "(niet ingesteld)",
+      "keyboard": "Toets: {0}",
+      "joystick": "Joystick {0}",
+      "button": "{0} — knop {1}"
+    },
+    "capture": {
+      "nothingPressed": "Niets ingedrukt binnen tien seconden.",
+      "bound": "{0} gekoppeld aan {1}.",
+      "atcPtt": "ATC-PTT",
+      "foPtt": "FO-PTT",
+      "failed": "Vastleggen mislukt — zie de pagina Logboeken."
+    },
+    "scan": {
+      "scanning": "Scannen…",
+      "none": "Geen joystick heeft geantwoord.",
+      "found": "Gevonden: {0}.",
+      "failed": "Scannen mislukt — zie de pagina Logboeken."
+    },
+    "voiceNotes": {
+      "emptyHint": "Nog geen stemmen in de lijst. Verbind een aanbieder onder Stemaanbieders en druk op Verversen.",
+      "notListed": "nog niet opgehaald",
+      "notConfigured": "niet ingesteld",
+      "none": "geen stemmen gemeld",
+      "count": "{0} stemmen",
+      "failed": "stemmen konden niet worden opgehaald — {0}"
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "speechStatus": {
+    "ecam": {
+      "running": "ECAM-DIALOG LÄUFT — {0}",
+      "cancel": "ECAM-Dialog abbrechen"
+    },
+    "cabinCalling": {
+      "text": "KABINE RUFT — CAB am Audiopanel wählen",
+      "title": "Die echte CAB-CALL-Leuchte des ACP ist im SDK nur lesbar — dieses Banner ersetzt das Blinken"
+    },
+    "fo": {
+      "title": "Sprach-Erster-Offizier",
+      "hint": "Status von Arbiter, TTS-Kette und Wiedergabe",
+      "enabled": "Aktiv",
+      "disabled": "Inaktiv",
+      "sterileTitle": "Unter der Sterile-Grenze in einer Arbeitsphase wird Sprache mit Priorität Low verworfen, Normal folgt der eingestellten Regel",
+      "sterile": "Sterile Cockpit",
+      "notSterile": "Nicht steril",
+      "listeningTitle": "Engine-Wahrheit: Hört zu heißt, der Erkenner nimmt wirklich auf; Pausiert ist die Ohr-aus-Sperre des Piloten (Stream-Deck-Taste Voice Pause / der Knopf hier)",
+      "paused": "Sprache pausiert",
+      "listening": "Hört zu",
+      "notListening": "Hört nicht zu",
+      "toggleTitle": "Das Ohr des FO stummschalten, während du mit einer echten Person sprichst — der FO spricht weiter. Lautlos: keine Bestätigung in beide Richtungen. Wird durch einen App-Neustart aufgehoben",
+      "resume": "Weiter zuhören",
+      "pause": "Zuhören pausieren",
+      "earWhisper": "Ohr: whisper (LAN)",
+      "earOffline": "Ohr: Offline-Engine",
+      "queue": "Warteschlange {0}",
+      "speaking": "Spricht"
+    },
+    "tts": {
+      "title": "TTS-Anbieter",
+      "hint": "Der Reihe nach versucht; ein ausgefallener Anbieter pausiert 60 s. Test spricht genau mit diesem Anbieter — kein Fallback",
+      "colProvider": "Anbieter",
+      "colState": "Zustand",
+      "colDetail": "Details",
+      "testing": "Teste…",
+      "test": "Test",
+      "health": {
+        "healthy": "Gesund",
+        "coolingDown": "Pausiert",
+        "disabled": "Inaktiv",
+        "untried": "Ungetestet"
+      }
+    },
+    "tests": {
+      "title": "Komponententests",
+      "hint": "LLM-Endpunkt, Mikrofon und Navigationsdatenbank prüfen, ohne eine Strecke zu fliegen",
+      "llm": "LLM-Verbindung testen",
+      "micListening": "Höre zu… jetzt sprechen",
+      "mic": "Mikrofon testen",
+      "navData": "Navdaten testen",
+      "wakeTitle": "Sendet ein Wake-on-LAN-Magic-Packet an jeden PC unter Einstellungen → Setup → Wake-on-LAN — danach mit LLM-Verbindung testen / Sprachdienste neu verbinden prüfen",
+      "sending": "Sende…",
+      "wake": "PCs wecken",
+      "reconnectTitle": "Prüft whisper und Kokoro jetzt. Schaltet die Erkennung zurück auf whisper, wenn es antwortet, und hebt eine Kokoro-Pause auf — die App versucht whisper auch von selbst alle 30 s",
+      "checking": "Prüfe…",
+      "reconnect": "Sprachdienste neu verbinden",
+      "resultVoice": "Sprachdienste: {0}",
+      "resultLlm": "LLM: {0}",
+      "resultMic": "Mikrofon: {0}",
+      "resultNavData": "Navdaten: {0}",
+      "resultWake": "Wake-on-LAN: {0}",
+      "failed": "Test unerwartet fehlgeschlagen — siehe Seite Protokolle."
+    },
+    "minima": {
+      "title": "Anflugminima",
+      "hint": "Es gibt keinen DH/MDA-Dataref — gib die gebrieften Minima ein, um die Minimums-Callouts scharf zu schalten",
+      "clear": "Löschen",
+      "da": "DA (baro, ft MSL)",
+      "dh": "DH (radio, ft)",
+      "mda": "MDA (baro, ft MSL)",
+      "altitude": "Höhe ft",
+      "set": "Setzen",
+      "untilSet": "Bis sie gesetzt sind, bleiben \"one hundred above\"/\"minimums\" aus (einmal pro Flug protokolliert)."
+    },
+    "speak": {
+      "title": "Sprechtest",
+      "hint": "Durchläuft den vollen Pfad Arbiter → TTS → Wiedergabe mit Priorität Normal",
+      "placeholder": "Etwas, das der FO sagen soll",
+      "button": "Sprechen"
+    },
+    "unmatched": {
+      "title": "Gehört, aber nicht verstanden",
+      "hint": "Was du in dieser Sitzung gesagt hast, worauf kein Befehl, keine Checklistenantwort und kein Fragehandler reagiert hat — gruppiert, häufigste zuerst",
+      "trackingOff": "Erfassung ist aus — Einstellungen → Sprach-Erster-Offizier → Erkennung & Push-to-Talk → \"Nicht verstandene Sätze merken\".",
+      "nothing": "Bisher ist nichts durchgefallen.",
+      "absorbed": "{0} in sterilen Phasen stillschweigend geschluckt (Callouts, keine Befehle).",
+      "heardTitle": "Jeder Treffer-Fehlschlag dieser Sitzung, unterdrückte eingeschlossen",
+      "heard": "{0} gehört",
+      "repeatedTitle": "Ein Satz, der drei- oder mehrmals gehört wurde, ist der, den du hinzufügen solltest",
+      "repeated": "{0} ab 3× wiederholt",
+      "sterileTitle": "In sterilen Phasen geschluckt: gezählt, nie Kandidaten",
+      "sterile": "{0} steril",
+      "clear": "Löschen",
+      "colPhrase": "Satz",
+      "colCount": "Anzahl",
+      "colWhere": "Wo",
+      "colLast": "Zuletzt (UTC)",
+      "contextTitle": "idle = keine Checkliste offen; checklist: … = diese Zeile wartete auf ihre Antwort; confirm-declined = der FO fragte 'did you mean' und du hast verneint",
+      "teach": "Um dem FO einen Satz beizubringen, trage ihn an der passenden Stelle unter {0} ein: einen Cockpit-Befehl in {1}, eine ATC-Anfrage in {2}, eine Checklistenantwort in den {3} der Zeile unter {4}. Der FO lädt die Dateien neu; das Sitzungsprotokoll behält jeden Fehlschlag als {5}."
+    },
+    "recent": {
+      "summary": "Diagnose — letzte Äußerungen",
+      "title": "Letzte Äußerungen",
+      "hint": "Neueste zuerst — die volle Historie steht im Sitzungs-Ereignisprotokoll",
+      "nothing": "Noch nichts gesprochen.",
+      "colTime": "Zeit (UTC)",
+      "colOutcome": "Ergebnis",
+      "colPriority": "Priorität",
+      "colTag": "Tag",
+      "colText": "Text"
+    }
+  }
+}

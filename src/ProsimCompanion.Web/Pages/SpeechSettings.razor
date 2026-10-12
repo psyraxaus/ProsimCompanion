@@ -25,9 +25,10 @@
 @inject IVoiceCatalog VoiceCatalog
 @inject ITtsUsageReadout TtsUsage
 @inject NavigationManager Nav
+@inject IStringLocalizer T
 
-<PageTitle>Voice First Officer — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Voice First Officer</h1>
+<PageTitle>@T["speechSettings.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["speechSettings.heading"]</h1>
 
 @* Sections are URL-driven (settings/speech/{section}, ADR-0010); the rail lives in
    SettingsLayout. The speech master switch moved to Setup with the other pillar switches;
@@ -41,139 +42,139 @@
 }
 else if (CurrentSection == "general")
 {
-    <Section Title="Voice First Officer" Hint="Voices are tried in order: Kokoro, ElevenLabs, Google, then Windows">
-        <BoolField Label="Local only" Hint="Never use network voices. Speech never leaves this PC." More="Kokoro, ElevenLabs and Google are skipped on every path."
+    <Section Title="@T["speechSettings.general.title"]" Hint="@T["speechSettings.general.hint"]">
+        <BoolField Label="@T["speechSettings.general.localOnly.label"]" Hint="@T["speechSettings.general.localOnly.hint"]" More="@T["speechSettings.general.localOnly.more"]"
                    @bind-Value="_speech.Value.LocalOnly" />
-        <SelectField Label="Your seat" Hint="The seat you fly from. The First Officer works the other side." More="Left: the FO uses the right MCDU, EFIS and controls. Right: the FO uses the captain's side. The MCDU side changes after an app restart." Options="PilotSeatOptions"
+        <SelectField Label="@T["speechSettings.general.seat.label"]" Hint="@T["speechSettings.general.seat.hint"]" More="@T["speechSettings.general.seat.more"]" Options="PilotSeatOptions"
                      @bind-Value="_speech.Value.PilotSeat" />
-        <BoolField Label="Engine &amp; flap call responses" Hint="The FO answers your engine start and flap calls." More="Flap calls are checked against the placard speeds. Verbal only: the FO never moves the levers."
+        <BoolField Label="@T["speechSettings.general.engineFlap.label"]" Hint="@T["speechSettings.general.engineFlap.hint"]" More="@T["speechSettings.general.engineFlap.more"]"
                    @bind-Value="_speech.Value.EngineFlapCallouts" />
-        <BoolField Label="Engine start monitoring" Hint="The FO calls each engine start: starting, available, both stabilized." More="Read from the engine data on the ground, once per start. No pilot call needed."
+        <BoolField Label="@T["speechSettings.general.engineStart.label"]" Hint="@T["speechSettings.general.engineStart.hint"]" More="@T["speechSettings.general.engineStart.more"]"
                    @bind-Value="_speech.Value.EngineStartCallouts" />
     </Section>
 
-    <Section Title="Human Pacing" Hint="Button presses at a human tempo" Advanced="true">
-        <BoolField Label="Humanize button timing" Hint="Add small human pauses between button presses." More="Off: the minimum delays only."
+    <Section Title="@T["speechSettings.general.pacing.title"]" Hint="@T["speechSettings.general.pacing.hint"]" Advanced="true">
+        <BoolField Label="@T["speechSettings.general.pacing.humanize.label"]" Hint="@T["speechSettings.general.pacing.humanize.hint"]" More="@T["speechSettings.general.pacing.humanize.more"]"
                    @bind-Value="_speech.Value.Humanize.Enabled" />
-        <NumberField Label="Tempo" Hint="1.0 is normal, 2.0 is twice as slow." Step="0.1" Min="0.25" Max="4"
+        <NumberField Label="@T["speechSettings.general.pacing.tempo.label"]" Hint="@T["speechSettings.general.pacing.tempo.hint"]" Step="0.1" Min="0.25" Max="4"
                      Disabled="@(!_speech.Value.Humanize.Enabled)"
                      @bind-Value="_speech.Value.Humanize.Tempo"
                      Default="_speech.Defaults.Humanize.Tempo" />
     </Section>
 
-    <Section Title="Playback">
-        <SelectField Label="Output device" Hint="Where the First Officer's voice plays."
+    <Section Title="@T["speechSettings.general.playback.title"]">
+        <SelectField Label="@T["speechSettings.general.playback.outputDevice.label"]" Hint="@T["speechSettings.general.playback.outputDevice.hint"]"
                      Options="OutputDeviceOptions()"
                      @bind-Value="_speech.Value.OutputDevice" />
-        <NumberField Label="Volume" Suffix="%" Min="0" Max="100"
+        <NumberField Label="@T["speechSettings.general.playback.volume"]" Suffix="%" Min="0" Max="100"
                      @bind-Value="_speech.Value.Volume"
                      Default="_speech.Defaults.Volume" />
-        <BoolField Label="Intercom filter" Hint="Make the FO sound like a headset, not a narrator."
+        <BoolField Label="@T["speechSettings.general.playback.intercomFilter.label"]" Hint="@T["speechSettings.general.playback.intercomFilter.hint"]"
                    @bind-Value="_speech.Value.IntercomFilter" />
     </Section>
 }
 else if (CurrentSection == "persona")
 {
     @* FO persona (Phase 7, 2026-08-08) — settings.json only until the 2026-10-08 audit. *@
-    <Section Title="FO Persona" Hint="Wording and tone only. A number, a callout or a checklist line is never changed">
-        <BoolField Label="Enabled" Hint="Let the persona colour what the FO says." More="With the language model off, the only effect is varied acknowledgements."
+    <Section Title="@T["speechSettings.persona.title"]" Hint="@T["speechSettings.persona.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.persona.enabled.hint"]" More="@T["speechSettings.persona.enabled.more"]"
                    @bind-Value="_persona.Value.Enabled" />
-        <TextField Label="Name" Hint="Woven into the model's style prompt (&quot;Your name is …&quot;). Empty = unnamed." Placeholder="e.g. Sam"
+        <TextField Label="@T["speechSettings.persona.name.label"]" Hint="@T["speechSettings.persona.name.hint"]" Placeholder="@T["speechSettings.persona.name.placeholder"]"
                    Disabled="@(!_persona.Value.Enabled)"
                    @bind-Value="_persona.Value.Name" />
-        <SelectField Label="Experience" Hint="How seasoned the FO sounds." Options="PersonaExperienceOptions"
+        <SelectField Label="@T["speechSettings.persona.experience.label"]" Hint="@T["speechSettings.persona.experience.hint"]" Options="PersonaExperienceOptions"
                      Disabled="@(!_persona.Value.Enabled)"
                      @bind-Value="_persona.Value.Experience" />
-        <SelectField Label="Formality" Hint="How formal the FO is with you." Options="PersonaFormalityOptions"
+        <SelectField Label="@T["speechSettings.persona.formality.label"]" Hint="@T["speechSettings.persona.formality.hint"]" Options="PersonaFormalityOptions"
                      Disabled="@(!_persona.Value.Enabled)"
                      @bind-Value="_persona.Value.Formality" />
-        <NumberField Label="Chattiness" Hint="0 keeps everything short. 3 allows natural warmth." More="&quot;Quiet please&quot; silences chatter for the session whatever this says." Min="0" Max="3"
+        <NumberField Label="@T["speechSettings.persona.chattiness.label"]" Hint="@T["speechSettings.persona.chattiness.hint"]" More="@T["speechSettings.persona.chattiness.more"]" Min="0" Max="3"
                      Disabled="@(!_persona.Value.Enabled)"
                      @bind-Value="_persona.Value.Chattiness"
                      Default="_persona.Defaults.Chattiness" />
     </Section>
 
-    <Section Title="What the Persona Styles" Hint="Each one is verified against the facts; the plain text is always the fallback">
-        <BoolField Label="Briefings" Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleBriefings" />
-        <BoolField Label="Debrief" Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleDebrief" />
-        <BoolField Label="Advisories" Hint="Flow and weather advisories pass through the model before they are spoken." More="Only when the restyle returns within the time below; otherwise the plain text speaks."
+    <Section Title="@T["speechSettings.persona.styles.title"]" Hint="@T["speechSettings.persona.styles.hint"]">
+        <BoolField Label="@T["speechSettings.persona.styles.briefings"]" Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleBriefings" />
+        <BoolField Label="@T["speechSettings.persona.styles.debrief"]" Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleDebrief" />
+        <BoolField Label="@T["speechSettings.persona.styles.advisories.label"]" Hint="@T["speechSettings.persona.styles.advisories.hint"]" More="@T["speechSettings.persona.styles.advisories.more"]"
                    Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleAdvisories" />
-        <BoolField Label="Vary acknowledgements" Hint="Pick &quot;are you sure&quot; / &quot;say again&quot; lines at random from phrases.json instead of in turn."
+        <BoolField Label="@T["speechSettings.persona.styles.vary.label"]" Hint="@T["speechSettings.persona.styles.vary.hint"]"
                    Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.VaryAcknowledgements" />
         <AdvancedFields>
-            <NumberField Label="Advisory restyle budget" Hint="Time the model gets to restyle one advisory. The plain text speaks when it runs out." Suffix="ms" Min="500" Step="100"
+            <NumberField Label="@T["speechSettings.persona.styles.budget.label"]" Hint="@T["speechSettings.persona.styles.budget.hint"]" Suffix="ms" Min="500" Step="100"
                          Disabled="@(!_persona.Value.Enabled || !_persona.Value.StyleAdvisories)"
                          @bind-Value="_persona.Value.StyleTimeoutMs"
                          Default="_persona.Defaults.StyleTimeoutMs" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
-            The phrase pools themselves are in <code>config\phrases.json</code> under
-            <code>%LOCALAPPDATA%\ProsimCompanion</code> — edit the file, the FO reloads it.
+            @T["speechSettings.persona.styles.poolsBefore"] <code>config\phrases.json</code> @T["speechSettings.persona.styles.poolsMiddle"]
+            <code>%LOCALAPPDATA%\ProsimCompanion</code> @T["speechSettings.persona.styles.poolsAfter"]
         </div>
     </Section>
 }
 else if (CurrentSection == "listening")
 {
-    <Section Title="Recognition & Push-to-Talk" Hint="How the First Officer hears you">
-        <SelectField Label="Listening mode" Hint="Push-to-talk: the FO listens only while your FO key is held." More="Continuous: the FO listens whenever it expects a reply, except while the ATC key is held. On a network (VATSIM, IVAO, SayIntentions) always bind your ATC transmit key below, so the FO never hears what you say to ATC." Options="RecognitionModeOptions"
+    <Section Title="@T["speechSettings.listening.title"]" Hint="@T["speechSettings.listening.hint"]">
+        <SelectField Label="@T["speechSettings.listening.mode.label"]" Hint="@T["speechSettings.listening.mode.hint"]" More="@T["speechSettings.listening.mode.more"]" Options="RecognitionModeOptions"
                      @bind-Value="_speech.Value.RecognitionMode" />
         <div class="field">
             <label class="field-label">
-                FO push-to-talk
-                <span class="field-hint">The key or button that talks to the First Officer. Never your ATC key.</span>
+                @T["speechSettings.listening.foPtt.label"]
+                <span class="field-hint">@T["speechSettings.listening.foPtt.hint"]</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <span class="mono" style="min-width:220px;">@BindingText(_speech.Value.PttBinding)</span>
                     <button type="button" class="btn secondary" disabled="@(_capturing is not null)"
                             @onclick='() => SetBindingAsync("fo")'>
-                        @(_capturing == "fo" ? "Press the key or button now…" : "Set")
+                        @(_capturing == "fo" ? T["speechSettings.common.pressNow"].Value : T["speechSettings.common.set"].Value)
                     </button>
                     <button type="button" class="btn secondary" disabled="@(_capturing is not null)"
-                            @onclick='() => ClearBinding(_speech.Value.PttBinding)'>Clear</button>
-                    <span title="Lights while the bound input is held"
+                            @onclick='() => ClearBinding(_speech.Value.PttBinding)'>@T["speechSettings.common.clear"]</button>
+                    <span title="@T["speechSettings.common.lampTitle"]"
                           style="display:inline-block; width:13px; height:13px; border-radius:50%; background:@(PttCapture.OwnPttPressed ? "var(--ok, #3fb950)" : "var(--border, #444)");"></span>
                 </div>
             </div>
         </div>
         <div class="field">
             <label class="field-label">
-                ATC push-to-talk (mute)
-                <span class="field-hint">The key or button you use to talk to ATC. While it is held, the FO does not listen.</span>
+                @T["speechSettings.listening.atcPtt.label"]
+                <span class="field-hint">@T["speechSettings.listening.atcPtt.hint"]</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <span class="mono" style="min-width:220px;">@BindingText(_speech.Value.AtcMuteBinding)</span>
                     <button type="button" class="btn secondary" disabled="@(_capturing is not null)"
                             @onclick='() => SetBindingAsync("atc")'>
-                        @(_capturing == "atc" ? "Press the key or button now…" : "Set")
+                        @(_capturing == "atc" ? T["speechSettings.common.pressNow"].Value : T["speechSettings.common.set"].Value)
                     </button>
                     <button type="button" class="btn secondary" disabled="@(_capturing is not null)"
-                            @onclick='() => ClearBinding(_speech.Value.AtcMuteBinding)'>Clear</button>
-                    <span title="Lights while the bound input is held"
+                            @onclick='() => ClearBinding(_speech.Value.AtcMuteBinding)'>@T["speechSettings.common.clear"]</button>
+                    <span title="@T["speechSettings.common.lampTitle"]"
                           style="display:inline-block; width:13px; height:13px; border-radius:50%; background:@(PttCapture.AtcMutePressed ? "var(--ok, #3fb950)" : "var(--border, #444)");"></span>
                 </div>
             </div>
         </div>
-        <SelectField Label="ATC mute from a ProSim switch" Hint="A sidestick or hand-mic PTT switch in ProSim. While it reads pushed, the FO does not listen — same as the key or button above, and it needs no joystick on this PC."
-                     More="Bind your button to the switch in ProSim (it can live on another PC). Choosing a SayIntentions push-to-talk switch on the SayIntentions section sets this to the same switch when it is still Off."
+        <SelectField Label="@T["speechSettings.listening.atcMuteSource.label"]" Hint="@T["speechSettings.listening.atcMuteSource.hint"]"
+                     More="@T["speechSettings.listening.atcMuteSource.more"]"
                      Options="PttSwitchOptions"
                      @bind-Value="_speech.Value.AtcMuteSource" />
         @if (_captureMessage is not null)
         {
             <div class="field-hint">@_captureMessage</div>
         }
-        <BoolField Label="Also listen for joystick buttons" Hint="Off: Set captures a keyboard key only. On: Set also watches the joystick buttons on this PC."
-                   More="Windows' joystick layer has crashed the app on some PCs (2026-09-20, 2026-10-10, 2026-10-11 — the last time just from listing the devices when this page opened). The page now talks to it only while this is on or when you press Scan. A ProSim switch (above, and on the SayIntentions section) needs no joystick on this PC."
+        <BoolField Label="@T["speechSettings.listening.joystickButtons.label"]" Hint="@T["speechSettings.listening.joystickButtons.hint"]"
+                   More="@T["speechSettings.listening.joystickButtons.more"]"
                    @bind-Value="_listenJoysticks" />
         <div class="field">
             <label class="field-label">
-                Joysticks on this PC
-                <span class="field-hint">@(_joysticks.Count == 0 ? "Not scanned." : string.Join(", ", _joysticks.Select(j => $"{j.Name} (id {j.Id})")))</span>
+                @T["speechSettings.listening.joysticks.label"]
+                <span class="field-hint">@(_joysticks.Count == 0 ? T["speechSettings.listening.joysticks.notScanned"].Value : string.Join(", ", _joysticks.Select(j => $"{j.Name} (id {j.Id})")))</span>
             </label>
             <div class="field-control">
-                <button type="button" class="btn secondary" disabled="@(_capturing is not null || _scanMessage == "Scanning…")"
-                        @onclick="ScanJoysticksAsync">Scan for joysticks</button>
+                <button type="button" class="btn secondary" disabled="@(_capturing is not null || _scanning)"
+                        @onclick="ScanJoysticksAsync">@T["speechSettings.listening.joysticks.scan"]</button>
                 @if (_scanMessage is not null)
                 {
                     <span class="field-hint">@_scanMessage</span>
@@ -181,103 +182,102 @@ else if (CurrentSection == "listening")
             </div>
         </div>
         <div class="field-hint" style="max-width:640px;">
-            Set waits ten seconds for a key (and a joystick button when ticked above). Save
-            afterwards; the lamps light for the saved bindings only.
+            @T["speechSettings.listening.setHint"]
         </div>
-        <SelectField Label="Input device" Hint="The microphone the FO listens on."
+        <SelectField Label="@T["speechSettings.listening.inputDevice.label"]" Hint="@T["speechSettings.listening.inputDevice.hint"]"
                      Options="InputDeviceOptions()"
                      @bind-Value="_speech.Value.InputDevice" />
-        <BoolField Label="Track phrases the FO did not understand" Hint="Keep what you said that nothing acted on, so you can add the commands you actually use." More="Listed under Heard but not understood on the Voice status page and written to the session log as voice.unmatched. Off: nothing is kept; the log's ASR trail still shows every utterance."
+        <BoolField Label="@T["speechSettings.listening.trackUnmatched.label"]" Hint="@T["speechSettings.listening.trackUnmatched.hint"]" More="@T["speechSettings.listening.trackUnmatched.more"]"
                    @bind-Value="_speech.Value.TrackUnmatched" />
         <AdvancedFields>
-            <NumberField Label="Phrase match score" Hint="How close a heard phrase must be to a known one before the FO acts on it." More="0.5 Levenshtein + 0.5 DoubleMetaphone. Lower hears more, mis-hears more." Step="0.05" Min="0.3" Max="1"
+            <NumberField Label="@T["speechSettings.listening.matchScore.label"]" Hint="@T["speechSettings.listening.matchScore.hint"]" More="@T["speechSettings.listening.matchScore.more"]" Step="0.05" Min="0.3" Max="1"
                          @bind-Value="_speech.Value.SnappingThreshold"
                          Default="_speech.Defaults.SnappingThreshold" />
-            <NumberField Label="Ask 'did you mean' below" Hint="A match between the score above and this one makes the FO ask 'Did you mean …?' instead of acting." More="Set it equal to the match score to never ask." Step="0.05" Min="0.3" Max="1"
+            <NumberField Label="@T["speechSettings.listening.confirmBelow.label"]" Hint="@T["speechSettings.listening.confirmBelow.hint"]" More="@T["speechSettings.listening.confirmBelow.more"]" Step="0.05" Min="0.3" Max="1"
                          @bind-Value="_speech.Value.ConfirmBelowScore"
                          Default="_speech.Defaults.ConfirmBelowScore" />
-            <NumberField Label="No 'did you mean' below" Hint="Airborne below this radio height the FO never asks 'Did you mean …?'. The takeoff roll, initial climb and landing rollout are always quiet." More="In those moments an FMA read or capture call that matched at 0.70 or better is simply acknowledged ('Checked.'), and anything else is let go without a word — a question over the roll or 'did you mean gear up?' in the climb is the worst chatter there is. 0 = only the three phases." Suffix="ft" Min="0" Max="5000" Step="100"
+            <NumberField Label="@T["speechSettings.listening.noConfirmBelow.label"]" Hint="@T["speechSettings.listening.noConfirmBelow.hint"]" More="@T["speechSettings.listening.noConfirmBelow.more"]" Suffix="ft" Min="0" Max="5000" Step="100"
                          @bind-Value="_speech.Value.ClarifierMinAglFt"
                          Default="_speech.Defaults.ClarifierMinAglFt" />
-            <NumberField Label="Offline engine confidence" Hint="Minimum confidence the Windows engine must report. Not used with a LAN server." Step="0.05" Min="0" Max="1"
+            <NumberField Label="@T["speechSettings.listening.offlineConfidence.label"]" Hint="@T["speechSettings.listening.offlineConfidence.hint"]" Step="0.05" Min="0" Max="1"
                          @bind-Value="_speech.Value.RecognitionConfidenceThreshold"
                          Default="_speech.Defaults.RecognitionConfidenceThreshold" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Speech Recognition Server" Hint="A transcription server on your network. Empty uses the offline Windows engine">
-        <TextField Label="LAN ASR URL" Hint="Server address, for example http://192.168.1.50:8000." Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8000"
+    <Section Title="@T["speechSettings.listening.server.title"]" Hint="@T["speechSettings.listening.server.hint"]">
+        <TextField Label="@T["speechSettings.listening.server.asrUrl.label"]" Hint="@T["speechSettings.listening.server.asrUrl.hint"]" Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8000"
                    @bind-Value="_speech.Value.AsrBaseUrl" />
-        <SelectField Label="LAN ASR server flavour" Hint="Must match the server type running at that address." More="The wrong type answers 404 to everything while the health check stays green. A warning is logged when that happens." Options="AsrApiOptions"
+        <SelectField Label="@T["speechSettings.listening.server.flavour.label"]" Hint="@T["speechSettings.listening.server.flavour.hint"]" More="@T["speechSettings.listening.server.flavour.more"]" Options="AsrApiOptions"
                      Disabled="@(string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl))"
                      @bind-Value="AsrApiKey" />
-        <SelectField Label="Voice activity detection" Hint="How the FO decides you are speaking." More="Silero ignores engine noise and the FO's own voice and hears quiet commands. RMS is the older energy gate and the fallback if the Silero model cannot load. Applies from the next listening start. Further knobs (vadMinSpeechMs, vadPreRollMs, vadMaxUtteranceMs) are file-only in settings.json." Options="VadEngineOptions"
+        <SelectField Label="@T["speechSettings.listening.server.vad.label"]" Hint="@T["speechSettings.listening.server.vad.hint"]" More="@T["speechSettings.listening.server.vad.more"]" Options="VadEngineOptions"
                      Disabled="@(string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl))"
                      @bind-Value="_speech.Value.VadEngine" />
-        <BoolField Label="Ignore the microphone while the FO speaks" Hint="On: the FO cannot hear its own voice from the cockpit speakers and answer itself. Off only if you must talk over the FO."
-                   More="Also drops a transcript that repeats what the FO just said, whatever the timing. On 2026-10-10 a VBAN loop put the FO on the speakers and it chatted with itself for minutes."
+        <BoolField Label="@T["speechSettings.listening.server.muteMic.label"]" Hint="@T["speechSettings.listening.server.muteMic.hint"]"
+                   More="@T["speechSettings.listening.server.muteMic.more"]"
                    @bind-Value="_speech.Value.MuteMicWhileSpeaking" />
         <AdvancedFields>
-            <NumberField Label="Microphone tail after the FO speaks" Hint="How long the microphone stays ignored after the FO's last word. Raise it for a loud, echoey cockpit; lower it if your quick replies are missed." Suffix="ms" Min="0" Max="3000" Step="50"
+            <NumberField Label="@T["speechSettings.listening.server.micTail.label"]" Hint="@T["speechSettings.listening.server.micTail.hint"]" Suffix="ms" Min="0" Max="3000" Step="50"
                          Disabled="@(!_speech.Value.MuteMicWhileSpeaking)"
                          @bind-Value="_speech.Value.MicTailAfterSpeakingMs"
                          Default="_speech.Defaults.MicTailAfterSpeakingMs" />
-            <NumberField Label="Own-words window" Hint="How long after the FO said something a transcript repeating it is taken for the FO's own voice and dropped. Lower it if your replies that echo the FO's words are lost; raise it for a long speaker delay." More="Your answer to a 'did you mean …?' and the open checklist line's expected reply are never dropped, whatever the window." Suffix="s" Min="0" Max="120" Step="1"
+            <NumberField Label="@T["speechSettings.listening.server.ownWords.label"]" Hint="@T["speechSettings.listening.server.ownWords.hint"]" More="@T["speechSettings.listening.server.ownWords.more"]" Suffix="s" Min="0" Max="120" Step="1"
                          Disabled="@(!_speech.Value.MuteMicWhileSpeaking)"
                          @bind-Value="_speech.Value.SelfEchoWindowSeconds"
                          Default="_speech.Defaults.SelfEchoWindowSeconds" />
-            <NumberField Label="VAD threshold" Hint="Raise it if noise triggers the FO. Lower it if quiet commands are missed." Step="0.05" Min="0.1" Max="0.95"
+            <NumberField Label="@T["speechSettings.listening.server.vadThreshold.label"]" Hint="@T["speechSettings.listening.server.vadThreshold.hint"]" Step="0.05" Min="0.1" Max="0.95"
                          Disabled="@(!SileroSelected)"
                          @bind-Value="_speech.Value.VadThreshold"
                          Default="_speech.Defaults.VadThreshold" />
-            <NumberField Label="End-of-utterance silence" Hint="Silence that ends your sentence. Raise it if pauses split your sentences." Suffix="ms" Min="200" Step="50"
+            <NumberField Label="@T["speechSettings.listening.server.endSilence.label"]" Hint="@T["speechSettings.listening.server.endSilence.hint"]" Suffix="ms" Min="200" Step="50"
                          Disabled="@(!SileroSelected)"
                          @bind-Value="_speech.Value.VadEndSilenceMs"
                          Default="_speech.Defaults.VadEndSilenceMs" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Interphone Transmit" Hint="Crew calls follow the captain's audio panel">
-        <BoolField Label="ACP transmit gating" Hint="Calls to ground or cabin need INT or CAB selected on the audio panel." More="Moving the selector away mid-call hangs up. Off, or an older ProSim: calls are always accepted."
+    <Section Title="@T["speechSettings.listening.interphone.title"]" Hint="@T["speechSettings.listening.interphone.hint"]">
+        <BoolField Label="@T["speechSettings.listening.interphone.acpGating.label"]" Hint="@T["speechSettings.listening.interphone.acpGating.hint"]" More="@T["speechSettings.listening.interphone.acpGating.more"]"
                    @bind-Value="_speech.Value.AcpTransmitGating" />
-        <BoolField Label="Require the INT key pressed" Hint="Ground calls also need the INT key held while you speak." More="Leave off unless your panel has the key."
+        <BoolField Label="@T["speechSettings.listening.interphone.intRequired.label"]" Hint="@T["speechSettings.listening.interphone.intRequired.hint"]" More="@T["speechSettings.listening.interphone.intRequired.more"]"
                    Disabled="@(!_speech.Value.AcpTransmitGating)"
                    @bind-Value="_speech.Value.AcpIntKeyRequired" />
     </Section>
 }
 else if (CurrentSection == "sterile")
 {
-    <Section Title="Sterile Cockpit" Hint="A quiet cockpit during the busy phases">
-        <BoolField Label="Enabled" Hint="The FO holds non-essential speech below the ceiling." @bind-Value="_speech.Value.SterileEnabled" />
-        <NumberField Label="Ceiling" Hint="Sterile below this altitude in climb, descent and approach." More="Cruise and ground are never sterile." Suffix="ft MSL" Min="1000"
+    <Section Title="@T["speechSettings.sterile.title"]" Hint="@T["speechSettings.sterile.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.sterile.enabledHint"]" @bind-Value="_speech.Value.SterileEnabled" />
+        <NumberField Label="@T["speechSettings.sterile.ceiling.label"]" Hint="@T["speechSettings.sterile.ceiling.hint"]" More="@T["speechSettings.sterile.ceiling.more"]" Suffix="ft MSL" Min="1000"
                      Disabled="@(!_speech.Value.SterileEnabled)"
                      @bind-Value="_speech.Value.SterileCockpitCeilingFt"
                      Default="_speech.Defaults.SterileCockpitCeilingFt" />
-        <BoolField Label="Drop Low-priority speech" Hint="Advisories are dropped while sterile, never replayed."
+        <BoolField Label="@T["speechSettings.sterile.dropLow.label"]" Hint="@T["speechSettings.sterile.dropLow.hint"]"
                    Disabled="@(!_speech.Value.SterileEnabled)"
                    @bind-Value="_speech.Value.SterileSuppressLow" />
-        <SelectField Label="Normal-priority policy" Hint="What happens to normal speech while sterile." More="Allow is the safe default. Checklists and briefings are normal priority and are needed on a low approach." Options="NormalPolicyOptions"
+        <SelectField Label="@T["speechSettings.sterile.normalPolicy.label"]" Hint="@T["speechSettings.sterile.normalPolicy.hint"]" More="@T["speechSettings.sterile.normalPolicy.more"]" Options="NormalPolicyOptions"
                      Disabled="@(!_speech.Value.SterileEnabled)"
                      @bind-Value="NormalPolicyKey" />
-        <BoolField Label="Exempt cabin reports" Hint="Cabin reports still come through while sterile."
+        <BoolField Label="@T["speechSettings.sterile.exemptCabin.label"]" Hint="@T["speechSettings.sterile.exemptCabin.hint"]"
                    Disabled="@(!_speech.Value.SterileEnabled)"
                    @bind-Value="_speech.Value.SterileExemptCabinReports" />
     </Section>
 }
 else if (CurrentSection == "voices")
 {
-    <Section Title="First Officer Voice" Hint="One list over every connected provider, grouped by provider and region. Nothing is pre-filled: only what each service reports">
-        <VoicePickerField Label="First Officer" Hint="The provider it names speaks first. The others cover when it is down." More="Pick from any connected provider. Each provider also keeps a fallback voice on its own tab under Voice Providers, used when it covers for the one named here. Empty keeps the old behaviour: every provider speaks with its own fallback voice." Groups="_allVoiceGroups" EmptyListHint="@VoicesEmptyHint"
+    <Section Title="@T["speechSettings.voices.fo.title"]" Hint="@T["speechSettings.voices.fo.hint"]">
+        <VoicePickerField Label="@T["speechSettings.voices.fo.picker.label"]" Hint="@T["speechSettings.voices.fo.picker.hint"]" More="@T["speechSettings.voices.fo.picker.more"]" Groups="_allVoiceGroups" EmptyListHint="@VoicesEmptyHint"
                           @bind-Value="_speech.Value.FoVoice" />
         <div class="field">
             <label class="field-label">
-                Voice lists
-                <span class="field-hint">Read from each connected provider when the page opens.</span>
+                @T["speechSettings.voices.fo.lists.label"]
+                <span class="field-hint">@T["speechSettings.voices.fo.lists.hint"]</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <button type="button" class="btn secondary" disabled="@_refreshingVoices" @onclick="() => RefreshVoicesAsync(null)">
-                        @(_refreshingVoices ? "Refreshing…" : "Refresh all voices")
+                        @(_refreshingVoices ? T["speechSettings.common.refreshing"].Value : T["speechSettings.voices.fo.refreshAll"].Value)
                     </button>
                 </div>
                 <div class="field-hint" style="margin-top:6px;">
@@ -290,209 +290,209 @@ else if (CurrentSection == "voices")
         </div>
     </Section>
 
-    <Section Title="Crew Voices" Hint="Who speaks for the cabin, the company and the ground crew. Blank is the First Officer's voice">
-        <VoicePickerField Label="Purser voice" Hint="Cabin reports on the cabin interphone." Groups="_allVoiceGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="@VoicesEmptyHint"
+    <Section Title="@T["speechSettings.voices.crew.title"]" Hint="@T["speechSettings.voices.crew.hint"]">
+        <VoicePickerField Label="@T["speechSettings.voices.crew.purser.label"]" Hint="@T["speechSettings.voices.crew.purser.hint"]" Groups="_allVoiceGroups" BlankLabel="@T["speechSettings.common.sameAsFo"]" EmptyListHint="@VoicesEmptyHint"
                    @bind-Value="_voices.Value.Purser" />
-        <BoolField Label="Purser intercom filter" Hint="Headset sound on the purser."
+        <BoolField Label="@T["speechSettings.voices.crew.purserFilter.label"]" Hint="@T["speechSettings.voices.crew.purserFilter.hint"]"
                    @bind-Value="_voices.Value.PurserIntercomFilter" />
-        <VoicePickerField Label="Company voice" Hint="Dispatch messages, read out like ACARS." Groups="_allVoiceGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="@VoicesEmptyHint"
+        <VoicePickerField Label="@T["speechSettings.voices.crew.company.label"]" Hint="@T["speechSettings.voices.crew.company.hint"]" Groups="_allVoiceGroups" BlankLabel="@T["speechSettings.common.sameAsFo"]" EmptyListHint="@VoicesEmptyHint"
                    @bind-Value="_voices.Value.Company" />
-        <BoolField Label="Company intercom filter" Hint="Off by default. A company message is a printout, not a phone call."
+        <BoolField Label="@T["speechSettings.voices.crew.companyFilter.label"]" Hint="@T["speechSettings.voices.crew.companyFilter.hint"]"
                    @bind-Value="_voices.Value.CompanyIntercomFilter" />
-        <VoicePickerField Label="Ground crew voice" Hint="Ground crew replies and calls on the interphone." Groups="_allVoiceGroups" BlankLabel="Same voice as the First Officer" EmptyListHint="@VoicesEmptyHint"
+        <VoicePickerField Label="@T["speechSettings.voices.crew.ground.label"]" Hint="@T["speechSettings.voices.crew.ground.hint"]" Groups="_allVoiceGroups" BlankLabel="@T["speechSettings.common.sameAsFo"]" EmptyListHint="@VoicesEmptyHint"
                    @bind-Value="_voices.Value.Ground" />
-        <BoolField Label="Ground intercom filter"
+        <BoolField Label="@T["speechSettings.voices.crew.groundFilter"]"
                    @bind-Value="_voices.Value.GroundIntercomFilter" />
     </Section>
 
-    <Section Title="Accent Localization" Hint="The ground crew's accent follows the airport's country">
-        <BoolField Label="Enabled" Hint="Ground crew only. Purser and company keep the voices above." More="Needs the Google provider for most accents. Local only mode falls back to US or UK."
+    <Section Title="@T["speechSettings.voices.accents.title"]" Hint="@T["speechSettings.voices.accents.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.voices.accents.enabled.hint"]" More="@T["speechSettings.voices.accents.enabled.more"]"
                    @bind-Value="_accents.Value.Enabled" />
-        <TextField Label="Chirp 3 HD persona" Hint="Google voice persona, for example Charon."
+        <TextField Label="@T["speechSettings.voices.accents.persona.label"]" Hint="@T["speechSettings.voices.accents.persona.hint"]"
                    Disabled="@(!_accents.Value.Enabled)"
                    @bind-Value="_accents.Value.GooglePersona" />
         <div class="field-hint" style="max-width:640px;">
-            Per-airport overrides are file-only: <span class="mono">accents.overrides</span>
-            in config/settings.json (airport code prefix to voice locale).
+            @T["speechSettings.voices.accents.overridesBefore"] <span class="mono">accents.overrides</span>
+            @T["speechSettings.voices.accents.overridesAfter"]
         </div>
     </Section>
 }
 else if (CurrentSection == "groundCrew")
 {
-    <Section Title="Ground Crew" Hint="Hail the ground crew and hear their calls">
-        <BoolField Label="Enabled" @bind-Value="_groundCrew.Value.Enabled" />
-        <BoolField Label="Require INT selected" Hint="Ground speech waits until INT is selected on an audio panel."
+    <Section Title="@T["speechSettings.groundCrew.title"]" Hint="@T["speechSettings.groundCrew.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_groundCrew.Value.Enabled" />
+        <BoolField Label="@T["speechSettings.groundCrew.requireInt.label"]" Hint="@T["speechSettings.groundCrew.requireInt.hint"]"
                    Disabled="@(!_groundCrew.Value.Enabled)"
                    @bind-Value="_groundCrew.Value.RequireIntChannel" />
         <AdvancedFields>
-            <NumberField Label="INT grace" Hint="After this wait the call plays anyway." Suffix="s" Min="0"
+            <NumberField Label="@T["speechSettings.groundCrew.intGrace.label"]" Hint="@T["speechSettings.groundCrew.intGrace.hint"]" Suffix="s" Min="0"
                          Disabled="@(!_groundCrew.Value.Enabled || !_groundCrew.Value.RequireIntChannel)"
                          @bind-Value="_groundCrew.Value.IntChannelGraceSeconds"
                          Default="_groundCrew.Defaults.IntChannelGraceSeconds" />
         </AdvancedFields>
-        <BoolField Label="MECH call on upcalls" Hint="Flash the MECH light when the ground crew calls you."
+        <BoolField Label="@T["speechSettings.groundCrew.mechCall.label"]" Hint="@T["speechSettings.groundCrew.mechCall.hint"]"
                    Disabled="@(!_groundCrew.Value.Enabled)"
                    @bind-Value="_groundCrew.Value.MechCall" />
         <AdvancedFields>
-            <NumberField Label="Hail listen window" Hint="How long the crew waits for your request after answering." Suffix="s" Min="3"
+            <NumberField Label="@T["speechSettings.groundCrew.hailWindow.label"]" Hint="@T["speechSettings.groundCrew.hailWindow.hint"]" Suffix="s" Min="3"
                          Disabled="@(!_groundCrew.Value.Enabled)"
                          @bind-Value="_groundCrew.Value.HailListenTimeoutSeconds"
                          Default="_groundCrew.Defaults.HailListenTimeoutSeconds" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Upcalls" Hint="Each call comes once per turnaround">
-        <BoolField Label="Ground power connected" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnGroundPower" />
-        <BoolField Label="Chocks in place" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnChocks" />
-        <BoolField Label="Refueling complete" Hint="Includes the fuel figure."
+    <Section Title="@T["speechSettings.groundCrew.upcalls.title"]" Hint="@T["speechSettings.groundCrew.upcalls.hint"]">
+        <BoolField Label="@T["speechSettings.groundCrew.upcalls.groundPower"]" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnGroundPower" />
+        <BoolField Label="@T["speechSettings.groundCrew.upcalls.chocks"]" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnChocks" />
+        <BoolField Label="@T["speechSettings.groundCrew.upcalls.refuel.label"]" Hint="@T["speechSettings.groundCrew.upcalls.refuel.hint"]"
                    Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnRefuelComplete" />
-        <BoolField Label="Catering complete" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnCateringComplete" />
+        <BoolField Label="@T["speechSettings.common.cateringComplete"]" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnCateringComplete" />
     </Section>
 
-    <Section Title="Ground Crew Wording" Hint="Spoken word for word. {fuel} becomes the tonnes on board">
-        <TextField Label="Hail reply" @bind-Value="_groundCrew.Value.HailReplyText" />
-        <TextField Label="Standing by" @bind-Value="_groundCrew.Value.StandingByText" />
-        <TextField Label="Ground power" @bind-Value="_groundCrew.Value.GroundPowerText" />
-        <TextField Label="Chocks" @bind-Value="_groundCrew.Value.ChocksText" />
-        <TextField Label="Refuel complete" @bind-Value="_groundCrew.Value.RefuelCompleteText" />
-        <TextField Label="Catering complete" @bind-Value="_groundCrew.Value.CateringCompleteText" />
+    <Section Title="@T["speechSettings.groundCrew.wording.title"]" Hint="@T["speechSettings.groundCrew.wording.hint"]">
+        <TextField Label="@T["speechSettings.common.hailReply"]" @bind-Value="_groundCrew.Value.HailReplyText" />
+        <TextField Label="@T["speechSettings.groundCrew.wording.standingBy"]" @bind-Value="_groundCrew.Value.StandingByText" />
+        <TextField Label="@T["speechSettings.groundCrew.wording.groundPower"]" @bind-Value="_groundCrew.Value.GroundPowerText" />
+        <TextField Label="@T["speechSettings.groundCrew.wording.chocks"]" @bind-Value="_groundCrew.Value.ChocksText" />
+        <TextField Label="@T["speechSettings.groundCrew.wording.refuelComplete"]" @bind-Value="_groundCrew.Value.RefuelCompleteText" />
+        <TextField Label="@T["speechSettings.common.cateringComplete"]" @bind-Value="_groundCrew.Value.CateringCompleteText" />
     </Section>
 }
 else if (CurrentSection == "cabin")
 {
-    <Section Title="Cabin Crew" Hint="Purser reports on the cabin interphone">
-        <BoolField Label="Enabled" @bind-Value="_cabin.Value.Enabled" />
-        <BoolField Label="Cabin secure report" Hint="Before takeoff, once the doors are closed and the beacon is on."
+    <Section Title="@T["speechSettings.cabin.title"]" Hint="@T["speechSettings.cabin.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_cabin.Value.Enabled" />
+        <BoolField Label="@T["speechSettings.cabin.secure.label"]" Hint="@T["speechSettings.cabin.secure.hint"]"
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CabinSecure" />
-        <NumberField Label="Cabin secure: minimum wait" Suffix="s" Min="0"
-                     Hint="The crew needs this long after doors closed + beacon on before the report. 0 = instant."
+        <NumberField Label="@T["speechSettings.cabin.secureMinWait.label"]" Suffix="s" Min="0"
+                     Hint="@T["speechSettings.cabin.secureMinWait.hint"]"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinSecure)"
                      @bind-Value="_cabin.Value.CabinSecureMinDelaySeconds"
                      Default="_cabin.Defaults.CabinSecureMinDelaySeconds" />
-        <NumberField Label="Cabin secure: extra per passenger" Suffix="s/pax" Step="0.1" Min="0"
-                     Hint="A random share of pax × this is added, drawn once per flight — sometimes ready after pushback, sometimes at the runway."
-                     More="Passengers = GSX's boarded count, else the OFP figure. With 45 s and 1 s/pax a full A320 waits between 45 s and about 4 minutes. 0 = the minimum only."
+        <NumberField Label="@T["speechSettings.cabin.securePerPax.label"]" Suffix="s/pax" Step="0.1" Min="0"
+                     Hint="@T["speechSettings.cabin.securePerPax.hint"]"
+                     More="@T["speechSettings.cabin.securePerPax.more"]"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinSecure)"
                      @bind-Value="_cabin.Value.CabinSecureSecondsPerPax"
                      Default="_cabin.Defaults.CabinSecureSecondsPerPax" />
-        <BoolField Label="Cabin ready report" Hint="On approach, below the altitude set here."
+        <BoolField Label="@T["speechSettings.cabin.ready.label"]" Hint="@T["speechSettings.cabin.ready.hint"]"
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CabinReady" />
-        <NumberField Label="Cabin-ready below" Suffix="ft MSL" Min="1000"
+        <NumberField Label="@T["speechSettings.cabin.readyBelow"]" Suffix="ft MSL" Min="1000"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinReady)"
                      @bind-Value="_cabin.Value.CabinReadyBelowAltFt"
                      Default="_cabin.Defaults.CabinReadyBelowAltFt" />
-        <BoolField Label="FO acknowledges reports" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.FoAcknowledge" />
-        <BoolField Label="Require CAB selected" Hint="The purser waits until CAB is selected on an audio panel, or the grace time."
+        <BoolField Label="@T["speechSettings.cabin.foAck"]" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.FoAcknowledge" />
+        <BoolField Label="@T["speechSettings.cabin.requireCab.label"]" Hint="@T["speechSettings.cabin.requireCab.hint"]"
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.RequireCabChannel" />
         <AdvancedFields>
-            <NumberField Label="CAB grace" Suffix="s" Min="0"
+            <NumberField Label="@T["speechSettings.cabin.cabGrace"]" Suffix="s" Min="0"
                          Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.RequireCabChannel)"
                          @bind-Value="_cabin.Value.CabChannelGraceSeconds"
                          Default="_cabin.Defaults.CabChannelGraceSeconds" />
         </AdvancedFields>
-        <BoolField Label="FO answers cabin calls on the ground" Hint="During pushback, engine start and taxi-out the FO selects CAB on the FO's audio panel after the delay, so the report plays without you touching the ACP."
-                   More="This is the one place the cabin crew writes to the aircraft: the FO panel's CAB reception latch (S_ASP2_CAB_REC_LATCH; the captain's panel when you fly from the right seat), set on and released after the report. Never while the FO is mid-dialogue with you, never in any other phase. Off by default."
+        <BoolField Label="@T["speechSettings.cabin.autoGround.label"]" Hint="@T["speechSettings.cabin.autoGround.hint"]"
+                   More="@T["speechSettings.cabin.autoGround.more"]"
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AutoAnswerGround" />
-        <NumberField Label="Ground answer delay" Suffix="ms" Min="0" Step="100"
+        <NumberField Label="@T["speechSettings.cabin.groundDelay"]" Suffix="ms" Min="0" Step="100"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AutoAnswerGround)"
                      @bind-Value="_cabin.Value.AutoAnswerGroundDelayMs"
                      Default="_cabin.Defaults.AutoAnswerGroundDelayMs" />
-        <BoolField Label="FO answers cabin calls in the air" Hint="In descent and approach the FO answers the cabin-ready call after the delay."
+        <BoolField Label="@T["speechSettings.cabin.autoAir.label"]" Hint="@T["speechSettings.cabin.autoAir.hint"]"
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AutoAnswerAir" />
-        <NumberField Label="Air answer delay" Suffix="ms" Min="0" Step="100"
+        <NumberField Label="@T["speechSettings.cabin.airDelay"]" Suffix="ms" Min="0" Step="100"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AutoAnswerAir)"
                      @bind-Value="_cabin.Value.AutoAnswerAirDelayMs"
                      Default="_cabin.Defaults.AutoAnswerAirDelayMs" />
-        <BoolField Label="Interphone chime before calls" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.Chime" />
-        <BoolField Label="Ding on startup" Hint="Cabin chime when the app starts."
+        <BoolField Label="@T["speechSettings.cabin.chime"]" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.Chime" />
+        <BoolField Label="@T["speechSettings.cabin.dingStartup.label"]" Hint="@T["speechSettings.cabin.dingStartup.hint"]"
                    @bind-Value="_cabin.Value.DingOnStartup" />
-        <BoolField Label="Ding on final loadsheet" Hint="Cabin chime when the final loadsheet is sent."
+        <BoolField Label="@T["speechSettings.cabin.dingFinal.label"]" Hint="@T["speechSettings.cabin.dingFinal.hint"]"
                    @bind-Value="_cabin.Value.DingOnFinal" />
-        <BoolField Label="Ambient events" Hint="Now and then the purser reports a boarding delay."
+        <BoolField Label="@T["speechSettings.cabin.ambient.label"]" Hint="@T["speechSettings.cabin.ambient.hint"]"
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AmbientEvents" />
-        <NumberField Label="Boarding-delay probability" Hint="0.2 is one flight in five." Step="0.05" Min="0" Max="1"
+        <NumberField Label="@T["speechSettings.cabin.boardingDelayProb.label"]" Hint="@T["speechSettings.cabin.boardingDelayProb.hint"]" Step="0.05" Min="0" Max="1"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AmbientEvents)"
                      @bind-Value="_cabin.Value.BoardingDelayProbability"
                      Default="_cabin.Defaults.BoardingDelayProbability" />
-        <BoolField Label="Purser cruise query"
-                   Hint="Once per flight in the cruise the purser calls: 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' — then listens for your answer."
-                   More="Chime and CAB channel as for every report. Answer in your own words: a time ('about forty minutes', 'on time', 'ten minutes late') or the ride ('smooth', 'light chop', 'expect some bumps') gets a matching acknowledgement, anything else 'copied, thank you', silence 'we'll check back later'. The reply is only ever acknowledged — never read as a command. A free answer needs the LAN speech server; the offline Windows engine hears a short list of likely replies. The call waits while the FO's ear is paused or another dialogue has the mic, and is skipped if the descent begins first."
+        <BoolField Label="@T["speechSettings.cabin.cruiseQuery.label"]"
+                   Hint="@T["speechSettings.cabin.cruiseQuery.hint"]"
+                   More="@T["speechSettings.cabin.cruiseQuery.more"]"
                    Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CruiseQuery" />
-        <NumberField Label="Cruise query after" Hint="Minutes into the cruise before the purser calls, give or take thirty percent." Suffix="min" Min="0" Max="180"
+        <NumberField Label="@T["speechSettings.cabin.cruiseQueryAfter.label"]" Hint="@T["speechSettings.cabin.cruiseQueryAfter.hint"]" Suffix="min" Min="0" Max="180"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CruiseQuery)"
                      @bind-Value="_cabin.Value.CruiseQueryDelayMinutes"
                      Default="_cabin.Defaults.CruiseQueryDelayMinutes" />
-        <NumberField Label="Cruise query reply window" Hint="How long the purser listens for your answer." Suffix="s" Min="3" Max="60"
+        <NumberField Label="@T["speechSettings.cabin.cruiseQueryWindow.label"]" Hint="@T["speechSettings.cabin.cruiseQueryWindow.hint"]" Suffix="s" Min="3" Max="60"
                      Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CruiseQuery)"
                      @bind-Value="_cabin.Value.CruiseQueryWindowSeconds"
                      Default="_cabin.Defaults.CruiseQueryWindowSeconds" />
     </Section>
 
-    <Section Title="Cabin Wording" Hint="Spoken word for word">
-        <TextField Label="Hail reply" Hint="Answer to &quot;cockpit to cabin&quot;."
+    <Section Title="@T["speechSettings.cabin.wording.title"]" Hint="@T["speechSettings.cabin.wording.hint"]">
+        <TextField Label="@T["speechSettings.common.hailReply"]" Hint="@T["speechSettings.cabin.wording.hailReplyHint"]"
                    @bind-Value="_cabin.Value.HailReplyText" />
-        <TextField Label="Hail reply while securing" Hint="Answer to a hail while the cabin-secure wait is still running."
+        <TextField Label="@T["speechSettings.cabin.wording.securingReply.label"]" Hint="@T["speechSettings.cabin.wording.securingReply.hint"]"
                    @bind-Value="_cabin.Value.CabinSecuringReplyText" />
-        <TextField Label="Cabin secure" @bind-Value="_cabin.Value.CabinSecureText" />
-        <TextField Label="Cabin secure — FO ack" @bind-Value="_cabin.Value.CabinSecureAckText" />
-        <TextField Label="Cabin ready" @bind-Value="_cabin.Value.CabinReadyText" />
-        <TextField Label="Cabin ready — FO ack" @bind-Value="_cabin.Value.CabinReadyAckText" />
-        <TextField Label="Boarding delay" @bind-Value="_cabin.Value.BoardingDelayText" />
-        <TextField Label="Cruise query" Hint="The purser's question in the cruise." @bind-Value="_cabin.Value.CruiseQueryText" />
-        <TextField Label="Cruise query — time reply" Hint="After an answer naming a time or the arrival." @bind-Value="_cabin.Value.CruiseQueryEtaAckText" />
-        <TextField Label="Cruise query — ride reply" Hint="After an answer about turbulence or a smooth ride." @bind-Value="_cabin.Value.CruiseQueryRideAckText" />
-        <TextField Label="Cruise query — any other reply" @bind-Value="_cabin.Value.CruiseQueryGenericAckText" />
-        <TextField Label="Cruise query — no reply" Hint="When the window closes in silence." @bind-Value="_cabin.Value.CruiseQueryNoReplyText" />
+        <TextField Label="@T["speechSettings.cabin.wording.secure"]" @bind-Value="_cabin.Value.CabinSecureText" />
+        <TextField Label="@T["speechSettings.cabin.wording.secureAck"]" @bind-Value="_cabin.Value.CabinSecureAckText" />
+        <TextField Label="@T["speechSettings.cabin.wording.ready"]" @bind-Value="_cabin.Value.CabinReadyText" />
+        <TextField Label="@T["speechSettings.cabin.wording.readyAck"]" @bind-Value="_cabin.Value.CabinReadyAckText" />
+        <TextField Label="@T["speechSettings.cabin.wording.boardingDelay"]" @bind-Value="_cabin.Value.BoardingDelayText" />
+        <TextField Label="@T["speechSettings.common.cruiseQuery"]" Hint="@T["speechSettings.cabin.wording.cruiseQueryHint"]" @bind-Value="_cabin.Value.CruiseQueryText" />
+        <TextField Label="@T["speechSettings.cabin.wording.eta.label"]" Hint="@T["speechSettings.cabin.wording.eta.hint"]" @bind-Value="_cabin.Value.CruiseQueryEtaAckText" />
+        <TextField Label="@T["speechSettings.cabin.wording.ride.label"]" Hint="@T["speechSettings.cabin.wording.ride.hint"]" @bind-Value="_cabin.Value.CruiseQueryRideAckText" />
+        <TextField Label="@T["speechSettings.cabin.wording.generic"]" @bind-Value="_cabin.Value.CruiseQueryGenericAckText" />
+        <TextField Label="@T["speechSettings.cabin.wording.noReply.label"]" Hint="@T["speechSettings.cabin.wording.noReply.hint"]" @bind-Value="_cabin.Value.CruiseQueryNoReplyText" />
     </Section>
 }
 else if (CurrentSection == "company")
 {
     @* company / debrief / day (Phase 6) — settings.json only until the 2026-10-08 audit. *@
-    <Section Title="Company Channel" Hint="Dispatch messages read out like ACARS: the loadsheet, and now and then a cruise message">
-        <BoolField Label="Enabled" @bind-Value="_company.Value.Enabled" />
-        <BoolField Label="Read the loadsheet automatically" Hint="Before departure, as soon as the final loadsheet is in. Off: only on &quot;request loadsheet&quot; or the web button."
+    <Section Title="@T["speechSettings.company.title"]" Hint="@T["speechSettings.company.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_company.Value.Enabled" />
+        <BoolField Label="@T["speechSettings.company.autoLoadsheet.label"]" Hint="@T["speechSettings.company.autoLoadsheet.hint"]"
                    Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.AutoLoadsheet" />
-        <BoolField Label="ACARS chime before messages" Hint="The double beep before a company delivery."
+        <BoolField Label="@T["speechSettings.company.chime.label"]" Hint="@T["speechSettings.company.chime.hint"]"
                    Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.Chime" />
-        <BoolField Label="Cruise messages" Hint="A short company message in the cruise, some flights." More="Deterministic template around the destination facts. Off by default."
+        <BoolField Label="@T["speechSettings.company.cruiseMessages.label"]" Hint="@T["speechSettings.company.cruiseMessages.hint"]" More="@T["speechSettings.company.cruiseMessages.more"]"
                    Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.CruiseMessages" />
-        <NumberField Label="Cruise message probability" Hint="0.15 is about one flight in seven, drawn once per flight." Step="0.05" Min="0" Max="1"
+        <NumberField Label="@T["speechSettings.company.cruiseProb.label"]" Hint="@T["speechSettings.company.cruiseProb.hint"]" Step="0.05" Min="0" Max="1"
                      Disabled="@(!_company.Value.Enabled || !_company.Value.CruiseMessages)"
                      @bind-Value="_company.Value.CruiseMessageProbability"
                      Default="_company.Defaults.CruiseMessageProbability" />
         <AdvancedFields>
-            <BoolField Label="Save the spoken loadsheet" Hint="Written beside the session log as *.loadsheet.txt, with the raw EFB loadsheet."
+            <BoolField Label="@T["speechSettings.company.persist.label"]" Hint="@T["speechSettings.company.persist.hint"]"
                        Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.PersistLoadsheet" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Post-flight Debrief" Hint="Spoken at shutdown from what the session recorded">
-        <BoolField Label="Enabled" @bind-Value="_debrief.Value.Enabled" />
-        <SelectField Label="Length" Hint="Brief leaves out the activity counts and the fuel-used lines." Options="DebriefVerbosityOptions"
+    <Section Title="@T["speechSettings.company.debrief.title"]" Hint="@T["speechSettings.company.debrief.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_debrief.Value.Enabled" />
+        <SelectField Label="@T["speechSettings.company.debrief.length.label"]" Hint="@T["speechSettings.company.debrief.length.hint"]" Options="DebriefVerbosityOptions"
                      Disabled="@(!_debrief.Value.Enabled)"
                      @bind-Value="_debrief.Value.Verbosity" />
-        <BoolField Label="Style with the language model" Hint="Warmer wording, every number verified. Off: the plain template." More="Uses the model configured on Briefings &amp; LLM. With that model off this has no effect."
+        <BoolField Label="@T["speechSettings.company.debrief.style.label"]" Hint="@T["speechSettings.company.debrief.style.hint"]" More="@T["speechSettings.company.debrief.style.more"]"
                    Disabled="@(!_debrief.Value.Enabled)" @bind-Value="_debrief.Value.UseLlm" />
     </Section>
 
-    <Section Title="Company Day" Hint="Multi-sector duty tracking: block and duty figures, turnaround summaries, an end-of-day round-up. Not a flight-time-limits calculation">
-        <BoolField Label="Track duty days automatically" Hint="Off: &quot;start duty day&quot; and the /day page still work by hand."
+    <Section Title="@T["speechSettings.company.day.title"]" Hint="@T["speechSettings.company.day.hint"]">
+        <BoolField Label="@T["speechSettings.company.day.track.label"]" Hint="@T["speechSettings.company.day.track.hint"]"
                    @bind-Value="_day.Value.Enabled" />
-        <BoolField Label="Start at the first preflight" Disabled="@(!_day.Value.Enabled)" @bind-Value="_day.Value.AutoStart" />
-        <BoolField Label="Speak the turnaround summary" Hint="At on-blocks: block time, schedule delta, open tech-log items."
+        <BoolField Label="@T["speechSettings.company.day.autoStart"]" Disabled="@(!_day.Value.Enabled)" @bind-Value="_day.Value.AutoStart" />
+        <BoolField Label="@T["speechSettings.company.day.turnaround.label"]" Hint="@T["speechSettings.company.day.turnaround.hint"]"
                    Disabled="@(!_day.Value.Enabled)" @bind-Value="_day.Value.TurnaroundSummary" />
-        <NumberField Label="Post-flight allowance" Hint="Minutes added after the last on-blocks for the duty figure." Suffix="min" Min="0"
+        <NumberField Label="@T["speechSettings.company.day.allowance.label"]" Hint="@T["speechSettings.company.day.allowance.hint"]" Suffix="min" Min="0"
                      Disabled="@(!_day.Value.Enabled)"
                      @bind-Value="_day.Value.PostFlightAllowanceMinutes"
                      Default="_day.Defaults.PostFlightAllowanceMinutes" />
-        <NumberField Label="Auto-close after idle" Hint="Close an open day after this long idle in a turnaround. 0 = never." Suffix="min" Min="0"
+        <NumberField Label="@T["speechSettings.company.day.autoClose.label"]" Hint="@T["speechSettings.company.day.autoClose.hint"]" Suffix="min" Min="0"
                      Disabled="@(!_day.Value.Enabled)"
                      @bind-Value="_day.Value.AutoCloseIdleMinutes"
                      Default="_day.Defaults.AutoCloseIdleMinutes" />
         <AdvancedFields>
-            <TextField Label="Planned rotations folder" Hint="One JSON file per planned day. The README.txt in the folder shows the format. Empty uses the folder shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\config\rotations" Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.Rotations"
+            <TextField Label="@T["speechSettings.company.day.rotations.label"]" Hint="@T["speechSettings.company.day.rotations.hint"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\config\rotations" Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.Rotations"
                        @bind-Value="_day.Value.RotationsFolder" />
-            <TextField Label="Day-state file" Hint="Empty uses the file shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\daystate.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="daystate.json"
+            <TextField Label="@T["speechSettings.company.day.stateFile"]" Hint="@T["speechSettings.common.emptyUsesFileShown"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\daystate.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="daystate.json"
                        @bind-Value="_day.Value.Path" />
         </AdvancedFields>
     </Section>
@@ -500,156 +500,156 @@ else if (CurrentSection == "company")
 else if (CurrentSection == "techlog")
 {
     @* techLog / logbook (Phase 6) — settings.json only until the 2026-10-08 audit. *@
-    <Section Title="Tech Log &amp; MEL" Hint="The paperwork layer: deferral categories, due dates, preflight briefs. Never a failure, never a dataref write">
-        <BoolField Label="Enabled" @bind-Value="_techLog.Value.Enabled" />
-        <BoolField Label="Offer tech-log entries after an abnormal" Hint="After shutdown the FO offers to log each abnormal handled this flight. Silent on a normal flight."
+    <Section Title="@T["speechSettings.techLog.title"]" Hint="@T["speechSettings.techLog.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_techLog.Value.Enabled" />
+        <BoolField Label="@T["speechSettings.techLog.offer.label"]" Hint="@T["speechSettings.techLog.offer.hint"]"
                    Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.OfferFromAbnormalAtShutdown" />
-        <BoolField Label="Random wear" Hint="A small chance per flight of a benign cabin defect appearing at shutdown, from the wear pool."
+        <BoolField Label="@T["speechSettings.techLog.wear.label"]" Hint="@T["speechSettings.techLog.wear.hint"]"
                    Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.RandomWear" />
-        <BoolField Label="Rectify on the due date" Hint="Close open defects by itself when their MEL due date passes." More="Off by default: rectification is meant to be your maintenance action."
+        <BoolField Label="@T["speechSettings.techLog.rectify.label"]" Hint="@T["speechSettings.techLog.rectify.hint"]" More="@T["speechSettings.techLog.rectify.more"]"
                    Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.AutoRectifyOnDueDate" />
-        <BoolField Label="Open items in the briefings" Hint="The departure briefing names the open items; the arrival briefing only those that affect the landing." More="Three titles at most, then 'and N more'. Landing-relevant = MEL category A or B, or an item about brakes, gear, spoilers, reversers, autobrake or anti-skid. Titles are spoken as written."
+        <BoolField Label="@T["speechSettings.techLog.openItems.label"]" Hint="@T["speechSettings.techLog.openItems.hint"]" More="@T["speechSettings.techLog.openItems.more"]"
                    Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.BriefOpenItemsInBriefings" />
-        <BoolField Label="Flag checklist lines" Hint="A spoken checklist line about a system with an open item gets 'note, open tech log item: …' after the challenge." More="Lines carry a system tag in the checklist JSON (apu, gear, autobrake, anti-ice, …); the shipped checklists tag the obvious ones. An item's System field on the Tech Log page, or a word of its title, is what the tag matches. Once per item per checklist run."
+        <BoolField Label="@T["speechSettings.techLog.flagLines.label"]" Hint="@T["speechSettings.techLog.flagLines.hint"]" More="@T["speechSettings.techLog.flagLines.more"]"
                    Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.FlagChecklistItems" />
-        <div class="label-caps" style="margin:14px 0 6px;">MEL repair intervals</div>
-        <NumberField Label="Category A" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
+        <div class="label-caps" style="margin:14px 0 6px;">@T["speechSettings.techLog.intervals"]</div>
+        <NumberField Label="@T["speechSettings.techLog.categoryA"]" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
                      @bind-Value="_techLog.Value.CategoryADays" Default="_techLog.Defaults.CategoryADays" />
-        <NumberField Label="Category B" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
+        <NumberField Label="@T["speechSettings.techLog.categoryB"]" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
                      @bind-Value="_techLog.Value.CategoryBDays" Default="_techLog.Defaults.CategoryBDays" />
-        <NumberField Label="Category C" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
+        <NumberField Label="@T["speechSettings.techLog.categoryC"]" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
                      @bind-Value="_techLog.Value.CategoryCDays" Default="_techLog.Defaults.CategoryCDays" />
-        <NumberField Label="Category D" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
+        <NumberField Label="@T["speechSettings.techLog.categoryD"]" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
                      @bind-Value="_techLog.Value.CategoryDDays" Default="_techLog.Defaults.CategoryDDays" />
         <AdvancedFields>
-            <TextField Label="Tech-log file" Hint="Empty uses the file shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\techlog.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="techlog.json"
+            <TextField Label="@T["speechSettings.techLog.file"]" Hint="@T["speechSettings.common.emptyUsesFileShown"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\techlog.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="techlog.json"
                        @bind-Value="_techLog.Value.Path" />
-            <TextField Label="Wear-pool file" Hint="Empty uses the shipped pool beside the exe." Placeholder="config\techlog\wear-pool.json" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.WearPool" BrowseFilter="JSON (*.json)|*.json"
+            <TextField Label="@T["speechSettings.techLog.wearPool.label"]" Hint="@T["speechSettings.techLog.wearPool.hint"]" Placeholder="config\techlog\wear-pool.json" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.WearPool" BrowseFilter="JSON (*.json)|*.json"
                        @bind-Value="_techLog.Value.WearPoolPath" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
-            Raise and rectify defects on the <a href="techlog">Tech Log</a> page, or by voice (&quot;raise a defect&quot;, &quot;log a snag&quot;).
+            @T["speechSettings.techLog.raiseBefore"] <a href="techlog">@T["speechSettings.techLog.raiseLink"]</a> @T["speechSettings.techLog.raiseAfter"]
         </div>
     </Section>
 
-    <Section Title="Pilot Logbook" Hint="Every completed flight folded in at shutdown; totals are computed when shown">
-        <BoolField Label="Enabled" @bind-Value="_logbook.Value.Enabled" />
+    <Section Title="@T["speechSettings.techLog.logbook.title"]" Hint="@T["speechSettings.techLog.logbook.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_logbook.Value.Enabled" />
         <AdvancedFields>
-            <TextField Label="Logbook file" Hint="Empty uses the file shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\logbook.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="logbook.json"
+            <TextField Label="@T["speechSettings.techLog.logbook.file"]" Hint="@T["speechSettings.common.emptyUsesFileShown"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\logbook.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="logbook.json"
                        @bind-Value="_logbook.Value.Path" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
-            The flights, the touchdown trend and the CSV export are on the <a href="logbook">Logbook</a> page.
+            @T["speechSettings.techLog.logbook.flightsBefore"] <a href="logbook">@T["speechSettings.techLog.logbook.flightsLink"]</a> @T["speechSettings.techLog.logbook.flightsAfter"]
         </div>
     </Section>
 }
 else if (CurrentSection == "sayIntentions")
 {
-    <Section Title="SayIntentions" Hint="Online ATC: radio requests, weather, CPDLC and the arrival gate">
-        <BoolField Label="Use SayIntentions" Hint="Turns on every SayIntentions feature." More="Voice requests need SayIntentions running with an active flight. Weather only needs the API key."
+    <Section Title="@T["speechSettings.sayIntentions.title"]" Hint="@T["speechSettings.sayIntentions.hint"]">
+        <BoolField Label="@T["speechSettings.sayIntentions.use.label"]" Hint="@T["speechSettings.sayIntentions.use.hint"]" More="@T["speechSettings.sayIntentions.use.more"]"
                    @bind-Value="_sayIntentions.Value.Enabled" />
-        <SelectField Label="API key" Hint="Auto reads the key from SayIntentions' flight.json." Options="ApiKeySourceOptions"
+        <SelectField Label="@T["speechSettings.common.apiKey"]" Hint="@T["speechSettings.sayIntentions.apiKeySourceHint"]" Options="ApiKeySourceOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled)"
                      @bind-Value="_sayIntentions.Value.ApiKeySource" />
-        <TextField Label="Manual API key" Hint="Used only with Manual. Never logged."
+        <TextField Label="@T["speechSettings.sayIntentions.manualKey.label"]" Hint="@T["speechSettings.sayIntentions.manualKey.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.ApiKeySource != "manual")"
                    @bind-Value="_sayIntentions.Value.ManualApiKey" />
         <SecretUnreadableHint Path="sayIntentions:manualApiKey" />
-        <SelectField Label="Push-to-talk from the cockpit" Hint="A ProSim PTT switch keys SayIntentions. Bind your sidestick or hand-mic button to that switch in ProSim first." More="On each press the app sets the SayIntentions control LVAR to 1, on release to 0, through SimConnect — the client's 'Map PTT inside the sim with an LVAR'. No joystick polling. Needs MSFS running. The session log shows each press and whether SayIntentions transmitted."
+        <SelectField Label="@T["speechSettings.sayIntentions.ptt.label"]" Hint="@T["speechSettings.sayIntentions.ptt.hint"]" More="@T["speechSettings.sayIntentions.ptt.more"]"
                      Options="PttSwitchOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled)"
                      @bind-Value="SiPttSource" />
-        <SelectField Label="SayIntentions PTT control" Hint="Which SayIntentions radio or intercom the button keys. COM radio PTT is the one almost everybody needs."
+        <SelectField Label="@T["speechSettings.sayIntentions.pttControl.label"]" Hint="@T["speechSettings.sayIntentions.pttControl.hint"]"
                      Options="SiPttLvarOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.PttSource == "none")"
                      @bind-Value="_sayIntentions.Value.PttLvar" />
-        <SelectField Label="Phraseology" Options="PhraseologyOptions"
+        <SelectField Label="@T["speechSettings.sayIntentions.phraseology"]" Options="PhraseologyOptions"
                      Disabled="@(!_sayIntentions.Value.Enabled)"
                      @bind-Value="_sayIntentions.Value.Phraseology" />
-        <BoolField Label="FO speaks the transmission" Hint="The FO says the radio call out loud before it is sent." More="Turn off if SayIntentions plays it as well (double audio)."
+        <BoolField Label="@T["speechSettings.sayIntentions.foSpeaks.label"]" Hint="@T["speechSettings.sayIntentions.foSpeaks.hint"]" More="@T["speechSettings.sayIntentions.foSpeaks.more"]"
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.FoSpeaksTransmission" />
-        <BoolField Label="Auto-tune frequency" Hint="Tune the matched station before transmitting."
+        <BoolField Label="@T["speechSettings.sayIntentions.autoTune.label"]" Hint="@T["speechSettings.sayIntentions.autoTune.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.AutoTuneFrequency" />
-        <BoolField Label="Departure comms gate (legacy)" Hint="Legacy: comms come back to you near the runway, using SayIntentions' own distance figure." More="Ignored while the Comms hand-over card below is on — that flow uses the app's runway data and the flight phase, which the legacy gate lacked on the 2026-10-10 flight (it never tripped)."
+        <BoolField Label="@T["speechSettings.sayIntentions.departureGate.label"]" Hint="@T["speechSettings.sayIntentions.departureGate.hint"]" More="@T["speechSettings.sayIntentions.departureGate.more"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.DepartureGatingEnabled" />
-        <NumberField Label="Gate distance (legacy)" Hint="Distance from the runway where the legacy gate hands comms back to you." Suffix="nm" Step="0.1" Min="0"
+        <NumberField Label="@T["speechSettings.sayIntentions.gateDistance.label"]" Hint="@T["speechSettings.sayIntentions.gateDistance.hint"]" Suffix="nm" Step="0.1" Min="0"
                      Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.DepartureGatingEnabled || _sayIntentions.Value.CommsHandover.Enabled)"
                      @bind-Value="_sayIntentions.Value.DepartureGateDistanceNm"
                      Default="_sayIntentions.Defaults.DepartureGateDistanceNm" />
-        <BoolField Label="Wrong-frequency report" Hint="The FO tells you when COM1 is not on the frequency ATC gave you." More="It uses ATC's last 'Contact … on …' instruction and says it once. It is quiet at the gate, and when it cannot read the instruction."
+        <BoolField Label="@T["speechSettings.sayIntentions.wrongFreq.label"]" Hint="@T["speechSettings.sayIntentions.wrongFreq.hint"]" More="@T["speechSettings.sayIntentions.wrongFreq.more"]"
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.FrequencyMonitorEnabled" />
-        <NumberField Label="Wait before the report" Hint="How long COM1 may stay on another frequency first." Suffix="s" Min="10"
+        <NumberField Label="@T["speechSettings.sayIntentions.waitBefore.label"]" Hint="@T["speechSettings.sayIntentions.waitBefore.hint"]" Suffix="s" Min="10"
                      Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.FrequencyMonitorEnabled)"
                      @bind-Value="_sayIntentions.Value.FrequencyMonitorWaitSeconds"
                      Default="_sayIntentions.Defaults.FrequencyMonitorWaitSeconds" />
-        <BoolField Label="Arrival gate from ATC" Hint="Use the gate SayIntentions ATC assigns as the GSX arrival gate." More="Only a gate that differs from the departure stand and appears from the climb onward counts. A gate you set yourself on the OFP page always wins. After landing the gate goes to GSX straight away. Off by default: the ATC pick may not exist in the loaded scenery."
+        <BoolField Label="@T["speechSettings.sayIntentions.arrivalGate.label"]" Hint="@T["speechSettings.sayIntentions.arrivalGate.hint"]" More="@T["speechSettings.sayIntentions.arrivalGate.more"]"
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.ArrivalGateFromAtc" />
     </Section>
 
-    <Section Title="Comms hand-over" Hint="Who works the radios in each phase: you or the SayIntentions copilot">
-        <BoolField Label="Hand the radios over by flight phase" Hint="The copilot has them at the gate, on the taxi and in the cruise; you take them at the holding point and on the approach." More="Each hand-over is one FO line and a session event. Say 'I have the radios' or 'you have the radios' to override at any time. Turning this on makes the legacy departure comms gate above irrelevant."
+    <Section Title="@T["speechSettings.sayIntentions.handover.title"]" Hint="@T["speechSettings.sayIntentions.handover.hint"]">
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.enabled.label"]" Hint="@T["speechSettings.sayIntentions.handover.enabled.hint"]" More="@T["speechSettings.sayIntentions.handover.enabled.more"]"
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.Enabled" />
-        <BoolField Label="Gate: copilot takes the radios" Hint="When SayIntentions starts a flight on the ground the copilot handles clearance, push and start."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.gate.label"]" Hint="@T["speechSettings.sayIntentions.handover.gate.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.GateToCopilot" />
-        <BoolField Label="FO reads the taxi clearance" Hint="While the copilot has the radios, the FO reads ATC's taxi instruction out to you." More="From SayIntentions' comms history, checked every 20 seconds — the line can lag the exchange by that much."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.taxi.label"]" Hint="@T["speechSettings.sayIntentions.handover.taxi.hint"]" More="@T["speechSettings.sayIntentions.handover.taxi.more"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.ReadTaxiClearance" />
-        <BoolField Label="FO announces hand-offs" Hint="While the copilot has the radios, the FO tells you each 'Contact … on …' ATC gives, on the ground and in the air."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.handoffs.label"]" Hint="@T["speechSettings.sayIntentions.handover.handoffs.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.AnnounceHandoffs" />
-        <BoolField Label="Holding point: you take the radios" Hint="Taxiing out, close to the departure runway, the radios become yours for the takeoff request and clearance." More="The runway comes from the FMS (else SayIntentions' plan) and its threshold from ProSim's runway list or the Navigraph data. Without a known runway this step cannot fire."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.holding.label"]" Hint="@T["speechSettings.sayIntentions.handover.holding.hint"]" More="@T["speechSettings.sayIntentions.handover.holding.more"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointToCaptain" />
-        <NumberField Label="Holding point distance" Hint="How close to the runway threshold counts as the holding point." Suffix="nm" Step="0.05" Min="0.05" Max="2"
+        <NumberField Label="@T["speechSettings.sayIntentions.handover.holdingDistance.label"]" Hint="@T["speechSettings.sayIntentions.handover.holdingDistance.hint"]" Suffix="nm" Step="0.05" Min="0.05" Max="2"
                      Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled || !_sayIntentions.Value.CommsHandover.HoldingPointToCaptain)"
                      @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointDistanceNm"
                      Default="_sayIntentions.Defaults.CommsHandover.HoldingPointDistanceNm" />
-        <BoolField Label="Tune Tower at the holding point" Hint="COM1 goes to Tower when you take the radios there, if a Tower frequency is known." More="ATC's last 'Contact Tower on …' first, else the airport's frequency list. Through SayIntentions, never a cockpit switch."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.tuneTower.label"]" Hint="@T["speechSettings.sayIntentions.handover.tuneTower.hint"]" More="@T["speechSettings.sayIntentions.handover.tuneTower.more"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled || !_sayIntentions.Value.CommsHandover.HoldingPointToCaptain)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.TuneTowerAtHoldingPoint" />
-        <BoolField Label="Climb: copilot takes the radios back" Hint="After the takeoff clearance and the first departure hand-off, at the climb."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.climb.label"]" Hint="@T["speechSettings.sayIntentions.handover.climb.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.ClimbToCopilot" />
-        <BoolField Label="Approach: you take the radios" Hint="For the landing clearance — at the approach, or as soon as ATC hands you to Tower in the descent."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.approach.label"]" Hint="@T["speechSettings.sayIntentions.handover.approach.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.ApproachToCaptain" />
-        <BoolField Label="Taxi in: copilot takes the radios back" Hint="Once you are off the runway."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.taxiIn.label"]" Hint="@T["speechSettings.sayIntentions.handover.taxiIn.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.TaxiInToCopilot" />
-        <BoolField Label="Voice override" Hint="'I have the radios' / 'you have the radios' flips who has them, at any time."
+        <BoolField Label="@T["speechSettings.sayIntentions.handover.voiceOverride.label"]" Hint="@T["speechSettings.sayIntentions.handover.voiceOverride.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.VoiceOverride" />
-        <TextField Label="FO line at the holding point" Hint="Spoken when you take the radios at the holding point."
+        <TextField Label="@T["speechSettings.sayIntentions.handover.holdingLine.label"]" Hint="@T["speechSettings.sayIntentions.handover.holdingLine.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointLine" />
-        <TextField Label="FO line on the approach" Hint="Spoken when you take the radios for the landing."
+        <TextField Label="@T["speechSettings.sayIntentions.handover.approachLine.label"]" Hint="@T["speechSettings.sayIntentions.handover.approachLine.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.ApproachLine" />
-        <TextField Label="FO line when the copilot takes the radios" Hint="Spoken at the gate, in the climb and on the taxi in."
+        <TextField Label="@T["speechSettings.sayIntentions.handover.copilotLine.label"]" Hint="@T["speechSettings.sayIntentions.handover.copilotLine.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.CopilotLine" />
-        <TextField Label="FO line when you take the radios by voice" Hint="Spoken after 'I have the radios'."
+        <TextField Label="@T["speechSettings.sayIntentions.handover.captainLine.label"]" Hint="@T["speechSettings.sayIntentions.handover.captainLine.hint"]"
                    Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
                    @bind-Value="_sayIntentions.Value.CommsHandover.CaptainLine" />
     </Section>
 
-    <Section Title="SayIntentions Weather" Hint="ATIS, METAR, TAF and CPDLC. Needs only the API key">
-        <BoolField Label="Enabled"
+    <Section Title="@T["speechSettings.sayIntentions.weather.title"]" Hint="@T["speechSettings.sayIntentions.weather.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]"
                    Disabled="@(!_sayIntentions.Value.Enabled)"
                    @bind-Value="_sayIntentions.Value.WeatherEnabled" />
         <AdvancedFields>
-            <NumberField Label="Cache TTL" Hint="How long a weather report is kept." Suffix="min" Min="1"
+            <NumberField Label="@T["speechSettings.sayIntentions.weather.cacheTtl.label"]" Hint="@T["speechSettings.sayIntentions.weather.cacheTtl.hint"]" Suffix="min" Min="1"
                          Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.WeatherEnabled)"
                          @bind-Value="_sayIntentions.Value.WeatherCacheMinutes"
                          Default="_sayIntentions.Defaults.WeatherCacheMinutes" />
-            <NumberField Label="Refresh debounce" Hint="Shortest gap between refreshes." Suffix="s" Min="0"
+            <NumberField Label="@T["speechSettings.sayIntentions.weather.debounce.label"]" Hint="@T["speechSettings.sayIntentions.weather.debounce.hint"]" Suffix="s" Min="0"
                          Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.WeatherEnabled)"
                          @bind-Value="_sayIntentions.Value.WeatherRefreshDebounceSeconds"
                          Default="_sayIntentions.Defaults.WeatherRefreshDebounceSeconds" />
@@ -672,36 +672,36 @@ else if (CurrentSection == "providers")
 
     @if (ProviderTab == "kokoro")
     {
-    <Section Title="Kokoro (local neural TTS)" Hint="Free neural voices from a Kokoro server on this PC or your network. Tried first">
-        <TextField Label="Base URL" TallyKey="Kokoro base URL" Hint="Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off." Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8880"
+    <Section Title="@T["speechSettings.providers.kokoro.title"]" Hint="@T["speechSettings.providers.kokoro.hint"]">
+        <TextField Label="@T["speechSettings.common.baseUrl"]" TallyKey="@T["speechSettings.providers.kokoro.baseUrl.tally"]" Hint="@T["speechSettings.providers.kokoro.baseUrl.hint"]" Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8880"
                    @bind-Value="_speech.Value.KokoroBaseUrl" />
-        <TextField Label="Model" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroModel" />
-        <VoicePickerField Label="Fallback voice" Hint="Used when Kokoro covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="The grade is Kokoro's estimate of how much and how clean the training audio was, A down to F. British and American voices make a usable First Officer; the other languages read English badly." Groups='@GroupsFor("kokoro")' PlainIds="true" EmptyListHint="No voice list yet. Enter the server address and press Refresh voices." Disabled="@KokoroOff"
+        <TextField Label="@T["speechSettings.common.model"]" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroModel" />
+        <VoicePickerField Label="@T["speechSettings.common.fallbackVoice"]" Hint="@T["speechSettings.providers.kokoro.fallback.hint"]" More="@T["speechSettings.providers.kokoro.fallback.more"]" Groups='@GroupsFor("kokoro")' PlainIds="true" EmptyListHint="@T["speechSettings.providers.kokoro.fallback.empty"]" Disabled="@KokoroOff"
                           @bind-Value="_speech.Value.KokoroVoice" />
         <div class="field">
             <label class="field-label">
-                Voice list
-                <span class="field-hint">Read from the server when the page opens. Refresh after you add a blended voice.</span>
+                @T["speechSettings.common.voiceList"]
+                <span class="field-hint">@T["speechSettings.providers.kokoro.listHint"]</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <button type="button" class="btn secondary" disabled="@(KokoroOff || _refreshingVoices)" @onclick='() => RefreshVoicesAsync("kokoro")'>
-                        @(_refreshingVoices ? "Refreshing…" : "Refresh voices")
+                        @(_refreshingVoices ? T["speechSettings.common.refreshing"].Value : T["speechSettings.common.refreshVoices"].Value)
                     </button>
                     <span class="field-hint">@VoiceNote("kokoro")</span>
                 </div>
             </div>
         </div>
         <AdvancedFields>
-            <NumberField Label="Connect timeout" Hint="Wait for the server to answer." More="Kept short on purpose. A sleeping server falls through to the next voice instead of stalling a callout." Suffix="ms" Min="200"
+            <NumberField Label="@T["speechSettings.providers.kokoro.connectTimeout.label"]" Hint="@T["speechSettings.providers.kokoro.connectTimeout.hint"]" More="@T["speechSettings.providers.kokoro.connectTimeout.more"]" Suffix="ms" Min="200"
                          Disabled="@KokoroOff"
                          @bind-Value="_speech.Value.KokoroTimeoutMs"
                          Default="_speech.Defaults.KokoroTimeoutMs" />
-            <NumberField Label="Body timeout" Hint="Time allowed for the audio to arrive." More="Plus 100 ms per character, so a long briefing never trips the 60 s cooldown." Suffix="ms" Min="1000"
+            <NumberField Label="@T["speechSettings.providers.kokoro.bodyTimeout.label"]" Hint="@T["speechSettings.providers.kokoro.bodyTimeout.hint"]" More="@T["speechSettings.providers.kokoro.bodyTimeout.more"]" Suffix="ms" Min="1000"
                          Disabled="@KokoroOff"
                          @bind-Value="_speech.Value.KokoroBodyTimeoutMs"
                          Default="_speech.Defaults.KokoroBodyTimeoutMs" />
-            <NumberField Label="Cache cap per voice" Hint="0 is no limit." Suffix="MB" Min="0"
+            <NumberField Label="@T["speechSettings.providers.kokoro.cacheCap.label"]" Hint="@T["speechSettings.providers.kokoro.cacheCap.hint"]" Suffix="MB" Min="0"
                          Disabled="@KokoroOff"
                          @bind-Value="_speech.Value.KokoroMaxCacheMbPerVoice"
                          Default="_speech.Defaults.KokoroMaxCacheMbPerVoice" />
@@ -710,64 +710,64 @@ else if (CurrentSection == "providers")
     }
     else if (ProviderTab == "elevenlabs")
     {
-    <Section Title="ElevenLabs" Hint="Paid cloud neural voices with your own key. Cached, with a monthly budget. Tried after Kokoro and before Google">
-        <TextField Label="API key" Hint="From elevenlabs.io, your profile, API keys. Empty turns ElevenLabs off. Never logged." More="The Free plan works for testing but has no commercial licence. Starter and up are licensed." Password="true"
+    <Section Title="@T["speechSettings.providers.elevenLabs.title"]" Hint="@T["speechSettings.providers.elevenLabs.hint"]">
+        <TextField Label="@T["speechSettings.common.apiKey"]" Hint="@T["speechSettings.providers.elevenLabs.apiKey.hint"]" More="@T["speechSettings.providers.elevenLabs.apiKey.more"]" Password="true"
                    @bind-Value="_speech.Value.ElevenLabsApiKey" />
         <SecretUnreadableHint Path="speech:elevenLabsApiKey" />
-        <VoicePickerField Label="Fallback voice" Hint="Used when ElevenLabs covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="ElevenLabs needs a voice here to count as configured; picking an ElevenLabs voice for the First Officer fills it for you." Groups='@GroupsFor("elevenlabs")' PlainIds="true" EmptyListHint="No voice list yet. Enter the key and press Refresh voices." Disabled="@ElevenLabsOff"
+        <VoicePickerField Label="@T["speechSettings.common.fallbackVoice"]" Hint="@T["speechSettings.providers.elevenLabs.fallback.hint"]" More="@T["speechSettings.providers.elevenLabs.fallback.more"]" Groups='@GroupsFor("elevenlabs")' PlainIds="true" EmptyListHint="@T["speechSettings.providers.elevenLabs.fallback.empty"]" Disabled="@ElevenLabsOff"
                           @bind-Value="_speech.Value.ElevenLabsVoiceId" />
         <div class="field">
             <label class="field-label">
-                Voice list
-                <span class="field-hint">The ElevenLabs premade voices, read with the key above.</span>
+                @T["speechSettings.common.voiceList"]
+                <span class="field-hint">@T["speechSettings.providers.elevenLabs.listHint"]</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <button type="button" class="btn secondary" disabled="@(ElevenLabsOff || _refreshingVoices)" @onclick='() => RefreshVoicesAsync("elevenlabs")'>
-                        @(_refreshingVoices ? "Refreshing…" : "Refresh voices")
+                        @(_refreshingVoices ? T["speechSettings.common.refreshing"].Value : T["speechSettings.common.refreshVoices"].Value)
                     </button>
                     <span class="field-hint">@VoiceNote("elevenlabs")</span>
                 </div>
             </div>
         </div>
-        <SelectField Label="Model" Hint="Flash is fast and costs half. v3 is the most expressive, slower and full price." Options="ElevenLabsModelOptions"
+        <SelectField Label="@T["speechSettings.common.model"]" Hint="@T["speechSettings.providers.elevenLabs.modelHint"]" Options="ElevenLabsModelOptions"
                      Disabled="@ElevenLabsOff"
                      @bind-Value="_speech.Value.ElevenLabsModelId" />
-        <SelectField Label="Output format" Hint="MP3 works on every plan and is decoded on this PC. PCM needs a paid plan and skips the decode." Options="ElevenLabsFormatOptions"
+        <SelectField Label="@T["speechSettings.providers.elevenLabs.format.label"]" Hint="@T["speechSettings.providers.elevenLabs.format.hint"]" Options="ElevenLabsFormatOptions"
                      Disabled="@ElevenLabsOff"
                      @bind-Value="_speech.Value.ElevenLabsOutputFormat" />
-        <NumberField Label="Stability" Hint="0 to 1. Higher is steadier and less expressive." Step="0.05" Min="0" Max="1"
+        <NumberField Label="@T["speechSettings.providers.elevenLabs.stability.label"]" Hint="@T["speechSettings.providers.elevenLabs.stability.hint"]" Step="0.05" Min="0" Max="1"
                      Disabled="@ElevenLabsOff"
                      @bind-Value="_speech.Value.ElevenLabsStability"
                      Default="_speech.Defaults.ElevenLabsStability" />
-        <NumberField Label="Similarity" Hint="0 to 1. How closely the output follows the original voice." Step="0.05" Min="0" Max="1"
+        <NumberField Label="@T["speechSettings.providers.elevenLabs.similarity.label"]" Hint="@T["speechSettings.providers.elevenLabs.similarity.hint"]" Step="0.05" Min="0" Max="1"
                      Disabled="@ElevenLabsOff"
                      @bind-Value="_speech.Value.ElevenLabsSimilarityBoost"
                      Default="_speech.Defaults.ElevenLabsSimilarityBoost" />
-        <NumberField Label="Speed" Hint="0.7 to 1.2. 1.0 is the voice's natural pace." Step="0.05" Min="0.7" Max="1.2"
+        <NumberField Label="@T["speechSettings.providers.elevenLabs.speed.label"]" Hint="@T["speechSettings.providers.elevenLabs.speed.hint"]" Step="0.05" Min="0.7" Max="1.2"
                      Disabled="@ElevenLabsOff"
                      @bind-Value="_speech.Value.ElevenLabsSpeed"
                      Default="_speech.Defaults.ElevenLabsSpeed" />
-        <NumberField Label="Monthly character budget" Hint="ElevenLabs stops for the month at this many characters. 0 is no limit." More="Plan credits per month: Free 10,000, Starter 30,000, Creator 121,000. Flash costs about half a credit per character. The next voice in the chain takes over." Min="0"
+        <NumberField Label="@T["speechSettings.common.monthlyCharBudget"]" Hint="@T["speechSettings.providers.elevenLabs.budget.hint"]" More="@T["speechSettings.providers.elevenLabs.budget.more"]" Min="0"
                      Disabled="@ElevenLabsOff"
                      @bind-Value="_speech.Value.ElevenLabsMonthlyCharBudget"
                      Default="_speech.Defaults.ElevenLabsMonthlyCharBudget" />
-        <NumberField Label="Max characters per request" Hint="Longer texts skip ElevenLabs and use the next voice. 0 is no limit." More="The Free plan caps one generation at about 2,500 characters." Min="0"
+        <NumberField Label="@T["speechSettings.providers.elevenLabs.maxChars.label"]" Hint="@T["speechSettings.providers.elevenLabs.maxChars.hint"]" More="@T["speechSettings.providers.elevenLabs.maxChars.more"]" Min="0"
                      Disabled="@ElevenLabsOff"
                      @bind-Value="_speech.Value.ElevenLabsMaxCharsPerRequest"
                      Default="_speech.Defaults.ElevenLabsMaxCharsPerRequest" />
-        <BoolField Label="Text normalisation" Hint="Let ElevenLabs expand numbers and abbreviations itself." More="Off is right for the FO: the app already writes numbers the spoken way, and the ElevenLabs normaliser mangles aviation words."
+        <BoolField Label="@T["speechSettings.providers.elevenLabs.normalisation.label"]" Hint="@T["speechSettings.providers.elevenLabs.normalisation.hint"]" More="@T["speechSettings.providers.elevenLabs.normalisation.more"]"
                    Disabled="@ElevenLabsOff"
                    @bind-Value="_speech.Value.ElevenLabsTextNormalization" />
         <div class="field-hint" style="max-width:640px;">
-            Usage this month: <span class="mono">@ElevenLabsUsageThisMonth.ToString("N0")</span> characters
-            (counted in <span class="mono">usage.elevenlabs.json</span> in the cache folder).
+            @T["speechSettings.providers.elevenLabs.usageBefore"] <span class="mono">@ElevenLabsUsageThisMonth.ToString("N0")</span> @T["speechSettings.providers.elevenLabs.usageMiddle"]
+            <span class="mono">usage.elevenlabs.json</span> @T["speechSettings.providers.elevenLabs.usageAfter"]
         </div>
         <AdvancedFields>
-            <TextField Label="Base URL" TallyKey="ElevenLabs base URL" Hint="Only change this for a proxy or a regional endpoint." Kind="TextFieldKind.Url" Placeholder="https://api.elevenlabs.io"
+            <TextField Label="@T["speechSettings.common.baseUrl"]" TallyKey="@T["speechSettings.providers.elevenLabs.baseUrl.tally"]" Hint="@T["speechSettings.providers.elevenLabs.baseUrl.hint"]" Kind="TextFieldKind.Url" Placeholder="https://api.elevenlabs.io"
                        Disabled="@ElevenLabsOff"
                        @bind-Value="_speech.Value.ElevenLabsBaseUrl" />
-            <NumberField Label="Timeout" Hint="Whole request. The next voice takes over when it runs out." Suffix="ms" Min="200"
+            <NumberField Label="@T["speechSettings.common.timeout"]" Hint="@T["speechSettings.providers.elevenLabs.timeoutHint"]" Suffix="ms" Min="200"
                          Disabled="@ElevenLabsOff"
                          @bind-Value="_speech.Value.ElevenLabsTimeoutMs"
                          Default="_speech.Defaults.ElevenLabsTimeoutMs" />
@@ -776,26 +776,26 @@ else if (CurrentSection == "providers")
     }
     else if (ProviderTab == "google")
     {
-    <Section Title="Google Cloud TTS (Chirp 3 HD)" Hint="Paid neural voices. Cached, with a monthly budget. Tried after ElevenLabs">
-        <TextField Label="Service-account key file" Hint="Path to the service-account JSON key. Empty turns Google off. Never logged." Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.Downloads" BrowseFilter="JSON key (*.json)|*.json"
+    <Section Title="@T["speechSettings.providers.google.title"]" Hint="@T["speechSettings.providers.google.hint"]">
+        <TextField Label="@T["speechSettings.providers.google.keyFile.label"]" Hint="@T["speechSettings.providers.google.keyFile.hint"]" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.Downloads" BrowseFilter="JSON key (*.json)|*.json"
                    @bind-Value="_speech.Value.GoogleKeyFilePath" />
-        <VoicePickerField Label="Fallback voice" Hint="Used when Google covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="Google needs a voice here to count as configured; picking a Google voice for the First Officer fills it for you. The accent localization persona (Voices page) is a Google voice too." Groups='@GroupsFor("google")' PlainIds="true" EmptyListHint="No voice list yet. Enter the key file path and press Refresh voices." Disabled="@GoogleOff"
+        <VoicePickerField Label="@T["speechSettings.common.fallbackVoice"]" Hint="@T["speechSettings.providers.google.fallback.hint"]" More="@T["speechSettings.providers.google.fallback.more"]" Groups='@GroupsFor("google")' PlainIds="true" EmptyListHint="@T["speechSettings.providers.google.fallback.empty"]" Disabled="@GoogleOff"
                           @bind-Value="_speech.Value.GoogleVoice" />
         <div class="field">
             <label class="field-label">
-                Voice list
-                <span class="field-hint">Google's Chirp 3 HD voices, read with the key file above.</span>
+                @T["speechSettings.common.voiceList"]
+                <span class="field-hint">@T["speechSettings.providers.google.listHint"]</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <button type="button" class="btn secondary" disabled="@(GoogleOff || _refreshingVoices)" @onclick='() => RefreshVoicesAsync("google")'>
-                        @(_refreshingVoices ? "Refreshing…" : "Refresh voices")
+                        @(_refreshingVoices ? T["speechSettings.common.refreshing"].Value : T["speechSettings.common.refreshVoices"].Value)
                     </button>
                     <span class="field-hint">@VoiceNote("google")</span>
                 </div>
             </div>
         </div>
-        <NumberField Label="Monthly character budget" Hint="Google stops for the month at this many characters. 0 is no limit." More="The free tier is 1,000,000 characters. The offline voices take over." Min="0"
+        <NumberField Label="@T["speechSettings.common.monthlyCharBudget"]" Hint="@T["speechSettings.providers.google.budget.hint"]" More="@T["speechSettings.providers.google.budget.more"]" Min="0"
                      Disabled="@GoogleOff"
                      @bind-Value="_speech.Value.GoogleMonthlyCharBudget"
                      Default="_speech.Defaults.GoogleMonthlyCharBudget" />
@@ -803,43 +803,43 @@ else if (CurrentSection == "providers")
     }
     else
     {
-    <Section Title="Windows Voices" Hint="Offline voices on this PC, always available. The last two in the chain">
-        <VoicePickerField Label="WinRT fallback voice" Hint="Empty uses the Windows default." More="This reaches the Windows 11 &quot;Natural&quot; voices." Groups='@GroupsFor("winrt")' PlainIds="true" BlankLabel="Windows default voice" EmptyListHint="No voice list yet. Press Refresh voices."
+    <Section Title="@T["speechSettings.providers.windows.title"]" Hint="@T["speechSettings.providers.windows.hint"]">
+        <VoicePickerField Label="@T["speechSettings.providers.windows.winrt.label"]" Hint="@T["speechSettings.providers.windows.winrt.hint"]" More="@T["speechSettings.providers.windows.winrt.more"]" Groups='@GroupsFor("winrt")' PlainIds="true" BlankLabel="@T["speechSettings.common.windowsDefaultVoice"]" EmptyListHint="@T["speechSettings.common.noListPressRefresh"]"
                           @bind-Value="_speech.Value.WinRtVoice" />
-        <VoicePickerField Label="SAPI5 fallback voice" Hint="Last-resort voice. Empty uses the Windows default." Groups='@GroupsFor("sapi")' PlainIds="true" BlankLabel="Windows default voice" EmptyListHint="No voice list yet. Press Refresh voices."
+        <VoicePickerField Label="@T["speechSettings.providers.windows.sapi.label"]" Hint="@T["speechSettings.providers.windows.sapi.hint"]" Groups='@GroupsFor("sapi")' PlainIds="true" BlankLabel="@T["speechSettings.common.windowsDefaultVoice"]" EmptyListHint="@T["speechSettings.common.noListPressRefresh"]"
                           @bind-Value="_speech.Value.SapiVoice" />
         <div class="field">
             <label class="field-label">
-                Voice list
-                <span class="field-hint">The voices installed on this PC.</span>
+                @T["speechSettings.common.voiceList"]
+                <span class="field-hint">@T["speechSettings.providers.windows.listHint"]</span>
             </label>
             <div class="field-control">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <button type="button" class="btn secondary" disabled="@_refreshingVoices" @onclick='() => RefreshVoicesAsync("windows")'>
-                        @(_refreshingVoices ? "Refreshing…" : "Refresh voices")
+                        @(_refreshingVoices ? T["speechSettings.common.refreshing"].Value : T["speechSettings.common.refreshVoices"].Value)
                     </button>
-                    <span class="field-hint">WinRT: @VoiceNote("winrt"). SAPI5: @VoiceNote("sapi").</span>
+                    <span class="field-hint">@T["speechSettings.providers.windows.note", VoiceNote("winrt"), VoiceNote("sapi")]</span>
                 </div>
             </div>
         </div>
     </Section>
     }
 
-    <Section Title="Cache" Advanced="true">
-        <TextField Label="TTS cache folder" Hint="Empty uses the folder shown." More="One folder per provider and voice. The usage counter lives there too." Placeholder="%LOCALAPPDATA%\ProsimCompanion\cache\tts"
+    <Section Title="@T["speechSettings.providers.cache.title"]" Advanced="true">
+        <TextField Label="@T["speechSettings.providers.cache.folder.label"]" Hint="@T["speechSettings.providers.cache.folder.hint"]" More="@T["speechSettings.providers.cache.folder.more"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\cache\tts"
                    Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.AppStateFolder"
                    @bind-Value="_speech.Value.CacheFolder" />
     </Section>
 }
 else if (CurrentSection == "mcdu")
 {
-    <Section Title="MCDU" Hint="Voice MCDU: reading always works, key presses need arming">
-        <BoolField Label="Enabled" Hint="Read the MCDU, tune the ILS and change the arrival runway by voice."
+    <Section Title="@T["speechSettings.mcdu.title"]" Hint="@T["speechSettings.mcdu.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.mcdu.enabledHint"]"
                    @bind-Value="_mcdu.Value.Enabled" />
-        <BoolField Label="Allow actuation" Hint="Let the FO press MCDU keys." More="Off: read only. Commands answer that key presses are off."
+        <BoolField Label="@T["speechSettings.mcdu.actuation.label"]" Hint="@T["speechSettings.mcdu.actuation.hint"]" More="@T["speechSettings.mcdu.actuation.more"]"
                    Disabled="@(!_mcdu.Value.Enabled)"
                    @bind-Value="_mcdu.Value.AllowActuation" />
-        <NumberField Label="Verify pause" Hint="The FO announces the change, then waits this long so you can cancel." Suffix="s" Min="0"
+        <NumberField Label="@T["speechSettings.mcdu.verifyPause.label"]" Hint="@T["speechSettings.mcdu.verifyPause.hint"]" Suffix="s" Min="0"
                      Disabled="@(!_mcdu.Value.Enabled || !_mcdu.Value.AllowActuation)"
                      @bind-Value="_mcdu.Value.VerifyPauseSeconds"
                      Default="_mcdu.Defaults.VerifyPauseSeconds" />
@@ -847,183 +847,182 @@ else if (CurrentSection == "mcdu")
 }
 else if (CurrentSection == "briefing")
 {
-    <Section Title="Briefings" Hint="Departure and arrival briefings from nav data and weather">
-        <SelectField Label="Procedure source" Hint="Where the runway, SID, STAR and approach come from." More="Auto tries the FMS plan, then SayIntentions, then the manual entries below, field by field." Options="ProcedureSourceOptions"
+    <Section Title="@T["speechSettings.briefing.title"]" Hint="@T["speechSettings.briefing.hint"]">
+        <SelectField Label="@T["speechSettings.briefing.source.label"]" Hint="@T["speechSettings.briefing.source.hint"]" More="@T["speechSettings.briefing.source.more"]" Options="ProcedureSourceOptions"
                      @bind-Value="ProcedureSourceKey" />
-        <BoolField Label="Verify numbers in LLM output" Hint="Every figure the LLM writes is checked against the facts." More="A failed check falls back to the plain template."
+        <BoolField Label="@T["speechSettings.briefing.verify.label"]" Hint="@T["speechSettings.briefing.verify.hint"]" More="@T["speechSettings.briefing.verify.more"]"
                    @bind-Value="_briefing.Value.VerifyNumbers" />
         <div class="field-hint" style="max-width:640px;">
-            The Navigraph DFD database path lives under <a href="settings">Setup → Nav Data</a>.
+            @T["speechSettings.briefing.dfdBefore"] <a href="settings">@T["speechSettings.briefing.dfdLink"]</a>@T["speechSettings.briefing.dfdAfter"]
         </div>
     </Section>
 
-    <Section Title="Manual Procedure Overrides" Hint="Used when the FMS or SayIntentions cannot fill a field, or always in Manual mode">
-        <TextField Label="Departure airport" Hint="ICAO, e.g. YSSY" Kind="TextFieldKind.Icao" @bind-Value="_briefing.Value.DepartureAirport" />
-        <TextField Label="Departure runway" Hint="e.g. 16R" Kind="TextFieldKind.Runway" @bind-Value="_briefing.Value.DepartureRunway" />
-        <TextField Label="SID" Hint="Identifier, e.g. FISHA1" @bind-Value="_briefing.Value.DepartureSid" />
-        <TextField Label="Arrival airport" Hint="ICAO, e.g. YMML" Kind="TextFieldKind.Icao" @bind-Value="_briefing.Value.ArrivalAirport" />
-        <TextField Label="Arrival runway" Hint="e.g. 34" Kind="TextFieldKind.Runway" @bind-Value="_briefing.Value.ArrivalRunway" />
-        <TextField Label="STAR" Hint="Identifier, e.g. RAZZI4" @bind-Value="_briefing.Value.ArrivalStar" />
-        <TextField Label="Approach" Hint="For example I16R. Empty picks the best published approach, ILS first." More="Ask the FO &quot;which approach&quot; to hear the candidates."
+    <Section Title="@T["speechSettings.briefing.manual.title"]" Hint="@T["speechSettings.briefing.manual.hint"]">
+        <TextField Label="@T["speechSettings.briefing.manual.depAirport.label"]" Hint="@T["speechSettings.briefing.manual.depAirport.hint"]" Kind="TextFieldKind.Icao" @bind-Value="_briefing.Value.DepartureAirport" />
+        <TextField Label="@T["speechSettings.briefing.manual.depRunway.label"]" Hint="@T["speechSettings.briefing.manual.depRunway.hint"]" Kind="TextFieldKind.Runway" @bind-Value="_briefing.Value.DepartureRunway" />
+        <TextField Label="@T["speechSettings.briefing.manual.sid.label"]" Hint="@T["speechSettings.briefing.manual.sid.hint"]" @bind-Value="_briefing.Value.DepartureSid" />
+        <TextField Label="@T["speechSettings.briefing.manual.arrAirport.label"]" Hint="@T["speechSettings.briefing.manual.arrAirport.hint"]" Kind="TextFieldKind.Icao" @bind-Value="_briefing.Value.ArrivalAirport" />
+        <TextField Label="@T["speechSettings.briefing.manual.arrRunway.label"]" Hint="@T["speechSettings.briefing.manual.arrRunway.hint"]" Kind="TextFieldKind.Runway" @bind-Value="_briefing.Value.ArrivalRunway" />
+        <TextField Label="@T["speechSettings.briefing.manual.star.label"]" Hint="@T["speechSettings.briefing.manual.star.hint"]" @bind-Value="_briefing.Value.ArrivalStar" />
+        <TextField Label="@T["speechSettings.briefing.manual.approach.label"]" Hint="@T["speechSettings.briefing.manual.approach.hint"]" More="@T["speechSettings.briefing.manual.approach.more"]"
                    @bind-Value="_briefing.Value.ArrivalApproach" />
     </Section>
 
-    <Section Title="Minima Capture" Hint="The FO asks for the minimums during the arrival brief">
-        <BoolField Label="Interactive capture" Hint="The FO asks, reads back, and arms the minimums callouts." More="A value already set on the Status section skips the question. Works best with a transcription server."
+    <Section Title="@T["speechSettings.briefing.minima.title"]" Hint="@T["speechSettings.briefing.minima.hint"]">
+        <BoolField Label="@T["speechSettings.briefing.minima.interactive.label"]" Hint="@T["speechSettings.briefing.minima.interactive.hint"]" More="@T["speechSettings.briefing.minima.interactive.more"]"
                    @bind-Value="_briefing.Value.MinimaCaptureEnabled" />
         <AdvancedFields>
-            <NumberField Label="Listen timeout" Hint="How long the FO waits for your answer." Suffix="s" Min="5"
+            <NumberField Label="@T["speechSettings.briefing.minima.listenTimeout.label"]" Hint="@T["speechSettings.briefing.minima.listenTimeout.hint"]" Suffix="s" Min="5"
                          Disabled="@(!_briefing.Value.MinimaCaptureEnabled)"
                          @bind-Value="_briefing.Value.MinimaListenTimeoutSeconds"
                          Default="_briefing.Defaults.MinimaListenTimeoutSeconds" />
-            <NumberField Label="Max retries" Hint="Failed tries before the brief goes on as not briefed." Min="0"
+            <NumberField Label="@T["speechSettings.briefing.minima.maxRetries.label"]" Hint="@T["speechSettings.briefing.minima.maxRetries.hint"]" Min="0"
                          Disabled="@(!_briefing.Value.MinimaCaptureEnabled)"
                          @bind-Value="_briefing.Value.MinimaMaxRetries"
                          Default="_briefing.Defaults.MinimaMaxRetries" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="Missed-Approach Re-brief" Hint="After a go-around the FO reads the missed approach">
-        <BoolField Label="Enabled" Hint="Waits for the delay and gear up, so you fly first." More="Without published legs the FO gives a prompt instead."
+    <Section Title="@T["speechSettings.briefing.missed.title"]" Hint="@T["speechSettings.briefing.missed.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.briefing.missed.enabled.hint"]" More="@T["speechSettings.briefing.missed.enabled.more"]"
                    @bind-Value="_briefing.Value.MissedApproachRebriefEnabled" />
         <AdvancedFields>
-            <NumberField Label="Delay" Suffix="s" Min="0"
+            <NumberField Label="@T["speechSettings.briefing.missed.delay"]" Suffix="s" Min="0"
                          Disabled="@(!_briefing.Value.MissedApproachRebriefEnabled)"
                          @bind-Value="_briefing.Value.MissedApproachDelaySeconds"
                          Default="_briefing.Defaults.MissedApproachDelaySeconds" />
-            <NumberField Label="Hard ceiling" Hint="Speaks by this time even if the gear never comes up." Suffix="s" Min="0"
+            <NumberField Label="@T["speechSettings.briefing.missed.hardCeiling.label"]" Hint="@T["speechSettings.briefing.missed.hardCeiling.hint"]" Suffix="s" Min="0"
                          Disabled="@(!_briefing.Value.MissedApproachRebriefEnabled)"
                          @bind-Value="_briefing.Value.MissedApproachHardCeilingSeconds"
                          Default="_briefing.Defaults.MissedApproachHardCeilingSeconds" />
         </AdvancedFields>
     </Section>
 
-    <Section Title="LLM Styling" Hint="One language model for the briefing and debrief prose">
-        <BoolField Label="Enabled" Hint="Off: plain templates only. Nothing leaves this PC."
+    <Section Title="@T["speechSettings.briefing.llm.title"]" Hint="@T["speechSettings.briefing.llm.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.briefing.llm.enabledHint"]"
                    @bind-Value="_briefing.Value.LlmEnabled" />
-        <BoolField Label="Speak while the model writes"
-                   Hint="The FO starts speaking after the first sentence, not after the whole reply. Each sentence is checked before it is spoken."
-                   More="If a sentence has a wrong number, or the model stops, the plain template finishes the briefing. Nothing starts again from the top. Off: the FO waits for the whole reply (the old behaviour)."
+        <BoolField Label="@T["speechSettings.briefing.llm.stream.label"]"
+                   Hint="@T["speechSettings.briefing.llm.stream.hint"]"
+                   More="@T["speechSettings.briefing.llm.stream.more"]"
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.StreamLlm" />
-        <SelectField Label="API flavour" Hint="Pick Ollama when the address is an Ollama server." More="Only the Ollama type can switch model thinking off." Options="LlmApiOptions"
+        <SelectField Label="@T["speechSettings.briefing.llm.apiFlavour.label"]" Hint="@T["speechSettings.briefing.llm.apiFlavour.hint"]" More="@T["speechSettings.briefing.llm.apiFlavour.more"]" Options="LlmApiOptions"
                      Disabled="@(!_briefing.Value.LlmEnabled)"
                      @bind-Value="LlmApiKey" />
-        <TextField Label="Base URL" TallyKey="LLM base URL" Hint="OpenAI style: the API root, e.g. https://api.openai.com/v1. Ollama: the server root, e.g. http://localhost:11434." Kind="TextFieldKind.Url" Placeholder="http://localhost:11434"
+        <TextField Label="@T["speechSettings.common.baseUrl"]" TallyKey="@T["speechSettings.briefing.llm.baseUrl.tally"]" Hint="@T["speechSettings.briefing.llm.baseUrl.hint"]" Kind="TextFieldKind.Url" Placeholder="http://localhost:11434"
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmBaseUrl" />
-        <TextField Label="API key" Hint="Never logged. Empty for local servers without a key."
+        <TextField Label="@T["speechSettings.common.apiKey"]" Hint="@T["speechSettings.briefing.llm.apiKeyHint"]"
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmApiKey" />
         <SecretUnreadableHint Path="briefing:llmApiKey" />
-        <TextField Label="Model" Hint="Model name, e.g. gpt-4o-mini or qwen3.6:27b. Empty turns styling off."
+        <TextField Label="@T["speechSettings.common.model"]" Hint="@T["speechSettings.briefing.llm.modelHint"]"
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmModel" />
-        <BoolField Label="Enable model thinking (slower, deeper reasoning)" Hint="Lets a thinking model reason first. Slow: often 10 s or more." More="Ollama only. Leave off for briefings."
+        <BoolField Label="@T["speechSettings.briefing.llm.thinking.label"]" Hint="@T["speechSettings.briefing.llm.thinking.hint"]" More="@T["speechSettings.briefing.llm.thinking.more"]"
                    Disabled="@(!_briefing.Value.LlmEnabled || _briefing.Value.LlmApi != LlmApiKind.Ollama)"
                    @bind-Value="_briefing.Value.LlmEnableThinking" />
         <AdvancedFields>
-            <NumberField Label="Max tokens" Min="64"
+            <NumberField Label="@T["speechSettings.briefing.llm.maxTokens"]" Min="64"
                          Disabled="@(!_briefing.Value.LlmEnabled)"
                          @bind-Value="_briefing.Value.LlmMaxTokens"
                          Default="_briefing.Defaults.LlmMaxTokens" />
-            <NumberField Label="Timeout" Hint="Per call. A styled briefing may make two calls." Suffix="s" Min="5"
+            <NumberField Label="@T["speechSettings.common.timeout"]" Hint="@T["speechSettings.briefing.llm.timeoutHint"]" Suffix="s" Min="5"
                          Disabled="@(!_briefing.Value.LlmEnabled)"
                          @bind-Value="_briefing.Value.LlmTimeoutSeconds"
                          Default="_briefing.Defaults.LlmTimeoutSeconds" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
-            Save, then press "Test LLM connection" on the <a href="settings/speech/status">Status section</a>.
+            @T["speechSettings.briefing.llm.testBefore"] <a href="settings/speech/status">@T["speechSettings.briefing.llm.testLink"]</a>@T["speechSettings.briefing.llm.testAfter"]
         </div>
     </Section>
 
-    <Section Title="Ask the First Officer" Hint="Free-form questions, answered by the language model from live facts. Spoken only — never acted on">
-        <BoolField Label="Enabled"
-                   Hint="Ask in plain words: 'what is our fuel on board', 'how long to top of descent', 'tell me the destination weather'. The FO answers from what the app knows right now."
-                   More="Needs the LLM above and the LAN speech recognition server (the offline Windows engine only hears exact phrases). Every number in the answer is checked against the live facts; an unverifiable answer becomes 'I don't have a verified answer for that'. A question is tried only after every exact phrase has been ruled out, so nothing you could say before changes. In the sterile cockpit (below the sterile ceiling in climb, descent and approach) a question is heard but not answered."
+    <Section Title="@T["speechSettings.briefing.ask.title"]" Hint="@T["speechSettings.briefing.ask.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]"
+                   Hint="@T["speechSettings.briefing.ask.enabled.hint"]"
+                   More="@T["speechSettings.briefing.ask.enabled.more"]"
                    @bind-Value="_speech.Value.FoQuestions.Enabled" />
-        <BoolField Label="Small talk and fun facts"
-                   Hint="Ask anything: 'who is better, Chelsea or Arsenal', 'tell me a fun fact', 'what is the capital of Peru'. The FO answers from general knowledge, in character, one or two light sentences."
-                   More="A question that mentions the flight (fuel, weights, speeds, altitude, runway, weather, times, passengers…) still takes the strict path: fact sheet only, every number verified. On the small-talk path numbers are not verified — they are trivia — but a sentence about this flight with a figure in it is refused and the FO says 'I don't have a verified answer for that'. With this on, no lead-in word is needed: any sentence of four words or more that matched nothing else and is shaped like a question (a question word up front, or the recognizer's question mark) goes to the FO; a plain remark is not sent. Still speech only, still silent in the sterile cockpit."
+        <BoolField Label="@T["speechSettings.briefing.ask.smallTalk.label"]"
+                   Hint="@T["speechSettings.briefing.ask.smallTalk.hint"]"
+                   More="@T["speechSettings.briefing.ask.smallTalk.more"]"
                    Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                    @bind-Value="_speech.Value.FoQuestions.SmallTalk" />
-        <BoolField Label="Answer acknowledgements with 'Roger'"
-                   Hint="'No questions, thank you for the briefing', 'copied', 'okay thanks': on, the FO says 'Roger.'; off, nothing at all."
-                   More="Either way such words never go to the language model and never earn a 'didn't catch that'. With small talk on, only something shaped like a question (a question word up front, or a question mark from the recognizer) is sent to the model."
+        <BoolField Label="@T["speechSettings.briefing.ask.roger.label"]"
+                   Hint="@T["speechSettings.briefing.ask.roger.hint"]"
+                   More="@T["speechSettings.briefing.ask.roger.more"]"
                    Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                    @bind-Value="_speech.Value.FoQuestions.AcknowledgeSmallTalk" />
-        <BoolField Label="'What are we flying over?'"
-                   Hint="Ask 'what are we flying over', 'where are we', 'what is that city on the left'. The FO names the country, the mountains or sea, and the nearest towns with distance and side — at once, from an atlas in the app — then adds a fact or two about them."
-                   More="The position line comes from a built-in offline atlas (Natural Earth outlines, GeoNames towns — see the manual for the attribution), never from the language model, so it needs no internet and is always the same for the same spot. The facts after it come from the LLM: with 'Wikipedia facts' off, from its own knowledge, like small talk (numbers unverified, nothing about this flight). No lead-in word or minimum length is needed for these phrases. Works with small talk off."
+        <BoolField Label="@T["speechSettings.briefing.ask.flyingOver.label"]"
+                   Hint="@T["speechSettings.briefing.ask.flyingOver.hint"]"
+                   More="@T["speechSettings.briefing.ask.flyingOver.more"]"
                    Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                    @bind-Value="_speech.Value.FoQuestions.WhereAreWe" />
-        <BoolField Label="Wikipedia facts"
-                   Hint="With the switch above: fetch a short Wikipedia summary of the nearest town and have the FO take its facts from that instead of the model's memory."
-                   More="One small request to en.wikipedia.org per place, three-second limit, answered from a cache after the first time. If it fails or finds nothing, the FO still gives the position and falls back to the model's own knowledge. Nothing about you or the flight is sent — only the place name."
+        <BoolField Label="@T["speechSettings.briefing.ask.wikipedia.label"]"
+                   Hint="@T["speechSettings.briefing.ask.wikipedia.hint"]"
+                   More="@T["speechSettings.briefing.ask.wikipedia.more"]"
                    Disabled="@(!_speech.Value.FoQuestions.Enabled || !_speech.Value.FoQuestions.WhereAreWe)"
                    @bind-Value="_speech.Value.FoQuestions.WikipediaFacts" />
-        <TextField Label="Question lead-ins" Hint="Comma-separated. An utterance must start with one of these to count as a question (not needed with small talk on)."
+        <TextField Label="@T["speechSettings.briefing.ask.leadIns.label"]" Hint="@T["speechSettings.briefing.ask.leadIns.hint"]"
                    Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                    @bind-Value="_speech.Value.FoQuestions.LeadIns" />
-        <NumberField Label="Minimum words" Hint="Shorter utterances are never questions — they are exact phrases, misheard." Min="1" Max="10"
+        <NumberField Label="@T["speechSettings.briefing.ask.minWords.label"]" Hint="@T["speechSettings.briefing.ask.minWords.hint"]" Min="1" Max="10"
                      Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                      @bind-Value="_speech.Value.FoQuestions.MinimumWords"
                      Default="_speech.Defaults.FoQuestions.MinimumWords" />
-        <NumberField Label="Time budget" Hint="From the question to the first spoken word. After this the FO gives up with the fixed line." Suffix="s" Min="1" Max="60"
+        <NumberField Label="@T["speechSettings.briefing.ask.timeBudget.label"]" Hint="@T["speechSettings.briefing.ask.timeBudget.hint"]" Suffix="s" Min="1" Max="60"
                      Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                      @bind-Value="_speech.Value.FoQuestions.TimeBudgetSeconds"
                      Default="_speech.Defaults.FoQuestions.TimeBudgetSeconds" />
-        <NumberField Label="'Stand by' after" Hint="Silence before the FO says 'Stand by'. 0 = never." Suffix="s" Min="0" Max="30"
+        <NumberField Label="@T["speechSettings.briefing.ask.standBy.label"]" Hint="@T["speechSettings.briefing.ask.standBy.hint"]" Suffix="s" Min="0" Max="30"
                      Disabled="@(!_speech.Value.FoQuestions.Enabled)"
                      @bind-Value="_speech.Value.FoQuestions.StandBySeconds"
                      Default="_speech.Defaults.FoQuestions.StandBySeconds" />
     </Section>
 
-    <Section Title="Region Facts" Hint="In the cruise the FO now and then offers a short fact about the country or sea below. Unprompted, spoken only">
-        <BoolField Label="Enabled"
-                   Hint="Every fifteen to thirty minutes in the cruise (your interval), the FO mentions something about the region you are over: 'We're over the Netherlands — a quarter of what you see down there sits below sea level.' Never the same region twice in a flight."
-                   More="The region comes from the same built-in atlas as 'what are we flying over?' (no internet needed). The fact comes from the language model when it is on and healthy (two sentences, the same guard as the place facts — nothing about this flight), otherwise from the curated file region-facts.json in %LOCALAPPDATA%\ProsimCompanion\config — edit it to add your own, keyed by country code (FR, GB) or 'sea:North Sea'. Silent outside the cruise, while the flight is not live, while the FO's ear is paused, in the sterile cockpit, after 'quiet please', and over places the atlas does not name. With the FO persona on, a curated fact is spoken in the persona's voice with every figure locked."
+    <Section Title="@T["speechSettings.briefing.regionFacts.title"]" Hint="@T["speechSettings.briefing.regionFacts.hint"]">
+        <BoolField Label="@T["speechSettings.common.enabled"]"
+                   Hint="@T["speechSettings.briefing.regionFacts.enabled.hint"]"
+                   More="@T["speechSettings.briefing.regionFacts.enabled.more"]"
                    @bind-Value="_speech.Value.RegionFacts.Enabled" />
-        <NumberField Label="Shortest gap" Hint="Minutes between facts, at least. The first fact comes this long (plus the random share) after the cruise begins." Suffix="min" Min="1" Max="240"
+        <NumberField Label="@T["speechSettings.briefing.regionFacts.shortest.label"]" Hint="@T["speechSettings.briefing.regionFacts.shortest.hint"]" Suffix="min" Min="1" Max="240"
                      Disabled="@(!_speech.Value.RegionFacts.Enabled)"
                      @bind-Value="_speech.Value.RegionFacts.MinIntervalMinutes"
                      Default="_speech.Defaults.RegionFacts.MinIntervalMinutes" />
-        <NumberField Label="Longest gap" Hint="Each gap is drawn at random between the two, so it never feels like a timer." Suffix="min" Min="1" Max="480"
+        <NumberField Label="@T["speechSettings.briefing.regionFacts.longest.label"]" Hint="@T["speechSettings.briefing.regionFacts.longest.hint"]" Suffix="min" Min="1" Max="480"
                      Disabled="@(!_speech.Value.RegionFacts.Enabled)"
                      @bind-Value="_speech.Value.RegionFacts.MaxIntervalMinutes"
                      Default="_speech.Defaults.RegionFacts.MaxIntervalMinutes" />
-        <NumberField Label="Facts per flight" Hint="At most. Resets with the cabin's once-per-flight reports (cold and dark, or a new preflight after shutdown)." Min="1" Max="20"
+        <NumberField Label="@T["speechSettings.briefing.regionFacts.perFlight.label"]" Hint="@T["speechSettings.briefing.regionFacts.perFlight.hint"]" Min="1" Max="20"
                      Disabled="@(!_speech.Value.RegionFacts.Enabled)"
                      @bind-Value="_speech.Value.RegionFacts.MaxPerFlight"
                      Default="_speech.Defaults.RegionFacts.MaxPerFlight" />
-        <BoolField Label="Facts from the language model"
-                   Hint="Ask the LLM above for the fact when it is configured and healthy; off, or with the model down, only the curated file speaks."
-                   More="Model facts stream sentence by sentence like the place facts; a sentence about this flight with a figure in it is refused, and if the model says nothing within twenty seconds the curated file speaks instead. Numbers in a model fact are trivia and are not verified."
+        <BoolField Label="@T["speechSettings.briefing.regionFacts.llmFacts.label"]"
+                   Hint="@T["speechSettings.briefing.regionFacts.llmFacts.hint"]"
+                   More="@T["speechSettings.briefing.regionFacts.llmFacts.more"]"
                    Disabled="@(!_speech.Value.RegionFacts.Enabled)"
                    @bind-Value="_speech.Value.RegionFacts.LlmFacts" />
     </Section>
 
-    <Section Title="Wake-on-LAN" Hint="Moved to Setup" Advanced="true">
+    <Section Title="@T["speechSettings.briefing.wol.title"]" Hint="@T["speechSettings.briefing.wol.hint"]" Advanced="true">
         <div class="field-hint" style="max-width:640px;">
-            The PCs the app wakes at startup — the language-model box, the speech server, any other — are one list on
-            <a href="settings">Settings → Setup → Wake-on-LAN</a>. An old single-PC setting from this page is moved there the first time Setup opens.
+            @T["speechSettings.briefing.wol.before"]
+            <a href="settings">@T["speechSettings.briefing.wol.link"]</a>@T["speechSettings.briefing.wol.after"]
         </div>
     </Section>
 }
 else if (CurrentSection == "callouts")
 {
-    <Section Title="Standard Callouts" Hint="The FO's speed, altitude and rollout calls.">
-        <BoolField Label="Callouts enabled" Hint="Master switch for every standard callout." More="Applies live. The individual callout texts, altitude callouts, the other flow-monitor reminders and the weather advisories are edited in the sop section of settings.json for now."
+    <Section Title="@T["speechSettings.callouts.title"]" Hint="@T["speechSettings.callouts.hint"]">
+        <BoolField Label="@T["speechSettings.callouts.enabled.label"]" Hint="@T["speechSettings.callouts.enabled.hint"]" More="@T["speechSettings.callouts.enabled.more"]"
                    @bind-Value="_sop.Value.CalloutsEnabled" />
     </Section>
 
-    <Section Title="Flap Placards" Hint="Maximum speed per flap lever position (VFE). The FO warns when you approach or exceed it, and checks your flap calls against it.">
+    <Section Title="@T["speechSettings.callouts.placards.title"]" Hint="@T["speechSettings.callouts.placards.hint"]">
         <div class="field-hint" style="margin-bottom:8px; max-width:640px;">
-            ProSim reports the lever in six steps: UP, 1, 1+F, 2, 3, FULL. Lever 1 gives 1+F on the
-            ground and on take-off; the FO reads the step ProSim reports.
+            @T["speechSettings.callouts.placards.leverHint"]
         </div>
         <div class="services-header">
-            <span>Lever</span><span>Limit (kt)</span><span></span><span></span><span></span>
+            <span>@T["speechSettings.callouts.placards.lever"]</span><span>@T["speechSettings.callouts.placards.limit"]</span><span></span><span></span><span></span>
         </div>
         @for (var i = 0; i < _sop.Value.FlapPlacards.Count; i++)
         {
@@ -1035,38 +1034,38 @@ else if (CurrentSection == "callouts")
             </div>
         }
         <div class="preset-row" style="margin-top:8px;">
-            <button type="button" class="btn secondary" title="A322 figures: 230 / 215 / 200 / 185 / 177"
-                    @onclick="ResetFlapPlacards">Reset to A320 defaults</button>
+            <button type="button" class="btn secondary" title="@T["speechSettings.callouts.placards.resetTitle"]"
+                    @onclick="ResetFlapPlacards">@T["speechSettings.callouts.placards.reset"]</button>
         </div>
     </Section>
 
-    <Section Title="Gear Limits" Hint="VLE is the limit with the gear down. VLO is the limit while the gear moves; the FO refuses a gear call above it.">
-        <NumberField Label="Gear extended (VLE)" Suffix="kt" Min="0" Max="400"
-                     Hint="The FO warns when you fly faster than this with the gear down. 0 turns the warning off."
+    <Section Title="@T["speechSettings.callouts.gear.title"]" Hint="@T["speechSettings.callouts.gear.hint"]">
+        <NumberField Label="@T["speechSettings.callouts.gear.vle.label"]" Suffix="kt" Min="0" Max="400"
+                     Hint="@T["speechSettings.callouts.gear.vle.hint"]"
                      @bind-Value="_sop.Value.GearMaxKt"
                      Default="_sop.Defaults.GearMaxKt" />
-        <NumberField Label="Gear extension (VLO down)" Suffix="kt" Min="0" Max="400"
-                     Hint='"Gear down" is refused above this speed. 0 turns the check off.'
+        <NumberField Label="@T["speechSettings.callouts.gear.vloDown.label"]" Suffix="kt" Min="0" Max="400"
+                     Hint="@T["speechSettings.callouts.gear.vloDown.hint"]"
                      @bind-Value="_sop.Value.GearExtendMaxKt"
                      Default="_sop.Defaults.GearExtendMaxKt" />
-        <NumberField Label="Gear retraction (VLO up)" Suffix="kt" Min="0" Max="400"
-                     Hint='"Gear up" is refused above this speed. 0 turns the check off.'
+        <NumberField Label="@T["speechSettings.callouts.gear.vloUp.label"]" Suffix="kt" Min="0" Max="400"
+                     Hint="@T["speechSettings.callouts.gear.vloUp.hint"]"
                      @bind-Value="_sop.Value.GearRetractMaxKt"
                      Default="_sop.Defaults.GearRetractMaxKt" />
-        <BoolField Label="Gear still down reminder"
-                   Hint='The FO says "gear still down" when you climb with the gear down.'
+        <BoolField Label="@T["speechSettings.callouts.gear.stillDown.label"]"
+                   Hint="@T["speechSettings.callouts.gear.stillDown.hint"]"
                    @bind-Value="_sop.Value.FlowMonitor.GearStillDown.Enabled" />
-        <NumberField Label="Gear up by" Suffix="ft AGL" Min="0" Max="10000" Step="50"
-                     Hint="The reminder comes when you climb above this height with the gear down."
+        <NumberField Label="@T["speechSettings.callouts.gear.upBy.label"]" Suffix="ft AGL" Min="0" Max="10000" Step="50"
+                     Hint="@T["speechSettings.callouts.gear.upBy.hint"]"
                      Disabled="@(!_sop.Value.FlowMonitor.GearStillDown.Enabled)"
                      @bind-Value="_sop.Value.FlowMonitor.GearUpAboveAglFt"
                      Default="_sop.Defaults.FlowMonitor.GearUpAboveAglFt" />
     </Section>
 
-    <Section Title="Approach Gates" Hint="The heights where the FO checks that the approach is stable. Airlines differ — set your own SOP.">
-        <BoolField Label="Stable approach check"
-                   Hint="At each gate the FO checks speed, sink rate, gear and flaps, and calls an unstable approach."
-                   More="A gate is checked once, when you descend through its height on the radio altimeter. The highest gate is checked first. The speed band is measured from VLS."
+    <Section Title="@T["speechSettings.callouts.gates.title"]" Hint="@T["speechSettings.callouts.gates.hint"]">
+        <BoolField Label="@T["speechSettings.callouts.gates.stable.label"]"
+                   Hint="@T["speechSettings.callouts.gates.stable.hint"]"
+                   More="@T["speechSettings.callouts.gates.stable.more"]"
                    @bind-Value="_sop.Value.Stabilized.Enabled" />
         @for (var i = 0; i < _sop.Value.ApproachGates.Count; i++)
         {
@@ -1074,47 +1073,47 @@ else if (CurrentSection == "callouts")
             var gateOff = !_sop.Value.Stabilized.Enabled || !gate.Enabled;
             <div class="gate-block">
                 <div class="gate-title">
-                    <span>Gate @(i + 1) — @gate.AglFt ft</span>
-                    <button type="button" class="btn secondary" title="Remove this gate"
-                            @onclick="() => RemoveApproachGate(gate)">Remove</button>
+                    <span>@T["speechSettings.callouts.gates.gateTitle", i + 1, gate.AglFt]</span>
+                    <button type="button" class="btn secondary" title="@T["speechSettings.callouts.gates.removeTitle"]"
+                            @onclick="() => RemoveApproachGate(gate)">@T["speechSettings.common.remove"]</button>
                 </div>
-                <BoolField Label="Gate in use" @bind-Value="gate.Enabled" Disabled="@(!_sop.Value.Stabilized.Enabled)" />
-                <NumberField Label="Height" Suffix="ft AGL" Min="0" Max="5000" Step="50"
-                             Hint="Radio altitude of the gate. 0 switches the gate off."
+                <BoolField Label="@T["speechSettings.callouts.gates.inUse"]" @bind-Value="gate.Enabled" Disabled="@(!_sop.Value.Stabilized.Enabled)" />
+                <NumberField Label="@T["speechSettings.callouts.gates.height.label"]" Suffix="ft AGL" Min="0" Max="5000" Step="50"
+                             Hint="@T["speechSettings.callouts.gates.height.hint"]"
                              Disabled="@gateOff" @bind-Value="gate.AglFt" />
-                <BoolField Label="Gear down required" Disabled="@gateOff" @bind-Value="gate.RequireGearDown" />
-                <SelectField Label="Minimum flap lever" Options="FlapLeverOptions" Disabled="@gateOff"
-                             Hint="The flap lever must be at this position or further."
+                <BoolField Label="@T["speechSettings.callouts.gates.gearDown"]" Disabled="@gateOff" @bind-Value="gate.RequireGearDown" />
+                <SelectField Label="@T["speechSettings.callouts.gates.minFlap.label"]" Options="FlapLeverOptions" Disabled="@gateOff"
+                             Hint="@T["speechSettings.callouts.gates.minFlap.hint"]"
                              Value="@gate.RequireFlapHandleAtLeast.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                              ValueChanged="@(value => gate.RequireFlapHandleAtLeast = ParseFlapLever(value, gate.RequireFlapHandleAtLeast))" />
-                <NumberField Label="Speed below VLS allowed" Suffix="kt" Min="0" Max="50" Step="1"
+                <NumberField Label="@T["speechSettings.callouts.gates.belowVls"]" Suffix="kt" Min="0" Max="50" Step="1"
                              Disabled="@gateOff" @bind-Value="gate.SpeedBandBelowVls" />
-                <NumberField Label="Speed above VLS allowed" Suffix="kt" Min="0" Max="50" Step="1"
+                <NumberField Label="@T["speechSettings.callouts.gates.aboveVls"]" Suffix="kt" Min="0" Max="50" Step="1"
                              Disabled="@gateOff" @bind-Value="gate.SpeedBandAboveVls" />
-                <NumberField Label="Maximum sink rate" Suffix="fpm" Min="0" Max="3000" Step="50"
+                <NumberField Label="@T["speechSettings.callouts.gates.sink"]" Suffix="fpm" Min="0" Max="3000" Step="50"
                              Disabled="@gateOff" @bind-Value="gate.MaxSinkRateFpm" />
-                <BoolField Label='Say "stabilized" when the gate passes'
-                           Hint="Off: the FO speaks at this gate only when the approach is unstable."
+                <BoolField Label="@T["speechSettings.callouts.gates.announce.label"]"
+                           Hint="@T["speechSettings.callouts.gates.announce.hint"]"
                            Disabled="@gateOff" @bind-Value="gate.AnnounceStabilized" />
             </div>
         }
         <div class="preset-row" style="margin-top:12px;">
-            <button type="button" class="btn secondary" title="Add a gate, for example a 1500 ft gate"
-                    @onclick="AddApproachGate">Add gate</button>
-            <button type="button" class="btn secondary" title="Two gates: 1000 ft (flap 2 or more) and 500 ft (flap 3 or more), gear down at both"
-                    @onclick="ResetApproachGates">Reset to defaults</button>
+            <button type="button" class="btn secondary" title="@T["speechSettings.callouts.gates.addTitle"]"
+                    @onclick="AddApproachGate">@T["speechSettings.callouts.gates.add"]</button>
+            <button type="button" class="btn secondary" title="@T["speechSettings.callouts.gates.resetTitle"]"
+                    @onclick="ResetApproachGates">@T["speechSettings.callouts.gates.reset"]</button>
         </div>
-        <AdvancedFields Label="Wording and thrust check hidden">
+        <AdvancedFields Label="@T["speechSettings.callouts.gates.advancedLabel"]">
             <div class="gate-block">
-                <TextField Label="Stable call" Disabled="@(!_sop.Value.Stabilized.Enabled)"
+                <TextField Label="@T["speechSettings.callouts.gates.stableCall"]" Disabled="@(!_sop.Value.Stabilized.Enabled)"
                            @bind-Value="_sop.Value.Stabilized.StableText" />
-                <TextField Label="Unstable call" Disabled="@(!_sop.Value.Stabilized.Enabled)"
+                <TextField Label="@T["speechSettings.callouts.gates.unstableCall"]" Disabled="@(!_sop.Value.Stabilized.Enabled)"
                            @bind-Value="_sop.Value.Stabilized.UnstableText" />
-                <BoolField Label="Thrust must be spooled up"
-                           Hint="Adds a thrust check to every gate: the average N1 must be at or above the figure below."
+                <BoolField Label="@T["speechSettings.callouts.gates.thrust.label"]"
+                           Hint="@T["speechSettings.callouts.gates.thrust.hint"]"
                            Disabled="@(!_sop.Value.Stabilized.Enabled)"
                            @bind-Value="_sop.Value.Stabilized.RequireThrustStabilized" />
-                <NumberField Label="Minimum N1" Suffix="%" Min="0" Max="100" Step="1"
+                <NumberField Label="@T["speechSettings.callouts.gates.minN1"]" Suffix="%" Min="0" Max="100" Step="1"
                              Disabled="@(!_sop.Value.Stabilized.Enabled || !_sop.Value.Stabilized.RequireThrustStabilized)"
                              @bind-Value="_sop.Value.Stabilized.MinStabilizedN1"
                              Default="_sop.Defaults.Stabilized.MinStabilizedN1" />
@@ -1122,109 +1121,109 @@ else if (CurrentSection == "callouts")
         </AdvancedFields>
     </Section>
 
-    <Section Title="Placard Advisories" Hint="What the FO says when a limit is close or exceeded" Advanced="true">
-        <BoolField Label="Enabled" @bind-Value="_sop.Value.PlacardAdvisory.Enabled" />
-        <NumberField Label="Warn within" Suffix="kt" Min="0" Max="50"
-                     Hint="Speak the approaching call this close below the limit, while accelerating."
+    <Section Title="@T["speechSettings.callouts.advisories.title"]" Hint="@T["speechSettings.callouts.advisories.hint"]" Advanced="true">
+        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_sop.Value.PlacardAdvisory.Enabled" />
+        <NumberField Label="@T["speechSettings.callouts.advisories.warnWithin.label"]" Suffix="kt" Min="0" Max="50"
+                     Hint="@T["speechSettings.callouts.advisories.warnWithin.hint"]"
                      Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
                      @bind-Value="_sop.Value.PlacardAdvisory.WarnWithinKt"
                      Default="_sop.Defaults.PlacardAdvisory.WarnWithinKt" />
-        <NumberField Label="Cooldown" Suffix="s" Min="0" Max="600"
-                     Hint="Minimum time between two advisories of the same kind."
+        <NumberField Label="@T["speechSettings.callouts.advisories.cooldown.label"]" Suffix="s" Min="0" Max="600"
+                     Hint="@T["speechSettings.callouts.advisories.cooldown.hint"]"
                      Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
                      @bind-Value="_sop.Value.PlacardAdvisory.CooldownSeconds"
                      Default="_sop.Defaults.PlacardAdvisory.CooldownSeconds" />
-        <TextField Label="Approaching flap limit" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
+        <TextField Label="@T["speechSettings.callouts.advisories.approaching"]" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
                    @bind-Value="_sop.Value.PlacardAdvisory.ApproachingText" />
-        <TextField Label="Flap limit exceeded" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
+        <TextField Label="@T["speechSettings.callouts.advisories.exceeded"]" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
                    @bind-Value="_sop.Value.PlacardAdvisory.ExceededText" />
-        <TextField Label="Gear limit exceeded" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
+        <TextField Label="@T["speechSettings.callouts.advisories.gearExceeded"]" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
                    @bind-Value="_sop.Value.PlacardAdvisory.GearExceededText" />
     </Section>
 
-    <Section Title="In-flight monitoring" Hint="Four FO duties that are off until you turn them on. Each needs a live flight and only ever speaks.">
-        <BoolField Label="Fuel check"
-                   Hint="In the cruise the FO compares fuel on board with the SimBrief plan at your position and gives the estimated landing fuel. Also on 'fuel check'."
-                   More="Needs a SimBrief OFP with a navlog and the aircraft position. Without them: fuel on board minus fuel flow times the time to the ETA. A shortfall beyond the margin is spoken at High. Silent in sterile phases."
+    <Section Title="@T["speechSettings.callouts.monitoring.title"]" Hint="@T["speechSettings.callouts.monitoring.hint"]">
+        <BoolField Label="@T["speechSettings.callouts.monitoring.fuelCheck.label"]"
+                   Hint="@T["speechSettings.callouts.monitoring.fuelCheck.hint"]"
+                   More="@T["speechSettings.callouts.monitoring.fuelCheck.more"]"
                    @bind-Value="_sop.Value.Monitoring.FuelCheck.Enabled" />
-        <NumberField Label="Fuel check every" Suffix="min" Min="0" Max="120"
-                     Hint="Minutes between automatic checks in the cruise; 0 = on request only"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.fuelEvery.label"]" Suffix="min" Min="0" Max="120"
+                     Hint="@T["speechSettings.callouts.monitoring.fuelEvery.hint"]"
                      Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.FuelCheck.IntervalMinutes"
                      Default="_sop.Defaults.Monitoring.FuelCheck.IntervalMinutes" />
-        <NumberField Label="Shortfall margin" Suffix="kg" Min="0" Max="5000"
-                     Hint="This far below plan (or more) the check is spoken as a warning"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.shortfall.label"]" Suffix="kg" Min="0" Max="5000"
+                     Hint="@T["speechSettings.callouts.monitoring.shortfall.hint"]"
                      Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.FuelCheck.ShortfallMarginKg"
                      Default="_sop.Defaults.Monitoring.FuelCheck.ShortfallMarginKg" />
-        <NumberField Label="Counts as on plan within" Suffix="kg" Min="0" Max="2000"
-                     Hint="Smaller differences are 'on plan' instead of a figure"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.onPlan.label"]" Suffix="kg" Min="0" Max="2000"
+                     Hint="@T["speechSettings.callouts.monitoring.onPlan.hint"]"
                      Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.FuelCheck.OnPlanWithinKg"
                      Default="_sop.Defaults.Monitoring.FuelCheck.OnPlanWithinKg" />
 
-        <BoolField Label="Takeoff gross error check"
-                   Hint="One line before takeoff: the aircraft's weights against the final loadsheet, and the FMS flaps, flex and V-speeds against the last takeoff performance calculation. Also on 'gross error check'."
-                   More="Runs once per departure when the final loadsheet is out and the V-speeds are in the FMS. The FMS INIT weights cannot be read from ProSim, so the aircraft's own zero fuel weight and fuel on board stand in for them. The performance figures come from the Performance page's last calculation."
+        <BoolField Label="@T["speechSettings.callouts.monitoring.grossError.label"]"
+                   Hint="@T["speechSettings.callouts.monitoring.grossError.hint"]"
+                   More="@T["speechSettings.callouts.monitoring.grossError.more"]"
                    @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.Enabled" />
-        <BoolField Label="Automatic" Hint="Off = only when you ask for it"
+        <BoolField Label="@T["speechSettings.callouts.monitoring.automatic.label"]" Hint="@T["speechSettings.callouts.monitoring.automatic.hint"]"
                    Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
                    @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.Automatic" />
-        <NumberField Label="Zero fuel weight tolerance" Suffix="kg" Min="0" Max="5000"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.zfw"]" Suffix="kg" Min="0" Max="5000"
                      Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.ZfwToleranceKg"
                      Default="_sop.Defaults.Monitoring.GrossErrorCheck.ZfwToleranceKg" />
-        <NumberField Label="Block fuel tolerance" Suffix="kg" Min="0" Max="5000"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.blockFuel"]" Suffix="kg" Min="0" Max="5000"
                      Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.BlockFuelToleranceKg"
                      Default="_sop.Defaults.Monitoring.GrossErrorCheck.BlockFuelToleranceKg" />
-        <NumberField Label="V-speed tolerance" Suffix="kt" Min="0" Max="20"
+        <NumberField Label="@T["speechSettings.common.vSpeedTolerance"]" Suffix="kt" Min="0" Max="20"
                      Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.VSpeedToleranceKt"
                      Default="_sop.Defaults.Monitoring.GrossErrorCheck.VSpeedToleranceKt" />
-        <NumberField Label="Flex tolerance" Suffix="°C" Min="0" Max="20"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.flex"]" Suffix="°C" Min="0" Max="20"
                      Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.FlexToleranceC"
                      Default="_sop.Defaults.Monitoring.GrossErrorCheck.FlexToleranceC" />
 
-        <BoolField Label="Destination weather watch"
-                   Hint="From the cruise on, the FO tells you when the destination's visibility or ceiling crosses your limit, when the ATIS letter changes, or when the wind turns into a tailwind on the planned landing runway."
-                   More="Uses the weather cards' own refresh, no extra polling. The alternate's weather is added once the destination is below a limit. Each kind of change is spoken at most once in the quiet period."
+        <BoolField Label="@T["speechSettings.callouts.monitoring.destWx.label"]"
+                   Hint="@T["speechSettings.callouts.monitoring.destWx.hint"]"
+                   More="@T["speechSettings.callouts.monitoring.destWx.more"]"
                    @bind-Value="_sop.Value.Monitoring.DestinationWeather.Enabled" />
-        <NumberField Label="Visibility limit" Suffix="m" Min="0" Max="10000"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.visibility"]" Suffix="m" Min="0" Max="10000"
                      Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.DestinationWeather.VisibilityThresholdM"
                      Default="_sop.Defaults.Monitoring.DestinationWeather.VisibilityThresholdM" />
-        <NumberField Label="Ceiling limit" Suffix="ft" Min="0" Max="5000"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.ceiling"]" Suffix="ft" Min="0" Max="5000"
                      Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.DestinationWeather.CeilingThresholdFt"
                      Default="_sop.Defaults.Monitoring.DestinationWeather.CeilingThresholdFt" />
-        <NumberField Label="Tailwind limit" Suffix="kt" Min="0" Max="30"
-                     Hint="A tailwind component above this on the planned landing runway is announced"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.tailwind.label"]" Suffix="kt" Min="0" Max="30"
+                     Hint="@T["speechSettings.callouts.monitoring.tailwind.hint"]"
                      Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.DestinationWeather.TailwindThresholdKt"
                      Default="_sop.Defaults.Monitoring.DestinationWeather.TailwindThresholdKt" />
-        <NumberField Label="Quiet period per change" Suffix="min" Min="1" Max="120"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.quiet"]" Suffix="min" Min="1" Max="120"
                      Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.DestinationWeather.MinutesBetweenAnnouncements"
                      Default="_sop.Defaults.Monitoring.DestinationWeather.MinutesBetweenAnnouncements" />
-        <BoolField Label="Announce ATIS letter changes"
+        <BoolField Label="@T["speechSettings.callouts.monitoring.atis"]"
                    Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
                    @bind-Value="_sop.Value.Monitoring.DestinationWeather.AnnounceAtisChange" />
 
-        <BoolField Label="Read-backs"
-                   Hint="Say 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' or 'minimums two one zero' and the FO checks it against the aircraft."
-                   More="The altimeter is checked against your baro setting, the V-speeds against the FMS PERF page, the runway against the FMS plan (departure before takeoff, arrival after), the minimums against the ones you briefed. The FO answers 'checked' or the value it reads."
+        <BoolField Label="@T["speechSettings.callouts.monitoring.readbacks.label"]"
+                   Hint="@T["speechSettings.callouts.monitoring.readbacks.hint"]"
+                   More="@T["speechSettings.callouts.monitoring.readbacks.more"]"
                    @bind-Value="_sop.Value.Monitoring.Readbacks.Enabled" />
-        <NumberField Label="Altimeter tolerance" Suffix="hPa" Min="0" Max="5" Step="0.1"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.altimeter"]" Suffix="hPa" Min="0" Max="5" Step="0.1"
                      Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.Readbacks.AltimeterToleranceHpa"
                      Default="_sop.Defaults.Monitoring.Readbacks.AltimeterToleranceHpa" />
-        <NumberField Label="V-speed tolerance" Suffix="kt" Min="0" Max="10"
+        <NumberField Label="@T["speechSettings.common.vSpeedTolerance"]" Suffix="kt" Min="0" Max="10"
                      Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.Readbacks.VSpeedToleranceKt"
                      Default="_sop.Defaults.Monitoring.Readbacks.VSpeedToleranceKt" />
-        <NumberField Label="Minimums tolerance" Suffix="ft" Min="0" Max="100"
+        <NumberField Label="@T["speechSettings.callouts.monitoring.minimums"]" Suffix="ft" Min="0" Max="100"
                      Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
                      @bind-Value="_sop.Value.Monitoring.Readbacks.MinimumsToleranceFt"
                      Default="_sop.Defaults.Monitoring.Readbacks.MinimumsToleranceFt" />
@@ -1233,28 +1232,27 @@ else if (CurrentSection == "callouts")
 else if (CurrentSection == "abnormals")
 {
     @* abnormals (2026-10-08): the dialogue ran on constants and had no switch before this. *@
-    <Section Title="ECAM Abnormals" Hint="The FO reads the E/WD and the system datarefs, announces a failure and works the procedure with you. It never moves a switch">
-        <BoolField Label="Detect and announce failures" Hint="Off: nothing is detected or announced. The memory drills can still be called by voice as rehearsals."
+    <Section Title="@T["speechSettings.abnormals.title"]" Hint="@T["speechSettings.abnormals.hint"]">
+        <BoolField Label="@T["speechSettings.abnormals.detect.label"]" Hint="@T["speechSettings.abnormals.detect.hint"]"
                    @bind-Value="_abnormals.Value.Enabled" />
-        <BoolField Label="Work the ECAM line by line" Hint="Each action line waits for your confirm; a line with a check is verified against the aircraft." More="Say &quot;standby&quot;, &quot;say again&quot;, &quot;skip&quot;, &quot;fault remains&quot;, &quot;unable&quot; or &quot;cancel ecam&quot; at any line. Off: the FO announces the failure and leaves the ECAM to you."
+        <BoolField Label="@T["speechSettings.abnormals.lineByLine.label"]" Hint="@T["speechSettings.abnormals.lineByLine.hint"]" More="@T["speechSettings.abnormals.lineByLine.more"]"
                    Disabled="@(!_abnormals.Value.Enabled)" @bind-Value="_abnormals.Value.InteractiveDialogue" />
-        <NumberField Label="Answer window per line" Hint="How long the FO waits for your answer before asking again." Suffix="s" Min="3" Max="120"
+        <NumberField Label="@T["speechSettings.abnormals.answerWindow.label"]" Hint="@T["speechSettings.abnormals.answerWindow.hint"]" Suffix="s" Min="3" Max="120"
                      Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
                      @bind-Value="_abnormals.Value.ConfirmTimeoutSeconds"
                      Default="_abnormals.Defaults.ConfirmTimeoutSeconds" />
         <AdvancedFields>
-            <NumberField Label="Unanswered prompts before standby" Hint="After this many silent windows in a row the FO stops asking and stands by. 0 = ask forever." Min="0" Max="20"
+            <NumberField Label="@T["speechSettings.abnormals.silentPrompts.label"]" Hint="@T["speechSettings.abnormals.silentPrompts.hint"]" Min="0" Max="20"
                          Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
                          @bind-Value="_abnormals.Value.MaxSilentPrompts"
                          Default="_abnormals.Defaults.MaxSilentPrompts" />
-            <NumberField Label="Verify mismatches tolerated" Hint="Discrepancies on a checked line before the FO offers continue or standby." Min="0" Max="10"
+            <NumberField Label="@T["speechSettings.abnormals.mismatches.label"]" Hint="@T["speechSettings.abnormals.mismatches.hint"]" Min="0" Max="10"
                          Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
                          @bind-Value="_abnormals.Value.MaxVerifyRetries"
                          Default="_abnormals.Defaults.MaxVerifyRetries" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
-            The procedures themselves are JSON files under <code>%LOCALAPPDATA%\ProsimCompanion\config\abnormals</code>;
-            a file that fails to load is named in a banner. A running dialogue can be cancelled from the Status section.
+            @T["speechSettings.abnormals.filesBefore"] <code>%LOCALAPPDATA%\ProsimCompanion\config\abnormals</code>@T["speechSettings.abnormals.filesAfter"]
         </div>
     </Section>
 }
@@ -1356,7 +1354,7 @@ else if (CurrentSection == "abnormals")
         Nav.NavigateTo($"settings/speech/providers/{key}", replace: true);
     }
 
-    private const string VoicesEmptyHint = "No voices listed yet. Connect a provider under Voice Providers and press Refresh.";
+    private string VoicesEmptyHint => T["speechSettings.voiceNotes.emptyHint"];
 
     private bool IsProviderConfigured(string provider) => provider switch
     {
@@ -1368,7 +1366,7 @@ else if (CurrentSection == "abnormals")
 
     private string VoiceNote(string provider)
         => _voiceNotes.TryGetValue(provider, out var note) ? note
-            : IsProviderConfigured(provider) ? "not listed yet" : "not configured";
+            : IsProviderConfigured(provider) ? T["speechSettings.voiceNotes.notListed"].Value : T["speechSettings.voiceNotes.notConfigured"].Value;
 
     private IReadOnlyList<VoiceGroup> GroupsFor(string provider) => BuildGroups([provider]);
 
@@ -1434,7 +1432,7 @@ else if (CurrentSection == "abnormals")
         if (!IsProviderConfigured(provider))
         {
             _voiceLists.Remove(provider);
-            _voiceNotes[provider] = "not configured";
+            _voiceNotes[provider] = T["speechSettings.voiceNotes.notConfigured"];
             return;
         }
 
@@ -1443,13 +1441,13 @@ else if (CurrentSection == "abnormals")
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var list = await VoiceCatalog.ListVoicesAsync(provider, _speech.Value, cts.Token);
             _voiceLists[provider] = list;
-            _voiceNotes[provider] = list.Count == 0 ? "no voices reported" : $"{list.Count} voices";
+            _voiceNotes[provider] = list.Count == 0 ? T["speechSettings.voiceNotes.none"].Value : T["speechSettings.voiceNotes.count", list.Count].Value;
         }
         catch (Exception ex)
         {
             // Status + body snippet from the catalog; keys are never in the message.
             _voiceLists.Remove(provider);
-            _voiceNotes[provider] = "could not list voices — " + ex.Message;
+            _voiceNotes[provider] = T["speechSettings.voiceNotes.failed", ex.Message];
         }
     }
 
@@ -1475,25 +1473,25 @@ else if (CurrentSection == "abnormals")
         }
     }
 
-    private static readonly IReadOnlyList<(string, string)> PttSwitchOptions =
+    private IReadOnlyList<(string, string)> PttSwitchOptions =>
     [
-        ("none", "Off"),
-        ("captainSidestick", "Captain sidestick PTT"),
-        ("foSidestick", "First Officer sidestick PTT"),
-        ("captainHandMic", "Captain hand mic PTT"),
-        ("foHandMic", "First Officer hand mic PTT"),
-        ("observerHandMic", "Observer hand mic PTT"),
+        ("none", T["speechSettings.options.pttSwitch.off"].Value),
+        ("captainSidestick", T["speechSettings.options.pttSwitch.captainSidestick"].Value),
+        ("foSidestick", T["speechSettings.options.pttSwitch.foSidestick"].Value),
+        ("captainHandMic", T["speechSettings.options.pttSwitch.captainHandMic"].Value),
+        ("foHandMic", T["speechSettings.options.pttSwitch.foHandMic"].Value),
+        ("observerHandMic", T["speechSettings.options.pttSwitch.observerHandMic"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> SiPttLvarOptions =
+    private IReadOnlyList<(string, string)> SiPttLvarOptions =>
     [
-        ("L:SIAI_CONTROL_PTT_COM", "COM radio PTT (the selected radio)"),
-        ("L:SIAI_CONTROL_PTT_COM1", "COM1 PTT (forced)"),
-        ("L:SIAI_CONTROL_PTT_COM2", "COM2 PTT (forced)"),
-        ("L:SIAI_CONTROL_PTT_INTERCOM1", "Intercom PTT — channel 1"),
-        ("L:SIAI_CONTROL_PTT_INTERCOM2", "Intercom PTT — channel 2"),
-        ("L:SIAI_CONTROL_PTT_INTERCOM3", "Intercom PTT — channel 3"),
-        ("L:SIAI_CONTROL_PTT_GROUP", "Group flight PTT"),
+        ("L:SIAI_CONTROL_PTT_COM", T["speechSettings.options.siPtt.com"].Value),
+        ("L:SIAI_CONTROL_PTT_COM1", T["speechSettings.options.siPtt.com1"].Value),
+        ("L:SIAI_CONTROL_PTT_COM2", T["speechSettings.options.siPtt.com2"].Value),
+        ("L:SIAI_CONTROL_PTT_INTERCOM1", T["speechSettings.options.siPtt.intercom1"].Value),
+        ("L:SIAI_CONTROL_PTT_INTERCOM2", T["speechSettings.options.siPtt.intercom2"].Value),
+        ("L:SIAI_CONTROL_PTT_INTERCOM3", T["speechSettings.options.siPtt.intercom3"].Value),
+        ("L:SIAI_CONTROL_PTT_GROUP", T["speechSettings.options.siPtt.group"].Value),
     ];
 
 
@@ -1512,66 +1510,67 @@ else if (CurrentSection == "abnormals")
         }
     }
 
-    private static readonly IReadOnlyList<(string, string)> ElevenLabsModelOptions =
+    private IReadOnlyList<(string, string)> ElevenLabsModelOptions =>
     [
-        ("eleven_flash_v2_5", "eleven_flash_v2_5 (fast, half cost)"),
-        ("eleven_v3", "eleven_v3 (expressive, full cost)"),
+        ("eleven_flash_v2_5", T["speechSettings.options.elevenLabsModel.flash"].Value),
+        ("eleven_v3", T["speechSettings.options.elevenLabsModel.v3"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> ElevenLabsFormatOptions =
+    private IReadOnlyList<(string, string)> ElevenLabsFormatOptions =>
     [
-        ("mp3_44100_128", "mp3_44100_128 (all plans)"),
-        ("pcm_24000", "pcm_24000 (paid plans)"),
+        ("mp3_44100_128", T["speechSettings.options.elevenLabsFormat.mp3"].Value),
+        ("pcm_24000", T["speechSettings.options.elevenLabsFormat.pcm"].Value),
     ];
 
 
 
-    private static readonly IReadOnlyList<(string, string)> RecognitionModeOptions =
+    // Option labels read the pack on every draw so a language switch re-labels the open page.
+    private IReadOnlyList<(string, string)> RecognitionModeOptions =>
     [
-        ("pushToTalk", "Push-to-talk (dedicated FO key)"),
-        ("continuous", "Continuous (ATC-mute while transmitting)"),
+        ("pushToTalk", T["speechSettings.options.recognitionMode.pushToTalk"].Value),
+        ("continuous", T["speechSettings.options.recognitionMode.continuous"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> PilotSeatOptions =
+    private IReadOnlyList<(string, string)> PilotSeatOptions =>
     [
-        ("left", "Left seat (FO operates the right side)"),
-        ("right", "Right seat (virtual pilot operates the left side)"),
+        ("left", T["speechSettings.options.seat.left"].Value),
+        ("right", T["speechSettings.options.seat.right"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> LlmApiOptions =
+    private IReadOnlyList<(string, string)> LlmApiOptions =>
     [
-        ("openAi", "OpenAI-compatible (/chat/completions)"),
-        ("ollama", "Ollama native (/api/chat — thinking control)"),
+        ("openAi", T["speechSettings.options.llmApi.openAi"].Value),
+        ("ollama", T["speechSettings.options.llmApi.ollama"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> AsrApiOptions =
+    private IReadOnlyList<(string, string)> AsrApiOptions =>
     [
-        ("fasterWhisper", "faster-whisper wrapper (/transcribe)"),
-        ("whisperCpp", "whisper.cpp server (/v1/audio/transcriptions)"),
+        ("fasterWhisper", T["speechSettings.options.asrApi.fasterWhisper"].Value),
+        ("whisperCpp", T["speechSettings.options.asrApi.whisperCpp"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> VadEngineOptions =
+    private IReadOnlyList<(string, string)> VadEngineOptions =>
     [
-        ("silero", "Silero VAD (neural, recommended)"),
-        ("rms", "RMS energy gate (legacy)"),
+        ("silero", T["speechSettings.options.vad.silero"].Value),
+        ("rms", T["speechSettings.options.vad.rms"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> ProcedureSourceOptions =
+    private IReadOnlyList<(string, string)> ProcedureSourceOptions =>
     [
-        ("auto", "Auto (FMS → flight.json → manual)"),
-        ("manual", "Manual entries only"),
-        ("flightJson", "SayIntentions flight.json only"),
+        ("auto", T["speechSettings.options.procedureSource.auto"].Value),
+        ("manual", T["speechSettings.options.procedureSource.manual"].Value),
+        ("flightJson", T["speechSettings.options.procedureSource.flightJson"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> NormalPolicyOptions =
+    private IReadOnlyList<(string, string)> NormalPolicyOptions =>
     [
-        ("allow", "Allow (speak normally)"),
-        ("defer", "Defer (replay when sterile ends)"),
-        ("suppress", "Suppress (drop)"),
+        ("allow", T["speechSettings.options.normalPolicy.allow"].Value),
+        ("defer", T["speechSettings.options.normalPolicy.defer"].Value),
+        ("suppress", T["speechSettings.options.normalPolicy.suppress"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> ApiKeySourceOptions =
-        [("auto", "Auto (from flight.json)"), ("manual", "Manual (entered below)")];
+    private IReadOnlyList<(string, string)> ApiKeySourceOptions =>
+        [("auto", T["speechSettings.options.apiKeySource.auto"].Value), ("manual", T["speechSettings.options.apiKeySource.manual"].Value)];
 
     private static readonly IReadOnlyList<(string, string)> PhraseologyOptions =
         [("icao", "ICAO"), ("faa", "FAA")];
@@ -1593,28 +1592,28 @@ else if (CurrentSection == "abnormals")
     private OptionsDraft<LogbookOptions> _logbook = default!;
     private OptionsDraft<AbnormalsOptions> _abnormals = default!;
 
-    private static readonly IReadOnlyList<(string, string)> PersonaExperienceOptions =
-        [("junior", "Junior"), ("standard", "Standard"), ("senior", "Senior")];
+    private IReadOnlyList<(string, string)> PersonaExperienceOptions =>
+        [("junior", T["speechSettings.options.experience.junior"].Value), ("standard", T["speechSettings.options.experience.standard"].Value), ("senior", T["speechSettings.options.experience.senior"].Value)];
 
-    private static readonly IReadOnlyList<(string, string)> PersonaFormalityOptions =
-        [("casual", "Casual"), ("standard", "Standard"), ("formal", "Formal")];
+    private IReadOnlyList<(string, string)> PersonaFormalityOptions =>
+        [("casual", T["speechSettings.options.formality.casual"].Value), ("standard", T["speechSettings.options.formality.standard"].Value), ("formal", T["speechSettings.options.formality.formal"].Value)];
 
-    private static readonly IReadOnlyList<(string, string)> DebriefVerbosityOptions =
-        [("full", "Full"), ("brief", "Brief")];
+    private IReadOnlyList<(string, string)> DebriefVerbosityOptions =>
+        [("full", T["speechSettings.options.verbosity.full"].Value), ("brief", T["speechSettings.options.verbosity.brief"].Value)];
 
     private IReadOnlyList<string> _captureDevices = [];
     private IReadOnlyList<string> _renderDevices = [];
 
     private IReadOnlyList<(string, string)> InputDeviceOptions() =>
-        DeviceOptions("Default capture device", _captureDevices, _speech.Value.InputDevice);
+        DeviceOptions(T["speechSettings.devices.defaultCapture"].Value, _captureDevices, _speech.Value.InputDevice);
 
     private IReadOnlyList<(string, string)> OutputDeviceOptions() =>
-        DeviceOptions("System default", _renderDevices, _speech.Value.OutputDevice);
+        DeviceOptions(T["speechSettings.devices.systemDefault"].Value, _renderDevices, _speech.Value.OutputDevice);
 
     /// <summary>Empty-value default first, then every detected device; a saved device that is
     /// not currently detected (unplugged, renamed) stays selectable so opening the page never
     /// silently rewrites the setting.</summary>
-    private static IReadOnlyList<(string, string)> DeviceOptions(
+    private IReadOnlyList<(string, string)> DeviceOptions(
         string defaultLabel, IReadOnlyList<string> devices, string current)
     {
         var options = new List<(string, string)> { ("", defaultLabel) };
@@ -1626,7 +1625,7 @@ else if (CurrentSection == "abnormals")
         if (!string.IsNullOrWhiteSpace(current)
             && !devices.Contains(current, StringComparer.OrdinalIgnoreCase))
         {
-            options.Add((current, $"{current} (not currently detected)"));
+            options.Add((current, T["speechSettings.devices.notDetected", current].Value));
         }
 
         return options;
@@ -1638,27 +1637,28 @@ else if (CurrentSection == "abnormals")
     /// touches it only on the pilot's say-so. Defaults to on when a binding already names a
     /// joystick.</summary>
     private bool _listenJoysticks;
+    private bool _scanning;
     private string? _scanMessage;
     private string? _capturing;
     private string? _captureMessage;
 
     /// <summary>"Key: capslock" / "VIRPIL Constellation — button 3" / "(unset)".</summary>
-    private static string BindingText(PttBindingOptions binding)
+    private string BindingText(PttBindingOptions binding)
     {
         if (!binding.IsSet)
         {
-            return "(unset)";
+            return T["speechSettings.binding.unset"];
         }
 
         if (binding.Kind.Equals("keyboard", StringComparison.OrdinalIgnoreCase))
         {
-            return $"Key: {binding.Key}";
+            return T["speechSettings.binding.keyboard", binding.Key];
         }
 
         var device = string.IsNullOrWhiteSpace(binding.JoystickDeviceName)
-            ? $"Joystick {binding.JoystickDevice}"
+            ? T["speechSettings.binding.joystick", binding.JoystickDevice ?? 0].Value
             : binding.JoystickDeviceName;
-        return $"{device} — button {binding.Button}";
+        return T["speechSettings.binding.button", device, binding.Button ?? 0];
     }
 
     /// <summary>Prosim2FO's Set process: capture the next key OR button and assign the whole
@@ -1674,7 +1674,7 @@ else if (CurrentSection == "abnormals")
                 includeJoysticks: _listenJoysticks, TimeSpan.FromSeconds(10), CancellationToken.None);
             if (result is null)
             {
-                _captureMessage = "Nothing pressed within ten seconds.";
+                _captureMessage = T["speechSettings.capture.nothingPressed"];
                 return;
             }
 
@@ -1697,11 +1697,13 @@ else if (CurrentSection == "abnormals")
                 binding.Button = null;
             }
 
-            _captureMessage = $"{(target == "atc" ? "ATC PTT" : "FO PTT")} bound to {BindingText(binding)}.";
+            _captureMessage = T["speechSettings.capture.bound",
+                target == "atc" ? T["speechSettings.capture.atcPtt"].Value : T["speechSettings.capture.foPtt"].Value,
+                BindingText(binding)];
         }
         catch (Exception)
         {
-            _captureMessage = "Capture failed — see the Logs page.";
+            _captureMessage = T["speechSettings.capture.failed"];
         }
         finally
         {
@@ -1714,17 +1716,22 @@ else if (CurrentSection == "abnormals")
 
     private async Task ScanJoysticksAsync()
     {
-        _scanMessage = "Scanning…";
+        _scanning = true;
+        _scanMessage = T["speechSettings.scan.scanning"];
         try
         {
             _joysticks = await PttCapture.ScanJoysticksAsync(CancellationToken.None);
             _scanMessage = _joysticks.Count == 0
-                ? "No joystick answered."
-                : "Found: " + string.Join(", ", _joysticks.Select(j => $"{j.Name} (id {j.Id})")) + ".";
+                ? T["speechSettings.scan.none"].Value
+                : T["speechSettings.scan.found", string.Join(", ", _joysticks.Select(j => $"{j.Name} (id {j.Id})"))].Value;
         }
         catch (Exception)
         {
-            _scanMessage = "Scan failed — see the Logs page.";
+            _scanMessage = T["speechSettings.scan.failed"];
+        }
+        finally
+        {
+            _scanning = false;
         }
     }
 

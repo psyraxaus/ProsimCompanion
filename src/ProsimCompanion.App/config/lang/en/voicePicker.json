@@ -1,0 +1,13 @@
+{
+  "voicePicker": {
+    "pick": "Pick a voice…",
+    "other": "Other voice id…",
+    "placeholderPlain": "Voice id for this provider",
+    "placeholderRef": "provider:voice id, for example google:en-AU-Chirp3-HD-Aoede",
+    "saved": "{0} (saved)",
+    "savedWithProvider": "{0} ({1}, saved)",
+    "notInProviderList": "{0} voice \"{1}\". Not in that provider's list — check the name, or refresh the voices.",
+    "notInServerList": "{0} Not in the list from the server — check the name.",
+    "plainId": "Plain voice id. Sent as typed to whichever provider speaks."
+  }
+}
