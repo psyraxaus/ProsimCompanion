@@ -16,7 +16,7 @@ public abstract class SettingsPageBase : StoreObserverComponent
 {
     private readonly List<OptionsDraft> _drafts = [];
     private Timer? _savedMessageTimer;
-    private bool _validitySubscribed;
+    private bool _validityReset;
 
     [Inject]
     protected SettingsWriter Writer { get; set; } = default!;
@@ -34,38 +34,22 @@ public abstract class SettingsPageBase : StoreObserverComponent
 
     protected bool BarVisible => IsDirty || BarMessage is not null;
 
-    /// <summary>How many fields currently block a save.</summary>
-    protected int BlockingFieldCount => Validity?.BlockingCount ?? 0;
+    /// <summary>False while any field on the page is red. The DirtyBar greys its own Save
+    /// from the same tally; this copy guards a stale click.</summary>
+    protected bool CanSave => (Validity?.BlockingCount ?? 0) == 0;
 
-    /// <summary>False while any field on the page is red: the DirtyBar's Save goes grey.</summary>
-    protected bool CanSave => BlockingFieldCount == 0;
-
-    /// <summary>The DirtyBar line: a status message when one is showing, otherwise the
-    /// "fix the highlighted field" prompt or the plain unsaved-changes line. The prompt names
-    /// the fields, because a red one may sit in a section or fold that is not on screen.</summary>
-    protected string BarText => BarMessage ?? (CanSave
-        ? "You have unsaved changes"
-        : BlockingFieldCount == 1
-            ? $"Fix \"{Validity!.BlockingFields.First()}\" before saving"
-            : $"Fix these fields before saving: {string.Join(", ", Validity!.BlockingFields)}");
-
-    /// <summary>Subscribes to the cascaded validity tally once it arrives, so a field turning
-    /// red (or back) re-renders the DirtyBar. Done here rather than in OnInitialized because
-    /// pages override that without calling base. The tally is reset on arrival: it lives in
-    /// the layout, which outlives the page, and the fields of this page are about to report
-    /// afresh.</summary>
+    /// <summary>Resets the cascaded validity tally once it arrives: it lives in the layout,
+    /// which outlives the page, and the fields of this page are about to report afresh. Done
+    /// here rather than in OnInitialized because pages override that without calling base.</summary>
     public override async Task SetParametersAsync(ParameterView parameters)
     {
         await base.SetParametersAsync(parameters).ConfigureAwait(true);
-        if (!_validitySubscribed && Validity is not null)
+        if (!_validityReset && Validity is not null)
         {
             Validity.Reset();
-            Validity.Changed += OnValidityChanged;
-            _validitySubscribed = true;
+            _validityReset = true;
         }
     }
-
-    private void OnValidityChanged() => _ = InvokeAsync(StateHasChanged);
 
     /// <summary>Creates and registers this page's editable clone of one option section.
     /// Call once per section from <c>OnInitialized</c>.</summary>
@@ -144,12 +128,6 @@ public abstract class SettingsPageBase : StoreObserverComponent
 
     public override void Dispose()
     {
-        if (_validitySubscribed && Validity is not null)
-        {
-            Validity.Changed -= OnValidityChanged;
-            _validitySubscribed = false;
-        }
-
         _savedMessageTimer?.Dispose();
         base.Dispose();
     }

@@ -1,8 +1,11 @@
 @* Fixed bottom save/discard bar that slides in while a settings draft is dirty (or while a
-   status message is showing). The page owns the draft/dirty logic; this is presentation. *@
+   status message is showing). The page owns the draft/dirty logic; this is presentation.
+   The bar reads the layout's FieldValidity itself (review 2026-10-13): Save goes grey and
+   the line names the red fields without every page wiring two more parameters. *@
+@inherits StoreObserverComponent
 <div class="dirtybar @(Visible ? "visible" : null)">
     <div class="dirtybar-inner">
-        <span class="dirtybar-message @ToneClass">@Message</span>
+        <span class="dirtybar-message @ToneClass">@Text</span>
         <span class="dirtybar-actions">
             <button type="button" class="btn secondary" disabled="@Saving" @onclick="OnDiscard">Discard</button>
             <button type="button" class="btn primary" disabled="@(Saving || !CanSave)" @onclick="OnSave">
@@ -15,11 +18,18 @@
 @code {
     public enum MessageTone { Unsaved, Error, Info }
 
+    /// <summary>The layout's tally of red fields; null outside the settings layout, where
+    /// nothing blocks.</summary>
+    [CascadingParameter]
+    private FieldValidity? Validity { get; set; }
+
     [Parameter]
     public bool Visible { get; set; }
 
+    /// <summary>A status line ("Saved.", "Save failed: …"). Null shows the unsaved-changes
+    /// line, or the "fix these fields" prompt while something is red.</summary>
     [Parameter]
-    public string Message { get; set; } = "You have unsaved changes";
+    public string? Message { get; set; }
 
     [Parameter]
     public MessageTone Tone { get; set; } = MessageTone.Unsaved;
@@ -28,13 +38,20 @@
     public bool Saving { get; set; }
 
     [Parameter]
-    public bool CanSave { get; set; } = true;
-
-    [Parameter]
     public EventCallback OnSave { get; set; }
 
     [Parameter]
     public EventCallback OnDiscard { get; set; }
+
+    private IReadOnlyCollection<string> Blocking => Validity?.BlockingFields ?? [];
+
+    private bool CanSave => Blocking.Count == 0;
+
+    private string Text => Message ?? (CanSave
+        ? "You have unsaved changes"
+        : Blocking.Count == 1
+            ? $"Fix \"{Blocking.First()}\" before saving"
+            : $"Fix these fields before saving: {string.Join(", ", Blocking)}");
 
     private string ToneClass => Tone switch
     {
@@ -42,4 +59,13 @@
         MessageTone.Info => "info",
         _ => "unsaved",
     };
+
+    // The tally is a change source like any store: the observer base marshals and unsubscribes.
+    protected override void OnInitialized()
+    {
+        if (Validity is { } validity)
+        {
+            WatchChanged(h => validity.Changed += h, h => validity.Changed -= h, () => { });
+        }
+    }
 }
