@@ -622,6 +622,8 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 }
 
 .field-hint { font-size: 12px; line-height: 1.35; color: var(--text-muted); font-weight: normal; }
+/* A path or URL in a hint has no break points: wrap it anywhere rather than run under the input. */
+.field-label .field-hint, .field-label .field-more-body { overflow-wrap: anywhere; }
 /* Failback hint under a secret field whose DPAPI value belongs to another PC/user. */
 .field-hint-warn { color: var(--warning); margin-top: 4px; }
 
@@ -2009,6 +2011,10 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .field-control > .field-hint { display: block; max-width: 360px; }
 /* Path fields: input + the sim-PC-only Browse… button (option 3, 2026-10-13). */
 .text-row { display: flex; align-items: center; gap: 6px; max-width: 360px; }
+/* Paths are long: a path field and its message line get the room (the grid column is 1fr). */
+.text-row.path { max-width: 560px; }
+.text-row.path .text-input { max-width: none; }
+.field-control:has(> .text-row.path) > .field-hint { max-width: 560px; }
 .text-row .text-input { flex: 1 1 auto; min-width: 0; }
 .browse-btn {
   appearance: none;

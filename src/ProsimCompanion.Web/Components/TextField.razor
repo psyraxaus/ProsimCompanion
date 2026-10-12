@@ -21,7 +21,7 @@
         <FieldHint Hint="@Hint" More="@More" />
     </label>
     <div class="field-control">
-        <span class="text-row">
+        <span class="text-row @(IsPathKind ? "path" : null)">
             <input id="@_id" type="@(Password ? "password" : "text")" class="text-input @ProblemClass" value="@Value"
                    placeholder="@Placeholder" disabled="@Disabled"
                    autocomplete="off" autocapitalize="off" spellcheck="false"

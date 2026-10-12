@@ -490,9 +490,9 @@ else if (CurrentSection == "company")
                      @bind-Value="_day.Value.AutoCloseIdleMinutes"
                      Default="_day.Defaults.AutoCloseIdleMinutes" />
         <AdvancedFields>
-            <TextField Label="Planned rotations folder" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\config\rotations. One JSON file per planned day; the README.txt there shows the format." Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.Rotations"
+            <TextField Label="Planned rotations folder" Hint="One JSON file per planned day. The README.txt in the folder shows the format. Empty uses the folder shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\config\rotations" Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.Rotations"
                        @bind-Value="_day.Value.RotationsFolder" />
-            <TextField Label="Day-state file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\daystate.json." Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="daystate.json"
+            <TextField Label="Day-state file" Hint="Empty uses the file shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\daystate.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="daystate.json"
                        @bind-Value="_day.Value.Path" />
         </AdvancedFields>
     </Section>
@@ -522,9 +522,9 @@ else if (CurrentSection == "techlog")
         <NumberField Label="Category D" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
                      @bind-Value="_techLog.Value.CategoryDDays" Default="_techLog.Defaults.CategoryDDays" />
         <AdvancedFields>
-            <TextField Label="Tech-log file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\techlog.json." Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="techlog.json"
+            <TextField Label="Tech-log file" Hint="Empty uses the file shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\techlog.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="techlog.json"
                        @bind-Value="_techLog.Value.Path" />
-            <TextField Label="Wear-pool file" Hint="Empty = config\techlog\wear-pool.json beside the exe." Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.WearPool" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="wear-pool.json"
+            <TextField Label="Wear-pool file" Hint="Empty uses the shipped pool beside the exe." Placeholder="config\techlog\wear-pool.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.WearPool" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="wear-pool.json"
                        @bind-Value="_techLog.Value.WearPoolPath" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
@@ -535,7 +535,7 @@ else if (CurrentSection == "techlog")
     <Section Title="Pilot Logbook" Hint="Every completed flight folded in at shutdown; totals are computed when shown">
         <BoolField Label="Enabled" @bind-Value="_logbook.Value.Enabled" />
         <AdvancedFields>
-            <TextField Label="Logbook file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\logbook.json." Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="logbook.json"
+            <TextField Label="Logbook file" Hint="Empty uses the file shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\logbook.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="logbook.json"
                        @bind-Value="_logbook.Value.Path" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
@@ -826,7 +826,7 @@ else if (CurrentSection == "providers")
     }
 
     <Section Title="Cache" Advanced="true">
-        <TextField Label="TTS cache folder" Hint="Empty uses the app's cache folder." More="%LOCALAPPDATA%\ProsimCompanion\cache\tts, one folder per provider and voice. The usage counter lives there too."
+        <TextField Label="TTS cache folder" Hint="Empty uses the folder shown." More="One folder per provider and voice. The usage counter lives there too." Placeholder="%LOCALAPPDATA%\ProsimCompanion\cache\tts"
                    @bind-Value="_speech.Value.CacheFolder" />
     </Section>
 }
