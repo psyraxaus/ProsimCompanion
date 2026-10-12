@@ -71,12 +71,17 @@
                 </div>
             }
 
-            @Body
+            @* One validity tally per layout: the page base and every TextField under it share
+               it (see FieldValidity). Fixed — the instance never changes. *@
+            <CascadingValue Value="_validity" IsFixed="true">
+                @Body
+            </CascadingValue>
         </div>
     </div>
 </div>
 
 @code {
+    private readonly FieldValidity _validity = new();
     private SettingsNavGroup? _group;
     private SettingsNavItem? _item;
     private bool _railOpen;

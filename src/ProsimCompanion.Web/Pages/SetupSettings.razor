@@ -38,9 +38,9 @@
 </Section>
 
 <Section Title="ProSim Connection">
-    <TextField Label="ProSim host" Hint="Name or IP address of the PC that runs ProSim System." Placeholder="localhost"
+    <TextField Label="ProSim host" Hint="Name or IP address of the PC that runs ProSim System." Kind="TextFieldKind.Host" Placeholder="localhost or 192.168.1.10"
                @bind-Value="_prosim.Value.Host" />
-    <TextField Label="ProSim SDK folder" Hint="The folder that contains ProSimSDK.dll. Empty keeps ProSim off."
+    <TextField Label="ProSim SDK folder" Hint="The folder that contains ProSimSDK.dll. Empty keeps ProSim off." Kind="TextFieldKind.FolderPath"
                @bind-Value="_prosim.Value.SdkPath" />
     <TextField Label="API key" Hint="Only newer ProSim builds use one. Leave empty otherwise." Password="true"
                @bind-Value="ApiKeyInput" />
@@ -124,20 +124,20 @@
 </Section>
 
 <Section Title="Nav Data" Hint="Navigraph database for SIDs, STARs and approaches">
-    <TextField Label="DFD database path" Hint="The .s3db file or its folder. ProSim's Navdata folder works. Empty looks next to the SDK."
+    <TextField Label="DFD database path" Hint="The .s3db file or its folder. ProSim's Navdata folder works. Empty looks next to the SDK." Kind="TextFieldKind.FileOrFolderPath"
                @bind-Value="_briefing.Value.DfdPath" />
 </Section>
 
 @* ActiveSky weather source (Phase 6) and the update check — settings.json only until the
    2026-10-08 audit. *@
 <Section Title="Weather Sources" Hint="ActiveSky carries the weather actually in the sim, so it wins over the ProSim gateway and SayIntentions when present">
-    <TextField Label="ActiveSky snapshot file" Hint="Full path of current_wx_snapshot.txt. Empty looks in the known HiFi install folders." More="When set, the path is final: a missing file switches the snapshot tier off instead of looking elsewhere."
+    <TextField Label="ActiveSky snapshot file" Hint="Full path of current_wx_snapshot.txt. Empty looks in the known HiFi install folders." Kind="TextFieldKind.FilePath" More="When set, the path is final: a missing file switches the snapshot tier off instead of looking elsewhere."
                Placeholder="C:\Users\you\AppData\Roaming\HiFi\AS_MSFS\Weather\current_wx_snapshot.txt"
                @bind-Value="_weather.Value.ActiveSkySnapshotPath" />
     <BoolField Label="Also try the ActiveSky API" Hint="ActiveSky's local web API, when the snapshot has nothing for the airport."
                @bind-Value="_weather.Value.UseActiveSkyApi" />
     <AdvancedFields>
-        <TextField Label="API host" Disabled="@(!_weather.Value.UseActiveSkyApi)"
+        <TextField Label="API host" Hint="Name or IP address of the PC running ActiveSky." Placeholder="localhost" Kind="TextFieldKind.Host" Disabled="@(!_weather.Value.UseActiveSkyApi)"
                    @bind-Value="_weather.Value.ActiveSkyApiHost" />
         <NumberField Label="API port" Min="1" Max="65535" Disabled="@(!_weather.Value.UseActiveSkyApi)"
                      @bind-Value="_weather.Value.ActiveSkyApiPort"
@@ -167,7 +167,7 @@
                  Disabled="@(!_webUi.Value.Https.Enabled)"
                  @bind-Value="_webUi.Value.Https.Port"
                  Default="_webUi.Defaults.Https.Port" />
-    <TextField Label="Certificate file (PFX)" Hint="Full path of the .pfx / .p12 file with the private key." Placeholder="C:\ProsimCompanion\certs\simpc.pfx"
+    <TextField Label="Certificate file (PFX)" Hint="Full path of the .pfx / .p12 file with the private key." Kind="TextFieldKind.FilePath" Placeholder="C:\ProsimCompanion\certs\simpc.pfx"
                Disabled="@(!_webUi.Value.Https.Enabled)"
                @bind-Value="_webUi.Value.Https.PfxPath" />
     <TextField Label="Certificate password" Hint="Stored encrypted on this PC and Windows account. Never logged." Password="true"
@@ -218,10 +218,10 @@
                    @bind-Value="target.Name" />
         <BoolField Label="Wake at startup" Hint="Off keeps the row for the Send now button only."
                    @bind-Value="target.Enabled" />
-        <TextField Label="MAC address" Hint="For example AA:BB:CC:DD:EE:FF." More="The PC needs Wake-on-LAN enabled in its BIOS and network driver, a wired connection, and the same network as this PC."
+        <TextField Label="MAC address" Hint="For example AA:BB:CC:DD:EE:FF." Kind="TextFieldKind.Mac" Placeholder="AA:BB:CC:DD:EE:FF" More="The PC needs Wake-on-LAN enabled in its BIOS and network driver, a wired connection, and the same network as this PC."
                    @bind-Value="target.MacAddress" />
         <AdvancedFields>
-            <TextField Label="Broadcast address" Hint="255.255.255.255, or your subnet's broadcast such as 192.168.1.255."
+            <TextField Label="Broadcast address" Hint="255.255.255.255, or your subnet's broadcast such as 192.168.1.255." Kind="TextFieldKind.IpAddress" Placeholder="255.255.255.255"
                        @bind-Value="target.BroadcastAddress" />
             <NumberField Label="Port" Hint="Usually 9." Min="1" Max="65535"
                          @bind-Value="target.Port" />
@@ -260,7 +260,8 @@
 </Section>
 
 <DirtyBar Visible="@BarVisible"
-          Message="@(BarMessage ?? "You have unsaved changes")"
+          Message="@BarText"
+          CanSave="@CanSave"
           Tone="BarTone"
           OnSave="Save"
           OnDiscard="Discard" />

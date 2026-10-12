@@ -99,7 +99,8 @@
 </div>
 
 <DirtyBar Visible="@BarVisible"
-          Message="@(BarMessage ?? "You have unsaved changes")"
+          Message="@BarText"
+          CanSave="@CanSave"
           Tone="BarTone"
           OnSave="Save"
           OnDiscard="Discard" />

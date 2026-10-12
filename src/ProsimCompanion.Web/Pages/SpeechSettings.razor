@@ -206,7 +206,7 @@ else if (CurrentSection == "listening")
     </Section>
 
     <Section Title="Speech Recognition Server" Hint="A transcription server on your network. Empty uses the offline Windows engine">
-        <TextField Label="LAN ASR URL" Hint="Server address, for example http://192.168.1.50:8000."
+        <TextField Label="LAN ASR URL" Hint="Server address, for example http://192.168.1.50:8000." Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8000"
                    @bind-Value="_speech.Value.AsrBaseUrl" />
         <SelectField Label="LAN ASR server flavour" Hint="Must match the server type running at that address." More="The wrong type answers 404 to everything while the health check stays green. A warning is logged when that happens." Options="AsrApiOptions"
                      Disabled="@(string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl))"
@@ -490,9 +490,9 @@ else if (CurrentSection == "company")
                      @bind-Value="_day.Value.AutoCloseIdleMinutes"
                      Default="_day.Defaults.AutoCloseIdleMinutes" />
         <AdvancedFields>
-            <TextField Label="Planned rotations folder" Hint="JSON rotation files. A relative path is under the install folder."
+            <TextField Label="Planned rotations folder" Hint="JSON rotation files. A relative path is under the install folder." Kind="TextFieldKind.FolderPath"
                        @bind-Value="_day.Value.RotationsFolder" />
-            <TextField Label="Day-state file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\daystate.json."
+            <TextField Label="Day-state file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\daystate.json." Kind="TextFieldKind.OutputFilePath"
                        @bind-Value="_day.Value.Path" />
         </AdvancedFields>
     </Section>
@@ -522,9 +522,9 @@ else if (CurrentSection == "techlog")
         <NumberField Label="Category D" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
                      @bind-Value="_techLog.Value.CategoryDDays" Default="_techLog.Defaults.CategoryDDays" />
         <AdvancedFields>
-            <TextField Label="Tech-log file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\techlog.json."
+            <TextField Label="Tech-log file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\techlog.json." Kind="TextFieldKind.OutputFilePath"
                        @bind-Value="_techLog.Value.Path" />
-            <TextField Label="Wear-pool file" Hint="Empty = config\techlog\wear-pool.json beside the exe."
+            <TextField Label="Wear-pool file" Hint="Empty = config\techlog\wear-pool.json beside the exe." Kind="TextFieldKind.OutputFilePath"
                        @bind-Value="_techLog.Value.WearPoolPath" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
@@ -535,7 +535,7 @@ else if (CurrentSection == "techlog")
     <Section Title="Pilot Logbook" Hint="Every completed flight folded in at shutdown; totals are computed when shown">
         <BoolField Label="Enabled" @bind-Value="_logbook.Value.Enabled" />
         <AdvancedFields>
-            <TextField Label="Logbook file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\logbook.json."
+            <TextField Label="Logbook file" Hint="Empty = %LOCALAPPDATA%\ProsimCompanion\logbook.json." Kind="TextFieldKind.OutputFilePath"
                        @bind-Value="_logbook.Value.Path" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
@@ -673,7 +673,7 @@ else if (CurrentSection == "providers")
     @if (ProviderTab == "kokoro")
     {
     <Section Title="Kokoro (local neural TTS)" Hint="Free neural voices from a Kokoro server on this PC or your network. Tried first">
-        <TextField Label="Base URL" Hint="Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off."
+        <TextField Label="Base URL" Hint="Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off." Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8880"
                    @bind-Value="_speech.Value.KokoroBaseUrl" />
         <TextField Label="Model" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroModel" />
         <VoicePickerField Label="Fallback voice" Hint="Used when Kokoro covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="The grade is Kokoro's estimate of how much and how clean the training audio was, A down to F. British and American voices make a usable First Officer; the other languages read English badly." Groups='@GroupsFor("kokoro")' PlainIds="true" EmptyListHint="No voice list yet. Enter the server address and press Refresh voices." Disabled="@KokoroOff"
@@ -764,7 +764,7 @@ else if (CurrentSection == "providers")
             (counted in <span class="mono">usage.elevenlabs.json</span> in the cache folder).
         </div>
         <AdvancedFields>
-            <TextField Label="Base URL" Hint="Only change this for a proxy or a regional endpoint."
+            <TextField Label="Base URL" Hint="Only change this for a proxy or a regional endpoint." Kind="TextFieldKind.Url" Placeholder="https://api.elevenlabs.io"
                        Disabled="@ElevenLabsOff"
                        @bind-Value="_speech.Value.ElevenLabsBaseUrl" />
             <NumberField Label="Timeout" Hint="Whole request. The next voice takes over when it runs out." Suffix="ms" Min="200"
@@ -777,7 +777,7 @@ else if (CurrentSection == "providers")
     else if (ProviderTab == "google")
     {
     <Section Title="Google Cloud TTS (Chirp 3 HD)" Hint="Paid neural voices. Cached, with a monthly budget. Tried after ElevenLabs">
-        <TextField Label="Service-account key file" Hint="Path to the service-account JSON key. Empty turns Google off. Never logged."
+        <TextField Label="Service-account key file" Hint="Path to the service-account JSON key. Empty turns Google off. Never logged." Kind="TextFieldKind.FilePath"
                    @bind-Value="_speech.Value.GoogleKeyFilePath" />
         <VoicePickerField Label="Fallback voice" Hint="Used when Google covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="Google needs a voice here to count as configured; picking a Google voice for the First Officer fills it for you. The accent localization persona (Voices page) is a Google voice too." Groups='@GroupsFor("google")' PlainIds="true" EmptyListHint="No voice list yet. Enter the key file path and press Refresh voices." Disabled="@GoogleOff"
                           @bind-Value="_speech.Value.GoogleVoice" />
@@ -857,11 +857,11 @@ else if (CurrentSection == "briefing")
     </Section>
 
     <Section Title="Manual Procedure Overrides" Hint="Used when the FMS or SayIntentions cannot fill a field, or always in Manual mode">
-        <TextField Label="Departure airport" Hint="ICAO, e.g. YSSY" @bind-Value="_briefing.Value.DepartureAirport" />
-        <TextField Label="Departure runway" Hint="e.g. 16R" @bind-Value="_briefing.Value.DepartureRunway" />
+        <TextField Label="Departure airport" Hint="ICAO, e.g. YSSY" Kind="TextFieldKind.Icao" @bind-Value="_briefing.Value.DepartureAirport" />
+        <TextField Label="Departure runway" Hint="e.g. 16R" Kind="TextFieldKind.Runway" @bind-Value="_briefing.Value.DepartureRunway" />
         <TextField Label="SID" Hint="Identifier, e.g. FISHA1" @bind-Value="_briefing.Value.DepartureSid" />
-        <TextField Label="Arrival airport" Hint="ICAO, e.g. YMML" @bind-Value="_briefing.Value.ArrivalAirport" />
-        <TextField Label="Arrival runway" Hint="e.g. 34" @bind-Value="_briefing.Value.ArrivalRunway" />
+        <TextField Label="Arrival airport" Hint="ICAO, e.g. YMML" Kind="TextFieldKind.Icao" @bind-Value="_briefing.Value.ArrivalAirport" />
+        <TextField Label="Arrival runway" Hint="e.g. 34" Kind="TextFieldKind.Runway" @bind-Value="_briefing.Value.ArrivalRunway" />
         <TextField Label="STAR" Hint="Identifier, e.g. RAZZI4" @bind-Value="_briefing.Value.ArrivalStar" />
         <TextField Label="Approach" Hint="For example I16R. Empty picks the best published approach, ILS first." More="Ask the FO &quot;which approach&quot; to hear the candidates."
                    @bind-Value="_briefing.Value.ArrivalApproach" />
@@ -908,7 +908,7 @@ else if (CurrentSection == "briefing")
         <SelectField Label="API flavour" Hint="Pick Ollama when the address is an Ollama server." More="Only the Ollama type can switch model thinking off." Options="LlmApiOptions"
                      Disabled="@(!_briefing.Value.LlmEnabled)"
                      @bind-Value="LlmApiKey" />
-        <TextField Label="Base URL" Hint="OpenAI style: the API root, e.g. https://api.openai.com/v1. Ollama: the server root, e.g. http://localhost:11434."
+        <TextField Label="Base URL" Hint="OpenAI style: the API root, e.g. https://api.openai.com/v1. Ollama: the server root, e.g. http://localhost:11434." Kind="TextFieldKind.Url" Placeholder="http://localhost:11434"
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmBaseUrl" />
         <TextField Label="API key" Hint="Never logged. Empty for local servers without a key."
@@ -1259,7 +1259,8 @@ else if (CurrentSection == "abnormals")
 }
 
 <DirtyBar Visible="@BarVisible"
-          Message="@(BarMessage ?? "You have unsaved changes")"
+          Message="@BarText"
+          CanSave="@CanSave"
           Tone="BarTone"
           OnSave="Save"
           OnDiscard="Discard" />

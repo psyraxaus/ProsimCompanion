@@ -2000,3 +2000,10 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .subtab:hover { color: var(--text-primary); }
 .subtab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); background: var(--accent-gold-soft); border-radius: 6px 6px 0 0; }
 .subtab .pill { margin-left: 6px; }
+
+/* Field validation (2026-10-13): red = the value can never work (Save goes grey), amber =
+   advisory, such as a path that is not on this PC yet. */
+.text-input.invalid, .text-input.invalid:focus { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }
+.text-input.warn, .text-input.warn:focus { border-color: var(--warning); box-shadow: 0 0 0 2px rgba(255, 183, 3, 0.2); }
+.field-hint-error { color: var(--danger); margin-top: 4px; }
+.field-control > .field-hint { display: block; max-width: 360px; }

@@ -16,9 +16,15 @@ public abstract class SettingsPageBase : StoreObserverComponent
 {
     private readonly List<OptionsDraft> _drafts = [];
     private Timer? _savedMessageTimer;
+    private bool _validitySubscribed;
 
     [Inject]
     protected SettingsWriter Writer { get; set; } = default!;
+
+    /// <summary>The layout's tally of fields whose value can never work (option 2,
+    /// 2026-10-13). Null outside <see cref="SettingsLayout"/>, where nothing blocks.</summary>
+    [CascadingParameter]
+    protected FieldValidity? Validity { get; set; }
 
     protected string? BarMessage { get; private set; }
 
@@ -27,6 +33,35 @@ public abstract class SettingsPageBase : StoreObserverComponent
     protected bool IsDirty => _drafts.Any(d => d.IsDirty);
 
     protected bool BarVisible => IsDirty || BarMessage is not null;
+
+    /// <summary>How many fields currently block a save.</summary>
+    protected int BlockingFieldCount => Validity?.BlockingCount ?? 0;
+
+    /// <summary>False while any field on the page is red: the DirtyBar's Save goes grey.</summary>
+    protected bool CanSave => BlockingFieldCount == 0;
+
+    /// <summary>The DirtyBar line: a status message when one is showing, otherwise the
+    /// "fix the highlighted field" prompt or the plain unsaved-changes line.</summary>
+    protected string BarText => BarMessage ?? (CanSave
+        ? "You have unsaved changes"
+        : BlockingFieldCount == 1
+            ? "Fix the highlighted field before saving"
+            : $"Fix the {BlockingFieldCount} highlighted fields before saving");
+
+    /// <summary>Subscribes to the cascaded validity tally once it arrives, so a field turning
+    /// red (or back) re-renders the DirtyBar. Done here rather than in OnInitialized because
+    /// pages override that without calling base.</summary>
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        await base.SetParametersAsync(parameters).ConfigureAwait(true);
+        if (!_validitySubscribed && Validity is not null)
+        {
+            Validity.Changed += OnValidityChanged;
+            _validitySubscribed = true;
+        }
+    }
+
+    private void OnValidityChanged() => _ = InvokeAsync(StateHasChanged);
 
     /// <summary>Creates and registers this page's editable clone of one option section.
     /// Call once per section from <c>OnInitialized</c>.</summary>
@@ -42,6 +77,12 @@ public abstract class SettingsPageBase : StoreObserverComponent
     /// <summary>Persists every dirty draft in one atomic settings-file write.</summary>
     protected void Save()
     {
+        // The button is grey while a field is red; this guard covers a stale click.
+        if (!CanSave)
+        {
+            return;
+        }
+
         try
         {
             OnBeforeSave();
@@ -96,6 +137,12 @@ public abstract class SettingsPageBase : StoreObserverComponent
 
     public override void Dispose()
     {
+        if (_validitySubscribed && Validity is not null)
+        {
+            Validity.Changed -= OnValidityChanged;
+            _validitySubscribed = false;
+        }
+
         _savedMessageTimer?.Dispose();
         base.Dispose();
     }

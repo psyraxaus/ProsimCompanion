@@ -52,7 +52,7 @@
                      Hint="ntfy = a topic on ntfy.sh or your own server. Discord = a channel webhook. Webhook = any https address that takes a JSON POST (schema in docs/integrations/notifications.md)."
                      Value="@target.Kind.ToString().ToLowerInvariant()"
                      ValueChanged="@(v => target.Kind = Enum.TryParse<NotificationTargetKind>(v, ignoreCase: true, out var k) ? k : NotificationTargetKind.Webhook)" />
-        <TextField Label="URL" Hint="@UrlHint(target.Kind)" Placeholder="@UrlPlaceholder(target.Kind)" Password="true"
+        <TextField Label="URL" Hint="@UrlHint(target.Kind)" Kind="TextFieldKind.Url" Placeholder="@UrlPlaceholder(target.Kind)" Password="true"
                    @bind-Value="target.Url" />
         <SecretUnreadableHint Path="@($"notifications:targets:{index}:url")" />
         <TextField Label="Bearer token" Hint="Optional. Sent as 'Authorization: Bearer …'. Stored encrypted on this PC; never logged." Password="true"
@@ -104,7 +104,8 @@
 </div>
 
 <DirtyBar Visible="@BarVisible"
-          Message="@(BarMessage ?? "You have unsaved changes")"
+          Message="@BarText"
+          CanSave="@CanSave"
           Tone="BarTone"
           OnSave="Save"
           OnDiscard="Discard" />

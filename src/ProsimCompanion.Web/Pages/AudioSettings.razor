@@ -132,7 +132,7 @@
             {
                 <Section Title="VoiceMeeter" Hint="Strips and buses through VoiceMeeter's remote API">
                     <AdvancedFields>
-                        <TextField Label="VoicemeeterRemote64.dll path" Hint="Empty finds the installed VoiceMeeter by itself. Set only for an unusual install folder."
+                        <TextField Label="VoicemeeterRemote64.dll path" Hint="Empty finds the installed VoiceMeeter by itself. Set only for an unusual install folder." Kind="TextFieldKind.FilePath"
                                    @bind-Value="_audio.Value.VoiceMeeterDllPath" />
                     </AdvancedFields>
                     <div style="margin:8px 0;">
@@ -230,7 +230,7 @@
                     <BoolField Label="Enable remote mixer" Hint="Connects to the agent and drives the mappings below. Off opens no connection."
                                More="The local VoiceMeeter backend above drives the VoiceMeeter on this PC. This card drives a VoiceMeeter on another PC, for example the one running vPilot. Setup for both PCs: docs/integrations/voicemeeter-bridge.md."
                                @bind-Value="_mixer.Value.Enabled" />
-                    <TextField Label="Host" Hint="Name or IP address of the PC running VoicemeeterBridge." Placeholder="192.168.1.20"
+                    <TextField Label="Host" Hint="Name or IP address of the PC running VoicemeeterBridge." Kind="TextFieldKind.Host" Placeholder="192.168.1.20"
                                @bind-Value="_mixer.Value.Host" />
                     <NumberField Label="Port" Hint="The agent's port. 5088 unless you changed it there." Min="1" Max="65535"
                                  @bind-Value="_mixer.Value.Port" Default="_mixer.Defaults.Port" />
@@ -282,9 +282,9 @@
                     }
                     else
                     {
-                        <TextField Label="Strips" Hint="Strip numbers as Voicemeeter shows them (1 = first), comma separated. Example: 1, 2, 3"
+                        <TextField Label="Strips" Hint="Strip numbers as Voicemeeter shows them (1 = first), comma separated. Example: 1, 2, 3" Kind="TextFieldKind.IntList"
                                    Value="@_mixerStripsText" ValueChanged="SetMixerStrips" />
-                        <TextField Label="Buses" Hint="Bus numbers (1 = A1), comma separated. Example: 1, 4"
+                        <TextField Label="Buses" Hint="Bus numbers (1 = A1), comma separated. Example: 1, 4" Kind="TextFieldKind.IntList"
                                    Value="@_mixerBusesText" ValueChanged="SetMixerBuses" />
                         <FieldHint Hint="Once the agent is connected the strips and buses appear here by name, as tick boxes." />
                     }
@@ -416,7 +416,8 @@
 </datalist>
 
 <DirtyBar Visible="@BarVisible"
-          Message="@(BarMessage ?? "You have unsaved changes")"
+          Message="@BarText"
+          CanSave="@CanSave"
           Tone="BarTone"
           OnSave="Save"
           OnDiscard="Discard" />
