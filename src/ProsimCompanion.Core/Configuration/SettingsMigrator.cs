@@ -24,8 +24,17 @@ public static class SettingsMigrator
     /// </summary>
     /// <returns>The version the file was at before migration.</returns>
     public static int Migrate(JsonSettingsFile file)
+        => Migrate(file, Path.Combine(AppContext.BaseDirectory, LegacyRotationsFolderName), Directory.Exists);
+
+    /// <summary>Testable core of <see cref="Migrate(JsonSettingsFile)"/>: the v3 step must
+    /// know whether the pre-2026-10-13 rotations folder under the exe is really there.</summary>
+    /// <param name="legacyRotationsFolder">Full path of the old "rotations" folder under the exe.</param>
+    /// <param name="directoryExists">The probe for it (Directory.Exists in production).</param>
+    public static int Migrate(JsonSettingsFile file, string legacyRotationsFolder, Func<string, bool> directoryExists)
     {
         ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(legacyRotationsFolder);
+        ArgumentNullException.ThrowIfNull(directoryExists);
 
         var foundVersion = ReadVersion(file.Read());
         if (foundVersion >= CurrentVersion)
@@ -48,7 +57,7 @@ public static class SettingsMigrator
 
             if (version < 3)
             {
-                MigrateRotationsFolderDefault(root);
+                MigrateRotationsFolderDefault(root, keepLegacy: directoryExists(legacyRotationsFolder));
                 version = 3;
             }
 
@@ -59,16 +68,22 @@ public static class SettingsMigrator
         return foundVersion;
     }
 
+    private const string LegacyRotationsFolderName = "rotations";
+
     /// <summary>v2 → v3 (2026-10-13): <c>day.rotationsFolder</c> "rotations" — the old default,
     /// a folder under the exe nothing ever created — becomes "" = the per-user
     /// <c>%LOCALAPPDATA%\ProsimCompanion\config\rotations</c> the app now seeds. A custom
-    /// folder is kept.</summary>
-    private static void MigrateRotationsFolderDefault(JsonObject root)
+    /// folder is kept. So is "rotations" while that folder really exists under the exe
+    /// (a pilot who made it and put plans there must not lose them to the empty seeded
+    /// folder; review 2026-10-13) — <see cref="Day.RotationLoader.ResolveFolder(string?)"/>
+    /// then keeps honouring it until it is gone.</summary>
+    private static void MigrateRotationsFolderDefault(JsonObject root, bool keepLegacy)
     {
-        if (root["day"] is JsonObject day
+        if (!keepLegacy
+            && root["day"] is JsonObject day
             && day["rotationsFolder"] is JsonValue value
             && value.TryGetValue<string>(out var folder)
-            && string.Equals(folder.Trim().Trim('"'), "rotations", StringComparison.OrdinalIgnoreCase))
+            && string.Equals(folder.Trim().Trim('"'), LegacyRotationsFolderName, StringComparison.OrdinalIgnoreCase))
         {
             day["rotationsFolder"] = "";
         }

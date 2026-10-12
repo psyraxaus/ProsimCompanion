@@ -23,9 +23,19 @@ public sealed class FieldValidationTests
     [InlineData("192.168.1.10")]
     [InlineData("sim-pc")]
     [InlineData("sim-pc.local")]
-    [InlineData("::1")]
     public void Host_accepts_names_and_addresses(string value)
         => Assert.Null(FieldValidation.Check(TextFieldKind.Host, value));
+
+    [Theory]
+    [InlineData("::1")]
+    [InlineData("fe80::1")]
+    public void Host_rejects_ipv6_literals_the_consumers_cannot_build_a_url_from(string value)
+    {
+        var problem = FieldValidation.Check(TextFieldKind.Host, value);
+        Assert.NotNull(problem);
+        Assert.True(problem.Blocking);
+        Assert.Contains("IPv6", problem.Message, StringComparison.Ordinal);
+    }
 
     [Theory]
     [InlineData("http://192.168.1.10")]
@@ -181,5 +191,22 @@ public sealed class FieldValidationTests
         tally.Clear("a");
         Assert.Equal(0, tally.BlockingCount);
         Assert.Equal(4, raised);
+    }
+
+    [Fact]
+    public void Validity_tally_names_blocking_fields_and_reset_empties_it_once()
+    {
+        var tally = new FieldValidity();
+        var raised = 0;
+        tally.Changed += () => raised++;
+
+        tally.Report("LAN ASR URL", blocking: true);
+        tally.Report("Base URL", blocking: true);
+        Assert.Equal(["Base URL", "LAN ASR URL"], tally.BlockingFields);
+
+        tally.Reset();
+        tally.Reset();
+        Assert.Equal(0, tally.BlockingCount);
+        Assert.Equal(3, raised);
     }
 }

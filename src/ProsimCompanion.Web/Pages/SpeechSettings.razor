@@ -524,7 +524,7 @@ else if (CurrentSection == "techlog")
         <AdvancedFields>
             <TextField Label="Tech-log file" Hint="Empty uses the file shown." Placeholder="%LOCALAPPDATA%\ProsimCompanion\techlog.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="techlog.json"
                        @bind-Value="_techLog.Value.Path" />
-            <TextField Label="Wear-pool file" Hint="Empty uses the shipped pool beside the exe." Placeholder="config\techlog\wear-pool.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.WearPool" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="wear-pool.json"
+            <TextField Label="Wear-pool file" Hint="Empty uses the shipped pool beside the exe." Placeholder="config\techlog\wear-pool.json" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.WearPool" BrowseFilter="JSON (*.json)|*.json"
                        @bind-Value="_techLog.Value.WearPoolPath" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
@@ -673,7 +673,7 @@ else if (CurrentSection == "providers")
     @if (ProviderTab == "kokoro")
     {
     <Section Title="Kokoro (local neural TTS)" Hint="Free neural voices from a Kokoro server on this PC or your network. Tried first">
-        <TextField Label="Base URL" Hint="Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off." Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8880"
+        <TextField Label="Base URL" TallyKey="Kokoro base URL" Hint="Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off." Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8880"
                    @bind-Value="_speech.Value.KokoroBaseUrl" />
         <TextField Label="Model" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroModel" />
         <VoicePickerField Label="Fallback voice" Hint="Used when Kokoro covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page." More="The grade is Kokoro's estimate of how much and how clean the training audio was, A down to F. British and American voices make a usable First Officer; the other languages read English badly." Groups='@GroupsFor("kokoro")' PlainIds="true" EmptyListHint="No voice list yet. Enter the server address and press Refresh voices." Disabled="@KokoroOff"
@@ -764,7 +764,7 @@ else if (CurrentSection == "providers")
             (counted in <span class="mono">usage.elevenlabs.json</span> in the cache folder).
         </div>
         <AdvancedFields>
-            <TextField Label="Base URL" Hint="Only change this for a proxy or a regional endpoint." Kind="TextFieldKind.Url" Placeholder="https://api.elevenlabs.io"
+            <TextField Label="Base URL" TallyKey="ElevenLabs base URL" Hint="Only change this for a proxy or a regional endpoint." Kind="TextFieldKind.Url" Placeholder="https://api.elevenlabs.io"
                        Disabled="@ElevenLabsOff"
                        @bind-Value="_speech.Value.ElevenLabsBaseUrl" />
             <NumberField Label="Timeout" Hint="Whole request. The next voice takes over when it runs out." Suffix="ms" Min="200"
@@ -827,6 +827,7 @@ else if (CurrentSection == "providers")
 
     <Section Title="Cache" Advanced="true">
         <TextField Label="TTS cache folder" Hint="Empty uses the folder shown." More="One folder per provider and voice. The usage counter lives there too." Placeholder="%LOCALAPPDATA%\ProsimCompanion\cache\tts"
+                   Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.AppStateFolder"
                    @bind-Value="_speech.Value.CacheFolder" />
     </Section>
 }
@@ -908,7 +909,7 @@ else if (CurrentSection == "briefing")
         <SelectField Label="API flavour" Hint="Pick Ollama when the address is an Ollama server." More="Only the Ollama type can switch model thinking off." Options="LlmApiOptions"
                      Disabled="@(!_briefing.Value.LlmEnabled)"
                      @bind-Value="LlmApiKey" />
-        <TextField Label="Base URL" Hint="OpenAI style: the API root, e.g. https://api.openai.com/v1. Ollama: the server root, e.g. http://localhost:11434." Kind="TextFieldKind.Url" Placeholder="http://localhost:11434"
+        <TextField Label="Base URL" TallyKey="LLM base URL" Hint="OpenAI style: the API root, e.g. https://api.openai.com/v1. Ollama: the server root, e.g. http://localhost:11434." Kind="TextFieldKind.Url" Placeholder="http://localhost:11434"
                    Disabled="@(!_briefing.Value.LlmEnabled)"
                    @bind-Value="_briefing.Value.LlmBaseUrl" />
         <TextField Label="API key" Hint="Never logged. Empty for local servers without a key."

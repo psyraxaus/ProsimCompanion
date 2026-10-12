@@ -43,8 +43,11 @@ internal sealed class WpfFilePicker : INativeFilePicker
         {
             return await app.Dispatcher.InvokeAsync(() => Show(request)).Task.ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException)
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
+            // Anything the dialog or a shutting-down Dispatcher throws (COM, Win32, a
+            // cancelled dispatcher task) becomes a line under the field, never a faulted
+            // circuit (degrade, not fail; review 2026-10-13).
             _logger.LogWarning(ex, "Native file dialog failed for {Title}", request.Title);
             return NativePickResult.Failed("The dialog could not be shown on the sim PC.");
         }

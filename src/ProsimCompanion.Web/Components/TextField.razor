@@ -6,6 +6,9 @@
    shows the mismatch under the field: red + aria-invalid for a value that can never work
    (and the page's Save goes grey through the cascaded FieldValidity), amber for advisory
    findings such as a path that is not there yet. A disabled field is shown but never blocks.
+   The tally entry is keyed by Label (or TallyKey where a label repeats on a page) and is NOT
+   cleared when the field leaves the screen: a red value in a section or fold the pilot has
+   switched away from must still hold Save (review 2026-10-13); the page resets the tally.
    Path kinds also get a Browse… button — only when the browser runs on the sim PC (cascaded
    ClientContext) and the desktop shell offers its dialogs (INativeFilePicker registered):
    the Windows dialog opens on that PC's screen, so a tablet would see nothing (option 3).
@@ -13,7 +16,6 @@
    evaluated at click time only — some probe the file system), else the system drive. *@
 @using Microsoft.Extensions.DependencyInjection
 @using ProsimCompanion.Core.Hosting
-@implements IDisposable
 @inject IServiceProvider Services
 <div class="field">
     <label class="field-label" for="@_id">
@@ -64,6 +66,13 @@
 
     [Parameter]
     public string? Hint { get; set; }
+
+    /// <summary>The name the field blocks a save under, shown in the DirtyBar when the
+    /// field is off screen. Defaults to <see cref="Label"/>; set it where one label appears
+    /// more than once on a page (the provider tabs' "Base URL"), else the fields would share
+    /// one entry and the visible one could clear the hidden one's red.</summary>
+    [Parameter]
+    public string? TallyKey { get; set; }
 
     /// <summary>Longer explanation behind a "More" fold under the hint (ADR-0010).</summary>
     [Parameter]
@@ -128,7 +137,7 @@
     protected override void OnParametersSet()
     {
         _problem = FieldValidation.Check(Kind, Value);
-        Validity?.Report(_id, _problem is { Blocking: true } && !Disabled);
+        Validity?.Report(TallyKey ?? Label, _problem is { Blocking: true } && !Disabled);
     }
 
     private Task OnChangedAsync(ChangeEventArgs e)
@@ -186,11 +195,15 @@
                 : result.Path;
             await ValueChanged.InvokeAsync(next);
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The picker already turns dialog failures into a problem line; this is the last
+            // line before the circuit would fault over a Browse… click (degrade, not fail).
+            _browseProblem = $"Browse failed on the sim PC: {ex.Message}";
+        }
         finally
         {
             _browsing = false;
         }
     }
-
-    public void Dispose() => Validity?.Clear(_id);
 }

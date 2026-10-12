@@ -25,6 +25,19 @@ public sealed class SettingsMigratorRotationsTests : IDisposable
     }
 
     [Fact]
+    public void Old_default_is_kept_while_that_folder_exists_under_the_exe()
+    {
+        File.WriteAllText(_path, """{ "configVersion": 2, "day": { "rotationsFolder": "rotations" } }""");
+        var file = new JsonSettingsFile(_path);
+
+        SettingsMigrator.Migrate(file, @"C:\app\rotations", path => path == @"C:\app\rotations");
+
+        var root = file.Read();
+        Assert.Equal(SettingsMigrator.CurrentVersion, (int?)root["configVersion"]);
+        Assert.Equal("rotations", (string?)root["day"]!["rotationsFolder"]);
+    }
+
+    [Fact]
     public void A_custom_folder_is_kept()
     {
         File.WriteAllText(_path, """{ "configVersion": 2, "day": { "rotationsFolder": "D:\\plans" } }""");

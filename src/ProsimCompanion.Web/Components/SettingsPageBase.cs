@@ -41,21 +41,25 @@ public abstract class SettingsPageBase : StoreObserverComponent
     protected bool CanSave => BlockingFieldCount == 0;
 
     /// <summary>The DirtyBar line: a status message when one is showing, otherwise the
-    /// "fix the highlighted field" prompt or the plain unsaved-changes line.</summary>
+    /// "fix the highlighted field" prompt or the plain unsaved-changes line. The prompt names
+    /// the fields, because a red one may sit in a section or fold that is not on screen.</summary>
     protected string BarText => BarMessage ?? (CanSave
         ? "You have unsaved changes"
         : BlockingFieldCount == 1
-            ? "Fix the highlighted field before saving"
-            : $"Fix the {BlockingFieldCount} highlighted fields before saving");
+            ? $"Fix \"{Validity!.BlockingFields.First()}\" before saving"
+            : $"Fix these fields before saving: {string.Join(", ", Validity!.BlockingFields)}");
 
     /// <summary>Subscribes to the cascaded validity tally once it arrives, so a field turning
     /// red (or back) re-renders the DirtyBar. Done here rather than in OnInitialized because
-    /// pages override that without calling base.</summary>
+    /// pages override that without calling base. The tally is reset on arrival: it lives in
+    /// the layout, which outlives the page, and the fields of this page are about to report
+    /// afresh.</summary>
     public override async Task SetParametersAsync(ParameterView parameters)
     {
         await base.SetParametersAsync(parameters).ConfigureAwait(true);
         if (!_validitySubscribed && Validity is not null)
         {
+            Validity.Reset();
             Validity.Changed += OnValidityChanged;
             _validitySubscribed = true;
         }
@@ -115,6 +119,9 @@ public abstract class SettingsPageBase : StoreObserverComponent
 
         BarMessage = null;
         BarTone = DirtyBar.MessageTone.Unsaved;
+        // The reloaded values are the saved ones, which never block; fields off screen would
+        // otherwise keep their red entry.
+        Validity?.Reset();
         OnDiscarded();
     }
 

@@ -71,6 +71,7 @@ public sealed record FieldProblem(string Message, bool Blocking);
 public static partial class FieldValidation
 {
     private const string HostMessage = "Name or IP address only. No http:// and no port. Example: 192.168.1.10";
+    private const string HostIpv6Message = "IPv6 addresses are not supported here. Use the PC's name or its IPv4 address. Example: 192.168.1.10";
     private const string UrlMessage = "Must start with http:// or https://. Example: http://192.168.1.50:8000";
     private const string IpMessage = "An IPv4 address like 192.168.1.255";
     private const string MacMessage = "Six hex pairs like AA:BB:CC:DD:EE:FF";
@@ -119,9 +120,13 @@ public static partial class FieldValidation
 
     private static FieldProblem? CheckHost(string text)
     {
-        if (IPAddress.TryParse(text, out _))
+        if (IPAddress.TryParse(text, out var address))
         {
-            return null;
+            // An IPv6 literal would be pasted unbracketed into "http://{host}:5000" by the
+            // consumers and throw — the very trap this kind exists to close (review 2026-10-13).
+            return address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+                ? null
+                : Block(HostIpv6Message);
         }
 
         // A scheme, a path, a port or whitespace: the consumers add their own.

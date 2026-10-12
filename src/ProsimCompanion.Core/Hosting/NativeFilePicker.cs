@@ -39,10 +39,15 @@ public sealed record NativePickRequest(
 /// the page to show (another dialog already open, no desktop app).</summary>
 public sealed record NativePickResult(string? Path, string? Problem)
 {
+    /// <summary>The pilot closed the dialog without choosing: the field keeps its value.</summary>
     public static NativePickResult Cancelled { get; } = new(null, null);
 
+    /// <summary>The pilot chose <paramref name="path"/>: it replaces (or, for a folder list,
+    /// extends) the field's value.</summary>
     public static NativePickResult Picked(string path) => new(path, null);
 
+    /// <summary>No dialog could be shown; <paramref name="problem"/> is the one line the
+    /// field shows under itself.</summary>
     public static NativePickResult Failed(string problem) => new(null, problem);
 }
 
@@ -151,9 +156,14 @@ public static class LocalClient
 /// invalid-character gate (Snyk path rule).</summary>
 public static class PickStart
 {
+    /// <summary>The start folder for a field with no expected folders of its own: the
+    /// value's folder, else <paramref name="fallback"/>.</summary>
     public static string DirectoryFor(string? value, string fallback)
         => DirectoryFor(value, [], fallback);
 
+    /// <summary>The start folder: the value's folder, else the first of
+    /// <paramref name="expected"/> that exists, else <paramref name="fallback"/> (which is
+    /// not probed — pass a folder that is always there).</summary>
     public static string DirectoryFor(string? value, IEnumerable<string> expected, string fallback)
     {
         ArgumentNullException.ThrowIfNull(expected);
