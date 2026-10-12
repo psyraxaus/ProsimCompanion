@@ -6,6 +6,7 @@
    Binds the text escape on INPUT like TextField so type-then-Save never loses the value (#20). *@
 @using ProsimCompanion.Core.Speech
 @using ProsimCompanion.Core.State
+@inject IStringLocalizer T
 <div class="field">
     <label class="field-label" for="@_id">
         @Label
@@ -19,7 +20,7 @@
             }
             else if (SelectValue == "")
             {
-                <option value="" selected>Pick a voice…</option>
+                <option value="" selected>@T["voicePicker.pick"]</option>
             }
             @if (ShowSavedOnly)
             {
@@ -35,12 +36,12 @@
                     }
                 </optgroup>
             }
-            <option value="@CustomKey" selected="@(SelectValue == CustomKey)">Other voice id…</option>
+            <option value="@CustomKey" selected="@(SelectValue == CustomKey)">@T["voicePicker.other"]</option>
         </select>
         @if (SelectValue == CustomKey)
         {
             <input type="text" class="text-input" style="margin-top:6px;" value="@Value" disabled="@Disabled"
-                   placeholder="@(PlainIds ? "Voice id for this provider" : "provider:voice id, for example google:en-AU-Chirp3-HD-Aoede")"
+                   placeholder="@(PlainIds ? T["voicePicker.placeholderPlain"].Value : T["voicePicker.placeholderRef"].Value)"
                    autocomplete="off" autocapitalize="off" spellcheck="false"
                    @oninput="OnTypedAsync" />
         }
@@ -129,17 +130,17 @@
             if (PlainIds)
             {
                 var kokoro = KokoroVoices.Describe(value);
-                return kokoro.Region != KokoroVoices.Other ? $"{kokoro.Label} (saved)" : $"{value} (saved)";
+                return kokoro.Region != KokoroVoices.Other ? T["voicePicker.saved", kokoro.Label].Value : T["voicePicker.saved", value].Value;
             }
 
             var parsed = VoiceRef.Parse(value);
             if (parsed.HasProvider)
             {
-                return $"{parsed.Id} ({VoiceRef.DisplayName(parsed.Provider!)}, saved)";
+                return T["voicePicker.savedWithProvider", parsed.Id, VoiceRef.DisplayName(parsed.Provider!)];
             }
 
             var legacy = KokoroVoices.Describe(value);
-            return legacy.Region != KokoroVoices.Other ? $"{legacy.Label} (saved)" : $"{value} (saved)";
+            return legacy.Region != KokoroVoices.Other ? T["voicePicker.saved", legacy.Label].Value : T["voicePicker.saved", value].Value;
         }
     }
 
@@ -169,16 +170,16 @@
             var parsed = PlainIds ? new VoiceRef(null, value) : VoiceRef.Parse(value);
             if (parsed.HasProvider)
             {
-                return $"{VoiceRef.DisplayName(parsed.Provider!)} voice \"{parsed.Id}\". Not in that provider's list — check the name, or refresh the voices.";
+                return T["voicePicker.notInProviderList", VoiceRef.DisplayName(parsed.Provider!), parsed.Id];
             }
 
             var kokoro = KokoroVoices.Describe(parsed.Id);
             if (kokoro.Region != KokoroVoices.Other)
             {
-                return Groups.Count == 0 ? kokoro.Blurb : $"{kokoro.Blurb} Not in the list from the server — check the name.";
+                return Groups.Count == 0 ? kokoro.Blurb : T["voicePicker.notInServerList", kokoro.Blurb].Value;
             }
 
-            return "Plain voice id. Sent as typed to whichever provider speaks.";
+            return T["voicePicker.plainId"];
         }
     }
 

@@ -1,0 +1,1313 @@
+{
+  "speechSettings": {
+    "pageTitle": "Voice First Officer — ProsimCompanion",
+    "heading": "Voice First Officer",
+    "common": {
+      "enabled": "Enabled",
+      "set": "Set",
+      "clear": "Clear",
+      "remove": "Remove",
+      "refreshVoices": "Refresh voices",
+      "refreshing": "Refreshing…",
+      "voiceList": "Voice list",
+      "fallbackVoice": "Fallback voice",
+      "sameAsFo": "Same voice as the First Officer",
+      "windowsDefaultVoice": "Windows default voice",
+      "noListPressRefresh": "No voice list yet. Press Refresh voices.",
+      "emptyUsesFileShown": "Empty uses the file shown.",
+      "baseUrl": "Base URL",
+      "model": "Model",
+      "apiKey": "API key",
+      "timeout": "Timeout",
+      "monthlyCharBudget": "Monthly character budget",
+      "hailReply": "Hail reply",
+      "cateringComplete": "Catering complete",
+      "cruiseQuery": "Cruise query",
+      "vSpeedTolerance": "V-speed tolerance",
+      "pressNow": "Press the key or button now…",
+      "lampTitle": "Lights while the bound input is held"
+    },
+    "general": {
+      "title": "Voice First Officer",
+      "hint": "Voices are tried in order: Kokoro, ElevenLabs, Google, then Windows",
+      "localOnly": {
+        "label": "Local only",
+        "hint": "Never use network voices. Speech never leaves this PC.",
+        "more": "Kokoro, ElevenLabs and Google are skipped on every path."
+      },
+      "seat": {
+        "label": "Your seat",
+        "hint": "The seat you fly from. The First Officer works the other side.",
+        "more": "Left: the FO uses the right MCDU, EFIS and controls. Right: the FO uses the captain's side. The MCDU side changes after an app restart."
+      },
+      "engineFlap": {
+        "label": "Engine & flap call responses",
+        "hint": "The FO answers your engine start and flap calls.",
+        "more": "Flap calls are checked against the placard speeds. Verbal only: the FO never moves the levers."
+      },
+      "engineStart": {
+        "label": "Engine start monitoring",
+        "hint": "The FO calls each engine start: starting, available, both stabilized.",
+        "more": "Read from the engine data on the ground, once per start. No pilot call needed."
+      },
+      "pacing": {
+        "title": "Human Pacing",
+        "hint": "Button presses at a human tempo",
+        "humanize": {
+          "label": "Humanize button timing",
+          "hint": "Add small human pauses between button presses.",
+          "more": "Off: the minimum delays only."
+        },
+        "tempo": {
+          "label": "Tempo",
+          "hint": "1.0 is normal, 2.0 is twice as slow."
+        }
+      },
+      "playback": {
+        "title": "Playback",
+        "outputDevice": {
+          "label": "Output device",
+          "hint": "Where the First Officer's voice plays."
+        },
+        "volume": "Volume",
+        "intercomFilter": {
+          "label": "Intercom filter",
+          "hint": "Make the FO sound like a headset, not a narrator."
+        }
+      }
+    },
+    "persona": {
+      "title": "FO Persona",
+      "hint": "Wording and tone only. A number, a callout or a checklist line is never changed",
+      "enabled": {
+        "hint": "Let the persona colour what the FO says.",
+        "more": "With the language model off, the only effect is varied acknowledgements."
+      },
+      "name": {
+        "label": "Name",
+        "hint": "Woven into the model's style prompt (\"Your name is …\"). Empty = unnamed.",
+        "placeholder": "e.g. Sam"
+      },
+      "experience": {
+        "label": "Experience",
+        "hint": "How seasoned the FO sounds."
+      },
+      "formality": {
+        "label": "Formality",
+        "hint": "How formal the FO is with you."
+      },
+      "chattiness": {
+        "label": "Chattiness",
+        "hint": "0 keeps everything short. 3 allows natural warmth.",
+        "more": "\"Quiet please\" silences chatter for the session whatever this says."
+      },
+      "styles": {
+        "title": "What the Persona Styles",
+        "hint": "Each one is verified against the facts; the plain text is always the fallback",
+        "briefings": "Briefings",
+        "debrief": "Debrief",
+        "advisories": {
+          "label": "Advisories",
+          "hint": "Flow and weather advisories pass through the model before they are spoken.",
+          "more": "Only when the restyle returns within the time below; otherwise the plain text speaks."
+        },
+        "vary": {
+          "label": "Vary acknowledgements",
+          "hint": "Pick \"are you sure\" / \"say again\" lines at random from phrases.json instead of in turn."
+        },
+        "budget": {
+          "label": "Advisory restyle budget",
+          "hint": "Time the model gets to restyle one advisory. The plain text speaks when it runs out."
+        },
+        "poolsBefore": "The phrase pools themselves are in",
+        "poolsMiddle": "under",
+        "poolsAfter": "— edit the file, the FO reloads it."
+      }
+    },
+    "listening": {
+      "title": "Recognition & Push-to-Talk",
+      "hint": "How the First Officer hears you",
+      "mode": {
+        "label": "Listening mode",
+        "hint": "Push-to-talk: the FO listens only while your FO key is held.",
+        "more": "Continuous: the FO listens whenever it expects a reply, except while the ATC key is held. On a network (VATSIM, IVAO, SayIntentions) always bind your ATC transmit key below, so the FO never hears what you say to ATC."
+      },
+      "foPtt": {
+        "label": "FO push-to-talk",
+        "hint": "The key or button that talks to the First Officer. Never your ATC key."
+      },
+      "atcPtt": {
+        "label": "ATC push-to-talk (mute)",
+        "hint": "The key or button you use to talk to ATC. While it is held, the FO does not listen."
+      },
+      "atcMuteSource": {
+        "label": "ATC mute from a ProSim switch",
+        "hint": "A sidestick or hand-mic PTT switch in ProSim. While it reads pushed, the FO does not listen — same as the key or button above, and it needs no joystick on this PC.",
+        "more": "Bind your button to the switch in ProSim (it can live on another PC). Choosing a SayIntentions push-to-talk switch on the SayIntentions section sets this to the same switch when it is still Off."
+      },
+      "joystickButtons": {
+        "label": "Also listen for joystick buttons",
+        "hint": "Off: Set captures a keyboard key only. On: Set also watches the joystick buttons on this PC.",
+        "more": "Windows' joystick layer has crashed the app on some PCs (2026-09-20, 2026-10-10, 2026-10-11 — the last time just from listing the devices when this page opened). The page now talks to it only while this is on or when you press Scan. A ProSim switch (above, and on the SayIntentions section) needs no joystick on this PC."
+      },
+      "joysticks": {
+        "label": "Joysticks on this PC",
+        "notScanned": "Not scanned.",
+        "scan": "Scan for joysticks"
+      },
+      "setHint": "Set waits ten seconds for a key (and a joystick button when ticked above). Save afterwards; the lamps light for the saved bindings only.",
+      "inputDevice": {
+        "label": "Input device",
+        "hint": "The microphone the FO listens on."
+      },
+      "trackUnmatched": {
+        "label": "Track phrases the FO did not understand",
+        "hint": "Keep what you said that nothing acted on, so you can add the commands you actually use.",
+        "more": "Listed under Heard but not understood on the Voice status page and written to the session log as voice.unmatched. Off: nothing is kept; the log's ASR trail still shows every utterance."
+      },
+      "matchScore": {
+        "label": "Phrase match score",
+        "hint": "How close a heard phrase must be to a known one before the FO acts on it.",
+        "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. Lower hears more, mis-hears more."
+      },
+      "confirmBelow": {
+        "label": "Ask 'did you mean' below",
+        "hint": "A match between the score above and this one makes the FO ask 'Did you mean …?' instead of acting.",
+        "more": "Set it equal to the match score to never ask."
+      },
+      "noConfirmBelow": {
+        "label": "No 'did you mean' below",
+        "hint": "Airborne below this radio height the FO never asks 'Did you mean …?'. The takeoff roll, initial climb and landing rollout are always quiet.",
+        "more": "In those moments an FMA read or capture call that matched at 0.70 or better is simply acknowledged ('Checked.'), and anything else is let go without a word — a question over the roll or 'did you mean gear up?' in the climb is the worst chatter there is. 0 = only the three phases."
+      },
+      "offlineConfidence": {
+        "label": "Offline engine confidence",
+        "hint": "Minimum confidence the Windows engine must report. Not used with a LAN server."
+      },
+      "server": {
+        "title": "Speech Recognition Server",
+        "hint": "A transcription server on your network. Empty uses the offline Windows engine",
+        "asrUrl": {
+          "label": "LAN ASR URL",
+          "hint": "Server address, for example http://192.168.1.50:8000."
+        },
+        "flavour": {
+          "label": "LAN ASR server flavour",
+          "hint": "Must match the server type running at that address.",
+          "more": "The wrong type answers 404 to everything while the health check stays green. A warning is logged when that happens."
+        },
+        "vad": {
+          "label": "Voice activity detection",
+          "hint": "How the FO decides you are speaking.",
+          "more": "Silero ignores engine noise and the FO's own voice and hears quiet commands. RMS is the older energy gate and the fallback if the Silero model cannot load. Applies from the next listening start. Further knobs (vadMinSpeechMs, vadPreRollMs, vadMaxUtteranceMs) are file-only in settings.json."
+        },
+        "muteMic": {
+          "label": "Ignore the microphone while the FO speaks",
+          "hint": "On: the FO cannot hear its own voice from the cockpit speakers and answer itself. Off only if you must talk over the FO.",
+          "more": "Also drops a transcript that repeats what the FO just said, whatever the timing. On 2026-10-10 a VBAN loop put the FO on the speakers and it chatted with itself for minutes."
+        },
+        "micTail": {
+          "label": "Microphone tail after the FO speaks",
+          "hint": "How long the microphone stays ignored after the FO's last word. Raise it for a loud, echoey cockpit; lower it if your quick replies are missed."
+        },
+        "ownWords": {
+          "label": "Own-words window",
+          "hint": "How long after the FO said something a transcript repeating it is taken for the FO's own voice and dropped. Lower it if your replies that echo the FO's words are lost; raise it for a long speaker delay.",
+          "more": "Your answer to a 'did you mean …?' and the open checklist line's expected reply are never dropped, whatever the window."
+        },
+        "vadThreshold": {
+          "label": "VAD threshold",
+          "hint": "Raise it if noise triggers the FO. Lower it if quiet commands are missed."
+        },
+        "endSilence": {
+          "label": "End-of-utterance silence",
+          "hint": "Silence that ends your sentence. Raise it if pauses split your sentences."
+        }
+      },
+      "interphone": {
+        "title": "Interphone Transmit",
+        "hint": "Crew calls follow the captain's audio panel",
+        "acpGating": {
+          "label": "ACP transmit gating",
+          "hint": "Calls to ground or cabin need INT or CAB selected on the audio panel.",
+          "more": "Moving the selector away mid-call hangs up. Off, or an older ProSim: calls are always accepted."
+        },
+        "intRequired": {
+          "label": "Require the INT key pressed",
+          "hint": "Ground calls also need the INT key held while you speak.",
+          "more": "Leave off unless your panel has the key."
+        }
+      }
+    },
+    "sterile": {
+      "title": "Sterile Cockpit",
+      "hint": "A quiet cockpit during the busy phases",
+      "enabledHint": "The FO holds non-essential speech below the ceiling.",
+      "ceiling": {
+        "label": "Ceiling",
+        "hint": "Sterile below this altitude in climb, descent and approach.",
+        "more": "Cruise and ground are never sterile."
+      },
+      "dropLow": {
+        "label": "Drop Low-priority speech",
+        "hint": "Advisories are dropped while sterile, never replayed."
+      },
+      "normalPolicy": {
+        "label": "Normal-priority policy",
+        "hint": "What happens to normal speech while sterile.",
+        "more": "Allow is the safe default. Checklists and briefings are normal priority and are needed on a low approach."
+      },
+      "exemptCabin": {
+        "label": "Exempt cabin reports",
+        "hint": "Cabin reports still come through while sterile."
+      }
+    },
+    "voices": {
+      "fo": {
+        "title": "First Officer Voice",
+        "hint": "One list over every connected provider, grouped by provider and region. Nothing is pre-filled: only what each service reports",
+        "picker": {
+          "label": "First Officer",
+          "hint": "The provider it names speaks first. The others cover when it is down.",
+          "more": "Pick from any connected provider. Each provider also keeps a fallback voice on its own tab under Voice Providers, used when it covers for the one named here. Empty keeps the old behaviour: every provider speaks with its own fallback voice."
+        },
+        "lists": {
+          "label": "Voice lists",
+          "hint": "Read from each connected provider when the page opens."
+        },
+        "refreshAll": "Refresh all voices"
+      },
+      "crew": {
+        "title": "Crew Voices",
+        "hint": "Who speaks for the cabin, the company and the ground crew. Blank is the First Officer's voice",
+        "purser": {
+          "label": "Purser voice",
+          "hint": "Cabin reports on the cabin interphone."
+        },
+        "purserFilter": {
+          "label": "Purser intercom filter",
+          "hint": "Headset sound on the purser."
+        },
+        "company": {
+          "label": "Company voice",
+          "hint": "Dispatch messages, read out like ACARS."
+        },
+        "companyFilter": {
+          "label": "Company intercom filter",
+          "hint": "Off by default. A company message is a printout, not a phone call."
+        },
+        "ground": {
+          "label": "Ground crew voice",
+          "hint": "Ground crew replies and calls on the interphone."
+        },
+        "groundFilter": "Ground intercom filter"
+      },
+      "accents": {
+        "title": "Accent Localization",
+        "hint": "The ground crew's accent follows the airport's country",
+        "enabled": {
+          "hint": "Ground crew only. Purser and company keep the voices above.",
+          "more": "Needs the Google provider for most accents. Local only mode falls back to US or UK."
+        },
+        "persona": {
+          "label": "Chirp 3 HD persona",
+          "hint": "Google voice persona, for example Charon."
+        },
+        "overridesBefore": "Per-airport overrides are file-only:",
+        "overridesAfter": "in config/settings.json (airport code prefix to voice locale)."
+      }
+    },
+    "groundCrew": {
+      "title": "Ground Crew",
+      "hint": "Hail the ground crew and hear their calls",
+      "requireInt": {
+        "label": "Require INT selected",
+        "hint": "Ground speech waits until INT is selected on an audio panel."
+      },
+      "intGrace": {
+        "label": "INT grace",
+        "hint": "After this wait the call plays anyway."
+      },
+      "mechCall": {
+        "label": "MECH call on upcalls",
+        "hint": "Flash the MECH light when the ground crew calls you."
+      },
+      "hailWindow": {
+        "label": "Hail listen window",
+        "hint": "How long the crew waits for your request after answering."
+      },
+      "upcalls": {
+        "title": "Upcalls",
+        "hint": "Each call comes once per turnaround",
+        "groundPower": "Ground power connected",
+        "chocks": "Chocks in place",
+        "refuel": {
+          "label": "Refueling complete",
+          "hint": "Includes the fuel figure."
+        }
+      },
+      "wording": {
+        "title": "Ground Crew Wording",
+        "hint": "Spoken word for word. {fuel} becomes the tonnes on board",
+        "standingBy": "Standing by",
+        "groundPower": "Ground power",
+        "chocks": "Chocks",
+        "refuelComplete": "Refuel complete"
+      }
+    },
+    "cabin": {
+      "title": "Cabin Crew",
+      "hint": "Purser reports on the cabin interphone",
+      "secure": {
+        "label": "Cabin secure report",
+        "hint": "Before takeoff, once the doors are closed and the beacon is on."
+      },
+      "secureMinWait": {
+        "label": "Cabin secure: minimum wait",
+        "hint": "The crew needs this long after doors closed + beacon on before the report. 0 = instant."
+      },
+      "securePerPax": {
+        "label": "Cabin secure: extra per passenger",
+        "hint": "A random share of pax × this is added, drawn once per flight — sometimes ready after pushback, sometimes at the runway.",
+        "more": "Passengers = GSX's boarded count, else the OFP figure. With 45 s and 1 s/pax a full A320 waits between 45 s and about 4 minutes. 0 = the minimum only."
+      },
+      "ready": {
+        "label": "Cabin ready report",
+        "hint": "On approach, below the altitude set here."
+      },
+      "readyBelow": "Cabin-ready below",
+      "foAck": "FO acknowledges reports",
+      "requireCab": {
+        "label": "Require CAB selected",
+        "hint": "The purser waits until CAB is selected on an audio panel, or the grace time."
+      },
+      "cabGrace": "CAB grace",
+      "autoGround": {
+        "label": "FO answers cabin calls on the ground",
+        "hint": "During pushback, engine start and taxi-out the FO selects CAB on the FO's audio panel after the delay, so the report plays without you touching the ACP.",
+        "more": "This is the one place the cabin crew writes to the aircraft: the FO panel's CAB reception latch (S_ASP2_CAB_REC_LATCH; the captain's panel when you fly from the right seat), set on and released after the report. Never while the FO is mid-dialogue with you, never in any other phase. Off by default."
+      },
+      "groundDelay": "Ground answer delay",
+      "autoAir": {
+        "label": "FO answers cabin calls in the air",
+        "hint": "In descent and approach the FO answers the cabin-ready call after the delay."
+      },
+      "airDelay": "Air answer delay",
+      "chime": "Interphone chime before calls",
+      "dingStartup": {
+        "label": "Ding on startup",
+        "hint": "Cabin chime when the app starts."
+      },
+      "dingFinal": {
+        "label": "Ding on final loadsheet",
+        "hint": "Cabin chime when the final loadsheet is sent."
+      },
+      "ambient": {
+        "label": "Ambient events",
+        "hint": "Now and then the purser reports a boarding delay."
+      },
+      "boardingDelayProb": {
+        "label": "Boarding-delay probability",
+        "hint": "0.2 is one flight in five."
+      },
+      "cruiseQuery": {
+        "label": "Purser cruise query",
+        "hint": "Once per flight in the cruise the purser calls: 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' — then listens for your answer.",
+        "more": "Chime and CAB channel as for every report. Answer in your own words: a time ('about forty minutes', 'on time', 'ten minutes late') or the ride ('smooth', 'light chop', 'expect some bumps') gets a matching acknowledgement, anything else 'copied, thank you', silence 'we'll check back later'. The reply is only ever acknowledged — never read as a command. A free answer needs the LAN speech server; the offline Windows engine hears a short list of likely replies. The call waits while the FO's ear is paused or another dialogue has the mic, and is skipped if the descent begins first."
+      },
+      "cruiseQueryAfter": {
+        "label": "Cruise query after",
+        "hint": "Minutes into the cruise before the purser calls, give or take thirty percent."
+      },
+      "cruiseQueryWindow": {
+        "label": "Cruise query reply window",
+        "hint": "How long the purser listens for your answer."
+      },
+      "wording": {
+        "title": "Cabin Wording",
+        "hint": "Spoken word for word",
+        "hailReplyHint": "Answer to \"cockpit to cabin\".",
+        "securingReply": {
+          "label": "Hail reply while securing",
+          "hint": "Answer to a hail while the cabin-secure wait is still running."
+        },
+        "secure": "Cabin secure",
+        "secureAck": "Cabin secure — FO ack",
+        "ready": "Cabin ready",
+        "readyAck": "Cabin ready — FO ack",
+        "boardingDelay": "Boarding delay",
+        "cruiseQueryHint": "The purser's question in the cruise.",
+        "eta": {
+          "label": "Cruise query — time reply",
+          "hint": "After an answer naming a time or the arrival."
+        },
+        "ride": {
+          "label": "Cruise query — ride reply",
+          "hint": "After an answer about turbulence or a smooth ride."
+        },
+        "generic": "Cruise query — any other reply",
+        "noReply": {
+          "label": "Cruise query — no reply",
+          "hint": "When the window closes in silence."
+        }
+      }
+    },
+    "company": {
+      "title": "Company Channel",
+      "hint": "Dispatch messages read out like ACARS: the loadsheet, and now and then a cruise message",
+      "autoLoadsheet": {
+        "label": "Read the loadsheet automatically",
+        "hint": "Before departure, as soon as the final loadsheet is in. Off: only on \"request loadsheet\" or the web button."
+      },
+      "chime": {
+        "label": "ACARS chime before messages",
+        "hint": "The double beep before a company delivery."
+      },
+      "cruiseMessages": {
+        "label": "Cruise messages",
+        "hint": "A short company message in the cruise, some flights.",
+        "more": "Deterministic template around the destination facts. Off by default."
+      },
+      "cruiseProb": {
+        "label": "Cruise message probability",
+        "hint": "0.15 is about one flight in seven, drawn once per flight."
+      },
+      "persist": {
+        "label": "Save the spoken loadsheet",
+        "hint": "Written beside the session log as *.loadsheet.txt, with the raw EFB loadsheet."
+      },
+      "debrief": {
+        "title": "Post-flight Debrief",
+        "hint": "Spoken at shutdown from what the session recorded",
+        "length": {
+          "label": "Length",
+          "hint": "Brief leaves out the activity counts and the fuel-used lines."
+        },
+        "style": {
+          "label": "Style with the language model",
+          "hint": "Warmer wording, every number verified. Off: the plain template.",
+          "more": "Uses the model configured on Briefings & LLM. With that model off this has no effect."
+        }
+      },
+      "day": {
+        "title": "Company Day",
+        "hint": "Multi-sector duty tracking: block and duty figures, turnaround summaries, an end-of-day round-up. Not a flight-time-limits calculation",
+        "track": {
+          "label": "Track duty days automatically",
+          "hint": "Off: \"start duty day\" and the /day page still work by hand."
+        },
+        "autoStart": "Start at the first preflight",
+        "turnaround": {
+          "label": "Speak the turnaround summary",
+          "hint": "At on-blocks: block time, schedule delta, open tech-log items."
+        },
+        "allowance": {
+          "label": "Post-flight allowance",
+          "hint": "Minutes added after the last on-blocks for the duty figure."
+        },
+        "autoClose": {
+          "label": "Auto-close after idle",
+          "hint": "Close an open day after this long idle in a turnaround. 0 = never."
+        },
+        "rotations": {
+          "label": "Planned rotations folder",
+          "hint": "One JSON file per planned day. The README.txt in the folder shows the format. Empty uses the folder shown."
+        },
+        "stateFile": "Day-state file"
+      }
+    },
+    "techLog": {
+      "title": "Tech Log & MEL",
+      "hint": "The paperwork layer: deferral categories, due dates, preflight briefs. Never a failure, never a dataref write",
+      "offer": {
+        "label": "Offer tech-log entries after an abnormal",
+        "hint": "After shutdown the FO offers to log each abnormal handled this flight. Silent on a normal flight."
+      },
+      "wear": {
+        "label": "Random wear",
+        "hint": "A small chance per flight of a benign cabin defect appearing at shutdown, from the wear pool."
+      },
+      "rectify": {
+        "label": "Rectify on the due date",
+        "hint": "Close open defects by itself when their MEL due date passes.",
+        "more": "Off by default: rectification is meant to be your maintenance action."
+      },
+      "openItems": {
+        "label": "Open items in the briefings",
+        "hint": "The departure briefing names the open items; the arrival briefing only those that affect the landing.",
+        "more": "Three titles at most, then 'and N more'. Landing-relevant = MEL category A or B, or an item about brakes, gear, spoilers, reversers, autobrake or anti-skid. Titles are spoken as written."
+      },
+      "flagLines": {
+        "label": "Flag checklist lines",
+        "hint": "A spoken checklist line about a system with an open item gets 'note, open tech log item: …' after the challenge.",
+        "more": "Lines carry a system tag in the checklist JSON (apu, gear, autobrake, anti-ice, …); the shipped checklists tag the obvious ones. An item's System field on the Tech Log page, or a word of its title, is what the tag matches. Once per item per checklist run."
+      },
+      "intervals": "MEL repair intervals",
+      "categoryA": "Category A",
+      "categoryB": "Category B",
+      "categoryC": "Category C",
+      "categoryD": "Category D",
+      "file": "Tech-log file",
+      "wearPool": {
+        "label": "Wear-pool file",
+        "hint": "Empty uses the shipped pool beside the exe."
+      },
+      "raiseBefore": "Raise and rectify defects on the",
+      "raiseLink": "Tech Log",
+      "raiseAfter": "page, or by voice (\"raise a defect\", \"log a snag\").",
+      "logbook": {
+        "title": "Pilot Logbook",
+        "hint": "Every completed flight folded in at shutdown; totals are computed when shown",
+        "file": "Logbook file",
+        "flightsBefore": "The flights, the touchdown trend and the CSV export are on the",
+        "flightsLink": "Logbook",
+        "flightsAfter": "page."
+      }
+    },
+    "sayIntentions": {
+      "title": "SayIntentions",
+      "hint": "Online ATC: radio requests, weather, CPDLC and the arrival gate",
+      "use": {
+        "label": "Use SayIntentions",
+        "hint": "Turns on every SayIntentions feature.",
+        "more": "Voice requests need SayIntentions running with an active flight. Weather only needs the API key."
+      },
+      "apiKeySourceHint": "Auto reads the key from SayIntentions' flight.json.",
+      "manualKey": {
+        "label": "Manual API key",
+        "hint": "Used only with Manual. Never logged."
+      },
+      "ptt": {
+        "label": "Push-to-talk from the cockpit",
+        "hint": "A ProSim PTT switch keys SayIntentions. Bind your sidestick or hand-mic button to that switch in ProSim first.",
+        "more": "On each press the app sets the SayIntentions control LVAR to 1, on release to 0, through SimConnect — the client's 'Map PTT inside the sim with an LVAR'. No joystick polling. Needs MSFS running. The session log shows each press and whether SayIntentions transmitted."
+      },
+      "pttControl": {
+        "label": "SayIntentions PTT control",
+        "hint": "Which SayIntentions radio or intercom the button keys. COM radio PTT is the one almost everybody needs."
+      },
+      "phraseology": "Phraseology",
+      "foSpeaks": {
+        "label": "FO speaks the transmission",
+        "hint": "The FO says the radio call out loud before it is sent.",
+        "more": "Turn off if SayIntentions plays it as well (double audio)."
+      },
+      "autoTune": {
+        "label": "Auto-tune frequency",
+        "hint": "Tune the matched station before transmitting."
+      },
+      "departureGate": {
+        "label": "Departure comms gate (legacy)",
+        "hint": "Legacy: comms come back to you near the runway, using SayIntentions' own distance figure.",
+        "more": "Ignored while the Comms hand-over card below is on — that flow uses the app's runway data and the flight phase, which the legacy gate lacked on the 2026-10-10 flight (it never tripped)."
+      },
+      "gateDistance": {
+        "label": "Gate distance (legacy)",
+        "hint": "Distance from the runway where the legacy gate hands comms back to you."
+      },
+      "wrongFreq": {
+        "label": "Wrong-frequency report",
+        "hint": "The FO tells you when COM1 is not on the frequency ATC gave you.",
+        "more": "It uses ATC's last 'Contact … on …' instruction and says it once. It is quiet at the gate, and when it cannot read the instruction."
+      },
+      "waitBefore": {
+        "label": "Wait before the report",
+        "hint": "How long COM1 may stay on another frequency first."
+      },
+      "arrivalGate": {
+        "label": "Arrival gate from ATC",
+        "hint": "Use the gate SayIntentions ATC assigns as the GSX arrival gate.",
+        "more": "Only a gate that differs from the departure stand and appears from the climb onward counts. A gate you set yourself on the OFP page always wins. After landing the gate goes to GSX straight away. Off by default: the ATC pick may not exist in the loaded scenery."
+      },
+      "handover": {
+        "title": "Comms hand-over",
+        "hint": "Who works the radios in each phase: you or the SayIntentions copilot",
+        "enabled": {
+          "label": "Hand the radios over by flight phase",
+          "hint": "The copilot has them at the gate, on the taxi and in the cruise; you take them at the holding point and on the approach.",
+          "more": "Each hand-over is one FO line and a session event. Say 'I have the radios' or 'you have the radios' to override at any time. Turning this on makes the legacy departure comms gate above irrelevant."
+        },
+        "gate": {
+          "label": "Gate: copilot takes the radios",
+          "hint": "When SayIntentions starts a flight on the ground the copilot handles clearance, push and start."
+        },
+        "taxi": {
+          "label": "FO reads the taxi clearance",
+          "hint": "While the copilot has the radios, the FO reads ATC's taxi instruction out to you.",
+          "more": "From SayIntentions' comms history, checked every 20 seconds — the line can lag the exchange by that much."
+        },
+        "handoffs": {
+          "label": "FO announces hand-offs",
+          "hint": "While the copilot has the radios, the FO tells you each 'Contact … on …' ATC gives, on the ground and in the air."
+        },
+        "holding": {
+          "label": "Holding point: you take the radios",
+          "hint": "Taxiing out, close to the departure runway, the radios become yours for the takeoff request and clearance.",
+          "more": "The runway comes from the FMS (else SayIntentions' plan) and its threshold from ProSim's runway list or the Navigraph data. Without a known runway this step cannot fire."
+        },
+        "holdingDistance": {
+          "label": "Holding point distance",
+          "hint": "How close to the runway threshold counts as the holding point."
+        },
+        "tuneTower": {
+          "label": "Tune Tower at the holding point",
+          "hint": "COM1 goes to Tower when you take the radios there, if a Tower frequency is known.",
+          "more": "ATC's last 'Contact Tower on …' first, else the airport's frequency list. Through SayIntentions, never a cockpit switch."
+        },
+        "climb": {
+          "label": "Climb: copilot takes the radios back",
+          "hint": "After the takeoff clearance and the first departure hand-off, at the climb."
+        },
+        "approach": {
+          "label": "Approach: you take the radios",
+          "hint": "For the landing clearance — at the approach, or as soon as ATC hands you to Tower in the descent."
+        },
+        "taxiIn": {
+          "label": "Taxi in: copilot takes the radios back",
+          "hint": "Once you are off the runway."
+        },
+        "voiceOverride": {
+          "label": "Voice override",
+          "hint": "'I have the radios' / 'you have the radios' flips who has them, at any time."
+        },
+        "holdingLine": {
+          "label": "FO line at the holding point",
+          "hint": "Spoken when you take the radios at the holding point."
+        },
+        "approachLine": {
+          "label": "FO line on the approach",
+          "hint": "Spoken when you take the radios for the landing."
+        },
+        "copilotLine": {
+          "label": "FO line when the copilot takes the radios",
+          "hint": "Spoken at the gate, in the climb and on the taxi in."
+        },
+        "captainLine": {
+          "label": "FO line when you take the radios by voice",
+          "hint": "Spoken after 'I have the radios'."
+        }
+      },
+      "weather": {
+        "title": "SayIntentions Weather",
+        "hint": "ATIS, METAR, TAF and CPDLC. Needs only the API key",
+        "cacheTtl": {
+          "label": "Cache TTL",
+          "hint": "How long a weather report is kept."
+        },
+        "debounce": {
+          "label": "Refresh debounce",
+          "hint": "Shortest gap between refreshes."
+        }
+      }
+    },
+    "providers": {
+      "kokoro": {
+        "title": "Kokoro (local neural TTS)",
+        "hint": "Free neural voices from a Kokoro server on this PC or your network. Tried first",
+        "baseUrl": {
+          "tally": "Kokoro base URL",
+          "hint": "Server address, for example http://192.168.1.50:8880. Empty turns Kokoro off."
+        },
+        "fallback": {
+          "hint": "Used when Kokoro covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page.",
+          "more": "The grade is Kokoro's estimate of how much and how clean the training audio was, A down to F. British and American voices make a usable First Officer; the other languages read English badly.",
+          "empty": "No voice list yet. Enter the server address and press Refresh voices."
+        },
+        "listHint": "Read from the server when the page opens. Refresh after you add a blended voice.",
+        "connectTimeout": {
+          "label": "Connect timeout",
+          "hint": "Wait for the server to answer.",
+          "more": "Kept short on purpose. A sleeping server falls through to the next voice instead of stalling a callout."
+        },
+        "bodyTimeout": {
+          "label": "Body timeout",
+          "hint": "Time allowed for the audio to arrive.",
+          "more": "Plus 100 ms per character, so a long briefing never trips the 60 s cooldown."
+        },
+        "cacheCap": {
+          "label": "Cache cap per voice",
+          "hint": "0 is no limit."
+        }
+      },
+      "elevenLabs": {
+        "title": "ElevenLabs",
+        "hint": "Paid cloud neural voices with your own key. Cached, with a monthly budget. Tried after Kokoro and before Google",
+        "apiKey": {
+          "hint": "From elevenlabs.io, your profile, API keys. Empty turns ElevenLabs off. Never logged.",
+          "more": "The Free plan works for testing but has no commercial licence. Starter and up are licensed."
+        },
+        "fallback": {
+          "hint": "Used when ElevenLabs covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page.",
+          "more": "ElevenLabs needs a voice here to count as configured; picking an ElevenLabs voice for the First Officer fills it for you.",
+          "empty": "No voice list yet. Enter the key and press Refresh voices."
+        },
+        "listHint": "The ElevenLabs premade voices, read with the key above.",
+        "modelHint": "Flash is fast and costs half. v3 is the most expressive, slower and full price.",
+        "format": {
+          "label": "Output format",
+          "hint": "MP3 works on every plan and is decoded on this PC. PCM needs a paid plan and skips the decode."
+        },
+        "stability": {
+          "label": "Stability",
+          "hint": "0 to 1. Higher is steadier and less expressive."
+        },
+        "similarity": {
+          "label": "Similarity",
+          "hint": "0 to 1. How closely the output follows the original voice."
+        },
+        "speed": {
+          "label": "Speed",
+          "hint": "0.7 to 1.2. 1.0 is the voice's natural pace."
+        },
+        "budget": {
+          "hint": "ElevenLabs stops for the month at this many characters. 0 is no limit.",
+          "more": "Plan credits per month: Free 10,000, Starter 30,000, Creator 121,000. Flash costs about half a credit per character. The next voice in the chain takes over."
+        },
+        "maxChars": {
+          "label": "Max characters per request",
+          "hint": "Longer texts skip ElevenLabs and use the next voice. 0 is no limit.",
+          "more": "The Free plan caps one generation at about 2,500 characters."
+        },
+        "normalisation": {
+          "label": "Text normalisation",
+          "hint": "Let ElevenLabs expand numbers and abbreviations itself.",
+          "more": "Off is right for the FO: the app already writes numbers the spoken way, and the ElevenLabs normaliser mangles aviation words."
+        },
+        "usageBefore": "Usage this month:",
+        "usageMiddle": "characters (counted in",
+        "usageAfter": "in the cache folder).",
+        "baseUrl": {
+          "tally": "ElevenLabs base URL",
+          "hint": "Only change this for a proxy or a regional endpoint."
+        },
+        "timeoutHint": "Whole request. The next voice takes over when it runs out."
+      },
+      "google": {
+        "title": "Google Cloud TTS (Chirp 3 HD)",
+        "hint": "Paid neural voices. Cached, with a monthly budget. Tried after ElevenLabs",
+        "keyFile": {
+          "label": "Service-account key file",
+          "hint": "Path to the service-account JSON key. Empty turns Google off. Never logged."
+        },
+        "fallback": {
+          "hint": "Used when Google covers for the provider the First Officer or a crew voice names. Pick the main voices on the Voices page.",
+          "more": "Google needs a voice here to count as configured; picking a Google voice for the First Officer fills it for you. The accent localization persona (Voices page) is a Google voice too.",
+          "empty": "No voice list yet. Enter the key file path and press Refresh voices."
+        },
+        "listHint": "Google's Chirp 3 HD voices, read with the key file above.",
+        "budget": {
+          "hint": "Google stops for the month at this many characters. 0 is no limit.",
+          "more": "The free tier is 1,000,000 characters. The offline voices take over."
+        }
+      },
+      "windows": {
+        "title": "Windows Voices",
+        "hint": "Offline voices on this PC, always available. The last two in the chain",
+        "winrt": {
+          "label": "WinRT fallback voice",
+          "hint": "Empty uses the Windows default.",
+          "more": "This reaches the Windows 11 \"Natural\" voices."
+        },
+        "sapi": {
+          "label": "SAPI5 fallback voice",
+          "hint": "Last-resort voice. Empty uses the Windows default."
+        },
+        "listHint": "The voices installed on this PC.",
+        "note": "WinRT: {0}. SAPI5: {1}."
+      },
+      "cache": {
+        "title": "Cache",
+        "folder": {
+          "label": "TTS cache folder",
+          "hint": "Empty uses the folder shown.",
+          "more": "One folder per provider and voice. The usage counter lives there too."
+        }
+      }
+    },
+    "mcdu": {
+      "title": "MCDU",
+      "hint": "Voice MCDU: reading always works, key presses need arming",
+      "enabledHint": "Read the MCDU, tune the ILS and change the arrival runway by voice.",
+      "actuation": {
+        "label": "Allow actuation",
+        "hint": "Let the FO press MCDU keys.",
+        "more": "Off: read only. Commands answer that key presses are off."
+      },
+      "verifyPause": {
+        "label": "Verify pause",
+        "hint": "The FO announces the change, then waits this long so you can cancel."
+      }
+    },
+    "briefing": {
+      "title": "Briefings",
+      "hint": "Departure and arrival briefings from nav data and weather",
+      "source": {
+        "label": "Procedure source",
+        "hint": "Where the runway, SID, STAR and approach come from.",
+        "more": "Auto tries the FMS plan, then SayIntentions, then the manual entries below, field by field."
+      },
+      "verify": {
+        "label": "Verify numbers in LLM output",
+        "hint": "Every figure the LLM writes is checked against the facts.",
+        "more": "A failed check falls back to the plain template."
+      },
+      "dfdBefore": "The Navigraph DFD database path lives under",
+      "dfdLink": "Setup → Nav Data",
+      "dfdAfter": ".",
+      "manual": {
+        "title": "Manual Procedure Overrides",
+        "hint": "Used when the FMS or SayIntentions cannot fill a field, or always in Manual mode",
+        "depAirport": {
+          "label": "Departure airport",
+          "hint": "ICAO, e.g. YSSY"
+        },
+        "depRunway": {
+          "label": "Departure runway",
+          "hint": "e.g. 16R"
+        },
+        "sid": {
+          "label": "SID",
+          "hint": "Identifier, e.g. FISHA1"
+        },
+        "arrAirport": {
+          "label": "Arrival airport",
+          "hint": "ICAO, e.g. YMML"
+        },
+        "arrRunway": {
+          "label": "Arrival runway",
+          "hint": "e.g. 34"
+        },
+        "star": {
+          "label": "STAR",
+          "hint": "Identifier, e.g. RAZZI4"
+        },
+        "approach": {
+          "label": "Approach",
+          "hint": "For example I16R. Empty picks the best published approach, ILS first.",
+          "more": "Ask the FO \"which approach\" to hear the candidates."
+        }
+      },
+      "minima": {
+        "title": "Minima Capture",
+        "hint": "The FO asks for the minimums during the arrival brief",
+        "interactive": {
+          "label": "Interactive capture",
+          "hint": "The FO asks, reads back, and arms the minimums callouts.",
+          "more": "A value already set on the Status section skips the question. Works best with a transcription server."
+        },
+        "listenTimeout": {
+          "label": "Listen timeout",
+          "hint": "How long the FO waits for your answer."
+        },
+        "maxRetries": {
+          "label": "Max retries",
+          "hint": "Failed tries before the brief goes on as not briefed."
+        }
+      },
+      "missed": {
+        "title": "Missed-Approach Re-brief",
+        "hint": "After a go-around the FO reads the missed approach",
+        "enabled": {
+          "hint": "Waits for the delay and gear up, so you fly first.",
+          "more": "Without published legs the FO gives a prompt instead."
+        },
+        "delay": "Delay",
+        "hardCeiling": {
+          "label": "Hard ceiling",
+          "hint": "Speaks by this time even if the gear never comes up."
+        }
+      },
+      "llm": {
+        "title": "LLM Styling",
+        "hint": "One language model for the briefing and debrief prose",
+        "enabledHint": "Off: plain templates only. Nothing leaves this PC.",
+        "stream": {
+          "label": "Speak while the model writes",
+          "hint": "The FO starts speaking after the first sentence, not after the whole reply. Each sentence is checked before it is spoken.",
+          "more": "If a sentence has a wrong number, or the model stops, the plain template finishes the briefing. Nothing starts again from the top. Off: the FO waits for the whole reply (the old behaviour)."
+        },
+        "apiFlavour": {
+          "label": "API flavour",
+          "hint": "Pick Ollama when the address is an Ollama server.",
+          "more": "Only the Ollama type can switch model thinking off."
+        },
+        "baseUrl": {
+          "tally": "LLM base URL",
+          "hint": "OpenAI style: the API root, e.g. https://api.openai.com/v1. Ollama: the server root, e.g. http://localhost:11434."
+        },
+        "apiKeyHint": "Never logged. Empty for local servers without a key.",
+        "modelHint": "Model name, e.g. gpt-4o-mini or qwen3.6:27b. Empty turns styling off.",
+        "thinking": {
+          "label": "Enable model thinking (slower, deeper reasoning)",
+          "hint": "Lets a thinking model reason first. Slow: often 10 s or more.",
+          "more": "Ollama only. Leave off for briefings."
+        },
+        "maxTokens": "Max tokens",
+        "timeoutHint": "Per call. A styled briefing may make two calls.",
+        "testBefore": "Save, then press \"Test LLM connection\" on the",
+        "testLink": "Status section",
+        "testAfter": "."
+      },
+      "ask": {
+        "title": "Ask the First Officer",
+        "hint": "Free-form questions, answered by the language model from live facts. Spoken only — never acted on",
+        "enabled": {
+          "hint": "Ask in plain words: 'what is our fuel on board', 'how long to top of descent', 'tell me the destination weather'. The FO answers from what the app knows right now.",
+          "more": "Needs the LLM above and the LAN speech recognition server (the offline Windows engine only hears exact phrases). Every number in the answer is checked against the live facts; an unverifiable answer becomes 'I don't have a verified answer for that'. A question is tried only after every exact phrase has been ruled out, so nothing you could say before changes. In the sterile cockpit (below the sterile ceiling in climb, descent and approach) a question is heard but not answered."
+        },
+        "smallTalk": {
+          "label": "Small talk and fun facts",
+          "hint": "Ask anything: 'who is better, Chelsea or Arsenal', 'tell me a fun fact', 'what is the capital of Peru'. The FO answers from general knowledge, in character, one or two light sentences.",
+          "more": "A question that mentions the flight (fuel, weights, speeds, altitude, runway, weather, times, passengers…) still takes the strict path: fact sheet only, every number verified. On the small-talk path numbers are not verified — they are trivia — but a sentence about this flight with a figure in it is refused and the FO says 'I don't have a verified answer for that'. With this on, no lead-in word is needed: any sentence of four words or more that matched nothing else and is shaped like a question (a question word up front, or the recognizer's question mark) goes to the FO; a plain remark is not sent. Still speech only, still silent in the sterile cockpit."
+        },
+        "roger": {
+          "label": "Answer acknowledgements with 'Roger'",
+          "hint": "'No questions, thank you for the briefing', 'copied', 'okay thanks': on, the FO says 'Roger.'; off, nothing at all.",
+          "more": "Either way such words never go to the language model and never earn a 'didn't catch that'. With small talk on, only something shaped like a question (a question word up front, or a question mark from the recognizer) is sent to the model."
+        },
+        "flyingOver": {
+          "label": "'What are we flying over?'",
+          "hint": "Ask 'what are we flying over', 'where are we', 'what is that city on the left'. The FO names the country, the mountains or sea, and the nearest towns with distance and side — at once, from an atlas in the app — then adds a fact or two about them.",
+          "more": "The position line comes from a built-in offline atlas (Natural Earth outlines, GeoNames towns — see the manual for the attribution), never from the language model, so it needs no internet and is always the same for the same spot. The facts after it come from the LLM: with 'Wikipedia facts' off, from its own knowledge, like small talk (numbers unverified, nothing about this flight). No lead-in word or minimum length is needed for these phrases. Works with small talk off."
+        },
+        "wikipedia": {
+          "label": "Wikipedia facts",
+          "hint": "With the switch above: fetch a short Wikipedia summary of the nearest town and have the FO take its facts from that instead of the model's memory.",
+          "more": "One small request to en.wikipedia.org per place, three-second limit, answered from a cache after the first time. If it fails or finds nothing, the FO still gives the position and falls back to the model's own knowledge. Nothing about you or the flight is sent — only the place name."
+        },
+        "leadIns": {
+          "label": "Question lead-ins",
+          "hint": "Comma-separated. An utterance must start with one of these to count as a question (not needed with small talk on)."
+        },
+        "minWords": {
+          "label": "Minimum words",
+          "hint": "Shorter utterances are never questions — they are exact phrases, misheard."
+        },
+        "timeBudget": {
+          "label": "Time budget",
+          "hint": "From the question to the first spoken word. After this the FO gives up with the fixed line."
+        },
+        "standBy": {
+          "label": "'Stand by' after",
+          "hint": "Silence before the FO says 'Stand by'. 0 = never."
+        }
+      },
+      "regionFacts": {
+        "title": "Region Facts",
+        "hint": "In the cruise the FO now and then offers a short fact about the country or sea below. Unprompted, spoken only",
+        "enabled": {
+          "hint": "Every fifteen to thirty minutes in the cruise (your interval), the FO mentions something about the region you are over: 'We're over the Netherlands — a quarter of what you see down there sits below sea level.' Never the same region twice in a flight.",
+          "more": "The region comes from the same built-in atlas as 'what are we flying over?' (no internet needed). The fact comes from the language model when it is on and healthy (two sentences, the same guard as the place facts — nothing about this flight), otherwise from the curated file region-facts.json in %LOCALAPPDATA%\\ProsimCompanion\\config — edit it to add your own, keyed by country code (FR, GB) or 'sea:North Sea'. Silent outside the cruise, while the flight is not live, while the FO's ear is paused, in the sterile cockpit, after 'quiet please', and over places the atlas does not name. With the FO persona on, a curated fact is spoken in the persona's voice with every figure locked."
+        },
+        "shortest": {
+          "label": "Shortest gap",
+          "hint": "Minutes between facts, at least. The first fact comes this long (plus the random share) after the cruise begins."
+        },
+        "longest": {
+          "label": "Longest gap",
+          "hint": "Each gap is drawn at random between the two, so it never feels like a timer."
+        },
+        "perFlight": {
+          "label": "Facts per flight",
+          "hint": "At most. Resets with the cabin's once-per-flight reports (cold and dark, or a new preflight after shutdown)."
+        },
+        "llmFacts": {
+          "label": "Facts from the language model",
+          "hint": "Ask the LLM above for the fact when it is configured and healthy; off, or with the model down, only the curated file speaks.",
+          "more": "Model facts stream sentence by sentence like the place facts; a sentence about this flight with a figure in it is refused, and if the model says nothing within twenty seconds the curated file speaks instead. Numbers in a model fact are trivia and are not verified."
+        }
+      },
+      "wol": {
+        "title": "Wake-on-LAN",
+        "hint": "Moved to Setup",
+        "before": "The PCs the app wakes at startup — the language-model box, the speech server, any other — are one list on",
+        "link": "Settings → Setup → Wake-on-LAN",
+        "after": ". An old single-PC setting from this page is moved there the first time Setup opens."
+      }
+    },
+    "callouts": {
+      "title": "Standard Callouts",
+      "hint": "The FO's speed, altitude and rollout calls.",
+      "enabled": {
+        "label": "Callouts enabled",
+        "hint": "Master switch for every standard callout.",
+        "more": "Applies live. The individual callout texts, altitude callouts, the other flow-monitor reminders and the weather advisories are edited in the sop section of settings.json for now."
+      },
+      "placards": {
+        "title": "Flap Placards",
+        "hint": "Maximum speed per flap lever position (VFE). The FO warns when you approach or exceed it, and checks your flap calls against it.",
+        "leverHint": "ProSim reports the lever in six steps: UP, 1, 1+F, 2, 3, FULL. Lever 1 gives 1+F on the ground and on take-off; the FO reads the step ProSim reports.",
+        "lever": "Lever",
+        "limit": "Limit (kt)",
+        "resetTitle": "A322 figures: 230 / 215 / 200 / 185 / 177",
+        "reset": "Reset to A320 defaults"
+      },
+      "gear": {
+        "title": "Gear Limits",
+        "hint": "VLE is the limit with the gear down. VLO is the limit while the gear moves; the FO refuses a gear call above it.",
+        "vle": {
+          "label": "Gear extended (VLE)",
+          "hint": "The FO warns when you fly faster than this with the gear down. 0 turns the warning off."
+        },
+        "vloDown": {
+          "label": "Gear extension (VLO down)",
+          "hint": "\"Gear down\" is refused above this speed. 0 turns the check off."
+        },
+        "vloUp": {
+          "label": "Gear retraction (VLO up)",
+          "hint": "\"Gear up\" is refused above this speed. 0 turns the check off."
+        },
+        "stillDown": {
+          "label": "Gear still down reminder",
+          "hint": "The FO says \"gear still down\" when you climb with the gear down."
+        },
+        "upBy": {
+          "label": "Gear up by",
+          "hint": "The reminder comes when you climb above this height with the gear down."
+        }
+      },
+      "gates": {
+        "title": "Approach Gates",
+        "hint": "The heights where the FO checks that the approach is stable. Airlines differ — set your own SOP.",
+        "stable": {
+          "label": "Stable approach check",
+          "hint": "At each gate the FO checks speed, sink rate, gear and flaps, and calls an unstable approach.",
+          "more": "A gate is checked once, when you descend through its height on the radio altimeter. The highest gate is checked first. The speed band is measured from VLS."
+        },
+        "gateTitle": "Gate {0} — {1} ft",
+        "removeTitle": "Remove this gate",
+        "inUse": "Gate in use",
+        "height": {
+          "label": "Height",
+          "hint": "Radio altitude of the gate. 0 switches the gate off."
+        },
+        "gearDown": "Gear down required",
+        "minFlap": {
+          "label": "Minimum flap lever",
+          "hint": "The flap lever must be at this position or further."
+        },
+        "belowVls": "Speed below VLS allowed",
+        "aboveVls": "Speed above VLS allowed",
+        "sink": "Maximum sink rate",
+        "announce": {
+          "label": "Say \"stabilized\" when the gate passes",
+          "hint": "Off: the FO speaks at this gate only when the approach is unstable."
+        },
+        "addTitle": "Add a gate, for example a 1500 ft gate",
+        "add": "Add gate",
+        "resetTitle": "Two gates: 1000 ft (flap 2 or more) and 500 ft (flap 3 or more), gear down at both",
+        "reset": "Reset to defaults",
+        "advancedLabel": "Wording and thrust check hidden",
+        "stableCall": "Stable call",
+        "unstableCall": "Unstable call",
+        "thrust": {
+          "label": "Thrust must be spooled up",
+          "hint": "Adds a thrust check to every gate: the average N1 must be at or above the figure below."
+        },
+        "minN1": "Minimum N1"
+      },
+      "advisories": {
+        "title": "Placard Advisories",
+        "hint": "What the FO says when a limit is close or exceeded",
+        "warnWithin": {
+          "label": "Warn within",
+          "hint": "Speak the approaching call this close below the limit, while accelerating."
+        },
+        "cooldown": {
+          "label": "Cooldown",
+          "hint": "Minimum time between two advisories of the same kind."
+        },
+        "approaching": "Approaching flap limit",
+        "exceeded": "Flap limit exceeded",
+        "gearExceeded": "Gear limit exceeded"
+      },
+      "monitoring": {
+        "title": "In-flight monitoring",
+        "hint": "Four FO duties that are off until you turn them on. Each needs a live flight and only ever speaks.",
+        "fuelCheck": {
+          "label": "Fuel check",
+          "hint": "In the cruise the FO compares fuel on board with the SimBrief plan at your position and gives the estimated landing fuel. Also on 'fuel check'.",
+          "more": "Needs a SimBrief OFP with a navlog and the aircraft position. Without them: fuel on board minus fuel flow times the time to the ETA. A shortfall beyond the margin is spoken at High. Silent in sterile phases."
+        },
+        "fuelEvery": {
+          "label": "Fuel check every",
+          "hint": "Minutes between automatic checks in the cruise; 0 = on request only"
+        },
+        "shortfall": {
+          "label": "Shortfall margin",
+          "hint": "This far below plan (or more) the check is spoken as a warning"
+        },
+        "onPlan": {
+          "label": "Counts as on plan within",
+          "hint": "Smaller differences are 'on plan' instead of a figure"
+        },
+        "grossError": {
+          "label": "Takeoff gross error check",
+          "hint": "One line before takeoff: the aircraft's weights against the final loadsheet, and the FMS flaps, flex and V-speeds against the last takeoff performance calculation. Also on 'gross error check'.",
+          "more": "Runs once per departure when the final loadsheet is out and the V-speeds are in the FMS. The FMS INIT weights cannot be read from ProSim, so the aircraft's own zero fuel weight and fuel on board stand in for them. The performance figures come from the Performance page's last calculation."
+        },
+        "automatic": {
+          "label": "Automatic",
+          "hint": "Off = only when you ask for it"
+        },
+        "zfw": "Zero fuel weight tolerance",
+        "blockFuel": "Block fuel tolerance",
+        "flex": "Flex tolerance",
+        "destWx": {
+          "label": "Destination weather watch",
+          "hint": "From the cruise on, the FO tells you when the destination's visibility or ceiling crosses your limit, when the ATIS letter changes, or when the wind turns into a tailwind on the planned landing runway.",
+          "more": "Uses the weather cards' own refresh, no extra polling. The alternate's weather is added once the destination is below a limit. Each kind of change is spoken at most once in the quiet period."
+        },
+        "visibility": "Visibility limit",
+        "ceiling": "Ceiling limit",
+        "tailwind": {
+          "label": "Tailwind limit",
+          "hint": "A tailwind component above this on the planned landing runway is announced"
+        },
+        "quiet": "Quiet period per change",
+        "atis": "Announce ATIS letter changes",
+        "readbacks": {
+          "label": "Read-backs",
+          "hint": "Say 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' or 'minimums two one zero' and the FO checks it against the aircraft.",
+          "more": "The altimeter is checked against your baro setting, the V-speeds against the FMS PERF page, the runway against the FMS plan (departure before takeoff, arrival after), the minimums against the ones you briefed. The FO answers 'checked' or the value it reads."
+        },
+        "altimeter": "Altimeter tolerance",
+        "minimums": "Minimums tolerance"
+      }
+    },
+    "abnormals": {
+      "title": "ECAM Abnormals",
+      "hint": "The FO reads the E/WD and the system datarefs, announces a failure and works the procedure with you. It never moves a switch",
+      "detect": {
+        "label": "Detect and announce failures",
+        "hint": "Off: nothing is detected or announced. The memory drills can still be called by voice as rehearsals."
+      },
+      "lineByLine": {
+        "label": "Work the ECAM line by line",
+        "hint": "Each action line waits for your confirm; a line with a check is verified against the aircraft.",
+        "more": "Say \"standby\", \"say again\", \"skip\", \"fault remains\", \"unable\" or \"cancel ecam\" at any line. Off: the FO announces the failure and leaves the ECAM to you."
+      },
+      "answerWindow": {
+        "label": "Answer window per line",
+        "hint": "How long the FO waits for your answer before asking again."
+      },
+      "silentPrompts": {
+        "label": "Unanswered prompts before standby",
+        "hint": "After this many silent windows in a row the FO stops asking and stands by. 0 = ask forever."
+      },
+      "mismatches": {
+        "label": "Verify mismatches tolerated",
+        "hint": "Discrepancies on a checked line before the FO offers continue or standby."
+      },
+      "filesBefore": "The procedures themselves are JSON files under",
+      "filesAfter": "; a file that fails to load is named in a banner. A running dialogue can be cancelled from the Status section."
+    },
+    "options": {
+      "recognitionMode": {
+        "pushToTalk": "Push-to-talk (dedicated FO key)",
+        "continuous": "Continuous (ATC-mute while transmitting)"
+      },
+      "seat": {
+        "left": "Left seat (FO operates the right side)",
+        "right": "Right seat (virtual pilot operates the left side)"
+      },
+      "llmApi": {
+        "openAi": "OpenAI-compatible (/chat/completions)",
+        "ollama": "Ollama native (/api/chat — thinking control)"
+      },
+      "asrApi": {
+        "fasterWhisper": "faster-whisper wrapper (/transcribe)",
+        "whisperCpp": "whisper.cpp server (/v1/audio/transcriptions)"
+      },
+      "vad": {
+        "silero": "Silero VAD (neural, recommended)",
+        "rms": "RMS energy gate (legacy)"
+      },
+      "procedureSource": {
+        "auto": "Auto (FMS → flight.json → manual)",
+        "manual": "Manual entries only",
+        "flightJson": "SayIntentions flight.json only"
+      },
+      "normalPolicy": {
+        "allow": "Allow (speak normally)",
+        "defer": "Defer (replay when sterile ends)",
+        "suppress": "Suppress (drop)"
+      },
+      "apiKeySource": {
+        "auto": "Auto (from flight.json)",
+        "manual": "Manual (entered below)"
+      },
+      "elevenLabsModel": {
+        "flash": "eleven_flash_v2_5 (fast, half cost)",
+        "v3": "eleven_v3 (expressive, full cost)"
+      },
+      "elevenLabsFormat": {
+        "mp3": "mp3_44100_128 (all plans)",
+        "pcm": "pcm_24000 (paid plans)"
+      },
+      "experience": {
+        "junior": "Junior",
+        "standard": "Standard",
+        "senior": "Senior"
+      },
+      "formality": {
+        "casual": "Casual",
+        "standard": "Standard",
+        "formal": "Formal"
+      },
+      "verbosity": {
+        "full": "Full",
+        "brief": "Brief"
+      },
+      "pttSwitch": {
+        "off": "Off",
+        "captainSidestick": "Captain sidestick PTT",
+        "foSidestick": "First Officer sidestick PTT",
+        "captainHandMic": "Captain hand mic PTT",
+        "foHandMic": "First Officer hand mic PTT",
+        "observerHandMic": "Observer hand mic PTT"
+      },
+      "siPtt": {
+        "com": "COM radio PTT (the selected radio)",
+        "com1": "COM1 PTT (forced)",
+        "com2": "COM2 PTT (forced)",
+        "intercom1": "Intercom PTT — channel 1",
+        "intercom2": "Intercom PTT — channel 2",
+        "intercom3": "Intercom PTT — channel 3",
+        "group": "Group flight PTT"
+      }
+    },
+    "devices": {
+      "defaultCapture": "Default capture device",
+      "systemDefault": "System default",
+      "notDetected": "{0} (not currently detected)"
+    },
+    "binding": {
+      "unset": "(unset)",
+      "keyboard": "Key: {0}",
+      "joystick": "Joystick {0}",
+      "button": "{0} — button {1}"
+    },
+    "capture": {
+      "nothingPressed": "Nothing pressed within ten seconds.",
+      "bound": "{0} bound to {1}.",
+      "atcPtt": "ATC PTT",
+      "foPtt": "FO PTT",
+      "failed": "Capture failed — see the Logs page."
+    },
+    "scan": {
+      "scanning": "Scanning…",
+      "none": "No joystick answered.",
+      "found": "Found: {0}.",
+      "failed": "Scan failed — see the Logs page."
+    },
+    "voiceNotes": {
+      "emptyHint": "No voices listed yet. Connect a provider under Voice Providers and press Refresh.",
+      "notListed": "not listed yet",
+      "notConfigured": "not configured",
+      "none": "no voices reported",
+      "count": "{0} voices",
+      "failed": "could not list voices — {0}"
+    }
+  }
+}

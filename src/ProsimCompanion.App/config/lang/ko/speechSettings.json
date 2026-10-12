@@ -1,0 +1,1313 @@
+{
+  "speechSettings": {
+    "pageTitle": "음성 부기장 — ProsimCompanion",
+    "heading": "음성 부기장",
+    "common": {
+      "enabled": "활성",
+      "set": "설정",
+      "clear": "지우기",
+      "remove": "제거",
+      "refreshVoices": "음성 새로 고침",
+      "refreshing": "새로 고치는 중…",
+      "voiceList": "음성 목록",
+      "fallbackVoice": "대체 음성",
+      "sameAsFo": "부기장과 같은 음성",
+      "windowsDefaultVoice": "Windows 기본 음성",
+      "noListPressRefresh": "아직 음성 목록이 없습니다. 음성 새로 고침을 누르세요.",
+      "emptyUsesFileShown": "비워 두면 표시된 파일을 사용합니다.",
+      "baseUrl": "기본 URL",
+      "model": "모델",
+      "apiKey": "API 키",
+      "timeout": "제한 시간",
+      "monthlyCharBudget": "월간 문자 예산",
+      "hailReply": "호출 응답",
+      "cateringComplete": "케이터링 완료",
+      "cruiseQuery": "순항 중 문의",
+      "vSpeedTolerance": "V 속도 허용 오차",
+      "pressNow": "지금 키 또는 버튼을 누르세요…",
+      "lampTitle": "지정된 입력을 누르고 있는 동안 켜집니다"
+    },
+    "general": {
+      "title": "음성 부기장",
+      "hint": "음성은 순서대로 시도됩니다: Kokoro, ElevenLabs, Google, 그다음 Windows",
+      "localOnly": {
+        "label": "로컬만",
+        "hint": "네트워크 음성을 절대 사용하지 않습니다. 음성은 이 PC를 떠나지 않습니다.",
+        "more": "Kokoro, ElevenLabs, Google은 모든 경로에서 건너뜁니다."
+      },
+      "seat": {
+        "label": "내 좌석",
+        "hint": "당신이 비행하는 좌석. 부기장은 반대쪽을 담당합니다.",
+        "more": "왼쪽: FO가 오른쪽 MCDU, EFIS, 조작 장치를 사용합니다. 오른쪽: FO가 기장 쪽을 사용합니다. MCDU 쪽은 앱 재시작 후 바뀝니다."
+      },
+      "engineFlap": {
+        "label": "엔진 및 플랩 콜 응답",
+        "hint": "FO가 당신의 엔진 시동과 플랩 콜에 응답합니다.",
+        "more": "플랩 콜은 플래카드 속도와 대조됩니다. 말로만 합니다: FO는 레버를 절대 움직이지 않습니다."
+      },
+      "engineStart": {
+        "label": "엔진 시동 모니터링",
+        "hint": "FO가 각 엔진 시동을 콜합니다: starting, available, both stabilized.",
+        "more": "지상에서 엔진 데이터로부터 읽으며, 시동마다 한 번. 조종사 콜은 필요 없습니다."
+      },
+      "pacing": {
+        "title": "사람다운 템포",
+        "hint": "사람의 템포로 버튼 누르기",
+        "humanize": {
+          "label": "버튼 타이밍을 사람답게",
+          "hint": "버튼 누르기 사이에 짧은 사람다운 멈춤을 넣습니다.",
+          "more": "꺼짐: 최소 지연만."
+        },
+        "tempo": {
+          "label": "템포",
+          "hint": "1.0이 보통, 2.0은 두 배 느림."
+        }
+      },
+      "playback": {
+        "title": "재생",
+        "outputDevice": {
+          "label": "출력 장치",
+          "hint": "부기장의 목소리가 재생되는 곳."
+        },
+        "volume": "볼륨",
+        "intercomFilter": {
+          "label": "인터콤 필터",
+          "hint": "FO가 내레이터가 아닌 헤드셋처럼 들리게 합니다."
+        }
+      }
+    },
+    "persona": {
+      "title": "FO 페르소나",
+      "hint": "어휘와 어조만. 숫자, 콜아웃, 체크리스트 항목은 절대 바뀌지 않습니다",
+      "enabled": {
+        "hint": "페르소나가 FO의 말에 색을 입힙니다.",
+        "more": "언어 모델이 꺼져 있으면 효과는 다양한 확인 응답뿐입니다."
+      },
+      "name": {
+        "label": "이름",
+        "hint": "모델의 스타일 프롬프트에 엮여 들어갑니다(\"Your name is …\"). 비우면 = 이름 없음.",
+        "placeholder": "예: Sam"
+      },
+      "experience": {
+        "label": "경험",
+        "hint": "FO가 얼마나 노련하게 들리는지."
+      },
+      "formality": {
+        "label": "격식",
+        "hint": "FO가 당신에게 얼마나 격식을 차리는지."
+      },
+      "chattiness": {
+        "label": "수다스러움",
+        "hint": "0은 모두 짧게. 3은 자연스러운 온기를 허용합니다.",
+        "more": "\"Quiet please\"라고 하면 이 값과 무관하게 세션 동안 잡담이 멈춥니다."
+      },
+      "styles": {
+        "title": "페르소나가 다듬는 것",
+        "hint": "각각 사실과 대조됩니다. 일반 텍스트가 항상 대체입니다",
+        "briefings": "브리핑",
+        "debrief": "디브리핑",
+        "advisories": {
+          "label": "권고",
+          "hint": "플로우 및 기상 권고는 말하기 전에 모델을 거칩니다.",
+          "more": "아래 시간 안에 다듬기가 돌아올 때만. 아니면 일반 텍스트가 말합니다."
+        },
+        "vary": {
+          "label": "확인 응답 다양화",
+          "hint": "\"are you sure\" / \"say again\" 문장을 순서대로가 아니라 phrases.json에서 무작위로 고릅니다."
+        },
+        "budget": {
+          "label": "권고 다듬기 시간 예산",
+          "hint": "모델이 권고 하나를 다듬는 데 쓰는 시간. 초과하면 일반 텍스트가 말합니다."
+        },
+        "poolsBefore": "문구 풀 자체는",
+        "poolsMiddle": "아래",
+        "poolsAfter": "에 있습니다 — 파일을 수정하면 FO가 다시 읽습니다."
+      }
+    },
+    "listening": {
+      "title": "인식 및 푸시투토크",
+      "hint": "부기장이 당신의 말을 듣는 방법",
+      "mode": {
+        "label": "듣기 모드",
+        "hint": "푸시투토크: FO 키를 누르고 있는 동안만 FO가 듣습니다.",
+        "more": "연속: FO는 응답을 기대할 때마다 듣지만, ATC 키를 누르고 있는 동안은 듣지 않습니다. 네트워크(VATSIM, IVAO, SayIntentions)에서는 FO가 ATC에 하는 말을 듣지 않도록 항상 아래에서 ATC 송신 키를 지정하세요."
+      },
+      "foPtt": {
+        "label": "FO 푸시투토크",
+        "hint": "부기장에게 말하는 키 또는 버튼. 절대 ATC 키가 아닙니다."
+      },
+      "atcPtt": {
+        "label": "ATC 푸시투토크 (음소거)",
+        "hint": "ATC에 말할 때 쓰는 키 또는 버튼. 누르고 있는 동안 FO는 듣지 않습니다."
+      },
+      "atcMuteSource": {
+        "label": "ProSim 스위치로 ATC 음소거",
+        "hint": "ProSim의 사이드스틱 또는 핸드마이크 PTT 스위치. 눌림으로 읽히는 동안 FO는 듣지 않습니다 — 위의 키나 버튼과 같으며, 이 PC에 조이스틱이 필요 없습니다.",
+        "more": "ProSim에서 버튼을 그 스위치에 지정하세요(다른 PC에 있어도 됩니다). SayIntentions 섹션에서 SayIntentions 푸시투토크 스위치를 선택하면, 여기가 아직 꺼짐일 때 같은 스위치로 설정됩니다."
+      },
+      "joystickButtons": {
+        "label": "조이스틱 버튼도 감지",
+        "hint": "꺼짐: 설정은 키보드 키만 캡처합니다. 켜짐: 설정은 이 PC의 조이스틱 버튼도 감시합니다.",
+        "more": "Windows의 조이스틱 계층이 일부 PC에서 앱을 크래시시켰습니다(2026-09-20, 2026-10-10, 2026-10-11 — 마지막은 이 페이지를 열 때 장치를 나열하는 것만으로). 이제 페이지는 이것이 켜져 있거나 스캔을 누를 때만 조이스틱 계층과 통신합니다. ProSim 스위치(위, 그리고 SayIntentions 섹션)는 이 PC에 조이스틱이 필요 없습니다."
+      },
+      "joysticks": {
+        "label": "이 PC의 조이스틱",
+        "notScanned": "스캔 안 함.",
+        "scan": "조이스틱 스캔"
+      },
+      "setHint": "설정은 키(위에서 체크했다면 조이스틱 버튼도)를 10초 동안 기다립니다. 그 후 저장하세요. 램프는 저장된 지정에만 켜집니다.",
+      "inputDevice": {
+        "label": "입력 장치",
+        "hint": "FO가 듣는 마이크."
+      },
+      "trackUnmatched": {
+        "label": "FO가 이해하지 못한 문구 기록",
+        "hint": "아무것도 반응하지 않은 말을 보관해, 실제로 쓰는 명령을 추가할 수 있게 합니다.",
+        "more": "음성 상태 페이지의 들었지만 이해하지 못함에 나열되고, 세션 로그에 voice.unmatched로 기록됩니다. 꺼짐: 아무것도 보관하지 않습니다. 로그의 ASR 추적에는 여전히 모든 발화가 남습니다."
+      },
+      "matchScore": {
+        "label": "문구 일치 점수",
+        "hint": "FO가 반응하기 전에 들은 문구가 알려진 문구와 얼마나 가까워야 하는지.",
+        "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. 낮을수록 더 많이 듣고, 더 많이 잘못 듣습니다."
+      },
+      "confirmBelow": {
+        "label": "이 값 아래에서 'did you mean' 확인",
+        "hint": "위 점수와 이 값 사이의 일치는 FO가 실행하지 않고 'Did you mean …?'이라고 묻게 합니다.",
+        "more": "일치 점수와 같게 하면 절대 묻지 않습니다."
+      },
+      "noConfirmBelow": {
+        "label": "이 값 아래에서는 'did you mean' 없음",
+        "hint": "공중에서 이 전파 고도 아래에서는 FO가 절대 'Did you mean …?'이라고 묻지 않습니다. 이륙 활주, 초기 상승, 착륙 활주는 항상 조용합니다.",
+        "more": "그 순간에는 0.70 이상으로 일치한 FMA 읽기나 캡처 콜은 단순히 확인되고('Checked.'), 그 외는 말없이 넘어갑니다 — 활주 중의 질문이나 상승 중 'did you mean gear up?'은 최악의 잡담입니다. 0 = 세 단계만."
+      },
+      "offlineConfidence": {
+        "label": "오프라인 엔진 신뢰도",
+        "hint": "Windows 엔진이 보고해야 하는 최소 신뢰도. LAN 서버에서는 사용하지 않습니다."
+      },
+      "server": {
+        "title": "음성 인식 서버",
+        "hint": "네트워크의 전사 서버. 비워 두면 오프라인 Windows 엔진을 사용합니다",
+        "asrUrl": {
+          "label": "LAN ASR URL",
+          "hint": "서버 주소, 예: http://192.168.1.50:8000."
+        },
+        "flavour": {
+          "label": "LAN ASR 서버 종류",
+          "hint": "그 주소에서 실행 중인 서버 종류와 일치해야 합니다.",
+          "more": "종류가 틀리면 상태 확인은 녹색인데 모든 요청에 404로 답합니다. 그럴 때 경고가 기록됩니다."
+        },
+        "vad": {
+          "label": "음성 활동 감지",
+          "hint": "FO가 당신이 말하고 있다고 판단하는 방법.",
+          "more": "Silero는 엔진 소음과 FO 자신의 목소리를 무시하고 조용한 명령도 듣습니다. RMS는 오래된 에너지 게이트로, Silero 모델을 불러올 수 없을 때의 대체입니다. 다음 듣기 시작부터 적용됩니다. 추가 설정(vadMinSpeechMs, vadPreRollMs, vadMaxUtteranceMs)은 settings.json에만 있습니다."
+        },
+        "muteMic": {
+          "label": "FO가 말하는 동안 마이크 무시",
+          "hint": "켜짐: FO가 콕핏 스피커에서 나오는 자기 목소리를 듣고 스스로 답하는 일이 없습니다. FO 말에 겹쳐 말해야 할 때만 끄세요.",
+          "more": "타이밍과 무관하게 FO가 방금 말한 것을 반복하는 전사도 버립니다. 2026-10-10에 VBAN 루프가 FO를 스피커로 내보내 몇 분 동안 자기 자신과 대화했습니다."
+        },
+        "micTail": {
+          "label": "FO 발화 후 마이크 무시 시간",
+          "hint": "FO의 마지막 말 이후 마이크가 무시되는 시간. 소음이 크고 울리는 콕핏에서는 올리고, 빠른 응답을 놓치면 내리세요."
+        },
+        "ownWords": {
+          "label": "자기 말 창",
+          "hint": "FO가 무언가 말한 뒤 그것을 반복하는 전사를 FO 자신의 목소리로 간주해 버리는 시간. FO의 말을 되풀이하는 당신의 응답이 사라지면 내리고, 스피커 지연이 길면 올리세요.",
+          "more": "'did you mean …?'에 대한 당신의 답과 열린 체크리스트 항목의 기대 응답은 창과 무관하게 절대 버리지 않습니다."
+        },
+        "vadThreshold": {
+          "label": "VAD 임계값",
+          "hint": "소음이 FO를 깨우면 올리고, 조용한 명령을 놓치면 내리세요."
+        },
+        "endSilence": {
+          "label": "발화 종료 무음",
+          "hint": "문장을 끝내는 무음. 멈춤이 문장을 쪼개면 올리세요."
+        }
+      },
+      "interphone": {
+        "title": "인터폰 송신",
+        "hint": "승무원 호출은 기장의 오디오 패널을 따릅니다",
+        "acpGating": {
+          "label": "ACP 송신 게이팅",
+          "hint": "지상이나 객실 호출에는 오디오 패널에서 INT 또는 CAB 선택이 필요합니다.",
+          "more": "통화 중 선택기를 돌리면 끊어집니다. 꺼짐, 또는 오래된 ProSim: 호출은 항상 수락됩니다."
+        },
+        "intRequired": {
+          "label": "INT 키 누름 요구",
+          "hint": "지상 호출은 말하는 동안 INT 키도 누르고 있어야 합니다.",
+          "more": "패널에 그 키가 없으면 꺼 두세요."
+        }
+      }
+    },
+    "sterile": {
+      "title": "스테라일 콕핏",
+      "hint": "바쁜 단계의 조용한 콕핏",
+      "enabledHint": "FO는 한계 고도 아래에서 필수가 아닌 말을 참습니다.",
+      "ceiling": {
+        "label": "한계 고도",
+        "hint": "상승, 하강, 접근에서 이 고도 아래는 스테라일.",
+        "more": "순항과 지상은 절대 스테라일이 아닙니다."
+      },
+      "dropLow": {
+        "label": "Low 우선순위 발화 버리기",
+        "hint": "스테라일 중 권고는 버려지고 다시 재생되지 않습니다."
+      },
+      "normalPolicy": {
+        "label": "Normal 우선순위 정책",
+        "hint": "스테라일 중 일반 발화의 처리.",
+        "more": "허용이 안전한 기본값입니다. 체크리스트와 브리핑은 일반 우선순위이며 낮은 접근에서 필요합니다."
+      },
+      "exemptCabin": {
+        "label": "객실 보고 제외",
+        "hint": "스테라일 중에도 객실 보고는 통과합니다."
+      }
+    },
+    "voices": {
+      "fo": {
+        "title": "부기장 음성",
+        "hint": "연결된 모든 공급자를 하나의 목록으로, 공급자와 지역별로 그룹화. 미리 채워진 것 없음: 각 서비스가 보고한 것만",
+        "picker": {
+          "label": "부기장",
+          "hint": "지정한 공급자가 먼저 말합니다. 다운되면 다른 공급자가 대신합니다.",
+          "more": "연결된 어느 공급자에서든 고를 수 있습니다. 각 공급자는 음성 공급자 아래 자기 탭에 대체 음성도 두며, 여기 지정된 것을 대신할 때 사용합니다. 비워 두면 예전 동작: 각 공급자가 자기 대체 음성으로 말합니다."
+        },
+        "lists": {
+          "label": "음성 목록",
+          "hint": "페이지를 열 때 연결된 각 공급자에서 읽습니다."
+        },
+        "refreshAll": "모든 음성 새로 고침"
+      },
+      "crew": {
+        "title": "승무원 음성",
+        "hint": "객실, 회사, 지상 승무원을 누가 말하는지. 비우면 부기장의 음성",
+        "purser": {
+          "label": "퍼서 음성",
+          "hint": "객실 인터폰의 객실 보고."
+        },
+        "purserFilter": {
+          "label": "퍼서 인터콤 필터",
+          "hint": "퍼서에 헤드셋 음질."
+        },
+        "company": {
+          "label": "회사 음성",
+          "hint": "ACARS처럼 읽어 주는 디스패치 메시지."
+        },
+        "companyFilter": {
+          "label": "회사 인터콤 필터",
+          "hint": "기본은 꺼짐. 회사 메시지는 인쇄물이지 전화가 아닙니다."
+        },
+        "ground": {
+          "label": "지상 승무원 음성",
+          "hint": "인터폰의 지상 승무원 응답과 호출."
+        },
+        "groundFilter": "지상 인터콤 필터"
+      },
+      "accents": {
+        "title": "억양 현지화",
+        "hint": "지상 승무원의 억양은 공항의 국가를 따릅니다",
+        "enabled": {
+          "hint": "지상 승무원만. 퍼서와 회사는 위의 음성을 유지합니다.",
+          "more": "대부분의 억양에는 Google 공급자가 필요합니다. 로컬만 모드는 US 또는 UK로 대체됩니다."
+        },
+        "persona": {
+          "label": "Chirp 3 HD 페르소나",
+          "hint": "Google 음성 페르소나, 예: Charon."
+        },
+        "overridesBefore": "공항별 재정의는 파일에서만:",
+        "overridesAfter": "config/settings.json 안(공항 코드 접두사 → 음성 로케일)."
+      }
+    },
+    "groundCrew": {
+      "title": "지상 승무원",
+      "hint": "지상 승무원을 호출하고 그들의 호출을 듣습니다",
+      "requireInt": {
+        "label": "INT 선택 요구",
+        "hint": "지상 발화는 오디오 패널에서 INT가 선택될 때까지 기다립니다."
+      },
+      "intGrace": {
+        "label": "INT 유예",
+        "hint": "이 대기 후에는 호출이 그냥 재생됩니다."
+      },
+      "mechCall": {
+        "label": "지상 호출 시 MECH 콜",
+        "hint": "지상 승무원이 당신을 부를 때 MECH 등을 점멸합니다."
+      },
+      "hailWindow": {
+        "label": "호출 후 듣기 창",
+        "hint": "응답 후 승무원이 당신의 요청을 기다리는 시간."
+      },
+      "upcalls": {
+        "title": "지상에서의 호출",
+        "hint": "각 호출은 턴어라운드마다 한 번",
+        "groundPower": "지상 전원 연결",
+        "chocks": "초크 설치",
+        "refuel": {
+          "label": "급유 완료",
+          "hint": "연료량을 포함합니다."
+        }
+      },
+      "wording": {
+        "title": "지상 승무원 문구",
+        "hint": "글자 그대로 말합니다. {fuel}은 탑재 연료 톤수가 됩니다",
+        "standingBy": "대기 중",
+        "groundPower": "지상 전원",
+        "chocks": "초크",
+        "refuelComplete": "급유 완료"
+      }
+    },
+    "cabin": {
+      "title": "객실 승무원",
+      "hint": "객실 인터폰의 퍼서 보고",
+      "secure": {
+        "label": "객실 안전 확보 보고",
+        "hint": "이륙 전, 도어가 닫히고 비콘이 켜진 후."
+      },
+      "secureMinWait": {
+        "label": "객실 안전 확보: 최소 대기",
+        "hint": "도어 닫힘 + 비콘 켜짐 후 보고까지 승무원에게 필요한 시간. 0 = 즉시."
+      },
+      "securePerPax": {
+        "label": "객실 안전 확보: 승객당 추가",
+        "hint": "승객 수 × 이 값의 무작위 비율이 더해지며, 비행마다 한 번 정해집니다 — 푸시백 후에 준비될 때도, 활주로에서 준비될 때도 있습니다.",
+        "more": "승객 = GSX 탑승 인원, 없으면 OFP 수치. 45초와 1초/pax면 만석 A320은 45초에서 약 4분 사이 기다립니다. 0 = 최소만."
+      },
+      "ready": {
+        "label": "객실 준비 보고",
+        "hint": "접근 중, 여기 설정한 고도 아래에서."
+      },
+      "readyBelow": "객실 준비 고도 아래",
+      "foAck": "FO가 보고를 확인",
+      "requireCab": {
+        "label": "CAB 선택 요구",
+        "hint": "퍼서는 오디오 패널에서 CAB이 선택되거나 유예 시간까지 기다립니다."
+      },
+      "cabGrace": "CAB 유예",
+      "autoGround": {
+        "label": "지상에서 FO가 객실 호출에 응답",
+        "hint": "푸시백, 엔진 시동, 택시아웃 중 지연 후 FO가 FO 오디오 패널에서 CAB을 선택해, 당신이 ACP를 건드리지 않아도 보고가 재생됩니다.",
+        "more": "객실 승무원이 항공기에 쓰는 유일한 곳입니다: FO 패널의 CAB 수신 래치(S_ASP2_CAB_REC_LATCH; 오른쪽 좌석에서 비행하면 기장 패널)를 켜고 보고 후 해제합니다. FO가 당신과 대화 중일 때나 다른 단계에서는 절대 하지 않습니다. 기본은 꺼짐."
+      },
+      "groundDelay": "지상 응답 지연",
+      "autoAir": {
+        "label": "공중에서 FO가 객실 호출에 응답",
+        "hint": "하강과 접근에서 지연 후 FO가 객실 준비 호출에 응답합니다."
+      },
+      "airDelay": "공중 응답 지연",
+      "chime": "호출 전 인터폰 차임",
+      "dingStartup": {
+        "label": "시작 시 차임",
+        "hint": "앱이 시작될 때 객실 차임."
+      },
+      "dingFinal": {
+        "label": "최종 로드시트 차임",
+        "hint": "최종 로드시트가 전송될 때 객실 차임."
+      },
+      "ambient": {
+        "label": "주변 이벤트",
+        "hint": "퍼서가 가끔 탑승 지연을 보고합니다."
+      },
+      "boardingDelayProb": {
+        "label": "탑승 지연 확률",
+        "hint": "0.2는 다섯 비행 중 하나."
+      },
+      "cruiseQuery": {
+        "label": "순항 중 퍼서 문의",
+        "hint": "순항 중 비행마다 한 번 퍼서가 호출합니다: 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' — 그리고 당신의 답을 듣습니다.",
+        "more": "차임과 CAB 채널은 다른 보고와 같습니다. 자기 말로 답하세요: 시간('about forty minutes', 'on time', 'ten minutes late')이나 비행 상태('smooth', 'light chop', 'expect some bumps')는 맞는 확인 응답을 받고, 그 외는 'copied, thank you', 침묵은 'we'll check back later'. 답은 확인만 되며 절대 명령으로 읽히지 않습니다. 자유 답변에는 LAN 음성 서버가 필요합니다. 오프라인 Windows 엔진은 예상 가능한 짧은 답 목록만 듣습니다. FO의 귀가 일시정지되었거나 다른 대화가 마이크를 쓰는 동안 호출은 기다리고, 하강이 먼저 시작되면 건너뜁니다."
+      },
+      "cruiseQueryAfter": {
+        "label": "순항 후 문의 시점",
+        "hint": "퍼서가 호출하기까지 순항 시작 후 분, ±30%."
+      },
+      "cruiseQueryWindow": {
+        "label": "순항 문의 응답 창",
+        "hint": "퍼서가 당신의 답을 듣는 시간."
+      },
+      "wording": {
+        "title": "객실 문구",
+        "hint": "글자 그대로 말합니다",
+        "hailReplyHint": "\"cockpit to cabin\"에 대한 응답.",
+        "securingReply": {
+          "label": "안전 확보 중 호출 응답",
+          "hint": "객실 안전 확보 대기가 아직 진행 중일 때 호출에 대한 응답."
+        },
+        "secure": "객실 안전 확보",
+        "secureAck": "객실 안전 확보 — FO 확인",
+        "ready": "객실 준비",
+        "readyAck": "객실 준비 — FO 확인",
+        "boardingDelay": "탑승 지연",
+        "cruiseQueryHint": "순항 중 퍼서의 질문.",
+        "eta": {
+          "label": "순항 문의 — 시간 응답",
+          "hint": "시간이나 도착을 언급한 답 뒤."
+        },
+        "ride": {
+          "label": "순항 문의 — 비행 상태 응답",
+          "hint": "난기류나 부드러운 비행에 관한 답 뒤."
+        },
+        "generic": "순항 문의 — 그 외 응답",
+        "noReply": {
+          "label": "순항 문의 — 무응답",
+          "hint": "창이 침묵 속에 닫힐 때."
+        }
+      }
+    },
+    "company": {
+      "title": "회사 채널",
+      "hint": "ACARS처럼 읽어 주는 디스패치 메시지: 로드시트, 그리고 가끔 순항 메시지",
+      "autoLoadsheet": {
+        "label": "로드시트 자동 읽기",
+        "hint": "출발 전, 최종 로드시트가 들어오는 즉시. 꺼짐: \"request loadsheet\" 또는 웹 버튼으로만."
+      },
+      "chime": {
+        "label": "메시지 전 ACARS 차임",
+        "hint": "회사 전달 전 두 번 울리는 신호음."
+      },
+      "cruiseMessages": {
+        "label": "순항 메시지",
+        "hint": "일부 비행에서 순항 중 짧은 회사 메시지.",
+        "more": "목적지 사실을 둘러싼 결정적 템플릿. 기본은 꺼짐."
+      },
+      "cruiseProb": {
+        "label": "순항 메시지 확률",
+        "hint": "0.15는 약 일곱 비행 중 하나, 비행마다 한 번 정해짐."
+      },
+      "persist": {
+        "label": "말한 로드시트 저장",
+        "hint": "세션 로그 옆에 *.loadsheet.txt로, 원본 EFB 로드시트와 함께 기록됩니다."
+      },
+      "debrief": {
+        "title": "비행 후 디브리핑",
+        "hint": "셧다운 시 세션이 기록한 내용으로 말합니다",
+        "length": {
+          "label": "길이",
+          "hint": "간략은 활동 횟수와 연료 사용 줄을 생략합니다."
+        },
+        "style": {
+          "label": "언어 모델로 다듬기",
+          "hint": "더 따뜻한 표현, 모든 숫자 검증. 꺼짐: 일반 템플릿.",
+          "more": "브리핑 및 LLM에서 설정한 모델을 사용합니다. 그 모델이 꺼져 있으면 효과가 없습니다."
+        }
+      },
+      "day": {
+        "title": "회사 근무일",
+        "hint": "다중 섹터 근무 추적: 블록 및 근무 시간, 턴어라운드 요약, 하루 마무리. 비행 시간 제한 계산이 아닙니다",
+        "track": {
+          "label": "근무일 자동 추적",
+          "hint": "꺼짐: \"start duty day\"와 /day 페이지는 여전히 수동으로 작동합니다."
+        },
+        "autoStart": "첫 프리플라이트에서 시작",
+        "turnaround": {
+          "label": "턴어라운드 요약 말하기",
+          "hint": "온블록 시: 블록 시간, 일정 차이, 미결 테크로그 항목."
+        },
+        "allowance": {
+          "label": "비행 후 가산",
+          "hint": "근무 시간 산정을 위해 마지막 온블록 후 더하는 분."
+        },
+        "autoClose": {
+          "label": "유휴 후 자동 종료",
+          "hint": "턴어라운드 중 이만큼 유휴하면 열린 근무일을 닫습니다. 0 = 안 함."
+        },
+        "rotations": {
+          "label": "계획 로테이션 폴더",
+          "hint": "계획된 날마다 JSON 파일 하나. 폴더의 README.txt가 형식을 보여 줍니다. 비워 두면 표시된 폴더를 사용합니다."
+        },
+        "stateFile": "근무일 상태 파일"
+      }
+    },
+    "techLog": {
+      "title": "테크로그 및 MEL",
+      "hint": "서류 계층: 이연 카테고리, 만기일, 프리플라이트 브리프. 고장도, 데이터 참조 쓰기도 절대 없습니다",
+      "offer": {
+        "label": "비정상 상황 후 테크로그 기록 제안",
+        "hint": "셧다운 후 FO가 이 비행에서 처리한 각 비정상 상황의 기록을 제안합니다. 정상 비행에서는 조용합니다."
+      },
+      "wear": {
+        "label": "무작위 마모",
+        "hint": "셧다운 시 마모 풀에서 가벼운 객실 결함이 나타날 비행당 작은 확률."
+      },
+      "rectify": {
+        "label": "만기일에 수리",
+        "hint": "MEL 만기일이 지나면 미결 결함을 스스로 닫습니다.",
+        "more": "기본은 꺼짐: 수리는 당신의 정비 조치여야 합니다."
+      },
+      "openItems": {
+        "label": "브리핑에 미결 항목 포함",
+        "hint": "출발 브리핑은 미결 항목을 말하고, 도착 브리핑은 착륙에 영향을 주는 것만 말합니다.",
+        "more": "제목은 최대 세 개, 그다음 'and N more'. 착륙 관련 = MEL 카테고리 A 또는 B, 또는 브레이크, 기어, 스포일러, 리버서, 오토브레이크, 안티스키드에 관한 항목. 제목은 쓰인 대로 말합니다."
+      },
+      "flagLines": {
+        "label": "체크리스트 항목 표시",
+        "hint": "미결 항목이 있는 시스템에 관한 체크리스트 항목을 읽을 때 챌린지 뒤에 'note, open tech log item: …'을 붙입니다.",
+        "more": "항목은 체크리스트 JSON에 시스템 태그(apu, gear, autobrake, anti-ice, …)를 가지며, 기본 제공 체크리스트는 명백한 것에 태그를 달았습니다. 테크로그 페이지의 항목 System 필드나 제목의 단어가 태그와 대조됩니다. 항목당, 체크리스트 실행당 한 번."
+      },
+      "intervals": "MEL 수리 기한",
+      "categoryA": "카테고리 A",
+      "categoryB": "카테고리 B",
+      "categoryC": "카테고리 C",
+      "categoryD": "카테고리 D",
+      "file": "테크로그 파일",
+      "wearPool": {
+        "label": "마모 풀 파일",
+        "hint": "비워 두면 exe 옆의 기본 제공 풀을 사용합니다."
+      },
+      "raiseBefore": "결함의 등록과 수리는",
+      "raiseLink": "테크로그",
+      "raiseAfter": "페이지에서, 또는 음성으로(\"raise a defect\", \"log a snag\").",
+      "logbook": {
+        "title": "조종사 로그북",
+        "hint": "완료된 각 비행은 셧다운 시 반영되며, 합계는 표시할 때 계산됩니다",
+        "file": "로그북 파일",
+        "flightsBefore": "비행, 터치다운 추세, CSV 내보내기는",
+        "flightsLink": "로그북",
+        "flightsAfter": "페이지에 있습니다."
+      }
+    },
+    "sayIntentions": {
+      "title": "SayIntentions",
+      "hint": "온라인 ATC: 무선 요청, 기상, CPDLC, 도착 게이트",
+      "use": {
+        "label": "SayIntentions 사용",
+        "hint": "모든 SayIntentions 기능을 켭니다.",
+        "more": "음성 요청에는 활성 비행과 함께 실행 중인 SayIntentions가 필요합니다. 기상은 API 키만 필요합니다."
+      },
+      "apiKeySourceHint": "자동은 SayIntentions의 flight.json에서 키를 읽습니다.",
+      "manualKey": {
+        "label": "수동 API 키",
+        "hint": "수동일 때만 사용. 절대 기록되지 않습니다."
+      },
+      "ptt": {
+        "label": "콕핏에서 푸시투토크",
+        "hint": "ProSim PTT 스위치가 SayIntentions를 송신합니다. 먼저 ProSim에서 사이드스틱 또는 핸드마이크 버튼을 그 스위치에 지정하세요.",
+        "more": "누를 때마다 앱이 SimConnect를 통해 SayIntentions 제어 LVAR를 1로, 놓으면 0으로 설정합니다 — 클라이언트의 'Map PTT inside the sim with an LVAR'입니다. 조이스틱 폴링 없음. MSFS 실행 필요. 세션 로그에 각 누름과 SayIntentions의 송신 여부가 표시됩니다."
+      },
+      "pttControl": {
+        "label": "SayIntentions PTT 제어",
+        "hint": "버튼이 송신하는 SayIntentions 무선 또는 인터콤. 거의 모두에게 필요한 것은 COM 무선 PTT입니다."
+      },
+      "phraseology": "표준 용어",
+      "foSpeaks": {
+        "label": "FO가 송신 내용을 말함",
+        "hint": "전송 전에 FO가 무선 콜을 소리 내어 말합니다.",
+        "more": "SayIntentions도 재생한다면(이중 오디오) 끄세요."
+      },
+      "autoTune": {
+        "label": "주파수 자동 조정",
+        "hint": "송신 전 해당 스테이션을 맞춥니다."
+      },
+      "departureGate": {
+        "label": "출발 통신 게이트 (구형)",
+        "hint": "구형: SayIntentions 자체 거리 값을 사용해 활주로 근처에서 통신이 당신에게 돌아옵니다.",
+        "more": "아래 통신 인계 카드가 켜져 있는 동안 무시됩니다 — 그 흐름은 앱의 활주로 데이터와 비행 단계를 사용하며, 2026-10-10 비행에서 구형 게이트에 없던 것입니다(한 번도 작동하지 않았습니다)."
+      },
+      "gateDistance": {
+        "label": "게이트 거리 (구형)",
+        "hint": "구형 게이트가 통신을 당신에게 돌려주는 활주로까지의 거리."
+      },
+      "wrongFreq": {
+        "label": "잘못된 주파수 보고",
+        "hint": "COM1이 ATC가 준 주파수에 있지 않을 때 FO가 알려 줍니다.",
+        "more": "ATC의 마지막 'Contact … on …' 지시를 사용해 한 번 말합니다. 게이트에 있을 때와 지시를 읽을 수 없을 때는 조용합니다."
+      },
+      "waitBefore": {
+        "label": "보고 전 대기",
+        "hint": "COM1이 다른 주파수에 머물 수 있는 시간."
+      },
+      "arrivalGate": {
+        "label": "ATC의 도착 게이트",
+        "hint": "SayIntentions ATC가 배정한 게이트를 GSX 도착 게이트로 사용합니다.",
+        "more": "출발 스탠드와 다르고 상승 이후에 나타난 게이트만 인정됩니다. OFP 페이지에서 직접 설정한 게이트가 항상 우선합니다. 착륙 후 게이트는 곧바로 GSX로 전달됩니다. 기본은 꺼짐: ATC의 선택이 불러온 시너리에 없을 수 있습니다."
+      },
+      "handover": {
+        "title": "통신 인계",
+        "hint": "각 단계에서 누가 무선을 맡는지: 당신 또는 SayIntentions 부조종사",
+        "enabled": {
+          "label": "비행 단계별 무선 인계",
+          "hint": "부조종사가 게이트, 택시, 순항에서 맡고, 당신은 대기 지점과 접근에서 맡습니다.",
+          "more": "각 인계는 FO의 한 마디와 세션 이벤트 하나입니다. 언제든 'I have the radios' 또는 'you have the radios'로 재정의할 수 있습니다. 이것을 켜면 위의 구형 출발 통신 게이트는 의미가 없어집니다."
+        },
+        "gate": {
+          "label": "게이트: 부조종사가 무선을 맡음",
+          "hint": "SayIntentions가 지상에서 비행을 시작하면 부조종사가 클리어런스, 푸시, 시동을 처리합니다."
+        },
+        "taxi": {
+          "label": "FO가 택시 클리어런스를 읽음",
+          "hint": "부조종사가 무선을 맡고 있는 동안 FO가 ATC의 택시 지시를 읽어 줍니다.",
+          "more": "SayIntentions 통신 기록에서, 20초마다 확인 — 그만큼 교신보다 늦을 수 있습니다."
+        },
+        "handoffs": {
+          "label": "FO가 핸드오프를 알림",
+          "hint": "부조종사가 무선을 맡고 있는 동안, 지상과 공중에서 ATC가 주는 각 'Contact … on …'을 FO가 알려 줍니다."
+        },
+        "holding": {
+          "label": "대기 지점: 당신이 무선을 맡음",
+          "hint": "택시아웃 중 출발 활주로에 가까워지면 이륙 요청과 클리어런스를 위해 무선이 당신의 것이 됩니다.",
+          "more": "활주로는 FMS(없으면 SayIntentions 계획)에서, 그 임계값은 ProSim 활주로 목록이나 Navigraph 데이터에서 가져옵니다. 알려진 활주로가 없으면 이 단계는 작동할 수 없습니다."
+        },
+        "holdingDistance": {
+          "label": "대기 지점 거리",
+          "hint": "활주로 말단에서 얼마나 가까우면 대기 지점으로 보는지."
+        },
+        "tuneTower": {
+          "label": "대기 지점에서 타워 조정",
+          "hint": "타워 주파수가 알려져 있으면, 그곳에서 무선을 맡을 때 COM1이 타워로 갑니다.",
+          "more": "먼저 ATC의 마지막 'Contact Tower on …', 없으면 공항 주파수 목록. SayIntentions를 통해서만, 콕핏 스위치는 절대 아닙니다."
+        },
+        "climb": {
+          "label": "상승: 부조종사가 무선을 되찾음",
+          "hint": "이륙 클리어런스와 첫 출발 핸드오프 후, 상승에서."
+        },
+        "approach": {
+          "label": "접근: 당신이 무선을 맡음",
+          "hint": "착륙 클리어런스를 위해 — 접근에서, 또는 하강 중 ATC가 타워로 넘기는 즉시."
+        },
+        "taxiIn": {
+          "label": "택시인: 부조종사가 무선을 되찾음",
+          "hint": "활주로를 벗어나면."
+        },
+        "voiceOverride": {
+          "label": "음성 재정의",
+          "hint": "'I have the radios' / 'you have the radios'로 언제든 담당을 바꿉니다."
+        },
+        "holdingLine": {
+          "label": "대기 지점에서 FO의 말",
+          "hint": "대기 지점에서 무선을 맡을 때 말합니다."
+        },
+        "approachLine": {
+          "label": "접근에서 FO의 말",
+          "hint": "착륙을 위해 무선을 맡을 때 말합니다."
+        },
+        "copilotLine": {
+          "label": "부조종사가 무선을 맡을 때 FO의 말",
+          "hint": "게이트, 상승, 택시인에서 말합니다."
+        },
+        "captainLine": {
+          "label": "음성으로 무선을 맡을 때 FO의 말",
+          "hint": "'I have the radios' 뒤에 말합니다."
+        }
+      },
+      "weather": {
+        "title": "SayIntentions 기상",
+        "hint": "ATIS, METAR, TAF, CPDLC. API 키만 필요합니다",
+        "cacheTtl": {
+          "label": "캐시 TTL",
+          "hint": "기상 보고를 보관하는 시간."
+        },
+        "debounce": {
+          "label": "새로 고침 디바운스",
+          "hint": "새로 고침 사이의 최소 간격."
+        }
+      }
+    },
+    "providers": {
+      "kokoro": {
+        "title": "Kokoro (로컬 신경망 TTS)",
+        "hint": "이 PC 또는 네트워크의 Kokoro 서버에서 제공하는 무료 신경망 음성. 가장 먼저 시도",
+        "baseUrl": {
+          "tally": "Kokoro 기본 URL",
+          "hint": "서버 주소, 예: http://192.168.1.50:8880. 비우면 Kokoro가 꺼집니다."
+        },
+        "fallback": {
+          "hint": "부기장이나 승무원 음성이 지정한 공급자를 Kokoro가 대신할 때 사용합니다. 주요 음성은 음성 페이지에서 고르세요.",
+          "more": "등급은 학습 오디오의 양과 깨끗함에 대한 Kokoro의 추정으로, A에서 F까지. 영국과 미국 음성은 쓸 만한 부기장이 됩니다. 다른 언어는 영어를 잘 읽지 못합니다.",
+          "empty": "아직 음성 목록이 없습니다. 서버 주소를 입력하고 음성 새로 고침을 누르세요."
+        },
+        "listHint": "페이지를 열 때 서버에서 읽습니다. 블렌드 음성을 추가한 후에는 새로 고치세요.",
+        "connectTimeout": {
+          "label": "연결 제한 시간",
+          "hint": "서버 응답을 기다리는 시간.",
+          "more": "의도적으로 짧습니다. 잠든 서버는 콜아웃을 멈추게 하지 않고 다음 음성으로 넘어갑니다."
+        },
+        "bodyTimeout": {
+          "label": "본문 제한 시간",
+          "hint": "오디오가 도착하도록 허용된 시간.",
+          "more": "문자당 100ms 추가, 그래서 긴 브리핑이 60초 쿨다운을 일으키지 않습니다."
+        },
+        "cacheCap": {
+          "label": "음성별 캐시 상한",
+          "hint": "0은 무제한."
+        }
+      },
+      "elevenLabs": {
+        "title": "ElevenLabs",
+        "hint": "자신의 키로 쓰는 유료 클라우드 신경망 음성. 캐시됨, 월간 예산 있음. Kokoro 다음, Google 전에 시도",
+        "apiKey": {
+          "hint": "elevenlabs.io의 프로필 → API keys에서. 비우면 ElevenLabs가 꺼집니다. 절대 기록되지 않습니다.",
+          "more": "Free 플랜은 테스트에 쓸 수 있지만 상업 라이선스가 없습니다. Starter 이상은 라이선스가 있습니다."
+        },
+        "fallback": {
+          "hint": "부기장이나 승무원 음성이 지정한 공급자를 ElevenLabs가 대신할 때 사용합니다. 주요 음성은 음성 페이지에서 고르세요.",
+          "more": "ElevenLabs는 구성됨으로 간주되려면 여기에 음성이 필요합니다. 부기장에 ElevenLabs 음성을 고르면 자동으로 채워집니다.",
+          "empty": "아직 음성 목록이 없습니다. 키를 입력하고 음성 새로 고침을 누르세요."
+        },
+        "listHint": "위의 키로 읽은 ElevenLabs 기본 제공 음성.",
+        "modelHint": "Flash는 빠르고 비용이 절반. v3는 가장 표현력이 좋고, 느리며 전액.",
+        "format": {
+          "label": "출력 형식",
+          "hint": "MP3는 모든 플랜에서 작동하며 이 PC에서 디코딩됩니다. PCM은 유료 플랜이 필요하고 디코딩을 건너뜁니다."
+        },
+        "stability": {
+          "label": "안정성",
+          "hint": "0에서 1. 높을수록 더 일정하고 덜 표현적."
+        },
+        "similarity": {
+          "label": "유사성",
+          "hint": "0에서 1. 출력이 원래 목소리를 얼마나 가깝게 따르는지."
+        },
+        "speed": {
+          "label": "속도",
+          "hint": "0.7에서 1.2. 1.0이 그 목소리의 자연스러운 속도."
+        },
+        "budget": {
+          "hint": "이 문자 수에 이르면 ElevenLabs는 그 달 동안 멈춥니다. 0은 무제한.",
+          "more": "플랜 월간 크레딧: Free 10,000, Starter 30,000, Creator 121,000. Flash는 문자당 약 0.5 크레딧. 체인의 다음 음성이 이어받습니다."
+        },
+        "maxChars": {
+          "label": "요청당 최대 문자",
+          "hint": "더 긴 텍스트는 ElevenLabs를 건너뛰고 다음 음성을 사용합니다. 0은 무제한.",
+          "more": "Free 플랜은 한 번 생성을 약 2,500자로 제한합니다."
+        },
+        "normalisation": {
+          "label": "텍스트 정규화",
+          "hint": "숫자와 약어 확장을 ElevenLabs에 맡깁니다.",
+          "more": "FO에는 꺼짐이 맞습니다: 앱이 이미 숫자를 읽는 방식대로 쓰고, ElevenLabs 정규화기는 항공 용어를 망칩니다."
+        },
+        "usageBefore": "이번 달 사용량:",
+        "usageMiddle": "자 (캐시 폴더의",
+        "usageAfter": "에서 집계).",
+        "baseUrl": {
+          "tally": "ElevenLabs 기본 URL",
+          "hint": "프록시나 지역 엔드포인트를 쓸 때만 바꾸세요."
+        },
+        "timeoutHint": "요청 전체. 초과하면 다음 음성이 이어받습니다."
+      },
+      "google": {
+        "title": "Google Cloud TTS (Chirp 3 HD)",
+        "hint": "유료 신경망 음성. 캐시됨, 월간 예산 있음. ElevenLabs 다음에 시도",
+        "keyFile": {
+          "label": "서비스 계정 키 파일",
+          "hint": "서비스 계정 JSON 키 경로. 비우면 Google이 꺼집니다. 절대 기록되지 않습니다."
+        },
+        "fallback": {
+          "hint": "부기장이나 승무원 음성이 지정한 공급자를 Google이 대신할 때 사용합니다. 주요 음성은 음성 페이지에서 고르세요.",
+          "more": "Google은 구성됨으로 간주되려면 여기에 음성이 필요합니다. 부기장에 Google 음성을 고르면 자동으로 채워집니다. 억양 현지화 페르소나(음성 페이지)도 Google 음성입니다.",
+          "empty": "아직 음성 목록이 없습니다. 키 파일 경로를 입력하고 음성 새로 고침을 누르세요."
+        },
+        "listHint": "위의 키 파일로 읽은 Google의 Chirp 3 HD 음성.",
+        "budget": {
+          "hint": "이 문자 수에 이르면 Google은 그 달 동안 멈춥니다. 0은 무제한.",
+          "more": "무료 등급은 1,000,000자입니다. 오프라인 음성이 이어받습니다."
+        }
+      },
+      "windows": {
+        "title": "Windows 음성",
+        "hint": "이 PC의 오프라인 음성, 항상 사용 가능. 체인의 마지막 두 개",
+        "winrt": {
+          "label": "WinRT 대체 음성",
+          "hint": "비우면 Windows 기본값을 사용합니다.",
+          "more": "Windows 11의 \"Natural\" 음성에 접근합니다."
+        },
+        "sapi": {
+          "label": "SAPI5 대체 음성",
+          "hint": "최후의 음성. 비우면 Windows 기본값을 사용합니다."
+        },
+        "listHint": "이 PC에 설치된 음성.",
+        "note": "WinRT: {0}. SAPI5: {1}."
+      },
+      "cache": {
+        "title": "캐시",
+        "folder": {
+          "label": "TTS 캐시 폴더",
+          "hint": "비워 두면 표시된 폴더를 사용합니다.",
+          "more": "공급자와 음성별로 폴더 하나. 사용량 카운터도 거기 있습니다."
+        }
+      }
+    },
+    "mcdu": {
+      "title": "MCDU",
+      "hint": "음성 MCDU: 읽기는 항상 작동, 키 누르기는 허용이 필요",
+      "enabledHint": "음성으로 MCDU를 읽고, ILS를 맞추고, 도착 활주로를 바꿉니다.",
+      "actuation": {
+        "label": "조작 허용",
+        "hint": "FO가 MCDU 키를 누르게 합니다.",
+        "more": "꺼짐: 읽기만. 명령에는 키 누르기가 꺼져 있다고 답합니다."
+      },
+      "verifyPause": {
+        "label": "확인 멈춤",
+        "hint": "FO가 변경을 알린 뒤 당신이 취소할 수 있도록 이만큼 기다립니다."
+      }
+    },
+    "briefing": {
+      "title": "브리핑",
+      "hint": "항법 데이터와 기상으로 만드는 출발 및 도착 브리핑",
+      "source": {
+        "label": "절차 출처",
+        "hint": "활주로, SID, STAR, 접근 절차를 어디서 가져오는지.",
+        "more": "자동은 FMS 계획, 그다음 SayIntentions, 그다음 아래 수동 입력을 필드별로 시도합니다."
+      },
+      "verify": {
+        "label": "LLM 출력의 숫자 검증",
+        "hint": "LLM이 쓰는 모든 수치를 사실과 대조합니다.",
+        "more": "검증 실패 시 일반 템플릿으로 대체됩니다."
+      },
+      "dfdBefore": "Navigraph DFD 데이터베이스 경로는",
+      "dfdLink": "셋업 → 항법 데이터",
+      "dfdAfter": "에 있습니다.",
+      "manual": {
+        "title": "수동 절차 재정의",
+        "hint": "FMS나 SayIntentions가 필드를 채울 수 없을 때, 또는 수동 모드에서는 항상 사용",
+        "depAirport": {
+          "label": "출발 공항",
+          "hint": "ICAO, 예: YSSY"
+        },
+        "depRunway": {
+          "label": "출발 활주로",
+          "hint": "예: 16R"
+        },
+        "sid": {
+          "label": "SID",
+          "hint": "식별자, 예: FISHA1"
+        },
+        "arrAirport": {
+          "label": "도착 공항",
+          "hint": "ICAO, 예: YMML"
+        },
+        "arrRunway": {
+          "label": "도착 활주로",
+          "hint": "예: 34"
+        },
+        "star": {
+          "label": "STAR",
+          "hint": "식별자, 예: RAZZI4"
+        },
+        "approach": {
+          "label": "접근 절차",
+          "hint": "예: I16R. 비우면 공시된 최적 접근 절차를, ILS를 우선해 고릅니다.",
+          "more": "후보를 들으려면 FO에게 \"which approach\"라고 물어보세요."
+        }
+      },
+      "minima": {
+        "title": "미니마 입력",
+        "hint": "도착 브리핑 중 FO가 미니멈을 묻습니다",
+        "interactive": {
+          "label": "대화형 입력",
+          "hint": "FO가 묻고, 되읽고, 미니멈 콜아웃을 준비합니다.",
+          "more": "상태 섹션에 이미 설정된 값이 있으면 질문을 건너뜁니다. 전사 서버가 있을 때 가장 잘 작동합니다."
+        },
+        "listenTimeout": {
+          "label": "듣기 제한 시간",
+          "hint": "FO가 당신의 답을 기다리는 시간."
+        },
+        "maxRetries": {
+          "label": "최대 재시도",
+          "hint": "브리핑을 미브리핑으로 진행하기 전 실패 횟수."
+        }
+      },
+      "missed": {
+        "title": "실패 접근 재브리핑",
+        "hint": "고어라운드 후 FO가 실패 접근 절차를 읽습니다",
+        "enabled": {
+          "hint": "먼저 비행에 집중할 수 있도록 지연과 기어 업을 기다립니다.",
+          "more": "공시된 레그가 없으면 FO가 대신 안내를 합니다."
+        },
+        "delay": "지연",
+        "hardCeiling": {
+          "label": "최대 한도",
+          "hint": "기어가 올라가지 않아도 이 시간까지는 말합니다."
+        }
+      },
+      "llm": {
+        "title": "LLM 스타일링",
+        "hint": "브리핑과 디브리핑 문장을 위한 하나의 언어 모델",
+        "enabledHint": "꺼짐: 일반 템플릿만. 이 PC를 떠나는 것이 없습니다.",
+        "stream": {
+          "label": "모델이 쓰는 동안 말하기",
+          "hint": "FO가 전체 응답이 아닌 첫 문장 뒤에 말하기 시작합니다. 각 문장은 말하기 전에 검증됩니다.",
+          "more": "문장에 잘못된 숫자가 있거나 모델이 멈추면 일반 템플릿이 브리핑을 마무리합니다. 처음부터 다시 시작하지 않습니다. 꺼짐: FO가 전체 응답을 기다립니다(예전 동작)."
+        },
+        "apiFlavour": {
+          "label": "API 종류",
+          "hint": "주소가 Ollama 서버이면 Ollama를 선택하세요.",
+          "more": "Ollama 종류만 모델 사고를 끌 수 있습니다."
+        },
+        "baseUrl": {
+          "tally": "LLM 기본 URL",
+          "hint": "OpenAI 방식: API 루트, 예: https://api.openai.com/v1. Ollama: 서버 루트, 예: http://localhost:11434."
+        },
+        "apiKeyHint": "절대 기록되지 않습니다. 키 없는 로컬 서버는 비워 두세요.",
+        "modelHint": "모델 이름, 예: gpt-4o-mini 또는 qwen3.6:27b. 비우면 스타일링이 꺼집니다.",
+        "thinking": {
+          "label": "모델 사고 활성화 (느리지만 깊은 추론)",
+          "hint": "사고형 모델이 먼저 추론하게 합니다. 느림: 보통 10초 이상.",
+          "more": "Ollama만. 브리핑에는 꺼 두세요."
+        },
+        "maxTokens": "최대 토큰",
+        "timeoutHint": "호출당. 스타일링된 브리핑은 두 번 호출할 수 있습니다.",
+        "testBefore": "저장한 뒤",
+        "testLink": "상태 섹션",
+        "testAfter": "에서 \"LLM 연결 테스트\"를 누르세요."
+      },
+      "ask": {
+        "title": "부기장에게 질문",
+        "hint": "자유 형식 질문에 언어 모델이 실시간 사실로 답합니다. 말로만 — 절대 실행하지 않음",
+        "enabled": {
+          "hint": "쉬운 말로 물어보세요: 'what is our fuel on board', 'how long to top of descent', 'tell me the destination weather'. FO는 앱이 지금 아는 것으로 답합니다.",
+          "more": "위의 LLM과 LAN 음성 인식 서버가 필요합니다(오프라인 Windows 엔진은 정확한 문구만 듣습니다). 답의 모든 숫자는 실시간 사실과 대조되며, 검증할 수 없는 답은 'I don't have a verified answer for that'이 됩니다. 질문은 모든 정확한 문구가 배제된 뒤에만 시도되므로 전에 말할 수 있던 것은 바뀌지 않습니다. 스테라일 콕핏(상승, 하강, 접근에서 스테라일 한계 아래)에서는 질문을 듣지만 답하지 않습니다."
+        },
+        "smallTalk": {
+          "label": "잡담과 재미있는 사실",
+          "hint": "무엇이든 물어보세요: 'who is better, Chelsea or Arsenal', 'tell me a fun fact', 'what is the capital of Peru'. FO는 역할을 유지하며 일반 지식으로 한두 문장 가볍게 답합니다.",
+          "more": "비행을 언급하는 질문(연료, 중량, 속도, 고도, 활주로, 기상, 시간, 승객…)은 여전히 엄격한 경로를 탑니다: 사실 시트만, 모든 숫자 검증. 잡담 경로에서는 숫자를 검증하지 않지만 — 잡학이기 때문 — 수치가 포함된 이 비행에 관한 문장은 거부되고 FO는 'I don't have a verified answer for that'이라고 말합니다. 켜져 있으면 도입어가 필요 없습니다: 다른 어떤 것과도 일치하지 않고 질문 형태인 네 단어 이상의 문장(앞에 의문사, 또는 인식기의 물음표)은 FO로 가고, 단순한 말은 보내지 않습니다. 여전히 말로만, 스테라일 콕핏에서는 여전히 조용합니다."
+        },
+        "roger": {
+          "label": "확인 말에 'Roger'로 답하기",
+          "hint": "'No questions, thank you for the briefing', 'copied', 'okay thanks': 켜짐이면 FO가 'Roger.'라고 하고, 꺼짐이면 아무 말도 하지 않습니다.",
+          "more": "어느 쪽이든 그런 말은 언어 모델로 가지 않고 'didn't catch that'도 유발하지 않습니다. 잡담이 켜져 있으면 질문 형태인 것만(앞의 의문사, 또는 인식기의 물음표) 모델로 보냅니다."
+        },
+        "flyingOver": {
+          "label": "'What are we flying over?'",
+          "hint": "'what are we flying over', 'where are we', 'what is that city on the left'라고 물어보세요. FO가 국가, 산이나 바다, 가장 가까운 도시를 거리와 방향과 함께 — 앱 내 지도책에서 즉시 — 말한 뒤 그에 관한 사실 한두 가지를 덧붙입니다.",
+          "more": "위치 문장은 내장 오프라인 지도책(Natural Earth 외곽선, GeoNames 도시 — 출처는 매뉴얼 참조)에서 오며 언어 모델은 쓰지 않으므로 인터넷이 필요 없고 같은 지점에서는 항상 같습니다. 그 뒤의 사실은 LLM에서: 'Wikipedia 사실'이 꺼져 있으면 잡담처럼 모델 자체 지식에서(숫자 미검증, 이 비행에 관한 것은 없음). 이 문구에는 도입어나 최소 길이가 필요 없습니다. 잡담이 꺼져 있어도 작동합니다."
+        },
+        "wikipedia": {
+          "label": "Wikipedia 사실",
+          "hint": "위 스위치와 함께: 가장 가까운 도시의 짧은 Wikipedia 요약을 가져와 FO가 모델의 기억 대신 거기서 사실을 가져오게 합니다.",
+          "more": "장소당 en.wikipedia.org에 한 번의 작은 요청, 3초 제한, 처음 이후에는 캐시에서 응답. 실패하거나 찾지 못하면 FO는 위치는 말하고 모델 자체 지식으로 대체합니다. 당신이나 비행에 관한 것은 보내지 않습니다 — 지명만."
+        },
+        "leadIns": {
+          "label": "질문 도입어",
+          "hint": "쉼표로 구분. 발화가 질문으로 인정되려면 이 중 하나로 시작해야 합니다(잡담이 켜져 있으면 불필요)."
+        },
+        "minWords": {
+          "label": "최소 단어 수",
+          "hint": "더 짧은 발화는 절대 질문이 아닙니다 — 잘못 들은 정확한 문구입니다."
+        },
+        "timeBudget": {
+          "label": "시간 예산",
+          "hint": "질문부터 첫 발화까지. 이후 FO는 고정 문구로 포기합니다."
+        },
+        "standBy": {
+          "label": "'Stand by'까지",
+          "hint": "FO가 'Stand by'라고 말하기 전 무음. 0 = 안 함."
+        }
+      },
+      "regionFacts": {
+        "title": "지역 사실",
+        "hint": "순항 중 FO가 가끔 아래 국가나 바다에 관한 짧은 사실을 들려줍니다. 자발적, 말로만",
+        "enabled": {
+          "hint": "순항 중 15~30분마다(당신의 간격) FO가 지나는 지역에 관해 한 마디 합니다: 'We're over the Netherlands — a quarter of what you see down there sits below sea level.' 한 비행에서 같은 지역을 두 번 말하지 않습니다.",
+          "more": "지역은 'what are we flying over?'와 같은 내장 지도책에서 옵니다(인터넷 불필요). 사실은 언어 모델이 켜져 있고 정상일 때 그곳에서(두 문장, 장소 사실과 같은 가드 — 이 비행에 관한 것은 없음), 아니면 %LOCALAPPDATA%\\ProsimCompanion\\config의 선별 파일 region-facts.json에서 — 국가 코드(FR, GB) 또는 'sea:North Sea'를 키로 편집해 직접 추가할 수 있습니다. 순항 밖, 비행이 라이브가 아닐 때, FO의 귀가 일시정지 중, 스테라일 콕핏, 'quiet please' 이후, 지도책이 이름을 모르는 곳 위에서는 조용합니다. FO 페르소나가 켜져 있으면 선별된 사실은 모든 수치를 고정한 채 페르소나의 목소리로 말합니다."
+        },
+        "shortest": {
+          "label": "최소 간격",
+          "hint": "사실 사이의 최소 분. 첫 사실은 순항 시작 후 이 시간(더하기 무작위 분) 뒤에 옵니다."
+        },
+        "longest": {
+          "label": "최대 간격",
+          "hint": "각 간격은 두 값 사이에서 무작위로 정해져 타이머처럼 느껴지지 않습니다."
+        },
+        "perFlight": {
+          "label": "비행당 사실 수",
+          "hint": "최대. 객실의 비행당 한 번 보고와 함께 초기화(콜드 앤 다크, 또는 셧다운 후 새 프리플라이트)."
+        },
+        "llmFacts": {
+          "label": "언어 모델의 사실",
+          "hint": "위 LLM이 구성되고 정상이면 사실을 요청합니다. 꺼짐, 또는 모델이 다운이면 선별 파일만 말합니다.",
+          "more": "모델 사실은 장소 사실처럼 문장 단위로 스트리밍됩니다. 수치가 포함된 이 비행에 관한 문장은 거부되고, 20초 안에 모델이 아무 말도 없으면 선별 파일이 대신 말합니다. 모델 사실의 숫자는 잡학이며 검증되지 않습니다."
+        }
+      },
+      "wol": {
+        "title": "Wake-on-LAN",
+        "hint": "셋업으로 이동됨",
+        "before": "앱이 시작 시 깨우는 PC들 — 언어 모델 머신, 음성 서버, 그 외 — 은",
+        "link": "설정 → 셋업 → Wake-on-LAN",
+        "after": "의 한 목록에 있습니다. 이 페이지의 예전 단일 PC 설정은 셋업을 처음 열 때 그곳으로 옮겨집니다."
+      }
+    },
+    "callouts": {
+      "title": "표준 콜아웃",
+      "hint": "FO의 속도, 고도, 활주 콜.",
+      "enabled": {
+        "label": "콜아웃 활성",
+        "hint": "모든 표준 콜아웃의 마스터 스위치.",
+        "more": "즉시 적용됩니다. 개별 콜아웃 텍스트, 고도 콜아웃, 그 외 플로우 모니터 알림, 기상 권고는 당분간 settings.json의 sop 섹션에서 편집합니다."
+      },
+      "placards": {
+        "title": "플랩 플래카드",
+        "hint": "플랩 레버 위치별 최대 속도(VFE). FO가 접근 또는 초과 시 경고하고, 플랩 콜을 이에 대조합니다.",
+        "leverHint": "ProSim은 레버를 여섯 단계로 보고합니다: UP, 1, 1+F, 2, 3, FULL. 레버 1은 지상과 이륙 시 1+F가 되며, FO는 ProSim이 보고하는 단계를 읽습니다.",
+        "lever": "레버",
+        "limit": "제한 (kt)",
+        "resetTitle": "A322 수치: 230 / 215 / 200 / 185 / 177",
+        "reset": "A320 기본값으로 재설정"
+      },
+      "gear": {
+        "title": "기어 제한",
+        "hint": "VLE는 기어 다운 시 제한. VLO는 기어 작동 중 제한이며, 이를 넘으면 FO가 기어 콜을 거부합니다.",
+        "vle": {
+          "label": "기어 전개 (VLE)",
+          "hint": "기어 다운 상태로 이보다 빠르게 비행하면 FO가 경고합니다. 0이면 경고 꺼짐."
+        },
+        "vloDown": {
+          "label": "기어 전개 (VLO down)",
+          "hint": "이 속도 위에서는 \"Gear down\"이 거부됩니다. 0이면 점검 꺼짐."
+        },
+        "vloUp": {
+          "label": "기어 접기 (VLO up)",
+          "hint": "이 속도 위에서는 \"Gear up\"이 거부됩니다. 0이면 점검 꺼짐."
+        },
+        "stillDown": {
+          "label": "기어 아직 다운 알림",
+          "hint": "기어 다운 상태로 상승하면 FO가 \"gear still down\"이라고 말합니다."
+        },
+        "upBy": {
+          "label": "기어 업 기준 고도",
+          "hint": "기어 다운 상태로 이 고도 위로 상승하면 알림이 옵니다."
+        }
+      },
+      "gates": {
+        "title": "접근 게이트",
+        "hint": "FO가 접근이 안정적인지 확인하는 고도. 항공사마다 다릅니다 — 자신의 SOP를 설정하세요.",
+        "stable": {
+          "label": "안정 접근 점검",
+          "hint": "각 게이트에서 FO가 속도, 하강율, 기어, 플랩을 점검하고 불안정 접근을 콜합니다.",
+          "more": "게이트는 전파 고도계에서 그 고도를 지나 내려갈 때 한 번 점검됩니다. 가장 높은 게이트가 먼저. 속도 범위는 VLS에서 측정합니다."
+        },
+        "gateTitle": "게이트 {0} — {1} ft",
+        "removeTitle": "이 게이트 제거",
+        "inUse": "게이트 사용",
+        "height": {
+          "label": "고도",
+          "hint": "게이트의 전파 고도. 0이면 게이트 꺼짐."
+        },
+        "gearDown": "기어 다운 필수",
+        "minFlap": {
+          "label": "최소 플랩 레버",
+          "hint": "플랩 레버가 이 위치 이상이어야 합니다."
+        },
+        "belowVls": "VLS 아래 허용 속도",
+        "aboveVls": "VLS 위 허용 속도",
+        "sink": "최대 하강율",
+        "announce": {
+          "label": "게이트 통과 시 \"stabilized\" 말하기",
+          "hint": "꺼짐: 이 게이트에서 FO는 접근이 불안정할 때만 말합니다."
+        },
+        "addTitle": "게이트 추가, 예를 들어 1500 ft 게이트",
+        "add": "게이트 추가",
+        "resetTitle": "게이트 두 개: 1000 ft(플랩 2 이상)와 500 ft(플랩 3 이상), 둘 다 기어 다운",
+        "reset": "기본값으로 재설정",
+        "advancedLabel": "문구와 추력 점검 숨김",
+        "stableCall": "안정 콜",
+        "unstableCall": "불안정 콜",
+        "thrust": {
+          "label": "추력이 올라와 있어야 함",
+          "hint": "모든 게이트에 추력 점검 추가: 평균 N1이 아래 수치 이상이어야 합니다."
+        },
+        "minN1": "최소 N1"
+      },
+      "advisories": {
+        "title": "플래카드 권고",
+        "hint": "제한에 가깝거나 초과했을 때 FO가 말하는 것",
+        "warnWithin": {
+          "label": "경고 여유",
+          "hint": "가속 중 제한 아래 이만큼에서 접근 콜을 말합니다."
+        },
+        "cooldown": {
+          "label": "쿨다운",
+          "hint": "같은 종류의 권고 두 번 사이 최소 시간."
+        },
+        "approaching": "플랩 제한 접근",
+        "exceeded": "플랩 제한 초과",
+        "gearExceeded": "기어 제한 초과"
+      },
+      "monitoring": {
+        "title": "비행 중 모니터링",
+        "hint": "켜기 전까지 꺼져 있는 FO의 네 가지 임무. 각각 라이브 비행이 필요하며 말만 합니다.",
+        "fuelCheck": {
+          "label": "연료 점검",
+          "hint": "순항 중 FO가 현재 위치의 SimBrief 계획과 탑재 연료를 비교해 예상 착륙 연료를 알려 줍니다. 'fuel check'로도.",
+          "more": "항법 로그가 있는 SimBrief OFP와 항공기 위치가 필요합니다. 없으면: 탑재 연료 − 연료 유량 × ETA까지의 시간. 마진을 넘는 부족은 High로 말합니다. 스테라일 단계에서는 조용합니다."
+        },
+        "fuelEvery": {
+          "label": "연료 점검 간격",
+          "hint": "순항 중 자동 점검 사이의 분. 0 = 요청 시만"
+        },
+        "shortfall": {
+          "label": "부족 마진",
+          "hint": "계획보다 이만큼(또는 더) 적으면 점검을 경고로 말합니다"
+        },
+        "onPlan": {
+          "label": "계획대로로 보는 범위",
+          "hint": "더 작은 차이는 수치 대신 'on plan'으로 말합니다"
+        },
+        "grossError": {
+          "label": "이륙 전 중대 오류 점검",
+          "hint": "이륙 전 한 마디: 항공기 중량을 최종 로드시트와, FMS 플랩, 플렉스, V 속도를 마지막 이륙 성능 계산과 대조. 'gross error check'로도.",
+          "more": "최종 로드시트가 나오고 V 속도가 FMS에 있을 때 출발마다 한 번 실행. FMS INIT 중량은 ProSim에서 읽을 수 없어 항공기 자체 영연료 중량과 탑재 연료로 대신합니다. 성능 수치는 성능 페이지의 마지막 계산에서 옵니다."
+        },
+        "automatic": {
+          "label": "자동",
+          "hint": "꺼짐 = 요청할 때만"
+        },
+        "zfw": "영연료 중량 허용 오차",
+        "blockFuel": "블록 연료 허용 오차",
+        "flex": "플렉스 허용 오차",
+        "destWx": {
+          "label": "목적지 기상 감시",
+          "hint": "순항부터 FO가 목적지의 시정이나 운고가 제한을 넘을 때, ATIS 문자가 바뀔 때, 계획 착륙 활주로의 바람이 뒷바람이 될 때 알려 줍니다.",
+          "more": "기상 카드 자체의 새로 고침을 사용하며 추가 폴링은 없습니다. 목적지가 제한 아래가 되면 교체 공항 기상이 추가됩니다. 각 종류의 변화는 조용한 기간 안에 최대 한 번 말합니다."
+        },
+        "visibility": "시정 제한",
+        "ceiling": "운고 제한",
+        "tailwind": {
+          "label": "뒷바람 제한",
+          "hint": "계획 착륙 활주로에서 이보다 큰 뒷바람 성분을 알립니다"
+        },
+        "quiet": "변화별 조용한 기간",
+        "atis": "ATIS 문자 변경 알림",
+        "readbacks": {
+          "label": "리드백",
+          "hint": "'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' 또는 'minimums two one zero'라고 말하면 FO가 항공기와 대조합니다.",
+          "more": "고도계는 당신의 기압 설정과, V 속도는 FMS PERF 페이지와, 활주로는 FMS 계획과(이륙 전은 출발, 이후는 도착), 미니멈은 브리핑한 값과 대조됩니다. FO는 'checked' 또는 읽은 값을 답합니다."
+        },
+        "altimeter": "고도계 허용 오차",
+        "minimums": "미니멈 허용 오차"
+      }
+    },
+    "abnormals": {
+      "title": "ECAM 비정상 상황",
+      "hint": "FO가 E/WD와 시스템 데이터 참조를 읽고, 고장을 알리고, 당신과 절차를 진행합니다. 스위치는 절대 움직이지 않습니다",
+      "detect": {
+        "label": "고장 감지 및 알림",
+        "hint": "꺼짐: 아무것도 감지하거나 알리지 않습니다. 메모리 드릴은 여전히 음성으로 연습용으로 부를 수 있습니다."
+      },
+      "lineByLine": {
+        "label": "ECAM을 한 줄씩 진행",
+        "hint": "각 조치 줄은 당신의 확인을 기다리고, 점검이 있는 줄은 항공기와 대조됩니다.",
+        "more": "어느 줄에서든 \"standby\", \"say again\", \"skip\", \"fault remains\", \"unable\" 또는 \"cancel ecam\"이라고 말하세요. 꺼짐: FO가 고장을 알리고 ECAM은 당신에게 맡깁니다."
+      },
+      "answerWindow": {
+        "label": "줄당 응답 창",
+        "hint": "FO가 다시 묻기 전 당신의 답을 기다리는 시간."
+      },
+      "silentPrompts": {
+        "label": "스탠바이 전 무응답 횟수",
+        "hint": "이만큼 연속으로 조용한 창이 지나면 FO가 묻기를 멈추고 대기합니다. 0 = 계속 물음."
+      },
+      "mismatches": {
+        "label": "허용되는 검증 불일치",
+        "hint": "FO가 계속 또는 스탠바이를 제안하기 전 점검 줄에서의 불일치 수."
+      },
+      "filesBefore": "절차 자체는",
+      "filesAfter": " 아래의 JSON 파일입니다. 불러오지 못한 파일은 배너에 이름이 표시됩니다. 진행 중인 대화는 상태 섹션에서 취소할 수 있습니다."
+    },
+    "options": {
+      "recognitionMode": {
+        "pushToTalk": "푸시투토크 (전용 FO 키)",
+        "continuous": "연속 (송신 중 ATC 음소거)"
+      },
+      "seat": {
+        "left": "왼쪽 좌석 (FO가 오른쪽 담당)",
+        "right": "오른쪽 좌석 (가상 조종사가 왼쪽 담당)"
+      },
+      "llmApi": {
+        "openAi": "OpenAI 호환 (/chat/completions)",
+        "ollama": "Ollama 네이티브 (/api/chat — 사고 제어)"
+      },
+      "asrApi": {
+        "fasterWhisper": "faster-whisper 래퍼 (/transcribe)",
+        "whisperCpp": "whisper.cpp 서버 (/v1/audio/transcriptions)"
+      },
+      "vad": {
+        "silero": "Silero VAD (신경망, 권장)",
+        "rms": "RMS 에너지 게이트 (구형)"
+      },
+      "procedureSource": {
+        "auto": "자동 (FMS → flight.json → 수동)",
+        "manual": "수동 입력만",
+        "flightJson": "SayIntentions flight.json만"
+      },
+      "normalPolicy": {
+        "allow": "허용 (정상적으로 말함)",
+        "defer": "연기 (스테라일 종료 후 재생)",
+        "suppress": "억제 (버림)"
+      },
+      "apiKeySource": {
+        "auto": "자동 (flight.json에서)",
+        "manual": "수동 (아래 입력)"
+      },
+      "elevenLabsModel": {
+        "flash": "eleven_flash_v2_5 (빠름, 비용 절반)",
+        "v3": "eleven_v3 (표현력, 전체 비용)"
+      },
+      "elevenLabsFormat": {
+        "mp3": "mp3_44100_128 (모든 플랜)",
+        "pcm": "pcm_24000 (유료 플랜)"
+      },
+      "experience": {
+        "junior": "주니어",
+        "standard": "표준",
+        "senior": "시니어"
+      },
+      "formality": {
+        "casual": "편안함",
+        "standard": "표준",
+        "formal": "격식"
+      },
+      "verbosity": {
+        "full": "전체",
+        "brief": "간략"
+      },
+      "pttSwitch": {
+        "off": "꺼짐",
+        "captainSidestick": "기장 사이드스틱 PTT",
+        "foSidestick": "부기장 사이드스틱 PTT",
+        "captainHandMic": "기장 핸드마이크 PTT",
+        "foHandMic": "부기장 핸드마이크 PTT",
+        "observerHandMic": "옵서버 핸드마이크 PTT"
+      },
+      "siPtt": {
+        "com": "COM 무선 PTT (선택된 무선)",
+        "com1": "COM1 PTT (고정)",
+        "com2": "COM2 PTT (고정)",
+        "intercom1": "인터콤 PTT — 채널 1",
+        "intercom2": "인터콤 PTT — 채널 2",
+        "intercom3": "인터콤 PTT — 채널 3",
+        "group": "그룹 비행 PTT"
+      }
+    },
+    "devices": {
+      "defaultCapture": "기본 녹음 장치",
+      "systemDefault": "시스템 기본값",
+      "notDetected": "{0} (현재 감지되지 않음)"
+    },
+    "binding": {
+      "unset": "(미설정)",
+      "keyboard": "키: {0}",
+      "joystick": "조이스틱 {0}",
+      "button": "{0} — 버튼 {1}"
+    },
+    "capture": {
+      "nothingPressed": "10초 안에 아무것도 누르지 않았습니다.",
+      "bound": "{0}을(를) {1}에 지정했습니다.",
+      "atcPtt": "ATC PTT",
+      "foPtt": "FO PTT",
+      "failed": "캡처 실패 — 로그 페이지를 확인하세요."
+    },
+    "scan": {
+      "scanning": "스캔 중…",
+      "none": "응답한 조이스틱이 없습니다.",
+      "found": "발견: {0}.",
+      "failed": "스캔 실패 — 로그 페이지를 확인하세요."
+    },
+    "voiceNotes": {
+      "emptyHint": "아직 목록에 음성이 없습니다. 음성 공급자에서 공급자를 연결하고 새로 고침을 누르세요.",
+      "notListed": "아직 목록 없음",
+      "notConfigured": "구성되지 않음",
+      "none": "보고된 음성 없음",
+      "count": "음성 {0}개",
+      "failed": "음성 목록을 가져올 수 없음 — {0}"
+    }
+  }
+}

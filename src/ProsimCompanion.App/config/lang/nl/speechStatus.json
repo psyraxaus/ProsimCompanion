@@ -1,0 +1,115 @@
+{
+  "speechStatus": {
+    "ecam": {
+      "running": "ECAM-DIALOOG LOOPT — {0}",
+      "cancel": "ECAM-dialoog afbreken"
+    },
+    "cabinCalling": {
+      "text": "CABINE BELT — kies CAB op het audiopaneel",
+      "title": "Het echte CAB-CALL-lampje van de ACP is alleen-lezen in de SDK — deze banner vervangt het knipperen"
+    },
+    "fo": {
+      "title": "Spraak-First Officer",
+      "hint": "Status van arbiter, TTS-keten en weergave",
+      "enabled": "Aan",
+      "disabled": "Uit",
+      "sterileTitle": "Onder het sterile plafond in een werklastfase wordt spraak met prioriteit Low weggegooid en volgt Normal het ingestelde beleid",
+      "sterile": "Sterile cockpit",
+      "notSterile": "Niet steriel",
+      "listeningTitle": "Enginewaarheid: Luistert betekent dat de herkenner echt opneemt; Gepauzeerd is de oor-uit-vergrendeling van de piloot (Stream Deck-toets Voice Pause / de knop hier)",
+      "paused": "Spraak gepauzeerd",
+      "listening": "Luistert",
+      "notListening": "Luistert niet",
+      "toggleTitle": "Demp het oor van de FO terwijl je met een echt persoon praat — de FO blijft spreken. Stil: geen bevestiging in beide richtingen. Gewist door een herstart van de app",
+      "resume": "Luisteren hervatten",
+      "pause": "Luisteren pauzeren",
+      "earWhisper": "Oor: whisper (LAN)",
+      "earOffline": "Oor: offline-engine",
+      "queue": "Wachtrij {0}",
+      "speaking": "Spreekt"
+    },
+    "tts": {
+      "title": "TTS-aanbieders",
+      "hint": "Op volgorde geprobeerd; een gefaalde aanbieder koelt 60 s af. Test spreekt met precies die aanbieder — geen terugval",
+      "colProvider": "Aanbieder",
+      "colState": "Status",
+      "colDetail": "Details",
+      "testing": "Testen…",
+      "test": "Test",
+      "health": {
+        "healthy": "Gezond",
+        "coolingDown": "Koelt af",
+        "disabled": "Uit",
+        "untried": "Niet geprobeerd"
+      }
+    },
+    "tests": {
+      "title": "Componenttests",
+      "hint": "Controleer het LLM-eindpunt, de microfoon en de navigatiedatabase zonder een sector te vliegen",
+      "llm": "LLM-verbinding testen",
+      "micListening": "Luistert… spreek nu",
+      "mic": "Microfoon testen",
+      "navData": "Navdata testen",
+      "wakeTitle": "Stuurt een Wake-on-LAN-magic packet naar elke pc onder Instellingen → Setup → Wake-on-LAN — controleer daarna met LLM-verbinding testen / Spraakdiensten opnieuw verbinden",
+      "sending": "Verzenden…",
+      "wake": "Pc's wekken",
+      "reconnectTitle": "Controleert whisper en Kokoro nu. Zet de herkenning terug op whisper als die antwoordt en wist een Kokoro-afkoeling — de app probeert whisper ook zelf elke 30 s opnieuw",
+      "checking": "Controleren…",
+      "reconnect": "Spraakdiensten opnieuw verbinden",
+      "resultVoice": "Spraakdiensten: {0}",
+      "resultLlm": "LLM: {0}",
+      "resultMic": "Microfoon: {0}",
+      "resultNavData": "Navdata: {0}",
+      "resultWake": "Wake-on-LAN: {0}",
+      "failed": "Test onverwacht mislukt — zie de pagina Logboeken."
+    },
+    "minima": {
+      "title": "Aankomstminima",
+      "hint": "Er bestaat geen DH/MDA-dataref — voer de gebriefde minima in om de minimums-callouts scherp te stellen",
+      "clear": "Wissen",
+      "da": "DA (baro, ft MSL)",
+      "dh": "DH (radio, ft)",
+      "mda": "MDA (baro, ft MSL)",
+      "altitude": "Hoogte ft",
+      "set": "Instellen",
+      "untilSet": "Tot ze zijn ingesteld blijven \"one hundred above\"/\"minimums\" uit (eenmaal per vlucht gelogd)."
+    },
+    "speak": {
+      "title": "Spreektest",
+      "hint": "Doorloopt het volledige pad arbiter → TTS → weergave op prioriteit Normal",
+      "placeholder": "Iets voor de FO om te zeggen",
+      "button": "Spreek"
+    },
+    "unmatched": {
+      "title": "Gehoord maar niet begrepen",
+      "hint": "Wat je deze sessie zei waar geen commando, checklistantwoord of vraagafhandelaar op reageerde — gegroepeerd, meest herhaalde eerst",
+      "trackingOff": "Bijhouden staat uit — Instellingen → Spraak-First Officer → Herkenning & Push-to-Talk → \"Zinnen bewaren die de FO niet begreep\".",
+      "nothing": "Er is nog niets doorheen gevallen.",
+      "absorbed": "{0} stilletjes opgevangen in sterile fasen (callouts, geen commando's).",
+      "heardTitle": "Elke misser deze sessie, onderdrukte inbegrepen",
+      "heard": "{0} gehoord",
+      "repeatedTitle": "Een zin die drie keer of vaker is gehoord, is degene om toe te voegen",
+      "repeated": "{0} herhaald 3+",
+      "sterileTitle": "Opgevangen in sterile fasen: geteld, nooit kandidaten",
+      "sterile": "{0} steriel",
+      "clear": "Wissen",
+      "colPhrase": "Zin",
+      "colCount": "Aantal",
+      "colWhere": "Waar",
+      "colLast": "Laatst (UTC)",
+      "contextTitle": "idle = geen checklist open; checklist: … = die regel wachtte op zijn antwoord; confirm-declined = de FO vroeg 'did you mean' en je zei nee",
+      "teach": "Om de FO een zin te leren, voeg je die toe waar hij hoort onder {0}: een cockpitcommando in {1}, een ATC-verzoek in {2}, een checklistantwoord in de {3} van de regel onder {4}. De FO laadt de bestanden opnieuw; het sessielogboek bewaart elke misser als {5}."
+    },
+    "recent": {
+      "summary": "Diagnose — recente uitingen",
+      "title": "Recente uitingen",
+      "hint": "Nieuwste eerst — de volledige geschiedenis staat in het sessie-gebeurtenislogboek",
+      "nothing": "Nog niets gesproken.",
+      "colTime": "Tijd (UTC)",
+      "colOutcome": "Uitkomst",
+      "colPriority": "Prioriteit",
+      "colTag": "Tag",
+      "colText": "Tekst"
+    }
+  }
+}

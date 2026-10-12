@@ -1,0 +1,13 @@
+{
+  "voicePicker": {
+    "pick": "Stimme wählen…",
+    "other": "Andere Stimmen-ID…",
+    "placeholderPlain": "Stimmen-ID für diesen Anbieter",
+    "placeholderRef": "anbieter:stimmen-id, zum Beispiel google:en-AU-Chirp3-HD-Aoede",
+    "saved": "{0} (gespeichert)",
+    "savedWithProvider": "{0} ({1}, gespeichert)",
+    "notInProviderList": "{0}-Stimme \"{1}\". Nicht in der Liste dieses Anbieters — prüfe den Namen oder lies die Stimmen neu ein.",
+    "notInServerList": "{0} Nicht in der Liste vom Server — prüfe den Namen.",
+    "plainId": "Reine Stimmen-ID. Wird unverändert an den Anbieter geschickt, der gerade spricht."
+  }
+}

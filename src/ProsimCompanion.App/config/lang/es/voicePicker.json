@@ -1,0 +1,13 @@
+{
+  "voicePicker": {
+    "pick": "Elige una voz…",
+    "other": "Otro id de voz…",
+    "placeholderPlain": "Id de voz para este proveedor",
+    "placeholderRef": "proveedor:id de voz, por ejemplo google:en-AU-Chirp3-HD-Aoede",
+    "saved": "{0} (guardada)",
+    "savedWithProvider": "{0} ({1}, guardada)",
+    "notInProviderList": "Voz de {0} \"{1}\". No está en la lista de ese proveedor — revisa el nombre o actualiza las voces.",
+    "notInServerList": "{0} No está en la lista del servidor — revisa el nombre.",
+    "plainId": "Id de voz sin proveedor. Se envía tal cual al proveedor que hable."
+  }
+}

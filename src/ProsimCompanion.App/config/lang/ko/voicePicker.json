@@ -1,0 +1,13 @@
+{
+  "voicePicker": {
+    "pick": "음성 선택…",
+    "other": "다른 음성 ID…",
+    "placeholderPlain": "이 공급자의 음성 ID",
+    "placeholderRef": "공급자:음성 ID, 예: google:en-AU-Chirp3-HD-Aoede",
+    "saved": "{0} (저장됨)",
+    "savedWithProvider": "{0} ({1}, 저장됨)",
+    "notInProviderList": "{0} 음성 \"{1}\". 해당 공급자의 목록에 없습니다 — 이름을 확인하거나 음성 목록을 새로 고치세요.",
+    "notInServerList": "{0} 서버 목록에 없습니다 — 이름을 확인하세요.",
+    "plainId": "공급자 없는 음성 ID. 입력한 그대로 발화하는 공급자에게 전달됩니다."
+  }
+}

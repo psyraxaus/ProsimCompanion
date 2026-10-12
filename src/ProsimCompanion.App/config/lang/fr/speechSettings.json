@@ -1,0 +1,1313 @@
+{
+  "speechSettings": {
+    "pageTitle": "Copilote vocal — ProsimCompanion",
+    "heading": "Copilote vocal",
+    "common": {
+      "enabled": "Activé",
+      "set": "Définir",
+      "clear": "Effacer",
+      "remove": "Retirer",
+      "refreshVoices": "Actualiser les voix",
+      "refreshing": "Actualisation…",
+      "voiceList": "Liste des voix",
+      "fallbackVoice": "Voix de repli",
+      "sameAsFo": "Même voix que le copilote",
+      "windowsDefaultVoice": "Voix Windows par défaut",
+      "noListPressRefresh": "Pas encore de liste de voix. Appuie sur Actualiser les voix.",
+      "emptyUsesFileShown": "Vide utilise le fichier affiché.",
+      "baseUrl": "URL de base",
+      "model": "Modèle",
+      "apiKey": "Clé API",
+      "timeout": "Délai d'attente",
+      "monthlyCharBudget": "Budget mensuel de caractères",
+      "hailReply": "Réponse à l'appel",
+      "cateringComplete": "Catering terminé",
+      "cruiseQuery": "Question en croisière",
+      "vSpeedTolerance": "Tolérance des vitesses V",
+      "pressNow": "Appuie sur la touche ou le bouton maintenant…",
+      "lampTitle": "S'allume tant que l'entrée assignée est maintenue"
+    },
+    "general": {
+      "title": "Copilote vocal",
+      "hint": "Les voix sont essayées dans l'ordre : Kokoro, ElevenLabs, Google, puis Windows",
+      "localOnly": {
+        "label": "Local uniquement",
+        "hint": "Ne jamais utiliser de voix réseau. La parole ne quitte jamais ce PC.",
+        "more": "Kokoro, ElevenLabs et Google sont ignorés sur tous les chemins."
+      },
+      "seat": {
+        "label": "Ton siège",
+        "hint": "Le siège d'où tu voles. Le copilote s'occupe de l'autre côté.",
+        "more": "Gauche : le copilote utilise le MCDU, l'EFIS et les commandes de droite. Droite : le copilote utilise le côté commandant. Le côté du MCDU change après un redémarrage de l'app."
+      },
+      "engineFlap": {
+        "label": "Réponses aux appels moteurs et volets",
+        "hint": "Le copilote répond à tes appels de démarrage moteur et de volets.",
+        "more": "Les appels de volets sont vérifiés contre les vitesses du placard. Verbal seulement : le copilote ne touche jamais aux manettes."
+      },
+      "engineStart": {
+        "label": "Surveillance du démarrage moteur",
+        "hint": "Le copilote annonce chaque démarrage : starting, available, both stabilized.",
+        "more": "Lu dans les données moteur au sol, une fois par démarrage. Aucun appel pilote nécessaire."
+      },
+      "pacing": {
+        "title": "Rythme humain",
+        "hint": "Des appuis sur les boutons à un tempo humain",
+        "humanize": {
+          "label": "Humaniser le rythme des boutons",
+          "hint": "Ajoute de petites pauses humaines entre les appuis.",
+          "more": "Désactivé : seulement les délais minimaux."
+        },
+        "tempo": {
+          "label": "Tempo",
+          "hint": "1.0 est normal, 2.0 est deux fois plus lent."
+        }
+      },
+      "playback": {
+        "title": "Lecture",
+        "outputDevice": {
+          "label": "Périphérique de sortie",
+          "hint": "Où la voix du copilote est jouée."
+        },
+        "volume": "Volume",
+        "intercomFilter": {
+          "label": "Filtre interphone",
+          "hint": "Donne au copilote le son d'un casque, pas celui d'un narrateur."
+        }
+      }
+    },
+    "persona": {
+      "title": "Persona du copilote",
+      "hint": "Formulation et ton seulement. Un chiffre, une annonce ou une ligne de check-list n'est jamais modifié",
+      "enabled": {
+        "hint": "Laisse la persona colorer ce que dit le copilote.",
+        "more": "Avec le modèle de langage désactivé, le seul effet est des accusés variés."
+      },
+      "name": {
+        "label": "Nom",
+        "hint": "Intégré au prompt de style du modèle (\"Your name is …\"). Vide = sans nom.",
+        "placeholder": "p. ex. Sam"
+      },
+      "experience": {
+        "label": "Expérience",
+        "hint": "À quel point le copilote semble aguerri."
+      },
+      "formality": {
+        "label": "Formalité",
+        "hint": "À quel point le copilote est formel avec toi."
+      },
+      "chattiness": {
+        "label": "Bavardage",
+        "hint": "0 garde tout court. 3 permet une chaleur naturelle.",
+        "more": "\"Quiet please\" coupe le bavardage pour la session, quelle que soit cette valeur."
+      },
+      "styles": {
+        "title": "Ce que la persona stylise",
+        "hint": "Chacun est vérifié contre les faits ; le texte brut est toujours le repli",
+        "briefings": "Briefings",
+        "debrief": "Débriefing",
+        "advisories": {
+          "label": "Avis",
+          "hint": "Les avis de flux et de météo passent par le modèle avant d'être dits.",
+          "more": "Seulement si la reformulation revient dans le délai ci-dessous ; sinon le texte brut parle."
+        },
+        "vary": {
+          "label": "Varier les accusés",
+          "hint": "Choisir les lignes \"are you sure\" / \"say again\" au hasard dans phrases.json plutôt qu'à tour de rôle."
+        },
+        "budget": {
+          "label": "Budget de reformulation des avis",
+          "hint": "Temps dont dispose le modèle pour reformuler un avis. Quand il est écoulé, le texte brut parle."
+        },
+        "poolsBefore": "Les réservoirs de phrases eux-mêmes sont dans",
+        "poolsMiddle": "sous",
+        "poolsAfter": "— modifie le fichier, le copilote le recharge."
+      }
+    },
+    "listening": {
+      "title": "Reconnaissance et Push-to-Talk",
+      "hint": "Comment le copilote t'entend",
+      "mode": {
+        "label": "Mode d'écoute",
+        "hint": "Push-to-talk : le copilote n'écoute que tant que ta touche copilote est maintenue.",
+        "more": "Continu : le copilote écoute dès qu'il attend une réponse, sauf tant que la touche ATC est maintenue. En réseau (VATSIM, IVAO, SayIntentions), assigne toujours ta touche d'émission ATC ci-dessous, pour que le copilote n'entende jamais ce que tu dis à l'ATC."
+      },
+      "foPtt": {
+        "label": "Push-to-talk copilote",
+        "hint": "La touche ou le bouton qui parle au copilote. Jamais ta touche ATC."
+      },
+      "atcPtt": {
+        "label": "Push-to-talk ATC (silence)",
+        "hint": "La touche ou le bouton que tu utilises pour parler à l'ATC. Tant qu'il est maintenu, le copilote n'écoute pas."
+      },
+      "atcMuteSource": {
+        "label": "Silence ATC depuis un interrupteur ProSim",
+        "hint": "Un interrupteur PTT de sidestick ou de micro à main dans ProSim. Tant qu'il est lu enfoncé, le copilote n'écoute pas — comme la touche ou le bouton ci-dessus, et sans joystick sur ce PC.",
+        "more": "Assigne ton bouton à l'interrupteur dans ProSim (il peut être sur un autre PC). Choisir un interrupteur push-to-talk SayIntentions dans la section SayIntentions met ici le même interrupteur tant que c'est encore sur Désactivé."
+      },
+      "joystickButtons": {
+        "label": "Écouter aussi les boutons de joystick",
+        "hint": "Désactivé : Définir ne capture qu'une touche du clavier. Activé : Définir surveille aussi les boutons de joystick de ce PC.",
+        "more": "La couche joystick de Windows a fait planter l'app sur certains PC (2026-09-20, 2026-10-10, 2026-10-11 — la dernière fois rien qu'en listant les périphériques à l'ouverture de cette page). La page ne lui parle plus que tant que ceci est activé ou quand tu appuies sur Rechercher. Un interrupteur ProSim (ci-dessus, et dans la section SayIntentions) n'a pas besoin de joystick sur ce PC."
+      },
+      "joysticks": {
+        "label": "Joysticks sur ce PC",
+        "notScanned": "Pas recherché.",
+        "scan": "Rechercher les joysticks"
+      },
+      "setHint": "Définir attend dix secondes une touche (et un bouton de joystick si coché ci-dessus). Enregistre ensuite ; les voyants ne s'allument que pour les assignations enregistrées.",
+      "inputDevice": {
+        "label": "Périphérique d'entrée",
+        "hint": "Le micro sur lequel le copilote écoute."
+      },
+      "trackUnmatched": {
+        "label": "Garder les phrases que le copilote n'a pas comprises",
+        "hint": "Conserve ce que tu as dit sans que rien n'agisse, pour que tu ajoutes les commandes que tu utilises vraiment.",
+        "more": "Listé sous Entendu mais pas compris sur la page d'état vocal et écrit dans le journal de session en voice.unmatched. Désactivé : rien n'est conservé ; la trace ASR du journal montre toujours chaque énoncé."
+      },
+      "matchScore": {
+        "label": "Score de correspondance de phrase",
+        "hint": "À quel point une phrase entendue doit être proche d'une phrase connue avant que le copilote n'agisse.",
+        "more": "0.5 Levenshtein + 0.5 DoubleMetaphone. Plus bas entend plus, se trompe plus."
+      },
+      "confirmBelow": {
+        "label": "Demander 'did you mean' en dessous de",
+        "hint": "Une correspondance entre le score ci-dessus et celui-ci fait demander au copilote 'Did you mean …?' au lieu d'agir.",
+        "more": "Mets-le égal au score de correspondance pour ne jamais demander."
+      },
+      "noConfirmBelow": {
+        "label": "Pas de 'did you mean' en dessous de",
+        "hint": "En vol sous cette hauteur radio le copilote ne demande jamais 'Did you mean …?'. Le roulage au décollage, la montée initiale et le roulage à l'atterrissage sont toujours silencieux.",
+        "more": "À ces moments une lecture FMA ou un appel de capture qui a correspondu à 0.70 ou mieux est simplement acquitté ('Checked.'), et tout le reste est laissé passer sans un mot — une question pendant le roulage ou 'did you mean gear up?' en montée est le pire bavardage qui soit. 0 = seulement les trois phases."
+      },
+      "offlineConfidence": {
+        "label": "Confiance du moteur hors ligne",
+        "hint": "Confiance minimale que doit rapporter le moteur Windows. Non utilisé avec un serveur LAN."
+      },
+      "server": {
+        "title": "Serveur de reconnaissance vocale",
+        "hint": "Un serveur de transcription sur ton réseau. Vide utilise le moteur Windows hors ligne",
+        "asrUrl": {
+          "label": "URL ASR LAN",
+          "hint": "Adresse du serveur, par exemple http://192.168.1.50:8000."
+        },
+        "flavour": {
+          "label": "Type de serveur ASR LAN",
+          "hint": "Doit correspondre au type de serveur qui tourne à cette adresse.",
+          "more": "Le mauvais type répond 404 à tout pendant que le contrôle de santé reste vert. Un avertissement est journalisé quand cela arrive."
+        },
+        "vad": {
+          "label": "Détection d'activité vocale",
+          "hint": "Comment le copilote décide que tu parles.",
+          "more": "Silero ignore le bruit des moteurs et la propre voix du copilote et entend les commandes à voix basse. RMS est l'ancienne porte d'énergie et le repli si le modèle Silero ne se charge pas. S'applique au prochain démarrage de l'écoute. D'autres réglages (vadMinSpeechMs, vadPreRollMs, vadMaxUtteranceMs) ne sont que dans settings.json."
+        },
+        "muteMic": {
+          "label": "Ignorer le micro pendant que le copilote parle",
+          "hint": "Activé : le copilote ne peut pas entendre sa propre voix par les haut-parleurs du cockpit et se répondre à lui-même. Désactivé seulement si tu dois parler par-dessus le copilote.",
+          "more": "Abandonne aussi une transcription qui répète ce que le copilote vient de dire, quel que soit le moment. Le 2026-10-10 une boucle VBAN a mis le copilote sur les haut-parleurs et il a discuté avec lui-même pendant des minutes."
+        },
+        "micTail": {
+          "label": "Traîne du micro après la parole du copilote",
+          "hint": "Combien de temps le micro reste ignoré après le dernier mot du copilote. Augmente-la pour un cockpit bruyant avec écho ; baisse-la si tes réponses rapides sont manquées."
+        },
+        "ownWords": {
+          "label": "Fenêtre des propres mots",
+          "hint": "Combien de temps après une phrase du copilote une transcription qui la répète est prise pour sa propre voix et abandonnée. Baisse-la si tes réponses qui reprennent les mots du copilote sont perdues ; augmente-la pour un long délai de haut-parleur.",
+          "more": "Ta réponse à un 'did you mean …?' et la réponse attendue de la ligne de check-list ouverte ne sont jamais abandonnées, quelle que soit la fenêtre."
+        },
+        "vadThreshold": {
+          "label": "Seuil VAD",
+          "hint": "Augmente-le si le bruit déclenche le copilote. Baisse-le si les commandes à voix basse sont manquées."
+        },
+        "endSilence": {
+          "label": "Silence de fin d'énoncé",
+          "hint": "Silence qui termine ta phrase. Augmente-le si les pauses coupent tes phrases."
+        }
+      },
+      "interphone": {
+        "title": "Émission interphone",
+        "hint": "Les appels d'équipage suivent le panneau audio du commandant",
+        "acpGating": {
+          "label": "Verrou d'émission ACP",
+          "hint": "Les appels au sol ou à la cabine demandent INT ou CAB sélectionné sur le panneau audio.",
+          "more": "Déplacer le sélecteur en plein appel raccroche. Désactivé, ou un ProSim plus ancien : les appels sont toujours acceptés."
+        },
+        "intRequired": {
+          "label": "Exiger la touche INT enfoncée",
+          "hint": "Les appels au sol demandent en plus la touche INT maintenue pendant que tu parles.",
+          "more": "Laisse désactivé sauf si ton panneau a la touche."
+        }
+      }
+    },
+    "sterile": {
+      "title": "Cockpit stérile",
+      "hint": "Un cockpit calme pendant les phases chargées",
+      "enabledHint": "Le copilote retient la parole non essentielle sous le plafond.",
+      "ceiling": {
+        "label": "Plafond",
+        "hint": "Stérile sous cette altitude en montée, descente et approche.",
+        "more": "La croisière et le sol ne sont jamais stériles."
+      },
+      "dropLow": {
+        "label": "Abandonner la parole de priorité Low",
+        "hint": "Les avis sont abandonnés en stérile, jamais rejoués."
+      },
+      "normalPolicy": {
+        "label": "Règle de priorité Normal",
+        "hint": "Ce qu'il advient de la parole normale en stérile.",
+        "more": "Autoriser est la valeur sûre. Les check-lists et les briefings sont en priorité normale et nécessaires en approche basse."
+      },
+      "exemptCabin": {
+        "label": "Exempter les rapports cabine",
+        "hint": "Les rapports cabine passent encore en stérile."
+      }
+    },
+    "voices": {
+      "fo": {
+        "title": "Voix du copilote",
+        "hint": "Une liste sur chaque fournisseur connecté, groupée par fournisseur et région. Rien n'est prérempli : seulement ce que chaque service rapporte",
+        "picker": {
+          "label": "Copilote",
+          "hint": "Le fournisseur qu'elle nomme parle en premier. Les autres prennent le relais quand il est en panne.",
+          "more": "Choisis parmi n'importe quel fournisseur connecté. Chaque fournisseur garde aussi une voix de repli sur son onglet sous Fournisseurs de voix, utilisée quand il remplace celui nommé ici. Vide garde l'ancien comportement : chaque fournisseur parle avec sa propre voix de repli."
+        },
+        "lists": {
+          "label": "Listes de voix",
+          "hint": "Lues depuis chaque fournisseur connecté à l'ouverture de la page."
+        },
+        "refreshAll": "Actualiser toutes les voix"
+      },
+      "crew": {
+        "title": "Voix de l'équipage",
+        "hint": "Qui parle pour la cabine, la compagnie et le personnel au sol. Vide est la voix du copilote",
+        "purser": {
+          "label": "Voix du chef de cabine",
+          "hint": "Rapports cabine sur l'interphone cabine."
+        },
+        "purserFilter": {
+          "label": "Filtre interphone du chef de cabine",
+          "hint": "Son de casque sur le chef de cabine."
+        },
+        "company": {
+          "label": "Voix de la compagnie",
+          "hint": "Messages du dispatch, lus comme de l'ACARS."
+        },
+        "companyFilter": {
+          "label": "Filtre interphone de la compagnie",
+          "hint": "Désactivé par défaut. Un message compagnie est une impression, pas un appel téléphonique."
+        },
+        "ground": {
+          "label": "Voix du personnel au sol",
+          "hint": "Réponses et appels du personnel au sol sur l'interphone."
+        },
+        "groundFilter": "Filtre interphone sol"
+      },
+      "accents": {
+        "title": "Localisation des accents",
+        "hint": "L'accent du personnel au sol suit le pays de l'aéroport",
+        "enabled": {
+          "hint": "Personnel au sol seulement. Chef de cabine et compagnie gardent les voix ci-dessus.",
+          "more": "Nécessite le fournisseur Google pour la plupart des accents. Le mode Local uniquement se rabat sur US ou UK."
+        },
+        "persona": {
+          "label": "Persona Chirp 3 HD",
+          "hint": "Persona de voix Google, par exemple Charon."
+        },
+        "overridesBefore": "Les surcharges par aéroport sont dans le fichier seulement :",
+        "overridesAfter": "dans config/settings.json (préfixe de code aéroport vers locale de voix)."
+      }
+    },
+    "groundCrew": {
+      "title": "Personnel au sol",
+      "hint": "Appelle le personnel au sol et entends ses appels",
+      "requireInt": {
+        "label": "Exiger INT sélectionné",
+        "hint": "La parole sol attend qu'INT soit sélectionné sur un panneau audio."
+      },
+      "intGrace": {
+        "label": "Délai de grâce INT",
+        "hint": "Après cette attente l'appel est joué quand même."
+      },
+      "mechCall": {
+        "label": "Appel MECH sur les appels du sol",
+        "hint": "Fait clignoter le voyant MECH quand le personnel au sol t'appelle."
+      },
+      "hailWindow": {
+        "label": "Fenêtre d'écoute après l'appel",
+        "hint": "Combien de temps l'équipe attend ta demande après avoir répondu."
+      },
+      "upcalls": {
+        "title": "Appels du sol",
+        "hint": "Chaque appel vient une fois par escale",
+        "groundPower": "Groupe de parc connecté",
+        "chocks": "Cales en place",
+        "refuel": {
+          "label": "Avitaillement terminé",
+          "hint": "Inclut la quantité de carburant."
+        }
+      },
+      "wording": {
+        "title": "Formulation du personnel au sol",
+        "hint": "Dite mot pour mot. {fuel} devient les tonnes à bord",
+        "standingBy": "En attente",
+        "groundPower": "Groupe de parc",
+        "chocks": "Cales",
+        "refuelComplete": "Avitaillement terminé"
+      }
+    },
+    "cabin": {
+      "title": "Équipage de cabine",
+      "hint": "Rapports du chef de cabine sur l'interphone cabine",
+      "secure": {
+        "label": "Rapport cabine sécurisée",
+        "hint": "Avant le décollage, une fois les portes fermées et le beacon allumé."
+      },
+      "secureMinWait": {
+        "label": "Cabine sécurisée : attente minimale",
+        "hint": "L'équipage a besoin de ce temps après portes fermées + beacon allumé avant le rapport. 0 = instantané."
+      },
+      "securePerPax": {
+        "label": "Cabine sécurisée : supplément par passager",
+        "hint": "Une part aléatoire de pax × ceci est ajoutée, tirée une fois par vol — parfois prêt après le repoussage, parfois à la piste.",
+        "more": "Passagers = le décompte embarqué de GSX, sinon le chiffre de l'OFP. Avec 45 s et 1 s/pax un A320 plein attend entre 45 s et environ 4 minutes. 0 = le minimum seulement."
+      },
+      "ready": {
+        "label": "Rapport cabine prête",
+        "hint": "En approche, sous l'altitude fixée ici."
+      },
+      "readyBelow": "Cabine prête en dessous de",
+      "foAck": "Le copilote acquitte les rapports",
+      "requireCab": {
+        "label": "Exiger CAB sélectionné",
+        "hint": "Le chef de cabine attend que CAB soit sélectionné sur un panneau audio, ou le délai de grâce."
+      },
+      "cabGrace": "Délai de grâce CAB",
+      "autoGround": {
+        "label": "Le copilote répond aux appels cabine au sol",
+        "hint": "Pendant le repoussage, le démarrage et le roulage de sortie, le copilote sélectionne CAB sur son panneau audio après le délai, pour que le rapport passe sans que tu touches l'ACP.",
+        "more": "C'est le seul endroit où l'équipage de cabine écrit dans l'avion : le verrou de réception CAB du panneau copilote (S_ASP2_CAB_REC_LATCH ; le panneau commandant si tu voles du siège droit), activé puis relâché après le rapport. Jamais pendant que le copilote est en plein dialogue avec toi, jamais dans une autre phase. Désactivé par défaut."
+      },
+      "groundDelay": "Délai de réponse au sol",
+      "autoAir": {
+        "label": "Le copilote répond aux appels cabine en vol",
+        "hint": "En descente et en approche le copilote répond à l'appel cabine prête après le délai."
+      },
+      "airDelay": "Délai de réponse en vol",
+      "chime": "Carillon interphone avant les appels",
+      "dingStartup": {
+        "label": "Carillon au démarrage",
+        "hint": "Carillon cabine quand l'app démarre."
+      },
+      "dingFinal": {
+        "label": "Carillon au loadsheet final",
+        "hint": "Carillon cabine quand le loadsheet final est envoyé."
+      },
+      "ambient": {
+        "label": "Événements d'ambiance",
+        "hint": "De temps en temps le chef de cabine signale un retard d'embarquement."
+      },
+      "boardingDelayProb": {
+        "label": "Probabilité de retard d'embarquement",
+        "hint": "0.2 est un vol sur cinq."
+      },
+      "cruiseQuery": {
+        "label": "Question du chef de cabine en croisière",
+        "hint": "Une fois par vol en croisière le chef de cabine appelle : 'Flight deck, cabin. Any update on arrival time or turbulence for the service?' — puis écoute ta réponse.",
+        "more": "Carillon et canal CAB comme pour chaque rapport. Réponds avec tes mots : une heure ('about forty minutes', 'on time', 'ten minutes late') ou le confort ('smooth', 'light chop', 'expect some bumps') reçoit l'accusé correspondant, tout le reste 'copied, thank you', le silence 'we'll check back later'. La réponse est seulement acquittée — jamais lue comme une commande. Une réponse libre demande le serveur vocal LAN ; le moteur Windows hors ligne entend une courte liste de réponses probables. L'appel attend tant que l'oreille du copilote est en pause ou qu'un autre dialogue a le micro, et est sauté si la descente commence avant."
+      },
+      "cruiseQueryAfter": {
+        "label": "Question en croisière après",
+        "hint": "Minutes de croisière avant que le chef de cabine n'appelle, à trente pour cent près."
+      },
+      "cruiseQueryWindow": {
+        "label": "Fenêtre de réponse de la question",
+        "hint": "Combien de temps le chef de cabine écoute ta réponse."
+      },
+      "wording": {
+        "title": "Formulation cabine",
+        "hint": "Dite mot pour mot",
+        "hailReplyHint": "Réponse à \"cockpit to cabin\".",
+        "securingReply": {
+          "label": "Réponse à l'appel pendant la sécurisation",
+          "hint": "Réponse à un appel tant que l'attente cabine sécurisée est en cours."
+        },
+        "secure": "Cabine sécurisée",
+        "secureAck": "Cabine sécurisée — accusé copilote",
+        "ready": "Cabine prête",
+        "readyAck": "Cabine prête — accusé copilote",
+        "boardingDelay": "Retard d'embarquement",
+        "cruiseQueryHint": "La question du chef de cabine en croisière.",
+        "eta": {
+          "label": "Question en croisière — réponse horaire",
+          "hint": "Après une réponse donnant une heure ou l'arrivée."
+        },
+        "ride": {
+          "label": "Question en croisière — réponse confort",
+          "hint": "Après une réponse sur la turbulence ou un vol calme."
+        },
+        "generic": "Question en croisière — toute autre réponse",
+        "noReply": {
+          "label": "Question en croisière — sans réponse",
+          "hint": "Quand la fenêtre se ferme en silence."
+        }
+      }
+    },
+    "company": {
+      "title": "Canal compagnie",
+      "hint": "Messages du dispatch lus comme de l'ACARS : le loadsheet, et de temps en temps un message en croisière",
+      "autoLoadsheet": {
+        "label": "Lire le loadsheet automatiquement",
+        "hint": "Avant le départ, dès que le loadsheet final est arrivé. Désactivé : seulement sur \"request loadsheet\" ou le bouton web."
+      },
+      "chime": {
+        "label": "Carillon ACARS avant les messages",
+        "hint": "Le double bip avant une livraison compagnie."
+      },
+      "cruiseMessages": {
+        "label": "Messages en croisière",
+        "hint": "Un court message compagnie en croisière, sur certains vols.",
+        "more": "Modèle déterministe autour des faits de la destination. Désactivé par défaut."
+      },
+      "cruiseProb": {
+        "label": "Probabilité de message en croisière",
+        "hint": "0.15 est environ un vol sur sept, tiré une fois par vol."
+      },
+      "persist": {
+        "label": "Enregistrer le loadsheet parlé",
+        "hint": "Écrit à côté du journal de session en *.loadsheet.txt, avec le loadsheet EFB brut."
+      },
+      "debrief": {
+        "title": "Débriefing après vol",
+        "hint": "Dit à l'arrêt moteurs à partir de ce que la session a enregistré",
+        "length": {
+          "label": "Longueur",
+          "hint": "Bref omet les décomptes d'activité et les lignes de carburant consommé."
+        },
+        "style": {
+          "label": "Styliser avec le modèle de langage",
+          "hint": "Formulation plus chaleureuse, chaque chiffre vérifié. Désactivé : le modèle brut.",
+          "more": "Utilise le modèle configuré sous Briefings et LLM. Avec ce modèle désactivé, ceci n'a aucun effet."
+        }
+      },
+      "day": {
+        "title": "Journée compagnie",
+        "hint": "Suivi de service multi-secteurs : temps bloc et de service, résumés d'escale, bilan de fin de journée. Pas un calcul de limitations de temps de vol",
+        "track": {
+          "label": "Suivre les journées de service automatiquement",
+          "hint": "Désactivé : \"start duty day\" et la page /day fonctionnent toujours à la main."
+        },
+        "autoStart": "Commencer au premier prévol",
+        "turnaround": {
+          "label": "Dire le résumé d'escale",
+          "hint": "Aux cales : temps bloc, écart à l'horaire, points ouverts du tech log."
+        },
+        "allowance": {
+          "label": "Marge après vol",
+          "hint": "Minutes ajoutées après les dernières cales pour le temps de service."
+        },
+        "autoClose": {
+          "label": "Fermer automatiquement après inactivité",
+          "hint": "Fermer une journée ouverte après ce temps d'inactivité en escale. 0 = jamais."
+        },
+        "rotations": {
+          "label": "Dossier des rotations planifiées",
+          "hint": "Un fichier JSON par journée planifiée. Le README.txt du dossier montre le format. Vide utilise le dossier affiché."
+        },
+        "stateFile": "Fichier d'état de la journée"
+      }
+    },
+    "techLog": {
+      "title": "Tech Log et MEL",
+      "hint": "La couche paperasse : catégories de report, dates d'échéance, briefings prévol. Jamais une panne, jamais une écriture de dataref",
+      "offer": {
+        "label": "Proposer des entrées tech log après une anomalie",
+        "hint": "Après l'arrêt, le copilote propose de consigner chaque anomalie traitée sur ce vol. Silencieux sur un vol normal."
+      },
+      "wear": {
+        "label": "Usure aléatoire",
+        "hint": "Une petite chance par vol qu'un défaut cabine bénin apparaisse à l'arrêt, tiré du réservoir d'usure."
+      },
+      "rectify": {
+        "label": "Rectifier à la date d'échéance",
+        "hint": "Clôturer de lui-même les défauts ouverts quand leur date MEL passe.",
+        "more": "Désactivé par défaut : la rectification est censée être ton action de maintenance."
+      },
+      "openItems": {
+        "label": "Points ouverts dans les briefings",
+        "hint": "Le briefing départ nomme les points ouverts ; le briefing arrivée seulement ceux qui affectent l'atterrissage.",
+        "more": "Trois titres au plus, puis 'and N more'. Pertinent pour l'atterrissage = catégorie MEL A ou B, ou un point sur les freins, le train, les spoilers, les inverseurs, l'autobrake ou l'anti-skid. Les titres sont dits tels qu'écrits."
+      },
+      "flagLines": {
+        "label": "Signaler les lignes de check-list",
+        "hint": "Une ligne de check-list dite sur un système avec un point ouvert reçoit 'note, open tech log item: …' après le challenge.",
+        "more": "Les lignes portent une étiquette système dans le JSON de la check-list (apu, gear, autobrake, anti-ice, …) ; les check-lists livrées étiquettent les évidentes. Le champ Système d'un point sur la page Tech Log, ou un mot de son titre, est ce que l'étiquette compare. Une fois par point et par passage de check-list."
+      },
+      "intervals": "Intervalles de réparation MEL",
+      "categoryA": "Catégorie A",
+      "categoryB": "Catégorie B",
+      "categoryC": "Catégorie C",
+      "categoryD": "Catégorie D",
+      "file": "Fichier tech log",
+      "wearPool": {
+        "label": "Fichier du réservoir d'usure",
+        "hint": "Vide utilise le réservoir livré à côté de l'exe."
+      },
+      "raiseBefore": "Ouvre et rectifie les défauts sur la page",
+      "raiseLink": "Tech Log",
+      "raiseAfter": "ou à la voix (\"raise a defect\", \"log a snag\").",
+      "logbook": {
+        "title": "Carnet de vol du pilote",
+        "hint": "Chaque vol terminé est intégré à l'arrêt ; les totaux sont calculés à l'affichage",
+        "file": "Fichier du carnet de vol",
+        "flightsBefore": "Les vols, la tendance de toucher et l'export CSV sont sur la page",
+        "flightsLink": "Carnet de vol",
+        "flightsAfter": "."
+      }
+    },
+    "sayIntentions": {
+      "title": "SayIntentions",
+      "hint": "ATC en ligne : demandes radio, météo, CPDLC et porte d'arrivée",
+      "use": {
+        "label": "Utiliser SayIntentions",
+        "hint": "Active toutes les fonctions SayIntentions.",
+        "more": "Les demandes vocales exigent SayIntentions en marche avec un vol actif. La météo n'exige que la clé API."
+      },
+      "apiKeySourceHint": "Auto lit la clé dans le flight.json de SayIntentions.",
+      "manualKey": {
+        "label": "Clé API manuelle",
+        "hint": "Utilisée seulement avec Manuel. Jamais journalisée."
+      },
+      "ptt": {
+        "label": "Push-to-talk depuis le cockpit",
+        "hint": "Un interrupteur PTT ProSim active SayIntentions. Assigne d'abord dans ProSim ton bouton de sidestick ou de micro à main à cet interrupteur.",
+        "more": "À chaque appui l'app met la LVAR de contrôle SayIntentions à 1, au relâchement à 0, via SimConnect — le 'Map PTT inside the sim with an LVAR' du client. Aucune interrogation de joystick. Nécessite MSFS en marche. Le journal de session montre chaque appui et si SayIntentions a émis."
+      },
+      "pttControl": {
+        "label": "Contrôle PTT SayIntentions",
+        "hint": "Quelle radio ou interphone SayIntentions le bouton active. Le PTT radio COM est celui dont presque tout le monde a besoin."
+      },
+      "phraseology": "Phraséologie",
+      "foSpeaks": {
+        "label": "Le copilote dit l'émission",
+        "hint": "Le copilote dit l'appel radio à voix haute avant son envoi.",
+        "more": "Désactive si SayIntentions le joue aussi (double audio)."
+      },
+      "autoTune": {
+        "label": "Afficher la fréquence automatiquement",
+        "hint": "Afficher la station correspondante avant d'émettre."
+      },
+      "departureGate": {
+        "label": "Porte comms départ (ancienne)",
+        "hint": "Ancienne : les comms te reviennent près de la piste, d'après la distance propre à SayIntentions.",
+        "more": "Ignorée tant que la carte Transfert des comms ci-dessous est activée — ce flux utilise les données de piste de l'app et la phase de vol, qui manquaient à l'ancienne porte sur le vol du 2026-10-10 (elle ne s'est jamais déclenchée)."
+      },
+      "gateDistance": {
+        "label": "Distance de la porte (ancienne)",
+        "hint": "Distance à la piste où l'ancienne porte te rend les comms."
+      },
+      "wrongFreq": {
+        "label": "Signalement de mauvaise fréquence",
+        "hint": "Le copilote te dit quand COM1 n'est pas sur la fréquence que l'ATC t'a donnée.",
+        "more": "Il utilise la dernière instruction 'Contact … on …' de l'ATC et le dit une fois. Il se tait à la porte, et quand il ne peut pas lire l'instruction."
+      },
+      "waitBefore": {
+        "label": "Attente avant le signalement",
+        "hint": "Combien de temps COM1 peut d'abord rester sur une autre fréquence."
+      },
+      "arrivalGate": {
+        "label": "Porte d'arrivée depuis l'ATC",
+        "hint": "Utiliser la porte assignée par l'ATC SayIntentions comme porte d'arrivée GSX.",
+        "more": "Seule compte une porte différente du poste de départ et apparue à partir de la montée. Une porte que tu fixes toi-même sur la page OFP gagne toujours. Après l'atterrissage la porte part tout de suite vers GSX. Désactivé par défaut : le choix de l'ATC peut ne pas exister dans la scène chargée."
+      },
+      "handover": {
+        "title": "Transfert des comms",
+        "hint": "Qui tient les radios dans chaque phase : toi ou le copilote SayIntentions",
+        "enabled": {
+          "label": "Transférer les radios selon la phase de vol",
+          "hint": "Le copilote les a à la porte, au roulage et en croisière ; tu les prends au point d'attente et en approche.",
+          "more": "Chaque transfert est une ligne du copilote et un événement de session. Dis 'I have the radios' ou 'you have the radios' pour forcer à tout moment. Activer ceci rend l'ancienne porte comms départ ci-dessus sans objet."
+        },
+        "gate": {
+          "label": "Porte : le copilote prend les radios",
+          "hint": "Quand SayIntentions démarre un vol au sol, le copilote gère la clairance, le repoussage et le démarrage."
+        },
+        "taxi": {
+          "label": "Le copilote lit la clairance de roulage",
+          "hint": "Tant que le copilote a les radios, il te lit l'instruction de roulage de l'ATC.",
+          "more": "Depuis l'historique des comms de SayIntentions, vérifié toutes les 20 secondes — la ligne peut avoir ce retard sur l'échange."
+        },
+        "handoffs": {
+          "label": "Le copilote annonce les transferts",
+          "hint": "Tant que le copilote a les radios, il te dit chaque 'Contact … on …' donné par l'ATC, au sol et en vol."
+        },
+        "holding": {
+          "label": "Point d'attente : tu prends les radios",
+          "hint": "Au roulage de sortie, près de la piste de départ, les radios deviennent les tiennes pour la demande et la clairance de décollage.",
+          "more": "La piste vient du FMS (sinon du plan SayIntentions) et son seuil de la liste des pistes de ProSim ou des données Navigraph. Sans piste connue cette étape ne peut pas se déclencher."
+        },
+        "holdingDistance": {
+          "label": "Distance du point d'attente",
+          "hint": "À quelle distance du seuil de piste on compte comme au point d'attente."
+        },
+        "tuneTower": {
+          "label": "Afficher la Tour au point d'attente",
+          "hint": "COM1 passe sur la Tour quand tu prends les radios là, si une fréquence Tour est connue.",
+          "more": "D'abord le dernier 'Contact Tower on …' de l'ATC, sinon la liste des fréquences de l'aéroport. Via SayIntentions, jamais un interrupteur du cockpit."
+        },
+        "climb": {
+          "label": "Montée : le copilote reprend les radios",
+          "hint": "Après la clairance de décollage et le premier transfert départ, en montée."
+        },
+        "approach": {
+          "label": "Approche : tu prends les radios",
+          "hint": "Pour la clairance d'atterrissage — en approche, ou dès que l'ATC te passe à la Tour en descente."
+        },
+        "taxiIn": {
+          "label": "Roulage d'arrivée : le copilote reprend les radios",
+          "hint": "Une fois dégagé de la piste."
+        },
+        "voiceOverride": {
+          "label": "Forçage vocal",
+          "hint": "'I have the radios' / 'you have the radios' bascule qui les a, à tout moment."
+        },
+        "holdingLine": {
+          "label": "Ligne du copilote au point d'attente",
+          "hint": "Dite quand tu prends les radios au point d'attente."
+        },
+        "approachLine": {
+          "label": "Ligne du copilote en approche",
+          "hint": "Dite quand tu prends les radios pour l'atterrissage."
+        },
+        "copilotLine": {
+          "label": "Ligne du copilote quand il prend les radios",
+          "hint": "Dite à la porte, en montée et au roulage d'arrivée."
+        },
+        "captainLine": {
+          "label": "Ligne du copilote quand tu prends les radios à la voix",
+          "hint": "Dite après 'I have the radios'."
+        }
+      },
+      "weather": {
+        "title": "Météo SayIntentions",
+        "hint": "ATIS, METAR, TAF et CPDLC. N'exige que la clé API",
+        "cacheTtl": {
+          "label": "Durée de vie du cache",
+          "hint": "Combien de temps un bulletin météo est conservé."
+        },
+        "debounce": {
+          "label": "Anti-rebond d'actualisation",
+          "hint": "Intervalle minimal entre deux actualisations."
+        }
+      }
+    },
+    "providers": {
+      "kokoro": {
+        "title": "Kokoro (TTS neuronal local)",
+        "hint": "Voix neuronales gratuites d'un serveur Kokoro sur ce PC ou ton réseau. Essayé en premier",
+        "baseUrl": {
+          "tally": "URL de base Kokoro",
+          "hint": "Adresse du serveur, par exemple http://192.168.1.50:8880. Vide désactive Kokoro."
+        },
+        "fallback": {
+          "hint": "Utilisée quand Kokoro remplace le fournisseur nommé par le copilote ou une voix d'équipage. Choisis les voix principales sur la page Voix.",
+          "more": "La note est l'estimation par Kokoro de la quantité et de la propreté de l'audio d'entraînement, de A à F. Les voix britanniques et américaines font un copilote utilisable ; les autres langues lisent mal l'anglais.",
+          "empty": "Pas encore de liste de voix. Saisis l'adresse du serveur et appuie sur Actualiser les voix."
+        },
+        "listHint": "Lue depuis le serveur à l'ouverture de la page. Actualise après avoir ajouté une voix mélangée.",
+        "connectTimeout": {
+          "label": "Délai de connexion",
+          "hint": "Attente de la réponse du serveur.",
+          "more": "Court exprès. Un serveur endormi passe à la voix suivante au lieu de bloquer une annonce."
+        },
+        "bodyTimeout": {
+          "label": "Délai du corps",
+          "hint": "Temps accordé à l'arrivée de l'audio.",
+          "more": "Plus 100 ms par caractère, pour qu'un long briefing ne déclenche jamais la pause de 60 s."
+        },
+        "cacheCap": {
+          "label": "Plafond de cache par voix",
+          "hint": "0 est sans limite."
+        }
+      },
+      "elevenLabs": {
+        "title": "ElevenLabs",
+        "hint": "Voix neuronales cloud payantes avec ta propre clé. En cache, avec un budget mensuel. Essayé après Kokoro et avant Google",
+        "apiKey": {
+          "hint": "Depuis elevenlabs.io, ton profil, API keys. Vide désactive ElevenLabs. Jamais journalisée.",
+          "more": "Le plan Free convient aux tests mais n'a pas de licence commerciale. Starter et au-delà sont licenciés."
+        },
+        "fallback": {
+          "hint": "Utilisée quand ElevenLabs remplace le fournisseur nommé par le copilote ou une voix d'équipage. Choisis les voix principales sur la page Voix.",
+          "more": "ElevenLabs a besoin d'une voix ici pour compter comme configuré ; choisir une voix ElevenLabs pour le copilote la remplit pour toi.",
+          "empty": "Pas encore de liste de voix. Saisis la clé et appuie sur Actualiser les voix."
+        },
+        "listHint": "Les voix préfabriquées ElevenLabs, lues avec la clé ci-dessus.",
+        "modelHint": "Flash est rapide et coûte moitié prix. v3 est le plus expressif, plus lent et plein tarif.",
+        "format": {
+          "label": "Format de sortie",
+          "hint": "MP3 marche sur tous les plans et est décodé sur ce PC. PCM demande un plan payant et saute le décodage."
+        },
+        "stability": {
+          "label": "Stabilité",
+          "hint": "0 à 1. Plus haut est plus régulier et moins expressif."
+        },
+        "similarity": {
+          "label": "Similarité",
+          "hint": "0 à 1. À quel point la sortie suit la voix d'origine."
+        },
+        "speed": {
+          "label": "Vitesse",
+          "hint": "0.7 à 1.2. 1.0 est le rythme naturel de la voix."
+        },
+        "budget": {
+          "hint": "ElevenLabs s'arrête pour le mois à ce nombre de caractères. 0 est sans limite.",
+          "more": "Crédits du plan par mois : Free 10 000, Starter 30 000, Creator 121 000. Flash coûte environ un demi-crédit par caractère. La voix suivante de la chaîne prend le relais."
+        },
+        "maxChars": {
+          "label": "Caractères max par requête",
+          "hint": "Les textes plus longs sautent ElevenLabs et utilisent la voix suivante. 0 est sans limite.",
+          "more": "Le plan Free limite une génération à environ 2 500 caractères."
+        },
+        "normalisation": {
+          "label": "Normalisation du texte",
+          "hint": "Laisser ElevenLabs développer lui-même les nombres et abréviations.",
+          "more": "Désactivé est le bon choix pour le copilote : l'app écrit déjà les nombres tels qu'on les prononce, et le normaliseur ElevenLabs massacre les mots d'aviation."
+        },
+        "usageBefore": "Consommation ce mois-ci :",
+        "usageMiddle": "caractères (comptés dans",
+        "usageAfter": "dans le dossier de cache).",
+        "baseUrl": {
+          "tally": "URL de base ElevenLabs",
+          "hint": "Ne change ceci que pour un proxy ou un point d'accès régional."
+        },
+        "timeoutHint": "Requête entière. La voix suivante prend le relais quand il est écoulé."
+      },
+      "google": {
+        "title": "Google Cloud TTS (Chirp 3 HD)",
+        "hint": "Voix neuronales payantes. En cache, avec un budget mensuel. Essayé après ElevenLabs",
+        "keyFile": {
+          "label": "Fichier de clé du compte de service",
+          "hint": "Chemin de la clé JSON du compte de service. Vide désactive Google. Jamais journalisé."
+        },
+        "fallback": {
+          "hint": "Utilisée quand Google remplace le fournisseur nommé par le copilote ou une voix d'équipage. Choisis les voix principales sur la page Voix.",
+          "more": "Google a besoin d'une voix ici pour compter comme configuré ; choisir une voix Google pour le copilote la remplit pour toi. La persona de localisation des accents (page Voix) est aussi une voix Google.",
+          "empty": "Pas encore de liste de voix. Saisis le chemin du fichier de clé et appuie sur Actualiser les voix."
+        },
+        "listHint": "Les voix Chirp 3 HD de Google, lues avec le fichier de clé ci-dessus.",
+        "budget": {
+          "hint": "Google s'arrête pour le mois à ce nombre de caractères. 0 est sans limite.",
+          "more": "Le palier gratuit est de 1 000 000 de caractères. Les voix hors ligne prennent le relais."
+        }
+      },
+      "windows": {
+        "title": "Voix Windows",
+        "hint": "Voix hors ligne sur ce PC, toujours disponibles. Les deux dernières de la chaîne",
+        "winrt": {
+          "label": "Voix de repli WinRT",
+          "hint": "Vide utilise la voix Windows par défaut.",
+          "more": "Ceci atteint les voix \"Natural\" de Windows 11."
+        },
+        "sapi": {
+          "label": "Voix de repli SAPI5",
+          "hint": "Voix de dernier recours. Vide utilise la voix Windows par défaut."
+        },
+        "listHint": "Les voix installées sur ce PC.",
+        "note": "WinRT : {0}. SAPI5 : {1}."
+      },
+      "cache": {
+        "title": "Cache",
+        "folder": {
+          "label": "Dossier de cache TTS",
+          "hint": "Vide utilise le dossier affiché.",
+          "more": "Un dossier par fournisseur et par voix. Le compteur de consommation y vit aussi."
+        }
+      }
+    },
+    "mcdu": {
+      "title": "MCDU",
+      "hint": "MCDU vocal : la lecture marche toujours, les appuis de touches doivent être armés",
+      "enabledHint": "Lire le MCDU, afficher l'ILS et changer la piste d'arrivée à la voix.",
+      "actuation": {
+        "label": "Autoriser l'actionnement",
+        "hint": "Laisser le copilote appuyer sur les touches du MCDU.",
+        "more": "Désactivé : lecture seule. Les commandes répondent que les appuis de touches sont désactivés."
+      },
+      "verifyPause": {
+        "label": "Pause de vérification",
+        "hint": "Le copilote annonce le changement, puis attend ce temps pour que tu puisses annuler."
+      }
+    },
+    "briefing": {
+      "title": "Briefings",
+      "hint": "Briefings départ et arrivée à partir des données de navigation et de la météo",
+      "source": {
+        "label": "Source des procédures",
+        "hint": "D'où viennent la piste, la SID, la STAR et l'approche.",
+        "more": "Auto essaie le plan FMS, puis SayIntentions, puis les entrées manuelles ci-dessous, champ par champ."
+      },
+      "verify": {
+        "label": "Vérifier les chiffres de la sortie LLM",
+        "hint": "Chaque chiffre écrit par le LLM est vérifié contre les faits.",
+        "more": "Une vérification échouée se rabat sur le modèle brut."
+      },
+      "dfdBefore": "Le chemin de la base DFD Navigraph se trouve sous",
+      "dfdLink": "Installation → Données de navigation",
+      "dfdAfter": ".",
+      "manual": {
+        "title": "Surcharges manuelles de procédure",
+        "hint": "Utilisées quand le FMS ou SayIntentions ne peuvent pas remplir un champ, ou toujours en mode Manuel",
+        "depAirport": {
+          "label": "Aéroport de départ",
+          "hint": "OACI, p. ex. YSSY"
+        },
+        "depRunway": {
+          "label": "Piste de départ",
+          "hint": "p. ex. 16R"
+        },
+        "sid": {
+          "label": "SID",
+          "hint": "Identifiant, p. ex. FISHA1"
+        },
+        "arrAirport": {
+          "label": "Aéroport d'arrivée",
+          "hint": "OACI, p. ex. YMML"
+        },
+        "arrRunway": {
+          "label": "Piste d'arrivée",
+          "hint": "p. ex. 34"
+        },
+        "star": {
+          "label": "STAR",
+          "hint": "Identifiant, p. ex. RAZZI4"
+        },
+        "approach": {
+          "label": "Approche",
+          "hint": "Par exemple I16R. Vide choisit la meilleure approche publiée, ILS d'abord.",
+          "more": "Demande au copilote \"which approach\" pour entendre les candidates."
+        }
+      },
+      "minima": {
+        "title": "Saisie des minima",
+        "hint": "Le copilote demande les minimums pendant le briefing d'arrivée",
+        "interactive": {
+          "label": "Saisie interactive",
+          "hint": "Le copilote demande, relit et arme les annonces de minimums.",
+          "more": "Une valeur déjà fixée dans la section État saute la question. Fonctionne mieux avec un serveur de transcription."
+        },
+        "listenTimeout": {
+          "label": "Délai d'écoute",
+          "hint": "Combien de temps le copilote attend ta réponse."
+        },
+        "maxRetries": {
+          "label": "Tentatives max",
+          "hint": "Essais échoués avant que le briefing ne continue comme non briefé."
+        }
+      },
+      "missed": {
+        "title": "Re-briefing d'approche interrompue",
+        "hint": "Après une remise de gaz le copilote lit l'approche interrompue",
+        "enabled": {
+          "hint": "Attend le délai et le train rentré, pour que tu pilotes d'abord.",
+          "more": "Sans segments publiés le copilote donne un rappel à la place."
+        },
+        "delay": "Délai",
+        "hardCeiling": {
+          "label": "Plafond dur",
+          "hint": "Parle au plus tard à ce moment même si le train ne rentre jamais."
+        }
+      },
+      "llm": {
+        "title": "Stylisation LLM",
+        "hint": "Un modèle de langage pour la prose du briefing et du débriefing",
+        "enabledHint": "Désactivé : modèles bruts seulement. Rien ne quitte ce PC.",
+        "stream": {
+          "label": "Parler pendant que le modèle écrit",
+          "hint": "Le copilote commence à parler après la première phrase, pas après toute la réponse. Chaque phrase est vérifiée avant d'être dite.",
+          "more": "Si une phrase a un mauvais chiffre, ou si le modèle s'arrête, le modèle brut termine le briefing. Rien ne repart du début. Désactivé : le copilote attend toute la réponse (l'ancien comportement)."
+        },
+        "apiFlavour": {
+          "label": "Type d'API",
+          "hint": "Choisis Ollama quand l'adresse est un serveur Ollama.",
+          "more": "Seul le type Ollama peut couper la réflexion du modèle."
+        },
+        "baseUrl": {
+          "tally": "URL de base LLM",
+          "hint": "Style OpenAI : la racine de l'API, p. ex. https://api.openai.com/v1. Ollama : la racine du serveur, p. ex. http://localhost:11434."
+        },
+        "apiKeyHint": "Jamais journalisée. Vide pour les serveurs locaux sans clé.",
+        "modelHint": "Nom du modèle, p. ex. gpt-4o-mini ou qwen3.6:27b. Vide désactive la stylisation.",
+        "thinking": {
+          "label": "Activer la réflexion du modèle (plus lent, raisonnement plus profond)",
+          "hint": "Laisse un modèle réfléchissant raisonner d'abord. Lent : souvent 10 s ou plus.",
+          "more": "Ollama seulement. Laisse désactivé pour les briefings."
+        },
+        "maxTokens": "Tokens max",
+        "timeoutHint": "Par appel. Un briefing stylisé peut faire deux appels.",
+        "testBefore": "Enregistre, puis appuie sur \"Tester la connexion LLM\" dans la",
+        "testLink": "section État",
+        "testAfter": "."
+      },
+      "ask": {
+        "title": "Demander au copilote",
+        "hint": "Questions libres, répondues par le modèle de langage à partir de faits en direct. Parlées seulement — jamais exécutées",
+        "enabled": {
+          "hint": "Demande simplement : 'what is our fuel on board', 'how long to top of descent', 'tell me the destination weather'. Le copilote répond avec ce que l'app sait à l'instant.",
+          "more": "Nécessite le LLM ci-dessus et le serveur LAN de reconnaissance vocale (le moteur Windows hors ligne n'entend que les phrases exactes). Chaque chiffre de la réponse est vérifié contre les faits en direct ; une réponse invérifiable devient 'I don't have a verified answer for that'. Une question n'est tentée qu'après que chaque phrase exacte a été écartée, donc rien de ce que tu pouvais dire avant ne change. En cockpit stérile (sous le plafond stérile en montée, descente et approche) une question est entendue mais pas répondue."
+        },
+        "smallTalk": {
+          "label": "Bavardage et anecdotes",
+          "hint": "Demande n'importe quoi : 'who is better, Chelsea or Arsenal', 'tell me a fun fact', 'what is the capital of Peru'. Le copilote répond de culture générale, dans son rôle, en une ou deux phrases légères.",
+          "more": "Une question qui mentionne le vol (carburant, masses, vitesses, altitude, piste, météo, heures, passagers…) suit toujours la voie stricte : fiche de faits seulement, chaque chiffre vérifié. Sur la voie du bavardage les chiffres ne sont pas vérifiés — ce sont des anecdotes — mais une phrase sur ce vol avec un chiffre est refusée et le copilote dit 'I don't have a verified answer for that'. Avec ceci activé, aucun mot d'amorce n'est nécessaire : toute phrase de quatre mots ou plus qui n'a rien reconnu d'autre et a la forme d'une question (un mot interrogatif en tête, ou le point d'interrogation du reconnaisseur) va au copilote ; une simple remarque n'est pas envoyée. Toujours parole seulement, toujours silencieux en cockpit stérile."
+        },
+        "roger": {
+          "label": "Répondre aux accusés par 'Roger'",
+          "hint": "'No questions, thank you for the briefing', 'copied', 'okay thanks' : activé, le copilote dit 'Roger.' ; désactivé, rien du tout.",
+          "more": "Dans les deux cas ces mots ne vont jamais au modèle de langage et ne méritent jamais un 'didn't catch that'. Avec le bavardage activé, seule une chose ayant la forme d'une question (mot interrogatif en tête, ou point d'interrogation du reconnaisseur) est envoyée au modèle."
+        },
+        "flyingOver": {
+          "label": "'What are we flying over?'",
+          "hint": "Demande 'what are we flying over', 'where are we', 'what is that city on the left'. Le copilote nomme le pays, les montagnes ou la mer et les villes les plus proches avec distance et côté — aussitôt, d'après un atlas dans l'app — puis ajoute un fait ou deux à leur sujet.",
+          "more": "La ligne de position vient d'un atlas hors ligne intégré (contours Natural Earth, villes GeoNames — voir le manuel pour l'attribution), jamais du modèle de langage, donc sans internet et toujours identique au même endroit. Les faits qui suivent viennent du LLM : avec 'Faits Wikipédia' désactivé, de sa propre connaissance, comme le bavardage (chiffres non vérifiés, rien sur ce vol). Aucun mot d'amorce ni longueur minimale pour ces phrases. Fonctionne avec le bavardage désactivé."
+        },
+        "wikipedia": {
+          "label": "Faits Wikipédia",
+          "hint": "Avec l'interrupteur ci-dessus : récupérer un court résumé Wikipédia de la ville la plus proche et faire prendre au copilote ses faits là plutôt que dans la mémoire du modèle.",
+          "more": "Une petite requête vers en.wikipedia.org par lieu, limite de trois secondes, servie depuis un cache après la première fois. Si elle échoue ou ne trouve rien, le copilote donne quand même la position et se rabat sur la connaissance du modèle. Rien sur toi ni sur le vol n'est envoyé — seulement le nom du lieu."
+        },
+        "leadIns": {
+          "label": "Amorces de question",
+          "hint": "Séparées par des virgules. Un énoncé doit commencer par l'une d'elles pour compter comme question (inutile avec le bavardage activé)."
+        },
+        "minWords": {
+          "label": "Mots minimum",
+          "hint": "Les énoncés plus courts ne sont jamais des questions — ce sont des phrases exactes mal entendues."
+        },
+        "timeBudget": {
+          "label": "Budget de temps",
+          "hint": "De la question au premier mot dit. Passé ce délai le copilote abandonne avec la ligne fixe."
+        },
+        "standBy": {
+          "label": "'Stand by' après",
+          "hint": "Silence avant que le copilote ne dise 'Stand by'. 0 = jamais."
+        }
+      },
+      "regionFacts": {
+        "title": "Faits régionaux",
+        "hint": "En croisière le copilote propose de temps en temps un court fait sur le pays ou la mer en dessous. Spontané, parlé seulement",
+        "enabled": {
+          "hint": "Toutes les quinze à trente minutes en croisière (ton intervalle), le copilote mentionne quelque chose sur la région survolée : 'We're over the Netherlands — a quarter of what you see down there sits below sea level.' Jamais la même région deux fois sur un vol.",
+          "more": "La région vient du même atlas intégré que 'what are we flying over?' (sans internet). Le fait vient du modèle de langage quand il est activé et sain (deux phrases, la même garde que les faits de lieu — rien sur ce vol), sinon du fichier curaté region-facts.json dans %LOCALAPPDATA%\\ProsimCompanion\\config — modifie-le pour ajouter les tiens, par code pays (FR, GB) ou 'sea:North Sea'. Silencieux hors croisière, tant que le vol n'est pas en direct, tant que l'oreille du copilote est en pause, en cockpit stérile, après 'quiet please', et au-dessus des lieux que l'atlas ne nomme pas. Avec la persona du copilote activée, un fait curaté est dit avec la voix de la persona, chaque chiffre verrouillé."
+        },
+        "shortest": {
+          "label": "Écart le plus court",
+          "hint": "Minutes entre deux faits, au minimum. Le premier fait vient après ce temps (plus la part aléatoire) une fois la croisière commencée."
+        },
+        "longest": {
+          "label": "Écart le plus long",
+          "hint": "Chaque écart est tiré au hasard entre les deux, pour que ça ne ressemble jamais à un minuteur."
+        },
+        "perFlight": {
+          "label": "Faits par vol",
+          "hint": "Au plus. Se réinitialise avec les rapports cabine une-fois-par-vol (cold and dark, ou un nouveau prévol après l'arrêt)."
+        },
+        "llmFacts": {
+          "label": "Faits du modèle de langage",
+          "hint": "Demander le fait au LLM ci-dessus quand il est configuré et sain ; désactivé, ou avec le modèle en panne, seul le fichier curaté parle.",
+          "more": "Les faits du modèle arrivent phrase par phrase comme les faits de lieu ; une phrase sur ce vol avec un chiffre est refusée, et si le modèle ne dit rien en vingt secondes le fichier curaté parle à la place. Les chiffres d'un fait du modèle sont des anecdotes et ne sont pas vérifiés."
+        }
+      },
+      "wol": {
+        "title": "Wake-on-LAN",
+        "hint": "Déplacé vers Installation",
+        "before": "Les PC que l'app réveille au démarrage — la machine du modèle de langage, le serveur vocal, tout autre — forment une seule liste sous",
+        "link": "Réglages → Installation → Wake-on-LAN",
+        "after": ". Un ancien réglage mono-PC de cette page y est déplacé à la première ouverture d'Installation."
+      }
+    },
+    "callouts": {
+      "title": "Annonces standard",
+      "hint": "Les appels de vitesse, d'altitude et de roulage du copilote.",
+      "enabled": {
+        "label": "Annonces activées",
+        "hint": "Interrupteur général de toutes les annonces standard.",
+        "more": "S'applique en direct. Les textes de chaque annonce, les annonces d'altitude, les autres rappels du moniteur de flux et les avis météo se modifient pour l'instant dans la section sop de settings.json."
+      },
+      "placards": {
+        "title": "Placards volets",
+        "hint": "Vitesse maximale par position de la manette de volets (VFE). Le copilote avertit quand tu t'en approches ou la dépasses, et vérifie tes appels de volets contre elle.",
+        "leverHint": "ProSim rapporte la manette en six crans : UP, 1, 1+F, 2, 3, FULL. La manette 1 donne 1+F au sol et au décollage ; le copilote lit le cran rapporté par ProSim.",
+        "lever": "Manette",
+        "limit": "Limite (kt)",
+        "resetTitle": "Valeurs A322 : 230 / 215 / 200 / 185 / 177",
+        "reset": "Rétablir les valeurs A320"
+      },
+      "gear": {
+        "title": "Limites du train",
+        "hint": "VLE est la limite train sorti. VLO est la limite pendant que le train manœuvre ; au-dessus, le copilote refuse un appel de train.",
+        "vle": {
+          "label": "Train sorti (VLE)",
+          "hint": "Le copilote avertit quand tu voles plus vite que ceci train sorti. 0 désactive l'avertissement."
+        },
+        "vloDown": {
+          "label": "Sortie du train (VLO down)",
+          "hint": "\"Gear down\" est refusé au-dessus de cette vitesse. 0 désactive la vérification."
+        },
+        "vloUp": {
+          "label": "Rentrée du train (VLO up)",
+          "hint": "\"Gear up\" est refusé au-dessus de cette vitesse. 0 désactive la vérification."
+        },
+        "stillDown": {
+          "label": "Rappel train encore sorti",
+          "hint": "Le copilote dit \"gear still down\" quand tu montes train sorti."
+        },
+        "upBy": {
+          "label": "Train rentré avant",
+          "hint": "Le rappel vient quand tu montes au-dessus de cette hauteur train sorti."
+        }
+      },
+      "gates": {
+        "title": "Portes d'approche",
+        "hint": "Les hauteurs où le copilote vérifie que l'approche est stable. Les compagnies diffèrent — fixe ta propre SOP.",
+        "stable": {
+          "label": "Contrôle d'approche stabilisée",
+          "hint": "À chaque porte le copilote vérifie vitesse, taux de descente, train et volets, et annonce une approche instable.",
+          "more": "Une porte est vérifiée une fois, quand tu descends à sa hauteur au radio-altimètre. La porte la plus haute est vérifiée en premier. La bande de vitesse est mesurée depuis VLS."
+        },
+        "gateTitle": "Porte {0} — {1} ft",
+        "removeTitle": "Retirer cette porte",
+        "inUse": "Porte utilisée",
+        "height": {
+          "label": "Hauteur",
+          "hint": "Hauteur radio de la porte. 0 désactive la porte."
+        },
+        "gearDown": "Train sorti requis",
+        "minFlap": {
+          "label": "Manette de volets minimale",
+          "hint": "La manette de volets doit être à cette position ou au-delà."
+        },
+        "belowVls": "Vitesse admise sous VLS",
+        "aboveVls": "Vitesse admise au-dessus de VLS",
+        "sink": "Taux de descente maximal",
+        "announce": {
+          "label": "Dire \"stabilized\" au passage de la porte",
+          "hint": "Désactivé : le copilote ne parle à cette porte que si l'approche est instable."
+        },
+        "addTitle": "Ajouter une porte, par exemple une porte à 1500 ft",
+        "add": "Ajouter une porte",
+        "resetTitle": "Deux portes : 1000 ft (volets 2 ou plus) et 500 ft (volets 3 ou plus), train sorti aux deux",
+        "reset": "Rétablir les valeurs",
+        "advancedLabel": "Formulation et contrôle de poussée masqués",
+        "stableCall": "Appel stable",
+        "unstableCall": "Appel instable",
+        "thrust": {
+          "label": "La poussée doit être établie",
+          "hint": "Ajoute un contrôle de poussée à chaque porte : le N1 moyen doit être au niveau ou au-dessus de la valeur ci-dessous."
+        },
+        "minN1": "N1 minimum"
+      },
+      "advisories": {
+        "title": "Avis de placard",
+        "hint": "Ce que dit le copilote quand une limite est proche ou dépassée",
+        "warnWithin": {
+          "label": "Avertir à moins de",
+          "hint": "Dire l'appel d'approche de limite à cette marge sous la limite, en accélération."
+        },
+        "cooldown": {
+          "label": "Temps mort",
+          "hint": "Temps minimal entre deux avis du même type."
+        },
+        "approaching": "Limite volets proche",
+        "exceeded": "Limite volets dépassée",
+        "gearExceeded": "Limite train dépassée"
+      },
+      "monitoring": {
+        "title": "Surveillance en vol",
+        "hint": "Quatre tâches du copilote désactivées tant que tu ne les actives pas. Chacune demande un vol en direct et ne fait que parler.",
+        "fuelCheck": {
+          "label": "Contrôle carburant",
+          "hint": "En croisière le copilote compare le carburant à bord au plan SimBrief à ta position et donne le carburant estimé à l'atterrissage. Aussi sur 'fuel check'.",
+          "more": "Nécessite un OFP SimBrief avec navlog et la position de l'avion. Sans eux : carburant à bord moins débit fois le temps jusqu'à l'ETA. Un déficit au-delà de la marge est dit en High. Silencieux en phases stériles."
+        },
+        "fuelEvery": {
+          "label": "Contrôle carburant toutes les",
+          "hint": "Minutes entre les contrôles automatiques en croisière ; 0 = sur demande seulement"
+        },
+        "shortfall": {
+          "label": "Marge de déficit",
+          "hint": "À cette distance sous le plan (ou plus) le contrôle est dit en avertissement"
+        },
+        "onPlan": {
+          "label": "Compte comme sur plan à moins de",
+          "hint": "Les écarts plus petits sont 'on plan' au lieu d'un chiffre"
+        },
+        "grossError": {
+          "label": "Contrôle d'erreur grossière au décollage",
+          "hint": "Une ligne avant le décollage : les masses de l'avion contre le loadsheet final, et les volets, le flex et les vitesses V du FMS contre le dernier calcul de performances au décollage. Aussi sur 'gross error check'.",
+          "more": "S'exécute une fois par départ quand le loadsheet final est sorti et que les vitesses V sont dans le FMS. Les masses INIT du FMS ne peuvent pas être lues depuis ProSim, donc la masse à vide en carburant de l'avion et le carburant à bord les remplacent. Les chiffres de performances viennent du dernier calcul de la page Performances."
+        },
+        "automatic": {
+          "label": "Automatique",
+          "hint": "Désactivé = seulement quand tu le demandes"
+        },
+        "zfw": "Tolérance de masse sans carburant",
+        "blockFuel": "Tolérance de carburant bloc",
+        "flex": "Tolérance de flex",
+        "destWx": {
+          "label": "Veille météo destination",
+          "hint": "À partir de la croisière, le copilote te dit quand la visibilité ou le plafond de la destination franchit ta limite, quand la lettre ATIS change, ou quand le vent devient arrière sur la piste d'atterrissage prévue.",
+          "more": "Utilise l'actualisation propre des cartes météo, sans interrogation supplémentaire. La météo du dégagement est ajoutée dès que la destination est sous une limite. Chaque type de changement est dit au plus une fois par période de silence."
+        },
+        "visibility": "Limite de visibilité",
+        "ceiling": "Limite de plafond",
+        "tailwind": {
+          "label": "Limite de vent arrière",
+          "hint": "Une composante arrière au-dessus de ceci sur la piste d'atterrissage prévue est annoncée"
+        },
+        "quiet": "Période de silence par changement",
+        "atis": "Annoncer les changements de lettre ATIS",
+        "readbacks": {
+          "label": "Collationnements",
+          "hint": "Dis 'altimeter one zero one three', 'V speeds one four one, one four four, one four seven', 'runway two seven right' ou 'minimums two one zero' et le copilote le vérifie contre l'avion.",
+          "more": "L'altimètre est vérifié contre ton calage baro, les vitesses V contre la page PERF du FMS, la piste contre le plan FMS (départ avant le décollage, arrivée après), les minimums contre ceux que tu as briefés. Le copilote répond 'checked' ou la valeur qu'il lit."
+        },
+        "altimeter": "Tolérance d'altimètre",
+        "minimums": "Tolérance de minimums"
+      }
+    },
+    "abnormals": {
+      "title": "Anomalies ECAM",
+      "hint": "Le copilote lit l'E/WD et les datarefs systèmes, annonce une panne et déroule la procédure avec toi. Il ne touche jamais un interrupteur",
+      "detect": {
+        "label": "Détecter et annoncer les pannes",
+        "hint": "Désactivé : rien n'est détecté ni annoncé. Les memory drills restent appelables à la voix en répétition."
+      },
+      "lineByLine": {
+        "label": "Dérouler l'ECAM ligne par ligne",
+        "hint": "Chaque ligne d'action attend ta confirmation ; une ligne avec contrôle est vérifiée contre l'avion.",
+        "more": "Dis \"standby\", \"say again\", \"skip\", \"fault remains\", \"unable\" ou \"cancel ecam\" à n'importe quelle ligne. Désactivé : le copilote annonce la panne et te laisse l'ECAM."
+      },
+      "answerWindow": {
+        "label": "Fenêtre de réponse par ligne",
+        "hint": "Combien de temps le copilote attend ta réponse avant de redemander."
+      },
+      "silentPrompts": {
+        "label": "Relances sans réponse avant standby",
+        "hint": "Après autant de fenêtres silencieuses d'affilée le copilote cesse de demander et se tient prêt. 0 = demander sans fin."
+      },
+      "mismatches": {
+        "label": "Écarts de vérification tolérés",
+        "hint": "Écarts sur une ligne contrôlée avant que le copilote ne propose continuer ou standby."
+      },
+      "filesBefore": "Les procédures elles-mêmes sont des fichiers JSON sous",
+      "filesAfter": " ; un fichier qui ne se charge pas est nommé dans un bandeau. Un dialogue en cours peut être annulé depuis la section État."
+    },
+    "options": {
+      "recognitionMode": {
+        "pushToTalk": "Push-to-talk (touche copilote dédiée)",
+        "continuous": "Continu (silence ATC pendant l'émission)"
+      },
+      "seat": {
+        "left": "Siège gauche (le copilote opère le côté droit)",
+        "right": "Siège droit (le pilote virtuel opère le côté gauche)"
+      },
+      "llmApi": {
+        "openAi": "Compatible OpenAI (/chat/completions)",
+        "ollama": "Ollama natif (/api/chat — contrôle de la réflexion)"
+      },
+      "asrApi": {
+        "fasterWhisper": "Enveloppe faster-whisper (/transcribe)",
+        "whisperCpp": "Serveur whisper.cpp (/v1/audio/transcriptions)"
+      },
+      "vad": {
+        "silero": "Silero VAD (neuronal, recommandé)",
+        "rms": "Porte d'énergie RMS (ancienne)"
+      },
+      "procedureSource": {
+        "auto": "Auto (FMS → flight.json → manuel)",
+        "manual": "Entrées manuelles seulement",
+        "flightJson": "flight.json de SayIntentions seulement"
+      },
+      "normalPolicy": {
+        "allow": "Autoriser (parler normalement)",
+        "defer": "Différer (rejouer à la fin du stérile)",
+        "suppress": "Supprimer (abandonner)"
+      },
+      "apiKeySource": {
+        "auto": "Auto (depuis flight.json)",
+        "manual": "Manuel (saisie ci-dessous)"
+      },
+      "elevenLabsModel": {
+        "flash": "eleven_flash_v2_5 (rapide, moitié prix)",
+        "v3": "eleven_v3 (expressif, plein tarif)"
+      },
+      "elevenLabsFormat": {
+        "mp3": "mp3_44100_128 (tous les plans)",
+        "pcm": "pcm_24000 (plans payants)"
+      },
+      "experience": {
+        "junior": "Junior",
+        "standard": "Standard",
+        "senior": "Senior"
+      },
+      "formality": {
+        "casual": "Décontracté",
+        "standard": "Standard",
+        "formal": "Formel"
+      },
+      "verbosity": {
+        "full": "Complet",
+        "brief": "Bref"
+      },
+      "pttSwitch": {
+        "off": "Désactivé",
+        "captainSidestick": "PTT sidestick commandant",
+        "foSidestick": "PTT sidestick copilote",
+        "captainHandMic": "PTT micro à main commandant",
+        "foHandMic": "PTT micro à main copilote",
+        "observerHandMic": "PTT micro à main observateur"
+      },
+      "siPtt": {
+        "com": "PTT radio COM (la radio sélectionnée)",
+        "com1": "PTT COM1 (forcé)",
+        "com2": "PTT COM2 (forcé)",
+        "intercom1": "PTT interphone — canal 1",
+        "intercom2": "PTT interphone — canal 2",
+        "intercom3": "PTT interphone — canal 3",
+        "group": "PTT vol en groupe"
+      }
+    },
+    "devices": {
+      "defaultCapture": "Périphérique de capture par défaut",
+      "systemDefault": "Défaut du système",
+      "notDetected": "{0} (non détecté actuellement)"
+    },
+    "binding": {
+      "unset": "(non défini)",
+      "keyboard": "Touche : {0}",
+      "joystick": "Joystick {0}",
+      "button": "{0} — bouton {1}"
+    },
+    "capture": {
+      "nothingPressed": "Rien d'appuyé en dix secondes.",
+      "bound": "{0} assigné à {1}.",
+      "atcPtt": "PTT ATC",
+      "foPtt": "PTT copilote",
+      "failed": "La capture a échoué — voir la page Journaux."
+    },
+    "scan": {
+      "scanning": "Recherche…",
+      "none": "Aucun joystick n'a répondu.",
+      "found": "Trouvé : {0}.",
+      "failed": "La recherche a échoué — voir la page Journaux."
+    },
+    "voiceNotes": {
+      "emptyHint": "Aucune voix listée pour l'instant. Connecte un fournisseur sous Fournisseurs de voix et appuie sur Actualiser.",
+      "notListed": "pas encore listé",
+      "notConfigured": "non configuré",
+      "none": "aucune voix rapportée",
+      "count": "{0} voix",
+      "failed": "impossible de lister les voix — {0}"
+    }
+  }
+}

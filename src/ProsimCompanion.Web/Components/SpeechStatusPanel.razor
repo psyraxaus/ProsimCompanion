@@ -10,41 +10,42 @@
 @inject IVoiceListeningControl ListeningControl
 @inject UnmatchedUtteranceStore Unmatched
 @inject IOptionsMonitor<SpeechOptions> SpeechMonitor
+@inject IStringLocalizer T
 
 @if (_view.ActiveAbnormal is { Length: > 0 } abnormal)
 {
     @* The ECAM dialogue holds the mic exclusively — this button is the guaranteed way out
        when voice fails ("cancel ECAM" is the spoken equivalent). Issue #56. *@
     <div class="pill tone-warn" style="display:flex; gap:12px; align-items:center; justify-content:center; padding:10px; margin-bottom:12px;">
-        <span>ECAM DIALOGUE RUNNING — @abnormal</span>
-        <button type="button" class="btn secondary" @onclick="CancelAbnormal">Cancel ECAM dialogue</button>
+        <span>@T["speechStatus.ecam.running", abnormal]</span>
+        <button type="button" class="btn secondary" @onclick="CancelAbnormal">@T["speechStatus.ecam.cancel"]</button>
     </div>
 }
 
 @if (_view.CabinCalling)
 {
     <div class="pill tone-warn" style="display:block; text-align:center; padding:10px; margin-bottom:12px;"
-         title="The real ACP CAB-CALL light is read-only in the SDK — this banner is the flash substitute">
-        CABIN CALLING — select CAB on the audio panel
+         title="@T["speechStatus.cabinCalling.title"]">
+        @T["speechStatus.cabinCalling.text"]
     </div>
 }
 
-<Section Title="Voice First Officer" Hint="Arbiter, TTS chain and playback status">
+<Section Title="@T["speechStatus.fo.title"]" Hint="@T["speechStatus.fo.hint"]">
     <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
         <span class="pill @(_view.Enabled ? "tone-ok" : "tone-neutral")">
-            @(_view.Enabled ? "Enabled" : "Disabled")
+            @(_view.Enabled ? T["speechStatus.fo.enabled"].Value : T["speechStatus.fo.disabled"].Value)
         </span>
         <span class="pill @(_view.SterileCockpit ? "tone-warn" : "tone-neutral")"
-              title="Below the sterile ceiling in a workload phase, Low speech is dropped and Normal follows the configured policy">
-            @(_view.SterileCockpit ? "Sterile cockpit" : "Not sterile")
+              title="@T["speechStatus.fo.sterileTitle"]">
+            @(_view.SterileCockpit ? T["speechStatus.fo.sterile"].Value : T["speechStatus.fo.notSterile"].Value)
         </span>
         <span class="pill @(_view.ListeningPaused ? "tone-warn" : _view.Listening ? "tone-ok" : "tone-neutral")"
-              title="Engine truth: Listening means the recognizer is actually capturing; Paused is the pilot's ear-off latch (Stream Deck Voice Pause key / the button here)">
-            @(_view.ListeningPaused ? "Voice paused" : _view.Listening ? "Listening" : "Not listening")
+              title="@T["speechStatus.fo.listeningTitle"]">
+            @(_view.ListeningPaused ? T["speechStatus.fo.paused"].Value : _view.Listening ? T["speechStatus.fo.listening"].Value : T["speechStatus.fo.notListening"].Value)
         </span>
         <button type="button" class="btn secondary" @onclick="ToggleListening"
-                title="Mute the FO's ear while you talk to a real person — the FO still speaks. Silent: no acknowledgement either way. Cleared by an app restart">
-            @(_view.ListeningPaused ? "Resume listening" : "Pause listening")
+                title="@T["speechStatus.fo.toggleTitle"]">
+            @(_view.ListeningPaused ? T["speechStatus.fo.resume"].Value : T["speechStatus.fo.pause"].Value)
         </button>
         @if (_view.RecognizerEngine.Length > 0)
         {
@@ -52,13 +53,13 @@
                take-off and nothing on the page said so. *@
             <span class="pill @(_view.RecognizerEngine == "whisper" ? "tone-ok" : "tone-warn")"
                   title="@_view.RecognizerDetail">
-                @(_view.RecognizerEngine == "whisper" ? "Ear: whisper (LAN)" : "Ear: offline engine")
+                @(_view.RecognizerEngine == "whisper" ? T["speechStatus.fo.earWhisper"].Value : T["speechStatus.fo.earOffline"].Value)
             </span>
         }
-        <span class="pill tone-active">Queue @_view.QueueDepth</span>
+        <span class="pill tone-active">@T["speechStatus.fo.queue", _view.QueueDepth]</span>
         @if (_view.NowPlaying is { } playing)
         {
-            <span class="pill tone-ok" title="@playing">Speaking</span>
+            <span class="pill tone-ok" title="@playing">@T["speechStatus.fo.speaking"]</span>
         }
     </div>
     @if (_view.NowPlaying is { } text)
@@ -67,11 +68,11 @@
     }
 </Section>
 
-<Section Title="TTS Providers" Hint="Tried in order; a failed provider cools down 60 s. Test speaks with exactly that provider — no fallback">
+<Section Title="@T["speechStatus.tts.title"]" Hint="@T["speechStatus.tts.hint"]">
     <div class="table-scroll">
         <table class="data-table">
             <thead>
-                <tr><th>#</th><th>Provider</th><th>State</th><th>Detail</th><th></th></tr>
+                <tr><th>#</th><th>@T["speechStatus.tts.colProvider"]</th><th>@T["speechStatus.tts.colState"]</th><th>@T["speechStatus.tts.colDetail"]</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach (var (provider, index) in _view.Providers.Select((p, i) => (p, i)))
@@ -85,7 +86,7 @@
                         <td>
                             <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                                     @onclick="() => TestProviderAsync(provider.Name)">
-                                @(_runningTest == $"tts:{provider.Name}" ? "Testing…" : "Test")
+                                @(_runningTest == $"tts:{provider.Name}" ? T["speechStatus.tts.testing"].Value : T["speechStatus.tts.test"].Value)
                             </button>
                         </td>
                     </tr>
@@ -99,123 +100,123 @@
     }
 </Section>
 
-<Section Title="Component Tests" Hint="Verify the LLM endpoint, microphone and nav database without flying a sector">
+<Section Title="@T["speechStatus.tests.title"]" Hint="@T["speechStatus.tests.hint"]">
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                 @onclick="TestLlmAsync">
-            @(_runningTest == "llm" ? "Testing…" : "Test LLM connection")
+            @(_runningTest == "llm" ? T["speechStatus.tts.testing"].Value : T["speechStatus.tests.llm"].Value)
         </button>
         <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                 @onclick="TestMicAsync">
-            @(_runningTest == "mic" ? "Listening… speak now" : "Test microphone")
+            @(_runningTest == "mic" ? T["speechStatus.tests.micListening"].Value : T["speechStatus.tests.mic"].Value)
         </button>
         <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                 @onclick="TestNavDataAsync">
-            @(_runningTest == "navdata" ? "Testing…" : "Test nav data")
+            @(_runningTest == "navdata" ? T["speechStatus.tts.testing"].Value : T["speechStatus.tests.navData"].Value)
         </button>
         <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                 @onclick="WakeLlmAsync"
-                title="Sends a Wake-on-LAN magic packet to every PC on Settings → Setup → Wake-on-LAN — then verify with Test LLM connection / Reconnect voice services">
-            @(_runningTest == "wol" ? "Sending…" : "Wake PCs")
+                title="@T["speechStatus.tests.wakeTitle"]">
+            @(_runningTest == "wol" ? T["speechStatus.tests.sending"].Value : T["speechStatus.tests.wake"].Value)
         </button>
         <button type="button" class="btn secondary" disabled="@(_runningTest is not null)"
                 @onclick="ReconnectVoiceAsync"
-                title="Checks whisper and Kokoro now. Swaps recognition back to whisper if it answers and clears a Kokoro cooldown — the app also retries whisper every 30 s by itself">
-            @(_runningTest == "reconnect" ? "Checking…" : "Reconnect voice services")
+                title="@T["speechStatus.tests.reconnectTitle"]">
+            @(_runningTest == "reconnect" ? T["speechStatus.tests.checking"].Value : T["speechStatus.tests.reconnect"].Value)
         </button>
     </div>
     @if (_reconnectResult is not null)
     {
-        <div class="field-hint" style="margin-top:8px;">Voice services: @_reconnectResult</div>
+        <div class="field-hint" style="margin-top:8px;">@T["speechStatus.tests.resultVoice", _reconnectResult]</div>
     }
     @if (_llmTestResult is not null)
     {
-        <div class="field-hint" style="margin-top:8px;">LLM: @_llmTestResult</div>
+        <div class="field-hint" style="margin-top:8px;">@T["speechStatus.tests.resultLlm", _llmTestResult]</div>
     }
     @if (_micTestResult is not null)
     {
-        <div class="field-hint" style="margin-top:8px;">Microphone: @_micTestResult</div>
+        <div class="field-hint" style="margin-top:8px;">@T["speechStatus.tests.resultMic", _micTestResult]</div>
     }
     @if (_navDataTestResult is not null)
     {
-        <div class="field-hint" style="margin-top:8px;">Nav data: @_navDataTestResult</div>
+        <div class="field-hint" style="margin-top:8px;">@T["speechStatus.tests.resultNavData", _navDataTestResult]</div>
     }
     @if (_wakeResult is not null)
     {
-        <div class="field-hint" style="margin-top:8px;">Wake-on-LAN: @_wakeResult</div>
+        <div class="field-hint" style="margin-top:8px;">@T["speechStatus.tests.resultWake", _wakeResult]</div>
     }
 </Section>
 
-<Section Title="Arrival Minima" Hint="No DH/MDA dataref exists — enter the briefed minima to arm the minimums callouts">
+<Section Title="@T["speechStatus.minima.title"]" Hint="@T["speechStatus.minima.hint"]">
     @if (_minima is { } set)
     {
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <span class="pill tone-ok">@KindLabel(set.Kind) @set.AltitudeFt.ToString("F0") ft</span>
-            <button type="button" class="btn secondary" @onclick="ClearMinima">Clear</button>
+            <button type="button" class="btn secondary" @onclick="ClearMinima">@T["speechStatus.minima.clear"]</button>
         </div>
     }
     else
     {
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <select class="cell-select" @bind="_minimaKind">
-                <option value="@ArrivalMinimumKind.DecisionAltitude">DA (baro, ft MSL)</option>
-                <option value="@ArrivalMinimumKind.DecisionHeight">DH (radio, ft)</option>
-                <option value="@ArrivalMinimumKind.MinimumDescentAltitude">MDA (baro, ft MSL)</option>
+                <option value="@ArrivalMinimumKind.DecisionAltitude">@T["speechStatus.minima.da"]</option>
+                <option value="@ArrivalMinimumKind.DecisionHeight">@T["speechStatus.minima.dh"]</option>
+                <option value="@ArrivalMinimumKind.MinimumDescentAltitude">@T["speechStatus.minima.mda"]</option>
             </select>
             <input class="cell-input" style="width:110px;" type="number" min="0" max="20000"
-                   placeholder="Altitude ft" @bind="_minimaAltitude" />
+                   placeholder="@T["speechStatus.minima.altitude"]" @bind="_minimaAltitude" />
             <button type="button" class="btn" disabled="@(_minimaAltitude <= 0)"
-                    @onclick="SetMinima">Set</button>
+                    @onclick="SetMinima">@T["speechStatus.minima.set"]</button>
         </div>
         <div class="field-hint" style="margin-top:8px;">
-            Until set, "one hundred above"/"minimums" stay disabled (logged once per flight).
+            @T["speechStatus.minima.untilSet"]
         </div>
     }
 </Section>
 
-<Section Title="Speak Test" Hint="Runs the full arbiter → TTS → playback path at Normal priority">
+<Section Title="@T["speechStatus.speak.title"]" Hint="@T["speechStatus.speak.hint"]">
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <input class="cell-input" style="flex:1 1 280px;" placeholder="Something for the FO to say"
+        <input class="cell-input" style="flex:1 1 280px;" placeholder="@T["speechStatus.speak.placeholder"]"
                @bind="_testText" @bind:event="oninput" />
         <button type="button" class="btn" disabled="@string.IsNullOrWhiteSpace(_testText)"
-                @onclick="SpeakTest">Speak</button>
+                @onclick="SpeakTest">@T["speechStatus.speak.button"]</button>
     </div>
 </Section>
 
-<Section Title="Heard but not understood" Hint="What you said this session that no command, checklist answer or question handler acted on — grouped, most repeated first">
+<Section Title="@T["speechStatus.unmatched.title"]" Hint="@T["speechStatus.unmatched.hint"]">
     @{
         var groups = _unmatched.Groups();
     }
     @if (!SpeechMonitor.CurrentValue.TrackUnmatched)
     {
-        <div class="empty">Tracking is off — Settings → Voice First Officer → Recognition &amp; Push-to-Talk → "Track phrases the FO did not understand".</div>
+        <div class="empty">@T["speechStatus.unmatched.trackingOff"]</div>
     }
     else if (groups.Count == 0)
     {
         <div class="empty">
-            Nothing fell through yet.
+            @T["speechStatus.unmatched.nothing"]
             @if (_unmatched.SuppressedTotal > 0)
             {
-                <text> @_unmatched.SuppressedTotal absorbed silently in sterile phases (callouts, not commands).</text>
+                <text> @T["speechStatus.unmatched.absorbed", _unmatched.SuppressedTotal]</text>
             }
         </div>
     }
     else
     {
         <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
-            <span class="pill tone-neutral" title="Every miss this session, suppressed ones included">@_unmatched.Total heard</span>
+            <span class="pill tone-neutral" title="@T["speechStatus.unmatched.heardTitle"]">@T["speechStatus.unmatched.heard", _unmatched.Total]</span>
             <span class="pill @(groups.Any(g => g.Count >= 3) ? "tone-warn" : "tone-neutral")"
-                  title="A phrase heard three or more times is the one to add">@groups.Count(g => g.Count >= 3) repeated 3+</span>
+                  title="@T["speechStatus.unmatched.repeatedTitle"]">@T["speechStatus.unmatched.repeated", groups.Count(g => g.Count >= 3)]</span>
             @if (_unmatched.SuppressedTotal > 0)
             {
-                <span class="pill tone-neutral" title="Sterile-phase absorptions: counted, never candidates">@_unmatched.SuppressedTotal sterile</span>
+                <span class="pill tone-neutral" title="@T["speechStatus.unmatched.sterileTitle"]">@T["speechStatus.unmatched.sterile", _unmatched.SuppressedTotal]</span>
             }
-            <button type="button" class="btn secondary" @onclick="ClearUnmatched">Clear</button>
+            <button type="button" class="btn secondary" @onclick="ClearUnmatched">@T["speechStatus.unmatched.clear"]</button>
         </div>
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
-                    <tr><th>Phrase</th><th>Count</th><th>Where</th><th>Last (UTC)</th></tr>
+                    <tr><th>@T["speechStatus.unmatched.colPhrase"]</th><th>@T["speechStatus.unmatched.colCount"]</th><th>@T["speechStatus.unmatched.colWhere"]</th><th>@T["speechStatus.unmatched.colLast"]</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var group in groups)
@@ -225,7 +226,7 @@
                             <td>
                                 <span class="pill @(group.Count >= 3 ? "tone-warn" : "tone-neutral")">@group.Count</span>
                             </td>
-                            <td class="mono" title="idle = no checklist open; checklist: … = that line was awaiting its answer; confirm-declined = the FO asked 'did you mean' and you said no">@string.Join(", ", group.Contexts)</td>
+                            <td class="mono" title="@T["speechStatus.unmatched.contextTitle"]">@string.Join(", ", group.Contexts)</td>
                             <td class="mono">@group.LastHeardUtc.ToString("HH:mm:ss")</td>
                         </tr>
                     }
@@ -234,26 +235,23 @@
         </div>
     }
     <div class="field-hint" style="margin-top:8px; max-width:720px;">
-        To teach the FO a phrase, add it where it belongs under <code>@UserConfigPaths.Root</code>:
-        a cockpit command in <code>commands.json</code>, an ATC request in <code>atc-requests.json</code>,
-        a checklist answer in the line's <code>acceptedPhrases</code> under <code>checklists\</code>.
-        The FO reloads the files; the session log keeps every miss as <code>voice.unmatched</code>.
+        @T["speechStatus.unmatched.teach", UserConfigPaths.Root, "commands.json", "atc-requests.json", "acceptedPhrases", "checklists\\", "voice.unmatched"]
     </div>
 </Section>
 
 <details class="diagnostics">
-    <summary>Diagnostics — recent utterances</summary>
-<Section Title="Recent Utterances" Hint="Latest first — full history in the session event log">
+    <summary>@T["speechStatus.recent.summary"]</summary>
+<Section Title="@T["speechStatus.recent.title"]" Hint="@T["speechStatus.recent.hint"]">
     @if (_view.RecentUtterances.Count == 0)
     {
-        <div class="empty">Nothing spoken yet.</div>
+        <div class="empty">@T["speechStatus.recent.nothing"]</div>
     }
     else
     {
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
-                    <tr><th>Time (UTC)</th><th>Outcome</th><th>Priority</th><th>Tag</th><th>Text</th></tr>
+                    <tr><th>@T["speechStatus.recent.colTime"]</th><th>@T["speechStatus.recent.colOutcome"]</th><th>@T["speechStatus.recent.colPriority"]</th><th>@T["speechStatus.recent.colTag"]</th><th>@T["speechStatus.recent.colText"]</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var utterance in _view.RecentUtterances)
@@ -363,7 +361,7 @@
         }
         catch (Exception)
         {
-            report("Test failed unexpectedly — see the Logs page.");
+            report(T["speechStatus.tests.failed"]);
         }
         finally
         {
@@ -371,12 +369,12 @@
         }
     }
 
-    private static (string Tone, string Label) HealthPill(TtsProviderHealth health) => health switch
+    private (string Tone, string Label) HealthPill(TtsProviderHealth health) => health switch
     {
-        TtsProviderHealth.Healthy => ("tone-ok", "Healthy"),
-        TtsProviderHealth.Failed => ("tone-warn", "Cooling down"),
-        TtsProviderHealth.Disabled => ("tone-neutral", "Disabled"),
-        _ => ("tone-neutral", "Untried"),
+        TtsProviderHealth.Healthy => ("tone-ok", T["speechStatus.tts.health.healthy"].Value),
+        TtsProviderHealth.Failed => ("tone-warn", T["speechStatus.tts.health.coolingDown"].Value),
+        TtsProviderHealth.Disabled => ("tone-neutral", T["speechStatus.tts.health.disabled"].Value),
+        _ => ("tone-neutral", T["speechStatus.tts.health.untried"].Value),
     };
 
     private static string OutcomeTone(string outcome) => outcome switch

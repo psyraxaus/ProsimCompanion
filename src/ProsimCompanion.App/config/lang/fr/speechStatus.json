@@ -1,0 +1,115 @@
+{
+  "speechStatus": {
+    "ecam": {
+      "running": "DIALOGUE ECAM EN COURS — {0}",
+      "cancel": "Annuler le dialogue ECAM"
+    },
+    "cabinCalling": {
+      "text": "APPEL CABINE — sélectionne CAB sur le panneau audio",
+      "title": "Le vrai voyant CAB-CALL de l'ACP est en lecture seule dans le SDK — ce bandeau remplace le clignotement"
+    },
+    "fo": {
+      "title": "Copilote vocal",
+      "hint": "État de l'arbitre, de la chaîne TTS et de la lecture",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "sterileTitle": "Sous le plafond stérile dans une phase de charge, la parole Low est abandonnée et la Normal suit la règle configurée",
+      "sterile": "Cockpit stérile",
+      "notSterile": "Non stérile",
+      "listeningTitle": "Vérité du moteur : Écoute signifie que le reconnaisseur capture vraiment ; En pause est le verrou oreille-fermée du pilote (touche Voice Pause du Stream Deck / le bouton ici)",
+      "paused": "Voix en pause",
+      "listening": "Écoute",
+      "notListening": "N'écoute pas",
+      "toggleTitle": "Coupe l'oreille du copilote pendant que tu parles à une vraie personne — le copilote continue de parler. Silencieux : aucun accusé dans un sens ou l'autre. Effacé par un redémarrage de l'app",
+      "resume": "Reprendre l'écoute",
+      "pause": "Suspendre l'écoute",
+      "earWhisper": "Oreille : whisper (LAN)",
+      "earOffline": "Oreille : moteur hors ligne",
+      "queue": "File {0}",
+      "speaking": "Parle"
+    },
+    "tts": {
+      "title": "Fournisseurs TTS",
+      "hint": "Essayés dans l'ordre ; un fournisseur en échec se met en pause 60 s. Tester parle avec exactement ce fournisseur — sans repli",
+      "colProvider": "Fournisseur",
+      "colState": "État",
+      "colDetail": "Détail",
+      "testing": "Test…",
+      "test": "Tester",
+      "health": {
+        "healthy": "Sain",
+        "coolingDown": "En pause",
+        "disabled": "Désactivé",
+        "untried": "Non testé"
+      }
+    },
+    "tests": {
+      "title": "Tests des composants",
+      "hint": "Vérifie le point d'accès LLM, le micro et la base de navigation sans voler un secteur",
+      "llm": "Tester la connexion LLM",
+      "micListening": "Écoute… parle maintenant",
+      "mic": "Tester le micro",
+      "navData": "Tester les données de navigation",
+      "wakeTitle": "Envoie un paquet magique Wake-on-LAN à chaque PC de Réglages → Installation → Wake-on-LAN — puis vérifie avec Tester la connexion LLM / Reconnecter les services vocaux",
+      "sending": "Envoi…",
+      "wake": "Réveiller les PC",
+      "reconnectTitle": "Vérifie whisper et Kokoro maintenant. Rebascule la reconnaissance sur whisper s'il répond et efface une pause Kokoro — l'app réessaie aussi whisper toutes les 30 s d'elle-même",
+      "checking": "Vérification…",
+      "reconnect": "Reconnecter les services vocaux",
+      "resultVoice": "Services vocaux : {0}",
+      "resultLlm": "LLM : {0}",
+      "resultMic": "Micro : {0}",
+      "resultNavData": "Données de navigation : {0}",
+      "resultWake": "Wake-on-LAN : {0}",
+      "failed": "Le test a échoué de façon inattendue — voir la page Journaux."
+    },
+    "minima": {
+      "title": "Minima d'arrivée",
+      "hint": "Aucun dataref DH/MDA n'existe — saisis les minima briefés pour armer les annonces de minimums",
+      "clear": "Effacer",
+      "da": "DA (baro, ft MSL)",
+      "dh": "DH (radio, ft)",
+      "mda": "MDA (baro, ft MSL)",
+      "altitude": "Altitude ft",
+      "set": "Fixer",
+      "untilSet": "Tant qu'ils ne sont pas fixés, \"one hundred above\"/\"minimums\" restent désactivés (journalisé une fois par vol)."
+    },
+    "speak": {
+      "title": "Test de parole",
+      "hint": "Parcourt le chemin complet arbitre → TTS → lecture en priorité Normal",
+      "placeholder": "Quelque chose à faire dire au copilote",
+      "button": "Parler"
+    },
+    "unmatched": {
+      "title": "Entendu mais pas compris",
+      "hint": "Ce que tu as dit dans cette session sans qu'aucune commande, réponse de check-list ou gestionnaire de question n'agisse — groupé, le plus répété d'abord",
+      "trackingOff": "Le suivi est désactivé — Réglages → Copilote vocal → Reconnaissance et Push-to-Talk → \"Garder les phrases que le copilote n'a pas comprises\".",
+      "nothing": "Rien n'est encore passé à travers.",
+      "absorbed": "{0} absorbées en silence dans les phases stériles (annonces, pas des commandes).",
+      "heardTitle": "Chaque échec de cette session, ceux supprimés compris",
+      "heard": "{0} entendues",
+      "repeatedTitle": "Une phrase entendue trois fois ou plus est celle à ajouter",
+      "repeated": "{0} répétées 3+",
+      "sterileTitle": "Absorptions en phase stérile : comptées, jamais candidates",
+      "sterile": "{0} stériles",
+      "clear": "Effacer",
+      "colPhrase": "Phrase",
+      "colCount": "Nombre",
+      "colWhere": "Où",
+      "colLast": "Dernière (UTC)",
+      "contextTitle": "idle = aucune check-list ouverte ; checklist: … = cette ligne attendait sa réponse ; confirm-declined = le copilote a demandé 'did you mean' et tu as dit non",
+      "teach": "Pour apprendre une phrase au copilote, ajoute-la là où elle va sous {0} : une commande cockpit dans {1}, une demande ATC dans {2}, une réponse de check-list dans les {3} de la ligne sous {4}. Le copilote recharge les fichiers ; le journal de session garde chaque échec sous {5}."
+    },
+    "recent": {
+      "summary": "Diagnostic — énoncés récents",
+      "title": "Énoncés récents",
+      "hint": "Le plus récent d'abord — l'historique complet est dans le journal d'événements de la session",
+      "nothing": "Rien n'a encore été dit.",
+      "colTime": "Heure (UTC)",
+      "colOutcome": "Résultat",
+      "colPriority": "Priorité",
+      "colTag": "Tag",
+      "colText": "Texte"
+    }
+  }
+}

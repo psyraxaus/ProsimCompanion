@@ -1,0 +1,115 @@
+{
+  "speechStatus": {
+    "ecam": {
+      "running": "ECAM DIALOGUE RUNNING — {0}",
+      "cancel": "Cancel ECAM dialogue"
+    },
+    "cabinCalling": {
+      "text": "CABIN CALLING — select CAB on the audio panel",
+      "title": "The real ACP CAB-CALL light is read-only in the SDK — this banner is the flash substitute"
+    },
+    "fo": {
+      "title": "Voice First Officer",
+      "hint": "Arbiter, TTS chain and playback status",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "sterileTitle": "Below the sterile ceiling in a workload phase, Low speech is dropped and Normal follows the configured policy",
+      "sterile": "Sterile cockpit",
+      "notSterile": "Not sterile",
+      "listeningTitle": "Engine truth: Listening means the recognizer is actually capturing; Paused is the pilot's ear-off latch (Stream Deck Voice Pause key / the button here)",
+      "paused": "Voice paused",
+      "listening": "Listening",
+      "notListening": "Not listening",
+      "toggleTitle": "Mute the FO's ear while you talk to a real person — the FO still speaks. Silent: no acknowledgement either way. Cleared by an app restart",
+      "resume": "Resume listening",
+      "pause": "Pause listening",
+      "earWhisper": "Ear: whisper (LAN)",
+      "earOffline": "Ear: offline engine",
+      "queue": "Queue {0}",
+      "speaking": "Speaking"
+    },
+    "tts": {
+      "title": "TTS Providers",
+      "hint": "Tried in order; a failed provider cools down 60 s. Test speaks with exactly that provider — no fallback",
+      "colProvider": "Provider",
+      "colState": "State",
+      "colDetail": "Detail",
+      "testing": "Testing…",
+      "test": "Test",
+      "health": {
+        "healthy": "Healthy",
+        "coolingDown": "Cooling down",
+        "disabled": "Disabled",
+        "untried": "Untried"
+      }
+    },
+    "tests": {
+      "title": "Component Tests",
+      "hint": "Verify the LLM endpoint, microphone and nav database without flying a sector",
+      "llm": "Test LLM connection",
+      "micListening": "Listening… speak now",
+      "mic": "Test microphone",
+      "navData": "Test nav data",
+      "wakeTitle": "Sends a Wake-on-LAN magic packet to every PC on Settings → Setup → Wake-on-LAN — then verify with Test LLM connection / Reconnect voice services",
+      "sending": "Sending…",
+      "wake": "Wake PCs",
+      "reconnectTitle": "Checks whisper and Kokoro now. Swaps recognition back to whisper if it answers and clears a Kokoro cooldown — the app also retries whisper every 30 s by itself",
+      "checking": "Checking…",
+      "reconnect": "Reconnect voice services",
+      "resultVoice": "Voice services: {0}",
+      "resultLlm": "LLM: {0}",
+      "resultMic": "Microphone: {0}",
+      "resultNavData": "Nav data: {0}",
+      "resultWake": "Wake-on-LAN: {0}",
+      "failed": "Test failed unexpectedly — see the Logs page."
+    },
+    "minima": {
+      "title": "Arrival Minima",
+      "hint": "No DH/MDA dataref exists — enter the briefed minima to arm the minimums callouts",
+      "clear": "Clear",
+      "da": "DA (baro, ft MSL)",
+      "dh": "DH (radio, ft)",
+      "mda": "MDA (baro, ft MSL)",
+      "altitude": "Altitude ft",
+      "set": "Set",
+      "untilSet": "Until set, \"one hundred above\"/\"minimums\" stay disabled (logged once per flight)."
+    },
+    "speak": {
+      "title": "Speak Test",
+      "hint": "Runs the full arbiter → TTS → playback path at Normal priority",
+      "placeholder": "Something for the FO to say",
+      "button": "Speak"
+    },
+    "unmatched": {
+      "title": "Heard but not understood",
+      "hint": "What you said this session that no command, checklist answer or question handler acted on — grouped, most repeated first",
+      "trackingOff": "Tracking is off — Settings → Voice First Officer → Recognition & Push-to-Talk → \"Track phrases the FO did not understand\".",
+      "nothing": "Nothing fell through yet.",
+      "absorbed": "{0} absorbed silently in sterile phases (callouts, not commands).",
+      "heardTitle": "Every miss this session, suppressed ones included",
+      "heard": "{0} heard",
+      "repeatedTitle": "A phrase heard three or more times is the one to add",
+      "repeated": "{0} repeated 3+",
+      "sterileTitle": "Sterile-phase absorptions: counted, never candidates",
+      "sterile": "{0} sterile",
+      "clear": "Clear",
+      "colPhrase": "Phrase",
+      "colCount": "Count",
+      "colWhere": "Where",
+      "colLast": "Last (UTC)",
+      "contextTitle": "idle = no checklist open; checklist: … = that line was awaiting its answer; confirm-declined = the FO asked 'did you mean' and you said no",
+      "teach": "To teach the FO a phrase, add it where it belongs under {0}: a cockpit command in {1}, an ATC request in {2}, a checklist answer in the line's {3} under {4}. The FO reloads the files; the session log keeps every miss as {5}."
+    },
+    "recent": {
+      "summary": "Diagnostics — recent utterances",
+      "title": "Recent Utterances",
+      "hint": "Latest first — full history in the session event log",
+      "nothing": "Nothing spoken yet.",
+      "colTime": "Time (UTC)",
+      "colOutcome": "Outcome",
+      "colPriority": "Priority",
+      "colTag": "Tag",
+      "colText": "Text"
+    }
+  }
+}

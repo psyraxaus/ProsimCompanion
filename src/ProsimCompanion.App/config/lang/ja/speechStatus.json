@@ -1,0 +1,115 @@
+{
+  "speechStatus": {
+    "ecam": {
+      "running": "ECAM ダイアログ実行中 — {0}",
+      "cancel": "ECAM ダイアログを中止"
+    },
+    "cabinCalling": {
+      "text": "キャビンから呼び出し — オーディオパネルで CAB を選択",
+      "title": "ACP の実際の CAB-CALL ランプは SDK では読み取り専用です — このバナーが点滅の代わりです"
+    },
+    "fo": {
+      "title": "音声副操縦士",
+      "hint": "アービター、TTS チェーン、再生の状態",
+      "enabled": "有効",
+      "disabled": "無効",
+      "sterileTitle": "ワークロードフェーズでステライル上限より下では、Low の発話は破棄され、Normal は設定したポリシーに従います",
+      "sterile": "ステライルコックピット",
+      "notSterile": "ステライルでない",
+      "listeningTitle": "エンジンの実状: 「聞き取り中」は認識器が実際に取り込んでいる状態、「一時停止」はパイロットの耳オフのラッチ（Stream Deck の Voice Pause キー / ここのボタン）",
+      "paused": "音声一時停止",
+      "listening": "聞き取り中",
+      "notListening": "聞き取りなし",
+      "toggleTitle": "実際の人と話す間、FO の耳をミュートします — FO は話し続けます。無音: どちらの向きにも応答なし。アプリの再起動で解除されます",
+      "resume": "聞き取りを再開",
+      "pause": "聞き取りを一時停止",
+      "earWhisper": "耳: whisper (LAN)",
+      "earOffline": "耳: オフラインエンジン",
+      "queue": "キュー {0}",
+      "speaking": "発話中"
+    },
+    "tts": {
+      "title": "TTS プロバイダー",
+      "hint": "順番に試行。失敗したプロバイダーは 60 秒クールダウン。テストはそのプロバイダーだけで発話します — フォールバックなし",
+      "colProvider": "プロバイダー",
+      "colState": "状態",
+      "colDetail": "詳細",
+      "testing": "テスト中…",
+      "test": "テスト",
+      "health": {
+        "healthy": "正常",
+        "coolingDown": "クールダウン中",
+        "disabled": "無効",
+        "untried": "未試行"
+      }
+    },
+    "tests": {
+      "title": "コンポーネントテスト",
+      "hint": "セクターを飛ばずに LLM エンドポイント、マイク、ナビデータベースを確認します",
+      "llm": "LLM 接続をテスト",
+      "micListening": "聞き取り中… 話してください",
+      "mic": "マイクをテスト",
+      "navData": "ナビデータをテスト",
+      "wakeTitle": "設定 → セットアップ → Wake-on-LAN にある各 PC に Wake-on-LAN マジックパケットを送ります — その後「LLM 接続をテスト」/「音声サービスを再接続」で確認してください",
+      "sending": "送信中…",
+      "wake": "PC を起動",
+      "reconnectTitle": "whisper と Kokoro を今すぐ確認します。whisper が応答すれば認識を whisper に戻し、Kokoro のクールダウンを解除します — アプリ自体も 30 秒ごとに whisper を再試行します",
+      "checking": "確認中…",
+      "reconnect": "音声サービスを再接続",
+      "resultVoice": "音声サービス: {0}",
+      "resultLlm": "LLM: {0}",
+      "resultMic": "マイク: {0}",
+      "resultNavData": "ナビデータ: {0}",
+      "resultWake": "Wake-on-LAN: {0}",
+      "failed": "テストが予期せず失敗しました — ログページを確認してください。"
+    },
+    "minima": {
+      "title": "到着ミニマ",
+      "hint": "DH/MDA のデータ参照は存在しません — ブリーフィングしたミニマを入力して minimums コールアウトを有効にします",
+      "clear": "クリア",
+      "da": "DA (baro, ft MSL)",
+      "dh": "DH (radio, ft)",
+      "mda": "MDA (baro, ft MSL)",
+      "altitude": "高度 ft",
+      "set": "設定",
+      "untilSet": "設定するまで \"one hundred above\"/\"minimums\" は無効のままです（フライトごとに一度ログに記録）。"
+    },
+    "speak": {
+      "title": "発話テスト",
+      "hint": "アービター → TTS → 再生の全経路を Normal 優先度で実行します",
+      "placeholder": "FO に言わせる内容",
+      "button": "発話"
+    },
+    "unmatched": {
+      "title": "聞こえたが理解できず",
+      "hint": "このセッションであなたが言ったもののうち、コマンド、チェックリスト応答、質問ハンドラーのいずれも反応しなかったもの — グループ化、繰り返しの多い順",
+      "trackingOff": "追跡はオフです — 設定 → 音声副操縦士 → 認識とプッシュ・トゥ・トーク → 「FO が理解できなかったフレーズを記録」。",
+      "nothing": "まだ取りこぼしはありません。",
+      "absorbed": "ステライルフェーズで {0} 件を無音で吸収（コールアウトであってコマンドではない）。",
+      "heardTitle": "このセッションの全ミス、抑制されたものを含む",
+      "heard": "{0} 件聞き取り",
+      "repeatedTitle": "3 回以上聞こえたフレーズが追加すべきものです",
+      "repeated": "{0} 件が 3 回以上",
+      "sterileTitle": "ステライルフェーズでの吸収: 数えるだけで候補にはなりません",
+      "sterile": "{0} 件ステライル",
+      "clear": "クリア",
+      "colPhrase": "フレーズ",
+      "colCount": "回数",
+      "colWhere": "場所",
+      "colLast": "最終 (UTC)",
+      "contextTitle": "idle = チェックリストが開いていない; checklist: … = その行が応答待ちだった; confirm-declined = FO が 'did you mean' と聞き、あなたが「いいえ」と答えた",
+      "teach": "FO にフレーズを教えるには、{0} の下の該当する場所に追加します: コックピットコマンドは {1}、ATC リクエストは {2}、チェックリスト応答は {4} 配下の行の {3}。FO はファイルを再読み込みし、セッションログはすべてのミスを {5} として保持します。"
+    },
+    "recent": {
+      "summary": "診断 — 最近の発話",
+      "title": "最近の発話",
+      "hint": "新しい順 — 全履歴はセッションイベントログにあります",
+      "nothing": "まだ何も発話していません。",
+      "colTime": "時刻 (UTC)",
+      "colOutcome": "結果",
+      "colPriority": "優先度",
+      "colTag": "タグ",
+      "colText": "テキスト"
+    }
+  }
+}

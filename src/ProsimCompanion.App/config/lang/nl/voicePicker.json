@@ -1,0 +1,13 @@
+{
+  "voicePicker": {
+    "pick": "Kies een stem…",
+    "other": "Andere stem-id…",
+    "placeholderPlain": "Stem-id voor deze aanbieder",
+    "placeholderRef": "aanbieder:stem-id, bijvoorbeeld google:en-AU-Chirp3-HD-Aoede",
+    "saved": "{0} (opgeslagen)",
+    "savedWithProvider": "{0} ({1}, opgeslagen)",
+    "notInProviderList": "{0}-stem \"{1}\". Staat niet in de lijst van die aanbieder — controleer de naam of ververs de stemmen.",
+    "notInServerList": "{0} Staat niet in de lijst van de server — controleer de naam.",
+    "plainId": "Kale stem-id. Wordt ongewijzigd doorgegeven aan de aanbieder die spreekt."
+  }
+}
