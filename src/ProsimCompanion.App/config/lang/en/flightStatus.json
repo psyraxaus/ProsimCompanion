@@ -1,0 +1,199 @@
+{
+  "flightStatus": {
+    "pageTitle": "Flight Status — ProsimCompanion",
+    "heading": "Flight Status",
+    "common": {
+      "yes": "Yes",
+      "no": "No",
+      "true": "True",
+      "false": "False",
+      "ok": "OK"
+    },
+    "layout": {
+      "notSaved": "layout not saved",
+      "dragHint": "Drag a tile onto another to swap them (press and hold on a touch screen), or use the arrows",
+      "resetTitle": "Put the tiles back in the default order",
+      "reset": "Reset layout",
+      "done": "Done",
+      "editTitle": "Drag the tiles on this page into your own order; the order is saved for every device",
+      "edit": "Edit layout",
+      "moveEarlier": "Move earlier",
+      "dragTitle": "Drag to move (or drag the tile anywhere)",
+      "drag": "Drag to move",
+      "moveLater": "Move later",
+      "writeFailed": "The order could not be written to settings.json: {0}"
+    },
+    "hero": {
+      "frozen": "· frozen",
+      "from": "From",
+      "to": "To",
+      "whyPhase": "Why this phase",
+      "reasonTitle": "Reason the current flight phase was committed",
+      "groundSpeed": "Ground speed",
+      "altitude": "Altitude",
+      "verticalSpeed": "Vertical speed",
+      "heading": "Heading",
+      "fuelOnBoard": "Fuel on board",
+      "progressTitle": "Distances are great-circle direct, not along the route. Top of descent is a 3:1 estimate.",
+      "toGo": "To go",
+      "flown": "Flown",
+      "eta": "ETA",
+      "topOfDescent": "Top of descent",
+      "noFlightPlan": "No flight plan loaded — fetch an OFP on the INIT page"
+    },
+    "sequence": {
+      "title": "Flight sequence",
+      "step": {
+        "boardingComplete": "Boarding complete",
+        "boarding": "Boarding",
+        "inProgress": "In progress",
+        "complete": "Complete",
+        "pending": "Pending"
+      },
+      "openChecklists": "Open Checklists"
+    },
+    "engine": {
+      "title": "Phase engine",
+      "frozenTitle": "Automatic transitions are suspended until Resume auto",
+      "automaticTitle": "Phase follows the rule table",
+      "frozen": "frozen",
+      "automatic": "automatic",
+      "phaseToForce": "Phase to force",
+      "freezeTitle": "Keep the forced phase until Resume auto; otherwise the next contradicting evidence moves on",
+      "freeze": "freeze",
+      "forceTitle": "Commit the selected phase now (logged as a manual override)",
+      "force": "Force",
+      "resumeTitle": "Lift the freeze; evaluation continues from the current phase",
+      "resume": "Resume auto"
+    },
+    "weather": {
+      "local": "Local weather",
+      "alternate": "Weather at alternate",
+      "destination": "Weather at destination",
+      "noFlightPlan": "No flight plan",
+      "fetchOfp": "Fetch an OFP on the INIT page",
+      "noMetar": "No METAR available"
+    },
+    "gate": {
+      "open": "GATE OPEN",
+      "boarding": "BOARDING",
+      "finalCall": "FINAL CALL",
+      "closed": "GATE CLOSED",
+      "since": "· since {0}",
+      "label": "Gate",
+      "popoutTitle": "Open the Flight Monitor board in its own window (second monitor / tablet)",
+      "popout": "Pop out"
+    },
+    "sim": {
+      "title": "Sim",
+      "running": "Sim Running",
+      "connected": "Sim Connected",
+      "session": "Sim Session",
+      "paused": "Sim Paused",
+      "walkaround": "Walkaround",
+      "cameraState": "Camera State",
+      "version": "Sim Version",
+      "aircraft": "Aircraft"
+    },
+    "app": {
+      "title": "App",
+      "gsxController": "GSX Controller",
+      "prosimBinary": "ProSim Binary",
+      "aircraftInterface": "Aircraft Interface",
+      "sdkConnected": "ProSim SDK Connected",
+      "automationController": "Automation Controller",
+      "audioController": "Audio Controller",
+      "profile": "Profile",
+      "aircraft": "Aircraft",
+      "onGround": "On Ground",
+      "enginesRunning": "Engines Running",
+      "inMotion": "In Motion"
+    },
+    "gsx": {
+      "title": "GSX",
+      "running": "GSX Running",
+      "couatlVars": "Couatl Vars",
+      "couatlStarted": "Couatl Started",
+      "menuState": "Menu State",
+      "menuShown": "shown",
+      "menuClosed": "closed",
+      "paxTarget": "Pax Target",
+      "paxTotal": "Pax Total (B|D)",
+      "cargo": "Cargo (B|D)",
+      "departureServices": "Departure Services",
+      "departure": {
+        "complete": "Complete",
+        "running": "Running",
+        "notStarted": "Not started"
+      },
+      "assignedGate": "Assigned Gate",
+      "lastHandlerEvent": "Last Handler Event",
+      "droppedCall": "Dropped Call",
+      "dropped": {
+        "checkMenu": "{0} at {1} — check the GSX menu",
+        "menuOpen": "{0} at {1} — GSX menu \"{2}\" open",
+        "noneTitle": "No GSX service call has been dropped",
+        "title": "GSX never picked this call up (retried once). Clear any GSX menu and call the service again."
+      }
+    },
+    "services": {
+      "title": "Services",
+      "catering": "Catering",
+      "lavatory": "Lavatory",
+      "water": "Water",
+      "cleaning": "Cleaning",
+      "boarding": "Boarding",
+      "deboarding": "Deboarding",
+      "pushback": "Pushback",
+      "jetway": "Jetway",
+      "jetwayConnected": "Jetway Connected",
+      "stairs": "Stairs",
+      "stairsConnected": "Stairs Connected",
+      "gpu": "GPU",
+      "refuel": "Refuel",
+      "groundPrep": "Ground Prep",
+      "completed": "completed",
+      "connected": "Connected",
+      "gpuConnected": "connected",
+      "prep": {
+        "holding": "Holding",
+        "tooltip": "{0} — {1}",
+        "idle": "Idle",
+        "reposition": "Repositioning",
+        "settling": "Settling",
+        "anchorGate": "Anchoring gate",
+        "groundEquipment": "Ground equipment",
+        "jetwayStairs": "Jetway/stairs",
+        "complete": "Complete"
+      }
+    },
+    "aircraftState": {
+      "label": "Aircraft State",
+      "pass": "cold and dark ✓",
+      "unchecked": "unchecked (dataref never reported): {0}",
+      "mismatchOne": "{0} mismatch",
+      "mismatchMany": "{0} mismatches",
+      "notChecked": "not checked",
+      "recheck": "Re-check",
+      "recheckTitle": "Re-run the cold-and-dark check now (also available by voice: 'check the aircraft state').",
+      "notReady": "not ready yet"
+    },
+    "cabin": {
+      "label": "Cabin",
+      "securing": "securing",
+      "securingTitle": "Doors closed and beacon on — the crew is securing the cabin; the report follows when their timer runs out (Settings → Voice First Officer → Cabin Crew).",
+      "secure": "secure",
+      "secureTitle": "The purser has reported the cabin secure for this flight.",
+      "noneTitle": "The cabin-secure wait starts when the doors are closed and the beacon is on."
+    },
+    "refuel": {
+      "awaitingTitle": "Waiting for the crew to confirm the block fuel (SOP mode)",
+      "awaiting": "awaiting fuel confirm",
+      "confirmedTitle": "Confirmed {0} via {1}",
+      "confirmedKg": "{0} kg confirmed",
+      "confirmTitle": "Confirm the block fuel (INIT FUEL RAMP override, else the OFP) and order the fuel truck — or a top-up after a completed refuel. Also by voice: 'fuel confirmed'.",
+      "confirming": "Confirming…",
+      "confirm": "Confirm fuel"
+    }
+  }
+}

@@ -8,21 +8,27 @@
 @inject IOptionsMonitor<ProsimOptions> ProsimOptions
 @inject IOptionsMonitor<GsxOptions> GsxOptions
 @inject ProsimSetupStore SetupStore
+@inject IStringLocalizer T
 
 @if (_steps.Count > 0)
 {
-    <Section Title="Getting Started" Hint="This card goes away once everything is connected and set up">
+    <Section Title="@T["gettingStarted.title"]" Hint="@T["gettingStarted.hint"]">
         <ol class="setup-steps">
-            @foreach (var (text, href, linkText) in _steps)
+            @foreach (var step in _steps)
             {
-                <li>@text <a href="@href">@linkText</a></li>
+                <li>@(step.Text ?? T[step.TextId!, step.Args].Value) <a href="@step.Href">@T[step.LinkTextId]</a></li>
             }
         </ol>
     </Section>
 }
 
 @code {
-    private List<(string Text, string Href, string LinkText)> _steps = [];
+    /// <summary>One step: a pack text id with its placeholder values, or a sentence another
+    /// subsystem already wrote (<see cref="ConnectionStatusStore.ReasonOf"/>). Resolved at
+    /// render time, so a language switch (ADR-0014) redraws the card without a refresh.</summary>
+    private readonly record struct Step(string? TextId, string? Text, object[] Args, string Href, string LinkTextId);
+
+    private List<Step> _steps = [];
 
     private int _setupMismatches;
 
@@ -38,37 +44,36 @@
 
     private void Refresh()
     {
-        var steps = new List<(string, string, string)>();
+        var steps = new List<Step>();
         var states = Status.Snapshot().ToDictionary(pair => pair.Key, pair => pair.Value);
 
         if (string.IsNullOrWhiteSpace(ProsimOptions.CurrentValue.SdkPath))
         {
-            steps.Add(("Tell the app where ProSim's SDK is, so it can talk to the aircraft.", "settings", "Set the ProSim SDK folder"));
+            steps.Add(new Step("gettingStarted.sdk", null, [], "settings", "gettingStarted.sdk.link"));
         }
         else if (states.GetValueOrDefault(Subsystems.Prosim) != ConnectionState.Connected)
         {
             // The subsystem's own reason wins (issue #158): "start ProSim" is wrong advice when
             // the SDK in the folder does not match the app.
-            steps.Add((
-                Status.ReasonOf(Subsystems.Prosim) ?? "ProSim is not connected yet. Start ProSim System, or check the host name.",
-                "settings",
-                "Check the ProSim connection"));
+            steps.Add(Status.ReasonOf(Subsystems.Prosim) is { } reason
+                ? new Step(null, reason, [], "settings", "gettingStarted.prosim.link")
+                : new Step("gettingStarted.prosim", null, [], "settings", "gettingStarted.prosim.link"));
         }
         else if (_setupMismatches > 0)
         {
             // The ProSim setup check (2026-10-06): the IOS options differ from what this app
             // wants. The card on Setup shows which, with Apply and the manual steps.
-            var plural = _setupMismatches == 1 ? "option is" : "options are";
-            steps.Add(($"{_setupMismatches} ProSim {plural} set differently from what this app needs.", "settings", "Review the ProSim setup check"));
+            steps.Add(new Step(_setupMismatches == 1 ? "gettingStarted.setupOne" : "gettingStarted.setupMany",
+                null, [_setupMismatches], "settings", "gettingStarted.setup.link"));
         }
 
         if (!GsxOptions.CurrentValue.Enabled)
         {
-            steps.Add(("GSX ground services are switched off.", "settings", "Turn them on under Setup"));
+            steps.Add(new Step("gettingStarted.gsxOff", null, [], "settings", "gettingStarted.gsxOff.link"));
         }
         else if (states.GetValueOrDefault(Subsystems.Gsx) != ConnectionState.Connected)
         {
-            steps.Add(("GSX is not connected yet. Start the simulator with GSX Pro running.", "settings/gsx/status", "See the GSX status"));
+            steps.Add(new Step("gettingStarted.gsx", null, [], "settings/gsx/status", "gettingStarted.gsx.link"));
         }
 
         _steps = steps;

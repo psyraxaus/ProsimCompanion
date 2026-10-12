@@ -1,0 +1,17 @@
+{
+  "gettingStarted": {
+    "title": "はじめに",
+    "hint": "すべてが接続・設定されると、このカードは消えます",
+    "sdk": "機体と通信できるよう、ProSim の SDK の場所をアプリに教えてください。",
+    "sdk.link": "ProSim SDK フォルダーを設定",
+    "prosim": "ProSim はまだ接続されていません。ProSim System を起動するか、ホスト名を確認してください。",
+    "prosim.link": "ProSim 接続を確認",
+    "setupOne": "ProSim のオプション {0} 件が、このアプリに必要な設定と異なります。",
+    "setupMany": "ProSim のオプション {0} 件が、このアプリに必要な設定と異なります。",
+    "setup.link": "ProSim セットアップチェックを確認",
+    "gsxOff": "GSX 地上サービスはオフになっています。",
+    "gsxOff.link": "セットアップでオンにする",
+    "gsx": "GSX はまだ接続されていません。GSX Pro を起動した状態でシミュレーターを開始してください。",
+    "gsx.link": "GSX の状態を見る"
+  }
+}

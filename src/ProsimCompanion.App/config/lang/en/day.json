@@ -1,0 +1,36 @@
+{
+  "day": {
+    "pageTitle": "Duty Day — ProsimCompanion",
+    "heading": "Duty Day",
+    "title": "Company Day Mode",
+    "notWired": "Company day mode is not wired into this build (see WIRING-DAY.md).",
+    "status": "Status",
+    "noDay": "No duty day",
+    "start": "Start duty day",
+    "end": "End duty day",
+    "startHint": "Say \"start duty day\", or press the button. With day mode enabled and auto-start on, a day also begins at the first Preflight. Drop a rotations/*.json file for a planned day.",
+    "from": "From",
+    "to": "To",
+    "leg": "Leg",
+    "legOf": "of {0}",
+    "legsCompleted": "{0} completed",
+    "block": "Block",
+    "duty": "Duty",
+    "schedule": "Schedule",
+    "behind": "behind",
+    "ahead": "ahead",
+    "onSchedule": "on schedule",
+    "figuresNote": "Block and duty figures are convenience tracking of what was flown — not a flight-time-limitations calculation.",
+    "legs": "Legs",
+    "legName": "Leg {0} · {1} → {2}",
+    "blockMin": "{0} min block",
+    "legState": {
+      "landed": "landed",
+      "noLanding": "no landing",
+      "inProgress": "in progress",
+      "planned": "planned",
+      "stabilized": "stabilized",
+      "unstable": "unstable"
+    }
+  }
+}

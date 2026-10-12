@@ -1,0 +1,98 @@
+{
+  "monitor": {
+    "pageTitle": "{0} — ProsimCompanion",
+    "heading": "Flight Monitor",
+    "mode": {
+      "gate": "Monitor de puerta",
+      "flight": "Monitor de vuelo",
+      "arrival": "Monitor de llegada"
+    },
+    "logoAlt": "Logotipo de {0}",
+    "logoTitle": "Sube el logotipo de esta aerolínea en Ajustes → Apariencia",
+    "logoPlaceholder": "LOGO AEROLÍNEA",
+    "noFlightPlan": "Sin plan de vuelo",
+    "fetchOfp": "Obtén un OFP en la página INIT",
+    "gateLabel": {
+      "gate": "Puerta",
+      "cruise": "Crucero",
+      "arrival": "Puerta de llegada"
+    },
+    "state": {
+      "gateOpen": "PUERTA ABIERTA",
+      "boarding": "EMBARCANDO",
+      "finalCall": "ÚLTIMA LLAMADA",
+      "gateClosed": "PUERTA CERRADA",
+      "taxiIn": "RODAJE DE LLEGADA",
+      "arrived": "LLEGADO",
+      "deboarding": "DESEMBARCANDO",
+      "onBlocks": "EN CALZOS"
+    },
+    "progress": {
+      "position": "Ortodrómica directa · desde la posición",
+      "timeNoPosition": "Por tiempo · sin posición de la aeronave",
+      "timeNoAirport": "Por tiempo · posición del aeropuerto desconocida",
+      "none": "Sin datos de progreso"
+    },
+    "stripLabel": "Ruta {0} a {1}, {2} por ciento, {3}",
+    "directTitle": "Distancia ortodrómica directa, no a lo largo de la ruta. El inicio del descenso es una estimación 3:1.",
+    "toGo": "FALTAN {0} DIRECTO",
+    "tod": "T/D {0} EST",
+    "elapsed": "TRANSCURRIDO {0}",
+    "paxOff": "{0} / {1} PAX FUERA",
+    "pax": "{0} / {1} PAX",
+    "paxNone": "— PAX",
+    "facts": {
+      "eet": "EET {0}",
+      "blockIn": "CALZOS {0}",
+      "blockTime": "TIEMPO BLOQUE {0}",
+      "fob": "FOB {0}",
+      "offBlocks": "FUERA CALZOS {0}",
+      "flightTime": "TIEMPO VUELO {0}",
+      "std": "STD {0} · {1} MIN",
+      "stdNone": "STD —",
+      "landed": "ATERRIZÓ {0}",
+      "etaTagged": "ETA {0} {1}",
+      "eta": "ETA {0}"
+    },
+    "flightData": "Datos de vuelo",
+    "rows": {
+      "groundSpeed": "Vel. suelo",
+      "altitude": "Altitud",
+      "verticalSpeed": "Vel. vertical",
+      "heading": "Rumbo"
+    },
+    "aircraft": "Aeronave",
+    "lamps": {
+      "gear": "Tren",
+      "flaps": "Flaps",
+      "seatBelts": "Cinturones",
+      "beacon": "Beacon",
+      "jetwayStairs": "Pasarela / escaleras"
+    },
+    "doors": "Puertas y conexiones",
+    "door": {
+      "cargoFwd": "Carga delantera",
+      "cargoAft": "Carga trasera",
+      "open": "ABIERTA",
+      "closed": "CERRADA"
+    },
+    "groundServices": "Servicios de tierra",
+    "services": {
+      "deboarding": "Desembarque",
+      "cleaning": "Limpieza",
+      "catering": "Catering",
+      "refuel": "Repostaje",
+      "boarding": "Embarque",
+      "pushback": "Pushback"
+    },
+    "weather": {
+      "local": "Local",
+      "alternate": "Alternativo",
+      "destination": "Destino",
+      "fetchOfp": "Obtén un OFP en la página INIT",
+      "noMetar": "No hay METAR disponible",
+      "updatedJustNow": " · actualizado ahora mismo",
+      "updatedAgo": " · actualizado hace {0} min"
+    }
+  }
+}

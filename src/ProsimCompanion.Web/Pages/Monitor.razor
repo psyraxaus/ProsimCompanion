@@ -27,9 +27,10 @@
 @inject DisplayUnitService Units
 @inject IJSRuntime JS
 @inject ILogger<Monitor> Logger
+@inject IStringLocalizer T
 
-<PageTitle>@FlightMonitorPresentation.ModeLabel(Mode) — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Flight Monitor</h1>
+<PageTitle>@T["monitor.pageTitle", FlightMonitorPresentation.ModeLabel(T, Mode)]</PageTitle>
+<h1 class="sr-only">@T["monitor.heading"]</h1>
 
 @* The pop-out Flight Monitor board (owner sign-off 2026-09-23, canvas "Route Over Word"
    v5): a fixed 1920×1080 stage the browser scales as one piece to the window. GATE MONITOR
@@ -40,16 +41,16 @@
         <div class="mon-header-left">
             @if (LogoSlug is { } slug)
             {
-                <img class="mon-logo" src="api/airline-logo/@(slug)?v=@Logos.Files.Version" alt="@AirlineCode logo" />
+                <img class="mon-logo" src="api/airline-logo/@(slug)?v=@Logos.Files.Version" alt="@T["monitor.logoAlt", AirlineCode]" />
             }
             else
             {
-                <div class="mon-logo-ph" title="Upload this airline's logo on Settings → Appearance">@(AirlineCode.Length > 0 ? AirlineCode : "AIRLINE LOGO")</div>
+                <div class="mon-logo-ph" title="@T["monitor.logoTitle"]">@(AirlineCode.Length > 0 ? AirlineCode : T["monitor.logoPlaceholder"].Value)</div>
             }
             <span class="label-caps mon-aircraft">@AircraftLine</span>
         </div>
         <div class="mon-header-right">
-            <span class="label-caps mon-mode">@FlightMonitorPresentation.ModeLabel(Mode)</span>
+            <span class="label-caps mon-mode">@FlightMonitorPresentation.ModeLabel(T, Mode)</span>
             @* The split-flap clock (owner request 2026-10-03): the header's own <split-flap> element —
                amber on dark tiles, NOT themed, flips on the minute like the header's SIM clock. *@
             <div class="mon-clock-flap">
@@ -117,7 +118,7 @@
                         </g>
                     }
                 </svg>
-                <span class="label-caps muted mon-strip-caption">@FlightMonitorPresentation.ProgressCaption(_progress)</span>
+                <span class="label-caps muted mon-strip-caption">@FlightMonitorPresentation.ProgressCaption(T, _progress)</span>
             }
             else
             {
@@ -136,9 +137,9 @@
                     </div>
                     @if (Mode == MonitorMode.Flight)
                     {
-                        <div class="mon-pax-col" title="Great-circle direct distance, not along the route. Top of descent is a 3:1 estimate.">
-                            <span class="label-caps">TO GO @FlightMonitorPresentation.Distance(_progress.DistanceToGoNm) DIRECT</span>
-                            <span class="label-caps">T/D @FlightMonitorPresentation.MinutesToTod(_progress.MinutesToTod) EST</span>
+                        <div class="mon-pax-col" title="@T["monitor.directTitle"]">
+                            <span class="label-caps">@T["monitor.toGo", FlightMonitorPresentation.Distance(_progress.DistanceToGoNm)]</span>
+                            <span class="label-caps">@T["monitor.tod", FlightMonitorPresentation.MinutesToTod(_progress.MinutesToTod)]</span>
                         </div>
                     }
                 </div>
@@ -154,18 +155,18 @@
             {
                 <div class="mon-grid2">
                     <div class="mon-col">
-                        <span class="label-caps muted">Flight data</span>
-                        @Row("Ground speed", Metric(Data?.GroundSpeedKt, "F0", " KTS"))
-                        @Row("Altitude", Metric(Data?.AltitudeFt, "N0", " FT"))
-                        @Row("Vertical speed", VerticalSpeed)
-                        @Row("Heading", Heading)
+                        <span class="label-caps muted">@T["monitor.flightData"]</span>
+                        @Row(T["monitor.rows.groundSpeed"], Metric(Data?.GroundSpeedKt, "F0", " KTS"))
+                        @Row(T["monitor.rows.altitude"], Metric(Data?.AltitudeFt, "N0", " FT"))
+                        @Row(T["monitor.rows.verticalSpeed"], VerticalSpeed)
+                        @Row(T["monitor.rows.heading"], Heading)
                     </div>
                     <div class="mon-col">
-                        <span class="label-caps muted">Aircraft</span>
-                        @Lamp("Gear", Data?.GearDown == true ? "DOWN" : "UP", Data?.GearDown == true ? "warn" : "ok")
-                        @Lamp("Flaps", Data is { } d ? d.FlapHandle.ToString() : "—", Data?.FlapHandle > 0 ? "warn" : "neutral")
-                        @Lamp("Seat belts", Data?.SeatbeltSignsMode switch { 1 => "ON", 2 => "AUTO", 0 => "OFF", _ => "—" }, Data?.SeatbeltSignsMode == 1 ? "ok" : "neutral")
-                        @Lamp("Beacon", Data?.BeaconOn == true ? "ON" : "OFF", Data?.BeaconOn == true ? "ok" : "neutral")
+                        <span class="label-caps muted">@T["monitor.aircraft"]</span>
+                        @Lamp(T["monitor.lamps.gear"], Data?.GearDown == true ? "DOWN" : "UP", Data?.GearDown == true ? "warn" : "ok")
+                        @Lamp(T["monitor.lamps.flaps"], Data is { } d ? d.FlapHandle.ToString() : "—", Data?.FlapHandle > 0 ? "warn" : "neutral")
+                        @Lamp(T["monitor.lamps.seatBelts"], Data?.SeatbeltSignsMode switch { 1 => "ON", 2 => "AUTO", 0 => "OFF", _ => "—" }, Data?.SeatbeltSignsMode == 1 ? "ok" : "neutral")
+                        @Lamp(T["monitor.lamps.beacon"], Data?.BeaconOn == true ? "ON" : "OFF", Data?.BeaconOn == true ? "ok" : "neutral")
                     </div>
                 </div>
             }
@@ -173,29 +174,29 @@
             {
                 <div class="mon-grid2">
                     <div class="mon-col">
-                        <span class="label-caps muted">Doors &amp; connections</span>
+                        <span class="label-caps muted">@T["monitor.doors"]</span>
                         @Door("1L", _door1L)
                         @Door("1R", _door1R)
-                        @Door("Cargo fwd", _cargoFwd)
-                        @Door("Cargo aft", _cargoAft)
-                        @Lamp("Jetway / stairs", BridgeConnected ? "CONN" : "—", BridgeConnected ? "ok" : "neutral")
+                        @Door(T["monitor.door.cargoFwd"], _cargoFwd)
+                        @Door(T["monitor.door.cargoAft"], _cargoAft)
+                        @Lamp(T["monitor.lamps.jetwayStairs"], BridgeConnected ? "CONN" : "—", BridgeConnected ? "ok" : "neutral")
                         @Lamp("GPU", GpuConnected ? "CONN" : "—", GpuConnected ? "ok" : "neutral")
                     </div>
                     <div class="mon-col">
-                        <span class="label-caps muted">Ground services</span>
+                        <span class="label-caps muted">@T["monitor.groundServices"]</span>
                         @if (Mode == MonitorMode.Arrival)
                         {
-                            @Service("Deboarding", GsxServiceIds.Deboarding)
-                            @Service("Cleaning", GsxServiceIds.Cleaning)
-                            @Service("Catering", GsxServiceIds.Catering)
-                            @Service("Refuel", GsxServiceIds.Refueling)
+                            @Service(T["monitor.services.deboarding"], GsxServiceIds.Deboarding)
+                            @Service(T["monitor.services.cleaning"], GsxServiceIds.Cleaning)
+                            @Service(T["monitor.services.catering"], GsxServiceIds.Catering)
+                            @Service(T["monitor.services.refuel"], GsxServiceIds.Refueling)
                         }
                         else
                         {
-                            @Service("Refuel", GsxServiceIds.Refueling)
-                            @Service("Catering", GsxServiceIds.Catering)
-                            @Service("Boarding", GsxServiceIds.Boarding)
-                            @Service("Pushback", GsxServiceIds.Departure)
+                            @Service(T["monitor.services.refuel"], GsxServiceIds.Refueling)
+                            @Service(T["monitor.services.catering"], GsxServiceIds.Catering)
+                            @Service(T["monitor.services.boarding"], GsxServiceIds.Boarding)
+                            @Service(T["monitor.services.pushback"], GsxServiceIds.Departure)
                         }
                     </div>
                 </div>
@@ -270,7 +271,7 @@
             }
 
             var minutes = (int)Math.Max(0, (DateTimeOffset.UtcNow - fetched).TotalMinutes);
-            return minutes == 0 ? " · updated just now" : $" · updated {minutes} min ago";
+            return minutes == 0 ? T["monitor.weather.updatedJustNow"].Value : T["monitor.weather.updatedAgo", minutes].Value;
         }
     }
 
@@ -292,14 +293,14 @@
         : string.Join(" · ", new[] { _ofp.AircraftIcaoType, _ofp.AircraftReg }.Where(s => s.Length > 0));
 
     // ── centre column ───────────────────────────────────────────────────────────────
-    private string FlightNumber => _ofp is null ? "No flight plan" : _ofp.Callsign.Length > 0 ? _ofp.Callsign : _ofp.Ident;
+    private string FlightNumber => _ofp is null ? T["monitor.noFlightPlan"].Value : _ofp.Callsign.Length > 0 ? _ofp.Callsign : _ofp.Ident;
 
     private string Origin => _ofp?.OriginIcao is { Length: > 0 } o ? o : "----";
 
     private string Destination => _ofp?.DestinationIcao is { Length: > 0 } d ? d : "----";
 
     private string RouteNames => _ofp is null
-        ? "Fetch an OFP on the INIT page"
+        ? T["monitor.fetchOfp"].Value
         : $"{AirportNameFormat.TitleCase(_ofp.OriginName)} → {AirportNameFormat.TitleCase(_ofp.DestinationName)}";
 
     private bool DeboardingActive => ServiceView(GsxServiceIds.Deboarding)?.Stage == GsxServiceStage.Active;
@@ -307,7 +308,7 @@
     private bool ArrivalComplete => FlightState.Snapshot().Data?.ArrivalComplete == true
         || ServiceView(GsxServiceIds.Deboarding)?.Stage == GsxServiceStage.Completed;
 
-    private string StateWord => FlightMonitorPresentation.StateWord(Mode, _gate.State, Phase, DeboardingActive, ArrivalComplete);
+    private string StateWord => FlightMonitorPresentation.StateWord(T, Mode, _gate.State, Phase, DeboardingActive, ArrivalComplete);
 
     private string StateTone => FlightMonitorPresentation.StateTone(Mode, _gate.State, ArrivalComplete);
 
@@ -321,9 +322,9 @@
 
     private string GateLabel => Mode switch
     {
-        MonitorMode.Flight => "Cruise",
-        MonitorMode.Arrival => "Arrival gate",
-        _ => "Gate",
+        MonitorMode.Flight => T["monitor.gateLabel.cruise"].Value,
+        MonitorMode.Arrival => T["monitor.gateLabel.arrival"].Value,
+        _ => T["monitor.gateLabel.gate"].Value,
     };
 
     private string GateValue => Mode switch
@@ -344,7 +345,7 @@
     private RouteStripView Strip => FlightMonitorPresentation.RouteStrip(
         _progress.Fraction is null ? _progress with { Fraction = Progress } : _progress);
 
-    private string StripLabel => $"Route {Origin} to {Destination}, {BarPercent} percent, {FlightMonitorPresentation.ProgressCaption(_progress)}";
+    private string StripLabel => T["monitor.stripLabel", Origin, Destination, BarPercent, FlightMonitorPresentation.ProgressCaption(T, _progress)].Value;
 
     private double Progress => Mode switch
     {
@@ -358,38 +359,38 @@
 
     private string BarPrimary => Mode switch
     {
-        MonitorMode.Flight => $"ELAPSED {FlightMonitorPresentation.Duration(_times.BlockTime(Now))}",
-        MonitorMode.Arrival => _gsx.BoardingCounters is { PaxTarget: { } t } c ? $"{c.PaxDeboarded ?? 0} / {t} PAX OFF" : "— PAX",
-        _ => _gate.PaxTarget is { } target ? $"{_gate.PaxBoarded ?? 0} / {target} PAX" : "— PAX",
+        MonitorMode.Flight => T["monitor.elapsed", FlightMonitorPresentation.Duration(_times.BlockTime(Now))].Value,
+        MonitorMode.Arrival => _gsx.BoardingCounters is { PaxTarget: { } t } c ? T["monitor.paxOff", c.PaxDeboarded ?? 0, t].Value : T["monitor.paxNone"].Value,
+        _ => _gate.PaxTarget is { } target ? T["monitor.pax", _gate.PaxBoarded ?? 0, target].Value : T["monitor.paxNone"].Value,
     };
 
     private string FactA => Mode switch
     {
-        MonitorMode.Flight => $"EET {FlightMonitorPresentation.Duration(_ofp?.EstimatedEnroute)}",
-        MonitorMode.Arrival => $"BLOCK-IN {FlightMonitorPresentation.Clock(_times.OnBlocksUtc)}",
-        _ => $"EET {FlightMonitorPresentation.Duration(_ofp?.EstimatedEnroute)}",
+        MonitorMode.Flight => T["monitor.facts.eet", FlightMonitorPresentation.Duration(_ofp?.EstimatedEnroute)].Value,
+        MonitorMode.Arrival => T["monitor.facts.blockIn", FlightMonitorPresentation.Clock(_times.OnBlocksUtc)].Value,
+        _ => T["monitor.facts.eet", FlightMonitorPresentation.Duration(_ofp?.EstimatedEnroute)].Value,
     };
 
     private string FactB => Mode switch
     {
-        MonitorMode.Arrival => $"BLOCK TIME {FlightMonitorPresentation.Duration(_times.BlockTime(Now))}",
-        _ => $"FOB {FuelOnBoard}{(_ofp is { FuelPlanRampKg: > 0 } o ? $" / {Units.Format(o.FuelPlanRampKg)}" : "")}",
+        MonitorMode.Arrival => T["monitor.facts.blockTime", FlightMonitorPresentation.Duration(_times.BlockTime(Now))].Value,
+        _ => T["monitor.facts.fob", $"{FuelOnBoard}{(_ofp is { FuelPlanRampKg: > 0 } o ? $" / {Units.Format(o.FuelPlanRampKg)}" : "")}"].Value,
     };
 
     private string FactC => Mode switch
     {
-        MonitorMode.Flight => $"OFF BLOCKS {FlightMonitorPresentation.Clock(_times.OffBlocksUtc)}",
-        MonitorMode.Arrival => $"FLIGHT TIME {FlightMonitorPresentation.Duration(_times.FlightTime(Now))}",
+        MonitorMode.Flight => T["monitor.facts.offBlocks", FlightMonitorPresentation.Clock(_times.OffBlocksUtc)].Value,
+        MonitorMode.Arrival => T["monitor.facts.flightTime", FlightMonitorPresentation.Duration(_times.FlightTime(Now))].Value,
         _ => _gate.StdUtc is { } std
-            ? $"STD {FlightMonitorPresentation.Clock(std)} · {(_gate.MinutesToStd is { } m ? (m >= 0 ? $"−{m}" : $"+{-m}") : "—")} MIN"
-            : "STD —",
+            ? T["monitor.facts.std", FlightMonitorPresentation.Clock(std), _gate.MinutesToStd is { } m ? (m >= 0 ? $"−{m}" : $"+{-m}") : "—"].Value
+            : T["monitor.facts.stdNone"].Value,
     };
 
     private string FactD => Mode switch
     {
-        MonitorMode.Arrival => $"LANDED {FlightMonitorPresentation.Clock(_times.LandingUtc)}",
-        MonitorMode.Flight when EtaTag.Length > 0 => $"ETA {FlightMonitorPresentation.Clock(Eta)} {EtaTag}",
-        _ => $"ETA {FlightMonitorPresentation.Clock(Eta)}",
+        MonitorMode.Arrival => T["monitor.facts.landed", FlightMonitorPresentation.Clock(_times.LandingUtc)].Value,
+        MonitorMode.Flight when EtaTag.Length > 0 => T["monitor.facts.etaTagged", FlightMonitorPresentation.Clock(Eta), EtaTag].Value,
+        _ => T["monitor.facts.eta", FlightMonitorPresentation.Clock(Eta)].Value,
     };
 
     // ── figures ─────────────────────────────────────────────────────────────────────
@@ -436,7 +437,7 @@
         var known = sub is { RawValue: not null } && ProsimConnected;
         var open = known && sub!.Value;
         return @<div class="mon-row">
-            <span class="label-caps @(open ? "gold" : null)">@name @(known ? (open ? "OPEN" : "CLOSED") : "—")</span>
+            <span class="label-caps @(open ? "gold" : null)">@name @(known ? (open ? T["monitor.door.open"].Value : T["monitor.door.closed"].Value) : "—")</span>
             <AppIcon Name="@(open ? "door-open" : "door-closed")" Size="22" Class="@(open ? "gold" : "muted")" />
         </div>;
     }
@@ -458,7 +459,7 @@
     }
 
     private RenderFragment WeatherCardView(WeatherCard card) => @<div class="card mon-card mon-wx">
-        <span class="label-caps cyan">@(card.Role == WeatherCardRole.Local ? "Local" : card.Role == WeatherCardRole.Alternate ? "Alternate" : "Destination")</span>
+        <span class="label-caps cyan">@(card.Role == WeatherCardRole.Local ? T["monitor.weather.local"].Value : card.Role == WeatherCardRole.Alternate ? T["monitor.weather.alternate"].Value : T["monitor.weather.destination"].Value)</span>
         <div class="inset mon-wx-body">
             <div class="mon-wx-sky sky-@(card.Sky.ToString().ToLowerInvariant())" title="@(card.Facts.RawMetar ?? card.Failure)">
                 <AppIcon Name="@WeatherCardFormat.SkyIcon(card.Sky)" Size="60" />
@@ -479,7 +480,7 @@
                 }
                 else
                 {
-                    <span class="mon-wx-missing">@(card.Icao.Length == 0 ? "Fetch an OFP on the INIT page" : card.Failure ?? "No METAR available")</span>
+                    <span class="mon-wx-missing">@(card.Icao.Length == 0 ? T["monitor.weather.fetchOfp"].Value : card.Failure ?? T["monitor.weather.noMetar"].Value)</span>
                 }
             </div>
         </div>

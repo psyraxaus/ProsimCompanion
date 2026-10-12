@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Localization;
 using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Boarding;
 using ProsimCompanion.Core.Flight;
@@ -40,31 +41,42 @@ public static class FlightMonitorPresentation
         _ => MonitorMode.Gate,
     };
 
-    public static string ModeLabel(MonitorMode mode) => mode switch
+    /// <summary>The board's face name in the page's language (ADR-0014): a static class
+    /// cannot inject the localizer, so the page hands its own in.</summary>
+    public static string ModeLabel(IStringLocalizer text, MonitorMode mode)
     {
-        MonitorMode.Flight => "Flight monitor",
-        MonitorMode.Arrival => "Arrival monitor",
-        _ => "Gate monitor",
-    };
+        ArgumentNullException.ThrowIfNull(text);
+        return mode switch
+        {
+            MonitorMode.Flight => text["monitor.mode.flight"].Value,
+            MonitorMode.Arrival => text["monitor.mode.arrival"].Value,
+            _ => text["monitor.mode.gate"].Value,
+        };
+    }
 
     /// <summary>The big word. Gate mode reads the gate monitor; flight mode reads the
-    /// phase; arrival mode reads the deboarding.</summary>
-    public static string StateWord(MonitorMode mode, GateState gate, FlightPhase phase, bool deboardingActive, bool arrivalComplete)
-        => mode switch
+    /// phase; arrival mode reads the deboarding. The gate and arrival words come from the
+    /// language pack; the flight word is the phase code exactly as the Flight Status card
+    /// and the change log (#110) spell it, never translated.</summary>
+    public static string StateWord(IStringLocalizer text, MonitorMode mode, GateState gate, FlightPhase phase, bool deboardingActive, bool arrivalComplete)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return mode switch
         {
             MonitorMode.Gate => gate switch
             {
-                GateState.Open => "GATE OPEN",
-                GateState.Boarding => "BOARDING",
-                GateState.FinalCall => "FINAL CALL",
-                _ => "GATE CLOSED",
+                GateState.Open => text["monitor.state.gateOpen"].Value,
+                GateState.Boarding => text["monitor.state.boarding"].Value,
+                GateState.FinalCall => text["monitor.state.finalCall"].Value,
+                _ => text["monitor.state.gateClosed"].Value,
             },
             MonitorMode.Flight => FlightStatusPresentation.PhaseDisplay(phase),
-            _ => phase == FlightPhase.TaxiIn ? "TAXI IN"
-                : arrivalComplete ? "ARRIVED"
-                : deboardingActive ? "DEBOARDING"
-                : "ON BLOCKS",
+            _ => phase == FlightPhase.TaxiIn ? text["monitor.state.taxiIn"].Value
+                : arrivalComplete ? text["monitor.state.arrived"].Value
+                : deboardingActive ? text["monitor.state.deboarding"].Value
+                : text["monitor.state.onBlocks"].Value,
         };
+    }
 
     /// <summary>CSS tone of the state word: matches the gate strip's five tones on the
     /// ground, cyan in the air, green once the arrival is complete.</summary>
@@ -120,16 +132,17 @@ public static class FlightMonitorPresentation
     };
 
     /// <summary>The one-line honesty label under the route strip and on Flight Status.</summary>
-    public static string ProgressCaption(FlightProgressSnapshot progress)
+    public static string ProgressCaption(IStringLocalizer text, FlightProgressSnapshot progress)
     {
+        ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(progress);
         return progress.FractionBasis switch
         {
-            ProgressBasis.Position => "Great-circle direct · from position",
+            ProgressBasis.Position => text["monitor.progress.position"].Value,
             ProgressBasis.Time => progress.Position is null
-                ? "Time-based · no aircraft position"
-                : "Time-based · airport position unknown",
-            _ => "No progress data",
+                ? text["monitor.progress.timeNoPosition"].Value
+                : text["monitor.progress.timeNoAirport"].Value,
+            _ => text["monitor.progress.none"].Value,
         };
     }
 

@@ -1,0 +1,36 @@
+{
+  "day": {
+    "pageTitle": "Diensttag — ProsimCompanion",
+    "heading": "Diensttag",
+    "title": "Company-Day-Modus",
+    "notWired": "Der Company-Day-Modus ist in diesem Build nicht verdrahtet (siehe WIRING-DAY.md).",
+    "status": "Status",
+    "noDay": "Kein Diensttag",
+    "start": "Diensttag beginnen",
+    "end": "Diensttag beenden",
+    "startHint": "Sag \"start duty day\" oder drücke die Schaltfläche. Mit aktiviertem Day-Modus und Autostart beginnt ein Tag auch beim ersten Preflight. Lege eine rotations/*.json-Datei für einen geplanten Tag ab.",
+    "from": "Von",
+    "to": "Nach",
+    "leg": "Leg",
+    "legOf": "von {0}",
+    "legsCompleted": "{0} abgeschlossen",
+    "block": "Block",
+    "duty": "Dienst",
+    "schedule": "Zeitplan",
+    "behind": "verspätet",
+    "ahead": "voraus",
+    "onSchedule": "pünktlich",
+    "figuresNote": "Block- und Dienstzeiten sind eine bequeme Nachverfolgung des Geflogenen — keine Berechnung nach Flugzeitbegrenzungen.",
+    "legs": "Legs",
+    "legName": "Leg {0} · {1} → {2}",
+    "blockMin": "{0} min Block",
+    "legState": {
+      "landed": "gelandet",
+      "noLanding": "keine Landung",
+      "inProgress": "läuft",
+      "planned": "geplant",
+      "stabilized": "stabilisiert",
+      "unstable": "instabil"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "monitor": {
+    "pageTitle": "{0} — ProsimCompanion",
+    "heading": "Flight Monitor",
+    "mode": {
+      "gate": "게이트 모니터",
+      "flight": "비행 모니터",
+      "arrival": "도착 모니터"
+    },
+    "logoAlt": "{0} 로고",
+    "logoTitle": "설정 → 모양에서 이 항공사의 로고를 올리세요",
+    "logoPlaceholder": "항공사 로고",
+    "noFlightPlan": "비행 계획 없음",
+    "fetchOfp": "INIT 페이지에서 OFP를 가져오세요",
+    "gateLabel": {
+      "gate": "게이트",
+      "cruise": "순항",
+      "arrival": "도착 게이트"
+    },
+    "state": {
+      "gateOpen": "게이트 열림",
+      "boarding": "탑승 중",
+      "finalCall": "최종 안내",
+      "gateClosed": "게이트 닫힘",
+      "taxiIn": "택시 인",
+      "arrived": "도착",
+      "deboarding": "하기 중",
+      "onBlocks": "블록 인"
+    },
+    "progress": {
+      "position": "대권 직선 · 위치 기준",
+      "timeNoPosition": "시간 기준 · 항공기 위치 없음",
+      "timeNoAirport": "시간 기준 · 공항 위치 알 수 없음",
+      "none": "진행 데이터 없음"
+    },
+    "stripLabel": "경로 {0}에서 {1}, {2}퍼센트, {3}",
+    "directTitle": "경로를 따르지 않는 대권 직선 거리입니다. 강하 개시점은 3:1 추정입니다.",
+    "toGo": "남은 거리 {0} 직선",
+    "tod": "T/D {0} 추정",
+    "elapsed": "경과 {0}",
+    "paxOff": "{0} / {1} PAX 하기",
+    "pax": "{0} / {1} PAX",
+    "paxNone": "— PAX",
+    "facts": {
+      "eet": "EET {0}",
+      "blockIn": "블록 인 {0}",
+      "blockTime": "블록 시간 {0}",
+      "fob": "FOB {0}",
+      "offBlocks": "블록 아웃 {0}",
+      "flightTime": "비행 시간 {0}",
+      "std": "STD {0} · {1} MIN",
+      "stdNone": "STD —",
+      "landed": "착륙 {0}",
+      "etaTagged": "ETA {0} {1}",
+      "eta": "ETA {0}"
+    },
+    "flightData": "비행 데이터",
+    "rows": {
+      "groundSpeed": "대지 속도",
+      "altitude": "고도",
+      "verticalSpeed": "수직 속도",
+      "heading": "기수 방위"
+    },
+    "aircraft": "항공기",
+    "lamps": {
+      "gear": "랜딩기어",
+      "flaps": "플랩",
+      "seatBelts": "좌석벨트",
+      "beacon": "비콘",
+      "jetwayStairs": "탑승교 / 계단차"
+    },
+    "doors": "도어 및 연결",
+    "door": {
+      "cargoFwd": "전방 화물",
+      "cargoAft": "후방 화물",
+      "open": "열림",
+      "closed": "닫힘"
+    },
+    "groundServices": "지상 서비스",
+    "services": {
+      "deboarding": "하기",
+      "cleaning": "청소",
+      "catering": "케이터링",
+      "refuel": "급유",
+      "boarding": "탑승",
+      "pushback": "푸시백"
+    },
+    "weather": {
+      "local": "현지",
+      "alternate": "교체 공항",
+      "destination": "목적지",
+      "fetchOfp": "INIT 페이지에서 OFP를 가져오세요",
+      "noMetar": "METAR 없음",
+      "updatedJustNow": " · 방금 갱신됨",
+      "updatedAgo": " · {0}분 전 갱신됨"
+    }
+  }
+}

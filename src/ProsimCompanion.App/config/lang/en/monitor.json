@@ -1,0 +1,98 @@
+{
+  "monitor": {
+    "pageTitle": "{0} — ProsimCompanion",
+    "heading": "Flight Monitor",
+    "mode": {
+      "gate": "Gate monitor",
+      "flight": "Flight monitor",
+      "arrival": "Arrival monitor"
+    },
+    "logoAlt": "{0} logo",
+    "logoTitle": "Upload this airline's logo on Settings → Appearance",
+    "logoPlaceholder": "AIRLINE LOGO",
+    "noFlightPlan": "No flight plan",
+    "fetchOfp": "Fetch an OFP on the INIT page",
+    "gateLabel": {
+      "gate": "Gate",
+      "cruise": "Cruise",
+      "arrival": "Arrival gate"
+    },
+    "state": {
+      "gateOpen": "GATE OPEN",
+      "boarding": "BOARDING",
+      "finalCall": "FINAL CALL",
+      "gateClosed": "GATE CLOSED",
+      "taxiIn": "TAXI IN",
+      "arrived": "ARRIVED",
+      "deboarding": "DEBOARDING",
+      "onBlocks": "ON BLOCKS"
+    },
+    "progress": {
+      "position": "Great-circle direct · from position",
+      "timeNoPosition": "Time-based · no aircraft position",
+      "timeNoAirport": "Time-based · airport position unknown",
+      "none": "No progress data"
+    },
+    "stripLabel": "Route {0} to {1}, {2} percent, {3}",
+    "directTitle": "Great-circle direct distance, not along the route. Top of descent is a 3:1 estimate.",
+    "toGo": "TO GO {0} DIRECT",
+    "tod": "T/D {0} EST",
+    "elapsed": "ELAPSED {0}",
+    "paxOff": "{0} / {1} PAX OFF",
+    "pax": "{0} / {1} PAX",
+    "paxNone": "— PAX",
+    "facts": {
+      "eet": "EET {0}",
+      "blockIn": "BLOCK-IN {0}",
+      "blockTime": "BLOCK TIME {0}",
+      "fob": "FOB {0}",
+      "offBlocks": "OFF BLOCKS {0}",
+      "flightTime": "FLIGHT TIME {0}",
+      "std": "STD {0} · {1} MIN",
+      "stdNone": "STD —",
+      "landed": "LANDED {0}",
+      "etaTagged": "ETA {0} {1}",
+      "eta": "ETA {0}"
+    },
+    "flightData": "Flight data",
+    "rows": {
+      "groundSpeed": "Ground speed",
+      "altitude": "Altitude",
+      "verticalSpeed": "Vertical speed",
+      "heading": "Heading"
+    },
+    "aircraft": "Aircraft",
+    "lamps": {
+      "gear": "Gear",
+      "flaps": "Flaps",
+      "seatBelts": "Seat belts",
+      "beacon": "Beacon",
+      "jetwayStairs": "Jetway / stairs"
+    },
+    "doors": "Doors & connections",
+    "door": {
+      "cargoFwd": "Cargo fwd",
+      "cargoAft": "Cargo aft",
+      "open": "OPEN",
+      "closed": "CLOSED"
+    },
+    "groundServices": "Ground services",
+    "services": {
+      "deboarding": "Deboarding",
+      "cleaning": "Cleaning",
+      "catering": "Catering",
+      "refuel": "Refuel",
+      "boarding": "Boarding",
+      "pushback": "Pushback"
+    },
+    "weather": {
+      "local": "Local",
+      "alternate": "Alternate",
+      "destination": "Destination",
+      "fetchOfp": "Fetch an OFP on the INIT page",
+      "noMetar": "No METAR available",
+      "updatedJustNow": " · updated just now",
+      "updatedAgo": " · updated {0} min ago"
+    }
+  }
+}

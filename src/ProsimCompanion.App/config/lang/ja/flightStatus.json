@@ -1,0 +1,199 @@
+{
+  "flightStatus": {
+    "pageTitle": "フライト状況 — ProsimCompanion",
+    "heading": "フライト状況",
+    "common": {
+      "yes": "はい",
+      "no": "いいえ",
+      "true": "真",
+      "false": "偽",
+      "ok": "OK"
+    },
+    "layout": {
+      "notSaved": "レイアウト未保存",
+      "dragHint": "タイルを別のタイルにドラッグして入れ替えるか（タッチ画面では長押し）、矢印を使ってください",
+      "resetTitle": "タイルを既定の順序に戻します",
+      "reset": "レイアウトをリセット",
+      "done": "完了",
+      "editTitle": "このページのタイルを好みの順序にドラッグします。順序はすべての端末に保存されます",
+      "edit": "レイアウトを編集",
+      "moveEarlier": "前へ移動",
+      "dragTitle": "ドラッグで移動（タイルのどこからでもドラッグできます）",
+      "drag": "ドラッグで移動",
+      "moveLater": "後ろへ移動",
+      "writeFailed": "順序を settings.json に書き込めませんでした: {0}"
+    },
+    "hero": {
+      "frozen": "· 固定中",
+      "from": "出発",
+      "to": "到着",
+      "whyPhase": "このフェーズの理由",
+      "reasonTitle": "現在のフライトフェーズが確定した理由",
+      "groundSpeed": "対地速度",
+      "altitude": "高度",
+      "verticalSpeed": "昇降率",
+      "heading": "機首方位",
+      "fuelOnBoard": "搭載燃料",
+      "progressTitle": "距離はルート沿いではなく大圏直行距離です。降下開始点は 3:1 の推定です。",
+      "toGo": "残り",
+      "flown": "飛行済み",
+      "eta": "ETA",
+      "topOfDescent": "降下開始点",
+      "noFlightPlan": "フライトプランが読み込まれていません — INIT ページで OFP を取得してください"
+    },
+    "sequence": {
+      "title": "フライトの流れ",
+      "step": {
+        "boardingComplete": "搭乗完了",
+        "boarding": "搭乗中",
+        "inProgress": "進行中",
+        "complete": "完了",
+        "pending": "待機中"
+      },
+      "openChecklists": "チェックリストを開く"
+    },
+    "engine": {
+      "title": "フェーズエンジン",
+      "frozenTitle": "自動再開まで自動遷移は停止しています",
+      "automaticTitle": "フェーズはルール表に従います",
+      "frozen": "固定",
+      "automatic": "自動",
+      "phaseToForce": "強制するフェーズ",
+      "freezeTitle": "自動再開まで強制したフェーズを保持します。オフの場合、次の矛盾する根拠で先へ進みます",
+      "freeze": "固定",
+      "forceTitle": "選択したフェーズを今すぐ確定します（手動上書きとして記録されます）",
+      "force": "強制",
+      "resumeTitle": "固定を解除します。評価は現在のフェーズから続きます",
+      "resume": "自動再開"
+    },
+    "weather": {
+      "local": "現地の天候",
+      "alternate": "代替空港の天候",
+      "destination": "目的地の天候",
+      "noFlightPlan": "フライトプランなし",
+      "fetchOfp": "INIT ページで OFP を取得してください",
+      "noMetar": "METAR がありません"
+    },
+    "gate": {
+      "open": "ゲート オープン",
+      "boarding": "搭乗中",
+      "finalCall": "最終案内",
+      "closed": "ゲート クローズ",
+      "since": "· {0} から",
+      "label": "ゲート",
+      "popoutTitle": "Flight Monitor ボードを別ウィンドウで開きます（2 台目のモニター / タブレット）",
+      "popout": "別窓で開く"
+    },
+    "sim": {
+      "title": "シム",
+      "running": "シム起動中",
+      "connected": "シム接続",
+      "session": "シムセッション",
+      "paused": "シム一時停止",
+      "walkaround": "ウォークアラウンド",
+      "cameraState": "カメラ状態",
+      "version": "シムのバージョン",
+      "aircraft": "機体"
+    },
+    "app": {
+      "title": "アプリ",
+      "gsxController": "GSX コントローラー",
+      "prosimBinary": "ProSim バイナリ",
+      "aircraftInterface": "機体インターフェース",
+      "sdkConnected": "ProSim SDK 接続",
+      "automationController": "自動化コントローラー",
+      "audioController": "オーディオコントローラー",
+      "profile": "プロファイル",
+      "aircraft": "機体",
+      "onGround": "地上",
+      "enginesRunning": "エンジン作動中",
+      "inMotion": "移動中"
+    },
+    "gsx": {
+      "title": "GSX",
+      "running": "GSX 起動中",
+      "couatlVars": "Couatl 変数",
+      "couatlStarted": "Couatl 開始",
+      "menuState": "メニュー状態",
+      "menuShown": "表示中",
+      "menuClosed": "閉じている",
+      "paxTarget": "搭乗予定者数",
+      "paxTotal": "旅客合計 (搭|降)",
+      "cargo": "貨物 (搭|降)",
+      "departureServices": "出発サービス",
+      "departure": {
+        "complete": "完了",
+        "running": "実行中",
+        "notStarted": "未開始"
+      },
+      "assignedGate": "割り当てゲート",
+      "lastHandlerEvent": "最新ハンドラーイベント",
+      "droppedCall": "失われた呼び出し",
+      "dropped": {
+        "checkMenu": "{0} {1} — GSX メニューを確認してください",
+        "menuOpen": "{0} {1} — GSX メニュー \"{2}\" が開いています",
+        "noneTitle": "失われた GSX サービス呼び出しはありません",
+        "title": "GSX がこの呼び出しを受け付けませんでした（1 回再試行済み）。GSX メニューを閉じてサービスをもう一度呼んでください。"
+      }
+    },
+    "services": {
+      "title": "サービス",
+      "catering": "ケータリング",
+      "lavatory": "ラバトリー",
+      "water": "給水",
+      "cleaning": "清掃",
+      "boarding": "搭乗",
+      "deboarding": "降機",
+      "pushback": "プッシュバック",
+      "jetway": "ボーディングブリッジ",
+      "jetwayConnected": "ブリッジ接続",
+      "stairs": "タラップ",
+      "stairsConnected": "タラップ接続",
+      "gpu": "GPU",
+      "refuel": "給油",
+      "groundPrep": "地上準備",
+      "completed": "完了",
+      "connected": "接続済み",
+      "gpuConnected": "接続済み",
+      "prep": {
+        "holding": "待機中",
+        "tooltip": "{0} — {1}",
+        "idle": "待機",
+        "reposition": "再配置中",
+        "settling": "安定待ち",
+        "anchorGate": "ゲート固定中",
+        "groundEquipment": "地上機材",
+        "jetwayStairs": "ブリッジ/タラップ",
+        "complete": "完了"
+      }
+    },
+    "aircraftState": {
+      "label": "機体状態",
+      "pass": "cold and dark ✓",
+      "unchecked": "未確認（dataref が応答しませんでした）: {0}",
+      "mismatchOne": "不一致 {0} 件",
+      "mismatchMany": "不一致 {0} 件",
+      "notChecked": "未チェック",
+      "recheck": "再チェック",
+      "recheckTitle": "cold-and-dark チェックを今すぐやり直します（音声でも可: 'check the aircraft state'）。",
+      "notReady": "まだ準備できていません"
+    },
+    "cabin": {
+      "label": "客室",
+      "securing": "確認中",
+      "securingTitle": "ドア閉・ビーコン点灯 — 客室乗務員が客室を確認中です。タイマー終了後に報告が入ります（設定 → 音声副操縦士 → 客室乗務員）。",
+      "secure": "セキュア",
+      "secureTitle": "チーフパーサーがこのフライトの客室セキュアを報告しました。",
+      "noneTitle": "客室セキュアの待機は、ドアが閉まりビーコンが点灯すると始まります。"
+    },
+    "refuel": {
+      "awaitingTitle": "乗員によるブロック燃料の確認を待っています（SOP モード）",
+      "awaiting": "燃料確認待ち",
+      "confirmedTitle": "{0} に {1} で確認",
+      "confirmedKg": "{0} kg 確認済み",
+      "confirmTitle": "ブロック燃料を確認し（INIT FUEL RAMP の上書き、なければ OFP）、燃料車を呼びます。給油完了後なら追加給油になります。音声でも可: 'fuel confirmed'。",
+      "confirming": "確認中…",
+      "confirm": "燃料を確認"
+    }
+  }
+}

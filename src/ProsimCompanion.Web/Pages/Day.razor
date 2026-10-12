@@ -3,9 +3,10 @@
 @using ProsimCompanion.Core.Day
 @inherits StoreObserverComponent
 @inject IServiceProvider Services
+@inject IStringLocalizer T
 
-<PageTitle>Duty Day — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Duty Day</h1>
+<PageTitle>@T["day.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["day.heading"]</h1>
 
 @* Layout (ADR-0011): the day status card with block / duty as big figures on the left,
    the legs as a timeline rail on the right. *@
@@ -13,7 +14,7 @@
 
     <section class="section ops-card ops-main">
         <div class="section-header">
-            <h3 class="section-title">Company Day Mode</h3>
+            <h3 class="section-title">@T["day.title"]</h3>
             @if (_store is not null && _snapshot.View is { } v)
             {
                 <span class="pill @(v.Active ? "tone-active" : "tone-neutral")">@v.State</span>
@@ -22,42 +23,41 @@
         <div class="section-body ops-body">
             @if (_store is null)
             {
-                <div class="empty">Company day mode is not wired into this build (see WIRING-DAY.md).</div>
+                <div class="empty">@T["day.notWired"]</div>
             }
             else if (_snapshot.View is not { } view)
             {
                 <div class="ops-figures">
                     <div class="ops-figure">
-                        <span class="label-caps">Status</span>
-                        <span class="figure ops-text-figure">No duty day</span>
+                        <span class="label-caps">@T["day.status"]</span>
+                        <span class="figure ops-text-figure">@T["day.noDay"]</span>
                     </div>
                 </div>
                 <div class="ops-actions">
                     <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="StartDay">
-                        Start duty day
+                        @T["day.start"]
                     </button>
                 </div>
                 <div class="ops-note">
-                    Say "start duty day", or press the button. With day mode enabled and auto-start on,
-                    a day also begins at the first Preflight. Drop a rotations/*.json file for a planned day.
+                    @T["day.startHint"]
                 </div>
             }
             else
             {
                 <div class="ops-route">
                     <div class="ops-route-end">
-                        <span class="label-caps">From</span>
+                        <span class="label-caps">@T["day.from"]</span>
                         <span class="figure figure-xl">@(view.From ?? "----")</span>
                     </div>
                     <span class="ops-route-arrow" aria-hidden="true">→</span>
                     <div class="ops-route-end">
-                        <span class="label-caps">To</span>
+                        <span class="label-caps">@T["day.to"]</span>
                         <span class="figure figure-xl">@(view.To ?? "----")</span>
                     </div>
                     <div class="ops-route-leg">
-                        <span class="label-caps">Leg</span>
-                        <span class="figure">@view.LegIndex<span class="figure-unit">of @view.LegCount</span></span>
-                        <span class="ops-item-sub">@view.LegsCompleted completed</span>
+                        <span class="label-caps">@T["day.leg"]</span>
+                        <span class="figure">@view.LegIndex<span class="figure-unit">@T["day.legOf", view.LegCount]</span></span>
+                        <span class="ops-item-sub">@T["day.legsCompleted", view.LegsCompleted]</span>
                     </div>
                 </div>
 
@@ -65,21 +65,21 @@
                     @* h:mm digits + a small unit, like every other EFB figure — the spoken
                        "1 hour 42 minutes" ellipsized in the cell (Mario, 2026-10-10). *@
                     <div class="ops-figure">
-                        <span class="label-caps">Block</span>
+                        <span class="label-caps">@T["day.block"]</span>
                         <span class="figure figure-lg glow" title="@DayMath.FormatHoursMinutes(view.BlockMinutes)">@DayMath.FormatClock(view.BlockMinutes)<span class="figure-unit">HRS</span></span>
                     </div>
                     <div class="ops-figure">
-                        <span class="label-caps">Duty</span>
+                        <span class="label-caps">@T["day.duty"]</span>
                         <span class="figure figure-lg" title="@DayMath.FormatHoursMinutes(view.DutyMinutes)">@DayMath.FormatClock(view.DutyMinutes)<span class="figure-unit">HRS</span></span>
                     </div>
                     <div class="ops-figure">
-                        <span class="label-caps">Schedule</span>
+                        <span class="label-caps">@T["day.schedule"]</span>
                         @if (view.DelayMinutes is { } delay)
                         {
                             <span class="figure figure-lg @(delay > 0 ? "ops-bad" : delay < 0 ? "glow" : null)">
                                 @(delay > 0 ? $"+{delay}" : delay < 0 ? $"−{-delay}" : "0")<span class="figure-unit">min</span>
                             </span>
-                            <span class="ops-item-sub">@(delay > 0 ? "behind" : delay < 0 ? "ahead" : "on schedule")</span>
+                            <span class="ops-item-sub">@(delay > 0 ? T["day.behind"].Value : delay < 0 ? T["day.ahead"].Value : T["day.onSchedule"].Value)</span>
                         }
                         else
                         {
@@ -92,19 +92,18 @@
                     @if (view.Active)
                     {
                         <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="EndDay">
-                            End duty day
+                            @T["day.end"]
                         </button>
                     }
                     else
                     {
                         <button type="button" class="btn primary" disabled="@(_control is null)" @onclick="StartDay">
-                            Start duty day
+                            @T["day.start"]
                         </button>
                     }
                 </div>
                 <div class="ops-note">
-                    Block and duty figures are convenience tracking of what was flown — not a
-                    flight-time-limitations calculation.
+                    @T["day.figuresNote"]
                 </div>
             }
         </div>
@@ -113,7 +112,7 @@
     @if (_store is not null && _snapshot.Legs.Count > 0)
     {
         <section class="section ops-card ops-side">
-            <div class="section-header"><h3 class="section-title">Legs</h3></div>
+            <div class="section-header"><h3 class="section-title">@T["day.legs"]</h3></div>
             <div class="section-body">
                 <ol class="ops-timeline">
                     @foreach (var leg in _snapshot.Legs)
@@ -122,7 +121,7 @@
                         <li class="ops-step @(leg.Completed ? "done" : current ? "active" : "pending")">
                             <span class="ops-step-dot" aria-hidden="true"></span>
                             <div class="ops-step-text">
-                                <span class="ops-step-name">Leg @leg.Index · @(leg.From ?? "?") → @(leg.To ?? "?")</span>
+                                <span class="ops-step-name">@T["day.legName", leg.Index, leg.From ?? "?", leg.To ?? "?"]</span>
                                 <span class="ops-step-sub">
                                     @if (!string.IsNullOrWhiteSpace(leg.FlightNo))
                                     {
@@ -130,14 +129,14 @@
                                     }
                                     @if (leg.BlockMinutes is { } block)
                                     {
-                                        <text>@block min block · </text>
+                                        <text>@T["day.blockMin", block] · </text>
                                     }
-                                    @(leg.Completed ? (leg.Landed ? "landed" : "no landing") : current ? "in progress" : "planned")
+                                    @(leg.Completed ? (leg.Landed ? T["day.legState.landed"].Value : T["day.legState.noLanding"].Value) : current ? T["day.legState.inProgress"].Value : T["day.legState.planned"].Value)
                                 </span>
                                 <div class="ops-item-pills">
                                     @if (leg.Stabilized is { } stab)
                                     {
-                                        <span class="pill @(stab ? "tone-ok" : "tone-bad")">@(stab ? "stabilized" : "unstable")</span>
+                                        <span class="pill @(stab ? "tone-ok" : "tone-bad")">@(stab ? T["day.legState.stabilized"].Value : T["day.legState.unstable"].Value)</span>
                                     }
                                     @if (!string.IsNullOrWhiteSpace(leg.Deviation))
                                     {

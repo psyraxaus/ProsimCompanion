@@ -13,6 +13,7 @@ using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Gate;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.Tests.Localization;
 using ProsimCompanion.Core.Tests.Speech;
 using ProsimCompanion.Core.Theming;
 using ProsimCompanion.Core.Weather;
@@ -86,6 +87,7 @@ public sealed class MonitorRouteStripRenderTests : IDisposable
         services.AddSingleton(Mock.Of<IJSRuntime>());
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        services.AddTestLocalizer();
 
         await using var provider = services.BuildServiceProvider();
         await using var renderer = new HtmlRenderer(provider, NullLoggerFactory.Instance);

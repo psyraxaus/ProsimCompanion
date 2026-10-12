@@ -1,0 +1,36 @@
+{
+  "day": {
+    "pageTitle": "Dienstdag — ProsimCompanion",
+    "heading": "Dienstdag",
+    "title": "Company Day-modus",
+    "notWired": "De Company Day-modus is in deze build niet aangesloten (zie WIRING-DAY.md).",
+    "status": "Status",
+    "noDay": "Geen dienstdag",
+    "start": "Dienstdag starten",
+    "end": "Dienstdag beëindigen",
+    "startHint": "Zeg \"start duty day\", of druk op de knop. Met de dagmodus ingeschakeld en automatisch starten aan begint een dag ook bij de eerste Preflight. Zet een rotations/*.json-bestand neer voor een geplande dag.",
+    "from": "Van",
+    "to": "Naar",
+    "leg": "Leg",
+    "legOf": "van {0}",
+    "legsCompleted": "{0} voltooid",
+    "block": "Blok",
+    "duty": "Dienst",
+    "schedule": "Schema",
+    "behind": "achter",
+    "ahead": "voor",
+    "onSchedule": "op schema",
+    "figuresNote": "Blok- en diensttijden zijn een handige registratie van wat er gevlogen is — geen berekening van vliegtijdbeperkingen.",
+    "legs": "Legs",
+    "legName": "Leg {0} · {1} → {2}",
+    "blockMin": "{0} min blok",
+    "legState": {
+      "landed": "geland",
+      "noLanding": "geen landing",
+      "inProgress": "bezig",
+      "planned": "gepland",
+      "stabilized": "gestabiliseerd",
+      "unstable": "onstabiel"
+    }
+  }
+}
