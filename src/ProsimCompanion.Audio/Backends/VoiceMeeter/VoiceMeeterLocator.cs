@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using ProsimCompanion.Core.Hosting;
 
 namespace ProsimCompanion.Audio.Backends.VoiceMeeter;
 
@@ -47,18 +48,10 @@ public static class VoiceMeeterLocator
             }
         }
 
-        foreach (var root in new[]
-                 {
-                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                 })
+        // The default install folders — the same list the settings page's Browse… dialog opens in.
+        foreach (var folder in ExpectedFolders.VoiceMeeter())
         {
-            if (string.IsNullOrEmpty(root))
-            {
-                continue;
-            }
-
-            var candidate = Path.Combine(root, "VB", "Voicemeeter", DllFileName);
+            var candidate = Path.Combine(folder, DllFileName);
             if (fileExists(candidate))
             {
                 return candidate;

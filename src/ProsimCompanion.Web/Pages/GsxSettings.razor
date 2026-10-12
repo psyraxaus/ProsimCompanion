@@ -326,11 +326,11 @@ else if (CurrentSection == "arrival")
                    Hint="Turn a typed gate like W40 into the stand the scenery and GSX know, before sending it."
                    More="GSX airport profiles (.ini stand data and .py name templates) and the simulator's own parking list are read for the destination. A template can drop the gate letter — at EFHK the profile prints Gate W40 as 'Gate 40', so the bare 'W40' was refused four times on 2026-10-04. With this on, the stand's NUMBER is sent first, then GSX's own name; the typed text stays the last try. Also feeds the pushback-direction suggestion. Shown under the gate box on the OFP page."
                    @bind-Value="_gsx.Value.ResolveGatesFromProfiles" />
-        <TextField Label="GSX profile folder" Hint="GSX's own airport profile folder. Empty: %APPDATA%\Virtuali\GSX\MSFS on this PC." Kind="TextFieldKind.FolderPath"
+        <TextField Label="GSX profile folder" Hint="GSX's own airport profile folder. Empty: %APPDATA%\Virtuali\GSX\MSFS on this PC." Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.Gsx"
                    More="Set it only when this app runs on another PC than the simulator and the folder is shared."
                    Placeholder="@GsxProfileFolderPlaceholder" Disabled="@(!_gsx.Value.ResolveGatesFromProfiles)"
                    @bind-Value="_gsx.Value.GsxProfileFolder" />
-        <TextField Label="Scenery package folders" Hint="MSFS package roots (the folders holding Community and Official), separated by ;. Empty: found by itself from the Store/Steam install and UserCfg.opt." Kind="TextFieldKind.FolderList"
+        <TextField Label="Scenery package folders" Hint="MSFS package roots (the folders holding Community and Official), separated by ;. Empty: found by itself from the Store/Steam install and UserCfg.opt." Kind="TextFieldKind.FolderList" BrowseStartIn="ExpectedFolders.MsfsPackages"
                    More="@SceneryFoldersMore" Placeholder="@SceneryFoldersPlaceholder" Disabled="@(!_gsx.Value.ResolveGatesFromProfiles)"
                    @bind-Value="SceneryFoldersText" />
     </Section>

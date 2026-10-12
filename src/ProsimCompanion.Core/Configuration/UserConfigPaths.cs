@@ -29,6 +29,10 @@ public static class UserConfigPaths
     public static string AircraftStates => Path.Combine(Root, "aircraft-states");
 
     /// <summary>User JSON themes (predecessor format), shadowing the built-ins by name.</summary>
+    /// <summary>Planned-rotation JSON files (seeded with a README; 2026-10-13 — the old default
+    /// was a never-created folder under the exe).</summary>
+    public static string Rotations => Path.Combine(Root, "rotations");
+
     public static string Themes => Path.Combine(Root, "themes");
 
     /// <summary>The pilot's own airline logos, one per theme (never seeded, never shipped —

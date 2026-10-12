@@ -44,6 +44,7 @@ public static class UserConfigSeeder
         "commands.json",
         "phrases.json",
         "region-facts.json",
+        @"rotations\README.txt", // creates the planned-rotations folder and its format note (2026-10-13)
     ];
 
     private const string ManifestFileName = ".shipped-manifest.json";

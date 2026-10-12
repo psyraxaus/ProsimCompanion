@@ -25,12 +25,15 @@ public enum NativePickKind
 /// <param name="Filter">Windows filter string (<c>Certificates (*.pfx)|*.pfx</c>); null for all files.</param>
 /// <param name="InitialPath">The field's current value; its folder is where the dialog opens.</param>
 /// <param name="DefaultFileName">Save dialog only: the suggested file name.</param>
+/// <param name="StartIn">The field's expected folders (<see cref="ExpectedFolders"/>), tried in
+/// order when <paramref name="InitialPath"/> gives no usable folder.</param>
 public sealed record NativePickRequest(
     NativePickKind Kind,
     string Title,
     string? Filter,
     string? InitialPath,
-    string? DefaultFileName);
+    string? DefaultFileName,
+    IReadOnlyList<string>? StartIn = null);
 
 /// <summary>The dialog's outcome: a path, a cancel (both null), or a one-line problem for
 /// the page to show (another dialog already open, no desktop app).</summary>
@@ -141,18 +144,29 @@ public static class LocalClient
     }
 }
 
-/// <summary>Where a dialog should open for a field's current value: the value itself when
-/// it is a folder, its parent folder when it is a file, otherwise the fallback. Pure apart
-/// from the two Exists checks, after the invalid-character gate (Snyk path rule).</summary>
+/// <summary>Where a dialog should open: the value itself when it is a folder, its parent
+/// folder when it is a file, else the first of the field's expected folders that exists, else
+/// the fallback (the system drive — a folder Windows cannot open makes it pick its last-used
+/// one, which reads as random). Pure apart from the Exists checks, after the
+/// invalid-character gate (Snyk path rule).</summary>
 public static class PickStart
 {
     public static string DirectoryFor(string? value, string fallback)
+        => DirectoryFor(value, [], fallback);
+
+    public static string DirectoryFor(string? value, IEnumerable<string> expected, string fallback)
     {
+        ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(fallback);
+        return FromValue(value) ?? expected.FirstOrDefault(SafeDirectoryExists) ?? fallback;
+    }
+
+    private static string? FromValue(string? value)
+    {
         var path = (value ?? "").Trim().Trim('"');
         if (path.Length == 0 || path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
         {
-            return fallback;
+            return null;
         }
 
         try
@@ -163,11 +177,28 @@ public static class PickStart
             }
 
             var parent = Path.GetDirectoryName(path);
-            return !string.IsNullOrEmpty(parent) && Directory.Exists(parent) ? parent : fallback;
+            return !string.IsNullOrEmpty(parent) && Directory.Exists(parent) ? parent : null;
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or IOException or UnauthorizedAccessException)
         {
-            return fallback;
+            return null;
+        }
+    }
+
+    private static bool SafeDirectoryExists(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            return Directory.Exists(path);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 }

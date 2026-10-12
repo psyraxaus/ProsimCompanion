@@ -64,6 +64,51 @@ public sealed class NativeFilePickerTests
     }
 
     [Fact]
+    public void Dialog_falls_through_value_then_expected_folders_then_fallback()
+    {
+        var present = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
+        var absent = Path.Combine(present, "gone-" + Guid.NewGuid().ToString("N"));
+
+        // The value's folder wins over the expected list.
+        Assert.Equal(present, PickStart.DirectoryFor(present, [absent], "X:\\"));
+        // No usable value: the first expected folder that exists.
+        Assert.Equal(present, PickStart.DirectoryFor("", [absent, present], "X:\\"));
+        Assert.Equal(present, PickStart.DirectoryFor(absent, [absent, present], "X:\\"));
+        // Nothing exists: the fallback (the system drive in production).
+        Assert.Equal("X:\\", PickStart.DirectoryFor("", [absent], "X:\\"));
+        Assert.Equal("X:\\", PickStart.DirectoryFor("", [], "X:\\"));
+    }
+
+    [Fact]
+    public void Expected_folder_lists_are_populated()
+    {
+        Assert.EndsWith("\\", ExpectedFolders.SystemDrive, StringComparison.Ordinal);
+        Assert.NotEmpty(ExpectedFolders.ProSimSdk());
+        Assert.Single(ExpectedFolders.ProSimNavdata());
+        Assert.EndsWith(Path.Combine("ProSim-AR", "Navdata"), ExpectedFolders.ProSimNavdata()[0], StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, ExpectedFolders.VoiceMeeter().Count);
+        Assert.NotEmpty(ExpectedFolders.ActiveSky());
+        Assert.EndsWith("rotations", ExpectedFolders.Rotations()[0], StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith("ProsimCompanion", ExpectedFolders.AppState, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Rotations_folder_resolves_blank_and_the_legacy_default_to_the_user_folder()
+    {
+        const string baseDir = "C:\\app";
+        const string user = "C:\\user\\rotations";
+
+        Assert.Equal(user, Core.Day.RotationLoader.ResolveFolder("", baseDir, user, _ => false));
+        Assert.Equal(user, Core.Day.RotationLoader.ResolveFolder(null, baseDir, user, _ => false));
+        // The pre-2026-10-13 default under the exe is honoured only while it exists.
+        Assert.Equal(user, Core.Day.RotationLoader.ResolveFolder("rotations", baseDir, user, _ => false));
+        Assert.Equal("C:\\app\\rotations", Core.Day.RotationLoader.ResolveFolder("rotations", baseDir, user, _ => true));
+        // Any other relative path stays under the exe; a rooted path is taken as is.
+        Assert.Equal("C:\\app\\plans", Core.Day.RotationLoader.ResolveFolder("plans", baseDir, user, _ => false));
+        Assert.Equal("D:\\plans", Core.Day.RotationLoader.ResolveFolder("\"D:\\plans\"", baseDir, user, _ => false));
+    }
+
+    [Fact]
     public void Result_shapes()
     {
         Assert.Null(NativePickResult.Cancelled.Path);

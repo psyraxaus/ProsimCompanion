@@ -22,7 +22,10 @@ fixed. A path that is not on this PC turns amber but still saves (the file may c
 Empty is always allowed. Path fields show a **Browse…** button when you open the page in a
 browser on the sim PC itself (localhost or that PC's own address): it opens the Windows file
 or folder dialog on that PC's screen. A tablet or another PC gets no button, because the
-dialog would open where you cannot see it; type the path instead.
+dialog would open where you cannot see it; type the path instead. The dialog opens in the
+folder of the current value, else where the app expects that file (for example
+`%APPDATA%\Virtuali\GSX\MSFS` for the GSX profile folder, `%ProgramData%\ProSim-AR\Navdata`
+for the DFD database), else the system drive.
 
 | Section | Page | Highlights |
 |---|---|---|
@@ -39,7 +42,7 @@ dialog would open where you cannot see it; type the path instead.
 | `persona` | Settings → Voice First Officer → FO Persona | FO persona — enabled, name, experience, formality, chattiness 0–3, what it styles (briefings / debrief / advisories), varied acknowledgements, advisory restyle budget |
 | `sayIntentions` | Settings → Voice First Officer → SayIntentions | API key source, phraseology, auto-tune, departure gating, the wrong-frequency report (`frequencyMonitorEnabled` true, `frequencyMonitorWaitSeconds` 60), **arrival gate from ATC** (`arrivalGateFromAtc` off — SayIntentions' assigned gate becomes the GSX arrival gate), weather |
 | `cabin` | Settings → Voice First Officer → Cabin Crew | purser reports, the cabin-secure wait (`cabinSecureMinDelaySeconds` 45, `cabinSecureSecondsPerPax` 1.0, `cabinSecuringReplyText`), the FO's cabin-call auto-answer (`autoAnswerGround` off / `autoAnswerGroundDelayMs` 4000, `autoAnswerAir` off / `autoAnswerAirDelayMs` 2500), ambient events, the purser cruise query (`cruiseQuery` off, `cruiseQueryDelayMinutes` 10, `cruiseQueryWindowSeconds` 20, wording `cruiseQueryText` / `cruiseQueryEtaAckText` / `cruiseQueryRideAckText` / `cruiseQueryGenericAckText` / `cruiseQueryNoReplyText`), dings, interphone chime |
-| `company`, `debrief`, `day` | Settings → Voice First Officer → Company & Debrief | company channel (auto loadsheet read, ACARS chime, cruise messages + probability, save the spoken loadsheet), post-flight debrief (on, full / brief, LLM styling), company day mode (auto track, start at first preflight, turnaround summary, post-flight allowance, auto-close idle, rotations folder, state file) |
+| `company`, `debrief`, `day` | Settings → Voice First Officer → Company & Debrief | company channel (auto loadsheet read, ACARS chime, cruise messages + probability, save the spoken loadsheet), post-flight debrief (on, full / brief, LLM styling), company day mode (auto track, start at first preflight, turnaround summary, post-flight allowance, auto-close idle, rotations folder — empty = `%LOCALAPPDATA%\ProsimCompanion\config\rotations`, seeded with a `README.txt` that shows the file format — and the state file) |
 | `flightData` | Settings → Display & Flight Data | SimBrief fetch attempts, prelim/final loadsheet triggers and delays |
 | `flightStatus` | Settings → Display & Flight Data → Flight Status card | gate monitor final-call thresholds (`gateFinalCallPaxPercent` 90, `gateFinalCallMinutesBeforeStd` 10), weather-card refresh (`weatherRefreshMinutes` 10), top-of-descent notice lead (`todLeadMinutes` 10, 0 = off), the tile order of the Flight Status page (`tileOrder`, a list of `hero` / `sequence` / `sim` / `app` / `gsx` / `services`; empty = default; written by the page's Edit layout mode, a Reset button on the settings page); also drives the pop-out Flight Monitor |
 | `flightState` | Settings → Advanced → Flight Phase Engine | phase-engine thresholds and settle times (calibration data) |

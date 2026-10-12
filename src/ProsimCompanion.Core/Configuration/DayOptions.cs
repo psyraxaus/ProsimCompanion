@@ -26,9 +26,10 @@ public sealed class DayOptions : IOptionSection
     /// (0 = never).</summary>
     public int AutoCloseIdleMinutes { get; set; } = 90;
 
-    /// <summary>Planned-rotation JSON folder; a relative path resolves against the
-    /// application base directory.</summary>
-    public string RotationsFolder { get; set; } = "rotations";
+    /// <summary>Planned-rotation JSON folder. Empty (the default since 2026-10-13) =
+    /// <c>%LOCALAPPDATA%\ProsimCompanion\config\rotations</c>, which the app seeds with a
+    /// README; a relative path resolves against the application base directory.</summary>
+    public string RotationsFolder { get; set; } = "";
 
     /// <summary>Speak the on-blocks turnaround summary (block, schedule delta, open
     /// tech-log items).</summary>

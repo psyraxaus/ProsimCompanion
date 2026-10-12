@@ -132,7 +132,7 @@
             {
                 <Section Title="VoiceMeeter" Hint="Strips and buses through VoiceMeeter's remote API">
                     <AdvancedFields>
-                        <TextField Label="VoicemeeterRemote64.dll path" Hint="Empty finds the installed VoiceMeeter by itself. Set only for an unusual install folder." Kind="TextFieldKind.FilePath" BrowseFilter="VoicemeeterRemote64.dll|VoicemeeterRemote64.dll|DLL files (*.dll)|*.dll"
+                        <TextField Label="VoicemeeterRemote64.dll path" Hint="Empty finds the installed VoiceMeeter by itself. Set only for an unusual install folder." Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.VoiceMeeter" BrowseFilter="VoicemeeterRemote64.dll|VoicemeeterRemote64.dll|DLL files (*.dll)|*.dll"
                                    @bind-Value="_audio.Value.VoiceMeeterDllPath" />
                     </AdvancedFields>
                     <div style="margin:8px 0;">

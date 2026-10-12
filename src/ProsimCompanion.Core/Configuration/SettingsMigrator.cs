@@ -14,7 +14,7 @@ namespace ProsimCompanion.Core.Configuration;
 public static class SettingsMigrator
 {
     /// <summary>Version written by this build. Bump only alongside a new migration step.</summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     private const string VersionKey = "configVersion";
 
@@ -46,11 +46,32 @@ public static class SettingsMigrator
                 version = 2;
             }
 
+            if (version < 3)
+            {
+                MigrateRotationsFolderDefault(root);
+                version = 3;
+            }
+
             _ = version;
             root[VersionKey] = CurrentVersion;
         });
 
         return foundVersion;
+    }
+
+    /// <summary>v2 → v3 (2026-10-13): <c>day.rotationsFolder</c> "rotations" — the old default,
+    /// a folder under the exe nothing ever created — becomes "" = the per-user
+    /// <c>%LOCALAPPDATA%\ProsimCompanion\config\rotations</c> the app now seeds. A custom
+    /// folder is kept.</summary>
+    private static void MigrateRotationsFolderDefault(JsonObject root)
+    {
+        if (root["day"] is JsonObject day
+            && day["rotationsFolder"] is JsonValue value
+            && value.TryGetValue<string>(out var folder)
+            && string.Equals(folder.Trim().Trim('"'), "rotations", StringComparison.OrdinalIgnoreCase))
+        {
+            day["rotationsFolder"] = "";
+        }
     }
 
     private static int ReadVersion(JsonObject root)

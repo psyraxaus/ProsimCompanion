@@ -86,6 +86,8 @@
     <Content Include="config\region-facts.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Random-wear pool for the tech log (benign, purely procedural; techLog.randomWear). -->
     <Content Include="config\techlog\wear-pool.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Planned-rotations README: seeded into the per-user rotations folder (creates it). -->
+    <Content Include="config\rotations\README.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

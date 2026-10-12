@@ -40,7 +40,7 @@
 <Section Title="ProSim Connection">
     <TextField Label="ProSim host" Hint="Name or IP address of the PC that runs ProSim System." Kind="TextFieldKind.Host" Placeholder="localhost or 192.168.1.10"
                @bind-Value="_prosim.Value.Host" />
-    <TextField Label="ProSim SDK folder" Hint="The folder that contains ProSimSDK.dll. Empty keeps ProSim off." Kind="TextFieldKind.FolderPath"
+    <TextField Label="ProSim SDK folder" Hint="The folder that contains ProSimSDK.dll. Empty keeps ProSim off." Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.ProSimSdk"
                @bind-Value="_prosim.Value.SdkPath" />
     <TextField Label="API key" Hint="Only newer ProSim builds use one. Leave empty otherwise." Password="true"
                @bind-Value="ApiKeyInput" />
@@ -124,14 +124,14 @@
 </Section>
 
 <Section Title="Nav Data" Hint="Navigraph database for SIDs, STARs and approaches">
-    <TextField Label="DFD database path" Hint="The .s3db file or its folder. ProSim's Navdata folder works. Empty looks next to the SDK." Kind="TextFieldKind.FileOrFolderPath" BrowseFilter="Navigation database (*.s3db)|*.s3db|All files (*.*)|*.*"
+    <TextField Label="DFD database path" Hint="The .s3db file or its folder. ProSim's Navdata folder works. Empty looks next to the SDK." Kind="TextFieldKind.FileOrFolderPath" BrowseStartIn="ExpectedFolders.ProSimNavdata" BrowseFilter="Navigation database (*.s3db)|*.s3db|All files (*.*)|*.*"
                @bind-Value="_briefing.Value.DfdPath" />
 </Section>
 
 @* ActiveSky weather source (Phase 6) and the update check — settings.json only until the
    2026-10-08 audit. *@
 <Section Title="Weather Sources" Hint="ActiveSky carries the weather actually in the sim, so it wins over the ProSim gateway and SayIntentions when present">
-    <TextField Label="ActiveSky snapshot file" Hint="Full path of current_wx_snapshot.txt. Empty looks in the known HiFi install folders." Kind="TextFieldKind.FilePath" BrowseFilter="Snapshot (current_wx_snapshot.txt)|current_wx_snapshot.txt|Text files (*.txt)|*.txt" More="When set, the path is final: a missing file switches the snapshot tier off instead of looking elsewhere."
+    <TextField Label="ActiveSky snapshot file" Hint="Full path of current_wx_snapshot.txt. Empty looks in the known HiFi install folders." Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.ActiveSky" BrowseFilter="Snapshot (current_wx_snapshot.txt)|current_wx_snapshot.txt|Text files (*.txt)|*.txt" More="When set, the path is final: a missing file switches the snapshot tier off instead of looking elsewhere."
                Placeholder="C:\Users\you\AppData\Roaming\HiFi\AS_MSFS\Weather\current_wx_snapshot.txt"
                @bind-Value="_weather.Value.ActiveSkySnapshotPath" />
     <BoolField Label="Also try the ActiveSky API" Hint="ActiveSky's local web API, when the snapshot has nothing for the airport."
@@ -167,7 +167,7 @@
                  Disabled="@(!_webUi.Value.Https.Enabled)"
                  @bind-Value="_webUi.Value.Https.Port"
                  Default="_webUi.Defaults.Https.Port" />
-    <TextField Label="Certificate file (PFX)" Hint="Full path of the .pfx / .p12 file with the private key." Kind="TextFieldKind.FilePath" BrowseFilter="Certificates (*.pfx;*.p12)|*.pfx;*.p12" Placeholder="C:\ProsimCompanion\certs\simpc.pfx"
+    <TextField Label="Certificate file (PFX)" Hint="Full path of the .pfx / .p12 file with the private key." Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="Certificates (*.pfx;*.p12)|*.pfx;*.p12" Placeholder="C:\ProsimCompanion\certs\simpc.pfx"
                Disabled="@(!_webUi.Value.Https.Enabled)"
                @bind-Value="_webUi.Value.Https.PfxPath" />
     <TextField Label="Certificate password" Hint="Stored encrypted on this PC and Windows account. Never logged." Password="true"

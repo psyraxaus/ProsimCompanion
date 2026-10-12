@@ -168,6 +168,13 @@ public sealed class ActiveSkyWxProvider : IWxProvider
         yield return Path.Combine(docs, "Active Sky", "ASFS", file);
     }
 
+    /// <summary>The folders the snapshot is looked for in — where a Browse… dialog opens.</summary>
+    public static IReadOnlyList<string> KnownSnapshotFolders()
+        => CandidateSnapshotPaths()
+            .Select(path => Path.GetDirectoryName(path) ?? path)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
     // ---- HTTP API ----
 
     private async Task<(bool Reachable, string? Metar)> ReadFromApiAsync(string icao, WeatherOptions options, CancellationToken cancellationToken)

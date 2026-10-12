@@ -56,9 +56,7 @@ internal sealed class WpfFilePicker : INativeFilePicker
 
     private static NativePickResult Show(NativePickRequest request)
     {
-        var fallback = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ProsimCompanion");
-        var startIn = PickStart.DirectoryFor(request.InitialPath, fallback);
+        var startIn = PickStart.DirectoryFor(request.InitialPath, request.StartIn ?? [], ExpectedFolders.SystemDrive);
 
         var owner = new Window
         {

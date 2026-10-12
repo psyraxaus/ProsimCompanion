@@ -8,7 +8,9 @@
    findings such as a path that is not there yet. A disabled field is shown but never blocks.
    Path kinds also get a Browse… button — only when the browser runs on the sim PC (cascaded
    ClientContext) and the desktop shell offers its dialogs (INativeFilePicker registered):
-   the Windows dialog opens on that PC's screen, so a tablet would see nothing (option 3). *@
+   the Windows dialog opens on that PC's screen, so a tablet would see nothing (option 3).
+   The dialog opens in the value's folder, else the field's expected folders (BrowseStartIn,
+   evaluated at click time only — some probe the file system), else the system drive. *@
 @using Microsoft.Extensions.DependencyInjection
 @using ProsimCompanion.Core.Hosting
 @implements IDisposable
@@ -95,6 +97,12 @@
     [Parameter]
     public string? BrowseFileName { get; set; }
 
+    /// <summary>The folders this field's file is expected in (see <see cref="ExpectedFolders"/>),
+    /// tried in order when the value gives no usable folder. A function, so the lists that
+    /// probe the file system run at click time, never per render.</summary>
+    [Parameter]
+    public Func<IReadOnlyList<string>>? BrowseStartIn { get; set; }
+
     private bool IsPathKind => Kind is TextFieldKind.FilePath or TextFieldKind.FolderPath
         or TextFieldKind.FileOrFolderPath or TextFieldKind.OutputFilePath or TextFieldKind.FolderList;
 
@@ -147,12 +155,21 @@
             ? Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault()
             : Value;
         var fileName = BrowseFileName ?? (Kind == TextFieldKind.OutputFilePath && Value.Length > 0 ? System.IO.Path.GetFileName(Value.Trim().Trim('"')) : null);
+        IReadOnlyList<string> startIn = [];
+        try
+        {
+            startIn = BrowseStartIn?.Invoke() ?? [];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A probing list that fails only costs the better start folder.
+        }
 
         _browsing = true;
         _browseProblem = null;
         try
         {
-            var result = await _picker.PickAsync(new NativePickRequest(pickKind, Label, BrowseFilter, start, fileName), CancellationToken.None);
+            var result = await _picker.PickAsync(new NativePickRequest(pickKind, Label, BrowseFilter, start, fileName, startIn), CancellationToken.None);
             if (result.Problem is not null)
             {
                 _browseProblem = result.Problem;
