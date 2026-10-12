@@ -1,0 +1,74 @@
+{
+  "fields": {
+    "hint": {
+      "more": "더 보기"
+    },
+    "number": {
+      "isDefault": "기본값입니다",
+      "default": "기본값",
+      "resetTitle": "기본값으로 되돌리기 ({0})",
+      "resetAria": "기본값으로 되돌리기"
+    },
+    "range": {
+      "from": "최소",
+      "to": "~ 최대",
+      "minimumAria": "{0} 최솟값",
+      "maximumAria": "{0} 최댓값",
+      "isDefault": "기본값들입니다",
+      "default": "기본값",
+      "resetTitle": "기본값으로 되돌리기 ({0})",
+      "resetAria": "기본값으로 되돌리기"
+    },
+    "text": {
+      "browse": "찾아보기…",
+      "browsing": "찾아보는 중…",
+      "browseFailed": "심 PC에서 찾아보기에 실패했습니다: {0}"
+    },
+    "validation": {
+      "host": "이름 또는 IP 주소만 입력하세요. http://와 포트는 제외합니다. 예: 192.168.1.10",
+      "hostIpv6": "여기서는 IPv6 주소를 지원하지 않습니다. PC 이름이나 IPv4 주소를 사용하세요. 예: 192.168.1.10",
+      "url": "http:// 또는 https://로 시작해야 합니다. 예: http://192.168.1.50:8000",
+      "ip": "192.168.1.255 같은 IPv4 주소",
+      "mac": "AA:BB:CC:DD:EE:FF 같은 16진수 여섯 쌍",
+      "badPath": "올바른 Windows 경로가 아닙니다",
+      "icao": "YSSY 같은 네 글자 ICAO 코드",
+      "runway": "16R 또는 34 같은 활주로",
+      "intList": "1, 2, 3처럼 쉼표로 구분한 정수",
+      "fileNotFound": "이 PC에서 파일을 찾을 수 없습니다",
+      "folderNotFound": "이 PC에서 폴더를 찾을 수 없습니다",
+      "notFound": "이 PC에서 찾을 수 없습니다",
+      "parentFolderMissing": "해당 폴더가 이 PC에 없습니다",
+      "foldersNotFound": "이 PC에서 폴더를 찾을 수 없습니다: {0}",
+      "chooseFile": "이 PC에서 파일 선택",
+      "chooseFolder": "이 PC에서 폴더 선택",
+      "chooseOutputFile": "앱이 파일을 쓸 위치 선택",
+      "addFolder": "이 PC의 폴더 추가"
+    },
+    "advanced": {
+      "hidden": "고급 설정 숨김",
+      "show": "고급 설정 표시",
+      "sectionFolded": "고급 —"
+    },
+    "dirtyBar": {
+      "discard": "취소",
+      "save": "저장",
+      "saving": "저장 중…",
+      "unsaved": "저장하지 않은 변경 사항이 있습니다",
+      "fixOne": "저장하기 전에 \"{0}\"을(를) 수정하세요",
+      "fixMany": "저장하기 전에 다음 항목을 수정하세요: {0}",
+      "saved": "저장했습니다.",
+      "saveFailed": "저장 실패: {0}"
+    },
+    "configProblems": {
+      "failedOne": "설정 파일 {0}개를 불러오지 못했습니다",
+      "failedMany": "설정 파일 {0}개를 불러오지 못했습니다",
+      "missingUntilFixed": "— 수정될 때까지 해당 내용이 빠져 있습니다:"
+    },
+    "llmHealth": {
+      "authFailed": "부기장의 자유 발화 이해가 오프라인입니다 (LLM 인증 실패 — API 키를 확인하세요).",
+      "unreachable": "부기장의 자유 발화 이해가 오프라인입니다 (LLM 엔드포인트에 연결할 수 없음{0}).",
+      "openSettings": "LLM 설정 열기."
+    },
+    "secretUnreadable": "저장된 키를 이 PC/사용자에서 복호화할 수 없습니다 (다른 곳에서 복사한 설정) — 다시 입력하고 저장하세요."
+  }
+}

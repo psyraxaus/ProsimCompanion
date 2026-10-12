@@ -17,6 +17,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @using ProsimCompanion.Core.Hosting
 @inject IServiceProvider Services
+@inject IStringLocalizer T
 <div class="field">
     <label class="field-label" for="@_id">
         @Label
@@ -33,13 +34,13 @@
             @if (CanBrowse)
             {
                 <button type="button" class="browse-btn" disabled="@_browsing"
-                        title="@BrowseTitle" @onclick="BrowseAsync">@(_browsing ? "Browsing…" : "Browse…")</button>
+                        title="@BrowseTitle" @onclick="BrowseAsync">@(_browsing ? T["fields.text.browsing"].Value : T["fields.text.browse"].Value)</button>
             }
         </span>
         @if (_problem is { } problem)
         {
             <div id="@(_id + "-problem")" class="field-hint @(problem.Blocking ? "field-hint-error" : "field-hint-warn")"
-                 role="@(problem.Blocking ? "alert" : "status")">@problem.Message</div>
+                 role="@(problem.Blocking ? "alert" : "status")">@ProblemText(problem)</div>
         }
         @if (_browseProblem is not null)
         {
@@ -119,7 +120,12 @@
 
     private bool CanBrowse => IsPathKind && !Disabled && Client?.IsLocal == true && _picker is { IsAvailable: true };
 
-    private string BrowseTitle => Spec.BrowseTitle;
+    private string BrowseTitle => Spec.IsPath ? T[Spec.BrowseTitleTextId].Value : "";
+
+    /// <summary>The finding's sentence in the circuit's language: the validation table is
+    /// static and carries ids, this is where the localizer is at hand.</summary>
+    private string ProblemText(FieldProblem problem)
+        => problem.Detail is null ? T[problem.TextId].Value : T[problem.TextId, problem.Detail].Value;
 
     private string? ProblemClass => _problem switch
     {
@@ -189,7 +195,7 @@
         {
             // The picker already turns dialog failures into a problem line; this is the last
             // line before the circuit would fault over a Browse… click (degrade, not fail).
-            _browseProblem = $"Browse failed on the sim PC: {ex.Message}";
+            _browseProblem = T["fields.text.browseFailed", ex.Message];
         }
         finally
         {

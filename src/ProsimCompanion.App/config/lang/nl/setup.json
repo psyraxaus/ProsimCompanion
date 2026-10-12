@@ -1,0 +1,124 @@
+{
+  "setup": {
+    "pageTitle": "Setup — ProsimCompanion",
+    "heading": "Setup",
+    "features": {
+      "title": "Functies",
+      "hint": "Een uitgeschakelde pijler houdt zijn pagina's, maar er draait niets",
+      "gsx": { "label": "GSX-grondservices", "hint": "Vertrekservices, deuren, aviobrug, pushback en aankomst via GSX Pro." },
+      "speech": { "label": "Spraak-First Officer", "hint": "Gesproken checklists, callouts, briefings en spraakopdrachten." },
+      "audio": { "label": "Audiobediening", "hint": "De knoppen en schakelaars van het audiopaneel stellen de app-volumes in." }
+    },
+    "prosim": {
+      "title": "ProSim-verbinding",
+      "host": { "label": "ProSim-host", "hint": "Naam of IP-adres van de pc waarop ProSim System draait.", "placeholder": "localhost of 192.168.1.10" },
+      "sdk": { "label": "ProSim-SDK-map", "hint": "De map met ProSimSDK.dll. Leeg houdt ProSim uit." },
+      "api": { "label": "API-sleutel", "hint": "Alleen nieuwere ProSim-versies gebruiken er een. Laat anders leeg." },
+      "reconnect": { "label": "Herverbindingsinterval", "hint": "Wachttijd tussen verbindingspogingen." }
+    },
+    "setupCheck": {
+      "title": "ProSim-setupcontrole",
+      "hintIdle": "Leest bij elke ProSim-verbinding; schrijft alleen als je op Toepassen klikt",
+      "hintRead": "ProSim {0} · gelezen {1}",
+      "enabled": {
+        "label": "ProSims opties controleren bij verbinden",
+        "hint": "Leest de IOS-opties waarvan deze app afhangt en toont welke afwijken. Verandert nooit iets uit zichzelf.",
+        "more": "Deurlogica, automatische grondstroom, datalink-laden en het tanktempo. Rijen voor een functie die hierboven uitstaat worden niet getoond."
+      },
+      "off": "Uit. Er wordt niets gelezen.",
+      "reading": "ProSims opties worden gelezen…",
+      "waitConnect": "Verschijnt zodra ProSim verbonden is.",
+      "keepTitle": "Deze optie laten zoals hij is. De rij blijft grijs en Toepassen raakt hem nooit aan.",
+      "keep": "behouden",
+      "verdict": { "ok": "OK", "change": "WIJZIGEN", "notAvailable": "N.v.t.", "kept": "BEHOUDEN" },
+      "detail": { "mismatch": "is {0} · gewenst {1}", "notPresent": "niet in deze ProSim-versie" },
+      "value": { "on": "aan", "off": "uit" },
+      "readAgainTitle": "De opties opnieuw uit ProSim lezen.",
+      "readingShort": "Lezen…",
+      "readAgain": "Opnieuw lezen",
+      "howTitle": "Hoe je de opties met de hand wijzigt in ProSim System.",
+      "hideSteps": "Stappen verbergen",
+      "showHow": "Laat zien hoe",
+      "applyTitle": "Schrijft de aanbevolen waarde naar elke oranje rij en leest ze daarna terug. Werkt meteen; geen ProSim-herstart.",
+      "applying": "Toepassen…",
+      "apply": "Aanbevolen toepassen",
+      "applyCount": "Aanbevolen toepassen ({0})",
+      "howStep": { "open": "Open in ProSim System", "setTo": "en zet het op", "now": "(nu {0})." },
+      "result": { "read": "Gelezen.", "notConnected": "ProSim is niet verbonden.", "failed": "Mislukt — zie de pagina Logs." }
+    },
+    "navData": {
+      "title": "Navigatiedata",
+      "hint": "Navigraph-database voor SID's, STAR's en naderingen",
+      "dfd": { "label": "Pad van de DFD-database", "hint": "Het .s3db-bestand of de map ervan. ProSims Navdata-map werkt. Leeg zoekt naast de SDK." }
+    },
+    "weather": {
+      "title": "Weerbronnen",
+      "hint": "ActiveSky draagt het weer dat echt in de sim zit en wint daarom van de ProSim-gateway en SayIntentions als het aanwezig is",
+      "snapshot": {
+        "label": "ActiveSky-snapshotbestand",
+        "hint": "Volledig pad van current_wx_snapshot.txt. Leeg zoekt in de bekende HiFi-installatiemappen.",
+        "more": "Als het is ingesteld, is het pad definitief: een ontbrekend bestand schakelt de snapshot-laag uit in plaats van elders te zoeken.",
+        "placeholder": "C:\\Users\\jij\\AppData\\Roaming\\HiFi\\AS_MSFS\\Weather\\current_wx_snapshot.txt"
+      },
+      "useApi": { "label": "Ook de ActiveSky-API proberen", "hint": "De lokale web-API van ActiveSky, als de snapshot niets heeft voor de luchthaven." },
+      "apiHost": { "label": "API-host", "hint": "Naam of IP-adres van de pc waarop ActiveSky draait.", "placeholder": "localhost" },
+      "apiPort": { "label": "API-poort" },
+      "apiTimeout": { "label": "API-time-out", "hint": "Met opzet kort: de keten gaat snel verder als ActiveSky niet draait." }
+    },
+    "web": {
+      "title": "Webinterface",
+      "hint": "Poort en LAN-toegang zijn ook te bewerken in het bureaubladvenster",
+      "port": { "label": "Poort", "hint": "Werkt na een herstart van de app." },
+      "lan": { "label": "Andere apparaten toestaan (LAN)", "hint": "Tablets en andere pc's kunnen deze pagina openen.", "more": "Ze melden zich aan met de QR-code in het bureaubladvenster." },
+      "httpsHeading": "HTTPS (optioneel)",
+      "https": {
+        "label": "HTTPS inschakelen",
+        "hint": "Een tweede, beveiligd adres naast het gewone. Nodig voor scherm-wakker-houden en de geïnstalleerde app op tablets. Werkt na een herstart.",
+        "more": "Jij levert het certificaat: een PFX-bestand voor het LAN-adres van deze pc, gemaakt met je eigen CA (mkcert is de makkelijke weg) en die CA geïnstalleerd op de tablet. De app maakt of installeert nooit certificaten. Als het bestand ontbreekt of fout is, blijft HTTP werken en zegt een banner waarom."
+      },
+      "httpsPort": { "label": "HTTPS-poort", "hint": "Naast de HTTP-poort hierboven; open hem ook in de firewall." },
+      "pfx": { "label": "Certificaatbestand (PFX)", "hint": "Volledig pad van het .pfx-/.p12-bestand met de privésleutel.", "placeholder": "C:\\ProsimCompanion\\certs\\simpc.pfx" },
+      "pfxPassword": { "label": "Certificaatwachtwoord", "hint": "Versleuteld opgeslagen op deze pc en dit Windows-account. Nooit gelogd." },
+      "status": "Status",
+      "httpsLabel": { "onWarning": "HTTPS AAN · WAARSCHUWING", "on": "HTTPS AAN", "failed": "HTTPS MISLUKT", "off": "HTTPS UIT" },
+      "httpsHint": { "saved": "Opgeslagen — herstart de app om het beveiligde adres te starten.", "off": "Uit. Gewoon HTTP op {0}." },
+      "tabletHintBefore": "Tablet-setup — het certificaat, de CA op de iPad, toevoegen aan beginscherm, scherm wakker houden:",
+      "tabletHintAfter": "in de installatiemap."
+    },
+    "streamDeck": {
+      "title": "Stream Deck & externe tools",
+      "hint": "Werkt direct",
+      "commandApi": { "label": "Opdracht-API", "hint": "Nodig voor de Stream Deck-plugin. Heeft altijd het toegangstoken nodig.", "more": "Laat externe tools GSX-, checklist- en loadsheet-opdrachten sturen via de webserver." },
+      "pairHint": "Om de plugin te koppelen plak je de onboarding-link uit het bureaubladvenster in de instellingen van een willekeurige knop. Knoppen met \"API off\" herstellen zich vanzelf zodra dit is opgeslagen."
+    },
+    "wake": {
+      "titleNumbered": "Wake-on-LAN-pc {0}",
+      "titleNamed": "Wake-on-LAN — {0}",
+      "hint": "Een magic packet bij het opstarten en bij Nu verzenden",
+      "row": "Rij",
+      "atStartup": "BIJ OPSTARTEN",
+      "sendNowOnly": "ALLEEN NU VERZENDEN",
+      "removeTitle": "Deze pc verwijderen",
+      "remove": "Verwijderen",
+      "name": { "label": "Naam", "hint": "Jouw label ervoor — wat het log toont.", "placeholder": "Taalmodel-pc" },
+      "enabled": { "label": "Wekken bij opstarten", "hint": "Uit houdt de rij alleen voor de knop Nu verzenden." },
+      "mac": { "label": "MAC-adres", "hint": "Bijvoorbeeld AA:BB:CC:DD:EE:FF.", "more": "De pc heeft Wake-on-LAN nodig in zijn BIOS en netwerkstuurprogramma, een bekabelde verbinding en hetzelfde netwerk als deze pc." },
+      "broadcast": { "label": "Broadcastadres", "hint": "255.255.255.255, of de broadcast van je subnet zoals 192.168.1.255." },
+      "port": { "label": "Poort", "hint": "Meestal 9." },
+      "sendNow": "Nu verzenden",
+      "sendNowHint": "Eén pakket naar deze pc met de waarden hierboven, opgeslagen of niet. De eigen functie van de pc (LLM-verbinding testen, Spraakdiensten opnieuw verbinden) vertelt je wanneer hij online is.",
+      "list": {
+        "title": "Wake-on-LAN",
+        "hint": "De pc's inschakelen waarvan de app afhangt als hij start",
+        "none": "Nog geen pc. Voeg de taalmodel-machine, de spraakserver, een ActiveSky-pc toe — zoveel je wilt.",
+        "add": "Pc toevoegen"
+      }
+    },
+    "updates": {
+      "title": "Updates",
+      "hint": "Een banner als er een nieuwere build op GitHub staat. Er wordt niets gedownload of geïnstalleerd",
+      "check": { "label": "Controleren op updates", "hint": "Mislukt stil zonder verbinding. Vertraagt nooit het opstarten." },
+      "interval": { "label": "Opnieuw controleren elke" }
+    }
+  }
+}

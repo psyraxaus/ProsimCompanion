@@ -1,0 +1,124 @@
+{
+  "setup": {
+    "pageTitle": "Einrichtung — ProsimCompanion",
+    "heading": "Einrichtung",
+    "features": {
+      "title": "Funktionen",
+      "hint": "Ein ausgeschalteter Bereich behält seine Seiten, aber nichts läuft",
+      "gsx": { "label": "GSX-Bodendienste", "hint": "Abflugdienste, Türen, Fluggastbrücke, Pushback und Ankunft über GSX Pro." },
+      "speech": { "label": "Sprach-Erster-Offizier", "hint": "Gesprochene Checklisten, Callouts, Briefings und Sprachbefehle." },
+      "audio": { "label": "Audiosteuerung", "hint": "Die Regler und Tasten des Audio-Panels setzen die App-Lautstärken." }
+    },
+    "prosim": {
+      "title": "ProSim-Verbindung",
+      "host": { "label": "ProSim-Host", "hint": "Name oder IP-Adresse des PCs, auf dem ProSim System läuft.", "placeholder": "localhost oder 192.168.1.10" },
+      "sdk": { "label": "ProSim-SDK-Ordner", "hint": "Der Ordner mit ProSimSDK.dll. Leer lässt ProSim aus." },
+      "api": { "label": "API-Schlüssel", "hint": "Nur neuere ProSim-Versionen verwenden einen. Sonst leer lassen." },
+      "reconnect": { "label": "Wiederverbindungsintervall", "hint": "Wartezeit zwischen Verbindungsversuchen." }
+    },
+    "setupCheck": {
+      "title": "ProSim-Einrichtungsprüfung",
+      "hintIdle": "Liest bei jeder ProSim-Verbindung; schreibt nur, wenn du auf Anwenden klickst",
+      "hintRead": "ProSim {0} · gelesen {1}",
+      "enabled": {
+        "label": "ProSims Optionen beim Verbinden prüfen",
+        "hint": "Liest die IOS-Optionen, von denen diese App abhängt, und zeigt, welche abweichen. Ändert nie etwas von selbst.",
+        "more": "Türlogik, automatische Bodenstromversorgung, Datalink-Laden und die Betankungsrate. Zeilen für eine oben ausgeschaltete Funktion werden nicht gezeigt."
+      },
+      "off": "Aus. Nichts wird gelesen.",
+      "reading": "ProSims Optionen werden gelesen…",
+      "waitConnect": "Erscheint, sobald ProSim verbunden ist.",
+      "keepTitle": "Diese Option so lassen, wie sie ist. Die Zeile bleibt grau und Anwenden rührt sie nie an.",
+      "keep": "behalten",
+      "verdict": { "ok": "OK", "change": "ÄNDERN", "notAvailable": "N/V", "kept": "BEHALTEN" },
+      "detail": { "mismatch": "ist {0} · soll {1}", "notPresent": "nicht in dieser ProSim-Version" },
+      "value": { "on": "ein", "off": "aus" },
+      "readAgainTitle": "Die Optionen erneut von ProSim lesen.",
+      "readingShort": "Liest…",
+      "readAgain": "Erneut lesen",
+      "howTitle": "Wie du die Optionen von Hand in ProSim System änderst.",
+      "hideSteps": "Schritte ausblenden",
+      "showHow": "Zeig mir wie",
+      "applyTitle": "Schreibt den empfohlenen Wert in jede gelbe Zeile und liest sie dann zurück. Gilt sofort; kein ProSim-Neustart.",
+      "applying": "Wendet an…",
+      "apply": "Empfohlenes anwenden",
+      "applyCount": "Empfohlenes anwenden ({0})",
+      "howStep": { "open": "Öffne in ProSim System", "setTo": "und setze es auf", "now": "(jetzt {0})." },
+      "result": { "read": "Gelesen.", "notConnected": "ProSim ist nicht verbunden.", "failed": "Fehlgeschlagen — siehe die Seite Protokolle." }
+    },
+    "navData": {
+      "title": "Navigationsdaten",
+      "hint": "Navigraph-Datenbank für SIDs, STARs und Anflüge",
+      "dfd": { "label": "DFD-Datenbankpfad", "hint": "Die .s3db-Datei oder ihr Ordner. ProSims Navdata-Ordner funktioniert. Leer sucht neben dem SDK." }
+    },
+    "weather": {
+      "title": "Wetterquellen",
+      "hint": "ActiveSky trägt das Wetter, das tatsächlich im Sim ist, und gewinnt deshalb gegen das ProSim-Gateway und SayIntentions, wenn es vorhanden ist",
+      "snapshot": {
+        "label": "ActiveSky-Snapshot-Datei",
+        "hint": "Vollständiger Pfad von current_wx_snapshot.txt. Leer sucht in den bekannten HiFi-Installationsordnern.",
+        "more": "Wenn gesetzt, ist der Pfad endgültig: eine fehlende Datei schaltet die Snapshot-Stufe ab, statt woanders zu suchen.",
+        "placeholder": "C:\\Users\\du\\AppData\\Roaming\\HiFi\\AS_MSFS\\Weather\\current_wx_snapshot.txt"
+      },
+      "useApi": { "label": "Auch die ActiveSky-API versuchen", "hint": "ActiveSkys lokale Web-API, wenn der Snapshot nichts für den Flughafen hat." },
+      "apiHost": { "label": "API-Host", "hint": "Name oder IP-Adresse des PCs, auf dem ActiveSky läuft.", "placeholder": "localhost" },
+      "apiPort": { "label": "API-Port" },
+      "apiTimeout": { "label": "API-Timeout", "hint": "Absichtlich kurz: die Kette geht schnell weiter, wenn ActiveSky nicht läuft." }
+    },
+    "web": {
+      "title": "Weboberfläche",
+      "hint": "Port und LAN-Zugriff lassen sich auch im Desktop-Fenster bearbeiten",
+      "port": { "label": "Port", "hint": "Gilt nach einem Neustart der App." },
+      "lan": { "label": "Andere Geräte zulassen (LAN)", "hint": "Tablets und andere PCs können diese Seite öffnen.", "more": "Sie melden sich mit dem QR-Code im Desktop-Fenster an." },
+      "httpsHeading": "HTTPS (optional)",
+      "https": {
+        "label": "HTTPS aktivieren",
+        "hint": "Eine zweite, sichere Adresse neben der normalen. Nötig für Bildschirm-wachhalten und die installierte App auf Tablets. Gilt nach einem Neustart.",
+        "more": "Du stellst das Zertifikat: eine PFX-Datei für die LAN-Adresse dieses PCs, erstellt mit deiner eigenen CA (mkcert ist der einfache Weg), und diese CA auf dem Tablet installiert. Die App erstellt oder installiert nie Zertifikate. Fehlt die Datei oder ist sie falsch, läuft HTTP weiter und ein Banner sagt warum."
+      },
+      "httpsPort": { "label": "HTTPS-Port", "hint": "Neben dem HTTP-Port oben; öffne ihn auch in der Firewall." },
+      "pfx": { "label": "Zertifikatsdatei (PFX)", "hint": "Vollständiger Pfad der .pfx-/.p12-Datei mit dem privaten Schlüssel.", "placeholder": "C:\\ProsimCompanion\\certs\\simpc.pfx" },
+      "pfxPassword": { "label": "Zertifikatspasswort", "hint": "Verschlüsselt auf diesem PC und Windows-Konto gespeichert. Nie protokolliert." },
+      "status": "Status",
+      "httpsLabel": { "onWarning": "HTTPS EIN · WARNUNG", "on": "HTTPS EIN", "failed": "HTTPS FEHLGESCHLAGEN", "off": "HTTPS AUS" },
+      "httpsHint": { "saved": "Gespeichert — starte die App neu, um die sichere Adresse zu starten.", "off": "Aus. Reines HTTP unter {0}." },
+      "tabletHintBefore": "Tablet-Einrichtung — das Zertifikat, die CA auf dem iPad, zum Home-Bildschirm hinzufügen, Bildschirm wachhalten:",
+      "tabletHintAfter": "im Installationsordner."
+    },
+    "streamDeck": {
+      "title": "Stream Deck & externe Werkzeuge",
+      "hint": "Gilt sofort",
+      "commandApi": { "label": "Befehls-API", "hint": "Vom Stream-Deck-Plugin benötigt. Braucht immer das Zugriffstoken.", "more": "Lässt externe Werkzeuge GSX-, Checklisten- und Loadsheet-Befehle über den Webserver senden." },
+      "pairHint": "Zum Koppeln des Plugins fügst du den Onboarding-Link aus dem Desktop-Fenster in die Einstellungen einer beliebigen Taste ein. Tasten mit \"API off\" erholen sich von selbst, sobald das gespeichert ist."
+    },
+    "wake": {
+      "titleNumbered": "Wake-on-LAN-PC {0}",
+      "titleNamed": "Wake-on-LAN — {0}",
+      "hint": "Ein Magic Packet beim Start und bei Jetzt senden",
+      "row": "Zeile",
+      "atStartup": "BEIM START",
+      "sendNowOnly": "NUR JETZT SENDEN",
+      "removeTitle": "Diesen PC entfernen",
+      "remove": "Entfernen",
+      "name": { "label": "Name", "hint": "Deine Bezeichnung dafür — was das Protokoll zeigt.", "placeholder": "Sprachmodell-PC" },
+      "enabled": { "label": "Beim Start wecken", "hint": "Aus behält die Zeile nur für die Schaltfläche Jetzt senden." },
+      "mac": { "label": "MAC-Adresse", "hint": "Zum Beispiel AA:BB:CC:DD:EE:FF.", "more": "Der PC braucht Wake-on-LAN im BIOS und im Netzwerktreiber aktiviert, eine Kabelverbindung und dasselbe Netzwerk wie dieser PC." },
+      "broadcast": { "label": "Broadcast-Adresse", "hint": "255.255.255.255 oder der Broadcast deines Subnetzes wie 192.168.1.255." },
+      "port": { "label": "Port", "hint": "Üblicherweise 9." },
+      "sendNow": "Jetzt senden",
+      "sendNowHint": "Ein Paket an diesen PC mit den Werten oben, gespeichert oder nicht. Die eigene Funktion des PCs (LLM-Verbindung testen, Sprachdienste neu verbinden) sagt dir, wann er oben ist.",
+      "list": {
+        "title": "Wake-on-LAN",
+        "hint": "Die PCs einschalten, von denen die App abhängt, wenn sie startet",
+        "none": "Noch kein PC. Füge die Sprachmodell-Kiste, den Sprachserver, einen ActiveSky-PC hinzu — so viele du willst.",
+        "add": "PC hinzufügen"
+      }
+    },
+    "updates": {
+      "title": "Updates",
+      "hint": "Ein Banner, wenn ein neuerer Build auf GitHub ist. Nichts wird heruntergeladen oder installiert",
+      "check": { "label": "Nach Updates suchen", "hint": "Scheitert offline still. Verzögert nie den Start." },
+      "interval": { "label": "Erneut prüfen alle" }
+    }
+  }
+}

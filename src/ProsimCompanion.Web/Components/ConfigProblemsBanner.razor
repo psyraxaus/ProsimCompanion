@@ -1,5 +1,6 @@
 @inherits StoreObserverComponent
 @inject ConfigProblemStore Problems
+@inject IStringLocalizer T
 
 @* User-content parse failures (issue #74): a checklist edit with a JSON typo used to log a
    warning and vanish — the pilot flew without it unknowingly. Rendered on the Flight Status
@@ -11,7 +12,7 @@
     <div class="warn-banner" role="alert">
         <span aria-hidden="true">⚠</span>
         <span>
-            <strong>@_problems.Count config file@(_problems.Count == 1 ? "" : "s") failed to load</strong> — the affected content is missing until fixed:
+            <strong>@(_problems.Count == 1 ? T["fields.configProblems.failedOne", _problems.Count].Value : T["fields.configProblems.failedMany", _problems.Count].Value)</strong> @T["fields.configProblems.missingUntilFixed"]
             @foreach (var problem in _problems)
             {
                 <br />

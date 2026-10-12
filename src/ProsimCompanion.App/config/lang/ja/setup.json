@@ -1,0 +1,124 @@
+{
+  "setup": {
+    "pageTitle": "セットアップ — ProsimCompanion",
+    "heading": "セットアップ",
+    "features": {
+      "title": "機能",
+      "hint": "オフにした機能はページは残りますが、何も動作しません",
+      "gsx": { "label": "GSX 地上サービス", "hint": "GSX Pro による出発サービス、ドア、ボーディングブリッジ、プッシュバック、到着。" },
+      "speech": { "label": "音声副操縦士", "hint": "読み上げチェックリスト、コールアウト、ブリーフィング、音声コマンド。" },
+      "audio": { "label": "オーディオ制御", "hint": "オーディオパネルのノブとラッチでアプリの音量を設定します。" }
+    },
+    "prosim": {
+      "title": "ProSim 接続",
+      "host": { "label": "ProSim ホスト", "hint": "ProSim System を実行している PC の名前または IP アドレス。", "placeholder": "localhost または 192.168.1.10" },
+      "sdk": { "label": "ProSim SDK フォルダー", "hint": "ProSimSDK.dll を含むフォルダー。空のままだと ProSim はオフのままです。" },
+      "api": { "label": "API キー", "hint": "新しい ProSim ビルドだけが使います。それ以外は空のままにしてください。" },
+      "reconnect": { "label": "再接続間隔", "hint": "接続試行の間の待ち時間。" }
+    },
+    "setupCheck": {
+      "title": "ProSim セットアップ確認",
+      "hintIdle": "ProSim に接続するたびに読み取り、「適用」をクリックしたときだけ書き込みます",
+      "hintRead": "ProSim {0} · {1} に読み取り",
+      "enabled": {
+        "label": "接続時に ProSim のオプションを確認する",
+        "hint": "このアプリが依存する IOS オプションを読み取り、異なるものを表示します。自分では何も変更しません。",
+        "more": "ドアロジック、自動地上電源、データリンク読み込み、給油レート。上でオフにした機能の行は表示されません。"
+      },
+      "off": "オフ。何も読み取りません。",
+      "reading": "ProSim のオプションを読み取り中…",
+      "waitConnect": "ProSim が接続されると表示されます。",
+      "keepTitle": "このオプションを現状のまま維持します。行は灰色のままで、「適用」は触れません。",
+      "keep": "維持",
+      "verdict": { "ok": "OK", "change": "変更", "notAvailable": "該当なし", "kept": "維持" },
+      "detail": { "mismatch": "現在 {0} · 推奨 {1}", "notPresent": "この ProSim ビルドにはありません" },
+      "value": { "on": "オン", "off": "オフ" },
+      "readAgainTitle": "ProSim からオプションを再読み取りします。",
+      "readingShort": "読み取り中…",
+      "readAgain": "再読み取り",
+      "howTitle": "ProSim System でオプションを手動で変更する方法。",
+      "hideSteps": "手順を隠す",
+      "showHow": "手順を見る",
+      "applyTitle": "すべての黄色の行に推奨値を書き込み、読み戻します。即時に反映され、ProSim の再起動は不要です。",
+      "applying": "適用中…",
+      "apply": "推奨値を適用",
+      "applyCount": "推奨値を適用（{0}）",
+      "howStep": { "open": "ProSim System で", "setTo": "を開き、次の値に設定:", "now": "（現在 {0}）。" },
+      "result": { "read": "読み取りました。", "notConnected": "ProSim が接続されていません。", "failed": "失敗 — ログページを確認してください。" }
+    },
+    "navData": {
+      "title": "航法データ",
+      "hint": "SID、STAR、アプローチ用の Navigraph データベース",
+      "dfd": { "label": "DFD データベースのパス", "hint": ".s3db ファイルまたはそのフォルダー。ProSim の Navdata フォルダーでも構いません。空なら SDK の隣を探します。" }
+    },
+    "weather": {
+      "title": "気象ソース",
+      "hint": "ActiveSky はシム内の実際の気象を持つため、存在する場合は ProSim ゲートウェイや SayIntentions より優先されます",
+      "snapshot": {
+        "label": "ActiveSky スナップショットファイル",
+        "hint": "current_wx_snapshot.txt のフルパス。空なら既知の HiFi インストールフォルダーを探します。",
+        "more": "設定するとそのパスが最終決定になります。ファイルがない場合は他を探さずスナップショット層をオフにします。",
+        "placeholder": "C:\\Users\\you\\AppData\\Roaming\\HiFi\\AS_MSFS\\Weather\\current_wx_snapshot.txt"
+      },
+      "useApi": { "label": "ActiveSky API も試す", "hint": "スナップショットにその空港の情報がないときに使う ActiveSky のローカル Web API。" },
+      "apiHost": { "label": "API ホスト", "hint": "ActiveSky を実行している PC の名前または IP アドレス。", "placeholder": "localhost" },
+      "apiPort": { "label": "API ポート" },
+      "apiTimeout": { "label": "API タイムアウト", "hint": "意図的に短くしています。ActiveSky が動いていないときは次のソースへ素早く移ります。" }
+    },
+    "web": {
+      "title": "Web インターフェース",
+      "hint": "ポートと LAN アクセスはデスクトップウィンドウでも編集できます",
+      "port": { "label": "ポート", "hint": "アプリの再起動後に反映されます。" },
+      "lan": { "label": "他のデバイスを許可（LAN）", "hint": "タブレットや他の PC からこのページを開けます。", "more": "デスクトップウィンドウの QR コードでサインインします。" },
+      "httpsHeading": "HTTPS（任意）",
+      "https": {
+        "label": "HTTPS を有効にする",
+        "hint": "通常のアドレスに加えた 2 つ目の安全なアドレス。タブレットでの画面スリープ防止とインストール済みアプリに必要です。再起動後に反映されます。",
+        "more": "証明書は自分で用意します。この PC の LAN アドレス用の PFX ファイルを自分の CA（mkcert が簡単です）で作成し、その CA をタブレットにインストールします。アプリは証明書を作成もインストールもしません。ファイルがない、または不正な場合は HTTP が引き続き動作し、バナーが理由を示します。"
+      },
+      "httpsPort": { "label": "HTTPS ポート", "hint": "上の HTTP ポートとは別に、ファイアウォールでも開けてください。" },
+      "pfx": { "label": "証明書ファイル（PFX）", "hint": "秘密鍵を含む .pfx / .p12 ファイルのフルパス。", "placeholder": "C:\\ProsimCompanion\\certs\\simpc.pfx" },
+      "pfxPassword": { "label": "証明書のパスワード", "hint": "この PC と Windows アカウントで暗号化して保存されます。ログには記録されません。" },
+      "status": "状態",
+      "httpsLabel": { "onWarning": "HTTPS オン · 警告", "on": "HTTPS オン", "failed": "HTTPS 失敗", "off": "HTTPS オフ" },
+      "httpsHint": { "saved": "保存しました — 安全なアドレスを開始するにはアプリを再起動してください。", "off": "オフ。{0} で平文 HTTP。" },
+      "tabletHintBefore": "タブレットの設定 — 証明書、iPad への CA、ホーム画面への追加、画面スリープ防止:",
+      "tabletHintAfter": "（インストールフォルダー内）。"
+    },
+    "streamDeck": {
+      "title": "Stream Deck と外部ツール",
+      "hint": "即時に反映",
+      "commandApi": { "label": "コマンド API", "hint": "Stream Deck プラグインに必要です。常にアクセストークンが必要です。", "more": "外部ツールが Web サーバー経由で GSX、チェックリスト、ロードシートのコマンドを送れるようにします。" },
+      "pairHint": "プラグインをペアリングするには、デスクトップウィンドウのオンボーディングリンクを任意のキーの設定に貼り付けます。\"API off\" と表示されているキーは、これを保存すると自動的に回復します。"
+    },
+    "wake": {
+      "titleNumbered": "Wake-on-LAN PC {0}",
+      "titleNamed": "Wake-on-LAN — {0}",
+      "hint": "起動時と「今すぐ送信」でマジックパケットを送ります",
+      "row": "行",
+      "atStartup": "起動時",
+      "sendNowOnly": "手動送信のみ",
+      "removeTitle": "この PC を削除",
+      "remove": "削除",
+      "name": { "label": "名前", "hint": "あなたが付けるラベル — ログに表示されます。", "placeholder": "言語モデル PC" },
+      "enabled": { "label": "起動時に起こす", "hint": "オフにすると「今すぐ送信」ボタン用に行だけ残ります。" },
+      "mac": { "label": "MAC アドレス", "hint": "例: AA:BB:CC:DD:EE:FF。", "more": "対象 PC は BIOS とネットワークドライバーで Wake-on-LAN が有効で、有線接続で、この PC と同じネットワークにある必要があります。" },
+      "broadcast": { "label": "ブロードキャストアドレス", "hint": "255.255.255.255、または 192.168.1.255 のようなサブネットのブロードキャスト。" },
+      "port": { "label": "ポート", "hint": "通常は 9。" },
+      "sendNow": "今すぐ送信",
+      "sendNowHint": "上の値で、保存の有無にかかわらずこの PC へパケットを 1 つ送ります。起動したかどうかは、その PC の機能（LLM 接続テスト、音声サービスの再接続）が教えてくれます。",
+      "list": {
+        "title": "Wake-on-LAN",
+        "hint": "アプリの起動時に、依存している PC の電源を入れます",
+        "none": "PC はまだありません。言語モデルのマシン、音声サーバー、ActiveSky の PC など、いくつでも追加できます。",
+        "add": "PC を追加"
+      }
+    },
+    "updates": {
+      "title": "更新",
+      "hint": "GitHub に新しいビルドがあるとバナーで知らせます。ダウンロードもインストールもしません",
+      "check": { "label": "更新を確認する", "hint": "オフラインでは静かに失敗します。起動を遅らせることはありません。" },
+      "interval": { "label": "再確認の間隔" }
+    }
+  }
+}

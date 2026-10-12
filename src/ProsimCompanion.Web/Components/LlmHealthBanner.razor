@@ -1,5 +1,6 @@
 @inherits StoreObserverComponent
 @inject LlmHealthStore Health
+@inject IStringLocalizer T
 
 @* LLM-offline warning (issue #66): a 401 once ran a whole flight with zero surfacing —
    every free-form utterance silently degraded. Rendered on the Flight Status page and the
@@ -11,7 +12,7 @@
         <span aria-hidden="true">⚠</span>
         <span>
             @Message
-            <a href="settings/speech/briefing">Open the LLM settings.</a>
+            <a href="settings/speech/briefing">@T["fields.llmHealth.openSettings"]</a>
         </span>
     </div>
 }
@@ -20,8 +21,8 @@
     private LlmHealthSnapshot _snapshot = LlmHealthSnapshot.Empty;
 
     private string Message => _snapshot.State == LlmHealthState.AuthFailed
-        ? "FO free-form understanding is offline (LLM auth failed — check the API key)."
-        : $"FO free-form understanding is offline (LLM endpoint unreachable{Detail}).";
+        ? T["fields.llmHealth.authFailed"].Value
+        : T["fields.llmHealth.unreachable", Detail].Value;
 
     private string Detail => string.IsNullOrWhiteSpace(_snapshot.LastError)
         ? ""

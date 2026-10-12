@@ -34,7 +34,7 @@ public sealed class FieldValidationTests
         var problem = FieldValidation.Check(TextFieldKind.Host, value);
         Assert.NotNull(problem);
         Assert.True(problem.Blocking);
-        Assert.Contains("IPv6", problem.Message, StringComparison.Ordinal);
+        Assert.Equal("fields.validation.hostIpv6", problem.TextId);
     }
 
     [Theory]
@@ -47,7 +47,7 @@ public sealed class FieldValidationTests
         var problem = FieldValidation.Check(TextFieldKind.Host, value);
         Assert.NotNull(problem);
         Assert.True(problem.Blocking);
-        Assert.Contains("No http://", problem.Message, StringComparison.Ordinal);
+        Assert.Equal("fields.validation.host", problem.TextId);
     }
 
     [Theory]
@@ -162,7 +162,7 @@ public sealed class FieldValidationTests
         var problem = FieldValidation.Check(TextFieldKind.FolderList, present + ";" + absent);
         Assert.NotNull(problem);
         Assert.False(problem.Blocking);
-        Assert.Contains(absent, problem.Message, StringComparison.Ordinal);
+        Assert.Contains(absent, problem.Detail, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public sealed class FieldValidationTests
         {
             var info = FieldValidation.Describe(kind);
             Assert.NotNull(info.Check);
-            Assert.Equal(info.IsPath, info.BrowseTitle.Length > 0);
+            Assert.Equal(info.IsPath, info.BrowseTitleTextId.Length > 0);
         }
 
         Assert.Equal(Core.Hosting.NativePickKind.SaveFile, FieldValidation.Describe(TextFieldKind.OutputFilePath).Dialog);
@@ -188,6 +188,42 @@ public sealed class FieldValidationTests
         Assert.True(FieldValidation.Describe(TextFieldKind.FolderList).IsList);
         Assert.Null(FieldValidation.Describe(TextFieldKind.Host).Dialog);
         Assert.Same(FieldValidation.Describe(TextFieldKind.Text), FieldValidation.Describe((TextFieldKind)999));
+    }
+
+    /// <summary>The table carries text ids, not sentences (ADR-0014), and the guard test only
+    /// sees <c>T["…"]</c> literals — so this is what keeps a typo in the table from reaching a
+    /// pilot as a raw id.</summary>
+    [Fact]
+    public void Every_text_id_the_table_can_produce_exists_in_the_english_pack()
+    {
+        var english = Core.Localization.LanguagePack.Load(
+            Path.Combine(Localization.TestLocalizer.ShippedPackRoot(), "en", "fields.json"), "en");
+        var ids = new List<string>();
+        foreach (var kind in Enum.GetValues<TextFieldKind>())
+        {
+            var info = FieldValidation.Describe(kind);
+            if (info.IsPath)
+            {
+                ids.Add(info.BrowseTitleTextId);
+            }
+        }
+
+        var absentFolder = Path.Combine(Path.GetTempPath(), "gone-" + Guid.NewGuid().ToString("N"));
+        foreach (var (kind, value) in new[]
+                 {
+                     (TextFieldKind.Host, "::1"), (TextFieldKind.Host, "http://x"), (TextFieldKind.Url, "x"),
+                     (TextFieldKind.IpAddress, "x"), (TextFieldKind.Mac, "x"), (TextFieldKind.Icao, "x"),
+                     (TextFieldKind.Runway, "x"), (TextFieldKind.IntList, "x"), (TextFieldKind.FolderPath, "C:\\bad\0name"),
+                     (TextFieldKind.FilePath, absentFolder), (TextFieldKind.FolderPath, absentFolder),
+                     (TextFieldKind.FileOrFolderPath, absentFolder), (TextFieldKind.OutputFilePath, Path.Combine(absentFolder, "x.json")),
+                     (TextFieldKind.FolderList, absentFolder),
+                 })
+        {
+            ids.Add(FieldValidation.Check(kind, value)!.TextId);
+        }
+
+        var missing = ids.Distinct(StringComparer.Ordinal).Where(id => !english.Strings.ContainsKey(id)).ToList();
+        Assert.True(missing.Count == 0, "FieldValidation names ids the en pack does not have: " + string.Join(", ", missing));
     }
 
     [Fact]

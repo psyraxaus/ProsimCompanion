@@ -8,45 +8,46 @@
 @inject IGsxDepartureControl DepartureControl
 @inject IGsxSimbriefReloadControl SimbriefReload
 @inject GateChoiceStore GateChoices
+@inject IStringLocalizer T
 
-<Section Title="Status">
+<Section Title="@T["gsxSettings.status.title"]">
     <div class="row">
-        <span class="row-label">Readiness</span>
+        <span class="row-label">@T["gsxSettings.status.readiness"]</span>
         <span class="pill @GsxPresentation.ReadinessTone(_view.Readiness)">@_view.Readiness</span>
     </div>
     <div class="row">
-        <span class="row-label">Automation phase</span>
+        <span class="row-label">@T["gsxSettings.status.automationPhase"]</span>
         <span class="row-value-mono">@_view.AutomationPhase</span>
     </div>
     <div class="row">
-        <span class="row-label">Capabilities</span>
+        <span class="row-label">@T["gsxSettings.status.capabilities"]</span>
         <span class="row-value-mono">@(_view.Capabilities.Count == 0 ? "—" : string.Join(", ", _view.Capabilities))</span>
     </div>
     <div class="row">
-        <span class="row-label">Airport</span>
+        <span class="row-label">@T["gsxSettings.status.airport"]</span>
         <span class="row-value-mono">@(_view.AirportIcao ?? "—")</span>
     </div>
     <div class="row">
-        <span class="row-label">Gate context</span>
+        <span class="row-label">@T["gsxSettings.status.gateContext"]</span>
         <span class="row-value-mono">@(_view.GateContextKey ?? "—")</span>
     </div>
     <div class="row">
-        <span class="row-label">Session</span>
+        <span class="row-label">@T["gsxSettings.status.session"]</span>
         <span class="row-value-mono">@(_view.StartupSid ?? "—")</span>
     </div>
 </Section>
 
-<Section Title="Arrival Gate">
+<Section Title="@T["gsxSettings.arrivalGate.title"]">
     <div class="row">
-        <span class="row-label">Request</span>
-        <span class="row-value-mono">@(_view.GateRequest ?? "No gate request armed.")</span>
+        <span class="row-label">@T["gsxSettings.arrivalGate.request"]</span>
+        <span class="row-value-mono">@(_view.GateRequest ?? T["gsxSettings.arrivalGate.noRequest"].Value)</span>
     </div>
     <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
-        <input type="text" class="text-input" style="max-width:120px;" placeholder="e.g. B12"
+        <input type="text" class="text-input" style="max-width:120px;" placeholder="@T["gsxSettings.arrivalGate.placeholder"]"
                autocomplete="off" autocapitalize="characters" spellcheck="false"
                @bind="_gateInput" />
-        <button type="button" class="btn primary" @onclick="ArmGate">Arm gate</button>
-        <button type="button" class="btn secondary" @onclick="GateControl.Cancel">Cancel</button>
+        <button type="button" class="btn primary" @onclick="ArmGate">@T["gsxSettings.arrivalGate.arm"]</button>
+        <button type="button" class="btn secondary" @onclick="GateControl.Cancel">@T["gsxSettings.arrivalGate.cancel"]</button>
     </div>
     @if (_gateChoice.Question is { } gateQuestion)
     {
@@ -58,7 +59,7 @@
             {
                 var label = candidate.Label;
                 <button type="button" class="btn secondary" @onclick="() => ChooseGateVariant(label)"
-                        title="@(candidate.Detail is null ? "no jetway or VDGS known for this stand" : $"{candidate.Detail} at this stand")">
+                        title="@(candidate.Detail is null ? T["gsxSettings.arrivalGate.variantNoDetail"].Value : T["gsxSettings.arrivalGate.variantDetail", candidate.Detail].Value)">
                     @candidate.Label@(candidate.Detail is null ? "" : $" · {candidate.Detail}")
                 </button>
             }
@@ -66,21 +67,21 @@
     }
 </Section>
 
-<Section Title="Departure Status Board">
+<Section Title="@T["gsxSettings.departureBoard.title"]">
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
         <button type="button" class="btn primary" @onclick="@(() => DepartureControl.Start("web"))"
                 disabled="@DepartureControl.Started">
-            @(DepartureControl.Complete ? "Departure complete"
-                : DepartureControl.Started ? "Departure running" : "Start departure services")
+            @(DepartureControl.Complete ? T["gsxSettings.departureBoard.complete"].Value
+                : DepartureControl.Started ? T["gsxSettings.departureBoard.running"].Value : T["gsxSettings.departureBoard.start"].Value)
         </button>
         <button type="button" class="btn secondary" @onclick="DepartureControl.ForceNext"
                 disabled="@(!DepartureControl.Started || DepartureControl.Complete)"
-                title="Call the next departure service now, bypassing its activation rule — the INT/RAD smart button. Works on Manual entries too.">
-            Call next service now
+                title="@T["gsxSettings.departureBoard.callNextTitle"]">
+            @T["gsxSettings.departureBoard.callNext"]
         </button>
         <button type="button" class="btn secondary" @onclick="ReloadSimbrief" disabled="@_reloading"
-                title="Click GSX's own 'SimBrief' gate-menu line so its VDGS shows this flight — at the gate with GSX ready only. Same as the API command gsx.reloadSimbrief.">
-            @(_reloading ? "Reloading SimBrief…" : "Reload SimBrief in GSX")
+                title="@T["gsxSettings.departureBoard.reloadSimbriefTitle"]">
+            @(_reloading ? T["gsxSettings.departureBoard.reloadingSimbrief"].Value : T["gsxSettings.departureBoard.reloadSimbrief"].Value)
         </button>
     </div>
     @if (_reloadResult is not null)
@@ -92,19 +93,19 @@
         @* The last reload verdict (issue #174). RowMissing = this GSX shows no SimBrief row on
            any page the walk read — said once per app session, never retried for that plan. *@
         <div class="field-hint" style="margin-bottom:8px;">
-            SimBrief reload: @(simbrief.RowMissing ? simbrief.Detail : $"{simbrief.Status} — {simbrief.Detail}")
+            @T["gsxSettings.departureBoard.simbriefReload"] @(simbrief.RowMissing ? simbrief.Detail : $"{simbrief.Status} — {simbrief.Detail}")
         </div>
     }
     @if (_view.ServiceBoard.Count == 0)
     {
-        <div class="empty">No departure sequence evaluated yet.</div>
+        <div class="empty">@T["gsxSettings.departureBoard.noSequence"]</div>
     }
     @foreach (var row in _view.ServiceBoard)
     {
         <div class="row row-with-detail">
             <span class="row-label">@row.ServiceId</span>
             <span class="@GsxPresentation.StageLamp(row.Stage)"></span>
-            <span class="row-value">@GsxPresentation.StageLabel(row.Stage)</span>
+            <span class="row-value">@T[GsxPresentation.StageTextId(row.Stage)]</span>
             @* Hold reasons are full sentences — the row-with-detail track ellipsizes them;
                the hover title carries the whole thing. *@
             <span class="row-detail" title="@row.Detail">@(row.Detail ?? "")</span>
@@ -112,35 +113,35 @@
     }
 </Section>
 
-<Section Title="De-Icing" Hint="The weather/OAT policy's verdict for this departure (Settings → Ground Services → Questions)">
+<Section Title="@T["gsxSettings.deiceStatus.title"]" Hint="@T["gsxSettings.deiceStatus.hint"]">
     <div class="row row-with-detail">
-        <span class="row-label">Verdict</span>
+        <span class="row-label">@T["gsxSettings.deiceStatus.verdict"]</span>
         <span class="@GsxPresentation.DeiceVerdictLamp(_deice.Verdict)"></span>
-        <span class="row-value">@GsxPresentation.DeiceVerdictLabel(_deice)</span>
+        <span class="row-value">@T[GsxPresentation.DeiceVerdictTextId(_deice)]</span>
         <span class="row-detail" title="@_deice.Reason">@_deice.Reason</span>
     </div>
     <div class="row">
-        <span class="row-label">Inputs</span>
+        <span class="row-label">@T["gsxSettings.deiceStatus.inputs"]</span>
         <span class="row-value-mono">@GsxPresentation.DeiceInputs(_deice)</span>
     </div>
     @if (_deice.QuestionOpen(DateTimeOffset.UtcNow))
     {
         <div class="field-hint" style="margin:8px 0;">@_deice.Question!.Prompt</div>
         <div class="row">
-            <span class="row-label">Question</span>
-            <span class="row-value-mono" title="Silence never declines it — only this expiry does (Settings → Ground Services → De-Icing → Answer timeout)">
-                @(_deice.Question!.Attempt > 1 ? "re-asked (step is next)" : "open") · counts as no at @_deice.Question!.ExpiresAtUtc.ToLocalTime().ToString("HH:mm")
+            <span class="row-label">@T["gsxSettings.deiceStatus.question"]</span>
+            <span class="row-value-mono" title="@T["gsxSettings.deiceStatus.questionTitle"]">
+                @(T["gsxSettings.deiceStatus.questionState", _deice.Question!.Attempt > 1 ? T["gsxSettings.deiceStatus.reAsked"].Value : T["gsxSettings.deiceStatus.open"].Value, _deice.Question!.ExpiresAtUtc.ToLocalTime().ToString("HH:mm")])
             </span>
         </div>
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
-            <button type="button" class="btn primary" @onclick='() => DeiceRequest.Accept("web")'>Request de-icing</button>
-            <button type="button" class="btn secondary" @onclick='() => DeiceRequest.Decline("web", "declined on the Status board")'>No de-icing</button>
+            <button type="button" class="btn primary" @onclick='() => DeiceRequest.Accept("web")'>@T["gsxSettings.deiceStatus.request"]</button>
+            <button type="button" class="btn secondary" @onclick='() => DeiceRequest.Decline("web", "declined on the Status board")'>@T["gsxSettings.deiceStatus.decline"]</button>
         </div>
     }
     <div class="row">
-        <span class="row-label">GSX de-ice LVARs</span>
-        <span class="row-value-mono" title="L:FSDT_GSX_DEICING_STATE / L:FSDT_GSX_DEICING_TYPE — read for diagnostics; the holdover card still arms from the Remote API completed edge">
-            @(_view.DeiceLvars is { } lv ? $"state {lv.StateLabel}, fluid type {lv.FluidType}" : "—")
+        <span class="row-label">@T["gsxSettings.deiceStatus.lvars"]</span>
+        <span class="row-value-mono" title="@T["gsxSettings.deiceStatus.lvarsTitle"]">
+            @(_view.DeiceLvars is { } lv ? T["gsxSettings.deiceStatus.lvarsValue", lv.StateLabel, lv.FluidType].Value : "—")
         </span>
     </div>
 </Section>
@@ -148,31 +149,31 @@
 @* Raw diagnostics (ADR-0010): the wire tables are for triage, not for flying — folded so the
    status board above stays the page. *@
 <details class="diagnostics">
-    <summary>Diagnostics — services, GSX menu, recent commands</summary>
+    <summary>@T["gsxSettings.diagnostics.summary"]</summary>
 
-<Section Title="Services" Hint="Wire state vs mapped state from the Remote API mirror">
+<Section Title="@T["gsxSettings.services.title"]" Hint="@T["gsxSettings.services.hint"]">
     @if (_view.Services.Count == 0)
     {
-        <div class="empty">No services mirrored yet (GSX not connected, or no aircraft/gate context).</div>
+        <div class="empty">@T["gsxSettings.services.none"]</div>
     }
     else
     {
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
-                    <tr><th>Service</th><th>Wire state</th><th>Mapped</th><th>Stage</th><th>Triggerable</th><th>Progress</th></tr>
+                    <tr><th>@T["gsxSettings.services.service"]</th><th>@T["gsxSettings.services.wireState"]</th><th>@T["gsxSettings.services.mapped"]</th><th>@T["gsxSettings.services.stage"]</th><th>@T["gsxSettings.services.triggerable"]</th><th>@T["gsxSettings.services.progress"]</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var service in _view.Services.OrderBy(s => s.Id))
                     {
                         <tr>
                             <td>@service.DisplayName</td>
-                            <td class="mono">@(service.SemanticState ?? "—")@(service.Waiting ? " (waiting)" : "")</td>
+                            <td class="mono">@(service.SemanticState ?? "—")@(service.Waiting ? " " + T["gsxSettings.services.waiting"].Value : "")</td>
                             <td>@service.MappedState</td>
                             @* Stage is the latched view — diverging from Mapped after a quick
                                service finishes is the latch doing its job (issue #29). *@
-                            <td>@GsxPresentation.StageLabel(service.Stage)</td>
-                            <td>@(service.CanTrigger ? "yes" : "no")</td>
+                            <td>@T[GsxPresentation.StageTextId(service.Stage)]</td>
+                            <td>@(service.CanTrigger ? T["gsxSettings.services.yes"].Value : T["gsxSettings.services.no"].Value)</td>
                             <td>@(service.ProgressText ?? "")</td>
                         </tr>
                     }
@@ -182,21 +183,21 @@
     }
 </Section>
 
-<Section Title="Menu" Hint="The live GSX menu — click a line to pick it (issue #135); the same card sits on Flight Status and the OFP page">
+<Section Title="@T["gsxSettings.menu.title"]" Hint="@T["gsxSettings.menu.hint"]">
     <GsxMenuCard />
 </Section>
 
-<Section Title="Automation Decisions" Hint="What happened and why — newest first">
+<Section Title="@T["gsxSettings.decisions.title"]" Hint="@T["gsxSettings.decisions.hint"]">
     @if (_view.RecentDecisions.Count == 0)
     {
-        <div class="empty">No automation decisions yet.</div>
+        <div class="empty">@T["gsxSettings.decisions.none"]</div>
     }
     else
     {
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
-                    <tr><th>Time</th><th>Action</th><th>Reason</th></tr>
+                    <tr><th>@T["gsxSettings.decisions.time"]</th><th>@T["gsxSettings.decisions.action"]</th><th>@T["gsxSettings.decisions.reason"]</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var decision in _view.RecentDecisions)
@@ -213,17 +214,17 @@
     }
 </Section>
 
-<Section Title="Recent Commands">
+<Section Title="@T["gsxSettings.commands.title"]">
     @if (_view.RecentCommands.Count == 0)
     {
-        <div class="empty">No commands sent this session.</div>
+        <div class="empty">@T["gsxSettings.commands.none"]</div>
     }
     else
     {
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
-                    <tr><th>Time</th><th>Verb</th><th>Args</th><th>Result</th></tr>
+                    <tr><th>@T["gsxSettings.commands.time"]</th><th>@T["gsxSettings.commands.verb"]</th><th>@T["gsxSettings.commands.args"]</th><th>@T["gsxSettings.commands.result"]</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var command in _view.RecentCommands)
@@ -240,8 +241,8 @@
         </div>
     }
     <div class="field-hint" style="margin-top:8px;">
-        Full wire frames are captured when <a href="settings/logs">Wire trace</a> is on — see
-        <code>ProsimCompanion-wire-*.log</code> (CMTrace format) next to the main log.
+        @T["gsxSettings.commands.wireHintBefore"] <a href="settings/logs">@T["gsxSettings.commands.wireTrace"]</a> @T["gsxSettings.commands.wireHintMiddle"]
+        <code>ProsimCompanion-wire-*.log</code> @T["gsxSettings.commands.wireHintAfter"]
     </div>
 </Section>
 </details>
@@ -282,9 +283,9 @@
             var outcome = await SimbriefReload.ReloadAsync("web");
             _reloadResult = outcome.Status switch
             {
-                GsxSimbriefReloadStatus.Reloaded => $"Reloaded — {outcome.Detail}",
-                GsxSimbriefReloadStatus.SentUnconfirmed => $"Sent — {outcome.Detail}",
-                _ => $"Not performed — {outcome.Detail}",
+                GsxSimbriefReloadStatus.Reloaded => T["gsxSettings.departureBoard.reloaded", outcome.Detail].Value,
+                GsxSimbriefReloadStatus.SentUnconfirmed => T["gsxSettings.departureBoard.sent", outcome.Detail].Value,
+                _ => T["gsxSettings.departureBoard.notPerformed", outcome.Detail].Value,
             };
         }
         finally

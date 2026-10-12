@@ -1,0 +1,419 @@
+{
+  "gsxSettings": {
+    "pageTitle": "Bodendienste — ProsimCompanion",
+    "heading": "Bodendienste",
+    "options": { "never": "Nie", "always": "Immer", "onlyJetway": "Nur Brückenpositionen" },
+    "doors": {
+      "title": "Türen",
+      "automation": { "label": "Türautomatik", "hint": "Lässt die App Türen für die Bodendienste öffnen und schließen.", "more": "Die Türregeln unten gelten nur, solange das eingeschaltet ist." },
+      "stairs": { "label": "Passagiertüren folgen der Treppe", "hint": "Die hintere Passagiertür öffnet, wenn die Treppe kommt, und schließt, wenn sie geht.", "more": "An Positionen ohne Fluggastbrücke öffnet auch die vordere Tür." },
+      "catering": { "label": "Servicetüren folgen dem Catering", "hint": "Die rechten Servicetüren öffnen und schließen für den Catering-Lkw." },
+      "cargo": { "label": "Frachttüren folgen dem Beladen", "hint": "Die Frachttüren öffnen für die Lader und schließen, wenn jeder Lader fertig ist." },
+      "cargoOnBoarding": { "label": "Frachttüren bei aktivem Boarding öffnen", "hint": "Beide Frachttüren öffnen kurz nach Beginn von Boarding oder Deboarding." },
+      "cargoOpenDelay": { "label": "Verzögerung Frachttür öffnen", "hint": "Wartezeit nach Beginn von Boarding oder Deboarding." },
+      "cargoCloseDelay": { "label": "Verzögerung Frachttür schließen", "hint": "Wartezeit, nachdem der Lader fertig ist." },
+      "keepOpenAfterLoad": { "label": "Frachttüren nach dem Beladen offen lassen", "hint": "Die Frachttüren bleiben offen, bis das Boarding abgeschlossen ist." },
+      "keepOpenAfterUnload": { "label": "Frachttüren nach dem Entladen offen lassen", "hint": "Die Frachttüren bleiben nach dem Entladen offen.", "more": "Aus schließt sie, wenn jeder Lader fertig ist." },
+      "closeOnFinal": { "label": "Türen beim finalen Loadsheet schließen", "hint": "Alle Türen schließen, wenn das finale Loadsheet gesendet wird.", "more": "Nur verwendet, solange die Beacon-Pushback-Sequenz aus ist." },
+      "suppressMessages": { "label": "GSX-Türmeldungen unterdrücken", "hint": "GSXs eigene Türabfragen ausblenden, solange diese App die Türen steuert." }
+    },
+    "jetway": {
+      "title": "Fluggastbrücke / Treppe",
+      "connectAtStart": { "label": "Beim Sitzungsstart andocken", "hint": "Fluggastbrücke oder Treppe andocken, wenn die Sitzung am Gate beginnt.", "more": "Einmal je Gate-Sitzung. GSX entscheidet für die Position zwischen Brücke und Treppe." },
+      "connectOnDeparture": { "label": "Andocken, wenn die Abflugdienste starten", "hint": "Fluggastbrücke oder Treppe andocken, wenn die Abflugdienste starten.", "more": "Für Sitzungen, in denen das Andocken beim Sitzungsstart aus ist." },
+      "removeStairs": { "label": "Treppe nach den Abflugdiensten entfernen", "hint": "Wann die Treppe nach den Abflugdiensten entfernt wird.", "more": "Nur Brückenpositionen: nur, wenn noch eine Fluggastbrücke die Passagiertüren bedient." },
+      "removeOnFinal": { "label": "Brücke/Treppe beim finalen Loadsheet entfernen", "hint": "Fluggastbrücke oder Treppe einfahren, wenn das finale Loadsheet gesendet wird.", "more": "Nur verwendet, solange die Beacon-Pushback-Sequenz aus ist." },
+      "connectOnArrival": { "label": "Bei Ankunft andocken", "hint": "Fluggastbrücke oder Treppe nach dem Parken andocken, vor dem Deboarding." }
+    },
+    "equipment": {
+      "title": "Bodengeräte",
+      "place": { "label": "Bodengeräte aufstellen", "hint": "Beim Sitzungsstart die Bodenstromeinheit und die Bremsklötze platzieren.", "more": "Sie werden entfernt, wenn das Beacon eingeschaltet wird." },
+      "gpuWithApu": { "label": "GPU bei laufender APU anschließen", "hint": "Bodenstrom auch anschließen, wenn die APU das Flugzeug bereits versorgt." },
+      "pca": { "label": "PCA anschließen", "hint": "Wann die vorklimatisierte Luft (PCA) angeschlossen wird.", "more": "Nur Brückenpositionen folgt GSXs Brückenverfügbarkeit. Gilt beim Sitzungsstart und bei Ankunft." },
+      "pcaOverride": { "label": "PCA-Zustand überschreiben", "hint": "PCA trennen, das ein gespeicherter Panelzustand angeschlossen ließ, wenn die Einstellung oben es verbietet." },
+      "gradualRemoval": { "label": "Schrittweises Entfernen beim Pushback", "hint": "Bodenstrom entfernen, wenn die externe Stromversorgung nach dem Einschalten wieder ausgeht, und die Bremsklötze, wenn die Parkbremse gesetzt ist.", "more": "Nur verwendet, solange die Beacon-Pushback-Sequenz aus ist, und nur nach Abschluss der Abflugdienste." },
+      "chockDelay": { "label": "Bremsklotz-Verzögerung bei Ankunft", "hint": "Zufällige Wartezeit nach dem Parken, bis die Bremsklötze gesetzt werden." },
+      "reposition": { "label": "Beim Start neu positionieren", "hint": "GSXs Reposition Aircraft einmal beim Sitzungsstart ausführen." },
+      "disableProsimNative": { "label": "ProSims eigene GSX-Integration deaktivieren", "hint": "ProSims eigene GSX-Automatik abschalten, damit sich die beiden nie in die Quere kommen." }
+    },
+    "automation": {
+      "title": "Automatik",
+      "enabled": { "label": "Bodenautomatik", "hint": "Die App GSX-Fragen beantworten und die Dienstsequenz ausführen lassen.", "more": "Die GSX-Verbindung bleibt so oder so bestehen, die Statustafel funktioniert also weiter." },
+      "autoStart": { "label": "Abflugdienste automatisch starten", "hint": "Die Abflugdienste von selbst starten, sobald das Flugzeug bereit ist.", "more": "Aus: drücke Start im Abschnitt Status oder bitte den Ersten Offizier." },
+      "groundPrep": {
+        "label": "Start der Bodenvorbereitung",
+        "hint": "Wann die Bodenvorbereitung (Neupositionierung, Bodenstrom, Fluggastbrücke) beginnt.",
+        "more": "Sprachbefehl wartet auf \"commence ground services\" oder die Schaltfläche Start. \"Sprache bei Kaltstart, automatisch beim Turnaround\" behält dieses Warten für das erste Leg und startet einen Turnaround von selbst, sobald der nächste Flugplan an der Position mit abgestellten Triebwerken geladen ist."
+      },
+      "groundPrepOptions": { "auto": "Automatisch (Sitzungsstart)", "voice": "Sprachbefehl / Schaltfläche Start", "voiceThenAuto": "Sprache bei Kaltstart, automatisch beim Turnaround" },
+      "turnaroundDelay": { "label": "Verzögerung Turnaround-Autostart", "hint": "Wie lange der nächste Flugplan an der Position geladen sein muss, bevor ein Turnaround von selbst startet.", "more": "Nur mit der Turnaround-Option oben. Gibt dem SimBrief-Import Zeit, sich zu setzen, und dir einen Moment zum Widersprechen." },
+      "turnaroundAsk": { "label": "Vor dem Start eines Turnarounds fragen", "hint": "Der Erste Offizier fragt \"Next plan loaded — commence ground services?\" und startet bei Ja.", "more": "Nur mit der Turnaround-Option oben. Keine Antwort überlässt es dir: sage \"commence ground services\" oder drücke Start." },
+      "requireOfp": { "label": "Vor den Abflugdiensten auf den OFP warten", "hint": "Auf den SimBrief-Flugplan warten, bevor ein Dienst gerufen wird." }
+    },
+    "simbrief": {
+      "title": "SimBrief / VDGS",
+      "hint": "GSX liest den SimBrief-Plan für seine Gate-Anzeigen und den Einwinker",
+      "reload": {
+        "label": "SimBrief in GSX bei neuem OFP neu laden",
+        "hint": "GSXs eigene Menüzeile 'SimBrief' einmal je neuem Flugplan anklicken, damit das VDGS die richtige Flugnummer, das Ziel und die Abflugzeit zeigt.",
+        "more": "Nur geparkt am Gate mit abgestellten Triebwerken und bereitem GSX — nie im Flug; ein in der Luft geholter Plan wird am nächsten Gate neu geladen. Standardmäßig aus: die Zeile wird über ihren Text in einem GSX-Menü gewählt, das diese App auf einem aufgezeichneten Flug noch nicht bedient hat, und ein Fehlgriff lässt das Menü für dich offen. Der Abschnitt Status hat eine Schaltfläche und die API den Befehl gsx.reloadSimbrief, egal wie das hier gesetzt ist."
+      },
+      "pages": {
+        "label": "Zu durchsuchende Seiten von Additional Services",
+        "hint": "Wie viele 'Next Page'-Schritte des GSX-Menüs Additional Services das Neuladen auf der Suche nach der Zeile 'Reload Simbrief' geht.",
+        "more": "Auf den aufgezeichneten Flügen stand die Zeile weder im Gate-Menü noch auf Seite 1 von Additional Services, und Seite 2 war nie geöffnet worden. Der Durchlauf liest das Gate-Menü, dann Additional Services und bis zu so viele weitere Seiten, wählt die erste Zeile, die SimBrief oder den Flugplan nennt, und schließt ein Menü, das er selbst geöffnet hat. Hat keine Seite die Zeile, sagt der Abschnitt Status das einmal und der Plan wird nicht erneut versucht — GSX bietet die Zeile nur an, wenn in GSXs eigenen Einstellungen ein SimBrief-Benutzername gesetzt ist."
+      }
+    },
+    "coldDark": {
+      "title": "Cold-&-Dark-Prüfung",
+      "verify": { "label": "Flugzeugzustand beim Sitzungsstart prüfen", "hint": "Die Cockpitschalter beim Sitzungsstart gegen den Cold-and-Dark-Zustand prüfen.", "more": "Einmal je Sitzung bei einem frischen Abflug, nie bei einem Turnaround. Der erwartete Schaltersatz ist die Datei aircraft-states\\cold-and-dark.json in deinem Konfigurationsordner." },
+      "announce": { "label": "Erster Offizier meldet Abweichungen", "hint": "Der Erste Offizier liest die ersten paar Abweichungen vor.", "more": "Die vollständige Liste steht immer auf der Seite Flugstatus." }
+    },
+    "serviceOrder": {
+      "title": "Reihenfolge der Abflugdienste",
+      "hint": "Von oben nach unten ist die Rufreihenfolge",
+      "presetLabel": "Mit einer Vorlage beginnen",
+      "preset": {
+        "classic": "Klassisch",
+        "classicTitle": "Betankung und Catering nebeneinander, Wasser nach dem Catering, Boarding zuletzt (die Reihenfolge ab Werk)",
+        "parallel": "Parallel",
+        "parallelTitle": "Jeder Dienst wird gerufen, sobald der vorige gerufen wurde; das Boarding wartet auf alle",
+        "manual": "Manuell",
+        "manualTitle": "Nichts wird für dich gerufen — jeder Dienst wartet auf INT/RAD, das GSX-Menü oder den Abschnitt Status"
+      },
+      "rowsHint": "Jede Zeile wartet auf die Zeile darüber, wie in ihrer Spalte Aktivierung gesetzt.",
+      "more": "Mehr",
+      "moreBody": "\"Voriger gerufen\" lässt Dienste nebeneinander laufen. \"Voriger abgeschlossen\" ist eine strikte Kette. \"Alle vorigen abgeschlossen\" ist die klassische Boarding-zuletzt-Schranke. \"Manuell\" wartet auf dich: den INT/RAD-Schalter, das GSX-Menü oder den Abschnitt Status. \"Min. Flug\" überspringt den Dienst, wenn der geplante Flug kürzer als so viele Minuten ist (0 führt ihn immer aus). Zwischen den Flügen bearbeiten, nicht mitten im Abflug.",
+      "empty": "Keine Abflugdienste konfiguriert.",
+      "service": "Dienst",
+      "activation": "Aktivierung",
+      "runsOn": "Läuft bei",
+      "minFlight": "Min. Flug",
+      "minFlightTitle": "Diesen Dienst überspringen, wenn der geplante Flug kürzer als so viele Minuten ist (0 = immer ausführen)",
+      "moveUp": "Nach oben",
+      "moveDown": "Nach unten",
+      "remove": "Entfernen",
+      "add": "Dienst hinzufügen"
+    },
+    "activation": {
+      "skip": "Überspringen / ignorieren",
+      "manual": "Manuell durch Benutzer",
+      "voice": "Sprachanforderung",
+      "afterCalled": "Voriger gerufen",
+      "afterRequested": "Voriger angefordert",
+      "afterActive": "Voriger aktiv",
+      "afterPrevCompleted": "Voriger abgeschlossen",
+      "afterAllCompleted": "Alle vorigen abgeschlossen"
+    },
+    "constraint": {
+      "always": "Jedes Leg",
+      "firstLeg": "Nur erstes Leg",
+      "turnAround": "Nur Turnarounds",
+      "companyHub": "Nur Firmen-Hubs",
+      "nonCompanyHub": "Nur Nicht-Hub-Flughäfen"
+    },
+    "refuel": {
+      "title": "Betankung",
+      "call": { "label": "Tankruf", "hint": "Wann der Tankwagen gerufen wird.", "more": "SOP: der Wagen wartet, bis du den Block Fuel bestätigst (CONFIRM FUEL auf der INIT-Seite oder sage \"fuel confirmed\"). Die anderen Dienste laufen weiter; das Boarding wartet auf den Wagen. Der Wagen lädt den Wert INIT FUEL RAMP. Ihn zu erhöhen, nachdem der Wagen fertig ist, bietet ein Nachtanken an." },
+      "callOptions": { "automatic": "Automatisch (Abflugsequenz)", "onFuelConfirmed": "Nachdem die Crew den Kraftstoff bestätigt (SOP)" },
+      "sync": { "label": "Tanksynchronisation", "hint": "Die ProSim-Tanks füllen, solange der GSX-Schlauch angeschlossen ist." },
+      "method": { "label": "Tankmethode", "hint": "Fest: eine feste Rate. Dynamisch: das Füllen dauert immer die Zielzeit." },
+      "methodOptions": { "fixed": "Feste Rate", "dynamic": "Dynamische Rate" },
+      "timeTarget": { "label": "Zielzeit", "hint": "Wie lange das Füllen dauert." },
+      "rate": { "label": "Tankrate", "hint": "Kilogramm pro Sekunde." },
+      "skipTankering": { "label": "Betankung überspringen, wenn FOB den Plan übersteigt", "hint": "Den Wagen nicht rufen, wenn das Flugzeug den geplanten Kraftstoff bereits an Bord hat.", "more": "Tankering, mit 25 kg Toleranz. Die Sequenz geht weiter und das vorläufige Loadsheet geht trotzdem raus." },
+      "finishOnHose": { "label": "Betankung bei Schlauchtrennung abschließen", "hint": "Sofort auf den geplanten Kraftstoff springen, wenn der Schlauch früh getrennt wird." },
+      "allowDefuel": { "label": "Enttanken erlauben", "hint": "Den Wagen Kraftstoff entnehmen lassen, wenn das Ziel unter dem Bordbestand liegt.", "more": "Aus hält stattdessen den Kraftstoff, sodass ein falsch niedriger Wert nie enttankt." }
+    },
+    "boarding": {
+      "title": "Boarding",
+      "sync": { "label": "Boarding-Synchronisation", "hint": "Die ProSim-Sitze und Frachträume füllen, während GSX Passagiere und Gepäck an Bord zählt." }
+    },
+    "passengers": {
+      "title": "Passagiere",
+      "randomize": { "label": "Pax-No-Shows / Zusatzgäste zufällig", "hint": "Einige gebuchte Passagiere erscheinen nicht, und einige zusätzliche tauchen auf.", "more": "Jeder Sitz kippt mit der Wahrscheinlichkeit unten. Die Fracht folgt der Passagieränderung." },
+      "chance": { "label": "Wahrscheinlichkeit je Sitz", "hint": "0.03 sind 3 Prozent je Sitz." },
+      "bagWeight": { "label": "Gewicht je Gepäckstück" }
+    },
+    "pushbackDirection": {
+      "title": "Pushback-Richtung",
+      "hint": "Wie GSXs Menü 'Select pushback direction' beantwortet wird, wenn du für diesen Flug nichts gewählt hast",
+      "default": {
+        "label": "Standardrichtung",
+        "hint": "Deine eigene Wahl für den Flug gewinnt immer: sage dem FO 'tail left', 'tail right' oder 'push back facing north' oder drücke eine Korry-Taste auf der OFP-Seite.",
+        "more": "Auto: die App ermittelt, welcher Push zur Startbahn zeigt — aus den Pushback-Routen des GSX-Profils, der Positionsausrichtung und der Lage der Piste — und wendet ihn an, wenn sie sicher ist. Fragen: der FO fragt immer 'Tail left or tail right?' und GSXs Menü wartet auf deine Antwort. Die drei festen Antworten verhalten sich wie vor 0.6.0 — außer dass der FO, wenn die Position deine feste Antwort nicht anbietet, die einzige Richtung im Menü nimmt oder dich fragt; das Menü bleibt nie still offen."
+      },
+      "options": { "auto": "Auto — Richtung Startbahn", "ask": "Jedes Mal fragen", "tailLeft": "Immer Heck links", "tailRight": "Immer Heck rechts", "straight": "Immer geradeaus" },
+      "askWhenUnsure": { "label": "Bei Unsicherheit fragen", "hint": "Im Auto-Modus fragt dich der FO, wenn kein sicherer Vorschlag existiert (ein), oder GSXs Menü bleibt still offen (aus)." }
+    },
+    "pushback": {
+      "title": "Pushback",
+      "beacon": { "label": "Beacon-gesteuerte Pushback-Sequenz", "hint": "Beacon ein startet die Pushback-Sequenz.", "more": "Auf die APU warten, die Türen schließen, die Brücke einfahren, die Geräte entfernen, dann zurückschieben." },
+      "callAtReady": { "label": "Pushback bei Push-Bereitschaft rufen", "hint": "Den Pushback rufen, wenn alles bereit ist.", "more": "Aus: die Sequenz bereitet alles vor und überlässt dir den Ruf." },
+      "confirmEngineStart": { "label": "Guten Triebwerksstart bestätigen", "hint": "GSXs 'Confirm good engine start' für dich beantworten, sobald ein Triebwerk mit gesetzter Parkbremse läuft.", "more": "Aus: GSXs Interrupt-pushback-Menü wartet, bis du es selbst beantwortest. Der Schlepper bleibt bis dahin angekoppelt." }
+    },
+    "beaconDelays": {
+      "title": "Verzögerungen der Beacon-Sequenz",
+      "hint": "Zufällige Wartezeiten zwischen den Schritten, für Realismus",
+      "doorsClose": "Verzögerung Türen schließen",
+      "jetwayRetract": "Verzögerung Brücke einfahren",
+      "equipmentClear": "Verzögerung Geräte entfernen"
+    },
+    "arrival": {
+      "title": "Ankunft & Deboarding",
+      "deboardingSync": { "label": "Deboarding-Synchronisation", "hint": "Die ProSim-Sitze und Frachträume leeren, während GSX Passagiere von Bord zählt." },
+      "callDeboard": { "label": "Deboarding bei Ankunft rufen", "hint": "Das Deboarding von selbst rufen, sobald geparkt." },
+      "stableHold": { "label": "Haltezeit stabil geparkt", "hint": "Wie lange das Flugzeug geparkt sein muss, bevor die Ankunftsdienste beginnen.", "more": "Am Boden, Triebwerke aus, Parkbremse gesetzt, Beacon aus, keine Bewegung." },
+      "gate": { "label": "Ankunftsgate", "hint": "Gate, das bei Ankunft von GSX angefordert wird.", "more": "Gesendet, wenn der Flug den Reiseflug erreicht. Leer: wähle es im Abschnitt Status oder auf der OFP-Seite.", "placeholder": "z. B. B12" },
+      "answerPositionMenu": {
+        "label": "GSXs Positionsmenü mit dem Ankunftsgate beantworten",
+        "hint": "Wenn GSX selbst nach der Landung 'Select Position at …' fragt, darin dein Ankunftsgate wählen: die Einrichtung, deren Bereich das Gate abdeckt, dann die Zeile, die es nennt.",
+        "more": "GSX zeigt dieses Menü beim Ausrollen, wenn kein Gate vorgewählt war (und wenn es die Position nicht erkannt hat). Die Wahl erfolgt nur über den Text — steht das Gate nicht auf der Seite oder passen zwei Zeilen, bleibt das Menü genau wie heute für dich offen. Zwei Versuche je Flug. Neu in 0.6.0 und noch nicht live verifiziert; das Sitzungsprotokoll hält jeden Versuch mit den von GSX gezeigten Zeilen fest."
+      },
+      "airportPages": {
+        "label": "Zu durchsuchende Seiten der Flughafenliste",
+        "hint": "Wie viele 'Next Page'-Schritte der GSX-Liste 'Select airport' im Flug die App auf der Suche nach dem Ziel geht.",
+        "more": "Seite 1 zeigt nur den geplanten Flughafen und die nächstgelegenen Plätze — am 2026-10-11 stand EFHK nie darauf und drei Versuche fanden nichts. Die App blättert jetzt die Seiten um (und nutzt GSXs eigene Suchzeile, wenn die Liste eine anbietet), zählt nur einen Durchlauf, der die Liste erreicht hat, als Versuch, macht höchstens drei Durchläufe je Flug im Abstand von zehn Minuten und wertet die Antwort 'no airport loaded' als GSX, das das Ziel noch lädt, nicht als Fehlschlag."
+      },
+      "askStand": {
+        "label": "Nach der Position fragen, wenn GSX das Gate aufteilt",
+        "hint": "Wenn die Szenerie das Gate nur als Suffix-Varianten hat (W36 → 36A / 36B) und weder dein Text noch eine einzelne Brücke entscheidet, dich einmal fragen — Schaltflächen auf der OFP-Seite und im Abschnitt Status sowie die Frage des FO.",
+        "more": "GSX beantwortet die Gate-Nummer mit 'ambiguous' und beiden Varianten. Ein von dir getipptes Suffix (36A) gewinnt sofort; sonst wird die eine Variante mit Brücke oder Safedock in den Positionsdaten genommen; sonst wirst du, wenn das eingeschaltet ist, gefragt, und die erste Variante geht beim Einrollen raus, wenn niemand antwortet. Aus: die erste Variante geht sofort raus. Verankert sich GSX selbst auf einer der Varianten (sein Menü zum Positionswechsel nennt Gate 36B), übernimmt die App sie und meldet keinen Positionskonflikt."
+      }
+    },
+    "standKnowledge": {
+      "title": "Positionswissen",
+      "hint": "Woher die App lernt, wie GSX jede Position nennt, ihre Größe, Brücke und Pushback-Routen",
+      "resolve": {
+        "label": "GSX-Profile und Szenerie für Positionen lesen",
+        "hint": "Ein getipptes Gate wie W40 vor dem Senden in die Position verwandeln, die Szenerie und GSX kennen.",
+        "more": "GSX-Flughafenprofile (.ini-Positionsdaten und .py-Namensvorlagen) und die eigene Parkpositionsliste des Simulators werden für das Ziel gelesen. Eine Vorlage kann den Gate-Buchstaben weglassen — am EFHK druckt das Profil Gate W40 als 'Gate 40', deshalb wurde das bloße 'W40' am 2026-10-04 viermal abgelehnt. Mit dieser Einstellung wird zuerst die NUMMER der Position gesendet, dann GSXs eigener Name; der getippte Text bleibt der letzte Versuch. Speist auch den Pushback-Richtungsvorschlag. Wird unter dem Gate-Feld auf der OFP-Seite gezeigt."
+      },
+      "profileFolder": { "label": "GSX-Profilordner", "hint": "GSXs eigener Flughafenprofil-Ordner. Leer nutzt den gezeigten Ordner.", "more": "Nur setzen, wenn diese App auf einem anderen PC als der Simulator läuft und der Ordner freigegeben ist." },
+      "sceneryFolders": {
+        "label": "Szenerie-Paketordner",
+        "hint": "MSFS-Paketwurzeln (die Ordner mit Community und Official), getrennt durch ;. Leer: wird selbst aus der Store-/Steam-Installation und UserCfg.opt ermittelt.",
+        "placeholder": "z. B. D:\\MSFS\\Packages",
+        "moreFound": "Auf diesem PC gefunden: {0}. Füge nur einen Ordner hinzu, wenn die Pakete des Simulators woanders liegen (anderes Laufwerk, Freigabe eines anderen PCs). Das Profil in einem Paket ist das, das der Szenerie-Entwickler mitliefert, z. B. Community\\inibuilds-airport-egll-heathrow\\Official GSX Profile\\egll-24-iniBuilds.ini.",
+        "moreNotFound": "Auf diesem PC wurde kein MSFS-Paketordner gefunden — gib den oder die Ordner mit Community und Official ein. Das Profil in einem Paket ist das, das der Szenerie-Entwickler mitliefert, z. B. Community\\inibuilds-airport-egll-heathrow\\Official GSX Profile\\egll-24-iniBuilds.ini."
+      }
+    },
+    "fuelMemory": {
+      "title": "Kraftstoffspeicher",
+      "remember": { "label": "Kraftstoff an Bord merken", "hint": "Den Kraftstoff an Bord bei Ankunft speichern und in der nächsten Sitzung wieder laden." },
+      "defaultFob": { "label": "Standard-FOB", "hint": "Geladener Kraftstoff, wenn für dieses Flugzeug noch nichts gespeichert ist." }
+    },
+    "operators": {
+      "title": "Betreiberwahl",
+      "auto": { "label": "Betreiber automatisch wählen", "hint": "Den Bodenabfertiger und den Caterer selbst wählen, damit GSX nie fragt." },
+      "listHint": "Bevorzugte Betreiber, der beste zuerst. Jedes Wort wird mit GSXs Abfertiger- und Caterer-Menüs abgeglichen. \"[GSX choice]\" zählt immer als Treffer.",
+      "remove": "Entfernen",
+      "none": "Keine Präferenzen — das Betreibermenü bleibt GSX / dem Benutzer überlassen.",
+      "add": "Hinzufügen"
+    },
+    "hubs": {
+      "title": "Firmen-Hubs",
+      "hint": "Flughafencodes (1 bis 4 Buchstaben), die als Hubs deiner Firma zählen",
+      "placeholder": "ICAO-Präfix",
+      "remove": "Entfernen",
+      "none": "Keine Hubs konfiguriert — hub-gebundene Dienste laufen nie.",
+      "add": "Hub hinzufügen"
+    },
+    "questions": {
+      "title": "Fragen / Pop-ups überspringen",
+      "followMe": { "label": "Follow-Me-Frage überspringen", "hint": "Nie nach dem Follow-Me-Fahrzeug fragen." },
+      "crew": { "label": "Crew-Fragen beantworten", "hint": "GSXs Fragen zum Crew-Boarding selbst beantworten." },
+      "crewAnswer": { "label": "Antwort zum Crew-Boarding", "hint": "Wer über GSXs Crew-Menü an Bord geht." },
+      "crewOptions": { "nobody": "Niemand", "crew": "Crew", "pilots": "Piloten", "both": "Beide" },
+      "suppressCrew": { "label": "Crew-Frage ganz unterdrücken", "hint": "GSX vorab sagen, dass keine Crew an Bord geht, damit es nie fragt." },
+      "confirmPushback": { "label": "Pushback-Anforderung bestätigen", "hint": "\"Do you want to request pushback\" mit Ja beantworten." },
+      "tug": { "label": "Schlepperfrage beim Boarding", "hint": "Antwort auf GSXs Frage \"Attach pushback tug\" während des Boardings." },
+      "tugOptions": { "ignore": "Nicht antworten", "no": "Nein", "yes": "Ja" },
+      "tugPushback": { "label": "Pushback rufen, wenn der Schlepper angekoppelt ist", "hint": "Wann der Pushback gerufen wird, wenn der Schlepper bereits angekoppelt ist." },
+      "tugPushbackOptions": { "afterDepartureServices": "Nach den Abflugdiensten", "afterFinalLoadsheet": "Nach dem finalen Loadsheet" }
+    },
+    "deice": {
+      "title": "Enteisung",
+      "autoAccept": {
+        "label": "Enteisungsangebot automatisch annehmen",
+        "hint": "GSXs eigenes 'Ice warning'-Angebot annehmen und die Flüssigkeit selbst wählen.",
+        "more": "Die Antwort folgt deiner Entscheidung zur Frage der App: eine abgelehnte Frage antwortet GSX mit Nein, eine noch offene Frage bleibt dir überlassen (deine Wahl in GSXs Menü ist dann deine Antwort), eine angenommene antwortet mit Ja. Mit ausgeschalteter Wetterregel gilt GSXs eigenes Vereisungsurteil und das Angebot wird angenommen."
+      },
+      "fluid": { "label": "Enteisungsflüssigkeit", "hint": "Beantwortet GSXs Menü 'Select fluid type' — für GSXs Angebot und die eigene Anforderung der App gleichermaßen." },
+      "concentration": { "label": "Konzentration", "hint": "Beantwortet GSXs Menü 'Select concentration' (Prozent). Die Holdover-Karte sagt, woher ihre Flüssigkeit stammt: GSXs eigenem LVAR, diesen Menüantworten oder den Einstellungen, wenn nichts es bestätigt hat." },
+      "autoRequest": {
+        "label": "Enteisung aus dem Wetter anfordern",
+        "hint": "Die App aus der Außentemperatur und dem Abflug-METAR entscheiden lassen, ob dieser Abflug eine Enteisung braucht.",
+        "more": "Aus: nur GSXs eigenes Angebot und dein 'request de-icing' existieren, wie bisher. Fragen: der Erste Offizier fragt 'Captain, conditions call for de-icing — request it?' und die Statustafel zeigt die Frage mit zwei Schaltflächen; der letzte Abflugschritt wartet bis zu fünf Minuten auf die Antwort, dann zählt sie als Nein. Auto: die Enteisung kommt ohne Nachfrage als letzter Schritt in die Abflugsequenz. Das Urteil läuft, sobald die Abflugdienste gestartet sind, und wird im Abschnitt Status protokolliert. Neu in 0.6.0 und noch nicht geflogen — die GSX-Enteisungscrew wurde von dieser App noch nie live gerufen."
+      },
+      "autoRequestOptions": {
+        "off": "Aus — nur GSXs Angebot und meine eigene Anforderung",
+        "ask": "Mich fragen — der FO fragt, die Statustafel zeigt die Frage",
+        "auto": "Auto — Enteisung in die Abflugsequenz aufnehmen"
+      },
+      "oat": {
+        "label": "OAT-Schwelle",
+        "hint": "Eine Enteisung wird bei oder unter dieser Außentemperatur erwogen (ProSims OAT, sonst das METAR).",
+        "warning": "Eine Schwelle über 10 °C fragt auf fast jedem Flug — der Großteil Europas liegt das halbe Jahr darunter. 3 °C ist die übliche Regel."
+      },
+      "precipitation": {
+        "label": "Niederschlag oder Frost verlangen",
+        "hint": "Kälte allein reicht nicht: das Abflug-METAR muss Schnee, gefrierenden Niederschlag, Eiskörner, Regen bei Kälte, gefrierenden Nebel oder einen Taupunktabstand von 3 °C oder weniger zeigen.",
+        "more": "Aus fordert allein nach der Temperatur an (die Cold-Soaked-Wing-Regel). Ohne METAR für den Abflughafen stellt die App so oder so keine Anforderung."
+      },
+      "askWhen": {
+        "label": "Wann fragen",
+        "hint": "Wann die Regel läuft und der Erste Offizier fragt.",
+        "more": "Wenn der Enteisungsschritt als Nächstes dran ist (Standard): jeder frühere Abflugdienst ist erledigt, der Flugplan geladen und das Wetter bekannt — die Enteisung ist das Letzte vor dem Pushback, also zählt die Antwort jetzt. Nach Boarding abgeschlossen: die Frage kommt mit dem Abschluss des Boardings, während die letzten Dienste fertig werden, und wird einmal wiederholt, wenn der Schritt dran ist und du nicht geantwortet hast. So oder so wird sie nie in dem Moment gestellt, in dem die Abflugsequenz startet (0.7.0-rc.4 tat das, vor dem OFP und sechzehn Minuten vor dem Boarding)."
+      },
+      "askWhenOptions": {
+        "stepIsNext": "Wenn der Enteisungsschritt als Nächstes dran ist (jeder frühere Dienst erledigt)",
+        "afterBoarding": "Nach Boarding abgeschlossen (einmal erneut gefragt, wenn der Schritt dran ist)"
+      },
+      "timeout": { "label": "Antwort-Timeout", "hint": "Wie lange die Frage steht, bevor sie als Nein zählt. Das Schweigen des FO entscheidet sie nie — sage 'request de-icing' oder 'no de-icing' oder nutze die Schaltflächen der Statustafel, bis das abläuft." },
+      "packs": {
+        "label": "Packs-Verfahren",
+        "hint": "Der FO ruft 'De-icing starting — packs off, ditching on', wenn die Enteisungscrew eintrifft, und 'De-icing complete — packs on, ditching off', wenn sie geht, und prüft zwanzig Sekunden später die Overhead-Lichter (eine Erinnerung, wenn sie nicht passen).",
+        "more": "Nur lesend: der FO bewegt nie die Pack- oder Ditching-Schalter. Standardmäßig aus. Funktioniert für jede Enteisung, die GSX ausführt — die Anforderung der App, GSXs Angebot oder deinen eigenen Ruf."
+      },
+      "verdict": {
+        "requested": "Enteisung angefordert",
+        "declined": "Abgelehnt",
+        "pending": "Noch nicht bewertet",
+        "off": "Aus",
+        "noData": "Keine Daten",
+        "notRequired": "Nicht erforderlich",
+        "ask": "Fragt den Kapitän"
+      }
+    },
+    "connection": {
+      "title": "Verbindung",
+      "hint": "Muss selten geändert werden",
+      "reconnect": { "label": "Wiederverbindungsintervall", "hint": "Erste Wartezeit nach einem Verbindungsverlust." },
+      "ceiling": { "label": "Wiederverbindungs-Obergrenze", "hint": "Längste Wartezeit zwischen Versuchen.", "more": "Jeder Fehlschlag verdoppelt die Wartezeit, bis hierhin." }
+    },
+    "timeouts": {
+      "title": "Timeouts",
+      "hint": "Auf echten Flügen abgestimmt. Nur mit Grund ändern",
+      "command": "Befehls-Timeout",
+      "menuOpen": "Timeout Menü öffnen",
+      "intentVerify": "Timeout Absichtsprüfung",
+      "triggerConfirm": { "label": "Timeout Auslösebestätigung", "hint": "Wie lange ein Dienstruf unbeantwortet bleiben darf, bevor er erneut gesendet wird." }
+    },
+    "stage": {
+      "waiting": "Wartet",
+      "held": "Hält",
+      "skipped": "Übersprungen",
+      "called": "Gerufen",
+      "requested": "Angefordert",
+      "active": "Aktiv",
+      "completed": "Abgeschlossen"
+    },
+    "status": {
+      "title": "Status",
+      "readiness": "Bereitschaft",
+      "automationPhase": "Automatikphase",
+      "capabilities": "Fähigkeiten",
+      "airport": "Flughafen",
+      "gateContext": "Gate-Kontext",
+      "session": "Sitzung"
+    },
+    "arrivalGate": {
+      "title": "Ankunftsgate",
+      "request": "Anforderung",
+      "noRequest": "Keine Gate-Anforderung scharf.",
+      "placeholder": "z. B. B12",
+      "arm": "Gate scharf schalten",
+      "cancel": "Abbrechen",
+      "variantNoDetail": "keine Brücke und kein VDGS für diese Position bekannt",
+      "variantDetail": "{0} an dieser Position"
+    },
+    "departureBoard": {
+      "title": "Abflug-Statustafel",
+      "complete": "Abflug abgeschlossen",
+      "running": "Abflug läuft",
+      "start": "Abflugdienste starten",
+      "callNext": "Nächsten Dienst jetzt rufen",
+      "callNextTitle": "Den nächsten Abflugdienst jetzt rufen, unter Umgehung seiner Aktivierungsregel — die INT/RAD-Smart-Taste. Funktioniert auch bei manuellen Einträgen.",
+      "reloadSimbrief": "SimBrief in GSX neu laden",
+      "reloadingSimbrief": "SimBrief wird neu geladen…",
+      "reloadSimbriefTitle": "GSXs eigene Gate-Menüzeile 'SimBrief' anklicken, damit sein VDGS diesen Flug zeigt — nur am Gate mit bereitem GSX. Entspricht dem API-Befehl gsx.reloadSimbrief.",
+      "simbriefReload": "SimBrief-Neuladen:",
+      "reloaded": "Neu geladen — {0}",
+      "sent": "Gesendet — {0}",
+      "notPerformed": "Nicht ausgeführt — {0}",
+      "noSequence": "Noch keine Abflugsequenz ausgewertet."
+    },
+    "deiceStatus": {
+      "title": "Enteisung",
+      "hint": "Das Urteil der Wetter-/OAT-Regel für diesen Abflug (Einstellungen → Bodendienste → Fragen)",
+      "verdict": "Urteil",
+      "inputs": "Eingaben",
+      "question": "Frage",
+      "questionTitle": "Schweigen lehnt sie nie ab — nur dieser Ablauf tut das (Einstellungen → Bodendienste → Enteisung → Antwort-Timeout)",
+      "questionState": "{0} · zählt als Nein um {1}",
+      "reAsked": "erneut gefragt (Schritt ist dran)",
+      "open": "offen",
+      "request": "Enteisung anfordern",
+      "decline": "Keine Enteisung",
+      "lvars": "GSX-Enteisungs-LVARs",
+      "lvarsTitle": "L:FSDT_GSX_DEICING_STATE / L:FSDT_GSX_DEICING_TYPE — zur Diagnose gelesen; die Holdover-Karte schaltet sich weiterhin über die Completed-Flanke der Remote API scharf",
+      "lvarsValue": "Zustand {0}, Flüssigkeitstyp {1}"
+    },
+    "diagnostics": {
+      "summary": "Diagnose — Dienste, GSX-Menü, letzte Befehle"
+    },
+    "services": {
+      "title": "Dienste",
+      "hint": "Leitungszustand gegenüber zugeordnetem Zustand aus dem Remote-API-Spiegel",
+      "none": "Noch keine Dienste gespiegelt (GSX nicht verbunden oder kein Flugzeug-/Gate-Kontext).",
+      "service": "Dienst",
+      "wireState": "Leitungszustand",
+      "mapped": "Zugeordnet",
+      "stage": "Stufe",
+      "triggerable": "Auslösbar",
+      "progress": "Fortschritt",
+      "waiting": "(wartet)",
+      "yes": "ja",
+      "no": "nein"
+    },
+    "menu": {
+      "title": "Menü",
+      "hint": "Das Live-GSX-Menü — klicke eine Zeile, um sie zu wählen (Issue #135); dieselbe Karte sitzt auf Flugstatus und der OFP-Seite"
+    },
+    "decisions": {
+      "title": "Automatik-Entscheidungen",
+      "hint": "Was passiert ist und warum — neueste zuerst",
+      "none": "Noch keine Automatik-Entscheidungen.",
+      "time": "Zeit",
+      "action": "Aktion",
+      "reason": "Grund"
+    },
+    "commands": {
+      "title": "Letzte Befehle",
+      "none": "In dieser Sitzung keine Befehle gesendet.",
+      "time": "Zeit",
+      "verb": "Verb",
+      "args": "Argumente",
+      "result": "Ergebnis",
+      "wireHintBefore": "Vollständige Leitungsrahmen werden aufgezeichnet, wenn",
+      "wireTrace": "Wire-Trace",
+      "wireHintMiddle": "eingeschaltet ist — siehe",
+      "wireHintAfter": "(CMTrace-Format) neben dem Hauptprotokoll."
+    },
+    "menuCard": {
+      "heading": "GSX-Menü",
+      "untitled": "(ohne Titel)",
+      "closed": "geschlossen",
+      "close": "Schließen",
+      "closeTitle": "Das GSX-Menü verwerfen (die Frage unbeantwortet lassen)",
+      "open": "Öffnen",
+      "openTitle": "Das GSX-Menü hier öffnen",
+      "noMenu": "GSX hat kein Menü offen. Öffne es hier oder warte — Fragen, die GSX stellt (Pushback-Richtung, Enteisung, Betreiber), erscheinen als Schaltflächen.",
+      "notConnected": "GSX ist nicht verbunden.",
+      "driving": "Die Automatik beantwortet dieses Menü — die Zeilen werden frei, sobald sie fertig ist.",
+      "greyed": "In GSX ausgegraut",
+      "pick": "'{0}' wählen"
+    }
+  }
+}

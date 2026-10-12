@@ -18,35 +18,36 @@
 @inject ProsimSetupStore SetupStore
 @inject IProsimSetupCheck SetupCheck
 @inject ConnectionStatusStore Status
+@inject IStringLocalizer T
 @using ProsimCompanion.Core.State
 @using ProsimCompanion.Core.Aircraft.Setup
 
-<PageTitle>Setup — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Setup</h1>
+<PageTitle>@T["setup.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["setup.heading"]</h1>
 
 @* The landing page of the settings hub (ADR-0010): the three pillar master switches and the
    connections every install needs. Everything here used to be spread over four tabs — the
    GSX switch sat at the bottom of "Connection & Timeouts". *@
 
-<Section Title="Features" Hint="A pillar that is off keeps its pages, but nothing runs">
-    <BoolField Label="GSX ground services" Hint="Departure services, doors, jetway, pushback and arrival through GSX Pro."
+<Section Title="@T["setup.features.title"]" Hint="@T["setup.features.hint"]">
+    <BoolField Label="@T["setup.features.gsx.label"]" Hint="@T["setup.features.gsx.hint"]"
                @bind-Value="_gsx.Value.Enabled" />
-    <BoolField Label="Voice First Officer" Hint="Spoken checklists, callouts, briefings and voice commands."
+    <BoolField Label="@T["setup.features.speech.label"]" Hint="@T["setup.features.speech.hint"]"
                @bind-Value="_speech.Value.Enabled" />
-    <BoolField Label="Audio control" Hint="Audio panel knobs and latches set app volumes."
+    <BoolField Label="@T["setup.features.audio.label"]" Hint="@T["setup.features.audio.hint"]"
                @bind-Value="_audio.Value.Enabled" />
 </Section>
 
-<Section Title="ProSim Connection">
-    <TextField Label="ProSim host" Hint="Name or IP address of the PC that runs ProSim System." Kind="TextFieldKind.Host" Placeholder="localhost or 192.168.1.10"
+<Section Title="@T["setup.prosim.title"]">
+    <TextField Label="@T["setup.prosim.host.label"]" Hint="@T["setup.prosim.host.hint"]" Kind="TextFieldKind.Host" Placeholder="@T["setup.prosim.host.placeholder"]"
                @bind-Value="_prosim.Value.Host" />
-    <TextField Label="ProSim SDK folder" Hint="The folder that contains ProSimSDK.dll. Empty keeps ProSim off." Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.ProSimSdk"
+    <TextField Label="@T["setup.prosim.sdk.label"]" Hint="@T["setup.prosim.sdk.hint"]" Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.ProSimSdk"
                @bind-Value="_prosim.Value.SdkPath" />
-    <TextField Label="API key" Hint="Only newer ProSim builds use one. Leave empty otherwise." Password="true"
+    <TextField Label="@T["setup.prosim.api.label"]" Hint="@T["setup.prosim.api.hint"]" Password="true"
                @bind-Value="ApiKeyInput" />
     <SecretUnreadableHint Path="prosim:apiKey" />
     <AdvancedFields>
-        <NumberField Label="Reconnect interval" Hint="Wait between connection tries." Suffix="ms" Min="500"
+        <NumberField Label="@T["setup.prosim.reconnect.label"]" Hint="@T["setup.prosim.reconnect.hint"]" Suffix="ms" Min="500"
                      @bind-Value="_prosim.Value.ReconnectIntervalMs"
                      Default="_prosim.Defaults.ReconnectIntervalMs" />
     </AdvancedFields>
@@ -56,19 +57,19 @@
    (system.config.*): the app reads the ones it depends on at every connection and shows which
    differ. It changes nothing on its own — "Apply recommended" is the only write, and every
    written value is read back. "Keep as is" per row silences that row for good. *@
-<Section Title="ProSim Setup Check" Hint="@SetupCheckHint">
-    <BoolField Label="Check ProSim's options on connect"
-               Hint="Reads the IOS options this app depends on and shows which ones differ. Never changes anything by itself."
-               More="Door logic, automatic ground power, datalink loading and the refuelling rate. Rows for a feature that is switched off above are not shown."
+<Section Title="@T["setup.setupCheck.title"]" Hint="@SetupCheckHint">
+    <BoolField Label="@T["setup.setupCheck.enabled.label"]"
+               Hint="@T["setup.setupCheck.enabled.hint"]"
+               More="@T["setup.setupCheck.enabled.more"]"
                @bind-Value="_prosim.Value.SetupCheckEnabled" />
     @if (!_prosim.Value.SetupCheckEnabled)
     {
-        <div class="field-hint">Off. Nothing is read.</div>
+        <div class="field-hint">@T["setup.setupCheck.off"]</div>
     }
     else if (!_setup.HasReading)
     {
         <div class="field-hint">
-            @(ProsimConnected ? "Reading ProSim's options…" : "Shown once ProSim is connected.")
+            @(ProsimConnected ? T["setup.setupCheck.reading"].Value : T["setup.setupCheck.waitConnect"].Value)
         </div>
     }
     else
@@ -79,10 +80,10 @@
                 var kept = IsKept(item.DataRef);
                 <div class="row row-with-detail setup-row @(kept ? "setup-row-kept" : "")" title="@item.Why">
                     <span class="row-label">@item.Label</span>
-                    <label class="setup-keep" title="Keep this option as it is. The row stays grey and Apply never touches it.">
+                    <label class="setup-keep" title="@T["setup.setupCheck.keepTitle"]">
                         <input type="checkbox" class="checkbox" checked="@kept"
                                @onchange="e => SetKept(item.DataRef, e.Value is true)" />
-                        keep
+                        @T["setup.setupCheck.keep"]
                     </label>
                     <span class="pill @Tone(item)">@Verdict(item)</span>
                     <span class="row-detail">@Detail(item)</span>
@@ -95,17 +96,17 @@
                 <span class="pill tone-neutral" title="@_setupNote">@_setupNote</span>
             }
             <button type="button" class="btn secondary" disabled="@(_setup.Busy || !ProsimConnected)"
-                    @onclick="RefreshSetup" title="Read the options from ProSim again.">
-                @(_setup.Busy ? "Reading…" : "Read again")
+                    @onclick="RefreshSetup" title="@T["setup.setupCheck.readAgainTitle"]">
+                @(_setup.Busy ? T["setup.setupCheck.readingShort"].Value : T["setup.setupCheck.readAgain"].Value)
             </button>
             <button type="button" class="btn secondary" disabled="@(_setup.MismatchCount == 0)"
-                    @onclick="() => _showHow = !_showHow" title="How to change the options by hand in ProSim System.">
-                @(_showHow ? "Hide the steps" : "Show me how")
+                    @onclick="() => _showHow = !_showHow" title="@T["setup.setupCheck.howTitle"]">
+                @(_showHow ? T["setup.setupCheck.hideSteps"].Value : T["setup.setupCheck.showHow"].Value)
             </button>
             <button type="button" class="btn" disabled="@(_setup.Busy || _setup.MismatchCount == 0 || !ProsimConnected)"
                     @onclick="ApplySetup"
-                    title="Writes the recommended value to every amber row, then reads them back. Takes effect at once; no ProSim restart.">
-                @(_setup.Busy ? "Applying…" : $"Apply recommended{(_setup.MismatchCount > 0 ? $" ({_setup.MismatchCount})" : "")}")
+                    title="@T["setup.setupCheck.applyTitle"]">
+                @(_setup.Busy ? T["setup.setupCheck.applying"].Value : _setup.MismatchCount > 0 ? T["setup.setupCheck.applyCount", _setup.MismatchCount].Value : T["setup.setupCheck.apply"].Value)
             </button>
         </div>
         @if (_showHow && _setup.MismatchCount > 0)
@@ -114,8 +115,8 @@
                 @foreach (var item in _setup.Items.Where(row => row.NeedsWrite))
                 {
                     <li>
-                        In ProSim System open <b>@item.IosPath</b> and set it to <b>@Pretty(item.Recommended)</b>
-                        (now @Pretty(item.Actual)). @item.Why
+                        @T["setup.setupCheck.howStep.open"] <b>@item.IosPath</b> @T["setup.setupCheck.howStep.setTo"] <b>@Pretty(item.Recommended)</b>
+                        @T["setup.setupCheck.howStep.now", Pretty(item.Actual)] @item.Why
                     </li>
                 }
             </ol>
@@ -123,60 +124,60 @@
     }
 </Section>
 
-<Section Title="Nav Data" Hint="Navigraph database for SIDs, STARs and approaches">
-    <TextField Label="DFD database path" Hint="The .s3db file or its folder. ProSim's Navdata folder works. Empty looks next to the SDK." Kind="TextFieldKind.FileOrFolderPath" BrowseStartIn="ExpectedFolders.ProSimNavdata" BrowseFilter="Navigation database (*.s3db)|*.s3db|All files (*.*)|*.*"
+<Section Title="@T["setup.navData.title"]" Hint="@T["setup.navData.hint"]">
+    <TextField Label="@T["setup.navData.dfd.label"]" Hint="@T["setup.navData.dfd.hint"]" Kind="TextFieldKind.FileOrFolderPath" BrowseStartIn="ExpectedFolders.ProSimNavdata" BrowseFilter="Navigation database (*.s3db)|*.s3db|All files (*.*)|*.*"
                @bind-Value="_briefing.Value.DfdPath" />
 </Section>
 
 @* ActiveSky weather source (Phase 6) and the update check — settings.json only until the
    2026-10-08 audit. *@
-<Section Title="Weather Sources" Hint="ActiveSky carries the weather actually in the sim, so it wins over the ProSim gateway and SayIntentions when present">
-    <TextField Label="ActiveSky snapshot file" Hint="Full path of current_wx_snapshot.txt. Empty looks in the known HiFi install folders." Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.ActiveSky" BrowseFilter="Snapshot (current_wx_snapshot.txt)|current_wx_snapshot.txt|Text files (*.txt)|*.txt" More="When set, the path is final: a missing file switches the snapshot tier off instead of looking elsewhere."
-               Placeholder="C:\Users\you\AppData\Roaming\HiFi\AS_MSFS\Weather\current_wx_snapshot.txt"
+<Section Title="@T["setup.weather.title"]" Hint="@T["setup.weather.hint"]">
+    <TextField Label="@T["setup.weather.snapshot.label"]" Hint="@T["setup.weather.snapshot.hint"]" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.ActiveSky" BrowseFilter="Snapshot (current_wx_snapshot.txt)|current_wx_snapshot.txt|Text files (*.txt)|*.txt" More="@T["setup.weather.snapshot.more"]"
+               Placeholder="@T["setup.weather.snapshot.placeholder"]"
                @bind-Value="_weather.Value.ActiveSkySnapshotPath" />
-    <BoolField Label="Also try the ActiveSky API" Hint="ActiveSky's local web API, when the snapshot has nothing for the airport."
+    <BoolField Label="@T["setup.weather.useApi.label"]" Hint="@T["setup.weather.useApi.hint"]"
                @bind-Value="_weather.Value.UseActiveSkyApi" />
     <AdvancedFields>
-        <TextField Label="API host" Hint="Name or IP address of the PC running ActiveSky." Placeholder="localhost" Kind="TextFieldKind.Host" Disabled="@(!_weather.Value.UseActiveSkyApi)"
+        <TextField Label="@T["setup.weather.apiHost.label"]" Hint="@T["setup.weather.apiHost.hint"]" Placeholder="@T["setup.weather.apiHost.placeholder"]" Kind="TextFieldKind.Host" Disabled="@(!_weather.Value.UseActiveSkyApi)"
                    @bind-Value="_weather.Value.ActiveSkyApiHost" />
-        <NumberField Label="API port" Min="1" Max="65535" Disabled="@(!_weather.Value.UseActiveSkyApi)"
+        <NumberField Label="@T["setup.weather.apiPort.label"]" Min="1" Max="65535" Disabled="@(!_weather.Value.UseActiveSkyApi)"
                      @bind-Value="_weather.Value.ActiveSkyApiPort"
                      Default="_weather.Defaults.ActiveSkyApiPort" />
-        <NumberField Label="API timeout" Hint="Short on purpose: the chain moves on fast when ActiveSky is not running." Suffix="s" Min="1" Max="30"
+        <NumberField Label="@T["setup.weather.apiTimeout.label"]" Hint="@T["setup.weather.apiTimeout.hint"]" Suffix="s" Min="1" Max="30"
                      Disabled="@(!_weather.Value.UseActiveSkyApi)"
                      @bind-Value="_weather.Value.ActiveSkyApiTimeoutSeconds"
                      Default="_weather.Defaults.ActiveSkyApiTimeoutSeconds" />
     </AdvancedFields>
 </Section>
 
-<Section Title="Web Interface" Hint="Port and LAN access are also editable in the desktop window">
-    <NumberField Label="Port" Hint="Takes effect after an app restart." Min="1024" Max="65535"
+<Section Title="@T["setup.web.title"]" Hint="@T["setup.web.hint"]">
+    <NumberField Label="@T["setup.web.port.label"]" Hint="@T["setup.web.port.hint"]" Min="1024" Max="65535"
                  @bind-Value="_webUi.Value.Port"
                  Default="_webUi.Defaults.Port" />
-    <BoolField Label="Allow other devices (LAN)" Hint="Tablets and other PCs can open this page." More="They sign in with the QR code in the desktop window."
+    <BoolField Label="@T["setup.web.lan.label"]" Hint="@T["setup.web.lan.hint"]" More="@T["setup.web.lan.more"]"
                @bind-Value="_webUi.Value.BindToAllInterfaces" />
 
     @* The optional HTTPS listener (issue #150, ADR-0013, design A). Here and not in the desktop
        window on purpose: a wrong value cannot lock anyone out, because HTTP keeps serving. *@
-    <div class="label-caps" style="margin:14px 0 6px;">HTTPS (optional)</div>
-    <BoolField Label="Enable HTTPS"
-               Hint="A second, secure address beside the normal one. Needed for keep-awake and the installed app on tablets. Takes effect after a restart."
-               More="You supply the certificate: a PFX file for this PC's LAN address, made with your own CA (mkcert is the easy way) and that CA installed on the tablet. The app never makes or installs certificates. If the file is missing or wrong, HTTP keeps working and a banner says why."
+    <div class="label-caps" style="margin:14px 0 6px;">@T["setup.web.httpsHeading"]</div>
+    <BoolField Label="@T["setup.web.https.label"]"
+               Hint="@T["setup.web.https.hint"]"
+               More="@T["setup.web.https.more"]"
                @bind-Value="_webUi.Value.Https.Enabled" />
-    <NumberField Label="HTTPS port" Hint="Beside the HTTP port above; open it on the firewall too." Min="1024" Max="65535"
+    <NumberField Label="@T["setup.web.httpsPort.label"]" Hint="@T["setup.web.httpsPort.hint"]" Min="1024" Max="65535"
                  Disabled="@(!_webUi.Value.Https.Enabled)"
                  @bind-Value="_webUi.Value.Https.Port"
                  Default="_webUi.Defaults.Https.Port" />
-    <TextField Label="Certificate file (PFX)" Hint="Full path of the .pfx / .p12 file with the private key." Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="Certificates (*.pfx;*.p12)|*.pfx;*.p12" Placeholder="C:\ProsimCompanion\certs\simpc.pfx"
+    <TextField Label="@T["setup.web.pfx.label"]" Hint="@T["setup.web.pfx.hint"]" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="Certificates (*.pfx;*.p12)|*.pfx;*.p12" Placeholder="@T["setup.web.pfx.placeholder"]"
                Disabled="@(!_webUi.Value.Https.Enabled)"
                @bind-Value="_webUi.Value.Https.PfxPath" />
-    <TextField Label="Certificate password" Hint="Stored encrypted on this PC and Windows account. Never logged." Password="true"
+    <TextField Label="@T["setup.web.pfxPassword.label"]" Hint="@T["setup.web.pfxPassword.hint"]" Password="true"
                Disabled="@(!_webUi.Value.Https.Enabled)"
                @bind-Value="_webUi.Value.Https.PfxPassword" />
     <SecretUnreadableHint Path="webUi:https:pfxPassword" />
     <div class="field" style="align-items:center;">
         <label class="field-label">
-            Status
+            @T["setup.web.status"]
             <FieldHint Hint="@HttpsStatusHint" />
         </label>
         <div class="field-control">
@@ -184,16 +185,15 @@
         </div>
     </div>
     <div class="field-hint" style="max-width:640px;">
-        Tablet setup — the certificate, the CA on the iPad, add to home screen, keep-awake: <code>docs\manual\07-tablet-install.md</code> in the install folder.
+        @T["setup.web.tabletHintBefore"] <code>docs\manual\07-tablet-install.md</code> @T["setup.web.tabletHintAfter"]
     </div>
 </Section>
 
-<Section Title="Stream Deck &amp; External Tools" Hint="Applies live">
-    <BoolField Label="Command API" Hint="Needed by the Stream Deck plugin. Always needs the access token." More="Lets outside tools send GSX, checklist and loadsheet commands over the web server."
+<Section Title="@T["setup.streamDeck.title"]" Hint="@T["setup.streamDeck.hint"]">
+    <BoolField Label="@T["setup.streamDeck.commandApi.label"]" Hint="@T["setup.streamDeck.commandApi.hint"]" More="@T["setup.streamDeck.commandApi.more"]"
                @bind-Value="_commandApi.Value.Enabled" />
     <div class="field-hint" style="max-width:560px;">
-        To pair the plugin, paste the onboarding link from the desktop window into any key's
-        settings. Keys showing "API off" recover on their own once this is saved.
+        @T["setup.streamDeck.pairHint"]
     </div>
 </Section>
 
@@ -204,56 +204,56 @@
 {
     var index = i;
     var target = _wake.Value.Targets[index];
-    var title = string.IsNullOrWhiteSpace(target.Name) ? $"Wake-on-LAN PC {index + 1}" : $"Wake-on-LAN — {target.Name}";
-    <Section Title="@title" Hint="A magic packet at startup, and on Send now">
+    var title = string.IsNullOrWhiteSpace(target.Name) ? T["setup.wake.titleNumbered", index + 1].Value : T["setup.wake.titleNamed", target.Name].Value;
+    <Section Title="@title" Hint="@T["setup.wake.hint"]">
         <div class="field" style="align-items:center;">
-            <label class="field-label">Row</label>
+            <label class="field-label">@T["setup.wake.row"]</label>
             <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
-                <span class="pill @(target.Enabled ? "tone-ok" : "tone-neutral")">@(target.Enabled ? "AT STARTUP" : "SEND NOW ONLY")</span>
-                <button type="button" class="btn secondary" style="padding:4px 10px;" title="Remove this PC"
-                        @onclick="() => _wake.Value.Targets.RemoveAt(index)">Remove</button>
+                <span class="pill @(target.Enabled ? "tone-ok" : "tone-neutral")">@(target.Enabled ? T["setup.wake.atStartup"].Value : T["setup.wake.sendNowOnly"].Value)</span>
+                <button type="button" class="btn secondary" style="padding:4px 10px;" title="@T["setup.wake.removeTitle"]"
+                        @onclick="() => _wake.Value.Targets.RemoveAt(index)">@T["setup.wake.remove"]</button>
             </div>
         </div>
-        <TextField Label="Name" Hint="Your label for it — what the log shows." Placeholder="Language-model PC"
+        <TextField Label="@T["setup.wake.name.label"]" Hint="@T["setup.wake.name.hint"]" Placeholder="@T["setup.wake.name.placeholder"]"
                    @bind-Value="target.Name" />
-        <BoolField Label="Wake at startup" Hint="Off keeps the row for the Send now button only."
+        <BoolField Label="@T["setup.wake.enabled.label"]" Hint="@T["setup.wake.enabled.hint"]"
                    @bind-Value="target.Enabled" />
-        <TextField Label="MAC address" Hint="For example AA:BB:CC:DD:EE:FF." Kind="TextFieldKind.Mac" Placeholder="AA:BB:CC:DD:EE:FF" More="The PC needs Wake-on-LAN enabled in its BIOS and network driver, a wired connection, and the same network as this PC."
+        <TextField Label="@T["setup.wake.mac.label"]" Hint="@T["setup.wake.mac.hint"]" Kind="TextFieldKind.Mac" Placeholder="AA:BB:CC:DD:EE:FF" More="@T["setup.wake.mac.more"]"
                    @bind-Value="target.MacAddress" />
         <AdvancedFields>
-            <TextField Label="Broadcast address" Hint="255.255.255.255, or your subnet's broadcast such as 192.168.1.255." Kind="TextFieldKind.IpAddress" Placeholder="255.255.255.255"
+            <TextField Label="@T["setup.wake.broadcast.label"]" Hint="@T["setup.wake.broadcast.hint"]" Kind="TextFieldKind.IpAddress" Placeholder="255.255.255.255"
                        @bind-Value="target.BroadcastAddress" />
-            <NumberField Label="Port" Hint="Usually 9." Min="1" Max="65535"
+            <NumberField Label="@T["setup.wake.port.label"]" Hint="@T["setup.wake.port.hint"]" Min="1" Max="65535"
                          @bind-Value="target.Port" />
         </AdvancedFields>
         <div class="field" style="align-items:center;">
             <label class="field-label">
-                Send now
-                <FieldHint Hint="One packet to this PC with the values above, saved or not. The PC's own feature (Test LLM connection, Reconnect voice services) tells you when it is up." />
+                @T["setup.wake.sendNow"]
+                <FieldHint Hint="@T["setup.wake.sendNowHint"]" />
             </label>
             <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
                 <span class="field-hint" style="margin:0;">@(_wakeResults.TryGetValue(index, out var line) ? line : "")</span>
                 <button type="button" class="btn primary" style="padding:4px 12px;" disabled="@string.IsNullOrWhiteSpace(target.MacAddress)"
-                        @onclick="() => SendWake(index)">Send now</button>
+                        @onclick="() => SendWake(index)">@T["setup.wake.sendNow"]</button>
             </div>
         </div>
     </Section>
 }
 
-<Section Title="Wake-on-LAN" Hint="Power on the PCs the app depends on when it starts">
+<Section Title="@T["setup.wake.list.title"]" Hint="@T["setup.wake.list.hint"]">
     @if (_wake.Value.Targets.Count == 0)
     {
-        <div class="field-hint">No PC yet. Add the language-model box, the speech server, an ActiveSky PC — as many as you like.</div>
+        <div class="field-hint">@T["setup.wake.list.none"]</div>
     }
     <div style="margin:8px 0 4px;">
-        <button type="button" class="btn primary" @onclick="AddWakeTarget">Add PC</button>
+        <button type="button" class="btn primary" @onclick="AddWakeTarget">@T["setup.wake.list.add"]</button>
     </div>
 </Section>
 
-<Section Title="Updates" Hint="A banner when a newer build is on GitHub. Nothing is downloaded or installed">
-    <BoolField Label="Check for updates" Hint="Fails silently offline. Never delays startup."
+<Section Title="@T["setup.updates.title"]" Hint="@T["setup.updates.hint"]">
+    <BoolField Label="@T["setup.updates.check.label"]" Hint="@T["setup.updates.check.hint"]"
                @bind-Value="_updateCheck.Value.Enabled" />
-    <NumberField Label="Check again every" Suffix="h" Min="1" Max="168"
+    <NumberField Label="@T["setup.updates.interval.label"]" Suffix="h" Min="1" Max="168"
                  Disabled="@(!_updateCheck.Value.Enabled)"
                  @bind-Value="_updateCheck.Value.IntervalHours"
                  Default="_updateCheck.Defaults.IntervalHours" />
@@ -283,8 +283,8 @@
     private WebListenerSnapshot Listener => ListenerStatus.Snapshot();
 
     private string HttpsLabel => Listener.HttpsUp
-        ? (Listener.HttpsWarningOnly ? "HTTPS ON · WARNING" : "HTTPS ON")
-        : Listener.HttpsEnabled ? "HTTPS FAILED" : "HTTPS OFF";
+        ? (Listener.HttpsWarningOnly ? T["setup.web.httpsLabel.onWarning"].Value : T["setup.web.httpsLabel.on"].Value)
+        : Listener.HttpsEnabled ? T["setup.web.httpsLabel.failed"].Value : T["setup.web.httpsLabel.off"].Value;
 
     private string HttpsTone => Listener.HttpsUp
         ? (Listener.HttpsWarningOnly ? "tone-warn" : "tone-ok")
@@ -293,8 +293,8 @@
     private string HttpsStatusHint => Listener.HttpsUp
         ? Listener.HttpsUrl + (Listener.HttpsProblem is { } warning ? " — " + warning : "")
         : Listener.HttpsProblem ?? (_webUi.Value.Https.Enabled && !Listener.HttpsEnabled
-            ? "Saved — restart the app to start the secure address."
-            : "Off. Plain HTTP at " + (Listener.HttpUrl.Length > 0 ? Listener.HttpUrl : "localhost:" + _webUi.Value.Port) + ".");
+            ? T["setup.web.httpsHint.saved"].Value
+            : T["setup.web.httpsHint.off", Listener.HttpUrl.Length > 0 ? Listener.HttpUrl : "localhost:" + _webUi.Value.Port].Value);
 
     // The bound options keep an unset API key as null; the input works in "" terms.
     private string ApiKeyInput
@@ -366,7 +366,8 @@
     /// <summary>One-way migration of <c>briefing.llmWakeOnLan</c> into the targets list
     /// (2026-10-08): an enabled legacy block with a MAC that no row carries becomes a row,
     /// and the legacy switch goes off. Both drafts dirty, so the bar prompts for the save
-    /// that persists it; until then the startup module still honours the legacy block.</summary>
+    /// that persists it; until then the startup module still honours the legacy block.
+    /// The row's name is a settings.json value the log echoes, so it stays English.</summary>
     private void MigrateLegacyWake()
     {
         var legacy = _briefing.Value.LlmWakeOnLan;
@@ -420,8 +421,8 @@
         .FirstOrDefault(pair => pair.Key == Subsystems.Prosim).Value == ConnectionState.Connected;
 
     private string SetupCheckHint => _setup.HasReading
-        ? $"ProSim {_setup.ProsimVersion} · read {_setup.CheckedAtUtc!.Value.ToLocalTime():HH:mm:ss}"
-        : "Reads on every ProSim connection; writes only when you click Apply";
+        ? T["setup.setupCheck.hintRead", _setup.ProsimVersion ?? "", _setup.CheckedAtUtc!.Value.ToLocalTime().ToString("HH:mm:ss")].Value
+        : T["setup.setupCheck.hintIdle"].Value;
 
     private bool IsKept(string dataRef)
         => _prosim.Value.SetupCheckIgnore.Contains(dataRef, StringComparer.OrdinalIgnoreCase);
@@ -443,34 +444,34 @@
         _ => "tone-neutral",
     };
 
-    private static string Verdict(ProsimSetupItem item) => item.Status switch
+    private string Verdict(ProsimSetupItem item) => item.Status switch
     {
-        ProsimSetupStatus.Ok => "OK",
-        ProsimSetupStatus.Mismatch => "CHANGE",
-        ProsimSetupStatus.NotPresent => "N/A",
-        ProsimSetupStatus.Ignored => "KEPT",
+        ProsimSetupStatus.Ok => T["setup.setupCheck.verdict.ok"].Value,
+        ProsimSetupStatus.Mismatch => T["setup.setupCheck.verdict.change"].Value,
+        ProsimSetupStatus.NotPresent => T["setup.setupCheck.verdict.notAvailable"].Value,
+        ProsimSetupStatus.Ignored => T["setup.setupCheck.verdict.kept"].Value,
         _ => "—",
     };
 
-    private static string Detail(ProsimSetupItem item) => item.Status switch
+    private string Detail(ProsimSetupItem item) => item.Status switch
     {
-        ProsimSetupStatus.Mismatch => $"is {Pretty(item.Actual)} · want {Pretty(item.Recommended)}",
-        ProsimSetupStatus.NotPresent => "not on this ProSim build",
+        ProsimSetupStatus.Mismatch => T["setup.setupCheck.detail.mismatch", Pretty(item.Actual), Pretty(item.Recommended)].Value,
+        ProsimSetupStatus.NotPresent => T["setup.setupCheck.detail.notPresent"].Value,
         ProsimSetupStatus.Unknown => "",
         _ => Pretty(item.Actual),
     };
 
     /// <summary>Tick-box datarefs read "true"/"false"; the IOS shows a tick, so say on/off.</summary>
-    private static string Pretty(string? value) => value?.ToLowerInvariant() switch
+    private string Pretty(string? value) => value?.ToLowerInvariant() switch
     {
         null or "" => "—",
-        "true" => "on",
-        "false" => "off",
+        "true" => T["setup.setupCheck.value.on"].Value,
+        "false" => T["setup.setupCheck.value.off"].Value,
         _ => value,
     };
 
     private Task RefreshSetup() => RunSetupAction(async () =>
-        await SetupCheck.RefreshAsync() ? "Read." : "ProSim is not connected.");
+        await SetupCheck.RefreshAsync() ? T["setup.setupCheck.result.read"].Value : T["setup.setupCheck.result.notConnected"].Value);
 
     private Task ApplySetup() => RunSetupAction(async () =>
         (await SetupCheck.ApplyRecommendedAsync()).Summary);
@@ -483,7 +484,7 @@
         }
         catch (Exception)
         {
-            _setupNote = "Failed — see the Logs page.";
+            _setupNote = T["setup.setupCheck.result.failed"];
         }
 
         _setupNoteTimer?.Dispose();

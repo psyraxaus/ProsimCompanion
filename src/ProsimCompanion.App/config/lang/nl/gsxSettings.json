@@ -1,0 +1,419 @@
+{
+  "gsxSettings": {
+    "pageTitle": "Grondservices — ProsimCompanion",
+    "heading": "Grondservices",
+    "options": { "never": "Nooit", "always": "Altijd", "onlyJetway": "Alleen posities met aviobrug" },
+    "doors": {
+      "title": "Deuren",
+      "automation": { "label": "Deurautomatisering", "hint": "Laat de app deuren openen en sluiten voor de grondservices.", "more": "De deurregels hieronder werken alleen zolang dit aanstaat." },
+      "stairs": { "label": "Passagiersdeuren volgen de trap", "hint": "De achterste passagiersdeur gaat open als de trap aankomt en dicht als die vertrekt.", "more": "Op posities zonder aviobrug gaat ook de voorste deur open." },
+      "catering": { "label": "Servicedeuren volgen de catering", "hint": "De servicedeuren aan de rechterkant gaan open en dicht voor de cateringwagen." },
+      "cargo": { "label": "Vrachtdeuren volgen het laden", "hint": "De vrachtdeuren gaan open voor de laders en dicht als elke lader klaar is." },
+      "cargoOnBoarding": { "label": "Vrachtdeuren openen bij actieve boarding", "hint": "Beide vrachtdeuren gaan kort na het begin van boarding of deboarding open." },
+      "cargoOpenDelay": { "label": "Vertraging vrachtdeur openen", "hint": "Wachttijd na het begin van boarding of deboarding." },
+      "cargoCloseDelay": { "label": "Vertraging vrachtdeur sluiten", "hint": "Wachttijd nadat de lader klaar is." },
+      "keepOpenAfterLoad": { "label": "Vrachtdeuren open houden na het laden", "hint": "De vrachtdeuren open laten tot de boarding klaar is." },
+      "keepOpenAfterUnload": { "label": "Vrachtdeuren open houden na het lossen", "hint": "De vrachtdeuren open laten na het lossen.", "more": "Uit sluit ze als elke lader klaar is." },
+      "closeOnFinal": { "label": "Deuren sluiten bij de definitieve loadsheet", "hint": "Alle deuren sluiten als de definitieve loadsheet wordt verzonden.", "more": "Alleen gebruikt zolang de beacon-pushbacksequentie uitstaat." },
+      "suppressMessages": { "label": "GSX-deurmeldingen onderdrukken", "hint": "De eigen deurvragen van GSX verbergen zolang deze app de deuren bedient." }
+    },
+    "jetway": {
+      "title": "Aviobrug / Trap",
+      "connectAtStart": { "label": "Aansluiten bij sessiestart", "hint": "De aviobrug of trap aansluiten als de sessie bij de gate begint.", "more": "Eén keer per gate-sessie. GSX bepaalt aviobrug of trap voor de positie." },
+      "connectOnDeparture": { "label": "Aansluiten als de vertrekservices starten", "hint": "De aviobrug of trap aansluiten als de vertrekservices starten.", "more": "Voor sessies waarin het aansluiten bij sessiestart uitstaat." },
+      "removeStairs": { "label": "Trap verwijderen na de vertrekservices", "hint": "Wanneer de trap na de vertrekservices wordt verwijderd.", "more": "Alleen posities met aviobrug: alleen als een aviobrug nog de passagiersdeuren bedient." },
+      "removeOnFinal": { "label": "Aviobrug/trap verwijderen bij de definitieve loadsheet", "hint": "De aviobrug of trap intrekken als de definitieve loadsheet wordt verzonden.", "more": "Alleen gebruikt zolang de beacon-pushbacksequentie uitstaat." },
+      "connectOnArrival": { "label": "Aansluiten bij aankomst", "hint": "De aviobrug of trap aansluiten na het parkeren, voor de deboarding." }
+    },
+    "equipment": {
+      "title": "Grondmaterieel",
+      "place": { "label": "Grondmaterieel plaatsen", "hint": "De grondstroomunit en de blokken plaatsen bij sessiestart.", "more": "Ze worden verwijderd als het beacon aangaat." },
+      "gpuWithApu": { "label": "GPU aansluiten met draaiende APU", "hint": "Grondstroom aansluiten ook als de APU het vliegtuig al van stroom voorziet." },
+      "pca": { "label": "PCA aansluiten", "hint": "Wanneer de voorgeconditioneerde lucht (PCA) wordt aangesloten.", "more": "Alleen posities met aviobrug volgt de aviobrugbeschikbaarheid van GSX. Geldt bij sessiestart en bij aankomst." },
+      "pcaOverride": { "label": "PCA-toestand overschrijven", "hint": "PCA loskoppelen die een opgeslagen paneeltoestand aangesloten liet, als de instelling hierboven dat verbiedt." },
+      "gradualRemoval": { "label": "Geleidelijk verwijderen tijdens de pushback", "hint": "Grondstroom verwijderen als de externe stroom uitgaat nadat die aanstond, en de blokken als de parkeerrem is gezet.", "more": "Alleen gebruikt zolang de beacon-pushbacksequentie uitstaat, en alleen nadat de vertrekservices voltooid zijn." },
+      "chockDelay": { "label": "Blokkenvertraging bij aankomst", "hint": "Willekeurige wachttijd na het parkeren voordat de blokken worden geplaatst." },
+      "reposition": { "label": "Herpositioneren bij opstarten", "hint": "GSX's Reposition Aircraft één keer uitvoeren bij sessiestart." },
+      "disableProsimNative": { "label": "ProSims eigen GSX-integratie uitschakelen", "hint": "ProSims eigen GSX-automatisering uitzetten zodat de twee elkaar nooit in de weg zitten." }
+    },
+    "automation": {
+      "title": "Automatisering",
+      "enabled": { "label": "Grondautomatisering", "hint": "De app GSX-vragen laten beantwoorden en de servicesequentie laten uitvoeren.", "more": "De GSX-verbinding blijft hoe dan ook bestaan, dus het statusbord blijft werken." },
+      "autoStart": { "label": "Vertrekservices automatisch starten", "hint": "De vertrekservices uit zichzelf starten zodra het vliegtuig klaar is.", "more": "Uit: druk op Start in de sectie Status, of vraag het de First Officer." },
+      "groundPrep": {
+        "label": "Start van de grondvoorbereiding",
+        "hint": "Wanneer de grondvoorbereiding (herpositioneren, grondstroom, aviobrug) begint.",
+        "more": "Spraakopdracht wacht op \"commence ground services\" of de knop Start. \"Spraak bij koude start, automatisch bij turnaround\" houdt dat wachten voor de eerste leg en start een turnaround uit zichzelf zodra het volgende vliegplan op de positie is geladen met de motoren uit."
+      },
+      "groundPrepOptions": { "auto": "Automatisch (sessiestart)", "voice": "Spraakopdracht / knop Start", "voiceThenAuto": "Spraak bij koude start, automatisch bij turnaround" },
+      "turnaroundDelay": { "label": "Vertraging automatische turnaround-start", "hint": "Hoe lang het volgende vliegplan op de positie geladen moet zijn voordat een turnaround vanzelf start.", "more": "Alleen met de turnaround-optie hierboven. Geeft de SimBrief-import tijd om te settelen en jou een moment om bezwaar te maken." },
+      "turnaroundAsk": { "label": "Vragen voordat een turnaround start", "hint": "De First Officer vraagt \"Next plan loaded — commence ground services?\" en start bij ja.", "more": "Alleen met de turnaround-optie hierboven. Geen antwoord laat het aan jou: zeg \"commence ground services\" of druk op Start." },
+      "requireOfp": { "label": "Wachten op OFP voor de vertrekservices", "hint": "Wachten op het SimBrief-vliegplan voordat een service wordt opgeroepen." }
+    },
+    "simbrief": {
+      "title": "SimBrief / VDGS",
+      "hint": "GSX leest het SimBrief-plan voor zijn gate-displays en marshaller",
+      "reload": {
+        "label": "SimBrief in GSX herladen bij een nieuwe OFP",
+        "hint": "GSX's eigen menuregel 'SimBrief' één keer per nieuw vliegplan aanklikken, zodat de VDGS het juiste vluchtnummer, de bestemming en de vertrektijd toont.",
+        "more": "Alleen geparkeerd bij de gate met de motoren uit en GSX gereed — nooit tijdens de vlucht; een plan dat in de lucht is opgehaald wordt bij de volgende gate herladen. Standaard uit: de regel wordt gekozen op zijn tekst in een GSX-menu dat deze app op een opgenomen vlucht nog niet heeft bediend, en een misser laat het menu voor jou open. De sectie Status heeft een knop en de API de opdracht gsx.reloadSimbrief, ongeacht deze instelling."
+      },
+      "pages": {
+        "label": "Te doorzoeken pagina's van Additional Services",
+        "hint": "Hoeveel 'Next Page'-stappen van GSX's menu Additional Services het herladen doorloopt op zoek naar de regel 'Reload Simbrief'.",
+        "more": "Op de opgenomen vluchten stond de regel noch in het gate-menu noch op pagina 1 van Additional Services, en pagina 2 was nooit geopend. De doorloop leest het gate-menu, dan Additional Services en tot zoveel verdere pagina's, kiest de eerste regel die SimBrief of het vliegplan noemt, en sluit een menu dat hij zelf opende. Als geen pagina de regel heeft, zegt de sectie Status dat één keer en wordt het plan niet opnieuw geprobeerd — GSX biedt de regel alleen aan als in GSX's eigen instellingen een SimBrief-gebruikersnaam is ingesteld."
+      }
+    },
+    "coldDark": {
+      "title": "Cold & Dark-controle",
+      "verify": { "label": "Vliegtuigtoestand controleren bij sessiestart", "hint": "De cockpitschakelaars bij sessiestart vergelijken met de cold-and-dark-toestand.", "more": "Eén keer per sessie bij een vers vertrek, nooit bij een turnaround. De verwachte schakelaarset is het bestand aircraft-states\\cold-and-dark.json in je configuratiemap." },
+      "announce": { "label": "First Officer meldt afwijkingen", "hint": "De First Officer leest de eerste paar afwijkingen voor.", "more": "De volledige lijst staat altijd op de pagina Vluchtstatus." }
+    },
+    "serviceOrder": {
+      "title": "Volgorde van de vertrekservices",
+      "hint": "Van boven naar beneden is de oproepvolgorde",
+      "presetLabel": "Beginnen vanuit een voorinstelling",
+      "preset": {
+        "classic": "Klassiek",
+        "classicTitle": "Tanken en catering naast elkaar, water na de catering, boarding als laatste (de volgorde uit de doos)",
+        "parallel": "Parallel",
+        "parallelTitle": "Elke service wordt opgeroepen zodra de vorige is opgeroepen; de boarding wacht op allemaal",
+        "manual": "Handmatig",
+        "manualTitle": "Niets wordt voor je opgeroepen — elke service wacht op INT/RAD, het GSX-menu of de sectie Status"
+      },
+      "rowsHint": "Elke rij wacht op de rij erboven, zoals ingesteld in de kolom Activering.",
+      "more": "Meer",
+      "moreBody": "\"Vorige opgeroepen\" laat services naast elkaar lopen. \"Vorige voltooid\" is een strikte keten. \"Alle eerdere voltooid\" is de klassieke boarding-als-laatste-barrière. \"Handmatig\" wacht op jou: de INT/RAD-schakelaar, het GSX-menu of de sectie Status. \"Min. vlucht\" slaat de service over als de geplande vlucht korter is dan zoveel minuten (0 voert hem altijd uit). Bewerk tussen vluchten, niet midden in een vertrek.",
+      "empty": "Geen vertrekservices geconfigureerd.",
+      "service": "Service",
+      "activation": "Activering",
+      "runsOn": "Loopt bij",
+      "minFlight": "Min. vlucht",
+      "minFlightTitle": "Deze service overslaan als de geplande vlucht korter is dan zoveel minuten (0 = altijd uitvoeren)",
+      "moveUp": "Omhoog",
+      "moveDown": "Omlaag",
+      "remove": "Verwijderen",
+      "add": "Service toevoegen"
+    },
+    "activation": {
+      "skip": "Overslaan / negeren",
+      "manual": "Handmatig door gebruiker",
+      "voice": "Spraakverzoek",
+      "afterCalled": "Vorige opgeroepen",
+      "afterRequested": "Vorige aangevraagd",
+      "afterActive": "Vorige actief",
+      "afterPrevCompleted": "Vorige voltooid",
+      "afterAllCompleted": "Alle eerdere voltooid"
+    },
+    "constraint": {
+      "always": "Elke leg",
+      "firstLeg": "Alleen eerste leg",
+      "turnAround": "Alleen turnarounds",
+      "companyHub": "Alleen maatschappij-hubs",
+      "nonCompanyHub": "Alleen niet-hub-luchthavens"
+    },
+    "refuel": {
+      "title": "Tanken",
+      "call": { "label": "Tankoproep", "hint": "Wanneer de tankwagen wordt opgeroepen.", "more": "SOP: de wagen wacht tot je de block fuel bevestigt (CONFIRM FUEL op de INIT-pagina, of zeg \"fuel confirmed\"). De andere services gaan door; de boarding wacht op de wagen. De wagen laadt het INIT FUEL RAMP-cijfer. Dit verhogen nadat de wagen klaar is biedt een bijvulling aan." },
+      "callOptions": { "automatic": "Automatisch (vertreksequentie)", "onFuelConfirmed": "Nadat de bemanning de brandstof bevestigt (SOP)" },
+      "sync": { "label": "Tanksynchronisatie", "hint": "De ProSim-tanks vullen zolang de GSX-slang is aangesloten." },
+      "method": { "label": "Tankmethode", "hint": "Vast: een vast tempo. Dynamisch: het vullen duurt altijd de doeltijd." },
+      "methodOptions": { "fixed": "Vast tempo", "dynamic": "Dynamisch tempo" },
+      "timeTarget": { "label": "Doeltijd", "hint": "Hoe lang het vullen duurt." },
+      "rate": { "label": "Tanktempo", "hint": "Kilogram per seconde." },
+      "skipTankering": { "label": "Tanken overslaan als FOB het plan overschrijdt", "hint": "De wagen niet oproepen als het vliegtuig de geplande brandstof al aan boord heeft.", "more": "Tankering, met een tolerantie van 25 kg. De sequentie gaat door en de voorlopige loadsheet gaat alsnog uit." },
+      "finishOnHose": { "label": "Tanken afronden bij loskoppelen van de slang", "hint": "Meteen naar de geplande brandstof springen als de slang vroegtijdig wordt losgekoppeld." },
+      "allowDefuel": { "label": "Aftanken toestaan", "hint": "De wagen brandstof laten afnemen als het doel lager is dan wat aan boord is.", "more": "Uit houdt de brandstof in plaats daarvan vast, zodat een verkeerd laag cijfer nooit aftankt." }
+    },
+    "boarding": {
+      "title": "Boarding",
+      "sync": { "label": "Boardingsynchronisatie", "hint": "De ProSim-stoelen en -ruimen vullen terwijl GSX passagiers en bagage aan boord telt." }
+    },
+    "passengers": {
+      "title": "Passagiers",
+      "randomize": { "label": "Pax no-shows / extra's willekeurig", "hint": "Sommige geboekte passagiers komen niet opdagen, en er verschijnen enkele extra's.", "more": "Elke stoel wisselt met de kans hieronder. De vracht volgt de passagierswijziging." },
+      "chance": { "label": "Kans per stoel", "hint": "0.03 is 3 procent per stoel." },
+      "bagWeight": { "label": "Gewicht per koffer" }
+    },
+    "pushbackDirection": {
+      "title": "Pushbackrichting",
+      "hint": "Hoe GSX's menu 'Select pushback direction' wordt beantwoord als je voor deze vlucht niets hebt gekozen",
+      "default": {
+        "label": "Standaardrichting",
+        "hint": "Je eigen keuze voor de vlucht wint altijd: zeg 'tail left', 'tail right' of 'push back facing north' tegen de FO, of druk op een Korry-knop op de OFP-pagina.",
+        "more": "Auto: de app bepaalt welke push richting de vertrekbaan wijst — uit de pushbackroutes van het GSX-profiel, de positiekoers en de baanligging — en past die toe als ze er zeker van is. Vragen: de FO vraagt altijd 'Tail left or tail right?' en GSX's menu wacht op je antwoord. De drie vaste antwoorden gedragen zich als voor 0.6.0 — behalve dat de FO, als de positie je vaste antwoord niet aanbiedt, de enige richting in het menu neemt of het jou vraagt; het menu blijft nooit stilletjes open."
+      },
+      "options": { "auto": "Auto — richting de vertrekbaan", "ask": "Elke keer vragen", "tailLeft": "Altijd staart links", "tailRight": "Altijd staart rechts", "straight": "Altijd rechtuit" },
+      "askWhenUnsure": { "label": "Vragen bij twijfel", "hint": "In Auto-modus vraagt de FO het jou als er geen zekere suggestie is (aan), of blijft GSX's menu stilletjes open (uit)." }
+    },
+    "pushback": {
+      "title": "Pushback",
+      "beacon": { "label": "Beacon-gestuurde pushbacksequentie", "hint": "Beacon aan start de pushbacksequentie.", "more": "Wachten op de APU, de deuren sluiten, de aviobrug intrekken, het materieel weghalen, dan terugduwen." },
+      "callAtReady": { "label": "Pushback oproepen bij klaar-voor-push", "hint": "De pushback oproepen als alles klaar is.", "more": "Uit: de sequentie bereidt alles voor en laat de oproep aan jou." },
+      "confirmEngineStart": { "label": "Goede motorstart bevestigen", "hint": "GSX's 'Confirm good engine start' voor je beantwoorden zodra een motor draait met de parkeerrem gezet.", "more": "Uit: GSX's Interrupt-pushback-menu wacht tot je het zelf beantwoordt. De trekker blijft tot dan aangekoppeld." }
+    },
+    "beaconDelays": {
+      "title": "Vertragingen van de beacon-sequentie",
+      "hint": "Willekeurige wachttijden tussen de stappen, voor realisme",
+      "doorsClose": "Vertraging deuren sluiten",
+      "jetwayRetract": "Vertraging aviobrug intrekken",
+      "equipmentClear": "Vertraging materieel weghalen"
+    },
+    "arrival": {
+      "title": "Aankomst & deboarding",
+      "deboardingSync": { "label": "Deboardingsynchronisatie", "hint": "De ProSim-stoelen en -ruimen leegmaken terwijl GSX passagiers van boord telt." },
+      "callDeboard": { "label": "Deboarding oproepen bij aankomst", "hint": "De deboarding uit zichzelf oproepen zodra geparkeerd." },
+      "stableHold": { "label": "Wachttijd stabiel geparkeerd", "hint": "Hoe lang het vliegtuig geparkeerd moet staan voordat de aankomstservices beginnen.", "more": "Op de grond, motoren uit, parkeerrem gezet, beacon uit, niet in beweging." },
+      "gate": { "label": "Aankomstgate", "hint": "Gate die bij aankomst bij GSX wordt aangevraagd.", "more": "Verzonden als de vlucht de kruishoogte bereikt. Leeg: kies hem in de sectie Status of op de OFP-pagina.", "placeholder": "bijv. B12" },
+      "answerPositionMenu": {
+        "label": "GSX's positiemenu beantwoorden met de aankomstgate",
+        "hint": "Als GSX zelf na de landing 'Select Position at …' vraagt, daarin je aankomstgate kiezen: de faciliteit waarvan het bereik de gate dekt, dan de regel die hem noemt.",
+        "more": "GSX toont dat menu tijdens de uitloop als er geen gate vooraf was gekozen (en als het de positie niet herkende). De keuze is op tekst alleen — als de gate niet op de pagina staat, of twee regels kunnen passen, blijft het menu precies als nu voor jou open. Twee pogingen per vlucht. Nieuw in 0.6.0 en nog niet live geverifieerd; het sessielog legt elke poging vast met de regels die GSX toonde."
+      },
+      "airportPages": {
+        "label": "Te doorzoeken pagina's van de luchthavenlijst",
+        "hint": "Hoeveel 'Next Page'-stappen van GSX's 'Select airport'-lijst in de vlucht de app doorloopt op zoek naar de bestemming.",
+        "more": "Pagina 1 toont alleen de geplande luchthaven en de dichtstbijzijnde velden — op 2026-10-11 stond EFHK er nooit op en drie keuzes vonden niets. De app slaat nu de pagina's om (en gebruikt GSX's eigen zoekregel als de lijst die aanbiedt), telt alleen een doorloop die de lijst bereikte als poging, doet hoogstens drie doorlopen per vlucht met tien minuten ertussen, en behandelt een 'no airport loaded'-antwoord als GSX dat de bestemming nog laadt, niet als een mislukking."
+      },
+      "askStand": {
+        "label": "Vragen welke positie als GSX de gate splitst",
+        "hint": "Als de scenery de gate alleen als suffixvarianten heeft (W36 → 36A / 36B) en noch je tekst noch een enkele aviobrug beslist, het jou één keer vragen — knoppen op de OFP-pagina en in de sectie Status, en de vraag van de FO.",
+        "more": "GSX beantwoordt het gate-nummer met 'ambiguous' en beide varianten. Een suffix dat je typte (36A) wint meteen; anders wordt de ene variant met aviobrug of Safedock in de positiedata genomen; anders word je, als dit aanstaat, gevraagd en gaat de eerste variant bij het taxiën naar binnen uit als niemand antwoordt. Uit: de eerste variant gaat meteen uit. Als GSX zich zelf op een van de varianten vastlegt (zijn menu voor parkeerwissel noemt Gate 36B), neemt de app die over en meldt geen parkeerconflict."
+      }
+    },
+    "standKnowledge": {
+      "title": "Positiekennis",
+      "hint": "Waar de app leert hoe GSX elke positie noemt, de grootte, aviobrug en pushbackroutes",
+      "resolve": {
+        "label": "GSX-profielen en scenery lezen voor posities",
+        "hint": "Een getypte gate zoals W40 omzetten naar de positie die de scenery en GSX kennen, voordat hij wordt verzonden.",
+        "more": "GSX-luchthavenprofielen (.ini-positiedata en .py-naamsjablonen) en de eigen parkeerlijst van de simulator worden voor de bestemming gelezen. Een sjabloon kan de gate-letter laten vallen — op EFHK drukt het profiel Gate W40 af als 'Gate 40', dus de kale 'W40' werd op 2026-10-04 vier keer geweigerd. Met dit aan wordt eerst het NUMMER van de positie verzonden, dan GSX's eigen naam; de getypte tekst blijft de laatste poging. Voedt ook de pushbackrichtingsuggestie. Getoond onder het gate-vak op de OFP-pagina."
+      },
+      "profileFolder": { "label": "GSX-profielmap", "hint": "GSX's eigen map met luchthavenprofielen. Leeg gebruikt de getoonde map.", "more": "Stel dit alleen in als deze app op een andere pc dan de simulator draait en de map is gedeeld." },
+      "sceneryFolders": {
+        "label": "Scenery-pakketmappen",
+        "hint": "MSFS-pakketroots (de mappen met Community en Official), gescheiden door ;. Leeg: vanzelf gevonden uit de Store/Steam-installatie en UserCfg.opt.",
+        "placeholder": "bijv. D:\\MSFS\\Packages",
+        "moreFound": "Gevonden op deze pc: {0}. Voeg alleen een map toe als de pakketten van de simulator ergens anders staan (een andere schijf, de share van een andere pc). Het profiel in een pakket is het profiel dat de scenery-ontwikkelaar meelevert, bijv. Community\\inibuilds-airport-egll-heathrow\\Official GSX Profile\\egll-24-iniBuilds.ini.",
+        "moreNotFound": "Er is geen MSFS-pakketmap gevonden op deze pc — voer de map(pen) met Community en Official in. Het profiel in een pakket is het profiel dat de scenery-ontwikkelaar meelevert, bijv. Community\\inibuilds-airport-egll-heathrow\\Official GSX Profile\\egll-24-iniBuilds.ini."
+      }
+    },
+    "fuelMemory": {
+      "title": "Brandstofgeheugen",
+      "remember": { "label": "Brandstof aan boord onthouden", "hint": "De brandstof aan boord bij aankomst opslaan en de volgende sessie terugladen." },
+      "defaultFob": { "label": "Standaard-FOB", "hint": "Geladen brandstof als er voor dit vliegtuig nog niets is opgeslagen." }
+    },
+    "operators": {
+      "title": "Afhandelaarkeuze",
+      "auto": { "label": "Afhandelaar automatisch kiezen", "hint": "De grondafhandelaar en de cateraar zelf kiezen, zodat GSX nooit vraagt." },
+      "listHint": "Voorkeursafhandelaars, de beste eerst. Elk woord wordt vergeleken met GSX's afhandelaar- en cateringmenu's. \"[GSX choice]\" telt altijd als een match.",
+      "remove": "Verwijderen",
+      "none": "Geen voorkeuren — het afhandelaarmenu wordt aan GSX / de gebruiker overgelaten.",
+      "add": "Toevoegen"
+    },
+    "hubs": {
+      "title": "Maatschappij-hubs",
+      "hint": "Luchthavencodes (1 tot 4 letters) die als hubs van je maatschappij tellen",
+      "placeholder": "ICAO-prefix",
+      "remove": "Verwijderen",
+      "none": "Geen hubs geconfigureerd — hub-gebonden services lopen nooit.",
+      "add": "Hub toevoegen"
+    },
+    "questions": {
+      "title": "Vragen / pop-ups overslaan",
+      "followMe": { "label": "Follow-Me-vraag overslaan", "hint": "Nooit vragen naar de Follow-Me-auto." },
+      "crew": { "label": "Bemanningsvragen beantwoorden", "hint": "GSX's vragen over bemanningsboarding zelf beantwoorden." },
+      "crewAnswer": { "label": "Antwoord bemanningsboarding", "hint": "Wie er via GSX's bemanningsmenu aan boord gaat." },
+      "crewOptions": { "nobody": "Niemand", "crew": "Bemanning", "pilots": "Piloten", "both": "Beide" },
+      "suppressCrew": { "label": "Bemanningsvraag helemaal onderdrukken", "hint": "GSX vooraf vertellen dat er geen bemanning aan boord gaat, zodat het nooit vraagt." },
+      "confirmPushback": { "label": "Pushbackverzoek bevestigen", "hint": "\"Do you want to request pushback\" met ja beantwoorden." },
+      "tug": { "label": "Trekkervraag tijdens de boarding", "hint": "Antwoord op GSX's vraag \"Attach pushback tug\" tijdens de boarding." },
+      "tugOptions": { "ignore": "Niet antwoorden", "no": "Nee", "yes": "Ja" },
+      "tugPushback": { "label": "Pushback oproepen als de trekker is aangekoppeld", "hint": "Wanneer de pushback wordt opgeroepen als de trekker al is aangekoppeld." },
+      "tugPushbackOptions": { "afterDepartureServices": "Na de vertrekservices", "afterFinalLoadsheet": "Na de definitieve loadsheet" }
+    },
+    "deice": {
+      "title": "De-icing",
+      "autoAccept": {
+        "label": "De-icing-aanbod automatisch accepteren",
+        "hint": "GSX's eigen 'Ice warning'-aanbod accepteren en de vloeistof zelf kiezen.",
+        "more": "Het antwoord volgt je beslissing op de vraag van de app: een afgewezen vraag antwoordt GSX met Nee, een nog open vraag wordt aan jou gelaten (je keuze in GSX's menu is dan je antwoord), een geaccepteerde antwoordt Ja. Met het weerbeleid uit geldt GSX's eigen ijsoordeel en wordt het aanbod geaccepteerd."
+      },
+      "fluid": { "label": "De-icing-vloeistof", "hint": "Beantwoordt GSX's menu 'Select fluid type' — voor GSX's aanbod en het eigen verzoek van de app gelijk." },
+      "concentration": { "label": "Concentratie", "hint": "Beantwoordt GSX's menu 'Select concentration' (procent). De holdover-kaart zegt waar haar vloeistof vandaan kwam: GSX's eigen LVAR, deze menu-antwoorden, of de instellingen als niets het bevestigde." },
+      "autoRequest": {
+        "label": "De-icing aanvragen op basis van het weer",
+        "hint": "De app uit de buitentemperatuur en de vertrek-METAR laten beslissen of dit vertrek de-icing nodig heeft.",
+        "more": "Uit: alleen GSX's eigen aanbod en je 'request de-icing' bestaan, zoals voorheen. Vragen: de First Officer vraagt 'Captain, conditions call for de-icing — request it?' en het Status-bord toont de vraag met twee knoppen; de laatste vertrekstap wacht tot vijf minuten op het antwoord en telt dan als nee. Auto: de-icing komt zonder vragen als laatste stap in de vertreksequentie. Het oordeel loopt zodra de vertrekservices zijn gestart en wordt gelogd in de sectie Status. Nieuw in 0.6.0 en nog niet gevlogen — de GSX-de-icingploeg is door deze app nog nooit live opgeroepen."
+      },
+      "autoRequestOptions": {
+        "off": "Uit — alleen GSX's aanbod en mijn eigen verzoek",
+        "ask": "Mij vragen — de FO vraagt, het Status-bord toont de vraag",
+        "auto": "Auto — de-icing in de vertreksequentie zetten"
+      },
+      "oat": {
+        "label": "OAT-drempel",
+        "hint": "De-icing wordt overwogen op of onder deze buitentemperatuur (ProSims OAT, anders de METAR).",
+        "warning": "Een drempel boven 10 °C vraagt op bijna elke vlucht — het grootste deel van Europa zit er het halve jaar onder. 3 °C is de gebruikelijke regel."
+      },
+      "precipitation": {
+        "label": "Neerslag of vorst vereisen",
+        "hint": "Kou alleen is niet genoeg: de vertrek-METAR moet sneeuw, ijzel, ijskorrels, regen bij kou, aanvriezende mist of een dauwpuntverschil van 3 °C of minder tonen.",
+        "more": "Uit vraagt aan op de temperatuur alleen (de cold-soaked-wing-regel). Zonder METAR voor de vertrekluchthaven doet de app hoe dan ook geen verzoek."
+      },
+      "askWhen": {
+        "label": "Wanneer vragen",
+        "hint": "Wanneer het beleid loopt en de First Officer vraagt.",
+        "more": "Als de de-icingstap de volgende is (standaard): elke eerdere vertrekservice is klaar, het vliegplan is geladen en het weer bekend — de-icing is het laatste voor de pushback, dus dan telt het antwoord. Na boarding voltooid: de vraag komt op de boarding-voltooid-flank, terwijl de laatste services afronden, en wordt één keer herhaald als de stap aan de beurt is en je niet hebt geantwoord. Hoe dan ook wordt ze nooit gesteld op het moment dat de vertreksequentie start (0.7.0-rc.4 deed dat, voor de OFP en zestien minuten voor de boarding)."
+      },
+      "askWhenOptions": {
+        "stepIsNext": "Als de de-icingstap de volgende is (elke eerdere service klaar)",
+        "afterBoarding": "Na boarding voltooid (één keer opnieuw gevraagd als de stap de volgende is)"
+      },
+      "timeout": { "label": "Antwoordtime-out", "hint": "Hoe lang de vraag open staat voordat ze als nee telt. Het zwijgen van de FO beslist het nooit — zeg 'request de-icing' of 'no de-icing', of gebruik de knoppen van het Status-bord, tot dit afloopt." },
+      "packs": {
+        "label": "Packs-procedure",
+        "hint": "De FO roept 'De-icing starting — packs off, ditching on' als de de-icingploeg aankomt en 'De-icing complete — packs on, ditching off' als die vertrekt, en controleert twintig seconden later de overhead-lampjes (één herinnering als ze niet kloppen).",
+        "more": "Alleen-lezen: de FO beweegt nooit de pack- of ditching-schakelaars. Standaard uit. Werkt voor elke de-icing die GSX uitvoert — het verzoek van de app, GSX's aanbod of je eigen oproep."
+      },
+      "verdict": {
+        "requested": "De-icing aangevraagd",
+        "declined": "Afgewezen",
+        "pending": "Nog niet beoordeeld",
+        "off": "Uit",
+        "noData": "Geen gegevens",
+        "notRequired": "Niet nodig",
+        "ask": "Vraagt het de gezagvoerder"
+      }
+    },
+    "connection": {
+      "title": "Verbinding",
+      "hint": "Hoeft zelden te veranderen",
+      "reconnect": { "label": "Herverbindingsinterval", "hint": "Eerste wachttijd na een verbroken verbinding." },
+      "ceiling": { "label": "Herverbindingsplafond", "hint": "Langste wachttijd tussen pogingen.", "more": "Elke mislukking verdubbelt de wachttijd, tot dit maximum." }
+    },
+    "timeouts": {
+      "title": "Time-outs",
+      "hint": "Afgesteld op echte vluchten. Verander alleen met een reden",
+      "command": "Opdracht-time-out",
+      "menuOpen": "Time-out menu openen",
+      "intentVerify": "Time-out intentiecontrole",
+      "triggerConfirm": { "label": "Time-out triggerbevestiging", "hint": "Hoe lang een serviceoproep onbeantwoord mag blijven voordat hij opnieuw wordt verzonden." }
+    },
+    "stage": {
+      "waiting": "Wacht",
+      "held": "Houdt aan",
+      "skipped": "Overgeslagen",
+      "called": "Opgeroepen",
+      "requested": "Aangevraagd",
+      "active": "Actief",
+      "completed": "Voltooid"
+    },
+    "status": {
+      "title": "Status",
+      "readiness": "Gereedheid",
+      "automationPhase": "Automatiseringsfase",
+      "capabilities": "Mogelijkheden",
+      "airport": "Luchthaven",
+      "gateContext": "Gate-context",
+      "session": "Sessie"
+    },
+    "arrivalGate": {
+      "title": "Aankomstgate",
+      "request": "Verzoek",
+      "noRequest": "Geen gate-verzoek ingesteld.",
+      "placeholder": "bijv. B12",
+      "arm": "Gate instellen",
+      "cancel": "Annuleren",
+      "variantNoDetail": "geen aviobrug of VDGS bekend voor deze positie",
+      "variantDetail": "{0} op deze positie"
+    },
+    "departureBoard": {
+      "title": "Vertrekstatusbord",
+      "complete": "Vertrek voltooid",
+      "running": "Vertrek loopt",
+      "start": "Vertrekservices starten",
+      "callNext": "Volgende service nu oproepen",
+      "callNextTitle": "De volgende vertrekservice nu oproepen, met omzeiling van zijn activeringsregel — de INT/RAD-smartknop. Werkt ook bij handmatige regels.",
+      "reloadSimbrief": "SimBrief in GSX herladen",
+      "reloadingSimbrief": "SimBrief wordt herladen…",
+      "reloadSimbriefTitle": "GSX's eigen gate-menuregel 'SimBrief' aanklikken zodat zijn VDGS deze vlucht toont — alleen bij de gate met GSX gereed. Hetzelfde als de API-opdracht gsx.reloadSimbrief.",
+      "simbriefReload": "SimBrief-herlading:",
+      "reloaded": "Herladen — {0}",
+      "sent": "Verzonden — {0}",
+      "notPerformed": "Niet uitgevoerd — {0}",
+      "noSequence": "Nog geen vertreksequentie beoordeeld."
+    },
+    "deiceStatus": {
+      "title": "De-icing",
+      "hint": "Het oordeel van het weer-/OAT-beleid voor dit vertrek (Instellingen → Grondservices → Vragen)",
+      "verdict": "Oordeel",
+      "inputs": "Invoer",
+      "question": "Vraag",
+      "questionTitle": "Zwijgen wijst ze nooit af — alleen dit verlopen doet dat (Instellingen → Grondservices → De-icing → Antwoordtime-out)",
+      "questionState": "{0} · telt als nee om {1}",
+      "reAsked": "opnieuw gevraagd (stap is de volgende)",
+      "open": "open",
+      "request": "De-icing aanvragen",
+      "decline": "Geen de-icing",
+      "lvars": "GSX-de-icing-LVAR's",
+      "lvarsTitle": "L:FSDT_GSX_DEICING_STATE / L:FSDT_GSX_DEICING_TYPE — gelezen voor diagnose; de holdover-kaart wordt nog steeds ingesteld vanaf de completed-flank van de Remote API",
+      "lvarsValue": "toestand {0}, vloeistoftype {1}"
+    },
+    "diagnostics": {
+      "summary": "Diagnose — services, GSX-menu, recente opdrachten"
+    },
+    "services": {
+      "title": "Services",
+      "hint": "Draadtoestand tegenover toegewezen toestand uit de Remote API-spiegel",
+      "none": "Nog geen services gespiegeld (GSX niet verbonden, of geen vliegtuig-/gate-context).",
+      "service": "Service",
+      "wireState": "Draadtoestand",
+      "mapped": "Toegewezen",
+      "stage": "Fase",
+      "triggerable": "Activeerbaar",
+      "progress": "Voortgang",
+      "waiting": "(wacht)",
+      "yes": "ja",
+      "no": "nee"
+    },
+    "menu": {
+      "title": "Menu",
+      "hint": "Het live GSX-menu — klik een regel om die te kiezen (issue #135); dezelfde kaart staat op Vluchtstatus en de OFP-pagina"
+    },
+    "decisions": {
+      "title": "Automatiseringsbeslissingen",
+      "hint": "Wat er gebeurde en waarom — nieuwste eerst",
+      "none": "Nog geen automatiseringsbeslissingen.",
+      "time": "Tijd",
+      "action": "Actie",
+      "reason": "Reden"
+    },
+    "commands": {
+      "title": "Recente opdrachten",
+      "none": "Geen opdrachten verzonden in deze sessie.",
+      "time": "Tijd",
+      "verb": "Werkwoord",
+      "args": "Argumenten",
+      "result": "Resultaat",
+      "wireHintBefore": "Volledige draadframes worden vastgelegd als",
+      "wireTrace": "Wire-trace",
+      "wireHintMiddle": "aanstaat — zie",
+      "wireHintAfter": "(CMTrace-formaat) naast het hoofdlog."
+    },
+    "menuCard": {
+      "heading": "GSX-menu",
+      "untitled": "(zonder titel)",
+      "closed": "gesloten",
+      "close": "Sluiten",
+      "closeTitle": "Het GSX-menu wegklikken (de vraag onbeantwoord laten)",
+      "open": "Openen",
+      "openTitle": "Het GSX-menu hier openen",
+      "noMenu": "GSX heeft geen menu open. Open het hier, of wacht — vragen die GSX stelt (pushbackrichting, de-icing, afhandelaar) verschijnen als knoppen.",
+      "notConnected": "GSX is niet verbonden.",
+      "driving": "De automatisering beantwoordt dit menu — de regels komen vrij als ze klaar is.",
+      "greyed": "Grijs in GSX",
+      "pick": "'{0}' kiezen"
+    }
+  }
+}

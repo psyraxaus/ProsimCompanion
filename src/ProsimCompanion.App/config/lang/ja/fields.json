@@ -1,0 +1,74 @@
+{
+  "fields": {
+    "hint": {
+      "more": "詳細"
+    },
+    "number": {
+      "isDefault": "これは既定値です",
+      "default": "既定",
+      "resetTitle": "既定値に戻す（{0}）",
+      "resetAria": "既定値に戻す"
+    },
+    "range": {
+      "from": "最小",
+      "to": "〜最大",
+      "minimumAria": "{0} の最小値",
+      "maximumAria": "{0} の最大値",
+      "isDefault": "これらは既定値です",
+      "default": "既定",
+      "resetTitle": "既定値に戻す（{0}）",
+      "resetAria": "既定値に戻す"
+    },
+    "text": {
+      "browse": "参照…",
+      "browsing": "参照中…",
+      "browseFailed": "シム PC での参照に失敗しました: {0}"
+    },
+    "validation": {
+      "host": "名前または IP アドレスのみ。http:// やポートは不要です。例: 192.168.1.10",
+      "hostIpv6": "ここでは IPv6 アドレスは使えません。PC 名か IPv4 アドレスを使ってください。例: 192.168.1.10",
+      "url": "http:// または https:// で始める必要があります。例: http://192.168.1.50:8000",
+      "ip": "192.168.1.255 のような IPv4 アドレス",
+      "mac": "AA:BB:CC:DD:EE:FF のような 16 進数 6 組",
+      "badPath": "有効な Windows パスではありません",
+      "icao": "YSSY のような 4 文字の ICAO コード",
+      "runway": "16R や 34 のような滑走路",
+      "intList": "1, 2, 3 のようにコンマで区切った整数",
+      "fileNotFound": "この PC にファイルが見つかりません",
+      "folderNotFound": "この PC にフォルダーが見つかりません",
+      "notFound": "この PC に見つかりません",
+      "parentFolderMissing": "そのフォルダーはこの PC に存在しません",
+      "foldersNotFound": "この PC にフォルダーが見つかりません: {0}",
+      "chooseFile": "この PC のファイルを選ぶ",
+      "chooseFolder": "この PC のフォルダーを選ぶ",
+      "chooseOutputFile": "アプリがファイルを書き込む場所を選ぶ",
+      "addFolder": "この PC のフォルダーを追加する"
+    },
+    "advanced": {
+      "hidden": "詳細設定は非表示",
+      "show": "詳細設定を表示",
+      "sectionFolded": "詳細 —"
+    },
+    "dirtyBar": {
+      "discard": "破棄",
+      "save": "保存",
+      "saving": "保存中…",
+      "unsaved": "未保存の変更があります",
+      "fixOne": "保存する前に「{0}」を修正してください",
+      "fixMany": "保存する前に次の項目を修正してください: {0}",
+      "saved": "保存しました。",
+      "saveFailed": "保存に失敗しました: {0}"
+    },
+    "configProblems": {
+      "failedOne": "{0} 件の設定ファイルを読み込めませんでした",
+      "failedMany": "{0} 件の設定ファイルを読み込めませんでした",
+      "missingUntilFixed": "— 修正されるまで該当する内容は欠けています:"
+    },
+    "llmHealth": {
+      "authFailed": "副操縦士の自由文理解はオフラインです（LLM の認証に失敗 — API キーを確認してください）。",
+      "unreachable": "副操縦士の自由文理解はオフラインです（LLM エンドポイントに到達できません{0}）。",
+      "openSettings": "LLM 設定を開く。"
+    },
+    "secretUnreadable": "保存されたキーはこの PC／ユーザーでは復号できません（設定が別の場所からコピーされています）— 入力し直して保存してください。"
+  }
+}

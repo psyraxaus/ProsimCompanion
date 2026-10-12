@@ -1,0 +1,74 @@
+{
+  "fields": {
+    "hint": {
+      "more": "Plus"
+    },
+    "number": {
+      "isDefault": "C'est la valeur par défaut",
+      "default": "par défaut",
+      "resetTitle": "Rétablir la valeur par défaut ({0})",
+      "resetAria": "Rétablir la valeur par défaut"
+    },
+    "range": {
+      "from": "de",
+      "to": "à",
+      "minimumAria": "{0} minimum",
+      "maximumAria": "{0} maximum",
+      "isDefault": "Ce sont les valeurs par défaut",
+      "default": "par défaut",
+      "resetTitle": "Rétablir les valeurs par défaut ({0})",
+      "resetAria": "Rétablir les valeurs par défaut"
+    },
+    "text": {
+      "browse": "Parcourir…",
+      "browsing": "Parcours en cours…",
+      "browseFailed": "Échec de Parcourir sur le PC du simulateur : {0}"
+    },
+    "validation": {
+      "host": "Nom ou adresse IP seulement. Pas de http:// ni de port. Exemple : 192.168.1.10",
+      "hostIpv6": "Les adresses IPv6 ne sont pas prises en charge ici. Utilise le nom du PC ou son adresse IPv4. Exemple : 192.168.1.10",
+      "url": "Doit commencer par http:// ou https://. Exemple : http://192.168.1.50:8000",
+      "ip": "Une adresse IPv4 comme 192.168.1.255",
+      "mac": "Six paires hexadécimales comme AA:BB:CC:DD:EE:FF",
+      "badPath": "Chemin Windows non valide",
+      "icao": "Un code OACI à quatre lettres comme YSSY",
+      "runway": "Une piste comme 16R ou 34",
+      "intList": "Des nombres entiers séparés par des virgules, comme 1, 2, 3",
+      "fileNotFound": "Fichier introuvable sur ce PC",
+      "folderNotFound": "Dossier introuvable sur ce PC",
+      "notFound": "Introuvable sur ce PC",
+      "parentFolderMissing": "Son dossier n'existe pas sur ce PC",
+      "foldersNotFound": "Dossier introuvable sur ce PC : {0}",
+      "chooseFile": "Choisir un fichier sur ce PC",
+      "chooseFolder": "Choisir un dossier sur ce PC",
+      "chooseOutputFile": "Choisir où l'application écrit le fichier",
+      "addFolder": "Ajouter un dossier de ce PC"
+    },
+    "advanced": {
+      "hidden": "Réglages avancés masqués",
+      "show": "afficher les réglages avancés",
+      "sectionFolded": "Avancé —"
+    },
+    "dirtyBar": {
+      "discard": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "unsaved": "Tu as des modifications non enregistrées",
+      "fixOne": "Corrige \"{0}\" avant d'enregistrer",
+      "fixMany": "Corrige ces champs avant d'enregistrer : {0}",
+      "saved": "Enregistré.",
+      "saveFailed": "Échec de l'enregistrement : {0}"
+    },
+    "configProblems": {
+      "failedOne": "{0} fichier de configuration n'a pas pu être chargé",
+      "failedMany": "{0} fichiers de configuration n'ont pas pu être chargés",
+      "missingUntilFixed": "— le contenu concerné manque jusqu'à correction :"
+    },
+    "llmHealth": {
+      "authFailed": "La compréhension libre du copilote est hors ligne (échec d'authentification du LLM — vérifie la clé API).",
+      "unreachable": "La compréhension libre du copilote est hors ligne (point de terminaison LLM injoignable{0}).",
+      "openSettings": "Ouvrir les réglages du LLM."
+    },
+    "secretUnreadable": "La clé enregistrée ne peut pas être déchiffrée sur ce PC/utilisateur (réglages copiés d'ailleurs) — saisis-la à nouveau et enregistre."
+  }
+}

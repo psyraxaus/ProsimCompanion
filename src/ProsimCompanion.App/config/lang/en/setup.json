@@ -1,0 +1,124 @@
+{
+  "setup": {
+    "pageTitle": "Setup — ProsimCompanion",
+    "heading": "Setup",
+    "features": {
+      "title": "Features",
+      "hint": "A pillar that is off keeps its pages, but nothing runs",
+      "gsx": { "label": "GSX ground services", "hint": "Departure services, doors, jetway, pushback and arrival through GSX Pro." },
+      "speech": { "label": "Voice First Officer", "hint": "Spoken checklists, callouts, briefings and voice commands." },
+      "audio": { "label": "Audio control", "hint": "Audio panel knobs and latches set app volumes." }
+    },
+    "prosim": {
+      "title": "ProSim Connection",
+      "host": { "label": "ProSim host", "hint": "Name or IP address of the PC that runs ProSim System.", "placeholder": "localhost or 192.168.1.10" },
+      "sdk": { "label": "ProSim SDK folder", "hint": "The folder that contains ProSimSDK.dll. Empty keeps ProSim off." },
+      "api": { "label": "API key", "hint": "Only newer ProSim builds use one. Leave empty otherwise." },
+      "reconnect": { "label": "Reconnect interval", "hint": "Wait between connection tries." }
+    },
+    "setupCheck": {
+      "title": "ProSim Setup Check",
+      "hintIdle": "Reads on every ProSim connection; writes only when you click Apply",
+      "hintRead": "ProSim {0} · read {1}",
+      "enabled": {
+        "label": "Check ProSim's options on connect",
+        "hint": "Reads the IOS options this app depends on and shows which ones differ. Never changes anything by itself.",
+        "more": "Door logic, automatic ground power, datalink loading and the refuelling rate. Rows for a feature that is switched off above are not shown."
+      },
+      "off": "Off. Nothing is read.",
+      "reading": "Reading ProSim's options…",
+      "waitConnect": "Shown once ProSim is connected.",
+      "keepTitle": "Keep this option as it is. The row stays grey and Apply never touches it.",
+      "keep": "keep",
+      "verdict": { "ok": "OK", "change": "CHANGE", "notAvailable": "N/A", "kept": "KEPT" },
+      "detail": { "mismatch": "is {0} · want {1}", "notPresent": "not on this ProSim build" },
+      "value": { "on": "on", "off": "off" },
+      "readAgainTitle": "Read the options from ProSim again.",
+      "readingShort": "Reading…",
+      "readAgain": "Read again",
+      "howTitle": "How to change the options by hand in ProSim System.",
+      "hideSteps": "Hide the steps",
+      "showHow": "Show me how",
+      "applyTitle": "Writes the recommended value to every amber row, then reads them back. Takes effect at once; no ProSim restart.",
+      "applying": "Applying…",
+      "apply": "Apply recommended",
+      "applyCount": "Apply recommended ({0})",
+      "howStep": { "open": "In ProSim System open", "setTo": "and set it to", "now": "(now {0})." },
+      "result": { "read": "Read.", "notConnected": "ProSim is not connected.", "failed": "Failed — see the Logs page." }
+    },
+    "navData": {
+      "title": "Nav Data",
+      "hint": "Navigraph database for SIDs, STARs and approaches",
+      "dfd": { "label": "DFD database path", "hint": "The .s3db file or its folder. ProSim's Navdata folder works. Empty looks next to the SDK." }
+    },
+    "weather": {
+      "title": "Weather Sources",
+      "hint": "ActiveSky carries the weather actually in the sim, so it wins over the ProSim gateway and SayIntentions when present",
+      "snapshot": {
+        "label": "ActiveSky snapshot file",
+        "hint": "Full path of current_wx_snapshot.txt. Empty looks in the known HiFi install folders.",
+        "more": "When set, the path is final: a missing file switches the snapshot tier off instead of looking elsewhere.",
+        "placeholder": "C:\\Users\\you\\AppData\\Roaming\\HiFi\\AS_MSFS\\Weather\\current_wx_snapshot.txt"
+      },
+      "useApi": { "label": "Also try the ActiveSky API", "hint": "ActiveSky's local web API, when the snapshot has nothing for the airport." },
+      "apiHost": { "label": "API host", "hint": "Name or IP address of the PC running ActiveSky.", "placeholder": "localhost" },
+      "apiPort": { "label": "API port" },
+      "apiTimeout": { "label": "API timeout", "hint": "Short on purpose: the chain moves on fast when ActiveSky is not running." }
+    },
+    "web": {
+      "title": "Web Interface",
+      "hint": "Port and LAN access are also editable in the desktop window",
+      "port": { "label": "Port", "hint": "Takes effect after an app restart." },
+      "lan": { "label": "Allow other devices (LAN)", "hint": "Tablets and other PCs can open this page.", "more": "They sign in with the QR code in the desktop window." },
+      "httpsHeading": "HTTPS (optional)",
+      "https": {
+        "label": "Enable HTTPS",
+        "hint": "A second, secure address beside the normal one. Needed for keep-awake and the installed app on tablets. Takes effect after a restart.",
+        "more": "You supply the certificate: a PFX file for this PC's LAN address, made with your own CA (mkcert is the easy way) and that CA installed on the tablet. The app never makes or installs certificates. If the file is missing or wrong, HTTP keeps working and a banner says why."
+      },
+      "httpsPort": { "label": "HTTPS port", "hint": "Beside the HTTP port above; open it on the firewall too." },
+      "pfx": { "label": "Certificate file (PFX)", "hint": "Full path of the .pfx / .p12 file with the private key.", "placeholder": "C:\\ProsimCompanion\\certs\\simpc.pfx" },
+      "pfxPassword": { "label": "Certificate password", "hint": "Stored encrypted on this PC and Windows account. Never logged." },
+      "status": "Status",
+      "httpsLabel": { "onWarning": "HTTPS ON · WARNING", "on": "HTTPS ON", "failed": "HTTPS FAILED", "off": "HTTPS OFF" },
+      "httpsHint": { "saved": "Saved — restart the app to start the secure address.", "off": "Off. Plain HTTP at {0}." },
+      "tabletHintBefore": "Tablet setup — the certificate, the CA on the iPad, add to home screen, keep-awake:",
+      "tabletHintAfter": "in the install folder."
+    },
+    "streamDeck": {
+      "title": "Stream Deck & External Tools",
+      "hint": "Applies live",
+      "commandApi": { "label": "Command API", "hint": "Needed by the Stream Deck plugin. Always needs the access token.", "more": "Lets outside tools send GSX, checklist and loadsheet commands over the web server." },
+      "pairHint": "To pair the plugin, paste the onboarding link from the desktop window into any key's settings. Keys showing \"API off\" recover on their own once this is saved."
+    },
+    "wake": {
+      "titleNumbered": "Wake-on-LAN PC {0}",
+      "titleNamed": "Wake-on-LAN — {0}",
+      "hint": "A magic packet at startup, and on Send now",
+      "row": "Row",
+      "atStartup": "AT STARTUP",
+      "sendNowOnly": "SEND NOW ONLY",
+      "removeTitle": "Remove this PC",
+      "remove": "Remove",
+      "name": { "label": "Name", "hint": "Your label for it — what the log shows.", "placeholder": "Language-model PC" },
+      "enabled": { "label": "Wake at startup", "hint": "Off keeps the row for the Send now button only." },
+      "mac": { "label": "MAC address", "hint": "For example AA:BB:CC:DD:EE:FF.", "more": "The PC needs Wake-on-LAN enabled in its BIOS and network driver, a wired connection, and the same network as this PC." },
+      "broadcast": { "label": "Broadcast address", "hint": "255.255.255.255, or your subnet's broadcast such as 192.168.1.255." },
+      "port": { "label": "Port", "hint": "Usually 9." },
+      "sendNow": "Send now",
+      "sendNowHint": "One packet to this PC with the values above, saved or not. The PC's own feature (Test LLM connection, Reconnect voice services) tells you when it is up.",
+      "list": {
+        "title": "Wake-on-LAN",
+        "hint": "Power on the PCs the app depends on when it starts",
+        "none": "No PC yet. Add the language-model box, the speech server, an ActiveSky PC — as many as you like.",
+        "add": "Add PC"
+      }
+    },
+    "updates": {
+      "title": "Updates",
+      "hint": "A banner when a newer build is on GitHub. Nothing is downloaded or installed",
+      "check": { "label": "Check for updates", "hint": "Fails silently offline. Never delays startup." },
+      "interval": { "label": "Check again every" }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "fields": {
+    "hint": {
+      "more": "Más"
+    },
+    "number": {
+      "isDefault": "Este es el valor por defecto",
+      "default": "por defecto",
+      "resetTitle": "Restablecer el valor por defecto ({0})",
+      "resetAria": "Restablecer por defecto"
+    },
+    "range": {
+      "from": "de",
+      "to": "a",
+      "minimumAria": "{0} mínimo",
+      "maximumAria": "{0} máximo",
+      "isDefault": "Estos son los valores por defecto",
+      "default": "por defecto",
+      "resetTitle": "Restablecer los valores por defecto ({0})",
+      "resetAria": "Restablecer por defecto"
+    },
+    "text": {
+      "browse": "Examinar…",
+      "browsing": "Examinando…",
+      "browseFailed": "Examinar falló en el PC del simulador: {0}"
+    },
+    "validation": {
+      "host": "Solo nombre o dirección IP. Sin http:// y sin puerto. Ejemplo: 192.168.1.10",
+      "hostIpv6": "Las direcciones IPv6 no se admiten aquí. Usa el nombre del PC o su dirección IPv4. Ejemplo: 192.168.1.10",
+      "url": "Debe empezar por http:// o https://. Ejemplo: http://192.168.1.50:8000",
+      "ip": "Una dirección IPv4 como 192.168.1.255",
+      "mac": "Seis pares hexadecimales como AA:BB:CC:DD:EE:FF",
+      "badPath": "No es una ruta de Windows válida",
+      "icao": "Un código ICAO de cuatro letras como YSSY",
+      "runway": "Una pista como 16R o 34",
+      "intList": "Números enteros separados por comas, como 1, 2, 3",
+      "fileNotFound": "Archivo no encontrado en este PC",
+      "folderNotFound": "Carpeta no encontrada en este PC",
+      "notFound": "No encontrado en este PC",
+      "parentFolderMissing": "Su carpeta no existe en este PC",
+      "foldersNotFound": "Carpeta no encontrada en este PC: {0}",
+      "chooseFile": "Elegir un archivo en este PC",
+      "chooseFolder": "Elegir una carpeta en este PC",
+      "chooseOutputFile": "Elegir dónde escribe la app el archivo",
+      "addFolder": "Añadir una carpeta de este PC"
+    },
+    "advanced": {
+      "hidden": "Ajustes avanzados ocultos",
+      "show": "mostrar ajustes avanzados",
+      "sectionFolded": "Avanzado —"
+    },
+    "dirtyBar": {
+      "discard": "Descartar",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "unsaved": "Tienes cambios sin guardar",
+      "fixOne": "Corrige \"{0}\" antes de guardar",
+      "fixMany": "Corrige estos campos antes de guardar: {0}",
+      "saved": "Guardado.",
+      "saveFailed": "Error al guardar: {0}"
+    },
+    "configProblems": {
+      "failedOne": "{0} archivo de configuración no se pudo cargar",
+      "failedMany": "{0} archivos de configuración no se pudieron cargar",
+      "missingUntilFixed": "— el contenido afectado falta hasta que se corrija:"
+    },
+    "llmHealth": {
+      "authFailed": "La comprensión libre del FO está desconectada (falló la autenticación del LLM — revisa la clave de API).",
+      "unreachable": "La comprensión libre del FO está desconectada (endpoint del LLM inalcanzable{0}).",
+      "openSettings": "Abrir los ajustes del LLM."
+    },
+    "secretUnreadable": "La clave guardada no se puede descifrar en este PC/usuario (ajustes copiados de otro sitio) — vuelve a introducirla y guarda."
+  }
+}
