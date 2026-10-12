@@ -1,0 +1,40 @@
+{
+  "profiles": {
+    "pageTitle": "Vliegtuigprofielen — ProsimCompanion",
+    "heading": "Vliegtuigprofielen",
+    "current": {
+      "title": "Huidig vliegtuig",
+      "notConnected": "Sim niet verbonden — profielkoppeling gebruikt de standaardwaarden",
+      "titleLivery": "Titel / Livery",
+      "airline": "Luchtvaartmaatschappij",
+      "activeProfile": "Actief profiel",
+      "defaults": "— (standaard)",
+      "manual": "HANDMATIG",
+      "returnToAutomatic": "Terug naar automatische koppeling"
+    },
+    "list": {
+      "title": "Profielen",
+      "hint": "Vergeleken met het in de sim geladen vliegtuig. Exacte match wint van bevat; geen match gebruikt de standaardwaarden",
+      "bannerBefore": "Een profiel bevat de instellingen van Grondafhandeling. Opslaan op de pagina's",
+      "bannerLink": "Grondafhandeling",
+      "bannerAfter": "terwijl een profiel actief is bewaart ze in dat profiel, en ze komen terug de volgende keer dat dat vliegtuig laadt.",
+      "namePlaceholder": "Profielnaam",
+      "active": "ACTIEF",
+      "default": "STANDAARD",
+      "setActive": "Activeren",
+      "clone": "Klonen",
+      "delete": "Verwijderen",
+      "match": "Match",
+      "matchContains": "Titel / livery (bevat)",
+      "matchExact": "Titel / livery (exact)",
+      "matchAirline": "Maatschappij (ICAO-voorvoegsel)",
+      "matchDefault": "Standaard (terugval)",
+      "fragmentPlaceholder": "Deel van de vliegtuigtitel",
+      "matchesCurrent": "past bij huidige",
+      "empty": "Geen profielen — elk vliegtuig gebruikt de standaardinstellingen.",
+      "add": "Profiel toevoegen",
+      "newName": "Profiel {0}",
+      "cloneName": "Kloon van {0}"
+    }
+  }
+}

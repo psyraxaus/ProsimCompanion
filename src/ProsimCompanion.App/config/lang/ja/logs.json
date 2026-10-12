@@ -1,0 +1,63 @@
+{
+  "logs": {
+    "pageTitle": "ログ — ProsimCompanion",
+    "heading": "ログ",
+    "capture": {
+      "title": "キャプチャ",
+      "hint": "何を記録するか — 再起動なしで即時反映",
+      "level": "キャプチャレベル",
+      "wireTrace": {
+        "label": "ワイヤートレース",
+        "hint": "GSX／ゲートウェイの生フレームを別の CMTrace ファイルへ"
+      },
+      "mirror": {
+        "label": "セッションログへミラー",
+        "hint": "警告とエラーをセッションイベントファイルへ、フライトイベントと時系列順にコピーし、1 つのファイルで全体を追えるようにします",
+        "warningAndAbove": "警告とエラー",
+        "errorAndAbove": "エラーのみ",
+        "off": "オフ"
+      },
+      "telemetry": {
+        "label": "テレメトリー API",
+        "hint": "読み取り専用：フライト後の確認用に、セッションイベントログとログの末尾を Web サーバー経由で提供します。他のデバイスにはアクセストークンが必要です"
+      },
+      "totals": "セッション合計 — 警告：{0} · エラー：{1}。",
+      "filesBefore": "ローリングファイルは",
+      "filesAfter": "にあり、CMTrace でライブ表示できる CMTrace 形式です。"
+    },
+    "support": {
+      "title": "サポート",
+      "hint": "バグ報告に必要なものをすべて含む 1 つの zip",
+      "sessions": {
+        "label": "セッションファイル",
+        "hint": "含める最新のセッションイベントログ数"
+      },
+      "days": {
+        "label": "ログ日数",
+        "hint": "含める最新の日次アプリログ数"
+      },
+      "wire": {
+        "label": "ワイヤートレースを含める",
+        "hint": "同じ日数分の GSX／ゲートウェイ生フレーム — サイズが大きいので、求められたときだけ"
+      },
+      "export": "診断情報をエクスポート",
+      "copyVersion": "バージョンをコピー",
+      "copied": "コピーしました",
+      "copyFailed": "コピーに失敗",
+      "bundleBefore": "バンドルには、最新のセッションイベントログ、アプリログ、すべてのキーとトークンを伏せた settings.json のコピー、バージョンバナー、およびファイルハッシュのマニフェストが含まれます。psyraxaus/ProsimCompanion の GitHub Issue に添付してください。「バージョンをコピー」は",
+      "bundleAfter": "を Issue 本文用にクリップボードへ置きます。"
+    },
+    "log": {
+      "title": "ログ",
+      "hint": "キャプチャしたエントリの表示フィルター",
+      "minLevel": "最小レベル",
+      "text": "テキスト",
+      "filterPlaceholder": "テキストまたはソース…",
+      "pause": "一時停止",
+      "time": "時刻",
+      "level": "レベル",
+      "source": "ソース",
+      "message": "メッセージ"
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "notifications": {
+    "pageTitle": "알림 — ProsimCompanion",
+    "heading": "알림",
+    "main": {
+      "title": "알림",
+      "hint": "비행의 주요 시점에 휴대폰이나 웹훅으로 짧은 메시지를 보냅니다",
+      "enabled": {
+        "label": "알림 보내기",
+        "hint": "끔: 이 PC에서 아무것도 나가지 않습니다. 켬: 아래 각 대상이 체크한 시점을 받습니다.",
+        "more": "시점: 급유 완료 · 탑승 완료 · 최종 로드시트 전송 · 푸시백 준비 완료 · 객실 준비 완료 · 제빙 홀드오버 만료 임박 · 강하 시작점 접근 · 착륙 · 온 블록 · 하기 완료. 각 시점은 비행당 한 번만 발생하며, 수정된 최종 로드시트는 다시 발생합니다. 느리거나 응답 없는 대상이 지상 자동화나 부기장을 지연시키는 일은 없습니다 — 전송은 5초 제한으로 백그라운드에서 실행되며, 실패한 대상은 1분 동안 그대로 둡니다."
+      },
+      "cooldown": {
+        "label": "실패 후 대기 시간",
+        "hint": "전송 실패 후 대상을 그대로 두는 시간."
+      },
+      "timeout": {
+        "label": "전송 시간 제한",
+        "hint": "전송마다 적용. 느린 서비스는 이 시간이 지나면 실패로 처리됩니다."
+      },
+      "holdover": {
+        "label": "홀드오버 경고",
+        "hint": "'홀드오버 만료 임박'을 보낼 때 남은 제빙 홀드오버 시간(분)."
+      }
+    },
+    "target": {
+      "defaultTitle": "대상 {0}",
+      "status": "상태",
+      "removeTitle": "이 대상 제거",
+      "remove": "제거",
+      "name": {
+        "label": "이름",
+        "hint": "직접 붙이는 라벨 — 로그와 결과 줄에 표시됩니다.",
+        "placeholder": "내 휴대폰"
+      },
+      "kind": {
+        "label": "종류",
+        "hint": "ntfy = ntfy.sh 또는 자체 서버의 토픽. Discord = 채널 웹훅. Webhook = JSON POST를 받는 모든 https 주소 (스키마는 docs/integrations/notifications.md)."
+      },
+      "url": {
+        "label": "URL"
+      },
+      "token": {
+        "label": "Bearer 토큰",
+        "hint": "선택 사항. 'Authorization: Bearer …'로 전송됩니다. 이 PC에 암호화되어 저장되며 로그에 기록되지 않습니다."
+      },
+      "events": {
+        "label": "이벤트",
+        "hint": "이 대상이 받을 시점.",
+        "refuelComplete": "급유 완료",
+        "boardingComplete": "탑승 완료",
+        "finalLoadsheetSent": "최종 로드시트 전송",
+        "readyForPushback": "푸시백 준비 완료",
+        "cabinSecure": "객실 준비 완료",
+        "deiceHoldoverExpiring": "제빙 홀드오버 만료 임박",
+        "topOfDescentApproaching": "강하 시작점 접근",
+        "landed": "착륙",
+        "onBlocks": "온 블록",
+        "deboardingComplete": "하기 완료"
+      },
+      "test": {
+        "label": "테스트 보내기",
+        "hint": "위 값으로 지금 이 대상에 테스트 메시지 하나를 보냅니다 (값을 바꿨다면 먼저 저장하세요). 알림이 꺼져 있어도 동작합니다.",
+        "sending": "보내는 중…",
+        "send": "테스트 보내기"
+      },
+      "neverSent": "전송 기록 없음",
+      "ok": "OK",
+      "failed": "실패"
+    },
+    "kindHint": {
+      "ntfy": "ntfy 토픽 — 휴대폰 앱이 구독합니다",
+      "discord": "Discord 채널 웹훅",
+      "webhook": "자체 엔드포인트로 JSON POST"
+    },
+    "urlHint": {
+      "ntfy": "토픽의 전체 URL. 비밀로 취급하세요 — 이 URL을 가진 누구나 읽거나 게시할 수 있습니다. 암호화되어 저장됩니다.",
+      "discord": "Discord → 채널 설정 → 연동에 있는 채널의 웹훅 URL. 자체 비밀을 포함합니다. 암호화되어 저장됩니다.",
+      "webhook": "JSON POST를 받는 https 주소. 암호화되어 저장됩니다."
+    },
+    "empty": {
+      "title": "대상",
+      "hint": "메시지가 전달되는 곳",
+      "text": "아직 대상이 없습니다 — 휴대폰의 ntfy 토픽이나 웹훅을 추가하세요."
+    },
+    "add": "대상 추가"
+  }
+}

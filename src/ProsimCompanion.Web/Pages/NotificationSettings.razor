@@ -6,27 +6,28 @@
 @inject IOptionsMonitor<NotificationOptions> NotificationMonitor
 @inject NotificationDispatcher Dispatcher
 @inject OfpStore Ofp
+@inject IStringLocalizer T
 
-<PageTitle>Notifications — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Notifications</h1>
+<PageTitle>@T["notifications.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["notifications.heading"]</h1>
 
 @* Outbound event notifications (issue #151, design A — one card per target). The URL and the
    token of every target are DPAPI-protected at rest and never logged; the page shows the token
    as a password field and the result line carries the HTTP status only. *@
 
-<Section Title="Notifications" Hint="A short message to your phone or a webhook at the flight's milestones">
-    <BoolField Label="Send notifications"
-               Hint="Off: nothing leaves this PC. On: each target below gets the milestones it has ticked."
-               More="Milestones: refuel complete · boarding complete · final loadsheet sent · ready for pushback · cabin secure · deice holdover expiring · top of descent approaching · landed · on blocks · deboarding complete. Each fires once per flight; a revised final loadsheet fires again. A slow or dead target never delays the ground automation or the First Officer — sends run in the background with a 5 second limit, and a failing target is left alone for a minute."
+<Section Title="@T["notifications.main.title"]" Hint="@T["notifications.main.hint"]">
+    <BoolField Label="@T["notifications.main.enabled.label"]"
+               Hint="@T["notifications.main.enabled.hint"]"
+               More="@T["notifications.main.enabled.more"]"
                @bind-Value="_options.Value.Enabled" />
     <AdvancedFields>
-        <NumberField Label="Failure cooldown" Hint="How long a target is left alone after a failed send." Suffix="s" Min="5" Max="3600"
+        <NumberField Label="@T["notifications.main.cooldown.label"]" Hint="@T["notifications.main.cooldown.hint"]" Suffix="s" Min="5" Max="3600"
                      @bind-Value="_options.Value.FailureCooldownSeconds"
                      Default="_options.Defaults.FailureCooldownSeconds" />
-        <NumberField Label="Send timeout" Hint="Per send. A slow service is treated as failed after this." Suffix="s" Min="1" Max="30"
+        <NumberField Label="@T["notifications.main.timeout.label"]" Hint="@T["notifications.main.timeout.hint"]" Suffix="s" Min="1" Max="30"
                      @bind-Value="_options.Value.SendTimeoutSeconds"
                      Default="_options.Defaults.SendTimeoutSeconds" />
-        <NumberField Label="Holdover warning" Hint="Minutes of deice holdover time left when 'holdover expiring' is sent." Suffix="min" Min="1" Max="30"
+        <NumberField Label="@T["notifications.main.holdover.label"]" Hint="@T["notifications.main.holdover.hint"]" Suffix="min" Min="1" Max="30"
                      @bind-Value="_options.Value.HoldoverExpiringMinutes"
                      Default="_options.Defaults.HoldoverExpiringMinutes" />
     </AdvancedFields>
@@ -36,57 +37,57 @@
 {
     var index = i;
     var target = _options.Value.Targets[index];
-    var title = string.IsNullOrWhiteSpace(target.Name) ? $"Target {index + 1}" : target.Name;
+    var title = string.IsNullOrWhiteSpace(target.Name) ? T["notifications.target.defaultTitle", index + 1].Value : target.Name;
     <Section Title="@title" Hint="@KindHint(target.Kind)">
         <div class="field" style="align-items:center;">
-            <label class="field-label">Status</label>
+            <label class="field-label">@T["notifications.target.status"]</label>
             <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
                 <span class="pill @StatusTone(target)">@StatusLabel(target)</span>
-                <button type="button" class="btn secondary" style="padding:4px 10px;" title="Remove this target"
-                        @onclick="() => _options.Value.Targets.RemoveAt(index)">Remove</button>
+                <button type="button" class="btn secondary" style="padding:4px 10px;" title="@T["notifications.target.removeTitle"]"
+                        @onclick="() => _options.Value.Targets.RemoveAt(index)">@T["notifications.target.remove"]</button>
             </div>
         </div>
-        <TextField Label="Name" Hint="Your label for it — what the log and the result line show." Placeholder="My phone"
+        <TextField Label="@T["notifications.target.name.label"]" Hint="@T["notifications.target.name.hint"]" Placeholder="@T["notifications.target.name.placeholder"]"
                    @bind-Value="target.Name" />
-        <SelectField Label="Kind" Options="KindOptions"
-                     Hint="ntfy = a topic on ntfy.sh or your own server. Discord = a channel webhook. Webhook = any https address that takes a JSON POST (schema in docs/integrations/notifications.md)."
+        <SelectField Label="@T["notifications.target.kind.label"]" Options="KindOptions"
+                     Hint="@T["notifications.target.kind.hint"]"
                      Value="@target.Kind.ToString().ToLowerInvariant()"
                      ValueChanged="@(v => target.Kind = Enum.TryParse<NotificationTargetKind>(v, ignoreCase: true, out var k) ? k : NotificationTargetKind.Webhook)" />
-        <TextField Label="URL" Hint="@UrlHint(target.Kind)" Kind="TextFieldKind.Url" Placeholder="@UrlPlaceholder(target.Kind)" Password="true"
+        <TextField Label="@T["notifications.target.url.label"]" Hint="@UrlHint(target.Kind)" Kind="TextFieldKind.Url" Placeholder="@UrlPlaceholder(target.Kind)" Password="true"
                    @bind-Value="target.Url" />
         <SecretUnreadableHint Path="@($"notifications:targets:{index}:url")" />
-        <TextField Label="Bearer token" Hint="Optional. Sent as 'Authorization: Bearer …'. Stored encrypted on this PC; never logged." Password="true"
+        <TextField Label="@T["notifications.target.token.label"]" Hint="@T["notifications.target.token.hint"]" Password="true"
                    @bind-Value="target.Token" />
         <SecretUnreadableHint Path="@($"notifications:targets:{index}:token")" />
         <div class="field">
             <label class="field-label">
-                Events
-                <FieldHint Hint="Which milestones this target gets." />
+                @T["notifications.target.events.label"]
+                <FieldHint Hint="@T["notifications.target.events.hint"]" />
             </label>
             <div class="field-control">
                 <div class="notify-events">
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.RefuelComplete" /> Refuel complete</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.BoardingComplete" /> Boarding complete</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.FinalLoadsheetSent" /> Final loadsheet sent</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.ReadyForPushback" /> Ready for pushback</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.CabinSecure" /> Cabin secure</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.DeiceHoldoverExpiring" /> Deice holdover expiring</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.TopOfDescentApproaching" /> Top of descent approaching</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.Landed" /> Landed</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.OnBlocks" /> On blocks</label>
-                    <label><input type="checkbox" class="checkbox" @bind="target.Events.DeboardingComplete" /> Deboarding complete</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.RefuelComplete" /> @T["notifications.target.events.refuelComplete"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.BoardingComplete" /> @T["notifications.target.events.boardingComplete"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.FinalLoadsheetSent" /> @T["notifications.target.events.finalLoadsheetSent"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.ReadyForPushback" /> @T["notifications.target.events.readyForPushback"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.CabinSecure" /> @T["notifications.target.events.cabinSecure"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.DeiceHoldoverExpiring" /> @T["notifications.target.events.deiceHoldoverExpiring"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.TopOfDescentApproaching" /> @T["notifications.target.events.topOfDescentApproaching"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.Landed" /> @T["notifications.target.events.landed"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.OnBlocks" /> @T["notifications.target.events.onBlocks"]</label>
+                    <label><input type="checkbox" class="checkbox" @bind="target.Events.DeboardingComplete" /> @T["notifications.target.events.deboardingComplete"]</label>
                 </div>
             </div>
         </div>
         <div class="field" style="align-items:center;">
             <label class="field-label">
-                Send test
-                <FieldHint Hint="One test message to this target now, with the values above (save first if you changed them). Works with notifications off." />
+                @T["notifications.target.test.label"]
+                <FieldHint Hint="@T["notifications.target.test.hint"]" />
             </label>
             <div class="field-control" style="display:flex; align-items:center; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
                 <span class="field-hint @ResultTone(target)" style="margin:0;">@ResultLine(target)</span>
                 <button type="button" class="btn primary" style="padding:4px 12px;" disabled="@(_testing == index || string.IsNullOrWhiteSpace(target.Url))"
-                        @onclick="() => SendTestAsync(index)">@(_testing == index ? "Sending…" : "Send test")</button>
+                        @onclick="() => SendTestAsync(index)">@(_testing == index ? T["notifications.target.test.sending"].Value : T["notifications.target.test.send"].Value)</button>
             </div>
         </div>
     </Section>
@@ -94,13 +95,13 @@
 
 @if (_options.Value.Targets.Count == 0)
 {
-    <Section Title="Targets" Hint="Where the messages go">
-        <div class="field-hint">No targets yet — add your phone's ntfy topic or a webhook.</div>
+    <Section Title="@T["notifications.empty.title"]" Hint="@T["notifications.empty.hint"]">
+        <div class="field-hint">@T["notifications.empty.text"]</div>
     </Section>
 }
 
 <div style="margin:4px 0 16px;">
-    <button type="button" class="btn primary" @onclick="AddTarget">Add target</button>
+    <button type="button" class="btn primary" @onclick="AddTarget">@T["notifications.add"]</button>
 </div>
 
 <DirtyBar Visible="@BarVisible"
@@ -110,6 +111,7 @@
           OnDiscard="Discard" />
 
 @code {
+    // Service names, not prose — the same in every language.
     private static readonly IReadOnlyList<(string, string)> KindOptions =
         [("ntfy", "ntfy"), ("discord", "Discord"), ("webhook", "Webhook (JSON POST)")];
 
@@ -124,6 +126,8 @@
         WatchChanged(h => Dispatcher.Changed += h, h => Dispatcher.Changed -= h, () => { });
     }
 
+    // The stored default name stays English: it is the label the log lines and the dispatcher's
+    // result table carry, and the card title above reads it back whatever the language.
     private void AddTarget()
         => _options.Value.Targets.Add(new NotificationTarget { Name = $"Target {_options.Value.Targets.Count + 1}" });
 
@@ -162,7 +166,7 @@
     {
         var index = _options.Value.Targets.IndexOf(target);
         var last = LastResult(target, index);
-        return last is null ? "NEVER SENT" : last.Ok ? "OK" : "FAILED";
+        return last is null ? T["notifications.target.neverSent"].Value : last.Ok ? T["notifications.target.ok"].Value : T["notifications.target.failed"].Value;
     }
 
     private string StatusTone(NotificationTarget target)
@@ -177,18 +181,18 @@
     private string ResultTone(NotificationTarget target)
         => LastResult(target, _options.Value.Targets.IndexOf(target)) is { } r ? (r.Ok ? "notify-ok" : "notify-bad") : "";
 
-    private static string KindHint(NotificationTargetKind kind) => kind switch
+    private string KindHint(NotificationTargetKind kind) => kind switch
     {
-        NotificationTargetKind.Ntfy => "ntfy topic — the phone app subscribes to it",
-        NotificationTargetKind.Discord => "Discord channel webhook",
-        _ => "JSON POST to your own endpoint",
+        NotificationTargetKind.Ntfy => T["notifications.kindHint.ntfy"].Value,
+        NotificationTargetKind.Discord => T["notifications.kindHint.discord"].Value,
+        _ => T["notifications.kindHint.webhook"].Value,
     };
 
-    private static string UrlHint(NotificationTargetKind kind) => kind switch
+    private string UrlHint(NotificationTargetKind kind) => kind switch
     {
-        NotificationTargetKind.Ntfy => "The full topic URL. Treat it as a secret — anyone with it can read or post; stored encrypted.",
-        NotificationTargetKind.Discord => "The channel's webhook URL from Discord → Channel settings → Integrations. It carries its own secret; stored encrypted.",
-        _ => "An https address that accepts a JSON POST. Stored encrypted.",
+        NotificationTargetKind.Ntfy => T["notifications.urlHint.ntfy"].Value,
+        NotificationTargetKind.Discord => T["notifications.urlHint.discord"].Value,
+        _ => T["notifications.urlHint.webhook"].Value,
     };
 
     private static string UrlPlaceholder(NotificationTargetKind kind) => kind switch

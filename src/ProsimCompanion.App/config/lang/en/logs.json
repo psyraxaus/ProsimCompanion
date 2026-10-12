@@ -1,0 +1,63 @@
+{
+  "logs": {
+    "pageTitle": "Logs — ProsimCompanion",
+    "heading": "Logs",
+    "capture": {
+      "title": "Capture",
+      "hint": "What gets recorded — applies live, no restart",
+      "level": "Capture level",
+      "wireTrace": {
+        "label": "Wire trace",
+        "hint": "Raw GSX / gateway frames to a separate CMTrace file"
+      },
+      "mirror": {
+        "label": "Mirror to session log",
+        "hint": "Copies warnings and errors into the session event file, in order with the flight events, so one file tells the whole story",
+        "warningAndAbove": "Warnings and errors",
+        "errorAndAbove": "Errors only",
+        "off": "Off"
+      },
+      "telemetry": {
+        "label": "Telemetry API",
+        "hint": "Read-only: serves session event logs and log tails over the web server for post-flight checks. Other devices need the access token"
+      },
+      "totals": "Session totals — warnings: {0} · errors: {1}.",
+      "filesBefore": "The rolling files in",
+      "filesAfter": "are CMTrace format for live viewing in CMTrace."
+    },
+    "support": {
+      "title": "Support",
+      "hint": "One zip with everything a bug report needs",
+      "sessions": {
+        "label": "Session files",
+        "hint": "Newest session event logs to include"
+      },
+      "days": {
+        "label": "Log days",
+        "hint": "Newest daily app logs to include"
+      },
+      "wire": {
+        "label": "Include wire trace",
+        "hint": "Raw GSX / gateway frames for the same days — large; only when asked for"
+      },
+      "export": "Export diagnostics",
+      "copyVersion": "Copy version",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "bundleBefore": "The bundle holds the newest session event logs, the app logs, a copy of settings.json with every key and token redacted, and the version banner, with a manifest of file hashes. Attach it to a GitHub issue on psyraxaus/ProsimCompanion; \"Copy version\" puts",
+      "bundleAfter": "on the clipboard for the issue text."
+    },
+    "log": {
+      "title": "Log",
+      "hint": "View filter of captured entries",
+      "minLevel": "Min level",
+      "text": "Text",
+      "filterPlaceholder": "text or source…",
+      "pause": "Pause",
+      "time": "Time",
+      "level": "Level",
+      "source": "Source",
+      "message": "Message"
+    }
+  }
+}

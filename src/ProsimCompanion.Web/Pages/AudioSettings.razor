@@ -12,9 +12,10 @@
 @inject IOptionsMonitor<MixerOptions> MixerMonitor
 @inject IMixerClient Mixer
 @inject MixerStatusStore MixerStatus
+@inject IStringLocalizer T
 
-<PageTitle>Audio Control — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Audio Control</h1>
+<PageTitle>@T["audioSettings.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["audioSettings.heading"]</h1>
 
 @* Sections are URL-driven (settings/audio/{section}, ADR-0010); the rail lives in
    SettingsLayout. The audio master switch moved to Setup with the other pillar switches. *@
@@ -25,29 +26,29 @@
             }
             else if (CurrentSection == "general")
             {
-                <Section Title="Volume Control" Hint="Audio panel knobs and latches set app volumes">
-                    <SelectField Label="Backend" Hint="Windows app volumes, or VoiceMeeter strips and buses." More="Switching applies live. Windows volumes are restored, VoiceMeeter targets reset to 0 dB." Options="BackendOptions"
+                <Section Title="@T["audioSettings.general.title"]" Hint="@T["audioSettings.general.hint"]">
+                    <SelectField Label="@T["audioSettings.general.backend.label"]" Hint="@T["audioSettings.general.backend.hint"]" More="@T["audioSettings.general.backend.more"]" Options="BackendOptions"
                                  @bind-Value="BackendKey" />
-                    <BoolField Label="Disable ProSim native audio control" Hint="Turn off ProSim's own Windows volume control so the two never fight."
+                    <BoolField Label="@T["audioSettings.general.disableProsimNative.label"]" Hint="@T["audioSettings.general.disableProsimNative.hint"]"
                                @bind-Value="_audio.Value.DisableProsimNativeAudio" />
-                    <BoolField Label="Only while the audio panel is powered" Hint="On: knobs and latches apply only with the panel's bus powered, like the real aircraft. Off: they always apply, like the remote mixer."
-                               More="Power is AC/DC ESS plus the audio switching knob for the captain, audio switching for the first officer, DC1 for the observer. Switching this applies at once: the current knob values are sent again."
+                    <BoolField Label="@T["audioSettings.general.requirePower.label"]" Hint="@T["audioSettings.general.requirePower.hint"]"
+                               More="@T["audioSettings.general.requirePower.more"]"
                                @bind-Value="_audio.Value.RequireAcpPower" />
                 </Section>
             }
             else if (CurrentSection == "coreaudio")
             {
-                <Section Title="CoreAudio" Hint="Windows per-app volumes">
-                    <SelectField Label="ACP" Hint="Which audio control panel drives the app volumes." Options="AcpOptions"
+                <Section Title="CoreAudio" Hint="@T["audioSettings.coreAudio.hint"]">
+                    <SelectField Label="@T["audioSettings.coreAudio.acp.label"]" Hint="@T["audioSettings.coreAudio.acp.hint"]" Options="AcpOptions"
                                  @bind-Value="CoreAudioAcpKey" />
-                    <AdvancedFields Label="Troubleshooting filters hidden">
-                        <SelectField Label="Device-filter DataFlow" Hint="Troubleshooting only. Change when asked." Options="DeviceFlowOptions"
+                    <AdvancedFields Label="@T["audioSettings.coreAudio.troubleshooting"]">
+                        <SelectField Label="@T["audioSettings.coreAudio.deviceFlow.label"]" Hint="@T["audioSettings.coreAudio.deviceFlow.hint"]" Options="DeviceFlowOptions"
                                      @bind-Value="_audio.Value.DeviceFilterFlow" />
-                        <SelectField Label="Device-filter State" Hint="Troubleshooting only. Change when asked." Options="DeviceStateOptions"
+                        <SelectField Label="@T["audioSettings.coreAudio.deviceState.label"]" Hint="@T["audioSettings.coreAudio.deviceState.hint"]" Options="DeviceStateOptions"
                                      @bind-Value="_audio.Value.DeviceFilterState" />
                         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                             <button type="button" class="btn secondary" disabled="@_debugDumpBusy" @onclick="WriteDebugDump">
-                                @(_debugDumpBusy ? "Writing…" : "Write Debug Info")
+                                @(_debugDumpBusy ? T["audioSettings.coreAudio.debugDump.writing"].Value : T["audioSettings.coreAudio.debugDump.write"].Value)
                             </button>
                             @if (_debugDumpResult is not null)
                             {
@@ -57,16 +58,16 @@
                     </AdvancedFields>
                 </Section>
 
-                <Section Title="App Mappings" Hint="A channel may drive several processes">
+                <Section Title="@T["audioSettings.coreAudio.mappings.title"]" Hint="@T["audioSettings.coreAudio.mappings.hint"]">
                     @if (_audio.Value.AppMappings.Count == 0)
                     {
-                        <div class="empty">No app mappings configured.</div>
+                        <div class="empty">@T["audioSettings.coreAudio.mappings.empty"]</div>
                     }
                     else
                     {
                         <div class="audio-map-header">
-                            <span>Channel</span><span>Process</span><span>Device</span>
-                            <span>Latch</span><span>Active</span><span></span>
+                            <span>@T["audioSettings.coreAudio.mappings.channel"]</span><span>@T["audioSettings.coreAudio.mappings.process"]</span><span>@T["audioSettings.coreAudio.mappings.device"]</span>
+                            <span>@T["audioSettings.coreAudio.mappings.latch"]</span><span>@T["audioSettings.coreAudio.mappings.active"]</span><span></span>
                         </div>
                         @for (var i = 0; i < _audio.Value.AppMappings.Count; i++)
                         {
@@ -79,83 +80,79 @@
                                         <option value="@channel">@AudioPresentation.ChannelLabel(channel)</option>
                                     }
                                 </select>
-                                <input class="cell-input" placeholder="Process name (no .exe)" list="audio-process-suggestions" @bind="row.Binary" />
-                                <input class="cell-input" placeholder="All devices" list="audio-device-suggestions" @bind="row.Device" />
-                                <input type="checkbox" class="audio-cell-check" title="Drive mute from the REC latch"
+                                <input class="cell-input" placeholder="@T["audioSettings.coreAudio.mappings.processPlaceholder"]" list="audio-process-suggestions" @bind="row.Binary" />
+                                <input class="cell-input" placeholder="@T["audioSettings.coreAudio.mappings.devicePlaceholder"]" list="audio-device-suggestions" @bind="row.Device" />
+                                <input type="checkbox" class="audio-cell-check" title="@T["audioSettings.coreAudio.mappings.latchTitle"]"
                                        @bind="row.UseLatch" />
-                                <input type="checkbox" class="audio-cell-check" title="Only control active sessions"
+                                <input type="checkbox" class="audio-cell-check" title="@T["audioSettings.coreAudio.mappings.activeTitle"]"
                                        @bind="row.OnlyActive" />
-                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                <button type="button" class="remove-btn" title="@T["audioSettings.coreAudio.mappings.remove"]" aria-label="@T["audioSettings.coreAudio.mappings.remove"]"
                                         @onclick="() => _audio.Value.AppMappings.RemoveAt(index)">×</button>
                             </div>
                         }
                     }
                     <div style="margin-top:8px;">
                         <button type="button" class="btn secondary"
-                                @onclick="() => _audio.Value.AppMappings.Add(new AudioAppMapping())">Add mapping</button>
+                                @onclick="() => _audio.Value.AppMappings.Add(new AudioAppMapping())">@T["audioSettings.coreAudio.mappings.add"]</button>
                     </div>
                     <div class="field-hint" style="margin-top:8px; max-width:640px;">
-                        Process name without .exe, for example vPilot.
+                        @T["audioSettings.coreAudio.mappings.note"]
                         <details class="field-more">
-                            <summary>More</summary>
+                            <summary>@T["audioSettings.coreAudio.mappings.more"]</summary>
                             <span class="field-more-body">
-                                Latch off: mute is never written, so an app muted elsewhere stays muted.
-                                An app run as administrator needs ProsimCompanion run as administrator
-                                too; the Status section flags them. LOUDSPEAKER is the cockpit
-                                loudspeaker dial (captain and first officer only); its Latch tick
-                                mutes the app with the dial fully down.
+                                @T["audioSettings.coreAudio.mappings.moreBody"]
                             </span>
                         </details>
                     </div>
                 </Section>
 
-                <Section Title="Device Blacklist" Hint="Matched on the start of the device name">
+                <Section Title="@T["audioSettings.coreAudio.blacklist.title"]" Hint="@T["audioSettings.coreAudio.blacklist.hint"]">
                     <div class="list-editor">
                         @for (var i = 0; i < _audio.Value.DeviceBlacklist.Count; i++)
                         {
                             var index = i;
                             <div class="list-row">
-                                <input class="cell-input" placeholder="Device friendly name prefix"
+                                <input class="cell-input" placeholder="@T["audioSettings.coreAudio.blacklist.placeholder"]"
                                        list="audio-device-suggestions" @bind="_audio.Value.DeviceBlacklist[index]" />
-                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                <button type="button" class="remove-btn" title="@T["audioSettings.coreAudio.blacklist.remove"]" aria-label="@T["audioSettings.coreAudio.blacklist.remove"]"
                                         @onclick="() => _audio.Value.DeviceBlacklist.RemoveAt(index)">×</button>
                             </div>
                         }
                     </div>
                     <div style="margin-top:8px;">
                         <button type="button" class="btn secondary"
-                                @onclick="() => _audio.Value.DeviceBlacklist.Add(string.Empty)">Add device</button>
+                                @onclick="() => _audio.Value.DeviceBlacklist.Add(string.Empty)">@T["audioSettings.coreAudio.blacklist.add"]</button>
                     </div>
                 </Section>
             }
             else if (CurrentSection == "voicemeeter")
             {
-                <Section Title="VoiceMeeter" Hint="Strips and buses through VoiceMeeter's remote API">
+                <Section Title="VoiceMeeter" Hint="@T["audioSettings.voiceMeeter.hint"]">
                     <AdvancedFields>
-                        <TextField Label="VoicemeeterRemote64.dll path" Hint="Empty finds the installed VoiceMeeter by itself. Set only for an unusual install folder." Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.VoiceMeeter" BrowseFilter="VoicemeeterRemote64.dll|VoicemeeterRemote64.dll|DLL files (*.dll)|*.dll"
+                        <TextField Label="@T["audioSettings.voiceMeeter.dllPath.label"]" Hint="@T["audioSettings.voiceMeeter.dllPath.hint"]" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.VoiceMeeter" BrowseFilter="VoicemeeterRemote64.dll|VoicemeeterRemote64.dll|DLL files (*.dll)|*.dll"
                                    @bind-Value="_audio.Value.VoiceMeeterDllPath" />
                     </AdvancedFields>
                     <div style="margin:8px 0;">
-                        <button type="button" class="btn secondary" @onclick="ReloadTargets">Reload strips</button>
+                        <button type="button" class="btn secondary" @onclick="ReloadTargets">@T["audioSettings.voiceMeeter.reload"]</button>
                         <span class="field-hint" style="margin-left:8px;">
                             @(_vmTargets.Count > 0
-                                ? $"{_vmTargets.Count(t => !t.IsBus)} strips / {_vmTargets.Count(t => t.IsBus)} buses found"
-                                : "VoiceMeeter not reachable — generic strip/bus numbers shown")
+                                ? T["audioSettings.voiceMeeter.found", _vmTargets.Count(t => !t.IsBus), _vmTargets.Count(t => t.IsBus)].Value
+                                : T["audioSettings.voiceMeeter.notReachable"].Value)
                         </span>
                     </div>
                 </Section>
 
                 @foreach (var acp in Enum.GetValues<AcpSide>())
                 {
-                    <Section Title="@($"{AudioPresentation.AcpLabel(acp)} Mappings")">
-                        <BoolField Label="@($"Drive targets from the {AudioPresentation.AcpLabel(acp)} ACP")"
+                    <Section Title="@T["audioSettings.voiceMeeter.acpMappings", AudioPresentation.AcpLabel(acp)]">
+                        <BoolField Label="@T["audioSettings.voiceMeeter.driveFrom", AudioPresentation.AcpLabel(acp)]"
                                    Value="_audio.Value.ActiveAcps.Contains(acp)"
                                    ValueChanged="active => SetAcpActive(acp, active)" />
                         @{ var list = VmList(acp); }
                         @if (list.Count > 0)
                         {
                             <div class="audio-vm-header">
-                                <span>Channel</span><span>Target</span><span>Latch</span><span></span>
+                                <span>@T["audioSettings.voiceMeeter.channel"]</span><span>@T["audioSettings.voiceMeeter.target"]</span><span>@T["audioSettings.voiceMeeter.latch"]</span><span></span>
                             </div>
                             @for (var i = 0; i < list.Count; i++)
                             {
@@ -182,89 +179,85 @@
                                     @if (row.Channel.HasRecLatch())
                                     {
                                         <input type="checkbox" class="audio-cell-check"
-                                               title="Drive mute from the REC latch" @bind="row.UseLatch" />
+                                               title="@T["audioSettings.voiceMeeter.latchTitle"]" @bind="row.UseLatch" />
                                     }
                                     else
                                     {
                                         <input type="checkbox" class="audio-cell-check" checked disabled
-                                               title="No REC latch on this dial. Fully down always mutes the target." />
+                                               title="@T["audioSettings.voiceMeeter.noLatchTitle"]" />
                                     }
-                                    <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                    <button type="button" class="remove-btn" title="@T["audioSettings.voiceMeeter.remove"]" aria-label="@T["audioSettings.voiceMeeter.remove"]"
                                             @onclick="() => list.RemoveAt(index)">×</button>
                                 </div>
                             }
                         }
                         <div style="margin-top:8px;">
                             <button type="button" class="btn secondary"
-                                    @onclick="() => VmList(acp).Add(new VoiceMeeterTargetMapping())">Add mapping</button>
+                                    @onclick="() => VmList(acp).Add(new VoiceMeeterTargetMapping())">@T["audioSettings.voiceMeeter.add"]</button>
                         </div>
                     </Section>
                 }
 
                 <div class="field-hint" style="max-width:640px;">
-                    A channel may appear once per panel. A strip or bus may belong to one panel only.
+                    @T["audioSettings.voiceMeeter.oncePerPanel"]
                     <details class="field-more">
-                        <summary>More</summary>
+                        <summary>@T["audioSettings.voiceMeeter.more"]</summary>
                         <span class="field-more-body">
-                            Conflicting saves fall back to the captain's panel until fixed; the Status
-                            section shows why. Knob travel maps to −60 dB … +12 dB; 0 dB sits near 83 %.
+                            @T["audioSettings.voiceMeeter.oncePerPanelMore"]
                         </span>
                     </details>
                 </div>
                 <div class="field-hint" style="max-width:640px; margin-top:8px;">
-                    LOUDSPEAKER is the cockpit loudspeaker dial, on the captain's and first officer's lists.
+                    @T["audioSettings.voiceMeeter.loudspeaker"]
                     <details class="field-more">
-                        <summary>More</summary>
+                        <summary>@T["audioSettings.voiceMeeter.more"]</summary>
                         <span class="field-more-body">
-                            Map it to the strip or bus that feeds your cockpit speakers. The dial has
-                            no REC latch: fully down mutes the target. Manual chapter 8 (Loudspeaker
-                            dial) shows the VoiceMeeter wiring that puts the headset sound on the
-                            speakers.
+                            @T["audioSettings.voiceMeeter.loudspeakerMore"]
                         </span>
                     </details>
                 </div>
             }
             else if (CurrentSection == "mixer")
             {
-                <Section Title="Remote Mixer" Hint="Voicemeeter on another PC, through the VoicemeeterBridge agent">
-                    <BoolField Label="Enable remote mixer" Hint="Connects to the agent and drives the mappings below. Off opens no connection."
-                               More="The local VoiceMeeter backend above drives the VoiceMeeter on this PC. This card drives a VoiceMeeter on another PC, for example the one running vPilot. Setup for both PCs: docs/integrations/voicemeeter-bridge.md."
+                <Section Title="@T["audioSettings.mixer.title"]" Hint="@T["audioSettings.mixer.hint"]">
+                    <BoolField Label="@T["audioSettings.mixer.enable.label"]" Hint="@T["audioSettings.mixer.enable.hint"]"
+                               More="@T["audioSettings.mixer.enable.more"]"
                                @bind-Value="_mixer.Value.Enabled" />
-                    <TextField Label="Host" Hint="Name or IP address of the PC running VoicemeeterBridge." Kind="TextFieldKind.Host" Placeholder="192.168.1.20"
+                    <TextField Label="@T["audioSettings.mixer.host.label"]" Hint="@T["audioSettings.mixer.host.hint"]" Kind="TextFieldKind.Host" Placeholder="192.168.1.20"
                                @bind-Value="_mixer.Value.Host" />
-                    <NumberField Label="Port" Hint="The agent's port. 5088 unless you changed it there." Min="1" Max="65535"
+                    <NumberField Label="@T["audioSettings.mixer.port.label"]" Hint="@T["audioSettings.mixer.port.hint"]" Min="1" Max="65535"
                                  @bind-Value="_mixer.Value.Port" Default="_mixer.Defaults.Port" />
-                    <TextField Label="Token" Hint="From the agent's tray menu, Copy token. Stored encrypted, never logged." Password="true"
+                    <TextField Label="@T["audioSettings.mixer.token.label"]" Hint="@T["audioSettings.mixer.token.hint"]" Password="true"
                                @bind-Value="_mixer.Value.Token" />
                     <SecretUnreadableHint Path="mixer:token" />
                     <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
                         <button type="button" class="btn secondary" disabled="@_mixerTestBusy" @onclick="TestMixer"
-                                title="Open a connection with the values above, saved or not, and read the agent's welcome.">
-                            @(_mixerTestBusy ? "Testing…" : "Test connection")
+                                title="@T["audioSettings.mixer.testTitle"]">
+                            @(_mixerTestBusy ? T["audioSettings.mixer.testing"].Value : T["audioSettings.mixer.test"].Value)
                         </button>
                         @if (_mixerTestResult is { } test)
                         {
                             <span class="pill @(test.Ok ? "tone-ok" : "tone-bad")">@test.Message</span>
                         }
-                        <span class="pill @MixerStateTone(_mixerLive.State)" title="Live state of the saved connection">
+                        <span class="pill @MixerStateTone(_mixerLive.State)" title="@T["audioSettings.mixer.liveTitle"]">
                             @MixerStateLabel(_mixerLive)
                         </span>
                     </div>
                     <AdvancedFields>
-                        <NumberField Label="Reconnect delay" Hint="First retry after a drop. Doubles up to the maximum." Suffix="ms" Min="500"
+                        <NumberField Label="@T["audioSettings.mixer.reconnectDelay.label"]" Hint="@T["audioSettings.mixer.reconnectDelay.hint"]" Suffix="ms" Min="500"
                                      @bind-Value="_mixer.Value.ReconnectDelayMs" Default="_mixer.Defaults.ReconnectDelayMs" />
-                        <NumberField Label="Reconnect maximum" Suffix="ms" Min="1000"
+                        <NumberField Label="@T["audioSettings.mixer.reconnectMax.label"]" Suffix="ms" Min="1000"
                                      @bind-Value="_mixer.Value.ReconnectMaxDelayMs" Default="_mixer.Defaults.ReconnectMaxDelayMs" />
-                        <NumberField Label="Write timeout" Hint="How long a write waits for the agent's answer." Suffix="ms" Min="250"
+                        <NumberField Label="@T["audioSettings.mixer.writeTimeout.label"]" Hint="@T["audioSettings.mixer.writeTimeout.hint"]" Suffix="ms" Min="250"
                                      @bind-Value="_mixer.Value.SetTimeoutMs" Default="_mixer.Defaults.SetTimeoutMs" />
-                        <NumberField Label="Gain, knob fully down" Hint="−60 dB is as good as silent." Suffix="dB" Step="0.5"
+                        <NumberField Label="@T["audioSettings.mixer.gainMin.label"]" Hint="@T["audioSettings.mixer.gainMin.hint"]" Suffix="dB" Step="0.5"
                                      @bind-Value="_mixer.Value.GainMinDb" Default="_mixer.Defaults.GainMinDb" />
-                        <NumberField Label="Gain, knob fully up" Hint="+12 dB like the local backend (0 dB near 83 % of the knob). Set 0 for a strip that must never go past unity." Suffix="dB" Step="0.5"
+                        <NumberField Label="@T["audioSettings.mixer.gainMax.label"]" Hint="@T["audioSettings.mixer.gainMax.hint"]" Suffix="dB" Step="0.5"
                                      @bind-Value="_mixer.Value.GainMaxDb" Default="_mixer.Defaults.GainMaxDb" />
                     </AdvancedFields>
                 </Section>
 
-                <Section Title="Status Panel" Hint="Which strips and buses the Status section shows, with mute buttons">
+                <Section Title="@T["audioSettings.mixer.panel.title"]" Hint="@T["audioSettings.mixer.panel.hint"]">
                     @if (Mixer.Channels.Count > 0)
                     {
                         <div class="mixer-channel-grid">
@@ -278,35 +271,35 @@
                                 </label>
                             }
                         </div>
-                        <FieldHint Hint="Tick the strips and buses to show. Names come from the mixer PC's Voicemeeter." />
+                        <FieldHint Hint="@T["audioSettings.mixer.panel.pickHint"]" />
                     }
                     else
                     {
-                        <TextField Label="Strips" Hint="Strip numbers as Voicemeeter shows them (1 = first), comma separated. Example: 1, 2, 3" Kind="TextFieldKind.IntList"
+                        <TextField Label="@T["audioSettings.mixer.panel.strips.label"]" Hint="@T["audioSettings.mixer.panel.strips.hint"]" Kind="TextFieldKind.IntList"
                                    Value="@_mixerStripsText" ValueChanged="SetMixerStrips" />
-                        <TextField Label="Buses" Hint="Bus numbers (1 = A1), comma separated. Example: 1, 4" Kind="TextFieldKind.IntList"
+                        <TextField Label="@T["audioSettings.mixer.panel.buses.label"]" Hint="@T["audioSettings.mixer.panel.buses.hint"]" Kind="TextFieldKind.IntList"
                                    Value="@_mixerBusesText" ValueChanged="SetMixerBuses" />
-                        <FieldHint Hint="Once the agent is connected the strips and buses appear here by name, as tick boxes." />
+                        <FieldHint Hint="@T["audioSettings.mixer.panel.pendingHint"]" />
                     }
                     <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
                         <button type="button" class="btn secondary" disabled="@_mixerReloadBusy" @onclick="ReloadMixerChannels"
-                                title="Read the strip and bus names from the mixer PC again (after renaming one in Voicemeeter).">
-                            @(_mixerReloadBusy ? "Reading…" : "Reload channels")
+                                title="@T["audioSettings.mixer.panel.reloadTitle"]">
+                            @(_mixerReloadBusy ? T["audioSettings.mixer.panel.reading"].Value : T["audioSettings.mixer.panel.reload"].Value)
                         </button>
                         <span class="field-hint">@MixerChannelSummary</span>
                     </div>
                 </Section>
 
-                <Section Title="Mappings" Hint="An audio-panel channel drives one strip or bus on the mixer PC">
+                <Section Title="@T["audioSettings.mixer.mappings.title"]" Hint="@T["audioSettings.mixer.mappings.hint"]">
                     @if (_mixer.Value.Mappings.Count == 0)
                     {
-                        <div class="empty">No mappings yet. Add one below.</div>
+                        <div class="empty">@T["audioSettings.mixer.mappings.empty"]</div>
                     }
                     else
                     {
                         <div class="mixer-map-header">
-                            <span>On</span><span>Panel</span><span>Channel</span><span>Strip / bus</span>
-                            <span title="Drive the target's Mute from the REC push-button">Latch</span><span>Live</span><span></span>
+                            <span>@T["audioSettings.mixer.mappings.on"]</span><span>@T["audioSettings.mixer.mappings.panel"]</span><span>@T["audioSettings.mixer.mappings.channel"]</span><span>@T["audioSettings.mixer.mappings.target"]</span>
+                            <span title="@T["audioSettings.mixer.mappings.latchTitle"]">@T["audioSettings.mixer.mappings.latch"]</span><span>@T["audioSettings.mixer.mappings.live"]</span><span></span>
                         </div>
                         @for (var i = 0; i < _mixer.Value.Mappings.Count; i++)
                         {
@@ -315,7 +308,7 @@
                             var live = _mixerLive.Mappings.FirstOrDefault(m =>
                                 m.Acp == row.Acp && m.Channel == row.Channel && m.IsBus == row.IsBus && m.StripIndex == row.StripIndex);
                             <div class="mixer-map-row">
-                                <input type="checkbox" class="audio-cell-check" title="Off keeps the row without using it" @bind="row.Enabled" />
+                                <input type="checkbox" class="audio-cell-check" title="@T["audioSettings.mixer.mappings.enabledTitle"]" @bind="row.Enabled" />
                                 <select class="cell-select" @bind="row.Acp">
                                     @foreach (var acp in Enum.GetValues<AcpSide>())
                                     {
@@ -340,36 +333,28 @@
                                 </select>
                                 @if (row.Channel.HasRecLatch())
                                 {
-                                    <input type="checkbox" class="audio-cell-check" title="Drive the target's Mute from the REC push-button" @bind="row.UseLatch" />
+                                    <input type="checkbox" class="audio-cell-check" title="@T["audioSettings.mixer.mappings.latchTitle"]" @bind="row.UseLatch" />
                                 }
                                 else
                                 {
                                     <input type="checkbox" class="audio-cell-check" checked disabled
-                                           title="No REC push-button on this dial. Fully down always mutes the target." />
+                                           title="@T["audioSettings.mixer.mappings.noLatchTitle"]" />
                                 }
-                                <span class="mono" title="Gain and mute last sent, and the agent's answer">@LiveText(live)</span>
-                                <button type="button" class="remove-btn" title="Remove" aria-label="Remove"
+                                <span class="mono" title="@T["audioSettings.mixer.mappings.liveTitle"]">@LiveText(live)</span>
+                                <button type="button" class="remove-btn" title="@T["audioSettings.mixer.mappings.remove"]" aria-label="@T["audioSettings.mixer.mappings.remove"]"
                                         @onclick="() => _mixer.Value.Mappings.RemoveAt(index)">×</button>
                             </div>
                         }
                     }
                     <div style="margin-top:8px;">
-                        <button type="button" class="btn secondary" @onclick="AddMixerMapping">Add mapping</button>
+                        <button type="button" class="btn secondary" @onclick="AddMixerMapping">@T["audioSettings.mixer.mappings.add"]</button>
                     </div>
                     <div class="field-hint" style="margin-top:8px; max-width:640px;">
-                        The knob sets the strip or bus gain; Latch ticked, the REC push-button mutes it.
-                        Strip and bus names come from the mixer PC once the agent is connected.
+                        @T["audioSettings.mixer.mappings.note"]
                         <details class="field-more">
-                            <summary>More</summary>
+                            <summary>@T["audioSettings.mixer.mappings.more"]</summary>
                             <span class="field-more-body">
-                                Knob travel maps to the gain range under the connection card's advanced
-                                fields (−60 dB … +12 dB by default, like the local VoiceMeeter backend;
-                                0 dB sits near 83 %). Latch off: the mute is never written, so a strip
-                                muted on the mixer PC stays muted. LOUDSPEAKER is the cockpit dial: no
-                                push-button, fully down mutes the target. Writes go out at most 20 times a
-                                second per parameter, latest value wins. The knob value goes out whether
-                                the audio panel is powered or not. Two rows on one strip: the last one
-                                to move wins.
+                                @T["audioSettings.mixer.mappings.moreBody"]
                             </span>
                         </details>
                     </div>
@@ -378,20 +363,20 @@
             }
             else
             {
-                <Section Title="Housekeeping" Hint="Proven timings. Rarely need changing" Advanced="true">
-                    <NumberField Label="Run interval" Hint="Main check. Takes effect after an app restart." Suffix="ms" Min="250"
+                <Section Title="@T["audioSettings.housekeeping.title"]" Hint="@T["audioSettings.housekeeping.hint"]" Advanced="true">
+                    <NumberField Label="@T["audioSettings.housekeeping.runInterval.label"]" Hint="@T["audioSettings.housekeeping.runInterval.hint"]" Suffix="ms" Min="250"
                                  @bind-Value="_audio.Value.RunIntervalMs"
                                  Default="_audio.Defaults.RunIntervalMs" />
-                    <NumberField Label="Process check interval" Suffix="ms" Min="500"
+                    <NumberField Label="@T["audioSettings.housekeeping.processCheck.label"]" Suffix="ms" Min="500"
                                  @bind-Value="_audio.Value.ProcessCheckIntervalMs"
                                  Default="_audio.Defaults.ProcessCheckIntervalMs" />
-                    <NumberField Label="Process startup grace" Hint="Wait after a mapped app starts before looking for its sound." Suffix="ms" Min="0"
+                    <NumberField Label="@T["audioSettings.housekeeping.startupGrace.label"]" Hint="@T["audioSettings.housekeeping.startupGrace.hint"]" Suffix="ms" Min="0"
                                  @bind-Value="_audio.Value.ProcessStartupDelayMs"
                                  Default="_audio.Defaults.ProcessStartupDelayMs" />
-                    <NumberField Label="Device rescan interval" Suffix="ms" Min="5000"
+                    <NumberField Label="@T["audioSettings.housekeeping.deviceRescan.label"]" Suffix="ms" Min="5000"
                                  @bind-Value="_audio.Value.DeviceCheckIntervalMs"
                                  Default="_audio.Defaults.DeviceCheckIntervalMs" />
-                    <NumberField Label="Max session searches" Hint="Failed lookups before the devices are scanned again." Min="1"
+                    <NumberField Label="@T["audioSettings.housekeeping.maxSearches.label"]" Hint="@T["audioSettings.housekeeping.maxSearches.hint"]" Min="1"
                                  @bind-Value="_audio.Value.ProcessMaxSearchCount"
                                  Default="_audio.Defaults.ProcessMaxSearchCount" />
                 </Section>
@@ -427,33 +412,35 @@
 
     private string CurrentSection => SettingsNav.ResolveSection(SettingsNav.AudioSections, Section);
 
-    private static readonly IReadOnlyList<(string, string)> BackendOptions =
+    // The option lists read the localizer, so they are built per render rather than once per
+    // type (ADR-0014): the language can change under an open page.
+    private IReadOnlyList<(string, string)> BackendOptions =>
     [
-        ("coreAudio", "CoreAudio (Windows app volumes)"),
-        ("voiceMeeter", "VoiceMeeter (strips/buses)"),
+        ("coreAudio", T["audioSettings.general.backend.coreAudio"].Value),
+        ("voiceMeeter", T["audioSettings.general.backend.voiceMeeter"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> AcpOptions =
+    private IReadOnlyList<(string, string)> AcpOptions =>
     [
-        ("captain", "Captain (ACP1)"),
-        ("firstOfficer", "First Officer (ACP2)"),
-        ("observer", "Observer (ACP3)"),
+        ("captain", T["audioSettings.coreAudio.acp.captain"].Value),
+        ("firstOfficer", T["audioSettings.coreAudio.acp.firstOfficer"].Value),
+        ("observer", T["audioSettings.coreAudio.acp.observer"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> DeviceFlowOptions =
+    private IReadOnlyList<(string, string)> DeviceFlowOptions =>
     [
-        ("render", "Render"),
-        ("capture", "Capture"),
-        ("all", "All"),
+        ("render", T["audioSettings.coreAudio.deviceFlow.render"].Value),
+        ("capture", T["audioSettings.coreAudio.deviceFlow.capture"].Value),
+        ("all", T["audioSettings.coreAudio.deviceFlow.all"].Value),
     ];
 
-    private static readonly IReadOnlyList<(string, string)> DeviceStateOptions =
+    private IReadOnlyList<(string, string)> DeviceStateOptions =>
     [
-        ("active", "Active"),
-        ("disabled", "Disabled"),
-        ("notPresent", "Not present"),
-        ("unplugged", "Unplugged"),
-        ("all", "All (mask all)"),
+        ("active", T["audioSettings.coreAudio.deviceState.active"].Value),
+        ("disabled", T["audioSettings.coreAudio.deviceState.disabled"].Value),
+        ("notPresent", T["audioSettings.coreAudio.deviceState.notPresent"].Value),
+        ("unplugged", T["audioSettings.coreAudio.deviceState.unplugged"].Value),
+        ("all", T["audioSettings.coreAudio.deviceState.all"].Value),
     ];
 
     private bool _debugDumpBusy;
@@ -466,7 +453,7 @@
         try
         {
             var path = await AudioControl.WriteDebugDumpAsync();
-            _debugDumpResult = path is not null ? $"Written to {path}" : "Dump failed — see the app log";
+            _debugDumpResult = path is not null ? T["audioSettings.coreAudio.debugDump.written", path].Value : T["audioSettings.coreAudio.debugDump.failed"].Value;
         }
         finally
         {
@@ -505,10 +492,10 @@
     private string? MixerKind => _mixerLive.Voicemeeter.Kind;
 
     private string MixerChannelSummary => Mixer.Channels.Count > 0
-        ? $"{Mixer.Channels.Count(c => !c.IsBus)} strips / {Mixer.Channels.Count(c => c.IsBus)} buses on the mixer PC"
+        ? T["audioSettings.mixer.panel.summary", Mixer.Channels.Count(c => !c.IsBus), Mixer.Channels.Count(c => c.IsBus)].Value
         : _mixerLive.State == MixerConnectionState.Connected
-            ? "Reading the strips and buses…"
-            : "Agent not connected — generic strip/bus numbers shown";
+            ? T["audioSettings.mixer.panel.summaryReading"].Value
+            : T["audioSettings.mixer.panel.summaryOffline"].Value;
 
     /// <summary>Targets to offer: the remote inventory when known, else Potato-sized generic
     /// numbers (8 strips / 8 buses) so a mapping can be prepared before the first connect.</summary>
@@ -561,7 +548,7 @@
         _mixer.Value.Mappings.Add(new MixerMapping { Acp = AcpSide.Captain, Channel = channel, StripIndex = 0, IsBus = false, UseLatch = true });
     }
 
-    private static string LiveText(MixerMappingStatus? live)
+    private string LiveText(MixerMappingStatus? live)
     {
         if (live is null || (live.GainDb is null && live.Muted is null))
         {
@@ -569,7 +556,7 @@
         }
 
         var gain = live.GainDb is { } g ? g.ToString("0.0", CultureInfo.InvariantCulture) + " dB" : "—";
-        var mute = live.Muted is { } m ? (m ? " · muted" : " · open") : "";
+        var mute = live.Muted is { } m ? " · " + (m ? T["audioSettings.mixer.mappings.liveMuted"].Value : T["audioSettings.mixer.mappings.liveOpen"].Value) : "";
         var result = live.LastResult is { } r && r != "ok" ? $" ({r})" : "";
         return gain + mute + result;
     }
@@ -630,14 +617,16 @@
         }
     }
 
-    private static string MixerStateLabel(MixerStatusSnapshot live) => live.State switch
+    private string MixerStateLabel(MixerStatusSnapshot live) => live.State switch
     {
         MixerConnectionState.Connected => live.Voicemeeter.Connected
-            ? $"Connected — Voicemeeter {live.Voicemeeter.Kind} {live.Voicemeeter.Version}"
-            : "Connected — Voicemeeter not running on the mixer PC",
-        MixerConnectionState.Connecting => "Connecting…",
-        MixerConnectionState.Disconnected => live.LastError is { Length: > 0 } error ? $"Unreachable — {error}" : "Unreachable — retrying",
-        _ => live.Enabled ? "Off — no host" : "Off",
+            ? T["audioSettings.mixer.state.connected", live.Voicemeeter.Kind ?? "", live.Voicemeeter.Version ?? ""].Value
+            : T["audioSettings.mixer.state.connectedNoVoicemeeter"].Value,
+        MixerConnectionState.Connecting => T["audioSettings.mixer.state.connecting"].Value,
+        MixerConnectionState.Disconnected => live.LastError is { Length: > 0 } error
+            ? T["audioSettings.mixer.state.unreachable", error].Value
+            : T["audioSettings.mixer.state.unreachableRetrying"].Value,
+        _ => live.Enabled ? T["audioSettings.mixer.state.offNoHost"].Value : T["audioSettings.mixer.state.off"].Value,
     };
 
     private static string MixerStateTone(MixerConnectionState state) => state switch

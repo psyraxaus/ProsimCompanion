@@ -1,0 +1,144 @@
+{
+  "flightPhase": {
+    "pageTitle": "Fase de vuelo — ProsimCompanion",
+    "heading": "Ajustes de fase de vuelo",
+    "speeds": {
+      "title": "Velocidades",
+      "hint": "Se aplica en vivo, sin reiniciar. Los valores por defecto son los probados en los vuelos de prueba de 2026-08 — cámbialos con una grabación reproducida que muestre por qué.",
+      "takeoffRollHold": {
+        "label": "Mantener carrera de despegue por encima de",
+        "hint": "Por encima de esta IAS se mantiene la carrera aunque el empuje de despegue lea momentáneamente no fijado (rebote del detent FLEX)"
+      },
+      "rolloutComplete": {
+        "label": "Rodadura completa por debajo de",
+        "hint": "La rodadura de aterrizaje pasa a Taxi In cuando la IAS baja de esto"
+      },
+      "pushbackMax": {
+        "label": "Velocidad máx. en tierra para pushback",
+        "hint": "Beacon + APU por encima de esta velocidad en tierra es un rodaje, no un pushback"
+      },
+      "parkedBelow": {
+        "label": "Aparcado por debajo de",
+        "hint": "Velocidad en tierra por debajo de la cual el avión cuenta como detenido (las cabinas de hardware marcan 1–2 kt en reposo)"
+      }
+    },
+    "vertical": {
+      "title": "Vertical",
+      "initialClimb": {
+        "label": "Techo del ascenso inicial",
+        "hint": "Por debajo de esta radioaltitud una salida sigue en Initial Climb"
+      },
+      "levelBand": {
+        "label": "Banda de vuelo nivelado",
+        "hint": "|VS| por debajo de esto es nivelado; por encima, ascenso"
+      },
+      "approachCeiling": {
+        "label": "Techo de aproximación",
+        "hint": "Descender (o nivelado con tren abajo) por debajo de esta radioaltitud es Approach"
+      },
+      "goAroundRate": {
+        "label": "Régimen de ascenso de motor y al aire",
+        "hint": "Salir de Approach hacia arriba exige al menos esta VS — un amago de nivelación no debe leerse como motor y al aire"
+      },
+      "descentEntry": {
+        "label": "Régimen de entrada en descenso",
+        "hint": "Entrar en Descent exige un régimen de descenso al menos así de decidido"
+      },
+      "descentExit": {
+        "label": "Régimen de salida de descenso",
+        "hint": "Una vez en descenso, un segmento más suave que esto sigue contando como descenso"
+      }
+    },
+    "cruise": {
+      "title": "Umbral de crucero",
+      "hint": "El vuelo nivelado solo se lee como Cruise cerca de la altitud de crucero del FMS (una nivelación en la SID no es crucero)",
+      "tolerance": {
+        "label": "Tolerancia por debajo del crucero FMS"
+      },
+      "floor": {
+        "label": "Suelo sin crucero FMS",
+        "hint": "Sin altitud de crucero introducida, el vuelo nivelado debe estar por encima de esto"
+      }
+    },
+    "ground": {
+      "title": "Tierra y escala",
+      "agreement": {
+        "label": "Concordancia de contacto con tierra",
+        "hint": "Muestras consecutivas (250 ms cada una) en las que la señal en tierra debe coincidir antes de cambiar tierra/aire; 1 desactiva el filtro"
+      },
+      "turnaround": {
+        "label": "Espera de escala",
+        "hint": "Tras completar el desembarque, aparcado (motores apagados, freno puesto, beacon apagado) durante este tiempo pasa de Shutdown → Preflight sin reinicio cold-and-dark"
+      },
+      "heartbeat": {
+        "label": "Intervalo de latido en el registro",
+        "hint": "Una línea de registro 'sigo pensando' mientras está en vivo; 0 lo desactiva"
+      }
+    },
+    "pause": {
+      "title": "Pausa de MSFS",
+      "hint": "Escape en MSFS abandona la sesión de vuelo un momento. Dentro de la gracia, con el avión donde estaba, la fase y sus latches se conservan y 'Flight live' simplemente se apaga y se vuelve a encender; más tiempo, o un respawn, reinicia la fase como salir al menú.",
+      "grace": {
+        "label": "Gracia de pausa",
+        "hint": "Cuánto puede ausentarse la sesión (con la señal de pausa de MSFS activa) antes de contar como fin real de sesión; 0 reinicia al instante"
+      },
+      "position": {
+        "label": "Misma posición dentro de",
+        "hint": "Al reanudar, el avión debe estar así de cerca de donde estaba; más lejos es un respawn"
+      },
+      "fuel": {
+        "label": "Mismo combustible dentro de",
+        "hint": "Al reanudar, el combustible a bordo debe estar así de cerca de la cifra previa a la pausa; un salto mayor es una recarga"
+      }
+    },
+    "settle": {
+      "title": "Tiempos de asentamiento",
+      "hint": "Cuánto debe persistir la evidencia de una transición antes de confirmarse",
+      "default": "Por defecto",
+      "enterCruise": "Entrar en Cruise",
+      "descentToCruise": {
+        "label": "Descent → Cruise",
+        "hint": "Los segmentos nivelados de un descenso escalonado no deben oscilar"
+      },
+      "cruiseToClimb": {
+        "label": "Cruise → Climb",
+        "hint": "Un pico de VS en crucero es turbulencia; un step climb se sostiene"
+      },
+      "descentToClimb": {
+        "label": "Descent → Climb",
+        "hint": "Una nivelación en el descenso oscila hacia arriba unos segundos; un reascenso por instrucción de ATC se sostiene"
+      },
+      "goAround": "Motor y al aire",
+      "departureRegression": {
+        "label": "Regresión de salida",
+        "hint": "Volver de Pushback/Taxi Out/Take-off Roll a Preflight exige una contradicción sostenida"
+      },
+      "firstAirborne": {
+        "label": "Primera clasificación en vuelo",
+        "hint": "Una sesión cuya primera clasificación es una fase de vuelo (reinicio en pleno vuelo o basura de calentamiento) debe sostenerse este tiempo"
+      }
+    },
+    "recorder": {
+      "title": "Registrador de vuelo",
+      "hint": "Muestras compactas por segundo en el registro de sesión para que cualquier vuelo pueda reproducirse por el motor de fases sin conexión (ver docs/agents/flight-verification.md)",
+      "record": "Grabar muestras de vuelo",
+      "interval": "Intervalo de muestreo",
+      "keepAlive": {
+        "label": "Keep-alive",
+        "hint": "Las muestras sin cambios se omiten; aun así se escribe una al menos con esta frecuencia"
+      }
+    },
+    "rules": {
+      "title": "Tabla de reglas",
+      "hint": "Orden de evaluación, gana la primera coincidencia. 'hold' mantiene la fase actual. Solo lectura — las reglas viven en el código; los umbrales de arriba las alimentan.",
+      "set": "Conjunto",
+      "rule": "Regla",
+      "from": "Desde",
+      "to": "Hasta",
+      "ground": "Tierra",
+      "airborne": "En vuelo",
+      "any": "cualquiera",
+      "hold": "hold"
+    }
+  }
+}

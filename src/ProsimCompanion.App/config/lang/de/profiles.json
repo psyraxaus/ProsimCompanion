@@ -1,0 +1,40 @@
+{
+  "profiles": {
+    "pageTitle": "Flugzeugprofile — ProsimCompanion",
+    "heading": "Flugzeugprofile",
+    "current": {
+      "title": "Aktuelles Flugzeug",
+      "notConnected": "Sim nicht verbunden — die Profilzuordnung nutzt die Standardwerte",
+      "titleLivery": "Titel / Bemalung",
+      "airline": "Airline",
+      "activeProfile": "Aktives Profil",
+      "defaults": "— (Standard)",
+      "manual": "MANUELL",
+      "returnToAutomatic": "Zurück zur automatischen Zuordnung"
+    },
+    "list": {
+      "title": "Profile",
+      "hint": "Abgeglichen mit dem im Sim geladenen Flugzeug. Exakter Treffer schlägt Enthält; ohne Treffer gelten die Standardwerte",
+      "bannerBefore": "Ein Profil enthält die Bodendienste-Einstellungen. Speichern auf den Seiten",
+      "bannerLink": "Bodendienste",
+      "bannerAfter": "bei aktivem Profil legt sie in diesem Profil ab, und sie kommen zurück, sobald dieses Flugzeug das nächste Mal lädt.",
+      "namePlaceholder": "Profilname",
+      "active": "AKTIV",
+      "default": "STANDARD",
+      "setActive": "Aktivieren",
+      "clone": "Klonen",
+      "delete": "Löschen",
+      "match": "Abgleich",
+      "matchContains": "Titel / Bemalung (enthält)",
+      "matchExact": "Titel / Bemalung (exakt)",
+      "matchAirline": "Airline (ICAO-Präfix)",
+      "matchDefault": "Standard (Rückfall)",
+      "fragmentPlaceholder": "Teil des Flugzeugtitels",
+      "matchesCurrent": "passt zum aktuellen",
+      "empty": "Keine Profile — jedes Flugzeug nutzt die Standardeinstellungen.",
+      "add": "Profil hinzufügen",
+      "newName": "Profil {0}",
+      "cloneName": "Klon von {0}"
+    }
+  }
+}

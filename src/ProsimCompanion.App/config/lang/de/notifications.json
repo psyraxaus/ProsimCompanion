@@ -1,0 +1,88 @@
+{
+  "notifications": {
+    "pageTitle": "Benachrichtigungen — ProsimCompanion",
+    "heading": "Benachrichtigungen",
+    "main": {
+      "title": "Benachrichtigungen",
+      "hint": "Eine kurze Nachricht an dein Telefon oder einen Webhook zu den Meilensteinen des Flugs",
+      "enabled": {
+        "label": "Benachrichtigungen senden",
+        "hint": "Aus: nichts verlässt diesen PC. Ein: jedes Ziel unten bekommt die Meilensteine, die es angehakt hat.",
+        "more": "Meilensteine: Betankung abgeschlossen · Boarding abgeschlossen · finales Loadsheet gesendet · bereit zum Pushback · Kabine gesichert · Enteisungs-Holdover läuft ab · Top of Descent naht · gelandet · On Blocks · Deboarding abgeschlossen. Jeder löst einmal pro Flug aus; ein überarbeitetes finales Loadsheet löst erneut aus. Ein langsames oder totes Ziel verzögert nie die Bodenautomatik oder den Ersten Offizier — Sendungen laufen im Hintergrund mit 5 Sekunden Limit, und ein fehlschlagendes Ziel bleibt eine Minute lang unbehelligt."
+      },
+      "cooldown": {
+        "label": "Abklingzeit nach Fehler",
+        "hint": "Wie lange ein Ziel nach einer fehlgeschlagenen Sendung in Ruhe gelassen wird."
+      },
+      "timeout": {
+        "label": "Sende-Timeout",
+        "hint": "Je Sendung. Ein langsamer Dienst gilt danach als fehlgeschlagen."
+      },
+      "holdover": {
+        "label": "Holdover-Warnung",
+        "hint": "Verbleibende Minuten Enteisungs-Holdover, bei denen 'Holdover läuft ab' gesendet wird."
+      }
+    },
+    "target": {
+      "defaultTitle": "Ziel {0}",
+      "status": "Status",
+      "removeTitle": "Dieses Ziel entfernen",
+      "remove": "Entfernen",
+      "name": {
+        "label": "Name",
+        "hint": "Deine Bezeichnung dafür — was Protokoll und Ergebniszeile zeigen.",
+        "placeholder": "Mein Telefon"
+      },
+      "kind": {
+        "label": "Art",
+        "hint": "ntfy = ein Topic auf ntfy.sh oder deinem eigenen Server. Discord = ein Kanal-Webhook. Webhook = jede https-Adresse, die einen JSON-POST annimmt (Schema in docs/integrations/notifications.md)."
+      },
+      "url": {
+        "label": "URL"
+      },
+      "token": {
+        "label": "Bearer-Token",
+        "hint": "Optional. Gesendet als 'Authorization: Bearer …'. Auf diesem PC verschlüsselt gespeichert; nie protokolliert."
+      },
+      "events": {
+        "label": "Ereignisse",
+        "hint": "Welche Meilensteine dieses Ziel bekommt.",
+        "refuelComplete": "Betankung abgeschlossen",
+        "boardingComplete": "Boarding abgeschlossen",
+        "finalLoadsheetSent": "Finales Loadsheet gesendet",
+        "readyForPushback": "Bereit zum Pushback",
+        "cabinSecure": "Kabine gesichert",
+        "deiceHoldoverExpiring": "Enteisungs-Holdover läuft ab",
+        "topOfDescentApproaching": "Top of Descent naht",
+        "landed": "Gelandet",
+        "onBlocks": "On Blocks",
+        "deboardingComplete": "Deboarding abgeschlossen"
+      },
+      "test": {
+        "label": "Test senden",
+        "hint": "Eine Testnachricht jetzt an dieses Ziel, mit den Werten oben (erst speichern, wenn du sie geändert hast). Funktioniert auch bei ausgeschalteten Benachrichtigungen.",
+        "sending": "Sende…",
+        "send": "Test senden"
+      },
+      "neverSent": "NIE GESENDET",
+      "ok": "OK",
+      "failed": "FEHLGESCHLAGEN"
+    },
+    "kindHint": {
+      "ntfy": "ntfy-Topic — die Telefon-App abonniert es",
+      "discord": "Discord-Kanal-Webhook",
+      "webhook": "JSON-POST an deinen eigenen Endpunkt"
+    },
+    "urlHint": {
+      "ntfy": "Die vollständige Topic-URL. Behandle sie als Geheimnis — jeder damit kann lesen oder posten; verschlüsselt gespeichert.",
+      "discord": "Die Webhook-URL des Kanals aus Discord → Kanaleinstellungen → Integrationen. Sie trägt ihr eigenes Geheimnis; verschlüsselt gespeichert.",
+      "webhook": "Eine https-Adresse, die einen JSON-POST annimmt. Verschlüsselt gespeichert."
+    },
+    "empty": {
+      "title": "Ziele",
+      "hint": "Wohin die Nachrichten gehen",
+      "text": "Noch keine Ziele — füge das ntfy-Topic deines Telefons oder einen Webhook hinzu."
+    },
+    "add": "Ziel hinzufügen"
+  }
+}

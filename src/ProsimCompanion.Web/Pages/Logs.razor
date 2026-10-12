@@ -12,68 +12,68 @@
 @inject ProsimCompanion.Core.Diagnostics.IAppBuildInfo Build
 @inject IJSRuntime JS
 @inject SettingsWriter Writer
+@inject IStringLocalizer T
 
-<PageTitle>Logs — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Logs</h1>
+<PageTitle>@T["logs.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["logs.heading"]</h1>
+
+@* Only the page's own labels, hints and buttons are pack text (ADR-0014): the log lines, the
+   level names and the source names render exactly as logged — the probes grep them. *@
 
 <div class="panel">
 
-    <Section Title="Capture" Hint="What gets recorded — applies live, no restart">
-        <SelectField Label="Capture level"
+    <Section Title="@T["logs.capture.title"]" Hint="@T["logs.capture.hint"]">
+        <SelectField Label="@T["logs.capture.level"]"
                      Options="LevelOptions"
                      Value="@LoggingMonitor.CurrentValue.DefaultLevel"
                      ValueChanged="SetCaptureLevel" />
-        <BoolField Label="Wire trace"
-                   Hint="Raw GSX / gateway frames to a separate CMTrace file"
+        <BoolField Label="@T["logs.capture.wireTrace.label"]"
+                   Hint="@T["logs.capture.wireTrace.hint"]"
                    Value="@LoggingMonitor.CurrentValue.WireTrace"
                    ValueChanged="SetWireTrace" />
-        <SelectField Label="Mirror to session log"
-                     Hint="Copies warnings and errors into the session event file, in order with the flight events, so one file tells the whole story"
+        <SelectField Label="@T["logs.capture.mirror.label"]"
+                     Hint="@T["logs.capture.mirror.hint"]"
                      Options="MirrorOptions"
                      Value="@MirrorValue"
                      ValueChanged="SetMirrorToSession" />
-        <BoolField Label="Telemetry API"
-                   Hint="Read-only: serves session event logs and log tails over the web server for post-flight checks. Other devices need the access token"
+        <BoolField Label="@T["logs.capture.telemetry.label"]"
+                   Hint="@T["logs.capture.telemetry.hint"]"
                    Value="@TelemetryMonitor.CurrentValue.Enabled"
                    ValueChanged="SetTelemetryApi" />
         <div class="field-hint" style="margin-top:4px;">
-            Session totals — warnings: @Buffer.WarningCount · errors: @Buffer.ErrorCount.
-            The rolling files in <code>%LOCALAPPDATA%\ProsimCompanion\logs</code> are CMTrace
-            format for live viewing in CMTrace.
+            @T["logs.capture.totals", Buffer.WarningCount, Buffer.ErrorCount]
+            @T["logs.capture.filesBefore"] <code>%LOCALAPPDATA%\ProsimCompanion\logs</code> @T["logs.capture.filesAfter"]
         </div>
     </Section>
 
-    <Section Title="Support" Hint="One zip with everything a bug report needs">
-        <NumberField Label="Session files"
-                     Hint="Newest session event logs to include"
+    <Section Title="@T["logs.support.title"]" Hint="@T["logs.support.hint"]">
+        <NumberField Label="@T["logs.support.sessions.label"]"
+                     Hint="@T["logs.support.sessions.hint"]"
                      TValue="int" Min="@DiagnosticsOptions.MinSessions.ToString()" Max="@DiagnosticsOptions.MaxSessions.ToString()" Step="1"
                      Value="@DiagnosticsMonitor.CurrentValue.BundleSessionCount"
                      ValueChanged="SetBundleSessions" />
-        <NumberField Label="Log days"
-                     Hint="Newest daily app logs to include"
+        <NumberField Label="@T["logs.support.days.label"]"
+                     Hint="@T["logs.support.days.hint"]"
                      TValue="int" Min="@DiagnosticsOptions.MinLogDays.ToString()" Max="@DiagnosticsOptions.MaxLogDays.ToString()" Step="1"
                      Value="@DiagnosticsMonitor.CurrentValue.BundleLogDays"
                      ValueChanged="SetBundleLogDays" />
-        <BoolField Label="Include wire trace"
-                   Hint="Raw GSX / gateway frames for the same days — large; only when asked for"
+        <BoolField Label="@T["logs.support.wire.label"]"
+                   Hint="@T["logs.support.wire.hint"]"
                    Value="@DiagnosticsMonitor.CurrentValue.IncludeWireTrace"
                    ValueChanged="SetIncludeWireTrace" />
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;">
-            <a class="btn primary" href="@BundleUrl" download>Export diagnostics</a>
-            <button type="button" class="btn secondary" @onclick="CopyVersionAsync">@_copyLabel</button>
+            <a class="btn primary" href="@BundleUrl" download>@T["logs.support.export"]</a>
+            <button type="button" class="btn secondary" @onclick="CopyVersionAsync">@CopyLabel</button>
         </div>
         <div class="field-hint" style="margin-top:6px;">
-            The bundle holds the newest session event logs, the app logs, a copy of
-            settings.json with every key and token redacted, and the version banner, with a
-            manifest of file hashes. Attach it to a GitHub issue on psyraxaus/ProsimCompanion;
-            "Copy version" puts <code>@Build.Describe()</code> on the clipboard for the issue text.
+            @T["logs.support.bundleBefore"] <code>@Build.Describe()</code> @T["logs.support.bundleAfter"]
         </div>
     </Section>
 
-    <Section Title="Log" Hint="View filter of captured entries">
+    <Section Title="@T["logs.log.title"]" Hint="@T["logs.log.hint"]">
         <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary);">
-                Min level
+                @T["logs.log.minLevel"]
                 <select class="select" style="max-width:140px;" @bind="_minLevel">
                     <option>Verbose</option>
                     <option>Debug</option>
@@ -83,20 +83,20 @@
                 </select>
             </label>
             <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary);">
-                Text
-                <input type="text" class="text-input" style="width:220px;" placeholder="text or source…"
+                @T["logs.log.text"]
+                <input type="text" class="text-input" style="width:220px;" placeholder="@T["logs.log.filterPlaceholder"]"
                        autocomplete="off" spellcheck="false"
                        @bind="_filter" @bind:event="oninput" />
             </label>
             <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary);">
-                <input type="checkbox" class="checkbox" @bind="_paused" /> Pause
+                <input type="checkbox" class="checkbox" @bind="_paused" /> @T["logs.log.pause"]
             </label>
         </div>
 
         <div class="table-scroll">
             <table class="data-table">
                 <thead>
-                    <tr><th>Time</th><th>Level</th><th>Source</th><th>Message</th></tr>
+                    <tr><th>@T["logs.log.time"]</th><th>@T["logs.log.level"]</th><th>@T["logs.log.source"]</th><th>@T["logs.log.message"]</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var entry in _visible)
@@ -124,6 +124,7 @@
 @code {
     private const int MaxRows = 300;
 
+    // Serilog level names as the log carries them — never translated.
     private static readonly IReadOnlyList<(string, string)> LevelOptions =
     [
         ("Verbose", "Verbose"),
@@ -161,11 +162,11 @@
     private void SetWireTrace(bool enabled)
         => Writer.Set<LoggingOptions, bool>(o => o.WireTrace, enabled);
 
-    private static readonly IReadOnlyList<(string, string)> MirrorOptions =
+    private IReadOnlyList<(string, string)> MirrorOptions =>
     [
-        ("warningAndAbove", "Warnings and errors"),
-        ("errorAndAbove", "Errors only"),
-        ("off", "Off"),
+        ("warningAndAbove", T["logs.capture.mirror.warningAndAbove"].Value),
+        ("errorAndAbove", T["logs.capture.mirror.errorAndAbove"].Value),
+        ("off", T["logs.capture.mirror.off"].Value),
     ];
 
     private string MirrorValue
@@ -206,7 +207,17 @@
         }
     }
 
-    private string _copyLabel = "Copy version";
+    private enum CopyState { Idle, Copied, Failed }
+
+    private CopyState _copyState;
+
+    // Resolved at render so the button follows a language change while the result shows.
+    private string CopyLabel => _copyState switch
+    {
+        CopyState.Copied => T["logs.support.copied"].Value,
+        CopyState.Failed => T["logs.support.copyFailed"].Value,
+        _ => T["logs.support.copyVersion"].Value,
+    };
 
     private async Task CopyVersionAsync()
     {
@@ -220,10 +231,10 @@
             ok = false;
         }
 
-        _copyLabel = ok ? "Copied" : "Copy failed";
+        _copyState = ok ? CopyState.Copied : CopyState.Failed;
         StateHasChanged();
         await Task.Delay(1500);
-        _copyLabel = "Copy version";
+        _copyState = CopyState.Idle;
     }
 
     protected override void OnInitialized()

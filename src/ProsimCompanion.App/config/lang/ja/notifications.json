@@ -1,0 +1,88 @@
+{
+  "notifications": {
+    "pageTitle": "通知 — ProsimCompanion",
+    "heading": "通知",
+    "main": {
+      "title": "通知",
+      "hint": "フライトの節目にスマートフォンや Webhook へ短いメッセージを送ります",
+      "enabled": {
+        "label": "通知を送信する",
+        "hint": "オフ：この PC から何も送信されません。オン：下の各送信先が、チェックした節目を受け取ります。",
+        "more": "節目：給油完了 · 搭乗完了 · 最終ロードシート送信 · プッシュバック準備完了 · キャビンセキュア · 防除氷ホールドオーバー期限接近 · トップ・オブ・ディセント接近 · 着陸 · オンブロック · 降機完了。それぞれフライトごとに 1 回だけ送信され、最終ロードシートの改訂時は再送されます。遅い、または応答のない送信先が地上自動化や副操縦士を遅らせることはありません — 送信は 5 秒の制限付きでバックグラウンドで行われ、失敗した送信先は 1 分間そのままにされます。"
+      },
+      "cooldown": {
+        "label": "失敗後の待機時間",
+        "hint": "送信に失敗した送信先をそのままにしておく時間。"
+      },
+      "timeout": {
+        "label": "送信タイムアウト",
+        "hint": "送信ごと。この時間を超えた遅いサービスは失敗として扱われます。"
+      },
+      "holdover": {
+        "label": "ホールドオーバー警告",
+        "hint": "「ホールドオーバー期限接近」を送信する、防除氷ホールドオーバーの残り分数。"
+      }
+    },
+    "target": {
+      "defaultTitle": "送信先 {0}",
+      "status": "状態",
+      "removeTitle": "この送信先を削除",
+      "remove": "削除",
+      "name": {
+        "label": "名前",
+        "hint": "あなたが付けるラベル — ログと結果行に表示されます。",
+        "placeholder": "自分のスマートフォン"
+      },
+      "kind": {
+        "label": "種類",
+        "hint": "ntfy = ntfy.sh または自分のサーバー上のトピック。Discord = チャンネルの Webhook。Webhook = JSON POST を受け付ける任意の https アドレス（スキーマは docs/integrations/notifications.md）。"
+      },
+      "url": {
+        "label": "URL"
+      },
+      "token": {
+        "label": "Bearer トークン",
+        "hint": "任意。'Authorization: Bearer …' として送信されます。この PC に暗号化して保存され、ログには記録されません。"
+      },
+      "events": {
+        "label": "イベント",
+        "hint": "この送信先が受け取る節目。",
+        "refuelComplete": "給油完了",
+        "boardingComplete": "搭乗完了",
+        "finalLoadsheetSent": "最終ロードシート送信",
+        "readyForPushback": "プッシュバック準備完了",
+        "cabinSecure": "キャビンセキュア",
+        "deiceHoldoverExpiring": "防除氷ホールドオーバー期限接近",
+        "topOfDescentApproaching": "トップ・オブ・ディセント接近",
+        "landed": "着陸",
+        "onBlocks": "オンブロック",
+        "deboardingComplete": "降機完了"
+      },
+      "test": {
+        "label": "テスト送信",
+        "hint": "上の値でこの送信先に今すぐテストメッセージを 1 件送ります（変更した場合は先に保存してください）。通知がオフでも動作します。",
+        "sending": "送信中…",
+        "send": "テスト送信"
+      },
+      "neverSent": "未送信",
+      "ok": "OK",
+      "failed": "失敗"
+    },
+    "kindHint": {
+      "ntfy": "ntfy トピック — スマートフォンのアプリが購読します",
+      "discord": "Discord チャンネルの Webhook",
+      "webhook": "自分のエンドポイントへの JSON POST"
+    },
+    "urlHint": {
+      "ntfy": "トピックの完全な URL。秘密として扱ってください — これを持つ人は誰でも読み書きできます。暗号化して保存されます。",
+      "discord": "Discord → チャンネル設定 → 連携サービス にあるチャンネルの Webhook URL。それ自体が秘密を含みます。暗号化して保存されます。",
+      "webhook": "JSON POST を受け付ける https アドレス。暗号化して保存されます。"
+    },
+    "empty": {
+      "title": "送信先",
+      "hint": "メッセージの宛先",
+      "text": "送信先はまだありません — スマートフォンの ntfy トピックか Webhook を追加してください。"
+    },
+    "add": "送信先を追加"
+  }
+}

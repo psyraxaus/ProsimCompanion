@@ -1,0 +1,303 @@
+{
+  "audioSettings": {
+    "pageTitle": "Audiosteuerung — ProsimCompanion",
+    "heading": "Audiosteuerung",
+    "general": {
+      "title": "Lautstärkeregelung",
+      "hint": "Knöpfe und Rastungen des Audio-Panels setzen die App-Lautstärken",
+      "backend": {
+        "label": "Backend",
+        "hint": "Windows-App-Lautstärken oder VoiceMeeter-Strips und -Busse.",
+        "more": "Ein Wechsel gilt sofort. Windows-Lautstärken werden wiederhergestellt, VoiceMeeter-Ziele auf 0 dB zurückgesetzt.",
+        "coreAudio": "CoreAudio (Windows-App-Lautstärken)",
+        "voiceMeeter": "VoiceMeeter (Strips/Busse)"
+      },
+      "disableProsimNative": {
+        "label": "ProSim-eigene Audiosteuerung abschalten",
+        "hint": "Schaltet ProSims eigene Windows-Lautstärkeregelung ab, damit sich die beiden nie in die Quere kommen."
+      },
+      "requirePower": {
+        "label": "Nur bei eingeschaltetem Audio-Panel",
+        "hint": "Ein: Knöpfe und Rastungen wirken nur mit versorgtem Panel-Bus, wie im echten Flugzeug. Aus: sie wirken immer, wie der Remote-Mixer.",
+        "more": "Versorgung ist AC/DC ESS plus der Audio-Switching-Knopf für den Kapitän, Audio Switching für den Ersten Offizier, DC1 für den Beobachter. Ein Umschalten gilt sofort: die aktuellen Knopfwerte werden erneut gesendet."
+      }
+    },
+    "coreAudio": {
+      "hint": "Windows-Lautstärken je App",
+      "acp": {
+        "label": "ACP",
+        "hint": "Welches Audio-Control-Panel die App-Lautstärken steuert.",
+        "captain": "Kapitän (ACP1)",
+        "firstOfficer": "Erster Offizier (ACP2)",
+        "observer": "Beobachter (ACP3)"
+      },
+      "troubleshooting": "Fehlersuche-Filter ausgeblendet",
+      "deviceFlow": {
+        "label": "Gerätefilter DataFlow",
+        "hint": "Nur zur Fehlersuche. Nur auf Anweisung ändern.",
+        "render": "Wiedergabe",
+        "capture": "Aufnahme",
+        "all": "Alle"
+      },
+      "deviceState": {
+        "label": "Gerätefilter Zustand",
+        "hint": "Nur zur Fehlersuche. Nur auf Anweisung ändern.",
+        "active": "Aktiv",
+        "disabled": "Deaktiviert",
+        "notPresent": "Nicht vorhanden",
+        "unplugged": "Nicht angeschlossen",
+        "all": "Alle (Maske alle)"
+      },
+      "debugDump": {
+        "writing": "Schreibe…",
+        "write": "Debug-Info schreiben",
+        "written": "Geschrieben nach {0}",
+        "failed": "Dump fehlgeschlagen — siehe App-Protokoll"
+      },
+      "mappings": {
+        "title": "App-Zuordnungen",
+        "hint": "Ein Kanal kann mehrere Prozesse steuern",
+        "empty": "Keine App-Zuordnungen eingerichtet.",
+        "channel": "Kanal",
+        "process": "Prozess",
+        "device": "Gerät",
+        "latch": "Rastung",
+        "active": "Aktiv",
+        "processPlaceholder": "Prozessname (ohne .exe)",
+        "devicePlaceholder": "Alle Geräte",
+        "latchTitle": "Stummschaltung von der REC-Rastung steuern",
+        "activeTitle": "Nur aktive Sitzungen steuern",
+        "remove": "Entfernen",
+        "add": "Zuordnung hinzufügen",
+        "note": "Prozessname ohne .exe, zum Beispiel vPilot.",
+        "more": "Mehr",
+        "moreBody": "Rastung aus: die Stummschaltung wird nie geschrieben, eine anderswo stummgeschaltete App bleibt stumm. Eine als Administrator laufende App braucht auch ProsimCompanion als Administrator; der Status-Abschnitt kennzeichnet sie. LOUDSPEAKER ist der Cockpit-Lautsprecherregler (nur Kapitän und Erster Offizier); sein Rastung-Häkchen schaltet die App stumm, wenn der Regler ganz unten steht."
+      },
+      "blacklist": {
+        "title": "Geräte-Sperrliste",
+        "hint": "Abgeglichen mit dem Anfang des Gerätenamens",
+        "placeholder": "Präfix des Anzeigenamens",
+        "remove": "Entfernen",
+        "add": "Gerät hinzufügen"
+      }
+    },
+    "voiceMeeter": {
+      "hint": "Strips und Busse über die Remote-API von VoiceMeeter",
+      "dllPath": {
+        "label": "Pfad zu VoicemeeterRemote64.dll",
+        "hint": "Leer findet das installierte VoiceMeeter von selbst. Nur für einen ungewöhnlichen Installationsordner setzen."
+      },
+      "reload": "Strips neu laden",
+      "found": "{0} Strips / {1} Busse gefunden",
+      "notReachable": "VoiceMeeter nicht erreichbar — generische Strip-/Bus-Nummern angezeigt",
+      "acpMappings": "{0}-Zuordnungen",
+      "driveFrom": "Ziele vom {0}-ACP steuern",
+      "channel": "Kanal",
+      "target": "Ziel",
+      "latch": "Rastung",
+      "latchTitle": "Stummschaltung von der REC-Rastung steuern",
+      "noLatchTitle": "Keine REC-Rastung an diesem Regler. Ganz unten schaltet das Ziel immer stumm.",
+      "remove": "Entfernen",
+      "add": "Zuordnung hinzufügen",
+      "oncePerPanel": "Ein Kanal darf je Panel nur einmal vorkommen. Ein Strip oder Bus darf nur zu einem Panel gehören.",
+      "more": "Mehr",
+      "oncePerPanelMore": "Widersprüchliche Speicherungen fallen bis zur Korrektur auf das Kapitäns-Panel zurück; der Status-Abschnitt zeigt warum. Der Knopfweg entspricht −60 dB … +12 dB; 0 dB liegt bei etwa 83 %.",
+      "loudspeaker": "LOUDSPEAKER ist der Cockpit-Lautsprecherregler, in den Listen von Kapitän und Erstem Offizier.",
+      "loudspeakerMore": "Ordne ihn dem Strip oder Bus zu, der deine Cockpit-Lautsprecher speist. Der Regler hat keine REC-Rastung: ganz unten schaltet das Ziel stumm. Handbuch Kapitel 8 (Lautsprecherregler) zeigt die VoiceMeeter-Verdrahtung, die den Headset-Ton auf die Lautsprecher legt."
+    },
+    "mixer": {
+      "title": "Remote-Mixer",
+      "hint": "Voicemeeter auf einem anderen PC, über den VoicemeeterBridge-Agenten",
+      "enable": {
+        "label": "Remote-Mixer aktivieren",
+        "hint": "Verbindet sich mit dem Agenten und steuert die Zuordnungen unten. Aus öffnet keine Verbindung.",
+        "more": "Das lokale VoiceMeeter-Backend oben steuert das VoiceMeeter auf diesem PC. Diese Karte steuert ein VoiceMeeter auf einem anderen PC, zum Beispiel dem mit vPilot. Einrichtung für beide PCs: docs/integrations/voicemeeter-bridge.md."
+      },
+      "host": {
+        "label": "Host",
+        "hint": "Name oder IP-Adresse des PCs, auf dem VoicemeeterBridge läuft."
+      },
+      "port": {
+        "label": "Port",
+        "hint": "Der Port des Agenten. 5088, sofern du ihn dort nicht geändert hast."
+      },
+      "token": {
+        "label": "Token",
+        "hint": "Aus dem Tray-Menü des Agenten, Token kopieren. Verschlüsselt gespeichert, nie protokolliert."
+      },
+      "testTitle": "Öffnet eine Verbindung mit den Werten oben, gespeichert oder nicht, und liest die Begrüßung des Agenten.",
+      "testing": "Teste…",
+      "test": "Verbindung testen",
+      "liveTitle": "Live-Zustand der gespeicherten Verbindung",
+      "reconnectDelay": {
+        "label": "Verzögerung Neuverbindung",
+        "hint": "Erster Versuch nach einem Abbruch. Verdoppelt sich bis zum Maximum."
+      },
+      "reconnectMax": {
+        "label": "Maximum Neuverbindung"
+      },
+      "writeTimeout": {
+        "label": "Schreib-Timeout",
+        "hint": "Wie lange ein Schreibvorgang auf die Antwort des Agenten wartet."
+      },
+      "gainMin": {
+        "label": "Gain, Knopf ganz unten",
+        "hint": "−60 dB ist so gut wie still."
+      },
+      "gainMax": {
+        "label": "Gain, Knopf ganz oben",
+        "hint": "+12 dB wie das lokale Backend (0 dB bei etwa 83 % des Knopfwegs). 0 für einen Strip, der nie über Unity gehen darf."
+      },
+      "state": {
+        "connected": "Verbunden — Voicemeeter {0} {1}",
+        "connectedNoVoicemeeter": "Verbunden — Voicemeeter läuft nicht auf dem Mixer-PC",
+        "connecting": "Verbinde…",
+        "unreachable": "Nicht erreichbar — {0}",
+        "unreachableRetrying": "Nicht erreichbar — neuer Versuch",
+        "offNoHost": "Aus — kein Host",
+        "off": "Aus"
+      },
+      "panel": {
+        "title": "Status-Panel",
+        "hint": "Welche Strips und Busse der Status-Abschnitt zeigt, mit Stumm-Schaltflächen",
+        "pickHint": "Hake die anzuzeigenden Strips und Busse an. Die Namen kommen vom Voicemeeter des Mixer-PCs.",
+        "strips": {
+          "label": "Strips",
+          "hint": "Strip-Nummern wie Voicemeeter sie zeigt (1 = erster), kommagetrennt. Beispiel: 1, 2, 3"
+        },
+        "buses": {
+          "label": "Busse",
+          "hint": "Bus-Nummern (1 = A1), kommagetrennt. Beispiel: 1, 4"
+        },
+        "pendingHint": "Sobald der Agent verbunden ist, erscheinen die Strips und Busse hier mit Namen als Kontrollkästchen.",
+        "reloadTitle": "Liest die Strip- und Bus-Namen erneut vom Mixer-PC (nach einer Umbenennung in Voicemeeter).",
+        "reading": "Lese…",
+        "reload": "Kanäle neu laden",
+        "summary": "{0} Strips / {1} Busse auf dem Mixer-PC",
+        "summaryReading": "Lese die Strips und Busse…",
+        "summaryOffline": "Agent nicht verbunden — generische Strip-/Bus-Nummern angezeigt"
+      },
+      "mappings": {
+        "title": "Zuordnungen",
+        "hint": "Ein Audio-Panel-Kanal steuert einen Strip oder Bus auf dem Mixer-PC",
+        "empty": "Noch keine Zuordnungen. Füge unten eine hinzu.",
+        "on": "Ein",
+        "panel": "Panel",
+        "channel": "Kanal",
+        "target": "Strip / Bus",
+        "latch": "Rastung",
+        "latchTitle": "Mute des Ziels vom REC-Drucktaster steuern",
+        "live": "Live",
+        "enabledTitle": "Aus behält die Zeile, ohne sie zu nutzen",
+        "noLatchTitle": "Kein REC-Drucktaster an diesem Regler. Ganz unten schaltet das Ziel immer stumm.",
+        "liveTitle": "Zuletzt gesendete Gain und Mute sowie die Antwort des Agenten",
+        "liveMuted": "stumm",
+        "liveOpen": "offen",
+        "remove": "Entfernen",
+        "add": "Zuordnung hinzufügen",
+        "note": "Der Knopf setzt die Gain des Strips oder Busses; mit Rastung angehakt schaltet der REC-Drucktaster stumm. Strip- und Bus-Namen kommen vom Mixer-PC, sobald der Agent verbunden ist.",
+        "more": "Mehr",
+        "moreBody": "Der Knopfweg entspricht dem Gain-Bereich unter den erweiterten Feldern der Verbindungskarte (standardmäßig −60 dB … +12 dB, wie das lokale VoiceMeeter-Backend; 0 dB liegt bei etwa 83 %). Rastung aus: die Stummschaltung wird nie geschrieben, ein auf dem Mixer-PC stummgeschalteter Strip bleibt stumm. LOUDSPEAKER ist der Cockpit-Regler: kein Drucktaster, ganz unten schaltet das Ziel stumm. Schreibvorgänge gehen höchstens 20-mal pro Sekunde je Parameter hinaus, der letzte Wert gewinnt. Der Knopfwert geht hinaus, ob das Audio-Panel versorgt ist oder nicht. Zwei Zeilen auf einem Strip: die zuletzt bewegte gewinnt."
+      }
+    },
+    "housekeeping": {
+      "title": "Wartung",
+      "hint": "Bewährte Zeiten. Müssen selten geändert werden",
+      "runInterval": {
+        "label": "Laufintervall",
+        "hint": "Hauptprüfung. Gilt nach einem Neustart der App."
+      },
+      "processCheck": {
+        "label": "Intervall Prozessprüfung"
+      },
+      "startupGrace": {
+        "label": "Startkarenz Prozess",
+        "hint": "Wartezeit nach dem Start einer zugeordneten App, bevor nach ihrem Ton gesucht wird."
+      },
+      "deviceRescan": {
+        "label": "Intervall Geräte-Neusuche"
+      },
+      "maxSearches": {
+        "label": "Max. Sitzungssuchen",
+        "hint": "Fehlgeschlagene Suchen, bevor die Geräte erneut durchsucht werden."
+      }
+    },
+    "status": {
+      "title": "Lautstärkeregelung",
+      "hint": "ACP-Knöpfe / REC-Rastungen → App-Lautstärken",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "voiceMeeterLinked": "VoiceMeeter verbunden",
+      "voiceMeeterNotReachable": "VoiceMeeter nicht erreichbar",
+      "poweredTitle": "Versorgt — Knopfänderungen wirken",
+      "unpoweredTitle": "Unversorgt — Knopfänderungen zurückgehalten",
+      "powered": "PWR",
+      "unpowered": "OFF",
+      "mappingConflict": "Zuordnungskonflikt: {0}",
+      "elevated": "Erhöhte Prozesse erkannt: {0}. Starte ProsimCompanion als Administrator, um diese Apps zu steuern — bis dahin bleiben diese Zuordnungen inaktiv.",
+      "mappingState": {
+        "bound": "Gebunden",
+        "searching": "Suche",
+        "elevated": "Erhöht",
+        "notRunning": "Läuft nicht"
+      },
+      "appMappings": {
+        "title": "App-Zuordnungen",
+        "hint": "Live-Sitzungszustand je zugeordnetem Prozess",
+        "emptyBefore": "Keine App-Zuordnungen eingerichtet —",
+        "emptyLink": "im CoreAudio-Abschnitt hinzufügen",
+        "emptyAfter": ".",
+        "process": "Prozess",
+        "channel": "Kanal",
+        "device": "Gerät",
+        "state": "Zustand",
+        "sessions": "Sitzungen",
+        "volume": "Lautstärke",
+        "muted": "Stumm",
+        "allDevices": "Alle",
+        "yes": "Ja",
+        "no": "Nein"
+      },
+      "voiceMeeterTargets": {
+        "title": "VoiceMeeter-Ziele",
+        "hint": "Live-Strip-/Bus-Zustand je gebundenem Kanal",
+        "emptyBefore": "Keine Ziele gebunden —",
+        "emptyLink": "Zuordnungen im VoiceMeeter-Abschnitt einrichten",
+        "emptyAfter": ".",
+        "acp": "ACP",
+        "channel": "Kanal",
+        "target": "Ziel",
+        "gain": "Gain",
+        "muted": "Stumm"
+      }
+    },
+    "remoteMixer": {
+      "title": "Remote-Mixer",
+      "hint": "Voicemeeter auf dem Mixer-PC, über VoicemeeterBridge",
+      "state": {
+        "connected": "Agent verbunden",
+        "connecting": "Verbinde…",
+        "disconnected": "Agent nicht erreichbar — neuer Versuch",
+        "off": "Aus"
+      },
+      "voicemeeter": "Voicemeeter {0} {1}",
+      "voicemeeterNotRunning": "Voicemeeter läuft nicht auf dem Mixer-PC",
+      "endpointTitle": "Agent-Endpunkt",
+      "failedTitle": "Schreibvorgänge, die der Agent seit dem Start abgelehnt hat oder die abgelaufen sind",
+      "failedWrite": "{0} fehlgeschlagener Schreibvorgang",
+      "failedWrites": "{0} fehlgeschlagene Schreibvorgänge",
+      "lastError": "Letzter Fehler: {0}",
+      "emptyBefore": "Keine Strips oder Busse gewählt —",
+      "emptyLink": "im Abschnitt Remote-Mixer auswählen",
+      "emptyAfter": ".",
+      "channel": "Kanal",
+      "label": "Bezeichnung",
+      "gain": "Gain",
+      "mute": "Mute",
+      "muted": "Stumm",
+      "open": "Offen",
+      "unmuteButton": "Laut",
+      "muteButton": "Stumm"
+    }
+  }
+}

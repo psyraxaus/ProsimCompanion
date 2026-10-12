@@ -1,0 +1,63 @@
+{
+  "logs": {
+    "pageTitle": "Registros — ProsimCompanion",
+    "heading": "Registros",
+    "capture": {
+      "title": "Captura",
+      "hint": "Qué se registra — se aplica en vivo, sin reiniciar",
+      "level": "Nivel de captura",
+      "wireTrace": {
+        "label": "Traza de cable",
+        "hint": "Tramas GSX / gateway en bruto a un archivo CMTrace aparte"
+      },
+      "mirror": {
+        "label": "Reflejar en el registro de sesión",
+        "hint": "Copia advertencias y errores al archivo de eventos de sesión, en orden con los eventos del vuelo, para que un solo archivo cuente toda la historia",
+        "warningAndAbove": "Advertencias y errores",
+        "errorAndAbove": "Solo errores",
+        "off": "Desactivado"
+      },
+      "telemetry": {
+        "label": "API de telemetría",
+        "hint": "Solo lectura: sirve registros de eventos de sesión y colas de registro por el servidor web para comprobaciones posvuelo. Otros dispositivos necesitan el token de acceso"
+      },
+      "totals": "Totales de la sesión — advertencias: {0} · errores: {1}.",
+      "filesBefore": "Los archivos rotativos en",
+      "filesAfter": "están en formato CMTrace para verlos en vivo en CMTrace."
+    },
+    "support": {
+      "title": "Soporte",
+      "hint": "Un zip con todo lo que necesita un informe de error",
+      "sessions": {
+        "label": "Archivos de sesión",
+        "hint": "Registros de eventos de sesión más recientes a incluir"
+      },
+      "days": {
+        "label": "Días de registro",
+        "hint": "Registros diarios de la app más recientes a incluir"
+      },
+      "wire": {
+        "label": "Incluir traza de cable",
+        "hint": "Tramas GSX / gateway en bruto de los mismos días — grande; solo si se pide"
+      },
+      "export": "Exportar diagnóstico",
+      "copyVersion": "Copiar versión",
+      "copied": "Copiado",
+      "copyFailed": "Error al copiar",
+      "bundleBefore": "El paquete contiene los registros de eventos de sesión más recientes, los registros de la app, una copia de settings.json con todas las claves y tokens tachados, y el banner de versión, con un manifiesto de hashes de archivos. Adjúntalo a una incidencia de GitHub en psyraxaus/ProsimCompanion; \"Copiar versión\" pone",
+      "bundleAfter": "en el portapapeles para el texto de la incidencia."
+    },
+    "log": {
+      "title": "Registro",
+      "hint": "Filtro de vista de las entradas capturadas",
+      "minLevel": "Nivel mínimo",
+      "text": "Texto",
+      "filterPlaceholder": "texto u origen…",
+      "pause": "Pausar",
+      "time": "Hora",
+      "level": "Nivel",
+      "source": "Origen",
+      "message": "Mensaje"
+    }
+  }
+}

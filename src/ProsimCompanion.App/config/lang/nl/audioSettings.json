@@ -1,0 +1,303 @@
+{
+  "audioSettings": {
+    "pageTitle": "Audiobediening — ProsimCompanion",
+    "heading": "Audiobediening",
+    "general": {
+      "title": "Volumeregeling",
+      "hint": "Knoppen en vergrendelingen van het audiopaneel zetten de app-volumes",
+      "backend": {
+        "label": "Backend",
+        "hint": "Windows-app-volumes, of VoiceMeeter-strips en -bussen.",
+        "more": "Wisselen werkt direct. Windows-volumes worden hersteld, VoiceMeeter-doelen gaan terug naar 0 dB.",
+        "coreAudio": "CoreAudio (Windows-app-volumes)",
+        "voiceMeeter": "VoiceMeeter (strips/bussen)"
+      },
+      "disableProsimNative": {
+        "label": "Eigen audiobediening van ProSim uitschakelen",
+        "hint": "Zet ProSims eigen Windows-volumeregeling uit zodat de twee elkaar nooit in de weg zitten."
+      },
+      "requirePower": {
+        "label": "Alleen als het audiopaneel bekrachtigd is",
+        "hint": "Aan: knoppen en vergrendelingen werken alleen met een bekrachtigde paneelbus, zoals in het echte vliegtuig. Uit: ze werken altijd, zoals de externe mixer.",
+        "more": "Voeding is AC/DC ESS plus de audio-switching-knop voor de gezagvoerder, audio switching voor de eerste officier, DC1 voor de waarnemer. Omschakelen werkt direct: de huidige knopwaarden worden opnieuw verstuurd."
+      }
+    },
+    "coreAudio": {
+      "hint": "Windows-volumes per app",
+      "acp": {
+        "label": "ACP",
+        "hint": "Welk audiobedieningspaneel de app-volumes aanstuurt.",
+        "captain": "Gezagvoerder (ACP1)",
+        "firstOfficer": "Eerste officier (ACP2)",
+        "observer": "Waarnemer (ACP3)"
+      },
+      "troubleshooting": "Probleemoplossingsfilters verborgen",
+      "deviceFlow": {
+        "label": "Apparaatfilter DataFlow",
+        "hint": "Alleen voor probleemoplossing. Alleen op verzoek wijzigen.",
+        "render": "Weergave",
+        "capture": "Opname",
+        "all": "Alle"
+      },
+      "deviceState": {
+        "label": "Apparaatfilter Status",
+        "hint": "Alleen voor probleemoplossing. Alleen op verzoek wijzigen.",
+        "active": "Actief",
+        "disabled": "Uitgeschakeld",
+        "notPresent": "Niet aanwezig",
+        "unplugged": "Losgekoppeld",
+        "all": "Alle (masker alles)"
+      },
+      "debugDump": {
+        "writing": "Schrijven…",
+        "write": "Debug-info schrijven",
+        "written": "Geschreven naar {0}",
+        "failed": "Dump mislukt — zie het app-logboek"
+      },
+      "mappings": {
+        "title": "App-koppelingen",
+        "hint": "Een kanaal kan meerdere processen aansturen",
+        "empty": "Geen app-koppelingen ingesteld.",
+        "channel": "Kanaal",
+        "process": "Proces",
+        "device": "Apparaat",
+        "latch": "Vergrend.",
+        "active": "Actief",
+        "processPlaceholder": "Procesnaam (zonder .exe)",
+        "devicePlaceholder": "Alle apparaten",
+        "latchTitle": "Dempen aansturen vanaf de REC-vergrendeling",
+        "activeTitle": "Alleen actieve sessies bedienen",
+        "remove": "Verwijderen",
+        "add": "Koppeling toevoegen",
+        "note": "Procesnaam zonder .exe, bijvoorbeeld vPilot.",
+        "more": "Meer",
+        "moreBody": "Vergrendeling uit: dempen wordt nooit geschreven, dus een elders gedempte app blijft gedempt. Een app die als administrator draait vereist dat ProsimCompanion ook als administrator draait; de sectie Status markeert ze. LOUDSPEAKER is de cockpitluidsprekerknop (alleen gezagvoerder en eerste officier); het vinkje Vergrend. dempt de app als de knop helemaal dicht staat."
+      },
+      "blacklist": {
+        "title": "Apparaatblokkadelijst",
+        "hint": "Vergeleken met het begin van de apparaatnaam",
+        "placeholder": "Voorvoegsel van de weergavenaam",
+        "remove": "Verwijderen",
+        "add": "Apparaat toevoegen"
+      }
+    },
+    "voiceMeeter": {
+      "hint": "Strips en bussen via de remote-API van VoiceMeeter",
+      "dllPath": {
+        "label": "Pad naar VoicemeeterRemote64.dll",
+        "hint": "Leeg vindt de geïnstalleerde VoiceMeeter vanzelf. Alleen instellen bij een ongebruikelijke installatiemap."
+      },
+      "reload": "Strips herladen",
+      "found": "{0} strips / {1} bussen gevonden",
+      "notReachable": "VoiceMeeter niet bereikbaar — generieke strip-/busnummers getoond",
+      "acpMappings": "{0}-koppelingen",
+      "driveFrom": "Doelen aansturen vanaf de {0}-ACP",
+      "channel": "Kanaal",
+      "target": "Doel",
+      "latch": "Vergrend.",
+      "latchTitle": "Dempen aansturen vanaf de REC-vergrendeling",
+      "noLatchTitle": "Geen REC-vergrendeling op deze knop. Helemaal dicht dempt het doel altijd.",
+      "remove": "Verwijderen",
+      "add": "Koppeling toevoegen",
+      "oncePerPanel": "Een kanaal mag per paneel één keer voorkomen. Een strip of bus mag bij maar één paneel horen.",
+      "more": "Meer",
+      "oncePerPanelMore": "Strijdige opslag valt terug op het paneel van de gezagvoerder tot het is hersteld; de sectie Status laat zien waarom. De knopslag komt overeen met −60 dB … +12 dB; 0 dB ligt rond 83 %.",
+      "loudspeaker": "LOUDSPEAKER is de cockpitluidsprekerknop, in de lijsten van de gezagvoerder en de eerste officier.",
+      "loudspeakerMore": "Koppel hem aan de strip of bus die je cockpitluidsprekers voedt. De knop heeft geen REC-vergrendeling: helemaal dicht dempt het doel. Hoofdstuk 8 van de handleiding (luidsprekerknop) toont de VoiceMeeter-bedrading die het headsetgeluid op de luidsprekers zet."
+    },
+    "mixer": {
+      "title": "Externe mixer",
+      "hint": "Voicemeeter op een andere pc, via de VoicemeeterBridge-agent",
+      "enable": {
+        "label": "Externe mixer inschakelen",
+        "hint": "Maakt verbinding met de agent en stuurt de koppelingen hieronder aan. Uit opent geen verbinding.",
+        "more": "De lokale VoiceMeeter-backend hierboven stuurt de VoiceMeeter op deze pc aan. Deze kaart stuurt een VoiceMeeter op een andere pc aan, bijvoorbeeld die met vPilot. Instellen van beide pc's: docs/integrations/voicemeeter-bridge.md."
+      },
+      "host": {
+        "label": "Host",
+        "hint": "Naam of IP-adres van de pc waarop VoicemeeterBridge draait."
+      },
+      "port": {
+        "label": "Poort",
+        "hint": "De poort van de agent. 5088 tenzij je hem daar hebt gewijzigd."
+      },
+      "token": {
+        "label": "Token",
+        "hint": "Uit het systeemvakmenu van de agent, Token kopiëren. Versleuteld opgeslagen, nooit gelogd."
+      },
+      "testTitle": "Opent een verbinding met de waarden hierboven, opgeslagen of niet, en leest de begroeting van de agent.",
+      "testing": "Testen…",
+      "test": "Verbinding testen",
+      "liveTitle": "Live status van de opgeslagen verbinding",
+      "reconnectDelay": {
+        "label": "Wachttijd herverbinden",
+        "hint": "Eerste nieuwe poging na een onderbreking. Verdubbelt tot het maximum."
+      },
+      "reconnectMax": {
+        "label": "Maximum herverbinden"
+      },
+      "writeTimeout": {
+        "label": "Schrijftime-out",
+        "hint": "Hoelang een schrijfopdracht op het antwoord van de agent wacht."
+      },
+      "gainMin": {
+        "label": "Gain, knop helemaal dicht",
+        "hint": "−60 dB is zo goed als stil."
+      },
+      "gainMax": {
+        "label": "Gain, knop helemaal open",
+        "hint": "+12 dB zoals de lokale backend (0 dB rond 83 % van de knop). Zet 0 voor een strip die nooit boven unity mag komen."
+      },
+      "state": {
+        "connected": "Verbonden — Voicemeeter {0} {1}",
+        "connectedNoVoicemeeter": "Verbonden — Voicemeeter draait niet op de mixer-pc",
+        "connecting": "Verbinden…",
+        "unreachable": "Onbereikbaar — {0}",
+        "unreachableRetrying": "Onbereikbaar — nieuwe poging",
+        "offNoHost": "Uit — geen host",
+        "off": "Uit"
+      },
+      "panel": {
+        "title": "Statuspaneel",
+        "hint": "Welke strips en bussen de sectie Status toont, met dempknoppen",
+        "pickHint": "Vink de te tonen strips en bussen aan. De namen komen van de Voicemeeter op de mixer-pc.",
+        "strips": {
+          "label": "Strips",
+          "hint": "Stripnummers zoals Voicemeeter ze toont (1 = eerste), gescheiden door komma's. Voorbeeld: 1, 2, 3"
+        },
+        "buses": {
+          "label": "Bussen",
+          "hint": "Busnummers (1 = A1), gescheiden door komma's. Voorbeeld: 1, 4"
+        },
+        "pendingHint": "Zodra de agent verbonden is, verschijnen de strips en bussen hier op naam, als vinkjes.",
+        "reloadTitle": "Leest de strip- en busnamen opnieuw van de mixer-pc (na het hernoemen in Voicemeeter).",
+        "reading": "Lezen…",
+        "reload": "Kanalen herladen",
+        "summary": "{0} strips / {1} bussen op de mixer-pc",
+        "summaryReading": "Strips en bussen lezen…",
+        "summaryOffline": "Agent niet verbonden — generieke strip-/busnummers getoond"
+      },
+      "mappings": {
+        "title": "Koppelingen",
+        "hint": "Een audiopaneelkanaal stuurt één strip of bus op de mixer-pc aan",
+        "empty": "Nog geen koppelingen. Voeg er hieronder een toe.",
+        "on": "Aan",
+        "panel": "Paneel",
+        "channel": "Kanaal",
+        "target": "Strip / bus",
+        "latch": "Vergrend.",
+        "latchTitle": "Mute van het doel aansturen vanaf de REC-drukknop",
+        "live": "Live",
+        "enabledTitle": "Uit behoudt de rij zonder hem te gebruiken",
+        "noLatchTitle": "Geen REC-drukknop op deze knop. Helemaal dicht dempt het doel altijd.",
+        "liveTitle": "Laatst verstuurde gain en mute, en het antwoord van de agent",
+        "liveMuted": "gedempt",
+        "liveOpen": "open",
+        "remove": "Verwijderen",
+        "add": "Koppeling toevoegen",
+        "note": "De knop zet de gain van de strip of bus; met Vergrend. aangevinkt dempt de REC-drukknop hem. Strip- en busnamen komen van de mixer-pc zodra de agent verbonden is.",
+        "more": "Meer",
+        "moreBody": "De knopslag komt overeen met het gainbereik onder de geavanceerde velden van de verbindingskaart (standaard −60 dB … +12 dB, zoals de lokale VoiceMeeter-backend; 0 dB ligt rond 83 %). Vergrendeling uit: de mute wordt nooit geschreven, dus een op de mixer-pc gedempte strip blijft gedempt. LOUDSPEAKER is de cockpitknop: geen drukknop, helemaal dicht dempt het doel. Schrijfopdrachten gaan hooguit 20 keer per seconde per parameter uit, de laatste waarde wint. De knopwaarde gaat uit of het audiopaneel nu bekrachtigd is of niet. Twee rijen op één strip: de laatst bewogen wint."
+      }
+    },
+    "housekeeping": {
+      "title": "Onderhoud",
+      "hint": "Bewezen timings. Hoeven zelden te veranderen",
+      "runInterval": {
+        "label": "Uitvoerinterval",
+        "hint": "Hoofdcontrole. Werkt na een herstart van de app."
+      },
+      "processCheck": {
+        "label": "Interval procescontrole"
+      },
+      "startupGrace": {
+        "label": "Opstartmarge proces",
+        "hint": "Wachttijd nadat een gekoppelde app start voordat naar zijn geluid wordt gezocht."
+      },
+      "deviceRescan": {
+        "label": "Interval apparaten opnieuw scannen"
+      },
+      "maxSearches": {
+        "label": "Max. sessiezoekopdrachten",
+        "hint": "Mislukte zoekopdrachten voordat de apparaten opnieuw worden gescand."
+      }
+    },
+    "status": {
+      "title": "Volumeregeling",
+      "hint": "ACP-knoppen / REC-vergrendelingen → app-volumes",
+      "enabled": "Ingeschakeld",
+      "disabled": "Uitgeschakeld",
+      "voiceMeeterLinked": "VoiceMeeter gekoppeld",
+      "voiceMeeterNotReachable": "VoiceMeeter niet bereikbaar",
+      "poweredTitle": "Bekrachtigd — knopwijzigingen werken",
+      "unpoweredTitle": "Onbekrachtigd — knopwijzigingen vastgehouden",
+      "powered": "PWR",
+      "unpowered": "OFF",
+      "mappingConflict": "Koppelingsconflict: {0}",
+      "elevated": "Verhoogde processen gevonden: {0}. Start ProsimCompanion als administrator om deze apps te bedienen — tot dan blijven die koppelingen inactief.",
+      "mappingState": {
+        "bound": "Gekoppeld",
+        "searching": "Zoeken",
+        "elevated": "Verhoogd",
+        "notRunning": "Draait niet"
+      },
+      "appMappings": {
+        "title": "App-koppelingen",
+        "hint": "Live sessiestatus per gekoppeld proces",
+        "emptyBefore": "Geen app-koppelingen ingesteld —",
+        "emptyLink": "voeg ze toe in de sectie CoreAudio",
+        "emptyAfter": ".",
+        "process": "Proces",
+        "channel": "Kanaal",
+        "device": "Apparaat",
+        "state": "Status",
+        "sessions": "Sessies",
+        "volume": "Volume",
+        "muted": "Gedempt",
+        "allDevices": "Alle",
+        "yes": "Ja",
+        "no": "Nee"
+      },
+      "voiceMeeterTargets": {
+        "title": "VoiceMeeter-doelen",
+        "hint": "Live strip-/busstatus per gekoppeld kanaal",
+        "emptyBefore": "Geen doelen gekoppeld —",
+        "emptyLink": "stel de koppelingen in in de sectie VoiceMeeter",
+        "emptyAfter": ".",
+        "acp": "ACP",
+        "channel": "Kanaal",
+        "target": "Doel",
+        "gain": "Gain",
+        "muted": "Gedempt"
+      }
+    },
+    "remoteMixer": {
+      "title": "Externe mixer",
+      "hint": "Voicemeeter op de mixer-pc, via VoicemeeterBridge",
+      "state": {
+        "connected": "Agent verbonden",
+        "connecting": "Verbinden…",
+        "disconnected": "Agent onbereikbaar — nieuwe poging",
+        "off": "Uit"
+      },
+      "voicemeeter": "Voicemeeter {0} {1}",
+      "voicemeeterNotRunning": "Voicemeeter draait niet op de mixer-pc",
+      "endpointTitle": "Agent-eindpunt",
+      "failedTitle": "Schrijfopdrachten die de agent sinds de start heeft geweigerd of die zijn verlopen",
+      "failedWrite": "{0} mislukte schrijfopdracht",
+      "failedWrites": "{0} mislukte schrijfopdrachten",
+      "lastError": "Laatste fout: {0}",
+      "emptyBefore": "Geen strips of bussen gekozen —",
+      "emptyLink": "kies ze in de sectie Externe mixer",
+      "emptyAfter": ".",
+      "channel": "Kanaal",
+      "label": "Label",
+      "gain": "Gain",
+      "mute": "Mute",
+      "muted": "Gedempt",
+      "open": "Open",
+      "unmuteButton": "Dempen opheffen",
+      "muteButton": "Dempen"
+    }
+  }
+}

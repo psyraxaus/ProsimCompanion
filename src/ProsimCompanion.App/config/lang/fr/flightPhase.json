@@ -1,0 +1,144 @@
+{
+  "flightPhase": {
+    "pageTitle": "Phase de vol — ProsimCompanion",
+    "heading": "Réglages de phase de vol",
+    "speeds": {
+      "title": "Vitesses",
+      "hint": "S'applique en direct, sans redémarrage. Les valeurs par défaut sont celles éprouvées lors des vols d'essai de 2026-08 — change-les avec un enregistrement rejoué qui montre pourquoi.",
+      "takeoffRollHold": {
+        "label": "Maintien de la course au décollage au-dessus de",
+        "hint": "Au-dessus de cette IAS, la course est conservée même si la poussée de décollage se lit momentanément non réglée (rebond du cran FLEX)"
+      },
+      "rolloutComplete": {
+        "label": "Roulage d'atterrissage terminé en dessous de",
+        "hint": "Le roulage d'atterrissage devient Taxi In dès que l'IAS passe sous cette valeur"
+      },
+      "pushbackMax": {
+        "label": "Vitesse sol max du pushback",
+        "hint": "Beacon + APU au-dessus de cette vitesse sol est un roulage, pas un pushback"
+      },
+      "parkedBelow": {
+        "label": "Stationné en dessous de",
+        "hint": "Vitesse sol en dessous de laquelle l'avion compte comme arrêté (les cockpits matériels tournent à 1–2 kt au repos)"
+      }
+    },
+    "vertical": {
+      "title": "Vertical",
+      "initialClimb": {
+        "label": "Plafond de la montée initiale",
+        "hint": "Sous cette hauteur radio, un départ reste en Initial Climb"
+      },
+      "levelBand": {
+        "label": "Bande de vol en palier",
+        "hint": "|VS| en dessous est un palier ; au-dessus, une montée"
+      },
+      "approachCeiling": {
+        "label": "Plafond d'approche",
+        "hint": "Descendre (ou palier train sorti) sous cette hauteur radio est Approach"
+      },
+      "goAroundRate": {
+        "label": "Taux de montée de remise de gaz",
+        "hint": "Quitter Approach vers le haut demande au moins cette VS — une amorce de palier ne doit pas se lire comme une remise de gaz"
+      },
+      "descentEntry": {
+        "label": "Taux d'entrée en descente",
+        "hint": "Entrer en Descent demande un taux de descente au moins aussi franc"
+      },
+      "descentExit": {
+        "label": "Taux de sortie de descente",
+        "hint": "Une fois en descente, un segment plus plat que ceci compte encore comme descente"
+      }
+    },
+    "cruise": {
+      "title": "Seuil de croisière",
+      "hint": "Le vol en palier ne se lit comme Cruise que près de l'altitude de croisière FMS (un palier sur la SID n'est pas une croisière)",
+      "tolerance": {
+        "label": "Tolérance sous la croisière FMS"
+      },
+      "floor": {
+        "label": "Plancher sans croisière FMS",
+        "hint": "Sans altitude de croisière saisie, le vol en palier doit être au-dessus de ceci"
+      }
+    },
+    "ground": {
+      "title": "Sol et escale",
+      "agreement": {
+        "label": "Concordance du contact sol",
+        "hint": "Échantillons consécutifs (250 ms chacun) où l'indicateur au sol doit concorder avant de basculer sol/air ; 1 désactive le filtre"
+      },
+      "turnaround": {
+        "label": "Attente d'escale",
+        "hint": "Après la fin du débarquement, stationné (moteurs coupés, frein serré, beacon éteint) pendant cette durée passe de Shutdown → Preflight sans réinitialisation cold-and-dark"
+      },
+      "heartbeat": {
+        "label": "Intervalle du battement dans le journal",
+        "hint": "Une ligne de journal 'je réfléchis encore' en direct ; 0 désactive"
+      }
+    },
+    "pause": {
+      "title": "Pause MSFS",
+      "hint": "Échap dans MSFS quitte la session de vol un instant. Dans le délai de grâce, avec l'avion là où il était, la phase et ses verrous sont conservés et 'Flight live' s'éteint et se rallume simplement ; plus long, ou un respawn, réinitialise la phase comme un retour au menu.",
+      "grace": {
+        "label": "Grâce de pause",
+        "hint": "Combien de temps la session peut être absente (avec l'indicateur de pause MSFS activé) avant de compter comme une vraie fin de session ; 0 réinitialise aussitôt"
+      },
+      "position": {
+        "label": "Même position à moins de",
+        "hint": "À la reprise, l'avion doit être à cette distance au plus de sa position ; plus loin est un respawn"
+      },
+      "fuel": {
+        "label": "Même carburant à moins de",
+        "hint": "À la reprise, le carburant à bord doit être à cet écart au plus du chiffre d'avant la pause ; un saut plus grand est un rechargement"
+      }
+    },
+    "settle": {
+      "title": "Temps de stabilisation",
+      "hint": "Combien de temps la preuve d'une transition doit persister avant d'être validée",
+      "default": "Par défaut",
+      "enterCruise": "Entrée en Cruise",
+      "descentToCruise": {
+        "label": "Descent → Cruise",
+        "hint": "Les segments en palier d'une descente par paliers ne doivent pas osciller"
+      },
+      "cruiseToClimb": {
+        "label": "Cruise → Climb",
+        "hint": "Un à-coup de VS en croisière est de la turbulence ; un step climb se maintient"
+      },
+      "descentToClimb": {
+        "label": "Descent → Climb",
+        "hint": "Une mise en palier dans la descente oscille vers le haut quelques secondes ; une remontée sur instruction ATC se maintient"
+      },
+      "goAround": "Remise de gaz",
+      "departureRegression": {
+        "label": "Régression du départ",
+        "hint": "Ramener Pushback/Taxi Out/Take-off Roll à Preflight demande une contradiction soutenue"
+      },
+      "firstAirborne": {
+        "label": "Première classification en vol",
+        "hint": "Une session dont la première classification est une phase de vol (redémarrage en vol ou données parasites de chauffe) doit se maintenir aussi longtemps"
+      }
+    },
+    "recorder": {
+      "title": "Enregistreur de vol",
+      "hint": "Échantillons compacts par seconde dans le journal de session pour que tout vol puisse être rejoué hors ligne dans le moteur de phases (voir docs/agents/flight-verification.md)",
+      "record": "Enregistrer les échantillons de vol",
+      "interval": "Intervalle d'échantillonnage",
+      "keepAlive": {
+        "label": "Keep-alive",
+        "hint": "Les échantillons inchangés sont ignorés ; un est tout de même écrit au moins à cette fréquence"
+      }
+    },
+    "rules": {
+      "title": "Table des règles",
+      "hint": "Ordre d'évaluation, la première correspondance gagne. 'hold' garde la phase actuelle. Lecture seule — les règles vivent dans le code ; les seuils ci-dessus les alimentent.",
+      "set": "Jeu",
+      "rule": "Règle",
+      "from": "De",
+      "to": "Vers",
+      "ground": "Sol",
+      "airborne": "En vol",
+      "any": "toute",
+      "hold": "hold"
+    }
+  }
+}

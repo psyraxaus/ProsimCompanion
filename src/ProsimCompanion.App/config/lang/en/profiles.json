@@ -1,0 +1,40 @@
+{
+  "profiles": {
+    "pageTitle": "Aircraft Profiles — ProsimCompanion",
+    "heading": "Aircraft Profiles",
+    "current": {
+      "title": "Current Aircraft",
+      "notConnected": "Sim not connected — profile matching will use defaults",
+      "titleLivery": "Title / Livery",
+      "airline": "Airline",
+      "activeProfile": "Active Profile",
+      "defaults": "— (defaults)",
+      "manual": "MANUAL",
+      "returnToAutomatic": "Return to automatic matching"
+    },
+    "list": {
+      "title": "Profiles",
+      "hint": "Matched against the aircraft loaded in the sim. Exact match wins over contains; no match uses the defaults",
+      "bannerBefore": "A profile holds the Ground Services settings. Saving on the",
+      "bannerLink": "Ground Services",
+      "bannerAfter": "pages while a profile is active stores them in that profile, and they come back the next time that aircraft loads.",
+      "namePlaceholder": "Profile name",
+      "active": "ACTIVE",
+      "default": "DEFAULT",
+      "setActive": "Set Active",
+      "clone": "Clone",
+      "delete": "Delete",
+      "match": "Match",
+      "matchContains": "Title / livery (contains)",
+      "matchExact": "Title / livery (exact)",
+      "matchAirline": "Airline (ICAO prefix)",
+      "matchDefault": "Default (fallback)",
+      "fragmentPlaceholder": "Aircraft title fragment",
+      "matchesCurrent": "matches current",
+      "empty": "No profiles — every aircraft uses the default settings.",
+      "add": "Add profile",
+      "newName": "Profile {0}",
+      "cloneName": "Clone of {0}"
+    }
+  }
+}

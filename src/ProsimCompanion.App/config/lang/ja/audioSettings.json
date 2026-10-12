@@ -1,0 +1,303 @@
+{
+  "audioSettings": {
+    "pageTitle": "オーディオ制御 — ProsimCompanion",
+    "heading": "オーディオ制御",
+    "general": {
+      "title": "音量制御",
+      "hint": "オーディオパネルのノブとラッチがアプリの音量を設定します",
+      "backend": {
+        "label": "バックエンド",
+        "hint": "Windows のアプリ音量、または VoiceMeeter のストリップとバス。",
+        "more": "切り替えは即時に反映されます。Windows の音量は元に戻り、VoiceMeeter のターゲットは 0 dB にリセットされます。",
+        "coreAudio": "CoreAudio（Windows のアプリ音量）",
+        "voiceMeeter": "VoiceMeeter（ストリップ／バス）"
+      },
+      "disableProsimNative": {
+        "label": "ProSim 独自のオーディオ制御を無効にする",
+        "hint": "ProSim 自身の Windows 音量制御をオフにし、両者が干渉しないようにします。"
+      },
+      "requirePower": {
+        "label": "オーディオパネルに電源がある間のみ",
+        "hint": "オン：実機と同じく、パネルのバスに電源があるときだけノブとラッチが作用します。オフ：リモートミキサーと同じく常に作用します。",
+        "more": "電源は AC/DC ESS に加えて、機長はオーディオスイッチングノブ、副操縦士はオーディオスイッチング、オブザーバーは DC1 です。切り替えは即時に反映され、現在のノブ値が再送されます。"
+      }
+    },
+    "coreAudio": {
+      "hint": "Windows のアプリごとの音量",
+      "acp": {
+        "label": "ACP",
+        "hint": "どのオーディオコントロールパネルがアプリ音量を駆動するか。",
+        "captain": "機長（ACP1）",
+        "firstOfficer": "副操縦士（ACP2）",
+        "observer": "オブザーバー（ACP3）"
+      },
+      "troubleshooting": "トラブルシューティング用フィルターは非表示",
+      "deviceFlow": {
+        "label": "デバイスフィルター DataFlow",
+        "hint": "トラブルシューティング専用。指示があったときだけ変更してください。",
+        "render": "再生",
+        "capture": "録音",
+        "all": "すべて"
+      },
+      "deviceState": {
+        "label": "デバイスフィルター State",
+        "hint": "トラブルシューティング専用。指示があったときだけ変更してください。",
+        "active": "有効",
+        "disabled": "無効",
+        "notPresent": "存在しない",
+        "unplugged": "未接続",
+        "all": "すべて（全マスク）"
+      },
+      "debugDump": {
+        "writing": "書き込み中…",
+        "write": "デバッグ情報を書き出す",
+        "written": "{0} に書き出しました",
+        "failed": "ダンプに失敗しました — アプリのログを確認してください"
+      },
+      "mappings": {
+        "title": "アプリのマッピング",
+        "hint": "1 つのチャンネルで複数のプロセスを駆動できます",
+        "empty": "アプリのマッピングは設定されていません。",
+        "channel": "チャンネル",
+        "process": "プロセス",
+        "device": "デバイス",
+        "latch": "ラッチ",
+        "active": "アクティブ",
+        "processPlaceholder": "プロセス名（.exe なし）",
+        "devicePlaceholder": "すべてのデバイス",
+        "latchTitle": "REC ラッチからミュートを駆動",
+        "activeTitle": "アクティブなセッションのみ制御",
+        "remove": "削除",
+        "add": "マッピングを追加",
+        "note": "プロセス名は .exe なしで、例：vPilot。",
+        "more": "詳細",
+        "moreBody": "ラッチがオフのときミュートは一切書き込まれないため、別の場所でミュートされたアプリはそのままです。管理者として実行されているアプリは ProsimCompanion も管理者として実行する必要があります。ステータスセクションがそれらを表示します。LOUDSPEAKER はコックピットのラウドスピーカーダイヤル（機長と副操縦士のみ）で、そのラッチのチェックはダイヤルを完全に絞ったときにアプリをミュートします。"
+      },
+      "blacklist": {
+        "title": "デバイスのブラックリスト",
+        "hint": "デバイス名の先頭で照合します",
+        "placeholder": "デバイス表示名の先頭部分",
+        "remove": "削除",
+        "add": "デバイスを追加"
+      }
+    },
+    "voiceMeeter": {
+      "hint": "VoiceMeeter のリモート API によるストリップとバス",
+      "dllPath": {
+        "label": "VoicemeeterRemote64.dll のパス",
+        "hint": "空欄ならインストール済みの VoiceMeeter を自動検出します。特殊なインストールフォルダーの場合のみ設定してください。"
+      },
+      "reload": "ストリップを再読み込み",
+      "found": "ストリップ {0} 個 / バス {1} 個が見つかりました",
+      "notReachable": "VoiceMeeter に接続できません — 汎用のストリップ／バス番号を表示しています",
+      "acpMappings": "{0} のマッピング",
+      "driveFrom": "{0} ACP からターゲットを駆動",
+      "channel": "チャンネル",
+      "target": "ターゲット",
+      "latch": "ラッチ",
+      "latchTitle": "REC ラッチからミュートを駆動",
+      "noLatchTitle": "このダイヤルに REC ラッチはありません。完全に絞ると常にターゲットをミュートします。",
+      "remove": "削除",
+      "add": "マッピングを追加",
+      "oncePerPanel": "1 つのチャンネルはパネルごとに 1 回だけ使えます。1 つのストリップまたはバスは 1 つのパネルにのみ属せます。",
+      "more": "詳細",
+      "oncePerPanelMore": "矛盾した保存は修正されるまで機長のパネルにフォールバックします。理由はステータスセクションに表示されます。ノブの可動域は −60 dB … +12 dB に対応し、0 dB は約 83 % の位置です。",
+      "loudspeaker": "LOUDSPEAKER はコックピットのラウドスピーカーダイヤルで、機長と副操縦士のリストにあります。",
+      "loudspeakerMore": "コックピットのスピーカーに出力するストリップまたはバスに割り当ててください。このダイヤルに REC ラッチはなく、完全に絞るとターゲットをミュートします。マニュアル第 8 章（ラウドスピーカーダイヤル）に、ヘッドセットの音声をスピーカーへ出す VoiceMeeter の配線があります。"
+    },
+    "mixer": {
+      "title": "リモートミキサー",
+      "hint": "VoicemeeterBridge エージェントを介した別 PC 上の Voicemeeter",
+      "enable": {
+        "label": "リモートミキサーを有効にする",
+        "hint": "エージェントに接続し、下のマッピングを駆動します。オフでは接続を開きません。",
+        "more": "上のローカル VoiceMeeter バックエンドはこの PC の VoiceMeeter を駆動します。このカードは別の PC（例：vPilot を動かしている PC）の VoiceMeeter を駆動します。両 PC の設定手順：docs/integrations/voicemeeter-bridge.md。"
+      },
+      "host": {
+        "label": "ホスト",
+        "hint": "VoicemeeterBridge を実行している PC の名前または IP アドレス。"
+      },
+      "port": {
+        "label": "ポート",
+        "hint": "エージェントのポート。そちらで変更していなければ 5088 です。"
+      },
+      "token": {
+        "label": "トークン",
+        "hint": "エージェントのトレイメニューの「トークンをコピー」から。暗号化して保存され、ログには記録されません。"
+      },
+      "testTitle": "保存の有無にかかわらず上の値で接続を開き、エージェントのウェルカムメッセージを読み取ります。",
+      "testing": "テスト中…",
+      "test": "接続をテスト",
+      "liveTitle": "保存済み接続のライブ状態",
+      "reconnectDelay": {
+        "label": "再接続の遅延",
+        "hint": "切断後の最初の再試行。最大値まで倍増します。"
+      },
+      "reconnectMax": {
+        "label": "再接続の最大値"
+      },
+      "writeTimeout": {
+        "label": "書き込みタイムアウト",
+        "hint": "書き込みがエージェントの応答を待つ時間。"
+      },
+      "gainMin": {
+        "label": "ゲイン、ノブ最小",
+        "hint": "−60 dB はほぼ無音です。"
+      },
+      "gainMax": {
+        "label": "ゲイン、ノブ最大",
+        "hint": "ローカルバックエンドと同じ +12 dB（ノブの約 83 % で 0 dB）。ユニティを超えてはいけないストリップには 0 を設定してください。"
+      },
+      "state": {
+        "connected": "接続済み — Voicemeeter {0} {1}",
+        "connectedNoVoicemeeter": "接続済み — ミキサー PC で Voicemeeter が動作していません",
+        "connecting": "接続中…",
+        "unreachable": "到達不能 — {0}",
+        "unreachableRetrying": "到達不能 — 再試行中",
+        "offNoHost": "オフ — ホスト未設定",
+        "off": "オフ"
+      },
+      "panel": {
+        "title": "ステータスパネル",
+        "hint": "ステータスセクションに表示するストリップとバス（ミュートボタン付き）",
+        "pickHint": "表示するストリップとバスにチェックを入れてください。名前はミキサー PC の Voicemeeter から取得します。",
+        "strips": {
+          "label": "ストリップ",
+          "hint": "Voicemeeter の表示どおりのストリップ番号（1 = 最初）、カンマ区切り。例：1, 2, 3"
+        },
+        "buses": {
+          "label": "バス",
+          "hint": "バス番号（1 = A1）、カンマ区切り。例：1, 4"
+        },
+        "pendingHint": "エージェントが接続されると、ストリップとバスがここに名前付きのチェックボックスとして表示されます。",
+        "reloadTitle": "ミキサー PC からストリップとバスの名前を再取得します（Voicemeeter で名前を変更した後に）。",
+        "reading": "読み込み中…",
+        "reload": "チャンネルを再読み込み",
+        "summary": "ミキサー PC 上にストリップ {0} 個 / バス {1} 個",
+        "summaryReading": "ストリップとバスを読み込み中…",
+        "summaryOffline": "エージェント未接続 — 汎用のストリップ／バス番号を表示しています"
+      },
+      "mappings": {
+        "title": "マッピング",
+        "hint": "オーディオパネルの 1 チャンネルがミキサー PC の 1 つのストリップまたはバスを駆動します",
+        "empty": "マッピングはまだありません。下で追加してください。",
+        "on": "オン",
+        "panel": "パネル",
+        "channel": "チャンネル",
+        "target": "ストリップ／バス",
+        "latch": "ラッチ",
+        "latchTitle": "REC プッシュボタンからターゲットの Mute を駆動",
+        "live": "ライブ",
+        "enabledTitle": "オフにすると行を使用せずに保持します",
+        "noLatchTitle": "このダイヤルに REC プッシュボタンはありません。完全に絞ると常にターゲットをミュートします。",
+        "liveTitle": "最後に送信したゲインとミュート、およびエージェントの応答",
+        "liveMuted": "ミュート",
+        "liveOpen": "オープン",
+        "remove": "削除",
+        "add": "マッピングを追加",
+        "note": "ノブはストリップまたはバスのゲインを設定し、ラッチにチェックがあれば REC プッシュボタンでミュートします。ストリップとバスの名前はエージェント接続後にミキサー PC から取得します。",
+        "more": "詳細",
+        "moreBody": "ノブの可動域は接続カードの詳細フィールドにあるゲイン範囲に対応します（既定は −60 dB … +12 dB、ローカル VoiceMeeter バックエンドと同じで、0 dB は約 83 % の位置）。ラッチがオフのときミュートは書き込まれないため、ミキサー PC でミュートされたストリップはそのままです。LOUDSPEAKER はコックピットのダイヤルで、プッシュボタンはなく、完全に絞るとターゲットをミュートします。書き込みはパラメーターごとに毎秒最大 20 回で、最後の値が優先されます。ノブの値はオーディオパネルの電源の有無にかかわらず送信されます。同じストリップに 2 行ある場合、最後に動かした方が優先されます。"
+      }
+    },
+    "housekeeping": {
+      "title": "ハウスキーピング",
+      "hint": "実証済みのタイミング。変更が必要になることはまれです",
+      "runInterval": {
+        "label": "実行間隔",
+        "hint": "メインのチェック。アプリの再起動後に反映されます。"
+      },
+      "processCheck": {
+        "label": "プロセス確認間隔"
+      },
+      "startupGrace": {
+        "label": "プロセス起動猶予",
+        "hint": "マッピングされたアプリの起動後、その音声を探し始めるまでの待ち時間。"
+      },
+      "deviceRescan": {
+        "label": "デバイス再スキャン間隔"
+      },
+      "maxSearches": {
+        "label": "セッション検索の最大回数",
+        "hint": "デバイスを再スキャンするまでの検索失敗回数。"
+      }
+    },
+    "status": {
+      "title": "音量制御",
+      "hint": "ACP ノブ / REC ラッチ → アプリ音量",
+      "enabled": "有効",
+      "disabled": "無効",
+      "voiceMeeterLinked": "VoiceMeeter 接続済み",
+      "voiceMeeterNotReachable": "VoiceMeeter に接続できません",
+      "poweredTitle": "電源あり — ノブの変更が反映されます",
+      "unpoweredTitle": "電源なし — ノブの変更は保留されます",
+      "powered": "PWR",
+      "unpowered": "OFF",
+      "mappingConflict": "マッピングの競合：{0}",
+      "elevated": "昇格したプロセスを検出：{0}。これらのアプリを制御するには ProsimCompanion を管理者として実行してください — それまでこれらのマッピングは無効のままです。",
+      "mappingState": {
+        "bound": "バインド済み",
+        "searching": "検索中",
+        "elevated": "昇格",
+        "notRunning": "未実行"
+      },
+      "appMappings": {
+        "title": "アプリのマッピング",
+        "hint": "マッピングされたプロセスごとのライブセッション状態",
+        "emptyBefore": "アプリのマッピングは設定されていません —",
+        "emptyLink": "CoreAudio セクションで追加",
+        "emptyAfter": "。",
+        "process": "プロセス",
+        "channel": "チャンネル",
+        "device": "デバイス",
+        "state": "状態",
+        "sessions": "セッション",
+        "volume": "音量",
+        "muted": "ミュート",
+        "allDevices": "すべて",
+        "yes": "はい",
+        "no": "いいえ"
+      },
+      "voiceMeeterTargets": {
+        "title": "VoiceMeeter ターゲット",
+        "hint": "バインドされたチャンネルごとのライブなストリップ／バス状態",
+        "emptyBefore": "ターゲットはバインドされていません —",
+        "emptyLink": "VoiceMeeter セクションでマッピングを設定",
+        "emptyAfter": "。",
+        "acp": "ACP",
+        "channel": "チャンネル",
+        "target": "ターゲット",
+        "gain": "ゲイン",
+        "muted": "ミュート"
+      }
+    },
+    "remoteMixer": {
+      "title": "リモートミキサー",
+      "hint": "VoicemeeterBridge を介したミキサー PC 上の Voicemeeter",
+      "state": {
+        "connected": "エージェント接続済み",
+        "connecting": "接続中…",
+        "disconnected": "エージェントに到達できません — 再試行中",
+        "off": "オフ"
+      },
+      "voicemeeter": "Voicemeeter {0} {1}",
+      "voicemeeterNotRunning": "ミキサー PC で Voicemeeter が動作していません",
+      "endpointTitle": "エージェントのエンドポイント",
+      "failedTitle": "起動以降にエージェントが拒否した、またはタイムアウトした書き込み",
+      "failedWrite": "書き込み失敗 {0} 件",
+      "failedWrites": "書き込み失敗 {0} 件",
+      "lastError": "最後のエラー：{0}",
+      "emptyBefore": "ストリップもバスも選択されていません —",
+      "emptyLink": "リモートミキサーセクションで選択",
+      "emptyAfter": "。",
+      "channel": "チャンネル",
+      "label": "ラベル",
+      "gain": "ゲイン",
+      "mute": "Mute",
+      "muted": "ミュート",
+      "open": "オープン",
+      "unmuteButton": "ミュート解除",
+      "muteButton": "ミュート"
+    }
+  }
+}

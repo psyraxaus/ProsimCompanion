@@ -1,0 +1,40 @@
+{
+  "profiles": {
+    "pageTitle": "Profils d'avion — ProsimCompanion",
+    "heading": "Profils d'avion",
+    "current": {
+      "title": "Avion actuel",
+      "notConnected": "Sim non connecté — la correspondance des profils utilisera les valeurs par défaut",
+      "titleLivery": "Titre / Livrée",
+      "airline": "Compagnie",
+      "activeProfile": "Profil actif",
+      "defaults": "— (par défaut)",
+      "manual": "MANUEL",
+      "returnToAutomatic": "Revenir à la correspondance automatique"
+    },
+    "list": {
+      "title": "Profils",
+      "hint": "Comparés à l'avion chargé dans le sim. La correspondance exacte l'emporte sur contient ; sans correspondance, les valeurs par défaut",
+      "bannerBefore": "Un profil contient les réglages des Services au sol. Enregistrer sur les pages",
+      "bannerLink": "Services au sol",
+      "bannerAfter": "avec un profil actif les stocke dans ce profil, et ils reviennent au prochain chargement de cet avion.",
+      "namePlaceholder": "Nom du profil",
+      "active": "ACTIF",
+      "default": "PAR DÉFAUT",
+      "setActive": "Activer",
+      "clone": "Cloner",
+      "delete": "Supprimer",
+      "match": "Correspondance",
+      "matchContains": "Titre / livrée (contient)",
+      "matchExact": "Titre / livrée (exact)",
+      "matchAirline": "Compagnie (préfixe OACI)",
+      "matchDefault": "Par défaut (repli)",
+      "fragmentPlaceholder": "Fragment du titre de l'avion",
+      "matchesCurrent": "correspond à l'actuel",
+      "empty": "Aucun profil — chaque avion utilise les réglages par défaut.",
+      "add": "Ajouter un profil",
+      "newName": "Profil {0}",
+      "cloneName": "Clone de {0}"
+    }
+  }
+}
