@@ -1,0 +1,36 @@
+{
+  "day": {
+    "pageTitle": "勤務日 — ProsimCompanion",
+    "heading": "勤務日",
+    "title": "カンパニーデイモード",
+    "notWired": "このビルドにはカンパニーデイモードが組み込まれていません（WIRING-DAY.md を参照）。",
+    "status": "状態",
+    "noDay": "勤務日なし",
+    "start": "勤務日を開始",
+    "end": "勤務日を終了",
+    "startHint": "\"start duty day\" と言うか、ボタンを押してください。デイモードと自動開始がオンなら、最初の Preflight でも勤務日が始まります。計画済みの勤務日には rotations/*.json ファイルを置いてください。",
+    "from": "出発",
+    "to": "到着",
+    "leg": "レグ",
+    "legOf": "/ {0}",
+    "legsCompleted": "{0} 完了",
+    "block": "ブロック",
+    "duty": "勤務",
+    "schedule": "スケジュール",
+    "behind": "遅れ",
+    "ahead": "早め",
+    "onSchedule": "定刻",
+    "figuresNote": "ブロック時間と勤務時間は飛行実績の簡易記録です — 飛行時間制限の計算ではありません。",
+    "legs": "レグ",
+    "legName": "レグ {0} · {1} → {2}",
+    "blockMin": "ブロック {0} 分",
+    "legState": {
+      "landed": "着陸",
+      "noLanding": "着陸なし",
+      "inProgress": "進行中",
+      "planned": "計画",
+      "stabilized": "安定",
+      "unstable": "不安定"
+    }
+  }
+}

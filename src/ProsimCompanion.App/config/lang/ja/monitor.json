@@ -1,0 +1,98 @@
+{
+  "monitor": {
+    "pageTitle": "{0} — ProsimCompanion",
+    "heading": "Flight Monitor",
+    "mode": {
+      "gate": "ゲートモニター",
+      "flight": "フライトモニター",
+      "arrival": "到着モニター"
+    },
+    "logoAlt": "{0} のロゴ",
+    "logoTitle": "設定 → 外観 でこの航空会社のロゴをアップロードしてください",
+    "logoPlaceholder": "航空会社ロゴ",
+    "noFlightPlan": "フライトプランなし",
+    "fetchOfp": "INIT ページで OFP を取得してください",
+    "gateLabel": {
+      "gate": "ゲート",
+      "cruise": "巡航",
+      "arrival": "到着ゲート"
+    },
+    "state": {
+      "gateOpen": "ゲート オープン",
+      "boarding": "搭乗中",
+      "finalCall": "最終案内",
+      "gateClosed": "ゲート クローズ",
+      "taxiIn": "タキシーイン",
+      "arrived": "到着",
+      "deboarding": "降機中",
+      "onBlocks": "ブロックイン"
+    },
+    "progress": {
+      "position": "大圏直行 · 位置から算出",
+      "timeNoPosition": "時間基準 · 機体位置なし",
+      "timeNoAirport": "時間基準 · 空港位置不明",
+      "none": "進行データなし"
+    },
+    "stripLabel": "ルート {0} から {1}、{2} パーセント、{3}",
+    "directTitle": "ルート沿いではなく大圏直行距離です。降下開始点は 3:1 の推定です。",
+    "toGo": "残り {0} 直行",
+    "tod": "T/D {0} 推定",
+    "elapsed": "経過 {0}",
+    "paxOff": "{0} / {1} PAX 降機",
+    "pax": "{0} / {1} PAX",
+    "paxNone": "— PAX",
+    "facts": {
+      "eet": "EET {0}",
+      "blockIn": "ブロックイン {0}",
+      "blockTime": "ブロック時間 {0}",
+      "fob": "FOB {0}",
+      "offBlocks": "ブロックアウト {0}",
+      "flightTime": "飛行時間 {0}",
+      "std": "STD {0} · {1} MIN",
+      "stdNone": "STD —",
+      "landed": "着陸 {0}",
+      "etaTagged": "ETA {0} {1}",
+      "eta": "ETA {0}"
+    },
+    "flightData": "フライトデータ",
+    "rows": {
+      "groundSpeed": "対地速度",
+      "altitude": "高度",
+      "verticalSpeed": "昇降率",
+      "heading": "機首方位"
+    },
+    "aircraft": "機体",
+    "lamps": {
+      "gear": "ギア",
+      "flaps": "フラップ",
+      "seatBelts": "シートベルト",
+      "beacon": "ビーコン",
+      "jetwayStairs": "ブリッジ / タラップ"
+    },
+    "doors": "ドアと接続",
+    "door": {
+      "cargoFwd": "前方貨物",
+      "cargoAft": "後方貨物",
+      "open": "オープン",
+      "closed": "クローズ"
+    },
+    "groundServices": "地上サービス",
+    "services": {
+      "deboarding": "降機",
+      "cleaning": "清掃",
+      "catering": "ケータリング",
+      "refuel": "給油",
+      "boarding": "搭乗",
+      "pushback": "プッシュバック"
+    },
+    "weather": {
+      "local": "現地",
+      "alternate": "代替",
+      "destination": "目的地",
+      "fetchOfp": "INIT ページで OFP を取得してください",
+      "noMetar": "METAR がありません",
+      "updatedJustNow": " · たった今更新",
+      "updatedAgo": " · {0} 分前に更新"
+    }
+  }
+}

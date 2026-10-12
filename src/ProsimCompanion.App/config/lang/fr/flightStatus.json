@@ -1,0 +1,199 @@
+{
+  "flightStatus": {
+    "pageTitle": "État du vol — ProsimCompanion",
+    "heading": "État du vol",
+    "common": {
+      "yes": "Oui",
+      "no": "Non",
+      "true": "Vrai",
+      "false": "Faux",
+      "ok": "OK"
+    },
+    "layout": {
+      "notSaved": "disposition non enregistrée",
+      "dragHint": "Glissez une tuile sur une autre pour les échanger (appui long sur un écran tactile), ou utilisez les flèches",
+      "resetTitle": "Remettre les tuiles dans l'ordre par défaut",
+      "reset": "Réinitialiser la disposition",
+      "done": "Terminé",
+      "editTitle": "Glissez les tuiles de cette page dans l'ordre de votre choix ; l'ordre est enregistré pour chaque appareil",
+      "edit": "Modifier la disposition",
+      "moveEarlier": "Avancer",
+      "dragTitle": "Glisser pour déplacer (ou glissez la tuile n'importe où)",
+      "drag": "Glisser pour déplacer",
+      "moveLater": "Reculer",
+      "writeFailed": "L'ordre n'a pas pu être écrit dans settings.json : {0}"
+    },
+    "hero": {
+      "frozen": "· figée",
+      "from": "De",
+      "to": "Vers",
+      "whyPhase": "Pourquoi cette phase",
+      "reasonTitle": "Raison pour laquelle la phase de vol actuelle a été retenue",
+      "groundSpeed": "Vitesse sol",
+      "altitude": "Altitude",
+      "verticalSpeed": "Vitesse verticale",
+      "heading": "Cap",
+      "fuelOnBoard": "Carburant à bord",
+      "progressTitle": "Les distances sont orthodromiques directes, pas le long de la route. Le début de descente est une estimation 3:1.",
+      "toGo": "Restant",
+      "flown": "Parcouru",
+      "eta": "ETA",
+      "topOfDescent": "Début de descente",
+      "noFlightPlan": "Aucun plan de vol chargé — récupérez un OFP sur la page INIT"
+    },
+    "sequence": {
+      "title": "Séquence du vol",
+      "step": {
+        "boardingComplete": "Embarquement terminé",
+        "boarding": "Embarquement",
+        "inProgress": "En cours",
+        "complete": "Terminé",
+        "pending": "En attente"
+      },
+      "openChecklists": "Ouvrir les check-lists"
+    },
+    "engine": {
+      "title": "Moteur de phases",
+      "frozenTitle": "Les transitions automatiques sont suspendues jusqu'à Reprendre l'auto",
+      "automaticTitle": "La phase suit la table de règles",
+      "frozen": "figée",
+      "automatic": "automatique",
+      "phaseToForce": "Phase à forcer",
+      "freezeTitle": "Conserver la phase forcée jusqu'à Reprendre l'auto ; sinon, le prochain indice contradictoire fait avancer",
+      "freeze": "figer",
+      "forceTitle": "Retenir la phase sélectionnée maintenant (journalisé comme forçage manuel)",
+      "force": "Forcer",
+      "resumeTitle": "Lever le gel ; l'évaluation reprend à partir de la phase actuelle",
+      "resume": "Reprendre l'auto"
+    },
+    "weather": {
+      "local": "Météo locale",
+      "alternate": "Météo au dégagement",
+      "destination": "Météo à destination",
+      "noFlightPlan": "Aucun plan de vol",
+      "fetchOfp": "Récupérez un OFP sur la page INIT",
+      "noMetar": "Aucun METAR disponible"
+    },
+    "gate": {
+      "open": "PORTE OUVERTE",
+      "boarding": "EMBARQUEMENT",
+      "finalCall": "DERNIER APPEL",
+      "closed": "PORTE FERMÉE",
+      "since": "· depuis {0}",
+      "label": "Porte",
+      "popoutTitle": "Ouvrir le tableau Flight Monitor dans sa propre fenêtre (second écran / tablette)",
+      "popout": "Détacher"
+    },
+    "sim": {
+      "title": "Sim",
+      "running": "Sim lancé",
+      "connected": "Sim connecté",
+      "session": "Session sim",
+      "paused": "Sim en pause",
+      "walkaround": "Tour avion",
+      "cameraState": "État caméra",
+      "version": "Version du sim",
+      "aircraft": "Avion"
+    },
+    "app": {
+      "title": "App",
+      "gsxController": "Contrôleur GSX",
+      "prosimBinary": "Binaire ProSim",
+      "aircraftInterface": "Interface avion",
+      "sdkConnected": "SDK ProSim connecté",
+      "automationController": "Contrôleur d'automatisation",
+      "audioController": "Contrôleur audio",
+      "profile": "Profil",
+      "aircraft": "Avion",
+      "onGround": "Au sol",
+      "enginesRunning": "Moteurs en marche",
+      "inMotion": "En mouvement"
+    },
+    "gsx": {
+      "title": "GSX",
+      "running": "GSX lancé",
+      "couatlVars": "Variables Couatl",
+      "couatlStarted": "Couatl démarré",
+      "menuState": "État du menu",
+      "menuShown": "affiché",
+      "menuClosed": "fermé",
+      "paxTarget": "Pax cible",
+      "paxTotal": "Pax total (E|D)",
+      "cargo": "Fret (E|D)",
+      "departureServices": "Services de départ",
+      "departure": {
+        "complete": "Terminés",
+        "running": "En cours",
+        "notStarted": "Non démarrés"
+      },
+      "assignedGate": "Porte attribuée",
+      "lastHandlerEvent": "Dernier événement handler",
+      "droppedCall": "Appel perdu",
+      "dropped": {
+        "checkMenu": "{0} à {1} — vérifiez le menu GSX",
+        "menuOpen": "{0} à {1} — menu GSX \"{2}\" ouvert",
+        "noneTitle": "Aucun appel de service GSX n'a été perdu",
+        "title": "GSX n'a jamais pris cet appel (réessayé une fois). Fermez tout menu GSX et rappelez le service."
+      }
+    },
+    "services": {
+      "title": "Services",
+      "catering": "Catering",
+      "lavatory": "Toilettes",
+      "water": "Eau",
+      "cleaning": "Nettoyage",
+      "boarding": "Embarquement",
+      "deboarding": "Débarquement",
+      "pushback": "Pushback",
+      "jetway": "Passerelle",
+      "jetwayConnected": "Passerelle connectée",
+      "stairs": "Escaliers",
+      "stairsConnected": "Escaliers connectés",
+      "gpu": "GPU",
+      "refuel": "Avitaillement",
+      "groundPrep": "Préparation au sol",
+      "completed": "terminé",
+      "connected": "Connecté",
+      "gpuConnected": "connecté",
+      "prep": {
+        "holding": "En attente",
+        "tooltip": "{0} — {1}",
+        "idle": "Inactif",
+        "reposition": "Repositionnement",
+        "settling": "Stabilisation",
+        "anchorGate": "Ancrage de la porte",
+        "groundEquipment": "Équipement au sol",
+        "jetwayStairs": "Passerelle/escaliers",
+        "complete": "Terminé"
+      }
+    },
+    "aircraftState": {
+      "label": "État de l'avion",
+      "pass": "cold and dark ✓",
+      "unchecked": "non vérifié (dataref jamais reçu) : {0}",
+      "mismatchOne": "{0} écart",
+      "mismatchMany": "{0} écarts",
+      "notChecked": "non vérifié",
+      "recheck": "Revérifier",
+      "recheckTitle": "Relancer la vérification cold-and-dark maintenant (aussi par la voix : 'check the aircraft state').",
+      "notReady": "pas encore prêt"
+    },
+    "cabin": {
+      "label": "Cabine",
+      "securing": "sécurisation",
+      "securingTitle": "Portes fermées et beacon allumé — l'équipage sécurise la cabine ; le rapport suit à la fin de leur minuteur (Réglages → Copilote vocal → Équipage de cabine).",
+      "secure": "sécurisée",
+      "secureTitle": "Le chef de cabine a annoncé la cabine sécurisée pour ce vol.",
+      "noneTitle": "L'attente cabine sécurisée commence quand les portes sont fermées et le beacon allumé."
+    },
+    "refuel": {
+      "awaitingTitle": "En attente de la confirmation du carburant bloc par l'équipage (mode SOP)",
+      "awaiting": "en attente de confirmation carburant",
+      "confirmedTitle": "Confirmé {0} via {1}",
+      "confirmedKg": "{0} kg confirmés",
+      "confirmTitle": "Confirmer le carburant bloc (forçage INIT FUEL RAMP, sinon l'OFP) et commander le camion — ou un complément après un avitaillement terminé. Aussi par la voix : 'fuel confirmed'.",
+      "confirming": "Confirmation…",
+      "confirm": "Confirmer le carburant"
+    }
+  }
+}

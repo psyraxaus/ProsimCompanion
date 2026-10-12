@@ -1,0 +1,36 @@
+{
+  "day": {
+    "pageTitle": "근무일 — ProsimCompanion",
+    "heading": "근무일",
+    "title": "컴퍼니 데이 모드",
+    "notWired": "이 빌드에는 컴퍼니 데이 모드가 연결되어 있지 않습니다 (WIRING-DAY.md 참조).",
+    "status": "상태",
+    "noDay": "근무일 없음",
+    "start": "근무일 시작",
+    "end": "근무일 종료",
+    "startHint": "\"start duty day\"라고 말하거나 버튼을 누르세요. 데이 모드와 자동 시작이 켜져 있으면 첫 Preflight에서도 근무일이 시작됩니다. 계획된 근무일은 rotations/*.json 파일을 넣어 두세요.",
+    "from": "출발",
+    "to": "도착",
+    "leg": "구간",
+    "legOf": "/ {0}",
+    "legsCompleted": "{0} 완료",
+    "block": "블록",
+    "duty": "근무",
+    "schedule": "스케줄",
+    "behind": "지연",
+    "ahead": "앞섬",
+    "onSchedule": "정시",
+    "figuresNote": "블록 및 근무 시간은 비행 실적의 간편 기록입니다 — 비행 시간 제한 계산이 아닙니다.",
+    "legs": "구간",
+    "legName": "구간 {0} · {1} → {2}",
+    "blockMin": "블록 {0}분",
+    "legState": {
+      "landed": "착륙",
+      "noLanding": "착륙 없음",
+      "inProgress": "진행 중",
+      "planned": "계획됨",
+      "stabilized": "안정",
+      "unstable": "불안정"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "monitor": {
+    "pageTitle": "{0} — ProsimCompanion",
+    "heading": "Flight Monitor",
+    "mode": {
+      "gate": "Gate-Monitor",
+      "flight": "Flug-Monitor",
+      "arrival": "Ankunfts-Monitor"
+    },
+    "logoAlt": "{0}-Logo",
+    "logoTitle": "Lade das Logo dieser Airline unter Einstellungen → Darstellung hoch",
+    "logoPlaceholder": "AIRLINE-LOGO",
+    "noFlightPlan": "Kein Flugplan",
+    "fetchOfp": "Hole einen OFP auf der INIT-Seite",
+    "gateLabel": {
+      "gate": "Gate",
+      "cruise": "Reiseflug",
+      "arrival": "Ankunftsgate"
+    },
+    "state": {
+      "gateOpen": "GATE OFFEN",
+      "boarding": "BOARDING",
+      "finalCall": "LETZTER AUFRUF",
+      "gateClosed": "GATE GESCHLOSSEN",
+      "taxiIn": "TAXI IN",
+      "arrived": "ANGEKOMMEN",
+      "deboarding": "DEBOARDING",
+      "onBlocks": "ON BLOCKS"
+    },
+    "progress": {
+      "position": "Großkreis direkt · aus der Position",
+      "timeNoPosition": "Zeitbasiert · keine Flugzeugposition",
+      "timeNoAirport": "Zeitbasiert · Flughafenposition unbekannt",
+      "none": "Keine Fortschrittsdaten"
+    },
+    "stripLabel": "Route {0} nach {1}, {2} Prozent, {3}",
+    "directTitle": "Großkreis-Direktentfernung, nicht entlang der Route. Der Top of Descent ist eine 3:1-Schätzung.",
+    "toGo": "NOCH {0} DIREKT",
+    "tod": "T/D {0} GESCH.",
+    "elapsed": "VERGANGEN {0}",
+    "paxOff": "{0} / {1} PAX AUSGESTIEGEN",
+    "pax": "{0} / {1} PAX",
+    "paxNone": "— PAX",
+    "facts": {
+      "eet": "EET {0}",
+      "blockIn": "BLOCK-IN {0}",
+      "blockTime": "BLOCKZEIT {0}",
+      "fob": "FOB {0}",
+      "offBlocks": "OFF BLOCKS {0}",
+      "flightTime": "FLUGZEIT {0}",
+      "std": "STD {0} · {1} MIN",
+      "stdNone": "STD —",
+      "landed": "GELANDET {0}",
+      "etaTagged": "ETA {0} {1}",
+      "eta": "ETA {0}"
+    },
+    "flightData": "Flugdaten",
+    "rows": {
+      "groundSpeed": "Groundspeed",
+      "altitude": "Höhe",
+      "verticalSpeed": "Vertikalgeschw.",
+      "heading": "Steuerkurs"
+    },
+    "aircraft": "Flugzeug",
+    "lamps": {
+      "gear": "Fahrwerk",
+      "flaps": "Klappen",
+      "seatBelts": "Anschnallzeichen",
+      "beacon": "Beacon",
+      "jetwayStairs": "Brücke / Treppen"
+    },
+    "doors": "Türen & Anschlüsse",
+    "door": {
+      "cargoFwd": "Fracht vorn",
+      "cargoAft": "Fracht hinten",
+      "open": "OFFEN",
+      "closed": "ZU"
+    },
+    "groundServices": "Bodendienste",
+    "services": {
+      "deboarding": "Deboarding",
+      "cleaning": "Reinigung",
+      "catering": "Catering",
+      "refuel": "Betankung",
+      "boarding": "Boarding",
+      "pushback": "Pushback"
+    },
+    "weather": {
+      "local": "Vor Ort",
+      "alternate": "Ausweich",
+      "destination": "Ziel",
+      "fetchOfp": "Hole einen OFP auf der INIT-Seite",
+      "noMetar": "Kein METAR verfügbar",
+      "updatedJustNow": " · gerade aktualisiert",
+      "updatedAgo": " · vor {0} min aktualisiert"
+    }
+  }
+}

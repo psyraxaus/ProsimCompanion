@@ -1,8 +1,11 @@
 using System.Globalization;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Airports;
 using ProsimCompanion.Core.Boarding;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.Tests.Localization;
 using ProsimCompanion.Core.Weather;
 using ProsimCompanion.Web.Components;
 using Xunit;
@@ -12,6 +15,11 @@ namespace ProsimCompanion.Core.Tests.Web;
 public sealed class FlightMonitorPresentationTests
 {
     private static readonly DateTimeOffset T0 = new(2026, 9, 23, 10, 45, 0, TimeSpan.Zero);
+
+    // The board's words come from the shipped English pack (ADR-0014); the assertions below
+    // still read the English a pilot sees, so a renamed id or a lost text fails here.
+    private static readonly IStringLocalizer T = new ServiceCollection().AddTestLocalizer()
+        .BuildServiceProvider().CreateScope().ServiceProvider.GetRequiredService<IStringLocalizer>();
 
     [Theory]
     [InlineData(FlightPhase.Unknown, MonitorMode.Gate)]
@@ -30,22 +38,22 @@ public sealed class FlightMonitorPresentationTests
     [Fact]
     public void StateWord_GateModeReadsTheGateMonitor()
     {
-        Assert.Equal("BOARDING", FlightMonitorPresentation.StateWord(MonitorMode.Gate, GateState.Boarding, FlightPhase.Departure, false, false));
-        Assert.Equal("FINAL CALL", FlightMonitorPresentation.StateWord(MonitorMode.Gate, GateState.FinalCall, FlightPhase.Departure, false, false));
-        Assert.Equal("GATE CLOSED", FlightMonitorPresentation.StateWord(MonitorMode.Gate, GateState.ClosedAfterBoarding, FlightPhase.Departure, false, false));
+        Assert.Equal("BOARDING", FlightMonitorPresentation.StateWord(T, MonitorMode.Gate, GateState.Boarding, FlightPhase.Departure, false, false));
+        Assert.Equal("FINAL CALL", FlightMonitorPresentation.StateWord(T, MonitorMode.Gate, GateState.FinalCall, FlightPhase.Departure, false, false));
+        Assert.Equal("GATE CLOSED", FlightMonitorPresentation.StateWord(T, MonitorMode.Gate, GateState.ClosedAfterBoarding, FlightPhase.Departure, false, false));
     }
 
     [Fact]
     public void StateWord_FlightModeReadsThePhase()
-        => Assert.Equal("CRUISE", FlightMonitorPresentation.StateWord(MonitorMode.Flight, GateState.ClosedAfterBoarding, FlightPhase.Cruise, false, false));
+        => Assert.Equal("CRUISE", FlightMonitorPresentation.StateWord(T, MonitorMode.Flight, GateState.ClosedAfterBoarding, FlightPhase.Cruise, false, false));
 
     [Fact]
     public void StateWord_ArrivalModeReadsTheDeboarding()
     {
-        Assert.Equal("TAXI IN", FlightMonitorPresentation.StateWord(MonitorMode.Arrival, GateState.ClosedAfterBoarding, FlightPhase.TaxiIn, false, false));
-        Assert.Equal("ON BLOCKS", FlightMonitorPresentation.StateWord(MonitorMode.Arrival, GateState.ClosedAfterBoarding, FlightPhase.Shutdown, false, false));
-        Assert.Equal("DEBOARDING", FlightMonitorPresentation.StateWord(MonitorMode.Arrival, GateState.ClosedAfterBoarding, FlightPhase.Shutdown, true, false));
-        Assert.Equal("ARRIVED", FlightMonitorPresentation.StateWord(MonitorMode.Arrival, GateState.ClosedAfterBoarding, FlightPhase.Shutdown, true, true));
+        Assert.Equal("TAXI IN", FlightMonitorPresentation.StateWord(T, MonitorMode.Arrival, GateState.ClosedAfterBoarding, FlightPhase.TaxiIn, false, false));
+        Assert.Equal("ON BLOCKS", FlightMonitorPresentation.StateWord(T, MonitorMode.Arrival, GateState.ClosedAfterBoarding, FlightPhase.Shutdown, false, false));
+        Assert.Equal("DEBOARDING", FlightMonitorPresentation.StateWord(T, MonitorMode.Arrival, GateState.ClosedAfterBoarding, FlightPhase.Shutdown, true, false));
+        Assert.Equal("ARRIVED", FlightMonitorPresentation.StateWord(T, MonitorMode.Arrival, GateState.ClosedAfterBoarding, FlightPhase.Shutdown, true, true));
     }
 
     [Fact]
@@ -126,15 +134,15 @@ public sealed class FlightMonitorPresentationTests
     [Fact]
     public void ProgressCaption_SaysWhereTheFiguresCameFrom()
     {
-        Assert.Equal("Great-circle direct · from position", FlightMonitorPresentation.ProgressCaption(Located(100, 0)));
+        Assert.Equal("Great-circle direct · from position", FlightMonitorPresentation.ProgressCaption(T, Located(100, 0)));
         Assert.Equal("Time-based · no aircraft position",
-            FlightMonitorPresentation.ProgressCaption(new FlightProgressSnapshot { Fraction = 0.4, FractionBasis = ProgressBasis.Time }));
+            FlightMonitorPresentation.ProgressCaption(T, new FlightProgressSnapshot { Fraction = 0.4, FractionBasis = ProgressBasis.Time }));
         Assert.Equal("Time-based · airport position unknown",
-            FlightMonitorPresentation.ProgressCaption(new FlightProgressSnapshot
+            FlightMonitorPresentation.ProgressCaption(T, new FlightProgressSnapshot
             {
                 Position = new GeoPoint(1, 1), Fraction = 0.4, FractionBasis = ProgressBasis.Time,
             }));
-        Assert.Equal("No progress data", FlightMonitorPresentation.ProgressCaption(FlightProgressSnapshot.Empty));
+        Assert.Equal("No progress data", FlightMonitorPresentation.ProgressCaption(T, FlightProgressSnapshot.Empty));
         Assert.Equal("GS", FlightMonitorPresentation.BasisTag(ProgressBasis.Position));
         Assert.Equal("PLAN", FlightMonitorPresentation.BasisTag(ProgressBasis.Time));
     }

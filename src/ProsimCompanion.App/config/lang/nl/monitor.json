@@ -1,0 +1,98 @@
+{
+  "monitor": {
+    "pageTitle": "{0} — ProsimCompanion",
+    "heading": "Flight Monitor",
+    "mode": {
+      "gate": "Gate-monitor",
+      "flight": "Vluchtmonitor",
+      "arrival": "Aankomstmonitor"
+    },
+    "logoAlt": "{0}-logo",
+    "logoTitle": "Upload het logo van deze maatschappij via Instellingen → Uiterlijk",
+    "logoPlaceholder": "MAATSCHAPPIJLOGO",
+    "noFlightPlan": "Geen vluchtplan",
+    "fetchOfp": "Haal een OFP op via de INIT-pagina",
+    "gateLabel": {
+      "gate": "Gate",
+      "cruise": "Cruise",
+      "arrival": "Aankomstgate"
+    },
+    "state": {
+      "gateOpen": "GATE OPEN",
+      "boarding": "BOARDING",
+      "finalCall": "LAATSTE OPROEP",
+      "gateClosed": "GATE GESLOTEN",
+      "taxiIn": "TAXI IN",
+      "arrived": "AANGEKOMEN",
+      "deboarding": "DEBOARDING",
+      "onBlocks": "ON BLOCKS"
+    },
+    "progress": {
+      "position": "Grootcirkel direct · uit positie",
+      "timeNoPosition": "Op tijd gebaseerd · geen vliegtuigpositie",
+      "timeNoAirport": "Op tijd gebaseerd · luchthavenpositie onbekend",
+      "none": "Geen voortgangsgegevens"
+    },
+    "stripLabel": "Route {0} naar {1}, {2} procent, {3}",
+    "directTitle": "Grootcirkel-directe afstand, niet langs de route. Top of descent is een 3:1-schatting.",
+    "toGo": "TE GAAN {0} DIRECT",
+    "tod": "T/D {0} GESCHAT",
+    "elapsed": "VERSTREKEN {0}",
+    "paxOff": "{0} / {1} PAX UITGESTAPT",
+    "pax": "{0} / {1} PAX",
+    "paxNone": "— PAX",
+    "facts": {
+      "eet": "EET {0}",
+      "blockIn": "BLOCK-IN {0}",
+      "blockTime": "BLOKTIJD {0}",
+      "fob": "FOB {0}",
+      "offBlocks": "OFF BLOCKS {0}",
+      "flightTime": "VLIEGTIJD {0}",
+      "std": "STD {0} · {1} MIN",
+      "stdNone": "STD —",
+      "landed": "GELAND {0}",
+      "etaTagged": "ETA {0} {1}",
+      "eta": "ETA {0}"
+    },
+    "flightData": "Vluchtgegevens",
+    "rows": {
+      "groundSpeed": "Grondsnelheid",
+      "altitude": "Hoogte",
+      "verticalSpeed": "Verticale snelheid",
+      "heading": "Koers"
+    },
+    "aircraft": "Vliegtuig",
+    "lamps": {
+      "gear": "Landingsgestel",
+      "flaps": "Flaps",
+      "seatBelts": "Riemen vast",
+      "beacon": "Beacon",
+      "jetwayStairs": "Slurf / trappen"
+    },
+    "doors": "Deuren & aansluitingen",
+    "door": {
+      "cargoFwd": "Vracht voor",
+      "cargoAft": "Vracht achter",
+      "open": "OPEN",
+      "closed": "DICHT"
+    },
+    "groundServices": "Gronddiensten",
+    "services": {
+      "deboarding": "Deboarding",
+      "cleaning": "Schoonmaak",
+      "catering": "Catering",
+      "refuel": "Tanken",
+      "boarding": "Boarding",
+      "pushback": "Pushback"
+    },
+    "weather": {
+      "local": "Lokaal",
+      "alternate": "Uitwijk",
+      "destination": "Bestemming",
+      "fetchOfp": "Haal een OFP op via de INIT-pagina",
+      "noMetar": "Geen METAR beschikbaar",
+      "updatedJustNow": " · zojuist bijgewerkt",
+      "updatedAgo": " · {0} min geleden bijgewerkt"
+    }
+  }
+}

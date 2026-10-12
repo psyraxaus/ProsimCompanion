@@ -1,0 +1,36 @@
+{
+  "day": {
+    "pageTitle": "Journée de service — ProsimCompanion",
+    "heading": "Journée de service",
+    "title": "Mode journée compagnie",
+    "notWired": "Le mode journée compagnie n'est pas câblé dans cette version (voir WIRING-DAY.md).",
+    "status": "État",
+    "noDay": "Aucune journée de service",
+    "start": "Commencer la journée",
+    "end": "Terminer la journée",
+    "startHint": "Dites \"start duty day\", ou appuyez sur le bouton. Avec le mode journée activé et le démarrage automatique, une journée commence aussi au premier Preflight. Déposez un fichier rotations/*.json pour une journée planifiée.",
+    "from": "De",
+    "to": "Vers",
+    "leg": "Étape",
+    "legOf": "sur {0}",
+    "legsCompleted": "{0} terminées",
+    "block": "Bloc",
+    "duty": "Service",
+    "schedule": "Horaire",
+    "behind": "en retard",
+    "ahead": "en avance",
+    "onSchedule": "à l'heure",
+    "figuresNote": "Les temps bloc et service sont un suivi pratique de ce qui a été volé — pas un calcul de limitations de temps de vol.",
+    "legs": "Étapes",
+    "legName": "Étape {0} · {1} → {2}",
+    "blockMin": "{0} min bloc",
+    "legState": {
+      "landed": "atterri",
+      "noLanding": "pas d'atterrissage",
+      "inProgress": "en cours",
+      "planned": "planifiée",
+      "stabilized": "stabilisée",
+      "unstable": "instable"
+    }
+  }
+}

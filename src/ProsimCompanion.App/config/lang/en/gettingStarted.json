@@ -1,0 +1,17 @@
+{
+  "gettingStarted": {
+    "title": "Getting Started",
+    "hint": "This card goes away once everything is connected and set up",
+    "sdk": "Tell the app where ProSim's SDK is, so it can talk to the aircraft.",
+    "sdk.link": "Set the ProSim SDK folder",
+    "prosim": "ProSim is not connected yet. Start ProSim System, or check the host name.",
+    "prosim.link": "Check the ProSim connection",
+    "setupOne": "{0} ProSim option is set differently from what this app needs.",
+    "setupMany": "{0} ProSim options are set differently from what this app needs.",
+    "setup.link": "Review the ProSim setup check",
+    "gsxOff": "GSX ground services are switched off.",
+    "gsxOff.link": "Turn them on under Setup",
+    "gsx": "GSX is not connected yet. Start the simulator with GSX Pro running.",
+    "gsx.link": "See the GSX status"
+  }
+}

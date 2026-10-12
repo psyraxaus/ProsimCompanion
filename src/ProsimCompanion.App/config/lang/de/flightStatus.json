@@ -1,0 +1,199 @@
+{
+  "flightStatus": {
+    "pageTitle": "Flugstatus — ProsimCompanion",
+    "heading": "Flugstatus",
+    "common": {
+      "yes": "Ja",
+      "no": "Nein",
+      "true": "Wahr",
+      "false": "Falsch",
+      "ok": "OK"
+    },
+    "layout": {
+      "notSaved": "Layout nicht gespeichert",
+      "dragHint": "Ziehe eine Kachel auf eine andere, um sie zu tauschen (auf einem Touchscreen gedrückt halten), oder nutze die Pfeile",
+      "resetTitle": "Kacheln in die Standardreihenfolge zurücksetzen",
+      "reset": "Layout zurücksetzen",
+      "done": "Fertig",
+      "editTitle": "Ziehe die Kacheln dieser Seite in deine eigene Reihenfolge; sie wird für jedes Gerät gespeichert",
+      "edit": "Layout bearbeiten",
+      "moveEarlier": "Nach vorn",
+      "dragTitle": "Zum Verschieben ziehen (oder die Kachel an beliebiger Stelle ziehen)",
+      "drag": "Zum Verschieben ziehen",
+      "moveLater": "Nach hinten",
+      "writeFailed": "Die Reihenfolge konnte nicht in settings.json geschrieben werden: {0}"
+    },
+    "hero": {
+      "frozen": "· eingefroren",
+      "from": "Von",
+      "to": "Nach",
+      "whyPhase": "Warum diese Phase",
+      "reasonTitle": "Grund, aus dem die aktuelle Flugphase gesetzt wurde",
+      "groundSpeed": "Groundspeed",
+      "altitude": "Höhe",
+      "verticalSpeed": "Vertikalgeschw.",
+      "heading": "Steuerkurs",
+      "fuelOnBoard": "Kraftstoff an Bord",
+      "progressTitle": "Entfernungen sind Großkreis-Direktstrecken, nicht entlang der Route. Der Top of Descent ist eine 3:1-Schätzung.",
+      "toGo": "Verbleibend",
+      "flown": "Geflogen",
+      "eta": "ETA",
+      "topOfDescent": "Top of Descent",
+      "noFlightPlan": "Kein Flugplan geladen — hole einen OFP auf der INIT-Seite"
+    },
+    "sequence": {
+      "title": "Flugablauf",
+      "step": {
+        "boardingComplete": "Boarding abgeschlossen",
+        "boarding": "Boarding",
+        "inProgress": "Läuft",
+        "complete": "Abgeschlossen",
+        "pending": "Ausstehend"
+      },
+      "openChecklists": "Checklisten öffnen"
+    },
+    "engine": {
+      "title": "Phasen-Engine",
+      "frozenTitle": "Automatische Übergänge sind bis „Auto fortsetzen“ ausgesetzt",
+      "automaticTitle": "Die Phase folgt der Regeltabelle",
+      "frozen": "eingefroren",
+      "automatic": "automatisch",
+      "phaseToForce": "Zu erzwingende Phase",
+      "freezeTitle": "Die erzwungene Phase bis „Auto fortsetzen“ halten; sonst geht es beim nächsten widersprechenden Hinweis weiter",
+      "freeze": "einfrieren",
+      "forceTitle": "Die gewählte Phase jetzt setzen (als manuelle Übersteuerung protokolliert)",
+      "force": "Erzwingen",
+      "resumeTitle": "Das Einfrieren aufheben; die Auswertung läuft ab der aktuellen Phase weiter",
+      "resume": "Auto fortsetzen"
+    },
+    "weather": {
+      "local": "Wetter vor Ort",
+      "alternate": "Wetter am Ausweichflughafen",
+      "destination": "Wetter am Ziel",
+      "noFlightPlan": "Kein Flugplan",
+      "fetchOfp": "Hole einen OFP auf der INIT-Seite",
+      "noMetar": "Kein METAR verfügbar"
+    },
+    "gate": {
+      "open": "GATE OFFEN",
+      "boarding": "BOARDING",
+      "finalCall": "LETZTER AUFRUF",
+      "closed": "GATE GESCHLOSSEN",
+      "since": "· seit {0}",
+      "label": "Gate",
+      "popoutTitle": "Das Flight-Monitor-Board in einem eigenen Fenster öffnen (zweiter Monitor / Tablet)",
+      "popout": "Auskoppeln"
+    },
+    "sim": {
+      "title": "Sim",
+      "running": "Sim läuft",
+      "connected": "Sim verbunden",
+      "session": "Sim-Sitzung",
+      "paused": "Sim pausiert",
+      "walkaround": "Walkaround",
+      "cameraState": "Kamerastatus",
+      "version": "Sim-Version",
+      "aircraft": "Flugzeug"
+    },
+    "app": {
+      "title": "App",
+      "gsxController": "GSX-Controller",
+      "prosimBinary": "ProSim-Binary",
+      "aircraftInterface": "Flugzeug-Schnittstelle",
+      "sdkConnected": "ProSim SDK verbunden",
+      "automationController": "Automatik-Controller",
+      "audioController": "Audio-Controller",
+      "profile": "Profil",
+      "aircraft": "Flugzeug",
+      "onGround": "Am Boden",
+      "enginesRunning": "Triebwerke laufen",
+      "inMotion": "In Bewegung"
+    },
+    "gsx": {
+      "title": "GSX",
+      "running": "GSX läuft",
+      "couatlVars": "Couatl-Variablen",
+      "couatlStarted": "Couatl gestartet",
+      "menuState": "Menüstatus",
+      "menuShown": "angezeigt",
+      "menuClosed": "geschlossen",
+      "paxTarget": "Pax-Ziel",
+      "paxTotal": "Pax gesamt (B|D)",
+      "cargo": "Fracht (B|D)",
+      "departureServices": "Abflugdienste",
+      "departure": {
+        "complete": "Abgeschlossen",
+        "running": "Läuft",
+        "notStarted": "Nicht gestartet"
+      },
+      "assignedGate": "Zugewiesenes Gate",
+      "lastHandlerEvent": "Letztes Handler-Ereignis",
+      "droppedCall": "Verlorener Aufruf",
+      "dropped": {
+        "checkMenu": "{0} um {1} — GSX-Menü prüfen",
+        "menuOpen": "{0} um {1} — GSX-Menü \"{2}\" offen",
+        "noneTitle": "Kein GSX-Dienstaufruf ist verloren gegangen",
+        "title": "GSX hat diesen Aufruf nie angenommen (einmal wiederholt). Schließe jedes GSX-Menü und rufe den Dienst erneut."
+      }
+    },
+    "services": {
+      "title": "Dienste",
+      "catering": "Catering",
+      "lavatory": "Toilettenservice",
+      "water": "Wasser",
+      "cleaning": "Reinigung",
+      "boarding": "Boarding",
+      "deboarding": "Deboarding",
+      "pushback": "Pushback",
+      "jetway": "Fluggastbrücke",
+      "jetwayConnected": "Brücke angedockt",
+      "stairs": "Treppen",
+      "stairsConnected": "Treppen angedockt",
+      "gpu": "GPU",
+      "refuel": "Betankung",
+      "groundPrep": "Bodenvorbereitung",
+      "completed": "abgeschlossen",
+      "connected": "Verbunden",
+      "gpuConnected": "verbunden",
+      "prep": {
+        "holding": "Wartet",
+        "tooltip": "{0} — {1}",
+        "idle": "Ruhend",
+        "reposition": "Repositionierung",
+        "settling": "Einpendeln",
+        "anchorGate": "Gate verankern",
+        "groundEquipment": "Bodengerät",
+        "jetwayStairs": "Brücke/Treppen",
+        "complete": "Abgeschlossen"
+      }
+    },
+    "aircraftState": {
+      "label": "Flugzeugzustand",
+      "pass": "cold and dark ✓",
+      "unchecked": "ungeprüft (Dataref hat nie gemeldet): {0}",
+      "mismatchOne": "{0} Abweichung",
+      "mismatchMany": "{0} Abweichungen",
+      "notChecked": "nicht geprüft",
+      "recheck": "Erneut prüfen",
+      "recheckTitle": "Die Cold-and-dark-Prüfung jetzt wiederholen (auch per Sprache: 'check the aircraft state').",
+      "notReady": "noch nicht bereit"
+    },
+    "cabin": {
+      "label": "Kabine",
+      "securing": "wird gesichert",
+      "securingTitle": "Türen geschlossen und Beacon an — die Crew sichert die Kabine; die Meldung folgt, wenn ihr Timer abläuft (Einstellungen → Sprach-Erster-Offizier → Kabinencrew).",
+      "secure": "gesichert",
+      "secureTitle": "Der Purser hat die Kabine für diesen Flug als gesichert gemeldet.",
+      "noneTitle": "Die Kabinensicherungs-Wartezeit beginnt, wenn die Türen geschlossen sind und der Beacon an ist."
+    },
+    "refuel": {
+      "awaitingTitle": "Warten auf die Bestätigung des Blockkraftstoffs durch die Crew (SOP-Modus)",
+      "awaiting": "Kraftstoffbestätigung ausstehend",
+      "confirmedTitle": "Bestätigt {0} über {1}",
+      "confirmedKg": "{0} kg bestätigt",
+      "confirmTitle": "Den Blockkraftstoff bestätigen (INIT-FUEL-RAMP-Übersteuerung, sonst der OFP) und den Tankwagen bestellen — oder ein Nachtanken nach abgeschlossener Betankung. Auch per Sprache: 'fuel confirmed'.",
+      "confirming": "Bestätigen…",
+      "confirm": "Kraftstoff bestätigen"
+    }
+  }
+}

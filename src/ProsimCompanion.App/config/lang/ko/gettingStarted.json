@@ -1,0 +1,17 @@
+{
+  "gettingStarted": {
+    "title": "시작하기",
+    "hint": "모든 것이 연결되고 설정되면 이 카드는 사라집니다",
+    "sdk": "앱이 항공기와 통신할 수 있도록 ProSim SDK의 위치를 알려 주세요.",
+    "sdk.link": "ProSim SDK 폴더 설정",
+    "prosim": "ProSim이 아직 연결되지 않았습니다. ProSim System을 시작하거나 호스트 이름을 확인하세요.",
+    "prosim.link": "ProSim 연결 확인",
+    "setupOne": "ProSim 옵션 {0}개가 이 앱에 필요한 설정과 다릅니다.",
+    "setupMany": "ProSim 옵션 {0}개가 이 앱에 필요한 설정과 다릅니다.",
+    "setup.link": "ProSim 설정 점검 보기",
+    "gsxOff": "GSX 지상 서비스가 꺼져 있습니다.",
+    "gsxOff.link": "설정에서 켜기",
+    "gsx": "GSX가 아직 연결되지 않았습니다. GSX Pro를 실행한 상태로 시뮬레이터를 시작하세요.",
+    "gsx.link": "GSX 상태 보기"
+  }
+}

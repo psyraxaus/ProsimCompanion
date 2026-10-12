@@ -1,0 +1,17 @@
+{
+  "gettingStarted": {
+    "title": "Aan de slag",
+    "hint": "Deze kaart verdwijnt zodra alles verbonden en ingesteld is",
+    "sdk": "Vertel de app waar de SDK van ProSim staat, zodat hij met het vliegtuig kan praten.",
+    "sdk.link": "De ProSim SDK-map instellen",
+    "prosim": "ProSim is nog niet verbonden. Start ProSim System, of controleer de hostnaam.",
+    "prosim.link": "De ProSim-verbinding controleren",
+    "setupOne": "{0} ProSim-optie staat anders ingesteld dan deze app nodig heeft.",
+    "setupMany": "{0} ProSim-opties staan anders ingesteld dan deze app nodig heeft.",
+    "setup.link": "De ProSim-setupcontrole bekijken",
+    "gsxOff": "De GSX-gronddiensten staan uit.",
+    "gsxOff.link": "Zet ze aan onder Setup",
+    "gsx": "GSX is nog niet verbonden. Start de simulator met GSX Pro actief.",
+    "gsx.link": "De GSX-status bekijken"
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "flightStatus": {
+    "pageTitle": "Vluchtstatus — ProsimCompanion",
+    "heading": "Vluchtstatus",
+    "common": {
+      "yes": "Ja",
+      "no": "Nee",
+      "true": "Waar",
+      "false": "Onwaar",
+      "ok": "OK"
+    },
+    "layout": {
+      "notSaved": "indeling niet opgeslagen",
+      "dragHint": "Sleep een tegel op een andere om ze te wisselen (op een touchscreen ingedrukt houden), of gebruik de pijlen",
+      "resetTitle": "Zet de tegels terug in de standaardvolgorde",
+      "reset": "Indeling herstellen",
+      "done": "Klaar",
+      "editTitle": "Sleep de tegels op deze pagina in je eigen volgorde; de volgorde wordt voor elk apparaat opgeslagen",
+      "edit": "Indeling bewerken",
+      "moveEarlier": "Naar voren",
+      "dragTitle": "Slepen om te verplaatsen (of sleep de tegel waar dan ook)",
+      "drag": "Slepen om te verplaatsen",
+      "moveLater": "Naar achteren",
+      "writeFailed": "De volgorde kon niet naar settings.json worden geschreven: {0}"
+    },
+    "hero": {
+      "frozen": "· bevroren",
+      "from": "Van",
+      "to": "Naar",
+      "whyPhase": "Waarom deze fase",
+      "reasonTitle": "Reden waarom de huidige vluchtfase is vastgelegd",
+      "groundSpeed": "Grondsnelheid",
+      "altitude": "Hoogte",
+      "verticalSpeed": "Verticale snelheid",
+      "heading": "Koers",
+      "fuelOnBoard": "Brandstof aan boord",
+      "progressTitle": "Afstanden zijn grootcirkel-direct, niet langs de route. Top of descent is een 3:1-schatting.",
+      "toGo": "Te gaan",
+      "flown": "Gevlogen",
+      "eta": "ETA",
+      "topOfDescent": "Top of descent",
+      "noFlightPlan": "Geen vluchtplan geladen — haal een OFP op via de INIT-pagina"
+    },
+    "sequence": {
+      "title": "Vluchtverloop",
+      "step": {
+        "boardingComplete": "Boarding voltooid",
+        "boarding": "Boarding",
+        "inProgress": "Bezig",
+        "complete": "Voltooid",
+        "pending": "In afwachting"
+      },
+      "openChecklists": "Checklists openen"
+    },
+    "engine": {
+      "title": "Fase-engine",
+      "frozenTitle": "Automatische overgangen zijn opgeschort tot Auto hervatten",
+      "automaticTitle": "De fase volgt de regeltabel",
+      "frozen": "bevroren",
+      "automatic": "automatisch",
+      "phaseToForce": "Te forceren fase",
+      "freezeTitle": "Houd de geforceerde fase vast tot Auto hervatten; anders gaat het verder bij het volgende tegenstrijdige bewijs",
+      "freeze": "bevriezen",
+      "forceTitle": "De gekozen fase nu vastleggen (gelogd als handmatige overschrijving)",
+      "force": "Forceren",
+      "resumeTitle": "De bevriezing opheffen; de evaluatie gaat verder vanaf de huidige fase",
+      "resume": "Auto hervatten"
+    },
+    "weather": {
+      "local": "Lokaal weer",
+      "alternate": "Weer op de uitwijkhaven",
+      "destination": "Weer op de bestemming",
+      "noFlightPlan": "Geen vluchtplan",
+      "fetchOfp": "Haal een OFP op via de INIT-pagina",
+      "noMetar": "Geen METAR beschikbaar"
+    },
+    "gate": {
+      "open": "GATE OPEN",
+      "boarding": "BOARDING",
+      "finalCall": "LAATSTE OPROEP",
+      "closed": "GATE GESLOTEN",
+      "since": "· sinds {0}",
+      "label": "Gate",
+      "popoutTitle": "Open het Flight Monitor-bord in een eigen venster (tweede scherm / tablet)",
+      "popout": "Losmaken"
+    },
+    "sim": {
+      "title": "Sim",
+      "running": "Sim draait",
+      "connected": "Sim verbonden",
+      "session": "Sim-sessie",
+      "paused": "Sim gepauzeerd",
+      "walkaround": "Walkaround",
+      "cameraState": "Camerastatus",
+      "version": "Sim-versie",
+      "aircraft": "Vliegtuig"
+    },
+    "app": {
+      "title": "App",
+      "gsxController": "GSX-controller",
+      "prosimBinary": "ProSim-binary",
+      "aircraftInterface": "Vliegtuiginterface",
+      "sdkConnected": "ProSim SDK verbonden",
+      "automationController": "Automatiseringscontroller",
+      "audioController": "Audiocontroller",
+      "profile": "Profiel",
+      "aircraft": "Vliegtuig",
+      "onGround": "Aan de grond",
+      "enginesRunning": "Motoren draaien",
+      "inMotion": "In beweging"
+    },
+    "gsx": {
+      "title": "GSX",
+      "running": "GSX draait",
+      "couatlVars": "Couatl-variabelen",
+      "couatlStarted": "Couatl gestart",
+      "menuState": "Menustatus",
+      "menuShown": "getoond",
+      "menuClosed": "gesloten",
+      "paxTarget": "Pax-doel",
+      "paxTotal": "Pax totaal (B|D)",
+      "cargo": "Vracht (B|D)",
+      "departureServices": "Vertrekdiensten",
+      "departure": {
+        "complete": "Voltooid",
+        "running": "Bezig",
+        "notStarted": "Niet gestart"
+      },
+      "assignedGate": "Toegewezen gate",
+      "lastHandlerEvent": "Laatste handler-event",
+      "droppedCall": "Verloren oproep",
+      "dropped": {
+        "checkMenu": "{0} om {1} — controleer het GSX-menu",
+        "menuOpen": "{0} om {1} — GSX-menu \"{2}\" open",
+        "noneTitle": "Er is geen GSX-dienstoproep verloren gegaan",
+        "title": "GSX heeft deze oproep nooit opgepakt (één keer opnieuw geprobeerd). Sluit elk GSX-menu en roep de dienst opnieuw op."
+      }
+    },
+    "services": {
+      "title": "Diensten",
+      "catering": "Catering",
+      "lavatory": "Toiletservice",
+      "water": "Water",
+      "cleaning": "Schoonmaak",
+      "boarding": "Boarding",
+      "deboarding": "Deboarding",
+      "pushback": "Pushback",
+      "jetway": "Slurf",
+      "jetwayConnected": "Slurf aangesloten",
+      "stairs": "Trappen",
+      "stairsConnected": "Trappen aangesloten",
+      "gpu": "GPU",
+      "refuel": "Tanken",
+      "groundPrep": "Grondvoorbereiding",
+      "completed": "voltooid",
+      "connected": "Aangesloten",
+      "gpuConnected": "aangesloten",
+      "prep": {
+        "holding": "Wacht",
+        "tooltip": "{0} — {1}",
+        "idle": "Inactief",
+        "reposition": "Herpositioneren",
+        "settling": "Stabiliseren",
+        "anchorGate": "Gate verankeren",
+        "groundEquipment": "Grondmaterieel",
+        "jetwayStairs": "Slurf/trappen",
+        "complete": "Voltooid"
+      }
+    },
+    "aircraftState": {
+      "label": "Vliegtuigstatus",
+      "pass": "cold and dark ✓",
+      "unchecked": "niet gecontroleerd (dataref heeft nooit gemeld): {0}",
+      "mismatchOne": "{0} afwijking",
+      "mismatchMany": "{0} afwijkingen",
+      "notChecked": "niet gecontroleerd",
+      "recheck": "Opnieuw controleren",
+      "recheckTitle": "Voer de cold-and-dark-controle nu opnieuw uit (ook via spraak: 'check the aircraft state').",
+      "notReady": "nog niet klaar"
+    },
+    "cabin": {
+      "label": "Cabine",
+      "securing": "wordt beveiligd",
+      "securingTitle": "Deuren dicht en beacon aan — de crew beveiligt de cabine; de melding volgt als hun timer afloopt (Instellingen → Spraak-First Officer → Cabinecrew).",
+      "secure": "beveiligd",
+      "secureTitle": "De purser heeft de cabine voor deze vlucht beveiligd gemeld.",
+      "noneTitle": "Het wachten op cabine beveiligd begint zodra de deuren dicht zijn en de beacon aan is."
+    },
+    "refuel": {
+      "awaitingTitle": "Wachten tot de crew de blokbrandstof bevestigt (SOP-modus)",
+      "awaiting": "wacht op brandstofbevestiging",
+      "confirmedTitle": "Bevestigd {0} via {1}",
+      "confirmedKg": "{0} kg bevestigd",
+      "confirmTitle": "Bevestig de blokbrandstof (INIT FUEL RAMP-overschrijving, anders de OFP) en bestel de tankwagen — of een bijvulling na een voltooide tankbeurt. Ook via spraak: 'fuel confirmed'.",
+      "confirming": "Bevestigen…",
+      "confirm": "Brandstof bevestigen"
+    }
+  }
+}

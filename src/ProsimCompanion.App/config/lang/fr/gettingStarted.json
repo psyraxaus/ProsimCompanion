@@ -1,0 +1,17 @@
+{
+  "gettingStarted": {
+    "title": "Premiers pas",
+    "hint": "Cette carte disparaît une fois que tout est connecté et configuré",
+    "sdk": "Indiquez à l'application où se trouve le SDK de ProSim, pour qu'elle puisse parler à l'avion.",
+    "sdk.link": "Définir le dossier du SDK ProSim",
+    "prosim": "ProSim n'est pas encore connecté. Lancez ProSim System, ou vérifiez le nom d'hôte.",
+    "prosim.link": "Vérifier la connexion ProSim",
+    "setupOne": "{0} option ProSim est réglée différemment de ce dont cette application a besoin.",
+    "setupMany": "{0} options ProSim sont réglées différemment de ce dont cette application a besoin.",
+    "setup.link": "Consulter la vérification de configuration ProSim",
+    "gsxOff": "Les services au sol GSX sont désactivés.",
+    "gsxOff.link": "Les activer dans Configuration",
+    "gsx": "GSX n'est pas encore connecté. Lancez le simulateur avec GSX Pro en marche.",
+    "gsx.link": "Voir l'état de GSX"
+  }
+}
