@@ -1,0 +1,73 @@
+{
+  "fuelLog": {
+    "pageTitle": "연료 기록 — ProsimCompanion",
+    "heading": "연료 기록",
+    "empty": {
+      "title": "연료 기록",
+      "textBefore": "연료 계획이 없습니다.",
+      "link": "INIT 페이지",
+      "textAfter": "에서 내비로그가 포함된 OFP를 가져오면 웨이포인트를 지날 때마다 기록이 채워집니다."
+    },
+    "hero": {
+      "title": "계획 vs 실제",
+      "fuelOnBoard": "탑재 연료",
+      "noFuelFigure": "ProSim에서 연료 값 없음",
+      "live": "실시간",
+      "planHere": "현재 지점 계획값",
+      "noPosition": "내비로그상 위치 없음",
+      "past": "{0} 통과 후",
+      "between": "{0}과(와) {1} 사이",
+      "delta": "차이",
+      "estimatedLanding": "착륙 시 예상",
+      "plannedLanding": "계획 {0}",
+      "noPlannedLanding": "계획 착륙 연료 없음",
+      "fuelCheckNow": "지금 연료 점검",
+      "openOfp": "OFP 열기",
+      "spoken": "말했습니다."
+    },
+    "trend": {
+      "losing": "악화 중",
+      "gaining": "개선 중",
+      "holding": "유지"
+    },
+    "recent": {
+      "none": "아직 통과한 픽스 없음",
+      "one": "최근 픽스에서 {0}",
+      "two": "최근 2개 픽스에서 {0}",
+      "three": "최근 3개 픽스에서 {0}",
+      "many": "최근 {1}개 픽스에서 {0}"
+    },
+    "chart": {
+      "title": "소모 · {0} → {1}",
+      "hint": "회색 = 계획 · 청록 = 실제 · 점선 = 현재 차이 기준 예상",
+      "aria": "경로상의 계획 연료와 실제 연료 비교",
+      "plannedLanding": "계획 착륙 연료 {0}",
+      "noFigures": "내비로그에 그래프로 그릴 연료 값이 없습니다."
+    },
+    "table": {
+      "title": "연료 기록",
+      "passed": "{1}개 픽스 중 {0}개 통과",
+      "takeoffUnknown": " · 이륙 시각 불명 (비행 중 앱 시작)",
+      "stampsStartAtTakeoff": " · 기록은 이륙부터 시작",
+      "waypoint": "웨이포인트",
+      "plan": "계획",
+      "actual": "실제",
+      "deltaMin": "Δ 분",
+      "planFob": "계획 FOB",
+      "actualFob": "실제 FOB",
+      "deltaUnit": "Δ {0}",
+      "last": "최근",
+      "notRecorded": "기록 없음"
+    },
+    "checks": {
+      "title": "FO 연료 점검",
+      "noneYet": "이 세션에서 아직 말한 것 없음",
+      "newestFirst": "최신순 · 부기장이 말한 내용",
+      "empty": "부기장의 정기 연료 점검(음성 → 모니터링)과 당신이 요청한 \"fuel check\"가 실제로 말한 그대로 여기에 표시됩니다.",
+      "shortfall": "부족",
+      "underPlan": "계획 미달",
+      "abovePlan": "계획 초과",
+      "onPlan": "계획대로"
+    }
+  }
+}

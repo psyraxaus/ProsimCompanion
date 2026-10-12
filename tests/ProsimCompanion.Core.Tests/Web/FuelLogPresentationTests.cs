@@ -1,5 +1,9 @@
+using System.Globalization;
+using Microsoft.Extensions.Logging.Abstractions;
 using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.Localization;
+using ProsimCompanion.Core.Tests.Localization;
 using ProsimCompanion.Web.Components;
 using Xunit;
 
@@ -87,5 +91,11 @@ public sealed class FuelLogPresentationTests
     [InlineData(new double[] { -90, -160, -130 }, "−90 · −160 · −130 at the last three fixes")]
     [InlineData(new double[] { 40, 0 }, "+40 · 0 at the last two fixes")]
     public void RecentDeltasLine_ReadsLikeTheDraft(double[] deltas, string expected)
-        => Assert.Equal(expected, FuelLogPresentation.RecentDeltasLine(deltas));
+    {
+        // The line is a pack text id plus arguments (ADR-0014); read it back through the shipped English pack.
+        var (textId, arguments) = FuelLogPresentation.RecentDeltasLine(deltas);
+        var english = new LanguagePackCatalog([TestLocalizer.ShippedPackRoot()], NullLogger<LanguagePackCatalog>.Instance);
+
+        Assert.Equal(expected, string.Format(CultureInfo.InvariantCulture, english.Lookup("en", textId, out _), arguments));
+    }
 }

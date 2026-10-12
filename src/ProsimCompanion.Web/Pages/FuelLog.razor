@@ -11,14 +11,15 @@
 @inject FlightProgressStore Progress
 @inject DisplayUnitService Units
 @inject IServiceProvider Services
+@inject IStringLocalizer T
 
 @* Fuel Log (issue #154, owner pick "B" of the Superdesign drafts 2026-10-04): the paper
    OFP's fuel column. Plan vs Actual hero + burn chart on top, the waypoint table full
    width, the FO's spoken fuel checks as a strip at the foot. Everything here is read from
    Core stores; the only action is the "Fuel check now" button, which speaks. *@
 
-<PageTitle>Fuel Log — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Fuel Log</h1>
+<PageTitle>@T["fuelLog.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["fuelLog.heading"]</h1>
 
 @{
     var log = _log;
@@ -35,9 +36,9 @@
 @if (!log.HasPlan)
 {
     <section class="section fuellog-empty">
-        <div class="section-header"><h3 class="section-title">Fuel Log</h3></div>
+        <div class="section-header"><h3 class="section-title">@T["fuelLog.empty.title"]</h3></div>
         <div class="section-body">
-            <p class="fuellog-empty-text">No fuel plan loaded. Fetch an OFP with a navlog on the <a href="init">INIT page</a> and the log fills in as each waypoint is passed.</p>
+            <p class="fuellog-empty-text">@T["fuelLog.empty.textBefore"] <a href="init">@T["fuelLog.empty.link"]</a> @T["fuelLog.empty.textAfter"]</p>
         </div>
     </section>
 }
@@ -47,38 +48,38 @@ else
         @* ── PLAN VS ACTUAL ──────────────────────────────────── *@
         <section class="section fuellog-hero">
             <div class="section-header">
-                <h3 class="section-title">Plan vs actual</h3>
+                <h3 class="section-title">@T["fuelLog.hero.title"]</h3>
                 @if (header.Trend is { } trend)
                 {
-                    <span class="pill @TrendTone(trend)">@trend</span>
+                    <span class="pill @TrendTone(trend)">@TrendText(trend)</span>
                 }
             </div>
             <div class="section-body">
                 <div class="fuellog-stats">
                     <div class="fuellog-stat">
-                        <span class="label-caps">Fuel on board</span>
+                        <span class="label-caps">@T["fuelLog.hero.fuelOnBoard"]</span>
                         <span class="figure figure-lg @(header.FuelOnBoardKg is null ? "" : "glow")">@Kg(header.FuelOnBoardKg)<span class="figure-unit">@UnitU</span></span>
-                        <span class="fuellog-sub">@(header.FuelOnBoardKg is null ? "no fuel figure from ProSim" : "live")</span>
+                        <span class="fuellog-sub">@(header.FuelOnBoardKg is null ? T["fuelLog.hero.noFuelFigure"].Value : T["fuelLog.hero.live"].Value)</span>
                     </div>
                     <div class="fuellog-stat">
-                        <span class="label-caps">Plan at this point</span>
+                        <span class="label-caps">@T["fuelLog.hero.planHere"]</span>
                         <span class="figure figure-lg">@Kg(header.PlanHereKg)<span class="figure-unit">@UnitU</span></span>
                         <span class="fuellog-sub">@Between(header)</span>
                     </div>
                     <div class="fuellog-stat">
-                        <span class="label-caps">Delta</span>
+                        <span class="label-caps">@T["fuelLog.hero.delta"]</span>
                         <span class="figure figure-lg @DeltaClass(header.DeltaKg)">@SignedKg(header.DeltaKg)<span class="figure-unit">@UnitU</span></span>
-                        <span class="fuellog-sub">@FuelLogPresentation.RecentDeltasLine(header.RecentDeltas.Select(d => Units.FromKg(d)).ToList())</span>
+                        <span class="fuellog-sub">@RecentDeltas(header)</span>
                     </div>
                     <div class="fuellog-stat">
-                        <span class="label-caps">Estimated landing</span>
+                        <span class="label-caps">@T["fuelLog.hero.estimatedLanding"]</span>
                         <span class="figure figure-lg @(header.EstimatedLandingKg is { } e && e < log.PlannedLandingKg ? "fuellog-neg" : "")">@Kg(header.EstimatedLandingKg)<span class="figure-unit">@UnitU</span></span>
-                        <span class="fuellog-sub">@(log.PlannedLandingKg > 0 ? $"planned {Kg(log.PlannedLandingKg)}" : "no planned landing fuel")</span>
+                        <span class="fuellog-sub">@(log.PlannedLandingKg > 0 ? T["fuelLog.hero.plannedLanding", Kg(log.PlannedLandingKg)].Value : T["fuelLog.hero.noPlannedLanding"].Value)</span>
                     </div>
                 </div>
                 <div class="fuellog-actions">
-                    <button type="button" class="btn primary" @onclick="RequestCheck" disabled="@(FuelCheck is null)">Fuel check now</button>
-                    <a class="btn secondary" href="ofp">Open OFP</a>
+                    <button type="button" class="btn primary" @onclick="RequestCheck" disabled="@(FuelCheck is null)">@T["fuelLog.hero.fuelCheckNow"]</button>
+                    <a class="btn secondary" href="ofp">@T["fuelLog.hero.openOfp"]</a>
                     @if (_notice is { Length: > 0 })
                     {
                         <span class="fuellog-notice">@_notice</span>
@@ -90,13 +91,13 @@ else
         @* ── BURN CHART ──────────────────────────────────────── *@
         <section class="section fuellog-chart-card">
             <div class="section-header">
-                <h3 class="section-title">Burn · @log.OriginIcao → @log.DestinationIcao</h3>
-                <span class="section-hint">grey = plan · cyan = actual · dashed = at the present delta</span>
+                <h3 class="section-title">@T["fuelLog.chart.title", log.OriginIcao, log.DestinationIcao]</h3>
+                <span class="section-hint">@T["fuelLog.chart.hint"]</span>
             </div>
             <div class="section-body">
                 @if (chart is { } c)
                 {
-                    <svg class="fuellog-chart" viewBox="0 0 @Px(c.Width) @Px(c.Height)" role="img" aria-label="Planned fuel against actual fuel over the route">
+                    <svg class="fuellog-chart" viewBox="0 0 @Px(c.Width) @Px(c.Height)" role="img" aria-label="@T["fuelLog.chart.aria"]">
                         @foreach (var (y, label) in c.GridLines)
                         {
                             <line class="fuellog-grid" x1="44" x2="@Px(c.Width - 16)" y1="@Px(y)" y2="@Px(y)" />
@@ -105,7 +106,7 @@ else
                         @if (c.PlannedLandingY is { } ly)
                         {
                             <line class="fuellog-landing" x1="44" x2="@Px(c.Width - 16)" y1="@Px(ly)" y2="@Px(ly)" />
-                            @SvgText("fuellog-landing-label", 48, ly - 5, "start", "PLANNED LANDING " + Kg(log.PlannedLandingKg))
+                            @SvgText("fuellog-landing-label", 48, ly - 5, "start", T["fuelLog.chart.plannedLanding", Kg(log.PlannedLandingKg)].Value)
                         }
                         <polyline class="fuellog-plan" points="@c.PlannedPoints" />
                         @if (c.ProjectionPoints.Length > 0)
@@ -132,7 +133,7 @@ else
                 }
                 else
                 {
-                    <p class="fuellog-empty-text">The navlog has no fuel figures to chart.</p>
+                    <p class="fuellog-empty-text">@T["fuelLog.chart.noFigures"]</p>
                 }
             </div>
         </section>
@@ -141,20 +142,20 @@ else
     @* ── WAYPOINT TABLE ─────────────────────────────────────── *@
     <section class="section fuellog-table-card">
         <div class="section-header">
-            <h3 class="section-title">Fuel log</h3>
-            <span class="section-hint">@log.PassedCount of @log.Rows.Count fixes passed@(log.TakeoffUnknown ? " · takeoff time unknown (app started in flight)" : takeoff is null ? " · stamps start at takeoff" : "")</span>
+            <h3 class="section-title">@T["fuelLog.table.title"]</h3>
+            <span class="section-hint">@T["fuelLog.table.passed", log.PassedCount, log.Rows.Count]@(log.TakeoffUnknown ? T["fuelLog.table.takeoffUnknown"].Value : takeoff is null ? T["fuelLog.table.stampsStartAtTakeoff"].Value : "")</span>
         </div>
         <div class="fuellog-table-wrap">
             <table class="data-table fuellog-table">
                 <thead>
                     <tr>
-                        <th>Waypoint</th>
-                        <th class="num">Plan</th>
-                        <th class="num">Actual</th>
-                        <th class="num">Δ min</th>
-                        <th class="num">Plan FOB</th>
-                        <th class="num">Actual FOB</th>
-                        <th class="num">Δ @UnitU</th>
+                        <th>@T["fuelLog.table.waypoint"]</th>
+                        <th class="num">@T["fuelLog.table.plan"]</th>
+                        <th class="num">@T["fuelLog.table.actual"]</th>
+                        <th class="num">@T["fuelLog.table.deltaMin"]</th>
+                        <th class="num">@T["fuelLog.table.planFob"]</th>
+                        <th class="num">@T["fuelLog.table.actualFob"]</th>
+                        <th class="num">@T["fuelLog.table.deltaUnit", UnitU]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -163,9 +164,9 @@ else
                         var isLast = last is not null && row.Index == last.Index;
                         var dMin = row.DeltaMinutes(takeoff);
                         <tr class="@(row.Passed ? (isLast ? "now" : "") : row.NotRecorded ? "" : "future")">
-                            <td class="mono fuellog-fix">@row.Ident @if (isLast) { <span class="pill tone-active">last</span> }</td>
+                            <td class="mono fuellog-fix">@row.Ident @if (isLast) { <span class="pill tone-active">@T["fuelLog.table.last"]</span> }</td>
                             <td class="mono num">@PlanTime(row, takeoff)</td>
-                            <td class="mono num">@(row.NotRecorded ? "not recorded" : Clock(row.ActualTimeUtc))</td>
+                            <td class="mono num">@(row.NotRecorded ? T["fuelLog.table.notRecorded"].Value : Clock(row.ActualTimeUtc))</td>
                             <td class="mono num @(dMin is > 0 ? "fuellog-neg" : dMin is < 0 ? "fuellog-pos" : "")">@(dMin is { } m ? (m > 0 ? "+" : "") + m : "—")</td>
                             <td class="mono num">@Kg(row.PlannedFobKg)</td>
                             <td class="mono num @(row.Passed ? "glow" : "")">@Kg(row.ActualFobKg)</td>
@@ -180,13 +181,13 @@ else
     @* ── FO FUEL CHECKS ─────────────────────────────────────── *@
     <section class="section fuellog-checks-card">
         <div class="section-header">
-            <h3 class="section-title">FO fuel checks</h3>
-            <span class="section-hint">@(_checks.Checks.Count == 0 ? "none spoken yet this session" : "newest first · what the First Officer said")</span>
+            <h3 class="section-title">@T["fuelLog.checks.title"]</h3>
+            <span class="section-hint">@(_checks.Checks.Count == 0 ? T["fuelLog.checks.noneYet"].Value : T["fuelLog.checks.newestFirst"].Value)</span>
         </div>
         <div class="section-body">
             @if (_checks.Checks.Count == 0)
             {
-                <p class="fuellog-empty-text">The First Officer's periodic fuel checks (Speech → Monitoring) and any "fuel check" you ask for appear here with the exact words spoken.</p>
+                <p class="fuellog-empty-text">@T["fuelLog.checks.empty"]</p>
             }
             else
             {
@@ -242,7 +243,7 @@ else
 
     private void RequestCheck()
     {
-        _notice = FuelCheck?.RequestNow("page") ?? "Spoken.";
+        _notice = FuelCheck?.RequestNow("page") ?? T["fuelLog.hero.spoken"].Value;
         _ = ClearNoticeAsync();
     }
 
@@ -263,8 +264,23 @@ else
 
     private static string TrendTone(string trend) => trend switch { "losing" => "tone-warn", "gaining" => "tone-ok", _ => "tone-neutral" };
 
-    private static string Between(FuelLogHeader h) => h.BetweenFrom is null ? "no position on the navlog"
-        : h.BetweenTo is null ? $"past {h.BetweenFrom}" : $"between {h.BetweenFrom} and {h.BetweenTo}";
+    // FuelLogCore names the trend in English (it is also what the logs carry); the pill shows the pack's word.
+    private string TrendText(string trend) => trend switch
+    {
+        "losing" => T["fuelLog.trend.losing"].Value,
+        "gaining" => T["fuelLog.trend.gaining"].Value,
+        "holding" => T["fuelLog.trend.holding"].Value,
+        _ => trend,
+    };
+
+    private string RecentDeltas(FuelLogHeader h)
+    {
+        var (textId, arguments) = FuelLogPresentation.RecentDeltasLine(h.RecentDeltas.Select(d => Units.FromKg(d)).ToList());
+        return T[textId, arguments];
+    }
+
+    private string Between(FuelLogHeader h) => h.BetweenFrom is null ? T["fuelLog.hero.noPosition"].Value
+        : h.BetweenTo is null ? T["fuelLog.hero.past", h.BetweenFrom].Value : T["fuelLog.hero.between", h.BetweenFrom, h.BetweenTo].Value;
 
     private static string Clock(DateTimeOffset? utc) => utc is { } t ? t.ToString("HH:mm", CultureInfo.InvariantCulture) : "—";
 
@@ -274,7 +290,7 @@ else
             : row.PlannedTimeFromTakeoff is { } d ? "+" + ((int)d.TotalHours).ToString(CultureInfo.InvariantCulture) + ":" + d.Minutes.ToString("00", CultureInfo.InvariantCulture)
             : "—";
 
-    private static string CheckTag(FuelCheckRecord c) => c.Shortfall ? "shortfall" : c.DifferenceKg is < -50 ? "under plan" : c.DifferenceKg is > 50 ? "above plan" : "on plan";
+    private string CheckTag(FuelCheckRecord c) => c.Shortfall ? T["fuelLog.checks.shortfall"].Value : c.DifferenceKg is < -50 ? T["fuelLog.checks.underPlan"].Value : c.DifferenceKg is > 50 ? T["fuelLog.checks.abovePlan"].Value : T["fuelLog.checks.onPlan"].Value;
 
     private static string Px(double v) => v.ToString("0.#", CultureInfo.InvariantCulture);
 

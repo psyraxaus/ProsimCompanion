@@ -1,0 +1,32 @@
+{
+  "fuel": {
+    "pageTitle": "연료 — ProsimCompanion",
+    "heading": "연료",
+    "summary": {
+      "title": "연료 요약",
+      "hint": "사용 가능 용량 {0} {1} · 비중 {2}",
+      "inTanks": "탱크 내 연료",
+      "capacityAria": "{1} {2} 중 {0}",
+      "plannedCaps": "계획",
+      "plannedInitModCaps": "계획 — INIT MOD",
+      "inTanksCaps": "탱크 내"
+    },
+    "delta": {
+      "label": "차이",
+      "noFlightPlan": "— (비행 계획 없음)",
+      "over": "초과",
+      "under": "부족",
+      "ok": "OK"
+    },
+    "tanks": {
+      "title": "탱크별 내역",
+      "hint": "실시간 값 · 기체 배치 순서",
+      "aria": "{0} {2} {3} 중 {1}",
+      "leftOuter": "좌측 외부",
+      "leftInner": "좌측 내부",
+      "centre": "중앙",
+      "rightInner": "우측 내부",
+      "rightOuter": "우측 외부"
+    }
+  }
+}

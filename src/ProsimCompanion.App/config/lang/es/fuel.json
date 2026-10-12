@@ -1,0 +1,32 @@
+{
+  "fuel": {
+    "pageTitle": "Combustible — ProsimCompanion",
+    "heading": "Combustible",
+    "summary": {
+      "title": "Resumen de combustible",
+      "hint": "Capacidad utilizable {0} {1} · SG {2}",
+      "inTanks": "En tanques",
+      "capacityAria": "{0} de {1} {2}",
+      "plannedCaps": "PLANIFICADO",
+      "plannedInitModCaps": "PLANIFICADO — INIT MOD",
+      "inTanksCaps": "EN TANQUES"
+    },
+    "delta": {
+      "label": "Delta",
+      "noFlightPlan": "— (sin plan de vuelo)",
+      "over": "EXCESO",
+      "under": "DÉFICIT",
+      "ok": "OK"
+    },
+    "tanks": {
+      "title": "Desglose por tanque",
+      "hint": "Cifras en vivo · orden de la célula",
+      "aria": "{0} {1} de {2} {3}",
+      "leftOuter": "IZQ. EXTERIOR",
+      "leftInner": "IZQ. INTERIOR",
+      "centre": "CENTRAL",
+      "rightInner": "DER. INTERIOR",
+      "rightOuter": "DER. EXTERIOR"
+    }
+  }
+}

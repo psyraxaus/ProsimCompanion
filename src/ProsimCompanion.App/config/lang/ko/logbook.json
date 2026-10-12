@@ -1,0 +1,86 @@
+{
+  "logbook": {
+    "pageTitle": "비행 일지 — ProsimCompanion",
+    "heading": "비행 일지",
+    "title": "조종사 비행 일지",
+    "backfill": {
+      "title": "디스크에 남아 있는 세션 파일을 읽어 아직 일지에 없는 비행을 추가합니다. 삭제한 비행은 삭제된 채로 남습니다.",
+      "reading": "읽는 중…",
+      "button": "저장된 세션 읽기",
+      "noneFound": "저장된 세션에서 새 비행을 찾지 못했습니다.",
+      "added": "저장된 세션에서 비행 {0}건을 추가했습니다."
+    },
+    "export": {
+      "button": "CSV 내보내기",
+      "title": "모든 비행을 CSV 파일로: UTC 시각, 소수점, 비행당 한 줄."
+    },
+    "notWired": "이 빌드에는 비행 일지 서비스가 연결되어 있지 않습니다.",
+    "figures": {
+      "flights": "비행",
+      "blockHours": "블록 시간",
+      "landings": "착륙",
+      "stableApproaches": "안정 접근",
+      "stableTitle": "게이트가 판정한 접근 {1}회 중 {0}회 안정",
+      "avgTouchdown": "평균 접지",
+      "avgTouchdownTitle": "접지 기록기가 측정한 착륙 {0}회의 평균"
+    },
+    "trend": {
+      "title": "접지율 · 최근 착륙 {0}회",
+      "empty": "아직 측정된 착륙이 없습니다. 다음 착륙부터 추세가 시작됩니다.",
+      "ariaEmpty": "측정된 착륙 없음",
+      "aria": "최근 착륙 {0}회의 접지율. 가장 최근은 {1}",
+      "note": "왼쪽이 가장 오래된 것, 오른쪽이 최신(밝은 점). 높을수록 부드럽습니다. 흐린 선은 이 착륙들의 평균입니다."
+    },
+    "emptyBook": "비행 일지가 비어 있습니다. 게이트에서 셧다운하면 비행이 추가됩니다.",
+    "table": {
+      "date": "날짜",
+      "route": "경로",
+      "block": "블록",
+      "flight": "비행",
+      "touchdownRate": "T/D 율",
+      "touchdownSpeed": "T/D 속도",
+      "approach": "접근",
+      "bounceTitle": "5초 이내에 지면 접촉이 끊겼다가 다시 접촉",
+      "bounce": "바운스 {0}회",
+      "bounces": "바운스 {0}회",
+      "note": "T/D 율은 접지 직전 1초간의 수직 속도(피트/분), T/D 속도는 대지 속도(노트)입니다. 접지 기록기 이전에 기록된 비행은 대시로 표시됩니다. 행을 선택하면 상세가 열립니다."
+    },
+    "approach": {
+      "stable": "안정",
+      "unstable": "불안정",
+      "indeterminate": "판정 불가",
+      "notJudged": "판정 없음"
+    },
+    "detail": {
+      "aria": "비행 상세",
+      "close": "비행 상세 닫기",
+      "date": "날짜",
+      "runways": "활주로",
+      "offBlocks": "오프 블록",
+      "takeoff": "이륙",
+      "takeoffUnknown": "불명 (비행 중 앱 시작)",
+      "landing": "착륙",
+      "onBlocks": "온 블록",
+      "blockTime": "블록 시간",
+      "flightTime": "비행 시간",
+      "liftoffIas": "이륙 시 IAS",
+      "landingHead": "착륙",
+      "touchdownRate": "접지율",
+      "touchdownIas": "접지 시 IAS",
+      "touchdownGroundSpeed": "접지 시 대지 속도",
+      "pitch": "접지 시 피치",
+      "bounces": "바운스",
+      "approach": "접근",
+      "techLogHead": "Tech Log",
+      "abnormals": "비정상 상황",
+      "none": "없음",
+      "defects": "결함",
+      "defectsLine": "등록 {0} · 수리 {1} · 이월 {2}",
+      "session": "세션",
+      "confirmDelete": "삭제 확인",
+      "deleteFlight": "비행 삭제",
+      "deleteArmedNote": "다시 누르면 삭제됩니다. 되돌릴 수 없습니다.",
+      "deleteNote": "이 비행을 일지에서 제거합니다. 세션 파일에서 다시 돌아오지 않습니다."
+    }
+  }
+}

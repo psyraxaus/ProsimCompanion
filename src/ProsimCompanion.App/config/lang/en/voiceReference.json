@@ -1,0 +1,38 @@
+{
+  "voiceReference": {
+    "title": "Voice reference",
+    "searchTitle": "Filter every tab",
+    "searchPlaceholder": "Type a word… e.g. boarding, heading",
+    "close": "Close",
+    "ptt": "PTT: {0}",
+    "listen": {
+      "paused": "Paused",
+      "listening": "Listening",
+      "ready": "Ready"
+    },
+    "tab": {
+      "fo": "FO",
+      "ground": "Ground",
+      "cabin": "Cabin",
+      "atc": "ATC",
+      "lists": "Lists"
+    },
+    "who": {
+      "ground": "Ground crew answers on INT — say cockpit to ground first, or use the single-shot phrases",
+      "cabin": "The purser answers on CAB — say cockpit to cabin first",
+      "atc": "The FO acknowledges, then transmits on COM1 to SayIntentions ATC",
+      "checklists": "The FO runs the checklist — answer each challenge, or use the always-available words",
+      "fo": "The First Officer answers"
+    },
+    "switchedOff": "switched off",
+    "alwaysAvailable": "Always available",
+    "nothingMatches": "Nothing matches “{0}”.",
+    "or": "or",
+    "footer": {
+      "sayBefore": "Say",
+      "sayAfter": "any time",
+      "edit": "Edit phrases · commands.json",
+      "editTitle": "Your own phrases live in commands.json (user config folder)"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "voiceReference": {
+    "title": "Sprachreferenz",
+    "searchTitle": "Alle Tabs filtern",
+    "searchPlaceholder": "Wort eingeben… z. B. boarding, heading",
+    "close": "Schließen",
+    "ptt": "PTT: {0}",
+    "listen": {
+      "paused": "Pausiert",
+      "listening": "Hört zu",
+      "ready": "Bereit"
+    },
+    "tab": {
+      "fo": "FO",
+      "ground": "Boden",
+      "cabin": "Kabine",
+      "atc": "ATC",
+      "lists": "Listen"
+    },
+    "who": {
+      "ground": "Die Bodencrew antwortet auf INT — sage zuerst cockpit to ground, oder nutze die Einzelphrasen",
+      "cabin": "Der Purser antwortet auf CAB — sage zuerst cockpit to cabin",
+      "atc": "Der FO bestätigt und sendet dann auf COM1 an SayIntentions ATC",
+      "checklists": "Der FO führt die Checkliste — beantworte jeden Punkt, oder nutze die immer verfügbaren Wörter",
+      "fo": "Der Erste Offizier antwortet"
+    },
+    "switchedOff": "ausgeschaltet",
+    "alwaysAvailable": "Immer verfügbar",
+    "nothingMatches": "Nichts passt zu “{0}”.",
+    "or": "oder",
+    "footer": {
+      "sayBefore": "Sage jederzeit",
+      "sayAfter": "",
+      "edit": "Phrasen bearbeiten · commands.json",
+      "editTitle": "Deine eigenen Phrasen liegen in commands.json (Benutzer-Konfigurationsordner)"
+    }
+  }
+}

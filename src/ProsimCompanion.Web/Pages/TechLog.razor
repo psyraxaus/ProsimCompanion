@@ -3,9 +3,10 @@
 @using ProsimCompanion.Core.TechLog
 @inherits StoreObserverComponent
 @inject IServiceProvider Services
+@inject IStringLocalizer T
 
-<PageTitle>Tech Log — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Tech Log</h1>
+<PageTitle>@T["techLog.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["techLog.heading"]</h1>
 
 @* Layout (ADR-0011): the defect list as glass rows on the left, the raise-a-defect form on
    the right. Advisory only — the app never grounds the aircraft. *@
@@ -13,39 +14,39 @@
 
     <section class="section ops-card ops-main">
         <div class="section-header">
-            <h3 class="section-title">Tech Log &amp; MEL</h3>
+            <h3 class="section-title">@T["techLog.title"]</h3>
             @if (_techLog is not null)
             {
                 <span class="pill @(!_techLog.IsEnabled ? "tone-neutral" : _open.Count == 0 ? "tone-ok" : _open.Any(_techLog.IsOverdue) ? "tone-bad" : "tone-warn")">
-                    @(!_techLog.IsEnabled ? "switched off" : _open.Count == 0 ? "clean" : $"{_open.Count} open")
+                    @(!_techLog.IsEnabled ? T["techLog.pill.switchedOff"].Value : _open.Count == 0 ? T["techLog.pill.clean"].Value : T["techLog.pill.open", _open.Count].Value)
                 </span>
             }
         </div>
         <div class="section-body ops-body">
             @if (_techLog is null)
             {
-                <div class="empty">The tech log service is not wired into this build (see WIRING-TECHLOG.md).</div>
+                <div class="empty">@T["techLog.notWired"]</div>
             }
             else
             {
                 <div class="ops-figures">
                     <div class="ops-figure">
-                        <span class="label-caps">Open items</span>
+                        <span class="label-caps">@T["techLog.figures.openItems"]</span>
                         <span class="figure figure-lg @(_open.Count > 0 ? "glow" : null)">@_open.Count</span>
                     </div>
                     <div class="ops-figure">
-                        <span class="label-caps">On file</span>
+                        <span class="label-caps">@T["techLog.figures.onFile"]</span>
                         <span class="figure figure-lg">@_defects.Count</span>
                     </div>
                     <div class="ops-figure">
-                        <span class="label-caps">Overdue</span>
+                        <span class="label-caps">@T["techLog.figures.overdue"]</span>
                         <span class="figure figure-lg @(_open.Any(_techLog.IsOverdue) ? "ops-bad" : null)">@_open.Count(_techLog.IsOverdue)</span>
                     </div>
                 </div>
 
                 @if (_defects.Count == 0)
                 {
-                    <div class="empty">Tech log is clean — no defects on file.</div>
+                    <div class="empty">@T["techLog.cleanNoDefects"]</div>
                 }
                 <div class="ops-list">
                     @foreach (var defect in _defects)
@@ -62,32 +63,31 @@
                                     }
                                     @if (!string.IsNullOrWhiteSpace(defect.System))
                                     {
-                                        <span class="pill tone-neutral" title="Checklist system tag">@defect.System</span>
+                                        <span class="pill tone-neutral" title="@T["techLog.item.systemTag"]">@defect.System</span>
                                     }
                                     @if (defect.IsOpen)
                                     {
-                                        <span class="pill @(overdue ? "tone-bad" : "tone-neutral")">@(overdue ? "OVERDUE — " : "")@_techLog.DaysPhrase(defect)</span>
-                                        <span class="pill tone-neutral">@defect.SectorsCarried sector(s) carried</span>
+                                        <span class="pill @(overdue ? "tone-bad" : "tone-neutral")">@(overdue ? T["techLog.item.overduePrefix"].Value : "")@_techLog.DaysPhrase(defect)</span>
+                                        <span class="pill tone-neutral">@T["techLog.item.sectorsCarried", defect.SectorsCarried]</span>
                                     }
                                     else
                                     {
-                                        <span class="pill tone-ok">rectified</span>
+                                        <span class="pill tone-ok">@T["techLog.item.rectified"]</span>
                                     }
                                 </div>
                             </div>
                             <div class="ops-item-actions">
                                 @if (defect.IsOpen)
                                 {
-                                    <button type="button" class="btn primary" @onclick="() => Rectify(defect.Id)">Rectify</button>
+                                    <button type="button" class="btn primary" @onclick="() => Rectify(defect.Id)">@T["techLog.item.rectify"]</button>
                                 }
-                                <button type="button" class="btn secondary" @onclick="() => Remove(defect.Id)">Remove</button>
+                                <button type="button" class="btn secondary" @onclick="() => Remove(defect.Id)">@T["techLog.item.remove"]</button>
                             </div>
                         </div>
                     }
                 </div>
                 <div class="ops-note">
-                    An overdue MEL item is advisory only — the app never grounds the aircraft; whether to fly is
-                    your call. MEL references are simulated, never real citations.
+                    @T["techLog.advisoryNote"]
                 </div>
             }
         </div>
@@ -96,40 +96,40 @@
     @if (_techLog is not null)
     {
         <section class="section ops-card ops-side">
-            <div class="section-header"><h3 class="section-title">Raise a defect</h3></div>
+            <div class="section-header"><h3 class="section-title">@T["techLog.form.title"]</h3></div>
             <div class="section-body ops-form">
                 <label class="ops-field">
-                    <span class="label-caps">Title</span>
-                    <input class="text-input" @bind="_title" placeholder="e.g. APU inoperative" />
+                    <span class="label-caps">@T["techLog.form.defectTitle"]</span>
+                    <input class="text-input" @bind="_title" placeholder="@T["techLog.form.defectTitlePlaceholder"]" />
                 </label>
                 <label class="ops-field">
-                    <span class="label-caps">MEL category</span>
+                    <span class="label-caps">@T["techLog.form.category"]</span>
                     <select class="select" @bind="_category">
-                        <option value="A">A — @_techLog.RepairDaysForCategory(MelCategory.A) days</option>
-                        <option value="B">B — @_techLog.RepairDaysForCategory(MelCategory.B) days</option>
-                        <option value="C">C — @_techLog.RepairDaysForCategory(MelCategory.C) days</option>
-                        <option value="D">D — @_techLog.RepairDaysForCategory(MelCategory.D) days</option>
+                        <option value="A">@T["techLog.form.categoryOption", "A", _techLog.RepairDaysForCategory(MelCategory.A)]</option>
+                        <option value="B">@T["techLog.form.categoryOption", "B", _techLog.RepairDaysForCategory(MelCategory.B)]</option>
+                        <option value="C">@T["techLog.form.categoryOption", "C", _techLog.RepairDaysForCategory(MelCategory.C)]</option>
+                        <option value="D">@T["techLog.form.categoryOption", "D", _techLog.RepairDaysForCategory(MelCategory.D)]</option>
                     </select>
                 </label>
                 <label class="ops-field">
-                    <span class="label-caps">MEL reference</span>
-                    <input class="text-input" @bind="_melReference" placeholder="blank = simulated default" />
+                    <span class="label-caps">@T["techLog.form.melReference"]</span>
+                    <input class="text-input" @bind="_melReference" placeholder="@T["techLog.form.melReferencePlaceholder"]" />
                 </label>
                 <label class="ops-field">
-                    <span class="label-caps">Implications</span>
-                    <input class="text-input" @bind="_implications" placeholder="spoken in the preflight brief" />
+                    <span class="label-caps">@T["techLog.form.implications"]</span>
+                    <input class="text-input" @bind="_implications" placeholder="@T["techLog.form.implicationsPlaceholder"]" />
                 </label>
                 <label class="ops-field">
-                    <span class="label-caps">Placard</span>
-                    <input class="text-input" @bind="_placard" placeholder="optional, e.g. APU INOP" />
+                    <span class="label-caps">@T["techLog.form.placard"]</span>
+                    <input class="text-input" @bind="_placard" placeholder="@T["techLog.form.placardPlaceholder"]" />
                 </label>
                 <label class="ops-field">
-                    <span class="label-caps">System</span>
-                    <input class="text-input" @bind="_system" placeholder="optional tag, e.g. apu, gear, autobrake" />
-                    <span class="field-hint">Matches a spoken checklist line's system tag, so the FO notes the item on that line. Blank: the title's words match instead.</span>
+                    <span class="label-caps">@T["techLog.form.system"]</span>
+                    <input class="text-input" @bind="_system" placeholder="@T["techLog.form.systemPlaceholder"]" />
+                    <span class="field-hint">@T["techLog.form.systemHint"]</span>
                 </label>
                 <button type="button" class="btn primary" disabled="@string.IsNullOrWhiteSpace(_title)" @onclick="Raise">
-                    Enter in tech log
+                    @T["techLog.form.enter"]
                 </button>
             </div>
         </section>

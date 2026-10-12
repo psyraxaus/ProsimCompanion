@@ -1,0 +1,86 @@
+{
+  "logbook": {
+    "pageTitle": "Logbook — ProsimCompanion",
+    "heading": "Logbook",
+    "title": "Pilot Logbook",
+    "backfill": {
+      "title": "Read the session files still on disk and add any flight that is not in the logbook yet. Deleted flights stay deleted.",
+      "reading": "Reading…",
+      "button": "Read saved sessions",
+      "noneFound": "No new flight found in the saved sessions.",
+      "added": "{0} flight(s) added from the saved sessions."
+    },
+    "export": {
+      "button": "Export CSV",
+      "title": "Every flight as a CSV file: UTC times, decimal points, one row per flight."
+    },
+    "notWired": "The logbook service is not wired into this build.",
+    "figures": {
+      "flights": "Flights",
+      "blockHours": "Block hours",
+      "landings": "Landings",
+      "stableApproaches": "Stable approaches",
+      "stableTitle": "{0} stable of {1} approaches the gates judged",
+      "avgTouchdown": "Avg touchdown",
+      "avgTouchdownTitle": "Average over the {0} landing(s) the touchdown recorder measured"
+    },
+    "trend": {
+      "title": "Touchdown rate · last {0} landing(s)",
+      "empty": "No measured landing yet. The trend starts with your next landing.",
+      "ariaEmpty": "No measured landings",
+      "aria": "Touchdown rate of the last {0} landings; the latest is {1}",
+      "note": "Oldest left, latest right (the bright dot). Higher is softer. The faint line is the average of these landings."
+    },
+    "emptyBook": "The logbook is empty. A flight is added when you shut down at the gate.",
+    "table": {
+      "date": "Date",
+      "route": "Route",
+      "block": "Block",
+      "flight": "Flight",
+      "touchdownRate": "T/D rate",
+      "touchdownSpeed": "T/D speed",
+      "approach": "Approach",
+      "bounceTitle": "Ground contact lost and regained within 5 seconds",
+      "bounce": "{0} bounce",
+      "bounces": "{0} bounces",
+      "note": "T/D rate is the vertical speed in feet per minute in the second before the wheels touched; T/D speed is ground speed in knots. Flights recorded before the touchdown recorder show a dash. Select a row for the detail."
+    },
+    "approach": {
+      "stable": "stable",
+      "unstable": "unstable",
+      "indeterminate": "indeterminate",
+      "notJudged": "not judged"
+    },
+    "detail": {
+      "aria": "Flight detail",
+      "close": "Close the flight detail",
+      "date": "Date",
+      "runways": "Runways",
+      "offBlocks": "Off blocks",
+      "takeoff": "Takeoff",
+      "takeoffUnknown": "unknown (app started in flight)",
+      "landing": "Landing",
+      "onBlocks": "On blocks",
+      "blockTime": "Block time",
+      "flightTime": "Flight time",
+      "liftoffIas": "Lift-off IAS",
+      "landingHead": "Landing",
+      "touchdownRate": "Touchdown rate",
+      "touchdownIas": "Touchdown IAS",
+      "touchdownGroundSpeed": "Touchdown ground speed",
+      "pitch": "Pitch at touchdown",
+      "bounces": "Bounces",
+      "approach": "Approach",
+      "techLogHead": "Tech log",
+      "abnormals": "Abnormals",
+      "none": "none",
+      "defects": "Defects",
+      "defectsLine": "{0} raised · {1} rectified · {2} carried",
+      "session": "Session",
+      "confirmDelete": "CONFIRM DELETE",
+      "deleteFlight": "Delete flight",
+      "deleteArmedNote": "Press again to delete. This cannot be undone.",
+      "deleteNote": "Removes this flight from the logbook. It will not come back from its session file."
+    }
+  }
+}

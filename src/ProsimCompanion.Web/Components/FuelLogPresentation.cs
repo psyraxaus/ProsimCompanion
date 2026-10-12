@@ -62,22 +62,29 @@ public static class FuelLogPresentation
         return new FuelLogHeader(fob, planHere, delta, landing, log.PlannedLandingKg, from, to, FuelLogCore.Trend(log), recent);
     }
 
-    /// <summary>"−90 · −160 · −130 at the last three fixes" for the delta tile's sub-line.</summary>
-    public static string RecentDeltasLine(IReadOnlyList<double> recent)
+    /// <summary>"−90 · −160 · −130 at the last three fixes" for the delta tile's sub-line, as
+    /// the pack text id and its arguments: the page resolves the sentence through the
+    /// localizer (ADR-0014), this class stays free of it. The signed figures are one joined
+    /// argument; the count picks the id (one / two / three fixes read as words in English).</summary>
+    public static (string TextId, object[] Arguments) RecentDeltasLine(IReadOnlyList<double> recent)
     {
         ArgumentNullException.ThrowIfNull(recent);
         if (recent.Count == 0)
         {
-            return "no fix passed yet";
+            return ("fuelLog.recent.none", []);
         }
 
-        var parts = recent.Select(d => Signed(d));
-        return string.Join(" · ", parts) + (recent.Count == 1 ? " at the last fix" : $" at the last {Words(recent.Count)} fixes");
+        var figures = string.Join(" · ", recent.Select(d => Signed(d)));
+        return recent.Count switch
+        {
+            1 => ("fuelLog.recent.one", [figures]),
+            2 => ("fuelLog.recent.two", [figures]),
+            3 => ("fuelLog.recent.three", [figures]),
+            _ => ("fuelLog.recent.many", [figures, recent.Count.ToString(CultureInfo.InvariantCulture)]),
+        };
     }
 
     public static string Signed(double kg) => (kg > 0 ? "+" : kg < 0 ? "−" : "") + Math.Abs(kg).ToString("N0", CultureInfo.InvariantCulture);
-
-    private static string Words(int n) => n switch { 2 => "two", 3 => "three", _ => n.ToString(CultureInfo.InvariantCulture) };
 
     /// <summary>Lays the chart out. X is the fix index (even spacing reads better than
     /// distance on a navlog with SID/STAR fixes bunched at the ends); Y spans the plan's

@@ -3,9 +3,10 @@
 @using ProsimCompanion.Core.Logbook
 @inherits StoreObserverComponent
 @inject IServiceProvider Services
+@inject IStringLocalizer T
 
-<PageTitle>Logbook — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Logbook</h1>
+<PageTitle>@T["logbook.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["logbook.heading"]</h1>
 
 @* Layout (the Tech Log page's shape, ADR-0011): totals, the touchdown-rate trend and the
    flight table on the main card; the selected flight's detail drawer on the side card.
@@ -14,54 +15,54 @@
 
     <section class="section ops-card ops-main">
         <div class="section-header">
-            <h3 class="section-title">Pilot Logbook</h3>
+            <h3 class="section-title">@T["logbook.title"]</h3>
             @if (_logbook is not null)
             {
                 <span class="ops-actions">
                     <button type="button" class="btn secondary" disabled="@_backfilling" @onclick="Backfill"
-                            title="Read the session files still on disk and add any flight that is not in the logbook yet. Deleted flights stay deleted.">
-                        @(_backfilling ? "Reading…" : "Read saved sessions")
+                            title="@T["logbook.backfill.title"]">
+                        @(_backfilling ? T["logbook.backfill.reading"].Value : T["logbook.backfill.button"].Value)
                     </button>
                     <a class="btn primary" href="api/logbook/export.csv" download
-                       title="Every flight as a CSV file: UTC times, decimal points, one row per flight.">Export CSV</a>
+                       title="@T["logbook.export.title"]">@T["logbook.export.button"]</a>
                 </span>
             }
         </div>
         <div class="section-body ops-body">
             @if (_logbook is null)
             {
-                <div class="empty">The logbook service is not wired into this build.</div>
+                <div class="empty">@T["logbook.notWired"]</div>
             }
             else
             {
                 <div class="ops-figures lb-figures">
                     <div class="ops-figure">
-                        <span class="label-caps">Flights</span>
+                        <span class="label-caps">@T["logbook.figures.flights"]</span>
                         <span class="figure figure-lg">@_totals.TotalFlights</span>
                     </div>
                     <div class="ops-figure">
-                        <span class="label-caps">Block hours</span>
+                        <span class="label-caps">@T["logbook.figures.blockHours"]</span>
                         <span class="figure figure-lg">@_totals.TotalBlockHours.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)</span>
                     </div>
                     <div class="ops-figure">
-                        <span class="label-caps">Landings</span>
+                        <span class="label-caps">@T["logbook.figures.landings"]</span>
                         <span class="figure figure-lg">@_totals.Landings</span>
                     </div>
-                    <div class="ops-figure" title="@($"{_totals.StabilizedApproaches} stable of {_totals.JudgedApproaches} approaches the gates judged")">
-                        <span class="label-caps">Stable approaches</span>
+                    <div class="ops-figure" title="@T["logbook.figures.stableTitle", _totals.StabilizedApproaches, _totals.JudgedApproaches]">
+                        <span class="label-caps">@T["logbook.figures.stableApproaches"]</span>
                         <span class="figure figure-lg">@LogbookPresentation.Percent(_totals.StabilizedRatePct)</span>
                     </div>
-                    <div class="ops-figure" title="@($"Average over the {_totals.MeasuredTouchdowns} landing(s) the touchdown recorder measured")">
-                        <span class="label-caps">Avg touchdown</span>
+                    <div class="ops-figure" title="@T["logbook.figures.avgTouchdownTitle", _totals.MeasuredTouchdowns]">
+                        <span class="label-caps">@T["logbook.figures.avgTouchdown"]</span>
                         <span class="figure figure-lg">@LogbookPresentation.Rate(_totals.AverageTouchdownVerticalSpeedFpm)<span class="figure-unit">FPM</span></span>
                     </div>
                 </div>
 
                 <div class="lb-trend inset">
-                    <span class="label-caps">Touchdown rate · last @_spark.Points.Count landing(s)</span>
+                    <span class="label-caps">@T["logbook.trend.title", _spark.Points.Count]</span>
                     @if (_spark.Points.Count == 0)
                     {
-                        <span class="empty">No measured landing yet. The trend starts with your next landing.</span>
+                        <span class="empty">@T["logbook.trend.empty"]</span>
                     }
                     else
                     {
@@ -90,7 +91,7 @@
                             }
                         </svg>
                         <span class="lb-trend-note">
-                            Oldest left, latest right (the bright dot). Higher is softer. The faint line is the average of these landings.
+                            @T["logbook.trend.note"]
                         </span>
                     }
                 </div>
@@ -102,7 +103,7 @@
 
                 @if (_rows.Count == 0)
                 {
-                    <div class="empty">The logbook is empty. A flight is added when you shut down at the gate.</div>
+                    <div class="empty">@T["logbook.emptyBook"]</div>
                 }
                 else
                 {
@@ -110,13 +111,13 @@
                         <table class="data-table lb-table">
                             <thead>
                                 <tr>
-                                    @SortHeader("Date", LogbookSort.Date)
-                                    @SortHeader("Route", LogbookSort.Route)
-                                    @SortHeader("Block", LogbookSort.Block)
-                                    @SortHeader("Flight", LogbookSort.Flight)
-                                    @SortHeader("T/D rate", LogbookSort.TouchdownRate)
-                                    @SortHeader("T/D speed", LogbookSort.TouchdownSpeed)
-                                    @SortHeader("Approach", LogbookSort.Approach)
+                                    @SortHeader(T["logbook.table.date"], LogbookSort.Date)
+                                    @SortHeader(T["logbook.table.route"], LogbookSort.Route)
+                                    @SortHeader(T["logbook.table.block"], LogbookSort.Block)
+                                    @SortHeader(T["logbook.table.flight"], LogbookSort.Flight)
+                                    @SortHeader(T["logbook.table.touchdownRate"], LogbookSort.TouchdownRate)
+                                    @SortHeader(T["logbook.table.touchdownSpeed"], LogbookSort.TouchdownSpeed)
+                                    @SortHeader(T["logbook.table.approach"], LogbookSort.Approach)
                                 </tr>
                             </thead>
                             <tbody>
@@ -134,14 +135,14 @@
                                             @LogbookPresentation.Rate(flight.TouchdownVerticalSpeedFpm)
                                             @if (flight.Bounces is > 0)
                                             {
-                                                <span class="pill tone-warn lb-bounce" title="Ground contact lost and regained within 5 seconds">@flight.Bounces bounce@(flight.Bounces == 1 ? "" : "s")</span>
+                                                <span class="pill tone-warn lb-bounce" title="@T["logbook.table.bounceTitle"]">@(flight.Bounces == 1 ? T["logbook.table.bounce", flight.Bounces].Value : T["logbook.table.bounces", flight.Bounces].Value)</span>
                                             }
                                         </td>
                                         <td class="mono">@LogbookPresentation.Knots(flight.TouchdownGroundSpeedKt)</td>
                                         <td>
                                             @if (flight.ApproachResult is { Length: > 0 } approach)
                                             {
-                                                <span class="pill @LogbookPresentation.ApproachTone(approach)">@approach</span>
+                                                <span class="pill @LogbookPresentation.ApproachTone(approach)">@ApproachText(approach)</span>
                                             }
                                             else
                                             {
@@ -154,9 +155,7 @@
                         </table>
                     </div>
                     <div class="ops-note">
-                        T/D rate is the vertical speed in feet per minute in the second before the wheels touched;
-                        T/D speed is ground speed in knots. Flights recorded before the touchdown recorder show a dash.
-                        Select a row for the detail.
+                        @T["logbook.table.note"]
                     </div>
                 }
             }
@@ -165,45 +164,45 @@
 
     @if (_logbook is not null && Selected is { } detail)
     {
-        <section class="section ops-card ops-side lb-drawer" aria-label="Flight detail">
+        <section class="section ops-card ops-side lb-drawer" aria-label="@T["logbook.detail.aria"]">
             <div class="section-header">
                 <h3 class="section-title">@LogbookPresentation.Route(detail)</h3>
-                <button type="button" class="btn secondary lb-close" @onclick="CloseDetail" aria-label="Close the flight detail">
+                <button type="button" class="btn secondary lb-close" @onclick="CloseDetail" aria-label="@T["logbook.detail.close"]">
                     <AppIcon Name="x" Size="14" />
                 </button>
             </div>
             <div class="section-body lb-detail">
-                @Detail("Date", detail.Date.Length > 0 ? detail.Date : "—")
-                @Detail("Runways", $"{detail.DepartureRunway ?? "—"} / {detail.ArrivalRunway ?? "—"}")
-                @Detail("Off blocks", LogbookPresentation.Stamp(detail.OffBlocksUtc))
-                @Detail("Takeoff", detail.TakeoffUnknown && detail.TakeoffUtc is null ? "unknown (app started in flight)" : LogbookPresentation.Stamp(detail.TakeoffUtc))
-                @Detail("Landing", LogbookPresentation.Stamp(detail.LandingUtc))
-                @Detail("On blocks", LogbookPresentation.Stamp(detail.OnBlocksUtc))
-                @Detail("Block time", LogbookPresentation.Minutes(detail.BlockMinutes))
-                @Detail("Flight time", LogbookPresentation.Minutes(detail.FlightMinutes))
-                @Detail("Lift-off IAS", LogbookPresentation.Knots(detail.LiftoffIasKt) + " kt")
+                @Detail(T["logbook.detail.date"], detail.Date.Length > 0 ? detail.Date : "—")
+                @Detail(T["logbook.detail.runways"], $"{detail.DepartureRunway ?? "—"} / {detail.ArrivalRunway ?? "—"}")
+                @Detail(T["logbook.detail.offBlocks"], LogbookPresentation.Stamp(detail.OffBlocksUtc))
+                @Detail(T["logbook.detail.takeoff"], detail.TakeoffUnknown && detail.TakeoffUtc is null ? T["logbook.detail.takeoffUnknown"].Value : LogbookPresentation.Stamp(detail.TakeoffUtc))
+                @Detail(T["logbook.detail.landing"], LogbookPresentation.Stamp(detail.LandingUtc))
+                @Detail(T["logbook.detail.onBlocks"], LogbookPresentation.Stamp(detail.OnBlocksUtc))
+                @Detail(T["logbook.detail.blockTime"], LogbookPresentation.Minutes(detail.BlockMinutes))
+                @Detail(T["logbook.detail.flightTime"], LogbookPresentation.Minutes(detail.FlightMinutes))
+                @Detail(T["logbook.detail.liftoffIas"], LogbookPresentation.Knots(detail.LiftoffIasKt) + " kt")
 
-                <span class="label-caps lb-detail-head">Landing</span>
-                @Detail("Touchdown rate", LogbookPresentation.Rate(detail.TouchdownVerticalSpeedFpm) + " fpm")
-                @Detail("Touchdown IAS", LogbookPresentation.Knots(detail.TouchdownIasKt) + " kt")
-                @Detail("Touchdown ground speed", LogbookPresentation.Knots(detail.TouchdownGroundSpeedKt) + " kt")
-                @Detail("Pitch at touchdown", LogbookPresentation.Degrees(detail.TouchdownPitchDeg))
-                @Detail("Bounces", detail.Bounces is { } bounces ? bounces.ToString(System.Globalization.CultureInfo.InvariantCulture) : "—")
-                @Detail("Approach", detail.ApproachResult ?? "not judged")
+                <span class="label-caps lb-detail-head">@T["logbook.detail.landingHead"]</span>
+                @Detail(T["logbook.detail.touchdownRate"], LogbookPresentation.Rate(detail.TouchdownVerticalSpeedFpm) + " fpm")
+                @Detail(T["logbook.detail.touchdownIas"], LogbookPresentation.Knots(detail.TouchdownIasKt) + " kt")
+                @Detail(T["logbook.detail.touchdownGroundSpeed"], LogbookPresentation.Knots(detail.TouchdownGroundSpeedKt) + " kt")
+                @Detail(T["logbook.detail.pitch"], LogbookPresentation.Degrees(detail.TouchdownPitchDeg))
+                @Detail(T["logbook.detail.bounces"], detail.Bounces is { } bounces ? bounces.ToString(System.Globalization.CultureInfo.InvariantCulture) : "—")
+                @Detail(T["logbook.detail.approach"], detail.ApproachResult is { Length: > 0 } judged ? ApproachText(judged) : T["logbook.approach.notJudged"].Value)
 
-                <span class="label-caps lb-detail-head">Tech log</span>
-                @Detail("Abnormals", detail.Abnormals.Count == 0 ? "none" : string.Join(", ", detail.Abnormals))
-                @Detail("Defects", $"{detail.DefectsRaised} raised · {detail.DefectsRectified} rectified · {detail.DefectsCarried} carried")
-                @Detail("Session", detail.SessionId)
+                <span class="label-caps lb-detail-head">@T["logbook.detail.techLogHead"]</span>
+                @Detail(T["logbook.detail.abnormals"], detail.Abnormals.Count == 0 ? T["logbook.detail.none"].Value : string.Join(", ", detail.Abnormals))
+                @Detail(T["logbook.detail.defects"], T["logbook.detail.defectsLine", detail.DefectsRaised, detail.DefectsRectified, detail.DefectsCarried])
+                @Detail(T["logbook.detail.session"], detail.SessionId)
 
                 <div class="lb-delete">
                     <button type="button" class="btn danger" @onclick="() => Delete(detail.SessionId)">
-                        @(_deleteArmed ? "CONFIRM DELETE" : "Delete flight")
+                        @(_deleteArmed ? T["logbook.detail.confirmDelete"].Value : T["logbook.detail.deleteFlight"].Value)
                     </button>
                     <span class="ops-note">
                         @(_deleteArmed
-                            ? "Press again to delete. This cannot be undone."
-                            : "Removes this flight from the logbook. It will not come back from its session file.")
+                            ? T["logbook.detail.deleteArmedNote"].Value
+                            : T["logbook.detail.deleteNote"].Value)
                     </span>
                 </div>
             </div>
@@ -233,8 +232,18 @@
         : _flights.FirstOrDefault(f => string.Equals(f.SessionId, _selectedId, StringComparison.OrdinalIgnoreCase));
 
     private string SparkLabel => _spark.Points.Count == 0
-        ? "No measured landings"
-        : $"Touchdown rate of the last {_spark.Points.Count} landings; the latest is {_spark.Points[^1].Label}";
+        ? T["logbook.trend.ariaEmpty"].Value
+        : T["logbook.trend.aria", _spark.Points.Count, _spark.Points[^1].Label].Value;
+
+    // The service names the verdict in English ("stable" / "unstable" / "indeterminate" — the
+    // CSV export and the debrief carry the same word); the pill shows the pack's.
+    private string ApproachText(string approach) => approach switch
+    {
+        "stable" => T["logbook.approach.stable"].Value,
+        "unstable" => T["logbook.approach.unstable"].Value,
+        "indeterminate" => T["logbook.approach.indeterminate"].Value,
+        _ => approach,
+    };
 
     protected override void OnInitialized()
     {
@@ -345,8 +354,8 @@
             // Reads every session file on disk: off the render thread.
             var added = await Task.Run(logbook.Backfill);
             _backfillNote = added == 0
-                ? "No new flight found in the saved sessions."
-                : $"{added} flight(s) added from the saved sessions.";
+                ? T["logbook.backfill.noneFound"].Value
+                : T["logbook.backfill.added", added].Value;
         }
         finally
         {

@@ -1,0 +1,73 @@
+{
+  "fuelLog": {
+    "pageTitle": "Kraftstofflog — ProsimCompanion",
+    "heading": "Kraftstofflog",
+    "empty": {
+      "title": "Kraftstofflog",
+      "textBefore": "Kein Kraftstoffplan geladen. Hole auf der",
+      "link": "INIT-Seite",
+      "textAfter": "einen OFP mit Navlog, dann füllt sich das Log mit jedem passierten Wegpunkt."
+    },
+    "hero": {
+      "title": "Plan vs. Ist",
+      "fuelOnBoard": "Kraftstoff an Bord",
+      "noFuelFigure": "kein Kraftstoffwert von ProSim",
+      "live": "live",
+      "planHere": "Plan an dieser Stelle",
+      "noPosition": "keine Position auf dem Navlog",
+      "past": "hinter {0}",
+      "between": "zwischen {0} und {1}",
+      "delta": "Differenz",
+      "estimatedLanding": "Erwartete Landung",
+      "plannedLanding": "geplant {0}",
+      "noPlannedLanding": "kein geplanter Landekraftstoff",
+      "fuelCheckNow": "Fuel Check jetzt",
+      "openOfp": "OFP öffnen",
+      "spoken": "Gesprochen."
+    },
+    "trend": {
+      "losing": "verliert",
+      "gaining": "gewinnt",
+      "holding": "hält"
+    },
+    "recent": {
+      "none": "noch kein Fix passiert",
+      "one": "{0} am letzten Fix",
+      "two": "{0} an den letzten zwei Fixes",
+      "three": "{0} an den letzten drei Fixes",
+      "many": "{0} an den letzten {1} Fixes"
+    },
+    "chart": {
+      "title": "Verbrauch · {0} → {1}",
+      "hint": "grau = Plan · cyan = Ist · gestrichelt = mit der aktuellen Differenz",
+      "aria": "Geplanter Kraftstoff gegen tatsächlichen Kraftstoff über die Strecke",
+      "plannedLanding": "GEPLANTE LANDUNG {0}",
+      "noFigures": "Das Navlog hat keine Kraftstoffwerte für ein Diagramm."
+    },
+    "table": {
+      "title": "Kraftstofflog",
+      "passed": "{0} von {1} Fixes passiert",
+      "takeoffUnknown": " · Startzeit unbekannt (App im Flug gestartet)",
+      "stampsStartAtTakeoff": " · Zeitstempel beginnen mit dem Start",
+      "waypoint": "Wegpunkt",
+      "plan": "Plan",
+      "actual": "Ist",
+      "deltaMin": "Δ min",
+      "planFob": "Plan FOB",
+      "actualFob": "Ist FOB",
+      "deltaUnit": "Δ {0}",
+      "last": "zuletzt",
+      "notRecorded": "nicht erfasst"
+    },
+    "checks": {
+      "title": "Fuel Checks des FO",
+      "noneYet": "in dieser Sitzung noch keiner gesprochen",
+      "newestFirst": "neueste zuerst · was der Erste Offizier gesagt hat",
+      "empty": "Die regelmäßigen Fuel Checks des Ersten Offiziers (Sprache → Überwachung) und jeder \"fuel check\", den du anforderst, erscheinen hier mit dem genauen Wortlaut.",
+      "shortfall": "Fehlmenge",
+      "underPlan": "unter Plan",
+      "abovePlan": "über Plan",
+      "onPlan": "nach Plan"
+    }
+  }
+}

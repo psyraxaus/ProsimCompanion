@@ -8,6 +8,7 @@ using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.Tests.Localization;
 using ProsimCompanion.Core.Tests.Speech;
 using Xunit;
 
@@ -70,6 +71,7 @@ public sealed class FuelLogRenderTests
         services.AddSingleton(new DisplayUnitService(dataRefs, new FixedOptionsMonitor<WebUiOptions>(new WebUiOptions())));
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        services.AddTestLocalizer();
 
         await using var provider = services.BuildServiceProvider();
         await using var renderer = new HtmlRenderer(provider, NullLoggerFactory.Instance);

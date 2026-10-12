@@ -1,0 +1,45 @@
+{
+  "techLog": {
+    "pageTitle": "Tech Log — ProsimCompanion",
+    "heading": "Tech Log",
+    "title": "Tech Log & MEL",
+    "pill": {
+      "switchedOff": "ausgeschaltet",
+      "clean": "sauber",
+      "open": "{0} offen"
+    },
+    "notWired": "Der Tech-Log-Dienst ist in diesem Build nicht eingebunden (siehe WIRING-TECHLOG.md).",
+    "figures": {
+      "openItems": "Offene Punkte",
+      "onFile": "Erfasst",
+      "overdue": "Überfällig"
+    },
+    "cleanNoDefects": "Tech Log ist sauber — keine Mängel erfasst.",
+    "item": {
+      "systemTag": "System-Tag der Checkliste",
+      "overduePrefix": "ÜBERFÄLLIG — ",
+      "sectorsCarried": "{0} Sektor(en) mitgeführt",
+      "rectified": "behoben",
+      "rectify": "Beheben",
+      "remove": "Entfernen"
+    },
+    "advisoryNote": "Ein überfälliger MEL-Punkt ist nur ein Hinweis — die App setzt das Flugzeug nie außer Dienst; ob du fliegst, entscheidest du. MEL-Referenzen sind simuliert, nie echte Zitate.",
+    "form": {
+      "title": "Mangel melden",
+      "defectTitle": "Titel",
+      "defectTitlePlaceholder": "z. B. APU inoperative",
+      "category": "MEL-Kategorie",
+      "categoryOption": "{0} — {1} Tage",
+      "melReference": "MEL-Referenz",
+      "melReferencePlaceholder": "leer = simulierter Standard",
+      "implications": "Auswirkungen",
+      "implicationsPlaceholder": "wird im Preflight-Briefing gesprochen",
+      "placard": "Placard",
+      "placardPlaceholder": "optional, z. B. APU INOP",
+      "system": "System",
+      "systemPlaceholder": "optionaler Tag, z. B. apu, gear, autobrake",
+      "systemHint": "Entspricht dem System-Tag einer gesprochenen Checklistenzeile, damit der FO den Punkt bei dieser Zeile nennt. Leer: stattdessen passen die Wörter des Titels.",
+      "enter": "Ins Tech Log eintragen"
+    }
+  }
+}

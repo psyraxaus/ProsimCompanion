@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using ProsimCompanion.Core.Logbook;
+using ProsimCompanion.Core.Tests.Localization;
 using Xunit;
 
 namespace ProsimCompanion.Core.Tests.Web;
@@ -25,6 +26,7 @@ public sealed class LogbookPageRenderTests
         }
 
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        services.AddTestLocalizer();
 
         await using var provider = services.BuildServiceProvider();
         await using var renderer = new HtmlRenderer(provider, NullLoggerFactory.Instance);

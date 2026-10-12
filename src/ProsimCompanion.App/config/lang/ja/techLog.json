@@ -1,0 +1,45 @@
+{
+  "techLog": {
+    "pageTitle": "Tech Log — ProsimCompanion",
+    "heading": "Tech Log",
+    "title": "Tech Log & MEL",
+    "pill": {
+      "switchedOff": "オフ",
+      "clean": "クリーン",
+      "open": "{0} 件未処置"
+    },
+    "notWired": "このビルドには Tech Log サービスが組み込まれていません（WIRING-TECHLOG.md を参照）。",
+    "figures": {
+      "openItems": "未処置",
+      "onFile": "記録済み",
+      "overdue": "期限超過"
+    },
+    "cleanNoDefects": "Tech Log はクリーンです — 記録された不具合はありません。",
+    "item": {
+      "systemTag": "チェックリストのシステムタグ",
+      "overduePrefix": "期限超過 — ",
+      "sectorsCarried": "{0} 区間持ち越し",
+      "rectified": "処置済み",
+      "rectify": "処置する",
+      "remove": "削除"
+    },
+    "advisoryNote": "期限超過の MEL 項目は参考情報です — アプリが機体を飛行停止にすることはなく、飛ぶかどうかはあなたの判断です。MEL 参照番号は模擬であり、実在の引用ではありません。",
+    "form": {
+      "title": "不具合を起票",
+      "defectTitle": "タイトル",
+      "defectTitlePlaceholder": "例: APU inoperative",
+      "category": "MEL カテゴリ",
+      "categoryOption": "{0} — {1} 日",
+      "melReference": "MEL 参照",
+      "melReferencePlaceholder": "空欄 = 模擬の既定値",
+      "implications": "運用上の影響",
+      "implicationsPlaceholder": "出発前ブリーフィングで読み上げ",
+      "placard": "プラカード",
+      "placardPlaceholder": "任意、例: APU INOP",
+      "system": "システム",
+      "systemPlaceholder": "任意のタグ、例: apu, gear, autobrake",
+      "systemHint": "読み上げチェックリスト行のシステムタグと一致させると、FO がその行で項目に触れます。空欄の場合はタイトルの語で照合します。",
+      "enter": "Tech Log に記入"
+    }
+  }
+}

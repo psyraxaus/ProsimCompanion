@@ -1,0 +1,32 @@
+{
+  "fuel": {
+    "pageTitle": "燃料 — ProsimCompanion",
+    "heading": "燃料",
+    "summary": {
+      "title": "燃料サマリー",
+      "hint": "使用可能容量 {0} {1} · 比重 {2}",
+      "inTanks": "タンク内",
+      "capacityAria": "{1} {2} 中 {0}",
+      "plannedCaps": "計画",
+      "plannedInitModCaps": "計画 — INIT MOD",
+      "inTanksCaps": "タンク内"
+    },
+    "delta": {
+      "label": "差分",
+      "noFlightPlan": "—（飛行計画なし）",
+      "over": "超過",
+      "under": "不足",
+      "ok": "OK"
+    },
+    "tanks": {
+      "title": "タンク別内訳",
+      "hint": "ライブ値 · 機体の配置順",
+      "aria": "{0} {2} {3} 中 {1}",
+      "leftOuter": "左アウター",
+      "leftInner": "左インナー",
+      "centre": "センター",
+      "rightInner": "右インナー",
+      "rightOuter": "右アウター"
+    }
+  }
+}

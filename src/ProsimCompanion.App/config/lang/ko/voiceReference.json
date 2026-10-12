@@ -1,0 +1,38 @@
+{
+  "voiceReference": {
+    "title": "음성 참조",
+    "searchTitle": "모든 탭 필터",
+    "searchPlaceholder": "단어 입력… 예: boarding, heading",
+    "close": "닫기",
+    "ptt": "PTT: {0}",
+    "listen": {
+      "paused": "일시 정지",
+      "listening": "듣는 중",
+      "ready": "준비됨"
+    },
+    "tab": {
+      "fo": "FO",
+      "ground": "지상",
+      "cabin": "객실",
+      "atc": "ATC",
+      "lists": "목록"
+    },
+    "who": {
+      "ground": "지상 요원은 INT로 응답합니다 — 먼저 cockpit to ground라고 말하거나 단발 문구를 사용하세요",
+      "cabin": "사무장은 CAB으로 응답합니다 — 먼저 cockpit to cabin이라고 말하세요",
+      "atc": "FO가 복창한 뒤 COM1로 SayIntentions ATC에 송신합니다",
+      "checklists": "FO가 체크리스트를 진행합니다 — 각 항목에 응답하거나 항상 사용 가능한 단어를 쓰세요",
+      "fo": "부기장이 응답합니다"
+    },
+    "switchedOff": "꺼짐",
+    "alwaysAvailable": "항상 사용 가능",
+    "nothingMatches": "“{0}”에 일치하는 항목이 없습니다.",
+    "or": "또는",
+    "footer": {
+      "sayBefore": "언제든지 말할 수 있음:",
+      "sayAfter": "",
+      "edit": "문구 편집 · commands.json",
+      "editTitle": "나만의 문구는 commands.json(사용자 설정 폴더)에 있습니다"
+    }
+  }
+}

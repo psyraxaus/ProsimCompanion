@@ -9,34 +9,35 @@
 @inject IVoiceReference Reference
 @inject SpeechStatusStore Speech
 @inject NavigationManager Nav
+@inject IStringLocalizer T
 
 @if (_open)
 {
     <div class="vr-scrim" @onclick="Close">
-        <aside class="vr-drawer" role="dialog" aria-label="Voice reference" @onclick:stopPropagation="true">
+        <aside class="vr-drawer" role="dialog" aria-label="@T["voiceReference.title"]" @onclick:stopPropagation="true">
             <div class="vr-head">
                 <div class="vr-head-row">
-                    <span class="label-caps">Voice reference</span>
-                    <label class="vr-search" title="Filter every tab">
+                    <span class="label-caps">@T["voiceReference.title"]</span>
+                    <label class="vr-search" title="@T["voiceReference.searchTitle"]">
                         <AppIcon Name="search" Size="14" />
-                        <input type="search" placeholder="Type a word… e.g. boarding, heading"
+                        <input type="search" placeholder="@T["voiceReference.searchPlaceholder"]"
                                value="@_query" @oninput="e => _query = e.Value?.ToString() ?? string.Empty" />
                     </label>
-                    <button type="button" class="vr-close" aria-label="Close" @onclick="Close"><AppIcon Name="x" Size="16" /></button>
+                    <button type="button" class="vr-close" aria-label="@T["voiceReference.close"]" @onclick="Close"><AppIcon Name="x" Size="16" /></button>
                 </div>
                 <div class="vr-listen">
                     <span class="pill @ListenTone" title="@_speech.RecognizerDetail">@ListenText</span>
-                    <span class="vr-ptt mono">PTT: @_snapshot.PttBindingText</span>
+                    <span class="vr-ptt mono">@T["voiceReference.ptt", _snapshot.PttBindingText]</span>
                 </div>
             </div>
 
             @if (!Searching)
             {
                 <div class="vr-tabs" role="tablist">
-                    @foreach (var (tab, label) in Tabs)
+                    @foreach (var (tab, labelTextId) in Tabs)
                     {
                         <button type="button" role="tab" class="vr-tab @(tab == _tab ? "active" : null)"
-                                aria-selected="@(tab == _tab)" @onclick="() => _tab = tab">@label</button>
+                                aria-selected="@(tab == _tab)" @onclick="() => _tab = tab">@T[labelTextId]</button>
                     }
                 </div>
                 <div class="vr-who">
@@ -56,7 +57,7 @@
                         </div>
                         @if (!group.Enabled)
                         {
-                            <div class="vr-off-reason">@(group.DisabledReason ?? "switched off")</div>
+                            <div class="vr-off-reason">@(group.DisabledReason ?? T["voiceReference.switchedOff"].Value)</div>
                         }
                         @foreach (var entry in entries)
                         {
@@ -68,7 +69,7 @@
                 @if (!Searching || Filter(_snapshot.AlwaysAvailable).Count > 0)
                 {
                     <div class="vr-always">
-                        <div class="vr-always-title">Always available</div>
+                        <div class="vr-always-title">@T["voiceReference.alwaysAvailable"]</div>
                         @foreach (var entry in Filter(_snapshot.AlwaysAvailable))
                         {
                             @Row(entry, VoiceSpeaker.FirstOfficer, compact: true)
@@ -78,26 +79,27 @@
 
                 @if (Searching && !VisibleGroups().Any() && Filter(_snapshot.AlwaysAvailable).Count == 0)
                 {
-                    <div class="empty">Nothing matches “@_query”.</div>
+                    <div class="empty">@T["voiceReference.nothingMatches", _query]</div>
                 }
             </div>
 
             <div class="vr-footer">
-                <div class="vr-footer-hint">Say <strong>skip</strong>, <strong>say again</strong>, <strong>hold the checklist</strong>, <strong>cancel checklist</strong> any time</div>
-                <a class="vr-footer-edit" href="settings/speech/general" title="Your own phrases live in commands.json (user config folder)">Edit phrases · commands.json</a>
+                @* The four words are what the pilot must SAY — the router is English (ADR-0014) — so only the sentence around them comes from the pack. *@
+                <div class="vr-footer-hint">@T["voiceReference.footer.sayBefore"] <strong>skip</strong>, <strong>say again</strong>, <strong>hold the checklist</strong>, <strong>cancel checklist</strong> @T["voiceReference.footer.sayAfter"]</div>
+                <a class="vr-footer-edit" href="settings/speech/general" title="@T["voiceReference.footer.editTitle"]">@T["voiceReference.footer.edit"]</a>
             </div>
         </aside>
     </div>
 }
 
 @code {
-    private static readonly (VoiceReferenceTab Tab, string Label)[] Tabs =
+    private static readonly (VoiceReferenceTab Tab, string LabelTextId)[] Tabs =
     [
-        (VoiceReferenceTab.FirstOfficer, "FO"),
-        (VoiceReferenceTab.Ground, "Ground"),
-        (VoiceReferenceTab.Cabin, "Cabin"),
-        (VoiceReferenceTab.Atc, "ATC"),
-        (VoiceReferenceTab.Checklists, "Lists"),
+        (VoiceReferenceTab.FirstOfficer, "voiceReference.tab.fo"),
+        (VoiceReferenceTab.Ground, "voiceReference.tab.ground"),
+        (VoiceReferenceTab.Cabin, "voiceReference.tab.cabin"),
+        (VoiceReferenceTab.Atc, "voiceReference.tab.atc"),
+        (VoiceReferenceTab.Checklists, "voiceReference.tab.lists"),
     ];
 
     private bool _open;
@@ -172,7 +174,7 @@
     private string ListenTone => _speech.ListeningPaused ? "tone-warn" : _speech.Listening ? "tone-ok" : "tone-neutral";
 
     // Same three words as the header pill (owner pick B2): READY / LISTENING / PAUSED.
-    private string ListenText => _speech.ListeningPaused ? "Paused" : _speech.Listening ? "Listening" : "Ready";
+    private string ListenText => _speech.ListeningPaused ? T["voiceReference.listen.paused"].Value : _speech.Listening ? T["voiceReference.listen.listening"].Value : T["voiceReference.listen.ready"].Value;
 
     private static VoiceSpeaker TabSpeaker(VoiceReferenceTab tab) => tab switch
     {
@@ -182,13 +184,13 @@
         _ => VoiceSpeaker.FirstOfficer,
     };
 
-    private static string TabWho(VoiceReferenceTab tab) => tab switch
+    private string TabWho(VoiceReferenceTab tab) => tab switch
     {
-        VoiceReferenceTab.Ground => "Ground crew answers on INT — say cockpit to ground first, or use the single-shot phrases",
-        VoiceReferenceTab.Cabin => "The purser answers on CAB — say cockpit to cabin first",
-        VoiceReferenceTab.Atc => "The FO acknowledges, then transmits on COM1 to SayIntentions ATC",
-        VoiceReferenceTab.Checklists => "The FO runs the checklist — answer each challenge, or use the always-available words",
-        _ => "The First Officer answers",
+        VoiceReferenceTab.Ground => T["voiceReference.who.ground"].Value,
+        VoiceReferenceTab.Cabin => T["voiceReference.who.cabin"].Value,
+        VoiceReferenceTab.Atc => T["voiceReference.who.atc"].Value,
+        VoiceReferenceTab.Checklists => T["voiceReference.who.checklists"].Value,
+        _ => T["voiceReference.who.fo"].Value,
     };
 
     private static string MarkClass(VoiceSpeaker speaker) => speaker switch
@@ -218,7 +220,7 @@
                 {
                     if (i > 0)
                     {
-                        <span class="vr-or">or</span>
+                        <span class="vr-or">@T["voiceReference.or"]</span>
                     }
                     <span>@entry.Phrases[i]</span>
                 }

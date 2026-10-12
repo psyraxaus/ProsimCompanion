@@ -1,0 +1,73 @@
+{
+  "fuelLog": {
+    "pageTitle": "Brandstoflog — ProsimCompanion",
+    "heading": "Brandstoflog",
+    "empty": {
+      "title": "Brandstoflog",
+      "textBefore": "Geen brandstofplan geladen. Haal op de",
+      "link": "INIT-pagina",
+      "textAfter": "een OFP met navlog op; het log vult zich bij elk gepasseerd waypoint."
+    },
+    "hero": {
+      "title": "Plan vs werkelijk",
+      "fuelOnBoard": "Brandstof aan boord",
+      "noFuelFigure": "geen brandstofwaarde van ProSim",
+      "live": "live",
+      "planHere": "Plan op dit punt",
+      "noPosition": "geen positie op de navlog",
+      "past": "voorbij {0}",
+      "between": "tussen {0} en {1}",
+      "delta": "Verschil",
+      "estimatedLanding": "Verwacht bij landing",
+      "plannedLanding": "gepland {0}",
+      "noPlannedLanding": "geen geplande landingsbrandstof",
+      "fuelCheckNow": "Fuel check nu",
+      "openOfp": "OFP openen",
+      "spoken": "Uitgesproken."
+    },
+    "trend": {
+      "losing": "verliest",
+      "gaining": "wint",
+      "holding": "stabiel"
+    },
+    "recent": {
+      "none": "nog geen fix gepasseerd",
+      "one": "{0} bij de laatste fix",
+      "two": "{0} bij de laatste twee fixes",
+      "three": "{0} bij de laatste drie fixes",
+      "many": "{0} bij de laatste {1} fixes"
+    },
+    "chart": {
+      "title": "Verbruik · {0} → {1}",
+      "hint": "grijs = plan · cyaan = werkelijk · gestippeld = met het huidige verschil",
+      "aria": "Gepland brandstof tegenover werkelijk brandstof over de route",
+      "plannedLanding": "GEPLANDE LANDING {0}",
+      "noFigures": "De navlog heeft geen brandstofwaarden om te tekenen."
+    },
+    "table": {
+      "title": "Brandstoflog",
+      "passed": "{0} van {1} fixes gepasseerd",
+      "takeoffUnknown": " · starttijd onbekend (app in de vlucht gestart)",
+      "stampsStartAtTakeoff": " · tijdstempels beginnen bij de start",
+      "waypoint": "Waypoint",
+      "plan": "Plan",
+      "actual": "Werkelijk",
+      "deltaMin": "Δ min",
+      "planFob": "Plan FOB",
+      "actualFob": "Werkelijk FOB",
+      "deltaUnit": "Δ {0}",
+      "last": "laatste",
+      "notRecorded": "niet vastgelegd"
+    },
+    "checks": {
+      "title": "Fuel checks van de FO",
+      "noneYet": "nog geen uitgesproken in deze sessie",
+      "newestFirst": "nieuwste eerst · wat de first officer zei",
+      "empty": "De periodieke fuel checks van de first officer (Spraak → Monitoring) en elke \"fuel check\" die je vraagt verschijnen hier met de exacte woorden.",
+      "shortfall": "tekort",
+      "underPlan": "onder plan",
+      "abovePlan": "boven plan",
+      "onPlan": "volgens plan"
+    }
+  }
+}

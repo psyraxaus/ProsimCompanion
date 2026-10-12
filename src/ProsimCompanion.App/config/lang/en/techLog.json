@@ -1,0 +1,45 @@
+{
+  "techLog": {
+    "pageTitle": "Tech Log — ProsimCompanion",
+    "heading": "Tech Log",
+    "title": "Tech Log & MEL",
+    "pill": {
+      "switchedOff": "switched off",
+      "clean": "clean",
+      "open": "{0} open"
+    },
+    "notWired": "The tech log service is not wired into this build (see WIRING-TECHLOG.md).",
+    "figures": {
+      "openItems": "Open items",
+      "onFile": "On file",
+      "overdue": "Overdue"
+    },
+    "cleanNoDefects": "Tech log is clean — no defects on file.",
+    "item": {
+      "systemTag": "Checklist system tag",
+      "overduePrefix": "OVERDUE — ",
+      "sectorsCarried": "{0} sector(s) carried",
+      "rectified": "rectified",
+      "rectify": "Rectify",
+      "remove": "Remove"
+    },
+    "advisoryNote": "An overdue MEL item is advisory only — the app never grounds the aircraft; whether to fly is your call. MEL references are simulated, never real citations.",
+    "form": {
+      "title": "Raise a defect",
+      "defectTitle": "Title",
+      "defectTitlePlaceholder": "e.g. APU inoperative",
+      "category": "MEL category",
+      "categoryOption": "{0} — {1} days",
+      "melReference": "MEL reference",
+      "melReferencePlaceholder": "blank = simulated default",
+      "implications": "Implications",
+      "implicationsPlaceholder": "spoken in the preflight brief",
+      "placard": "Placard",
+      "placardPlaceholder": "optional, e.g. APU INOP",
+      "system": "System",
+      "systemPlaceholder": "optional tag, e.g. apu, gear, autobrake",
+      "systemHint": "Matches a spoken checklist line's system tag, so the FO notes the item on that line. Blank: the title's words match instead.",
+      "enter": "Enter in tech log"
+    }
+  }
+}

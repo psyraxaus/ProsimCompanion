@@ -1,0 +1,86 @@
+{
+  "logbook": {
+    "pageTitle": "Carnet de vol — ProsimCompanion",
+    "heading": "Carnet de vol",
+    "title": "Carnet de vol du pilote",
+    "backfill": {
+      "title": "Lit les fichiers de session encore sur le disque et ajoute tout vol absent du carnet. Les vols supprimés restent supprimés.",
+      "reading": "Lecture…",
+      "button": "Lire les sessions enregistrées",
+      "noneFound": "Aucun nouveau vol trouvé dans les sessions enregistrées.",
+      "added": "{0} vol(s) ajouté(s) depuis les sessions enregistrées."
+    },
+    "export": {
+      "button": "Exporter en CSV",
+      "title": "Chaque vol dans un fichier CSV : heures UTC, point décimal, une ligne par vol."
+    },
+    "notWired": "Le service carnet de vol n'est pas branché dans cette version.",
+    "figures": {
+      "flights": "Vols",
+      "blockHours": "Heures bloc",
+      "landings": "Atterrissages",
+      "stableApproaches": "Approches stables",
+      "stableTitle": "{0} stables sur {1} approches jugées par les gates",
+      "avgTouchdown": "Toucher moyen",
+      "avgTouchdownTitle": "Moyenne sur les {0} atterrissage(s) mesurés par l'enregistreur de toucher"
+    },
+    "trend": {
+      "title": "Taux au toucher · {0} dernier(s) atterrissage(s)",
+      "empty": "Aucun atterrissage mesuré pour l'instant. La tendance commence avec ton prochain atterrissage.",
+      "ariaEmpty": "Aucun atterrissage mesuré",
+      "aria": "Taux au toucher des {0} derniers atterrissages ; le plus récent est {1}",
+      "note": "Le plus ancien à gauche, le dernier à droite (le point brillant). Plus haut, plus doux. La ligne pâle est la moyenne de ces atterrissages."
+    },
+    "emptyBook": "Le carnet de vol est vide. Un vol est ajouté quand tu coupes les moteurs au poste.",
+    "table": {
+      "date": "Date",
+      "route": "Route",
+      "block": "Bloc",
+      "flight": "Vol",
+      "touchdownRate": "Taux T/D",
+      "touchdownSpeed": "Vitesse T/D",
+      "approach": "Approche",
+      "bounceTitle": "Contact sol perdu puis repris en moins de 5 secondes",
+      "bounce": "{0} rebond",
+      "bounces": "{0} rebonds",
+      "note": "Le taux T/D est la vitesse verticale en pieds par minute dans la seconde précédant le toucher ; la vitesse T/D est la vitesse sol en nœuds. Les vols enregistrés avant l'enregistreur de toucher affichent un tiret. Sélectionne une ligne pour le détail."
+    },
+    "approach": {
+      "stable": "stable",
+      "unstable": "instable",
+      "indeterminate": "indéterminée",
+      "notJudged": "non jugée"
+    },
+    "detail": {
+      "aria": "Détail du vol",
+      "close": "Fermer le détail du vol",
+      "date": "Date",
+      "runways": "Pistes",
+      "offBlocks": "Départ bloc",
+      "takeoff": "Décollage",
+      "takeoffUnknown": "inconnu (app lancée en vol)",
+      "landing": "Atterrissage",
+      "onBlocks": "Arrivée bloc",
+      "blockTime": "Temps bloc",
+      "flightTime": "Temps de vol",
+      "liftoffIas": "IAS à la rotation",
+      "landingHead": "Atterrissage",
+      "touchdownRate": "Taux au toucher",
+      "touchdownIas": "IAS au toucher",
+      "touchdownGroundSpeed": "Vitesse sol au toucher",
+      "pitch": "Assiette au toucher",
+      "bounces": "Rebonds",
+      "approach": "Approche",
+      "techLogHead": "Tech log",
+      "abnormals": "Anomalies",
+      "none": "aucune",
+      "defects": "Défauts",
+      "defectsLine": "{0} déclaré(s) · {1} rectifié(s) · {2} reporté(s)",
+      "session": "Session",
+      "confirmDelete": "CONFIRMER LA SUPPRESSION",
+      "deleteFlight": "Supprimer le vol",
+      "deleteArmedNote": "Appuie encore pour supprimer. Cette action est irréversible.",
+      "deleteNote": "Retire ce vol du carnet. Il ne reviendra pas depuis son fichier de session."
+    }
+  }
+}

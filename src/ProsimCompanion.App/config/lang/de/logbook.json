@@ -1,0 +1,86 @@
+{
+  "logbook": {
+    "pageTitle": "Logbuch — ProsimCompanion",
+    "heading": "Logbuch",
+    "title": "Pilotenlogbuch",
+    "backfill": {
+      "title": "Liest die noch auf der Festplatte liegenden Sitzungsdateien und ergänzt jeden Flug, der noch nicht im Logbuch ist. Gelöschte Flüge bleiben gelöscht.",
+      "reading": "Lese…",
+      "button": "Gespeicherte Sitzungen lesen",
+      "noneFound": "Kein neuer Flug in den gespeicherten Sitzungen gefunden.",
+      "added": "{0} Flug/Flüge aus den gespeicherten Sitzungen ergänzt."
+    },
+    "export": {
+      "button": "CSV exportieren",
+      "title": "Jeder Flug als CSV-Datei: UTC-Zeiten, Dezimalpunkte, eine Zeile je Flug."
+    },
+    "notWired": "Der Logbuch-Dienst ist in diesem Build nicht eingebunden.",
+    "figures": {
+      "flights": "Flüge",
+      "blockHours": "Blockstunden",
+      "landings": "Landungen",
+      "stableApproaches": "Stabile Anflüge",
+      "stableTitle": "{0} stabil von {1} Anflügen, die die Gates bewertet haben",
+      "avgTouchdown": "Ø Aufsetzen",
+      "avgTouchdownTitle": "Durchschnitt über die {0} Landung(en), die der Aufsetzrekorder gemessen hat"
+    },
+    "trend": {
+      "title": "Aufsetzrate · letzte {0} Landung(en)",
+      "empty": "Noch keine gemessene Landung. Der Trend beginnt mit deiner nächsten Landung.",
+      "ariaEmpty": "Keine gemessenen Landungen",
+      "aria": "Aufsetzrate der letzten {0} Landungen; die jüngste ist {1}",
+      "note": "Älteste links, jüngste rechts (der helle Punkt). Höher ist weicher. Die blasse Linie ist der Durchschnitt dieser Landungen."
+    },
+    "emptyBook": "Das Logbuch ist leer. Ein Flug wird eingetragen, wenn du am Gate abstellst.",
+    "table": {
+      "date": "Datum",
+      "route": "Strecke",
+      "block": "Block",
+      "flight": "Flug",
+      "touchdownRate": "T/D-Rate",
+      "touchdownSpeed": "T/D-Speed",
+      "approach": "Anflug",
+      "bounceTitle": "Bodenkontakt innerhalb von 5 Sekunden verloren und wiedererlangt",
+      "bounce": "{0} Bounce",
+      "bounces": "{0} Bounces",
+      "note": "T/D-Rate ist die Vertikalgeschwindigkeit in Fuß pro Minute in der Sekunde vor dem Aufsetzen; T/D-Speed ist die Geschwindigkeit über Grund in Knoten. Flüge vor dem Aufsetzrekorder zeigen einen Strich. Wähle eine Zeile für die Details."
+    },
+    "approach": {
+      "stable": "stabil",
+      "unstable": "unstabil",
+      "indeterminate": "unbestimmt",
+      "notJudged": "nicht bewertet"
+    },
+    "detail": {
+      "aria": "Flugdetails",
+      "close": "Flugdetails schließen",
+      "date": "Datum",
+      "runways": "Pisten",
+      "offBlocks": "Off Blocks",
+      "takeoff": "Start",
+      "takeoffUnknown": "unbekannt (App im Flug gestartet)",
+      "landing": "Landung",
+      "onBlocks": "On Blocks",
+      "blockTime": "Blockzeit",
+      "flightTime": "Flugzeit",
+      "liftoffIas": "IAS beim Abheben",
+      "landingHead": "Landung",
+      "touchdownRate": "Aufsetzrate",
+      "touchdownIas": "IAS beim Aufsetzen",
+      "touchdownGroundSpeed": "Groundspeed beim Aufsetzen",
+      "pitch": "Pitch beim Aufsetzen",
+      "bounces": "Bounces",
+      "approach": "Anflug",
+      "techLogHead": "Tech Log",
+      "abnormals": "Abnormals",
+      "none": "keine",
+      "defects": "Mängel",
+      "defectsLine": "{0} gemeldet · {1} behoben · {2} mitgeführt",
+      "session": "Sitzung",
+      "confirmDelete": "LÖSCHEN BESTÄTIGEN",
+      "deleteFlight": "Flug löschen",
+      "deleteArmedNote": "Erneut drücken zum Löschen. Das lässt sich nicht rückgängig machen.",
+      "deleteNote": "Entfernt diesen Flug aus dem Logbuch. Er kommt nicht aus seiner Sitzungsdatei zurück."
+    }
+  }
+}
