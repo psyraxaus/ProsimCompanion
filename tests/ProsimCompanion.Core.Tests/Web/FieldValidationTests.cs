@@ -174,6 +174,23 @@ public sealed class FieldValidationTests
     }
 
     [Fact]
+    public void Every_kind_has_a_row_and_only_path_kinds_get_a_dialog()
+    {
+        foreach (var kind in Enum.GetValues<TextFieldKind>())
+        {
+            var info = FieldValidation.Describe(kind);
+            Assert.NotNull(info.Check);
+            Assert.Equal(info.IsPath, info.BrowseTitle.Length > 0);
+        }
+
+        Assert.Equal(Core.Hosting.NativePickKind.SaveFile, FieldValidation.Describe(TextFieldKind.OutputFilePath).Dialog);
+        Assert.Equal(Core.Hosting.NativePickKind.Folder, FieldValidation.Describe(TextFieldKind.FolderList).Dialog);
+        Assert.True(FieldValidation.Describe(TextFieldKind.FolderList).IsList);
+        Assert.Null(FieldValidation.Describe(TextFieldKind.Host).Dialog);
+        Assert.Same(FieldValidation.Describe(TextFieldKind.Text), FieldValidation.Describe((TextFieldKind)999));
+    }
+
+    [Fact]
     public void Validity_tally_counts_distinct_blocking_fields_and_raises_only_on_change()
     {
         var tally = new FieldValidity();

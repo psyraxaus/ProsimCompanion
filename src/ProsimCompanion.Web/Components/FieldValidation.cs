@@ -62,6 +62,20 @@ public enum TextFieldKind
 /// (the value can never work); the rest are advisory (a path that is not there yet).</summary>
 public sealed record FieldProblem(string Message, bool Blocking);
 
+/// <summary>Everything the field needs to know about one <see cref="TextFieldKind"/>, in one
+/// row: the rule, the Windows dialog Browse… opens (null for a kind that is not a path) and
+/// the dialog's title. One table instead of four switches on the enum across two files, which
+/// drifted apart (review 2026-10-13).</summary>
+/// <param name="Check">The rule for a non-empty, trimmed value.</param>
+/// <param name="Dialog">The dialog Browse… opens, or null when the kind is not a path.</param>
+/// <param name="BrowseTitle">The dialog title and the Browse… button's tooltip.</param>
+/// <param name="IsList">';'-separated folders: Browse… opens at the last one and appends.</param>
+public sealed record TextFieldKindInfo(Func<string, FieldProblem?> Check, NativePickKind? Dialog, string BrowseTitle, bool IsList = false)
+{
+    /// <summary>True for the kinds that get a Browse… button.</summary>
+    public bool IsPath => Dialog is not null;
+}
+
 /// <summary>
 /// The pure rules behind <see cref="TextFieldKind"/>. Empty is never a problem — every page
 /// hint already says what empty means — and the messages name the expected shape with an
@@ -87,32 +101,37 @@ public static partial class FieldValidation
     [GeneratedRegex("^(0?[1-9]|[12][0-9]|3[0-6])[LRC]?$", RegexOptions.IgnoreCase)]
     private static partial Regex RunwayPattern();
 
+    private const string ChooseFile = "Choose a file on this PC";
+    private const string ChooseFolder = "Choose a folder on this PC";
+
+    private static readonly IReadOnlyDictionary<TextFieldKind, TextFieldKindInfo> Kinds = new Dictionary<TextFieldKind, TextFieldKindInfo>
+    {
+        [TextFieldKind.Text] = new(_ => null, null, ""),
+        [TextFieldKind.Host] = new(CheckHost, null, ""),
+        [TextFieldKind.Url] = new(CheckUrl, null, ""),
+        [TextFieldKind.IpAddress] = new(CheckIp, null, ""),
+        [TextFieldKind.Mac] = new(text => WakeOnLan.TryParseMac(text, out _) ? null : Block(MacMessage), null, ""),
+        [TextFieldKind.FilePath] = new(text => CheckPath(text, PathTarget.File), NativePickKind.OpenFile, ChooseFile),
+        [TextFieldKind.FolderPath] = new(text => CheckPath(text, PathTarget.Folder), NativePickKind.Folder, ChooseFolder),
+        [TextFieldKind.FileOrFolderPath] = new(text => CheckPath(text, PathTarget.FileOrFolder), NativePickKind.OpenFile, ChooseFile),
+        [TextFieldKind.OutputFilePath] = new(text => CheckPath(text, PathTarget.ParentFolder), NativePickKind.SaveFile, "Choose where the app writes the file"),
+        [TextFieldKind.FolderList] = new(CheckFolderList, NativePickKind.Folder, "Add a folder on this PC", IsList: true),
+        [TextFieldKind.Icao] = new(text => IcaoPattern().IsMatch(text) ? null : Block(IcaoMessage), null, ""),
+        [TextFieldKind.Runway] = new(text => RunwayPattern().IsMatch(text) ? null : Block(RunwayMessage), null, ""),
+        [TextFieldKind.IntList] = new(CheckIntList, null, ""),
+    };
+
+    /// <summary>The one row for <paramref name="kind"/>; an unknown value reads as
+    /// <see cref="TextFieldKind.Text"/> (unchecked, no Browse…).</summary>
+    public static TextFieldKindInfo Describe(TextFieldKind kind)
+        => Kinds.TryGetValue(kind, out var info) ? info : Kinds[TextFieldKind.Text];
+
     /// <summary>Returns the problem with <paramref name="value"/> for <paramref name="kind"/>,
     /// or null when it is empty or fine.</summary>
     public static FieldProblem? Check(TextFieldKind kind, string? value)
     {
         var text = (value ?? "").Trim();
-        if (text.Length == 0 || kind == TextFieldKind.Text)
-        {
-            return null;
-        }
-
-        return kind switch
-        {
-            TextFieldKind.Host => CheckHost(text),
-            TextFieldKind.Url => CheckUrl(text),
-            TextFieldKind.IpAddress => CheckIp(text),
-            TextFieldKind.Mac => WakeOnLan.TryParseMac(text, out _) ? null : Block(MacMessage),
-            TextFieldKind.FilePath => CheckPath(text, PathTarget.File),
-            TextFieldKind.FolderPath => CheckPath(text, PathTarget.Folder),
-            TextFieldKind.FileOrFolderPath => CheckPath(text, PathTarget.FileOrFolder),
-            TextFieldKind.OutputFilePath => CheckPath(text, PathTarget.ParentFolder),
-            TextFieldKind.FolderList => CheckFolderList(text),
-            TextFieldKind.Icao => IcaoPattern().IsMatch(text) ? null : Block(IcaoMessage),
-            TextFieldKind.Runway => RunwayPattern().IsMatch(text) ? null : Block(RunwayMessage),
-            TextFieldKind.IntList => CheckIntList(text),
-            _ => null,
-        };
+        return text.Length == 0 ? null : Describe(kind).Check(text);
     }
 
     private static FieldProblem Block(string message) => new(message, Blocking: true);

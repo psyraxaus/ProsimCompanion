@@ -112,18 +112,14 @@
     [Parameter]
     public Func<IReadOnlyList<string>>? BrowseStartIn { get; set; }
 
-    private bool IsPathKind => Kind is TextFieldKind.FilePath or TextFieldKind.FolderPath
-        or TextFieldKind.FileOrFolderPath or TextFieldKind.OutputFilePath or TextFieldKind.FolderList;
+    /// <summary>The kind's row: rule, dialog, title (see <see cref="FieldValidation.Describe"/>).</summary>
+    private TextFieldKindInfo Spec => FieldValidation.Describe(Kind);
+
+    private bool IsPathKind => Spec.IsPath;
 
     private bool CanBrowse => IsPathKind && !Disabled && Client?.IsLocal == true && _picker is { IsAvailable: true };
 
-    private string BrowseTitle => Kind switch
-    {
-        TextFieldKind.FolderPath => "Choose a folder on this PC",
-        TextFieldKind.FolderList => "Add a folder on this PC",
-        TextFieldKind.OutputFilePath => "Choose where the app writes the file",
-        _ => "Choose a file on this PC",
-    };
+    private string BrowseTitle => Spec.BrowseTitle;
 
     private string? ProblemClass => _problem switch
     {
@@ -148,22 +144,16 @@
 
     private async Task BrowseAsync()
     {
-        if (_picker is null || _browsing)
+        if (_picker is null || _browsing || Spec.Dialog is not { } pickKind)
         {
             return;
         }
 
-        var pickKind = Kind switch
-        {
-            TextFieldKind.FolderPath or TextFieldKind.FolderList => NativePickKind.Folder,
-            TextFieldKind.OutputFilePath => NativePickKind.SaveFile,
-            _ => NativePickKind.OpenFile,
-        };
         // A folder list opens where its last entry is.
-        var start = Kind == TextFieldKind.FolderList
+        var start = Spec.IsList
             ? Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault()
             : Value;
-        var fileName = BrowseFileName ?? (Kind == TextFieldKind.OutputFilePath && Value.Length > 0 ? System.IO.Path.GetFileName(Value.Trim().Trim('"')) : null);
+        var fileName = BrowseFileName ?? (pickKind == NativePickKind.SaveFile && Value.Length > 0 ? System.IO.Path.GetFileName(SafePath.Unquote(Value)) : null);
         IReadOnlyList<string> startIn = [];
         try
         {
@@ -190,7 +180,7 @@
                 return; // cancelled
             }
 
-            var next = Kind == TextFieldKind.FolderList && !string.IsNullOrWhiteSpace(Value)
+            var next = Spec.IsList && !string.IsNullOrWhiteSpace(Value)
                 ? Value.Trim().TrimEnd(';', ' ') + ";" + result.Path
                 : result.Path;
             await ValueChanged.InvokeAsync(next);
