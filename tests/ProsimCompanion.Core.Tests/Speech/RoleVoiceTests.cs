@@ -32,15 +32,15 @@ public sealed class RoleVoiceTests
     [Fact]
     public void Resolve_ConfiguredRoles_UseTheirVoiceAndFilterSettings()
     {
-        var voices = new VoicesOptions(); // defaults: af_heart / am_onyx, purser filtered
+        var voices = new VoicesOptions(); // defaults: kokoro:af_heart / kokoro:am_onyx (provider:id since 82a4715), purser filtered
 
         var purser = RoleVoiceResolver.Resolve(SpeechRole.Purser, voices);
-        Assert.Equal("af_heart", purser.VoiceOverride);
+        Assert.Equal("kokoro:af_heart", purser.VoiceOverride);
         Assert.Equal(true, purser.IntercomOverride);
         Assert.False(purser.FellBackToFoVoice);
 
         var company = RoleVoiceResolver.Resolve(SpeechRole.Company, voices);
-        Assert.Equal("am_onyx", company.VoiceOverride);
+        Assert.Equal("kokoro:am_onyx", company.VoiceOverride);
         Assert.Equal(false, company.IntercomOverride); // ACARS readout — never band-passed
         Assert.False(company.FellBackToFoVoice);
     }

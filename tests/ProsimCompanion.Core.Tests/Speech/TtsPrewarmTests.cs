@@ -61,10 +61,10 @@ public sealed class TtsPrewarmTests
 
         var pairs = TtsPrewarmService.CollectRolePhrases(cabin, new VoicesOptions(), "bm_george");
 
-        Assert.Contains(("af_heart", "Flight deck, Q N H one zero one three checked."), pairs); // normalized
-        Assert.Contains(("af_heart", cabin.CabinReadyText), pairs);
-        Assert.Contains(("af_heart", cabin.BoardingDelayText), pairs);
-        Assert.Contains(("am_onyx", "Loadsheet."), pairs);
+        Assert.Contains(("kokoro:af_heart", "Flight deck, Q N H one zero one three checked."), pairs); // normalized
+        Assert.Contains(("kokoro:af_heart", cabin.CabinReadyText), pairs);
+        Assert.Contains(("kokoro:af_heart", cabin.BoardingDelayText), pairs);
+        Assert.Contains(("kokoro:am_onyx", "Loadsheet."), pairs);
         Assert.DoesNotContain(pairs, p => p.Phrase.Contains("QNH 1013", StringComparison.Ordinal));
     }
 
@@ -76,7 +76,7 @@ public sealed class TtsPrewarmTests
             new CabinOptions(), new VoicesOptions { Purser = "" }, "bm_george");
 
         Assert.DoesNotContain(pairs, p => p.Phrase.Contains("cabin", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(("am_onyx", "Loadsheet."), pairs); // company still warmed
+        Assert.Contains(("kokoro:am_onyx", "Loadsheet."), pairs); // company still warmed
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class TtsPrewarmTests
         var pairs = TtsPrewarmService.CollectRolePhrases(cabin, new VoicesOptions(), "bm_george");
 
         Assert.Equal(
-            [("af_heart", cabin.BoardingDelayText), ("am_onyx", "Loadsheet.")],
+            [("kokoro:af_heart", cabin.BoardingDelayText), ("kokoro:am_onyx", "Loadsheet.")],
             pairs);
     }
 }
