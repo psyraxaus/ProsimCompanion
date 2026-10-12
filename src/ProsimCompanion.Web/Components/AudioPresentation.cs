@@ -3,7 +3,11 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Web.Components;
 
-/// <summary>Display mapping for audio domain values (cockpit-style labels, pill tones).</summary>
+/// <summary>Display mapping for audio domain values (cockpit-style labels, pill tones).
+/// The channel and ACP labels are the abbreviations printed on the audio control panel
+/// (VHF1, INT, CPT, F/O …), so they stay as they are in every language; the mapping-state
+/// pill word is prose and comes back as a language-pack text id for the Razor to resolve
+/// (ADR-0014 — a static class cannot inject the per-circuit localizer).</summary>
 public static class AudioPresentation
 {
     public static string ChannelLabel(AudioChannel channel) => channel switch
@@ -28,11 +32,13 @@ public static class AudioPresentation
         _ => acp.ToString(),
     };
 
-    public static (string Tone, string Label) MappingState(AudioMappingState state) => state switch
+    /// <summary>The pill tone and the text id of the pill word (under
+    /// <c>audioSettings.status.mappingState</c>) for a mapping's live state.</summary>
+    public static (string Tone, string LabelTextId) MappingState(AudioMappingState state) => state switch
     {
-        AudioMappingState.Bound => ("tone-ok", "Bound"),
-        AudioMappingState.Searching => ("tone-active", "Searching"),
-        AudioMappingState.Elevated => ("tone-warn", "Elevated"),
-        _ => ("tone-neutral", "Not running"),
+        AudioMappingState.Bound => ("tone-ok", "audioSettings.status.mappingState.bound"),
+        AudioMappingState.Searching => ("tone-active", "audioSettings.status.mappingState.searching"),
+        AudioMappingState.Elevated => ("tone-warn", "audioSettings.status.mappingState.elevated"),
+        _ => ("tone-neutral", "audioSettings.status.mappingState.notRunning"),
     };
 }

@@ -1,0 +1,303 @@
+{
+  "audioSettings": {
+    "pageTitle": "Control de audio — ProsimCompanion",
+    "heading": "Control de audio",
+    "general": {
+      "title": "Control de volumen",
+      "hint": "Los mandos y los enclavamientos del panel de audio fijan los volúmenes de las apps",
+      "backend": {
+        "label": "Backend",
+        "hint": "Volúmenes de apps de Windows, o strips y buses de VoiceMeeter.",
+        "more": "El cambio se aplica en vivo. Los volúmenes de Windows se restauran; los destinos de VoiceMeeter vuelven a 0 dB.",
+        "coreAudio": "CoreAudio (volúmenes de apps de Windows)",
+        "voiceMeeter": "VoiceMeeter (strips/buses)"
+      },
+      "disableProsimNative": {
+        "label": "Desactivar el control de audio nativo de ProSim",
+        "hint": "Apaga el control de volumen de Windows propio de ProSim para que los dos nunca se peleen."
+      },
+      "requirePower": {
+        "label": "Solo con el panel de audio alimentado",
+        "hint": "Activado: los mandos y enclavamientos solo actúan con el bus del panel alimentado, como en el avión real. Desactivado: actúan siempre, como el mezclador remoto.",
+        "more": "La alimentación es AC/DC ESS más el mando de audio switching para el comandante, audio switching para el primer oficial y DC1 para el observador. Cambiar esto se aplica al instante: los valores actuales de los mandos se envían de nuevo."
+      }
+    },
+    "coreAudio": {
+      "hint": "Volúmenes de Windows por app",
+      "acp": {
+        "label": "ACP",
+        "hint": "Qué panel de control de audio gobierna los volúmenes de las apps.",
+        "captain": "Comandante (ACP1)",
+        "firstOfficer": "Primer oficial (ACP2)",
+        "observer": "Observador (ACP3)"
+      },
+      "troubleshooting": "Filtros de diagnóstico ocultos",
+      "deviceFlow": {
+        "label": "Filtro de dispositivo DataFlow",
+        "hint": "Solo para diagnóstico. Cámbialo solo si te lo piden.",
+        "render": "Reproducción",
+        "capture": "Captura",
+        "all": "Todos"
+      },
+      "deviceState": {
+        "label": "Filtro de dispositivo Estado",
+        "hint": "Solo para diagnóstico. Cámbialo solo si te lo piden.",
+        "active": "Activo",
+        "disabled": "Deshabilitado",
+        "notPresent": "No presente",
+        "unplugged": "Desconectado",
+        "all": "Todos (máscara completa)"
+      },
+      "debugDump": {
+        "writing": "Escribiendo…",
+        "write": "Escribir info de depuración",
+        "written": "Escrito en {0}",
+        "failed": "Volcado fallido — consulta el registro de la app"
+      },
+      "mappings": {
+        "title": "Asignaciones de apps",
+        "hint": "Un canal puede gobernar varios procesos",
+        "empty": "No hay asignaciones de apps configuradas.",
+        "channel": "Canal",
+        "process": "Proceso",
+        "device": "Dispositivo",
+        "latch": "Enclav.",
+        "active": "Activas",
+        "processPlaceholder": "Nombre del proceso (sin .exe)",
+        "devicePlaceholder": "Todos los dispositivos",
+        "latchTitle": "Gobernar el silencio desde el enclavamiento REC",
+        "activeTitle": "Controlar solo las sesiones activas",
+        "remove": "Quitar",
+        "add": "Añadir asignación",
+        "note": "Nombre del proceso sin .exe, por ejemplo vPilot.",
+        "more": "Más",
+        "moreBody": "Enclavamiento apagado: el silencio nunca se escribe, así que una app silenciada en otro sitio sigue silenciada. Una app ejecutada como administrador necesita que ProsimCompanion también lo sea; la sección Estado las señala. LOUDSPEAKER es el mando del altavoz de cabina (solo comandante y primer oficial); su marca de enclavamiento silencia la app con el mando a fondo."
+      },
+      "blacklist": {
+        "title": "Lista negra de dispositivos",
+        "hint": "Coincide con el inicio del nombre del dispositivo",
+        "placeholder": "Prefijo del nombre descriptivo",
+        "remove": "Quitar",
+        "add": "Añadir dispositivo"
+      }
+    },
+    "voiceMeeter": {
+      "hint": "Strips y buses a través de la API remota de VoiceMeeter",
+      "dllPath": {
+        "label": "Ruta de VoicemeeterRemote64.dll",
+        "hint": "Vacío encuentra el VoiceMeeter instalado por sí solo. Fíjalo solo con una carpeta de instalación inusual."
+      },
+      "reload": "Recargar strips",
+      "found": "{0} strips / {1} buses encontrados",
+      "notReachable": "VoiceMeeter no accesible — se muestran números genéricos de strip/bus",
+      "acpMappings": "Asignaciones {0}",
+      "driveFrom": "Gobernar destinos desde el ACP {0}",
+      "channel": "Canal",
+      "target": "Destino",
+      "latch": "Enclav.",
+      "latchTitle": "Gobernar el silencio desde el enclavamiento REC",
+      "noLatchTitle": "Este mando no tiene enclavamiento REC. A fondo siempre silencia el destino.",
+      "remove": "Quitar",
+      "add": "Añadir asignación",
+      "oncePerPanel": "Un canal puede aparecer una vez por panel. Un strip o bus puede pertenecer a un solo panel.",
+      "more": "Más",
+      "oncePerPanelMore": "Los guardados en conflicto recaen en el panel del comandante hasta corregirlos; la sección Estado muestra por qué. El recorrido del mando corresponde a −60 dB … +12 dB; 0 dB queda cerca del 83 %.",
+      "loudspeaker": "LOUDSPEAKER es el mando del altavoz de cabina, en las listas del comandante y del primer oficial.",
+      "loudspeakerMore": "Asígnalo al strip o bus que alimenta los altavoces de tu cabina. El mando no tiene enclavamiento REC: a fondo silencia el destino. El capítulo 8 del manual (mando del altavoz) muestra el cableado de VoiceMeeter que pone el sonido de los cascos en los altavoces."
+    },
+    "mixer": {
+      "title": "Mezclador remoto",
+      "hint": "Voicemeeter en otro PC, a través del agente VoicemeeterBridge",
+      "enable": {
+        "label": "Activar el mezclador remoto",
+        "hint": "Se conecta al agente y gobierna las asignaciones de abajo. Desactivado no abre ninguna conexión.",
+        "more": "El backend VoiceMeeter local de arriba gobierna el VoiceMeeter de este PC. Esta tarjeta gobierna un VoiceMeeter en otro PC, por ejemplo el que ejecuta vPilot. Configuración de ambos PC: docs/integrations/voicemeeter-bridge.md."
+      },
+      "host": {
+        "label": "Host",
+        "hint": "Nombre o dirección IP del PC que ejecuta VoicemeeterBridge."
+      },
+      "port": {
+        "label": "Puerto",
+        "hint": "El puerto del agente. 5088 salvo que lo hayas cambiado allí."
+      },
+      "token": {
+        "label": "Token",
+        "hint": "Desde el menú de bandeja del agente, Copiar token. Guardado cifrado, nunca registrado."
+      },
+      "testTitle": "Abre una conexión con los valores de arriba, guardados o no, y lee el saludo del agente.",
+      "testing": "Probando…",
+      "test": "Probar conexión",
+      "liveTitle": "Estado en vivo de la conexión guardada",
+      "reconnectDelay": {
+        "label": "Retardo de reconexión",
+        "hint": "Primer reintento tras una caída. Se duplica hasta el máximo."
+      },
+      "reconnectMax": {
+        "label": "Máximo de reconexión"
+      },
+      "writeTimeout": {
+        "label": "Tiempo límite de escritura",
+        "hint": "Cuánto espera una escritura la respuesta del agente."
+      },
+      "gainMin": {
+        "label": "Ganancia, mando a fondo",
+        "hint": "−60 dB es prácticamente silencio."
+      },
+      "gainMax": {
+        "label": "Ganancia, mando al máximo",
+        "hint": "+12 dB como el backend local (0 dB cerca del 83 % del mando). Pon 0 para un strip que nunca deba pasar de la unidad."
+      },
+      "state": {
+        "connected": "Conectado — Voicemeeter {0} {1}",
+        "connectedNoVoicemeeter": "Conectado — Voicemeeter no se ejecuta en el PC mezclador",
+        "connecting": "Conectando…",
+        "unreachable": "Inaccesible — {0}",
+        "unreachableRetrying": "Inaccesible — reintentando",
+        "offNoHost": "Apagado — sin host",
+        "off": "Apagado"
+      },
+      "panel": {
+        "title": "Panel de estado",
+        "hint": "Qué strips y buses muestra la sección Estado, con botones de silencio",
+        "pickHint": "Marca los strips y buses a mostrar. Los nombres vienen del Voicemeeter del PC mezclador.",
+        "strips": {
+          "label": "Strips",
+          "hint": "Números de strip tal como los muestra Voicemeeter (1 = primero), separados por comas. Ejemplo: 1, 2, 3"
+        },
+        "buses": {
+          "label": "Buses",
+          "hint": "Números de bus (1 = A1), separados por comas. Ejemplo: 1, 4"
+        },
+        "pendingHint": "Una vez conectado el agente, los strips y buses aparecen aquí por nombre, como casillas.",
+        "reloadTitle": "Vuelve a leer los nombres de strips y buses del PC mezclador (tras renombrar uno en Voicemeeter).",
+        "reading": "Leyendo…",
+        "reload": "Recargar canales",
+        "summary": "{0} strips / {1} buses en el PC mezclador",
+        "summaryReading": "Leyendo los strips y buses…",
+        "summaryOffline": "Agente no conectado — se muestran números genéricos de strip/bus"
+      },
+      "mappings": {
+        "title": "Asignaciones",
+        "hint": "Un canal del panel de audio gobierna un strip o bus en el PC mezclador",
+        "empty": "Aún no hay asignaciones. Añade una abajo.",
+        "on": "On",
+        "panel": "Panel",
+        "channel": "Canal",
+        "target": "Strip / bus",
+        "latch": "Enclav.",
+        "latchTitle": "Gobernar el Mute del destino desde el pulsador REC",
+        "live": "En vivo",
+        "enabledTitle": "Desactivado conserva la fila sin usarla",
+        "noLatchTitle": "Este mando no tiene pulsador REC. A fondo siempre silencia el destino.",
+        "liveTitle": "Última ganancia y silencio enviados, y la respuesta del agente",
+        "liveMuted": "silenciado",
+        "liveOpen": "abierto",
+        "remove": "Quitar",
+        "add": "Añadir asignación",
+        "note": "El mando fija la ganancia del strip o bus; con Enclav. marcado, el pulsador REC lo silencia. Los nombres de strips y buses vienen del PC mezclador una vez conectado el agente.",
+        "more": "Más",
+        "moreBody": "El recorrido del mando corresponde al rango de ganancia bajo los campos avanzados de la tarjeta de conexión (−60 dB … +12 dB por defecto, como el backend VoiceMeeter local; 0 dB queda cerca del 83 %). Enclavamiento apagado: el silencio nunca se escribe, así que un strip silenciado en el PC mezclador sigue silenciado. LOUDSPEAKER es el mando de cabina: sin pulsador, a fondo silencia el destino. Las escrituras salen como mucho 20 veces por segundo por parámetro; gana el último valor. El valor del mando sale esté o no alimentado el panel de audio. Dos filas en un mismo strip: gana la última que se mueva."
+      }
+    },
+    "housekeeping": {
+      "title": "Mantenimiento",
+      "hint": "Tiempos probados. Rara vez hay que cambiarlos",
+      "runInterval": {
+        "label": "Intervalo de ejecución",
+        "hint": "Comprobación principal. Surte efecto tras reiniciar la app."
+      },
+      "processCheck": {
+        "label": "Intervalo de comprobación de procesos"
+      },
+      "startupGrace": {
+        "label": "Gracia de arranque del proceso",
+        "hint": "Espera tras arrancar una app asignada antes de buscar su sonido."
+      },
+      "deviceRescan": {
+        "label": "Intervalo de reexploración de dispositivos"
+      },
+      "maxSearches": {
+        "label": "Máx. búsquedas de sesión",
+        "hint": "Búsquedas fallidas antes de volver a explorar los dispositivos."
+      }
+    },
+    "status": {
+      "title": "Control de volumen",
+      "hint": "Mandos ACP / enclavamientos REC → volúmenes de apps",
+      "enabled": "Activado",
+      "disabled": "Desactivado",
+      "voiceMeeterLinked": "VoiceMeeter enlazado",
+      "voiceMeeterNotReachable": "VoiceMeeter no accesible",
+      "poweredTitle": "Alimentado — los cambios de mando se aplican",
+      "unpoweredTitle": "Sin alimentación — los cambios de mando se retienen",
+      "powered": "PWR",
+      "unpowered": "OFF",
+      "mappingConflict": "Conflicto de asignación: {0}",
+      "elevated": "Procesos elevados detectados: {0}. Ejecuta ProsimCompanion como administrador para controlar estas apps — hasta entonces esas asignaciones quedan inactivas.",
+      "mappingState": {
+        "bound": "Enlazado",
+        "searching": "Buscando",
+        "elevated": "Elevado",
+        "notRunning": "No en ejecución"
+      },
+      "appMappings": {
+        "title": "Asignaciones de apps",
+        "hint": "Estado de sesión en vivo por proceso asignado",
+        "emptyBefore": "No hay asignaciones de apps configuradas —",
+        "emptyLink": "añádelas en la sección CoreAudio",
+        "emptyAfter": ".",
+        "process": "Proceso",
+        "channel": "Canal",
+        "device": "Dispositivo",
+        "state": "Estado",
+        "sessions": "Sesiones",
+        "volume": "Volumen",
+        "muted": "Silenciado",
+        "allDevices": "Todos",
+        "yes": "Sí",
+        "no": "No"
+      },
+      "voiceMeeterTargets": {
+        "title": "Destinos de VoiceMeeter",
+        "hint": "Estado en vivo de strip/bus por canal enlazado",
+        "emptyBefore": "No hay destinos enlazados —",
+        "emptyLink": "configura las asignaciones en la sección VoiceMeeter",
+        "emptyAfter": ".",
+        "acp": "ACP",
+        "channel": "Canal",
+        "target": "Destino",
+        "gain": "Ganancia",
+        "muted": "Silenciado"
+      }
+    },
+    "remoteMixer": {
+      "title": "Mezclador remoto",
+      "hint": "Voicemeeter en el PC mezclador, a través de VoicemeeterBridge",
+      "state": {
+        "connected": "Agente conectado",
+        "connecting": "Conectando…",
+        "disconnected": "Agente inaccesible — reintentando",
+        "off": "Apagado"
+      },
+      "voicemeeter": "Voicemeeter {0} {1}",
+      "voicemeeterNotRunning": "Voicemeeter no se ejecuta en el PC mezclador",
+      "endpointTitle": "Punto de conexión del agente",
+      "failedTitle": "Escrituras que el agente rechazó o que expiraron desde el arranque",
+      "failedWrite": "{0} escritura fallida",
+      "failedWrites": "{0} escrituras fallidas",
+      "lastError": "Último error: {0}",
+      "emptyBefore": "No hay strips ni buses elegidos —",
+      "emptyLink": "elígelos en la sección Mezclador remoto",
+      "emptyAfter": ".",
+      "channel": "Canal",
+      "label": "Etiqueta",
+      "gain": "Ganancia",
+      "mute": "Mute",
+      "muted": "Silenciado",
+      "open": "Abierto",
+      "unmuteButton": "Activar",
+      "muteButton": "Silenciar"
+    }
+  }
+}

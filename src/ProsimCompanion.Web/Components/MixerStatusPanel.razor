@@ -6,29 +6,30 @@
 @inject MixerStatusStore Status
 @inject IMixerClient Client
 @inject IOptionsMonitor<MixerOptions> Options
+@inject IStringLocalizer T
 
 @if (_view.Enabled)
 {
-    <Section Title="Remote Mixer" Hint="Voicemeeter on the mixer PC, through VoicemeeterBridge">
+    <Section Title="@T["audioSettings.remoteMixer.title"]" Hint="@T["audioSettings.remoteMixer.hint"]">
         <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
             <span class="pill @StateTone(_view.State)">@StateLabel(_view.State)</span>
             @if (_view.State == MixerConnectionState.Connected)
             {
                 <span class="pill @(_view.Voicemeeter.Connected ? "tone-ok" : "tone-warn")">
                     @(_view.Voicemeeter.Connected
-                        ? $"Voicemeeter {_view.Voicemeeter.Kind} {_view.Voicemeeter.Version}"
-                        : "Voicemeeter not running on the mixer PC")
+                        ? T["audioSettings.remoteMixer.voicemeeter", _view.Voicemeeter.Kind ?? "", _view.Voicemeeter.Version ?? ""].Value
+                        : T["audioSettings.remoteMixer.voicemeeterNotRunning"].Value)
                 </span>
             }
-            <span class="pill tone-neutral mono" title="Agent endpoint">@_view.Endpoint</span>
+            <span class="pill tone-neutral mono" title="@T["audioSettings.remoteMixer.endpointTitle"]">@_view.Endpoint</span>
             @if (_view.FailedSets > 0)
             {
-                <span class="pill tone-warn" title="Writes the agent refused or that timed out since start">@_view.FailedSets failed @(_view.FailedSets == 1 ? "write" : "writes")</span>
+                <span class="pill tone-warn" title="@T["audioSettings.remoteMixer.failedTitle"]">@(_view.FailedSets == 1 ? T["audioSettings.remoteMixer.failedWrite", _view.FailedSets].Value : T["audioSettings.remoteMixer.failedWrites", _view.FailedSets].Value)</span>
             }
         </div>
         @if (_view.LastError is { Length: > 0 } error && _view.State != MixerConnectionState.Connected)
         {
-            <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">Last error: @error</div>
+            <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">@T["audioSettings.remoteMixer.lastError", error]</div>
         }
         @if (_setMessage is not null)
         {
@@ -39,7 +40,7 @@
         @if (rows.Count == 0)
         {
             <div class="empty" style="margin-top:8px;">
-                No strips or buses chosen — <a href="settings/audio/mixer">pick them in the Remote Mixer section</a>.
+                @T["audioSettings.remoteMixer.emptyBefore"] <a href="settings/audio/mixer">@T["audioSettings.remoteMixer.emptyLink"]</a>@T["audioSettings.remoteMixer.emptyAfter"]
             </div>
         }
         else
@@ -47,7 +48,7 @@
             <div class="table-scroll" style="margin-top:8px;">
                 <table class="data-table">
                     <thead>
-                        <tr><th>Channel</th><th>Label</th><th>Gain</th><th>Mute</th><th></th></tr>
+                        <tr><th>@T["audioSettings.remoteMixer.channel"]</th><th>@T["audioSettings.remoteMixer.label"]</th><th>@T["audioSettings.remoteMixer.gain"]</th><th>@T["audioSettings.remoteMixer.mute"]</th><th></th></tr>
                     </thead>
                     <tbody>
                         @foreach (var row in rows)
@@ -60,14 +61,14 @@
                                 <td class="mono">@(Value(row.GainParam) is { Number: { } g } ? $"{g:F1} dB" : "—")</td>
                                 <td>
                                     <span class="pill @(known ? (muted ? "tone-warn" : "tone-ok") : "tone-neutral")">
-                                        @(known ? (muted ? "Muted" : "Open") : "—")
+                                        @(known ? (muted ? T["audioSettings.remoteMixer.muted"].Value : T["audioSettings.remoteMixer.open"].Value) : "—")
                                     </span>
                                 </td>
                                 <td>
                                     <button type="button" class="btn secondary" style="padding:4px 10px;"
                                             disabled="@(_view.State != MixerConnectionState.Connected || _busyParam is not null)"
                                             @onclick="() => ToggleMute(row.MuteParam, muted)">
-                                        @(_busyParam == row.MuteParam ? "…" : muted ? "Unmute" : "Mute")
+                                        @(_busyParam == row.MuteParam ? "…" : muted ? T["audioSettings.remoteMixer.unmuteButton"].Value : T["audioSettings.remoteMixer.muteButton"].Value)
                                     </button>
                                 </td>
                             </tr>
@@ -160,12 +161,12 @@
         }
     }
 
-    private static string StateLabel(MixerConnectionState state) => state switch
+    private string StateLabel(MixerConnectionState state) => state switch
     {
-        MixerConnectionState.Connected => "Agent connected",
-        MixerConnectionState.Connecting => "Connecting…",
-        MixerConnectionState.Disconnected => "Agent unreachable — retrying",
-        _ => "Off",
+        MixerConnectionState.Connected => T["audioSettings.remoteMixer.state.connected"].Value,
+        MixerConnectionState.Connecting => T["audioSettings.remoteMixer.state.connecting"].Value,
+        MixerConnectionState.Disconnected => T["audioSettings.remoteMixer.state.disconnected"].Value,
+        _ => T["audioSettings.remoteMixer.state.off"].Value,
     };
 
     private static string StateTone(MixerConnectionState state) => state switch

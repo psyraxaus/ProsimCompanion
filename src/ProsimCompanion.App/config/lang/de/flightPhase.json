@@ -1,0 +1,144 @@
+{
+  "flightPhase": {
+    "pageTitle": "Flugphase — ProsimCompanion",
+    "heading": "Flugphasen-Einstellungen",
+    "speeds": {
+      "title": "Geschwindigkeiten",
+      "hint": "Gilt sofort, kein Neustart. Die Standardwerte sind die auf den Flugtests 2026-08 bewährten — ändere sie nur mit einer abgespielten Aufzeichnung, die zeigt warum.",
+      "takeoffRollHold": {
+        "label": "Startlauf halten über",
+        "hint": "Über dieser IAS bleibt der Startlauf erhalten, auch wenn der Startschub kurz als nicht gesetzt gelesen wird (FLEX-Rastung springt)"
+      },
+      "rolloutComplete": {
+        "label": "Ausrollen beendet unter",
+        "hint": "Das Ausrollen nach der Landung wird zu Taxi In, sobald die IAS darunter fällt"
+      },
+      "pushbackMax": {
+        "label": "Pushback max. Bodengeschwindigkeit",
+        "hint": "Beacon + APU über dieser Bodengeschwindigkeit ist ein Rollen, kein Pushback"
+      },
+      "parkedBelow": {
+        "label": "Geparkt unter",
+        "hint": "Bodengeschwindigkeit, unter der das Flugzeug als stehend gilt (Hardware-Cockpits stehen bei 1–2 kt)"
+      }
+    },
+    "vertical": {
+      "title": "Vertikal",
+      "initialClimb": {
+        "label": "Obergrenze Initial Climb",
+        "hint": "Unter dieser Funkhöhe bleibt ein Abflug im Initial Climb"
+      },
+      "levelBand": {
+        "label": "Band für Horizontalflug",
+        "hint": "|VS| darunter ist Horizontalflug; darüber ein Steigflug"
+      },
+      "approachCeiling": {
+        "label": "Obergrenze Anflug",
+        "hint": "Sinken (oder Horizontalflug mit Fahrwerk unten) unter dieser Funkhöhe ist Approach"
+      },
+      "goAroundRate": {
+        "label": "Steigrate Durchstart",
+        "hint": "Den Anflug nach oben zu verlassen braucht mindestens diese VS — ein kurzes Abfangen darf nicht als Durchstart gelesen werden"
+      },
+      "descentEntry": {
+        "label": "Eintrittsrate Sinkflug",
+        "hint": "Der Eintritt in den Sinkflug braucht eine mindestens so deutliche Sinkrate"
+      },
+      "descentExit": {
+        "label": "Austrittsrate Sinkflug",
+        "hint": "Einmal im Sinkflug zählt ein flacheres Segment weiterhin als Sinkflug"
+      }
+    },
+    "cruise": {
+      "title": "Reiseflug-Schwelle",
+      "hint": "Horizontalflug gilt nur nahe der FMS-Reiseflughöhe als Cruise (ein Abfangen auf der SID ist kein Reiseflug)",
+      "tolerance": {
+        "label": "Toleranz unter FMS-Reiseflughöhe"
+      },
+      "floor": {
+        "label": "Untergrenze ohne FMS-Reiseflughöhe",
+        "hint": "Ohne eingegebene Reiseflughöhe muss der Horizontalflug darüber liegen"
+      }
+    },
+    "ground": {
+      "title": "Boden und Turnaround",
+      "agreement": {
+        "label": "Übereinstimmung Bodenkontakt",
+        "hint": "Aufeinanderfolgende Proben (je 250 ms), in denen das On-Ground-Flag übereinstimmen muss, bevor Boden/Luft wechselt; 1 schaltet den Filter ab"
+      },
+      "turnaround": {
+        "label": "Turnaround-Haltezeit",
+        "hint": "Nach abgeschlossenem Deboarding geht so lange geparkt (Triebwerke aus, Bremse gesetzt, Beacon aus) von Shutdown → Preflight ohne Cold-and-Dark-Reset"
+      },
+      "heartbeat": {
+        "label": "Heartbeat-Protokollintervall",
+        "hint": "Eine 'denke noch'-Protokollzeile im Live-Betrieb; 0 schaltet ab"
+      }
+    },
+    "pause": {
+      "title": "MSFS-Pause",
+      "hint": "Escape in MSFS verlässt die Flugsitzung kurz. Innerhalb der Karenz, mit dem Flugzeug an derselben Stelle, bleiben Phase und Latches erhalten und 'Flight live' geht nur kurz aus und wieder an; länger, oder ein Respawn, setzt die Phase zurück wie ein Gang ins Menü.",
+      "grace": {
+        "label": "Pausen-Karenz",
+        "hint": "Wie lange die Sitzung weg sein darf (mit gesetztem MSFS-Pausenflag), bevor es als echtes Sitzungsende zählt; 0 setzt sofort zurück"
+      },
+      "position": {
+        "label": "Gleiche Position innerhalb",
+        "hint": "Beim Fortsetzen muss das Flugzeug so nah an seiner alten Position sein; weiter weg ist ein Respawn"
+      },
+      "fuel": {
+        "label": "Gleicher Kraftstoff innerhalb",
+        "hint": "Beim Fortsetzen muss der Kraftstoff an Bord so nah am Wert vor der Pause liegen; ein größerer Sprung ist ein Neuladen"
+      }
+    },
+    "settle": {
+      "title": "Einschwingzeiten",
+      "hint": "Wie lange der Beleg für einen Übergang bestehen muss, bevor er festgeschrieben wird",
+      "default": "Standard",
+      "enterCruise": "Eintritt Cruise",
+      "descentToCruise": {
+        "label": "Descent → Cruise",
+        "hint": "Horizontale Segmente eines Stufensinkflugs dürfen nicht hin- und herspringen"
+      },
+      "cruiseToClimb": {
+        "label": "Cruise → Climb",
+        "hint": "Ein VS-Ausschlag im Reiseflug ist Turbulenz; ein Step Climb hält an"
+      },
+      "descentToClimb": {
+        "label": "Descent → Climb",
+        "hint": "Ein Abfangen im Sinkflug schwankt einige Sekunden nach oben; ein Wiedersteigen auf ATC-Anweisung hält an"
+      },
+      "goAround": "Durchstart",
+      "departureRegression": {
+        "label": "Rückfall im Abflug",
+        "hint": "Pushback/Taxi Out/Take-off Roll zurück nach Preflight braucht anhaltenden Widerspruch"
+      },
+      "firstAirborne": {
+        "label": "Erste Klassifikation in der Luft",
+        "hint": "Eine Sitzung, deren erste Klassifikation eine Flugphase ist (Neustart im Flug oder Aufwärm-Müll), muss so lange bestehen"
+      }
+    },
+    "recorder": {
+      "title": "Flugschreiber",
+      "hint": "Kompakte Sekundenproben im Sitzungsprotokoll, damit jeder Flug offline durch die Phasen-Engine abgespielt werden kann (siehe docs/agents/flight-verification.md)",
+      "record": "Flugproben aufzeichnen",
+      "interval": "Probenintervall",
+      "keepAlive": {
+        "label": "Keep-alive",
+        "hint": "Unveränderte Proben werden übersprungen; mindestens so oft wird trotzdem eine geschrieben"
+      }
+    },
+    "rules": {
+      "title": "Regeltabelle",
+      "hint": "Auswertungsreihenfolge, erster Treffer gewinnt. 'hold' behält die aktuelle Phase. Nur lesbar — die Regeln leben im Code; die Schwellen oben speisen sie.",
+      "set": "Satz",
+      "rule": "Regel",
+      "from": "Von",
+      "to": "Nach",
+      "ground": "Boden",
+      "airborne": "Luft",
+      "any": "beliebig",
+      "hold": "hold"
+    }
+  }
+}

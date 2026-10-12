@@ -5,42 +5,42 @@
 @inherits SettingsPageBase
 @inject AircraftProfileService ProfileService
 @inject IOptionsMonitor<AircraftProfilesOptions> Options
+@inject IStringLocalizer T
 
-<PageTitle>Aircraft Profiles — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Aircraft Profiles</h1>
+<PageTitle>@T["profiles.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["profiles.heading"]</h1>
 
 <div class="panel">
 
-    <Section Title="Current Aircraft"
-             Hint="@(ProfileService.AircraftTitle is null ? "Sim not connected — profile matching will use defaults" : null)">
-        <div class="row"><span class="row-label">Title / Livery</span><span class="row-value-mono">@(ProfileService.AircraftTitle ?? "—")</span></div>
-        <div class="row"><span class="row-label">Airline</span><span class="row-value-mono">@(ProfileService.AirlineIcao ?? "—")</span></div>
+    <Section Title="@T["profiles.current.title"]"
+             Hint="@(ProfileService.AircraftTitle is null ? T["profiles.current.notConnected"].Value : null)">
+        <div class="row"><span class="row-label">@T["profiles.current.titleLivery"]</span><span class="row-value-mono">@(ProfileService.AircraftTitle ?? "—")</span></div>
+        <div class="row"><span class="row-label">@T["profiles.current.airline"]</span><span class="row-value-mono">@(ProfileService.AirlineIcao ?? "—")</span></div>
         <div class="row">
-            <span class="row-label">Active Profile</span>
-            <span class="row-value-mono">@(ProfileService.ActiveProfile?.Name ?? "— (defaults)")</span>
+            <span class="row-label">@T["profiles.current.activeProfile"]</span>
+            <span class="row-value-mono">@(ProfileService.ActiveProfile?.Name ?? T["profiles.current.defaults"].Value)</span>
             @if (ProfileService.ManualProfileId is not null)
             {
-                <span class="pill tone-warn">MANUAL</span>
+                <span class="pill tone-warn">@T["profiles.current.manual"]</span>
             }
         </div>
         @if (ProfileService.ManualProfileId is not null)
         {
             <div class="row">
                 <button type="button" class="btn secondary" @onclick="() => ProfileService.SetManualActive(null)">
-                    Return to automatic matching
+                    @T["profiles.current.returnToAutomatic"]
                 </button>
             </div>
         }
     </Section>
 
-    <Section Title="Profiles"
-             Hint="Matched against the aircraft loaded in the sim. Exact match wins over contains; no match uses the defaults">
+    <Section Title="@T["profiles.list.title"]"
+             Hint="@T["profiles.list.hint"]">
         <div class="info-banner" role="note">
             <span aria-hidden="true">ⓘ</span>
             <span>
-                A profile holds the Ground Services settings. Saving on the
-                <a href="settings/gsx">Ground Services</a> pages while a profile is active stores
-                them in that profile, and they come back the next time that aircraft loads.
+                @T["profiles.list.bannerBefore"]
+                <a href="settings/gsx">@T["profiles.list.bannerLink"]</a> @T["profiles.list.bannerAfter"]
             </span>
         </div>
         @for (var i = 0; i < DraftProfiles.Count; i++)
@@ -51,49 +51,49 @@
             <div class="wx-card" style="margin-bottom:10px;">
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <input type="text" class="cell-input" style="flex:1; min-width:180px;"
-                           placeholder="Profile name" value="@profile.Name"
+                           placeholder="@T["profiles.list.namePlaceholder"]" value="@profile.Name"
                            @onchange="e => profile.Name = e.Value?.ToString() ?? string.Empty" />
                     @if (isActive)
                     {
-                        <span class="pill tone-ok">ACTIVE</span>
+                        <span class="pill tone-ok">@T["profiles.list.active"]</span>
                     }
                     @if (profile.MatchType == ProfileMatchType.Default)
                     {
-                        <span class="pill tone-neutral">DEFAULT</span>
+                        <span class="pill tone-neutral">@T["profiles.list.default"]</span>
                     }
                     @if (!isActive)
                     {
                         <button type="button" class="btn secondary"
-                                @onclick="() => ProfileService.SetManualActive(profile.Id)">Set Active</button>
+                                @onclick="() => ProfileService.SetManualActive(profile.Id)">@T["profiles.list.setActive"]</button>
                     }
-                    <button type="button" class="btn secondary" @onclick="() => Clone(index)">Clone</button>
-                    <button type="button" class="btn danger" @onclick="() => DraftProfiles.RemoveAt(index)">Delete</button>
+                    <button type="button" class="btn secondary" @onclick="() => Clone(index)">@T["profiles.list.clone"]</button>
+                    <button type="button" class="btn danger" @onclick="() => DraftProfiles.RemoveAt(index)">@T["profiles.list.delete"]</button>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;">
-                    <span class="field-hint">Match</span>
+                    <span class="field-hint">@T["profiles.list.match"]</span>
                     <select class="select" style="max-width:220px"
                             value="@profile.MatchType"
                             @onchange="e => profile.MatchType = Enum.Parse<ProfileMatchType>(e.Value?.ToString() ?? nameof(ProfileMatchType.TitleContains))">
-                        <option value="@ProfileMatchType.TitleContains">Title / livery (contains)</option>
-                        <option value="@ProfileMatchType.TitleEquals">Title / livery (exact)</option>
-                        <option value="@ProfileMatchType.Airline">Airline (ICAO prefix)</option>
-                        <option value="@ProfileMatchType.Default">Default (fallback)</option>
+                        <option value="@ProfileMatchType.TitleContains">@T["profiles.list.matchContains"]</option>
+                        <option value="@ProfileMatchType.TitleEquals">@T["profiles.list.matchExact"]</option>
+                        <option value="@ProfileMatchType.Airline">@T["profiles.list.matchAirline"]</option>
+                        <option value="@ProfileMatchType.Default">@T["profiles.list.matchDefault"]</option>
                     </select>
                     <input type="text" class="cell-input" style="flex:1; min-width:220px;"
-                           placeholder="Aircraft title fragment" value="@profile.MatchString"
+                           placeholder="@T["profiles.list.fragmentPlaceholder"]" value="@profile.MatchString"
                            @onchange="e => profile.MatchString = e.Value?.ToString() ?? string.Empty" />
                     @if (ProfileService.AircraftTitle is { } title && Matches(profile, title))
                     {
-                        <span class="pill tone-active">matches current</span>
+                        <span class="pill tone-active">@T["profiles.list.matchesCurrent"]</span>
                     }
                 </div>
             </div>
         }
         @if (DraftProfiles.Count == 0)
         {
-            <div class="empty">No profiles — every aircraft uses the default settings.</div>
+            <div class="empty">@T["profiles.list.empty"]</div>
         }
-        <button type="button" class="btn secondary" @onclick="Add">Add profile</button>
+        <button type="button" class="btn secondary" @onclick="Add">@T["profiles.list.add"]</button>
     </Section>
 
 </div>
@@ -134,14 +134,14 @@
             _ => title.Contains(profile.MatchString, StringComparison.OrdinalIgnoreCase),
         };
 
-    private void Add() => DraftProfiles.Add(new AircraftProfile { Name = $"Profile {DraftProfiles.Count + 1}" });
+    private void Add() => DraftProfiles.Add(new AircraftProfile { Name = T["profiles.list.newName", DraftProfiles.Count + 1].Value });
 
     private void Clone(int index)
     {
         var source = DraftProfiles[index];
         DraftProfiles.Insert(index + 1, new AircraftProfile
         {
-            Name = $"Clone of {source.Name}",
+            Name = T["profiles.list.cloneName", source.Name].Value,
             MatchType = source.MatchType,
             MatchString = source.MatchString,
         });

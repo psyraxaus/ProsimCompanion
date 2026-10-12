@@ -1,0 +1,303 @@
+{
+  "audioSettings": {
+    "pageTitle": "오디오 제어 — ProsimCompanion",
+    "heading": "오디오 제어",
+    "general": {
+      "title": "볼륨 제어",
+      "hint": "오디오 패널의 노브와 래치가 앱 볼륨을 설정합니다",
+      "backend": {
+        "label": "백엔드",
+        "hint": "Windows 앱 볼륨 또는 VoiceMeeter 스트립과 버스.",
+        "more": "전환은 즉시 적용됩니다. Windows 볼륨은 복원되고 VoiceMeeter 대상은 0 dB로 재설정됩니다.",
+        "coreAudio": "CoreAudio (Windows 앱 볼륨)",
+        "voiceMeeter": "VoiceMeeter (스트립/버스)"
+      },
+      "disableProsimNative": {
+        "label": "ProSim 자체 오디오 제어 끄기",
+        "hint": "ProSim 자체의 Windows 볼륨 제어를 꺼서 둘이 충돌하지 않게 합니다."
+      },
+      "requirePower": {
+        "label": "오디오 패널에 전원이 있을 때만",
+        "hint": "켬: 실제 항공기처럼 패널 버스에 전원이 있을 때만 노브와 래치가 작동합니다. 끔: 원격 믹서처럼 항상 작동합니다.",
+        "more": "전원은 AC/DC ESS에 더해 기장은 오디오 스위칭 노브, 부기장은 오디오 스위칭, 옵저버는 DC1입니다. 전환은 즉시 적용되며 현재 노브 값이 다시 전송됩니다."
+      }
+    },
+    "coreAudio": {
+      "hint": "Windows 앱별 볼륨",
+      "acp": {
+        "label": "ACP",
+        "hint": "어느 오디오 컨트롤 패널이 앱 볼륨을 구동할지.",
+        "captain": "기장 (ACP1)",
+        "firstOfficer": "부기장 (ACP2)",
+        "observer": "옵저버 (ACP3)"
+      },
+      "troubleshooting": "문제 해결 필터 숨김",
+      "deviceFlow": {
+        "label": "장치 필터 DataFlow",
+        "hint": "문제 해결 전용. 요청이 있을 때만 변경하세요.",
+        "render": "재생",
+        "capture": "캡처",
+        "all": "모두"
+      },
+      "deviceState": {
+        "label": "장치 필터 State",
+        "hint": "문제 해결 전용. 요청이 있을 때만 변경하세요.",
+        "active": "활성",
+        "disabled": "비활성",
+        "notPresent": "없음",
+        "unplugged": "연결 끊김",
+        "all": "모두 (전체 마스크)"
+      },
+      "debugDump": {
+        "writing": "쓰는 중…",
+        "write": "디버그 정보 쓰기",
+        "written": "{0}에 저장했습니다",
+        "failed": "덤프 실패 — 앱 로그를 확인하세요"
+      },
+      "mappings": {
+        "title": "앱 매핑",
+        "hint": "한 채널이 여러 프로세스를 구동할 수 있습니다",
+        "empty": "설정된 앱 매핑이 없습니다.",
+        "channel": "채널",
+        "process": "프로세스",
+        "device": "장치",
+        "latch": "래치",
+        "active": "활성",
+        "processPlaceholder": "프로세스 이름 (.exe 제외)",
+        "devicePlaceholder": "모든 장치",
+        "latchTitle": "REC 래치로 음소거 구동",
+        "activeTitle": "활성 세션만 제어",
+        "remove": "제거",
+        "add": "매핑 추가",
+        "note": "프로세스 이름은 .exe 없이, 예: vPilot.",
+        "more": "더 보기",
+        "moreBody": "래치 끔: 음소거는 절대 기록되지 않으므로 다른 곳에서 음소거된 앱은 그대로 유지됩니다. 관리자 권한으로 실행된 앱은 ProsimCompanion도 관리자 권한으로 실행해야 합니다. 상태 섹션이 해당 앱을 표시합니다. LOUDSPEAKER는 조종석 스피커 다이얼(기장과 부기장만)이며, 래치 체크는 다이얼을 끝까지 내리면 앱을 음소거합니다."
+      },
+      "blacklist": {
+        "title": "장치 차단 목록",
+        "hint": "장치 이름의 시작 부분으로 일치시킵니다",
+        "placeholder": "장치 표시 이름 접두사",
+        "remove": "제거",
+        "add": "장치 추가"
+      }
+    },
+    "voiceMeeter": {
+      "hint": "VoiceMeeter 원격 API를 통한 스트립과 버스",
+      "dllPath": {
+        "label": "VoicemeeterRemote64.dll 경로",
+        "hint": "비워 두면 설치된 VoiceMeeter를 자동으로 찾습니다. 특이한 설치 폴더일 때만 설정하세요."
+      },
+      "reload": "스트립 다시 불러오기",
+      "found": "스트립 {0}개 / 버스 {1}개 발견",
+      "notReachable": "VoiceMeeter에 연결할 수 없음 — 일반 스트립/버스 번호 표시",
+      "acpMappings": "{0} 매핑",
+      "driveFrom": "{0} ACP에서 대상 구동",
+      "channel": "채널",
+      "target": "대상",
+      "latch": "래치",
+      "latchTitle": "REC 래치로 음소거 구동",
+      "noLatchTitle": "이 다이얼에는 REC 래치가 없습니다. 끝까지 내리면 항상 대상을 음소거합니다.",
+      "remove": "제거",
+      "add": "매핑 추가",
+      "oncePerPanel": "한 채널은 패널당 한 번만 나타날 수 있습니다. 스트립이나 버스는 하나의 패널에만 속할 수 있습니다.",
+      "more": "더 보기",
+      "oncePerPanelMore": "충돌하는 저장은 수정될 때까지 기장 패널로 되돌아갑니다. 이유는 상태 섹션에 표시됩니다. 노브 이동 범위는 −60 dB … +12 dB에 대응하며 0 dB는 약 83 % 지점입니다.",
+      "loudspeaker": "LOUDSPEAKER는 조종석 스피커 다이얼로, 기장과 부기장 목록에 있습니다.",
+      "loudspeakerMore": "조종석 스피커로 출력하는 스트립이나 버스에 매핑하세요. 이 다이얼에는 REC 래치가 없으며 끝까지 내리면 대상을 음소거합니다. 매뉴얼 8장(스피커 다이얼)에 헤드셋 소리를 스피커로 보내는 VoiceMeeter 배선이 나와 있습니다."
+    },
+    "mixer": {
+      "title": "원격 믹서",
+      "hint": "VoicemeeterBridge 에이전트를 통한 다른 PC의 Voicemeeter",
+      "enable": {
+        "label": "원격 믹서 사용",
+        "hint": "에이전트에 연결하고 아래 매핑을 구동합니다. 끄면 연결을 열지 않습니다.",
+        "more": "위의 로컬 VoiceMeeter 백엔드는 이 PC의 VoiceMeeter를 구동합니다. 이 카드는 다른 PC(예: vPilot을 실행하는 PC)의 VoiceMeeter를 구동합니다. 두 PC 설정 방법: docs/integrations/voicemeeter-bridge.md."
+      },
+      "host": {
+        "label": "호스트",
+        "hint": "VoicemeeterBridge를 실행하는 PC의 이름 또는 IP 주소."
+      },
+      "port": {
+        "label": "포트",
+        "hint": "에이전트의 포트. 거기서 변경하지 않았다면 5088입니다."
+      },
+      "token": {
+        "label": "토큰",
+        "hint": "에이전트 트레이 메뉴의 '토큰 복사'에서. 암호화되어 저장되며 로그에 기록되지 않습니다."
+      },
+      "testTitle": "저장 여부와 관계없이 위 값으로 연결을 열고 에이전트의 환영 메시지를 읽습니다.",
+      "testing": "테스트 중…",
+      "test": "연결 테스트",
+      "liveTitle": "저장된 연결의 실시간 상태",
+      "reconnectDelay": {
+        "label": "재연결 지연",
+        "hint": "끊김 후 첫 재시도. 최대값까지 두 배씩 늘어납니다."
+      },
+      "reconnectMax": {
+        "label": "재연결 최대값"
+      },
+      "writeTimeout": {
+        "label": "쓰기 시간 제한",
+        "hint": "쓰기가 에이전트의 응답을 기다리는 시간."
+      },
+      "gainMin": {
+        "label": "게인, 노브 최소",
+        "hint": "−60 dB는 사실상 무음입니다."
+      },
+      "gainMax": {
+        "label": "게인, 노브 최대",
+        "hint": "로컬 백엔드와 같은 +12 dB (노브의 약 83 %에서 0 dB). 유니티를 넘으면 안 되는 스트립에는 0을 설정하세요."
+      },
+      "state": {
+        "connected": "연결됨 — Voicemeeter {0} {1}",
+        "connectedNoVoicemeeter": "연결됨 — 믹서 PC에서 Voicemeeter가 실행 중이 아님",
+        "connecting": "연결 중…",
+        "unreachable": "연결 불가 — {0}",
+        "unreachableRetrying": "연결 불가 — 재시도 중",
+        "offNoHost": "꺼짐 — 호스트 없음",
+        "off": "꺼짐"
+      },
+      "panel": {
+        "title": "상태 패널",
+        "hint": "상태 섹션에 표시할 스트립과 버스 (음소거 버튼 포함)",
+        "pickHint": "표시할 스트립과 버스를 체크하세요. 이름은 믹서 PC의 Voicemeeter에서 가져옵니다.",
+        "strips": {
+          "label": "스트립",
+          "hint": "Voicemeeter에 표시되는 스트립 번호 (1 = 첫 번째), 쉼표로 구분. 예: 1, 2, 3"
+        },
+        "buses": {
+          "label": "버스",
+          "hint": "버스 번호 (1 = A1), 쉼표로 구분. 예: 1, 4"
+        },
+        "pendingHint": "에이전트가 연결되면 스트립과 버스가 이름과 함께 체크박스로 여기에 나타납니다.",
+        "reloadTitle": "믹서 PC에서 스트립과 버스 이름을 다시 읽습니다 (Voicemeeter에서 이름을 바꾼 후).",
+        "reading": "읽는 중…",
+        "reload": "채널 다시 불러오기",
+        "summary": "믹서 PC에 스트립 {0}개 / 버스 {1}개",
+        "summaryReading": "스트립과 버스를 읽는 중…",
+        "summaryOffline": "에이전트 미연결 — 일반 스트립/버스 번호 표시"
+      },
+      "mappings": {
+        "title": "매핑",
+        "hint": "오디오 패널 채널 하나가 믹서 PC의 스트립 또는 버스 하나를 구동합니다",
+        "empty": "아직 매핑이 없습니다. 아래에서 추가하세요.",
+        "on": "켬",
+        "panel": "패널",
+        "channel": "채널",
+        "target": "스트립 / 버스",
+        "latch": "래치",
+        "latchTitle": "REC 푸시버튼으로 대상의 Mute 구동",
+        "live": "실시간",
+        "enabledTitle": "끄면 행을 사용하지 않고 유지합니다",
+        "noLatchTitle": "이 다이얼에는 REC 푸시버튼이 없습니다. 끝까지 내리면 항상 대상을 음소거합니다.",
+        "liveTitle": "마지막으로 보낸 게인과 음소거, 그리고 에이전트의 응답",
+        "liveMuted": "음소거",
+        "liveOpen": "열림",
+        "remove": "제거",
+        "add": "매핑 추가",
+        "note": "노브는 스트립 또는 버스의 게인을 설정하고, 래치를 체크하면 REC 푸시버튼이 음소거합니다. 스트립과 버스 이름은 에이전트가 연결되면 믹서 PC에서 가져옵니다.",
+        "more": "더 보기",
+        "moreBody": "노브 이동 범위는 연결 카드의 고급 필드에 있는 게인 범위에 대응합니다 (기본 −60 dB … +12 dB, 로컬 VoiceMeeter 백엔드와 동일하며 0 dB는 약 83 % 지점). 래치 끔: 음소거는 기록되지 않으므로 믹서 PC에서 음소거된 스트립은 그대로 유지됩니다. LOUDSPEAKER는 조종석 다이얼로 푸시버튼이 없으며 끝까지 내리면 대상을 음소거합니다. 쓰기는 매개변수당 초당 최대 20회 전송되며 마지막 값이 우선합니다. 노브 값은 오디오 패널 전원 여부와 관계없이 전송됩니다. 한 스트립에 두 행이 있으면 마지막으로 움직인 행이 우선합니다."
+      }
+    },
+    "housekeeping": {
+      "title": "유지 관리",
+      "hint": "검증된 타이밍. 바꿀 일이 거의 없습니다",
+      "runInterval": {
+        "label": "실행 간격",
+        "hint": "주 점검. 앱 재시작 후 적용됩니다."
+      },
+      "processCheck": {
+        "label": "프로세스 확인 간격"
+      },
+      "startupGrace": {
+        "label": "프로세스 시작 유예",
+        "hint": "매핑된 앱이 시작된 후 소리를 찾기 전까지 기다리는 시간."
+      },
+      "deviceRescan": {
+        "label": "장치 재검색 간격"
+      },
+      "maxSearches": {
+        "label": "최대 세션 검색 횟수",
+        "hint": "장치를 다시 검색하기 전까지의 검색 실패 횟수."
+      }
+    },
+    "status": {
+      "title": "볼륨 제어",
+      "hint": "ACP 노브 / REC 래치 → 앱 볼륨",
+      "enabled": "켜짐",
+      "disabled": "꺼짐",
+      "voiceMeeterLinked": "VoiceMeeter 연결됨",
+      "voiceMeeterNotReachable": "VoiceMeeter에 연결할 수 없음",
+      "poweredTitle": "전원 있음 — 노브 변경이 적용됩니다",
+      "unpoweredTitle": "전원 없음 — 노브 변경이 보류됩니다",
+      "powered": "PWR",
+      "unpowered": "OFF",
+      "mappingConflict": "매핑 충돌: {0}",
+      "elevated": "상승된 권한의 프로세스 감지: {0}. 이 앱들을 제어하려면 ProsimCompanion을 관리자 권한으로 실행하세요 — 그때까지 해당 매핑은 비활성 상태입니다.",
+      "mappingState": {
+        "bound": "바인딩됨",
+        "searching": "검색 중",
+        "elevated": "권한 상승",
+        "notRunning": "실행 안 함"
+      },
+      "appMappings": {
+        "title": "앱 매핑",
+        "hint": "매핑된 프로세스별 실시간 세션 상태",
+        "emptyBefore": "설정된 앱 매핑이 없습니다 —",
+        "emptyLink": "CoreAudio 섹션에서 추가",
+        "emptyAfter": ".",
+        "process": "프로세스",
+        "channel": "채널",
+        "device": "장치",
+        "state": "상태",
+        "sessions": "세션",
+        "volume": "볼륨",
+        "muted": "음소거",
+        "allDevices": "모두",
+        "yes": "예",
+        "no": "아니요"
+      },
+      "voiceMeeterTargets": {
+        "title": "VoiceMeeter 대상",
+        "hint": "바인딩된 채널별 실시간 스트립/버스 상태",
+        "emptyBefore": "바인딩된 대상이 없습니다 —",
+        "emptyLink": "VoiceMeeter 섹션에서 매핑 설정",
+        "emptyAfter": ".",
+        "acp": "ACP",
+        "channel": "채널",
+        "target": "대상",
+        "gain": "게인",
+        "muted": "음소거"
+      }
+    },
+    "remoteMixer": {
+      "title": "원격 믹서",
+      "hint": "VoicemeeterBridge를 통한 믹서 PC의 Voicemeeter",
+      "state": {
+        "connected": "에이전트 연결됨",
+        "connecting": "연결 중…",
+        "disconnected": "에이전트 연결 불가 — 재시도 중",
+        "off": "꺼짐"
+      },
+      "voicemeeter": "Voicemeeter {0} {1}",
+      "voicemeeterNotRunning": "믹서 PC에서 Voicemeeter가 실행 중이 아님",
+      "endpointTitle": "에이전트 엔드포인트",
+      "failedTitle": "시작 이후 에이전트가 거부했거나 시간 초과된 쓰기",
+      "failedWrite": "쓰기 실패 {0}건",
+      "failedWrites": "쓰기 실패 {0}건",
+      "lastError": "마지막 오류: {0}",
+      "emptyBefore": "선택된 스트립이나 버스가 없습니다 —",
+      "emptyLink": "원격 믹서 섹션에서 선택",
+      "emptyAfter": ".",
+      "channel": "채널",
+      "label": "레이블",
+      "gain": "게인",
+      "mute": "Mute",
+      "muted": "음소거",
+      "open": "열림",
+      "unmuteButton": "음소거 해제",
+      "muteButton": "음소거"
+    }
+  }
+}

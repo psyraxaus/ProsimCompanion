@@ -1,0 +1,303 @@
+{
+  "audioSettings": {
+    "pageTitle": "Contrôle audio — ProsimCompanion",
+    "heading": "Contrôle audio",
+    "general": {
+      "title": "Contrôle du volume",
+      "hint": "Les boutons et verrous du panneau audio règlent les volumes des applications",
+      "backend": {
+        "label": "Backend",
+        "hint": "Volumes des applications Windows, ou strips et bus VoiceMeeter.",
+        "more": "Le changement s'applique en direct. Les volumes Windows sont restaurés, les cibles VoiceMeeter remises à 0 dB.",
+        "coreAudio": "CoreAudio (volumes des applications Windows)",
+        "voiceMeeter": "VoiceMeeter (strips/bus)"
+      },
+      "disableProsimNative": {
+        "label": "Désactiver le contrôle audio natif de ProSim",
+        "hint": "Coupe le contrôle de volume Windows propre à ProSim pour que les deux ne se gênent jamais."
+      },
+      "requirePower": {
+        "label": "Seulement quand le panneau audio est alimenté",
+        "hint": "Activé : boutons et verrous n'agissent qu'avec le bus du panneau alimenté, comme sur l'avion réel. Désactivé : ils agissent toujours, comme le mixeur distant.",
+        "more": "L'alimentation est AC/DC ESS plus le bouton audio switching pour le commandant, audio switching pour le copilote, DC1 pour l'observateur. Le changement s'applique aussitôt : les valeurs actuelles des boutons sont renvoyées."
+      }
+    },
+    "coreAudio": {
+      "hint": "Volumes Windows par application",
+      "acp": {
+        "label": "ACP",
+        "hint": "Quel panneau de contrôle audio pilote les volumes des applications.",
+        "captain": "Commandant (ACP1)",
+        "firstOfficer": "Copilote (ACP2)",
+        "observer": "Observateur (ACP3)"
+      },
+      "troubleshooting": "Filtres de dépannage masqués",
+      "deviceFlow": {
+        "label": "Filtre périphérique DataFlow",
+        "hint": "Dépannage seulement. À changer uniquement sur demande.",
+        "render": "Lecture",
+        "capture": "Capture",
+        "all": "Tous"
+      },
+      "deviceState": {
+        "label": "Filtre périphérique État",
+        "hint": "Dépannage seulement. À changer uniquement sur demande.",
+        "active": "Actif",
+        "disabled": "Désactivé",
+        "notPresent": "Absent",
+        "unplugged": "Débranché",
+        "all": "Tous (masque complet)"
+      },
+      "debugDump": {
+        "writing": "Écriture…",
+        "write": "Écrire les infos de débogage",
+        "written": "Écrit dans {0}",
+        "failed": "Export échoué — voir le journal de l'application"
+      },
+      "mappings": {
+        "title": "Affectations d'applications",
+        "hint": "Un canal peut piloter plusieurs processus",
+        "empty": "Aucune affectation d'application configurée.",
+        "channel": "Canal",
+        "process": "Processus",
+        "device": "Périphérique",
+        "latch": "Verrou",
+        "active": "Actives",
+        "processPlaceholder": "Nom du processus (sans .exe)",
+        "devicePlaceholder": "Tous les périphériques",
+        "latchTitle": "Piloter le mute depuis le verrou REC",
+        "activeTitle": "Ne contrôler que les sessions actives",
+        "remove": "Retirer",
+        "add": "Ajouter une affectation",
+        "note": "Nom du processus sans .exe, par exemple vPilot.",
+        "more": "Plus",
+        "moreBody": "Verrou désactivé : le mute n'est jamais écrit, une application coupée ailleurs reste coupée. Une application lancée en administrateur demande que ProsimCompanion le soit aussi ; la section État les signale. LOUDSPEAKER est le bouton du haut-parleur du cockpit (commandant et copilote seulement) ; sa case Verrou coupe l'application quand le bouton est à fond en bas."
+      },
+      "blacklist": {
+        "title": "Liste noire des périphériques",
+        "hint": "Comparé au début du nom du périphérique",
+        "placeholder": "Préfixe du nom convivial",
+        "remove": "Retirer",
+        "add": "Ajouter un périphérique"
+      }
+    },
+    "voiceMeeter": {
+      "hint": "Strips et bus via l'API distante de VoiceMeeter",
+      "dllPath": {
+        "label": "Chemin de VoicemeeterRemote64.dll",
+        "hint": "Vide trouve tout seul le VoiceMeeter installé. À renseigner seulement pour un dossier d'installation inhabituel."
+      },
+      "reload": "Recharger les strips",
+      "found": "{0} strips / {1} bus trouvés",
+      "notReachable": "VoiceMeeter injoignable — numéros génériques de strip/bus affichés",
+      "acpMappings": "Affectations {0}",
+      "driveFrom": "Piloter les cibles depuis l'ACP {0}",
+      "channel": "Canal",
+      "target": "Cible",
+      "latch": "Verrou",
+      "latchTitle": "Piloter le mute depuis le verrou REC",
+      "noLatchTitle": "Pas de verrou REC sur ce bouton. À fond en bas coupe toujours la cible.",
+      "remove": "Retirer",
+      "add": "Ajouter une affectation",
+      "oncePerPanel": "Un canal ne peut apparaître qu'une fois par panneau. Un strip ou un bus ne peut appartenir qu'à un seul panneau.",
+      "more": "Plus",
+      "oncePerPanelMore": "Les enregistrements en conflit retombent sur le panneau du commandant jusqu'à correction ; la section État explique pourquoi. La course du bouton couvre −60 dB … +12 dB ; 0 dB se situe vers 83 %.",
+      "loudspeaker": "LOUDSPEAKER est le bouton du haut-parleur du cockpit, dans les listes du commandant et du copilote.",
+      "loudspeakerMore": "Affecte-le au strip ou au bus qui alimente les haut-parleurs de ton cockpit. Le bouton n'a pas de verrou REC : à fond en bas, il coupe la cible. Le chapitre 8 du manuel (bouton du haut-parleur) montre le câblage VoiceMeeter qui envoie le son du casque sur les haut-parleurs."
+    },
+    "mixer": {
+      "title": "Mixeur distant",
+      "hint": "Voicemeeter sur un autre PC, via l'agent VoicemeeterBridge",
+      "enable": {
+        "label": "Activer le mixeur distant",
+        "hint": "Se connecte à l'agent et pilote les affectations ci-dessous. Désactivé n'ouvre aucune connexion.",
+        "more": "Le backend VoiceMeeter local ci-dessus pilote le VoiceMeeter de ce PC. Cette carte pilote un VoiceMeeter sur un autre PC, par exemple celui qui fait tourner vPilot. Configuration des deux PC : docs/integrations/voicemeeter-bridge.md."
+      },
+      "host": {
+        "label": "Hôte",
+        "hint": "Nom ou adresse IP du PC qui exécute VoicemeeterBridge."
+      },
+      "port": {
+        "label": "Port",
+        "hint": "Le port de l'agent. 5088 sauf si tu l'as changé là-bas."
+      },
+      "token": {
+        "label": "Jeton",
+        "hint": "Depuis le menu de la zone de notification de l'agent, Copier le jeton. Stocké chiffré, jamais journalisé."
+      },
+      "testTitle": "Ouvre une connexion avec les valeurs ci-dessus, enregistrées ou non, et lit l'accueil de l'agent.",
+      "testing": "Test…",
+      "test": "Tester la connexion",
+      "liveTitle": "État en direct de la connexion enregistrée",
+      "reconnectDelay": {
+        "label": "Délai de reconnexion",
+        "hint": "Première tentative après une coupure. Double jusqu'au maximum."
+      },
+      "reconnectMax": {
+        "label": "Maximum de reconnexion"
+      },
+      "writeTimeout": {
+        "label": "Délai d'écriture",
+        "hint": "Combien de temps une écriture attend la réponse de l'agent."
+      },
+      "gainMin": {
+        "label": "Gain, bouton à fond en bas",
+        "hint": "−60 dB équivaut au silence."
+      },
+      "gainMax": {
+        "label": "Gain, bouton à fond en haut",
+        "hint": "+12 dB comme le backend local (0 dB vers 83 % du bouton). Mets 0 pour un strip qui ne doit jamais dépasser l'unité."
+      },
+      "state": {
+        "connected": "Connecté — Voicemeeter {0} {1}",
+        "connectedNoVoicemeeter": "Connecté — Voicemeeter ne tourne pas sur le PC mixeur",
+        "connecting": "Connexion…",
+        "unreachable": "Injoignable — {0}",
+        "unreachableRetrying": "Injoignable — nouvelle tentative",
+        "offNoHost": "Arrêté — pas d'hôte",
+        "off": "Arrêté"
+      },
+      "panel": {
+        "title": "Panneau d'état",
+        "hint": "Quels strips et bus la section État affiche, avec des boutons mute",
+        "pickHint": "Coche les strips et bus à afficher. Les noms viennent du Voicemeeter du PC mixeur.",
+        "strips": {
+          "label": "Strips",
+          "hint": "Numéros de strip tels que Voicemeeter les affiche (1 = premier), séparés par des virgules. Exemple : 1, 2, 3"
+        },
+        "buses": {
+          "label": "Bus",
+          "hint": "Numéros de bus (1 = A1), séparés par des virgules. Exemple : 1, 4"
+        },
+        "pendingHint": "Une fois l'agent connecté, les strips et bus apparaissent ici par nom, sous forme de cases à cocher.",
+        "reloadTitle": "Relit les noms des strips et bus depuis le PC mixeur (après en avoir renommé un dans Voicemeeter).",
+        "reading": "Lecture…",
+        "reload": "Recharger les canaux",
+        "summary": "{0} strips / {1} bus sur le PC mixeur",
+        "summaryReading": "Lecture des strips et bus…",
+        "summaryOffline": "Agent non connecté — numéros génériques de strip/bus affichés"
+      },
+      "mappings": {
+        "title": "Affectations",
+        "hint": "Un canal du panneau audio pilote un strip ou un bus sur le PC mixeur",
+        "empty": "Pas encore d'affectation. Ajoutes-en une ci-dessous.",
+        "on": "On",
+        "panel": "Panneau",
+        "channel": "Canal",
+        "target": "Strip / bus",
+        "latch": "Verrou",
+        "latchTitle": "Piloter le Mute de la cible depuis le bouton-poussoir REC",
+        "live": "Direct",
+        "enabledTitle": "Désactivé garde la ligne sans l'utiliser",
+        "noLatchTitle": "Pas de bouton-poussoir REC sur ce bouton. À fond en bas coupe toujours la cible.",
+        "liveTitle": "Derniers gain et mute envoyés, et la réponse de l'agent",
+        "liveMuted": "coupé",
+        "liveOpen": "ouvert",
+        "remove": "Retirer",
+        "add": "Ajouter une affectation",
+        "note": "Le bouton règle le gain du strip ou du bus ; Verrou coché, le bouton-poussoir REC le coupe. Les noms des strips et bus viennent du PC mixeur une fois l'agent connecté.",
+        "more": "Plus",
+        "moreBody": "La course du bouton couvre la plage de gain des champs avancés de la carte de connexion (−60 dB … +12 dB par défaut, comme le backend VoiceMeeter local ; 0 dB se situe vers 83 %). Verrou désactivé : le mute n'est jamais écrit, un strip coupé sur le PC mixeur reste coupé. LOUDSPEAKER est le bouton du cockpit : pas de poussoir, à fond en bas coupe la cible. Les écritures partent au plus 20 fois par seconde par paramètre, la dernière valeur gagne. La valeur du bouton part que le panneau audio soit alimenté ou non. Deux lignes sur un même strip : la dernière bougée gagne."
+      }
+    },
+    "housekeeping": {
+      "title": "Entretien",
+      "hint": "Temporisations éprouvées. Rarement à changer",
+      "runInterval": {
+        "label": "Intervalle d'exécution",
+        "hint": "Vérification principale. Prend effet après un redémarrage de l'application."
+      },
+      "processCheck": {
+        "label": "Intervalle de vérification des processus"
+      },
+      "startupGrace": {
+        "label": "Délai de grâce au démarrage",
+        "hint": "Attente après le démarrage d'une application affectée avant de chercher son son."
+      },
+      "deviceRescan": {
+        "label": "Intervalle de rebalayage des périphériques"
+      },
+      "maxSearches": {
+        "label": "Recherches de session max",
+        "hint": "Recherches échouées avant de rebalayer les périphériques."
+      }
+    },
+    "status": {
+      "title": "Contrôle du volume",
+      "hint": "Boutons ACP / verrous REC → volumes des applications",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "voiceMeeterLinked": "VoiceMeeter lié",
+      "voiceMeeterNotReachable": "VoiceMeeter injoignable",
+      "poweredTitle": "Alimenté — les changements de bouton s'appliquent",
+      "unpoweredTitle": "Non alimenté — les changements de bouton sont retenus",
+      "powered": "PWR",
+      "unpowered": "OFF",
+      "mappingConflict": "Conflit d'affectation : {0}",
+      "elevated": "Processus élevés détectés : {0}. Lance ProsimCompanion en administrateur pour contrôler ces applications — d'ici là, ces affectations restent inactives.",
+      "mappingState": {
+        "bound": "Lié",
+        "searching": "Recherche",
+        "elevated": "Élevé",
+        "notRunning": "Pas lancé"
+      },
+      "appMappings": {
+        "title": "Affectations d'applications",
+        "hint": "État de session en direct par processus affecté",
+        "emptyBefore": "Aucune affectation d'application configurée —",
+        "emptyLink": "ajoute-les dans la section CoreAudio",
+        "emptyAfter": ".",
+        "process": "Processus",
+        "channel": "Canal",
+        "device": "Périphérique",
+        "state": "État",
+        "sessions": "Sessions",
+        "volume": "Volume",
+        "muted": "Coupé",
+        "allDevices": "Tous",
+        "yes": "Oui",
+        "no": "Non"
+      },
+      "voiceMeeterTargets": {
+        "title": "Cibles VoiceMeeter",
+        "hint": "État strip/bus en direct par canal lié",
+        "emptyBefore": "Aucune cible liée —",
+        "emptyLink": "configure les affectations dans la section VoiceMeeter",
+        "emptyAfter": ".",
+        "acp": "ACP",
+        "channel": "Canal",
+        "target": "Cible",
+        "gain": "Gain",
+        "muted": "Coupé"
+      }
+    },
+    "remoteMixer": {
+      "title": "Mixeur distant",
+      "hint": "Voicemeeter sur le PC mixeur, via VoicemeeterBridge",
+      "state": {
+        "connected": "Agent connecté",
+        "connecting": "Connexion…",
+        "disconnected": "Agent injoignable — nouvelle tentative",
+        "off": "Arrêté"
+      },
+      "voicemeeter": "Voicemeeter {0} {1}",
+      "voicemeeterNotRunning": "Voicemeeter ne tourne pas sur le PC mixeur",
+      "endpointTitle": "Point de terminaison de l'agent",
+      "failedTitle": "Écritures refusées par l'agent ou expirées depuis le démarrage",
+      "failedWrite": "{0} écriture échouée",
+      "failedWrites": "{0} écritures échouées",
+      "lastError": "Dernière erreur : {0}",
+      "emptyBefore": "Aucun strip ni bus choisi —",
+      "emptyLink": "choisis-les dans la section Mixeur distant",
+      "emptyAfter": ".",
+      "channel": "Canal",
+      "label": "Libellé",
+      "gain": "Gain",
+      "mute": "Mute",
+      "muted": "Coupé",
+      "open": "Ouvert",
+      "unmuteButton": "Rétablir",
+      "muteButton": "Couper"
+    }
+  }
+}

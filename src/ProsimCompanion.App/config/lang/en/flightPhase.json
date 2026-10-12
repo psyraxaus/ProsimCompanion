@@ -1,0 +1,144 @@
+{
+  "flightPhase": {
+    "pageTitle": "Flight Phase — ProsimCompanion",
+    "heading": "Flight Phase settings",
+    "speeds": {
+      "title": "Speeds",
+      "hint": "Applies live, no restart. Defaults are the values proven on the 2026-08 flight tests — change them with a replayed recording that shows why.",
+      "takeoffRollHold": {
+        "label": "Take-off roll hold above",
+        "hint": "Above this IAS the roll is kept even if take-off thrust momentarily reads unset (FLEX detent bounce)"
+      },
+      "rolloutComplete": {
+        "label": "Rollout complete below",
+        "hint": "Landing rollout becomes Taxi In once IAS drops below this"
+      },
+      "pushbackMax": {
+        "label": "Pushback max ground speed",
+        "hint": "Beacon + APU above this ground speed is a taxi, not a push"
+      },
+      "parkedBelow": {
+        "label": "Parked below",
+        "hint": "Ground speed below which the aircraft counts as stopped (hardware cockpits idle at 1–2 kt)"
+      }
+    },
+    "vertical": {
+      "title": "Vertical",
+      "initialClimb": {
+        "label": "Initial climb ceiling",
+        "hint": "Below this radio altitude a departure stays Initial Climb"
+      },
+      "levelBand": {
+        "label": "Level flight band",
+        "hint": "|VS| below this is level; above it a climb"
+      },
+      "approachCeiling": {
+        "label": "Approach ceiling",
+        "hint": "Descending (or gear-down level) below this radio altitude is Approach"
+      },
+      "goAroundRate": {
+        "label": "Go-around climb rate",
+        "hint": "Leaving Approach upward needs at least this VS — a level-off blip must not read as a go-around"
+      },
+      "descentEntry": {
+        "label": "Descent entry rate",
+        "hint": "Entering Descent needs a sink rate at least this decisive"
+      },
+      "descentExit": {
+        "label": "Descent exit rate",
+        "hint": "Once descending, a segment shallower than this still counts as descent"
+      }
+    },
+    "cruise": {
+      "title": "Cruise gate",
+      "hint": "Level flight only reads as Cruise near the FMS cruise altitude (a SID level-off is not cruise)",
+      "tolerance": {
+        "label": "Tolerance below FMS cruise"
+      },
+      "floor": {
+        "label": "Floor without FMS cruise",
+        "hint": "With no cruise altitude entered, level flight must be above this"
+      }
+    },
+    "ground": {
+      "title": "Ground and turnaround",
+      "agreement": {
+        "label": "Ground contact agreement",
+        "hint": "Consecutive samples (250 ms each) the on-ground flag must agree before ground/air flips; 1 disables the filter"
+      },
+      "turnaround": {
+        "label": "Turnaround hold",
+        "hint": "After deboarding completes, parked (engines off, brake set, beacon off) for this long goes Shutdown → Preflight without a cold-and-dark reset"
+      },
+      "heartbeat": {
+        "label": "Heartbeat log interval",
+        "hint": "A 'still thinking' log line while live; 0 disables"
+      }
+    },
+    "pause": {
+      "title": "MSFS pause",
+      "hint": "Escape in MSFS leaves the flight session for a moment. Within the grace, with the aircraft where it was, the phase and its latches are kept and 'Flight live' simply goes off and on again; longer, or a respawn, resets the phase like leaving to the menu.",
+      "grace": {
+        "label": "Pause grace",
+        "hint": "How long the session may be away (with MSFS's pause flag set) before it counts as a real session end; 0 resets at once"
+      },
+      "position": {
+        "label": "Same position within",
+        "hint": "On resume the aircraft must be this close to where it was; farther is a respawn"
+      },
+      "fuel": {
+        "label": "Same fuel within",
+        "hint": "On resume the fuel on board must be this close to the pre-pause figure; a bigger jump is a reload"
+      }
+    },
+    "settle": {
+      "title": "Settle times",
+      "hint": "How long a transition's evidence must persist before it commits",
+      "default": "Default",
+      "enterCruise": "Enter Cruise",
+      "descentToCruise": {
+        "label": "Descent → Cruise",
+        "hint": "Level segments of a step descent must not flip-flop"
+      },
+      "cruiseToClimb": {
+        "label": "Cruise → Climb",
+        "hint": "A VS blip at cruise is turbulence; a step climb sustains"
+      },
+      "descentToClimb": {
+        "label": "Descent → Climb",
+        "hint": "A level-off in the descent wobbles upward for a few seconds; a climb-back on ATC instruction sustains"
+      },
+      "goAround": "Go-around",
+      "departureRegression": {
+        "label": "Departure regression",
+        "hint": "Walking Pushback/Taxi Out/Take-off Roll back to Preflight needs sustained contradiction"
+      },
+      "firstAirborne": {
+        "label": "First airborne classification",
+        "hint": "A session whose first classification is a flight phase (mid-flight restart or warm-up garbage) must sustain this long"
+      }
+    },
+    "recorder": {
+      "title": "Flight recorder",
+      "hint": "Compact per-second samples in the session log so any flight can be replayed through the phase engine offline (see docs/agents/flight-verification.md)",
+      "record": "Record flight samples",
+      "interval": "Sample interval",
+      "keepAlive": {
+        "label": "Keep-alive",
+        "hint": "Unchanged samples are skipped; one is still written at least this often"
+      }
+    },
+    "rules": {
+      "title": "Rule table",
+      "hint": "Evaluation order, first match wins. 'hold' keeps the current phase. Read-only — the rules live in code; the thresholds above feed them.",
+      "set": "Set",
+      "rule": "Rule",
+      "from": "From",
+      "to": "To",
+      "ground": "Ground",
+      "airborne": "Airborne",
+      "any": "any",
+      "hold": "hold"
+    }
+  }
+}

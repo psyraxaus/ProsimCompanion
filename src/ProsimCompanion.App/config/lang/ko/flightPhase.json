@@ -1,0 +1,144 @@
+{
+  "flightPhase": {
+    "pageTitle": "비행 단계 — ProsimCompanion",
+    "heading": "비행 단계 설정",
+    "speeds": {
+      "title": "속도",
+      "hint": "재시작 없이 즉시 적용됩니다. 기본값은 2026-08 비행 시험에서 검증된 값입니다 — 이유를 보여 주는 재생 기록과 함께 변경하세요.",
+      "takeoffRollHold": {
+        "label": "이륙 활주 유지 속도 이상",
+        "hint": "이 IAS 이상에서는 이륙 추력이 순간적으로 미설정으로 읽혀도 (FLEX 디텐트 튐) 활주를 유지합니다"
+      },
+      "rolloutComplete": {
+        "label": "롤아웃 완료 속도 미만",
+        "hint": "IAS가 이 값 아래로 떨어지면 착륙 롤아웃이 Taxi In이 됩니다"
+      },
+      "pushbackMax": {
+        "label": "푸시백 최대 지상 속도",
+        "hint": "비콘 + APU 상태에서 이 지상 속도를 넘으면 푸시백이 아니라 택시입니다"
+      },
+      "parkedBelow": {
+        "label": "주기 판정 속도 미만",
+        "hint": "이 지상 속도 미만이면 항공기가 정지한 것으로 봅니다 (하드웨어 조종석은 정지 시 1–2 kt를 표시)"
+      }
+    },
+    "vertical": {
+      "title": "수직",
+      "initialClimb": {
+        "label": "초기 상승 상한",
+        "hint": "이 전파 고도 미만에서는 출발이 Initial Climb로 유지됩니다"
+      },
+      "levelBand": {
+        "label": "수평 비행 범위",
+        "hint": "|VS|가 이 값 미만이면 수평, 이상이면 상승입니다"
+      },
+      "approachCeiling": {
+        "label": "접근 상한",
+        "hint": "이 전파 고도 미만에서 강하 (또는 기어 다운 수평) 중이면 Approach입니다"
+      },
+      "goAroundRate": {
+        "label": "복행 상승률",
+        "hint": "Approach에서 위로 벗어나려면 최소 이 VS가 필요합니다 — 순간적인 레벨오프를 복행으로 읽으면 안 됩니다"
+      },
+      "descentEntry": {
+        "label": "강하 진입률",
+        "hint": "Descent에 진입하려면 최소 이만큼 분명한 강하율이 필요합니다"
+      },
+      "descentExit": {
+        "label": "강하 이탈률",
+        "hint": "일단 강하 중이면 이보다 완만한 구간도 여전히 강하로 봅니다"
+      }
+    },
+    "cruise": {
+      "title": "순항 게이트",
+      "hint": "수평 비행은 FMS 순항 고도 근처에서만 Cruise로 판정됩니다 (SID 레벨오프는 순항이 아님)",
+      "tolerance": {
+        "label": "FMS 순항 고도 아래 허용 오차"
+      },
+      "floor": {
+        "label": "FMS 순항 고도 없을 때 하한",
+        "hint": "순항 고도가 입력되지 않았으면 수평 비행은 이 고도 이상이어야 합니다"
+      }
+    },
+    "ground": {
+      "title": "지상 및 턴어라운드",
+      "agreement": {
+        "label": "지상 접촉 일치",
+        "hint": "지상/공중 전환 전에 on-ground 플래그가 일치해야 하는 연속 샘플 수 (각 250 ms); 1이면 필터 해제"
+      },
+      "turnaround": {
+        "label": "턴어라운드 유지",
+        "hint": "하기 완료 후 주기 상태 (엔진 정지, 브레이크 설정, 비콘 꺼짐)가 이 시간 동안 이어지면 콜드 앤 다크 리셋 없이 Shutdown → Preflight로 넘어갑니다"
+      },
+      "heartbeat": {
+        "label": "하트비트 로그 간격",
+        "hint": "라이브 중 '아직 판단 중' 로그 줄 간격; 0이면 해제"
+      }
+    },
+    "pause": {
+      "title": "MSFS 일시 정지",
+      "hint": "MSFS에서 Escape를 누르면 잠시 비행 세션을 벗어납니다. 유예 시간 내에 항공기가 제자리에 있으면 단계와 래치가 유지되고 'Flight live'만 꺼졌다 다시 켜집니다. 더 길거나 리스폰이면 메뉴로 나간 것처럼 단계가 리셋됩니다.",
+      "grace": {
+        "label": "일시 정지 유예",
+        "hint": "세션이 (MSFS 일시 정지 플래그가 설정된 채) 실제 세션 종료로 간주되기 전까지 벗어나 있을 수 있는 시간; 0이면 즉시 리셋"
+      },
+      "position": {
+        "label": "동일 위치 허용 범위",
+        "hint": "재개 시 항공기는 원래 위치에서 이 거리 이내에 있어야 합니다. 더 멀면 리스폰입니다"
+      },
+      "fuel": {
+        "label": "동일 연료 허용 범위",
+        "hint": "재개 시 탑재 연료는 일시 정지 전 수치에서 이 범위 이내여야 합니다. 더 큰 변화는 리로드입니다"
+      }
+    },
+    "settle": {
+      "title": "안정화 시간",
+      "hint": "전환 근거가 확정되기 전까지 지속되어야 하는 시간",
+      "default": "기본",
+      "enterCruise": "Cruise 진입",
+      "descentToCruise": {
+        "label": "Descent → Cruise",
+        "hint": "단계 강하의 수평 구간이 왔다 갔다 하면 안 됩니다"
+      },
+      "cruiseToClimb": {
+        "label": "Cruise → Climb",
+        "hint": "순항 중 VS 순간 변동은 난기류입니다. 스텝 클라임은 지속됩니다"
+      },
+      "descentToClimb": {
+        "label": "Descent → Climb",
+        "hint": "강하 중 레벨오프는 몇 초간 위로 흔들립니다. ATC 지시에 따른 재상승은 지속됩니다"
+      },
+      "goAround": "복행",
+      "departureRegression": {
+        "label": "출발 역행",
+        "hint": "Pushback/Taxi Out/Take-off Roll에서 Preflight로 되돌리려면 지속적인 모순이 필요합니다"
+      },
+      "firstAirborne": {
+        "label": "첫 공중 분류",
+        "hint": "첫 분류가 비행 단계인 세션 (비행 중 재시작 또는 워밍업 잡음)은 이 시간 동안 지속되어야 합니다"
+      }
+    },
+    "recorder": {
+      "title": "비행 기록기",
+      "hint": "세션 로그에 초당 압축 샘플을 기록하여 모든 비행을 오프라인에서 단계 엔진으로 재생할 수 있게 합니다 (docs/agents/flight-verification.md 참조)",
+      "record": "비행 샘플 기록",
+      "interval": "샘플 간격",
+      "keepAlive": {
+        "label": "킵얼라이브",
+        "hint": "변화 없는 샘플은 건너뛰지만, 최소 이 빈도로 하나는 기록됩니다"
+      }
+    },
+    "rules": {
+      "title": "규칙 표",
+      "hint": "평가 순서이며 첫 일치가 우선합니다. 'hold'는 현재 단계를 유지합니다. 읽기 전용 — 규칙은 코드에 있으며 위의 임계값이 규칙에 공급됩니다.",
+      "set": "세트",
+      "rule": "규칙",
+      "from": "출발",
+      "to": "도착",
+      "ground": "지상",
+      "airborne": "공중",
+      "any": "모두",
+      "hold": "hold"
+    }
+  }
+}

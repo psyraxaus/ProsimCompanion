@@ -1,0 +1,63 @@
+{
+  "logs": {
+    "pageTitle": "Protokolle — ProsimCompanion",
+    "heading": "Protokolle",
+    "capture": {
+      "title": "Erfassung",
+      "hint": "Was aufgezeichnet wird — gilt sofort, kein Neustart",
+      "level": "Erfassungsstufe",
+      "wireTrace": {
+        "label": "Wire-Trace",
+        "hint": "Rohe GSX-/Gateway-Frames in eine eigene CMTrace-Datei"
+      },
+      "mirror": {
+        "label": "In Sitzungsprotokoll spiegeln",
+        "hint": "Kopiert Warnungen und Fehler in die Sitzungs-Ereignisdatei, in Reihenfolge mit den Flugereignissen, damit eine Datei die ganze Geschichte erzählt",
+        "warningAndAbove": "Warnungen und Fehler",
+        "errorAndAbove": "Nur Fehler",
+        "off": "Aus"
+      },
+      "telemetry": {
+        "label": "Telemetrie-API",
+        "hint": "Nur lesend: liefert Sitzungs-Ereignisprotokolle und Protokollenden über den Webserver für Prüfungen nach dem Flug. Andere Geräte brauchen das Zugriffstoken"
+      },
+      "totals": "Sitzungssummen — Warnungen: {0} · Fehler: {1}.",
+      "filesBefore": "Die rollierenden Dateien in",
+      "filesAfter": "sind im CMTrace-Format zum Live-Mitlesen in CMTrace."
+    },
+    "support": {
+      "title": "Support",
+      "hint": "Ein Zip mit allem, was ein Fehlerbericht braucht",
+      "sessions": {
+        "label": "Sitzungsdateien",
+        "hint": "Neueste Sitzungs-Ereignisprotokolle, die enthalten sein sollen"
+      },
+      "days": {
+        "label": "Protokolltage",
+        "hint": "Neueste tägliche App-Protokolle, die enthalten sein sollen"
+      },
+      "wire": {
+        "label": "Wire-Trace einschließen",
+        "hint": "Rohe GSX-/Gateway-Frames für dieselben Tage — groß; nur auf Anfrage"
+      },
+      "export": "Diagnose exportieren",
+      "copyVersion": "Version kopieren",
+      "copied": "Kopiert",
+      "copyFailed": "Kopieren fehlgeschlagen",
+      "bundleBefore": "Das Paket enthält die neuesten Sitzungs-Ereignisprotokolle, die App-Protokolle, eine Kopie der settings.json mit allen Schlüsseln und Tokens geschwärzt sowie das Versionsbanner, mit einem Manifest der Datei-Hashes. Hänge es an ein GitHub-Issue auf psyraxaus/ProsimCompanion an; \"Version kopieren\" legt",
+      "bundleAfter": "für den Issue-Text in die Zwischenablage."
+    },
+    "log": {
+      "title": "Protokoll",
+      "hint": "Ansichtsfilter der erfassten Einträge",
+      "minLevel": "Mindeststufe",
+      "text": "Text",
+      "filterPlaceholder": "Text oder Quelle…",
+      "pause": "Pause",
+      "time": "Zeit",
+      "level": "Stufe",
+      "source": "Quelle",
+      "message": "Meldung"
+    }
+  }
+}

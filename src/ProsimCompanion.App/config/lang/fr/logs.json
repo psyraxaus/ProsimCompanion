@@ -1,0 +1,63 @@
+{
+  "logs": {
+    "pageTitle": "Journaux — ProsimCompanion",
+    "heading": "Journaux",
+    "capture": {
+      "title": "Capture",
+      "hint": "Ce qui est enregistré — s'applique en direct, sans redémarrage",
+      "level": "Niveau de capture",
+      "wireTrace": {
+        "label": "Trace réseau",
+        "hint": "Trames GSX / gateway brutes vers un fichier CMTrace séparé"
+      },
+      "mirror": {
+        "label": "Recopier dans le journal de session",
+        "hint": "Copie les avertissements et les erreurs dans le fichier d'événements de session, dans l'ordre des événements du vol, pour qu'un seul fichier raconte toute l'histoire",
+        "warningAndAbove": "Avertissements et erreurs",
+        "errorAndAbove": "Erreurs seulement",
+        "off": "Désactivé"
+      },
+      "telemetry": {
+        "label": "API de télémétrie",
+        "hint": "Lecture seule : sert les journaux d'événements de session et les fins de journal via le serveur web pour les vérifications après vol. Les autres appareils ont besoin du jeton d'accès"
+      },
+      "totals": "Totaux de la session — avertissements : {0} · erreurs : {1}.",
+      "filesBefore": "Les fichiers tournants dans",
+      "filesAfter": "sont au format CMTrace pour une lecture en direct dans CMTrace."
+    },
+    "support": {
+      "title": "Support",
+      "hint": "Un zip avec tout ce qu'il faut pour un rapport de bug",
+      "sessions": {
+        "label": "Fichiers de session",
+        "hint": "Journaux d'événements de session les plus récents à inclure"
+      },
+      "days": {
+        "label": "Jours de journal",
+        "hint": "Journaux quotidiens de l'application les plus récents à inclure"
+      },
+      "wire": {
+        "label": "Inclure la trace réseau",
+        "hint": "Trames GSX / gateway brutes pour les mêmes jours — volumineux ; seulement sur demande"
+      },
+      "export": "Exporter le diagnostic",
+      "copyVersion": "Copier la version",
+      "copied": "Copié",
+      "copyFailed": "Échec de la copie",
+      "bundleBefore": "L'archive contient les journaux d'événements de session les plus récents, les journaux de l'application, une copie de settings.json avec toutes les clés et jetons caviardés, et la bannière de version, avec un manifeste des empreintes de fichiers. Joins-la à un ticket GitHub sur psyraxaus/ProsimCompanion ; \"Copier la version\" place",
+      "bundleAfter": "dans le presse-papiers pour le texte du ticket."
+    },
+    "log": {
+      "title": "Journal",
+      "hint": "Filtre d'affichage des entrées capturées",
+      "minLevel": "Niveau min",
+      "text": "Texte",
+      "filterPlaceholder": "texte ou source…",
+      "pause": "Pause",
+      "time": "Heure",
+      "level": "Niveau",
+      "source": "Source",
+      "message": "Message"
+    }
+  }
+}

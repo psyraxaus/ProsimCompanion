@@ -3,146 +3,147 @@
 @using ProsimCompanion.Core.Flight
 @inherits SettingsPageBase
 @inject IOptionsMonitor<FlightStateOptions> Monitor
+@inject IStringLocalizer T
 
-<PageTitle>Flight Phase — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Flight Phase settings</h1>
+<PageTitle>@T["flightPhase.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["flightPhase.heading"]</h1>
 
 <div class="panel" style="padding-bottom:96px;">
 
-    <Section Title="Speeds" Hint="Applies live, no restart. Defaults are the values proven on the 2026-08 flight tests — change them with a replayed recording that shows why.">
-        <NumberField Label="Take-off roll hold above" Suffix="kt" Min="0"
-                     Hint="Above this IAS the roll is kept even if take-off thrust momentarily reads unset (FLEX detent bounce)"
+    <Section Title="@T["flightPhase.speeds.title"]" Hint="@T["flightPhase.speeds.hint"]">
+        <NumberField Label="@T["flightPhase.speeds.takeoffRollHold.label"]" Suffix="kt" Min="0"
+                     Hint="@T["flightPhase.speeds.takeoffRollHold.hint"]"
                      @bind-Value="_o.Value.TaxiSpeedMaxKt"
                      Default="_o.Defaults.TaxiSpeedMaxKt" />
-        <NumberField Label="Rollout complete below" Suffix="kt" Min="0"
-                     Hint="Landing rollout becomes Taxi In once IAS drops below this"
+        <NumberField Label="@T["flightPhase.speeds.rolloutComplete.label"]" Suffix="kt" Min="0"
+                     Hint="@T["flightPhase.speeds.rolloutComplete.hint"]"
                      @bind-Value="_o.Value.RolloutCompleteKt"
                      Default="_o.Defaults.RolloutCompleteKt" />
-        <NumberField Label="Pushback max ground speed" Suffix="kt" Min="0"
-                     Hint="Beacon + APU above this ground speed is a taxi, not a push"
+        <NumberField Label="@T["flightPhase.speeds.pushbackMax.label"]" Suffix="kt" Min="0"
+                     Hint="@T["flightPhase.speeds.pushbackMax.hint"]"
                      @bind-Value="_o.Value.PushbackMaxGroundSpeedKt"
                      Default="_o.Defaults.PushbackMaxGroundSpeedKt" />
-        <NumberField Label="Parked below" Suffix="kt" Min="0"
-                     Hint="Ground speed below which the aircraft counts as stopped (hardware cockpits idle at 1–2 kt)"
+        <NumberField Label="@T["flightPhase.speeds.parkedBelow.label"]" Suffix="kt" Min="0"
+                     Hint="@T["flightPhase.speeds.parkedBelow.hint"]"
                      @bind-Value="_o.Value.ParkedGroundSpeedKt"
                      Default="_o.Defaults.ParkedGroundSpeedKt" />
     </Section>
 
-    <Section Title="Vertical">
-        <NumberField Label="Initial climb ceiling" Suffix="ft RA" Min="0"
-                     Hint="Below this radio altitude a departure stays Initial Climb"
+    <Section Title="@T["flightPhase.vertical.title"]">
+        <NumberField Label="@T["flightPhase.vertical.initialClimb.label"]" Suffix="ft RA" Min="0"
+                     Hint="@T["flightPhase.vertical.initialClimb.hint"]"
                      @bind-Value="_o.Value.InitialClimbCeilingRaFt"
                      Default="_o.Defaults.InitialClimbCeilingRaFt" />
-        <NumberField Label="Level flight band" Suffix="fpm" Min="0"
-                     Hint="|VS| below this is level; above it a climb"
+        <NumberField Label="@T["flightPhase.vertical.levelBand.label"]" Suffix="fpm" Min="0"
+                     Hint="@T["flightPhase.vertical.levelBand.hint"]"
                      @bind-Value="_o.Value.ClimbDescentVsFpm"
                      Default="_o.Defaults.ClimbDescentVsFpm" />
-        <NumberField Label="Approach ceiling" Suffix="ft RA" Min="0"
-                     Hint="Descending (or gear-down level) below this radio altitude is Approach"
+        <NumberField Label="@T["flightPhase.vertical.approachCeiling.label"]" Suffix="ft RA" Min="0"
+                     Hint="@T["flightPhase.vertical.approachCeiling.hint"]"
                      @bind-Value="_o.Value.ApproachRaCeilingFt"
                      Default="_o.Defaults.ApproachRaCeilingFt" />
-        <NumberField Label="Go-around climb rate" Suffix="fpm" Min="0"
-                     Hint="Leaving Approach upward needs at least this VS — a level-off blip must not read as a go-around"
+        <NumberField Label="@T["flightPhase.vertical.goAroundRate.label"]" Suffix="fpm" Min="0"
+                     Hint="@T["flightPhase.vertical.goAroundRate.hint"]"
                      @bind-Value="_o.Value.GoAroundVsFpm"
                      Default="_o.Defaults.GoAroundVsFpm" />
-        <NumberField Label="Descent entry rate" Suffix="fpm" Min="0"
-                     Hint="Entering Descent needs a sink rate at least this decisive"
+        <NumberField Label="@T["flightPhase.vertical.descentEntry.label"]" Suffix="fpm" Min="0"
+                     Hint="@T["flightPhase.vertical.descentEntry.hint"]"
                      @bind-Value="_o.Value.DescentEntryVsFpm"
                      Default="_o.Defaults.DescentEntryVsFpm" />
-        <NumberField Label="Descent exit rate" Suffix="fpm" Min="0"
-                     Hint="Once descending, a segment shallower than this still counts as descent"
+        <NumberField Label="@T["flightPhase.vertical.descentExit.label"]" Suffix="fpm" Min="0"
+                     Hint="@T["flightPhase.vertical.descentExit.hint"]"
                      @bind-Value="_o.Value.DescentExitVsFpm"
                      Default="_o.Defaults.DescentExitVsFpm" />
     </Section>
 
-    <Section Title="Cruise gate" Hint="Level flight only reads as Cruise near the FMS cruise altitude (a SID level-off is not cruise)">
-        <NumberField Label="Tolerance below FMS cruise" Suffix="ft" Min="0"
+    <Section Title="@T["flightPhase.cruise.title"]" Hint="@T["flightPhase.cruise.hint"]">
+        <NumberField Label="@T["flightPhase.cruise.tolerance.label"]" Suffix="ft" Min="0"
                      @bind-Value="_o.Value.CruiseLevelToleranceFt"
                      Default="_o.Defaults.CruiseLevelToleranceFt" />
-        <NumberField Label="Floor without FMS cruise" Suffix="ft" Min="0"
-                     Hint="With no cruise altitude entered, level flight must be above this"
+        <NumberField Label="@T["flightPhase.cruise.floor.label"]" Suffix="ft" Min="0"
+                     Hint="@T["flightPhase.cruise.floor.hint"]"
                      @bind-Value="_o.Value.CruiseFloorNoFmsFt"
                      Default="_o.Defaults.CruiseFloorNoFmsFt" />
     </Section>
 
-    <Section Title="Ground and turnaround">
-        <NumberField Label="Ground contact agreement" Suffix="samples" Min="1" Step="1"
-                     Hint="Consecutive samples (250 ms each) the on-ground flag must agree before ground/air flips; 1 disables the filter"
+    <Section Title="@T["flightPhase.ground.title"]">
+        <NumberField Label="@T["flightPhase.ground.agreement.label"]" Suffix="samples" Min="1" Step="1"
+                     Hint="@T["flightPhase.ground.agreement.hint"]"
                      @bind-Value="_o.Value.GroundContactAgreeSamples"
                      Default="_o.Defaults.GroundContactAgreeSamples" />
-        <NumberField Label="Turnaround hold" Suffix="s" Min="0"
-                     Hint="After deboarding completes, parked (engines off, brake set, beacon off) for this long goes Shutdown → Preflight without a cold-and-dark reset"
+        <NumberField Label="@T["flightPhase.ground.turnaround.label"]" Suffix="s" Min="0"
+                     Hint="@T["flightPhase.ground.turnaround.hint"]"
                      @bind-Value="_o.Value.TurnaroundHoldSeconds"
                      Default="_o.Defaults.TurnaroundHoldSeconds" />
-        <NumberField Label="Heartbeat log interval" Suffix="s" Min="0"
-                     Hint="A 'still thinking' log line while live; 0 disables"
+        <NumberField Label="@T["flightPhase.ground.heartbeat.label"]" Suffix="s" Min="0"
+                     Hint="@T["flightPhase.ground.heartbeat.hint"]"
                      @bind-Value="_o.Value.HeartbeatSeconds"
                      Default="_o.Defaults.HeartbeatSeconds" />
     </Section>
 
-    <Section Title="MSFS pause" Hint="Escape in MSFS leaves the flight session for a moment. Within the grace, with the aircraft where it was, the phase and its latches are kept and 'Flight live' simply goes off and on again; longer, or a respawn, resets the phase like leaving to the menu.">
-        <NumberField Label="Pause grace" Suffix="s" Min="0"
-                     Hint="How long the session may be away (with MSFS's pause flag set) before it counts as a real session end; 0 resets at once"
+    <Section Title="@T["flightPhase.pause.title"]" Hint="@T["flightPhase.pause.hint"]">
+        <NumberField Label="@T["flightPhase.pause.grace.label"]" Suffix="s" Min="0"
+                     Hint="@T["flightPhase.pause.grace.hint"]"
                      @bind-Value="_o.Value.PauseGraceSeconds"
                      Default="_o.Defaults.PauseGraceSeconds" />
-        <NumberField Label="Same position within" Suffix="m" Min="0"
-                     Hint="On resume the aircraft must be this close to where it was; farther is a respawn"
+        <NumberField Label="@T["flightPhase.pause.position.label"]" Suffix="m" Min="0"
+                     Hint="@T["flightPhase.pause.position.hint"]"
                      @bind-Value="_o.Value.PauseSamePositionMetres"
                      Default="_o.Defaults.PauseSamePositionMetres" />
-        <NumberField Label="Same fuel within" Suffix="kg" Min="0"
-                     Hint="On resume the fuel on board must be this close to the pre-pause figure; a bigger jump is a reload"
+        <NumberField Label="@T["flightPhase.pause.fuel.label"]" Suffix="kg" Min="0"
+                     Hint="@T["flightPhase.pause.fuel.hint"]"
                      @bind-Value="_o.Value.PauseSameFuelKg"
                      Default="_o.Defaults.PauseSameFuelKg" />
     </Section>
 
-    <Section Title="Settle times" Hint="How long a transition's evidence must persist before it commits">
-        <NumberField Label="Default" Suffix="s" Min="0" @bind-Value="_o.Value.DefaultDebounceSeconds"
+    <Section Title="@T["flightPhase.settle.title"]" Hint="@T["flightPhase.settle.hint"]">
+        <NumberField Label="@T["flightPhase.settle.default"]" Suffix="s" Min="0" @bind-Value="_o.Value.DefaultDebounceSeconds"
                      Default="_o.Defaults.DefaultDebounceSeconds" />
-        <NumberField Label="Enter Cruise" Suffix="s" Min="0" @bind-Value="_o.Value.CruiseSettleSeconds"
+        <NumberField Label="@T["flightPhase.settle.enterCruise"]" Suffix="s" Min="0" @bind-Value="_o.Value.CruiseSettleSeconds"
                      Default="_o.Defaults.CruiseSettleSeconds" />
-        <NumberField Label="Descent → Cruise" Suffix="s" Min="0"
-                     Hint="Level segments of a step descent must not flip-flop"
+        <NumberField Label="@T["flightPhase.settle.descentToCruise.label"]" Suffix="s" Min="0"
+                     Hint="@T["flightPhase.settle.descentToCruise.hint"]"
                      @bind-Value="_o.Value.DescentToCruiseSettleSeconds"
                      Default="_o.Defaults.DescentToCruiseSettleSeconds" />
-        <NumberField Label="Cruise → Climb" Suffix="s" Min="0"
-                     Hint="A VS blip at cruise is turbulence; a step climb sustains"
+        <NumberField Label="@T["flightPhase.settle.cruiseToClimb.label"]" Suffix="s" Min="0"
+                     Hint="@T["flightPhase.settle.cruiseToClimb.hint"]"
                      @bind-Value="_o.Value.CruiseToClimbSettleSeconds"
                      Default="_o.Defaults.CruiseToClimbSettleSeconds" />
-        <NumberField Label="Descent → Climb" Suffix="s" Min="0"
-                     Hint="A level-off in the descent wobbles upward for a few seconds; a climb-back on ATC instruction sustains"
+        <NumberField Label="@T["flightPhase.settle.descentToClimb.label"]" Suffix="s" Min="0"
+                     Hint="@T["flightPhase.settle.descentToClimb.hint"]"
                      @bind-Value="_o.Value.DescentToClimbSettleSeconds"
                      Default="_o.Defaults.DescentToClimbSettleSeconds" />
-        <NumberField Label="Go-around" Suffix="s" Min="0" @bind-Value="_o.Value.GoAroundSettleSeconds"
+        <NumberField Label="@T["flightPhase.settle.goAround"]" Suffix="s" Min="0" @bind-Value="_o.Value.GoAroundSettleSeconds"
                      Default="_o.Defaults.GoAroundSettleSeconds" />
-        <NumberField Label="Departure regression" Suffix="s" Min="0"
-                     Hint="Walking Pushback/Taxi Out/Take-off Roll back to Preflight needs sustained contradiction"
+        <NumberField Label="@T["flightPhase.settle.departureRegression.label"]" Suffix="s" Min="0"
+                     Hint="@T["flightPhase.settle.departureRegression.hint"]"
                      @bind-Value="_o.Value.DepartureRegressionSeconds"
                      Default="_o.Defaults.DepartureRegressionSeconds" />
-        <NumberField Label="First airborne classification" Suffix="s" Min="0"
-                     Hint="A session whose first classification is a flight phase (mid-flight restart or warm-up garbage) must sustain this long"
+        <NumberField Label="@T["flightPhase.settle.firstAirborne.label"]" Suffix="s" Min="0"
+                     Hint="@T["flightPhase.settle.firstAirborne.hint"]"
                      @bind-Value="_o.Value.FirstAirborneClassificationSeconds"
                      Default="_o.Defaults.FirstAirborneClassificationSeconds" />
     </Section>
 
-    <Section Title="Flight recorder" Hint="Compact per-second samples in the session log so any flight can be replayed through the phase engine offline (see docs/agents/flight-verification.md)">
-        <BoolField Label="Record flight samples" @bind-Value="_o.Value.RecordSamples" />
-        <NumberField Label="Sample interval" Suffix="s" Min="0.25" Step="0.25" @bind-Value="_o.Value.SampleIntervalSeconds"
+    <Section Title="@T["flightPhase.recorder.title"]" Hint="@T["flightPhase.recorder.hint"]">
+        <BoolField Label="@T["flightPhase.recorder.record"]" @bind-Value="_o.Value.RecordSamples" />
+        <NumberField Label="@T["flightPhase.recorder.interval"]" Suffix="s" Min="0.25" Step="0.25" @bind-Value="_o.Value.SampleIntervalSeconds"
                      Default="_o.Defaults.SampleIntervalSeconds" />
-        <NumberField Label="Keep-alive" Suffix="s" Min="1"
-                     Hint="Unchanged samples are skipped; one is still written at least this often"
+        <NumberField Label="@T["flightPhase.recorder.keepAlive.label"]" Suffix="s" Min="1"
+                     Hint="@T["flightPhase.recorder.keepAlive.hint"]"
                      @bind-Value="_o.Value.SampleKeepAliveSeconds"
                      Default="_o.Defaults.SampleKeepAliveSeconds" />
     </Section>
 
-    <Section Title="Rule table" Hint="Evaluation order, first match wins. 'hold' keeps the current phase. Read-only — the rules live in code; the thresholds above feed them.">
+    <Section Title="@T["flightPhase.rules.title"]" Hint="@T["flightPhase.rules.hint"]">
         <div style="overflow-x:auto;">
             <table class="rule-table" style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
                     <tr>
-                        <th style="text-align:left; padding:4px 6px;">Set</th>
-                        <th style="text-align:left; padding:4px 6px;">Rule</th>
-                        <th style="text-align:left; padding:4px 6px;">From</th>
-                        <th style="text-align:left; padding:4px 6px;">To</th>
+                        <th style="text-align:left; padding:4px 6px;">@T["flightPhase.rules.set"]</th>
+                        <th style="text-align:left; padding:4px 6px;">@T["flightPhase.rules.rule"]</th>
+                        <th style="text-align:left; padding:4px 6px;">@T["flightPhase.rules.from"]</th>
+                        <th style="text-align:left; padding:4px 6px;">@T["flightPhase.rules.to"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -152,7 +153,7 @@
                             <td style="padding:3px 6px; white-space:nowrap;">@set</td>
                             <td style="padding:3px 6px; white-space:nowrap;"><code>@rule.Id</code></td>
                             <td style="padding:3px 6px;">@FromText(rule)</td>
-                            <td style="padding:3px 6px; white-space:nowrap;">@(rule.To?.ToString() ?? "hold")</td>
+                            <td style="padding:3px 6px; white-space:nowrap;">@(rule.To?.ToString() ?? T["flightPhase.rules.hold"].Value)</td>
                         </tr>
                     }
                 </tbody>
@@ -171,12 +172,14 @@
 @code {
     private OptionsDraft<FlightStateOptions> _o = default!;
 
-    private static IEnumerable<(string Set, PhaseRule Rule)> Rules =>
-        FlightPhaseRules.Ground.Select(r => ("Ground", r))
-            .Concat(FlightPhaseRules.Airborne.Select(r => ("Airborne", r)));
+    // The phase names in the From/To columns are the FlightPhase enum members, as the log and
+    // the probes name them — only the set labels and the "any"/"hold" words are pack text.
+    private IEnumerable<(string Set, PhaseRule Rule)> Rules =>
+        FlightPhaseRules.Ground.Select(r => (T["flightPhase.rules.ground"].Value, r))
+            .Concat(FlightPhaseRules.Airborne.Select(r => (T["flightPhase.rules.airborne"].Value, r)));
 
-    private static string FromText(PhaseRule rule)
-        => rule.From is null ? "any" : string.Join(", ", rule.From.OrderBy(p => (int)p));
+    private string FromText(PhaseRule rule)
+        => rule.From is null ? T["flightPhase.rules.any"].Value : string.Join(", ", rule.From.OrderBy(p => (int)p));
 
     protected override void OnInitialized()
     {

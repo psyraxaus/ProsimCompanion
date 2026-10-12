@@ -1,0 +1,63 @@
+{
+  "logs": {
+    "pageTitle": "Logboeken — ProsimCompanion",
+    "heading": "Logboeken",
+    "capture": {
+      "title": "Vastleggen",
+      "hint": "Wat wordt opgenomen — werkt direct, geen herstart",
+      "level": "Vastlegniveau",
+      "wireTrace": {
+        "label": "Wire trace",
+        "hint": "Ruwe GSX-/gateway-frames naar een apart CMTrace-bestand"
+      },
+      "mirror": {
+        "label": "Spiegelen naar sessielogboek",
+        "hint": "Kopieert waarschuwingen en fouten naar het sessie-gebeurtenisbestand, in volgorde met de vluchtgebeurtenissen, zodat één bestand het hele verhaal vertelt",
+        "warningAndAbove": "Waarschuwingen en fouten",
+        "errorAndAbove": "Alleen fouten",
+        "off": "Uit"
+      },
+      "telemetry": {
+        "label": "Telemetrie-API",
+        "hint": "Alleen-lezen: levert sessie-gebeurtenislogboeken en logstaarten via de webserver voor controles na de vlucht. Andere apparaten hebben het toegangstoken nodig"
+      },
+      "totals": "Sessietotalen — waarschuwingen: {0} · fouten: {1}.",
+      "filesBefore": "De roulerende bestanden in",
+      "filesAfter": "zijn in CMTrace-formaat om live mee te lezen in CMTrace."
+    },
+    "support": {
+      "title": "Ondersteuning",
+      "hint": "Eén zip met alles wat een bugrapport nodig heeft",
+      "sessions": {
+        "label": "Sessiebestanden",
+        "hint": "Nieuwste sessie-gebeurtenislogboeken om op te nemen"
+      },
+      "days": {
+        "label": "Logdagen",
+        "hint": "Nieuwste dagelijkse app-logboeken om op te nemen"
+      },
+      "wire": {
+        "label": "Wire trace meenemen",
+        "hint": "Ruwe GSX-/gateway-frames voor dezelfde dagen — groot; alleen als erom gevraagd wordt"
+      },
+      "export": "Diagnostiek exporteren",
+      "copyVersion": "Versie kopiëren",
+      "copied": "Gekopieerd",
+      "copyFailed": "Kopiëren mislukt",
+      "bundleBefore": "De bundel bevat de nieuwste sessie-gebeurtenislogboeken, de app-logboeken, een kopie van settings.json met elke sleutel en elk token weggelakt, en de versiebanner, met een manifest van bestandshashes. Voeg hem toe aan een GitHub-issue op psyraxaus/ProsimCompanion; \"Versie kopiëren\" zet",
+      "bundleAfter": "op het klembord voor de issuetekst."
+    },
+    "log": {
+      "title": "Logboek",
+      "hint": "Weergavefilter van vastgelegde regels",
+      "minLevel": "Min. niveau",
+      "text": "Tekst",
+      "filterPlaceholder": "tekst of bron…",
+      "pause": "Pauze",
+      "time": "Tijd",
+      "level": "Niveau",
+      "source": "Bron",
+      "message": "Bericht"
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "notifications": {
+    "pageTitle": "Notifications — ProsimCompanion",
+    "heading": "Notifications",
+    "main": {
+      "title": "Notifications",
+      "hint": "Un court message vers ton téléphone ou un webhook aux étapes clés du vol",
+      "enabled": {
+        "label": "Envoyer des notifications",
+        "hint": "Désactivé : rien ne quitte ce PC. Activé : chaque cible ci-dessous reçoit les étapes qu'elle a cochées.",
+        "more": "Étapes : avitaillement terminé · embarquement terminé · loadsheet final envoyé · prêt au pushback · cabine sécurisée · holdover de dégivrage bientôt expiré · top of descent proche · atterri · aux cales · débarquement terminé. Chacune se déclenche une fois par vol ; un loadsheet final révisé se déclenche de nouveau. Une cible lente ou morte ne retarde jamais l'automatisation au sol ni le copilote — les envois tournent en arrière-plan avec une limite de 5 secondes, et une cible en échec est laissée tranquille une minute."
+      },
+      "cooldown": {
+        "label": "Pause après échec",
+        "hint": "Combien de temps une cible est laissée tranquille après un envoi échoué."
+      },
+      "timeout": {
+        "label": "Délai d'envoi",
+        "hint": "Par envoi. Un service lent est considéré en échec passé ce délai."
+      },
+      "holdover": {
+        "label": "Avertissement holdover",
+        "hint": "Minutes de holdover de dégivrage restantes quand 'holdover bientôt expiré' est envoyé."
+      }
+    },
+    "target": {
+      "defaultTitle": "Cible {0}",
+      "status": "État",
+      "removeTitle": "Retirer cette cible",
+      "remove": "Retirer",
+      "name": {
+        "label": "Nom",
+        "hint": "Ton libellé — ce que le journal et la ligne de résultat affichent.",
+        "placeholder": "Mon téléphone"
+      },
+      "kind": {
+        "label": "Type",
+        "hint": "ntfy = un topic sur ntfy.sh ou ton propre serveur. Discord = un webhook de salon. Webhook = toute adresse https qui accepte un POST JSON (schéma dans docs/integrations/notifications.md)."
+      },
+      "url": {
+        "label": "URL"
+      },
+      "token": {
+        "label": "Jeton Bearer",
+        "hint": "Facultatif. Envoyé comme 'Authorization: Bearer …'. Stocké chiffré sur ce PC ; jamais journalisé."
+      },
+      "events": {
+        "label": "Événements",
+        "hint": "Quelles étapes cette cible reçoit.",
+        "refuelComplete": "Avitaillement terminé",
+        "boardingComplete": "Embarquement terminé",
+        "finalLoadsheetSent": "Loadsheet final envoyé",
+        "readyForPushback": "Prêt au pushback",
+        "cabinSecure": "Cabine sécurisée",
+        "deiceHoldoverExpiring": "Holdover de dégivrage bientôt expiré",
+        "topOfDescentApproaching": "Top of descent proche",
+        "landed": "Atterri",
+        "onBlocks": "Aux cales",
+        "deboardingComplete": "Débarquement terminé"
+      },
+      "test": {
+        "label": "Envoyer un test",
+        "hint": "Un message de test vers cette cible maintenant, avec les valeurs ci-dessus (enregistre d'abord si tu les as changées). Fonctionne même avec les notifications désactivées.",
+        "sending": "Envoi…",
+        "send": "Envoyer un test"
+      },
+      "neverSent": "JAMAIS ENVOYÉ",
+      "ok": "OK",
+      "failed": "ÉCHEC"
+    },
+    "kindHint": {
+      "ntfy": "Topic ntfy — l'application du téléphone s'y abonne",
+      "discord": "Webhook de salon Discord",
+      "webhook": "POST JSON vers ton propre point de terminaison"
+    },
+    "urlHint": {
+      "ntfy": "L'URL complète du topic. Traite-la comme un secret — quiconque la possède peut lire ou publier ; stockée chiffrée.",
+      "discord": "L'URL du webhook du salon depuis Discord → Paramètres du salon → Intégrations. Elle porte son propre secret ; stockée chiffrée.",
+      "webhook": "Une adresse https qui accepte un POST JSON. Stockée chiffrée."
+    },
+    "empty": {
+      "title": "Cibles",
+      "hint": "Où vont les messages",
+      "text": "Pas encore de cible — ajoute le topic ntfy de ton téléphone ou un webhook."
+    },
+    "add": "Ajouter une cible"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "notifications": {
+    "pageTitle": "Notifications — ProsimCompanion",
+    "heading": "Notifications",
+    "main": {
+      "title": "Notifications",
+      "hint": "A short message to your phone or a webhook at the flight's milestones",
+      "enabled": {
+        "label": "Send notifications",
+        "hint": "Off: nothing leaves this PC. On: each target below gets the milestones it has ticked.",
+        "more": "Milestones: refuel complete · boarding complete · final loadsheet sent · ready for pushback · cabin secure · deice holdover expiring · top of descent approaching · landed · on blocks · deboarding complete. Each fires once per flight; a revised final loadsheet fires again. A slow or dead target never delays the ground automation or the First Officer — sends run in the background with a 5 second limit, and a failing target is left alone for a minute."
+      },
+      "cooldown": {
+        "label": "Failure cooldown",
+        "hint": "How long a target is left alone after a failed send."
+      },
+      "timeout": {
+        "label": "Send timeout",
+        "hint": "Per send. A slow service is treated as failed after this."
+      },
+      "holdover": {
+        "label": "Holdover warning",
+        "hint": "Minutes of deice holdover time left when 'holdover expiring' is sent."
+      }
+    },
+    "target": {
+      "defaultTitle": "Target {0}",
+      "status": "Status",
+      "removeTitle": "Remove this target",
+      "remove": "Remove",
+      "name": {
+        "label": "Name",
+        "hint": "Your label for it — what the log and the result line show.",
+        "placeholder": "My phone"
+      },
+      "kind": {
+        "label": "Kind",
+        "hint": "ntfy = a topic on ntfy.sh or your own server. Discord = a channel webhook. Webhook = any https address that takes a JSON POST (schema in docs/integrations/notifications.md)."
+      },
+      "url": {
+        "label": "URL"
+      },
+      "token": {
+        "label": "Bearer token",
+        "hint": "Optional. Sent as 'Authorization: Bearer …'. Stored encrypted on this PC; never logged."
+      },
+      "events": {
+        "label": "Events",
+        "hint": "Which milestones this target gets.",
+        "refuelComplete": "Refuel complete",
+        "boardingComplete": "Boarding complete",
+        "finalLoadsheetSent": "Final loadsheet sent",
+        "readyForPushback": "Ready for pushback",
+        "cabinSecure": "Cabin secure",
+        "deiceHoldoverExpiring": "Deice holdover expiring",
+        "topOfDescentApproaching": "Top of descent approaching",
+        "landed": "Landed",
+        "onBlocks": "On blocks",
+        "deboardingComplete": "Deboarding complete"
+      },
+      "test": {
+        "label": "Send test",
+        "hint": "One test message to this target now, with the values above (save first if you changed them). Works with notifications off.",
+        "sending": "Sending…",
+        "send": "Send test"
+      },
+      "neverSent": "NEVER SENT",
+      "ok": "OK",
+      "failed": "FAILED"
+    },
+    "kindHint": {
+      "ntfy": "ntfy topic — the phone app subscribes to it",
+      "discord": "Discord channel webhook",
+      "webhook": "JSON POST to your own endpoint"
+    },
+    "urlHint": {
+      "ntfy": "The full topic URL. Treat it as a secret — anyone with it can read or post; stored encrypted.",
+      "discord": "The channel's webhook URL from Discord → Channel settings → Integrations. It carries its own secret; stored encrypted.",
+      "webhook": "An https address that accepts a JSON POST. Stored encrypted."
+    },
+    "empty": {
+      "title": "Targets",
+      "hint": "Where the messages go",
+      "text": "No targets yet — add your phone's ntfy topic or a webhook."
+    },
+    "add": "Add target"
+  }
+}

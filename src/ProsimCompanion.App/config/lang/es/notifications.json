@@ -1,0 +1,88 @@
+{
+  "notifications": {
+    "pageTitle": "Notificaciones — ProsimCompanion",
+    "heading": "Notificaciones",
+    "main": {
+      "title": "Notificaciones",
+      "hint": "Un mensaje corto a tu teléfono o a un webhook en los hitos del vuelo",
+      "enabled": {
+        "label": "Enviar notificaciones",
+        "hint": "Desactivado: nada sale de este PC. Activado: cada destino de abajo recibe los hitos que tenga marcados.",
+        "more": "Hitos: repostaje completo · embarque completo · loadsheet final enviado · listo para pushback · cabina asegurada · holdover de deshielo a punto de expirar · top of descent próximo · aterrizado · en calzos · desembarque completo. Cada uno se dispara una vez por vuelo; un loadsheet final revisado se dispara de nuevo. Un destino lento o caído nunca retrasa la automatización de tierra ni al primer oficial — los envíos corren en segundo plano con un límite de 5 segundos, y un destino que falla se deja en paz durante un minuto."
+      },
+      "cooldown": {
+        "label": "Enfriamiento tras fallo",
+        "hint": "Cuánto tiempo se deja en paz un destino tras un envío fallido."
+      },
+      "timeout": {
+        "label": "Tiempo límite de envío",
+        "hint": "Por envío. Un servicio lento se considera fallido pasado este tiempo."
+      },
+      "holdover": {
+        "label": "Aviso de holdover",
+        "hint": "Minutos de holdover de deshielo restantes cuando se envía 'holdover a punto de expirar'."
+      }
+    },
+    "target": {
+      "defaultTitle": "Destino {0}",
+      "status": "Estado",
+      "removeTitle": "Quitar este destino",
+      "remove": "Quitar",
+      "name": {
+        "label": "Nombre",
+        "hint": "Tu etiqueta para él — lo que muestran el registro y la línea de resultado.",
+        "placeholder": "Mi teléfono"
+      },
+      "kind": {
+        "label": "Tipo",
+        "hint": "ntfy = un topic en ntfy.sh o en tu propio servidor. Discord = un webhook de canal. Webhook = cualquier dirección https que acepte un POST JSON (esquema en docs/integrations/notifications.md)."
+      },
+      "url": {
+        "label": "URL"
+      },
+      "token": {
+        "label": "Token Bearer",
+        "hint": "Opcional. Se envía como 'Authorization: Bearer …'. Guardado cifrado en este PC; nunca registrado."
+      },
+      "events": {
+        "label": "Eventos",
+        "hint": "Qué hitos recibe este destino.",
+        "refuelComplete": "Repostaje completo",
+        "boardingComplete": "Embarque completo",
+        "finalLoadsheetSent": "Loadsheet final enviado",
+        "readyForPushback": "Listo para pushback",
+        "cabinSecure": "Cabina asegurada",
+        "deiceHoldoverExpiring": "Holdover de deshielo a punto de expirar",
+        "topOfDescentApproaching": "Top of descent próximo",
+        "landed": "Aterrizado",
+        "onBlocks": "En calzos",
+        "deboardingComplete": "Desembarque completo"
+      },
+      "test": {
+        "label": "Enviar prueba",
+        "hint": "Un mensaje de prueba a este destino ahora, con los valores de arriba (guarda primero si los has cambiado). Funciona con las notificaciones desactivadas.",
+        "sending": "Enviando…",
+        "send": "Enviar prueba"
+      },
+      "neverSent": "NUNCA ENVIADO",
+      "ok": "OK",
+      "failed": "FALLIDO"
+    },
+    "kindHint": {
+      "ntfy": "Topic de ntfy — la app del teléfono se suscribe a él",
+      "discord": "Webhook de canal de Discord",
+      "webhook": "POST JSON a tu propio endpoint"
+    },
+    "urlHint": {
+      "ntfy": "La URL completa del topic. Trátala como un secreto — cualquiera que la tenga puede leer o publicar; guardada cifrada.",
+      "discord": "La URL del webhook del canal, desde Discord → Ajustes del canal → Integraciones. Lleva su propio secreto; guardada cifrada.",
+      "webhook": "Una dirección https que acepte un POST JSON. Guardada cifrada."
+    },
+    "empty": {
+      "title": "Destinos",
+      "hint": "Adónde van los mensajes",
+      "text": "Aún no hay destinos — añade el topic de ntfy de tu teléfono o un webhook."
+    },
+    "add": "Añadir destino"
+  }
+}

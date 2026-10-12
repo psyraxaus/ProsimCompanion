@@ -2,11 +2,12 @@
    former standalone /audio page). *@
 @inherits StoreObserverComponent
 @inject AudioStatusStore Status
+@inject IStringLocalizer T
 
-<Section Title="Volume Control" Hint="ACP knobs / REC latches → app volumes">
+<Section Title="@T["audioSettings.status.title"]" Hint="@T["audioSettings.status.hint"]">
     <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
         <span class="pill @(_view.Enabled ? "tone-ok" : "tone-neutral")">
-            @(_view.Enabled ? "Enabled" : "Disabled")
+            @(_view.Enabled ? T["audioSettings.status.enabled"].Value : T["audioSettings.status.disabled"].Value)
         </span>
         <span class="pill tone-active">
             @(_view.ActiveBackend == AudioBackend.VoiceMeeter ? "VoiceMeeter" : "CoreAudio")
@@ -14,40 +15,38 @@
         @if (_view.ActiveBackend == AudioBackend.VoiceMeeter)
         {
             <span class="pill @(_view.VoiceMeeterAvailable ? "tone-ok" : "tone-warn")">
-                @(_view.VoiceMeeterAvailable ? "VoiceMeeter linked" : "VoiceMeeter not reachable")
+                @(_view.VoiceMeeterAvailable ? T["audioSettings.status.voiceMeeterLinked"].Value : T["audioSettings.status.voiceMeeterNotReachable"].Value)
             </span>
         }
         @foreach (var acp in Enum.GetValues<AcpSide>())
         {
             var powered = _view.AcpPowered.TryGetValue(acp, out var p) && p;
             <span class="pill @(powered ? "tone-ok" : "tone-neutral")"
-                  title="@(powered ? "Powered — knob changes apply" : "Unpowered — knob changes held")">
-                @AudioPresentation.AcpLabel(acp) @(powered ? "PWR" : "OFF")
+                  title="@(powered ? T["audioSettings.status.poweredTitle"].Value : T["audioSettings.status.unpoweredTitle"].Value)">
+                @AudioPresentation.AcpLabel(acp) @(powered ? T["audioSettings.status.powered"].Value : T["audioSettings.status.unpowered"].Value)
             </span>
         }
     </div>
     @if (_view.VoiceMeeterFallbackReason.Length > 0)
     {
         <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">
-            Mapping conflict: @_view.VoiceMeeterFallbackReason
+            @T["audioSettings.status.mappingConflict", _view.VoiceMeeterFallbackReason]
         </div>
     }
     @if (_elevatedBinaries.Count > 0)
     {
         <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">
-            Elevated process(es) detected: @string.Join(", ", _elevatedBinaries).
-            Run ProsimCompanion as administrator to control these apps — until then those
-            mappings stay inactive.
+            @T["audioSettings.status.elevated", string.Join(", ", _elevatedBinaries)]
         </div>
     }
 </Section>
 
 @if (_view.ActiveBackend == AudioBackend.CoreAudio)
 {
-    <Section Title="App Mappings" Hint="Live session state per mapped process">
+    <Section Title="@T["audioSettings.status.appMappings.title"]" Hint="@T["audioSettings.status.appMappings.hint"]">
         @if (_view.Mappings.Count == 0)
         {
-            <div class="empty">No app mappings configured — <a href="settings/audio/coreaudio">add them in the CoreAudio section</a>.</div>
+            <div class="empty">@T["audioSettings.status.appMappings.emptyBefore"] <a href="settings/audio/coreaudio">@T["audioSettings.status.appMappings.emptyLink"]</a>@T["audioSettings.status.appMappings.emptyAfter"]</div>
         }
         else
         {
@@ -55,22 +54,22 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Process</th><th>Channel</th><th>Device</th>
-                            <th>State</th><th>Sessions</th><th>Volume</th><th>Muted</th>
+                            <th>@T["audioSettings.status.appMappings.process"]</th><th>@T["audioSettings.status.appMappings.channel"]</th><th>@T["audioSettings.status.appMappings.device"]</th>
+                            <th>@T["audioSettings.status.appMappings.state"]</th><th>@T["audioSettings.status.appMappings.sessions"]</th><th>@T["audioSettings.status.appMappings.volume"]</th><th>@T["audioSettings.status.appMappings.muted"]</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var mapping in _view.Mappings)
                         {
-                            var (tone, label) = AudioPresentation.MappingState(mapping.State);
+                            var (tone, labelTextId) = AudioPresentation.MappingState(mapping.State);
                             <tr>
                                 <td class="mono">@mapping.Binary</td>
                                 <td>@AudioPresentation.ChannelLabel(mapping.Channel)</td>
-                                <td>@(mapping.Device.Length == 0 ? "All" : mapping.Device)</td>
-                                <td><span class="pill @tone">@label</span></td>
+                                <td>@(mapping.Device.Length == 0 ? T["audioSettings.status.appMappings.allDevices"].Value : mapping.Device)</td>
+                                <td><span class="pill @tone">@T[labelTextId]</span></td>
                                 <td>@mapping.SessionCount</td>
                                 <td class="mono">@(mapping.Volume is { } v ? $"{v * 100:F0} %" : "—")</td>
-                                <td>@(mapping.Muted is { } m ? (m ? "Yes" : "No") : "—")</td>
+                                <td>@(mapping.Muted is { } m ? (m ? T["audioSettings.status.appMappings.yes"].Value : T["audioSettings.status.appMappings.no"].Value) : "—")</td>
                             </tr>
                         }
                     </tbody>
@@ -81,17 +80,17 @@
 }
 else
 {
-    <Section Title="VoiceMeeter Targets" Hint="Live strip/bus state per bound channel">
+    <Section Title="@T["audioSettings.status.voiceMeeterTargets.title"]" Hint="@T["audioSettings.status.voiceMeeterTargets.hint"]">
         @if (_view.VoiceMeeterBindings.Count == 0)
         {
-            <div class="empty">No targets bound — <a href="settings/audio/voicemeeter">configure mappings in the VoiceMeeter section</a>.</div>
+            <div class="empty">@T["audioSettings.status.voiceMeeterTargets.emptyBefore"] <a href="settings/audio/voicemeeter">@T["audioSettings.status.voiceMeeterTargets.emptyLink"]</a>@T["audioSettings.status.voiceMeeterTargets.emptyAfter"]</div>
         }
         else
         {
             <div class="table-scroll">
                 <table class="data-table">
                     <thead>
-                        <tr><th>ACP</th><th>Channel</th><th>Target</th><th>Gain</th><th>Muted</th></tr>
+                        <tr><th>@T["audioSettings.status.voiceMeeterTargets.acp"]</th><th>@T["audioSettings.status.voiceMeeterTargets.channel"]</th><th>@T["audioSettings.status.voiceMeeterTargets.target"]</th><th>@T["audioSettings.status.voiceMeeterTargets.gain"]</th><th>@T["audioSettings.status.voiceMeeterTargets.muted"]</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var binding in _view.VoiceMeeterBindings)
@@ -101,7 +100,7 @@ else
                                 <td>@AudioPresentation.ChannelLabel(binding.Channel)</td>
                                 <td>@($"{(binding.IsBus ? "Bus" : "Strip")} {binding.StripIndex + 1}")</td>
                                 <td class="mono">@(binding.GainDb is { } g ? $"{g:F1} dB" : "—")</td>
-                                <td>@(binding.Muted is { } m ? (m ? "Yes" : "No") : "—")</td>
+                                <td>@(binding.Muted is { } m ? (m ? T["audioSettings.status.appMappings.yes"].Value : T["audioSettings.status.appMappings.no"].Value) : "—")</td>
                             </tr>
                         }
                     </tbody>

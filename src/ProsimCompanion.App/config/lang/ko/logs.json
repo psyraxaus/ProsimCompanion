@@ -1,0 +1,63 @@
+{
+  "logs": {
+    "pageTitle": "로그 — ProsimCompanion",
+    "heading": "로그",
+    "capture": {
+      "title": "캡처",
+      "hint": "무엇을 기록할지 — 재시작 없이 즉시 적용",
+      "level": "캡처 수준",
+      "wireTrace": {
+        "label": "와이어 트레이스",
+        "hint": "GSX / 게이트웨이 원시 프레임을 별도의 CMTrace 파일로"
+      },
+      "mirror": {
+        "label": "세션 로그에 미러링",
+        "hint": "경고와 오류를 비행 이벤트와 순서대로 세션 이벤트 파일에 복사해, 파일 하나로 전체 이야기를 볼 수 있게 합니다",
+        "warningAndAbove": "경고 및 오류",
+        "errorAndAbove": "오류만",
+        "off": "끔"
+      },
+      "telemetry": {
+        "label": "텔레메트리 API",
+        "hint": "읽기 전용: 비행 후 점검을 위해 세션 이벤트 로그와 로그 끝부분을 웹 서버로 제공합니다. 다른 기기는 액세스 토큰이 필요합니다"
+      },
+      "totals": "세션 합계 — 경고: {0} · 오류: {1}.",
+      "filesBefore": "롤링 파일은",
+      "filesAfter": "에 있으며 CMTrace에서 실시간으로 볼 수 있는 CMTrace 형식입니다."
+    },
+    "support": {
+      "title": "지원",
+      "hint": "버그 보고에 필요한 모든 것을 담은 zip 하나",
+      "sessions": {
+        "label": "세션 파일",
+        "hint": "포함할 최신 세션 이벤트 로그 수"
+      },
+      "days": {
+        "label": "로그 일수",
+        "hint": "포함할 최신 일별 앱 로그 수"
+      },
+      "wire": {
+        "label": "와이어 트레이스 포함",
+        "hint": "같은 날짜의 GSX / 게이트웨이 원시 프레임 — 용량이 크므로 요청받았을 때만"
+      },
+      "export": "진단 내보내기",
+      "copyVersion": "버전 복사",
+      "copied": "복사됨",
+      "copyFailed": "복사 실패",
+      "bundleBefore": "번들에는 최신 세션 이벤트 로그, 앱 로그, 모든 키와 토큰을 가린 settings.json 사본, 버전 배너, 그리고 파일 해시 매니페스트가 들어 있습니다. psyraxaus/ProsimCompanion의 GitHub 이슈에 첨부하세요. \"버전 복사\"는",
+      "bundleAfter": "을(를) 이슈 본문용으로 클립보드에 넣습니다."
+    },
+    "log": {
+      "title": "로그",
+      "hint": "캡처된 항목의 보기 필터",
+      "minLevel": "최소 수준",
+      "text": "텍스트",
+      "filterPlaceholder": "텍스트 또는 소스…",
+      "pause": "일시 정지",
+      "time": "시각",
+      "level": "수준",
+      "source": "소스",
+      "message": "메시지"
+    }
+  }
+}

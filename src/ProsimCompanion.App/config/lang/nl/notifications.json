@@ -1,0 +1,88 @@
+{
+  "notifications": {
+    "pageTitle": "Meldingen — ProsimCompanion",
+    "heading": "Meldingen",
+    "main": {
+      "title": "Meldingen",
+      "hint": "Een kort bericht naar je telefoon of een webhook bij de mijlpalen van de vlucht",
+      "enabled": {
+        "label": "Meldingen versturen",
+        "hint": "Uit: er verlaat niets deze pc. Aan: elk doel hieronder krijgt de mijlpalen die het heeft aangevinkt.",
+        "more": "Mijlpalen: tanken voltooid · boarding voltooid · definitieve loadsheet verzonden · gereed voor pushback · cabine gereed · de-icing-holdover verloopt · top of descent nadert · geland · on blocks · deboarding voltooid. Elke mijlpaal gaat één keer per vlucht af; een herziene definitieve loadsheet gaat opnieuw af. Een traag of dood doel vertraagt nooit de grondautomatisering of de eerste officier — verzendingen lopen op de achtergrond met een limiet van 5 seconden, en een falend doel wordt een minuut met rust gelaten."
+      },
+      "cooldown": {
+        "label": "Afkoeltijd na fout",
+        "hint": "Hoelang een doel na een mislukte verzending met rust wordt gelaten."
+      },
+      "timeout": {
+        "label": "Verzendtime-out",
+        "hint": "Per verzending. Een trage dienst geldt hierna als mislukt."
+      },
+      "holdover": {
+        "label": "Holdover-waarschuwing",
+        "hint": "Resterende minuten de-icing-holdover waarbij 'holdover verloopt' wordt verzonden."
+      }
+    },
+    "target": {
+      "defaultTitle": "Doel {0}",
+      "status": "Status",
+      "removeTitle": "Dit doel verwijderen",
+      "remove": "Verwijderen",
+      "name": {
+        "label": "Naam",
+        "hint": "Jouw label ervoor — wat het logboek en de resultaatregel tonen.",
+        "placeholder": "Mijn telefoon"
+      },
+      "kind": {
+        "label": "Soort",
+        "hint": "ntfy = een topic op ntfy.sh of je eigen server. Discord = een kanaal-webhook. Webhook = elk https-adres dat een JSON-POST accepteert (schema in docs/integrations/notifications.md)."
+      },
+      "url": {
+        "label": "URL"
+      },
+      "token": {
+        "label": "Bearer-token",
+        "hint": "Optioneel. Verzonden als 'Authorization: Bearer …'. Versleuteld opgeslagen op deze pc; nooit gelogd."
+      },
+      "events": {
+        "label": "Gebeurtenissen",
+        "hint": "Welke mijlpalen dit doel krijgt.",
+        "refuelComplete": "Tanken voltooid",
+        "boardingComplete": "Boarding voltooid",
+        "finalLoadsheetSent": "Definitieve loadsheet verzonden",
+        "readyForPushback": "Gereed voor pushback",
+        "cabinSecure": "Cabine gereed",
+        "deiceHoldoverExpiring": "De-icing-holdover verloopt",
+        "topOfDescentApproaching": "Top of descent nadert",
+        "landed": "Geland",
+        "onBlocks": "On blocks",
+        "deboardingComplete": "Deboarding voltooid"
+      },
+      "test": {
+        "label": "Test versturen",
+        "hint": "Nu één testbericht naar dit doel, met de waarden hierboven (eerst opslaan als je ze hebt gewijzigd). Werkt ook met meldingen uit.",
+        "sending": "Versturen…",
+        "send": "Test versturen"
+      },
+      "neverSent": "NOOIT VERZONDEN",
+      "ok": "OK",
+      "failed": "MISLUKT"
+    },
+    "kindHint": {
+      "ntfy": "ntfy-topic — de telefoon-app abonneert zich erop",
+      "discord": "Discord-kanaal-webhook",
+      "webhook": "JSON-POST naar je eigen eindpunt"
+    },
+    "urlHint": {
+      "ntfy": "De volledige topic-URL. Behandel hem als geheim — iedereen die hem heeft kan lezen of plaatsen; versleuteld opgeslagen.",
+      "discord": "De webhook-URL van het kanaal uit Discord → Kanaalinstellingen → Integraties. Hij draagt zijn eigen geheim; versleuteld opgeslagen.",
+      "webhook": "Een https-adres dat een JSON-POST accepteert. Versleuteld opgeslagen."
+    },
+    "empty": {
+      "title": "Doelen",
+      "hint": "Waar de berichten heen gaan",
+      "text": "Nog geen doelen — voeg het ntfy-topic van je telefoon of een webhook toe."
+    },
+    "add": "Doel toevoegen"
+  }
+}

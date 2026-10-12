@@ -1,0 +1,40 @@
+{
+  "profiles": {
+    "pageTitle": "Perfiles de aeronave — ProsimCompanion",
+    "heading": "Perfiles de aeronave",
+    "current": {
+      "title": "Aeronave actual",
+      "notConnected": "Sim no conectado — la asignación de perfiles usará los valores por defecto",
+      "titleLivery": "Título / Librea",
+      "airline": "Aerolínea",
+      "activeProfile": "Perfil activo",
+      "defaults": "— (por defecto)",
+      "manual": "MANUAL",
+      "returnToAutomatic": "Volver a la asignación automática"
+    },
+    "list": {
+      "title": "Perfiles",
+      "hint": "Comparados con la aeronave cargada en el sim. La coincidencia exacta gana a contiene; sin coincidencia se usan los valores por defecto",
+      "bannerBefore": "Un perfil guarda los ajustes de Servicios de tierra. Guardar en las páginas de",
+      "bannerLink": "Servicios de tierra",
+      "bannerAfter": "con un perfil activo los almacena en ese perfil, y vuelven la próxima vez que se cargue esa aeronave.",
+      "namePlaceholder": "Nombre del perfil",
+      "active": "ACTIVO",
+      "default": "POR DEFECTO",
+      "setActive": "Activar",
+      "clone": "Clonar",
+      "delete": "Eliminar",
+      "match": "Coincidencia",
+      "matchContains": "Título / librea (contiene)",
+      "matchExact": "Título / librea (exacto)",
+      "matchAirline": "Aerolínea (prefijo ICAO)",
+      "matchDefault": "Por defecto (respaldo)",
+      "fragmentPlaceholder": "Fragmento del título de la aeronave",
+      "matchesCurrent": "coincide con la actual",
+      "empty": "Sin perfiles — todas las aeronaves usan los ajustes por defecto.",
+      "add": "Añadir perfil",
+      "newName": "Perfil {0}",
+      "cloneName": "Clon de {0}"
+    }
+  }
+}

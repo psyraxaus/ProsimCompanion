@@ -1,0 +1,303 @@
+{
+  "audioSettings": {
+    "pageTitle": "Audio Control — ProsimCompanion",
+    "heading": "Audio Control",
+    "general": {
+      "title": "Volume Control",
+      "hint": "Audio panel knobs and latches set app volumes",
+      "backend": {
+        "label": "Backend",
+        "hint": "Windows app volumes, or VoiceMeeter strips and buses.",
+        "more": "Switching applies live. Windows volumes are restored, VoiceMeeter targets reset to 0 dB.",
+        "coreAudio": "CoreAudio (Windows app volumes)",
+        "voiceMeeter": "VoiceMeeter (strips/buses)"
+      },
+      "disableProsimNative": {
+        "label": "Disable ProSim native audio control",
+        "hint": "Turn off ProSim's own Windows volume control so the two never fight."
+      },
+      "requirePower": {
+        "label": "Only while the audio panel is powered",
+        "hint": "On: knobs and latches apply only with the panel's bus powered, like the real aircraft. Off: they always apply, like the remote mixer.",
+        "more": "Power is AC/DC ESS plus the audio switching knob for the captain, audio switching for the first officer, DC1 for the observer. Switching this applies at once: the current knob values are sent again."
+      }
+    },
+    "coreAudio": {
+      "hint": "Windows per-app volumes",
+      "acp": {
+        "label": "ACP",
+        "hint": "Which audio control panel drives the app volumes.",
+        "captain": "Captain (ACP1)",
+        "firstOfficer": "First Officer (ACP2)",
+        "observer": "Observer (ACP3)"
+      },
+      "troubleshooting": "Troubleshooting filters hidden",
+      "deviceFlow": {
+        "label": "Device-filter DataFlow",
+        "hint": "Troubleshooting only. Change when asked.",
+        "render": "Render",
+        "capture": "Capture",
+        "all": "All"
+      },
+      "deviceState": {
+        "label": "Device-filter State",
+        "hint": "Troubleshooting only. Change when asked.",
+        "active": "Active",
+        "disabled": "Disabled",
+        "notPresent": "Not present",
+        "unplugged": "Unplugged",
+        "all": "All (mask all)"
+      },
+      "debugDump": {
+        "writing": "Writing…",
+        "write": "Write Debug Info",
+        "written": "Written to {0}",
+        "failed": "Dump failed — see the app log"
+      },
+      "mappings": {
+        "title": "App Mappings",
+        "hint": "A channel may drive several processes",
+        "empty": "No app mappings configured.",
+        "channel": "Channel",
+        "process": "Process",
+        "device": "Device",
+        "latch": "Latch",
+        "active": "Active",
+        "processPlaceholder": "Process name (no .exe)",
+        "devicePlaceholder": "All devices",
+        "latchTitle": "Drive mute from the REC latch",
+        "activeTitle": "Only control active sessions",
+        "remove": "Remove",
+        "add": "Add mapping",
+        "note": "Process name without .exe, for example vPilot.",
+        "more": "More",
+        "moreBody": "Latch off: mute is never written, so an app muted elsewhere stays muted. An app run as administrator needs ProsimCompanion run as administrator too; the Status section flags them. LOUDSPEAKER is the cockpit loudspeaker dial (captain and first officer only); its Latch tick mutes the app with the dial fully down."
+      },
+      "blacklist": {
+        "title": "Device Blacklist",
+        "hint": "Matched on the start of the device name",
+        "placeholder": "Device friendly name prefix",
+        "remove": "Remove",
+        "add": "Add device"
+      }
+    },
+    "voiceMeeter": {
+      "hint": "Strips and buses through VoiceMeeter's remote API",
+      "dllPath": {
+        "label": "VoicemeeterRemote64.dll path",
+        "hint": "Empty finds the installed VoiceMeeter by itself. Set only for an unusual install folder."
+      },
+      "reload": "Reload strips",
+      "found": "{0} strips / {1} buses found",
+      "notReachable": "VoiceMeeter not reachable — generic strip/bus numbers shown",
+      "acpMappings": "{0} Mappings",
+      "driveFrom": "Drive targets from the {0} ACP",
+      "channel": "Channel",
+      "target": "Target",
+      "latch": "Latch",
+      "latchTitle": "Drive mute from the REC latch",
+      "noLatchTitle": "No REC latch on this dial. Fully down always mutes the target.",
+      "remove": "Remove",
+      "add": "Add mapping",
+      "oncePerPanel": "A channel may appear once per panel. A strip or bus may belong to one panel only.",
+      "more": "More",
+      "oncePerPanelMore": "Conflicting saves fall back to the captain's panel until fixed; the Status section shows why. Knob travel maps to −60 dB … +12 dB; 0 dB sits near 83 %.",
+      "loudspeaker": "LOUDSPEAKER is the cockpit loudspeaker dial, on the captain's and first officer's lists.",
+      "loudspeakerMore": "Map it to the strip or bus that feeds your cockpit speakers. The dial has no REC latch: fully down mutes the target. Manual chapter 8 (Loudspeaker dial) shows the VoiceMeeter wiring that puts the headset sound on the speakers."
+    },
+    "mixer": {
+      "title": "Remote Mixer",
+      "hint": "Voicemeeter on another PC, through the VoicemeeterBridge agent",
+      "enable": {
+        "label": "Enable remote mixer",
+        "hint": "Connects to the agent and drives the mappings below. Off opens no connection.",
+        "more": "The local VoiceMeeter backend above drives the VoiceMeeter on this PC. This card drives a VoiceMeeter on another PC, for example the one running vPilot. Setup for both PCs: docs/integrations/voicemeeter-bridge.md."
+      },
+      "host": {
+        "label": "Host",
+        "hint": "Name or IP address of the PC running VoicemeeterBridge."
+      },
+      "port": {
+        "label": "Port",
+        "hint": "The agent's port. 5088 unless you changed it there."
+      },
+      "token": {
+        "label": "Token",
+        "hint": "From the agent's tray menu, Copy token. Stored encrypted, never logged."
+      },
+      "testTitle": "Open a connection with the values above, saved or not, and read the agent's welcome.",
+      "testing": "Testing…",
+      "test": "Test connection",
+      "liveTitle": "Live state of the saved connection",
+      "reconnectDelay": {
+        "label": "Reconnect delay",
+        "hint": "First retry after a drop. Doubles up to the maximum."
+      },
+      "reconnectMax": {
+        "label": "Reconnect maximum"
+      },
+      "writeTimeout": {
+        "label": "Write timeout",
+        "hint": "How long a write waits for the agent's answer."
+      },
+      "gainMin": {
+        "label": "Gain, knob fully down",
+        "hint": "−60 dB is as good as silent."
+      },
+      "gainMax": {
+        "label": "Gain, knob fully up",
+        "hint": "+12 dB like the local backend (0 dB near 83 % of the knob). Set 0 for a strip that must never go past unity."
+      },
+      "state": {
+        "connected": "Connected — Voicemeeter {0} {1}",
+        "connectedNoVoicemeeter": "Connected — Voicemeeter not running on the mixer PC",
+        "connecting": "Connecting…",
+        "unreachable": "Unreachable — {0}",
+        "unreachableRetrying": "Unreachable — retrying",
+        "offNoHost": "Off — no host",
+        "off": "Off"
+      },
+      "panel": {
+        "title": "Status Panel",
+        "hint": "Which strips and buses the Status section shows, with mute buttons",
+        "pickHint": "Tick the strips and buses to show. Names come from the mixer PC's Voicemeeter.",
+        "strips": {
+          "label": "Strips",
+          "hint": "Strip numbers as Voicemeeter shows them (1 = first), comma separated. Example: 1, 2, 3"
+        },
+        "buses": {
+          "label": "Buses",
+          "hint": "Bus numbers (1 = A1), comma separated. Example: 1, 4"
+        },
+        "pendingHint": "Once the agent is connected the strips and buses appear here by name, as tick boxes.",
+        "reloadTitle": "Read the strip and bus names from the mixer PC again (after renaming one in Voicemeeter).",
+        "reading": "Reading…",
+        "reload": "Reload channels",
+        "summary": "{0} strips / {1} buses on the mixer PC",
+        "summaryReading": "Reading the strips and buses…",
+        "summaryOffline": "Agent not connected — generic strip/bus numbers shown"
+      },
+      "mappings": {
+        "title": "Mappings",
+        "hint": "An audio-panel channel drives one strip or bus on the mixer PC",
+        "empty": "No mappings yet. Add one below.",
+        "on": "On",
+        "panel": "Panel",
+        "channel": "Channel",
+        "target": "Strip / bus",
+        "latch": "Latch",
+        "latchTitle": "Drive the target's Mute from the REC push-button",
+        "live": "Live",
+        "enabledTitle": "Off keeps the row without using it",
+        "noLatchTitle": "No REC push-button on this dial. Fully down always mutes the target.",
+        "liveTitle": "Gain and mute last sent, and the agent's answer",
+        "liveMuted": "muted",
+        "liveOpen": "open",
+        "remove": "Remove",
+        "add": "Add mapping",
+        "note": "The knob sets the strip or bus gain; Latch ticked, the REC push-button mutes it. Strip and bus names come from the mixer PC once the agent is connected.",
+        "more": "More",
+        "moreBody": "Knob travel maps to the gain range under the connection card's advanced fields (−60 dB … +12 dB by default, like the local VoiceMeeter backend; 0 dB sits near 83 %). Latch off: the mute is never written, so a strip muted on the mixer PC stays muted. LOUDSPEAKER is the cockpit dial: no push-button, fully down mutes the target. Writes go out at most 20 times a second per parameter, latest value wins. The knob value goes out whether the audio panel is powered or not. Two rows on one strip: the last one to move wins."
+      }
+    },
+    "housekeeping": {
+      "title": "Housekeeping",
+      "hint": "Proven timings. Rarely need changing",
+      "runInterval": {
+        "label": "Run interval",
+        "hint": "Main check. Takes effect after an app restart."
+      },
+      "processCheck": {
+        "label": "Process check interval"
+      },
+      "startupGrace": {
+        "label": "Process startup grace",
+        "hint": "Wait after a mapped app starts before looking for its sound."
+      },
+      "deviceRescan": {
+        "label": "Device rescan interval"
+      },
+      "maxSearches": {
+        "label": "Max session searches",
+        "hint": "Failed lookups before the devices are scanned again."
+      }
+    },
+    "status": {
+      "title": "Volume Control",
+      "hint": "ACP knobs / REC latches → app volumes",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "voiceMeeterLinked": "VoiceMeeter linked",
+      "voiceMeeterNotReachable": "VoiceMeeter not reachable",
+      "poweredTitle": "Powered — knob changes apply",
+      "unpoweredTitle": "Unpowered — knob changes held",
+      "powered": "PWR",
+      "unpowered": "OFF",
+      "mappingConflict": "Mapping conflict: {0}",
+      "elevated": "Elevated process(es) detected: {0}. Run ProsimCompanion as administrator to control these apps — until then those mappings stay inactive.",
+      "mappingState": {
+        "bound": "Bound",
+        "searching": "Searching",
+        "elevated": "Elevated",
+        "notRunning": "Not running"
+      },
+      "appMappings": {
+        "title": "App Mappings",
+        "hint": "Live session state per mapped process",
+        "emptyBefore": "No app mappings configured —",
+        "emptyLink": "add them in the CoreAudio section",
+        "emptyAfter": ".",
+        "process": "Process",
+        "channel": "Channel",
+        "device": "Device",
+        "state": "State",
+        "sessions": "Sessions",
+        "volume": "Volume",
+        "muted": "Muted",
+        "allDevices": "All",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "voiceMeeterTargets": {
+        "title": "VoiceMeeter Targets",
+        "hint": "Live strip/bus state per bound channel",
+        "emptyBefore": "No targets bound —",
+        "emptyLink": "configure mappings in the VoiceMeeter section",
+        "emptyAfter": ".",
+        "acp": "ACP",
+        "channel": "Channel",
+        "target": "Target",
+        "gain": "Gain",
+        "muted": "Muted"
+      }
+    },
+    "remoteMixer": {
+      "title": "Remote Mixer",
+      "hint": "Voicemeeter on the mixer PC, through VoicemeeterBridge",
+      "state": {
+        "connected": "Agent connected",
+        "connecting": "Connecting…",
+        "disconnected": "Agent unreachable — retrying",
+        "off": "Off"
+      },
+      "voicemeeter": "Voicemeeter {0} {1}",
+      "voicemeeterNotRunning": "Voicemeeter not running on the mixer PC",
+      "endpointTitle": "Agent endpoint",
+      "failedTitle": "Writes the agent refused or that timed out since start",
+      "failedWrite": "{0} failed write",
+      "failedWrites": "{0} failed writes",
+      "lastError": "Last error: {0}",
+      "emptyBefore": "No strips or buses chosen —",
+      "emptyLink": "pick them in the Remote Mixer section",
+      "emptyAfter": ".",
+      "channel": "Channel",
+      "label": "Label",
+      "gain": "Gain",
+      "mute": "Mute",
+      "muted": "Muted",
+      "open": "Open",
+      "unmuteButton": "Unmute",
+      "muteButton": "Mute"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "profiles": {
+    "pageTitle": "機体プロファイル — ProsimCompanion",
+    "heading": "機体プロファイル",
+    "current": {
+      "title": "現在の機体",
+      "notConnected": "シミュレーター未接続 — プロファイルの照合は既定値を使います",
+      "titleLivery": "タイトル／リバリー",
+      "airline": "航空会社",
+      "activeProfile": "有効なプロファイル",
+      "defaults": "—（既定）",
+      "manual": "手動",
+      "returnToAutomatic": "自動照合に戻す"
+    },
+    "list": {
+      "title": "プロファイル",
+      "hint": "シミュレーターに読み込まれた機体と照合します。完全一致は部分一致より優先され、一致がなければ既定値を使います",
+      "bannerBefore": "プロファイルは地上サービスの設定を保持します。プロファイルが有効な状態で",
+      "bannerLink": "地上サービス",
+      "bannerAfter": "のページで保存すると、その設定はそのプロファイルに保存され、次にその機体を読み込んだときに復元されます。",
+      "namePlaceholder": "プロファイル名",
+      "active": "有効",
+      "default": "既定",
+      "setActive": "有効にする",
+      "clone": "複製",
+      "delete": "削除",
+      "match": "照合",
+      "matchContains": "タイトル／リバリー（部分一致）",
+      "matchExact": "タイトル／リバリー（完全一致）",
+      "matchAirline": "航空会社（ICAO プレフィックス）",
+      "matchDefault": "既定（フォールバック）",
+      "fragmentPlaceholder": "機体タイトルの一部",
+      "matchesCurrent": "現在の機体に一致",
+      "empty": "プロファイルはありません — すべての機体が既定の設定を使います。",
+      "add": "プロファイルを追加",
+      "newName": "プロファイル {0}",
+      "cloneName": "{0} の複製"
+    }
+  }
+}

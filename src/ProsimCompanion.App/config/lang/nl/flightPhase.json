@@ -1,0 +1,144 @@
+{
+  "flightPhase": {
+    "pageTitle": "Vluchtfase — ProsimCompanion",
+    "heading": "Vluchtfase-instellingen",
+    "speeds": {
+      "title": "Snelheden",
+      "hint": "Werkt direct, geen herstart. De standaardwaarden zijn bewezen op de testvluchten van 2026-08 — wijzig ze met een afgespeelde opname die laat zien waarom.",
+      "takeoffRollHold": {
+        "label": "Startrol vasthouden boven",
+        "hint": "Boven deze IAS blijft de startrol behouden, ook als de startstuwkracht even als niet gezet wordt gelezen (FLEX-detentstuiter)"
+      },
+      "rolloutComplete": {
+        "label": "Uitrol voltooid onder",
+        "hint": "De uitrol na de landing wordt Taxi In zodra de IAS hieronder zakt"
+      },
+      "pushbackMax": {
+        "label": "Pushback max. grondsnelheid",
+        "hint": "Beacon + APU boven deze grondsnelheid is taxiën, geen pushback"
+      },
+      "parkedBelow": {
+        "label": "Geparkeerd onder",
+        "hint": "Grondsnelheid waaronder het vliegtuig als stilstaand geldt (hardwarecockpits staan stil op 1–2 kt)"
+      }
+    },
+    "vertical": {
+      "title": "Verticaal",
+      "initialClimb": {
+        "label": "Plafond initial climb",
+        "hint": "Onder deze radiohoogte blijft een vertrek in Initial Climb"
+      },
+      "levelBand": {
+        "label": "Band horizontale vlucht",
+        "hint": "|VS| hieronder is horizontaal; erboven een klim"
+      },
+      "approachCeiling": {
+        "label": "Plafond nadering",
+        "hint": "Dalen (of horizontaal met gear down) onder deze radiohoogte is Approach"
+      },
+      "goAroundRate": {
+        "label": "Klimsnelheid doorstart",
+        "hint": "Approach omhoog verlaten vereist minstens deze VS — een korte afvang mag niet als doorstart worden gelezen"
+      },
+      "descentEntry": {
+        "label": "Instapsnelheid daling",
+        "hint": "Descent binnengaan vereist een minstens zo duidelijke daalsnelheid"
+      },
+      "descentExit": {
+        "label": "Uitstapsnelheid daling",
+        "hint": "Eenmaal dalend telt een vlakker segment dan dit nog steeds als daling"
+      }
+    },
+    "cruise": {
+      "title": "Cruise-drempel",
+      "hint": "Horizontale vlucht geldt alleen als Cruise nabij de FMS-kruishoogte (een afvang op de SID is geen cruise)",
+      "tolerance": {
+        "label": "Tolerantie onder FMS-kruishoogte"
+      },
+      "floor": {
+        "label": "Ondergrens zonder FMS-kruishoogte",
+        "hint": "Zonder ingevoerde kruishoogte moet de horizontale vlucht hierboven liggen"
+      }
+    },
+    "ground": {
+      "title": "Grond en turnaround",
+      "agreement": {
+        "label": "Overeenstemming grondcontact",
+        "hint": "Opeenvolgende monsters (elk 250 ms) waarin de on-ground-vlag moet overeenstemmen voordat grond/lucht wisselt; 1 schakelt het filter uit"
+      },
+      "turnaround": {
+        "label": "Turnaround-wachttijd",
+        "hint": "Na voltooide deboarding gaat zo lang geparkeerd (motoren uit, rem gezet, beacon uit) van Shutdown → Preflight zonder cold-and-dark-reset"
+      },
+      "heartbeat": {
+        "label": "Heartbeat-loginterval",
+        "hint": "Een 'denk nog na'-logregel tijdens live; 0 schakelt uit"
+      }
+    },
+    "pause": {
+      "title": "MSFS-pauze",
+      "hint": "Escape in MSFS verlaat de vluchtsessie even. Binnen de marge, met het vliegtuig waar het stond, blijven de fase en haar latches behouden en gaat 'Flight live' alleen even uit en weer aan; langer, of een respawn, reset de fase zoals teruggaan naar het menu.",
+      "grace": {
+        "label": "Pauzemarge",
+        "hint": "Hoelang de sessie weg mag zijn (met de pauzevlag van MSFS gezet) voordat het als een echt sessie-einde telt; 0 reset meteen"
+      },
+      "position": {
+        "label": "Zelfde positie binnen",
+        "hint": "Bij hervatten moet het vliegtuig zo dicht bij zijn oude positie staan; verder weg is een respawn"
+      },
+      "fuel": {
+        "label": "Zelfde brandstof binnen",
+        "hint": "Bij hervatten moet de brandstof aan boord zo dicht bij de waarde van vóór de pauze liggen; een grotere sprong is een herlading"
+      }
+    },
+    "settle": {
+      "title": "Inzwaaitijden",
+      "hint": "Hoelang het bewijs voor een overgang moet aanhouden voordat die wordt vastgelegd",
+      "default": "Standaard",
+      "enterCruise": "Cruise binnengaan",
+      "descentToCruise": {
+        "label": "Descent → Cruise",
+        "hint": "Horizontale segmenten van een stapsgewijze daling mogen niet heen en weer springen"
+      },
+      "cruiseToClimb": {
+        "label": "Cruise → Climb",
+        "hint": "Een VS-uitschieter in cruise is turbulentie; een step climb houdt aan"
+      },
+      "descentToClimb": {
+        "label": "Descent → Climb",
+        "hint": "Een afvang in de daling wiebelt enkele seconden omhoog; terugklimmen op ATC-instructie houdt aan"
+      },
+      "goAround": "Doorstart",
+      "departureRegression": {
+        "label": "Terugval vertrek",
+        "hint": "Pushback/Taxi Out/Take-off Roll terug naar Preflight vereist aanhoudende tegenspraak"
+      },
+      "firstAirborne": {
+        "label": "Eerste classificatie in de lucht",
+        "hint": "Een sessie waarvan de eerste classificatie een vluchtfase is (herstart tijdens de vlucht of opwarmruis) moet zo lang aanhouden"
+      }
+    },
+    "recorder": {
+      "title": "Vluchtrecorder",
+      "hint": "Compacte monsters per seconde in het sessielogboek, zodat elke vlucht offline door de fase-engine kan worden afgespeeld (zie docs/agents/flight-verification.md)",
+      "record": "Vluchtmonsters opnemen",
+      "interval": "Monsterinterval",
+      "keepAlive": {
+        "label": "Keep-alive",
+        "hint": "Ongewijzigde monsters worden overgeslagen; er wordt toch minstens zo vaak één geschreven"
+      }
+    },
+    "rules": {
+      "title": "Regeltabel",
+      "hint": "Evaluatievolgorde, eerste match wint. 'hold' behoudt de huidige fase. Alleen-lezen — de regels leven in de code; de drempels hierboven voeden ze.",
+      "set": "Set",
+      "rule": "Regel",
+      "from": "Van",
+      "to": "Naar",
+      "ground": "Grond",
+      "airborne": "In de lucht",
+      "any": "elke",
+      "hold": "hold"
+    }
+  }
+}
