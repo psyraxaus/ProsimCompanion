@@ -12,9 +12,10 @@
 @inject IFmsInitSync FmsSync
 @inject IServiceProvider Services
 @inject DisplayUnitService Units
+@inject IStringLocalizer T
 
-<PageTitle>Weight &amp; Balance — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Weight and Balance</h1>
+<PageTitle>@T["wnb.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["wnb.heading"]</h1>
 
 @{
     var sheets = Loadsheets.Snapshot();
@@ -47,10 +48,10 @@
 
     <section class="section wnb-loading">
         <div class="section-header">
-            <h3 class="section-title">Aircraft Loading</h3>
+            <h3 class="section-title">@T["wnb.loading.title"]</h3>
             <span class="section-hint wnb-legend">
-                <span class="wnb-legend-item"><span class="dot dot-ok"></span>Closed</span>
-                <span class="wnb-legend-item"><span class="dot dot-warn"></span>Open</span>
+                <span class="wnb-legend-item"><span class="dot dot-ok"></span>@T["wnb.loading.closed"]</span>
+                <span class="wnb-legend-item"><span class="dot dot-warn"></span>@T["wnb.loading.open"]</span>
             </span>
         </div>
         <div class="section-body wnb-loading-body">
@@ -69,35 +70,35 @@
                     {
                         var fitted = label != "BULK" || _cargoBulkCap.Value > 0;
                         <span class="wnb-door @(!fitted ? "na" : DoorOpen(sub) ? "open" : "closed")">
-                            @label: @(!fitted ? "N/A" : DoorOpen(sub) ? "OPEN" : "CLOSED")
+                            @label: @(!fitted ? T["wnb.loading.door.notFitted"].Value : DoorOpen(sub) ? T["wnb.loading.door.open"].Value : T["wnb.loading.door.closed"].Value)
                         </span>
                     }
                     <span class="pill @(anyDoorOpen ? "tone-warn" : "tone-ok")">
-                        @(anyDoorOpen ? "Doors open" : "All doors closed")
+                        @(anyDoorOpen ? T["wnb.loading.doorsOpen"].Value : T["wnb.loading.allDoorsClosed"].Value)
                     </span>
                 </div>
             </div>
 
             <div class="wnb-totals">
                 <div class="wnb-total">
-                    <span class="label-caps">Total pax</span>
+                    <span class="label-caps">@T["wnb.totals.totalPax"]</span>
                     <span class="figure figure-lg">@paxBoarded<span class="figure-unit">/ @paxCapacity</span></span>
-                    <span class="wnb-total-sub">Zones @_zone1.Value / @_zone2.Value / @_zone3.Value / @_zone4.Value · planned @(ofp?.PaxCount.ToString() ?? "—")</span>
+                    <span class="wnb-total-sub">@T["wnb.totals.zones", _zone1.Value, _zone2.Value, _zone3.Value, _zone4.Value, ofp?.PaxCount.ToString() ?? "—"]</span>
                 </div>
                 <div class="wnb-total">
-                    <span class="label-caps">Cargo FWD</span>
+                    <span class="label-caps">@T["wnb.totals.cargoFwd"]</span>
                     <span class="figure figure-lg">@W0(_cargoFwd.Value)<span class="figure-unit">@UnitU</span></span>
-                    <span class="wnb-total-sub">max @W0(_cargoFwdCap.Value)</span>
+                    <span class="wnb-total-sub">@T["wnb.max", W0(_cargoFwdCap.Value)]</span>
                 </div>
                 <div class="wnb-total">
-                    <span class="label-caps">Cargo AFT</span>
+                    <span class="label-caps">@T["wnb.totals.cargoAft"]</span>
                     <span class="figure figure-lg">@W0(_cargoAft.Value)<span class="figure-unit">@UnitU</span></span>
-                    <span class="wnb-total-sub">max @W0(_cargoAftCap.Value)@(_cargoBulkCap.Value > 0 ? $" · bulk {W0(_cargoBulkCap.Value)}" : "")</span>
+                    <span class="wnb-total-sub">@T["wnb.max", W0(_cargoAftCap.Value)]@(_cargoBulkCap.Value > 0 ? T["wnb.totals.bulk", W0(_cargoBulkCap.Value)].Value : "")</span>
                 </div>
                 <div class="wnb-total">
-                    <span class="label-caps">Fuel in tanks</span>
+                    <span class="label-caps">@T["wnb.totals.fuelInTanks"]</span>
                     <span class="figure figure-lg glow">@W0(_fuelTotal.Value)<span class="figure-unit">@UnitU</span></span>
-                    <span class="wnb-total-sub">planned @(ofp is null ? "—" : W0(ofp.FuelPlanRampKg))</span>
+                    <span class="wnb-total-sub">@T["wnb.totals.planned", ofp is null ? "—" : W0(ofp.FuelPlanRampKg)]</span>
                 </div>
             </div>
 
@@ -109,20 +110,20 @@
                        up the written occupation string on the next 1 s repaint. *@
                     @if (!_simOpen)
                     {
-                        <button type="button" class="btn secondary" @onclick="() => _simOpen = true">Simulate</button>
+                        <button type="button" class="btn secondary" @onclick="() => _simOpen = true">@T["wnb.simulate.open"]</button>
                     }
                     else
                     {
-                        <span class="label-caps">Count</span>
+                        <span class="label-caps">@T["wnb.simulate.count"]</span>
                         <input type="number" class="number-input" min="0" max="@paxCapacity"
                                placeholder="@(paxCapacity > 0 ? paxCapacity.ToString() : "132")"
                                disabled="@_simBusy" @bind="_simCount" />
                         <button type="button" class="btn secondary" disabled="@_simBusy" @onclick="GeneratePax">
-                            @(_simBusy ? "…" : "Generate")
+                            @(_simBusy ? "…" : T["wnb.simulate.generate"].Value)
                         </button>
-                        <button type="button" class="btn secondary" disabled="@_simBusy" @onclick="ClearPax">Clear</button>
-                        <button type="button" class="btn secondary" title="Hide controls" @onclick="CloseSimulate">×</button>
-                        <span class="field-hint">Works for headless cabins; GSX boarding will overwrite.</span>
+                        <button type="button" class="btn secondary" disabled="@_simBusy" @onclick="ClearPax">@T["wnb.simulate.clear"]</button>
+                        <button type="button" class="btn secondary" title="@T["wnb.simulate.hide"]" @onclick="CloseSimulate">×</button>
+                        <span class="field-hint">@T["wnb.simulate.hint"]</span>
                     }
                     @if (_simResult is not null)
                     {
@@ -130,9 +131,9 @@
                     }
                 }
                 <button type="button" class="btn secondary" @onclick="() => _showManifest = !_showManifest">
-                    @(_showManifest ? "▾ Hide manifest" : $"▸ Manifest ({ManifestService.Manifest().Count})")
+                    @(_showManifest ? T["wnb.manifest.hide"].Value : T["wnb.manifest.show", ManifestService.Manifest().Count].Value)
                 </button>
-                <span class="field-hint">Generated from the booked seat map; the same flight keeps the same names.</span>
+                <span class="field-hint">@T["wnb.manifest.hint"]</span>
             </div>
 
             @if (_showManifest)
@@ -140,12 +141,12 @@
                 var manifest = ManifestService.Manifest();
                 @if (manifest.Count == 0)
                 {
-                    <div class="empty">No booked passengers yet — import an OFP first.</div>
+                    <div class="empty">@T["wnb.manifest.empty"]</div>
                 }
                 else
                 {
                     <div class="manifest-grid inset wnb-manifest">
-                        <span class="manifest-head">SEAT</span><span class="manifest-head">NAME</span><span class="manifest-head">ZONE</span>
+                        <span class="manifest-head">@T["wnb.manifest.seat"]</span><span class="manifest-head">@T["wnb.manifest.name"]</span><span class="manifest-head">@T["wnb.manifest.zone"]</span>
                         @foreach (var pax in manifest)
                         {
                             <span class="row-value-mono">@pax.SeatNumber</span>
@@ -159,28 +160,28 @@
     </section>
 
     <section class="section wnb-summary">
-        <div class="section-header"><h3 class="section-title">Weight Summary</h3></div>
+        <div class="section-header"><h3 class="section-title">@T["wnb.summary.title"]</h3></div>
         <div class="section-body wnb-summary-body">
-            @WeightBar("Zero fuel weight (ZFW)", _zfw.Value, _zfwMax.Value, false)
-            @WeightBar("Gross weight (GW)", _gross.Value, _grossMax.Value, true)
+            @WeightBar(T["wnb.summary.zfw"], _zfw.Value, _zfwMax.Value, false)
+            @WeightBar(T["wnb.summary.gw"], _gross.Value, _grossMax.Value, true)
             <div class="wnb-mac inset">
                 @* Owner question 2026-10-04 ("the W&B page says 26.8, the loadsheet 27.6"): the big
                    figure is ProSim's LIVE zfwcg dataref; the loadsheet's MACZFW comes from ProSim's
                    own loadsheet-generator relation (gross CG minus the fuel-shift table) and is what
                    ProSim's EFB prints and what goes to the MCDU. Both are shown and named. *@
                 <div class="wnb-mac-cell">
-                    <span class="label-caps">MACZFW <span class="muted">· LIVE</span></span>
+                    <span class="label-caps">MACZFW <span class="muted">· @T["wnb.summary.live"]</span></span>
                     <span class="figure @(zfwCgBad ? "wnb-bad" : null)">@($"{_zfwcg.Value:F1}")<span class="figure-unit">%</span></span>
-                    <span class="wnb-total-sub @(zfwCgBad ? "wnb-bad" : null)">valid @($"{zfwMin:F1}–{zfwMax:F1}")@(best is { MacZfw: > 0 } ? $" · loadsheet {bestTag} {best.MacZfw:F1}%" : "")</span>
+                    <span class="wnb-total-sub @(zfwCgBad ? "wnb-bad" : null)">@T["wnb.summary.valid", $"{zfwMin:F1}–{zfwMax:F1}"]@(best is { MacZfw: > 0 } ? T["wnb.summary.loadsheet", bestTag ?? "", $"{best.MacZfw:F1}"].Value : "")</span>
                 </div>
                 <div class="wnb-mac-cell">
-                    <span class="label-caps">MACGW <span class="muted">· LIVE</span></span>
+                    <span class="label-caps">MACGW <span class="muted">· @T["wnb.summary.live"]</span></span>
                     <span class="figure glow @(gwCgBad ? "wnb-bad" : null)">@($"{_cg.Value:F1}")<span class="figure-unit">%</span></span>
-                    <span class="wnb-total-sub @(gwCgBad ? "wnb-bad" : null)">valid @($"{gwMin:F1}–{gwMax:F1}")@(best is { MacTow: > 0 } ? $" · loadsheet {bestTag} {best.MacTow:F1}%" : "")</span>
+                    <span class="wnb-total-sub @(gwCgBad ? "wnb-bad" : null)">@T["wnb.summary.valid", $"{gwMin:F1}–{gwMax:F1}"]@(best is { MacTow: > 0 } ? T["wnb.summary.loadsheet", bestTag ?? "", $"{best.MacTow:F1}"].Value : "")</span>
                 </div>
             </div>
             <button type="button" class="btn primary" disabled="@_syncing" @onclick="SyncFms">
-                @(_syncing ? "Syncing…" : $"Sync to FMS ({bestTag ?? "COMPUTED"})")
+                @(_syncing ? T["wnb.summary.syncing"].Value : T["wnb.summary.sync", bestTag ?? T["wnb.summary.computed"].Value].Value)
             </button>
             @if (_syncResult is not null)
             {
@@ -191,8 +192,8 @@
 
     <section class="section wnb-envelope">
         <div class="section-header">
-            <h3 class="section-title">CG Envelope</h3>
-            <span class="section-hint">LIVE reads aircraft datarefs each tick · L/S mirrors the latest loadsheet (final preferred, prelim fallback)</span>
+            <h3 class="section-title">@T["wnb.envelope.title"]</h3>
+            <span class="section-hint">@T["wnb.envelope.hint"]</span>
         </div>
         <div class="section-body wnb-envelope-body">
             <div class="wnb-chart">
@@ -213,14 +214,14 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="wnb-rowhead">LIVE</td>
+                        <td class="wnb-rowhead">@T["wnb.envelope.live"]</td>
                         <td class="mono num">@W0(_zfw.Value)</td>
                         <td class="mono num @(zfwCgBad ? "wnb-bad" : null)">@($"{_zfwcg.Value:F1}")</td>
                         <td class="mono num">@W0(_gross.Value)</td>
                         <td class="mono num @(gwCgBad ? "wnb-bad" : null)">@($"{_cg.Value:F1}")</td>
                     </tr>
                     <tr>
-                        <td class="wnb-rowhead">L/S @(bestTag is null ? "" : $"({bestTag})")</td>
+                        <td class="wnb-rowhead">@T["wnb.envelope.loadsheet"] @(bestTag is null ? "" : $"({bestTag})")</td>
                         <td class="mono num">@(best is null ? "—" : W0(best.ZfwKg))</td>
                         <td class="mono num">@(best is null ? "—" : $"{best.MacZfw:F1}")</td>
                         <td class="mono num">@(best is null ? "—" : W0(best.TowKg))</td>
@@ -232,32 +233,32 @@
     </section>
 
     <section class="section wnb-breakdown">
-        <div class="section-header"><h3 class="section-title">Loading Breakdown</h3></div>
+        <div class="section-header"><h3 class="section-title">@T["wnb.breakdown.title"]</h3></div>
         <div class="section-body">
             <table class="data-table wnb-table">
                 <thead>
                     <tr>
-                        <th>Category</th>
-                        <th class="num">Actual</th>
-                        <th class="num">Max</th>
-                        <th class="num">Status</th>
+                        <th>@T["wnb.breakdown.category"]</th>
+                        <th class="num">@T["wnb.breakdown.actual"]</th>
+                        <th class="num">@T["wnb.breakdown.max"]</th>
+                        <th class="num">@T["wnb.breakdown.status"]</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @BreakdownRow("Passengers", paxBoarded, paxCapacity, "", ofp?.PaxCount)
-                    @BreakdownRow("Cargo FWD", _cargoFwd.Value, _cargoFwdCap.Value, UnitU, null)
-                    @BreakdownRow("Cargo AFT", _cargoAft.Value, _cargoAftCap.Value, UnitU, null)
+                    @BreakdownRow(T["wnb.breakdown.passengers"], paxBoarded, paxCapacity, "", ofp?.PaxCount)
+                    @BreakdownRow(T["wnb.breakdown.cargoFwd"], _cargoFwd.Value, _cargoFwdCap.Value, UnitU, null)
+                    @BreakdownRow(T["wnb.breakdown.cargoAft"], _cargoAft.Value, _cargoAftCap.Value, UnitU, null)
                     @if (_cargoBulkCap.Value > 0)
                     {
-                        @BreakdownRow("Cargo total", cargoLoaded, cargoCapacity, UnitU, ofp?.CargoKg)
+                        @BreakdownRow(T["wnb.breakdown.cargoTotal"], cargoLoaded, cargoCapacity, UnitU, ofp?.CargoKg)
                     }
                     else
                     {
-                        @BreakdownRow("Cargo total", cargoLoaded, cargoCapacity, UnitU, ofp?.CargoKg)
+                        @BreakdownRow(T["wnb.breakdown.cargoTotal"], cargoLoaded, cargoCapacity, UnitU, ofp?.CargoKg)
                     }
-                    @BreakdownRow("Fuel", _fuelTotal.Value, 0, UnitU, ofp?.FuelPlanRampKg)
+                    @BreakdownRow(T["wnb.breakdown.fuel"], _fuelTotal.Value, 0, UnitU, ofp?.FuelPlanRampKg)
                     @BreakdownRow("ZFW", _zfw.Value, _zfwMax.Value, UnitU, ofp?.EstZfwKg)
-                    @BreakdownRow("Gross weight", _gross.Value, _grossMax.Value, UnitU, ofp?.EstTowKg)
+                    @BreakdownRow(T["wnb.breakdown.grossWeight"], _gross.Value, _grossMax.Value, UnitU, ofp?.EstTowKg)
                 </tbody>
             </table>
         </div>
@@ -386,7 +387,7 @@
                 <span class="wnb-bar-value @(over ? "wnb-bad" : null)">@W0(kg) @UnitU</span>
             </div>
             <div class="wnb-bar-track"><div class="wnb-bar-fill @(over ? "over" : null)" style="width:@(pct.ToString("F1", CultureInfo.InvariantCulture))%"></div></div>
-            <span class="wnb-bar-max">max @(maxKg > 0 ? $"{W0(maxKg)} {UnitU}" : "—")</span>
+            <span class="wnb-bar-max">@T["wnb.max", maxKg > 0 ? $"{W0(maxKg)} {UnitU}" : "—"]</span>
         </div>;
     }
 
@@ -397,14 +398,14 @@
         var isWeight = unit.Length > 0;
         string Fmt(double v) => isWeight ? W0(v) : v.ToString("F0", CultureInfo.InvariantCulture);
         var over = max > 0 && actual > max;
-        var (tone, text) = over ? ("tone-bad", "over")
-            : actual <= 0 ? ("tone-neutral", "empty")
-            : planned is { } p && p > 0 && Math.Abs(actual - p) / p > 0.05 ? ("tone-warn", "vs plan")
-            : ("tone-ok", "ok");
+        var (tone, text) = over ? ("tone-bad", T["wnb.breakdown.over"].Value)
+            : actual <= 0 ? ("tone-neutral", T["wnb.breakdown.empty"].Value)
+            : planned is { } p && p > 0 && Math.Abs(actual - p) / p > 0.05 ? ("tone-warn", T["wnb.breakdown.vsPlan"].Value)
+            : ("tone-ok", T["wnb.breakdown.ok"].Value);
         return @<tr>
             <td class="wnb-rowhead">@category</td>
             <td class="mono num @(over ? "wnb-bad" : null)">@Fmt(actual) @unit</td>
-            <td class="mono num" style="color:var(--text-muted)">@(max > 0 ? $"{Fmt(max)} {unit}" : planned is { } pl ? $"plan {Fmt(pl)} {unit}" : "—")</td>
+            <td class="mono num" style="color:var(--text-muted)">@(max > 0 ? $"{Fmt(max)} {unit}" : planned is { } pl ? T["wnb.breakdown.plan", Fmt(pl), unit].Value : "—")</td>
             <td class="num"><span class="pill @tone">@text</span></td>
         </tr>;
     }
@@ -458,7 +459,7 @@
             }
             var target = Math.Clamp(_simCount ?? capacity, 0, capacity);
             var ok = await _paxSim.GenerateAsync(target);
-            _simResult = ok ? $"Generated {target} pax." : "Generation failed — see logs.";
+            _simResult = ok ? T["wnb.simulate.generated", target].Value : T["wnb.simulate.generationFailed"].Value;
         }
         finally
         {
@@ -478,7 +479,7 @@
         try
         {
             var ok = await _paxSim.ClearAsync();
-            _simResult = ok ? "Cabin cleared." : "Clear failed — see logs.";
+            _simResult = ok ? T["wnb.simulate.cleared"].Value : T["wnb.simulate.clearFailed"].Value;
         }
         finally
         {
@@ -493,8 +494,8 @@
         {
             var result = await FmsSync.SyncAsync();
             _syncResult = result is null
-                ? "Sync failed — see logs."
-                : $"FMS UPDATED — ZFW {result.ZfwTonnes:F1} t · ZFWCG {result.ZfwCgPercent:F1}% · block {result.BlockTonnes:F1} t ({result.Source})";
+                ? T["wnb.summary.syncFailed"].Value
+                : T["wnb.summary.fmsUpdated", $"{result.ZfwTonnes:F1}", $"{result.ZfwCgPercent:F1}", $"{result.BlockTonnes:F1}", result.Source].Value;
         }
         finally
         {

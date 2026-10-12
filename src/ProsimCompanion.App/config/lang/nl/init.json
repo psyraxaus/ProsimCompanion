@@ -1,0 +1,65 @@
+{
+  "init": {
+    "pageTitle": "EFB INIT — ProsimCompanion",
+    "heading": "EFB INIT",
+    "active": {
+      "title": "Active / Init"
+    },
+    "data": {
+      "title": "Data / Status"
+    },
+    "status": {
+      "fetching": "OPHALEN…",
+      "uplinkFailed": "UPLINK MISLUKT",
+      "ofpLoaded": "OFP GELADEN",
+      "awaitingOfp": "WACHT OP OFP",
+      "fuelConfirmed": "BRANDSTOF {0} KG BEVESTIGD",
+      "fetchedAt": "OPGEHAALD {0}"
+    },
+    "source": {
+      "manual": "HANDMATIG"
+    },
+    "fetch": {
+      "contacting": "VERBINDEN MET SIMBRIEF...",
+      "parsing": "OFP VERWERKEN...",
+      "writing": "SCHRIJVEN NAAR FMS...",
+      "noPilotId": "GEEN SIMBRIEF-PILOT-ID IN PROSIM — STEL DIE IN IN DE PROSIM-EFB",
+      "noOfp": "GEEN OFP — IS ER EEN GEGENEREERD OP SIMBRIEF?",
+      "importFailed": "OPGEHAALD, MAAR DE EFB-IMPORT IS MISLUKT — ZIE LOGS",
+      "syncFailed": "FMS-SYNC MISLUKT — ZIE LOGS"
+    },
+    "editor": {
+      "clickToOverride": "Klik om te overschrijven",
+      "commit": "Overschrijving bevestigen (Enter)",
+      "cancel": "Annuleren (Esc)",
+      "invalid": "ONGELDIG",
+      "outOfRange": "BUITEN BEREIK",
+      "writeFailed": "SCHRIJVEN MISLUKT"
+    },
+    "actions": {
+      "fetching": "OPHALEN…",
+      "fetchOfp": "OFP OPHALEN",
+      "syncing": "SYNCHRONISEREN…",
+      "syncToFms": "NAAR FMS SYNCHRONISEREN",
+      "confirming": "BEVESTIGEN…",
+      "reconfirmFuel": "BRANDSTOF OPNIEUW BEVESTIGEN",
+      "confirmFuel": "BRANDSTOF BEVESTIGEN",
+      "confirmFuel.title": "Bevestig de block fuel en bestel de tankwagen (of een bijvulling)",
+      "clearing": "WISSEN…",
+      "clearOverrides": "OVERSCHRIJVINGEN WISSEN",
+      "resetting": "RESETTEN…",
+      "confirmReset": "RESET BEVESTIGEN",
+      "resetFlight": "VLUCHT RESETTEN (SOFT)",
+      "resetFlight.title": "Start dit leg opnieuw op dezelfde OFP: wist de INIT-overschrijvingen en de loadsheet-cyclus; de ProSim-EFB houdt het plan",
+      "unloading": "ONTLADEN…",
+      "confirmUnload": "ONTLADEN BEVESTIGEN",
+      "unloadOfp": "OFP ONTLADEN (VOLLEDIG)",
+      "unloadOfp.title": "Ontlaad de OFP uit de ProSim-EFB (stoelenplan, pax, geplande brandstof en vracht, loadsheets) en reset de vluchtcyclus — er wordt geen GSX-service aangeroepen tot een nieuwe OFP is opgehaald"
+    },
+    "reset": {
+      "softDone": "VLUCHT GERESET — OFP BEHOUDEN",
+      "unloadDone": "OFP ONTLADEN — HAAL EEN NIEUWE OFP OP OM VERDER TE GAAN",
+      "incomplete": "RESET ONVOLLEDIG — PROSIM WEIGERDE {0}"
+    }
+  }
+}

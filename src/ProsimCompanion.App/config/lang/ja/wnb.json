@@ -1,0 +1,89 @@
+{
+  "wnb": {
+    "pageTitle": "重量重心 — ProsimCompanion",
+    "heading": "重量重心",
+    "loading": {
+      "title": "機体ロード",
+      "closed": "閉",
+      "open": "開",
+      "door": {
+        "notFitted": "N/A",
+        "open": "開",
+        "closed": "閉"
+      },
+      "doorsOpen": "ドア開",
+      "allDoorsClosed": "全ドア閉"
+    },
+    "totals": {
+      "totalPax": "総乗客数",
+      "zones": "ゾーン {0} / {1} / {2} / {3} · 計画 {4}",
+      "cargoFwd": "貨物 FWD",
+      "cargoAft": "貨物 AFT",
+      "bulk": " · バルク {0}",
+      "fuelInTanks": "タンク内燃料",
+      "planned": "計画 {0}"
+    },
+    "max": "最大 {0}",
+    "simulate": {
+      "open": "シミュレート",
+      "count": "人数",
+      "generate": "生成",
+      "clear": "クリア",
+      "hide": "操作を隠す",
+      "hint": "搭乗のないキャビン向け。GSX の搭乗で上書きされます。",
+      "generated": "{0} 名の乗客を生成しました。",
+      "generationFailed": "生成に失敗しました — ログを確認。",
+      "cleared": "キャビンをクリアしました。",
+      "clearFailed": "クリアに失敗しました — ログを確認。"
+    },
+    "manifest": {
+      "hide": "▾ 乗客名簿を隠す",
+      "show": "▸ 乗客名簿 ({0})",
+      "hint": "予約済み座席表から生成。同じフライトでは同じ名前が保たれます。",
+      "empty": "予約済みの乗客はまだいません — まず OFP を取り込んでください。",
+      "seat": "座席",
+      "name": "氏名",
+      "zone": "ゾーン"
+    },
+    "summary": {
+      "title": "重量サマリー",
+      "zfw": "無燃料重量 (ZFW)",
+      "gw": "総重量 (GW)",
+      "live": "LIVE",
+      "valid": "有効範囲 {0}",
+      "loadsheet": " · ロードシート {0} {1}%",
+      "syncing": "同期中…",
+      "sync": "FMS に同期 ({0})",
+      "computed": "計算値",
+      "syncFailed": "同期に失敗しました — ログを確認。",
+      "fmsUpdated": "FMS 更新 — ZFW {0} t · ZFWCG {1}% · ブロック {2} t ({3})"
+    },
+    "envelope": {
+      "title": "CG エンベロープ",
+      "hint": "LIVE は毎ティック機体のデータレフを読みます · L/S は最新のロードシートを反映します（ファイナル優先、なければプレリム）",
+      "live": "LIVE",
+      "loadsheet": "L/S",
+      "operationalLimits": "運用制限",
+      "takeoffLimits": "離陸制限",
+      "zfwLimit": "ZFW 制限"
+    },
+    "breakdown": {
+      "title": "ロード内訳",
+      "category": "項目",
+      "actual": "実際",
+      "max": "最大",
+      "status": "状態",
+      "passengers": "乗客",
+      "cargoFwd": "貨物 FWD",
+      "cargoAft": "貨物 AFT",
+      "cargoTotal": "貨物合計",
+      "fuel": "燃料",
+      "grossWeight": "総重量",
+      "plan": "計画 {0} {1}",
+      "over": "超過",
+      "empty": "空",
+      "vsPlan": "計画と差",
+      "ok": "OK"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "loadsheet": {
+    "pageTitle": "Loadsheet — ProsimCompanion",
+    "heading": "Loadsheet",
+    "label": "Loadsheet",
+    "title": "Prelim y Final",
+    "actions": {
+      "resending": "REENVIANDO…",
+      "resend": "REENVIAR",
+      "resetting": "REINICIANDO…",
+      "confirmReset": "CONFIRMAR REINICIO",
+      "reset": "REINICIAR"
+    },
+    "std": {
+      "manual": "manual",
+      "fromOfp": "del OFP",
+      "notSet": "sin definir",
+      "set": "Fijar",
+      "clear": "Borrar"
+    },
+    "prelim": "PRELIM",
+    "final": "FINAL",
+    "badge": {
+      "received": "RECIBIDO",
+      "error": "ERROR",
+      "waiting": "ESPERANDO",
+      "pending": "PENDIENTE"
+    },
+    "empty": {
+      "failed": "La generación del loadsheet falló. Ver log.",
+      "armed": "Loadsheet automático armado — {0}.",
+      "waitingForInputs": "esperando datos",
+      "awaiting": "Esperando el loadsheet de Despacho."
+    },
+    "card": {
+      "ident": "Ident",
+      "received": "Recibido",
+      "rangeAria": "MACTOW {0} por ciento en una escala de {1} a {2} por ciento"
+    }
+  }
+}

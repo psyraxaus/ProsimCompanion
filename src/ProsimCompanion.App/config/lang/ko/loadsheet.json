@@ -1,0 +1,41 @@
+{
+  "loadsheet": {
+    "pageTitle": "로드시트 — ProsimCompanion",
+    "heading": "로드시트",
+    "label": "로드시트",
+    "title": "프렐림 & 파이널",
+    "actions": {
+      "resending": "재전송 중…",
+      "resend": "재전송",
+      "resetting": "재설정 중…",
+      "confirmReset": "재설정 확정",
+      "reset": "재설정"
+    },
+    "std": {
+      "manual": "수동",
+      "fromOfp": "OFP에서",
+      "notSet": "미설정",
+      "set": "설정",
+      "clear": "지우기"
+    },
+    "prelim": "PRELIM",
+    "final": "FINAL",
+    "badge": {
+      "received": "수신됨",
+      "error": "오류",
+      "waiting": "대기 중",
+      "pending": "보류"
+    },
+    "empty": {
+      "failed": "로드시트 생성에 실패했습니다. 로그를 확인하세요.",
+      "armed": "자동 로드시트 대기 — {0}.",
+      "waitingForInputs": "입력 대기 중",
+      "awaiting": "디스패치의 로드시트를 기다리는 중."
+    },
+    "card": {
+      "ident": "식별",
+      "received": "수신",
+      "rangeAria": "MACTOW {0}퍼센트 ({1}~{2}퍼센트 범위)"
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "ofp": {
+    "pageTitle": "OFP — ProsimCompanion",
+    "heading": "Operational Flight Plan",
+    "plan": {
+      "title": "Flight Plan",
+      "empty": "No flight plan loaded — enter origin/destination on the MCDU, or fetch an OFP from the INIT page.",
+      "callsign": "Callsign",
+      "flightNumber": "Flt Nbr",
+      "origin": "Origin",
+      "destination": "Destination",
+      "fetched": "FETCHED",
+      "hint": "Fetch & overrides on the INIT page"
+    },
+    "gate": {
+      "title": "Arrival Gate",
+      "empty": "Load an OFP to enable gate assignment.",
+      "placeholder": "GATE",
+      "aria": "Arrival gate",
+      "restored": "Restored from the last session — this gate was confirmed before the app restarted.",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "sendNow": "Send Now",
+      "sendNow.title": "Push the gate to GSX and SayIntentions ATC immediately",
+      "sent": "Sent {0}",
+      "queued": "Queued {0} — auto-send at cruise (or at once when already past it)",
+      "stand": "Stand: {0}",
+      "atc": "ATC: {0}",
+      "gsxSend": "GSX send: {0}",
+      "gsx": "GSX: {0}",
+      "variantUnknown": "no jetway or VDGS known for this stand",
+      "variantDetail": "{0} at this stand",
+      "hint": "Confirm queues for auto-send at cruise (or at once when confirmed later in the flight). Send Now pushes to GSX + SayIntentions ATC immediately. A confirmed gate survives an app restart."
+    },
+    "weather": {
+      "hint": "SayIntentions · cached 10 min",
+      "refreshing": "Refreshing…",
+      "refresh": "Refresh Weather",
+      "departure": "Departure",
+      "arrival": "Arrival",
+      "noData": "No data."
+    },
+    "pushback": {
+      "title": "Pushback Direction",
+      "aria": "Pushback direction",
+      "tailLeft": "TAIL LEFT",
+      "tailLeft.sub": "NOSE RIGHT",
+      "tailLeft.title": "This flight: pick 'Nose Right / Tail Left' when GSX shows the direction menu.",
+      "straight": "STRAIGHT",
+      "straight.sub": "STRAIGHT BACK",
+      "straight.title": "This flight: pick 'Straight pushback' when GSX shows the direction menu.",
+      "tailRight": "TAIL RIGHT",
+      "tailRight.sub": "NOSE LEFT",
+      "tailRight.title": "This flight: pick 'Nose Left / Tail Right' when GSX shows the direction menu.",
+      "thisFlight": "This flight: {0} ({1})",
+      "auto": "Auto",
+      "auto.title": "Back to the suggestion",
+      "suggested": "Suggested:",
+      "lean": " (lean)",
+      "atStand": " at {0}",
+      "forRunway": " for runway {0}",
+      "standRunway": ", runway {0}",
+      "standNoRunway": ", no departure runway in the OFP",
+      "noSuggestion": "Stand {0}{1} — no suggestion yet.",
+      "asking": "GSX is asking which way — tell the FO (\"tail left\", \"tail right\", \"push back facing north\") or press a button.",
+      "footer": "Buttons choose for this flight only · default mode: {0} · Settings → GSX → Pushback",
+      "mode": {
+        "ask": "ask the pilot",
+        "tailLeft": "always tail left",
+        "tailRight": "always tail right",
+        "straight": "always straight",
+        "auto": "auto (toward the runway)"
+      },
+      "menuHint": "When GSX shows 'Select pushback direction' with the stand's own named lines, pick one here — no need to open the GSX window."
+    },
+    "deice": {
+      "title": "Deice Holdover (HOT)",
+      "oat.aria": "Outside air temperature",
+      "precip.aria": "Precipitation",
+      "precip": {
+        "none": "No precipitation",
+        "activeFrost": "Active frost",
+        "freezingFog": "Freezing fog",
+        "snow": "Snow / snow grains",
+        "freezingDrizzleLight": "Freezing drizzle (light)",
+        "freezingDrizzleModerate": "Freezing drizzle (moderate)",
+        "lightFreezingRain": "Light freezing rain",
+        "rainOnColdSoakedWing": "Rain on cold-soaked wing"
+      },
+      "holdover": "Holdover",
+      "fluid": "Fluid:",
+      "fluidFrom": "Fluid from: {0}",
+      "note": "Immersion only — not for real-world dispatch"
+    }
+  }
+}

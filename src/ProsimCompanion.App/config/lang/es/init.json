@@ -1,0 +1,65 @@
+{
+  "init": {
+    "pageTitle": "EFB INIT — ProsimCompanion",
+    "heading": "EFB INIT",
+    "active": {
+      "title": "Active / Init"
+    },
+    "data": {
+      "title": "Datos / Estado"
+    },
+    "status": {
+      "fetching": "OBTENIENDO…",
+      "uplinkFailed": "UPLINK FALLIDO",
+      "ofpLoaded": "OFP CARGADO",
+      "awaitingOfp": "ESPERANDO OFP",
+      "fuelConfirmed": "COMBUSTIBLE {0} KG CONFIRMADO",
+      "fetchedAt": "OBTENIDO {0}"
+    },
+    "source": {
+      "manual": "MANUAL"
+    },
+    "fetch": {
+      "contacting": "CONTACTANDO CON SIMBRIEF...",
+      "parsing": "ANALIZANDO OFP...",
+      "writing": "ESCRIBIENDO EN EL FMS...",
+      "noPilotId": "NO HAY ID DE PILOTO SIMBRIEF EN PROSIM — CONFIGÚRALO EN EL EFB DE PROSIM",
+      "noOfp": "NO HAY OFP — ¿HAY UNO GENERADO EN SIMBRIEF?",
+      "importFailed": "OBTENIDO, PERO LA IMPORTACIÓN AL EFB FALLÓ — VER LOGS",
+      "syncFailed": "SINCRONIZACIÓN FMS FALLIDA — VER LOGS"
+    },
+    "editor": {
+      "clickToOverride": "Clic para sobrescribir",
+      "commit": "Confirmar valor (Intro)",
+      "cancel": "Cancelar (Esc)",
+      "invalid": "NO VÁLIDO",
+      "outOfRange": "FUERA DE RANGO",
+      "writeFailed": "ESCRITURA FALLIDA"
+    },
+    "actions": {
+      "fetching": "OBTENIENDO…",
+      "fetchOfp": "OBTENER OFP",
+      "syncing": "SINCRONIZANDO…",
+      "syncToFms": "SINCRONIZAR CON FMS",
+      "confirming": "CONFIRMANDO…",
+      "reconfirmFuel": "RECONFIRMAR COMBUSTIBLE",
+      "confirmFuel": "CONFIRMAR COMBUSTIBLE",
+      "confirmFuel.title": "Confirma el combustible de bloque y pide el camión cisterna (o un repostaje adicional)",
+      "clearing": "BORRANDO…",
+      "clearOverrides": "BORRAR VALORES MANUALES",
+      "resetting": "REINICIANDO…",
+      "confirmReset": "CONFIRMAR REINICIO",
+      "resetFlight": "REINICIAR VUELO (SUAVE)",
+      "resetFlight.title": "Reinicia este tramo con el mismo OFP: borra los valores manuales de INIT y el ciclo de loadsheet; el EFB de ProSim conserva el plan",
+      "unloading": "DESCARGANDO…",
+      "confirmUnload": "CONFIRMAR DESCARGA",
+      "unloadOfp": "DESCARGAR OFP (COMPLETO)",
+      "unloadOfp.title": "Descarga el OFP del EFB de ProSim (mapa de asientos, pax, combustible y carga planificados, loadsheets) y reinicia el ciclo de vuelo — no se llama a ningún servicio GSX hasta obtener un OFP nuevo"
+    },
+    "reset": {
+      "softDone": "VUELO REINICIADO — OFP CONSERVADO",
+      "unloadDone": "OFP DESCARGADO — OBTÉN UN OFP NUEVO PARA CONTINUAR",
+      "incomplete": "REINICIO INCOMPLETO — PROSIM RECHAZÓ {0}"
+    }
+  }
+}

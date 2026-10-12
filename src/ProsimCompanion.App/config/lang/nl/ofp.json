@@ -1,0 +1,96 @@
+{
+  "ofp": {
+    "pageTitle": "OFP — ProsimCompanion",
+    "heading": "Operational Flight Plan",
+    "plan": {
+      "title": "Vluchtplan",
+      "empty": "Geen vluchtplan geladen — voer vertrek/bestemming in op de MCDU, of haal een OFP op via de INIT-pagina.",
+      "callsign": "Callsign",
+      "flightNumber": "Vluchtnr.",
+      "origin": "Vertrek",
+      "destination": "Bestemming",
+      "fetched": "OPGEHAALD",
+      "hint": "Ophalen & overschrijvingen op de INIT-pagina"
+    },
+    "gate": {
+      "title": "Aankomstgate",
+      "empty": "Laad een OFP om een gate toe te wijzen.",
+      "placeholder": "GATE",
+      "aria": "Aankomstgate",
+      "restored": "Hersteld uit de vorige sessie — deze gate was bevestigd voordat de app herstartte.",
+      "confirm": "Bevestigen",
+      "cancel": "Annuleren",
+      "sendNow": "Nu verzenden",
+      "sendNow.title": "Stuur de gate direct naar GSX en SayIntentions ATC",
+      "sent": "Verzonden {0}",
+      "queued": "In wachtrij {0} — automatisch verzonden in cruise (of direct als die al voorbij is)",
+      "stand": "Stand: {0}",
+      "atc": "ATC: {0}",
+      "gsxSend": "GSX-verzending: {0}",
+      "gsx": "GSX: {0}",
+      "variantUnknown": "geen jetway of VDGS bekend voor deze stand",
+      "variantDetail": "{0} op deze stand",
+      "hint": "Bevestigen zet de gate klaar voor automatische verzending in cruise (of direct als later in de vlucht bevestigd). Nu verzenden stuurt direct naar GSX + SayIntentions ATC. Een bevestigde gate overleeft een herstart van de app."
+    },
+    "weather": {
+      "hint": "SayIntentions · 10 min gecachet",
+      "refreshing": "Vernieuwen…",
+      "refresh": "Weer vernieuwen",
+      "departure": "Vertrek",
+      "arrival": "Aankomst",
+      "noData": "Geen gegevens."
+    },
+    "pushback": {
+      "title": "Pushbackrichting",
+      "aria": "Pushbackrichting",
+      "tailLeft": "STAART LINKS",
+      "tailLeft.sub": "NEUS RECHTS",
+      "tailLeft.title": "Deze vlucht: kies 'Nose Right / Tail Left' als GSX het richtingmenu toont.",
+      "straight": "RECHTDOOR",
+      "straight.sub": "RECHT ACHTERUIT",
+      "straight.title": "Deze vlucht: kies 'Straight pushback' als GSX het richtingmenu toont.",
+      "tailRight": "STAART RECHTS",
+      "tailRight.sub": "NEUS LINKS",
+      "tailRight.title": "Deze vlucht: kies 'Nose Left / Tail Right' als GSX het richtingmenu toont.",
+      "thisFlight": "Deze vlucht: {0} ({1})",
+      "auto": "Auto",
+      "auto.title": "Terug naar de suggestie",
+      "suggested": "Suggestie:",
+      "lean": " (zwak)",
+      "atStand": " op {0}",
+      "forRunway": " voor baan {0}",
+      "standRunway": ", baan {0}",
+      "standNoRunway": ", geen vertrekbaan in de OFP",
+      "noSuggestion": "Stand {0}{1} — nog geen suggestie.",
+      "asking": "GSX vraagt welke kant op — zeg het tegen de FO (\"tail left\", \"tail right\", \"push back facing north\") of druk op een knop.",
+      "footer": "Knoppen kiezen alleen voor deze vlucht · standaardmodus: {0} · Instellingen → GSX → Pushback",
+      "mode": {
+        "ask": "piloot vragen",
+        "tailLeft": "altijd staart links",
+        "tailRight": "altijd staart rechts",
+        "straight": "altijd rechtdoor",
+        "auto": "auto (richting baan)"
+      },
+      "menuHint": "Toont GSX 'Select pushback direction' met de eigen benoemde lijnen van de stand, kies er dan hier een — het GSX-venster hoeft niet open."
+    },
+    "deice": {
+      "title": "De-icing holdover (HOT)",
+      "oat.aria": "Buitentemperatuur",
+      "precip.aria": "Neerslag",
+      "precip": {
+        "none": "Geen neerslag",
+        "activeFrost": "Actieve rijp",
+        "freezingFog": "Aanvriezende mist",
+        "snow": "Sneeuw / sneeuwkorrels",
+        "freezingDrizzleLight": "Aanvriezende motregen (licht)",
+        "freezingDrizzleModerate": "Aanvriezende motregen (matig)",
+        "lightFreezingRain": "Lichte ijzel",
+        "rainOnColdSoakedWing": "Regen op koude vleugel"
+      },
+      "holdover": "Holdover",
+      "fluid": "Vloeistof:",
+      "fluidFrom": "Vloeistof uit: {0}",
+      "note": "Alleen voor immersie — niet voor echte dispatch"
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "init": {
+    "pageTitle": "EFB INIT — ProsimCompanion",
+    "heading": "EFB INIT",
+    "active": {
+      "title": "Active / Init"
+    },
+    "data": {
+      "title": "Données / État"
+    },
+    "status": {
+      "fetching": "RÉCUPÉRATION…",
+      "uplinkFailed": "UPLINK ÉCHOUÉ",
+      "ofpLoaded": "OFP CHARGÉ",
+      "awaitingOfp": "EN ATTENTE DE L'OFP",
+      "fuelConfirmed": "CARBURANT {0} KG CONFIRMÉ",
+      "fetchedAt": "RÉCUPÉRÉ {0}"
+    },
+    "source": {
+      "manual": "MANUEL"
+    },
+    "fetch": {
+      "contacting": "CONNEXION À SIMBRIEF...",
+      "parsing": "ANALYSE DE L'OFP...",
+      "writing": "ÉCRITURE DANS LE FMS...",
+      "noPilotId": "AUCUN ID PILOTE SIMBRIEF DANS PROSIM — À RENSEIGNER DANS L'EFB PROSIM",
+      "noOfp": "AUCUN OFP — EN AS-TU GÉNÉRÉ UN SUR SIMBRIEF ?",
+      "importFailed": "RÉCUPÉRÉ, MAIS L'IMPORT DANS L'EFB A ÉCHOUÉ — VOIR LES LOGS",
+      "syncFailed": "SYNCHRO FMS ÉCHOUÉE — VOIR LES LOGS"
+    },
+    "editor": {
+      "clickToOverride": "Cliquer pour modifier",
+      "commit": "Valider la modification (Entrée)",
+      "cancel": "Annuler (Échap)",
+      "invalid": "INVALIDE",
+      "outOfRange": "HORS PLAGE",
+      "writeFailed": "ÉCRITURE ÉCHOUÉE"
+    },
+    "actions": {
+      "fetching": "RÉCUPÉRATION…",
+      "fetchOfp": "RÉCUPÉRER L'OFP",
+      "syncing": "SYNCHRO…",
+      "syncToFms": "SYNCHRONISER AVEC LE FMS",
+      "confirming": "CONFIRMATION…",
+      "reconfirmFuel": "RECONFIRMER LE CARBURANT",
+      "confirmFuel": "CONFIRMER LE CARBURANT",
+      "confirmFuel.title": "Confirme le carburant bloc et commande le camion-citerne (ou un complément)",
+      "clearing": "EFFACEMENT…",
+      "clearOverrides": "EFFACER LES MODIFICATIONS",
+      "resetting": "RÉINITIALISATION…",
+      "confirmReset": "CONFIRMER LA RÉINITIALISATION",
+      "resetFlight": "RÉINITIALISER LE VOL (SOFT)",
+      "resetFlight.title": "Redémarre cette étape sur le même OFP : efface les modifications INIT et le cycle de loadsheet ; l'EFB ProSim garde le plan",
+      "unloading": "DÉCHARGEMENT…",
+      "confirmUnload": "CONFIRMER LE DÉCHARGEMENT",
+      "unloadOfp": "DÉCHARGER L'OFP (COMPLET)",
+      "unloadOfp.title": "Décharge l'OFP de l'EFB ProSim (plan de cabine, pax, carburant et fret planifiés, loadsheets) et réinitialise le cycle de vol — aucun service GSX n'est appelé avant la récupération d'un nouvel OFP"
+    },
+    "reset": {
+      "softDone": "VOL RÉINITIALISÉ — OFP CONSERVÉ",
+      "unloadDone": "OFP DÉCHARGÉ — RÉCUPÈRE UN NOUVEL OFP POUR CONTINUER",
+      "incomplete": "RÉINITIALISATION INCOMPLÈTE — PROSIM A REFUSÉ {0}"
+    }
+  }
+}

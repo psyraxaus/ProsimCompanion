@@ -1,0 +1,89 @@
+{
+  "wnb": {
+    "pageTitle": "Peso y centrado — ProsimCompanion",
+    "heading": "Peso y centrado",
+    "loading": {
+      "title": "Carga de la aeronave",
+      "closed": "Cerrada",
+      "open": "Abierta",
+      "door": {
+        "notFitted": "N/D",
+        "open": "ABIERTA",
+        "closed": "CERRADA"
+      },
+      "doorsOpen": "Puertas abiertas",
+      "allDoorsClosed": "Todas las puertas cerradas"
+    },
+    "totals": {
+      "totalPax": "Pax totales",
+      "zones": "Zonas {0} / {1} / {2} / {3} · previsto {4}",
+      "cargoFwd": "Carga FWD",
+      "cargoAft": "Carga AFT",
+      "bulk": " · bulk {0}",
+      "fuelInTanks": "Combustible en tanques",
+      "planned": "previsto {0}"
+    },
+    "max": "máx {0}",
+    "simulate": {
+      "open": "Simular",
+      "count": "Cantidad",
+      "generate": "Generar",
+      "clear": "Vaciar",
+      "hide": "Ocultar controles",
+      "hint": "Para cabinas sin embarque; el embarque de GSX lo sobrescribirá.",
+      "generated": "{0} pax generados.",
+      "generationFailed": "Generación fallida — ver logs.",
+      "cleared": "Cabina vaciada.",
+      "clearFailed": "Vaciado fallido — ver logs."
+    },
+    "manifest": {
+      "hide": "▾ Ocultar manifiesto",
+      "show": "▸ Manifiesto ({0})",
+      "hint": "Generado a partir del mapa de asientos reservados; el mismo vuelo conserva los mismos nombres.",
+      "empty": "Aún no hay pasajeros reservados — importa primero un OFP.",
+      "seat": "ASIENTO",
+      "name": "NOMBRE",
+      "zone": "ZONA"
+    },
+    "summary": {
+      "title": "Resumen de pesos",
+      "zfw": "Peso sin combustible (ZFW)",
+      "gw": "Peso bruto (GW)",
+      "live": "EN VIVO",
+      "valid": "válido {0}",
+      "loadsheet": " · loadsheet {0} {1}%",
+      "syncing": "Sincronizando…",
+      "sync": "Sincronizar con FMS ({0})",
+      "computed": "CALCULADO",
+      "syncFailed": "Sincronización fallida — ver logs.",
+      "fmsUpdated": "FMS ACTUALIZADO — ZFW {0} t · ZFWCG {1}% · bloque {2} t ({3})"
+    },
+    "envelope": {
+      "title": "Envolvente de CG",
+      "hint": "EN VIVO lee los datarefs de la aeronave en cada ciclo · L/S refleja el último loadsheet (final preferido, prelim como respaldo)",
+      "live": "EN VIVO",
+      "loadsheet": "L/S",
+      "operationalLimits": "Límites operativos",
+      "takeoffLimits": "Límites de despegue",
+      "zfwLimit": "Límite ZFW"
+    },
+    "breakdown": {
+      "title": "Desglose de carga",
+      "category": "Categoría",
+      "actual": "Real",
+      "max": "Máx",
+      "status": "Estado",
+      "passengers": "Pasajeros",
+      "cargoFwd": "Carga FWD",
+      "cargoAft": "Carga AFT",
+      "cargoTotal": "Carga total",
+      "fuel": "Combustible",
+      "grossWeight": "Peso bruto",
+      "plan": "plan {0} {1}",
+      "over": "exceso",
+      "empty": "vacío",
+      "vsPlan": "vs plan",
+      "ok": "ok"
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "wnb": {
+    "pageTitle": "Weight & Balance — ProsimCompanion",
+    "heading": "Weight & Balance",
+    "loading": {
+      "title": "Beladung",
+      "closed": "Geschlossen",
+      "open": "Offen",
+      "door": {
+        "notFitted": "N/A",
+        "open": "OFFEN",
+        "closed": "ZU"
+      },
+      "doorsOpen": "Türen offen",
+      "allDoorsClosed": "Alle Türen zu"
+    },
+    "totals": {
+      "totalPax": "Pax gesamt",
+      "zones": "Zonen {0} / {1} / {2} / {3} · geplant {4}",
+      "cargoFwd": "Fracht FWD",
+      "cargoAft": "Fracht AFT",
+      "bulk": " · Bulk {0}",
+      "fuelInTanks": "Kraftstoff in Tanks",
+      "planned": "geplant {0}"
+    },
+    "max": "max {0}",
+    "simulate": {
+      "open": "Simulieren",
+      "count": "Anzahl",
+      "generate": "Erzeugen",
+      "clear": "Leeren",
+      "hide": "Steuerung ausblenden",
+      "hint": "Für Kabinen ohne Boarding; GSX-Boarding überschreibt.",
+      "generated": "{0} Pax erzeugt.",
+      "generationFailed": "Erzeugen fehlgeschlagen — siehe Logs.",
+      "cleared": "Kabine geleert.",
+      "clearFailed": "Leeren fehlgeschlagen — siehe Logs."
+    },
+    "manifest": {
+      "hide": "▾ Manifest ausblenden",
+      "show": "▸ Manifest ({0})",
+      "hint": "Aus dem gebuchten Sitzplan erzeugt; derselbe Flug behält dieselben Namen.",
+      "empty": "Noch keine gebuchten Passagiere — zuerst ein OFP importieren.",
+      "seat": "SITZ",
+      "name": "NAME",
+      "zone": "ZONE"
+    },
+    "summary": {
+      "title": "Gewichtsübersicht",
+      "zfw": "Zero Fuel Weight (ZFW)",
+      "gw": "Gross Weight (GW)",
+      "live": "LIVE",
+      "valid": "gültig {0}",
+      "loadsheet": " · Loadsheet {0} {1}%",
+      "syncing": "Synchronisiere…",
+      "sync": "Ins FMS übertragen ({0})",
+      "computed": "BERECHNET",
+      "syncFailed": "Sync fehlgeschlagen — siehe Logs.",
+      "fmsUpdated": "FMS AKTUALISIERT — ZFW {0} t · ZFWCG {1}% · Block {2} t ({3})"
+    },
+    "envelope": {
+      "title": "CG-Envelope",
+      "hint": "LIVE liest jeden Tick die Datarefs des Flugzeugs · L/S spiegelt das letzte Loadsheet (Final bevorzugt, sonst Prelim)",
+      "live": "LIVE",
+      "loadsheet": "L/S",
+      "operationalLimits": "Betriebsgrenzen",
+      "takeoffLimits": "Startgrenzen",
+      "zfwLimit": "ZFW-Grenze"
+    },
+    "breakdown": {
+      "title": "Beladungsaufstellung",
+      "category": "Kategorie",
+      "actual": "Ist",
+      "max": "Max",
+      "status": "Status",
+      "passengers": "Passagiere",
+      "cargoFwd": "Fracht FWD",
+      "cargoAft": "Fracht AFT",
+      "cargoTotal": "Fracht gesamt",
+      "fuel": "Kraftstoff",
+      "grossWeight": "Gross Weight",
+      "plan": "Plan {0} {1}",
+      "over": "über",
+      "empty": "leer",
+      "vsPlan": "vs. Plan",
+      "ok": "ok"
+    }
+  }
+}

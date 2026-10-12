@@ -1,0 +1,89 @@
+{
+  "wnb": {
+    "pageTitle": "중량 및 균형 — ProsimCompanion",
+    "heading": "중량 및 균형",
+    "loading": {
+      "title": "항공기 탑재",
+      "closed": "닫힘",
+      "open": "열림",
+      "door": {
+        "notFitted": "N/A",
+        "open": "열림",
+        "closed": "닫힘"
+      },
+      "doorsOpen": "도어 열림",
+      "allDoorsClosed": "모든 도어 닫힘"
+    },
+    "totals": {
+      "totalPax": "총 승객",
+      "zones": "구역 {0} / {1} / {2} / {3} · 계획 {4}",
+      "cargoFwd": "화물 FWD",
+      "cargoAft": "화물 AFT",
+      "bulk": " · 벌크 {0}",
+      "fuelInTanks": "탱크 내 연료",
+      "planned": "계획 {0}"
+    },
+    "max": "최대 {0}",
+    "simulate": {
+      "open": "시뮬레이션",
+      "count": "인원",
+      "generate": "생성",
+      "clear": "비우기",
+      "hide": "컨트롤 숨기기",
+      "hint": "탑승이 없는 객실용입니다. GSX 탑승이 덮어씁니다.",
+      "generated": "승객 {0}명을 생성했습니다.",
+      "generationFailed": "생성 실패 — 로그 확인.",
+      "cleared": "객실을 비웠습니다.",
+      "clearFailed": "비우기 실패 — 로그 확인."
+    },
+    "manifest": {
+      "hide": "▾ 탑승자 명단 숨기기",
+      "show": "▸ 탑승자 명단 ({0})",
+      "hint": "예약된 좌석 배치에서 생성됩니다. 같은 비행은 같은 이름을 유지합니다.",
+      "empty": "예약된 승객이 아직 없습니다 — 먼저 OFP를 가져오세요.",
+      "seat": "좌석",
+      "name": "이름",
+      "zone": "구역"
+    },
+    "summary": {
+      "title": "중량 요약",
+      "zfw": "무연료 중량 (ZFW)",
+      "gw": "총중량 (GW)",
+      "live": "LIVE",
+      "valid": "유효 {0}",
+      "loadsheet": " · 로드시트 {0} {1}%",
+      "syncing": "동기화 중…",
+      "sync": "FMS에 동기화 ({0})",
+      "computed": "계산값",
+      "syncFailed": "동기화 실패 — 로그 확인.",
+      "fmsUpdated": "FMS 업데이트됨 — ZFW {0} t · ZFWCG {1}% · 블록 {2} t ({3})"
+    },
+    "envelope": {
+      "title": "CG 범위",
+      "hint": "LIVE는 매 틱 항공기 데이터레프를 읽습니다 · L/S는 최신 로드시트를 반영합니다 (파이널 우선, 없으면 프렐림)",
+      "live": "LIVE",
+      "loadsheet": "L/S",
+      "operationalLimits": "운용 한계",
+      "takeoffLimits": "이륙 한계",
+      "zfwLimit": "ZFW 한계"
+    },
+    "breakdown": {
+      "title": "탑재 내역",
+      "category": "항목",
+      "actual": "실제",
+      "max": "최대",
+      "status": "상태",
+      "passengers": "승객",
+      "cargoFwd": "화물 FWD",
+      "cargoAft": "화물 AFT",
+      "cargoTotal": "화물 합계",
+      "fuel": "연료",
+      "grossWeight": "총중량",
+      "plan": "계획 {0} {1}",
+      "over": "초과",
+      "empty": "비어 있음",
+      "vsPlan": "계획과 차이",
+      "ok": "정상"
+    }
+  }
+}

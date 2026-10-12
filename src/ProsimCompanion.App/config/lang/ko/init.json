@@ -1,0 +1,65 @@
+{
+  "init": {
+    "pageTitle": "EFB INIT — ProsimCompanion",
+    "heading": "EFB INIT",
+    "active": {
+      "title": "Active / Init"
+    },
+    "data": {
+      "title": "데이터 / 상태"
+    },
+    "status": {
+      "fetching": "가져오는 중…",
+      "uplinkFailed": "업링크 실패",
+      "ofpLoaded": "OFP 로드됨",
+      "awaitingOfp": "OFP 대기 중",
+      "fuelConfirmed": "연료 {0} KG 확인됨",
+      "fetchedAt": "가져옴 {0}"
+    },
+    "source": {
+      "manual": "수동"
+    },
+    "fetch": {
+      "contacting": "SIMBRIEF 연결 중...",
+      "parsing": "OFP 분석 중...",
+      "writing": "FMS에 쓰는 중...",
+      "noPilotId": "PROSIM에 SIMBRIEF 파일럿 ID가 없습니다 — PROSIM EFB에서 설정하세요",
+      "noOfp": "OFP 없음 — SIMBRIEF에서 생성했나요?",
+      "importFailed": "가져왔지만 EFB 가져오기에 실패했습니다 — 로그 확인",
+      "syncFailed": "FMS 동기화 실패 — 로그 확인"
+    },
+    "editor": {
+      "clickToOverride": "클릭하여 덮어쓰기",
+      "commit": "덮어쓰기 확정 (Enter)",
+      "cancel": "취소 (Esc)",
+      "invalid": "잘못된 값",
+      "outOfRange": "범위 초과",
+      "writeFailed": "쓰기 실패"
+    },
+    "actions": {
+      "fetching": "가져오는 중…",
+      "fetchOfp": "OFP 가져오기",
+      "syncing": "동기화 중…",
+      "syncToFms": "FMS에 동기화",
+      "confirming": "확인 중…",
+      "reconfirmFuel": "연료 재확인",
+      "confirmFuel": "연료 확인",
+      "confirmFuel.title": "블록 연료를 확인하고 급유차(또는 추가 급유)를 요청합니다",
+      "clearing": "지우는 중…",
+      "clearOverrides": "덮어쓰기 지우기",
+      "resetting": "재설정 중…",
+      "confirmReset": "재설정 확정",
+      "resetFlight": "비행 재설정 (소프트)",
+      "resetFlight.title": "같은 OFP로 이 레그를 다시 시작합니다: INIT 덮어쓰기와 로드시트 사이클을 지우고, ProSim EFB는 계획을 유지합니다",
+      "unloading": "언로드 중…",
+      "confirmUnload": "언로드 확정",
+      "unloadOfp": "OFP 언로드 (전체)",
+      "unloadOfp.title": "ProSim EFB에서 OFP를 언로드하고(좌석 배치, 승객, 계획 연료와 화물, 로드시트) 비행 사이클을 재설정합니다 — 새 OFP를 가져올 때까지 GSX 서비스를 호출하지 않습니다"
+    },
+    "reset": {
+      "softDone": "비행 재설정됨 — OFP 유지",
+      "unloadDone": "OFP 언로드됨 — 계속하려면 새 OFP를 가져오세요",
+      "incomplete": "재설정 미완료 — PROSIM이 {0} 거부"
+    }
+  }
+}

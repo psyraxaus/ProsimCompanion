@@ -1,0 +1,96 @@
+{
+  "ofp": {
+    "pageTitle": "OFP — ProsimCompanion",
+    "heading": "運航フライトプラン",
+    "plan": {
+      "title": "フライトプラン",
+      "empty": "フライトプランが読み込まれていません — MCDU で出発地/目的地を入力するか、INIT ページで OFP を取得してください。",
+      "callsign": "コールサイン",
+      "flightNumber": "便名",
+      "origin": "出発地",
+      "destination": "目的地",
+      "fetched": "取得",
+      "hint": "取得と上書きは INIT ページで"
+    },
+    "gate": {
+      "title": "到着ゲート",
+      "empty": "ゲート割り当てには OFP を読み込んでください。",
+      "placeholder": "GATE",
+      "aria": "到着ゲート",
+      "restored": "前回のセッションから復元 — このゲートはアプリ再起動前に確認済みです。",
+      "confirm": "確認",
+      "cancel": "取り消し",
+      "sendNow": "今すぐ送信",
+      "sendNow.title": "ゲートを GSX と SayIntentions ATC に直ちに送ります",
+      "sent": "送信済み {0}",
+      "queued": "待機中 {0} — 巡航で自動送信（すでに巡航を過ぎていれば直ちに）",
+      "stand": "スタンド: {0}",
+      "atc": "ATC: {0}",
+      "gsxSend": "GSX 送信: {0}",
+      "gsx": "GSX: {0}",
+      "variantUnknown": "このスタンドのジェットウェイ/VDGS は不明",
+      "variantDetail": "このスタンドに {0}",
+      "hint": "「確認」で巡航時の自動送信を予約します（飛行中に後から確認した場合は直ちに）。「今すぐ送信」は GSX + SayIntentions ATC に直ちに送ります。確認済みのゲートはアプリ再起動後も保持されます。"
+    },
+    "weather": {
+      "hint": "SayIntentions · 10 分キャッシュ",
+      "refreshing": "更新中…",
+      "refresh": "気象を更新",
+      "departure": "出発",
+      "arrival": "到着",
+      "noData": "データなし。"
+    },
+    "pushback": {
+      "title": "プッシュバック方向",
+      "aria": "プッシュバック方向",
+      "tailLeft": "テール左",
+      "tailLeft.sub": "ノーズ右",
+      "tailLeft.title": "このフライト: GSX の方向メニューで 'Nose Right / Tail Left' を選びます。",
+      "straight": "直進",
+      "straight.sub": "まっすぐ後退",
+      "straight.title": "このフライト: GSX の方向メニューで 'Straight pushback' を選びます。",
+      "tailRight": "テール右",
+      "tailRight.sub": "ノーズ左",
+      "tailRight.title": "このフライト: GSX の方向メニューで 'Nose Left / Tail Right' を選びます。",
+      "thisFlight": "このフライト: {0} ({1})",
+      "auto": "自動",
+      "auto.title": "提案に戻す",
+      "suggested": "提案:",
+      "lean": "（弱）",
+      "atStand": "、スタンド {0}",
+      "forRunway": "、滑走路 {0} 向け",
+      "standRunway": "、滑走路 {0}",
+      "standNoRunway": "、OFP に出発滑走路なし",
+      "noSuggestion": "スタンド {0}{1} — まだ提案なし。",
+      "asking": "GSX が方向を尋ねています — FO に伝える（\"tail left\"、\"tail right\"、\"push back facing north\"）か、ボタンを押してください。",
+      "footer": "ボタンはこのフライトのみ有効 · 既定モード: {0} · 設定 → GSX → プッシュバック",
+      "mode": {
+        "ask": "パイロットに確認",
+        "tailLeft": "常にテール左",
+        "tailRight": "常にテール右",
+        "straight": "常に直進",
+        "auto": "自動（滑走路方向）"
+      },
+      "menuHint": "GSX が 'Select pushback direction' でスタンド固有の名前付きラインを示したら、ここで選べます — GSX ウィンドウを開く必要はありません。"
+    },
+    "deice": {
+      "title": "防除氷ホールドオーバー (HOT)",
+      "oat.aria": "外気温",
+      "precip.aria": "降水",
+      "precip": {
+        "none": "降水なし",
+        "activeFrost": "活性霜",
+        "freezingFog": "着氷性の霧",
+        "snow": "雪 / 雪あられ",
+        "freezingDrizzleLight": "着氷性霧雨（弱）",
+        "freezingDrizzleModerate": "着氷性霧雨（並）",
+        "lightFreezingRain": "弱い着氷性の雨",
+        "rainOnColdSoakedWing": "冷えた翼への雨"
+      },
+      "holdover": "ホールドオーバー",
+      "fluid": "防氷液:",
+      "fluidFrom": "防氷液の出所: {0}",
+      "note": "没入用のみ — 実運航には使用不可"
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "init": {
+    "pageTitle": "EFB INIT — ProsimCompanion",
+    "heading": "EFB INIT",
+    "active": {
+      "title": "Active / Init"
+    },
+    "data": {
+      "title": "Daten / Status"
+    },
+    "status": {
+      "fetching": "LADE…",
+      "uplinkFailed": "UPLINK FEHLGESCHLAGEN",
+      "ofpLoaded": "OFP GELADEN",
+      "awaitingOfp": "WARTE AUF OFP",
+      "fuelConfirmed": "KRAFTSTOFF {0} KG BESTÄTIGT",
+      "fetchedAt": "GELADEN {0}"
+    },
+    "source": {
+      "manual": "MANUELL"
+    },
+    "fetch": {
+      "contacting": "VERBINDE MIT SIMBRIEF...",
+      "parsing": "LESE OFP...",
+      "writing": "SCHREIBE INS FMS...",
+      "noPilotId": "KEINE SIMBRIEF-PILOT-ID IN PROSIM — IM PROSIM-EFB EINTRAGEN",
+      "noOfp": "KEIN OFP — IST AUF SIMBRIEF EINS ERZEUGT?",
+      "importFailed": "GELADEN, ABER DER EFB-IMPORT SCHLUG FEHL — SIEHE LOGS",
+      "syncFailed": "FMS-SYNC FEHLGESCHLAGEN — SIEHE LOGS"
+    },
+    "editor": {
+      "clickToOverride": "Klicken zum Überschreiben",
+      "commit": "Überschreibung übernehmen (Enter)",
+      "cancel": "Abbrechen (Esc)",
+      "invalid": "UNGÜLTIG",
+      "outOfRange": "AUSSERHALB DES BEREICHS",
+      "writeFailed": "SCHREIBEN FEHLGESCHLAGEN"
+    },
+    "actions": {
+      "fetching": "LADE…",
+      "fetchOfp": "OFP LADEN",
+      "syncing": "SYNCHRONISIERE…",
+      "syncToFms": "INS FMS ÜBERTRAGEN",
+      "confirming": "BESTÄTIGE…",
+      "reconfirmFuel": "KRAFTSTOFF ERNEUT BESTÄTIGEN",
+      "confirmFuel": "KRAFTSTOFF BESTÄTIGEN",
+      "confirmFuel.title": "Den Block Fuel bestätigen und den Tankwagen bestellen (oder nachtanken)",
+      "clearing": "LÖSCHE…",
+      "clearOverrides": "ÜBERSCHREIBUNGEN LÖSCHEN",
+      "resetting": "SETZE ZURÜCK…",
+      "confirmReset": "RESET BESTÄTIGEN",
+      "resetFlight": "FLUG ZURÜCKSETZEN (SOFT)",
+      "resetFlight.title": "Dieses Leg mit demselben OFP neu starten: löscht die INIT-Überschreibungen und den Loadsheet-Zyklus; das ProSim-EFB behält den Plan",
+      "unloading": "ENTLADE…",
+      "confirmUnload": "ENTLADEN BESTÄTIGEN",
+      "unloadOfp": "OFP ENTLADEN (VOLL)",
+      "unloadOfp.title": "Das OFP aus dem ProSim-EFB entladen (Sitzplan, Pax, geplanter Kraftstoff und Fracht, Loadsheets) und den Flugzyklus zurücksetzen — kein GSX-Dienst wird gerufen, bis ein neues OFP geladen ist"
+    },
+    "reset": {
+      "softDone": "FLUG ZURÜCKGESETZT — OFP BEHALTEN",
+      "unloadDone": "OFP ENTLADEN — ZUM FORTFAHREN EIN NEUES OFP LADEN",
+      "incomplete": "RESET UNVOLLSTÄNDIG — PROSIM VERWEIGERTE {0}"
+    }
+  }
+}
