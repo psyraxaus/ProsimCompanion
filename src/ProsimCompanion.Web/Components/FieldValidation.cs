@@ -58,9 +58,12 @@ public enum TextFieldKind
     IntList,
 }
 
-/// <summary>One finding about a field's value. <see cref="Blocking"/> findings disable Save
-/// (the value can never work); the rest are advisory (a path that is not there yet).</summary>
-public sealed record FieldProblem(string Message, bool Blocking);
+/// <summary>One finding about a field's value, as a pack text id (ADR-0014) plus the one
+/// value the sentence names (<see cref="Detail"/>: the missing folders). The table is static,
+/// so the English lives in <c>fields.json</c> and <see cref="TextField"/> resolves the id where
+/// a localizer is at hand. <see cref="Blocking"/> findings disable Save (the value can never
+/// work); the rest are advisory (a path that is not there yet).</summary>
+public sealed record FieldProblem(string TextId, bool Blocking, string? Detail = null);
 
 /// <summary>Everything the field needs to know about one <see cref="TextFieldKind"/>, in one
 /// row: the rule, the Windows dialog Browse… opens (null for a kind that is not a path) and
@@ -68,9 +71,9 @@ public sealed record FieldProblem(string Message, bool Blocking);
 /// drifted apart (review 2026-10-13).</summary>
 /// <param name="Check">The rule for a non-empty, trimmed value.</param>
 /// <param name="Dialog">The dialog Browse… opens, or null when the kind is not a path.</param>
-/// <param name="BrowseTitle">The dialog title and the Browse… button's tooltip.</param>
+/// <param name="BrowseTitleTextId">The pack id of the Browse… button's tooltip; empty for a kind that is not a path.</param>
 /// <param name="IsList">';'-separated folders: Browse… opens at the last one and appends.</param>
-public sealed record TextFieldKindInfo(Func<string, FieldProblem?> Check, NativePickKind? Dialog, string BrowseTitle, bool IsList = false)
+public sealed record TextFieldKindInfo(Func<string, FieldProblem?> Check, NativePickKind? Dialog, string BrowseTitleTextId, bool IsList = false)
 {
     /// <summary>True for the kinds that get a Browse… button.</summary>
     public bool IsPath => Dialog is not null;
@@ -78,22 +81,23 @@ public sealed record TextFieldKindInfo(Func<string, FieldProblem?> Check, Native
 
 /// <summary>
 /// The pure rules behind <see cref="TextFieldKind"/>. Empty is never a problem — every page
-/// hint already says what empty means — and the messages name the expected shape with an
-/// example, so the line under the field is the "what do I type here" the owner asked for.
+/// hint already says what empty means — and the messages (text ids under
+/// <c>fields.validation</c> in the language packs) name the expected shape with an example,
+/// so the line under the field is the "what do I type here" the owner asked for.
 /// Path kinds touch the file system (Exists only, through <see cref="SafePath"/>) because
 /// the web server runs on the PC the paths refer to.
 /// </summary>
 public static partial class FieldValidation
 {
-    private const string HostMessage = "Name or IP address only. No http:// and no port. Example: 192.168.1.10";
-    private const string HostIpv6Message = "IPv6 addresses are not supported here. Use the PC's name or its IPv4 address. Example: 192.168.1.10";
-    private const string UrlMessage = "Must start with http:// or https://. Example: http://192.168.1.50:8000";
-    private const string IpMessage = "An IPv4 address like 192.168.1.255";
-    private const string MacMessage = "Six hex pairs like AA:BB:CC:DD:EE:FF";
-    private const string BadPathMessage = "Not a valid Windows path";
-    private const string IcaoMessage = "A four-letter ICAO code like YSSY";
-    private const string RunwayMessage = "A runway like 16R or 34";
-    private const string IntListMessage = "Whole numbers separated by commas, like 1, 2, 3";
+    private const string HostMessage = "fields.validation.host";
+    private const string HostIpv6Message = "fields.validation.hostIpv6";
+    private const string UrlMessage = "fields.validation.url";
+    private const string IpMessage = "fields.validation.ip";
+    private const string MacMessage = "fields.validation.mac";
+    private const string BadPathMessage = "fields.validation.badPath";
+    private const string IcaoMessage = "fields.validation.icao";
+    private const string RunwayMessage = "fields.validation.runway";
+    private const string IntListMessage = "fields.validation.intList";
 
     [GeneratedRegex("^[A-Z0-9]{4}$", RegexOptions.IgnoreCase)]
     private static partial Regex IcaoPattern();
@@ -101,8 +105,8 @@ public static partial class FieldValidation
     [GeneratedRegex("^(0?[1-9]|[12][0-9]|3[0-6])[LRC]?$", RegexOptions.IgnoreCase)]
     private static partial Regex RunwayPattern();
 
-    private const string ChooseFile = "Choose a file on this PC";
-    private const string ChooseFolder = "Choose a folder on this PC";
+    private const string ChooseFile = "fields.validation.chooseFile";
+    private const string ChooseFolder = "fields.validation.chooseFolder";
 
     private static readonly IReadOnlyDictionary<TextFieldKind, TextFieldKindInfo> Kinds = new Dictionary<TextFieldKind, TextFieldKindInfo>
     {
@@ -114,8 +118,8 @@ public static partial class FieldValidation
         [TextFieldKind.FilePath] = new(text => CheckPath(text, PathTarget.File), NativePickKind.OpenFile, ChooseFile),
         [TextFieldKind.FolderPath] = new(text => CheckPath(text, PathTarget.Folder), NativePickKind.Folder, ChooseFolder),
         [TextFieldKind.FileOrFolderPath] = new(text => CheckPath(text, PathTarget.FileOrFolder), NativePickKind.OpenFile, ChooseFile),
-        [TextFieldKind.OutputFilePath] = new(text => CheckPath(text, PathTarget.ParentFolder), NativePickKind.SaveFile, "Choose where the app writes the file"),
-        [TextFieldKind.FolderList] = new(CheckFolderList, NativePickKind.Folder, "Add a folder on this PC", IsList: true),
+        [TextFieldKind.OutputFilePath] = new(text => CheckPath(text, PathTarget.ParentFolder), NativePickKind.SaveFile, "fields.validation.chooseOutputFile"),
+        [TextFieldKind.FolderList] = new(CheckFolderList, NativePickKind.Folder, "fields.validation.addFolder", IsList: true),
         [TextFieldKind.Icao] = new(text => IcaoPattern().IsMatch(text) ? null : Block(IcaoMessage), null, ""),
         [TextFieldKind.Runway] = new(text => RunwayPattern().IsMatch(text) ? null : Block(RunwayMessage), null, ""),
         [TextFieldKind.IntList] = new(CheckIntList, null, ""),
@@ -134,9 +138,9 @@ public static partial class FieldValidation
         return text.Length == 0 ? null : Describe(kind).Check(text);
     }
 
-    private static FieldProblem Block(string message) => new(message, Blocking: true);
+    private static FieldProblem Block(string textId) => new(textId, Blocking: true);
 
-    private static FieldProblem Warn(string message) => new(message, Blocking: false);
+    private static FieldProblem Warn(string textId, string? detail = null) => new(textId, Blocking: false, detail);
 
     private static FieldProblem? CheckHost(string text)
     {
@@ -194,12 +198,12 @@ public static partial class FieldValidation
 
         return target switch
         {
-            PathTarget.File => SafePath.FileExists(full) ? null : Warn("File not found on this PC"),
-            PathTarget.Folder => SafePath.DirectoryExists(full) ? null : Warn("Folder not found on this PC"),
-            PathTarget.FileOrFolder => SafePath.FileExists(full) || SafePath.DirectoryExists(full) ? null : Warn("Not found on this PC"),
+            PathTarget.File => SafePath.FileExists(full) ? null : Warn("fields.validation.fileNotFound"),
+            PathTarget.Folder => SafePath.DirectoryExists(full) ? null : Warn("fields.validation.folderNotFound"),
+            PathTarget.FileOrFolder => SafePath.FileExists(full) || SafePath.DirectoryExists(full) ? null : Warn("fields.validation.notFound"),
             PathTarget.ParentFolder => SafePath.DirectoryExists(Path.GetDirectoryName(full) ?? full)
                 ? null
-                : Warn("Its folder does not exist on this PC"),
+                : Warn("fields.validation.parentFolderMissing"),
             _ => null,
         };
     }
@@ -221,7 +225,7 @@ public static partial class FieldValidation
             }
         }
 
-        return missing.Count == 0 ? null : Warn("Folder not found on this PC: " + string.Join("; ", missing));
+        return missing.Count == 0 ? null : Warn("fields.validation.foldersNotFound", string.Join("; ", missing));
     }
 
     private static FieldProblem? CheckIntList(string text)

@@ -1,0 +1,419 @@
+{
+  "gsxSettings": {
+    "pageTitle": "지상 서비스 — ProsimCompanion",
+    "heading": "지상 서비스",
+    "options": { "never": "안 함", "always": "항상", "onlyJetway": "탑승교 스탠드만" },
+    "doors": {
+      "title": "도어",
+      "automation": { "label": "도어 자동화", "hint": "지상 서비스를 위해 앱이 도어를 열고 닫을 수 있게 합니다.", "more": "아래 도어 규칙은 이 설정이 켜져 있을 때만 작동합니다." },
+      "stairs": { "label": "승객 도어는 스텝카를 따름", "hint": "스텝카가 도착하면 후방 승객 도어가 열리고, 떠나면 닫힙니다.", "more": "탑승교가 없는 스탠드에서는 전방 도어도 열립니다." },
+      "catering": { "label": "서비스 도어는 케이터링을 따름", "hint": "우측 서비스 도어가 케이터링 트럭을 위해 열리고 닫힙니다." },
+      "cargo": { "label": "화물 도어는 적재를 따름", "hint": "화물 도어가 로더를 위해 열리고, 각 로더가 끝나면 닫힙니다." },
+      "cargoOnBoarding": { "label": "탑승 진행 시 화물 도어 열기", "hint": "탑승 또는 하기가 시작된 직후 양쪽 화물 도어가 열립니다." },
+      "cargoOpenDelay": { "label": "화물 도어 열기 지연", "hint": "탑승 또는 하기 시작 후 대기 시간." },
+      "cargoCloseDelay": { "label": "화물 도어 닫기 지연", "hint": "로더가 끝난 후 대기 시간." },
+      "keepOpenAfterLoad": { "label": "적재 후 화물 도어 열어 두기", "hint": "탑승이 완료될 때까지 화물 도어를 열어 둡니다." },
+      "keepOpenAfterUnload": { "label": "하역 후 화물 도어 열어 두기", "hint": "하역 후에도 화물 도어를 열어 둡니다.", "more": "꺼짐은 각 로더가 끝날 때 닫습니다." },
+      "closeOnFinal": { "label": "최종 로드시트에서 도어 닫기", "hint": "최종 로드시트가 전송되면 모든 도어를 닫습니다.", "more": "비컨 푸시백 시퀀스가 꺼져 있을 때만 사용됩니다." },
+      "suppressMessages": { "label": "GSX 도어 메시지 숨기기", "hint": "이 앱이 도어를 제어하는 동안 GSX 자체의 도어 안내를 숨깁니다." }
+    },
+    "jetway": {
+      "title": "탑승교 / 스텝카",
+      "connectAtStart": { "label": "세션 시작 시 연결", "hint": "게이트에서 세션이 시작되면 탑승교 또는 스텝카를 연결합니다.", "more": "게이트 세션당 한 번. 스탠드에 따라 탑승교인지 스텝카인지는 GSX가 정합니다." },
+      "connectOnDeparture": { "label": "출발 서비스 시작 시 연결", "hint": "출발 서비스가 시작되면 탑승교 또는 스텝카를 연결합니다.", "more": "세션 시작 시 연결이 꺼진 세션용." },
+      "removeStairs": { "label": "출발 서비스 후 스텝카 제거", "hint": "출발 서비스 후 스텝카를 언제 제거할지.", "more": "탑승교 스탠드만: 탑승교가 승객 도어에 여전히 연결된 경우에만." },
+      "removeOnFinal": { "label": "최종 로드시트에서 탑승교/스텝카 제거", "hint": "최종 로드시트가 전송되면 탑승교 또는 스텝카를 철수합니다.", "more": "비컨 푸시백 시퀀스가 꺼져 있을 때만 사용됩니다." },
+      "connectOnArrival": { "label": "도착 시 연결", "hint": "주기 후, 하기 전에 탑승교 또는 스텝카를 연결합니다." }
+    },
+    "equipment": {
+      "title": "지상 장비",
+      "place": { "label": "지상 장비 배치", "hint": "세션 시작 시 지상 전원 장치와 초크를 배치합니다.", "more": "비컨이 켜지면 제거됩니다." },
+      "gpuWithApu": { "label": "APU 가동 중에도 GPU 연결", "hint": "APU가 이미 항공기에 전원을 공급하고 있어도 지상 전원을 연결합니다." },
+      "pca": { "label": "PCA 연결", "hint": "사전 냉난방 공기(PCA)를 언제 연결할지.", "more": "탑승교 스탠드만은 GSX의 탑승교 유무를 따릅니다. 세션 시작 시와 도착 시에 적용됩니다." },
+      "pcaOverride": { "label": "PCA 상태 재설정", "hint": "저장된 패널 상태가 연결된 채로 둔 PCA를, 위 설정이 금지하는 경우 분리합니다." },
+      "gradualRemoval": { "label": "푸시백 중 단계적 제거", "hint": "외부 전원이 켜졌다가 꺼지면 지상 전원을, 주차 브레이크가 설정되면 초크를 제거합니다.", "more": "비컨 푸시백 시퀀스가 꺼져 있고, 출발 서비스가 완료된 후에만 사용됩니다." },
+      "chockDelay": { "label": "도착 초크 지연", "hint": "주기 후 초크가 들어가기까지의 무작위 대기 시간." },
+      "reposition": { "label": "시작 시 재배치", "hint": "세션 시작 시 GSX의 Reposition Aircraft를 한 번 실행합니다." },
+      "disableProsimNative": { "label": "ProSim 자체 GSX 연동 끄기", "hint": "두 자동화가 충돌하지 않도록 ProSim 자체의 GSX 자동화를 끕니다." }
+    },
+    "automation": {
+      "title": "자동화",
+      "enabled": { "label": "지상 자동화", "hint": "앱이 GSX 질문에 답하고 서비스 시퀀스를 실행하게 합니다.", "more": "GSX 연결은 어느 쪽이든 유지되므로 상태 보드는 계속 작동합니다." },
+      "autoStart": { "label": "출발 서비스 자동 시작", "hint": "항공기가 준비되면 출발 서비스를 스스로 시작합니다.", "more": "꺼짐: 상태 섹션에서 시작을 누르거나 부기장에게 요청하세요." },
+      "groundPrep": {
+        "label": "지상 준비 시작",
+        "hint": "지상 준비(재배치, 지상 전원, 탑승교)를 언제 시작할지.",
+        "more": "음성 명령은 \"commence ground services\" 또는 시작 버튼을 기다립니다. \"콜드 스타트는 음성, 턴어라운드는 자동\"은 첫 레그에서는 그 대기를 유지하고, 엔진이 꺼진 상태로 스탠드에서 다음 비행 계획이 로드되면 턴어라운드를 스스로 시작합니다."
+      },
+      "groundPrepOptions": { "auto": "자동 (세션 시작)", "voice": "음성 명령 / 시작 버튼", "voiceThenAuto": "콜드 스타트는 음성, 턴어라운드는 자동" },
+      "turnaroundDelay": { "label": "턴어라운드 자동 시작 지연", "hint": "턴어라운드가 스스로 시작되기 전에 다음 비행 계획이 스탠드에서 로드된 상태로 있어야 하는 시간.", "more": "위의 턴어라운드 옵션에서만. SimBrief 가져오기가 안정될 시간과 당신이 이의를 제기할 여유를 줍니다." },
+      "turnaroundAsk": { "label": "턴어라운드 시작 전 묻기", "hint": "부기장이 \"Next plan loaded — commence ground services?\"라고 묻고 yes에 시작합니다.", "more": "위의 턴어라운드 옵션에서만. 답이 없으면 당신에게 맡깁니다: \"commence ground services\"라고 말하거나 시작을 누르세요." },
+      "requireOfp": { "label": "출발 서비스 전 OFP 대기", "hint": "서비스를 호출하기 전에 SimBrief 비행 계획을 기다립니다." }
+    },
+    "simbrief": {
+      "title": "SimBrief / VDGS",
+      "hint": "GSX는 게이트 디스플레이와 마샬러를 위해 SimBrief 계획을 읽습니다",
+      "reload": {
+        "label": "새 OFP에서 GSX의 SimBrief 다시 불러오기",
+        "hint": "새 비행 계획마다 GSX 자체의 'SimBrief' 메뉴 줄을 한 번 클릭해 VDGS가 올바른 편명, 목적지, 출발 시각을 표시하게 합니다.",
+        "more": "게이트에 주기하고 엔진이 꺼지고 GSX가 준비된 상태에서만 — 비행 중에는 절대 하지 않으며, 공중에서 가져온 계획은 다음 게이트에서 다시 불러옵니다. 기본값은 꺼짐: 이 줄은 이 앱이 기록된 비행에서 아직 다뤄 본 적 없는 GSX 메뉴에서 텍스트로 선택되므로, 실패하면 메뉴가 당신을 위해 열린 채 남습니다. 이 설정과 무관하게 상태 섹션에 버튼이 있고 API에는 gsx.reloadSimbrief 명령이 있습니다."
+      },
+      "pages": {
+        "label": "검색할 Additional Services 페이지 수",
+        "hint": "'Reload Simbrief' 줄을 찾기 위해 다시 불러오기가 GSX의 Additional Services 메뉴에서 'Next Page'를 몇 번 넘길지.",
+        "more": "기록된 비행에서 이 줄은 게이트 메뉴에도, Additional Services 1페이지에도 없었고 2페이지는 열린 적이 없었습니다. 탐색은 게이트 메뉴, 그다음 Additional Services와 여기 지정한 수까지의 다음 페이지를 읽고, SimBrief 또는 비행 계획을 가리키는 첫 줄을 선택하며, 스스로 열었던 메뉴는 닫습니다. 어느 페이지에도 줄이 없으면 상태 섹션이 한 번 알리고 그 계획은 재시도하지 않습니다 — GSX는 자체 설정에 SimBrief 사용자 이름이 설정된 경우에만 이 줄을 제공합니다."
+      }
+    },
+    "coldDark": {
+      "title": "콜드 & 다크 점검",
+      "verify": { "label": "세션 시작 시 항공기 상태 확인", "hint": "세션 시작 시 조종실 스위치를 콜드 앤 다크 상태와 비교합니다.", "more": "새 출발에서 세션당 한 번, 턴어라운드에서는 하지 않습니다. 기대되는 스위치 설정은 설정 폴더의 aircraft-states\\cold-and-dark.json 파일입니다." },
+      "announce": { "label": "부기장이 불일치를 알림", "hint": "부기장이 처음 몇 개의 불일치를 읽어 줍니다.", "more": "전체 목록은 항상 비행 상태 페이지에 표시됩니다." }
+    },
+    "serviceOrder": {
+      "title": "출발 서비스 순서",
+      "hint": "위에서 아래가 호출 순서입니다",
+      "presetLabel": "프리셋에서 시작",
+      "preset": {
+        "classic": "클래식",
+        "classicTitle": "급유와 케이터링 동시, 케이터링 후 급수, 탑승은 마지막 (기본 순서)",
+        "parallel": "병렬",
+        "parallelTitle": "이전 서비스가 호출되는 즉시 다음 서비스를 호출합니다. 탑승은 모두를 기다립니다",
+        "manual": "수동",
+        "manualTitle": "아무것도 자동으로 호출되지 않습니다 — 각 서비스는 INT/RAD, GSX 메뉴 또는 상태 섹션을 기다립니다"
+      },
+      "rowsHint": "각 행은 활성화 열에 설정된 대로 위의 행을 기다립니다.",
+      "more": "더 보기",
+      "moreBody": "\"이전 호출됨\"은 서비스를 동시에 진행합니다. \"이전 완료됨\"은 엄격한 순차 체인입니다. \"이전 모두 완료됨\"은 고전적인 '탑승은 마지막' 장벽입니다. \"수동\"은 당신을 기다립니다: INT/RAD 스위치, GSX 메뉴 또는 상태 섹션. \"최소 비행\"은 계획 비행 시간이 그 분 수보다 짧으면 서비스를 건너뜁니다 (0이면 항상 실행). 출발 도중이 아니라 비행 사이에 편집하세요.",
+      "empty": "설정된 출발 서비스가 없습니다.",
+      "service": "서비스",
+      "activation": "활성화",
+      "runsOn": "실행 조건",
+      "minFlight": "최소 비행",
+      "minFlightTitle": "계획 비행 시간이 이 분 수보다 짧으면 이 서비스를 건너뜁니다 (0 = 항상 실행)",
+      "moveUp": "위로",
+      "moveDown": "아래로",
+      "remove": "제거",
+      "add": "서비스 추가"
+    },
+    "activation": {
+      "skip": "건너뛰기 / 무시",
+      "manual": "사용자가 수동으로",
+      "voice": "음성 요청",
+      "afterCalled": "이전 호출됨",
+      "afterRequested": "이전 요청됨",
+      "afterActive": "이전 진행 중",
+      "afterPrevCompleted": "이전 완료됨",
+      "afterAllCompleted": "이전 모두 완료됨"
+    },
+    "constraint": {
+      "always": "모든 레그",
+      "firstLeg": "첫 레그만",
+      "turnAround": "턴어라운드만",
+      "companyHub": "자사 허브만",
+      "nonCompanyHub": "허브 외 공항만"
+    },
+    "refuel": {
+      "title": "급유",
+      "call": { "label": "급유 호출", "hint": "급유차를 언제 호출할지.", "more": "SOP: 블록 연료를 확인할 때까지 급유차는 대기합니다 (INIT 페이지의 CONFIRM FUEL, 또는 \"fuel confirmed\"라고 말하기). 다른 서비스는 계속되고 탑승은 급유차를 기다립니다. 급유차는 INIT FUEL RAMP 값을 적재합니다. 급유차가 끝난 뒤 이 값을 올리면 추가 급유가 제안됩니다." },
+      "callOptions": { "automatic": "자동 (출발 시퀀스)", "onFuelConfirmed": "승무원이 연료를 확인한 후 (SOP)" },
+      "sync": { "label": "급유 동기화", "hint": "GSX 호스가 연결된 동안 ProSim 탱크를 채웁니다." },
+      "method": { "label": "급유 방식", "hint": "고정: 정해진 속도. 동적: 급유가 항상 목표 시간만큼 걸립니다." },
+      "methodOptions": { "fixed": "고정 속도", "dynamic": "동적 속도" },
+      "timeTarget": { "label": "목표 시간", "hint": "급유에 걸리는 시간." },
+      "rate": { "label": "급유 속도", "hint": "초당 킬로그램." },
+      "skipTankering": { "label": "FOB가 계획을 초과하면 급유 건너뛰기", "hint": "항공기가 이미 계획 연료를 싣고 있으면 급유차를 호출하지 않습니다.", "more": "탱커링, 허용 오차 25 kg. 시퀀스는 계속 진행되고 예비 로드시트는 그대로 나갑니다." },
+      "finishOnHose": { "label": "호스 분리 시 급유 완료", "hint": "호스가 일찍 분리되면 즉시 계획 연료로 맞춥니다." },
+      "allowDefuel": { "label": "배유 허용", "hint": "목표가 탑재량보다 낮을 때 급유차가 연료를 뺄 수 있게 합니다.", "more": "꺼짐은 대신 연료를 유지하므로, 잘못 입력한 낮은 값으로 배유되는 일이 없습니다." }
+    },
+    "boarding": {
+      "title": "탑승",
+      "sync": { "label": "탑승 동기화", "hint": "GSX가 탑승하는 승객과 가방을 셀 때 ProSim의 좌석과 화물칸을 채웁니다." }
+    },
+    "passengers": {
+      "title": "승객",
+      "randomize": { "label": "승객 노쇼 / 추가 무작위화", "hint": "예약 승객 일부가 나타나지 않고, 추가 승객이 나타납니다.", "more": "각 좌석은 아래 확률로 바뀝니다. 화물은 승객 변화를 따릅니다." },
+      "chance": { "label": "좌석당 확률", "hint": "0.03은 좌석당 3퍼센트입니다." },
+      "bagWeight": { "label": "가방당 무게" }
+    },
+    "pushbackDirection": {
+      "title": "푸시백 방향",
+      "hint": "이 비행에서 선택하지 않았을 때 GSX의 'Select pushback direction' 메뉴에 어떻게 답할지",
+      "default": {
+        "label": "기본 방향",
+        "hint": "해당 비행에서 당신의 선택이 항상 우선합니다: 부기장에게 'tail left', 'tail right' 또는 'push back facing north'라고 말하거나 OFP 페이지의 Korry 버튼을 누르세요.",
+        "more": "자동: 앱이 GSX 프로필의 푸시백 경로, 스탠드 방위, 활주로 위치로부터 출발 활주로를 향하는 푸시를 계산하고 확신이 있을 때 적용합니다. 묻기: 부기장이 항상 'Tail left or tail right?'라고 묻고 GSX 메뉴는 답을 기다립니다. 세 가지 고정 답은 0.6.0 이전과 같이 동작합니다 — 다만 스탠드에 고정 답이 없으면 부기장이 메뉴의 유일한 방향을 택하거나 당신에게 묻습니다. 메뉴가 조용히 열린 채 남는 일은 없습니다."
+      },
+      "options": { "auto": "자동 — 출발 활주로 방향", "ask": "매번 묻기", "tailLeft": "항상 테일 왼쪽", "tailRight": "항상 테일 오른쪽", "straight": "항상 직진" },
+      "askWhenUnsure": { "label": "불확실할 때 묻기", "hint": "자동 모드에서 확신 있는 제안이 없을 때 부기장이 묻거나(켜짐) GSX 메뉴를 조용히 열어 둡니다(꺼짐)." }
+    },
+    "pushback": {
+      "title": "푸시백",
+      "beacon": { "label": "비컨 연동 푸시백 시퀀스", "hint": "비컨 켜짐이 푸시백 시퀀스를 실행합니다.", "more": "APU를 기다리고, 도어를 닫고, 탑승교를 철수하고, 장비를 치운 뒤 푸시백합니다." },
+      "callAtReady": { "label": "푸시 준비 완료 시 푸시백 호출", "hint": "모든 준비가 끝나면 푸시백을 호출합니다.", "more": "꺼짐: 시퀀스가 모든 준비를 하고 호출은 당신에게 맡깁니다." },
+      "confirmEngineStart": { "label": "엔진 시동 정상 확인", "hint": "주차 브레이크가 설정된 상태로 엔진이 돌면 GSX의 'Confirm good engine start'에 대신 답합니다.", "more": "꺼짐: GSX의 Interrupt-pushback 메뉴는 당신이 직접 답할 때까지 기다립니다. 그때까지 토잉카는 연결된 채로 있습니다." }
+    },
+    "beaconDelays": {
+      "title": "비컨 시퀀스 지연",
+      "hint": "사실감을 위한 단계 사이의 무작위 대기",
+      "doorsClose": "도어 닫기 지연",
+      "jetwayRetract": "탑승교 철수 지연",
+      "equipmentClear": "장비 제거 지연"
+    },
+    "arrival": {
+      "title": "도착 및 하기",
+      "deboardingSync": { "label": "하기 동기화", "hint": "GSX가 내리는 승객을 셀 때 ProSim의 좌석과 화물칸을 비웁니다." },
+      "callDeboard": { "label": "도착 시 하기 호출", "hint": "주기하면 하기를 스스로 호출합니다." },
+      "stableHold": { "label": "안정 주기 유지 시간", "hint": "도착 서비스가 시작되기 전에 항공기가 주기 상태여야 하는 시간.", "more": "지상, 엔진 꺼짐, 주차 브레이크 설정, 비컨 꺼짐, 정지." },
+      "gate": { "label": "도착 게이트", "hint": "도착 시 GSX에 요청할 게이트.", "more": "비행이 순항에 도달하면 전송됩니다. 비어 있으면 상태 섹션이나 OFP 페이지에서 선택하세요.", "placeholder": "예: B12" },
+      "answerPositionMenu": {
+        "label": "GSX의 위치 메뉴에 도착 게이트로 답하기",
+        "hint": "착륙 후 GSX가 직접 'Select Position at …'을 물으면 그 안에서 도착 게이트를 선택합니다: 범위가 게이트를 포함하는 시설, 그다음 게이트 이름이 있는 줄.",
+        "more": "게이트가 사전 선택되지 않았을 때(그리고 스탠드를 인식하지 못했을 때) GSX는 착륙 활주 중 이 메뉴를 띄웁니다. 선택은 텍스트로만 합니다 — 게이트가 페이지에 없거나 두 줄이 일치할 수 있으면 메뉴는 지금과 똑같이 당신에게 남겨집니다. 비행당 두 번 시도합니다. 0.6.0의 새 기능으로 아직 실비행 검증 전입니다. 세션 로그는 GSX가 표시한 줄과 함께 모든 시도를 기록합니다."
+      },
+      "airportPages": {
+        "label": "검색할 공항 목록 페이지 수",
+        "hint": "목적지를 찾기 위해 앱이 GSX의 비행 중 'Select airport' 목록에서 'Next Page'를 몇 번 넘길지.",
+        "more": "1페이지에는 계획 공항과 가장 가까운 비행장만 표시됩니다 — 2026-10-11에 EFHK는 한 번도 나타나지 않았고 세 번의 선택이 아무것도 찾지 못했습니다. 이제 앱은 페이지를 넘기고(목록에 검색 줄이 있으면 GSX 자체 검색 줄도 사용), 목록에 도달한 탐색만 시도로 세며, 비행당 10분 간격으로 최대 세 번 탐색하고, 'no airport loaded' 응답을 실패가 아니라 GSX가 아직 목적지를 로드 중인 것으로 간주합니다."
+      },
+      "askStand": {
+        "label": "GSX가 게이트를 나누면 어느 스탠드인지 묻기",
+        "hint": "시너리에 게이트가 접미사 변형(W36 → 36A / 36B)으로만 있고 입력한 텍스트도 단일 탑승교도 결정하지 못하면 한 번 묻습니다 — OFP 페이지와 상태 섹션의 버튼, 그리고 부기장의 질문.",
+        "more": "GSX는 게이트 번호에 'ambiguous'와 두 변형으로 답합니다. 입력한 접미사(36A)가 있으면 바로 결정됩니다. 없으면 스탠드 데이터에 탑승교나 Safedock이 있는 유일한 변형을 택합니다. 그것도 없으면 이 설정이 켜진 경우 묻고, 아무도 답하지 않으면 택시인 시 첫 변형을 보냅니다. 꺼짐: 첫 변형을 즉시 보냅니다. GSX가 스스로 한 변형에 고정하면(주기 변경 메뉴가 Gate 36B를 표시) 앱이 그것을 채택하고 주기 충돌을 제기하지 않습니다."
+      }
+    },
+    "standKnowledge": {
+      "title": "스탠드 정보",
+      "hint": "GSX가 각 스탠드를 어떻게 부르는지, 크기, 탑승교, 푸시백 경로를 앱이 어디에서 배우는지",
+      "resolve": {
+        "label": "스탠드를 위해 GSX 프로필과 시너리 읽기",
+        "hint": "W40처럼 입력한 게이트를 보내기 전에 시너리와 GSX가 아는 스탠드로 변환합니다.",
+        "more": "목적지에 대해 GSX 공항 프로필(.ini 스탠드 데이터와 .py 이름 템플릿)과 시뮬레이터 자체의 주기장 목록을 읽습니다. 템플릿이 게이트 문자를 빠뜨릴 수 있습니다 — EFHK에서 프로필은 Gate W40을 'Gate 40'으로 출력하므로 2026-10-04에 'W40'만으로는 네 번 거부되었습니다. 이 설정이 켜지면 스탠드 번호를 먼저 보내고 그다음 GSX 자체 이름을 보냅니다. 입력한 텍스트는 마지막 시도로 남습니다. 푸시백 방향 제안에도 쓰입니다. OFP 페이지의 게이트 입력란 아래에 표시됩니다."
+      },
+      "profileFolder": { "label": "GSX 프로필 폴더", "hint": "GSX 자체의 공항 프로필 폴더. 비어 있으면 표시된 폴더를 사용합니다.", "more": "이 앱이 시뮬레이터와 다른 PC에서 실행되고 폴더가 공유된 경우에만 설정하세요." },
+      "sceneryFolders": {
+        "label": "시너리 패키지 폴더",
+        "hint": "MSFS 패키지 루트(Community와 Official이 있는 폴더), ;로 구분. 비어 있으면 Store/Steam 설치와 UserCfg.opt에서 스스로 찾습니다.",
+        "placeholder": "예: D:\\MSFS\\Packages",
+        "moreFound": "이 PC에서 찾음: {0}. 시뮬레이터 패키지가 다른 곳(다른 드라이브, 다른 PC의 공유)에 있을 때만 폴더를 추가하세요. 패키지 안의 프로필은 시너리 개발자가 함께 제공하는 것입니다. 예: Community\\inibuilds-airport-egll-heathrow\\Official GSX Profile\\egll-24-iniBuilds.ini.",
+        "moreNotFound": "이 PC에서 MSFS 패키지 폴더를 찾지 못했습니다 — Community와 Official이 있는 폴더를 입력하세요. 패키지 안의 프로필은 시너리 개발자가 함께 제공하는 것입니다. 예: Community\\inibuilds-airport-egll-heathrow\\Official GSX Profile\\egll-24-iniBuilds.ini."
+      }
+    },
+    "fuelMemory": {
+      "title": "연료 기억",
+      "remember": { "label": "탑재 연료 기억", "hint": "도착 시 탑재 연료를 저장하고 다음 세션에 다시 불러옵니다." },
+      "defaultFob": { "label": "기본 FOB", "hint": "이 항공기에 아직 저장된 값이 없을 때 적재하는 연료." }
+    },
+    "operators": {
+      "title": "운영사 선택",
+      "auto": { "label": "운영사 자동 선택", "hint": "GSX가 묻지 않도록 지상 조업사와 케이터러를 스스로 선택합니다." },
+      "listHint": "선호 운영사, 가장 선호하는 것부터. 각 단어는 GSX의 조업사 및 케이터러 메뉴와 대조됩니다. \"[GSX choice]\"는 항상 일치로 간주됩니다.",
+      "remove": "제거",
+      "none": "선호 설정 없음 — 운영사 메뉴는 GSX / 사용자에게 맡겨집니다.",
+      "add": "추가"
+    },
+    "hubs": {
+      "title": "자사 허브",
+      "hint": "자사 허브로 간주하는 공항 코드 (1~4글자)",
+      "placeholder": "ICAO 접두어",
+      "remove": "제거",
+      "none": "설정된 허브 없음 — 허브 제한 서비스는 실행되지 않습니다.",
+      "add": "허브 추가"
+    },
+    "questions": {
+      "title": "질문 / 팝업 건너뛰기",
+      "followMe": { "label": "Follow-Me 질문 건너뛰기", "hint": "Follow-Me 차량에 대해 묻지 않습니다." },
+      "crew": { "label": "승무원 질문에 답하기", "hint": "GSX의 승무원 탑승 질문에 스스로 답합니다." },
+      "crewAnswer": { "label": "승무원 탑승 답", "hint": "GSX의 승무원 메뉴를 통해 누가 탑승하는지." },
+      "crewOptions": { "nobody": "없음", "crew": "객실 승무원", "pilots": "조종사", "both": "둘 다" },
+      "suppressCrew": { "label": "승무원 질문 완전히 숨기기", "hint": "승무원이 탑승하지 않는다고 GSX에 미리 알려 묻지 않게 합니다." },
+      "confirmPushback": { "label": "푸시백 요청 확인", "hint": "\"Do you want to request pushback\"에 yes로 답합니다." },
+      "tug": { "label": "탑승 중 토잉카 질문", "hint": "탑승 중 GSX의 \"Attach pushback tug\" 질문에 대한 답." },
+      "tugOptions": { "ignore": "답하지 않음", "no": "아니요", "yes": "예" },
+      "tugPushback": { "label": "토잉카 연결 시 푸시백 호출", "hint": "토잉카가 이미 연결되어 있으면 푸시백을 언제 호출할지." },
+      "tugPushbackOptions": { "afterDepartureServices": "출발 서비스 후", "afterFinalLoadsheet": "최종 로드시트 후" }
+    },
+    "deice": {
+      "title": "제빙",
+      "autoAccept": {
+        "label": "제빙 제안 자동 수락",
+        "hint": "GSX 자체의 'Ice warning' 제안을 수락하고 액체를 스스로 선택합니다.",
+        "more": "답은 앱의 질문에 대한 당신의 결정을 따릅니다: 거절한 질문은 GSX에 No로 답하고, 아직 열린 질문은 당신에게 맡기며(GSX 메뉴에서의 선택이 답이 됩니다), 수락한 질문은 Yes로 답합니다. 기상 정책이 꺼져 있으면 GSX 자체의 착빙 판단이 유효하고 제안은 수락됩니다."
+      },
+      "fluid": { "label": "제빙액", "hint": "GSX의 'Select fluid type' 메뉴에 답합니다 — GSX의 제안과 앱 자체 요청 모두에." },
+      "concentration": { "label": "농도", "hint": "GSX의 'Select concentration' 메뉴(퍼센트)에 답합니다. 홀드오버 카드는 액체의 출처를 알려 줍니다: GSX 자체 LVAR, 이 메뉴 답, 또는 아무것도 확인되지 않았을 때는 설정값." },
+      "autoRequest": {
+        "label": "기상에 따라 제빙 요청",
+        "hint": "외기 온도와 출발지 METAR로부터 이 출발에 제빙이 필요한지 앱이 결정하게 합니다.",
+        "more": "꺼짐: 이전처럼 GSX 자체 제안과 당신의 'request de-icing'만 존재합니다. 묻기: 부기장이 'Captain, conditions call for de-icing — request it?'라고 묻고 상태 보드에 두 버튼과 함께 질문이 표시됩니다. 출발의 마지막 단계는 최대 5분 답을 기다린 뒤 no로 간주합니다. 자동: 묻지 않고 제빙을 출발 시퀀스의 마지막 단계로 넣습니다. 판정은 출발 서비스가 시작되면 실행되고 상태 섹션에 기록됩니다. 0.6.0의 새 기능으로 아직 비행하지 않았습니다 — 이 앱이 GSX 제빙 팀을 실제로 호출한 적은 없습니다."
+      },
+      "autoRequestOptions": {
+        "off": "꺼짐 — GSX의 제안과 내 요청만",
+        "ask": "묻기 — 부기장이 묻고, 상태 보드에 질문 표시",
+        "auto": "자동 — 제빙을 출발 시퀀스에 넣기"
+      },
+      "oat": {
+        "label": "OAT 기준",
+        "hint": "이 외기 온도 이하에서 제빙을 고려합니다 (ProSim의 OAT, 없으면 METAR).",
+        "warning": "10 °C를 넘는 기준은 거의 매 비행마다 묻게 됩니다 — 유럽 대부분이 일 년의 절반은 그 아래입니다. 3 °C가 통상적인 규칙입니다."
+      },
+      "precipitation": {
+        "label": "강수 또는 서리 필요",
+        "hint": "추위만으로는 충분하지 않습니다: 출발지 METAR에 눈, 결빙성 강수, 얼음 알갱이, 저온 시 비, 결빙성 안개, 또는 이슬점 차 3 °C 이하가 나타나야 합니다.",
+        "more": "꺼짐은 온도만으로 요청합니다 (콜드 소크 윙 규칙). 출발 공항의 METAR가 없으면 앱은 어느 쪽이든 요청하지 않습니다."
+      },
+      "askWhen": {
+        "label": "묻는 시점",
+        "hint": "정책이 실행되고 부기장이 묻는 시점.",
+        "more": "제빙 단계가 다음일 때 (기본): 이전 출발 서비스가 모두 끝나고, 비행 계획이 로드되고, 기상이 알려진 상태 — 제빙은 푸시백 전 마지막 일이므로 이때의 답이 의미가 있습니다. 탑승 완료 후: 질문은 마지막 서비스가 끝나는 동안 탑승 완료 시점에 나오고, 답하지 않았다면 단계 차례가 왔을 때 한 번 반복됩니다. 어느 경우든 출발 시퀀스가 시작되는 순간에는 묻지 않습니다 (0.7.0-rc.4는 OFP 전, 탑승 16분 전에 물었습니다)."
+      },
+      "askWhenOptions": {
+        "stepIsNext": "제빙 단계가 다음일 때 (이전 서비스 모두 완료)",
+        "afterBoarding": "탑승 완료 후 (단계가 다음이 되면 한 번 다시 묻기)"
+      },
+      "timeout": { "label": "답 시간 제한", "hint": "no로 간주되기 전까지 질문이 유지되는 시간. 부기장의 침묵으로는 결정되지 않습니다 — 시간이 끝날 때까지 'request de-icing' 또는 'no de-icing'이라고 말하거나 상태 보드 버튼을 사용하세요." },
+      "packs": {
+        "label": "팩 절차",
+        "hint": "제빙 팀이 도착하면 부기장이 'De-icing starting — packs off, ditching on', 떠나면 'De-icing complete — packs on, ditching off'를 콜하고 20초 뒤 오버헤드 표시등을 확인합니다 (불일치하면 한 번 알림).",
+        "more": "읽기 전용: 부기장은 팩이나 디칭 스위치를 움직이지 않습니다. 기본값은 꺼짐. GSX가 실행하는 모든 제빙에 작동합니다 — 앱의 요청, GSX의 제안 또는 당신의 직접 호출."
+      },
+      "verdict": {
+        "requested": "제빙 요청됨",
+        "declined": "거절됨",
+        "pending": "아직 평가 안 됨",
+        "off": "꺼짐",
+        "noData": "데이터 없음",
+        "notRequired": "불필요",
+        "ask": "기장에게 묻는 중"
+      }
+    },
+    "connection": {
+      "title": "연결",
+      "hint": "거의 바꿀 필요가 없습니다",
+      "reconnect": { "label": "재연결 간격", "hint": "연결이 끊긴 후 첫 대기 시간." },
+      "ceiling": { "label": "재연결 상한", "hint": "재시도 사이의 최대 대기 시간.", "more": "실패마다 대기 시간이 두 배가 되며, 이 값이 상한입니다." }
+    },
+    "timeouts": {
+      "title": "시간 제한",
+      "hint": "실제 비행에서 조정됨. 이유가 있을 때만 변경하세요",
+      "command": "명령 시간 제한",
+      "menuOpen": "메뉴 열기 시간 제한",
+      "intentVerify": "의도 확인 시간 제한",
+      "triggerConfirm": { "label": "호출 확인 시간 제한", "hint": "서비스 호출이 다시 전송되기 전까지 응답 없이 기다릴 수 있는 시간." }
+    },
+    "stage": {
+      "waiting": "대기",
+      "held": "보류",
+      "skipped": "건너뜀",
+      "called": "호출됨",
+      "requested": "요청됨",
+      "active": "진행 중",
+      "completed": "완료"
+    },
+    "status": {
+      "title": "상태",
+      "readiness": "준비 상태",
+      "automationPhase": "자동화 단계",
+      "capabilities": "기능",
+      "airport": "공항",
+      "gateContext": "게이트 컨텍스트",
+      "session": "세션"
+    },
+    "arrivalGate": {
+      "title": "도착 게이트",
+      "request": "요청",
+      "noRequest": "설정된 게이트 요청이 없습니다.",
+      "placeholder": "예: B12",
+      "arm": "게이트 설정",
+      "cancel": "취소",
+      "variantNoDetail": "이 스탠드에 알려진 탑승교나 VDGS가 없습니다",
+      "variantDetail": "이 스탠드에 {0}"
+    },
+    "departureBoard": {
+      "title": "출발 상태 보드",
+      "complete": "출발 완료",
+      "running": "출발 진행 중",
+      "start": "출발 서비스 시작",
+      "callNext": "다음 서비스 지금 호출",
+      "callNextTitle": "활성화 규칙을 건너뛰고 다음 출발 서비스를 지금 호출합니다 — INT/RAD 스마트 버튼. 수동 항목에도 작동합니다.",
+      "reloadSimbrief": "GSX의 SimBrief 다시 불러오기",
+      "reloadingSimbrief": "SimBrief 다시 불러오는 중…",
+      "reloadSimbriefTitle": "GSX 자체 게이트 메뉴의 'SimBrief' 줄을 클릭해 VDGS가 이 비행을 표시하게 합니다 — 게이트에서 GSX가 준비된 경우에만. API 명령 gsx.reloadSimbrief와 같습니다.",
+      "simbriefReload": "SimBrief 다시 불러오기:",
+      "reloaded": "다시 불러옴 — {0}",
+      "sent": "전송됨 — {0}",
+      "notPerformed": "수행되지 않음 — {0}",
+      "noSequence": "아직 평가된 출발 시퀀스가 없습니다."
+    },
+    "deiceStatus": {
+      "title": "제빙",
+      "hint": "이 출발에 대한 기상/OAT 정책의 판정 (설정 → 지상 서비스 → GSX 질문)",
+      "verdict": "판정",
+      "inputs": "입력",
+      "question": "질문",
+      "questionTitle": "침묵으로는 거절되지 않습니다 — 이 만료만이 결정합니다 (설정 → 지상 서비스 → 제빙 → 답 시간 제한)",
+      "questionState": "{0} · {1}에 no로 간주",
+      "reAsked": "다시 물음 (단계가 다음)",
+      "open": "열림",
+      "request": "제빙 요청",
+      "decline": "제빙 안 함",
+      "lvars": "GSX 제빙 LVAR",
+      "lvarsTitle": "L:FSDT_GSX_DEICING_STATE / L:FSDT_GSX_DEICING_TYPE — 진단용으로 읽음. 홀드오버 카드는 여전히 Remote API의 completed 에지에서 설정됩니다",
+      "lvarsValue": "상태 {0}, 액체 유형 {1}"
+    },
+    "diagnostics": {
+      "summary": "진단 — 서비스, GSX 메뉴, 최근 명령"
+    },
+    "services": {
+      "title": "서비스",
+      "hint": "Remote API 미러의 와이어 상태와 매핑된 상태 비교",
+      "none": "아직 미러된 서비스가 없습니다 (GSX 미연결, 또는 항공기/게이트 컨텍스트 없음).",
+      "service": "서비스",
+      "wireState": "와이어 상태",
+      "mapped": "매핑됨",
+      "stage": "단계",
+      "triggerable": "호출 가능",
+      "progress": "진행",
+      "waiting": "(대기)",
+      "yes": "예",
+      "no": "아니요"
+    },
+    "menu": {
+      "title": "메뉴",
+      "hint": "실시간 GSX 메뉴 — 줄을 클릭해 선택합니다 (issue #135). 같은 카드가 비행 상태와 OFP 페이지에도 있습니다"
+    },
+    "decisions": {
+      "title": "자동화 결정",
+      "hint": "무슨 일이 왜 일어났는지 — 최신순",
+      "none": "아직 자동화 결정이 없습니다.",
+      "time": "시각",
+      "action": "동작",
+      "reason": "이유"
+    },
+    "commands": {
+      "title": "최근 명령",
+      "none": "이 세션에서 전송된 명령이 없습니다.",
+      "time": "시각",
+      "verb": "동사",
+      "args": "인수",
+      "result": "결과",
+      "wireHintBefore": "전체 와이어 프레임은",
+      "wireTrace": "와이어 트레이스",
+      "wireHintMiddle": "가 켜져 있을 때 기록됩니다 — 메인 로그 옆의",
+      "wireHintAfter": "(CMTrace 형식)를 참고하세요."
+    },
+    "menuCard": {
+      "heading": "GSX 메뉴",
+      "untitled": "(제목 없음)",
+      "closed": "닫힘",
+      "close": "닫기",
+      "closeTitle": "GSX 메뉴 닫기 (질문은 답하지 않은 채로)",
+      "open": "열기",
+      "openTitle": "여기서 GSX 메뉴 열기",
+      "noMenu": "GSX에 열린 메뉴가 없습니다. 여기서 열거나 기다리세요 — GSX가 묻는 질문(푸시백 방향, 제빙, 운영사)이 버튼으로 나타납니다.",
+      "notConnected": "GSX가 연결되어 있지 않습니다.",
+      "driving": "자동화가 이 메뉴에 답하는 중입니다 — 끝나면 줄을 선택할 수 있습니다.",
+      "greyed": "GSX에서 비활성",
+      "pick": "'{0}' 선택"
+    }
+  }
+}

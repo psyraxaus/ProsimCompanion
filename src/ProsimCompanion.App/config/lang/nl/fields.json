@@ -1,0 +1,74 @@
+{
+  "fields": {
+    "hint": {
+      "more": "Meer"
+    },
+    "number": {
+      "isDefault": "Dit is de standaardwaarde",
+      "default": "standaard",
+      "resetTitle": "Terug naar de standaardwaarde ({0})",
+      "resetAria": "Terug naar standaard"
+    },
+    "range": {
+      "from": "van",
+      "to": "tot",
+      "minimumAria": "{0} minimum",
+      "maximumAria": "{0} maximum",
+      "isDefault": "Dit zijn de standaardwaarden",
+      "default": "standaard",
+      "resetTitle": "Terug naar de standaardwaarden ({0})",
+      "resetAria": "Terug naar standaardwaarden"
+    },
+    "text": {
+      "browse": "Bladeren…",
+      "browsing": "Bladeren bezig…",
+      "browseFailed": "Bladeren mislukt op de sim-pc: {0}"
+    },
+    "validation": {
+      "host": "Alleen een naam of IP-adres. Geen http:// en geen poort. Voorbeeld: 192.168.1.10",
+      "hostIpv6": "IPv6-adressen worden hier niet ondersteund. Gebruik de naam van de pc of het IPv4-adres. Voorbeeld: 192.168.1.10",
+      "url": "Moet beginnen met http:// of https://. Voorbeeld: http://192.168.1.50:8000",
+      "ip": "Een IPv4-adres zoals 192.168.1.255",
+      "mac": "Zes hex-paren zoals AA:BB:CC:DD:EE:FF",
+      "badPath": "Geen geldig Windows-pad",
+      "icao": "Een ICAO-code van vier letters zoals YSSY",
+      "runway": "Een baan zoals 16R of 34",
+      "intList": "Hele getallen gescheiden door komma's, zoals 1, 2, 3",
+      "fileNotFound": "Bestand niet gevonden op deze pc",
+      "folderNotFound": "Map niet gevonden op deze pc",
+      "notFound": "Niet gevonden op deze pc",
+      "parentFolderMissing": "De map ervan bestaat niet op deze pc",
+      "foldersNotFound": "Map niet gevonden op deze pc: {0}",
+      "chooseFile": "Kies een bestand op deze pc",
+      "chooseFolder": "Kies een map op deze pc",
+      "chooseOutputFile": "Kies waar de app het bestand schrijft",
+      "addFolder": "Voeg een map op deze pc toe"
+    },
+    "advanced": {
+      "hidden": "Geavanceerde instellingen verborgen",
+      "show": "geavanceerde instellingen tonen",
+      "sectionFolded": "Geavanceerd —"
+    },
+    "dirtyBar": {
+      "discard": "Verwerpen",
+      "save": "Opslaan",
+      "saving": "Opslaan…",
+      "unsaved": "Je hebt niet-opgeslagen wijzigingen",
+      "fixOne": "Corrigeer \"{0}\" voor het opslaan",
+      "fixMany": "Corrigeer deze velden voor het opslaan: {0}",
+      "saved": "Opgeslagen.",
+      "saveFailed": "Opslaan mislukt: {0}"
+    },
+    "configProblems": {
+      "failedOne": "{0} configuratiebestand kon niet worden geladen",
+      "failedMany": "{0} configuratiebestanden konden niet worden geladen",
+      "missingUntilFixed": "— de betreffende inhoud ontbreekt tot het is opgelost:"
+    },
+    "llmHealth": {
+      "authFailed": "Het vrije begrip van de FO is offline (LLM-aanmelding mislukt — controleer de API-sleutel).",
+      "unreachable": "Het vrije begrip van de FO is offline (LLM-eindpunt onbereikbaar{0}).",
+      "openSettings": "Open de LLM-instellingen."
+    },
+    "secretUnreadable": "De opgeslagen sleutel kan op deze pc/gebruiker niet worden ontsleuteld (instellingen van elders gekopieerd) — voer hem opnieuw in en sla op."
+  }
+}

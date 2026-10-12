@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 
@@ -20,6 +21,11 @@ public abstract class SettingsPageBase : StoreObserverComponent
 
     [Inject]
     protected SettingsWriter Writer { get; set; } = default!;
+
+    /// <summary>The bar's two sentences (ADR-0014). Private on purpose: every page injects
+    /// its own <c>T</c>, and a protected member of the same name would shadow it.</summary>
+    [Inject]
+    private IStringLocalizer BarText { get; set; } = default!;
 
     /// <summary>The layout's tally of fields whose value can never work (option 2,
     /// 2026-10-13). Null outside <see cref="SettingsLayout"/>, where nothing blocks.</summary>
@@ -76,7 +82,7 @@ public abstract class SettingsPageBase : StoreObserverComponent
             OnBeforeSave();
             Writer.Save(_drafts);
             OnAfterSave();
-            BarMessage = "Saved.";
+            BarMessage = BarText["fields.dirtyBar.saved"];
             BarTone = DirtyBar.MessageTone.Info;
             _savedMessageTimer?.Dispose();
             _savedMessageTimer = new Timer(_ => _ = InvokeAsync(() =>
@@ -88,7 +94,7 @@ public abstract class SettingsPageBase : StoreObserverComponent
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            BarMessage = $"Save failed: {ex.Message}";
+            BarMessage = BarText["fields.dirtyBar.saveFailed", ex.Message];
             BarTone = DirtyBar.MessageTone.Error;
         }
     }

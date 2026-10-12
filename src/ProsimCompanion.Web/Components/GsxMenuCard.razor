@@ -6,25 +6,26 @@
 @inherits StoreObserverComponent
 @inject GsxDiagnosticsStore Diagnostics
 @inject IGsxMenuControl MenuControl
+@inject IStringLocalizer T
 
 <div class="gsx-menu-card">
     <div class="gsx-menu-head">
         <span class="gsx-menu-heading">
-            <span class="label-caps">GSX menu</span>
+            <span class="label-caps">@T["gsxSettings.menuCard.heading"]</span>
             <span class="gsx-menu-title" title="@(_view.MenuShown ? _view.MenuTitle : null)">
-                @(_view.MenuShown ? _view.MenuTitle ?? "(untitled)" : "closed")
+                @(_view.MenuShown ? _view.MenuTitle ?? T["gsxSettings.menuCard.untitled"].Value : T["gsxSettings.menuCard.closed"].Value)
             </span>
         </span>
         <span class="gsx-menu-actions">
             @if (_view.MenuShown)
             {
                 <button type="button" class="btn secondary" disabled="@_busy" @onclick="CloseAsync"
-                        title="Dismiss the GSX menu (leave the question unanswered)">Close</button>
+                        title="@T["gsxSettings.menuCard.closeTitle"]">@T["gsxSettings.menuCard.close"]</button>
             }
             else
             {
                 <button type="button" class="btn secondary" disabled="@(_busy || _view.Readiness != "Ready")"
-                        @onclick="OpenAsync" title="Open the GSX menu here">Open</button>
+                        @onclick="OpenAsync" title="@T["gsxSettings.menuCard.openTitle"]">@T["gsxSettings.menuCard.open"]</button>
             }
         </span>
     </div>
@@ -33,8 +34,8 @@
     {
         <div class="empty">
             @(_view.Readiness == "Ready"
-                ? "GSX has no menu open. Open it here, or wait — questions GSX raises (pushback direction, de-ice, operator) appear as buttons."
-                : "GSX is not connected.")
+                ? T["gsxSettings.menuCard.noMenu"].Value
+                : T["gsxSettings.menuCard.notConnected"].Value)
         </div>
     }
     else
@@ -42,7 +43,7 @@
         var driving = MenuControl.AutomationDriving;
         @if (driving)
         {
-            <div class="field-hint gsx-menu-driving">The automation is answering this menu — the lines unlock when it is done.</div>
+            <div class="field-hint gsx-menu-driving">@T["gsxSettings.menuCard.driving"]</div>
         }
         <ol class="gsx-menu-entries" start="0">
             @for (var i = 0; i < _view.MenuEntries.Count; i++)
@@ -52,7 +53,7 @@
                 var greyed = i < _view.MenuDisabled.Count && _view.MenuDisabled[i];
                 <li>
                     <button type="button" class="gsx-menu-entry" disabled="@(_busy || driving || greyed)"
-                            title="@(greyed ? "Greyed out in GSX" : $"Pick '{entry}'")"
+                            title="@(greyed ? T["gsxSettings.menuCard.greyed"].Value : T["gsxSettings.menuCard.pick", entry].Value)"
                             @onclick="() => PickAsync(index, entry)">
                         <span class="gsx-menu-index mono">@index</span>
                         <span class="gsx-menu-text">@entry</span>

@@ -1,6 +1,7 @@
 @* The hint line under a field label plus the optional "More" fold (ADR-0010): the hint is
    one plain sentence; anything longer lives behind the fold so the page stays readable and
    the detail is still one tap away. Shared by every field component. *@
+@inject IStringLocalizer T
 
 @if (!string.IsNullOrEmpty(Hint))
 {
@@ -9,7 +10,7 @@
 @if (!string.IsNullOrEmpty(More))
 {
     <details class="field-more">
-        <summary>More</summary>
+        <summary>@T["fields.hint.more"]</summary>
         <span class="field-more-body">@More</span>
     </details>
 }

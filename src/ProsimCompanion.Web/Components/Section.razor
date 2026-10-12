@@ -3,6 +3,7 @@
    its header while "Show advanced settings" is off. *@
 @inherits StoreObserverComponent
 @inject AdvancedSettingsStore AdvancedStore
+@inject IStringLocalizer T
 
 @if (Advanced && !_showAdvanced)
 {
@@ -10,7 +11,7 @@
         <div class="section-header">
             <h3 class="section-title">@Title</h3>
             <span class="section-hint">
-                Advanced — <button type="button" class="link-btn" @onclick="() => AdvancedStore.Set(true)">show advanced settings</button>
+                @T["fields.advanced.sectionFolded"] <button type="button" class="link-btn" @onclick="() => AdvancedStore.Set(true)">@T["fields.advanced.show"]</button>
             </span>
         </div>
     </section>

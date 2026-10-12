@@ -3,13 +3,14 @@
    The bar reads the layout's FieldValidity itself (review 2026-10-13): Save goes grey and
    the line names the red fields without every page wiring two more parameters. *@
 @inherits StoreObserverComponent
+@inject IStringLocalizer T
 <div class="dirtybar @(Visible ? "visible" : null)">
     <div class="dirtybar-inner">
         <span class="dirtybar-message @ToneClass">@Text</span>
         <span class="dirtybar-actions">
-            <button type="button" class="btn secondary" disabled="@Saving" @onclick="OnDiscard">Discard</button>
+            <button type="button" class="btn secondary" disabled="@Saving" @onclick="OnDiscard">@T["fields.dirtyBar.discard"]</button>
             <button type="button" class="btn primary" disabled="@(Saving || !CanSave)" @onclick="OnSave">
-                @(Saving ? "Saving…" : "Save")
+                @(Saving ? T["fields.dirtyBar.saving"].Value : T["fields.dirtyBar.save"].Value)
             </button>
         </span>
     </div>
@@ -48,10 +49,10 @@
     private bool CanSave => Blocking.Count == 0;
 
     private string Text => Message ?? (CanSave
-        ? "You have unsaved changes"
+        ? T["fields.dirtyBar.unsaved"].Value
         : Blocking.Count == 1
-            ? $"Fix \"{Blocking.First()}\" before saving"
-            : $"Fix these fields before saving: {string.Join(", ", Blocking)}");
+            ? T["fields.dirtyBar.fixOne", Blocking.First()].Value
+            : T["fields.dirtyBar.fixMany", string.Join(", ", Blocking)].Value);
 
     private string ToneClass => Tone switch
     {

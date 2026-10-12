@@ -8,6 +8,9 @@ namespace ProsimCompanion.Web.Components;
 /// </summary>
 public static class GsxPresentation
 {
+    /// <summary>The English stage word. Kept beside <see cref="StageTextId"/> for the callers
+    /// that build a one-line English summary (the header's NEXT SERVICE pill); a page that
+    /// draws the word localises it through <c>T[StageTextId(stage)]</c> (ADR-0014).</summary>
     public static string StageLabel(GsxServiceStage stage) => stage switch
     {
         GsxServiceStage.Waiting => "Waiting",
@@ -18,6 +21,19 @@ public static class GsxPresentation
         GsxServiceStage.Active => "Active",
         GsxServiceStage.Completed => "Completed",
         _ => stage.ToString(),
+    };
+
+    /// <summary>The pack id of the stage word (<c>gsxSettings.stage.*</c>); the English text
+    /// behind each id equals <see cref="StageLabel"/>.</summary>
+    public static string StageTextId(GsxServiceStage stage) => stage switch
+    {
+        GsxServiceStage.Held => "gsxSettings.stage.held",
+        GsxServiceStage.Skipped => "gsxSettings.stage.skipped",
+        GsxServiceStage.Called => "gsxSettings.stage.called",
+        GsxServiceStage.Requested => "gsxSettings.stage.requested",
+        GsxServiceStage.Active => "gsxSettings.stage.active",
+        GsxServiceStage.Completed => "gsxSettings.stage.completed",
+        _ => "gsxSettings.stage.waiting",
     };
 
     public static string StageTone(GsxServiceStage stage) => stage switch
@@ -41,30 +57,30 @@ public static class GsxPresentation
         _ => "lamp lamp-off",
     };
 
-    /// <summary>The de-icing policy row (2026-10-09): what the Status section shows for the
-    /// verdict, with the captain's answer folded in where one was given.</summary>
-    public static string DeiceVerdictLabel(DeiceRequestSnapshot deice)
+    /// <summary>The de-icing policy row (2026-10-09): the pack id of what the Status section
+    /// shows for the verdict (<c>gsxSettings.deice.verdict.*</c>), with the captain's answer
+    /// folded in where one was given.</summary>
+    public static string DeiceVerdictTextId(DeiceRequestSnapshot deice)
     {
         ArgumentNullException.ThrowIfNull(deice);
         if (deice.RequestThisCycle)
         {
-            return "De-icing requested";
+            return "gsxSettings.deice.verdict.requested";
         }
 
         if (deice.Declined is not null)
         {
-            return "Declined";
+            return "gsxSettings.deice.verdict.declined";
         }
 
         return deice.Verdict switch
         {
-            DeicePolicyVerdict.Pending => "Not evaluated yet",
-            DeicePolicyVerdict.Off => "Off",
-            DeicePolicyVerdict.NoData => "No data",
-            DeicePolicyVerdict.NotRequired => "Not required",
-            DeicePolicyVerdict.Ask => "Asking the captain",
-            DeicePolicyVerdict.Request => "De-icing requested",
-            _ => deice.Verdict.ToString(),
+            DeicePolicyVerdict.Off => "gsxSettings.deice.verdict.off",
+            DeicePolicyVerdict.NoData => "gsxSettings.deice.verdict.noData",
+            DeicePolicyVerdict.NotRequired => "gsxSettings.deice.verdict.notRequired",
+            DeicePolicyVerdict.Ask => "gsxSettings.deice.verdict.ask",
+            DeicePolicyVerdict.Request => "gsxSettings.deice.verdict.requested",
+            _ => "gsxSettings.deice.verdict.pending",
         };
     }
 

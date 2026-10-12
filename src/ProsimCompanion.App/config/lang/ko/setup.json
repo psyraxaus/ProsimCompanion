@@ -1,0 +1,124 @@
+{
+  "setup": {
+    "pageTitle": "설정 마법사 — ProsimCompanion",
+    "heading": "설정 마법사",
+    "features": {
+      "title": "기능",
+      "hint": "꺼진 기능은 페이지는 남지만 아무것도 실행되지 않습니다",
+      "gsx": { "label": "GSX 지상 서비스", "hint": "GSX Pro를 통한 출발 서비스, 도어, 탑승교, 푸시백, 도착." },
+      "speech": { "label": "음성 부기장", "hint": "음성 체크리스트, 콜아웃, 브리핑, 음성 명령." },
+      "audio": { "label": "오디오 제어", "hint": "오디오 패널의 노브와 래치로 앱 볼륨을 설정합니다." }
+    },
+    "prosim": {
+      "title": "ProSim 연결",
+      "host": { "label": "ProSim 호스트", "hint": "ProSim System을 실행하는 PC의 이름 또는 IP 주소.", "placeholder": "localhost 또는 192.168.1.10" },
+      "sdk": { "label": "ProSim SDK 폴더", "hint": "ProSimSDK.dll이 들어 있는 폴더. 비워 두면 ProSim은 꺼진 상태로 유지됩니다." },
+      "api": { "label": "API 키", "hint": "최신 ProSim 빌드만 사용합니다. 그 외에는 비워 두세요." },
+      "reconnect": { "label": "재연결 간격", "hint": "연결 시도 사이의 대기 시간." }
+    },
+    "setupCheck": {
+      "title": "ProSim 설정 점검",
+      "hintIdle": "ProSim에 연결할 때마다 읽고, 적용을 클릭할 때만 씁니다",
+      "hintRead": "ProSim {0} · {1} 읽음",
+      "enabled": {
+        "label": "연결 시 ProSim 옵션 점검",
+        "hint": "이 앱이 의존하는 IOS 옵션을 읽고 다른 항목을 표시합니다. 스스로 아무것도 바꾸지 않습니다.",
+        "more": "도어 로직, 자동 지상 전원, 데이터링크 로딩, 급유 속도. 위에서 꺼진 기능의 행은 표시되지 않습니다."
+      },
+      "off": "꺼짐. 아무것도 읽지 않습니다.",
+      "reading": "ProSim 옵션을 읽는 중…",
+      "waitConnect": "ProSim이 연결되면 표시됩니다.",
+      "keepTitle": "이 옵션을 그대로 유지합니다. 행은 회색으로 남고 적용은 건드리지 않습니다.",
+      "keep": "유지",
+      "verdict": { "ok": "OK", "change": "변경", "notAvailable": "해당 없음", "kept": "유지됨" },
+      "detail": { "mismatch": "현재 {0} · 권장 {1}", "notPresent": "이 ProSim 빌드에는 없음" },
+      "value": { "on": "켜짐", "off": "꺼짐" },
+      "readAgainTitle": "ProSim에서 옵션을 다시 읽습니다.",
+      "readingShort": "읽는 중…",
+      "readAgain": "다시 읽기",
+      "howTitle": "ProSim System에서 옵션을 직접 바꾸는 방법.",
+      "hideSteps": "단계 숨기기",
+      "showHow": "방법 보기",
+      "applyTitle": "모든 황색 행에 권장 값을 쓰고 다시 읽습니다. 즉시 적용되며 ProSim 재시작은 필요 없습니다.",
+      "applying": "적용 중…",
+      "apply": "권장 값 적용",
+      "applyCount": "권장 값 적용 ({0})",
+      "howStep": { "open": "ProSim System에서", "setTo": "을(를) 열고 다음으로 설정:", "now": "(현재 {0})." },
+      "result": { "read": "읽었습니다.", "notConnected": "ProSim이 연결되어 있지 않습니다.", "failed": "실패 — 로그 페이지를 확인하세요." }
+    },
+    "navData": {
+      "title": "항법 데이터",
+      "hint": "SID, STAR, 접근을 위한 Navigraph 데이터베이스",
+      "dfd": { "label": "DFD 데이터베이스 경로", "hint": ".s3db 파일 또는 그 폴더. ProSim의 Navdata 폴더도 됩니다. 비워 두면 SDK 옆에서 찾습니다." }
+    },
+    "weather": {
+      "title": "기상 소스",
+      "hint": "ActiveSky는 심 안의 실제 기상을 담고 있으므로, 있을 때는 ProSim 게이트웨이와 SayIntentions보다 우선합니다",
+      "snapshot": {
+        "label": "ActiveSky 스냅샷 파일",
+        "hint": "current_wx_snapshot.txt의 전체 경로. 비워 두면 알려진 HiFi 설치 폴더에서 찾습니다.",
+        "more": "설정하면 그 경로가 최종입니다. 파일이 없으면 다른 곳을 찾는 대신 스냅샷 계층을 끕니다.",
+        "placeholder": "C:\\Users\\you\\AppData\\Roaming\\HiFi\\AS_MSFS\\Weather\\current_wx_snapshot.txt"
+      },
+      "useApi": { "label": "ActiveSky API도 시도", "hint": "스냅샷에 해당 공항 정보가 없을 때 쓰는 ActiveSky의 로컬 웹 API." },
+      "apiHost": { "label": "API 호스트", "hint": "ActiveSky를 실행하는 PC의 이름 또는 IP 주소.", "placeholder": "localhost" },
+      "apiPort": { "label": "API 포트" },
+      "apiTimeout": { "label": "API 시간 제한", "hint": "의도적으로 짧습니다. ActiveSky가 실행 중이 아니면 체인이 빨리 다음으로 넘어갑니다." }
+    },
+    "web": {
+      "title": "웹 인터페이스",
+      "hint": "포트와 LAN 접근은 데스크톱 창에서도 편집할 수 있습니다",
+      "port": { "label": "포트", "hint": "앱을 재시작한 뒤 적용됩니다." },
+      "lan": { "label": "다른 기기 허용 (LAN)", "hint": "태블릿과 다른 PC에서 이 페이지를 열 수 있습니다.", "more": "데스크톱 창의 QR 코드로 로그인합니다." },
+      "httpsHeading": "HTTPS (선택)",
+      "https": {
+        "label": "HTTPS 사용",
+        "hint": "일반 주소 옆의 두 번째 보안 주소. 태블릿에서 화면 켜짐 유지와 설치된 앱에 필요합니다. 재시작 후 적용됩니다.",
+        "more": "인증서는 직접 제공합니다. 이 PC의 LAN 주소용 PFX 파일을 자신의 CA(mkcert가 쉬운 방법)로 만들고 그 CA를 태블릿에 설치하세요. 앱은 인증서를 만들거나 설치하지 않습니다. 파일이 없거나 잘못되면 HTTP는 계속 동작하고 배너가 이유를 알려 줍니다."
+      },
+      "httpsPort": { "label": "HTTPS 포트", "hint": "위의 HTTP 포트와 별도로, 방화벽에서도 열어 주세요." },
+      "pfx": { "label": "인증서 파일 (PFX)", "hint": "개인 키가 포함된 .pfx / .p12 파일의 전체 경로.", "placeholder": "C:\\ProsimCompanion\\certs\\simpc.pfx" },
+      "pfxPassword": { "label": "인증서 암호", "hint": "이 PC와 Windows 계정에서 암호화되어 저장됩니다. 로그에 남지 않습니다." },
+      "status": "상태",
+      "httpsLabel": { "onWarning": "HTTPS 켜짐 · 경고", "on": "HTTPS 켜짐", "failed": "HTTPS 실패", "off": "HTTPS 꺼짐" },
+      "httpsHint": { "saved": "저장됨 — 보안 주소를 시작하려면 앱을 재시작하세요.", "off": "꺼짐. {0}에서 일반 HTTP." },
+      "tabletHintBefore": "태블릿 설정 — 인증서, iPad의 CA, 홈 화면에 추가, 화면 켜짐 유지:",
+      "tabletHintAfter": "(설치 폴더 안)."
+    },
+    "streamDeck": {
+      "title": "Stream Deck 및 외부 도구",
+      "hint": "즉시 적용",
+      "commandApi": { "label": "명령 API", "hint": "Stream Deck 플러그인에 필요합니다. 항상 접근 토큰이 필요합니다.", "more": "외부 도구가 웹 서버를 통해 GSX, 체크리스트, 로드시트 명령을 보낼 수 있게 합니다." },
+      "pairHint": "플러그인을 페어링하려면 데스크톱 창의 온보딩 링크를 아무 키의 설정에 붙여 넣으세요. \"API off\"로 표시된 키는 이 설정을 저장하면 스스로 복구됩니다."
+    },
+    "wake": {
+      "titleNumbered": "Wake-on-LAN PC {0}",
+      "titleNamed": "Wake-on-LAN — {0}",
+      "hint": "시작 시와 지금 보내기에서 매직 패킷을 보냅니다",
+      "row": "행",
+      "atStartup": "시작 시",
+      "sendNowOnly": "수동 전송만",
+      "removeTitle": "이 PC 제거",
+      "remove": "제거",
+      "name": { "label": "이름", "hint": "직접 붙이는 이름 — 로그에 표시됩니다.", "placeholder": "언어 모델 PC" },
+      "enabled": { "label": "시작 시 깨우기", "hint": "꺼짐은 지금 보내기 버튼용으로만 행을 유지합니다." },
+      "mac": { "label": "MAC 주소", "hint": "예: AA:BB:CC:DD:EE:FF.", "more": "대상 PC는 BIOS와 네트워크 드라이버에서 Wake-on-LAN이 켜져 있고, 유선으로 연결되어 있으며, 이 PC와 같은 네트워크에 있어야 합니다." },
+      "broadcast": { "label": "브로드캐스트 주소", "hint": "255.255.255.255 또는 192.168.1.255 같은 서브넷 브로드캐스트." },
+      "port": { "label": "포트", "hint": "보통 9." },
+      "sendNow": "지금 보내기",
+      "sendNowHint": "저장 여부와 관계없이 위의 값으로 이 PC에 패킷 하나를 보냅니다. 켜졌는지는 그 PC의 기능(LLM 연결 테스트, 음성 서비스 재연결)이 알려 줍니다.",
+      "list": {
+        "title": "Wake-on-LAN",
+        "hint": "앱이 시작할 때 의존하는 PC의 전원을 켭니다",
+        "none": "아직 PC가 없습니다. 언어 모델 머신, 음성 서버, ActiveSky PC 등 원하는 만큼 추가하세요.",
+        "add": "PC 추가"
+      }
+    },
+    "updates": {
+      "title": "업데이트",
+      "hint": "GitHub에 더 새 빌드가 있으면 배너로 알립니다. 아무것도 다운로드하거나 설치하지 않습니다",
+      "check": { "label": "업데이트 확인", "hint": "오프라인에서는 조용히 실패합니다. 시작을 지연시키지 않습니다." },
+      "interval": { "label": "다시 확인 주기" }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "fields": {
+    "hint": {
+      "more": "Mehr"
+    },
+    "number": {
+      "isDefault": "Das ist der Standardwert",
+      "default": "Standard",
+      "resetTitle": "Auf den Standard zurücksetzen ({0})",
+      "resetAria": "Auf Standard zurücksetzen"
+    },
+    "range": {
+      "from": "von",
+      "to": "bis",
+      "minimumAria": "{0} Minimum",
+      "maximumAria": "{0} Maximum",
+      "isDefault": "Das sind die Standardwerte",
+      "default": "Standard",
+      "resetTitle": "Auf die Standardwerte zurücksetzen ({0})",
+      "resetAria": "Auf Standardwerte zurücksetzen"
+    },
+    "text": {
+      "browse": "Durchsuchen…",
+      "browsing": "Dialog offen…",
+      "browseFailed": "Durchsuchen auf dem Sim-PC fehlgeschlagen: {0}"
+    },
+    "validation": {
+      "host": "Nur Name oder IP-Adresse. Kein http:// und kein Port. Beispiel: 192.168.1.10",
+      "hostIpv6": "IPv6-Adressen werden hier nicht unterstützt. Verwende den Namen des PCs oder seine IPv4-Adresse. Beispiel: 192.168.1.10",
+      "url": "Muss mit http:// oder https:// beginnen. Beispiel: http://192.168.1.50:8000",
+      "ip": "Eine IPv4-Adresse wie 192.168.1.255",
+      "mac": "Sechs Hex-Paare wie AA:BB:CC:DD:EE:FF",
+      "badPath": "Kein gültiger Windows-Pfad",
+      "icao": "Ein vierstelliger ICAO-Code wie YSSY",
+      "runway": "Eine Piste wie 16R oder 34",
+      "intList": "Ganze Zahlen durch Kommas getrennt, wie 1, 2, 3",
+      "fileNotFound": "Datei auf diesem PC nicht gefunden",
+      "folderNotFound": "Ordner auf diesem PC nicht gefunden",
+      "notFound": "Auf diesem PC nicht gefunden",
+      "parentFolderMissing": "Der Ordner dazu existiert auf diesem PC nicht",
+      "foldersNotFound": "Ordner auf diesem PC nicht gefunden: {0}",
+      "chooseFile": "Eine Datei auf diesem PC wählen",
+      "chooseFolder": "Einen Ordner auf diesem PC wählen",
+      "chooseOutputFile": "Wählen, wohin die App die Datei schreibt",
+      "addFolder": "Einen Ordner auf diesem PC hinzufügen"
+    },
+    "advanced": {
+      "hidden": "Erweiterte Einstellungen ausgeblendet",
+      "show": "erweiterte Einstellungen anzeigen",
+      "sectionFolded": "Erweitert —"
+    },
+    "dirtyBar": {
+      "discard": "Verwerfen",
+      "save": "Speichern",
+      "saving": "Speichert…",
+      "unsaved": "Du hast ungespeicherte Änderungen",
+      "fixOne": "Korrigiere \"{0}\" vor dem Speichern",
+      "fixMany": "Korrigiere diese Felder vor dem Speichern: {0}",
+      "saved": "Gespeichert.",
+      "saveFailed": "Speichern fehlgeschlagen: {0}"
+    },
+    "configProblems": {
+      "failedOne": "{0} Konfigurationsdatei konnte nicht geladen werden",
+      "failedMany": "{0} Konfigurationsdateien konnten nicht geladen werden",
+      "missingUntilFixed": "— der betroffene Inhalt fehlt, bis das behoben ist:"
+    },
+    "llmHealth": {
+      "authFailed": "Das freie Verstehen des FO ist offline (LLM-Anmeldung fehlgeschlagen — prüfe den API-Schlüssel).",
+      "unreachable": "Das freie Verstehen des FO ist offline (LLM-Endpunkt nicht erreichbar{0}).",
+      "openSettings": "LLM-Einstellungen öffnen."
+    },
+    "secretUnreadable": "Der gespeicherte Schlüssel lässt sich auf diesem PC/Benutzer nicht entschlüsseln (Einstellungen von woanders kopiert) — gib ihn neu ein und speichere."
+  }
+}

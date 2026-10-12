@@ -3,6 +3,7 @@
    Supports @bind-From / @bind-To; shows the defaults and a reset like NumberField. *@
 @typeparam TValue
 @using System.Globalization
+@inject IStringLocalizer T
 
 <div class="field">
     <label class="field-label" for="@_idFrom">
@@ -11,14 +12,14 @@
     </label>
     <div class="field-control">
         <span class="number-row range-row">
-            <span class="range-word">from</span>
+            <span class="range-word">@T["fields.range.from"]</span>
             <input id="@_idFrom" type="number" class="number-input" inputmode="decimal"
-                   step="@(Step ?? "any")" min="@Min" aria-label="@($"{Label} minimum")"
+                   step="@(Step ?? "any")" min="@Min" aria-label="@T["fields.range.minimumAria", Label]"
                    value="@BindConverter.FormatValue(From, CultureInfo.InvariantCulture)"
                    disabled="@Disabled" @onchange="OnFromChangedAsync" />
-            <span class="range-word">to</span>
+            <span class="range-word">@T["fields.range.to"]</span>
             <input id="@_idTo" type="number" class="number-input" inputmode="decimal"
-                   step="@(Step ?? "any")" min="@Min" aria-label="@($"{Label} maximum")"
+                   step="@(Step ?? "any")" min="@Min" aria-label="@T["fields.range.maximumAria", Label]"
                    value="@BindConverter.FormatValue(To, CultureInfo.InvariantCulture)"
                    disabled="@Disabled" @onchange="OnToChangedAsync" />
             @if (!string.IsNullOrEmpty(Suffix))
@@ -29,13 +30,13 @@
             {
                 @if (IsDefault)
                 {
-                    <span class="field-default" title="These are the default values">default</span>
+                    <span class="field-default" title="@T["fields.range.isDefault"]">@T["fields.range.default"]</span>
                 }
                 else
                 {
                     <button type="button" class="reset-btn" disabled="@Disabled"
-                            title="@($"Reset to the defaults ({Text(DefaultFrom)}–{Text(DefaultTo)}{(string.IsNullOrEmpty(Suffix) ? "" : " " + Suffix)})")"
-                            aria-label="Reset to defaults"
+                            title="@T["fields.range.resetTitle", Text(DefaultFrom) + "–" + Text(DefaultTo) + (string.IsNullOrEmpty(Suffix) ? "" : " " + Suffix)]"
+                            aria-label="@T["fields.range.resetAria"]"
                             @onclick="ResetAsync">↺ @Text(DefaultFrom)–@Text(DefaultTo)</button>
                 }
             }

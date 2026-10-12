@@ -1,0 +1,124 @@
+{
+  "setup": {
+    "pageTitle": "Configuration — ProsimCompanion",
+    "heading": "Configuration",
+    "features": {
+      "title": "Fonctions",
+      "hint": "Un pilier désactivé garde ses pages, mais rien ne tourne",
+      "gsx": { "label": "Services au sol GSX", "hint": "Services de départ, portes, passerelle, pushback et arrivée via GSX Pro." },
+      "speech": { "label": "Copilote vocal", "hint": "Check-lists parlées, annonces, briefings et commandes vocales." },
+      "audio": { "label": "Contrôle audio", "hint": "Les boutons et verrous du panneau audio règlent les volumes des applications." }
+    },
+    "prosim": {
+      "title": "Connexion ProSim",
+      "host": { "label": "Hôte ProSim", "hint": "Nom ou adresse IP du PC qui exécute ProSim System.", "placeholder": "localhost ou 192.168.1.10" },
+      "sdk": { "label": "Dossier du SDK ProSim", "hint": "Le dossier qui contient ProSimSDK.dll. Vide laisse ProSim désactivé." },
+      "api": { "label": "Clé API", "hint": "Seules les versions récentes de ProSim en utilisent une. Sinon, laisse vide." },
+      "reconnect": { "label": "Intervalle de reconnexion", "hint": "Attente entre deux tentatives de connexion." }
+    },
+    "setupCheck": {
+      "title": "Vérification de la configuration ProSim",
+      "hintIdle": "Lit à chaque connexion ProSim ; n'écrit que lorsque tu cliques sur Appliquer",
+      "hintRead": "ProSim {0} · lu à {1}",
+      "enabled": {
+        "label": "Vérifier les options de ProSim à la connexion",
+        "hint": "Lit les options IOS dont cette application dépend et montre celles qui diffèrent. Ne change jamais rien de lui-même.",
+        "more": "Logique des portes, alimentation sol automatique, chargement datalink et débit d'avitaillement. Les lignes d'une fonction désactivée ci-dessus ne sont pas affichées."
+      },
+      "off": "Désactivé. Rien n'est lu.",
+      "reading": "Lecture des options de ProSim…",
+      "waitConnect": "Affiché une fois ProSim connecté.",
+      "keepTitle": "Garder cette option telle quelle. La ligne reste grise et Appliquer n'y touche jamais.",
+      "keep": "garder",
+      "verdict": { "ok": "OK", "change": "MODIFIER", "notAvailable": "N/D", "kept": "GARDÉE" },
+      "detail": { "mismatch": "vaut {0} · attendu {1}", "notPresent": "absent de cette version de ProSim" },
+      "value": { "on": "on", "off": "off" },
+      "readAgainTitle": "Relire les options depuis ProSim.",
+      "readingShort": "Lecture…",
+      "readAgain": "Relire",
+      "howTitle": "Comment changer les options à la main dans ProSim System.",
+      "hideSteps": "Masquer les étapes",
+      "showHow": "Montre-moi comment",
+      "applyTitle": "Écrit la valeur recommandée dans chaque ligne ambre, puis les relit. Effet immédiat ; pas de redémarrage de ProSim.",
+      "applying": "Application…",
+      "apply": "Appliquer les valeurs recommandées",
+      "applyCount": "Appliquer les valeurs recommandées ({0})",
+      "howStep": { "open": "Dans ProSim System, ouvre", "setTo": "et règle-le sur", "now": "(actuellement {0})." },
+      "result": { "read": "Lu.", "notConnected": "ProSim n'est pas connecté.", "failed": "Échec — voir la page Journaux." }
+    },
+    "navData": {
+      "title": "Données de navigation",
+      "hint": "Base de données Navigraph pour les SID, STAR et approches",
+      "dfd": { "label": "Chemin de la base DFD", "hint": "Le fichier .s3db ou son dossier. Le dossier Navdata de ProSim convient. Vide cherche à côté du SDK." }
+    },
+    "weather": {
+      "title": "Sources météo",
+      "hint": "ActiveSky porte la météo réellement présente dans le simulateur, il l'emporte donc sur la passerelle ProSim et SayIntentions quand il est présent",
+      "snapshot": {
+        "label": "Fichier instantané ActiveSky",
+        "hint": "Chemin complet de current_wx_snapshot.txt. Vide cherche dans les dossiers d'installation HiFi connus.",
+        "more": "Une fois défini, le chemin est définitif : un fichier manquant désactive le niveau instantané au lieu de chercher ailleurs.",
+        "placeholder": "C:\\Users\\toi\\AppData\\Roaming\\HiFi\\AS_MSFS\\Weather\\current_wx_snapshot.txt"
+      },
+      "useApi": { "label": "Essayer aussi l'API ActiveSky", "hint": "L'API web locale d'ActiveSky, quand l'instantané n'a rien pour l'aéroport." },
+      "apiHost": { "label": "Hôte de l'API", "hint": "Nom ou adresse IP du PC qui exécute ActiveSky.", "placeholder": "localhost" },
+      "apiPort": { "label": "Port de l'API" },
+      "apiTimeout": { "label": "Délai de l'API", "hint": "Court à dessein : la chaîne passe vite à la suite quand ActiveSky ne tourne pas." }
+    },
+    "web": {
+      "title": "Interface web",
+      "hint": "Le port et l'accès LAN se modifient aussi dans la fenêtre de bureau",
+      "port": { "label": "Port", "hint": "Prend effet après un redémarrage de l'application." },
+      "lan": { "label": "Autoriser d'autres appareils (LAN)", "hint": "Les tablettes et autres PC peuvent ouvrir cette page.", "more": "Ils se connectent avec le code QR de la fenêtre de bureau." },
+      "httpsHeading": "HTTPS (facultatif)",
+      "https": {
+        "label": "Activer HTTPS",
+        "hint": "Une seconde adresse, sécurisée, à côté de l'adresse normale. Nécessaire pour le maintien d'écran et l'application installée sur tablette. Prend effet après un redémarrage.",
+        "more": "Tu fournis le certificat : un fichier PFX pour l'adresse LAN de ce PC, créé avec ta propre CA (mkcert est la voie simple), et cette CA installée sur la tablette. L'application ne crée ni n'installe jamais de certificat. Si le fichier manque ou est incorrect, HTTP continue de fonctionner et une bannière dit pourquoi."
+      },
+      "httpsPort": { "label": "Port HTTPS", "hint": "À côté du port HTTP ci-dessus ; ouvre-le aussi dans le pare-feu." },
+      "pfx": { "label": "Fichier de certificat (PFX)", "hint": "Chemin complet du fichier .pfx / .p12 contenant la clé privée.", "placeholder": "C:\\ProsimCompanion\\certs\\simpc.pfx" },
+      "pfxPassword": { "label": "Mot de passe du certificat", "hint": "Stocké chiffré sur ce PC et ce compte Windows. Jamais journalisé." },
+      "status": "État",
+      "httpsLabel": { "onWarning": "HTTPS ON · AVERTISSEMENT", "on": "HTTPS ON", "failed": "HTTPS EN ÉCHEC", "off": "HTTPS OFF" },
+      "httpsHint": { "saved": "Enregistré — redémarre l'application pour démarrer l'adresse sécurisée.", "off": "Désactivé. HTTP simple sur {0}." },
+      "tabletHintBefore": "Configuration de la tablette — le certificat, la CA sur l'iPad, l'ajout à l'écran d'accueil, le maintien d'écran :",
+      "tabletHintAfter": "dans le dossier d'installation."
+    },
+    "streamDeck": {
+      "title": "Stream Deck et outils externes",
+      "hint": "Appliqué en direct",
+      "commandApi": { "label": "API de commandes", "hint": "Nécessaire au plugin Stream Deck. Exige toujours le jeton d'accès.", "more": "Permet à des outils externes d'envoyer des commandes GSX, check-list et devis de masse via le serveur web." },
+      "pairHint": "Pour appairer le plugin, colle le lien d'intégration de la fenêtre de bureau dans les réglages de n'importe quelle touche. Les touches affichant \"API off\" se rétablissent d'elles-mêmes une fois ceci enregistré."
+    },
+    "wake": {
+      "titleNumbered": "PC Wake-on-LAN {0}",
+      "titleNamed": "Wake-on-LAN — {0}",
+      "hint": "Un paquet magique au démarrage et sur Envoyer maintenant",
+      "row": "Ligne",
+      "atStartup": "AU DÉMARRAGE",
+      "sendNowOnly": "ENVOI MANUEL SEULEMENT",
+      "removeTitle": "Retirer ce PC",
+      "remove": "Retirer",
+      "name": { "label": "Nom", "hint": "Ton étiquette pour lui — ce que montre le journal.", "placeholder": "PC du modèle de langage" },
+      "enabled": { "label": "Réveiller au démarrage", "hint": "Désactivé garde la ligne pour le seul bouton Envoyer maintenant." },
+      "mac": { "label": "Adresse MAC", "hint": "Par exemple AA:BB:CC:DD:EE:FF.", "more": "Le PC doit avoir Wake-on-LAN activé dans son BIOS et son pilote réseau, une connexion filaire et le même réseau que ce PC." },
+      "broadcast": { "label": "Adresse de diffusion", "hint": "255.255.255.255, ou la diffusion de ton sous-réseau comme 192.168.1.255." },
+      "port": { "label": "Port", "hint": "Habituellement 9." },
+      "sendNow": "Envoyer maintenant",
+      "sendNowHint": "Un paquet vers ce PC avec les valeurs ci-dessus, enregistrées ou non. La fonction propre du PC (Tester la connexion LLM, Reconnecter les services vocaux) te dit quand il est en ligne.",
+      "list": {
+        "title": "Wake-on-LAN",
+        "hint": "Allumer les PC dont l'application dépend quand elle démarre",
+        "none": "Aucun PC pour l'instant. Ajoute la machine du modèle de langage, le serveur vocal, un PC ActiveSky — autant que tu veux.",
+        "add": "Ajouter un PC"
+      }
+    },
+    "updates": {
+      "title": "Mises à jour",
+      "hint": "Une bannière quand une version plus récente est sur GitHub. Rien n'est téléchargé ni installé",
+      "check": { "label": "Rechercher les mises à jour", "hint": "Échoue en silence hors ligne. Ne retarde jamais le démarrage." },
+      "interval": { "label": "Revérifier toutes les" }
+    }
+  }
+}

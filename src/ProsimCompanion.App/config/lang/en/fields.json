@@ -1,0 +1,74 @@
+{
+  "fields": {
+    "hint": {
+      "more": "More"
+    },
+    "number": {
+      "isDefault": "This is the default value",
+      "default": "default",
+      "resetTitle": "Reset to the default ({0})",
+      "resetAria": "Reset to default"
+    },
+    "range": {
+      "from": "from",
+      "to": "to",
+      "minimumAria": "{0} minimum",
+      "maximumAria": "{0} maximum",
+      "isDefault": "These are the default values",
+      "default": "default",
+      "resetTitle": "Reset to the defaults ({0})",
+      "resetAria": "Reset to defaults"
+    },
+    "text": {
+      "browse": "Browse…",
+      "browsing": "Browsing…",
+      "browseFailed": "Browse failed on the sim PC: {0}"
+    },
+    "validation": {
+      "host": "Name or IP address only. No http:// and no port. Example: 192.168.1.10",
+      "hostIpv6": "IPv6 addresses are not supported here. Use the PC's name or its IPv4 address. Example: 192.168.1.10",
+      "url": "Must start with http:// or https://. Example: http://192.168.1.50:8000",
+      "ip": "An IPv4 address like 192.168.1.255",
+      "mac": "Six hex pairs like AA:BB:CC:DD:EE:FF",
+      "badPath": "Not a valid Windows path",
+      "icao": "A four-letter ICAO code like YSSY",
+      "runway": "A runway like 16R or 34",
+      "intList": "Whole numbers separated by commas, like 1, 2, 3",
+      "fileNotFound": "File not found on this PC",
+      "folderNotFound": "Folder not found on this PC",
+      "notFound": "Not found on this PC",
+      "parentFolderMissing": "Its folder does not exist on this PC",
+      "foldersNotFound": "Folder not found on this PC: {0}",
+      "chooseFile": "Choose a file on this PC",
+      "chooseFolder": "Choose a folder on this PC",
+      "chooseOutputFile": "Choose where the app writes the file",
+      "addFolder": "Add a folder on this PC"
+    },
+    "advanced": {
+      "hidden": "Advanced settings hidden",
+      "show": "show advanced settings",
+      "sectionFolded": "Advanced —"
+    },
+    "dirtyBar": {
+      "discard": "Discard",
+      "save": "Save",
+      "saving": "Saving…",
+      "unsaved": "You have unsaved changes",
+      "fixOne": "Fix \"{0}\" before saving",
+      "fixMany": "Fix these fields before saving: {0}",
+      "saved": "Saved.",
+      "saveFailed": "Save failed: {0}"
+    },
+    "configProblems": {
+      "failedOne": "{0} config file failed to load",
+      "failedMany": "{0} config files failed to load",
+      "missingUntilFixed": "— the affected content is missing until fixed:"
+    },
+    "llmHealth": {
+      "authFailed": "FO free-form understanding is offline (LLM auth failed — check the API key).",
+      "unreachable": "FO free-form understanding is offline (LLM endpoint unreachable{0}).",
+      "openSettings": "Open the LLM settings."
+    },
+    "secretUnreadable": "Stored key can't be decrypted on this PC/user (settings copied from elsewhere) — re-enter it and save."
+  }
+}

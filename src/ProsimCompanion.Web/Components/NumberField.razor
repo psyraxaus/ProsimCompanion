@@ -5,6 +5,7 @@
    whenever the current value differs. *@
 @typeparam TValue
 @using System.Globalization
+@inject IStringLocalizer T
 
 <div class="field">
     <label class="field-label" for="@_id">
@@ -25,13 +26,13 @@
             {
                 @if (IsDefault)
                 {
-                    <span class="field-default" title="This is the default value">default</span>
+                    <span class="field-default" title="@T["fields.number.isDefault"]">@T["fields.number.default"]</span>
                 }
                 else
                 {
                     <button type="button" class="reset-btn" disabled="@Disabled"
-                            title="@($"Reset to the default ({DefaultText}{(string.IsNullOrEmpty(Suffix) ? "" : " " + Suffix)})")"
-                            aria-label="Reset to default"
+                            title="@T["fields.number.resetTitle", DefaultText + (string.IsNullOrEmpty(Suffix) ? "" : " " + Suffix)]"
+                            aria-label="@T["fields.number.resetAria"]"
                             @onclick="ResetAsync">↺ @DefaultText</button>
                 }
             }

@@ -4,6 +4,7 @@
    "every option ships with a web control" holds. *@
 @inherits StoreObserverComponent
 @inject AdvancedSettingsStore Advanced
+@inject IStringLocalizer T
 
 @if (_show)
 {
@@ -13,7 +14,7 @@ else
 {
     <div class="advanced-hidden">
         <span aria-hidden="true">⋯</span>
-        <span>@(Label ?? "Advanced settings hidden") — <button type="button" class="link-btn" @onclick="() => Advanced.Set(true)">show advanced settings</button></span>
+        <span>@(Label ?? T["fields.advanced.hidden"].Value) — <button type="button" class="link-btn" @onclick="() => Advanced.Set(true)">@T["fields.advanced.show"]</button></span>
     </div>
 }
 
