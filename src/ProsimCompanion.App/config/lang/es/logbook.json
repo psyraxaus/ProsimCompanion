@@ -1,0 +1,86 @@
+{
+  "logbook": {
+    "pageTitle": "Bitácora — ProsimCompanion",
+    "heading": "Bitácora",
+    "title": "Bitácora del piloto",
+    "backfill": {
+      "title": "Lee los archivos de sesión que siguen en disco y añade cualquier vuelo que aún no esté en la bitácora. Los vuelos eliminados siguen eliminados.",
+      "reading": "Leyendo…",
+      "button": "Leer sesiones guardadas",
+      "noneFound": "No se encontró ningún vuelo nuevo en las sesiones guardadas.",
+      "added": "{0} vuelo(s) añadido(s) desde las sesiones guardadas."
+    },
+    "export": {
+      "button": "Exportar CSV",
+      "title": "Cada vuelo como archivo CSV: horas UTC, punto decimal, una fila por vuelo."
+    },
+    "notWired": "El servicio de bitácora no está conectado en esta compilación.",
+    "figures": {
+      "flights": "Vuelos",
+      "blockHours": "Horas calzos",
+      "landings": "Aterrizajes",
+      "stableApproaches": "Aprox. estables",
+      "stableTitle": "{0} estables de {1} aproximaciones juzgadas por los gates",
+      "avgTouchdown": "Toma media",
+      "avgTouchdownTitle": "Media de los {0} aterrizaje(s) medidos por el registrador de toma"
+    },
+    "trend": {
+      "title": "Tasa de toma · últimos {0} aterrizaje(s)",
+      "empty": "Aún no hay aterrizajes medidos. La tendencia empieza con tu próximo aterrizaje.",
+      "ariaEmpty": "Sin aterrizajes medidos",
+      "aria": "Tasa de toma de los últimos {0} aterrizajes; el más reciente es {1}",
+      "note": "El más antiguo a la izquierda, el último a la derecha (el punto brillante). Más alto es más suave. La línea tenue es la media de estos aterrizajes."
+    },
+    "emptyBook": "La bitácora está vacía. Se añade un vuelo cuando apagas en la puerta.",
+    "table": {
+      "date": "Fecha",
+      "route": "Ruta",
+      "block": "Calzos",
+      "flight": "Vuelo",
+      "touchdownRate": "Tasa T/D",
+      "touchdownSpeed": "Vel. T/D",
+      "approach": "Aprox.",
+      "bounceTitle": "Contacto con el suelo perdido y recuperado en menos de 5 segundos",
+      "bounce": "{0} rebote",
+      "bounces": "{0} rebotes",
+      "note": "La tasa T/D es la velocidad vertical en pies por minuto en el segundo anterior a la toma; la velocidad T/D es la velocidad respecto al suelo en nudos. Los vuelos registrados antes del registrador de toma muestran un guion. Selecciona una fila para ver el detalle."
+    },
+    "approach": {
+      "stable": "estable",
+      "unstable": "inestable",
+      "indeterminate": "indeterminada",
+      "notJudged": "sin juzgar"
+    },
+    "detail": {
+      "aria": "Detalle del vuelo",
+      "close": "Cerrar el detalle del vuelo",
+      "date": "Fecha",
+      "runways": "Pistas",
+      "offBlocks": "Off blocks",
+      "takeoff": "Despegue",
+      "takeoffUnknown": "desconocido (app iniciada en vuelo)",
+      "landing": "Aterrizaje",
+      "onBlocks": "On blocks",
+      "blockTime": "Tiempo calzos",
+      "flightTime": "Tiempo de vuelo",
+      "liftoffIas": "IAS al despegar",
+      "landingHead": "Aterrizaje",
+      "touchdownRate": "Tasa de toma",
+      "touchdownIas": "IAS en la toma",
+      "touchdownGroundSpeed": "Velocidad suelo en la toma",
+      "pitch": "Cabeceo en la toma",
+      "bounces": "Rebotes",
+      "approach": "Aproximación",
+      "techLogHead": "Tech log",
+      "abnormals": "Anormales",
+      "none": "ninguno",
+      "defects": "Defectos",
+      "defectsLine": "{0} abiertos · {1} rectificados · {2} arrastrados",
+      "session": "Sesión",
+      "confirmDelete": "CONFIRMAR BORRADO",
+      "deleteFlight": "Eliminar vuelo",
+      "deleteArmedNote": "Pulsa de nuevo para eliminar. No se puede deshacer.",
+      "deleteNote": "Elimina este vuelo de la bitácora. No volverá desde su archivo de sesión."
+    }
+  }
+}

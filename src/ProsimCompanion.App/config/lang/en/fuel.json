@@ -1,0 +1,32 @@
+{
+  "fuel": {
+    "pageTitle": "Fuel — ProsimCompanion",
+    "heading": "Fuel",
+    "summary": {
+      "title": "Fuel Summary",
+      "hint": "Capacity usable {0} {1} · SG {2}",
+      "inTanks": "In tanks",
+      "capacityAria": "{0} of {1} {2}",
+      "plannedCaps": "PLANNED",
+      "plannedInitModCaps": "PLANNED — INIT MOD",
+      "inTanksCaps": "IN TANKS"
+    },
+    "delta": {
+      "label": "Delta",
+      "noFlightPlan": "— (no flight plan)",
+      "over": "OVER",
+      "under": "UNDER",
+      "ok": "OK"
+    },
+    "tanks": {
+      "title": "Tank Breakdown",
+      "hint": "Live figures · airframe order",
+      "aria": "{0} {1} of {2} {3}",
+      "leftOuter": "LEFT OUTER",
+      "leftInner": "LEFT INNER",
+      "centre": "CENTRE",
+      "rightInner": "RIGHT INNER",
+      "rightOuter": "RIGHT OUTER"
+    }
+  }
+}

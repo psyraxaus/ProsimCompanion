@@ -1,0 +1,38 @@
+{
+  "voiceReference": {
+    "title": "Referencia de voz",
+    "searchTitle": "Filtrar todas las pestañas",
+    "searchPlaceholder": "Escribe una palabra… p. ej. boarding, heading",
+    "close": "Cerrar",
+    "ptt": "PTT: {0}",
+    "listen": {
+      "paused": "En pausa",
+      "listening": "Escuchando",
+      "ready": "Listo"
+    },
+    "tab": {
+      "fo": "FO",
+      "ground": "Tierra",
+      "cabin": "Cabina",
+      "atc": "ATC",
+      "lists": "Listas"
+    },
+    "who": {
+      "ground": "El personal de tierra responde por INT — di primero cockpit to ground, o usa las frases directas",
+      "cabin": "El sobrecargo responde por CAB — di primero cockpit to cabin",
+      "atc": "El FO colaciona y luego transmite por COM1 a SayIntentions ATC",
+      "checklists": "El FO lee la checklist — responde a cada ítem, o usa las palabras siempre disponibles",
+      "fo": "Responde el primer oficial"
+    },
+    "switchedOff": "desactivado",
+    "alwaysAvailable": "Siempre disponible",
+    "nothingMatches": "Nada coincide con “{0}”.",
+    "or": "o",
+    "footer": {
+      "sayBefore": "Di",
+      "sayAfter": "en cualquier momento",
+      "edit": "Editar frases · commands.json",
+      "editTitle": "Tus propias frases están en commands.json (carpeta de configuración del usuario)"
+    }
+  }
+}

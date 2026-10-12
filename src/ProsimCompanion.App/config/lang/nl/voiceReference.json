@@ -1,0 +1,38 @@
+{
+  "voiceReference": {
+    "title": "Spraakreferentie",
+    "searchTitle": "Alle tabbladen filteren",
+    "searchPlaceholder": "Typ een woord… bijv. boarding, heading",
+    "close": "Sluiten",
+    "ptt": "PTT: {0}",
+    "listen": {
+      "paused": "Gepauzeerd",
+      "listening": "Luistert",
+      "ready": "Gereed"
+    },
+    "tab": {
+      "fo": "FO",
+      "ground": "Grond",
+      "cabin": "Cabine",
+      "atc": "ATC",
+      "lists": "Lijsten"
+    },
+    "who": {
+      "ground": "De grondcrew antwoordt op INT — zeg eerst cockpit to ground, of gebruik de losse zinnen",
+      "cabin": "De purser antwoordt op CAB — zeg eerst cockpit to cabin",
+      "atc": "De FO bevestigt en zendt dan op COM1 uit naar SayIntentions ATC",
+      "checklists": "De FO leest de checklist — beantwoord elk punt, of gebruik de altijd beschikbare woorden",
+      "fo": "De first officer antwoordt"
+    },
+    "switchedOff": "uitgeschakeld",
+    "alwaysAvailable": "Altijd beschikbaar",
+    "nothingMatches": "Niets komt overeen met “{0}”.",
+    "or": "of",
+    "footer": {
+      "sayBefore": "Zeg",
+      "sayAfter": "wanneer je wilt",
+      "edit": "Zinnen bewerken · commands.json",
+      "editTitle": "Je eigen zinnen staan in commands.json (gebruikersconfiguratiemap)"
+    }
+  }
+}

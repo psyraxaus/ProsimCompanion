@@ -7,12 +7,13 @@
 @inject OfpStore Ofp
 @inject IEfbInitOverrides Overrides
 @inject DisplayUnitService Units
+@inject IStringLocalizer T
 
 @* Markup and styling ported from Prosim2GSX's web FuelPanel (FuelPanel.tsx /
    FuelPanel.module.css); dataref plumbing is ProsimCompanion's own. *@
 
-<PageTitle>Fuel — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Fuel</h1>
+<PageTitle>@T["fuel.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["fuel.heading"]</h1>
 
 @{
     var inTanks = _fuelTotal.Value;
@@ -20,7 +21,7 @@
     // RAMP override first, then the OFP, then the EFB planned fuel.
     var figure = EffectiveBlockFuel.Resolve(Overrides.Snapshot(), Ofp.Current, _plannedFuel.Value);
     var planned = figure.Kg;
-    var plannedLabel = figure.Source == BlockFuelSource.Override ? "PLANNED — INIT MOD" : "PLANNED";
+    var plannedLabel = figure.Source == BlockFuelSource.Override ? T["fuel.summary.plannedInitModCaps"].Value : T["fuel.summary.plannedCaps"].Value;
     var capacity = TotalCapacityKg();
     var delta = inTanks - planned;
 }
@@ -32,16 +33,16 @@
     @* ── FUEL SUMMARY ───────────────────────────────────────── *@
     <section class="section fuel-card">
         <div class="section-header">
-            <h3 class="section-title">Fuel Summary</h3>
-            <span class="section-hint">Capacity usable @FmtW(capacity) @UnitU · SG @SpecificGravity.ToString("F2", CultureInfo.InvariantCulture)</span>
+            <h3 class="section-title">@T["fuel.summary.title"]</h3>
+            <span class="section-hint">@T["fuel.summary.hint", FmtW(capacity), UnitU, SpecificGravity.ToString("F2", CultureInfo.InvariantCulture)]</span>
         </div>
         <div class="section-body fuel-body">
         <div class="fuel-hero">
-            <span class="label-caps">In tanks</span>
+            <span class="label-caps">@T["fuel.summary.inTanks"]</span>
             <span class="figure figure-xl glow">@FmtW(inTanks)<span class="figure-unit">@UnitU</span></span>
         </div>
 
-        <div class="fuel-capacity-bar" role="img" aria-label="@($"{Units.FromKg(inTanks):F0} of {Units.FromKg(capacity):F0} {Units.UnitLabel}")">
+        <div class="fuel-capacity-bar" role="img" aria-label="@T["fuel.summary.capacityAria", Units.FromKg(inTanks).ToString("F0", CultureInfo.InvariantCulture), Units.FromKg(capacity).ToString("F0", CultureInfo.InvariantCulture), Units.UnitLabel]">
             <div class="fuel-capacity-fill @CapacityClass(delta, planned)"
                  style="width:@PercentCss(inTanks, capacity)"></div>
             <span class="fuel-capacity-label">@FmtW(inTanks) / @FmtW(capacity) @UnitU</span>
@@ -49,20 +50,20 @@
 
         <div class="fuel-summary-grid">
             <div class="fuel-summary-header">@plannedLabel (@UnitU)</div>
-            <div class="fuel-summary-header">IN TANKS (@UnitU)</div>
+            <div class="fuel-summary-header">@T["fuel.summary.inTanksCaps"] (@UnitU)</div>
             <div class="fuel-summary-value">@FmtW(planned)</div>
             <div class="fuel-summary-value">@FmtW(inTanks)</div>
 
-            <div class="fuel-summary-header">PLANNED (L)</div>
-            <div class="fuel-summary-header">IN TANKS (L)</div>
+            <div class="fuel-summary-header">@T["fuel.summary.plannedCaps"] (L)</div>
+            <div class="fuel-summary-header">@T["fuel.summary.inTanksCaps"] (L)</div>
             <div class="fuel-summary-value">@FmtNum(planned / SpecificGravity)</div>
             <div class="fuel-summary-value">@FmtNum(inTanks / SpecificGravity)</div>
         </div>
 
         <div class="fuel-delta-row inset @DeltaClass(delta, planned)">
-            <span class="fuel-delta-label label-caps">Delta</span>
+            <span class="fuel-delta-label label-caps">@T["fuel.delta.label"]</span>
             <span class="fuel-delta-value">
-                @(planned > 0 ? $"{(delta >= 0 ? "+" : "")}{FmtW(delta)} {UnitU}" : "— (no flight plan)")
+                @(planned > 0 ? $"{(delta >= 0 ? "+" : "")}{FmtW(delta)} {UnitU}" : T["fuel.delta.noFlightPlan"].Value)
             </span>
             @if (planned > 0)
             {
@@ -78,8 +79,8 @@
        Rendered top-to-bottom for readability. *@
     <section class="section fuel-card">
         <div class="section-header">
-            <h3 class="section-title">Tank Breakdown</h3>
-            <span class="section-hint">Live figures · airframe order</span>
+            <h3 class="section-title">@T["fuel.tanks.title"]</h3>
+            <span class="section-hint">@T["fuel.tanks.hint"]</span>
         </div>
         <div class="section-body fuel-body">
         @foreach (var tank in Tanks())
@@ -87,7 +88,7 @@
             <div class="fuel-tank-row">
                 <div class="fuel-tank-label">@tank.Name</div>
                 <div class="fuel-tank-bar" role="img"
-                     aria-label="@($"{tank.Name} {Units.FromKg(tank.AmountKg):F0} of {Units.FromKg(tank.CapacityKg):F0} {Units.UnitLabel}")">
+                     aria-label="@T["fuel.tanks.aria", tank.Name, Units.FromKg(tank.AmountKg).ToString("F0", CultureInfo.InvariantCulture), Units.FromKg(tank.CapacityKg).ToString("F0", CultureInfo.InvariantCulture), Units.UnitLabel]">
                     <div class="fuel-tank-fill"
                          style="width:@(tank.Percent.ToString("F1", CultureInfo.InvariantCulture))%"></div>
                 </div>
@@ -180,11 +181,11 @@
     private IEnumerable<TankRow> Tanks()
     {
         // Airframe order, matching Prosim2GSX's Fuel tab.
-        yield return new TankRow("LEFT OUTER", _fuelLeftOuter.Value, _fuelLeftOuterCap.Value);
-        yield return new TankRow("LEFT INNER", _fuelLeftInner.Value, _fuelLeftInnerCap.Value);
-        yield return new TankRow("CENTRE", _fuelCenter.Value, _fuelCenterCap.Value);
-        yield return new TankRow("RIGHT INNER", _fuelRightInner.Value, _fuelRightInnerCap.Value);
-        yield return new TankRow("RIGHT OUTER", _fuelRightOuter.Value, _fuelRightOuterCap.Value);
+        yield return new TankRow(T["fuel.tanks.leftOuter"], _fuelLeftOuter.Value, _fuelLeftOuterCap.Value);
+        yield return new TankRow(T["fuel.tanks.leftInner"], _fuelLeftInner.Value, _fuelLeftInnerCap.Value);
+        yield return new TankRow(T["fuel.tanks.centre"], _fuelCenter.Value, _fuelCenterCap.Value);
+        yield return new TankRow(T["fuel.tanks.rightInner"], _fuelRightInner.Value, _fuelRightInnerCap.Value);
+        yield return new TankRow(T["fuel.tanks.rightOuter"], _fuelRightOuter.Value, _fuelRightOuterCap.Value);
     }
 
     // Uppercase unit label for the panel's all-caps typography ("KG" / "LB").
@@ -221,6 +222,6 @@
         : delta < -DeltaRedKg ? "fuel-delta-red"
         : "fuel-delta-green";
 
-    private static string DeltaTag(double delta) =>
-        delta > DeltaAmberKg ? "OVER" : delta < -DeltaRedKg ? "UNDER" : "OK";
+    private string DeltaTag(double delta) =>
+        delta > DeltaAmberKg ? T["fuel.delta.over"].Value : delta < -DeltaRedKg ? T["fuel.delta.under"].Value : T["fuel.delta.ok"].Value;
 }

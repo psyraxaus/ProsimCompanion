@@ -1,0 +1,45 @@
+{
+  "techLog": {
+    "pageTitle": "Tech Log — ProsimCompanion",
+    "heading": "Tech Log",
+    "title": "Tech Log & MEL",
+    "pill": {
+      "switchedOff": "꺼짐",
+      "clean": "이상 없음",
+      "open": "{0}건 미결"
+    },
+    "notWired": "이 빌드에는 Tech Log 서비스가 연결되어 있지 않습니다 (WIRING-TECHLOG.md 참조).",
+    "figures": {
+      "openItems": "미결 항목",
+      "onFile": "기록됨",
+      "overdue": "기한 초과"
+    },
+    "cleanNoDefects": "Tech Log에 이상 없음 — 기록된 결함이 없습니다.",
+    "item": {
+      "systemTag": "체크리스트 시스템 태그",
+      "overduePrefix": "기한 초과 — ",
+      "sectorsCarried": "{0}개 구간 이월",
+      "rectified": "수리됨",
+      "rectify": "수리",
+      "remove": "삭제"
+    },
+    "advisoryNote": "기한이 지난 MEL 항목은 참고용입니다 — 앱이 항공기를 운항 정지시키는 일은 없으며, 비행 여부는 당신의 판단입니다. MEL 참조는 모의이며 실제 인용이 아닙니다.",
+    "form": {
+      "title": "결함 등록",
+      "defectTitle": "제목",
+      "defectTitlePlaceholder": "예: APU inoperative",
+      "category": "MEL 카테고리",
+      "categoryOption": "{0} — {1}일",
+      "melReference": "MEL 참조",
+      "melReferencePlaceholder": "비워 두면 모의 기본값",
+      "implications": "운항 영향",
+      "implicationsPlaceholder": "출발 전 브리핑에서 말함",
+      "placard": "플래카드",
+      "placardPlaceholder": "선택, 예: APU INOP",
+      "system": "시스템",
+      "systemPlaceholder": "선택 태그, 예: apu, gear, autobrake",
+      "systemHint": "음성 체크리스트 항목의 시스템 태그와 일치하면 FO가 그 항목에서 결함을 언급합니다. 비워 두면 제목의 단어로 대신 맞춥니다.",
+      "enter": "Tech Log에 기입"
+    }
+  }
+}

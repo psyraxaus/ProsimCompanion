@@ -1,0 +1,73 @@
+{
+  "fuelLog": {
+    "pageTitle": "Journal carburant — ProsimCompanion",
+    "heading": "Journal carburant",
+    "empty": {
+      "title": "Journal carburant",
+      "textBefore": "Aucun plan carburant chargé. Récupère un OFP avec navlog sur la",
+      "link": "page INIT",
+      "textAfter": "et le journal se remplit à chaque point de route passé."
+    },
+    "hero": {
+      "title": "Prévu vs réel",
+      "fuelOnBoard": "Carburant à bord",
+      "noFuelFigure": "pas de valeur carburant de ProSim",
+      "live": "en direct",
+      "planHere": "Prévu à ce point",
+      "noPosition": "pas de position sur le navlog",
+      "past": "après {0}",
+      "between": "entre {0} et {1}",
+      "delta": "Écart",
+      "estimatedLanding": "Atterrissage estimé",
+      "plannedLanding": "prévu {0}",
+      "noPlannedLanding": "pas de carburant d'atterrissage prévu",
+      "fuelCheckNow": "Fuel check maintenant",
+      "openOfp": "Ouvrir l'OFP",
+      "spoken": "Dit."
+    },
+    "trend": {
+      "losing": "en perte",
+      "gaining": "en gain",
+      "holding": "stable"
+    },
+    "recent": {
+      "none": "aucun point passé pour l'instant",
+      "one": "{0} au dernier point",
+      "two": "{0} aux deux derniers points",
+      "three": "{0} aux trois derniers points",
+      "many": "{0} aux {1} derniers points"
+    },
+    "chart": {
+      "title": "Consommation · {0} → {1}",
+      "hint": "gris = prévu · cyan = réel · pointillé = avec l'écart actuel",
+      "aria": "Carburant prévu contre carburant réel le long de la route",
+      "plannedLanding": "ATTERRISSAGE PRÉVU {0}",
+      "noFigures": "Le navlog n'a pas de valeurs carburant à tracer."
+    },
+    "table": {
+      "title": "Journal carburant",
+      "passed": "{0} points passés sur {1}",
+      "takeoffUnknown": " · heure de décollage inconnue (app lancée en vol)",
+      "stampsStartAtTakeoff": " · les horodatages commencent au décollage",
+      "waypoint": "Point",
+      "plan": "Prévu",
+      "actual": "Réel",
+      "deltaMin": "Δ min",
+      "planFob": "FOB prévu",
+      "actualFob": "FOB réel",
+      "deltaUnit": "Δ {0}",
+      "last": "dernier",
+      "notRecorded": "non relevé"
+    },
+    "checks": {
+      "title": "Fuel checks de l'OPL",
+      "noneYet": "aucun prononcé dans cette session",
+      "newestFirst": "le plus récent d'abord · ce que le copilote a dit",
+      "empty": "Les fuel checks périodiques du copilote (Voix → Surveillance) et tout \"fuel check\" que tu demandes apparaissent ici avec les mots exacts prononcés.",
+      "shortfall": "déficit",
+      "underPlan": "sous le prévu",
+      "abovePlan": "au-dessus du prévu",
+      "onPlan": "conforme au prévu"
+    }
+  }
+}

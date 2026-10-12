@@ -1,0 +1,38 @@
+{
+  "voiceReference": {
+    "title": "Référence vocale",
+    "searchTitle": "Filtrer tous les onglets",
+    "searchPlaceholder": "Tape un mot… ex. boarding, heading",
+    "close": "Fermer",
+    "ptt": "PTT : {0}",
+    "listen": {
+      "paused": "En pause",
+      "listening": "À l'écoute",
+      "ready": "Prêt"
+    },
+    "tab": {
+      "fo": "OPL",
+      "ground": "Sol",
+      "cabin": "Cabine",
+      "atc": "ATC",
+      "lists": "Listes"
+    },
+    "who": {
+      "ground": "L'équipe au sol répond sur INT — dis d'abord cockpit to ground, ou utilise les phrases directes",
+      "cabin": "Le chef de cabine répond sur CAB — dis d'abord cockpit to cabin",
+      "atc": "L'OPL collationne, puis transmet sur COM1 à SayIntentions ATC",
+      "checklists": "L'OPL déroule la checklist — réponds à chaque item, ou utilise les mots toujours disponibles",
+      "fo": "Le copilote répond"
+    },
+    "switchedOff": "désactivé",
+    "alwaysAvailable": "Toujours disponible",
+    "nothingMatches": "Rien ne correspond à “{0}”.",
+    "or": "ou",
+    "footer": {
+      "sayBefore": "Dis",
+      "sayAfter": "à tout moment",
+      "edit": "Modifier les phrases · commands.json",
+      "editTitle": "Tes propres phrases sont dans commands.json (dossier de configuration utilisateur)"
+    }
+  }
+}

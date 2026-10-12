@@ -1,0 +1,38 @@
+{
+  "voiceReference": {
+    "title": "音声リファレンス",
+    "searchTitle": "全タブを絞り込む",
+    "searchPlaceholder": "単語を入力… 例: boarding, heading",
+    "close": "閉じる",
+    "ptt": "PTT: {0}",
+    "listen": {
+      "paused": "一時停止",
+      "listening": "聞き取り中",
+      "ready": "待機中"
+    },
+    "tab": {
+      "fo": "FO",
+      "ground": "地上",
+      "cabin": "客室",
+      "atc": "ATC",
+      "lists": "リスト"
+    },
+    "who": {
+      "ground": "地上クルーは INT で応答します — まず cockpit to ground と言うか、単発フレーズを使ってください",
+      "cabin": "パーサーは CAB で応答します — まず cockpit to cabin と言ってください",
+      "atc": "FO が復唱し、COM1 で SayIntentions ATC に送信します",
+      "checklists": "FO がチェックリストを進めます — 各項目に応答するか、常時使える語を使ってください",
+      "fo": "副操縦士が応答します"
+    },
+    "switchedOff": "オフ",
+    "alwaysAvailable": "常時使用可",
+    "nothingMatches": "“{0}” に一致するものはありません。",
+    "or": "または",
+    "footer": {
+      "sayBefore": "いつでも言えます:",
+      "sayAfter": "",
+      "edit": "フレーズを編集 · commands.json",
+      "editTitle": "自分のフレーズは commands.json（ユーザー設定フォルダー）にあります"
+    }
+  }
+}

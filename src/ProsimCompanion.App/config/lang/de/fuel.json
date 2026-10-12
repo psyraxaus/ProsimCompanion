@@ -1,0 +1,32 @@
+{
+  "fuel": {
+    "pageTitle": "Kraftstoff — ProsimCompanion",
+    "heading": "Kraftstoff",
+    "summary": {
+      "title": "Kraftstoffübersicht",
+      "hint": "Nutzbare Kapazität {0} {1} · SG {2}",
+      "inTanks": "In den Tanks",
+      "capacityAria": "{0} von {1} {2}",
+      "plannedCaps": "GEPLANT",
+      "plannedInitModCaps": "GEPLANT — INIT MOD",
+      "inTanksCaps": "IN DEN TANKS"
+    },
+    "delta": {
+      "label": "Differenz",
+      "noFlightPlan": "— (kein Flugplan)",
+      "over": "ÜBER",
+      "under": "UNTER",
+      "ok": "OK"
+    },
+    "tanks": {
+      "title": "Tankaufteilung",
+      "hint": "Live-Werte · Reihenfolge wie im Flügel",
+      "aria": "{0} {1} von {2} {3}",
+      "leftOuter": "LINKS AUSSEN",
+      "leftInner": "LINKS INNEN",
+      "centre": "MITTE",
+      "rightInner": "RECHTS INNEN",
+      "rightOuter": "RECHTS AUSSEN"
+    }
+  }
+}

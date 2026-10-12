@@ -1,0 +1,86 @@
+{
+  "logbook": {
+    "pageTitle": "ログブック — ProsimCompanion",
+    "heading": "ログブック",
+    "title": "パイロットログブック",
+    "backfill": {
+      "title": "ディスクに残っているセッションファイルを読み、ログブックにまだ無いフライトを追加します。削除したフライトは削除されたままです。",
+      "reading": "読み込み中…",
+      "button": "保存済みセッションを読む",
+      "noneFound": "保存済みセッションに新しいフライトはありませんでした。",
+      "added": "保存済みセッションから {0} 件のフライトを追加しました。"
+    },
+    "export": {
+      "button": "CSV を書き出す",
+      "title": "全フライトを CSV ファイルに: UTC 時刻、小数点、1 フライト 1 行。"
+    },
+    "notWired": "このビルドにはログブックサービスが組み込まれていません。",
+    "figures": {
+      "flights": "フライト",
+      "blockHours": "ブロック時間",
+      "landings": "着陸",
+      "stableApproaches": "安定進入",
+      "stableTitle": "ゲートが判定した {1} 回の進入のうち {0} 回が安定",
+      "avgTouchdown": "平均接地",
+      "avgTouchdownTitle": "接地レコーダーが計測した {0} 回の着陸の平均"
+    },
+    "trend": {
+      "title": "接地率 · 直近 {0} 回の着陸",
+      "empty": "計測済みの着陸はまだありません。次の着陸からトレンドが始まります。",
+      "ariaEmpty": "計測済みの着陸なし",
+      "aria": "直近 {0} 回の着陸の接地率。最新は {1}",
+      "note": "左が最も古く、右が最新（明るい点）。高いほどソフト。薄い線はこれらの着陸の平均です。"
+    },
+    "emptyBook": "ログブックは空です。ゲートでシャットダウンするとフライトが追加されます。",
+    "table": {
+      "date": "日付",
+      "route": "経路",
+      "block": "ブロック",
+      "flight": "飛行",
+      "touchdownRate": "T/D 率",
+      "touchdownSpeed": "T/D 速度",
+      "approach": "進入",
+      "bounceTitle": "5 秒以内に接地が途切れて再接地",
+      "bounce": "バウンド {0} 回",
+      "bounces": "バウンド {0} 回",
+      "note": "T/D 率は接地前 1 秒間の降下率（フィート/分）、T/D 速度は対地速度（ノット）です。接地レコーダー以前に記録されたフライトはダッシュで表示されます。行を選ぶと詳細が開きます。"
+    },
+    "approach": {
+      "stable": "安定",
+      "unstable": "不安定",
+      "indeterminate": "判定不能",
+      "notJudged": "未判定"
+    },
+    "detail": {
+      "aria": "フライト詳細",
+      "close": "フライト詳細を閉じる",
+      "date": "日付",
+      "runways": "滑走路",
+      "offBlocks": "オフブロック",
+      "takeoff": "離陸",
+      "takeoffUnknown": "不明（飛行中にアプリを起動）",
+      "landing": "着陸",
+      "onBlocks": "オンブロック",
+      "blockTime": "ブロック時間",
+      "flightTime": "飛行時間",
+      "liftoffIas": "離陸時 IAS",
+      "landingHead": "着陸",
+      "touchdownRate": "接地率",
+      "touchdownIas": "接地時 IAS",
+      "touchdownGroundSpeed": "接地時対地速度",
+      "pitch": "接地時ピッチ",
+      "bounces": "バウンド",
+      "approach": "進入",
+      "techLogHead": "Tech Log",
+      "abnormals": "異常事象",
+      "none": "なし",
+      "defects": "不具合",
+      "defectsLine": "起票 {0} · 処置 {1} · 持ち越し {2}",
+      "session": "セッション",
+      "confirmDelete": "削除を確定",
+      "deleteFlight": "フライトを削除",
+      "deleteArmedNote": "もう一度押すと削除します。元に戻せません。",
+      "deleteNote": "このフライトをログブックから削除します。セッションファイルから復元されることはありません。"
+    }
+  }
+}

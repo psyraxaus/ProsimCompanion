@@ -1,0 +1,45 @@
+{
+  "techLog": {
+    "pageTitle": "Tech Log — ProsimCompanion",
+    "heading": "Tech Log",
+    "title": "Tech Log & MEL",
+    "pill": {
+      "switchedOff": "uitgeschakeld",
+      "clean": "schoon",
+      "open": "{0} open"
+    },
+    "notWired": "De tech-logservice is niet aangesloten in deze build (zie WIRING-TECHLOG.md).",
+    "figures": {
+      "openItems": "Open punten",
+      "onFile": "Vastgelegd",
+      "overdue": "Over tijd"
+    },
+    "cleanNoDefects": "Tech log is schoon — geen defecten vastgelegd.",
+    "item": {
+      "systemTag": "Systeemtag van de checklist",
+      "overduePrefix": "OVER TIJD — ",
+      "sectorsCarried": "{0} sector(en) meegenomen",
+      "rectified": "verholpen",
+      "rectify": "Verhelpen",
+      "remove": "Verwijderen"
+    },
+    "advisoryNote": "Een MEL-punt dat over tijd is, is alleen een advies — de app zet het vliegtuig nooit aan de grond; of je vliegt, bepaal jij. MEL-referenties zijn gesimuleerd, nooit echte citaten.",
+    "form": {
+      "title": "Defect melden",
+      "defectTitle": "Titel",
+      "defectTitlePlaceholder": "bijv. APU inoperative",
+      "category": "MEL-categorie",
+      "categoryOption": "{0} — {1} dagen",
+      "melReference": "MEL-referentie",
+      "melReferencePlaceholder": "leeg = gesimuleerde standaard",
+      "implications": "Gevolgen",
+      "implicationsPlaceholder": "uitgesproken in de preflight-briefing",
+      "placard": "Placard",
+      "placardPlaceholder": "optioneel, bijv. APU INOP",
+      "system": "Systeem",
+      "systemPlaceholder": "optionele tag, bijv. apu, gear, autobrake",
+      "systemHint": "Komt overeen met de systeemtag van een uitgesproken checklistregel, zodat de FO het punt bij die regel noemt. Leeg: de woorden van de titel bepalen het.",
+      "enter": "In tech log opnemen"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "techLog": {
+    "pageTitle": "Tech Log — ProsimCompanion",
+    "heading": "Tech Log",
+    "title": "Tech Log & MEL",
+    "pill": {
+      "switchedOff": "désactivé",
+      "clean": "vierge",
+      "open": "{0} ouvert(s)"
+    },
+    "notWired": "Le service tech log n'est pas branché dans cette version (voir WIRING-TECHLOG.md).",
+    "figures": {
+      "openItems": "Ouverts",
+      "onFile": "Enregistrés",
+      "overdue": "En retard"
+    },
+    "cleanNoDefects": "Tech log vierge — aucun défaut enregistré.",
+    "item": {
+      "systemTag": "Tag système de la checklist",
+      "overduePrefix": "EN RETARD — ",
+      "sectorsCarried": "{0} secteur(s) reporté(s)",
+      "rectified": "rectifié",
+      "rectify": "Rectifier",
+      "remove": "Supprimer"
+    },
+    "advisoryNote": "Un item MEL en retard n'est qu'un avis — l'app n'immobilise jamais l'avion ; voler ou non, c'est ta décision. Les références MEL sont simulées, jamais de vraies citations.",
+    "form": {
+      "title": "Déclarer un défaut",
+      "defectTitle": "Titre",
+      "defectTitlePlaceholder": "ex. APU inoperative",
+      "category": "Catégorie MEL",
+      "categoryOption": "{0} — {1} jours",
+      "melReference": "Référence MEL",
+      "melReferencePlaceholder": "vide = valeur simulée par défaut",
+      "implications": "Conséquences",
+      "implicationsPlaceholder": "énoncé au briefing prévol",
+      "placard": "Placard",
+      "placardPlaceholder": "facultatif, ex. APU INOP",
+      "system": "Système",
+      "systemPlaceholder": "tag facultatif, ex. apu, gear, autobrake",
+      "systemHint": "Correspond au tag système d'une ligne de checklist parlée, pour que l'OPL signale l'item sur cette ligne. Vide : les mots du titre servent à la place.",
+      "enter": "Inscrire au tech log"
+    }
+  }
+}

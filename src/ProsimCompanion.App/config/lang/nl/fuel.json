@@ -1,0 +1,32 @@
+{
+  "fuel": {
+    "pageTitle": "Brandstof — ProsimCompanion",
+    "heading": "Brandstof",
+    "summary": {
+      "title": "Brandstofoverzicht",
+      "hint": "Bruikbare capaciteit {0} {1} · SG {2}",
+      "inTanks": "In de tanks",
+      "capacityAria": "{0} van {1} {2}",
+      "plannedCaps": "GEPLAND",
+      "plannedInitModCaps": "GEPLAND — INIT MOD",
+      "inTanksCaps": "IN DE TANKS"
+    },
+    "delta": {
+      "label": "Verschil",
+      "noFlightPlan": "— (geen vliegplan)",
+      "over": "TE VEEL",
+      "under": "TE WEINIG",
+      "ok": "OK"
+    },
+    "tanks": {
+      "title": "Verdeling per tank",
+      "hint": "Live waarden · volgorde in de vleugel",
+      "aria": "{0} {1} van {2} {3}",
+      "leftOuter": "LINKS BUITEN",
+      "leftInner": "LINKS BINNEN",
+      "centre": "MIDDEN",
+      "rightInner": "RECHTS BINNEN",
+      "rightOuter": "RECHTS BUITEN"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "techLog": {
+    "pageTitle": "Tech Log — ProsimCompanion",
+    "heading": "Tech Log",
+    "title": "Tech Log & MEL",
+    "pill": {
+      "switchedOff": "desactivado",
+      "clean": "limpio",
+      "open": "{0} abiertos"
+    },
+    "notWired": "El servicio de tech log no está conectado en esta compilación (ver WIRING-TECHLOG.md).",
+    "figures": {
+      "openItems": "Abiertos",
+      "onFile": "Registrados",
+      "overdue": "Vencidos"
+    },
+    "cleanNoDefects": "El tech log está limpio — sin defectos registrados.",
+    "item": {
+      "systemTag": "Etiqueta de sistema de la checklist",
+      "overduePrefix": "VENCIDO — ",
+      "sectorsCarried": "{0} sector(es) arrastrados",
+      "rectified": "rectificado",
+      "rectify": "Rectificar",
+      "remove": "Eliminar"
+    },
+    "advisoryNote": "Un ítem MEL vencido es solo informativo — la app nunca deja el avión en tierra; volar o no es decisión tuya. Las referencias MEL son simuladas, nunca citas reales.",
+    "form": {
+      "title": "Abrir un defecto",
+      "defectTitle": "Título",
+      "defectTitlePlaceholder": "p. ej. APU inoperative",
+      "category": "Categoría MEL",
+      "categoryOption": "{0} — {1} días",
+      "melReference": "Referencia MEL",
+      "melReferencePlaceholder": "vacío = valor simulado por defecto",
+      "implications": "Implicaciones",
+      "implicationsPlaceholder": "se dice en el briefing de prevuelo",
+      "placard": "Placard",
+      "placardPlaceholder": "opcional, p. ej. APU INOP",
+      "system": "Sistema",
+      "systemPlaceholder": "etiqueta opcional, p. ej. apu, gear, autobrake",
+      "systemHint": "Coincide con la etiqueta de sistema de una línea de checklist hablada, para que el FO mencione el ítem en esa línea. Vacío: se usan las palabras del título.",
+      "enter": "Anotar en el tech log"
+    }
+  }
+}

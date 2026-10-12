@@ -1,0 +1,86 @@
+{
+  "logbook": {
+    "pageTitle": "Logboek — ProsimCompanion",
+    "heading": "Logboek",
+    "title": "Pilotenlogboek",
+    "backfill": {
+      "title": "Leest de sessiebestanden die nog op schijf staan en voegt elke vlucht toe die nog niet in het logboek staat. Verwijderde vluchten blijven verwijderd.",
+      "reading": "Lezen…",
+      "button": "Opgeslagen sessies lezen",
+      "noneFound": "Geen nieuwe vlucht gevonden in de opgeslagen sessies.",
+      "added": "{0} vlucht(en) toegevoegd uit de opgeslagen sessies."
+    },
+    "export": {
+      "button": "CSV exporteren",
+      "title": "Elke vlucht als CSV-bestand: UTC-tijden, decimale punten, één rij per vlucht."
+    },
+    "notWired": "De logboekservice is niet aangesloten in deze build.",
+    "figures": {
+      "flights": "Vluchten",
+      "blockHours": "Blokuren",
+      "landings": "Landingen",
+      "stableApproaches": "Stabiele naderingen",
+      "stableTitle": "{0} stabiel van {1} naderingen die de gates beoordeelden",
+      "avgTouchdown": "Gem. touchdown",
+      "avgTouchdownTitle": "Gemiddelde over de {0} landing(en) die de touchdownrecorder mat"
+    },
+    "trend": {
+      "title": "Touchdownsnelheid · laatste {0} landing(en)",
+      "empty": "Nog geen gemeten landing. De trend begint bij je volgende landing.",
+      "ariaEmpty": "Geen gemeten landingen",
+      "aria": "Touchdownsnelheid van de laatste {0} landingen; de nieuwste is {1}",
+      "note": "Oudste links, nieuwste rechts (de heldere stip). Hoger is zachter. De vage lijn is het gemiddelde van deze landingen."
+    },
+    "emptyBook": "Het logboek is leeg. Een vlucht wordt toegevoegd als je aan de gate afsluit.",
+    "table": {
+      "date": "Datum",
+      "route": "Route",
+      "block": "Blok",
+      "flight": "Vlucht",
+      "touchdownRate": "T/D-snelheid",
+      "touchdownSpeed": "T/D-speed",
+      "approach": "Nadering",
+      "bounceTitle": "Grondcontact binnen 5 seconden verloren en hersteld",
+      "bounce": "{0} bounce",
+      "bounces": "{0} bounces",
+      "note": "T/D-snelheid is de verticale snelheid in voet per minuut in de seconde vóór het raken van de baan; T/D-speed is de grondsnelheid in knopen. Vluchten van vóór de touchdownrecorder tonen een streepje. Selecteer een rij voor de details."
+    },
+    "approach": {
+      "stable": "stabiel",
+      "unstable": "instabiel",
+      "indeterminate": "onbepaald",
+      "notJudged": "niet beoordeeld"
+    },
+    "detail": {
+      "aria": "Vluchtdetails",
+      "close": "Vluchtdetails sluiten",
+      "date": "Datum",
+      "runways": "Banen",
+      "offBlocks": "Off blocks",
+      "takeoff": "Start",
+      "takeoffUnknown": "onbekend (app in de vlucht gestart)",
+      "landing": "Landing",
+      "onBlocks": "On blocks",
+      "blockTime": "Bloktijd",
+      "flightTime": "Vliegtijd",
+      "liftoffIas": "IAS bij lift-off",
+      "landingHead": "Landing",
+      "touchdownRate": "Touchdownsnelheid",
+      "touchdownIas": "IAS bij touchdown",
+      "touchdownGroundSpeed": "Grondsnelheid bij touchdown",
+      "pitch": "Pitch bij touchdown",
+      "bounces": "Bounces",
+      "approach": "Nadering",
+      "techLogHead": "Tech log",
+      "abnormals": "Abnormals",
+      "none": "geen",
+      "defects": "Defecten",
+      "defectsLine": "{0} gemeld · {1} verholpen · {2} meegenomen",
+      "session": "Sessie",
+      "confirmDelete": "VERWIJDEREN BEVESTIGEN",
+      "deleteFlight": "Vlucht verwijderen",
+      "deleteArmedNote": "Druk nogmaals om te verwijderen. Dit kan niet ongedaan worden gemaakt.",
+      "deleteNote": "Verwijdert deze vlucht uit het logboek. Hij komt niet terug uit zijn sessiebestand."
+    }
+  }
+}

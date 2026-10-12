@@ -1,0 +1,73 @@
+{
+  "fuelLog": {
+    "pageTitle": "Fuel Log — ProsimCompanion",
+    "heading": "Fuel Log",
+    "empty": {
+      "title": "Fuel Log",
+      "textBefore": "No fuel plan loaded. Fetch an OFP with a navlog on the",
+      "link": "INIT page",
+      "textAfter": "and the log fills in as each waypoint is passed."
+    },
+    "hero": {
+      "title": "Plan vs actual",
+      "fuelOnBoard": "Fuel on board",
+      "noFuelFigure": "no fuel figure from ProSim",
+      "live": "live",
+      "planHere": "Plan at this point",
+      "noPosition": "no position on the navlog",
+      "past": "past {0}",
+      "between": "between {0} and {1}",
+      "delta": "Delta",
+      "estimatedLanding": "Estimated landing",
+      "plannedLanding": "planned {0}",
+      "noPlannedLanding": "no planned landing fuel",
+      "fuelCheckNow": "Fuel check now",
+      "openOfp": "Open OFP",
+      "spoken": "Spoken."
+    },
+    "trend": {
+      "losing": "losing",
+      "gaining": "gaining",
+      "holding": "holding"
+    },
+    "recent": {
+      "none": "no fix passed yet",
+      "one": "{0} at the last fix",
+      "two": "{0} at the last two fixes",
+      "three": "{0} at the last three fixes",
+      "many": "{0} at the last {1} fixes"
+    },
+    "chart": {
+      "title": "Burn · {0} → {1}",
+      "hint": "grey = plan · cyan = actual · dashed = at the present delta",
+      "aria": "Planned fuel against actual fuel over the route",
+      "plannedLanding": "PLANNED LANDING {0}",
+      "noFigures": "The navlog has no fuel figures to chart."
+    },
+    "table": {
+      "title": "Fuel log",
+      "passed": "{0} of {1} fixes passed",
+      "takeoffUnknown": " · takeoff time unknown (app started in flight)",
+      "stampsStartAtTakeoff": " · stamps start at takeoff",
+      "waypoint": "Waypoint",
+      "plan": "Plan",
+      "actual": "Actual",
+      "deltaMin": "Δ min",
+      "planFob": "Plan FOB",
+      "actualFob": "Actual FOB",
+      "deltaUnit": "Δ {0}",
+      "last": "last",
+      "notRecorded": "not recorded"
+    },
+    "checks": {
+      "title": "FO fuel checks",
+      "noneYet": "none spoken yet this session",
+      "newestFirst": "newest first · what the First Officer said",
+      "empty": "The First Officer's periodic fuel checks (Speech → Monitoring) and any \"fuel check\" you ask for appear here with the exact words spoken.",
+      "shortfall": "shortfall",
+      "underPlan": "under plan",
+      "abovePlan": "above plan",
+      "onPlan": "on plan"
+    }
+  }
+}
