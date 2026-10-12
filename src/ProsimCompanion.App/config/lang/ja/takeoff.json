@@ -1,0 +1,33 @@
+{
+  "takeoff": {
+    "pageTitle": "離陸性能 — ProsimCompanion",
+    "heading": "離陸性能",
+    "config": {
+      "antiIce": "アンチアイス",
+      "packs": "パック",
+      "forceToga": "TOGA を強制",
+      "weights": "重量 · ENG {0}",
+      "syncHint": "最新のロードシートから TOW と MAC を取り込みます。",
+      "syncLoadsheet": "ロードシートを同期"
+    },
+    "output": {
+      "title": "FMGC Take Off",
+      "flaps": "フラップ",
+      "component": "{0} 成分",
+      "greenDot": "グリーンドット",
+      "shift": "シフト",
+      "towVsTopl": "TOW 対 TOPL",
+      "margin": "{0} · 余裕 {1}",
+      "toplLimited": "*** TOPL 制限 ***",
+      "togaRequired": "*** TOGA が必要 ***"
+    },
+    "actions": {
+      "calculate": "離陸を計算",
+      "sendUplink": "アップリンク送信",
+      "uplinkSent": "アップリンク送信済み"
+    },
+    "noOrigin": "出発地が未設定 — OFP を取り込むか、MCDU のプランを読み込むか、ICAO を入力してください。",
+    "pickRunwayFirst": "先に空港を読み込み、滑走路を選んでください。",
+    "uplinkFailed": "アップリンクに失敗 — ログを確認してください。"
+  }
+}

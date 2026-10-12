@@ -1,0 +1,40 @@
+{
+  "landing": {
+    "pageTitle": "Performances atterrissage — ProsimCompanion",
+    "heading": "Performances atterrissage",
+    "config": {
+      "ldgWeight": "Masse atterr.",
+      "landingWeight": "Masse à l'atterrissage",
+      "brake": "Freinage",
+      "reverse": "Reverse",
+      "autoland": "Autoland",
+      "vappOverride": "VAPP manuelle"
+    },
+    "runway": {
+      "condition": "État",
+      "conditionAria": "État de la piste"
+    },
+    "condition": {
+      "dry": "Sèche",
+      "good": "Bon",
+      "goodMedium": "B/M",
+      "medium": "Moyen",
+      "mediumPoor": "M/F",
+      "poor": "Faible"
+    },
+    "output": {
+      "title": "Performances atterrissage",
+      "noData": "aucune donnée",
+      "retreatFlap": "réduire les volets",
+      "valid": "valide",
+      "noPerfData": "AUCUNE DONNÉE DE PERFORMANCE",
+      "retreatFlapConfig": "RÉDUIRE LA CONFIGURATION VOLETS",
+      "margin": "Marge (LDA − LDR+15%)"
+    },
+    "actions": {
+      "failures": "Pannes…",
+      "failuresTitle": "Les cas de panne arriveront dans une version future"
+    },
+    "noDestination": "Aucune destination — importe un OFP, charge un plan MCDU ou saisis un ICAO."
+  }
+}

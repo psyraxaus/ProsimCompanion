@@ -1,0 +1,41 @@
+{
+  "perfRunway": {
+    "title": "Luchthaven / Baan",
+    "airportIcao": "ICAO van de luchthaven",
+    "airport": "Luchthaven",
+    "typeIcao": "Typ de ICAO om banen te laden",
+    "runway": "Baan",
+    "width": "BREEDTE",
+    "intersection": "Intersection",
+    "fullLength": "Volledige lengte",
+    "surface": "Oppervlak",
+    "shared": {
+      "pagesAria": "Performancepagina's",
+      "takeoffTab": "Start",
+      "landingTab": "Landing",
+      "aircraftConfig": "Vliegtuigconfiguratie",
+      "flap": "Flaps",
+      "windWeather": "Wind / Weer",
+      "wind": "Wind",
+      "windDirection": "Windrichting",
+      "windSpeed": "Windsnelheid",
+      "fetching": "Ophalen…",
+      "refreshWx": "WX vernieuwen",
+      "noMetar": "Geen METAR beschikbaar",
+      "calculated": "Berekende waarden",
+      "notCalculated": "Niet berekend",
+      "standby": "standby",
+      "noMetarBanner": "BEREKEND ZONDER METAR — CONTROLEER OAT / QNH / WIND HANDMATIG",
+      "reset": "Resetten",
+      "confirmReset": "Reset bevestigen?",
+      "working": "Bezig…",
+      "loadingRunways": "Banen laden…",
+      "noRunwayData": "Geen baangegevens.",
+      "noRunwayDataFor": "Geen baangegevens voor {0}.",
+      "runwayFetchFailedProsim": "Ophalen van banen mislukt — draait ProSim?",
+      "runwayFetchFailed": "Ophalen van banen mislukt: {0}",
+      "weatherFetchFailed": "Ophalen van het weer mislukt ({0})",
+      "calcRequestFailedProsim": "Berekeningsverzoek mislukt — draait ProSim?"
+    }
+  }
+}

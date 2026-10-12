@@ -1,0 +1,49 @@
+{
+  "checklists": {
+    "pageTitle": "Checklisten — ProsimCompanion",
+    "heading": "Checklisten",
+    "hero": {
+      "active": "Aktive Checkliste",
+      "none": "Keine Checkliste gewählt",
+      "set": "Satz",
+      "setAria": "Checklistensatz",
+      "checklist": "Checkliste",
+      "sectionAria": "Checklistenabschnitt",
+      "noneAvailable": "(keine verfügbar)",
+      "selectChecklist": "(Checkliste wählen)"
+    },
+    "progress": {
+      "title": "Fortschritt",
+      "pick": "Wähle eine Checkliste",
+      "lines": "{0} von {1} Zeilen"
+    },
+    "state": {
+      "standby": "standby",
+      "complete": "abgeschlossen",
+      "inProgress": "in Arbeit"
+    },
+    "screen": {
+      "noFiles": "KEINE CHECKLISTENDATEIEN GEFUNDEN IN {0}",
+      "noneSelected": "KEINE C/L GEWÄHLT — ÜBER C/L MENU WÄHLEN",
+      "waitingForCockpit": "wartet auf Cockpit",
+      "skipTitle": "Diese Zeile überspringen",
+      "skip": "überspringen"
+    },
+    "actions": {
+      "reset": "Zurücksetzen",
+      "menu": "C/L Menu",
+      "msgList": "Msg List",
+      "complete": "C/L Complete"
+    },
+    "sequence": {
+      "title": "Checklistenfolge",
+      "empty": "Keine Checklisten in diesem Satz.",
+      "complete": "Abgeschlossen",
+      "lines": "{0} Zeilen"
+    },
+    "source": {
+      "before": "Definitionen werden geladen aus",
+      "lastReloaded": "— zuletzt neu geladen {0} (dort gespeicherte Änderungen werden live übernommen)"
+    }
+  }
+}

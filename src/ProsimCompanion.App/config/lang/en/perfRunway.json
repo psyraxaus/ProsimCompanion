@@ -1,0 +1,41 @@
+{
+  "perfRunway": {
+    "title": "Airport / Runway",
+    "airportIcao": "Airport ICAO",
+    "airport": "Airport",
+    "typeIcao": "Type the ICAO to load runways",
+    "runway": "Runway",
+    "width": "WIDTH",
+    "intersection": "Intersection",
+    "fullLength": "Full length",
+    "surface": "Surface",
+    "shared": {
+      "pagesAria": "Performance pages",
+      "takeoffTab": "Takeoff",
+      "landingTab": "Landing",
+      "aircraftConfig": "Aircraft Config",
+      "flap": "Flap",
+      "windWeather": "Wind / Weather",
+      "wind": "Wind",
+      "windDirection": "Wind direction",
+      "windSpeed": "Wind speed",
+      "fetching": "Fetching…",
+      "refreshWx": "Refresh WX",
+      "noMetar": "No METAR available",
+      "calculated": "Calculated values",
+      "notCalculated": "Not calculated",
+      "standby": "standby",
+      "noMetarBanner": "COMPUTED WITHOUT METAR — CHECK OAT / QNH / WIND MANUALLY",
+      "reset": "Reset",
+      "confirmReset": "Confirm Reset?",
+      "working": "Working…",
+      "loadingRunways": "Loading runways…",
+      "noRunwayData": "No runway data.",
+      "noRunwayDataFor": "No runway data for {0}.",
+      "runwayFetchFailedProsim": "Runway fetch failed — is ProSim running?",
+      "runwayFetchFailed": "Runway fetch failed: {0}",
+      "weatherFetchFailed": "Weather fetch failed ({0})",
+      "calcRequestFailedProsim": "Calculation request failed — is ProSim running?"
+    }
+  }
+}

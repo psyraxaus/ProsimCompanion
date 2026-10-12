@@ -1,0 +1,41 @@
+{
+  "perfRunway": {
+    "title": "공항 / 활주로",
+    "airportIcao": "공항 ICAO",
+    "airport": "공항",
+    "typeIcao": "ICAO를 입력하면 활주로를 불러옵니다",
+    "runway": "활주로",
+    "width": "폭",
+    "intersection": "교차로",
+    "fullLength": "전체 길이",
+    "surface": "노면",
+    "shared": {
+      "pagesAria": "성능 페이지",
+      "takeoffTab": "이륙",
+      "landingTab": "착륙",
+      "aircraftConfig": "항공기 구성",
+      "flap": "플랩",
+      "windWeather": "바람 / 기상",
+      "wind": "바람",
+      "windDirection": "풍향",
+      "windSpeed": "풍속",
+      "fetching": "가져오는 중…",
+      "refreshWx": "WX 새로 고침",
+      "noMetar": "METAR 없음",
+      "calculated": "계산된 값",
+      "notCalculated": "계산 안 됨",
+      "standby": "standby",
+      "noMetarBanner": "METAR 없이 계산됨 — OAT / QNH / 바람을 수동으로 확인",
+      "reset": "초기화",
+      "confirmReset": "초기화할까요?",
+      "working": "작업 중…",
+      "loadingRunways": "활주로 불러오는 중…",
+      "noRunwayData": "활주로 데이터 없음.",
+      "noRunwayDataFor": "{0}의 활주로 데이터가 없습니다.",
+      "runwayFetchFailedProsim": "활주로 조회 실패 — ProSim이 실행 중인가요?",
+      "runwayFetchFailed": "활주로 조회 실패: {0}",
+      "weatherFetchFailed": "기상 조회 실패 ({0})",
+      "calcRequestFailedProsim": "계산 요청 실패 — ProSim이 실행 중인가요?"
+    }
+  }
+}

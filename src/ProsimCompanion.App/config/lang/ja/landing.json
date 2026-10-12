@@ -1,0 +1,40 @@
+{
+  "landing": {
+    "pageTitle": "着陸性能 — ProsimCompanion",
+    "heading": "着陸性能",
+    "config": {
+      "ldgWeight": "着陸重量",
+      "landingWeight": "着陸重量",
+      "brake": "ブレーキ",
+      "reverse": "リバース",
+      "autoland": "オートランド",
+      "vappOverride": "VAPP 上書き"
+    },
+    "runway": {
+      "condition": "路面状態",
+      "conditionAria": "滑走路の状態"
+    },
+    "condition": {
+      "dry": "乾燥",
+      "good": "良",
+      "goodMedium": "良/中",
+      "medium": "中",
+      "mediumPoor": "中/不良",
+      "poor": "不良"
+    },
+    "output": {
+      "title": "着陸性能",
+      "noData": "データなし",
+      "retreatFlap": "フラップを戻す",
+      "valid": "有効",
+      "noPerfData": "性能データなし",
+      "retreatFlapConfig": "フラップ設定を戻してください",
+      "margin": "余裕（LDA − LDR+15%）"
+    },
+    "actions": {
+      "failures": "故障…",
+      "failuresTitle": "故障ケースは今後のリリースで追加されます"
+    },
+    "noDestination": "目的地が未設定 — OFP を取り込むか、MCDU のプランを読み込むか、ICAO を入力してください。"
+  }
+}

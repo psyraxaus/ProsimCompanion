@@ -1,0 +1,41 @@
+{
+  "perfRunway": {
+    "title": "空港 / 滑走路",
+    "airportIcao": "空港の ICAO",
+    "airport": "空港",
+    "typeIcao": "ICAO を入力すると滑走路を読み込みます",
+    "runway": "滑走路",
+    "width": "幅",
+    "intersection": "インターセクション",
+    "fullLength": "全長",
+    "surface": "路面",
+    "shared": {
+      "pagesAria": "パフォーマンスのページ",
+      "takeoffTab": "離陸",
+      "landingTab": "着陸",
+      "aircraftConfig": "機体コンフィグ",
+      "flap": "フラップ",
+      "windWeather": "風 / 気象",
+      "wind": "風",
+      "windDirection": "風向",
+      "windSpeed": "風速",
+      "fetching": "取得中…",
+      "refreshWx": "WX を更新",
+      "noMetar": "METAR がありません",
+      "calculated": "計算済みの値",
+      "notCalculated": "未計算",
+      "standby": "standby",
+      "noMetarBanner": "METAR なしで計算 — OAT / QNH / 風を手動で確認",
+      "reset": "リセット",
+      "confirmReset": "リセットしますか？",
+      "working": "処理中…",
+      "loadingRunways": "滑走路を読み込み中…",
+      "noRunwayData": "滑走路データがありません。",
+      "noRunwayDataFor": "{0} の滑走路データがありません。",
+      "runwayFetchFailedProsim": "滑走路の取得に失敗 — ProSim は起動していますか？",
+      "runwayFetchFailed": "滑走路の取得に失敗: {0}",
+      "weatherFetchFailed": "気象の取得に失敗（{0}）",
+      "calcRequestFailedProsim": "計算リクエストに失敗 — ProSim は起動していますか？"
+    }
+  }
+}

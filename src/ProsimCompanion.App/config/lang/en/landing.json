@@ -1,0 +1,40 @@
+{
+  "landing": {
+    "pageTitle": "Landing Performance — ProsimCompanion",
+    "heading": "Landing Performance",
+    "config": {
+      "ldgWeight": "Ldg weight",
+      "landingWeight": "Landing weight",
+      "brake": "Brake",
+      "reverse": "Reverse",
+      "autoland": "Autoland",
+      "vappOverride": "VAPP override"
+    },
+    "runway": {
+      "condition": "Condition",
+      "conditionAria": "Runway condition"
+    },
+    "condition": {
+      "dry": "Dry",
+      "good": "Good",
+      "goodMedium": "G/M",
+      "medium": "Med",
+      "mediumPoor": "M/P",
+      "poor": "Poor"
+    },
+    "output": {
+      "title": "Landing Performance",
+      "noData": "no data",
+      "retreatFlap": "retreat flap",
+      "valid": "valid",
+      "noPerfData": "NO PERFORMANCE DATA",
+      "retreatFlapConfig": "RETREAT FLAP CONFIG",
+      "margin": "Margin (LDA − LDR+15%)"
+    },
+    "actions": {
+      "failures": "Failures…",
+      "failuresTitle": "Failure cases arrive in a future release"
+    },
+    "noDestination": "No destination set — import an OFP, load an MCDU plan, or type an ICAO."
+  }
+}

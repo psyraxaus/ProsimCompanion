@@ -1,0 +1,41 @@
+{
+  "perfRunway": {
+    "title": "Aeropuerto / Pista",
+    "airportIcao": "ICAO del aeropuerto",
+    "airport": "Aeropuerto",
+    "typeIcao": "Escribe el ICAO para cargar las pistas",
+    "runway": "Pista",
+    "width": "ANCHO",
+    "intersection": "Intersección",
+    "fullLength": "Longitud completa",
+    "surface": "Superficie",
+    "shared": {
+      "pagesAria": "Páginas de performance",
+      "takeoffTab": "Despegue",
+      "landingTab": "Aterrizaje",
+      "aircraftConfig": "Configuración del avión",
+      "flap": "Flaps",
+      "windWeather": "Viento / Meteo",
+      "wind": "Viento",
+      "windDirection": "Dirección del viento",
+      "windSpeed": "Velocidad del viento",
+      "fetching": "Obteniendo…",
+      "refreshWx": "Actualizar WX",
+      "noMetar": "METAR no disponible",
+      "calculated": "Valores calculados",
+      "notCalculated": "Sin calcular",
+      "standby": "standby",
+      "noMetarBanner": "CALCULADO SIN METAR — COMPRUEBA OAT / QNH / VIENTO MANUALMENTE",
+      "reset": "Reiniciar",
+      "confirmReset": "¿Confirmar reinicio?",
+      "working": "Trabajando…",
+      "loadingRunways": "Cargando pistas…",
+      "noRunwayData": "Sin datos de pista.",
+      "noRunwayDataFor": "Sin datos de pista para {0}.",
+      "runwayFetchFailedProsim": "Fallo al obtener las pistas — ¿está ProSim en marcha?",
+      "runwayFetchFailed": "Fallo al obtener las pistas: {0}",
+      "weatherFetchFailed": "Fallo al obtener la meteo ({0})",
+      "calcRequestFailedProsim": "Fallo en la solicitud de cálculo — ¿está ProSim en marcha?"
+    }
+  }
+}

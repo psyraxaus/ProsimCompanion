@@ -7,9 +7,10 @@
 @using Microsoft.JSInterop
 @inject IOptionsMonitor<ChecklistOptions> Options
 @inject IJSRuntime JS
+@inject IStringLocalizer T
 
-<PageTitle>Checklists — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Checklists</h1>
+<PageTitle>@T["checklists.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["checklists.heading"]</h1>
 
 <ConfigProblemsBanner />
 
@@ -31,13 +32,13 @@
     <section class="section cl-hero">
         <div class="section-body cl-hero-body">
             <div class="cl-hero-main">
-                <span class="label-caps">Active checklist</span>
-                <span class="cl-hero-title">@(_view?.Name ?? "No checklist selected")</span>
+                <span class="label-caps">@T["checklists.hero.active"]</span>
+                <span class="cl-hero-title">@(_view?.Name ?? T["checklists.hero.none"].Value)</span>
                 <div class="cl-selects">
                     <label class="cl-select-wrap">
-                        <span class="label-caps">Set</span>
+                        <span class="label-caps">@T["checklists.hero.set"]</span>
                         @* The per-phase folder set plus every Prosim2GSX-format file in config/checklists/sets. *@
-                        <select class="select cl-select" aria-label="Checklist set" value="@_activeSet" @onchange="OnSetChanged">
+                        <select class="select cl-select" aria-label="@T["checklists.hero.setAria"]" value="@_activeSet" @onchange="OnSetChanged">
                             @foreach (var set in _sets)
                             {
                                 <option value="@set">@set</option>
@@ -45,18 +46,18 @@
                         </select>
                     </label>
                     <label class="cl-select-wrap">
-                        <span class="label-caps">Checklist</span>
-                        <select class="select cl-select" aria-label="Checklist section" @ref="_sectionSelect"
+                        <span class="label-caps">@T["checklists.hero.checklist"]</span>
+                        <select class="select cl-select" aria-label="@T["checklists.hero.sectionAria"]" @ref="_sectionSelect"
                                 value="@(_view?.Name ?? string.Empty)" @onchange="OnSectionChanged">
                             @if (_catalog.Count == 0)
                             {
-                                <option value="">(none available)</option>
+                                <option value="">@T["checklists.hero.noneAvailable"]</option>
                             }
                             else
                             {
                                 @* selected must be explicit: browsers skip disabled options when defaulting,
                                    so the prerendered frame would otherwise display the first checklist name. *@
-                                <option value="" disabled selected="@(_view is null)">(select checklist)</option>
+                                <option value="" disabled selected="@(_view is null)">@T["checklists.hero.selectChecklist"]</option>
                                 @foreach (var entry in _catalog)
                                 {
                                     <option value="@entry.Name">@entry.Name</option>
@@ -68,11 +69,11 @@
             </div>
             <div class="cl-progress">
                 <div class="cl-progress-head">
-                    <span class="label-caps">Completion</span>
+                    <span class="label-caps">@T["checklists.progress.title"]</span>
                     <span class="cl-progress-pct mono">@(_view is null ? "—" : $"{pct}%")</span>
                 </div>
                 <div class="cl-progress-track"><div class="cl-progress-fill" style="width:@pct%"></div></div>
-                <span class="cl-progress-sub">@(_view is null ? "Pick a checklist" : $"{doneCount} of {normalItems.Count} lines")</span>
+                <span class="cl-progress-sub">@(_view is null ? T["checklists.progress.pick"].Value : T["checklists.progress.lines", doneCount, normalItems.Count].Value)</span>
             </div>
         </div>
     </section>
@@ -82,7 +83,7 @@
             <div class="section-header">
                 <h3 class="section-title">C/L @(_view?.Name ?? "")</h3>
                 <span class="pill @(_view is null ? "tone-neutral" : _view.IsComplete ? "tone-ok" : "tone-active")">
-                    @(_view is null ? "standby" : _view.IsComplete ? "complete" : "in progress")
+                    @(_view is null ? T["checklists.state.standby"].Value : _view.IsComplete ? T["checklists.state.complete"].Value : T["checklists.state.inProgress"].Value)
                 </span>
             </div>
 
@@ -91,8 +92,8 @@
                 {
                     <div class="ecamcl-empty">
                         @(_catalog.Count == 0
-                            ? $"NO CHECKLIST FILES FOUND IN {Engine.Folder}"
-                            : "NO C/L SELECTED — SELECT VIA C/L MENU")
+                            ? T["checklists.screen.noFiles", Engine.Folder].Value
+                            : T["checklists.screen.noneSelected"].Value)
                     </div>
                 }
                 else
@@ -139,10 +140,10 @@
                                         <span class="ecamcl-aside">
                                             @if (item.IsAuto && !item.ConditionSatisfied && !AllowOverride)
                                             {
-                                                <span class="ecamcl-hint">waiting for cockpit</span>
+                                                <span class="ecamcl-hint">@T["checklists.screen.waitingForCockpit"]</span>
                                             }
-                                            <button type="button" class="ecamcl-skip" title="Skip this line"
-                                                    @onclick="SkipCurrent" @onclick:stopPropagation>skip</button>
+                                            <button type="button" class="ecamcl-skip" title="@T["checklists.screen.skipTitle"]"
+                                                    @onclick="SkipCurrent" @onclick:stopPropagation>@T["checklists.screen.skip"]</button>
                                         </span>
                                     </div>
                                     break;
@@ -171,22 +172,22 @@
             </div>
 
             <div class="cl-actions">
-                <button type="button" class="btn secondary" @onclick="ResetClicked">Reset</button>
-                <button type="button" class="btn secondary" @onclick="MenuClicked">C/L Menu</button>
-                <button type="button" class="btn secondary" disabled>Msg List</button>
+                <button type="button" class="btn secondary" @onclick="ResetClicked">@T["checklists.actions.reset"]</button>
+                <button type="button" class="btn secondary" @onclick="MenuClicked">@T["checklists.actions.menu"]</button>
+                <button type="button" class="btn secondary" disabled>@T["checklists.actions.msgList"]</button>
                 <button type="button" class="btn @(_view?.IsComplete == true ? "cl-btn-complete" : "secondary")"
                         @onclick="CompleteClicked">
-                    C/L Complete
+                    @T["checklists.actions.complete"]
                 </button>
             </div>
         </section>
 
         <section class="section cl-sequence">
-            <div class="section-header"><h3 class="section-title">Checklist sequence</h3></div>
+            <div class="section-header"><h3 class="section-title">@T["checklists.sequence.title"]</h3></div>
             <div class="section-body">
                 @if (_catalog.Count == 0)
                 {
-                    <div class="empty">No checklists in this set.</div>
+                    <div class="empty">@T["checklists.sequence.empty"]</div>
                 }
                 else
                 {
@@ -199,7 +200,7 @@
                                     <span class="cl-step-dot" aria-hidden="true"></span>
                                     <span class="cl-step-text">
                                         <span class="cl-step-name">@entry.Name</span>
-                                        <span class="cl-step-sub">@(active ? (_view!.IsComplete ? "Complete" : $"{doneCount} / {normalItems.Count}") : $"{entry.ItemCount} lines")</span>
+                                        <span class="cl-step-sub">@(active ? (_view!.IsComplete ? T["checklists.sequence.complete"].Value : $"{doneCount} / {normalItems.Count}") : T["checklists.sequence.lines", entry.ItemCount].Value)</span>
                                     </span>
                                 </button>
                             </li>
@@ -217,10 +218,10 @@
         wrong copy was edited.
     *@
     <p class="ecamcl-source">
-        Definitions load from <code>@Engine.Folder</code>
+        @T["checklists.source.before"] <code>@Engine.Folder</code>
         @if (Engine.LastLoadedUtc is { } loaded)
         {
-            <span> — last reloaded @loaded.ToLocalTime().ToString("HH:mm:ss") (edits saved there are picked up live)</span>
+            <span> @T["checklists.source.lastReloaded", loaded.ToLocalTime().ToString("HH:mm:ss")]</span>
         }
     </p>
 </div>

@@ -11,16 +11,17 @@
 @inject IWxProvider Wx
 @inject OfpStore Ofp
 @inject DisplayUnitService Units
+@inject IStringLocalizer T
 
-<PageTitle>Landing Performance — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Landing Performance</h1>
+<PageTitle>@T["landing.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["landing.heading"]</h1>
 
 @* Layout (ADR-0011): mirrors the Takeoff page — runway card with the condition chips,
    weather, aircraft config on the left; LDR / LDA / wind figures on the right. *@
 <div class="perf-page">
-    <nav class="perf-subtabs" aria-label="Performance pages">
-        <a class="perf-subtab" href="performance/takeoff">Takeoff</a>
-        <a class="perf-subtab active" href="performance/landing">Landing</a>
+    <nav class="perf-subtabs" aria-label="@T["perfRunway.shared.pagesAria"]">
+        <a class="perf-subtab" href="performance/takeoff">@T["perfRunway.shared.takeoffTab"]</a>
+        <a class="perf-subtab active" href="performance/landing">@T["perfRunway.shared.landingTab"]</a>
     </nav>
 
     <div class="perf-grid">
@@ -28,33 +29,33 @@
 
 
             <section class="section perf-card">
-                <div class="section-header"><h3 class="section-title">Aircraft Config</h3></div>
+                <div class="section-header"><h3 class="section-title">@T["perfRunway.shared.aircraftConfig"]</h3></div>
                 <div class="section-body">
                     <div class="perf-row">
-                        <span class="perf-field-label">Ldg weight</span>
+                        <span class="perf-field-label">@T["landing.config.ldgWeight"]</span>
                         <span class="perf-field-value">
                             <span class="perf-kbd">
                                 <input type="number" min="0" step="@(Units.IsPounds ? "100" : "0.1")"
-                                       style="width:@(Units.IsPounds ? "7ch" : "5ch")" aria-label="Landing weight"
+                                       style="width:@(Units.IsPounds ? "7ch" : "5ch")" aria-label="@T["landing.config.landingWeight"]"
                                        @bind="LdgWeightDisplay" @bind:after="OnInputChanged" />
                                 <span class="perf-unit">@(Units.IsPounds ? "lb" : "t")</span>
                             </span>
                         </span>
                     </div>
                     <div class="perf-row">
-                        <span class="perf-field-label">Flap</span>
+                        <span class="perf-field-label">@T["perfRunway.shared.flap"]</span>
                         <span class="perf-field-value">@Toggle(FlapOptions, _flapConfig, v => SetInput(() => _flapConfig = v))</span>
                     </div>
                     <div class="perf-row">
-                        <span class="perf-field-label">Brake</span>
+                        <span class="perf-field-label">@T["landing.config.brake"]</span>
                         <span class="perf-field-value">@Toggle(BrakeOptions, _brakeMode, v => SetInput(() => _brakeMode = v))</span>
                     </div>
                     <div class="perf-row">
-                        <span class="perf-field-label">Reverse</span>
+                        <span class="perf-field-label">@T["landing.config.reverse"]</span>
                         <span class="perf-field-value">@Toggle(RevOptions, _revMode, v => SetInput(() => _revMode = v))</span>
                     </div>
                     <div class="perf-row">
-                        <span class="perf-field-label">Autoland</span>
+                        <span class="perf-field-label">@T["landing.config.autoland"]</span>
                         <span class="perf-field-value">@Toggle(AutolandOptions, _autolandMode, v => SetInput(() => _autolandMode = v))</span>
                     </div>
                     <div class="perf-row">
@@ -62,10 +63,10 @@
                         <span class="perf-field-value">@Toggle(AthrOptions, _athr, v => SetInput(() => _athr = v))</span>
                     </div>
                     <div class="perf-row">
-                        <span class="perf-field-label">VAPP override</span>
+                        <span class="perf-field-label">@T["landing.config.vappOverride"]</span>
                         <span class="perf-field-value">
                             <span class="perf-kbd">
-                                <input type="number" min="0" style="width:4ch" aria-label="VAPP override"
+                                <input type="number" min="0" style="width:4ch" aria-label="@T["landing.config.vappOverride"]"
                                        @bind="_vappOverride" @bind:after="OnInputChanged" />
                                 <span class="perf-unit">kt</span>
                             </span>
@@ -74,17 +75,17 @@
                 </div>
             </section>
             <section class="section perf-card">
-                <div class="section-header"><h3 class="section-title">Wind / Weather</h3></div>
+                <div class="section-header"><h3 class="section-title">@T["perfRunway.shared.windWeather"]</h3></div>
                 <div class="section-body">
                     <div class="perf-row">
-                        <span class="perf-field-label">Wind</span>
+                        <span class="perf-field-label">@T["perfRunway.shared.wind"]</span>
                         <span class="perf-field-value">
                             <span class="perf-wind-row">
-                                <input type="text" maxlength="3" aria-label="Wind direction"
+                                <input type="text" maxlength="3" aria-label="@T["perfRunway.shared.windDirection"]"
                                        @bind="_windDir" @bind:after="OnInputChanged" />
                                 <span class="perf-wind-sep">/</span>
                                 <span class="perf-kbd">
-                                    <input type="number" min="0" style="width:3ch" aria-label="Wind speed"
+                                    <input type="number" min="0" style="width:3ch" aria-label="@T["perfRunway.shared.windSpeed"]"
                                            @bind="_windKt" @bind:after="OnInputChanged" />
                                     <span class="perf-unit">kt</span>
                                 </span>
@@ -121,7 +122,7 @@
                             }
                             <button type="button" class="perf-wx-refresh"
                                     disabled="@(_wxBusy || _icao.Length != 4)" @onclick="RefreshWxAsync">
-                                @(_wxBusy ? "Fetching…" : "Refresh WX")
+                                @(_wxBusy ? T["perfRunway.shared.fetching"].Value : T["perfRunway.shared.refreshWx"].Value)
                             </button>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(_metarText))
@@ -132,7 +133,7 @@
                         {
                             @* The composite chain's reason (issue #62) — "no data for this ICAO" and
                                "fetch failed (gateway HTTP 500; …)" demand different pilot actions. *@
-                            <div class="perf-metar-missing">@(_wxFailure ?? "No METAR available")</div>
+                            <div class="perf-metar-missing">@(_wxFailure ?? T["perfRunway.shared.noMetar"].Value)</div>
                         }
                     </div>
                 </div>
@@ -144,39 +145,39 @@
                             Runways="_runways" @bind-RunwayId="_runwayId" OnRunwayChanged="ScheduleRecalc"
                             WindDir="@_windDir" WindKt="_windKt"
                             DisabledReason="@RunwayDisabledReason" MetarFetchedAt="_metarFetchedAt"
-                            DistanceLabel="LDA" SurfaceLabel="Condition">
+                            DistanceLabel="LDA" SurfaceLabel="@T["landing.runway.condition"]">
                 <Surface>
-                    <span class="perf-surface-strip" role="radiogroup" aria-label="Runway condition">
+                    <span class="perf-surface-strip" role="radiogroup" aria-label="@T["landing.runway.conditionAria"]">
                         @foreach (var option in SurfaceOptions)
                         {
                             var code = option.Code;
                             <button type="button" class="perf-surface-btn @(code == _rwySurfaceCode ? "active" : "")"
                                     role="radio" aria-checked="@(code == _rwySurfaceCode)"
-                                    @onclick="() => SetInput(() => _rwySurfaceCode = code)">@option.Label</button>
+                                    @onclick="() => SetInput(() => _rwySurfaceCode = code)">@T[option.TextId]</button>
                         }
                     </span>
                 </Surface>
             </PerfRunwayCard>
             <section class="section perf-card">
                 <div class="section-header">
-                    <h3 class="section-title">Landing Performance</h3>
-                    <span class="section-hint">@(ShowResult ? "Calculated values" : "Not calculated")</span>
+                    <h3 class="section-title">@T["landing.output.title"]</h3>
+                    <span class="section-hint">@(ShowResult ? T["perfRunway.shared.calculated"].Value : T["perfRunway.shared.notCalculated"].Value)</span>
                 </div>
                 <div class="section-body">
                     <div class="perf-out-head">
                         <span class="perf-out-title">@(_icao is { Length: > 0 } ? _icao : "----") <span class="gold">@(_runwayId ?? "--")</span></span>
                         <span class="pill @(_isNoData ? "tone-bad" : _retreatFlap ? "tone-warn" : ShowResult ? "tone-ok" : "tone-neutral")">
-                            @(_isNoData ? "no data" : _retreatFlap ? "retreat flap" : ShowResult ? "valid" : "standby")
+                            @(_isNoData ? T["landing.output.noData"].Value : _retreatFlap ? T["landing.output.retreatFlap"].Value : ShowResult ? T["landing.output.valid"].Value : T["perfRunway.shared.standby"].Value)
                         </span>
                     </div>
 
                     @if (_isNoData)
                     {
-                        <div class="perf-banner perf-banner-warn">NO PERFORMANCE DATA</div>
+                        <div class="perf-banner perf-banner-warn">@T["landing.output.noPerfData"]</div>
                     }
                     @if (_retreatFlap)
                     {
-                        <div class="perf-banner perf-banner-warn">RETREAT FLAP CONFIG</div>
+                        <div class="perf-banner perf-banner-warn">@T["landing.output.retreatFlapConfig"]</div>
                     }
 
                     <div class="perf-figures">
@@ -193,7 +194,7 @@
                         var fill = _ldr15M > _ldaM ? "red" : ratio > 0.85 ? "amber" : "";
                         <div class="perf-limits inset">
                             <div class="perf-limit">
-                                <span class="perf-field-label">Margin (LDA − LDR+15%)</span>
+                                <span class="perf-field-label">@T["landing.output.margin"]</span>
                                 <span class="perf-limit-value @fill">@((int)Math.Round(_ldaM - _ldr15M)) m</span>
                             </div>
                             <div class="perf-margin-track"><div class="perf-margin-fill @fill" style="width:@((ratio * 100).ToString("F1", CultureInfo.InvariantCulture))%"></div></div>
@@ -202,7 +203,7 @@
 
                     @if (_hasResult && !_metarApplied)
                     {
-                        <div class="perf-banner perf-banner-warn">COMPUTED WITHOUT METAR — CHECK OAT / QNH / WIND MANUALLY</div>
+                        <div class="perf-banner perf-banner-warn">@T["perfRunway.shared.noMetarBanner"]</div>
                     }
                     @if (_lastError is not null)
                     {
@@ -212,13 +213,13 @@
                     <div class="perf-actions">
                         @* v2 placeholder — failure cases arrive in a future release. *@
                         <button type="button" class="btn secondary" disabled
-                                title="Failure cases arrive in a future release">Failures…</button>
+                                title="@T["landing.actions.failuresTitle"]">@T["landing.actions.failures"]</button>
                         <button type="button" class="btn secondary perf-action-flex" disabled="@IsBusy" @onclick="OnResetClick">
-                            @(_resetArmed ? "Confirm Reset?" : "Reset")
+                            @(_resetArmed ? T["perfRunway.shared.confirmReset"].Value : T["perfRunway.shared.reset"].Value)
                         </button>
                         @if (IsBusy)
                         {
-                            <span class="perf-busy">Working…</span>
+                            <span class="perf-busy">@T["perfRunway.shared.working"]</span>
                         }
                     </div>
                 </div>
@@ -236,14 +237,14 @@
 
     // Runway-condition strip. Codes are fixed by the gateway: 6=Dry … 1=Poor.
     // Displayed Dry → Poor (descending code) to match the EFB.
-    private static readonly (int Code, string Label)[] SurfaceOptions =
+    private static readonly (int Code, string TextId)[] SurfaceOptions =
     [
-        (6, "Dry"),
-        (5, "Good"),
-        (4, "G/M"),
-        (3, "Med"),
-        (2, "M/P"),
-        (1, "Poor"),
+        (6, "landing.condition.dry"),
+        (5, "landing.condition.good"),
+        (4, "landing.condition.goodMedium"),
+        (3, "landing.condition.medium"),
+        (2, "landing.condition.mediumPoor"),
+        (1, "landing.condition.poor"),
     ];
 
     // Autoland crosswind limits (kt) indexed by runway condition code 1–6
@@ -383,10 +384,10 @@
     }
 
     private string RunwayDisabledReason => _loading
-        ? "Loading runways…"
+        ? T["perfRunway.shared.loadingRunways"].Value
         : _icao.Length != 4
-            ? "No destination set — import an OFP, load an MCDU plan, or type an ICAO."
-            : _runwayHint ?? "No runway data.";
+            ? T["landing.noDestination"].Value
+            : _runwayHint ?? T["perfRunway.shared.noRunwayData"].Value;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -519,12 +520,12 @@
             var runways = await Gateway.GetRunwaysAsync(icao, includeIntersections: false);
             if (runways is null)
             {
-                _runwayHint = "Runway fetch failed — is ProSim running?";
+                _runwayHint = T["perfRunway.shared.runwayFetchFailedProsim"];
                 return;
             }
             if (runways.Count == 0)
             {
-                _runwayHint = $"No runway data for {icao}.";
+                _runwayHint = T["perfRunway.shared.noRunwayDataFor", icao];
                 return;
             }
             _runways = runways;
@@ -533,7 +534,7 @@
         catch (Exception ex)
         {
             // Degrade, not fail: a dead gateway surfaces as a hint, not a circuit crash.
-            _runwayHint = $"Runway fetch failed: {ex.Message}";
+            _runwayHint = T["perfRunway.shared.runwayFetchFailed", ex.Message];
         }
     }
 
@@ -584,7 +585,7 @@
             _metarText = null;
             _metarFetchedAt = null;
             _metarApplied = false;
-            _wxFailure = $"Weather fetch failed ({ex.Message})";
+            _wxFailure = T["perfRunway.shared.weatherFetchFailed", ex.Message];
         }
     }
 
@@ -663,7 +664,7 @@
             var result = await Gateway.CalculateLandingDistanceAsync(request);
             if (result is null)
             {
-                _lastError = "Calculation request failed — is ProSim running?";
+                _lastError = T["perfRunway.shared.calcRequestFailedProsim"];
                 _hasResult = false;
             }
             else

@@ -1,0 +1,40 @@
+{
+  "landing": {
+    "pageTitle": "착륙 성능 — ProsimCompanion",
+    "heading": "착륙 성능",
+    "config": {
+      "ldgWeight": "착륙 중량",
+      "landingWeight": "착륙 중량",
+      "brake": "브레이크",
+      "reverse": "리버스",
+      "autoland": "오토랜드",
+      "vappOverride": "VAPP 수동 지정"
+    },
+    "runway": {
+      "condition": "상태",
+      "conditionAria": "활주로 상태"
+    },
+    "condition": {
+      "dry": "건조",
+      "good": "양호",
+      "goodMedium": "양호/보통",
+      "medium": "보통",
+      "mediumPoor": "보통/불량",
+      "poor": "불량"
+    },
+    "output": {
+      "title": "착륙 성능",
+      "noData": "데이터 없음",
+      "retreatFlap": "플랩 축소",
+      "valid": "유효",
+      "noPerfData": "성능 데이터 없음",
+      "retreatFlapConfig": "플랩 구성을 축소하세요",
+      "margin": "여유 (LDA − LDR+15%)"
+    },
+    "actions": {
+      "failures": "고장…",
+      "failuresTitle": "고장 사례는 향후 릴리스에서 추가됩니다"
+    },
+    "noDestination": "목적지가 없습니다 — OFP를 가져오거나, MCDU 계획을 불러오거나, ICAO를 입력하세요."
+  }
+}

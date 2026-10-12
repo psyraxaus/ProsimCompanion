@@ -1,0 +1,49 @@
+{
+  "checklists": {
+    "pageTitle": "체크리스트 — ProsimCompanion",
+    "heading": "체크리스트",
+    "hero": {
+      "active": "진행 중인 체크리스트",
+      "none": "선택된 체크리스트 없음",
+      "set": "세트",
+      "setAria": "체크리스트 세트",
+      "checklist": "체크리스트",
+      "sectionAria": "체크리스트 항목",
+      "noneAvailable": "(사용 가능한 항목 없음)",
+      "selectChecklist": "(체크리스트 선택)"
+    },
+    "progress": {
+      "title": "완료율",
+      "pick": "체크리스트를 고르세요",
+      "lines": "{1}줄 중 {0}줄"
+    },
+    "state": {
+      "standby": "standby",
+      "complete": "완료",
+      "inProgress": "진행 중"
+    },
+    "screen": {
+      "noFiles": "{0}에 체크리스트 파일이 없습니다",
+      "noneSelected": "선택된 C/L 없음 — C/L MENU에서 선택",
+      "waitingForCockpit": "조종석 대기 중",
+      "skipTitle": "이 줄 건너뛰기",
+      "skip": "건너뛰기"
+    },
+    "actions": {
+      "reset": "초기화",
+      "menu": "C/L Menu",
+      "msgList": "Msg List",
+      "complete": "C/L Complete"
+    },
+    "sequence": {
+      "title": "체크리스트 순서",
+      "empty": "이 세트에 체크리스트가 없습니다.",
+      "complete": "완료",
+      "lines": "{0}줄"
+    },
+    "source": {
+      "before": "정의 불러오는 위치:",
+      "lastReloaded": "— 마지막 다시 불러옴 {0} (그곳에 저장한 편집은 즉시 반영됩니다)"
+    }
+  }
+}

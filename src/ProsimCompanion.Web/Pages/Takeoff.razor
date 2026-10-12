@@ -15,17 +15,18 @@
 @inject IFmsPerfUplink PerfUplink
 @inject TakeoffPerfStore PerfStore
 @inject DisplayUnitService Units
+@inject IStringLocalizer T
 
-<PageTitle>Takeoff Performance — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Takeoff Performance</h1>
+<PageTitle>@T["takeoff.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["takeoff.heading"]</h1>
 
 @* Layout (ADR-0011, canvas "Performance" page): Takeoff | Landing switch, an input column
    (runway card, weather, aircraft config + weights) and an output column (FMGC figures,
    limits, actions). Each perf page renders the switch with its own link marked active. *@
 <div class="perf-page">
-    <nav class="perf-subtabs" aria-label="Performance pages">
-        <a class="perf-subtab active" href="performance/takeoff">Takeoff</a>
-        <a class="perf-subtab" href="performance/landing">Landing</a>
+    <nav class="perf-subtabs" aria-label="@T["perfRunway.shared.pagesAria"]">
+        <a class="perf-subtab active" href="performance/takeoff">@T["perfRunway.shared.takeoffTab"]</a>
+        <a class="perf-subtab" href="performance/landing">@T["perfRunway.shared.landingTab"]</a>
     </nav>
 
     <div class="perf-grid">
@@ -33,22 +34,22 @@
 
 
             <section class="section perf-card">
-                <div class="section-header"><h3 class="section-title">Aircraft Config</h3></div>
+                <div class="section-header"><h3 class="section-title">@T["perfRunway.shared.aircraftConfig"]</h3></div>
                 <div class="section-body">
                     <div class="perf-row">
-                        <span class="perf-field-label">Flap</span>
+                        <span class="perf-field-label">@T["perfRunway.shared.flap"]</span>
                         <span class="perf-field-value">@Toggle(FlapOptions, _flapVal, v => _flapVal = v)</span>
                     </div>
                     <div class="perf-row">
-                        <span class="perf-field-label">Anti-ice</span>
+                        <span class="perf-field-label">@T["takeoff.config.antiIce"]</span>
                         <span class="perf-field-value">@Toggle(AntiIceOptions, _iceVal, v => _iceVal = v)</span>
                     </div>
                     <div class="perf-row">
-                        <span class="perf-field-label">Packs</span>
+                        <span class="perf-field-label">@T["takeoff.config.packs"]</span>
                         <span class="perf-field-value">@Toggle(PacksOptions, _packsVal, v => _packsVal = v)</span>
                     </div>
                     <div class="perf-row">
-                        <span class="perf-field-label">Force TOGA</span>
+                        <span class="perf-field-label">@T["takeoff.config.forceToga"]</span>
                         <span class="perf-field-value">
                             <label class="perf-check-row">
                                 <input type="checkbox" class="checkbox" @bind="_forceToga" />
@@ -56,7 +57,7 @@
                         </span>
                     </div>
 
-                    <div class="perf-subhead">Weights · ENG @_engine</div>
+                    <div class="perf-subhead">@T["takeoff.config.weights", _engine]</div>
                     <div class="perf-row">
                         <span class="perf-field-label">TOW</span>
                         <span class="perf-field-value">
@@ -80,24 +81,24 @@
                     @if (BestLoadsheet() is not null)
                     {
                         <div class="perf-row">
-                            <span class="perf-field-hint">Take TOW and MAC from the latest loadsheet.</span>
-                            <button type="button" class="btn secondary" disabled="@IsBusy" @onclick="SyncLoadsheet">Sync Loadsheet</button>
+                            <span class="perf-field-hint">@T["takeoff.config.syncHint"]</span>
+                            <button type="button" class="btn secondary" disabled="@IsBusy" @onclick="SyncLoadsheet">@T["takeoff.config.syncLoadsheet"]</button>
                         </div>
                     }
                 </div>
             </section>
             <section class="section perf-card">
-                <div class="section-header"><h3 class="section-title">Wind / Weather</h3></div>
+                <div class="section-header"><h3 class="section-title">@T["perfRunway.shared.windWeather"]</h3></div>
                 <div class="section-body">
                     <div class="perf-row">
-                        <span class="perf-field-label">Wind</span>
+                        <span class="perf-field-label">@T["perfRunway.shared.wind"]</span>
                         <span class="perf-field-value">
                             <span class="perf-wind-row">
-                                <input type="text" maxlength="3" aria-label="Wind direction"
+                                <input type="text" maxlength="3" aria-label="@T["perfRunway.shared.windDirection"]"
                                        @bind="_windDir" @bind:after="ClampInputs" />
                                 <span class="perf-wind-sep">/</span>
                                 <span class="perf-kbd">
-                                    <input type="number" min="0" style="width:3ch" aria-label="Wind speed"
+                                    <input type="number" min="0" style="width:3ch" aria-label="@T["perfRunway.shared.windSpeed"]"
                                            @bind="_windKt" @bind:after="ClampInputs" />
                                     <span class="perf-unit">kt</span>
                                 </span>
@@ -133,7 +134,7 @@
                             }
                             <button type="button" class="perf-wx-refresh"
                                     disabled="@(_wxBusy || _icao.Length != 4)" @onclick="RefreshWxAsync">
-                                @(_wxBusy ? "Fetching…" : "Refresh WX")
+                                @(_wxBusy ? T["perfRunway.shared.fetching"].Value : T["perfRunway.shared.refreshWx"].Value)
                             </button>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(_metarText))
@@ -144,7 +145,7 @@
                         {
                             @* The composite chain's reason (issue #62) — "no data for this ICAO" and
                                "fetch failed (gateway HTTP 500; …)" demand different pilot actions. *@
-                            <div class="perf-metar-missing">@(_wxFailure ?? "No METAR available")</div>
+                            <div class="perf-metar-missing">@(_wxFailure ?? T["perfRunway.shared.noMetar"].Value)</div>
                         }
                     </div>
                 </div>
@@ -157,19 +158,19 @@
                             @bind-Intersection="_intersection"
                             WindDir="@_windDir" WindKt="_windKt"
                             DisabledReason="@RunwayDisabledReason" MetarFetchedAt="_metarFetchedAt"
-                            DistanceLabel="TORA" SurfaceLabel="Surface">
+                            DistanceLabel="TORA" SurfaceLabel="@T["perfRunway.surface"]">
                 <Surface>@Toggle(SurfaceOptions, _surf, v => _surf = v)</Surface>
             </PerfRunwayCard>
             <section class="section perf-card">
                 <div class="section-header">
-                    <h3 class="section-title">FMGC Take Off</h3>
-                    <span class="section-hint">@(_result is null ? "Not calculated" : "Calculated values")</span>
+                    <h3 class="section-title">@T["takeoff.output.title"]</h3>
+                    <span class="section-hint">@(_result is null ? T["perfRunway.shared.notCalculated"].Value : T["perfRunway.shared.calculated"].Value)</span>
                 </div>
                 <div class="section-body">
                     <div class="perf-out-head">
                         <span class="perf-out-title">@(_icao is { Length: > 0 } ? _icao : "----") <span class="gold">@(_runwayId ?? "--")</span></span>
                         <span class="pill @(_result is null ? "tone-neutral" : ForceTogaResult ? "tone-warn" : "tone-ok")">
-                            @(_result is null ? "standby" : ForceTogaResult ? "TOGA" : "FLEX")
+                            @(_result is null ? T["perfRunway.shared.standby"].Value : ForceTogaResult ? "TOGA" : "FLEX")
                         </span>
                     </div>
 
@@ -179,12 +180,12 @@
                         @OutFigure("V2", _result?.VSpeed is { } v2 ? Math.Round(v2.V2).ToString(CultureInfo.InvariantCulture) : null, "glow")
                         @OutFigure("Flex", _result is not null ? (ForceTogaResult ? "TOGA" : $"{_result.FlexOutput}°") : null, _result is not null && ForceTogaResult ? "amber small" : "small")
                         @OutFigure("THS", ThsDisplay(), "small")
-                        @OutFigure("Flaps", _result is not null ? ConfLabel(_result.FlapSettings) : null, "small")
+                        @OutFigure(T["takeoff.output.flaps"], _result is not null ? ConfLabel(_result.FlapSettings) : null, "small")
                     </div>
 
                     <div class="perf-limits inset">
                         <div class="perf-limit">
-                            <span class="perf-field-label">@(_result?.HwComp < 0 ? "TW" : "HW") component</span>
+                            <span class="perf-field-label">@T["takeoff.output.component", _result?.HwComp < 0 ? "TW" : "HW"]</span>
                             <span class="perf-limit-value @(_result is null ? "dim" : null)">@(_result is not null ? $"{Math.Abs(_result.HwComp)} kt" : "----")</span>
                         </div>
                         <div class="perf-limit">
@@ -194,12 +195,12 @@
                         @if (_result?.GreenDot is { } greenDot)
                         {
                             <div class="perf-limit">
-                                <span class="perf-field-label">Green dot</span>
+                                <span class="perf-field-label">@T["takeoff.output.greenDot"]</span>
                                 <span class="perf-limit-value">@greenDot kt</span>
                             </div>
                         }
                         <div class="perf-limit">
-                            <span class="perf-field-label">Shift</span>
+                            <span class="perf-field-label">@T["takeoff.output.shift"]</span>
                             <span class="perf-limit-value @(_result is null ? "dim" : null)">@(_result is not null ? $"{(int)Math.Round(Tora().ShiftMeters)} m" : "----")</span>
                         </div>
                         @if (_result is not null && _result.Topl > 0 && _towKg > 0)
@@ -207,8 +208,8 @@
                             var ratio = Math.Clamp(_towKg / _result.Topl, 0, 1);
                             var fill = _result.ToplLimited ? "red" : ratio > 0.95 ? "amber" : "";
                             <div class="perf-limit">
-                                <span class="perf-field-label">TOW vs TOPL</span>
-                                <span class="perf-limit-value @(fill)">@Units.Format(_towKg) · margin @Units.Format(Math.Max(0, _result.Topl - _towKg))</span>
+                                <span class="perf-field-label">@T["takeoff.output.towVsTopl"]</span>
+                                <span class="perf-limit-value @(fill)">@T["takeoff.output.margin", Units.Format(_towKg), Units.Format(Math.Max(0, _result.Topl - _towKg))]</span>
                             </div>
                             <div class="perf-margin-track"><div class="perf-margin-fill @fill" style="width:@((ratio * 100).ToString("F1", CultureInfo.InvariantCulture))%"></div></div>
                         }
@@ -224,29 +225,29 @@
                     }
                     @if (_result is not null && !_metarApplied)
                     {
-                        <div class="perf-banner perf-banner-warn">COMPUTED WITHOUT METAR — CHECK OAT / QNH / WIND MANUALLY</div>
+                        <div class="perf-banner perf-banner-warn">@T["perfRunway.shared.noMetarBanner"]</div>
                     }
                     @if (_result?.ToplLimited == true)
                     {
-                        <div class="perf-banner perf-banner-warn">*** TOPL LIMITED ***</div>
+                        <div class="perf-banner perf-banner-warn">@T["takeoff.output.toplLimited"]</div>
                     }
                     @if (_result is not null && ForceTogaResult)
                     {
-                        <div class="perf-banner perf-banner-warn">*** TOGA REQUIRED ***</div>
+                        <div class="perf-banner perf-banner-warn">@T["takeoff.output.togaRequired"]</div>
                     }
 
                     <div class="perf-actions">
-                        <button type="button" class="btn primary" disabled="@(!CanCalculate)" @onclick="CalculateAsync">Calculate Takeoff</button>
+                        <button type="button" class="btn primary" disabled="@(!CanCalculate)" @onclick="CalculateAsync">@T["takeoff.actions.calculate"]</button>
                         <button type="button" class="btn secondary @(_uplinkFlashActive ? "perf-action-sent" : "")"
                                 disabled="@(!CanUplink || _uplinkFlashActive)" @onclick="UplinkAsync">
-                            @(_uplinkFlashActive ? "Uplink Sent" : "Send Uplink")
+                            @(_uplinkFlashActive ? T["takeoff.actions.uplinkSent"].Value : T["takeoff.actions.sendUplink"].Value)
                         </button>
                         <button type="button" class="btn secondary perf-action-flex" disabled="@IsBusy" @onclick="OnResetClick">
-                            @(_resetArmed ? "Confirm Reset?" : "Reset")
+                            @(_resetArmed ? T["perfRunway.shared.confirmReset"].Value : T["perfRunway.shared.reset"].Value)
                         </button>
                         @if (IsBusy)
                         {
-                            <span class="perf-busy">Working…</span>
+                            <span class="perf-busy">@T["perfRunway.shared.working"]</span>
                         }
                     </div>
                 </div>
@@ -404,10 +405,10 @@
     }
 
     private string RunwayDisabledReason => _loading
-        ? "Loading runways…"
+        ? T["perfRunway.shared.loadingRunways"].Value
         : _icao.Length != 4
-            ? "No origin set — import an OFP, load an MCDU plan, or type an ICAO."
-            : _runwayHint ?? "No runway data.";
+            ? T["takeoff.noOrigin"].Value
+            : _runwayHint ?? T["perfRunway.shared.noRunwayData"].Value;
 
     /// <summary>Seeds inputs from the flight context: origin from the OFP (MCDU fallback),
     /// weights from the best loadsheet (final > prelim), falling back to live datarefs.</summary>
@@ -542,12 +543,12 @@
             var runways = await Gateway.GetRunwaysAsync(icao, includeIntersections: true);
             if (runways is null)
             {
-                _runwayHint = "Runway fetch failed — is ProSim running?";
+                _runwayHint = T["perfRunway.shared.runwayFetchFailedProsim"];
                 return;
             }
             if (runways.Count == 0)
             {
-                _runwayHint = $"No runway data for {icao}.";
+                _runwayHint = T["perfRunway.shared.noRunwayDataFor", icao];
                 return;
             }
             _runways = runways;
@@ -557,7 +558,7 @@
         catch (Exception ex)
         {
             // Degrade, not fail: a dead gateway surfaces as a hint, not a circuit crash.
-            _runwayHint = $"Runway fetch failed: {ex.Message}";
+            _runwayHint = T["perfRunway.shared.runwayFetchFailed", ex.Message];
         }
     }
 
@@ -606,7 +607,7 @@
             _metarText = null;
             _metarFetchedAt = null;
             _metarApplied = false;
-            _wxFailure = $"Weather fetch failed ({ex.Message})";
+            _wxFailure = T["perfRunway.shared.weatherFetchFailed", ex.Message];
         }
     }
 
@@ -659,7 +660,7 @@
             var runway = SelectedRunway();
             if (runway is null)
             {
-                _lastError = "Load an airport and pick a runway first.";
+                _lastError = T["takeoff.pickRunwayFirst"];
                 return;
             }
 
@@ -686,7 +687,7 @@
             var result = await Gateway.CalculateVSpeedsAsync(request);
             if (result is null)
             {
-                _lastError = "Calculation request failed — is ProSim running?";
+                _lastError = T["perfRunway.shared.calcRequestFailedProsim"];
             }
             else if (!string.IsNullOrEmpty(result.CalculationError))
             {
@@ -748,7 +749,7 @@
             }
             else
             {
-                _lastError = "Uplink failed — see logs.";
+                _lastError = T["takeoff.uplinkFailed"];
             }
         }
         catch (Exception ex)

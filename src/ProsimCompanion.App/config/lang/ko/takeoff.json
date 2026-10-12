@@ -1,0 +1,33 @@
+{
+  "takeoff": {
+    "pageTitle": "이륙 성능 — ProsimCompanion",
+    "heading": "이륙 성능",
+    "config": {
+      "antiIce": "방빙",
+      "packs": "팩",
+      "forceToga": "TOGA 강제",
+      "weights": "중량 · ENG {0}",
+      "syncHint": "최신 로드시트에서 TOW와 MAC을 가져옵니다.",
+      "syncLoadsheet": "로드시트 동기화"
+    },
+    "output": {
+      "title": "FMGC Take Off",
+      "flaps": "플랩",
+      "component": "{0} 성분",
+      "greenDot": "그린 닷",
+      "shift": "시프트",
+      "towVsTopl": "TOW 대 TOPL",
+      "margin": "{0} · 여유 {1}",
+      "toplLimited": "*** TOPL 제한 ***",
+      "togaRequired": "*** TOGA 필요 ***"
+    },
+    "actions": {
+      "calculate": "이륙 계산",
+      "sendUplink": "업링크 전송",
+      "uplinkSent": "업링크 전송됨"
+    },
+    "noOrigin": "출발지가 없습니다 — OFP를 가져오거나, MCDU 계획을 불러오거나, ICAO를 입력하세요.",
+    "pickRunwayFirst": "먼저 공항을 불러오고 활주로를 고르세요.",
+    "uplinkFailed": "업링크 실패 — 로그를 확인하세요."
+  }
+}

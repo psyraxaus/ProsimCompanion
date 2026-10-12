@@ -1,0 +1,33 @@
+{
+  "takeoff": {
+    "pageTitle": "Startprestaties — ProsimCompanion",
+    "heading": "Startprestaties",
+    "config": {
+      "antiIce": "Anti-ice",
+      "packs": "Packs",
+      "forceToga": "TOGA afdwingen",
+      "weights": "Gewichten · ENG {0}",
+      "syncHint": "Neem TOW en MAC over van de laatste loadsheet.",
+      "syncLoadsheet": "Loadsheet synchroniseren"
+    },
+    "output": {
+      "title": "FMGC Take Off",
+      "flaps": "Flaps",
+      "component": "{0}-component",
+      "greenDot": "Green dot",
+      "shift": "Shift",
+      "towVsTopl": "TOW vs TOPL",
+      "margin": "{0} · marge {1}",
+      "toplLimited": "*** TOPL-BEPERKT ***",
+      "togaRequired": "*** TOGA VEREIST ***"
+    },
+    "actions": {
+      "calculate": "Start berekenen",
+      "sendUplink": "Uplink versturen",
+      "uplinkSent": "Uplink verstuurd"
+    },
+    "noOrigin": "Geen vertrekpunt — importeer een OFP, laad een MCDU-plan of typ een ICAO.",
+    "pickRunwayFirst": "Laad eerst een luchthaven en kies een baan.",
+    "uplinkFailed": "Uplink mislukt — zie de logs."
+  }
+}

@@ -5,10 +5,11 @@
    source — no airport names (the gateway does not carry them). *@
 @using System.Globalization
 @using ProsimCompanion.Core.Aircraft.Gateway
+@inject IStringLocalizer T
 
 <section class="section perf-card perf-runway-card">
     <div class="section-header">
-        <h3 class="section-title">Airport / Runway</h3>
+        <h3 class="section-title">@T["perfRunway.title"]</h3>
         @if (MetarFetchedAt is { } fetched)
         {
             <span class="perf-chip-gold">METAR @fetched.ToString("HH:mm", CultureInfo.InvariantCulture)Z</span>
@@ -17,10 +18,10 @@
     <div class="section-body perf-runway-body">
 
         <div class="perf-airport-row">
-            <input type="text" class="perf-icao-input figure" maxlength="4" aria-label="Airport ICAO"
+            <input type="text" class="perf-icao-input figure" maxlength="4" aria-label="@T["perfRunway.airportIcao"]"
                    placeholder="----" value="@Icao" @onchange="OnIcaoInput" />
             <div class="perf-airport-meta">
-                <span class="label-caps">Airport</span>
+                <span class="label-caps">@T["perfRunway.airport"]</span>
                 <span class="perf-airport-sub">
                     @if (Selected is { } picked)
                     {
@@ -32,7 +33,7 @@
                     }
                     else
                     {
-                        <text>Type the ICAO to load runways</text>
+                        <text>@T["perfRunway.typeIcao"]</text>
                     }
                 </span>
             </div>
@@ -40,7 +41,7 @@
 
         @if (Runways is { Count: > 0 })
         {
-            <div class="perf-chips" role="radiogroup" aria-label="Runway">
+            <div class="perf-chips" role="radiogroup" aria-label="@T["perfRunway.runway"]">
                 @foreach (var runway in Runways)
                 {
                     var id = runway.RunwayId ?? "";
@@ -118,7 +119,7 @@
                 @* Landing: the declared distances are take-off figures; show the runway facts. *@
                 @Datum("LDA", Metres(full))
                 @Datum("ELEV", selected?.ElevationFt is { Length: > 0 } elev ? $"{elev} FT" : "—")
-                @Datum("WIDTH", selected?.WidthFt is { Length: > 0 } width ? $"{width} FT" : "—")
+                @Datum(T["perfRunway.width"], selected?.WidthFt is { Length: > 0 } width ? $"{width} FT" : "—")
             }
             else
             {
@@ -132,9 +133,9 @@
         @if (Selected?.Intersections is { Length: > 0 } ixs)
         {
             <div class="perf-row">
-                <span class="perf-field-label">Intersection</span>
-                <select class="select perf-select" aria-label="Intersection" value="@Intersection" @onchange="OnIntersectionInput">
-                    <option value="">Full length</option>
+                <span class="perf-field-label">@T["perfRunway.intersection"]</span>
+                <select class="select perf-select" aria-label="@T["perfRunway.intersection"]" value="@Intersection" @onchange="OnIntersectionInput">
+                    <option value="">@T["perfRunway.fullLength"]</option>
                     @foreach (var ix in ixs)
                     {
                         <option value="@ix.Name">@ix.Name · @ix.ToraFt ft</option>
@@ -146,7 +147,7 @@
         @if (Surface is not null)
         {
             <div class="perf-row">
-                <span class="perf-field-label">@SurfaceLabel</span>
+                <span class="perf-field-label">@(SurfaceLabel ?? T["perfRunway.surface"].Value)</span>
                 <span class="perf-field-value">@Surface</span>
             </div>
         }
@@ -188,7 +189,8 @@
     /// <summary>The page's surface / runway-condition chips.</summary>
     [Parameter] public RenderFragment? Surface { get; set; }
 
-    [Parameter] public string SurfaceLabel { get; set; } = "Surface";
+    /// <summary>Label of the surface / condition row; null = the card's own "Surface" text.</summary>
+    [Parameter] public string? SurfaceLabel { get; set; }
 
     private RunwayResponse? Selected
         => Runways?.FirstOrDefault(runway => runway.RunwayId == RunwayId);

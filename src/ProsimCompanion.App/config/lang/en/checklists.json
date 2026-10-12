@@ -1,0 +1,49 @@
+{
+  "checklists": {
+    "pageTitle": "Checklists — ProsimCompanion",
+    "heading": "Checklists",
+    "hero": {
+      "active": "Active checklist",
+      "none": "No checklist selected",
+      "set": "Set",
+      "setAria": "Checklist set",
+      "checklist": "Checklist",
+      "sectionAria": "Checklist section",
+      "noneAvailable": "(none available)",
+      "selectChecklist": "(select checklist)"
+    },
+    "progress": {
+      "title": "Completion",
+      "pick": "Pick a checklist",
+      "lines": "{0} of {1} lines"
+    },
+    "state": {
+      "standby": "standby",
+      "complete": "complete",
+      "inProgress": "in progress"
+    },
+    "screen": {
+      "noFiles": "NO CHECKLIST FILES FOUND IN {0}",
+      "noneSelected": "NO C/L SELECTED — SELECT VIA C/L MENU",
+      "waitingForCockpit": "waiting for cockpit",
+      "skipTitle": "Skip this line",
+      "skip": "skip"
+    },
+    "actions": {
+      "reset": "Reset",
+      "menu": "C/L Menu",
+      "msgList": "Msg List",
+      "complete": "C/L Complete"
+    },
+    "sequence": {
+      "title": "Checklist sequence",
+      "empty": "No checklists in this set.",
+      "complete": "Complete",
+      "lines": "{0} lines"
+    },
+    "source": {
+      "before": "Definitions load from",
+      "lastReloaded": "— last reloaded {0} (edits saved there are picked up live)"
+    }
+  }
+}

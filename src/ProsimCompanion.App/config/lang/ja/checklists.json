@@ -1,0 +1,49 @@
+{
+  "checklists": {
+    "pageTitle": "チェックリスト — ProsimCompanion",
+    "heading": "チェックリスト",
+    "hero": {
+      "active": "実行中のチェックリスト",
+      "none": "チェックリスト未選択",
+      "set": "セット",
+      "setAria": "チェックリストのセット",
+      "checklist": "チェックリスト",
+      "sectionAria": "チェックリストの項目",
+      "noneAvailable": "（利用可能なものはありません）",
+      "selectChecklist": "（チェックリストを選択）"
+    },
+    "progress": {
+      "title": "進捗",
+      "pick": "チェックリストを選んでください",
+      "lines": "{1} 行中 {0} 行"
+    },
+    "state": {
+      "standby": "standby",
+      "complete": "完了",
+      "inProgress": "進行中"
+    },
+    "screen": {
+      "noFiles": "{0} にチェックリストファイルがありません",
+      "noneSelected": "C/L 未選択 — C/L MENU から選択",
+      "waitingForCockpit": "コックピット待ち",
+      "skipTitle": "この行をスキップ",
+      "skip": "スキップ"
+    },
+    "actions": {
+      "reset": "リセット",
+      "menu": "C/L Menu",
+      "msgList": "Msg List",
+      "complete": "C/L Complete"
+    },
+    "sequence": {
+      "title": "チェックリストの順序",
+      "empty": "このセットにチェックリストはありません。",
+      "complete": "完了",
+      "lines": "{0} 行"
+    },
+    "source": {
+      "before": "定義の読み込み元:",
+      "lastReloaded": "— 最終再読み込み {0}（そこに保存した編集は即時に反映されます）"
+    }
+  }
+}

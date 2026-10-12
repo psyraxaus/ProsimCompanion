@@ -1,0 +1,40 @@
+{
+  "landing": {
+    "pageTitle": "Landeleistung — ProsimCompanion",
+    "heading": "Landeleistung",
+    "config": {
+      "ldgWeight": "Landegewicht",
+      "landingWeight": "Landegewicht",
+      "brake": "Bremsen",
+      "reverse": "Reverse",
+      "autoland": "Autoland",
+      "vappOverride": "VAPP-Vorgabe"
+    },
+    "runway": {
+      "condition": "Zustand",
+      "conditionAria": "Pistenzustand"
+    },
+    "condition": {
+      "dry": "Trocken",
+      "good": "Gut",
+      "goodMedium": "G/M",
+      "medium": "Mittel",
+      "mediumPoor": "M/S",
+      "poor": "Schlecht"
+    },
+    "output": {
+      "title": "Landeleistung",
+      "noData": "keine Daten",
+      "retreatFlap": "Klappen zurück",
+      "valid": "gültig",
+      "noPerfData": "KEINE LEISTUNGSDATEN",
+      "retreatFlapConfig": "KLAPPENKONFIGURATION ZURÜCKNEHMEN",
+      "margin": "Marge (LDA − LDR+15%)"
+    },
+    "actions": {
+      "failures": "Ausfälle…",
+      "failuresTitle": "Ausfallfälle kommen in einer späteren Version"
+    },
+    "noDestination": "Kein Zielort gesetzt — OFP importieren, MCDU-Plan laden oder ICAO eingeben."
+  }
+}

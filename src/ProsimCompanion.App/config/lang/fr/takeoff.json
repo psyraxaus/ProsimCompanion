@@ -1,0 +1,33 @@
+{
+  "takeoff": {
+    "pageTitle": "Performances décollage — ProsimCompanion",
+    "heading": "Performances décollage",
+    "config": {
+      "antiIce": "Antigivrage",
+      "packs": "Packs",
+      "forceToga": "Forcer TOGA",
+      "weights": "Masses · ENG {0}",
+      "syncHint": "Reprendre TOW et MAC du dernier loadsheet.",
+      "syncLoadsheet": "Synchroniser le loadsheet"
+    },
+    "output": {
+      "title": "FMGC Take Off",
+      "flaps": "Volets",
+      "component": "Composante {0}",
+      "greenDot": "Green dot",
+      "shift": "Décalage",
+      "towVsTopl": "TOW vs TOPL",
+      "margin": "{0} · marge {1}",
+      "toplLimited": "*** LIMITÉ PAR TOPL ***",
+      "togaRequired": "*** TOGA REQUIS ***"
+    },
+    "actions": {
+      "calculate": "Calculer le décollage",
+      "sendUplink": "Envoyer l'uplink",
+      "uplinkSent": "Uplink envoyé"
+    },
+    "noOrigin": "Aucune origine — importe un OFP, charge un plan MCDU ou saisis un ICAO.",
+    "pickRunwayFirst": "Charge d'abord un aéroport et choisis une piste.",
+    "uplinkFailed": "Échec de l'uplink — voir les journaux."
+  }
+}

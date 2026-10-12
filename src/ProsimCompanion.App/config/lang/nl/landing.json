@@ -1,0 +1,40 @@
+{
+  "landing": {
+    "pageTitle": "Landingsprestaties — ProsimCompanion",
+    "heading": "Landingsprestaties",
+    "config": {
+      "ldgWeight": "Landingsgewicht",
+      "landingWeight": "Landingsgewicht",
+      "brake": "Remmen",
+      "reverse": "Reverse",
+      "autoland": "Autoland",
+      "vappOverride": "VAPP handmatig"
+    },
+    "runway": {
+      "condition": "Conditie",
+      "conditionAria": "Baanconditie"
+    },
+    "condition": {
+      "dry": "Droog",
+      "good": "Goed",
+      "goodMedium": "G/M",
+      "medium": "Matig",
+      "mediumPoor": "M/S",
+      "poor": "Slecht"
+    },
+    "output": {
+      "title": "Landingsprestaties",
+      "noData": "geen gegevens",
+      "retreatFlap": "flaps terugnemen",
+      "valid": "geldig",
+      "noPerfData": "GEEN PRESTATIEGEGEVENS",
+      "retreatFlapConfig": "FLAPCONFIGURATIE TERUGNEMEN",
+      "margin": "Marge (LDA − LDR+15%)"
+    },
+    "actions": {
+      "failures": "Storingen…",
+      "failuresTitle": "Storingsgevallen volgen in een latere versie"
+    },
+    "noDestination": "Geen bestemming — importeer een OFP, laad een MCDU-plan of typ een ICAO."
+  }
+}

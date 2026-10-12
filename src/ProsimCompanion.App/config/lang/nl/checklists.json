@@ -1,0 +1,49 @@
+{
+  "checklists": {
+    "pageTitle": "Checklists — ProsimCompanion",
+    "heading": "Checklists",
+    "hero": {
+      "active": "Actieve checklist",
+      "none": "Geen checklist gekozen",
+      "set": "Set",
+      "setAria": "Checklistset",
+      "checklist": "Checklist",
+      "sectionAria": "Checklistsectie",
+      "noneAvailable": "(geen beschikbaar)",
+      "selectChecklist": "(kies een checklist)"
+    },
+    "progress": {
+      "title": "Voortgang",
+      "pick": "Kies een checklist",
+      "lines": "{0} van {1} regels"
+    },
+    "state": {
+      "standby": "standby",
+      "complete": "voltooid",
+      "inProgress": "bezig"
+    },
+    "screen": {
+      "noFiles": "GEEN CHECKLISTBESTANDEN GEVONDEN IN {0}",
+      "noneSelected": "GEEN C/L GEKOZEN — KIES VIA C/L MENU",
+      "waitingForCockpit": "wacht op de cockpit",
+      "skipTitle": "Deze regel overslaan",
+      "skip": "overslaan"
+    },
+    "actions": {
+      "reset": "Resetten",
+      "menu": "C/L Menu",
+      "msgList": "Msg List",
+      "complete": "C/L Complete"
+    },
+    "sequence": {
+      "title": "Checklistvolgorde",
+      "empty": "Geen checklists in deze set.",
+      "complete": "Voltooid",
+      "lines": "{0} regels"
+    },
+    "source": {
+      "before": "Definities worden geladen uit",
+      "lastReloaded": "— laatst herladen {0} (wijzigingen die daar zijn opgeslagen, worden live overgenomen)"
+    }
+  }
+}

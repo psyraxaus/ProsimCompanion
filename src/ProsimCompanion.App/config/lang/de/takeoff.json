@@ -1,0 +1,33 @@
+{
+  "takeoff": {
+    "pageTitle": "Startleistung — ProsimCompanion",
+    "heading": "Startleistung",
+    "config": {
+      "antiIce": "Anti-Ice",
+      "packs": "Packs",
+      "forceToga": "TOGA erzwingen",
+      "weights": "Gewichte · ENG {0}",
+      "syncHint": "TOW und MAC aus dem letzten Loadsheet übernehmen.",
+      "syncLoadsheet": "Loadsheet übernehmen"
+    },
+    "output": {
+      "title": "FMGC Take Off",
+      "flaps": "Klappen",
+      "component": "{0}-Komponente",
+      "greenDot": "Green Dot",
+      "shift": "Shift",
+      "towVsTopl": "TOW vs. TOPL",
+      "margin": "{0} · Marge {1}",
+      "toplLimited": "*** TOPL-LIMITIERT ***",
+      "togaRequired": "*** TOGA ERFORDERLICH ***"
+    },
+    "actions": {
+      "calculate": "Start berechnen",
+      "sendUplink": "Uplink senden",
+      "uplinkSent": "Uplink gesendet"
+    },
+    "noOrigin": "Kein Abflugort gesetzt — OFP importieren, MCDU-Plan laden oder ICAO eingeben.",
+    "pickRunwayFirst": "Zuerst einen Flughafen laden und eine Piste wählen.",
+    "uplinkFailed": "Uplink fehlgeschlagen — siehe Protokolle."
+  }
+}

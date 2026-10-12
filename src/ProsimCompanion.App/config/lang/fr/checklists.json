@@ -1,0 +1,49 @@
+{
+  "checklists": {
+    "pageTitle": "Check-lists — ProsimCompanion",
+    "heading": "Check-lists",
+    "hero": {
+      "active": "Check-list active",
+      "none": "Aucune check-list sélectionnée",
+      "set": "Jeu",
+      "setAria": "Jeu de check-lists",
+      "checklist": "Check-list",
+      "sectionAria": "Section de check-list",
+      "noneAvailable": "(aucune disponible)",
+      "selectChecklist": "(choisis une check-list)"
+    },
+    "progress": {
+      "title": "Avancement",
+      "pick": "Choisis une check-list",
+      "lines": "{0} sur {1} lignes"
+    },
+    "state": {
+      "standby": "standby",
+      "complete": "terminée",
+      "inProgress": "en cours"
+    },
+    "screen": {
+      "noFiles": "AUCUN FICHIER DE CHECK-LIST TROUVÉ DANS {0}",
+      "noneSelected": "AUCUNE C/L SÉLECTIONNÉE — CHOISIS VIA C/L MENU",
+      "waitingForCockpit": "attente du cockpit",
+      "skipTitle": "Passer cette ligne",
+      "skip": "passer"
+    },
+    "actions": {
+      "reset": "Réinitialiser",
+      "menu": "C/L Menu",
+      "msgList": "Msg List",
+      "complete": "C/L Complete"
+    },
+    "sequence": {
+      "title": "Séquence des check-lists",
+      "empty": "Aucune check-list dans ce jeu.",
+      "complete": "Terminée",
+      "lines": "{0} lignes"
+    },
+    "source": {
+      "before": "Les définitions sont chargées depuis",
+      "lastReloaded": "— dernier rechargement {0} (les modifications enregistrées là sont reprises en direct)"
+    }
+  }
+}

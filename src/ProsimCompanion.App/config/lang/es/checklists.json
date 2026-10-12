@@ -1,0 +1,49 @@
+{
+  "checklists": {
+    "pageTitle": "Listas de chequeo — ProsimCompanion",
+    "heading": "Listas de chequeo",
+    "hero": {
+      "active": "Lista activa",
+      "none": "Ninguna lista seleccionada",
+      "set": "Conjunto",
+      "setAria": "Conjunto de listas",
+      "checklist": "Lista",
+      "sectionAria": "Sección de la lista",
+      "noneAvailable": "(ninguna disponible)",
+      "selectChecklist": "(elige una lista)"
+    },
+    "progress": {
+      "title": "Progreso",
+      "pick": "Elige una lista",
+      "lines": "{0} de {1} líneas"
+    },
+    "state": {
+      "standby": "standby",
+      "complete": "completada",
+      "inProgress": "en curso"
+    },
+    "screen": {
+      "noFiles": "NO SE ENCONTRARON ARCHIVOS DE LISTAS EN {0}",
+      "noneSelected": "NINGUNA C/L SELECCIONADA — ELIGE EN C/L MENU",
+      "waitingForCockpit": "esperando a la cabina",
+      "skipTitle": "Omitir esta línea",
+      "skip": "omitir"
+    },
+    "actions": {
+      "reset": "Reiniciar",
+      "menu": "C/L Menu",
+      "msgList": "Msg List",
+      "complete": "C/L Complete"
+    },
+    "sequence": {
+      "title": "Secuencia de listas",
+      "empty": "No hay listas en este conjunto.",
+      "complete": "Completada",
+      "lines": "{0} líneas"
+    },
+    "source": {
+      "before": "Las definiciones se cargan desde",
+      "lastReloaded": "— última recarga {0} (los cambios guardados ahí se aplican en vivo)"
+    }
+  }
+}
