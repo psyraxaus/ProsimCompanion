@@ -163,6 +163,26 @@ public sealed class LanguagePackCatalogTests : IDisposable
     }
 
     [Fact]
+    public void StaleSingleFile_BesideAFolderOfTheSameCode_IsIgnored()
+    {
+        // The rc.7 install seeded de.json; the per-page split then seeded a de folder beside
+        // it and the seeder never deletes a user file whose shipped source went away. The
+        // folder must win, or every new page text shows English (2026-10-13 live run).
+        var userDe = Path.Combine(UserDir, "de");
+        Directory.CreateDirectory(userDe);
+        File.WriteAllText(Path.Combine(userDe, "shell.json"), """{ "$language": { "name": "Deutsch" }, "nav": { "fuel": "Kraftstoff" } }""");
+        File.WriteAllText(Path.Combine(userDe, "fuel.json"), """{ "fuel": { "title": "Kraftstoff" } }""");
+        UserFile("de", """{ "$language": { "name": "Deutsch" }, "nav": { "fuel": "ALT" } }""");
+        Ship("en", """{ "nav": { "fuel": "Fuel" }, "fuel": { "title": "Fuel" } }""");
+
+        var catalog = Catalog();
+
+        Assert.Equal("Kraftstoff", catalog.Lookup("de", "nav.fuel", out _));
+        Assert.Equal("Kraftstoff", catalog.Lookup("de", "fuel.title", out _));
+        Assert.Equal(["en", "de"], catalog.Packs.Select(p => p.Code));
+    }
+
+    [Fact]
     public void NoPacksAtAll_StillResolves_AndShowsTheId()
     {
         var catalog = Catalog();

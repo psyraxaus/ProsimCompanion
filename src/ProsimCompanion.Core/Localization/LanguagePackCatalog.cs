@@ -23,6 +23,7 @@ public sealed class LanguagePackCatalog
     private readonly ILogger<LanguagePackCatalog> _logger;
     private readonly object _gate = new();
     private readonly ConcurrentDictionary<string, byte> _reportedMissing = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> _reportedStale = new(StringComparer.OrdinalIgnoreCase);
 
     private DateTime _lastScanUtc = DateTime.MinValue;
     private bool _loaded;
@@ -188,15 +189,11 @@ public sealed class LanguagePackCatalog
 
             try
             {
-                foreach (var file in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly))
-                {
-                    var code = Path.GetFileNameWithoutExtension(file);
-                    if (IsCode(code) && !files.ContainsKey(code))
-                    {
-                        files[code] = [file];
-                    }
-                }
-
+                // Folders first: a folder is the current layout. A single {code}.json beside a
+                // {code} folder is the pre-split file the seeder left behind (2026-10-13: the
+                // rc.7 install seeded en.json…ko.json; the seeder never deletes a user file
+                // whose shipped source went away). Taking the file first shadowed every new
+                // page pack with the stale shell-only texts — 1,901 "no text" lines per run.
                 foreach (var folder in Directory.EnumerateDirectories(directory))
                 {
                     var code = Path.GetFileName(folder);
@@ -211,6 +208,32 @@ public sealed class LanguagePackCatalog
                     if (parts.Count > 0)
                     {
                         files[code] = parts;
+                    }
+                }
+
+                foreach (var file in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly))
+                {
+                    var code = Path.GetFileNameWithoutExtension(file);
+                    if (!IsCode(code))
+                    {
+                        continue;
+                    }
+
+                    if (Directory.Exists(Path.Combine(directory, code)))
+                    {
+                        if (_reportedStale.TryAdd(file, 0))
+                        {
+                            _logger.LogInformation(
+                                "Language pack file {File} ignored — the {Code} folder beside it is the current layout; the file can be deleted",
+                                file, code);
+                        }
+
+                        continue;
+                    }
+
+                    if (!files.ContainsKey(code))
+                    {
+                        files[code] = [file];
                     }
                 }
             }
