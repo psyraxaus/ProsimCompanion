@@ -5,24 +5,41 @@
    Kind (owner request 2026-10-13) checks the value against the shape the consumer needs and
    shows the mismatch under the field: red + aria-invalid for a value that can never work
    (and the page's Save goes grey through the cascaded FieldValidity), amber for advisory
-   findings such as a path that is not there yet. A disabled field is shown but never blocks. *@
+   findings such as a path that is not there yet. A disabled field is shown but never blocks.
+   Path kinds also get a Browse… button — only when the browser runs on the sim PC (cascaded
+   ClientContext) and the desktop shell offers its dialogs (INativeFilePicker registered):
+   the Windows dialog opens on that PC's screen, so a tablet would see nothing (option 3). *@
+@using Microsoft.Extensions.DependencyInjection
+@using ProsimCompanion.Core.Hosting
 @implements IDisposable
+@inject IServiceProvider Services
 <div class="field">
     <label class="field-label" for="@_id">
         @Label
         <FieldHint Hint="@Hint" More="@More" />
     </label>
     <div class="field-control">
-        <input id="@_id" type="@(Password ? "password" : "text")" class="text-input @ProblemClass" value="@Value"
-               placeholder="@Placeholder" disabled="@Disabled"
-               autocomplete="off" autocapitalize="off" spellcheck="false"
-               aria-invalid="@(_problem is { Blocking: true } ? "true" : null)"
-               aria-describedby="@(_problem is null ? null : _id + "-problem")"
-               @oninput="OnChangedAsync" />
+        <span class="text-row">
+            <input id="@_id" type="@(Password ? "password" : "text")" class="text-input @ProblemClass" value="@Value"
+                   placeholder="@Placeholder" disabled="@Disabled"
+                   autocomplete="off" autocapitalize="off" spellcheck="false"
+                   aria-invalid="@(_problem is { Blocking: true } ? "true" : null)"
+                   aria-describedby="@(_problem is null ? null : _id + "-problem")"
+                   @oninput="OnChangedAsync" />
+            @if (CanBrowse)
+            {
+                <button type="button" class="browse-btn" disabled="@_browsing"
+                        title="@BrowseTitle" @onclick="BrowseAsync">@(_browsing ? "Browsing…" : "Browse…")</button>
+            }
+        </span>
         @if (_problem is { } problem)
         {
             <div id="@(_id + "-problem")" class="field-hint @(problem.Blocking ? "field-hint-error" : "field-hint-warn")"
                  role="@(problem.Blocking ? "alert" : "status")">@problem.Message</div>
+        }
+        @if (_browseProblem is not null)
+        {
+            <div class="field-hint field-hint-warn" role="status">@_browseProblem</div>
         }
     </div>
 </div>
@@ -30,9 +47,15 @@
 @code {
     private readonly string _id = $"f{Guid.NewGuid():N}";
     private FieldProblem? _problem;
+    private string? _browseProblem;
+    private bool _browsing;
+    private INativeFilePicker? _picker;
 
     [CascadingParameter]
     private FieldValidity? Validity { get; set; }
+
+    [CascadingParameter]
+    private ClientContext? Client { get; set; }
 
     [Parameter, EditorRequired]
     public string Label { get; set; } = "";
@@ -63,12 +86,36 @@
     [Parameter]
     public TextFieldKind Kind { get; set; } = TextFieldKind.Text;
 
+    /// <summary>Windows dialog filter for file kinds (<c>Certificates (*.pfx)|*.pfx</c>).
+    /// Empty shows all files.</summary>
+    [Parameter]
+    public string? BrowseFilter { get; set; }
+
+    /// <summary>Output-file kinds: the file name the Save dialog suggests.</summary>
+    [Parameter]
+    public string? BrowseFileName { get; set; }
+
+    private bool IsPathKind => Kind is TextFieldKind.FilePath or TextFieldKind.FolderPath
+        or TextFieldKind.FileOrFolderPath or TextFieldKind.OutputFilePath or TextFieldKind.FolderList;
+
+    private bool CanBrowse => IsPathKind && !Disabled && Client?.IsLocal == true && _picker is { IsAvailable: true };
+
+    private string BrowseTitle => Kind switch
+    {
+        TextFieldKind.FolderPath => "Choose a folder on this PC",
+        TextFieldKind.FolderList => "Add a folder on this PC",
+        TextFieldKind.OutputFilePath => "Choose where the app writes the file",
+        _ => "Choose a file on this PC",
+    };
+
     private string? ProblemClass => _problem switch
     {
         { Blocking: true } => "invalid",
         { } => "warn",
         _ => null,
     };
+
+    protected override void OnInitialized() => _picker = Services.GetService<INativeFilePicker>();
 
     protected override void OnParametersSet()
     {
@@ -77,7 +124,56 @@
     }
 
     private Task OnChangedAsync(ChangeEventArgs e)
-        => ValueChanged.InvokeAsync(e.Value?.ToString() ?? "");
+    {
+        _browseProblem = null;
+        return ValueChanged.InvokeAsync(e.Value?.ToString() ?? "");
+    }
+
+    private async Task BrowseAsync()
+    {
+        if (_picker is null || _browsing)
+        {
+            return;
+        }
+
+        var pickKind = Kind switch
+        {
+            TextFieldKind.FolderPath or TextFieldKind.FolderList => NativePickKind.Folder,
+            TextFieldKind.OutputFilePath => NativePickKind.SaveFile,
+            _ => NativePickKind.OpenFile,
+        };
+        // A folder list opens where its last entry is.
+        var start = Kind == TextFieldKind.FolderList
+            ? Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault()
+            : Value;
+        var fileName = BrowseFileName ?? (Kind == TextFieldKind.OutputFilePath && Value.Length > 0 ? System.IO.Path.GetFileName(Value.Trim().Trim('"')) : null);
+
+        _browsing = true;
+        _browseProblem = null;
+        try
+        {
+            var result = await _picker.PickAsync(new NativePickRequest(pickKind, Label, BrowseFilter, start, fileName), CancellationToken.None);
+            if (result.Problem is not null)
+            {
+                _browseProblem = result.Problem;
+                return;
+            }
+
+            if (result.Path is null)
+            {
+                return; // cancelled
+            }
+
+            var next = Kind == TextFieldKind.FolderList && !string.IsNullOrWhiteSpace(Value)
+                ? Value.Trim().TrimEnd(';', ' ') + ";" + result.Path
+                : result.Path;
+            await ValueChanged.InvokeAsync(next);
+        }
+        finally
+        {
+            _browsing = false;
+        }
+    }
 
     public void Dispose() => Validity?.Clear(_id);
 }

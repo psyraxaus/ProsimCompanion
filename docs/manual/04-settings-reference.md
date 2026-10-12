@@ -15,6 +15,15 @@ account, those fields bind as empty, the log warns once, and the settings page s
 typed into the file by hand is accepted and encrypted on the next start. The access token
 is regenerated automatically (pair tablets again via the QR code).
 
+**The pages check what you type.** A host field refuses `http://` and ports, a URL field
+wants `http://` or `https://`, and MAC, IP, ICAO and runway fields want their usual shape: a
+wrong value turns red with the expected shape under it, and Save stays grey until it is
+fixed. A path that is not on this PC turns amber but still saves (the file may come later).
+Empty is always allowed. Path fields show a **Browse…** button when you open the page in a
+browser on the sim PC itself (localhost or that PC's own address): it opens the Windows file
+or folder dialog on that PC's screen. A tablet or another PC gets no button, because the
+dialog would open where you cannot see it; type the path instead.
+
 | Section | Page | Highlights |
 |---|---|---|
 | `prosim` | Settings → Setup | `sdkPath` (ProSimSDK.dll), `host`, optional `apiKey`; the **ProSim Setup Check** card (`setupCheckEnabled` on, `setupCheckIgnore[]` = the rows ticked "keep", by dataref name) — see [chapter 2](02-using-the-app.md#prosim-setup-check) |

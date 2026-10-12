@@ -2007,3 +2007,19 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 .text-input.warn, .text-input.warn:focus { border-color: var(--warning); box-shadow: 0 0 0 2px rgba(255, 183, 3, 0.2); }
 .field-hint-error { color: var(--danger); margin-top: 4px; }
 .field-control > .field-hint { display: block; max-width: 360px; }
+/* Path fields: input + the sim-PC-only Browse… button (option 3, 2026-10-13). */
+.text-row { display: flex; align-items: center; gap: 6px; max-width: 360px; }
+.text-row .text-input { flex: 1 1 auto; min-width: 0; }
+.browse-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 6px 9px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.browse-btn:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-strong); }
+.browse-btn:disabled { opacity: 0.5; cursor: default; }

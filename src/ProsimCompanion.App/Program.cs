@@ -334,6 +334,9 @@ public static class Program
         // User drop-in themes come from the user config tree (ADR-0007); the built-ins are
         // embedded in the Web assembly.
         builder.Services.AddWebServices(UserConfigPaths.File("themes"));
+        // The desktop shell's Open/Save/Folder dialogs for the settings pages' path fields,
+        // offered only to a browser on this PC (option 3, 2026-10-13).
+        builder.Services.AddSingleton<ProsimCompanion.Core.Hosting.INativeFilePicker, WpfFilePicker>();
         // Feature startup modules (campaign #87) — registered AFTER every pillar so hosted
         // transports (the GSX client, ProSim connection) start before the modules activate.
         builder.Services.AddHostedService<ProsimCompanion.Core.Hosting.StartupModuleHost>();

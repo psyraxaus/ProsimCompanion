@@ -1,6 +1,21 @@
-<Router AppAssembly="typeof(Routes).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
-    </Found>
-</Router>
+@* Interactive root. IsLocalClient arrives from App.razor (static render, where the HTTP
+   request is still in hand) and is cascaded as ClientContext so a path field can decide
+   whether the sim PC's own Browse… dialog is reachable from this browser. *@
+<CascadingValue Value="_client" IsFixed="true">
+    <Router AppAssembly="typeof(Routes).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+    </Router>
+</CascadingValue>
+
+@code {
+    private ClientContext _client = new(false);
+
+    /// <summary>True when the browser runs on this PC (decided in App.razor from the request).</summary>
+    [Parameter]
+    public bool IsLocalClient { get; set; }
+
+    protected override void OnInitialized() => _client = new ClientContext(IsLocalClient);
+}
