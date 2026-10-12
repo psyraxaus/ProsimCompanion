@@ -1,4 +1,5 @@
 @using System.Globalization
+@inject IStringLocalizer T
 
 @* CG envelope chart — faithful port of Prosim2GSX's WeightBalancePanel chart: the same
    wandb.png artwork (white envelope + limit lines on transparency, drawn for the dark card),
@@ -41,11 +42,11 @@
         <div class="cg-limit" style="@AnnotCss(0.40, 0.37)">MZFW = 61,000KG</div>
 
         @* Envelope-region annotations, rotated per the source. *@
-        <div class="cg-env cg-annot1" style="@AnnotCss(0.40, 0.56)">Operational Limits</div>
-        <div class="cg-env cg-annot2" style="@AnnotCss(0.69, 0.56)">Take-Off Limits</div>
-        <div class="cg-env cg-annot3" style="@AnnotCss(0.70, 0.66)">Zfw limit</div>
-        <div class="cg-env cg-annot4" style="@AnnotCss(0.16, 0.64)">Zfw limit</div>
-        <div class="cg-env cg-annot5" style="@AnnotCss(0.12, 0.80)">Take-Off Limits</div>
+        <div class="cg-env cg-annot1" style="@AnnotCss(0.40, 0.56)">@T["wnb.envelope.operationalLimits"]</div>
+        <div class="cg-env cg-annot2" style="@AnnotCss(0.69, 0.56)">@T["wnb.envelope.takeoffLimits"]</div>
+        <div class="cg-env cg-annot3" style="@AnnotCss(0.70, 0.66)">@T["wnb.envelope.zfwLimit"]</div>
+        <div class="cg-env cg-annot4" style="@AnnotCss(0.16, 0.64)">@T["wnb.envelope.zfwLimit"]</div>
+        <div class="cg-env cg-annot5" style="@AnnotCss(0.12, 0.80)">@T["wnb.envelope.takeoffLimits"]</div>
 
         @* Live GW marker — red+white quadrant crosshair at (MACGW, GW). *@
         @if (ShowGwDot)

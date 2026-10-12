@@ -1,0 +1,89 @@
+{
+  "wnb": {
+    "pageTitle": "Weight & Balance — ProsimCompanion",
+    "heading": "Weight and Balance",
+    "loading": {
+      "title": "Aircraft Loading",
+      "closed": "Closed",
+      "open": "Open",
+      "door": {
+        "notFitted": "N/A",
+        "open": "OPEN",
+        "closed": "CLOSED"
+      },
+      "doorsOpen": "Doors open",
+      "allDoorsClosed": "All doors closed"
+    },
+    "totals": {
+      "totalPax": "Total pax",
+      "zones": "Zones {0} / {1} / {2} / {3} · planned {4}",
+      "cargoFwd": "Cargo FWD",
+      "cargoAft": "Cargo AFT",
+      "bulk": " · bulk {0}",
+      "fuelInTanks": "Fuel in tanks",
+      "planned": "planned {0}"
+    },
+    "max": "max {0}",
+    "simulate": {
+      "open": "Simulate",
+      "count": "Count",
+      "generate": "Generate",
+      "clear": "Clear",
+      "hide": "Hide controls",
+      "hint": "Works for headless cabins; GSX boarding will overwrite.",
+      "generated": "Generated {0} pax.",
+      "generationFailed": "Generation failed — see logs.",
+      "cleared": "Cabin cleared.",
+      "clearFailed": "Clear failed — see logs."
+    },
+    "manifest": {
+      "hide": "▾ Hide manifest",
+      "show": "▸ Manifest ({0})",
+      "hint": "Generated from the booked seat map; the same flight keeps the same names.",
+      "empty": "No booked passengers yet — import an OFP first.",
+      "seat": "SEAT",
+      "name": "NAME",
+      "zone": "ZONE"
+    },
+    "summary": {
+      "title": "Weight Summary",
+      "zfw": "Zero fuel weight (ZFW)",
+      "gw": "Gross weight (GW)",
+      "live": "LIVE",
+      "valid": "valid {0}",
+      "loadsheet": " · loadsheet {0} {1}%",
+      "syncing": "Syncing…",
+      "sync": "Sync to FMS ({0})",
+      "computed": "COMPUTED",
+      "syncFailed": "Sync failed — see logs.",
+      "fmsUpdated": "FMS UPDATED — ZFW {0} t · ZFWCG {1}% · block {2} t ({3})"
+    },
+    "envelope": {
+      "title": "CG Envelope",
+      "hint": "LIVE reads aircraft datarefs each tick · L/S mirrors the latest loadsheet (final preferred, prelim fallback)",
+      "live": "LIVE",
+      "loadsheet": "L/S",
+      "operationalLimits": "Operational Limits",
+      "takeoffLimits": "Take-Off Limits",
+      "zfwLimit": "Zfw limit"
+    },
+    "breakdown": {
+      "title": "Loading Breakdown",
+      "category": "Category",
+      "actual": "Actual",
+      "max": "Max",
+      "status": "Status",
+      "passengers": "Passengers",
+      "cargoFwd": "Cargo FWD",
+      "cargoAft": "Cargo AFT",
+      "cargoTotal": "Cargo total",
+      "fuel": "Fuel",
+      "grossWeight": "Gross weight",
+      "plan": "plan {0} {1}",
+      "over": "over",
+      "empty": "empty",
+      "vsPlan": "vs plan",
+      "ok": "ok"
+    }
+  }
+}

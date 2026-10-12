@@ -1,0 +1,96 @@
+{
+  "ofp": {
+    "pageTitle": "OFP — ProsimCompanion",
+    "heading": "Plan de vol opérationnel",
+    "plan": {
+      "title": "Plan de vol",
+      "empty": "Aucun plan de vol chargé — saisis origine/destination sur le MCDU, ou récupère un OFP depuis la page INIT.",
+      "callsign": "Indicatif",
+      "flightNumber": "N° de vol",
+      "origin": "Origine",
+      "destination": "Destination",
+      "fetched": "RÉCUPÉRÉ",
+      "hint": "Récupération et modifications sur la page INIT"
+    },
+    "gate": {
+      "title": "Porte d'arrivée",
+      "empty": "Charge un OFP pour activer l'attribution de porte.",
+      "placeholder": "PORTE",
+      "aria": "Porte d'arrivée",
+      "restored": "Restaurée de la dernière session — cette porte a été confirmée avant le redémarrage de l'app.",
+      "confirm": "Confirmer",
+      "cancel": "Annuler",
+      "sendNow": "Envoyer maintenant",
+      "sendNow.title": "Transmet la porte à GSX et à SayIntentions ATC immédiatement",
+      "sent": "Envoyée {0}",
+      "queued": "En attente {0} — envoi automatique en croisière (ou immédiat si elle est déjà passée)",
+      "stand": "Poste : {0}",
+      "atc": "ATC : {0}",
+      "gsxSend": "Envoi GSX : {0}",
+      "gsx": "GSX : {0}",
+      "variantUnknown": "aucune passerelle ni VDGS connus pour ce poste",
+      "variantDetail": "{0} à ce poste",
+      "hint": "Confirmer met la porte en attente d'un envoi automatique en croisière (ou immédiat si confirmée plus tard dans le vol). Envoyer maintenant transmet immédiatement à GSX + SayIntentions ATC. Une porte confirmée survit à un redémarrage de l'app."
+    },
+    "weather": {
+      "hint": "SayIntentions · cache 10 min",
+      "refreshing": "Actualisation…",
+      "refresh": "Actualiser la météo",
+      "departure": "Départ",
+      "arrival": "Arrivée",
+      "noData": "Aucune donnée."
+    },
+    "pushback": {
+      "title": "Sens du repoussage",
+      "aria": "Sens du repoussage",
+      "tailLeft": "QUEUE À GAUCHE",
+      "tailLeft.sub": "NEZ À DROITE",
+      "tailLeft.title": "Ce vol : choisis 'Nose Right / Tail Left' quand GSX affiche le menu de direction.",
+      "straight": "TOUT DROIT",
+      "straight.sub": "DROIT EN ARRIÈRE",
+      "straight.title": "Ce vol : choisis 'Straight pushback' quand GSX affiche le menu de direction.",
+      "tailRight": "QUEUE À DROITE",
+      "tailRight.sub": "NEZ À GAUCHE",
+      "tailRight.title": "Ce vol : choisis 'Nose Left / Tail Right' quand GSX affiche le menu de direction.",
+      "thisFlight": "Ce vol : {0} ({1})",
+      "auto": "Auto",
+      "auto.title": "Revenir à la suggestion",
+      "suggested": "Suggéré :",
+      "lean": " (tendance)",
+      "atStand": " au poste {0}",
+      "forRunway": " pour la piste {0}",
+      "standRunway": ", piste {0}",
+      "standNoRunway": ", aucune piste de départ dans l'OFP",
+      "noSuggestion": "Poste {0}{1} — pas encore de suggestion.",
+      "asking": "GSX demande la direction — dis-le au FO (\"tail left\", \"tail right\", \"push back facing north\") ou appuie sur un bouton.",
+      "footer": "Les boutons ne choisissent que pour ce vol · mode par défaut : {0} · Réglages → GSX → Pushback",
+      "mode": {
+        "ask": "demander au pilote",
+        "tailLeft": "toujours queue à gauche",
+        "tailRight": "toujours queue à droite",
+        "straight": "toujours tout droit",
+        "auto": "auto (vers la piste)"
+      },
+      "menuHint": "Quand GSX affiche 'Select pushback direction' avec les lignes nommées propres au poste, choisis-en une ici — inutile d'ouvrir la fenêtre GSX."
+    },
+    "deice": {
+      "title": "Holdover dégivrage (HOT)",
+      "oat.aria": "Température extérieure",
+      "precip.aria": "Précipitations",
+      "precip": {
+        "none": "Aucune précipitation",
+        "activeFrost": "Givre actif",
+        "freezingFog": "Brouillard givrant",
+        "snow": "Neige / neige en grains",
+        "freezingDrizzleLight": "Bruine verglaçante (faible)",
+        "freezingDrizzleModerate": "Bruine verglaçante (modérée)",
+        "lightFreezingRain": "Pluie verglaçante faible",
+        "rainOnColdSoakedWing": "Pluie sur aile froide"
+      },
+      "holdover": "Holdover",
+      "fluid": "Fluide :",
+      "fluidFrom": "Fluide depuis : {0}",
+      "note": "Immersion uniquement — pas pour un dispatch réel"
+    }
+  }
+}

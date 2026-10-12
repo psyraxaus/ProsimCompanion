@@ -11,9 +11,10 @@
 @inject IGsxServiceControl ServiceControl
 @inject FuelConfirmationStore FuelConfirmation
 @inject DisplayUnitService Units
+@inject IStringLocalizer T
 
-<PageTitle>EFB INIT — ProsimCompanion</PageTitle>
-<h1 class="sr-only">EFB INIT</h1>
+<PageTitle>@T["init.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["init.heading"]</h1>
 
 @* Airbus FMS-style INIT page — pixel port of Prosim2GSX's web EFB InitPanel.
    Two MCDU-like columns (ACTIVE / INIT + DATA / STATUS) over a full-width
@@ -30,7 +31,7 @@
 
         @* LEFT — ACTIVE / INIT *@
         <section class="section init-card">
-            <div class="section-header"><h3 class="section-title">Active / Init</h3></div>
+            <div class="section-header"><h3 class="section-title">@T["init.active.title"]</h3></div>
             <div class="section-body init-body">
 
                 <div class="init-route">
@@ -72,7 +73,7 @@
                 {
                     <div class="init-status-row">
                         <span class="init-status-dot init-status-dot-green"></span>
-                        <span class="init-value">FUEL @($"{_fuelConfirmation.ConfirmedKg:F0}") KG CONFIRMED</span>
+                        <span class="init-value">@T["init.status.fuelConfirmed", $"{_fuelConfirmation.ConfirmedKg:F0}"]</span>
                         <span class="init-label">@_fuelConfirmation.ConfirmedAtUtc?.ToLocalTime().ToString("HH:mm")</span>
                     </div>
                 }
@@ -89,7 +90,7 @@
 
         @* RIGHT — DATA / STATUS *@
         <section class="section init-card">
-            <div class="section-header"><h3 class="section-title">Data / Status</h3></div>
+            <div class="section-header"><h3 class="section-title">@T["init.data.title"]</h3></div>
             <div class="section-body init-body">
 
                 @Row("ACFT", _ofp?.AircraftIcaoType, 8)
@@ -117,11 +118,11 @@
         <div class="init-actions">
             <button type="button" class="btn primary"
                     disabled="@(_busy is not null)" @onclick="FetchOfp">
-                @(_busy == "fetch" ? "FETCHING…" : "FETCH OFP")
+                @(_busy == "fetch" ? T["init.actions.fetching"].Value : T["init.actions.fetchOfp"].Value)
             </button>
             <button type="button" class="btn secondary"
                     disabled="@(_busy is not null || _ofp is null)" @onclick="SyncFms">
-                @(_busy == "sync" ? "SYNCING…" : "SYNC TO FMS")
+                @(_busy == "sync" ? T["init.actions.syncing"].Value : T["init.actions.syncToFms"].Value)
             </button>
             @* Real-world SOP (2026-09-19): the crew confirms the block fuel — the FUEL RAMP
                entry above, else the OFP — and only then is the truck ordered (gsx.refuelCall
@@ -129,12 +130,12 @@
                when the figure was raised. Voice: "fuel confirmed". *@
             <button type="button" class="btn primary"
                     disabled="@(_busy is not null || _ofp is null)" @onclick="ConfirmFuel"
-                    title="Confirm the block fuel and order the fuel truck (or a top-up)">
-                @(_busy == "fuel" ? "CONFIRMING…" : _fuelConfirmation.Confirmed ? "RE-CONFIRM FUEL" : "CONFIRM FUEL")
+                    title="@T["init.actions.confirmFuel.title"]">
+                @(_busy == "fuel" ? T["init.actions.confirming"].Value : _fuelConfirmation.Confirmed ? T["init.actions.reconfirmFuel"].Value : T["init.actions.confirmFuel"].Value)
             </button>
             <button type="button" class="btn secondary"
                     disabled="@(_busy is not null || _overrides.Count == 0)" @onclick="ClearOverrides">
-                @(_busy == "clear" ? "CLEARING…" : "CLEAR OVERRIDES")
+                @(_busy == "clear" ? T["init.actions.clearing"].Value : T["init.actions.clearOverrides"].Value)
             </button>
             @* Two resets (ProsimInterface parity, 2026-10-09). Soft: restart the leg on the same
                OFP — overrides and loadsheet cycle only, the EFB keeps the plan. Full: unload
@@ -143,13 +144,13 @@
                new OFP arrives. Both two-click armed, the full one is the destructive one. *@
             <button type="button" class="btn danger init-btn-flex"
                     disabled="@(_busy is not null)" @onclick="ResetFlight"
-                    title="Restart this leg on the same OFP: clears the INIT overrides and the loadsheet cycle; the ProSim EFB keeps the plan">
-                @(_busy == "reset" ? "RESETTING…" : _resetArmed ? "CONFIRM RESET" : "RESET FLIGHT (SOFT)")
+                    title="@T["init.actions.resetFlight.title"]">
+                @(_busy == "reset" ? T["init.actions.resetting"].Value : _resetArmed ? T["init.actions.confirmReset"].Value : T["init.actions.resetFlight"].Value)
             </button>
             <button type="button" class="btn danger init-btn-flex"
                     disabled="@(_busy is not null)" @onclick="UnloadOfp"
-                    title="Unload the OFP from the ProSim EFB (seat map, pax, planned fuel and cargo, loadsheets) and reset the flight cycle — no GSX service is called until a new OFP is fetched">
-                @(_busy == "unload" ? "UNLOADING…" : _unloadArmed ? "CONFIRM UNLOAD" : "UNLOAD OFP (FULL)")
+                    title="@T["init.actions.unloadOfp.title"]">
+                @(_busy == "unload" ? T["init.actions.unloading"].Value : _unloadArmed ? T["init.actions.confirmUnload"].Value : T["init.actions.unloadOfp"].Value)
             </button>
         </div>
     </section>
@@ -171,12 +172,13 @@
 
     // Fake-phased fetch indicator — the import is one awaited call, but the
     // predecessor cycles this text (~700 ms per step, matching the actual
-    // server-side sequence) so the user sees something happening.
-    private static readonly string[] FetchPhases =
+    // server-side sequence) so the user sees something happening. Read through the
+    // localizer each time so a language switch mid-fetch shows the new words.
+    private string[] FetchPhases =>
     [
-        "CONTACTING SIMBRIEF...",
-        "PARSING OFP...",
-        "WRITING TO FMS...",
+        T["init.fetch.contacting"].Value,
+        T["init.fetch.parsing"].Value,
+        T["init.fetch.writing"].Value,
     ];
 
     private OfpData? _ofp;
@@ -271,7 +273,7 @@
     // sits next to the keys for ~2 s when a commit is rejected.
     private RenderFragment EditableRow(string label, string field, double ofpValue, Func<double, string> format) =>
         @<div class="init-row-fuel @(EditableNow(field) ? "init-row-fuel-editable" : "")"
-              title="@(EditableNow(field) ? "Click to override" : null)"
+              title="@(EditableNow(field) ? T["init.editor.clickToOverride"].Value : null)"
               @onclick="() => StartEdit(field, Effective(field, ofpValue))">
             <span class="init-label">@label</span>
             @if (_ofp is null)
@@ -291,9 +293,9 @@
                         <span class="init-label">KG</span>
                     }
                     <button type="button" class="init-editor-key init-editor-key-ent"
-                            title="Commit override (Enter)" @onclick="CommitEdit">ENT</button>
+                            title="@T["init.editor.commit"]" @onclick="CommitEdit">ENT</button>
                     <button type="button" class="init-editor-key init-editor-key-clr"
-                            title="Cancel (Esc)" @onclick="CancelEdit">CLR</button>
+                            title="@T["init.editor.cancel"]" @onclick="CancelEdit">CLR</button>
                     @if (_editError is not null)
                     {
                         <span class="init-editor-error">@_editError</span>
@@ -368,13 +370,13 @@
         if (!double.TryParse(_editValue.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var num)
             || !double.IsFinite(num))
         {
-            FlashEditError("INVALID");
+            FlashEditError(T["init.editor.invalid"]);
             return;
         }
 
         if (num < range.Min || num > range.Max)
         {
-            FlashEditError("OUT OF RANGE");
+            FlashEditError(T["init.editor.outOfRange"]);
             return;
         }
 
@@ -382,7 +384,7 @@
         var ok = await Overrides.SetAsync(field, value);
         if (!ok)
         {
-            FlashEditError("WRITE FAILED");
+            FlashEditError(T["init.editor.writeFailed"]);
             return;
         }
 
@@ -427,9 +429,9 @@
             {
                 SimbriefImportOutcome.Imported => null,
                 SimbriefImportOutcome.AlreadyImported => null,
-                SimbriefImportOutcome.NoPilotId => "NO SIMBRIEF PILOT ID IN PROSIM — SET IT IN THE PROSIM EFB",
-                SimbriefImportOutcome.FetchFailed => "NO OFP — IS ONE GENERATED ON SIMBRIEF?",
-                SimbriefImportOutcome.ImportFailed => "FETCHED, BUT THE EFB IMPORT FAILED — SEE LOGS",
+                SimbriefImportOutcome.NoPilotId => T["init.fetch.noPilotId"].Value,
+                SimbriefImportOutcome.FetchFailed => T["init.fetch.noOfp"].Value,
+                SimbriefImportOutcome.ImportFailed => T["init.fetch.importFailed"].Value,
                 _ => outcome.ToString(),
             };
         }
@@ -448,7 +450,7 @@
         try
         {
             var result = await FmsSync.SyncAsync();
-            _lastFetchError = result is null ? "FMS SYNC FAILED — SEE LOGS" : null;
+            _lastFetchError = result is null ? T["init.fetch.syncFailed"].Value : null;
         }
         finally
         {
@@ -569,8 +571,8 @@
     private void ShowResetNote(EfbResetResult result)
     {
         _fuelNote = result.Ok
-            ? (result.Kind == EfbResetKind.Soft ? "FLIGHT RESET — OFP KEPT" : "OFP UNLOADED — FETCH A NEW OFP TO CONTINUE")
-            : $"RESET INCOMPLETE — PROSIM REFUSED {string.Join(", ", result.Failed).ToUpperInvariant()}";
+            ? (result.Kind == EfbResetKind.Soft ? T["init.reset.softDone"].Value : T["init.reset.unloadDone"].Value)
+            : T["init.reset.incomplete", string.Join(", ", result.Failed).ToUpperInvariant()].Value;
         _fuelNoteTimer?.Dispose();
         _fuelNoteTimer = new Timer(_ => _ = InvokeAsync(() =>
         {
@@ -582,18 +584,19 @@
     // ── Derived display values ─────────────────────────────────────────────
 
     private (string Dot, string Label) Status =>
-        _busy == "fetch" ? ("init-status-dot-cyan", "FETCHING…")
-        : _lastFetchError is not null ? ("init-status-dot-warn", "UPLINK FAILED")
-        : _ofp is not null ? ("init-status-dot-green", "OFP LOADED")
-        : ("init-status-dot-amber", "AWAITING OFP");
+        _busy == "fetch" ? ("init-status-dot-cyan", T["init.status.fetching"].Value)
+        : _lastFetchError is not null ? ("init-status-dot-warn", T["init.status.uplinkFailed"].Value)
+        : _ofp is not null ? ("init-status-dot-green", T["init.status.ofpLoaded"].Value)
+        : ("init-status-dot-amber", T["init.status.awaitingOfp"].Value);
 
     // In the predecessor the SIMBRIEF label was dead code (its button fetch showed MANUAL);
     // here the chip reflects OfpData.Source truthfully — SimBrief is the only importer today.
+    // SIMBRIEF and MCDU are names and stay; only MANUAL is a word the pack carries.
     private string SourceLabel => _ofp?.Source switch
     {
         Core.Aircraft.Ofp.OfpSource.Simbrief => "SIMBRIEF",
         Core.Aircraft.Ofp.OfpSource.Mcdu => "MCDU",
-        Core.Aircraft.Ofp.OfpSource.Manual => "MANUAL",
+        Core.Aircraft.Ofp.OfpSource.Manual => T["init.source.manual"].Value,
         _ => "—",
     };
 
@@ -624,7 +627,7 @@
         : null;
 
     private string FetchedAt => _ofp is { } ofp
-        ? $"FETCHED {ofp.FetchedAtUtc.ToLocalTime():HH:mm:ss}"
+        ? T["init.status.fetchedAt", $"{ofp.FetchedAtUtc.ToLocalTime():HH:mm:ss}"]
         : "";
 
     private double Effective(string field, double ofpValue)

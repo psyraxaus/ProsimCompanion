@@ -1,0 +1,96 @@
+{
+  "ofp": {
+    "pageTitle": "OFP — ProsimCompanion",
+    "heading": "Plan de vuelo operacional",
+    "plan": {
+      "title": "Plan de vuelo",
+      "empty": "No hay plan de vuelo cargado — introduce origen/destino en el MCDU u obtén un OFP desde la página INIT.",
+      "callsign": "Indicativo",
+      "flightNumber": "N.º vuelo",
+      "origin": "Origen",
+      "destination": "Destino",
+      "fetched": "OBTENIDO",
+      "hint": "Obtención y valores manuales en la página INIT"
+    },
+    "gate": {
+      "title": "Puerta de llegada",
+      "empty": "Carga un OFP para habilitar la asignación de puerta.",
+      "placeholder": "PUERTA",
+      "aria": "Puerta de llegada",
+      "restored": "Restaurada de la última sesión — esta puerta se confirmó antes de reiniciar la app.",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "sendNow": "Enviar ahora",
+      "sendNow.title": "Envía la puerta a GSX y a SayIntentions ATC de inmediato",
+      "sent": "Enviada {0}",
+      "queued": "En cola {0} — envío automático en crucero (o de inmediato si ya se ha pasado)",
+      "stand": "Stand: {0}",
+      "atc": "ATC: {0}",
+      "gsxSend": "Envío a GSX: {0}",
+      "gsx": "GSX: {0}",
+      "variantUnknown": "no se conoce finger ni VDGS para este stand",
+      "variantDetail": "{0} en este stand",
+      "hint": "Confirmar pone la puerta en cola para el envío automático en crucero (o de inmediato si se confirma más tarde en el vuelo). Enviar ahora la envía a GSX + SayIntentions ATC de inmediato. Una puerta confirmada sobrevive a un reinicio de la app."
+    },
+    "weather": {
+      "hint": "SayIntentions · caché de 10 min",
+      "refreshing": "Actualizando…",
+      "refresh": "Actualizar meteo",
+      "departure": "Salida",
+      "arrival": "Llegada",
+      "noData": "Sin datos."
+    },
+    "pushback": {
+      "title": "Dirección de pushback",
+      "aria": "Dirección de pushback",
+      "tailLeft": "COLA IZQUIERDA",
+      "tailLeft.sub": "MORRO DERECHA",
+      "tailLeft.title": "Este vuelo: elige 'Nose Right / Tail Left' cuando GSX muestre el menú de dirección.",
+      "straight": "RECTO",
+      "straight.sub": "RECTO ATRÁS",
+      "straight.title": "Este vuelo: elige 'Straight pushback' cuando GSX muestre el menú de dirección.",
+      "tailRight": "COLA DERECHA",
+      "tailRight.sub": "MORRO IZQUIERDA",
+      "tailRight.title": "Este vuelo: elige 'Nose Left / Tail Right' cuando GSX muestre el menú de dirección.",
+      "thisFlight": "Este vuelo: {0} ({1})",
+      "auto": "Auto",
+      "auto.title": "Volver a la sugerencia",
+      "suggested": "Sugerido:",
+      "lean": " (tendencia)",
+      "atStand": " en {0}",
+      "forRunway": " para la pista {0}",
+      "standRunway": ", pista {0}",
+      "standNoRunway": ", sin pista de salida en el OFP",
+      "noSuggestion": "Stand {0}{1} — aún sin sugerencia.",
+      "asking": "GSX pregunta hacia dónde — díselo al FO (\"tail left\", \"tail right\", \"push back facing north\") o pulsa un botón.",
+      "footer": "Los botones eligen solo para este vuelo · modo por defecto: {0} · Ajustes → GSX → Pushback",
+      "mode": {
+        "ask": "preguntar al piloto",
+        "tailLeft": "siempre cola izquierda",
+        "tailRight": "siempre cola derecha",
+        "straight": "siempre recto",
+        "auto": "auto (hacia la pista)"
+      },
+      "menuHint": "Cuando GSX muestre 'Select pushback direction' con las líneas propias del stand, elige una aquí — sin abrir la ventana de GSX."
+    },
+    "deice": {
+      "title": "Holdover de deshielo (HOT)",
+      "oat.aria": "Temperatura exterior",
+      "precip.aria": "Precipitación",
+      "precip": {
+        "none": "Sin precipitación",
+        "activeFrost": "Escarcha activa",
+        "freezingFog": "Niebla helada",
+        "snow": "Nieve / granos de nieve",
+        "freezingDrizzleLight": "Llovizna helada (ligera)",
+        "freezingDrizzleModerate": "Llovizna helada (moderada)",
+        "lightFreezingRain": "Lluvia helada ligera",
+        "rainOnColdSoakedWing": "Lluvia sobre ala fría"
+      },
+      "holdover": "Holdover",
+      "fluid": "Fluido:",
+      "fluidFrom": "Fluido desde: {0}",
+      "note": "Solo para inmersión — no para despacho real"
+    }
+  }
+}

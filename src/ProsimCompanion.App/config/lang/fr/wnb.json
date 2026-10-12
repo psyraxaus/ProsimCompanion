@@ -1,0 +1,89 @@
+{
+  "wnb": {
+    "pageTitle": "Masse et centrage — ProsimCompanion",
+    "heading": "Masse et centrage",
+    "loading": {
+      "title": "Chargement de l'avion",
+      "closed": "Fermée",
+      "open": "Ouverte",
+      "door": {
+        "notFitted": "N/D",
+        "open": "OUVERTE",
+        "closed": "FERMÉE"
+      },
+      "doorsOpen": "Portes ouvertes",
+      "allDoorsClosed": "Toutes portes fermées"
+    },
+    "totals": {
+      "totalPax": "Pax total",
+      "zones": "Zones {0} / {1} / {2} / {3} · prévu {4}",
+      "cargoFwd": "Fret FWD",
+      "cargoAft": "Fret AFT",
+      "bulk": " · bulk {0}",
+      "fuelInTanks": "Carburant en réservoirs",
+      "planned": "prévu {0}"
+    },
+    "max": "max {0}",
+    "simulate": {
+      "open": "Simuler",
+      "count": "Nombre",
+      "generate": "Générer",
+      "clear": "Vider",
+      "hide": "Masquer les commandes",
+      "hint": "Pour les cabines sans embarquement ; l'embarquement GSX écrasera.",
+      "generated": "{0} pax générés.",
+      "generationFailed": "Génération échouée — voir les logs.",
+      "cleared": "Cabine vidée.",
+      "clearFailed": "Vidage échoué — voir les logs."
+    },
+    "manifest": {
+      "hide": "▾ Masquer le manifeste",
+      "show": "▸ Manifeste ({0})",
+      "hint": "Généré à partir du plan de cabine réservé ; le même vol garde les mêmes noms.",
+      "empty": "Aucun passager réservé pour l'instant — importe d'abord un OFP.",
+      "seat": "SIÈGE",
+      "name": "NOM",
+      "zone": "ZONE"
+    },
+    "summary": {
+      "title": "Résumé des masses",
+      "zfw": "Masse sans carburant (ZFW)",
+      "gw": "Masse brute (GW)",
+      "live": "LIVE",
+      "valid": "valide {0}",
+      "loadsheet": " · loadsheet {0} {1}%",
+      "syncing": "Synchro…",
+      "sync": "Synchroniser avec le FMS ({0})",
+      "computed": "CALCULÉ",
+      "syncFailed": "Synchro échouée — voir les logs.",
+      "fmsUpdated": "FMS MIS À JOUR — ZFW {0} t · ZFWCG {1}% · bloc {2} t ({3})"
+    },
+    "envelope": {
+      "title": "Enveloppe de centrage",
+      "hint": "LIVE lit les datarefs de l'avion à chaque cycle · L/S reflète le dernier loadsheet (final de préférence, sinon prelim)",
+      "live": "LIVE",
+      "loadsheet": "L/S",
+      "operationalLimits": "Limites opérationnelles",
+      "takeoffLimits": "Limites au décollage",
+      "zfwLimit": "Limite ZFW"
+    },
+    "breakdown": {
+      "title": "Détail du chargement",
+      "category": "Catégorie",
+      "actual": "Réel",
+      "max": "Max",
+      "status": "État",
+      "passengers": "Passagers",
+      "cargoFwd": "Fret FWD",
+      "cargoAft": "Fret AFT",
+      "cargoTotal": "Fret total",
+      "fuel": "Carburant",
+      "grossWeight": "Masse brute",
+      "plan": "plan {0} {1}",
+      "over": "dépassé",
+      "empty": "vide",
+      "vsPlan": "vs plan",
+      "ok": "ok"
+    }
+  }
+}

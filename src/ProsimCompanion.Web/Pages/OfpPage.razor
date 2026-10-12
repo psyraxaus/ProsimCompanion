@@ -15,20 +15,21 @@
 @inject IWeatherControl WeatherControl
 @inject DeiceHoldoverService Deice
 @inject DisplayUnitService Units
+@inject IStringLocalizer T
 
-<PageTitle>OFP — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Operational Flight Plan</h1>
+<PageTitle>@T["ofp.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["ofp.heading"]</h1>
 
 @* Layout (ADR-0011, canvas "OFP" page): flight-plan hero + arrival gate on the first row,
    weather + (pushback, deice) on the second. *@
 <div class="ofp-page">
 
     <section class="section ofp-hero">
-        <div class="section-header"><h3 class="section-title">Flight Plan</h3></div>
+        <div class="section-header"><h3 class="section-title">@T["ofp.plan.title"]</h3></div>
         @if (_ofp is null)
         {
             <div class="section-body">
-                <div class="empty">No flight plan loaded — enter origin/destination on the MCDU, or fetch an OFP from the INIT page.</div>
+                <div class="empty">@T["ofp.plan.empty"]</div>
             </div>
         }
         else
@@ -37,19 +38,19 @@
                 <div class="ofp-hero-top">
                     <div class="ofp-idents">
                         <div class="ofp-ident">
-                            <span class="label-caps">Callsign</span>
+                            <span class="label-caps">@T["ofp.plan.callsign"]</span>
                             <span class="figure figure-lg">@(_ofp.Callsign.Length > 0 ? _ofp.Callsign : _ofp.Ident)</span>
                         </div>
                         <span class="ofp-ident-sep" aria-hidden="true"></span>
                         <div class="ofp-ident">
-                            <span class="label-caps">Flt Nbr</span>
+                            <span class="label-caps">@T["ofp.plan.flightNumber"]</span>
                             <span class="figure figure-lg gold">@(_ofp.FlightNumber.Length > 0 ? _ofp.FlightNumber : "—")</span>
                         </div>
                     </div>
 
                     <div class="ofp-route">
                         <div class="ofp-route-end">
-                            <span class="label-caps">Origin</span>
+                            <span class="label-caps">@T["ofp.plan.origin"]</span>
                             <span class="figure figure-lg">@_ofp.OriginIcao</span>
                         </div>
                         <div class="ofp-route-line" aria-hidden="true">
@@ -59,7 +60,7 @@
                             </svg>
                         </div>
                         <div class="ofp-route-end">
-                            <span class="label-caps">Destination</span>
+                            <span class="label-caps">@T["ofp.plan.destination"]</span>
                             <span class="figure figure-lg">@_ofp.DestinationIcao</span>
                         </div>
                         @if (!string.IsNullOrEmpty(_ofp.AlternateIcao))
@@ -79,66 +80,66 @@
                     @Datum("CARGO", Units.Format(_ofp.CargoKg))
                     @Datum("ZFW", Units.Format(_ofp.EstZfwKg))
                     @Datum("BLOCK FUEL", Units.Format(_ofp.FuelPlanRampKg), "gold")
-                    @Datum("FETCHED", _ofp.FetchedAtUtc.ToString("HH:mm:ss'Z'"))
+                    @Datum(T["ofp.plan.fetched"], _ofp.FetchedAtUtc.ToString("HH:mm:ss'Z'"))
                 </div>
-                <div class="ofp-hint">Fetch &amp; overrides on the INIT page</div>
+                <div class="ofp-hint">@T["ofp.plan.hint"]</div>
             </div>
         }
     </section>
 
     <section class="section ofp-gate">
-        <div class="section-header"><h3 class="section-title">Arrival Gate</h3></div>
+        <div class="section-header"><h3 class="section-title">@T["ofp.gate.title"]</h3></div>
         <div class="section-body ofp-gate-body">
             @* After an in-flight app restart the OFP is normally not loaded again, but the
                persisted gate is (issue #102) — the card stays usable whenever a gate is pending
                so the pilot can see, re-send or cancel it. *@
             @if (_ofp is null && _gateAssignment.PendingGate is null)
             {
-                <div class="empty">Load an OFP to enable gate assignment.</div>
+                <div class="empty">@T["ofp.gate.empty"]</div>
             }
             else
             {
                 <div class="ofp-gate-row">
                     <span class="figure figure-lg">@(_ofp?.DestinationIcao ?? "----")</span>
-                    <input class="text-input ofp-gate-input" placeholder="GATE" @bind="_gate" @bind:after="OnGateTyped"
-                           aria-label="Arrival gate" />
+                    <input class="text-input ofp-gate-input" placeholder="@T["ofp.gate.placeholder"]" @bind="_gate" @bind:after="OnGateTyped"
+                           aria-label="@T["ofp.gate.aria"]" />
                 </div>
                 @if (_gateAssignment.Restored)
                 {
-                    <div class="field-hint ofp-gate-restored">Restored from the last session — this gate was confirmed before the app restarted.</div>
+                    <div class="field-hint ofp-gate-restored">@T["ofp.gate.restored"]</div>
                 }
                 @if (_typedStandInfo.Length > 0)
                 {
                     <div class="field-hint ofp-gate-stand">@_typedStandInfo</div>
                 }
                 <div class="ofp-gate-buttons">
-                    <button type="button" class="btn secondary" disabled="@(_gate.Trim().Length == 0)" @onclick="ConfirmGate">Confirm</button>
-                    <button type="button" class="btn secondary" @onclick="CancelGate">Cancel</button>
+                    <button type="button" class="btn secondary" disabled="@(_gate.Trim().Length == 0)" @onclick="ConfirmGate">@T["ofp.gate.confirm"]</button>
+                    <button type="button" class="btn secondary" @onclick="CancelGate">@T["ofp.gate.cancel"]</button>
                 </div>
                 <button type="button" class="btn primary" disabled="@(!CanSendNow)" @onclick="SendNowGate"
-                        title="Push the gate to GSX and SayIntentions ATC immediately">Send Now</button>
+                        title="@T["ofp.gate.sendNow.title"]">@T["ofp.gate.sendNow"]</button>
                 @if (_gateAssignment.PendingGate is { } pending)
                 {
                     <div class="ofp-gate-status">
                         <span class="fs-chip-dot live" aria-hidden="true"></span>
-                        <span>@(_gateAssignment.Sent ? $"Sent {pending}" : $"Queued {pending} — auto-send at cruise (or at once when already past it)")</span>
+                        <span>@(_gateAssignment.Sent ? T["ofp.gate.sent", pending].Value : T["ofp.gate.queued", pending].Value)</span>
                     </div>
                 }
                 @if (_gateAssignment.StandInfo.Length > 0)
                 {
-                    <div class="field-hint">Stand: @_gateAssignment.StandInfo</div>
+                    <div class="field-hint">@T["ofp.gate.stand", _gateAssignment.StandInfo]</div>
                 }
                 @if (_gateAssignment.AtcStatus.Length > 0)
                 {
-                    <div class="field-hint">ATC: @_gateAssignment.AtcStatus</div>
+                    <div class="field-hint">@T["ofp.gate.atc", _gateAssignment.AtcStatus]</div>
                 }
                 @if (_gateAssignment.GsxStatus.Length > 0)
                 {
-                    <div class="field-hint">GSX send: @_gateAssignment.GsxStatus</div>
+                    <div class="field-hint">@T["ofp.gate.gsxSend", _gateAssignment.GsxStatus]</div>
                 }
                 @if (_gsx.GateRequest is { } request)
                 {
-                    <div class="field-hint">GSX: @request</div>
+                    <div class="field-hint">@T["ofp.gate.gsx", request]</div>
                 }
                 @if (_gateChoice.Question is { } gateQuestion)
                 {
@@ -150,13 +151,13 @@
                         {
                             var label = candidate.Label;
                             <button type="button" class="btn secondary" @onclick="() => ChooseGateVariant(label)"
-                                    title="@(candidate.Detail is null ? "no jetway or VDGS known for this stand" : $"{candidate.Detail} at this stand")">
+                                    title="@(candidate.Detail is null ? T["ofp.gate.variantUnknown"].Value : T["ofp.gate.variantDetail", candidate.Detail].Value)">
                                 @candidate.Label@(candidate.Detail is null ? "" : $" · {candidate.Detail}")
                             </button>
                         }
                     </div>
                 }
-                <div class="field-hint">Confirm queues for auto-send at cruise (or at once when confirmed later in the flight). Send Now pushes to GSX + SayIntentions ATC immediately. A confirmed gate survives an app restart.</div>
+                <div class="field-hint">@T["ofp.gate.hint"]</div>
             }
         </div>
     </section>
@@ -164,12 +165,12 @@
     <section class="section ofp-weather">
         <div class="section-header">
             <h3 class="section-title">METAR / TAF / ATIS</h3>
-            <span class="section-hint">SayIntentions · cached 10 min</span>
+            <span class="section-hint">@T["ofp.weather.hint"]</span>
         </div>
         <div class="section-body ofp-weather-body">
             <div class="ofp-weather-tools">
                 <button type="button" class="btn" disabled="@_weather.IsRefreshing" @onclick="RefreshWeather">
-                    @(_weather.IsRefreshing ? "Refreshing…" : "Refresh Weather")
+                    @(_weather.IsRefreshing ? T["ofp.weather.refreshing"].Value : T["ofp.weather.refresh"].Value)
                 </button>
                 <span class="pill @(_weather.CpdlcStation.Length > 0 ? "tone-ok" : "tone-neutral")">
                     CPDLC @(_weather.CpdlcStation.Length > 0 ? _weather.CpdlcStation : "—")
@@ -180,7 +181,7 @@
                 }
             </div>
             <div class="ofp-wx-grid">
-                @foreach (var (title, wx) in new[] { ("Departure", _weather.Departure), ("Arrival", _weather.Arrival) })
+                @foreach (var (title, wx) in new[] { (T["ofp.weather.departure"].Value, _weather.Departure), (T["ofp.weather.arrival"].Value, _weather.Arrival) })
                 {
                     <div class="ofp-wx">
                         <div class="ofp-wx-head">
@@ -192,7 +193,7 @@
                         </div>
                         @if (wx is null)
                         {
-                            <div class="empty">No data.</div>
+                            <div class="empty">@T["ofp.weather.noData"]</div>
                         }
                         else
                         {
@@ -222,72 +223,72 @@
 
     <div class="ofp-side">
         <section class="section ofp-pushback">
-            <div class="section-header"><h3 class="section-title">Pushback Direction</h3></div>
+            <div class="section-header"><h3 class="section-title">@T["ofp.pushback.title"]</h3></div>
             <div class="section-body">
-                <div class="korry-group" role="group" aria-label="Pushback direction">
-                    <KorryPushbackButton Arrow="tailLeft" Label="TAIL LEFT" Subtitle="NOSE RIGHT"
+                <div class="korry-group" role="group" aria-label="@T["ofp.pushback.aria"]">
+                    <KorryPushbackButton Arrow="tailLeft" Label="@T["ofp.pushback.tailLeft"]" Subtitle="@T["ofp.pushback.tailLeft.sub"]"
                                          IsActive="@(ActiveWish == PushbackWish.TailLeft)"
-                                         Title="This flight: pick 'Nose Right / Tail Left' when GSX shows the direction menu."
+                                         Title="@T["ofp.pushback.tailLeft.title"]"
                                          OnClick="@(() => Choose(PushbackWish.TailLeft))" />
-                    <KorryPushbackButton Arrow="straight" Label="STRAIGHT" Subtitle="STRAIGHT BACK"
+                    <KorryPushbackButton Arrow="straight" Label="@T["ofp.pushback.straight"]" Subtitle="@T["ofp.pushback.straight.sub"]"
                                          IsActive="@(ActiveWish == PushbackWish.Straight)"
-                                         Title="This flight: pick 'Straight pushback' when GSX shows the direction menu."
+                                         Title="@T["ofp.pushback.straight.title"]"
                                          OnClick="@(() => Choose(PushbackWish.Straight))" />
-                    <KorryPushbackButton Arrow="tailRight" Label="TAIL RIGHT" Subtitle="NOSE LEFT"
+                    <KorryPushbackButton Arrow="tailRight" Label="@T["ofp.pushback.tailRight"]" Subtitle="@T["ofp.pushback.tailRight.sub"]"
                                          IsActive="@(ActiveWish == PushbackWish.TailRight)"
-                                         Title="This flight: pick 'Nose Left / Tail Right' when GSX shows the direction menu."
+                                         Title="@T["ofp.pushback.tailRight.title"]"
                                          OnClick="@(() => Choose(PushbackWish.TailRight))" />
                 </div>
                 @if (_pushback.Choice is { } chosen)
                 {
                     <div class="ofp-gate-status">
                         <span class="fs-chip-dot live" aria-hidden="true"></span>
-                        <span>This flight: @chosen.Spoken (@chosen.Source)</span>
-                        <button type="button" class="btn secondary btn-sm" @onclick="ClearChoice" title="Back to the suggestion">Auto</button>
+                        <span>@T["ofp.pushback.thisFlight", chosen.Spoken, chosen.Source]</span>
+                        <button type="button" class="btn secondary btn-sm" @onclick="ClearChoice" title="@T["ofp.pushback.auto.title"]">@T["ofp.pushback.auto"]</button>
                     </div>
                 }
                 @if (_pushback.Suggestion is { } suggestion)
                 {
                     <div class="field-hint">
-                        Suggested: <strong>@SuggestionWord(suggestion)</strong>@(suggestion.Confidence == PushbackConfidence.Low ? " (lean)" : "")
-                        @(_pushback.Stand is { } st ? $" at {st}" : "")@(_pushback.Runway is { } rw ? $" for runway {rw}" : "") — @suggestion.Reason
+                        @T["ofp.pushback.suggested"] <strong>@SuggestionWord(suggestion)</strong>@(suggestion.Confidence == PushbackConfidence.Low ? T["ofp.pushback.lean"].Value : "")
+                        @(_pushback.Stand is { } st ? T["ofp.pushback.atStand", st].Value : "")@(_pushback.Runway is { } rw ? T["ofp.pushback.forRunway", rw].Value : "") — @suggestion.Reason
                     </div>
                 }
                 else if (_pushback.Stand is { } stand)
                 {
-                    <div class="field-hint">Stand @stand@(_pushback.Runway is { } rw2 ? $", runway {rw2}" : ", no departure runway in the OFP") — no suggestion yet.</div>
+                    <div class="field-hint">@T["ofp.pushback.noSuggestion", stand, _pushback.Runway is { } rw2 ? T["ofp.pushback.standRunway", rw2].Value : T["ofp.pushback.standNoRunway"].Value]</div>
                 }
                 @if (_pushback.Question is not null)
                 {
-                    <div class="field-hint">GSX is asking which way — tell the FO ("tail left", "tail right", "push back facing north") or press a button.</div>
+                    <div class="field-hint">@T["ofp.pushback.asking"]</div>
                 }
-                <div class="ofp-hint ofp-hint-center">Buttons choose for this flight only · default mode: @ModeWord · Settings → GSX → Pushback</div>
+                <div class="ofp-hint ofp-hint-center">@T["ofp.pushback.footer", ModeWord]</div>
                 @* Issue #135: addon airports name up to three directions per stand and the
                    Korry preference cannot reach the third — the live menu card can. *@
-                <GsxMenuCard Hint="When GSX shows 'Select pushback direction' with the stand's own named lines, pick one here — no need to open the GSX window." />
+                <GsxMenuCard Hint="@T["ofp.pushback.menuHint"]" />
             </div>
         </section>
 
         <section class="section ofp-deice">
-            <div class="section-header"><h3 class="section-title">Deice Holdover (HOT)</h3></div>
+            <div class="section-header"><h3 class="section-title">@T["ofp.deice.title"]</h3></div>
             <div class="section-body ofp-deice-body">
                 <div class="ofp-deice-oat">
                     <span class="label-caps">OAT °C</span>
                     <input class="number-input ofp-deice-input" type="number" step="0.5" value="@_deiceOat"
-                           @onchange="OnOatChanged" aria-label="Outside air temperature" />
+                           @onchange="OnOatChanged" aria-label="@T["ofp.deice.oat.aria"]" />
                 </div>
-                <select class="select ofp-deice-select" value="@_deice.Precip" @onchange="OnPrecipChanged" aria-label="Precipitation">
-                    <option value="@HotPrecip.None">No precipitation</option>
-                    <option value="@HotPrecip.ActiveFrost">Active frost</option>
-                    <option value="@HotPrecip.FreezingFog">Freezing fog</option>
-                    <option value="@HotPrecip.Snow">Snow / snow grains</option>
-                    <option value="@HotPrecip.FreezingDrizzleLight">Freezing drizzle (light)</option>
-                    <option value="@HotPrecip.FreezingDrizzleModerate">Freezing drizzle (moderate)</option>
-                    <option value="@HotPrecip.LightFreezingRain">Light freezing rain</option>
-                    <option value="@HotPrecip.RainOnColdSoakedWing">Rain on cold-soaked wing</option>
+                <select class="select ofp-deice-select" value="@_deice.Precip" @onchange="OnPrecipChanged" aria-label="@T["ofp.deice.precip.aria"]">
+                    <option value="@HotPrecip.None">@T["ofp.deice.precip.none"]</option>
+                    <option value="@HotPrecip.ActiveFrost">@T["ofp.deice.precip.activeFrost"]</option>
+                    <option value="@HotPrecip.FreezingFog">@T["ofp.deice.precip.freezingFog"]</option>
+                    <option value="@HotPrecip.Snow">@T["ofp.deice.precip.snow"]</option>
+                    <option value="@HotPrecip.FreezingDrizzleLight">@T["ofp.deice.precip.freezingDrizzleLight"]</option>
+                    <option value="@HotPrecip.FreezingDrizzleModerate">@T["ofp.deice.precip.freezingDrizzleModerate"]</option>
+                    <option value="@HotPrecip.LightFreezingRain">@T["ofp.deice.precip.lightFreezingRain"]</option>
+                    <option value="@HotPrecip.RainOnColdSoakedWing">@T["ofp.deice.precip.rainOnColdSoakedWing"]</option>
                 </select>
                 <div class="ofp-deice-range inset">
-                    <span class="label-caps">Holdover</span>
+                    <span class="label-caps">@T["ofp.deice.holdover"]</span>
                     <span class="figure figure-lg @(_deice.Expired ? "ofp-deice-expired" : "glow")">
                         @if (_deice.Active && _deice.RemainingHighSeconds > 0)
                         {
@@ -298,9 +299,9 @@
                             <text>—</text>
                         }
                     </span>
-                    <span class="ofp-deice-fluid" title="@(string.IsNullOrEmpty(_deice.FluidSource) ? null : $"Fluid from: {_deice.FluidSource}")">Fluid: <span class="mono">@(_deice.Active || _deice.Expired ? _deice.FluidLabel : "—")</span>@if ((_deice.Active || _deice.Expired) && !string.IsNullOrEmpty(_deice.FluidSource)) { <span class="mono"> (@_deice.FluidSource)</span> }</span>
+                    <span class="ofp-deice-fluid" title="@(string.IsNullOrEmpty(_deice.FluidSource) ? null : T["ofp.deice.fluidFrom", _deice.FluidSource].Value)">@T["ofp.deice.fluid"] <span class="mono">@(_deice.Active || _deice.Expired ? _deice.FluidLabel : "—")</span>@if ((_deice.Active || _deice.Expired) && !string.IsNullOrEmpty(_deice.FluidSource)) { <span class="mono"> (@_deice.FluidSource)</span> }</span>
                     <span class="ofp-deice-status @(_deice.Expired ? "ofp-deice-expired" : null)">@_deice.Status</span>
-                    <span class="ofp-deice-note">Immersion only — not for real-world dispatch</span>
+                    <span class="ofp-deice-note">@T["ofp.deice.note"]</span>
                 </div>
             </div>
         </section>
@@ -333,18 +334,18 @@
 
     private string ModeWord => GsxOptionsMonitor.CurrentValue.PushbackPreference switch
     {
-        "ask" => "ask the pilot",
-        "tailLeft" => "always tail left",
-        "tailRight" => "always tail right",
-        "straight" => "always straight",
-        _ => "auto (toward the runway)",
+        "ask" => T["ofp.pushback.mode.ask"].Value,
+        "tailLeft" => T["ofp.pushback.mode.tailLeft"].Value,
+        "tailRight" => T["ofp.pushback.mode.tailRight"].Value,
+        "straight" => T["ofp.pushback.mode.straight"].Value,
+        _ => T["ofp.pushback.mode.auto"].Value,
     };
 
-    private static string SuggestionWord(PushbackSuggestion suggestion) => suggestion.Option.Kind switch
+    private string SuggestionWord(PushbackSuggestion suggestion) => suggestion.Option.Kind switch
     {
-        PushbackOptionKind.Left => "TAIL LEFT",
-        PushbackOptionKind.Right => "TAIL RIGHT",
-        PushbackOptionKind.Straight => "STRAIGHT",
+        PushbackOptionKind.Left => T["ofp.pushback.tailLeft"].Value,
+        PushbackOptionKind.Right => T["ofp.pushback.tailRight"].Value,
+        PushbackOptionKind.Straight => T["ofp.pushback.straight"].Value,
         _ => suggestion.Option.Label,
     };
 

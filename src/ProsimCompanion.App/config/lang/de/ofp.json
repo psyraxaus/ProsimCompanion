@@ -1,0 +1,96 @@
+{
+  "ofp": {
+    "pageTitle": "OFP — ProsimCompanion",
+    "heading": "Operational Flight Plan",
+    "plan": {
+      "title": "Flugplan",
+      "empty": "Kein Flugplan geladen — Start/Ziel im MCDU eingeben oder ein OFP auf der INIT-Seite laden.",
+      "callsign": "Rufzeichen",
+      "flightNumber": "Flugnr.",
+      "origin": "Start",
+      "destination": "Ziel",
+      "fetched": "GELADEN",
+      "hint": "Laden & Überschreibungen auf der INIT-Seite"
+    },
+    "gate": {
+      "title": "Ankunftsgate",
+      "empty": "Lade ein OFP, um ein Gate zuzuweisen.",
+      "placeholder": "GATE",
+      "aria": "Ankunftsgate",
+      "restored": "Aus der letzten Sitzung wiederhergestellt — dieses Gate wurde vor dem Neustart der App bestätigt.",
+      "confirm": "Bestätigen",
+      "cancel": "Abbrechen",
+      "sendNow": "Jetzt senden",
+      "sendNow.title": "Das Gate sofort an GSX und SayIntentions ATC übermitteln",
+      "sent": "Gesendet {0}",
+      "queued": "Vorgemerkt {0} — automatisch im Reiseflug gesendet (oder sofort, wenn der schon erreicht ist)",
+      "stand": "Stand: {0}",
+      "atc": "ATC: {0}",
+      "gsxSend": "GSX-Übermittlung: {0}",
+      "gsx": "GSX: {0}",
+      "variantUnknown": "kein Jetway oder VDGS für diesen Stand bekannt",
+      "variantDetail": "{0} an diesem Stand",
+      "hint": "Bestätigen merkt das Gate für den automatischen Versand im Reiseflug vor (oder sofort, wenn später im Flug bestätigt). Jetzt senden übermittelt sofort an GSX + SayIntentions ATC. Ein bestätigtes Gate überlebt einen App-Neustart."
+    },
+    "weather": {
+      "hint": "SayIntentions · 10 min zwischengespeichert",
+      "refreshing": "Aktualisiere…",
+      "refresh": "Wetter aktualisieren",
+      "departure": "Abflug",
+      "arrival": "Ankunft",
+      "noData": "Keine Daten."
+    },
+    "pushback": {
+      "title": "Pushback-Richtung",
+      "aria": "Pushback-Richtung",
+      "tailLeft": "HECK LINKS",
+      "tailLeft.sub": "NASE RECHTS",
+      "tailLeft.title": "Dieser Flug: 'Nose Right / Tail Left' wählen, wenn GSX das Richtungsmenü zeigt.",
+      "straight": "GERADE",
+      "straight.sub": "GERADE ZURÜCK",
+      "straight.title": "Dieser Flug: 'Straight pushback' wählen, wenn GSX das Richtungsmenü zeigt.",
+      "tailRight": "HECK RECHTS",
+      "tailRight.sub": "NASE LINKS",
+      "tailRight.title": "Dieser Flug: 'Nose Left / Tail Right' wählen, wenn GSX das Richtungsmenü zeigt.",
+      "thisFlight": "Dieser Flug: {0} ({1})",
+      "auto": "Auto",
+      "auto.title": "Zurück zum Vorschlag",
+      "suggested": "Vorschlag:",
+      "lean": " (Tendenz)",
+      "atStand": " an {0}",
+      "forRunway": " für Piste {0}",
+      "standRunway": ", Piste {0}",
+      "standNoRunway": ", keine Startpiste im OFP",
+      "noSuggestion": "Stand {0}{1} — noch kein Vorschlag.",
+      "asking": "GSX fragt nach der Richtung — sag es dem FO (\"tail left\", \"tail right\", \"push back facing north\") oder drücke eine Taste.",
+      "footer": "Tasten wählen nur für diesen Flug · Standardmodus: {0} · Einstellungen → GSX → Pushback",
+      "mode": {
+        "ask": "Piloten fragen",
+        "tailLeft": "immer Heck links",
+        "tailRight": "immer Heck rechts",
+        "straight": "immer gerade",
+        "auto": "auto (Richtung Piste)"
+      },
+      "menuHint": "Zeigt GSX 'Select pushback direction' mit den eigenen benannten Linien des Stands, wähle hier eine — das GSX-Fenster muss nicht geöffnet werden."
+    },
+    "deice": {
+      "title": "Enteisung Holdover (HOT)",
+      "oat.aria": "Außentemperatur",
+      "precip.aria": "Niederschlag",
+      "precip": {
+        "none": "Kein Niederschlag",
+        "activeFrost": "Aktiver Reif",
+        "freezingFog": "Gefrierender Nebel",
+        "snow": "Schnee / Schneegriesel",
+        "freezingDrizzleLight": "Gefrierender Sprühregen (leicht)",
+        "freezingDrizzleModerate": "Gefrierender Sprühregen (mäßig)",
+        "lightFreezingRain": "Leichter gefrierender Regen",
+        "rainOnColdSoakedWing": "Regen auf unterkühltem Flügel"
+      },
+      "holdover": "Holdover",
+      "fluid": "Flüssigkeit:",
+      "fluidFrom": "Flüssigkeit aus: {0}",
+      "note": "Nur zur Immersion — nicht für den realen Flugbetrieb"
+    }
+  }
+}

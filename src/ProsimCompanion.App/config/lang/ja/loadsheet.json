@@ -1,0 +1,41 @@
+{
+  "loadsheet": {
+    "pageTitle": "ロードシート — ProsimCompanion",
+    "heading": "ロードシート",
+    "label": "ロードシート",
+    "title": "プレリム & ファイナル",
+    "actions": {
+      "resending": "再送中…",
+      "resend": "再送",
+      "resetting": "リセット中…",
+      "confirmReset": "リセットを確定",
+      "reset": "リセット"
+    },
+    "std": {
+      "manual": "手動",
+      "fromOfp": "OFP から",
+      "notSet": "未設定",
+      "set": "設定",
+      "clear": "クリア"
+    },
+    "prelim": "PRELIM",
+    "final": "FINAL",
+    "badge": {
+      "received": "受信済み",
+      "error": "エラー",
+      "waiting": "待機中",
+      "pending": "保留"
+    },
+    "empty": {
+      "failed": "ロードシートの生成に失敗しました。ログを確認。",
+      "armed": "自動ロードシート待機中 — {0}。",
+      "waitingForInputs": "入力待ち",
+      "awaiting": "ディスパッチからのロードシートを待っています。"
+    },
+    "card": {
+      "ident": "識別",
+      "received": "受信",
+      "rangeAria": "MACTOW {0} パーセント（{1} から {2} パーセントのスケール）"
+    }
+  }
+}

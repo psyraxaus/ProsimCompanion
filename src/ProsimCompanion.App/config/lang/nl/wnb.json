@@ -1,0 +1,89 @@
+{
+  "wnb": {
+    "pageTitle": "Weight & Balance — ProsimCompanion",
+    "heading": "Weight & Balance",
+    "loading": {
+      "title": "Belading",
+      "closed": "Dicht",
+      "open": "Open",
+      "door": {
+        "notFitted": "N.v.t.",
+        "open": "OPEN",
+        "closed": "DICHT"
+      },
+      "doorsOpen": "Deuren open",
+      "allDoorsClosed": "Alle deuren dicht"
+    },
+    "totals": {
+      "totalPax": "Totaal pax",
+      "zones": "Zones {0} / {1} / {2} / {3} · gepland {4}",
+      "cargoFwd": "Vracht FWD",
+      "cargoAft": "Vracht AFT",
+      "bulk": " · bulk {0}",
+      "fuelInTanks": "Brandstof in tanks",
+      "planned": "gepland {0}"
+    },
+    "max": "max {0}",
+    "simulate": {
+      "open": "Simuleren",
+      "count": "Aantal",
+      "generate": "Genereren",
+      "clear": "Wissen",
+      "hide": "Bediening verbergen",
+      "hint": "Voor cabines zonder boarding; GSX-boarding overschrijft dit.",
+      "generated": "{0} pax gegenereerd.",
+      "generationFailed": "Genereren mislukt — zie logs.",
+      "cleared": "Cabine geleegd.",
+      "clearFailed": "Wissen mislukt — zie logs."
+    },
+    "manifest": {
+      "hide": "▾ Manifest verbergen",
+      "show": "▸ Manifest ({0})",
+      "hint": "Gegenereerd uit het geboekte stoelenplan; dezelfde vlucht houdt dezelfde namen.",
+      "empty": "Nog geen geboekte passagiers — importeer eerst een OFP.",
+      "seat": "STOEL",
+      "name": "NAAM",
+      "zone": "ZONE"
+    },
+    "summary": {
+      "title": "Gewichtsoverzicht",
+      "zfw": "Zero fuel weight (ZFW)",
+      "gw": "Gross weight (GW)",
+      "live": "LIVE",
+      "valid": "geldig {0}",
+      "loadsheet": " · loadsheet {0} {1}%",
+      "syncing": "Synchroniseren…",
+      "sync": "Naar FMS synchroniseren ({0})",
+      "computed": "BEREKEND",
+      "syncFailed": "Sync mislukt — zie logs.",
+      "fmsUpdated": "FMS BIJGEWERKT — ZFW {0} t · ZFWCG {1}% · block {2} t ({3})"
+    },
+    "envelope": {
+      "title": "CG-envelope",
+      "hint": "LIVE leest elke tick de datarefs van het vliegtuig · L/S volgt de laatste loadsheet (final bij voorkeur, anders prelim)",
+      "live": "LIVE",
+      "loadsheet": "L/S",
+      "operationalLimits": "Operationele limieten",
+      "takeoffLimits": "Take-off-limieten",
+      "zfwLimit": "ZFW-limiet"
+    },
+    "breakdown": {
+      "title": "Beladingsoverzicht",
+      "category": "Categorie",
+      "actual": "Actueel",
+      "max": "Max",
+      "status": "Status",
+      "passengers": "Passagiers",
+      "cargoFwd": "Vracht FWD",
+      "cargoAft": "Vracht AFT",
+      "cargoTotal": "Vracht totaal",
+      "fuel": "Brandstof",
+      "grossWeight": "Gross weight",
+      "plan": "plan {0} {1}",
+      "over": "te veel",
+      "empty": "leeg",
+      "vsPlan": "vs plan",
+      "ok": "ok"
+    }
+  }
+}

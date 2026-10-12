@@ -1,0 +1,96 @@
+{
+  "ofp": {
+    "pageTitle": "OFP — ProsimCompanion",
+    "heading": "운항 비행계획",
+    "plan": {
+      "title": "비행계획",
+      "empty": "비행계획이 로드되지 않았습니다 — MCDU에서 출발지/목적지를 입력하거나 INIT 페이지에서 OFP를 가져오세요.",
+      "callsign": "콜사인",
+      "flightNumber": "편명",
+      "origin": "출발지",
+      "destination": "목적지",
+      "fetched": "가져옴",
+      "hint": "가져오기와 덮어쓰기는 INIT 페이지에서"
+    },
+    "gate": {
+      "title": "도착 게이트",
+      "empty": "게이트 배정을 위해 OFP를 로드하세요.",
+      "placeholder": "GATE",
+      "aria": "도착 게이트",
+      "restored": "마지막 세션에서 복원됨 — 이 게이트는 앱 재시작 전에 확인되었습니다.",
+      "confirm": "확인",
+      "cancel": "취소",
+      "sendNow": "지금 보내기",
+      "sendNow.title": "게이트를 GSX와 SayIntentions ATC에 즉시 전송합니다",
+      "sent": "전송됨 {0}",
+      "queued": "대기 중 {0} — 순항 시 자동 전송 (이미 지났으면 즉시)",
+      "stand": "스탠드: {0}",
+      "atc": "ATC: {0}",
+      "gsxSend": "GSX 전송: {0}",
+      "gsx": "GSX: {0}",
+      "variantUnknown": "이 스탠드의 제트웨이/VDGS 정보 없음",
+      "variantDetail": "이 스탠드에 {0}",
+      "hint": "확인은 순항 시 자동 전송을 예약합니다 (비행 중 나중에 확인하면 즉시). 지금 보내기는 GSX + SayIntentions ATC에 즉시 전송합니다. 확인된 게이트는 앱 재시작 후에도 유지됩니다."
+    },
+    "weather": {
+      "hint": "SayIntentions · 10분 캐시",
+      "refreshing": "갱신 중…",
+      "refresh": "기상 갱신",
+      "departure": "출발",
+      "arrival": "도착",
+      "noData": "데이터 없음."
+    },
+    "pushback": {
+      "title": "푸시백 방향",
+      "aria": "푸시백 방향",
+      "tailLeft": "테일 좌",
+      "tailLeft.sub": "노즈 우",
+      "tailLeft.title": "이번 비행: GSX 방향 메뉴에서 'Nose Right / Tail Left'를 선택합니다.",
+      "straight": "직진",
+      "straight.sub": "직진 후진",
+      "straight.title": "이번 비행: GSX 방향 메뉴에서 'Straight pushback'을 선택합니다.",
+      "tailRight": "테일 우",
+      "tailRight.sub": "노즈 좌",
+      "tailRight.title": "이번 비행: GSX 방향 메뉴에서 'Nose Left / Tail Right'를 선택합니다.",
+      "thisFlight": "이번 비행: {0} ({1})",
+      "auto": "자동",
+      "auto.title": "제안으로 돌아가기",
+      "suggested": "제안:",
+      "lean": " (약함)",
+      "atStand": " {0} 스탠드",
+      "forRunway": " 활주로 {0} 방향",
+      "standRunway": ", 활주로 {0}",
+      "standNoRunway": ", OFP에 출발 활주로 없음",
+      "noSuggestion": "스탠드 {0}{1} — 아직 제안 없음.",
+      "asking": "GSX가 방향을 묻고 있습니다 — FO에게 말하거나(\"tail left\", \"tail right\", \"push back facing north\") 버튼을 누르세요.",
+      "footer": "버튼은 이번 비행에만 적용 · 기본 모드: {0} · 설정 → GSX → 푸시백",
+      "mode": {
+        "ask": "파일럿에게 묻기",
+        "tailLeft": "항상 테일 좌",
+        "tailRight": "항상 테일 우",
+        "straight": "항상 직진",
+        "auto": "자동 (활주로 방향)"
+      },
+      "menuHint": "GSX가 'Select pushback direction'에서 스탠드 고유의 이름이 붙은 라인을 보여주면 여기서 하나를 고르세요 — GSX 창을 열 필요가 없습니다."
+    },
+    "deice": {
+      "title": "제빙 홀드오버 (HOT)",
+      "oat.aria": "외기 온도",
+      "precip.aria": "강수",
+      "precip": {
+        "none": "강수 없음",
+        "activeFrost": "활성 서리",
+        "freezingFog": "어는 안개",
+        "snow": "눈 / 싸락눈",
+        "freezingDrizzleLight": "어는 이슬비 (약)",
+        "freezingDrizzleModerate": "어는 이슬비 (중)",
+        "lightFreezingRain": "약한 어는 비",
+        "rainOnColdSoakedWing": "차가운 날개 위의 비"
+      },
+      "holdover": "홀드오버",
+      "fluid": "제빙액:",
+      "fluidFrom": "제빙액 출처: {0}",
+      "note": "몰입용 — 실제 운항에 사용 금지"
+    }
+  }
+}

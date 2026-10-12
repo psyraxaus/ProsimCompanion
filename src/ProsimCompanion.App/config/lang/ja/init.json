@@ -1,0 +1,65 @@
+{
+  "init": {
+    "pageTitle": "EFB INIT — ProsimCompanion",
+    "heading": "EFB INIT",
+    "active": {
+      "title": "Active / Init"
+    },
+    "data": {
+      "title": "データ / 状態"
+    },
+    "status": {
+      "fetching": "取得中…",
+      "uplinkFailed": "アップリンク失敗",
+      "ofpLoaded": "OFP 読み込み済み",
+      "awaitingOfp": "OFP 待ち",
+      "fuelConfirmed": "燃料 {0} KG 確認済み",
+      "fetchedAt": "取得 {0}"
+    },
+    "source": {
+      "manual": "手動"
+    },
+    "fetch": {
+      "contacting": "SIMBRIEF に接続中...",
+      "parsing": "OFP を解析中...",
+      "writing": "FMS に書き込み中...",
+      "noPilotId": "PROSIM に SIMBRIEF パイロット ID がありません — PROSIM EFB で設定してください",
+      "noOfp": "OFP がありません — SIMBRIEF で生成されていますか?",
+      "importFailed": "取得しましたが EFB への取り込みに失敗しました — ログを確認",
+      "syncFailed": "FMS 同期に失敗しました — ログを確認"
+    },
+    "editor": {
+      "clickToOverride": "クリックして上書き",
+      "commit": "上書きを確定 (Enter)",
+      "cancel": "取り消し (Esc)",
+      "invalid": "無効",
+      "outOfRange": "範囲外",
+      "writeFailed": "書き込み失敗"
+    },
+    "actions": {
+      "fetching": "取得中…",
+      "fetchOfp": "OFP を取得",
+      "syncing": "同期中…",
+      "syncToFms": "FMS に同期",
+      "confirming": "確認中…",
+      "reconfirmFuel": "燃料を再確認",
+      "confirmFuel": "燃料を確認",
+      "confirmFuel.title": "ブロック燃料を確認し、給油車（または追加給油）を手配します",
+      "clearing": "消去中…",
+      "clearOverrides": "上書きを消去",
+      "resetting": "リセット中…",
+      "confirmReset": "リセットを確定",
+      "resetFlight": "フライトをリセット（ソフト）",
+      "resetFlight.title": "同じ OFP でこのレグをやり直します: INIT の上書きとロードシートのサイクルを消去し、ProSim EFB はプランを保持します",
+      "unloading": "アンロード中…",
+      "confirmUnload": "アンロードを確定",
+      "unloadOfp": "OFP をアンロード（フル）",
+      "unloadOfp.title": "ProSim EFB から OFP をアンロードし（座席表、乗客、計画燃料と貨物、ロードシート）、フライトサイクルをリセットします — 新しい OFP を取得するまで GSX サービスは呼び出されません"
+    },
+    "reset": {
+      "softDone": "フライトをリセットしました — OFP は保持",
+      "unloadDone": "OFP をアンロードしました — 続けるには新しい OFP を取得",
+      "incomplete": "リセット未完了 — PROSIM が {0} を拒否"
+    }
+  }
+}

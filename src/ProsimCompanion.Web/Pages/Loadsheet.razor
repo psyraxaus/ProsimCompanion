@@ -7,13 +7,15 @@
 @inject ILoadsheetControl LoadsheetControl
 @inject OfpStore Ofp
 @inject DisplayUnitService Units
+@inject IStringLocalizer T
 
 @* Markup and styling ported from Prosim2GSX's web LoadsheetPanel
    (LoadsheetPanel.tsx / LoadsheetPanel.module.css); the store/control seams
-   are ProsimCompanion's own. *@
+   are ProsimCompanion's own. Only this page's chrome is localised — the loadsheet
+   document itself (LoadsheetFormatter, Core) is the ACARS text the aircraft receives. *@
 
-<PageTitle>Loadsheet — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Loadsheet</h1>
+<PageTitle>@T["loadsheet.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["loadsheet.heading"]</h1>
 
 @* Layout (ADR-0011): a hero card with the STD and the actions, then the Prelim and Final
    slot cards side by side as glass sections. *@
@@ -21,15 +23,15 @@
     <section class="section ls-hero">
         <div class="section-body ls-hero-body">
         <div class="ls-hero-main">
-            <span class="label-caps">Loadsheet</span>
-            <span class="ls-title">Prelim &amp; Final</span>
+            <span class="label-caps">@T["loadsheet.label"]</span>
+            <span class="ls-title">@T["loadsheet.title"]</span>
         </div>
         <div class="ls-actions">
             <button type="button" class="btn secondary" disabled="@(_busy is not null)" @onclick="ResendAsync">
-                @(_busy == Busy.Resend ? "RESENDING…" : "RESEND")
+                @(_busy == Busy.Resend ? T["loadsheet.actions.resending"].Value : T["loadsheet.actions.resend"].Value)
             </button>
             <button type="button" class="btn danger" disabled="@(_busy is not null)" @onclick="Reset">
-                @(_busy == Busy.Reset ? "RESETTING…" : _armReset ? "CONFIRM RESET" : "RESET")
+                @(_busy == Busy.Reset ? T["loadsheet.actions.resetting"].Value : _armReset ? T["loadsheet.actions.confirmReset"].Value : T["loadsheet.actions.reset"].Value)
             </button>
         </div>
 
@@ -44,10 +46,10 @@
         @if (_loadsheets.StdOverrideUtc is not null || Ofp.Current?.ScheduledOutUtc is null)
         {
             <input type="time" class="ls-std-input" @bind="_stdDraft" />
-            <button type="button" class="btn secondary" disabled="@(_stdDraft is null)" @onclick="SetStd">Set</button>
+            <button type="button" class="btn secondary" disabled="@(_stdDraft is null)" @onclick="SetStd">@T["loadsheet.std.set"]</button>
             @if (_loadsheets.StdOverrideUtc is not null)
             {
-                <button type="button" class="btn secondary" @onclick="ClearStd">Clear</button>
+                <button type="button" class="btn secondary" @onclick="ClearStd">@T["loadsheet.std.clear"]</button>
             }
         }
     </div>
@@ -57,8 +59,8 @@
     <div class="ls-cards">
         @foreach (var (label, slot, finalErrorBorder) in new[]
         {
-            ("PRELIM", _loadsheets.Prelim, false),
-            ("FINAL", _loadsheets.Final, true),
+            (T["loadsheet.prelim"].Value, _loadsheets.Prelim, false),
+            (T["loadsheet.final"].Value, _loadsheets.Final, true),
         })
         {
             var showData = slot.Status == LoadsheetSlotStatus.Sent;
@@ -82,9 +84,9 @@
                     <div class="ls-empty">
                         @(slot.Status switch
                         {
-                            LoadsheetSlotStatus.Failed => slot.Error ?? "Loadsheet generation failed. See log.",
-                            LoadsheetSlotStatus.Waiting => $"Automatic loadsheet armed — {slot.Error ?? "waiting for inputs"}.",
-                            _ => "Awaiting loadsheet from Dispatch.",
+                            LoadsheetSlotStatus.Failed => slot.Error ?? T["loadsheet.empty.failed"].Value,
+                            LoadsheetSlotStatus.Waiting => T["loadsheet.empty.armed", slot.Error ?? T["loadsheet.empty.waitingForInputs"].Value].Value,
+                            _ => T["loadsheet.empty.awaiting"].Value,
                         })
                     </div>
                 }
@@ -96,9 +98,9 @@
                         <div class="ls-kv-label">TOW</div>
                         @* P2GSX behaviour: metric shows tonnes; pounds shows plain lb. *@
                         <div class="ls-kv-value">@(Units.IsPounds ? Units.Format(slot.TowKg) : $"{slot.TowKg / 1000.0:F1} t")</div>
-                        <div class="ls-kv-label">Ident</div>
+                        <div class="ls-kv-label">@T["loadsheet.card.ident"]</div>
                         <div class="ls-kv-value">EDNO @slot.EditionNumber</div>
-                        <div class="ls-kv-label">Received</div>
+                        <div class="ls-kv-label">@T["loadsheet.card.received"]</div>
                         <div class="ls-kv-value">@(slot.SentAtUtc?.ToLocalTime().ToString("HH:mm:ss") ?? "—")</div>
                     </div>
 
@@ -113,7 +115,7 @@
                             <span>@macMax.ToString("F1", CultureInfo.InvariantCulture)</span>
                         </div>
                         <div class="ls-range-bar" role="img"
-                             aria-label="@($"MACTOW {slot.MacTow:F1} percent on a {macMin:F1} to {macMax:F1} percent scale")">
+                             aria-label="@T["loadsheet.card.rangeAria", $"{slot.MacTow:F1}", $"{macMin:F1}", $"{macMax:F1}"]">
                             <div class="ls-range-marker @(macError ? "ls-range-marker-bad" : "")"
                                  style="left:@MacPercentCss(slot.MacTow, macMin, macMax)"></div>
                         </div>
@@ -137,8 +139,8 @@
         ? manual.ToString("HH:mm") + "Z"
         : Ofp.Current?.ScheduledOutUtc?.ToString("HH:mm") is { } ofpStd ? ofpStd + "Z" : "—";
 
-    private string StdSource => _loadsheets.StdOverrideUtc is not null ? "manual"
-        : Ofp.Current?.ScheduledOutUtc is not null ? "from OFP" : "not set";
+    private string StdSource => _loadsheets.StdOverrideUtc is not null ? T["loadsheet.std.manual"].Value
+        : Ofp.Current?.ScheduledOutUtc is not null ? T["loadsheet.std.fromOfp"].Value : T["loadsheet.std.notSet"].Value;
 
     private void SetStd()
     {
@@ -168,12 +170,12 @@
         _ => "tone-warn",
     };
 
-    private static string BadgeText(LoadsheetSlotStatus status) => status switch
+    private string BadgeText(LoadsheetSlotStatus status) => status switch
     {
-        LoadsheetSlotStatus.Sent => "RECEIVED",
-        LoadsheetSlotStatus.Failed => "ERROR",
-        LoadsheetSlotStatus.Waiting => "WAITING",
-        _ => "PENDING",
+        LoadsheetSlotStatus.Sent => T["loadsheet.badge.received"].Value,
+        LoadsheetSlotStatus.Failed => T["loadsheet.badge.error"].Value,
+        LoadsheetSlotStatus.Waiting => T["loadsheet.badge.waiting"].Value,
+        _ => T["loadsheet.badge.pending"].Value,
     };
 
     /// <summary>Marker position on the card's MAC window, clamped to the bar edges.</summary>

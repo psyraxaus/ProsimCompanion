@@ -1,0 +1,65 @@
+{
+  "init": {
+    "pageTitle": "EFB INIT — ProsimCompanion",
+    "heading": "EFB INIT",
+    "active": {
+      "title": "Active / Init"
+    },
+    "data": {
+      "title": "Data / Status"
+    },
+    "status": {
+      "fetching": "FETCHING…",
+      "uplinkFailed": "UPLINK FAILED",
+      "ofpLoaded": "OFP LOADED",
+      "awaitingOfp": "AWAITING OFP",
+      "fuelConfirmed": "FUEL {0} KG CONFIRMED",
+      "fetchedAt": "FETCHED {0}"
+    },
+    "source": {
+      "manual": "MANUAL"
+    },
+    "fetch": {
+      "contacting": "CONTACTING SIMBRIEF...",
+      "parsing": "PARSING OFP...",
+      "writing": "WRITING TO FMS...",
+      "noPilotId": "NO SIMBRIEF PILOT ID IN PROSIM — SET IT IN THE PROSIM EFB",
+      "noOfp": "NO OFP — IS ONE GENERATED ON SIMBRIEF?",
+      "importFailed": "FETCHED, BUT THE EFB IMPORT FAILED — SEE LOGS",
+      "syncFailed": "FMS SYNC FAILED — SEE LOGS"
+    },
+    "editor": {
+      "clickToOverride": "Click to override",
+      "commit": "Commit override (Enter)",
+      "cancel": "Cancel (Esc)",
+      "invalid": "INVALID",
+      "outOfRange": "OUT OF RANGE",
+      "writeFailed": "WRITE FAILED"
+    },
+    "actions": {
+      "fetching": "FETCHING…",
+      "fetchOfp": "FETCH OFP",
+      "syncing": "SYNCING…",
+      "syncToFms": "SYNC TO FMS",
+      "confirming": "CONFIRMING…",
+      "reconfirmFuel": "RE-CONFIRM FUEL",
+      "confirmFuel": "CONFIRM FUEL",
+      "confirmFuel.title": "Confirm the block fuel and order the fuel truck (or a top-up)",
+      "clearing": "CLEARING…",
+      "clearOverrides": "CLEAR OVERRIDES",
+      "resetting": "RESETTING…",
+      "confirmReset": "CONFIRM RESET",
+      "resetFlight": "RESET FLIGHT (SOFT)",
+      "resetFlight.title": "Restart this leg on the same OFP: clears the INIT overrides and the loadsheet cycle; the ProSim EFB keeps the plan",
+      "unloading": "UNLOADING…",
+      "confirmUnload": "CONFIRM UNLOAD",
+      "unloadOfp": "UNLOAD OFP (FULL)",
+      "unloadOfp.title": "Unload the OFP from the ProSim EFB (seat map, pax, planned fuel and cargo, loadsheets) and reset the flight cycle — no GSX service is called until a new OFP is fetched"
+    },
+    "reset": {
+      "softDone": "FLIGHT RESET — OFP KEPT",
+      "unloadDone": "OFP UNLOADED — FETCH A NEW OFP TO CONTINUE",
+      "incomplete": "RESET INCOMPLETE — PROSIM REFUSED {0}"
+    }
+  }
+}
