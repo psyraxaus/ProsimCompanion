@@ -21,10 +21,6 @@ public static class ExpectedFolders
     public static string SystemDrive
         => (Environment.GetEnvironmentVariable("SystemDrive") ?? "C:") + Path.DirectorySeparatorChar;
 
-    /// <summary><c>%LOCALAPPDATA%\ProsimCompanion</c>: logs, state files, the config tree.</summary>
-    public static string AppState
-        => Path.GetDirectoryName(UserConfigPaths.Root) ?? UserConfigPaths.Root;
-
     /// <summary>The ProSim SDK folder: the same candidates the installer's DetectProSimSdk
     /// probes (installer/ProsimCompanion.iss), as folders.</summary>
     public static IReadOnlyList<string> ProSimSdk()
@@ -63,8 +59,10 @@ public static class ExpectedFolders
     /// <summary>The planned-rotations folder the app seeds.</summary>
     public static IReadOnlyList<string> Rotations() => [UserConfigPaths.Rotations];
 
-    /// <summary>The per-user state folder (day state, tech log, logbook live there by default).</summary>
-    public static IReadOnlyList<string> AppStateFolder() => [AppState];
+    /// <summary><c>%LOCALAPPDATA%\ProsimCompanion</c>: logs, the config tree, and the state
+    /// files (day state, tech log, logbook) by default.</summary>
+    public static IReadOnlyList<string> AppStateFolder()
+        => [Path.GetDirectoryName(UserConfigPaths.Root) ?? UserConfigPaths.Root];
 
     /// <summary>The shipped wear pool's folder beside the exe.</summary>
     public static IReadOnlyList<string> WearPool()

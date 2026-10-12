@@ -89,7 +89,7 @@ public sealed class NativeFilePickerTests
         Assert.Equal(2, ExpectedFolders.VoiceMeeter().Count);
         Assert.NotEmpty(ExpectedFolders.ActiveSky());
         Assert.EndsWith("rotations", ExpectedFolders.Rotations()[0], StringComparison.OrdinalIgnoreCase);
-        Assert.EndsWith("ProsimCompanion", ExpectedFolders.AppState, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith("ProsimCompanion", ExpectedFolders.AppStateFolder()[0], StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
