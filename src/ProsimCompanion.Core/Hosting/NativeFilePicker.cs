@@ -115,23 +115,31 @@ public static class LocalClient
 
             try
             {
-                _hostAddresses = NetworkInterface.GetAllNetworkInterfaces()
+                _hostAddresses = WithLoopback(NetworkInterface.GetAllNetworkInterfaces()
                     .Where(nic => nic.OperationalStatus == OperationalStatus.Up)
                     .SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
-                    .Select(unicast => unicast.Address)
-                    .Append(IPAddress.Loopback)
-                    .Append(IPAddress.IPv6Loopback)
-                    .Distinct()
-                    .ToList();
+                    .Select(unicast => unicast.Address));
             }
             catch (NetworkInformationException)
             {
-                _hostAddresses = [IPAddress.Loopback, IPAddress.IPv6Loopback];
+                _hostAddresses = WithLoopback([]);
             }
 
             _hostAddressesAt = now;
             return _hostAddresses;
         }
+    }
+
+    /// <summary>The pure half of <see cref="HostAddresses"/>: the NIC addresses plus both
+    /// loopbacks, without duplicates — so a test never has to enumerate real adapters.</summary>
+    public static IReadOnlyList<IPAddress> WithLoopback(IEnumerable<IPAddress> unicast)
+    {
+        ArgumentNullException.ThrowIfNull(unicast);
+        return unicast
+            .Append(IPAddress.Loopback)
+            .Append(IPAddress.IPv6Loopback)
+            .Distinct()
+            .ToList();
     }
 
     private static IPAddress Normalize(IPAddress address)

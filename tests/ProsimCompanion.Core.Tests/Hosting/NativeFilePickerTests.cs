@@ -32,11 +32,14 @@ public sealed class NativeFilePickerTests
         => Assert.False(LocalClient.IsLocal(null, Host));
 
     [Fact]
-    public void HostAddresses_always_include_loopback()
+    public void Host_addresses_always_include_both_loopbacks_once()
     {
-        var addresses = LocalClient.HostAddresses();
-        Assert.Contains(IPAddress.Loopback, addresses);
-        Assert.Same(addresses, LocalClient.HostAddresses()); // cached snapshot
+        var lan = IPAddress.Parse("192.168.1.5");
+
+        var addresses = LocalClient.WithLoopback([lan, IPAddress.Loopback, lan]);
+
+        Assert.Equal([lan, IPAddress.Loopback, IPAddress.IPv6Loopback], addresses);
+        Assert.Equal([IPAddress.Loopback, IPAddress.IPv6Loopback], LocalClient.WithLoopback([]));
     }
 
     [Fact]
