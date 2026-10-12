@@ -152,8 +152,8 @@ public static class LocalClient
 /// <summary>Where a dialog should open: the value itself when it is a folder, its parent
 /// folder when it is a file, else the first of the field's expected folders that exists, else
 /// the fallback (the system drive — a folder Windows cannot open makes it pick its last-used
-/// one, which reads as random). Pure apart from the Exists checks, after the
-/// invalid-character gate (Snyk path rule).</summary>
+/// one, which reads as random). Pure apart from the Exists checks, which go through
+/// <see cref="SafePath"/>.</summary>
 public static class PickStart
 {
     /// <summary>The start folder for a field with no expected folders of its own: the
@@ -168,47 +168,23 @@ public static class PickStart
     {
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(fallback);
-        return FromValue(value) ?? expected.FirstOrDefault(SafeDirectoryExists) ?? fallback;
+        return FromValue(value) ?? expected.FirstOrDefault(SafePath.DirectoryExists) ?? fallback;
     }
 
     private static string? FromValue(string? value)
     {
-        var path = (value ?? "").Trim().Trim('"');
-        if (path.Length == 0 || path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+        var path = SafePath.Unquote(value);
+        if (!SafePath.IsWellFormed(path))
         {
             return null;
         }
 
-        try
+        if (SafePath.DirectoryExists(path))
         {
-            if (Directory.Exists(path))
-            {
-                return path;
-            }
-
-            var parent = Path.GetDirectoryName(path);
-            return !string.IsNullOrEmpty(parent) && Directory.Exists(parent) ? parent : null;
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
-    }
-
-    private static bool SafeDirectoryExists(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path) || path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
-        {
-            return false;
+            return path;
         }
 
-        try
-        {
-            return Directory.Exists(path);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or IOException or UnauthorizedAccessException)
-        {
-            return false;
-        }
+        var parent = Path.GetDirectoryName(path);
+        return SafePath.DirectoryExists(parent) ? parent : null;
     }
 }

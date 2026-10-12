@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
+using ProsimCompanion.Core.Hosting;
 using ProsimCompanion.Core.Network;
 
 namespace ProsimCompanion.Web.Components;
@@ -65,8 +66,8 @@ public sealed record FieldProblem(string Message, bool Blocking);
 /// The pure rules behind <see cref="TextFieldKind"/>. Empty is never a problem — every page
 /// hint already says what empty means — and the messages name the expected shape with an
 /// example, so the line under the field is the "what do I type here" the owner asked for.
-/// Path kinds touch the file system (Exists only, after the invalid-character gate; Snyk
-/// path rule) because the web server runs on the PC the paths refer to.
+/// Path kinds touch the file system (Exists only, through <see cref="SafePath"/>) because
+/// the web server runs on the PC the paths refer to.
 /// </summary>
 public static partial class FieldValidation
 {
@@ -160,44 +161,28 @@ public static partial class FieldValidation
     private static FieldProblem? CheckPath(string text, PathTarget target)
     {
         // Explorer's "Copy as path" wraps the path in quotes; the pages strip them on save.
-        var path = text.Trim('"');
+        var path = SafePath.Unquote(text);
         if (path.Length == 0)
         {
             return null;
         }
 
-        if (path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+        var full = SafePath.TryGetFullPath(path, AppContext.BaseDirectory);
+        if (full is null)
         {
             return Block(BadPathMessage);
         }
 
-        string full;
-        try
+        return target switch
         {
-            full = Path.IsPathRooted(path) ? Path.GetFullPath(path) : Path.GetFullPath(path, AppContext.BaseDirectory);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            return Block(BadPathMessage);
-        }
-
-        try
-        {
-            return target switch
-            {
-                PathTarget.File => File.Exists(full) ? null : Warn("File not found on this PC"),
-                PathTarget.Folder => Directory.Exists(full) ? null : Warn("Folder not found on this PC"),
-                PathTarget.FileOrFolder => File.Exists(full) || Directory.Exists(full) ? null : Warn("Not found on this PC"),
-                PathTarget.ParentFolder => Directory.Exists(Path.GetDirectoryName(full) ?? full)
-                    ? null
-                    : Warn("Its folder does not exist on this PC"),
-                _ => null,
-            };
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return Warn("Cannot read that path from this PC");
-        }
+            PathTarget.File => SafePath.FileExists(full) ? null : Warn("File not found on this PC"),
+            PathTarget.Folder => SafePath.DirectoryExists(full) ? null : Warn("Folder not found on this PC"),
+            PathTarget.FileOrFolder => SafePath.FileExists(full) || SafePath.DirectoryExists(full) ? null : Warn("Not found on this PC"),
+            PathTarget.ParentFolder => SafePath.DirectoryExists(Path.GetDirectoryName(full) ?? full)
+                ? null
+                : Warn("Its folder does not exist on this PC"),
+            _ => null,
+        };
     }
 
     private static FieldProblem? CheckFolderList(string text)
@@ -213,7 +198,7 @@ public static partial class FieldValidation
 
             if (problem is not null)
             {
-                missing.Add(entry.Trim('"'));
+                missing.Add(SafePath.Unquote(entry));
             }
         }
 
