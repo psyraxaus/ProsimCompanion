@@ -1,0 +1,232 @@
+{
+  "$language": { "name": "Français" },
+
+  "app": {
+    "reconnect": {
+      "showing": "Connexion à ProsimCompanion perdue — reconnexion…",
+      "failed": "Serveur injoignable — nouvel essai automatique…",
+      "reloadNow": "Recharger maintenant",
+      "rejected": "Session expirée — rechargement…"
+    }
+  },
+
+  "layout": {
+    "brand": {
+      "tagline": "Electronic Flight Bag"
+    },
+    "header": {
+      "aircraft": "Appareil",
+      "registration": "Immatriculation",
+      "nextService": "Service suivant",
+      "nextService.complete": "terminé",
+      "nextService.notStarted": "non démarré",
+      "nextService.titleComplete": "Tous les services de départ sont terminés ou ont été ignorés.",
+      "nextService.titleNotStarted": "La séquence de départ n'a pas encore commencé (elle démarre avec le plan de vol, ou depuis Réglages → Services au sol).",
+      "nextService.titleHolding": "Appeler {0} maintenant, en contournant sa règle d'activation (INT/RAD). En attente : {1}",
+      "nextService.titleNext": "Appeler le service de départ suivant maintenant, en contournant sa règle d'activation (INT/RAD).",
+      "voice": {
+        "title": "Référence vocale — chaque phrase comprise par le FO, l'équipe au sol, l'équipage de cabine et l'ATC",
+        "paused": "En pause",
+        "listening": "À l'écoute",
+        "ready": "Prêt"
+      }
+    },
+    "update": {
+      "newVersion": "Nouvelle version stable",
+      "available": "disponible ! (en cours : {0})",
+      "dismiss": "Masquer l'avis de mise à jour"
+    },
+    "nav": {
+      "pages": "Pages",
+      "flightStatus": "État du vol",
+      "init": "INIT",
+      "ofp": "OFP",
+      "loadsheet": "Devis de masse",
+      "wnb": "W&B",
+      "fuel": "Carburant",
+      "fuelLog": "Journal carb.",
+      "performance": "Performances",
+      "checklists": "Check-lists",
+      "techLog": "Tech Log",
+      "logbook": "Carnet de vol",
+      "dutyDay": "Journée",
+      "settings": "Réglages"
+    },
+    "footer": {
+      "asr": "Reconnaissance vocale (whisper LAN) : {0}",
+      "tts": "Voix (Kokoro) : {0}",
+      "connection": "Connexion {0}",
+      "unknown": "inconnu",
+      "kokoro": {
+        "notInChain": "absent de la chaîne",
+        "healthy": "opérationnel",
+        "failed": "en refroidissement après une panne",
+        "disabled": "désactivé",
+        "unused": "configuré, pas encore utilisé"
+      }
+    }
+  },
+
+  "settings": {
+    "title": "Réglages",
+    "railLabel": "Sections des réglages",
+    "showAdvanced": "Afficher les réglages avancés",
+    "showAdvanced.title": "Révèle les champs de réglage fin (délais, intervalles, seuils) sur chaque page de réglages",
+    "pillarOff": {
+      "gsx": "Les services au sol GSX sont désactivés.",
+      "speech": "Le copilote vocal est désactivé.",
+      "audio": "Le contrôle audio est désactivé.",
+      "turnOn": "Activez-le dans Configuration."
+    },
+    "profileBanner": {
+      "active": "Le profil d'appareil {0} est actif.",
+      "saves": "Enregistrer sur ces pages stocke les réglages des services au sol dans ce profil.",
+      "manage": "Gérer les profils."
+    },
+    "nav": {
+      "setup": "Configuration",
+      "gsx": "Services au sol",
+      "gsx.status": "État",
+      "gsx.doors": "Portes et passerelle",
+      "gsx.equipment": "Équipements au sol",
+      "gsx.departure": "Services de départ",
+      "gsx.refuel": "Avitaillement et embarquement",
+      "gsx.pushback": "Pushback",
+      "gsx.arrival": "Arrivée",
+      "gsx.operators": "Opérateurs et hubs",
+      "gsx.questions": "Questions GSX",
+      "gsx.connection": "Connexion et délais",
+      "speech": "Copilote vocal",
+      "speech.status": "État",
+      "speech.general": "Général",
+      "speech.persona": "Personnalité du FO",
+      "speech.listening": "Écoute et PTT",
+      "speech.sterile": "Cockpit stérile",
+      "speech.voices": "Voix",
+      "speech.groundCrew": "Équipe au sol",
+      "speech.cabin": "Équipage de cabine",
+      "speech.company": "Compagnie et débriefing",
+      "speech.techlog": "Tech Log et carnet de vol",
+      "speech.briefing": "Briefings et LLM",
+      "speech.mcdu": "MCDU",
+      "speech.sayIntentions": "SayIntentions",
+      "speech.callouts": "Annonces et placards",
+      "speech.abnormals": "Anormales et drills",
+      "speech.providers": "Fournisseurs de voix",
+      "audio": "Contrôle audio",
+      "audio.status": "État",
+      "audio.general": "Général",
+      "audio.coreaudio": "CoreAudio",
+      "audio.voicemeeter": "VoiceMeeter",
+      "audio.mixer": "Mixeur distant",
+      "audio.advanced": "Entretien",
+      "app": "Affichage et données de vol",
+      "appearance": "Apparence",
+      "notifications": "Notifications",
+      "profiles": "Profils d'appareil",
+      "advanced": "Avancé",
+      "advanced.flightPhase": "Moteur de phases de vol",
+      "advanced.logs": "Journaux"
+    }
+  },
+
+  "appearance": {
+    "pageTitle": "Apparence — ProsimCompanion",
+    "heading": "Apparence",
+    "language": {
+      "title": "Langue",
+      "hint": "La langue de chaque page, pour chaque navigateur qui ouvre l'application",
+      "label": "Langue",
+      "fieldHint": "S'applique immédiatement, sur le PC du simulateur et la tablette. Les nombres, masses et heures gardent les formats aéronautiques quelle que soit la langue. Le copilote vocal et les journaux restent en anglais.",
+      "packsHint": "Chaque langue est un fichier JSON dans {0}. Ajoutez la vôtre ({1}) ou corrigez-y un texte ; le dossier est relu au prochain affichage de page. Ce qui manque dans une langue s'affiche en anglais.",
+      "auto": "Suivre le navigateur (ici : {0})",
+      "applied": "Langue réglée sur {0}.",
+      "appliedAuto": "La langue suit désormais chaque navigateur."
+    },
+    "theme": {
+      "title": "Thème",
+      "hint": "Cliquez sur un thème pour l'appliquer maintenant. Vos propres thèmes JSON du dossier de configuration utilisateur apparaissent après les thèmes intégrés.",
+      "apply": "Appliquer {0}",
+      "active": "· actif",
+      "logoTitle": "PNG, SVG, JPG ou WEBP jusqu'à 512 Ko — affiché dans l'en-tête tant que ce thème est actif",
+      "addLogo": "Ajouter un logo",
+      "replaceLogo": "Remplacer le logo",
+      "remove": "Retirer",
+      "logosHintBefore": "Les logos sont vos propres fichiers. Ils restent sur ce PC dans",
+      "logosHintAfter": "et ne font jamais partie de l'application ni de l'installateur. L'en-tête affiche le logo du thème actif quand il y en a un.",
+      "applied": "Thème réglé sur {0}."
+    },
+    "header": {
+      "title": "En-tête",
+      "hint": "Ce que la barre du haut affiche sur chaque page",
+      "nextService": {
+        "label": "Afficher le bouton SERVICE SUIVANT dans l'en-tête",
+        "hint": "Appelle le service de départ suivant maintenant — le bouton intelligent INT/RAD, sur chaque page.",
+        "more": "Le bouton nomme le service suivant et la raison de son attente. Il est grisé tant que la séquence de départ n'a pas commencé, et après sa fin. Même action que Réglages → Services au sol → Appeler le service suivant maintenant, le bouton Stream Deck et la commande vocale 'next service'."
+      }
+    },
+    "screen": {
+      "title": "Écran et installation",
+      "hint": "Pour cet appareil seulement — la tablette ou le PC sur lequel vous lisez ceci",
+      "keepAwake": {
+        "label": "Garder l'écran allumé",
+        "hint": "Empêche l'écran de cet appareil de se mettre en veille tant que l'application est ouverte. Mémorisé sur cet appareil seulement.",
+        "needsHttps": "Seule une page sécurisée peut garder l'écran allumé. Ouvrez l'application en HTTPS —",
+        "httpsSetup": "configuration HTTPS",
+        "needsHttpsWhere": "(Configuration → Interface web).",
+        "moreNotSupported": "Ce navigateur n'a pas de Screen Wake Lock. Safari 16.4+, Chrome et Edge l'ont ; une page sécurisée reste nécessaire.",
+        "more": "Le navigateur relâche le verrou quand la page est masquée et l'application le reprend à votre retour. Une batterie faible peut faire refuser le navigateur — la pastille affiche alors DEMANDE jusqu'au prochain essai."
+      },
+      "install": {
+        "label": "Installer comme application",
+        "hint": "Ajoute ProsimCompanion à l'écran d'accueil, en plein écran sans les barres du navigateur.",
+        "more": "iPad : ouvrez l'application dans Safari, touchez Partager, puis « Sur l'écran d'accueil ». Android / Chrome : menu → « Installer l'application ». Pas de mode hors ligne — l'application a besoin du PC du simulateur. Étapes complètes : docs/manual/07-tablet-install.md dans le dossier d'installation."
+      },
+      "installed": "INSTALLÉE",
+      "inBrowser": "DANS LE NAVIGATEUR",
+      "thisDevice": "Cet appareil : {0}",
+      "perAddress": "Le réglage est mémorisé par adresse : activé sur {0}, il ne s'applique pas à {1}. iPadOS ignore tout verrou d'écran en mode économie d'énergie.",
+      "lockDiagnostics": "Diagnostic du verrou",
+      "requestAgain": "Redemander",
+      "wake": {
+        "active": "ACTIF",
+        "requesting": "DEMANDE",
+        "needsHttps": "HTTPS REQUIS",
+        "notSupported": "NON PRIS EN CHARGE",
+        "off": "INACTIF"
+      },
+      "diag": {
+        "requests": "{0} demande(s)",
+        "granted": "accordé {0}",
+        "released": "relâché {0}",
+        "lastRefusal": "dernier refus {0} : {1}",
+        "osOverride": "Si l'écran se met quand même en veille avec la pastille ACTIF et sans relâchement affiché, le système a outrepassé le verrou (économie d'énergie, Accès guidé ou une limite Temps d'écran)."
+      },
+      "device": {
+        "generic": "appareil",
+        "line": "{0} sur {1} · {2} · {3}",
+        "standalone": "autonome",
+        "browserTab": "onglet du navigateur"
+      }
+    },
+    "airline": {
+      "title": "Logos de compagnies",
+      "hint": "Pour le tableau Flight Monitor détaché — selon le code compagnie du plan de vol",
+      "code": "Code OACI de la compagnie",
+      "logoTitle": "PNG, SVG, JPG ou WEBP jusqu'à 512 Ko — affiché sur le Flight Monitor quand la compagnie de l'OFP correspond",
+      "addLogo": "Ajouter un logo",
+      "none": "Aucun logo de compagnie pour l'instant. Saisissez le code OACI de la compagnie (celui affiché par SimBrief, p. ex. KLM, BAW, DLH) et ajoutez son logo.",
+      "remove": "Retirer",
+      "storedBefore": "Stockés dans",
+      "storedAfter": ", jamais dans l'application. Le Flight Monitor affiche le logo dont le code égale le code compagnie de l'OFP ; sans logo, il affiche le code lui-même.",
+      "codeFirst": "Saisissez d'abord le code de 2 à 4 caractères de la compagnie (p. ex. KLM).",
+      "nothingToRemove": "Rien à retirer."
+    },
+    "logo": {
+      "saved": "Logo de {0} enregistré.",
+      "notSaved": "Logo de {0} non enregistré : {1}",
+      "removed": "Logo de {0} retiré.",
+      "none": "{0} n'a pas de logo."
+    }
+  }
+}

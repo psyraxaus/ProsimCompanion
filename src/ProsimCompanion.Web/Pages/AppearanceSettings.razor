@@ -11,10 +11,17 @@
 @inject SettingsWriter Writer
 @inject ILogger<AppearanceSettings> Logger
 @inject IJSRuntime JS
+@inject IStringLocalizer T
+@inject UiLanguageStore UiLanguage
+@inject LanguagePackCatalog Languages
+@inject BrowserLanguageContext Browser
 @using Microsoft.JSInterop
+@using Microsoft.Extensions.Localization
+@using ProsimCompanion.Core.Localization
+@using ProsimCompanion.Web.Localization
 
-<PageTitle>Appearance — ProsimCompanion</PageTitle>
-<h1 class="sr-only">Appearance</h1>
+<PageTitle>@T["appearance.pageTitle"]</PageTitle>
+<h1 class="sr-only">@T["appearance.heading"]</h1>
 
 @* Owner decision 2026-09-20: the header theme picker moved here. A click applies the theme
    at once and writes webUi.theme to settings.json (the same option, no second store). The
@@ -22,7 +29,26 @@
    trademarks, so the app ships none and the installer refuses to (build-installer.ps1). *@
 
 <div class="panel" style="padding-bottom:24px;">
-    <Section Title="Theme" Hint="Click a theme to apply it now. Your own JSON themes in the user config folder appear after the built-in ones.">
+    @* UI language (ADR-0014, owner decision 2026-10-13: here beside the theme, not in the
+       footer). Applies at once like the theme — the store re-renders every open browser.
+       Empty = follow each browser's own language; the auto option names what that gives
+       on THIS browser so the pilot sees why the page reads the way it does. *@
+    <Section Title="@T["appearance.language.title"]" Hint="@T["appearance.language.hint"]">
+        @if (_languageMessage is not null)
+        {
+            <div class="field-hint" style="margin-bottom:8px;">@_languageMessage</div>
+        }
+        <SelectField Label="@T["appearance.language.label"]"
+                     Hint="@T["appearance.language.fieldHint"]"
+                     Value="@UiLanguage.Configured"
+                     ValueChanged="SetLanguage"
+                     Options="LanguageOptions" />
+        <div class="field-hint" style="margin-top:12px; max-width:640px;">
+            @T["appearance.language.packsHint", UserConfigPaths.Languages, "pt-BR.json"]
+        </div>
+    </Section>
+
+    <Section Title="@T["appearance.theme.title"]" Hint="@T["appearance.theme.hint"]">
         @if (_message is not null)
         {
             <div class="field-hint" style="margin-bottom:8px;">@_message</div>
@@ -34,7 +60,7 @@
                 var active = string.Equals(name, ActiveThemeName, StringComparison.OrdinalIgnoreCase);
                 var logoSlug = Logos.FindFile(name) is null ? null : ThemeLogoStore.Slug(name);
                 <div class="theme-swatch @(active ? "active" : null)">
-                    <button type="button" class="theme-swatch-pick" title="Apply @name" @onclick="() => Apply(name)">
+                    <button type="button" class="theme-swatch-pick" title="@T["appearance.theme.apply", name]" @onclick="() => Apply(name)">
                         <span class="swatch-bars" aria-hidden="true">
                             <span style="background:@theme.Colors.HeaderBackground"></span>
                             <span style="background:@theme.Colors.ContentBackground"></span>
@@ -42,38 +68,38 @@
                             <span style="background:@theme.Colors.PrimaryColor"></span>
                             <span style="background:@theme.Colors.AccentColor"></span>
                         </span>
-                        <span class="swatch-name">@name @(active ? "· active" : "")</span>
+                        <span class="swatch-name">@name @(active ? T["appearance.theme.active"].Value : "")</span>
                     </button>
                     @if (logoSlug is not null)
                     {
                         <img class="swatch-logo" src="api/theme-logo/@(logoSlug)?v=@Logos.Version" alt="@name logo" />
                     }
                     <div class="swatch-actions">
-                        <label class="btn secondary" title="PNG, SVG, JPG or WEBP up to 512 KB — shown in the header while this theme is active">
-                            @(logoSlug is null ? "Add logo" : "Replace logo")
+                        <label class="btn secondary" title="@T["appearance.theme.logoTitle"]">
+                            @(logoSlug is null ? T["appearance.theme.addLogo"].Value : T["appearance.theme.replaceLogo"].Value)
                             <InputFile accept=".png,.svg,.jpg,.jpeg,.webp" OnChange="args => UploadAsync(name, args)" />
                         </label>
                         @if (logoSlug is not null)
                         {
-                            <button type="button" class="btn secondary" @onclick="() => RemoveLogo(name)">Remove</button>
+                            <button type="button" class="btn secondary" @onclick="() => RemoveLogo(name)">@T["appearance.theme.remove"]</button>
                         }
                     </div>
                 </div>
             }
         </div>
         <div class="field-hint" style="margin-top:12px; max-width:640px;">
-            Logos are your own files. They stay on this PC in
-            <code>%LOCALAPPDATA%\ProsimCompanion\config\themes\logos</code> and are never part of the app or
-            the installer. The header shows the active theme's logo when one is set.
+            @T["appearance.theme.logosHintBefore"]
+            <code>%LOCALAPPDATA%\ProsimCompanion\config\themes\logos</code>
+            @T["appearance.theme.logosHintAfter"]
         </div>
     </Section>
 
     @* Header extras (issue #133): the NEXT SERVICE button for home cockpits that do not use
        the INT/RAD switch. Applies at once, like the theme — no dirty bar. *@
-    <Section Title="Header" Hint="What the top bar shows on every page">
-        <BoolField Label="Show NEXT SERVICE button in the header"
-                   Hint="Calls the next departure service now — the INT/RAD smart button, on every page."
-                   More="The button names the next service and why it is holding. It is greyed until the departure sequence has started, and after it completes. Same action as Settings → Ground Services → Call next service now, the Stream Deck key and the voice command 'next service'."
+    <Section Title="@T["appearance.header.title"]" Hint="@T["appearance.header.hint"]">
+        <BoolField Label="@T["appearance.header.nextService.label"]"
+                   Hint="@T["appearance.header.nextService.hint"]"
+                   More="@T["appearance.header.nextService.more"]"
                    Value="@WebUi.CurrentValue.ShowNextServiceInHeader"
                    ValueChanged="SetShowNextService" />
     </Section>
@@ -81,16 +107,16 @@
     @* Screen keep-awake and the installable app (issue #150, ADR-0013, design A). Per DEVICE:
        the choice lives in this browser's localStorage, not in settings.json — whether a
        tablet's screen stays on is that tablet's business. The state pill is live from app.js. *@
-    <Section Title="Screen &amp; Install" Hint="For this device only — the tablet or PC you are reading this on">
+    <Section Title="@T["appearance.screen.title"]" Hint="@T["appearance.screen.hint"]">
         <div class="field">
             <label class="field-label" for="keep-awake">
-                Keep the screen awake
+                @T["appearance.screen.keepAwake.label"]
                 <span class="pill @WakeTone" style="margin-left:10px; vertical-align:middle;">@WakeLabel</span>
-                <FieldHint Hint="Stops this device's screen from sleeping while the app is open. Stored on this device only."
+                <FieldHint Hint="@T["appearance.screen.keepAwake.hint"]"
                            More="@WakeMore" />
                 @if (_wake?.State == "needs-https")
                 {
-                    <div class="field-hint">Only a secure page can keep the screen awake. Open the app over HTTPS — <a href="settings">HTTPS setup</a> (Setup → Web Interface).</div>
+                    <div class="field-hint">@T["appearance.screen.keepAwake.needsHttps"] <a href="settings">@T["appearance.screen.keepAwake.httpsSetup"]</a> @T["appearance.screen.keepAwake.needsHttpsWhere"]</div>
                 }
             </label>
             <div class="field-control">
@@ -100,50 +126,50 @@
         </div>
         <div class="field">
             <label class="field-label">
-                Install as an app
-                <FieldHint Hint="Add ProsimCompanion to the home screen for a full-screen app without the browser bars."
-                           More="iPad: open the app in Safari, tap Share, then 'Add to Home Screen'. Android / Chrome: menu → 'Install app'. There is no offline mode — the app needs the sim PC. Full steps: docs/manual/07-tablet-install.md in the install folder." />
+                @T["appearance.screen.install.label"]
+                <FieldHint Hint="@T["appearance.screen.install.hint"]"
+                           More="@T["appearance.screen.install.more"]" />
             </label>
             <div class="field-control">
-                <span class="pill @(_wake?.Standalone == true ? "tone-ok" : "tone-neutral")">@(_wake?.Standalone == true ? "INSTALLED" : "IN BROWSER")</span>
+                <span class="pill @(_wake?.Standalone == true ? "tone-ok" : "tone-neutral")">@(_wake?.Standalone == true ? T["appearance.screen.installed"].Value : T["appearance.screen.inBrowser"].Value)</span>
             </div>
         </div>
         @if (_wake is not null)
         {
-            <div class="field-hint label-caps" style="margin-top:4px;">This device: @DeviceLine</div>
+            <div class="field-hint label-caps" style="margin-top:4px;">@T["appearance.screen.thisDevice", DeviceLine]</div>
             <div class="field-hint" style="margin-top:2px; user-select:all;">@ViewportLine</div>
             <div class="field-hint" style="margin-top:6px;">
-                The switch is stored per address: on at <code>https://…:5321</code> does not carry over from <code>http://…:5320</code>. iPadOS ignores every wake lock in <strong>Low Power Mode</strong>.
+                @T["appearance.screen.perAddress", "https://…:5321", "http://…:5320"]
             </div>
             @if (_wake.Wanted)
             {
                 <div class="field" style="align-items:center; margin-top:4px;">
                     <label class="field-label">
-                        Lock diagnostics
+                        @T["appearance.screen.lockDiagnostics"]
                         <FieldHint Hint="@WakeDiagnostics" />
                     </label>
                     <div class="field-control">
-                        <button type="button" class="btn secondary" style="padding:4px 10px;" @onclick="RetryWake">Request again</button>
+                        <button type="button" class="btn secondary" style="padding:4px 10px;" @onclick="RetryWake">@T["appearance.screen.requestAgain"]</button>
                     </div>
                 </div>
             }
         }
     </Section>
 
-    @* Airline logos for the pop-out Flight Monitor (owner request 2026-09-23): keyed by the
+    @* Airline logos for the pop-out Flight Monitor (owner request 2026-09-23): matched by the
        OFP's ICAO airline code so the board shows the right mark whatever theme is active. *@
-    <Section Title="Airline logos" Hint="For the pop-out Flight Monitor board — matched to the flight plan's airline code">
+    <Section Title="@T["appearance.airline.title"]" Hint="@T["appearance.airline.hint"]">
         @if (_airlineMessage is not null)
         {
             <div class="field-hint" style="margin-bottom:8px;">@_airlineMessage</div>
         }
         <div class="airline-logo-add">
-            <label class="field-label" for="airline-code">Airline ICAO code</label>
+            <label class="field-label" for="airline-code">@T["appearance.airline.code"]</label>
             <input id="airline-code" class="number-input mono" style="width:6em; text-transform:uppercase;" maxlength="4"
                    placeholder="KLM" @bind="_airlineCode" @bind:event="oninput" />
             <label class="btn secondary @(AirlineLogoStore.Slug(_airlineCode) is null ? "disabled" : null)"
-                   title="PNG, SVG, JPG or WEBP up to 512 KB — shown on the Flight Monitor when the OFP's airline matches">
-                Add logo
+                   title="@T["appearance.airline.logoTitle"]">
+                @T["appearance.airline.addLogo"]
                 <InputFile accept=".png,.svg,.jpg,.jpeg,.webp" OnChange="UploadAirlineAsync" disabled="@(AirlineLogoStore.Slug(_airlineCode) is null)" />
             </label>
         </div>
@@ -152,7 +178,7 @@
         }
         @if (airlineSlugs.Count == 0)
         {
-            <div class="field-hint">No airline logos yet. Type the airline's ICAO code (the one SimBrief shows, e.g. KLM, BAW, DLH) and add its logo.</div>
+            <div class="field-hint">@T["appearance.airline.none"]</div>
         }
         else
         {
@@ -163,15 +189,14 @@
                         <div class="swatch-name" style="padding:8px 10px 0;">@slug.ToUpperInvariant()</div>
                         <img class="swatch-logo" src="api/airline-logo/@(slug)?v=@AirlineLogos.Files.Version" alt="@slug logo" />
                         <div class="swatch-actions">
-                            <button type="button" class="btn secondary" @onclick="() => RemoveAirlineLogo(slug)">Remove</button>
+                            <button type="button" class="btn secondary" @onclick="() => RemoveAirlineLogo(slug)">@T["appearance.airline.remove"]</button>
                         </div>
                     </div>
                 }
             </div>
         }
         <div class="field-hint" style="margin-top:12px; max-width:640px;">
-            Stored in <code>%LOCALAPPDATA%\ProsimCompanion\config\themes\logos\airlines</code>, never part of the app.
-            The Flight Monitor shows the logo whose code equals the OFP's airline code; without one it shows the code itself.
+            @T["appearance.airline.storedBefore"] <code>%LOCALAPPDATA%\ProsimCompanion\config\themes\logos\airlines</code>@T["appearance.airline.storedAfter"]
         </div>
     </Section>
 </div>
@@ -207,23 +232,23 @@
                 return "";
             }
 
-            var parts = new List<string> { $"{_wake.Attempts} request(s)" };
+            var parts = new List<string> { T["appearance.screen.diag.requests", _wake.Attempts] };
             if (_wake.AcquiredAt is { } got)
             {
-                parts.Add($"granted {got}");
+                parts.Add(T["appearance.screen.diag.granted", got]);
             }
 
             if (_wake.ReleasedAt is { } let)
             {
-                parts.Add($"released {let}");
+                parts.Add(T["appearance.screen.diag.released", let]);
             }
 
             if (_wake.LastError is { } err)
             {
-                parts.Add($"last refusal {_wake.LastErrorAt}: {err}");
+                parts.Add(T["appearance.screen.diag.lastRefusal", _wake.LastErrorAt ?? "", err]);
             }
 
-            return string.Join(" · ", parts) + ". If the screen still sleeps with the pill ACTIVE and no release shown, the OS overrode the lock (Low Power Mode, or Guided Access / a Screen Time limit).";
+            return string.Join(" · ", parts) + ". " + T["appearance.screen.diag.osOverride"];
         }
     }
 
@@ -238,12 +263,12 @@
 
     private string WakeLabel => _wake?.State switch
     {
-        "active" => "ACTIVE",
-        "requesting" => "REQUESTING",
-        "needs-https" => "NEEDS HTTPS",
-        "not-supported" => "NOT SUPPORTED",
+        "active" => T["appearance.screen.wake.active"].Value,
+        "requesting" => T["appearance.screen.wake.requesting"].Value,
+        "needs-https" => T["appearance.screen.wake.needsHttps"].Value,
+        "not-supported" => T["appearance.screen.wake.notSupported"].Value,
         null => "…",
-        _ => "OFF",
+        _ => T["appearance.screen.wake.off"].Value,
     };
 
     private string WakeTone => _wake?.State switch
@@ -256,8 +281,8 @@
 
     private string WakeMore => _wake?.State switch
     {
-        "not-supported" => "This browser has no Screen Wake Lock. Safari 16.4+, Chrome and Edge have it; a secure page is still required.",
-        _ => "The browser drops the lock when the page is hidden and the app takes it again when you come back. A low battery can make the browser refuse — the pill then reads REQUESTING until the next try.",
+        "not-supported" => T["appearance.screen.keepAwake.moreNotSupported"].Value,
+        _ => T["appearance.screen.keepAwake.more"].Value,
     };
 
     private string DeviceLine
@@ -276,13 +301,49 @@
             var device = ua.Contains("iPad", StringComparison.Ordinal) || (ua.Contains("Macintosh", StringComparison.Ordinal) && ua.Contains("Mobile", StringComparison.Ordinal)) ? "iPad"
                 : ua.Contains("iPhone", StringComparison.Ordinal) ? "iPhone"
                 : ua.Contains("Android", StringComparison.Ordinal) ? "Android"
-                : ua.Contains("Windows", StringComparison.Ordinal) ? "Windows" : "device";
-            return $"{browser} on {device} · {_wake.Scheme} · {(_wake.Standalone ? "standalone" : "browser tab")}";
+                : ua.Contains("Windows", StringComparison.Ordinal) ? "Windows" : T["appearance.screen.device.generic"].Value;
+            return T["appearance.screen.device.line", browser, device, _wake.Scheme,
+                _wake.Standalone ? T["appearance.screen.device.standalone"].Value : T["appearance.screen.device.browserTab"].Value];
         }
+    }
+
+    // ---- UI language (ADR-0014)
+    private string? _languageMessage;
+
+    /// <summary>"Follow the browser (what that gives here)" first, then every pack by its own
+    /// name — a pilot who cannot read the current language still finds theirs.</summary>
+    private IReadOnlyList<(string Value, string Label)> LanguageOptions
+    {
+        get
+        {
+            var auto = Languages.Find(Languages.Resolve(null, Browser.Languages));
+            var options = new List<(string, string)>
+            {
+                ("", T["appearance.language.auto", auto?.NativeName ?? LanguagePackCatalog.DefaultCode]),
+            };
+            options.AddRange(Languages.Packs.Select(pack => (pack.Code, pack.NativeName)));
+            return options;
+        }
+    }
+
+    private void SetLanguage(string code)
+    {
+        if (string.Equals(code, UiLanguage.Configured, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        UiLanguage.Set(code);
+        // Read AFTER the switch so the confirmation is in the new language.
+        var name = Languages.Find(code)?.NativeName;
+        _languageMessage = name is null ? T["appearance.language.appliedAuto"] : T["appearance.language.applied", name];
     }
 
     protected override void OnInitialized()
     {
+        // The Appearance page is where packs get edited; re-read the folder on every open.
+        Languages.Refresh();
+        Watch(UiLanguage, _ => { });
         WatchChanged(h => Logos.Changed += h, h => Logos.Changed -= h, () => { });
         // The header toggle writes settings.json and the option reloads a beat later — the
         // checkbox must follow the reloaded value, not the pre-click one.
@@ -364,7 +425,7 @@
         if (!string.Equals(name, WebUi.CurrentValue.Theme, StringComparison.Ordinal))
         {
             Writer.Set<WebUiOptions, string>(o => o.Theme, name);
-            _message = $"Theme set to {name}.";
+            _message = T["appearance.theme.applied", name];
         }
     }
 
@@ -377,20 +438,20 @@
         {
             await using var stream = args.File.OpenReadStream(ThemeLogoStore.MaxBytes);
             await Logos.SaveAsync(themeName, args.File.Name, stream, CancellationToken.None);
-            _message = $"Logo for {themeName} saved.";
+            _message = T["appearance.logo.saved", themeName];
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
         {
             // OpenReadStream throws IOException past the size cap; the store names the format
             // and size rules itself. Either way the pilot reads why, not a stack trace.
-            _message = $"Logo for {themeName} not saved: {ex.Message}";
+            _message = T["appearance.logo.notSaved", themeName, ex.Message];
             Logger.LogWarning(ex, "Theme logo upload for {Theme} rejected", themeName);
         }
     }
 
     private void RemoveLogo(string themeName)
     {
-        _message = Logos.Remove(themeName) ? $"Logo for {themeName} removed." : $"{themeName} has no logo.";
+        _message = Logos.Remove(themeName) ? T["appearance.logo.removed", themeName] : T["appearance.logo.none", themeName];
     }
 
     private string _airlineCode = "";
@@ -401,7 +462,7 @@
         var code = _airlineCode.Trim().ToUpperInvariant();
         if (AirlineLogoStore.Slug(code) is null)
         {
-            _airlineMessage = "Type the airline's 2–4 character code first (e.g. KLM).";
+            _airlineMessage = T["appearance.airline.codeFirst"];
             return;
         }
 
@@ -409,18 +470,18 @@
         {
             await using var stream = args.File.OpenReadStream(ThemeLogoStore.MaxBytes);
             await AirlineLogos.Files.SaveAsync(code, args.File.Name, stream, CancellationToken.None);
-            _airlineMessage = $"Logo for {code} saved.";
+            _airlineMessage = T["appearance.logo.saved", code];
             _airlineCode = "";
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
         {
-            _airlineMessage = $"Logo for {code} not saved: {ex.Message}";
+            _airlineMessage = T["appearance.logo.notSaved", code, ex.Message];
             Logger.LogWarning(ex, "Airline logo upload for {Airline} rejected", code);
         }
     }
 
     private void RemoveAirlineLogo(string slug)
     {
-        _airlineMessage = AirlineLogos.Files.Remove(slug) ? $"Logo {slug.ToUpperInvariant()} removed." : "Nothing to remove.";
+        _airlineMessage = AirlineLogos.Files.Remove(slug) ? T["appearance.logo.removed", slug.ToUpperInvariant()] : T["appearance.airline.nothingToRemove"];
     }
 }

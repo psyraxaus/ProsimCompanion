@@ -1,0 +1,232 @@
+{
+  "$language": { "name": "Deutsch" },
+
+  "app": {
+    "reconnect": {
+      "showing": "Verbindung zu ProsimCompanion verloren — Verbindung wird wiederhergestellt…",
+      "failed": "Server nicht erreichbar — automatischer Neuversuch…",
+      "reloadNow": "Jetzt neu laden",
+      "rejected": "Sitzung abgelaufen — wird neu geladen…"
+    }
+  },
+
+  "layout": {
+    "brand": {
+      "tagline": "Electronic Flight Bag"
+    },
+    "header": {
+      "aircraft": "Flugzeug",
+      "registration": "Kennzeichen",
+      "nextService": "Nächster Dienst",
+      "nextService.complete": "abgeschlossen",
+      "nextService.notStarted": "nicht gestartet",
+      "nextService.titleComplete": "Alle Abflugdienste sind abgeschlossen oder wurden übersprungen.",
+      "nextService.titleNotStarted": "Die Abflugsequenz hat noch nicht begonnen (sie startet mit dem Flugplan oder unter Einstellungen → Bodendienste).",
+      "nextService.titleHolding": "{0} jetzt rufen und die Aktivierungsregel übergehen (INT/RAD). Wartet auf: {1}",
+      "nextService.titleNext": "Den nächsten Abflugdienst jetzt rufen und seine Aktivierungsregel übergehen (INT/RAD).",
+      "voice": {
+        "title": "Sprachreferenz — jeder Satz, den FO, Bodencrew, Kabinencrew und ATC verstehen",
+        "paused": "Pausiert",
+        "listening": "Hört zu",
+        "ready": "Bereit"
+      }
+    },
+    "update": {
+      "newVersion": "Neue stabile Version",
+      "available": "verfügbar! (aktuell {0})",
+      "dismiss": "Update-Hinweis ausblenden"
+    },
+    "nav": {
+      "pages": "Seiten",
+      "flightStatus": "Flugstatus",
+      "init": "INIT",
+      "ofp": "OFP",
+      "loadsheet": "Loadsheet",
+      "wnb": "W&B",
+      "fuel": "Kraftstoff",
+      "fuelLog": "Kraftstofflog",
+      "performance": "Performance",
+      "checklists": "Checklisten",
+      "techLog": "Tech Log",
+      "logbook": "Logbuch",
+      "dutyDay": "Diensttag",
+      "settings": "Einstellungen"
+    },
+    "footer": {
+      "asr": "Spracherkennung (LAN-Whisper): {0}",
+      "tts": "Stimme (Kokoro): {0}",
+      "connection": "{0}-Verbindung",
+      "unknown": "unbekannt",
+      "kokoro": {
+        "notInChain": "nicht in der Kette",
+        "healthy": "in Ordnung",
+        "failed": "Abkühlphase nach einem Fehler",
+        "disabled": "deaktiviert",
+        "unused": "konfiguriert, noch nicht benutzt"
+      }
+    }
+  },
+
+  "settings": {
+    "title": "Einstellungen",
+    "railLabel": "Einstellungsbereiche",
+    "showAdvanced": "Erweiterte Einstellungen anzeigen",
+    "showAdvanced.title": "Die Feinabstimmungsfelder (Timeouts, Intervalle, Schwellen) auf jeder Einstellungsseite einblenden",
+    "pillarOff": {
+      "gsx": "Die GSX-Bodendienste sind ausgeschaltet.",
+      "speech": "Der Sprach-Erste-Offizier ist ausgeschaltet.",
+      "audio": "Die Audiosteuerung ist ausgeschaltet.",
+      "turnOn": "Unter Einrichtung einschalten."
+    },
+    "profileBanner": {
+      "active": "Flugzeugprofil {0} ist aktiv.",
+      "saves": "Speichern auf diesen Seiten legt die Bodendienst-Einstellungen in diesem Profil ab.",
+      "manage": "Profile verwalten."
+    },
+    "nav": {
+      "setup": "Einrichtung",
+      "gsx": "Bodendienste",
+      "gsx.status": "Status",
+      "gsx.doors": "Türen & Fluggastbrücke",
+      "gsx.equipment": "Bodengeräte",
+      "gsx.departure": "Abflugdienste",
+      "gsx.refuel": "Betankung & Boarding",
+      "gsx.pushback": "Pushback",
+      "gsx.arrival": "Ankunft",
+      "gsx.operators": "Betreiber & Hubs",
+      "gsx.questions": "GSX-Fragen",
+      "gsx.connection": "Verbindung & Timeouts",
+      "speech": "Sprach-Erster-Offizier",
+      "speech.status": "Status",
+      "speech.general": "Allgemein",
+      "speech.persona": "FO-Persönlichkeit",
+      "speech.listening": "Zuhören & PTT",
+      "speech.sterile": "Sterile Cockpit",
+      "speech.voices": "Stimmen",
+      "speech.groundCrew": "Bodencrew",
+      "speech.cabin": "Kabinencrew",
+      "speech.company": "Company & Debriefing",
+      "speech.techlog": "Tech Log & Logbuch",
+      "speech.briefing": "Briefings & LLM",
+      "speech.mcdu": "MCDU",
+      "speech.sayIntentions": "SayIntentions",
+      "speech.callouts": "Callouts & Placards",
+      "speech.abnormals": "Abnormals & Drills",
+      "speech.providers": "Stimmanbieter",
+      "audio": "Audiosteuerung",
+      "audio.status": "Status",
+      "audio.general": "Allgemein",
+      "audio.coreaudio": "CoreAudio",
+      "audio.voicemeeter": "VoiceMeeter",
+      "audio.mixer": "Remote-Mixer",
+      "audio.advanced": "Wartung",
+      "app": "Anzeige & Flugdaten",
+      "appearance": "Darstellung",
+      "notifications": "Benachrichtigungen",
+      "profiles": "Flugzeugprofile",
+      "advanced": "Erweitert",
+      "advanced.flightPhase": "Flugphasen-Engine",
+      "advanced.logs": "Protokolle"
+    }
+  },
+
+  "appearance": {
+    "pageTitle": "Darstellung — ProsimCompanion",
+    "heading": "Darstellung",
+    "language": {
+      "title": "Sprache",
+      "hint": "Die Sprache jeder Seite, für jeden Browser, der die App öffnet",
+      "label": "Sprache",
+      "fieldHint": "Gilt sofort, auf dem Sim-PC und dem Tablet. Zahlen, Gewichte und Zeiten behalten die Luftfahrtformate, egal welche Sprache. Der Sprach-Erste-Offizier und die Protokolle bleiben Englisch.",
+      "packsHint": "Jede Sprache ist eine JSON-Datei in {0}. Füge eine eigene hinzu ({1}) oder korrigiere dort einen Text; der Ordner wird beim nächsten Seitenaufbau neu gelesen. Was einer Sprache fehlt, erscheint auf Englisch.",
+      "auto": "Dem Browser folgen (hier: {0})",
+      "applied": "Sprache auf {0} gesetzt.",
+      "appliedAuto": "Die Sprache folgt jetzt jedem Browser."
+    },
+    "theme": {
+      "title": "Design",
+      "hint": "Klicke auf ein Design, um es sofort anzuwenden. Eigene JSON-Designs im Benutzer-Konfigurationsordner erscheinen nach den eingebauten.",
+      "apply": "{0} anwenden",
+      "active": "· aktiv",
+      "logoTitle": "PNG, SVG, JPG oder WEBP bis 512 KB — wird in der Kopfzeile gezeigt, solange dieses Design aktiv ist",
+      "addLogo": "Logo hinzufügen",
+      "replaceLogo": "Logo ersetzen",
+      "remove": "Entfernen",
+      "logosHintBefore": "Logos sind deine eigenen Dateien. Sie bleiben auf diesem PC unter",
+      "logosHintAfter": "und sind nie Teil der App oder des Installers. Die Kopfzeile zeigt das Logo des aktiven Designs, wenn eines gesetzt ist.",
+      "applied": "Design auf {0} gesetzt."
+    },
+    "header": {
+      "title": "Kopfzeile",
+      "hint": "Was die obere Leiste auf jeder Seite zeigt",
+      "nextService": {
+        "label": "Schaltfläche NÄCHSTER DIENST in der Kopfzeile zeigen",
+        "hint": "Ruft den nächsten Abflugdienst sofort — die INT/RAD-Smart-Taste, auf jeder Seite.",
+        "more": "Die Schaltfläche nennt den nächsten Dienst und warum er wartet. Sie ist ausgegraut, bis die Abflugsequenz begonnen hat, und nach ihrem Abschluss. Gleiche Aktion wie Einstellungen → Bodendienste → Nächsten Dienst jetzt rufen, die Stream-Deck-Taste und der Sprachbefehl 'next service'."
+      }
+    },
+    "screen": {
+      "title": "Bildschirm & Installation",
+      "hint": "Nur für dieses Gerät — das Tablet oder den PC, auf dem du das liest",
+      "keepAwake": {
+        "label": "Bildschirm wach halten",
+        "hint": "Verhindert, dass der Bildschirm dieses Geräts schläft, solange die App offen ist. Nur auf diesem Gerät gespeichert.",
+        "needsHttps": "Nur eine sichere Seite kann den Bildschirm wach halten. Öffne die App über HTTPS —",
+        "httpsSetup": "HTTPS-Einrichtung",
+        "needsHttpsWhere": "(Einrichtung → Weboberfläche).",
+        "moreNotSupported": "Dieser Browser hat keinen Screen Wake Lock. Safari 16.4+, Chrome und Edge haben ihn; eine sichere Seite ist trotzdem nötig.",
+        "more": "Der Browser gibt die Sperre frei, wenn die Seite verborgen ist, und die App holt sie zurück, wenn du wiederkommst. Ein schwacher Akku kann den Browser verweigern lassen — die Anzeige liest dann ANFORDERN bis zum nächsten Versuch."
+      },
+      "install": {
+        "label": "Als App installieren",
+        "hint": "ProsimCompanion auf den Startbildschirm legen, als Vollbild-App ohne Browserleisten.",
+        "more": "iPad: App in Safari öffnen, Teilen antippen, dann 'Zum Home-Bildschirm'. Android / Chrome: Menü → 'App installieren'. Es gibt keinen Offline-Modus — die App braucht den Sim-PC. Alle Schritte: docs/manual/07-tablet-install.md im Installationsordner."
+      },
+      "installed": "INSTALLIERT",
+      "inBrowser": "IM BROWSER",
+      "thisDevice": "Dieses Gerät: {0}",
+      "perAddress": "Der Schalter wird je Adresse gespeichert: an unter {0} gilt nicht für {1}. iPadOS ignoriert jede Wach-Sperre im Stromsparmodus.",
+      "lockDiagnostics": "Sperren-Diagnose",
+      "requestAgain": "Erneut anfordern",
+      "wake": {
+        "active": "AKTIV",
+        "requesting": "ANFORDERN",
+        "needsHttps": "HTTPS NÖTIG",
+        "notSupported": "NICHT UNTERSTÜTZT",
+        "off": "AUS"
+      },
+      "diag": {
+        "requests": "{0} Anfrage(n)",
+        "granted": "gewährt {0}",
+        "released": "freigegeben {0}",
+        "lastRefusal": "letzte Ablehnung {0}: {1}",
+        "osOverride": "Schläft der Bildschirm trotz AKTIV und ohne angezeigte Freigabe, hat das Betriebssystem die Sperre übergangen (Stromsparmodus, Geführter Zugriff oder ein Bildschirmzeit-Limit)."
+      },
+      "device": {
+        "generic": "Gerät",
+        "line": "{0} auf {1} · {2} · {3}",
+        "standalone": "eigenständig",
+        "browserTab": "Browser-Tab"
+      }
+    },
+    "airline": {
+      "title": "Airline-Logos",
+      "hint": "Für das ausgekoppelte Flight-Monitor-Board — passend zum Airline-Code des Flugplans",
+      "code": "ICAO-Code der Airline",
+      "logoTitle": "PNG, SVG, JPG oder WEBP bis 512 KB — wird im Flight Monitor gezeigt, wenn die Airline des OFP passt",
+      "addLogo": "Logo hinzufügen",
+      "none": "Noch keine Airline-Logos. Tippe den ICAO-Code der Airline ein (den SimBrief zeigt, z. B. KLM, BAW, DLH) und füge ihr Logo hinzu.",
+      "remove": "Entfernen",
+      "storedBefore": "Gespeichert unter",
+      "storedAfter": ", nie Teil der App. Der Flight Monitor zeigt das Logo, dessen Code dem Airline-Code des OFP entspricht; ohne eines zeigt er den Code selbst.",
+      "codeFirst": "Zuerst den 2–4-stelligen Code der Airline eingeben (z. B. KLM).",
+      "nothingToRemove": "Nichts zu entfernen."
+    },
+    "logo": {
+      "saved": "Logo für {0} gespeichert.",
+      "notSaved": "Logo für {0} nicht gespeichert: {1}",
+      "removed": "Logo für {0} entfernt.",
+      "none": "{0} hat kein Logo."
+    }
+  }
+}

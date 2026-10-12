@@ -61,6 +61,14 @@ public sealed class WebUiOptions : IOptionSection
     /// </summary>
     public string Theme { get; set; } = "KLM Royal Dutch";
 
+    /// <summary>UI language (ADR-0014): the code of a language pack in <c>config/lang</c>
+    /// (<c>en</c>, <c>de</c>, <c>es</c>, <c>fr</c>, <c>ja</c>, <c>ko</c>, or a user-added
+    /// <c>pt-BR</c>). Empty (default) follows each browser's own language preference, so a
+    /// Japanese tablet reads Japanese on day one and the sim PC stays English. Applies to every
+    /// open browser at once; the voice First Officer, the logs and the Stream Deck plugin stay
+    /// English (owner decision 2026-10-13). Picked on Settings → Appearance.</summary>
+    public string Language { get; set; } = "";
+
     /// <summary>The optional HTTPS listener beside HTTP (ADR-0013). Lives here and on the web
     /// Setup page, not in the desktop window: a broken HTTPS setting cannot lock anyone out,
     /// because HTTP keeps serving on its own port.</summary>

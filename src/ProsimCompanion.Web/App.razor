@@ -4,8 +4,12 @@
 @using System.Reflection
 @using Microsoft.AspNetCore.Http
 @using ProsimCompanion.Core.Hosting
+@using ProsimCompanion.Core.Localization
+@using ProsimCompanion.Web.Localization
+@inject LanguagePackCatalog Languages
+@inject UiLanguageStore UiLanguage
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@Language">
 
 <head>
     <meta charset="utf-8" />
@@ -48,16 +52,17 @@
 </head>
 
 <body>
-    <Routes IsLocalClient="IsLocalClient" @rendermode="InteractiveServer" />
+    <Routes IsLocalClient="IsLocalClient" BrowserLanguages="BrowserLanguages" @rendermode="InteractiveServer" />
 
     @* Custom circuit-reconnect overlay: blazor.web.js adopts this element (by id) instead of
        its default dialog and toggles the components-reconnect-* classes on it. app.js watches
-       those classes and recovers automatically (retry / reload) — the links are a fallback. *@
+       those classes and recovers automatically (retry / reload) — the links are a fallback.
+       Static markup (no circuit), so the texts resolve here from the request's language. *@
     <div id="components-reconnect-modal" class="components-reconnect-hide">
         <div>
-            <div class="reconnect-showing">Connection to ProsimCompanion lost — reconnecting…</div>
-            <div class="reconnect-failed">Server unreachable — retrying automatically… <a href="">Reload now</a></div>
-            <div class="reconnect-rejected">Session expired — reloading…</div>
+            <div class="reconnect-showing">@Text("app.reconnect.showing")</div>
+            <div class="reconnect-failed">@Text("app.reconnect.failed") <a href="">@Text("app.reconnect.reloadNow")</a></div>
+            <div class="reconnect-rejected">@Text("app.reconnect.rejected")</div>
         </div>
     </div>
 
@@ -75,6 +80,18 @@
 
     private bool IsLocalClient
         => LocalClient.IsLocal(HttpContext?.Connection.RemoteIpAddress, LocalClient.HostAddresses());
+
+    // The browser's own language list (ADR-0014), read once from the first request and handed
+    // to the circuit through Routes; the "follow the browser" default resolves against it.
+    private string[] BrowserLanguages
+        => [.. AcceptLanguage.Parse(HttpContext?.Request.Headers.AcceptLanguage.ToString())];
+
+    private string? _language;
+
+    /// <summary>The language this document renders in: the configured one, else the browser's.</summary>
+    private string Language => _language ??= Languages.Resolve(UiLanguage.Configured, BrowserLanguages);
+
+    private string Text(string textId) => Languages.Lookup(Language, textId, out _);
 
     // Cache-buster for our own static assets (2026-09-20: after the beta.4 update the sim
     // PC's browser kept the previous app.css and drew the header logo at its intrinsic

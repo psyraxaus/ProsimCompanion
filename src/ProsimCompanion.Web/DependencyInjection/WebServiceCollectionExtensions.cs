@@ -1,6 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Hosting;
+using ProsimCompanion.Core.Localization;
+using ProsimCompanion.Web.Localization;
 using ProsimCompanion.Web.Components;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Theming;
@@ -14,16 +17,28 @@ public static class WebServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="userThemesDirectory">Directory scanned for user theme JSON files
     /// (conventionally <c>config/themes</c> beside the settings file).</param>
+    /// <param name="languagePackDirectories">UI language pack folders, highest priority
+    /// first: the seeded user copies, then the shipped defaults (ADR-0014).</param>
     public static IServiceCollection AddWebServices(
         this IServiceCollection services,
-        string userThemesDirectory)
+        string userThemesDirectory,
+        IReadOnlyList<string> languagePackDirectories)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(userThemesDirectory);
+        ArgumentNullException.ThrowIfNull(languagePackDirectories);
 
         services.AddSingleton(provider => new ThemeCatalog(
             userThemesDirectory,
             provider.GetRequiredService<ILogger<ThemeCatalog>>()));
+        // UI language packs (ADR-0014): one catalog, the configured language as a live store,
+        // and a per-circuit localizer that also knows this browser's own language list.
+        services.AddSingleton(provider => new LanguagePackCatalog(
+            languagePackDirectories,
+            provider.GetRequiredService<ILogger<LanguagePackCatalog>>()));
+        services.AddSingleton<UiLanguageStore>();
+        services.AddScoped<BrowserLanguageContext>();
+        services.AddScoped<IStringLocalizer, UiText>();
         // The pilot's own airline logos (owner decision 2026-09-20: never shipped, never seeded).
         services.AddSingleton(_ => new ThemeLogoStore(UserConfigPaths.ThemeLogos));
         // Airline logos keyed by the OFP airline code for the pop-out Flight Monitor (2026-09-23).

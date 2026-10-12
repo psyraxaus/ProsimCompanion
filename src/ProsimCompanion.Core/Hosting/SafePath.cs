@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace ProsimCompanion.Core.Hosting;
 
 /// <summary>
@@ -13,8 +15,9 @@ public static class SafePath
     public static string Unquote(string? value) => (value ?? "").Trim().Trim('"');
 
     /// <summary>Non-blank and free of characters Windows refuses in a path. The gate before
-    /// any file API call.</summary>
-    public static bool IsWellFormed(string? path)
+    /// any file API call. Tells the compiler the path is non-null when true, so callers hand
+    /// it straight to a file API without a null-forgiving bang.</summary>
+    public static bool IsWellFormed([NotNullWhen(true)] string? path)
         => !string.IsNullOrWhiteSpace(path) && path.IndexOfAny(Path.GetInvalidPathChars()) < 0;
 
     /// <summary>The absolute form of <paramref name="path"/> (relative paths resolve under
@@ -54,7 +57,7 @@ public static class SafePath
 
         try
         {
-            return exists(path!);
+            return exists(path);
         }
         catch (Exception ex) when (IsPathFailure(ex))
         {

@@ -40,6 +40,7 @@ public static class UserConfigSeeder
         "abnormals",
         "aircraft-states",
         "themes", // nothing shipped (built-ins are embedded) — entry migrates old drop-ins
+        "lang", // UI language packs (ADR-0014): user edits and user-added languages are kept
         "atc-requests.json",
         "commands.json",
         "phrases.json",

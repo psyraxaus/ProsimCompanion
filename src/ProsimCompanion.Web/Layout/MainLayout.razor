@@ -6,6 +6,10 @@
 @using ProsimCompanion.Core.Profiles
 @using ProsimCompanion.Core.Theming
 @using ProsimCompanion.Web.Theming
+@using ProsimCompanion.Web.Localization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer T
+@inject UiLanguageStore UiLanguage
 @inject ConnectionStatusStore Status
 @inject SpeechStatusStore Speech
 @inject IProsimDataRefs DataRefs
@@ -29,17 +33,17 @@
             <span class="brand-mark" aria-hidden="true"><AppIcon Name="plane" Size="20" /></span>
             <span class="brand-text">
                 <span class="brand-name">PROSIM<span class="gold">COMPANION</span></span>
-                <span class="brand-tag">Electronic Flight Bag</span>
+                <span class="brand-tag">@T["layout.brand.tagline"]</span>
             </span>
         </div>
 
         <div class="header-aircraft">
             <span class="header-block">
-                <span class="label-caps">Aircraft</span>
+                <span class="label-caps">@T["layout.header.aircraft"]</span>
                 <span class="header-value mono">@AircraftType</span>
             </span>
             <span class="header-block">
-                <span class="label-caps">Registration</span>
+                <span class="label-caps">@T["layout.header.registration"]</span>
                 <span class="header-value mono">@AircraftReg</span>
             </span>
         </div>
@@ -59,7 +63,7 @@
                 <button type="button" class="header-next-service" @onclick="DepartureControl.ForceNext"
                         disabled="@(!DepartureControl.Started || DepartureControl.Complete)"
                         title="@NextServiceTitle">
-                    <span class="label-caps">Next service</span>
+                    <span class="label-caps">@T["layout.header.nextService"]</span>
                     <span class="header-value mono">@NextServiceText</span>
                 </button>
             }
@@ -70,7 +74,7 @@
                ear-off latch. The shipped "VOICE / OFF" block read as voice switched off. *@
             <button type="button" class="header-voice pill @VoiceTone"
                     @onclick="() => _voiceDrawer?.Toggle()"
-                    title="Voice reference — every phrase the FO, ground crew, cabin crew and ATC understand">
+                    title="@T["layout.header.voice.title"]">
                 @if (VoiceListening)
                 {
                     <span class="header-voice-dot" aria-hidden="true"></span>
@@ -109,11 +113,11 @@
     {
         <div class="update-banner" role="status">
             <span>
-                New Stable Version
+                @T["layout.update.newVersion"]
                 <a href="@_update.ReleaseUrl" target="_blank" rel="noopener">@_update.LatestVersion</a>
-                available! (running @_update.CurrentVersion)
+                @T["layout.update.available", _update.CurrentVersion]
             </span>
-            <button type="button" class="update-banner-close" aria-label="Dismiss update notice"
+            <button type="button" class="update-banner-close" aria-label="@T["layout.update.dismiss"]"
                     @onclick="Updates.Dismiss">×</button>
         </div>
     }
@@ -122,9 +126,10 @@
         @* Icon sidebar (ADR-0011, canvas EFBSidebar; owner decision 2026-09-20 replacing the
            tab strip): the fly-the-flight pages in flight order plus Settings pinned at the
            bottom. Every configuration page still hangs off the settings hub's own rail. *@
-        <nav class="sidebar" aria-label="Pages">
-            @foreach (var (label, href, icon) in Tabs)
+        <nav class="sidebar" aria-label="@T["layout.nav.pages"]">
+            @foreach (var (textId, href, icon) in Tabs)
             {
+                var label = T["layout.nav." + textId].Value;
                 <NavLink class="side-item" href="@href"
                          Match="@(href.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix)"
                          ActiveClass="active" title="@label">
@@ -134,9 +139,9 @@
             }
             <span class="side-spacer" aria-hidden="true"></span>
             <NavLink class="side-item side-settings" href="settings" Match="NavLinkMatch.Prefix"
-                     ActiveClass="active" title="Settings">
+                     ActiveClass="active" title="@T["layout.nav.settings"]">
                 <span class="side-icon"><AppIcon Name="settings" Size="22" /></span>
-                <span class="side-label">Settings</span>
+                <span class="side-label">@T["layout.nav.settings"]</span>
             </NavLink>
         </nav>
 
@@ -176,20 +181,21 @@
     // 2026-08-08 (owner decision): the Weather tab is gone (the OFP page carries the same
     // cards, TAF included) and Takeoff/Landing live under one Performance tab with sub-tabs
     // (old /takeoff and /landing routes still resolve).
-    private static readonly (string Label, string Href, string Icon)[] Tabs =
+    // Labels come from the language pack under layout.nav.{textId} (ADR-0014).
+    private static readonly (string TextId, string Href, string Icon)[] Tabs =
     [
-        ("Flight Status", "", "layout-dashboard"),
-        ("INIT", "init", "file-input"),
-        ("OFP", "ofp", "file-text"),
-        ("Loadsheet", "loadsheet", "clipboard-list"),
-        ("W&B", "wnb", "scale"),
-        ("Fuel", "fuel", "fuel"),
-        ("Fuel Log", "fuellog", "chart-line"),
-        ("Performance", "performance", "gauge"),
-        ("Checklists", "checklists", "list-checks"),
-        ("Tech Log", "techlog", "wrench"),
-        ("Logbook", "logbook", "book-open"),
-        ("Duty Day", "day", "clock-4"),
+        ("flightStatus", "", "layout-dashboard"),
+        ("init", "init", "file-input"),
+        ("ofp", "ofp", "file-text"),
+        ("loadsheet", "loadsheet", "clipboard-list"),
+        ("wnb", "wnb", "scale"),
+        ("fuel", "fuel", "fuel"),
+        ("fuelLog", "fuellog", "chart-line"),
+        ("performance", "performance", "gauge"),
+        ("checklists", "checklists", "list-checks"),
+        ("techLog", "techlog", "wrench"),
+        ("logbook", "logbook", "book-open"),
+        ("dutyDay", "day", "clock-4"),
     ];
 
     // Header aircraft block: the OFP is the authoritative type/registration for the flight;
@@ -214,7 +220,8 @@
 
     private bool VoiceListening => _speech.Listening && !_speech.ListeningPaused;
 
-    private string VoiceWord => _speech.ListeningPaused ? "Paused" : VoiceListening ? "Listening" : "Ready";
+    private string VoiceWord => _speech.ListeningPaused ? T["layout.header.voice.paused"]
+        : VoiceListening ? T["layout.header.voice.listening"] : T["layout.header.voice.ready"];
 
     private string VoiceTone => _speech.ListeningPaused ? "tone-warn" : VoiceListening ? "tone-ok" : "tone-neutral";
 
@@ -226,18 +233,18 @@
     private GsxServiceBoardRow? NextServiceRow => _gsx.ServiceBoard.FirstOrDefault(row =>
         row.Stage is not (GsxServiceStage.Completed or GsxServiceStage.Skipped));
 
-    private string NextServiceText => DepartureControl.Complete ? "complete"
-        : !DepartureControl.Started ? "not started"
+    private string NextServiceText => DepartureControl.Complete ? T["layout.header.nextService.complete"]
+        : !DepartureControl.Started ? T["layout.header.nextService.notStarted"]
         : NextServiceRow is { } row ? $"{row.ServiceId} · {GsxPresentation.StageLabel(row.Stage)}"
         : "—";
 
     private string NextServiceTitle => DepartureControl.Complete
-        ? "Every departure service has completed or was skipped."
+        ? T["layout.header.nextService.titleComplete"]
         : !DepartureControl.Started
-            ? "The departure sequence has not started yet (it starts with the flight plan, or from Settings → Ground Services)."
+            ? T["layout.header.nextService.titleNotStarted"]
             : NextServiceRow is { Detail.Length: > 0 } row
-                ? $"Call {row.ServiceId} now, bypassing its activation rule (INT/RAD). Holding: {row.Detail}"
-                : "Call the next departure service now, bypassing its activation rule (INT/RAD).";
+                ? T["layout.header.nextService.titleHolding", row.ServiceId, row.Detail]
+                : T["layout.header.nextService.titleNext"];
 
     private IDataRefSubscription<string>? _flightNumberSub;
     private string _flightNumber = "";
@@ -278,10 +285,10 @@
     /// pillar publishes ("offline engine covering — retrying …"); the others name the link.</summary>
     private string FooterTitle(string label, string subsystem) => subsystem switch
     {
-        Subsystems.Asr => $"Speech recognition (LAN whisper): {(_speech.RecognizerDetail.Length > 0 ? _speech.RecognizerDetail : "unknown")}",
-        Subsystems.Tts => $"Voice (Kokoro): {NetworkVoiceDetail()}",
+        Subsystems.Asr => T["layout.footer.asr", _speech.RecognizerDetail.Length > 0 ? _speech.RecognizerDetail : T["layout.footer.unknown"].Value],
+        Subsystems.Tts => T["layout.footer.tts", NetworkVoiceDetail()],
         // A subsystem that is off for a reason says it (issue #158: SDK and app do not match).
-        _ => Status.ReasonOf(subsystem) is { } reason ? $"{label}: {reason}" : $"{label} connection",
+        _ => Status.ReasonOf(subsystem) is { } reason ? $"{label}: {reason}" : T["layout.footer.connection", label],
     };
 
     private string NetworkVoiceDetail()
@@ -289,15 +296,15 @@
         var kokoro = _speech.Providers.FirstOrDefault(p => p.Name.Equals("kokoro", StringComparison.OrdinalIgnoreCase));
         if (kokoro is null)
         {
-            return "not in the chain";
+            return T["layout.footer.kokoro.notInChain"];
         }
 
-        var health = kokoro.Health switch
+        string health = kokoro.Health switch
         {
-            TtsProviderHealth.Healthy => "healthy",
-            TtsProviderHealth.Failed => "cooling down after a failure",
-            TtsProviderHealth.Disabled => "disabled",
-            _ => "configured, not yet used",
+            TtsProviderHealth.Healthy => T["layout.footer.kokoro.healthy"],
+            TtsProviderHealth.Failed => T["layout.footer.kokoro.failed"],
+            TtsProviderHealth.Disabled => T["layout.footer.kokoro.disabled"],
+            _ => T["layout.footer.kokoro.unused"],
         };
         return kokoro.Detail.Length > 0 ? $"{health} ({kokoro.Detail})" : health;
     }
@@ -321,6 +328,9 @@
 
     protected override void OnInitialized()
     {
+        // A language change re-renders the whole tree from here: every page under @Body
+        // re-reads its texts, so the sim PC and the tablet switch together (ADR-0014).
+        Watch(UiLanguage, _ => { });
         Watch(Updates, snapshot => _update = snapshot);
         Watch(Speech, snapshot => _speech = snapshot);
         Watch(Diagnostics, snapshot => _gsx = snapshot);

@@ -1,7 +1,13 @@
 namespace ProsimCompanion.Web.Layout;
 
-/// <summary>One entry of the settings rail: a page (or a section of a page) at a URL.</summary>
-public sealed record SettingsNavItem(string Key, string Label, string Href);
+/// <summary>One entry of the settings rail: a page (or a section of a page) at a URL.
+/// <paramref name="Label"/> is the English text; the rendered label comes from the language
+/// pack under <see cref="LabelTextId"/> (ADR-0014), and the pack guard test keeps the two equal.</summary>
+public sealed record SettingsNavItem(string Key, string Label, string Href)
+{
+    /// <summary>Language-pack text id of this item's label: <c>settings.nav.{group}.{item}</c>.</summary>
+    public string LabelTextId { get; init; } = "";
+}
 
 /// <summary>
 /// One group of the settings rail. A group with items expands to show them while it is
@@ -9,6 +15,9 @@ public sealed record SettingsNavItem(string Key, string Label, string Href);
 /// </summary>
 public sealed record SettingsNavGroup(string Key, string Label, string Href, IReadOnlyList<SettingsNavItem> Items)
 {
+    /// <summary>Language-pack text id of this group's label: <c>settings.nav.{group}</c>.</summary>
+    public string LabelTextId => "settings.nav." + Key;
+
     /// <summary>True when <paramref name="path"/> (base-relative, no query) is this group or
     /// one of its items. Only a group WITH items owns its sub-paths — the single-page Setup
     /// group at "settings" must not swallow "settings/gsx/…".</summary>
@@ -22,7 +31,7 @@ public sealed record SettingsNavGroup(string Key, string Label, string Href, IRe
     public SettingsNavItem? ActiveItem(string path)
         => Items.FirstOrDefault(item => item.Href.Equals(path, StringComparison.OrdinalIgnoreCase)
                                         || path.StartsWith(item.Href + "/", StringComparison.OrdinalIgnoreCase))
-           ?? Items.FirstOrDefault();
+           ?? (Items.Count > 0 ? Items[0] : null);
 }
 
 /// <summary>
@@ -34,7 +43,13 @@ public sealed record SettingsNavGroup(string Key, string Label, string Href, IRe
 public static class SettingsNav
 {
     private static SettingsNavItem[] Items(string basePath, params (string Key, string Label)[] sections)
-        => [.. sections.Select(s => new SettingsNavItem(s.Key, s.Label, $"{basePath}/{s.Key}"))];
+    {
+        var group = basePath[(basePath.LastIndexOf('/') + 1)..];
+        return [.. sections.Select(s => new SettingsNavItem(s.Key, s.Label, $"{basePath}/{s.Key}")
+        {
+            LabelTextId = $"settings.nav.{group}.{s.Key}",
+        })];
+    }
 
     public static readonly SettingsNavItem[] GsxSections = Items("settings/gsx",
         ("status", "Status"),
@@ -91,8 +106,8 @@ public static class SettingsNav
         // the header opens the first section (clicking it gave a 404 until 2026-09-26).
         new("advanced", "Advanced", "settings/flight-phase",
         [
-            new("flightPhase", "Flight Phase Engine", "settings/flight-phase"),
-            new("logs", "Logs", "settings/logs"),
+            new("flightPhase", "Flight Phase Engine", "settings/flight-phase") { LabelTextId = "settings.nav.advanced.flightPhase" },
+            new("logs", "Logs", "settings/logs") { LabelTextId = "settings.nav.advanced.logs" },
         ]),
     ];
 

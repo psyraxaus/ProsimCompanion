@@ -1,6 +1,9 @@
-@* Interactive root. IsLocalClient arrives from App.razor (static render, where the HTTP
-   request is still in hand) and is cascaded as ClientContext so a path field can decide
-   whether the sim PC's own Browse… dialog is reachable from this browser. *@
+@* Interactive root. IsLocalClient and BrowserLanguages arrive from App.razor (static render,
+   where the HTTP request is still in hand): the first is cascaded as ClientContext so a path
+   field can decide whether the sim PC's own Browse… dialog is reachable from this browser;
+   the second seeds this circuit's BrowserLanguageContext (ADR-0014). *@
+@using ProsimCompanion.Web.Localization
+@inject BrowserLanguageContext Browser
 <CascadingValue Value="_client" IsFixed="true">
     <Router AppAssembly="typeof(Routes).Assembly">
         <Found Context="routeData">
@@ -17,5 +20,13 @@
     [Parameter]
     public bool IsLocalClient { get; set; }
 
-    protected override void OnInitialized() => _client = new ClientContext(IsLocalClient);
+    /// <summary>The browser's Accept-Language tags, best first (decided in App.razor).</summary>
+    [Parameter]
+    public string[] BrowserLanguages { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        _client = new ClientContext(IsLocalClient);
+        Browser.Languages = BrowserLanguages;
+    }
 }

@@ -32,6 +32,10 @@ public static class UserConfigPaths
     /// was a never-created folder under the exe).</summary>
     public static string Rotations => Path.Combine(Root, "rotations");
 
+    /// <summary>UI language packs (ADR-0014): the seeded copies of the shipped
+    /// <c>{code}.json</c> files plus any the pilot adds; shadow the shipped ones by code.</summary>
+    public static string Languages => Path.Combine(Root, "lang");
+
     /// <summary>User JSON themes (predecessor format), shadowing the built-ins by name.</summary>
     public static string Themes => Path.Combine(Root, "themes");
 

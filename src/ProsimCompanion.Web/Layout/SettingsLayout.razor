@@ -4,6 +4,10 @@
 @inherits StoreObserverLayout
 @layout MainLayout
 @using ProsimCompanion.Core.Profiles
+@using Microsoft.Extensions.Localization
+@using ProsimCompanion.Web.Localization
+@inject IStringLocalizer T
+@inject UiLanguageStore UiLanguage
 @inject NavigationManager Nav
 @inject IOptionsMonitor<GsxOptions> GsxOptions
 @inject IOptionsMonitor<SpeechOptions> SpeechOptions
@@ -16,25 +20,25 @@
         <div class="rail-column @(_railOpen ? "open" : null)">
             <button type="button" class="rail-toggle" @onclick="() => _railOpen = !_railOpen"
                     aria-expanded="@_railOpen" aria-controls="settings-rail">
-                <span class="rail-toggle-label">Settings</span>
+                <span class="rail-toggle-label">@T["settings.title"]</span>
                 <span class="rail-toggle-current">@Breadcrumb</span>
                 <span class="rail-toggle-chevron" aria-hidden="true">@(_railOpen ? "▲" : "▼")</span>
             </button>
-            <nav class="rail-nav sticky-rail" id="settings-rail" aria-label="Settings sections">
-                <label class="rail-advanced" title="Reveal the tuning fields (timeouts, intervals, thresholds) on every settings page">
+            <nav class="rail-nav sticky-rail" id="settings-rail" aria-label="@T["settings.railLabel"]">
+                <label class="rail-advanced" title="@T["settings.showAdvanced.title"]">
                     <input type="checkbox" class="checkbox" checked="@_showAdvanced"
                            @onchange="e => Advanced.Set(e.Value is true)" />
-                    <span>Show advanced settings</span>
+                    <span>@T["settings.showAdvanced"]</span>
                 </label>
                 @foreach (var group in SettingsNav.Groups)
                 {
                     var isActive = group == _group;
-                    <a class="rail-group @(isActive ? "active" : null)" href="@group.Href">@group.Label</a>
+                    <a class="rail-group @(isActive ? "active" : null)" href="@group.Href">@T[group.LabelTextId]</a>
                     @if (isActive && group.Items.Count > 0)
                     {
                         @foreach (var item in group.Items)
                         {
-                            <a class="rail-item @(item == _item ? "active" : null)" href="@item.Href">@item.Label</a>
+                            <a class="rail-item @(item == _item ? "active" : null)" href="@item.Href">@T[item.LabelTextId]</a>
                         }
                     }
                 }
@@ -43,11 +47,11 @@
 
         <div class="settings-content">
             <div class="settings-heading">
-                <span class="settings-heading-group">@(_group?.Label ?? "Settings")</span>
+                <span class="settings-heading-group">@(_group is null ? T["settings.title"].Value : T[_group.LabelTextId].Value)</span>
                 @if (_item is not null && _group?.Items.Count > 0)
                 {
                     <span class="settings-heading-sep" aria-hidden="true">›</span>
-                    <span class="settings-heading-item">@_item.Label</span>
+                    <span class="settings-heading-item">@T[_item.LabelTextId]</span>
                 }
             </div>
 
@@ -55,7 +59,7 @@
             {
                 <div class="info-banner" role="status">
                     <span aria-hidden="true">ⓘ</span>
-                    <span>@notice <a href="settings">Turn it on under Setup.</a></span>
+                    <span>@notice <a href="settings">@T["settings.pillarOff.turnOn"]</a></span>
                 </div>
             }
 
@@ -64,9 +68,9 @@
                 <div class="info-banner" role="status">
                     <span aria-hidden="true">ⓘ</span>
                     <span>
-                        Aircraft profile <strong>@profile.Name</strong> is active. Saving on these
-                        pages stores the ground-services settings in that profile.
-                        <a href="settings/profiles">Manage profiles.</a>
+                        @T["settings.profileBanner.active", profile.Name]
+                        @T["settings.profileBanner.saves"]
+                        <a href="settings/profiles">@T["settings.profileBanner.manage"]</a>
                     </span>
                 </div>
             }
@@ -88,22 +92,23 @@
     private bool _showAdvanced;
 
     private string Breadcrumb => _group is null
-        ? "Settings"
-        : _item is null || _group.Items.Count == 0 ? _group.Label : $"{_group.Label} › {_item.Label}";
+        ? T["settings.title"]
+        : _item is null || _group.Items.Count == 0 ? T[_group.LabelTextId] : $"{T[_group.LabelTextId]} › {T[_item.LabelTextId]}";
 
     /// <summary>A pillar's pages stay reachable while it is switched off (degrade, not fail),
     /// but a user tuning a dead pillar deserves one line saying why nothing happens.</summary>
     private string? PillarOffNotice => _group?.Key switch
     {
-        "gsx" when !GsxOptions.CurrentValue.Enabled => "GSX ground services are switched off.",
-        "speech" when !SpeechOptions.CurrentValue.Enabled => "The voice First Officer is switched off.",
-        "audio" when !AudioOptions.CurrentValue.Enabled => "Audio control is switched off.",
+        "gsx" when !GsxOptions.CurrentValue.Enabled => T["settings.pillarOff.gsx"].Value,
+        "speech" when !SpeechOptions.CurrentValue.Enabled => T["settings.pillarOff.speech"].Value,
+        "audio" when !AudioOptions.CurrentValue.Enabled => T["settings.pillarOff.audio"].Value,
         _ => null,
     };
 
     protected override void OnInitialized()
     {
         Resolve();
+        Watch(UiLanguage, _ => { });
         // Navigation is not a store — it stays hand-wired; the profile banner is store-driven.
         Nav.LocationChanged += OnLocationChanged;
         WatchChanged(h => Profiles.Changed += h, h => Profiles.Changed -= h, () => { });

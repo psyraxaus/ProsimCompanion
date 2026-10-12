@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: **the web UI speaks six languages** (ADR-0014; owner decisions 2026-10-13). English, Deutsch, Español, Français, 日本語 and 한국어 ship as one JSON file each in `config\lang`, seeded into `%LOCALAPPDATA%\ProsimCompanion\config\lang` like the checklists, so an edit or an added language (`pt-BR.json`) survives an update and needs no build. **Settings → Appearance → Language** picks one — "Follow the browser" by default, so a Japanese tablet reads Japanese on day one and the sim PC stays English — and applies at once on every open browser, like the theme. Anything a language lacks is shown in English. Numbers, weights and times keep the aviation formats whatever the language; **the voice First Officer, the logs and the Stream Deck plugin stay English**. New setting `webUi.language` (empty = follow the browser). First slice: the header, sidebar, footer, update banner, reconnect overlay, the settings rail and the whole Appearance page; the remaining pages follow page by page.
+
 ## 0.7.0-rc.6
 
 Voices rework, 2026-10-12. A local beta build on top of rc.5; **not yet verified live**.

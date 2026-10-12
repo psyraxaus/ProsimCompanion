@@ -89,6 +89,29 @@
 
   --font-mono: "JetBrains Mono", "Consolas", "Courier New", "Liberation Mono", monospace;
   --font-sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* CJK fallbacks (ADR-0014): the shipped fonts carry no Japanese or Korean glyphs, so the
+     stack names the Windows, macOS/iPadOS and Noto system fonts behind them. Per language,
+     not one combined list — a Korean page drawn with a Japanese font gets Japanese-style
+     Han glyphs. The html lang attribute (App.razor) selects the block. */
+  --font-cjk-ja: "Yu Gothic UI", "Meiryo", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP";
+  --font-cjk-ko: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR";
+}
+
+html:lang(ja) {
+  --font-sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", var(--font-cjk-ja), Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Consolas", "Courier New", var(--font-cjk-ja), monospace;
+}
+
+html:lang(ko) {
+  --font-sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", var(--font-cjk-ko), Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Consolas", "Courier New", var(--font-cjk-ko), monospace;
+}
+
+/* Wide letter-spacing is a Latin small-caps device; on CJK it reads as broken text. */
+html:lang(ja) .label-caps,
+html:lang(ko) .label-caps { letter-spacing: 0.06em; }
+
+:root {
 
   --radius-sm: 6px;
   --radius-md: 12px;

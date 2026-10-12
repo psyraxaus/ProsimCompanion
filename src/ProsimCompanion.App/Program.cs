@@ -333,7 +333,10 @@ public static class Program
         builder.Services.AddSpeechServices();
         // User drop-in themes come from the user config tree (ADR-0007); the built-ins are
         // embedded in the Web assembly.
-        builder.Services.AddWebServices(UserConfigPaths.File("themes"));
+        builder.Services.AddWebServices(
+            UserConfigPaths.File("themes"),
+            // Seeded user packs first (edits, added languages), the shipped defaults behind.
+            [UserConfigPaths.Languages, Path.Combine(AppContext.BaseDirectory, "config", "lang")]);
         // The desktop shell's Open/Save/Folder dialogs for the settings pages' path fields,
         // offered only to a browser on this PC (option 3, 2026-10-13).
         builder.Services.AddSingleton<ProsimCompanion.Core.Hosting.INativeFilePicker, WpfFilePicker>();
