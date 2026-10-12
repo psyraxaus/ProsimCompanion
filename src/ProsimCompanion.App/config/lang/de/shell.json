@@ -1,0 +1,131 @@
+{
+  "$language": {
+    "name": "Deutsch"
+  },
+  "app": {
+    "reconnect": {
+      "showing": "Verbindung zu ProsimCompanion verloren — Verbindung wird wiederhergestellt…",
+      "failed": "Server nicht erreichbar — automatischer Neuversuch…",
+      "reloadNow": "Jetzt neu laden",
+      "rejected": "Sitzung abgelaufen — wird neu geladen…"
+    }
+  },
+  "layout": {
+    "brand": {
+      "tagline": "Electronic Flight Bag"
+    },
+    "header": {
+      "aircraft": "Flugzeug",
+      "registration": "Kennzeichen",
+      "nextService": "Nächster Dienst",
+      "nextService.complete": "abgeschlossen",
+      "nextService.notStarted": "nicht gestartet",
+      "nextService.titleComplete": "Alle Abflugdienste sind abgeschlossen oder wurden übersprungen.",
+      "nextService.titleNotStarted": "Die Abflugsequenz hat noch nicht begonnen (sie startet mit dem Flugplan oder unter Einstellungen → Bodendienste).",
+      "nextService.titleHolding": "{0} jetzt rufen und die Aktivierungsregel übergehen (INT/RAD). Wartet auf: {1}",
+      "nextService.titleNext": "Den nächsten Abflugdienst jetzt rufen und seine Aktivierungsregel übergehen (INT/RAD).",
+      "voice": {
+        "title": "Sprachreferenz — jeder Satz, den FO, Bodencrew, Kabinencrew und ATC verstehen",
+        "paused": "Pausiert",
+        "listening": "Hört zu",
+        "ready": "Bereit"
+      }
+    },
+    "update": {
+      "newVersion": "Neue stabile Version",
+      "available": "verfügbar! (aktuell {0})",
+      "dismiss": "Update-Hinweis ausblenden"
+    },
+    "nav": {
+      "pages": "Seiten",
+      "flightStatus": "Flugstatus",
+      "init": "INIT",
+      "ofp": "OFP",
+      "loadsheet": "Loadsheet",
+      "wnb": "W&B",
+      "fuel": "Kraftstoff",
+      "fuelLog": "Kraftstofflog",
+      "performance": "Performance",
+      "checklists": "Checklisten",
+      "techLog": "Tech Log",
+      "logbook": "Logbuch",
+      "dutyDay": "Diensttag",
+      "settings": "Einstellungen"
+    },
+    "footer": {
+      "asr": "Spracherkennung (LAN-Whisper): {0}",
+      "tts": "Stimme (Kokoro): {0}",
+      "connection": "{0}-Verbindung",
+      "unknown": "unbekannt",
+      "kokoro": {
+        "notInChain": "nicht in der Kette",
+        "healthy": "in Ordnung",
+        "failed": "Abkühlphase nach einem Fehler",
+        "disabled": "deaktiviert",
+        "unused": "konfiguriert, noch nicht benutzt"
+      }
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "railLabel": "Einstellungsbereiche",
+    "showAdvanced": "Erweiterte Einstellungen anzeigen",
+    "showAdvanced.title": "Die Feinabstimmungsfelder (Timeouts, Intervalle, Schwellen) auf jeder Einstellungsseite einblenden",
+    "pillarOff": {
+      "gsx": "Die GSX-Bodendienste sind ausgeschaltet.",
+      "speech": "Der Sprach-Erste-Offizier ist ausgeschaltet.",
+      "audio": "Die Audiosteuerung ist ausgeschaltet.",
+      "turnOn": "Unter Einrichtung einschalten."
+    },
+    "profileBanner": {
+      "active": "Flugzeugprofil {0} ist aktiv.",
+      "saves": "Speichern auf diesen Seiten legt die Bodendienst-Einstellungen in diesem Profil ab.",
+      "manage": "Profile verwalten."
+    },
+    "nav": {
+      "setup": "Einrichtung",
+      "gsx": "Bodendienste",
+      "gsx.status": "Status",
+      "gsx.doors": "Türen & Fluggastbrücke",
+      "gsx.equipment": "Bodengeräte",
+      "gsx.departure": "Abflugdienste",
+      "gsx.refuel": "Betankung & Boarding",
+      "gsx.pushback": "Pushback",
+      "gsx.arrival": "Ankunft",
+      "gsx.operators": "Betreiber & Hubs",
+      "gsx.questions": "GSX-Fragen",
+      "gsx.connection": "Verbindung & Timeouts",
+      "speech": "Sprach-Erster-Offizier",
+      "speech.status": "Status",
+      "speech.general": "Allgemein",
+      "speech.persona": "FO-Persönlichkeit",
+      "speech.listening": "Zuhören & PTT",
+      "speech.sterile": "Sterile Cockpit",
+      "speech.voices": "Stimmen",
+      "speech.groundCrew": "Bodencrew",
+      "speech.cabin": "Kabinencrew",
+      "speech.company": "Company & Debriefing",
+      "speech.techlog": "Tech Log & Logbuch",
+      "speech.briefing": "Briefings & LLM",
+      "speech.mcdu": "MCDU",
+      "speech.sayIntentions": "SayIntentions",
+      "speech.callouts": "Callouts & Placards",
+      "speech.abnormals": "Abnormals & Drills",
+      "speech.providers": "Stimmanbieter",
+      "audio": "Audiosteuerung",
+      "audio.status": "Status",
+      "audio.general": "Allgemein",
+      "audio.coreaudio": "CoreAudio",
+      "audio.voicemeeter": "VoiceMeeter",
+      "audio.mixer": "Remote-Mixer",
+      "audio.advanced": "Wartung",
+      "app": "Anzeige & Flugdaten",
+      "appearance": "Darstellung",
+      "notifications": "Benachrichtigungen",
+      "profiles": "Flugzeugprofile",
+      "advanced": "Erweitert",
+      "advanced.flightPhase": "Flugphasen-Engine",
+      "advanced.logs": "Protokolle"
+    }
+  }
+}

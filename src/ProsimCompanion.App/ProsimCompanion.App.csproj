@@ -88,9 +88,10 @@
     <Content Include="config\techlog\wear-pool.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- Planned-rotations README: seeded into the per-user rotations folder (creates it). -->
     <Content Include="config\rotations\README.txt" CopyToOutputDirectory="PreserveNewest" />
-    <!-- UI language packs (ADR-0014): one {code}.json per language, en.json is the source of
-         truth; seeded to the per-user folder so edits and added languages survive updates. -->
-    <Content Include="config\lang\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- UI language packs (ADR-0014): one folder per language, one JSON file per page; the en
+         folder is the source of truth; seeded to the per-user folder so edits and added
+         languages survive updates. -->
+    <Content Include="config\lang\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

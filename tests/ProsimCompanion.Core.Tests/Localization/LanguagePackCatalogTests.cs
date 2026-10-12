@@ -133,6 +133,36 @@ public sealed class LanguagePackCatalogTests : IDisposable
     }
 
     [Fact]
+    public void LanguageFolder_MergesItsPageFiles_FirstFileWinsADuplicate_UserFolderShadowsShipped()
+    {
+        var shippedDe = Path.Combine(ShippedDir, "de");
+        Directory.CreateDirectory(shippedDe);
+        File.WriteAllText(Path.Combine(shippedDe, "a-shell.json"), """{ "$language": { "name": "Deutsch" }, "nav": { "fuel": "Kraftstoff" }, "twice": "shell" }""");
+        File.WriteAllText(Path.Combine(shippedDe, "b-fuel.json"), """{ "fuel": { "title": "Kraftstoff" }, "twice": "fuel" }""");
+        Ship("en", """{ "nav": { "fuel": "Fuel" }, "fuel": { "title": "Fuel" }, "twice": "en" }""");
+
+        var catalog = Catalog();
+
+        var de = catalog.Find("de")!;
+        Assert.Equal("Deutsch", de.NativeName);
+        Assert.Equal("Kraftstoff", de.Strings["nav.fuel"]);
+        Assert.Equal("Kraftstoff", de.Strings["fuel.title"]);
+        Assert.Equal("shell", de.Strings["twice"]);
+        Assert.Equal(shippedDe, de.Path);
+
+        // A user folder of the same code replaces the shipped folder whole.
+        var userDe = Path.Combine(UserDir, "de");
+        Directory.CreateDirectory(userDe);
+        File.WriteAllText(Path.Combine(userDe, "shell.json"), """{ "$language": { "name": "Deutsch (eigen)" }, "nav": { "fuel": "Sprit" } }""");
+        catalog.Refresh();
+
+        var shadowed = catalog.Find("de")!;
+        Assert.Equal("Sprit", shadowed.Strings["nav.fuel"]);
+        Assert.False(shadowed.Strings.ContainsKey("fuel.title"));
+        Assert.Equal("Fuel", catalog.Lookup("de", "fuel.title", out _));
+    }
+
+    [Fact]
     public void NoPacksAtAll_StillResolves_AndShowsTheId()
     {
         var catalog = Catalog();

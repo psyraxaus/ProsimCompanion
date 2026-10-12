@@ -41,8 +41,48 @@ public sealed class LanguagePack
     public static LanguagePack Load(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var code = System.IO.Path.GetFileNameWithoutExtension(path);
+        return Load(path, System.IO.Path.GetFileNameWithoutExtension(path));
+    }
+
+    /// <summary>Reads one file of a per-page pack folder, whose code is the folder's name.</summary>
+    public static LanguagePack Load(string path, string code)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return Parse(code, File.ReadAllText(path), path);
+    }
+
+    /// <summary>
+    /// Merges the files of one language folder (one per page) into the pack the catalog
+    /// serves. The name comes from the first file that declares <c>$language</c>; an id
+    /// defined twice keeps the first file's text and is reported in <paramref name="duplicates"/>.
+    /// </summary>
+    public static LanguagePack Combine(string code, IReadOnlyList<LanguagePack> parts, out IReadOnlyList<string> duplicates)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+        ArgumentNullException.ThrowIfNull(parts);
+        if (parts.Count == 0)
+        {
+            throw new ArgumentException("A language folder needs at least one pack file.", nameof(parts));
+        }
+
+        var strings = new Dictionary<string, string>(StringComparer.Ordinal);
+        var seenTwice = new List<string>();
+        string? nativeName = null;
+        foreach (var part in parts)
+        {
+            nativeName ??= part.NativeName.Equals(part.Code, StringComparison.OrdinalIgnoreCase) ? null : part.NativeName;
+            foreach (var (textId, text) in part.Strings)
+            {
+                if (!strings.TryAdd(textId, text))
+                {
+                    seenTwice.Add(textId);
+                }
+            }
+        }
+
+        duplicates = seenTwice;
+        var folder = System.IO.Path.GetDirectoryName(parts[0].Path) ?? "";
+        return new LanguagePack(code.ToLowerInvariant(), nativeName ?? code, folder, strings);
     }
 
     /// <summary>Parses pack JSON — the test seam, and what <see cref="Load"/> calls.</summary>

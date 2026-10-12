@@ -32,14 +32,21 @@ it already applies live.
 
 ## Decision
 
-1. **One JSON pack per language**, `config\lang\{code}.json`, shipped beside the exe and seeded
-   with keep-user-edits semantics into `%LOCALAPPDATA%\ProsimCompanion\config\lang` (ADR-0007).
-   The file name is the BCP 47 code (`de`, `pt-BR`); `$language.name` holds the language's
-   own name for the picker; everything else is nested objects of strings, flattened to dotted
-   ids on load (`layout.nav.flightStatus`). A member with a dot in its name is allowed, so a
-   text and its sub-texts can sit side by side (`"nextService": …`, `"nextService.complete": …`).
-   **`en.json` is the source of truth**: every other pack must hold exactly its ids
-   (`ShippedLanguagePackGuardTests`), and anything a pack lacks renders in English.
+1. **One folder per language, one JSON file per page**: `config\lang\{code}\{page}.json`,
+   shipped beside the exe and seeded with keep-user-edits semantics into
+   `%LOCALAPPDATA%\ProsimCompanion\config\lang` (ADR-0007). The folder name is the BCP 47
+   code (`de`, `pt-BR`); the files of a folder are merged on load (an id defined twice keeps
+   the first file's text and is logged); a single `{code}.json` file is accepted too, for a
+   quick drop-in. `$language.name` (in `shell.json`) holds the language's own name for the
+   picker; everything else is nested objects of strings, flattened to dotted ids on load
+   (`layout.nav.flightStatus`). A member with a dot in its name is allowed, so a text and its
+   sub-texts can sit side by side (`"nextService": …`, `"nextService.complete": …`).
+   **The `en` folder is the source of truth**: every other language must hold the same page
+   files with exactly the same ids and placeholders (`ShippedLanguagePackGuardTests`), and
+   anything a language lacks renders in English. *(Amended 2026-10-13, same day: the first
+   cut was one file per language; with ~1,500 texts and seven languages a per-page split is
+   what lets seven translators, or seven agents, work without touching one file.)*
+   Dutch (`nl`) joined the owner's list the same day.
 2. **Components inject the standard `IStringLocalizer`** (`@inject IStringLocalizer T`,
    `@T["layout.nav.fuel"]`, `@T["appearance.theme.applied", name]`), implemented in-repo by
    `UiText` over `LanguagePackCatalog` — scoped per circuit, so the language is resolved on

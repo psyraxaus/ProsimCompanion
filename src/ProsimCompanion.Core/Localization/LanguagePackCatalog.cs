@@ -170,10 +170,15 @@ public sealed class LanguagePackCatalog
         }
     }
 
-    /// <summary>Code → file, the first directory holding a code wins.</summary>
-    private Dictionary<string, string> DiscoverFiles()
+    /// <summary>
+    /// Code → its files. A language is either one file <c>{code}.json</c> or a folder
+    /// <c>{code}\*.json</c> (one file per page, merged — the shipped layout since the
+    /// per-page split of 2026-10-13, so seven translators never edit one 2,000-line file).
+    /// The first directory holding a code wins whole: the seeded user copy, else the shipped one.
+    /// </summary>
+    private Dictionary<string, List<string>> DiscoverFiles()
     {
-        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var files = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var directory in _directories)
         {
             if (!Directory.Exists(directory))
@@ -181,34 +186,49 @@ public sealed class LanguagePackCatalog
                 continue;
             }
 
-            IEnumerable<string> candidates;
             try
             {
-                candidates = Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly);
+                foreach (var file in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly))
+                {
+                    var code = Path.GetFileNameWithoutExtension(file);
+                    if (IsCode(code) && !files.ContainsKey(code))
+                    {
+                        files[code] = [file];
+                    }
+                }
+
+                foreach (var folder in Directory.EnumerateDirectories(directory))
+                {
+                    var code = Path.GetFileName(folder);
+                    if (!IsCode(code) || files.ContainsKey(code))
+                    {
+                        continue;
+                    }
+
+                    var parts = Directory.EnumerateFiles(folder, "*.json", SearchOption.TopDirectoryOnly)
+                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    if (parts.Count > 0)
+                    {
+                        files[code] = parts;
+                    }
+                }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 _logger.LogWarning(ex, "Language pack folder {Directory} unreadable — skipped", directory);
-                continue;
-            }
-
-            foreach (var file in candidates)
-            {
-                var code = Path.GetFileNameWithoutExtension(file);
-                if (code.Length > 0 && !code.StartsWith('.') && !files.ContainsKey(code))
-                {
-                    files[code] = file;
-                }
             }
         }
 
         return files;
+
+        static bool IsCode(string name) => name.Length > 0 && !name.StartsWith('.');
     }
 
-    private bool SameSignature(Dictionary<string, string> files)
+    private bool SameSignature(Dictionary<string, List<string>> files)
     {
         var signature = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (_, file) in files)
+        foreach (var file in files.Values.SelectMany(list => list))
         {
             try
             {
@@ -227,19 +247,34 @@ public sealed class LanguagePackCatalog
         return same;
     }
 
-    private void Reload(Dictionary<string, string> files)
+    private void Reload(Dictionary<string, List<string>> files)
     {
         var byCode = new Dictionary<string, LanguagePack>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (code, file) in files)
+        foreach (var (code, parts) in files)
         {
-            try
+            var loaded = new List<LanguagePack>(parts.Count);
+            foreach (var file in parts)
             {
-                var pack = LanguagePack.Load(file);
-                byCode[pack.Code] = pack;
+                try
+                {
+                    loaded.Add(LanguagePack.Load(file, code));
+                }
+                catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+                {
+                    // One broken page file costs that page's texts (English shows), never the language.
+                    _logger.LogWarning(ex, "Language pack file {File} skipped — not a valid pack ({Code})", file, code);
+                }
             }
-            catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+
+            if (loaded.Count > 0)
             {
-                _logger.LogWarning(ex, "Language pack {File} skipped — not a valid pack ({Code})", file, code);
+                var pack = LanguagePack.Combine(code, loaded, out var duplicates);
+                foreach (var duplicate in duplicates)
+                {
+                    _logger.LogWarning("Language pack {Code} defines {TextId} in more than one file — the first wins", code, duplicate);
+                }
+
+                byCode[pack.Code] = pack;
             }
         }
 

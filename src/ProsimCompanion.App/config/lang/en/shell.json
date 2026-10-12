@@ -1,0 +1,131 @@
+{
+  "$language": {
+    "name": "English"
+  },
+  "app": {
+    "reconnect": {
+      "showing": "Connection to ProsimCompanion lost — reconnecting…",
+      "failed": "Server unreachable — retrying automatically…",
+      "reloadNow": "Reload now",
+      "rejected": "Session expired — reloading…"
+    }
+  },
+  "layout": {
+    "brand": {
+      "tagline": "Electronic Flight Bag"
+    },
+    "header": {
+      "aircraft": "Aircraft",
+      "registration": "Registration",
+      "nextService": "Next service",
+      "nextService.complete": "complete",
+      "nextService.notStarted": "not started",
+      "nextService.titleComplete": "Every departure service has completed or was skipped.",
+      "nextService.titleNotStarted": "The departure sequence has not started yet (it starts with the flight plan, or from Settings → Ground Services).",
+      "nextService.titleHolding": "Call {0} now, bypassing its activation rule (INT/RAD). Holding: {1}",
+      "nextService.titleNext": "Call the next departure service now, bypassing its activation rule (INT/RAD).",
+      "voice": {
+        "title": "Voice reference — every phrase the FO, ground crew, cabin crew and ATC understand",
+        "paused": "Paused",
+        "listening": "Listening",
+        "ready": "Ready"
+      }
+    },
+    "update": {
+      "newVersion": "New Stable Version",
+      "available": "available! (running {0})",
+      "dismiss": "Dismiss update notice"
+    },
+    "nav": {
+      "pages": "Pages",
+      "flightStatus": "Flight Status",
+      "init": "INIT",
+      "ofp": "OFP",
+      "loadsheet": "Loadsheet",
+      "wnb": "W&B",
+      "fuel": "Fuel",
+      "fuelLog": "Fuel Log",
+      "performance": "Performance",
+      "checklists": "Checklists",
+      "techLog": "Tech Log",
+      "logbook": "Logbook",
+      "dutyDay": "Duty Day",
+      "settings": "Settings"
+    },
+    "footer": {
+      "asr": "Speech recognition (LAN whisper): {0}",
+      "tts": "Voice (Kokoro): {0}",
+      "connection": "{0} connection",
+      "unknown": "unknown",
+      "kokoro": {
+        "notInChain": "not in the chain",
+        "healthy": "healthy",
+        "failed": "cooling down after a failure",
+        "disabled": "disabled",
+        "unused": "configured, not yet used"
+      }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "railLabel": "Settings sections",
+    "showAdvanced": "Show advanced settings",
+    "showAdvanced.title": "Reveal the tuning fields (timeouts, intervals, thresholds) on every settings page",
+    "pillarOff": {
+      "gsx": "GSX ground services are switched off.",
+      "speech": "The voice First Officer is switched off.",
+      "audio": "Audio control is switched off.",
+      "turnOn": "Turn it on under Setup."
+    },
+    "profileBanner": {
+      "active": "Aircraft profile {0} is active.",
+      "saves": "Saving on these pages stores the ground-services settings in that profile.",
+      "manage": "Manage profiles."
+    },
+    "nav": {
+      "setup": "Setup",
+      "gsx": "Ground Services",
+      "gsx.status": "Status",
+      "gsx.doors": "Doors & Jetway",
+      "gsx.equipment": "Ground Equipment",
+      "gsx.departure": "Departure Services",
+      "gsx.refuel": "Refuel & Boarding",
+      "gsx.pushback": "Pushback",
+      "gsx.arrival": "Arrival",
+      "gsx.operators": "Operators & Hubs",
+      "gsx.questions": "GSX Questions",
+      "gsx.connection": "Connection & Timeouts",
+      "speech": "Voice First Officer",
+      "speech.status": "Status",
+      "speech.general": "General",
+      "speech.persona": "FO Persona",
+      "speech.listening": "Listening & PTT",
+      "speech.sterile": "Sterile Cockpit",
+      "speech.voices": "Voices",
+      "speech.groundCrew": "Ground Crew",
+      "speech.cabin": "Cabin Crew",
+      "speech.company": "Company & Debrief",
+      "speech.techlog": "Tech Log & Logbook",
+      "speech.briefing": "Briefings & LLM",
+      "speech.mcdu": "MCDU",
+      "speech.sayIntentions": "SayIntentions",
+      "speech.callouts": "Callouts & Placards",
+      "speech.abnormals": "Abnormals & Drills",
+      "speech.providers": "Voice Providers",
+      "audio": "Audio Control",
+      "audio.status": "Status",
+      "audio.general": "General",
+      "audio.coreaudio": "CoreAudio",
+      "audio.voicemeeter": "VoiceMeeter",
+      "audio.mixer": "Remote Mixer",
+      "audio.advanced": "Housekeeping",
+      "app": "Display & Flight Data",
+      "appearance": "Appearance",
+      "notifications": "Notifications",
+      "profiles": "Aircraft Profiles",
+      "advanced": "Advanced",
+      "advanced.flightPhase": "Flight Phase Engine",
+      "advanced.logs": "Logs"
+    }
+  }
+}

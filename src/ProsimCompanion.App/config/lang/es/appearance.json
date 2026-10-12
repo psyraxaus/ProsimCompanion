@@ -1,135 +1,7 @@
 {
-  "$language": { "name": "Español" },
-
-  "app": {
-    "reconnect": {
-      "showing": "Conexión con ProsimCompanion perdida — reconectando…",
-      "failed": "Servidor inaccesible — reintentando automáticamente…",
-      "reloadNow": "Recargar ahora",
-      "rejected": "Sesión caducada — recargando…"
-    }
+  "$language": {
+    "name": "Español"
   },
-
-  "layout": {
-    "brand": {
-      "tagline": "Electronic Flight Bag"
-    },
-    "header": {
-      "aircraft": "Aeronave",
-      "registration": "Matrícula",
-      "nextService": "Siguiente servicio",
-      "nextService.complete": "completado",
-      "nextService.notStarted": "no iniciado",
-      "nextService.titleComplete": "Todos los servicios de salida se completaron o se omitieron.",
-      "nextService.titleNotStarted": "La secuencia de salida aún no ha comenzado (comienza con el plan de vuelo o desde Ajustes → Servicios de tierra).",
-      "nextService.titleHolding": "Llamar a {0} ahora, saltando su regla de activación (INT/RAD). En espera: {1}",
-      "nextService.titleNext": "Llamar al siguiente servicio de salida ahora, saltando su regla de activación (INT/RAD).",
-      "voice": {
-        "title": "Referencia de voz — cada frase que entienden el FO, el personal de tierra, la tripulación de cabina y ATC",
-        "paused": "En pausa",
-        "listening": "Escuchando",
-        "ready": "Listo"
-      }
-    },
-    "update": {
-      "newVersion": "Nueva versión estable",
-      "available": "disponible (en uso {0})",
-      "dismiss": "Descartar el aviso de actualización"
-    },
-    "nav": {
-      "pages": "Páginas",
-      "flightStatus": "Estado del vuelo",
-      "init": "INIT",
-      "ofp": "OFP",
-      "loadsheet": "Hoja de carga",
-      "wnb": "W&B",
-      "fuel": "Combustible",
-      "fuelLog": "Registro comb.",
-      "performance": "Performance",
-      "checklists": "Listas",
-      "techLog": "Tech Log",
-      "logbook": "Bitácora",
-      "dutyDay": "Jornada",
-      "settings": "Ajustes"
-    },
-    "footer": {
-      "asr": "Reconocimiento de voz (whisper en LAN): {0}",
-      "tts": "Voz (Kokoro): {0}",
-      "connection": "Conexión {0}",
-      "unknown": "desconocido",
-      "kokoro": {
-        "notInChain": "no está en la cadena",
-        "healthy": "correcto",
-        "failed": "en enfriamiento tras un fallo",
-        "disabled": "desactivado",
-        "unused": "configurado, aún sin usar"
-      }
-    }
-  },
-
-  "settings": {
-    "title": "Ajustes",
-    "railLabel": "Secciones de ajustes",
-    "showAdvanced": "Mostrar ajustes avanzados",
-    "showAdvanced.title": "Muestra los campos de ajuste fino (tiempos de espera, intervalos, umbrales) en cada página de ajustes",
-    "pillarOff": {
-      "gsx": "Los servicios de tierra GSX están desactivados.",
-      "speech": "El primer oficial por voz está desactivado.",
-      "audio": "El control de audio está desactivado.",
-      "turnOn": "Actívalo en Configuración."
-    },
-    "profileBanner": {
-      "active": "El perfil de aeronave {0} está activo.",
-      "saves": "Guardar en estas páginas almacena los ajustes de servicios de tierra en ese perfil.",
-      "manage": "Gestionar perfiles."
-    },
-    "nav": {
-      "setup": "Configuración",
-      "gsx": "Servicios de tierra",
-      "gsx.status": "Estado",
-      "gsx.doors": "Puertas y pasarela",
-      "gsx.equipment": "Equipos de tierra",
-      "gsx.departure": "Servicios de salida",
-      "gsx.refuel": "Repostaje y embarque",
-      "gsx.pushback": "Pushback",
-      "gsx.arrival": "Llegada",
-      "gsx.operators": "Operadores y hubs",
-      "gsx.questions": "Preguntas de GSX",
-      "gsx.connection": "Conexión y tiempos de espera",
-      "speech": "Primer oficial por voz",
-      "speech.status": "Estado",
-      "speech.general": "General",
-      "speech.persona": "Personalidad del FO",
-      "speech.listening": "Escucha y PTT",
-      "speech.sterile": "Cabina estéril",
-      "speech.voices": "Voces",
-      "speech.groundCrew": "Personal de tierra",
-      "speech.cabin": "Tripulación de cabina",
-      "speech.company": "Compañía y debriefing",
-      "speech.techlog": "Tech Log y bitácora",
-      "speech.briefing": "Briefings y LLM",
-      "speech.mcdu": "MCDU",
-      "speech.sayIntentions": "SayIntentions",
-      "speech.callouts": "Callouts y placards",
-      "speech.abnormals": "Anormales y drills",
-      "speech.providers": "Proveedores de voz",
-      "audio": "Control de audio",
-      "audio.status": "Estado",
-      "audio.general": "General",
-      "audio.coreaudio": "CoreAudio",
-      "audio.voicemeeter": "VoiceMeeter",
-      "audio.mixer": "Mezclador remoto",
-      "audio.advanced": "Mantenimiento",
-      "app": "Pantalla y datos de vuelo",
-      "appearance": "Apariencia",
-      "notifications": "Notificaciones",
-      "profiles": "Perfiles de aeronave",
-      "advanced": "Avanzado",
-      "advanced.flightPhase": "Motor de fases de vuelo",
-      "advanced.logs": "Registros"
-    }
-  },
-
   "appearance": {
     "pageTitle": "Apariencia — ProsimCompanion",
     "heading": "Apariencia",
@@ -138,7 +10,7 @@
       "hint": "El idioma de cada página, para cada navegador que abra la app",
       "label": "Idioma",
       "fieldHint": "Se aplica al instante, en el PC del simulador y en la tableta. Los números, pesos y horas conservan los formatos aeronáuticos sea cual sea el idioma. El primer oficial por voz y los registros siguen en inglés.",
-      "packsHint": "Cada idioma es un archivo JSON en {0}. Añade el tuyo ({1}) o corrige un texto allí; la carpeta se vuelve a leer al dibujar la siguiente página. Lo que falte en un idioma se muestra en inglés.",
+      "packsHint": "Cada idioma es una carpeta en {0}, con un archivo JSON por página. Añade tu propio idioma ({1}) o corrige un texto allí; la carpeta se vuelve a leer al dibujar la siguiente página. Lo que falte en un idioma se muestra en inglés.",
       "auto": "Seguir al navegador (aquí: {0})",
       "applied": "Idioma establecido en {0}.",
       "appliedAuto": "El idioma ahora sigue a cada navegador."

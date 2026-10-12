@@ -1,135 +1,7 @@
 {
-  "$language": { "name": "Français" },
-
-  "app": {
-    "reconnect": {
-      "showing": "Connexion à ProsimCompanion perdue — reconnexion…",
-      "failed": "Serveur injoignable — nouvel essai automatique…",
-      "reloadNow": "Recharger maintenant",
-      "rejected": "Session expirée — rechargement…"
-    }
+  "$language": {
+    "name": "Français"
   },
-
-  "layout": {
-    "brand": {
-      "tagline": "Electronic Flight Bag"
-    },
-    "header": {
-      "aircraft": "Appareil",
-      "registration": "Immatriculation",
-      "nextService": "Service suivant",
-      "nextService.complete": "terminé",
-      "nextService.notStarted": "non démarré",
-      "nextService.titleComplete": "Tous les services de départ sont terminés ou ont été ignorés.",
-      "nextService.titleNotStarted": "La séquence de départ n'a pas encore commencé (elle démarre avec le plan de vol, ou depuis Réglages → Services au sol).",
-      "nextService.titleHolding": "Appeler {0} maintenant, en contournant sa règle d'activation (INT/RAD). En attente : {1}",
-      "nextService.titleNext": "Appeler le service de départ suivant maintenant, en contournant sa règle d'activation (INT/RAD).",
-      "voice": {
-        "title": "Référence vocale — chaque phrase comprise par le FO, l'équipe au sol, l'équipage de cabine et l'ATC",
-        "paused": "En pause",
-        "listening": "À l'écoute",
-        "ready": "Prêt"
-      }
-    },
-    "update": {
-      "newVersion": "Nouvelle version stable",
-      "available": "disponible ! (en cours : {0})",
-      "dismiss": "Masquer l'avis de mise à jour"
-    },
-    "nav": {
-      "pages": "Pages",
-      "flightStatus": "État du vol",
-      "init": "INIT",
-      "ofp": "OFP",
-      "loadsheet": "Devis de masse",
-      "wnb": "W&B",
-      "fuel": "Carburant",
-      "fuelLog": "Journal carb.",
-      "performance": "Performances",
-      "checklists": "Check-lists",
-      "techLog": "Tech Log",
-      "logbook": "Carnet de vol",
-      "dutyDay": "Journée",
-      "settings": "Réglages"
-    },
-    "footer": {
-      "asr": "Reconnaissance vocale (whisper LAN) : {0}",
-      "tts": "Voix (Kokoro) : {0}",
-      "connection": "Connexion {0}",
-      "unknown": "inconnu",
-      "kokoro": {
-        "notInChain": "absent de la chaîne",
-        "healthy": "opérationnel",
-        "failed": "en refroidissement après une panne",
-        "disabled": "désactivé",
-        "unused": "configuré, pas encore utilisé"
-      }
-    }
-  },
-
-  "settings": {
-    "title": "Réglages",
-    "railLabel": "Sections des réglages",
-    "showAdvanced": "Afficher les réglages avancés",
-    "showAdvanced.title": "Révèle les champs de réglage fin (délais, intervalles, seuils) sur chaque page de réglages",
-    "pillarOff": {
-      "gsx": "Les services au sol GSX sont désactivés.",
-      "speech": "Le copilote vocal est désactivé.",
-      "audio": "Le contrôle audio est désactivé.",
-      "turnOn": "Activez-le dans Configuration."
-    },
-    "profileBanner": {
-      "active": "Le profil d'appareil {0} est actif.",
-      "saves": "Enregistrer sur ces pages stocke les réglages des services au sol dans ce profil.",
-      "manage": "Gérer les profils."
-    },
-    "nav": {
-      "setup": "Configuration",
-      "gsx": "Services au sol",
-      "gsx.status": "État",
-      "gsx.doors": "Portes et passerelle",
-      "gsx.equipment": "Équipements au sol",
-      "gsx.departure": "Services de départ",
-      "gsx.refuel": "Avitaillement et embarquement",
-      "gsx.pushback": "Pushback",
-      "gsx.arrival": "Arrivée",
-      "gsx.operators": "Opérateurs et hubs",
-      "gsx.questions": "Questions GSX",
-      "gsx.connection": "Connexion et délais",
-      "speech": "Copilote vocal",
-      "speech.status": "État",
-      "speech.general": "Général",
-      "speech.persona": "Personnalité du FO",
-      "speech.listening": "Écoute et PTT",
-      "speech.sterile": "Cockpit stérile",
-      "speech.voices": "Voix",
-      "speech.groundCrew": "Équipe au sol",
-      "speech.cabin": "Équipage de cabine",
-      "speech.company": "Compagnie et débriefing",
-      "speech.techlog": "Tech Log et carnet de vol",
-      "speech.briefing": "Briefings et LLM",
-      "speech.mcdu": "MCDU",
-      "speech.sayIntentions": "SayIntentions",
-      "speech.callouts": "Annonces et placards",
-      "speech.abnormals": "Anormales et drills",
-      "speech.providers": "Fournisseurs de voix",
-      "audio": "Contrôle audio",
-      "audio.status": "État",
-      "audio.general": "Général",
-      "audio.coreaudio": "CoreAudio",
-      "audio.voicemeeter": "VoiceMeeter",
-      "audio.mixer": "Mixeur distant",
-      "audio.advanced": "Entretien",
-      "app": "Affichage et données de vol",
-      "appearance": "Apparence",
-      "notifications": "Notifications",
-      "profiles": "Profils d'appareil",
-      "advanced": "Avancé",
-      "advanced.flightPhase": "Moteur de phases de vol",
-      "advanced.logs": "Journaux"
-    }
-  },
-
   "appearance": {
     "pageTitle": "Apparence — ProsimCompanion",
     "heading": "Apparence",
@@ -138,7 +10,7 @@
       "hint": "La langue de chaque page, pour chaque navigateur qui ouvre l'application",
       "label": "Langue",
       "fieldHint": "S'applique immédiatement, sur le PC du simulateur et la tablette. Les nombres, masses et heures gardent les formats aéronautiques quelle que soit la langue. Le copilote vocal et les journaux restent en anglais.",
-      "packsHint": "Chaque langue est un fichier JSON dans {0}. Ajoutez la vôtre ({1}) ou corrigez-y un texte ; le dossier est relu au prochain affichage de page. Ce qui manque dans une langue s'affiche en anglais.",
+      "packsHint": "Chaque langue est un dossier dans {0}, avec un fichier JSON par page. Ajoutez votre propre langue ({1}) ou corrigez-y un texte ; le dossier est relu au prochain affichage de page. Ce qui manque dans une langue s'affiche en anglais.",
       "auto": "Suivre le navigateur (ici : {0})",
       "applied": "Langue réglée sur {0}.",
       "appliedAuto": "La langue suit désormais chaque navigateur."

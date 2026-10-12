@@ -1,0 +1,101 @@
+{
+  "appearance": {
+    "pageTitle": "Uiterlijk — ProsimCompanion",
+    "heading": "Uiterlijk",
+    "language": {
+      "title": "Taal",
+      "hint": "De taal van elke pagina, voor elke browser die de app opent",
+      "label": "Taal",
+      "fieldHint": "Geldt meteen, op de sim-pc en de tablet. Getallen, gewichten en tijden houden de luchtvaartnotatie, welke taal je ook kiest. De spraak-First Officer en de logs blijven Engels.",
+      "packsHint": "Elke taal is één map in {0}, met één JSON-bestand per pagina. Voeg je eigen taal toe ({1}) of verbeter daar een tekst; de map wordt bij de volgende paginaopbouw opnieuw gelezen. Wat in een taal ontbreekt, verschijnt in het Engels.",
+      "auto": "Browser volgen (hier: {0})",
+      "applied": "Taal ingesteld op {0}.",
+      "appliedAuto": "De taal volgt nu elke browser."
+    },
+    "theme": {
+      "title": "Thema",
+      "hint": "Klik op een thema om het meteen toe te passen. Je eigen JSON-thema's in de gebruikersconfiguratiemap verschijnen na de ingebouwde.",
+      "apply": "{0} toepassen",
+      "active": "· actief",
+      "logoTitle": "PNG, SVG, JPG of WEBP tot 512 KB — getoond in de kopbalk zolang dit thema actief is",
+      "addLogo": "Logo toevoegen",
+      "replaceLogo": "Logo vervangen",
+      "remove": "Verwijderen",
+      "logosHintBefore": "Logo's zijn je eigen bestanden. Ze blijven op deze pc in",
+      "logosHintAfter": "en maken nooit deel uit van de app of het installatieprogramma. De kopbalk toont het logo van het actieve thema als er een is ingesteld.",
+      "applied": "Thema ingesteld op {0}."
+    },
+    "header": {
+      "title": "Kopbalk",
+      "hint": "Wat de bovenste balk op elke pagina toont",
+      "nextService": {
+        "label": "Knop VOLGENDE SERVICE in de kopbalk tonen",
+        "hint": "Roept de volgende vertrekservice nu op — de INT/RAD-smartknop, op elke pagina.",
+        "more": "De knop noemt de volgende service en waarom die wacht. Hij is grijs tot de vertrekreeks is begonnen, en nadat die is voltooid. Zelfde actie als Instellingen → Grondservices → Volgende service nu oproepen, de Stream Deck-knop en het spraakcommando 'next service'."
+      }
+    },
+    "screen": {
+      "title": "Scherm & installatie",
+      "hint": "Alleen voor dit apparaat — de tablet of pc waarop je dit leest",
+      "keepAwake": {
+        "label": "Scherm wakker houden",
+        "hint": "Voorkomt dat het scherm van dit apparaat in slaap valt zolang de app open is. Alleen op dit apparaat opgeslagen.",
+        "needsHttps": "Alleen een beveiligde pagina kan het scherm wakker houden. Open de app via HTTPS —",
+        "httpsSetup": "HTTPS-instelling",
+        "needsHttpsWhere": "(Setup → Webinterface).",
+        "moreNotSupported": "Deze browser heeft geen Screen Wake Lock. Safari 16.4+, Chrome en Edge hebben het; een beveiligde pagina blijft nodig.",
+        "more": "De browser laat de vergrendeling los als de pagina verborgen is en de app pakt hem weer op als je terugkomt. Een lege accu kan de browser laten weigeren — de pil toont dan AANVRAGEN tot de volgende poging."
+      },
+      "install": {
+        "label": "Installeren als app",
+        "hint": "Zet ProsimCompanion op het beginscherm als app op volledig scherm zonder browserbalken.",
+        "more": "iPad: open de app in Safari, tik op Delen en dan 'Zet op beginscherm'. Android / Chrome: menu → 'App installeren'. Er is geen offlinemodus — de app heeft de sim-pc nodig. Alle stappen: docs/manual/07-tablet-install.md in de installatiemap."
+      },
+      "installed": "GEÏNSTALLEERD",
+      "inBrowser": "IN BROWSER",
+      "thisDevice": "Dit apparaat: {0}",
+      "perAddress": "De schakelaar wordt per adres opgeslagen: aan op {0} geldt niet voor {1}. iPadOS negeert elke wake lock in de energiebesparingsmodus.",
+      "lockDiagnostics": "Vergrendelingsdiagnose",
+      "requestAgain": "Opnieuw aanvragen",
+      "wake": {
+        "active": "ACTIEF",
+        "requesting": "AANVRAGEN",
+        "needsHttps": "HTTPS NODIG",
+        "notSupported": "NIET ONDERSTEUND",
+        "off": "UIT"
+      },
+      "diag": {
+        "requests": "{0} aanvraag/aanvragen",
+        "granted": "verleend {0}",
+        "released": "vrijgegeven {0}",
+        "lastRefusal": "laatste weigering {0}: {1}",
+        "osOverride": "Slaapt het scherm toch terwijl de pil ACTIEF toont en geen vrijgave te zien is, dan heeft het besturingssysteem de vergrendeling genegeerd (energiebesparingsmodus, Begeleide toegang of een Schermtijd-limiet)."
+      },
+      "device": {
+        "generic": "apparaat",
+        "line": "{0} op {1} · {2} · {3}",
+        "standalone": "zelfstandig",
+        "browserTab": "browsertabblad"
+      }
+    },
+    "airline": {
+      "title": "Maatschappijlogo's",
+      "hint": "Voor het uitklapbare Flight Monitor-bord — gekoppeld aan de maatschappijcode van het vliegplan",
+      "code": "ICAO-code van de maatschappij",
+      "logoTitle": "PNG, SVG, JPG of WEBP tot 512 KB — getoond op de Flight Monitor als de maatschappij van het OFP overeenkomt",
+      "addLogo": "Logo toevoegen",
+      "none": "Nog geen maatschappijlogo's. Typ de ICAO-code van de maatschappij (die SimBrief toont, bv. KLM, BAW, DLH) en voeg het logo toe.",
+      "remove": "Verwijderen",
+      "storedBefore": "Opgeslagen in",
+      "storedAfter": ", nooit deel van de app. De Flight Monitor toont het logo waarvan de code gelijk is aan de maatschappijcode van het OFP; zonder logo toont hij de code zelf.",
+      "codeFirst": "Typ eerst de code van 2–4 tekens van de maatschappij (bv. KLM).",
+      "nothingToRemove": "Niets te verwijderen."
+    },
+    "logo": {
+      "saved": "Logo voor {0} opgeslagen.",
+      "notSaved": "Logo voor {0} niet opgeslagen: {1}",
+      "removed": "Logo voor {0} verwijderd.",
+      "none": "{0} heeft geen logo."
+    }
+  }
+}

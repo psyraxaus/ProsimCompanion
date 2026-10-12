@@ -1,0 +1,131 @@
+{
+  "$language": {
+    "name": "日本語"
+  },
+  "app": {
+    "reconnect": {
+      "showing": "ProsimCompanion との接続が切れました — 再接続中…",
+      "failed": "サーバーに接続できません — 自動的に再試行中…",
+      "reloadNow": "今すぐ再読み込み",
+      "rejected": "セッションの有効期限が切れました — 再読み込み中…"
+    }
+  },
+  "layout": {
+    "brand": {
+      "tagline": "Electronic Flight Bag"
+    },
+    "header": {
+      "aircraft": "機体",
+      "registration": "登録記号",
+      "nextService": "次のサービス",
+      "nextService.complete": "完了",
+      "nextService.notStarted": "未開始",
+      "nextService.titleComplete": "出発サービスはすべて完了またはスキップされました。",
+      "nextService.titleNotStarted": "出発シーケンスはまだ始まっていません（フライトプランの読み込み、または 設定 → 地上サービス から始まります）。",
+      "nextService.titleHolding": "{0} を今すぐ呼び出し、起動ルールを飛ばします（INT/RAD）。待機理由: {1}",
+      "nextService.titleNext": "次の出発サービスを今すぐ呼び出し、起動ルールを飛ばします（INT/RAD）。",
+      "voice": {
+        "title": "音声リファレンス — FO、地上クルー、客室乗務員、ATC が理解するすべてのフレーズ",
+        "paused": "一時停止",
+        "listening": "聞き取り中",
+        "ready": "待機中"
+      }
+    },
+    "update": {
+      "newVersion": "新しい安定版",
+      "available": "が利用できます（現在 {0}）",
+      "dismiss": "更新の通知を閉じる"
+    },
+    "nav": {
+      "pages": "ページ",
+      "flightStatus": "フライト状況",
+      "init": "INIT",
+      "ofp": "OFP",
+      "loadsheet": "ロードシート",
+      "wnb": "W&B",
+      "fuel": "燃料",
+      "fuelLog": "燃料ログ",
+      "performance": "性能",
+      "checklists": "チェックリスト",
+      "techLog": "Tech Log",
+      "logbook": "ログブック",
+      "dutyDay": "勤務日",
+      "settings": "設定"
+    },
+    "footer": {
+      "asr": "音声認識（LAN whisper）: {0}",
+      "tts": "音声（Kokoro）: {0}",
+      "connection": "{0} 接続",
+      "unknown": "不明",
+      "kokoro": {
+        "notInChain": "チェーンに含まれていません",
+        "healthy": "正常",
+        "failed": "障害後のクールダウン中",
+        "disabled": "無効",
+        "unused": "設定済み、未使用"
+      }
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "railLabel": "設定セクション",
+    "showAdvanced": "詳細設定を表示",
+    "showAdvanced.title": "各設定ページの調整項目（タイムアウト、間隔、しきい値）を表示します",
+    "pillarOff": {
+      "gsx": "GSX 地上サービスはオフです。",
+      "speech": "音声副操縦士はオフです。",
+      "audio": "オーディオ制御はオフです。",
+      "turnOn": "セットアップでオンにしてください。"
+    },
+    "profileBanner": {
+      "active": "機体プロファイル {0} が有効です。",
+      "saves": "これらのページで保存すると、地上サービス設定はそのプロファイルに保存されます。",
+      "manage": "プロファイルを管理する。"
+    },
+    "nav": {
+      "setup": "セットアップ",
+      "gsx": "地上サービス",
+      "gsx.status": "状態",
+      "gsx.doors": "ドアとボーディングブリッジ",
+      "gsx.equipment": "地上機材",
+      "gsx.departure": "出発サービス",
+      "gsx.refuel": "給油と搭乗",
+      "gsx.pushback": "プッシュバック",
+      "gsx.arrival": "到着",
+      "gsx.operators": "オペレーターとハブ",
+      "gsx.questions": "GSX の質問",
+      "gsx.connection": "接続とタイムアウト",
+      "speech": "音声副操縦士",
+      "speech.status": "状態",
+      "speech.general": "一般",
+      "speech.persona": "FO の人格",
+      "speech.listening": "聞き取りと PTT",
+      "speech.sterile": "ステライルコックピット",
+      "speech.voices": "声",
+      "speech.groundCrew": "地上クルー",
+      "speech.cabin": "客室乗務員",
+      "speech.company": "会社とデブリーフ",
+      "speech.techlog": "Tech Log とログブック",
+      "speech.briefing": "ブリーフィングと LLM",
+      "speech.mcdu": "MCDU",
+      "speech.sayIntentions": "SayIntentions",
+      "speech.callouts": "コールアウトとプラカード",
+      "speech.abnormals": "異常手順とドリル",
+      "speech.providers": "音声プロバイダー",
+      "audio": "オーディオ制御",
+      "audio.status": "状態",
+      "audio.general": "一般",
+      "audio.coreaudio": "CoreAudio",
+      "audio.voicemeeter": "VoiceMeeter",
+      "audio.mixer": "リモートミキサー",
+      "audio.advanced": "メンテナンス",
+      "app": "表示とフライトデータ",
+      "appearance": "外観",
+      "notifications": "通知",
+      "profiles": "機体プロファイル",
+      "advanced": "詳細",
+      "advanced.flightPhase": "フライトフェーズエンジン",
+      "advanced.logs": "ログ"
+    }
+  }
+}

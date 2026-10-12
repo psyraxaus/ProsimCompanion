@@ -1,0 +1,131 @@
+{
+  "$language": {
+    "name": "Nederlands"
+  },
+  "app": {
+    "reconnect": {
+      "showing": "Verbinding met ProsimCompanion verbroken — opnieuw verbinden…",
+      "failed": "Server niet bereikbaar — automatisch opnieuw proberen…",
+      "reloadNow": "Nu herladen",
+      "rejected": "Sessie verlopen — herladen…"
+    }
+  },
+  "layout": {
+    "brand": {
+      "tagline": "Electronic Flight Bag"
+    },
+    "header": {
+      "aircraft": "Vliegtuig",
+      "registration": "Registratie",
+      "nextService": "Volgende service",
+      "nextService.complete": "voltooid",
+      "nextService.notStarted": "niet gestart",
+      "nextService.titleComplete": "Alle vertrekservices zijn voltooid of overgeslagen.",
+      "nextService.titleNotStarted": "De vertrekreeks is nog niet begonnen (die start met het vliegplan, of via Instellingen → Grondservices).",
+      "nextService.titleHolding": "{0} nu oproepen en de activeringsregel overslaan (INT/RAD). Wacht op: {1}",
+      "nextService.titleNext": "De volgende vertrekservice nu oproepen en de activeringsregel overslaan (INT/RAD).",
+      "voice": {
+        "title": "Spraakreferentie — elke zin die de FO, de grondcrew, de cabinecrew en ATC begrijpen",
+        "paused": "Gepauzeerd",
+        "listening": "Luistert",
+        "ready": "Gereed"
+      }
+    },
+    "update": {
+      "newVersion": "Nieuwe stabiele versie",
+      "available": "beschikbaar! (nu {0})",
+      "dismiss": "Updatemelding sluiten"
+    },
+    "nav": {
+      "pages": "Pagina's",
+      "flightStatus": "Vluchtstatus",
+      "init": "INIT",
+      "ofp": "OFP",
+      "loadsheet": "Loadsheet",
+      "wnb": "W&B",
+      "fuel": "Brandstof",
+      "fuelLog": "Brandstoflog",
+      "performance": "Performance",
+      "checklists": "Checklists",
+      "techLog": "Tech Log",
+      "logbook": "Logboek",
+      "dutyDay": "Dienstdag",
+      "settings": "Instellingen"
+    },
+    "footer": {
+      "asr": "Spraakherkenning (LAN-whisper): {0}",
+      "tts": "Stem (Kokoro): {0}",
+      "connection": "{0}-verbinding",
+      "unknown": "onbekend",
+      "kokoro": {
+        "notInChain": "niet in de keten",
+        "healthy": "in orde",
+        "failed": "afkoelen na een storing",
+        "disabled": "uitgeschakeld",
+        "unused": "ingesteld, nog niet gebruikt"
+      }
+    }
+  },
+  "settings": {
+    "title": "Instellingen",
+    "railLabel": "Instellingensecties",
+    "showAdvanced": "Geavanceerde instellingen tonen",
+    "showAdvanced.title": "Toon de fijnafstelvelden (time-outs, intervallen, drempels) op elke instellingenpagina",
+    "pillarOff": {
+      "gsx": "De GSX-grondservices staan uit.",
+      "speech": "De spraak-First Officer staat uit.",
+      "audio": "De audiobediening staat uit.",
+      "turnOn": "Zet het aan onder Setup."
+    },
+    "profileBanner": {
+      "active": "Vliegtuigprofiel {0} is actief.",
+      "saves": "Opslaan op deze pagina's bewaart de grondservice-instellingen in dat profiel.",
+      "manage": "Profielen beheren."
+    },
+    "nav": {
+      "setup": "Setup",
+      "gsx": "Grondservices",
+      "gsx.status": "Status",
+      "gsx.doors": "Deuren & aviobrug",
+      "gsx.equipment": "Grondmaterieel",
+      "gsx.departure": "Vertrekservices",
+      "gsx.refuel": "Tanken & boarding",
+      "gsx.pushback": "Pushback",
+      "gsx.arrival": "Aankomst",
+      "gsx.operators": "Afhandelaars & hubs",
+      "gsx.questions": "GSX-vragen",
+      "gsx.connection": "Verbinding & time-outs",
+      "speech": "Spraak-First Officer",
+      "speech.status": "Status",
+      "speech.general": "Algemeen",
+      "speech.persona": "FO-persona",
+      "speech.listening": "Luisteren & PTT",
+      "speech.sterile": "Sterile cockpit",
+      "speech.voices": "Stemmen",
+      "speech.groundCrew": "Grondcrew",
+      "speech.cabin": "Cabinecrew",
+      "speech.company": "Maatschappij & debriefing",
+      "speech.techlog": "Tech Log & logboek",
+      "speech.briefing": "Briefings & LLM",
+      "speech.mcdu": "MCDU",
+      "speech.sayIntentions": "SayIntentions",
+      "speech.callouts": "Callouts & placards",
+      "speech.abnormals": "Abnormals & drills",
+      "speech.providers": "Stemproviders",
+      "audio": "Audiobediening",
+      "audio.status": "Status",
+      "audio.general": "Algemeen",
+      "audio.coreaudio": "CoreAudio",
+      "audio.voicemeeter": "VoiceMeeter",
+      "audio.mixer": "Externe mixer",
+      "audio.advanced": "Onderhoud",
+      "app": "Weergave & vluchtgegevens",
+      "appearance": "Uiterlijk",
+      "notifications": "Meldingen",
+      "profiles": "Vliegtuigprofielen",
+      "advanced": "Geavanceerd",
+      "advanced.flightPhase": "Vluchtfase-engine",
+      "advanced.logs": "Logs"
+    }
+  }
+}
