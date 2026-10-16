@@ -1,11 +1,15 @@
 @page "/settings/gsx/{Section?}"
 @page "/gsx"
 @layout SettingsLayout
+@using System.Globalization
+@using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Core.Aircraft.Switches
 @using ProsimCompanion.Core.Profiles
 @using ProsimCompanion.Core.Airports.Parking
 @inherits SettingsPageBase
 @inject IOptionsMonitor<GsxOptions> GsxMonitor
 @inject ProfileGsxMirror ProfileMirror
+@inject SwitchCatalogStore SwitchList
 @inject IStringLocalizer T
 
 <PageTitle>@T["gsxSettings.pageTitle"]</PageTitle>
@@ -107,12 +111,29 @@ else if (CurrentSection == "departure")
         <BoolField Label="@T["gsxSettings.automation.smartButton.label"]" Hint="@T["gsxSettings.automation.smartButton.hint"]" More="@T["gsxSettings.automation.smartButton.more"]"
                    @bind-Value="_gsx.Value.SmartButtonEnabled" />
         <AdvancedFields>
-            <TextField Label="@T["gsxSettings.automation.smartButtonDataRef.label"]" Hint="@T["gsxSettings.automation.smartButtonDataRef.hint"]" More="@T["gsxSettings.automation.smartButtonDataRef.more"]"
-                       Placeholder="system.switches.S_ASP_INTRAD" Disabled="@(!_gsx.Value.SmartButtonEnabled)"
-                       @bind-Value="_gsx.Value.SmartButtonDataRef" />
-            <NumberField Label="@T["gsxSettings.automation.smartButtonValue.label"]" Hint="@T["gsxSettings.automation.smartButtonValue.hint"]" More="@T["gsxSettings.automation.smartButtonValue.more"]"
-                         Disabled="@(!_gsx.Value.SmartButtonEnabled)" Default="_gsx.Defaults.SmartButtonTriggerValue"
-                         @bind-Value="_gsx.Value.SmartButtonTriggerValue" />
+            @* The hybrid switch list (owner pick 2026-10-17): grouped by panel, from ProSim when it
+               is connected, else from the shipped CSV. "Other…" keeps the free text box. *@
+            <GroupedSelectField Label="@T["gsxSettings.automation.smartButtonSwitch.label"]" Hint="@T["gsxSettings.automation.smartButtonSwitch.hint"]" More="@SmartButtonSwitchMore"
+                                Options="SmartButtonLeadOptions" Groups="SmartButtonGroups" Disabled="@(!_gsx.Value.SmartButtonEnabled)"
+                                Value="@SmartButtonPick" ValueChanged="OnSmartButtonPicked" />
+            @if (SmartButtonIsCustom)
+            {
+                <TextField Label="@T["gsxSettings.automation.smartButtonDataRef.label"]" Hint="@T["gsxSettings.automation.smartButtonDataRef.hint"]" More="@T["gsxSettings.automation.smartButtonDataRef.more"]"
+                           Placeholder="system.switches.S_ASP_INTRAD" Disabled="@(!_gsx.Value.SmartButtonEnabled)"
+                           @bind-Value="_gsx.Value.SmartButtonDataRef" />
+            }
+            @if (SmartButtonValueOptions is { } valueOptions)
+            {
+                <SelectField Label="@T["gsxSettings.automation.smartButtonValue.label"]" Hint="@T["gsxSettings.automation.smartButtonValue.hint"]" More="@T["gsxSettings.automation.smartButtonValue.more"]"
+                             Options="valueOptions" Disabled="@(!_gsx.Value.SmartButtonEnabled)"
+                             Value="@(_gsx.Value.SmartButtonTriggerValue.ToString(CultureInfo.InvariantCulture))" ValueChanged="OnSmartButtonValuePicked" />
+            }
+            else
+            {
+                <NumberField Label="@T["gsxSettings.automation.smartButtonValue.label"]" Hint="@T["gsxSettings.automation.smartButtonValue.hint"]" More="@T["gsxSettings.automation.smartButtonValue.more"]"
+                             Disabled="@(!_gsx.Value.SmartButtonEnabled)" Default="_gsx.Defaults.SmartButtonTriggerValue"
+                             @bind-Value="_gsx.Value.SmartButtonTriggerValue" />
+            }
         </AdvancedFields>
         <BoolField Label="@T["gsxSettings.automation.autoStart.label"]" Hint="@T["gsxSettings.automation.autoStart.hint"]" More="@T["gsxSettings.automation.autoStart.more"]"
                    @bind-Value="_gsx.Value.AutoStartDepartureServices" />
@@ -558,6 +579,108 @@ else if (CurrentSection == "connection")
         [("Nobody", T["gsxSettings.questions.crewOptions.nobody"]), ("Crew", T["gsxSettings.questions.crewOptions.crew"]),
          ("Pilots", T["gsxSettings.questions.crewOptions.pilots"]), ("Both", T["gsxSettings.questions.crewOptions.both"])];
 
+    // ---- Smart-button switch picker (hybrid list, owner pick 2026-10-17) ----
+
+    private const string SmartButtonCustomPick = "__custom";
+    private SwitchCatalogSnapshot _switches = default!;
+    private bool _smartButtonCustom;
+
+    /// <summary>True when the dataref is typed by hand: the pilot chose "Other…", or the list
+    /// does not know the saved name (a switch this ProSim build lacks).</summary>
+    private bool SmartButtonIsCustom
+        => _smartButtonCustom
+            || (!string.IsNullOrWhiteSpace(_gsx.Value.SmartButtonDataRef) && _switches.Find(_gsx.Value.SmartButtonDataRef) is null);
+
+    private string SmartButtonPick
+        => SmartButtonIsCustom ? SmartButtonCustomPick
+            : string.IsNullOrWhiteSpace(_gsx.Value.SmartButtonDataRef) ? ""
+            : _switches.Find(_gsx.Value.SmartButtonDataRef)!.Name;
+
+    /// <summary>The switch whose values the trigger-value dropdown offers: the picked one, or
+    /// the captain's INT/RAD rocker for the default; null for a name the list does not know.</summary>
+    private SwitchDataRef? SmartButtonSwitch
+        => _switches.Find(string.IsNullOrWhiteSpace(_gsx.Value.SmartButtonDataRef) ? ProsimDataRefNames.IntRadCpt.Name : _gsx.Value.SmartButtonDataRef);
+
+    private IReadOnlyList<(string, string)> SmartButtonLeadOptions =>
+        [("", T["gsxSettings.automation.smartButtonSwitch.default"]), (SmartButtonCustomPick, T["gsxSettings.automation.smartButtonSwitch.custom"])];
+
+    private IReadOnlyList<(string Label, IReadOnlyList<(string Value, string Label)> Options)> SmartButtonGroups
+    {
+        get
+        {
+            var groups = new List<(string, IReadOnlyList<(string, string)>)>();
+            foreach (var group in SwitchCatalog.GroupOrder)
+            {
+                var rows = _switches.Switches
+                    .Where(s => s.Group == group)
+                    .Select(s => (s.Name, s.ShortName + " — " + s.Title))
+                    .ToList();
+                if (rows.Count > 0)
+                {
+                    groups.Add((T["gsxSettings.automation.switchGroups." + group].Value, rows));
+                }
+            }
+
+            return groups;
+        }
+    }
+
+    private string SmartButtonSwitchMore
+        => T["gsxSettings.automation.smartButtonSwitch.more"].Value + " "
+            + (_switches.Source == SwitchCatalogSource.Live && _switches.ReadAtUtc is { } readAt
+                ? T["gsxSettings.automation.smartButtonSwitch.sourceLive", readAt.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)].Value
+                : T["gsxSettings.automation.smartButtonSwitch.sourceShipped"].Value);
+
+    /// <summary>The value dropdown rows ("0 = INT"), or null when the switch has no value list
+    /// and the plain number box applies. A saved value outside the list stays selectable.</summary>
+    private IReadOnlyList<(string, string)>? SmartButtonValueOptions
+    {
+        get
+        {
+            if (SmartButtonSwitch is not { Values.Count: > 0 } s)
+            {
+                return null;
+            }
+
+            var current = _gsx.Value.SmartButtonTriggerValue;
+            var rows = s.Values
+                .Select(v => (v.Value.ToString(CultureInfo.InvariantCulture), v.Value.ToString(CultureInfo.InvariantCulture) + " = " + v.Label))
+                .ToList();
+            if (s.Values.All(v => v.Value != current))
+            {
+                rows.Insert(0, (current.ToString(CultureInfo.InvariantCulture), current.ToString(CultureInfo.InvariantCulture)));
+            }
+
+            return rows;
+        }
+    }
+
+    private void OnSmartButtonPicked(string pick)
+    {
+        if (pick == SmartButtonCustomPick)
+        {
+            _smartButtonCustom = true;
+            return;
+        }
+
+        _smartButtonCustom = false;
+        _gsx.Value.SmartButtonDataRef = pick;
+        // A switch with a value list: keep the current value when it is one of them, else take
+        // the first so the dropdown and the saved value never disagree.
+        if (SmartButtonSwitch is { Values.Count: > 0 } s && s.Values.All(v => v.Value != _gsx.Value.SmartButtonTriggerValue))
+        {
+            _gsx.Value.SmartButtonTriggerValue = s.Values[0].Value;
+        }
+    }
+
+    private void OnSmartButtonValuePicked(string value)
+    {
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            _gsx.Value.SmartButtonTriggerValue = parsed;
+        }
+    }
+
     private IReadOnlyList<(string, string)> GroundPrepActivationOptions =>
         [("auto", T["gsxSettings.automation.groundPrepOptions.auto"]), ("voice", T["gsxSettings.automation.groundPrepOptions.voice"]),
          (GsxOptions.GroundPrepActivationVoiceThenAuto, T["gsxSettings.automation.groundPrepOptions.voiceThenAuto"])];
@@ -589,7 +712,13 @@ else if (CurrentSection == "connection")
 
     private OptionsDraft<GsxOptions> _gsx = default!;
 
-    protected override void OnInitialized() => _gsx = Draft(GsxMonitor);
+    protected override void OnInitialized()
+    {
+        _gsx = Draft(GsxMonitor);
+        // The switch list swaps from the shipped CSV to ProSim's own on connect; the picker
+        // re-renders with it like every other live card.
+        Watch(SwitchList, snapshot => _switches = snapshot);
+    }
 
     // ---- Stand knowledge (2026-10-04) ----
 

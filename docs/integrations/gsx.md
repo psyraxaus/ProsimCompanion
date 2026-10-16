@@ -75,6 +75,10 @@ Behaviours that must survive the port:
   to any other ProSim switch dataref read as a number, `gsx.smartButtonTriggerValue` picks the
   value (0 = INT). The decision log reads `requested by INT/RAD` on the default rocker and
   `requested by smart-button` on a custom switch; the ground-prep-only guard is not configurable.
+  The settings page offers the switch as a grouped list (`SwitchCatalogStore`): the shipped
+  `Prosim_A322_Dataref.csv` (embedded in Core) until ProSim connects, then the SDK's
+  `getDataRefDescriptions()` read once per connect off the callback thread (both SDK shapes
+  have it); value positions are parsed from the "[0:INT, 1:Off, 2:RAD]" description suffix.
 - **Voice gating (ADR-0006, issues #50/#51)**: `gsx.groundPrepActivation = "voice"` holds the
   whole prep chain (reposition → gate anchor → GPU/chocks → jetway) until departure services
   are started ("commence ground services" / web Start / API — voice is never the only

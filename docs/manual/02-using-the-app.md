@@ -17,7 +17,12 @@ INT/RAD switch can add a **NEXT SERVICE** button to the header (Settings → App
 names the next departure service, why it is holding, and calls it on a click — on every page.
 The cockpit switch itself is the **Hardware next-service button** (Settings → GSX →
 Automation): turn it off when your panel or audio bridge keys the interphone mic on INT, or
-bind it to another ProSim switch dataref and trigger value under the advanced fields.
+pick another switch under the advanced fields. The **Trigger switch** list is grouped by
+panel (overhead, pedestal, audio panels, FCU, …) and shows each switch with its ProSim
+description; the **Trigger value** then offers that switch's positions (INT / Off / RAD).
+The list is read from ProSim whenever it is connected, so a newer ProSim shows its new
+switches; with ProSim off it comes from the catalogue shipped with the app. "Other…" keeps
+a free text box for a dataref the list does not know.
 
 ![Departure Services settings with the hardware next-service button](../img/gsx-departure.png)
 

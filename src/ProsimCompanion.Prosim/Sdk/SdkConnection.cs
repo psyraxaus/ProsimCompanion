@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using ProSimSDK;
+using ProsimCompanion.Core.Aircraft.Switches;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Prosim.DataRefs;
@@ -33,6 +34,7 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
     private readonly ProsimOptions _options;
     private readonly ProsimDataRefService _dataRefs;
     private readonly ConnectionStatusStore _status;
+    private readonly SwitchCatalogStore _switchCatalog;
     private readonly ILogger _logger;
     private readonly ProSimConnect _connection;
     private readonly object _gate = new();
@@ -56,16 +58,19 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
         ProsimOptions options,
         ProsimDataRefService dataRefs,
         ConnectionStatusStore status,
+        SwitchCatalogStore switchCatalog,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(status);
+        ArgumentNullException.ThrowIfNull(switchCatalog);
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
         _dataRefs = dataRefs;
         _status = status;
+        _switchCatalog = switchCatalog;
         _logger = logger;
 
         // Never `new ProSimConnect(...)` here: the SDK builds in the field have disjoint
@@ -212,6 +217,38 @@ internal sealed class SdkConnection : IDataRefBackend, IDisposable
 
         // Attaching replays every active registration through EnsureRegistered.
         _dataRefs.AttachBackend(this);
+
+        // The dataref description list is a one-off network read: never on the SDK's
+        // callback thread (issue #35 taught that lesson for registrations).
+        _ = Task.Run(ReadSwitchCatalog);
+    }
+
+    /// <summary>Reads ProSim's dataref description list once per connect for the smart-button
+    /// switch picker (hybrid list, owner pick 2026-10-17): a newer ProSim shows switches the
+    /// shipped CSV lacks. A failure keeps the shipped list and says so once per session.</summary>
+    private void ReadSwitchCatalog()
+    {
+        try
+        {
+            var rows = _connection.getDataRefDescriptions()
+                .Select(d => new SwitchCatalogRow(d.Name, d.Description, d.CanRead))
+                .ToList();
+            var snapshot = SwitchCatalog.Build(rows, SwitchCatalogSource.Live, DateTimeOffset.UtcNow);
+            if (snapshot.Switches.Count == 0)
+            {
+                _logger.LogWarning(
+                    "ProSim listed {Count} datarefs but no readable system.switches entries; the switch picker keeps the shipped list",
+                    rows.Count);
+                return;
+            }
+
+            _switchCatalog.Update(_ => snapshot);
+            _logger.LogInformation("Switch picker list read from ProSim: {Count} switches", snapshot.Switches.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not read the ProSim dataref list; the switch picker keeps the shipped list");
+        }
     }
 
     private void OnDisconnect()

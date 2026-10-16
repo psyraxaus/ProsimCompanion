@@ -19,6 +19,7 @@ public sealed class ProsimConnectionService : BackgroundService
     private readonly IOptionsMonitor<ProsimOptions> _options;
     private readonly ProsimDataRefService _dataRefs;
     private readonly ConnectionStatusStore _status;
+    private readonly SwitchCatalogStore _switchCatalog;
     private readonly ILogger<ProsimConnectionService> _logger;
     private Sdk.SdkConnection? _connection;
 
@@ -26,16 +27,19 @@ public sealed class ProsimConnectionService : BackgroundService
         IOptionsMonitor<ProsimOptions> options,
         ProsimDataRefService dataRefs,
         ConnectionStatusStore status,
+        SwitchCatalogStore switchCatalog,
         ILogger<ProsimConnectionService> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(status);
+        ArgumentNullException.ThrowIfNull(switchCatalog);
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options;
         _dataRefs = dataRefs;
         _status = status;
+        _switchCatalog = switchCatalog;
         _logger = logger;
     }
 
@@ -185,6 +189,7 @@ public sealed class ProsimConnectionService : BackgroundService
                 _options.CurrentValue,
                 _dataRefs,
                 _status,
+                _switchCatalog,
                 _logger);
             _connection = connection;
             connection.Start();

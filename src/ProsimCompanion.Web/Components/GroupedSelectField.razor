@@ -1,0 +1,60 @@
+@* Select field row with <optgroup> sections: a few leading ungrouped options (defaults,
+   "Other…") followed by labelled groups. Same string-typed contract as SelectField, so a
+   page can swap one for the other without touching its binding. Supports @bind-Value. *@
+<div class="field">
+    <label class="field-label" for="@_id">
+        @Label
+        <FieldHint Hint="@Hint" More="@More" />
+    </label>
+    <div class="field-control">
+        <select id="@_id" class="select" value="@Value" disabled="@Disabled" @onchange="OnChangedAsync">
+            @foreach (var (value, label) in Options)
+            {
+                <option value="@value" selected="@(value == Value)">@label</option>
+            }
+            @foreach (var group in Groups)
+            {
+                <optgroup label="@group.Label">
+                    @foreach (var (value, label) in group.Options)
+                    {
+                        <option value="@value" selected="@(value == Value)">@label</option>
+                    }
+                </optgroup>
+            }
+        </select>
+    </div>
+</div>
+
+@code {
+    private readonly string _id = $"f{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    /// <summary>Longer explanation behind a "More" fold under the hint (ADR-0010).</summary>
+    [Parameter]
+    public string? More { get; set; }
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Ungrouped options shown first (a default, an "Other…" escape).</summary>
+    [Parameter]
+    public IReadOnlyList<(string Value, string Label)> Options { get; set; } = [];
+
+    /// <summary>The labelled sections, in display order.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<(string Label, IReadOnlyList<(string Value, string Label)> Options)> Groups { get; set; } = [];
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private Task OnChangedAsync(ChangeEventArgs e)
+        => ValueChanged.InvokeAsync(e.Value?.ToString() ?? "");
+}

@@ -170,6 +170,7 @@ public static class CoreServiceCollectionExtensions
         // The ProSim setup check (2026-10-06): written by the ProSim pillar after each read of
         // the IOS options, read by the Setup page card and the Getting Started card.
         services.AddSingleton<ProsimSetupStore>();
+        services.AddSingleton<SwitchCatalogStore>();
         // Written by the Sim pillar's session monitor; read by session-gated automation and
         // the web UI. Stays at Empty (phase Unknown = hold) when the Sim pillar is absent.
         services.AddSingleton<SimSessionStore>();

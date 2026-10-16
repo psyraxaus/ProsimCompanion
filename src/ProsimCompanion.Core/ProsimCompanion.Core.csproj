@@ -19,6 +19,9 @@
     <!-- The offline atlas for "what are we flying over?" (#153): Natural Earth + GeoNames,
          built by tools/build-atlas.js. 1.2 MB gzipped, read on the first question. -->
     <EmbeddedResource Include="Geo\Data\atlas.json.gz" />
+    <!-- The ProSim dataref reference (repo root, see ProsimDataRefNames): the shipped switch list
+         for the smart-button picker while ProSim is not connected (2026-10-17). -->
+    <EmbeddedResource Include="..\..\Prosim_A322_Dataref.csv" Link="Aircraft\Switches\Prosim_A322_Dataref.csv" LogicalName="ProsimCompanion.Core.Aircraft.Switches.Prosim_A322_Dataref.csv" />
   </ItemGroup>
 
 </Project>
