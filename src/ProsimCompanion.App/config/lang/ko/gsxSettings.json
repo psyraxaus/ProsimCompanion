@@ -42,7 +42,7 @@
       "smartButton": { "label": "다음 서비스 하드웨어 버튼", "hint": "조종석 스위치로 다음 출발 서비스를 호출합니다.", "more": "기본값: 두 오디오 패널 중 하나의 INT/RAD 스위치를 INT로. 패널이나 오디오 브리지가 INT에서 인터폰 마이크를 켠다면 끄세요." },
       "smartButtonDataRef": { "label": "트리거 dataref", "hint": "ProSim 스위치 dataref, 예: system.switches.S_ASP_CAB_SEND.", "more": "INT/RAD 스위치를 쓰려면 비워 두세요." },
       "smartButtonValue": { "label": "트리거 값", "hint": "동작시키는 값.", "more": "0 = INT/RAD 스위치의 INT. 모멘터리 키는 보통 1에서 동작합니다." },
-      "smartButtonSwitch": { "label": "트리거 스위치", "hint": "다음 서비스를 호출할 조종석 스위치를 고릅니다.", "more": "패널별로 묶어 스위치 이름과 ProSim 설명을 보여 줍니다.", "default": "두 오디오 패널의 INT/RAD 스위치(기본값)", "custom": "기타… (아래에 dataref 입력)", "sourceLive": "{0}에 ProSim에서 읽은 목록입니다.", "sourceShipped": "앱에 포함된 카탈로그 목록입니다. ProSim을 연결하면 실시간 목록을 읽습니다." },
+      "smartButtonSwitch": { "label": "트리거 스위치", "hint": "다음 서비스를 호출할 조종석 스위치를 고릅니다.", "more": "패널별로 묶어 스위치 이름과 ProSim 설명을 보여 줍니다.", "default": "INT/RAD 스위치(기본값)", "custom": "기타… (아래에 dataref 입력)", "sourceLive": "{0}에 ProSim에서 읽은 목록입니다.", "sourceShipped": "앱에 포함된 카탈로그 목록입니다. ProSim을 연결하면 실시간 목록을 읽습니다." },
       "switchGroups": { "overhead": "오버헤드 패널", "pedestal": "페데스탈", "mcdu": "MCDU", "audio": "오디오 패널 및 PTT", "fcu": "FCU / EFIS", "mainPanel": "주 계기판", "ecam": "ECAM 제어 패널", "dcdu": "DCDU", "radios": "무전기, 트랜스폰더, 기상 레이더", "flightControls": "비행 조종 및 랜딩기어", "engines": "엔진 및 연료", "circuitBreakers": "회로 차단기", "other": "기타 및 사용자 입력" },
       "autoStart": { "label": "출발 서비스 자동 시작", "hint": "항공기가 준비되면 출발 서비스를 스스로 시작합니다.", "more": "꺼짐: 상태 섹션에서 시작을 누르거나 부기장에게 요청하세요." },
       "groundPrep": {
