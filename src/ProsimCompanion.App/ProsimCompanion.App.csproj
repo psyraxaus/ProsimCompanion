@@ -17,6 +17,8 @@
          entry point / parameterless App construction; Program.cs owns startup. -->
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
     <StartupObject>ProsimCompanion.App.Program</StartupObject>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Copyright>Copyright (C) 2026 Protovision</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

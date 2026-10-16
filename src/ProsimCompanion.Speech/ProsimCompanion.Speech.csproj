@@ -4,6 +4,8 @@
     <!-- Windows-only: WinRT speech synthesis (Windows.Media.SpeechSynthesis) needs a
          windows10 TFM; SAPI5 (System.Speech) and NAudio playback are Windows-only too. -->
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Copyright>Copyright (C) 2026 Protovision</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

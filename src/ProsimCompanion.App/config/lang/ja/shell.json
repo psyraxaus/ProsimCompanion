@@ -57,6 +57,7 @@
       "tts": "音声（Kokoro）: {0}",
       "connection": "{0} 接続",
       "unknown": "不明",
+      "licence": "GNU GPL v3 以降のライセンスで提供。無保証。",
       "kokoro": {
         "notInChain": "チェーンに含まれていません",
         "healthy": "正常",

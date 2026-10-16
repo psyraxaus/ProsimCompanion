@@ -186,3 +186,17 @@ payload. Release process: [docs/VERSIONING.md](docs/VERSIONING.md); installer:
 - [Roadmap](docs/ROADMAP.md) · [feature inventory](docs/feature-inventory.md)
 - [Integration references](docs/integrations/) — ProSim, GSX Remote API, SimBrief,
   SayIntentions, audio, speech/AI, Stream Deck, command API
+
+## Licence
+
+ProsimCompanion is free software: you can redistribute it and/or modify it under the terms of
+the GNU General Public License, version 3 or (at your option) any later version — see
+[LICENSE](LICENSE). It is distributed in the hope that it will be useful, but **without any
+warranty**.
+
+- The **ProSim SDK** (`ProSimSDK.dll`) is a separate proprietary component. You obtain it from
+  your own ProSim installation; it is **not** distributed with ProsimCompanion and is not
+  covered by this licence.
+- The **MSFS / SimConnect** libraries (`SimConnect.dll`, `Microsoft.FlightSimulator.SimConnect.dll`)
+  are Microsoft's, shipped under the MSFS SDK's own redistribution terms, and are likewise not
+  covered by this licence.

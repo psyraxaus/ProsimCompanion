@@ -57,6 +57,7 @@
       "tts": "Voix (Kokoro) : {0}",
       "connection": "Connexion {0}",
       "unknown": "inconnu",
+      "licence": "Sous licence GNU GPL v3 ou ultérieure. Sans garantie.",
       "kokoro": {
         "notInChain": "absent de la chaîne",
         "healthy": "opérationnel",

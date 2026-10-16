@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added GPL-3.0-or-later licence. `LICENSE` in the repository root, licence and copyright stamps in every shipped assembly, a Licence section in the README, a licence line in the web UI footer and a GPL file-header template for new C# files. The ProSim SDK and the MSFS/SimConnect libraries are separate proprietary components and are not covered.
 - New: **the web UI speaks seven languages** (ADR-0014; owner decisions 2026-10-13). English, Deutsch, Español, Français, 日本語, 한국어 and Nederlands ship as one folder each in `config\lang`, one JSON file per page, seeded into `%LOCALAPPDATA%\ProsimCompanion\config\lang` like the checklists, so a corrected text or an added language (a `pt-BR` folder) survives an update and needs no build. **Settings → Appearance → Language** picks one — "Follow the browser" by default, so a Japanese tablet reads Japanese on day one and the sim PC stays English — and applies at once on every open browser, like the theme. Anything a language lacks is shown in English. Numbers, weights and times keep the aviation formats whatever the language; **the voice First Officer, the logs and the Stream Deck plugin stay English**. New setting `webUi.language` (empty = follow the browser). First slice: the header, sidebar, footer, update banner, reconnect overlay, the settings rail and the whole Appearance page; the remaining pages follow page by page.
 
 ## 0.7.0-rc.6

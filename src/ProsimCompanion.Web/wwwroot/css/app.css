@@ -406,6 +406,10 @@ html { background: var(--bg-primary); }
 .footer-links { display: flex; align-items: center; gap: 22px; }
 .footer-link { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 
+/* The GPL notice sits beside the version pill, right-aligned with it (2026-10-17). */
+.footer-licence { margin-left: auto; white-space: nowrap; color: var(--text-muted); text-decoration: none; }
+.footer-licence:hover { text-decoration: underline; }
+
 .footer-version {
   padding: 2px 10px;
   border: 1px solid var(--border);

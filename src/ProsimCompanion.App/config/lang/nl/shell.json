@@ -57,6 +57,7 @@
       "tts": "Stem (Kokoro): {0}",
       "connection": "{0}-verbinding",
       "unknown": "onbekend",
+      "licence": "Gelicentieerd onder de GNU GPL v3 of later. Geen garantie.",
       "kokoro": {
         "notInChain": "niet in de keten",
         "healthy": "in orde",

@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Copyright>Copyright (C) 2026 Protovision</Copyright>
   </PropertyGroup>
 
   <!-- Build-time-only SDK location for typed compilation against ProSimSDK. End users never

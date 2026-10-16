@@ -14,6 +14,22 @@ trim_trailing_whitespace = false
 
 [*.cs]
 indent_size = 4
+# New C# files get the short GPL notice (IDE0073 offers it as a fix); existing files are left as they are.
+file_header_template = ProsimCompanion — ProSim A320 companion for MSFS: GSX ground services, loadsheets, audio and a voice First Officer.
+Copyright (C) 2026 Protovision
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Naming and style — .NET defaults with a few explicit choices
 dotnet_sort_system_directives_first = true
