@@ -204,8 +204,13 @@
 /* The widgets block above the telemetry owns the spare height (owner: gate strip anchored
    at the bottom, 2026-09-22); the metrics then sit tight under it. */
 .fs-widgets + .fs-metrics { margin-top: 0; }
-.fs-metric { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.fs-metric .figure { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Figures sit on one baseline even when a long label wraps to two lines ("KRAFTSTOFF AN
+   BORD"), and a five-digit fuel figure never turns into "10,5…": 28 px fits a fifth of the
+   hero with its unit (2026-10-17). */
+.fs-metric { display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; min-width: 0; }
+.fs-metric .figure { white-space: nowrap; overflow: visible; }
+.fs-metric .figure-lg { font-size: 28px; }
+.fs-engine .row-actions { gap: 6px; }
 
 /* Distance / ETA row under the telemetry (issue #145). */
 .fs-progress {

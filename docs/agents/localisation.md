@@ -90,3 +90,18 @@ the owner's rules are marked **(rule)**.
   `appearance.json` packs while working on another page — those are shared and already done.
 - Commit as the repo does: GPG-signed, a one-sentence subject that says what changed and
   why, no AI trailers.
+
+## Layout rules for long and CJK languages (2026-10-17)
+
+- Sidebar labels (`.side-label`) may wrap to two lines at a space; a single long word still
+  overflows the 84 px rail, so shorten it in the pack (de `Tanklog`, fr `Journal carb.`).
+- Button rows: a right-aligned pair goes in one flex block with `margin-left: auto` on the
+  block, never on each button (INIT's two resets, `.init-actions-danger`).
+- Figures beside wrapping labels: `justify-content: flex-end` on the column so the numbers
+  share a baseline (`.fs-metric`).
+- Japanese and Korean: the `:lang(ja)` / `:lang(ko)` block at the end of `app.css` raises the
+  tracked-out uppercase labels (`.side-label`, `.btn`, `.rail-group`, `.label-caps`,
+  `.section-title`) to 10–11 px with almost no letter spacing. Add new small-caps classes
+  there when you create them.
+- Check a page in de (longest), fr and ja before calling it done; the screenshot recipe in
+  `rc-refresh-screenshots` takes the shots with `webUi.language` set per pass.

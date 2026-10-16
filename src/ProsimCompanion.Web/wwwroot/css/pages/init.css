@@ -227,7 +227,9 @@
   align-items: center;
   padding: 16px 18px;
 }
-.init-btn-flex { margin-left: auto; }
+/* The two resets travel as one right-aligned block (2026-10-17): they wrap to the next row
+   together instead of one per row, and never sit apart from each other. */
+.init-actions-danger { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
 
 @media (max-width: 900px) {
   .init-columns { grid-template-columns: minmax(0, 1fr); }
@@ -237,5 +239,5 @@
   .init-value-big { font-size: 24px; }
   .init-row-fuel .init-label { width: 96px; }
   .init-row-fuel .init-value-right { width: auto; flex: 1; }
-  .init-btn-flex { margin-left: 0; }
+  .init-actions-danger { margin-left: 0; }
 }

@@ -142,16 +142,21 @@
                the OFP from the ProSim EFB (seat map, pax statistics, planned fuel/cargo,
                loadsheet slots) and reset every flight-cycle store, so nothing is called until a
                new OFP arrives. Both two-click armed, the full one is the destructive one. *@
-            <button type="button" class="btn danger init-btn-flex"
-                    disabled="@(_busy is not null)" @onclick="ResetFlight"
-                    title="@T["init.actions.resetFlight.title"]">
-                @(_busy == "reset" ? T["init.actions.resetting"].Value : _resetArmed ? T["init.actions.confirmReset"].Value : T["init.actions.resetFlight"].Value)
-            </button>
-            <button type="button" class="btn danger init-btn-flex"
-                    disabled="@(_busy is not null)" @onclick="UnloadOfp"
-                    title="@T["init.actions.unloadOfp.title"]">
-                @(_busy == "unload" ? T["init.actions.unloading"].Value : _unloadArmed ? T["init.actions.confirmUnload"].Value : T["init.actions.unloadOfp"].Value)
-            </button>
+            @* One right-aligned block, so the two resets stay side by side and drop to the next
+               row together when a long language (German, French) fills the row (2026-10-17);
+               each button pushed right on its own left one stranded mid-row. *@
+            <div class="init-actions-danger">
+                <button type="button" class="btn danger"
+                        disabled="@(_busy is not null)" @onclick="ResetFlight"
+                        title="@T["init.actions.resetFlight.title"]">
+                    @(_busy == "reset" ? T["init.actions.resetting"].Value : _resetArmed ? T["init.actions.confirmReset"].Value : T["init.actions.resetFlight"].Value)
+                </button>
+                <button type="button" class="btn danger"
+                        disabled="@(_busy is not null)" @onclick="UnloadOfp"
+                        title="@T["init.actions.unloadOfp.title"]">
+                    @(_busy == "unload" ? T["init.actions.unloading"].Value : _unloadArmed ? T["init.actions.confirmUnload"].Value : T["init.actions.unloadOfp"].Value)
+                </button>
+            </div>
         </div>
     </section>
 </div>

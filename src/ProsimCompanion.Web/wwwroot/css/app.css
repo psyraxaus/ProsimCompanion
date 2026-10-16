@@ -527,7 +527,11 @@ html { background: var(--bg-primary); }
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-align: center;
-  white-space: nowrap;
+  /* Wraps at a space only ("ÉTAT DU VOL", "DEVIS DE MASSE"); a single word is never broken
+     mid-word, so a long one is shortened in its pack instead (de "Tanklog", 2026-10-17). */
+  white-space: normal;
+  line-height: 1.25;
+  max-width: 100%;
 }
 
 .side-spacer { flex: 1 1 auto; min-height: 8px; }
@@ -1381,6 +1385,7 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
+  line-height: 1.25;
   border-left: 3px solid transparent;
 }
 
@@ -1822,7 +1827,9 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
    so the cockpit palette never leaks into the EFB styling. */
 .korry-group {
   display: flex;
-  gap: 16px;
+  /* 10 px (was 16): three French tiles ("QUEUE À GAUCHE") still share one row of the OFP
+     side column (2026-10-17). */
+  gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
   padding: 8px 0;
@@ -1852,7 +1859,11 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 }
 
 .korry-body {
-  width: 90px;
+  /* 90 px as drawn; grows for a long legend ("QUEUE À GAUCHE") instead of wrapping it over
+     the bottom edge (2026-10-17). */
+  width: auto;
+  min-width: 90px;
+  max-width: 128px;
   height: 82px;
   padding: 0;
   border: 2px solid var(--korry-body-border);
@@ -1909,10 +1920,11 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   color: var(--korry-legend-text-inactive);
   border-radius: 2px;
-  padding: 1px 0;
+  padding: 1px 3px;
   background: transparent;
   text-shadow: none;
   transition: background 120ms ease, color 120ms ease, text-shadow 120ms ease;
@@ -1933,7 +1945,7 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: var(--korry-subtitle);
   text-align: center;
   white-space: nowrap;
@@ -2056,3 +2068,16 @@ split-flap { display: inline-flex; align-items: center; justify-content: center;
 }
 .browse-btn:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-strong); }
 .browse-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ----------------------------------------------------------- CJK typography (2026-10-17)
+   Japanese and Korean have no capitals, so the EFB's small tracked-out uppercase labels read
+   as scattered glyphs; and 8 px is below what those scripts stay legible at. The html lang
+   attribute follows the picked UI language (App.razor), so these rules apply by themselves. */
+:lang(ja) .side-label, :lang(ko) .side-label { font-size: 10px; letter-spacing: 0.02em; }
+:lang(ja) .btn, :lang(ko) .btn,
+:lang(ja) .rail-group, :lang(ko) .rail-group,
+:lang(ja) .label-caps, :lang(ko) .label-caps,
+:lang(ja) .section-title, :lang(ko) .section-title { font-size: 11px; letter-spacing: 0.06em; }
+/* French pushback legends ("QUEUE À GAUCHE") at 8 px keep the three Korry tiles on one row
+   of the OFP side column (2026-10-17). */
+:lang(fr) .korry-legend-text, :lang(fr) .korry-subtitle { font-size: 8px; }
