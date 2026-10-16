@@ -39,3 +39,10 @@ kept there so a broken web configuration can always be repaired.
   with its reason on the GSX status page. When something didn't happen, the reason is there.
 - **Your files survive** — checklists, abnormals, phrases, themes and `settings.json` are
   plain JSON beside the app, editable and hot-reloaded where noted.
+
+## Licence
+
+ProsimCompanion is free software under the GNU GPL, version 3 or later, with a linking
+exception for the ProSim SDK and the MSFS SimConnect libraries — see
+[LICENSE](../../LICENSE) and [LICENSE-EXCEPTION](../../LICENSE-EXCEPTION). The ProSim SDK is
+never shipped: the app loads `ProSimSDK.dll` from your own ProSim installation.

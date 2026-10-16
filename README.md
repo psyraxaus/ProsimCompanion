@@ -30,7 +30,9 @@ flight pages, live figures on glass instrument cards, and a Solari split-flap cl
 - A **live GSX menu card** (Flight Status, OFP, Ground Services) mirrors whatever menu GSX has
   open as buttons — the named pushback directions an addon airport gives each stand, Customize,
   operator lists — so you never open the GSX window; plus an opt-in **NEXT SERVICE** header
-  button for home cockpits that do not use the INT/RAD switch
+  button for home cockpits that do not use the INT/RAD switch; the switch itself can be
+  re-bound to any ProSim switch dataref, or turned off for panels and audio bridges that key
+  the interphone mic on INT
 - An in-sim handler script bridges GSX events back to the app and renders your flight number
   and route on the **gate's VDGS display**
 - Every action — and every deliberate non-action — lands in a decision log with its reason

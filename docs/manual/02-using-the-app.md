@@ -19,6 +19,8 @@ The cockpit switch itself is the **Hardware next-service button** (Settings → 
 Automation): turn it off when your panel or audio bridge keys the interphone mic on INT, or
 bind it to another ProSim switch dataref and trigger value under the advanced fields.
 
+![Departure Services settings with the hardware next-service button](../img/gsx-departure.png)
+
 ![Header with the NEXT SERVICE button](../img/header-next-service.png)
 
 The **mic pill** in the header (READY, LISTENING with a pulsing dot, or PAUSED) opens the

@@ -62,7 +62,10 @@ for the DFD database), else the system drive.
 
 Ground behaviour, in the Ground Services rail order:
 
-- **Automation** — master switch, auto-start departure services, wait-for-OFP gate,
+- **Automation** — master switch, *Hardware next-service button* (`smartButtonEnabled`, on;
+  advanced: `smartButtonDataRef`, empty = the INT/RAD rockers on both audio panels, and
+  `smartButtonTriggerValue`, 0 = INT — turn it off or re-bind it when your panel or audio
+  bridge keys the interphone mic on INT), auto-start departure services, wait-for-OFP gate,
   *Ground preparation start* (`groundPrepActivation`: `auto` | `voice` | `voiceThenAuto` —
   the last keeps the "commence ground services" wait for the first leg and starts a
   turnaround by itself once the next flight plan is loaded at the stand with the engines
