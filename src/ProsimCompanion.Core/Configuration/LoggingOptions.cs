@@ -25,6 +25,14 @@ public sealed class LoggingOptions : IOptionSection
     public bool WireTrace { get; set; }
 
     /// <summary>
+    /// Keeps a Debug/Verbose level or the wire trace on past the 24 h the app otherwise allows
+    /// (2026-10-17): verbose logging is a hunt, and a sim PC left on Debug with the wire trace
+    /// on wrote 50 MB of frames a day. Off by default — the Logs page shows when the app will
+    /// switch back to Information.
+    /// </summary>
+    public bool KeepVerbose { get; set; }
+
+    /// <summary>
     /// Which log events are mirrored into the session JSONL as <c>log.warning</c> /
     /// <c>log.error</c> / <c>log.fatal</c> events (SessionEventLogSink), making the session
     /// file the single evidence stream for triage. Warning-and-above by default; Information

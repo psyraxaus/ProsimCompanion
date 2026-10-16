@@ -17,6 +17,9 @@
         "errorAndAbove": "Solo errores",
         "off": "Desactivado"
       },
+      "keepVerbose": { "label": "Mantener el registro detallado", "hint": "Los niveles Debug y la traza de red se apagan solos a las 24 horas. Marca para mantenerlos." },
+      "verboseNotice": "Registro detallado activo desde {0} — vuelve a Information a las {1}.",
+      "verboseKept": "Registro detallado activo desde {0} y mantenido; los archivos de registro crecen en consecuencia.",
       "telemetry": {
         "label": "API de telemetría",
         "hint": "Solo lectura: sirve registros de eventos de sesión y colas de registro por el servidor web para comprobaciones posvuelo. Otros dispositivos necesitan el token de acceso"

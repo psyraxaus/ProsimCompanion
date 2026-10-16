@@ -17,6 +17,9 @@
         "errorAndAbove": "Errors only",
         "off": "Off"
       },
+      "keepVerbose": { "label": "Keep verbose logging", "hint": "Debug levels and the wire trace switch themselves off after 24 hours. Tick to keep them on." },
+      "verboseNotice": "Verbose logging on since {0} — back to Information at {1}.",
+      "verboseKept": "Verbose logging on since {0} and kept on; the log files grow accordingly.",
       "telemetry": {
         "label": "Telemetry API",
         "hint": "Read-only: serves session event logs and log tails over the web server for post-flight checks. Other devices need the access token"

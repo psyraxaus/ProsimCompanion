@@ -106,7 +106,9 @@ public sealed class ProsimConnectionService : BackgroundService
     /// </summary>
     private async Task<string> WaitForSdkDirectoryAsync(CancellationToken stoppingToken)
     {
-        var loggedGuidance = false;
+        // Once per distinct configured value, not per settings save: a save elsewhere in the
+        // file re-raised the same guidance 128 times on 2026-10-17.
+        string? guidedFor = null;
 
         while (true)
         {
@@ -119,9 +121,11 @@ public sealed class ProsimConnectionService : BackgroundService
                 return directory;
             }
 
+            var loggedGuidance = string.Equals(guidedFor, configured ?? "", StringComparison.Ordinal);
+            guidedFor = configured ?? "";
+
             if (!loggedGuidance)
             {
-                loggedGuidance = true;
                 _status.Set(
                     Subsystems.Prosim,
                     ConnectionState.Disabled,
@@ -144,7 +148,6 @@ public sealed class ProsimConnectionService : BackgroundService
             }
 
             await WaitForOptionsChangeAsync(stoppingToken).ConfigureAwait(false);
-            loggedGuidance = false;
         }
     }
 

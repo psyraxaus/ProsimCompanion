@@ -163,6 +163,10 @@ public static class Program
             var loggingMonitor = web.Services.GetRequiredService<IOptionsMonitor<LoggingOptions>>();
             var reloadGate = new object();
             LoggingOptions? pendingLoggingOptions = null;
+            // Every settings save reloads the options object; only a save that moved a level,
+            // an override, the wire trace or the mirror is worth a line (55 identical
+            // "reloaded" lines on 2026-10-17 from screenshot runs alone).
+            var lastAppliedLogging = loggingMonitor.CurrentValue;
             using var reloadDebounce = new System.Threading.Timer(_ =>
             {
                 LoggingOptions? toApply;
@@ -176,6 +180,11 @@ public static class Program
                     return;
                 }
                 levels.Apply(toApply);
+                if (ProsimCompanion.Core.Logging.VerboseLoggingPolicy.SameLevels(toApply, lastAppliedLogging))
+                {
+                    return;
+                }
+                lastAppliedLogging = toApply;
                 Log.Information(
                     "Logging levels reloaded (default {Default}, wire trace {WireTrace})",
                     toApply.DefaultLevel,
@@ -279,6 +288,11 @@ public static class Program
                 new CmTraceTextFormatter(),
                 Path.Combine(logDirectory, "ProsimCompanion-.log"),
                 rollingInterval: RollingInterval.Day,
+                // 20 MB per file, rolled (…_001.log) and 14 files kept: a Debug day can no
+                // longer grow without bound (the 2026-10-11 flight day wrote 5.5 MB at Debug;
+                // the cap is a safety net, not the expected size — 2026-10-17).
+                fileSizeLimitBytes: 20 * 1024 * 1024,
+                rollOnFileSizeLimit: true,
                 retainedFileCountLimit: 14)
             .WriteTo.Sink(new LogBufferSink(logBuffer))
             .WriteTo.Sink(new SessionEventLogSink(sessionMirror, () => levels.MirrorToSession));
@@ -343,6 +357,12 @@ public static class Program
         // Feature startup modules (campaign #87) — registered AFTER every pillar so hosted
         // transports (the GSX client, ProSim connection) start before the modules activate.
         builder.Services.AddHostedService<ProsimCompanion.Core.Hosting.StartupModuleHost>();
+        // Verbose logging turns itself off after 24 h unless logging.keepVerbose (2026-10-17);
+        // the Logs page reads the clock through the Core interface.
+        builder.Services.AddSingleton<VerboseLoggingWatchdog>();
+        builder.Services.AddSingleton<ProsimCompanion.Core.Logging.IVerboseLoggingStatus>(
+            provider => provider.GetRequiredService<VerboseLoggingWatchdog>());
+        builder.Services.AddHostedService(provider => provider.GetRequiredService<VerboseLoggingWatchdog>());
 
         builder.Services.AddSingleton(levels);
         builder.Services.AddSingleton(logBuffer);

@@ -12,6 +12,7 @@
 @inject ProsimCompanion.Core.Diagnostics.IAppBuildInfo Build
 @inject IJSRuntime JS
 @inject SettingsWriter Writer
+@inject ProsimCompanion.Core.Logging.IVerboseLoggingStatus VerboseStatus
 @inject IStringLocalizer T
 
 <PageTitle>@T["logs.pageTitle"]</PageTitle>
@@ -31,6 +32,20 @@
                    Hint="@T["logs.capture.wireTrace.hint"]"
                    Value="@LoggingMonitor.CurrentValue.WireTrace"
                    ValueChanged="SetWireTrace" />
+        <BoolField Label="@T["logs.capture.keepVerbose.label"]"
+                   Hint="@T["logs.capture.keepVerbose.hint"]"
+                   Value="@LoggingMonitor.CurrentValue.KeepVerbose"
+                   ValueChanged="SetKeepVerbose" />
+        @if (VerboseStatus.VerboseSinceUtc is { } since)
+        {
+            @* The 24 h clock on a Debug level / wire trace (2026-10-17): the line says when it
+               started and when the app returns to Information, or that the pilot keeps it. *@
+            <div class="field-hint" style="margin-top:4px;">
+                @(VerboseStatus.RevertAtUtc is { } revertAt
+                    ? T["logs.capture.verboseNotice", Local(since), Local(revertAt)]
+                    : T["logs.capture.verboseKept", Local(since)])
+            </div>
+        }
         <SelectField Label="@T["logs.capture.mirror.label"]"
                      Hint="@T["logs.capture.mirror.hint"]"
                      Options="MirrorOptions"
@@ -161,6 +176,12 @@
 
     private void SetWireTrace(bool enabled)
         => Writer.Set<LoggingOptions, bool>(o => o.WireTrace, enabled);
+
+    private void SetKeepVerbose(bool keep)
+        => Writer.Set<LoggingOptions, bool>(o => o.KeepVerbose, keep);
+
+    private static string Local(DateTimeOffset utc)
+        => utc.ToLocalTime().ToString("ddd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
 
     private IReadOnlyList<(string, string)> MirrorOptions =>
     [

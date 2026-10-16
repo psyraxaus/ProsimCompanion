@@ -54,7 +54,7 @@ for the DFD database), else the system drive.
 | `weather` | Settings → Setup → Weather Sources | ActiveSky snapshot path (empty = auto-detect), local API on/off, host, port, timeout |
 | `notifications` | Settings → Notifications | `enabled` (off), `targets[]` (name, kind ntfy / discord / webhook, `url` + `token` stored encrypted, ten per-event switches), `failureCooldownSeconds` 60, `sendTimeoutSeconds` 5, `holdoverExpiringMinutes` 5 — payloads in [docs/integrations/notifications.md](../integrations/notifications.md) |
 | `updateCheck` | Settings → Setup → Updates | update banner on/off + check interval (hours) |
-| `logging` | Settings → Advanced → Logs | per-subsystem levels (hot-reload), `wireTrace` |
+| `logging` | Settings → Advanced → Logs | per-subsystem levels (hot-reload), `wireTrace`, `keepVerbose` (off: a Debug level or the wire trace switches itself back to Information after 24 h), `mirrorToSession` |
 | `telemetryApi` | Settings → Advanced → Logs | read-only telemetry endpoints for post-flight verification |
 | `commandApi` | Settings → Setup | HTTP command API for the Stream Deck plugin (`enabled` checkbox, applies live; off by default; token-gated even on localhost — `requireTokenOnLoopback` is file-only) |
 

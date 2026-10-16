@@ -17,6 +17,9 @@
         "errorAndAbove": "Erreurs seulement",
         "off": "Désactivé"
       },
+      "keepVerbose": { "label": "Garder le journal détaillé", "hint": "Les niveaux Debug et la trace réseau se coupent seuls après 24 heures. Coche pour les garder." },
+      "verboseNotice": "Journal détaillé actif depuis {0} — retour à Information à {1}.",
+      "verboseKept": "Journal détaillé actif depuis {0} et conservé ; les fichiers journaux grossissent en conséquence.",
       "telemetry": {
         "label": "API de télémétrie",
         "hint": "Lecture seule : sert les journaux d'événements de session et les fins de journal via le serveur web pour les vérifications après vol. Les autres appareils ont besoin du jeton d'accès"

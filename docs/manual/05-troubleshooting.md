@@ -12,6 +12,12 @@
 4. **Log files** — `%LOCALAPPDATA%\ProsimCompanion\logs\`, CMTrace format (open with
    CMTrace/OneTrace for live coloring). `wireTrace` (App Settings) adds a separate raw
    protocol-frame log. Session event records (JSONL) live in `...\sessions\`.
+   Debug and the wire trace are for a hunt, not for daily flying: a sim PC left on Debug
+   with the wire trace on wrote about 55 MB a day. After 24 hours the app switches both
+   back to Information by itself and says so in the log; the Logs page shows the clock, and
+   **Keep verbose logging** stops it. The files are capped too (20 MB per main log file,
+   50 MB per wire file, three wire files kept), and identical repeated frames are folded
+   into one "repeated N more times" line.
 
 ## Common issues
 

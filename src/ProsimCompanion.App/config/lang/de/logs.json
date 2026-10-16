@@ -17,6 +17,9 @@
         "errorAndAbove": "Nur Fehler",
         "off": "Aus"
       },
+      "keepVerbose": { "label": "Ausführliches Logging beibehalten", "hint": "Debug-Stufen und der Wire-Trace schalten sich nach 24 Stunden selbst ab. Ankreuzen, um sie anzulassen." },
+      "verboseNotice": "Ausführliches Logging seit {0} — zurück auf Information um {1}.",
+      "verboseKept": "Ausführliches Logging seit {0}, bleibt an; die Logdateien wachsen entsprechend.",
       "telemetry": {
         "label": "Telemetrie-API",
         "hint": "Nur lesend: liefert Sitzungs-Ereignisprotokolle und Protokollenden über den Webserver für Prüfungen nach dem Flug. Andere Geräte brauchen das Zugriffstoken"

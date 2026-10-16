@@ -17,6 +17,9 @@
         "errorAndAbove": "Alleen fouten",
         "off": "Uit"
       },
+      "keepVerbose": { "label": "Uitgebreide logging behouden", "hint": "Debug-niveaus en de wire trace schakelen zichzelf na 24 uur uit. Vink aan om ze aan te laten." },
+      "verboseNotice": "Uitgebreide logging aan sinds {0} — terug naar Information om {1}.",
+      "verboseKept": "Uitgebreide logging aan sinds {0} en behouden; de logbestanden groeien dienovereenkomstig.",
       "telemetry": {
         "label": "Telemetrie-API",
         "hint": "Alleen-lezen: levert sessie-gebeurtenislogboeken en logstaarten via de webserver voor controles na de vlucht. Andere apparaten hebben het toegangstoken nodig"
