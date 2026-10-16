@@ -193,6 +193,10 @@ ProsimCompanion is free software: you can redistribute it and/or modify it under
 the GNU General Public License, version 3 or (at your option) any later version — see
 [LICENSE](LICENSE). It is distributed in the hope that it will be useful, but **without any
 warranty**.
+A **linking exception** (GPL section 7 additional permission, [LICENSE-EXCEPTION](LICENSE-EXCEPTION))
+lets anyone convey a build of ProsimCompanion combined with the ProSim SDK and the MSFS
+SimConnect libraries without shipping their source, which does not exist. Everything else
+stays plain GPL.
 
 - The **ProSim SDK** (`ProSimSDK.dll`) is a separate proprietary component. You obtain it from
   your own ProSim installation; it is **not** distributed with ProsimCompanion and is not

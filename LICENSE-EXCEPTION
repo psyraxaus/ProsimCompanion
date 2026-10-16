@@ -1,0 +1,35 @@
+ProsimCompanion — additional permission under GNU GPL version 3 section 7
+
+Copyright (C) 2026 Protovision
+
+ProsimCompanion is licensed under the GNU General Public License, version 3
+or (at your option) any later version — see the file LICENSE. Section 7 of
+that licence lets the copyright holder grant additional permissions. The
+following additional permission is granted for the whole of ProsimCompanion.
+
+If you modify this Program, or any covered work, by linking or combining it
+with either of the following (or a modified version of either):
+
+  1. the ProSim SDK — ProSimSDK.dll and the other ProSim-AR libraries that a
+     licensed ProSim installation supplies; or
+
+  2. the Microsoft Flight Simulator SDK libraries — SimConnect.dll,
+     Microsoft.FlightSimulator.SimConnect.dll and the other SimConnect
+     components that Microsoft supplies with the MSFS SDK;
+
+the licensors of this Program grant you additional permission to convey the
+resulting work. Corresponding Source for a non-source form of such a
+combination shall include the source code for the parts of this Program used
+and for every other covered work in the combination, but need not include the
+source code of the libraries named above.
+
+This additional permission applies only to the libraries named above. It does
+not extend to any other non-free component, and it does not grant you any
+right to the ProSim SDK or to the Microsoft Flight Simulator SDK themselves:
+the ProSim SDK is obtained from your own ProSim installation under ProSim-AR's
+terms, and the SimConnect libraries are redistributed under Microsoft's MSFS
+SDK terms. Neither is covered by the GPL.
+
+As section 7 allows, you may remove this additional permission from your own
+modified versions of this Program, but you may not remove it from any part of
+this Program that you did not write.
