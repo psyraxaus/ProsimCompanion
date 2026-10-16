@@ -104,6 +104,16 @@ else if (CurrentSection == "departure")
     <Section Title="@T["gsxSettings.automation.title"]">
         <BoolField Label="@T["gsxSettings.automation.enabled.label"]" Hint="@T["gsxSettings.automation.enabled.hint"]" More="@T["gsxSettings.automation.enabled.more"]"
                    @bind-Value="_gsx.Value.AutomationEnabled" />
+        <BoolField Label="@T["gsxSettings.automation.smartButton.label"]" Hint="@T["gsxSettings.automation.smartButton.hint"]" More="@T["gsxSettings.automation.smartButton.more"]"
+                   @bind-Value="_gsx.Value.SmartButtonEnabled" />
+        <AdvancedFields>
+            <TextField Label="@T["gsxSettings.automation.smartButtonDataRef.label"]" Hint="@T["gsxSettings.automation.smartButtonDataRef.hint"]" More="@T["gsxSettings.automation.smartButtonDataRef.more"]"
+                       Placeholder="system.switches.S_ASP_INTRAD" Disabled="@(!_gsx.Value.SmartButtonEnabled)"
+                       @bind-Value="_gsx.Value.SmartButtonDataRef" />
+            <NumberField Label="@T["gsxSettings.automation.smartButtonValue.label"]" Hint="@T["gsxSettings.automation.smartButtonValue.hint"]" More="@T["gsxSettings.automation.smartButtonValue.more"]"
+                         Disabled="@(!_gsx.Value.SmartButtonEnabled)" Default="_gsx.Defaults.SmartButtonTriggerValue"
+                         @bind-Value="_gsx.Value.SmartButtonTriggerValue" />
+        </AdvancedFields>
         <BoolField Label="@T["gsxSettings.automation.autoStart.label"]" Hint="@T["gsxSettings.automation.autoStart.hint"]" More="@T["gsxSettings.automation.autoStart.more"]"
                    @bind-Value="_gsx.Value.AutoStartDepartureServices" />
         <SelectField Label="@T["gsxSettings.automation.groundPrep.label"]" Hint="@T["gsxSettings.automation.groundPrep.hint"]" More="@T["gsxSettings.automation.groundPrep.more"]" Options="GroundPrepActivationOptions"

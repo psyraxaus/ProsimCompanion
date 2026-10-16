@@ -70,6 +70,11 @@ Behaviours that must survive the port:
   The confirmed gate is persisted (`%LOCALAPPDATA%\ProsimCompanion\arrival-gate.json`) and
   restored at startup, so an in-flight app restart does not land without it (2026-09-20).
 - **INT/RAD ACP switch** doubles as a universal service trigger/advance input ("smart button").
+  Configurable since 2026-10-17: `gsx.smartButtonEnabled` turns it off (a panel or audio bridge
+  that keys the interphone mic on INT cannot use the rocker), `gsx.smartButtonDataRef` binds it
+  to any other ProSim switch dataref read as a number, `gsx.smartButtonTriggerValue` picks the
+  value (0 = INT). The decision log reads `requested by INT/RAD` on the default rocker and
+  `requested by smart-button` on a custom switch; the ground-prep-only guard is not configurable.
 - **Voice gating (ADR-0006, issues #50/#51)**: `gsx.groundPrepActivation = "voice"` holds the
   whole prep chain (reposition → gate anchor → GPU/chocks → jetway) until departure services
   are started ("commence ground services" / web Start / API — voice is never the only

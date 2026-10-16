@@ -39,6 +39,9 @@
     "automation": {
       "title": "自動化",
       "enabled": { "label": "地上自動化", "hint": "アプリが GSX の質問に答え、サービスシーケンスを実行できるようにします。", "more": "GSX 接続はどちらでも維持されるので、状態ボードは引き続き動作します。" },
+      "smartButton": { "label": "次のサービスを呼ぶハードウェアボタン", "hint": "コックピットのスイッチで次の出発サービスを呼びます。", "more": "既定: どちらかのオーディオパネルの INT/RAD スイッチを INT にする。パネルやオーディオブリッジが INT でインターホンのマイクを開く場合はオフにしてください。" },
+      "smartButtonDataRef": { "label": "トリガーの dataref", "hint": "ProSim のスイッチ dataref。例: system.switches.S_ASP_CAB_SEND", "more": "INT/RAD スイッチを使う場合は空のままにします。" },
+      "smartButtonValue": { "label": "トリガー値", "hint": "発火する値。", "more": "0 = INT/RAD スイッチの INT。モーメンタリーキーは通常 1 で発火します。" },
       "autoStart": { "label": "出発サービスを自動開始", "hint": "機体の準備が整うと出発サービスを自動で開始します。", "more": "オフ: 状態セクションで開始を押すか、副操縦士に頼んでください。" },
       "groundPrep": {
         "label": "地上準備の開始",

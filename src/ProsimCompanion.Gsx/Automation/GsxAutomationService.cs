@@ -67,8 +67,20 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
     /// <summary>UTC instant the flight plan first read as available this cycle; null while
     /// none stands. Reset at arrival with the rest of the cycle state.</summary>
     private DateTimeOffset? _planAvailableSinceUtc;
-    private readonly IDataRefSubscription<int> _intRadCpt;
-    private readonly IDataRefSubscription<int> _intRadFo;
+    /// <summary>The "next service" smart-button subscriptions (configurable since 2026-10-17,
+    /// <see cref="GsxOptions.SmartButtonDataRef"/>): both INT/RAD rockers by default, else the
+    /// one switch the pilot named. Swapped under <see cref="_smartButtonLock"/> when the
+    /// dataref setting changes, so a live edit needs no restart.</summary>
+    private readonly List<IDataRefSubscription<int>> _smartButton = new();
+    private readonly object _smartButtonLock = new();
+    private readonly IProsimDataRefs _prosim;
+    private readonly IDisposable? _optionsChange;
+    private string _smartButtonDataRef = "";
+
+    /// <summary>The configured dataref pushed something that is not a number: warned once,
+    /// the trigger stays off until the setting changes (never an InvalidCastException —
+    /// the typed path serves <see cref="SmartButtonRule.NoValue"/> instead).</summary>
+    private volatile bool _smartButtonUnreadable;
     private readonly Timer _pumpTimer;
     private readonly IDisposable _fuelConfirmationObserver;
     private readonly SemaphoreSlim _pumpLock = new(1, 1);
@@ -171,12 +183,19 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _bookedSeatString = prosim.Subscribe(ProsimDataRefNames.PaxBookedString);
         _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);
         _plannedFuel = prosim.Subscribe(ProsimDataRefNames.EfbPlannedFuel);
-        // The INT/RAD switches on both ACPs are the cockpit "smart button" (predecessor
-        // semantics): flicking to INT (value 0) force-calls the next departure service.
-        _intRadCpt = prosim.Subscribe(ProsimDataRefNames.IntRadCpt);
-        _intRadFo = prosim.Subscribe(ProsimDataRefNames.IntRadFo);
-        _intRadCpt.ValueChanged += OnIntRadChanged;
-        _intRadFo.ValueChanged += OnIntRadChanged;
+        _prosim = prosim;
+        // The cockpit "smart button" (predecessor semantics): a switch reaching its trigger
+        // value force-calls the next departure service. Default: INT/RAD to INT (0) on either
+        // ACP; a pilot whose audio bridge keys the interphone mic on INT names another switch
+        // or turns it off (gsx.smartButton*, 2026-10-17) — live, through the options monitor.
+        SubscribeSmartButton(options.CurrentValue.SmartButtonDataRef);
+        _optionsChange = options.OnChange(o =>
+        {
+            if (!string.Equals((o.SmartButtonDataRef ?? "").Trim(), _smartButtonDataRef, StringComparison.Ordinal))
+            {
+                SubscribeSmartButton(o.SmartButtonDataRef);
+            }
+        });
 
         _flightState.PhaseChanged += OnFlightPhaseChanged;
         _lifecycle.ServiceEvent += OnServiceEvent;
@@ -307,8 +326,7 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _lifecycle.ServiceEvent -= OnServiceEvent;
         _api.Mirror.Updated -= OnMirrorUpdated;
         _resyncState.Assessed -= OnResyncAssessed;
-        _intRadCpt.ValueChanged -= OnIntRadChanged;
-        _intRadFo.ValueChanged -= OnIntRadChanged;
+        _optionsChange?.Dispose();
         _fuelConfirmationObserver.Dispose();
         _deiceObserver.Dispose();
         _turnaroundStart.Answered -= OnTurnaroundStartAnswered;
@@ -316,27 +334,99 @@ public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IG
         _bookedSeatString.Dispose();
         _fuelTotal.Dispose();
         _plannedFuel.Dispose();
-        _intRadCpt.Dispose();
-        _intRadFo.Dispose();
+        DisposeSmartButton();
         _pumpLock.Dispose();
     }
 
-    /// <summary>Fires on every INT/RAD movement; value 0 = INT (pressed). Only consumed while
-    /// the departure sequence is running on the ground — the switch is a real radio control in
-    /// every other phase.</summary>
-    private void OnIntRadChanged(object? sender, EventArgs e)
+    /// <summary>(Re)builds the smart-button subscriptions for <paramref name="dataRef"/>:
+    /// the two INT/RAD rockers when empty, else the named switch read as a number through the
+    /// typed path (<see cref="SmartButtonRule.NoValue"/> until it reports one). The old
+    /// handles are released after the new ones register, so a shared registration is never
+    /// dropped and re-created. A name the table refuses logs once and leaves the trigger off.</summary>
+    private void SubscribeSmartButton(string? dataRef)
     {
-        var subscription = (IDataRefSubscription<int>)sender!;
-        if (subscription.Value != 0)
+        var name = (dataRef ?? "").Trim();
+        List<IDataRefSubscription<int>> previous;
+        lock (_smartButtonLock)
+        {
+            previous = new List<IDataRefSubscription<int>>(_smartButton);
+            _smartButton.Clear();
+            _smartButtonDataRef = name;
+            _smartButtonUnreadable = false;
+            try
+            {
+                if (SmartButtonRule.UsesDefaultRocker(name))
+                {
+                    _smartButton.Add(_prosim.Subscribe(ProsimDataRefNames.IntRadCpt));
+                    _smartButton.Add(_prosim.Subscribe(ProsimDataRefNames.IntRadFo));
+                }
+                else
+                {
+                    _smartButton.Add(_prosim.Subscribe(new DataRef<int>(name, DataRefTier.Frequent, SmartButtonRule.NoValue)));
+                }
+
+                foreach (var subscription in _smartButton)
+                {
+                    subscription.ValueChanged += OnSmartButtonChanged;
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or InvalidCastException)
+            {
+                _logger.LogWarning(ex, "Smart button dataref {DataRef} could not be subscribed — hardware next-service trigger off until the setting changes", name);
+                ReleaseSmartButton(_smartButton);
+            }
+        }
+
+        ReleaseSmartButton(previous);
+        if (previous.Count > 0)
+        {
+            _logger.LogInformation("Smart button now follows {Trigger}", name.Length == 0 ? "the INT/RAD rockers" : name);
+        }
+    }
+
+    private void ReleaseSmartButton(List<IDataRefSubscription<int>> subscriptions)
+    {
+        foreach (var subscription in subscriptions)
+        {
+            subscription.ValueChanged -= OnSmartButtonChanged;
+            subscription.Dispose();
+        }
+
+        subscriptions.Clear();
+    }
+
+    private void DisposeSmartButton()
+    {
+        lock (_smartButtonLock)
+        {
+            ReleaseSmartButton(_smartButton);
+        }
+    }
+
+    /// <summary>Fires on every movement of the smart-button switch; the configured trigger
+    /// value (0 = INT on the default rocker) calls the next service. Only consumed while the
+    /// departure sequence is running on the ground — the switch is a real cockpit control in
+    /// every other phase (<see cref="SmartButtonRule"/>).</summary>
+    private void OnSmartButtonChanged(object? sender, EventArgs e)
+    {
+        if (_smartButtonUnreadable)
         {
             return;
         }
 
-        if (Phase is GsxAutomationPhase.Preparation or GsxAutomationPhase.SessionStart
-            && _cycle.Started
-            && !_cycle.Complete)
+        var subscription = (IDataRefSubscription<int>)sender!;
+        var value = subscription.Value;
+        if (value == SmartButtonRule.NoValue && subscription.RawValue is not null)
         {
-            ForceNextService("INT/RAD");
+            _smartButtonUnreadable = true;
+            _logger.LogWarning("Smart button dataref {DataRef} reports {Value}, which is not a number — hardware next-service trigger off until the setting changes", subscription.Name, subscription.RawValue);
+            return;
+        }
+
+        var options = _options.CurrentValue;
+        if (SmartButtonRule.ShouldFire(options, value, Phase, _cycle.Started, _cycle.Complete))
+        {
+            ForceNextService(SmartButtonRule.Source(options.SmartButtonDataRef));
         }
     }
 

@@ -35,6 +35,23 @@ public sealed class GsxOptions : IOptionSection
     /// sequencing). The Remote API client/diagnostics run regardless.</summary>
     public bool AutomationEnabled { get; set; } = true;
 
+    /// <summary>The cockpit "next service" smart button (predecessor semantics): a switch
+    /// reaching its trigger value force-calls the next departure service while the sequence
+    /// runs on the ground. Off for a panel or audio bridge that keys the interphone mic when
+    /// INT/RAD is set to INT — the default trigger would key the mic on every press
+    /// (2026-10-17).</summary>
+    public bool SmartButtonEnabled { get; set; } = true;
+
+    /// <summary>ProSim switch dataref for the "next service" smart button. Empty = built-in
+    /// INT/RAD rocker on both ACPs (<c>S_ASP_INTRAD</c> + <c>S_ASP2_INTRAD</c>). Any other
+    /// switch dataref (<c>system.switches.S_ASP_CAB_SEND</c>) is read as a number; one that
+    /// never reports a number disables the trigger with one warning.</summary>
+    public string SmartButtonDataRef { get; set; } = "";
+
+    /// <summary>Value that fires the trigger. Default 0 (INT on the INT/RAD rocker); momentary
+    /// keys usually fire on 1.</summary>
+    public int SmartButtonTriggerValue { get; set; }
+
     /// <summary>Start the departure service sequence automatically once preconditions hold
     /// (off by default — <c>StartDepartureServices</c> can always be invoked explicitly).</summary>
     public bool AutoStartDepartureServices { get; set; }

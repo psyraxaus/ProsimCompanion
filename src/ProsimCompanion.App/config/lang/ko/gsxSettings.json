@@ -39,6 +39,9 @@
     "automation": {
       "title": "자동화",
       "enabled": { "label": "지상 자동화", "hint": "앱이 GSX 질문에 답하고 서비스 시퀀스를 실행하게 합니다.", "more": "GSX 연결은 어느 쪽이든 유지되므로 상태 보드는 계속 작동합니다." },
+      "smartButton": { "label": "다음 서비스 하드웨어 버튼", "hint": "조종석 스위치로 다음 출발 서비스를 호출합니다.", "more": "기본값: 두 오디오 패널 중 하나의 INT/RAD 스위치를 INT로. 패널이나 오디오 브리지가 INT에서 인터폰 마이크를 켠다면 끄세요." },
+      "smartButtonDataRef": { "label": "트리거 dataref", "hint": "ProSim 스위치 dataref, 예: system.switches.S_ASP_CAB_SEND.", "more": "INT/RAD 스위치를 쓰려면 비워 두세요." },
+      "smartButtonValue": { "label": "트리거 값", "hint": "동작시키는 값.", "more": "0 = INT/RAD 스위치의 INT. 모멘터리 키는 보통 1에서 동작합니다." },
       "autoStart": { "label": "출발 서비스 자동 시작", "hint": "항공기가 준비되면 출발 서비스를 스스로 시작합니다.", "more": "꺼짐: 상태 섹션에서 시작을 누르거나 부기장에게 요청하세요." },
       "groundPrep": {
         "label": "지상 준비 시작",

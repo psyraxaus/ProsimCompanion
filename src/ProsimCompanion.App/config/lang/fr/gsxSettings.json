@@ -39,6 +39,9 @@
     "automation": {
       "title": "Automatisation",
       "enabled": { "label": "Automatisation au sol", "hint": "Laisser l'application répondre aux questions de GSX et dérouler la séquence de services.", "more": "La connexion GSX reste active dans tous les cas, le tableau d'état fonctionne donc toujours." },
+      "smartButton": { "label": "Bouton matériel « service suivant »", "hint": "Un interrupteur du cockpit appelle le service de départ suivant.", "more": "Par défaut : le sélecteur INT/RAD sur INT sur l'un des panneaux audio. À désactiver si ton panneau ou ton pont audio ouvre le micro interphone sur INT." },
+      "smartButtonDataRef": { "label": "Dataref de déclenchement", "hint": "Dataref d'interrupteur ProSim, p. ex. system.switches.S_ASP_CAB_SEND.", "more": "Laisser vide pour le sélecteur INT/RAD." },
+      "smartButtonValue": { "label": "Valeur de déclenchement", "hint": "Valeur qui déclenche.", "more": "0 = INT sur le sélecteur INT/RAD ; les touches fugitives déclenchent en général sur 1." },
       "autoStart": { "label": "Démarrage automatique des services de départ", "hint": "Démarrer les services de départ d'eux-mêmes une fois l'avion prêt.", "more": "Désactivé : appuie sur Démarrer dans la section État, ou demande au copilote." },
       "groundPrep": {
         "label": "Début de la préparation au sol",

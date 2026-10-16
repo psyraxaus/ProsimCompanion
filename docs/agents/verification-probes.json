@@ -760,7 +760,7 @@
         "When INT/RAD is pressed during a running departure sequence: 'gsx-decision' {action: 'force next service', reason: 'requested by INT/RAD'} appears and the next service triggers.",
         "assert-absent: any 'Subscriber handler ... threw System.InvalidCastException' for S_ASP_INTRAD/S_ASP2_INTRAD."
       ],
-      "notes": "Fixed 7b8db7a after being silently dead (sender cast). Not exercised = report untested."
+      "notes": "Fixed 7b8db7a after being silently dead (sender cast). Not exercised = report untested. Since 2026-10-17 the smart button is configurable (gsx.smartButtonEnabled / smartButtonDataRef / smartButtonTriggerValue): with a custom dataref the decision reads 'requested by smart-button' instead, with smartButtonEnabled=false no decision is expected at all (report the setting, not a fail); a custom dataref that reports a non-number logs one 'Smart button dataref … is not a number' warning and nothing after it."
     },
     {
       "id": "aircraft-state-recheck",

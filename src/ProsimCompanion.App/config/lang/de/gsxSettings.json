@@ -39,6 +39,9 @@
     "automation": {
       "title": "Automatik",
       "enabled": { "label": "Bodenautomatik", "hint": "Die App GSX-Fragen beantworten und die Dienstsequenz ausführen lassen.", "more": "Die GSX-Verbindung bleibt so oder so bestehen, die Statustafel funktioniert also weiter." },
+      "smartButton": { "label": "Hardware-Taste für den nächsten Dienst", "hint": "Ein Cockpit-Schalter ruft den nächsten Abflugdienst.", "more": "Standard: der INT/RAD-Wippschalter auf INT an einem der Audio-Panels. Ausschalten, wenn dein Panel oder deine Audio-Bridge bei INT das Interphone-Mikrofon tastet." },
+      "smartButtonDataRef": { "label": "Auslöser-Dataref", "hint": "ProSim-Schalter-Dataref, z. B. system.switches.S_ASP_CAB_SEND.", "more": "Leer lassen für den INT/RAD-Wippschalter." },
+      "smartButtonValue": { "label": "Auslösewert", "hint": "Wert, der auslöst.", "more": "0 = INT am INT/RAD-Wippschalter; Taster lösen meist bei 1 aus." },
       "autoStart": { "label": "Abflugdienste automatisch starten", "hint": "Die Abflugdienste von selbst starten, sobald das Flugzeug bereit ist.", "more": "Aus: drücke Start im Abschnitt Status oder bitte den Ersten Offizier." },
       "groundPrep": {
         "label": "Start der Bodenvorbereitung",

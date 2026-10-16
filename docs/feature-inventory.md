@@ -43,7 +43,7 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
       command, rc.23)
 - [x] Arrival gate assignment (retry ladder, armed at flight phase; SayIntentions source is
       Phase 6); stable-parked detection
-- [x] INT/RAD switch as universal service trigger ("smart button") + web force-next button
+- [x] INT/RAD switch as universal service trigger ("smart button") + web force-next button (configurable dataref / disableable)
 - [x] MECH call (`GroundCrewUpcallService`, `groundCrew.mechCall`) and cabin dings
       (`CabinDingService`, `cabin.dingOnStartup` / `dingOnFinal`); "cockpit to cabin" hail
       answered by the purser (`CrewHailService`). Cabin-call **auto**-answer (#11,

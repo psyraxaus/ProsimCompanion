@@ -39,6 +39,9 @@
     "automation": {
       "title": "Automatisering",
       "enabled": { "label": "Grondautomatisering", "hint": "De app GSX-vragen laten beantwoorden en de servicesequentie laten uitvoeren.", "more": "De GSX-verbinding blijft hoe dan ook bestaan, dus het statusbord blijft werken." },
+      "smartButton": { "label": "Hardwareknop volgende service", "hint": "Een cockpitschakelaar roept de volgende vertrekservice op.", "more": "Standaard: de INT/RAD-schakelaar op INT op een van beide audiopanelen. Zet uit als je paneel of audiobridge bij INT de interfoonmicrofoon opent." },
+      "smartButtonDataRef": { "label": "Trigger-dataref", "hint": "ProSim-schakelaardataref, bijv. system.switches.S_ASP_CAB_SEND.", "more": "Leeg laten voor de INT/RAD-schakelaar." },
+      "smartButtonValue": { "label": "Triggerwaarde", "hint": "Waarde die hem activeert.", "more": "0 = INT op de INT/RAD-schakelaar; momentane knoppen activeren meestal bij 1." },
       "autoStart": { "label": "Vertrekservices automatisch starten", "hint": "De vertrekservices uit zichzelf starten zodra het vliegtuig klaar is.", "more": "Uit: druk op Start in de sectie Status, of vraag het de First Officer." },
       "groundPrep": {
         "label": "Start van de grondvoorbereiding",

@@ -15,6 +15,9 @@ and registration (from the OFP), the flight number and the SIM/UTC clock on spli
 displays, a theme picker and the ProSim connection dot. Home cockpits that never touch the
 INT/RAD switch can add a **NEXT SERVICE** button to the header (Settings → Appearance): it
 names the next departure service, why it is holding, and calls it on a click — on every page.
+The cockpit switch itself is the **Hardware next-service button** (Settings → GSX →
+Automation): turn it off when your panel or audio bridge keys the interphone mic on INT, or
+bind it to another ProSim switch dataref and trigger value under the advanced fields.
 
 ![Header with the NEXT SERVICE button](../img/header-next-service.png)
 
@@ -229,8 +232,9 @@ card off.
    import writes the booked seat map, planned fuel and cargo into the ProSim EFB.
 3. **Departure services** run in your configured order (default: cleaning/lavatory on
    turnarounds, refuel + catering in parallel, water, then boarding last). The INT/RAD
-   switch, the header's NEXT SERVICE button (opt-in) or the GSX page's button force-calls
-   the next service. Refuel steps the ProSim
+   switch (or the switch you bind under *Hardware next-service button*; turn it off if your
+   audio bridge keys the interphone mic on INT), the header's NEXT SERVICE button (opt-in) or
+   the GSX page's button force-calls the next service. Refuel steps the ProSim
    fuel while the GSX hose is connected; boarding fills seats as GSX counts pax aboard.
    With *Ground preparation start* on a voice option nothing runs until you say "commence
    ground services" or press Start; the *Voice on a cold start, automatic on a turnaround*

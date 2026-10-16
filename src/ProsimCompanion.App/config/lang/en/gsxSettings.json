@@ -39,6 +39,9 @@
     "automation": {
       "title": "Automation",
       "enabled": { "label": "Ground automation", "hint": "Let the app answer GSX questions and run the service sequence.", "more": "The GSX connection stays up either way, so the status board still works." },
+      "smartButton": { "label": "Hardware next-service button", "hint": "A cockpit switch calls the next departure service.", "more": "Default: the INT/RAD rocker set to INT on either audio panel. Turn off if your panel or audio bridge keys the interphone mic on INT." },
+      "smartButtonDataRef": { "label": "Trigger dataref", "hint": "ProSim switch dataref, e.g. system.switches.S_ASP_CAB_SEND.", "more": "Leave empty for the INT/RAD rocker." },
+      "smartButtonValue": { "label": "Trigger value", "hint": "Value that fires it.", "more": "0 = INT on the INT/RAD rocker; momentary keys usually fire on 1." },
       "autoStart": { "label": "Auto-start departure services", "hint": "Start the departure services by itself once the aircraft is ready.", "more": "Off: press Start on the Status section, or ask the First Officer." },
       "groundPrep": {
         "label": "Ground preparation start",

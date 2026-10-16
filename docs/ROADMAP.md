@@ -116,6 +116,10 @@ extracted 2026-08-01, incl. the locked decisions carried verbatim).
       departure phase) + "Call next service now" button on /gsx: calls the current step ahead
       of its activation rule, including Manual entries; never bypasses the OFP gate.
       **Unverified live**
+- [x] Smart button configurable (2026-10-17): `gsx.smartButtonEnabled` (off for a panel or audio
+      bridge that keys the interphone mic on INT), `gsx.smartButtonDataRef` + `gsx.smartButtonTriggerValue`
+      bind it to any other ProSim switch; live re-subscribe on save, pure `SmartButtonRule`.
+      **Unverified live**
 - [x] OFP gating of departure services: NO service is called until the pilot imports the OFP in
       the ProSim EFB or loads the MCDU plan (which auto-triggers the SimBrief import with the
       predecessor's valid-ICAO detection) — live-verified 2026-08-02
