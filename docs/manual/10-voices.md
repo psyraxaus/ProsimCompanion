@@ -149,7 +149,7 @@ handed to whichever provider speaks.
 | Status page says *Disabled — not configured* for a provider you set up | The provider needs a voice to count as configured (ElevenLabs, Google) | Pick a fallback voice on its tab, or pick one of its voices for the First Officer; Save |
 | Test plays but the FO in flight does not use that provider | **Local only** is ticked (General page) — it shuts out every network provider | Untick Local only |
 | A voice from the list reads English badly | A non-English Kokoro voice | Pick an American or British Kokoro voice for anything the crew says |
-| A one-word Kokoro callout ("Checked") sounds clipped or mumbled | Kokoro cannot time a lone word; since 0.7.0-rc.9 short callouts are sent with a little padding, but clips rendered by an older build are still on disk | Close the app and delete the `kokoro` folder under the TTS cache folder (Voice First Officer → Voice Providers → advanced *Cache folder*; default `%LOCALAPPDATA%ProsimCompanionche	ts`); the callouts render again on the next flight |
+| A one-word Kokoro callout ("Checked") sounds clipped or mumbled | Kokoro cannot time a lone word; since 0.7.0-rc.9 short callouts are sent with a little padding, but clips rendered by an older build are still on disk | Close the app and delete the `kokoro` folder under the TTS cache folder (Voice First Officer → Voice Providers → advanced *Cache folder*; default `%LOCALAPPDATA%\ProsimCompanion\cache\tts`); the callouts render again on the next flight |
 
 The **Logs** page shows the voice listing lines ("Kokoro voice list: 68 voices") and the
 reason a provider was skipped. **Export diagnostics** on that page packs them for a bug
