@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0-rc.9
+
+Kokoro short-callout fix, 2026-10-17. A local release-candidate build on top of rc.8; **not yet verified live**.
+
+- Fix: **Kokoro no longer clips and mumbles one- or two-word callouts** (owner measurement 2026-10-17 on the Mac mini, kokoro-fastapi 0.8.2rc1, am_adam). A bare "Checked" came back as a ~325 ms clip with the consonants eaten — Kokoro has no sentence to time a lone word against, and the server trims chunk ends. Text under 20 characters is now sent as ", Checked." (a full stop is added only when the text does not already end in `.`, `!` or `?`); longer phrases are unchanged. The disk cache still uses the original text, so **delete the `kokoro` folder under the TTS cache root once** to re-render clips cached before this build. No new setting; other voice providers untouched.
+- Everything in 0.7.0-rc.8 below.
+
 ## 0.7.0-rc.8
 
 Licence, hardware next-service button and the seven-language web UI, 2026-10-17. A local release-candidate build on top of rc.6 (rc.7 was a local tag only, never published); **not yet verified live**.
