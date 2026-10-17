@@ -18,6 +18,9 @@ public sealed class KokoroTtsProvider : ITtsProvider, IProbeableTtsProvider
     /// <summary>Body budget growth per character of input text.</summary>
     public const int BodyTimeoutPerCharMs = 100;
 
+    /// <summary>Inputs shorter than this (after trimming) are padded by <see cref="PadShort"/>.</summary>
+    private const int PadThresholdChars = 20;
+
     private static readonly HttpClient SharedHttp = new() { Timeout = Timeout.InfiniteTimeSpan };
 
     private readonly HttpClient _http;
@@ -93,6 +96,31 @@ public sealed class KokoroTtsProvider : ITtsProvider, IProbeableTtsProvider
         return TimeSpan.FromMilliseconds(bodyMs);
     }
 
+    /// <summary>
+    /// Gives a lone word or two the prosodic context Kokoro needs to say it whole. Measured
+    /// 2026-10-17 on the Mac mini (kokoro-fastapi 0.8.2rc1, am_adam, 24 kHz): a bare
+    /// "Checked" came back as a ~15.6 KB / ~325 ms WAV that sounded clipped and mumbled —
+    /// Kokoro has no sentence shape to time a single word against, and kokoro-fastapi trims
+    /// chunk ends, which eats the consonants on a sub-half-second clip. The same word sent as
+    /// ", Checked." or "... Checked." returned a longer, clearly articulated clip; longer
+    /// phrases were already fine. So anything under <see cref="PadThresholdChars"/> gets a
+    /// leading ", " and a closing full stop unless it already ends in terminal punctuation.
+    /// Only the request body is padded: the disk cache stays keyed on the caller's text, so
+    /// the kokoro cache folder must be cleared once to re-render previously cached short clips.
+    /// </summary>
+    internal static string PadShort(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var trimmed = text.Trim();
+        if (trimmed.Length >= PadThresholdChars)
+        {
+            return trimmed;
+        }
+
+        var terminated = trimmed.EndsWith('.') || trimmed.EndsWith('!') || trimmed.EndsWith('?');
+        return ", " + (terminated ? trimmed : trimmed + ".");
+    }
+
     public async Task<TtsAudio> SynthesizeAsync(string text, CancellationToken cancellationToken, string? voiceOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
@@ -121,7 +149,7 @@ public sealed class KokoroTtsProvider : ITtsProvider, IProbeableTtsProvider
             connectCts.CancelAfter(connectBudget);
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
-                Content = JsonContent.Create(new { model, input = text, voice, response_format = "wav" }),
+                Content = JsonContent.Create(new { model, input = PadShort(text), voice, response_format = "wav" }),
             };
             try
             {

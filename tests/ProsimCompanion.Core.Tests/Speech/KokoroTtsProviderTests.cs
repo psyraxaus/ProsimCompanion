@@ -145,6 +145,57 @@ public sealed class KokoroTtsProviderTests : IDisposable
             () => provider.SynthesizeAsync("hello", cts.Token));
     }
 
+    /// <summary>Fake kokoro-fastapi that records the JSON body it was sent.</summary>
+    private sealed class CapturingKokoro : HttpMessageHandler
+    {
+        public string? LastBody { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            LastBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StreamContent(new TrickleStream(TimeSpan.Zero)),
+            };
+        }
+    }
+
+    // 2026-10-17: a bare "Checked" rendered as a ~325 ms clipped mumble; ", Checked." was clear.
+    [Theory]
+    [InlineData("Checked", ", Checked.")]
+    [InlineData("Rotate!", ", Rotate!")]
+    [InlineData("  Flaps one ", ", Flaps one.")]
+    public void PadShort_WrapsShortCallouts_InProsodicContext(string input, string expected)
+    {
+        Assert.Equal(expected, KokoroTtsProvider.PadShort(input));
+    }
+
+    [Fact]
+    public void PadShort_LeavesLongerSentences_Alone()
+    {
+        const string sentence = "Cabin crew, prepare for departure";
+
+        Assert.Equal(sentence, KokoroTtsProvider.PadShort("  " + sentence + " "));
+    }
+
+    [Fact]
+    public async Task ShortCallout_IsPaddedOnTheWire_ButCachedUnderTheOriginalText()
+    {
+        var options = new SpeechOptions { KokoroTimeoutMs = 5000, KokoroBodyTimeoutMs = 5000 };
+        var handler = new CapturingKokoro();
+        var provider = Provider(options, handler);
+
+        await provider.SynthesizeAsync("Checked", CancellationToken.None);
+
+        Assert.NotNull(handler.LastBody);
+        Assert.Contains("\"input\":\", Checked.\"", handler.LastBody);
+
+        var cache = new TtsDiskCache(NullLogger<TtsDiskCache>.Instance);
+        var root = SpeechPaths.CacheRoot(options);
+        Assert.NotNull(await cache.GetAsync(root, "kokoro", options.KokoroVoice, "Checked"));
+        Assert.Null(await cache.GetAsync(root, "kokoro", options.KokoroVoice, ", Checked."));
+    }
+
     [Fact]
     public void BodyBudget_ScalesWithText_AndNeverDropsBelowConnect()
     {
