@@ -50,6 +50,11 @@
         "hint": "The FO calls each engine start: starting, available, both stabilized.",
         "more": "Read from the engine data on the ground, once per start. No pilot call needed."
       },
+      "readThrough": {
+        "label": "Read through lines already set",
+        "hint": "A checklist line whose switch is already correct is spoken with its answer and completed. No reply needed.",
+        "more": "The FO says the line and the answer in one breath, e.g. \"Flaps, retracted.\" Lines that need a read-back (numbers, flap config), lines with no live value from ProSim, and lines without a dataref still wait for your reply. Off: every line waits for you."
+      },
       "pacing": {
         "title": "Human Pacing",
         "hint": "Button presses at a human tempo",

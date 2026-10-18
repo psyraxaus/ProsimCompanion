@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New: **the spoken checklist can read through lines that are already set** (owner request 2026-10-18). With Settings → Voice First Officer → General → *Read through lines already set* on, a verify line whose switch is already in the expected position when the FO reaches it is spoken with its answer in one breath ("Flaps, retracted.") and completed — no reply, no listening window. Lines that need a read-back (numbers, flap config), lines whose dataref ProSim has not reported yet (fail-closed: a value that never arrived can never pass a line), and every line without a dataref condition still wait for the pilot. The visual Checklists page ticks the line like any voice completion; the `checklist.voice.item` session event carries `readThrough`. New setting `speech.checklistReadThroughSatisfied` (off). Probe `checklist-read-through-satisfied`. Unverified live.
+- Fix: **the Stream Deck keys no longer flash the green tick on a successful press** (owner request 2026-10-18). Voice Pause, GSX Service, Next Service and Checklist draw their new state on the key face, so the Stream Deck's own tick overlay on top of the colour change was noise. A refused command still flashes the yellow triangle and shows the server's reason on the key. Rebuild and reinstall the plugin to get it (the installer does this).
+
 ## 0.7.0-rc.9
 
 Kokoro short-callout fix, 2026-10-17. On top of rc.8; the padding was **verified live by the owner on 2026-10-17** (short callouts now sound whole).

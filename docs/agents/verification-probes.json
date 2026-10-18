@@ -3160,6 +3160,31 @@
         "requires-human: the calls come at a sensible moment (not over the de-icing crew's own announcements) and the reminder names the right item."
       ],
       "notes": "Issue #166 part 5 (owner's real-ops note 2026-10-10: packs off + ditching on before de-icing, reversed after — the 'pack faults' at 20:14:23Z were the crew doing exactly that). DeicePacksProcedureCore (pure: calls, discrepancy list, phrases) + DeicePacksProcedure (Speech, edges from the Core DeiceActivityStore written by GsxDeiceActivityRelay). Unverified live; the light sense is the thing to confirm first."
+    },
+    {
+      "id": "checklist-read-through-satisfied",
+      "issue": null,
+      "state": "open",
+      "kind": "assert-present",
+      "machine": {
+        "kind": "required-fields",
+        "type": "checklist.voice.item",
+        "fields": [
+          "readThrough"
+        ]
+      },
+      "sources": [
+        "session",
+        "log"
+      ],
+      "checks": [
+        "Only with speech.checklistReadThroughSatisfied = true (off by default). Every 'checklist.voice.item' carries readThrough true|false.",
+        "assert-present when exercised: for a verify line whose dataref condition was already true when the FO reached it, ONE log line 'Checklist line \"<say>\" already set — read through', ONE spoken line equal to the item's confirmCallout (tokens expanded; e.g. 'Flaps, retracted') and the item event {result done, readThrough true} — with NO listening window opened for that line and no 'speech.recognized' answer between the title and the next line.",
+        "assert-absent: readThrough true on an acknowledge/action/monitorControls/captureMinima line, on a verify line with expects number or flapConfig, or on a line whose dataref never arrived (ProSim off: every line runs challenge/response).",
+        "assert-absent: a read-through line whose condition was FALSE at the time (compare the dataref value in the log around the spoken-at stamp) — the fail-closed liveness guard (RawValue null / IsStale) is the thing to suspect.",
+        "requires-human: the run still sounds like a checklist — the pilot hears every line, the read-through ones as one callout, and 'complete' at the end."
+      ],
+      "notes": "Owner request 2026-10-18 (UX pass): already-correct switches should not need a reply. SatisfiedLineReadThrough (pure, tested) decides; SpokenChecklistEngine pre-subscribes the checklist's verify datarefs before the title so the values are cached by the first line. The visual Checklists page ticks the line as Done like any voice completion. Unverified live."
     }
   ]
 }

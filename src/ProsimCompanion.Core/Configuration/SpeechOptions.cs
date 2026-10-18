@@ -422,6 +422,14 @@ public sealed class SpeechOptions : IOptionSection
     /// idle. Fired from datarefs — no pilot speech needed; ground only; once per start.</summary>
     public bool EngineStartCallouts { get; set; } = true;
 
+    /// <summary>Spoken checklists read through lines that are already set (owner request
+    /// 2026-10-18): a verify line whose dataref condition is already true when the FO reaches
+    /// it is spoken as challenge and answer in one breath ("Flaps, retracted.") and completed
+    /// without waiting for the pilot. Lines that need a read-back (numbers, flap config), lines
+    /// with no live dataref value, and every non-verify line still run as challenge/response.
+    /// Off by default — the strict read-and-respond flow is the published behaviour.</summary>
+    public bool ChecklistReadThroughSatisfied { get; set; }
+
     // ---- Playback ----
 
     /// <summary>Output device friendly name (exact match); empty uses the system default

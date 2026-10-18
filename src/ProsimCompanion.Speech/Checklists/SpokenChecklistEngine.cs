@@ -281,6 +281,20 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
         // there, then mark each line as the dialogue completes it (voice-freeze semantics, so
         // the visual runner's retreat pass can't un-check what the crew already read out).
         _checklists.Select(definition.Checklist);
+        // Read-through (2026-10-18) decides from cached values, so every verify dataref of
+        // this checklist is subscribed before the title is spoken: the announcement is the
+        // time the first values need to arrive. A line whose value has still not come is
+        // run as challenge/response, never passed on the catalog default.
+        if (_options.CurrentValue.ChecklistReadThroughSatisfied)
+        {
+            foreach (var dataref in definition.Items
+                .Where(i => i.Verify is not null)
+                .SelectMany(i => i.Verify!.ReferencedDatarefs()))
+            {
+                EnsureVerifyRead(dataref);
+            }
+        }
+
         try
         {
             await Speak($"{definition.Checklist} checklist.").ConfigureAwait(false);
@@ -291,14 +305,20 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
                 ct.ThrowIfCancellationRequested();
                 _store.Update(s => s with { SpokenChecklistItem = item.Say });
 
-                var completed = item.Behavior.ToLowerInvariant() switch
-                {
-                    "verify" => await RunVerifyAsync(item, ct).ConfigureAwait(false),
-                    "action" => await RunActionAsync(item, ct).ConfigureAwait(false),
-                    "monitorcontrols" => await RunMonitorControlsAsync(item, ct).ConfigureAwait(false),
-                    "captureminima" => await RunCaptureMinimaAsync(item, ct).ConfigureAwait(false),
-                    _ => await RunAcknowledgeAsync(item, ct).ConfigureAwait(false),
-                };
+                // Already-set verify lines are read through (2026-10-18) when the switch is on;
+                // everything else runs its behaviour's dialogue.
+                var readThrough = _options.CurrentValue.ChecklistReadThroughSatisfied
+                    && SatisfiedLineReadThrough.IsSatisfied(item, ReadVerifyLive);
+                var completed = readThrough
+                    ? await RunReadThroughAsync(item).ConfigureAwait(false)
+                    : item.Behavior.ToLowerInvariant() switch
+                    {
+                        "verify" => await RunVerifyAsync(item, ct).ConfigureAwait(false),
+                        "action" => await RunActionAsync(item, ct).ConfigureAwait(false),
+                        "monitorcontrols" => await RunMonitorControlsAsync(item, ct).ConfigureAwait(false),
+                        "captureminima" => await RunCaptureMinimaAsync(item, ct).ConfigureAwait(false),
+                        _ => await RunAcknowledgeAsync(item, ct).ConfigureAwait(false),
+                    };
                 if (completed)
                 {
                     _checklists.VoiceComplete(definition.Checklist, index);
@@ -312,6 +332,7 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
                     name = definition.Checklist,
                     item = item.Say,
                     result = completed ? "done" : "skipped",
+                    readThrough,
                 });
             }
 
@@ -372,6 +393,27 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
         }
 
         await SpeakConfirm(item).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>A verify line already set in the cockpit (2026-10-18): the FO says the line and
+    /// its answer as one callout ("Flaps, retracted.") — the file's confirm callout with its
+    /// tokens expanded, plus any tech-log note — and the line completes with no listening
+    /// window. The pilot hears every line, so a run never sounds as if it jumped.</summary>
+    private async Task<bool> RunReadThroughAsync(ChecklistItemDefinition item)
+    {
+        var text = _tokens.Apply(SatisfiedLineReadThrough.Text(item));
+        try
+        {
+            text += TechLogNote(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Tech-log note lookup failed for \"{Item}\"", item.Say);
+        }
+
+        _logger.LogInformation("Checklist line \"{Item}\" already set — read through", item.Say);
+        await Speak(text).ConfigureAwait(false);
         return true;
     }
 
@@ -763,7 +805,19 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
         return ok;
     }
 
-    private double ReadVerify(string dataref)
+    private double ReadVerify(string dataref) => EnsureVerifyRead(dataref).GetValue(0.0);
+
+    /// <summary>The read-through reader: null while ProSim has pushed nothing for the dataref,
+    /// or when the connection dropped after the last push. The verify backstop keeps the
+    /// 0-default read above — there a stale value still answers "are you sure" sensibly;
+    /// here a default would pass a line the aircraft never confirmed.</summary>
+    private double? ReadVerifyLive(string dataref)
+    {
+        var read = EnsureVerifyRead(dataref);
+        return read.RawValue is null || read.IsStale ? null : read.GetValue(0.0);
+    }
+
+    private IDataRefSubscription EnsureVerifyRead(string dataref)
     {
         if (!_verifyReads.TryGetValue(dataref, out var read))
         {
@@ -773,7 +827,7 @@ public sealed class SpokenChecklistEngine : Core.Hosting.IStartupModule, IDispos
             _verifyReads[dataref] = read;
         }
 
-        return read.GetValue(0.0);
+        return read;
     }
     private void RestartActive()
     {

@@ -50,6 +50,11 @@
         "hint": "De FO roept elke motorstart: starting, available, both stabilized.",
         "more": "Op de grond gelezen uit de motorgegevens, eenmaal per start. Geen call van de piloot nodig."
       },
+      "readThrough": {
+        "label": "Al ingestelde regels doorlezen",
+        "hint": "Een checklistregel waarvan de schakelaar al goed staat, wordt met het antwoord uitgesproken en afgerond. Geen antwoord nodig.",
+        "more": "De FO zegt regel en antwoord in één adem, bijv. \"Flaps, retracted.\" Regels met een readback (getallen, flapconfiguratie), regels zonder live waarde uit ProSim en regels zonder dataref wachten nog op jouw antwoord. Uit: elke regel wacht op jou."
+      },
       "pacing": {
         "title": "Menselijk tempo",
         "hint": "Knopdrukken in een menselijk tempo",
