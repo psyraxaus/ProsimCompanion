@@ -1,3 +1,4 @@
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Recognition;
 
 namespace ProsimCompanion.Speech.Briefings;
@@ -18,6 +19,21 @@ public sealed class MissedApproachVoiceFeature : IVoiceFeature
         ArgumentNullException.ThrowIfNull(rebrief);
         _rebrief = rebrief;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the missed-approach
+    /// phrases dispatch through this small feature so the re-brief gate logic stays out of
+    /// <see cref="BriefingService"/>.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 160,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("missedApproach", "voiceReference.group.missedApproach.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["missed approach brief", "missed approach briefing", "brief the missed approach"], "voiceReference.group.missedApproach.rebrief"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

@@ -7,6 +7,7 @@ using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Core.Weather;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Llm;
 using ProsimCompanion.Speech.Recognition;
@@ -123,6 +124,27 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         _eventLog = eventLog;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the briefings,
+    /// after the MCDU trio; the full-briefing phrases keep precedence over the minima query.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 150,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("briefings", "voiceReference.group.briefings.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["brief departure", "departure briefing", "brief the departure", "departure brief", "run departure brief",
+                 "run the departure brief", "run the departure briefing", "do the departure briefing"],
+                "voiceReference.group.briefings.departure"),
+            new(["brief arrival", "arrival briefing", "brief the arrival", "arrival brief", "run arrival brief",
+                 "run the arrival brief", "run the arrival briefing", "do the arrival briefing", "approach briefing"],
+                "voiceReference.group.briefings.arrival", "Confirm the approach minimums.", [VoiceBadges.Dialogue]),
+            new(["which approach", "approach options", "confirm approach", "what approach for landing"],
+                "voiceReference.group.briefings.approaches"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

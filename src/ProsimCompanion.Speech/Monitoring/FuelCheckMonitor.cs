@@ -5,6 +5,7 @@ using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -89,6 +90,23 @@ public sealed class FuelCheckMonitor : Core.Hosting.IStartupModule, IVoiceFeatur
     /// the Fuel Log rows a check sits beside are on this clock, so a check must be too
     /// (2026-10-05: sim 03:54Z against real 19:44Z).</summary>
     private DateTimeOffset FlightClockNow => _simClock?.UtcNowOrReal ?? DateTimeOffset.UtcNow;
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). Dispatches first
+    /// with the gross error check: both were registered beside the startup modules, ahead of
+    /// the handover, and their exact phrases collide with nobody — the pinned order keeps it.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 10,
+        Gate = VoiceFeatureGate.ByOption("sop.monitoring.fuelCheck.enabled", VoiceReferenceTextIds.OffMonitoring),
+        Description = new DescribedVoiceReference("fuelCheck", "voiceReference.group.fuelCheck.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["fuel check", "fuel check please", "check the fuel", "how is the fuel"],
+                "voiceReference.group.fuelCheck.check",
+                "Fuel check. Passing MOGOP, fuel on board 6.2 tonnes, on plan. Estimated landing fuel 3.1 tonnes, planned 3.1."),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => Options.Enabled;
 

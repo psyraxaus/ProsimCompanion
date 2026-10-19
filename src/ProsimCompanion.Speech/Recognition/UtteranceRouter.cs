@@ -70,7 +70,7 @@ public sealed class UtteranceRouter : IDisposable
     private readonly UtteranceInterpreter _interpreter;
     private readonly ChecklistService _checklists;
     private readonly Abnormals.FailureMonitor _failures;
-    private readonly IReadOnlyList<IVoiceFeature> _features;
+    private readonly VoiceFeatureRoster _roster;
     private readonly IRecognitionWindow _recognition;
     private readonly IMicOwnership _micOwnership;
     private readonly ISpeechArbiter _arbiter;
@@ -97,7 +97,7 @@ public sealed class UtteranceRouter : IDisposable
         UtteranceInterpreter interpreter,
         ChecklistService checklists,
         Abnormals.FailureMonitor failures,
-        IEnumerable<IVoiceFeature> features,
+        VoiceFeatureRoster roster,
         IRecognitionWindow recognition,
         IMicOwnership micOwnership,
         ISpeechArbiter arbiter,
@@ -114,7 +114,7 @@ public sealed class UtteranceRouter : IDisposable
         ArgumentNullException.ThrowIfNull(interpreter);
         ArgumentNullException.ThrowIfNull(checklists);
         ArgumentNullException.ThrowIfNull(failures);
-        ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(roster);
         ArgumentNullException.ThrowIfNull(recognition);
         ArgumentNullException.ThrowIfNull(micOwnership);
         ArgumentNullException.ThrowIfNull(arbiter);
@@ -126,7 +126,7 @@ public sealed class UtteranceRouter : IDisposable
         _interpreter = interpreter;
         _checklists = checklists;
         _failures = failures;
-        _features = [.. features];
+        _roster = roster;
         _recognition = recognition;
         _micOwnership = micOwnership;
         _arbiter = arbiter;
@@ -203,7 +203,7 @@ public sealed class UtteranceRouter : IDisposable
     public List<string> CommandAndFeaturePhrases()
     {
         var grammar = new List<string>(VoiceCommands.All);
-        foreach (var feature in _features.Where(f => f.Enabled))
+        foreach (var feature in _roster.Enabled())
         {
             grammar.AddRange(feature.Phrases);
         }
@@ -276,12 +276,11 @@ public sealed class UtteranceRouter : IDisposable
 
         // Value-parsing features (FCU, radios) get the RAW transcription first so numbers
         // survive — skipped while an item is awaiting an answer, and skipped when the text IS
-        // an exact phrase somebody else owns (issue #137): the parsers key on words, so "tune
-        // the ils" died as "Say again the frequency" and "say v speeds" / "altitude star" /
-        // "one hundred knots" as "couldn't read the speed" before their features ever saw them.
+        // an exact phrase somebody else owns (issue #137; the rule is the roster's
+        // OwnsExactPhrase, a rank comparison, not a router special case).
         if (awaiting is null && !IsExactKnownPhrase(e.Text))
         {
-            foreach (var feature in _features.Where(f => f.Enabled && f.ValueParse))
+            foreach (var feature in _roster.EnabledValueParsers())
             {
                 if (feature.TryHandle(e.Text))
                 {
@@ -361,9 +360,10 @@ public sealed class UtteranceRouter : IDisposable
     }
 
     /// <summary>True when the raw text, normalized, equals a phrase owned outside the value
-    /// parsers — a global checklist command, an enabled non-value feature's phrase, a drill
-    /// trigger or a checklist start. Such text goes straight to <see cref="RouteText"/>; the
-    /// value parsers stay the path for free-form instructions ("set heading one two zero").
+    /// parsers — a global checklist command, an enabled non-value feature's phrase (the
+    /// roster's <see cref="VoiceFeatureRoster.OwnsExactPhrase"/>, issue #137), a drill trigger
+    /// or a checklist start. Such text goes straight to <see cref="RouteText"/>; the value
+    /// parsers stay the path for free-form instructions ("set heading one two zero").
     /// Exposed for tests.</summary>
     internal bool IsExactKnownPhrase(string text)
     {
@@ -380,12 +380,9 @@ public sealed class UtteranceRouter : IDisposable
             return true;
         }
 
-        foreach (var feature in _features.Where(f => f.Enabled && !f.ValueParse))
+        if (_roster.OwnsExactPhrase(text))
         {
-            if (feature.Phrases.Any(Same))
-            {
-                return true;
-            }
+            return true;
         }
 
         if (_failures.DrillPhrases.Any(Same))
@@ -410,7 +407,7 @@ public sealed class UtteranceRouter : IDisposable
         var readBackPrefixed = Monitoring.ReadbackCore.HasReadBackPrefix(rawText);
         if (readBackPrefixed)
         {
-            foreach (var feature in _features.Where(f => f.Enabled && f.ValueParse))
+            foreach (var feature in _roster.EnabledValueParsers())
             {
                 if (feature.TryHandle(rawText))
                 {
@@ -524,16 +521,10 @@ public sealed class UtteranceRouter : IDisposable
 
         // Voice features stay reachable while an item is pending (reference semantics) — a
         // handover or radio call must not become a failed checklist answer. Disabled
-        // features are never offered the utterance (the router owns the gate). A feature
-        // that contributes the text as one of ITS phrases is offered first (issue #137):
-        // registration order put the radio/FCU parsers ahead of everyone, and their
-        // keyword matching claimed "tune the ils" and "say v speeds" on this pass too.
-        var normalized = CommandMatcher.Normalize(text);
-        var candidates = _features
-            .Where(f => f.Enabled)
-            .OrderBy(f => f.Phrases.Any(p => string.Equals(CommandMatcher.Normalize(p), normalized, StringComparison.Ordinal)) ? 0 : 1)
-            .ToList();
-        foreach (var feature in candidates)
+        // features are never offered the utterance (the router owns the gate). The roster
+        // ranks the candidates: exact-phrase owners first (issue #137), then declared
+        // precedence — see VoiceFeatureRoster.Candidates.
+        foreach (var feature in _roster.Candidates(text))
         {
             if (feature.TryHandle(text))
             {
@@ -664,12 +655,7 @@ public sealed class UtteranceRouter : IDisposable
     }
 
     /// <summary>True when the (snapped) phrase belongs to an enabled acknowledge-only feature.</summary>
-    private bool IsAcknowledgeOnlyPhrase(string phrase)
-    {
-        var normalized = CommandMatcher.Normalize(phrase);
-        return _features.Any(f => f.Enabled && f.AcknowledgeOnly
-            && f.Phrases.Any(p => string.Equals(CommandMatcher.Normalize(p), normalized, StringComparison.Ordinal)));
-    }
+    private bool IsAcknowledgeOnlyPhrase(string phrase) => _roster.OwnsAcknowledgeOnlyPhrase(phrase);
 
     /// <summary>
     /// Checklist-start bias (issue #38): "approach checklist" phonetically snapped to
@@ -716,7 +702,7 @@ public sealed class UtteranceRouter : IDisposable
             // Feature phrases stay in the item window (reference semantics): a handover or
             // radio call while a line is pending must snap and dispatch, not fail the item.
             // Disabled features leave the closed grammar entirely.
-            foreach (var feature in _features.Where(f => f.Enabled))
+            foreach (var feature in _roster.Enabled())
             {
                 vocabulary.AddRange(feature.Phrases);
             }
@@ -729,7 +715,7 @@ public sealed class UtteranceRouter : IDisposable
             }
 
             vocabulary.AddRange(_failures.DrillPhrases);
-            foreach (var feature in _features.Where(f => f.Enabled))
+            foreach (var feature in _roster.Enabled())
             {
                 vocabulary.AddRange(feature.Phrases);
             }

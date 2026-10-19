@@ -4,6 +4,7 @@ using ProsimCompanion.Core.Airports.Parking;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -182,6 +183,30 @@ public sealed class PushbackDirectionVoiceFeature : IVoiceFeature
         _eventLog = eventLog;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): pushback direction
+    /// for THIS flight by voice (2026-10-04), beside the GSX single-shot phrases.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 220,
+        Gate = VoiceFeatureGate.ByOption("gsx.voiceControlEnabled", VoiceReferenceTextIds.OffGsxSettings),
+        Description = new DescribedVoiceReference("pushbackDirection", "voiceReference.group.pushbackDirection.title", VoiceReferenceTab.Ground, VoiceSpeaker.FirstOfficer,
+        [
+            new(["push back tail left", "pushback tail left", "tail left", "push back nose right", "pushback nose right"],
+                "voiceReference.group.pushbackDirection.tailLeft", "Pushback tail left."),
+            new(["push back tail right", "pushback tail right", "tail right", "push back nose left", "pushback nose left"],
+                "voiceReference.group.pushbackDirection.tailRight", "Pushback tail right."),
+            new(["push back straight", "pushback straight", "straight back", "straight pushback"],
+                "voiceReference.group.pushbackDirection.straight", "Pushback straight back."),
+            new(["push back facing north", "pushback facing north", "facing north"],
+                "voiceReference.group.pushbackDirection.facing",
+                "Pushback facing north — that is tail right here.", [VoiceBadges.Value], "‹north | north east | east | south east | south | south west | west | north west›"),
+            new(["which way is the pushback", "pushback direction", "which way do we push", "confirm pushback direction"],
+                "voiceReference.group.pushbackDirection.which", "I suggest tail right for runway 22L — it faces the runway."),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _options.CurrentValue.VoiceControlEnabled;
 

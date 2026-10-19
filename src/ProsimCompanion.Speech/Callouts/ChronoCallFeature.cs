@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -81,6 +82,20 @@ public sealed class ChronoCallFeature : IVoiceFeature, Core.Hosting.IStartupModu
         _chronoRunning = true;
         _logger.LogInformation("Chrono latch restored from the flight-state snapshot — the touchdown stop press is armed");
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the "takeoff"
+    /// chrono PM action (issue #126), beside the other PM calls.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 100,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("chrono", "voiceReference.group.chrono.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["takeoff", "take off", "start the clock"], "voiceReference.group.chrono.takeoff", "Takeoff.", [VoiceBadges.Phase]),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 
