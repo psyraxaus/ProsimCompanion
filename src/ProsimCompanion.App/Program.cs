@@ -12,13 +12,7 @@ using ProsimCompanion.App.Hosting;
 using ProsimCompanion.App.Logging;
 using ProsimCompanion.Audio;
 using ProsimCompanion.Core.Configuration;
-using ProsimCompanion.Core.DependencyInjection;
 using ProsimCompanion.Core.Logging;
-using ProsimCompanion.Gsx;
-using ProsimCompanion.Prosim;
-using ProsimCompanion.Sim;
-using ProsimCompanion.Speech;
-using ProsimCompanion.Web;
 using Serilog;
 
 namespace ProsimCompanion.App;
@@ -329,53 +323,11 @@ public static class Program
             ReloadOnChange = true,
         });
 
-        builder.Services.AddSerilog();
-        builder.Services.AddRazorComponents().AddInteractiveServerComponents(circuit =>
-        {
-            // Remote tablets (iPad Safari especially) freeze the page and drop the circuit's
-            // WebSocket whenever the tab backgrounds or the screen locks — routine in cockpit
-            // use. Retain disconnected circuits well past the 3-minute default so a woken
-            // client reconnects to its live session (unsaved drafts intact) instead of being
-            // rejected and forced through a reload (#27).
-            circuit.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(15);
-        });
-        builder.Services.AddCoreServices(builder.Configuration, settingsPath);
-        builder.Services.AddProsimServices();
-        builder.Services.AddSimServices();
-        builder.Services.AddGsxServices();
-        builder.Services.AddAudioServices();
-        builder.Services.AddSpeechServices();
-        // User drop-in themes come from the user config tree (ADR-0007); the built-ins are
-        // embedded in the Web assembly.
-        builder.Services.AddWebServices(
-            UserConfigPaths.File("themes"),
-            // Seeded user packs first (edits, added languages), the shipped defaults behind.
-            [UserConfigPaths.Languages, Path.Combine(AppContext.BaseDirectory, "config", "lang")]);
-        // The desktop shell's Open/Save/Folder dialogs for the settings pages' path fields,
-        // offered only to a browser on this PC (option 3, 2026-10-13).
-        builder.Services.AddSingleton<ProsimCompanion.Core.Hosting.INativeFilePicker, WpfFilePicker>();
-        // Feature startup modules (campaign #87) — registered AFTER every pillar so hosted
-        // transports (the GSX client, ProSim connection) start before the modules activate.
-        builder.Services.AddHostedService<ProsimCompanion.Core.Hosting.StartupModuleHost>();
-        // Verbose logging turns itself off after 24 h unless logging.keepVerbose (2026-10-17);
-        // the Logs page reads the clock through the Core interface.
-        builder.Services.AddSingleton<VerboseLoggingWatchdog>();
-        builder.Services.AddSingleton<ProsimCompanion.Core.Logging.IVerboseLoggingStatus>(
-            provider => provider.GetRequiredService<VerboseLoggingWatchdog>());
-        builder.Services.AddHostedService(provider => provider.GetRequiredService<VerboseLoggingWatchdog>());
-
-        builder.Services.AddSingleton(levels);
-        builder.Services.AddSingleton(logBuffer);
-        builder.Services.AddSingleton<IWireTrace>(wireTrace);
-
-        // HTTP command API: the command registry itself (populated in Main after the host is
-        // built — CommandsBootstrap needs the built provider to resolve seams). Its gate
-        // options bind with every other section in AddCoreServices (campaign #84).
-        builder.Services.AddSingleton<ProsimCompanion.Core.Commands.CommandRegistry>();
-
-        // Airframe-damage debug probe (/api/debug/damage) — subscribes its SimVars lazily on
-        // first request, so registering it costs nothing until the surface is actually used.
-        builder.Services.AddSingleton<SimDamageProbe>();
+        // Every registration lives in ServiceComposition so the DI guard test
+        // (tests/App/ServiceCompositionTests) builds the same container with ValidateOnBuild;
+        // this method keeps the configuration source, Kestrel and the middleware pipeline only.
+        builder.Services.AddProsimCompanionServices(
+            builder.Configuration, settingsPath, levels, logBuffer, wireTrace);
 
         var webUi = builder.Configuration.GetSection(WebUiOptions.SectionName).Get<WebUiOptions>()
             ?? new WebUiOptions();
