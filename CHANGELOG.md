@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Architecture: voice-feature roster (C5)
+
+- **Each voice feature now declares itself** (`VoiceFeatureDeclaration`, a `public static Declared` beside the class): its dispatch precedence, the option that switches it on, and the Voice Reference drawer rows it contributes — as language-pack text ids, not English. The roster of thirty features used to live in three mirrors: the DI registration order (which WAS the dispatch precedence, held together by comments), the router's issue-#137 ordering pass, and a describer dictionary keyed by type. A phrase renamed in a feature silently dropped its drawer row.
+- **`VoiceFeatureRoster`** sorts the features by their declared precedence once; the router, the drawer builder and the DI consume the roster and hold no ordering knowledge of their own. "Exact phrases win over the value parsers" (#137) is now a rank comparison in the roster (`VoiceClaim.ExactPhrase` before `Declared`), not a special case in the router. The DI file lost every ordering comment; registration order no longer means anything.
+- **Behaviour-preserving**: the pinned order (`VoiceFeatureRosterTests.PinnedOrder`) reproduces the pre-roster registration order exactly, every drawer row is unchanged, and the same switches gate the same features. New guard tests: the whole dispatch order by type, unique precedences, every declared text id present in the English pack with its placeholders supplied, and the two #137 scenarios routed through the real declarations.
+- **Voice Reference drawer in seven languages**: the drawer's descriptions, group titles and "… is off — Settings → …" lines (about 150 texts) moved from English literals in the speech pillar to `voiceReference.json` in all seven packs (en/de/es/fr/ja/ko/nl); the Core snapshot carries `VoiceReferenceText` ids that the drawer resolves in the circuit's language. The phrases themselves (what the pilot says) and the FO's answers stay English by decision (ADR-0014).
+
 ## 0.7.0-rc.9
 
 Kokoro short-callout fix, 2026-10-17. On top of rc.8; the padding was **verified live by the owner on 2026-10-17** (short callouts now sound whole).
