@@ -171,10 +171,14 @@ public sealed class DeiceRequestPolicyTests
     private static readonly DateTimeOffset Now = new(2026, 10, 9, 8, 0, 0, TimeSpan.Zero);
 
     private static DeiceRequestSnapshot Requested()
-        => DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Request, RequestThisCycle = true };
+        => (DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Request })
+            .WithAsking(CaptainsQuestionRules.Accept(CaptainsQuestionState.Empty, "policy", Now));
 
     private static DeiceRequestSnapshot Asked(DateTimeOffset askedAt)
-        => DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask, Question = new DeiceQuestion(askedAt, "Request it?") };
+        => (DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask }).WithAsking(CaptainsQuestionState.Empty with
+        {
+            Question = new CaptainsQuestion("deice", askedAt, "Request it?", DeiceRequestSnapshot.QuestionTtl, 1, [], null),
+        });
 
     private static List<DepartureServiceStep> Classic()
         => [.. GsxOptions.DefaultDepartureServices];
@@ -310,7 +314,8 @@ public sealed class DeiceRequestPolicyTests
     [Fact]
     public void Declined_SkipsAConfiguredStep_AndPlacesNone()
     {
-        var declined = DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask, Declined = "captain said 'negative'" };
+        var declined = (DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask })
+            .WithAsking(CaptainsQuestionRules.Decline(CaptainsQuestionState.Empty, "voice", "captain said 'negative'", Now));
         Assert.Equal("de-icing declined: captain said 'negative'", DeiceRequestPolicy.SkipReason(declined));
         Assert.Null(DeiceRequestPolicy.SkipReason(Requested()));
         Assert.Equal(Classic().Count, DeiceRequestPolicy.EffectiveSteps(Classic(), declined, Now).Count);
@@ -344,7 +349,7 @@ public sealed class DeiceRequestPolicyTests
         Assert.False(plan.AllDone);
 
         // Answered yes, boarding done: de-icing is the last call.
-        var accepted = asked with { RequestThisCycle = true, Question = null };
+        var accepted = asked.WithAsking(CaptainsQuestionRules.Accept(asked.Asking, "voice", Now));
         var plan2 = DepartureSequencer.Next(
             DeiceRequestPolicy.EffectiveSteps([new("Refueling", GsxServiceActivation.AfterCalled), new("Boarding", GsxServiceActivation.AfterAllCompleted)], accepted, Now),
             services, id => id is "Refueling" or "Boarding" ? done : default,

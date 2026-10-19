@@ -28,8 +28,6 @@
       "atc": "ATC: {0}",
       "gsxSend": "GSX-verzending: {0}",
       "gsx": "GSX: {0}",
-      "variantUnknown": "geen jetway of VDGS bekend voor deze stand",
-      "variantDetail": "{0} op deze stand",
       "hint": "Bevestigen zet de gate klaar voor automatische verzending in cruise (of direct als later in de vlucht bevestigd). Nu verzenden stuurt direct naar GSX + SayIntentions ATC. Een bevestigde gate overleeft een herstart van de app."
     },
     "weather": {
@@ -62,7 +60,6 @@
       "standRunway": ", baan {0}",
       "standNoRunway": ", geen vertrekbaan in de OFP",
       "noSuggestion": "Stand {0}{1} — nog geen suggestie.",
-      "asking": "GSX vraagt welke kant op — zeg het tegen de FO (\"tail left\", \"tail right\", \"push back facing north\") of druk op een knop.",
       "footer": "Knoppen kiezen alleen voor deze vlucht · standaardmodus: {0} · Instellingen → GSX → Pushback",
       "mode": {
         "ask": "piloot vragen",

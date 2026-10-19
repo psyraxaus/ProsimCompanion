@@ -101,7 +101,7 @@ public sealed class GsxQuestionCatalog
                 if ((key.Equals("menushown", StringComparison.OrdinalIgnoreCase) || key.Equals("menu", StringComparison.OrdinalIgnoreCase))
                     && !IsPushbackDirectionMenuOpen())
                 {
-                    _pushbackChoice.ClearQuestion();
+                    _pushbackChoice.Withdraw();
                 }
             };
         }
@@ -502,7 +502,7 @@ public sealed class GsxQuestionCatalog
         if (result.Succeeded)
         {
             _directionAutoSelected = true;
-            _pushbackChoice?.ClearQuestion();
+            _pushbackChoice?.Withdraw();
         }
 
         RecordDecision(

@@ -1,0 +1,117 @@
+@* The one web surface for every open captain's question (architecture review C2): the
+   prompt, the state line (attempt + what the clock does) and one button per answer — the
+   yes/no words per question, or one button per choice. Renders records from
+   CaptainsQuestionPresentation over the Core ICaptainsQuestionStore registrations, so a new
+   question needs no markup here. Framed = wraps itself in an EFB section only while a
+   question stands (the OFP page); unframed it sits inside the host's own section. *@
+@inherits StoreObserverComponent
+@inject IEnumerable<ICaptainsQuestionStore> Stores
+@inject IStringLocalizer T
+
+@if (Framed)
+{
+    @if (_views.Count > 0)
+    {
+        <section class="section">
+            <div class="section-header"><h3 class="section-title">@T["gsxSettings.captainsQuestions.title"]</h3></div>
+            <div class="section-body">@Body</div>
+        </section>
+    }
+}
+else
+{
+    @Body
+}
+
+@code {
+    private IReadOnlyList<OpenQuestionView> _views = [];
+    private IReadOnlySet<string>? _topics;
+
+    /// <summary>Comma-separated topics to show; null = every open question.</summary>
+    [Parameter] public string? Topics { get; set; }
+
+    /// <summary>Show the "no question open" line instead of nothing.</summary>
+    [Parameter] public bool ShowWhenEmpty { get; set; }
+
+    /// <summary>Wrap in an EFB section while a question stands (pages without a Section host).</summary>
+    [Parameter] public bool Framed { get; set; }
+
+    /// <summary>Names this surface in the decline reason the decision log records
+    /// ("declined on the Status board").</summary>
+    [Parameter] public string Surface { get; set; } = "web";
+
+    private RenderFragment Body => @<text>
+        @if (_views.Count == 0)
+        {
+            @if (ShowWhenEmpty)
+            {
+                <div class="empty">@T["gsxSettings.captainsQuestions.none"]</div>
+            }
+        }
+        else
+        {
+            @foreach (var view in _views)
+            {
+                var question = view;
+                <div class="field-hint" style="margin:8px 0;">@question.Prompt</div>
+                <div class="row">
+                    <span class="row-label">@T["gsxSettings.captainsQuestions.state"]</span>
+                    <span class="row-value-mono">@question.State.Resolve(T)</span>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; margin:4px 0 8px; flex-wrap:wrap;">
+                    @foreach (var button in question.Buttons)
+                    {
+                        var pressed = button;
+                        <button type="button" class="btn @(pressed.Primary ? "primary" : "secondary")"
+                                title="@(pressed.Tooltip?.Resolve(T))" @onclick="() => Press(question, pressed)">
+                            @pressed.Caption.Resolve(T)
+                        </button>
+                    }
+                </div>
+            }
+        }
+    </text>;
+
+    protected override void OnInitialized()
+    {
+        foreach (var store in Stores)
+        {
+            var watched = store;
+            WatchChanged(h => watched.Changed += h, h => watched.Changed -= h, Refresh);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        _topics = Topics is null
+            ? null
+            : Topics.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
+        Refresh();
+    }
+
+    private void Refresh() => _views = CaptainsQuestionPresentation.Views(Stores, DateTimeOffset.UtcNow, _topics);
+
+    // The press goes to the store under its topic; the store's rules decide (an answer that
+    // arrived first wins, a pick that no longer matches is refused).
+    private void Press(OpenQuestionView question, QuestionButtonView button)
+    {
+        var store = Stores.FirstOrDefault(s => string.Equals(s.Definition.Topic, question.Topic, StringComparison.Ordinal));
+        if (store is null)
+        {
+            return;
+        }
+
+        switch (button.Action)
+        {
+            case QuestionButtonAction.Accept:
+                store.Accept("web");
+                break;
+            case QuestionButtonAction.Decline:
+                store.Decline("web", $"declined on the {Surface}");
+                break;
+            case QuestionButtonAction.Choose when button.Choice is { } choice:
+                store.Choose(choice, "web");
+                break;
+        }
+    }
+}

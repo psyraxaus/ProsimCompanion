@@ -123,7 +123,7 @@ public sealed class GsxGateSuffixVariantServiceTests : IDisposable
         var question = _choices.Snapshot().Question;
         Assert.NotNull(question);
         Assert.Equal("W36 is 36A or 36B in this scenery — which?", question.Prompt);
-        Assert.Equal(["36A", "36B"], question.Candidates.Select(c => c.Label));
+        Assert.Equal(["36A", "36B"], question.Choices.Select(c => c.Label));
         Assert.DoesNotContain("Gate W 36A", GateSelectTokens()); // never a guess while the question stands
 
         Assert.True(_choices.Choose("36B", "web"));
@@ -146,7 +146,7 @@ public sealed class GsxGateSuffixVariantServiceTests : IDisposable
         await WaitUntilAsync(() => service.Status == GsxGateRequestStatus.Assigned);
 
         Assert.Equal("Gate W 36A", GateSelectTokens().Last());
-        Assert.Equal("default at taxi-in", _choices.Snapshot().Choice?.Source);
+        Assert.Equal("default at taxi-in", _choices.Snapshot().Answer?.Source);
         Assert.Null(_choices.Snapshot().Question);
     }
 

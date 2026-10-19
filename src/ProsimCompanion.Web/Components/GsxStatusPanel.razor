@@ -9,7 +9,6 @@
 @inject IGsxGateControl GateControl
 @inject IGsxDepartureControl DepartureControl
 @inject IGsxSimbriefReloadControl SimbriefReload
-@inject GateChoiceStore GateChoices
 @inject IStringLocalizer T
 
 <Section Title="@T["gsxSettings.status.title"]">
@@ -32,6 +31,13 @@
     }
 </Section>
 
+@* Every open captain's question — de-icing, the turnaround start, the gate suffix, the
+   pushback direction — on one card with its buttons (architecture review C2). The FO voices
+   the same questions; a press here answers the same Core store. *@
+<Section Title="@T["gsxSettings.captainsQuestions.title"]" Hint="@T["gsxSettings.captainsQuestions.hint"]">
+    <OpenQuestionsCard ShowWhenEmpty="true" Surface="Status board" />
+</Section>
+
 <Section Title="@T["gsxSettings.arrivalGate.title"]">
     <div class="row">
         <span class="row-label">@T["gsxSettings.arrivalGate.request"]</span>
@@ -44,22 +50,9 @@
         <button type="button" class="btn primary" @onclick="ArmGate">@T["gsxSettings.arrivalGate.arm"]</button>
         <button type="button" class="btn secondary" @onclick="GateControl.Cancel">@T["gsxSettings.arrivalGate.cancel"]</button>
     </div>
-    @if (_gateChoice.Question is { } gateQuestion)
-    {
-        @* GSX split the gate into suffix variants (issue #156): pick one here, on the OFP page,
-           or by telling the FO; the first goes out at taxi-in otherwise. *@
-        <div class="field-hint" style="margin-top:8px;">@gateQuestion.Prompt</div>
-        <div style="display:flex; gap:8px; align-items:center; margin-top:4px; flex-wrap:wrap;">
-            @foreach (var candidate in GsxPresentation.GateVariants(_gateChoice))
-            {
-                var label = candidate.Label;
-                <button type="button" class="btn secondary" @onclick="() => ChooseGateVariant(label)"
-                        title="@Text(candidate.Tooltip)">
-                    @candidate.Caption
-                </button>
-            }
-        </div>
-    }
+    @* When GSX splits the gate into suffix variants (issue #156) the question shows in the
+       Captain's questions section above — pick one there, on the OFP page, or by telling the
+       FO; the first goes out at taxi-in otherwise. *@
 </Section>
 
 <Section Title="@T["gsxSettings.departureBoard.title"]">
@@ -122,16 +115,13 @@
     </div>
     @if (deice.Question is { } question)
     {
-        <div class="field-hint" style="margin:8px 0;">@question.Prompt</div>
+        @* The prompt and the Request / No buttons live in the Captain's questions section
+           (one surface for every question, C2); this row keeps the clock beside the verdict. *@
         <div class="row">
             <span class="row-label">@T["gsxSettings.deiceStatus.question"]</span>
             <span class="row-value-mono" title="@T["gsxSettings.deiceStatus.questionTitle"]">
                 @Text(question.State)
             </span>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
-            <button type="button" class="btn primary" @onclick='() => DeiceRequest.Accept("web")'>@T["gsxSettings.deiceStatus.request"]</button>
-            <button type="button" class="btn secondary" @onclick='() => DeiceRequest.Decline("web", "declined on the Status board")'>@T["gsxSettings.deiceStatus.decline"]</button>
         </div>
     }
     <div class="row">
@@ -246,17 +236,12 @@
 @code {
     private GsxDiagnosticsSnapshot _view = GsxDiagnosticsSnapshot.Empty;
     private DeiceRequestSnapshot _deice = DeiceRequestSnapshot.Empty;
-    private GateChoiceSnapshot _gateChoice = GateChoiceSnapshot.Empty;
     private string _gateInput = "";
     private bool _reloading;
     private DisplayText? _reloadResult;
 
     /// <summary>A presentation text in the page's language.</summary>
     private string Text(DisplayText text) => text.Resolve(T);
-
-    // The suffix-variant buttons (issue #156): the store matches the label; the GSX gate
-    // service sends the chosen stand.
-    private void ChooseGateVariant(string label) => GateChoices.Choose(label, "web");
 
     private void ArmGate()
     {
@@ -292,6 +277,5 @@
     {
         Watch(Diagnostics, snapshot => _view = snapshot);
         Watch(DeiceRequest, snapshot => _deice = snapshot);
-        Watch(GateChoices, snapshot => _gateChoice = snapshot);
     }
 }

@@ -141,17 +141,25 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<Airports.IRunwayGeometrySource, Airports.GatewayRunwayGeometry>();
         services.AddSingleton<Airports.RunwayLocator>();
         services.AddSingleton<PushbackChoiceStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<PushbackChoiceStore>());
         services.AddStartupModule<Airports.Parking.PushbackSuggestionService>();
         // Arrival-gate suffix question (issue #156, 2026-10-11): GSX's "W36 is 36A or 36B?"
         // asked here by the GSX pillar, answered by the FO dialogue, the OFP page or the
         // Status card.
         services.AddSingleton<GateChoiceStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<GateChoiceStore>());
         // Per-departure de-icing decision (2026-10-09): the GSX policy writes the verdict and
         // the captain's question; the FO dialogue, the Status board and the sequencer read it.
         services.AddSingleton<DeiceRequestStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<DeiceRequestStore>());
         // Turnaround "commence ground services?" question (issue #169): the GSX automation
         // asks, the FO voice dialogue answers.
         services.AddSingleton<TurnaroundStartStore>();
+        services.AddSingleton<ICaptainsQuestionStore>(p => p.GetRequiredService<TurnaroundStartStore>());
+        // The four captain's questions above share one store module (architecture review C2);
+        // the ICaptainsQuestionStore registrations feed the FO dialogue, the web card and this
+        // one TTL clock — the only thing that settles a question on silence (issue #166).
+        services.AddStartupModule<CaptainsQuestionTtlSweeper>();
         // The de-icing activity seam (issue #166): the GSX relay writes the crew's lifecycle
         // stage and the fluid/concentration menu answers; the abnormal monitor, the FO's
         // packs/ditching procedure and the holdover card read them.

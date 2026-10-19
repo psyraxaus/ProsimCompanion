@@ -3,12 +3,6 @@ using ProsimCompanion.Core.State;
 
 namespace ProsimCompanion.Web.Components;
 
-/// <summary>One suffix-variant button of the arrival-gate question (issue #156).</summary>
-/// <param name="Label">The candidate's label, what <c>GateChoiceStore.Choose</c> is given.</param>
-/// <param name="Caption">The button text: the label, with " · detail" when GSX gave one.</param>
-/// <param name="Tooltip">The hover title.</param>
-public sealed record GateVariantView(string Label, string Caption, DisplayText Tooltip);
-
 /// <summary>The departure board's controls and rows.</summary>
 /// <param name="StartTextId">The start button's word: Start / Running / Complete.</param>
 /// <param name="StartDisabled">Once started the button is inert (the sequence is idempotent anyway).</param>
@@ -56,7 +50,7 @@ public sealed record CommandRowView(string Time, string Verb, string Args, strin
 
 /// <summary>
 /// The GSX status panel's presentation module (the landing section of the GSX tab, #18):
-/// diagnostics, de-ice and gate-choice snapshots in, row and label records out; the panel's
+/// diagnostics and de-ice snapshots in, row and label records out; the panel's
 /// markup renders them and keeps only its controls. The stage wording and lamps are shared
 /// with the header's NEXT SERVICE pill and the Flight Status services card. Second adapter
 /// of the seam <see cref="FlightStatusPresentation"/> opened — two adapters make it real.
@@ -138,24 +132,9 @@ public static class GsxPresentation
         return DisplayText.RawOrNull(view.GateRequest) ?? DisplayText.Id("gsxSettings.arrivalGate.noRequest");
     }
 
-    /// <summary>The suffix-variant buttons (issue #156): GSX split the gate into variants —
-    /// pick one here, on the OFP page, or by telling the FO; the first goes out at taxi-in
-    /// otherwise. Empty when no question stands.</summary>
-    public static IReadOnlyList<GateVariantView> GateVariants(GateChoiceSnapshot choice)
-    {
-        ArgumentNullException.ThrowIfNull(choice);
-        if (choice.Question is not { } question)
-        {
-            return [];
-        }
-
-        return [.. question.Candidates.Select(candidate => new GateVariantView(
-            candidate.Label,
-            candidate.Detail is null ? candidate.Label : $"{candidate.Label} · {candidate.Detail}",
-            candidate.Detail is null
-                ? DisplayText.Id("gsxSettings.arrivalGate.variantNoDetail")
-                : DisplayText.Id("gsxSettings.arrivalGate.variantDetail", candidate.Detail)))];
-    }
+    // The suffix-variant buttons (issue #156) are the gate instance of the open-question card
+    // (CaptainsQuestionPresentation, C2) — pick one there, on the OFP page, or by telling the
+    // FO; the first goes out at taxi-in otherwise.
 
     // ── Departure board ───────────────────────────────────────────────────────────────
 
@@ -253,7 +232,8 @@ public static class GsxPresentation
         {
             question = new DeiceQuestionView(open.Prompt, DisplayText.Id("gsxSettings.deiceStatus.questionState",
                 DisplayText.Id(open.Attempt > 1 ? "gsxSettings.deiceStatus.reAsked" : "gsxSettings.deiceStatus.open"),
-                open.ExpiresAtUtc.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)));
+                // A de-icing question always carries a TTL (the definition's default or the option).
+                (open.ExpiresAtUtc ?? open.AskedAtUtc).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)));
         }
 
         return new DeiceView(

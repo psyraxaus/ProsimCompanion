@@ -116,12 +116,12 @@ public sealed class PushbackDirectionVoiceTests
     public void Prompt_DefaultLines_TailLeftOrRight()
     {
         var options = PushbackAdvisor.Options(null, [PushbackAdvisor.DefaultLeftLabel, PushbackAdvisor.DefaultRightLabel, "Straight pushback"]);
-        Assert.Equal("Pushback — tail left or tail right?", PushbackQuestionDialogue.Prompt(options));
+        Assert.Equal("Pushback — tail left or tail right?", PushbackChoiceStore.Prompt(options));
     }
 
     [Fact]
     public void Prompt_CustomLines_NamesThem()
-        => Assert.Equal("Pushback — which way? GSX offers Facing SW on Taxi AV, or Facing NE on Taxi AT.", PushbackQuestionDialogue.Prompt(EfhkOptions));
+        => Assert.Equal("Pushback — which way? GSX offers Facing SW on Taxi AV, or Facing NE on Taxi AT.", PushbackChoiceStore.Prompt(EfhkOptions));
 
     [Fact]
     public async Task Question_HeardTailLeft_StoresAndReadsBack()
@@ -133,7 +133,7 @@ public sealed class PushbackDirectionVoiceTests
             .ReturnsAsync("tail left");
         var options = new Mock<IOptionsMonitor<GsxOptions>>();
         options.SetupGet(o => o.CurrentValue).Returns(() => _options);
-        var dialogue = new PushbackQuestionDialogue(_store, feature, mic.Object, _arbiter, options.Object, SpeechTestSupport.TempEventLog(), NullLogger<PushbackQuestionDialogue>.Instance);
+        var dialogue = new CaptainsQuestionDialogue([_store], [PushbackQuestionPhrases.Create(feature)], mic.Object, _arbiter, options.Object, SpeechTestSupport.TempEventLog(), NullLogger<CaptainsQuestionDialogue>.Instance);
 
         _store.AskPilot(EfhkOptions);
         await dialogue.RunAsync(_store.Snapshot().Question!);
@@ -154,14 +154,21 @@ public sealed class PushbackDirectionVoiceTests
             .ReturnsAsync((string?)null);
         var options = new Mock<IOptionsMonitor<GsxOptions>>();
         options.SetupGet(o => o.CurrentValue).Returns(() => _options);
-        var dialogue = new PushbackQuestionDialogue(_store, feature, mic.Object, _arbiter, options.Object, SpeechTestSupport.TempEventLog(), NullLogger<PushbackQuestionDialogue>.Instance);
+        var dialogue = new CaptainsQuestionDialogue([_store], [PushbackQuestionPhrases.Create(feature)], mic.Object, _arbiter, options.Object, SpeechTestSupport.TempEventLog(), NullLogger<CaptainsQuestionDialogue>.Instance);
 
         _store.AskPilot(EfhkOptions);
         await dialogue.RunAsync(_store.Snapshot().Question!);
 
         Assert.Null(_store.Snapshot().Choice);
-        Assert.Null(_store.Snapshot().Question);
+        // C2 (#166 rule shared): silence leaves the question open — the menu closing or the
+        // store's TTL withdraws it; before C2 the dialogue withdrew it here.
+        Assert.NotNull(_store.Snapshot().Question);
         Assert.Equal("Your call — the GSX pushback menu is open.", _arbiter.Requests[^1].Text);
+
+        var asked = _store.Snapshot().Question!.AskedAtUtc;
+        Assert.Equal(CaptainsQuestionExpiry.Withdraws, _store.ExpireOverdue(asked + TimeSpan.FromMinutes(5)));
+        Assert.Null(_store.Snapshot().Question);
+        Assert.Null(_store.Snapshot().Choice);
     }
 
     [Fact]

@@ -29,14 +29,14 @@ namespace ProsimCompanion.Gsx.Automation;
 /// re-evaluates on every input change until the cycle completes (a question withdrawn when
 /// the OAT climbs, raised when it drops).</para>
 /// <para>Silence never declines: the FO's listen window leaves the question standing; only
-/// the TTL sweep here declines it (source <c>timeout</c>, <c>gsx.deice.questionTimeoutMinutes</c>).
+/// the captain's-question TTL sweeper (<see cref="CaptainsQuestionTtlSweeper"/>, Core) declines
+/// it (source <c>timeout</c>, <c>gsx.deice.questionTimeoutMinutes</c>) — until C2 this service
+/// kept that timer for its own question alone (2026-10-11).
 /// A de-ice the crew calls directly (voice, web, GSX menu) while the question stands counts
 /// as "yes". Startup module: construction wires the events; the host calls <see cref="Start"/>.</para>
 /// </summary>
 public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDisposable
 {
-    private static readonly TimeSpan TtlSweep = TimeSpan.FromSeconds(15);
-
     private readonly DeiceRequestStore _store;
     private readonly DepartureCycleState _cycle;
     private readonly OfpStore _ofpStore;
@@ -50,7 +50,6 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
     private readonly JsonlEventLog _eventLog;
     private readonly ILogger<GsxDeiceRequestService> _logger;
     private readonly IDataRefSubscription<double> _oat;
-    private readonly Timer _ttlTimer;
     private readonly object _gate = new();
     private IDisposable? _weatherObserver;
     private DeicePolicyVerdict _lastLoggedVerdict = DeicePolicyVerdict.Pending;
@@ -101,7 +100,6 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         // The same OAT dataref the flight-data source feeds the FO's icing advisory from —
         // registered once here, read from the cache (never polled).
         _oat = prosim.Subscribe(ProsimDataRefNames.TemperatureOat);
-        _ttlTimer = new Timer(_ => SweepQuestionTtl(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
     public void Start()
@@ -114,7 +112,6 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         _store.Answered += OnAnswered;
         _store.StepBecameNext += OnStepBecameNext;
         _signals.FlightCycleReset += OnFlightCycleReset;
-        _ttlTimer.Change(TtlSweep, TtlSweep);
         Evaluate();
     }
 
@@ -128,7 +125,6 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
         _store.Answered -= OnAnswered;
         _store.StepBecameNext -= OnStepBecameNext;
         _signals.FlightCycleReset -= OnFlightCycleReset;
-        _ttlTimer.Dispose();
         _oat.Dispose();
     }
 
@@ -319,25 +315,6 @@ public sealed class GsxDeiceRequestService : Core.Hosting.IStartupModule, IDispo
             && card.Status == WxProbeStatus.Found
             ? card.Facts
             : null;
-    }
-
-    /// <summary>An unanswered question past its TTL is declined here (degrade, not fail):
-    /// the step leaves the sequence and the departure can complete; "request de-icing" still
-    /// works afterwards. This is the ONLY path that declines on silence (#166).</summary>
-    private void SweepQuestionTtl()
-    {
-        try
-        {
-            var snapshot = _store.Snapshot();
-            if (snapshot.Question is { } question && !snapshot.QuestionOpen(DateTimeOffset.UtcNow))
-            {
-                _store.Decline("timeout", $"no answer within {question.Ttl.TotalMinutes:0} minutes (gsx.deice.questionTimeoutMinutes)");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "De-ice question TTL sweep failed");
-        }
     }
 
     private void RecordDecision(string action, string reason)

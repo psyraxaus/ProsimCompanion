@@ -365,6 +365,21 @@
       "lvarsTitle": "L:FSDT_GSX_DEICING_STATE / L:FSDT_GSX_DEICING_TYPE — 診断用に読み取り。ホールドオーバーカードは引き続き Remote API の completed エッジでセットされます",
       "lvarsValue": "状態 {0}、液剤タイプ {1}"
     },
+    "captainsQuestions": {
+      "title": "キャプテンへの質問",
+      "hint": "FO からの未回答の質問 — ここで、音声で、または GSX のメニューで回答",
+      "none": "未回答の質問はありません。",
+      "state": "状態",
+      "open": "回答待ち",
+      "reAsked": "再質問",
+      "countsAsNoAt": "{0} · {1} に「いいえ」扱い",
+      "withdrawnAt": "{0} · {1} に取り下げ",
+      "standsUntilAnswered": "{0} · 回答まで保持",
+      "commence": "地上サービス開始",
+      "standBy": "待機",
+      "yes": "はい",
+      "no": "いいえ"
+    },
     "diagnostics": {
       "summary": "診断 — サービス、GSX メニュー、最近のコマンド"
     },

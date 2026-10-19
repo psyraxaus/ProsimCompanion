@@ -365,6 +365,21 @@
       "lvarsTitle": "L:FSDT_GSX_DEICING_STATE / L:FSDT_GSX_DEICING_TYPE — gelezen voor diagnose; de holdover-kaart wordt nog steeds ingesteld vanaf de completed-flank van de Remote API",
       "lvarsValue": "toestand {0}, vloeistoftype {1}"
     },
+    "captainsQuestions": {
+      "title": "Vragen aan de captain",
+      "hint": "Open vragen van de First Officer — beantwoord ze hier, met je stem of in het GSX-menu",
+      "none": "Geen open vraag.",
+      "state": "Status",
+      "open": "open",
+      "reAsked": "opnieuw gevraagd",
+      "countsAsNoAt": "{0} · telt als nee om {1}",
+      "withdrawnAt": "{0} · ingetrokken om {1}",
+      "standsUntilAnswered": "{0} · blijft open tot een antwoord",
+      "commence": "Grondafhandeling starten",
+      "standBy": "Stand-by",
+      "yes": "Ja",
+      "no": "Nee"
+    },
     "diagnostics": {
       "summary": "Diagnose — services, GSX-menu, recente opdrachten"
     },

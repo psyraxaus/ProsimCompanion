@@ -28,8 +28,6 @@
       "atc": "ATC: {0}",
       "gsxSend": "GSX send: {0}",
       "gsx": "GSX: {0}",
-      "variantUnknown": "no jetway or VDGS known for this stand",
-      "variantDetail": "{0} at this stand",
       "hint": "Confirm queues for auto-send at cruise (or at once when confirmed later in the flight). Send Now pushes to GSX + SayIntentions ATC immediately. A confirmed gate survives an app restart."
     },
     "weather": {
@@ -62,7 +60,6 @@
       "standRunway": ", runway {0}",
       "standNoRunway": ", no departure runway in the OFP",
       "noSuggestion": "Stand {0}{1} — no suggestion yet.",
-      "asking": "GSX is asking which way — tell the FO (\"tail left\", \"tail right\", \"push back facing north\") or press a button.",
       "footer": "Buttons choose for this flight only · default mode: {0} · Settings → GSX → Pushback",
       "mode": {
         "ask": "ask the pilot",

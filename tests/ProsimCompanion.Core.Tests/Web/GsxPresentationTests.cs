@@ -100,22 +100,8 @@ public sealed class GsxPresentationTests
         Assert.Equal("B12: Confirmed — confirmed as B12", GsxPresentation.GateRequest(GsxDiagnosticsSnapshot.Empty with { GateRequest = "B12: Confirmed — confirmed as B12" }).Literal);
     }
 
-    [Fact]
-    public void GateVariants_OneButtonPerCandidate_WithTheDetailOnTheCaption()
-    {
-        Assert.Empty(GsxPresentation.GateVariants(GateChoiceSnapshot.Empty));
-
-        var question = new GateChoiceQuestion(T0, "40", [new GateCandidate("40", "40", "Gate W 40"), new GateCandidate("40A", "40A", null)], "Which 40?");
-        var variants = GsxPresentation.GateVariants(new GateChoiceSnapshot(question, null));
-
-        Assert.Equal(2, variants.Count);
-        Assert.Equal("40", variants[0].Label);
-        Assert.Equal("40 · Gate W 40", variants[0].Caption);
-        Assert.Equal("gsxSettings.arrivalGate.variantDetail", variants[0].Tooltip.TextId);
-        Assert.Equal("Gate W 40", variants[0].Tooltip.Arguments[0]);
-        Assert.Equal("40A", variants[1].Caption);
-        Assert.Equal("gsxSettings.arrivalGate.variantNoDetail", variants[1].Tooltip.TextId);
-    }
+    // The gate suffix-variant buttons are the gate instance of the open-question card (C2):
+    // see CaptainsQuestionPresentationTests.
 
     // ---- Departure board ----
 
@@ -208,8 +194,9 @@ public sealed class GsxPresentationTests
     [Fact]
     public void Deice_TheCaptainsAnswerBeatsTheVerdict()
     {
-        Assert.Equal("gsxSettings.deice.verdict.requested", GsxPresentation.DeiceVerdictTextId(DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask, RequestThisCycle = true }));
-        Assert.Equal("gsxSettings.deice.verdict.declined", GsxPresentation.DeiceVerdictTextId(DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask, Declined = "captain said no" }));
+        var asked = DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask };
+        Assert.Equal("gsxSettings.deice.verdict.requested", GsxPresentation.DeiceVerdictTextId(asked.WithAsking(CaptainsQuestionRules.Accept(asked.Asking, "web", T0))));
+        Assert.Equal("gsxSettings.deice.verdict.declined", GsxPresentation.DeiceVerdictTextId(asked.WithAsking(CaptainsQuestionRules.Decline(asked.Asking, "web", "captain said no", T0))));
     }
 
     [Fact]
@@ -222,7 +209,8 @@ public sealed class GsxPresentationTests
     [Fact]
     public void Deice_QuestionShowsWhileOpen_WithItsAttemptAndExpiry()
     {
-        var asked = DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask, Question = new DeiceQuestion(T0, "Request de-icing?", TimeSpan.FromMinutes(5)) };
+        var question = new CaptainsQuestion("deice", T0, "Request de-icing?", TimeSpan.FromMinutes(5), 1, [], null);
+        var asked = (DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask }).WithAsking(CaptainsQuestionState.Empty with { Question = question });
 
         var open = GsxPresentation.Deice(asked, GsxDiagnosticsSnapshot.Empty, T0.AddMinutes(1));
         Assert.Equal("Request de-icing?", open.Question!.Prompt);
@@ -231,7 +219,7 @@ public sealed class GsxPresentationTests
         Assert.Matches(@"^\d\d:\d\d$", (string)open.Question.State.Arguments[1]);
         Assert.StartsWith("open · counts as no at ", open.Question.State.Resolve(T), StringComparison.Ordinal);
 
-        var reAsked = GsxPresentation.Deice(asked with { Question = new DeiceQuestion(T0, "Request de-icing?", TimeSpan.FromMinutes(5), Attempt: 2) }, GsxDiagnosticsSnapshot.Empty, T0.AddMinutes(1));
+        var reAsked = GsxPresentation.Deice(asked.WithAsking(asked.Asking with { Question = question with { Attempt = 2 } }), GsxDiagnosticsSnapshot.Empty, T0.AddMinutes(1));
         Assert.Equal("gsxSettings.deiceStatus.reAsked", ((DisplayText)reAsked.Question!.State.Arguments[0]).TextId);
 
         var expired = GsxPresentation.Deice(asked, GsxDiagnosticsSnapshot.Empty, T0.AddMinutes(6));
