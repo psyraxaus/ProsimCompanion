@@ -1,6 +1,8 @@
 @* Live GSX status + controls, shown as the landing section of the GSX tab (#18 — the former
    standalone /gsx page): readiness, arrival gate, departure board, services mirror, menu
-   snapshot, automation decisions and recent commands. *@
+   snapshot, automation decisions and recent commands. Every row, lamp and text id is decided
+   in GsxPresentation (the second adapter of the status-row seam Flight Status opened); this
+   file renders its records and owns only its controls. *@
 @inherits StoreObserverComponent
 @inject GsxDiagnosticsStore Diagnostics
 @inject DeiceRequestStore DeiceRequest
@@ -11,36 +13,29 @@
 @inject IStringLocalizer T
 
 <Section Title="@T["gsxSettings.status.title"]">
-    <div class="row">
-        <span class="row-label">@T["gsxSettings.status.readiness"]</span>
-        <span class="pill @GsxPresentation.ReadinessTone(_view.Readiness)">@_view.Readiness</span>
-    </div>
-    <div class="row">
-        <span class="row-label">@T["gsxSettings.status.automationPhase"]</span>
-        <span class="row-value-mono">@_view.AutomationPhase</span>
-    </div>
-    <div class="row">
-        <span class="row-label">@T["gsxSettings.status.capabilities"]</span>
-        <span class="row-value-mono">@(_view.Capabilities.Count == 0 ? "—" : string.Join(", ", _view.Capabilities))</span>
-    </div>
-    <div class="row">
-        <span class="row-label">@T["gsxSettings.status.airport"]</span>
-        <span class="row-value-mono">@(_view.AirportIcao ?? "—")</span>
-    </div>
-    <div class="row">
-        <span class="row-label">@T["gsxSettings.status.gateContext"]</span>
-        <span class="row-value-mono">@(_view.GateContextKey ?? "—")</span>
-    </div>
-    <div class="row">
-        <span class="row-label">@T["gsxSettings.status.session"]</span>
-        <span class="row-value-mono">@(_view.StartupSid ?? "—")</span>
-    </div>
+    @foreach (var row in GsxPresentation.StatusRows(_view))
+    {
+        if (row.Kind == StatusRowKind.Pill)
+        {
+            <div class="row">
+                <span class="row-label">@T[row.LabelTextId]</span>
+                <span class="pill @row.Tone">@Text(row.Value)</span>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                <span class="row-label">@T[row.LabelTextId]</span>
+                <span class="row-value-mono">@Text(row.Value)</span>
+            </div>
+        }
+    }
 </Section>
 
 <Section Title="@T["gsxSettings.arrivalGate.title"]">
     <div class="row">
         <span class="row-label">@T["gsxSettings.arrivalGate.request"]</span>
-        <span class="row-value-mono">@(_view.GateRequest ?? T["gsxSettings.arrivalGate.noRequest"].Value)</span>
+        <span class="row-value-mono">@Text(GsxPresentation.GateRequest(_view))</span>
     </div>
     <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
         <input type="text" class="text-input" style="max-width:120px;" placeholder="@T["gsxSettings.arrivalGate.placeholder"]"
@@ -55,12 +50,12 @@
            or by telling the FO; the first goes out at taxi-in otherwise. *@
         <div class="field-hint" style="margin-top:8px;">@gateQuestion.Prompt</div>
         <div style="display:flex; gap:8px; align-items:center; margin-top:4px; flex-wrap:wrap;">
-            @foreach (var candidate in gateQuestion.Candidates)
+            @foreach (var candidate in GsxPresentation.GateVariants(_gateChoice))
             {
                 var label = candidate.Label;
                 <button type="button" class="btn secondary" @onclick="() => ChooseGateVariant(label)"
-                        title="@(candidate.Detail is null ? T["gsxSettings.arrivalGate.variantNoDetail"].Value : T["gsxSettings.arrivalGate.variantDetail", candidate.Detail].Value)">
-                    @candidate.Label@(candidate.Detail is null ? "" : $" · {candidate.Detail}")
+                        title="@Text(candidate.Tooltip)">
+                    @candidate.Caption
                 </button>
             }
         </div>
@@ -68,14 +63,14 @@
 </Section>
 
 <Section Title="@T["gsxSettings.departureBoard.title"]">
+    @{ var board = GsxPresentation.DepartureBoard(_view, DepartureControl.Started, DepartureControl.Complete); }
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
         <button type="button" class="btn primary" @onclick="@(() => DepartureControl.Start("web"))"
-                disabled="@DepartureControl.Started">
-            @(DepartureControl.Complete ? T["gsxSettings.departureBoard.complete"].Value
-                : DepartureControl.Started ? T["gsxSettings.departureBoard.running"].Value : T["gsxSettings.departureBoard.start"].Value)
+                disabled="@board.StartDisabled">
+            @T[board.StartTextId]
         </button>
         <button type="button" class="btn secondary" @onclick="DepartureControl.ForceNext"
-                disabled="@(!DepartureControl.Started || DepartureControl.Complete)"
+                disabled="@board.CallNextDisabled"
                 title="@T["gsxSettings.departureBoard.callNextTitle"]">
             @T["gsxSettings.departureBoard.callNext"]
         </button>
@@ -84,28 +79,28 @@
             @(_reloading ? T["gsxSettings.departureBoard.reloadingSimbrief"].Value : T["gsxSettings.departureBoard.reloadSimbrief"].Value)
         </button>
     </div>
-    @if (_reloadResult is not null)
+    @if (_reloadResult is { } reloadResult)
     {
-        <div class="field-hint" style="margin-bottom:8px;">@_reloadResult</div>
+        <div class="field-hint" style="margin-bottom:8px;">@Text(reloadResult)</div>
     }
-    @if (_view.SimbriefReload is { } simbrief)
+    @if (board.SimbriefVerdict is { } simbrief)
     {
         @* The last reload verdict (issue #174). RowMissing = this GSX shows no SimBrief row on
            any page the walk read — said once per app session, never retried for that plan. *@
         <div class="field-hint" style="margin-bottom:8px;">
-            @T["gsxSettings.departureBoard.simbriefReload"] @(simbrief.RowMissing ? simbrief.Detail : $"{simbrief.Status} — {simbrief.Detail}")
+            @T["gsxSettings.departureBoard.simbriefReload"] @simbrief
         </div>
     }
-    @if (_view.ServiceBoard.Count == 0)
+    @if (board.Rows.Count == 0)
     {
         <div class="empty">@T["gsxSettings.departureBoard.noSequence"]</div>
     }
-    @foreach (var row in _view.ServiceBoard)
+    @foreach (var row in board.Rows)
     {
         <div class="row row-with-detail">
             <span class="row-label">@row.ServiceId</span>
-            <span class="@GsxPresentation.StageLamp(row.Stage)"></span>
-            <span class="row-value">@T[GsxPresentation.StageTextId(row.Stage)]</span>
+            <span class="@row.Lamp"></span>
+            <span class="row-value">@T[row.StageTextId]</span>
             @* Hold reasons are full sentences — the row-with-detail track ellipsizes them;
                the hover title carries the whole thing. *@
             <span class="row-detail" title="@row.Detail">@(row.Detail ?? "")</span>
@@ -114,23 +109,24 @@
 </Section>
 
 <Section Title="@T["gsxSettings.deiceStatus.title"]" Hint="@T["gsxSettings.deiceStatus.hint"]">
+    @{ var deice = GsxPresentation.Deice(_deice, _view, DateTimeOffset.UtcNow); }
     <div class="row row-with-detail">
         <span class="row-label">@T["gsxSettings.deiceStatus.verdict"]</span>
-        <span class="@GsxPresentation.DeiceVerdictLamp(_deice.Verdict)"></span>
-        <span class="row-value">@T[GsxPresentation.DeiceVerdictTextId(_deice)]</span>
-        <span class="row-detail" title="@_deice.Reason">@_deice.Reason</span>
+        <span class="@deice.Lamp"></span>
+        <span class="row-value">@T[deice.VerdictTextId]</span>
+        <span class="row-detail" title="@deice.Reason">@deice.Reason</span>
     </div>
     <div class="row">
         <span class="row-label">@T["gsxSettings.deiceStatus.inputs"]</span>
-        <span class="row-value-mono">@GsxPresentation.DeiceInputs(_deice)</span>
+        <span class="row-value-mono">@deice.Inputs</span>
     </div>
-    @if (_deice.QuestionOpen(DateTimeOffset.UtcNow))
+    @if (deice.Question is { } question)
     {
-        <div class="field-hint" style="margin:8px 0;">@_deice.Question!.Prompt</div>
+        <div class="field-hint" style="margin:8px 0;">@question.Prompt</div>
         <div class="row">
             <span class="row-label">@T["gsxSettings.deiceStatus.question"]</span>
             <span class="row-value-mono" title="@T["gsxSettings.deiceStatus.questionTitle"]">
-                @(T["gsxSettings.deiceStatus.questionState", _deice.Question!.Attempt > 1 ? T["gsxSettings.deiceStatus.reAsked"].Value : T["gsxSettings.deiceStatus.open"].Value, _deice.Question!.ExpiresAtUtc.ToLocalTime().ToString("HH:mm")])
+                @Text(question.State)
             </span>
         </div>
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
@@ -141,7 +137,7 @@
     <div class="row">
         <span class="row-label">@T["gsxSettings.deiceStatus.lvars"]</span>
         <span class="row-value-mono" title="@T["gsxSettings.deiceStatus.lvarsTitle"]">
-            @(_view.DeiceLvars is { } lv ? T["gsxSettings.deiceStatus.lvarsValue", lv.StateLabel, lv.FluidType].Value : "—")
+            @Text(deice.Lvars)
         </span>
     </div>
 </Section>
@@ -164,17 +160,17 @@
                     <tr><th>@T["gsxSettings.services.service"]</th><th>@T["gsxSettings.services.wireState"]</th><th>@T["gsxSettings.services.mapped"]</th><th>@T["gsxSettings.services.stage"]</th><th>@T["gsxSettings.services.triggerable"]</th><th>@T["gsxSettings.services.progress"]</th></tr>
                 </thead>
                 <tbody>
-                    @foreach (var service in _view.Services.OrderBy(s => s.Id))
+                    @foreach (var service in GsxPresentation.ServiceTable(_view))
                     {
                         <tr>
                             <td>@service.DisplayName</td>
-                            <td class="mono">@(service.SemanticState ?? "—")@(service.Waiting ? " " + T["gsxSettings.services.waiting"].Value : "")</td>
+                            <td class="mono">@service.WireState@(service.Waiting ? " " + T["gsxSettings.services.waiting"].Value : "")</td>
                             <td>@service.MappedState</td>
                             @* Stage is the latched view — diverging from Mapped after a quick
                                service finishes is the latch doing its job (issue #29). *@
-                            <td>@T[GsxPresentation.StageTextId(service.Stage)]</td>
+                            <td>@T[service.StageTextId]</td>
                             <td>@(service.CanTrigger ? T["gsxSettings.services.yes"].Value : T["gsxSettings.services.no"].Value)</td>
-                            <td>@(service.ProgressText ?? "")</td>
+                            <td>@service.ProgressText</td>
                         </tr>
                     }
                 </tbody>
@@ -200,10 +196,10 @@
                     <tr><th>@T["gsxSettings.decisions.time"]</th><th>@T["gsxSettings.decisions.action"]</th><th>@T["gsxSettings.decisions.reason"]</th></tr>
                 </thead>
                 <tbody>
-                    @foreach (var decision in _view.RecentDecisions)
+                    @foreach (var decision in GsxPresentation.Decisions(_view))
                     {
                         <tr>
-                            <td class="mono" style="white-space:nowrap;">@decision.Timestamp.ToLocalTime().ToString("HH:mm:ss")</td>
+                            <td class="mono" style="white-space:nowrap;">@decision.Time</td>
                             <td style="white-space:nowrap;">@decision.Action</td>
                             <td>@decision.Reason</td>
                         </tr>
@@ -227,13 +223,13 @@
                     <tr><th>@T["gsxSettings.commands.time"]</th><th>@T["gsxSettings.commands.verb"]</th><th>@T["gsxSettings.commands.args"]</th><th>@T["gsxSettings.commands.result"]</th></tr>
                 </thead>
                 <tbody>
-                    @foreach (var command in _view.RecentCommands)
+                    @foreach (var command in GsxPresentation.Commands(_view))
                     {
                         <tr>
-                            <td class="mono" style="white-space:nowrap;">@command.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</td>
+                            <td class="mono" style="white-space:nowrap;">@command.Time</td>
                             <td class="mono">@command.Verb</td>
                             <td class="mono">@command.Args</td>
-                            <td><span class="pill @(command.Ok ? "tone-ok" : "tone-bad")">@command.Code</span></td>
+                            <td><span class="pill @command.Tone">@command.Code</span></td>
                         </tr>
                     }
                 </tbody>
@@ -253,7 +249,10 @@
     private GateChoiceSnapshot _gateChoice = GateChoiceSnapshot.Empty;
     private string _gateInput = "";
     private bool _reloading;
-    private string? _reloadResult;
+    private DisplayText? _reloadResult;
+
+    /// <summary>A presentation text in the page's language.</summary>
+    private string Text(DisplayText text) => text.Resolve(T);
 
     // The suffix-variant buttons (issue #156): the store matches the label; the GSX gate
     // service sends the chosen stand.
@@ -281,12 +280,7 @@
         try
         {
             var outcome = await SimbriefReload.ReloadAsync("web");
-            _reloadResult = outcome.Status switch
-            {
-                GsxSimbriefReloadStatus.Reloaded => T["gsxSettings.departureBoard.reloaded", outcome.Detail].Value,
-                GsxSimbriefReloadStatus.SentUnconfirmed => T["gsxSettings.departureBoard.sent", outcome.Detail].Value,
-                _ => T["gsxSettings.departureBoard.notPerformed", outcome.Detail].Value,
-            };
+            _reloadResult = GsxPresentation.ReloadOutcome(outcome);
         }
         finally
         {
