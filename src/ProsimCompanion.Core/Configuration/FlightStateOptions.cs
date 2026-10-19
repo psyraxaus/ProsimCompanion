@@ -18,60 +18,75 @@ public sealed class FlightStateOptions : IOptionSection
 
     /// <summary>Above this IAS a take-off roll is committed even if take-off thrust momentarily
     /// reads unset (FLEX detent bounce).</summary>
+    [OptionField(FieldKind.Number, "flightPhase.speeds.takeoffRollHold", Suffix = "kt", Min = "0")]
     public double TaxiSpeedMaxKt { get; set; } = 45;
 
     /// <summary>Rollout ends (TaxiIn) once IAS drops below this.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.speeds.rolloutComplete", Suffix = "kt", Min = "0")]
     public double RolloutCompleteKt { get; set; } = 35;
 
     /// <summary>A tug pushes at walking pace; above this ground speed beacon+APU is a taxi,
     /// not a push (issue #104).</summary>
+    [OptionField(FieldKind.Number, "flightPhase.speeds.pushbackMax", Suffix = "kt", Min = "0")]
     public double PushbackMaxGroundSpeedKt { get; set; } = 10;
 
     /// <summary>Below this ground speed the aircraft counts as parked (ProSim's ground speed
     /// can sit at 1–2 kt fully stopped on a hardware cockpit).</summary>
+    [OptionField(FieldKind.Number, "flightPhase.speeds.parkedBelow", Suffix = "kt", Min = "0")]
     public double ParkedGroundSpeedKt { get; set; } = 2;
 
     // ---- Vertical (ft / fpm) ----
 
     /// <summary>Radio altitude below which a departure stays InitialClimb.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.vertical.initialClimb", Suffix = "ft RA", Min = "0")]
     public double InitialClimbCeilingRaFt { get; set; } = 1500;
 
     /// <summary>|VS| below this is level flight; above it a climb.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.vertical.levelBand", Suffix = "fpm", Min = "0")]
     public double ClimbDescentVsFpm { get; set; } = 300;
 
     /// <summary>Radio altitude below which a descent (or gear-down level flight) is Approach.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.vertical.approachCeiling", Suffix = "ft RA", Min = "0")]
     public double ApproachRaCeilingFt { get; set; } = 3500;
 
     /// <summary>Leaving Approach upward needs a go-around-grade climb (issue #99): a level-off
     /// blip must never read as a go-around.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.vertical.goAroundRate", Suffix = "fpm", Min = "0")]
     public double GoAroundVsFpm { get; set; } = 800;
 
     /// <summary>Entering Descent needs a decisive rate (issue #59 hysteresis).</summary>
+    [OptionField(FieldKind.Number, "flightPhase.vertical.descentEntry", Suffix = "fpm", Min = "0")]
     public double DescentEntryVsFpm { get; set; } = 500;
 
     /// <summary>Once in Descent, a segment shallower than this still counts as descending.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.vertical.descentExit", Suffix = "fpm", Min = "0")]
     public double DescentExitVsFpm { get; set; } = 100;
 
     // ---- Cruise gate (issue #105) ----
 
     /// <summary>Level flight only reads as Cruise within this of the FMS cruise altitude.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.cruise.tolerance", Suffix = "ft", Min = "0")]
     public double CruiseLevelToleranceFt { get; set; } = 2000;
 
     /// <summary>Without an FMS cruise altitude, level flight reads as Cruise only above this.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.cruise.floor", Suffix = "ft", Min = "0")]
     public double CruiseFloorNoFmsFt { get; set; } = 10000;
 
     // ---- Engine behaviour ----
 
     /// <summary>Consecutive samples the raw on-ground flag must agree before the committed
     /// ground/air state flips (Prosim2GSX <c>GroundTicks</c> parity). 1 disables the filter.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.ground.agreement", Suffix = "samples", Min = "1", Step = "1")]
     public int GroundContactAgreeSamples { get; set; } = 2;
 
     /// <summary>Once the arrival is complete (deboarding done) AND the aircraft has sat parked
     /// (engines off, brake set, beacon off, stopped) for this long, Shutdown → Preflight: the
     /// turnaround begins without a cold-and-dark reset. Counted from whichever came last.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.ground.turnaround", Suffix = "s", Min = "0")]
     public double TurnaroundHoldSeconds { get; set; } = 30;
 
     /// <summary>Interval of the "still thinking" log line while live (0 disables).</summary>
+    [OptionField(FieldKind.Number, "flightPhase.ground.heartbeat", Suffix = "s", Min = "0")]
     public double HeartbeatSeconds { get; set; } = 60;
 
     // ---- MSFS pause (issue #168) ----
@@ -82,58 +97,72 @@ public sealed class FlightStateOptions : IOptionSection
     /// session end. 0 disables the grace and every NotInSession resets at once — the
     /// pre-2026-10-11 behaviour (EGCC 2026-10-11: a 5 s Escape mid-boarding reset Departure
     /// to Unknown → Preflight, re-ran the cold-and-dark check and nagged the pilot).</summary>
+    [OptionField(FieldKind.Number, "flightPhase.pause.grace", Suffix = "s", Min = "0")]
     public double PauseGraceSeconds { get; set; } = 60;
 
     /// <summary>On resume, the aircraft must be within this many metres of where it was when
     /// the pause began; farther is a respawn (new flight loaded) and resets like a session end.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.pause.position", Suffix = "m", Min = "0")]
     public double PauseSamePositionMetres { get; set; } = 50;
 
     /// <summary>On resume, the fuel on board must be within this many kg of the pre-pause
     /// figure; a bigger jump is a reload (new fuel state) and resets like a session end.
     /// Ignored while the fuel dataref has not reported.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.pause.fuel", Suffix = "kg", Min = "0")]
     public double PauseSameFuelKg { get; set; } = 50;
 
     // ---- Debounce (seconds) ----
 
     /// <summary>Hold applied to any transition without a specific settle below.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.settle.default", Suffix = "s", Min = "0")]
     public double DefaultDebounceSeconds { get; set; } = 1;
 
     /// <summary>Entering Cruise needs sustained level flight.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.settle.enterCruise", Suffix = "s", Min = "0")]
     public double CruiseSettleSeconds { get; set; } = 5;
 
     /// <summary>Descent → Cruise: the level segments of a step descent must not flip-flop
     /// (four flips in 23 min on 2026-08-16).</summary>
+    [OptionField(FieldKind.Number, "flightPhase.settle.descentToCruise", Suffix = "s", Min = "0")]
     public double DescentToCruiseSettleSeconds { get; set; } = 15;
 
     /// <summary>Cruise → Climb: a VS blip at cruise is turbulence; a step climb sustains.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.settle.cruiseToClimb", Suffix = "s", Min = "0")]
     public double CruiseToClimbSettleSeconds { get; set; } = 10;
 
     /// <summary>Descent → Climb: a level-off wobbles +300 fpm for a few seconds (issue #163,
     /// 2026-10-10 EGCC at 6,000 ft); a climb-back on ATC instruction sustains.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.settle.descentToClimb", Suffix = "s", Min = "0")]
     public double DescentToClimbSettleSeconds { get; set; } = 10;
 
     /// <summary>Approach → go-around: second layer behind the VS gate (issue #99).</summary>
+    [OptionField(FieldKind.Number, "flightPhase.settle.goAround", Suffix = "s", Min = "0")]
     public double GoAroundSettleSeconds { get; set; } = 5;
 
     /// <summary>Walking a departure phase back to Preflight needs sustained contradictory
     /// evidence (issue #59) — a transient engines-off read must not reset the ground automation.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.settle.departureRegression", Suffix = "s", Min = "0")]
     public double DepartureRegressionSeconds { get; set; } = 5;
 
     /// <summary>The first classification of a session that lands straight on a flight phase
     /// (mid-flight restart or connection warm-up garbage) must sustain this long.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.settle.firstAirborne", Suffix = "s", Min = "0")]
     public double FirstAirborneClassificationSeconds { get; set; } = 5;
 
     // ---- Flight sample recorder ----
 
     /// <summary>Write a compact <c>flight-sample</c> event to the session log while live, so
     /// the flight can be replayed through the phase engine offline.</summary>
+    [OptionField(FieldKind.Bool, "flightPhase.recorder.record")]
     public bool RecordSamples { get; set; } = true;
 
     /// <summary>Recorder cadence. Unchanged samples are skipped, with a keep-alive every
     /// <see cref="SampleKeepAliveSeconds"/>.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.recorder.interval", Suffix = "s", Min = "0.25", Step = "0.25")]
     public double SampleIntervalSeconds { get; set; } = 1;
 
     /// <summary>Maximum silence between two identical samples in the recording.</summary>
+    [OptionField(FieldKind.Number, "flightPhase.recorder.keepAlive", Suffix = "s", Min = "1")]
     public double SampleKeepAliveSeconds { get; set; } = 10;
 
     // ---- Flight state across an app restart (issue #167) ----
@@ -142,11 +171,13 @@ public sealed class FlightStateOptions : IOptionSection
     /// once-per-flight latches) in <c>state/flight-state.json</c> and restore it when the app
     /// starts again inside the same flight. Off: a restart in flight starts the leg's
     /// bookkeeping from nothing, as before 0.7.0.</summary>
+    [OptionField(FieldKind.Bool, "appSettings.restart.remember")]
     public bool SnapshotEnabled { get; set; } = true;
 
     /// <summary>A snapshot older than this is ignored (and removed) at startup — the flight
     /// it belonged to is over. Eighteen hours covers a long-haul leg plus a night's sleep
     /// before the next session; the EFB's "plan imported" flag and the aircraft title must
     /// agree too, so the age is only the outer fence.</summary>
+    [OptionField(FieldKind.Number, "appSettings.restart.maxAge", Suffix = "h", Min = "1", Max = "72", DependsOn = "SnapshotEnabled")]
     public double SnapshotMaxAgeHours { get; set; } = 18;
 }

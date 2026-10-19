@@ -12,26 +12,33 @@ public sealed class MixerOptions : IOptionSection
     public static string SectionName => "mixer";
 
     /// <summary>Master switch. Turning it on in the web UI starts the client without a restart.</summary>
+    [OptionField(FieldKind.Bool, "audioSettings.mixer.enable")]
     public bool Enabled { get; set; }
 
     /// <summary>Host name or IP of the PC running VoicemeeterBridge. Empty = not configured.</summary>
+    [OptionField(FieldKind.Text, "audioSettings.mixer.host", TextKind = TextFieldKind.Host, Placeholder = "192.168.1.20", Normalize = FieldNormalization.Trim)]
     public string Host { get; set; } = "";
 
     /// <summary>Agent listening port (the agent's default is 5088).</summary>
+    [OptionField(FieldKind.Number, "audioSettings.mixer.port", Min = "1", Max = "65535")]
     public int Port { get; set; } = 5088;
 
     /// <summary>Shared secret from the agent's tray menu ("Copy token"). DPAPI-protected on
     /// disk (<see cref="SecretProtector.SecretPaths"/>) and never logged or wire-traced.</summary>
+    [OptionField(FieldKind.Text, "audioSettings.mixer.token", Password = true, Normalize = FieldNormalization.Trim)]
     public string Token { get; set; } = "";
 
     /// <summary>First reconnect delay after a drop or a refused connection.</summary>
+    [OptionField(FieldKind.Number, "audioSettings.mixer.reconnectDelay", Suffix = "ms", Min = "500", Advanced = true)]
     public int ReconnectDelayMs { get; set; } = 3000;
 
     /// <summary>Ceiling of the doubling reconnect backoff (an agent that is off for the
     /// whole flight is retried at this cadence, not every three seconds).</summary>
+    [OptionField(FieldKind.Number, "audioSettings.mixer.reconnectMax", Suffix = "ms", Min = "1000", Advanced = true)]
     public int ReconnectMaxDelayMs { get; set; } = 30_000;
 
     /// <summary>How long a <c>set</c> waits for its <c>result</c> before reporting a timeout.</summary>
+    [OptionField(FieldKind.Number, "audioSettings.mixer.writeTimeout", Suffix = "ms", Min = "250", Advanced = true)]
     public int SetTimeoutMs { get; set; } = 3000;
 
     /// <summary>Strip indices (0-based) the mixer status panel shows and watches.</summary>
@@ -41,11 +48,13 @@ public sealed class MixerOptions : IOptionSection
     public List<int> PanelBuses { get; set; } = [];
 
     /// <summary>Gain sent with the knob fully down. −60 dB is as good as silent.</summary>
+    [OptionField(FieldKind.Number, "audioSettings.mixer.gainMin", Suffix = "dB", Step = "0.5", Advanced = true)]
     public double GainMinDb { get; set; } = -60;
 
     /// <summary>Gain sent with the knob fully up. +12 dB mirrors the local VoiceMeeter backend
     /// (past unity; 0 dB sits near 83 % of the knob). Set 0 for a strip that must never go
     /// past unity.</summary>
+    [OptionField(FieldKind.Number, "audioSettings.mixer.gainMax", Suffix = "dB", Step = "0.5", Advanced = true)]
     public double GainMaxDb { get; set; } = 12;
 
     /// <summary>Audio-panel channel → strip/bus bindings, one row per channel. Empty by default.</summary>

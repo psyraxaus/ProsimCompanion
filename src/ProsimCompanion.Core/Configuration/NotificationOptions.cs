@@ -11,6 +11,7 @@ public sealed class NotificationOptions : IOptionSection
     public static string SectionName => "notifications";
 
     /// <summary>Master switch. Off: no target is ever called, whatever the list says.</summary>
+    [OptionField(FieldKind.Bool, "notifications.main.enabled")]
     public bool Enabled { get; set; }
 
     /// <summary>Where the messages go. Empty by default.</summary>
@@ -18,12 +19,15 @@ public sealed class NotificationOptions : IOptionSection
 
     /// <summary>Seconds a target is left alone after a failed send (timeout, 4xx, 5xx, DNS).
     /// Events raised during the cooldown are dropped for that target, not queued.</summary>
+    [OptionField(FieldKind.Number, "notifications.main.cooldown", Suffix = "s", Min = "5", Max = "3600", Advanced = true)]
     public int FailureCooldownSeconds { get; set; } = 60;
 
     /// <summary>Per-send HTTP timeout. A slow phone service must never hold the queue.</summary>
+    [OptionField(FieldKind.Number, "notifications.main.timeout", Suffix = "s", Min = "1", Max = "30", Advanced = true)]
     public int SendTimeoutSeconds { get; set; } = 5;
 
     /// <summary>Minutes of holdover time left at which "deice holdover expiring" fires.</summary>
+    [OptionField(FieldKind.Number, "notifications.main.holdover", Suffix = "min", Min = "1", Max = "30", Advanced = true)]
     public int HoldoverExpiringMinutes { get; set; } = 5;
 }
 
@@ -45,15 +49,19 @@ public enum NotificationTargetKind
 public sealed class NotificationTarget
 {
     /// <summary>Your label for it ("My phone"); what the log and the Notifications page show.</summary>
+    [OptionField(FieldKind.Text, "notifications.target.name")]
     public string Name { get; set; } = "";
 
+    [OptionField(FieldKind.Select, "notifications.target.kind", Choices = "notificationKind")]
     public NotificationTargetKind Kind { get; set; } = NotificationTargetKind.Ntfy;
 
     /// <summary>The ntfy topic URL, the Discord webhook URL, or any https webhook URL.</summary>
+    [OptionField(FieldKind.Text, "notifications.target.url", TextKind = TextFieldKind.Url, Password = true)]
     public string Url { get; set; } = "";
 
     /// <summary>Optional bearer token (ntfy access token, your webhook's secret). Sent as
     /// <c>Authorization: Bearer …</c>.</summary>
+    [OptionField(FieldKind.Text, "notifications.target.token", Password = true)]
     public string Token { get; set; } = "";
 
     /// <summary>Which milestones this target gets. All on by default.</summary>

@@ -13,6 +13,7 @@ public sealed class CommandApiOptions : IOptionSection
     /// (it actuates ground services, checklists, the MCDU), so it is strictly opt-in. When
     /// disabled every command route answers 404, as if it did not exist.
     /// </summary>
+    [OptionField(FieldKind.Bool, "setup.streamDeck.commandApi")]
     public bool Enabled { get; set; }
 
     /// <summary>

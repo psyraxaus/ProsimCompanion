@@ -3,8 +3,8 @@
 @layout SettingsLayout
 @using System.Globalization
 @using System.Reflection
-@using System.Text.Json
 @using ProsimCompanion.Core.Aircraft
+@using ProsimCompanion.Web.Settings
 @inherits SettingsPageBase
 @inject IOptionsMonitor<AudioOptions> AudioMonitor
 @inject IAudioControl AudioControl
@@ -18,7 +18,9 @@
 <h1 class="sr-only">@T["audioSettings.heading"]</h1>
 
 @* Sections are URL-driven (settings/audio/{section}, ADR-0010); the rail lives in
-   SettingsLayout. The audio master switch moved to Setup with the other pillar switches. *@
+   SettingsLayout. The audio master switch moved to Setup with the other pillar switches.
+   Since C3 (2026-10-19) a field is one <OptionField Draft For /> line over its described
+   property; the mapping tables and the strip/bus text bridges stay the page's own. *@
 
             @if (CurrentSection == "status")
             {
@@ -27,25 +29,18 @@
             else if (CurrentSection == "general")
             {
                 <Section Title="@T["audioSettings.general.title"]" Hint="@T["audioSettings.general.hint"]">
-                    <SelectField Label="@T["audioSettings.general.backend.label"]" Hint="@T["audioSettings.general.backend.hint"]" More="@T["audioSettings.general.backend.more"]" Options="BackendOptions"
-                                 @bind-Value="BackendKey" />
-                    <BoolField Label="@T["audioSettings.general.disableProsimNative.label"]" Hint="@T["audioSettings.general.disableProsimNative.hint"]"
-                               @bind-Value="_audio.Value.DisableProsimNativeAudio" />
-                    <BoolField Label="@T["audioSettings.general.requirePower.label"]" Hint="@T["audioSettings.general.requirePower.hint"]"
-                               More="@T["audioSettings.general.requirePower.more"]"
-                               @bind-Value="_audio.Value.RequireAcpPower" />
+                    <OptionField Draft="_audio" For="o => o.Backend" />
+                    <OptionField Draft="_audio" For="o => o.DisableProsimNativeAudio" />
+                    <OptionField Draft="_audio" For="o => o.RequireAcpPower" />
                 </Section>
             }
             else if (CurrentSection == "coreaudio")
             {
                 <Section Title="CoreAudio" Hint="@T["audioSettings.coreAudio.hint"]">
-                    <SelectField Label="@T["audioSettings.coreAudio.acp.label"]" Hint="@T["audioSettings.coreAudio.acp.hint"]" Options="AcpOptions"
-                                 @bind-Value="CoreAudioAcpKey" />
+                    <OptionField Draft="_audio" For="o => o.CoreAudioAcp" />
                     <AdvancedFields Label="@T["audioSettings.coreAudio.troubleshooting"]">
-                        <SelectField Label="@T["audioSettings.coreAudio.deviceFlow.label"]" Hint="@T["audioSettings.coreAudio.deviceFlow.hint"]" Options="DeviceFlowOptions"
-                                     @bind-Value="_audio.Value.DeviceFilterFlow" />
-                        <SelectField Label="@T["audioSettings.coreAudio.deviceState.label"]" Hint="@T["audioSettings.coreAudio.deviceState.hint"]" Options="DeviceStateOptions"
-                                     @bind-Value="_audio.Value.DeviceFilterState" />
+                        <OptionField Draft="_audio" For="o => o.DeviceFilterFlow" />
+                        <OptionField Draft="_audio" For="o => o.DeviceFilterState" />
                         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                             <button type="button" class="btn secondary" disabled="@_debugDumpBusy" @onclick="WriteDebugDump">
                                 @(_debugDumpBusy ? T["audioSettings.coreAudio.debugDump.writing"].Value : T["audioSettings.coreAudio.debugDump.write"].Value)
@@ -129,8 +124,7 @@
             {
                 <Section Title="VoiceMeeter" Hint="@T["audioSettings.voiceMeeter.hint"]">
                     <AdvancedFields>
-                        <TextField Label="@T["audioSettings.voiceMeeter.dllPath.label"]" Hint="@T["audioSettings.voiceMeeter.dllPath.hint"]" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.VoiceMeeter" BrowseFilter="VoicemeeterRemote64.dll|VoicemeeterRemote64.dll|DLL files (*.dll)|*.dll"
-                                   @bind-Value="_audio.Value.VoiceMeeterDllPath" />
+                        <OptionField Draft="_audio" For="o => o.VoiceMeeterDllPath" />
                     </AdvancedFields>
                     <div style="margin:8px 0;">
                         <button type="button" class="btn secondary" @onclick="ReloadTargets">@T["audioSettings.voiceMeeter.reload"]</button>
@@ -220,15 +214,10 @@
             else if (CurrentSection == "mixer")
             {
                 <Section Title="@T["audioSettings.mixer.title"]" Hint="@T["audioSettings.mixer.hint"]">
-                    <BoolField Label="@T["audioSettings.mixer.enable.label"]" Hint="@T["audioSettings.mixer.enable.hint"]"
-                               More="@T["audioSettings.mixer.enable.more"]"
-                               @bind-Value="_mixer.Value.Enabled" />
-                    <TextField Label="@T["audioSettings.mixer.host.label"]" Hint="@T["audioSettings.mixer.host.hint"]" Kind="TextFieldKind.Host" Placeholder="192.168.1.20"
-                               @bind-Value="_mixer.Value.Host" />
-                    <NumberField Label="@T["audioSettings.mixer.port.label"]" Hint="@T["audioSettings.mixer.port.hint"]" Min="1" Max="65535"
-                                 @bind-Value="_mixer.Value.Port" Default="_mixer.Defaults.Port" />
-                    <TextField Label="@T["audioSettings.mixer.token.label"]" Hint="@T["audioSettings.mixer.token.hint"]" Password="true"
-                               @bind-Value="_mixer.Value.Token" />
+                    <OptionField Draft="_mixer" For="o => o.Enabled" />
+                    <OptionField Draft="_mixer" For="o => o.Host" />
+                    <OptionField Draft="_mixer" For="o => o.Port" />
+                    <OptionField Draft="_mixer" For="o => o.Token" />
                     <SecretUnreadableHint Path="mixer:token" />
                     <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
                         <button type="button" class="btn secondary" disabled="@_mixerTestBusy" @onclick="TestMixer"
@@ -244,16 +233,11 @@
                         </span>
                     </div>
                     <AdvancedFields>
-                        <NumberField Label="@T["audioSettings.mixer.reconnectDelay.label"]" Hint="@T["audioSettings.mixer.reconnectDelay.hint"]" Suffix="ms" Min="500"
-                                     @bind-Value="_mixer.Value.ReconnectDelayMs" Default="_mixer.Defaults.ReconnectDelayMs" />
-                        <NumberField Label="@T["audioSettings.mixer.reconnectMax.label"]" Suffix="ms" Min="1000"
-                                     @bind-Value="_mixer.Value.ReconnectMaxDelayMs" Default="_mixer.Defaults.ReconnectMaxDelayMs" />
-                        <NumberField Label="@T["audioSettings.mixer.writeTimeout.label"]" Hint="@T["audioSettings.mixer.writeTimeout.hint"]" Suffix="ms" Min="250"
-                                     @bind-Value="_mixer.Value.SetTimeoutMs" Default="_mixer.Defaults.SetTimeoutMs" />
-                        <NumberField Label="@T["audioSettings.mixer.gainMin.label"]" Hint="@T["audioSettings.mixer.gainMin.hint"]" Suffix="dB" Step="0.5"
-                                     @bind-Value="_mixer.Value.GainMinDb" Default="_mixer.Defaults.GainMinDb" />
-                        <NumberField Label="@T["audioSettings.mixer.gainMax.label"]" Hint="@T["audioSettings.mixer.gainMax.hint"]" Suffix="dB" Step="0.5"
-                                     @bind-Value="_mixer.Value.GainMaxDb" Default="_mixer.Defaults.GainMaxDb" />
+                        <OptionField Draft="_mixer" For="o => o.ReconnectDelayMs" />
+                        <OptionField Draft="_mixer" For="o => o.ReconnectMaxDelayMs" />
+                        <OptionField Draft="_mixer" For="o => o.SetTimeoutMs" />
+                        <OptionField Draft="_mixer" For="o => o.GainMinDb" />
+                        <OptionField Draft="_mixer" For="o => o.GainMaxDb" />
                     </AdvancedFields>
                 </Section>
 
@@ -364,21 +348,11 @@
             else
             {
                 <Section Title="@T["audioSettings.housekeeping.title"]" Hint="@T["audioSettings.housekeeping.hint"]" Advanced="true">
-                    <NumberField Label="@T["audioSettings.housekeeping.runInterval.label"]" Hint="@T["audioSettings.housekeeping.runInterval.hint"]" Suffix="ms" Min="250"
-                                 @bind-Value="_audio.Value.RunIntervalMs"
-                                 Default="_audio.Defaults.RunIntervalMs" />
-                    <NumberField Label="@T["audioSettings.housekeeping.processCheck.label"]" Suffix="ms" Min="500"
-                                 @bind-Value="_audio.Value.ProcessCheckIntervalMs"
-                                 Default="_audio.Defaults.ProcessCheckIntervalMs" />
-                    <NumberField Label="@T["audioSettings.housekeeping.startupGrace.label"]" Hint="@T["audioSettings.housekeeping.startupGrace.hint"]" Suffix="ms" Min="0"
-                                 @bind-Value="_audio.Value.ProcessStartupDelayMs"
-                                 Default="_audio.Defaults.ProcessStartupDelayMs" />
-                    <NumberField Label="@T["audioSettings.housekeeping.deviceRescan.label"]" Suffix="ms" Min="5000"
-                                 @bind-Value="_audio.Value.DeviceCheckIntervalMs"
-                                 Default="_audio.Defaults.DeviceCheckIntervalMs" />
-                    <NumberField Label="@T["audioSettings.housekeeping.maxSearches.label"]" Hint="@T["audioSettings.housekeeping.maxSearches.hint"]" Min="1"
-                                 @bind-Value="_audio.Value.ProcessMaxSearchCount"
-                                 Default="_audio.Defaults.ProcessMaxSearchCount" />
+                    <OptionField Draft="_audio" For="o => o.RunIntervalMs" />
+                    <OptionField Draft="_audio" For="o => o.ProcessCheckIntervalMs" />
+                    <OptionField Draft="_audio" For="o => o.ProcessStartupDelayMs" />
+                    <OptionField Draft="_audio" For="o => o.DeviceCheckIntervalMs" />
+                    <OptionField Draft="_audio" For="o => o.ProcessMaxSearchCount" />
                 </Section>
             }
 
@@ -411,37 +385,6 @@
     public string? Section { get; set; }
 
     private string CurrentSection => SettingsNav.ResolveSection(SettingsNav.AudioSections, Section);
-
-    // The option lists read the localizer, so they are built per render rather than once per
-    // type (ADR-0014): the language can change under an open page.
-    private IReadOnlyList<(string, string)> BackendOptions =>
-    [
-        ("coreAudio", T["audioSettings.general.backend.coreAudio"].Value),
-        ("voiceMeeter", T["audioSettings.general.backend.voiceMeeter"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> AcpOptions =>
-    [
-        ("captain", T["audioSettings.coreAudio.acp.captain"].Value),
-        ("firstOfficer", T["audioSettings.coreAudio.acp.firstOfficer"].Value),
-        ("observer", T["audioSettings.coreAudio.acp.observer"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> DeviceFlowOptions =>
-    [
-        ("render", T["audioSettings.coreAudio.deviceFlow.render"].Value),
-        ("capture", T["audioSettings.coreAudio.deviceFlow.capture"].Value),
-        ("all", T["audioSettings.coreAudio.deviceFlow.all"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> DeviceStateOptions =>
-    [
-        ("active", T["audioSettings.coreAudio.deviceState.active"].Value),
-        ("disabled", T["audioSettings.coreAudio.deviceState.disabled"].Value),
-        ("notPresent", T["audioSettings.coreAudio.deviceState.notPresent"].Value),
-        ("unplugged", T["audioSettings.coreAudio.deviceState.unplugged"].Value),
-        ("all", T["audioSettings.coreAudio.deviceState.all"].Value),
-    ];
 
     private bool _debugDumpBusy;
     private string? _debugDumpResult;
@@ -563,30 +506,21 @@
 
     private void SyncMixerPanelText()
     {
-        _mixerStripsText = string.Join(", ", _mixer.Value.PanelStrips.Select(i => i + 1));
-        _mixerBusesText = string.Join(", ", _mixer.Value.PanelBuses.Select(i => i + 1));
+        _mixerStripsText = AudioPageRules.OneBasedText(_mixer.Value.PanelStrips);
+        _mixerBusesText = AudioPageRules.OneBasedText(_mixer.Value.PanelBuses);
     }
 
     private void SetMixerStrips(string text)
     {
         _mixerStripsText = text;
-        _mixer.Value.PanelStrips = ParseOneBasedList(text);
+        _mixer.Value.PanelStrips = AudioPageRules.ParseOneBasedList(text);
     }
 
     private void SetMixerBuses(string text)
     {
         _mixerBusesText = text;
-        _mixer.Value.PanelBuses = ParseOneBasedList(text);
+        _mixer.Value.PanelBuses = AudioPageRules.ParseOneBasedList(text);
     }
-
-    /// <summary>"1, 2, 4" (as Voicemeeter numbers them) → [0, 1, 3]; junk is ignored.</summary>
-    private static List<int> ParseOneBasedList(string text) =>
-        text.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(part => int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n - 1 : -1)
-            .Where(n => n >= 0 && n < 64)
-            .Distinct()
-            .OrderBy(n => n)
-            .ToList();
 
     private bool IsPanelChannel(MixerChannel channel) =>
         channel.IsBus ? _mixer.Value.PanelBuses.Contains(channel.Index) : _mixer.Value.PanelStrips.Contains(channel.Index);
@@ -637,21 +571,6 @@
         _ => "tone-neutral",
     };
 
-    // The select works in camelCase-key terms; the draft stores the enum.
-    private string BackendKey
-    {
-        get => JsonNamingPolicy.CamelCase.ConvertName(_audio.Value.Backend.ToString());
-        set => _audio.Value.Backend = Enum.TryParse<AudioBackend>(value, ignoreCase: true, out var parsed)
-            ? parsed : AudioBackend.CoreAudio;
-    }
-
-    private string CoreAudioAcpKey
-    {
-        get => JsonNamingPolicy.CamelCase.ConvertName(_audio.Value.CoreAudioAcp.ToString());
-        set => _audio.Value.CoreAudioAcp = Enum.TryParse<AcpSide>(value, ignoreCase: true, out var parsed)
-            ? parsed : AcpSide.Captain;
-    }
-
     private IReadOnlyList<string> _processSuggestions = [];
     private IReadOnlyList<string> _deviceSuggestions = [];
 
@@ -659,7 +578,7 @@
     {
         _audio = Draft(AudioMonitor);
         _mixer = Draft(MixerMonitor);
-        NormalizeVoiceMeeterKeys();
+        AudioPageRules.NormalizeVoiceMeeterAcpNames(_audio.Value);
         SyncMixerPanelText();
         Watch(MixerStatus, snapshot => _mixerLive = snapshot);
         // The strip/bus names arrive after each connect (and on Reload) — re-render then.
@@ -698,30 +617,13 @@
         }
     }
 
-    // Normalize dictionary keys to the canonical camelCase ACP names so the editor and
-    // the save path address the same buckets regardless of hand-edited key casing.
-    private void NormalizeVoiceMeeterKeys()
-    {
-        var normalized = new Dictionary<string, List<VoiceMeeterTargetMapping>>();
-        foreach (var (key, mappings) in _audio.Value.VoiceMeeterMappings)
-        {
-            if (Enum.TryParse<AcpSide>(key, ignoreCase: true, out var acp))
-            {
-                normalized[AcpKey(acp)] = mappings;
-            }
-        }
-        _audio.Value.VoiceMeeterMappings = normalized;
-    }
-
-    private static string AcpKey(AcpSide acp) => JsonNamingPolicy.CamelCase.ConvertName(acp.ToString());
-
     private List<VoiceMeeterTargetMapping> VmList(AcpSide acp)
     {
-        var key = AcpKey(acp);
-        if (!_audio.Value.VoiceMeeterMappings.TryGetValue(key, out var list))
+        var name = AudioPageRules.AcpName(acp);
+        if (!_audio.Value.VoiceMeeterMappings.TryGetValue(name, out var list))
         {
             list = [];
-            _audio.Value.VoiceMeeterMappings[key] = list;
+            _audio.Value.VoiceMeeterMappings[name] = list;
         }
         return list;
     }
@@ -786,41 +688,13 @@
         return options;
     }
 
-    protected override void OnBeforeSave()
-    {
-        var audio = _audio.Value;
+    /// <summary>The list editors' pruning (C3): the per-property trims ran on the drafts already.</summary>
+    protected override void OnBeforeSave() => AudioPageRules.BeforeSave(_audio.Value, _mixer.Value);
 
-        // Blank mapping rows never persist; process/device names save trimmed.
-        audio.AppMappings.RemoveAll(m => string.IsNullOrWhiteSpace(m.Binary));
-        foreach (var mapping in audio.AppMappings)
-        {
-            mapping.Binary = mapping.Binary.Trim();
-            mapping.Device = mapping.Device.Trim();
-        }
-
-        audio.DeviceBlacklist.RemoveAll(string.IsNullOrWhiteSpace);
-        for (var i = 0; i < audio.DeviceBlacklist.Count; i++)
-        {
-            audio.DeviceBlacklist[i] = audio.DeviceBlacklist[i].Trim();
-        }
-
-        audio.VoiceMeeterDllPath = audio.VoiceMeeterDllPath.Trim();
-        audio.ActiveAcps = audio.ActiveAcps.Distinct().ToList();
-
-        var mixer = _mixer.Value;
-        mixer.Host = mixer.Host.Trim();
-        mixer.Token = mixer.Token.Trim();
-        // A channel the panel does not have (observer loudspeaker) cannot be reached from the
-        // editor; it only survives a hand edit — drop it rather than subscribe a missing ref.
-        mixer.Mappings.RemoveAll(m => !m.Channel.ExistsOn(m.Acp));
-        mixer.PanelStrips = mixer.PanelStrips.Distinct().OrderBy(i => i).ToList();
-        mixer.PanelBuses = mixer.PanelBuses.Distinct().OrderBy(i => i).ToList();
-    }
-
-    // A discard re-clones from the live options, so the key normalization must run again.
+    // A discard re-clones from the live options, so the name normalization must run again.
     protected override void OnDiscarded()
     {
-        NormalizeVoiceMeeterKeys();
+        AudioPageRules.NormalizeVoiceMeeterAcpNames(_audio.Value);
         SyncMixerPanelText();
     }
 }
