@@ -36,7 +36,9 @@
    Services cards with the same rows in the same order. The log tail card is deliberately
    omitted (decision: the Logs tab owns log viewing); the departure-services board lives on
    the GSX Status page. Signals our architecture does not track yet render as neutral "—"
-   rather than being dropped, so the layout stays identical. *@
+   rather than being dropped, so the layout stays identical. Every row, tone and text id is
+   decided in FlightStatusPresentation; this file renders its records and owns the circuit
+   plumbing (watches, timers, buttons). *@
 
 <PageTitle>@T["flightStatus.pageTitle"]</PageTitle>
 <h1 class="sr-only">@T["flightStatus.heading"]</h1>
@@ -102,7 +104,7 @@
                 <div class="fs-hero-main">
                     <span class="fs-chip" title="@PhaseReason">
                         <span class="fs-chip-dot @(View.IsLive ? "live" : null)" aria-hidden="true"></span>
-                        <span>@PhaseDisplay</span>
+                        <span>@FlightStatusPresentation.PhaseDisplay(FlightState.CurrentPhase)</span>
                         @if (View.Frozen)
                         {
                             <span class="fs-chip-note">@T["flightStatus.hero.frozen"]</span>
@@ -112,7 +114,7 @@
                     <div class="fs-route">
                         <div class="fs-route-end">
                             <span class="label-caps">@T["flightStatus.hero.from"]</span>
-                            <span class="figure figure-xl">@(_ofp?.OriginIcao is { Length: > 0 } origin ? origin : "----")</span>
+                            <span class="figure figure-xl">@FlightStatusPresentation.RouteEnd(_ofp?.OriginIcao)</span>
                         </div>
                         <svg class="fs-route-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -120,11 +122,11 @@
                         </svg>
                         <div class="fs-route-end">
                             <span class="label-caps">@T["flightStatus.hero.to"]</span>
-                            <span class="figure figure-xl">@(_ofp?.DestinationIcao is { Length: > 0 } dest ? dest : "----")</span>
+                            <span class="figure figure-xl">@FlightStatusPresentation.RouteEnd(_ofp?.DestinationIcao)</span>
                         </div>
                     </div>
 
-                    <p class="fs-flight-line">@FlightLine</p>
+                    <p class="fs-flight-line">@Text(FlightStatusPresentation.FlightLine(_ofp))</p>
                 </div>
 
                 <div class="fs-hero-side">
@@ -140,63 +142,44 @@
                directly above the telemetry. Both keep their shape in every state. *@
             <div class="fs-widgets">
                 <div class="fs-wx-row">
-                    @WeatherCardView(_weather.Local)
-                    @WeatherCardView(_weather.Second)
+                    @WeatherCardMarkup(FlightStatusPresentation.Weather(_weather.Local))
+                    @WeatherCardMarkup(FlightStatusPresentation.Weather(_weather.Second))
                 </div>
-                @GateStrip()
+                @GateStripMarkup(FlightStatusPresentation.Gate(_gate))
             </div>
 
             <div class="fs-metrics">
-                <div class="fs-metric">
-                    <span class="label-caps">@T["flightStatus.hero.groundSpeed"]</span>
-                    <span class="figure figure-lg glow">@Metric(Data?.GroundSpeedKt, "F0")<span class="figure-unit">KTS</span></span>
-                </div>
-                <div class="fs-metric">
-                    <span class="label-caps">@T["flightStatus.hero.altitude"]</span>
-                    <span class="figure figure-lg">@Metric(Data?.AltitudeFt, "N0")<span class="figure-unit">FT</span></span>
-                </div>
-                <div class="fs-metric">
-                    <span class="label-caps">@T["flightStatus.hero.verticalSpeed"]</span>
-                    <span class="figure figure-lg glow">@VerticalSpeed<span class="figure-unit">FPM</span></span>
-                </div>
-                <div class="fs-metric">
-                    <span class="label-caps">@T["flightStatus.hero.heading"]</span>
-                    <span class="figure figure-lg glow">@Heading<span class="figure-unit">MAG</span></span>
-                </div>
-                <div class="fs-metric">
-                    <span class="label-caps">@T["flightStatus.hero.fuelOnBoard"]</span>
-                    <span class="figure figure-lg">@FuelOnBoard</span>
-                </div>
+                @foreach (var metric in Metrics)
+                {
+                    <div class="fs-metric">
+                        <span class="label-caps">@T[metric.LabelTextId]</span>
+                        @if (metric.Unit is { } unit)
+                        {
+                            <span class="@MetricClass(metric)">@metric.Figure<span class="figure-unit">@unit</span></span>
+                        }
+                        else
+                        {
+                            <span class="@MetricClass(metric)">@metric.Figure</span>
+                        }
+                    </div>
+                }
             </div>
 
             @* Distance / ETA row (issue #145). Distances are great-circle DIRECT, never
                along the route, and the row says so; the tags name where each figure came
                from (GS = position and ground speed, PLAN = the time-based fallback). *@
             <div class="fs-progress" title="@T["flightStatus.hero.progressTitle"]">
-                <span class="fs-progress-item">
-                    <span class="label-caps">@T["flightStatus.hero.toGo"]</span>
-                    <span class="figure">@FlightMonitorPresentation.Distance(_progress.DistanceToGoNm)</span>
-                </span>
-                <span class="fs-progress-item">
-                    <span class="label-caps">@T["flightStatus.hero.flown"]</span>
-                    <span class="figure">@FlightMonitorPresentation.Distance(_progress.DistanceFlownNm)</span>
-                </span>
-                <span class="fs-progress-item">
-                    <span class="label-caps">@T["flightStatus.hero.eta"]</span>
-                    <span class="figure">@FlightMonitorPresentation.Clock(_progress.EtaUtc)</span>
-                    @if (_progress.EtaUtc is not null)
-                    {
-                        <span class="fs-progress-tag">@FlightMonitorPresentation.BasisTag(_progress.EtaBasis)</span>
-                    }
-                </span>
-                <span class="fs-progress-item">
-                    <span class="label-caps">@T["flightStatus.hero.topOfDescent"]</span>
-                    <span class="figure">@FlightMonitorPresentation.MinutesToTod(_progress.MinutesToTod)</span>
-                    @if (_progress.MinutesToTod is not null)
-                    {
-                        <span class="fs-progress-tag">EST</span>
-                    }
-                </span>
+                @foreach (var item in FlightStatusPresentation.Progress(_progress))
+                {
+                    <span class="fs-progress-item">
+                        <span class="label-caps">@T[item.LabelTextId]</span>
+                        <span class="figure">@item.Figure</span>
+                        @if (item.Tag is not null)
+                        {
+                            <span class="fs-progress-tag">@item.Tag</span>
+                        }
+                    </span>
+                }
                 <span class="fs-progress-note">@FlightMonitorPresentation.ProgressCaption(T, _progress)</span>
             </div>
         </section>
@@ -209,14 +192,14 @@
             </div>
             <div class="section-body">
                 <ol class="fs-steps">
-                    @for (var i = 0; i < FlightStatusPresentation.BlockLabels.Length; i++)
+                    @foreach (var step in FlightStatusPresentation.Sequence(FlightState.CurrentPhase, DepartureControl.Started, DepartureControl.Complete,
+                                  FlightStatusPresentation.ServiceView(_gsx, GsxServiceIds.Boarding)?.Stage))
                     {
-                        var state = i < ActiveBlock ? "done" : i == ActiveBlock ? "active" : "pending";
-                        <li class="fs-step @state">
+                        <li class="fs-step @step.State">
                             <span class="fs-step-mark" aria-hidden="true"></span>
                             <span class="fs-step-text">
-                                <span class="fs-step-label">@FlightStatusPresentation.BlockLabels[i]</span>
-                                <span class="fs-step-sub">@StepSubText(i, state)</span>
+                                <span class="fs-step-label">@step.Label</span>
+                                <span class="fs-step-sub">@T[step.SubTextId]</span>
                             </span>
                         </li>
                     }
@@ -227,10 +210,8 @@
                 <div class="fs-engine">
                     <span class="label-caps">@T["flightStatus.engine.title"]</span>
                     <span class="row-actions">
-                        <span class="pill @(View.Frozen ? "tone-warn" : "tone-neutral")"
-                              title="@(View.Frozen ? T["flightStatus.engine.frozenTitle"].Value : T["flightStatus.engine.automaticTitle"].Value)">
-                            @(View.Frozen ? T["flightStatus.engine.frozen"].Value : T["flightStatus.engine.automatic"].Value)
-                        </span>
+                        @{ var engine = FlightStatusPresentation.Engine(View.Frozen); }
+                        <span class="pill @engine.Tone" title="@T[engine.TitleTextId]">@T[engine.TextId]</span>
                         <select class="number-input" @bind="_forcePhase" title="@T["flightStatus.engine.phaseToForce"]">
                             @foreach (var phase in Enum.GetValues<FlightPhase>())
                             {
@@ -260,88 +241,57 @@
         break;
 
         case FlightStatusTiles.Sim:
-    <section class="status-section">
-        <div class="section-header"><h3 class="section-title">@T["flightStatus.sim.title"]</h3></div>
-        <div class="section-body">
-            @Indicator(T["flightStatus.sim.running"], SimSession.SimRunning)
-            @Indicator(T["flightStatus.sim.connected"], SimConnected)
-            @Indicator(T["flightStatus.sim.session"], SimSession.Phase == SimSessionPhase.InSession)
-            @Kv(T["flightStatus.sim.paused"], YesNo(SimSession.Paused))
-            @Kv(T["flightStatus.sim.walkaround"], YesNo(SimSession.Phase == SimSessionPhase.Walkaround))
-            @Kv(T["flightStatus.sim.cameraState"], SimSession.CameraState?.ToString() ?? "—")
-            @Kv(T["flightStatus.sim.version"], SimSession.SimVersion ?? "—")
-            @Kv(T["flightStatus.sim.aircraft"], Profiles.AircraftTitle ?? "—")
-        </div>
-    </section>
+        <section class="status-section">
+            <div class="section-header"><h3 class="section-title">@T["flightStatus.sim.title"]</h3></div>
+            <div class="section-body">
+                @foreach (var row in FlightStatusPresentation.SimRows(Session.Snapshot(), Links.SimConnected, Profiles.AircraftTitle))
+                {
+                    @RowView(row)
+                }
+            </div>
+        </section>
         break;
 
         case FlightStatusTiles.App:
-    <section class="status-section">
-        <div class="section-header"><h3 class="section-title">@T["flightStatus.app.title"]</h3></div>
-        <div class="section-body">
-            @Indicator(T["flightStatus.app.gsxController"], GsxConnected)
-            @Indicator(T["flightStatus.app.prosimBinary"], ProsimConnected)
-            @Indicator(T["flightStatus.app.aircraftInterface"], ProsimConnected)
-            @Indicator(T["flightStatus.app.sdkConnected"], ProsimConnected)
-            @Indicator(T["flightStatus.app.automationController"], GsxOptionsMonitor.CurrentValue.AutomationEnabled)
-            @Indicator(T["flightStatus.app.audioController"], Audio.Snapshot().Enabled)
-            @Kv(T["flightStatus.app.profile"], Profiles.ActiveProfile?.Name ?? "—")
-            @Kv(T["flightStatus.app.aircraft"], Profiles.AircraftTitle ?? "—")
-            @Kv(T["flightStatus.app.onGround"], TrueFalse(FlightState.Snapshot().Data?.OnGround))
-            @Kv(T["flightStatus.app.enginesRunning"], TrueFalse(FlightState.Snapshot().Data?.AnyEngineRunning))
-            @Kv(T["flightStatus.app.inMotion"], TrueFalse(FlightState.Snapshot().Data is { } motion ? motion.GroundSpeedKt > 0.5 : null))
-            @AircraftStateRow()
-            @CabinRow()
-        </div>
-    </section>
+        <section class="status-section">
+            <div class="section-header"><h3 class="section-title">@T["flightStatus.app.title"]</h3></div>
+            <div class="section-body">
+                @foreach (var row in FlightStatusPresentation.AppRows(Links, GsxOptionsMonitor.CurrentValue.AutomationEnabled, Audio.Snapshot().Enabled,
+                              Profiles.ActiveProfile?.Name, Profiles.AircraftTitle, View.Data, _gsx.AircraftStateCheck, _speech.CabinSecure))
+                {
+                    @RowView(row)
+                }
+            </div>
+        </section>
         break;
 
         case FlightStatusTiles.Gsx:
-    <section class="status-section">
-        <div class="section-header"><h3 class="section-title">@T["flightStatus.gsx.title"]</h3></div>
-        <div class="section-body">
-            @Indicator(T["flightStatus.gsx.running"], GsxConnected)
-            @Indicator(T["flightStatus.gsx.couatlVars"], _gsx.Readiness == "Ready")
-            @DroppedCallRow()
-            @Kv(T["flightStatus.gsx.couatlStarted"], _gsx.StartupSid ?? "—")
-            @Kv(T["flightStatus.gsx.menuState"], _gsx.MenuShown ? (_gsx.MenuTitle ?? T["flightStatus.gsx.menuShown"].Value) : T["flightStatus.gsx.menuClosed"].Value)
-            @Kv(T["flightStatus.gsx.paxTarget"], _gsx.BoardingCounters?.PaxTarget?.ToString() ?? "—")
-            @Kv(T["flightStatus.gsx.paxTotal"], PaxTotals)
-            @Kv(T["flightStatus.gsx.cargo"], CargoTotals)
-            @Kv(T["flightStatus.gsx.departureServices"], DepartureSummary)
-            @Kv(T["flightStatus.gsx.assignedGate"], _gsx.GateRequest ?? "—")
-            @Kv(T["flightStatus.gsx.lastHandlerEvent"], HandlerEvent)
-            @* Live GSX menu as buttons (issue #135) — the pushback-direction lines an addon
-               airport names per stand, and every other menu GSX leaves for the pilot. *@
-            <GsxMenuCard />
-        </div>
-    </section>
+        <section class="status-section">
+            <div class="section-header"><h3 class="section-title">@T["flightStatus.gsx.title"]</h3></div>
+            <div class="section-body">
+                @foreach (var row in FlightStatusPresentation.GsxRows(_gsx, Links.GsxConnected, DepartureControl.Started, DepartureControl.Complete))
+                {
+                    @RowView(row)
+                }
+                @* Live GSX menu as buttons (issue #135) — the pushback-direction lines an addon
+                   airport names per stand, and every other menu GSX leaves for the pilot. *@
+                <GsxMenuCard />
+            </div>
+        </section>
         break;
 
         case FlightStatusTiles.Services:
-    <section class="status-section">
-        <div class="section-header"><h3 class="section-title">@T["flightStatus.services.title"]</h3></div>
-        <div class="section-body">
-            @* Service ids MUST be the canonical GsxServiceIds strings — the mirror never
-               carries "Jetway"/"Stairs"/"Pushback", so home-grown names render "—" forever
-               (issue #31). Reposition has no Remote API service (menu-driven), so its row is
-               fed by the ground-prep coordinator's published stage instead (issue #45). *@
-            @GroundPrepRow()
-            @RefuelRow()
-            @ServiceRow(T["flightStatus.services.catering"], GsxServiceIds.Catering)
-            @ServiceRow(T["flightStatus.services.lavatory"], GsxServiceIds.Lavatory)
-            @ServiceRow(T["flightStatus.services.water"], GsxServiceIds.Water)
-            @ServiceRow(T["flightStatus.services.cleaning"], GsxServiceIds.Cleaning)
-            @GpuRow()
-            @ServiceRow(T["flightStatus.services.boarding"], GsxServiceIds.Boarding)
-            @ServiceRow(T["flightStatus.services.deboarding"], GsxServiceIds.Deboarding)
-            @ServiceRow(T["flightStatus.services.pushback"], GsxServiceIds.Departure)
-            @ServiceRow(T["flightStatus.services.jetway"], GsxServiceIds.OperateJetways)
-            @ConnectedRow(T["flightStatus.services.jetwayConnected"], GsxServiceIds.OperateJetways)
-            @ServiceRow(T["flightStatus.services.stairs"], GsxServiceIds.OperateStairs)
-            @ConnectedRow(T["flightStatus.services.stairsConnected"], GsxServiceIds.OperateStairs)
-        </div>
-    </section>
+        <section class="status-section">
+            <div class="section-header"><h3 class="section-title">@T["flightStatus.services.title"]</h3></div>
+            <div class="section-body">
+                @foreach (var row in FlightStatusPresentation.ServiceRows(_gsx,
+                              GsxOptions.IsRefuelOnFuelConfirmed(GsxOptionsMonitor.CurrentValue.RefuelCall),
+                              FuelConfirmation.Snapshot().Confirmed, DepartureControl.Complete))
+                {
+                    @RowView(row)
+                }
+            </div>
+        </section>
         break;
         }
         </div>
@@ -353,62 +303,27 @@
 @code {
     private IReadOnlyList<KeyValuePair<string, ConnectionState>> _connections = [];
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
-
-    private SimSessionSnapshot SimSession => Session.Snapshot();
-
-    private bool SimConnected => StateOf(Subsystems.SimConnect) == ConnectionState.Connected;
-    private bool ProsimConnected => StateOf(Subsystems.Prosim) == ConnectionState.Connected;
-    private bool GsxConnected => StateOf(Subsystems.Gsx) == ConnectionState.Connected;
-
-    private ConnectionState StateOf(string subsystem)
-        => _connections.FirstOrDefault(pair => pair.Key == subsystem).Value;
-
-    // Pill + text mappings live in FlightStatusPresentation, shared with the
-    // FlightStatusChangeLog so the flight log records exactly what this card showed (#110).
-    private int ActiveBlock => FlightStatusPresentation.ActiveBlock(
-        FlightState.CurrentPhase, DepartureControl.Started, DepartureControl.Complete);
-
-    private string PhaseDisplay => FlightStatusPresentation.PhaseDisplay(FlightState.CurrentPhase);
-
-    /// <summary>The line under a sequence step. The active DEPARTURE step (2026-09-20) says
-    /// where the boarding is, since that is the evidence the phase engine entered it on.</summary>
-    private string StepSubText(int block, string state)
-    {
-        if (state == "active" && FlightState.CurrentPhase == FlightPhase.Departure)
-        {
-            return ServiceView(GsxServiceIds.Boarding)?.Stage switch
-            {
-                GsxServiceStage.Completed => T["flightStatus.sequence.step.boardingComplete"].Value,
-                GsxServiceStage.Active => T["flightStatus.sequence.step.boarding"].Value,
-                _ => T["flightStatus.sequence.step.inProgress"].Value,
-            };
-        }
-
-        return state switch
-        {
-            "done" => T["flightStatus.sequence.step.complete"].Value,
-            "active" => T["flightStatus.sequence.step.inProgress"].Value,
-            _ => T["flightStatus.sequence.step.pending"].Value,
-        };
-    }
-
-    // "Yes"/"No" and "True"/"False" cells of the Sim and App cards (Prosim2GSX row shapes), in
-    // the page's language; null stays the neutral dash.
-    private string YesNo(bool value) => value ? T["flightStatus.common.yes"].Value : T["flightStatus.common.no"].Value;
-
-    private string TrueFalse(bool? value) => value switch
-    {
-        true => T["flightStatus.common.true"].Value,
-        false => T["flightStatus.common.false"].Value,
-        null => "—",
-    };
-
-    private FlightStateView View => FlightState.Snapshot();
-
-    private string PhaseReason => View.LastTransitionReason is { Length: > 0 } reason ? reason : "—";
+    private SpeechStatusSnapshot _speech = SpeechStatusSnapshot.Empty;
+    private OfpData? _ofp;
+    private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
+    private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
+    private FlightProgressSnapshot _progress = FlightProgressSnapshot.Empty;
 
     private FlightPhase _forcePhase = FlightPhase.Preflight;
     private bool _freeze = true;
+    private bool _recheckUnavailable;
+    private bool _confirmingFuel;
+    private string? _confirmFuelNote;
+    private Timer? _confirmFuelNoteTimer;
+
+    private FlightStateView View => FlightState.Snapshot();
+    private ConnectionFlags Links => FlightStatusPresentation.Connections(_connections);
+    private string PhaseReason => FlightStatusPresentation.PhaseReason(View);
+
+    /// <summary>A presentation text in the page's language.</summary>
+    private string Text(DisplayText text) => text.Resolve(T);
+
+    private string? Tooltip(StatusRow row) => row.Tooltip is { } tip ? Text(tip) : null;
 
     // ── Tile layout (issue #160) ──────────────────────────────────────────────────────
     // The order comes from flightStatus.tileOrder and goes back there on every move, so a
@@ -491,65 +406,52 @@
     }
 
     // ── Hero card (ADR-0011) ──────────────────────────────────────────────────────────
-    // Route and flight line from the OFP; live figures from the phase engine's last sample
-    // plus two datarefs the sample does not carry (heading, fuel on board). The sample
-    // changes every engine tick but nothing raises an event for it, so a 1 s timer re-renders
-    // only when the rendered strings actually changed — the same discipline as the layout's
-    // sim clock, so the circuit never sees per-tick chatter.
+    // Live figures from the phase engine's last sample plus two datarefs the sample does not
+    // carry (heading, fuel on board). The sample changes every engine tick but nothing raises
+    // an event for it, so a 1 s timer re-renders only when the rendered strings actually
+    // changed — the same discipline as the layout's sim clock, so the circuit never sees
+    // per-tick chatter.
     private static readonly DataRef<double> HeadingMagneticRef =
         new(ProsimDataRefNames.HeadingMagnetic, DataRefTier.Normal, 0.0);
 
-    private OfpData? _ofp;
-    private HeroWeatherSnapshot _weather = HeroWeatherSnapshot.Empty;
-    private GateStatusSnapshot _gate = GateStatusSnapshot.Empty;
-    private FlightProgressSnapshot _progress = FlightProgressSnapshot.Empty;
     private IDataRefSubscription<double>? _headingSub;
     private IDataRefSubscription<double>? _fuelSub;
     private System.Threading.Timer? _metricsTimer;
-    private string _metricsKey = "";
+    private string _metricsFingerprint = "";
 
-    private FlightDataSnapshot? Data => View.Data is { IsValid: true } data ? data : null;
-
-    private static string Metric(double? value, string format)
-        => value is { } v ? v.ToString(format, System.Globalization.CultureInfo.InvariantCulture) : "—";
-
-    private string VerticalSpeed => Data is { } data
-        ? data.VerticalSpeedFpm.ToString("+#,0;-#,0;0", System.Globalization.CultureInfo.InvariantCulture)
-        : "—";
-
-    private string Heading => _headingSub is { RawValue: not null } sub && ProsimConnected
-        ? $"{((sub.Value % 360 + 360) % 360):000}°"
-        : "—";
-
-    private string FuelOnBoard => _fuelSub is { RawValue: not null } sub && ProsimConnected
-        ? Units.Format(sub.Value)
-        : "—";
-
-    private string FlightLine => _ofp is null
-        ? T["flightStatus.hero.noFlightPlan"].Value
-        : string.Join(" | ", new[]
+    private IReadOnlyList<HeroMetric> Metrics
+    {
+        get
         {
-            _ofp.Callsign.Length > 0 ? _ofp.Callsign : _ofp.Ident,
-            _ofp.FlightNumber.Length > 0 ? $"FLT {_ofp.FlightNumber}" : null,
-            _ofp.CruiseFlightLevel > 0 ? $"CRZ FL{_ofp.CruiseFlightLevel:D3}" : null,
-            _ofp.ScheduledOutUtc is { } std ? $"STD {std:HH:mm}Z" : null,
-        }.Where(part => !string.IsNullOrEmpty(part)));
+            var prosim = Links.ProsimConnected;
+            return FlightStatusPresentation.Metrics(
+                FlightStatusPresentation.ValidData(View),
+                _headingSub is { RawValue: not null } heading && prosim ? heading.Value : null,
+                _fuelSub is { RawValue: not null } fuel && prosim ? fuel.Value : null,
+                kg => Units.Format(kg));
+        }
+    }
+
+    private static string MetricClass(HeroMetric metric) => metric.Glow ? "figure figure-lg glow" : "figure figure-lg";
 
     private void RefreshMetrics()
     {
-        var key = string.Concat(
-            Metric(Data?.GroundSpeedKt, "F0"), Metric(Data?.AltitudeFt, "N0"),
-            VerticalSpeed, Heading, FuelOnBoard);
-        if (key == _metricsKey)
+        var fingerprint = string.Concat(Metrics.Select(metric => metric.Figure));
+        if (fingerprint == _metricsFingerprint)
         {
             return;
         }
 
-        _metricsKey = key;
+        _metricsFingerprint = fingerprint;
         _ = InvokeAsync(StateHasChanged);
     }
 
     private void ForcePhase() => PhaseControl.ForcePhase(_forcePhase, _freeze, "web UI");
+
+    private void ResumeAutomatic() => PhaseControl.ResumeAutomatic("web UI");
+
+    private void RecheckAircraftState()
+        => _recheckUnavailable = !StateCheckControl.RequestRecheck("web UI");
 
     private async Task OpenMonitor()
     {
@@ -563,361 +465,6 @@
             // board is also reachable by typing /monitor.
         }
     }
-
-    // ── Hero widgets (owner sign-off 2026-09-22) ──────────────────────────────────────
-    // Weather cards: the label on its own line, the airport name under it, the ATIS chip
-    // top-right, then the sky graphic + condition word beside two mono data lines. The raw
-    // METAR rides on the hover title. Values are formatted here only — classification and
-    // the observation stamp come pre-computed from the store.
-
-    private string CardTitle(WeatherCardRole role) => role switch
-    {
-        WeatherCardRole.Local => T["flightStatus.weather.local"].Value,
-        WeatherCardRole.Alternate => T["flightStatus.weather.alternate"].Value,
-        _ => T["flightStatus.weather.destination"].Value,
-    };
-
-    // Figure texts live in WeatherCardFormat, shared with the pop-out Flight Monitor board.
-
-    private RenderFragment WeatherCardView(WeatherCard card) => @<div class="inset fs-wx">
-        <div class="fs-wx-head">
-            <div class="fs-wx-title">
-                <span class="label-caps">@CardTitle(card.Role)</span>
-                <span class="fs-wx-name" title="@card.Icao">@(card.AirportName.Length > 0 ? card.AirportName : card.Icao.Length > 0 ? card.Icao : T["flightStatus.weather.noFlightPlan"].Value)</span>
-            </div>
-            @if (card.Facts.AtisLetter is { Length: > 0 } atis)
-            {
-                <span class="fs-chip fs-wx-atis">ATIS @atis</span>
-            }
-        </div>
-        <div class="fs-wx-body">
-            <div class="fs-wx-sky sky-@(card.Sky.ToString().ToLowerInvariant()) fs-wx-raw" title="@(card.Facts.RawMetar ?? card.Failure)">
-                <AppIcon Name="@WeatherCardFormat.SkyIcon(card.Sky)" Size="32" />
-                <span class="label-caps">@card.SkyLabel</span>
-            </div>
-            <div class="fs-wx-data">
-                @if (card.Status == WxProbeStatus.Found)
-                {
-                    <div class="fs-wx-line">
-                        <span class="fs-wx-wind">
-                            @if (card.Facts.WindDirDeg is { } dir && card.Facts.WindSpeedKt is > 0)
-                            {
-                                <span style="display:inline-flex;transform:rotate(@(dir)deg)" aria-hidden="true"><AppIcon Name="arrow-down" Size="10" /></span>
-                            }
-                            @WeatherCardFormat.Wind(card.Facts)
-                            @if (card.Facts.WindGustKt is { } gust)
-                            {
-                                <span class="fs-wx-gust">G@(gust)</span>
-                            }
-                        </span>
-                        <span>@WeatherCardFormat.Visibility(card.Facts)</span>
-                        <span>@WeatherCardFormat.Ceiling(card.Facts)</span>
-                    </div>
-                    <div class="fs-wx-line split">
-                        <span class="fs-wx-line"><span>@WeatherCardFormat.Temperature(card.Facts)</span><span>@WeatherCardFormat.Qnh(card.Facts)</span></span>
-                        <span class="fs-wx-stamp">METAR @(card.ObservedAt ?? "—")</span>
-                    </div>
-                }
-                else
-                {
-                    <span class="fs-wx-missing">@(card.Icao.Length == 0 ? T["flightStatus.weather.fetchOfp"].Value : card.Failure ?? T["flightStatus.weather.noMetar"].Value)</span>
-                }
-            </div>
-        </div>
-    </div>;
-
-    // Gate monitor strip: five forward-only states (owner spec 2026-09-22), same size in
-    // every state; dims from taxi-out onward instead of disappearing.
-    private string GateClass => _gate.State switch
-    {
-        GateState.Open => "open",
-        GateState.Boarding => "boarding",
-        GateState.FinalCall => "final-call",
-        GateState.ClosedAfterBoarding => "closed-after",
-        _ => "closed",
-    };
-
-    private string GateWord => _gate.State switch
-    {
-        GateState.Open => T["flightStatus.gate.open"].Value,
-        GateState.Boarding => T["flightStatus.gate.boarding"].Value,
-        GateState.FinalCall => T["flightStatus.gate.finalCall"].Value,
-        _ => T["flightStatus.gate.closed"].Value,
-    };
-
-    private string GateIcon => _gate.State switch
-    {
-        GateState.Open => "door-open",
-        GateState.FinalCall => "bell-ring",
-        GateState.ClosedAfterBoarding => "circle-check",
-        _ => "door-closed",
-    };
-
-    private string StdText => _gate switch
-    {
-        { StdUtc: null } => "STD —",
-        { Dimmed: true } or { State: GateState.ClosedAfterBoarding } => $"STD {_gate.StdUtc:HH:mm}Z",
-        { MinutesToStd: { } m } when m >= 0 => $"STD −{m} MIN",
-        { MinutesToStd: { } m } => $"STD +{-m} MIN",
-        _ => "STD —",
-    };
-
-    private RenderFragment GateStrip() => @<div class="inset fs-gate @GateClass @(_gate.Dimmed ? "dimmed" : null)"
-                                              title="@($"{_gate.Detail}{(_gate.ChangedAtUtc is { } at ? " " + T["flightStatus.gate.since", $"{at:HH:mm}Z"].Value : "")}")">
-        <div class="fs-gate-head">
-            <span class="fs-gate-left">
-                <span class="label-caps fs-gate-id">@T["flightStatus.gate.label"] <span class="figure">@(_gate.GateId ?? "—")</span></span>
-                <span class="fs-gate-detail">@_gate.Detail</span>
-                @* Pop-out Flight Monitor (owner request 2026-09-23): the same gate strip,
-                   full-screen on a second monitor, which turns into the flight / arrival
-                   monitor as the leg goes. *@
-                <button type="button" class="fs-gate-popout" @onclick="OpenMonitor"
-                        title="@T["flightStatus.gate.popoutTitle"]">
-                    <AppIcon Name="external-link" Size="14" /> @T["flightStatus.gate.popout"]
-                </button>
-            </span>
-            <span class="fs-gate-state @GateClass">
-                @if (_gate.State == GateState.Boarding)
-                {
-                    <span class="fs-chip-dot live" aria-hidden="true"></span>
-                }
-                else
-                {
-                    <AppIcon Name="@GateIcon" Size="22" />
-                }
-                <span class="figure">@GateWord</span>
-            </span>
-            <span class="fs-gate-right">
-                <span class="figure fs-gate-pax">
-                    @if (_gate.PaxTarget is { } target)
-                    {
-                        <span class="@(_gate.State == GateState.Boarding ? "glow" : null)">@(_gate.PaxBoarded ?? 0)</span><span class="muted"> / @target PAX</span>
-                    }
-                    else
-                    {
-                        <span class="muted">— PAX</span>
-                    }
-                </span>
-                <span class="figure fs-gate-std @(_gate.State == GateState.FinalCall ? "soon" : null)">@StdText</span>
-            </span>
-        </div>
-        <div class="fs-gate-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
-             aria-valuenow="@((int)Math.Round(_gate.Progress * 100))">
-            <div class="fs-gate-fill" style="width:@((_gate.Progress * 100).ToString("F0", System.Globalization.CultureInfo.InvariantCulture))%"></div>
-        </div>
-    </div>;
-
-    private void ResumeAutomatic() => PhaseControl.ResumeAutomatic("web UI");
-
-    // Prosim2GSX row shapes: "boarded | deboarded" pax and "board% | deboard%" cargo.
-    private string PaxTotals => _gsx.BoardingCounters is { } pax
-        ? $"{pax.PaxBoarded?.ToString() ?? "—"} | {pax.PaxDeboarded?.ToString() ?? "—"}"
-        : "—";
-
-    private string CargoTotals => _gsx.BoardingCounters is { } cargo
-        ? $"{FormatPercent(cargo.CargoBoardedPercent)} | {FormatPercent(cargo.CargoDeboardedPercent)}"
-        : "—";
-
-    private static string FormatPercent(double? value)
-        => value is { } pct ? $"{pct:F0}%" : "—";
-
-    // Two producers share this row: service lifecycle edges ("Boarding: Active") and the
-    // in-sim handler script's events ("boardingRequested", "gateReset: user_changed").
-    private string HandlerEvent => _gsx.LastHandlerEvent is { } evt
-        ? $"{evt.Timestamp.ToLocalTime():HH:mm:ss} {evt.Service}{(evt.Event.Length > 0 ? $": {evt.Event}" : "")}"
-        : "—";
-
-    private string DepartureSummary =>
-        DepartureControl.Complete ? T["flightStatus.gsx.departure.complete"].Value
-        : DepartureControl.Started ? T["flightStatus.gsx.departure.running"].Value
-        : T["flightStatus.gsx.departure.notStarted"].Value;
-
-    // ── Row renderers (mirror Prosim2GSX's Indicator / KV / ServiceRow components) ──
-
-    private RenderFragment Indicator(string label, bool ok) => @<div class="row">
-        <span class="row-label">@label</span>
-        <span class="dot @(ok ? "dot-ok" : "dot-bad")" aria-hidden="true"></span>
-        <span class="row-value">@(ok ? T["flightStatus.common.ok"].Value : "—")</span>
-    </div>;
-
-    private static RenderFragment Kv(string label, string value) => @<div class="row">
-        <span class="row-label">@label</span>
-        <span class="row-value-mono">@value</span>
-    </div>;
-
-    private RenderFragment ServiceRow(string label, string serviceId)
-    {
-        var view = ServiceView(serviceId);
-        // Tone and text key off the LATCHED stage, not the raw mirror: GSX flips finished
-        // quick services (and refuel) back to "available", which read as never-run while the
-        // departure board said Completed (issue #29). The raw semantic text still shows for
-        // the in-between stages.
-        var tone = view?.Stage switch
-        {
-            GsxServiceStage.Completed => "tone-ok",
-            GsxServiceStage.Active => "tone-active",
-            GsxServiceStage.Requested or GsxServiceStage.Called => "tone-warn",
-            _ => "tone-neutral",
-        };
-        var text = view is null ? null
-            : view.Stage == GsxServiceStage.Completed ? T["flightStatus.services.completed"].Value
-            : view.SemanticState ?? view.MappedState;
-        return @<div class="row">
-            <span class="row-label">@label</span>
-            <span class="pill @tone">@(text ?? "—")</span>
-        </div>;
-    }
-
-    private RenderFragment GroundPrepRow()
-    {
-        // Live ground-preparation stage from the coordinator (issue #45). The pill carries a
-        // short status word only — the coordinator's detail sentence is log-grade and used to
-        // clip off the card edge — with the full "stage — detail" kept on the hover title.
-        var prep = _gsx.GroundPrep;
-        var holding = prep is not null
-            && prep.Detail.StartsWith("holding", StringComparison.OrdinalIgnoreCase);
-        var tone = prep is null ? "tone-neutral"
-            : prep.Stage == "Complete" ? "tone-ok"
-            : holding ? "tone-warn"
-            // Idle = parked chain (issue #98) — calm, not an activity and not a warning.
-            : prep.Stage == "Idle" ? "tone-neutral"
-            : prep.Detail.StartsWith("reset", StringComparison.OrdinalIgnoreCase) ? "tone-warn"
-            : "tone-active";
-        var text = prep is null ? null
-            : holding ? T["flightStatus.services.prep.holding"].Value
-            : PrepStageDisplay(prep.Stage);
-        var tooltip = prep is null ? null : T["flightStatus.services.prep.tooltip", PrepStageDisplay(prep.Stage), prep.Detail].Value;
-        return @<div class="row">
-            <span class="row-label">@T["flightStatus.services.groundPrep"]</span>
-            <span class="pill @tone" title="@tooltip">@(text ?? "—")</span>
-        </div>;
-    }
-
-    /// <summary>The coordinator publishes raw <c>GsxPrepStage</c> enum names ("AnchorGate",
-    /// "GroundEquipment") — developer codenames, not dashboard words. Unknown names pass
-    /// through so a future stage still renders something.</summary>
-    private string PrepStageDisplay(string stage) => stage switch
-    {
-        "Idle" => T["flightStatus.services.prep.idle"].Value,
-        "Reposition" => T["flightStatus.services.prep.reposition"].Value,
-        "Settling" => T["flightStatus.services.prep.settling"].Value,
-        "AnchorGate" => T["flightStatus.services.prep.anchorGate"].Value,
-        "GroundEquipment" => T["flightStatus.services.prep.groundEquipment"].Value,
-        "JetwayStairs" => T["flightStatus.services.prep.jetwayStairs"].Value,
-        "Complete" => T["flightStatus.services.prep.complete"].Value,
-        _ => stage,
-    };
-
-    private RenderFragment AircraftStateRow()
-    {
-        // Once-per-session cold-and-dark verdict (issue #63), published by the aircraft state
-        // check after session entry on a fresh departure. "—" until it has run. The Re-check
-        // button (issue #92) clears the once-per-session latch — without it, a pilot who fixed
-        // the switches could only get a fresh verdict by restarting the app.
-        // The pill stays a glanceable verdict; the item list rides on the hover title. The
-        // mismatch tooltip uses the spoken phrases ("battery 1 is on") — the checklist labels
-        // ("Battery 1 OFF") read backwards when listed as what is WRONG.
-        var check = _gsx.AircraftStateCheck;
-        var (tone, text, tooltip) = check switch
-        {
-            null => ("tone-neutral", (string?)null, (string?)null),
-            { Status: AircraftStateCheckStatus.Pass } pass =>
-                ("tone-ok", T["flightStatus.aircraftState.pass"].Value,
-                    pass.UncheckedLabels.Count == 0 ? null
-                        : T["flightStatus.aircraftState.unchecked", string.Join(", ", pass.UncheckedLabels)].Value),
-            { Status: AircraftStateCheckStatus.Mismatch } mismatch =>
-                ("tone-warn",
-                    T[mismatch.Mismatches.Count == 1 ? "flightStatus.aircraftState.mismatchOne" : "flightStatus.aircraftState.mismatchMany", mismatch.Mismatches.Count].Value,
-                    string.Join(", ", mismatch.Mismatches.Select(item => item.Phrase))),
-            _ => ("tone-neutral", T["flightStatus.aircraftState.notChecked"].Value, check.Reason),
-        };
-        return @<div class="row">
-            <span class="row-label">@T["flightStatus.aircraftState.label"]</span>
-            <span class="row-actions">
-                <span class="pill @tone" title="@tooltip">@(text ?? "—")</span>
-                <button type="button" class="btn secondary"
-                        @onclick="RecheckAircraftState"
-                        title="@T["flightStatus.aircraftState.recheckTitle"]">
-                    @T["flightStatus.aircraftState.recheck"]
-                </button>
-                @if (_recheckUnavailable)
-                {
-                    <span class="pill tone-neutral">@T["flightStatus.aircraftState.notReady"]</span>
-                }
-            </span>
-        </div>;
-    }
-
-    private bool _recheckUnavailable;
-
-    // Cabin-secure state (issue #134): the crew's randomized securing wait after doors
-    // closed + beacon on. "securing" is the moment a "cockpit to cabin" hail gets "still
-    // securing"; "secure" once the purser has reported. "—" before either.
-    private RenderFragment CabinRow()
-    {
-        var (tone, text, tooltip) = _speech.CabinSecure switch
-        {
-            CabinSecureState.Securing => ("tone-warn", T["flightStatus.cabin.securing"].Value, T["flightStatus.cabin.securingTitle"].Value),
-            CabinSecureState.Secure => ("tone-ok", T["flightStatus.cabin.secure"].Value, T["flightStatus.cabin.secureTitle"].Value),
-            _ => ("tone-neutral", "—", T["flightStatus.cabin.noneTitle"].Value),
-        };
-        return @<div class="row">
-            <span class="row-label">@T["flightStatus.cabin.label"]</span>
-            <span class="pill @tone" title="@tooltip">@text</span>
-        </div>;
-    }
-
-    private SpeechStatusSnapshot _speech = SpeechStatusSnapshot.Empty;
-
-    // Refuel row with the crew's fuel-confirmation button (2026-09-19, real-world SOP): in
-    // gsx.refuelCall = onFuelConfirmed the truck waits for it; in every mode the same button
-    // orders a top-up once the INIT FUEL RAMP figure is raised after a completed refuel.
-    // The INIT page carries the same button next to the FUEL RAMP entry.
-    private RenderFragment RefuelRow()
-    {
-        var view = ServiceView(GsxServiceIds.Refueling);
-        var tone = view?.Stage switch
-        {
-            GsxServiceStage.Completed => "tone-ok",
-            GsxServiceStage.Active => "tone-active",
-            GsxServiceStage.Requested or GsxServiceStage.Called => "tone-warn",
-            _ => "tone-neutral",
-        };
-        var text = view is null ? null
-            : view.Stage == GsxServiceStage.Completed ? T["flightStatus.services.completed"].Value
-            : view.SemanticState ?? view.MappedState;
-        var confirmation = FuelConfirmation.Snapshot();
-        var sopMode = GsxOptions.IsRefuelOnFuelConfirmed(GsxOptionsMonitor.CurrentValue.RefuelCall);
-        var awaiting = sopMode && !confirmation.Confirmed && !DepartureControl.Complete;
-        return @<div class="row">
-            <span class="row-label">@T["flightStatus.services.refuel"]</span>
-            <span class="row-actions">
-                <span class="pill @(awaiting ? "tone-warn" : tone)"
-                      title="@(awaiting ? T["flightStatus.refuel.awaitingTitle"].Value : null)">
-                    @(awaiting ? T["flightStatus.refuel.awaiting"].Value : text ?? "—")
-                </span>
-                @if (confirmation.Confirmed)
-                {
-                    <span class="pill tone-ok" title="@T["flightStatus.refuel.confirmedTitle", $"{confirmation.ConfirmedAtUtc?.ToLocalTime():HH:mm:ss}", confirmation.Source]">
-                        @T["flightStatus.refuel.confirmedKg", $"{confirmation.ConfirmedKg:F0}"]
-                    </span>
-                }
-                <button type="button" class="btn secondary" disabled="@_confirmingFuel"
-                        @onclick="ConfirmFuel"
-                        title="@T["flightStatus.refuel.confirmTitle"]">
-                    @(_confirmingFuel ? T["flightStatus.refuel.confirming"].Value : T["flightStatus.refuel.confirm"].Value)
-                </button>
-                @if (_confirmFuelNote is not null)
-                {
-                    <span class="pill tone-neutral" title="@_confirmFuelNote">@_confirmFuelNote</span>
-                }
-            </span>
-        </div>;
-    }
-
-    private bool _confirmingFuel;
-    private string? _confirmFuelNote;
-    private Timer? _confirmFuelNoteTimer;
 
     private async Task ConfirmFuel()
     {
@@ -939,59 +486,169 @@
         }
     }
 
-    private RenderFragment DroppedCallRow()
-    {
-        // A dropped GSX call (issue #76) stays visible until a later call confirms — the log
-        // line alone let a Deboarding call die unnoticed on 2026-08-29.
-        var dropped = _gsx.DroppedCall;
-        var text = dropped is null
-            ? "—"
-            : string.IsNullOrWhiteSpace(dropped.OpenMenu)
-                ? T["flightStatus.gsx.dropped.checkMenu", dropped.ServiceId, $"{dropped.Timestamp.ToLocalTime():HH:mm:ss}"].Value
-                : T["flightStatus.gsx.dropped.menuOpen", dropped.ServiceId, $"{dropped.Timestamp.ToLocalTime():HH:mm:ss}", dropped.OpenMenu].Value;
-        return @<div class="row">
-            <span class="row-label">@T["flightStatus.gsx.droppedCall"]</span>
-            <span class="pill @(dropped is null ? "tone-neutral" : "tone-warn")"
-                  title="@(dropped is null ? T["flightStatus.gsx.dropped.noneTitle"].Value : T["flightStatus.gsx.dropped.title"].Value)">@text</span>
-        </div>;
-    }
+    // ── Hero widgets (owner sign-off 2026-09-22) ──────────────────────────────────────
 
-    private void RecheckAircraftState()
-        => _recheckUnavailable = !StateCheckControl.RequestRecheck("web UI");
+    private RenderFragment WeatherCardMarkup(WeatherCardView card) => @<div class="inset fs-wx">
+        <div class="fs-wx-head">
+            <div class="fs-wx-title">
+                <span class="label-caps">@T[card.TitleTextId]</span>
+                <span class="fs-wx-name" title="@card.Icao">@Text(card.Name)</span>
+            </div>
+            @if (card.Atis is { } atis)
+            {
+                <span class="fs-chip fs-wx-atis">ATIS @atis</span>
+            }
+        </div>
+        <div class="fs-wx-body">
+            <div class="fs-wx-sky @card.SkyClass fs-wx-raw" title="@card.RawTitle">
+                <AppIcon Name="@card.SkyIcon" Size="32" />
+                <span class="label-caps">@card.SkyLabel</span>
+            </div>
+            <div class="fs-wx-data">
+                @if (card.Found)
+                {
+                    <div class="fs-wx-line">
+                        <span class="fs-wx-wind">
+                            @if (card.WindArrowDeg is { } dir)
+                            {
+                                <span style="display:inline-flex;transform:rotate(@(dir)deg)" aria-hidden="true"><AppIcon Name="arrow-down" Size="10" /></span>
+                            }
+                            @card.Wind
+                            @if (card.Gust is { } gust)
+                            {
+                                <span class="fs-wx-gust">G@(gust)</span>
+                            }
+                        </span>
+                        <span>@card.Visibility</span>
+                        <span>@card.Ceiling</span>
+                    </div>
+                    <div class="fs-wx-line split">
+                        <span class="fs-wx-line"><span>@card.Temperature</span><span>@card.Qnh</span></span>
+                        <span class="fs-wx-stamp">@card.Stamp</span>
+                    </div>
+                }
+                else if (card.Missing is { } missing)
+                {
+                    <span class="fs-wx-missing">@Text(missing)</span>
+                }
+            </div>
+        </div>
+    </div>;
 
-    private RenderFragment GpuRow()
+    private RenderFragment GateStripMarkup(GateStripView gate) => @<div class="inset fs-gate @gate.StateClass @(gate.Dimmed ? "dimmed" : null)"
+                                              title="@($"{gate.Detail}{(gate.Since is { } since ? " " + Text(since) : "")}")">
+        <div class="fs-gate-head">
+            <span class="fs-gate-left">
+                <span class="label-caps fs-gate-id">@T["flightStatus.gate.label"] <span class="figure">@gate.GateId</span></span>
+                <span class="fs-gate-detail">@gate.Detail</span>
+                @* Pop-out Flight Monitor (owner request 2026-09-23): the same gate strip,
+                   full-screen on a second monitor, which turns into the flight / arrival
+                   monitor as the leg goes. *@
+                <button type="button" class="fs-gate-popout" @onclick="OpenMonitor"
+                        title="@T["flightStatus.gate.popoutTitle"]">
+                    <AppIcon Name="external-link" Size="14" /> @T["flightStatus.gate.popout"]
+                </button>
+            </span>
+            <span class="fs-gate-state @gate.StateClass">
+                @if (gate.BoardingDot)
+                {
+                    <span class="fs-chip-dot live" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <AppIcon Name="@gate.Icon" Size="22" />
+                }
+                <span class="figure">@T[gate.StateTextId]</span>
+            </span>
+            <span class="fs-gate-right">
+                <span class="figure fs-gate-pax">
+                    @if (gate.PaxTarget is { } target)
+                    {
+                        <span class="@(gate.PaxGlow ? "glow" : null)">@gate.PaxBoarded</span><span class="muted"> / @target PAX</span>
+                    }
+                    else
+                    {
+                        <span class="muted">— PAX</span>
+                    }
+                </span>
+                <span class="figure fs-gate-std @(gate.StdSoon ? "soon" : null)">@gate.Std</span>
+            </span>
+        </div>
+        <div class="fs-gate-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="@gate.ProgressPercent">
+            <div class="fs-gate-fill" style="width:@(gate.FillWidth)%"></div>
+        </div>
+    </div>;
+
+    // ── Row renderer (mirrors Prosim2GSX's Indicator / KV / pill rows) ────────────────
+    // The aircraft-state and refuel rows carry the page's own controls beside the pill.
+
+    private RenderFragment RowView(StatusRow row)
     {
-        // ProSim's ground-power dataref is the attachment truth (issue #33): GSX flips its
-        // GPU service back to "available" while the unit stays physically connected, so a
-        // connected GPU must never read as merely callable.
-        if (_gsx.GroundPowerConnected == true)
+        if (row.Kind == StatusRowKind.Indicator)
         {
             return @<div class="row">
-                <span class="row-label">@T["flightStatus.services.gpu"]</span>
-                <span class="pill tone-ok">@T["flightStatus.services.gpuConnected"]</span>
+                <span class="row-label">@T[row.LabelTextId]</span>
+                <span class="dot @(row.Ok ? "dot-ok" : "dot-bad")" aria-hidden="true"></span>
+                <span class="row-value">@Text(row.Value)</span>
             </div>;
         }
 
-        return ServiceRow(T["flightStatus.services.gpu"], GsxServiceIds.Gpu);
-    }
+        if (row.Kind == StatusRowKind.Value)
+        {
+            return @<div class="row">
+                <span class="row-label">@T[row.LabelTextId]</span>
+                <span class="row-value-mono">@Text(row.Value)</span>
+            </div>;
+        }
 
-    private RenderFragment ConnectedRow(string label, string serviceId)
-    {
-        // Docked = the operate service reads Active or Completed. The toggles never latch
-        // (their stage IS the positional mirror state), so retraction drops this back to "—".
-        // Refinement tracked in #30: LVAR-authoritative connect state with the 30 s
-        // stale-Active grace, once the operate LVARs are surfaced to the store.
-        var view = ServiceView(serviceId);
-        var connected = view?.Stage is GsxServiceStage.Active or GsxServiceStage.Completed;
+        if (row.Id == FlightStatusPresentation.AircraftStateRowId)
+        {
+            return @<div class="row">
+                <span class="row-label">@T[row.LabelTextId]</span>
+                <span class="row-actions">
+                    <span class="pill @row.Tone" title="@Tooltip(row)">@Text(row.Value)</span>
+                    <button type="button" class="btn secondary"
+                            @onclick="RecheckAircraftState"
+                            title="@T["flightStatus.aircraftState.recheckTitle"]">
+                        @T["flightStatus.aircraftState.recheck"]
+                    </button>
+                    @if (_recheckUnavailable)
+                    {
+                        <span class="pill tone-neutral">@T["flightStatus.aircraftState.notReady"]</span>
+                    }
+                </span>
+            </div>;
+        }
+
+        if (row.Id == FlightStatusPresentation.RefuelRowId)
+        {
+            return @<div class="row">
+                <span class="row-label">@T[row.LabelTextId]</span>
+                <span class="row-actions">
+                    <span class="pill @row.Tone" title="@Tooltip(row)">@Text(row.Value)</span>
+                    @if (FlightStatusPresentation.FuelConfirmed(FuelConfirmation.Snapshot()) is { } confirmed)
+                    {
+                        <span class="pill tone-ok" title="@Text(confirmed.Tooltip)">@Text(confirmed.Text)</span>
+                    }
+                    <button type="button" class="btn secondary" disabled="@_confirmingFuel"
+                            @onclick="ConfirmFuel"
+                            title="@T["flightStatus.refuel.confirmTitle"]">
+                        @(_confirmingFuel ? T["flightStatus.refuel.confirming"].Value : T["flightStatus.refuel.confirm"].Value)
+                    </button>
+                    @if (_confirmFuelNote is not null)
+                    {
+                        <span class="pill tone-neutral" title="@_confirmFuelNote">@_confirmFuelNote</span>
+                    }
+                </span>
+            </div>;
+        }
+
         return @<div class="row">
-            <span class="row-label">@label</span>
-            <span class="pill @(connected ? "tone-ok" : "tone-neutral")">@(connected ? T["flightStatus.services.connected"].Value : "—")</span>
+            <span class="row-label">@T[row.LabelTextId]</span>
+            <span class="pill @row.Tone" title="@Tooltip(row)">@Text(row.Value)</span>
         </div>;
     }
-
-    private GsxServiceView? ServiceView(string serviceId)
-        => _gsx.Services.FirstOrDefault(service =>
-            string.Equals(service.Id, serviceId, StringComparison.OrdinalIgnoreCase));
 
     protected override void OnInitialized()
     {
