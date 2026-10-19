@@ -163,15 +163,16 @@ public static class SpeechServiceCollectionExtensions
         // and the FO's "tail left or tail right?" question when the automation is unsure
         // (2026-10-04). Writes the Core per-flight store the GSX pillar answers GSX's menu from.
         services.AddVoiceFeature<Gsx.PushbackDirectionVoiceFeature>();
-        services.AddStartupModule<Gsx.PushbackQuestionDialogue>();
-        // The FO's "W36 is 36 Alpha or 36 Bravo — which?" question when GSX splits the arrival
-        // gate into suffix variants (issue #156, 2026-10-11); answers the Core GateChoiceStore.
-        services.AddStartupModule<Gsx.GateChoiceDialogue>();
-        // The FO's "request de-icing?" question (2026-10-09, gsx.deice.autoRequest = ask):
-        // voices the Core store's question and answers it from the captain's yes/no.
-        services.AddStartupModule<Gsx.DeiceQuestionDialogue>();
-        // The turnaround "commence ground services?" question (issue #169, ask-first).
-        services.AddStartupModule<Gsx.TurnaroundStartDialogue>();
+        // The captain's questions (architecture review C2): ONE dialogue voices whatever
+        // question is open on any Core captain's-question store, driven by one phrase table per
+        // question — the pushback "which way?" (2026-10-04), the arrival-gate "36 Alpha or 36
+        // Bravo?" (issue #156), "request de-icing?" (2026-10-09) and the turnaround "commence
+        // ground services?" (issue #169). A new question is a table, not a dialogue.
+        services.AddSingleton<Gsx.CaptainsQuestionPhrases>(p => Gsx.PushbackQuestionPhrases.Create(p.GetRequiredService<Gsx.PushbackDirectionVoiceFeature>()));
+        services.AddSingleton(Gsx.GateChoicePhrases.Table);
+        services.AddSingleton(Gsx.DeiceQuestionPhrases.Table);
+        services.AddSingleton(Gsx.TurnaroundStartPhrases.Table);
+        services.AddStartupModule<Gsx.CaptainsQuestionDialogue>();
         // The FO's packs-off / ditching-on calls and read-only checks around a GSX de-icing
         // (issue #166, opt-in gsx.deice.packsProcedure). Edges from the Core activity seam.
         services.AddStartupModule<Gsx.DeicePacksProcedure>();

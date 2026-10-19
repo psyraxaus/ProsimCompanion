@@ -130,10 +130,13 @@ public sealed class DeiceMenuAnswerTests : IDisposable
     public void IceWarningAnswer_FollowsTheDecision()
     {
         var now = DateTimeOffset.UtcNow;
-        var open = DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask, Question = new DeiceQuestion(now, "Request it?") };
+        var open = (DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Ask }).WithAsking(CaptainsQuestionState.Empty with
+        {
+            Question = new CaptainsQuestion("deice", now, "Request it?", DeiceRequestSnapshot.QuestionTtl, 1, [], null),
+        });
         Assert.Null(GsxQuestionCatalog.IceWarningAnswer(open, now));
-        Assert.False(GsxQuestionCatalog.IceWarningAnswer(open with { Question = null, Declined = "captain said 'negative'" }, now));
-        Assert.True(GsxQuestionCatalog.IceWarningAnswer(open with { Question = null, RequestThisCycle = true }, now));
+        Assert.False(GsxQuestionCatalog.IceWarningAnswer(open.WithAsking(CaptainsQuestionRules.Decline(open.Asking, "voice", "captain said 'negative'", now)), now));
+        Assert.True(GsxQuestionCatalog.IceWarningAnswer(open.WithAsking(CaptainsQuestionRules.Accept(open.Asking, "voice", now)), now));
         Assert.True(GsxQuestionCatalog.IceWarningAnswer(DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Off }, now));
         Assert.True(GsxQuestionCatalog.IceWarningAnswer(DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.NotRequired }, now));
     }

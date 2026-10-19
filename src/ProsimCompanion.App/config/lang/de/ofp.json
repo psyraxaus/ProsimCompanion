@@ -28,8 +28,6 @@
       "atc": "ATC: {0}",
       "gsxSend": "GSX-Übermittlung: {0}",
       "gsx": "GSX: {0}",
-      "variantUnknown": "kein Jetway oder VDGS für diesen Stand bekannt",
-      "variantDetail": "{0} an diesem Stand",
       "hint": "Bestätigen merkt das Gate für den automatischen Versand im Reiseflug vor (oder sofort, wenn später im Flug bestätigt). Jetzt senden übermittelt sofort an GSX + SayIntentions ATC. Ein bestätigtes Gate überlebt einen App-Neustart."
     },
     "weather": {
@@ -62,7 +60,6 @@
       "standRunway": ", Piste {0}",
       "standNoRunway": ", keine Startpiste im OFP",
       "noSuggestion": "Stand {0}{1} — noch kein Vorschlag.",
-      "asking": "GSX fragt nach der Richtung — sag es dem FO (\"tail left\", \"tail right\", \"push back facing north\") oder drücke eine Taste.",
       "footer": "Tasten wählen nur für diesen Flug · Standardmodus: {0} · Einstellungen → GSX → Pushback",
       "mode": {
         "ask": "Piloten fragen",

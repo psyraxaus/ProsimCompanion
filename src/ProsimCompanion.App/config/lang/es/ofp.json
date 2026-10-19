@@ -28,8 +28,6 @@
       "atc": "ATC: {0}",
       "gsxSend": "Envío a GSX: {0}",
       "gsx": "GSX: {0}",
-      "variantUnknown": "no se conoce finger ni VDGS para este stand",
-      "variantDetail": "{0} en este stand",
       "hint": "Confirmar pone la puerta en cola para el envío automático en crucero (o de inmediato si se confirma más tarde en el vuelo). Enviar ahora la envía a GSX + SayIntentions ATC de inmediato. Una puerta confirmada sobrevive a un reinicio de la app."
     },
     "weather": {
@@ -62,7 +60,6 @@
       "standRunway": ", pista {0}",
       "standNoRunway": ", sin pista de salida en el OFP",
       "noSuggestion": "Stand {0}{1} — aún sin sugerencia.",
-      "asking": "GSX pregunta hacia dónde — díselo al FO (\"tail left\", \"tail right\", \"push back facing north\") o pulsa un botón.",
       "footer": "Los botones eligen solo para este vuelo · modo por defecto: {0} · Ajustes → GSX → Pushback",
       "mode": {
         "ask": "preguntar al piloto",

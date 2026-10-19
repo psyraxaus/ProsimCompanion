@@ -365,6 +365,21 @@
       "lvarsTitle": "L:FSDT_GSX_DEICING_STATE / L:FSDT_GSX_DEICING_TYPE — lus pour le diagnostic ; la carte de holdover s'arme toujours sur le front completed de la Remote API",
       "lvarsValue": "état {0}, type de fluide {1}"
     },
+    "captainsQuestions": {
+      "title": "Questions au commandant",
+      "hint": "Questions ouvertes du First Officer — réponds ici, à la voix ou dans le menu GSX",
+      "none": "Aucune question ouverte.",
+      "state": "État",
+      "open": "ouverte",
+      "reAsked": "reposée",
+      "countsAsNoAt": "{0} · compte comme non à {1}",
+      "withdrawnAt": "{0} · retirée à {1}",
+      "standsUntilAnswered": "{0} · reste ouverte jusqu'à la réponse",
+      "commence": "Lancer les services au sol",
+      "standBy": "Attendre",
+      "yes": "Oui",
+      "no": "Non"
+    },
     "diagnostics": {
       "summary": "Diagnostic — services, menu GSX, commandes récentes"
     },

@@ -187,7 +187,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
             _positionMenuAttempts = 0;
             _pendingVariants = null;
         }
-        _gateChoice?.ClearQuestion();
+        _gateChoice?.Withdraw();
         SetStatus(GsxGateRequestStatus.Armed, $"armed for {gate}");
         _ = TryDispatchAsync();
     }
@@ -200,7 +200,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
             _assigned = null;
             _pendingVariants = null;
         }
-        _gateChoice?.ClearQuestion();
+        _gateChoice?.Withdraw();
         _confirmationTimer?.Dispose();
         _confirmationTimer = null;
         SetStatus(GsxGateRequestStatus.Idle, "cancelled");
@@ -675,7 +675,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
         if (_options?.CurrentValue.AskPilotOnAmbiguousGate != false && _gateChoice is not null)
         {
             var candidates = variants
-                .Select((v, i) => new GateCandidate(labels[i], v.ResendToken ?? labels[i], details[i]))
+                .Select((v, i) => new QuestionChoice(labels[i], v.ResendToken ?? labels[i], details[i]))
                 .ToList();
             var prompt = $"{requested} is {JoinOr(labels)} in this scenery — which?";
             lock (_gate)
@@ -761,27 +761,32 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
         => labels.Count <= 1 ? string.Join("", labels) : $"{string.Join(", ", labels.Take(labels.Count - 1))} or {labels[^1]}";
 
     /// <summary>The pilot (web, voice) or the taxi-in default answered the suffix question.</summary>
-    private void OnGateChoiceChanged(GateChoiceSnapshot snapshot)
+    private void OnGateChoiceChanged(CaptainsQuestionState snapshot)
     {
-        if (snapshot.Choice is { } choice)
+        if (snapshot.Answer is { Chosen: not null } choice)
         {
             _ = DispatchChosenVariantAsync(choice);
         }
     }
 
-    private async Task DispatchChosenVariantAsync(GateChoice choice)
+    private async Task DispatchChosenVariantAsync(CaptainsAnswer choice)
     {
+        if (choice.Chosen is not { } candidate)
+        {
+            return;
+        }
+
         GsxGateRef? variant;
         string requested;
         lock (_gate)
         {
             if (_dispatching || _pendingVariants is null || _requestedGate is null
-                || !string.Equals(choice.Gate, _requestedGate, StringComparison.OrdinalIgnoreCase))
+                || !string.Equals(choice.Subject, _requestedGate, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            variant = _pendingVariants.FirstOrDefault(v => string.Equals(v.ResendToken, choice.Candidate.Token, StringComparison.Ordinal));
+            variant = _pendingVariants.FirstOrDefault(v => string.Equals(v.ResendToken, candidate.Token, StringComparison.Ordinal));
             if (variant is null)
             {
                 return;
@@ -794,8 +799,8 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
 
         try
         {
-            RecordSuffixChoice(requested, [choice.Candidate.Label], choice.Source, choice.Candidate.Label, $"chosen by {choice.Source}");
-            SetStatus(GsxGateRequestStatus.Dispatching, $"selecting {choice.Candidate.Label} for {requested} ({choice.Source})");
+            RecordSuffixChoice(requested, [candidate.Label], choice.Source, candidate.Label, $"chosen by {choice.Source}");
+            SetStatus(GsxGateRequestStatus.Dispatching, $"selecting {candidate.Label} for {requested} ({choice.Source})");
             _retriedOnce = true;
             var menuWasShown = _api.Mirror.MenuShown;
             var result = await SendSelectAsync(JsonValue.Create(variant.ResendToken), revokeServices: false, force: false).ConfigureAwait(false);
@@ -846,7 +851,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
             _pendingVariants = null;
         }
 
-        _gateChoice?.ClearQuestion();
+        _gateChoice?.Withdraw();
         _logger.LogInformation("GSX picked {Adopted} for our {Gate} (facility '{Facility}') — adopted as the arrival gate", adopted, requested, facility);
         _eventLog.Record("gsx-gate-adopted", new { gate = requested, facility, adopted });
         SetStatus(GsxGateRequestStatus.Assigned, $"GSX picked {adopted} for {requested}; awaiting confirmation");
@@ -1152,7 +1157,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
         if (_gateChoice is null || !_gateChoice.Choose(first.ResendToken ?? label, "default at taxi-in"))
         {
             // No store (or the question already withdrawn): send the default directly.
-            _ = DispatchChosenVariantAsync(new GateChoice(requested, new GateCandidate(label, first.ResendToken ?? label, null), "default at taxi-in", DateTimeOffset.UtcNow));
+            _ = DispatchChosenVariantAsync(new CaptainsAnswer(true, new QuestionChoice(label, first.ResendToken ?? label, null), "default at taxi-in", null, DateTimeOffset.UtcNow, requested));
         }
     }
 
@@ -1303,7 +1308,7 @@ public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAs
             _pendingVariants = null;
         }
 
-        _gateChoice?.ClearQuestion();
+        _gateChoice?.Withdraw();
         if (rearm && Status is GsxGateRequestStatus.Assigned or GsxGateRequestStatus.Confirmed
             or GsxGateRequestStatus.AssignedUnconfirmed or GsxGateRequestStatus.Dispatching)
         {

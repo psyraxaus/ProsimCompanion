@@ -10,7 +10,6 @@
 @inject ArrivalGateCoordinator GateCoordinator
 @inject GsxDiagnosticsStore GsxStore
 @inject PushbackChoiceStore PushbackChoices
-@inject GateChoiceStore GateChoices
 @inject WeatherStore Weather
 @inject IWeatherControl WeatherControl
 @inject DeiceHoldoverService Deice
@@ -141,22 +140,9 @@
                 {
                     <div class="field-hint">@T["ofp.gate.gsx", request]</div>
                 }
-                @if (_gateChoice.Question is { } gateQuestion)
-                {
-                    @* GSX split the gate into suffix variants (issue #156): the pilot picks here,
-                       on the Status card, or by telling the FO; the first goes at taxi-in otherwise. *@
-                    <div class="field-hint ofp-gate-stand">@gateQuestion.Prompt</div>
-                    <div class="ofp-gate-buttons">
-                        @foreach (var candidate in gateQuestion.Candidates)
-                        {
-                            var label = candidate.Label;
-                            <button type="button" class="btn secondary" @onclick="() => ChooseGateVariant(label)"
-                                    title="@(candidate.Detail is null ? T["ofp.gate.variantUnknown"].Value : T["ofp.gate.variantDetail", candidate.Detail].Value)">
-                                @candidate.Label@(candidate.Detail is null ? "" : $" · {candidate.Detail}")
-                            </button>
-                        }
-                    </div>
-                }
+                @* When GSX splits the gate into suffix variants (issue #156) the question shows
+                   on the Captain's questions card in the side column — the pilot picks there, on
+                   the Status card, or by telling the FO; the first goes at taxi-in otherwise. *@
                 <div class="field-hint">@T["ofp.gate.hint"]</div>
             }
         </div>
@@ -222,6 +208,11 @@
     </section>
 
     <div class="ofp-side">
+        @* Every open captain's question (de-icing, turnaround start, gate suffix, pushback
+           direction) with its buttons — the same Core stores the FO's questions answer (C2).
+           Shown only while a question stands. *@
+        <OpenQuestionsCard Framed="true" Surface="OFP page" />
+
         <section class="section ofp-pushback">
             <div class="section-header"><h3 class="section-title">@T["ofp.pushback.title"]</h3></div>
             <div class="section-body">
@@ -258,10 +249,8 @@
                 {
                     <div class="field-hint">@T["ofp.pushback.noSuggestion", stand, _pushback.Runway is { } rw2 ? T["ofp.pushback.standRunway", rw2].Value : T["ofp.pushback.standNoRunway"].Value]</div>
                 }
-                @if (_pushback.Question is not null)
-                {
-                    <div class="field-hint">@T["ofp.pushback.asking"]</div>
-                }
+                @* While GSX asks which way, the Captain's questions card above shows the FO's
+                   prompt with one button per menu line (C2). *@
                 <div class="ofp-hint ofp-hint-center">@T["ofp.pushback.footer", ModeWord]</div>
                 @* Issue #135: addon airports name up to three directions per stand and the
                    Korry preference cannot reach the third — the live menu card can. *@
@@ -313,7 +302,6 @@
     private OfpData? _ofp;
     private GsxDiagnosticsSnapshot _gsx = GsxDiagnosticsSnapshot.Empty;
     private ArrivalGateView _gateAssignment = ArrivalGateView.Empty;
-    private GateChoiceSnapshot _gateChoice = GateChoiceSnapshot.Empty;
     private WeatherSnapshot _weather = WeatherSnapshot.Empty;
     private DeiceHoldoverSnapshot _deice = new(false, false, "", HotPrecip.None, 0, 0, 0, "Awaiting GSX deicing…");
     private double _deiceOat;
@@ -377,7 +365,6 @@
     {
         Watch(GsxStore, snapshot => _gsx = snapshot);
         Watch(PushbackChoices, snapshot => _pushback = snapshot);
-        Watch(GateChoices, snapshot => _gateChoice = snapshot);
         Watch(Weather, snapshot => _weather = snapshot);
         WatchChanged(h => Ofp.Changed += h, h => Ofp.Changed -= h, () => _ofp = Ofp.Current);
         WatchChanged(h => GateCoordinator.Changed += h, h => GateCoordinator.Changed -= h,
@@ -425,10 +412,6 @@
     private void SendNowGate() => _ = GateCoordinator.SendNow(_gate.Trim().Length > 0 ? _gate : null);
 
     private void CancelGate() => GateCoordinator.Cancel();
-
-    // The suffix-variant buttons (issue #156): the store matches the label; the GSX gate
-    // service sends the chosen stand.
-    private void ChooseGateVariant(string label) => GateChoices.Choose(label, "web");
 
     private async Task RefreshWeather() => await WeatherControl.RefreshAsync();
 

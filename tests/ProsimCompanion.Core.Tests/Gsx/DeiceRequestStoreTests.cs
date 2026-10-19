@@ -8,13 +8,31 @@ namespace ProsimCompanion.Core.Tests.Gsx;
 /// <summary>The per-departure de-icing store (2026-10-09): one question per cycle, answers
 /// are final for the cycle, and the flight-cycle reset starts over. Issue #166 (2026-10-11):
 /// the step's turn arms the policy and re-asks an open question once; the question carries
-/// its own TTL; nothing but the TTL declines on silence.</summary>
+/// its own TTL; nothing but the TTL declines on silence. Since C2 an adapter of the shared
+/// captain's-question store — the verdict facts stay here, the question rules are inherited.</summary>
 public sealed class DeiceRequestStoreTests
 {
     private static (DeiceRequestStore Store, GroundOpsSignals Signals) Make()
     {
         var signals = new GroundOpsSignals();
         return (new DeiceRequestStore(signals), signals);
+    }
+
+    private static CaptainsQuestion Question(DateTimeOffset askedAtUtc, string prompt = "Request it?", TimeSpan? ttl = null, int attempt = 1)
+        => new(DeiceRequestStore.QuestionDefinition.Topic, askedAtUtc, prompt, ttl ?? DeiceRequestSnapshot.QuestionTtl, attempt, [], null);
+
+    [Fact]
+    public void Definition_IsTheOneThatTaughtTheBaseItsRules()
+    {
+        var definition = DeiceRequestStore.QuestionDefinition;
+        Assert.Equal("deice", definition.Topic);
+        Assert.Equal(CaptainsQuestionShape.YesNo, definition.Shape);
+        Assert.Equal(TimeSpan.FromMinutes(5), definition.DefaultTtl);
+        Assert.Equal(TimeSpan.FromMinutes(5), DeiceRequestSnapshot.QuestionTtl);
+        Assert.Equal(CaptainsQuestionExpiry.CountsAsNo, definition.Expiry);
+        Assert.Equal(2, definition.MaxAsks);
+        Assert.True(definition.AnswerIsFinalForCycle);
+        Assert.Equal(" (gsx.deice.questionTimeoutMinutes)", definition.TimeoutReasonSuffix);
     }
 
     [Fact]
@@ -35,13 +53,18 @@ public sealed class DeiceRequestStoreTests
     }
 
     [Fact]
-    public void RequestVerdict_MarksTheCycle_WithoutAQuestion()
+    public void RequestVerdict_MarksTheCycle_WithoutAQuestion_AndWithoutAnAnsweredEdge()
     {
         var (store, _) = Make();
+        var answered = 0;
+        store.Answered += (_, _) => answered++;
         store.Publish(DeicePolicyVerdict.Request, "snow", -2, "snow", "EGLL", "Request it?");
 
         Assert.True(store.Snapshot().RequestThisCycle);
         Assert.Null(store.Snapshot().Question);
+        // The policy's own decision, not the captain's answer: no gsx-deice-policy line.
+        Assert.Equal(0, answered);
+        Assert.Equal("policy", store.Snapshot().Asking.Answer?.Source);
     }
 
     [Fact]
@@ -91,8 +114,8 @@ public sealed class DeiceRequestStoreTests
     [Fact]
     public void QuestionTtl_Expires_WithoutAnAnswer()
     {
-        var question = new DeiceQuestion(DateTimeOffset.UtcNow - DeiceRequestSnapshot.QuestionTtl - TimeSpan.FromSeconds(1), "Request it?");
-        var snapshot = DeiceRequestSnapshot.Empty with { Question = question };
+        var question = Question(DateTimeOffset.UtcNow - DeiceRequestSnapshot.QuestionTtl - TimeSpan.FromSeconds(1));
+        var snapshot = DeiceRequestSnapshot.Empty.WithAsking(CaptainsQuestionState.Empty with { Question = question });
         Assert.False(snapshot.QuestionOpen(DateTimeOffset.UtcNow));
     }
 
@@ -108,6 +131,27 @@ public sealed class DeiceRequestStoreTests
         Assert.False(store.Snapshot().QuestionOpen(question.AskedAtUtc + TimeSpan.FromMinutes(12)));
     }
 
+    /// <summary>The silence rule (probe <c>gsx-deice-policy</c>): the only decline without a
+    /// pilot answer is source timeout, at or after expiresAtUtc, reason "no answer within N
+    /// minutes". Before C2 the policy service's own timer did this; now the shared sweeper.</summary>
+    [Fact]
+    public void TtlSweep_DeclinesWithSourceTimeout_AndTheSettingNameInTheReason()
+    {
+        var (store, _) = Make();
+        (bool Accepted, string Source)? answered = null;
+        store.Answered += (_, a) => answered = a;
+        store.Publish(DeicePolicyVerdict.Ask, "snow", -2, "snow", "EGLL", "Request it?");
+        var expires = store.Snapshot().Question!.ExpiresAtUtc!.Value;
+
+        Assert.Equal(CaptainsQuestionExpiry.Never, store.ExpireOverdue(expires - TimeSpan.FromSeconds(1)));
+        Assert.Null(answered);
+
+        Assert.Equal(CaptainsQuestionExpiry.CountsAsNo, store.ExpireOverdue(expires));
+        Assert.Equal((false, "timeout"), answered);
+        Assert.Equal("no answer within 5 minutes (gsx.deice.questionTimeoutMinutes)", store.Snapshot().Declined);
+        Assert.Null(store.Snapshot().Question);
+    }
+
     [Fact]
     public void OptionsTtl_FloorsAtOneMinute()
     {
@@ -121,10 +165,11 @@ public sealed class DeiceRequestStoreTests
     [Fact]
     public void Empty_IsUndecided_UntilTheStepsTurnOrAVerdict()
     {
+        var now = DateTimeOffset.UtcNow;
         Assert.True(DeiceRequestSnapshot.Empty.Undecided);
         Assert.False((DeiceRequestSnapshot.Empty with { StepNext = true }).Undecided);
         Assert.False((DeiceRequestSnapshot.Empty with { Verdict = DeicePolicyVerdict.Off }).Undecided);
-        Assert.False((DeiceRequestSnapshot.Empty with { Declined = "no" }).Undecided);
+        Assert.False(DeiceRequestSnapshot.Empty.WithAsking(CaptainsQuestionRules.Decline(CaptainsQuestionState.Empty, "voice", "no", now)).Undecided);
     }
 
     [Fact]
@@ -145,7 +190,7 @@ public sealed class DeiceRequestStoreTests
     public void MarkStepNext_ReAsksAnOpenQuestionOnce_WithAFreshTtl()
     {
         var (store, _) = Make();
-        var raised = new List<DeiceQuestion>();
+        var raised = new List<CaptainsQuestion>();
         store.QuestionRaised += (_, q) => raised.Add(q);
         store.Publish(DeicePolicyVerdict.Ask, "snow", -2, "snow", "EGLL", "Request it?", TimeSpan.FromMinutes(5));
         var first = store.Snapshot().Question!;
@@ -180,7 +225,7 @@ public sealed class DeiceRequestStoreTests
     public void AQuestionAskedAfterTheStepsTurn_IsAttemptOne_AndNeverReAsked()
     {
         var (store, _) = Make();
-        var raised = new List<DeiceQuestion>();
+        var raised = new List<CaptainsQuestion>();
         store.QuestionRaised += (_, q) => raised.Add(q);
 
         store.MarkStepNext(); // whenStepIsNext: the policy runs here and asks

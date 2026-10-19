@@ -28,8 +28,6 @@
       "atc": "ATC: {0}",
       "gsxSend": "GSX 전송: {0}",
       "gsx": "GSX: {0}",
-      "variantUnknown": "이 스탠드의 제트웨이/VDGS 정보 없음",
-      "variantDetail": "이 스탠드에 {0}",
       "hint": "확인은 순항 시 자동 전송을 예약합니다 (비행 중 나중에 확인하면 즉시). 지금 보내기는 GSX + SayIntentions ATC에 즉시 전송합니다. 확인된 게이트는 앱 재시작 후에도 유지됩니다."
     },
     "weather": {
@@ -62,7 +60,6 @@
       "standRunway": ", 활주로 {0}",
       "standNoRunway": ", OFP에 출발 활주로 없음",
       "noSuggestion": "스탠드 {0}{1} — 아직 제안 없음.",
-      "asking": "GSX가 방향을 묻고 있습니다 — FO에게 말하거나(\"tail left\", \"tail right\", \"push back facing north\") 버튼을 누르세요.",
       "footer": "버튼은 이번 비행에만 적용 · 기본 모드: {0} · 설정 → GSX → 푸시백",
       "mode": {
         "ask": "파일럿에게 묻기",

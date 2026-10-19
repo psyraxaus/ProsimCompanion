@@ -143,7 +143,7 @@ public sealed class DeparturePumpEffectApplierTests : IDisposable
         _signals.RefuelServiceActive += () => refuelActive++;
         _signals.DepartureServicesCompleted += () => departureComplete++;
         _deiceRequest.StepBecameNext += (_, _) => stepNext++;
-        TurnaroundStartQuestion? asked = null;
+        CaptainsQuestion? asked = null;
         _turnaroundStart.QuestionRaised += (_, q) => asked = q;
 
         _applier.Apply(new RaiseRefuelServiceActiveEffect());

@@ -28,8 +28,6 @@
       "atc": "ATC: {0}",
       "gsxSend": "GSX 送信: {0}",
       "gsx": "GSX: {0}",
-      "variantUnknown": "このスタンドのジェットウェイ/VDGS は不明",
-      "variantDetail": "このスタンドに {0}",
       "hint": "「確認」で巡航時の自動送信を予約します（飛行中に後から確認した場合は直ちに）。「今すぐ送信」は GSX + SayIntentions ATC に直ちに送ります。確認済みのゲートはアプリ再起動後も保持されます。"
     },
     "weather": {
@@ -62,7 +60,6 @@
       "standRunway": "、滑走路 {0}",
       "standNoRunway": "、OFP に出発滑走路なし",
       "noSuggestion": "スタンド {0}{1} — まだ提案なし。",
-      "asking": "GSX が方向を尋ねています — FO に伝える（\"tail left\"、\"tail right\"、\"push back facing north\"）か、ボタンを押してください。",
       "footer": "ボタンはこのフライトのみ有効 · 既定モード: {0} · 設定 → GSX → プッシュバック",
       "mode": {
         "ask": "パイロットに確認",
