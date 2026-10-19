@@ -28,7 +28,7 @@ public enum GsxServiceLifecycleEvent
 ///
 /// Driven from the WebSocket receive path; events fire on that thread.
 /// </summary>
-public sealed class GsxServiceLifecycleTracker
+public sealed class GsxServiceLifecycleTracker : IGsxServiceLifecycleView
 {
     private readonly ILogger<GsxServiceLifecycleTracker> _logger;
     private readonly object _gate = new();

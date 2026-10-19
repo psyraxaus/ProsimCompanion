@@ -73,6 +73,31 @@ stand heading and the runway threshold. The configured mode (`auto` / `ask` / fi
 applies when the pilot has not chosen. Resets with the flight cycle and a new OFP.
 _Avoid_: pushback preference (that is the saved default mode), pushback setting
 
+**Departure pump**:
+One evaluation of the departure service sequence, in four fixed steps: the inputs gatherer
+reads every live collaborator into the pure core's inputs, the core decides, the effect
+planner turns the outcome into an ordered effect plan, and the applier performs each effect
+— all under the host's pump lock, except the effects the plan marks for after the lock
+(the de-icing "step next" mark, whose observers pump again). The pushback tick has the same
+four steps. A pump bug is a planner rule or a gatherer read, never a new branch in the host.
+_Avoid_: pump loop, sequencer tick (that is the pushback sequencer's own step)
+
+**Effect plan**:
+The ordered list of effect records one departure pump (or pushback tick) must perform —
+decision lines, store marks, board rows, trigger dispatches, signals — produced by the pure
+planner from the core's outcome and the cycle latches. The order IS the behaviour (#117
+prelim raise after the skip record, #118 reversal line before the dispatch, #169 settle
+stamp before the auto-start); a table test asserts it per scenario.
+_Avoid_: side effects, action list, command queue
+
+**Cycle latches**:
+The departure pump's per-cycle memory the pure core cannot hold — force-next pending, the
+tankering prelim raised, the plan-availability and turnaround settle stamps, the ask-first
+question asked, the arrival OFP baseline, trigger attempts — kept by the host as single-field
+mutations the planner names one by one, so a latch raised while a pump runs is never
+overwritten by that pump's write-back. Reset at the arrival boundary.
+_Avoid_: shell state, pump fields
+
 ### Sim session
 
 **Session window**:
