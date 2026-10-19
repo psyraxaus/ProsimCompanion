@@ -50,6 +50,11 @@
         "hint": "El FO canta cada arranque: starting, available, both stabilized.",
         "more": "Leído de los datos de motor en tierra, una vez por arranque. No hace falta llamada del piloto."
       },
+      "readThrough": {
+        "label": "Leer de corrido las líneas ya correctas",
+        "hint": "Una línea de checklist cuyo interruptor ya está correcto se dice con su respuesta y se completa. No hace falta responder.",
+        "more": "El FO dice la línea y la respuesta de una vez, p. ej. \"Flaps, retracted.\" Las líneas con readback (números, configuración de flaps), las líneas sin valor en vivo de ProSim y las líneas sin dataref siguen esperando tu respuesta. Desactivado: cada línea espera tu respuesta."
+      },
       "pacing": {
         "title": "Ritmo humano",
         "hint": "Pulsaciones de botones a un tempo humano",

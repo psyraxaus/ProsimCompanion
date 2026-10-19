@@ -17,7 +17,6 @@ export interface KeyTile {
 	readonly id: string;
 	setTitle(title?: string): Promise<void>;
 	setImage(image?: string): Promise<void>;
-	showOk(): Promise<void>;
 	showAlert(): Promise<void>;
 }
 
@@ -91,14 +90,22 @@ export abstract class StatusAction<TSettings extends JsonObject = JsonObject> ex
 	}
 }
 
-/** Flash key feedback for a command result and surface the server's reason, if any. */
+/**
+ * Surface a refused command: flash the alert triangle and show the server's reason.
+ * A successful press draws nothing — the key face itself changes colour on the next
+ * status render, and the Stream Deck's green tick overlay on top of that was noise
+ * (owner request, 2026-10-18).
+ */
 export async function showCommandResult(
 	tile: KeyTile,
 	res: { ok: boolean; outcome?: string; reason?: string },
 ): Promise<void> {
 	const good = res.ok && (res.outcome === undefined || res.outcome === "success" || res.outcome === "alreadySatisfied");
-	await (good ? tile.showOk() : tile.showAlert());
-	if (!good && res.reason) {
+	if (good) {
+		return;
+	}
+	await tile.showAlert();
+	if (res.reason) {
 		// Briefly surface the server's reason on the key title; the next state
 		// render clears it.
 		void tile.setTitle(shorten(res.reason));

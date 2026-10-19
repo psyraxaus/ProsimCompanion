@@ -50,6 +50,11 @@
         "hint": "Der FO meldet jeden Triebwerkstart: starting, available, both stabilized.",
         "more": "Am Boden aus den Triebwerksdaten gelesen, einmal pro Start. Kein Pilotenruf nötig."
       },
+      "readThrough": {
+        "label": "Bereits gesetzte Zeilen durchlesen",
+        "hint": "Eine Checklistenzeile, deren Schalter schon richtig steht, wird mit ihrer Antwort gesprochen und abgeschlossen. Keine Antwort nötig.",
+        "more": "Der FO sagt Zeile und Antwort in einem Atemzug, z. B. \"Flaps, retracted.\" Zeilen mit Readback (Zahlen, Flap-Konfiguration), Zeilen ohne Live-Wert aus ProSim und Zeilen ohne Dataref warten weiter auf deine Antwort. Aus: jede Zeile wartet auf dich."
+      },
       "pacing": {
         "title": "Menschliches Tempo",
         "hint": "Tastendrücke in menschlichem Tempo",

@@ -8,6 +8,14 @@
 - Refactor (behaviour-preserving): **the pushback tick is the seam's second adapter** — `PushbackTickGatherer` / `PushbackTickEffectPlanner` / `PushbackTickEffectApplier` over the pure hook core and the beacon sequencer, with `IPushbackGroundActions` (one adapter over the door, jetway/stairs, ground-equipment and menu modules). `GsxPushbackSequenceService` 470 → 96 lines; the on-final door/jetway calls now run under the same catch the sequence actions always had. `GsxGroundPrepCoordinator` is left as is: its stage steps are awaited inside the cycle and their results decide the next transition, so a plan-then-apply split would cut each decision in two; `PrepStageMachine` already pins its hold/reset order.
 - Tests: planner tables for the recent shell bugs (refuel-on-fuel-confirmed hold and its force-next rule, #166 de-ice step-next deferral, #117/#118 tankering prelim raise and reversal, #169 settle stamp and ask-first, the all-done tail), gatherer tests against faked collaborators, applier tests, a runner test proving the after-lock effect sees the lock released, and the same for the pushback tick. CONTEXT.md gains *Departure pump*, *Effect plan* and *Cycle latches*.
 
+## 0.7.0-rc.10
+
+Checklist read-through and the Stream Deck tick, 2026-10-18. A local release-candidate build on top of rc.9 for the owner's sim test the week of 2026-10-19; **not yet verified live**.
+
+- New: **the spoken checklist can read through lines that are already set** (owner request 2026-10-18). With Settings → Voice First Officer → General → *Read through lines already set* on, a verify line whose switch is already in the expected position when the FO reaches it is spoken with its answer in one breath ("Flaps, retracted.") and completed — no reply, no listening window. Lines that need a read-back (numbers, flap config), lines whose dataref ProSim has not reported yet (fail-closed: a value that never arrived can never pass a line), and every line without a dataref condition still wait for the pilot. The visual Checklists page ticks the line like any voice completion; the `checklist.voice.item` session event carries `readThrough`. New setting `speech.checklistReadThroughSatisfied` (off). Probe `checklist-read-through-satisfied`. Unverified live.
+- Fix: **the Stream Deck keys no longer flash the green tick on a successful press** (owner request 2026-10-18). Voice Pause, GSX Service, Next Service and Checklist draw their new state on the key face, so the Stream Deck's own tick overlay on top of the colour change was noise. A refused command still flashes the yellow triangle and shows the server's reason on the key. Rebuild and reinstall the plugin to get it (the installer does this).
+- Everything in 0.7.0-rc.9 below.
+
 ## 0.7.0-rc.9
 
 Kokoro short-callout fix, 2026-10-17. On top of rc.8; the padding was **verified live by the owner on 2026-10-17** (short callouts now sound whole).
