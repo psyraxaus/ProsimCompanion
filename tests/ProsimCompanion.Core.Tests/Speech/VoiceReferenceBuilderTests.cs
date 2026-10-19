@@ -4,6 +4,8 @@ using Moq;
 using ProsimCompanion.Core.Checklists;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.VoiceReference;
+using ProsimCompanion.Speech.Callouts;
+using ProsimCompanion.Speech.Monitoring;
 using ProsimCompanion.Speech.Recognition;
 using ProsimCompanion.Speech.VoiceReference;
 using Xunit;
@@ -11,46 +13,12 @@ using Xunit;
 namespace ProsimCompanion.Core.Tests.Speech;
 
 /// <summary>Issue #136: the drawer is built from the LIVE grammar — described rows survive
-/// only while the feature contributes their phrases, unknown live phrases still show.</summary>
+/// only while the feature contributes their phrases, unknown live phrases still show. Since
+/// the roster (C5) the rows are each feature's own declaration, named by pack text ids.</summary>
 public sealed class VoiceReferenceBuilderTests
 {
     [Fact]
-    public void EveryDescribedFeatureType_ImplementsIVoiceFeature()
-    {
-        foreach (var type in VoiceReferenceDescribers.ByFeatureType.Keys)
-        {
-            Assert.True(typeof(IVoiceFeature).IsAssignableFrom(type), $"{type.Name} is described but is not a voice feature");
-        }
-    }
-
-    [Fact]
-    public void EveryRegisteredFeatureType_IsDescribedOrComposedLive()
-    {
-        // Every IVoiceFeature the speech assembly ships must either have a describer row or be
-        // one of the four composed from their own live data — a new feature added without a
-        // describer would land on the FO tab undescribed.
-        var composedLive = new[]
-        {
-            typeof(ProsimCompanion.Speech.Gsx.GsxVoiceService),
-            typeof(ProsimCompanion.Speech.Crew.CrewHailService),
-            typeof(ProsimCompanion.Speech.Commands.ConfiguredVoiceCommands),
-            typeof(ProsimCompanion.Speech.SayIntentions.SayIntentionsService),
-        };
-        var featureTypes = typeof(IVoiceFeature).Assembly.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && typeof(IVoiceFeature).IsAssignableFrom(t))
-            .Where(t => !t.IsNested) // test fakes and private helpers are never registered
-            .ToList();
-
-        Assert.NotEmpty(featureTypes);
-        var missing = featureTypes
-            .Where(t => !VoiceReferenceDescribers.ByFeatureType.ContainsKey(t) && !composedLive.Contains(t))
-            .Select(t => t.Name)
-            .ToList();
-        Assert.True(missing.Count == 0, "Undescribed voice features: " + string.Join(", ", missing));
-    }
-
-    [Fact]
-    public void Matches_ExactOrKeyPlusValue()
+    public void Matches_ExactOrNamePlusValue()
     {
         Assert.True(VoiceReferenceBuilder.Matches("set heading", "set heading"));
         Assert.True(VoiceReferenceBuilder.Matches("set heading", "Set Heading"));
@@ -77,16 +45,24 @@ public sealed class VoiceReferenceBuilderTests
     [Fact]
     public void Build_KeepsDescribedRowsOnlyWhileLive_AndShowsUnknownLivePhrases()
     {
-        // A gear feature that (hypothetically) lost "gear down" and gained "gear check".
-        var gear = new FakeFeature(typeof(ProsimCompanion.Speech.Callouts.GearCallFeature), enabled: true, "gear up", "gear check");
-        var builder = Builder([gear]);
+        // The real gear declaration describes "gear up" and "gear down"; this feature
+        // (hypothetically) lost "gear down" and gained "gear check".
+        var gear = new FakeFeature(GearCallFeature.Declared, enabled: true, "gear up", "gear check");
 
-        var snapshot = builder.Build();
+        var snapshot = Builder([gear]).Build();
 
-        // The fake is not the real type, so it lands as an unknown feature — every phrase listed.
-        var group = Assert.Single(snapshot.Groups, g => g.Id == nameof(FakeFeature));
-        Assert.Equal(["gear up", "gear check"], group.Entries.SelectMany(e => e.Phrases));
+        var group = Assert.Single(snapshot.Groups, g => g.Id == "gear");
+        Assert.Equal("voiceReference.group.gear.title", group.Title.TextId);
         Assert.True(group.Enabled);
+        Assert.Equal(2, group.Entries.Count);
+        var described = group.Entries[0];
+        Assert.Equal(["gear up"], described.Phrases);
+        Assert.Equal("voiceReference.group.gear.up", described.What!.TextId);
+        Assert.Equal("Gear up.", described.Answer);
+        var unknown = group.Entries[1];
+        Assert.Equal(["gear check"], unknown.Phrases);
+        Assert.Null(unknown.What);
+        Assert.DoesNotContain(group.Entries, e => e.Phrases.Contains("gear down"));
     }
 
     [Fact]
@@ -100,6 +76,7 @@ public sealed class VoiceReferenceBuilderTests
             Assert.Contains(command, phrases);
         }
         Assert.Contains("belay that", phrases);
+        Assert.All(snapshot.AlwaysAvailable, e => Assert.StartsWith("voiceReference.always.", e.What!.TextId, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -109,59 +86,85 @@ public sealed class VoiceReferenceBuilderTests
 
         var checklists = Assert.Single(snapshot.Groups, g => g.Id == "checklists");
         Assert.Equal(VoiceReferenceTab.Checklists, checklists.Tab);
-        Assert.Contains(checklists.Entries, e => e.Phrases.Contains("before start checklist"));
+        var beforeStart = Assert.Single(checklists.Entries, e => e.Phrases.Contains("before start checklist"));
+        Assert.Equal("voiceReference.group.checklists.start", beforeStart.What!.TextId);
+        Assert.Equal(["Before Start"], beforeStart.What.Arguments);
         Assert.DoesNotContain(checklists.Entries, e => e.Phrases.Any(p => p.StartsWith("request ", StringComparison.Ordinal)));
 
         var drills = Assert.Single(snapshot.Groups, g => g.Id == "drills");
         var drill = Assert.Single(drills.Entries);
         Assert.Equal(["windshear escape", "windshear drill"], drill.Phrases);
-        Assert.Contains("Windshear escape", drill.What, StringComparison.Ordinal);
+        Assert.Equal("voiceReference.group.drills.rehearse", drill.What!.TextId);
+        Assert.Equal(["Windshear escape"], drill.What.Arguments);
     }
 
     [Fact]
-    public void Build_DisabledFeature_StaysListedDimmed()
+    public void Build_DisabledFeature_StaysListedDimmed_WithItsGatesReason()
     {
-        var off = new FakeFeature(typeof(FakeFeature), enabled: false, "quiet please");
+        var alwaysOn = new FakeFeature(FakeVoiceFeatureDeclaration.Plain, enabled: false, "quiet please");
+        var gated = new FakeFeature(StandaloneReadbacks.Declared, enabled: false, "altimeter");
 
-        var group = Assert.Single(Builder([off]).Build().Groups, g => g.Id == nameof(FakeFeature));
+        var snapshot = Builder([alwaysOn, gated]).Build();
 
-        Assert.False(group.Enabled);
-        Assert.Equal("switched off", group.DisabledReason);
-        Assert.Single(group.Entries);
+        // An always-on declaration that is nonetheless off falls back to the drawer's own word.
+        var plain = Assert.Single(snapshot.Groups, g => g.Id == "fake");
+        Assert.False(plain.Enabled);
+        Assert.Equal(VoiceReferenceTextIds.SwitchedOff, plain.DisabledReason!.TextId);
+        Assert.Single(plain.Entries);
+
+        // A gated one names its option through the gate's text.
+        var readbacks = Assert.Single(snapshot.Groups, g => g.Id == "readbacks");
+        Assert.False(readbacks.Enabled);
+        Assert.Equal(VoiceReferenceTextIds.OffMonitoring, readbacks.DisabledReason!.TextId);
+        Assert.Equal(["sop.monitoring.readbacks.enabled"], readbacks.DisabledReason.Arguments);
     }
 
     [Fact]
-    public void Describers_InFlightMonitoring_PointAtTheSettingsCard_AndMarkReadbackValues()
+    public void Build_ListsFeaturesInRosterOrder_NotRegistrationOrder()
     {
-        // Issue #148: the three voice-facing monitors (the weather watch has no phrases). The
-        // builder keys on the real feature type, so the table itself is checked here.
-        var fuel = VoiceReferenceDescribers.ByFeatureType[typeof(ProsimCompanion.Speech.Monitoring.FuelCheckMonitor)];
-        var gross = VoiceReferenceDescribers.ByFeatureType[typeof(ProsimCompanion.Speech.Monitoring.GrossErrorCheckMonitor)];
-        var readbacks = VoiceReferenceDescribers.ByFeatureType[typeof(ProsimCompanion.Speech.Monitoring.StandaloneReadbacks)];
+        var later = new FakeFeature(FakeVoiceFeatureDeclaration.At(20, "later"), enabled: true, "later phrase");
+        var earlier = new FakeFeature(FakeVoiceFeatureDeclaration.At(10, "earlier"), enabled: true, "earlier phrase");
 
-        foreach (var describer in new[] { fuel, gross, readbacks })
+        var groups = Builder([later, earlier]).Build().Groups.Where(g => g.Id is "later" or "earlier").Select(g => g.Id).ToList();
+
+        Assert.Equal(["earlier", "later"], groups);
+    }
+
+    [Fact]
+    public void Declarations_InFlightMonitoring_PointAtTheSettingsCard_AndMarkReadbackValues()
+    {
+        // Issue #148: the three voice-facing monitors (the weather watch has no phrases).
+        var fuel = FuelCheckMonitor.Declared;
+        var gross = GrossErrorCheckMonitor.Declared;
+        var readbacks = StandaloneReadbacks.Declared;
+
+        foreach (var declaration in new[] { fuel, gross, readbacks })
         {
-            Assert.Contains("In-flight monitoring", describer.DisabledReason, StringComparison.Ordinal);
-            Assert.Equal(VoiceReferenceTab.FirstOfficer, describer.Tab);
+            Assert.Equal(VoiceReferenceTextIds.OffMonitoring, declaration.Gate.OffTextId);
+            Assert.Equal(VoiceReferenceTab.FirstOfficer, Assert.IsType<DescribedVoiceReference>(declaration.Description).Tab);
         }
 
-        Assert.Contains("fuel check", fuel.Entries.SelectMany(e => e.Phrases));
-        Assert.Contains("gross error check", gross.Entries.SelectMany(e => e.Phrases));
+        Assert.Contains("fuel check", Rows(fuel).SelectMany(r => r.Phrases));
+        Assert.Contains("gross error check", Rows(gross).SelectMany(r => r.Phrases));
         // Four read-backs with a figure, plus the figure-less "altimeter standard" (#148, 2026-10-11).
-        Assert.Equal(5, readbacks.Entries.Length);
-        var withFigure = readbacks.Entries.Where(e => !e.Phrases.Contains("altimeter standard")).ToList();
+        var readbackRows = Rows(readbacks);
+        Assert.Equal(5, readbackRows.Count);
+        var withFigure = readbackRows.Where(r => !r.Phrases.Contains("altimeter standard")).ToList();
         Assert.Equal(4, withFigure.Count);
-        Assert.All(withFigure, e =>
+        Assert.All(withFigure, r =>
         {
-            Assert.Contains(VoiceReferenceDescribers.Value, e.Badges!);
-            Assert.NotNull(e.ValueHint);
+            Assert.Contains(VoiceBadges.Value, r.Badges!);
+            Assert.NotNull(r.ValueHint);
         });
-        Assert.Contains(readbacks.Entries, e => e.Phrases.Contains("read back altimeter"));
+        Assert.Contains(readbackRows, r => r.Phrases.Contains("read back altimeter"));
         // Every described lead-in is one the parser accepts.
-        Assert.All(readbacks.Entries.SelectMany(e => e.Phrases), p => Assert.Contains(p, ProsimCompanion.Speech.Monitoring.ReadbackCore.LeadIns));
+        Assert.All(readbackRows.SelectMany(r => r.Phrases), p => Assert.Contains(p, ReadbackCore.LeadIns));
     }
 
     // ---- fixture ---------------------------------------------------------------------------
+
+    private static IReadOnlyList<VoiceReferenceRow> Rows(VoiceFeatureDeclaration declaration)
+        => Assert.IsType<DescribedVoiceReference>(declaration.Description).Rows;
 
     private static VoiceReferenceBuilder Builder(IEnumerable<IVoiceFeature> features)
     {
@@ -177,7 +180,7 @@ public sealed class VoiceReferenceBuilderTests
             ("Windshear escape", (IReadOnlyList<string>)["windshear escape", "windshear drill"]),
         ]);
         return new VoiceReferenceBuilder(
-            features,
+            new VoiceFeatureRoster(features),
             checklists.Object,
             drills.Object,
             Options(new SpeechOptions()),
@@ -193,9 +196,9 @@ public sealed class VoiceReferenceBuilderTests
         return monitor.Object;
     }
 
-    private sealed class FakeFeature(Type mimics, bool enabled, params string[] phrases) : IVoiceFeature
+    private sealed class FakeFeature(VoiceFeatureDeclaration declaration, bool enabled, params string[] phrases) : IVoiceFeature
     {
-        public Type Mimics { get; } = mimics;
+        public VoiceFeatureDeclaration Declaration => declaration;
         public bool Enabled => enabled;
         public IEnumerable<string> Phrases => phrases;
         public bool ValueParse => false;
