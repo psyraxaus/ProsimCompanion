@@ -1,0 +1,223 @@
+@* The one field renderer of the settings pages (candidate C3, 2026-10-19). A page names the
+   draft and the property — <OptionField Draft="_speech" For="o => o.Volume" /> — and this
+   component looks up the property's [OptionField] description (kind, texts, bounds, choice
+   list, disabled-when, Browse… dialog) and delegates to the EXISTING field component for that
+   kind, with exactly the parameters the page used to type by hand. The rendered DOM is the
+   field component's own; nothing is wrapped. What stays with the page: the lists only it can
+   build (detected devices, live voice lists), a text computed at runtime, and a disabled
+   condition that reaches outside the property's own section (a list row gated by a draft
+   switch) — each is a parameter here, never a second copy of the description.
+   A write goes into the draft's clone and then tells the draft (MarkEdited), so the page
+   re-renders its DirtyBar and the dependent fields the way @bind used to make it. List rows
+   (an approach gate, a wake-on-LAN target) use Item + ItemOf instead of Draft. *@
+@typeparam TOwner where TOwner : class
+@using System.Linq.Expressions
+@using ProsimCompanion.Core.Localization
+@inject LanguagePackCatalog Packs
+@inject IStringLocalizer T
+
+@switch (Description.Kind)
+{
+    case FieldKind.Bool:
+        <BoolField Label="@LabelText" Hint="@HintText" More="@MoreText" Disabled="@IsDisabled"
+                   Value="@((bool)Value!)" ValueChanged="@((bool v) => WriteAsync(v))" />
+        break;
+
+    case FieldKind.Number when ValueType == typeof(int):
+        <NumberField TValue="int" Label="@LabelText" Hint="@HintText" More="@MoreText" Disabled="@IsDisabled"
+                     Suffix="@Spec.Suffix" Step="@Spec.Step" Min="@Spec.Min" Max="@Spec.Max" Default="@DefaultValue"
+                     Value="@((int)Value!)" ValueChanged="@((int v) => WriteAsync(v))" />
+        break;
+
+    case FieldKind.Number:
+        <NumberField TValue="double" Label="@LabelText" Hint="@HintText" More="@MoreText" Disabled="@IsDisabled"
+                     Suffix="@Spec.Suffix" Step="@Spec.Step" Min="@Spec.Min" Max="@Spec.Max" Default="@DefaultValue"
+                     Value="@((double)Value!)" ValueChanged="@((double v) => WriteAsync(v))" />
+        break;
+
+    case FieldKind.Range when ValueType == typeof(int):
+        <RangeField TValue="int" Label="@LabelText" Hint="@HintText" More="@MoreText" Disabled="@IsDisabled"
+                    Suffix="@Spec.Suffix" Step="@Spec.Step" Min="@Spec.Min"
+                    DefaultFrom="@DefaultValue" DefaultTo="@DefaultRangeEnd"
+                    From="@((int)Value!)" FromChanged="@((int v) => WriteAsync(v))"
+                    To="@((int)RangeEndValue!)" ToChanged="@((int v) => WriteRangeEndAsync(v))" />
+        break;
+
+    case FieldKind.Range:
+        <RangeField TValue="double" Label="@LabelText" Hint="@HintText" More="@MoreText" Disabled="@IsDisabled"
+                    Suffix="@Spec.Suffix" Step="@Spec.Step" Min="@Spec.Min"
+                    DefaultFrom="@DefaultValue" DefaultTo="@DefaultRangeEnd"
+                    From="@((double)Value!)" FromChanged="@((double v) => WriteAsync(v))"
+                    To="@((double)RangeEndValue!)" ToChanged="@((double v) => WriteRangeEndAsync(v))" />
+        break;
+
+    case FieldKind.Text:
+        <TextField Label="@LabelText" TallyKey="@TallyText" Hint="@HintText" More="@MoreText" Disabled="@IsDisabled"
+                   Placeholder="@PlaceholderText" Password="@Spec.Password" Kind="@Spec.TextKind"
+                   BrowseFilter="@Spec.BrowseFilter" BrowseFileName="@Spec.BrowseFileName" BrowseStartIn="@BrowseFolders.Resolve(Spec.BrowseStartIn)"
+                   Value="@((Value as string) ?? "")" ValueChanged="@((string v) => WriteTextAsync(v))" />
+        break;
+
+    case FieldKind.Select:
+        <SelectField Label="@LabelText" Hint="@HintText" More="@MoreText" Disabled="@IsDisabled"
+                     Options="@ChoiceRows" Value="@_binding.SelectText(Root)" ValueChanged="@((string v) => WriteAsync(v))" />
+        break;
+
+    case FieldKind.VoicePicker:
+        <VoicePickerField Label="@LabelText" Hint="@HintText" More="@MoreText" Disabled="@IsDisabled"
+                          Groups="@(VoiceGroups ?? [])" PlainIds="@Spec.PlainIds" BlankLabel="@BlankLabelText" EmptyListHint="@EmptyListHintText"
+                          Value="@((Value as string) ?? "")" ValueChanged="@((string v) => WriteAsync(v))" />
+        break;
+
+    default:
+        throw new InvalidOperationException($"{Description.Name}: a {Description.Kind} field is rendered by its lower bound's row, not on its own.");
+}
+
+@code {
+    private OptionFieldBinding _binding = default!;
+    private OptionFieldTextIds _ids = default!;
+
+    /// <summary>The section draft the property lives in (the usual case).</summary>
+    [Parameter]
+    public IOptionsDraft<TOwner>? Draft { get; set; }
+
+    /// <summary>A list row (an approach gate, a wake target) whose property is edited; with
+    /// <see cref="ItemOf"/>, the draft that owns the list.</summary>
+    [Parameter]
+    public TOwner? Item { get; set; }
+
+    /// <summary>The draft an <see cref="Item"/> belongs to — told about the edit so the page
+    /// re-renders its DirtyBar.</summary>
+    [Parameter]
+    public OptionsDraft? ItemOf { get; set; }
+
+    /// <summary>The property, as a chain on the owner: <c>o =&gt; o.Humanize.Tempo</c>.</summary>
+    [Parameter, EditorRequired]
+    public Expression<Func<TOwner, object?>> For { get; set; } = default!;
+
+    /// <summary>An extra disabled condition the description cannot express (a list row gated by
+    /// a draft-level switch, a provider off), OR-ed with the declared dependencies.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>The rows of a runtime choice list (detected devices); required when the
+    /// description names a list the static catalog does not have.</summary>
+    [Parameter]
+    public IReadOnlyList<(string Value, string Label)>? Choices { get; set; }
+
+    /// <summary>The live provider lists of a voice picker.</summary>
+    [Parameter]
+    public IReadOnlyList<VoiceGroup>? VoiceGroups { get; set; }
+
+    /// <summary>A hint computed at runtime, replacing the pack text.</summary>
+    [Parameter]
+    public string? Hint { get; set; }
+
+    /// <summary>A "More" fold computed at runtime, replacing the pack text.</summary>
+    [Parameter]
+    public string? More { get; set; }
+
+    /// <summary>A placeholder computed at runtime (the detected folders), replacing the declared one.</summary>
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    /// <summary>Raised after the value was written — for the rare coupling between two fields
+    /// (picking a SayIntentions PTT switch also sets the ATC mute while that is still off).</summary>
+    [Parameter]
+    public EventCallback Changed { get; set; }
+
+    private OptionFieldDescription Description => _binding.Description;
+
+    private OptionFieldAttribute Spec => Description.Spec;
+
+    private Type ValueType => _binding.ValueType;
+
+    private object Root => (object?)Draft?.Value ?? Item
+        ?? throw new InvalidOperationException($"OptionField for {Description.Name} needs a Draft or an Item.");
+
+    private object? Value => _binding.Get(Root);
+
+    private object? RangeEndValue => _binding.GetRangeEnd(Root);
+
+    private bool IsDisabled => Disabled || !_binding.IsEnabled(Root);
+
+    /// <summary>The out-of-the-box value for the reset button — from the draft's fresh instance,
+    /// never duplicated in the description. List rows show none (as their hand-written rows did).</summary>
+    private object? DefaultValue => Draft is null || Spec.NoDefault ? null : _binding.Get(Draft.Defaults);
+
+    private object? DefaultRangeEnd => Draft is null || Spec.NoDefault ? null : _binding.GetRangeEnd(Draft.Defaults);
+
+    private string LabelText => T[_ids.Label].Value;
+
+    private string? HintText => Hint ?? Text(_ids.Hint);
+
+    private string? MoreText => More ?? Text(_ids.More);
+
+    private string? PlaceholderText => Placeholder ?? Text(_ids.Placeholder) ?? Spec.Placeholder;
+
+    private string? TallyText => Text(_ids.Tally);
+
+    private string? BlankLabelText => Text(_ids.BlankLabel);
+
+    private string? EmptyListHintText => Text(_ids.EmptyListHint);
+
+    private string? Text(string? textId) => textId is null ? null : T[textId].Value;
+
+    private IReadOnlyList<(string Value, string Label)> ChoiceRows
+        => Choices
+           ?? FieldChoiceCatalog.Resolve(Spec.Choices!, T)
+           ?? throw new InvalidOperationException(
+               $"{Description.Name} names the choice list '{Spec.Choices}', which the catalog does not have — pass it with Choices=\"…\".");
+
+    protected override void OnParametersSet()
+    {
+        if (For is null)
+        {
+            throw new InvalidOperationException("OptionField needs For=\"o => o.Property\".");
+        }
+
+        if ((Draft is null) == (Item is null))
+        {
+            throw new InvalidOperationException("OptionField takes exactly one of Draft or Item.");
+        }
+
+        _binding = OptionFieldBinding.For(For);
+        if (Description.Kind == FieldKind.RangeUpper)
+        {
+            throw new InvalidOperationException($"{Description.Name} is a Range's upper bound; render the lower bound ({Spec.RangeStart}) instead.");
+        }
+
+        // The English pack is the source of truth for which derived texts exist (ADR-0014).
+        var english = Packs.Find(LanguagePackCatalog.DefaultCode);
+        _ids = OptionFieldTexts.Resolve(Description, id => english?.Strings.ContainsKey(id) is true);
+    }
+
+    private Task WriteTextAsync(string text)
+        => WriteAsync(Spec.EmptyAsNull && text.Length == 0 ? null : text);
+
+    private async Task WriteAsync(object? value)
+    {
+        _binding.Set(Root, value);
+        await Changed.InvokeAsync();
+        Edited();
+    }
+
+    private async Task WriteRangeEndAsync(object? value)
+    {
+        _binding.SetRangeEnd(Root, value);
+        await Changed.InvokeAsync();
+        Edited();
+    }
+
+    private void Edited()
+    {
+        if (Draft is not null)
+        {
+            Draft.MarkEdited();
+        }
+        else
+        {
+            ItemOf?.MarkEdited();
+        }
+    }
+}

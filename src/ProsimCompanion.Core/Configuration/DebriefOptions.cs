@@ -10,13 +10,16 @@ public sealed class DebriefOptions : IOptionSection
 {
     public static string SectionName => "debrief";
 
+    [OptionField(FieldKind.Bool, "speechSettings.common.enabled")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>"full" (default) or "brief" — brief omits the activity counts and fuel-used lines.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.company.debrief.length", Choices = "debriefVerbosity", DependsOn = "Enabled", Normalize = FieldNormalization.TrimLower)]
     public string Verbosity { get; set; } = "full";
 
     /// <summary>Style the debrief with the LLM when the briefing's LLM is enabled and a model
     /// is configured. Off = always the deterministic template. This is the debrief's own
     /// opt-out; the endpoint itself lives in the briefing section's <c>llm*</c> keys.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.company.debrief.style", DependsOn = "Enabled")]
     public bool UseLlm { get; set; } = true;
 }

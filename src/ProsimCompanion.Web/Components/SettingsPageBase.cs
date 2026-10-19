@@ -64,6 +64,9 @@ public abstract class SettingsPageBase : StoreObserverComponent
     {
         ArgumentNullException.ThrowIfNull(monitor);
         var draft = new OptionsDraft<TOptions>(() => monitor.CurrentValue);
+        // An OptionField writes into the clone and raises this (C3); the page re-renders its
+        // DirtyBar and the dependent fields, as @bind made it do when every field was its own.
+        draft.Edited += StateHasChanged;
         _drafts.Add(draft);
         return draft;
     }
@@ -79,6 +82,14 @@ public abstract class SettingsPageBase : StoreObserverComponent
 
         try
         {
+            // The declared normalisation first (trims, case folds — one rule per property,
+            // C3), then whatever the page still has to say (a coupling between two properties,
+            // a list to prune); the diff decides what changed after both.
+            foreach (var draft in _drafts)
+            {
+                draft.Normalize();
+            }
+
             OnBeforeSave();
             Writer.Save(_drafts);
             OnAfterSave();
@@ -115,8 +126,10 @@ public abstract class SettingsPageBase : StoreObserverComponent
         OnDiscarded();
     }
 
-    /// <summary>Input normalization (trims, empty-to-null) applied to the drafts before the
-    /// diff decides what changed.</summary>
+    /// <summary>What the page itself still has to do before the diff decides what changed,
+    /// AFTER every draft's declared normalisation ran: a rule between two properties (the FO
+    /// voice filling its provider's fallback), a legacy blanking, a list to prune. Per-property
+    /// trims and case folds belong on the property's <see cref="OptionFieldAttribute"/>, not here.</summary>
     protected virtual void OnBeforeSave()
     {
     }

@@ -15,24 +15,30 @@ public sealed class VoicesOptions : IOptionSection
     public static string SectionName => "voices";
 
     /// <summary>Cabin purser voice id (default is a Kokoro id). Blank = FO voice.</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.voices.crew.purser", BlankLabel = "speechSettings.common.sameAsFo", EmptyListHint = "speechSettings.voiceNotes.emptyHint", Normalize = FieldNormalization.Trim)]
     public string Purser { get; set; } = "kokoro:af_heart";
 
     /// <summary>Company / dispatch voice id (default is a Kokoro id). Blank = FO voice.</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.voices.crew.company", BlankLabel = "speechSettings.common.sameAsFo", EmptyListHint = "speechSettings.voiceNotes.emptyHint", Normalize = FieldNormalization.Trim)]
     public string Company { get; set; } = "kokoro:am_onyx";
 
     /// <summary>Ground-crew voice id (default is a Kokoro id). Blank = FO voice. May be
     /// overridden per airport by accent localization (<see cref="AccentOptions"/>).</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.voices.crew.ground", BlankLabel = "speechSettings.common.sameAsFo", EmptyListHint = "speechSettings.voiceNotes.emptyHint", Normalize = FieldNormalization.Trim)]
     public string Ground { get; set; } = "kokoro:am_michael";
 
     /// <summary>Apply the interphone band-pass to purser speech (matches the real interphone
     /// timbre), regardless of the FO's own intercom-filter setting.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.voices.crew.purserFilter")]
     public bool PurserIntercomFilter { get; set; } = true;
 
     /// <summary>Apply the interphone filter to ground-crew speech — ground talks to the
     /// flight deck on the INT interphone, same timbre as the purser.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.voices.crew.groundFilter")]
     public bool GroundIntercomFilter { get; set; } = true;
 
     /// <summary>Apply the interphone filter to company speech. Off by default — a company
     /// message is an ACARS readout, not interphone audio.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.voices.crew.companyFilter")]
     public bool CompanyIntercomFilter { get; set; }
 }
