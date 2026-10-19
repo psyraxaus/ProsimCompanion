@@ -33,6 +33,248 @@
       "sayAfter": "",
       "edit": "Phrasen bearbeiten · commands.json",
       "editTitle": "Deine eigenen Phrasen liegen in commands.json (Benutzer-Konfigurationsordner)"
+    },
+    "off": {
+      "speechFo": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier",
+      "mcdu": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → MCDU",
+      "monitoring": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Callouts & Placards → Überwachung im Flug",
+      "gsxSettings": "{0} ist aus — Einstellungen → GSX",
+      "groundServices": "{0} ist aus — Einstellungen → Bodendienste",
+      "bare": "{0} ist aus",
+      "gsxPillar": "GSX-Modul läuft nicht",
+      "sayIntentions": "SayIntentions ist aus — Einstellungen → Sprach-Erster-Offizier → SayIntentions",
+      "groundCrew": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Bodencrew",
+      "cabinCrew": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Kabinencrew",
+      "notInBuild": "in diesem Build nicht verfügbar",
+      "foQuestions": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Briefings & LLM → Den Ersten Offizier fragen",
+      "cruiseQuery": "{0} ist aus — Einstellungen → Sprach-Erster-Offizier → Kabinencrew → Purser-Rückfrage im Reiseflug"
+    },
+    "always": {
+      "skip": "Den aktuellen Checklistenpunkt überspringen.",
+      "sayAgain": "Den aktuellen Punkt wiederholen.",
+      "hold": "Die Checkliste anhalten.",
+      "resume": "Eine angehaltene Checkliste fortsetzen.",
+      "cancel": "Die laufende Checkliste abbrechen.",
+      "restart": "Die aktive Checkliste neu starten.",
+      "negative": "Eine anstehende FCU-, Funk- oder MCDU-Aktion abbrechen."
+    },
+    "group": {
+      "roles": {
+        "title": "Steuerübergabe",
+        "handover": "Übergib dem FO das Flugzeug. In der Luft bittet der FO dich zuerst um Bestätigung.",
+        "confirm": "Eine Übergabe in der Luft bestätigen.",
+        "takeBack": "Das Flugzeug zurücknehmen — sofort, bricht auch jede anstehende FCU- oder MCDU-Aktion ab.",
+        "pmCall": "Dein Pilot-Monitoring-Call, während der FO fliegt."
+      },
+      "fcu": {
+        "title": "FCU — während der FO Pilot Flying ist",
+        "heading": "Heading setzen. Der FO liest zurück, wartet 3 s auf „negative“, setzt dann und prüft.",
+        "flightLevel": "Die Höhe als Flight Level setzen.",
+        "speed": "Die Geschwindigkeit setzen (100–399 kt).",
+        "verticalSpeed": "V/S setzen. Sage „descend“ oder „down“ für einen Sinkflug.",
+        "speedMode": "Speed managed oder selected.",
+        "altitudeMode": "Höhenknopf ziehen, drücken oder EXPED.",
+        "engage": "AP1, AP2 oder A/THR.",
+        "arm": "APPR oder LOC.",
+        "ownNav": "Heading zurück auf managed.",
+        "negative": "Eine anstehende FCU- oder Funk-Aktion innerhalb ihres 3-s-Fensters abbrechen."
+      },
+      "radios": {
+        "title": "Funkgeräte",
+        "tune": "Eine Standby-Frequenz rasten (118.000–136.990); der FO liest zurück, setzt dann und prüft.",
+        "standby": "Die Standby-Frequenz dieses Geräts rasten.",
+        "swap": "Aktiv und Standby tauschen."
+      },
+      "engineFlap": {
+        "title": "Triebwerks- & Klappen-Calls",
+        "engineStart": "Bestätigung des Triebwerkstarts.",
+        "flapsOne": "Prüfung der Placard-Speed — nichts wird bewegt.",
+        "flapsCheck": "Prüfung der Placard-Speed.",
+        "flapsUp": "Bestätigung des Klappeneinfahrens."
+      },
+      "gear": {
+        "title": "Fahrwerk",
+        "up": "Der FO bewegt den Hebel — verweigert am Boden oder über dem Einfahrlimit.",
+        "down": "Der FO bewegt den Hebel — verweigert über dem Ausfahrlimit."
+      },
+      "chrono": {
+        "title": "Takeoff",
+        "takeoff": "Startet den FO-Chrono beim Startlauf (stoppt beim Aufsetzen)."
+      },
+      "announcements": {
+        "title": "Flight-Mode-Calls",
+        "fma": "FMA-Ansage beim Start.",
+        "capture": "Localizer-/Glideslope-Capture-Call.",
+        "altCapture": "Altitude-Capture-Call.",
+        "manualFlight": "Ansage „manual flight“.",
+        "continue": "Deine Entscheidung an den Minimums."
+      },
+      "mcduRead": {
+        "title": "MCDU — lesen",
+        "page": "Der FO liest die aktuelle MCDU-Seite vor.",
+        "scratchpad": "Liest nur den Scratchpad."
+      },
+      "mcduRadNav": {
+        "title": "MCDU — ILS",
+        "tune": "Der FO rastet das Anflug-ILS auf RAD NAV.",
+        "abort": "Das Rasten abbrechen."
+      },
+      "mcduArrival": {
+        "title": "MCDU — Landebahn",
+        "change": "Der FO ändert Landebahn und ILS (LAT REV → ARRIVAL → insert)."
+      },
+      "briefings": {
+        "title": "Briefings",
+        "departure": "Departure-Briefing aus FMS-Plan, Navdata und Live-Wetter.",
+        "arrival": "Arrival-Briefing — der FO bittet dich zuerst, die Minimums zu bestätigen.",
+        "approaches": "Die Navdata-Anflüge für die Landebahn."
+      },
+      "missedApproach": {
+        "title": "Missed Approach",
+        "rebrief": "Den Missed Approach erneut briefen."
+      },
+      "minima": {
+        "title": "Minimums",
+        "query": "Die Minima, die du im Arrival-Briefing bestätigt hast."
+      },
+      "company": {
+        "title": "Company",
+        "loadsheet": "Gesprochenes Loadsheet aus Live-Gewichten, Pax und CG (ACARS-Chime).",
+        "lastMessage": "Wiederholt die letzte Company-Nachricht."
+      },
+      "day": {
+        "title": "Dienstag",
+        "start": "Startet den Company-Diensttag.",
+        "end": "Beendet ihn mit einer Zusammenfassung und dem Logbuch-Abschluss."
+      },
+      "fuelCheck": {
+        "title": "Fuel Check",
+        "check": "Kraftstoff an Bord gegen den SimBrief-Plan an deiner Position und der geschätzte Landekraftstoff gegen den Planwert. Im Reiseflug auch automatisch."
+      },
+      "grossErrorCheck": {
+        "title": "Gross Error Check",
+        "check": "Die Gewichte des Flugzeugs gegen das finale Loadsheet und die FMS-PERF-Einträge gegen die letzte Takeoff-Performance-Berechnung. Auch automatisch, sobald finales Loadsheet und V-Speeds vorliegen."
+      },
+      "readbacks": {
+        "title": "Read-backs",
+        "altimeter": "Lies die Altimeter-Einstellung zurück; der FO prüft sie gegen dein Baro. „Read back“, „check“ oder „confirm“ dürfen voranstehen.",
+        "standard": "Standarddruck gesetzt; der FO prüft, dass das Baro 1013 zeigt.",
+        "vSpeeds": "Lies V1, Rotate und V2 zurück; der FO prüft sie gegen das FMS.",
+        "runway": "Lies die Runway zurück; der FO prüft sie gegen den FMS-Plan.",
+        "minimums": "Lies die Minimums zurück; der FO prüft sie gegen die gebrieften Minima."
+      },
+      "logbook": {
+        "title": "Logbuch",
+        "summary": "Deine Logbuch-Summen.",
+        "count": "Eine Zahl.",
+        "daySummary": "Der letzte Diensttag.",
+        "landingStats": "Landungen an einem Flughafen."
+      },
+      "techLog": {
+        "title": "Tech Log",
+        "openItems": "Liest die offenen Defekte vor."
+      },
+      "techLogDialogue": {
+        "title": "Tech Log — melden / beheben",
+        "raise": "Geführt: der Defekt, dann die MEL-Kategorie (bravo, charlie, delta), dann bestätigen.",
+        "rectify": "Geführt: „Rectify …? Affirm or negative.“"
+      },
+      "debrief": {
+        "title": "Debriefing",
+        "debrief": "Gesprochenes Debriefing nach dem Flug."
+      },
+      "quiet": {
+        "title": "Ruhe",
+        "quiet": "Stellt das Plaudern für den Rest der Sitzung ab (Checklisten und Callouts sprechen weiter)."
+      },
+      "disregard": {
+        "title": "Disregard",
+        "disregard": "Bricht die Durchsage ab, die der FO gerade spricht (Flugzeugzustand, Parkposition, verlorener Call), und bestätigt — läuft nichts, nur die Bestätigung."
+      },
+      "aircraftState": {
+        "title": "Flugzeugzustand",
+        "recheck": "Führt die Cold-and-dark-Prüfung erneut aus; der FO liest das Ergebnis vor."
+      },
+      "pushbackDirection": {
+        "title": "Pushback-Richtung",
+        "tailLeft": "Der Push dieses Flugs: GSX „Nose Right / Tail Left“. Wird angewendet, wenn GSX das Richtungsmenü zeigt.",
+        "tailRight": "Der Push dieses Flugs: GSX „Nose Left / Tail Right“.",
+        "straight": "Der Push dieses Flugs: „Straight pushback“.",
+        "facing": "Gib die ATC-Richtung weiter; der FO wählt die Route, die in diese Richtung endet (jeder der acht Kompasspunkte).",
+        "which": "Deine Wahl für diesen Flug, oder der Vorschlag des FO zur Startbahn hin."
+      },
+      "gsx": {
+        "title": "Bodendienste",
+        "start": "Die Abflugsequenz starten (oder, wenn sie läuft, den nächsten Dienst rufen).",
+        "command": {
+          "forceNextService": "Der INT/RAD-Smart-Button — den nächsten Dienst jetzt rufen.",
+          "requestBoarding": "Boarding anfordern.",
+          "requestRefuel": "Den Tankwagen bestellen.",
+          "confirmFuel": "Den Block Fuel bestätigen, dann den Tankwagen bestellen (oder nachtanken).",
+          "requestCatering": "Catering anfordern.",
+          "requestPushback": "Pushback anfordern (sofern die Beacon-Sequenz es erlaubt).",
+          "requestDeice": "Enteisung anfordern.",
+          "requestGpu": "Bodenstrom anschließen — GSX-GPU oder das ProSim-Gerät, wenn der Stand keines hat; die Bodencrew meldet es als angeschlossen.",
+          "disconnectGpu": "Das Bodenstromgerät abziehen (nicht, solange EXT PWR das Flugzeug noch versorgt).",
+          "declineDeice": "Die Enteisungsfrage des Ersten Offiziers ablehnen — keine Enteisung bei diesem Abflug."
+        }
+      },
+      "gsxCabin": {
+        "title": "Boarding",
+        "boarding": "Boarding — der FO fordert es an, der Purser bestätigt."
+      },
+      "hailGround": {
+        "title": "Die Bodencrew rufen",
+        "how": "Rufen, dann im Fenster eine beliebige Bodendienst-Phrase sagen.",
+        "how.gated": "INT am Audiopanel wählen, rufen, dann im Fenster eine beliebige Bodendienst-Phrase sagen.",
+        "cancel": "Den Ruf ohne Anforderung beenden."
+      },
+      "hailCabin": {
+        "title": "Die Kabinencrew rufen",
+        "how": "Rufen, dann im Fenster das Boarding anfordern.",
+        "how.gated": "CAB am Audiopanel wählen, rufen, dann im Fenster das Boarding anfordern."
+      },
+      "commandsJson": {
+        "title": "Aus commands.json"
+      },
+      "atc": {
+        "title": "ATC-Anfragen (SayIntentions)",
+        "to": "An {0}."
+      },
+      "checklists": {
+        "title": "Checklisten",
+        "start": "Startet die Checkliste {0} („request …“ geht auch)."
+      },
+      "drills": {
+        "title": "Memory Drills",
+        "rehearse": "Die Memory Items {0} üben."
+      },
+      "foQuestions": {
+        "title": "Den Ersten Offizier fragen",
+        "fuel": "Kraftstoff an Bord und die Planwerte.",
+        "tod": "Minuten bis zur 3:1-Schätzung des Top of Descent.",
+        "weather": "Das Ziel-METAR, wie es die Hero-Karte zeigt.",
+        "eta": "Die ETA nach Groundspeed.",
+        "compare": "Alles, was das Faktenblatt vergleichen kann.",
+        "leadIn": "Jede Frage, die mit einem dieser Einleitungen beginnt und mindestens {0} Wörter lang ist. Nur aus Live-Fakten beantwortet; der FO sagt „{1}“, wenn die Fakten es nicht abdecken. Braucht den LAN-Sprachserver.",
+        "smallTalk": {
+          "football": "Small Talk: Allgemeinwissen, in der Rolle, keine Flugzahlen.",
+          "funFact": "Ein Fun Fact, ein oder zwei Sätze.",
+          "any": "Small Talk ist an: keine Einleitung nötig. Eine Frage, die den Flug erwähnt, nimmt weiter den strikten, geprüften Weg."
+        },
+        "whereAreWe": {
+          "wikipedia": "Land, Gebirge oder Meer unter uns und die nächsten Orte — sofort, aus dem eingebauten Atlas — dann ein, zwei Fakten aus Wikipedia.",
+          "model": "Land, Gebirge oder Meer unter uns und die nächsten Orte — sofort, aus dem eingebauten Atlas — dann ein, zwei Fakten vom Modell.",
+          "side": "Gleiche Antwort; die Seite ist relativ zu unserem Kurs."
+        }
+      },
+      "cabinCruiseQuery": {
+        "title": "Purser-Rückfrage im Reiseflug",
+        "eta": "Einmal pro Flug ruft der Purser im Reiseflug — „{0}“ — und hört {1} s lang zu. Eine Zeit oder Ankunftsschätzung in deiner Antwort:",
+        "ride": "Ein Wort zum Flugverlauf:",
+        "other": "Alles andere (freie Antwort mit dem LAN-Sprachserver; die Offline-Engine hört eine kurze Liste):",
+        "silence": "Das Fenster schließt sich still:"
+      }
     }
   }
 }
