@@ -6,6 +6,7 @@ using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Logbook;
 using ProsimCompanion.Core.Sessions;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Llm;
 using ProsimCompanion.Speech.Recognition;
@@ -96,6 +97,20 @@ public sealed class DebriefService : ISessionFinalizationStep, IVoiceFeature, ID
     string ISessionFinalizationStep.Name => "debrief";
 
     int ISessionFinalizationStep.Order => 10;
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the spoken
+    /// debrief, exact phrases, in the post-flight tail of the order.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 290,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("debrief", "voiceReference.group.debrief.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["debrief", "debrief now", "flight debrief", "post flight debrief", "give me the debrief"], "voiceReference.group.debrief.debrief"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     bool IVoiceFeature.Enabled => true;
 

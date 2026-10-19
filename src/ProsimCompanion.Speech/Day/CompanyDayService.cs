@@ -8,6 +8,7 @@ using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.Logbook;
 using ProsimCompanion.Core.Sessions;
 using ProsimCompanion.Core.TechLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Company;
 using ProsimCompanion.Speech.Recognition;
@@ -116,6 +117,22 @@ public sealed class CompanyDayService : IVoiceFeature, ISessionFinalizationStep,
     /// <summary>After debrief (10), logbook (20) and tech log (30) — the leg fill reads the
     /// same session file and must never race the stores it summarizes.</summary>
     int ISessionFinalizationStep.Order => 40;
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the duty-day
+    /// start/end phrases, after the company channel. Always on as a voice feature — day.enabled
+    /// gates what the phrases DO, not whether they are heard.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 190,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("day", "voiceReference.group.day.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["start duty day", "begin duty day", "start the duty day"], "voiceReference.group.day.start"),
+            new(["end duty day", "close duty day", "end the duty day"], "voiceReference.group.day.end"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     bool IVoiceFeature.Enabled => true;
 

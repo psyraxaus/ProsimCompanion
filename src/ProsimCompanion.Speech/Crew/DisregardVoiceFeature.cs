@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -44,6 +45,21 @@ public sealed class DisregardVoiceFeature : IVoiceFeature
         _eventLog = eventLog;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): "disregard" /
+    /// "cancel that" while idle (issue #168), after the ground features whose advisories it
+    /// silences.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 250,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("disregard", "voiceReference.group.disregard.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["disregard", "cancel that", "belay that", "never mind"], "voiceReference.group.disregard.disregard", Acknowledgement),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

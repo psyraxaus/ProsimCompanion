@@ -7,6 +7,7 @@ using ProsimCompanion.Core.Aircraft.Ofp;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -96,6 +97,22 @@ public sealed class CompanyChannelService : IVoiceFeature, ICompanyChannel, Core
         _eventLog = eventLog;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the company
+    /// channel, answered as the company, after the briefings.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 180,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("company", "voiceReference.group.company.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.Company,
+        [
+            new(["request loadsheet", "loadsheet please", "read the loadsheet", "loadsheet"], "voiceReference.group.company.loadsheet"),
+            new(["read last company message", "repeat company message", "last company message", "say again company"],
+                "voiceReference.group.company.lastMessage"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

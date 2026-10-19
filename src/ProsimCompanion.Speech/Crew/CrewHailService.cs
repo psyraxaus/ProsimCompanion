@@ -5,6 +5,7 @@ using ProsimCompanion.Core.Commands;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Gsx;
 using ProsimCompanion.Speech.Recognition;
@@ -105,6 +106,18 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
         _status = status;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). The hail feature
+    /// dispatches AFTER <see cref="Gsx.GsxVoiceService"/> so single-shot phrases keep their
+    /// precedence. Rows are composed from the hail lists and the crew options.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 230,
+        Gate = VoiceFeatureGate.ByOption("gsx.voiceControlEnabled", VoiceReferenceTextIds.OffBare),
+        Description = new ComposedVoiceReference(CrewHailVoiceReference.Compose),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _gsxOptions.CurrentValue.VoiceControlEnabled;
 

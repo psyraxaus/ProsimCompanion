@@ -187,10 +187,25 @@ _Avoid_: fallback restart, re-ask (there is none on the streamed path)
 
 **Utterance router**:
 The module that decides what a recognized utterance means right now — feature, checklist
-answer, global command, confirmation, free-form question, or idle miss — by a fixed
+answer, global command, confirmation, free-form question, or idle miss — by the roster's
 precedence order over the enabled voice features. A question is the last thing tried before
 the idle miss, and only on the free-text engine; every known phrase outranks it.
 _Avoid_: recognition handler, command router
+
+**Feature declaration**:
+What a voice feature states about itself, once, beside its own code: its dispatch precedence
+(an explicit rank, lower first), the option that switches it on (the gate — the predicate
+stays `Enabled`, the gate is its name), and its Voice Reference rows as pack text ids. By
+convention a `public static Declared` on the class, so the roster test reads the whole order
+without constructing a service.
+_Avoid_: feature metadata, registration attribute
+
+**Voice-feature roster**:
+The one ordered list of voice features, sorted by declared precedence, that the router, the
+drawer and the DI consume — registration order means nothing. It also ranks a feature's claim
+on an utterance: an exact-phrase owner before everyone (#137), then declared precedence; a tie
+keeps registration order, which only test fakes rely on.
+_Avoid_: feature list, dispatch chain, registration order
 
 **FO question**:
 A free-form utterance (a configured lead-in, at least four words) that nothing else matched,

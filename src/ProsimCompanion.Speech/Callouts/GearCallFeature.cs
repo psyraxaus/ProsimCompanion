@@ -4,6 +4,7 @@ using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -54,6 +55,22 @@ public sealed class GearCallFeature : IVoiceFeature
         _flight = flight;
         _sop = sop;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): "gear up/down"
+    /// PM action (issue #43) — the one call whose point IS the lever; write-gated on airborne
+    /// evidence, adjacent to its verbal-only engine/flap sibling.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 90,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("gear", "voiceReference.group.gear.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["gear up"], "voiceReference.group.gear.up", "Gear up."),
+            new(["gear down"], "voiceReference.group.gear.down", "Gear down."),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

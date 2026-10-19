@@ -33,6 +33,248 @@
       "sayAfter": "wanneer je wilt",
       "edit": "Zinnen bewerken · commands.json",
       "editTitle": "Je eigen zinnen staan in commands.json (gebruikersconfiguratiemap)"
+    },
+    "off": {
+      "speechFo": "{0} staat uit — Instellingen → Spraak-First Officer",
+      "mcdu": "{0} staat uit — Instellingen → Spraak-First Officer → MCDU",
+      "monitoring": "{0} staat uit — Instellingen → Spraak-First Officer → Callouts & placards → Bewaking tijdens de vlucht",
+      "gsxSettings": "{0} staat uit — Instellingen → GSX",
+      "groundServices": "{0} staat uit — Instellingen → Grondservices",
+      "bare": "{0} staat uit",
+      "gsxPillar": "GSX-module draait niet",
+      "sayIntentions": "SayIntentions staat uit — Instellingen → Spraak-First Officer → SayIntentions",
+      "groundCrew": "{0} staat uit — Instellingen → Spraak-First Officer → Grondcrew",
+      "cabinCrew": "{0} staat uit — Instellingen → Spraak-First Officer → Cabinecrew",
+      "notInBuild": "niet beschikbaar in deze build",
+      "foQuestions": "{0} staat uit — Instellingen → Spraak-First Officer → Briefings & LLM → Vraag het de First Officer",
+      "cruiseQuery": "{0} staat uit — Instellingen → Spraak-First Officer → Cabinecrew → Purser-vraag in de cruise"
+    },
+    "always": {
+      "skip": "Het huidige checklistpunt overslaan.",
+      "sayAgain": "Het huidige punt herhalen.",
+      "hold": "De checklist pauzeren.",
+      "resume": "Een gepauzeerde checklist hervatten.",
+      "cancel": "De lopende checklist annuleren.",
+      "restart": "De actieve checklist opnieuw starten.",
+      "negative": "Een openstaande FCU-, radio- of MCDU-actie annuleren."
+    },
+    "group": {
+      "roles": {
+        "title": "Overdracht van de besturing",
+        "handover": "Geef de FO het vliegtuig. In de lucht vraagt de FO je eerst om bevestiging.",
+        "confirm": "Een overdracht in de lucht bevestigen.",
+        "takeBack": "Het vliegtuig terugnemen — direct, breekt ook elke openstaande FCU- of MCDU-actie af.",
+        "pmCall": "Je pilot-monitoring-call terwijl de FO vliegt."
+      },
+      "fcu": {
+        "title": "FCU — terwijl de FO pilot flying is",
+        "heading": "De heading instellen. De FO leest terug, wacht 3 s op 'negative', stelt dan in en controleert.",
+        "flightLevel": "De hoogte als flight level instellen.",
+        "speed": "De snelheid instellen (100–399 kt).",
+        "verticalSpeed": "V/S instellen. Zeg 'descend' of 'down' voor een daling.",
+        "speedMode": "Snelheid managed of selected.",
+        "altitudeMode": "Hoogteknop trekken, duwen of EXPED.",
+        "engage": "AP1, AP2 of A/THR.",
+        "arm": "APPR of LOC.",
+        "ownNav": "Heading terug naar managed.",
+        "negative": "Een openstaande FCU- of radio-actie binnen het venster van 3 s annuleren."
+      },
+      "radios": {
+        "title": "Radio's",
+        "tune": "Een standby-frequentie instellen (118.000–136.990); de FO leest terug, stelt dan in en controleert.",
+        "standby": "De standby van dat radiokastje instellen.",
+        "swap": "Actief en standby wisselen."
+      },
+      "engineFlap": {
+        "title": "Motor- en flap-calls",
+        "engineStart": "Bevestiging van de motorstart.",
+        "flapsOne": "Controle van de placard-snelheid — er wordt niets bewogen.",
+        "flapsCheck": "Controle van de placard-snelheid.",
+        "flapsUp": "Bevestiging van het intrekken van de flaps."
+      },
+      "gear": {
+        "title": "Landingsgestel",
+        "up": "De FO beweegt de hendel — geweigerd aan de grond of boven de intreklimiet.",
+        "down": "De FO beweegt de hendel — geweigerd boven de uitklaplimiet."
+      },
+      "chrono": {
+        "title": "Takeoff",
+        "takeoff": "Start de FO-chrono bij de startaanloop (stopt bij de landing)."
+      },
+      "announcements": {
+        "title": "Flight-mode-calls",
+        "fma": "FMA-aflezing bij de start.",
+        "capture": "Localizer-/glideslope-capture-call.",
+        "altCapture": "Altitude-capture-call.",
+        "manualFlight": "Aankondiging van handmatig vliegen.",
+        "continue": "Je beslissing bij de minimums."
+      },
+      "mcduRead": {
+        "title": "MCDU — lezen",
+        "page": "De FO leest de huidige MCDU-pagina voor.",
+        "scratchpad": "Leest alleen het scratchpad."
+      },
+      "mcduRadNav": {
+        "title": "MCDU — ILS",
+        "tune": "De FO stelt de aankomst-ILS in op RAD NAV.",
+        "abort": "Het instellen afbreken."
+      },
+      "mcduArrival": {
+        "title": "MCDU — aankomstbaan",
+        "change": "De FO wijzigt de aankomstbaan en de ILS (LAT REV → ARRIVAL → insert)."
+      },
+      "briefings": {
+        "title": "Briefings",
+        "departure": "Vertrekbriefing uit het FMS-plan, navdata en live weer.",
+        "arrival": "Aankomstbriefing — de FO vraagt je eerst de minimums te bevestigen.",
+        "approaches": "De navdata-approaches voor de aankomstbaan."
+      },
+      "missedApproach": {
+        "title": "Missed approach",
+        "rebrief": "De missed approach opnieuw briefen."
+      },
+      "minima": {
+        "title": "Minimums",
+        "query": "De minima die je in de aankomstbriefing hebt bevestigd."
+      },
+      "company": {
+        "title": "Company",
+        "loadsheet": "Gesproken loadsheet uit de live gewichten, pax en CG (ACARS-chime).",
+        "lastMessage": "Herhaalt het laatste companybericht."
+      },
+      "day": {
+        "title": "Dienstdag",
+        "start": "Start de company-dienstdag.",
+        "end": "Sluit hem af met een samenvatting en de logboekafsluiting."
+      },
+      "fuelCheck": {
+        "title": "Fuel check",
+        "check": "Brandstof aan boord tegenover het SimBrief-plan op je positie, en de geschatte landingsbrandstof tegenover het geplande cijfer. In de cruise ook automatisch."
+      },
+      "grossErrorCheck": {
+        "title": "Gross error check",
+        "check": "De gewichten van het vliegtuig tegenover de definitieve loadsheet en de FMS PERF-invoer tegenover de laatste takeoff-performanceberekening. Ook automatisch zodra de definitieve loadsheet en de V-speeds erin staan."
+      },
+      "readbacks": {
+        "title": "Read-backs",
+        "altimeter": "Lees de hoogtemeterinstelling terug; de FO controleert die met je baro. 'Read back', 'check' of 'confirm' mag vooraf.",
+        "standard": "Standaarddruk ingesteld; de FO controleert of de baro 1013 aangeeft.",
+        "vSpeeds": "Lees V1, rotate en V2 terug; de FO controleert ze met het FMS.",
+        "runway": "Lees de baan terug; de FO controleert die met het FMS-plan.",
+        "minimums": "Lees de minimums terug; de FO controleert ze met de gebriefde minima."
+      },
+      "logbook": {
+        "title": "Logboek",
+        "summary": "Je logboektotalen.",
+        "count": "Eén getal.",
+        "daySummary": "De laatste dienstdag.",
+        "landingStats": "Landingen op één luchthaven."
+      },
+      "techLog": {
+        "title": "Tech log",
+        "openItems": "Leest de openstaande defecten voor."
+      },
+      "techLogDialogue": {
+        "title": "Tech log — melden / herstellen",
+        "raise": "Begeleid: het defect, dan de MEL-categorie (bravo, charlie, delta), dan bevestigen.",
+        "rectify": "Begeleid: 'Rectify …? Affirm or negative.'"
+      },
+      "debrief": {
+        "title": "Debriefing",
+        "debrief": "Gesproken debriefing na de vlucht."
+      },
+      "quiet": {
+        "title": "Stilte",
+        "quiet": "Zet het gebabbel uit voor de rest van de sessie (checklists en callouts spreken nog)."
+      },
+      "disregard": {
+        "title": "Disregard",
+        "disregard": "Onderbreekt de melding die de FO uitspreekt (vliegtuigstatus, parkeerplek, gemiste oproep) en bevestigt — speelt er niets, dan alleen de bevestiging."
+      },
+      "aircraftState": {
+        "title": "Vliegtuigstatus",
+        "recheck": "Voert de cold-and-dark-controle opnieuw uit; de FO leest het oordeel voor."
+      },
+      "pushbackDirection": {
+        "title": "Pushbackrichting",
+        "tailLeft": "De push van deze vlucht: GSX 'Nose Right / Tail Left'. Toegepast zodra GSX het richtingsmenu toont.",
+        "tailRight": "De push van deze vlucht: GSX 'Nose Left / Tail Right'.",
+        "straight": "De push van deze vlucht: 'Straight pushback'.",
+        "facing": "Geef de richting van ATC door; de FO kiest de route die in die richting eindigt (elk van de acht kompaspunten).",
+        "which": "Je keuze voor deze vlucht, of de suggestie van de FO richting de vertrekbaan."
+      },
+      "gsx": {
+        "title": "Grondservices",
+        "start": "De vertreksequentie starten (of, als die loopt, de volgende service oproepen).",
+        "command": {
+          "forceNextService": "De INT/RAD-smartknop — de volgende service nu oproepen.",
+          "requestBoarding": "Boarding aanvragen.",
+          "requestRefuel": "De tankwagen bestellen.",
+          "confirmFuel": "De block fuel bevestigen en dan de tankwagen bestellen (of bijtanken).",
+          "requestCatering": "Catering aanvragen.",
+          "requestPushback": "Pushback aanvragen (als de beacon-sequentie het toelaat).",
+          "requestDeice": "De-icing aanvragen.",
+          "requestGpu": "Grondstroom aansluiten — de GPU van GSX, of de ProSim-unit als de stand er geen heeft; de grondcrew meldt dat hij is aangesloten.",
+          "disconnectGpu": "De grondstroomunit weghalen (niet zolang EXT PWR het vliegtuig nog voedt).",
+          "declineDeice": "De de-icingvraag van de First Officer afslaan — geen de-icing bij dit vertrek."
+        }
+      },
+      "gsxCabin": {
+        "title": "Boarding",
+        "boarding": "Boarding — de FO vraagt het aan, de purser bevestigt."
+      },
+      "hailGround": {
+        "title": "De grondcrew oproepen",
+        "how": "Roep op en zeg dan in het venster een willekeurige grondservicezin.",
+        "how.gated": "Kies INT op het audiopaneel, roep op en zeg dan in het venster een willekeurige grondservicezin.",
+        "cancel": "De oproep beëindigen zonder verzoek."
+      },
+      "hailCabin": {
+        "title": "De cabinecrew oproepen",
+        "how": "Roep op en vraag dan in het venster om boarding.",
+        "how.gated": "Kies CAB op het audiopaneel, roep op en vraag dan in het venster om boarding."
+      },
+      "commandsJson": {
+        "title": "Uit commands.json"
+      },
+      "atc": {
+        "title": "ATC-verzoeken (SayIntentions)",
+        "to": "Aan {0}."
+      },
+      "checklists": {
+        "title": "Checklists",
+        "start": "Start de checklist {0} ('request …' werkt ook)."
+      },
+      "drills": {
+        "title": "Memory drills",
+        "rehearse": "De memory items {0} oefenen."
+      },
+      "foQuestions": {
+        "title": "Vraag het de First Officer",
+        "fuel": "Brandstof aan boord en de geplande cijfers.",
+        "tod": "Minuten tot de 3:1-schatting van de top of descent.",
+        "weather": "De bestemmings-METAR zoals de hero-kaart hem toont.",
+        "eta": "De ETA op grondsnelheid.",
+        "compare": "Alles wat het feitenblad kan vergelijken.",
+        "leadIn": "Elke vraag die met een van deze aanlopen begint en minstens {0} woorden lang is. Alleen beantwoord uit live feiten; de FO zegt '{1}' als de feiten het niet dekken. Vereist de LAN-spraakserver.",
+        "smallTalk": {
+          "football": "Small talk: algemene kennis, in de rol, zonder vluchtcijfers.",
+          "funFact": "Een leuk feitje, één of twee zinnen.",
+          "any": "Small talk staat aan: geen aanloop nodig. Een vraag die de vlucht noemt, neemt nog steeds het strikte, gecontroleerde pad."
+        },
+        "whereAreWe": {
+          "wikipedia": "Het land, de bergen of de zee onder ons en de dichtstbijzijnde plaatsen — meteen, uit de ingebouwde atlas — en dan een feitje of twee uit Wikipedia.",
+          "model": "Het land, de bergen of de zee onder ons en de dichtstbijzijnde plaatsen — meteen, uit de ingebouwde atlas — en dan een feitje of twee van het model.",
+          "side": "Zelfde antwoord; de kant is relatief aan onze koers."
+        }
+      },
+      "cabinCruiseQuery": {
+        "title": "Purser-vraag in de cruise",
+        "eta": "Eén keer per vlucht roept de purser in de cruise — '{0}' — en luistert {1} s. Een tijd of aankomstschatting in je antwoord:",
+        "ride": "Een woord over de turbulentie:",
+        "other": "Iets anders (vrij antwoord met de LAN-spraakserver; de offline-engine hoort een korte lijst):",
+        "silence": "Het venster sluit in stilte:"
+      }
     }
   }
 }

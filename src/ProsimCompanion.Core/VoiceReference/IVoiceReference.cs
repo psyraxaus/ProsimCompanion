@@ -20,14 +20,28 @@ public enum VoiceReferenceTab
     Checklists,
 }
 
+/// <summary>
+/// A UI text of the drawer named by its language-pack id (ADR-0014), not by English words:
+/// the speech pillar knows WHICH text a row needs, the web page knows the pilot's language.
+/// <paramref name="Arguments"/> fill the text's <c>{0}</c>-style placeholders (a checklist
+/// name, an option path, a station) and are data, never translated. The phrases a row shows
+/// — what the pilot says and what the FO answers — are deliberately NOT such texts: the voice
+/// First Officer stays English (ADR-0014).
+/// </summary>
+public sealed record VoiceReferenceText(string TextId, IReadOnlyList<object>? Arguments = null)
+{
+    public IReadOnlyList<object> Arguments { get; init; } = Arguments ?? [];
+}
+
 /// <summary>One row of the reference: the phrase alternatives the pilot can say (joined by
-/// an italic "or" on the page), what happens, and what comes back. <paramref name="ValueHint"/>
-/// is the shape of the value a value-parsed phrase takes ("‹120›"), shown after the phrase.
+/// an italic "or" on the page), what happens (<paramref name="What"/>, a pack text; null for a
+/// live phrase nobody described), and what comes back. <paramref name="ValueHint"/> is the
+/// shape of the value a value-parsed phrase takes ("‹120›"), shown after the phrase.
 /// <paramref name="Badges"/> are the short caps markers: PF (FO must be pilot flying), INT /
 /// CAB (ACP channel), PHASE (phase-gated), VALUE, DIALOGUE (opens a listening window).</summary>
 public sealed record VoiceReferenceEntry(
     IReadOnlyList<string> Phrases,
-    string What,
+    VoiceReferenceText? What,
     string? Answer = null,
     VoiceSpeaker Speaker = VoiceSpeaker.FirstOfficer,
     IReadOnlyList<string>? Badges = null,
@@ -41,11 +55,11 @@ public sealed record VoiceReferenceEntry(
 /// naming the setting — so the pilot learns what they could turn on.</summary>
 public sealed record VoiceReferenceGroup(
     string Id,
-    string Title,
+    VoiceReferenceText Title,
     VoiceReferenceTab Tab,
     VoiceSpeaker Speaker,
     bool Enabled,
-    string? DisabledReason,
+    VoiceReferenceText? DisabledReason,
     IReadOnlyList<VoiceReferenceEntry> Entries);
 
 /// <summary>Everything the drawer renders, built live from the recognition grammar.</summary>

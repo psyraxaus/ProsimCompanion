@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -78,6 +79,23 @@ public sealed class McduReader : IMcduReader, IVoiceFeature, IDisposable
         _logger = logger;
         _speech = speech;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). The MCDU trio
+    /// keeps the predecessor's dispatch position: after the FCU, before the briefings. The
+    /// reader is read-only; the tuner and arrival changer arm only via mcdu.allowActuation.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 120,
+        Gate = VoiceFeatureGate.ByOption("mcdu.enabled", VoiceReferenceTextIds.OffMcdu),
+        Description = new DescribedVoiceReference("mcduRead", "voiceReference.group.mcduRead.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["read the mcdu", "read the m c d u", "read the box", "read me the mcdu", "what's on the mcdu", "read the fms"],
+                "voiceReference.group.mcduRead.page"),
+            new(["read the scratchpad", "read the scratch pad", "what's in the scratchpad"], "voiceReference.group.mcduRead.scratchpad"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _options.CurrentValue.Enabled;
 

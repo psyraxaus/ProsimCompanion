@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -87,6 +88,21 @@ public sealed class SmallTalkService : IVoiceFeature
         _eventLog = eventLog;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the small-talk
+    /// feature dispatches last — exact phrases only.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 300,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("quiet", "voiceReference.group.quiet.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["quiet please", "quiet cockpit", "pipe down", "less chat", "keep it quiet"],
+                "voiceReference.group.quiet.quiet", "Righto, I'll keep it quiet."),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

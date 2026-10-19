@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Briefings;
 using ProsimCompanion.Speech.Recognition;
@@ -87,6 +88,23 @@ public sealed class McduRadNavTuner : IVoiceFeature, IDisposable
         _onRoleChanged = () => CancelPending();
         _roles.Changed += _onRoleChanged;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): second of the
+    /// MCDU trio. "tune the ils" is an exact phrase here, so it outranks the radio parser's
+    /// "tune" keyword whatever the precedence (issue #137).</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 130,
+        Gate = VoiceFeatureGate.ByOption("mcdu.enabled", VoiceReferenceTextIds.OffMcdu),
+        Description = new DescribedVoiceReference("mcduRadNav", "voiceReference.group.mcduRadNav.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["tune the ils", "set the ils", "set up the ils", "tune the radios", "set the radios", "tune the localizer", "tune radio nav"],
+                "voiceReference.group.mcduRadNav.tune", null, [VoiceBadges.Pf]),
+            new(["negative", "disregard", "cancel", "belay that"], "voiceReference.group.mcduRadNav.abort"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _options.CurrentValue.Enabled;
 
