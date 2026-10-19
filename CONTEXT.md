@@ -218,6 +218,17 @@ _Avoid_: SSL port, secure server
 The per-device switch that holds the browser's Screen Wake Lock while the app is open —
 stored on that tablet, not in settings.json.
 _Avoid_: wake lock (in user-facing text), caffeine mode
+
+**Presentation module**:
+A plain C# module beside a Blazor page that turns store snapshots into row and label
+records — text ids with their arguments, tones, lamps, order, visibility — with no store,
+localizer or clock of its own (`FlightMonitorPresentation`, `FlightStatusPresentation`,
+`GsxPresentation`). The page's markup renders the records and keeps only the circuit
+plumbing (watches, timers, buttons). A **status row** is the shared record of that seam:
+label text id, shape (indicator / value / pill), value text, tone, hover title. A
+**display text** is a pack id plus arguments, or a literal the pack does not own.
+_Avoid_: view model, helper class, code-behind
+
 ### Notifications
 
 **Milestone**:
