@@ -67,6 +67,7 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
     private readonly ILogger<CrewHailService> _logger;
     private readonly AcpHailGateCore _hailGate = new();
     private readonly CancellationTokenSource _shutdown = new();
+    private int _disposed;
     private int _busy;
 
     public CrewHailService(
@@ -127,6 +128,15 @@ public sealed class CrewHailService : IVoiceFeature, IDisposable
 
     public void Dispose()
     {
+        // 2026-10-19: the container holds this instance twice (once as itself, once through the
+        // IVoiceFeature forwarder) and disposes it twice; Cancel() on a disposed source throws
+        // ObjectDisposedException and aborted the rest of the container's disposal. A second
+        // Dispose must be a no-op.
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _shutdown.Cancel();
         _shutdown.Dispose();
     }

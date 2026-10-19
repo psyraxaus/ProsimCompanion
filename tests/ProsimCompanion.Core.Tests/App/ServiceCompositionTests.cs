@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using ProsimCompanion.App;
 using ProsimCompanion.App.Logging;
+using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Hosting;
 using ProsimCompanion.Core.Logging;
 using Xunit;
@@ -54,6 +56,17 @@ public sealed class ServiceCompositionTests
             new LoggingLevels(),
             new LogBufferStore(),
             Mock.Of<IWireTrace>());
+
+        // 2026-10-19: JsonlEventLog creates its session file and prunes the folder in its
+        // constructor, so resolving the hosted services wrote 0-byte session-*.jsonl files into
+        // the REAL %LOCALAPPDATA%\ProsimCompanion\sessions on every test run (the telemetry API
+        // and the Reduce tool list that folder). The registration content is still validated;
+        // only the folder is pointed at a per-run temp directory.
+        var sessionsDirectory = Path.Combine(
+            Path.GetTempPath(), "ProsimCompanion.Tests", "composition", "sessions", Guid.NewGuid().ToString("N"));
+        services.Replace(ServiceDescriptor.Singleton(provider => new JsonlEventLog(
+            sessionsDirectory,
+            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<JsonlEventLog>>())));
         return services;
     }
 
