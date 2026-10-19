@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Architecture: option field descriptions (C3)
+
+- Refactor: **every settings field is described once, on its option property** (architecture review candidate C3, 2026-10-19). Each editable property of the option classes carries one `[OptionField]` attribute — control kind, text-id root, save-time normalisation, the parent switch it is disabled under, bounds and unit, choice list, Browse… dialog — and the seven draft-based settings pages (Setup, Ground Services, Voice First Officer, Audio Control, Display & Flight Data, Flight Phase Engine, Notifications) render their fields through one `<OptionField Draft For />` component that delegates to the existing field components. 467 hand-typed field tags (nine stay: the rows that bind to page state rather than a property), the per-page choice lists, the four enum ↔ text bridges and fifty `OnBeforeSave` normalisation lines leave the pages; what stays on a page is its own (list editors, the smart-button picker, the pcaMode legacy fallback), with the page-level rules moved to plain `…PageRules` classes. `OptionsDraft` applies the declared normalisation on save and tells the page when a field wrote into it. A completeness test fails for a new option property that has neither a description nor a named reason; a render harness over every section of every page (68 renders) proved the HTML byte-identical to the previous pages. **No pack text id changed**; the seven language packs are untouched. No user-visible change intended.
+
 ## 0.7.0-rc.10
 
 Checklist read-through and the Stream Deck tick, 2026-10-18. A local release-candidate build on top of rc.9 for the owner's sim test the week of 2026-10-19; **not yet verified live**.

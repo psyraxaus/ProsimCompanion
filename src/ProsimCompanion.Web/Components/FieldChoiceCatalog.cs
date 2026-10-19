@@ -14,8 +14,8 @@ namespace ProsimCompanion.Web.Components;
 /// </summary>
 public static class FieldChoiceCatalog
 {
-    private static readonly IReadOnlyDictionary<string, Func<IStringLocalizer, IReadOnlyList<(string Value, string Label)>>> Lists =
-        new Dictionary<string, Func<IStringLocalizer, IReadOnlyList<(string, string)>>>(StringComparer.Ordinal)
+    private static readonly Dictionary<string, Func<IStringLocalizer, IReadOnlyList<(string Value, string Label)>>> Lists =
+        new(StringComparer.Ordinal)
         {
             // ---- Voice First Officer ----
             ["recognitionMode"] = T => [("pushToTalk", T["speechSettings.options.recognitionMode.pushToTalk"].Value), ("continuous", T["speechSettings.options.recognitionMode.continuous"].Value)],

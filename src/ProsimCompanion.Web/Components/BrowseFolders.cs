@@ -11,8 +11,8 @@ namespace ProsimCompanion.Web.Components;
 /// </summary>
 public static class BrowseFolders
 {
-    private static readonly IReadOnlyDictionary<string, Func<IReadOnlyList<string>>> Lists =
-        new Dictionary<string, Func<IReadOnlyList<string>>>(StringComparer.Ordinal)
+    private static readonly Dictionary<string, Func<IReadOnlyList<string>>> Lists =
+        new(StringComparer.Ordinal)
         {
             [nameof(ExpectedFolders.ProSimSdk)] = ExpectedFolders.ProSimSdk,
             [nameof(ExpectedFolders.ProSimNavdata)] = ExpectedFolders.ProSimNavdata,
