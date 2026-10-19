@@ -83,6 +83,15 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Sync.IGsxGroundPrepStatus>(provider => provider.GetRequiredService<Sync.GsxGroundPrepCoordinator>());
         services.AddStartupModule<Sync.ProsimNativeGsxGuard>();
         services.AddStartupModule<Sync.GsxDoorService>();
+        // The pushback tick behind its seams (architecture review C1): the ground-actions
+        // adapter, the latch storage, the inputs gatherer and the effect applier are the
+        // host's own modules. Registered here (2026-10-19, C4): the C1 merge registered the
+        // departure pump's modules above but not these, so the sequence host could not be
+        // resolved at start-up and the startup-module host would have disabled it.
+        services.AddSingleton<Sync.IPushbackGroundActions, Sync.GsxPushbackGroundActions>();
+        services.AddSingleton<Sync.PushbackTickLatches>();
+        services.AddSingleton<Sync.PushbackTickGatherer>();
+        services.AddSingleton<Sync.PushbackTickEffectApplier>();
         services.AddStartupModule<Sync.GsxPushbackSequenceService>();
         services.AddStartupModule<Sync.GsxArrivalService>();
         services.AddStartupModule<Sync.GsxGroundOpsSignalRelay>();

@@ -39,9 +39,12 @@ internal sealed record PushbackTickReading(
 
 /// <summary>
 /// The pushback tick's inputs gatherer: samples the live collaborators once per second
-/// (beacon, APU, doors, the GSX Pushback and Boarding services, the departure cycle, the
-/// final loadsheet, the tug LVARs, the engine data) into <see cref="PushbackTickReading"/>.
-/// No effects, no state — the host's latches arrive as a snapshot where a rule needs them.
+/// (the committed beacon fact, the engine's APU sample, doors, the GSX Pushback and Boarding
+/// services, the departure cycle, the final loadsheet, the tug LVARs, the engine data) into
+/// <see cref="PushbackTickReading"/>. No effects, no state — the host's latches arrive as a
+/// snapshot where a rule needs them. The beacon and the APU are the flight-state engine's
+/// (C4, 2026-10-19), not a ProSim subscription of this module's own: the sequencer's steps
+/// run on crew-realism delays of seconds, so the engine's 250 ms tick costs it nothing.
 /// </summary>
 public sealed class PushbackTickGatherer : IDisposable
 {
@@ -56,8 +59,7 @@ public sealed class PushbackTickGatherer : IDisposable
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly LoadsheetStore _loadsheets;
     private readonly IFlightPhaseSource _flight;
-    private readonly IDataRefSubscription<int> _beacon;
-    private readonly IDataRefSubscription<bool> _apuRunning;
+    private readonly IGroundFactsSource _groundFacts;
     private readonly IDataRefSubscription<double> _vehicleState;
     private readonly IDataRefSubscription<double> _pushbackStatus;
     private readonly IDataRefSubscription<double> _bypassPin;
@@ -67,21 +69,21 @@ public sealed class PushbackTickGatherer : IDisposable
         IGsxServiceLifecycleView lifecycle,
         IGsxAutomationPhaseView automation,
         IPushbackGroundActions ground,
-        IProsimDataRefs prosim,
         ISimVars simVars,
         IOptionsMonitor<GsxOptions> options,
         LoadsheetStore loadsheets,
-        IFlightPhaseSource flight)
+        IFlightPhaseSource flight,
+        IGroundFactsSource groundFacts)
     {
         ArgumentNullException.ThrowIfNull(api);
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(automation);
         ArgumentNullException.ThrowIfNull(ground);
-        ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(loadsheets);
         ArgumentNullException.ThrowIfNull(flight);
+        ArgumentNullException.ThrowIfNull(groundFacts);
         _api = api;
         _lifecycle = lifecycle;
         _automation = automation;
@@ -89,9 +91,8 @@ public sealed class PushbackTickGatherer : IDisposable
         _options = options;
         _loadsheets = loadsheets;
         _flight = flight;
+        _groundFacts = groundFacts;
 
-        _beacon = prosim.Subscribe(ProsimDataRefNames.OhExtLtBeacon);
-        _apuRunning = prosim.Subscribe(ProsimDataRefNames.ApuRunning);
         _vehicleState = simVars.Subscribe(GsxLvarNames.VehiclePushbackState);
         _pushbackStatus = simVars.Subscribe(GsxLvarNames.PushbackStatus);
         _bypassPin = simVars.Subscribe(GsxLvarNames.BypassPin);
@@ -99,8 +100,6 @@ public sealed class PushbackTickGatherer : IDisposable
 
     public void Dispose()
     {
-        _beacon.Dispose();
-        _apuRunning.Dispose();
         _vehicleState.Dispose();
         _pushbackStatus.Dispose();
         _bypassPin.Dispose();
@@ -147,8 +146,8 @@ public sealed class PushbackTickGatherer : IDisposable
                 CallPushbackWhenTugAttachedMode: options.CallPushbackWhenTugAttached),
             SequenceInputs: new PushbackSequencer.Inputs(
                 Armed: departureComplete && phase is GsxAutomationPhase.Preparation or GsxAutomationPhase.PushBack,
-                BeaconOn: _beacon.Value != 0,
-                ApuRunning: _apuRunning.Value,
+                BeaconOn: _groundFacts.Facts.BeaconOn,
+                ApuRunning: data?.ApuRunning == true,
                 AnyDoorOpen: _ground.AnyDoorOpen,
                 CallPushback: options.CallPushbackOnBeacon,
                 PushbackCallable: pushbackCallable),

@@ -126,6 +126,25 @@ public sealed class ProsimFlightDataSourceTests
     }
 
     [Fact]
+    public void ExternalPower_IsCarried_AndIsNotPhaseCritical()
+    {
+        // The committed ground facts' raw input for the GPU gradual-removal falling edge: a
+        // missing ref must never hold the flight-live gate — the rule simply never sees
+        // external power and leaves the GPU alone.
+        var refs = new FakeDataRefs();
+        using var source = new ProsimFlightDataSource(refs);
+        MakeReady(refs);
+
+        Assert.False(source.Sample().ExternalPowerOn);
+        Assert.True(source.Sample().IsReady);
+
+        refs.Values["system.gates.B_ELEC_EXTERNAL_CONNECT"] = true;
+
+        Assert.True(source.Sample().ExternalPowerOn);
+        Assert.DoesNotContain("system.gates.B_ELEC_EXTERNAL_CONNECT", ProsimFlightDataSource.PhaseCriticalRefs);
+    }
+
+    [Fact]
     public void AnyEngineRunning_FalseWhenBothSourcesAgreeOff()
     {
         var refs = new FakeDataRefs();

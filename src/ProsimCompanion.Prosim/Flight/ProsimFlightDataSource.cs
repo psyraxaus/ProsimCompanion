@@ -108,6 +108,11 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
     // absent, the engine judges the resume on position alone.
     private readonly IDataRefSubscription<double> _fuelTotal;
 
+    // External power on the buses (committed ground facts, 2026-10-19). NOT phase-critical:
+    // it feeds the GPU gradual-removal falling edge only; absent, that rule simply never
+    // sees external power and leaves the GPU alone — the safe side.
+    private readonly IDataRefSubscription<bool> _externalPower;
+
     private readonly IDataRefSubscription[] _phaseCritical;
     private readonly IDataRefSubscription[] _all;
 
@@ -168,6 +173,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
         _longitude = dataRefs.Subscribe(ProsimDataRefNames.Longitude);
         _trackTrue = dataRefs.Subscribe(ProsimDataRefNames.TrackTrue);
         _fuelTotal = dataRefs.Subscribe(ProsimDataRefNames.FuelTotal);
+        _externalPower = dataRefs.Subscribe(ProsimDataRefNames.ElecExternalConnect);
 
         // Must cover the same refs, in the same order, as PhaseCriticalRefs above.
         _phaseCritical =
@@ -189,7 +195,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             _altitudeAgl, _landingLightL, _landingLightR, _seatbeltSigns, _beacon,
             _speedbrakeArmed, _xpdrMode, _tat, _oat, _inCloud, _visibility,
             _engAntiIce1, _engAntiIce2, _wingAntiIce,
-            _latitude, _longitude, _trackTrue, _fuelTotal,
+            _latitude, _longitude, _trackTrue, _fuelTotal, _externalPower,
         ];
     }
 
@@ -274,6 +280,7 @@ public sealed class ProsimFlightDataSource : IFlightDataSource, IDisposable
             Position = ReadPosition(),
             TrackTrueDeg = ReadTrack(),
             FuelOnBoardKg = _fuelTotal.RawValue is null || _fuelTotal.IsStale ? null : _fuelTotal.Value,
+            ExternalPowerOn = _externalPower.Value,
         };
     }
 

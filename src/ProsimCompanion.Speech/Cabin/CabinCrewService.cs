@@ -47,6 +47,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
     private readonly IProsimDataRefs _dataRefs;
     private readonly IFlightDataSource _flightData;
     private readonly IFlightPhaseSource _flight;
+    private readonly IGroundFactsSource _groundFacts;
     private readonly ISpeechArbiter _arbiter;
     private readonly ISpeechPlayback _playback;
     private readonly IOptionsMonitor<CabinOptions> _options;
@@ -66,7 +67,6 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
     private IDataRefSubscription<bool>? _doorLA;
     private IDataRefSubscription<bool>? _doorRF;
     private IDataRefSubscription<bool>? _doorRA;
-    private IDataRefSubscription<int>? _beacon;
     private IDataRefSubscription<int>? _signs;
     private IDataRefSubscription<int>[] _cabLatches = [];
     private IDataRefSubscription[] _reads = [];
@@ -77,6 +77,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         IProsimDataRefs dataRefs,
         IFlightDataSource flightData,
         IFlightPhaseSource flight,
+        IGroundFactsSource groundFacts,
         ISpeechArbiter arbiter,
         ISpeechPlayback playback,
         IOptionsMonitor<CabinOptions> options,
@@ -93,6 +94,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         ArgumentNullException.ThrowIfNull(dataRefs);
         ArgumentNullException.ThrowIfNull(flightData);
         ArgumentNullException.ThrowIfNull(flight);
+        ArgumentNullException.ThrowIfNull(groundFacts);
         ArgumentNullException.ThrowIfNull(arbiter);
         ArgumentNullException.ThrowIfNull(playback);
         ArgumentNullException.ThrowIfNull(options);
@@ -105,6 +107,7 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         _dataRefs = dataRefs;
         _flightData = flightData;
         _flight = flight;
+        _groundFacts = groundFacts;
         _arbiter = arbiter;
         _playback = playback;
         _options = options;
@@ -121,11 +124,19 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
 
     public void Start()
     {
+        Attach();
+        _timer = new Timer(_ => Tick(), null, 1000, 1000);
+    }
+
+    /// <summary>The subscriptions and the phase hook without the timer — the seam the tests
+    /// drive <see cref="Tick"/> through. The beacon is not among the reads: it is the
+    /// engine's committed ground fact (C4, 2026-10-19), not a subscription of this module's.</summary>
+    internal void Attach()
+    {
         _doorLF = _dataRefs.Subscribe(ProsimDataRefNames.Door1L);
         _doorLA = _dataRefs.Subscribe(ProsimDataRefNames.Door4L);
         _doorRF = _dataRefs.Subscribe(ProsimDataRefNames.Door1R);
         _doorRA = _dataRefs.Subscribe(ProsimDataRefNames.Door4R);
-        _beacon = _dataRefs.Subscribe(ProsimDataRefNames.OhExtLtBeacon);
         _signs = _dataRefs.Subscribe(ProsimDataRefNames.OhSigns);
         _cabLatches =
         [
@@ -133,10 +144,9 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
             _dataRefs.Subscribe(ProsimDataRefNames.Acp2CabLatch),
             _dataRefs.Subscribe(ProsimDataRefNames.Acp3CabLatch),
         ];
-        _reads = [_doorLF, _doorLA, _doorRF, _doorRA, _beacon, _signs, .. _cabLatches];
+        _reads = [_doorLF, _doorLA, _doorRF, _doorRA, _signs, .. _cabLatches];
 
         _flight.PhaseChanged += OnPhaseChanged;
-        _timer = new Timer(_ => Tick(), null, 1000, 1000);
     }
 
     public void Dispose()
@@ -220,7 +230,8 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
         return _ofp.Current?.PaxCount is > 0 and var planned ? planned : 0;
     }
 
-    private void Tick()
+    /// <summary>One 1 Hz evaluation; the timer calls this, the tests call it directly.</summary>
+    internal void Tick()
     {
         try
         {
@@ -232,8 +243,10 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
             }
 
             // Stale subscriptions mean ProSim is gone — a disconnected sim must never trigger
-            // a report off held-over values.
-            if (_reads.Any(r => r.IsStale) || _beacon!.RawValue is null)
+            // a report off held-over values. (The beacon needs no liveness probe of its own
+            // any more: the committed fact only ever changes on a live, classified sample,
+            // and the live gate above already proves the engine has committed one.)
+            if (_reads.Any(r => r.IsStale))
             {
                 return;
             }
@@ -243,7 +256,9 @@ public sealed class CabinCrewService : Core.Hosting.IStartupModule, IDisposable,
                 _flight.CurrentPhase,
                 DoorsClosed: !_doorLF!.Value && !_doorLA!.Value
                     && !_doorRF!.Value && !_doorRA!.Value,
-                BeaconOn: _beacon.Value == 1,
+                // The engine's committed beacon — one definition of "on" for the whole app
+                // (this module's old "== 1" and the others' "!= 0" read the same 0/1 switch).
+                BeaconOn: _groundFacts.Facts.BeaconOn,
                 SeatbeltSignsMode: _signs!.Value,
                 AltitudeFt: flightData.AltitudeFt,
                 VerticalSpeedFpm: flightData.VerticalSpeedFpm,

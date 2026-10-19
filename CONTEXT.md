@@ -140,6 +140,24 @@ configured number of consecutive samples before it flips, so a one-sample flicke
 commits a runway transition.
 _Avoid_: on-ground flag (that is the raw dataref)
 
+**Ground fact**:
+A committed ground state the flight-state engine publishes once per live tick beside the
+phase, from the same classified sample — beacon on, engines off, park brake set, external
+power on, parked, stable parked — with the edge that changed it. One definition of "beacon
+on" (any non-zero switch value) and one clock for every ground-ops consumer; the facts hold
+across a session gap as a raw subscription held its last push. A switch position commits on
+one live sample (five recorded flights, about 40,000 samples, no one-sample flip); only
+ground contact keeps an agreement count, upstream.
+_Avoid_: raw beacon, beacon flag, local edge latch, own subscription
+
+**Parked spell**:
+The unbroken stretch during which the parked fact — committed ground contact, engines off,
+brake set, below the parked ground speed — has held; its start is `ParkedSince`, and *stable
+parked* is a spell at least the turnaround hold long. Movement, an engine start, a released
+brake or a session end ends it; the arrival chain's own stable count and the rule table's
+turnaround hold are two consumers of the same spell, each with its own settle.
+_Avoid_: stable seconds, park timer, stationary flag
+
 **Flight sample**:
 The compact per-second record of what the phase engine saw, written to the session log while
 the flight is live. The replay feeds these back through the engine; a recorded flight plus its

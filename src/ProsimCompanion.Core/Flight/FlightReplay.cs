@@ -30,7 +30,8 @@ public sealed class FlightReplayResult
         int sampleCount,
         DateTimeOffset? firstSampleAt,
         DateTimeOffset? lastSampleAt,
-        int pauseRoundTrips = 0)
+        int pauseRoundTrips = 0,
+        IReadOnlyList<GroundFactChange>? groundFactEdges = null)
     {
         Commits = commits;
         RecordedCommits = recorded;
@@ -38,11 +39,18 @@ public sealed class FlightReplayResult
         FirstSampleAt = firstSampleAt;
         LastSampleAt = lastSampleAt;
         PauseRoundTrips = pauseRoundTrips;
+        GroundFactEdges = groundFactEdges ?? [];
     }
 
     /// <summary>How many 'sim-paused' edges the harness fed through the session store (issue
     /// #168) — the proof that a recording's pause path was exercised, not just absent.</summary>
     public int PauseRoundTrips { get; }
+
+    /// <summary>The committed ground-fact edges (beacon, engines, park brake, external power,
+    /// parked spell) this build's engine published while replaying, in order with their tick
+    /// times — so the ground-ops edges are judged against a recorded flight the same way the
+    /// phase commits are.</summary>
+    public IReadOnlyList<GroundFactChange> GroundFactEdges { get; }
 
     /// <summary>What this build's rule table decided, in order.</summary>
     public IReadOnlyList<ReplayCommit> Commits { get; }
@@ -98,6 +106,11 @@ public sealed class FlightReplayResult
         foreach (var c in Commits)
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"{c.At:HH:mm:ss}  {c.Edge,-32} [{c.RuleId}] {c.Reason}");
+        }
+
+        foreach (var g in GroundFactEdges)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{g.At:HH:mm:ss}  ground fact {g.Edge}");
         }
 
         sb.Append(FirstDivergence is { } i
@@ -224,6 +237,8 @@ public static class FlightReplay
 
         var now = samples[0].At;
         engine.PhaseChanged += (_, e) => commits.Add(new ReplayCommit(now, e.Previous, e.Current, e.RuleId, e.Reason));
+        var groundFactEdges = new List<GroundFactChange>();
+        engine.GroundFactChanged += groundFactEdges.Add;
 
         signals.Sort((a, b) => a.At.CompareTo(b.At));
         var nextSignal = 0;
@@ -254,7 +269,7 @@ public static class FlightReplay
 
         var firstAt = samples[0].At;
         var recordedInWindow = recorded.Where(c => c.At >= firstAt).ToList();
-        return new FlightReplayResult(commits, recordedInWindow, samples.Count, firstAt, samples[^1].At, pauses);
+        return new FlightReplayResult(commits, recordedInWindow, samples.Count, firstAt, samples[^1].At, pauses, groundFactEdges);
     }
 
     private static readonly SimSessionSnapshot InSession =

@@ -35,6 +35,7 @@ public sealed class GsxArrivalService : IDisposable
     private readonly GsxServiceLifecycleTracker _lifecycle;
     private readonly GsxAutomationService _automation;
     private readonly IFlightPhaseSource _flightState;
+    private readonly IGroundFactsSource _groundFacts;
     private readonly IProsimDataRefs _prosim;
     private readonly ISimVars _simVars;
     private readonly JsonSettingsFile _settings;
@@ -42,7 +43,6 @@ public sealed class GsxArrivalService : IDisposable
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxArrivalService> _logger;
-    private readonly IDataRefSubscription<int> _beacon;
     private readonly IDataRefSubscription<double> _fuelTotal;
     private readonly IDataRefSubscription<string?> _seatOccupation;
     private readonly IDataRefSubscription<bool> _ofpImported;
@@ -61,6 +61,7 @@ public sealed class GsxArrivalService : IDisposable
         GsxServiceLifecycleTracker lifecycle,
         GsxAutomationService automation,
         IFlightPhaseSource flightState,
+        IGroundFactsSource groundFacts,
         IProsimDataRefs prosim,
         ISimVars simVars,
         JsonSettingsFile settings,
@@ -80,6 +81,7 @@ public sealed class GsxArrivalService : IDisposable
         ArgumentNullException.ThrowIfNull(lifecycle);
         ArgumentNullException.ThrowIfNull(automation);
         ArgumentNullException.ThrowIfNull(flightState);
+        ArgumentNullException.ThrowIfNull(groundFacts);
         ArgumentNullException.ThrowIfNull(prosim);
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(settings);
@@ -93,6 +95,7 @@ public sealed class GsxArrivalService : IDisposable
         _lifecycle = lifecycle;
         _automation = automation;
         _flightState = flightState;
+        _groundFacts = groundFacts;
         _prosim = prosim;
         _simVars = simVars;
         _settings = settings;
@@ -101,7 +104,6 @@ public sealed class GsxArrivalService : IDisposable
         _diagnostics = diagnostics;
         _logger = logger;
 
-        _beacon = prosim.Subscribe(ProsimDataRefNames.OhExtLtBeacon);
         _fuelTotal = prosim.Subscribe(ProsimDataRefNames.FuelTotal);
         _seatOccupation = prosim.Subscribe(ProsimDataRefNames.PaxSeatOccupationString);
         _ofpImported = prosim.Subscribe(ProsimDataRefNames.EfbSimbriefPlanImported);
@@ -112,7 +114,6 @@ public sealed class GsxArrivalService : IDisposable
     public void Dispose()
     {
         _timer.Dispose();
-        _beacon.Dispose();
         _fuelTotal.Dispose();
         _seatOccupation.Dispose();
         _ofpImported.Dispose();
@@ -131,25 +132,9 @@ public sealed class GsxArrivalService : IDisposable
         {
             // All tick policy is the pure core (campaign #78); this shell gathers inputs and
             // performs the outcome's effects.
-            var snapshot = _flightState.Snapshot().Data;
-            var options = _options.CurrentValue;
             var outcome = ArrivalCore.Tick(
                 _arrivalState,
-                new ArrivalCore.ArrivalInputs(
-                    Enabled: options.AutomationEnabled,
-                    Phase: _automation.Phase,
-                    SnapshotValid: snapshot?.IsValid == true,
-                    OnGround: snapshot?.OnGround == true,
-                    AnyEngineRunning: snapshot?.AnyEngineRunning == true,
-                    ParkBrakeSet: snapshot?.ParkBrakeSet == true,
-                    GroundSpeedKt: snapshot?.GroundSpeedKt ?? double.MaxValue,
-                    BeaconOn: _beacon.Value != 0,
-                    ArrivalStableSecondsOption: options.ArrivalStableSeconds,
-                    AutoCallDeboard: options.AutoCallDeboardOnArrival,
-                    DeboardAlreadyCalled: _deboardCalled,
-                    AutoGroundEquipment: options.AutoGroundEquipment,
-                    ChockDelayMinSec: options.ChockDelayMinSec,
-                    ChockDelayMaxSec: options.ChockDelayMaxSec),
+                ReadInputs(_flightState.Snapshot().Data, _groundFacts.Facts, _automation.Phase, _options.CurrentValue, _deboardCalled),
                 Random.Shared.Next);
             _arrivalState = outcome.State;
 
@@ -196,6 +181,37 @@ public sealed class GsxArrivalService : IDisposable
         {
             Interlocked.Exchange(ref _ticking, 0);
         }
+    }
+
+    /// <summary>The arrival tick's inputs gatherer: the engine's sample for ground contact,
+    /// engines, brake and speed, and the engine's committed ground facts for the beacon —
+    /// one clock of truth (C4, 2026-10-19; the raw beacon subscription this module used to
+    /// hold beside the snapshot's fields is gone). The stable-parked hold itself stays the
+    /// core's own count against <c>gsx.arrivalStableSeconds</c>.</summary>
+    internal static ArrivalCore.ArrivalInputs ReadInputs(
+        FlightDataSnapshot? snapshot,
+        GroundFacts facts,
+        GsxAutomationPhase phase,
+        GsxOptions options,
+        bool deboardAlreadyCalled)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        ArgumentNullException.ThrowIfNull(options);
+        return new ArrivalCore.ArrivalInputs(
+            Enabled: options.AutomationEnabled,
+            Phase: phase,
+            SnapshotValid: snapshot?.IsValid == true,
+            OnGround: snapshot?.OnGround == true,
+            AnyEngineRunning: snapshot?.AnyEngineRunning == true,
+            ParkBrakeSet: snapshot?.ParkBrakeSet == true,
+            GroundSpeedKt: snapshot?.GroundSpeedKt ?? double.MaxValue,
+            BeaconOn: facts.BeaconOn,
+            ArrivalStableSecondsOption: options.ArrivalStableSeconds,
+            AutoCallDeboard: options.AutoCallDeboardOnArrival,
+            DeboardAlreadyCalled: deboardAlreadyCalled,
+            AutoGroundEquipment: options.AutoGroundEquipment,
+            ChockDelayMinSec: options.ChockDelayMinSec,
+            ChockDelayMaxSec: options.ChockDelayMaxSec);
     }
 
     /// <summary>FOB persisted per aircraft title into settings.json (gsx.fuelFobSaved) — the
