@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Architecture: departure pump seam (C1)
+
+- Refactor (behaviour-preserving): **the GSX departure pump has a seam.** `GsxAutomationService.Pump` (260 lines of inline reads and effects, testable only with a live GSX) is now four modules: `DeparturePumpGatherer` reads the collaborators into the pure core's inputs, `DeparturePumpEffectPlanner` is a pure function from the core's outcome and the cycle latches to an ordered effect plan, `DeparturePumpEffectApplier` performs one effect against one collaborator, and `LockedPumpRunner` owns the pump lock and applies the effects the plan marks `RunsAfterLockRelease` (the #166 de-icing step mark) only after releasing it. `DepartureCycleLatches` holds the per-cycle memory as single-field mutations; `GsxPaxTargetArmer` and `GsxDepartureDecisionLog` are shared by the pump and the hail/command start paths. New narrow seams `IGsxServiceLifecycleView`, `IGsxArrivalGateRequester`, `IGsxAutomationPhaseView`. The host keeps the timer/event wiring, the lock, the latches and its public surface unchanged (1059 → 545 lines). Log lines, decision texts and session events are unchanged.
+- Refactor (behaviour-preserving): **the pushback tick is the seam's second adapter** — `PushbackTickGatherer` / `PushbackTickEffectPlanner` / `PushbackTickEffectApplier` over the pure hook core and the beacon sequencer, with `IPushbackGroundActions` (one adapter over the door, jetway/stairs, ground-equipment and menu modules). `GsxPushbackSequenceService` 470 → 96 lines; the on-final door/jetway calls now run under the same catch the sequence actions always had. `GsxGroundPrepCoordinator` is left as is: its stage steps are awaited inside the cycle and their results decide the next transition, so a plan-then-apply split would cut each decision in two; `PrepStageMachine` already pins its hold/reset order.
+- Tests: planner tables for the recent shell bugs (refuel-on-fuel-confirmed hold and its force-next rule, #166 de-ice step-next deferral, #117/#118 tankering prelim raise and reversal, #169 settle stamp and ask-first, the all-done tail), gatherer tests against faked collaborators, applier tests, a runner test proving the after-lock effect sees the lock released, and the same for the pushback tick. CONTEXT.md gains *Departure pump*, *Effect plan* and *Cycle latches*.
+
 ## 0.7.0-rc.9
 
 Kokoro short-callout fix, 2026-10-17. On top of rc.8; the padding was **verified live by the owner on 2026-10-17** (short callouts now sound whole).
