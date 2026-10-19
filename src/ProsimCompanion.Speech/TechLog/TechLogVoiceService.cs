@@ -4,6 +4,7 @@ using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.TechLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Abnormals;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
@@ -77,6 +78,21 @@ public sealed class TechLogVoiceService : IVoiceFeature, IDisposable
             }
         }
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). Post-flight voice
+    /// — tech-log brief — is exact-match phrases, so last in the dispatch order is fine.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 260,
+        Gate = VoiceFeatureGate.ByOption("techLog.enabled", VoiceReferenceTextIds.OffSpeechFo),
+        Description = new DescribedVoiceReference("techLog", "voiceReference.group.techLog.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["tech log", "read the tech log", "tech log brief", "brief tech log", "brief the tech log", "any open items", "open items"],
+                "voiceReference.group.techLog.openItems"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _options.CurrentValue.Enabled;
 

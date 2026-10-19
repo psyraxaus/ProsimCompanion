@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Commands;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -48,6 +49,18 @@ public sealed class GsxVoiceService : IVoiceFeature
         _logger = logger;
         _departureControl = departureControl;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the single-shot
+    /// GSX phrases, composed from the binding table, BEFORE the crew hails so single-shot
+    /// phrases keep their precedence.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 210,
+        Gate = VoiceFeatureGate.ByOption("gsx.voiceControlEnabled", VoiceReferenceTextIds.OffGroundServices),
+        Description = new ComposedVoiceReference(GsxVoiceReference.Compose),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _options.CurrentValue.VoiceControlEnabled;
 

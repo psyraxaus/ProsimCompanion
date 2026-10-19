@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -170,6 +171,27 @@ public sealed class EngineFlapCallFeature : IVoiceFeature
         _eventLog = eventLog;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). Engine-start +
+    /// flap call responses (issue #67, verbal only — no lever writes) dispatch AFTER commands.json
+    /// so a user-configured phrase keeps precedence.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 80,
+        Gate = VoiceFeatureGate.ByOption("speech.engineFlapCallouts", VoiceReferenceTextIds.OffSpeechFo),
+        Description = new DescribedVoiceReference("engineFlap", "voiceReference.group.engineFlap.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["starting engine one", "start engine one", "engine one start"], "voiceReference.group.engineFlap.engineStart", "Engine one."),
+            new(["starting engine two", "start engine two", "engine two start"], "voiceReference.group.engineFlap.engineStart", "Engine two."),
+            new(["flaps one", "set flaps one"], "voiceReference.group.engineFlap.flapsOne", "Speed checked, flaps one."),
+            new(["flaps two", "set flaps two"], "voiceReference.group.engineFlap.flapsCheck", "Speed checked, flaps two."),
+            new(["flaps three", "set flaps three"], "voiceReference.group.engineFlap.flapsCheck", "Speed checked, flaps three."),
+            new(["flaps full", "set flaps full"], "voiceReference.group.engineFlap.flapsCheck", "Speed checked, flaps full."),
+            new(["flaps up", "flaps zero", "set flaps up"], "voiceReference.group.engineFlap.flapsUp", "Flaps up."),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     /// <summary>Disabled contributes NO phrases, so the closed offline grammar shrinks with
     /// the option instead of hearing calls the feature would then ignore.</summary>

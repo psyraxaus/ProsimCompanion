@@ -60,6 +60,7 @@ public sealed class UtteranceRouterTests
         public bool Enabled { get; } = enabled;
         public IEnumerable<string> Phrases => [phrase];
         public bool ValueParse { get; } = valueParse;
+        public VoiceFeatureDeclaration Declaration => FakeVoiceFeatureDeclaration.Plain;
 
         public bool TryHandle(string utterance)
         {
@@ -81,6 +82,7 @@ public sealed class UtteranceRouterTests
         public bool Enabled => true;
         public IEnumerable<string> Phrases => [$"set {keyword}"];
         public bool ValueParse => true;
+        public VoiceFeatureDeclaration Declaration => FakeVoiceFeatureDeclaration.Plain;
 
         public bool TryHandle(string utterance)
         {
@@ -135,7 +137,7 @@ public sealed class UtteranceRouterTests
                 NullLogger<ChecklistService>.Instance),
             new FailureMonitor(
                 _arbiter, dataRefs, _phases, eventLog, NullLogger<FailureMonitor>.Instance),
-            features,
+            new VoiceFeatureRoster(features),
             _window,
             _mic,
             _arbiter,
@@ -162,6 +164,7 @@ public sealed class UtteranceRouterTests
         public IEnumerable<string> Phrases => [phrase];
         public bool ValueParse => false;
         public bool AcknowledgeOnly => true;
+        public VoiceFeatureDeclaration Declaration => FakeVoiceFeatureDeclaration.Plain;
 
         public bool TryHandle(string utterance)
         {

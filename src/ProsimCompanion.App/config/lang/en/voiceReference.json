@@ -33,6 +33,248 @@
       "sayAfter": "any time",
       "edit": "Edit phrases · commands.json",
       "editTitle": "Your own phrases live in commands.json (user config folder)"
+    },
+    "off": {
+      "speechFo": "{0} is off — Settings → Voice First Officer",
+      "mcdu": "{0} is off — Settings → Voice First Officer → MCDU",
+      "monitoring": "{0} is off — Settings → Voice First Officer → Callouts & Placards → In-flight monitoring",
+      "gsxSettings": "{0} is off — Settings → GSX",
+      "groundServices": "{0} is off — Settings → Ground Services",
+      "bare": "{0} is off",
+      "gsxPillar": "GSX pillar not running",
+      "sayIntentions": "SayIntentions is off — Settings → Voice First Officer → SayIntentions",
+      "groundCrew": "{0} is off — Settings → Voice First Officer → Ground Crew",
+      "cabinCrew": "{0} is off — Settings → Voice First Officer → Cabin Crew",
+      "notInBuild": "not available in this build",
+      "foQuestions": "{0} is off — Settings → Voice First Officer → Briefings & LLM → Ask the First Officer",
+      "cruiseQuery": "{0} is off — Settings → Voice First Officer → Cabin Crew → Purser cruise query"
+    },
+    "always": {
+      "skip": "Skip the current checklist item.",
+      "sayAgain": "Repeat the current item.",
+      "hold": "Hold the checklist.",
+      "resume": "Resume a held checklist.",
+      "cancel": "Cancel the running checklist.",
+      "restart": "Restart the active checklist.",
+      "negative": "Cancel a pending FCU, radio or MCDU action."
+    },
+    "group": {
+      "roles": {
+        "title": "Controls handover",
+        "handover": "Hand the FO the aircraft. Airborne, the FO asks you to confirm first.",
+        "confirm": "Confirm an airborne handover.",
+        "takeBack": "Take the aircraft back — instant, also aborts any pending FCU or MCDU action.",
+        "pmCall": "Your pilot-monitoring call while the FO flies."
+      },
+      "fcu": {
+        "title": "FCU — while the FO is pilot flying",
+        "heading": "Set the heading. The FO reads it back, waits 3 s for 'negative', then sets and verifies.",
+        "flightLevel": "Set the altitude as a flight level.",
+        "speed": "Set the speed (100–399 kt).",
+        "verticalSpeed": "Set V/S. Say 'descend' or 'down' for a descent.",
+        "speedMode": "Speed managed or selected.",
+        "altitudeMode": "Altitude knob pull, push, or EXPED.",
+        "engage": "AP1, AP2 or A/THR.",
+        "arm": "APPR or LOC.",
+        "ownNav": "Heading back to managed.",
+        "negative": "Cancel a pending FCU or radio action inside its 3 s window."
+      },
+      "radios": {
+        "title": "Radios",
+        "tune": "Tune a standby frequency (118.000–136.990); the FO reads it back, then sets and verifies.",
+        "standby": "Tune that box's standby.",
+        "swap": "Swap active and standby."
+      },
+      "engineFlap": {
+        "title": "Engine & flap calls",
+        "engineStart": "Engine start acknowledgement.",
+        "flapsOne": "Placard speed check — nothing is moved.",
+        "flapsCheck": "Placard speed check.",
+        "flapsUp": "Flap retraction acknowledgement."
+      },
+      "gear": {
+        "title": "Gear",
+        "up": "The FO moves the lever — refused on the ground or above the retraction limit.",
+        "down": "The FO moves the lever — refused above the extension limit."
+      },
+      "chrono": {
+        "title": "Takeoff",
+        "takeoff": "Starts the FO chrono on the takeoff roll (stops at touchdown)."
+      },
+      "announcements": {
+        "title": "Flight-mode calls",
+        "fma": "Takeoff FMA read.",
+        "capture": "Localizer / glideslope capture call.",
+        "altCapture": "Altitude capture call.",
+        "manualFlight": "Manual flight announcement.",
+        "continue": "Your decision at minimums."
+      },
+      "mcduRead": {
+        "title": "MCDU — read",
+        "page": "The FO reads the current MCDU page aloud.",
+        "scratchpad": "Reads only the scratchpad."
+      },
+      "mcduRadNav": {
+        "title": "MCDU — ILS",
+        "tune": "The FO tunes the arrival ILS on RAD NAV.",
+        "abort": "Abort the tuning."
+      },
+      "mcduArrival": {
+        "title": "MCDU — arrival runway",
+        "change": "The FO changes the arrival runway and ILS (LAT REV → ARRIVAL → insert)."
+      },
+      "briefings": {
+        "title": "Briefings",
+        "departure": "Departure briefing from the FMS plan, navdata and live weather.",
+        "arrival": "Arrival briefing — the FO asks you to confirm the minimums first.",
+        "approaches": "The navdata approaches for the arrival runway."
+      },
+      "missedApproach": {
+        "title": "Missed approach",
+        "rebrief": "Re-brief the missed approach."
+      },
+      "minima": {
+        "title": "Minimums",
+        "query": "The minima you confirmed in the arrival briefing."
+      },
+      "company": {
+        "title": "Company",
+        "loadsheet": "Spoken loadsheet from the live weights, pax and CG (ACARS chime).",
+        "lastMessage": "Repeats the last company message."
+      },
+      "day": {
+        "title": "Duty day",
+        "start": "Starts the company duty day.",
+        "end": "Ends it with a summary and the logbook fold."
+      },
+      "fuelCheck": {
+        "title": "Fuel check",
+        "check": "Fuel on board against the SimBrief plan at your position, and the estimated landing fuel against the planned figure. Also automatic in the cruise."
+      },
+      "grossErrorCheck": {
+        "title": "Gross error check",
+        "check": "The aircraft's weights against the final loadsheet and the FMS PERF entries against the last takeoff performance calculation. Also automatic once the final loadsheet and V-speeds are in."
+      },
+      "readbacks": {
+        "title": "Read-backs",
+        "altimeter": "Read back the altimeter setting; the FO checks it against your baro. 'Read back', 'check' or 'confirm' may lead in.",
+        "standard": "Standard pressure set; the FO checks the baro reads 1013.",
+        "vSpeeds": "Read back V1, rotate and V2; the FO checks them against the FMS.",
+        "runway": "Read back the runway; the FO checks it against the FMS plan.",
+        "minimums": "Read back the minimums; the FO checks them against the briefed minima."
+      },
+      "logbook": {
+        "title": "Logbook",
+        "summary": "Your logbook totals.",
+        "count": "One figure.",
+        "daySummary": "The last duty day.",
+        "landingStats": "Landings at one airport."
+      },
+      "techLog": {
+        "title": "Tech log",
+        "openItems": "Reads the open defects."
+      },
+      "techLogDialogue": {
+        "title": "Tech log — raise / rectify",
+        "raise": "Guided: the defect, then the MEL category (bravo, charlie, delta), then confirm.",
+        "rectify": "Guided: 'Rectify …? Affirm or negative.'"
+      },
+      "debrief": {
+        "title": "Debrief",
+        "debrief": "Spoken post-flight debrief."
+      },
+      "quiet": {
+        "title": "Quiet",
+        "quiet": "Silences chatter for the rest of the session (checklists and callouts still speak)."
+      },
+      "disregard": {
+        "title": "Disregard",
+        "disregard": "Silences the advisory the FO is speaking (aircraft state, parking, dropped call) and acknowledges — with nothing playing, just the acknowledgement."
+      },
+      "aircraftState": {
+        "title": "Aircraft state",
+        "recheck": "Re-runs the cold-and-dark check; the FO reads the verdict."
+      },
+      "pushbackDirection": {
+        "title": "Pushback direction",
+        "tailLeft": "This flight's push: GSX's 'Nose Right / Tail Left'. Applied when GSX shows the direction menu.",
+        "tailRight": "This flight's push: GSX's 'Nose Left / Tail Right'.",
+        "straight": "This flight's push: 'Straight pushback'.",
+        "facing": "Relay ATC's direction; the FO picks the route that ends facing that way (any of the eight compass points).",
+        "which": "Your choice for this flight, or the FO's suggestion toward the departure runway."
+      },
+      "gsx": {
+        "title": "Ground services",
+        "start": "Start the departure sequence (or call the next service once it is running).",
+        "command": {
+          "forceNextService": "The INT/RAD smart button — call the next service now.",
+          "requestBoarding": "Request boarding.",
+          "requestRefuel": "Order the fuel truck.",
+          "confirmFuel": "Confirm the block fuel, then order the truck (or a top-up).",
+          "requestCatering": "Request catering.",
+          "requestPushback": "Request pushback (beacon sequence permitting).",
+          "requestDeice": "Request de-icing.",
+          "requestGpu": "Connect ground power — GSX's GPU, or the ProSim unit when the stand has none; the ground crew reports it connected.",
+          "disconnectGpu": "Take the ground power unit away (not while EXT PWR still feeds the aircraft).",
+          "declineDeice": "Decline the First Officer's de-icing question — no de-icing this departure."
+        }
+      },
+      "gsxCabin": {
+        "title": "Boarding",
+        "boarding": "Boarding — the FO requests it, the purser confirms."
+      },
+      "hailGround": {
+        "title": "Hail the ground crew",
+        "how": "Hail, then say any ground-services phrase in the window.",
+        "how.gated": "Select INT on the audio panel, hail, then say any ground-services phrase in the window.",
+        "cancel": "End the hail without a request."
+      },
+      "hailCabin": {
+        "title": "Hail the cabin crew",
+        "how": "Hail, then ask for boarding in the window.",
+        "how.gated": "Select CAB on the audio panel, hail, then ask for boarding in the window."
+      },
+      "commandsJson": {
+        "title": "From commands.json"
+      },
+      "atc": {
+        "title": "ATC requests (SayIntentions)",
+        "to": "To {0}."
+      },
+      "checklists": {
+        "title": "Checklists",
+        "start": "Starts the {0} checklist ('request …' works too)."
+      },
+      "drills": {
+        "title": "Memory drills",
+        "rehearse": "Rehearse the {0} memory items."
+      },
+      "foQuestions": {
+        "title": "Ask the First Officer",
+        "fuel": "Fuel on board and the planned figures.",
+        "tod": "Minutes to the 3:1 top-of-descent estimate.",
+        "weather": "The destination METAR as the hero card shows it.",
+        "eta": "The ground-speed ETA.",
+        "compare": "Anything the fact sheet can compare.",
+        "leadIn": "Any question starting with one of these lead-ins and at least {0} words long. Answered only from live facts; the FO says \"{1}\" when the facts do not cover it. Needs the LAN speech server.",
+        "smallTalk": {
+          "football": "Small talk: general knowledge, in character, no flight figures.",
+          "funFact": "A fun fact, one or two sentences.",
+          "any": "Small talk is on: no lead-in needed. A question that mentions the flight still takes the strict, verified path."
+        },
+        "whereAreWe": {
+          "wikipedia": "The country, mountains or sea below and the nearest towns — at once, from the built-in atlas — then a fact or two from Wikipedia.",
+          "model": "The country, mountains or sea below and the nearest towns — at once, from the built-in atlas — then a fact or two from the model.",
+          "side": "Same answer; the side is relative to our track."
+        }
+      },
+      "cabinCruiseQuery": {
+        "title": "Purser cruise query",
+        "eta": "Once per flight in the cruise the purser calls — \"{0}\" — and listens {1} s. A time or arrival estimate in your answer:",
+        "ride": "A word about the ride:",
+        "other": "Anything else (free answer with the LAN speech server; the offline engine hears a short list):",
+        "silence": "The window closes in silence:"
+      }
     }
   }
 }

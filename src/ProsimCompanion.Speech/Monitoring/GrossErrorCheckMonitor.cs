@@ -5,6 +5,7 @@ using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -87,6 +88,22 @@ public sealed class GrossErrorCheckMonitor : Core.Hosting.IStartupModule, IVoice
     }
 
     private GrossErrorCheckOptions Options => _sop.CurrentValue.Monitoring.GrossErrorCheck;
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): second, beside
+    /// the fuel check — exact phrases, no overlap.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 20,
+        Gate = VoiceFeatureGate.ByOption("sop.monitoring.grossErrorCheck.enabled", VoiceReferenceTextIds.OffMonitoring),
+        Description = new DescribedVoiceReference("grossErrorCheck", "voiceReference.group.grossErrorCheck.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["gross error check", "gross error check please", "run the gross error check", "cross check the loadsheet"],
+                "voiceReference.group.grossErrorCheck.check",
+                "Gross error check: checked."),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => Options.Enabled;
 

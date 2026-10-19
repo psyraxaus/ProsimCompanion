@@ -6,6 +6,7 @@
 @using ProsimCompanion.Core.Aircraft.Switches
 @using ProsimCompanion.Core.Profiles
 @using ProsimCompanion.Core.Airports.Parking
+@using ProsimCompanion.Web.Settings
 @inherits SettingsPageBase
 @inject IOptionsMonitor<GsxOptions> GsxMonitor
 @inject ProfileGsxMirror ProfileMirror
@@ -17,7 +18,10 @@
 
 @* Sections are URL-driven (settings/gsx/{section}, ADR-0010) so refresh, Back and banner
    links land on the right cards; the rail lives in SettingsLayout. The GSX master switch
-   moved to Setup with the other pillar switches. *@
+   moved to Setup with the other pillar switches. Since C3 (2026-10-19) a field is one
+   <OptionField Draft For /> line — its texts, bounds, choice list and parent switch are
+   declared on the GsxOptions property; the page keeps the grouping, the list editors and the
+   smart-button picker that depends on the live switch catalogue. *@
 
 @if (CurrentSection == "status")
 {
@@ -26,90 +30,53 @@
 else if (CurrentSection == "doors")
 {
     <Section Title="@T["gsxSettings.doors.title"]">
-        <BoolField Label="@T["gsxSettings.doors.automation.label"]" Hint="@T["gsxSettings.doors.automation.hint"]" More="@T["gsxSettings.doors.automation.more"]"
-                   @bind-Value="_gsx.Value.DoorAutomationEnabled" />
-        <BoolField Label="@T["gsxSettings.doors.stairs.label"]" Hint="@T["gsxSettings.doors.stairs.hint"]" More="@T["gsxSettings.doors.stairs.more"]"
-                   Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
-                   @bind-Value="_gsx.Value.DoorStairHandling" />
-        <BoolField Label="@T["gsxSettings.doors.catering.label"]" Hint="@T["gsxSettings.doors.catering.hint"]"
-                   Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
-                   @bind-Value="_gsx.Value.DoorCateringHandling" />
-        <BoolField Label="@T["gsxSettings.doors.cargo.label"]" Hint="@T["gsxSettings.doors.cargo.hint"]"
-                   Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
-                   @bind-Value="_gsx.Value.DoorCargoHandling" />
-        <BoolField Label="@T["gsxSettings.doors.cargoOnBoarding.label"]" Hint="@T["gsxSettings.doors.cargoOnBoarding.hint"]"
-                   Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
-                   @bind-Value="_gsx.Value.DoorOpenOnBoardingActive" />
-        <NumberField Label="@T["gsxSettings.doors.cargoOpenDelay.label"]" Hint="@T["gsxSettings.doors.cargoOpenDelay.hint"]" Suffix="s" Min="0"
-                     Disabled="@(!_gsx.Value.DoorAutomationEnabled || !_gsx.Value.DoorOpenOnBoardingActive)"
-                     @bind-Value="_gsx.Value.CargoDoorOpenDelaySec"
-                     Default="_gsx.Defaults.CargoDoorOpenDelaySec" />
-        <NumberField Label="@T["gsxSettings.doors.cargoCloseDelay.label"]" Hint="@T["gsxSettings.doors.cargoCloseDelay.hint"]" Suffix="s" Min="0"
-                     Disabled="@(!_gsx.Value.DoorAutomationEnabled || !_gsx.Value.DoorCargoHandling)"
-                     @bind-Value="_gsx.Value.CargoDoorCloseDelaySec"
-                     Default="_gsx.Defaults.CargoDoorCloseDelaySec" />
-        <BoolField Label="@T["gsxSettings.doors.keepOpenAfterLoad.label"]" Hint="@T["gsxSettings.doors.keepOpenAfterLoad.hint"]"
-                   Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
-                   @bind-Value="_gsx.Value.KeepCargoDoorsOpenAfterLoad" />
-        <BoolField Label="@T["gsxSettings.doors.keepOpenAfterUnload.label"]" Hint="@T["gsxSettings.doors.keepOpenAfterUnload.hint"]" More="@T["gsxSettings.doors.keepOpenAfterUnload.more"]"
-                   Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
-                   @bind-Value="_gsx.Value.KeepCargoDoorsOpenAfterUnload" />
-        <BoolField Label="@T["gsxSettings.doors.closeOnFinal.label"]" Hint="@T["gsxSettings.doors.closeOnFinal.hint"]" More="@T["gsxSettings.doors.closeOnFinal.more"]"
-                   Disabled="@(!_gsx.Value.DoorAutomationEnabled)"
-                   @bind-Value="_gsx.Value.CloseDoorsOnFinal" />
+        <OptionField Draft="_gsx" For="o => o.DoorAutomationEnabled" />
+        <OptionField Draft="_gsx" For="o => o.DoorStairHandling" />
+        <OptionField Draft="_gsx" For="o => o.DoorCateringHandling" />
+        <OptionField Draft="_gsx" For="o => o.DoorCargoHandling" />
+        <OptionField Draft="_gsx" For="o => o.DoorOpenOnBoardingActive" />
+        <OptionField Draft="_gsx" For="o => o.CargoDoorOpenDelaySec" />
+        <OptionField Draft="_gsx" For="o => o.CargoDoorCloseDelaySec" />
+        <OptionField Draft="_gsx" For="o => o.KeepCargoDoorsOpenAfterLoad" />
+        <OptionField Draft="_gsx" For="o => o.KeepCargoDoorsOpenAfterUnload" />
+        <OptionField Draft="_gsx" For="o => o.CloseDoorsOnFinal" />
         <AdvancedFields>
-            <BoolField Label="@T["gsxSettings.doors.suppressMessages.label"]" Hint="@T["gsxSettings.doors.suppressMessages.hint"]"
-                       @bind-Value="_gsx.Value.SuppressGsxDoorMessages" />
+            <OptionField Draft="_gsx" For="o => o.SuppressGsxDoorMessages" />
         </AdvancedFields>
     </Section>
     <Section Title="@T["gsxSettings.jetway.title"]">
-        <BoolField Label="@T["gsxSettings.jetway.connectAtStart.label"]" Hint="@T["gsxSettings.jetway.connectAtStart.hint"]" More="@T["gsxSettings.jetway.connectAtStart.more"]"
-                   @bind-Value="_gsx.Value.AutoConnectJetwayOrStairs" />
-        <BoolField Label="@T["gsxSettings.jetway.connectOnDeparture.label"]" Hint="@T["gsxSettings.jetway.connectOnDeparture.hint"]" More="@T["gsxSettings.jetway.connectOnDeparture.more"]"
-                   @bind-Value="_gsx.Value.CallJetwayStairsDuringDeparture" />
-        <SelectField Label="@T["gsxSettings.jetway.removeStairs.label"]" Hint="@T["gsxSettings.jetway.removeStairs.hint"]" More="@T["gsxSettings.jetway.removeStairs.more"]" Options="RemoveStairsOptions"
-                     @bind-Value="_gsx.Value.RemoveStairsAfterDeparture" />
-        <BoolField Label="@T["gsxSettings.jetway.removeOnFinal.label"]" Hint="@T["gsxSettings.jetway.removeOnFinal.hint"]" More="@T["gsxSettings.jetway.removeOnFinal.more"]"
-                   @bind-Value="_gsx.Value.RemoveJetwayStairsOnFinal" />
-        <BoolField Label="@T["gsxSettings.jetway.connectOnArrival.label"]" Hint="@T["gsxSettings.jetway.connectOnArrival.hint"]"
-                   @bind-Value="_gsx.Value.CallJetwayStairsOnArrival" />
+        <OptionField Draft="_gsx" For="o => o.AutoConnectJetwayOrStairs" />
+        <OptionField Draft="_gsx" For="o => o.CallJetwayStairsDuringDeparture" />
+        <OptionField Draft="_gsx" For="o => o.RemoveStairsAfterDeparture" />
+        <OptionField Draft="_gsx" For="o => o.RemoveJetwayStairsOnFinal" />
+        <OptionField Draft="_gsx" For="o => o.CallJetwayStairsOnArrival" />
     </Section>
 }
 else if (CurrentSection == "equipment")
 {
     <Section Title="@T["gsxSettings.equipment.title"]">
-        <BoolField Label="@T["gsxSettings.equipment.place.label"]" Hint="@T["gsxSettings.equipment.place.hint"]" More="@T["gsxSettings.equipment.place.more"]"
-                   @bind-Value="_gsx.Value.AutoGroundEquipment" />
-        <BoolField Label="@T["gsxSettings.equipment.gpuWithApu.label"]" Hint="@T["gsxSettings.equipment.gpuWithApu.hint"]"
-                   Disabled="@(!_gsx.Value.AutoGroundEquipment)"
-                   @bind-Value="_gsx.Value.ConnectGpuWithApuRunning" />
+        <OptionField Draft="_gsx" For="o => o.AutoGroundEquipment" />
+        <OptionField Draft="_gsx" For="o => o.ConnectGpuWithApuRunning" />
+        @* pcaMode shows the legacy autoPca bool while unset (GsxPageRules.EffectivePcaMode), so
+           this one select keeps its own getter rather than the plain draft binding. *@
         <SelectField Label="@T["gsxSettings.equipment.pca.label"]" Hint="@T["gsxSettings.equipment.pca.hint"]" More="@T["gsxSettings.equipment.pca.more"]" Options="PcaModeOptions"
-                     @bind-Value="PcaModeKey" />
+                     @bind-Value="PcaMode" />
         <AdvancedFields>
-            <BoolField Label="@T["gsxSettings.equipment.pcaOverride.label"]" Hint="@T["gsxSettings.equipment.pcaOverride.hint"]"
-                       @bind-Value="_gsx.Value.PcaOverride" />
+            <OptionField Draft="_gsx" For="o => o.PcaOverride" />
         </AdvancedFields>
-        <BoolField Label="@T["gsxSettings.equipment.gradualRemoval.label"]" Hint="@T["gsxSettings.equipment.gradualRemoval.hint"]" More="@T["gsxSettings.equipment.gradualRemoval.more"]"
-                   @bind-Value="_gsx.Value.GradualGroundEquipRemoval" />
-        <RangeField Label="@T["gsxSettings.equipment.chockDelay.label"]" Hint="@T["gsxSettings.equipment.chockDelay.hint"]" Suffix="s" Min="0"
-                    Disabled="@(!_gsx.Value.AutoGroundEquipment)"
-                    @bind-From="_gsx.Value.ChockDelayMinSec" @bind-To="_gsx.Value.ChockDelayMaxSec"
-                    DefaultFrom="_gsx.Defaults.ChockDelayMinSec" DefaultTo="_gsx.Defaults.ChockDelayMaxSec" />
-        <BoolField Label="@T["gsxSettings.equipment.reposition.label"]" Hint="@T["gsxSettings.equipment.reposition.hint"]"
-                   @bind-Value="_gsx.Value.AutoReposition" />
+        <OptionField Draft="_gsx" For="o => o.GradualGroundEquipRemoval" />
+        <OptionField Draft="_gsx" For="o => o.ChockDelayMinSec" />
+        <OptionField Draft="_gsx" For="o => o.AutoReposition" />
         <AdvancedFields>
-            <BoolField Label="@T["gsxSettings.equipment.disableProsimNative.label"]" Hint="@T["gsxSettings.equipment.disableProsimNative.hint"]"
-                       @bind-Value="_gsx.Value.DisableProsimNativeGsx" />
+            <OptionField Draft="_gsx" For="o => o.DisableProsimNativeGsx" />
         </AdvancedFields>
     </Section>
 }
 else if (CurrentSection == "departure")
 {
     <Section Title="@T["gsxSettings.automation.title"]">
-        <BoolField Label="@T["gsxSettings.automation.enabled.label"]" Hint="@T["gsxSettings.automation.enabled.hint"]" More="@T["gsxSettings.automation.enabled.more"]"
-                   @bind-Value="_gsx.Value.AutomationEnabled" />
-        <BoolField Label="@T["gsxSettings.automation.smartButton.label"]" Hint="@T["gsxSettings.automation.smartButton.hint"]" More="@T["gsxSettings.automation.smartButton.more"]"
-                   @bind-Value="_gsx.Value.SmartButtonEnabled" />
+        <OptionField Draft="_gsx" For="o => o.AutomationEnabled" />
+        <OptionField Draft="_gsx" For="o => o.SmartButtonEnabled" />
         <AdvancedFields>
             @* The hybrid switch list (owner pick 2026-10-17): grouped by panel, from ProSim when it
                is connected, else from the shipped CSV. "Other…" keeps the free text box. *@
@@ -118,9 +85,7 @@ else if (CurrentSection == "departure")
                                 Value="@SmartButtonPick" ValueChanged="OnSmartButtonPicked" />
             @if (SmartButtonIsCustom)
             {
-                <TextField Label="@T["gsxSettings.automation.smartButtonDataRef.label"]" Hint="@T["gsxSettings.automation.smartButtonDataRef.hint"]" More="@T["gsxSettings.automation.smartButtonDataRef.more"]"
-                           Placeholder="system.switches.S_ASP_INTRAD" Disabled="@(!_gsx.Value.SmartButtonEnabled)"
-                           @bind-Value="_gsx.Value.SmartButtonDataRef" />
+                <OptionField Draft="_gsx" For="o => o.SmartButtonDataRef" />
             }
             @if (SmartButtonValueOptions is { } valueOptions)
             {
@@ -130,41 +95,24 @@ else if (CurrentSection == "departure")
             }
             else
             {
-                <NumberField Label="@T["gsxSettings.automation.smartButtonValue.label"]" Hint="@T["gsxSettings.automation.smartButtonValue.hint"]" More="@T["gsxSettings.automation.smartButtonValue.more"]"
-                             Disabled="@(!_gsx.Value.SmartButtonEnabled)" Default="_gsx.Defaults.SmartButtonTriggerValue"
-                             @bind-Value="_gsx.Value.SmartButtonTriggerValue" />
+                <OptionField Draft="_gsx" For="o => o.SmartButtonTriggerValue" />
             }
         </AdvancedFields>
-        <BoolField Label="@T["gsxSettings.automation.autoStart.label"]" Hint="@T["gsxSettings.automation.autoStart.hint"]" More="@T["gsxSettings.automation.autoStart.more"]"
-                   @bind-Value="_gsx.Value.AutoStartDepartureServices" />
-        <SelectField Label="@T["gsxSettings.automation.groundPrep.label"]" Hint="@T["gsxSettings.automation.groundPrep.hint"]" More="@T["gsxSettings.automation.groundPrep.more"]" Options="GroundPrepActivationOptions"
-                     @bind-Value="_gsx.Value.GroundPrepActivation" />
-        <NumberField Label="@T["gsxSettings.automation.turnaroundDelay.label"]" Hint="@T["gsxSettings.automation.turnaroundDelay.hint"]" More="@T["gsxSettings.automation.turnaroundDelay.more"]" Suffix="s" Min="0"
-                     Disabled="@(!GsxOptions.IsVoiceThenAuto(_gsx.Value.GroundPrepActivation))"
-                     @bind-Value="_gsx.Value.TurnaroundAutoStartDelaySeconds" />
-        <BoolField Label="@T["gsxSettings.automation.turnaroundAsk.label"]" Hint="@T["gsxSettings.automation.turnaroundAsk.hint"]" More="@T["gsxSettings.automation.turnaroundAsk.more"]"
-                   Disabled="@(!GsxOptions.IsVoiceThenAuto(_gsx.Value.GroundPrepActivation))"
-                   @bind-Value="_gsx.Value.TurnaroundAskFirst" />
-        <BoolField Label="@T["gsxSettings.automation.requireOfp.label"]" Hint="@T["gsxSettings.automation.requireOfp.hint"]"
-                   @bind-Value="_gsx.Value.RequireOfpBeforeDeparture" />
+        <OptionField Draft="_gsx" For="o => o.AutoStartDepartureServices" />
+        <OptionField Draft="_gsx" For="o => o.GroundPrepActivation" />
+        <OptionField Draft="_gsx" For="o => o.TurnaroundAutoStartDelaySeconds" />
+        <OptionField Draft="_gsx" For="o => o.TurnaroundAskFirst" />
+        <OptionField Draft="_gsx" For="o => o.RequireOfpBeforeDeparture" />
     </Section>
 
     <Section Title="@T["gsxSettings.simbrief.title"]" Hint="@T["gsxSettings.simbrief.hint"]">
-        <BoolField Label="@T["gsxSettings.simbrief.reload.label"]" Hint="@T["gsxSettings.simbrief.reload.hint"]"
-                   More="@T["gsxSettings.simbrief.reload.more"]"
-                   @bind-Value="_gsx.Value.ReloadSimbriefOnNewOfp" />
-        <NumberField Label="@T["gsxSettings.simbrief.pages.label"]" Hint="@T["gsxSettings.simbrief.pages.hint"]"
-                     More="@T["gsxSettings.simbrief.pages.more"]" Min="0"
-                     @bind-Value="_gsx.Value.SimbriefReloadMenuPages"
-                     Default="_gsx.Defaults.SimbriefReloadMenuPages" />
+        <OptionField Draft="_gsx" For="o => o.ReloadSimbriefOnNewOfp" />
+        <OptionField Draft="_gsx" For="o => o.SimbriefReloadMenuPages" />
     </Section>
 
     <Section Title="@T["gsxSettings.coldDark.title"]">
-        <BoolField Label="@T["gsxSettings.coldDark.verify.label"]" Hint="@T["gsxSettings.coldDark.verify.hint"]" More="@T["gsxSettings.coldDark.verify.more"]"
-                   @bind-Value="_gsx.Value.AircraftStateCheckEnabled" />
-        <BoolField Label="@T["gsxSettings.coldDark.announce.label"]" Hint="@T["gsxSettings.coldDark.announce.hint"]" More="@T["gsxSettings.coldDark.announce.more"]"
-                   Disabled="@(!_gsx.Value.AircraftStateCheckEnabled)"
-                   @bind-Value="_gsx.Value.AircraftStateCheckAnnounce" />
+        <OptionField Draft="_gsx" For="o => o.AircraftStateCheckEnabled" />
+        <OptionField Draft="_gsx" For="o => o.AircraftStateCheckAnnounce" />
     </Section>
 
     <Section Title="@T["gsxSettings.serviceOrder.title"]" Hint="@T["gsxSettings.serviceOrder.hint"]">
@@ -241,141 +189,79 @@ else if (CurrentSection == "departure")
 else if (CurrentSection == "refuel")
 {
     <Section Title="@T["gsxSettings.refuel.title"]">
-        <SelectField Label="@T["gsxSettings.refuel.call.label"]" Hint="@T["gsxSettings.refuel.call.hint"]" More="@T["gsxSettings.refuel.call.more"]" Options="RefuelCallOptions"
-                     @bind-Value="_gsx.Value.RefuelCall" />
-        <BoolField Label="@T["gsxSettings.refuel.sync.label"]" Hint="@T["gsxSettings.refuel.sync.hint"]"
-                   @bind-Value="_gsx.Value.RefuelSyncEnabled" />
-        <SelectField Label="@T["gsxSettings.refuel.method.label"]" Hint="@T["gsxSettings.refuel.method.hint"]" Options="RefuelMethodOptions"
-                     Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
-                     @bind-Value="_gsx.Value.RefuelMethod" />
+        <OptionField Draft="_gsx" For="o => o.RefuelCall" />
+        <OptionField Draft="_gsx" For="o => o.RefuelSyncEnabled" />
+        <OptionField Draft="_gsx" For="o => o.RefuelMethod" />
         @if (string.Equals(_gsx.Value.RefuelMethod, "dynamicRate", StringComparison.OrdinalIgnoreCase))
         {
-            <NumberField Label="@T["gsxSettings.refuel.timeTarget.label"]" Hint="@T["gsxSettings.refuel.timeTarget.hint"]" Suffix="s" Min="30"
-                         Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
-                         @bind-Value="_gsx.Value.RefuelTimeTargetSeconds"
-                     Default="_gsx.Defaults.RefuelTimeTargetSeconds" />
+            <OptionField Draft="_gsx" For="o => o.RefuelTimeTargetSeconds" />
         }
         else
         {
-            <NumberField Label="@T["gsxSettings.refuel.rate.label"]" Hint="@T["gsxSettings.refuel.rate.hint"]" Suffix="kg/s" Step="0.5" Min="1"
-                         Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
-                         @bind-Value="_gsx.Value.RefuelRateKgPerSec"
-                     Default="_gsx.Defaults.RefuelRateKgPerSec" />
+            <OptionField Draft="_gsx" For="o => o.RefuelRateKgPerSec" />
         }
-        <BoolField Label="@T["gsxSettings.refuel.skipTankering.label"]" Hint="@T["gsxSettings.refuel.skipTankering.hint"]" More="@T["gsxSettings.refuel.skipTankering.more"]"
-                   @bind-Value="_gsx.Value.SkipRefuelOnTankering" />
-        <BoolField Label="@T["gsxSettings.refuel.finishOnHose.label"]" Hint="@T["gsxSettings.refuel.finishOnHose.hint"]"
-                   Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
-                   @bind-Value="_gsx.Value.RefuelFinishOnHose" />
-        <BoolField Label="@T["gsxSettings.refuel.allowDefuel.label"]" Hint="@T["gsxSettings.refuel.allowDefuel.hint"]" More="@T["gsxSettings.refuel.allowDefuel.more"]"
-                   Disabled="@(!_gsx.Value.RefuelSyncEnabled)"
-                   @bind-Value="_gsx.Value.AllowDefuel" />
+        <OptionField Draft="_gsx" For="o => o.SkipRefuelOnTankering" />
+        <OptionField Draft="_gsx" For="o => o.RefuelFinishOnHose" />
+        <OptionField Draft="_gsx" For="o => o.AllowDefuel" />
     </Section>
 
     <Section Title="@T["gsxSettings.boarding.title"]">
-        <BoolField Label="@T["gsxSettings.boarding.sync.label"]" Hint="@T["gsxSettings.boarding.sync.hint"]"
-                   @bind-Value="_gsx.Value.BoardingSyncEnabled" />
+        <OptionField Draft="_gsx" For="o => o.BoardingSyncEnabled" />
     </Section>
 
     <Section Title="@T["gsxSettings.passengers.title"]">
-        <BoolField Label="@T["gsxSettings.passengers.randomize.label"]" Hint="@T["gsxSettings.passengers.randomize.hint"]" More="@T["gsxSettings.passengers.randomize.more"]"
-                   @bind-Value="_gsx.Value.RandomizePaxNoShows" />
-        <NumberField Label="@T["gsxSettings.passengers.chance.label"]" Hint="@T["gsxSettings.passengers.chance.hint"]" Step="0.001" Min="0" Max="1"
-                     Disabled="@(!_gsx.Value.RandomizePaxNoShows)"
-                     @bind-Value="_gsx.Value.NoShowChancePerSeat"
-                     Default="_gsx.Defaults.NoShowChancePerSeat" />
-        <NumberField Label="@T["gsxSettings.passengers.bagWeight.label"]" Suffix="kg" Min="0"
-                     @bind-Value="_gsx.Value.WeightPerBagKg"
-                     Default="_gsx.Defaults.WeightPerBagKg" />
+        <OptionField Draft="_gsx" For="o => o.RandomizePaxNoShows" />
+        <OptionField Draft="_gsx" For="o => o.NoShowChancePerSeat" />
+        <OptionField Draft="_gsx" For="o => o.WeightPerBagKg" />
     </Section>
 }
 else if (CurrentSection == "pushback")
 {
     <Section Title="@T["gsxSettings.pushbackDirection.title"]" Hint="@T["gsxSettings.pushbackDirection.hint"]">
-        <SelectField Label="@T["gsxSettings.pushbackDirection.default.label"]" Hint="@T["gsxSettings.pushbackDirection.default.hint"]"
-                     More="@T["gsxSettings.pushbackDirection.default.more"]"
-                     Options="PushbackModeOptions" @bind-Value="_gsx.Value.PushbackPreference" />
-        <BoolField Label="@T["gsxSettings.pushbackDirection.askWhenUnsure.label"]" Hint="@T["gsxSettings.pushbackDirection.askWhenUnsure.hint"]"
-                   Disabled="@(_gsx.Value.PushbackPreference != "auto")"
-                   @bind-Value="_gsx.Value.PushbackAskWhenUnsure" />
+        <OptionField Draft="_gsx" For="o => o.PushbackPreference" />
+        <OptionField Draft="_gsx" For="o => o.PushbackAskWhenUnsure" />
     </Section>
     <Section Title="@T["gsxSettings.pushback.title"]">
-        <BoolField Label="@T["gsxSettings.pushback.beacon.label"]" Hint="@T["gsxSettings.pushback.beacon.hint"]" More="@T["gsxSettings.pushback.beacon.more"]"
-                   @bind-Value="_gsx.Value.BeaconPushbackSequenceEnabled" />
-        <BoolField Label="@T["gsxSettings.pushback.callAtReady.label"]" Hint="@T["gsxSettings.pushback.callAtReady.hint"]" More="@T["gsxSettings.pushback.callAtReady.more"]"
-                   Disabled="@(!_gsx.Value.BeaconPushbackSequenceEnabled)"
-                   @bind-Value="_gsx.Value.CallPushbackOnBeacon" />
-        <BoolField Label="@T["gsxSettings.pushback.confirmEngineStart.label"]" Hint="@T["gsxSettings.pushback.confirmEngineStart.hint"]" More="@T["gsxSettings.pushback.confirmEngineStart.more"]"
-                   @bind-Value="_gsx.Value.ConfirmEngineStart" />
+        <OptionField Draft="_gsx" For="o => o.BeaconPushbackSequenceEnabled" />
+        <OptionField Draft="_gsx" For="o => o.CallPushbackOnBeacon" />
+        <OptionField Draft="_gsx" For="o => o.ConfirmEngineStart" />
     </Section>
 
     <Section Title="@T["gsxSettings.beaconDelays.title"]" Hint="@T["gsxSettings.beaconDelays.hint"]">
-        <RangeField Label="@T["gsxSettings.beaconDelays.doorsClose"]" Suffix="s" Min="0"
-                    Disabled="@(!_gsx.Value.BeaconPushbackSequenceEnabled)"
-                    @bind-From="_gsx.Value.SeqDoorsCloseDelayMinSec" @bind-To="_gsx.Value.SeqDoorsCloseDelayMaxSec"
-                    DefaultFrom="_gsx.Defaults.SeqDoorsCloseDelayMinSec" DefaultTo="_gsx.Defaults.SeqDoorsCloseDelayMaxSec" />
-        <RangeField Label="@T["gsxSettings.beaconDelays.jetwayRetract"]" Suffix="s" Min="0"
-                    Disabled="@(!_gsx.Value.BeaconPushbackSequenceEnabled)"
-                    @bind-From="_gsx.Value.SeqJetwayRetractDelayMinSec" @bind-To="_gsx.Value.SeqJetwayRetractDelayMaxSec"
-                    DefaultFrom="_gsx.Defaults.SeqJetwayRetractDelayMinSec" DefaultTo="_gsx.Defaults.SeqJetwayRetractDelayMaxSec" />
-        <RangeField Label="@T["gsxSettings.beaconDelays.equipmentClear"]" Suffix="s" Min="0"
-                    Disabled="@(!_gsx.Value.BeaconPushbackSequenceEnabled)"
-                    @bind-From="_gsx.Value.SeqGpuDisconnectDelayMinSec" @bind-To="_gsx.Value.SeqGpuDisconnectDelayMaxSec"
-                    DefaultFrom="_gsx.Defaults.SeqGpuDisconnectDelayMinSec" DefaultTo="_gsx.Defaults.SeqGpuDisconnectDelayMaxSec" />
+        <OptionField Draft="_gsx" For="o => o.SeqDoorsCloseDelayMinSec" />
+        <OptionField Draft="_gsx" For="o => o.SeqJetwayRetractDelayMinSec" />
+        <OptionField Draft="_gsx" For="o => o.SeqGpuDisconnectDelayMinSec" />
     </Section>
 }
 else if (CurrentSection == "arrival")
 {
     <Section Title="@T["gsxSettings.arrival.title"]">
-        <BoolField Label="@T["gsxSettings.arrival.deboardingSync.label"]" Hint="@T["gsxSettings.arrival.deboardingSync.hint"]"
-                   @bind-Value="_gsx.Value.DeboardingSyncEnabled" />
-        <BoolField Label="@T["gsxSettings.arrival.callDeboard.label"]" Hint="@T["gsxSettings.arrival.callDeboard.hint"]"
-                   @bind-Value="_gsx.Value.AutoCallDeboardOnArrival" />
-        <NumberField Label="@T["gsxSettings.arrival.stableHold.label"]" Hint="@T["gsxSettings.arrival.stableHold.hint"]" More="@T["gsxSettings.arrival.stableHold.more"]" Suffix="s" Min="1"
-                     @bind-Value="_gsx.Value.ArrivalStableSeconds"
-                     Default="_gsx.Defaults.ArrivalStableSeconds" />
-        <TextField Label="@T["gsxSettings.arrival.gate.label"]" Hint="@T["gsxSettings.arrival.gate.hint"]" More="@T["gsxSettings.arrival.gate.more"]" Placeholder="@T["gsxSettings.arrival.gate.placeholder"]"
-                   @bind-Value="_gsx.Value.ArrivalGate" />
-        <BoolField Label="@T["gsxSettings.arrival.answerPositionMenu.label"]"
-                   Hint="@T["gsxSettings.arrival.answerPositionMenu.hint"]"
-                   More="@T["gsxSettings.arrival.answerPositionMenu.more"]"
-                   @bind-Value="_gsx.Value.AnswerPositionMenuWithArrivalGate" />
-        <NumberField Label="@T["gsxSettings.arrival.airportPages.label"]" Hint="@T["gsxSettings.arrival.airportPages.hint"]"
-                     More="@T["gsxSettings.arrival.airportPages.more"]" Min="1"
-                     @bind-Value="_gsx.Value.AirportPickMenuPages"
-                     Default="_gsx.Defaults.AirportPickMenuPages" />
-        <BoolField Label="@T["gsxSettings.arrival.askStand.label"]"
-                   Hint="@T["gsxSettings.arrival.askStand.hint"]"
-                   More="@T["gsxSettings.arrival.askStand.more"]"
-                   @bind-Value="_gsx.Value.AskPilotOnAmbiguousGate" />
+        <OptionField Draft="_gsx" For="o => o.DeboardingSyncEnabled" />
+        <OptionField Draft="_gsx" For="o => o.AutoCallDeboardOnArrival" />
+        <OptionField Draft="_gsx" For="o => o.ArrivalStableSeconds" />
+        <OptionField Draft="_gsx" For="o => o.ArrivalGate" />
+        <OptionField Draft="_gsx" For="o => o.AnswerPositionMenuWithArrivalGate" />
+        <OptionField Draft="_gsx" For="o => o.AirportPickMenuPages" />
+        <OptionField Draft="_gsx" For="o => o.AskPilotOnAmbiguousGate" />
     </Section>
     <Section Title="@T["gsxSettings.standKnowledge.title"]" Hint="@T["gsxSettings.standKnowledge.hint"]">
-        <BoolField Label="@T["gsxSettings.standKnowledge.resolve.label"]"
-                   Hint="@T["gsxSettings.standKnowledge.resolve.hint"]"
-                   More="@T["gsxSettings.standKnowledge.resolve.more"]"
-                   @bind-Value="_gsx.Value.ResolveGatesFromProfiles" />
-        <TextField Label="@T["gsxSettings.standKnowledge.profileFolder.label"]" Hint="@T["gsxSettings.standKnowledge.profileFolder.hint"]" Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.Gsx"
-                   More="@T["gsxSettings.standKnowledge.profileFolder.more"]"
-                   Placeholder="@GsxProfileFolderPlaceholder" Disabled="@(!_gsx.Value.ResolveGatesFromProfiles)"
-                   @bind-Value="_gsx.Value.GsxProfileFolder" />
+        <OptionField Draft="_gsx" For="o => o.ResolveGatesFromProfiles" />
+        <OptionField Draft="_gsx" For="o => o.GsxProfileFolder" Placeholder="@GsxProfileFolderPlaceholder" />
+        @* The folder list is a ';'-joined text over a List<string>; the detected roots are its
+           placeholder and its long hint (GsxPageRules). *@
         <TextField Label="@T["gsxSettings.standKnowledge.sceneryFolders.label"]" Hint="@T["gsxSettings.standKnowledge.sceneryFolders.hint"]" Kind="TextFieldKind.FolderList" BrowseStartIn="ExpectedFolders.MsfsPackages"
                    More="@SceneryFoldersMore" Placeholder="@SceneryFoldersPlaceholder" Disabled="@(!_gsx.Value.ResolveGatesFromProfiles)"
                    @bind-Value="SceneryFoldersText" />
     </Section>
     <Section Title="@T["gsxSettings.fuelMemory.title"]">
-        <BoolField Label="@T["gsxSettings.fuelMemory.remember.label"]" Hint="@T["gsxSettings.fuelMemory.remember.hint"]"
-                   @bind-Value="_gsx.Value.FuelSaveLoadFob" />
-        <NumberField Label="@T["gsxSettings.fuelMemory.defaultFob.label"]" Hint="@T["gsxSettings.fuelMemory.defaultFob.hint"]" Suffix="kg" Min="0"
-                     Disabled="@(!_gsx.Value.FuelSaveLoadFob)"
-                     @bind-Value="_gsx.Value.FuelResetDefaultKg"
-                     Default="_gsx.Defaults.FuelResetDefaultKg" />
+        <OptionField Draft="_gsx" For="o => o.FuelSaveLoadFob" />
+        <OptionField Draft="_gsx" For="o => o.FuelResetDefaultKg" />
     </Section>
 }
 else if (CurrentSection == "operators")
 {
     <Section Title="@T["gsxSettings.operators.title"]">
-        <BoolField Label="@T["gsxSettings.operators.auto.label"]" Hint="@T["gsxSettings.operators.auto.hint"]"
-                   @bind-Value="_gsx.Value.AutoSelectOperator" />
+        <OptionField Draft="_gsx" For="o => o.AutoSelectOperator" />
         <div class="list-editor" style="margin-top:8px;">
             <div class="list-label">
                 @T["gsxSettings.operators.listHint"]
@@ -429,82 +315,41 @@ else if (CurrentSection == "operators")
 else if (CurrentSection == "questions")
 {
     <Section Title="@T["gsxSettings.questions.title"]">
-        <BoolField Label="@T["gsxSettings.questions.followMe.label"]" Hint="@T["gsxSettings.questions.followMe.hint"]"
-                   @bind-Value="_gsx.Value.SkipFollowMe" />
-        <BoolField Label="@T["gsxSettings.questions.crew.label"]" Hint="@T["gsxSettings.questions.crew.hint"]"
-                   @bind-Value="_gsx.Value.AnswerCrewQuestions" />
-        <SelectField Label="@T["gsxSettings.questions.crewAnswer.label"]" Hint="@T["gsxSettings.questions.crewAnswer.hint"]" Options="CrewAnswerOptions"
-                     Disabled="@(!_gsx.Value.AnswerCrewQuestions)"
-                     @bind-Value="_gsx.Value.CrewBoardingAnswer" />
-        <BoolField Label="@T["gsxSettings.questions.suppressCrew.label"]" Hint="@T["gsxSettings.questions.suppressCrew.hint"]"
-                   @bind-Value="_gsx.Value.SkipCrewBoardingQuestion" />
-        <BoolField Label="@T["gsxSettings.questions.confirmPushback.label"]" Hint="@T["gsxSettings.questions.confirmPushback.hint"]"
-                   @bind-Value="_gsx.Value.ConfirmPushbackRequest" />
-        <SelectField Label="@T["gsxSettings.questions.tug.label"]" Hint="@T["gsxSettings.questions.tug.hint"]" Options="TugAnswerOptions"
-                     @bind-Value="_gsx.Value.TugQuestionAnswer" />
-        <SelectField Label="@T["gsxSettings.questions.tugPushback.label"]" Hint="@T["gsxSettings.questions.tugPushback.hint"]" Options="TugPushbackOptions"
-                     @bind-Value="_gsx.Value.CallPushbackWhenTugAttached" />
+        <OptionField Draft="_gsx" For="o => o.SkipFollowMe" />
+        <OptionField Draft="_gsx" For="o => o.AnswerCrewQuestions" />
+        <OptionField Draft="_gsx" For="o => o.CrewBoardingAnswer" />
+        <OptionField Draft="_gsx" For="o => o.SkipCrewBoardingQuestion" />
+        <OptionField Draft="_gsx" For="o => o.ConfirmPushbackRequest" />
+        <OptionField Draft="_gsx" For="o => o.TugQuestionAnswer" />
+        <OptionField Draft="_gsx" For="o => o.CallPushbackWhenTugAttached" />
     </Section>
     <Section Title="@T["gsxSettings.deice.title"]">
-        <BoolField Label="@T["gsxSettings.deice.autoAccept.label"]" Hint="@T["gsxSettings.deice.autoAccept.hint"]"
-                   More="@T["gsxSettings.deice.autoAccept.more"]"
-                   @bind-Value="_gsx.Value.AutoDeIce" />
-        <SelectField Label="@T["gsxSettings.deice.fluid.label"]" Hint="@T["gsxSettings.deice.fluid.hint"]" Options="DeIceFluidOptions"
-                     Disabled="@(!_gsx.Value.AutoDeIce && DeiceAutoRequestIsOff)"
-                     @bind-Value="_gsx.Value.DeIceFluidType" />
-        <SelectField Label="@T["gsxSettings.deice.concentration.label"]" Hint="@T["gsxSettings.deice.concentration.hint"]" Options="DeIceConcentrationOptions"
-                     Disabled="@(!_gsx.Value.AutoDeIce && DeiceAutoRequestIsOff)"
-                     @bind-Value="_gsx.Value.DeIceConcentration" />
-        <SelectField Label="@T["gsxSettings.deice.autoRequest.label"]" Hint="@T["gsxSettings.deice.autoRequest.hint"]"
-                     More="@T["gsxSettings.deice.autoRequest.more"]"
-                     Options="DeiceAutoRequestOptions" @bind-Value="_gsx.Value.Deice.AutoRequest" />
-        <NumberField Label="@T["gsxSettings.deice.oat.label"]" Hint="@T["gsxSettings.deice.oat.hint"]" Suffix="°C" Step="0.5" Min="-20" Max="15"
-                     Disabled="@DeiceAutoRequestIsOff"
-                     @bind-Value="_gsx.Value.Deice.OatThresholdC"
-                     Default="_gsx.Defaults.Deice.OatThresholdC" />
+        <OptionField Draft="_gsx" For="o => o.AutoDeIce" />
+        <OptionField Draft="_gsx" For="o => o.DeIceFluidType" />
+        <OptionField Draft="_gsx" For="o => o.DeIceConcentration" />
+        <OptionField Draft="_gsx" For="o => o.Deice.AutoRequest" />
+        <OptionField Draft="_gsx" For="o => o.Deice.OatThresholdC" />
         @if (_gsx.Value.Deice.OatThresholdC > 10)
         {
             <div class="field-hint" style="margin:-4px 0 10px;">@T["gsxSettings.deice.oat.warning"]</div>
         }
-        <BoolField Label="@T["gsxSettings.deice.precipitation.label"]" Hint="@T["gsxSettings.deice.precipitation.hint"]" More="@T["gsxSettings.deice.precipitation.more"]"
-                   Disabled="@DeiceAutoRequestIsOff"
-                   @bind-Value="_gsx.Value.Deice.RequirePrecipitation" />
-        <SelectField Label="@T["gsxSettings.deice.askWhen.label"]" Hint="@T["gsxSettings.deice.askWhen.hint"]"
-                     More="@T["gsxSettings.deice.askWhen.more"]"
-                     Options="DeiceAskWhenOptions" Disabled="@DeiceAutoRequestIsOff"
-                     @bind-Value="_gsx.Value.Deice.AskWhen" />
-        <NumberField Label="@T["gsxSettings.deice.timeout.label"]" Hint="@T["gsxSettings.deice.timeout.hint"]" Suffix="min" Min="1" Max="30"
-                     Disabled="@DeiceAutoRequestIsOff"
-                     @bind-Value="_gsx.Value.Deice.QuestionTimeoutMinutes"
-                     Default="_gsx.Defaults.Deice.QuestionTimeoutMinutes" />
-        <BoolField Label="@T["gsxSettings.deice.packs.label"]" Hint="@T["gsxSettings.deice.packs.hint"]"
-                   More="@T["gsxSettings.deice.packs.more"]"
-                   @bind-Value="_gsx.Value.Deice.PacksProcedure" />
+        <OptionField Draft="_gsx" For="o => o.Deice.RequirePrecipitation" />
+        <OptionField Draft="_gsx" For="o => o.Deice.AskWhen" />
+        <OptionField Draft="_gsx" For="o => o.Deice.QuestionTimeoutMinutes" />
+        <OptionField Draft="_gsx" For="o => o.Deice.PacksProcedure" />
     </Section>
 }
 else if (CurrentSection == "connection")
 {
     <Section Title="@T["gsxSettings.connection.title"]" Hint="@T["gsxSettings.connection.hint"]" Advanced="true">
-        <NumberField Label="@T["gsxSettings.connection.reconnect.label"]" Hint="@T["gsxSettings.connection.reconnect.hint"]" Suffix="ms" Min="500"
-                     @bind-Value="_gsx.Value.ReconnectIntervalMs"
-                     Default="_gsx.Defaults.ReconnectIntervalMs" />
-        <NumberField Label="@T["gsxSettings.connection.ceiling.label"]" Hint="@T["gsxSettings.connection.ceiling.hint"]" More="@T["gsxSettings.connection.ceiling.more"]" Suffix="ms" Min="500"
-                     @bind-Value="_gsx.Value.ReconnectMaxIntervalMs"
-                     Default="_gsx.Defaults.ReconnectMaxIntervalMs" />
+        <OptionField Draft="_gsx" For="o => o.ReconnectIntervalMs" />
+        <OptionField Draft="_gsx" For="o => o.ReconnectMaxIntervalMs" />
     </Section>
     <Section Title="@T["gsxSettings.timeouts.title"]" Hint="@T["gsxSettings.timeouts.hint"]" Advanced="true">
-        <NumberField Label="@T["gsxSettings.timeouts.command"]" Suffix="ms" Min="1000"
-                     @bind-Value="_gsx.Value.CommandTimeoutMs"
-                     Default="_gsx.Defaults.CommandTimeoutMs" />
-        <NumberField Label="@T["gsxSettings.timeouts.menuOpen"]" Suffix="ms" Min="1000"
-                     @bind-Value="_gsx.Value.MenuOpenTimeoutMs"
-                     Default="_gsx.Defaults.MenuOpenTimeoutMs" />
-        <NumberField Label="@T["gsxSettings.timeouts.intentVerify"]" Suffix="ms" Min="1000"
-                     @bind-Value="_gsx.Value.IntentVerifyTimeoutMs"
-                     Default="_gsx.Defaults.IntentVerifyTimeoutMs" />
-        <NumberField Label="@T["gsxSettings.timeouts.triggerConfirm.label"]" Hint="@T["gsxSettings.timeouts.triggerConfirm.hint"]" Suffix="ms" Min="1000"
-                     @bind-Value="_gsx.Value.TriggerConfirmTimeoutMs"
-                     Default="_gsx.Defaults.TriggerConfirmTimeoutMs" />
+        <OptionField Draft="_gsx" For="o => o.CommandTimeoutMs" />
+        <OptionField Draft="_gsx" For="o => o.MenuOpenTimeoutMs" />
+        <OptionField Draft="_gsx" For="o => o.IntentVerifyTimeoutMs" />
+        <OptionField Draft="_gsx" For="o => o.TriggerConfirmTimeoutMs" />
     </Section>
 }
 
@@ -546,38 +391,6 @@ else if (CurrentSection == "connection")
         (GsxServiceConstraint.CompanyHub, T["gsxSettings.constraint.companyHub"]),
         (GsxServiceConstraint.NonCompanyHub, T["gsxSettings.constraint.nonCompanyHub"]),
     ];
-
-    private IReadOnlyList<(string, string)> RefuelMethodOptions =>
-        [("fixedRate", T["gsxSettings.refuel.methodOptions.fixed"]), ("dynamicRate", T["gsxSettings.refuel.methodOptions.dynamic"])];
-
-    private IReadOnlyList<(string, string)> RefuelCallOptions =>
-        [("automatic", T["gsxSettings.refuel.callOptions.automatic"]), ("onFuelConfirmed", T["gsxSettings.refuel.callOptions.onFuelConfirmed"])];
-
-    // GSX's own menu wording for the fluid and the concentration — shown as GSX shows it.
-    private static readonly IReadOnlyList<(string, string)> DeIceFluidOptions =
-        [("Type I", "Type I"), ("Type II", "Type II"), ("Type IV", "Type IV")];
-
-    private static readonly IReadOnlyList<(string, string)> DeIceConcentrationOptions =
-        [("75", "75 / 25"), ("100", "100")];
-
-    private IReadOnlyList<(string, string)> DeiceAutoRequestOptions =>
-        [(GsxDeiceOptions.AutoRequestOff, T["gsxSettings.deice.autoRequestOptions.off"]),
-         (GsxDeiceOptions.AutoRequestAsk, T["gsxSettings.deice.autoRequestOptions.ask"]),
-         (GsxDeiceOptions.AutoRequestAuto, T["gsxSettings.deice.autoRequestOptions.auto"])];
-
-    private IReadOnlyList<(string, string)> DeiceAskWhenOptions =>
-        [(GsxDeiceOptions.AskWhenStepIsNext, T["gsxSettings.deice.askWhenOptions.stepIsNext"]),
-         (GsxDeiceOptions.AskWhenAfterBoardingComplete, T["gsxSettings.deice.askWhenOptions.afterBoarding"])];
-
-    private bool DeiceAutoRequestIsOff
-        => string.Equals(_gsx.Value.Deice.AutoRequest, GsxDeiceOptions.AutoRequestOff, StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrWhiteSpace(_gsx.Value.Deice.AutoRequest)
-            || !(string.Equals(_gsx.Value.Deice.AutoRequest, GsxDeiceOptions.AutoRequestAsk, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(_gsx.Value.Deice.AutoRequest, GsxDeiceOptions.AutoRequestAuto, StringComparison.OrdinalIgnoreCase));
-
-    private IReadOnlyList<(string, string)> CrewAnswerOptions =>
-        [("Nobody", T["gsxSettings.questions.crewOptions.nobody"]), ("Crew", T["gsxSettings.questions.crewOptions.crew"]),
-         ("Pilots", T["gsxSettings.questions.crewOptions.pilots"]), ("Both", T["gsxSettings.questions.crewOptions.both"])];
 
     // ---- Smart-button switch picker (hybrid list, owner pick 2026-10-17) ----
 
@@ -681,34 +494,15 @@ else if (CurrentSection == "connection")
         }
     }
 
-    private IReadOnlyList<(string, string)> GroundPrepActivationOptions =>
-        [("auto", T["gsxSettings.automation.groundPrepOptions.auto"]), ("voice", T["gsxSettings.automation.groundPrepOptions.voice"]),
-         (GsxOptions.GroundPrepActivationVoiceThenAuto, T["gsxSettings.automation.groundPrepOptions.voiceThenAuto"])];
-
-    private IReadOnlyList<(string, string)> RemoveStairsOptions =>
-        [("never", T["gsxSettings.options.never"]), ("always", T["gsxSettings.options.always"]), ("onlyJetway", T["gsxSettings.options.onlyJetway"])];
-
-    private IReadOnlyList<(string, string)> PcaModeOptions =>
-        [("never", T["gsxSettings.options.never"]), ("always", T["gsxSettings.options.always"]), ("onlyJetway", T["gsxSettings.options.onlyJetway"])];
+    private IReadOnlyList<(string, string)> PcaModeOptions => FieldChoiceCatalog.Resolve("pcaMode", T)!;
 
     // pcaMode falls back to the legacy autoPca bool while unset — the select shows the
     // effective value and writes the tri-state key from then on.
-    private string PcaModeKey
+    private string PcaMode
     {
-        get => !string.IsNullOrWhiteSpace(_gsx.Value.PcaMode)
-            ? _gsx.Value.PcaMode
-            : _gsx.Value.AutoPca ? "always" : "never";
+        get => GsxPageRules.EffectivePcaMode(_gsx.Value);
         set => _gsx.Value.PcaMode = value;
     }
-
-    private IReadOnlyList<(string, string)> TugAnswerOptions =>
-        [("ignore", T["gsxSettings.questions.tugOptions.ignore"]), ("no", T["gsxSettings.questions.tugOptions.no"]), ("yes", T["gsxSettings.questions.tugOptions.yes"])];
-
-    private IReadOnlyList<(string, string)> PushbackModeOptions =>
-        [("auto", T["gsxSettings.pushbackDirection.options.auto"]), ("ask", T["gsxSettings.pushbackDirection.options.ask"]), ("tailLeft", T["gsxSettings.pushbackDirection.options.tailLeft"]), ("tailRight", T["gsxSettings.pushbackDirection.options.tailRight"]), ("straight", T["gsxSettings.pushbackDirection.options.straight"])];
-
-    private IReadOnlyList<(string, string)> TugPushbackOptions =>
-        [("never", T["gsxSettings.options.never"]), ("afterDepartureServices", T["gsxSettings.questions.tugPushbackOptions.afterDepartureServices"]), ("afterFinalLoadsheet", T["gsxSettings.questions.tugPushbackOptions.afterFinalLoadsheet"])];
 
     private OptionsDraft<GsxOptions> _gsx = default!;
 
@@ -738,12 +532,8 @@ else if (CurrentSection == "connection")
 
     private string SceneryFoldersText
     {
-        get => string.Join("; ", _gsx.Value.SceneryPackageFolders);
-        set => _gsx.Value.SceneryPackageFolders = (value ?? "")
-            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(f => f.Trim('"'))
-            .Where(f => f.Length > 0)
-            .ToList();
+        get => GsxPageRules.SceneryFoldersText(_gsx.Value);
+        set => GsxPageRules.SetSceneryFolders(_gsx.Value, value);
     }
 
     private void MoveService(int index, int delta)
@@ -791,22 +581,8 @@ else if (CurrentSection == "connection")
             s => s.Service.Equals(id, StringComparison.OrdinalIgnoreCase))) ?? ServiceIds[0],
         GsxServiceActivation.Manual));
 
-    protected override void OnBeforeSave()
-    {
-        var value = _gsx.Value;
-        value.DepartureServices.RemoveAll(s => string.IsNullOrWhiteSpace(s.Service));
-        value.OperatorPreferences = value.OperatorPreferences
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p.Trim())
-            .ToList();
-        value.CompanyHubs = value.CompanyHubs
-            .Where(h => !string.IsNullOrWhiteSpace(h))
-            .Select(h => h.Trim().ToUpperInvariant())
-            .ToList();
-        value.ArrivalGate = value.ArrivalGate.Trim();
-        value.GsxProfileFolder = value.GsxProfileFolder.Trim().Trim('"');
-        // fuelFobSaved is never edited here — the diff save leaves the app-maintained key alone.
-    }
+    /// <summary>The list editors' pruning (C3): the per-property trims ran on the draft already.</summary>
+    protected override void OnBeforeSave() => GsxPageRules.BeforeSave(_gsx.Value);
 
     // Per-profile GSX settings (Prosim2GSX model): saving while a profile is active also
     // captures the whole gsx block into that profile, so the block travels with the aircraft

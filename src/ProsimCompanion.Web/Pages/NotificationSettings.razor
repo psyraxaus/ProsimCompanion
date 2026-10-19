@@ -13,23 +13,16 @@
 
 @* Outbound event notifications (issue #151, design A — one card per target). The URL and the
    token of every target are DPAPI-protected at rest and never logged; the page shows the token
-   as a password field and the result line carries the HTTP status only. *@
+   as a password field and the result line carries the HTTP status only. Since C3 (2026-10-19)
+   a field is one <OptionField /> line; a target's fields bind to the list item, with the URL's
+   hint and placeholder following the picked kind at runtime. *@
 
 <Section Title="@T["notifications.main.title"]" Hint="@T["notifications.main.hint"]">
-    <BoolField Label="@T["notifications.main.enabled.label"]"
-               Hint="@T["notifications.main.enabled.hint"]"
-               More="@T["notifications.main.enabled.more"]"
-               @bind-Value="_options.Value.Enabled" />
+    <OptionField Draft="_options" For="o => o.Enabled" />
     <AdvancedFields>
-        <NumberField Label="@T["notifications.main.cooldown.label"]" Hint="@T["notifications.main.cooldown.hint"]" Suffix="s" Min="5" Max="3600"
-                     @bind-Value="_options.Value.FailureCooldownSeconds"
-                     Default="_options.Defaults.FailureCooldownSeconds" />
-        <NumberField Label="@T["notifications.main.timeout.label"]" Hint="@T["notifications.main.timeout.hint"]" Suffix="s" Min="1" Max="30"
-                     @bind-Value="_options.Value.SendTimeoutSeconds"
-                     Default="_options.Defaults.SendTimeoutSeconds" />
-        <NumberField Label="@T["notifications.main.holdover.label"]" Hint="@T["notifications.main.holdover.hint"]" Suffix="min" Min="1" Max="30"
-                     @bind-Value="_options.Value.HoldoverExpiringMinutes"
-                     Default="_options.Defaults.HoldoverExpiringMinutes" />
+        <OptionField Draft="_options" For="o => o.FailureCooldownSeconds" />
+        <OptionField Draft="_options" For="o => o.SendTimeoutSeconds" />
+        <OptionField Draft="_options" For="o => o.HoldoverExpiringMinutes" />
     </AdvancedFields>
 </Section>
 
@@ -47,17 +40,11 @@
                         @onclick="() => _options.Value.Targets.RemoveAt(index)">@T["notifications.target.remove"]</button>
             </div>
         </div>
-        <TextField Label="@T["notifications.target.name.label"]" Hint="@T["notifications.target.name.hint"]" Placeholder="@T["notifications.target.name.placeholder"]"
-                   @bind-Value="target.Name" />
-        <SelectField Label="@T["notifications.target.kind.label"]" Options="KindOptions"
-                     Hint="@T["notifications.target.kind.hint"]"
-                     Value="@target.Kind.ToString().ToLowerInvariant()"
-                     ValueChanged="@(v => target.Kind = Enum.TryParse<NotificationTargetKind>(v, ignoreCase: true, out var k) ? k : NotificationTargetKind.Webhook)" />
-        <TextField Label="@T["notifications.target.url.label"]" Hint="@UrlHint(target.Kind)" Kind="TextFieldKind.Url" Placeholder="@UrlPlaceholder(target.Kind)" Password="true"
-                   @bind-Value="target.Url" />
+        <OptionField Item="target" ItemOf="_options" For="t => t.Name" />
+        <OptionField Item="target" ItemOf="_options" For="t => t.Kind" />
+        <OptionField Item="target" ItemOf="_options" For="t => t.Url" Hint="@UrlHint(target.Kind)" Placeholder="@UrlPlaceholder(target.Kind)" />
         <SecretUnreadableHint Path="@($"notifications:targets:{index}:url")" />
-        <TextField Label="@T["notifications.target.token.label"]" Hint="@T["notifications.target.token.hint"]" Password="true"
-                   @bind-Value="target.Token" />
+        <OptionField Item="target" ItemOf="_options" For="t => t.Token" />
         <SecretUnreadableHint Path="@($"notifications:targets:{index}:token")" />
         <div class="field">
             <label class="field-label">
@@ -111,10 +98,6 @@
           OnDiscard="Discard" />
 
 @code {
-    // Service names, not prose — the same in every language.
-    private static readonly IReadOnlyList<(string, string)> KindOptions =
-        [("ntfy", "ntfy"), ("discord", "Discord"), ("webhook", "Webhook (JSON POST)")];
-
     private OptionsDraft<NotificationOptions> _options = default!;
     private int? _testing;
     private readonly Dictionary<int, NotificationSendResult> _testResults = [];
@@ -158,8 +141,8 @@
             return test;
         }
 
-        var key = string.IsNullOrWhiteSpace(target.Name) ? target.Kind.ToString() : target.Name.Trim();
-        return Dispatcher.LastResults.TryGetValue(key, out var last) ? last : null;
+        var name = string.IsNullOrWhiteSpace(target.Name) ? target.Kind.ToString() : target.Name.Trim();
+        return Dispatcher.LastResults.TryGetValue(name, out var last) ? last : null;
     }
 
     private string StatusLabel(NotificationTarget target)

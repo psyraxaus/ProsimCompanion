@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Briefings;
 using ProsimCompanion.Speech.Recognition;
@@ -81,6 +82,19 @@ public sealed class ConfiguredVoiceCommands : IVoiceFeature, IDisposable
     // User tree, not the install dir (ADR-0007) — seeded from shipped defaults at startup.
     private static string CommandsPath
         => Core.Configuration.UserConfigPaths.File("commands.json");
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). The file-driven
+    /// commands.json dispatches AFTER the FCU executor (the gated FCU path keeps precedence on
+    /// overlapping phrases such as "arm approach") and BEFORE the built-in call features, so a
+    /// user-configured phrase keeps precedence over them. Rows are composed from the file.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 70,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new ComposedVoiceReference(ConfiguredVoiceReference.Compose),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

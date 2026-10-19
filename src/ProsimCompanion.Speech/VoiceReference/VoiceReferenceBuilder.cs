@@ -1,26 +1,33 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Checklists;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.VoiceReference;
-using ProsimCompanion.Speech.Gsx;
 using ProsimCompanion.Speech.Recognition;
 
 namespace ProsimCompanion.Speech.VoiceReference;
 
 /// <summary>
-/// Composes the Voice Reference (issue #136) from the LIVE grammar: every registered
-/// <see cref="IVoiceFeature"/> (its current <c>Enabled</c> and <c>Phrases</c>), the checklist
-/// start phrases, the drill triggers, commands.json and atc-requests.json. The wording comes
-/// from <see cref="VoiceReferenceDescribers"/>, but a described phrase the feature no longer
-/// contributes is dropped and a live phrase the table does not know still appears
-/// (undescribed) — the drawer can be incomplete in words, never wrong about the grammar.
+/// Composes the Voice Reference (issue #136) from the LIVE grammar: every feature in the
+/// <see cref="VoiceFeatureRoster"/> (its current <c>Enabled</c> and <c>Phrases</c>), the
+/// checklist start phrases, the drill triggers, commands.json and atc-requests.json. The
+/// wording comes from each feature's own <see cref="VoiceFeatureDeclaration"/> — as pack text
+/// ids, never English (ADR-0014) — but a described phrase the feature no longer contributes is
+/// dropped and a live phrase the rows do not know still appears (undescribed): the drawer can
+/// be incomplete in words, never wrong about the grammar. This builder knows no feature type;
+/// what used to be a describer dictionary and a four-type switch here is now thirty
+/// declarations beside their features.
 /// </summary>
 public sealed class VoiceReferenceBuilder : IVoiceReference
 {
-    private const string SettingsFo = "Settings → Voice First Officer";
+    private const string Always = "voiceReference.always.";
+    private const string Checklists = "voiceReference.group.checklists.";
+    private const string DrillsGroup = "voiceReference.group.drills.";
+    private const string FoQuestions = "voiceReference.group.foQuestions.";
+    private const string CruiseQuery = "voiceReference.group.cabinCruiseQuery.";
 
-    private readonly IReadOnlyList<IVoiceFeature> _features;
+    private readonly VoiceFeatureRoster _roster;
     private readonly IChecklistDefinitionSource _checklists;
     private readonly Abnormals.IDrillSource _failures;
     private readonly IOptionsMonitor<SpeechOptions> _speech;
@@ -30,7 +37,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
     private readonly IFreeFormQuestionHandler? _questions;
 
     public VoiceReferenceBuilder(
-        IEnumerable<IVoiceFeature> features,
+        VoiceFeatureRoster roster,
         IChecklistDefinitionSource checklists,
         Abnormals.IDrillSource failures,
         IOptionsMonitor<SpeechOptions> speech,
@@ -39,7 +46,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         ILogger<VoiceReferenceBuilder> logger,
         IFreeFormQuestionHandler? questions = null)
     {
-        ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(roster);
         ArgumentNullException.ThrowIfNull(checklists);
         ArgumentNullException.ThrowIfNull(failures);
         ArgumentNullException.ThrowIfNull(speech);
@@ -47,7 +54,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         ArgumentNullException.ThrowIfNull(cabin);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _features = [.. features];
+        _roster = roster;
         _checklists = checklists;
         _failures = failures;
         _speech = speech;
@@ -60,7 +67,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
     public VoiceReferenceSnapshot Build()
     {
         var groups = new List<VoiceReferenceGroup>();
-        foreach (var feature in _features)
+        foreach (var feature in _roster.All)
         {
             try
             {
@@ -79,7 +86,7 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         groups.Add(Questions());
         groups.Add(CruiseQueryReplies());
 
-        // Tab order, then the described features in registration order.
+        // Tab order, then the described features in roster (dispatch) order.
         var ordered = groups
             .OrderBy(g => g.Tab)
             .ThenBy(g => g.Enabled ? 0 : 1)
@@ -93,49 +100,34 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
     private IEnumerable<VoiceReferenceGroup> Describe(IVoiceFeature feature)
     {
         var live = LivePhrases(feature);
-        switch (feature)
+        return feature.Declaration.Description switch
         {
-            case GsxVoiceService:
-                return GsxGroups(feature, live);
-            case Crew.CrewHailService:
-                return HailGroups(feature, live);
-            case Commands.ConfiguredVoiceCommands configured:
-                return [ConfiguredGroup(configured, live)];
-            case SayIntentions.SayIntentionsService sayIntentions:
-                return [AtcGroup(sayIntentions, live)];
-        }
-
-        if (VoiceReferenceDescribers.ByFeatureType.TryGetValue(feature.GetType(), out var describer))
-        {
-            return [FromDescriber(feature, describer, live)];
-        }
-
-        // Unknown feature type: everything it contributes, undescribed, on the FO tab.
-        return
-        [
-            new VoiceReferenceGroup(
-                feature.GetType().Name, feature.GetType().Name, VoiceReferenceTab.FirstOfficer,
-                VoiceSpeaker.FirstOfficer, feature.Enabled, feature.Enabled ? null : "switched off",
-                [.. live.Select(p => new VoiceReferenceEntry([p], ""))]),
-        ];
+            DescribedVoiceReference rows => [FromRows(feature, rows, live)],
+            ComposedVoiceReference composed => composed.Compose(feature, live, new VoiceReferenceContext(
+                _speech.CurrentValue, _groundCrew.CurrentValue, _cabin.CurrentValue)),
+            _ => throw new UnreachableException("VoiceReferenceDescription is a closed hierarchy"),
+        };
     }
 
-    private static VoiceReferenceGroup FromDescriber(IVoiceFeature feature, FeatureDescriber describer, List<string> live)
+    /// <summary>The declared rows against the live grammar: a row survives while at least one
+    /// of its phrase names is still contributed; every live phrase no row names is listed
+    /// undescribed; a switched-off feature is dimmed with its gate's reason.</summary>
+    private static VoiceReferenceGroup FromRows(IVoiceFeature feature, DescribedVoiceReference description, List<string> live)
     {
         var entries = new List<VoiceReferenceEntry>();
         var covered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in describer.Entries)
+        foreach (var row in description.Rows)
         {
             var present = new List<string>();
-            foreach (var key in entry.Phrases)
+            foreach (var name in row.Phrases)
             {
-                var matches = live.Where(p => Matches(key, p)).ToList();
+                var matches = live.Where(p => Matches(name, p)).ToList();
                 if (matches.Count == 0)
                 {
                     continue;
                 }
 
-                present.Add(key);
+                present.Add(name);
                 foreach (var match in matches)
                 {
                     covered.Add(match);
@@ -145,144 +137,21 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
             if (present.Count > 0)
             {
                 entries.Add(new VoiceReferenceEntry(
-                    present, entry.What, entry.Answer, entry.Speaker ?? describer.Speaker, entry.Badges, entry.ValueHint));
+                    present, new VoiceReferenceText(row.WhatTextId), row.Answer, row.Speaker ?? description.Speaker, row.Badges, row.ValueHint));
             }
         }
 
         // Live phrases nobody described: still listed, so the grammar is never hidden.
         foreach (var phrase in live.Where(p => !covered.Contains(p)))
         {
-            entries.Add(new VoiceReferenceEntry([phrase], "", Speaker: describer.Speaker));
+            entries.Add(new VoiceReferenceEntry([phrase], null, Speaker: description.Speaker));
         }
 
         return new VoiceReferenceGroup(
-            describer.Id, describer.Title, describer.Tab, describer.Speaker,
-            feature.Enabled, feature.Enabled ? null : describer.DisabledReason ?? "switched off", entries);
-    }
-
-    /// <summary>The GSX single-shot phrases, grouped by the command they run, straight from
-    /// <see cref="GsxVoicePhrases"/> — the answer is the FO's real confirmation line. The
-    /// cabin-flavoured boarding phrases (purser ack) go to the Cabin tab.</summary>
-    private static IEnumerable<VoiceReferenceGroup> GsxGroups(IVoiceFeature feature, List<string> live)
-    {
-        var reason = feature.Enabled ? null : "gsx.voiceControlEnabled is off — Settings → Ground Services";
-        var ground = new List<VoiceReferenceEntry>();
-        var cabin = new List<VoiceReferenceEntry>();
-
-        var start = GsxVoicePhrases.StartGroundServicesPhrases.Where(p => live.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList();
-        if (start.Count > 0)
-        {
-            ground.Add(new VoiceReferenceEntry(start,
-                "Start the departure sequence (or call the next service once it is running).", "Ground services started."));
-        }
-
-        foreach (var byCommand in GsxVoicePhrases.Bindings.GroupBy(b => (b.Value.Command, b.Value.CabinAck)))
-        {
-            var phrases = byCommand.Select(b => b.Key).Where(p => live.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList();
-            if (phrases.Count == 0)
-            {
-                continue;
-            }
-
-            var binding = byCommand.First().Value;
-            if (binding.CabinAck)
-            {
-                cabin.Add(new VoiceReferenceEntry(phrases, "Boarding — the FO requests it, the purser confirms.",
-                    "Boarding underway.", VoiceSpeaker.Purser));
-            }
-            else
-            {
-                ground.Add(new VoiceReferenceEntry(phrases, CommandWhat(binding.Command), binding.SuccessPhrase));
-            }
-        }
-
-        yield return new VoiceReferenceGroup("gsx", "Ground services", VoiceReferenceTab.Ground,
-            VoiceSpeaker.FirstOfficer, feature.Enabled, reason, ground);
-        yield return new VoiceReferenceGroup("gsxCabin", "Boarding", VoiceReferenceTab.Cabin,
-            VoiceSpeaker.Purser, feature.Enabled, reason, cabin);
-    }
-
-    private static string CommandWhat(string command) => command switch
-    {
-        "gsx.forceNextService" => "The INT/RAD smart button — call the next service now.",
-        "gsx.requestBoarding" => "Request boarding.",
-        "gsx.requestRefuel" => "Order the fuel truck.",
-        "gsx.confirmFuel" => "Confirm the block fuel, then order the truck (or a top-up).",
-        "gsx.requestCatering" => "Request catering.",
-        "gsx.requestPushback" => "Request pushback (beacon sequence permitting).",
-        "gsx.requestDeice" => "Request de-icing.",
-        "gsx.requestGpu" => "Connect ground power — GSX's GPU, or the ProSim unit when the stand has none; the ground crew reports it connected.",
-        "gsx.disconnectGpu" => "Take the ground power unit away (not while EXT PWR still feeds the aircraft).",
-        "gsx.declineDeice" => "Decline the First Officer's de-icing question — no de-icing this departure.",
-        _ => command,
-    };
-
-    /// <summary>The two hails, each on its crew's tab, with the live reply text and the ACP
-    /// channel rule from the options.</summary>
-    private IEnumerable<VoiceReferenceGroup> HailGroups(IVoiceFeature feature, List<string> live)
-    {
-        // The hail lists are the feature's own (issue #170 added "ground from cockpit",
-        // "ground, cockpit", "ground crew" — an " to ground" suffix test would hide them).
-        var groundHails = live.Where(p => Crew.CrewHailService.GroundHailPhrases.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList();
-        var cabinHails = live.Where(p => !groundHails.Contains(p)).ToList();
-        var gating = _speech.CurrentValue.AcpTransmitGating;
-        var ground = _groundCrew.CurrentValue;
-        var cabin = _cabin.CurrentValue;
-
-        if (groundHails.Count > 0)
-        {
-            var enabled = feature.Enabled && ground.Enabled;
-            yield return new VoiceReferenceGroup("hailGround", "Hail the ground crew", VoiceReferenceTab.Ground,
-                VoiceSpeaker.GroundCrew, enabled,
-                enabled ? null : feature.Enabled ? $"groundCrew.enabled is off — {SettingsFo} → Ground Crew" : "gsx.voiceControlEnabled is off",
-                [
-                    new VoiceReferenceEntry(groundHails,
-                        gating
-                            ? "Select INT on the audio panel, hail, then say any ground-services phrase in the window."
-                            : "Hail, then say any ground-services phrase in the window.",
-                        ground.HailReplyText, VoiceSpeaker.GroundCrew, gating ? [VoiceReferenceDescribers.Int, VoiceReferenceDescribers.Dialogue] : [VoiceReferenceDescribers.Dialogue]),
-                    new VoiceReferenceEntry([.. GsxVoicePhrases.CancelPhrases], "End the hail without a request.", ground.StandingByText, VoiceSpeaker.GroundCrew),
-                ]);
-        }
-
-        if (cabinHails.Count > 0)
-        {
-            var enabled = feature.Enabled && cabin.Enabled;
-            yield return new VoiceReferenceGroup("hailCabin", "Hail the cabin crew", VoiceReferenceTab.Cabin,
-                VoiceSpeaker.Purser, enabled,
-                enabled ? null : feature.Enabled ? $"cabin.enabled is off — {SettingsFo} → Cabin Crew" : "gsx.voiceControlEnabled is off",
-                [
-                    new VoiceReferenceEntry(cabinHails,
-                        gating
-                            ? "Select CAB on the audio panel, hail, then ask for boarding in the window."
-                            : "Hail, then ask for boarding in the window.",
-                        cabin.HailReplyText, VoiceSpeaker.Purser, gating ? [VoiceReferenceDescribers.Cab, VoiceReferenceDescribers.Dialogue] : [VoiceReferenceDescribers.Dialogue]),
-                ]);
-        }
-    }
-
-    private static VoiceReferenceGroup ConfiguredGroup(Commands.ConfiguredVoiceCommands configured, List<string> live)
-    {
-        var entries = configured.Commands
-            .Select(c => (Phrases: c.Phrases.Where(p => live.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList(), Say: c.Say))
-            .Where(c => c.Phrases.Count > 0)
-            .Select(c => new VoiceReferenceEntry(c.Phrases, "", c.Say))
-            .ToList();
-        return new VoiceReferenceGroup("commandsJson", "From commands.json", VoiceReferenceTab.FirstOfficer,
-            VoiceSpeaker.FirstOfficer, configured.Enabled, null, entries);
-    }
-
-    private static VoiceReferenceGroup AtcGroup(SayIntentions.SayIntentionsService sayIntentions, List<string> live)
-    {
-        var entries = sayIntentions.Requests
-            .Select(r => (Phrases: r.Phrases.Where(p => live.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList(), Request: r))
-            .Where(r => r.Phrases.Count > 0)
-            .Select(r => new VoiceReferenceEntry(r.Phrases,
-                r.Request.Station.Length > 0 ? $"To {r.Request.Station}." : "",
-                r.Request.Icao.Length > 0 ? r.Request.Icao : null, VoiceSpeaker.Atc))
-            .ToList();
-        return new VoiceReferenceGroup("atc", "ATC requests (SayIntentions)", VoiceReferenceTab.Atc, VoiceSpeaker.Atc,
-            sayIntentions.Enabled, sayIntentions.Enabled ? null : $"SayIntentions is off — {SettingsFo} → SayIntentions", entries);
+            description.Id, new VoiceReferenceText(description.TitleTextId), description.Tab, description.Speaker,
+            feature.Enabled,
+            feature.Enabled ? null : feature.Declaration.Gate.OffReason ?? new VoiceReferenceText(VoiceReferenceTextIds.SwitchedOff),
+            entries);
     }
 
     private VoiceReferenceGroup ChecklistStarts()
@@ -297,11 +166,11 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
                 .ToList();
             if (starts.Count > 0)
             {
-                entries.Add(new VoiceReferenceEntry(starts, $"Starts the {definition.Checklist} checklist ('request …' works too)."));
+                entries.Add(new VoiceReferenceEntry(starts, new(Checklists + "start", [definition.Checklist])));
             }
         }
 
-        return new VoiceReferenceGroup("checklists", "Checklists", VoiceReferenceTab.Checklists,
+        return new VoiceReferenceGroup("checklists", new(Checklists + "title"), VoiceReferenceTab.Checklists,
             VoiceSpeaker.FirstOfficer, true, null, entries);
     }
 
@@ -309,9 +178,9 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
     {
         var entries = _failures.Drills
             .Where(d => d.Triggers.Count > 0)
-            .Select(d => new VoiceReferenceEntry(d.Triggers, $"Rehearse the {d.Title} memory items."))
+            .Select(d => new VoiceReferenceEntry(d.Triggers, new(DrillsGroup + "rehearse", [d.Title])))
             .ToList();
-        return new VoiceReferenceGroup("drills", "Memory drills", VoiceReferenceTab.Checklists,
+        return new VoiceReferenceGroup("drills", new(DrillsGroup + "title"), VoiceReferenceTab.Checklists,
             VoiceSpeaker.FirstOfficer, true, null, entries);
     }
 
@@ -322,37 +191,39 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         var options = _speech.CurrentValue.FoQuestions;
         var enabled = _questions is { Enabled: true };
         var leadIns = options.LeadInList().Select(l => l.ToLowerInvariant()).ToList();
-        var reason = _questions is null ? "not available in this build"
-            : !options.Enabled ? $"speech.foQuestions.enabled is off — {SettingsFo} → Briefings & LLM → Ask the First Officer"
+        var reason = _questions is null ? new VoiceReferenceText("voiceReference.off.notInBuild")
+            : !options.Enabled ? new VoiceReferenceText("voiceReference.off.foQuestions", ["speech.foQuestions.enabled"])
             : null;
         var minimum = options.MinimumWords.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var entries = new List<VoiceReferenceEntry>
         {
-            new(["what is our fuel on board"], "Fuel on board and the planned figures.", "Fuel on board is six point two tonnes, against a planned landing fuel of three point one."),
-            new(["how long to top of descent"], "Minutes to the 3:1 top-of-descent estimate.", "About twenty five minutes to top of descent."),
-            new(["tell me the destination weather"], "The destination METAR as the hero card shows it.", "Schiphol: wind two seven zero at twelve knots, visibility ten kilometres or more, ceiling two thousand five hundred feet."),
-            new(["what time do we land"], "The ground-speed ETA.", "Estimated arrival is fourteen zero five zulu."),
-            new(["are we above the minimum takeoff fuel"], "Anything the fact sheet can compare.", "Yes — six point two tonnes on board against a minimum of five point eight."),
+            new(["what is our fuel on board"], new(FoQuestions + "fuel"), "Fuel on board is six point two tonnes, against a planned landing fuel of three point one."),
+            new(["how long to top of descent"], new(FoQuestions + "tod"), "About twenty five minutes to top of descent."),
+            new(["tell me the destination weather"], new(FoQuestions + "weather"), "Schiphol: wind two seven zero at twelve knots, visibility ten kilometres or more, ceiling two thousand five hundred feet."),
+            new(["what time do we land"], new(FoQuestions + "eta"), "Estimated arrival is fourteen zero five zulu."),
+            new(["are we above the minimum takeoff fuel"], new(FoQuestions + "compare"), "Yes — six point two tonnes on board against a minimum of five point eight."),
             new(leadIns.Count > 0 ? leadIns : ["question"],
-                $"Any question starting with one of these lead-ins and at least {minimum} words long. Answered only from live facts; the FO says \"{ProsimCompanion.Speech.Questions.FoQuestionCore.DontHaveThat}\" when the facts do not cover it. Needs the LAN speech server.",
-                null, Badges: [VoiceReferenceDescribers.Value], ValueHint: "‹your question›"),
+                new(FoQuestions + "leadIn", [minimum, Speech.Questions.FoQuestionCore.DontHaveThat]),
+                null, Badges: [VoiceBadges.Value], ValueHint: "‹your question›"),
         };
         if (options.SmallTalk)
         {
             // Issue #152: small talk — any sentence long enough, flight questions still strict.
-            entries.Add(new(["who is better, chelsea or arsenal"], "Small talk: general knowledge, in character, no flight figures.", "Captain, I fly for a living — but I'd never say Arsenal in this cockpit."));
-            entries.Add(new(["tell me a fun fact"], "A fun fact, one or two sentences.", "Octopuses have three hearts, Captain. Two of them stop when it swims."));
-            entries.Add(new(["any sentence of " + minimum + " words or more"], "Small talk is on: no lead-in needed. A question that mentions the flight still takes the strict, verified path.", null, Badges: [VoiceReferenceDescribers.Value], ValueHint: "‹anything›"));
+            entries.Add(new(["who is better, chelsea or arsenal"], new(FoQuestions + "smallTalk.football"), "Captain, I fly for a living — but I'd never say Arsenal in this cockpit."));
+            entries.Add(new(["tell me a fun fact"], new(FoQuestions + "smallTalk.funFact"), "Octopuses have three hearts, Captain. Two of them stop when it swims."));
+            entries.Add(new(["any sentence of " + minimum + " words or more"], new(FoQuestions + "smallTalk.any"), null, Badges: [VoiceBadges.Value], ValueHint: "‹anything›"));
         }
 
         if (options.WhereAreWe)
         {
             // Issue #153: the place below, from the offline atlas, then a fact or two.
-            entries.Add(new(["what are we flying over", "where are we"], "The country, mountains or sea below and the nearest towns — at once, from the built-in atlas — then a fact or two" + (options.WikipediaFacts ? " from Wikipedia." : " from the model."), "We're over the Alps in northern Italy, about 30 miles north of Turin. Nearest town is Aosta, 12 miles out on the left. Aosta still has its Roman walls and arch."));
-            entries.Add(new(["what is that city on the left", "what country is this"], "Same answer; the side is relative to our track.", null));
+            entries.Add(new(["what are we flying over", "where are we"],
+                new(options.WikipediaFacts ? FoQuestions + "whereAreWe.wikipedia" : FoQuestions + "whereAreWe.model"),
+                "We're over the Alps in northern Italy, about 30 miles north of Turin. Nearest town is Aosta, 12 miles out on the left. Aosta still has its Roman walls and arch."));
+            entries.Add(new(["what is that city on the left", "what country is this"], new(FoQuestions + "whereAreWe.side"), null));
         }
 
-        return new VoiceReferenceGroup("foQuestions", "Ask the First Officer", VoiceReferenceTab.FirstOfficer,
+        return new VoiceReferenceGroup("foQuestions", new(FoQuestions + "title"), VoiceReferenceTab.FirstOfficer,
             VoiceSpeaker.FirstOfficer, enabled, reason, entries);
     }
 
@@ -364,34 +235,33 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
         var cabin = _cabin.CurrentValue;
         var enabled = cabin.Enabled && cabin.CruiseQuery;
         var reason = enabled ? null
-            : !cabin.Enabled ? $"cabin.enabled is off — {SettingsFo} → Cabin Crew"
-            : $"cabin.cruiseQuery is off — {SettingsFo} → Cabin Crew → Purser cruise query";
+            : !cabin.Enabled ? new VoiceReferenceText(Crew.CrewHailVoiceReference.OffCabinCrew, ["cabin.enabled"])
+            : new VoiceReferenceText("voiceReference.off.cruiseQuery", ["cabin.cruiseQuery"]);
         var window = cabin.CruiseQueryWindowSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        return new VoiceReferenceGroup("cabinCruiseQuery", "Purser cruise query", VoiceReferenceTab.Cabin,
+        return new VoiceReferenceGroup("cabinCruiseQuery", new(CruiseQuery + "title"), VoiceReferenceTab.Cabin,
             VoiceSpeaker.Purser, enabled, reason,
             [
                 new VoiceReferenceEntry(["about forty minutes", "on time", "ten minutes late"],
-                    $"Once per flight in the cruise the purser calls — \"{cabin.CruiseQueryText}\" — and listens {window} s. A time or arrival estimate in your answer:",
-                    cabin.CruiseQueryEtaAckText, VoiceSpeaker.Purser, [VoiceReferenceDescribers.Cab, VoiceReferenceDescribers.Dialogue]),
+                    new(CruiseQuery + "eta", [cabin.CruiseQueryText, window]),
+                    cabin.CruiseQueryEtaAckText, VoiceSpeaker.Purser, [VoiceBadges.Cab, VoiceBadges.Dialogue]),
                 new VoiceReferenceEntry(["smooth", "light chop", "expect some bumps"],
-                    "A word about the ride:", cabin.CruiseQueryRideAckText, VoiceSpeaker.Purser, [VoiceReferenceDescribers.Dialogue]),
+                    new(CruiseQuery + "ride"), cabin.CruiseQueryRideAckText, VoiceSpeaker.Purser, [VoiceBadges.Dialogue]),
                 new VoiceReferenceEntry(["nothing to report", "no change"],
-                    "Anything else (free answer with the LAN speech server; the offline engine hears a short list):",
-                    cabin.CruiseQueryGenericAckText, VoiceSpeaker.Purser, [VoiceReferenceDescribers.Dialogue]),
-                new VoiceReferenceEntry(["(say nothing)"], "The window closes in silence:", cabin.CruiseQueryNoReplyText, VoiceSpeaker.Purser),
+                    new(CruiseQuery + "other"), cabin.CruiseQueryGenericAckText, VoiceSpeaker.Purser, [VoiceBadges.Dialogue]),
+                new VoiceReferenceEntry(["(say nothing)"], new(CruiseQuery + "silence"), cabin.CruiseQueryNoReplyText, VoiceSpeaker.Purser),
             ]);
     }
 
     /// <summary>The router's global checklist commands — in every grammar, no feature owns them.</summary>
     private static readonly IReadOnlyList<VoiceReferenceEntry> AlwaysAvailable =
     [
-        new([VoiceCommands.Skip, VoiceCommands.SkipItem], "Skip the current checklist item."),
-        new([VoiceCommands.SayAgain, VoiceCommands.Repeat], "Repeat the current item."),
-        new([VoiceCommands.Hold, VoiceCommands.Standby], "Hold the checklist."),
-        new([VoiceCommands.Resume, VoiceCommands.Continue], "Resume a held checklist."),
-        new([VoiceCommands.Cancel], "Cancel the running checklist."),
-        new([VoiceCommands.Restart], "Restart the active checklist."),
-        new(["negative", "disregard", "cancel", "belay that"], "Cancel a pending FCU, radio or MCDU action."),
+        new([VoiceCommands.Skip, VoiceCommands.SkipItem], new(Always + "skip")),
+        new([VoiceCommands.SayAgain, VoiceCommands.Repeat], new(Always + "sayAgain")),
+        new([VoiceCommands.Hold, VoiceCommands.Standby], new(Always + "hold")),
+        new([VoiceCommands.Resume, VoiceCommands.Continue], new(Always + "resume")),
+        new([VoiceCommands.Cancel], new(Always + "cancel")),
+        new([VoiceCommands.Restart], new(Always + "restart")),
+        new(["negative", "disregard", "cancel", "belay that"], new(Always + "negative")),
     ];
 
     // ---- helpers ----------------------------------------------------------------------------
@@ -399,11 +269,11 @@ public sealed class VoiceReferenceBuilder : IVoiceReference
     private static List<string> LivePhrases(IVoiceFeature feature)
         => [.. feature.Phrases.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()).Distinct(StringComparer.OrdinalIgnoreCase)];
 
-    /// <summary>A describer key matches a live phrase when equal, or when the live phrase is
-    /// the key plus a value ("landing stats for egll", "change arrival runway zero four left").</summary>
-    internal static bool Matches(string key, string live)
-        => string.Equals(key, live, StringComparison.OrdinalIgnoreCase)
-            || live.StartsWith(key + " ", StringComparison.OrdinalIgnoreCase);
+    /// <summary>A row's phrase name matches a live phrase when equal, or when the live phrase is
+    /// the name plus a value ("landing stats for egll", "change arrival runway zero four left").</summary>
+    internal static bool Matches(string name, string live)
+        => string.Equals(name, live, StringComparison.OrdinalIgnoreCase)
+            || live.StartsWith(name + " ", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The FO push-to-talk binding as the drawer prints it.</summary>
     internal static string PttBindingText(SpeechOptions options)

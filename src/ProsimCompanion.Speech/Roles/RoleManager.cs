@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -69,6 +70,27 @@ public sealed class RoleManager : IVoiceFeature
     public event Action? Changed;
 
     public bool IsFoPilotFlying { get; private set; }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). Roles go before
+    /// every instruction parser so a handover is never mis-parsed as an instruction.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 30,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("roles", "voiceReference.group.roles.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["you have control", "your aircraft", "your controls", "you have the aircraft"],
+                "voiceReference.group.roles.handover", "I have control."),
+            new(["confirm control", "control confirmed", "confirm i have control"],
+                "voiceReference.group.roles.confirm", "I have control."),
+            new(["my aircraft", "i have control", "i have the aircraft", "i have the controls"],
+                "voiceReference.group.roles.takeBack", "You have control."),
+            new(["one hundred knots", "hundred knots"], "voiceReference.group.roles.pmCall", "Checked.", [VoiceBadges.Pf]),
+            new(["positive climb", "positive rate"], "voiceReference.group.roles.pmCall", "Gear up.", [VoiceBadges.Pf]),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

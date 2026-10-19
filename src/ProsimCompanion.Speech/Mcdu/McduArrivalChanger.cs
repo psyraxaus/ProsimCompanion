@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Briefings;
 using ProsimCompanion.Speech.Recognition;
@@ -132,6 +133,22 @@ public sealed class McduArrivalChanger : IVoiceFeature, IDisposable
         _onRoleChanged = () => CancelPending();
         _roles.Changed += _onRoleChanged;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): last of the MCDU
+    /// trio — a value parser that sits here, not with the radio/FCU parsers, because the trio's
+    /// position is the one the predecessor established.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 140,
+        Gate = VoiceFeatureGate.ByOption("mcdu.enabled", VoiceReferenceTextIds.OffMcdu),
+        Description = new DescribedVoiceReference("mcduArrival", "voiceReference.group.mcduArrival.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["change arrival runway", "change to runway"],
+                "voiceReference.group.mcduArrival.change", null, [VoiceBadges.Pf, VoiceBadges.Value], "‹zero four left›"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _options.CurrentValue.Enabled;
 

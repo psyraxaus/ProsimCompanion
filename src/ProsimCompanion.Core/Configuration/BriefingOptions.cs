@@ -60,34 +60,46 @@ public sealed class BriefingOptions : IOptionSection
 
     /// <summary>Path to the user-supplied Navigraph DFD SQLite database; empty disables
     /// nav-data facts (never redistributed).</summary>
+    [OptionField(FieldKind.Text, "setup.navData.dfd", TextKind = TextFieldKind.FileOrFolderPath, BrowseStartIn = "ProSimNavdata", BrowseFilter = "Navigation database (*.s3db)|*.s3db|All files (*.*)|*.*", Normalize = FieldNormalization.Path)]
     public string DfdPath { get; set; } = "";
 
     /// <summary>How procedure identifiers are resolved (Auto = FMS → flight.json → manual,
     /// with per-field provenance logging).</summary>
+    [OptionField(FieldKind.Select, "speechSettings.briefing.source", Choices = "procedureSource")]
     public ProcedureSourceMode ProcedureSource { get; set; } = ProcedureSourceMode.Auto;
 
     /// <summary>Per-field FMS dataref names for the FMS tier (all optional).</summary>
     public BriefingFmsDatarefs FmsDatarefs { get; set; } = new();
 
     /// <summary>Manual procedure overrides used when the FMS plan doesn't resolve a field.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.briefing.manual.depAirport", TextKind = TextFieldKind.Icao, Normalize = FieldNormalization.TrimUpper)]
     public string DepartureAirport { get; set; } = "";
+    [OptionField(FieldKind.Text, "speechSettings.briefing.manual.depRunway", TextKind = TextFieldKind.Runway, Normalize = FieldNormalization.TrimUpper)]
     public string DepartureRunway { get; set; } = "";
+    [OptionField(FieldKind.Text, "speechSettings.briefing.manual.sid", Normalize = FieldNormalization.TrimUpper)]
     public string DepartureSid { get; set; } = "";
+    [OptionField(FieldKind.Text, "speechSettings.briefing.manual.arrAirport", TextKind = TextFieldKind.Icao, Normalize = FieldNormalization.TrimUpper)]
     public string ArrivalAirport { get; set; } = "";
+    [OptionField(FieldKind.Text, "speechSettings.briefing.manual.arrRunway", TextKind = TextFieldKind.Runway, Normalize = FieldNormalization.TrimUpper)]
     public string ArrivalRunway { get; set; } = "";
+    [OptionField(FieldKind.Text, "speechSettings.briefing.manual.star", Normalize = FieldNormalization.TrimUpper)]
     public string ArrivalStar { get; set; } = "";
+    [OptionField(FieldKind.Text, "speechSettings.briefing.manual.approach", Normalize = FieldNormalization.TrimUpper)]
     public string ArrivalApproach { get; set; } = "";
 
     // ---- Missed-approach re-brief (Prosim2FO parity; safety content, never persona-styled) ----
 
     /// <summary>Speak the published missed-approach legs automatically after a go-around.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.missed.enabled", Label = "speechSettings.common.enabled")]
     public bool MissedApproachRebriefEnabled { get; set; } = true;
 
     /// <summary>Seconds after the go-around before the re-brief may speak (workload guard);
     /// it additionally waits for gear-up.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.missed.delay", Suffix = "s", Min = "0", DependsOn = "MissedApproachRebriefEnabled", Advanced = true)]
     public int MissedApproachDelaySeconds { get; set; } = 15;
 
     /// <summary>Hard backstop: speak at this many seconds even if gear-up is never seen.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.missed.hardCeiling", Suffix = "s", Min = "0", DependsOn = "MissedApproachRebriefEnabled", Advanced = true)]
     public int MissedApproachHardCeilingSeconds { get; set; } = 30;
 
     /// <summary>LEGACY (superseded 2026-10-08 by the <c>wakeOnLan.targets</c> list,
@@ -101,20 +113,25 @@ public sealed class BriefingOptions : IOptionSection
     /// <summary>Capture the minima by voice during the arrival brief (prompt → read-back →
     /// confirm). A value already entered on the web page skips the dialogue; disabled means
     /// the brief just echoes whatever the store holds.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.minima.interactive")]
     public bool MinimaCaptureEnabled { get; set; } = true;
 
     /// <summary>Listening window per capture attempt.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.minima.listenTimeout", Suffix = "s", Min = "5", DependsOn = "MinimaCaptureEnabled", Advanced = true)]
     public int MinimaListenTimeoutSeconds { get; set; } = 15;
 
     /// <summary>Failed/unconfirmed attempts before the brief proceeds "not briefed".</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.minima.maxRetries", Min = "0", DependsOn = "MinimaCaptureEnabled", Advanced = true)]
     public int MinimaMaxRetries { get; set; } = 2;
 
     /// <summary>Verify every number in LLM output against the source facts; a failed retry
     /// falls back to the deterministic template.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.verify")]
     public bool VerifyNumbers { get; set; } = true;
 
     // ---- Optional LLM (briefing prose only — numbers are verified) ----
 
+    [OptionField(FieldKind.Bool, "speechSettings.common.enabled", Hint = "speechSettings.briefing.llm.enabledHint")]
     public bool LlmEnabled { get; set; }
 
     /// <summary>Speak LLM-styled briefings and the debrief WHILE the model writes them
@@ -123,6 +140,7 @@ public sealed class BriefingOptions : IOptionSection
     /// (the pre-2026-10 behaviour). The streaming path always verifies numbers — spelled-out
     /// ones included — whatever <see cref="VerifyNumbers"/> says; a sentence that fails is
     /// dropped and the deterministic template finishes the narration.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.llm.stream", DependsOn = "LlmEnabled")]
     public bool StreamLlm { get; set; } = true;
 
     /// <summary>Which wire protocol the endpoint speaks: <see cref="LlmApiKind.OpenAi"/>
@@ -131,21 +149,28 @@ public sealed class BriefingOptions : IOptionSection
     /// OpenAI-compatible endpoint has no way to pass <c>think</c>, and the <c>/no_think</c>
     /// prompt prefix stopped working with qwen3.6. Defaults to OpenAI so existing configs
     /// (Open WebUI, api.openai.com) keep working unchanged.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.briefing.llm.apiFlavour", Choices = "llmApi", DependsOn = "LlmEnabled")]
     public LlmApiKind LlmApi { get; set; } = LlmApiKind.OpenAi;
 
     /// <summary>API root. OpenAI flavour: e.g. <c>http://localhost:3000/api</c> or
     /// <c>https://api.openai.com/v1</c>. Ollama flavour: the server root, e.g.
     /// <c>http://localhost:11434</c> (no <c>/v1</c>).</summary>
+    [OptionField(FieldKind.Text, "speechSettings.briefing.llm.baseUrl", Label = "speechSettings.common.baseUrl", TextKind = TextFieldKind.Url, Placeholder = "http://localhost:11434", DependsOn = "LlmEnabled", Normalize = FieldNormalization.Trim)]
     public string LlmBaseUrl { get; set; } = "http://localhost:3000/api";
+    [OptionField(FieldKind.Text, "speechSettings.common.apiKey", Hint = "speechSettings.briefing.llm.apiKeyHint", DependsOn = "LlmEnabled", Normalize = FieldNormalization.Trim)]
     public string LlmApiKey { get; set; } = "";
+    [OptionField(FieldKind.Text, "speechSettings.common.model", Hint = "speechSettings.briefing.llm.modelHint", DependsOn = "LlmEnabled", Normalize = FieldNormalization.Trim)]
     public string LlmModel { get; set; } = "";
+    [OptionField(FieldKind.Number, "speechSettings.briefing.llm.maxTokens", Min = "64", DependsOn = "LlmEnabled", Advanced = true)]
     public int LlmMaxTokens { get; set; } = 512;
+    [OptionField(FieldKind.Number, "speechSettings.common.timeout", Hint = "speechSettings.briefing.llm.timeoutHint", Suffix = "s", Min = "5", DependsOn = "LlmEnabled", Advanced = true)]
     public int LlmTimeoutSeconds { get; set; } = 30;
 
     /// <summary>Let a thinking-capable model (qwen3.x, deepseek-r1…) run its hidden reasoning
     /// phase before answering. Off by default: the phase adds 10 s+ before the first token,
     /// which is unusable for spoken briefings. Honoured only on the Ollama native API, and
     /// sent EXPLICITLY in both states because such models default thinking ON.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.llm.thinking", DependsOn = "LlmEnabled; LlmApi=ollama")]
     public bool LlmEnableThinking { get; set; }
 }
 

@@ -11,5 +11,6 @@ public sealed class ChecklistOptions : IOptionSection
     /// cockpit actually being set can lie. The override exists for hardware cockpits where a
     /// dataref occasionally disagrees with a physically-correct switch, and the crew needs to
     /// move on. Overridden lines freeze so the engine never un-ticks the crew's decision.</summary>
+    [OptionField(FieldKind.Bool, "appSettings.checklists.manualTicks")]
     public bool AllowManualOverride { get; set; }
 }

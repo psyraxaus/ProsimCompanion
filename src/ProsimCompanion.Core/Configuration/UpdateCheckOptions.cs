@@ -6,9 +6,11 @@ public sealed class UpdateCheckOptions : IOptionSection
 {
     public static string SectionName => "updateCheck";
 
+    [OptionField(FieldKind.Bool, "setup.updates.check")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>Re-check interval. The predecessor checked once at startup only; a long
     /// interval keeps long-running sessions informed without hammering the API.</summary>
+    [OptionField(FieldKind.Number, "setup.updates.interval", Suffix = "h", Min = "1", Max = "168", DependsOn = "Enabled")]
     public int IntervalHours { get; set; } = 24;
 }

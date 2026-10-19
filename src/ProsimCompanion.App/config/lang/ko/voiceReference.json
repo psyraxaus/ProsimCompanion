@@ -33,6 +33,248 @@
       "sayAfter": "",
       "edit": "문구 편집 · commands.json",
       "editTitle": "나만의 문구는 commands.json(사용자 설정 폴더)에 있습니다"
+    },
+    "off": {
+      "speechFo": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장",
+      "mcdu": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → MCDU",
+      "monitoring": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 콜아웃 및 플래카드 → 비행 중 모니터링",
+      "gsxSettings": "{0}이(가) 꺼져 있습니다 — 설정 → GSX",
+      "groundServices": "{0}이(가) 꺼져 있습니다 — 설정 → 지상 서비스",
+      "bare": "{0}이(가) 꺼져 있습니다",
+      "gsxPillar": "GSX 모듈이 실행 중이 아닙니다",
+      "sayIntentions": "SayIntentions가 꺼져 있습니다 — 설정 → 음성 부기장 → SayIntentions",
+      "groundCrew": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 지상 요원",
+      "cabinCrew": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 객실 승무원",
+      "notInBuild": "이 빌드에서는 사용할 수 없습니다",
+      "foQuestions": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 브리핑 및 LLM → 부기장에게 질문",
+      "cruiseQuery": "{0}이(가) 꺼져 있습니다 — 설정 → 음성 부기장 → 객실 승무원 → 순항 중 사무장 문의"
+    },
+    "always": {
+      "skip": "현재 체크리스트 항목을 건너뜁니다.",
+      "sayAgain": "현재 항목을 반복합니다.",
+      "hold": "체크리스트를 보류합니다.",
+      "resume": "보류된 체크리스트를 재개합니다.",
+      "cancel": "진행 중인 체크리스트를 취소합니다.",
+      "restart": "활성 체크리스트를 다시 시작합니다.",
+      "negative": "대기 중인 FCU, 무선 또는 MCDU 동작을 취소합니다."
+    },
+    "group": {
+      "roles": {
+        "title": "조종 인계",
+        "handover": "FO에게 항공기를 넘깁니다. 비행 중에는 FO가 먼저 확인을 요청합니다.",
+        "confirm": "비행 중 인계를 확인합니다.",
+        "takeBack": "항공기를 되찾습니다 — 즉시 적용되며 대기 중인 FCU 또는 MCDU 동작도 모두 중단합니다.",
+        "pmCall": "FO가 조종하는 동안의 파일럿 모니터링 콜입니다."
+      },
+      "fcu": {
+        "title": "FCU — FO가 PF일 때",
+        "heading": "기수 방향을 설정합니다. FO가 복창하고 3초간 'negative'를 기다린 뒤 설정하고 확인합니다.",
+        "flightLevel": "고도를 비행 고도(FL)로 설정합니다.",
+        "speed": "속도를 설정합니다(100–399 kt).",
+        "verticalSpeed": "V/S를 설정합니다. 하강이면 'descend' 또는 'down'이라고 말하세요.",
+        "speedMode": "속도를 managed 또는 selected로 합니다.",
+        "altitudeMode": "고도 노브 풀, 푸시 또는 EXPED.",
+        "engage": "AP1, AP2 또는 A/THR.",
+        "arm": "APPR 또는 LOC.",
+        "ownNav": "기수 방향을 managed로 되돌립니다.",
+        "negative": "대기 중인 FCU 또는 무선 동작을 3초 창 안에서 취소합니다."
+      },
+      "radios": {
+        "title": "무선",
+        "tune": "스탠바이 주파수를 맞춥니다(118.000–136.990). FO가 복창한 뒤 설정하고 확인합니다.",
+        "standby": "해당 무선기의 스탠바이를 맞춥니다.",
+        "swap": "액티브와 스탠바이를 교환합니다."
+      },
+      "engineFlap": {
+        "title": "엔진 및 플랩 콜",
+        "engineStart": "엔진 시동 응답입니다.",
+        "flapsOne": "플래카드 속도 확인 — 아무것도 움직이지 않습니다.",
+        "flapsCheck": "플래카드 속도 확인입니다.",
+        "flapsUp": "플랩 올림 응답입니다."
+      },
+      "gear": {
+        "title": "기어",
+        "up": "FO가 레버를 움직입니다 — 지상이거나 올림 제한 속도를 넘으면 거부합니다.",
+        "down": "FO가 레버를 움직입니다 — 내림 제한 속도를 넘으면 거부합니다."
+      },
+      "chrono": {
+        "title": "이륙",
+        "takeoff": "이륙 활주에서 FO 크로노를 시작합니다(접지 시 정지)."
+      },
+      "announcements": {
+        "title": "비행 모드 콜",
+        "fma": "이륙 FMA 읽기입니다.",
+        "capture": "로컬라이저 / 글라이드슬로프 캡처 콜입니다.",
+        "altCapture": "고도 캡처 콜입니다.",
+        "manualFlight": "수동 비행 선언입니다.",
+        "continue": "최저치에서의 결정입니다."
+      },
+      "mcduRead": {
+        "title": "MCDU — 읽기",
+        "page": "FO가 현재 MCDU 페이지를 소리 내어 읽습니다.",
+        "scratchpad": "스크래치패드만 읽습니다."
+      },
+      "mcduRadNav": {
+        "title": "MCDU — ILS",
+        "tune": "FO가 RAD NAV에서 도착 ILS를 맞춥니다.",
+        "abort": "맞추기를 중단합니다."
+      },
+      "mcduArrival": {
+        "title": "MCDU — 도착 활주로",
+        "change": "FO가 도착 활주로와 ILS를 변경합니다(LAT REV → ARRIVAL → insert)."
+      },
+      "briefings": {
+        "title": "브리핑",
+        "departure": "FMS 계획, 항법 데이터, 실시간 기상으로 출발 브리핑을 합니다.",
+        "arrival": "도착 브리핑 — FO가 먼저 최저치 확인을 요청합니다.",
+        "approaches": "도착 활주로에 대한 항법 데이터의 접근 절차입니다."
+      },
+      "missedApproach": {
+        "title": "실패 접근",
+        "rebrief": "실패 접근을 다시 브리핑합니다."
+      },
+      "minima": {
+        "title": "최저치",
+        "query": "도착 브리핑에서 확인한 최저치입니다."
+      },
+      "company": {
+        "title": "회사",
+        "loadsheet": "실시간 중량, 승객 수, CG로 만든 음성 로드시트입니다(ACARS 차임).",
+        "lastMessage": "마지막 회사 메시지를 반복합니다."
+      },
+      "day": {
+        "title": "근무일",
+        "start": "회사 근무일을 시작합니다.",
+        "end": "요약과 로그북 마감으로 끝냅니다."
+      },
+      "fuelCheck": {
+        "title": "연료 점검",
+        "check": "현재 위치의 SimBrief 계획 대비 탑재 연료와, 계획값 대비 예상 착륙 연료입니다. 순항 중에는 자동으로도 수행합니다."
+      },
+      "grossErrorCheck": {
+        "title": "총오류 점검",
+        "check": "최종 로드시트 대비 항공기 중량과, 마지막 이륙 성능 계산 대비 FMS PERF 입력값입니다. 최종 로드시트와 V 속도가 입력되면 자동으로도 수행합니다."
+      },
+      "readbacks": {
+        "title": "복창",
+        "altimeter": "고도계 수정치를 복창합니다. FO가 기압 설정과 대조합니다. 'Read back', 'check', 'confirm'을 앞에 붙일 수 있습니다.",
+        "standard": "표준 기압 설정. FO가 기압 설정이 1013인지 확인합니다.",
+        "vSpeeds": "V1, rotate, V2를 복창합니다. FO가 FMS와 대조합니다.",
+        "runway": "활주로를 복창합니다. FO가 FMS 계획과 대조합니다.",
+        "minimums": "최저치를 복창합니다. FO가 브리핑한 최저치와 대조합니다."
+      },
+      "logbook": {
+        "title": "로그북",
+        "summary": "로그북 합계입니다.",
+        "count": "숫자 하나입니다.",
+        "daySummary": "마지막 근무일입니다.",
+        "landingStats": "한 공항에서의 착륙 횟수입니다."
+      },
+      "techLog": {
+        "title": "테크 로그",
+        "openItems": "미결 결함을 읽습니다."
+      },
+      "techLogDialogue": {
+        "title": "테크 로그 — 기록 / 조치",
+        "raise": "안내식: 결함, 그다음 MEL 범주(bravo, charlie, delta), 마지막으로 확인.",
+        "rectify": "안내식: 'Rectify …? Affirm or negative.'"
+      },
+      "debrief": {
+        "title": "디브리핑",
+        "debrief": "비행 후 음성 디브리핑입니다."
+      },
+      "quiet": {
+        "title": "조용히",
+        "quiet": "세션이 끝날 때까지 잡담을 멈춥니다(체크리스트와 콜아웃은 계속 말합니다)."
+      },
+      "disregard": {
+        "title": "Disregard",
+        "disregard": "FO가 말하고 있는 안내(항공기 상태, 주기, 누락된 호출)를 멈추고 응답합니다 — 재생 중인 것이 없으면 응답만 합니다."
+      },
+      "aircraftState": {
+        "title": "항공기 상태",
+        "recheck": "콜드 앤 다크 점검을 다시 실행하고 FO가 결과를 읽습니다."
+      },
+      "pushbackDirection": {
+        "title": "푸시백 방향",
+        "tailLeft": "이 비행의 푸시: GSX의 'Nose Right / Tail Left'. GSX가 방향 메뉴를 표시할 때 적용됩니다.",
+        "tailRight": "이 비행의 푸시: GSX의 'Nose Left / Tail Right'.",
+        "straight": "이 비행의 푸시: 'Straight pushback'.",
+        "facing": "ATC의 방향을 전달합니다. FO가 그 방향으로 끝나는 경로를 고릅니다(8방위 중 하나).",
+        "which": "이 비행에서의 선택, 또는 출발 활주로를 향한 FO의 제안입니다."
+      },
+      "gsx": {
+        "title": "지상 서비스",
+        "start": "출발 시퀀스를 시작합니다(진행 중이면 다음 서비스를 호출).",
+        "command": {
+          "forceNextService": "INT/RAD 스마트 버튼 — 다음 서비스를 지금 호출합니다.",
+          "requestBoarding": "탑승을 요청합니다.",
+          "requestRefuel": "급유차를 부릅니다.",
+          "confirmFuel": "블록 연료를 확인한 뒤 급유차를 부릅니다(또는 추가 급유).",
+          "requestCatering": "케이터링을 요청합니다.",
+          "requestPushback": "푸시백을 요청합니다(비컨 시퀀스가 허용하면).",
+          "requestDeice": "제빙을 요청합니다.",
+          "requestGpu": "지상 전원을 연결합니다 — GSX의 GPU, 또는 주기장에 없으면 ProSim 장비. 지상 요원이 연결을 보고합니다.",
+          "disconnectGpu": "지상 전원 장치를 분리합니다(EXT PWR가 항공기에 전원을 공급하는 동안은 불가).",
+          "declineDeice": "부기장의 제빙 질문을 거절합니다 — 이번 출발에는 제빙 없음."
+        }
+      },
+      "gsxCabin": {
+        "title": "탑승",
+        "boarding": "탑승 — FO가 요청하고 사무장이 확인합니다."
+      },
+      "hailGround": {
+        "title": "지상 요원 호출",
+        "how": "호출한 뒤 창 안에서 지상 서비스 문구를 말하세요.",
+        "how.gated": "오디오 패널에서 INT를 선택하고 호출한 뒤 창 안에서 지상 서비스 문구를 말하세요.",
+        "cancel": "요청 없이 호출을 끝냅니다."
+      },
+      "hailCabin": {
+        "title": "객실 승무원 호출",
+        "how": "호출한 뒤 창 안에서 탑승을 요청하세요.",
+        "how.gated": "오디오 패널에서 CAB을 선택하고 호출한 뒤 창 안에서 탑승을 요청하세요."
+      },
+      "commandsJson": {
+        "title": "commands.json에서"
+      },
+      "atc": {
+        "title": "ATC 요청(SayIntentions)",
+        "to": "{0}에게."
+      },
+      "checklists": {
+        "title": "체크리스트",
+        "start": "{0} 체크리스트를 시작합니다('request …'도 가능)."
+      },
+      "drills": {
+        "title": "메모리 드릴",
+        "rehearse": "{0} 메모리 아이템을 연습합니다."
+      },
+      "foQuestions": {
+        "title": "부기장에게 질문",
+        "fuel": "탑재 연료와 계획값입니다.",
+        "tod": "3:1 강하 시작점 추정까지의 분입니다.",
+        "weather": "히어로 카드에 표시된 목적지 METAR입니다.",
+        "eta": "지상 속도 기준 ETA입니다.",
+        "compare": "팩트 시트가 비교할 수 있는 모든 것입니다.",
+        "leadIn": "이 도입구 중 하나로 시작하고 {0} 단어 이상인 질문입니다. 실시간 사실로만 답하며, 사실이 없으면 FO가 '{1}'라고 말합니다. LAN 음성 서버가 필요합니다.",
+        "smallTalk": {
+          "football": "잡담: 일반 지식, 역할 유지, 비행 수치 없음.",
+          "funFact": "재미있는 사실 한두 문장.",
+          "any": "잡담 켜짐: 도입구가 필요 없습니다. 비행을 언급하는 질문은 여전히 엄격하고 검증된 경로를 따릅니다."
+        },
+        "whereAreWe": {
+          "wikipedia": "아래의 나라, 산맥 또는 바다와 가장 가까운 도시 — 내장 아틀라스에서 즉시 — 그다음 Wikipedia의 사실 한두 가지.",
+          "model": "아래의 나라, 산맥 또는 바다와 가장 가까운 도시 — 내장 아틀라스에서 즉시 — 그다음 모델의 사실 한두 가지.",
+          "side": "같은 답입니다. 좌우는 우리 항로 기준입니다."
+        }
+      },
+      "cabinCruiseQuery": {
+        "title": "순항 중 사무장 문의",
+        "eta": "비행마다 한 번, 순항 중에 사무장이 호출합니다 — '{0}' — 그리고 {1}초 동안 듣습니다. 답에 시각이나 도착 예상을 넣으면:",
+        "ride": "흔들림에 대해 한마디:",
+        "other": "그 외(LAN 음성 서버에서는 자유 답변, 오프라인 엔진은 짧은 목록을 듣습니다):",
+        "silence": "창이 조용히 닫힙니다:"
+      }
     }
   }
 }

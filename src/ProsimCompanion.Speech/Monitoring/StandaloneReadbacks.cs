@@ -5,6 +5,7 @@ using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Briefings;
 using ProsimCompanion.Speech.Recognition;
@@ -64,6 +65,29 @@ public sealed class StandaloneReadbacks : IVoiceFeature, IDisposable
     }
 
     private ReadbackOptions Options => _sop.CurrentValue.Monitoring.Readbacks;
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>). Standalone
+    /// read-backs (issue #148) parse figures too and go BEFORE the radio/FCU parsers:
+    /// "altimeter one zero one three" is a read-back, not an FCU instruction.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 40,
+        Gate = VoiceFeatureGate.ByOption("sop.monitoring.readbacks.enabled", VoiceReferenceTextIds.OffMonitoring),
+        Description = new DescribedVoiceReference("readbacks", "voiceReference.group.readbacks.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["altimeter", "qnh", "read back altimeter"], "voiceReference.group.readbacks.altimeter",
+                "QNH one zero one three, checked.", [VoiceBadges.Value], "‹one zero one three›"),
+            new(["altimeter standard", "read back altimeter standard"], "voiceReference.group.readbacks.standard", "Standard, checked."),
+            new(["v speeds", "v one", "read back v speeds"], "voiceReference.group.readbacks.vSpeeds",
+                "V one one four one, rotate one four four, V two one four seven, checked.", [VoiceBadges.Value], "‹one four one, one four four, one four seven›"),
+            new(["runway", "read back runway"], "voiceReference.group.readbacks.runway",
+                "Runway two seven right, checked.", [VoiceBadges.Value], "‹two seven right›"),
+            new(["minimums", "decision altitude", "decision height", "read back minimums"], "voiceReference.group.readbacks.minimums",
+                "Minimums, decision altitude two one zero feet, checked.", [VoiceBadges.Value], "‹two one zero›"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => Options.Enabled;
 

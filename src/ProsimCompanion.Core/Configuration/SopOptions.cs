@@ -84,11 +84,17 @@ public sealed class FlapPlacard
 /// <summary>Overspeed advisory texts and pacing.</summary>
 public sealed class PlacardAdvisoryOptions
 {
+    [OptionField(FieldKind.Bool, "speechSettings.common.enabled", Advanced = true)]
     public bool Enabled { get; set; } = true;
+    [OptionField(FieldKind.Number, "speechSettings.callouts.advisories.warnWithin", Suffix = "kt", Min = "0", Max = "50", DependsOn = "Enabled", Advanced = true)]
     public int WarnWithinKt { get; set; } = 5;
+    [OptionField(FieldKind.Number, "speechSettings.callouts.advisories.cooldown", Suffix = "s", Min = "0", Max = "600", DependsOn = "Enabled", Advanced = true)]
     public int CooldownSeconds { get; set; } = 15;
+    [OptionField(FieldKind.Text, "speechSettings.callouts.advisories.approaching", DependsOn = "Enabled", Advanced = true)]
     public string ApproachingText { get; set; } = "speed, approaching flap limit";
+    [OptionField(FieldKind.Text, "speechSettings.callouts.advisories.exceeded", DependsOn = "Enabled", Advanced = true)]
     public string ExceededText { get; set; } = "speed, flap limit";
+    [OptionField(FieldKind.Text, "speechSettings.callouts.advisories.gearExceeded", DependsOn = "Enabled", Advanced = true)]
     public string GearExceededText { get; set; } = "speed, gear limit";
 }
 
@@ -139,6 +145,7 @@ public sealed class FlowMonitorOptions
     public double FlapsCleanAboveAglFt { get; set; } = 3000;
 
     /// <summary>AGL (ft) above which the gear should be up in the climb.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gear.upBy", Suffix = "ft AGL", Min = "0", Max = "10000", Step = "50", DependsOn = "GearStillDown.Enabled")]
     public double GearUpAboveAglFt { get; set; } = 1000;
 }
 
@@ -182,30 +189,43 @@ public sealed class SopWeatherOptions
 /// <summary>Stabilized-approach announcement config.</summary>
 public sealed class StabilizedOptions
 {
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.gates.stable")]
     public bool Enabled { get; set; } = true;
+    [OptionField(FieldKind.Text, "speechSettings.callouts.gates.stableCall", DependsOn = "Enabled", Advanced = true)]
     public string StableText { get; set; } = "stabilized";
+    [OptionField(FieldKind.Text, "speechSettings.callouts.gates.unstableCall", DependsOn = "Enabled", Advanced = true)]
     public string UnstableText { get; set; } = "unstable, go around";
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.gates.thrust", DependsOn = "Enabled", Advanced = true)]
     public bool RequireThrustStabilized { get; set; }
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gates.minN1", Suffix = "%", Min = "0", Max = "100", Step = "1", DependsOn = "Enabled; RequireThrustStabilized", Advanced = true)]
     public double MinStabilizedN1 { get; set; } = 40;
 }
 
 /// <summary>One stabilized-approach gate, evaluated descending through its radio altitude.</summary>
 public sealed class ApproachGate
 {
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.gates.inUse")]
     public bool Enabled { get; set; } = true;
     public string Name { get; set; } = "";
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gates.height", Suffix = "ft AGL", Min = "0", Max = "5000", Step = "50", DependsOn = "Enabled")]
     public int AglFt { get; set; }
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gates.sink", Suffix = "fpm", Min = "0", Max = "3000", Step = "50", DependsOn = "Enabled")]
     public int MaxSinkRateFpm { get; set; } = 1000;
 
     /// <summary>Allowed IAS band around VLS (there is no VAPP dataref — VLS + band is the
     /// predecessor-proven reference).</summary>
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gates.belowVls", Suffix = "kt", Min = "0", Max = "50", Step = "1", DependsOn = "Enabled")]
     public int SpeedBandBelowVls { get; set; } = 5;
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gates.aboveVls", Suffix = "kt", Min = "0", Max = "50", Step = "1", DependsOn = "Enabled")]
     public int SpeedBandAboveVls { get; set; } = 20;
 
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.gates.gearDown", DependsOn = "Enabled")]
     public bool RequireGearDown { get; set; } = true;
+    [OptionField(FieldKind.Select, "speechSettings.callouts.gates.minFlap", Choices = "flapLever", DependsOn = "Enabled")]
     public int RequireFlapHandleAtLeast { get; set; } = 3;
 
     /// <summary>Also announce when the gate passes (only the 1000 gate by default).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.gates.announce", DependsOn = "Enabled")]
     public bool AnnounceStabilized { get; set; }
 }
 
@@ -220,6 +240,7 @@ public sealed class SopOptions : IOptionSection
     public static string SectionName => "sop";
 
     /// <summary>Master switch for SOP callouts (hot-toggles; checked every tick).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.callouts.enabled")]
     public bool CalloutsEnabled { get; set; } = true;
 
     /// <summary>Callout sampling cadence (floored to 50 ms; read once at start).</summary>
@@ -288,14 +309,17 @@ public sealed class SopOptions : IOptionSection
 
     /// <summary>VLE — gear-extended speed limit (kt); 0 disables the advisory. The A322's
     /// M0.67 side is not modelled: gear down above 20,000 ft is not a case the FO meets.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gear.vle", Suffix = "kt", Min = "0", Max = "400")]
     public int GearMaxKt { get; set; } = 280;
 
     /// <summary>VLO extension — the limit for MOVING the gear down (kt). The "gear down"
     /// call is refused above it; 0 disables the check.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gear.vloDown", Suffix = "kt", Min = "0", Max = "400")]
     public int GearExtendMaxKt { get; set; } = 250;
 
     /// <summary>VLO retraction — the limit for MOVING the gear up (kt). The "gear up" call
     /// is refused above it; 0 disables the check.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.callouts.gear.vloUp", Suffix = "kt", Min = "0", Max = "400")]
     public int GearRetractMaxKt { get; set; } = 220;
 
     public PlacardAdvisoryOptions PlacardAdvisory { get; set; } = new();

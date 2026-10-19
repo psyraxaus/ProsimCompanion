@@ -1,4 +1,5 @@
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -32,6 +33,22 @@ public sealed class MinimaQueryVoiceFeature : IVoiceFeature
         _minima = minima;
         _arbiter = arbiter;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the minima recall
+    /// query dispatches after <see cref="BriefingService"/> so full-briefing phrases keep
+    /// precedence.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 170,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("minima", "voiceReference.group.minima.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["what are our minimums", "what's our minimums", "say minimums", "minimums check"],
+                "voiceReference.group.minima.query", "Minimums not briefed."),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

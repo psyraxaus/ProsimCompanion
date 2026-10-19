@@ -33,6 +33,248 @@
       "sayAfter": "",
       "edit": "フレーズを編集 · commands.json",
       "editTitle": "自分のフレーズは commands.json（ユーザー設定フォルダー）にあります"
+    },
+    "off": {
+      "speechFo": "{0} はオフです — 設定 → 音声副操縦士",
+      "mcdu": "{0} はオフです — 設定 → 音声副操縦士 → MCDU",
+      "monitoring": "{0} はオフです — 設定 → 音声副操縦士 → コールアウトとプラカード → 飛行中モニタリング",
+      "gsxSettings": "{0} はオフです — 設定 → GSX",
+      "groundServices": "{0} はオフです — 設定 → 地上サービス",
+      "bare": "{0} はオフです",
+      "gsxPillar": "GSX モジュールが動作していません",
+      "sayIntentions": "SayIntentions はオフです — 設定 → 音声副操縦士 → SayIntentions",
+      "groundCrew": "{0} はオフです — 設定 → 音声副操縦士 → 地上クルー",
+      "cabinCrew": "{0} はオフです — 設定 → 音声副操縦士 → 客室乗務員",
+      "notInBuild": "このビルドでは利用できません",
+      "foQuestions": "{0} はオフです — 設定 → 音声副操縦士 → ブリーフィングと LLM → 副操縦士に質問",
+      "cruiseQuery": "{0} はオフです — 設定 → 音声副操縦士 → 客室乗務員 → 巡航中のパーサー問い合わせ"
+    },
+    "always": {
+      "skip": "現在のチェックリスト項目をスキップします。",
+      "sayAgain": "現在の項目を繰り返します。",
+      "hold": "チェックリストを保留します。",
+      "resume": "保留中のチェックリストを再開します。",
+      "cancel": "実行中のチェックリストを取り消します。",
+      "restart": "アクティブなチェックリストを最初からやり直します。",
+      "negative": "保留中の FCU、無線、MCDU の操作を取り消します。"
+    },
+    "group": {
+      "roles": {
+        "title": "操縦の引き継ぎ",
+        "handover": "FO に操縦を渡します。飛行中は FO がまず確認を求めます。",
+        "confirm": "飛行中の引き継ぎを確認します。",
+        "takeBack": "操縦を取り戻します — 即時で、保留中の FCU や MCDU の操作もすべて中止します。",
+        "pmCall": "FO が操縦している間のあなたのパイロットモニタリング・コールです。"
+      },
+      "fcu": {
+        "title": "FCU — FO が PF のとき",
+        "heading": "ヘディングをセットします。FO が復唱し、3 秒間「negative」を待ってからセットして確認します。",
+        "flightLevel": "高度をフライトレベルでセットします。",
+        "speed": "速度をセットします（100–399 kt）。",
+        "verticalSpeed": "V/S をセットします。降下なら「descend」または「down」と言ってください。",
+        "speedMode": "速度を managed または selected にします。",
+        "altitudeMode": "高度ノブをプル、プッシュ、または EXPED。",
+        "engage": "AP1、AP2 または A/THR。",
+        "arm": "APPR または LOC。",
+        "ownNav": "ヘディングを managed に戻します。",
+        "negative": "保留中の FCU または無線の操作を 3 秒の窓の中で取り消します。"
+      },
+      "radios": {
+        "title": "無線",
+        "tune": "スタンバイ周波数をセットします（118.000–136.990）。FO が復唱し、セットして確認します。",
+        "standby": "その無線機のスタンバイをセットします。",
+        "swap": "アクティブとスタンバイを入れ替えます。"
+      },
+      "engineFlap": {
+        "title": "エンジンとフラップのコール",
+        "engineStart": "エンジンスタートの応答です。",
+        "flapsOne": "プラカード速度の確認 — 何も動かしません。",
+        "flapsCheck": "プラカード速度の確認です。",
+        "flapsUp": "フラップ上げの応答です。"
+      },
+      "gear": {
+        "title": "ギア",
+        "up": "FO がレバーを操作します — 地上または引き上げ制限速度を超えていると拒否します。",
+        "down": "FO がレバーを操作します — 下げ制限速度を超えていると拒否します。"
+      },
+      "chrono": {
+        "title": "離陸",
+        "takeoff": "離陸滑走で FO のクロノを開始します（接地で停止）。"
+      },
+      "announcements": {
+        "title": "フライトモードのコール",
+        "fma": "離陸時の FMA 読み上げです。",
+        "capture": "ローカライザー / グライドスロープ捕捉のコールです。",
+        "altCapture": "高度捕捉のコールです。",
+        "manualFlight": "マニュアルフライトの宣言です。",
+        "continue": "ミニマムでのあなたの判断です。"
+      },
+      "mcduRead": {
+        "title": "MCDU — 読み上げ",
+        "page": "FO が現在の MCDU ページを読み上げます。",
+        "scratchpad": "スクラッチパッドだけを読み上げます。"
+      },
+      "mcduRadNav": {
+        "title": "MCDU — ILS",
+        "tune": "FO が RAD NAV で到着 ILS をセットします。",
+        "abort": "セットを中止します。"
+      },
+      "mcduArrival": {
+        "title": "MCDU — 到着滑走路",
+        "change": "FO が到着滑走路と ILS を変更します（LAT REV → ARRIVAL → insert）。"
+      },
+      "briefings": {
+        "title": "ブリーフィング",
+        "departure": "FMS プラン、ナビデータ、実況気象からの出発ブリーフィングです。",
+        "arrival": "到着ブリーフィング — FO がまずミニマムの確認を求めます。",
+        "approaches": "到着滑走路に対するナビデータのアプローチです。"
+      },
+      "missedApproach": {
+        "title": "ミスドアプローチ",
+        "rebrief": "ミスドアプローチを再ブリーフィングします。"
+      },
+      "minima": {
+        "title": "ミニマム",
+        "query": "到着ブリーフィングで確認したミニマムです。"
+      },
+      "company": {
+        "title": "カンパニー",
+        "loadsheet": "実際の重量、旅客数、CG からの音声ロードシートです（ACARS チャイム）。",
+        "lastMessage": "最後のカンパニーメッセージを繰り返します。"
+      },
+      "day": {
+        "title": "勤務日",
+        "start": "カンパニーの勤務日を開始します。",
+        "end": "サマリーとログブックの締めで終了します。"
+      },
+      "fuelCheck": {
+        "title": "燃料チェック",
+        "check": "現在位置での SimBrief プランに対する搭載燃料と、計画値に対する着陸時推定燃料です。巡航中は自動でも行います。"
+      },
+      "grossErrorCheck": {
+        "title": "グロスエラーチェック",
+        "check": "最終ロードシートに対する機体重量と、最後の離陸性能計算に対する FMS PERF 入力です。最終ロードシートと V スピードが入ると自動でも行います。"
+      },
+      "readbacks": {
+        "title": "リードバック",
+        "altimeter": "高度計規正値を復唱します。FO があなたの気圧設定と照合します。「Read back」「check」「confirm」を前置きにできます。",
+        "standard": "標準気圧をセット。FO は気圧設定が 1013 であることを確認します。",
+        "vSpeeds": "V1、rotate、V2 を復唱します。FO が FMS と照合します。",
+        "runway": "滑走路を復唱します。FO が FMS プランと照合します。",
+        "minimums": "ミニマムを復唱します。FO がブリーフィングしたミニマムと照合します。"
+      },
+      "logbook": {
+        "title": "ログブック",
+        "summary": "ログブックの合計です。",
+        "count": "数字ひとつです。",
+        "daySummary": "最後の勤務日です。",
+        "landingStats": "ひとつの空港での着陸数です。"
+      },
+      "techLog": {
+        "title": "テックログ",
+        "openItems": "未処置の不具合を読み上げます。"
+      },
+      "techLogDialogue": {
+        "title": "テックログ — 記入 / 処置",
+        "raise": "対話式: 不具合、次に MEL カテゴリー（bravo、charlie、delta）、最後に確認。",
+        "rectify": "対話式:「Rectify …? Affirm or negative.」"
+      },
+      "debrief": {
+        "title": "デブリーフィング",
+        "debrief": "飛行後の音声デブリーフィングです。"
+      },
+      "quiet": {
+        "title": "静かに",
+        "quiet": "セッションの残りの間、雑談を止めます（チェックリストとコールアウトは引き続き話します）。"
+      },
+      "disregard": {
+        "title": "Disregard",
+        "disregard": "FO が話している注意喚起（機体状態、駐機、失われたコール）を止めて応答します — 何も再生中でなければ応答だけです。"
+      },
+      "aircraftState": {
+        "title": "機体状態",
+        "recheck": "コールド＆ダークのチェックを再実行し、FO が結果を読み上げます。"
+      },
+      "pushbackDirection": {
+        "title": "プッシュバックの方向",
+        "tailLeft": "このフライトのプッシュ: GSX の「Nose Right / Tail Left」。GSX が方向メニューを表示したときに適用します。",
+        "tailRight": "このフライトのプッシュ: GSX の「Nose Left / Tail Right」。",
+        "straight": "このフライトのプッシュ:「Straight pushback」。",
+        "facing": "ATC の方向を伝えます。FO はその向きで終わるルートを選びます（8 方位のいずれか）。",
+        "which": "このフライトでのあなたの選択、または出発滑走路に向けた FO の提案です。"
+      },
+      "gsx": {
+        "title": "地上サービス",
+        "start": "出発シーケンスを開始します（実行中なら次のサービスを呼びます）。",
+        "command": {
+          "forceNextService": "INT/RAD スマートボタン — 次のサービスを今呼びます。",
+          "requestBoarding": "搭乗を要求します。",
+          "requestRefuel": "燃料車を呼びます。",
+          "confirmFuel": "ブロック燃料を確認してから燃料車を呼びます（または追加給油）。",
+          "requestCatering": "ケータリングを要求します。",
+          "requestPushback": "プッシュバックを要求します（ビーコンのシーケンスが許せば）。",
+          "requestDeice": "防除氷を要求します。",
+          "requestGpu": "地上電源を接続します — GSX の GPU、またはスタンドにない場合は ProSim のユニット。地上クルーが接続を報告します。",
+          "disconnectGpu": "地上電源ユニットを外します（EXT PWR が機体に給電している間は不可）。",
+          "declineDeice": "副操縦士の防除氷の質問を断ります — この出発では防除氷なし。"
+        }
+      },
+      "gsxCabin": {
+        "title": "搭乗",
+        "boarding": "搭乗 — FO が要求し、パーサーが確認します。"
+      },
+      "hailGround": {
+        "title": "地上クルーを呼ぶ",
+        "how": "呼び出してから、窓の中で地上サービスのフレーズを言います。",
+        "how.gated": "オーディオパネルで INT を選び、呼び出してから、窓の中で地上サービスのフレーズを言います。",
+        "cancel": "要求なしで呼び出しを終えます。"
+      },
+      "hailCabin": {
+        "title": "客室乗務員を呼ぶ",
+        "how": "呼び出してから、窓の中で搭乗を頼みます。",
+        "how.gated": "オーディオパネルで CAB を選び、呼び出してから、窓の中で搭乗を頼みます。"
+      },
+      "commandsJson": {
+        "title": "commands.json から"
+      },
+      "atc": {
+        "title": "ATC リクエスト（SayIntentions）",
+        "to": "{0} へ。"
+      },
+      "checklists": {
+        "title": "チェックリスト",
+        "start": "{0} チェックリストを開始します（「request …」でも可）。"
+      },
+      "drills": {
+        "title": "メモリードリル",
+        "rehearse": "{0} のメモリーアイテムを練習します。"
+      },
+      "foQuestions": {
+        "title": "副操縦士に質問",
+        "fuel": "搭載燃料と計画値です。",
+        "tod": "3:1 のトップ・オブ・ディセント推定までの分数です。",
+        "weather": "ヒーローカードに表示されている目的地 METAR です。",
+        "eta": "地速による ETA です。",
+        "compare": "ファクトシートで比較できるものすべてです。",
+        "leadIn": "これらの前置きのいずれかで始まり、{0} 語以上の質問です。実況の事実からのみ答えます。事実が足りないときは FO が「{1}」と言います。LAN 音声サーバーが必要です。",
+        "smallTalk": {
+          "football": "雑談: 一般知識、役柄のまま、フライトの数字なし。",
+          "funFact": "豆知識を 1〜2 文で。",
+          "any": "雑談オン: 前置き不要です。フライトに触れる質問は引き続き厳密で検証済みの経路をとります。"
+        },
+        "whereAreWe": {
+          "wikipedia": "真下の国、山脈、海と最寄りの町 — 内蔵アトラスから即答 — それから Wikipedia の豆知識を 1〜2 件。",
+          "model": "真下の国、山脈、海と最寄りの町 — 内蔵アトラスから即答 — それからモデルの豆知識を 1〜2 件。",
+          "side": "同じ答えです。左右は進路に対する向きです。"
+        }
+      },
+      "cabinCruiseQuery": {
+        "title": "巡航中のパーサー問い合わせ",
+        "eta": "フライトごとに一度、巡航中にパーサーが呼びかけ —「{0}」— {1} 秒間聞きます。答えに時刻や到着見込みを含めると:",
+        "ride": "揺れについてひと言:",
+        "other": "その他（LAN 音声サーバーなら自由回答、オフラインエンジンは短いリストを聞き取ります）:",
+        "silence": "窓は無言で閉じます:"
+      }
     }
   }
 }

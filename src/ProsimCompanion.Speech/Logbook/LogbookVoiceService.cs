@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.Logbook;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -46,6 +47,23 @@ public sealed class LogbookVoiceService : IVoiceFeature
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): logbook spoken
+    /// queries — exact/prefix matcher, no phrase overlap with the tech log.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 270,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("logbook", "voiceReference.group.logbook.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["logbook summary", "read my logbook"], "voiceReference.group.logbook.summary"),
+            new(["how many landings", "how many hours", "how many flights"], "voiceReference.group.logbook.count"),
+            new(["logbook day summary"], "voiceReference.group.logbook.daySummary"),
+            new(["landing stats for"], "voiceReference.group.logbook.landingStats", null, [VoiceBadges.Value], "‹egll›"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     /// <summary>Fixed phrases plus one "landing stats for {icao}" per landed destination —
     /// recomputed each read so the grammar tracks the store (predecessor behaviour).</summary>

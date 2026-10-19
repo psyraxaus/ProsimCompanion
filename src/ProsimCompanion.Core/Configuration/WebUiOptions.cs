@@ -12,16 +12,19 @@ public sealed class WebUiOptions : IOptionSection
     /// HTTP port for the embedded Kestrel host. 5320 avoids the neighbours: ProSim's EFB gateway
     /// (5000), the legacy Prosim2GSX web EFB (5001) and Prosim2FO dashboard (8730).
     /// </summary>
+    [OptionField(FieldKind.Number, "setup.web.port", Min = "1024", Max = "65535")]
     public int Port { get; set; } = 5320;
 
     /// <summary>
     /// When false (default) the server binds loopback only; when true it binds all interfaces so
     /// other LAN devices (tablets, second PC) can reach the UI.
     /// </summary>
+    [OptionField(FieldKind.Bool, "setup.web.lan")]
     public bool BindToAllInterfaces { get; set; }
 
     /// <summary>Animate the split-flap (Solari) header displays; off snaps characters
     /// instantly (Prosim2GSX's SolariAnimationEnabled).</summary>
+    [OptionField(FieldKind.Bool, "appSettings.display.splitFlap")]
     public bool SolariAnimation { get; set; } = true;
 
     /// <summary>Reveal the advanced (tuning) fields on the settings pages — timeouts,
@@ -38,10 +41,12 @@ public sealed class WebUiOptions : IOptionSection
 
     /// <summary>Weight unit source: "app" (the fixed <see cref="Unit"/> below) or "aircraft"
     /// (follow ProSim's configured weight unit) — Prosim2GSX's DisplayUnitSource.</summary>
+    [OptionField(FieldKind.Select, "appSettings.display.unitSource", Choices = "unitSource")]
     public string UnitSource { get; set; } = "app";
 
     /// <summary>Default weight display unit, "kg" or "lb" (Prosim2GSX's DisplayUnitDefault).
     /// Storage and all protocols stay kg — this affects display only.</summary>
+    [OptionField(FieldKind.Select, "appSettings.display.unit", Choices = "unit")]
     public string Unit { get; set; } = "kg";
 
     /// <summary>
@@ -82,16 +87,20 @@ public sealed class WebUiOptions : IOptionSection
 /// </summary>
 public sealed class HttpsOptions
 {
+    [OptionField(FieldKind.Bool, "setup.web.https")]
     public bool Enabled { get; set; }
 
     /// <summary>HTTPS port — 5321 by default, beside HTTP's 5320.</summary>
+    [OptionField(FieldKind.Number, "setup.web.httpsPort", Min = "1024", Max = "65535", DependsOn = "Enabled")]
     public int Port { get; set; } = 5321;
 
     /// <summary>Full path of the PKCS#12 (.pfx / .p12) file holding the certificate and its
     /// private key. Its subject alternative names must cover the address the tablet uses (the
     /// LAN IP by default).</summary>
+    [OptionField(FieldKind.Text, "setup.web.pfx", TextKind = TextFieldKind.FilePath, BrowseStartIn = "AppStateFolder", BrowseFilter = "Certificates (*.pfx;*.p12)|*.pfx;*.p12", DependsOn = "Enabled")]
     public string PfxPath { get; set; } = "";
 
     /// <summary>The PFX password; stored DPAPI-protected (<c>dpapi:…</c>) like every other secret.</summary>
+    [OptionField(FieldKind.Text, "setup.web.pfxPassword", Password = true, DependsOn = "Enabled")]
     public string PfxPassword { get; set; } = "";
 }

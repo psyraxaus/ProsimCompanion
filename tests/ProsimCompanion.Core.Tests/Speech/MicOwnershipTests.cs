@@ -191,6 +191,8 @@ public sealed class MicOwnershipTests
 
         public bool ValueParse => false;
 
+        public VoiceFeatureDeclaration Declaration => FakeVoiceFeatureDeclaration.Plain;
+
         public bool TryHandle(string utterance)
         {
             if (!string.Equals(utterance, "test phrase", StringComparison.OrdinalIgnoreCase))
@@ -223,7 +225,7 @@ public sealed class MicOwnershipTests
             new UtteranceInterpreter(monitor),
             checklists,
             new FailureMonitor(arbiter, dataRefs, phases, eventLog, NullLogger<FailureMonitor>.Instance),
-            [probe],
+            new VoiceFeatureRoster([probe]),
             _window,
             _mic,
             arbiter,
