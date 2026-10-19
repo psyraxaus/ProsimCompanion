@@ -19,7 +19,7 @@ public sealed class GroundFactsReplayTests(ITestOutputHelper output)
     private static string RecordingPath(string name)
         => Path.Combine(AppContext.BaseDirectory, "Flight", "Recordings", name);
 
-    private static IReadOnlyList<GroundFactChange> BeaconEdges(FlightReplayResult result)
+    private static List<GroundFactChange> BeaconEdges(FlightReplayResult result)
         => result.GroundFactEdges.Where(e => e.Edge is GroundFactEdge.BeaconOn or GroundFactEdge.BeaconOff).ToList();
 
     [Fact]
