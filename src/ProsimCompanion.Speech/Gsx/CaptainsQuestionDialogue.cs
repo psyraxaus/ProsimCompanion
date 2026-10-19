@@ -33,7 +33,7 @@ public sealed class CaptainsQuestionDialogue : IStartupModule, IDisposable
     public const int MaxListens = 2;
 
     private readonly IReadOnlyList<ICaptainsQuestionStore> _stores;
-    private readonly IReadOnlyDictionary<string, (ICaptainsQuestionStore Store, CaptainsQuestionPhrases Table)> _questions;
+    private readonly Dictionary<string, (ICaptainsQuestionStore Store, CaptainsQuestionPhrases Table)> _questions;
     private readonly IMicOwnership _mic;
     private readonly ISpeechArbiter _arbiter;
     private readonly IOptionsMonitor<GsxOptions> _options;

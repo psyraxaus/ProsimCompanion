@@ -17,7 +17,7 @@ public static class GateChoicePhrases
 {
     private static readonly IReadOnlyList<string> HandBack = ["your call", "leave it", "you pick", "cancel"];
 
-    private static readonly IReadOnlyDictionary<char, string> Nato = new Dictionary<char, string>
+    private static readonly Dictionary<char, string> Nato = new()
     {
         ['A'] = "alpha", ['B'] = "bravo", ['C'] = "charlie", ['D'] = "delta", ['E'] = "echo", ['F'] = "foxtrot",
         ['G'] = "golf", ['H'] = "hotel", ['I'] = "india", ['J'] = "juliet", ['K'] = "kilo", ['L'] = "lima",
@@ -134,7 +134,7 @@ public static class GateChoicePhrases
         return matches.Count == 1 ? matches[0] : null;
     }
 
-    private static IReadOnlyList<string> Grammar(CaptainsQuestion question)
+    private static List<string> Grammar(CaptainsQuestion question)
         => question.Choices
             .SelectMany(c => new[] { c.Label, SpokenLabel(c.Label) })
             .Concat(["first", "the first", "second", "the second", "third"])
