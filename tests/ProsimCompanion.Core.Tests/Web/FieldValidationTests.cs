@@ -1,4 +1,5 @@
 using Xunit;
+using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Web.Components;
 
 namespace ProsimCompanion.Core.Tests.Web;

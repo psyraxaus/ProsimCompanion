@@ -482,6 +482,7 @@ public sealed class SpeechOptions : IOptionSection
     /// without waiting for the pilot. Lines that need a read-back (numbers, flap config), lines
     /// with no live dataref value, and every non-verify line still run as challenge/response.
     /// Off by default — the strict read-and-respond flow is the published behaviour.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.general.readThrough")]
     public bool ChecklistReadThroughSatisfied { get; set; }
 
     // ---- Playback ----
