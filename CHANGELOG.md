@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Architecture: Flight Status presentation (C6)
+
+- The Flight Status page and the GSX status panel now render records from two presentation modules instead of deciding rows inside their Blazor `@code` blocks. `FlightStatusPresentation` (store snapshots in — row, hero, weather-card, gate-strip and sequence records out) absorbs the former 700-line `Home.razor` code block: every Sim / App / GSX / Services row, the ground-prep stage words, the aircraft-state, cabin, refuel, dropped-call and GPU rows, the hero metrics and progress figures. `GsxPresentation` is the second adapter of the same status-row seam and now carries the GSX status panel's Status, Arrival Gate, Departure Board, De-Icing and diagnostics-table rows. The shared records (`DisplayText`, `StatusRow`) live in `StatusPresentation.cs`. `Home.razor` went from 1049 to about 700 lines, all markup plus circuit plumbing; the page and the panel render the same DOM (same rows, order, tones, text ids and tile order). 70-odd xunit tests pin every row builder, the prep-stage table, the hero inputs and the tile order. Three dead `GsxPresentation` members (`StageTone`, `ConnectionTone`, `ConnectionDot`, no callers) were removed. No user-facing change; no new setting.
+
 ## 0.7.0-rc.10
 
 Checklist read-through and the Stream Deck tick, 2026-10-18. A local release-candidate build on top of rc.9 for the owner's sim test the week of 2026-10-19; **not yet verified live**.
