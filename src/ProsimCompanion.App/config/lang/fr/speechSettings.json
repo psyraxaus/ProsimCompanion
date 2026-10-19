@@ -50,6 +50,11 @@
         "hint": "Le copilote annonce chaque démarrage : starting, available, both stabilized.",
         "more": "Lu dans les données moteur au sol, une fois par démarrage. Aucun appel pilote nécessaire."
       },
+      "readThrough": {
+        "label": "Lire d'un trait les lignes déjà correctes",
+        "hint": "Une ligne de checklist dont l'interrupteur est déjà correct est lue avec sa réponse et validée. Aucune réponse nécessaire.",
+        "more": "Le copilote dit la ligne et la réponse d'un trait, p. ex. \"Flaps, retracted.\" Les lignes à relire (nombres, configuration volets), les lignes sans valeur en direct de ProSim et les lignes sans dataref attendent toujours ta réponse. Désactivé : chaque ligne attend ta réponse."
+      },
       "pacing": {
         "title": "Rythme humain",
         "hint": "Des appuis sur les boutons à un tempo humain",

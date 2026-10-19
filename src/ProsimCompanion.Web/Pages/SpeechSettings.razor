@@ -51,6 +51,8 @@ else if (CurrentSection == "general")
                    @bind-Value="_speech.Value.EngineFlapCallouts" />
         <BoolField Label="@T["speechSettings.general.engineStart.label"]" Hint="@T["speechSettings.general.engineStart.hint"]" More="@T["speechSettings.general.engineStart.more"]"
                    @bind-Value="_speech.Value.EngineStartCallouts" />
+        <BoolField Label="@T["speechSettings.general.readThrough.label"]" Hint="@T["speechSettings.general.readThrough.hint"]" More="@T["speechSettings.general.readThrough.more"]"
+                   @bind-Value="_speech.Value.ChecklistReadThroughSatisfied" />
     </Section>
 
     <Section Title="@T["speechSettings.general.pacing.title"]" Hint="@T["speechSettings.general.pacing.hint"]" Advanced="true">

@@ -128,6 +128,13 @@ anytime. Items with a dataref condition verify against the aircraft; the visual 
 Checklists page stays in sync. The flight-control check is fully monitored (your sweep is
 watched at 30 Hz, then the FO answers with the FO-side controls).
 
+**Read through lines already set** (Settings → Voice First Officer → General, off by
+default): a verify line whose switch is already in the expected position when the FO reaches
+it is spoken with its answer in one breath — *"Flaps, retracted."* — and completed without
+waiting for you. You still hear every line, so the run never sounds as if it jumped. Lines
+that need a read-back (numbers, the takeoff flap config), lines whose dataref ProSim has not
+yet reported, and every line without a dataref condition still wait for your reply.
+
 A `confirmCallout` in your checklist file may carry a live value: `{fuel}` (or
 `{fuelQuantity}`), `{altimeter}`, `{qnh}`, `{v1}`, `{vr}`, `{v2}`, `{flex}`, `{runway}`,
 `{flightLevel}`, `{takeoffConfig}`. A brace word the app does not know is left out, never read
