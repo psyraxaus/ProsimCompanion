@@ -202,53 +202,6 @@ public sealed record GsxParkingConflictView(DateTimeOffset Timestamp, string Gsx
     public bool MenuUnreachable { get; init; }
 }
 
-/// <summary>Arms/cancels arrival-gate requests from UI surfaces (implemented by the GSX layer;
-/// status is visible through <see cref="GsxDiagnosticsStore"/>).</summary>
-public interface IGsxGateControl
-{
-    void RequestGate(string gate);
-
-    void Cancel();
-}
-
-/// <summary>Re-runs the session-start cold-and-dark check on demand (implemented by the GSX
-/// sync layer; verdict lands in <see cref="GsxDiagnosticsStore"/>). The check is once-per-
-/// session by design, so without this seam a pilot who fixed the switches — or hit the #59
-/// false-airborne latch — could only get a fresh verdict by restarting the app (issue #92).</summary>
-public interface IAircraftStateCheckControl
-{
-    /// <summary>Clears the once-per-session latch and re-assesses immediately. The fresh
-    /// verdict is always announced (the pilot explicitly asked, so even a Pass or a Skipped
-    /// gets a spoken answer). Returns false when the assessment could not run yet — no sim
-    /// session, or the settle guards still holding — so the caller can answer honestly
-    /// instead of leaving the request hanging.</summary>
-    bool RequestRecheck(string source);
-}
-
-/// <summary>Drives the departure service sequence from UI surfaces (implemented by the GSX
-/// automation layer). <see cref="ForceNext"/> is the INT/RAD "smart button": call the next
-/// departure service now, bypassing its activation rule — including Manual entries (the classic
-/// "start Boarding while Refueling runs").</summary>
-public interface IGsxDepartureControl
-{
-    /// <summary>True once the departure sequence has been started (manually or automatically).</summary>
-    bool Started { get; }
-
-    /// <summary>True once every departure service completed or was skipped.</summary>
-    bool Complete { get; }
-
-    /// <summary>Starts the departure service sequence (idempotent). <paramref name="source"/>
-    /// names the surface that started it — <c>web</c>, <c>voice</c>, <c>hail</c>,
-    /// <c>command</c>, <c>api</c>, <c>streamdeck</c> — and is recorded on the start decision
-    /// and the <c>gsx-departure-started</c> session event (issue #169: the 2026-10-11 start
-    /// had no source in the log).</summary>
-    void Start(string source);
-
-    /// <summary>Single-shot: the next sequencing evaluation treats the current step's
-    /// activation rule as satisfied. The flight-plan gate still applies.</summary>
-    void ForceNext();
-}
-
 /// <summary>
 /// Live GSX diagnostics for the web UI — the browser-side twin of the wire trace, built for
 /// evaluating sim smoke tests at a glance. The GSX layer pushes updates; readers observe and
