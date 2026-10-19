@@ -57,6 +57,7 @@ public static class GsxServiceCollectionExtensions
         // The on-demand path's way into the cycle (issue #169): a hail that calls Boarding
         // before "commence ground services" arms the pax target and starts the cycle first.
         services.AddSingleton<Automation.IGsxDepartureStarter>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
+        services.AddSingleton<Automation.IGsxAutomationPhaseView>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
         // One flight-plan rule for the sequencer gate AND the on-demand path (ADR-0006).
         services.AddSingleton<Automation.GsxFlightPlanMonitor>();
         services.AddSingleton<Automation.IGsxFlightPlanStatus>(provider => provider.GetRequiredService<Automation.GsxFlightPlanMonitor>());

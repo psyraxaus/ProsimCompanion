@@ -32,7 +32,7 @@ namespace ProsimCompanion.Gsx.Automation;
 /// (<see cref="DepartureCycleLatches"/>) and the public surface the web, commands and DI call.
 /// </para>
 /// </summary>
-public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IGsxDepartureStarter
+public sealed class GsxAutomationService : IDisposable, IGsxDepartureControl, IGsxDepartureStarter, IGsxAutomationPhaseView
 {
     private static readonly TimeSpan PumpInterval = TimeSpan.FromSeconds(3);
 
