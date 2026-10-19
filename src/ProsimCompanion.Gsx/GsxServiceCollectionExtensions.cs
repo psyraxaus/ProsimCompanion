@@ -20,6 +20,7 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<IGsxRemoteApi>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<GsxRemoteApiClient>());
         services.AddSingleton<GsxServiceLifecycleTracker>();
+        services.AddSingleton<IGsxServiceLifecycleView>(provider => provider.GetRequiredService<GsxServiceLifecycleTracker>());
         // One way to ask for the menu (Remote API, then the legacy LVAR — issue #141), shared
         // by the intent executor and the parking wake.
         services.AddSingleton<Menu.GsxMenuOpener>();
@@ -37,10 +38,20 @@ public static class GsxServiceCollectionExtensions
         services.AddSingleton<Gate.GsxGateSelectionService>();
         services.AddSingleton<Core.State.IGsxGateControl>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
         services.AddSingleton<Gate.IGsxAssignedGateSource>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
+        services.AddSingleton<Gate.IGsxArrivalGateRequester>(provider => provider.GetRequiredService<Gate.GsxGateSelectionService>());
         // The trigger slot (CONTEXT.md): the single serialized service.trigger path shared by
         // every sender — sequencer, on-demand commands, arrival, pushback, jetway/stairs.
         services.AddSingleton<Automation.GsxTriggerSlot>();
         services.AddSingleton<Automation.IGsxTriggerSlot>(provider => provider.GetRequiredService<Automation.GsxTriggerSlot>());
+        // The departure pump behind its seams (architecture review C1): decision log, latch
+        // storage, pax-target armer, inputs gatherer and effect applier are the host's own
+        // modules — registered so DI shares the one lifecycle tracker, slot and stores with them.
+        services.AddSingleton<Automation.IGsxDecisionLog, Automation.GsxDepartureDecisionLog>();
+        services.AddSingleton<Automation.DepartureCycleLatches>();
+        services.AddSingleton<Automation.GsxPaxTargetArmer>();
+        services.AddSingleton<Automation.DeparturePumpGatherer>();
+        services.AddSingleton<Automation.DeparturePumpEffectApplier>();
+        services.AddSingleton<Automation.IDeparturePumpEffectApplier>(provider => provider.GetRequiredService<Automation.DeparturePumpEffectApplier>());
         services.AddSingleton<Automation.GsxAutomationService>();
         services.AddSingleton<Core.State.IGsxDepartureControl>(provider => provider.GetRequiredService<Automation.GsxAutomationService>());
         // The on-demand path's way into the cycle (issue #169): a hail that calls Boarding

@@ -45,7 +45,7 @@ public enum GsxGateRequestStatus
 /// or the taxi-in default decides. Success is provisional until the SetGate_* LVAR readback
 /// matches (60 s window, checked immediately too). A Couatl restart re-arms the last request.
 /// </summary>
-public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAssignedGateSource, IDisposable
+public sealed class GsxGateSelectionService : Core.State.IGsxGateControl, IGsxAssignedGateSource, IGsxArrivalGateRequester, IDisposable
 {
     private static readonly TimeSpan ConfirmationWindow = TimeSpan.FromSeconds(60);
 
