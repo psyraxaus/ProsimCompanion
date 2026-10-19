@@ -98,6 +98,17 @@ mutations the planner names one by one, so a latch raised while a pump runs is n
 overwritten by that pump's write-back. Reset at the arrival boundary.
 _Avoid_: shell state, pump fields
 
+**Captain's question**:
+One thing the First Officer puts to the captain and holds open until it is settled —
+"request de-icing?", "commence ground services?", "36A or 36B?", "which way?" — as one Core
+store module parameterised by its definition: the answer shape (yes/no, or pick one of N
+labelled choices), once per cycle or once per subject, the TTL and what it does (counts as
+no, withdraws, never), the one re-ask. A feature raises it, the one dialogue voices it from
+that question's phrase table, the one web card shows it with its buttons, and any of them
+answers it. Silence is never an answer: the FO's listen window hands the decision back and
+only the TTL clock settles an unanswered question (#166).
+_Avoid_: prompt, dialogue state, confirmation (that is the fuel-figure latch), ask/accept pair
+
 ### Sim session
 
 **Session window**:
