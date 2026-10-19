@@ -132,6 +132,33 @@ public sealed class FlightSampleRecorderCoreTests
         Assert.Null(back.ToSnapshot().Position);
     }
 
+    // ---- external power (committed ground facts, 2026-10-19) ----
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Sample_CarriesExternalPower_OmittedWhileOff(bool on)
+    {
+        // Omitted while false so recordings made before the field existed parse unchanged
+        // and a replay of them reads "off".
+        var view = new FlightStateView(FlightPhase.Preflight, new FlightDataSnapshot
+        {
+            IsValid = true,
+            IsReady = true,
+            OnGround = true,
+            ExternalPowerOn = on,
+        }, false, true);
+
+        var sample = FlightSample.From(view);
+        var json = System.Text.Json.JsonSerializer.Serialize(sample);
+
+        Assert.Equal(on, json.Contains("\"ext\":true", StringComparison.Ordinal));
+        Assert.DoesNotContain("\"ext\":false", json, StringComparison.Ordinal);
+        var back = System.Text.Json.JsonSerializer.Deserialize<FlightSample>(json)!;
+        Assert.Equal(sample, back);
+        Assert.Equal(on, back.ToSnapshot().ExternalPowerOn);
+    }
+
     [Fact]
     public void ARecordingMadeBeforePositions_StillParses_WithNoPosition()
     {

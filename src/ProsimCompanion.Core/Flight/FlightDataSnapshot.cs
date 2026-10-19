@@ -152,8 +152,16 @@ public sealed record FlightDataSnapshot
     /// <summary>Seatbelt signs selector (S_OH_SIGNS): 0=Auto 1=On 2=Off.</summary>
     public int SeatbeltSignsMode { get; init; }
 
-    /// <summary>Beacon switch on (S_OH_EXT_LT_BEACON).</summary>
+    /// <summary>Beacon switch on (S_OH_EXT_LT_BEACON). The engine commits it as the
+    /// <see cref="GroundFacts.BeaconOn"/> ground fact — consumers read that, not this raw
+    /// sample field and never their own subscription.</summary>
     public bool BeaconOn { get; init; }
+
+    /// <summary>External power feeding the buses (B_ELEC_EXTERNAL_CONNECT). Never phase
+    /// evidence and not phase-critical: it exists so the ground-equipment gradual removal
+    /// reads its falling edge from the committed <see cref="GroundFacts.ExternalPowerOn"/>
+    /// fact on the engine's clock instead of a raw subscription of its own.</summary>
+    public bool ExternalPowerOn { get; init; }
 
     /// <summary>Speedbrake lever armed (S_FC_SPEEDBRAKE_ARMED).</summary>
     public bool SpeedbrakeArmed { get; init; }
