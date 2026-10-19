@@ -41,9 +41,11 @@ public sealed class PttBindingOptions
 /// time) — humanization only ever ADDS time, never undercuts them.</summary>
 public sealed class HumanizeOptions
 {
+    [OptionField(FieldKind.Bool, "speechSettings.general.pacing.humanize", Advanced = true)]
     public bool Enabled { get; set; } = true;
 
     /// <summary>Overall pacing multiplier for inter-key gaps (1.0 = normal, 2.0 = twice as slow).</summary>
+    [OptionField(FieldKind.Number, "speechSettings.general.pacing.tempo", Step = "0.1", Min = "0.25", Max = "4", DependsOn = "Enabled", Advanced = true)]
     public double Tempo { get; set; } = 1.0;
 
     /// <summary>Max random stretch of each inter-key gap (0.8 = 1.0–1.8× the configured delay).</summary>
@@ -86,6 +88,7 @@ public sealed class SpeechOptions : IOptionSection
     public static string SectionName => "speech";
 
     /// <summary>Master switch for the speech pillar.</summary>
+    [OptionField(FieldKind.Bool, "setup.features.speech")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>Which seat the HUMAN flies from ("left" or "right"). The virtual pilot
@@ -93,6 +96,7 @@ public sealed class SpeechOptions : IOptionSection
     /// flight controls / EFIS2; "right" flips every side-dependent surface (CDU1, the
     /// captain-side controls, EFIS1). The safety rule is seat-relative — the virtual pilot
     /// never moves the human's controls.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.general.seat", Choices = "pilotSeat", Normalize = FieldNormalization.TrimLower)]
     public string PilotSeat { get; set; } = "left";
 
     /// <summary>Human-like pacing for MCDU/FCU button sequences.</summary>
@@ -106,27 +110,33 @@ public sealed class SpeechOptions : IOptionSection
 
     /// <summary>Hard "local only" mode: network TTS providers (Kokoro, ElevenLabs, Google)
     /// are excluded regardless of their own configuration.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.general.localOnly")]
     public bool LocalOnly { get; set; }
 
     // ---- Sterile cockpit (predecessor defaults; lived in the SOP profile in Prosim2FO —
     //      moves there if/when ProsimCompanion grows SOP profiles) ----
 
     /// <summary>Enables the sterile-cockpit suppression rule.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.common.enabled", Hint = "speechSettings.sterile.enabledHint")]
     public bool SterileEnabled { get; set; } = true;
 
     /// <summary>Sterile ceiling in feet MSL (baro, not AGL): airborne workload phases below
     /// this gate Low/Normal speech. High/Critical always speak.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.sterile.ceiling", Suffix = "ft MSL", Min = "1000", DependsOn = "SterileEnabled")]
     public int SterileCockpitCeilingFt { get; set; } = 10_000;
 
     /// <summary>Drop Low-priority speech while sterile (never replayed).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.sterile.dropLow", DependsOn = "SterileEnabled")]
     public bool SterileSuppressLow { get; set; } = true;
 
     /// <summary>What sterile does to Normal-priority speech.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.sterile.normalPolicy", Choices = "sterileNormalPolicy", DependsOn = "SterileEnabled")]
     public SterileNormalPolicy SterileNormalPolicy { get; set; } = SterileNormalPolicy.Allow;
 
     /// <summary>Let <c>cabin.*</c>-tagged reports through while sterile — cabin-ready calls
     /// below the ceiling are operationally expected (a deliberate tag exemption rather than
     /// inflating their priority).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.sterile.exemptCabin", DependsOn = "SterileEnabled")]
     public bool SterileExemptCabinReports { get; set; } = true;
 
     /// <summary>The First Officer's voice across providers as <c>provider:id</c> (for example
@@ -134,66 +144,80 @@ public sealed class SpeechOptions : IOptionSection
     /// provider's list (owner, 2026-10-12). The named provider speaks the FO first; when it is
     /// down the chain falls back to each provider's own fallback voice below. Empty = legacy:
     /// each provider speaks with its own voice field.</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.voices.fo.picker", EmptyListHint = "speechSettings.voiceNotes.emptyHint", Normalize = FieldNormalization.Trim)]
     public string FoVoice { get; set; } = "";
 
     // ---- Kokoro (local neural TTS, kokoro-fastapi) ----
 
     /// <summary>Base URL of a kokoro-fastapi instance; empty disables the provider.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.providers.kokoro.baseUrl", Label = "speechSettings.common.baseUrl", TextKind = TextFieldKind.Url, Placeholder = "http://192.168.1.50:8880", Normalize = FieldNormalization.Trim)]
     public string KokoroBaseUrl { get; set; } = "";
 
     /// <summary>Model name sent to Kokoro.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.common.model", DependsOn = "KokoroBaseUrl", Normalize = FieldNormalization.Trim)]
     public string KokoroModel { get; set; } = "kokoro";
 
     /// <summary>Kokoro voice id.</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.providers.kokoro.fallback", Label = "speechSettings.common.fallbackVoice", PlainIds = true, DependsOn = "KokoroBaseUrl", Normalize = FieldNormalization.Trim)]
     public string KokoroVoice { get; set; } = "bm_george";
 
     /// <summary>Kokoro connect / first-byte timeout (floor 200 ms at use) — deliberately
     /// tight so a sleeping LAN host does not stall a callout; the router falls through
     /// instead. Covers only the wait for response headers (issue #113): the streamed WAV
     /// body has its own budget, <see cref="KokoroBodyTimeoutMs"/>.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.kokoro.connectTimeout", Suffix = "ms", Min = "200", DependsOn = "KokoroBaseUrl", Advanced = true)]
     public int KokoroTimeoutMs { get; set; } = 1500;
 
     /// <summary>Base budget for reading the streamed WAV body once Kokoro has answered
     /// (issue #113). kokoro-fastapi synthesises while it streams, so a long briefing takes
     /// seconds; the effective budget is this plus 100 ms per character, never below the
     /// connect timeout. A healthy host asked to say something long must not be cooled down.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.kokoro.bodyTimeout", Suffix = "ms", Min = "1000", DependsOn = "KokoroBaseUrl", Advanced = true)]
     public int KokoroBodyTimeoutMs { get; set; } = 15000;
 
     /// <summary>Per-voice disk-cache cap in MB for Kokoro audio; 0 = unlimited.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.kokoro.cacheCap", Suffix = "MB", Min = "0", DependsOn = "KokoroBaseUrl", Advanced = true)]
     public int KokoroMaxCacheMbPerVoice { get; set; }
 
     // ---- Google Cloud TTS (Chirp 3 HD) ----
 
     /// <summary>Path to the service-account JSON key file; empty disables the provider.
     /// Never logged.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.providers.google.keyFile", TextKind = TextFieldKind.FilePath, BrowseStartIn = "Downloads", BrowseFilter = "JSON key (*.json)|*.json", Normalize = FieldNormalization.Trim)]
     public string GoogleKeyFilePath { get; set; } = "";
 
     /// <summary>Google voice name; the language code is derived from its prefix
     /// (e.g. "en-AU-Chirp3-HD-Charon" → "en-AU").</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.providers.google.fallback", Label = "speechSettings.common.fallbackVoice", PlainIds = true, DependsOn = "GoogleKeyFilePath", Normalize = FieldNormalization.Trim)]
     public string GoogleVoice { get; set; } = "en-AU-Chirp3-HD-Charon";
 
     /// <summary>Monthly character budget: once the usage counter reaches this figure the
     /// provider refuses further synthesis for the month and the chain falls through to the
     /// offline voices. Google's free tier is 1M chars — the margin keeps an overshoot
     /// harmless. 0 disables enforcement (the predecessor tracked but never enforced).</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.google.budget", Label = "speechSettings.common.monthlyCharBudget", Min = "0", DependsOn = "GoogleKeyFilePath")]
     public int GoogleMonthlyCharBudget { get; set; } = 950_000;
 
     // ---- ElevenLabs (paid cloud neural TTS) ----
 
     /// <summary>ElevenLabs API key (sent as the <c>xi-api-key</c> header); empty disables the
     /// provider. Never logged. DPAPI-protected in the file like the other keys.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.providers.elevenLabs.apiKey", Label = "speechSettings.common.apiKey", Password = true, Normalize = FieldNormalization.Trim)]
     public string ElevenLabsApiKey { get; set; } = "";
 
     /// <summary>API base URL; overridable for proxies or regional endpoints.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.providers.elevenLabs.baseUrl", Label = "speechSettings.common.baseUrl", TextKind = TextFieldKind.Url, Placeholder = "https://api.elevenlabs.io", DependsOn = "ElevenLabsApiKey", Advanced = true, Normalize = FieldNormalization.Trim)]
     public string ElevenLabsBaseUrl { get; set; } = "https://api.elevenlabs.io";
 
     /// <summary>ElevenLabs <c>voice_id</c> for the First Officer (from <c>GET /v2/voices</c>,
     /// or the "Fetch voices" picker on the settings page). No default — the user picks; the
     /// provider stays unconfigured until both the key and a voice id are set.</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.providers.elevenLabs.fallback", Label = "speechSettings.common.fallbackVoice", PlainIds = true, DependsOn = "ElevenLabsApiKey", Normalize = FieldNormalization.Trim)]
     public string ElevenLabsVoiceId { get; set; } = "";
 
     /// <summary>Model id: <c>eleven_flash_v2_5</c> (~75 ms, half the credit cost, the
     /// default) or <c>eleven_v3</c> (most expressive, slower, full price).</summary>
+    [OptionField(FieldKind.Select, "speechSettings.common.model", Hint = "speechSettings.providers.elevenLabs.modelHint", Choices = "elevenLabsModel", DependsOn = "ElevenLabsApiKey", Normalize = FieldNormalization.Trim)]
     public string ElevenLabsModelId { get; set; } = "eleven_flash_v2_5";
 
     /// <summary>Output format requested from the API. <c>mp3_44100_128</c> works on every
@@ -201,35 +225,43 @@ public sealed class SpeechOptions : IOptionSection
     /// <c>pcm_24000</c> needs a paid plan but skips the decode — raw PCM is wrapped in a WAV
     /// header. The format rides in the disk-cache key, so changing it never serves stale
     /// audio.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.providers.elevenLabs.format", Choices = "elevenLabsFormat", DependsOn = "ElevenLabsApiKey", Normalize = FieldNormalization.Trim)]
     public string ElevenLabsOutputFormat { get; set; } = "mp3_44100_128";
 
     /// <summary>Voice stability 0..1 — high-ish so the FO sounds consistent call to call.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.elevenLabs.stability", Step = "0.05", Min = "0", Max = "1", DependsOn = "ElevenLabsApiKey")]
     public double ElevenLabsStability { get; set; } = 0.6;
 
     /// <summary>Similarity boost 0..1 (how closely the output tracks the source voice).</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.elevenLabs.similarity", Step = "0.05", Min = "0", Max = "1", DependsOn = "ElevenLabsApiKey")]
     public double ElevenLabsSimilarityBoost { get; set; } = 0.75;
 
     /// <summary>Speaking rate; ElevenLabs accepts 0.7–1.2, 1.0 is the voice's natural pace.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.elevenLabs.speed", Step = "0.05", Min = "0.7", Max = "1.2", DependsOn = "ElevenLabsApiKey")]
     public double ElevenLabsSpeed { get; set; } = 1.0;
 
     /// <summary>Whole-request timeout (floor 200 ms at use). A cloud hop, so looser than
     /// Kokoro's LAN budget; the router still falls through to the next voice on expiry.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.common.timeout", Hint = "speechSettings.providers.elevenLabs.timeoutHint", Suffix = "ms", Min = "200", DependsOn = "ElevenLabsApiKey", Advanced = true)]
     public int ElevenLabsTimeoutMs { get; set; } = 8000;
 
     /// <summary>Monthly character budget enforced BEFORE each call so the chain falls through
     /// to offline voices instead of billing. Plan-relative: Free 10k credits/month, Starter
     /// 30k, Creator 121k (Flash v2.5 is billed at roughly half a credit per character). The
     /// default leaves a margin under the Free allowance. 0 disables enforcement.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.elevenLabs.budget", Label = "speechSettings.common.monthlyCharBudget", Min = "0", DependsOn = "ElevenLabsApiKey")]
     public int ElevenLabsMonthlyCharBudget { get; set; } = 9_000;
 
     /// <summary>Longest text sent in one request; the Free plan caps a generation at about
     /// 2 500 characters and answers longer texts with an error. A longer utterance is refused
     /// locally (no credits spent) and falls through to the next provider. 0 disables the cap.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.providers.elevenLabs.maxChars", Min = "0", DependsOn = "ElevenLabsApiKey")]
     public int ElevenLabsMaxCharsPerRequest { get; set; } = 2_500;
 
     /// <summary>Send <c>apply_text_normalization=auto</c> instead of <c>off</c>. Off by
     /// default: the arbiter already emits spoken-form phraseology ("flight level three five
     /// zero") and ElevenLabs' normaliser mangles aviation tokens.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.providers.elevenLabs.normalisation", DependsOn = "ElevenLabsApiKey")]
     public bool ElevenLabsTextNormalization { get; set; }
 
     // ---- Windows fallbacks ----
@@ -237,9 +269,11 @@ public sealed class SpeechOptions : IOptionSection
     /// <summary>Preferred WinRT (Windows.Media.SpeechSynthesis) voice display name or id;
     /// empty picks the system default. WinRT is the only provider that reaches the Windows 11
     /// neural "Natural" voices.</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.providers.windows.winrt", PlainIds = true, BlankLabel = "speechSettings.common.windowsDefaultVoice", EmptyListHint = "speechSettings.common.noListPressRefresh", Normalize = FieldNormalization.Trim)]
     public string WinRtVoice { get; set; } = "";
 
     /// <summary>Preferred SAPI5 (System.Speech) voice name; empty picks the system default.</summary>
+    [OptionField(FieldKind.VoicePicker, "speechSettings.providers.windows.sapi", PlainIds = true, BlankLabel = "speechSettings.common.windowsDefaultVoice", EmptyListHint = "speechSettings.common.noListPressRefresh", Normalize = FieldNormalization.Trim)]
     public string SapiVoice { get; set; } = "";
 
     // ---- Recognition (chain: LAN whisper → WinRT → System.Speech) ----
@@ -249,32 +283,38 @@ public sealed class SpeechOptions : IOptionSection
     /// pointing the faster-whisper shape at a whisper.cpp server answers 404 to every
     /// utterance while <c>/health</c> still says OK (2026-08-29 — voice went silent with no
     /// log evidence).</summary>
+    [OptionField(FieldKind.Select, "speechSettings.listening.server.flavour", Choices = "asrApi", DependsOn = "AsrBaseUrl")]
     public AsrApiKind AsrApi { get; set; } = AsrApiKind.FasterWhisper;
 
     /// <summary>Server root of the LAN ASR server (docs/integrations/speech.md), e.g.
     /// <c>http://192.168.1.50:8000</c>; empty disables the LAN engine.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.listening.server.asrUrl", TextKind = TextFieldKind.Url, Placeholder = "http://192.168.1.50:8000", Normalize = FieldNormalization.Trim)]
     public string AsrBaseUrl { get; set; } = "";
 
     /// <summary>Transcription request timeout.</summary>
     public int AsrTimeoutMs { get; set; } = 8000;
 
     /// <summary>Capture device product-name (prefix match); empty uses the default mic.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.listening.inputDevice", Choices = "inputDevices", Normalize = FieldNormalization.Trim)]
     public string InputDevice { get; set; } = "";
 
     /// <summary>Voice-activity engine for LAN ASR segmentation: "silero" (default — Silero
     /// VAD over ONNX Runtime, robust to cockpit/engine noise and TTS bleed) or "rms" (the
     /// legacy energy gate). Silero degrades to RMS automatically if the model or the native
     /// runtime cannot load — recognition is never lost to the VAD.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.listening.server.vad", Choices = "vadEngine", DependsOn = "AsrBaseUrl", Normalize = FieldNormalization.Trim)]
     public string VadEngine { get; set; } = "silero";
 
     /// <summary>Speech probability that opens an utterance (Silero path only). Hysteresis is
     /// built in: trailing silence is only counted below this minus 0.15 (Silero's default
     /// negative threshold), so a soft word tail can't end a sentence early.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.listening.server.vadThreshold", Step = "0.05", Min = "0.1", Max = "0.95", DependsOn = "AsrBaseUrl; VadEngine=silero", Advanced = true)]
     public double VadThreshold { get; set; } = 0.5;
 
     /// <summary>Trailing silence that closes an utterance, Silero path only — the RMS gate
     /// keeps its proven 700 ms regardless. Shorter than the legacy value because Silero
     /// doesn't mistake quiet speech for silence, so commands land sooner.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.listening.server.endSilence", Suffix = "ms", Min = "200", Step = "50", DependsOn = "AsrBaseUrl; VadEngine=silero", Advanced = true)]
     public int VadEndSilenceMs { get; set; } = 500;
 
     /// <summary>Segments shorter than this are dropped as blips (door slams, breaths),
@@ -294,10 +334,12 @@ public sealed class SpeechOptions : IOptionSection
     /// speakers can never become a question it then answers (2026-10-10: a VBAN loop put
     /// the FO on the speakers and it chatted with itself for minutes). A transcript that
     /// matches what the FO just said is dropped as well, whatever the timing.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.listening.server.muteMic")]
     public bool MuteMicWhileSpeaking { get; set; } = true;
 
     /// <summary>How long after the FO's last word the microphone stays ignored — room
     /// reverb plus the audio device's own delay.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.listening.server.micTail", Suffix = "ms", Min = "0", Max = "3000", Step = "50", DependsOn = "MuteMicWhileSpeaking", Advanced = true)]
     public int MicTailAfterSpeakingMs { get; set; } = 700;
 
     /// <summary>How long after the FO spoke a line a transcript can still be taken for that
@@ -307,6 +349,7 @@ public sealed class SpeechOptions : IOptionSection
     /// only rebuilt when the arbiter published a new snapshot. A pilot reply that repeats the
     /// FO's pending "did you mean …?" candidate or the open checklist item's accepted phrase
     /// is never an echo, whatever the window.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.listening.server.ownWords", Suffix = "s", Min = "0", Max = "120", Step = "1", DependsOn = "MuteMicWhileSpeaking", Advanced = true)]
     public int SelfEchoWindowSeconds { get; set; } = 15;
 
     /// <summary>FO push-to-talk binding (key OR joystick button, Prosim2FO process). When
@@ -323,6 +366,7 @@ public sealed class SpeechOptions : IOptionSection
     /// like the key/joystick binding — OR-ed with it. The same switch usually keys
     /// SayIntentions (<c>sayIntentions.pttSource</c>); with both set, no joystick polling is
     /// needed on the sim PC.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.listening.atcMuteSource", Choices = "pttSwitch")]
     public string AtcMuteSource { get; set; } = "none";
 
     /// <summary>LEGACY push-to-talk key (pre-binding configs): a virtual-key name ("F12",
@@ -353,6 +397,7 @@ public sealed class SpeechOptions : IOptionSection
 
     /// <summary>"pushToTalk" (default) or "continuous" — continuous listens whenever a window
     /// is open, no PTT needed.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.listening.mode", Choices = "recognitionMode", Normalize = FieldNormalization.Trim)]
     public string RecognitionMode { get; set; } = "pushToTalk";
 
     // ---- Interphone transmit gating (issue #72) ----
@@ -362,17 +407,21 @@ public sealed class SpeechOptions : IOptionSection
     /// needs CAB, and moving the selector off the channel mid-dialogue hangs up — the
     /// realism the receive-side latches alone cannot give. Degrades to always-accept when
     /// the selector dataref is absent or stale (older ProSim, degraded mode).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.listening.interphone.acpGating")]
     public bool AcpTransmitGating { get; set; } = true;
 
     /// <summary>Additionally require the momentary ACP INT key (S_ASP_INT_SEND) pushed at
     /// the moment a GROUND hail is spoken; the selector latch then keeps the dialogue open.
     /// Off by default — most home panels drive only the selector.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.listening.interphone.intRequired", DependsOn = "AcpTransmitGating")]
     public bool AcpIntKeyRequired { get; set; }
 
     /// <summary>Minimum engine confidence for offline recognizers.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.listening.offlineConfidence", Step = "0.05", Min = "0", Max = "1", Advanced = true)]
     public double RecognitionConfidenceThreshold { get; set; } = 0.6;
 
     /// <summary>Phonetic snapping: 0.5·Levenshtein + 0.5·DoubleMetaphone must clear this.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.listening.matchScore", Step = "0.05", Min = "0.3", Max = "1", Advanced = true)]
     public double SnappingThreshold { get; set; } = 0.7;
 
     /// <summary>Interpreter acoustic gates (command windows only): reject when no_speech_prob
@@ -393,6 +442,7 @@ public sealed class SpeechOptions : IOptionSection
 
     /// <summary>Snapped command scores in [threshold, this) trigger a "did you mean …?"
     /// confirmation instead of firing.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.listening.confirmBelow", Step = "0.05", Min = "0.3", Max = "1", Advanced = true)]
     public double ConfirmBelowScore { get; set; } = 0.85;
 
     /// <summary>Below this radio altitude (feet, airborne) the FO never asks "did you mean …?"
@@ -401,6 +451,7 @@ public sealed class SpeechOptions : IOptionSection
     /// are sterile whatever the height. In those sterile moments a gray-band match on an
     /// acknowledge-only announcement phrase (the FMA reads, capture calls) at 0.70 or better
     /// is accepted without the question; anything else is absorbed silently.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.listening.noConfirmBelow", Suffix = "ft", Min = "0", Max = "5000", Step = "100", Advanced = true)]
     public int ClarifierMinAglFt { get; set; } = 1000;
 
     /// <summary>Play the short listening cue tone when a window opens for a reply.</summary>
@@ -410,16 +461,19 @@ public sealed class SpeechOptions : IOptionSection
     /// <c>voice.unmatched</c> session event plus the "Heard but not understood" list on the
     /// Voice page, grouped so a phrase the pilot keeps saying stands out as a command to add.
     /// The ASR decision trail in the log is unaffected by this switch.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.listening.trackUnmatched")]
     public bool TrackUnmatched { get; set; } = true;
 
     /// <summary>FO responses to spoken engine-start and flap calls ("starting engine two",
     /// "flaps two" → placard speed check). Verbal only — the FO never moves the flap lever
     /// or engine masters (issue #67; actuation is deferred pending write-safety review).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.general.engineFlap")]
     public bool EngineFlapCallouts { get; set; } = true;
 
     /// <summary>PM-side engine-start monitoring (issue #131): "Engine two, starting." on the
     /// N2 rise, "Engine two, avail." at idle, "Both engines stabilized." once both are at
     /// idle. Fired from datarefs — no pilot speech needed; ground only; once per start.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.general.engineStart")]
     public bool EngineStartCallouts { get; set; } = true;
 
     /// <summary>Spoken checklists read through lines that are already set (owner request
@@ -428,23 +482,28 @@ public sealed class SpeechOptions : IOptionSection
     /// without waiting for the pilot. Lines that need a read-back (numbers, flap config), lines
     /// with no live dataref value, and every non-verify line still run as challenge/response.
     /// Off by default — the strict read-and-respond flow is the published behaviour.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.general.readThrough")]
     public bool ChecklistReadThroughSatisfied { get; set; }
 
     // ---- Playback ----
 
     /// <summary>Output device friendly name (exact match); empty uses the system default
     /// render device.</summary>
+    [OptionField(FieldKind.Select, "speechSettings.general.playback.outputDevice", Choices = "outputDevices", Normalize = FieldNormalization.Trim)]
     public string OutputDevice { get; set; } = "";
 
     /// <summary>Playback volume 0–100, applied client-side in the playback chain so it works
     /// for every provider (the predecessor only honoured it for WinRT/SAPI5).</summary>
+    [OptionField(FieldKind.Number, "speechSettings.general.playback.volume", Suffix = "%", Min = "0", Max = "100")]
     public int Volume { get; set; } = 100;
 
     /// <summary>Apply the intercom band-pass colouring so the FO sounds like a headset, not a
     /// narrator.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.general.playback.intercomFilter")]
     public bool IntercomFilter { get; set; } = true;
 
     /// <summary>TTS disk-cache root; empty resolves to
     /// %LOCALAPPDATA%\ProsimCompanion\cache\tts.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.providers.cache.folder", TextKind = TextFieldKind.FolderPath, Placeholder = @"%LOCALAPPDATA%\ProsimCompanion\cache\tts", BrowseStartIn = "AppStateFolder", Advanced = true, Normalize = FieldNormalization.Trim)]
     public string CacheFolder { get; set; } = "";
 }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -39,6 +40,21 @@ public sealed class AircraftStateVoiceService : IVoiceFeature
         _arbiter = arbiter;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the re-check
+    /// trigger (issue #92), gated by the GSX pillar being present rather than by a setting.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 240,
+        Gate = VoiceFeatureGate.ByRuntime(VoiceReferenceTextIds.OffGsxPillar),
+        Description = new DescribedVoiceReference("aircraftState", "voiceReference.group.aircraftState.title", VoiceReferenceTab.Ground, VoiceSpeaker.FirstOfficer,
+        [
+            new(["check the aircraft state", "recheck the aircraft state", "check aircraft state", "recheck aircraft state", "check the state of the aircraft"],
+                "voiceReference.group.aircraftState.recheck"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     /// <summary>Disabled without the GSX pillar's check service — degrade, not fail.</summary>
     public bool Enabled => _control is not null;

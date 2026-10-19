@@ -124,7 +124,7 @@ public interface IFlightPhaseControl
 /// (degrade, not fail). <see cref="PhaseChanged"/> fires on the timer thread — consumers
 /// marshal themselves.
 /// </summary>
-public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl, IDisposable
+public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl, IGroundFactsSource, IDisposable
 {
     /// <summary>Sampling cadence.</summary>
     public static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(250);
@@ -167,6 +167,11 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
 
     private bool _frozen;
     private DateTimeOffset? _lastHeartbeat;
+
+    // Committed ground facts (CONTEXT.md "Ground fact"): beacon, engines off, park brake,
+    // external power and the parked spell, committed from the same classified sample as the
+    // phase and published once — the ground-ops consumers read these instead of raw datarefs.
+    private readonly GroundFactsTracker _groundFacts = new();
 
     // Turnaround gate (2026-08-29 ESSA): the ground-ops layer's "arrival complete" latch,
     // stamped onto the sample so the Shutdown → Preflight rule can see it. Cleared whenever
@@ -302,6 +307,12 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
 
     /// <inheritdoc />
     public event Action? SessionReset;
+
+    /// <inheritdoc />
+    public GroundFacts Facts => _groundFacts.Facts;
+
+    /// <inheritdoc />
+    public event Action<GroundFactChange>? GroundFactChanged;
 
     /// <inheritdoc />
     public bool IsFrozen => _frozen;
@@ -442,6 +453,11 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         // replay of this session can reproduce the Departure edge without the GSX events.
         LastSnapshot = classified;
 
+        // The ground facts are committed from the classified sample (committed ground contact
+        // included) on every live tick, frozen or not — a forced phase is an assertion about
+        // the phase, the beacon is still where the crew put it.
+        PublishGroundFacts(classified, nowUtc, options);
+
         Heartbeat(classified, nowUtc, options);
 
         if (_frozen)
@@ -575,6 +591,10 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         {
             Commit(FlightPhase.Unknown, SessionEndedRuleId, "MSFS flight session ended", snapshot);
         }
+
+        // The parked spell belonged to the flight that ended; the discrete facts hold, as a
+        // raw subscription would (no edge for a beacon that merely stayed on).
+        _groundFacts.EndParkedSpell();
 
         if (_resetNotified)
         {
@@ -764,6 +784,28 @@ public sealed class FlightStateEngine : IFlightPhaseSource, IFlightPhaseControl,
         _logger.LogInformation(
             "Boarding latch re-raised — GSX Boarding is still underway (phase {Phase}); Preflight → Departure is armed again",
             CurrentPhase);
+    }
+
+    /// <summary>Commits the ground facts for this tick and publishes each edge. Subscribers
+    /// run on the timer thread inside the engine's lock, as <see cref="PhaseChanged"/>
+    /// subscribers do; a throwing subscriber is logged and the remaining edges still go out.</summary>
+    private void PublishGroundFacts(FlightDataSnapshot classified, DateTimeOffset nowUtc, FlightStateOptions options)
+    {
+        foreach (var change in _groundFacts.Observe(classified, nowUtc, options))
+        {
+            _logger.LogDebug(
+                "Ground fact committed: {Edge} (beacon={BeaconOn} enginesOff={EnginesOff} parkBrake={ParkBrakeSet} extPower={ExternalPowerOn} parked={Parked})",
+                change.Edge, change.Facts.BeaconOn, change.Facts.EnginesOff, change.Facts.ParkBrakeSet,
+                change.Facts.ExternalPowerOn, change.Facts.Parked);
+            try
+            {
+                GroundFactChanged?.Invoke(change);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "A GroundFactChanged subscriber threw on {Edge}", change.Edge);
+            }
+        }
     }
 
     /// <summary>The raw on-ground flag must agree for <see cref="FlightStateOptions.GroundContactAgreeSamples"/>

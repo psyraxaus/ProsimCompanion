@@ -71,6 +71,13 @@ public sealed record FlightSample
     [JsonPropertyName("fob"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? FuelOnBoardKg { get; init; }
 
+    /// <summary>External power feeding the buses — the committed
+    /// <see cref="GroundFacts.ExternalPowerOn"/> fact's raw input. Omitted while false so
+    /// recordings made before 2026-10-19 parse unchanged; a replay of one reads it as off,
+    /// which only means that recording never exercises the external-power edges.</summary>
+    [JsonPropertyName("ext"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ExternalPowerOn { get; init; }
+
     /// <summary>Builds the record from the engine's view. Values are rounded to what the rule
     /// table can distinguish so unchanged flight states compare equal and are not re-written.</summary>
     public static FlightSample From(FlightStateView view)
@@ -111,6 +118,7 @@ public sealed record FlightSample
             LatitudeDeg = s.Position is { } latitude ? Math.Round(latitude.LatitudeDeg, 4) : null,
             LongitudeDeg = s.Position is { } longitude ? Math.Round(longitude.LongitudeDeg, 4) : null,
             FuelOnBoardKg = s.FuelOnBoardKg is { } fuel && double.IsFinite(fuel) ? Math.Round(fuel) : null,
+            ExternalPowerOn = s.ExternalPowerOn,
         };
     }
 
@@ -151,5 +159,6 @@ public sealed record FlightSample
             ? GeoPoint.FromRaw(latitude, longitude)
             : null,
         FuelOnBoardKg = FuelOnBoardKg,
+        ExternalPowerOn = ExternalPowerOn,
     };
 }

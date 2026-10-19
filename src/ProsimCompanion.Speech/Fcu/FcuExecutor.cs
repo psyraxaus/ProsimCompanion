@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 using ProsimCompanion.Speech.Roles;
@@ -64,6 +65,34 @@ public sealed class FcuExecutor : IVoiceFeature, IDisposable
             }
         };
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): after the radios,
+    /// before commands.json — the gated FCU path keeps precedence on overlapping phrases
+    /// ("arm approach").</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 60,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("fcu", "voiceReference.group.fcu.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["set heading", "turn left heading", "turn right heading", "fly heading"],
+                "voiceReference.group.fcu.heading", "Setting heading one two zero.", [VoiceBadges.Pf, VoiceBadges.Value], "‹one two zero›"),
+            new(["climb flight level", "descend flight level", "maintain flight level"],
+                "voiceReference.group.fcu.flightLevel", "Setting flight level three five zero.", [VoiceBadges.Pf, VoiceBadges.Value], "‹three five zero›"),
+            new(["reduce speed", "increase speed", "maintain speed"],
+                "voiceReference.group.fcu.speed", "Setting speed two one zero knots.", [VoiceBadges.Pf, VoiceBadges.Value], "‹two one zero›"),
+            new(["vertical speed"], "voiceReference.group.fcu.verticalSpeed", null, [VoiceBadges.Pf, VoiceBadges.Value], "‹one thousand five hundred›"),
+            new(["managed speed", "selected speed"], "voiceReference.group.fcu.speedMode", null, [VoiceBadges.Pf]),
+            new(["open descent", "managed descent", "expedite"], "voiceReference.group.fcu.altitudeMode", null, [VoiceBadges.Pf]),
+            new(["engage autopilot", "engage autopilot one", "engage autopilot two", "engage autothrust"],
+                "voiceReference.group.fcu.engage", null, [VoiceBadges.Pf]),
+            new(["arm approach", "arm localizer"], "voiceReference.group.fcu.arm", null, [VoiceBadges.Pf]),
+            new(["resume own navigation"], "voiceReference.group.fcu.ownNav", null, [VoiceBadges.Pf]),
+            new(["negative", "disregard", "cancel", "belay that"], "voiceReference.group.fcu.negative", "Disregard."),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

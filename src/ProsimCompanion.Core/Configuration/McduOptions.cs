@@ -13,13 +13,16 @@ public sealed class McduOptions : IOptionSection
     public static string SectionName => "mcdu";
 
     /// <summary>Master switch for all MCDU voice features (read-back included).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.common.enabled", Hint = "speechSettings.mcdu.enabledHint")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>Arms MCDU key actuation. Off by default: the FO can read the box but never
     /// presses a key until this is deliberately enabled.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.mcdu.actuation", DependsOn = "Enabled")]
     public bool AllowActuation { get; set; }
 
     /// <summary>Cancel-window pause between announcing an MCDU action and touching the box —
     /// "negative"/"disregard"/"my aircraft" during the pause aborts.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.mcdu.verifyPause", Suffix = "s", Min = "0", DependsOn = "Enabled; AllowActuation")]
     public double VerifyPauseSeconds { get; set; } = 3.0;
 }

@@ -6,6 +6,7 @@ using ProsimCompanion.Core.Aircraft.Gateway;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.Tests.Flight;
 using ProsimCompanion.Core.Tests.Speech;
 using ProsimCompanion.Gsx.Sync;
 using Xunit;
@@ -14,12 +15,15 @@ namespace ProsimCompanion.Core.Tests.Gsx;
 
 /// <summary>Gradual-removal GPU latch (2026-09-25 cold-and-dark report): the GPU is pulled
 /// only on a falling edge of external power, once per removal, and the latch starts fresh
-/// on shutdown and on re-placement.</summary>
+/// on shutdown and on re-placement. Since C4 the external power, the park brake and the
+/// beacon edge come from the committed ground facts, so the tests drive those through the
+/// <see cref="FakeGroundFactsSource"/> and only the ground-service datarefs through ProSim.</summary>
 public sealed class GsxGroundEquipmentServiceTests
 {
     private readonly FakeDataRefs _dataRefs = new();
     private readonly Mock<IProsimGateway> _gateway = new();
     private readonly Mock<IFlightPhaseSource> _flight = new();
+    private readonly FakeGroundFactsSource _groundFacts = new();
     private readonly GsxDiagnosticsStore _diagnostics = new();
     private readonly List<(string Name, object Value)> _writes = [];
     private readonly GsxOptions _options = new()
@@ -55,6 +59,7 @@ public sealed class GsxGroundEquipmentServiceTests
             simVars.Object,
             writer,
             _flight.Object,
+            _groundFacts,
             options.Object,
             _diagnostics,
             NullLogger<GsxGroundEquipmentService>.Instance);
@@ -62,7 +67,14 @@ public sealed class GsxGroundEquipmentServiceTests
 
     private void SetGpu(bool connected) => _dataRefs.Values[ProsimDataRefNames.GroundPower.Name] = connected;
 
-    private void SetExternalPower(bool on) => _dataRefs.Values[ProsimDataRefNames.ElecExternalConnect.Name] = on;
+    /// <summary>External power as the engine committed it (the raw dataref is no longer read here).</summary>
+    private void SetExternalPower(bool on) => _groundFacts.Facts = _groundFacts.Facts with { ExternalPowerOn = on };
+
+    private void SetParkBrake(bool set) => _groundFacts.Facts = _groundFacts.Facts with { ParkBrakeSet = set };
+
+    private void SetChocks(bool placed) => _dataRefs.Values[ProsimDataRefNames.Chocks.Name] = placed;
+
+    private int WritesOf(string name, bool value) => _writes.Count(w => w.Name == name && w.Value is bool b && b == value);
 
     private int GpuOffWrites()
         => _writes.Count(w => w.Name == ProsimDataRefNames.GroundPower.Name && w.Value is false);
@@ -150,5 +162,139 @@ public sealed class GsxGroundEquipmentServiceTests
         }
 
         Assert.Equal(0, GpuOffWrites());
+    }
+
+    // ---- the committed beacon edge (C4): removal fires on the engine's edge, not a raw push ----
+
+    /// <summary>The removal is fire-and-forget off the edge; against the fake gateway it
+    /// completes inline, but the wait keeps the assertion honest on a slow runner.</summary>
+    private void WaitForWrites(int atLeast)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (_writes.Count < atLeast && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(10);
+        }
+    }
+
+    [Fact]
+    public void BeaconOnEdge_BeforeTaxiOut_RemovesEverythingOnce()
+    {
+        using var service = CreateService();
+        SetGpu(true);
+        SetChocks(true);
+        SetParkBrake(true);
+
+        _groundFacts.BeaconOn();
+        WaitForWrites(3);
+
+        Assert.Equal(1, WritesOf(ProsimDataRefNames.GroundPreconditionedAir.Name, false));
+        Assert.Equal(1, WritesOf(ProsimDataRefNames.GroundPower.Name, false));
+        Assert.Equal(1, WritesOf(ProsimDataRefNames.Chocks.Name, false));
+        Assert.Contains(_diagnostics.Snapshot().RecentDecisions, d => d.Reason.StartsWith("beacon on — removing", StringComparison.Ordinal));
+
+        // The crew toggles the beacon: the second edge of the session removes nothing again.
+        _groundFacts.BeaconOff();
+        _groundFacts.BeaconOn();
+        Assert.Equal(3, _writes.Count);
+    }
+
+    [Fact]
+    public void BeaconOnEdge_ParkBrakeNotSet_KeepsTheChocks_AndRetriesOnTheNextEdge()
+    {
+        using var service = CreateService();
+        SetGpu(true);
+        SetChocks(true);
+        SetParkBrake(false);
+
+        _groundFacts.BeaconOn();
+        WaitForWrites(2);
+
+        Assert.Equal(1, WritesOf(ProsimDataRefNames.GroundPower.Name, false));
+        Assert.Equal(0, WritesOf(ProsimDataRefNames.Chocks.Name, false));
+        Assert.Contains(_diagnostics.Snapshot().RecentDecisions, d => d.Reason == "chocks kept — park brake is not set");
+
+        // Brake set, beacon cycled: the interlock lifts and the removal completes.
+        SetParkBrake(true);
+        _groundFacts.BeaconOff();
+        _groundFacts.BeaconOn();
+        WaitForWrites(5);
+        Assert.Equal(1, WritesOf(ProsimDataRefNames.Chocks.Name, false));
+    }
+
+    [Fact]
+    public void BeaconOnEdge_WithTheBeaconSequenceOn_LeavesRemovalToTheSequencer()
+    {
+        _options.BeaconPushbackSequenceEnabled = true;
+        using var service = CreateService();
+        SetGpu(true);
+        SetChocks(true);
+        SetParkBrake(true);
+
+        _groundFacts.BeaconOn();
+
+        Assert.Empty(_writes);
+    }
+
+    [Fact]
+    public void BeaconOnEdge_AfterTaxiOut_DoesNothing()
+    {
+        using var service = CreateService();
+        _flight.SetupGet(f => f.CurrentPhase).Returns(FlightPhase.TaxiOut);
+        SetGpu(true);
+        SetParkBrake(true);
+
+        _groundFacts.BeaconOn();
+
+        Assert.Empty(_writes);
+    }
+
+    [Fact]
+    public void OtherEdges_NeverRemove()
+    {
+        using var service = CreateService();
+        SetGpu(true);
+        SetChocks(true);
+        SetParkBrake(true);
+
+        _groundFacts.BeaconOff();
+        _groundFacts.Raise(GroundFactEdge.ParkBrakeSet, _groundFacts.Facts);
+        _groundFacts.Raise(GroundFactEdge.ExternalPowerOff, _groundFacts.Facts);
+        _groundFacts.Raise(GroundFactEdge.Parked, _groundFacts.Facts);
+
+        Assert.Empty(_writes);
+    }
+
+    [Fact]
+    public async Task GradualRemoval_ChocksFollowTheCommittedParkBrake()
+    {
+        using var service = CreateService();
+        SetChocks(true);
+        SetGpu(false);
+
+        SetParkBrake(false);
+        await service.TickGradualRemovalAsync();
+        Assert.Equal(0, WritesOf(ProsimDataRefNames.Chocks.Name, false));
+
+        SetParkBrake(true);
+        await service.TickGradualRemovalAsync();
+        Assert.Equal(1, WritesOf(ProsimDataRefNames.Chocks.Name, false));
+    }
+
+    [Fact]
+    public async Task DisconnectGpu_IsInterlockedOnTheCommittedExternalPower()
+    {
+        using var service = CreateService();
+        SetGpu(true);
+
+        SetExternalPower(true);
+        var (interlocked, _) = await service.DisconnectGpuAsync();
+        Assert.Equal(GroundPowerResult.Interlocked, interlocked);
+        Assert.Equal(0, GpuOffWrites());
+
+        SetExternalPower(false);
+        var (written, _) = await service.DisconnectGpuAsync();
+        Assert.Equal(GroundPowerResult.Written, written);
+        Assert.Equal(1, GpuOffWrites());
     }
 }

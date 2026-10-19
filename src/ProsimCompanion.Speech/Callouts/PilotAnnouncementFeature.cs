@@ -1,5 +1,6 @@
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -63,6 +64,28 @@ public sealed class PilotAnnouncementFeature : IVoiceFeature
         _flight = flight;
         _eventLog = eventLog;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): PF announcement
+    /// acknowledgements (issue #127) — verbal only, phase-gated, never writes; last of the PM
+    /// calls, before the MCDU trio.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 110,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("announcements", "voiceReference.group.announcements.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["man flex srs runway nav blue", "man toga srs runway nav blue", "man flex", "man toga"],
+                "voiceReference.group.announcements.fma", "Checked.", [VoiceBadges.Phase]),
+            new(["localizer star", "loc star", "glideslope star", "glide slope star", "lockstar", "locstar", "glidestar",
+                 "localizer capture", "loc capture", "glideslope capture", "glide slope capture"],
+                "voiceReference.group.announcements.capture", "Checked.", [VoiceBadges.Phase]),
+            new(["alt star", "altstar", "altitude star", "alt capture"], "voiceReference.group.announcements.altCapture", "Checked.", [VoiceBadges.Phase]),
+            new(["manual flight", "manual control"], "voiceReference.group.announcements.manualFlight", "Manual flight."),
+            new(["continue"], "voiceReference.group.announcements.continue", "Continue.", [VoiceBadges.Phase]),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

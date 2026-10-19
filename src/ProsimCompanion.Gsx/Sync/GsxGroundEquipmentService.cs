@@ -40,13 +40,20 @@ public interface IGroundPowerEquipment
 
 /// <summary>
 /// Ground equipment automation: places GPU + chocks (+ PCA per the tri-state) once per ground
-/// session when preparation begins, and removes them on the beacon-on edge before pushback.
-/// Predecessor extras (#10): GPU is skipped at placement when the APU already runs and
-/// gsx.connectGpuWithApuRunning is off; PCA is a Never/Always/OnlyJetway tri-state (jetway
+/// session when preparation begins, and removes them on the committed beacon-on edge before
+/// pushback. Predecessor extras (#10): GPU is skipped at placement when the APU already runs
+/// and gsx.connectGpuWithApuRunning is off; PCA is a Never/Always/OnlyJetway tri-state (jetway
 /// stands detected from L:FSDT_GSX_JETWAY ≠ 2) with an override that disconnects a
 /// not-allowed PCA; gradual removal clears the GPU on external-power-off and the chocks on
 /// park-brake-set during the pushback phase. Safety interlocks from the predecessors: chocks
 /// are never removed with the park brake off, and everything is decision-logged.
+/// <para>
+/// The aircraft facts — beacon, park brake, external power, APU — come from the flight-state
+/// engine's committed ground facts (<see cref="IGroundFactsSource"/>) and its sample, never
+/// from subscriptions of this module's own (C4, 2026-10-19): one definition of "beacon on",
+/// one clock, no private edge latch. What stays raw here is the ground-service state this
+/// module itself writes (GPU / PCA / chocks datarefs, the GSX jetway LVAR).
+/// </para>
 /// </summary>
 public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipment
 {
@@ -56,26 +63,24 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
 
     private readonly GsxProsimWriter _writer;
     private readonly IFlightPhaseSource _flightState;
+    private readonly IGroundFactsSource _groundFacts;
     private readonly IOptionsMonitor<GsxOptions> _options;
     private readonly GsxDiagnosticsStore _diagnostics;
     private readonly ILogger<GsxGroundEquipmentService> _logger;
-    private readonly IDataRefSubscription<int> _beacon;
-    private readonly IDataRefSubscription<int> _parkBrake;
-    private readonly IDataRefSubscription<bool> _apuRunning;
-    private readonly IDataRefSubscription<bool> _externalPowerConnected;
     private readonly IDataRefSubscription<bool> _pcaConnected;
     private readonly IDataRefSubscription<bool> _gpuConnected;
     private readonly IDataRefSubscription<bool> _chocksPlaced;
     private readonly IDataRefSubscription<double> _jetwayState;
     private bool _placedThisSession;
     private bool _removedThisSession;
-    private bool _beaconWasOn;
 
     // Gradual-removal GPU latch (2026-09-25 cold-and-dark report): the GPU rule is a
     // falling edge on external power — it must have been SEEN feeding the buses before
     // "external power off" means the crew let go of it. At cold and dark the dataref is
     // false the instant the GPU is placed (nobody pressed EXT PWR yet), and the plain
     // "GPU on && ext power off" test pulled the unit within a second of placement.
+    // The latch stays beside the placement that resets it (a GPU write is this module's
+    // act); its input is the committed external-power fact.
     private bool _externalPowerSeen;
     private bool _gpuRemovalWritten;
 
@@ -84,6 +89,7 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
         ISimVars simVars,
         GsxProsimWriter writer,
         IFlightPhaseSource flightState,
+        IGroundFactsSource groundFacts,
         IOptionsMonitor<GsxOptions> options,
         GsxDiagnosticsStore diagnostics,
         ILogger<GsxGroundEquipmentService> logger)
@@ -92,27 +98,25 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
         ArgumentNullException.ThrowIfNull(simVars);
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(flightState);
+        ArgumentNullException.ThrowIfNull(groundFacts);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(logger);
 
         _writer = writer;
         _flightState = flightState;
+        _groundFacts = groundFacts;
         _options = options;
         _diagnostics = diagnostics;
         _logger = logger;
 
-        _beacon = prosim.Subscribe(ProsimDataRefNames.OhExtLtBeacon);
-        _parkBrake = prosim.Subscribe(ProsimDataRefNames.MipParkingBrake);
-        _apuRunning = prosim.Subscribe(ProsimDataRefNames.ApuRunning);
-        _externalPowerConnected = prosim.Subscribe(ProsimDataRefNames.ElecExternalConnect);
         _pcaConnected = prosim.Subscribe(ProsimDataRefNames.GroundPreconditionedAir);
         _gpuConnected = prosim.Subscribe(ProsimDataRefNames.GroundPower);
         _chocksPlaced = prosim.Subscribe(ProsimDataRefNames.Chocks);
         _jetwayState = simVars.Subscribe(GsxLvarNames.Jetway);
 
         _flightState.PhaseChanged += OnPhaseChanged;
-        _beacon.ValueChanged += OnBeaconChanged;
+        _groundFacts.GroundFactChanged += OnGroundFactChanged;
         _gpuConnected.ValueChanged += OnGpuConnectedChanged;
     }
 
@@ -126,12 +130,8 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
     public void Dispose()
     {
         _flightState.PhaseChanged -= OnPhaseChanged;
-        _beacon.ValueChanged -= OnBeaconChanged;
+        _groundFacts.GroundFactChanged -= OnGroundFactChanged;
         _gpuConnected.ValueChanged -= OnGpuConnectedChanged;
-        _beacon.Dispose();
-        _parkBrake.Dispose();
-        _apuRunning.Dispose();
-        _externalPowerConnected.Dispose();
         _pcaConnected.Dispose();
         _gpuConnected.Dispose();
         _chocksPlaced.Dispose();
@@ -188,13 +188,12 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
         }
     }
 
-    private void OnBeaconChanged(object? sender, EventArgs e)
+    /// <summary>The committed beacon-on edge (the engine's, not a raw push): crew signals
+    /// readiness, the ground equipment clears. The engine publishes the edge once, so there
+    /// is no rising-edge latch to keep here.</summary>
+    private void OnGroundFactChanged(GroundFactChange change)
     {
-        var beaconOn = _beacon.Value != 0;
-        var risingEdge = beaconOn && !_beaconWasOn;
-        _beaconWasOn = beaconOn;
-
-        if (!risingEdge || !Enabled || _removedThisSession)
+        if (change.Edge != GroundFactEdge.BeaconOn || !Enabled || _removedThisSession)
         {
             return;
         }
@@ -242,19 +241,20 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
             return;
         }
 
-        if (_externalPowerConnected.Value)
+        var facts = _groundFacts.Facts;
+        if (facts.ExternalPowerOn)
         {
             _externalPowerSeen = true;
         }
 
-        if (_externalPowerSeen && _gpuConnected.Value && !_externalPowerConnected.Value && !_gpuRemovalWritten)
+        if (_externalPowerSeen && _gpuConnected.Value && !facts.ExternalPowerOn && !_gpuRemovalWritten)
         {
             _gpuRemovalWritten = true;
             RecordDecision("ground equipment", "gradual removal — GPU off (external power disconnected)");
             await _writer.WriteAsync(ProsimDataRefNames.GroundPower.Name, false).ConfigureAwait(false);
         }
 
-        if (_chocksPlaced.Value && _parkBrake.Value != 0 && !_gpuConnected.Value)
+        if (_chocksPlaced.Value && facts.ParkBrakeSet && !_gpuConnected.Value)
         {
             RecordDecision("ground equipment", "gradual removal — chocks out (park brake set, GPU gone)");
             await _writer.WriteAsync(ProsimDataRefNames.Chocks.Name, false).ConfigureAwait(false);
@@ -284,7 +284,8 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
         var options = _options.CurrentValue;
 
         // GPU-with-APU rule: the crew already runs the APU — skip the GPU when configured.
-        var skipGpuForApu = !options.ConnectGpuWithApuRunning && _apuRunning.Value;
+        // The APU state is the engine's sample (the snapshot already carries it).
+        var skipGpuForApu = !options.ConnectGpuWithApuRunning && _flightState.Snapshot().Data?.ApuRunning == true;
         var withPca = PcaAllowedHere;
 
         RecordDecision(
@@ -329,8 +330,9 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
         await _writer.WriteAsync(ProsimDataRefNames.GroundPreconditionedAir.Name, false).ConfigureAwait(false);
         await _writer.WriteAsync(ProsimDataRefNames.GroundPower.Name, false).ConfigureAwait(false);
 
-        // Interlock: never pull the chocks with the park brake off.
-        if (_parkBrake.Value != 0)
+        // Interlock: never pull the chocks with the park brake off (the committed fact; a
+        // not-yet-committed brake reads "not set", the safe side).
+        if (_groundFacts.Facts.ParkBrakeSet)
         {
             await _writer.WriteAsync(ProsimDataRefNames.Chocks.Name, false).ConfigureAwait(false);
         }
@@ -371,7 +373,7 @@ public sealed class GsxGroundEquipmentService : IDisposable, IGroundPowerEquipme
             return (GroundPowerResult.AlreadyThere, "Ground power is not connected — nothing to remove.");
         }
 
-        if (_externalPowerConnected.Value)
+        if (_groundFacts.Facts.ExternalPowerOn)
         {
             RecordDecision("ground equipment", "crew request — GPU kept, external power is still feeding the aircraft");
             return (GroundPowerResult.Interlocked,

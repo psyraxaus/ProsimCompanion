@@ -4,6 +4,7 @@ using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Sessions;
 using ProsimCompanion.Core.TechLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -65,6 +66,23 @@ public sealed class TechLogDialogueService : IVoiceFeature, ISessionFinalization
         _logger = logger;
         _core = new TechLogDialogueCore(techLog, this, eventLog);
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the guided
+    /// raise/rectify dialogues, exact phrases, in the post-flight tail of the order.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 280,
+        Gate = VoiceFeatureGate.ByOption("techLog.enabled", VoiceReferenceTextIds.OffSpeechFo),
+        Description = new DescribedVoiceReference("techLogDialogue", "voiceReference.group.techLogDialogue.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["log a defect", "raise a defect", "enter a defect", "log a snag"],
+                "voiceReference.group.techLogDialogue.raise", "Go ahead with the defect.", [VoiceBadges.Dialogue]),
+            new(["maintenance complete", "maintenance performed", "defect rectified", "clear the tech log", "rectify the defect"],
+                "voiceReference.group.techLogDialogue.rectify", null, [VoiceBadges.Dialogue]),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _options.CurrentValue.Enabled;
 

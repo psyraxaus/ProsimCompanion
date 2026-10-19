@@ -11,10 +11,12 @@ public sealed class AccentOptions : IOptionSection
 {
     public static string SectionName => "accents";
 
+    [OptionField(FieldKind.Bool, "speechSettings.voices.accents.enabled", Label = "speechSettings.common.enabled")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>Chirp 3 HD persona used for localized ground voices — the voice id becomes
     /// "{locale}-Chirp3-HD-{persona}" (e.g. "fr-FR-Chirp3-HD-Charon").</summary>
+    [OptionField(FieldKind.Text, "speechSettings.voices.accents.persona", DependsOn = "Enabled", Normalize = FieldNormalization.Trim)]
     public string GooglePersona { get; set; } = "Charon";
 
     /// <summary>ICAO-prefix → locale overrides, checked before the built-in map (longest

@@ -9,6 +9,7 @@ public sealed class ProsimOptions : IOptionSection
     public static string SectionName => "prosim";
 
     /// <summary>Hostname or IP of the machine running ProSim System.</summary>
+    [OptionField(FieldKind.Text, "setup.prosim.host", TextKind = TextFieldKind.Host, Normalize = FieldNormalization.Trim)]
     public string Host { get; set; } = "localhost";
 
     /// <summary>
@@ -16,12 +17,15 @@ public sealed class ProsimOptions : IOptionSection
     /// purpose: the installer prompts for it and writes it here; it can also be set on the web
     /// Settings page. While empty the ProSim subsystem stays disabled with guidance in the log.
     /// </summary>
+    [OptionField(FieldKind.Text, "setup.prosim.sdk", TextKind = TextFieldKind.FolderPath, BrowseStartIn = "ProSimSdk", Normalize = FieldNormalization.Trim)]
     public string SdkPath { get; set; } = "";
 
     /// <summary>Optional SDK API key (newer ProSim builds); null/empty when not used.</summary>
+    [OptionField(FieldKind.Text, "setup.prosim.api", Password = true, EmptyAsNull = true)]
     public string? ApiKey { get; set; }
 
     /// <summary>Delay between reconnect attempts when the connection is lost.</summary>
+    [OptionField(FieldKind.Number, "setup.prosim.reconnect", Suffix = "ms", Min = "500", Advanced = true)]
     public int ReconnectIntervalMs { get; set; } = 2000;
 
     /// <summary>Hold time for a momentary switch press (write 1 → hold → write 0).</summary>
@@ -51,6 +55,7 @@ public sealed class ProsimOptions : IOptionSection
     /// refuelling rate). The check only reads; a write happens only on the card's "Apply
     /// recommended" click.
     /// </summary>
+    [OptionField(FieldKind.Bool, "setup.setupCheck.enabled")]
     public bool SetupCheckEnabled { get; set; } = true;
 
     /// <summary>

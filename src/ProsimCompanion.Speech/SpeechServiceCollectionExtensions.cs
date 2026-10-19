@@ -1,5 +1,6 @@
 using ProsimCompanion.Core.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ProsimCompanion.Core.State;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Callouts;
@@ -45,10 +46,10 @@ public static class SpeechServiceCollectionExtensions
         services.AddStartupModule<FlowMonitor>();
         // In-flight FO monitoring (issue #148), each behind its own sop.monitoring switch.
         services.AddStartupModule<Monitoring.FuelCheckMonitor>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Monitoring.FuelCheckMonitor>());
+        services.AddVoiceFeature<Monitoring.FuelCheckMonitor>();
         services.AddSingleton<Core.Flight.IFuelCheckRequests>(p => p.GetRequiredService<Monitoring.FuelCheckMonitor>());
         services.AddStartupModule<Monitoring.GrossErrorCheckMonitor>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Monitoring.GrossErrorCheckMonitor>());
+        services.AddVoiceFeature<Monitoring.GrossErrorCheckMonitor>();
         services.AddStartupModule<Monitoring.DestinationWeatherWatch>();
         // PM engine-start monitoring (issue #131): starting / avail / both stabilized, from
         // datarefs — advisory only, ground only.
@@ -76,50 +77,28 @@ public static class SpeechServiceCollectionExtensions
         // dialogue only through this Core seam.
         services.AddSingleton<Core.State.IAbnormalDialogueControl>(
             p => p.GetRequiredService<Abnormals.FailureMonitor>());
-        // Voice features — registration order is dispatch precedence (roles first so a
-        // handover is never mis-parsed as an instruction).
-        services.AddSingleton<Roles.RoleManager>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Roles.RoleManager>());
-        // Standalone read-backs (issue #148) parse figures too and go BEFORE the radio/FCU
-        // parsers: "altimeter one zero one three" is a read-back, not an FCU instruction.
-        services.AddSingleton<Monitoring.StandaloneReadbacks>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Monitoring.StandaloneReadbacks>());
-        services.AddSingleton<Radios.RadioExecutor>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Radios.RadioExecutor>());
-        services.AddSingleton<Fcu.FcuExecutor>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Fcu.FcuExecutor>());
-        // File-driven commands.json AFTER the FCU executor: the gated FCU path keeps
-        // precedence on overlapping phrases ("arm approach").
+        // Voice features. Each declares its own dispatch precedence, gate and drawer rows
+        // (VoiceFeatureDeclaration); the roster below sorts them, so nothing here is ordered.
+        services.AddVoiceFeature<Roles.RoleManager>();
+        services.AddVoiceFeature<Monitoring.StandaloneReadbacks>();
+        services.AddVoiceFeature<Radios.RadioExecutor>();
+        services.AddVoiceFeature<Fcu.FcuExecutor>();
         services.AddSingleton<Commands.SpokenTokenSource>();
-        services.AddSingleton<Commands.ConfiguredVoiceCommands>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Commands.ConfiguredVoiceCommands>());
-        // Engine-start + flap call responses (issue #67, verbal only — no lever writes).
-        // AFTER commands.json so a user-configured phrase keeps precedence.
-        services.AddSingleton<IVoiceFeature, Callouts.EngineFlapCallFeature>();
-        // "Gear up/down" PM action (issue #43) — the one call whose point IS the lever;
-        // write-gated on airborne evidence, adjacent to its verbal-only sibling above.
-        services.AddSingleton<IVoiceFeature, Callouts.GearCallFeature>();
-        // "Takeoff" chrono PM action (issue #126): "Takeoff." + F/O chrono press on the roll,
-        // stop press at touchdown. Startup module so the touchdown edge is wired even before
-        // the first utterance.
+        services.AddVoiceFeature<Commands.ConfiguredVoiceCommands>();
+        services.AddVoiceFeature<Callouts.EngineFlapCallFeature>();
+        services.AddVoiceFeature<Callouts.GearCallFeature>();
+        // "Takeoff" chrono (issue #126): a startup module so the touchdown edge is wired even
+        // before the first utterance.
         services.AddStartupModule<Callouts.ChronoCallFeature>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Callouts.ChronoCallFeature>());
+        services.AddVoiceFeature<Callouts.ChronoCallFeature>();
         // The chrono's running latch rides in the flight-state snapshot (issue #167).
         services.AddSingleton<Core.Flight.IFlightStatePart>(p => p.GetRequiredService<Callouts.ChronoCallFeature>());
-        // PF announcement acknowledgements (issue #127): FMA reads ("man flex, SRS…",
-        // "localizer star"), "manual flight", and the "continue" decision at minimums —
-        // verbal only, phase-gated, never writes.
-        services.AddSingleton<IVoiceFeature, Callouts.PilotAnnouncementFeature>();
-        // MCDU trio (predecessor dispatch position: after fcu, before briefings). Reader is
-        // read-only; tuner/arrival changer arm only via mcdu.allowActuation.
-        services.AddSingleton<Mcdu.McduReader>();
+        services.AddVoiceFeature<Callouts.PilotAnnouncementFeature>();
+        services.AddVoiceFeature<Mcdu.McduReader>();
         services.AddSingleton<Mcdu.IMcduReader>(p => p.GetRequiredService<Mcdu.McduReader>());
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Mcdu.McduReader>());
         services.AddSingleton<Mcdu.IMcduActuator, Mcdu.McduActuator>();
-        services.AddSingleton<Mcdu.McduRadNavTuner>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Mcdu.McduRadNavTuner>());
-        services.AddSingleton<Mcdu.McduArrivalChanger>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Mcdu.McduArrivalChanger>());
+        services.AddVoiceFeature<Mcdu.McduRadNavTuner>();
+        services.AddVoiceFeature<Mcdu.McduArrivalChanger>();
         services.AddSingleton<Briefings.DfdNavDataProvider>();
         // ICAO → spoken airport name (issue #70): curated short names + the DFD's
         // airport_name column. Optional everywhere it is consumed, so a missing DFD just
@@ -136,26 +115,21 @@ public static class SpeechServiceCollectionExtensions
         services.AddSingleton<Core.Airports.IDepartureRunwaySource, Briefings.FmsDepartureRunway>();
         services.AddSingleton<Briefings.MinimaCaptureDialogue>();
         services.AddStartupModule<Briefings.MissedApproachRebrief>();
-        services.AddSingleton<Briefings.BriefingService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Briefings.BriefingService>());
-        // The missed-approach voice phrases dispatch through their own small feature so the
-        // re-brief gate logic stays out of BriefingService.
-        services.AddSingleton<IVoiceFeature, Briefings.MissedApproachVoiceFeature>();
-        // Minima recall query — after BriefingService so full-briefing phrases keep precedence.
-        services.AddSingleton<IVoiceFeature, Briefings.MinimaQueryVoiceFeature>();
+        services.AddVoiceFeature<Briefings.BriefingService>();
+        services.AddVoiceFeature<Briefings.MissedApproachVoiceFeature>();
+        services.AddVoiceFeature<Briefings.MinimaQueryVoiceFeature>();
         services.AddStartupModule<Company.CompanyChannelService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Company.CompanyChannelService>());
+        services.AddVoiceFeature<Company.CompanyChannelService>();
         services.AddSingleton<Company.ICompanyChannel>(p => p.GetRequiredService<Company.CompanyChannelService>());
         // Company day mode: voice start/end, leg tracking (finalizer Order 40), turnaround +
         // end-of-day summaries. Off by default (day.enabled).
-        services.AddSingleton<Day.CompanyDayService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Day.CompanyDayService>());
+        services.AddVoiceFeature<Day.CompanyDayService>();
         services.AddSingleton<Core.Sessions.ISessionFinalizationStep>(
             p => p.GetRequiredService<Day.CompanyDayService>());
         services.AddSingleton<Core.Day.IDayControl>(p => p.GetRequiredService<Day.CompanyDayService>());
         services.AddHostedService<Day.DayBootstrapService>();
         services.AddStartupModule<SayIntentions.SayIntentionsService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<SayIntentions.SayIntentionsService>());
+        services.AddVoiceFeature<SayIntentions.SayIntentionsService>();
         // Wrong-frequency report: COM1 against the frequency SayIntentions ATC last assigned.
         services.AddStartupModule<SayIntentions.SayIntentionsFrequencyMonitor>();
         // PTT relay (2026-10-10): a ProSim push-to-talk switch keys the SI control LVAR.
@@ -184,13 +158,11 @@ public static class SpeechServiceCollectionExtensions
         services.AddHostedService<Cabin.CabinDingService>();
         // GSX voice control ("commence ground services", "request boarding", …) — dispatches
         // through the named-command registry so voice/web/API/StreamDeck share one seam.
-        services.AddSingleton<Gsx.GsxVoiceService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Gsx.GsxVoiceService>());
+        services.AddVoiceFeature<Gsx.GsxVoiceService>();
         // Pushback direction for THIS flight by voice ("push back facing north", "tail left")
         // and the FO's "tail left or tail right?" question when the automation is unsure
         // (2026-10-04). Writes the Core per-flight store the GSX pillar answers GSX's menu from.
-        services.AddSingleton<Gsx.PushbackDirectionVoiceFeature>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Gsx.PushbackDirectionVoiceFeature>());
+        services.AddVoiceFeature<Gsx.PushbackDirectionVoiceFeature>();
         // The captain's questions (architecture review C2): ONE dialogue voices whatever
         // question is open on any Core captain's-question store, driven by one phrase table per
         // question — the pushback "which way?" (2026-10-04), the arrival-gate "36 Alpha or 36
@@ -205,8 +177,7 @@ public static class SpeechServiceCollectionExtensions
         // (issue #166, opt-in gsx.deice.packsProcedure). Edges from the Core activity seam.
         services.AddStartupModule<Gsx.DeicePacksProcedure>();
         // Interphone hail dialogues ("cockpit to ground" → "go ahead, captain" → request) and
-        // ground-crew upcalls on INT (ADR-0006 / issue #51). The hail feature registers AFTER
-        // GsxVoiceService so single-shot phrases keep their precedence.
+        // ground-crew upcalls on INT (ADR-0006 / issue #51).
         // The ACP transmit monitor (issue #72) feeds the hail gate — captain S_ASP_SEND_CHANNEL
         // + S_ASP_INT_SEND, subscribed once here, never S_ASP_INTRAD (that rocker is the GSX
         // smart button).
@@ -214,8 +185,7 @@ public static class SpeechServiceCollectionExtensions
         // snapshot + the one latch-or-grace wait for INT/CAB receive.
         services.AddSingleton<Crew.AcpChannel>();
         services.AddSingleton<Crew.IAcpChannel>(p => p.GetRequiredService<Crew.AcpChannel>());
-        services.AddSingleton<Crew.CrewHailService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Crew.CrewHailService>());
+        services.AddVoiceFeature<Crew.CrewHailService>();
         services.AddStartupModule<Crew.GroundCrewUpcallService>();
         // Cold-and-dark mismatch advisory (issue #63): speaks the aircraft state check's
         // verdict, consumed from the Core diagnostics store — no GSX project reference.
@@ -228,40 +198,36 @@ public static class SpeechServiceCollectionExtensions
         // "Check the aircraft state" re-check trigger (issue #92). The control seam lives in
         // Core and is implemented by the GSX pillar; resolved as optional so the feature
         // degrades to disabled (no grammar) when that pillar is absent.
-        services.AddSingleton<IVoiceFeature>(p => new Crew.AircraftStateVoiceService(
+        services.AddSingleton(p => new Crew.AircraftStateVoiceService(
             p.GetService<Core.State.IAircraftStateCheckControl>(),
             p.GetRequiredService<ISpeechArbiter>(),
             p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Crew.AircraftStateVoiceService>>()));
+        services.AddVoiceFeature<Crew.AircraftStateVoiceService>();
         // "Disregard" / "cancel that" while idle (issue #168): silences the advisory being
         // spoken (the advisories register their line with SpokenAdvisories) and acknowledges.
         services.AddSingleton<Crew.SpokenAdvisories>();
-        services.AddSingleton<IVoiceFeature, Crew.DisregardVoiceFeature>();
+        services.AddVoiceFeature<Crew.DisregardVoiceFeature>();
         // Accent localization (issue #53): airport-country → per-provider ground-crew voice,
         // consumed by the arbiter at render time. Registered BEFORE the arbiter resolves.
         services.AddSingleton<Crew.AccentVoiceResolver>();
-        // Post-flight voice: tech-log brief + spoken debrief (deterministic template). Exact-
-        // match phrases, so last in the dispatch order is fine. The debrief doubles as the
-        // first session-finalization step (Order 10).
-        services.AddSingleton<TechLog.TechLogVoiceService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<TechLog.TechLogVoiceService>());
-        // Logbook spoken queries — exact/prefix matcher, no phrase overlap with the tech log.
-        services.AddSingleton<IVoiceFeature, Logbook.LogbookVoiceService>();
+        // Post-flight voice: tech-log brief + spoken debrief (deterministic template). The
+        // debrief doubles as the first session-finalization step (Order 10).
+        services.AddVoiceFeature<TechLog.TechLogVoiceService>();
+        services.AddVoiceFeature<Logbook.LogbookVoiceService>();
         // Guided raise/rectify dialogues + the post-abnormal shutdown offer (finalizer Order 40).
-        services.AddSingleton<TechLog.TechLogDialogueService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<TechLog.TechLogDialogueService>());
+        services.AddVoiceFeature<TechLog.TechLogDialogueService>();
         services.AddSingleton<Core.Sessions.ISessionFinalizationStep>(
             p => p.GetRequiredService<TechLog.TechLogDialogueService>());
-        services.AddSingleton<Debrief.DebriefService>();
-        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<Debrief.DebriefService>());
+        services.AddVoiceFeature<Debrief.DebriefService>();
         services.AddSingleton<Core.Sessions.ISessionFinalizationStep>(
             p => p.GetRequiredService<Debrief.DebriefService>());
         services.AddHostedService<PostFlightVoiceBootstrapService>();
-        // "Quiet please" latch + its Low-band suppression rule (consumed by the arbiter);
-        // the small-talk feature itself dispatches last — exact phrases only.
+        // "Quiet please" latch + its Low-band suppression rule (consumed by the arbiter).
         services.AddSingleton<Persona.QuietState>();
-        services.AddSingleton<IVoiceFeature, Persona.SmallTalkService>();
-        // The "what can I say?" drawer (issue #136) composes itself from the IVoiceFeature set
-        // above at open time — register it after the last feature so every phrase is in.
+        services.AddVoiceFeature<Persona.SmallTalkService>();
+        // The roster: every IVoiceFeature above in its DECLARED dispatch order — the router and
+        // the "what can I say?" drawer (issue #136) consume this, never the registration order.
+        services.AddSingleton<VoiceFeatureRoster>();
         services.AddSingleton<Abnormals.IDrillSource>(p => p.GetRequiredService<Abnormals.FailureMonitor>());
         services.AddSingleton<VoiceReference.IChecklistDefinitionSource, VoiceReference.ChecklistDefinitionSource>();
         services.AddSingleton<Core.VoiceReference.IVoiceReference, VoiceReference.VoiceReferenceBuilder>();
@@ -307,6 +273,18 @@ public static class SpeechServiceCollectionExtensions
         // the FO depends on, sent by WakeOnLanStartup; the legacy briefing.llmWakeOnLan
         // block is still honoured there.
 
+        return services;
+    }
+
+    /// <summary>Registers one voice feature: the concrete singleton (unless a startup-module or
+    /// factory registration already provides it) and its <see cref="IVoiceFeature"/> forwarder.
+    /// The order of these calls means nothing — dispatch precedence is the feature's own
+    /// <see cref="VoiceFeatureDeclaration"/>, applied by <see cref="VoiceFeatureRoster"/>.</summary>
+    private static IServiceCollection AddVoiceFeature<TFeature>(this IServiceCollection services)
+        where TFeature : class, IVoiceFeature
+    {
+        services.TryAddSingleton<TFeature>();
+        services.AddSingleton<IVoiceFeature>(p => p.GetRequiredService<TFeature>());
         return services;
     }
 }

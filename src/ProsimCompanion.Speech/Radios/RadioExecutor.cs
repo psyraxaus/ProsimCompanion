@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.EventLog;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -100,6 +101,24 @@ public sealed class RadioExecutor : IVoiceFeature, IDisposable
         _eventLog = eventLog;
         _logger = logger;
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the first of
+    /// the two instruction parsers, after the read-backs.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 50,
+        Gate = VoiceFeatureGate.AlwaysOn,
+        Description = new DescribedVoiceReference("radios", "voiceReference.group.radios.title", VoiceReferenceTab.FirstOfficer, VoiceSpeaker.FirstOfficer,
+        [
+            new(["set box one standby", "set box two standby", "set standby", "tune box one", "tune box two", "tune standby"],
+                "voiceReference.group.radios.tune",
+                "Setting box one standby one one eight decimal one.", [VoiceBadges.Value], "‹one one eight decimal one›"),
+            new(["standby box one", "standby box two"], "voiceReference.group.radios.standby", null, [VoiceBadges.Value], "‹one one eight decimal one›"),
+            new(["swap", "swap box one", "swap box two", "flip", "flip box one", "flip box two"], "voiceReference.group.radios.swap"),
+        ]),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => true;
 

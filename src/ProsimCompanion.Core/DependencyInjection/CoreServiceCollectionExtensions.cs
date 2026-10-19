@@ -268,6 +268,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<FlightStateEngine>();
         services.AddSingleton<IFlightPhaseSource>(p => p.GetRequiredService<FlightStateEngine>());
         services.AddSingleton<IFlightPhaseControl>(p => p.GetRequiredService<FlightStateEngine>());
+        // The committed ground facts (beacon, engines off, park brake, external power, parked)
+        // the ground-ops consumers read instead of raw datarefs — same engine, same clock.
+        services.AddSingleton<IGroundFactsSource>(p => p.GetRequiredService<FlightStateEngine>());
         // Per-second flight-sample recorder: makes every flight replayable through the phase
         // rule table (FlightReplay) — the regression harness for phase fixes.
         services.AddHostedService<FlightSampleRecorder>();

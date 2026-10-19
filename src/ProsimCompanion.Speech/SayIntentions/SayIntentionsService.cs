@@ -8,6 +8,7 @@ using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.EventLog;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.VoiceReference;
 using ProsimCompanion.Speech.Arbiter;
 using ProsimCompanion.Speech.Recognition;
 
@@ -141,6 +142,17 @@ public sealed class SayIntentionsService : IVoiceFeature, Core.Hosting.IStartupM
         _frequencyMonitor = frequencyMonitor;
         _radioGate = new RadioClearGate(simVars, logger);
     }
+
+    /// <summary>Roster declaration (see <see cref="VoiceFeatureDeclaration"/>): the ATC requests,
+    /// composed from atc-requests.json, after the company features and before ground control.</summary>
+    public static VoiceFeatureDeclaration Declared { get; } = new()
+    {
+        Precedence = 200,
+        Gate = VoiceFeatureGate.ByOption("sayIntentions.enabled", VoiceReferenceTextIds.OffSayIntentions),
+        Description = new ComposedVoiceReference(AtcVoiceReference.Compose),
+    };
+
+    VoiceFeatureDeclaration IVoiceFeature.Declaration => Declared;
 
     public bool Enabled => _options.CurrentValue.Enabled;
 

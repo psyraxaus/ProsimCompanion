@@ -6,6 +6,7 @@ using ProsimCompanion.Core.Aircraft;
 using ProsimCompanion.Core.Configuration;
 using ProsimCompanion.Core.Flight;
 using ProsimCompanion.Core.State;
+using ProsimCompanion.Core.Tests.Flight;
 using ProsimCompanion.Gsx;
 using ProsimCompanion.Gsx.Automation;
 using ProsimCompanion.Gsx.Menu;
@@ -30,6 +31,7 @@ public sealed class PushbackTickShellTests : IDisposable
     private readonly Mock<IPushbackGroundActions> _ground = new();
     private readonly Mock<IGsxTriggerSlot> _slot = new();
     private readonly Mock<IFlightPhaseSource> _flight = new();
+    private readonly FakeGroundFactsSource _groundFacts = new();
     private readonly LoadsheetStore _loadsheets = new();
     private readonly GsxDiagnosticsStore _diagnostics = new();
     private readonly PushbackTickLatches _latches = new();
@@ -43,9 +45,6 @@ public sealed class PushbackTickShellTests : IDisposable
         _api.SetupGet(a => a.Mirror).Returns(_mirror);
         _api.SetupGet(a => a.Readiness).Returns(GsxReadiness.Ready);
         _flight.Setup(f => f.Snapshot()).Returns(new FlightStateView(FlightPhase.Preflight, null, false));
-        var prosim = new Mock<IProsimDataRefs>();
-        prosim.Setup(p => p.SubscribeDynamic(It.IsAny<string>(), It.IsAny<DataRefTier>()))
-            .Returns((string name, DataRefTier _) => Ref(name).Object);
         var simVars = new Mock<ISimVars>();
         simVars.Setup(s => s.SubscribeDynamic(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DataRefTier>()))
             .Returns((string name, string _, DataRefTier _) => Ref(name).Object);
@@ -55,8 +54,8 @@ public sealed class PushbackTickShellTests : IDisposable
             .ReturnsAsync(new GsxTriggerDispatch(GsxTriggerDispatchStatus.Dispatched));
 
         _gatherer = new PushbackTickGatherer(
-            _api.Object, _lifecycle.Object, _automation.Object, _ground.Object, prosim.Object, simVars.Object,
-            options.Object, _loadsheets, _flight.Object);
+            _api.Object, _lifecycle.Object, _automation.Object, _ground.Object, simVars.Object,
+            options.Object, _loadsheets, _flight.Object, _groundFacts);
         _applier = new PushbackTickEffectApplier(_ground.Object, _slot.Object, _latches, _diagnostics, NullLogger<GsxPushbackSequenceService>.Instance);
     }
 
@@ -94,14 +93,15 @@ public sealed class PushbackTickShellTests : IDisposable
         _lifecycle.Setup(l => l.IsPending(GsxServiceIds.Departure)).Returns(true);
         _loadsheets.SetFinal(new LoadsheetSlotView(LoadsheetSlotStatus.Sent, 1, null, 0, 0, 0, 0, 0, 0, null));
         Services("""[ { "id": "Boarding", "state": "performing" }, { "id": "Departure", "state": "available", "canTrigger": true } ]""");
-        Set(ProsimDataRefNames.OhExtLtBeacon.Name, 1);
-        Set(ProsimDataRefNames.ApuRunning.Name, true);
+        // The beacon is the engine's committed fact, the APU the engine's sample (C4) — no
+        // ProSim subscription of the gatherer's own.
+        _groundFacts.Facts = GroundFacts.None with { BeaconOn = true };
         Set(GsxLvarNames.VehiclePushbackState.Name, 12.0);
         Set(GsxLvarNames.PushbackStatus.Name, 3.0);
         Set(GsxLvarNames.BypassPin.Name, 1.0);
         _flight.Setup(f => f.Snapshot()).Returns(new FlightStateView(
             FlightPhase.Preflight,
-            new FlightDataSnapshot { AnyEngineRunning = true, EngineStarting = false, ParkBrakeSet = true },
+            new FlightDataSnapshot { AnyEngineRunning = true, EngineStarting = false, ParkBrakeSet = true, ApuRunning = true },
             false));
         _options.CallPushbackWhenTugAttached = "afterFinalLoadsheet";
         _options.RemoveStairsAfterDeparture = "always";

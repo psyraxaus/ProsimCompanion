@@ -151,6 +151,24 @@ configured number of consecutive samples before it flips, so a one-sample flicke
 commits a runway transition.
 _Avoid_: on-ground flag (that is the raw dataref)
 
+**Ground fact**:
+A committed ground state the flight-state engine publishes once per live tick beside the
+phase, from the same classified sample — beacon on, engines off, park brake set, external
+power on, parked, stable parked — with the edge that changed it. One definition of "beacon
+on" (any non-zero switch value) and one clock for every ground-ops consumer; the facts hold
+across a session gap as a raw subscription held its last push. A switch position commits on
+one live sample (five recorded flights, about 40,000 samples, no one-sample flip); only
+ground contact keeps an agreement count, upstream.
+_Avoid_: raw beacon, beacon flag, local edge latch, own subscription
+
+**Parked spell**:
+The unbroken stretch during which the parked fact — committed ground contact, engines off,
+brake set, below the parked ground speed — has held; its start is `ParkedSince`, and *stable
+parked* is a spell at least the turnaround hold long. Movement, an engine start, a released
+brake or a session end ends it; the arrival chain's own stable count and the rule table's
+turnaround hold are two consumers of the same spell, each with its own settle.
+_Avoid_: stable seconds, park timer, stationary flag
+
 **Flight sample**:
 The compact per-second record of what the phase engine saw, written to the session log while
 the flight is live. The replay feeds these back through the engine; a recorded flight plus its
@@ -198,10 +216,25 @@ _Avoid_: fallback restart, re-ask (there is none on the streamed path)
 
 **Utterance router**:
 The module that decides what a recognized utterance means right now — feature, checklist
-answer, global command, confirmation, free-form question, or idle miss — by a fixed
+answer, global command, confirmation, free-form question, or idle miss — by the roster's
 precedence order over the enabled voice features. A question is the last thing tried before
 the idle miss, and only on the free-text engine; every known phrase outranks it.
 _Avoid_: recognition handler, command router
+
+**Feature declaration**:
+What a voice feature states about itself, once, beside its own code: its dispatch precedence
+(an explicit rank, lower first), the option that switches it on (the gate — the predicate
+stays `Enabled`, the gate is its name), and its Voice Reference rows as pack text ids. By
+convention a `public static Declared` on the class, so the roster test reads the whole order
+without constructing a service.
+_Avoid_: feature metadata, registration attribute
+
+**Voice-feature roster**:
+The one ordered list of voice features, sorted by declared precedence, that the router, the
+drawer and the DI consume — registration order means nothing. It also ranks a feature's claim
+on an utterance: an exact-phrase owner before everyone (#137), then declared precedence; a tie
+keeps registration order, which only test fakes rely on.
+_Avoid_: feature list, dispatch chain, registration order
 
 **FO question**:
 A free-form utterance (a configured lead-in, at least four words) that nothing else matched,
@@ -264,6 +297,34 @@ plumbing (watches, timers, buttons). A **status row** is the shared record of th
 label text id, shape (indicator / value / pill), value text, tone, hover title. A
 **display text** is a pack id plus arguments, or a literal the pack does not own.
 _Avoid_: view model, helper class, code-behind
+
+### Settings pages
+
+**Field description**:
+The one declaration of how an option property is edited — its control kind, text-id root,
+save-time normalisation, the parent switch it is disabled under, bounds, suffix, choice list,
+Browse… dialog — written once as `[OptionField]` on the property, beside its default. The
+completeness test fails for a property with neither a description nor a named reason.
+_Avoid_: field metadata, field config, attribute (as the noun for the concept)
+
+**Option field**:
+The one web renderer, `<OptionField Draft For />`, that resolves a property's field
+description and delegates to the existing field component for its kind. A page passes only
+what it alone knows: a runtime choice list, a live voice list, a text computed at render time,
+a disabled condition that reaches outside the property's own section.
+_Avoid_: generic field, smart field, auto field
+
+**Choice list**:
+The named rows of a dropdown: static lists in the web layer's choice catalog (translated per
+render), runtime lists (detected audio devices) handed in by the page under the name the
+description gives.
+_Avoid_: options (ambiguous with the option classes), select source
+
+**Page rule**:
+Logic that is genuinely the settings page's own and not one property's: a rule between two
+properties, a one-way migration, a list editor's pruning. Lives in a plain `…PageRules` class
+under the web project so it is tested without a renderer.
+_Avoid_: OnBeforeSave logic, page helper
 
 ### Notifications
 

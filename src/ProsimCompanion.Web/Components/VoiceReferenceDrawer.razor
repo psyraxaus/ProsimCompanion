@@ -3,7 +3,9 @@
    at open time — never a typed list — so it cannot drift from the grammar. Five crew tabs,
    phrase rows with an italic "or" between alternatives, badges on their own line, the
    listening state and PTT binding in the head, an "always available" inset, and a search
-   that spans every tab. Opened from the header mic button (MainLayout) or by ?voice=1. *@
+   that spans every tab. Opened from the header mic button (MainLayout) or by ?voice=1.
+   Titles, descriptions and off-reasons arrive as pack text ids (VoiceReferenceText, ADR-0014)
+   and resolve here in the circuit's language; the phrases and the FO's answers are English. *@
 @using ProsimCompanion.Core.VoiceReference
 @inherits StoreObserverComponent
 @inject IVoiceReference Reference
@@ -52,12 +54,12 @@
                     var entries = Filter(group.Entries);
                     <div class="vr-group @(group.Enabled ? null : "off")">
                         <div class="vr-group-title">
-                            <span class="section-title">@group.Title</span>
+                            <span class="section-title">@Text(group.Title)</span>
                             <span class="vr-count mono">@entries.Count</span>
                         </div>
                         @if (!group.Enabled)
                         {
-                            <div class="vr-off-reason">@(group.DisabledReason ?? T["voiceReference.switchedOff"].Value)</div>
+                            <div class="vr-off-reason">@(group.DisabledReason is { } reason ? Text(reason) : T["voiceReference.switchedOff"].Value)</div>
                         }
                         @foreach (var entry in entries)
                         {
@@ -152,6 +154,11 @@
 
     private bool Searching => _query.Trim().Length > 0;
 
+    /// <summary>A pack text named by the speech pillar (ADR-0014): the id resolves in this
+    /// circuit's language, the arguments fill its placeholders invariant.</summary>
+    private string Text(VoiceReferenceText text)
+        => text.Arguments.Count > 0 ? T[text.TextId, [.. text.Arguments]].Value : T[text.TextId].Value;
+
     private IEnumerable<VoiceReferenceGroup> VisibleGroups()
         => _snapshot.Groups
             .Where(g => Searching || g.Tab == _tab)
@@ -167,7 +174,7 @@
         var q = _query.Trim();
         return [.. entries.Where(e =>
             e.Phrases.Any(p => p.Contains(q, StringComparison.OrdinalIgnoreCase))
-            || e.What.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || (e.What is { } what && Text(what).Contains(q, StringComparison.OrdinalIgnoreCase))
             || (e.Answer?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false))];
     }
 
@@ -238,9 +245,9 @@
                     }
                 </div>
             }
-            @if (entry.What.Length > 0)
+            @if (entry.What is { } what)
             {
-                <div class="vr-what">@entry.What</div>
+                <div class="vr-what">@Text(what)</div>
             }
             @if (entry.Answer is { Length: > 0 } answer)
             {

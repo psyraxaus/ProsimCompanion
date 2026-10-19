@@ -14,16 +14,21 @@ public sealed class WeatherOptions : IOptionSection
     /// authoritative: a missing file disables the snapshot tier rather than falling back to
     /// auto-detection (so a deliberate path never silently reads a different install). Blank
     /// (default) probes the known HiFi install locations.</summary>
+    [OptionField(FieldKind.Text, "setup.weather.snapshot", TextKind = TextFieldKind.FilePath, BrowseStartIn = "ActiveSky", BrowseFilter = "Snapshot (current_wx_snapshot.txt)|current_wx_snapshot.txt|Text files (*.txt)|*.txt", Normalize = FieldNormalization.Path)]
     public string ActiveSkySnapshotPath { get; set; } = "";
 
     /// <summary>Also try ActiveSky's local HTTP API when the snapshot yields nothing.</summary>
+    [OptionField(FieldKind.Bool, "setup.weather.useApi")]
     public bool UseActiveSkyApi { get; set; } = true;
 
+    [OptionField(FieldKind.Text, "setup.weather.apiHost", TextKind = TextFieldKind.Host, DependsOn = "UseActiveSkyApi", Normalize = FieldNormalization.Trim, Advanced = true)]
     public string ActiveSkyApiHost { get; set; } = "localhost";
 
+    [OptionField(FieldKind.Number, "setup.weather.apiPort", Min = "1", Max = "65535", DependsOn = "UseActiveSkyApi", Advanced = true)]
     public int ActiveSkyApiPort { get; set; } = 19285;
 
     /// <summary>Short by design — the API is a localhost call and the composite chain should
     /// fall through quickly when ActiveSky isn't running.</summary>
+    [OptionField(FieldKind.Number, "setup.weather.apiTimeout", Suffix = "s", Min = "1", Max = "30", DependsOn = "UseActiveSkyApi", Advanced = true)]
     public int ActiveSkyApiTimeoutSeconds { get; set; } = 3;
 }

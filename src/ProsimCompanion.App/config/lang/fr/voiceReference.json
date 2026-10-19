@@ -33,6 +33,248 @@
       "sayAfter": "à tout moment",
       "edit": "Modifier les phrases · commands.json",
       "editTitle": "Tes propres phrases sont dans commands.json (dossier de configuration utilisateur)"
+    },
+    "off": {
+      "speechFo": "{0} est désactivé — Réglages → Copilote vocal",
+      "mcdu": "{0} est désactivé — Réglages → Copilote vocal → MCDU",
+      "monitoring": "{0} est désactivé — Réglages → Copilote vocal → Annonces et placards → Surveillance en vol",
+      "gsxSettings": "{0} est désactivé — Réglages → GSX",
+      "groundServices": "{0} est désactivé — Réglages → Services au sol",
+      "bare": "{0} est désactivé",
+      "gsxPillar": "Le module GSX ne tourne pas",
+      "sayIntentions": "SayIntentions est désactivé — Réglages → Copilote vocal → SayIntentions",
+      "groundCrew": "{0} est désactivé — Réglages → Copilote vocal → Équipe au sol",
+      "cabinCrew": "{0} est désactivé — Réglages → Copilote vocal → Équipage de cabine",
+      "notInBuild": "indisponible dans cette version",
+      "foQuestions": "{0} est désactivé — Réglages → Copilote vocal → Briefings et LLM → Demander au copilote",
+      "cruiseQuery": "{0} est désactivé — Réglages → Copilote vocal → Équipage de cabine → Question du chef de cabine en croisière"
+    },
+    "always": {
+      "skip": "Sauter l'item de checklist en cours.",
+      "sayAgain": "Répéter l'item en cours.",
+      "hold": "Suspendre la checklist.",
+      "resume": "Reprendre une checklist suspendue.",
+      "cancel": "Annuler la checklist en cours.",
+      "restart": "Recommencer la checklist active.",
+      "negative": "Annuler une action FCU, radio ou MCDU en attente."
+    },
+    "group": {
+      "roles": {
+        "title": "Transfert des commandes",
+        "handover": "Donne l'avion à l'OPL. En vol, l'OPL te demande d'abord de confirmer.",
+        "confirm": "Confirmer un transfert en vol.",
+        "takeBack": "Reprendre l'avion — immédiat, annule aussi toute action FCU ou MCDU en attente.",
+        "pmCall": "Ton annonce de pilot monitoring pendant que l'OPL pilote."
+      },
+      "fcu": {
+        "title": "FCU — quand l'OPL est pilote en fonction",
+        "heading": "Afficher le cap. L'OPL collationne, attend 3 s un « negative », puis affiche et vérifie.",
+        "flightLevel": "Afficher l'altitude en niveau de vol.",
+        "speed": "Afficher la vitesse (100–399 kt).",
+        "verticalSpeed": "Afficher la V/S. Dis « descend » ou « down » pour une descente.",
+        "speedMode": "Vitesse managed ou selected.",
+        "altitudeMode": "Tirer ou pousser le sélecteur d'altitude, ou EXPED.",
+        "engage": "AP1, AP2 ou A/THR.",
+        "arm": "APPR ou LOC.",
+        "ownNav": "Cap de retour en managed.",
+        "negative": "Annuler une action FCU ou radio en attente dans sa fenêtre de 3 s."
+      },
+      "radios": {
+        "title": "Radios",
+        "tune": "Afficher une fréquence standby (118.000–136.990) ; l'OPL collationne, puis affiche et vérifie.",
+        "standby": "Afficher le standby de ce boîtier.",
+        "swap": "Permuter active et standby."
+      },
+      "engineFlap": {
+        "title": "Annonces moteurs et volets",
+        "engineStart": "Acquittement du démarrage moteur.",
+        "flapsOne": "Vérification de la vitesse placard — rien n'est déplacé.",
+        "flapsCheck": "Vérification de la vitesse placard.",
+        "flapsUp": "Acquittement de la rentrée des volets."
+      },
+      "gear": {
+        "title": "Train",
+        "up": "L'OPL manœuvre le levier — refusé au sol ou au-dessus de la limite de rentrée.",
+        "down": "L'OPL manœuvre le levier — refusé au-dessus de la limite de sortie."
+      },
+      "chrono": {
+        "title": "Décollage",
+        "takeoff": "Lance le chrono de l'OPL au roulage de décollage (s'arrête au toucher)."
+      },
+      "announcements": {
+        "title": "Annonces de modes de vol",
+        "fma": "Lecture du FMA au décollage.",
+        "capture": "Annonce de capture du localizer / glide.",
+        "altCapture": "Annonce de capture d'altitude.",
+        "manualFlight": "Annonce de vol manuel.",
+        "continue": "Ta décision aux minima."
+      },
+      "mcduRead": {
+        "title": "MCDU — lecture",
+        "page": "L'OPL lit à voix haute la page MCDU en cours.",
+        "scratchpad": "Lit seulement le scratchpad."
+      },
+      "mcduRadNav": {
+        "title": "MCDU — ILS",
+        "tune": "L'OPL affiche l'ILS d'arrivée sur RAD NAV.",
+        "abort": "Abandonner l'affichage."
+      },
+      "mcduArrival": {
+        "title": "MCDU — piste d'arrivée",
+        "change": "L'OPL change la piste d'arrivée et l'ILS (LAT REV → ARRIVAL → insert)."
+      },
+      "briefings": {
+        "title": "Briefings",
+        "departure": "Briefing départ à partir du plan FMS, de la navdata et de la météo en direct.",
+        "arrival": "Briefing arrivée — l'OPL te demande d'abord de confirmer les minima.",
+        "approaches": "Les approches de la navdata pour la piste d'arrivée."
+      },
+      "missedApproach": {
+        "title": "Remise de gaz",
+        "rebrief": "Rebriefer la remise de gaz."
+      },
+      "minima": {
+        "title": "Minima",
+        "query": "Les minima que tu as confirmés au briefing arrivée."
+      },
+      "company": {
+        "title": "Compagnie",
+        "loadsheet": "Loadsheet parlé à partir des masses, pax et CG en direct (chime ACARS).",
+        "lastMessage": "Répète le dernier message compagnie."
+      },
+      "day": {
+        "title": "Journée de service",
+        "start": "Démarre la journée de service compagnie.",
+        "end": "La termine par un résumé et la clôture du carnet de vol."
+      },
+      "fuelCheck": {
+        "title": "Fuel check",
+        "check": "Carburant à bord face au plan SimBrief à ta position, et carburant estimé à l'atterrissage face au chiffre prévu. Aussi automatique en croisière."
+      },
+      "grossErrorCheck": {
+        "title": "Gross error check",
+        "check": "Les masses de l'avion face au loadsheet final et les entrées PERF du FMS face au dernier calcul de performance décollage. Aussi automatique dès que le loadsheet final et les V-speeds sont saisis."
+      },
+      "readbacks": {
+        "title": "Collationnements",
+        "altimeter": "Collationne le calage altimétrique ; l'OPL le vérifie avec ton baro. « Read back », « check » ou « confirm » peuvent précéder.",
+        "standard": "Calage standard affiché ; l'OPL vérifie que le baro indique 1013.",
+        "vSpeeds": "Collationne V1, rotate et V2 ; l'OPL les vérifie avec le FMS.",
+        "runway": "Collationne la piste ; l'OPL la vérifie avec le plan FMS.",
+        "minimums": "Collationne les minima ; l'OPL les vérifie avec les minima briefés."
+      },
+      "logbook": {
+        "title": "Carnet de vol",
+        "summary": "Les totaux de ton carnet de vol.",
+        "count": "Un chiffre.",
+        "daySummary": "La dernière journée de service.",
+        "landingStats": "Les atterrissages sur un aéroport."
+      },
+      "techLog": {
+        "title": "Tech log",
+        "openItems": "Lit les défauts ouverts."
+      },
+      "techLogDialogue": {
+        "title": "Tech log — signaler / rectifier",
+        "raise": "Guidé : le défaut, puis la catégorie MEL (bravo, charlie, delta), puis la confirmation.",
+        "rectify": "Guidé : « Rectify …? Affirm or negative. »"
+      },
+      "debrief": {
+        "title": "Débriefing",
+        "debrief": "Débriefing parlé après le vol."
+      },
+      "quiet": {
+        "title": "Silence",
+        "quiet": "Coupe les bavardages pour le reste de la session (les checklists et les annonces parlent toujours)."
+      },
+      "disregard": {
+        "title": "Disregard",
+        "disregard": "Coupe l'avis que l'OPL est en train de dire (état de l'avion, parking, appel perdu) et acquitte — si rien ne joue, juste l'acquittement."
+      },
+      "aircraftState": {
+        "title": "État de l'avion",
+        "recheck": "Relance la vérification cold-and-dark ; l'OPL lit le verdict."
+      },
+      "pushbackDirection": {
+        "title": "Sens du pushback",
+        "tailLeft": "Le push de ce vol : « Nose Right / Tail Left » de GSX. Appliqué quand GSX affiche le menu de direction.",
+        "tailRight": "Le push de ce vol : « Nose Left / Tail Right » de GSX.",
+        "straight": "Le push de ce vol : « Straight pushback ».",
+        "facing": "Relaie la direction donnée par l'ATC ; l'OPL choisit la route qui finit face à ce cap (l'un des huit points cardinaux).",
+        "which": "Ton choix pour ce vol, ou la suggestion de l'OPL vers la piste de départ."
+      },
+      "gsx": {
+        "title": "Services au sol",
+        "start": "Lancer la séquence de départ (ou appeler le service suivant une fois lancée).",
+        "command": {
+          "forceNextService": "Le bouton intelligent INT/RAD — appeler le service suivant maintenant.",
+          "requestBoarding": "Demander l'embarquement.",
+          "requestRefuel": "Commander le camion carburant.",
+          "confirmFuel": "Confirmer le block fuel, puis commander le camion (ou un complément).",
+          "requestCatering": "Demander le catering.",
+          "requestPushback": "Demander le pushback (si la séquence beacon le permet).",
+          "requestDeice": "Demander le dégivrage.",
+          "requestGpu": "Brancher l'alimentation sol — le GPU de GSX, ou l'unité ProSim quand le poste n'en a pas ; l'équipe au sol annonce le branchement.",
+          "disconnectGpu": "Retirer le groupe de parc (pas tant que EXT PWR alimente encore l'avion).",
+          "declineDeice": "Refuser la question de dégivrage du copilote — pas de dégivrage pour ce départ."
+        }
+      },
+      "gsxCabin": {
+        "title": "Embarquement",
+        "boarding": "Embarquement — l'OPL le demande, le chef de cabine confirme."
+      },
+      "hailGround": {
+        "title": "Appeler l'équipe au sol",
+        "how": "Appelle, puis dis dans la fenêtre n'importe quelle phrase de services au sol.",
+        "how.gated": "Sélectionne INT sur le panneau audio, appelle, puis dis dans la fenêtre n'importe quelle phrase de services au sol.",
+        "cancel": "Terminer l'appel sans demande."
+      },
+      "hailCabin": {
+        "title": "Appeler l'équipage de cabine",
+        "how": "Appelle, puis demande l'embarquement dans la fenêtre.",
+        "how.gated": "Sélectionne CAB sur le panneau audio, appelle, puis demande l'embarquement dans la fenêtre."
+      },
+      "commandsJson": {
+        "title": "Depuis commands.json"
+      },
+      "atc": {
+        "title": "Demandes ATC (SayIntentions)",
+        "to": "À {0}."
+      },
+      "checklists": {
+        "title": "Checklists",
+        "start": "Lance la checklist {0} (« request … » fonctionne aussi)."
+      },
+      "drills": {
+        "title": "Memory drills",
+        "rehearse": "Répéter les memory items {0}."
+      },
+      "foQuestions": {
+        "title": "Demander au copilote",
+        "fuel": "Le carburant à bord et les chiffres prévus.",
+        "tod": "Les minutes avant l'estimation 3:1 du top of descent.",
+        "weather": "Le METAR de destination tel que la carte principale l'affiche.",
+        "eta": "L'ETA à la vitesse sol.",
+        "compare": "Tout ce que la fiche de faits peut comparer.",
+        "leadIn": "Toute question commençant par l'une de ces amorces et longue d'au moins {0} mots. Répondue uniquement à partir des faits en direct ; l'OPL dit « {1} » quand les faits ne couvrent pas. Nécessite le serveur vocal du LAN.",
+        "smallTalk": {
+          "football": "Bavardage : culture générale, dans le rôle, sans chiffres du vol.",
+          "funFact": "Une anecdote, une ou deux phrases.",
+          "any": "Le bavardage est activé : aucune amorce nécessaire. Une question qui mentionne le vol prend toujours la voie stricte et vérifiée."
+        },
+        "whereAreWe": {
+          "wikipedia": "Le pays, les montagnes ou la mer en dessous et les villes les plus proches — tout de suite, depuis l'atlas intégré — puis un ou deux faits tirés de Wikipédia.",
+          "model": "Le pays, les montagnes ou la mer en dessous et les villes les plus proches — tout de suite, depuis l'atlas intégré — puis un ou deux faits donnés par le modèle.",
+          "side": "Même réponse ; le côté est relatif à notre route."
+        }
+      },
+      "cabinCruiseQuery": {
+        "title": "Question du chef de cabine en croisière",
+        "eta": "Une fois par vol, en croisière, le chef de cabine appelle — « {0} » — et écoute {1} s. Une heure ou une estimation d'arrivée dans ta réponse :",
+        "ride": "Un mot sur les conditions de vol :",
+        "other": "Tout autre chose (réponse libre avec le serveur vocal du LAN ; le moteur hors ligne entend une courte liste) :",
+        "silence": "La fenêtre se ferme en silence :"
+      }
     }
   }
 }
