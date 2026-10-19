@@ -12,26 +12,32 @@ public sealed class CabinOptions : IOptionSection
 {
     public static string SectionName => "cabin";
 
+    [OptionField(FieldKind.Bool, "speechSettings.common.enabled")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>"Cabin secure" report before takeoff (doors closed + beacon on).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.secure", DependsOn = "Enabled")]
     public bool CabinSecure { get; set; } = true;
 
     /// <summary>Minimum wait (s) between doors-closed + beacon-on and the "cabin secure"
     /// report (issue #134, Nico 2026-09-27): the crew needs time to arm doors, cross-check
     /// and walk the cabin. 0 restores the instant report.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.secureMinWait", Suffix = "s", Min = "0", DependsOn = "Enabled; CabinSecure")]
     public int CabinSecureMinDelaySeconds { get; set; } = 45;
 
     /// <summary>Random extra wait per passenger on board (s per pax, drawn once per flight
     /// from 0 to pax × this): a full cabin can still be securing at the holding point, an
     /// empty positioning flight is ready almost at once. Pax = GSX boarded count, else the
     /// OFP figure. 0 disables the pax factor.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.securePerPax", Suffix = "s/pax", Step = "0.1", Min = "0", DependsOn = "Enabled; CabinSecure")]
     public double CabinSecureSecondsPerPax { get; set; } = 1.0;
 
     /// <summary>"Cabin ready" report on approach (seatbelt signs ON, below the trigger altitude).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.ready", DependsOn = "Enabled")]
     public bool CabinReady { get; set; } = true;
 
     /// <summary>The FO gives a short verbatim acknowledgement after each report.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.foAck", DependsOn = "Enabled")]
     public bool FoAcknowledge { get; set; } = true;
 
     /// <summary>
@@ -41,9 +47,11 @@ public sealed class CabinOptions : IOptionSection
     /// chime. (The real CAB-CALL light I_ASP_CAB_CALL is read-only in the SDK, so the web UI
     /// banner is the flash substitute.)
     /// </summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.requireCab", DependsOn = "Enabled")]
     public bool RequireCabChannel { get; set; } = true;
 
     /// <summary>Grace (s) to wait for CAB selection before speaking anyway — a report is never lost.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.cabGrace", Suffix = "s", Min = "0", DependsOn = "Enabled; RequireCabChannel", Advanced = true)]
     public int CabChannelGraceSeconds { get; set; } = 25;
 
     /// <summary>
@@ -54,37 +62,47 @@ public sealed class CabinOptions : IOptionSection
     /// to the aircraft. Never answers while a guided dialogue holds the microphone, and never
     /// in any other phase.
     /// </summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.autoGround", DependsOn = "Enabled")]
     public bool AutoAnswerGround { get; set; }
 
     /// <summary>Wait (ms) between the chime and the FO's answer on the ground — the
     /// predecessor's 4000 ms: the FO is busy with the start/taxi.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.groundDelay", Suffix = "ms", Min = "0", Step = "100", DependsOn = "Enabled; AutoAnswerGround")]
     public int AutoAnswerGroundDelayMs { get; set; } = 4000;
 
     /// <summary>The FO answers a cabin call in descent/approach (the cabin-ready window) after
     /// <see cref="AutoAnswerAirDelayMs"/>. Off by default; same write as the ground answer.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.autoAir", DependsOn = "Enabled")]
     public bool AutoAnswerAir { get; set; }
 
     /// <summary>Wait (ms) between the chime and the FO's answer in the air — the
     /// predecessor's 2500 ms.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.airDelay", Suffix = "ms", Min = "0", Step = "100", DependsOn = "Enabled; AutoAnswerAir")]
     public int AutoAnswerAirDelayMs { get; set; } = 2500;
 
     /// <summary>Cabin ding when the application starts (Prosim2GSX's DingOnStartup).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.dingStartup")]
     public bool DingOnStartup { get; set; }
 
     /// <summary>Cabin ding when the final loadsheet is transmitted (Prosim2GSX's DingOnFinal).</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.dingFinal")]
     public bool DingOnFinal { get; set; } = true;
 
     /// <summary>Altitude (ft MSL) below which the "cabin ready" report triggers in Descent/Approach.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.readyBelow", Suffix = "ft MSL", Min = "1000", DependsOn = "Enabled; CabinReady")]
     public double CabinReadyBelowAltFt { get; set; } = 10000;
 
     /// <summary>Play the interphone ding-dong before cabin calls. (Collapses the predecessor's
     /// dead voices.cabinChime key — one toggle per channel.)</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.chime", DependsOn = "Enabled")]
     public bool Chime { get; set; } = true;
 
     /// <summary>Optional ambient cabin events (boarding-delay call). Off by default.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.ambient", DependsOn = "Enabled")]
     public bool AmbientEvents { get; set; }
 
     /// <summary>Probability (0–1) of a boarding-delay call at the gate, rolled once per flight.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.boardingDelayProb", Step = "0.05", Min = "0", Max = "1", DependsOn = "Enabled; AmbientEvents")]
     public double BoardingDelayProbability { get; set; } = 0.15;
 
     // ---- Purser cruise query (Prosim2FO "Prompt F", over the mic-ownership seam) ----
@@ -96,55 +114,70 @@ public sealed class CabinOptions : IOptionSection
     /// chop") earns the matching acknowledgement; anything else "copied, thank you"; silence
     /// "we'll check back later". Off by default like the other ambient cabin events. Never
     /// writes to the aircraft.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.cabin.cruiseQuery", DependsOn = "Enabled")]
     public bool CruiseQuery { get; set; }
 
     /// <summary>Minutes after the cruise begins before the purser calls, jittered ±30% once
     /// per flight so the call does not land on the same minute every leg.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.cruiseQueryAfter", Suffix = "min", Min = "0", Max = "180", DependsOn = "Enabled; CruiseQuery")]
     public int CruiseQueryDelayMinutes { get; set; } = 10;
 
     /// <summary>How long the purser listens for the captain's reply, seconds. The mic is
     /// borrowed for exactly this window; a running checklist holds and resumes.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.cabin.cruiseQueryWindow", Suffix = "s", Min = "3", Max = "60", DependsOn = "Enabled; CruiseQuery")]
     public int CruiseQueryWindowSeconds { get; set; } = 20;
 
     // ---- Report wording (predecessor defaults, spoken verbatim in the purser role) ----
 
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.secure")]
     public string CabinSecureText { get; set; } =
         "Flight deck, cabin crew. The cabin is secure and ready for departure.";
 
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.secureAck")]
     public string CabinSecureAckText { get; set; } = "Thank you, cabin secure.";
 
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.ready")]
     public string CabinReadyText { get; set; } =
         "Flight deck, cabin crew. The cabin is secure for landing.";
 
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.readyAck")]
     public string CabinReadyAckText { get; set; } = "Thank you, cabin crew.";
 
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.boardingDelay")]
     public string BoardingDelayText { get; set; } =
         "Flight deck, cabin crew. We have a short delay — a few passengers still to board.";
 
     /// <summary>The purser's answer to a "cockpit to crew" hail (ADR-0006 / issue #51).</summary>
+    [OptionField(FieldKind.Text, "speechSettings.common.hailReply", Hint = "speechSettings.cabin.wording.hailReplyHint")]
     public string HailReplyText { get; set; } = "Go ahead, captain.";
 
     /// <summary>The purser's answer to a hail while the cabin-secure timer is still running
     /// (issue #134) — the crew is busy, the report will follow.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.securingReply")]
     public string CabinSecuringReplyText { get; set; } =
         "Still securing the cabin, captain — we'll call you when we're ready.";
 
     /// <summary>The purser's cruise query (<see cref="CruiseQuery"/>).</summary>
+    [OptionField(FieldKind.Text, "speechSettings.common.cruiseQuery", Hint = "speechSettings.cabin.wording.cruiseQueryHint")]
     public string CruiseQueryText { get; set; } =
         "Flight deck, cabin. Any update on arrival time or turbulence for the service?";
 
     /// <summary>Acknowledgement when the reply named a time or an arrival estimate.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.eta")]
     public string CruiseQueryEtaAckText { get; set; } =
         "Copied, thank you. We'll plan the service around that.";
 
     /// <summary>Acknowledgement when the reply described the ride.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.ride")]
     public string CruiseQueryRideAckText { get; set; } =
         "Copied, thank you. We'll let the cabin know about the ride.";
 
     /// <summary>Acknowledgement for any other reply.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.generic")]
     public string CruiseQueryGenericAckText { get; set; } = "Copied, thank you.";
 
     /// <summary>Spoken when the window closed with no reply.</summary>
+    [OptionField(FieldKind.Text, "speechSettings.cabin.wording.noReply")]
     public string CruiseQueryNoReplyText { get; set; } =
         "No worries, we'll check back later.";
 }

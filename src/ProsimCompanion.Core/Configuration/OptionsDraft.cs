@@ -12,8 +12,21 @@ public abstract class OptionsDraft
     /// <summary>True when the draft differs from the values it was loaded from.</summary>
     public abstract bool IsDirty { get; }
 
+    /// <summary>Raised after a field component wrote into the draft (candidate C3): the page
+    /// re-renders the DirtyBar and the dependent fields, as <c>@bind</c> made it do
+    /// implicitly when the page's own markup held every field.</summary>
+    public event Action? Edited;
+
     /// <summary>Discards edits: re-clones the draft from the live options and re-baselines.</summary>
     public abstract void Reload();
+
+    /// <summary>Applies every described property's save-time normalisation
+    /// (<see cref="OptionFieldNormalizer"/>) — the trims and case folds the pages' own
+    /// <c>OnBeforeSave</c> overrides used to spell out one line per property.</summary>
+    public abstract void Normalize();
+
+    /// <summary>Tells the page a field wrote into the draft.</summary>
+    public void MarkEdited() => Edited?.Invoke();
 
     internal abstract string Section { get; }
 
@@ -31,7 +44,7 @@ public abstract class OptionsDraft
 /// changed — keys co-owned by services (e.g. <c>gsx.fuelFobSaved</c>) and hand edits made while
 /// the page was open are never clobbered, and there are no hand-written key strings anywhere.
 /// </summary>
-public sealed class OptionsDraft<TOptions> : OptionsDraft
+public sealed class OptionsDraft<TOptions> : OptionsDraft, IOptionsDraft<TOptions>
     where TOptions : class, IOptionSection, new()
 {
     private readonly Func<TOptions> _current;
@@ -56,6 +69,8 @@ public sealed class OptionsDraft<TOptions> : OptionsDraft
     public override bool IsDirty => !JsonNode.DeepEquals(SerializeDraft(), _baseline);
 
     public override void Reload() => Value = Clone(out _baseline);
+
+    public override void Normalize() => OptionFieldNormalizer.Apply(Value);
 
     internal override string Section => TOptions.SectionName;
 

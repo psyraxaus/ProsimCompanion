@@ -22,17 +22,22 @@ public sealed class WakeTargetsOptions : IOptionSection
 public sealed class WakeTarget
 {
     /// <summary>Your label for it ("LLM box", "Mac mini") — what the log and the page show.</summary>
+    [OptionField(FieldKind.Text, "setup.wake.name", Normalize = FieldNormalization.Trim)]
     public string Name { get; set; } = "";
 
     /// <summary>Send the packet at startup. Off keeps the row for "Send now" only.</summary>
+    [OptionField(FieldKind.Bool, "setup.wake.enabled")]
     public bool Enabled { get; set; } = true;
 
     /// <summary>Target NIC MAC address; ':' or '-' separators (or none).</summary>
+    [OptionField(FieldKind.Text, "setup.wake.mac", TextKind = TextFieldKind.Mac, Placeholder = "AA:BB:CC:DD:EE:FF", Normalize = FieldNormalization.Trim)]
     public string MacAddress { get; set; } = "";
 
     /// <summary>"255.255.255.255" or the subnet broadcast, e.g. "192.168.1.255".</summary>
+    [OptionField(FieldKind.Text, "setup.wake.broadcast", TextKind = TextFieldKind.IpAddress, Placeholder = "255.255.255.255", Normalize = FieldNormalization.Trim, Advanced = true)]
     public string BroadcastAddress { get; set; } = "255.255.255.255";
 
     /// <summary>UDP port for the magic packet (conventionally 9, the discard port).</summary>
+    [OptionField(FieldKind.Number, "setup.wake.port", Min = "1", Max = "65535", Advanced = true)]
     public int Port { get; set; } = 9;
 }

@@ -14,10 +14,12 @@ public sealed class GsxDeiceOptions
     /// ("Captain, conditions call for de-icing — request it?") the FO voices and the Status
     /// board shows; <c>"auto"</c> puts the DeIce step on the departure sequence for this cycle
     /// without asking. Unknown values read as off.</summary>
+    [OptionField(FieldKind.Select, "gsxSettings.deice.autoRequest", Choices = "deiceAutoRequest")]
     public string AutoRequest { get; set; } = AutoRequestOff;
 
     /// <summary>De-icing is considered at or below this outside air temperature (°C). The
     /// ProSim OAT dataref is used when ProSim reports one, else the METAR temperature.</summary>
+    [OptionField(FieldKind.Number, "gsxSettings.deice.oat", Suffix = "°C", Step = "0.5", Min = "-20", Max = "15", DependsOn = "AutoRequest=ask | AutoRequest=auto")]
     public double OatThresholdC { get; set; } = 3;
 
     /// <summary>With this on (default), a cold OAT alone is not enough: the departure METAR
@@ -25,6 +27,7 @@ public sealed class GsxDeiceOptions
     /// below the threshold), freezing fog, or a frost-likely dew-point spread (≤ 3 °C). Off
     /// requests on the temperature alone — the "cold-soaked wing" rule some operators use.
     /// With no METAR for the departure the policy makes no request at all (no data, no call).</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.deice.precipitation", DependsOn = "AutoRequest=ask | AutoRequest=auto")]
     public bool RequirePrecipitation { get; set; } = true;
 
     /// <summary>When the policy runs and the captain is asked (issue #166, EFHK 2026-10-10:
@@ -35,11 +38,13 @@ public sealed class GsxDeiceOptions
     /// <c>"afterBoardingComplete"</c>: on the boarding-completed edge, so the captain decides
     /// while the last services finish; the question is re-asked once when the step's turn
     /// comes if it is still unanswered.</summary>
+    [OptionField(FieldKind.Select, "gsxSettings.deice.askWhen", Choices = "deiceAskWhen", DependsOn = "AutoRequest=ask | AutoRequest=auto")]
     public string AskWhen { get; set; } = AskWhenStepIsNext;
 
     /// <summary>How long an unanswered question stands before it counts as declined (source
     /// <c>timeout</c>). Silence from the FO's listen never declines — only this expiry does;
     /// the Status board buttons and "request de-icing" / "no de-icing" answer it meanwhile.</summary>
+    [OptionField(FieldKind.Number, "gsxSettings.deice.timeout", Suffix = "min", Min = "1", Max = "30", DependsOn = "AutoRequest=ask | AutoRequest=auto")]
     public int QuestionTimeoutMinutes { get; set; } = 5;
 
     /// <summary>Off by default. On, the FO runs the cockpit side of the treatment the way
@@ -48,6 +53,7 @@ public sealed class GsxDeiceOptions
     /// the DITCHING ON light with one reminder if they do not agree; at the Completed edge
     /// "De-icing complete — packs on, ditching off" with the same check. The FO never moves
     /// those switches.</summary>
+    [OptionField(FieldKind.Bool, "gsxSettings.deice.packs")]
     public bool PacksProcedure { get; set; }
 
     public const string AutoRequestOff = "off";

@@ -269,6 +269,34 @@ label text id, shape (indicator / value / pill), value text, tone, hover title. 
 **display text** is a pack id plus arguments, or a literal the pack does not own.
 _Avoid_: view model, helper class, code-behind
 
+### Settings pages
+
+**Field description**:
+The one declaration of how an option property is edited — its control kind, text-id root,
+save-time normalisation, the parent switch it is disabled under, bounds, suffix, choice list,
+Browse… dialog — written once as `[OptionField]` on the property, beside its default. The
+completeness test fails for a property with neither a description nor a named reason.
+_Avoid_: field metadata, field config, attribute (as the noun for the concept)
+
+**Option field**:
+The one web renderer, `<OptionField Draft For />`, that resolves a property's field
+description and delegates to the existing field component for its kind. A page passes only
+what it alone knows: a runtime choice list, a live voice list, a text computed at render time,
+a disabled condition that reaches outside the property's own section.
+_Avoid_: generic field, smart field, auto field
+
+**Choice list**:
+The named rows of a dropdown: static lists in the web layer's choice catalog (translated per
+render), runtime lists (detected audio devices) handed in by the page under the name the
+description gives.
+_Avoid_: options (ambiguous with the option classes), select source
+
+**Page rule**:
+Logic that is genuinely the settings page's own and not one property's: a rule between two
+properties, a one-way migration, a list editor's pruning. Lives in a plain `…PageRules` class
+under the web project so it is tested without a renderer.
+_Avoid_: OnBeforeSave logic, page helper
+
 ### Notifications
 
 **Milestone**:

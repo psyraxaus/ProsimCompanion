@@ -10,12 +10,14 @@ namespace ProsimCompanion.Core.Configuration;
 public sealed class FoQuestionOptions
 {
     /// <summary>Master switch. Off: questions fall through to the ordinary did-not-catch line.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.ask.enabled", Label = "speechSettings.common.enabled")]
     public bool Enabled { get; set; }
 
     /// <summary>First word(s) an utterance must start with to be considered a question, as one
     /// comma-separated line (a string, not a list: nested list defaults are barred by the
     /// option-section guard). Matched after normalization, so "What's" and "what is" both
     /// start with "what".</summary>
+    [OptionField(FieldKind.Text, "speechSettings.briefing.ask.leadIns", DependsOn = "Enabled")]
     public string LeadIns { get; set; } =
         "question, tell me, what, how, when, where, which, why, are we, do we, is the, is there, have we, did we, can you tell me";
 
@@ -25,6 +27,7 @@ public sealed class FoQuestionOptions
 
     /// <summary>Fewer words than this is never a question — the short utterances are the
     /// exact phrases other features own, misheard.</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.minWords", Min = "1", Max = "10", DependsOn = "Enabled")]
     public int MinimumWords { get; set; } = 4;
 
     /// <summary>Small talk and fun facts (issue #152). On: any free-form sentence of
@@ -32,6 +35,7 @@ public sealed class FoQuestionOptions
     /// lead-in needed — and a question that is NOT about the flight is answered from general
     /// knowledge, in character, one or two light sentences. Flight questions keep the strict,
     /// fact-sheet-only, number-verified path. Off: lead-ins and the fact sheet only.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.ask.smallTalk", DependsOn = "Enabled")]
     public bool SmallTalk { get; set; }
 
     /// <summary>"What are we flying over?" (issue #153). On: a question about the place below
@@ -40,27 +44,32 @@ public sealed class FoQuestionOptions
     /// towns with distance and side), then the LLM adds a fact or two about those places.
     /// Works with the small-talk switch off; no lead-in or minimum word count needed for the
     /// place phrases. Off: such questions take the ordinary path (fact sheet: "I don't have that").</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.ask.flyingOver", DependsOn = "Enabled")]
     public bool WhereAreWe { get; set; }
 
     /// <summary>With <see cref="WhereAreWe"/>: fetch a short Wikipedia summary of the nearest
     /// town (one small request, three-second ceiling, cached) and give the model THAT as the
     /// source of its facts instead of its own memory. Off, or on failure: the facts are the
     /// model's general knowledge, as for small talk.</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.ask.wikipedia", DependsOn = "Enabled; WhereAreWe")]
     public bool WikipediaFacts { get; set; }
 
     /// <summary>Seconds from the question to the first spoken word of the answer before the FO
     /// gives up ("I don't have a verified answer for that").</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.timeBudget", Suffix = "s", Min = "1", Max = "60", DependsOn = "Enabled")]
     public int TimeBudgetSeconds { get; set; } = 6;
 
     /// <summary>Seconds of silence after the question before the FO says "Stand by" (0 = never).
     /// Measured to the first AUDIO of the answer, not to the model's first sentence (issue
     /// #176: the 2026-10-10 answers started playing 1–4 s after the model's first sentence
     /// and no "Stand by" was ever heard).</summary>
+    [OptionField(FieldKind.Number, "speechSettings.briefing.ask.standBy", Suffix = "s", Min = "0", Max = "30", DependsOn = "Enabled")]
     public int StandBySeconds { get; set; } = 2;
 
     /// <summary>What the FO does with a plain acknowledgement that is not a question — "no
     /// questions, thank you for the briefing", "copied", "roger", "okay" (issue #176). On: a
     /// fixed one-word "Roger." Off (default): nothing at all. Either way the words never go
     /// to the language model and never earn a "didn't catch that".</summary>
+    [OptionField(FieldKind.Bool, "speechSettings.briefing.ask.roger", DependsOn = "Enabled")]
     public bool AcknowledgeSmallTalk { get; set; }
 }

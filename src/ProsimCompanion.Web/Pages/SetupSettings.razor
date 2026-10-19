@@ -1,6 +1,7 @@
 @page "/settings"
 @layout SettingsLayout
 @using ProsimCompanion.Core.Profiles
+@using ProsimCompanion.Web.Settings
 @inherits SettingsPageBase
 @inject IOptionsMonitor<GsxOptions> GsxMonitor
 @inject IOptionsMonitor<SpeechOptions> SpeechMonitor
@@ -27,29 +28,23 @@
 
 @* The landing page of the settings hub (ADR-0010): the three pillar master switches and the
    connections every install needs. Everything here used to be spread over four tabs — the
-   GSX switch sat at the bottom of "Connection & Timeouts". *@
+   GSX switch sat at the bottom of "Connection & Timeouts". Since C3 (2026-10-19) a field is
+   one <OptionField Draft For /> line over its described property; a wake-on-LAN row binds the
+   same way to its list item. *@
 
 <Section Title="@T["setup.features.title"]" Hint="@T["setup.features.hint"]">
-    <BoolField Label="@T["setup.features.gsx.label"]" Hint="@T["setup.features.gsx.hint"]"
-               @bind-Value="_gsx.Value.Enabled" />
-    <BoolField Label="@T["setup.features.speech.label"]" Hint="@T["setup.features.speech.hint"]"
-               @bind-Value="_speech.Value.Enabled" />
-    <BoolField Label="@T["setup.features.audio.label"]" Hint="@T["setup.features.audio.hint"]"
-               @bind-Value="_audio.Value.Enabled" />
+    <OptionField Draft="_gsx" For="o => o.Enabled" />
+    <OptionField Draft="_speech" For="o => o.Enabled" />
+    <OptionField Draft="_audio" For="o => o.Enabled" />
 </Section>
 
 <Section Title="@T["setup.prosim.title"]">
-    <TextField Label="@T["setup.prosim.host.label"]" Hint="@T["setup.prosim.host.hint"]" Kind="TextFieldKind.Host" Placeholder="@T["setup.prosim.host.placeholder"]"
-               @bind-Value="_prosim.Value.Host" />
-    <TextField Label="@T["setup.prosim.sdk.label"]" Hint="@T["setup.prosim.sdk.hint"]" Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.ProSimSdk"
-               @bind-Value="_prosim.Value.SdkPath" />
-    <TextField Label="@T["setup.prosim.api.label"]" Hint="@T["setup.prosim.api.hint"]" Password="true"
-               @bind-Value="ApiKeyInput" />
+    <OptionField Draft="_prosim" For="o => o.Host" />
+    <OptionField Draft="_prosim" For="o => o.SdkPath" />
+    <OptionField Draft="_prosim" For="o => o.ApiKey" />
     <SecretUnreadableHint Path="prosim:apiKey" />
     <AdvancedFields>
-        <NumberField Label="@T["setup.prosim.reconnect.label"]" Hint="@T["setup.prosim.reconnect.hint"]" Suffix="ms" Min="500"
-                     @bind-Value="_prosim.Value.ReconnectIntervalMs"
-                     Default="_prosim.Defaults.ReconnectIntervalMs" />
+        <OptionField Draft="_prosim" For="o => o.ReconnectIntervalMs" />
     </AdvancedFields>
 </Section>
 
@@ -58,10 +53,7 @@
    differ. It changes nothing on its own — "Apply recommended" is the only write, and every
    written value is read back. "Keep as is" per row silences that row for good. *@
 <Section Title="@T["setup.setupCheck.title"]" Hint="@SetupCheckHint">
-    <BoolField Label="@T["setup.setupCheck.enabled.label"]"
-               Hint="@T["setup.setupCheck.enabled.hint"]"
-               More="@T["setup.setupCheck.enabled.more"]"
-               @bind-Value="_prosim.Value.SetupCheckEnabled" />
+    <OptionField Draft="_prosim" For="o => o.SetupCheckEnabled" />
     @if (!_prosim.Value.SetupCheckEnabled)
     {
         <div class="field-hint">@T["setup.setupCheck.off"]</div>
@@ -125,55 +117,32 @@
 </Section>
 
 <Section Title="@T["setup.navData.title"]" Hint="@T["setup.navData.hint"]">
-    <TextField Label="@T["setup.navData.dfd.label"]" Hint="@T["setup.navData.dfd.hint"]" Kind="TextFieldKind.FileOrFolderPath" BrowseStartIn="ExpectedFolders.ProSimNavdata" BrowseFilter="Navigation database (*.s3db)|*.s3db|All files (*.*)|*.*"
-               @bind-Value="_briefing.Value.DfdPath" />
+    <OptionField Draft="_briefing" For="o => o.DfdPath" />
 </Section>
 
 @* ActiveSky weather source (Phase 6) and the update check — settings.json only until the
    2026-10-08 audit. *@
 <Section Title="@T["setup.weather.title"]" Hint="@T["setup.weather.hint"]">
-    <TextField Label="@T["setup.weather.snapshot.label"]" Hint="@T["setup.weather.snapshot.hint"]" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.ActiveSky" BrowseFilter="Snapshot (current_wx_snapshot.txt)|current_wx_snapshot.txt|Text files (*.txt)|*.txt" More="@T["setup.weather.snapshot.more"]"
-               Placeholder="@T["setup.weather.snapshot.placeholder"]"
-               @bind-Value="_weather.Value.ActiveSkySnapshotPath" />
-    <BoolField Label="@T["setup.weather.useApi.label"]" Hint="@T["setup.weather.useApi.hint"]"
-               @bind-Value="_weather.Value.UseActiveSkyApi" />
+    <OptionField Draft="_weather" For="o => o.ActiveSkySnapshotPath" />
+    <OptionField Draft="_weather" For="o => o.UseActiveSkyApi" />
     <AdvancedFields>
-        <TextField Label="@T["setup.weather.apiHost.label"]" Hint="@T["setup.weather.apiHost.hint"]" Placeholder="@T["setup.weather.apiHost.placeholder"]" Kind="TextFieldKind.Host" Disabled="@(!_weather.Value.UseActiveSkyApi)"
-                   @bind-Value="_weather.Value.ActiveSkyApiHost" />
-        <NumberField Label="@T["setup.weather.apiPort.label"]" Min="1" Max="65535" Disabled="@(!_weather.Value.UseActiveSkyApi)"
-                     @bind-Value="_weather.Value.ActiveSkyApiPort"
-                     Default="_weather.Defaults.ActiveSkyApiPort" />
-        <NumberField Label="@T["setup.weather.apiTimeout.label"]" Hint="@T["setup.weather.apiTimeout.hint"]" Suffix="s" Min="1" Max="30"
-                     Disabled="@(!_weather.Value.UseActiveSkyApi)"
-                     @bind-Value="_weather.Value.ActiveSkyApiTimeoutSeconds"
-                     Default="_weather.Defaults.ActiveSkyApiTimeoutSeconds" />
+        <OptionField Draft="_weather" For="o => o.ActiveSkyApiHost" />
+        <OptionField Draft="_weather" For="o => o.ActiveSkyApiPort" />
+        <OptionField Draft="_weather" For="o => o.ActiveSkyApiTimeoutSeconds" />
     </AdvancedFields>
 </Section>
 
 <Section Title="@T["setup.web.title"]" Hint="@T["setup.web.hint"]">
-    <NumberField Label="@T["setup.web.port.label"]" Hint="@T["setup.web.port.hint"]" Min="1024" Max="65535"
-                 @bind-Value="_webUi.Value.Port"
-                 Default="_webUi.Defaults.Port" />
-    <BoolField Label="@T["setup.web.lan.label"]" Hint="@T["setup.web.lan.hint"]" More="@T["setup.web.lan.more"]"
-               @bind-Value="_webUi.Value.BindToAllInterfaces" />
+    <OptionField Draft="_webUi" For="o => o.Port" />
+    <OptionField Draft="_webUi" For="o => o.BindToAllInterfaces" />
 
     @* The optional HTTPS listener (issue #150, ADR-0013, design A). Here and not in the desktop
        window on purpose: a wrong value cannot lock anyone out, because HTTP keeps serving. *@
     <div class="label-caps" style="margin:14px 0 6px;">@T["setup.web.httpsHeading"]</div>
-    <BoolField Label="@T["setup.web.https.label"]"
-               Hint="@T["setup.web.https.hint"]"
-               More="@T["setup.web.https.more"]"
-               @bind-Value="_webUi.Value.Https.Enabled" />
-    <NumberField Label="@T["setup.web.httpsPort.label"]" Hint="@T["setup.web.httpsPort.hint"]" Min="1024" Max="65535"
-                 Disabled="@(!_webUi.Value.Https.Enabled)"
-                 @bind-Value="_webUi.Value.Https.Port"
-                 Default="_webUi.Defaults.Https.Port" />
-    <TextField Label="@T["setup.web.pfx.label"]" Hint="@T["setup.web.pfx.hint"]" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="Certificates (*.pfx;*.p12)|*.pfx;*.p12" Placeholder="@T["setup.web.pfx.placeholder"]"
-               Disabled="@(!_webUi.Value.Https.Enabled)"
-               @bind-Value="_webUi.Value.Https.PfxPath" />
-    <TextField Label="@T["setup.web.pfxPassword.label"]" Hint="@T["setup.web.pfxPassword.hint"]" Password="true"
-               Disabled="@(!_webUi.Value.Https.Enabled)"
-               @bind-Value="_webUi.Value.Https.PfxPassword" />
+    <OptionField Draft="_webUi" For="o => o.Https.Enabled" />
+    <OptionField Draft="_webUi" For="o => o.Https.Port" />
+    <OptionField Draft="_webUi" For="o => o.Https.PfxPath" />
+    <OptionField Draft="_webUi" For="o => o.Https.PfxPassword" />
     <SecretUnreadableHint Path="webUi:https:pfxPassword" />
     <div class="field" style="align-items:center;">
         <label class="field-label">
@@ -190,8 +159,7 @@
 </Section>
 
 <Section Title="@T["setup.streamDeck.title"]" Hint="@T["setup.streamDeck.hint"]">
-    <BoolField Label="@T["setup.streamDeck.commandApi.label"]" Hint="@T["setup.streamDeck.commandApi.hint"]" More="@T["setup.streamDeck.commandApi.more"]"
-               @bind-Value="_commandApi.Value.Enabled" />
+    <OptionField Draft="_commandApi" For="o => o.Enabled" />
     <div class="field-hint" style="max-width:560px;">
         @T["setup.streamDeck.pairHint"]
     </div>
@@ -199,7 +167,7 @@
 
 @* Wake-on-LAN (owner idea 2026-10-08): one list of PCs instead of one switch per feature.
    The old briefing.llmWakeOnLan block is migrated into the list on this page's first load
-   (MigrateLegacyWake) and saved with the dirty bar. *@
+   (SetupPageRules.MigrateLegacyWake) and saved with the dirty bar. *@
 @for (var i = 0; i < _wake.Value.Targets.Count; i++)
 {
     var index = i;
@@ -214,17 +182,12 @@
                         @onclick="() => _wake.Value.Targets.RemoveAt(index)">@T["setup.wake.remove"]</button>
             </div>
         </div>
-        <TextField Label="@T["setup.wake.name.label"]" Hint="@T["setup.wake.name.hint"]" Placeholder="@T["setup.wake.name.placeholder"]"
-                   @bind-Value="target.Name" />
-        <BoolField Label="@T["setup.wake.enabled.label"]" Hint="@T["setup.wake.enabled.hint"]"
-                   @bind-Value="target.Enabled" />
-        <TextField Label="@T["setup.wake.mac.label"]" Hint="@T["setup.wake.mac.hint"]" Kind="TextFieldKind.Mac" Placeholder="AA:BB:CC:DD:EE:FF" More="@T["setup.wake.mac.more"]"
-                   @bind-Value="target.MacAddress" />
+        <OptionField Item="target" ItemOf="_wake" For="t => t.Name" />
+        <OptionField Item="target" ItemOf="_wake" For="t => t.Enabled" />
+        <OptionField Item="target" ItemOf="_wake" For="t => t.MacAddress" />
         <AdvancedFields>
-            <TextField Label="@T["setup.wake.broadcast.label"]" Hint="@T["setup.wake.broadcast.hint"]" Kind="TextFieldKind.IpAddress" Placeholder="255.255.255.255"
-                       @bind-Value="target.BroadcastAddress" />
-            <NumberField Label="@T["setup.wake.port.label"]" Hint="@T["setup.wake.port.hint"]" Min="1" Max="65535"
-                         @bind-Value="target.Port" />
+            <OptionField Item="target" ItemOf="_wake" For="t => t.BroadcastAddress" />
+            <OptionField Item="target" ItemOf="_wake" For="t => t.Port" />
         </AdvancedFields>
         <div class="field" style="align-items:center;">
             <label class="field-label">
@@ -251,12 +214,8 @@
 </Section>
 
 <Section Title="@T["setup.updates.title"]" Hint="@T["setup.updates.hint"]">
-    <BoolField Label="@T["setup.updates.check.label"]" Hint="@T["setup.updates.check.hint"]"
-               @bind-Value="_updateCheck.Value.Enabled" />
-    <NumberField Label="@T["setup.updates.interval.label"]" Suffix="h" Min="1" Max="168"
-                 Disabled="@(!_updateCheck.Value.Enabled)"
-                 @bind-Value="_updateCheck.Value.IntervalHours"
-                 Default="_updateCheck.Defaults.IntervalHours" />
+    <OptionField Draft="_updateCheck" For="o => o.Enabled" />
+    <OptionField Draft="_updateCheck" For="o => o.IntervalHours" />
 </Section>
 
 <DirtyBar Visible="@BarVisible"
@@ -296,13 +255,6 @@
             ? T["setup.web.httpsHint.saved"].Value
             : T["setup.web.httpsHint.off", Listener.HttpUrl.Length > 0 ? Listener.HttpUrl : "localhost:" + _webUi.Value.Port].Value);
 
-    // The bound options keep an unset API key as null; the input works in "" terms.
-    private string ApiKeyInput
-    {
-        get => _prosim.Value.ApiKey ?? "";
-        set => _prosim.Value.ApiKey = value.Length == 0 ? null : value;
-    }
-
     protected override void OnInitialized()
     {
         _gsx = Draft(GsxMonitor);
@@ -315,26 +267,16 @@
         _weather = Draft(WeatherMonitor);
         _updateCheck = Draft(UpdateCheckMonitor);
         _wake = Draft(WakeMonitor);
-        MigrateLegacyWake();
+        SetupPageRules.MigrateLegacyWake(_briefing.Value, _wake.Value);
 
         Watch(SetupStore, snapshot => _setup = snapshot);
         WatchChanged(h => Status.Changed += h, h => Status.Changed -= h, () => _prosimConnected = ProsimConnectedNow());
     }
 
+    /// <summary>The trims ran on the drafts already (C3); what is left is remembering which
+    /// drafts changed, for the follow-up after the save.</summary>
     protected override void OnBeforeSave()
     {
-        _prosim.Value.Host = _prosim.Value.Host.Trim();
-        _prosim.Value.SdkPath = _prosim.Value.SdkPath.Trim();
-        // Trim quotes too — Explorer's "Copy as path" wraps the path in them.
-        _briefing.Value.DfdPath = _briefing.Value.DfdPath.Trim().Trim('"');
-        _weather.Value.ActiveSkySnapshotPath = _weather.Value.ActiveSkySnapshotPath.Trim().Trim('"');
-        _weather.Value.ActiveSkyApiHost = _weather.Value.ActiveSkyApiHost.Trim();
-        foreach (var target in _wake.Value.Targets)
-        {
-            target.Name = target.Name.Trim();
-            target.MacAddress = target.MacAddress.Trim();
-            target.BroadcastAddress = target.BroadcastAddress.Trim();
-        }
         _gsxChanged = _gsx.IsDirty;
         _prosimChanged = _prosim.IsDirty;
     }
@@ -359,42 +301,9 @@
 
     // A discard reloads the live options, which may still carry only the legacy block —
     // re-synthesize so the row keeps showing (same pattern as the PTT bindings).
-    protected override void OnDiscarded() => MigrateLegacyWake();
+    protected override void OnDiscarded() => SetupPageRules.MigrateLegacyWake(_briefing.Value, _wake.Value);
 
     // ---- Wake-on-LAN card ----
-
-    /// <summary>One-way migration of <c>briefing.llmWakeOnLan</c> into the targets list
-    /// (2026-10-08): an enabled legacy block with a MAC that no row carries becomes a row,
-    /// and the legacy switch goes off. Both drafts dirty, so the bar prompts for the save
-    /// that persists it; until then the startup module still honours the legacy block.
-    /// The row's name is a settings.json value the log echoes, so it stays English.</summary>
-    private void MigrateLegacyWake()
-    {
-        var legacy = _briefing.Value.LlmWakeOnLan;
-        if (!legacy.Enabled || string.IsNullOrWhiteSpace(legacy.MacAddress))
-        {
-            return;
-        }
-
-        var known = _wake.Value.Targets.Any(t =>
-            string.Equals(NormalizeMac(t.MacAddress), NormalizeMac(legacy.MacAddress), StringComparison.OrdinalIgnoreCase));
-        if (!known)
-        {
-            _wake.Value.Targets.Add(new WakeTarget
-            {
-                Name = "Language-model PC",
-                Enabled = true,
-                MacAddress = legacy.MacAddress.Trim(),
-                BroadcastAddress = legacy.BroadcastAddress,
-                Port = legacy.Port,
-            });
-        }
-
-        legacy.Enabled = false;
-    }
-
-    private static string NormalizeMac(string mac)
-        => mac.Replace(":", "", StringComparison.Ordinal).Replace("-", "", StringComparison.Ordinal).Replace(" ", "", StringComparison.Ordinal).Trim();
 
     private void AddWakeTarget()
         => _wake.Value.Targets.Add(new WakeTarget { Name = $"PC {_wake.Value.Targets.Count + 1}" });

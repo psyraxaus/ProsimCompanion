@@ -1,8 +1,8 @@
 @page "/settings/speech/{Section?}/{Tab?}"
 @page "/speech"
 @layout SettingsLayout
-@using System.Text.Json
 @using ProsimCompanion.Core.Speech
+@using ProsimCompanion.Web.Settings
 @inherits SettingsPageBase
 @inject IOptionsMonitor<SpeechOptions> SpeechMonitor
 @inject IOptionsMonitor<BriefingOptions> BriefingMonitor
@@ -32,7 +32,10 @@
 
 @* Sections are URL-driven (settings/speech/{section}, ADR-0010); the rail lives in
    SettingsLayout. The speech master switch moved to Setup with the other pillar switches;
-   Kokoro / Google / Windows voices / cache folder merged into one Voice Providers section. *@
+   Kokoro / Google / Windows voices / cache folder merged into one Voice Providers section.
+   Since C3 (2026-10-19) every field is <OptionField Draft For />: what a field is — its
+   control, texts, bounds, normalisation, parent switch — lives on the option property; this
+   page keeps the ordered grouping and the lists only it can build (devices, live voices). *@
 
 <LlmHealthBanner />
 
@@ -43,71 +46,42 @@
 else if (CurrentSection == "general")
 {
     <Section Title="@T["speechSettings.general.title"]" Hint="@T["speechSettings.general.hint"]">
-        <BoolField Label="@T["speechSettings.general.localOnly.label"]" Hint="@T["speechSettings.general.localOnly.hint"]" More="@T["speechSettings.general.localOnly.more"]"
-                   @bind-Value="_speech.Value.LocalOnly" />
-        <SelectField Label="@T["speechSettings.general.seat.label"]" Hint="@T["speechSettings.general.seat.hint"]" More="@T["speechSettings.general.seat.more"]" Options="PilotSeatOptions"
-                     @bind-Value="_speech.Value.PilotSeat" />
-        <BoolField Label="@T["speechSettings.general.engineFlap.label"]" Hint="@T["speechSettings.general.engineFlap.hint"]" More="@T["speechSettings.general.engineFlap.more"]"
-                   @bind-Value="_speech.Value.EngineFlapCallouts" />
-        <BoolField Label="@T["speechSettings.general.engineStart.label"]" Hint="@T["speechSettings.general.engineStart.hint"]" More="@T["speechSettings.general.engineStart.more"]"
-                   @bind-Value="_speech.Value.EngineStartCallouts" />
-        <BoolField Label="@T["speechSettings.general.readThrough.label"]" Hint="@T["speechSettings.general.readThrough.hint"]" More="@T["speechSettings.general.readThrough.more"]"
-                   @bind-Value="_speech.Value.ChecklistReadThroughSatisfied" />
+        <OptionField Draft="_speech" For="o => o.LocalOnly" />
+        <OptionField Draft="_speech" For="o => o.PilotSeat" />
+        <OptionField Draft="_speech" For="o => o.EngineFlapCallouts" />
+        <OptionField Draft="_speech" For="o => o.EngineStartCallouts" />
+        <OptionField Draft="_speech" For="o => o.ChecklistReadThroughSatisfied" />
     </Section>
 
     <Section Title="@T["speechSettings.general.pacing.title"]" Hint="@T["speechSettings.general.pacing.hint"]" Advanced="true">
-        <BoolField Label="@T["speechSettings.general.pacing.humanize.label"]" Hint="@T["speechSettings.general.pacing.humanize.hint"]" More="@T["speechSettings.general.pacing.humanize.more"]"
-                   @bind-Value="_speech.Value.Humanize.Enabled" />
-        <NumberField Label="@T["speechSettings.general.pacing.tempo.label"]" Hint="@T["speechSettings.general.pacing.tempo.hint"]" Step="0.1" Min="0.25" Max="4"
-                     Disabled="@(!_speech.Value.Humanize.Enabled)"
-                     @bind-Value="_speech.Value.Humanize.Tempo"
-                     Default="_speech.Defaults.Humanize.Tempo" />
+        <OptionField Draft="_speech" For="o => o.Humanize.Enabled" />
+        <OptionField Draft="_speech" For="o => o.Humanize.Tempo" />
     </Section>
 
     <Section Title="@T["speechSettings.general.playback.title"]">
-        <SelectField Label="@T["speechSettings.general.playback.outputDevice.label"]" Hint="@T["speechSettings.general.playback.outputDevice.hint"]"
-                     Options="OutputDeviceOptions()"
-                     @bind-Value="_speech.Value.OutputDevice" />
-        <NumberField Label="@T["speechSettings.general.playback.volume"]" Suffix="%" Min="0" Max="100"
-                     @bind-Value="_speech.Value.Volume"
-                     Default="_speech.Defaults.Volume" />
-        <BoolField Label="@T["speechSettings.general.playback.intercomFilter.label"]" Hint="@T["speechSettings.general.playback.intercomFilter.hint"]"
-                   @bind-Value="_speech.Value.IntercomFilter" />
+        <OptionField Draft="_speech" For="o => o.OutputDevice" Choices="OutputDeviceOptions()" />
+        <OptionField Draft="_speech" For="o => o.Volume" />
+        <OptionField Draft="_speech" For="o => o.IntercomFilter" />
     </Section>
 }
 else if (CurrentSection == "persona")
 {
     @* FO persona (Phase 7, 2026-08-08) — settings.json only until the 2026-10-08 audit. *@
     <Section Title="@T["speechSettings.persona.title"]" Hint="@T["speechSettings.persona.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.persona.enabled.hint"]" More="@T["speechSettings.persona.enabled.more"]"
-                   @bind-Value="_persona.Value.Enabled" />
-        <TextField Label="@T["speechSettings.persona.name.label"]" Hint="@T["speechSettings.persona.name.hint"]" Placeholder="@T["speechSettings.persona.name.placeholder"]"
-                   Disabled="@(!_persona.Value.Enabled)"
-                   @bind-Value="_persona.Value.Name" />
-        <SelectField Label="@T["speechSettings.persona.experience.label"]" Hint="@T["speechSettings.persona.experience.hint"]" Options="PersonaExperienceOptions"
-                     Disabled="@(!_persona.Value.Enabled)"
-                     @bind-Value="_persona.Value.Experience" />
-        <SelectField Label="@T["speechSettings.persona.formality.label"]" Hint="@T["speechSettings.persona.formality.hint"]" Options="PersonaFormalityOptions"
-                     Disabled="@(!_persona.Value.Enabled)"
-                     @bind-Value="_persona.Value.Formality" />
-        <NumberField Label="@T["speechSettings.persona.chattiness.label"]" Hint="@T["speechSettings.persona.chattiness.hint"]" More="@T["speechSettings.persona.chattiness.more"]" Min="0" Max="3"
-                     Disabled="@(!_persona.Value.Enabled)"
-                     @bind-Value="_persona.Value.Chattiness"
-                     Default="_persona.Defaults.Chattiness" />
+        <OptionField Draft="_persona" For="o => o.Enabled" />
+        <OptionField Draft="_persona" For="o => o.Name" />
+        <OptionField Draft="_persona" For="o => o.Experience" />
+        <OptionField Draft="_persona" For="o => o.Formality" />
+        <OptionField Draft="_persona" For="o => o.Chattiness" />
     </Section>
 
     <Section Title="@T["speechSettings.persona.styles.title"]" Hint="@T["speechSettings.persona.styles.hint"]">
-        <BoolField Label="@T["speechSettings.persona.styles.briefings"]" Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleBriefings" />
-        <BoolField Label="@T["speechSettings.persona.styles.debrief"]" Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleDebrief" />
-        <BoolField Label="@T["speechSettings.persona.styles.advisories.label"]" Hint="@T["speechSettings.persona.styles.advisories.hint"]" More="@T["speechSettings.persona.styles.advisories.more"]"
-                   Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.StyleAdvisories" />
-        <BoolField Label="@T["speechSettings.persona.styles.vary.label"]" Hint="@T["speechSettings.persona.styles.vary.hint"]"
-                   Disabled="@(!_persona.Value.Enabled)" @bind-Value="_persona.Value.VaryAcknowledgements" />
+        <OptionField Draft="_persona" For="o => o.StyleBriefings" />
+        <OptionField Draft="_persona" For="o => o.StyleDebrief" />
+        <OptionField Draft="_persona" For="o => o.StyleAdvisories" />
+        <OptionField Draft="_persona" For="o => o.VaryAcknowledgements" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.persona.styles.budget.label"]" Hint="@T["speechSettings.persona.styles.budget.hint"]" Suffix="ms" Min="500" Step="100"
-                         Disabled="@(!_persona.Value.Enabled || !_persona.Value.StyleAdvisories)"
-                         @bind-Value="_persona.Value.StyleTimeoutMs"
-                         Default="_persona.Defaults.StyleTimeoutMs" />
+            <OptionField Draft="_persona" For="o => o.StyleTimeoutMs" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.persona.styles.poolsBefore"] <code>config\phrases.json</code> @T["speechSettings.persona.styles.poolsMiddle"]
@@ -118,8 +92,7 @@ else if (CurrentSection == "persona")
 else if (CurrentSection == "listening")
 {
     <Section Title="@T["speechSettings.listening.title"]" Hint="@T["speechSettings.listening.hint"]">
-        <SelectField Label="@T["speechSettings.listening.mode.label"]" Hint="@T["speechSettings.listening.mode.hint"]" More="@T["speechSettings.listening.mode.more"]" Options="RecognitionModeOptions"
-                     @bind-Value="_speech.Value.RecognitionMode" />
+        <OptionField Draft="_speech" For="o => o.RecognitionMode" />
         <div class="field">
             <label class="field-label">
                 @T["speechSettings.listening.foPtt.label"]
@@ -158,10 +131,7 @@ else if (CurrentSection == "listening")
                 </div>
             </div>
         </div>
-        <SelectField Label="@T["speechSettings.listening.atcMuteSource.label"]" Hint="@T["speechSettings.listening.atcMuteSource.hint"]"
-                     More="@T["speechSettings.listening.atcMuteSource.more"]"
-                     Options="PttSwitchOptions"
-                     @bind-Value="_speech.Value.AtcMuteSource" />
+        <OptionField Draft="_speech" For="o => o.AtcMuteSource" />
         @if (_captureMessage is not null)
         {
             <div class="field-hint">@_captureMessage</div>
@@ -186,91 +156,48 @@ else if (CurrentSection == "listening")
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.listening.setHint"]
         </div>
-        <SelectField Label="@T["speechSettings.listening.inputDevice.label"]" Hint="@T["speechSettings.listening.inputDevice.hint"]"
-                     Options="InputDeviceOptions()"
-                     @bind-Value="_speech.Value.InputDevice" />
-        <BoolField Label="@T["speechSettings.listening.trackUnmatched.label"]" Hint="@T["speechSettings.listening.trackUnmatched.hint"]" More="@T["speechSettings.listening.trackUnmatched.more"]"
-                   @bind-Value="_speech.Value.TrackUnmatched" />
+        <OptionField Draft="_speech" For="o => o.InputDevice" Choices="InputDeviceOptions()" />
+        <OptionField Draft="_speech" For="o => o.TrackUnmatched" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.listening.matchScore.label"]" Hint="@T["speechSettings.listening.matchScore.hint"]" More="@T["speechSettings.listening.matchScore.more"]" Step="0.05" Min="0.3" Max="1"
-                         @bind-Value="_speech.Value.SnappingThreshold"
-                         Default="_speech.Defaults.SnappingThreshold" />
-            <NumberField Label="@T["speechSettings.listening.confirmBelow.label"]" Hint="@T["speechSettings.listening.confirmBelow.hint"]" More="@T["speechSettings.listening.confirmBelow.more"]" Step="0.05" Min="0.3" Max="1"
-                         @bind-Value="_speech.Value.ConfirmBelowScore"
-                         Default="_speech.Defaults.ConfirmBelowScore" />
-            <NumberField Label="@T["speechSettings.listening.noConfirmBelow.label"]" Hint="@T["speechSettings.listening.noConfirmBelow.hint"]" More="@T["speechSettings.listening.noConfirmBelow.more"]" Suffix="ft" Min="0" Max="5000" Step="100"
-                         @bind-Value="_speech.Value.ClarifierMinAglFt"
-                         Default="_speech.Defaults.ClarifierMinAglFt" />
-            <NumberField Label="@T["speechSettings.listening.offlineConfidence.label"]" Hint="@T["speechSettings.listening.offlineConfidence.hint"]" Step="0.05" Min="0" Max="1"
-                         @bind-Value="_speech.Value.RecognitionConfidenceThreshold"
-                         Default="_speech.Defaults.RecognitionConfidenceThreshold" />
+            <OptionField Draft="_speech" For="o => o.SnappingThreshold" />
+            <OptionField Draft="_speech" For="o => o.ConfirmBelowScore" />
+            <OptionField Draft="_speech" For="o => o.ClarifierMinAglFt" />
+            <OptionField Draft="_speech" For="o => o.RecognitionConfidenceThreshold" />
         </AdvancedFields>
     </Section>
 
     <Section Title="@T["speechSettings.listening.server.title"]" Hint="@T["speechSettings.listening.server.hint"]">
-        <TextField Label="@T["speechSettings.listening.server.asrUrl.label"]" Hint="@T["speechSettings.listening.server.asrUrl.hint"]" Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8000"
-                   @bind-Value="_speech.Value.AsrBaseUrl" />
-        <SelectField Label="@T["speechSettings.listening.server.flavour.label"]" Hint="@T["speechSettings.listening.server.flavour.hint"]" More="@T["speechSettings.listening.server.flavour.more"]" Options="AsrApiOptions"
-                     Disabled="@(string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl))"
-                     @bind-Value="AsrApiKey" />
-        <SelectField Label="@T["speechSettings.listening.server.vad.label"]" Hint="@T["speechSettings.listening.server.vad.hint"]" More="@T["speechSettings.listening.server.vad.more"]" Options="VadEngineOptions"
-                     Disabled="@(string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl))"
-                     @bind-Value="_speech.Value.VadEngine" />
-        <BoolField Label="@T["speechSettings.listening.server.muteMic.label"]" Hint="@T["speechSettings.listening.server.muteMic.hint"]"
-                   More="@T["speechSettings.listening.server.muteMic.more"]"
-                   @bind-Value="_speech.Value.MuteMicWhileSpeaking" />
+        <OptionField Draft="_speech" For="o => o.AsrBaseUrl" />
+        <OptionField Draft="_speech" For="o => o.AsrApi" />
+        <OptionField Draft="_speech" For="o => o.VadEngine" />
+        <OptionField Draft="_speech" For="o => o.MuteMicWhileSpeaking" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.listening.server.micTail.label"]" Hint="@T["speechSettings.listening.server.micTail.hint"]" Suffix="ms" Min="0" Max="3000" Step="50"
-                         Disabled="@(!_speech.Value.MuteMicWhileSpeaking)"
-                         @bind-Value="_speech.Value.MicTailAfterSpeakingMs"
-                         Default="_speech.Defaults.MicTailAfterSpeakingMs" />
-            <NumberField Label="@T["speechSettings.listening.server.ownWords.label"]" Hint="@T["speechSettings.listening.server.ownWords.hint"]" More="@T["speechSettings.listening.server.ownWords.more"]" Suffix="s" Min="0" Max="120" Step="1"
-                         Disabled="@(!_speech.Value.MuteMicWhileSpeaking)"
-                         @bind-Value="_speech.Value.SelfEchoWindowSeconds"
-                         Default="_speech.Defaults.SelfEchoWindowSeconds" />
-            <NumberField Label="@T["speechSettings.listening.server.vadThreshold.label"]" Hint="@T["speechSettings.listening.server.vadThreshold.hint"]" Step="0.05" Min="0.1" Max="0.95"
-                         Disabled="@(!SileroSelected)"
-                         @bind-Value="_speech.Value.VadThreshold"
-                         Default="_speech.Defaults.VadThreshold" />
-            <NumberField Label="@T["speechSettings.listening.server.endSilence.label"]" Hint="@T["speechSettings.listening.server.endSilence.hint"]" Suffix="ms" Min="200" Step="50"
-                         Disabled="@(!SileroSelected)"
-                         @bind-Value="_speech.Value.VadEndSilenceMs"
-                         Default="_speech.Defaults.VadEndSilenceMs" />
+            <OptionField Draft="_speech" For="o => o.MicTailAfterSpeakingMs" />
+            <OptionField Draft="_speech" For="o => o.SelfEchoWindowSeconds" />
+            <OptionField Draft="_speech" For="o => o.VadThreshold" />
+            <OptionField Draft="_speech" For="o => o.VadEndSilenceMs" />
         </AdvancedFields>
     </Section>
 
     <Section Title="@T["speechSettings.listening.interphone.title"]" Hint="@T["speechSettings.listening.interphone.hint"]">
-        <BoolField Label="@T["speechSettings.listening.interphone.acpGating.label"]" Hint="@T["speechSettings.listening.interphone.acpGating.hint"]" More="@T["speechSettings.listening.interphone.acpGating.more"]"
-                   @bind-Value="_speech.Value.AcpTransmitGating" />
-        <BoolField Label="@T["speechSettings.listening.interphone.intRequired.label"]" Hint="@T["speechSettings.listening.interphone.intRequired.hint"]" More="@T["speechSettings.listening.interphone.intRequired.more"]"
-                   Disabled="@(!_speech.Value.AcpTransmitGating)"
-                   @bind-Value="_speech.Value.AcpIntKeyRequired" />
+        <OptionField Draft="_speech" For="o => o.AcpTransmitGating" />
+        <OptionField Draft="_speech" For="o => o.AcpIntKeyRequired" />
     </Section>
 }
 else if (CurrentSection == "sterile")
 {
     <Section Title="@T["speechSettings.sterile.title"]" Hint="@T["speechSettings.sterile.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.sterile.enabledHint"]" @bind-Value="_speech.Value.SterileEnabled" />
-        <NumberField Label="@T["speechSettings.sterile.ceiling.label"]" Hint="@T["speechSettings.sterile.ceiling.hint"]" More="@T["speechSettings.sterile.ceiling.more"]" Suffix="ft MSL" Min="1000"
-                     Disabled="@(!_speech.Value.SterileEnabled)"
-                     @bind-Value="_speech.Value.SterileCockpitCeilingFt"
-                     Default="_speech.Defaults.SterileCockpitCeilingFt" />
-        <BoolField Label="@T["speechSettings.sterile.dropLow.label"]" Hint="@T["speechSettings.sterile.dropLow.hint"]"
-                   Disabled="@(!_speech.Value.SterileEnabled)"
-                   @bind-Value="_speech.Value.SterileSuppressLow" />
-        <SelectField Label="@T["speechSettings.sterile.normalPolicy.label"]" Hint="@T["speechSettings.sterile.normalPolicy.hint"]" More="@T["speechSettings.sterile.normalPolicy.more"]" Options="NormalPolicyOptions"
-                     Disabled="@(!_speech.Value.SterileEnabled)"
-                     @bind-Value="NormalPolicyKey" />
-        <BoolField Label="@T["speechSettings.sterile.exemptCabin.label"]" Hint="@T["speechSettings.sterile.exemptCabin.hint"]"
-                   Disabled="@(!_speech.Value.SterileEnabled)"
-                   @bind-Value="_speech.Value.SterileExemptCabinReports" />
+        <OptionField Draft="_speech" For="o => o.SterileEnabled" />
+        <OptionField Draft="_speech" For="o => o.SterileCockpitCeilingFt" />
+        <OptionField Draft="_speech" For="o => o.SterileSuppressLow" />
+        <OptionField Draft="_speech" For="o => o.SterileNormalPolicy" />
+        <OptionField Draft="_speech" For="o => o.SterileExemptCabinReports" />
     </Section>
 }
 else if (CurrentSection == "voices")
 {
     <Section Title="@T["speechSettings.voices.fo.title"]" Hint="@T["speechSettings.voices.fo.hint"]">
-        <VoicePickerField Label="@T["speechSettings.voices.fo.picker.label"]" Hint="@T["speechSettings.voices.fo.picker.hint"]" More="@T["speechSettings.voices.fo.picker.more"]" Groups="_allVoiceGroups" EmptyListHint="@VoicesEmptyHint"
-                          @bind-Value="_speech.Value.FoVoice" />
+        <OptionField Draft="_speech" For="o => o.FoVoice" VoiceGroups="_allVoiceGroups" />
         <div class="field">
             <label class="field-label">
                 @T["speechSettings.voices.fo.lists.label"]
@@ -293,26 +220,17 @@ else if (CurrentSection == "voices")
     </Section>
 
     <Section Title="@T["speechSettings.voices.crew.title"]" Hint="@T["speechSettings.voices.crew.hint"]">
-        <VoicePickerField Label="@T["speechSettings.voices.crew.purser.label"]" Hint="@T["speechSettings.voices.crew.purser.hint"]" Groups="_allVoiceGroups" BlankLabel="@T["speechSettings.common.sameAsFo"]" EmptyListHint="@VoicesEmptyHint"
-                   @bind-Value="_voices.Value.Purser" />
-        <BoolField Label="@T["speechSettings.voices.crew.purserFilter.label"]" Hint="@T["speechSettings.voices.crew.purserFilter.hint"]"
-                   @bind-Value="_voices.Value.PurserIntercomFilter" />
-        <VoicePickerField Label="@T["speechSettings.voices.crew.company.label"]" Hint="@T["speechSettings.voices.crew.company.hint"]" Groups="_allVoiceGroups" BlankLabel="@T["speechSettings.common.sameAsFo"]" EmptyListHint="@VoicesEmptyHint"
-                   @bind-Value="_voices.Value.Company" />
-        <BoolField Label="@T["speechSettings.voices.crew.companyFilter.label"]" Hint="@T["speechSettings.voices.crew.companyFilter.hint"]"
-                   @bind-Value="_voices.Value.CompanyIntercomFilter" />
-        <VoicePickerField Label="@T["speechSettings.voices.crew.ground.label"]" Hint="@T["speechSettings.voices.crew.ground.hint"]" Groups="_allVoiceGroups" BlankLabel="@T["speechSettings.common.sameAsFo"]" EmptyListHint="@VoicesEmptyHint"
-                   @bind-Value="_voices.Value.Ground" />
-        <BoolField Label="@T["speechSettings.voices.crew.groundFilter"]"
-                   @bind-Value="_voices.Value.GroundIntercomFilter" />
+        <OptionField Draft="_voices" For="o => o.Purser" VoiceGroups="_allVoiceGroups" />
+        <OptionField Draft="_voices" For="o => o.PurserIntercomFilter" />
+        <OptionField Draft="_voices" For="o => o.Company" VoiceGroups="_allVoiceGroups" />
+        <OptionField Draft="_voices" For="o => o.CompanyIntercomFilter" />
+        <OptionField Draft="_voices" For="o => o.Ground" VoiceGroups="_allVoiceGroups" />
+        <OptionField Draft="_voices" For="o => o.GroundIntercomFilter" />
     </Section>
 
     <Section Title="@T["speechSettings.voices.accents.title"]" Hint="@T["speechSettings.voices.accents.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.voices.accents.enabled.hint"]" More="@T["speechSettings.voices.accents.enabled.more"]"
-                   @bind-Value="_accents.Value.Enabled" />
-        <TextField Label="@T["speechSettings.voices.accents.persona.label"]" Hint="@T["speechSettings.voices.accents.persona.hint"]"
-                   Disabled="@(!_accents.Value.Enabled)"
-                   @bind-Value="_accents.Value.GooglePersona" />
+        <OptionField Draft="_accents" For="o => o.Enabled" />
+        <OptionField Draft="_accents" For="o => o.GooglePersona" />
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.voices.accents.overridesBefore"] <span class="mono">accents.overrides</span>
             @T["speechSettings.voices.accents.overridesAfter"]
@@ -322,180 +240,105 @@ else if (CurrentSection == "voices")
 else if (CurrentSection == "groundCrew")
 {
     <Section Title="@T["speechSettings.groundCrew.title"]" Hint="@T["speechSettings.groundCrew.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_groundCrew.Value.Enabled" />
-        <BoolField Label="@T["speechSettings.groundCrew.requireInt.label"]" Hint="@T["speechSettings.groundCrew.requireInt.hint"]"
-                   Disabled="@(!_groundCrew.Value.Enabled)"
-                   @bind-Value="_groundCrew.Value.RequireIntChannel" />
+        <OptionField Draft="_groundCrew" For="o => o.Enabled" />
+        <OptionField Draft="_groundCrew" For="o => o.RequireIntChannel" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.groundCrew.intGrace.label"]" Hint="@T["speechSettings.groundCrew.intGrace.hint"]" Suffix="s" Min="0"
-                         Disabled="@(!_groundCrew.Value.Enabled || !_groundCrew.Value.RequireIntChannel)"
-                         @bind-Value="_groundCrew.Value.IntChannelGraceSeconds"
-                         Default="_groundCrew.Defaults.IntChannelGraceSeconds" />
+            <OptionField Draft="_groundCrew" For="o => o.IntChannelGraceSeconds" />
         </AdvancedFields>
-        <BoolField Label="@T["speechSettings.groundCrew.mechCall.label"]" Hint="@T["speechSettings.groundCrew.mechCall.hint"]"
-                   Disabled="@(!_groundCrew.Value.Enabled)"
-                   @bind-Value="_groundCrew.Value.MechCall" />
+        <OptionField Draft="_groundCrew" For="o => o.MechCall" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.groundCrew.hailWindow.label"]" Hint="@T["speechSettings.groundCrew.hailWindow.hint"]" Suffix="s" Min="3"
-                         Disabled="@(!_groundCrew.Value.Enabled)"
-                         @bind-Value="_groundCrew.Value.HailListenTimeoutSeconds"
-                         Default="_groundCrew.Defaults.HailListenTimeoutSeconds" />
+            <OptionField Draft="_groundCrew" For="o => o.HailListenTimeoutSeconds" />
         </AdvancedFields>
     </Section>
 
     <Section Title="@T["speechSettings.groundCrew.upcalls.title"]" Hint="@T["speechSettings.groundCrew.upcalls.hint"]">
-        <BoolField Label="@T["speechSettings.groundCrew.upcalls.groundPower"]" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnGroundPower" />
-        <BoolField Label="@T["speechSettings.groundCrew.upcalls.chocks"]" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnChocks" />
-        <BoolField Label="@T["speechSettings.groundCrew.upcalls.refuel.label"]" Hint="@T["speechSettings.groundCrew.upcalls.refuel.hint"]"
-                   Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnRefuelComplete" />
-        <BoolField Label="@T["speechSettings.common.cateringComplete"]" Disabled="@(!_groundCrew.Value.Enabled)" @bind-Value="_groundCrew.Value.CallOnCateringComplete" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnGroundPower" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnChocks" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnRefuelComplete" />
+        <OptionField Draft="_groundCrew" For="o => o.CallOnCateringComplete" />
     </Section>
 
     <Section Title="@T["speechSettings.groundCrew.wording.title"]" Hint="@T["speechSettings.groundCrew.wording.hint"]">
-        <TextField Label="@T["speechSettings.common.hailReply"]" @bind-Value="_groundCrew.Value.HailReplyText" />
-        <TextField Label="@T["speechSettings.groundCrew.wording.standingBy"]" @bind-Value="_groundCrew.Value.StandingByText" />
-        <TextField Label="@T["speechSettings.groundCrew.wording.groundPower"]" @bind-Value="_groundCrew.Value.GroundPowerText" />
-        <TextField Label="@T["speechSettings.groundCrew.wording.chocks"]" @bind-Value="_groundCrew.Value.ChocksText" />
-        <TextField Label="@T["speechSettings.groundCrew.wording.refuelComplete"]" @bind-Value="_groundCrew.Value.RefuelCompleteText" />
-        <TextField Label="@T["speechSettings.common.cateringComplete"]" @bind-Value="_groundCrew.Value.CateringCompleteText" />
+        <OptionField Draft="_groundCrew" For="o => o.HailReplyText" />
+        <OptionField Draft="_groundCrew" For="o => o.StandingByText" />
+        <OptionField Draft="_groundCrew" For="o => o.GroundPowerText" />
+        <OptionField Draft="_groundCrew" For="o => o.ChocksText" />
+        <OptionField Draft="_groundCrew" For="o => o.RefuelCompleteText" />
+        <OptionField Draft="_groundCrew" For="o => o.CateringCompleteText" />
     </Section>
 }
 else if (CurrentSection == "cabin")
 {
     <Section Title="@T["speechSettings.cabin.title"]" Hint="@T["speechSettings.cabin.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_cabin.Value.Enabled" />
-        <BoolField Label="@T["speechSettings.cabin.secure.label"]" Hint="@T["speechSettings.cabin.secure.hint"]"
-                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CabinSecure" />
-        <NumberField Label="@T["speechSettings.cabin.secureMinWait.label"]" Suffix="s" Min="0"
-                     Hint="@T["speechSettings.cabin.secureMinWait.hint"]"
-                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinSecure)"
-                     @bind-Value="_cabin.Value.CabinSecureMinDelaySeconds"
-                     Default="_cabin.Defaults.CabinSecureMinDelaySeconds" />
-        <NumberField Label="@T["speechSettings.cabin.securePerPax.label"]" Suffix="s/pax" Step="0.1" Min="0"
-                     Hint="@T["speechSettings.cabin.securePerPax.hint"]"
-                     More="@T["speechSettings.cabin.securePerPax.more"]"
-                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinSecure)"
-                     @bind-Value="_cabin.Value.CabinSecureSecondsPerPax"
-                     Default="_cabin.Defaults.CabinSecureSecondsPerPax" />
-        <BoolField Label="@T["speechSettings.cabin.ready.label"]" Hint="@T["speechSettings.cabin.ready.hint"]"
-                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CabinReady" />
-        <NumberField Label="@T["speechSettings.cabin.readyBelow"]" Suffix="ft MSL" Min="1000"
-                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CabinReady)"
-                     @bind-Value="_cabin.Value.CabinReadyBelowAltFt"
-                     Default="_cabin.Defaults.CabinReadyBelowAltFt" />
-        <BoolField Label="@T["speechSettings.cabin.foAck"]" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.FoAcknowledge" />
-        <BoolField Label="@T["speechSettings.cabin.requireCab.label"]" Hint="@T["speechSettings.cabin.requireCab.hint"]"
-                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.RequireCabChannel" />
+        <OptionField Draft="_cabin" For="o => o.Enabled" />
+        <OptionField Draft="_cabin" For="o => o.CabinSecure" />
+        <OptionField Draft="_cabin" For="o => o.CabinSecureMinDelaySeconds" />
+        <OptionField Draft="_cabin" For="o => o.CabinSecureSecondsPerPax" />
+        <OptionField Draft="_cabin" For="o => o.CabinReady" />
+        <OptionField Draft="_cabin" For="o => o.CabinReadyBelowAltFt" />
+        <OptionField Draft="_cabin" For="o => o.FoAcknowledge" />
+        <OptionField Draft="_cabin" For="o => o.RequireCabChannel" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.cabin.cabGrace"]" Suffix="s" Min="0"
-                         Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.RequireCabChannel)"
-                         @bind-Value="_cabin.Value.CabChannelGraceSeconds"
-                         Default="_cabin.Defaults.CabChannelGraceSeconds" />
+            <OptionField Draft="_cabin" For="o => o.CabChannelGraceSeconds" />
         </AdvancedFields>
-        <BoolField Label="@T["speechSettings.cabin.autoGround.label"]" Hint="@T["speechSettings.cabin.autoGround.hint"]"
-                   More="@T["speechSettings.cabin.autoGround.more"]"
-                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AutoAnswerGround" />
-        <NumberField Label="@T["speechSettings.cabin.groundDelay"]" Suffix="ms" Min="0" Step="100"
-                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AutoAnswerGround)"
-                     @bind-Value="_cabin.Value.AutoAnswerGroundDelayMs"
-                     Default="_cabin.Defaults.AutoAnswerGroundDelayMs" />
-        <BoolField Label="@T["speechSettings.cabin.autoAir.label"]" Hint="@T["speechSettings.cabin.autoAir.hint"]"
-                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AutoAnswerAir" />
-        <NumberField Label="@T["speechSettings.cabin.airDelay"]" Suffix="ms" Min="0" Step="100"
-                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AutoAnswerAir)"
-                     @bind-Value="_cabin.Value.AutoAnswerAirDelayMs"
-                     Default="_cabin.Defaults.AutoAnswerAirDelayMs" />
-        <BoolField Label="@T["speechSettings.cabin.chime"]" Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.Chime" />
-        <BoolField Label="@T["speechSettings.cabin.dingStartup.label"]" Hint="@T["speechSettings.cabin.dingStartup.hint"]"
-                   @bind-Value="_cabin.Value.DingOnStartup" />
-        <BoolField Label="@T["speechSettings.cabin.dingFinal.label"]" Hint="@T["speechSettings.cabin.dingFinal.hint"]"
-                   @bind-Value="_cabin.Value.DingOnFinal" />
-        <BoolField Label="@T["speechSettings.cabin.ambient.label"]" Hint="@T["speechSettings.cabin.ambient.hint"]"
-                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.AmbientEvents" />
-        <NumberField Label="@T["speechSettings.cabin.boardingDelayProb.label"]" Hint="@T["speechSettings.cabin.boardingDelayProb.hint"]" Step="0.05" Min="0" Max="1"
-                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.AmbientEvents)"
-                     @bind-Value="_cabin.Value.BoardingDelayProbability"
-                     Default="_cabin.Defaults.BoardingDelayProbability" />
-        <BoolField Label="@T["speechSettings.cabin.cruiseQuery.label"]"
-                   Hint="@T["speechSettings.cabin.cruiseQuery.hint"]"
-                   More="@T["speechSettings.cabin.cruiseQuery.more"]"
-                   Disabled="@(!_cabin.Value.Enabled)" @bind-Value="_cabin.Value.CruiseQuery" />
-        <NumberField Label="@T["speechSettings.cabin.cruiseQueryAfter.label"]" Hint="@T["speechSettings.cabin.cruiseQueryAfter.hint"]" Suffix="min" Min="0" Max="180"
-                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CruiseQuery)"
-                     @bind-Value="_cabin.Value.CruiseQueryDelayMinutes"
-                     Default="_cabin.Defaults.CruiseQueryDelayMinutes" />
-        <NumberField Label="@T["speechSettings.cabin.cruiseQueryWindow.label"]" Hint="@T["speechSettings.cabin.cruiseQueryWindow.hint"]" Suffix="s" Min="3" Max="60"
-                     Disabled="@(!_cabin.Value.Enabled || !_cabin.Value.CruiseQuery)"
-                     @bind-Value="_cabin.Value.CruiseQueryWindowSeconds"
-                     Default="_cabin.Defaults.CruiseQueryWindowSeconds" />
+        <OptionField Draft="_cabin" For="o => o.AutoAnswerGround" />
+        <OptionField Draft="_cabin" For="o => o.AutoAnswerGroundDelayMs" />
+        <OptionField Draft="_cabin" For="o => o.AutoAnswerAir" />
+        <OptionField Draft="_cabin" For="o => o.AutoAnswerAirDelayMs" />
+        <OptionField Draft="_cabin" For="o => o.Chime" />
+        <OptionField Draft="_cabin" For="o => o.DingOnStartup" />
+        <OptionField Draft="_cabin" For="o => o.DingOnFinal" />
+        <OptionField Draft="_cabin" For="o => o.AmbientEvents" />
+        <OptionField Draft="_cabin" For="o => o.BoardingDelayProbability" />
+        <OptionField Draft="_cabin" For="o => o.CruiseQuery" />
+        <OptionField Draft="_cabin" For="o => o.CruiseQueryDelayMinutes" />
+        <OptionField Draft="_cabin" For="o => o.CruiseQueryWindowSeconds" />
     </Section>
 
     <Section Title="@T["speechSettings.cabin.wording.title"]" Hint="@T["speechSettings.cabin.wording.hint"]">
-        <TextField Label="@T["speechSettings.common.hailReply"]" Hint="@T["speechSettings.cabin.wording.hailReplyHint"]"
-                   @bind-Value="_cabin.Value.HailReplyText" />
-        <TextField Label="@T["speechSettings.cabin.wording.securingReply.label"]" Hint="@T["speechSettings.cabin.wording.securingReply.hint"]"
-                   @bind-Value="_cabin.Value.CabinSecuringReplyText" />
-        <TextField Label="@T["speechSettings.cabin.wording.secure"]" @bind-Value="_cabin.Value.CabinSecureText" />
-        <TextField Label="@T["speechSettings.cabin.wording.secureAck"]" @bind-Value="_cabin.Value.CabinSecureAckText" />
-        <TextField Label="@T["speechSettings.cabin.wording.ready"]" @bind-Value="_cabin.Value.CabinReadyText" />
-        <TextField Label="@T["speechSettings.cabin.wording.readyAck"]" @bind-Value="_cabin.Value.CabinReadyAckText" />
-        <TextField Label="@T["speechSettings.cabin.wording.boardingDelay"]" @bind-Value="_cabin.Value.BoardingDelayText" />
-        <TextField Label="@T["speechSettings.common.cruiseQuery"]" Hint="@T["speechSettings.cabin.wording.cruiseQueryHint"]" @bind-Value="_cabin.Value.CruiseQueryText" />
-        <TextField Label="@T["speechSettings.cabin.wording.eta.label"]" Hint="@T["speechSettings.cabin.wording.eta.hint"]" @bind-Value="_cabin.Value.CruiseQueryEtaAckText" />
-        <TextField Label="@T["speechSettings.cabin.wording.ride.label"]" Hint="@T["speechSettings.cabin.wording.ride.hint"]" @bind-Value="_cabin.Value.CruiseQueryRideAckText" />
-        <TextField Label="@T["speechSettings.cabin.wording.generic"]" @bind-Value="_cabin.Value.CruiseQueryGenericAckText" />
-        <TextField Label="@T["speechSettings.cabin.wording.noReply.label"]" Hint="@T["speechSettings.cabin.wording.noReply.hint"]" @bind-Value="_cabin.Value.CruiseQueryNoReplyText" />
+        <OptionField Draft="_cabin" For="o => o.HailReplyText" />
+        <OptionField Draft="_cabin" For="o => o.CabinSecuringReplyText" />
+        <OptionField Draft="_cabin" For="o => o.CabinSecureText" />
+        <OptionField Draft="_cabin" For="o => o.CabinSecureAckText" />
+        <OptionField Draft="_cabin" For="o => o.CabinReadyText" />
+        <OptionField Draft="_cabin" For="o => o.CabinReadyAckText" />
+        <OptionField Draft="_cabin" For="o => o.BoardingDelayText" />
+        <OptionField Draft="_cabin" For="o => o.CruiseQueryText" />
+        <OptionField Draft="_cabin" For="o => o.CruiseQueryEtaAckText" />
+        <OptionField Draft="_cabin" For="o => o.CruiseQueryRideAckText" />
+        <OptionField Draft="_cabin" For="o => o.CruiseQueryGenericAckText" />
+        <OptionField Draft="_cabin" For="o => o.CruiseQueryNoReplyText" />
     </Section>
 }
 else if (CurrentSection == "company")
 {
     @* company / debrief / day (Phase 6) — settings.json only until the 2026-10-08 audit. *@
     <Section Title="@T["speechSettings.company.title"]" Hint="@T["speechSettings.company.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_company.Value.Enabled" />
-        <BoolField Label="@T["speechSettings.company.autoLoadsheet.label"]" Hint="@T["speechSettings.company.autoLoadsheet.hint"]"
-                   Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.AutoLoadsheet" />
-        <BoolField Label="@T["speechSettings.company.chime.label"]" Hint="@T["speechSettings.company.chime.hint"]"
-                   Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.Chime" />
-        <BoolField Label="@T["speechSettings.company.cruiseMessages.label"]" Hint="@T["speechSettings.company.cruiseMessages.hint"]" More="@T["speechSettings.company.cruiseMessages.more"]"
-                   Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.CruiseMessages" />
-        <NumberField Label="@T["speechSettings.company.cruiseProb.label"]" Hint="@T["speechSettings.company.cruiseProb.hint"]" Step="0.05" Min="0" Max="1"
-                     Disabled="@(!_company.Value.Enabled || !_company.Value.CruiseMessages)"
-                     @bind-Value="_company.Value.CruiseMessageProbability"
-                     Default="_company.Defaults.CruiseMessageProbability" />
+        <OptionField Draft="_company" For="o => o.Enabled" />
+        <OptionField Draft="_company" For="o => o.AutoLoadsheet" />
+        <OptionField Draft="_company" For="o => o.Chime" />
+        <OptionField Draft="_company" For="o => o.CruiseMessages" />
+        <OptionField Draft="_company" For="o => o.CruiseMessageProbability" />
         <AdvancedFields>
-            <BoolField Label="@T["speechSettings.company.persist.label"]" Hint="@T["speechSettings.company.persist.hint"]"
-                       Disabled="@(!_company.Value.Enabled)" @bind-Value="_company.Value.PersistLoadsheet" />
+            <OptionField Draft="_company" For="o => o.PersistLoadsheet" />
         </AdvancedFields>
     </Section>
 
     <Section Title="@T["speechSettings.company.debrief.title"]" Hint="@T["speechSettings.company.debrief.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_debrief.Value.Enabled" />
-        <SelectField Label="@T["speechSettings.company.debrief.length.label"]" Hint="@T["speechSettings.company.debrief.length.hint"]" Options="DebriefVerbosityOptions"
-                     Disabled="@(!_debrief.Value.Enabled)"
-                     @bind-Value="_debrief.Value.Verbosity" />
-        <BoolField Label="@T["speechSettings.company.debrief.style.label"]" Hint="@T["speechSettings.company.debrief.style.hint"]" More="@T["speechSettings.company.debrief.style.more"]"
-                   Disabled="@(!_debrief.Value.Enabled)" @bind-Value="_debrief.Value.UseLlm" />
+        <OptionField Draft="_debrief" For="o => o.Enabled" />
+        <OptionField Draft="_debrief" For="o => o.Verbosity" />
+        <OptionField Draft="_debrief" For="o => o.UseLlm" />
     </Section>
 
     <Section Title="@T["speechSettings.company.day.title"]" Hint="@T["speechSettings.company.day.hint"]">
-        <BoolField Label="@T["speechSettings.company.day.track.label"]" Hint="@T["speechSettings.company.day.track.hint"]"
-                   @bind-Value="_day.Value.Enabled" />
-        <BoolField Label="@T["speechSettings.company.day.autoStart"]" Disabled="@(!_day.Value.Enabled)" @bind-Value="_day.Value.AutoStart" />
-        <BoolField Label="@T["speechSettings.company.day.turnaround.label"]" Hint="@T["speechSettings.company.day.turnaround.hint"]"
-                   Disabled="@(!_day.Value.Enabled)" @bind-Value="_day.Value.TurnaroundSummary" />
-        <NumberField Label="@T["speechSettings.company.day.allowance.label"]" Hint="@T["speechSettings.company.day.allowance.hint"]" Suffix="min" Min="0"
-                     Disabled="@(!_day.Value.Enabled)"
-                     @bind-Value="_day.Value.PostFlightAllowanceMinutes"
-                     Default="_day.Defaults.PostFlightAllowanceMinutes" />
-        <NumberField Label="@T["speechSettings.company.day.autoClose.label"]" Hint="@T["speechSettings.company.day.autoClose.hint"]" Suffix="min" Min="0"
-                     Disabled="@(!_day.Value.Enabled)"
-                     @bind-Value="_day.Value.AutoCloseIdleMinutes"
-                     Default="_day.Defaults.AutoCloseIdleMinutes" />
+        <OptionField Draft="_day" For="o => o.Enabled" />
+        <OptionField Draft="_day" For="o => o.AutoStart" />
+        <OptionField Draft="_day" For="o => o.TurnaroundSummary" />
+        <OptionField Draft="_day" For="o => o.PostFlightAllowanceMinutes" />
+        <OptionField Draft="_day" For="o => o.AutoCloseIdleMinutes" />
         <AdvancedFields>
-            <TextField Label="@T["speechSettings.company.day.rotations.label"]" Hint="@T["speechSettings.company.day.rotations.hint"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\config\rotations" Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.Rotations"
-                       @bind-Value="_day.Value.RotationsFolder" />
-            <TextField Label="@T["speechSettings.company.day.stateFile"]" Hint="@T["speechSettings.common.emptyUsesFileShown"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\daystate.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="daystate.json"
-                       @bind-Value="_day.Value.Path" />
+            <OptionField Draft="_day" For="o => o.RotationsFolder" />
+            <OptionField Draft="_day" For="o => o.Path" />
         </AdvancedFields>
     </Section>
 }
@@ -503,31 +346,20 @@ else if (CurrentSection == "techlog")
 {
     @* techLog / logbook (Phase 6) — settings.json only until the 2026-10-08 audit. *@
     <Section Title="@T["speechSettings.techLog.title"]" Hint="@T["speechSettings.techLog.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_techLog.Value.Enabled" />
-        <BoolField Label="@T["speechSettings.techLog.offer.label"]" Hint="@T["speechSettings.techLog.offer.hint"]"
-                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.OfferFromAbnormalAtShutdown" />
-        <BoolField Label="@T["speechSettings.techLog.wear.label"]" Hint="@T["speechSettings.techLog.wear.hint"]"
-                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.RandomWear" />
-        <BoolField Label="@T["speechSettings.techLog.rectify.label"]" Hint="@T["speechSettings.techLog.rectify.hint"]" More="@T["speechSettings.techLog.rectify.more"]"
-                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.AutoRectifyOnDueDate" />
-        <BoolField Label="@T["speechSettings.techLog.openItems.label"]" Hint="@T["speechSettings.techLog.openItems.hint"]" More="@T["speechSettings.techLog.openItems.more"]"
-                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.BriefOpenItemsInBriefings" />
-        <BoolField Label="@T["speechSettings.techLog.flagLines.label"]" Hint="@T["speechSettings.techLog.flagLines.hint"]" More="@T["speechSettings.techLog.flagLines.more"]"
-                   Disabled="@(!_techLog.Value.Enabled)" @bind-Value="_techLog.Value.FlagChecklistItems" />
+        <OptionField Draft="_techLog" For="o => o.Enabled" />
+        <OptionField Draft="_techLog" For="o => o.OfferFromAbnormalAtShutdown" />
+        <OptionField Draft="_techLog" For="o => o.RandomWear" />
+        <OptionField Draft="_techLog" For="o => o.AutoRectifyOnDueDate" />
+        <OptionField Draft="_techLog" For="o => o.BriefOpenItemsInBriefings" />
+        <OptionField Draft="_techLog" For="o => o.FlagChecklistItems" />
         <div class="label-caps" style="margin:14px 0 6px;">@T["speechSettings.techLog.intervals"]</div>
-        <NumberField Label="@T["speechSettings.techLog.categoryA"]" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
-                     @bind-Value="_techLog.Value.CategoryADays" Default="_techLog.Defaults.CategoryADays" />
-        <NumberField Label="@T["speechSettings.techLog.categoryB"]" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
-                     @bind-Value="_techLog.Value.CategoryBDays" Default="_techLog.Defaults.CategoryBDays" />
-        <NumberField Label="@T["speechSettings.techLog.categoryC"]" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
-                     @bind-Value="_techLog.Value.CategoryCDays" Default="_techLog.Defaults.CategoryCDays" />
-        <NumberField Label="@T["speechSettings.techLog.categoryD"]" Suffix="days" Min="1" Disabled="@(!_techLog.Value.Enabled)"
-                     @bind-Value="_techLog.Value.CategoryDDays" Default="_techLog.Defaults.CategoryDDays" />
+        <OptionField Draft="_techLog" For="o => o.CategoryADays" />
+        <OptionField Draft="_techLog" For="o => o.CategoryBDays" />
+        <OptionField Draft="_techLog" For="o => o.CategoryCDays" />
+        <OptionField Draft="_techLog" For="o => o.CategoryDDays" />
         <AdvancedFields>
-            <TextField Label="@T["speechSettings.techLog.file"]" Hint="@T["speechSettings.common.emptyUsesFileShown"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\techlog.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="techlog.json"
-                       @bind-Value="_techLog.Value.Path" />
-            <TextField Label="@T["speechSettings.techLog.wearPool.label"]" Hint="@T["speechSettings.techLog.wearPool.hint"]" Placeholder="config\techlog\wear-pool.json" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.WearPool" BrowseFilter="JSON (*.json)|*.json"
-                       @bind-Value="_techLog.Value.WearPoolPath" />
+            <OptionField Draft="_techLog" For="o => o.Path" />
+            <OptionField Draft="_techLog" For="o => o.WearPoolPath" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.techLog.raiseBefore"] <a href="techlog">@T["speechSettings.techLog.raiseLink"]</a> @T["speechSettings.techLog.raiseAfter"]
@@ -535,10 +367,9 @@ else if (CurrentSection == "techlog")
     </Section>
 
     <Section Title="@T["speechSettings.techLog.logbook.title"]" Hint="@T["speechSettings.techLog.logbook.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_logbook.Value.Enabled" />
+        <OptionField Draft="_logbook" For="o => o.Enabled" />
         <AdvancedFields>
-            <TextField Label="@T["speechSettings.techLog.logbook.file"]" Hint="@T["speechSettings.common.emptyUsesFileShown"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\logbook.json" Kind="TextFieldKind.OutputFilePath" BrowseStartIn="ExpectedFolders.AppStateFolder" BrowseFilter="JSON (*.json)|*.json" BrowseFileName="logbook.json"
-                       @bind-Value="_logbook.Value.Path" />
+            <OptionField Draft="_logbook" For="o => o.Path" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.techLog.logbook.flightsBefore"] <a href="logbook">@T["speechSettings.techLog.logbook.flightsLink"]</a> @T["speechSettings.techLog.logbook.flightsAfter"]
@@ -548,113 +379,45 @@ else if (CurrentSection == "techlog")
 else if (CurrentSection == "sayIntentions")
 {
     <Section Title="@T["speechSettings.sayIntentions.title"]" Hint="@T["speechSettings.sayIntentions.hint"]">
-        <BoolField Label="@T["speechSettings.sayIntentions.use.label"]" Hint="@T["speechSettings.sayIntentions.use.hint"]" More="@T["speechSettings.sayIntentions.use.more"]"
-                   @bind-Value="_sayIntentions.Value.Enabled" />
-        <SelectField Label="@T["speechSettings.common.apiKey"]" Hint="@T["speechSettings.sayIntentions.apiKeySourceHint"]" Options="ApiKeySourceOptions"
-                     Disabled="@(!_sayIntentions.Value.Enabled)"
-                     @bind-Value="_sayIntentions.Value.ApiKeySource" />
-        <TextField Label="@T["speechSettings.sayIntentions.manualKey.label"]" Hint="@T["speechSettings.sayIntentions.manualKey.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.ApiKeySource != "manual")"
-                   @bind-Value="_sayIntentions.Value.ManualApiKey" />
+        <OptionField Draft="_sayIntentions" For="o => o.Enabled" />
+        <OptionField Draft="_sayIntentions" For="o => o.ApiKeySource" />
+        <OptionField Draft="_sayIntentions" For="o => o.ManualApiKey" />
         <SecretUnreadableHint Path="sayIntentions:manualApiKey" />
-        <SelectField Label="@T["speechSettings.sayIntentions.ptt.label"]" Hint="@T["speechSettings.sayIntentions.ptt.hint"]" More="@T["speechSettings.sayIntentions.ptt.more"]"
-                     Options="PttSwitchOptions"
-                     Disabled="@(!_sayIntentions.Value.Enabled)"
-                     @bind-Value="SiPttSource" />
-        <SelectField Label="@T["speechSettings.sayIntentions.pttControl.label"]" Hint="@T["speechSettings.sayIntentions.pttControl.hint"]"
-                     Options="SiPttLvarOptions"
-                     Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.PttSource == "none")"
-                     @bind-Value="_sayIntentions.Value.PttLvar" />
-        <SelectField Label="@T["speechSettings.sayIntentions.phraseology"]" Options="PhraseologyOptions"
-                     Disabled="@(!_sayIntentions.Value.Enabled)"
-                     @bind-Value="_sayIntentions.Value.Phraseology" />
-        <BoolField Label="@T["speechSettings.sayIntentions.foSpeaks.label"]" Hint="@T["speechSettings.sayIntentions.foSpeaks.hint"]" More="@T["speechSettings.sayIntentions.foSpeaks.more"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled)"
-                   @bind-Value="_sayIntentions.Value.FoSpeaksTransmission" />
-        <BoolField Label="@T["speechSettings.sayIntentions.autoTune.label"]" Hint="@T["speechSettings.sayIntentions.autoTune.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled)"
-                   @bind-Value="_sayIntentions.Value.AutoTuneFrequency" />
-        <BoolField Label="@T["speechSettings.sayIntentions.departureGate.label"]" Hint="@T["speechSettings.sayIntentions.departureGate.hint"]" More="@T["speechSettings.sayIntentions.departureGate.more"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || _sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.DepartureGatingEnabled" />
-        <NumberField Label="@T["speechSettings.sayIntentions.gateDistance.label"]" Hint="@T["speechSettings.sayIntentions.gateDistance.hint"]" Suffix="nm" Step="0.1" Min="0"
-                     Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.DepartureGatingEnabled || _sayIntentions.Value.CommsHandover.Enabled)"
-                     @bind-Value="_sayIntentions.Value.DepartureGateDistanceNm"
-                     Default="_sayIntentions.Defaults.DepartureGateDistanceNm" />
-        <BoolField Label="@T["speechSettings.sayIntentions.wrongFreq.label"]" Hint="@T["speechSettings.sayIntentions.wrongFreq.hint"]" More="@T["speechSettings.sayIntentions.wrongFreq.more"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled)"
-                   @bind-Value="_sayIntentions.Value.FrequencyMonitorEnabled" />
-        <NumberField Label="@T["speechSettings.sayIntentions.waitBefore.label"]" Hint="@T["speechSettings.sayIntentions.waitBefore.hint"]" Suffix="s" Min="10"
-                     Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.FrequencyMonitorEnabled)"
-                     @bind-Value="_sayIntentions.Value.FrequencyMonitorWaitSeconds"
-                     Default="_sayIntentions.Defaults.FrequencyMonitorWaitSeconds" />
-        <BoolField Label="@T["speechSettings.sayIntentions.arrivalGate.label"]" Hint="@T["speechSettings.sayIntentions.arrivalGate.hint"]" More="@T["speechSettings.sayIntentions.arrivalGate.more"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled)"
-                   @bind-Value="_sayIntentions.Value.ArrivalGateFromAtc" />
+        <OptionField Draft="_sayIntentions" For="o => o.PttSource" Changed="CoupleAtcMute" />
+        <OptionField Draft="_sayIntentions" For="o => o.PttLvar" />
+        <OptionField Draft="_sayIntentions" For="o => o.Phraseology" />
+        <OptionField Draft="_sayIntentions" For="o => o.FoSpeaksTransmission" />
+        <OptionField Draft="_sayIntentions" For="o => o.AutoTuneFrequency" />
+        <OptionField Draft="_sayIntentions" For="o => o.DepartureGatingEnabled" />
+        <OptionField Draft="_sayIntentions" For="o => o.DepartureGateDistanceNm" />
+        <OptionField Draft="_sayIntentions" For="o => o.FrequencyMonitorEnabled" />
+        <OptionField Draft="_sayIntentions" For="o => o.FrequencyMonitorWaitSeconds" />
+        <OptionField Draft="_sayIntentions" For="o => o.ArrivalGateFromAtc" />
     </Section>
 
     <Section Title="@T["speechSettings.sayIntentions.handover.title"]" Hint="@T["speechSettings.sayIntentions.handover.hint"]">
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.enabled.label"]" Hint="@T["speechSettings.sayIntentions.handover.enabled.hint"]" More="@T["speechSettings.sayIntentions.handover.enabled.more"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.Enabled" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.gate.label"]" Hint="@T["speechSettings.sayIntentions.handover.gate.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.GateToCopilot" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.taxi.label"]" Hint="@T["speechSettings.sayIntentions.handover.taxi.hint"]" More="@T["speechSettings.sayIntentions.handover.taxi.more"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.ReadTaxiClearance" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.handoffs.label"]" Hint="@T["speechSettings.sayIntentions.handover.handoffs.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.AnnounceHandoffs" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.holding.label"]" Hint="@T["speechSettings.sayIntentions.handover.holding.hint"]" More="@T["speechSettings.sayIntentions.handover.holding.more"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointToCaptain" />
-        <NumberField Label="@T["speechSettings.sayIntentions.handover.holdingDistance.label"]" Hint="@T["speechSettings.sayIntentions.handover.holdingDistance.hint"]" Suffix="nm" Step="0.05" Min="0.05" Max="2"
-                     Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled || !_sayIntentions.Value.CommsHandover.HoldingPointToCaptain)"
-                     @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointDistanceNm"
-                     Default="_sayIntentions.Defaults.CommsHandover.HoldingPointDistanceNm" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.tuneTower.label"]" Hint="@T["speechSettings.sayIntentions.handover.tuneTower.hint"]" More="@T["speechSettings.sayIntentions.handover.tuneTower.more"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled || !_sayIntentions.Value.CommsHandover.HoldingPointToCaptain)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.TuneTowerAtHoldingPoint" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.climb.label"]" Hint="@T["speechSettings.sayIntentions.handover.climb.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.ClimbToCopilot" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.approach.label"]" Hint="@T["speechSettings.sayIntentions.handover.approach.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.ApproachToCaptain" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.taxiIn.label"]" Hint="@T["speechSettings.sayIntentions.handover.taxiIn.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.TaxiInToCopilot" />
-        <BoolField Label="@T["speechSettings.sayIntentions.handover.voiceOverride.label"]" Hint="@T["speechSettings.sayIntentions.handover.voiceOverride.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.VoiceOverride" />
-        <TextField Label="@T["speechSettings.sayIntentions.handover.holdingLine.label"]" Hint="@T["speechSettings.sayIntentions.handover.holdingLine.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.HoldingPointLine" />
-        <TextField Label="@T["speechSettings.sayIntentions.handover.approachLine.label"]" Hint="@T["speechSettings.sayIntentions.handover.approachLine.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.ApproachLine" />
-        <TextField Label="@T["speechSettings.sayIntentions.handover.copilotLine.label"]" Hint="@T["speechSettings.sayIntentions.handover.copilotLine.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.CopilotLine" />
-        <TextField Label="@T["speechSettings.sayIntentions.handover.captainLine.label"]" Hint="@T["speechSettings.sayIntentions.handover.captainLine.hint"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.CommsHandover.Enabled)"
-                   @bind-Value="_sayIntentions.Value.CommsHandover.CaptainLine" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.Enabled" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.GateToCopilot" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.ReadTaxiClearance" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.AnnounceHandoffs" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.HoldingPointToCaptain" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.HoldingPointDistanceNm" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.TuneTowerAtHoldingPoint" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.ClimbToCopilot" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.ApproachToCaptain" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.TaxiInToCopilot" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.VoiceOverride" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.HoldingPointLine" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.ApproachLine" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.CopilotLine" />
+        <OptionField Draft="_sayIntentions" For="o => o.CommsHandover.CaptainLine" />
     </Section>
 
     <Section Title="@T["speechSettings.sayIntentions.weather.title"]" Hint="@T["speechSettings.sayIntentions.weather.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]"
-                   Disabled="@(!_sayIntentions.Value.Enabled)"
-                   @bind-Value="_sayIntentions.Value.WeatherEnabled" />
+        <OptionField Draft="_sayIntentions" For="o => o.WeatherEnabled" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.sayIntentions.weather.cacheTtl.label"]" Hint="@T["speechSettings.sayIntentions.weather.cacheTtl.hint"]" Suffix="min" Min="1"
-                         Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.WeatherEnabled)"
-                         @bind-Value="_sayIntentions.Value.WeatherCacheMinutes"
-                         Default="_sayIntentions.Defaults.WeatherCacheMinutes" />
-            <NumberField Label="@T["speechSettings.sayIntentions.weather.debounce.label"]" Hint="@T["speechSettings.sayIntentions.weather.debounce.hint"]" Suffix="s" Min="0"
-                         Disabled="@(!_sayIntentions.Value.Enabled || !_sayIntentions.Value.WeatherEnabled)"
-                         @bind-Value="_sayIntentions.Value.WeatherRefreshDebounceSeconds"
-                         Default="_sayIntentions.Defaults.WeatherRefreshDebounceSeconds" />
+            <OptionField Draft="_sayIntentions" For="o => o.WeatherCacheMinutes" />
+            <OptionField Draft="_sayIntentions" For="o => o.WeatherRefreshDebounceSeconds" />
         </AdvancedFields>
     </Section>
 }
@@ -666,20 +429,18 @@ else if (CurrentSection == "providers")
     <div class="subtabs" role="tablist">
         @foreach (var tab in ProviderTabs)
         {
-            <button type="button" class="subtab @(ProviderTab == tab.Key ? "active" : "")" role="tab"
-                    aria-selected="@(ProviderTab == tab.Key ? "true" : "false")"
-                    @onclick='() => OpenProviderTab(tab.Key)'>@tab.Label</button>
+            <button type="button" class="subtab @(ProviderTab == tab.Id ? "active" : "")" role="tab"
+                    aria-selected="@(ProviderTab == tab.Id ? "true" : "false")"
+                    @onclick='() => OpenProviderTab(tab.Id)'>@tab.Label</button>
         }
     </div>
 
     @if (ProviderTab == "kokoro")
     {
     <Section Title="@T["speechSettings.providers.kokoro.title"]" Hint="@T["speechSettings.providers.kokoro.hint"]">
-        <TextField Label="@T["speechSettings.common.baseUrl"]" TallyKey="@T["speechSettings.providers.kokoro.baseUrl.tally"]" Hint="@T["speechSettings.providers.kokoro.baseUrl.hint"]" Kind="TextFieldKind.Url" Placeholder="http://192.168.1.50:8880"
-                   @bind-Value="_speech.Value.KokoroBaseUrl" />
-        <TextField Label="@T["speechSettings.common.model"]" Disabled="@KokoroOff" @bind-Value="_speech.Value.KokoroModel" />
-        <VoicePickerField Label="@T["speechSettings.common.fallbackVoice"]" Hint="@T["speechSettings.providers.kokoro.fallback.hint"]" More="@T["speechSettings.providers.kokoro.fallback.more"]" Groups='@GroupsFor("kokoro")' PlainIds="true" EmptyListHint="@T["speechSettings.providers.kokoro.fallback.empty"]" Disabled="@KokoroOff"
-                          @bind-Value="_speech.Value.KokoroVoice" />
+        <OptionField Draft="_speech" For="o => o.KokoroBaseUrl" />
+        <OptionField Draft="_speech" For="o => o.KokoroModel" />
+        <OptionField Draft="_speech" For="o => o.KokoroVoice" VoiceGroups='@GroupsFor("kokoro")' />
         <div class="field">
             <label class="field-label">
                 @T["speechSettings.common.voiceList"]
@@ -695,29 +456,18 @@ else if (CurrentSection == "providers")
             </div>
         </div>
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.providers.kokoro.connectTimeout.label"]" Hint="@T["speechSettings.providers.kokoro.connectTimeout.hint"]" More="@T["speechSettings.providers.kokoro.connectTimeout.more"]" Suffix="ms" Min="200"
-                         Disabled="@KokoroOff"
-                         @bind-Value="_speech.Value.KokoroTimeoutMs"
-                         Default="_speech.Defaults.KokoroTimeoutMs" />
-            <NumberField Label="@T["speechSettings.providers.kokoro.bodyTimeout.label"]" Hint="@T["speechSettings.providers.kokoro.bodyTimeout.hint"]" More="@T["speechSettings.providers.kokoro.bodyTimeout.more"]" Suffix="ms" Min="1000"
-                         Disabled="@KokoroOff"
-                         @bind-Value="_speech.Value.KokoroBodyTimeoutMs"
-                         Default="_speech.Defaults.KokoroBodyTimeoutMs" />
-            <NumberField Label="@T["speechSettings.providers.kokoro.cacheCap.label"]" Hint="@T["speechSettings.providers.kokoro.cacheCap.hint"]" Suffix="MB" Min="0"
-                         Disabled="@KokoroOff"
-                         @bind-Value="_speech.Value.KokoroMaxCacheMbPerVoice"
-                         Default="_speech.Defaults.KokoroMaxCacheMbPerVoice" />
+            <OptionField Draft="_speech" For="o => o.KokoroTimeoutMs" />
+            <OptionField Draft="_speech" For="o => o.KokoroBodyTimeoutMs" />
+            <OptionField Draft="_speech" For="o => o.KokoroMaxCacheMbPerVoice" />
         </AdvancedFields>
     </Section>
     }
     else if (ProviderTab == "elevenlabs")
     {
     <Section Title="@T["speechSettings.providers.elevenLabs.title"]" Hint="@T["speechSettings.providers.elevenLabs.hint"]">
-        <TextField Label="@T["speechSettings.common.apiKey"]" Hint="@T["speechSettings.providers.elevenLabs.apiKey.hint"]" More="@T["speechSettings.providers.elevenLabs.apiKey.more"]" Password="true"
-                   @bind-Value="_speech.Value.ElevenLabsApiKey" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsApiKey" />
         <SecretUnreadableHint Path="speech:elevenLabsApiKey" />
-        <VoicePickerField Label="@T["speechSettings.common.fallbackVoice"]" Hint="@T["speechSettings.providers.elevenLabs.fallback.hint"]" More="@T["speechSettings.providers.elevenLabs.fallback.more"]" Groups='@GroupsFor("elevenlabs")' PlainIds="true" EmptyListHint="@T["speechSettings.providers.elevenLabs.fallback.empty"]" Disabled="@ElevenLabsOff"
-                          @bind-Value="_speech.Value.ElevenLabsVoiceId" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsVoiceId" VoiceGroups='@GroupsFor("elevenlabs")' />
         <div class="field">
             <label class="field-label">
                 @T["speechSettings.common.voiceList"]
@@ -732,57 +482,29 @@ else if (CurrentSection == "providers")
                 </div>
             </div>
         </div>
-        <SelectField Label="@T["speechSettings.common.model"]" Hint="@T["speechSettings.providers.elevenLabs.modelHint"]" Options="ElevenLabsModelOptions"
-                     Disabled="@ElevenLabsOff"
-                     @bind-Value="_speech.Value.ElevenLabsModelId" />
-        <SelectField Label="@T["speechSettings.providers.elevenLabs.format.label"]" Hint="@T["speechSettings.providers.elevenLabs.format.hint"]" Options="ElevenLabsFormatOptions"
-                     Disabled="@ElevenLabsOff"
-                     @bind-Value="_speech.Value.ElevenLabsOutputFormat" />
-        <NumberField Label="@T["speechSettings.providers.elevenLabs.stability.label"]" Hint="@T["speechSettings.providers.elevenLabs.stability.hint"]" Step="0.05" Min="0" Max="1"
-                     Disabled="@ElevenLabsOff"
-                     @bind-Value="_speech.Value.ElevenLabsStability"
-                     Default="_speech.Defaults.ElevenLabsStability" />
-        <NumberField Label="@T["speechSettings.providers.elevenLabs.similarity.label"]" Hint="@T["speechSettings.providers.elevenLabs.similarity.hint"]" Step="0.05" Min="0" Max="1"
-                     Disabled="@ElevenLabsOff"
-                     @bind-Value="_speech.Value.ElevenLabsSimilarityBoost"
-                     Default="_speech.Defaults.ElevenLabsSimilarityBoost" />
-        <NumberField Label="@T["speechSettings.providers.elevenLabs.speed.label"]" Hint="@T["speechSettings.providers.elevenLabs.speed.hint"]" Step="0.05" Min="0.7" Max="1.2"
-                     Disabled="@ElevenLabsOff"
-                     @bind-Value="_speech.Value.ElevenLabsSpeed"
-                     Default="_speech.Defaults.ElevenLabsSpeed" />
-        <NumberField Label="@T["speechSettings.common.monthlyCharBudget"]" Hint="@T["speechSettings.providers.elevenLabs.budget.hint"]" More="@T["speechSettings.providers.elevenLabs.budget.more"]" Min="0"
-                     Disabled="@ElevenLabsOff"
-                     @bind-Value="_speech.Value.ElevenLabsMonthlyCharBudget"
-                     Default="_speech.Defaults.ElevenLabsMonthlyCharBudget" />
-        <NumberField Label="@T["speechSettings.providers.elevenLabs.maxChars.label"]" Hint="@T["speechSettings.providers.elevenLabs.maxChars.hint"]" More="@T["speechSettings.providers.elevenLabs.maxChars.more"]" Min="0"
-                     Disabled="@ElevenLabsOff"
-                     @bind-Value="_speech.Value.ElevenLabsMaxCharsPerRequest"
-                     Default="_speech.Defaults.ElevenLabsMaxCharsPerRequest" />
-        <BoolField Label="@T["speechSettings.providers.elevenLabs.normalisation.label"]" Hint="@T["speechSettings.providers.elevenLabs.normalisation.hint"]" More="@T["speechSettings.providers.elevenLabs.normalisation.more"]"
-                   Disabled="@ElevenLabsOff"
-                   @bind-Value="_speech.Value.ElevenLabsTextNormalization" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsModelId" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsOutputFormat" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsStability" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsSimilarityBoost" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsSpeed" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsMonthlyCharBudget" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsMaxCharsPerRequest" />
+        <OptionField Draft="_speech" For="o => o.ElevenLabsTextNormalization" />
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.providers.elevenLabs.usageBefore"] <span class="mono">@ElevenLabsUsageThisMonth.ToString("N0")</span> @T["speechSettings.providers.elevenLabs.usageMiddle"]
             <span class="mono">usage.elevenlabs.json</span> @T["speechSettings.providers.elevenLabs.usageAfter"]
         </div>
         <AdvancedFields>
-            <TextField Label="@T["speechSettings.common.baseUrl"]" TallyKey="@T["speechSettings.providers.elevenLabs.baseUrl.tally"]" Hint="@T["speechSettings.providers.elevenLabs.baseUrl.hint"]" Kind="TextFieldKind.Url" Placeholder="https://api.elevenlabs.io"
-                       Disabled="@ElevenLabsOff"
-                       @bind-Value="_speech.Value.ElevenLabsBaseUrl" />
-            <NumberField Label="@T["speechSettings.common.timeout"]" Hint="@T["speechSettings.providers.elevenLabs.timeoutHint"]" Suffix="ms" Min="200"
-                         Disabled="@ElevenLabsOff"
-                         @bind-Value="_speech.Value.ElevenLabsTimeoutMs"
-                         Default="_speech.Defaults.ElevenLabsTimeoutMs" />
+            <OptionField Draft="_speech" For="o => o.ElevenLabsBaseUrl" />
+            <OptionField Draft="_speech" For="o => o.ElevenLabsTimeoutMs" />
         </AdvancedFields>
     </Section>
     }
     else if (ProviderTab == "google")
     {
     <Section Title="@T["speechSettings.providers.google.title"]" Hint="@T["speechSettings.providers.google.hint"]">
-        <TextField Label="@T["speechSettings.providers.google.keyFile.label"]" Hint="@T["speechSettings.providers.google.keyFile.hint"]" Kind="TextFieldKind.FilePath" BrowseStartIn="ExpectedFolders.Downloads" BrowseFilter="JSON key (*.json)|*.json"
-                   @bind-Value="_speech.Value.GoogleKeyFilePath" />
-        <VoicePickerField Label="@T["speechSettings.common.fallbackVoice"]" Hint="@T["speechSettings.providers.google.fallback.hint"]" More="@T["speechSettings.providers.google.fallback.more"]" Groups='@GroupsFor("google")' PlainIds="true" EmptyListHint="@T["speechSettings.providers.google.fallback.empty"]" Disabled="@GoogleOff"
-                          @bind-Value="_speech.Value.GoogleVoice" />
+        <OptionField Draft="_speech" For="o => o.GoogleKeyFilePath" />
+        <OptionField Draft="_speech" For="o => o.GoogleVoice" VoiceGroups='@GroupsFor("google")' />
         <div class="field">
             <label class="field-label">
                 @T["speechSettings.common.voiceList"]
@@ -797,19 +519,14 @@ else if (CurrentSection == "providers")
                 </div>
             </div>
         </div>
-        <NumberField Label="@T["speechSettings.common.monthlyCharBudget"]" Hint="@T["speechSettings.providers.google.budget.hint"]" More="@T["speechSettings.providers.google.budget.more"]" Min="0"
-                     Disabled="@GoogleOff"
-                     @bind-Value="_speech.Value.GoogleMonthlyCharBudget"
-                     Default="_speech.Defaults.GoogleMonthlyCharBudget" />
+        <OptionField Draft="_speech" For="o => o.GoogleMonthlyCharBudget" />
     </Section>
     }
     else
     {
     <Section Title="@T["speechSettings.providers.windows.title"]" Hint="@T["speechSettings.providers.windows.hint"]">
-        <VoicePickerField Label="@T["speechSettings.providers.windows.winrt.label"]" Hint="@T["speechSettings.providers.windows.winrt.hint"]" More="@T["speechSettings.providers.windows.winrt.more"]" Groups='@GroupsFor("winrt")' PlainIds="true" BlankLabel="@T["speechSettings.common.windowsDefaultVoice"]" EmptyListHint="@T["speechSettings.common.noListPressRefresh"]"
-                          @bind-Value="_speech.Value.WinRtVoice" />
-        <VoicePickerField Label="@T["speechSettings.providers.windows.sapi.label"]" Hint="@T["speechSettings.providers.windows.sapi.hint"]" Groups='@GroupsFor("sapi")' PlainIds="true" BlankLabel="@T["speechSettings.common.windowsDefaultVoice"]" EmptyListHint="@T["speechSettings.common.noListPressRefresh"]"
-                          @bind-Value="_speech.Value.SapiVoice" />
+        <OptionField Draft="_speech" For="o => o.WinRtVoice" VoiceGroups='@GroupsFor("winrt")' />
+        <OptionField Draft="_speech" For="o => o.SapiVoice" VoiceGroups='@GroupsFor("sapi")' />
         <div class="field">
             <label class="field-label">
                 @T["speechSettings.common.voiceList"]
@@ -828,111 +545,65 @@ else if (CurrentSection == "providers")
     }
 
     <Section Title="@T["speechSettings.providers.cache.title"]" Advanced="true">
-        <TextField Label="@T["speechSettings.providers.cache.folder.label"]" Hint="@T["speechSettings.providers.cache.folder.hint"]" More="@T["speechSettings.providers.cache.folder.more"]" Placeholder="%LOCALAPPDATA%\ProsimCompanion\cache\tts"
-                   Kind="TextFieldKind.FolderPath" BrowseStartIn="ExpectedFolders.AppStateFolder"
-                   @bind-Value="_speech.Value.CacheFolder" />
+        <OptionField Draft="_speech" For="o => o.CacheFolder" />
     </Section>
 }
 else if (CurrentSection == "mcdu")
 {
     <Section Title="@T["speechSettings.mcdu.title"]" Hint="@T["speechSettings.mcdu.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.mcdu.enabledHint"]"
-                   @bind-Value="_mcdu.Value.Enabled" />
-        <BoolField Label="@T["speechSettings.mcdu.actuation.label"]" Hint="@T["speechSettings.mcdu.actuation.hint"]" More="@T["speechSettings.mcdu.actuation.more"]"
-                   Disabled="@(!_mcdu.Value.Enabled)"
-                   @bind-Value="_mcdu.Value.AllowActuation" />
-        <NumberField Label="@T["speechSettings.mcdu.verifyPause.label"]" Hint="@T["speechSettings.mcdu.verifyPause.hint"]" Suffix="s" Min="0"
-                     Disabled="@(!_mcdu.Value.Enabled || !_mcdu.Value.AllowActuation)"
-                     @bind-Value="_mcdu.Value.VerifyPauseSeconds"
-                     Default="_mcdu.Defaults.VerifyPauseSeconds" />
+        <OptionField Draft="_mcdu" For="o => o.Enabled" />
+        <OptionField Draft="_mcdu" For="o => o.AllowActuation" />
+        <OptionField Draft="_mcdu" For="o => o.VerifyPauseSeconds" />
     </Section>
 }
 else if (CurrentSection == "briefing")
 {
     <Section Title="@T["speechSettings.briefing.title"]" Hint="@T["speechSettings.briefing.hint"]">
-        <SelectField Label="@T["speechSettings.briefing.source.label"]" Hint="@T["speechSettings.briefing.source.hint"]" More="@T["speechSettings.briefing.source.more"]" Options="ProcedureSourceOptions"
-                     @bind-Value="ProcedureSourceKey" />
-        <BoolField Label="@T["speechSettings.briefing.verify.label"]" Hint="@T["speechSettings.briefing.verify.hint"]" More="@T["speechSettings.briefing.verify.more"]"
-                   @bind-Value="_briefing.Value.VerifyNumbers" />
+        <OptionField Draft="_briefing" For="o => o.ProcedureSource" />
+        <OptionField Draft="_briefing" For="o => o.VerifyNumbers" />
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.briefing.dfdBefore"] <a href="settings">@T["speechSettings.briefing.dfdLink"]</a>@T["speechSettings.briefing.dfdAfter"]
         </div>
     </Section>
 
     <Section Title="@T["speechSettings.briefing.manual.title"]" Hint="@T["speechSettings.briefing.manual.hint"]">
-        <TextField Label="@T["speechSettings.briefing.manual.depAirport.label"]" Hint="@T["speechSettings.briefing.manual.depAirport.hint"]" Kind="TextFieldKind.Icao" @bind-Value="_briefing.Value.DepartureAirport" />
-        <TextField Label="@T["speechSettings.briefing.manual.depRunway.label"]" Hint="@T["speechSettings.briefing.manual.depRunway.hint"]" Kind="TextFieldKind.Runway" @bind-Value="_briefing.Value.DepartureRunway" />
-        <TextField Label="@T["speechSettings.briefing.manual.sid.label"]" Hint="@T["speechSettings.briefing.manual.sid.hint"]" @bind-Value="_briefing.Value.DepartureSid" />
-        <TextField Label="@T["speechSettings.briefing.manual.arrAirport.label"]" Hint="@T["speechSettings.briefing.manual.arrAirport.hint"]" Kind="TextFieldKind.Icao" @bind-Value="_briefing.Value.ArrivalAirport" />
-        <TextField Label="@T["speechSettings.briefing.manual.arrRunway.label"]" Hint="@T["speechSettings.briefing.manual.arrRunway.hint"]" Kind="TextFieldKind.Runway" @bind-Value="_briefing.Value.ArrivalRunway" />
-        <TextField Label="@T["speechSettings.briefing.manual.star.label"]" Hint="@T["speechSettings.briefing.manual.star.hint"]" @bind-Value="_briefing.Value.ArrivalStar" />
-        <TextField Label="@T["speechSettings.briefing.manual.approach.label"]" Hint="@T["speechSettings.briefing.manual.approach.hint"]" More="@T["speechSettings.briefing.manual.approach.more"]"
-                   @bind-Value="_briefing.Value.ArrivalApproach" />
+        <OptionField Draft="_briefing" For="o => o.DepartureAirport" />
+        <OptionField Draft="_briefing" For="o => o.DepartureRunway" />
+        <OptionField Draft="_briefing" For="o => o.DepartureSid" />
+        <OptionField Draft="_briefing" For="o => o.ArrivalAirport" />
+        <OptionField Draft="_briefing" For="o => o.ArrivalRunway" />
+        <OptionField Draft="_briefing" For="o => o.ArrivalStar" />
+        <OptionField Draft="_briefing" For="o => o.ArrivalApproach" />
     </Section>
 
     <Section Title="@T["speechSettings.briefing.minima.title"]" Hint="@T["speechSettings.briefing.minima.hint"]">
-        <BoolField Label="@T["speechSettings.briefing.minima.interactive.label"]" Hint="@T["speechSettings.briefing.minima.interactive.hint"]" More="@T["speechSettings.briefing.minima.interactive.more"]"
-                   @bind-Value="_briefing.Value.MinimaCaptureEnabled" />
+        <OptionField Draft="_briefing" For="o => o.MinimaCaptureEnabled" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.briefing.minima.listenTimeout.label"]" Hint="@T["speechSettings.briefing.minima.listenTimeout.hint"]" Suffix="s" Min="5"
-                         Disabled="@(!_briefing.Value.MinimaCaptureEnabled)"
-                         @bind-Value="_briefing.Value.MinimaListenTimeoutSeconds"
-                         Default="_briefing.Defaults.MinimaListenTimeoutSeconds" />
-            <NumberField Label="@T["speechSettings.briefing.minima.maxRetries.label"]" Hint="@T["speechSettings.briefing.minima.maxRetries.hint"]" Min="0"
-                         Disabled="@(!_briefing.Value.MinimaCaptureEnabled)"
-                         @bind-Value="_briefing.Value.MinimaMaxRetries"
-                         Default="_briefing.Defaults.MinimaMaxRetries" />
+            <OptionField Draft="_briefing" For="o => o.MinimaListenTimeoutSeconds" />
+            <OptionField Draft="_briefing" For="o => o.MinimaMaxRetries" />
         </AdvancedFields>
     </Section>
 
     <Section Title="@T["speechSettings.briefing.missed.title"]" Hint="@T["speechSettings.briefing.missed.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.briefing.missed.enabled.hint"]" More="@T["speechSettings.briefing.missed.enabled.more"]"
-                   @bind-Value="_briefing.Value.MissedApproachRebriefEnabled" />
+        <OptionField Draft="_briefing" For="o => o.MissedApproachRebriefEnabled" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.briefing.missed.delay"]" Suffix="s" Min="0"
-                         Disabled="@(!_briefing.Value.MissedApproachRebriefEnabled)"
-                         @bind-Value="_briefing.Value.MissedApproachDelaySeconds"
-                         Default="_briefing.Defaults.MissedApproachDelaySeconds" />
-            <NumberField Label="@T["speechSettings.briefing.missed.hardCeiling.label"]" Hint="@T["speechSettings.briefing.missed.hardCeiling.hint"]" Suffix="s" Min="0"
-                         Disabled="@(!_briefing.Value.MissedApproachRebriefEnabled)"
-                         @bind-Value="_briefing.Value.MissedApproachHardCeilingSeconds"
-                         Default="_briefing.Defaults.MissedApproachHardCeilingSeconds" />
+            <OptionField Draft="_briefing" For="o => o.MissedApproachDelaySeconds" />
+            <OptionField Draft="_briefing" For="o => o.MissedApproachHardCeilingSeconds" />
         </AdvancedFields>
     </Section>
 
     <Section Title="@T["speechSettings.briefing.llm.title"]" Hint="@T["speechSettings.briefing.llm.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]" Hint="@T["speechSettings.briefing.llm.enabledHint"]"
-                   @bind-Value="_briefing.Value.LlmEnabled" />
-        <BoolField Label="@T["speechSettings.briefing.llm.stream.label"]"
-                   Hint="@T["speechSettings.briefing.llm.stream.hint"]"
-                   More="@T["speechSettings.briefing.llm.stream.more"]"
-                   Disabled="@(!_briefing.Value.LlmEnabled)"
-                   @bind-Value="_briefing.Value.StreamLlm" />
-        <SelectField Label="@T["speechSettings.briefing.llm.apiFlavour.label"]" Hint="@T["speechSettings.briefing.llm.apiFlavour.hint"]" More="@T["speechSettings.briefing.llm.apiFlavour.more"]" Options="LlmApiOptions"
-                     Disabled="@(!_briefing.Value.LlmEnabled)"
-                     @bind-Value="LlmApiKey" />
-        <TextField Label="@T["speechSettings.common.baseUrl"]" TallyKey="@T["speechSettings.briefing.llm.baseUrl.tally"]" Hint="@T["speechSettings.briefing.llm.baseUrl.hint"]" Kind="TextFieldKind.Url" Placeholder="http://localhost:11434"
-                   Disabled="@(!_briefing.Value.LlmEnabled)"
-                   @bind-Value="_briefing.Value.LlmBaseUrl" />
-        <TextField Label="@T["speechSettings.common.apiKey"]" Hint="@T["speechSettings.briefing.llm.apiKeyHint"]"
-                   Disabled="@(!_briefing.Value.LlmEnabled)"
-                   @bind-Value="_briefing.Value.LlmApiKey" />
+        <OptionField Draft="_briefing" For="o => o.LlmEnabled" />
+        <OptionField Draft="_briefing" For="o => o.StreamLlm" />
+        <OptionField Draft="_briefing" For="o => o.LlmApi" />
+        <OptionField Draft="_briefing" For="o => o.LlmBaseUrl" />
+        <OptionField Draft="_briefing" For="o => o.LlmApiKey" />
         <SecretUnreadableHint Path="briefing:llmApiKey" />
-        <TextField Label="@T["speechSettings.common.model"]" Hint="@T["speechSettings.briefing.llm.modelHint"]"
-                   Disabled="@(!_briefing.Value.LlmEnabled)"
-                   @bind-Value="_briefing.Value.LlmModel" />
-        <BoolField Label="@T["speechSettings.briefing.llm.thinking.label"]" Hint="@T["speechSettings.briefing.llm.thinking.hint"]" More="@T["speechSettings.briefing.llm.thinking.more"]"
-                   Disabled="@(!_briefing.Value.LlmEnabled || _briefing.Value.LlmApi != LlmApiKind.Ollama)"
-                   @bind-Value="_briefing.Value.LlmEnableThinking" />
+        <OptionField Draft="_briefing" For="o => o.LlmModel" />
+        <OptionField Draft="_briefing" For="o => o.LlmEnableThinking" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.briefing.llm.maxTokens"]" Min="64"
-                         Disabled="@(!_briefing.Value.LlmEnabled)"
-                         @bind-Value="_briefing.Value.LlmMaxTokens"
-                         Default="_briefing.Defaults.LlmMaxTokens" />
-            <NumberField Label="@T["speechSettings.common.timeout"]" Hint="@T["speechSettings.briefing.llm.timeoutHint"]" Suffix="s" Min="5"
-                         Disabled="@(!_briefing.Value.LlmEnabled)"
-                         @bind-Value="_briefing.Value.LlmTimeoutSeconds"
-                         Default="_briefing.Defaults.LlmTimeoutSeconds" />
+            <OptionField Draft="_briefing" For="o => o.LlmMaxTokens" />
+            <OptionField Draft="_briefing" For="o => o.LlmTimeoutSeconds" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.briefing.llm.testBefore"] <a href="settings/speech/status">@T["speechSettings.briefing.llm.testLink"]</a>@T["speechSettings.briefing.llm.testAfter"]
@@ -940,69 +611,23 @@ else if (CurrentSection == "briefing")
     </Section>
 
     <Section Title="@T["speechSettings.briefing.ask.title"]" Hint="@T["speechSettings.briefing.ask.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]"
-                   Hint="@T["speechSettings.briefing.ask.enabled.hint"]"
-                   More="@T["speechSettings.briefing.ask.enabled.more"]"
-                   @bind-Value="_speech.Value.FoQuestions.Enabled" />
-        <BoolField Label="@T["speechSettings.briefing.ask.smallTalk.label"]"
-                   Hint="@T["speechSettings.briefing.ask.smallTalk.hint"]"
-                   More="@T["speechSettings.briefing.ask.smallTalk.more"]"
-                   Disabled="@(!_speech.Value.FoQuestions.Enabled)"
-                   @bind-Value="_speech.Value.FoQuestions.SmallTalk" />
-        <BoolField Label="@T["speechSettings.briefing.ask.roger.label"]"
-                   Hint="@T["speechSettings.briefing.ask.roger.hint"]"
-                   More="@T["speechSettings.briefing.ask.roger.more"]"
-                   Disabled="@(!_speech.Value.FoQuestions.Enabled)"
-                   @bind-Value="_speech.Value.FoQuestions.AcknowledgeSmallTalk" />
-        <BoolField Label="@T["speechSettings.briefing.ask.flyingOver.label"]"
-                   Hint="@T["speechSettings.briefing.ask.flyingOver.hint"]"
-                   More="@T["speechSettings.briefing.ask.flyingOver.more"]"
-                   Disabled="@(!_speech.Value.FoQuestions.Enabled)"
-                   @bind-Value="_speech.Value.FoQuestions.WhereAreWe" />
-        <BoolField Label="@T["speechSettings.briefing.ask.wikipedia.label"]"
-                   Hint="@T["speechSettings.briefing.ask.wikipedia.hint"]"
-                   More="@T["speechSettings.briefing.ask.wikipedia.more"]"
-                   Disabled="@(!_speech.Value.FoQuestions.Enabled || !_speech.Value.FoQuestions.WhereAreWe)"
-                   @bind-Value="_speech.Value.FoQuestions.WikipediaFacts" />
-        <TextField Label="@T["speechSettings.briefing.ask.leadIns.label"]" Hint="@T["speechSettings.briefing.ask.leadIns.hint"]"
-                   Disabled="@(!_speech.Value.FoQuestions.Enabled)"
-                   @bind-Value="_speech.Value.FoQuestions.LeadIns" />
-        <NumberField Label="@T["speechSettings.briefing.ask.minWords.label"]" Hint="@T["speechSettings.briefing.ask.minWords.hint"]" Min="1" Max="10"
-                     Disabled="@(!_speech.Value.FoQuestions.Enabled)"
-                     @bind-Value="_speech.Value.FoQuestions.MinimumWords"
-                     Default="_speech.Defaults.FoQuestions.MinimumWords" />
-        <NumberField Label="@T["speechSettings.briefing.ask.timeBudget.label"]" Hint="@T["speechSettings.briefing.ask.timeBudget.hint"]" Suffix="s" Min="1" Max="60"
-                     Disabled="@(!_speech.Value.FoQuestions.Enabled)"
-                     @bind-Value="_speech.Value.FoQuestions.TimeBudgetSeconds"
-                     Default="_speech.Defaults.FoQuestions.TimeBudgetSeconds" />
-        <NumberField Label="@T["speechSettings.briefing.ask.standBy.label"]" Hint="@T["speechSettings.briefing.ask.standBy.hint"]" Suffix="s" Min="0" Max="30"
-                     Disabled="@(!_speech.Value.FoQuestions.Enabled)"
-                     @bind-Value="_speech.Value.FoQuestions.StandBySeconds"
-                     Default="_speech.Defaults.FoQuestions.StandBySeconds" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.Enabled" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.SmallTalk" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.AcknowledgeSmallTalk" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.WhereAreWe" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.WikipediaFacts" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.LeadIns" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.MinimumWords" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.TimeBudgetSeconds" />
+        <OptionField Draft="_speech" For="o => o.FoQuestions.StandBySeconds" />
     </Section>
 
     <Section Title="@T["speechSettings.briefing.regionFacts.title"]" Hint="@T["speechSettings.briefing.regionFacts.hint"]">
-        <BoolField Label="@T["speechSettings.common.enabled"]"
-                   Hint="@T["speechSettings.briefing.regionFacts.enabled.hint"]"
-                   More="@T["speechSettings.briefing.regionFacts.enabled.more"]"
-                   @bind-Value="_speech.Value.RegionFacts.Enabled" />
-        <NumberField Label="@T["speechSettings.briefing.regionFacts.shortest.label"]" Hint="@T["speechSettings.briefing.regionFacts.shortest.hint"]" Suffix="min" Min="1" Max="240"
-                     Disabled="@(!_speech.Value.RegionFacts.Enabled)"
-                     @bind-Value="_speech.Value.RegionFacts.MinIntervalMinutes"
-                     Default="_speech.Defaults.RegionFacts.MinIntervalMinutes" />
-        <NumberField Label="@T["speechSettings.briefing.regionFacts.longest.label"]" Hint="@T["speechSettings.briefing.regionFacts.longest.hint"]" Suffix="min" Min="1" Max="480"
-                     Disabled="@(!_speech.Value.RegionFacts.Enabled)"
-                     @bind-Value="_speech.Value.RegionFacts.MaxIntervalMinutes"
-                     Default="_speech.Defaults.RegionFacts.MaxIntervalMinutes" />
-        <NumberField Label="@T["speechSettings.briefing.regionFacts.perFlight.label"]" Hint="@T["speechSettings.briefing.regionFacts.perFlight.hint"]" Min="1" Max="20"
-                     Disabled="@(!_speech.Value.RegionFacts.Enabled)"
-                     @bind-Value="_speech.Value.RegionFacts.MaxPerFlight"
-                     Default="_speech.Defaults.RegionFacts.MaxPerFlight" />
-        <BoolField Label="@T["speechSettings.briefing.regionFacts.llmFacts.label"]"
-                   Hint="@T["speechSettings.briefing.regionFacts.llmFacts.hint"]"
-                   More="@T["speechSettings.briefing.regionFacts.llmFacts.more"]"
-                   Disabled="@(!_speech.Value.RegionFacts.Enabled)"
-                   @bind-Value="_speech.Value.RegionFacts.LlmFacts" />
+        <OptionField Draft="_speech" For="o => o.RegionFacts.Enabled" />
+        <OptionField Draft="_speech" For="o => o.RegionFacts.MinIntervalMinutes" />
+        <OptionField Draft="_speech" For="o => o.RegionFacts.MaxIntervalMinutes" />
+        <OptionField Draft="_speech" For="o => o.RegionFacts.MaxPerFlight" />
+        <OptionField Draft="_speech" For="o => o.RegionFacts.LlmFacts" />
     </Section>
 
     <Section Title="@T["speechSettings.briefing.wol.title"]" Hint="@T["speechSettings.briefing.wol.hint"]" Advanced="true">
@@ -1015,8 +640,7 @@ else if (CurrentSection == "briefing")
 else if (CurrentSection == "callouts")
 {
     <Section Title="@T["speechSettings.callouts.title"]" Hint="@T["speechSettings.callouts.hint"]">
-        <BoolField Label="@T["speechSettings.callouts.enabled.label"]" Hint="@T["speechSettings.callouts.enabled.hint"]" More="@T["speechSettings.callouts.enabled.more"]"
-                   @bind-Value="_sop.Value.CalloutsEnabled" />
+        <OptionField Draft="_sop" For="o => o.CalloutsEnabled" />
     </Section>
 
     <Section Title="@T["speechSettings.callouts.placards.title"]" Hint="@T["speechSettings.callouts.placards.hint"]">
@@ -1042,61 +666,37 @@ else if (CurrentSection == "callouts")
     </Section>
 
     <Section Title="@T["speechSettings.callouts.gear.title"]" Hint="@T["speechSettings.callouts.gear.hint"]">
-        <NumberField Label="@T["speechSettings.callouts.gear.vle.label"]" Suffix="kt" Min="0" Max="400"
-                     Hint="@T["speechSettings.callouts.gear.vle.hint"]"
-                     @bind-Value="_sop.Value.GearMaxKt"
-                     Default="_sop.Defaults.GearMaxKt" />
-        <NumberField Label="@T["speechSettings.callouts.gear.vloDown.label"]" Suffix="kt" Min="0" Max="400"
-                     Hint="@T["speechSettings.callouts.gear.vloDown.hint"]"
-                     @bind-Value="_sop.Value.GearExtendMaxKt"
-                     Default="_sop.Defaults.GearExtendMaxKt" />
-        <NumberField Label="@T["speechSettings.callouts.gear.vloUp.label"]" Suffix="kt" Min="0" Max="400"
-                     Hint="@T["speechSettings.callouts.gear.vloUp.hint"]"
-                     @bind-Value="_sop.Value.GearRetractMaxKt"
-                     Default="_sop.Defaults.GearRetractMaxKt" />
+        <OptionField Draft="_sop" For="o => o.GearMaxKt" />
+        <OptionField Draft="_sop" For="o => o.GearExtendMaxKt" />
+        <OptionField Draft="_sop" For="o => o.GearRetractMaxKt" />
+        @* The gear-still-down switch is one of twelve FlowCheckSetting blocks and the only one
+           with a card, so its texts stay here rather than on the shared type. *@
         <BoolField Label="@T["speechSettings.callouts.gear.stillDown.label"]"
                    Hint="@T["speechSettings.callouts.gear.stillDown.hint"]"
                    @bind-Value="_sop.Value.FlowMonitor.GearStillDown.Enabled" />
-        <NumberField Label="@T["speechSettings.callouts.gear.upBy.label"]" Suffix="ft AGL" Min="0" Max="10000" Step="50"
-                     Hint="@T["speechSettings.callouts.gear.upBy.hint"]"
-                     Disabled="@(!_sop.Value.FlowMonitor.GearStillDown.Enabled)"
-                     @bind-Value="_sop.Value.FlowMonitor.GearUpAboveAglFt"
-                     Default="_sop.Defaults.FlowMonitor.GearUpAboveAglFt" />
+        <OptionField Draft="_sop" For="o => o.FlowMonitor.GearUpAboveAglFt" />
     </Section>
 
     <Section Title="@T["speechSettings.callouts.gates.title"]" Hint="@T["speechSettings.callouts.gates.hint"]">
-        <BoolField Label="@T["speechSettings.callouts.gates.stable.label"]"
-                   Hint="@T["speechSettings.callouts.gates.stable.hint"]"
-                   More="@T["speechSettings.callouts.gates.stable.more"]"
-                   @bind-Value="_sop.Value.Stabilized.Enabled" />
+        <OptionField Draft="_sop" For="o => o.Stabilized.Enabled" />
         @for (var i = 0; i < _sop.Value.ApproachGates.Count; i++)
         {
             var gate = _sop.Value.ApproachGates[i];
-            var gateOff = !_sop.Value.Stabilized.Enabled || !gate.Enabled;
+            var gatesOff = !_sop.Value.Stabilized.Enabled;
             <div class="gate-block">
                 <div class="gate-title">
                     <span>@T["speechSettings.callouts.gates.gateTitle", i + 1, gate.AglFt]</span>
                     <button type="button" class="btn secondary" title="@T["speechSettings.callouts.gates.removeTitle"]"
                             @onclick="() => RemoveApproachGate(gate)">@T["speechSettings.common.remove"]</button>
                 </div>
-                <BoolField Label="@T["speechSettings.callouts.gates.inUse"]" @bind-Value="gate.Enabled" Disabled="@(!_sop.Value.Stabilized.Enabled)" />
-                <NumberField Label="@T["speechSettings.callouts.gates.height.label"]" Suffix="ft AGL" Min="0" Max="5000" Step="50"
-                             Hint="@T["speechSettings.callouts.gates.height.hint"]"
-                             Disabled="@gateOff" @bind-Value="gate.AglFt" />
-                <BoolField Label="@T["speechSettings.callouts.gates.gearDown"]" Disabled="@gateOff" @bind-Value="gate.RequireGearDown" />
-                <SelectField Label="@T["speechSettings.callouts.gates.minFlap.label"]" Options="FlapLeverOptions" Disabled="@gateOff"
-                             Hint="@T["speechSettings.callouts.gates.minFlap.hint"]"
-                             Value="@gate.RequireFlapHandleAtLeast.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                             ValueChanged="@(value => gate.RequireFlapHandleAtLeast = ParseFlapLever(value, gate.RequireFlapHandleAtLeast))" />
-                <NumberField Label="@T["speechSettings.callouts.gates.belowVls"]" Suffix="kt" Min="0" Max="50" Step="1"
-                             Disabled="@gateOff" @bind-Value="gate.SpeedBandBelowVls" />
-                <NumberField Label="@T["speechSettings.callouts.gates.aboveVls"]" Suffix="kt" Min="0" Max="50" Step="1"
-                             Disabled="@gateOff" @bind-Value="gate.SpeedBandAboveVls" />
-                <NumberField Label="@T["speechSettings.callouts.gates.sink"]" Suffix="fpm" Min="0" Max="3000" Step="50"
-                             Disabled="@gateOff" @bind-Value="gate.MaxSinkRateFpm" />
-                <BoolField Label="@T["speechSettings.callouts.gates.announce.label"]"
-                           Hint="@T["speechSettings.callouts.gates.announce.hint"]"
-                           Disabled="@gateOff" @bind-Value="gate.AnnounceStabilized" />
+                <OptionField Item="gate" ItemOf="_sop" For="g => g.Enabled" Disabled="@gatesOff" />
+                <OptionField Item="gate" ItemOf="_sop" For="g => g.AglFt" Disabled="@gatesOff" />
+                <OptionField Item="gate" ItemOf="_sop" For="g => g.RequireGearDown" Disabled="@gatesOff" />
+                <OptionField Item="gate" ItemOf="_sop" For="g => g.RequireFlapHandleAtLeast" Disabled="@gatesOff" />
+                <OptionField Item="gate" ItemOf="_sop" For="g => g.SpeedBandBelowVls" Disabled="@gatesOff" />
+                <OptionField Item="gate" ItemOf="_sop" For="g => g.SpeedBandAboveVls" Disabled="@gatesOff" />
+                <OptionField Item="gate" ItemOf="_sop" For="g => g.MaxSinkRateFpm" Disabled="@gatesOff" />
+                <OptionField Item="gate" ItemOf="_sop" For="g => g.AnnounceStabilized" Disabled="@gatesOff" />
             </div>
         }
         <div class="preset-row" style="margin-top:12px;">
@@ -1107,151 +707,59 @@ else if (CurrentSection == "callouts")
         </div>
         <AdvancedFields Label="@T["speechSettings.callouts.gates.advancedLabel"]">
             <div class="gate-block">
-                <TextField Label="@T["speechSettings.callouts.gates.stableCall"]" Disabled="@(!_sop.Value.Stabilized.Enabled)"
-                           @bind-Value="_sop.Value.Stabilized.StableText" />
-                <TextField Label="@T["speechSettings.callouts.gates.unstableCall"]" Disabled="@(!_sop.Value.Stabilized.Enabled)"
-                           @bind-Value="_sop.Value.Stabilized.UnstableText" />
-                <BoolField Label="@T["speechSettings.callouts.gates.thrust.label"]"
-                           Hint="@T["speechSettings.callouts.gates.thrust.hint"]"
-                           Disabled="@(!_sop.Value.Stabilized.Enabled)"
-                           @bind-Value="_sop.Value.Stabilized.RequireThrustStabilized" />
-                <NumberField Label="@T["speechSettings.callouts.gates.minN1"]" Suffix="%" Min="0" Max="100" Step="1"
-                             Disabled="@(!_sop.Value.Stabilized.Enabled || !_sop.Value.Stabilized.RequireThrustStabilized)"
-                             @bind-Value="_sop.Value.Stabilized.MinStabilizedN1"
-                             Default="_sop.Defaults.Stabilized.MinStabilizedN1" />
+                <OptionField Draft="_sop" For="o => o.Stabilized.StableText" />
+                <OptionField Draft="_sop" For="o => o.Stabilized.UnstableText" />
+                <OptionField Draft="_sop" For="o => o.Stabilized.RequireThrustStabilized" />
+                <OptionField Draft="_sop" For="o => o.Stabilized.MinStabilizedN1" />
             </div>
         </AdvancedFields>
     </Section>
 
     <Section Title="@T["speechSettings.callouts.advisories.title"]" Hint="@T["speechSettings.callouts.advisories.hint"]" Advanced="true">
-        <BoolField Label="@T["speechSettings.common.enabled"]" @bind-Value="_sop.Value.PlacardAdvisory.Enabled" />
-        <NumberField Label="@T["speechSettings.callouts.advisories.warnWithin.label"]" Suffix="kt" Min="0" Max="50"
-                     Hint="@T["speechSettings.callouts.advisories.warnWithin.hint"]"
-                     Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
-                     @bind-Value="_sop.Value.PlacardAdvisory.WarnWithinKt"
-                     Default="_sop.Defaults.PlacardAdvisory.WarnWithinKt" />
-        <NumberField Label="@T["speechSettings.callouts.advisories.cooldown.label"]" Suffix="s" Min="0" Max="600"
-                     Hint="@T["speechSettings.callouts.advisories.cooldown.hint"]"
-                     Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
-                     @bind-Value="_sop.Value.PlacardAdvisory.CooldownSeconds"
-                     Default="_sop.Defaults.PlacardAdvisory.CooldownSeconds" />
-        <TextField Label="@T["speechSettings.callouts.advisories.approaching"]" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
-                   @bind-Value="_sop.Value.PlacardAdvisory.ApproachingText" />
-        <TextField Label="@T["speechSettings.callouts.advisories.exceeded"]" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
-                   @bind-Value="_sop.Value.PlacardAdvisory.ExceededText" />
-        <TextField Label="@T["speechSettings.callouts.advisories.gearExceeded"]" Disabled="@(!_sop.Value.PlacardAdvisory.Enabled)"
-                   @bind-Value="_sop.Value.PlacardAdvisory.GearExceededText" />
+        <OptionField Draft="_sop" For="o => o.PlacardAdvisory.Enabled" />
+        <OptionField Draft="_sop" For="o => o.PlacardAdvisory.WarnWithinKt" />
+        <OptionField Draft="_sop" For="o => o.PlacardAdvisory.CooldownSeconds" />
+        <OptionField Draft="_sop" For="o => o.PlacardAdvisory.ApproachingText" />
+        <OptionField Draft="_sop" For="o => o.PlacardAdvisory.ExceededText" />
+        <OptionField Draft="_sop" For="o => o.PlacardAdvisory.GearExceededText" />
     </Section>
 
     <Section Title="@T["speechSettings.callouts.monitoring.title"]" Hint="@T["speechSettings.callouts.monitoring.hint"]">
-        <BoolField Label="@T["speechSettings.callouts.monitoring.fuelCheck.label"]"
-                   Hint="@T["speechSettings.callouts.monitoring.fuelCheck.hint"]"
-                   More="@T["speechSettings.callouts.monitoring.fuelCheck.more"]"
-                   @bind-Value="_sop.Value.Monitoring.FuelCheck.Enabled" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.fuelEvery.label"]" Suffix="min" Min="0" Max="120"
-                     Hint="@T["speechSettings.callouts.monitoring.fuelEvery.hint"]"
-                     Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.FuelCheck.IntervalMinutes"
-                     Default="_sop.Defaults.Monitoring.FuelCheck.IntervalMinutes" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.shortfall.label"]" Suffix="kg" Min="0" Max="5000"
-                     Hint="@T["speechSettings.callouts.monitoring.shortfall.hint"]"
-                     Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.FuelCheck.ShortfallMarginKg"
-                     Default="_sop.Defaults.Monitoring.FuelCheck.ShortfallMarginKg" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.onPlan.label"]" Suffix="kg" Min="0" Max="2000"
-                     Hint="@T["speechSettings.callouts.monitoring.onPlan.hint"]"
-                     Disabled="@(!_sop.Value.Monitoring.FuelCheck.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.FuelCheck.OnPlanWithinKg"
-                     Default="_sop.Defaults.Monitoring.FuelCheck.OnPlanWithinKg" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.FuelCheck.Enabled" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.FuelCheck.IntervalMinutes" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.FuelCheck.ShortfallMarginKg" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.FuelCheck.OnPlanWithinKg" />
 
-        <BoolField Label="@T["speechSettings.callouts.monitoring.grossError.label"]"
-                   Hint="@T["speechSettings.callouts.monitoring.grossError.hint"]"
-                   More="@T["speechSettings.callouts.monitoring.grossError.more"]"
-                   @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.Enabled" />
-        <BoolField Label="@T["speechSettings.callouts.monitoring.automatic.label"]" Hint="@T["speechSettings.callouts.monitoring.automatic.hint"]"
-                   Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
-                   @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.Automatic" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.zfw"]" Suffix="kg" Min="0" Max="5000"
-                     Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.ZfwToleranceKg"
-                     Default="_sop.Defaults.Monitoring.GrossErrorCheck.ZfwToleranceKg" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.blockFuel"]" Suffix="kg" Min="0" Max="5000"
-                     Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.BlockFuelToleranceKg"
-                     Default="_sop.Defaults.Monitoring.GrossErrorCheck.BlockFuelToleranceKg" />
-        <NumberField Label="@T["speechSettings.common.vSpeedTolerance"]" Suffix="kt" Min="0" Max="20"
-                     Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.VSpeedToleranceKt"
-                     Default="_sop.Defaults.Monitoring.GrossErrorCheck.VSpeedToleranceKt" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.flex"]" Suffix="°C" Min="0" Max="20"
-                     Disabled="@(!_sop.Value.Monitoring.GrossErrorCheck.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.GrossErrorCheck.FlexToleranceC"
-                     Default="_sop.Defaults.Monitoring.GrossErrorCheck.FlexToleranceC" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.GrossErrorCheck.Enabled" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.GrossErrorCheck.Automatic" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.GrossErrorCheck.ZfwToleranceKg" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.GrossErrorCheck.BlockFuelToleranceKg" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.GrossErrorCheck.VSpeedToleranceKt" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.GrossErrorCheck.FlexToleranceC" />
 
-        <BoolField Label="@T["speechSettings.callouts.monitoring.destWx.label"]"
-                   Hint="@T["speechSettings.callouts.monitoring.destWx.hint"]"
-                   More="@T["speechSettings.callouts.monitoring.destWx.more"]"
-                   @bind-Value="_sop.Value.Monitoring.DestinationWeather.Enabled" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.visibility"]" Suffix="m" Min="0" Max="10000"
-                     Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.DestinationWeather.VisibilityThresholdM"
-                     Default="_sop.Defaults.Monitoring.DestinationWeather.VisibilityThresholdM" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.ceiling"]" Suffix="ft" Min="0" Max="5000"
-                     Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.DestinationWeather.CeilingThresholdFt"
-                     Default="_sop.Defaults.Monitoring.DestinationWeather.CeilingThresholdFt" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.tailwind.label"]" Suffix="kt" Min="0" Max="30"
-                     Hint="@T["speechSettings.callouts.monitoring.tailwind.hint"]"
-                     Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.DestinationWeather.TailwindThresholdKt"
-                     Default="_sop.Defaults.Monitoring.DestinationWeather.TailwindThresholdKt" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.quiet"]" Suffix="min" Min="1" Max="120"
-                     Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.DestinationWeather.MinutesBetweenAnnouncements"
-                     Default="_sop.Defaults.Monitoring.DestinationWeather.MinutesBetweenAnnouncements" />
-        <BoolField Label="@T["speechSettings.callouts.monitoring.atis"]"
-                   Disabled="@(!_sop.Value.Monitoring.DestinationWeather.Enabled)"
-                   @bind-Value="_sop.Value.Monitoring.DestinationWeather.AnnounceAtisChange" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.DestinationWeather.Enabled" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.DestinationWeather.VisibilityThresholdM" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.DestinationWeather.CeilingThresholdFt" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.DestinationWeather.TailwindThresholdKt" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.DestinationWeather.MinutesBetweenAnnouncements" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.DestinationWeather.AnnounceAtisChange" />
 
-        <BoolField Label="@T["speechSettings.callouts.monitoring.readbacks.label"]"
-                   Hint="@T["speechSettings.callouts.monitoring.readbacks.hint"]"
-                   More="@T["speechSettings.callouts.monitoring.readbacks.more"]"
-                   @bind-Value="_sop.Value.Monitoring.Readbacks.Enabled" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.altimeter"]" Suffix="hPa" Min="0" Max="5" Step="0.1"
-                     Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.Readbacks.AltimeterToleranceHpa"
-                     Default="_sop.Defaults.Monitoring.Readbacks.AltimeterToleranceHpa" />
-        <NumberField Label="@T["speechSettings.common.vSpeedTolerance"]" Suffix="kt" Min="0" Max="10"
-                     Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.Readbacks.VSpeedToleranceKt"
-                     Default="_sop.Defaults.Monitoring.Readbacks.VSpeedToleranceKt" />
-        <NumberField Label="@T["speechSettings.callouts.monitoring.minimums"]" Suffix="ft" Min="0" Max="100"
-                     Disabled="@(!_sop.Value.Monitoring.Readbacks.Enabled)"
-                     @bind-Value="_sop.Value.Monitoring.Readbacks.MinimumsToleranceFt"
-                     Default="_sop.Defaults.Monitoring.Readbacks.MinimumsToleranceFt" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.Readbacks.Enabled" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.Readbacks.AltimeterToleranceHpa" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.Readbacks.VSpeedToleranceKt" />
+        <OptionField Draft="_sop" For="o => o.Monitoring.Readbacks.MinimumsToleranceFt" />
     </Section>
 }
 else if (CurrentSection == "abnormals")
 {
     @* abnormals (2026-10-08): the dialogue ran on constants and had no switch before this. *@
     <Section Title="@T["speechSettings.abnormals.title"]" Hint="@T["speechSettings.abnormals.hint"]">
-        <BoolField Label="@T["speechSettings.abnormals.detect.label"]" Hint="@T["speechSettings.abnormals.detect.hint"]"
-                   @bind-Value="_abnormals.Value.Enabled" />
-        <BoolField Label="@T["speechSettings.abnormals.lineByLine.label"]" Hint="@T["speechSettings.abnormals.lineByLine.hint"]" More="@T["speechSettings.abnormals.lineByLine.more"]"
-                   Disabled="@(!_abnormals.Value.Enabled)" @bind-Value="_abnormals.Value.InteractiveDialogue" />
-        <NumberField Label="@T["speechSettings.abnormals.answerWindow.label"]" Hint="@T["speechSettings.abnormals.answerWindow.hint"]" Suffix="s" Min="3" Max="120"
-                     Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
-                     @bind-Value="_abnormals.Value.ConfirmTimeoutSeconds"
-                     Default="_abnormals.Defaults.ConfirmTimeoutSeconds" />
+        <OptionField Draft="_abnormals" For="o => o.Enabled" />
+        <OptionField Draft="_abnormals" For="o => o.InteractiveDialogue" />
+        <OptionField Draft="_abnormals" For="o => o.ConfirmTimeoutSeconds" />
         <AdvancedFields>
-            <NumberField Label="@T["speechSettings.abnormals.silentPrompts.label"]" Hint="@T["speechSettings.abnormals.silentPrompts.hint"]" Min="0" Max="20"
-                         Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
-                         @bind-Value="_abnormals.Value.MaxSilentPrompts"
-                         Default="_abnormals.Defaults.MaxSilentPrompts" />
-            <NumberField Label="@T["speechSettings.abnormals.mismatches.label"]" Hint="@T["speechSettings.abnormals.mismatches.hint"]" Min="0" Max="10"
-                         Disabled="@(!_abnormals.Value.Enabled || !_abnormals.Value.InteractiveDialogue)"
-                         @bind-Value="_abnormals.Value.MaxVerifyRetries"
-                         Default="_abnormals.Defaults.MaxVerifyRetries" />
+            <OptionField Draft="_abnormals" For="o => o.MaxSilentPrompts" />
+            <OptionField Draft="_abnormals" For="o => o.MaxVerifyRetries" />
         </AdvancedFields>
         <div class="field-hint" style="max-width:640px;">
             @T["speechSettings.abnormals.filesBefore"] <code>%LOCALAPPDATA%\ProsimCompanion\config\abnormals</code>@T["speechSettings.abnormals.filesAfter"]
@@ -1295,16 +803,6 @@ else if (CurrentSection == "abnormals")
 
     // ---- Approach gates (airline SOPs differ: 1000/500, 1000 only, an extra 1500 ft gate) ----
 
-    private static readonly IReadOnlyList<(string, string)> FlapLeverOptions =
-        [.. Enumerable.Range(0, 6).Select(handle => (
-            handle.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            SopOptions.FlapHandleLabel(handle)))];
-
-    private static int ParseFlapLever(string value, int fallback)
-        => int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var handle)
-            ? handle
-            : fallback;
-
     private void ResetApproachGates() => _sop.Value.ApproachGates = [.. SopOptions.DefaultApproachGates];
 
     private void RemoveApproachGate(ApproachGate gate) => _sop.Value.ApproachGates.Remove(gate);
@@ -1317,9 +815,6 @@ else if (CurrentSection == "abnormals")
         SopOptions.SyncApproachGateNames(_sop.Value.ApproachGates);
     }
 
-    private bool SileroSelected => !string.IsNullOrWhiteSpace(_speech.Value.AsrBaseUrl)
-        && _speech.Value.VadEngine.Equals("silero", StringComparison.OrdinalIgnoreCase);
-
     private bool KokoroOff => string.IsNullOrWhiteSpace(_speech.Value.KokoroBaseUrl);
 
     // Voices (owner, 2026-10-12): one live list per provider, read off the DRAFT options so a
@@ -1331,7 +826,7 @@ else if (CurrentSection == "abnormals")
     private IReadOnlyList<VoiceGroup> _allVoiceGroups = [];
     private bool _refreshingVoices;
 
-    private static readonly (string Key, string Label)[] ProviderTabs =
+    private static readonly (string Id, string Label)[] ProviderTabs =
     [
         ("kokoro", "Kokoro"),
         ("elevenlabs", "ElevenLabs"),
@@ -1346,17 +841,15 @@ else if (CurrentSection == "abnormals")
     private string ProviderTab
     {
         get => _providerTab;
-        set => _providerTab = ProviderTabs.Any(t => t.Key == value) ? value : "kokoro";
+        set => _providerTab = ProviderTabs.Any(t => t.Id == value) ? value : "kokoro";
     }
 
     /// <summary>Switches the tab and puts it in the URL, so a refresh and the Back button keep it.</summary>
-    private void OpenProviderTab(string key)
+    private void OpenProviderTab(string id)
     {
-        ProviderTab = key;
-        Nav.NavigateTo($"settings/speech/providers/{key}", replace: true);
+        ProviderTab = id;
+        Nav.NavigateTo($"settings/speech/providers/{id}", replace: true);
     }
-
-    private string VoicesEmptyHint => T["speechSettings.voiceNotes.emptyHint"];
 
     private bool IsProviderConfigured(string provider) => provider switch
     {
@@ -1370,32 +863,7 @@ else if (CurrentSection == "abnormals")
         => _voiceNotes.TryGetValue(provider, out var note) ? note
             : IsProviderConfigured(provider) ? T["speechSettings.voiceNotes.notListed"].Value : T["speechSettings.voiceNotes.notConfigured"].Value;
 
-    private IReadOnlyList<VoiceGroup> GroupsFor(string provider) => BuildGroups([provider]);
-
-    /// <summary>Provider order = chain order; regions with "English" first (the only ones that
-    /// make a usable First Officer), then alphabetical; rows as the provider listed them.</summary>
-    private IReadOnlyList<VoiceGroup> BuildGroups(IEnumerable<string> providers)
-    {
-        var groups = new List<VoiceGroup>();
-        foreach (var provider in providers)
-        {
-            if (!_voiceLists.TryGetValue(provider, out var voices) || voices.Count == 0)
-            {
-                continue;
-            }
-
-            var byRegion = voices
-                .GroupBy(v => v.Region, StringComparer.OrdinalIgnoreCase)
-                .OrderBy(g => g.Key.Contains("English", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-                .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
-            foreach (var region in byRegion)
-            {
-                groups.Add(new VoiceGroup($"{VoiceRef.DisplayName(provider)} · {region.Key}", region.ToArray()));
-            }
-        }
-
-        return groups;
-    }
+    private IReadOnlyList<VoiceGroup> GroupsFor(string provider) => SpeechPageRules.BuildVoiceGroups([provider], _voiceLists);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -1421,7 +889,7 @@ else if (CurrentSection == "abnormals")
                 _ => [only],
             };
             await Task.WhenAll(targets.Select(ListOneProviderAsync));
-            _allVoiceGroups = BuildGroups(VoiceRef.Providers);
+            _allVoiceGroups = SpeechPageRules.BuildVoiceGroups(VoiceRef.Providers, _voiceLists);
         }
         finally
         {
@@ -1457,45 +925,9 @@ else if (CurrentSection == "abnormals")
 
     private bool ElevenLabsOff => string.IsNullOrWhiteSpace(_speech.Value.ElevenLabsApiKey);
 
-    // SayIntentions PTT relay (2026-10-10). Keys match SayIntentionsPttRelay.SourceRef; the
-    // LVAR names are the ones the SI client lists under Controls → "Map PTT inside the sim".
     /// <summary>Picking a SayIntentions PTT switch also sets the ATC mute to the same switch
-    /// while that is still Off — the FO must not listen while the pilot talks to ATC. Both
-    /// drafts save in the one Save.</summary>
-    private string SiPttSource
-    {
-        get => _sayIntentions.Value.PttSource;
-        set
-        {
-            _sayIntentions.Value.PttSource = value;
-            if (value != "none" && _speech.Value.AtcMuteSource == "none")
-            {
-                _speech.Value.AtcMuteSource = value;
-            }
-        }
-    }
-
-    private IReadOnlyList<(string, string)> PttSwitchOptions =>
-    [
-        ("none", T["speechSettings.options.pttSwitch.off"].Value),
-        ("captainSidestick", T["speechSettings.options.pttSwitch.captainSidestick"].Value),
-        ("foSidestick", T["speechSettings.options.pttSwitch.foSidestick"].Value),
-        ("captainHandMic", T["speechSettings.options.pttSwitch.captainHandMic"].Value),
-        ("foHandMic", T["speechSettings.options.pttSwitch.foHandMic"].Value),
-        ("observerHandMic", T["speechSettings.options.pttSwitch.observerHandMic"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> SiPttLvarOptions =>
-    [
-        ("L:SIAI_CONTROL_PTT_COM", T["speechSettings.options.siPtt.com"].Value),
-        ("L:SIAI_CONTROL_PTT_COM1", T["speechSettings.options.siPtt.com1"].Value),
-        ("L:SIAI_CONTROL_PTT_COM2", T["speechSettings.options.siPtt.com2"].Value),
-        ("L:SIAI_CONTROL_PTT_INTERCOM1", T["speechSettings.options.siPtt.intercom1"].Value),
-        ("L:SIAI_CONTROL_PTT_INTERCOM2", T["speechSettings.options.siPtt.intercom2"].Value),
-        ("L:SIAI_CONTROL_PTT_INTERCOM3", T["speechSettings.options.siPtt.intercom3"].Value),
-        ("L:SIAI_CONTROL_PTT_GROUP", T["speechSettings.options.siPtt.group"].Value),
-    ];
-
+    /// while that is still Off (2026-10-10) — the one coupling between two fields on this page.</summary>
+    private void CoupleAtcMute() => SpeechPageRules.CoupleAtcMuteToSiPtt(_sayIntentions.Value, _speech.Value);
 
     private int ElevenLabsUsageThisMonth
     {
@@ -1511,71 +943,6 @@ else if (CurrentSection == "abnormals")
             }
         }
     }
-
-    private IReadOnlyList<(string, string)> ElevenLabsModelOptions =>
-    [
-        ("eleven_flash_v2_5", T["speechSettings.options.elevenLabsModel.flash"].Value),
-        ("eleven_v3", T["speechSettings.options.elevenLabsModel.v3"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> ElevenLabsFormatOptions =>
-    [
-        ("mp3_44100_128", T["speechSettings.options.elevenLabsFormat.mp3"].Value),
-        ("pcm_24000", T["speechSettings.options.elevenLabsFormat.pcm"].Value),
-    ];
-
-
-
-    // Option labels read the pack on every draw so a language switch re-labels the open page.
-    private IReadOnlyList<(string, string)> RecognitionModeOptions =>
-    [
-        ("pushToTalk", T["speechSettings.options.recognitionMode.pushToTalk"].Value),
-        ("continuous", T["speechSettings.options.recognitionMode.continuous"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> PilotSeatOptions =>
-    [
-        ("left", T["speechSettings.options.seat.left"].Value),
-        ("right", T["speechSettings.options.seat.right"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> LlmApiOptions =>
-    [
-        ("openAi", T["speechSettings.options.llmApi.openAi"].Value),
-        ("ollama", T["speechSettings.options.llmApi.ollama"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> AsrApiOptions =>
-    [
-        ("fasterWhisper", T["speechSettings.options.asrApi.fasterWhisper"].Value),
-        ("whisperCpp", T["speechSettings.options.asrApi.whisperCpp"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> VadEngineOptions =>
-    [
-        ("silero", T["speechSettings.options.vad.silero"].Value),
-        ("rms", T["speechSettings.options.vad.rms"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> ProcedureSourceOptions =>
-    [
-        ("auto", T["speechSettings.options.procedureSource.auto"].Value),
-        ("manual", T["speechSettings.options.procedureSource.manual"].Value),
-        ("flightJson", T["speechSettings.options.procedureSource.flightJson"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> NormalPolicyOptions =>
-    [
-        ("allow", T["speechSettings.options.normalPolicy.allow"].Value),
-        ("defer", T["speechSettings.options.normalPolicy.defer"].Value),
-        ("suppress", T["speechSettings.options.normalPolicy.suppress"].Value),
-    ];
-
-    private IReadOnlyList<(string, string)> ApiKeySourceOptions =>
-        [("auto", T["speechSettings.options.apiKeySource.auto"].Value), ("manual", T["speechSettings.options.apiKeySource.manual"].Value)];
-
-    private static readonly IReadOnlyList<(string, string)> PhraseologyOptions =
-        [("icao", "ICAO"), ("faa", "FAA")];
 
     private OptionsDraft<SpeechOptions> _speech = default!;
     private OptionsDraft<BriefingOptions> _briefing = default!;
@@ -1594,44 +961,18 @@ else if (CurrentSection == "abnormals")
     private OptionsDraft<LogbookOptions> _logbook = default!;
     private OptionsDraft<AbnormalsOptions> _abnormals = default!;
 
-    private IReadOnlyList<(string, string)> PersonaExperienceOptions =>
-        [("junior", T["speechSettings.options.experience.junior"].Value), ("standard", T["speechSettings.options.experience.standard"].Value), ("senior", T["speechSettings.options.experience.senior"].Value)];
-
-    private IReadOnlyList<(string, string)> PersonaFormalityOptions =>
-        [("casual", T["speechSettings.options.formality.casual"].Value), ("standard", T["speechSettings.options.formality.standard"].Value), ("formal", T["speechSettings.options.formality.formal"].Value)];
-
-    private IReadOnlyList<(string, string)> DebriefVerbosityOptions =>
-        [("full", T["speechSettings.options.verbosity.full"].Value), ("brief", T["speechSettings.options.verbosity.brief"].Value)];
-
     private IReadOnlyList<string> _captureDevices = [];
     private IReadOnlyList<string> _renderDevices = [];
 
-    private IReadOnlyList<(string, string)> InputDeviceOptions() =>
-        DeviceOptions(T["speechSettings.devices.defaultCapture"].Value, _captureDevices, _speech.Value.InputDevice);
+    // The device lists are the one choice source only this page can build (detected hardware);
+    // the description names them and the rows are handed to the field here.
+    private IReadOnlyList<(string Value, string Label)> InputDeviceOptions() =>
+        SpeechPageRules.DeviceChoices(T["speechSettings.devices.defaultCapture"].Value, _captureDevices, _speech.Value.InputDevice,
+            current => T["speechSettings.devices.notDetected", current].Value);
 
-    private IReadOnlyList<(string, string)> OutputDeviceOptions() =>
-        DeviceOptions(T["speechSettings.devices.systemDefault"].Value, _renderDevices, _speech.Value.OutputDevice);
-
-    /// <summary>Empty-value default first, then every detected device; a saved device that is
-    /// not currently detected (unplugged, renamed) stays selectable so opening the page never
-    /// silently rewrites the setting.</summary>
-    private IReadOnlyList<(string, string)> DeviceOptions(
-        string defaultLabel, IReadOnlyList<string> devices, string current)
-    {
-        var options = new List<(string, string)> { ("", defaultLabel) };
-        foreach (var name in devices)
-        {
-            options.Add((name, name));
-        }
-
-        if (!string.IsNullOrWhiteSpace(current)
-            && !devices.Contains(current, StringComparer.OrdinalIgnoreCase))
-        {
-            options.Add((current, T["speechSettings.devices.notDetected", current].Value));
-        }
-
-        return options;
-    }
+    private IReadOnlyList<(string Value, string Label)> OutputDeviceOptions() =>
+        SpeechPageRules.DeviceChoices(T["speechSettings.devices.systemDefault"].Value, _renderDevices, _speech.Value.OutputDevice,
+            current => T["speechSettings.devices.notDetected", current].Value);
 
     private IReadOnlyList<JoystickDeviceView> _joysticks = [];
     /// <summary>Set listens for joystick buttons only when this is ticked: the winmm joystick
@@ -1713,9 +1054,6 @@ else if (CurrentSection == "abnormals")
         }
     }
 
-    private static bool IsJoystick(PttBindingOptions binding)
-        => binding.IsSet && binding.Kind.Equals("joystickButton", StringComparison.OrdinalIgnoreCase);
-
     private async Task ScanJoysticksAsync()
     {
         _scanning = true;
@@ -1747,81 +1085,9 @@ else if (CurrentSection == "abnormals")
         _captureMessage = null;
     }
 
-    /// <summary>One-way migration: pre-binding configs carried flat key/joystick fields; the
-    /// first page load synthesizes bindings from them (joystick wins when both were set —
-    /// hardware buttons were the deliberate choice). The synthesized binding dirties the
-    /// draft, so the bar prompts for the save that persists it; the legacy keys are blanked
-    /// at save time in <see cref="OnBeforeSave"/>.</summary>
-    private static void MigrateLegacyBindings(SpeechOptions draft)
-    {
-        if (!draft.PttBinding.IsSet)
-        {
-            if (draft.PttJoystickButton is not null)
-            {
-                draft.PttBinding = new PttBindingOptions
-                {
-                    Kind = "joystickButton",
-                    JoystickDevice = draft.PttJoystickDevice,
-                    JoystickDeviceName = draft.PttJoystickDeviceName,
-                    Button = draft.PttJoystickButton,
-                };
-            }
-            else if (!string.IsNullOrWhiteSpace(draft.PttKey))
-            {
-                draft.PttBinding = new PttBindingOptions { Kind = "keyboard", Key = draft.PttKey.Trim() };
-            }
-        }
-
-        if (!draft.AtcMuteBinding.IsSet)
-        {
-            if (draft.AtcMuteJoystickButton is not null)
-            {
-                draft.AtcMuteBinding = new PttBindingOptions
-                {
-                    Kind = "joystickButton",
-                    JoystickDevice = draft.AtcMuteJoystickDevice,
-                    JoystickDeviceName = draft.AtcMuteJoystickDeviceName,
-                    Button = draft.AtcMuteJoystickButton,
-                };
-            }
-            else if (!string.IsNullOrWhiteSpace(draft.AtcMuteKey))
-            {
-                draft.AtcMuteBinding = new PttBindingOptions { Kind = "keyboard", Key = draft.AtcMuteKey.Trim() };
-            }
-        }
-    }
-
     private void OnPressedChanged(object? sender, EventArgs e)
         // Service events fire on its worker thread; marshal into the circuit for the lamps.
         => _ = InvokeAsync(StateHasChanged);
-
-    private string LlmApiKey
-    {
-        get => JsonNamingPolicy.CamelCase.ConvertName(_briefing.Value.LlmApi.ToString());
-        set => _briefing.Value.LlmApi = Enum.TryParse<LlmApiKind>(value, ignoreCase: true, out var parsed)
-            ? parsed : LlmApiKind.OpenAi;
-    }
-
-    private string AsrApiKey
-    {
-        get => JsonNamingPolicy.CamelCase.ConvertName(_speech.Value.AsrApi.ToString());
-        set => _speech.Value.AsrApi = Enum.TryParse<AsrApiKind>(value, ignoreCase: true, out var parsed)
-            ? parsed : AsrApiKind.FasterWhisper;
-    }
-
-    private string ProcedureSourceKey
-    {
-        get => JsonNamingPolicy.CamelCase.ConvertName(_briefing.Value.ProcedureSource.ToString());
-        set => _briefing.Value.ProcedureSource = Enum.TryParse<ProcedureSourceMode>(value, ignoreCase: true, out var parsed)
-            ? parsed : ProcedureSourceMode.Auto;
-    }
-
-    private string NormalPolicyKey
-    {
-        get => JsonNamingPolicy.CamelCase.ConvertName(_speech.Value.SterileNormalPolicy.ToString());
-        set => _speech.Value.SterileNormalPolicy = Enum.TryParse<SterileNormalPolicy>(value, ignoreCase: true, out var parsed)
-            ? parsed : SterileNormalPolicy.Allow;
-    }
 
     protected override void OnInitialized()
     {
@@ -1845,121 +1111,26 @@ else if (CurrentSection == "abnormals")
         {
             ProviderTab = "elevenlabs";
         }
-        MigrateLegacyBindings(_speech.Value);
+        SpeechPageRules.MigrateLegacyBindings(_speech.Value);
         _captureDevices = DeviceCatalog.GetCaptureDeviceNames();
         _renderDevices = DeviceCatalog.GetRenderDeviceNames();
         _joysticks = PttCapture.GetJoysticks(); // the cached list — a page load never probes winmm (2026-10-11 crash)
-        _listenJoysticks = IsJoystick(_speech.Value.PttBinding) || IsJoystick(_speech.Value.AtcMuteBinding);
+        _listenJoysticks = SpeechPageRules.IsJoystick(_speech.Value.PttBinding) || SpeechPageRules.IsJoystick(_speech.Value.AtcMuteBinding);
         PttCapture.PressedChanged += OnPressedChanged;
     }
 
-    protected override void OnBeforeSave()
-    {
-        var speech = _speech.Value;
-        speech.PilotSeat = speech.PilotSeat.Trim().ToLowerInvariant();
-        speech.RecognitionMode = speech.RecognitionMode.Trim();
-        speech.AsrBaseUrl = speech.AsrBaseUrl.Trim();
-        speech.VadEngine = speech.VadEngine.Trim();
-        speech.InputDevice = speech.InputDevice.Trim();
-        speech.KokoroBaseUrl = speech.KokoroBaseUrl.Trim();
-        speech.KokoroModel = speech.KokoroModel.Trim();
-        speech.KokoroVoice = speech.KokoroVoice.Trim();
-        speech.FoVoice = speech.FoVoice.Trim();
-        // The FO voice names a provider: that provider must read "configured" (ElevenLabs and
-        // Google need a voice for that), so an empty fallback field takes the same id.
-        var fo = VoiceRef.Parse(speech.FoVoice);
-        if (fo.HasProvider && !fo.IsEmpty)
-        {
-            switch (fo.Provider)
-            {
-                case "kokoro" when string.IsNullOrWhiteSpace(speech.KokoroVoice):
-                    speech.KokoroVoice = fo.Id;
-                    break;
-                case "elevenlabs" when string.IsNullOrWhiteSpace(speech.ElevenLabsVoiceId):
-                    speech.ElevenLabsVoiceId = fo.Id;
-                    break;
-                case "google" when string.IsNullOrWhiteSpace(speech.GoogleVoice):
-                    speech.GoogleVoice = fo.Id;
-                    break;
-                case "winrt" when string.IsNullOrWhiteSpace(speech.WinRtVoice):
-                    speech.WinRtVoice = fo.Id;
-                    break;
-                case "sapi" when string.IsNullOrWhiteSpace(speech.SapiVoice):
-                    speech.SapiVoice = fo.Id;
-                    break;
-            }
-        }
-        speech.GoogleKeyFilePath = speech.GoogleKeyFilePath.Trim();
-        speech.GoogleVoice = speech.GoogleVoice.Trim();
-        speech.ElevenLabsApiKey = speech.ElevenLabsApiKey.Trim();
-        speech.ElevenLabsBaseUrl = speech.ElevenLabsBaseUrl.Trim();
-        speech.ElevenLabsVoiceId = speech.ElevenLabsVoiceId.Trim();
-        speech.ElevenLabsModelId = speech.ElevenLabsModelId.Trim();
-        speech.ElevenLabsOutputFormat = speech.ElevenLabsOutputFormat.Trim();
-        speech.WinRtVoice = speech.WinRtVoice.Trim();
-        speech.SapiVoice = speech.SapiVoice.Trim();
-        speech.OutputDevice = speech.OutputDevice.Trim();
-        speech.CacheFolder = speech.CacheFolder.Trim();
-        // Legacy flat PTT fields blanked: the typed bindings are authoritative from the first
-        // save on (they were migrated into the draft at load). The diff only writes these when
-        // the file still carries values.
-        speech.PttKey = "";
-        speech.AtcMuteKey = "";
-        speech.PttJoystickDevice = null;
-        speech.PttJoystickButton = null;
-        speech.PttJoystickDeviceName = "";
-        speech.AtcMuteJoystickDevice = null;
-        speech.AtcMuteJoystickButton = null;
-        speech.AtcMuteJoystickDeviceName = "";
-
-        var briefing = _briefing.Value;
-        // dfdPath deliberately untouched — Setup → Nav Data owns it, and an unchanged
-        // key is never written, so a save made there can't be clobbered from this page.
-        briefing.DepartureAirport = briefing.DepartureAirport.Trim().ToUpperInvariant();
-        briefing.DepartureRunway = briefing.DepartureRunway.Trim().ToUpperInvariant();
-        briefing.DepartureSid = briefing.DepartureSid.Trim().ToUpperInvariant();
-        briefing.ArrivalAirport = briefing.ArrivalAirport.Trim().ToUpperInvariant();
-        briefing.ArrivalRunway = briefing.ArrivalRunway.Trim().ToUpperInvariant();
-        briefing.ArrivalStar = briefing.ArrivalStar.Trim().ToUpperInvariant();
-        briefing.ArrivalApproach = briefing.ArrivalApproach.Trim().ToUpperInvariant();
-        briefing.LlmBaseUrl = briefing.LlmBaseUrl.Trim();
-        briefing.LlmApiKey = briefing.LlmApiKey.Trim();
-        briefing.LlmModel = briefing.LlmModel.Trim();
-
-        var voices = _voices.Value;
-        voices.Purser = voices.Purser.Trim();
-        voices.Company = voices.Company.Trim();
-        voices.Ground = voices.Ground.Trim();
-
-        // accents.overrides never mutated here — the JSON-edited dictionary stays unchanged,
-        // so the diff never writes it.
-        _accents.Value.GooglePersona = _accents.Value.GooglePersona.Trim();
-
-        var sayIntentions = _sayIntentions.Value;
-        sayIntentions.ApiKeySource = sayIntentions.ApiKeySource.Trim().ToLowerInvariant();
-        sayIntentions.ManualApiKey = sayIntentions.ManualApiKey.Trim();
-        sayIntentions.Phraseology = sayIntentions.Phraseology.Trim().ToLowerInvariant();
-
-        // The monitor latches fired gates by name — keep names unique and in step with heights.
-        SopOptions.SyncApproachGateNames(_sop.Value.ApproachGates);
-
-        var persona = _persona.Value;
-        persona.Name = persona.Name.Trim();
-        persona.Experience = persona.Experience.Trim().ToLowerInvariant();
-        persona.Formality = persona.Formality.Trim().ToLowerInvariant();
-        _debrief.Value.Verbosity = _debrief.Value.Verbosity.Trim().ToLowerInvariant();
-        // Paths: trim quotes too — Explorer's "Copy as path" wraps them.
-        _day.Value.RotationsFolder = _day.Value.RotationsFolder.Trim().Trim('"');
-        _day.Value.Path = _day.Value.Path.Trim().Trim('"');
-        _techLog.Value.Path = _techLog.Value.Path.Trim().Trim('"');
-        _techLog.Value.WearPoolPath = _techLog.Value.WearPoolPath.Trim().Trim('"');
-        _logbook.Value.Path = _logbook.Value.Path.Trim().Trim('"');
-    }
+    /// <summary>Every per-property trim and case fold is declared on the property (C3) and ran
+    /// before this; what is left is the page's own rules between properties.
+    /// dfdPath is deliberately untouched — Setup → Nav Data owns it, and an unchanged key is
+    /// never written, so a save made there can't be clobbered from this page. accents.overrides
+    /// is never mutated here — the JSON-edited dictionary stays unchanged, so the diff never
+    /// writes it.</summary>
+    protected override void OnBeforeSave() => SpeechPageRules.BeforeSave(_speech.Value, _sop.Value);
 
     protected override void OnDiscarded()
         // Reload re-clones from the live options, which may still carry only the legacy flat
         // PTT fields — re-synthesize so the bindings keep displaying after a discard.
-        => MigrateLegacyBindings(_speech.Value);
+        => SpeechPageRules.MigrateLegacyBindings(_speech.Value);
 
     public override void Dispose()
     {

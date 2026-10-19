@@ -8,131 +8,58 @@
 <PageTitle>@T["flightPhase.pageTitle"]</PageTitle>
 <h1 class="sr-only">@T["flightPhase.heading"]</h1>
 
+@* Every threshold is one <OptionField Draft For /> line (C3, 2026-10-19): the unit, the floor
+   and the texts are declared on the FlightStateOptions property beside its proven default. *@
 <div class="panel" style="padding-bottom:96px;">
 
     <Section Title="@T["flightPhase.speeds.title"]" Hint="@T["flightPhase.speeds.hint"]">
-        <NumberField Label="@T["flightPhase.speeds.takeoffRollHold.label"]" Suffix="kt" Min="0"
-                     Hint="@T["flightPhase.speeds.takeoffRollHold.hint"]"
-                     @bind-Value="_o.Value.TaxiSpeedMaxKt"
-                     Default="_o.Defaults.TaxiSpeedMaxKt" />
-        <NumberField Label="@T["flightPhase.speeds.rolloutComplete.label"]" Suffix="kt" Min="0"
-                     Hint="@T["flightPhase.speeds.rolloutComplete.hint"]"
-                     @bind-Value="_o.Value.RolloutCompleteKt"
-                     Default="_o.Defaults.RolloutCompleteKt" />
-        <NumberField Label="@T["flightPhase.speeds.pushbackMax.label"]" Suffix="kt" Min="0"
-                     Hint="@T["flightPhase.speeds.pushbackMax.hint"]"
-                     @bind-Value="_o.Value.PushbackMaxGroundSpeedKt"
-                     Default="_o.Defaults.PushbackMaxGroundSpeedKt" />
-        <NumberField Label="@T["flightPhase.speeds.parkedBelow.label"]" Suffix="kt" Min="0"
-                     Hint="@T["flightPhase.speeds.parkedBelow.hint"]"
-                     @bind-Value="_o.Value.ParkedGroundSpeedKt"
-                     Default="_o.Defaults.ParkedGroundSpeedKt" />
+        <OptionField Draft="_o" For="o => o.TaxiSpeedMaxKt" />
+        <OptionField Draft="_o" For="o => o.RolloutCompleteKt" />
+        <OptionField Draft="_o" For="o => o.PushbackMaxGroundSpeedKt" />
+        <OptionField Draft="_o" For="o => o.ParkedGroundSpeedKt" />
     </Section>
 
     <Section Title="@T["flightPhase.vertical.title"]">
-        <NumberField Label="@T["flightPhase.vertical.initialClimb.label"]" Suffix="ft RA" Min="0"
-                     Hint="@T["flightPhase.vertical.initialClimb.hint"]"
-                     @bind-Value="_o.Value.InitialClimbCeilingRaFt"
-                     Default="_o.Defaults.InitialClimbCeilingRaFt" />
-        <NumberField Label="@T["flightPhase.vertical.levelBand.label"]" Suffix="fpm" Min="0"
-                     Hint="@T["flightPhase.vertical.levelBand.hint"]"
-                     @bind-Value="_o.Value.ClimbDescentVsFpm"
-                     Default="_o.Defaults.ClimbDescentVsFpm" />
-        <NumberField Label="@T["flightPhase.vertical.approachCeiling.label"]" Suffix="ft RA" Min="0"
-                     Hint="@T["flightPhase.vertical.approachCeiling.hint"]"
-                     @bind-Value="_o.Value.ApproachRaCeilingFt"
-                     Default="_o.Defaults.ApproachRaCeilingFt" />
-        <NumberField Label="@T["flightPhase.vertical.goAroundRate.label"]" Suffix="fpm" Min="0"
-                     Hint="@T["flightPhase.vertical.goAroundRate.hint"]"
-                     @bind-Value="_o.Value.GoAroundVsFpm"
-                     Default="_o.Defaults.GoAroundVsFpm" />
-        <NumberField Label="@T["flightPhase.vertical.descentEntry.label"]" Suffix="fpm" Min="0"
-                     Hint="@T["flightPhase.vertical.descentEntry.hint"]"
-                     @bind-Value="_o.Value.DescentEntryVsFpm"
-                     Default="_o.Defaults.DescentEntryVsFpm" />
-        <NumberField Label="@T["flightPhase.vertical.descentExit.label"]" Suffix="fpm" Min="0"
-                     Hint="@T["flightPhase.vertical.descentExit.hint"]"
-                     @bind-Value="_o.Value.DescentExitVsFpm"
-                     Default="_o.Defaults.DescentExitVsFpm" />
+        <OptionField Draft="_o" For="o => o.InitialClimbCeilingRaFt" />
+        <OptionField Draft="_o" For="o => o.ClimbDescentVsFpm" />
+        <OptionField Draft="_o" For="o => o.ApproachRaCeilingFt" />
+        <OptionField Draft="_o" For="o => o.GoAroundVsFpm" />
+        <OptionField Draft="_o" For="o => o.DescentEntryVsFpm" />
+        <OptionField Draft="_o" For="o => o.DescentExitVsFpm" />
     </Section>
 
     <Section Title="@T["flightPhase.cruise.title"]" Hint="@T["flightPhase.cruise.hint"]">
-        <NumberField Label="@T["flightPhase.cruise.tolerance.label"]" Suffix="ft" Min="0"
-                     @bind-Value="_o.Value.CruiseLevelToleranceFt"
-                     Default="_o.Defaults.CruiseLevelToleranceFt" />
-        <NumberField Label="@T["flightPhase.cruise.floor.label"]" Suffix="ft" Min="0"
-                     Hint="@T["flightPhase.cruise.floor.hint"]"
-                     @bind-Value="_o.Value.CruiseFloorNoFmsFt"
-                     Default="_o.Defaults.CruiseFloorNoFmsFt" />
+        <OptionField Draft="_o" For="o => o.CruiseLevelToleranceFt" />
+        <OptionField Draft="_o" For="o => o.CruiseFloorNoFmsFt" />
     </Section>
 
     <Section Title="@T["flightPhase.ground.title"]">
-        <NumberField Label="@T["flightPhase.ground.agreement.label"]" Suffix="samples" Min="1" Step="1"
-                     Hint="@T["flightPhase.ground.agreement.hint"]"
-                     @bind-Value="_o.Value.GroundContactAgreeSamples"
-                     Default="_o.Defaults.GroundContactAgreeSamples" />
-        <NumberField Label="@T["flightPhase.ground.turnaround.label"]" Suffix="s" Min="0"
-                     Hint="@T["flightPhase.ground.turnaround.hint"]"
-                     @bind-Value="_o.Value.TurnaroundHoldSeconds"
-                     Default="_o.Defaults.TurnaroundHoldSeconds" />
-        <NumberField Label="@T["flightPhase.ground.heartbeat.label"]" Suffix="s" Min="0"
-                     Hint="@T["flightPhase.ground.heartbeat.hint"]"
-                     @bind-Value="_o.Value.HeartbeatSeconds"
-                     Default="_o.Defaults.HeartbeatSeconds" />
+        <OptionField Draft="_o" For="o => o.GroundContactAgreeSamples" />
+        <OptionField Draft="_o" For="o => o.TurnaroundHoldSeconds" />
+        <OptionField Draft="_o" For="o => o.HeartbeatSeconds" />
     </Section>
 
     <Section Title="@T["flightPhase.pause.title"]" Hint="@T["flightPhase.pause.hint"]">
-        <NumberField Label="@T["flightPhase.pause.grace.label"]" Suffix="s" Min="0"
-                     Hint="@T["flightPhase.pause.grace.hint"]"
-                     @bind-Value="_o.Value.PauseGraceSeconds"
-                     Default="_o.Defaults.PauseGraceSeconds" />
-        <NumberField Label="@T["flightPhase.pause.position.label"]" Suffix="m" Min="0"
-                     Hint="@T["flightPhase.pause.position.hint"]"
-                     @bind-Value="_o.Value.PauseSamePositionMetres"
-                     Default="_o.Defaults.PauseSamePositionMetres" />
-        <NumberField Label="@T["flightPhase.pause.fuel.label"]" Suffix="kg" Min="0"
-                     Hint="@T["flightPhase.pause.fuel.hint"]"
-                     @bind-Value="_o.Value.PauseSameFuelKg"
-                     Default="_o.Defaults.PauseSameFuelKg" />
+        <OptionField Draft="_o" For="o => o.PauseGraceSeconds" />
+        <OptionField Draft="_o" For="o => o.PauseSamePositionMetres" />
+        <OptionField Draft="_o" For="o => o.PauseSameFuelKg" />
     </Section>
 
     <Section Title="@T["flightPhase.settle.title"]" Hint="@T["flightPhase.settle.hint"]">
-        <NumberField Label="@T["flightPhase.settle.default"]" Suffix="s" Min="0" @bind-Value="_o.Value.DefaultDebounceSeconds"
-                     Default="_o.Defaults.DefaultDebounceSeconds" />
-        <NumberField Label="@T["flightPhase.settle.enterCruise"]" Suffix="s" Min="0" @bind-Value="_o.Value.CruiseSettleSeconds"
-                     Default="_o.Defaults.CruiseSettleSeconds" />
-        <NumberField Label="@T["flightPhase.settle.descentToCruise.label"]" Suffix="s" Min="0"
-                     Hint="@T["flightPhase.settle.descentToCruise.hint"]"
-                     @bind-Value="_o.Value.DescentToCruiseSettleSeconds"
-                     Default="_o.Defaults.DescentToCruiseSettleSeconds" />
-        <NumberField Label="@T["flightPhase.settle.cruiseToClimb.label"]" Suffix="s" Min="0"
-                     Hint="@T["flightPhase.settle.cruiseToClimb.hint"]"
-                     @bind-Value="_o.Value.CruiseToClimbSettleSeconds"
-                     Default="_o.Defaults.CruiseToClimbSettleSeconds" />
-        <NumberField Label="@T["flightPhase.settle.descentToClimb.label"]" Suffix="s" Min="0"
-                     Hint="@T["flightPhase.settle.descentToClimb.hint"]"
-                     @bind-Value="_o.Value.DescentToClimbSettleSeconds"
-                     Default="_o.Defaults.DescentToClimbSettleSeconds" />
-        <NumberField Label="@T["flightPhase.settle.goAround"]" Suffix="s" Min="0" @bind-Value="_o.Value.GoAroundSettleSeconds"
-                     Default="_o.Defaults.GoAroundSettleSeconds" />
-        <NumberField Label="@T["flightPhase.settle.departureRegression.label"]" Suffix="s" Min="0"
-                     Hint="@T["flightPhase.settle.departureRegression.hint"]"
-                     @bind-Value="_o.Value.DepartureRegressionSeconds"
-                     Default="_o.Defaults.DepartureRegressionSeconds" />
-        <NumberField Label="@T["flightPhase.settle.firstAirborne.label"]" Suffix="s" Min="0"
-                     Hint="@T["flightPhase.settle.firstAirborne.hint"]"
-                     @bind-Value="_o.Value.FirstAirborneClassificationSeconds"
-                     Default="_o.Defaults.FirstAirborneClassificationSeconds" />
+        <OptionField Draft="_o" For="o => o.DefaultDebounceSeconds" />
+        <OptionField Draft="_o" For="o => o.CruiseSettleSeconds" />
+        <OptionField Draft="_o" For="o => o.DescentToCruiseSettleSeconds" />
+        <OptionField Draft="_o" For="o => o.CruiseToClimbSettleSeconds" />
+        <OptionField Draft="_o" For="o => o.DescentToClimbSettleSeconds" />
+        <OptionField Draft="_o" For="o => o.GoAroundSettleSeconds" />
+        <OptionField Draft="_o" For="o => o.DepartureRegressionSeconds" />
+        <OptionField Draft="_o" For="o => o.FirstAirborneClassificationSeconds" />
     </Section>
 
     <Section Title="@T["flightPhase.recorder.title"]" Hint="@T["flightPhase.recorder.hint"]">
-        <BoolField Label="@T["flightPhase.recorder.record"]" @bind-Value="_o.Value.RecordSamples" />
-        <NumberField Label="@T["flightPhase.recorder.interval"]" Suffix="s" Min="0.25" Step="0.25" @bind-Value="_o.Value.SampleIntervalSeconds"
-                     Default="_o.Defaults.SampleIntervalSeconds" />
-        <NumberField Label="@T["flightPhase.recorder.keepAlive.label"]" Suffix="s" Min="1"
-                     Hint="@T["flightPhase.recorder.keepAlive.hint"]"
-                     @bind-Value="_o.Value.SampleKeepAliveSeconds"
-                     Default="_o.Defaults.SampleKeepAliveSeconds" />
+        <OptionField Draft="_o" For="o => o.RecordSamples" />
+        <OptionField Draft="_o" For="o => o.SampleIntervalSeconds" />
+        <OptionField Draft="_o" For="o => o.SampleKeepAliveSeconds" />
     </Section>
 
     <Section Title="@T["flightPhase.rules.title"]" Hint="@T["flightPhase.rules.hint"]">
