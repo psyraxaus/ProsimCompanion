@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.7.0-rc.11
+
+Architecture deepening, 2026-10-22. A local release-candidate build on top of rc.10 for the owner's sim test; **not yet verified live**. Seven behaviour-preserving refactors from the 2026-10-19 architecture review (departure pump seam, captain's question, option field descriptions, committed ground facts, voice-feature roster, Flight Status presentation, GSX control seams) plus a DI composition guard. Intended behaviour changes: the #166 silence rules (5-minute timeout, re-ask) now apply to every captain's question — a turnaround question with no answer counts as no, a pushback question is withdrawn — and the de-ice and gate-variant buttons moved onto one Captain's Questions card.
 
 ### Architecture: Flight Status presentation (C6)
 
@@ -38,6 +40,8 @@
 ### Tests: service composition (DI) guard
 
 - Tests: **the app's whole DI container is built in a test** (`ServiceCompositionTests`, 2026-10-19). The registration block moved from `Program.cs` into `ServiceComposition.AddProsimCompanionServices` (same registrations, same order; Program.cs keeps the configuration source, Kestrel and the middleware) so the test builds it over empty settings with `ValidateOnBuild` + `ValidateScopes` (746 registrations), then resolves every hosted service (22) and every startup module (59) in a scope without starting any. A collaborator one pillar forgets to register now fails the build's test run naming the missing type, instead of the startup-module host logging and disabling the module at the first start on the sim PC ("degrade, not fail" hid exactly that earlier the same day). No user-facing change; no new setting.
+
+- Everything in 0.7.0-rc.10 below.
 
 ## 0.7.0-rc.10
 
