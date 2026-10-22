@@ -125,6 +125,38 @@
         "label": "Token",
         "hint": "From the agent's tray menu, Copy token. Stored encrypted, never logged."
       },
+      "agent": {
+        "title": "Agent — {0}",
+        "untitled": "New agent",
+        "hint": "One VoicemeeterBridge agent: the PC it runs on and the strips and buses the Status section shows for it",
+        "name": {
+          "label": "Name",
+          "hint": "Your label for this PC, for example PC1. Mapping rows use it."
+        },
+        "enable": {
+          "label": "Enable this agent",
+          "hint": "Off keeps the block without opening a connection."
+        },
+        "host": {
+          "label": "Host",
+          "hint": "Name or IP address of the PC running VoicemeeterBridge."
+        },
+        "port": {
+          "label": "Port",
+          "hint": "The agent's port. 5088 unless you changed it there."
+        },
+        "token": {
+          "label": "Token",
+          "hint": "From the agent's tray menu, Copy token. Stored encrypted, never logged."
+        },
+        "add": "Add agent",
+        "remove": "Remove agent",
+        "removeTitle": "Remove this agent. Its mapping rows stay and read no_agent until you point them at another agent.",
+        "empty": "No agent yet. Add one for each PC whose Voicemeeter the cockpit drives.",
+        "lifted": "The saved connection was moved into this agent block. Save to keep the new layout.",
+        "count": "{0} of {1} agents connected",
+        "twoPcs": "Two pilot PCs: add one agent per PC and pick the PC in the strip / bus list of each mapping. Manual chapter 9.7."
+      },
       "testTitle": "Open a connection with the values above, saved or not, and read the agent's welcome.",
       "testing": "Testing…",
       "test": "Test connection",

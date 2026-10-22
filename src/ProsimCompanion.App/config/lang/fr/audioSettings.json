@@ -125,6 +125,38 @@
         "label": "Jeton",
         "hint": "Depuis le menu de la zone de notification de l'agent, Copier le jeton. Stocké chiffré, jamais journalisé."
       },
+      "agent": {
+        "title": "Agent — {0}",
+        "untitled": "Nouvel agent",
+        "hint": "Un agent VoicemeeterBridge : le PC sur lequel il tourne et les strips et bus que la section État affiche pour lui",
+        "name": {
+          "label": "Nom",
+          "hint": "Ton libellé pour ce PC, par exemple PC1. Les lignes de mappage l'utilisent."
+        },
+        "enable": {
+          "label": "Activer cet agent",
+          "hint": "Désactivé conserve le bloc sans ouvrir de connexion."
+        },
+        "host": {
+          "label": "Hôte",
+          "hint": "Nom ou adresse IP du PC qui exécute VoicemeeterBridge."
+        },
+        "port": {
+          "label": "Port",
+          "hint": "Le port de l'agent. 5088 sauf si tu l'as changé là-bas."
+        },
+        "token": {
+          "label": "Jeton",
+          "hint": "Depuis le menu de la zone de notification de l'agent, Copier le jeton. Stocké chiffré, jamais journalisé."
+        },
+        "add": "Ajouter un agent",
+        "remove": "Retirer l'agent",
+        "removeTitle": "Retire cet agent. Ses lignes de mappage restent et affichent no_agent jusqu'à ce que tu les pointes vers un autre agent.",
+        "empty": "Pas encore d'agent. Ajoutes-en un par PC dont le Voicemeeter est piloté depuis le cockpit.",
+        "lifted": "La connexion enregistrée a été déplacée dans ce bloc d'agent. Enregistre pour conserver la nouvelle disposition.",
+        "count": "{0} agent(s) sur {1} connecté(s)",
+        "twoPcs": "Deux PC pilotes : ajoute un agent par PC et choisis le PC dans la liste strip / bus de chaque mappage. Manuel, chapitre 9.7."
+      },
       "testTitle": "Ouvre une connexion avec les valeurs ci-dessus, enregistrées ou non, et lit l'accueil de l'agent.",
       "testing": "Test…",
       "test": "Tester la connexion",

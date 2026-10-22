@@ -125,6 +125,38 @@
         "label": "Token",
         "hint": "Desde el menú de bandeja del agente, Copiar token. Guardado cifrado, nunca registrado."
       },
+      "agent": {
+        "title": "Agente — {0}",
+        "untitled": "Nuevo agente",
+        "hint": "Un agente VoicemeeterBridge: el PC en el que se ejecuta y los strips y buses que la sección Estado muestra para él",
+        "name": {
+          "label": "Nombre",
+          "hint": "Tu etiqueta para este PC, por ejemplo PC1. Las filas de mapeo la usan."
+        },
+        "enable": {
+          "label": "Activar este agente",
+          "hint": "Desactivado conserva el bloque sin abrir una conexión."
+        },
+        "host": {
+          "label": "Host",
+          "hint": "Nombre o dirección IP del PC que ejecuta VoicemeeterBridge."
+        },
+        "port": {
+          "label": "Puerto",
+          "hint": "El puerto del agente. 5088 salvo que lo hayas cambiado allí."
+        },
+        "token": {
+          "label": "Token",
+          "hint": "Desde el menú de bandeja del agente, Copiar token. Guardado cifrado, nunca registrado."
+        },
+        "add": "Añadir agente",
+        "remove": "Quitar agente",
+        "removeTitle": "Quita este agente. Sus filas de mapeo se conservan y muestran no_agent hasta que las apuntes a otro agente.",
+        "empty": "Aún no hay agentes. Añade uno por cada PC cuyo Voicemeeter controle la cabina.",
+        "lifted": "La conexión guardada se movió a este bloque de agente. Guarda para conservar la nueva disposición.",
+        "count": "{0} de {1} agentes conectados",
+        "twoPcs": "Dos PC de piloto: añade un agente por PC y elige el PC en la lista de strip / bus de cada mapeo. Manual, capítulo 9.7."
+      },
       "testTitle": "Abre una conexión con los valores de arriba, guardados o no, y lee el saludo del agente.",
       "testing": "Probando…",
       "test": "Probar conexión",

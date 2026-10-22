@@ -125,6 +125,38 @@
         "label": "Token",
         "hint": "Aus dem Tray-Menü des Agenten, Token kopieren. Verschlüsselt gespeichert, nie protokolliert."
       },
+      "agent": {
+        "title": "Agent — {0}",
+        "untitled": "Neuer Agent",
+        "hint": "Ein VoicemeeterBridge-Agent: der PC, auf dem er läuft, und die Strips und Busse, die der Status-Bereich für ihn zeigt",
+        "name": {
+          "label": "Name",
+          "hint": "Deine Bezeichnung für diesen PC, zum Beispiel PC1. Die Mapping-Zeilen verwenden sie."
+        },
+        "enable": {
+          "label": "Diesen Agenten aktivieren",
+          "hint": "Aus behält den Block, öffnet aber keine Verbindung."
+        },
+        "host": {
+          "label": "Host",
+          "hint": "Name oder IP-Adresse des PCs, auf dem VoicemeeterBridge läuft."
+        },
+        "port": {
+          "label": "Port",
+          "hint": "Der Port des Agenten. 5088, sofern du ihn dort nicht geändert hast."
+        },
+        "token": {
+          "label": "Token",
+          "hint": "Aus dem Tray-Menü des Agenten, Token kopieren. Verschlüsselt gespeichert, nie protokolliert."
+        },
+        "add": "Agent hinzufügen",
+        "remove": "Agent entfernen",
+        "removeTitle": "Entfernt diesen Agenten. Seine Mapping-Zeilen bleiben und zeigen no_agent, bis du sie auf einen anderen Agenten umstellst.",
+        "empty": "Noch kein Agent. Füge für jeden PC einen hinzu, dessen Voicemeeter das Cockpit steuert.",
+        "lifted": "Die gespeicherte Verbindung wurde in diesen Agenten-Block verschoben. Speichern, um das neue Layout zu behalten.",
+        "count": "{0} von {1} Agenten verbunden",
+        "twoPcs": "Zwei Piloten-PCs: füge je PC einen Agenten hinzu und wähle den PC in der Strip-/Bus-Liste jedes Mappings. Handbuch Kapitel 9.7."
+      },
       "testTitle": "Öffnet eine Verbindung mit den Werten oben, gespeichert oder nicht, und liest die Begrüßung des Agenten.",
       "testing": "Teste…",
       "test": "Verbindung testen",

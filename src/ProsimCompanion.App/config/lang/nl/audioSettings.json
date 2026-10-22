@@ -125,6 +125,38 @@
         "label": "Token",
         "hint": "Uit het systeemvakmenu van de agent, Token kopiëren. Versleuteld opgeslagen, nooit gelogd."
       },
+      "agent": {
+        "title": "Agent — {0}",
+        "untitled": "Nieuwe agent",
+        "hint": "Eén VoicemeeterBridge-agent: de pc waarop hij draait en de strips en bussen die de sectie Status ervoor toont",
+        "name": {
+          "label": "Naam",
+          "hint": "Jouw label voor deze pc, bijvoorbeeld PC1. De mappingrijen gebruiken het."
+        },
+        "enable": {
+          "label": "Deze agent inschakelen",
+          "hint": "Uit behoudt het blok zonder een verbinding te openen."
+        },
+        "host": {
+          "label": "Host",
+          "hint": "Naam of IP-adres van de pc waarop VoicemeeterBridge draait."
+        },
+        "port": {
+          "label": "Poort",
+          "hint": "De poort van de agent. 5088, tenzij je die daar hebt gewijzigd."
+        },
+        "token": {
+          "label": "Token",
+          "hint": "Uit het systeemvakmenu van de agent, Token kopiëren. Versleuteld opgeslagen, nooit gelogd."
+        },
+        "add": "Agent toevoegen",
+        "remove": "Agent verwijderen",
+        "removeTitle": "Verwijdert deze agent. Zijn mappingrijen blijven staan en tonen no_agent tot je ze naar een andere agent wijst.",
+        "empty": "Nog geen agent. Voeg er een toe voor elke pc waarvan de cockpit de Voicemeeter aanstuurt.",
+        "lifted": "De opgeslagen verbinding is naar dit agentblok verplaatst. Sla op om de nieuwe indeling te behouden.",
+        "count": "{0} van {1} agents verbonden",
+        "twoPcs": "Twee piloten-pc's: voeg per pc een agent toe en kies de pc in de strip-/buslijst van elke mapping. Handleiding hoofdstuk 9.7."
+      },
       "testTitle": "Opent een verbinding met de waarden hierboven, opgeslagen of niet, en leest de begroeting van de agent.",
       "testing": "Testen…",
       "test": "Verbinding testen",

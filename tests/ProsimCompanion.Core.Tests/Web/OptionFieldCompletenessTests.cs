@@ -88,6 +88,8 @@ public sealed class OptionFieldCompletenessTests
         ["AudioAppMapping.*"] = "the CoreAudio mapping table",
         ["VoiceMeeterTargetMapping.*"] = "the VoiceMeeter mapping table",
         ["MixerMapping.*"] = "the remote mixer mapping table",
+        ["MixerAgentOptions.PanelStrips"] = "the per-agent status-panel tick boxes (#178)",
+        ["MixerAgentOptions.PanelBuses"] = "the per-agent status-panel tick boxes (#178)",
         ["AircraftProfile.*"] = "the Aircraft Profiles page's own editor",
     };
 
