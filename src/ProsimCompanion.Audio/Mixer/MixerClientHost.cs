@@ -66,7 +66,7 @@ public sealed class MixerClientHost : BackgroundService, IMixerClients
 
         lock (_gate)
         {
-            return _running.TryGetValue(agent.Name.Trim(), out var running) ? running.Client : null;
+            return _running.TryGetValue(MixerAgentOptions.CleanName(agent.Name), out var running) ? running.Client : null;
         }
     }
 
@@ -108,7 +108,7 @@ public sealed class MixerClientHost : BackgroundService, IMixerClients
             {
                 foreach (var agent in agents)
                 {
-                    var name = agent.Name.Trim();
+                    var name = MixerAgentOptions.CleanName(agent.Name);
                     if (!agent.Enabled || string.IsNullOrWhiteSpace(agent.Host) || name.Length == 0)
                     {
                         continue;
@@ -162,7 +162,7 @@ public sealed class MixerClientHost : BackgroundService, IMixerClients
             var roster = new List<MixerAgentStatus>(agents.Count);
             foreach (var agent in agents)
             {
-                var name = agent.Name.Trim();
+                var name = MixerAgentOptions.CleanName(agent.Name);
                 MixerClient? client;
                 lock (_gate)
                 {
@@ -171,7 +171,7 @@ public sealed class MixerClientHost : BackgroundService, IMixerClients
 
                 roster.Add(client?.Status ?? MixerAgentStatus.Off(
                     name,
-                    $"{agent.Host.Trim()}:{agent.Port}",
+                    $"{MixerAgentOptions.CleanName(agent.Host)}:{agent.Port}",
                     !options.Enabled ? null : !agent.Enabled ? "agent off" : string.IsNullOrWhiteSpace(agent.Host) ? "no host configured" : null));
             }
 
@@ -179,7 +179,7 @@ public sealed class MixerClientHost : BackgroundService, IMixerClients
             lock (_gate)
             {
                 all = agents
-                    .Select(a => _running.TryGetValue(a.Name.Trim(), out var running) ? running.Client : null)
+                    .Select(a => _running.TryGetValue(MixerAgentOptions.CleanName(a.Name), out var running) ? running.Client : null)
                     .Where(c => c is not null)
                     .Select(c => (IMixerClient)c!)
                     .ToList();

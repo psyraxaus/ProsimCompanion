@@ -163,7 +163,13 @@ public sealed class MixerAgentOptions
     /// <summary>Names compare trimmed and case-insensitively — a hand-edited mapping must
     /// not miss its agent over casing.</summary>
     public static bool SameName(string? a, string? b) =>
-        string.Equals((a ?? "").Trim(), (b ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+        string.Equals(CleanName(a), CleanName(b), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The name as the clients, the log and the roster carry it: trimmed, and with
+    /// any line break a hand edit put in replaced by a space (a name reaches the log on
+    /// every connection line — no forged lines from settings.json).</summary>
+    public static string CleanName(string? name) =>
+        (name ?? "").Replace('\r', ' ').Replace('\n', ' ').Trim();
 }
 
 /// <summary>

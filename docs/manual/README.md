@@ -29,7 +29,8 @@ kept there so a broken web configuration can always be repaired.
 | [ElevenLabs voices](06-elevenlabs.md) | Step-by-step setup: API key, voice, plan, crew voices, cost control |
 | [Tablet: HTTPS, home screen, keep-awake](07-tablet-install.md) | Your own certificate (mkcert), trusting the CA on the iPad, Add to Home Screen, the keep-awake switch; no offline mode |
 | [Loudspeaker dial](08-loudspeaker-dial.md) | Headset sound on the cockpit speakers with the LOUD SPEAKER dial as their volume: the VoiceMeeter wiring (VBAN loop) and the mapping |
-| [Remote mixer](09-remote-mixer.md) | A Voicemeeter on another PC (the vPilot box) driven from the cockpit through the VoicemeeterBridge agent: setup on both PCs, knob and REC-button mappings, the status card |
+| [Remote mixer](09-remote-mixer.md) | Voicemeeters on other PCs (the vPilot box, or one PC per pilot) driven from the cockpit through VoicemeeterBridge agents: setup on every PC, one agent block each, knob and REC-button mappings, the status card, the two-pilot-PC example |
+| [Two headsets](11-two-headsets.md) | The VoiceMeeter layout for two headsets with online ATC: one fader per strip or bus, a bus per headset, how to get INT on its own knob, why VHF2 cannot have its own bus |
 
 ## Design principles (what to expect)
 

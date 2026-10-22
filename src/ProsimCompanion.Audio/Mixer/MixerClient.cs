@@ -68,8 +68,8 @@ public sealed class MixerClient : IMixerClient, IDisposable
         _store = store;
         _wire = wire;
         _logger = logger;
-        Name = agent.Name.Trim();
-        Endpoint = $"{agent.Host.Trim()}:{agent.Port}";
+        Name = MixerAgentOptions.CleanName(agent.Name);
+        Endpoint = $"{MixerAgentOptions.CleanName(agent.Host)}:{agent.Port}";
         _wireChannel = $"Mixer/{Name}";
     }
 

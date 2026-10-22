@@ -1,5 +1,10 @@
 # Plan: several VoicemeeterBridge agents (#178) + two-headset guidance and shared-target warnings (#179)
 
+**Status 2026-10-22: packages A–D built on this branch (three commits after this plan);
+4939 tests green; package E (live checks 2–4) still owed. Deviation from the plan:
+`TidyAgents` never re-points rows (only the page's explicit rename does), so a duplicate
+name's suffix cannot move a row to the wrong PC.**
+
 Branch `feature/remote-mixer-agents`, cut 2026-10-22 from `refactor/deepening-2026-10` @ 5e36b4a
 (0.7.0-rc.11). The rc.11 refactors are **unmerged and unverified live**; this branch stacks on
 them, so it ships after (or together with) the deepening branch.

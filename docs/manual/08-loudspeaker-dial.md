@@ -67,7 +67,8 @@ How the dial behaves:
 - It follows the essential buses: on a dark aircraft the level holds, and it catches up when
   power returns. The AUDIO SWITCHING selector does not affect it.
 - A strip or bus can belong to one mapping only — do not also map an ACP knob to the same
-  target.
+  target. The page warns under the mapping lists when two rows share one; the reason (one
+  fader per strip or bus) and the two-headset layout are in [chapter 11](11-two-headsets.md).
 
 On the Windows-volumes backend (CoreAudio) `LOUDSPEAKER` is in the channel list too: it
 then sets one program's volume like any other knob. Windows cannot send one program to two

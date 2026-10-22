@@ -86,7 +86,13 @@ through with a note if deliberately dropped. Sources: Prosim2GSX 0.9.0, ProsimIn
 - [x] Device blacklist; elevated-process detection
 - [x] Remote mixer (2026-10-10): a Voicemeeter on another PC through the VoicemeeterBridge
       agent — ProSim value → strip/bus Gain/Mute mappings (level or toggle, invert), status
-      card with mute buttons, Test connection; off by default — unverified live
+      card with mute buttons, Test connection; off by default — verified live 2026-10-10
+- [x] Several agents (#178, 2026-10-22): one VoicemeeterBridge per pilot PC, mapping rows
+      name their agent, one client per agent with its own reconnect, per-agent status-card
+      groups, one aggregated footer dot; legacy single-host settings lifted on the page —
+      unverified live
+- [x] Shared-target warnings (#179, 2026-10-22) on both mapping editors; manual chapter 11
+      (two headsets, INT caveat, COM1/COM2 single-stream limit)
 
 ## Voice First Officer (Prosim2FO → Phase 5)
 
