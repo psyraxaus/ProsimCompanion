@@ -103,7 +103,10 @@
       "more": "Más",
       "oncePerPanelMore": "Los guardados en conflicto recaen en el panel del comandante hasta corregirlos; la sección Estado muestra por qué. El recorrido del mando corresponde a −60 dB … +12 dB; 0 dB queda cerca del 83 %.",
       "loudspeaker": "LOUDSPEAKER es el mando del altavoz de cabina, en las listas del comandante y del primer oficial.",
-      "loudspeakerMore": "Asígnalo al strip o bus que alimenta los altavoces de tu cabina. El mando no tiene enclavamiento REC: a fondo silencia el destino. El capítulo 8 del manual (mando del altavoz) muestra el cableado de VoiceMeeter que pone el sonido de los cascos en los altavoces."
+      "perHeadset": "El volumen por auricular necesita un bus por auricular. Un strip compartido no puede tener dos volúmenes.",
+      "perHeadsetMore": "Un strip o bus tiene un solo fader. Si los auriculares del comandante y del primer oficial comparten un bus, un solo mando ajusta ambos. INT en el mismo bus que VHF también lo comparte. El capítulo 11 del manual (Dos auriculares) muestra una disposición con un bus por auricular; el capítulo 9 muestra cómo controlar el PC propio de cada piloto con el Remote Mixer.",
+      "sharedTarget": "{0} está controlado por {1}. Un destino tiene un solo volumen: da a cada mando su propio strip o bus.",
+      "loudspeakerMore":"Asígnalo al strip o bus que alimenta los altavoces de tu cabina. El mando no tiene enclavamiento REC: a fondo silencia el destino. El capítulo 8 del manual (mando del altavoz) muestra el cableado de VoiceMeeter que pone el sonido de los cascos en los altavoces."
     },
     "mixer": {
       "title": "Mezclador remoto",
@@ -224,7 +227,8 @@
         "noLatchTitle": "Este mando no tiene pulsador REC. A fondo siempre silencia el destino.",
         "liveTitle": "Última ganancia y silencio enviados, y la respuesta del agente",
         "liveMuted": "silenciado",
-        "liveOpen": "abierto",
+        "sharedTarget": "{0} está controlado por {1}. Un destino tiene un solo volumen: da a cada mando su propio strip o bus.",
+        "liveOpen":"abierto",
         "remove": "Quitar",
         "add": "Añadir asignación",
         "note": "El mando fija la ganancia del strip o bus; con Enclav. marcado, el pulsador REC lo silencia. Los nombres de strips y buses vienen del PC mezclador una vez conectado el agente.",

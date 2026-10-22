@@ -72,20 +72,35 @@ public sealed partial class SettingsPagesRenderTests
     [InlineData("voicemeeter", "defaults")]
     [InlineData("mixer", "defaults")]
     [InlineData("mixer", "configured")]
+    [InlineData("mixer", "legacy")]
     [InlineData("advanced", "defaults")]
     public async Task AudioSettings_RendersEverySection_WithoutLeakingTextIds(string section, string fixture)
     {
         var configured = fixture == "configured";
+        var legacy = fixture == "legacy";
         var services = new ServiceCollection();
         Options(services, new AudioOptions { Backend = configured ? AudioBackend.VoiceMeeter : AudioBackend.CoreAudio, CoreAudioAcp = configured ? AcpSide.Observer : AcpSide.Captain });
-        Options(services, new MixerOptions { Enabled = configured, Host = configured ? "10.0.1.40" : "", PanelStrips = configured ? [0, 2] : [] });
+        // "configured": two agents (#178) with a shared target (#179) so the warning renders;
+        // "legacy": the pre-#178 flat host, lifted into agent block 1 on the page's first visit.
+        Options(services, new MixerOptions
+        {
+            Enabled = configured || legacy,
+            Host = legacy ? "10.0.1.40" : "",
+            PanelStrips = legacy ? [0, 2] : [],
+            Agents = configured
+                ? [new MixerAgentOptions { Name = "PC1", Host = "10.0.1.40", PanelStrips = [0, 2] }, new MixerAgentOptions { Name = "PC2", Host = "10.0.1.41", Enabled = false }]
+                : [],
+            Mappings = configured
+                ? [new MixerMapping { Acp = AcpSide.Captain, Channel = AudioChannel.Vhf1, Agent = "PC1", IsBus = true, StripIndex = 1 }, new MixerMapping { Acp = AcpSide.FirstOfficer, Channel = AudioChannel.Vhf1, Agent = "PC1", IsBus = true, StripIndex = 1 }]
+                : [],
+        });
         services.AddSingleton(Mock.Of<IAudioControl>(a => a.GetVoiceMeeterTargets() == new List<VoiceMeeterTargetView>()));
         var devices = new Mock<IAudioDeviceCatalog>();
         devices.Setup(d => d.GetRenderDeviceNames()).Returns(["Cockpit Speakers"]);
         services.AddSingleton(devices.Object);
-        var mixer = new Mock<IMixerClient>();
-        mixer.SetupGet(m => m.Channels).Returns([]);
-        services.AddSingleton(mixer.Object);
+        var mixers = new Mock<IMixerClients>();
+        mixers.SetupGet(m => m.All).Returns([]);
+        services.AddSingleton(mixers.Object);
         services.AddSingleton<MixerStatusStore>();
 
         var html = await RenderPageAsync<ProsimCompanion.Web.Pages.AudioSettings>(services, "settings/audio/" + section, new Dictionary<string, object?> { ["Section"] = section });

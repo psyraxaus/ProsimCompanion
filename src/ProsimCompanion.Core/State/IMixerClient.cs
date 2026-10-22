@@ -156,13 +156,20 @@ public sealed class MixerParameterChangedEventArgs(string parameter, MixerValue 
 }
 
 /// <summary>
-/// The remote mixer link, as the rest of the app sees it (implemented in ProsimCompanion.Audio).
-/// Every member is safe to call while the agent is unreachable: sets complete with a failure
-/// code, watches queue up for the next session, the cache keeps its last values. Events fire
-/// on the receive thread — consumers marshal to their own context.
+/// The link to one VoicemeeterBridge agent, as the rest of the app sees it (implemented in
+/// ProsimCompanion.Audio; one per configured agent since #178, handed out by
+/// <see cref="IMixerClients"/>). Every member is safe to call while the agent is unreachable:
+/// sets complete with a failure code, watches queue up for the next session, the cache keeps
+/// its last values. Events fire on the receive thread — consumers marshal to their own context.
 /// </summary>
 public interface IMixerClient
 {
+    /// <summary>The agent's configured name (<see cref="Configuration.MixerAgentOptions.Name"/>).</summary>
+    string Name { get; }
+
+    /// <summary>Host:port, for the page and the log — never the token.</summary>
+    string Endpoint { get; }
+
     MixerConnectionState State { get; }
 
     MixerVoicemeeterStatus Voicemeeter { get; }
@@ -200,8 +207,28 @@ public interface IMixerClient
     /// <summary>Writes one numeric parameter and completes on the matching <c>result</c> (or a
     /// timeout / disconnect). Booleans go as 1/0.</summary>
     Task<MixerSetResult> SetAsync(string parameter, double value, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// The running agent clients (#178): one <see cref="IMixerClient"/> per enabled agent with a
+/// host, in the order of the settings list, created and retired by the host service as the
+/// options change. A mapping row or a page finds its client by the agent name it stores;
+/// an empty name is the first agent, so rows written before #178 keep working.
+/// </summary>
+public interface IMixerClients
+{
+    /// <summary>The clients the host is running right now, in settings order.</summary>
+    IReadOnlyList<IMixerClient> All { get; }
+
+    /// <summary>The client for an agent name (empty = the first agent); null while the feature
+    /// is off, the agent block is off or missing, or the host has not started it yet.</summary>
+    IMixerClient? Find(string? agentName);
+
+    /// <summary>Raised after the set of running clients changed (one added, retired or
+    /// restarted). Fires on the options-change thread.</summary>
+    event EventHandler? ClientsChanged;
 
     /// <summary>Opens a throwaway socket, sends <c>hello</c> and reports the <c>welcome</c> —
-    /// the Test button on the settings page, working off unsaved values.</summary>
+    /// the Test button on the settings page, working off unsaved values of any agent block.</summary>
     Task<MixerProbeResult> ProbeAsync(string host, int port, string token, CancellationToken cancellationToken = default);
 }

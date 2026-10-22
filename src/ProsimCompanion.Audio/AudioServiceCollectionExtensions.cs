@@ -25,11 +25,12 @@ public static class AudioServiceCollectionExtensions
         services.AddSingleton<IAudioControl>(p => p.GetRequiredService<AudioControlService>());
         services.AddHostedService<AudioBootstrapService>();
 
-        // Remote mixer (VoicemeeterBridge on another PC, 2026-10-10). Both services sleep
-        // while mixer.enabled is false — no socket, no dataref subscriptions.
-        services.AddSingleton<MixerClient>();
-        services.AddSingleton<IMixerClient>(p => p.GetRequiredService<MixerClient>());
-        services.AddHostedService(p => p.GetRequiredService<MixerClient>());
+        // Remote mixer (VoicemeeterBridge on other PCs, 2026-10-10; one client per agent since
+        // #178). Both services sleep while mixer.enabled is false — no socket, no dataref
+        // subscriptions. The host owns the per-agent clients and is the app's IMixerClients.
+        services.AddSingleton<MixerClientHost>();
+        services.AddSingleton<IMixerClients>(p => p.GetRequiredService<MixerClientHost>());
+        services.AddHostedService(p => p.GetRequiredService<MixerClientHost>());
         services.AddHostedService<MixerMappingService>();
 
         return services;

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 using ProsimCompanion.Audio.Mixer;
 using ProsimCompanion.Core.Configuration;
@@ -9,8 +8,9 @@ using Xunit;
 
 namespace ProsimCompanion.Core.Tests.Mixer;
 
-/// <summary>MixerClient against the fake agent: hello first, watch replay after a drop,
-/// set/result correlation out of order, timeouts, and the degrade-not-fail paths.</summary>
+/// <summary>One per-agent MixerClient against the fake agent: hello first, watch replay after
+/// a drop, set/result correlation out of order, timeouts, and the degrade-not-fail paths.
+/// The client runs its own loop here (what the host does for it in the app).</summary>
 public sealed class MixerClientTests
 {
     private static readonly TimeSpan Wait = TimeSpan.FromSeconds(5);
@@ -20,7 +20,7 @@ public sealed class MixerClientTests
     {
         await using var server = new FakeBridgeServer { Token = "tok-1" };
         server.Start();
-        await using var fixture = await ClientFixture.StartAsync(server, "tok-1");
+        await using var fixture = ClientFixture.Start(server, "tok-1");
 
         var session = await server.NextSessionAsync(Wait);
         var hello = await session.NextFrameAsync(Wait);
@@ -32,7 +32,11 @@ public sealed class MixerClientTests
         await WaitUntilAsync(() => fixture.Client.State == MixerConnectionState.Connected);
         Assert.True(fixture.Client.Voicemeeter.Connected);
         Assert.Equal("potato", fixture.Client.Voicemeeter.Kind);
-        Assert.Equal(ConnectionState.Connected, StateOf(fixture.Status, Subsystems.Mixer));
+        Assert.Equal("PC1", fixture.Client.Name);
+        var entry = fixture.Store.Snapshot().Agent("PC1");
+        Assert.NotNull(entry);
+        Assert.Equal(MixerConnectionState.Connected, entry.State);
+        Assert.Equal($"127.0.0.1:{server.Port}", entry.Endpoint);
     }
 
     [Fact]
@@ -41,7 +45,7 @@ public sealed class MixerClientTests
         await using var server = new FakeBridgeServer();
         server.Values["Strip[0].Gain"] = -6;
         server.Start();
-        await using var fixture = await ClientFixture.StartAsync(server, server.Token, reconnectMs: 100);
+        await using var fixture = ClientFixture.Start(server, server.Token, reconnectMs: 100);
 
         var first = await server.NextSessionAsync(Wait);
         _ = await first.NextFrameAsync(Wait); // hello
@@ -75,7 +79,7 @@ public sealed class MixerClientTests
     {
         await using var server = new FakeBridgeServer { AutoReplySet = false };
         server.Start();
-        await using var fixture = await ClientFixture.StartAsync(server, server.Token);
+        await using var fixture = ClientFixture.Start(server, server.Token);
 
         var session = await server.NextSessionAsync(Wait);
         _ = await session.NextFrameAsync(Wait); // hello
@@ -102,6 +106,7 @@ public sealed class MixerClientTests
         Assert.True(resultA.Ok);
         Assert.False(resultB.Ok);
         Assert.Equal("unknown parameter", resultB.Code);
+        Assert.Equal(1, fixture.Store.Snapshot().Agent("PC1")!.FailedSets);
         Assert.Equal(1, fixture.Store.Snapshot().FailedSets);
     }
 
@@ -110,7 +115,7 @@ public sealed class MixerClientTests
     {
         await using var server = new FakeBridgeServer { AutoReplySet = false };
         server.Start();
-        await using var fixture = await ClientFixture.StartAsync(server, server.Token, setTimeoutMs: 300);
+        await using var fixture = ClientFixture.Start(server, server.Token, setTimeoutMs: 300);
 
         var session = await server.NextSessionAsync(Wait);
         _ = await session.NextFrameAsync(Wait); // hello
@@ -127,7 +132,7 @@ public sealed class MixerClientTests
     {
         await using var server = new FakeBridgeServer();
         // Not started: nothing listens on the port.
-        await using var fixture = await ClientFixture.StartAsync(server, server.Token, port: 1, reconnectMs: 60_000);
+        await using var fixture = ClientFixture.Start(server, server.Token, port: 1, reconnectMs: 60_000);
 
         var result = await fixture.Client.SetAsync("Strip[0].Gain", -10).WaitAsync(Wait);
 
@@ -141,9 +146,9 @@ public sealed class MixerClientTests
     {
         await using var server = new FakeBridgeServer { Token = "right" };
         server.Start();
-        await using var fixture = await ClientFixture.StartAsync(server, "wrong", reconnectMs: 60_000);
+        await using var fixture = ClientFixture.Start(server, "wrong", reconnectMs: 60_000);
 
-        await WaitUntilAsync(() => fixture.Store.Snapshot().LastError == "unauthorized");
+        await WaitUntilAsync(() => fixture.Store.Snapshot().Agent("PC1")?.LastError == "unauthorized");
         Assert.NotEqual(MixerConnectionState.Connected, fixture.Client.State);
     }
 
@@ -152,7 +157,7 @@ public sealed class MixerClientTests
     {
         await using var server = new FakeBridgeServer();
         server.Start();
-        await using var fixture = await ClientFixture.StartAsync(server, server.Token);
+        await using var fixture = ClientFixture.Start(server, server.Token);
 
         var session = await server.NextSessionAsync(Wait);
         _ = await session.NextFrameAsync(Wait);
@@ -179,7 +184,7 @@ public sealed class MixerClientTests
         }
 
         server.Start();
-        await using var fixture = await ClientFixture.StartAsync(server, server.Token);
+        await using var fixture = ClientFixture.Start(server, server.Token);
 
         var session = await server.NextSessionAsync(Wait);
         _ = await session.NextFrameAsync(Wait); // hello
@@ -205,25 +210,21 @@ public sealed class MixerClientTests
     }
 
     [Fact]
-    public async Task Disabled_OpensNoSocket_UntilEnabledAtRuntime()
+    public async Task Cancelling_TheRun_EndsDisabled_AndDisposesCleanly()
     {
         await using var server = new FakeBridgeServer();
         server.Start();
-        await using var fixture = await ClientFixture.StartAsync(server, server.Token, enabled: false);
-
-        await Task.Delay(200);
-        Assert.Empty(server.Sessions);
-        Assert.Equal(MixerConnectionState.Disabled, fixture.Client.State);
-
-        fixture.Options.Update(o => o.Enabled = true);
+        var fixture = ClientFixture.Start(server, server.Token);
         _ = await server.NextSessionAsync(Wait);
         await WaitUntilAsync(() => fixture.Client.State == MixerConnectionState.Connected);
+
+        await fixture.DisposeAsync();
+
+        Assert.Equal(MixerConnectionState.Disabled, fixture.Client.State);
+        Assert.Equal(MixerConnectionState.Disabled, fixture.Store.Snapshot().Agent("PC1")!.State);
     }
 
-    private static ConnectionState StateOf(ConnectionStatusStore store, string subsystem) =>
-        store.Snapshot().First(p => p.Key == subsystem).Value;
-
-    private static async Task WaitUntilAsync(Func<bool> condition)
+    internal static async Task WaitUntilAsync(Func<bool> condition)
     {
         var deadline = DateTime.UtcNow + Wait;
         while (!condition())
@@ -241,100 +242,52 @@ public sealed class MixerClientTests
     {
         public required MixerClient Client { get; init; }
 
-        public required ConnectionStatusStore Status { get; init; }
-
         public required MixerStatusStore Store { get; init; }
 
-        public required FakeOptionsMonitor Options { get; init; }
+        public required CancellationTokenSource Cts { get; init; }
 
-        public static async Task<ClientFixture> StartAsync(
+        public required Task Run { get; init; }
+
+        public static ClientFixture Start(
             FakeBridgeServer server,
             string token,
             int? port = null,
             int reconnectMs = 200,
-            int setTimeoutMs = 2000,
-            bool enabled = true)
+            int setTimeoutMs = 2000)
         {
-            var options = new FakeOptionsMonitor(new MixerOptions
+            var options = new FakeMixerOptionsMonitor(new MixerOptions
             {
-                Enabled = enabled,
-                Host = "127.0.0.1",
-                Port = port ?? server.Port,
-                Token = token,
+                Enabled = true,
                 ReconnectDelayMs = reconnectMs,
                 ReconnectMaxDelayMs = reconnectMs,
                 SetTimeoutMs = setTimeoutMs,
             });
-            var status = new ConnectionStatusStore();
+            var agent = new MixerAgentOptions { Name = "PC1", Host = "127.0.0.1", Port = port ?? server.Port, Token = token };
             var store = new MixerStatusStore();
             var wire = new Mock<IWireTrace>();
             wire.SetupGet(w => w.Enabled).Returns(false);
-            var client = new MixerClient(options, status, store, wire.Object, NullLogger<MixerClient>.Instance);
-            await client.StartAsync(CancellationToken.None);
-            return new ClientFixture { Client = client, Status = status, Store = store, Options = options };
+            var client = new MixerClient(agent, options, store, wire.Object, NullLogger<MixerClient>.Instance);
+            var cts = new CancellationTokenSource();
+            var run = Task.Run(() => client.RunAsync(cts.Token));
+            return new ClientFixture { Client = client, Store = store, Cts = cts, Run = run };
         }
 
         public async ValueTask DisposeAsync()
         {
-            using var cts = new CancellationTokenSource(Wait);
-            await Client.StopAsync(cts.Token);
-            Client.Dispose();
-        }
-    }
-
-    private sealed class FakeOptionsMonitor(MixerOptions value) : IOptionsMonitor<MixerOptions>
-    {
-        private readonly List<Action<MixerOptions, string?>> _listeners = [];
-
-        public MixerOptions CurrentValue { get; private set; } = value;
-
-        public MixerOptions Get(string? name) => CurrentValue;
-
-        public IDisposable? OnChange(Action<MixerOptions, string?> listener)
-        {
-            lock (_listeners)
+            if (!Cts.IsCancellationRequested)
             {
-                _listeners.Add(listener);
-            }
-
-            return new Unsubscribe(() =>
-            {
-                lock (_listeners)
+                Cts.Cancel();
+                try
                 {
-                    _listeners.Remove(listener);
+                    await Run.WaitAsync(Wait);
                 }
-            });
-        }
+                catch (OperationCanceledException)
+                {
+                }
 
-        public void Update(Action<MixerOptions> mutate)
-        {
-            var next = new MixerOptions
-            {
-                Enabled = CurrentValue.Enabled,
-                Host = CurrentValue.Host,
-                Port = CurrentValue.Port,
-                Token = CurrentValue.Token,
-                ReconnectDelayMs = CurrentValue.ReconnectDelayMs,
-                ReconnectMaxDelayMs = CurrentValue.ReconnectMaxDelayMs,
-                SetTimeoutMs = CurrentValue.SetTimeoutMs,
-            };
-            mutate(next);
-            CurrentValue = next;
-            Action<MixerOptions, string?>[] listeners;
-            lock (_listeners)
-            {
-                listeners = [.. _listeners];
+                Client.Dispose();
+                Cts.Dispose();
             }
-
-            foreach (var listener in listeners)
-            {
-                listener(next, null);
-            }
-        }
-
-        private sealed class Unsubscribe(Action dispose) : IDisposable
-        {
-            public void Dispose() => dispose();
         }
     }
 }

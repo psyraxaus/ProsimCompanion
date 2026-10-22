@@ -103,7 +103,10 @@
       "more": "Meer",
       "oncePerPanelMore": "Strijdige opslag valt terug op het paneel van de gezagvoerder tot het is hersteld; de sectie Status laat zien waarom. De knopslag komt overeen met −60 dB … +12 dB; 0 dB ligt rond 83 %.",
       "loudspeaker": "LOUDSPEAKER is de cockpitluidsprekerknop, in de lijsten van de gezagvoerder en de eerste officier.",
-      "loudspeakerMore": "Koppel hem aan de strip of bus die je cockpitluidsprekers voedt. De knop heeft geen REC-vergrendeling: helemaal dicht dempt het doel. Hoofdstuk 8 van de handleiding (luidsprekerknop) toont de VoiceMeeter-bedrading die het headsetgeluid op de luidsprekers zet."
+      "perHeadset": "Volume per headset vraagt één bus per headset. Een gedeelde strip kan geen twee volumes hebben.",
+      "perHeadsetMore": "Eén strip of bus heeft één fader. Delen de headsets van de gezagvoerder en de eerste officier een bus, dan zet één knop ze allebei. INT op dezelfde bus als VHF deelt hem ook. Hoofdstuk 11 van de handleiding (Twee headsets) toont een indeling met één bus per headset; hoofdstuk 9 toont hoe de Remote Mixer de eigen pc van elke piloot aanstuurt.",
+      "sharedTarget": "{0} wordt aangestuurd door {1}. Eén doel heeft één volume: geef elke knop zijn eigen strip of bus.",
+      "loudspeakerMore":"Koppel hem aan de strip of bus die je cockpitluidsprekers voedt. De knop heeft geen REC-vergrendeling: helemaal dicht dempt het doel. Hoofdstuk 8 van de handleiding (luidsprekerknop) toont de VoiceMeeter-bedrading die het headsetgeluid op de luidsprekers zet."
     },
     "mixer": {
       "title": "Externe mixer",
@@ -224,7 +227,8 @@
         "noLatchTitle": "Geen REC-drukknop op deze knop. Helemaal dicht dempt het doel altijd.",
         "liveTitle": "Laatst verstuurde gain en mute, en het antwoord van de agent",
         "liveMuted": "gedempt",
-        "liveOpen": "open",
+        "sharedTarget": "{0} wordt aangestuurd door {1}. Eén doel heeft één volume: geef elke knop zijn eigen strip of bus.",
+        "liveOpen":"open",
         "remove": "Verwijderen",
         "add": "Koppeling toevoegen",
         "note": "De knop zet de gain van de strip of bus; met Vergrend. aangevinkt dempt de REC-drukknop hem. Strip- en busnamen komen van de mixer-pc zodra de agent verbonden is.",

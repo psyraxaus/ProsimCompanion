@@ -10,7 +10,7 @@
 @inject IAudioControl AudioControl
 @inject IAudioDeviceCatalog DeviceCatalog
 @inject IOptionsMonitor<MixerOptions> MixerMonitor
-@inject IMixerClient Mixer
+@inject IMixerClients Mixers
 @inject MixerStatusStore MixerStatus
 @inject IStringLocalizer T
 
@@ -192,7 +192,24 @@
                     </Section>
                 }
 
+                @* #179: two rows on one strip/bus means one fader for two headsets — say so
+                   while editing, not only after the binder refused the set. *@
+                @foreach (var shared in VoiceMeeterSharedTargets())
+                {
+                    <div class="field-hint field-hint-warn" style="max-width:640px;">
+                        @T["audioSettings.voiceMeeter.sharedTarget", VoiceMeeterTargetLabel(shared.IsBus, shared.Index), string.Join(", ", shared.Owners)]
+                    </div>
+                }
                 <div class="field-hint" style="max-width:640px;">
+                    @T["audioSettings.voiceMeeter.perHeadset"]
+                    <details class="field-more">
+                        <summary>@T["audioSettings.voiceMeeter.more"]</summary>
+                        <span class="field-more-body">
+                            @T["audioSettings.voiceMeeter.perHeadsetMore"]
+                        </span>
+                    </details>
+                </div>
+                <div class="field-hint" style="max-width:640px; margin-top:8px;">
                     @T["audioSettings.voiceMeeter.oncePerPanel"]
                     <details class="field-more">
                         <summary>@T["audioSettings.voiceMeeter.more"]</summary>
@@ -215,23 +232,11 @@
             {
                 <Section Title="@T["audioSettings.mixer.title"]" Hint="@T["audioSettings.mixer.hint"]">
                     <OptionField Draft="_mixer" For="o => o.Enabled" />
-                    <OptionField Draft="_mixer" For="o => o.Host" />
-                    <OptionField Draft="_mixer" For="o => o.Port" />
-                    <OptionField Draft="_mixer" For="o => o.Token" />
-                    <SecretUnreadableHint Path="mixer:token" />
-                    <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
-                        <button type="button" class="btn secondary" disabled="@_mixerTestBusy" @onclick="TestMixer"
-                                title="@T["audioSettings.mixer.testTitle"]">
-                            @(_mixerTestBusy ? T["audioSettings.mixer.testing"].Value : T["audioSettings.mixer.test"].Value)
-                        </button>
-                        @if (_mixerTestResult is { } test)
-                        {
-                            <span class="pill @(test.Ok ? "tone-ok" : "tone-bad")">@test.Message</span>
-                        }
-                        <span class="pill @MixerStateTone(_mixerLive.State)" title="@T["audioSettings.mixer.liveTitle"]">
-                            @MixerStateLabel(_mixerLive)
-                        </span>
-                    </div>
+                    @if (_mixerLifted)
+                    {
+                        <div class="field-hint field-hint-warn" style="max-width:640px;">@T["audioSettings.mixer.agent.lifted"]</div>
+                    }
+                    <div class="field-hint" style="max-width:640px;">@T["audioSettings.mixer.agent.twoPcs"]</div>
                     <AdvancedFields>
                         <OptionField Draft="_mixer" For="o => o.ReconnectDelayMs" />
                         <OptionField Draft="_mixer" For="o => o.ReconnectMaxDelayMs" />
@@ -241,36 +246,84 @@
                     </AdvancedFields>
                 </Section>
 
-                <Section Title="@T["audioSettings.mixer.panel.title"]" Hint="@T["audioSettings.mixer.panel.hint"]">
-                    @if (Mixer.Channels.Count > 0)
-                    {
-                        <div class="mixer-channel-grid">
-                            @foreach (var channel in Mixer.Channels)
+                @* One block per VoicemeeterBridge agent (#178): connection, Test, live pill,
+                   and the strips/buses of THAT PC the Status card shows. *@
+                @for (var a = 0; a < _mixer.Value.Agents.Count; a++)
+                {
+                    var agentIndex = a;
+                    var agent = _mixer.Value.Agents[agentIndex];
+                    var agentName = agent.Name.Trim();
+                    var live = _mixerLive.Agent(agentName);
+                    var client = Mixers.Find(agentName);
+                    var channels = client?.Channels ?? [];
+                    var kind = live?.Voicemeeter.Kind;
+                    <Section Title="@T["audioSettings.mixer.agent.title", AgentTitle(agent)]" Hint="@T["audioSettings.mixer.agent.hint"]">
+                        <OptionField Item="agent" ItemOf="_mixer" For="t => t.Name" Changed="() => OnAgentRenamed(agentIndex)" />
+                        <OptionField Item="agent" ItemOf="_mixer" For="t => t.Enabled" />
+                        <OptionField Item="agent" ItemOf="_mixer" For="t => t.Host" />
+                        <OptionField Item="agent" ItemOf="_mixer" For="t => t.Port" />
+                        <OptionField Item="agent" ItemOf="_mixer" For="t => t.Token" />
+                        <SecretUnreadableHint Path="@($"mixer:agents:{agentIndex}:token")" />
+                        <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn secondary" disabled="@_agentTestBusy.Contains(agentIndex)" @onclick="() => TestAgent(agentIndex)"
+                                    title="@T["audioSettings.mixer.testTitle"]">
+                                @(_agentTestBusy.Contains(agentIndex) ? T["audioSettings.mixer.testing"].Value : T["audioSettings.mixer.test"].Value)
+                            </button>
+                            @if (_agentTestResults.TryGetValue(agentIndex, out var test))
                             {
-                                var picked = IsPanelChannel(channel);
-                                <label class="mixer-channel-pick">
-                                    <input type="checkbox" class="checkbox" checked="@picked"
-                                           @onchange="e => SetPanelChannel(channel, e.Value is true)" />
-                                    <span>@channel.DisplayName(MixerKind)</span>
-                                </label>
+                                <span class="pill @(test.Ok ? "tone-ok" : "tone-bad")">@test.Message</span>
                             }
+                            <span class="pill @MixerStateTone(live?.State ?? MixerConnectionState.Disabled)" title="@T["audioSettings.mixer.liveTitle"]">
+                                @MixerStateLabel(live)
+                            </span>
+                            <button type="button" class="btn secondary" style="margin-left:auto;" title="@T["audioSettings.mixer.agent.removeTitle"]"
+                                    @onclick="() => RemoveAgent(agentIndex)">@T["audioSettings.mixer.agent.remove"]</button>
                         </div>
-                        <FieldHint Hint="@T["audioSettings.mixer.panel.pickHint"]" />
-                    }
-                    else
+
+                        <div style="margin-top:14px;">
+                            <span class="label-caps">@T["audioSettings.mixer.panel.title"]</span>
+                            <span class="field-hint" style="margin-left:8px;">@T["audioSettings.mixer.panel.hint"]</span>
+                        </div>
+                        @if (channels.Count > 0)
+                        {
+                            <div class="mixer-channel-grid">
+                                @foreach (var channel in channels)
+                                {
+                                    var picked = IsPanelChannel(agent, channel);
+                                    <label class="mixer-channel-pick">
+                                        <input type="checkbox" class="checkbox" checked="@picked"
+                                               @onchange="e => SetPanelChannel(agentIndex, channel, e.Value is true)" />
+                                        <span>@channel.DisplayName(kind)</span>
+                                    </label>
+                                }
+                            </div>
+                            <FieldHint Hint="@T["audioSettings.mixer.panel.pickHint"]" />
+                        }
+                        else
+                        {
+                            <TextField Label="@T["audioSettings.mixer.panel.strips.label"]" Hint="@T["audioSettings.mixer.panel.strips.hint"]" Kind="TextFieldKind.IntList"
+                                       Value="@PanelText(_agentStripsText, agentIndex)" ValueChanged="text => SetAgentStrips(agentIndex, text)" />
+                            <TextField Label="@T["audioSettings.mixer.panel.buses.label"]" Hint="@T["audioSettings.mixer.panel.buses.hint"]" Kind="TextFieldKind.IntList"
+                                       Value="@PanelText(_agentBusesText, agentIndex)" ValueChanged="text => SetAgentBuses(agentIndex, text)" />
+                            <FieldHint Hint="@T["audioSettings.mixer.panel.pendingHint"]" />
+                        }
+                        <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn secondary" disabled="@(_agentReloadBusy.Contains(agentIndex) || client is null)" @onclick="() => ReloadAgentChannels(agentIndex)"
+                                    title="@T["audioSettings.mixer.panel.reloadTitle"]">
+                                @(_agentReloadBusy.Contains(agentIndex) ? T["audioSettings.mixer.panel.reading"].Value : T["audioSettings.mixer.panel.reload"].Value)
+                            </button>
+                            <span class="field-hint">@ChannelSummary(client, live)</span>
+                        </div>
+                    </Section>
+                }
+
+                <Section Title="@T["audioSettings.mixer.agent.untitled"]" Hint="@T["audioSettings.mixer.agent.hint"]">
+                    @if (_mixer.Value.Agents.Count == 0)
                     {
-                        <TextField Label="@T["audioSettings.mixer.panel.strips.label"]" Hint="@T["audioSettings.mixer.panel.strips.hint"]" Kind="TextFieldKind.IntList"
-                                   Value="@_mixerStripsText" ValueChanged="SetMixerStrips" />
-                        <TextField Label="@T["audioSettings.mixer.panel.buses.label"]" Hint="@T["audioSettings.mixer.panel.buses.hint"]" Kind="TextFieldKind.IntList"
-                                   Value="@_mixerBusesText" ValueChanged="SetMixerBuses" />
-                        <FieldHint Hint="@T["audioSettings.mixer.panel.pendingHint"]" />
+                        <div class="empty">@T["audioSettings.mixer.agent.empty"]</div>
                     }
-                    <div class="row-actions" style="margin-top:8px; flex-wrap:wrap;">
-                        <button type="button" class="btn secondary" disabled="@_mixerReloadBusy" @onclick="ReloadMixerChannels"
-                                title="@T["audioSettings.mixer.panel.reloadTitle"]">
-                            @(_mixerReloadBusy ? T["audioSettings.mixer.panel.reading"].Value : T["audioSettings.mixer.panel.reload"].Value)
-                        </button>
-                        <span class="field-hint">@MixerChannelSummary</span>
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn secondary" @onclick="AddAgent">@T["audioSettings.mixer.agent.add"]</button>
                     </div>
                 </Section>
 
@@ -290,7 +343,8 @@
                             var index = i;
                             var row = _mixer.Value.Mappings[index];
                             var live = _mixerLive.Mappings.FirstOrDefault(m =>
-                                m.Acp == row.Acp && m.Channel == row.Channel && m.IsBus == row.IsBus && m.StripIndex == row.StripIndex);
+                                m.Acp == row.Acp && m.Channel == row.Channel && m.IsBus == row.IsBus && m.StripIndex == row.StripIndex
+                                && MixerAgentOptions.SameName(m.Agent, row.Agent));
                             <div class="mixer-map-row">
                                 <input type="checkbox" class="audio-cell-check" title="@T["audioSettings.mixer.mappings.enabledTitle"]" @bind="row.Enabled" />
                                 <select class="cell-select" @bind="row.Acp">
@@ -333,6 +387,12 @@
                     <div style="margin-top:8px;">
                         <button type="button" class="btn secondary" @onclick="AddMixerMapping">@T["audioSettings.mixer.mappings.add"]</button>
                     </div>
+                    @foreach (var shared in MixerSharedTargets())
+                    {
+                        <div class="field-hint field-hint-warn" style="margin-top:8px; max-width:640px;">
+                            @T["audioSettings.mixer.mappings.sharedTarget", MixerTargetLabel(shared.Agent, shared.IsBus, shared.Index), string.Join(", ", shared.Owners)]
+                        </div>
+                    }
                     <div class="field-hint" style="margin-top:8px; max-width:640px;">
                         @T["audioSettings.mixer.mappings.note"]
                         <details class="field-more">
@@ -407,88 +467,218 @@
     private OptionsDraft<AudioOptions> _audio = default!;
     private IReadOnlyList<VoiceMeeterTargetView> _vmTargets = [];
 
-    // ---- Remote mixer (VoicemeeterBridge, 2026-10-10) ----
+    // ---- Remote mixer (VoicemeeterBridge, 2026-10-10; one block per agent since #178) ----
 
     private OptionsDraft<MixerOptions> _mixer = default!;
     private MixerStatusSnapshot _mixerLive = MixerStatusSnapshot.Empty;
-    private bool _mixerTestBusy;
-    private MixerProbeResult? _mixerTestResult;
-    private bool _mixerReloadBusy;
-    private string _mixerStripsText = "";
-    private string _mixerBusesText = "";
+    private bool _mixerLifted;
+    private readonly HashSet<int> _agentTestBusy = [];
+    private readonly Dictionary<int, MixerProbeResult> _agentTestResults = [];
+    private readonly HashSet<int> _agentReloadBusy = [];
+    private readonly Dictionary<int, string> _agentStripsText = [];
+    private readonly Dictionary<int, string> _agentBusesText = [];
+    /// <summary>The agent names as last seen, so a rename can re-point the rows that used the old one.</summary>
+    private readonly List<string> _agentNames = [];
+    private readonly List<IMixerClient> _channelWatched = [];
 
-    private async Task TestMixer()
+    private string AgentTitle(MixerAgentOptions agent) =>
+        string.IsNullOrWhiteSpace(agent.Name) ? T["audioSettings.mixer.agent.untitled"].Value : agent.Name.Trim();
+
+    private async Task TestAgent(int index)
     {
-        _mixerTestBusy = true;
-        _mixerTestResult = null;
+        if (index >= _mixer.Value.Agents.Count)
+        {
+            return;
+        }
+
+        var agent = _mixer.Value.Agents[index];
+        _agentTestBusy.Add(index);
+        _agentTestResults.Remove(index);
         try
         {
-            var draft = _mixer.Value;
-            _mixerTestResult = await Mixer.ProbeAsync(draft.Host.Trim(), draft.Port, draft.Token);
+            _agentTestResults[index] = await Mixers.ProbeAsync(agent.Host.Trim(), agent.Port, agent.Token);
         }
         finally
         {
-            _mixerTestBusy = false;
+            _agentTestBusy.Remove(index);
         }
     }
 
-    private string? MixerKind => _mixerLive.Voicemeeter.Kind;
+    private void AddAgent()
+    {
+        var agents = _mixer.Value.Agents;
+        var name = $"PC{agents.Count + 1}";
+        while (agents.Any(a => MixerAgentOptions.SameName(a.Name, name)))
+        {
+            name += "x";
+        }
 
-    private string MixerChannelSummary => Mixer.Channels.Count > 0
-        ? T["audioSettings.mixer.panel.summary", Mixer.Channels.Count(c => !c.IsBus), Mixer.Channels.Count(c => c.IsBus)].Value
-        : _mixerLive.State == MixerConnectionState.Connected
+        agents.Add(new MixerAgentOptions { Name = name });
+        SyncAgentState();
+    }
+
+    private void RemoveAgent(int index)
+    {
+        if (index < _mixer.Value.Agents.Count)
+        {
+            _mixer.Value.Agents.RemoveAt(index);
+        }
+
+        _agentTestResults.Clear();
+        SyncAgentState();
+    }
+
+    /// <summary>A renamed agent takes its mapping rows along (they store the name).</summary>
+    private void OnAgentRenamed(int index)
+    {
+        if (index >= _mixer.Value.Agents.Count || index >= _agentNames.Count)
+        {
+            return;
+        }
+
+        var previous = _agentNames[index];
+        var current = _mixer.Value.Agents[index].Name.Trim();
+        if (!MixerAgentOptions.SameName(previous, current))
+        {
+            AudioPageRules.RenameAgent(_mixer.Value, previous, current);
+            _agentNames[index] = current;
+        }
+    }
+
+    private string ChannelSummary(IMixerClient? client, MixerAgentStatus? live) => client is { Channels.Count: > 0 }
+        ? T["audioSettings.mixer.panel.summary", client.Channels.Count(c => !c.IsBus), client.Channels.Count(c => c.IsBus)].Value
+        : live?.State == MixerConnectionState.Connected
             ? T["audioSettings.mixer.panel.summaryReading"].Value
             : T["audioSettings.mixer.panel.summaryOffline"].Value;
 
-    /// <summary>Targets to offer: the remote inventory when known, else Potato-sized generic
-    /// numbers (8 strips / 8 buses) so a mapping can be prepared before the first connect.</summary>
+    /// <summary>The name a row's agent resolves to in the draft (empty = the first agent), so
+    /// the target picker and the shared-target check speak of the same PC.</summary>
+    private string ResolvedAgentName(string? rowAgent)
+    {
+        var agents = _mixer.Value.Agents;
+        if (string.IsNullOrWhiteSpace(rowAgent))
+        {
+            return agents.Count > 0 ? agents[0].Name.Trim() : "";
+        }
+
+        return agents.FirstOrDefault(a => MixerAgentOptions.SameName(a.Name, rowAgent))?.Name.Trim() ?? rowAgent.Trim();
+    }
+
+    /// <summary>Targets to offer: every agent's remote inventory when known, else Potato-sized
+    /// generic numbers (8 strips / 8 buses) so a mapping can be prepared before the first
+    /// connect. With one agent the entries read exactly as before #178; with several they
+    /// carry the PC's name ("PC1 · Strip 3 — vPilot").</summary>
     private IReadOnlyList<(string Key, string Label)> ChannelOptions()
     {
         var options = new List<(string, string)>();
-        if (Mixer.Channels.Count > 0)
+        var agents = _mixer.Value.Agents;
+        if (agents.Count == 0)
         {
-            foreach (var channel in Mixer.Channels)
-            {
-                options.Add((TargetKey(channel.IsBus, channel.Index), channel.DisplayName(MixerKind)));
-            }
-
+            AddGenericTargets(options, "", null, "");
             return options;
         }
 
-        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        var prefixed = agents.Count > 1;
+        foreach (var agent in agents)
         {
-            options.Add((TargetKey(false, i), MixerChannelNames.Name(false, i, MixerKind)));
-        }
-
-        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
-        {
-            options.Add((TargetKey(true, i), MixerChannelNames.Name(true, i, MixerKind)));
+            var name = agent.Name.Trim();
+            var prefix = prefixed ? $"{AgentTitle(agent)} · " : "";
+            var client = Mixers.Find(name);
+            var kind = _mixerLive.Agent(name)?.Voicemeeter.Kind;
+            if (client is { Channels.Count: > 0 })
+            {
+                foreach (var channel in client.Channels)
+                {
+                    options.Add((TargetKey(name, channel.IsBus, channel.Index), prefix + channel.DisplayName(kind)));
+                }
+            }
+            else
+            {
+                AddGenericTargets(options, name, kind, prefix);
+            }
         }
 
         return options;
     }
 
-    private static string TargetKey(bool isBus, int index) => $"{(isBus ? "bus" : "strip")}:{index}";
+    private static void AddGenericTargets(List<(string, string)> options, string agent, string? kind, string prefix)
+    {
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            options.Add((TargetKey(agent, false, i), prefix + MixerChannelNames.Name(false, i, kind)));
+        }
 
-    private static string TargetKey(MixerMapping row) => TargetKey(row.IsBus, row.StripIndex);
+        for (var i = 0; i < MixerChannelNames.MaxIndex; i++)
+        {
+            options.Add((TargetKey(agent, true, i), prefix + MixerChannelNames.Name(true, i, kind)));
+        }
+    }
+
+    /// <summary>"PC1|strip:2" — the agent name first; it is split at the last bar, so a name
+    /// may contain one.</summary>
+    private static string TargetKey(string agent, bool isBus, int index) => $"{agent}|{(isBus ? "bus" : "strip")}:{index}";
+
+    private string TargetKey(MixerMapping row) => TargetKey(ResolvedAgentName(row.Agent), row.IsBus, row.StripIndex);
 
     private static void SetTarget(MixerMapping row, string? key)
     {
-        var parts = (key ?? "").Split(':');
+        var text = key ?? "";
+        var bar = text.LastIndexOf('|');
+        if (bar < 0)
+        {
+            return;
+        }
+
+        var parts = text[(bar + 1)..].Split(':');
         if (parts.Length == 2 && int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var index))
         {
+            row.Agent = text[..bar];
             row.IsBus = parts[0] == "bus";
             row.StripIndex = index;
         }
     }
 
+    /// <summary>The words for a target in the warning: the PC (when more than one) and the
+    /// strip/bus by its remote label when known.</summary>
+    private string MixerTargetLabel(string agent, bool isBus, int index)
+    {
+        var client = Mixers.Find(agent);
+        var kind = _mixerLive.Agent(agent)?.Voicemeeter.Kind;
+        var channel = client?.Channels.FirstOrDefault(c => c.IsBus == isBus && c.Index == index);
+        var name = channel?.DisplayName(kind) ?? MixerChannelNames.Name(isBus, index, kind);
+        return _mixer.Value.Agents.Count > 1 && agent.Length > 0 ? $"{agent} · {name}" : name;
+    }
+
+    /// <summary>#179: the strips/buses two enabled rows drive on the same PC.</summary>
+    private IReadOnlyList<AudioPageRules.SharedTarget> MixerSharedTargets() =>
+        AudioPageRules.SharedTargets(_mixer.Value.Mappings
+            .Where(m => m.Enabled)
+            .Select(m => new AudioPageRules.TargetRow(
+                ResolvedAgentName(m.Agent), m.IsBus, m.StripIndex,
+                $"{AudioPresentation.AcpLabel(m.Acp)} {AudioPresentation.ChannelLabel(m.Channel)}")));
+
+    /// <summary>#179, local backend: the same check over the active panels' VoiceMeeter rows.</summary>
+    private IReadOnlyList<AudioPageRules.SharedTarget> VoiceMeeterSharedTargets() =>
+        AudioPageRules.SharedTargets(_audio.Value.VoiceMeeterMappings
+            .Where(kv => Enum.TryParse<AcpSide>(kv.Key, ignoreCase: true, out var acp) && _audio.Value.ActiveAcps.Contains(acp))
+            .SelectMany(kv => kv.Value.Select(m => new AudioPageRules.TargetRow(
+                "", m.IsBus, m.StripIndex,
+                $"{AudioPresentation.AcpLabel(Enum.Parse<AcpSide>(kv.Key, ignoreCase: true))} {AudioPresentation.ChannelLabel(m.Channel)}"))));
+
+    private string VoiceMeeterTargetLabel(bool isBus, int index)
+    {
+        var wanted = $"{(isBus ? "bus" : "strip")}:{index}";
+        return TargetOptions().FirstOrDefault(o => o.Key == wanted).Label ?? $"{(isBus ? "Bus" : "Strip")} {index + 1}";
+    }
+
     /// <summary>A new row takes the first captain channel that is not mapped yet, onto the
-    /// first strip, Latch on — so nothing starts blank (owner feedback 2026-10-10).</summary>
+    /// first strip of the first agent, Latch on — so nothing starts blank (owner feedback 2026-10-10).</summary>
     private void AddMixerMapping()
     {
         var taken = _mixer.Value.Mappings.Where(m => m.Acp == AcpSide.Captain).Select(m => m.Channel).ToHashSet();
         var channel = Enum.GetValues<AudioChannel>().FirstOrDefault(c => c.ExistsOn(AcpSide.Captain) && !taken.Contains(c), AudioChannel.Vhf1);
-        _mixer.Value.Mappings.Add(new MixerMapping { Acp = AcpSide.Captain, Channel = channel, StripIndex = 0, IsBus = false, UseLatch = true });
+        var agent = _mixer.Value.Agents.Count > 0 ? _mixer.Value.Agents[0].Name.Trim() : "";
+        _mixer.Value.Mappings.Add(new MixerMapping { Acp = AcpSide.Captain, Channel = channel, Agent = agent, StripIndex = 0, IsBus = false, UseLatch = true });
     }
 
     private string LiveText(MixerMappingStatus? live)
@@ -504,30 +694,54 @@
         return gain + mute + result;
     }
 
-    private void SyncMixerPanelText()
+    /// <summary>Re-reads the per-agent page state (names, panel text boxes) from the draft —
+    /// after load, discard, add and remove.</summary>
+    private void SyncAgentState()
     {
-        _mixerStripsText = AudioPageRules.OneBasedText(_mixer.Value.PanelStrips);
-        _mixerBusesText = AudioPageRules.OneBasedText(_mixer.Value.PanelBuses);
+        _agentNames.Clear();
+        _agentStripsText.Clear();
+        _agentBusesText.Clear();
+        for (var i = 0; i < _mixer.Value.Agents.Count; i++)
+        {
+            var agent = _mixer.Value.Agents[i];
+            _agentNames.Add(agent.Name.Trim());
+            _agentStripsText[i] = AudioPageRules.OneBasedText(agent.PanelStrips);
+            _agentBusesText[i] = AudioPageRules.OneBasedText(agent.PanelBuses);
+        }
     }
 
-    private void SetMixerStrips(string text)
+    private static string PanelText(Dictionary<int, string> texts, int index) => texts.TryGetValue(index, out var text) ? text : "";
+
+    private void SetAgentStrips(int index, string text)
     {
-        _mixerStripsText = text;
-        _mixer.Value.PanelStrips = AudioPageRules.ParseOneBasedList(text);
+        _agentStripsText[index] = text;
+        if (index < _mixer.Value.Agents.Count)
+        {
+            _mixer.Value.Agents[index].PanelStrips = AudioPageRules.ParseOneBasedList(text);
+        }
     }
 
-    private void SetMixerBuses(string text)
+    private void SetAgentBuses(int index, string text)
     {
-        _mixerBusesText = text;
-        _mixer.Value.PanelBuses = AudioPageRules.ParseOneBasedList(text);
+        _agentBusesText[index] = text;
+        if (index < _mixer.Value.Agents.Count)
+        {
+            _mixer.Value.Agents[index].PanelBuses = AudioPageRules.ParseOneBasedList(text);
+        }
     }
 
-    private bool IsPanelChannel(MixerChannel channel) =>
-        channel.IsBus ? _mixer.Value.PanelBuses.Contains(channel.Index) : _mixer.Value.PanelStrips.Contains(channel.Index);
+    private static bool IsPanelChannel(MixerAgentOptions agent, MixerChannel channel) =>
+        channel.IsBus ? agent.PanelBuses.Contains(channel.Index) : agent.PanelStrips.Contains(channel.Index);
 
-    private void SetPanelChannel(MixerChannel channel, bool picked)
+    private void SetPanelChannel(int index, MixerChannel channel, bool picked)
     {
-        var list = channel.IsBus ? _mixer.Value.PanelBuses : _mixer.Value.PanelStrips;
+        if (index >= _mixer.Value.Agents.Count)
+        {
+            return;
+        }
+
+        var agent = _mixer.Value.Agents[index];
+        var list = channel.IsBus ? agent.PanelBuses : agent.PanelStrips;
         list.Remove(channel.Index);
         if (picked)
         {
@@ -535,23 +749,65 @@
             list.Sort();
         }
 
-        SyncMixerPanelText();
+        _agentStripsText[index] = AudioPageRules.OneBasedText(agent.PanelStrips);
+        _agentBusesText[index] = AudioPageRules.OneBasedText(agent.PanelBuses);
     }
 
-    private async Task ReloadMixerChannels()
+    private async Task ReloadAgentChannels(int index)
     {
-        _mixerReloadBusy = true;
+        if (index >= _mixer.Value.Agents.Count)
+        {
+            return;
+        }
+
+        var client = Mixers.Find(_mixer.Value.Agents[index].Name);
+        if (client is null)
+        {
+            return;
+        }
+
+        _agentReloadBusy.Add(index);
         try
         {
-            await Mixer.RefreshChannelsAsync();
+            await client.RefreshChannelsAsync();
         }
         finally
         {
-            _mixerReloadBusy = false;
+            _agentReloadBusy.Remove(index);
         }
     }
 
-    private string MixerStateLabel(MixerStatusSnapshot live) => live.State switch
+    /// <summary>The strip/bus names arrive after each connect (and on Reload) — re-render
+    /// then. The client set changes with the options, so the handlers follow it.</summary>
+    private void AttachChannelWatches()
+    {
+        foreach (var client in _channelWatched)
+        {
+            client.ChannelsChanged -= OnClientChannelsChanged;
+        }
+
+        _channelWatched.Clear();
+        foreach (var client in Mixers.All)
+        {
+            client.ChannelsChanged += OnClientChannelsChanged;
+            _channelWatched.Add(client);
+        }
+    }
+
+    private void OnClientChannelsChanged(object? sender, EventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        foreach (var client in _channelWatched)
+        {
+            client.ChannelsChanged -= OnClientChannelsChanged;
+        }
+
+        _channelWatched.Clear();
+        base.Dispose();
+    }
+
+    private string MixerStateLabel(MixerAgentStatus? live) => live?.State switch
     {
         MixerConnectionState.Connected => live.Voicemeeter.Connected
             ? T["audioSettings.mixer.state.connected", live.Voicemeeter.Kind ?? "", live.Voicemeeter.Version ?? ""].Value
@@ -560,7 +816,7 @@
         MixerConnectionState.Disconnected => live.LastError is { Length: > 0 } error
             ? T["audioSettings.mixer.state.unreachable", error].Value
             : T["audioSettings.mixer.state.unreachableRetrying"].Value,
-        _ => live.Enabled ? T["audioSettings.mixer.state.offNoHost"].Value : T["audioSettings.mixer.state.off"].Value,
+        _ => live?.LastError == "no host configured" ? T["audioSettings.mixer.state.offNoHost"].Value : T["audioSettings.mixer.state.off"].Value,
     };
 
     private static string MixerStateTone(MixerConnectionState state) => state switch
@@ -579,10 +835,12 @@
         _audio = Draft(AudioMonitor);
         _mixer = Draft(MixerMonitor);
         AudioPageRules.NormalizeVoiceMeeterAcpNames(_audio.Value);
-        SyncMixerPanelText();
+        // Pre-#178 settings: the single host/port/token becomes agent block 1 in the draft
+        // (the draft is dirty from here, so the pilot sees a Save).
+        _mixerLifted = AudioPageRules.MigrateLegacyAgent(_mixer.Value);
+        SyncAgentState();
         Watch(MixerStatus, snapshot => _mixerLive = snapshot);
-        // The strip/bus names arrive after each connect (and on Reload) — re-render then.
-        WatchChanged(h => Mixer.ChannelsChanged += h, h => Mixer.ChannelsChanged -= h, () => { });
+        WatchChanged(h => Mixers.ClientsChanged += h, h => Mixers.ClientsChanged -= h, AttachChannelWatches);
         ReloadTargets();
         LoadProcessSuggestions();
         _deviceSuggestions = DeviceCatalog.GetRenderDeviceNames();
@@ -695,6 +953,14 @@
     protected override void OnDiscarded()
     {
         AudioPageRules.NormalizeVoiceMeeterAcpNames(_audio.Value);
-        SyncMixerPanelText();
+        _mixerLifted = AudioPageRules.MigrateLegacyAgent(_mixer.Value);
+        _agentTestResults.Clear();
+        SyncAgentState();
+    }
+
+    protected override void OnAfterSave()
+    {
+        _mixerLifted = false;
+        SyncAgentState();
     }
 }

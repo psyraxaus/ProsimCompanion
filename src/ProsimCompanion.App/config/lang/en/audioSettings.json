@@ -103,7 +103,10 @@
       "more": "More",
       "oncePerPanelMore": "Conflicting saves fall back to the captain's panel until fixed; the Status section shows why. Knob travel maps to −60 dB … +12 dB; 0 dB sits near 83 %.",
       "loudspeaker": "LOUDSPEAKER is the cockpit loudspeaker dial, on the captain's and first officer's lists.",
-      "loudspeakerMore": "Map it to the strip or bus that feeds your cockpit speakers. The dial has no REC latch: fully down mutes the target. Manual chapter 8 (Loudspeaker dial) shows the VoiceMeeter wiring that puts the headset sound on the speakers."
+      "perHeadset": "Per-headset volume needs a bus per headset. A shared strip cannot have two volumes.",
+      "perHeadsetMore": "One strip or bus has one fader. If the captain's and the first officer's headsets share a bus, one knob sets both. INT on the same bus as VHF shares it too. Manual chapter 11 (Two headsets) shows a layout with one bus per headset; chapter 9 shows how to drive each pilot's own PC with the Remote Mixer.",
+      "sharedTarget": "{0} is driven by {1}. One target has one volume — give each knob its own strip or bus.",
+      "loudspeakerMore":"Map it to the strip or bus that feeds your cockpit speakers. The dial has no REC latch: fully down mutes the target. Manual chapter 8 (Loudspeaker dial) shows the VoiceMeeter wiring that puts the headset sound on the speakers."
     },
     "mixer": {
       "title": "Remote Mixer",
@@ -224,7 +227,8 @@
         "noLatchTitle": "No REC push-button on this dial. Fully down always mutes the target.",
         "liveTitle": "Gain and mute last sent, and the agent's answer",
         "liveMuted": "muted",
-        "liveOpen": "open",
+        "sharedTarget": "{0} is driven by {1}. One target has one volume — give each knob its own strip or bus.",
+        "liveOpen":"open",
         "remove": "Remove",
         "add": "Add mapping",
         "note": "The knob sets the strip or bus gain; Latch ticked, the REC push-button mutes it. Strip and bus names come from the mixer PC once the agent is connected.",

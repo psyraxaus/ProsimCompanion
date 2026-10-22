@@ -103,7 +103,10 @@
       "more": "Mehr",
       "oncePerPanelMore": "Widersprüchliche Speicherungen fallen bis zur Korrektur auf das Kapitäns-Panel zurück; der Status-Abschnitt zeigt warum. Der Knopfweg entspricht −60 dB … +12 dB; 0 dB liegt bei etwa 83 %.",
       "loudspeaker": "LOUDSPEAKER ist der Cockpit-Lautsprecherregler, in den Listen von Kapitän und Erstem Offizier.",
-      "loudspeakerMore": "Ordne ihn dem Strip oder Bus zu, der deine Cockpit-Lautsprecher speist. Der Regler hat keine REC-Rastung: ganz unten schaltet das Ziel stumm. Handbuch Kapitel 8 (Lautsprecherregler) zeigt die VoiceMeeter-Verdrahtung, die den Headset-Ton auf die Lautsprecher legt."
+      "perHeadset": "Lautstärke je Headset braucht je Headset einen Bus. Ein geteilter Strip kann nicht zwei Lautstärken haben.",
+      "perHeadsetMore": "Ein Strip oder Bus hat einen Fader. Teilen sich Captain- und First-Officer-Headset einen Bus, stellt ein Knopf beide. INT auf demselben Bus wie VHF teilt ihn ebenfalls. Handbuch Kapitel 11 (Zwei Headsets) zeigt eine Belegung mit einem Bus je Headset; Kapitel 9 zeigt, wie der Remote Mixer den eigenen PC jedes Piloten steuert.",
+      "sharedTarget": "{0} wird von {1} gesteuert. Ein Ziel hat eine Lautstärke — gib jedem Knopf seinen eigenen Strip oder Bus.",
+      "loudspeakerMore":"Ordne ihn dem Strip oder Bus zu, der deine Cockpit-Lautsprecher speist. Der Regler hat keine REC-Rastung: ganz unten schaltet das Ziel stumm. Handbuch Kapitel 8 (Lautsprecherregler) zeigt die VoiceMeeter-Verdrahtung, die den Headset-Ton auf die Lautsprecher legt."
     },
     "mixer": {
       "title": "Remote-Mixer",
@@ -224,7 +227,8 @@
         "noLatchTitle": "Kein REC-Drucktaster an diesem Regler. Ganz unten schaltet das Ziel immer stumm.",
         "liveTitle": "Zuletzt gesendete Gain und Mute sowie die Antwort des Agenten",
         "liveMuted": "stumm",
-        "liveOpen": "offen",
+        "sharedTarget": "{0} wird von {1} gesteuert. Ein Ziel hat eine Lautstärke — gib jedem Knopf seinen eigenen Strip oder Bus.",
+        "liveOpen":"offen",
         "remove": "Entfernen",
         "add": "Zuordnung hinzufügen",
         "note": "Der Knopf setzt die Gain des Strips oder Busses; mit Rastung angehakt schaltet der REC-Drucktaster stumm. Strip- und Bus-Namen kommen vom Mixer-PC, sobald der Agent verbunden ist.",

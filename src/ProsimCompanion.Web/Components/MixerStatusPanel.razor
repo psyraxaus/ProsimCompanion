@@ -1,80 +1,104 @@
-@* Live remote-mixer panel (VoicemeeterBridge, 2026-10-10): the agent link, Voicemeeter on
-   the mixer PC, and the configured strips/buses with gain + mute, updated from the client's
-   changed events. Mute buttons write through SetAsync. Renders nothing while the feature is
-   off, so the Audio Status section can include it unconditionally. *@
+@* Live remote-mixer panel (VoicemeeterBridge, 2026-10-10; one group per agent since #178):
+   each agent link, Voicemeeter on that mixer PC, and the strips/buses chosen for it with
+   gain + mute, updated from the clients' changed events. Mute buttons write through
+   SetAsync. Renders nothing while the feature is off, so the Audio Status section can
+   include it unconditionally. *@
 @inherits StoreObserverComponent
 @inject MixerStatusStore Status
-@inject IMixerClient Client
+@inject IMixerClients Mixers
 @inject IOptionsMonitor<MixerOptions> Options
 @inject IStringLocalizer T
 
 @if (_view.Enabled)
 {
     <Section Title="@T["audioSettings.remoteMixer.title"]" Hint="@T["audioSettings.remoteMixer.hint"]">
-        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-            <span class="pill @StateTone(_view.State)">@StateLabel(_view.State)</span>
-            @if (_view.State == MixerConnectionState.Connected)
-            {
-                <span class="pill @(_view.Voicemeeter.Connected ? "tone-ok" : "tone-warn")">
-                    @(_view.Voicemeeter.Connected
-                        ? T["audioSettings.remoteMixer.voicemeeter", _view.Voicemeeter.Kind ?? "", _view.Voicemeeter.Version ?? ""].Value
-                        : T["audioSettings.remoteMixer.voicemeeterNotRunning"].Value)
-                </span>
-            }
-            <span class="pill tone-neutral mono" title="@T["audioSettings.remoteMixer.endpointTitle"]">@_view.Endpoint</span>
-            @if (_view.FailedSets > 0)
-            {
-                <span class="pill tone-warn" title="@T["audioSettings.remoteMixer.failedTitle"]">@(_view.FailedSets == 1 ? T["audioSettings.remoteMixer.failedWrite", _view.FailedSets].Value : T["audioSettings.remoteMixer.failedWrites", _view.FailedSets].Value)</span>
-            }
-        </div>
-        @if (_view.LastError is { Length: > 0 } error && _view.State != MixerConnectionState.Connected)
+        @if (_view.Agents.Count > 1)
         {
-            <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">@T["audioSettings.remoteMixer.lastError", error]</div>
+            <div class="field-hint">@T["audioSettings.mixer.agent.count", _view.ConnectedAgents, _view.ActiveAgents]</div>
         }
         @if (_setMessage is not null)
         {
             <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">@_setMessage</div>
         }
-
-        @{ var rows = Rows(); }
-        @if (rows.Count == 0)
+        @if (_view.Agents.Count == 0)
         {
             <div class="empty" style="margin-top:8px;">
-                @T["audioSettings.remoteMixer.emptyBefore"] <a href="settings/audio/mixer">@T["audioSettings.remoteMixer.emptyLink"]</a>@T["audioSettings.remoteMixer.emptyAfter"]
+                @T["audioSettings.mixer.agent.empty"] <a href="settings/audio/mixer">@T["audioSettings.remoteMixer.emptyLink"]</a>@T["audioSettings.remoteMixer.emptyAfter"]
             </div>
         }
-        else
+
+        @foreach (var agent in _view.Agents)
         {
-            <div class="table-scroll" style="margin-top:8px;">
-                <table class="data-table">
-                    <thead>
-                        <tr><th>@T["audioSettings.remoteMixer.channel"]</th><th>@T["audioSettings.remoteMixer.label"]</th><th>@T["audioSettings.remoteMixer.gain"]</th><th>@T["audioSettings.remoteMixer.mute"]</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var row in rows)
-                        {
-                            var muted = Value(row.MuteParam)?.AsDouble() >= 0.5;
-                            var known = Value(row.MuteParam) is not null;
-                            <tr>
-                                <td>@row.Name</td>
-                                <td>@(Value(row.LabelParam)?.Text ?? "—")</td>
-                                <td class="mono">@(Value(row.GainParam) is { Number: { } g } ? $"{g:F1} dB" : "—")</td>
-                                <td>
-                                    <span class="pill @(known ? (muted ? "tone-warn" : "tone-ok") : "tone-neutral")">
-                                        @(known ? (muted ? T["audioSettings.remoteMixer.muted"].Value : T["audioSettings.remoteMixer.open"].Value) : "—")
-                                    </span>
-                                </td>
-                                <td>
-                                    <button type="button" class="btn secondary" style="padding:4px 10px;"
-                                            disabled="@(_view.State != MixerConnectionState.Connected || _busyParam is not null)"
-                                            @onclick="() => ToggleMute(row.MuteParam, muted)">
-                                        @(_busyParam == row.MuteParam ? "…" : muted ? T["audioSettings.remoteMixer.unmuteButton"].Value : T["audioSettings.remoteMixer.muteButton"].Value)
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            var client = Mixers.Find(agent.Name);
+            var kind = agent.Voicemeeter.Kind;
+            var rows = Rows(agent.Name, kind);
+            <div style="margin-top:10px;">
+                <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                    @if (_view.Agents.Count > 1)
+                    {
+                        <span class="pill tone-neutral"><strong>@agent.Name</strong></span>
+                    }
+                    <span class="pill @StateTone(agent.State)">@StateLabel(agent.State)</span>
+                    @if (agent.State == MixerConnectionState.Connected)
+                    {
+                        <span class="pill @(agent.Voicemeeter.Connected ? "tone-ok" : "tone-warn")">
+                            @(agent.Voicemeeter.Connected
+                                ? T["audioSettings.remoteMixer.voicemeeter", agent.Voicemeeter.Kind ?? "", agent.Voicemeeter.Version ?? ""].Value
+                                : T["audioSettings.remoteMixer.voicemeeterNotRunning"].Value)
+                        </span>
+                    }
+                    <span class="pill tone-neutral mono" title="@T["audioSettings.remoteMixer.endpointTitle"]">@agent.Endpoint</span>
+                    @if (agent.FailedSets > 0)
+                    {
+                        <span class="pill tone-warn" title="@T["audioSettings.remoteMixer.failedTitle"]">@(agent.FailedSets == 1 ? T["audioSettings.remoteMixer.failedWrite", agent.FailedSets].Value : T["audioSettings.remoteMixer.failedWrites", agent.FailedSets].Value)</span>
+                    }
+                </div>
+                @if (agent.LastError is { Length: > 0 } error && agent.State == MixerConnectionState.Disconnected)
+                {
+                    <div class="field-hint" style="color:var(--warning, #e6a23c); margin-top:8px;">@T["audioSettings.remoteMixer.lastError", error]</div>
+                }
+
+                @if (rows.Count == 0)
+                {
+                    <div class="empty" style="margin-top:8px;">
+                        @T["audioSettings.remoteMixer.emptyBefore"] <a href="settings/audio/mixer">@T["audioSettings.remoteMixer.emptyLink"]</a>@T["audioSettings.remoteMixer.emptyAfter"]
+                    </div>
+                }
+                else
+                {
+                    <div class="table-scroll" style="margin-top:8px;">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>@T["audioSettings.remoteMixer.channel"]</th><th>@T["audioSettings.remoteMixer.label"]</th><th>@T["audioSettings.remoteMixer.gain"]</th><th>@T["audioSettings.remoteMixer.mute"]</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in rows)
+                                {
+                                    var muteValue = Value(client, row.MuteParam);
+                                    var muted = muteValue?.AsDouble() >= 0.5;
+                                    var known = muteValue is not null;
+                                    <tr>
+                                        <td>@row.Name</td>
+                                        <td>@(Value(client, row.LabelParam)?.Text ?? "—")</td>
+                                        <td class="mono">@(Value(client, row.GainParam) is { Number: { } g } ? $"{g:F1} dB" : "—")</td>
+                                        <td>
+                                            <span class="pill @(known ? (muted ? "tone-warn" : "tone-ok") : "tone-neutral")">
+                                                @(known ? (muted ? T["audioSettings.remoteMixer.muted"].Value : T["audioSettings.remoteMixer.open"].Value) : "—")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn secondary" style="padding:4px 10px;"
+                                                    disabled="@(client is null || agent.State != MixerConnectionState.Connected || _busyParam is not null)"
+                                                    @onclick="() => ToggleMute(client, row.MuteParam, muted)">
+                                                @(_busyParam == row.MuteParam ? "…" : muted ? T["audioSettings.remoteMixer.unmuteButton"].Value : T["audioSettings.remoteMixer.muteButton"].Value)
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         }
     </Section>
@@ -84,6 +108,7 @@
     private MixerStatusSnapshot _view = MixerStatusSnapshot.Empty;
     private string? _busyParam;
     private string? _setMessage;
+    private readonly List<IMixerClient> _attached = [];
 
     private sealed record PanelRow(string Name, string LabelParam, string GainParam, string MuteParam);
 
@@ -94,12 +119,40 @@
             _view = snapshot;
             EnsureWatched();
         });
-        // Parameter values live in the client cache; every changed event re-renders. Events
-        // fire on the receive thread — the observer base marshals into the circuit.
-        WatchChanged<MixerParameterChangedEventArgs>(
-            h => Client.ParameterChanged += h,
-            h => Client.ParameterChanged -= h,
-            () => { });
+        // Parameter values live in each client's cache; every changed event re-renders.
+        // The client set follows the options, so the handlers are re-attached on change.
+        WatchChanged(h => Mixers.ClientsChanged += h, h => Mixers.ClientsChanged -= h, AttachClients);
+    }
+
+    private void AttachClients()
+    {
+        foreach (var client in _attached)
+        {
+            client.ParameterChanged -= OnParameterChanged;
+        }
+
+        _attached.Clear();
+        foreach (var client in Mixers.All)
+        {
+            client.ParameterChanged += OnParameterChanged;
+            _attached.Add(client);
+        }
+
+        EnsureWatched();
+    }
+
+    // Events fire on the receive thread — marshal into the circuit.
+    private void OnParameterChanged(object? sender, MixerParameterChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        foreach (var client in _attached)
+        {
+            client.ParameterChanged -= OnParameterChanged;
+        }
+
+        _attached.Clear();
+        base.Dispose();
     }
 
     /// <summary>Watching is idempotent in the client, so re-asking on every snapshot is the
@@ -111,16 +164,23 @@
             return;
         }
 
-        Client.Watch(Rows().SelectMany(r => new[] { r.LabelParam, r.GainParam, r.MuteParam }));
+        foreach (var client in Mixers.All)
+        {
+            client.Watch(Rows(client.Name, null).SelectMany(r => new[] { r.LabelParam, r.GainParam, r.MuteParam }));
+        }
     }
 
-    private List<PanelRow> Rows()
+    private List<PanelRow> Rows(string agentName, string? kind)
     {
-        var options = Options.CurrentValue;
+        var agent = Options.CurrentValue.FindAgent(agentName);
         var rows = new List<PanelRow>();
+        if (agent is null)
+        {
+            return rows;
+        }
+
         // "Bus A1" / "Bus B2" needs the edition from the welcome; before it, plain numbers.
-        var kind = _view.Voicemeeter.Kind;
-        foreach (var strip in options.PanelStrips.Distinct().OrderBy(i => i))
+        foreach (var strip in agent.PanelStrips.Distinct().OrderBy(i => i))
         {
             rows.Add(new PanelRow(
                 MixerChannelNames.Name(false, strip, kind),
@@ -129,7 +189,7 @@
                 MixerChannelNames.Parameter(false, strip, "Mute")));
         }
 
-        foreach (var bus in options.PanelBuses.Distinct().OrderBy(i => i))
+        foreach (var bus in agent.PanelBuses.Distinct().OrderBy(i => i))
         {
             rows.Add(new PanelRow(
                 MixerChannelNames.Name(true, bus, kind),
@@ -141,18 +201,24 @@
         return rows;
     }
 
-    private MixerValue? Value(string parameter) => Client.TryGetValue(parameter, out var value) ? value : null;
+    private static MixerValue? Value(IMixerClient? client, string parameter) =>
+        client is not null && client.TryGetValue(parameter, out var value) ? value : null;
 
-    private async Task ToggleMute(string parameter, bool currentlyMuted)
+    private async Task ToggleMute(IMixerClient? client, string parameter, bool currentlyMuted)
     {
+        if (client is null)
+        {
+            return;
+        }
+
         _busyParam = parameter;
         _setMessage = null;
         try
         {
-            var result = await Client.SetAsync(parameter, currentlyMuted ? 0 : 1);
+            var result = await client.SetAsync(parameter, currentlyMuted ? 0 : 1);
             if (!result.Ok)
             {
-                _setMessage = $"{parameter}: {result.Code}";
+                _setMessage = $"{client.Name}: {parameter}: {result.Code}";
             }
         }
         finally

@@ -103,7 +103,10 @@
       "more": "Plus",
       "oncePerPanelMore": "Les enregistrements en conflit retombent sur le panneau du commandant jusqu'à correction ; la section État explique pourquoi. La course du bouton couvre −60 dB … +12 dB ; 0 dB se situe vers 83 %.",
       "loudspeaker": "LOUDSPEAKER est le bouton du haut-parleur du cockpit, dans les listes du commandant et du copilote.",
-      "loudspeakerMore": "Affecte-le au strip ou au bus qui alimente les haut-parleurs de ton cockpit. Le bouton n'a pas de verrou REC : à fond en bas, il coupe la cible. Le chapitre 8 du manuel (bouton du haut-parleur) montre le câblage VoiceMeeter qui envoie le son du casque sur les haut-parleurs."
+      "perHeadset": "Un volume par casque demande un bus par casque. Un strip partagé ne peut pas avoir deux volumes.",
+      "perHeadsetMore": "Un strip ou un bus n'a qu'un fader. Si les casques du commandant et du copilote partagent un bus, un seul bouton règle les deux. INT sur le même bus que la VHF le partage aussi. Le chapitre 11 du manuel (Deux casques) montre une disposition avec un bus par casque ; le chapitre 9 montre comment piloter le PC de chaque pilote avec le Remote Mixer.",
+      "sharedTarget": "{0} est piloté par {1}. Une cible n'a qu'un volume : donne à chaque bouton son propre strip ou bus.",
+      "loudspeakerMore":"Affecte-le au strip ou au bus qui alimente les haut-parleurs de ton cockpit. Le bouton n'a pas de verrou REC : à fond en bas, il coupe la cible. Le chapitre 8 du manuel (bouton du haut-parleur) montre le câblage VoiceMeeter qui envoie le son du casque sur les haut-parleurs."
     },
     "mixer": {
       "title": "Mixeur distant",
@@ -224,7 +227,8 @@
         "noLatchTitle": "Pas de bouton-poussoir REC sur ce bouton. À fond en bas coupe toujours la cible.",
         "liveTitle": "Derniers gain et mute envoyés, et la réponse de l'agent",
         "liveMuted": "coupé",
-        "liveOpen": "ouvert",
+        "sharedTarget": "{0} est piloté par {1}. Une cible n'a qu'un volume : donne à chaque bouton son propre strip ou bus.",
+        "liveOpen":"ouvert",
         "remove": "Retirer",
         "add": "Ajouter une affectation",
         "note": "Le bouton règle le gain du strip ou du bus ; Verrou coché, le bouton-poussoir REC le coupe. Les noms des strips et bus viennent du PC mixeur une fois l'agent connecté.",
