@@ -1,12 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.7.0-rc.12
 
-Remote mixer for two-pilot rigs, 2026-10-22, on top of rc.11 (branch `feature/remote-mixer-agents`); **not yet verified live**.
+Remote mixer for two-pilot rigs, 2026-10-22. A local release-candidate build on top of rc.11 for the owner's sim test; **not yet verified live** (neither are rc.11's refactors, which this build carries).
 
 - New: **the Remote Mixer drives several VoicemeeterBridge agents at once** ([#178](https://github.com/psyraxaus/ProsimCompanion/issues/178), Guenther's two-pilot cockpit: a PC per pilot with ProSim Audio 2 and VoiceMeeter Potato, so INT and VHF can sit on separate knobs). Settings → Audio Control → Remote Mixer now has one **Agent** block per PC (name, on/off, host, port, token, Test connection, live pill, the strips/buses for the status card) and an **Add agent** button; every mapping row names its PC through the strip/bus picker (*PC1 · Strip 3 — vPilot*; with one agent the entries read as before). One client per agent, each with its own reconnect backoff: one pilot PC being off never holds up the other, and a reconnected agent catches up on its own. The Status card groups its rows per agent; the footer keeps one `Mixer` dot, green when every agent is connected, amber with *1 of 2 agents connected* when one is not. Logs carry the agent name (`Mixer [PC1] connection: Connected`); the wire-trace channel is `Mixer/<name>`. **Existing single-host settings load unchanged**: the flat host/port/token become agent block 1 (*Mixer PC*) on the page's first visit, mapping rows without a name mean "the first agent", and each agent's token is DPAPI-protected like the old one (`mixer:agents:*:token`). Manual chapter 9 gained **9.7 Two pilot PCs**. Seven language packs. Unverified live.
 - New: **both mapping editors warn when two rows drive the same strip or bus** ([#179](https://github.com/psyraxaus/ProsimCompanion/issues/179)): *Bus A2 is driven by Captain VHF1, First Officer VHF1. One target has one volume — give each knob its own strip or bus.* The VoiceMeeter tab also carries a hint that per-headset volume needs a bus per headset. New manual chapter **11, Two headsets**: the reference layout that worked (Banana on the main PC, ProSim Audio 2 groups on VAIO/AUX, the online client on a cable into a hardware strip, knobs on Bus A2/A3; Potato on the pilot PCs with VBAN into a device-less strip), the INT caveat and the two ways to get INT its own knob, and why VHF2 cannot have its own bus (IVAO, vPilot and most clients emit COM1+COM2 as one stream — not planned to split). No new setting.
 - Internal: `MixerClient` is a per-agent session owned by the new `MixerClientHost` (the app's `IMixerClients`); `MixerMappingService` routes each row to its agent through a coalescer per agent; `MixerStatusSnapshot` carries an agent roster. The probe moved to `MixerProbe`. 28 new tests over two fake agents (routing, one-down, retire/restart on options change, legacy fallback, footer aggregation, page rules, secret paths).
+- Everything in 0.7.0-rc.11 below.
 
 ## 0.7.0-rc.11
 
