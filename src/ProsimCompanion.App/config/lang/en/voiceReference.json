@@ -142,6 +142,11 @@
         "loadsheet": "Spoken loadsheet from the live weights, pax and CG (ACARS chime).",
         "lastMessage": "Repeats the last company message."
       },
+      "windLimits": {
+        "title": "Wind limits",
+        "windCheck": "The current wind on the runway in use against the aircraft limits.",
+        "runwayCondition": "The runway condition selected on the Landing page and its crosswind limit."
+      },
       "day": {
         "title": "Duty day",
         "start": "Starts the company duty day.",

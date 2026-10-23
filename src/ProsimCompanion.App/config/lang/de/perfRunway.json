@@ -36,6 +36,11 @@
       "runwayFetchFailed": "Pistenabfrage fehlgeschlagen: {0}",
       "weatherFetchFailed": "Wetterabfrage fehlgeschlagen ({0})",
       "calcRequestFailedProsim": "Berechnungsanfrage fehlgeschlagen — läuft ProSim?"
+    },
+    "wind": {
+      "components": "Windkomponenten",
+      "limits": "Windlimits",
+      "title": "Seitenwindlimit {0} kt ({2}), Rückenwindlimit {1} kt — inkl. Böen"
     }
   }
 }

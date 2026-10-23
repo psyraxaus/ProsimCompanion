@@ -151,6 +151,7 @@ public sealed partial class SettingsPagesRenderTests
         Options(services, new ChecklistOptions());
         Options(services, new FlightStatusOptions { TileOrder = configured ? ["gsx", "hero"] : [] });
         Options(services, new FlightStateOptions { SnapshotEnabled = !configured });
+        Options(services, new AircraftLimitsOptions { MaxCrosswindWetKt = configured ? 30 : 33 });
 
         var html = await RenderPageAsync<ProsimCompanion.Web.Pages.AppSettings>(services, "settings/app", new Dictionary<string, object?>());
 

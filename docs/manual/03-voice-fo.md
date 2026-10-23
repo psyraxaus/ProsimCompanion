@@ -176,7 +176,7 @@ answer timeout.
 
 ### In-flight monitoring
 
-Four extra monitors live on the same page under **In-flight monitoring**. Each has its own
+Five extra monitors live on the same page under **In-flight monitoring**. Each has its own
 switch and all are **off** until you turn them on; each needs the flight to be live (ProSim
 connected, real flight data).
 
@@ -208,6 +208,15 @@ connected, real flight data).
   is still the checklist's. *"Read back …"*, *"check …"* or *"confirm …"* may lead in
   (*"read back altimeter one zero one three"*), and *"altimeter standard"* is checked
   against 1013 — *"Standard, checked."*
+- **Wind limits.** *"Wind check"* resolves the current METAR wind onto the runway in use —
+  the departure runway until you are airborne, the landing runway after — and judges it, gust
+  included, against your aircraft limits (Settings → Display & Flight Data → **Aircraft
+  limits**; A320 demonstrated values by default): *"Runway two seven: Crosswind component 24
+  knots, headwind 12, within limits."* or *"… exceeds the wet-runway crosswind limit of 33
+  knots."* *"Runway condition"* reads the Landing page's selection (Dry / Wet / RWYCC 5…1) and
+  its crosswind limit. The same sentence follows the wind clause in the departure and arrival
+  briefings. **Approach wind advisory** (its own switch) makes the FO say once, on the approach,
+  when the destination wind puts the landing runway beyond a limit.
 
 ## Briefings, radios, FCU
 

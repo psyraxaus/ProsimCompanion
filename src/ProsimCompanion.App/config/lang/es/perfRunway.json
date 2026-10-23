@@ -36,6 +36,11 @@
       "runwayFetchFailed": "Fallo al obtener las pistas: {0}",
       "weatherFetchFailed": "Fallo al obtener la meteo ({0})",
       "calcRequestFailedProsim": "Fallo en la solicitud de cálculo — ¿está ProSim en marcha?"
+    },
+    "wind": {
+      "components": "Componentes del viento",
+      "limits": "Límites de viento",
+      "title": "Límite de viento cruzado {0} kt ({2}), límite de viento en cola {1} kt — ráfaga incluida"
     }
   }
 }

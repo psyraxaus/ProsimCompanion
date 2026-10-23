@@ -142,6 +142,11 @@
         "loadsheet": "Gesproken loadsheet uit de live gewichten, pax en CG (ACARS-chime).",
         "lastMessage": "Herhaalt het laatste companybericht."
       },
+      "windLimits": {
+        "title": "Windlimieten",
+        "windCheck": "De huidige wind op de gebruikte baan tegen de vliegtuiglimieten.",
+        "runwayCondition": "De op de Landing-pagina gekozen baantoestand en zijn dwarswindlimiet."
+      },
       "day": {
         "title": "Dienstdag",
         "start": "Start de company-dienstdag.",

@@ -142,6 +142,11 @@
         "loadsheet": "실시간 중량, 승객 수, CG로 만든 음성 로드시트입니다(ACARS 차임).",
         "lastMessage": "마지막 회사 메시지를 반복합니다."
       },
+      "windLimits": {
+        "title": "바람 제한",
+        "windCheck": "사용 활주로의 현재 바람을 항공기 제한과 비교합니다.",
+        "runwayCondition": "Landing 페이지에서 선택한 활주로 상태와 그 측풍 제한."
+      },
       "day": {
         "title": "근무일",
         "start": "회사 근무일을 시작합니다.",

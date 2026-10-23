@@ -36,6 +36,11 @@
       "runwayFetchFailed": "Ophalen van banen mislukt: {0}",
       "weatherFetchFailed": "Ophalen van het weer mislukt ({0})",
       "calcRequestFailedProsim": "Berekeningsverzoek mislukt — draait ProSim?"
+    },
+    "wind": {
+      "components": "Windcomponenten",
+      "limits": "Windlimieten",
+      "title": "Dwarswindlimiet {0} kt ({2}), rugwindlimiet {1} kt — incl. vlagen"
     }
   }
 }

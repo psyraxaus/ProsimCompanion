@@ -14,6 +14,7 @@
 @inject LoadsheetStore Loadsheets
 @inject IFmsPerfUplink PerfUplink
 @inject TakeoffPerfStore PerfStore
+@inject IOptionsMonitor<AircraftLimitsOptions> Limits
 @inject DisplayUnitService Units
 @inject IStringLocalizer T
 
@@ -188,6 +189,9 @@
                             <span class="perf-field-label">@T["takeoff.output.component", _result?.HwComp < 0 ? "TW" : "HW"]</span>
                             <span class="perf-limit-value @(_result is null ? "dim" : null)">@(_result is not null ? $"{Math.Abs(_result.HwComp)} kt" : "----")</span>
                         </div>
+                        @* Wind against the aircraft limits (issue #182): from the page's wind
+                           (METAR by default, pilot-editable) and the runway's true heading. *@
+                        <WindLimitRow Verdict="WindVerdict()" />
                         <div class="perf-limit">
                             <span class="perf-field-label">TOPL</span>
                             <span class="perf-limit-value @(_result?.ToplLimited == true ? "amber" : _result is null ? "dim" : null)">@(_result is not null ? Units.Format(_result.Topl) : "----")</span>
@@ -282,6 +286,7 @@
     private int _qnh = 1013;
     private string _windDir = "0";
     private int _windKt;
+    private int _windGustKt;
     private double _towKg;
     private double _macTow;
     private string _engine = "CFM";
@@ -630,6 +635,27 @@
             ? dir.ToString(CultureInfo.InvariantCulture)
             : (facts.RawMetar?.Contains("VRB", StringComparison.Ordinal) == true ? "VRB" : "0");
         _windKt = facts.WindSpeedKt ?? 0;
+        _windGustKt = facts.WindGustKt ?? 0;
+    }
+
+    /// <summary>The wind row's verdict (issue #182): the page's wind on the runway's surveyed
+    /// true heading (the designator × 10 when the gateway has none), takeoff limits, the WET
+    /// surface chip selecting the wet-runway crosswind limit. Null without a runway or a wind.</summary>
+    private WindLimitVerdict? WindVerdict()
+    {
+        var runway = SelectedRunway();
+        if (runway is null)
+        {
+            return null;
+        }
+
+        var heading = runway.HdgDegT is { } text && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var hdg)
+            ? hdg
+            : RunwayQdm(runway.RunwayId);
+        var isVrb = string.Equals(_windDir.Trim(), "VRB", StringComparison.OrdinalIgnoreCase);
+        int? direction = !isVrb && int.TryParse(_windDir, NumberStyles.Integer, CultureInfo.InvariantCulture, out var dir) ? dir : null;
+        var wind = WindMath.Resolve(direction, _windKt, _windGustKt > 0 ? _windGustKt : null, heading);
+        return wind is null ? null : WindLimitCheck.Evaluate(wind, Limits.CurrentValue, WindPhase.Takeoff, _surf == "WET" ? RunwayCondition.Wet : RunwayCondition.Dry);
     }
 
     /// <summary>TORA in metres for the selected runway/intersection; full length when no
@@ -785,6 +811,7 @@
         _qnh = 1013;
         _windDir = "0";
         _windKt = 0;
+        _windGustKt = 0;
         _flapVal = "opt";
         _surf = "DRY";
         _iceVal = "OFF";

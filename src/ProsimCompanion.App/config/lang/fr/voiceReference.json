@@ -142,6 +142,11 @@
         "loadsheet": "Loadsheet parlé à partir des masses, pax et CG en direct (chime ACARS).",
         "lastMessage": "Répète le dernier message compagnie."
       },
+      "windLimits": {
+        "title": "Limites de vent",
+        "windCheck": "Le vent actuel sur la piste en service contre les limites avion.",
+        "runwayCondition": "L'état de piste choisi sur la page Landing et sa limite de traversier."
+      },
       "day": {
         "title": "Journée de service",
         "start": "Démarre la journée de service compagnie.",

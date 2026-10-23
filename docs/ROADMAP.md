@@ -826,6 +826,29 @@ Owner requests and flight-test fixes after the batch. One line each; the full te
       hand-over by phase (legacy distance gate kept); SI stand fallback; event-flood dedupe.
       **Unverified live** — every item.
 
+## Phase 10 — November 2026 airline-ops batch
+
+Ten packages, one GitHub issue and one branch each, written against `feature/remote-mixer-agents`
+at 0.7.0-rc.12. The theme: what a line pilot does that the app did not yet model — the emergency
+half of the takeoff briefing, last-minute changes, wind and runway-condition limits, the fuel
+decision, a diversion, movement messages, turbulence and PAs, RTO/EFATO, the FO's own-side
+duties. New features default **off** and are **Unverified live** until a flight confirms them.
+
+- [x] **Wind limits and runway condition** (#182, `feature/wind-limits-runway-condition`):
+      Core `WindMath` / `WindComponents` (head/tail + crosswind, gust as a second pair, 360/000
+      wrap, variable wind as the worst case; the destination weather watch's tailwind trigger
+      consumes it), `AircraftLimitsOptions` (`aircraftLimits`: A320 demonstrated defaults —
+      tailwind 15, crosswind 38, wet 33, RWYCC 5…1 = 25/20/15/10/5), `RunwayCondition` +
+      `RunwayConditionStore` (Dry / Wet / RWYCC 5…1, per flight; Wet = calculator code 5 with
+      the wet limit; no factor table because the ProSim LDR calculator takes the code),
+      `WindLimitCheck` (gust-included, 5 kt amber band, spoken / summary / numbers), the
+      `WindLimitRow` on the Takeoff and Landing pages, `WindLimitsVoiceFeature` ("wind check" /
+      "runway condition", precedence 175), `WindLimitAdvisoryCore` + `WindLimitAdvisory`
+      (once per approach, re-armed on a go-around), `BriefingFacts.WindLimits` + the
+      `wind-limits` clause after the wind clause. Events `wind.check`, `wind.runway-condition`,
+      `wind.limit-advisory`; probe `wind-limits-callout`. **Unverified live** — the gateway's
+      `HdgDegT` as the true heading and the ProSim LDR response per condition code in particular.
+
 ## Open items (after the rc.5 batch, 2026-10-11)
 
 Nothing on this roadmap is open as code. What remains:

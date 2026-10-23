@@ -36,6 +36,11 @@
       "runwayFetchFailed": "Runway fetch failed: {0}",
       "weatherFetchFailed": "Weather fetch failed ({0})",
       "calcRequestFailedProsim": "Calculation request failed — is ProSim running?"
+    },
+    "wind": {
+      "components": "Wind components",
+      "limits": "Wind limits",
+      "title": "Crosswind limit {0} kt ({2}), tailwind limit {1} kt — gust included"
     }
   }
 }

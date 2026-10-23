@@ -70,6 +70,12 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
     private readonly Core.TechLog.ITechLogService? _techLog;
     private readonly IOptionsMonitor<TechLogOptions>? _techLogOptions;
 
+    // Wind limits (issue #182). Optional: without the options (tests) the briefing has no
+    // wind-limit clause.
+    private readonly IOptionsMonitor<SopOptions>? _sop;
+    private readonly IOptionsMonitor<AircraftLimitsOptions>? _aircraftLimits;
+    private readonly RunwayConditionStore? _runwayCondition;
+
     // Spoken text (campaign #81): names when the DFD is present, NATO-spelled ICAO otherwise
     // — the fallback policy lives in the module, not here (issue #70).
     private readonly Core.Speech.ISpokenText _spokenText;
@@ -91,12 +97,18 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
         Persona.PersonaService? persona = null,
         StreamingNarrator? narrator = null,
         Core.TechLog.ITechLogService? techLog = null,
-        IOptionsMonitor<TechLogOptions>? techLogOptions = null)
+        IOptionsMonitor<TechLogOptions>? techLogOptions = null,
+        IOptionsMonitor<SopOptions>? sop = null,
+        IOptionsMonitor<AircraftLimitsOptions>? aircraftLimits = null,
+        RunwayConditionStore? runwayCondition = null)
     {
         _persona = persona;
         _narrator = narrator;
         _techLog = techLog;
         _techLogOptions = techLogOptions;
+        _sop = sop;
+        _aircraftLimits = aircraftLimits;
+        _runwayCondition = runwayCondition;
         ArgumentNullException.ThrowIfNull(spokenText);
         _spokenText = spokenText;
         ArgumentNullException.ThrowIfNull(options);
@@ -311,9 +323,10 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
 
         int? windDir = null, windSpeed = null, qnh = null, visibility = null, temperature = null;
         string? atisLetter = null, activeRunway = null;
+        var wx = WxFacts.None;
         if (ids.Airport is not null)
         {
-            var wx = await FetchWeatherAsync(ids.Airport).ConfigureAwait(false);
+            wx = await FetchWeatherAsync(ids.Airport).ConfigureAwait(false);
             windDir = wx.WindDirDeg;
             windSpeed = wx.WindSpeedKt;
             qnh = wx.QnhHpa is { } hpa ? (int)Math.Round(hpa) : null;
@@ -328,7 +341,26 @@ public sealed class BriefingService : IVoiceFeature, IDisposable
             windDir, windSpeed, qnh, departure ? null : _minima.Current,
             atisLetter, activeRunway, flexTemp, visibility, temperature,
             AirportName: _spokenText.Airport(ids.Airport),
-            TechLogItems: ConsultTechLog(departure));
+            TechLogItems: ConsultTechLog(departure),
+            WindLimits: WindLimitsFor(departure, nav, wx));
+    }
+
+    /// <summary>The wind against the aircraft limits for the briefed runway (issue #182): with
+    /// the wind-limits feature on, a runway true heading from the DFD and a wind in the
+    /// observation. The landing runway condition applies to the arrival only.</summary>
+    private WindLimitVerdict? WindLimitsFor(bool departure, NavDataFacts nav, WxFacts wx)
+    {
+        if (_sop?.CurrentValue.Monitoring.WindLimits.Enabled != true || _aircraftLimits is null
+            || nav.RunwayTrueHeading is not { } heading
+            || WindMath.Resolve(wx.WindDirDeg, wx.WindSpeedKt, wx.WindGustKt, heading) is not { } wind)
+        {
+            return null;
+        }
+
+        return WindLimitCheck.Evaluate(
+            wind, _aircraftLimits.CurrentValue,
+            departure ? WindPhase.Takeoff : WindPhase.Landing,
+            departure ? null : _runwayCondition?.Current);
     }
 
     /// <summary>The open tech-log items this briefing names (2026-10-09): all of them for the

@@ -4,6 +4,7 @@
 @using ProsimCompanion.Core.Flight
 @inject IOptionsMonitor<WebUiOptions> WebUiMonitor
 @inject IOptionsMonitor<FlightDataOptions> FlightDataMonitor
+@inject IOptionsMonitor<AircraftLimitsOptions> AircraftLimitsMonitor
 @inject IOptionsMonitor<ChecklistOptions> ChecklistMonitor
 @inject IOptionsMonitor<FlightStatusOptions> FlightStatusMonitor
 @inject IOptionsMonitor<FlightStateOptions> FlightStateMonitor
@@ -36,6 +37,23 @@
     <OptionField Draft="_flightData" For="o => o.AutoFinalOnBoardingComplete" />
     <OptionField Draft="_flightData" For="o => o.FinalDelayMinSeconds" />
     <OptionField Draft="_flightData" For="o => o.AutoSyncFmsOnFinal" />
+</Section>
+
+@* Aircraft wind limits (issue #182): A320 published demonstrated values by default. *@
+<Section Title="@T["appSettings.aircraftLimits.title"]" Hint="@T["appSettings.aircraftLimits.hint"]">
+    <OptionField Draft="_limits" For="o => o.MaxCrosswindTakeoffKt" />
+    <OptionField Draft="_limits" For="o => o.MaxCrosswindLandingKt" />
+    <OptionField Draft="_limits" For="o => o.MaxCrosswindWetKt" />
+    <OptionField Draft="_limits" For="o => o.MaxTailwindTakeoffKt" />
+    <OptionField Draft="_limits" For="o => o.MaxTailwindLandingKt" />
+    <AdvancedFields>
+        <OptionField Draft="_limits" For="o => o.CrosswindRwycc5Kt" />
+        <OptionField Draft="_limits" For="o => o.CrosswindRwycc4Kt" />
+        <OptionField Draft="_limits" For="o => o.CrosswindRwycc3Kt" />
+        <OptionField Draft="_limits" For="o => o.CrosswindRwycc2Kt" />
+        <OptionField Draft="_limits" For="o => o.CrosswindRwycc1Kt" />
+    </AdvancedFields>
+    <div class="field-hint" style="max-width:640px;">@T["appSettings.aircraftLimits.demonstrated"]</div>
 </Section>
 
 <Section Title="@T["appSettings.flightStatus.title"]" Hint="@T["appSettings.flightStatus.hint"]">
@@ -76,6 +94,7 @@
 @code {
     private OptionsDraft<WebUiOptions> _webUi = default!;
     private OptionsDraft<FlightDataOptions> _flightData = default!;
+    private OptionsDraft<AircraftLimitsOptions> _limits = default!;
     private OptionsDraft<ChecklistOptions> _checklists = default!;
     private OptionsDraft<FlightStatusOptions> _flightStatus = default!;
     // The flightState section is also edited on the Flight phases page (thresholds); the
@@ -86,6 +105,7 @@
     {
         _webUi = Draft(WebUiMonitor);
         _flightData = Draft(FlightDataMonitor);
+        _limits = Draft(AircraftLimitsMonitor);
         _checklists = Draft(ChecklistMonitor);
         _flightStatus = Draft(FlightStatusMonitor);
         _flightState = Draft(FlightStateMonitor);

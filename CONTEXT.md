@@ -264,6 +264,21 @@ ceiling), a new ATIS letter, a tailwind on the planned runway — as an edge, ra
 trigger, never a repeat of a steady state.
 _Avoid_: weather alerts, METAR monitor
 
+**Wind limits**:
+The reported wind resolved onto the runway in use — head/tail and crosswind components, the
+gust as a second pair — judged gust-included against the operator's aircraft limits for the
+phase and the runway condition (dry, wet, or a GRF runway condition code): green within
+limits, amber within five knots of one, red beyond. One rule behind the performance pages'
+wind row, the briefings' wind-limit sentence, the FO's "wind check" and the once-per-approach
+advisory. Advisory only; the defaults are the A320 demonstrated values.
+_Avoid_: crosswind check (that is one phrase), wind warning, limitation (the FCOM's word)
+
+**Runway condition**:
+The crew's selection for the landing runway — dry, wet, or runway condition code 5 … 1 — held
+per flight, fed to the ProSim landing calculator as its condition code and picking the
+crosswind limit. "Wet" is calculator code 5 with the wet-runway limit.
+_Avoid_: braking action (the pre-GRF word), surface state (that is the METAR inference of the briefing)
+
 **Read-back**:
 A captain's statement of a figure ("altimeter one zero one three") that the FO checks against
 the aircraft and answers "checked" or corrects. A lead-in with no figure ("minimums check") is

@@ -16,6 +16,7 @@
     },
     "condition": {
       "dry": "Seca",
+      "wet": "Mojada",
       "good": "Buena",
       "goodMedium": "B/M",
       "medium": "Media",

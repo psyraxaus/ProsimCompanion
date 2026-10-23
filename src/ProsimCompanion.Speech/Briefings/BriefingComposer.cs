@@ -34,7 +34,8 @@ public sealed record BriefingFacts(
     int? VisibilityM = null,
     int? TemperatureC = null,
     string? AirportName = null,
-    IReadOnlyList<Core.TechLog.TechLogDefect>? TechLogItems = null);
+    IReadOnlyList<Core.TechLog.TechLogDefect>? TechLogItems = null,
+    Core.Weather.WindLimitVerdict? WindLimits = null);
 
 /// <summary>
 /// The deterministic briefing template (Prosim2FO's exact clause structure) plus the number
@@ -145,6 +146,17 @@ public static class BriefingComposer
         if (f is { WindDirDeg: { } windDir, WindSpeedKt: { } windSpeed })
         {
             s.Add(new("wind", $"Wind {windDir:000} at {windSpeed} knots.") { Numbers = [windDir, windSpeed], AnyOf = ["wind"] });
+
+            // Wind against the aircraft limits (issue #182): present only with the wind-limits
+            // feature on and a runway heading; the pre-#182 clause above is untouched.
+            if (f.WindLimits is { } limits)
+            {
+                s.Add(new("wind-limits", Core.Weather.WindLimitCheck.Spoken(limits))
+                {
+                    Numbers = [Math.Round(limits.Wind.CrosswindKt)],
+                    AnyOf = ["crosswind", "tailwind", "headwind", "variable wind"],
+                });
+            }
         }
 
         if (f.QnhHpa is { } qnh)
@@ -300,6 +312,14 @@ public static class BriefingComposer
             AddValue(Math.Max(0, items.Count - Core.TechLog.TechLogConsultation.MaxBriefedTitles));
         }
 
+        if (f.WindLimits is { } limits)
+        {
+            foreach (var number in Core.Weather.WindLimitCheck.Numbers(limits))
+            {
+                AddValue(number);
+            }
+        }
+
         return allowed;
     }
 
@@ -362,6 +382,14 @@ public static class BriefingComposer
         if (f is { WindDirDeg: not null, WindSpeedKt: not null })
         {
             Line("Wind", $"{f.WindDirDeg:000} at {f.WindSpeedKt} kt");
+        }
+
+        if (f.WindLimits is { } limits)
+        {
+            // Issue #182: the components and the verdict as data; the limit figures are the
+            // operator's settings, locked like every other number.
+            Line("Wind components (kt)", $"crosswind {Math.Round(limits.Wind.MaxCrosswindKt)}, {(limits.Wind.HeadwindKt >= 0 ? "headwind" : "tailwind")} {Math.Round(Math.Abs(limits.Wind.HeadwindKt))}");
+            Line("Wind limits", $"crosswind {limits.CrosswindLimitKt} kt ({limits.CrosswindLimitName}), tailwind {limits.TailwindLimitKt} kt — {(limits.Exceeded ? "EXCEEDED" : limits.Tone == Core.Weather.WindLimitTone.Amber ? "close to a limit" : "within limits")}");
         }
 
         Line("Visibility (m)", f.VisibilityM);

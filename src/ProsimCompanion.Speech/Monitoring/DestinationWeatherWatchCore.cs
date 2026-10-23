@@ -160,18 +160,11 @@ public sealed class DestinationWeatherWatchCore
     public static double? TailwindComponentKt(WxFacts facts, double runwayHeadingDeg)
     {
         ArgumentNullException.ThrowIfNull(facts);
-        if (facts.WindSpeedKt is not { } speed)
-        {
-            return null;
-        }
-
-        if (speed == 0 || facts.WindDirDeg is not { } direction)
-        {
-            return speed == 0 ? 0 : null; // variable wind with speed: direction unknown
-        }
-
-        var relative = (direction - runwayHeadingDeg) * Math.PI / 180.0;
-        return -speed * Math.Cos(relative);
+        // One trigonometry for every wind consumer (issue #182): the components come from
+        // Core's WindMath. A variable wind with speed stays "unknown" here (null), as before —
+        // the watch announces edges and must not invent a tailwind from a VRB group.
+        var wind = WindMath.Resolve(facts.WindDirDeg, facts.WindSpeedKt, null, runwayHeadingDeg);
+        return wind is null || wind.DirectionUnknown ? null : -wind.HeadwindKt;
     }
 
     /// <summary>"27R" → 270, "04" → 40; null when the designator has no number. Magnetic,

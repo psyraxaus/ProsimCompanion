@@ -142,6 +142,11 @@
         "loadsheet": "Gesprochenes Loadsheet aus Live-Gewichten, Pax und CG (ACARS-Chime).",
         "lastMessage": "Wiederholt die letzte Company-Nachricht."
       },
+      "windLimits": {
+        "title": "Windlimits",
+        "windCheck": "Der aktuelle Wind auf der benutzten Bahn gegen die Flugzeuglimits.",
+        "runwayCondition": "Der auf der Landing-Seite gewählte Bahnzustand und sein Seitenwindlimit."
+      },
       "day": {
         "title": "Dienstag",
         "start": "Startet den Company-Diensttag.",

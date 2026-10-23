@@ -36,6 +36,11 @@
       "runwayFetchFailed": "滑走路の取得に失敗: {0}",
       "weatherFetchFailed": "気象の取得に失敗（{0}）",
       "calcRequestFailedProsim": "計算リクエストに失敗 — ProSim は起動していますか？"
+    },
+    "wind": {
+      "components": "風成分",
+      "limits": "風制限",
+      "title": "横風制限 {0} kt（{2}）、追い風制限 {1} kt — ガスト込み"
     }
   }
 }

@@ -16,6 +16,7 @@
     },
     "condition": {
       "dry": "Trocken",
+      "wet": "Nass",
       "good": "Gut",
       "goodMedium": "G/M",
       "medium": "Mittel",

@@ -36,6 +36,11 @@
       "runwayFetchFailed": "Échec de la récupération des pistes : {0}",
       "weatherFetchFailed": "Échec de la récupération météo ({0})",
       "calcRequestFailedProsim": "Échec de la demande de calcul — ProSim est-il lancé ?"
+    },
+    "wind": {
+      "components": "Composantes du vent",
+      "limits": "Limites de vent",
+      "title": "Limite de vent traversier {0} kt ({2}), limite de vent arrière {1} kt — rafale incluse"
     }
   }
 }

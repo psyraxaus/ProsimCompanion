@@ -142,6 +142,11 @@
         "loadsheet": "実際の重量、旅客数、CG からの音声ロードシートです（ACARS チャイム）。",
         "lastMessage": "最後のカンパニーメッセージを繰り返します。"
       },
+      "windLimits": {
+        "title": "風制限",
+        "windCheck": "使用滑走路の現在の風を機体制限と比べます。",
+        "runwayCondition": "Landingページで選んだ滑走路状態とその横風制限。"
+      },
       "day": {
         "title": "勤務日",
         "start": "カンパニーの勤務日を開始します。",

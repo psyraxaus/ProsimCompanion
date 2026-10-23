@@ -1163,6 +1163,15 @@
           "hint": "Vanaf de cruise vertelt de FO je wanneer het zicht of de wolkenbasis op de bestemming je limiet kruist, wanneer de ATIS-letter verandert, of wanneer de wind op de geplande landingsbaan rugwind wordt.",
           "more": "Gebruikt de eigen verversing van de weerkaarten, geen extra polling. Het weer van het uitwijkveld komt erbij zodra de bestemming onder een limiet zit. Elke soort verandering wordt hoogstens eenmaal per rustperiode uitgesproken."
         },
+        "windLimits": {
+          "label": "Windlimieten",
+          "hint": "\"Wind check\" en \"runway condition\" met je stem, en een windlimietregel in de departure- en arrival-briefing.",
+          "more": "De limieten staan onder Display & Flight Data → Vliegtuiglimieten. De baantoestand komt van de Landing-pagina."
+        },
+        "windLimitAdvisory": {
+          "label": "Windadvies in de approach",
+          "hint": "In de approach zegt de FO één keer wanneer de bestemmingswind de landingsbaan buiten een limiet brengt."
+        },
         "visibility": "Zichtlimiet",
         "ceiling": "Wolkenbasislimiet",
         "tailwind": {

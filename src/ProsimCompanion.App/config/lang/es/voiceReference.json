@@ -142,6 +142,11 @@
         "loadsheet": "Loadsheet hablado con los pesos, pax y CG en vivo (chime ACARS).",
         "lastMessage": "Repite el último mensaje de compañía."
       },
+      "windLimits": {
+        "title": "Límites de viento",
+        "windCheck": "El viento actual en la pista en uso contra los límites del avión.",
+        "runwayCondition": "El estado de pista elegido en la página Landing y su límite de viento cruzado."
+      },
       "day": {
         "title": "Jornada",
         "start": "Inicia la jornada de la compañía.",
